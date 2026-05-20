@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { iconMap, ChevronIcon } from '../icons';
+import { iconMap, ChevronIcon, ClearIcon, NewSessionIcon } from '../icons';
 
 interface SidebarProps {
   collapsed: boolean;
   onResetSession: () => void;
   onClearLogs: () => void;
+  onMenuClick?: (view: string) => void;
   t: (key: string, params?: any) => string;
 }
 
@@ -35,11 +36,12 @@ const sidebarStyles = `
     min-width: 60px;
   }
   .sidebar-header {
-    padding: 16px 12px !important;
-    border-bottom: 1px solid var(--border-color);
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+  padding: 8px 12px !important;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 40px;
   }
   .sidebar.collapsed .sidebar-header {
     padding: 12px 8px !important;
@@ -290,28 +292,39 @@ if (typeof document !== 'undefined') {
 
 const menuConfig: MenuItem[] = [
   { id: 'dashboard', icon: 'dashboard', label: 'menu.dashboard' },
+  { id: 'history', icon: 'history', label: 'menu.history' },
+  { id: 'favorites', icon: 'favorites', label: 'menu.favorites' },
   {
-    id: 'workspace',
-    icon: 'workspace',
-    label: 'menu.workspace',
+    id: 'skills_group',
+    icon: 'skills',
+    label: 'menu.skillsGroup',
     children: [
-      { id: 'projects', icon: 'projects', label: 'menu.projects' },
-      { id: 'files', icon: 'files', label: 'menu.files', badge: '3' },
+      { id: 'skills', icon: 'skills', label: 'menu.skills' },
+      { id: 'knowledge', icon: 'knowledge', label: 'menu.knowledge' },
+      { id: 'skillMarket', icon: 'skillMarket', label: 'menu.skillMarket' },
     ]
   },
-  { id: 'sessions', icon: 'sessions', label: 'menu.sessions', badge: '1' },
-  { id: 'skills', icon: 'skills', label: 'menu.skills', badge: '3' },
   {
-    id: 'tools',
-    icon: 'tools',
-    label: 'menu.tools',
+    id: 'tasks_group',
+    icon: 'tasks',
+    label: 'menu.tasksGroup',
     children: [
-      { id: 'agents', icon: 'agents', label: 'menu.agents' },
-      { id: 'nodes', icon: 'nodes', label: 'menu.nodes' },
+      { id: 'taskQueue', icon: 'taskQueue', label: 'menu.taskQueue' },
+      { id: 'scheduledTasks', icon: 'scheduledTasks', label: 'menu.scheduledTasks' },
+      { id: 'executionHistory', icon: 'executionHistory', label: 'menu.executionHistory' },
     ]
   },
-  { id: 'settings', icon: 'settings', label: 'menu.settings' },
-  { id: 'debug', icon: 'debug', label: 'menu.debug' },
+  {
+    id: 'config_group',
+    icon: 'config',
+    label: 'menu.configGroup',
+    children: [
+      { id: 'settings', icon: 'settings', label: 'menu.settings' },
+      { id: 'plugins', icon: 'plugins', label: 'menu.plugins' },
+      { id: 'monitor', icon: 'monitor', label: 'menu.monitor' },
+      { id: 'debug', icon: 'debug', label: 'menu.debug' },
+    ]
+  },
 ];
 
 const getIcon = (iconName: string) => {
@@ -403,21 +416,26 @@ const MenuItemComponent: React.FC<MenuItemComponentProps> = ({
   );
 };
 
-const Sidebar: React.FC<SidebarProps> = ({ collapsed, onResetSession, onClearLogs, t }) => {
+const Sidebar: React.FC<SidebarProps> = ({ collapsed, onResetSession, onClearLogs, onMenuClick, t }) => {
   const [activeId, setActiveId] = useState('dashboard');
+
   const handleMenuClick = (id: string) => {
     setActiveId(id);
+    if (onMenuClick) {
+      onMenuClick(id);
+    }
   };
+
   if (collapsed) {
     return (
       <aside className="sidebar collapsed">
         <div className="sidebar-header">
           <button className="header-action-btn" onClick={onResetSession} title={t('actions.newSession')}>
-            <span className="action-icon">🔄</span>
+            <NewSessionIcon size={14} />
             <span className="action-label">{t('actions.newSession')}</span>
           </button>
           <button className="header-action-btn" onClick={onClearLogs} title={t('actions.clearTerminal')}>
-            <span className="action-icon">🧹</span>
+            <ClearIcon size={14} />
             <span className="action-label">{t('actions.clearTerminal')}</span>
           </button>
         </div>
@@ -437,12 +455,6 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onResetSession, onClearLog
             );
           })}
         </nav>
-        <div className="sidebar-footer">
-          <div className="runtime-info-collapsed">
-            <div>{t('runtime.model')}</div>
-            <div>{t('runtime.engine')}</div>
-          </div>
-        </div>
       </aside>
     );
   }
@@ -450,12 +462,12 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onResetSession, onClearLog
   return (
     <aside className="sidebar">
       <div className="sidebar-header">
-        <button className="header-action-btn" onClick={onResetSession}>
-          <span className="action-icon">🔄</span>
+        <button className="header-action-btn" onClick={onResetSession} title={t('actions.newSession')}>
+          <NewSessionIcon size={14} />
           <span className="action-label">{t('actions.newSession')}</span>
         </button>
-        <button className="header-action-btn" onClick={onClearLogs}>
-          <span className="action-icon">🧹</span>
+        <button className="header-action-btn" onClick={onClearLogs} title={t('actions.clearTerminal')}>
+          <ClearIcon size={14} />
           <span className="action-label">{t('actions.clearTerminal')}</span>
         </button>
       </div>
@@ -471,18 +483,6 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onResetSession, onClearLog
           />
         ))}
       </nav>
-      <div className="sidebar-footer">
-        <div className="runtime-info">
-          <div className="info-row">
-            <span>{t('runtime.model')}:</span>
-            <code>hippox-core</code>
-          </div>
-          <div className="info-row">
-            <span>{t('runtime.engine')}:</span>
-            <code>{t('runtime.skillOrchestration')}</code>
-          </div>
-        </div>
-      </div>
     </aside>
   );
 };

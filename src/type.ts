@@ -4,6 +4,7 @@ export interface ExecutionLog {
   level: 'info' | 'success' | 'error' | 'process';
   message: string;
   details?: string;
+  duration?: number;
 }
 
 export interface ChatMessage {

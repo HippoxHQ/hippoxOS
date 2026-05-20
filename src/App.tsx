@@ -3,6 +3,7 @@ import ChatPanel from './components/ChatPanel';
 import ResizablePanels from './components/ResizablePanels';
 import Sidebar from './components/Sidebar';
 import TerminalPanel from './components/TerminalPanel';
+import MenuPanel, { MenuPanelView } from './components/MenuPanel';
 import TopBar from './components/TopBar';
 import BottomBar from './components/BottomBar';
 import { useTranslation } from './hooks/useTranslation';
@@ -12,35 +13,39 @@ function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [theme, setTheme] = useState<Theme>(() => {
     const saved = localStorage.getItem('hippox-theme') as Theme;
-    return saved || 'dark';
+    return saved || 'light';
   });
   const [language, setLanguage] = useState<Language>(() => {
     const saved = localStorage.getItem('hippox-language') as Language;
-    return saved || 'zh';
+    return saved || 'en';
   });
   const { t } = useTranslation(language);
-  const [executionLogs, setExecutionLogs] = useState<ExecutionLog[]>([
+  const [menuPanelView, setMenuPanelView] = useState<MenuPanelView | null>(null);
+  const [menuPanelWidth, setMenuPanelWidth] = useState<number>(320);
+  const [executionLogs, setExecutionLogs] = useState<ExecutionLog[]>(() => [
     {
       id: '1',
       timestamp: new Date().toLocaleTimeString(),
       level: 'info',
       message: t('logs.init'),
-      details: t('logs.initDetail')
+      details: t('logs.initDetail', { count: 156, memory: '42MB', dir: '/home/user' }),
+      duration: 340
     },
     {
       id: '2',
       timestamp: new Date().toLocaleTimeString(),
       level: 'success',
-      message: t('logs.skillsLoaded'),
-      details: 'SKILL.md: WebSearch, FileProcessor, CodeExecutor'
+      message: t('logs.ready'),
+      details: t('logs.readyDetail'),
     },
     {
       id: '3',
       timestamp: new Date().toLocaleTimeString(),
       level: 'info',
-      message: t('logs.listening'),
-      details: t('logs.listeningDetail')
-    }
+      message: t('logs.decision'),
+      details: t('logs.decisionDetail', { count: 156 }),
+      duration: 12
+    },
   ]);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
     {
@@ -64,6 +69,16 @@ function App() {
       timestamp: new Date().toLocaleTimeString()
     };
     setExecutionLogs(prev => [...prev, newLog]);
+  };
+  const handleMenuClick = (view: string) => {
+    if (view === 'dashboard') {
+      setMenuPanelView(null);
+    } else {
+      setMenuPanelView(view as MenuPanelView);
+    }
+  };
+  const closeMenuPanel = () => {
+    setMenuPanelView(null);
   };
   const handleSendMessage = async (userMessage: string) => {
     const userMsg: ChatMessage = {
@@ -141,7 +156,6 @@ function App() {
       details: t('logs.clearedDetail')
     });
   };
-
   const resetSession = () => {
     setChatMessages([
       {
@@ -162,19 +176,15 @@ function App() {
       details: t('logs.startupDetail')
     });
   };
-
   const toggleTheme = () => {
     setTheme(prev => prev === 'dark' ? 'light' : 'dark');
   };
-
   const toggleLanguage = () => {
     setLanguage(prev => prev === 'zh' ? 'en' : 'zh');
   };
-
   const toggleSidebar = () => {
     setSidebarCollapsed(prev => !prev);
   };
-
   return (
     <div className="App">
       <TopBar
@@ -191,8 +201,42 @@ function App() {
           collapsed={sidebarCollapsed}
           onResetSession={resetSession}
           onClearLogs={clearLogs}
+          onMenuClick={handleMenuClick}
           t={t}
         />
+        {menuPanelView && (
+          <>
+            <div className="menu-panel-left" style={{ width: menuPanelWidth }}>
+              <MenuPanel currentView={menuPanelView} onClose={closeMenuPanel} t={t} />
+            </div>
+            <div
+              className="resize-handle-menu"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                const startX = e.clientX;
+                const startWidth = menuPanelWidth;
+                const onMouseMove = (moveEvent: MouseEvent) => {
+                  const newWidth = startWidth + (moveEvent.clientX - startX);
+                  if (newWidth >= 200 && newWidth <= 600) {
+                    setMenuPanelWidth(newWidth);
+                  }
+                };
+                const onMouseUp = () => {
+                  document.removeEventListener('mousemove', onMouseMove);
+                  document.removeEventListener('mouseup', onMouseUp);
+                  document.body.style.cursor = '';
+                  document.body.style.userSelect = '';
+                };
+                document.body.style.cursor = 'col-resize';
+                document.body.style.userSelect = 'none';
+                document.addEventListener('mousemove', onMouseMove);
+                document.addEventListener('mouseup', onMouseUp);
+              }}
+            >
+              <div className="handle-line"></div>
+            </div>
+          </>
+        )}
         <ResizablePanels
           leftPanel={<TerminalPanel logs={executionLogs} onClearLogs={clearLogs} t={t} />}
           rightPanel={<ChatPanel messages={chatMessages} onSendMessage={handleSendMessage} t={t} />}

@@ -2,8 +2,6 @@ export const zh = {
   welcome: { message: '你好，我是 Hippox AI 运行时。我有自主决策能力，可以执行技能并实时反馈。有什么可以帮你的？' },
   session: { reset: '会话已重置。Hippox 运行时重新就绪，自主决策引擎已刷新。' },
   logs: {
-    init: '🚀 Hippox 运行时初始化完成',
-    initDetail: 'Skill 引擎已启动，自主决策模块就绪',
     skillsLoaded: '已加载 3 个技能模块',
     listening: '监听用户指令中...',
     listeningDetail: '等待自然语言输入或系统事件',
@@ -25,14 +23,28 @@ export const zh = {
     reset: '🔄 新建会话 (/reset)',
     resetDetail: '上下文已清空，SessionStartup 序列执行',
     startupComplete: '✅ 会话启动序列完成',
-    startupDetail: '已读取 SOUL.md，运行时模型: hippox-default-v1'
+    startupDetail: '已读取 SOUL.md，运行时模型: hippox-default-v1',
+    init: '🦛 HippoX启动',
+    initDetail: '{{count}}个技能 | {{memory}} | 工作目录: {{dir}}',
+    ready: '✅ 系统就绪',
+    readyDetail: '等待用户指令',
+    decision: '🧠 自主决策',
+    decisionDetail: '扫描可用技能池 | 识别到 {{count}} 个原子能力',
   },
   skills: {
     search: '🔍 已调用「WebSearch Skill」技能。正在模拟网络搜索: "{{query}}"\n\n（当前为演示模式，实际将连接搜索引擎返回实时结果）',
     file: '📁 已调用「FileProcessor Skill」技能。可读取、分析本地文件，目前为沙盒演示。\n\n你可以通过 Tauri 原生对话框选择文件。',
     code: '💻 已调用「CodeExecutor Skill」技能。支持 Python/JS 代码片段执行（隔离环境）。\n\n示例: print("Hello Hippox")',
     dialog: '对话推理',
-    default: '✨ 已收到你的消息: "{{message}}"\n\n我是 Hippox — 基于 Skill 的自主 AI 运行时。我可以调用技能、执行终端指令并实时反馈。你可以尝试让我「搜索 AI 新闻」、「读取配置文件」或「运行一段代码」。'
+    default: '✨ 已收到你的消息: "{{message}}"\n\n我是 Hippox — 基于 Skill 的自主 AI 运行时。我可以调用技能、执行终端指令并实时反馈。你可以尝试让我「搜索 AI 新闻」、「读取配置文件」或「运行一段代码」。',
+    searchPlaceholder: '搜索技能...',
+    totalCount: '共 {{count}} 个技能',
+    category: {
+      fileSystem: '文件系统',
+      network: '网络通信',
+      system: '系统管理',
+      database: '数据库',
+    }
   },
   menu: {
     dashboard: '概览',
@@ -45,22 +57,120 @@ export const zh = {
     agents: '代理',
     nodes: '节点',
     settings: '设置',
-    debug: '调试'
+    debug: '调试',
+    history: '历史会话',
+    favorites: '收藏/书签',
+    knowledge: '知识库',
+    skillMarket: '技能市场',
+    taskQueue: '任务队列',
+    scheduledTasks: '定时任务',
+    executionHistory: '执行历史',
+    plugins: '插件管理',
+    monitor: '监控面板',
+    skillsGroup: '技能与知识',
+    tasksGroup: '执行与任务',
+    configGroup: '配置与工具',
   },
   status: { healthy: '健康状况正常' },
   actions: { newSession: '新建会话', clearTerminal: '清空终端' },
   runtime: { model: '运行时模型', engine: '决策引擎', skillOrchestration: '自主Skill编排' },
-  terminal: { title: '终端日志', clear: '清空日志', empty: '暂无日志，等待执行步骤...' },
-  chat: { title: '对话界面', mainSession: 'Main Session', placeholder: '输入消息...', send: '发送', hint: 'Shift+Enter 换行，Enter 发送' },
-  tooltip: { theme: '切换主题', language: '切换语言' }
+  terminal: { title: '终端日志', clear: '清空日志', empty: '暂无日志，等待执行步骤...', scrollToBottom: '回到底部' },
+  chat: { title: '对话界面', mainSession: 'Main Session', placeholder: '输入消息...', send: '发送', hint: 'Shift+Enter 换行，Enter 发送', scrollToBottom: '回到底部' },
+  tooltip: { theme: '切换主题', language: '切换语言' },
+  topbar: {
+    collapseSidebar: '折叠侧边栏',
+    expandSidebar: '展开侧边栏',
+    toggleTheme: '切换主题',
+    toggleLanguage: '切换语言'
+  },
+  common: {
+    close: '关闭'
+  },
+  history: {
+    dataAnalysis: '数据分析对话',
+    codeDebug: '代码调试会话',
+    fileProcess: '文件处理任务',
+    analyzeData: '分析 data.csv',
+    readConfig: '读取配置文件',
+    dbConnect: '数据库连接',
+    duration: '耗时 {{time}}',
+    failed: '连接失败'
+  },
+  favorites: {
+    dataAnalysisTemplate: '数据分析模板',
+    codeReviewFlow: '代码审查流程',
+    deployChecklist: '部署检查清单',
+    dbBackupScript: '数据库备份脚本'
+  },
+  knowledge: {
+    soulDesc: '核心人格定义文件',
+    skillDesc: '技能定义规范',
+    apiTitle: 'API 参考文档',
+    apiDesc: '开发者接口文档'
+  },
+  market: {
+    emailDesc: '发送邮件通知',
+    visualizerDesc: '生成数据图表',
+    codeDesc: '代码审查和优化',
+    install: '安装'
+  },
+  task: {
+    analyzeData: '分析 data.csv',
+    weeklyReport: '生成周报',
+    dbBackup: '备份数据库',
+    waiting: '等待中',
+    completed: '已完成'
+  },
+  scheduled: {
+    dailyBackup: '每天 09:00 - 数据备份',
+    weeklyReport: '每周一 10:00 - 周报生成',
+    monthlyCleanup: '每月1日 00:00 - 日志清理',
+    edit: '编辑',
+    addTask: '添加定时任务'
+  },
+  settings: {
+    aiConfig: 'AI 模型配置',
+    defaultModel: '默认模型',
+    apiKey: 'API Key',
+    apiKeyPlaceholder: '请输入 API Key',
+    interfaceConfig: '界面设置',
+    theme: '主题',
+    themeDark: '深色',
+    themeLight: '浅色',
+    themeSystem: '跟随系统',
+    language: '语言',
+    langZh: '中文',
+    langEn: 'English'
+  },
+  plugins: {
+    integration: '集成',
+    support: '支持',
+    githubDesc: 'GitHub API 支持',
+    k8sDesc: 'k8s 集群管理',
+    dockerDesc: '容器管理',
+    enabled: '已启用',
+    disabled: '未启用'
+  },
+  monitor: {
+    cpuUsage: 'CPU 使用率',
+    memoryUsage: '内存使用',
+    apiCalls: 'API 调用',
+    skillExecutions: '技能执行'
+  },
+  debug: {
+    viewRawLogs: '查看原始日志',
+    skillTrace: '技能调用链追踪',
+    performanceAnalysis: '性能分析',
+    registryLoaded: '技能注册表加载完成',
+    skillsReady: '{{count}} 个技能已就绪',
+    waitingForCommand: '等待用户指令...'
+  }
 };
 
 export const en: typeof zh = {
   welcome: { message: 'Hello, I am Hippox AI Runtime. I have autonomous decision-making capabilities and can execute skills with real-time feedback. How can I help you?' },
   session: { reset: 'Session reset. Hippox runtime ready, decision engine refreshed.' },
   logs: {
-    init: '🚀 Hippox runtime initialized',
-    initDetail: 'Skill engine started, autonomous decision module ready',
     skillsLoaded: 'Loaded 3 skills',
     listening: 'Listening for user commands...',
     listeningDetail: 'Waiting for natural language input or system events',
@@ -82,14 +192,28 @@ export const en: typeof zh = {
     reset: '🔄 New session (/reset)',
     resetDetail: 'Context cleared, SessionStartup sequence executed',
     startupComplete: '✅ Session startup sequence complete',
-    startupDetail: 'Read SOUL.md, runtime model: hippox-default-v1'
+    startupDetail: 'Read SOUL.md, runtime model: hippox-default-v1',
+    init: '🦛 HippoX starting',
+    initDetail: '{{count}} skills | {{memory}} | Working dir: {{dir}}',
+    ready: '✅ System ready',
+    readyDetail: 'Waiting for user command',
+    decision: '🧠 Autonomous decision',
+    decisionDetail: 'Scanning skill pool | Found {{count}} atomic capabilities',
   },
   skills: {
     search: '🔍 Called "WebSearch Skill". Simulating web search: "{{query}}"\n\n(Demo mode, actual implementation would connect to search engine)',
     file: '📁 Called "FileProcessor Skill". Can read and analyze local files, currently in sandbox demo.\n\nYou can select files via Tauri native dialog.',
     code: '💻 Called "CodeExecutor Skill". Supports Python/JS code execution (isolated environment).\n\nExample: print("Hello Hippox")',
     dialog: 'Dialog Reasoning',
-    default: '✨ Received your message: "{{message}}"\n\nI am Hippox — Skill-based autonomous AI runtime. I can invoke skills, execute terminal commands, and provide real-time feedback. Try asking me to "search AI news", "read config file", or "run some code".'
+    default: '✨ Received your message: "{{message}}"\n\nI am Hippox — Skill-based autonomous AI runtime. I can invoke skills, execute terminal commands, and provide real-time feedback. Try asking me to "search AI news", "read config file", or "run some code".',
+    searchPlaceholder: 'Search skills...',
+    totalCount: '{{count}} skills total',
+    category: {
+      fileSystem: 'File System',
+      network: 'Network',
+      system: 'System Management',
+      database: 'Database',
+    }
   },
   menu: {
     dashboard: 'Dashboard',
@@ -102,12 +226,112 @@ export const en: typeof zh = {
     agents: 'Agents',
     nodes: 'Nodes',
     settings: 'Settings',
-    debug: 'Debug'
+    debug: 'Debug',
+    history: 'History',
+    favorites: 'Favorites',
+    knowledge: 'Knowledge',
+    skillMarket: 'Skill Market',
+    taskQueue: 'Task Queue',
+    scheduledTasks: 'Scheduled Tasks',
+    executionHistory: 'Execution History',
+    plugins: 'Plugins',
+    monitor: 'Monitor',
+    skillsGroup: 'Skills & Knowledge',
+    tasksGroup: 'Execution & Tasks',
+    configGroup: 'Config & Tools',
   },
   status: { healthy: 'Healthy' },
   actions: { newSession: 'New Session', clearTerminal: 'Clear Terminal' },
   runtime: { model: 'Runtime Model', engine: 'Decision Engine', skillOrchestration: 'Skill Orchestration' },
-  terminal: { title: 'Terminal Logs', clear: 'Clear logs', empty: 'No logs, waiting for execution steps...' },
-  chat: { title: 'Chat Interface', mainSession: 'Main Session', placeholder: 'Type a message...', send: 'Send', hint: 'Shift+Enter for new line, Enter to send' },
-  tooltip: { theme: 'Toggle theme', language: 'Toggle language' }
+  terminal: { title: 'Terminal Logs', clear: 'Clear logs', empty: 'No logs, waiting for execution steps...', scrollToBottom: 'Scroll to bottom' },
+  chat: { title: 'Chat Interface', mainSession: 'Main Session', placeholder: 'Type a message...', send: 'Send', hint: 'Shift+Enter for new line, Enter to send', scrollToBottom: 'Scroll to bottom' },
+  tooltip: { theme: 'Toggle theme', language: 'Toggle language' },
+  topbar: {
+    collapseSidebar: 'Collapse Sidebar',
+    expandSidebar: 'Expand Sidebar',
+    toggleTheme: 'Toggle Theme',
+    toggleLanguage: 'Toggle Language'
+  },
+  common: {
+    close: 'Close'
+  },
+  history: {
+    dataAnalysis: 'Data Analysis Chat',
+    codeDebug: 'Code Debug Session',
+    fileProcess: 'File Processing Task',
+    analyzeData: 'Analyze data.csv',
+    readConfig: 'Read config file',
+    dbConnect: 'Database connection',
+    duration: 'Duration {{time}}',
+    failed: 'Connection failed'
+  },
+  favorites: {
+    dataAnalysisTemplate: 'Data Analysis Template',
+    codeReviewFlow: 'Code Review Flow',
+    deployChecklist: 'Deploy Checklist',
+    dbBackupScript: 'Database Backup Script'
+  },
+  knowledge: {
+    soulDesc: 'Core personality definition file',
+    skillDesc: 'Skill definition specification',
+    apiTitle: 'API Reference',
+    apiDesc: 'Developer API documentation'
+  },
+  market: {
+    emailDesc: 'Send email notifications',
+    visualizerDesc: 'Generate data charts',
+    codeDesc: 'Code review and optimization',
+    install: 'Install'
+  },
+  task: {
+    analyzeData: 'Analyze data.csv',
+    weeklyReport: 'Generate weekly report',
+    dbBackup: 'Backup database',
+    waiting: 'Waiting',
+    completed: 'Completed'
+  },
+  scheduled: {
+    dailyBackup: 'Daily 09:00 - Data backup',
+    weeklyReport: 'Weekly Monday 10:00 - Weekly report',
+    monthlyCleanup: 'Monthly 1st 00:00 - Log cleanup',
+    edit: 'Edit',
+    addTask: 'Add scheduled task'
+  },
+  settings: {
+    aiConfig: 'AI Model Configuration',
+    defaultModel: 'Default Model',
+    apiKey: 'API Key',
+    apiKeyPlaceholder: 'Enter API Key',
+    interfaceConfig: 'Interface Settings',
+    theme: 'Theme',
+    themeDark: 'Dark',
+    themeLight: 'Light',
+    themeSystem: 'Follow System',
+    language: 'Language',
+    langZh: '中文',
+    langEn: 'English'
+  },
+  plugins: {
+    integration: 'Integration',
+    support: 'Support',
+    githubDesc: 'GitHub API Support',
+    k8sDesc: 'k8s cluster management',
+    dockerDesc: 'Container management',
+    enabled: 'Enabled',
+    disabled: 'Disabled'
+  },
+  monitor: {
+    cpuUsage: 'CPU Usage',
+    memoryUsage: 'Memory Usage',
+    apiCalls: 'API Calls',
+    skillExecutions: 'Skill Executions'
+  },
+  debug: {
+    viewRawLogs: 'View Raw Logs',
+    skillTrace: 'Skill Call Chain Trace',
+    performanceAnalysis: 'Performance Analysis',
+    registryLoaded: 'Skill registry loaded',
+    skillsReady: '{{count}} skills ready',
+    waitingForCommand: 'Waiting for user command...'
+  }
 };
