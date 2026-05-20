@@ -82,7 +82,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ messages, onSendMessage, t }) => 
           <span className="title-icon">💬</span>
           <span>{t('chat.title')}</span>
         </div>
-        <div className="chat-badge">{t('chat.mainSession')}</div>
       </div>
       <div className="chat-messages-wrapper">
         <div

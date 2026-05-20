@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { iconMap, ChevronIcon } from '../icons';
 
 interface SidebarProps {
   collapsed: boolean;
@@ -17,7 +18,8 @@ interface MenuItem {
 
 const sidebarStyles = `
   .sidebar {
-    width: 20% !important; 
+    width: 10% !important;
+    min-width: 180px;
     background: var(--bg-secondary);
     border-right: 1px solid var(--border-color);
     display: flex;
@@ -26,25 +28,22 @@ const sidebarStyles = `
     transition: width 0.2s ease;
     overflow-y: auto;
     overflow-x: hidden;
+    user-select: none;
   }
-
   .sidebar.collapsed {
-    width: 60px;
+    width: 60px !important;
     min-width: 60px;
   }
-
   .sidebar-header {
-    padding: 16px;
+    padding: 16px 12px !important;
     border-bottom: 1px solid var(--border-color);
     display: flex;
     flex-direction: column;
     gap: 8px;
   }
-
   .sidebar.collapsed .sidebar-header {
-    padding: 16px 10px;
+    padding: 12px 8px !important;
   }
-
   .header-action-btn {
     display: flex;
     align-items: center;
@@ -53,234 +52,229 @@ const sidebarStyles = `
     background: var(--bg-tertiary);
     border: 1px solid var(--border-color);
     color: var(--text-primary);
-    padding: 8px 12px;
+    padding: 8px 12px !important;
     border-radius: 8px;
     cursor: pointer;
-    font-size: 13px;
+    font-size: 12px;
     transition: all 0.2s;
     width: 100%;
   }
-
   .sidebar.collapsed .header-action-btn {
-    padding: 10px 0;
+    padding: 8px 0 !important;
   }
-
   .sidebar.collapsed .header-action-btn .action-label {
     display: none;
   }
-
   .header-action-btn:hover {
     background: var(--hover-bg);
-    border-color: var(--accent-blue);
+    border-color: var(--text-secondary);
   }
-
   .action-icon {
-    font-size: 16px;
+    font-size: 14px;
   }
-
   .action-label {
-    font-size: 13px;
+    font-size: 12px;
   }
-
   .sidebar-nav {
     flex: 1;
-    padding: 0;
+    padding: 8px 0 !important;
     margin: 0;
   }
-
   .sidebar.collapsed .sidebar-nav {
-    padding: 0;
+    padding: 8px 0 !important;
   }
-
-  .nav-item,
-  .sub-nav-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 10px 16px;
-    margin: 0;
-    border-radius: 0;
-    cursor: pointer;
-    transition: all 0.2s;
-    color: var(--text-secondary);
-    width: 100%;
-  }
-
   .nav-item-parent {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 10px 16px;
-    margin: 0;
+    padding: 8px 16px !important;
+    margin: 0 !important;
     cursor: pointer;
     transition: all 0.2s;
     color: var(--text-secondary);
     width: 100%;
+    box-sizing: border-box;
   }
-
   .nav-item-parent:hover {
     background: var(--hover-bg);
     color: var(--text-primary);
   }
-
   .nav-item-parent .nav-item-content {
     display: flex;
     align-items: center;
     gap: 12px;
   }
-
   .nav-item-parent .chevron {
-    font-size: 12px;
     transition: transform 0.2s;
+    color: var(--text-muted);
   }
-
   .nav-item-parent .chevron.open {
     transform: rotate(90deg);
   }
-
+  .sub-menu {
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    width: 100%;
+  }
+  .sub-nav-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 6px 16px 6px 44px !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: var(--text-secondary);
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 16px !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: var(--text-secondary);
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .nav-item.active,
+  .sub-nav-item.active {
+    background: var(--hover-bg) !important;
+    color: var(--text-primary) !important;
+    font-weight: 500;
+  }
+  .nav-item.active .nav-icon,
+  .sub-nav-item.active .sub-nav-icon {
+    color: var(--text-primary) !important;
+  }
+  .nav-item.active .nav-label,
+  .sub-nav-item.active .sub-nav-label {
+    color: var(--text-primary) !important;
+    font-weight: 500;
+  }
+  .nav-item:hover,
+  .sub-nav-item:hover {
+    background: var(--hover-bg);
+    color: var(--text-primary);
+  }
   .sidebar.collapsed .nav-item-parent .chevron {
     display: none;
   }
-
   .sidebar.collapsed .nav-item-parent .nav-label {
     display: none;
   }
-
   .sidebar.collapsed .nav-item-parent {
     justify-content: center;
-    padding: 12px 0;
+    padding: 10px 0 !important;
   }
-
   .sidebar.collapsed .nav-item,
   .sidebar.collapsed .sub-nav-item {
     justify-content: center;
-    padding: 10px 0;
+    padding: 10px 0 !important;
   }
-
   .sidebar.collapsed .nav-label,
   .sidebar.collapsed .sub-nav-label {
     display: none;
   }
-
   .sidebar.collapsed .nav-badge,
   .sidebar.collapsed .sub-nav-badge {
     display: none;
   }
-
-  .nav-item:hover,
-  .sub-nav-item:hover,
-  .nav-item.active,
-  .sub-nav-item.active {
-    background: var(--hover-bg);
-    color: var(--text-primary);
-  }
-
-  .sub-menu {
-    display: flex;
-    flex-direction: column;
-    padding-left: 44px;
-  }
-
   .sidebar.collapsed .sub-menu {
     display: none;
   }
-
-  .sub-nav-item {
-    padding: 8px 16px;
-    font-size: 13px;
-  }
-
   .nav-icon,
   .sub-nav-icon {
-    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     min-width: 24px;
   }
-
   .nav-label,
   .sub-nav-label {
-    font-size: 14px;
+    font-size: 13px;
     flex: 1;
   }
-
   .nav-badge,
   .sub-nav-badge {
-    background: var(--accent-blue);
-    color: white;
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
     font-size: 10px;
-    padding: 2px 6px;
+    padding: 1px 6px;
     border-radius: 10px;
   }
-
+  .nav-item.active .nav-badge,
+  .sub-nav-item.active .sub-nav-badge {
+    background: var(--border-color);
+    color: var(--text-primary);
+  }
   .sidebar-footer {
-    padding: 16px;
+    padding: 12px;
     border-top: 1px solid var(--border-color);
   }
-
   .sidebar.collapsed .sidebar-footer {
-    padding: 12px 8px;
+    padding: 10px 6px;
   }
-
   .sidebar.collapsed .runtime-info {
     display: none;
   }
-
   .runtime-info {
-    font-size: 11px;
-    color: var(--text-secondary);
+    font-size: 10px;
+    color: var(--text-muted);
   }
-
   .info-row {
     display: flex;
     justify-content: space-between;
-    margin-bottom: 6px;
+    margin-bottom: 4px;
   }
-
   .runtime-info-collapsed {
-    font-size: 9px;
-    color: var(--text-secondary);
+    font-size: 8px;
+    color: var(--text-muted);
     text-align: center;
     word-break: break-word;
   }
-
   .sidebar-nav-collapsed {
     flex: 1;
-    padding: 16px 8px;
+    padding: 12px 6px;
     display: flex;
     flex-direction: column;
     gap: 8px;
   }
-
   .nav-item-collapsed {
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 12px 0;
+    padding: 8px 0;
     border-radius: 8px;
     cursor: pointer;
     transition: all 0.2s;
     color: var(--text-secondary);
     position: relative;
   }
-
-  .nav-item-collapsed .nav-icon {
-    font-size: 22px;
+  .nav-item-collapsed .nav-icon svg {
+    width: 20px;
+    height: 20px;
   }
-
   .nav-item-collapsed:hover,
   .nav-item-collapsed.active {
     background: var(--hover-bg);
     color: var(--text-primary);
   }
-
   .nav-badge-collapsed {
     position: absolute;
-    top: 4px;
-    right: 12px;
-    background: var(--accent-blue);
-    color: white;
-    font-size: 9px;
-    padding: 1px 5px;
-    border-radius: 10px;
+    top: 2px;
+    right: 8px;
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+    font-size: 8px;
+    padding: 1px 4px;
+    border-radius: 8px;
   }
 `;
 
@@ -295,34 +289,38 @@ if (typeof document !== 'undefined') {
 }
 
 const menuConfig: MenuItem[] = [
-  { id: 'dashboard', icon: '📊', label: 'menu.dashboard' },
+  { id: 'dashboard', icon: 'dashboard', label: 'menu.dashboard' },
   {
     id: 'workspace',
-    icon: '📁',
+    icon: 'workspace',
     label: 'menu.workspace',
     children: [
-      { id: 'projects', icon: '📄', label: 'menu.projects' },
-      { id: 'files', icon: '📃', label: 'menu.files', badge: '3' },
+      { id: 'projects', icon: 'projects', label: 'menu.projects' },
+      { id: 'files', icon: 'files', label: 'menu.files', badge: '3' },
     ]
   },
-  { id: 'sessions', icon: '💬', label: 'menu.sessions', badge: '1' },
-  { id: 'skills', icon: '⚡', label: 'menu.skills', badge: '3' },
+  { id: 'sessions', icon: 'sessions', label: 'menu.sessions', badge: '1' },
+  { id: 'skills', icon: 'skills', label: 'menu.skills', badge: '3' },
   {
     id: 'tools',
-    icon: '🔧',
+    icon: 'tools',
     label: 'menu.tools',
     children: [
-      { id: 'agents', icon: '🤖', label: 'menu.agents' },
-      { id: 'nodes', icon: '🔄', label: 'menu.nodes' },
+      { id: 'agents', icon: 'agents', label: 'menu.agents' },
+      { id: 'nodes', icon: 'nodes', label: 'menu.nodes' },
     ]
   },
-  { id: 'settings', icon: '⚙️', label: 'menu.settings' },
-  { id: 'debug', icon: '🐞', label: 'menu.debug' },
+  { id: 'settings', icon: 'settings', label: 'menu.settings' },
+  { id: 'debug', icon: 'debug', label: 'menu.debug' },
 ];
+
+const getIcon = (iconName: string) => {
+  const IconComponent = iconMap[iconName];
+  return IconComponent ? <IconComponent /> : null;
+};
 
 interface MenuItemComponentProps {
   item: MenuItem;
-  depth?: number;
   collapsed: boolean;
   activeId: string;
   onMenuClick: (id: string) => void;
@@ -338,6 +336,7 @@ const MenuItemComponent: React.FC<MenuItemComponentProps> = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const hasChildren = item.children && item.children.length > 0;
+  const IconComponent = iconMap[item.icon];
 
   const handleClick = () => {
     if (hasChildren) {
@@ -353,7 +352,7 @@ const MenuItemComponent: React.FC<MenuItemComponentProps> = ({
         <>
           <div className="nav-item-parent" onClick={handleClick} title={t(item.label)}>
             <div className="nav-item-content">
-              <span className="nav-icon">{item.icon}</span>
+              <span className="nav-icon">{IconComponent && <IconComponent />}</span>
             </div>
           </div>
         </>
@@ -365,37 +364,39 @@ const MenuItemComponent: React.FC<MenuItemComponentProps> = ({
         onClick={handleClick}
         title={t(item.label)}
       >
-        <span className="nav-icon">{item.icon}</span>
+        <span className="nav-icon">{IconComponent && <IconComponent />}</span>
         {item.badge && <span className="nav-badge-collapsed">{item.badge}</span>}
       </div>
     );
   }
-
   return (
     <>
       <div className="nav-item-parent" onClick={handleClick}>
         <div className="nav-item-content">
-          <span className="nav-icon">{item.icon}</span>
+          <span className="nav-icon">{IconComponent && <IconComponent />}</span>
           <span className="nav-label">{t(item.label)}</span>
           {item.badge && <span className="nav-badge">{item.badge}</span>}
         </div>
         {hasChildren && (
-          <span className={`chevron ${isOpen ? 'open' : ''}`}>▶</span>
+          <ChevronIcon className={`chevron ${isOpen ? 'open' : ''}`} />
         )}
       </div>
       {hasChildren && isOpen && (
         <div className="sub-menu">
-          {item.children!.map(child => (
-            <div
-              key={child.id}
-              className={`sub-nav-item ${activeId === child.id ? 'active' : ''}`}
-              onClick={() => onMenuClick(child.id)}
-            >
-              <span className="sub-nav-icon">{child.icon}</span>
-              <span className="sub-nav-label">{t(child.label)}</span>
-              {child.badge && <span className="sub-nav-badge">{child.badge}</span>}
-            </div>
-          ))}
+          {item.children!.map(child => {
+            const ChildIcon = iconMap[child.icon];
+            return (
+              <div
+                key={child.id}
+                className={`sub-nav-item ${activeId === child.id ? 'active' : ''}`}
+                onClick={() => onMenuClick(child.id)}
+              >
+                <span className="sub-nav-icon">{ChildIcon && <ChildIcon size={16} />}</span>
+                <span className="sub-nav-label">{t(child.label)}</span>
+                {child.badge && <span className="sub-nav-badge">{child.badge}</span>}
+              </div>
+            );
+          })}
         </div>
       )}
     </>
@@ -404,15 +405,12 @@ const MenuItemComponent: React.FC<MenuItemComponentProps> = ({
 
 const Sidebar: React.FC<SidebarProps> = ({ collapsed, onResetSession, onClearLogs, t }) => {
   const [activeId, setActiveId] = useState('dashboard');
-
   const handleMenuClick = (id: string) => {
     setActiveId(id);
   };
-
   if (collapsed) {
     return (
       <aside className="sidebar collapsed">
-        {/* 头部区域：两个按钮上下布局 */}
         <div className="sidebar-header">
           <button className="header-action-btn" onClick={onResetSession} title={t('actions.newSession')}>
             <span className="action-icon">🔄</span>
@@ -424,17 +422,20 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onResetSession, onClearLog
           </button>
         </div>
         <nav className="sidebar-nav-collapsed">
-          {menuConfig.map(item => (
-            <div
-              key={item.id}
-              className={`nav-item-collapsed ${activeId === item.id ? 'active' : ''}`}
-              onClick={() => handleMenuClick(item.id)}
-              title={t(item.label)}
-            >
-              <span className="nav-icon">{item.icon}</span>
-              {item.badge && <span className="nav-badge-collapsed">{item.badge}</span>}
-            </div>
-          ))}
+          {menuConfig.map(item => {
+            const IconComponent = iconMap[item.icon];
+            return (
+              <div
+                key={item.id}
+                className={`nav-item-collapsed ${activeId === item.id ? 'active' : ''}`}
+                onClick={() => handleMenuClick(item.id)}
+                title={t(item.label)}
+              >
+                <span className="nav-icon">{IconComponent && <IconComponent />}</span>
+                {item.badge && <span className="nav-badge-collapsed">{item.badge}</span>}
+              </div>
+            );
+          })}
         </nav>
         <div className="sidebar-footer">
           <div className="runtime-info-collapsed">
@@ -448,7 +449,6 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onResetSession, onClearLog
 
   return (
     <aside className="sidebar">
-      {/* 头部区域：两个按钮上下布局 */}
       <div className="sidebar-header">
         <button className="header-action-btn" onClick={onResetSession}>
           <span className="action-icon">🔄</span>
@@ -459,7 +459,6 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onResetSession, onClearLog
           <span className="action-label">{t('actions.clearTerminal')}</span>
         </button>
       </div>
-
       <nav className="sidebar-nav">
         {menuConfig.map(item => (
           <MenuItemComponent
@@ -472,7 +471,6 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onResetSession, onClearLog
           />
         ))}
       </nav>
-
       <div className="sidebar-footer">
         <div className="runtime-info">
           <div className="info-row">

@@ -19,7 +19,6 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({ logs, onClearLogs, t }) =
     setIsAtBottom(atBottom);
     setShowScrollButton(scrollHeight > clientHeight && !atBottom);
   };
-
   useEffect(() => {
     const element = terminalRef.current;
     if (element) {
@@ -28,20 +27,17 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({ logs, onClearLogs, t }) =
       return () => element.removeEventListener('scroll', checkScrollPosition);
     }
   }, [logs]);
-
   useEffect(() => {
     if (terminalRef.current && isAtBottom) {
       terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
     }
     checkScrollPosition();
   }, [logs, isAtBottom]);
-
   const scrollToBottom = () => {
     if (terminalRef.current) {
       terminalRef.current.scrollTo({ top: terminalRef.current.scrollHeight, behavior: 'smooth' });
     }
   };
-
   const getLevelIcon = (level: string) => {
     switch (level) {
       case 'success': return '✅';
@@ -50,7 +46,6 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({ logs, onClearLogs, t }) =
       default: return '📌';
     }
   };
-
   const getLevelClass = (level: string) => {
     switch (level) {
       case 'success': return 'log-success';
@@ -59,7 +54,6 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({ logs, onClearLogs, t }) =
       default: return 'log-info';
     }
   };
-
   return (
     <div className="terminal-panel">
       <div className="panel-header">
@@ -72,7 +66,6 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({ logs, onClearLogs, t }) =
           🧹
         </button>
       </div>
-
       <div className="terminal-content-wrapper">
         <div className="terminal-content" ref={terminalRef}>
           {logs.length === 0 ? (
@@ -90,7 +83,6 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({ logs, onClearLogs, t }) =
             ))
           )}
         </div>
-
         {showScrollButton && (
           <div className="scroll-buttons terminal-scroll-buttons">
             <button className="scroll-btn" onClick={scrollToBottom} title={t('terminal.scrollToBottom')}>
