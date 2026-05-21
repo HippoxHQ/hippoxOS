@@ -218,13 +218,15 @@ function App() {
         t={t}
       />
       <div className="main-layout">
-        <Sidebar
-          collapsed={sidebarCollapsed}
-          onResetSession={resetSession}
-          onClearLogs={clearLogs}
-          onMenuClick={handleMenuClick}
-          t={t}
-        />
+        {!sidebarCollapsed && (
+          <Sidebar
+            collapsed={false}
+            onResetSession={resetSession}
+            onClearLogs={clearLogs}
+            onMenuClick={handleMenuClick}
+            t={t}
+          />
+        )}
         {menuPanelView && (
           <>
             <div className="menu-panel-left" style={{ width: menuPanelWidth }}>
