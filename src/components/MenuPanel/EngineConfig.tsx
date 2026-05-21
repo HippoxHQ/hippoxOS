@@ -1,4 +1,5 @@
-import React, { useState, useRef } from 'react';
+/* eslint-disable react-hooks/exhaustive-deps */
+import React, { useState, useRef, useEffect } from 'react';
 
 interface EngineConfigProps {
     t: (key: string, params?: any) => string;
@@ -26,7 +27,7 @@ const EngineConfig: React.FC<EngineConfigProps> = ({ t, initialConfig, onSave })
     const [activeTab, setActiveTab] = useState('database');
     const tabsRef = useRef<HTMLDivElement>(null);
     const [showLeftArrow, setShowLeftArrow] = useState(false);
-    const [showRightArrow, setShowRightArrow] = useState(true);
+    const [showRightArrow, setShowRightArrow] = useState(false);
     const tabs = [
         { id: 'database', label: t('settings.tab.database') },
         { id: 'network', label: t('settings.tab.network') },
@@ -66,9 +67,17 @@ const EngineConfig: React.FC<EngineConfigProps> = ({ t, initialConfig, onSave })
         if (tabsRef.current) {
             const { scrollLeft, scrollWidth, clientWidth } = tabsRef.current;
             setShowLeftArrow(scrollLeft > 0);
-            setShowRightArrow(scrollLeft + clientWidth < scrollWidth - 5);
+            setShowRightArrow(scrollWidth > clientWidth && scrollLeft + clientWidth < scrollWidth - 5);
         }
     };
+    useEffect(() => {
+        checkScrollButtons();
+        window.addEventListener('resize', checkScrollButtons);
+        return () => window.removeEventListener('resize', checkScrollButtons);
+    }, []);
+    useEffect(() => {
+        setTimeout(checkScrollButtons, 0);
+    }, [tabs]);
     const handleTabClick = (tabId: string) => {
         setActiveTab(tabId);
     };
@@ -171,7 +180,6 @@ const EngineConfig: React.FC<EngineConfigProps> = ({ t, initialConfig, onSave })
                     />
                 </div>
             </div>
-
             <div className="settings-subgroup" style={{ marginBottom: '24px', padding: '16px', background: 'var(--bg-secondary)', borderRadius: '8px', overflowX: 'auto' }}>
                 <div className="settings-subtitle" style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)', margin: '16px 0 12px 0', paddingLeft: '8px', borderLeft: '3px solid var(--accent-color)' }}>MySQL</div>
                 <div className="settings-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', gap: '16px', flexWrap: 'wrap' }}>
@@ -217,7 +225,6 @@ const EngineConfig: React.FC<EngineConfigProps> = ({ t, initialConfig, onSave })
                     />
                 </div>
             </div>
-
             <div className="settings-subgroup" style={{ marginBottom: '24px', padding: '16px', background: 'var(--bg-secondary)', borderRadius: '8px', overflowX: 'auto' }}>
                 <div className="settings-subtitle" style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)', margin: '16px 0 12px 0', paddingLeft: '8px', borderLeft: '3px solid var(--accent-color)' }}>Redis</div>
                 <div className="settings-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', gap: '16px', flexWrap: 'wrap' }}>
@@ -256,7 +263,6 @@ const EngineConfig: React.FC<EngineConfigProps> = ({ t, initialConfig, onSave })
                     />
                 </div>
             </div>
-
             <div className="settings-subgroup" style={{ marginBottom: '24px', padding: '16px', background: 'var(--bg-secondary)', borderRadius: '8px', overflowX: 'auto' }}>
                 <div className="settings-subtitle" style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)', margin: '16px 0 12px 0', paddingLeft: '8px', borderLeft: '3px solid var(--accent-color)' }}>SQLite</div>
                 <div className="settings-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', gap: '16px', flexWrap: 'wrap' }}>
@@ -271,7 +277,6 @@ const EngineConfig: React.FC<EngineConfigProps> = ({ t, initialConfig, onSave })
             </div>
         </>
     );
-
     const renderNetworkTab = () => (
         <>
             <div className="settings-subgroup" style={{ marginBottom: '24px', padding: '16px', background: 'var(--bg-secondary)', borderRadius: '8px', overflowX: 'auto' }}>
@@ -306,7 +311,6 @@ const EngineConfig: React.FC<EngineConfigProps> = ({ t, initialConfig, onSave })
                     </select>
                 </div>
             </div>
-
             <div className="settings-subgroup" style={{ marginBottom: '24px', padding: '16px', background: 'var(--bg-secondary)', borderRadius: '8px', overflowX: 'auto' }}>
                 <div className="settings-subtitle" style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)', margin: '16px 0 12px 0', paddingLeft: '8px', borderLeft: '3px solid var(--accent-color)' }}>UDP</div>
                 <div className="settings-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', gap: '16px', flexWrap: 'wrap' }}>
@@ -348,7 +352,6 @@ const EngineConfig: React.FC<EngineConfigProps> = ({ t, initialConfig, onSave })
                     />
                 </div>
             </div>
-
             <div className="settings-subgroup" style={{ marginBottom: '24px', padding: '16px', background: 'var(--bg-secondary)', borderRadius: '8px', overflowX: 'auto' }}>
                 <div className="settings-subtitle" style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)', margin: '16px 0 12px 0', paddingLeft: '8px', borderLeft: '3px solid var(--accent-color)' }}>FTP</div>
                 <div className="settings-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', gap: '16px', flexWrap: 'wrap' }}>
@@ -396,7 +399,6 @@ const EngineConfig: React.FC<EngineConfigProps> = ({ t, initialConfig, onSave })
             </div>
         </>
     );
-
     const renderContainerTab = () => (
         <>
             <div className="settings-subgroup" style={{ marginBottom: '24px', padding: '16px', background: 'var(--bg-secondary)', borderRadius: '8px', overflowX: 'auto' }}>
@@ -429,7 +431,6 @@ const EngineConfig: React.FC<EngineConfigProps> = ({ t, initialConfig, onSave })
                     />
                 </div>
             </div>
-
             <div className="settings-subgroup" style={{ marginBottom: '24px', padding: '16px', background: 'var(--bg-secondary)', borderRadius: '8px', overflowX: 'auto' }}>
                 <div className="settings-subtitle" style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)', margin: '16px 0 12px 0', paddingLeft: '8px', borderLeft: '3px solid var(--accent-color)' }}>Kubernetes</div>
                 <div className="settings-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', gap: '16px', flexWrap: 'wrap' }}>
@@ -460,7 +461,6 @@ const EngineConfig: React.FC<EngineConfigProps> = ({ t, initialConfig, onSave })
             </div>
         </>
     );
-
     const renderNotificationTab = () => (
         <>
             <div className="settings-subgroup" style={{ marginBottom: '24px', padding: '16px', background: 'var(--bg-secondary)', borderRadius: '8px', overflowX: 'auto' }}>

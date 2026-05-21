@@ -22,11 +22,13 @@ const topBarStyles = `
     justify-content: space-between;
     padding: 0 20px;
     flex-shrink: 0;
+    position: relative;
   }
   .top-bar-left {
     display: flex;
     align-items: center;
     gap: 12px;
+    flex: 1;
   }
   .sidebar-toggle-btn {
     background: none;
@@ -44,6 +46,15 @@ const topBarStyles = `
   .sidebar-toggle-btn:hover {
     background: var(--hover-bg);
     color: var(--text-primary);
+  }
+  .top-bar-center {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
   }
   .app-logo {
     display: flex;
@@ -65,6 +76,8 @@ const topBarStyles = `
     display: flex;
     align-items: center;
     gap: 8px;
+    flex: 1;
+    justify-content: flex-end;
   }
 
   .theme-toggle-btn,
@@ -116,12 +129,14 @@ const TopBar: React.FC<TopBarProps> = ({
         >
           {sidebarCollapsed ? '☰' : '◀'}
         </button>
+      </div>
+      <div className="top-bar-center">
         <div className="app-logo">
           <img src={logo} width="32px" height="32px" alt="logo" />
         </div>
         <div className="app-name">HippoX</div>
       </div>
-      <div className="top-bar-right">
+      {/* <div className="top-bar-right">
         <button
           className="theme-toggle-btn"
           onClick={onToggleTheme}
@@ -136,7 +151,7 @@ const TopBar: React.FC<TopBarProps> = ({
         >
           {currentLanguage === 'zh' ? 'EN' : '中文'}
         </button>
-      </div>
+      </div> */}
     </div>
   );
 };

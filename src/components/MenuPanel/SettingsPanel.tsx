@@ -2,13 +2,18 @@ import React from 'react';
 import AIModelConfig from './AIModelConfig';
 import EngineConfig from './EngineConfig';
 import WorkspaceConfig from './WorkspaceConfig';
+import SystemConfig from './SystemConfig';
 
-export type SettingsSubView = 'aiModel' | 'engine' | 'workspace';
+export type SettingsSubView = 'aiModel' | 'engine' | 'workspace' | 'system';
 
 interface SettingsPanelProps {
   subView: SettingsSubView;
   t: (key: string, params?: any) => string;
   onSave?: (config: any) => void;
+  theme?: 'light' | 'dark';
+  language?: 'zh' | 'en';
+  onThemeChange?: (theme: 'light' | 'dark') => void;
+  onLanguageChange?: (language: 'zh' | 'en') => void;
 }
 
 const settingsPanelStyles = `
@@ -165,7 +170,15 @@ if (typeof document !== 'undefined') {
   }
 }
 
-const SettingsPanel: React.FC<SettingsPanelProps> = ({ subView, t, onSave }) => {
+const SettingsPanel: React.FC<SettingsPanelProps> = ({
+  subView,
+  t,
+  onSave,
+  theme,
+  language,
+  onThemeChange,
+  onLanguageChange
+}) => {
   const renderContent = () => {
     switch (subView) {
       case 'aiModel':
@@ -174,6 +187,14 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ subView, t, onSave }) => 
         return <EngineConfig t={t} onSave={onSave} />;
       case 'workspace':
         return <WorkspaceConfig t={t} onSave={onSave} />;
+      case 'system':
+        return <SystemConfig
+          t={t}
+          theme={theme || 'light'}
+          language={language || 'en'}
+          onThemeChange={onThemeChange || (() => { })}
+          onLanguageChange={onLanguageChange || (() => { })}
+        />;
       default:
         return <AIModelConfig t={t} onSave={onSave} />;
     }

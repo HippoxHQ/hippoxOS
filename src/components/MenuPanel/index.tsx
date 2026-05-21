@@ -27,6 +27,10 @@ interface MenuPanelProps {
   onClose: () => void;
   onSaveConfig?: (config: any) => void;
   t: (key: string, params?: any) => string;
+  theme?: 'light' | 'dark';
+  language?: 'zh' | 'en';
+  onThemeChange?: (theme: 'light' | 'dark') => void;
+  onLanguageChange?: (language: 'zh' | 'en') => void;
 }
 
 const viewTitles: Record<MenuPanelView, string> = {
@@ -366,7 +370,18 @@ if (typeof document !== 'undefined') {
   }
 }
 
-const MenuPanel: React.FC<MenuPanelProps> = ({ currentView, settingsSubView, onClose, onSaveConfig, t }) => {
+
+const MenuPanel: React.FC<MenuPanelProps> = ({
+  currentView,
+  settingsSubView,
+  onClose,
+  onSaveConfig,
+  t,
+  theme,
+  language,
+  onThemeChange,
+  onLanguageChange
+}) => {
   const renderContent = () => {
     switch (currentView) {
       case 'history':
@@ -386,7 +401,15 @@ const MenuPanel: React.FC<MenuPanelProps> = ({ currentView, settingsSubView, onC
       case 'executionHistory':
         return <ExecutionHistoryPanel t={t} />;
       case 'settings':
-        return <SettingsPanel subView={settingsSubView || 'aiModel'} t={t} onSave={onSaveConfig} />;
+        return <SettingsPanel
+          subView={settingsSubView || 'aiModel'}
+          t={t}
+          onSave={onSaveConfig}
+          theme={theme}
+          language={language}
+          onThemeChange={onThemeChange}
+          onLanguageChange={onLanguageChange}
+        />;
       default:
         return null;
     }
@@ -398,6 +421,7 @@ const MenuPanel: React.FC<MenuPanelProps> = ({ currentView, settingsSubView, onC
         aiModel: 'menu.aiModelConfig',
         engine: 'menu.engineConfig',
         workspace: 'menu.workspaceConfig',
+        system: 'menu.systemConfig',
       };
       const key = subViewTitles[settingsSubView];
       if (!key) {

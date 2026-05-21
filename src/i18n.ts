@@ -1,4 +1,3 @@
-// i18n.ts
 export const zh = {
   welcome: { message: '你好，我是 Hippox AI 运行时。我有自主决策能力，可以执行技能并实时反馈。有什么可以帮你的？' },
   session: { reset: '会话已重置。Hippox 运行时重新就绪，自主决策引擎已刷新。' },
@@ -74,6 +73,7 @@ export const zh = {
     aiModelConfig: 'AI 模型配置',
     engineConfig: '引擎配置',
     workspaceConfig: '工作空间配置',
+    systemConfig: '系统设置',
   },
   status: { healthy: '健康状况正常' },
   actions: { newSession: '新建会话', clearTerminal: '清空终端' },
@@ -133,6 +133,7 @@ export const zh = {
     addTask: '添加定时任务'
   },
   settings: {
+    systemConfig: '系统设置',
     aiConfig: 'AI 模型配置',
     defaultModel: '默认模型',
     apiKey: 'API Key',
@@ -269,6 +270,7 @@ export const en: typeof zh = {
     aiModelConfig: 'AI Model Config',
     engineConfig: 'Engine Config',
     workspaceConfig: 'Workspace Config',
+    systemConfig: 'System Config',
   },
   status: { healthy: 'Healthy' },
   actions: { newSession: 'New Session', clearTerminal: 'Clear Terminal' },
@@ -328,6 +330,7 @@ export const en: typeof zh = {
     addTask: 'Add scheduled task'
   },
   settings: {
+    systemConfig: 'System Config',
     aiConfig: 'AI Model Configuration',
     defaultModel: 'Default Model',
     apiKey: 'API Key',

@@ -234,6 +234,10 @@ function App() {
                 onClose={closeMenuPanel}
                 onSaveConfig={handleSaveConfig}
                 t={t}
+                theme={theme}
+                language={language}
+                onThemeChange={toggleTheme}
+                onLanguageChange={toggleLanguage}
               />
             </div>
             <div

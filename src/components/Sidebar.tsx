@@ -321,6 +321,7 @@ const menuConfig: MenuItem[] = [
       { id: 'aiModel', icon: 'settings', label: 'menu.aiModelConfig' },
       { id: 'engine', icon: 'settings', label: 'menu.engineConfig' },
       { id: 'workspace', icon: 'settings', label: 'menu.workspaceConfig' },
+      { id: 'system', icon: 'settings', label: 'menu.systemConfig' },  // 新增
     ]
   },
 ];
