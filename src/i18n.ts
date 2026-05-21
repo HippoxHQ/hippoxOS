@@ -133,6 +133,8 @@ export const zh = {
     addTask: '添加定时任务'
   },
   settings: {
+    selectModel: '选择模型',
+    selectModelPlaceholder: '请选择模型...',
     defaultBadge: '默认',
     setAsDefault: '设为默认',
     delete: '删除',
@@ -338,6 +340,8 @@ export const en: typeof zh = {
     addTask: 'Add scheduled task'
   },
   settings: {
+    selectModel: 'Select Model',
+    selectModelPlaceholder: 'Please select a model...',
     defaultBadge: 'Default',
     setAsDefault: 'Set as Default',
     delete: 'Delete',

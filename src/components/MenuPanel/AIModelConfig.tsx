@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { invoke } from '@tauri-apps/api/core';
 
 interface AIModelConfigProps {
   t: (key: string, params?: any) => string;
@@ -13,6 +14,18 @@ interface ModelConfig {
   name: string;
   apiKey: string;
   isDefault: boolean;
+  provider?: string;
+}
+
+interface ModelInfo {
+  id: string;
+  name: string;
+  provider: string;
+  provider_name: string;
+  description: string;
+  streaming: boolean;
+  context_length: number | null;
+  recommended: boolean;
 }
 
 const AIModelConfig: React.FC<AIModelConfigProps> = ({ t, initialConfig, onSave }) => {
@@ -20,41 +33,61 @@ const AIModelConfig: React.FC<AIModelConfigProps> = ({ t, initialConfig, onSave 
     {
       name: 'hippox-default-v1',
       apiKey: initialConfig?.apiKey || '',
-      isDefault: true
+      isDefault: true,
+      provider: 'custom'
     },
     {
       name: 'gpt-4',
       apiKey: '',
-      isDefault: false
+      isDefault: false,
+      provider: 'openai'
     },
     {
       name: 'gpt-4-turbo',
       apiKey: '',
-      isDefault: false
+      isDefault: false,
+      provider: 'openai'
     },
     {
       name: 'claude-3-opus',
       apiKey: '',
-      isDefault: false
+      isDefault: false,
+      provider: 'anthropic'
     },
     {
       name: 'claude-3-sonnet',
       apiKey: '',
-      isDefault: false
+      isDefault: false,
+      provider: 'anthropic'
     },
     {
       name: 'deepseek-v3',
       apiKey: '',
-      isDefault: false
+      isDefault: false,
+      provider: 'deepseek'
     },
   ]);
 
+  const [availableModels, setAvailableModels] = useState<ModelInfo[]>([]);
   const [showAddForm, setShowAddForm] = useState(false);
   const [newModel, setNewModel] = useState<ModelConfig>({
     name: '',
     apiKey: '',
-    isDefault: false
+    isDefault: false,
+    provider: 'openai'
   });
+
+  useEffect(() => {
+    const loadModels = async () => {
+      try {
+        const modelsData = await invoke('get_all_models') as ModelInfo[];
+        setAvailableModels(modelsData);
+      } catch (error) {
+        console.error('Failed to load models:', error);
+      }
+    };
+    loadModels();
+  }, []);
 
   const handleSave = () => {
     const defaultModel = models.find(m => m.isDefault);
@@ -62,6 +95,7 @@ const AIModelConfig: React.FC<AIModelConfigProps> = ({ t, initialConfig, onSave 
       onSave({
         defaultModel: defaultModel.name,
         apiKey: defaultModel.apiKey,
+        provider: defaultModel.provider,
         allModels: models
       });
     }
@@ -91,8 +125,19 @@ const AIModelConfig: React.FC<AIModelConfigProps> = ({ t, initialConfig, onSave 
   const handleAddModel = () => {
     if (newModel.name.trim()) {
       setModels([...models, { ...newModel, isDefault: false }]);
-      setNewModel({ name: '', apiKey: '', isDefault: false });
+      setNewModel({ name: '', apiKey: '', isDefault: false, provider: 'openai' });
       setShowAddForm(false);
+    }
+  };
+
+  const handleSelectModel = (modelId: string) => {
+    const selected = availableModels.find(m => m.id === modelId);
+    if (selected) {
+      setNewModel({
+        ...newModel,
+        name: selected.id,
+        provider: selected.provider
+      });
     }
   };
 
@@ -114,6 +159,11 @@ const AIModelConfig: React.FC<AIModelConfigProps> = ({ t, initialConfig, onSave 
     color: 'var(--text-primary)',
     fontSize: '13px',
     outline: 'none'
+  };
+
+  const selectStyle: React.CSSProperties = {
+    ...inputStyle,
+    cursor: 'pointer'
   };
 
   const buttonStyle: React.CSSProperties = {
@@ -157,6 +207,24 @@ const AIModelConfig: React.FC<AIModelConfigProps> = ({ t, initialConfig, onSave 
     marginLeft: '8px'
   };
 
+  const getProviderIcon = (provider: string) => {
+    const icons: Record<string, string> = {
+      openai: '🔵',
+      anthropic: '🟣',
+      deepseek: '🟢',
+      google: '🔴',
+      groq: '⚡',
+      together: '🤝',
+      mistral: '🪶',
+      cohere: '📐',
+      alibaba: '☁️',
+      zhipu: '🧠',
+      moonshot: '🌙',
+      custom: '🦛'
+    };
+    return icons[provider] || '🤖';
+  };
+
   return (
     <div className="settings-container" style={{
       height: '100%', display: 'flex', flexDirection: 'column',
@@ -175,7 +243,7 @@ const AIModelConfig: React.FC<AIModelConfigProps> = ({ t, initialConfig, onSave 
           <div key={model.name} style={modelCardStyle}>
             <div style={{ display: 'flex', alignItems: 'center', marginBottom: '12px' }}>
               <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>
-                {model.name}
+                {getProviderIcon(model.provider || 'custom')} {model.name}
               </span>
               {model.isDefault && <span style={badgeStyle}>{t('settings.defaultBadge') || '默认'}</span>}
               {!model.isDefault && (
@@ -215,14 +283,19 @@ const AIModelConfig: React.FC<AIModelConfigProps> = ({ t, initialConfig, onSave 
               {t('settings.addModel') || '添加新模型'}
             </div>
             <div className="settings-row" style={{ display: 'flex', alignItems: 'center', marginBottom: '12px', gap: '12px', flexWrap: 'wrap' }}>
-              <label style={labelStyle}>{t('settings.modelName') || '模型名称'}</label>
-              <input
-                type="text"
-                style={inputStyle}
+              <label style={labelStyle}>{t('settings.selectModel') || '选择模型'}</label>
+              <select
+                style={selectStyle}
                 value={newModel.name}
-                onChange={(e) => setNewModel({ ...newModel, name: e.target.value })}
-                placeholder={t('settings.modelNamePlaceholder') || '例如: llama-3-70b'}
-              />
+                onChange={(e) => handleSelectModel(e.target.value)}
+              >
+                <option value="">{t('settings.selectModelPlaceholder') || '请选择模型...'}</option>
+                {availableModels.map((model) => (
+                  <option key={model.id} value={model.id}>
+                    {getProviderIcon(model.provider)} {model.name} - {model.provider_name}
+                  </option>
+                ))}
+              </select>
             </div>
             <div className="settings-row" style={{ display: 'flex', alignItems: 'center', marginBottom: '12px', gap: '12px', flexWrap: 'wrap' }}>
               <label style={labelStyle}>{t('settings.apiKey')}</label>
