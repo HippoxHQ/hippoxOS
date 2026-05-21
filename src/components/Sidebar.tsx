@@ -5,7 +5,7 @@ interface SidebarProps {
   collapsed: boolean;
   onResetSession: () => void;
   onClearLogs: () => void;
-  onMenuClick?: (view: string) => void;
+  onMenuClick?: (view: string, subView?: string) => void;
   t: (key: string, params?: any) => string;
 }
 
@@ -36,12 +36,12 @@ const sidebarStyles = `
     min-width: 60px;
   }
   .sidebar-header {
-  padding: 8px 12px !important;
-  border-bottom: 1px solid var(--border-color);
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  min-height: 40px;
+    padding: 8px 12px !important;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-height: 40px;
   }
   .sidebar.collapsed .sidebar-header {
     padding: 12px 8px !important;
@@ -291,7 +291,6 @@ if (typeof document !== 'undefined') {
 }
 
 const menuConfig: MenuItem[] = [
-  { id: 'dashboard', icon: 'dashboard', label: 'menu.dashboard' },
   { id: 'history', icon: 'history', label: 'menu.history' },
   { id: 'favorites', icon: 'favorites', label: 'menu.favorites' },
   {
@@ -315,14 +314,13 @@ const menuConfig: MenuItem[] = [
     ]
   },
   {
-    id: 'config_group',
-    icon: 'config',
-    label: 'menu.configGroup',
+    id: 'settings_group',
+    icon: 'settings',
+    label: 'menu.settings',
     children: [
-      { id: 'settings', icon: 'settings', label: 'menu.settings' },
-      { id: 'plugins', icon: 'plugins', label: 'menu.plugins' },
-      { id: 'monitor', icon: 'monitor', label: 'menu.monitor' },
-      { id: 'debug', icon: 'debug', label: 'menu.debug' },
+      { id: 'aiModel', icon: 'settings', label: 'menu.aiModelConfig' },
+      { id: 'engine', icon: 'settings', label: 'menu.engineConfig' },
+      { id: 'workspace', icon: 'settings', label: 'menu.workspaceConfig' },
     ]
   },
 ];
@@ -336,7 +334,8 @@ interface MenuItemComponentProps {
   item: MenuItem;
   collapsed: boolean;
   activeId: string;
-  onMenuClick: (id: string) => void;
+  activeSubId?: string;
+  onMenuClick: (id: string, subId?: string) => void;
   t: (key: string) => string;
 }
 
@@ -344,10 +343,12 @@ const MenuItemComponent: React.FC<MenuItemComponentProps> = ({
   item,
   collapsed,
   activeId,
+  activeSubId,
   onMenuClick,
   t
 }) => {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(activeSubId !== undefined &&
+    item.children?.some(child => child.id === activeSubId));
   const hasChildren = item.children && item.children.length > 0;
   const IconComponent = iconMap[item.icon];
 
@@ -362,13 +363,11 @@ const MenuItemComponent: React.FC<MenuItemComponentProps> = ({
   if (collapsed) {
     if (hasChildren) {
       return (
-        <>
-          <div className="nav-item-parent" onClick={handleClick} title={t(item.label)}>
-            <div className="nav-item-content">
-              <span className="nav-icon">{IconComponent && <IconComponent />}</span>
-            </div>
+        <div className="nav-item-parent" onClick={handleClick} title={t(item.label)}>
+          <div className="nav-item-content">
+            <span className="nav-icon">{IconComponent && <IconComponent />}</span>
           </div>
-        </>
+        </div>
       );
     }
     return (
@@ -382,6 +381,7 @@ const MenuItemComponent: React.FC<MenuItemComponentProps> = ({
       </div>
     );
   }
+
   return (
     <>
       <div className="nav-item-parent" onClick={handleClick}>
@@ -401,8 +401,14 @@ const MenuItemComponent: React.FC<MenuItemComponentProps> = ({
             return (
               <div
                 key={child.id}
-                className={`sub-nav-item ${activeId === child.id ? 'active' : ''}`}
-                onClick={() => onMenuClick(child.id)}
+                className={`sub-nav-item ${activeSubId === child.id ? 'active' : ''}`}
+                onClick={() => {
+                  if (item.id === 'settings_group') {
+                    onMenuClick('settings', child.id);
+                  } else {
+                    onMenuClick(child.id);
+                  }
+                }}
               >
                 <span className="sub-nav-icon">{ChildIcon && <ChildIcon size={16} />}</span>
                 <span className="sub-nav-label">{t(child.label)}</span>
@@ -417,12 +423,21 @@ const MenuItemComponent: React.FC<MenuItemComponentProps> = ({
 };
 
 const Sidebar: React.FC<SidebarProps> = ({ collapsed, onResetSession, onClearLogs, onMenuClick, t }) => {
-  const [activeId, setActiveId] = useState('dashboard');
-
-  const handleMenuClick = (id: string) => {
-    setActiveId(id);
-    if (onMenuClick) {
-      onMenuClick(id);
+  const [activeId, setActiveId] = useState('history');
+  const [activeSubId, setActiveSubId] = useState<string>();
+  const handleMenuClick = (id: string, subId?: string) => {
+    if (id === 'settings' && subId) {
+      setActiveId('settings_group');
+      setActiveSubId(subId);
+      if (onMenuClick) {
+        onMenuClick('settings', subId);
+      }
+    } else {
+      setActiveId(id);
+      setActiveSubId(undefined);
+      if (onMenuClick) {
+        onMenuClick(id);
+      }
     }
   };
 
@@ -442,11 +457,20 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onResetSession, onClearLog
         <nav className="sidebar-nav-collapsed">
           {menuConfig.map(item => {
             const IconComponent = iconMap[item.icon];
+            const isActive = item.id === 'settings_group'
+              ? activeSubId !== undefined
+              : activeId === item.id;
             return (
               <div
                 key={item.id}
-                className={`nav-item-collapsed ${activeId === item.id ? 'active' : ''}`}
-                onClick={() => handleMenuClick(item.id)}
+                className={`nav-item-collapsed ${isActive ? 'active' : ''}`}
+                onClick={() => {
+                  if (item.id === 'settings_group' && item.children?.length) {
+                    handleMenuClick(item.id, item.children[0].id);
+                  } else {
+                    handleMenuClick(item.id);
+                  }
+                }}
                 title={t(item.label)}
               >
                 <span className="nav-icon">{IconComponent && <IconComponent />}</span>
@@ -478,6 +502,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onResetSession, onClearLog
             item={item}
             collapsed={collapsed}
             activeId={activeId}
+            activeSubId={activeSubId}
             onMenuClick={handleMenuClick}
             t={t}
           />

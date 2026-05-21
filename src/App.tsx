@@ -8,6 +8,7 @@ import TopBar from './components/TopBar';
 import BottomBar from './components/BottomBar';
 import { useTranslation } from './hooks/useTranslation';
 import { Theme, Language, ExecutionLog, ChatMessage } from './type';
+import { SettingsSubView } from './components/MenuPanel/SettingsPanel';
 
 function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -21,6 +22,7 @@ function App() {
   });
   const { t } = useTranslation(language);
   const [menuPanelView, setMenuPanelView] = useState<MenuPanelView | null>(null);
+  const [settingsSubView, setSettingsSubView] = useState<SettingsSubView>('aiModel');
   const [menuPanelWidth, setMenuPanelWidth] = useState<number>(320);
   const [executionLogs, setExecutionLogs] = useState<ExecutionLog[]>(() => [
     {
@@ -55,10 +57,12 @@ function App() {
       timestamp: new Date().toLocaleTimeString()
     }
   ]);
+
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('hippox-theme', theme);
   }, [theme]);
+
   useEffect(() => {
     localStorage.setItem('hippox-language', language);
   }, [language]);
@@ -70,8 +74,11 @@ function App() {
     };
     setExecutionLogs(prev => [...prev, newLog]);
   };
-  const handleMenuClick = (view: string) => {
-    if (view === 'dashboard') {
+  const handleMenuClick = (view: string, subView?: string) => {
+    if (view === 'settings') {
+      setMenuPanelView('settings');
+      setSettingsSubView((subView as SettingsSubView) || 'aiModel');
+    } else if (view === 'dashboard') {
       setMenuPanelView(null);
     } else {
       setMenuPanelView(view as MenuPanelView);
@@ -79,6 +86,14 @@ function App() {
   };
   const closeMenuPanel = () => {
     setMenuPanelView(null);
+  };
+  const handleSaveConfig = (config: any) => {
+    console.log('Save config:', config);
+    appendLog({
+      level: 'success',
+      message: '配置已保存',
+      details: JSON.stringify(config, null, 2)
+    });
   };
   const handleSendMessage = async (userMessage: string) => {
     const userMsg: ChatMessage = {
@@ -148,6 +163,7 @@ function App() {
       });
     }, 800);
   };
+
   const clearLogs = () => {
     setExecutionLogs([]);
     appendLog({
@@ -156,6 +172,7 @@ function App() {
       details: t('logs.clearedDetail')
     });
   };
+
   const resetSession = () => {
     setChatMessages([
       {
@@ -176,15 +193,19 @@ function App() {
       details: t('logs.startupDetail')
     });
   };
+
   const toggleTheme = () => {
     setTheme(prev => prev === 'dark' ? 'light' : 'dark');
   };
+
   const toggleLanguage = () => {
     setLanguage(prev => prev === 'zh' ? 'en' : 'zh');
   };
+
   const toggleSidebar = () => {
     setSidebarCollapsed(prev => !prev);
   };
+
   return (
     <div className="App">
       <TopBar
@@ -207,7 +228,13 @@ function App() {
         {menuPanelView && (
           <>
             <div className="menu-panel-left" style={{ width: menuPanelWidth }}>
-              <MenuPanel currentView={menuPanelView} onClose={closeMenuPanel} t={t} />
+              <MenuPanel
+                currentView={menuPanelView}
+                settingsSubView={settingsSubView}
+                onClose={closeMenuPanel}
+                onSaveConfig={handleSaveConfig}
+                t={t}
+              />
             </div>
             <div
               className="resize-handle-menu"
