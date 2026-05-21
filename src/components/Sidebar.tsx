@@ -123,7 +123,7 @@ const sidebarStyles = `
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 6px 16px 6px 44px !important;
+    padding: 6px 16px 6px 25px !important;
     margin: 0 !important;
     border-radius: 0 !important;
     cursor: pointer;
@@ -318,10 +318,10 @@ const menuConfig: MenuItem[] = [
     icon: 'settings',
     label: 'menu.settings',
     children: [
-      { id: 'aiModel', icon: 'settings', label: 'menu.aiModelConfig' },
+      { id: 'llmModel', icon: 'settings', label: 'menu.llmModelConfig' },
       { id: 'engine', icon: 'settings', label: 'menu.engineConfig' },
       { id: 'workspace', icon: 'settings', label: 'menu.workspaceConfig' },
-      { id: 'system', icon: 'settings', label: 'menu.systemConfig' },  // 新增
+      { id: 'system', icon: 'settings', label: 'menu.systemConfig' },  
     ]
   },
 ];
@@ -348,8 +348,7 @@ const MenuItemComponent: React.FC<MenuItemComponentProps> = ({
   onMenuClick,
   t
 }) => {
-  const [isOpen, setIsOpen] = useState(activeSubId !== undefined &&
-    item.children?.some(child => child.id === activeSubId));
+  const [isOpen, setIsOpen] = useState(true);
   const hasChildren = item.children && item.children.length > 0;
   const IconComponent = iconMap[item.icon];
 
@@ -441,7 +440,6 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onResetSession, onClearLog
       }
     }
   };
-
   if (collapsed) {
     return (
       <aside className="sidebar collapsed">
@@ -449,10 +447,6 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onResetSession, onClearLog
           <button className="header-action-btn" onClick={onResetSession} title={t('actions.newSession')}>
             <NewSessionIcon size={14} />
             <span className="action-label">{t('actions.newSession')}</span>
-          </button>
-          <button className="header-action-btn" onClick={onClearLogs} title={t('actions.clearTerminal')}>
-            <ClearIcon size={14} />
-            <span className="action-label">{t('actions.clearTerminal')}</span>
           </button>
         </div>
         <nav className="sidebar-nav-collapsed">
@@ -490,10 +484,6 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onResetSession, onClearLog
         <button className="header-action-btn" onClick={onResetSession} title={t('actions.newSession')}>
           <NewSessionIcon size={14} />
           <span className="action-label">{t('actions.newSession')}</span>
-        </button>
-        <button className="header-action-btn" onClick={onClearLogs} title={t('actions.clearTerminal')}>
-          <ClearIcon size={14} />
-          <span className="action-label">{t('actions.clearTerminal')}</span>
         </button>
       </div>
       <nav className="sidebar-nav">

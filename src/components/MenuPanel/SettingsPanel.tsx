@@ -25,10 +25,6 @@ const settingsPanelStyles = `
     overflow: hidden;
   }
   
-  .settings-group {
-    margin-bottom: 24px;
-  }
-  
   .settings-title {
     font-size: 14px;
     font-weight: 600;

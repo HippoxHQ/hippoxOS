@@ -52,12 +52,14 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({ t, initialConfig, onS
     };
 
     return (
-        <div className="settings-container" style={{ height: '100%', display: 'flex', flexDirection: 'column', gap: '20px', overflow: 'hidden' }}>
-            <div className="settings-group" style={{ marginBottom: '24px' }}>
-                <div className="settings-title" style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '16px', paddingBottom: '8px', borderBottom: '1px solid var(--border-color)', userSelect: 'none' }}>
-                    {t('settings.workspaceConfig')}
-                </div>
-                <div className="settings-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', gap: '16px', flexWrap: 'wrap' }}>
+        <div className="settings-container"
+            style={{
+                height: '100%', display: 'flex',
+                flexDirection: 'column', gap: '0px',
+                overflow: 'hidden'
+            }}>
+            <div className="settings-group" style={{ paddingTop: '15px' }}>
+                <div className="settings-row" style={{ padding: '0px 10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', gap: '16px', flexWrap: 'wrap' }}>
                     <label style={labelStyle}>{t('settings.workspacePath')}</label>
                     <input
                         style={inputStyle}
@@ -66,10 +68,7 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({ t, initialConfig, onS
                         placeholder={t('settings.workspacePathPlaceholder')}
                     />
                 </div>
-                <div className="settings-hint" style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px', marginLeft: '136px', userSelect: 'none' }}>
-                    {t('settings.workspacePathHint')}
-                </div>
-                <div className="settings-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', gap: '16px', flexWrap: 'wrap' }}>
+                <div className="settings-row" style={{ padding: '0px 10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', gap: '16px', flexWrap: 'wrap' }}>
                     <label style={labelStyle}>{t('settings.logsPath')}</label>
                     <input
                         style={inputStyle}
@@ -78,7 +77,7 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({ t, initialConfig, onS
                         placeholder={t('settings.logsPathPlaceholder')}
                     />
                 </div>
-                <div className="settings-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', gap: '16px', flexWrap: 'wrap' }}>
+                <div className="settings-row" style={{ padding: '0px 10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', gap: '16px', flexWrap: 'wrap' }}>
                     <label style={labelStyle}>{t('settings.dataPath')}</label>
                     <input
                         style={inputStyle}
@@ -87,7 +86,7 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({ t, initialConfig, onS
                         placeholder={t('settings.dataPathPlaceholder')}
                     />
                 </div>
-                <div className="settings-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', gap: '16px', flexWrap: 'wrap' }}>
+                <div className="settings-row" style={{ padding: '0px 10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', gap: '16px', flexWrap: 'wrap' }}>
                     <label style={labelStyle}>{t('settings.tempPath')}</label>
                     <input
                         style={inputStyle}
@@ -96,7 +95,7 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({ t, initialConfig, onS
                         placeholder={t('settings.tempPathPlaceholder')}
                     />
                 </div>
-                <div className="settings-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', gap: '16px', flexWrap: 'wrap' }}>
+                <div className="settings-row" style={{ padding: '0px 10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', gap: '16px', flexWrap: 'wrap' }}>
                     <label style={labelStyle}>{t('settings.backupPath')}</label>
                     <input
                         style={inputStyle}
@@ -105,7 +104,7 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({ t, initialConfig, onS
                         placeholder={t('settings.backupPathPlaceholder')}
                     />
                 </div>
-                <div className="settings-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', gap: '16px', flexWrap: 'wrap' }}>
+                <div className="settings-row" style={{ padding: '0px 10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', gap: '16px', flexWrap: 'wrap' }}>
                     <label style={labelStyle}>{t('settings.maxLogSize')} (MB)</label>
                     <input
                         type="number"
@@ -114,7 +113,7 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({ t, initialConfig, onS
                         onChange={(e) => setConfig({ ...config, maxLogSize: parseInt(e.target.value) || 100 })}
                     />
                 </div>
-                <div className="settings-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', gap: '16px', flexWrap: 'wrap' }}>
+                <div className="settings-row" style={{ padding: '0px 10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', gap: '16px', flexWrap: 'wrap' }}>
                     <label style={labelStyle}>{t('settings.maxBackupCount')}</label>
                     <input
                         type="number"
@@ -124,7 +123,17 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({ t, initialConfig, onS
                     />
                 </div>
             </div>
-            <button className="settings-save-btn" onClick={handleSave} style={{ padding: '8px 20px', background: 'var(--accent-color, #0066cc)', border: 'none', borderRadius: '6px', color: 'white', fontSize: '13px', fontWeight: 500, cursor: 'pointer', transition: 'all 0.2s', alignSelf: 'flex-start' }}>
+            <button className="settings-save-btn" onClick={handleSave}
+                style={{
+                    padding: '8px 20px',
+                    background: 'var(--accent-color, #0066cc)',
+                    border: 'none', borderRadius: '6px',
+                    color: 'white', fontSize: '13px',
+                    fontWeight: 500, cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    alignSelf: 'flex-end',
+                    marginRight: '10px',
+                }}>
                 {t('settings.save')}
             </button>
         </div>

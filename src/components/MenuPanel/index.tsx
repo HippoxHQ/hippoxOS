@@ -95,7 +95,7 @@ const menuPanelStyles = `
   .menu-panel-body {
     flex: 1;
     overflow-y: auto;
-    padding: 16px;
+    padding: 0px;
   }
 
   .panel-section {

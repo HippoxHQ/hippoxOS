@@ -109,18 +109,11 @@ const EngineConfig: React.FC<EngineConfigProps> = ({ t, initialConfig, onSave })
         cursor: 'pointer',
         flexShrink: 0
     };
-    const subgroupStyle: React.CSSProperties = {
-        marginBottom: '24px',
-        padding: '16px',
-        background: 'var(--bg-secondary)',
-        borderRadius: '8px',
-        overflowX: 'auto'
-    };
     const subtitleStyle: React.CSSProperties = {
-        fontSize: '13px',
+        fontSize: '15px',
         fontWeight: 500,
         color: 'var(--text-secondary)',
-        margin: '16px 0 12px 0',
+        margin: '0px 0 12px 0',
         paddingLeft: '8px',
         borderLeft: '3px solid var(--accent-color)'
     };
@@ -130,465 +123,439 @@ const EngineConfig: React.FC<EngineConfigProps> = ({ t, initialConfig, onSave })
         justifyContent: 'space-between',
         marginBottom: '12px',
         gap: '16px',
-        flexWrap: 'wrap'
+        flexWrap: 'wrap',
+        paddingLeft: '10px'
     };
     const renderDatabaseTab = () => (
         <>
-            <div className="settings-subgroup" style={{ marginBottom: '24px', padding: '16px', background: 'var(--bg-secondary)', borderRadius: '8px', overflowX: 'auto' }}>
-                <div className="settings-subtitle" style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)', margin: '16px 0 12px 0', paddingLeft: '8px', borderLeft: '3px solid var(--accent-color)' }}>PostgreSQL</div>
-                <div className="settings-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', gap: '16px', flexWrap: 'wrap' }}>
-                    <label style={labelStyle}>Host</label>
-                    <input
-                        style={inputStyle}
-                        value={config.postgresql.host}
-                        onChange={(e) => setConfig({ ...config, postgresql: { ...config.postgresql, host: e.target.value } })}
-                        placeholder="localhost"
-                    />
-                </div>
-                <div className="settings-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', gap: '16px', flexWrap: 'wrap' }}>
-                    <label style={labelStyle}>Port</label>
-                    <input
-                        type="number"
-                        style={inputStyle}
-                        value={config.postgresql.port}
-                        onChange={(e) => setConfig({ ...config, postgresql: { ...config.postgresql, port: parseInt(e.target.value) || 5432 } })}
-                    />
-                </div>
-                <div className="settings-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', gap: '16px', flexWrap: 'wrap' }}>
-                    <label style={labelStyle}>Database</label>
-                    <input
-                        style={inputStyle}
-                        value={config.postgresql.database}
-                        onChange={(e) => setConfig({ ...config, postgresql: { ...config.postgresql, database: e.target.value } })}
-                    />
-                </div>
-                <div className="settings-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', gap: '16px', flexWrap: 'wrap' }}>
-                    <label style={labelStyle}>Username</label>
-                    <input
-                        style={inputStyle}
-                        value={config.postgresql.username}
-                        onChange={(e) => setConfig({ ...config, postgresql: { ...config.postgresql, username: e.target.value } })}
-                    />
-                </div>
-                <div className="settings-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', gap: '16px', flexWrap: 'wrap' }}>
-                    <label style={labelStyle}>Password</label>
-                    <input
-                        type="password"
-                        style={inputStyle}
-                        value={config.postgresql.password}
-                        onChange={(e) => setConfig({ ...config, postgresql: { ...config.postgresql, password: e.target.value } })}
-                    />
-                </div>
+            <div className="settings-subtitle" style={subtitleStyle}>PostgreSQL</div>
+            <div className="settings-row" style={rowStyle}>
+                <label style={labelStyle}>Host</label>
+                <input
+                    style={inputStyle}
+                    value={config.postgresql.host}
+                    onChange={(e) => setConfig({ ...config, postgresql: { ...config.postgresql, host: e.target.value } })}
+                    placeholder="localhost"
+                />
             </div>
-            <div className="settings-subgroup" style={{ marginBottom: '24px', padding: '16px', background: 'var(--bg-secondary)', borderRadius: '8px', overflowX: 'auto' }}>
-                <div className="settings-subtitle" style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)', margin: '16px 0 12px 0', paddingLeft: '8px', borderLeft: '3px solid var(--accent-color)' }}>MySQL</div>
-                <div className="settings-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', gap: '16px', flexWrap: 'wrap' }}>
-                    <label style={labelStyle}>Host</label>
-                    <input
-                        style={inputStyle}
-                        value={config.mysql.host}
-                        onChange={(e) => setConfig({ ...config, mysql: { ...config.mysql, host: e.target.value } })}
-                    />
-                </div>
-                <div className="settings-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', gap: '16px', flexWrap: 'wrap' }}>
-                    <label style={labelStyle}>Port</label>
-                    <input
-                        type="number"
-                        style={inputStyle}
-                        value={config.mysql.port}
-                        onChange={(e) => setConfig({ ...config, mysql: { ...config.mysql, port: parseInt(e.target.value) || 3306 } })}
-                    />
-                </div>
-                <div className="settings-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', gap: '16px', flexWrap: 'wrap' }}>
-                    <label style={labelStyle}>Database</label>
-                    <input
-                        style={inputStyle}
-                        value={config.mysql.database}
-                        onChange={(e) => setConfig({ ...config, mysql: { ...config.mysql, database: e.target.value } })}
-                    />
-                </div>
-                <div className="settings-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', gap: '16px', flexWrap: 'wrap' }}>
-                    <label style={labelStyle}>Username</label>
-                    <input
-                        style={inputStyle}
-                        value={config.mysql.username}
-                        onChange={(e) => setConfig({ ...config, mysql: { ...config.mysql, username: e.target.value } })}
-                    />
-                </div>
-                <div className="settings-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', gap: '16px', flexWrap: 'wrap' }}>
-                    <label style={labelStyle}>Password</label>
-                    <input
-                        type="password"
-                        style={inputStyle}
-                        value={config.mysql.password}
-                        onChange={(e) => setConfig({ ...config, mysql: { ...config.mysql, password: e.target.value } })}
-                    />
-                </div>
+            <div className="settings-row" style={rowStyle}>
+                <label style={labelStyle}>Port</label>
+                <input
+                    type="number"
+                    style={inputStyle}
+                    value={config.postgresql.port}
+                    onChange={(e) => setConfig({ ...config, postgresql: { ...config.postgresql, port: parseInt(e.target.value) || 5432 } })}
+                />
             </div>
-            <div className="settings-subgroup" style={{ marginBottom: '24px', padding: '16px', background: 'var(--bg-secondary)', borderRadius: '8px', overflowX: 'auto' }}>
-                <div className="settings-subtitle" style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)', margin: '16px 0 12px 0', paddingLeft: '8px', borderLeft: '3px solid var(--accent-color)' }}>Redis</div>
-                <div className="settings-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', gap: '16px', flexWrap: 'wrap' }}>
-                    <label style={labelStyle}>Host</label>
-                    <input
-                        style={inputStyle}
-                        value={config.redis.host}
-                        onChange={(e) => setConfig({ ...config, redis: { ...config.redis, host: e.target.value } })}
-                    />
-                </div>
-                <div className="settings-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', gap: '16px', flexWrap: 'wrap' }}>
-                    <label style={labelStyle}>Port</label>
-                    <input
-                        type="number"
-                        style={inputStyle}
-                        value={config.redis.port}
-                        onChange={(e) => setConfig({ ...config, redis: { ...config.redis, port: parseInt(e.target.value) || 6379 } })}
-                    />
-                </div>
-                <div className="settings-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', gap: '16px', flexWrap: 'wrap' }}>
-                    <label style={labelStyle}>Password</label>
-                    <input
-                        type="password"
-                        style={inputStyle}
-                        value={config.redis.password}
-                        onChange={(e) => setConfig({ ...config, redis: { ...config.redis, password: e.target.value } })}
-                    />
-                </div>
-                <div className="settings-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', gap: '16px', flexWrap: 'wrap' }}>
-                    <label style={labelStyle}>Database</label>
-                    <input
-                        type="number"
-                        style={inputStyle}
-                        value={config.redis.db}
-                        onChange={(e) => setConfig({ ...config, redis: { ...config.redis, db: parseInt(e.target.value) || 0 } })}
-                    />
-                </div>
+            <div className="settings-row" style={rowStyle}>
+                <label style={labelStyle}>Database</label>
+                <input
+                    style={inputStyle}
+                    value={config.postgresql.database}
+                    onChange={(e) => setConfig({ ...config, postgresql: { ...config.postgresql, database: e.target.value } })}
+                />
             </div>
-            <div className="settings-subgroup" style={{ marginBottom: '24px', padding: '16px', background: 'var(--bg-secondary)', borderRadius: '8px', overflowX: 'auto' }}>
-                <div className="settings-subtitle" style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)', margin: '16px 0 12px 0', paddingLeft: '8px', borderLeft: '3px solid var(--accent-color)' }}>SQLite</div>
-                <div className="settings-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', gap: '16px', flexWrap: 'wrap' }}>
-                    <label style={labelStyle}>Database Path</label>
-                    <input
-                        style={inputStyle}
-                        value={config.sqlite.path}
-                        onChange={(e) => setConfig({ ...config, sqlite: { path: e.target.value } })}
-                        placeholder="/path/to/database.db"
-                    />
-                </div>
+            <div className="settings-row" style={rowStyle}>
+                <label style={labelStyle}>Username</label>
+                <input
+                    style={inputStyle}
+                    value={config.postgresql.username}
+                    onChange={(e) => setConfig({ ...config, postgresql: { ...config.postgresql, username: e.target.value } })}
+                />
+            </div>
+            <div className="settings-row" style={rowStyle}>
+                <label style={labelStyle}>Password</label>
+                <input
+                    type="password"
+                    style={inputStyle}
+                    value={config.postgresql.password}
+                    onChange={(e) => setConfig({ ...config, postgresql: { ...config.postgresql, password: e.target.value } })}
+                />
+            </div>
+
+            <div className="settings-subtitle" style={subtitleStyle}>MySQL</div>
+            <div className="settings-row" style={rowStyle}>
+                <label style={labelStyle}>Host</label>
+                <input
+                    style={inputStyle}
+                    value={config.mysql.host}
+                    onChange={(e) => setConfig({ ...config, mysql: { ...config.mysql, host: e.target.value } })}
+                />
+            </div>
+            <div className="settings-row" style={rowStyle}>
+                <label style={labelStyle}>Port</label>
+                <input
+                    type="number"
+                    style={inputStyle}
+                    value={config.mysql.port}
+                    onChange={(e) => setConfig({ ...config, mysql: { ...config.mysql, port: parseInt(e.target.value) || 3306 } })}
+                />
+            </div>
+            <div className="settings-row" style={rowStyle}>
+                <label style={labelStyle}>Database</label>
+                <input
+                    style={inputStyle}
+                    value={config.mysql.database}
+                    onChange={(e) => setConfig({ ...config, mysql: { ...config.mysql, database: e.target.value } })}
+                />
+            </div>
+            <div className="settings-row" style={rowStyle}>
+                <label style={labelStyle}>Username</label>
+                <input
+                    style={inputStyle}
+                    value={config.mysql.username}
+                    onChange={(e) => setConfig({ ...config, mysql: { ...config.mysql, username: e.target.value } })}
+                />
+            </div>
+            <div className="settings-row" style={rowStyle}>
+                <label style={labelStyle}>Password</label>
+                <input
+                    type="password"
+                    style={inputStyle}
+                    value={config.mysql.password}
+                    onChange={(e) => setConfig({ ...config, mysql: { ...config.mysql, password: e.target.value } })}
+                />
+            </div>
+
+            <div className="settings-subtitle" style={subtitleStyle}>Redis</div>
+            <div className="settings-row" style={rowStyle}>
+                <label style={labelStyle}>Host</label>
+                <input
+                    style={inputStyle}
+                    value={config.redis.host}
+                    onChange={(e) => setConfig({ ...config, redis: { ...config.redis, host: e.target.value } })}
+                />
+            </div>
+            <div className="settings-row" style={rowStyle}>
+                <label style={labelStyle}>Port</label>
+                <input
+                    type="number"
+                    style={inputStyle}
+                    value={config.redis.port}
+                    onChange={(e) => setConfig({ ...config, redis: { ...config.redis, port: parseInt(e.target.value) || 6379 } })}
+                />
+            </div>
+            <div className="settings-row" style={rowStyle}>
+                <label style={labelStyle}>Password</label>
+                <input
+                    type="password"
+                    style={inputStyle}
+                    value={config.redis.password}
+                    onChange={(e) => setConfig({ ...config, redis: { ...config.redis, password: e.target.value } })}
+                />
+            </div>
+            <div className="settings-row" style={rowStyle}>
+                <label style={labelStyle}>Database</label>
+                <input
+                    type="number"
+                    style={inputStyle}
+                    value={config.redis.db}
+                    onChange={(e) => setConfig({ ...config, redis: { ...config.redis, db: parseInt(e.target.value) || 0 } })}
+                />
+            </div>
+
+            <div className="settings-subtitle" style={subtitleStyle}>SQLite</div>
+            <div className="settings-row" style={rowStyle}>
+                <label style={labelStyle}>Database Path</label>
+                <input
+                    style={inputStyle}
+                    value={config.sqlite.path}
+                    onChange={(e) => setConfig({ ...config, sqlite: { path: e.target.value } })}
+                    placeholder="/path/to/database.db"
+                />
             </div>
         </>
     );
+
     const renderNetworkTab = () => (
         <>
-            <div className="settings-subgroup" style={{ marginBottom: '24px', padding: '16px', background: 'var(--bg-secondary)', borderRadius: '8px', overflowX: 'auto' }}>
-                <div className="settings-subtitle" style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)', margin: '16px 0 12px 0', paddingLeft: '8px', borderLeft: '3px solid var(--accent-color)' }}>TCP</div>
-                <div className="settings-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', gap: '16px', flexWrap: 'wrap' }}>
-                    <label style={labelStyle}>Host</label>
-                    <input
-                        style={inputStyle}
-                        value={config.tcp.host}
-                        onChange={(e) => setConfig({ ...config, tcp: { ...config.tcp, host: e.target.value } })}
-                    />
-                </div>
-                <div className="settings-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', gap: '16px', flexWrap: 'wrap' }}>
-                    <label style={labelStyle}>Port</label>
-                    <input
-                        type="number"
-                        style={inputStyle}
-                        value={config.tcp.port}
-                        onChange={(e) => setConfig({ ...config, tcp: { ...config.tcp, port: parseInt(e.target.value) || 8888 } })}
-                    />
-                </div>
-                <div className="settings-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', gap: '16px', flexWrap: 'wrap' }}>
-                    <label style={labelStyle}>Encoding</label>
-                    <select
-                        style={selectStyle}
-                        value={config.tcp.encoding}
-                        onChange={(e) => setConfig({ ...config, tcp: { ...config.tcp, encoding: e.target.value } })}
-                    >
-                        <option>utf8</option>
-                        <option>gbk</option>
-                        <option>ascii</option>
-                    </select>
-                </div>
+            <div className="settings-subtitle" style={subtitleStyle}>TCP</div>
+            <div className="settings-row" style={rowStyle}>
+                <label style={labelStyle}>Host</label>
+                <input
+                    style={inputStyle}
+                    value={config.tcp.host}
+                    onChange={(e) => setConfig({ ...config, tcp: { ...config.tcp, host: e.target.value } })}
+                />
             </div>
-            <div className="settings-subgroup" style={{ marginBottom: '24px', padding: '16px', background: 'var(--bg-secondary)', borderRadius: '8px', overflowX: 'auto' }}>
-                <div className="settings-subtitle" style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)', margin: '16px 0 12px 0', paddingLeft: '8px', borderLeft: '3px solid var(--accent-color)' }}>UDP</div>
-                <div className="settings-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', gap: '16px', flexWrap: 'wrap' }}>
-                    <label style={labelStyle}>Host</label>
-                    <input
-                        style={inputStyle}
-                        value={config.udp.host}
-                        onChange={(e) => setConfig({ ...config, udp: { ...config.udp, host: e.target.value } })}
-                    />
-                </div>
-                <div className="settings-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', gap: '16px', flexWrap: 'wrap' }}>
-                    <label style={labelStyle}>Port</label>
-                    <input
-                        type="number"
-                        style={inputStyle}
-                        value={config.udp.port}
-                        onChange={(e) => setConfig({ ...config, udp: { ...config.udp, port: parseInt(e.target.value) || 9999 } })}
-                    />
-                </div>
-                <div className="settings-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', gap: '16px', flexWrap: 'wrap' }}>
-                    <label style={labelStyle}>Encoding</label>
-                    <select
-                        style={selectStyle}
-                        value={config.udp.encoding}
-                        onChange={(e) => setConfig({ ...config, udp: { ...config.udp, encoding: e.target.value } })}
-                    >
-                        <option>utf8</option>
-                        <option>gbk</option>
-                        <option>ascii</option>
-                    </select>
-                </div>
-                <div className="settings-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', gap: '16px', flexWrap: 'wrap' }}>
-                    <label style={labelStyle}>Broadcast</label>
-                    <input
-                        type="checkbox"
-                        style={checkboxStyle}
-                        checked={config.udp.broadcast}
-                        onChange={(e) => setConfig({ ...config, udp: { ...config.udp, broadcast: e.target.checked } })}
-                    />
-                </div>
+            <div className="settings-row" style={rowStyle}>
+                <label style={labelStyle}>Port</label>
+                <input
+                    type="number"
+                    style={inputStyle}
+                    value={config.tcp.port}
+                    onChange={(e) => setConfig({ ...config, tcp: { ...config.tcp, port: parseInt(e.target.value) || 8888 } })}
+                />
             </div>
-            <div className="settings-subgroup" style={{ marginBottom: '24px', padding: '16px', background: 'var(--bg-secondary)', borderRadius: '8px', overflowX: 'auto' }}>
-                <div className="settings-subtitle" style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)', margin: '16px 0 12px 0', paddingLeft: '8px', borderLeft: '3px solid var(--accent-color)' }}>FTP</div>
-                <div className="settings-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', gap: '16px', flexWrap: 'wrap' }}>
-                    <label style={labelStyle}>Host</label>
-                    <input
-                        style={inputStyle}
-                        value={config.ftp.host}
-                        onChange={(e) => setConfig({ ...config, ftp: { ...config.ftp, host: e.target.value } })}
-                    />
-                </div>
-                <div className="settings-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', gap: '16px', flexWrap: 'wrap' }}>
-                    <label style={labelStyle}>Port</label>
-                    <input
-                        type="number"
-                        style={inputStyle}
-                        value={config.ftp.port}
-                        onChange={(e) => setConfig({ ...config, ftp: { ...config.ftp, port: parseInt(e.target.value) || 21 } })}
-                    />
-                </div>
-                <div className="settings-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', gap: '16px', flexWrap: 'wrap' }}>
-                    <label style={labelStyle}>Username</label>
-                    <input
-                        style={inputStyle}
-                        value={config.ftp.username}
-                        onChange={(e) => setConfig({ ...config, ftp: { ...config.ftp, username: e.target.value } })}
-                    />
-                </div>
-                <div className="settings-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', gap: '16px', flexWrap: 'wrap' }}>
-                    <label style={labelStyle}>Password</label>
-                    <input
-                        type="password"
-                        style={inputStyle}
-                        value={config.ftp.password}
-                        onChange={(e) => setConfig({ ...config, ftp: { ...config.ftp, password: e.target.value } })}
-                    />
-                </div>
-                <div className="settings-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', gap: '16px', flexWrap: 'wrap' }}>
-                    <label style={labelStyle}>Remote Directory</label>
-                    <input
-                        style={inputStyle}
-                        value={config.ftp.remoteDir}
-                        onChange={(e) => setConfig({ ...config, ftp: { ...config.ftp, remoteDir: e.target.value } })}
-                    />
-                </div>
+            <div className="settings-row" style={rowStyle}>
+                <label style={labelStyle}>Encoding</label>
+                <select
+                    style={selectStyle}
+                    value={config.tcp.encoding}
+                    onChange={(e) => setConfig({ ...config, tcp: { ...config.tcp, encoding: e.target.value } })}
+                >
+                    <option>utf8</option>
+                    <option>gbk</option>
+                    <option>ascii</option>
+                </select>
+            </div>
+
+            <div className="settings-subtitle" style={subtitleStyle}>UDP</div>
+            <div className="settings-row" style={rowStyle}>
+                <label style={labelStyle}>Host</label>
+                <input
+                    style={inputStyle}
+                    value={config.udp.host}
+                    onChange={(e) => setConfig({ ...config, udp: { ...config.udp, host: e.target.value } })}
+                />
+            </div>
+            <div className="settings-row" style={rowStyle}>
+                <label style={labelStyle}>Port</label>
+                <input
+                    type="number"
+                    style={inputStyle}
+                    value={config.udp.port}
+                    onChange={(e) => setConfig({ ...config, udp: { ...config.udp, port: parseInt(e.target.value) || 9999 } })}
+                />
+            </div>
+            <div className="settings-row" style={rowStyle}>
+                <label style={labelStyle}>Encoding</label>
+                <select
+                    style={selectStyle}
+                    value={config.udp.encoding}
+                    onChange={(e) => setConfig({ ...config, udp: { ...config.udp, encoding: e.target.value } })}
+                >
+                    <option>utf8</option>
+                    <option>gbk</option>
+                    <option>ascii</option>
+                </select>
+            </div>
+            <div className="settings-row" style={rowStyle}>
+                <label style={labelStyle}>Broadcast</label>
+                <input
+                    type="checkbox"
+                    style={checkboxStyle}
+                    checked={config.udp.broadcast}
+                    onChange={(e) => setConfig({ ...config, udp: { ...config.udp, broadcast: e.target.checked } })}
+                />
+            </div>
+
+            <div className="settings-subtitle" style={subtitleStyle}>FTP</div>
+            <div className="settings-row" style={rowStyle}>
+                <label style={labelStyle}>Host</label>
+                <input
+                    style={inputStyle}
+                    value={config.ftp.host}
+                    onChange={(e) => setConfig({ ...config, ftp: { ...config.ftp, host: e.target.value } })}
+                />
+            </div>
+            <div className="settings-row" style={rowStyle}>
+                <label style={labelStyle}>Port</label>
+                <input
+                    type="number"
+                    style={inputStyle}
+                    value={config.ftp.port}
+                    onChange={(e) => setConfig({ ...config, ftp: { ...config.ftp, port: parseInt(e.target.value) || 21 } })}
+                />
+            </div>
+            <div className="settings-row" style={rowStyle}>
+                <label style={labelStyle}>Username</label>
+                <input
+                    style={inputStyle}
+                    value={config.ftp.username}
+                    onChange={(e) => setConfig({ ...config, ftp: { ...config.ftp, username: e.target.value } })}
+                />
+            </div>
+            <div className="settings-row" style={rowStyle}>
+                <label style={labelStyle}>Password</label>
+                <input
+                    type="password"
+                    style={inputStyle}
+                    value={config.ftp.password}
+                    onChange={(e) => setConfig({ ...config, ftp: { ...config.ftp, password: e.target.value } })}
+                />
+            </div>
+            <div className="settings-row" style={rowStyle}>
+                <label style={labelStyle}>Remote Directory</label>
+                <input
+                    style={inputStyle}
+                    value={config.ftp.remoteDir}
+                    onChange={(e) => setConfig({ ...config, ftp: { ...config.ftp, remoteDir: e.target.value } })}
+                />
             </div>
         </>
     );
+
     const renderContainerTab = () => (
         <>
-            <div className="settings-subgroup" style={{ marginBottom: '24px', padding: '16px', background: 'var(--bg-secondary)', borderRadius: '8px', overflowX: 'auto' }}>
-                <div className="settings-subtitle" style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)', margin: '16px 0 12px 0', paddingLeft: '8px', borderLeft: '3px solid var(--accent-color)' }}>Docker</div>
-                <div className="settings-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', gap: '16px', flexWrap: 'wrap' }}>
-                    <label style={labelStyle}>Host</label>
-                    <input
-                        style={inputStyle}
-                        value={config.docker.host}
-                        onChange={(e) => setConfig({ ...config, docker: { ...config.docker, host: e.target.value } })}
-                        placeholder="unix:///var/run/docker.sock"
-                    />
-                </div>
-                <div className="settings-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', gap: '16px', flexWrap: 'wrap' }}>
-                    <label style={labelStyle}>API Version</label>
-                    <input
-                        style={inputStyle}
-                        value={config.docker.apiVersion}
-                        onChange={(e) => setConfig({ ...config, docker: { ...config.docker, apiVersion: e.target.value } })}
-                        placeholder="v1.41"
-                    />
-                </div>
-                <div className="settings-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', gap: '16px', flexWrap: 'wrap' }}>
-                    <label style={labelStyle}>TLS Verify</label>
-                    <input
-                        type="checkbox"
-                        style={checkboxStyle}
-                        checked={config.docker.tlsVerify}
-                        onChange={(e) => setConfig({ ...config, docker: { ...config.docker, tlsVerify: e.target.checked } })}
-                    />
-                </div>
+            <div className="settings-subtitle" style={subtitleStyle}>Docker</div>
+            <div className="settings-row" style={rowStyle}>
+                <label style={labelStyle}>Host</label>
+                <input
+                    style={inputStyle}
+                    value={config.docker.host}
+                    onChange={(e) => setConfig({ ...config, docker: { ...config.docker, host: e.target.value } })}
+                    placeholder="unix:///var/run/docker.sock"
+                />
             </div>
-            <div className="settings-subgroup" style={{ marginBottom: '24px', padding: '16px', background: 'var(--bg-secondary)', borderRadius: '8px', overflowX: 'auto' }}>
-                <div className="settings-subtitle" style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)', margin: '16px 0 12px 0', paddingLeft: '8px', borderLeft: '3px solid var(--accent-color)' }}>Kubernetes</div>
-                <div className="settings-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', gap: '16px', flexWrap: 'wrap' }}>
-                    <label style={labelStyle}>Kubeconfig Path</label>
-                    <input
-                        style={inputStyle}
-                        value={config.k8s.kubeconfig}
-                        onChange={(e) => setConfig({ ...config, k8s: { ...config.k8s, kubeconfig: e.target.value } })}
-                        placeholder="~/.kube/config"
-                    />
-                </div>
-                <div className="settings-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', gap: '16px', flexWrap: 'wrap' }}>
-                    <label style={labelStyle}>Context</label>
-                    <input
-                        style={inputStyle}
-                        value={config.k8s.context}
-                        onChange={(e) => setConfig({ ...config, k8s: { ...config.k8s, context: e.target.value } })}
-                    />
-                </div>
-                <div className="settings-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', gap: '16px', flexWrap: 'wrap' }}>
-                    <label style={labelStyle}>Default Namespace</label>
-                    <input
-                        style={inputStyle}
-                        value={config.k8s.namespace}
-                        onChange={(e) => setConfig({ ...config, k8s: { ...config.k8s, namespace: e.target.value } })}
-                    />
-                </div>
+            <div className="settings-row" style={rowStyle}>
+                <label style={labelStyle}>API Version</label>
+                <input
+                    style={inputStyle}
+                    value={config.docker.apiVersion}
+                    onChange={(e) => setConfig({ ...config, docker: { ...config.docker, apiVersion: e.target.value } })}
+                    placeholder="v1.41"
+                />
+            </div>
+            <div className="settings-row" style={rowStyle}>
+                <label style={labelStyle}>TLS Verify</label>
+                <input
+                    type="checkbox"
+                    style={checkboxStyle}
+                    checked={config.docker.tlsVerify}
+                    onChange={(e) => setConfig({ ...config, docker: { ...config.docker, tlsVerify: e.target.checked } })}
+                />
+            </div>
+
+            <div className="settings-subtitle" style={subtitleStyle}>Kubernetes</div>
+            <div className="settings-row" style={rowStyle}>
+                <label style={labelStyle}>Kubeconfig Path</label>
+                <input
+                    style={inputStyle}
+                    value={config.k8s.kubeconfig}
+                    onChange={(e) => setConfig({ ...config, k8s: { ...config.k8s, kubeconfig: e.target.value } })}
+                    placeholder="~/.kube/config"
+                />
+            </div>
+            <div className="settings-row" style={rowStyle}>
+                <label style={labelStyle}>Context</label>
+                <input
+                    style={inputStyle}
+                    value={config.k8s.context}
+                    onChange={(e) => setConfig({ ...config, k8s: { ...config.k8s, context: e.target.value } })}
+                />
+            </div>
+            <div className="settings-row" style={rowStyle}>
+                <label style={labelStyle}>Default Namespace</label>
+                <input
+                    style={inputStyle}
+                    value={config.k8s.namespace}
+                    onChange={(e) => setConfig({ ...config, k8s: { ...config.k8s, namespace: e.target.value } })}
+                />
             </div>
         </>
     );
+
     const renderNotificationTab = () => (
         <>
-            <div className="settings-subgroup" style={{ marginBottom: '24px', padding: '16px', background: 'var(--bg-secondary)', borderRadius: '8px', overflowX: 'auto' }}>
-                <div className="settings-subtitle" style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)', margin: '16px 0 12px 0', paddingLeft: '8px', borderLeft: '3px solid var(--accent-color)' }}>SMTP Email</div>
-                <div className="settings-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', gap: '16px', flexWrap: 'wrap' }}>
-                    <label style={labelStyle}>SMTP Host</label>
-                    <input
-                        style={inputStyle}
-                        value={config.smtp.host}
-                        onChange={(e) => setConfig({ ...config, smtp: { ...config.smtp, host: e.target.value } })}
-                        placeholder="smtp.gmail.com"
-                    />
-                </div>
-                <div className="settings-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', gap: '16px', flexWrap: 'wrap' }}>
-                    <label style={labelStyle}>SMTP Port</label>
-                    <input
-                        type="number"
-                        style={inputStyle}
-                        value={config.smtp.port}
-                        onChange={(e) => setConfig({ ...config, smtp: { ...config.smtp, port: parseInt(e.target.value) || 587 } })}
-                    />
-                </div>
-                <div className="settings-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', gap: '16px', flexWrap: 'wrap' }}>
-                    <label style={labelStyle}>Username</label>
-                    <input
-                        style={inputStyle}
-                        value={config.smtp.username}
-                        onChange={(e) => setConfig({ ...config, smtp: { ...config.smtp, username: e.target.value } })}
-                    />
-                </div>
-                <div className="settings-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', gap: '16px', flexWrap: 'wrap' }}>
-                    <label style={labelStyle}>Password</label>
-                    <input
-                        type="password"
-                        style={inputStyle}
-                        value={config.smtp.password}
-                        onChange={(e) => setConfig({ ...config, smtp: { ...config.smtp, password: e.target.value } })}
-                    />
-                </div>
-                <div className="settings-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', gap: '16px', flexWrap: 'wrap' }}>
-                    <label style={labelStyle}>From Email</label>
-                    <input
-                        style={inputStyle}
-                        value={config.smtp.from}
-                        onChange={(e) => setConfig({ ...config, smtp: { ...config.smtp, from: e.target.value } })}
-                    />
-                </div>
+            <div className="settings-subtitle" style={subtitleStyle}>SMTP Email</div>
+            <div className="settings-row" style={rowStyle}>
+                <label style={labelStyle}>SMTP Host</label>
+                <input
+                    style={inputStyle}
+                    value={config.smtp.host}
+                    onChange={(e) => setConfig({ ...config, smtp: { ...config.smtp, host: e.target.value } })}
+                    placeholder="smtp.gmail.com"
+                />
             </div>
-
-            <div className="settings-subgroup" style={{ marginBottom: '24px', padding: '16px', background: 'var(--bg-secondary)', borderRadius: '8px', overflowX: 'auto' }}>
-                <div className="settings-subtitle" style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)', margin: '16px 0 12px 0', paddingLeft: '8px', borderLeft: '3px solid var(--accent-color)' }}>Telegram</div>
-                <div className="settings-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', gap: '16px', flexWrap: 'wrap' }}>
-                    <label style={labelStyle}>Bot Token</label>
-                    <input
-                        type="password"
-                        style={inputStyle}
-                        value={config.telegram.botToken}
-                        onChange={(e) => setConfig({ ...config, telegram: { botToken: e.target.value } })}
-                    />
-                </div>
+            <div className="settings-row" style={rowStyle}>
+                <label style={labelStyle}>SMTP Port</label>
+                <input
+                    type="number"
+                    style={inputStyle}
+                    value={config.smtp.port}
+                    onChange={(e) => setConfig({ ...config, smtp: { ...config.smtp, port: parseInt(e.target.value) || 587 } })}
+                />
             </div>
-
-            <div className="settings-subgroup" style={{ marginBottom: '24px', padding: '16px', background: 'var(--bg-secondary)', borderRadius: '8px', overflowX: 'auto' }}>
-                <div className="settings-subtitle" style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)', margin: '16px 0 12px 0', paddingLeft: '8px', borderLeft: '3px solid var(--accent-color)' }}>DingTalk</div>
-                <div className="settings-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', gap: '16px', flexWrap: 'wrap' }}>
-                    <label style={labelStyle}>Access Token</label>
-                    <input
-                        type="password"
-                        style={inputStyle}
-                        value={config.dingtalk.accessToken}
-                        onChange={(e) => setConfig({ ...config, dingtalk: { accessToken: e.target.value } })}
-                    />
-                </div>
+            <div className="settings-row" style={rowStyle}>
+                <label style={labelStyle}>Username</label>
+                <input
+                    style={inputStyle}
+                    value={config.smtp.username}
+                    onChange={(e) => setConfig({ ...config, smtp: { ...config.smtp, username: e.target.value } })}
+                />
             </div>
-
-            <div className="settings-subgroup" style={{ marginBottom: '24px', padding: '16px', background: 'var(--bg-secondary)', borderRadius: '8px', overflowX: 'auto' }}>
-                <div className="settings-subtitle" style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)', margin: '16px 0 12px 0', paddingLeft: '8px', borderLeft: '3px solid var(--accent-color)' }}>Feishu</div>
-                <div className="settings-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', gap: '16px', flexWrap: 'wrap' }}>
-                    <label style={labelStyle}>Webhook URL</label>
-                    <input
-                        style={inputStyle}
-                        value={config.feishu.webhook}
-                        onChange={(e) => setConfig({ ...config, feishu: { webhook: e.target.value } })}
-                    />
-                </div>
+            <div className="settings-row" style={rowStyle}>
+                <label style={labelStyle}>Password</label>
+                <input
+                    type="password"
+                    style={inputStyle}
+                    value={config.smtp.password}
+                    onChange={(e) => setConfig({ ...config, smtp: { ...config.smtp, password: e.target.value } })}
+                />
             </div>
-
-            <div className="settings-subgroup" style={{ marginBottom: '24px', padding: '16px', background: 'var(--bg-secondary)', borderRadius: '8px', overflowX: 'auto' }}>
-                <div className="settings-subtitle" style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)', margin: '16px 0 12px 0', paddingLeft: '8px', borderLeft: '3px solid var(--accent-color)' }}>WeCom</div>
-                <div className="settings-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', gap: '16px', flexWrap: 'wrap' }}>
-                    <label style={labelStyle}>Webhook URL</label>
-                    <input
-                        style={inputStyle}
-                        value={config.wecom.webhook}
-                        onChange={(e) => setConfig({ ...config, wecom: { webhook: e.target.value } })}
-                    />
-                </div>
+            <div className="settings-row" style={rowStyle}>
+                <label style={labelStyle}>From Email</label>
+                <input
+                    style={inputStyle}
+                    value={config.smtp.from}
+                    onChange={(e) => setConfig({ ...config, smtp: { ...config.smtp, from: e.target.value } })}
+                />
             </div>
-
-            <div className="settings-subgroup" style={{ marginBottom: '24px', padding: '16px', background: 'var(--bg-secondary)', borderRadius: '8px', overflowX: 'auto' }}>
-                <div className="settings-subtitle" style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)', margin: '16px 0 12px 0', paddingLeft: '8px', borderLeft: '3px solid var(--accent-color)' }}>GitHub</div>
-                <div className="settings-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', gap: '16px', flexWrap: 'wrap' }}>
-                    <label style={labelStyle}>Access Token</label>
-                    <input
-                        type="password"
-                        style={inputStyle}
-                        value={config.github.token}
-                        onChange={(e) => setConfig({ ...config, github: { ...config.github, token: e.target.value } })}
-                    />
-                </div>
-                <div className="settings-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', gap: '16px', flexWrap: 'wrap' }}>
-                    <label style={labelStyle}>API URL</label>
-                    <input
-                        style={inputStyle}
-                        value={config.github.apiUrl}
-                        onChange={(e) => setConfig({ ...config, github: { ...config.github, apiUrl: e.target.value } })}
-                    />
-                </div>
+            <div className="settings-subtitle" style={subtitleStyle}>Telegram</div>
+            <div className="settings-row" style={rowStyle}>
+                <label style={labelStyle}>Bot Token</label>
+                <input
+                    type="password"
+                    style={inputStyle}
+                    value={config.telegram.botToken}
+                    onChange={(e) => setConfig({ ...config, telegram: { botToken: e.target.value } })}
+                />
+            </div>
+            <div className="settings-subtitle" style={subtitleStyle}>DingTalk</div>
+            <div className="settings-row" style={rowStyle}>
+                <label style={labelStyle}>Access Token</label>
+                <input
+                    type="password"
+                    style={inputStyle}
+                    value={config.dingtalk.accessToken}
+                    onChange={(e) => setConfig({ ...config, dingtalk: { accessToken: e.target.value } })}
+                />
+            </div>
+            <div className="settings-subtitle" style={subtitleStyle}>Feishu</div>
+            <div className="settings-row" style={rowStyle}>
+                <label style={labelStyle}>Webhook URL</label>
+                <input
+                    style={inputStyle}
+                    value={config.feishu.webhook}
+                    onChange={(e) => setConfig({ ...config, feishu: { webhook: e.target.value } })}
+                />
+            </div>
+            <div className="settings-subtitle" style={subtitleStyle}>WeCom</div>
+            <div className="settings-row" style={rowStyle}>
+                <label style={labelStyle}>Webhook URL</label>
+                <input
+                    style={inputStyle}
+                    value={config.wecom.webhook}
+                    onChange={(e) => setConfig({ ...config, wecom: { webhook: e.target.value } })}
+                />
+            </div>
+            <div className="settings-subtitle" style={subtitleStyle}>GitHub</div>
+            <div className="settings-row" style={rowStyle}>
+                <label style={labelStyle}>Access Token</label>
+                <input
+                    type="password"
+                    style={inputStyle}
+                    value={config.github.token}
+                    onChange={(e) => setConfig({ ...config, github: { ...config.github, token: e.target.value } })}
+                />
+            </div>
+            <div className="settings-row" style={rowStyle}>
+                <label style={labelStyle}>API URL</label>
+                <input
+                    style={inputStyle}
+                    value={config.github.apiUrl}
+                    onChange={(e) => setConfig({ ...config, github: { ...config.github, apiUrl: e.target.value } })}
+                />
             </div>
         </>
     );
-
     const engineTabsStyles = `
     .engine-tabs-container {
         position: relative;
         display: flex;
         align-items: center;
-        margin-bottom: 20px;
+        margin-bottom: 0px;
     }
     .engine-tabs-scroll {
         flex: 1;
@@ -660,7 +627,6 @@ const EngineConfig: React.FC<EngineConfigProps> = ({ t, initialConfig, onSave })
         color: var(--text-secondary);
     }
 `;
-
     if (typeof document !== 'undefined') {
         const styleId = 'engine-tabs-styles';
         if (!document.getElementById(styleId)) {
@@ -670,10 +636,12 @@ const EngineConfig: React.FC<EngineConfigProps> = ({ t, initialConfig, onSave })
             document.head.appendChild(style);
         }
     }
-
     return (
-        <div className="settings-container" style={{ height: '100%', display: 'flex', flexDirection: 'column', gap: '20px', overflow: 'hidden' }}>
-            <div className="engine-tabs-container">
+        <div className="settings-container" style={{
+            height: '100%', display: 'flex', flexDirection: 'column',
+            overflow: 'hidden', padding: 0, margin: 0, gap: 0,
+        }}>
+            <div className="engine-tabs-container" style={{ padding: '0px', margin: 0 }}>
                 {showLeftArrow && (
                     <button className="engine-tab-scroll-btn" onClick={() => scrollTabs('left')}>
                         ◀
@@ -702,15 +670,30 @@ const EngineConfig: React.FC<EngineConfigProps> = ({ t, initialConfig, onSave })
                     </button>
                 )}
             </div>
-
-            <div className="settings-content" style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
+            <div style={{
+                flex: 1,
+                overflowY: 'auto',
+                overflowX: 'hidden',
+                padding: '0 10px',
+                margin: 0, paddingTop: '10px',
+                paddingBottom: '10px',
+            }}>
                 {activeTab === 'database' && renderDatabaseTab()}
                 {activeTab === 'network' && renderNetworkTab()}
                 {activeTab === 'container' && renderContainerTab()}
                 {activeTab === 'notification' && renderNotificationTab()}
             </div>
-
-            <button className="settings-save-btn" onClick={handleSave} style={{ padding: '8px 20px', background: 'var(--accent-color, #0066cc)', border: 'none', borderRadius: '6px', color: 'white', fontSize: '13px', fontWeight: 500, cursor: 'pointer', transition: 'all 0.2s', alignSelf: 'flex-start' }}>
+            <button className="settings-save-btn" onClick={handleSave} style={{
+                padding: '8px 20px', margin: '10px 10px 0 10px',
+                background: 'var(--accent-color, #0066cc)',
+                border: 'none', borderRadius: '6px',
+                color: 'white', fontSize: '13px',
+                fontWeight: 500, cursor: 'pointer',
+                transition: 'all 0.2s',
+                alignSelf: 'flex-end',
+                marginRight: '10px',
+                marginBottom: '10px'
+            }}>
                 {t('settings.save')}
             </button>
         </div>

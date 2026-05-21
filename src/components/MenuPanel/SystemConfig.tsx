@@ -35,12 +35,16 @@ const SystemConfig: React.FC<SystemConfigProps> = ({
     outline: 'none'
   };
   return (
-    <div className="settings-container" style={{ height: '100%', display: 'flex', flexDirection: 'column', gap: '20px', overflow: 'hidden' }}>
-      <div className="settings-group" style={{ marginBottom: '24px' }}>
-        <div className="settings-title" style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '16px', paddingBottom: '8px', borderBottom: '1px solid var(--border-color)', userSelect: 'none' }}>
-          {t('settings.systemConfig')}
-        </div>
-        <div className="settings-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', gap: '16px', flexWrap: 'wrap' }}>
+    <div className="settings-container"
+      style={{
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '0px',
+        overflow: 'hidden'
+      }}>
+      <div className="settings-group" style={{ paddingTop: '15px' }}>
+        <div className="settings-row" style={{ padding: '0px 10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', gap: '16px', flexWrap: 'wrap' }}>
           <label style={labelStyle}>{t('settings.theme')}</label>
           <select
             style={selectStyle}
@@ -51,7 +55,7 @@ const SystemConfig: React.FC<SystemConfigProps> = ({
             <option value="dark">{t('settings.themeDark')}</option>
           </select>
         </div>
-        <div className="settings-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', gap: '16px', flexWrap: 'wrap' }}>
+        <div className="settings-row" style={{ padding: '0px 10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', gap: '16px', flexWrap: 'wrap' }}>
           <label style={labelStyle}>{t('settings.language')}</label>
           <select
             style={selectStyle}
