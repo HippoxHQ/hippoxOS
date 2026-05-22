@@ -17,6 +17,9 @@ function App() {
     const saved = localStorage.getItem('hippox-theme') as Theme;
     return saved || 'dark';
   });
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+  }, [theme]);
   const [language, setLanguage] = useState<Language>(() => {
     const saved = localStorage.getItem('hippox-language') as Language;
     return saved || 'en';

@@ -8,6 +8,7 @@ import TaskQueuePanel from './TaskQueuePanel';
 import FavoritesPanel from './FavoritesPanel';
 import HistoryPanel from './HistoryPanel';
 import SkillsPanel from './SkillsPanel';
+import AtomicSkillsPanel from './AtomicSkillsPanel';
 
 export type MenuPanelView =
   | 'terminal'
@@ -19,6 +20,7 @@ export type MenuPanelView =
   | 'taskQueue'
   | 'scheduledTasks'
   | 'executionHistory'
+  | 'atomicSkills'
   | 'settings';
 
 interface MenuPanelProps {
@@ -39,6 +41,7 @@ const viewTitles: Record<MenuPanelView, string> = {
   history: 'menu.history',
   favorites: 'menu.favorites',
   skills: 'menu.skills',
+  atomicSkills: 'menu.atomicSkills',
   knowledge: 'menu.knowledge',
   skillMarket: 'menu.skillMarket',
   taskQueue: 'menu.taskQueue',
@@ -382,7 +385,7 @@ const MenuPanel: React.FC<MenuPanelProps> = ({
   language,
   onThemeChange,
   onLanguageChange,
-  isInitializing = false, 
+  isInitializing = false,
 }) => {
   const renderContent = () => {
     switch (currentView) {
@@ -402,6 +405,8 @@ const MenuPanel: React.FC<MenuPanelProps> = ({
         return <ScheduledTasksPanel t={t} />;
       case 'executionHistory':
         return <ExecutionHistoryPanel t={t} />;
+      case 'atomicSkills':
+        return <AtomicSkillsPanel t={t} onSave={onSaveConfig} />;
       case 'settings':
         return <SettingsPanel
           subView={settingsSubView || 'aiModel'}
@@ -411,7 +416,7 @@ const MenuPanel: React.FC<MenuPanelProps> = ({
           language={language}
           onThemeChange={onThemeChange}
           onLanguageChange={onLanguageChange}
-          isInitializing={isInitializing}  
+          isInitializing={isInitializing}
         />;
       default:
         return null;
@@ -425,6 +430,7 @@ const MenuPanel: React.FC<MenuPanelProps> = ({
         engine: 'menu.engineConfig',
         workspace: 'menu.workspaceConfig',
         system: 'menu.systemConfig',
+        atomicSkills: 'menu.atomicSkills',
       };
       const key = subViewTitles[settingsSubView];
       if (!key) {

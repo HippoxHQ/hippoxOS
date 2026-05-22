@@ -3,8 +3,9 @@ import AIModelConfig from './AIModelConfig';
 import EngineConfig from './EngineConfig';
 import WorkspaceConfig from './WorkspaceConfig';
 import SystemConfig from './SystemConfig';
+import AtomicSkillsPanel from './AtomicSkillsPanel';
 
-export type SettingsSubView = 'aiModel' | 'engine' | 'workspace' | 'system';
+export type SettingsSubView = 'aiModel' | 'engine' | 'workspace' | 'system' | 'atomicSkills';
 
 interface SettingsPanelProps {
   subView: SettingsSubView;
@@ -176,7 +177,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
   language,
   onThemeChange,
   onLanguageChange,
-  isInitializing = false, 
+  isInitializing = false,
 }) => {
   const renderContent = () => {
     switch (subView) {
@@ -194,11 +195,12 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
           onThemeChange={onThemeChange || (() => { })}
           onLanguageChange={onLanguageChange || (() => { })}
         />;
+      case 'atomicSkills':  
+        return <AtomicSkillsPanel t={t} onSave={onSave} />;
       default:
         return <AIModelConfig t={t} onSave={onSave} isInitializing={isInitializing} />;
     }
   };
-
   return <div className="settings-container">{renderContent()}</div>;
 };
 

@@ -7,6 +7,15 @@ export const zh = {
   session: {
     reset: '会话已重置。Hippox 运行时重新就绪，自主决策引擎已刷新。'
   },
+
+  atomicSkills: {
+    loading: '加载原子能力列表中...',
+    stats: '共 {{total}} 个原子能力，已启用 {{enabled}} 个',
+    empty: '暂无原子能力',
+    enableAll: '全部启用',
+    disableAll: '全部禁用'
+  },
+
   logs: {
     skillsLoaded: '已加载 3 个技能模块',
     listening: '监听用户指令中...',
@@ -40,6 +49,7 @@ export const zh = {
     sendFailed: '❌ 消息发送失败',
     resetFailed: '❌ 重置会话失败'
   },
+
   skills: {
     search: '🔍 已调用「WebSearch Skill」技能。正在模拟网络搜索: "{{query}}"\n\n（当前为演示模式，实际将连接搜索引擎返回实时结果）',
     file: '📁 已调用「FileProcessor Skill」技能。可读取、分析本地文件，目前为沙盒演示。\n\n你可以通过 Tauri 原生对话框选择文件。',
@@ -53,8 +63,16 @@ export const zh = {
       network: '网络通信',
       system: '系统管理',
       database: '数据库',
+      math: '数学计算',
+      time: '时间日期',
+      devops: 'DevOps',
+      document: '文档处理',
+      message: '消息通知',
+      task: '任务调度',
+      general: '通用'
     }
   },
+
   menu: {
     dashboard: '概览',
     workspace: '工作区',
@@ -62,6 +80,7 @@ export const zh = {
     files: '文件',
     sessions: '会话',
     skills: '技能',
+    atomicSkills: '原子能力开关',
     tools: '工具',
     agents: '代理',
     nodes: '节点',
@@ -84,24 +103,29 @@ export const zh = {
     workspaceConfig: '工作空间配置',
     systemConfig: '系统设置',
   },
+
   status: {
     healthy: '健康状况正常'
   },
+
   actions: {
     newSession: '新建会话',
     clearTerminal: '清空终端'
   },
+
   runtime: {
     model: '运行时模型',
     engine: '决策引擎',
     skillOrchestration: '自主Skill编排'
   },
+
   terminal: {
     title: '终端日志',
     clear: '清空日志',
     empty: '暂无日志，等待执行步骤...',
     scrollToBottom: '回到底部'
   },
+
   chat: {
     title: '对话界面',
     mainSession: 'Main Session',
@@ -112,19 +136,23 @@ export const zh = {
     notInitialized: 'Hippox 引擎未初始化，请先在设置中配置 API Key。',
     sendFailed: '发送失败，请检查网络或 API Key 配置。'
   },
+
   tooltip: {
     theme: '切换主题',
     language: '切换语言'
   },
+
   topbar: {
     collapseSidebar: '折叠侧边栏',
     expandSidebar: '展开侧边栏',
     toggleTheme: '切换主题',
     toggleLanguage: '切换语言'
   },
+
   common: {
     close: '关闭'
   },
+
   history: {
     dataAnalysis: '数据分析对话',
     codeDebug: '代码调试会话',
@@ -135,24 +163,28 @@ export const zh = {
     duration: '耗时 {{time}}',
     failed: '连接失败'
   },
+
   favorites: {
     dataAnalysisTemplate: '数据分析模板',
     codeReviewFlow: '代码审查流程',
     deployChecklist: '部署检查清单',
     dbBackupScript: '数据库备份脚本'
   },
+
   knowledge: {
     soulDesc: '核心人格定义文件',
     skillDesc: '技能定义规范',
     apiTitle: 'API 参考文档',
     apiDesc: '开发者接口文档'
   },
+
   market: {
     emailDesc: '发送邮件通知',
     visualizerDesc: '生成数据图表',
     codeDesc: '代码审查和优化',
     install: '安装'
   },
+
   task: {
     analyzeData: '分析 data.csv',
     weeklyReport: '生成周报',
@@ -160,6 +192,7 @@ export const zh = {
     waiting: '等待中',
     completed: '已完成'
   },
+
   scheduled: {
     dailyBackup: '每天 09:00 - 数据备份',
     weeklyReport: '每周一 10:00 - 周报生成',
@@ -167,6 +200,7 @@ export const zh = {
     edit: '编辑',
     addTask: '添加定时任务'
   },
+
   settings: {
     selectModel: '选择模型',
     selectModelPlaceholder: '请选择模型...',
@@ -206,7 +240,7 @@ export const zh = {
     tempPathPlaceholder: '/path/to/temp',
     backupPath: '备份路径',
     backupPathPlaceholder: '/path/to/backup',
-    maxLogSize: '最大日志大小',
+    maxLogSize: '最大日志大小 (MB)',
     maxBackupCount: '最大备份数量',
     tab: {
       database: '数据库',
@@ -215,6 +249,7 @@ export const zh = {
       notification: '通知'
     }
   },
+
   plugins: {
     integration: '集成',
     support: '支持',
@@ -224,12 +259,14 @@ export const zh = {
     enabled: '已启用',
     disabled: '未启用'
   },
+
   monitor: {
     cpuUsage: 'CPU 使用率',
     memoryUsage: '内存使用',
     apiCalls: 'API 调用',
     skillExecutions: '技能执行'
   },
+
   debug: {
     viewRawLogs: '查看原始日志',
     skillTrace: '技能调用链追踪',
@@ -249,6 +286,15 @@ export const en: typeof zh = {
   session: {
     reset: 'Session reset. Hippox runtime ready, decision engine refreshed.'
   },
+
+  atomicSkills: {
+    loading: 'Loading atomic skills...',
+    stats: '{{total}} atomic skills total, {{enabled}} enabled',
+    empty: 'No atomic skills available',
+    enableAll: 'Enable All',
+    disableAll: 'Disable All'
+  },
+
   logs: {
     skillsLoaded: 'Loaded 3 skills',
     listening: 'Listening for user commands...',
@@ -282,6 +328,7 @@ export const en: typeof zh = {
     sendFailed: '❌ Message send failed',
     resetFailed: '❌ Session reset failed'
   },
+
   skills: {
     search: '🔍 Called "WebSearch Skill". Simulating web search: "{{query}}"\n\n(Demo mode, actual implementation would connect to search engine)',
     file: '📁 Called "FileProcessor Skill". Can read and analyze local files, currently in sandbox demo.\n\nYou can select files via Tauri native dialog.',
@@ -295,8 +342,16 @@ export const en: typeof zh = {
       network: 'Network',
       system: 'System Management',
       database: 'Database',
+      math: 'Math',
+      time: 'Time',
+      devops: 'DevOps',
+      document: 'Document',
+      message: 'Message',
+      task: 'Task',
+      general: 'General'
     }
   },
+
   menu: {
     dashboard: 'Dashboard',
     workspace: 'Workspace',
@@ -304,6 +359,7 @@ export const en: typeof zh = {
     files: 'Files',
     sessions: 'Sessions',
     skills: 'Skills',
+    atomicSkills: 'Atomic Skills',
     tools: 'Tools',
     agents: 'Agents',
     nodes: 'Nodes',
@@ -326,24 +382,29 @@ export const en: typeof zh = {
     workspaceConfig: 'Workspace Config',
     systemConfig: 'System Config',
   },
+
   status: {
     healthy: 'Healthy'
   },
+
   actions: {
     newSession: 'New Session',
     clearTerminal: 'Clear Terminal'
   },
+
   runtime: {
     model: 'Runtime Model',
     engine: 'Decision Engine',
     skillOrchestration: 'Skill Orchestration'
   },
+
   terminal: {
     title: 'Terminal Logs',
     clear: 'Clear logs',
     empty: 'No logs, waiting for execution steps...',
     scrollToBottom: 'Scroll to bottom'
   },
+
   chat: {
     title: 'Chat Interface',
     mainSession: 'Main Session',
@@ -354,19 +415,23 @@ export const en: typeof zh = {
     notInitialized: 'Hippox engine not initialized, please configure API Key in settings first.',
     sendFailed: 'Send failed, please check network or API Key configuration.'
   },
+
   tooltip: {
     theme: 'Toggle theme',
     language: 'Toggle language'
   },
+
   topbar: {
     collapseSidebar: 'Collapse Sidebar',
     expandSidebar: 'Expand Sidebar',
     toggleTheme: 'Toggle Theme',
     toggleLanguage: 'Toggle Language'
   },
+
   common: {
     close: 'Close'
   },
+
   history: {
     dataAnalysis: 'Data Analysis Chat',
     codeDebug: 'Code Debug Session',
@@ -377,12 +442,14 @@ export const en: typeof zh = {
     duration: 'Duration {{time}}',
     failed: 'Connection failed'
   },
+
   favorites: {
     dataAnalysisTemplate: 'Data Analysis Template',
     codeReviewFlow: 'Code Review Flow',
     deployChecklist: 'Deploy Checklist',
     dbBackupScript: 'Database Backup Script'
   },
+
   knowledge: {
     soulDesc: 'Core personality definition file',
     skillDesc: 'Skill definition specification',
@@ -452,7 +519,7 @@ export const en: typeof zh = {
     tempPathPlaceholder: '/path/to/temp',
     backupPath: 'Backup Path',
     backupPathPlaceholder: '/path/to/backup',
-    maxLogSize: 'Max Log Size',
+    maxLogSize: 'Max Log Size (MB)',
     maxBackupCount: 'Max Backup Count',
     tab: {
       database: 'Database',
