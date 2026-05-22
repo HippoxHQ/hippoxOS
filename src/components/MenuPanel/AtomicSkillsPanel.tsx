@@ -27,11 +27,9 @@ const AtomicSkillsPanel: React.FC<AtomicSkillsPanelProps> = ({ t, onSave }) => {
     const tabsRef = useRef<HTMLDivElement>(null);
     const [showLeftArrow, setShowLeftArrow] = useState(false);
     const [showRightArrow, setShowRightArrow] = useState(false);
-
     useEffect(() => {
         loadSkills();
     }, []);
-
     const loadSkills = async () => {
         try {
             setLoading(true);
@@ -52,34 +50,28 @@ const AtomicSkillsPanel: React.FC<AtomicSkillsPanelProps> = ({ t, onSave }) => {
             setLoading(false);
         }
     };
-
     const handleToggleSkill = (skillName: string, enabled: boolean) => {
         setSkills(prev => prev.map(skill =>
             skill.name === skillName ? { ...skill, enabled } : skill
         ));
     };
-
     const handleToggleAllInTab = (category: string, enabled: boolean) => {
         setSkills(prev => prev.map(skill =>
             skill.category === category ? { ...skill, enabled } : skill
         ));
     };
-
     const handleSave = () => {
         const enabledSkills = skills.filter(s => s.enabled).map(s => s.name);
         const disabledSkills = skills.filter(s => !s.enabled).map(s => s.name);
-
         const config = {
             enabled_skills: enabledSkills,
             disabled_skills: disabledSkills,
             all_skills: skills
         };
-
         if (onSave) {
             onSave(config);
         }
     };
-
     const getCategoryName = (category: string) => {
         const categoryKeyMap: Record<string, string> = {
             file: 'skills.category.fileSystem',
@@ -97,22 +89,18 @@ const AtomicSkillsPanel: React.FC<AtomicSkillsPanelProps> = ({ t, onSave }) => {
         const key = categoryKeyMap[category];
         return key ? t(key) : category;
     };
-
     const getCategorySkills = (category: string) => {
         return skills.filter(s => s.category === category);
     };
-
     const getCategoryEnabledCount = (category: string) => {
         const categorySkills = skills.filter(s => s.category === category);
         const enabledCount = categorySkills.filter(s => s.enabled).length;
         return { enabledCount, totalCount: categorySkills.length };
     };
-
     const isCategoryFullyEnabled = (category: string) => {
         const { enabledCount, totalCount } = getCategoryEnabledCount(category);
         return enabledCount === totalCount && totalCount > 0;
     };
-
     const scrollTabs = (direction: 'left' | 'right') => {
         if (tabsRef.current) {
             const scrollAmount = 200;
@@ -120,7 +108,6 @@ const AtomicSkillsPanel: React.FC<AtomicSkillsPanelProps> = ({ t, onSave }) => {
             tabsRef.current.scrollTo({ left: newScrollLeft, behavior: 'smooth' });
         }
     };
-
     const checkScrollButtons = () => {
         if (tabsRef.current) {
             const { scrollLeft, scrollWidth, clientWidth } = tabsRef.current;
@@ -128,17 +115,14 @@ const AtomicSkillsPanel: React.FC<AtomicSkillsPanelProps> = ({ t, onSave }) => {
             setShowRightArrow(scrollWidth > clientWidth && scrollLeft + clientWidth < scrollWidth - 5);
         }
     };
-
     useEffect(() => {
         checkScrollButtons();
         window.addEventListener('resize', checkScrollButtons);
         return () => window.removeEventListener('resize', checkScrollButtons);
     }, [categories]);
-
     useEffect(() => {
         setTimeout(checkScrollButtons, 0);
     }, [categories]);
-
     const labelStyle: React.CSSProperties = {
         fontSize: '13px',
         color: 'var(--text-primary)',
@@ -146,7 +130,6 @@ const AtomicSkillsPanel: React.FC<AtomicSkillsPanelProps> = ({ t, onSave }) => {
         flexShrink: 0,
         userSelect: 'none'
     };
-
     const inputStyle: React.CSSProperties = {
         flex: 1,
         minWidth: 0,
@@ -158,7 +141,6 @@ const AtomicSkillsPanel: React.FC<AtomicSkillsPanelProps> = ({ t, onSave }) => {
         fontSize: '13px',
         outline: 'none'
     };
-
     const buttonStyle: React.CSSProperties = {
         padding: '6px 16px',
         background: 'var(--bg-secondary)',
@@ -169,7 +151,6 @@ const AtomicSkillsPanel: React.FC<AtomicSkillsPanelProps> = ({ t, onSave }) => {
         cursor: 'pointer',
         transition: 'all 0.2s'
     };
-
     const skillCardStyle: React.CSSProperties = {
         background: 'var(--bg-secondary)',
         borderRadius: '8px',
@@ -177,7 +158,6 @@ const AtomicSkillsPanel: React.FC<AtomicSkillsPanelProps> = ({ t, onSave }) => {
         marginBottom: '12px',
         border: '1px solid var(--border-color)'
     };
-
     const toggleSwitchStyle: React.CSSProperties = {
         position: 'relative',
         display: 'inline-block',
@@ -185,7 +165,6 @@ const AtomicSkillsPanel: React.FC<AtomicSkillsPanelProps> = ({ t, onSave }) => {
         height: '24px',
         flexShrink: 0
     };
-
     const toggleSliderStyle: React.CSSProperties = {
         position: 'absolute',
         cursor: 'pointer',
@@ -198,12 +177,10 @@ const AtomicSkillsPanel: React.FC<AtomicSkillsPanelProps> = ({ t, onSave }) => {
         borderRadius: '24px',
         border: '1px solid var(--border-color)'
     };
-
     const toggleSliderCheckedStyle: React.CSSProperties = {
         backgroundColor: 'var(--accent-color, #0066cc)',
         borderColor: 'var(--accent-color, #0066cc)'
     };
-
     const toggleKnobStyle: React.CSSProperties = {
         position: 'absolute',
         content: '""',
@@ -215,11 +192,9 @@ const AtomicSkillsPanel: React.FC<AtomicSkillsPanelProps> = ({ t, onSave }) => {
         transition: '0.3s',
         borderRadius: '50%'
     };
-
     const toggleKnobCheckedStyle: React.CSSProperties = {
         transform: 'translateX(20px)'
     };
-
     const tabsStyles = `
         .atomic-tabs-container {
             position: relative;
@@ -297,7 +272,6 @@ const AtomicSkillsPanel: React.FC<AtomicSkillsPanelProps> = ({ t, onSave }) => {
             color: var(--text-secondary);
         }
     `;
-
     if (typeof document !== 'undefined') {
         const styleId = 'atomic-tabs-styles';
         if (!document.getElementById(styleId)) {
@@ -307,7 +281,6 @@ const AtomicSkillsPanel: React.FC<AtomicSkillsPanelProps> = ({ t, onSave }) => {
             document.head.appendChild(style);
         }
     }
-
     if (loading) {
         return (
             <div className="settings-container" style={{

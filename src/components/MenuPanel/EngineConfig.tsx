@@ -172,7 +172,6 @@ const EngineConfig: React.FC<EngineConfigProps> = ({ t, initialConfig, onSave })
                     onChange={(e) => setConfig({ ...config, postgresql: { ...config.postgresql, password: e.target.value } })}
                 />
             </div>
-
             <div className="settings-subtitle" style={subtitleStyle}>MySQL</div>
             <div className="settings-row" style={rowStyle}>
                 <label style={labelStyle}>Host</label>
@@ -216,7 +215,6 @@ const EngineConfig: React.FC<EngineConfigProps> = ({ t, initialConfig, onSave })
                     onChange={(e) => setConfig({ ...config, mysql: { ...config.mysql, password: e.target.value } })}
                 />
             </div>
-
             <div className="settings-subtitle" style={subtitleStyle}>Redis</div>
             <div className="settings-row" style={rowStyle}>
                 <label style={labelStyle}>Host</label>
@@ -253,7 +251,6 @@ const EngineConfig: React.FC<EngineConfigProps> = ({ t, initialConfig, onSave })
                     onChange={(e) => setConfig({ ...config, redis: { ...config.redis, db: parseInt(e.target.value) || 0 } })}
                 />
             </div>
-
             <div className="settings-subtitle" style={subtitleStyle}>SQLite</div>
             <div className="settings-row" style={rowStyle}>
                 <label style={labelStyle}>Database Path</label>
@@ -339,7 +336,6 @@ const EngineConfig: React.FC<EngineConfigProps> = ({ t, initialConfig, onSave })
                     onChange={(e) => setConfig({ ...config, udp: { ...config.udp, broadcast: e.target.checked } })}
                 />
             </div>
-
             <div className="settings-subtitle" style={subtitleStyle}>FTP</div>
             <div className="settings-row" style={rowStyle}>
                 <label style={labelStyle}>Host</label>
@@ -385,7 +381,6 @@ const EngineConfig: React.FC<EngineConfigProps> = ({ t, initialConfig, onSave })
             </div>
         </>
     );
-
     const renderContainerTab = () => (
         <>
             <div className="settings-subtitle" style={subtitleStyle}>Docker</div>
@@ -416,7 +411,6 @@ const EngineConfig: React.FC<EngineConfigProps> = ({ t, initialConfig, onSave })
                     onChange={(e) => setConfig({ ...config, docker: { ...config.docker, tlsVerify: e.target.checked } })}
                 />
             </div>
-
             <div className="settings-subtitle" style={subtitleStyle}>Kubernetes</div>
             <div className="settings-row" style={rowStyle}>
                 <label style={labelStyle}>Kubeconfig Path</label>
@@ -445,7 +439,6 @@ const EngineConfig: React.FC<EngineConfigProps> = ({ t, initialConfig, onSave })
             </div>
         </>
     );
-
     const renderNotificationTab = () => (
         <>
             <div className="settings-subtitle" style={subtitleStyle}>SMTP Email</div>

@@ -24,13 +24,11 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({ t, initialConfig, onS
         maxLogSize: initialConfig?.maxLogSize || 100,
         maxBackupCount: initialConfig?.maxBackupCount || 10,
     });
-
     const handleSave = () => {
         if (onSave) {
             onSave(config);
         }
     };
-
     const labelStyle: React.CSSProperties = {
         fontSize: '13px',
         color: 'var(--text-primary)',
@@ -38,7 +36,6 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({ t, initialConfig, onS
         flexShrink: 0,
         userSelect: 'none'
     };
-
     const inputStyle: React.CSSProperties = {
         flex: 1,
         minWidth: 0,
@@ -50,7 +47,6 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({ t, initialConfig, onS
         fontSize: '13px',
         outline: 'none'
     };
-
     return (
         <div className="settings-container"
             style={{

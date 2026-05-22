@@ -3,18 +3,33 @@ import { invoke } from '@tauri-apps/api/core';
 export interface HippoxAppConfig {
     language: string;
     theme: string;
-    llm: LlmConfig;
+    llm_instances: Record<string, LlmInstance>;
+    default_llm_instance_id: string;
     workspace: WorkspaceConfig;
     engine: EngineConfig;
     system: SystemConfig;
 }
 
-export interface LlmConfig {
-    default_model: string;
+export interface LlmInstance {
+    id: string;
+    name: string;
+    provider: string;
     api_key: string;
     api_base: string;
-    provider: string;
     workflow_mode: string;
+    default_model: string;
+    models: ModelConfig[];
+    created_at: string;
+    updated_at: string;
+}
+
+export interface AddLlmInstanceRequest {
+    name: string;
+    provider: string;
+    api_key: string;
+    api_base: string;
+    workflow_mode: string;
+    default_model: string;
     models: ModelConfig[];
 }
 
@@ -142,10 +157,9 @@ export interface GithubConfig {
     api_url: string;
 }
 
-export type ConfigPath = 
+export type ConfigPath =
     | { type: 'Language' }
     | { type: 'Theme' }
-    | { type: 'Llm'; key: string }
     | { type: 'Workspace'; key: string }
     | { type: 'System'; key: string }
     | { type: 'Engine'; key: string };
@@ -165,6 +179,34 @@ export const configCommands = {
 
     async getConfigValue(path: ConfigPath): Promise<any> {
         return await invoke('get_config_value', { path });
+    },
+
+    async getLlmInstances(): Promise<Record<string, LlmInstance>> {
+        return await invoke('get_llm_instances');
+    },
+
+    async getDefaultLlmInstanceId(): Promise<string> {
+        return await invoke('get_default_llm_instance_id');
+    },
+
+    async addLlmInstance(instance: AddLlmInstanceRequest): Promise<string> {
+        return await invoke('add_llm_instance', { request: instance });
+    },
+
+    async updateLlmInstance(instanceId: string, instance: LlmInstance): Promise<boolean> {
+        return await invoke('update_llm_instance', { instanceId, instance });
+    },
+
+    async deleteLlmInstance(instanceId: string): Promise<boolean> {
+        return await invoke('delete_llm_instance', { instanceId });
+    },
+
+    async setDefaultLlmInstance(instanceId: string): Promise<boolean> {
+        return await invoke('set_default_llm_instance', { instanceId });
+    },
+
+    async getLlmInstance(instanceId: string): Promise<LlmInstance | null> {
+        return await invoke('get_llm_instance', { instanceId });
     },
 
     async addLlmModel(model: ModelConfig): Promise<boolean> {

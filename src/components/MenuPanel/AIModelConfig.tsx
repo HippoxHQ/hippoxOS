@@ -1,155 +1,145 @@
 import React, { useState, useEffect } from 'react';
-import { invoke } from '@tauri-apps/api/core';
+import { configCommands, AddLlmInstanceRequest } from '../../api/config';
+import { getAllModels, ModelInfo } from '../../api/tauri';
 
 interface AIModelConfigProps {
   t: (key: string, params?: any) => string;
-  initialConfig?: {
-    defaultModel: string;
-    apiKey: string;
-  };
   onSave?: (config: any) => void;
-  isInitializing?: boolean; 
+  isInitializing?: boolean;
 }
 
-interface ModelConfig {
-  name: string;
-  apiKey: string;
-  isDefault: boolean;
-  provider?: string;
-}
+const PROVIDER_CONFIG: Record<string, { name: string; icon: string }> = {
+  openai: { name: 'OpenAI', icon: '🔵' },
+  anthropic: { name: 'Anthropic', icon: '🟣' },
+  deepseek: { name: 'DeepSeek', icon: '🟢' },
+  google: { name: 'Google', icon: '🔴' },
+  groq: { name: 'Groq', icon: '⚡' },
+  together: { name: 'Together.ai', icon: '🤝' },
+  mistral: { name: 'Mistral', icon: '🪶' },
+  cohere: { name: 'Cohere', icon: '📐' },
+  alibaba: { name: '阿里云', icon: '☁️' },
+  zhipu: { name: '智谱 AI', icon: '🧠' },
+  moonshot: { name: '月之暗面', icon: '🌙' },
+  baichuan: { name: '百川智能', icon: '🌊' },
+  yi: { name: '零一万物', icon: '1️⃣' },
+  custom: { name: 'Custom', icon: '🦛' },
+};
 
-interface ModelInfo {
-  id: string;
-  name: string;
-  provider: string;
-  provider_name: string;
-  description: string;
-  streaming: boolean;
-  context_length: number | null;
-  recommended: boolean;
-}
-
-const AIModelConfig: React.FC<AIModelConfigProps> = ({ t, initialConfig, onSave, isInitializing = false }) => {
-  const [models, setModels] = useState<ModelConfig[]>([
-    {
-      name: 'hippox-default-v1',
-      apiKey: initialConfig?.apiKey || '',
-      isDefault: true,
-      provider: 'custom'
-    },
-    {
-      name: 'gpt-4',
-      apiKey: '',
-      isDefault: false,
-      provider: 'openai'
-    },
-    {
-      name: 'gpt-4-turbo',
-      apiKey: '',
-      isDefault: false,
-      provider: 'openai'
-    },
-    {
-      name: 'claude-3-opus',
-      apiKey: '',
-      isDefault: false,
-      provider: 'anthropic'
-    },
-    {
-      name: 'claude-3-sonnet',
-      apiKey: '',
-      isDefault: false,
-      provider: 'anthropic'
-    },
-    {
-      name: 'deepseek-v3',
-      apiKey: '',
-      isDefault: false,
-      provider: 'deepseek'
-    },
-  ]);
-
+const AIModelConfig: React.FC<AIModelConfigProps> = ({ t, onSave, isInitializing = false }) => {
+  const [instances, setInstances] = useState<Record<string, any>>({});
+  const [defaultInstanceId, setDefaultInstanceId] = useState<string>('');
   const [availableModels, setAvailableModels] = useState<ModelInfo[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
-  const [newModel, setNewModel] = useState<ModelConfig>({
-    name: '',
-    apiKey: '',
-    isDefault: false,
-    provider: 'openai'
-  });
+  const [newProvider, setNewProvider] = useState('openai');
+  const [newApiKey, setNewApiKey] = useState('');
 
   useEffect(() => {
-    const loadModels = async () => {
-      try {
-        const modelsData = await invoke('get_all_models') as ModelInfo[];
-        setAvailableModels(modelsData);
-      } catch (error) {
-        console.error('Failed to load models:', error);
-      }
-    };
-    loadModels();
+    loadData();
   }, []);
 
-  const handleSave = () => {
-    const defaultModel = models.find(m => m.isDefault);
-    if (onSave && defaultModel) {
-      onSave({
-        defaultModel: defaultModel.name,
-        apiKey: defaultModel.apiKey,
-        provider: defaultModel.provider,
-        allModels: models
-      });
+  const loadData = async () => {
+    setLoading(true);
+    const instancesPromise = configCommands.getLlmInstances().catch(err => {
+      console.error('Failed to load instances:', err);
+      return {};
+    });
+    const defaultIdPromise = configCommands.getDefaultLlmInstanceId().catch(err => {
+      console.error('Failed to load default instance id:', err);
+      return '';
+    });
+    const modelsPromise = getAllModels().catch(err => {
+      console.error('Failed to load models:', err);
+      return [];
+    });
+    const [instancesData, defaultId, modelsData] = await Promise.all([
+      instancesPromise,
+      defaultIdPromise,
+      modelsPromise
+    ]);
+    setInstances(instancesData);
+    setDefaultInstanceId(defaultId);
+    setAvailableModels(modelsData);
+    setLoading(false);
+  };
+
+  const handleSetDefault = async (instanceId: string) => {
+    try {
+      await configCommands.setDefaultLlmInstance(instanceId);
+      setDefaultInstanceId(instanceId);
+      if (onSave) {
+        onSave({ action: 'set_default', instanceId });
+      }
+    } catch (error) {
+      console.error('Failed to set default instance:', error);
     }
   };
 
-  const handleSetDefault = (index: number) => {
-    setModels(models.map((model, i) => ({
-      ...model,
-      isDefault: i === index
-    })));
-  };
-
-  const handleUpdateModel = (index: number, field: keyof ModelConfig, value: string | boolean) => {
-    setModels(models.map((model, i) =>
-      i === index ? { ...model, [field]: value } : model
-    ));
-  };
-
-  const handleDeleteModel = (index: number) => {
-    const modelToDelete = models[index];
-    if (modelToDelete.isDefault) {
+  const handleDeleteInstance = async (instanceId: string) => {
+    if (Object.keys(instances).length <= 1) {
       return;
     }
-    setModels(models.filter((_, i) => i !== index));
+    if (defaultInstanceId === instanceId) {
+      return;
+    }
+    try {
+      await configCommands.deleteLlmInstance(instanceId);
+      await loadData();
+      if (onSave) {
+        onSave({ action: 'delete', instanceId });
+      }
+    } catch (error) {
+      console.error('Failed to delete instance:', error);
+    }
   };
 
-  const handleAddModel = () => {
-    if (newModel.name.trim()) {
-      setModels([...models, { ...newModel, isDefault: false }]);
-      setNewModel({ name: '', apiKey: '', isDefault: false, provider: 'openai' });
+  const handleAddInstance = async () => {
+    if (!newApiKey.trim()) {
+      return;
+    }
+    const providerModels = availableModels.filter(m => m.provider === newProvider);
+    const defaultModel = providerModels.find(m => m.recommended) || providerModels[0];
+    const defaultModelName = defaultModel?.id || '';
+    const instanceToAdd: AddLlmInstanceRequest = {
+      name: `${PROVIDER_CONFIG[newProvider]?.name || newProvider} Instance`,
+      provider: newProvider,
+      api_key: newApiKey,
+      api_base: "",
+      workflow_mode: 'react',
+      default_model: defaultModelName,
+      models: providerModels.map(m => ({
+        name: m.id,
+        api_key: newApiKey,
+        is_default: m.id === defaultModelName,
+        provider: newProvider
+      }))
+    };
+    try {
+      const result = await configCommands.addLlmInstance(instanceToAdd);
       setShowAddForm(false);
+      setNewProvider('openai');
+      setNewApiKey('');
+      await loadData();
+      if (onSave) {
+        onSave({ action: 'add', instance: instanceToAdd });
+      }
+    } catch (error) {
+      console.error('Failed to add instance:', error);
     }
   };
-
-  const handleSelectModel = (modelId: string) => {
-    const selected = availableModels.find(m => m.id === modelId);
-    if (selected) {
-      setNewModel({
-        ...newModel,
-        name: selected.id,
-        provider: selected.provider
-      });
-    }
+  const getProviderIcon = (provider: string) => {
+    return PROVIDER_CONFIG[provider]?.icon || '🤖';
   };
-
+  const getProviderName = (provider: string) => {
+    return PROVIDER_CONFIG[provider]?.name || provider;
+  };
   const labelStyle: React.CSSProperties = {
     fontSize: '13px',
     color: 'var(--text-primary)',
-    minWidth: '100px',
+    minWidth: '80px',
     flexShrink: 0,
     userSelect: 'none'
   };
-
   const inputStyle: React.CSSProperties = {
     flex: 1,
     minWidth: 0,
@@ -161,12 +151,10 @@ const AIModelConfig: React.FC<AIModelConfigProps> = ({ t, initialConfig, onSave,
     fontSize: '13px',
     outline: 'none'
   };
-
   const selectStyle: React.CSSProperties = {
     ...inputStyle,
     cursor: 'pointer'
   };
-
   const buttonStyle: React.CSSProperties = {
     padding: '6px 16px',
     background: 'var(--bg-secondary)',
@@ -177,20 +165,17 @@ const AIModelConfig: React.FC<AIModelConfigProps> = ({ t, initialConfig, onSave,
     cursor: 'pointer',
     transition: 'all 0.2s'
   };
-
   const addButtonStyle: React.CSSProperties = {
     ...buttonStyle,
     background: 'var(--accent-color, #0066cc)',
     color: 'white',
     border: 'none'
   };
-
   const deleteButtonStyle: React.CSSProperties = {
     ...buttonStyle,
     color: 'var(--error-color, #dc2626)',
     borderColor: 'var(--error-color, #dc2626)'
   };
-
   const modelCardStyle: React.CSSProperties = {
     background: 'var(--bg-secondary)',
     borderRadius: '8px',
@@ -198,7 +183,6 @@ const AIModelConfig: React.FC<AIModelConfigProps> = ({ t, initialConfig, onSave,
     marginBottom: '12px',
     border: '1px solid var(--border-color)'
   };
-
   const badgeStyle: React.CSSProperties = {
     background: 'var(--accent-color, #0066cc)',
     color: 'white',
@@ -207,25 +191,15 @@ const AIModelConfig: React.FC<AIModelConfigProps> = ({ t, initialConfig, onSave,
     borderRadius: '12px',
     marginLeft: '8px'
   };
-
-  const getProviderIcon = (provider: string) => {
-    const icons: Record<string, string> = {
-      openai: '🔵',
-      anthropic: '🟣',
-      deepseek: '🟢',
-      google: '🔴',
-      groq: '⚡',
-      together: '🤝',
-      mistral: '🪶',
-      cohere: '📐',
-      alibaba: '☁️',
-      zhipu: '🧠',
-      moonshot: '🌙',
-      custom: '🦛'
-    };
-    return icons[provider] || '🤖';
-  };
-
+  if (loading) {
+    return (
+      <div className="settings-container" style={{
+        height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center'
+      }}>
+        {t('atomicSkills.loading') || '加载中...'}
+      </div>
+    );
+  }
   return (
     <div className="settings-container" style={{
       height: '100%', display: 'flex', flexDirection: 'column',
@@ -240,62 +214,69 @@ const AIModelConfig: React.FC<AIModelConfigProps> = ({ t, initialConfig, onSave,
         paddingTop: '10px',
         paddingBottom: '10px',
       }}>
-        {models.map((model, index) => (
-          <div key={model.name} style={modelCardStyle}>
-            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '12px' }}>
+        {Object.entries(instances).map(([id, instance]) => (
+          <div key={id} style={modelCardStyle}>
+            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
               <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>
-                {getProviderIcon(model.provider || 'custom')} {model.name}
+                {getProviderIcon(instance.provider)} {getProviderName(instance.provider)}
               </span>
-              {model.isDefault && <span style={badgeStyle}>{t('settings.defaultBadge') || '默认'}</span>}
-              {!model.isDefault && (
-                <button
-                  style={{ ...buttonStyle, marginLeft: 'auto', fontSize: '11px', padding: '4px 10px' }}
-                  onClick={() => handleSetDefault(index)}
-                >
-                  {t('settings.setAsDefault') || '设为默认'}
-                </button>
-              )}
-              {!model.isDefault && (
-                <button
-                  style={{ ...deleteButtonStyle, marginLeft: '8px', fontSize: '11px', padding: '4px 10px' }}
-                  onClick={() => handleDeleteModel(index)}
-                >
-                  {t('settings.delete') || '删除'}
-                </button>
-              )}
+              {defaultInstanceId === id && <span style={badgeStyle}>{t('settings.defaultBadge') || '默认'}</span>}
             </div>
-
             <div className="settings-row" style={{ display: 'flex', alignItems: 'center', marginBottom: '12px', gap: '12px', flexWrap: 'wrap' }}>
               <label style={labelStyle}>{t('settings.apiKey')}</label>
               <input
                 type="password"
                 style={inputStyle}
-                value={model.apiKey}
-                onChange={(e) => handleUpdateModel(index, 'apiKey', e.target.value)}
-                placeholder={t('settings.apiKeyPlaceholder')}
+                value={instance.api_key}
+                placeholder="••••••••"
+                disabled
               />
+            </div>
+            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '8px' }}>
+              {defaultInstanceId !== id && (
+                <button
+                  style={{ ...buttonStyle, fontSize: '11px', padding: '4px 10px' }}
+                  onClick={() => handleSetDefault(id)}
+                >
+                  {t('settings.setAsDefault') || '设为默认'}
+                </button>
+              )}
+              {defaultInstanceId !== id && Object.keys(instances).length > 1 && (
+                <button
+                  style={{ ...deleteButtonStyle, fontSize: '11px', padding: '4px 10px' }}
+                  onClick={() => handleDeleteInstance(id)}
+                >
+                  {t('settings.delete') || '删除'}
+                </button>
+              )}
             </div>
           </div>
         ))}
-
         {showAddForm ? (
           <div style={modelCardStyle}>
             <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '12px' }}>
-              {t('settings.addModel') || '添加新模型'}
+              {t('settings.addInstance') || '添加模型提供商'}
             </div>
             <div className="settings-row" style={{ display: 'flex', alignItems: 'center', marginBottom: '12px', gap: '12px', flexWrap: 'wrap' }}>
-              <label style={labelStyle}>{t('settings.selectModel') || '选择模型'}</label>
+              <label style={labelStyle}>{t('settings.provider')}</label>
               <select
                 style={selectStyle}
-                value={newModel.name}
-                onChange={(e) => handleSelectModel(e.target.value)}
+                value={newProvider}
+                onChange={(e) => setNewProvider(e.target.value)}
               >
-                <option value="">{t('settings.selectModelPlaceholder') || '请选择模型...'}</option>
-                {availableModels.map((model) => (
-                  <option key={model.id} value={model.id}>
-                    {getProviderIcon(model.provider)} {model.name} - {model.provider_name}
-                  </option>
-                ))}
+                <option value="openai">OpenAI</option>
+                <option value="anthropic">Anthropic</option>
+                <option value="deepseek">DeepSeek</option>
+                <option value="google">Google</option>
+                <option value="groq">Groq</option>
+                <option value="together">Together.ai</option>
+                <option value="mistral">Mistral</option>
+                <option value="cohere">Cohere</option>
+                <option value="alibaba">阿里云</option>
+                <option value="zhipu">智谱 AI</option>
+                <option value="moonshot">月之暗面</option>
+                <option value="baichuan">百川智能</option>
+                <option value="yi">零一万物</option>
               </select>
             </div>
             <div className="settings-row" style={{ display: 'flex', alignItems: 'center', marginBottom: '12px', gap: '12px', flexWrap: 'wrap' }}>
@@ -303,8 +284,8 @@ const AIModelConfig: React.FC<AIModelConfigProps> = ({ t, initialConfig, onSave,
               <input
                 type="password"
                 style={inputStyle}
-                value={newModel.apiKey}
-                onChange={(e) => setNewModel({ ...newModel, apiKey: e.target.value })}
+                value={newApiKey}
+                onChange={(e) => setNewApiKey(e.target.value)}
                 placeholder={t('settings.apiKeyPlaceholder')}
               />
             </div>
@@ -312,39 +293,17 @@ const AIModelConfig: React.FC<AIModelConfigProps> = ({ t, initialConfig, onSave,
               <button style={buttonStyle} onClick={() => setShowAddForm(false)}>
                 {t('settings.cancel') || '取消'}
               </button>
-              <button style={addButtonStyle} onClick={handleAddModel}>
+              <button style={addButtonStyle} onClick={handleAddInstance}>
                 {t('settings.add') || '添加'}
               </button>
             </div>
           </div>
         ) : (
           <button style={{ ...addButtonStyle, width: '100%' }} onClick={() => setShowAddForm(true)}>
-            + {t('settings.addModel') || '添加模型'}
+            + {t('settings.addInstance') || '添加模型提供商'}
           </button>
         )}
       </div>
-
-      <button
-        className="settings-save-btn"
-        onClick={handleSave}
-        disabled={isInitializing} 
-        style={{
-          padding: '8px 20px',
-          margin: '0 10px 10px auto',
-          background: 'var(--accent-color, #0066cc)',
-          border: 'none',
-          borderRadius: '6px',
-          color: 'white',
-          fontSize: '13px',
-          fontWeight: 500,
-          cursor: isInitializing ? 'not-allowed' : 'pointer',
-          transition: 'all 0.2s',
-          alignSelf: 'flex-end',
-          opacity: isInitializing ? 0.6 : 1
-        }}
-      >
-        {isInitializing ? (t('chat.initializing') || '初始化中...') : (t('settings.save') || '保存')}
-      </button>
     </div>
   );
 };

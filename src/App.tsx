@@ -19,7 +19,9 @@ function App() {
   });
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('hippox-theme', theme);
   }, [theme]);
+
   const [language, setLanguage] = useState<Language>(() => {
     const saved = localStorage.getItem('hippox-language') as Language;
     return saved || 'en';
@@ -29,43 +31,25 @@ function App() {
   const [settingsSubView, setSettingsSubView] = useState<SettingsSubView>('aiModel');
   const [menuPanelWidth, setMenuPanelWidth] = useState<number>(320);
   const [executionLogs, setExecutionLogs] = useState<ExecutionLog[]>([]);
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
-  const [isInitialized, setIsInitialized] = useState(false);
-  const [isInitializing, setIsInitializing] = useState(false);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
+    {
+      id: 'welcome',
+      role: 'assistant',
+      content: '正在加载...',
+      timestamp: new Date().toLocaleTimeString()
+    }
+  ]);
   useEffect(() => {
-    checkInitialization();
+    setChatMessages([{
+      id: 'welcome',
+      role: 'assistant',
+      content: t('welcome.message'),
+      timestamp: new Date().toLocaleTimeString()
+    }]);
+    loadLogs();
+    const interval = setInterval(loadLogs, 1000);
+    return () => clearInterval(interval);
   }, []);
-  useEffect(() => {
-    if (isInitialized) {
-      loadLogs();
-      const interval = setInterval(loadLogs, 1000);
-      return () => clearInterval(interval);
-    }
-  }, [isInitialized]);
-  const checkInitialization = async () => {
-    try {
-      const initialized = await hippoxCommands.isInitialized();
-      setIsInitialized(initialized);
-      if (!initialized) {
-        setChatMessages([{
-          id: 'welcome',
-          role: 'assistant',
-          content: t('welcome.initRequired'),
-          timestamp: new Date().toLocaleTimeString()
-        }]);
-      } else {
-        await loadLogs();
-        setChatMessages([{
-          id: 'welcome',
-          role: 'assistant',
-          content: t('welcome.message'),
-          timestamp: new Date().toLocaleTimeString()
-        }]);
-      }
-    } catch (error) {
-    }
-  };
-
   const loadLogs = async () => {
     try {
       const logs = await hippoxCommands.getLogs();
@@ -79,13 +63,9 @@ function App() {
       }));
       setExecutionLogs(formattedLogs);
     } catch (error) {
+      console.error('loading logs error:', error);
     }
   };
-
-  const appendLog = async (log: Omit<ExecutionLog, 'id' | 'timestamp'>) => {
-    await loadLogs();
-  };
-
   const handleMenuClick = (view: string, subView?: string) => {
     if (view === 'settings') {
       setMenuPanelView('settings');
@@ -96,61 +76,14 @@ function App() {
       setMenuPanelView(view as MenuPanelView);
     }
   };
-
   const closeMenuPanel = () => {
     setMenuPanelView(null);
   };
-
   const handleSaveConfig = async (config: any) => {
-    if (config.apiKey && config.provider) {
-      setIsInitializing(true);
-      try {
-        const skillsDir = config.skillsDir || await getDefaultSkillsDir();
-        const success = await hippoxCommands.init({
-          skills_dir: skillsDir,
-          provider: config.provider,
-          api_key: config.apiKey,
-          workflow_mode: config.workflowMode || 'react'
-        });
-
-        if (success) {
-          setIsInitialized(true);
-          await loadLogs();
-          setChatMessages([{
-            id: Date.now().toString(),
-            role: 'assistant',
-            content: t('welcome.initSuccess'),
-            timestamp: new Date().toLocaleTimeString()
-          }]);
-        }
-      } catch (error) {
-        appendLog({
-          level: 'error',
-          message: t('logs.initFailed'),
-          details: String(error)
-        });
-      } finally {
-        setIsInitializing(false);
-      }
-    }
+    console.log('config saved:', config);
+    await loadLogs();
   };
-
-  const getDefaultSkillsDir = async (): Promise<string> => {
-    return '~/.hippox/skills';
-  };
-
   const handleSendMessage = async (userMessage: string) => {
-    if (!isInitialized) {
-      const errorMsg: ChatMessage = {
-        id: Date.now().toString(),
-        role: 'assistant',
-        content: t('chat.notInitialized'),
-        timestamp: new Date().toLocaleTimeString()
-      };
-      setChatMessages(prev => [...prev, errorMsg]);
-      return;
-    }
-
     const userMsg: ChatMessage = {
       id: Date.now().toString(),
       role: 'user',
@@ -158,7 +91,6 @@ function App() {
       timestamp: new Date().toLocaleTimeString()
     };
     setChatMessages(prev => [...prev, userMsg]);
-
     try {
       const response = await hippoxCommands.sendMessage(userMessage);
       const assistantMsg: ChatMessage = {
@@ -170,6 +102,7 @@ function App() {
       setChatMessages(prev => [...prev, assistantMsg]);
       await loadLogs();
     } catch (error) {
+      console.error('send chat error:', error);
       const errorMsg: ChatMessage = {
         id: Date.now().toString(),
         role: 'assistant',
@@ -177,22 +110,16 @@ function App() {
         timestamp: new Date().toLocaleTimeString()
       };
       setChatMessages(prev => [...prev, errorMsg]);
-      appendLog({
-        level: 'error',
-        message: t('logs.sendFailed'),
-        details: String(error)
-      });
     }
   };
-
   const clearLogs = async () => {
     try {
       await hippoxCommands.clearLogs();
       await loadLogs();
     } catch (error) {
+      console.error('clear logs error:', error);
     }
   };
-
   const resetSession = async () => {
     try {
       await hippoxCommands.resetSession();
@@ -204,29 +131,30 @@ function App() {
       }]);
       await loadLogs();
     } catch (error) {
-      appendLog({
-        level: 'error',
-        message: t('logs.resetFailed'),
-        details: String(error)
-      });
+      console.error('reset session error:', error);
     }
   };
-
   const toggleTheme = () => {
     setTheme(prev => prev === 'dark' ? 'light' : 'dark');
   };
-
   const toggleLanguage = async () => {
     const newLang = language === 'zh' ? 'en' : 'zh';
     setLanguage(newLang);
-    // Synchronize the language settings in the backend.
     await hippoxCommands.setLanguage(newLang);
+    setChatMessages(prev => {
+      const newMessages = [...prev];
+      if (newMessages[0]?.id === 'welcome') {
+        newMessages[0] = {
+          ...newMessages[0],
+          content: t('welcome.message')
+        };
+      }
+      return newMessages;
+    });
   };
-
   const toggleSidebar = () => {
     setSidebarCollapsed(prev => !prev);
   };
-
   return (
     <div className="App">
       <TopBar
@@ -261,7 +189,7 @@ function App() {
                 language={language}
                 onThemeChange={toggleTheme}
                 onLanguageChange={toggleLanguage}
-                isInitializing={isInitializing}
+                isInitializing={false}
               />
             </div>
             <div

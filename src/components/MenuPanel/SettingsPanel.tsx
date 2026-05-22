@@ -158,7 +158,6 @@ const settingsPanelStyles = `
   }
 `;
 
-
 if (typeof document !== 'undefined') {
   const styleId = 'settings-panel-styles';
   if (!document.getElementById(styleId)) {

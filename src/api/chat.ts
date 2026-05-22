@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
-import { ChatResponse, ExecutionLog, InitConfig } from '../type';
+import { ChatResponse, ExecutionLog } from '../type';
 
 export const hippoxCommands = {
     async setLanguage(language: string): Promise<void> {
@@ -8,16 +8,6 @@ export const hippoxCommands = {
 
     async getLanguage(): Promise<string> {
         return await invoke('get_hippox_language');
-    },
-
-    async init(config: InitConfig, language?: string): Promise<boolean> {
-        return await invoke('init_hippox', {
-            skillsDir: config.skills_dir,
-            provider: config.provider,
-            apiKey: config.api_key,
-            workflowMode: config.workflow_mode,
-            language: language || 'en'
-        });
     },
 
     async sendMessage(message: string, sessionId?: string): Promise<ChatResponse> {

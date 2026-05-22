@@ -5,7 +5,7 @@ use std::sync::Arc;
 use tauri::State;
 use tokio::sync::Mutex;
 
-use crate::commands::{save_config_to_file, HIPPOX_APP_CONFIG};
+use crate::commands::HIPPOX_APP_CONFIG;
 
 struct LogMessages {
     init_start: String,
@@ -40,12 +40,6 @@ impl LogMessages {
             },
         }
     }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ChatRequest {
-    pub message: String,
-    pub session_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -141,52 +135,20 @@ pub async fn get_hippox_language(state: State<'_, AppStateWithChat>) -> Result<S
     Ok(state.get_language().await)
 }
 
-#[tauri::command]
-pub async fn init_hippox(
-    state: State<'_, AppStateWithChat>,
-    skills_dir: Option<String>,
-    provider: Option<String>,
-    api_key: Option<String>,
-    api_base: Option<String>,
-    workflow_mode: Option<String>,
-    language: Option<String>,
-) -> Result<bool, String> {
+async fn init_engine_with_default(state: &AppStateWithChat) -> Result<(), String> {
     let global_config = HIPPOX_APP_CONFIG.read().await;
-    let final_skills_dir = skills_dir
-        .clone()
-        .or_else(|| Some(global_config.workspace.skills_dir.clone()))
-        .unwrap_or_else(|| "~/.hippox/skills".to_string());
-    let final_provider = provider
-        .clone()
-        .or_else(|| Some(global_config.llm.provider.clone()))
-        .unwrap_or_else(|| "openai".to_string());
-    let final_api_key = api_key
-        .clone()
-        .or_else(|| {
-            let key = global_config.llm.api_key.clone();
-            if key.is_empty() {
-                None
-            } else {
-                Some(key)
-            }
-        })
-        .unwrap_or_default();
-    let final_api_base = api_base
-        .clone()
-        .or_else(|| Some(global_config.llm.api_base.clone()))
-        .unwrap_or_else(|| "https://api.openai.com/v1".to_string());
-    let final_workflow_mode = workflow_mode
-        .clone()
-        .or_else(|| Some(global_config.llm.workflow_mode.clone()))
-        .unwrap_or_else(|| "react".to_string());
-    let final_language = language
-        .clone()
-        .or_else(|| Some(global_config.language.clone()))
-        .unwrap_or_else(|| "en".to_string());
+    let instance_id = global_config.default_llm_instance_id.clone();
+    let instance = global_config
+        .llm_instances
+        .get(&instance_id)
+        .ok_or_else(|| format!("Instance not found: {}", instance_id))?
+        .clone();
+    let skills_dir = global_config.workspace.skills_dir.clone();
+    let language = global_config.language.clone();
     drop(global_config);
-    state.set_language(final_language.clone()).await;
+    state.set_language(language).await;
     let messages = state.get_log_messages().await;
-    let model_provider = match final_provider.as_str() {
+    let model_provider = match instance.provider.to_lowercase().as_str() {
         "openai" => ModelProvider::OpenAI,
         "anthropic" => ModelProvider::Anthropic,
         "azure" => ModelProvider::Azure,
@@ -195,38 +157,36 @@ pub async fn init_hippox(
         "alibaba" => ModelProvider::Alibaba,
         "zhipu" => ModelProvider::Zhipu,
         "moonshot" => ModelProvider::Moonshot,
-        _ => ModelProvider::OpenAI,
+        _ => {
+            println!(
+                "Unknown provider: {}, defaulting to OpenAI",
+                instance.provider
+            );
+            ModelProvider::OpenAI
+        }
     };
-    let mode = match final_workflow_mode.as_str() {
+    let mode = match instance.workflow_mode.to_lowercase().as_str() {
         "batch" => WorkflowMode::Batch,
         "chain" => WorkflowMode::Chain,
         "plan_and_execute" => WorkflowMode::PlanAndExecute,
-        "react" => WorkflowMode::ReAct,
         _ => WorkflowMode::ReAct,
     };
-    state
-        .add_log(
-            "process".to_string(),
-            messages.init_start,
-            Some(format!(
-                "skills_dir: {}, provider: {}, workflow_mode: {}",
-                final_skills_dir, final_provider, final_workflow_mode
-            )),
-            None,
-        )
-        .await;
     let mut extra_keys = std::collections::HashMap::new();
-    if final_provider == "custom" && !final_api_base.is_empty() {
-        extra_keys.insert("api_base".to_string(), final_api_base.clone());
+    if instance.provider.to_lowercase() != "openai" && !instance.api_base.is_empty() {
+        extra_keys.insert("api_base".to_string(), instance.api_base.clone());
     }
-    let init_result = Hippox::with_workflow_mode(
-        &final_skills_dir,
+    if instance.provider.to_lowercase() == "custom" && !instance.api_base.is_empty() {
+        extra_keys.insert("api_base".to_string(), instance.api_base.clone());
+    }
+    let api_key_to_use = if instance.api_key.is_empty() {
+        None
+    } else {
+        Some(instance.api_key.clone())
+    };
+    let hippox = Hippox::with_workflow_mode(
+        &skills_dir,
         model_provider,
-        if final_api_key.is_empty() {
-            None
-        } else {
-            Some(final_api_key.clone())
-        },
+        api_key_to_use,
         if extra_keys.is_empty() {
             None
         } else {
@@ -235,57 +195,23 @@ pub async fn init_hippox(
         ConfigInitMethod::Env,
         mode,
     )
-    .await;
-    match init_result {
-        Ok(hippox) => {
-            let mut engine = state.hippox.lock().await;
-            *engine = Some(hippox);
+    .await
+    .map_err(|e| {
+        println!("Initialization error: {}", e);
+        format!("{}: {}", messages.init_failed, e)
+    })?;
+    let mut engine = state.hippox.lock().await;
+    *engine = Some(hippox);
+    state
+        .add_log(
+            "success".to_string(),
+            messages.init_success.clone(),
+            Some(format!("Provider: {}", instance.provider)),
+            None,
+        )
+        .await;
 
-            state
-                .add_log(
-                    "success".to_string(),
-                    messages.init_success,
-                    Some(format!("API Base: {}", final_api_base)),
-                    None,
-                )
-                .await;
-            let mut global_config = HIPPOX_APP_CONFIG.write().await;
-            if let Some(lang) = language {
-                global_config.language = lang;
-            }
-            if let Some(p) = provider {
-                global_config.llm.provider = p;
-            }
-            if let Some(key) = api_key {
-                global_config.llm.api_key = key;
-            }
-            if let Some(base) = api_base {
-                global_config.llm.api_base = base;
-            }
-            if let Some(wm) = workflow_mode {
-                global_config.llm.workflow_mode = wm;
-            }
-            if let Some(dir) = skills_dir {
-                global_config.workspace.skills_dir = dir;
-            }
-            if let Err(e) = save_config_to_file().await {
-                eprintln!("Failed to save config: {}", e);
-            }
-            drop(global_config);
-            Ok(true)
-        }
-        Err(e) => {
-            state
-                .add_log(
-                    "error".to_string(),
-                    messages.init_failed.clone(),
-                    Some(e.to_string()),
-                    None,
-                )
-                .await;
-            Err(format!("{}: {}", messages.init_failed, e))
-        }
-    }
+    Ok(())
 }
 
 #[tauri::command]
@@ -297,16 +223,25 @@ pub async fn send_chat_message(
     let start_time = std::time::Instant::now();
     let session = session_id.clone().unwrap_or_else(|| "default".to_string());
     let messages = state.get_log_messages().await;
-
     state
         .add_log(
             "process".to_string(),
-            messages.send_start.replace("{}", &message),
-            None,
+            messages.init_start.clone(),
+            Some(format!("message: {}", message)),
             None,
         )
         .await;
-
+    if let Err(e) = init_engine_with_default(&state).await {
+        state
+            .add_log(
+                "error".to_string(),
+                format!("{}: {}", messages.init_failed, e),
+                None,
+                None,
+            )
+            .await;
+        return Err(e);
+    }
     let engine = state.hippox.lock().await;
     let hippox = engine
         .as_ref()
@@ -314,9 +249,7 @@ pub async fn send_chat_message(
     let response = hippox
         .handle_natural_language(&message, Some(&session))
         .await;
-
     let duration = start_time.elapsed().as_millis() as u64;
-
     state
         .add_log(
             "success".to_string(),
@@ -325,7 +258,6 @@ pub async fn send_chat_message(
             Some(duration),
         )
         .await;
-
     Ok(ChatResponse {
         success: true,
         message: response,
@@ -354,7 +286,6 @@ pub async fn reset_conversation(
 ) -> Result<(), String> {
     let engine = state.hippox.lock().await;
     let messages = state.get_log_messages().await;
-
     if let Some(hippox) = engine.as_ref() {
         let session = session_id.unwrap_or_else(|| "default".to_string());
         hippox.clear_conversation(&session);
@@ -386,36 +317,4 @@ pub async fn get_atomic_skills_list(
     } else {
         Ok(vec![])
     }
-}
-
-#[tauri::command]
-pub async fn auto_init_hippox(state: State<'_, AppStateWithChat>) -> Result<bool, String> {
-    {
-        let engine = state.hippox.lock().await;
-        if engine.is_some() {
-            return Ok(true);
-        }
-    }
-    let global_config = HIPPOX_APP_CONFIG.read().await;
-    let skills_dir = global_config.workspace.skills_dir.clone();
-    let provider = global_config.llm.provider.clone();
-    let api_key = global_config.llm.api_key.clone();
-    let api_base = global_config.llm.api_base.clone();
-    let workflow_mode = global_config.llm.workflow_mode.clone();
-    let language = global_config.language.clone();
-    drop(global_config);
-    if api_key.is_empty() {
-        let messages = state.get_log_messages().await;
-        return Err(messages.init_failed);
-    }
-    init_hippox(
-        state,
-        Some(skills_dir),
-        Some(provider),
-        Some(api_key),
-        Some(api_base),
-        Some(workflow_mode),
-        Some(language),
-    )
-    .await
 }

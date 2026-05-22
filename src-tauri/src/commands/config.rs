@@ -2,8 +2,8 @@ use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
-use tauri::State;
 use tokio::sync::RwLock;
+use uuid::Uuid;
 
 pub static HIPPOX_APP_CONFIG: Lazy<Arc<RwLock<HippoxAppConfig>>> =
     Lazy::new(|| Arc::new(RwLock::new(HippoxAppConfig::default())));
@@ -12,20 +12,25 @@ pub static HIPPOX_APP_CONFIG: Lazy<Arc<RwLock<HippoxAppConfig>>> =
 pub struct HippoxAppConfig {
     pub language: String,
     pub theme: String,
-    pub llm: LlmConfig,
+    pub llm_instances: HashMap<String, LlmInstance>, 
+    pub default_llm_instance_id: String,
     pub workspace: WorkspaceConfig,
     pub engine: EngineConfig,
     pub system: SystemConfig,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct LlmConfig {
-    pub default_model: String,
+pub struct LlmInstance {
+    pub id: Option<String>,
+    pub name: String,
+    pub provider: String,
     pub api_key: String,
     pub api_base: String,
-    pub provider: String,
     pub workflow_mode: String,
+    pub default_model: String,
     pub models: Vec<ModelConfig>,
+    pub created_at: Option<String>,
+    pub updated_at: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -34,6 +39,48 @@ pub struct ModelConfig {
     pub api_key: String,
     pub is_default: bool,
     pub provider: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LlmInstanceForFrontend {
+    pub id: String,
+    pub name: String,
+    pub provider: String,
+    pub api_key: String,
+    pub api_base: String,
+    pub workflow_mode: String,
+    pub default_model: String,
+    pub models: Vec<ModelConfig>,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+impl From<&LlmInstance> for LlmInstanceForFrontend {
+    fn from(instance: &LlmInstance) -> Self {
+        Self {
+            id: instance.id.clone().unwrap_or_default(),
+            name: instance.name.clone(),
+            provider: instance.provider.clone(),
+            api_key: instance.api_key.clone(),
+            api_base: instance.api_base.clone(),
+            workflow_mode: instance.workflow_mode.clone(),
+            default_model: instance.default_model.clone(),
+            models: instance.models.clone(),
+            created_at: instance.created_at.clone().unwrap_or_default(),
+            updated_at: instance.updated_at.clone().unwrap_or_default(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AddLlmInstanceRequest {
+    pub name: String,
+    pub provider: String,
+    pub api_key: String,
+    pub api_base: String,
+    pub workflow_mode: String,
+    pub default_model: String,
+    pub models: Vec<ModelConfig>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -172,36 +219,34 @@ pub struct GithubConfig {
 
 impl Default for HippoxAppConfig {
     fn default() -> Self {
+        let mut instances = HashMap::new();
+        let default_id = Uuid::new_v4().to_string();
+        instances.insert(
+            default_id.clone(),
+            LlmInstance {
+                id: Some(default_id.clone()),
+                name: "Default Instance".to_string(),
+                provider: "openai".to_string(),
+                api_key: "".to_string(),
+                api_base: "https://api.openai.com/v1".to_string(),
+                workflow_mode: "react".to_string(),
+                default_model: "gpt-4".to_string(),
+                models: vec![ModelConfig {
+                    name: "gpt-4".to_string(),
+                    api_key: "".to_string(),
+                    is_default: true,
+                    provider: "openai".to_string(),
+                }],
+                created_at: Some(chrono::Local::now().to_rfc3339()),
+                updated_at: Some(chrono::Local::now().to_rfc3339()),
+            },
+        );
+
         Self {
             language: "en".to_string(),
             theme: "dark".to_string(),
-            llm: LlmConfig {
-                default_model: "gpt-4".to_string(),
-                api_key: "".to_string(),
-                api_base: "https://api.openai.com/v1".to_string(),
-                provider: "openai".to_string(),
-                workflow_mode: "react".to_string(),
-                models: vec![
-                    ModelConfig {
-                        name: "hippox-default-v1".to_string(),
-                        api_key: "".to_string(),
-                        is_default: true,
-                        provider: "custom".to_string(),
-                    },
-                    ModelConfig {
-                        name: "gpt-4".to_string(),
-                        api_key: "".to_string(),
-                        is_default: false,
-                        provider: "openai".to_string(),
-                    },
-                    ModelConfig {
-                        name: "claude-3-opus".to_string(),
-                        api_key: "".to_string(),
-                        is_default: false,
-                        provider: "anthropic".to_string(),
-                    },
-                ],
-            },
+            llm_instances: instances,
+            default_llm_instance_id: default_id,
             workspace: WorkspaceConfig {
                 skills_dir: "~/.hippox/skills".to_string(),
                 logs_path: "~/.hippox/logs".to_string(),
@@ -298,11 +343,123 @@ impl Default for HippoxAppConfig {
     }
 }
 
+#[tauri::command]
+pub async fn get_llm_instances() -> Result<HashMap<String, LlmInstanceForFrontend>, String> {
+    let config = HIPPOX_APP_CONFIG.read().await;
+    let mut result = HashMap::new();
+    for (key, instance) in config.llm_instances.iter() {
+        result.insert(key.clone(), instance.into());
+    }
+    Ok(result)
+}
+
+#[tauri::command]
+pub async fn get_default_llm_instance_id() -> Result<String, String> {
+    let config = HIPPOX_APP_CONFIG.read().await;
+    Ok(config.default_llm_instance_id.clone())
+}
+
+#[tauri::command]
+pub async fn add_llm_instance(request: AddLlmInstanceRequest) -> Result<String, String> {
+    println!("add_llm_instance called with request: {:?}", request);
+    let mut config = HIPPOX_APP_CONFIG.write().await;
+    let id = Uuid::new_v4().to_string();
+    let now = chrono::Local::now().to_rfc3339();
+
+    let new_instance = LlmInstance {
+        id: Some(id.clone()),
+        name: request.name,
+        provider: request.provider,
+        api_key: request.api_key,
+        api_base: request.api_base,
+        workflow_mode: request.workflow_mode,
+        default_model: request.default_model,
+        models: request.models,
+        created_at: Some(now.clone()),
+        updated_at: Some(now),
+    };
+    config.llm_instances.insert(id.clone(), new_instance);
+    if config.llm_instances.len() == 1 {
+        config.default_llm_instance_id = id.clone();
+    }
+    // unlock
+    drop(config);
+    save_config_to_file().await?;
+    Ok(id)
+}
+
+#[tauri::command]
+pub async fn update_llm_instance(
+    instance_id: String,
+    instance: LlmInstanceForFrontend,
+) -> Result<bool, String> {
+    let mut config = HIPPOX_APP_CONFIG.write().await;
+    if let Some(existing) = config.llm_instances.get_mut(&instance_id) {
+        existing.name = instance.name;
+        existing.provider = instance.provider;
+        existing.api_key = instance.api_key;
+        existing.api_base = instance.api_base;
+        existing.workflow_mode = instance.workflow_mode;
+        existing.default_model = instance.default_model;
+        existing.models = instance.models;
+        existing.updated_at = Some(chrono::Local::now().to_rfc3339());
+        drop(config);
+        save_config_to_file().await?;
+        Ok(true)
+    } else {
+        Err("Instance not found".to_string())
+    }
+}
+
+#[tauri::command]
+pub async fn delete_llm_instance(instance_id: String) -> Result<bool, String> {
+    let mut config = HIPPOX_APP_CONFIG.write().await;
+    if config.llm_instances.len() <= 1 {
+        return Err("Cannot delete the last instance".to_string());
+    }
+    if config.llm_instances.remove(&instance_id).is_some() {
+        if config.default_llm_instance_id == instance_id {
+            if let Some(first_id) = config.llm_instances.keys().next() {
+                config.default_llm_instance_id = first_id.clone();
+            }
+        }
+        drop(config);
+        save_config_to_file().await?;
+        Ok(true)
+    } else {
+        Err("Instance not found".to_string())
+    }
+}
+
+#[tauri::command]
+pub async fn set_default_llm_instance(instance_id: String) -> Result<bool, String> {
+    let mut config = HIPPOX_APP_CONFIG.write().await;
+    if config.llm_instances.contains_key(&instance_id) {
+        config.default_llm_instance_id = instance_id;
+        // unlock
+        drop(config);
+        save_config_to_file().await?;
+        Ok(true)
+    } else {
+        Err("Instance not found".to_string())
+    }
+}
+
+#[tauri::command]
+pub async fn get_llm_instance(
+    instance_id: String,
+) -> Result<Option<LlmInstanceForFrontend>, String> {
+    let config = HIPPOX_APP_CONFIG.read().await;
+    Ok(config
+        .llm_instances
+        .get(&instance_id)
+        .map(|instance| instance.into()))
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ConfigPath {
     Language,
     Theme,
-    Llm(String),
     Workspace(String),
     Engine(String),
     System(String),
@@ -339,34 +496,6 @@ pub async fn update_config(path: ConfigPath, value: serde_json::Value) -> Result
                 config.theme = theme.to_string();
             }
         }
-        ConfigPath::Llm(key) => match key.as_str() {
-            "default_model" => {
-                if let Some(v) = value.as_str() {
-                    config.llm.default_model = v.to_string();
-                }
-            }
-            "api_key" => {
-                if let Some(v) = value.as_str() {
-                    config.llm.api_key = v.to_string();
-                }
-            }
-            "api_base" => {
-                if let Some(v) = value.as_str() {
-                    config.llm.api_base = v.to_string();
-                }
-            }
-            "provider" => {
-                if let Some(v) = value.as_str() {
-                    config.llm.provider = v.to_string();
-                }
-            }
-            "workflow_mode" => {
-                if let Some(v) = value.as_str() {
-                    config.llm.workflow_mode = v.to_string();
-                }
-            }
-            _ => {}
-        },
         ConfigPath::Workspace(key) => match key.as_str() {
             "skills_dir" => {
                 if let Some(v) = value.as_str() {
@@ -448,15 +577,6 @@ pub async fn get_config_value(path: ConfigPath) -> Result<serde_json::Value, Str
     let value = match path {
         ConfigPath::Language => serde_json::json!(config.language),
         ConfigPath::Theme => serde_json::json!(config.theme),
-        ConfigPath::Llm(key) => match key.as_str() {
-            "default_model" => serde_json::json!(config.llm.default_model),
-            "api_key" => serde_json::json!(config.llm.api_key),
-            "api_base" => serde_json::json!(config.llm.api_base),
-            "provider" => serde_json::json!(config.llm.provider),
-            "workflow_mode" => serde_json::json!(config.llm.workflow_mode),
-            "models" => serde_json::json!(config.llm.models),
-            _ => serde_json::Value::Null,
-        },
         ConfigPath::Workspace(key) => match key.as_str() {
             "skills_dir" => serde_json::json!(config.workspace.skills_dir),
             "logs_path" => serde_json::json!(config.workspace.logs_path),
@@ -475,9 +595,7 @@ pub async fn get_config_value(path: ConfigPath) -> Result<serde_json::Value, Str
             "request_timeout" => serde_json::json!(config.system.request_timeout),
             _ => serde_json::Value::Null,
         },
-        ConfigPath::Engine(key) => {
-            serde_json::json!({})
-        }
+        ConfigPath::Engine(key) => serde_json::json!({}),
     };
     Ok(value)
 }
@@ -514,26 +632,43 @@ fn get_config_file_path() -> std::path::PathBuf {
 #[tauri::command]
 pub async fn add_llm_model(model: ModelConfig) -> Result<bool, String> {
     let mut config = HIPPOX_APP_CONFIG.write().await;
-    config.llm.models.push(model);
-    save_config_to_file().await?;
-    Ok(true)
+    let default_id = config.default_llm_instance_id.clone();
+    if let Some(instance) = config.llm_instances.get_mut(&default_id) {
+        instance.models.push(model);
+        save_config_to_file().await?;
+        Ok(true)
+    } else {
+        Err("No default instance found".to_string())
+    }
 }
 
 #[tauri::command]
 pub async fn remove_llm_model(model_name: String) -> Result<bool, String> {
     let mut config = HIPPOX_APP_CONFIG.write().await;
-    config.llm.models.retain(|m| m.name != model_name);
-    save_config_to_file().await?;
-    Ok(true)
+    let default_id = config.default_llm_instance_id.clone();
+    if let Some(instance) = config.llm_instances.get_mut(&default_id) {
+        instance.models.retain(|m| m.name != model_name);
+        save_config_to_file().await?;
+        Ok(true)
+    } else {
+        Err("No default instance found".to_string())
+    }
 }
 
 #[tauri::command]
 pub async fn set_default_llm_model(model_name: String) -> Result<bool, String> {
     let mut config = HIPPOX_APP_CONFIG.write().await;
-    for model in &mut config.llm.models {
-        model.is_default = model.name == model_name;
+    let default_id = config.default_llm_instance_id.clone();
+    if let Some(instance) = config.llm_instances.get_mut(&default_id) {
+        for model in &mut instance.models {
+            model.is_default = model.name == model_name;
+        }
+        instance.default_model = model_name;
+        // unlock
+        drop(config);
+        save_config_to_file().await?;
+        Ok(true)
+    } else {
+        Err("No default instance found".to_string())
     }
-    config.llm.default_model = model_name;
-    save_config_to_file().await?;
-    Ok(true)
 }

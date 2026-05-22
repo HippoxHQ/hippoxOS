@@ -1,3 +1,4 @@
+#![allow(warnings)]
 mod commands;
 
 use commands::AppStateWithChat;
@@ -12,11 +13,9 @@ pub fn run() {
     if !skills_dir.exists() {
         let _ = std::fs::create_dir_all(&skills_dir);
     }
-    tokio::runtime::Runtime::new()
-        .unwrap()
-        .block_on(async {
-            let _ = commands::load_config_from_file().await;
-        });
+    tokio::runtime::Runtime::new().unwrap().block_on(async {
+        let _ = commands::load_config_from_file().await;
+    });
     tauri::Builder::default()
         .manage(AppStateWithChat::new())
         .invoke_handler(tauri::generate_handler![
@@ -24,10 +23,16 @@ pub fn run() {
             commands::set_config,
             commands::update_config,
             commands::get_config_value,
+            commands::get_llm_instances,
+            commands::get_default_llm_instance_id,
+            commands::add_llm_instance,
+            commands::update_llm_instance,
+            commands::delete_llm_instance,
+            commands::set_default_llm_instance,
+            commands::get_llm_instance,
             commands::add_llm_model,
             commands::remove_llm_model,
             commands::set_default_llm_model,
-            commands::init_hippox,
             commands::send_chat_message,
             commands::get_execution_logs,
             commands::clear_execution_logs,

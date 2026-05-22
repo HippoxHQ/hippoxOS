@@ -208,6 +208,12 @@ export const zh = {
     setAsDefault: '设为默认',
     delete: '删除',
     addModel: '添加模型',
+    addInstance: '添加LLM实例',
+    instanceName: '实例名称',
+    instanceNameRequired: '请输入实例名称',
+    apiKeyRequired: '请输入 API Key',
+    cannotDeleteLastInstance: '不能删除最后一个实例',
+    cannotDeleteDefaultInstance: '不能删除默认实例',
     modelName: '模型名称',
     modelNamePlaceholder: '例如: llama-3-70b',
     cancel: '取消',
@@ -249,7 +255,6 @@ export const zh = {
       notification: '通知'
     }
   },
-
   plugins: {
     integration: '集成',
     support: '支持',
@@ -487,6 +492,12 @@ export const en: typeof zh = {
     setAsDefault: 'Set as Default',
     delete: 'Delete',
     addModel: 'Add Model',
+    addInstance: 'Add LLM Instance',
+    instanceName: 'Instance Name',
+    instanceNameRequired: 'Please enter instance name',
+    apiKeyRequired: 'Please enter API Key',
+    cannotDeleteLastInstance: 'Cannot delete the last instance',
+    cannotDeleteDefaultInstance: 'Cannot delete default instance',
     modelName: 'Model Name',
     modelNamePlaceholder: 'e.g.: llama-3-70b',
     cancel: 'Cancel',
