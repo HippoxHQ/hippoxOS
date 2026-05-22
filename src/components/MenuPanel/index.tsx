@@ -31,6 +31,7 @@ interface MenuPanelProps {
   language?: 'zh' | 'en';
   onThemeChange?: (theme: 'light' | 'dark') => void;
   onLanguageChange?: (language: 'zh' | 'en') => void;
+  isInitializing?: boolean;
 }
 
 const viewTitles: Record<MenuPanelView, string> = {
@@ -360,6 +361,7 @@ const menuPanelStyles = `
   }
 `;
 
+
 if (typeof document !== 'undefined') {
   const styleId = 'menu-panel-styles';
   if (!document.getElementById(styleId)) {
@@ -370,7 +372,6 @@ if (typeof document !== 'undefined') {
   }
 }
 
-
 const MenuPanel: React.FC<MenuPanelProps> = ({
   currentView,
   settingsSubView,
@@ -380,7 +381,8 @@ const MenuPanel: React.FC<MenuPanelProps> = ({
   theme,
   language,
   onThemeChange,
-  onLanguageChange
+  onLanguageChange,
+  isInitializing = false, 
 }) => {
   const renderContent = () => {
     switch (currentView) {
@@ -409,6 +411,7 @@ const MenuPanel: React.FC<MenuPanelProps> = ({
           language={language}
           onThemeChange={onThemeChange}
           onLanguageChange={onLanguageChange}
+          isInitializing={isInitializing}  
         />;
       default:
         return null;

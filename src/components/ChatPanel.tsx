@@ -3,7 +3,7 @@ import { ChatMessage } from '../type';
 
 interface ChatPanelProps {
   messages: ChatMessage[];
-  onSendMessage: (message: string) => void;
+  onSendMessage: (message: string) => void | Promise<void>;
   t: (key: string, params?: any) => string;
 }
 
@@ -14,6 +14,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ messages, onSendMessage, t }) => 
   const [showScrollButton, setShowScrollButton] = useState(false);
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [userScrolled, setUserScrolled] = useState(false);
+
   const checkScrollPosition = () => {
     if (!messagesContainerRef.current) return;
     const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
@@ -24,6 +25,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ messages, onSendMessage, t }) => 
       setUserScrolled(false);
     }
   };
+
   useEffect(() => {
     const element = messagesContainerRef.current;
     if (element) {
@@ -32,12 +34,14 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ messages, onSendMessage, t }) => 
       return () => element.removeEventListener('scroll', checkScrollPosition);
     }
   }, [messages]);
+
   useEffect(() => {
     if (!userScrolled && messagesContainerRef.current) {
       messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
     }
     checkScrollPosition();
   }, [messages, userScrolled]);
+
   const handleUserScroll = () => {
     if (messagesContainerRef.current) {
       const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
@@ -48,12 +52,14 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ messages, onSendMessage, t }) => 
     }
     checkScrollPosition();
   };
+
   const scrollToBottom = () => {
     if (messagesContainerRef.current) {
       messagesContainerRef.current.scrollTo({ top: messagesContainerRef.current.scrollHeight, behavior: 'smooth' });
       setUserScrolled(false);
     }
   };
+
   const handleSend = () => {
     if (inputValue.trim()) {
       onSendMessage(inputValue.trim());
@@ -64,17 +70,20 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ messages, onSendMessage, t }) => 
       }
     }
   };
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
     }
   };
+
   const adjustTextareaHeight = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInputValue(e.target.value);
     e.target.style.height = 'auto';
     e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
   };
+
   return (
     <div className="chat-panel">
       <div className="panel-header">
@@ -128,6 +137,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ messages, onSendMessage, t }) => 
             📤 {t('chat.send')}
           </button>
         </div>
+        <div className="input-hint">{t('chat.hint')}</div>
       </div>
     </div>
   );

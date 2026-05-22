@@ -1,6 +1,12 @@
 export const zh = {
-  welcome: { message: '你好，我是 Hippox AI 运行时。我有自主决策能力，可以执行技能并实时反馈。有什么可以帮你的？' },
-  session: { reset: '会话已重置。Hippox 运行时重新就绪，自主决策引擎已刷新。' },
+  welcome: {
+    message: '你好，我是 Hippox AI 运行时。我有自主决策能力，可以执行技能并实时反馈。有什么可以帮你的？',
+    initRequired: '请先在设置中配置 API Key 和模型提供商来初始化 Hippox 引擎。',
+    initSuccess: 'Hippox 引擎初始化成功！现在可以开始对话了。'
+  },
+  session: {
+    reset: '会话已重置。Hippox 运行时重新就绪，自主决策引擎已刷新。'
+  },
   logs: {
     skillsLoaded: '已加载 3 个技能模块',
     listening: '监听用户指令中...',
@@ -30,6 +36,9 @@ export const zh = {
     readyDetail: '等待用户指令',
     decision: '🧠 自主决策',
     decisionDetail: '扫描可用技能池 | 识别到 {{count}} 个原子能力',
+    initFailed: '❌ Hippox 引擎初始化失败',
+    sendFailed: '❌ 消息发送失败',
+    resetFailed: '❌ 重置会话失败'
   },
   skills: {
     search: '🔍 已调用「WebSearch Skill」技能。正在模拟网络搜索: "{{query}}"\n\n（当前为演示模式，实际将连接搜索引擎返回实时结果）',
@@ -75,12 +84,38 @@ export const zh = {
     workspaceConfig: '工作空间配置',
     systemConfig: '系统设置',
   },
-  status: { healthy: '健康状况正常' },
-  actions: { newSession: '新建会话', clearTerminal: '清空终端' },
-  runtime: { model: '运行时模型', engine: '决策引擎', skillOrchestration: '自主Skill编排' },
-  terminal: { title: '终端日志', clear: '清空日志', empty: '暂无日志，等待执行步骤...', scrollToBottom: '回到底部' },
-  chat: { title: '对话界面', mainSession: 'Main Session', placeholder: '输入消息...', send: '发送', hint: 'Shift+Enter 换行，Enter 发送', scrollToBottom: '回到底部' },
-  tooltip: { theme: '切换主题', language: '切换语言' },
+  status: {
+    healthy: '健康状况正常'
+  },
+  actions: {
+    newSession: '新建会话',
+    clearTerminal: '清空终端'
+  },
+  runtime: {
+    model: '运行时模型',
+    engine: '决策引擎',
+    skillOrchestration: '自主Skill编排'
+  },
+  terminal: {
+    title: '终端日志',
+    clear: '清空日志',
+    empty: '暂无日志，等待执行步骤...',
+    scrollToBottom: '回到底部'
+  },
+  chat: {
+    title: '对话界面',
+    mainSession: 'Main Session',
+    placeholder: '输入消息...',
+    send: '发送',
+    hint: 'Shift+Enter 换行，Enter 发送',
+    scrollToBottom: '回到底部',
+    notInitialized: 'Hippox 引擎未初始化，请先在设置中配置 API Key。',
+    sendFailed: '发送失败，请检查网络或 API Key 配置。'
+  },
+  tooltip: {
+    theme: '切换主题',
+    language: '切换语言'
+  },
   topbar: {
     collapseSidebar: '折叠侧边栏',
     expandSidebar: '展开侧边栏',
@@ -206,8 +241,14 @@ export const zh = {
 };
 
 export const en: typeof zh = {
-  welcome: { message: 'Hello, I am Hippox AI Runtime. I have autonomous decision-making capabilities and can execute skills with real-time feedback. How can I help you?' },
-  session: { reset: 'Session reset. Hippox runtime ready, decision engine refreshed.' },
+  welcome: {
+    message: 'Hello, I am Hippox AI Runtime. I have autonomous decision-making capabilities and can execute skills with real-time feedback. How can I help you?',
+    initRequired: 'Please configure API Key and model provider in settings to initialize Hippox engine.',
+    initSuccess: 'Hippox engine initialized successfully! You can start chatting now.'
+  },
+  session: {
+    reset: 'Session reset. Hippox runtime ready, decision engine refreshed.'
+  },
   logs: {
     skillsLoaded: 'Loaded 3 skills',
     listening: 'Listening for user commands...',
@@ -237,6 +278,9 @@ export const en: typeof zh = {
     readyDetail: 'Waiting for user command',
     decision: '🧠 Autonomous decision',
     decisionDetail: 'Scanning skill pool | Found {{count}} atomic capabilities',
+    initFailed: '❌ Hippox engine initialization failed',
+    sendFailed: '❌ Message send failed',
+    resetFailed: '❌ Session reset failed'
   },
   skills: {
     search: '🔍 Called "WebSearch Skill". Simulating web search: "{{query}}"\n\n(Demo mode, actual implementation would connect to search engine)',
@@ -282,12 +326,38 @@ export const en: typeof zh = {
     workspaceConfig: 'Workspace Config',
     systemConfig: 'System Config',
   },
-  status: { healthy: 'Healthy' },
-  actions: { newSession: 'New Session', clearTerminal: 'Clear Terminal' },
-  runtime: { model: 'Runtime Model', engine: 'Decision Engine', skillOrchestration: 'Skill Orchestration' },
-  terminal: { title: 'Terminal Logs', clear: 'Clear logs', empty: 'No logs, waiting for execution steps...', scrollToBottom: 'Scroll to bottom' },
-  chat: { title: 'Chat Interface', mainSession: 'Main Session', placeholder: 'Type a message...', send: 'Send', hint: 'Shift+Enter for new line, Enter to send', scrollToBottom: 'Scroll to bottom' },
-  tooltip: { theme: 'Toggle theme', language: 'Toggle language' },
+  status: {
+    healthy: 'Healthy'
+  },
+  actions: {
+    newSession: 'New Session',
+    clearTerminal: 'Clear Terminal'
+  },
+  runtime: {
+    model: 'Runtime Model',
+    engine: 'Decision Engine',
+    skillOrchestration: 'Skill Orchestration'
+  },
+  terminal: {
+    title: 'Terminal Logs',
+    clear: 'Clear logs',
+    empty: 'No logs, waiting for execution steps...',
+    scrollToBottom: 'Scroll to bottom'
+  },
+  chat: {
+    title: 'Chat Interface',
+    mainSession: 'Main Session',
+    placeholder: 'Type a message...',
+    send: 'Send',
+    hint: 'Shift+Enter for new line, Enter to send',
+    scrollToBottom: 'Scroll to bottom',
+    notInitialized: 'Hippox engine not initialized, please configure API Key in settings first.',
+    sendFailed: 'Send failed, please check network or API Key configuration.'
+  },
+  tooltip: {
+    theme: 'Toggle theme',
+    language: 'Toggle language'
+  },
   topbar: {
     collapseSidebar: 'Collapse Sidebar',
     expandSidebar: 'Expand Sidebar',
@@ -319,12 +389,14 @@ export const en: typeof zh = {
     apiTitle: 'API Reference',
     apiDesc: 'Developer API documentation'
   },
+
   market: {
     emailDesc: 'Send email notifications',
     visualizerDesc: 'Generate data charts',
     codeDesc: 'Code review and optimization',
     install: 'Install'
   },
+
   task: {
     analyzeData: 'Analyze data.csv',
     weeklyReport: 'Generate weekly report',
@@ -332,6 +404,7 @@ export const en: typeof zh = {
     waiting: 'Waiting',
     completed: 'Completed'
   },
+
   scheduled: {
     dailyBackup: 'Daily 09:00 - Data backup',
     weeklyReport: 'Weekly Monday 10:00 - Weekly report',
@@ -339,6 +412,7 @@ export const en: typeof zh = {
     edit: 'Edit',
     addTask: 'Add scheduled task'
   },
+
   settings: {
     selectModel: 'Select Model',
     selectModelPlaceholder: 'Please select a model...',
@@ -387,6 +461,7 @@ export const en: typeof zh = {
       notification: 'Notification'
     }
   },
+
   plugins: {
     integration: 'Integration',
     support: 'Support',
@@ -396,12 +471,14 @@ export const en: typeof zh = {
     enabled: 'Enabled',
     disabled: 'Disabled'
   },
+
   monitor: {
     cpuUsage: 'CPU Usage',
     memoryUsage: 'Memory Usage',
     apiCalls: 'API Calls',
     skillExecutions: 'Skill Executions'
   },
+
   debug: {
     viewRawLogs: 'View Raw Logs',
     skillTrace: 'Skill Call Chain Trace',

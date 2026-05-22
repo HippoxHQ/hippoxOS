@@ -8,6 +8,7 @@ interface AIModelConfigProps {
     apiKey: string;
   };
   onSave?: (config: any) => void;
+  isInitializing?: boolean; 
 }
 
 interface ModelConfig {
@@ -28,7 +29,7 @@ interface ModelInfo {
   recommended: boolean;
 }
 
-const AIModelConfig: React.FC<AIModelConfigProps> = ({ t, initialConfig, onSave }) => {
+const AIModelConfig: React.FC<AIModelConfigProps> = ({ t, initialConfig, onSave, isInitializing = false }) => {
   const [models, setModels] = useState<ModelConfig[]>([
     {
       name: 'hippox-default-v1',
@@ -323,20 +324,26 @@ const AIModelConfig: React.FC<AIModelConfigProps> = ({ t, initialConfig, onSave 
         )}
       </div>
 
-      <button className="settings-save-btn" onClick={handleSave} style={{
-        padding: '8px 20px',
-        margin: '0 10px 10px auto',
-        background: 'var(--accent-color, #0066cc)',
-        border: 'none',
-        borderRadius: '6px',
-        color: 'white',
-        fontSize: '13px',
-        fontWeight: 500,
-        cursor: 'pointer',
-        transition: 'all 0.2s',
-        alignSelf: 'flex-end'
-      }}>
-        {t('settings.save')}
+      <button
+        className="settings-save-btn"
+        onClick={handleSave}
+        disabled={isInitializing} 
+        style={{
+          padding: '8px 20px',
+          margin: '0 10px 10px auto',
+          background: 'var(--accent-color, #0066cc)',
+          border: 'none',
+          borderRadius: '6px',
+          color: 'white',
+          fontSize: '13px',
+          fontWeight: 500,
+          cursor: isInitializing ? 'not-allowed' : 'pointer',
+          transition: 'all 0.2s',
+          alignSelf: 'flex-end',
+          opacity: isInitializing ? 0.6 : 1
+        }}
+      >
+        {isInitializing ? (t('chat.initializing') || '初始化中...') : (t('settings.save') || '保存')}
       </button>
     </div>
   );

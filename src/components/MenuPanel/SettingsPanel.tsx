@@ -14,6 +14,7 @@ interface SettingsPanelProps {
   language?: 'zh' | 'en';
   onThemeChange?: (theme: 'light' | 'dark') => void;
   onLanguageChange?: (language: 'zh' | 'en') => void;
+  isInitializing?: boolean;
 }
 
 const settingsPanelStyles = `
@@ -156,6 +157,7 @@ const settingsPanelStyles = `
   }
 `;
 
+
 if (typeof document !== 'undefined') {
   const styleId = 'settings-panel-styles';
   if (!document.getElementById(styleId)) {
@@ -173,12 +175,13 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
   theme,
   language,
   onThemeChange,
-  onLanguageChange
+  onLanguageChange,
+  isInitializing = false, 
 }) => {
   const renderContent = () => {
     switch (subView) {
       case 'aiModel':
-        return <AIModelConfig t={t} onSave={onSave} />;
+        return <AIModelConfig t={t} onSave={onSave} isInitializing={isInitializing} />;
       case 'engine':
         return <EngineConfig t={t} onSave={onSave} />;
       case 'workspace':
@@ -192,7 +195,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
           onLanguageChange={onLanguageChange || (() => { })}
         />;
       default:
-        return <AIModelConfig t={t} onSave={onSave} />;
+        return <AIModelConfig t={t} onSave={onSave} isInitializing={isInitializing} />;
     }
   };
 
