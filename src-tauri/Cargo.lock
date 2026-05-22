@@ -10,6 +10,7 @@ dependencies = [
  "dirs",
  "hippox",
  "log",
+ "once_cell",
  "serde",
  "serde_json",
  "tauri",

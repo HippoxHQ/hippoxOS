@@ -9,14 +9,24 @@ pub fn run() {
         .unwrap_or_else(|| PathBuf::from("."))
         .join(".hippox")
         .join("skills");
-
     if !skills_dir.exists() {
         let _ = std::fs::create_dir_all(&skills_dir);
     }
-
+    tokio::runtime::Runtime::new()
+        .unwrap()
+        .block_on(async {
+            let _ = commands::load_config_from_file().await;
+        });
     tauri::Builder::default()
         .manage(AppStateWithChat::new())
         .invoke_handler(tauri::generate_handler![
+            commands::get_config,
+            commands::set_config,
+            commands::update_config,
+            commands::get_config_value,
+            commands::add_llm_model,
+            commands::remove_llm_model,
+            commands::set_default_llm_model,
             commands::init_hippox,
             commands::send_chat_message,
             commands::get_execution_logs,
