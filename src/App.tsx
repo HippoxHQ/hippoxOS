@@ -105,18 +105,21 @@ function App() {
         const pendingIndex = newMessages.findIndex(
           (msg) => msg.id === `pending_${task_id}`,
         );
+        const successMessage =
+          language === "zh" ? "✅ 任务已完成" : "✅ Task completed";
+
         if (pendingIndex !== -1) {
           newMessages[pendingIndex] = {
             id: `response_${task_id}`,
             role: "assistant",
-            content: final_output,
+            content: successMessage,
             timestamp: new Date().toLocaleTimeString(),
           };
         } else {
           newMessages.push({
             id: `response_${task_id}`,
             role: "assistant",
-            content: final_output,
+            content: successMessage,
             timestamp: new Date().toLocaleTimeString(),
           });
         }
@@ -145,18 +148,21 @@ function App() {
         const pendingIndex = newMessages.findIndex(
           (msg) => msg.id === `pending_${task_id}`,
         );
+        const errorMessage =
+          language === "zh" ? "❌ 任务执行失败" : "❌ Task execution failed";
+
         if (pendingIndex !== -1) {
           newMessages[pendingIndex] = {
             id: `error_${task_id}`,
             role: "assistant",
-            content: `❌ ${error}`,
+            content: errorMessage,
             timestamp: new Date().toLocaleTimeString(),
           };
         } else {
           newMessages.push({
             id: `error_${task_id}`,
             role: "assistant",
-            content: `❌ ${error}`,
+            content: errorMessage,
             timestamp: new Date().toLocaleTimeString(),
           });
         }
@@ -168,7 +174,7 @@ function App() {
       unlistenComplete.then((fn) => fn());
       unlistenFailed.then((fn) => fn());
     };
-  }, []);
+  }, [language]);
   useEffect(() => {
     const loadTasks = async () => {
       try {

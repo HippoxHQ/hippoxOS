@@ -310,11 +310,15 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
     const task = activeTasks[index];
     if (task && taskRefs.current.has(task.task_id)) {
       taskRefs.current.get(task.task_id)?.scrollIntoView({
-        behavior: "smooth",
+        behavior: "auto",
         block: "start",
       });
       setAutoScroll(false);
       setShowBubble(false);
+      setTimeout(() => {
+        checkScrollPosition();
+        updateActiveNavOnScroll();
+      }, 100);
     }
   };
   const handleButtonMouseEnter = () => {
