@@ -65,31 +65,6 @@ pub fn get_settings_dir() -> PathBuf {
     get_app_root_dir().join("settings")
 }
 
-/// AI model config directory: HippoX/settings/ai_model
-pub fn get_ai_model_config_dir() -> PathBuf {
-    get_settings_dir().join("ai_model")
-}
-
-/// Atomic skills config directory: HippoX/settings/atomic_skills
-pub fn get_atomic_skills_config_dir() -> PathBuf {
-    get_settings_dir().join("atomic_skills")
-}
-
-/// Workspace config directory: HippoX/settings/workspace
-pub fn get_workspace_config_dir() -> PathBuf {
-    get_settings_dir().join("workspace")
-}
-
-/// Engine config directory: HippoX/settings/engine
-pub fn get_engine_config_dir() -> PathBuf {
-    get_settings_dir().join("engine")
-}
-
-/// System config directory: HippoX/settings/system
-pub fn get_system_config_dir() -> PathBuf {
-    get_settings_dir().join("system")
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DataPaths {
     pub app_root_dir: String,
@@ -100,11 +75,6 @@ pub struct DataPaths {
     pub log_dir: String,
     pub cache_dir: String,
     pub settings_dir: String,
-    pub ai_model_config_dir: String,
-    pub atomic_skills_config_dir: String,
-    pub workspace_config_dir: String,
-    pub engine_config_dir: String,
-    pub system_config_dir: String,
 }
 
 #[tauri::command]
@@ -120,11 +90,6 @@ pub fn get_data_paths() -> DataPaths {
         log_dir: get_log_dir().to_string_lossy().to_string(),
         cache_dir: get_cache_dir().to_string_lossy().to_string(),
         settings_dir: get_settings_dir().to_string_lossy().to_string(),
-        ai_model_config_dir: get_ai_model_config_dir().to_string_lossy().to_string(),
-        atomic_skills_config_dir: get_atomic_skills_config_dir().to_string_lossy().to_string(),
-        workspace_config_dir: get_workspace_config_dir().to_string_lossy().to_string(),
-        engine_config_dir: get_engine_config_dir().to_string_lossy().to_string(),
-        system_config_dir: get_system_config_dir().to_string_lossy().to_string(),
     }
 }
 
@@ -139,11 +104,6 @@ pub fn init_directories() -> Result<(), String> {
         get_log_dir(),
         get_cache_dir(),
         get_settings_dir(),
-        get_ai_model_config_dir(),
-        get_atomic_skills_config_dir(),
-        get_workspace_config_dir(),
-        get_engine_config_dir(),
-        get_system_config_dir(),
         get_cache_dir().join("models"),
         get_cache_dir().join("skills"),
         get_cache_dir().join("temp"),
@@ -324,6 +284,7 @@ pub fn save_internal_setting(setting_dir: &Path, key: &str, data: &str) -> Resul
 /// Load internal setting from config directory
 pub fn load_internal_setting(setting_dir: &Path, key: &str) -> Result<Option<String>, String> {
     let file_path = setting_dir.join(format!("{}.json", key));
+
     if file_path.exists() {
         let content =
             fs::read_to_string(&file_path).map_err(|e| format!("Failed to read setting: {}", e))?;

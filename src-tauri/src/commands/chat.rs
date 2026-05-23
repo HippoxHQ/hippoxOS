@@ -225,6 +225,97 @@ impl AppStateWithChat {
             .cloned()
             .collect()
     }
+
+    /// Get Hippox engine reference (lazy initialization)
+    /// Returns a guard that holds the mutex lock
+    pub async fn get_engine(&self) -> Result<tokio::sync::MutexGuard<'_, Option<Hippox>>, String> {
+        let mut engine_guard = self.hippox.lock().await;
+        if engine_guard.is_some() {
+            return Ok(engine_guard);
+        }
+        let global_config = HIPPOX_APP_CONFIG.read().await;
+        let instance_id = global_config.default_llm_instance_id.clone();
+        let instance = global_config
+            .llm_instances
+            .get(&instance_id)
+            .ok_or_else(|| format!("Instance not found: {}", instance_id))?
+            .clone();
+        let skills_dir = global_config.workspace.skills_dir.clone();
+        let language = global_config.language.clone();
+        drop(global_config);
+        self.set_language(language).await;
+        let messages = self.get_log_messages().await;
+        let model_provider = match instance.provider.to_lowercase().as_str() {
+            "openai" => ModelProvider::OpenAI,
+            "anthropic" => ModelProvider::Anthropic,
+            "azure" => ModelProvider::Azure,
+            "google" => ModelProvider::Google,
+            "deepseek" => ModelProvider::DeepSeek,
+            "alibaba" => ModelProvider::Alibaba,
+            "zhipu" => ModelProvider::Zhipu,
+            "moonshot" => ModelProvider::Moonshot,
+            _ => {
+                println!(
+                    "Unknown provider: {}, defaulting to OpenAI",
+                    instance.provider
+                );
+                ModelProvider::OpenAI
+            }
+        };
+        let mode = match instance.workflow_mode.to_lowercase().as_str() {
+            "batch" => WorkflowMode::Batch,
+            "chain" => WorkflowMode::Chain,
+            "plan_and_execute" => WorkflowMode::PlanAndExecute,
+            _ => WorkflowMode::ReAct,
+        };
+        let mut extra_keys = std::collections::HashMap::new();
+        if instance.provider.to_lowercase() != "openai" && !instance.api_base.is_empty() {
+            extra_keys.insert("api_base".to_string(), instance.api_base.clone());
+        }
+        if instance.provider.to_lowercase() == "custom" && !instance.api_base.is_empty() {
+            extra_keys.insert("api_base".to_string(), instance.api_base.clone());
+        }
+        let api_key_to_use = if instance.api_key.is_empty() {
+            None
+        } else {
+            Some(instance.api_key.clone())
+        };
+        let hippox = Hippox::with_workflow_mode(
+            &skills_dir,
+            model_provider,
+            api_key_to_use,
+            if extra_keys.is_empty() {
+                None
+            } else {
+                Some(extra_keys)
+            },
+            ConfigInitMethod::Env,
+            mode,
+        )
+        .await
+        .map_err(|e| {
+            println!("Initialization error: {}", e);
+            format!("{}: {}", messages.init_failed, e)
+        })?;
+        self.add_log(
+            "success".to_string(),
+            messages.init_success.clone(),
+            Some(format!("Provider: {}", instance.provider)),
+            None,
+        )
+        .await;
+        *engine_guard = Some(hippox);
+        Ok(engine_guard)
+    }
+    /// Reinitialize engine (called when config changes)
+    pub async fn reinitialize_engine(&self) -> Result<(), String> {
+        let mut engine_guard = self.hippox.lock().await;
+        *engine_guard = None;
+        drop(engine_guard);
+        // Trigger new initialization on next use
+        let _ = self.get_engine().await?;
+        Ok(())
+    }
 }
 
 #[tauri::command]
@@ -241,81 +332,9 @@ pub async fn get_hippox_language(state: State<'_, AppStateWithChat>) -> Result<S
     Ok(state.get_language().await)
 }
 
-async fn init_engine_with_default(state: &AppStateWithChat) -> Result<Hippox, String> {
-    let global_config = HIPPOX_APP_CONFIG.read().await;
-    let instance_id = global_config.default_llm_instance_id.clone();
-    let instance = global_config
-        .llm_instances
-        .get(&instance_id)
-        .ok_or_else(|| format!("Instance not found: {}", instance_id))?
-        .clone();
-    let skills_dir = global_config.workspace.skills_dir.clone();
-    let language = global_config.language.clone();
-    drop(global_config);
-    state.set_language(language).await;
-    let messages = state.get_log_messages().await;
-    let model_provider = match instance.provider.to_lowercase().as_str() {
-        "openai" => ModelProvider::OpenAI,
-        "anthropic" => ModelProvider::Anthropic,
-        "azure" => ModelProvider::Azure,
-        "google" => ModelProvider::Google,
-        "deepseek" => ModelProvider::DeepSeek,
-        "alibaba" => ModelProvider::Alibaba,
-        "zhipu" => ModelProvider::Zhipu,
-        "moonshot" => ModelProvider::Moonshot,
-        _ => {
-            println!(
-                "Unknown provider: {}, defaulting to OpenAI",
-                instance.provider
-            );
-            ModelProvider::OpenAI
-        }
-    };
-    let mode = match instance.workflow_mode.to_lowercase().as_str() {
-        "batch" => WorkflowMode::Batch,
-        "chain" => WorkflowMode::Chain,
-        "plan_and_execute" => WorkflowMode::PlanAndExecute,
-        _ => WorkflowMode::ReAct,
-    };
-    let mut extra_keys = std::collections::HashMap::new();
-    if instance.provider.to_lowercase() != "openai" && !instance.api_base.is_empty() {
-        extra_keys.insert("api_base".to_string(), instance.api_base.clone());
-    }
-    if instance.provider.to_lowercase() == "custom" && !instance.api_base.is_empty() {
-        extra_keys.insert("api_base".to_string(), instance.api_base.clone());
-    }
-    let api_key_to_use = if instance.api_key.is_empty() {
-        None
-    } else {
-        Some(instance.api_key.clone())
-    };
-    let hippox = Hippox::with_workflow_mode(
-        &skills_dir,
-        model_provider,
-        api_key_to_use,
-        if extra_keys.is_empty() {
-            None
-        } else {
-            Some(extra_keys)
-        },
-        ConfigInitMethod::Env,
-        mode,
-    )
-    .await
-    .map_err(|e| {
-        println!("Initialization error: {}", e);
-        format!("{}: {}", messages.init_failed, e)
-    })?;
-    state
-        .add_log(
-            "success".to_string(),
-            messages.init_success.clone(),
-            Some(format!("Provider: {}", instance.provider)),
-            None,
-        )
-        .await;
-
-    Ok(hippox)
+#[tauri::command]
+pub async fn reinitialize_hippox(state: State<'_, AppStateWithChat>) -> Result<(), String> {
+    state.reinitialize_engine().await
 }
 
 #[tauri::command]
@@ -369,15 +388,15 @@ async fn execute_task_async(
         task_id.clone(),
     ));
     let callback_clone = callback.clone();
-    let hippox_result = init_engine_with_default(&state).await;
-    let hippox = match hippox_result {
-        Ok(engine) => engine,
+    let mut engine_guard = match state.get_engine().await {
+        Ok(guard) => guard,
         Err(e) => {
             state.fail_task(&task_id, &e).await;
             callback.emit_failed(&e).await;
             return;
         }
     };
+    let hippox = engine_guard.as_ref().unwrap();
     let response = hippox
         .handle_natural_language(&message, Some(&session_id), Some(callback_clone))
         .await;
@@ -393,8 +412,6 @@ async fn execute_task_async(
         )
         .await;
     state.complete_task(&task_id, &response).await;
-    let mut engine_guard = state.hippox.lock().await;
-    *engine_guard = Some(hippox);
 }
 
 #[tauri::command]
@@ -414,20 +431,8 @@ pub async fn send_chat_message(
             None,
         )
         .await;
-    let hippox = match init_engine_with_default(&state).await {
-        Ok(engine) => engine,
-        Err(e) => {
-            state
-                .add_log(
-                    "error".to_string(),
-                    format!("{}: {}", messages.init_failed, e),
-                    None,
-                    None,
-                )
-                .await;
-            return Err(e);
-        }
-    };
+    let mut engine_guard = state.get_engine().await?;
+    let hippox = engine_guard.as_ref().unwrap();
     let response = hippox
         .handle_natural_language(&message, Some(&session), None)
         .await;
@@ -440,8 +445,6 @@ pub async fn send_chat_message(
             Some(duration),
         )
         .await;
-    let mut engine_guard = state.hippox.lock().await;
-    *engine_guard = Some(hippox);
     Ok(ChatResponse {
         success: true,
         message: response,
@@ -485,9 +488,9 @@ pub async fn reset_conversation(
     state: State<'_, AppStateWithChat>,
     session_id: Option<String>,
 ) -> Result<(), String> {
-    let engine = state.hippox.lock().await;
+    let engine_guard = state.hippox.lock().await;
     let messages = state.get_log_messages().await;
-    if let Some(hippox) = engine.as_ref() {
+    if let Some(hippox) = engine_guard.as_ref() {
         let session = session_id.unwrap_or_else(|| "default".to_string());
         hippox.clear_conversation(&session);
         state
@@ -512,8 +515,8 @@ pub async fn is_hippox_initialized(state: State<'_, AppStateWithChat>) -> Result
 pub async fn get_atomic_skills_list(
     state: State<'_, AppStateWithChat>,
 ) -> Result<Vec<String>, String> {
-    let engine = state.hippox.lock().await;
-    if let Some(hippox) = engine.as_ref() {
+    let engine_guard = state.hippox.lock().await;
+    if let Some(hippox) = engine_guard.as_ref() {
         Ok(hippox.get_atomic_skill_names())
     } else {
         Ok(vec![])
