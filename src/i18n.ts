@@ -157,6 +157,8 @@ export const zh = {
     close: '关闭'
   },
   history: {
+    rename: '重命名',
+    renamePrompt: '请输入新名称',
     empty: '暂无对话历史',
     confirmDelete: '确定要删除这个对话吗？',
     pin: '置顶',
@@ -499,6 +501,8 @@ export const en: typeof zh = {
     close: 'Close'
   },
   history: {
+    rename: 'Rename',
+    renamePrompt: 'Please enter a new name',
     empty: 'No chat history',
     confirmDelete: 'Are you sure you want to delete this conversation?',
     pin: 'Pin',
