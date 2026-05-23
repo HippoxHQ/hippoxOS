@@ -8,7 +8,7 @@ use tauri::{Emitter, State};
 use tokio::sync::Mutex;
 use uuid::Uuid;
 
-use crate::commands::tauri_callback::TauriWorkflowCallback;
+use crate::commands::callback::TauriWorkflowCallback;
 use crate::commands::HIPPOX_APP_CONFIG;
 
 struct LogMessages {
@@ -367,24 +367,20 @@ async fn execute_task_async(
         app_handle.clone(),
         task_id.clone(),
     ));
+    let callback_clone = callback.clone();
     let hippox_result = init_engine_with_default(&state).await;
     let hippox = match hippox_result {
         Ok(engine) => engine,
         Err(e) => {
             state.fail_task(&task_id, &e).await;
-            let _ = app_handle.emit(
-                "task_failed",
-                &json!({
-                    "task_id": task_id,
-                    "error": e
-                }),
-            );
+            callback.emit_failed(&e).await;
             return;
         }
     };
     let response = hippox
-        .handle_natural_language(&message, Some(&session_id), Some(callback))
+        .handle_natural_language(&message, Some(&session_id), Some(callback_clone))
         .await;
+    callback.emit_complete(&response).await;
     let duration = std::time::Instant::now().elapsed().as_millis() as u64;
     let messages = state.get_log_messages().await;
     state

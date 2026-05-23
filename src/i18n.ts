@@ -123,7 +123,14 @@ export const zh = {
     title: '终端日志',
     clear: '清空日志',
     empty: '暂无日志，等待执行步骤...',
-    scrollToBottom: '回到底部'
+    scrollToBottom: '回到底部',
+    welcome: {
+      title: 'Hippox AI Runtime',
+      subtitle: 'Hippox AI Runtime 终端',
+      status: '状态: 已就绪，等待任务',
+      commands: '指令: 在对话面板中发送消息开始',
+      workflow: '工作流模式: ReAct / PlanAndExecute / Batch'
+    }
   },
 
   chat: {
@@ -387,29 +394,31 @@ export const en: typeof zh = {
     workspaceConfig: 'Workspace Config',
     systemConfig: 'System Config',
   },
-
   status: {
     healthy: 'Healthy'
   },
-
   actions: {
     newSession: 'New Session',
     clearTerminal: 'Clear Terminal'
   },
-
   runtime: {
     model: 'Runtime Model',
     engine: 'Decision Engine',
     skillOrchestration: 'Skill Orchestration'
   },
-
   terminal: {
     title: 'Terminal Logs',
     clear: 'Clear logs',
     empty: 'No logs, waiting for execution steps...',
-    scrollToBottom: 'Scroll to bottom'
+    scrollToBottom: 'Scroll to bottom',
+    welcome: {
+      title: 'Hippox AI Runtime',
+      subtitle: 'Hippox AI Runtime Terminal',
+      status: 'Status: Ready for tasks',
+      commands: 'Commands: Send a message in the chat panel to start',
+      workflow: 'Workflow Mode: ReAct / PlanAndExecute / Batch'
+    }
   },
-
   chat: {
     title: 'Chat Interface',
     mainSession: 'Main Session',

@@ -2,12 +2,15 @@ use async_trait::async_trait;
 use hippox::WorkflowCallback;
 use serde_json::json;
 use std::fmt::Debug;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 use tauri::{AppHandle, Emitter};
 
 #[derive(Debug, Clone)]
 pub struct TauriWorkflowCallback {
     app_handle: AppHandle,
     task_id: String,
+    completed: Arc<AtomicBool>,
 }
 
 impl TauriWorkflowCallback {
@@ -15,6 +18,31 @@ impl TauriWorkflowCallback {
         Self {
             app_handle,
             task_id,
+            completed: Arc::new(AtomicBool::new(false)),
+        }
+    }
+
+    pub async fn emit_complete(&self, final_output: &str) {
+        if !self.completed.swap(true, Ordering::SeqCst) {
+            let _ = self.app_handle.emit(
+                "task_complete",
+                &json!({
+                    "task_id": self.task_id,
+                    "final_output": final_output
+                }),
+            );
+        }
+    }
+
+    pub async fn emit_failed(&self, error: &str) {
+        if !self.completed.swap(true, Ordering::SeqCst) {
+            let _ = self.app_handle.emit(
+                "task_failed",
+                &json!({
+                    "task_id": self.task_id,
+                    "error": error
+                }),
+            );
         }
     }
 }
@@ -60,22 +88,10 @@ impl WorkflowCallback for TauriWorkflowCallback {
     }
 
     async fn on_workflow_complete(&self, final_output: &str) {
-        let _ = self.app_handle.emit(
-            "task_complete",
-            &json!({
-                "task_id": self.task_id,
-                "final_output": final_output
-            }),
-        );
+        self.emit_complete(final_output).await;
     }
 
     async fn on_workflow_failed(&self, error: &str) {
-        let _ = self.app_handle.emit(
-            "task_failed",
-            &json!({
-                "task_id": self.task_id,
-                "error": error
-            }),
-        );
+        self.emit_failed(error).await;
     }
 }
