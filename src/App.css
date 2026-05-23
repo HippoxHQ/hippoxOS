@@ -685,6 +685,9 @@ body {
 }
 
 .clear-logs-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: transparent;
   border: none;
   cursor: pointer;

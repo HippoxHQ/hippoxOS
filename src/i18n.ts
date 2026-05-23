@@ -107,23 +107,27 @@ export const zh = {
   status: {
     healthy: '健康状况正常'
   },
-
   actions: {
     newSession: '新建会话',
     clearTerminal: '清空终端'
   },
-
   runtime: {
     model: '运行时模型',
     engine: '决策引擎',
     skillOrchestration: '自主Skill编排'
   },
-
   terminal: {
     title: '终端日志',
     clear: '清空日志',
     empty: '暂无日志，等待执行步骤...',
     scrollToBottom: '回到底部',
+    taskList: '任务列表',
+    status: {
+      completed: '已完成',
+      failed: '失败',
+      running: '执行中',
+      pending: '等待中',
+    },
     welcome: {
       title: 'Hippox AI Runtime',
       subtitle: 'Hippox AI Runtime 终端',
@@ -411,6 +415,13 @@ export const en: typeof zh = {
     clear: 'Clear logs',
     empty: 'No logs, waiting for execution steps...',
     scrollToBottom: 'Scroll to bottom',
+    taskList: 'Task List',
+    status: {
+      completed: 'Completed',
+      failed: 'Failed',
+      running: 'Running',
+      pending: 'Pending',
+    },
     welcome: {
       title: 'Hippox AI Runtime',
       subtitle: 'Hippox AI Runtime Terminal',

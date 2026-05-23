@@ -1,6 +1,7 @@
-import React, { useRef, useEffect, useState } from "react";
+import React, { useRef, useEffect, useState, useCallback } from "react";
 import { hippoxCommands } from "../api/chat";
 import { ExecutionLog, TaskInfo } from "../type";
+import { ClearIcon, TaskQueueIcon } from "../icons";
 
 interface TerminalPanelProps {
   logs: ExecutionLog[];
@@ -75,6 +76,111 @@ const styles = {
   linkHover: {
     textDecoration: "underline",
   },
+  scrollButtonsContainer: {
+    position: "absolute" as const,
+    right: "12px",
+    bottom: "12px",
+    display: "flex",
+    flexDirection: "column" as const,
+    gap: "8px",
+    zIndex: 10,
+  },
+  taskListButton: {
+    position: "absolute" as const,
+    left: "12px",
+    top: "12px",
+    width: "40px",
+    height: "40px",
+    borderRadius: "20px",
+    background: "var(--bg-tertiary, #2d2d2d)",
+    border: "1px solid var(--border-color, #444)",
+    color: "var(--text-secondary, #aaa)",
+    cursor: "pointer",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: "16px",
+    transition: "all 0.2s",
+    backdropFilter: "blur(4px)",
+    zIndex: 10,
+  },
+  scrollButton: {
+    width: "32px",
+    height: "32px",
+    borderRadius: "16px",
+    background: "var(--bg-tertiary, #2d2d2d)",
+    border: "1px solid var(--border-color, #444)",
+    color: "var(--text-secondary, #aaa)",
+    cursor: "pointer",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: "16px",
+    transition: "all 0.2s",
+    backdropFilter: "blur(4px)",
+  },
+  bubbleContainer: {
+    position: "absolute" as const,
+    left: "52px",
+    top: "12px",
+    minWidth: "300px",
+    maxWidth: "360px",
+    maxHeight: "600px",
+    background: "var(--bg-secondary, #1e1e1e)",
+    border: "1px solid var(--border-color, #333)",
+    borderRadius: "12px",
+    boxShadow: "0 8px 24px rgba(0,0,0,0.3)",
+    overflow: "hidden",
+    zIndex: 100,
+    pointerEvents: "auto" as const,
+  },
+  bubbleHeader: {
+    padding: "10px 12px",
+    borderBottom: "1px solid var(--border-color, #333)",
+    fontSize: "12px",
+    fontWeight: 600,
+    color: "var(--text-secondary, #aaa)",
+    background: "var(--bg-tertiary, #252525)",
+  },
+  bubbleContent: {
+    maxHeight: "340px",
+    overflowY: "auto" as const,
+    padding: "8px 0",
+  },
+  bubbleItem: {
+    padding: "8px 12px",
+    fontSize: "12px",
+    cursor: "pointer",
+    transition: "all 0.15s",
+    borderLeft: "2px solid transparent",
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+  },
+  bubbleItemHover: {
+    background: "var(--hover-bg, #2a2a2a)",
+    borderLeftColor: "var(--accent-color, #00aaff)",
+  },
+  bubbleItemActive: {
+    background: "var(--hover-bg, #2a2a2a)",
+    borderLeftColor: "var(--accent-color, #00aaff)",
+  },
+  bubbleItemIcon: {
+    fontSize: "14px",
+    flexShrink: 0,
+  },
+  bubbleItemText: {
+    flex: 1,
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap" as const,
+    color: "var(--text-primary, #fff)",
+  },
+  bubbleItemStatus: {
+    fontSize: "10px",
+    color: "var(--text-tertiary, #888)",
+    flexShrink: 0,
+  },
 };
 
 const TerminalPanel: React.FC<TerminalPanelProps> = ({
@@ -84,10 +190,15 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
   activeTasks = [],
 }) => {
   const terminalRef = useRef<HTMLDivElement>(null);
+  const taskRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const [autoScroll, setAutoScroll] = useState(true);
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
   const [hoveredLink, setHoveredLink] = useState<string | null>(null);
-
+  const [showScrollTop, setShowScrollTop] = useState(false);
+  const [showScrollBottom, setShowScrollBottom] = useState(false);
+  const [activeNavIndex, setActiveNavIndex] = useState<number>(-1);
+  const [showBubble, setShowBubble] = useState(false);
+  const bubbleTimerRef = useRef<NodeJS.Timeout | null>(null);
   useEffect(() => {
     const newExpanded = new Set(expandedTasks);
     activeTasks.forEach((task) => {
@@ -97,26 +208,59 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
     });
     setExpandedTasks(newExpanded);
   }, [activeTasks]);
-
   useEffect(() => {
     if (autoScroll && terminalRef.current) {
       terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
     }
   }, [activeTasks, autoScroll]);
-
+  const checkScrollPosition = useCallback(() => {
+    if (!terminalRef.current) return;
+    const { scrollTop, scrollHeight, clientHeight } = terminalRef.current;
+    setShowScrollTop(scrollTop > 100);
+    setShowScrollBottom(scrollHeight - scrollTop - clientHeight > 50);
+  }, []);
+  const updateActiveNavOnScroll = useCallback(() => {
+    if (!terminalRef.current || activeTasks.length === 0) return;
+    const containerRect = terminalRef.current.getBoundingClientRect();
+    let closestIndex = -1;
+    let minDistance = Infinity;
+    activeTasks.forEach((task, idx) => {
+      const taskElement = taskRefs.current.get(task.task_id);
+      if (taskElement) {
+        const rect = taskElement.getBoundingClientRect();
+        const distance = Math.abs(rect.top - containerRect.top);
+        if (distance < minDistance) {
+          minDistance = distance;
+          closestIndex = idx;
+        }
+      }
+    });
+    setActiveNavIndex(closestIndex);
+  }, [activeTasks]);
   const handleScroll = () => {
     if (!terminalRef.current) return;
     const { scrollTop, scrollHeight, clientHeight } = terminalRef.current;
     const isAtBottom = scrollHeight - scrollTop - clientHeight <= 10;
     setAutoScroll(isAtBottom);
+    checkScrollPosition();
+    updateActiveNavOnScroll();
   };
-
+  useEffect(() => {
+    const element = terminalRef.current;
+    if (element) {
+      element.addEventListener("scroll", handleScroll);
+      checkScrollPosition();
+      return () => element.removeEventListener("scroll", handleScroll);
+    }
+  }, [checkScrollPosition]);
+  useEffect(() => {
+    updateActiveNavOnScroll();
+  }, [activeTasks, updateActiveNavOnScroll]);
   const handleClearLogs = async () => {
     await hippoxCommands.clearLogs();
     onClearLogs();
     logToConsole("info", "Terminal logs cleared");
   };
-
   const toggleTaskExpand = (taskId: string) => {
     setExpandedTasks((prev) => {
       const newSet = new Set(prev);
@@ -127,6 +271,54 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
       }
       return newSet;
     });
+  };
+  const scrollToTop = () => {
+    if (terminalRef.current) {
+      terminalRef.current.scrollTo({ top: 0, behavior: "auto" });
+      setAutoScroll(false);
+      setTimeout(() => {
+        checkScrollPosition();
+      }, 100);
+    }
+  };
+  const scrollToBottom = () => {
+    if (terminalRef.current) {
+      terminalRef.current.scrollTo({
+        top: terminalRef.current.scrollHeight,
+        behavior: "smooth",
+      });
+      setAutoScroll(true);
+    }
+  };
+  const scrollToTask = (index: number) => {
+    const task = activeTasks[index];
+    if (task && taskRefs.current.has(task.task_id)) {
+      taskRefs.current.get(task.task_id)?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+      setAutoScroll(false);
+      setShowBubble(false);
+    }
+  };
+  const handleButtonMouseEnter = () => {
+    if (bubbleTimerRef.current) {
+      clearTimeout(bubbleTimerRef.current);
+    }
+    setShowBubble(true);
+  };
+  const handleButtonMouseLeave = () => {
+    bubbleTimerRef.current = setTimeout(() => {
+      setShowBubble(false);
+    }, 200);
+  };
+  const handleBubbleMouseEnter = () => {
+    if (bubbleTimerRef.current) {
+      clearTimeout(bubbleTimerRef.current);
+    }
+  };
+  const handleBubbleMouseLeave = () => {
+    setShowBubble(false);
   };
 
   const getTaskStatusIcon = (status: string) => {
@@ -141,6 +333,21 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
         return "⏳";
       default:
         return "📌";
+    }
+  };
+
+  const getTaskStatusText = (status: string) => {
+    switch (status) {
+      case "completed":
+        return t("terminal.status.completed") || "已完成";
+      case "failed":
+        return t("terminal.status.failed") || "失败";
+      case "running":
+        return t("terminal.status.running") || "执行中";
+      case "pending":
+        return t("terminal.status.pending") || "等待中";
+      default:
+        return status;
     }
   };
 
@@ -254,7 +461,7 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
     );
   };
 
-  const renderTaskRow = (task: TaskInfo) => {
+  const renderTaskRow = (task: TaskInfo, index: number) => {
     const isExpanded = expandedTasks.has(task.task_id);
     const successCount = task.steps.filter(
       (s) => s.status === "SUCCESS",
@@ -274,7 +481,14 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
       stepSummary = ` [${parts.join(" ")}]`;
     }
     return (
-      <div key={task.task_id} className="task-row">
+      <div
+        key={task.task_id}
+        className="task-row"
+        ref={(el) => {
+          if (el) taskRefs.current.set(task.task_id, el);
+          else taskRefs.current.delete(task.task_id);
+        }}
+      >
         <div
           className="task-row-header"
           onClick={() => toggleTaskExpand(task.task_id)}
@@ -341,8 +555,12 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
       </div>
     );
   };
+
   return (
-    <div className="terminal-panel">
+    <div
+      className="terminal-panel"
+      style={{ position: "relative", height: "100%" }}
+    >
       <div className="panel-header">
         <div className="header-title">
           <span className="title-icon">🖥️</span>
@@ -357,19 +575,126 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
           onClick={handleClearLogs}
           title={t("terminal.clear")}
         >
-          🗑️
+          <ClearIcon size={16} />
         </button>
       </div>
-
-      <div className="terminal-content-wrapper">
+      <div
+        className="terminal-content-wrapper"
+        style={{ position: "relative", height: "calc(100% - 48px)" }}
+      >
         <div
           className="terminal-content"
           ref={terminalRef}
           onScroll={handleScroll}
+          style={{
+            height: "100%",
+            overflowY: "auto",
+            paddingLeft: "55px",
+            paddingRight: "40px",
+          }}
         >
           {activeTasks.length === 0
             ? renderWelcomeMessage()
-            : activeTasks.map((task) => renderTaskRow(task))}
+            : activeTasks.map((task, idx) => renderTaskRow(task, idx))}
+        </div>
+        {activeTasks.length > 0 && (
+          <div
+            style={styles.taskListButton}
+            onMouseEnter={handleButtonMouseEnter}
+            onMouseLeave={handleButtonMouseLeave}
+          >
+            <TaskQueueIcon size={16} />
+          </div>
+        )}
+        {showBubble && activeTasks.length > 0 && (
+          <div
+            style={styles.bubbleContainer}
+            onMouseEnter={handleBubbleMouseEnter}
+            onMouseLeave={handleBubbleMouseLeave}
+          >
+            <div style={styles.bubbleHeader}>
+              {t("terminal.taskList") || "任务列表"} ({activeTasks.length})
+            </div>
+            <div style={styles.bubbleContent}>
+              {activeTasks.map((task, idx) => {
+                const isActive = activeNavIndex === idx;
+                const preview =
+                  task.user_input.length > 45
+                    ? task.user_input.substring(0, 45) + "..."
+                    : task.user_input;
+                return (
+                  <div
+                    key={task.task_id}
+                    style={{
+                      ...styles.bubbleItem,
+                      ...(isActive ? styles.bubbleItemActive : {}),
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background =
+                        "var(--hover-bg, #2a2a2a)";
+                      e.currentTarget.style.borderLeftColor =
+                        "var(--accent-color, #00aaff)";
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isActive) {
+                        e.currentTarget.style.background = "";
+                        e.currentTarget.style.borderLeftColor = "transparent";
+                      }
+                    }}
+                    onClick={() => scrollToTask(idx)}
+                  >
+                    <span style={styles.bubbleItemIcon}>
+                      {getTaskStatusIcon(task.status)}
+                    </span>
+                    <span style={styles.bubbleItemText} title={task.user_input}>
+                      {preview}
+                    </span>
+                    <span style={styles.bubbleItemStatus}>
+                      {getTaskStatusText(task.status)}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+        <div style={styles.scrollButtonsContainer}>
+          {showScrollTop && (
+            <button
+              style={styles.scrollButton}
+              onClick={scrollToTop}
+              title="滚动到顶部"
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "var(--hover-bg, #3d3d3d)";
+                e.currentTarget.style.color = "var(--text-primary, #fff)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background =
+                  "var(--bg-tertiary, #2d2d2d)";
+                e.currentTarget.style.color = "var(--text-secondary, #aaa)";
+              }}
+            >
+              ▲
+            </button>
+          )}
+          {showScrollBottom && (
+            <button
+              style={styles.scrollButton}
+              onClick={scrollToBottom}
+              title="滚动到底部"
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "var(--hover-bg, #3d3d3d)";
+                e.currentTarget.style.color = "var(--text-primary, #fff)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background =
+                  "var(--bg-tertiary, #2d2d2d)";
+                e.currentTarget.style.color = "var(--text-secondary, #aaa)";
+              }}
+            >
+              ▼
+            </button>
+          )}
         </div>
       </div>
     </div>
