@@ -521,7 +521,7 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
                 >
                   {step.status}
                 </span>
-                {step.output && (
+                {/* {step.output && (
                   <div className="step-output">
                     <span className="step-indent"> </span>
                     <span className="output-text">{step.output}</span>
@@ -532,7 +532,7 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
                     <span className="step-indent"> </span>
                     <span className="error-text">❌ {step.error}</span>
                   </div>
-                )}
+                )} */}
               </div>
             ))}
           </div>
