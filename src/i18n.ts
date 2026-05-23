@@ -117,6 +117,8 @@ export const zh = {
     skillOrchestration: '自主Skill编排'
   },
   terminal: {
+    expandAll: '展开所有任务',
+    collapseAll: '收起所有任务',
     title: '终端日志',
     clear: '清空日志',
     empty: '暂无日志，等待执行步骤...',
@@ -411,6 +413,8 @@ export const en: typeof zh = {
     skillOrchestration: 'Skill Orchestration'
   },
   terminal: {
+    expandAll: 'Expand All Tasks',
+    collapseAll: 'Collapse All Tasks',
     title: 'Terminal Logs',
     clear: 'Clear logs',
     empty: 'No logs, waiting for execution steps...',

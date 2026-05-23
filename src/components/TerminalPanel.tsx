@@ -1,7 +1,13 @@
 import React, { useRef, useEffect, useState, useCallback } from "react";
 import { hippoxCommands } from "../api/chat";
 import { ExecutionLog, TaskInfo } from "../type";
-import { ClearIcon, TaskQueueIcon } from "../icons";
+import {
+  ClearIcon,
+  CollapseIcon,
+  ExpandAllIcon,
+  ExpandArrowsIcon,
+  TaskQueueIcon,
+} from "../icons";
 
 interface TerminalPanelProps {
   logs: ExecutionLog[];
@@ -199,6 +205,16 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
   const [activeNavIndex, setActiveNavIndex] = useState<number>(-1);
   const [showBubble, setShowBubble] = useState(false);
   const bubbleTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const [allExpanded, setAllExpanded] = useState(true);
+  const toggleAllTasks = () => {
+    if (allExpanded) {
+      setExpandedTasks(new Set());
+    } else {
+      const allTaskIds = new Set(activeTasks.map((task) => task.task_id));
+      setExpandedTasks(allTaskIds);
+    }
+    setAllExpanded(!allExpanded);
+  };
   useEffect(() => {
     const newExpanded = new Set(expandedTasks);
     activeTasks.forEach((task) => {
@@ -555,7 +571,6 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
       </div>
     );
   };
-
   return (
     <div
       className="terminal-panel"
@@ -570,13 +585,32 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
               ` (${activeTasks.filter((t) => t.status === "running").length} running)`}
           </span>
         </div>
-        <button
-          className="clear-logs-btn"
-          onClick={handleClearLogs}
-          title={t("terminal.clear")}
-        >
-          <ClearIcon size={16} />
-        </button>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          {activeTasks.length > 0 && (
+            <button
+              className="clear-logs-btn"
+              onClick={toggleAllTasks}
+              title={
+                allExpanded
+                  ? t("terminal.collapseAll")
+                  : t("terminal.expandAll")
+              }
+            >
+              {allExpanded ? (
+                <ExpandArrowsIcon size={18} />
+              ) : (
+                <CollapseIcon size={18} />
+              )}
+            </button>
+          )}
+          <button
+            className="clear-logs-btn"
+            onClick={handleClearLogs}
+            title={t("terminal.clear")}
+          >
+            <ClearIcon size={16} />
+          </button>
+        </div>
       </div>
       <div
         className="terminal-content-wrapper"
