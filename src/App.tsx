@@ -7,9 +7,10 @@ import MenuPanel, { MenuPanelView } from './components/MenuPanel';
 import TopBar from './components/TopBar';
 import BottomBar from './components/BottomBar';
 import { useTranslation } from './hooks/useTranslation';
-import { Theme, Language, ExecutionLog, ChatMessage } from './type';
+import { Theme, Language, ExecutionLog, ChatMessage, TaskInfo, TaskStepInfo } from './type';
 import { SettingsSubView } from './components/MenuPanel/SettingsPanel';
 import { hippoxCommands } from './api/chat';
+import { listen } from '@tauri-apps/api/event';
 
 function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -21,7 +22,6 @@ function App() {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('hippox-theme', theme);
   }, [theme]);
-
   const [language, setLanguage] = useState<Language>(() => {
     const saved = localStorage.getItem('hippox-language') as Language;
     return saved || 'en';
@@ -39,6 +39,118 @@ function App() {
       timestamp: new Date().toLocaleTimeString()
     }
   ]);
+  const [activeTasks, setActiveTasks] = useState<Map<string, TaskInfo>>(new Map());
+  const [currentSessionTasks, setCurrentSessionTasks] = useState<TaskInfo[]>([]);
+  useEffect(() => {
+    const unlistenStep = listen('task_step_update', (event: any) => {
+      const { task_id, step_name, step_index, status, output, error } = event.payload;
+      setActiveTasks(prev => {
+        const newMap = new Map(prev);
+        const task = newMap.get(task_id);
+        if (task) {
+          const steps = [...task.steps];
+          const existingStep = steps.find(s => s.step_index === step_index);
+          if (existingStep) {
+            existingStep.status = status;
+            if (output) existingStep.output = output;
+            if (error) existingStep.error = error;
+          } else {
+            steps.push({
+              step_index,
+              step_name,
+              status,
+              output,
+              error
+            });
+          }
+          steps.sort((a, b) => a.step_index - b.step_index);
+          newMap.set(task_id, { ...task, steps, updated_at: new Date().toISOString() });
+        }
+        return newMap;
+      });
+    });
+    const unlistenComplete = listen('task_complete', (event: any) => {
+      const { task_id, final_output } = event.payload;
+      setActiveTasks(prev => {
+        const newMap = new Map(prev);
+        const task = newMap.get(task_id);
+        if (task) {
+          newMap.set(task_id, { ...task, status: 'completed', final_output, updated_at: new Date().toISOString() });
+        }
+        return newMap;
+      });
+      setChatMessages(prev => {
+        const newMessages = [...prev];
+        const pendingIndex = newMessages.findIndex(msg => msg.id === `pending_${task_id}`);
+        if (pendingIndex !== -1) {
+          newMessages[pendingIndex] = {
+            id: `response_${task_id}`,
+            role: 'assistant',
+            content: final_output,
+            timestamp: new Date().toLocaleTimeString()
+          };
+        } else {
+          newMessages.push({
+            id: `response_${task_id}`,
+            role: 'assistant',
+            content: final_output,
+            timestamp: new Date().toLocaleTimeString()
+          });
+        }
+        return newMessages;
+      });
+    });
+    const unlistenFailed = listen('task_failed', (event: any) => {
+      const { task_id, error } = event.payload;
+      setActiveTasks(prev => {
+        const newMap = new Map(prev);
+        const task = newMap.get(task_id);
+        if (task) {
+          newMap.set(task_id, { ...task, status: 'failed', final_output: error, updated_at: new Date().toISOString() });
+        }
+        return newMap;
+      });
+      setChatMessages(prev => {
+        const newMessages = [...prev];
+        const pendingIndex = newMessages.findIndex(msg => msg.id === `pending_${task_id}`);
+        if (pendingIndex !== -1) {
+          newMessages[pendingIndex] = {
+            id: `error_${task_id}`,
+            role: 'assistant',
+            content: `❌ ${error}`,
+            timestamp: new Date().toLocaleTimeString()
+          };
+        } else {
+          newMessages.push({
+            id: `error_${task_id}`,
+            role: 'assistant',
+            content: `❌ ${error}`,
+            timestamp: new Date().toLocaleTimeString()
+          });
+        }
+        return newMessages;
+      });
+    });
+    return () => {
+      unlistenStep.then(fn => fn());
+      unlistenComplete.then(fn => fn());
+      unlistenFailed.then(fn => fn());
+    };
+  }, []);
+  useEffect(() => {
+    const loadTasks = async () => {
+      try {
+        const tasks = await hippoxCommands.getSessionTasks();
+        const taskMap = new Map();
+        tasks.forEach(task => taskMap.set(task.task_id, task));
+        setActiveTasks(taskMap);
+        setCurrentSessionTasks(tasks);
+      } catch (error) {
+        console.error('load tasks error:', error);
+      }
+    };
+    loadTasks();
+  }, [language]);
   useEffect(() => {
     setChatMessages([{
       id: 'welcome',
@@ -49,7 +161,7 @@ function App() {
     loadLogs();
     const interval = setInterval(loadLogs, 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [t]);
   const loadLogs = async () => {
     try {
       const logs = await hippoxCommands.getLogs();
@@ -92,17 +204,23 @@ function App() {
     };
     setChatMessages(prev => [...prev, userMsg]);
     try {
-      const response = await hippoxCommands.sendMessage(userMessage);
-      const assistantMsg: ChatMessage = {
-        id: Date.now().toString(),
+      const taskId = await hippoxCommands.sendMessageAsync(userMessage);
+      const pendingMsg: ChatMessage = {
+        id: `pending_${taskId}`,
         role: 'assistant',
-        content: response.message,
+        content: `⏳ ${t('chat.task_submitted')} ${taskId.slice(0, 8)}...`,
         timestamp: new Date().toLocaleTimeString()
       };
-      setChatMessages(prev => [...prev, assistantMsg]);
-      await loadLogs();
+      setChatMessages(prev => [...prev, pendingMsg]);
+      setTimeout(async () => {
+        const tasks = await hippoxCommands.getSessionTasks();
+        const taskMap = new Map();
+        tasks.forEach(task => taskMap.set(task.task_id, task));
+        setActiveTasks(taskMap);
+        setCurrentSessionTasks(tasks);
+      }, 100);
     } catch (error) {
-      console.error('send chat error:', error);
+      console.error('send message error:', error);
       const errorMsg: ChatMessage = {
         id: Date.now().toString(),
         role: 'assistant',
@@ -129,6 +247,8 @@ function App() {
         content: t('session.reset'),
         timestamp: new Date().toLocaleTimeString()
       }]);
+      setActiveTasks(new Map());
+      setCurrentSessionTasks([]);
       await loadLogs();
     } catch (error) {
       console.error('reset session error:', error);
@@ -221,7 +341,14 @@ function App() {
           </>
         )}
         <ResizablePanels
-          leftPanel={<TerminalPanel logs={executionLogs} onClearLogs={clearLogs} t={t} />}
+          leftPanel={
+            <TerminalPanel
+              logs={executionLogs}
+              onClearLogs={clearLogs}
+              t={t}
+              activeTasks={currentSessionTasks}
+            />
+          }
           rightPanel={<ChatPanel messages={chatMessages} onSendMessage={handleSendMessage} t={t} />}
         />
       </div>

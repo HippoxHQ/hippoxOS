@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
-import { ChatResponse, ExecutionLog } from '../type';
+import { ChatResponse, ExecutionLog, TaskInfo } from '../type';
 
 export const hippoxCommands = {
     async setLanguage(language: string): Promise<void> {
@@ -10,11 +10,20 @@ export const hippoxCommands = {
         return await invoke('get_hippox_language');
     },
 
+    async sendMessageAsync(message: string, sessionId?: string): Promise<string> {
+        return await invoke('send_chat_message_async', { message, sessionId });
+    },
+
+    async getTaskStatus(taskId: string): Promise<TaskInfo> {
+        return await invoke('get_task_status', { taskId });
+    },
+
+    async getSessionTasks(sessionId?: string): Promise<TaskInfo[]> {
+        return await invoke('get_session_tasks', { sessionId });
+    },
+
     async sendMessage(message: string, sessionId?: string): Promise<ChatResponse> {
-        return await invoke('send_chat_message', {
-            message,
-            sessionId
-        });
+        return await invoke('send_chat_message', { message, sessionId });
     },
 
     async getLogs(): Promise<ExecutionLog[]> {

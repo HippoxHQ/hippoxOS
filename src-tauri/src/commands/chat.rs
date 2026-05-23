@@ -1,10 +1,14 @@
 use hippox::ModelProvider;
 use hippox::{ConfigInitMethod, Hippox, WorkflowMode};
 use serde::{Deserialize, Serialize};
+use serde_json::json;
+use std::collections::HashMap;
 use std::sync::Arc;
-use tauri::State;
+use tauri::{Emitter, State};
 use tokio::sync::Mutex;
+use uuid::Uuid;
 
+use crate::commands::tauri_callback::TauriWorkflowCallback;
 use crate::commands::HIPPOX_APP_CONFIG;
 
 struct LogMessages {
@@ -43,6 +47,27 @@ impl LogMessages {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TaskStepInfo {
+    pub step_index: usize,
+    pub step_name: String,
+    pub status: String,
+    pub output: Option<String>,
+    pub error: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TaskInfo {
+    pub task_id: String,
+    pub session_id: String,
+    pub user_input: String,
+    pub status: String,
+    pub steps: Vec<TaskStepInfo>,
+    pub final_output: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ChatResponse {
     pub success: bool,
     pub message: String,
@@ -65,6 +90,7 @@ pub struct AppStateWithChat {
     pub hippox: Arc<Mutex<Option<Hippox>>>,
     pub logs: Arc<Mutex<Vec<ExecutionLog>>>,
     pub language: Arc<Mutex<String>>,
+    pub tasks: Arc<Mutex<HashMap<String, TaskInfo>>>,
 }
 
 impl AppStateWithChat {
@@ -73,6 +99,7 @@ impl AppStateWithChat {
             hippox: Arc::new(Mutex::new(None)),
             logs: Arc::new(Mutex::new(Vec::new())),
             language: Arc::new(Mutex::new("en".to_string())),
+            tasks: Arc::new(Mutex::new(HashMap::new())),
         }
     }
 
@@ -94,7 +121,7 @@ impl AppStateWithChat {
     ) {
         let mut logs = self.logs.lock().await;
         logs.push(ExecutionLog {
-            id: uuid::Uuid::new_v4().to_string(),
+            id: Uuid::new_v4().to_string(),
             timestamp: chrono::Local::now().format("%H:%M:%S").to_string(),
             level,
             message,
@@ -119,6 +146,84 @@ impl AppStateWithChat {
         let lang = self.get_language().await;
         LogMessages::get(&lang)
     }
+
+    pub async fn create_task(&self, task_id: String, session_id: String, user_input: String) {
+        let now = chrono::Local::now().to_rfc3339();
+        let task = TaskInfo {
+            task_id: task_id.clone(),
+            session_id,
+            user_input,
+            status: "pending".to_string(),
+            steps: vec![],
+            final_output: None,
+            created_at: now.clone(),
+            updated_at: now,
+        };
+        let mut tasks = self.tasks.lock().await;
+        tasks.insert(task_id, task);
+    }
+
+    pub async fn update_task_status(&self, task_id: &str, status: &str) {
+        let mut tasks = self.tasks.lock().await;
+        if let Some(task) = tasks.get_mut(task_id) {
+            task.status = status.to_string();
+            task.updated_at = chrono::Local::now().to_rfc3339();
+        }
+    }
+
+    pub async fn add_task_step(
+        &self,
+        task_id: &str,
+        step_index: usize,
+        step_name: &str,
+        status: &str,
+        output: Option<String>,
+        error: Option<String>,
+    ) {
+        let mut tasks = self.tasks.lock().await;
+        if let Some(task) = tasks.get_mut(task_id) {
+            task.steps.push(TaskStepInfo {
+                step_index,
+                step_name: step_name.to_string(),
+                status: status.to_string(),
+                output,
+                error,
+            });
+            task.updated_at = chrono::Local::now().to_rfc3339();
+        }
+    }
+
+    pub async fn complete_task(&self, task_id: &str, final_output: &str) {
+        let mut tasks = self.tasks.lock().await;
+        if let Some(task) = tasks.get_mut(task_id) {
+            task.status = "completed".to_string();
+            task.final_output = Some(final_output.to_string());
+            task.updated_at = chrono::Local::now().to_rfc3339();
+        }
+    }
+
+    pub async fn fail_task(&self, task_id: &str, error: &str) {
+        let mut tasks = self.tasks.lock().await;
+        if let Some(task) = tasks.get_mut(task_id) {
+            task.status = "failed".to_string();
+            task.final_output = Some(error.to_string());
+            task.updated_at = chrono::Local::now().to_rfc3339();
+        }
+    }
+
+    pub async fn get_task(&self, task_id: &str) -> Option<TaskInfo> {
+        let tasks = self.tasks.lock().await;
+        tasks.get(task_id).cloned()
+    }
+
+    pub async fn get_session_tasks(&self, session_id: &str) -> Vec<TaskInfo> {
+        let tasks = self.tasks.lock().await;
+        tasks
+            .values()
+            .filter(|t| t.session_id == session_id)
+            .cloned()
+            .collect()
+    }
 }
 
 #[tauri::command]
@@ -135,7 +240,7 @@ pub async fn get_hippox_language(state: State<'_, AppStateWithChat>) -> Result<S
     Ok(state.get_language().await)
 }
 
-async fn init_engine_with_default(state: &AppStateWithChat) -> Result<(), String> {
+async fn init_engine_with_default(state: &AppStateWithChat) -> Result<Hippox, String> {
     let global_config = HIPPOX_APP_CONFIG.read().await;
     let instance_id = global_config.default_llm_instance_id.clone();
     let instance = global_config
@@ -200,8 +305,6 @@ async fn init_engine_with_default(state: &AppStateWithChat) -> Result<(), String
         println!("Initialization error: {}", e);
         format!("{}: {}", messages.init_failed, e)
     })?;
-    let mut engine = state.hippox.lock().await;
-    *engine = Some(hippox);
     state
         .add_log(
             "success".to_string(),
@@ -211,7 +314,90 @@ async fn init_engine_with_default(state: &AppStateWithChat) -> Result<(), String
         )
         .await;
 
-    Ok(())
+    Ok(hippox)
+}
+
+#[tauri::command]
+pub async fn send_chat_message_async(
+    state: State<'_, AppStateWithChat>,
+    app_handle: tauri::AppHandle,
+    message: String,
+    session_id: Option<String>,
+) -> Result<String, String> {
+    let task_id = Uuid::new_v4().to_string();
+    let session = session_id.clone().unwrap_or_else(|| "default".to_string());
+    state
+        .create_task(task_id.clone(), session.clone(), message.clone())
+        .await;
+    state.update_task_status(&task_id, "pending").await;
+    let messages = state.get_log_messages().await;
+    state
+        .add_log(
+            "process".to_string(),
+            messages.send_start.replace("{}", &message),
+            Some(format!("task_id: {}", task_id)),
+            None,
+        )
+        .await;
+    let state_clone = state.inner().clone();
+    let app_handle_clone = app_handle.clone();
+    let task_id_clone = task_id.clone();
+    tokio::spawn(async move {
+        execute_task_async(
+            state_clone,
+            app_handle_clone,
+            task_id_clone,
+            message,
+            session,
+        )
+        .await;
+    });
+    Ok(task_id)
+}
+
+async fn execute_task_async(
+    state: AppStateWithChat,
+    app_handle: tauri::AppHandle,
+    task_id: String,
+    message: String,
+    session_id: String,
+) {
+    state.update_task_status(&task_id, "running").await;
+    let callback = Arc::new(TauriWorkflowCallback::new(
+        app_handle.clone(),
+        task_id.clone(),
+    ));
+    let hippox_result = init_engine_with_default(&state).await;
+    let hippox = match hippox_result {
+        Ok(engine) => engine,
+        Err(e) => {
+            state.fail_task(&task_id, &e).await;
+            let _ = app_handle.emit(
+                "task_failed",
+                &json!({
+                    "task_id": task_id,
+                    "error": e
+                }),
+            );
+            return;
+        }
+    };
+    let response = hippox
+        .handle_natural_language(&message, Some(&session_id), Some(callback))
+        .await;
+    let duration = std::time::Instant::now().elapsed().as_millis() as u64;
+    let messages = state.get_log_messages().await;
+    state
+        .add_log(
+            "success".to_string(),
+            messages.send_response.replace("{}", &duration.to_string()),
+            Some(response.clone()),
+            Some(duration),
+        )
+        .await;
+    state.complete_task(&task_id, &response).await;
+    let mut engine_guard = state.hippox.lock().await;
+    *engine_guard = Some(hippox);
 }
 
 #[tauri::command]
@@ -226,28 +412,27 @@ pub async fn send_chat_message(
     state
         .add_log(
             "process".to_string(),
-            messages.init_start.clone(),
-            Some(format!("message: {}", message)),
+            messages.send_start.replace("{}", &message),
+            None,
             None,
         )
         .await;
-    if let Err(e) = init_engine_with_default(&state).await {
-        state
-            .add_log(
-                "error".to_string(),
-                format!("{}: {}", messages.init_failed, e),
-                None,
-                None,
-            )
-            .await;
-        return Err(e);
-    }
-    let engine = state.hippox.lock().await;
-    let hippox = engine
-        .as_ref()
-        .ok_or_else(|| messages.engine_not_initialized.clone())?;
+    let hippox = match init_engine_with_default(&state).await {
+        Ok(engine) => engine,
+        Err(e) => {
+            state
+                .add_log(
+                    "error".to_string(),
+                    format!("{}: {}", messages.init_failed, e),
+                    None,
+                    None,
+                )
+                .await;
+            return Err(e);
+        }
+    };
     let response = hippox
-        .handle_natural_language(&message, Some(&session))
+        .handle_natural_language(&message, Some(&session), None)
         .await;
     let duration = start_time.elapsed().as_millis() as u64;
     state
@@ -258,12 +443,31 @@ pub async fn send_chat_message(
             Some(duration),
         )
         .await;
+    let mut engine_guard = state.hippox.lock().await;
+    *engine_guard = Some(hippox);
     Ok(ChatResponse {
         success: true,
         message: response,
         session_id: session,
         error: None,
     })
+}
+
+#[tauri::command]
+pub async fn get_task_status(
+    state: State<'_, AppStateWithChat>,
+    task_id: String,
+) -> Result<Option<TaskInfo>, String> {
+    Ok(state.get_task(&task_id).await)
+}
+
+#[tauri::command]
+pub async fn get_session_tasks(
+    state: State<'_, AppStateWithChat>,
+    session_id: Option<String>,
+) -> Result<Vec<TaskInfo>, String> {
+    let session = session_id.unwrap_or_else(|| "default".to_string());
+    Ok(state.get_session_tasks(&session).await)
 }
 
 #[tauri::command]
