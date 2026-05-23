@@ -7,7 +7,6 @@ export const zh = {
   session: {
     reset: '会话已重置。Hippox 运行时重新就绪，自主决策引擎已刷新。'
   },
-
   atomicSkills: {
     loading: '加载原子能力列表中...',
     stats: '共 {{total}} 个原子能力，已启用 {{enabled}} 个',
@@ -15,7 +14,6 @@ export const zh = {
     enableAll: '全部启用',
     disableAll: '全部禁用'
   },
-
   logs: {
     skillsLoaded: '已加载 3 个技能模块',
     listening: '监听用户指令中...',
@@ -49,7 +47,6 @@ export const zh = {
     sendFailed: '❌ 消息发送失败',
     resetFailed: '❌ 重置会话失败'
   },
-
   skills: {
     search: '🔍 已调用「WebSearch Skill」技能。正在模拟网络搜索: "{{query}}"\n\n（当前为演示模式，实际将连接搜索引擎返回实时结果）',
     file: '📁 已调用「FileProcessor Skill」技能。可读取、分析本地文件，目前为沙盒演示。\n\n你可以通过 Tauri 原生对话框选择文件。',
@@ -72,7 +69,6 @@ export const zh = {
       general: '通用'
     }
   },
-
   menu: {
     dashboard: '概览',
     workspace: '工作区',
@@ -103,7 +99,6 @@ export const zh = {
     workspaceConfig: '工作空间配置',
     systemConfig: '系统设置',
   },
-
   status: {
     healthy: '健康状况正常'
   },
@@ -138,7 +133,6 @@ export const zh = {
       workflow: '工作流模式: ReAct / PlanAndExecute / Batch'
     }
   },
-
   chat: {
     title: '对话界面',
     mainSession: 'Main Session',
@@ -149,23 +143,19 @@ export const zh = {
     notInitialized: 'Hippox 引擎未初始化，请先在设置中配置 API Key。',
     sendFailed: '发送失败，请检查网络或 API Key 配置。'
   },
-
   tooltip: {
     theme: '切换主题',
     language: '切换语言'
   },
-
   topbar: {
     collapseSidebar: '折叠侧边栏',
     expandSidebar: '展开侧边栏',
     toggleTheme: '切换主题',
     toggleLanguage: '切换语言'
   },
-
   common: {
     close: '关闭'
   },
-
   history: {
     dataAnalysis: '数据分析对话',
     codeDebug: '代码调试会话',
@@ -176,28 +166,24 @@ export const zh = {
     duration: '耗时 {{time}}',
     failed: '连接失败'
   },
-
   favorites: {
     dataAnalysisTemplate: '数据分析模板',
     codeReviewFlow: '代码审查流程',
     deployChecklist: '部署检查清单',
     dbBackupScript: '数据库备份脚本'
   },
-
   knowledge: {
     soulDesc: '核心人格定义文件',
     skillDesc: '技能定义规范',
     apiTitle: 'API 参考文档',
     apiDesc: '开发者接口文档'
   },
-
   market: {
     emailDesc: '发送邮件通知',
     visualizerDesc: '生成数据图表',
     codeDesc: '代码审查和优化',
     install: '安装'
   },
-
   task: {
     analyzeData: '分析 data.csv',
     weeklyReport: '生成周报',
@@ -205,16 +191,30 @@ export const zh = {
     waiting: '等待中',
     completed: '已完成'
   },
-
   scheduled: {
     dailyBackup: '每天 09:00 - 数据备份',
     weeklyReport: '每周一 10:00 - 周报生成',
     monthlyCleanup: '每月1日 00:00 - 日志清理',
     edit: '编辑',
-    addTask: '添加定时任务'
+    addTask: '添加定时任务',
+    enabled: '启用',
+    disabled: '禁用',
+    cron: 'Cron 表达式',
+    action: '执行动作',
+    enable: '启用',
+    disable: '禁用',
+    delete: '删除',
+    editTask: '编辑任务',
+    taskName: '任务名称',
+    taskNamePlaceholder: '例如：每日备份',
+    selectAction: '选择动作',
+    actionBackup: '备份',
+    actionReport: '生成报告',
+    actionCleanup: '清理',
+    actionSync: '同步',
   },
-
   settings: {
+    update: '更新',
     selectModel: '选择模型',
     selectModelPlaceholder: '请选择模型...',
     defaultBadge: '默认',
@@ -277,14 +277,12 @@ export const zh = {
     enabled: '已启用',
     disabled: '未启用'
   },
-
   monitor: {
     cpuUsage: 'CPU 使用率',
     memoryUsage: '内存使用',
     apiCalls: 'API 调用',
     skillExecutions: '技能执行'
   },
-
   debug: {
     viewRawLogs: '查看原始日志',
     skillTrace: '技能调用链追踪',
@@ -304,7 +302,6 @@ export const en: typeof zh = {
   session: {
     reset: 'Session reset. Hippox runtime ready, decision engine refreshed.'
   },
-
   atomicSkills: {
     loading: 'Loading atomic skills...',
     stats: '{{total}} atomic skills total, {{enabled}} enabled',
@@ -312,7 +309,6 @@ export const en: typeof zh = {
     enableAll: 'Enable All',
     disableAll: 'Disable All'
   },
-
   logs: {
     skillsLoaded: 'Loaded 3 skills',
     listening: 'Listening for user commands...',
@@ -346,7 +342,6 @@ export const en: typeof zh = {
     sendFailed: '❌ Message send failed',
     resetFailed: '❌ Session reset failed'
   },
-
   skills: {
     search: '🔍 Called "WebSearch Skill". Simulating web search: "{{query}}"\n\n(Demo mode, actual implementation would connect to search engine)',
     file: '📁 Called "FileProcessor Skill". Can read and analyze local files, currently in sandbox demo.\n\nYou can select files via Tauri native dialog.',
@@ -369,7 +364,6 @@ export const en: typeof zh = {
       general: 'General'
     }
   },
-
   menu: {
     dashboard: 'Dashboard',
     workspace: 'Workspace',
@@ -444,23 +438,19 @@ export const en: typeof zh = {
     notInitialized: 'Hippox engine not initialized, please configure API Key in settings first.',
     sendFailed: 'Send failed, please check network or API Key configuration.'
   },
-
   tooltip: {
     theme: 'Toggle theme',
     language: 'Toggle language'
   },
-
   topbar: {
     collapseSidebar: 'Collapse Sidebar',
     expandSidebar: 'Expand Sidebar',
     toggleTheme: 'Toggle Theme',
     toggleLanguage: 'Toggle Language'
   },
-
   common: {
     close: 'Close'
   },
-
   history: {
     dataAnalysis: 'Data Analysis Chat',
     codeDebug: 'Code Debug Session',
@@ -471,28 +461,24 @@ export const en: typeof zh = {
     duration: 'Duration {{time}}',
     failed: 'Connection failed'
   },
-
   favorites: {
     dataAnalysisTemplate: 'Data Analysis Template',
     codeReviewFlow: 'Code Review Flow',
     deployChecklist: 'Deploy Checklist',
     dbBackupScript: 'Database Backup Script'
   },
-
   knowledge: {
     soulDesc: 'Core personality definition file',
     skillDesc: 'Skill definition specification',
     apiTitle: 'API Reference',
     apiDesc: 'Developer API documentation'
   },
-
   market: {
     emailDesc: 'Send email notifications',
     visualizerDesc: 'Generate data charts',
     codeDesc: 'Code review and optimization',
     install: 'Install'
   },
-
   task: {
     analyzeData: 'Analyze data.csv',
     weeklyReport: 'Generate weekly report',
@@ -500,16 +486,30 @@ export const en: typeof zh = {
     waiting: 'Waiting',
     completed: 'Completed'
   },
-
   scheduled: {
     dailyBackup: 'Daily 09:00 - Data backup',
     weeklyReport: 'Weekly Monday 10:00 - Weekly report',
     monthlyCleanup: 'Monthly 1st 00:00 - Log cleanup',
     edit: 'Edit',
-    addTask: 'Add scheduled task'
+    addTask: 'Add scheduled task',
+    enabled: 'Enabled',
+    disabled: 'Disabled',
+    cron: 'Cron Expression',
+    action: 'Action',
+    enable: 'Enable',
+    disable: 'Disable',
+    delete: 'Delete',
+    editTask: 'Edit Task',
+    taskName: 'Task Name',
+    taskNamePlaceholder: 'e.g.: Daily Backup',
+    selectAction: 'Select Action',
+    actionBackup: 'Backup',
+    actionReport: 'Generate Report',
+    actionCleanup: 'Cleanup',
+    actionSync: 'Sync',
   },
-
   settings: {
+    update: 'Update',
     selectModel: 'Select Model',
     selectModelPlaceholder: 'Please select a model...',
     defaultBadge: 'Default',
@@ -563,7 +563,6 @@ export const en: typeof zh = {
       notification: 'Notification'
     }
   },
-
   plugins: {
     integration: 'Integration',
     support: 'Support',
@@ -573,14 +572,12 @@ export const en: typeof zh = {
     enabled: 'Enabled',
     disabled: 'Disabled'
   },
-
   monitor: {
     cpuUsage: 'CPU Usage',
     memoryUsage: 'Memory Usage',
     apiCalls: 'API Calls',
     skillExecutions: 'Skill Executions'
   },
-
   debug: {
     viewRawLogs: 'View Raw Logs',
     skillTrace: 'Skill Call Chain Trace',

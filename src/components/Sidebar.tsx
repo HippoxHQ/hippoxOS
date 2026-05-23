@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { iconMap, ChevronIcon, NewSessionIcon } from '../icons';
+import React, { useState } from "react";
+import { iconMap, ChevronIcon, NewSessionIcon } from "../icons";
 
 interface SidebarProps {
   collapsed: boolean;
@@ -328,10 +328,10 @@ const sidebarStyles = `
   }
 `;
 
-if (typeof document !== 'undefined') {
-  const styleId = 'sidebar-styles';
+if (typeof document !== "undefined") {
+  const styleId = "sidebar-styles";
   if (!document.getElementById(styleId)) {
-    const style = document.createElement('style');
+    const style = document.createElement("style");
     style.id = styleId;
     style.textContent = sidebarStyles;
     document.head.appendChild(style);
@@ -339,39 +339,47 @@ if (typeof document !== 'undefined') {
 }
 
 const menuConfig: MenuItem[] = [
-  { id: 'history', icon: 'history', label: 'menu.history' },
-  { id: 'favorites', icon: 'favorites', label: 'menu.favorites' },
+  { id: "history", icon: "history", label: "menu.history" },
+  { id: "favorites", icon: "favorites", label: "menu.favorites" },
   {
-    id: 'skills_group',
-    icon: 'skills',
-    label: 'menu.skillsGroup',
+    id: "skills_group",
+    icon: "skills",
+    label: "menu.skillsGroup",
     children: [
-      { id: 'skills', icon: 'skills', label: 'menu.skills' },
-      { id: 'knowledge', icon: 'knowledge', label: 'menu.knowledge' },
-      { id: 'skillMarket', icon: 'skillMarket', label: 'menu.skillMarket' },
-    ]
+      { id: "skills", icon: "skills", label: "menu.skills" },
+      { id: "knowledge", icon: "knowledge", label: "menu.knowledge" },
+      { id: "skillMarket", icon: "skillMarket", label: "menu.skillMarket" },
+    ],
   },
   {
-    id: 'tasks_group',
-    icon: 'tasks',
-    label: 'menu.tasksGroup',
+    id: "tasks_group",
+    icon: "tasks",
+    label: "menu.tasksGroup",
     children: [
-      { id: 'taskQueue', icon: 'taskQueue', label: 'menu.taskQueue' },
-      { id: 'scheduledTasks', icon: 'scheduledTasks', label: 'menu.scheduledTasks' },
-      { id: 'executionHistory', icon: 'executionHistory', label: 'menu.executionHistory' },
-    ]
+      {
+        id: "scheduledTasks",
+        icon: "scheduledTasks",
+        label: "menu.scheduledTasks",
+      },
+      {
+        id: "executionHistory",
+        icon: "executionHistory",
+        label: "menu.executionHistory",
+      },
+      { id: "taskQueue", icon: "taskQueue", label: "menu.taskQueue" },
+    ],
   },
   {
-    id: 'settings_group',
-    icon: 'settings',
-    label: 'menu.settings',
+    id: "settings_group",
+    icon: "settings",
+    label: "menu.settings",
     children: [
-      { id: 'llmModel', icon: 'settings', label: 'menu.llmModelConfig' },
-      { id: 'engine', icon: 'settings', label: 'menu.engineConfig' },
-      { id: 'workspace', icon: 'settings', label: 'menu.workspaceConfig' },
-      { id: 'atomicSkills', icon: 'skills', label: 'menu.atomicSkills' },
-      { id: 'system', icon: 'settings', label: 'menu.systemConfig' },
-    ]
+      { id: "llmModel", icon: "settings", label: "menu.llmModelConfig" },
+      { id: "engine", icon: "settings", label: "menu.engineConfig" },
+      { id: "workspace", icon: "settings", label: "menu.workspaceConfig" },
+      { id: "atomicSkills", icon: "skills", label: "menu.atomicSkills" },
+      { id: "system", icon: "settings", label: "menu.systemConfig" },
+    ],
   },
 ];
 
@@ -395,7 +403,7 @@ const MenuItemComponent: React.FC<MenuItemComponentProps> = ({
   activeId,
   activeSubId,
   onMenuClick,
-  t
+  t,
 }) => {
   const [isOpen, setIsOpen] = useState(true);
   const hasChildren = item.children && item.children.length > 0;
@@ -412,21 +420,29 @@ const MenuItemComponent: React.FC<MenuItemComponentProps> = ({
   if (collapsed) {
     if (hasChildren) {
       return (
-        <div className="nav-item-parent" onClick={handleClick} title={t(item.label)}>
+        <div
+          className="nav-item-parent"
+          onClick={handleClick}
+          title={t(item.label)}
+        >
           <div className="nav-item-content">
-            <span className="nav-icon">{IconComponent && <IconComponent />}</span>
+            <span className="nav-icon">
+              {IconComponent && <IconComponent />}
+            </span>
           </div>
         </div>
       );
     }
     return (
       <div
-        className={`nav-item ${activeId === item.id ? 'active' : ''}`}
+        className={`nav-item ${activeId === item.id ? "active" : ""}`}
         onClick={handleClick}
         title={t(item.label)}
       >
         <span className="nav-icon">{IconComponent && <IconComponent />}</span>
-        {item.badge && <span className="nav-badge-collapsed">{item.badge}</span>}
+        {item.badge && (
+          <span className="nav-badge-collapsed">{item.badge}</span>
+        )}
       </div>
     );
   }
@@ -440,28 +456,32 @@ const MenuItemComponent: React.FC<MenuItemComponentProps> = ({
           {item.badge && <span className="nav-badge">{item.badge}</span>}
         </div>
         {hasChildren && (
-          <ChevronIcon className={`chevron ${isOpen ? 'open' : ''}`} />
+          <ChevronIcon className={`chevron ${isOpen ? "open" : ""}`} />
         )}
       </div>
       {hasChildren && isOpen && (
         <div className="sub-menu">
-          {item.children!.map(child => {
+          {item.children!.map((child) => {
             const ChildIcon = iconMap[child.icon];
             return (
               <div
                 key={child.id}
-                className={`sub-nav-item ${activeSubId === child.id ? 'active' : ''}`}
+                className={`sub-nav-item ${activeSubId === child.id ? "active" : ""}`}
                 onClick={() => {
-                  if (item.id === 'settings_group') {
-                    onMenuClick('settings', child.id);
+                  if (item.id === "settings_group") {
+                    onMenuClick("settings", child.id);
                   } else {
                     onMenuClick(child.id);
                   }
                 }}
               >
-                <span className="sub-nav-icon">{ChildIcon && <ChildIcon size={16} />}</span>
+                <span className="sub-nav-icon">
+                  {ChildIcon && <ChildIcon size={16} />}
+                </span>
                 <span className="sub-nav-label">{t(child.label)}</span>
-                {child.badge && <span className="sub-nav-badge">{child.badge}</span>}
+                {child.badge && (
+                  <span className="sub-nav-badge">{child.badge}</span>
+                )}
               </div>
             );
           })}
@@ -471,15 +491,21 @@ const MenuItemComponent: React.FC<MenuItemComponentProps> = ({
   );
 };
 
-const Sidebar: React.FC<SidebarProps> = ({ collapsed, onResetSession, onClearLogs, onMenuClick, t }) => {
-  const [activeId, setActiveId] = useState('history');
+const Sidebar: React.FC<SidebarProps> = ({
+  collapsed,
+  onResetSession,
+  onClearLogs,
+  onMenuClick,
+  t,
+}) => {
+  const [activeId, setActiveId] = useState("history");
   const [activeSubId, setActiveSubId] = useState<string>();
   const handleMenuClick = (id: string, subId?: string) => {
-    if (id === 'settings' && subId) {
-      setActiveId('settings_group');
+    if (id === "settings" && subId) {
+      setActiveId("settings_group");
       setActiveSubId(subId);
       if (onMenuClick) {
-        onMenuClick('settings', subId);
+        onMenuClick("settings", subId);
       }
     } else {
       setActiveId(id);
@@ -493,23 +519,28 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onResetSession, onClearLog
     return (
       <aside className="sidebar collapsed">
         <div className="sidebar-header">
-          <button className="header-action-btn" onClick={onResetSession} title={t('actions.newSession')}>
+          <button
+            className="header-action-btn"
+            onClick={onResetSession}
+            title={t("actions.newSession")}
+          >
             <NewSessionIcon size={14} />
-            <span className="action-label">{t('actions.newSession')}</span>
+            <span className="action-label">{t("actions.newSession")}</span>
           </button>
         </div>
         <nav className="sidebar-nav-collapsed">
-          {menuConfig.map(item => {
+          {menuConfig.map((item) => {
             const IconComponent = iconMap[item.icon];
-            const isActive = item.id === 'settings_group'
-              ? activeSubId !== undefined
-              : activeId === item.id;
+            const isActive =
+              item.id === "settings_group"
+                ? activeSubId !== undefined
+                : activeId === item.id;
             return (
               <div
                 key={item.id}
-                className={`nav-item-collapsed ${isActive ? 'active' : ''}`}
+                className={`nav-item-collapsed ${isActive ? "active" : ""}`}
                 onClick={() => {
-                  if (item.id === 'settings_group' && item.children?.length) {
+                  if (item.id === "settings_group" && item.children?.length) {
                     handleMenuClick(item.id, item.children[0].id);
                   } else {
                     handleMenuClick(item.id);
@@ -517,8 +548,12 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onResetSession, onClearLog
                 }}
                 title={t(item.label)}
               >
-                <span className="nav-icon">{IconComponent && <IconComponent />}</span>
-                {item.badge && <span className="nav-badge-collapsed">{item.badge}</span>}
+                <span className="nav-icon">
+                  {IconComponent && <IconComponent />}
+                </span>
+                {item.badge && (
+                  <span className="nav-badge-collapsed">{item.badge}</span>
+                )}
               </div>
             );
           })}
@@ -530,13 +565,17 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onResetSession, onClearLog
   return (
     <aside className="sidebar">
       <div className="sidebar-header">
-        <button className="header-action-btn" onClick={onResetSession} title={t('actions.newSession')}>
+        <button
+          className="header-action-btn"
+          onClick={onResetSession}
+          title={t("actions.newSession")}
+        >
           <NewSessionIcon size={14} />
-          <span className="action-label">{t('actions.newSession')}</span>
+          <span className="action-label">{t("actions.newSession")}</span>
         </button>
       </div>
       <nav className="sidebar-nav">
-        {menuConfig.map(item => (
+        {menuConfig.map((item) => (
           <MenuItemComponent
             key={item.id}
             item={item}
