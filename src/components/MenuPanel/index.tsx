@@ -1,27 +1,27 @@
-import React from 'react';
-import ExecutionHistoryPanel from './ExecutionHistoryPanel';
-import KnowledgePanel from './KnowledgePanel';
-import ScheduledTasksPanel from './ScheduledTasksPanel';
-import SettingsPanel, { SettingsSubView } from './SettingsPanel';
-import SkillMarketPanel from './SkillMarketPanel';
-import TaskQueuePanel from './TaskQueuePanel';
-import FavoritesPanel from './FavoritesPanel';
-import HistoryPanel from './HistoryPanel';
-import SkillsPanel from './SkillsPanel';
-import AtomicSkillsPanel from './AtomicSkillsPanel';
+import React from "react";
+import ExecutionHistoryPanel from "./ExecutionHistoryPanel";
+import KnowledgePanel from "./KnowledgePanel";
+import ScheduledTasksPanel from "./ScheduledTasksPanel";
+import SettingsPanel, { SettingsSubView } from "./SettingsPanel";
+import SkillMarketPanel from "./SkillMarketPanel";
+import TaskQueuePanel from "./TaskQueuePanel";
+import FavoritesPanel from "./FavoritesPanel";
+import HistoryPanel from "./HistoryPanel";
+import SkillsPanel from "./SkillsPanel";
+import AtomicSkillsPanel from "./AtomicSkillsPanel";
 
 export type MenuPanelView =
-  | 'terminal'
-  | 'history'
-  | 'favorites'
-  | 'skills'
-  | 'knowledge'
-  | 'skillMarket'
-  | 'taskQueue'
-  | 'scheduledTasks'
-  | 'executionHistory'
-  | 'atomicSkills'
-  | 'settings';
+  | "terminal"
+  | "history"
+  | "favorites"
+  | "skills"
+  | "knowledge"
+  | "skillMarket"
+  | "taskQueue"
+  | "scheduledTasks"
+  | "executionHistory"
+  | "atomicSkills"
+  | "settings";
 
 interface MenuPanelProps {
   currentView: MenuPanelView;
@@ -29,25 +29,28 @@ interface MenuPanelProps {
   onClose: () => void;
   onSaveConfig?: (config: any) => void;
   t: (key: string, params?: any) => string;
-  theme?: 'light' | 'dark';
-  language?: 'zh' | 'en';
-  onThemeChange?: (theme: 'light' | 'dark') => void;
-  onLanguageChange?: (language: 'zh' | 'en') => void;
+  theme?: "light" | "dark";
+  language?: "zh" | "en";
+  onThemeChange?: (theme: "light" | "dark") => void;
+  onLanguageChange?: (language: "zh" | "en") => void;
   isInitializing?: boolean;
+  onSessionSelect?: (sessionId: string) => void;
+  currentSessionId?: string;
+  onSwitchSession?: (sessionId: string) => void;
 }
 
 const viewTitles: Record<MenuPanelView, string> = {
-  terminal: 'terminal.title',
-  history: 'menu.history',
-  favorites: 'menu.favorites',
-  skills: 'menu.skills',
-  atomicSkills: 'menu.atomicSkills',
-  knowledge: 'menu.knowledge',
-  skillMarket: 'menu.skillMarket',
-  taskQueue: 'menu.taskQueue',
-  scheduledTasks: 'menu.scheduledTasks',
-  executionHistory: 'menu.executionHistory',
-  settings: 'menu.settings',
+  terminal: "terminal.title",
+  history: "menu.history",
+  favorites: "menu.favorites",
+  skills: "menu.skills",
+  atomicSkills: "menu.atomicSkills",
+  knowledge: "menu.knowledge",
+  skillMarket: "menu.skillMarket",
+  taskQueue: "menu.taskQueue",
+  scheduledTasks: "menu.scheduledTasks",
+  executionHistory: "menu.executionHistory",
+  settings: "menu.settings",
 };
 
 const menuPanelStyles = `
@@ -364,11 +367,10 @@ const menuPanelStyles = `
   }
 `;
 
-
-if (typeof document !== 'undefined') {
-  const styleId = 'menu-panel-styles';
+if (typeof document !== "undefined") {
+  const styleId = "menu-panel-styles";
   if (!document.getElementById(styleId)) {
-    const style = document.createElement('style');
+    const style = document.createElement("style");
     style.id = styleId;
     style.textContent = menuPanelStyles;
     document.head.appendChild(style);
@@ -386,63 +388,74 @@ const MenuPanel: React.FC<MenuPanelProps> = ({
   onThemeChange,
   onLanguageChange,
   isInitializing = false,
+  onSessionSelect,
+  currentSessionId,
+  onSwitchSession,
 }) => {
   const renderContent = () => {
     switch (currentView) {
-      case 'history':
-        return <HistoryPanel t={t} />;
-      case 'favorites':
+      case "history":
+        return (
+          <HistoryPanel
+            t={t}
+            onSessionSelect={onSwitchSession}
+            currentSessionId={currentSessionId}
+          />
+        );
+      case "favorites":
         return <FavoritesPanel t={t} />;
-      case 'skills':
+      case "skills":
         return <SkillsPanel t={t} />;
-      case 'knowledge':
+      case "knowledge":
         return <KnowledgePanel t={t} />;
-      case 'skillMarket':
+      case "skillMarket":
         return <SkillMarketPanel t={t} />;
-      case 'taskQueue':
+      case "taskQueue":
         return <TaskQueuePanel t={t} />;
-      case 'scheduledTasks':
+      case "scheduledTasks":
         return <ScheduledTasksPanel t={t} />;
-      case 'executionHistory':
+      case "executionHistory":
         return <ExecutionHistoryPanel t={t} />;
-      case 'atomicSkills':
+      case "atomicSkills":
         return <AtomicSkillsPanel t={t} onSave={onSaveConfig} />;
-      case 'settings':
-        return <SettingsPanel
-          subView={settingsSubView || 'aiModel'}
-          t={t}
-          onSave={onSaveConfig}
-          theme={theme}
-          language={language}
-          onThemeChange={onThemeChange}
-          onLanguageChange={onLanguageChange}
-          isInitializing={isInitializing}
-        />;
+      case "settings":
+        return (
+          <SettingsPanel
+            subView={settingsSubView || "aiModel"}
+            t={t}
+            onSave={onSaveConfig}
+            theme={theme}
+            language={language}
+            onThemeChange={onThemeChange}
+            onLanguageChange={onLanguageChange}
+            isInitializing={isInitializing}
+          />
+        );
       default:
         return null;
     }
   };
 
   const getDisplayTitle = () => {
-    if (currentView === 'settings' && settingsSubView) {
+    if (currentView === "settings" && settingsSubView) {
       const subViewTitles: Record<SettingsSubView, string> = {
-        aiModel: 'menu.aiModelConfig',
-        engine: 'menu.engineConfig',
-        workspace: 'menu.workspaceConfig',
-        system: 'menu.systemConfig',
-        atomicSkills: 'menu.atomicSkills',
+        aiModel: "menu.aiModelConfig",
+        engine: "menu.engineConfig",
+        workspace: "menu.workspaceConfig",
+        system: "menu.systemConfig",
+        atomicSkills: "menu.atomicSkills",
       };
       const key = subViewTitles[settingsSubView];
       if (!key) {
-        console.warn('Unknown settings subview:', settingsSubView);
-        return t('menu.settings');
+        console.warn("Unknown settings subview:", settingsSubView);
+        return t("menu.settings");
       }
       return t(key);
     }
     const titleKey = viewTitles[currentView];
     if (!titleKey) {
-      console.warn('Unknown view:', currentView);
-      return 'Unknown';
+      console.warn("Unknown view:", currentView);
+      return "Unknown";
     }
     return t(titleKey);
   };
@@ -451,7 +464,11 @@ const MenuPanel: React.FC<MenuPanelProps> = ({
     <div className="menu-panel">
       <div className="menu-panel-header">
         <div className="menu-panel-title">{getDisplayTitle()}</div>
-        <button className="menu-panel-close" onClick={onClose} title={t('common.close')}>
+        <button
+          className="menu-panel-close"
+          onClick={onClose}
+          title={t("common.close")}
+        >
           ✕
         </button>
       </div>

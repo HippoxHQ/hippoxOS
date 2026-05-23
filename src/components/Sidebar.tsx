@@ -6,6 +6,9 @@ interface SidebarProps {
   onResetSession: () => void;
   onClearLogs: () => void;
   onMenuClick?: (view: string, subView?: string) => void;
+  onNewSession?: () => void;
+  currentSessionId?: string;
+  onSwitchSession?: (sessionId: string) => void;
   t: (key: string, params?: any) => string;
 }
 
@@ -496,16 +499,26 @@ const Sidebar: React.FC<SidebarProps> = ({
   onResetSession,
   onClearLogs,
   onMenuClick,
+  onNewSession,
+  currentSessionId,
+  onSwitchSession,
   t,
 }) => {
   const [activeId, setActiveId] = useState("history");
   const [activeSubId, setActiveSubId] = useState<string>();
+
   const handleMenuClick = (id: string, subId?: string) => {
     if (id === "settings" && subId) {
       setActiveId("settings_group");
       setActiveSubId(subId);
       if (onMenuClick) {
         onMenuClick("settings", subId);
+      }
+    } else if (id === "history") {
+      setActiveId(id);
+      setActiveSubId(undefined);
+      if (onMenuClick) {
+        onMenuClick(id);
       }
     } else {
       setActiveId(id);
@@ -515,13 +528,22 @@ const Sidebar: React.FC<SidebarProps> = ({
       }
     }
   };
+
+  const handleNewSessionClick = () => {
+    if (onNewSession) {
+      onNewSession();
+    } else {
+      onResetSession();
+    }
+  };
+
   if (collapsed) {
     return (
       <aside className="sidebar collapsed">
         <div className="sidebar-header">
           <button
             className="header-action-btn"
-            onClick={onResetSession}
+            onClick={handleNewSessionClick}
             title={t("actions.newSession")}
           >
             <NewSessionIcon size={14} />
@@ -567,7 +589,7 @@ const Sidebar: React.FC<SidebarProps> = ({
       <div className="sidebar-header">
         <button
           className="header-action-btn"
-          onClick={onResetSession}
+          onClick={handleNewSessionClick}
           title={t("actions.newSession")}
         >
           <NewSessionIcon size={14} />

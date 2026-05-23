@@ -70,3 +70,29 @@ export interface TaskInfo {
   created_at: string;
   updated_at: string;
 }
+
+
+// ==================== Session Type ====================
+export interface DialogSession {
+  session_id: string;
+  title: string;
+  description: string;
+  created_at: string;
+  updated_at: string;
+  is_pinned: boolean;
+  path: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: string;
+}
+
+export interface TerminalEntry {
+  id: string;
+  type: 'task' | 'step' | 'log';
+  data: any;
+  timestamp: string;
+}

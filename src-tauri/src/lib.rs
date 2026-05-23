@@ -54,6 +54,14 @@ pub fn run() {
             commands::get_models_by_provider,
             commands::get_recommended_models,
             commands::get_data_paths,
+            commands::create_dialog_session,
+            commands::list_dialog_sessions,
+            commands::update_session_config,
+            commands::delete_dialog_session,
+            commands::save_chat_content,
+            commands::save_terminal_content,
+            commands::load_chat_content,
+            commands::load_terminal_content,
         ])
         .setup(|app| {
             if cfg!(debug_assertions) {

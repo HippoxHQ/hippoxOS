@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import ChatPanel from "./components/ChatPanel";
 import ResizablePanels from "./components/ResizablePanels";
 import Sidebar from "./components/Sidebar";
@@ -10,6 +10,7 @@ import { useTranslation } from "./hooks/useTranslation";
 import { Theme, Language, ExecutionLog, ChatMessage, TaskInfo } from "./type";
 import { SettingsSubView } from "./components/MenuPanel/SettingsPanel";
 import { hippoxCommands } from "./api/chat";
+import { sessionCommands } from "./api/session";
 import { listen } from "@tauri-apps/api/event";
 
 function App() {
@@ -48,6 +49,134 @@ function App() {
   const [currentSessionTasks, setCurrentSessionTasks] = useState<TaskInfo[]>(
     [],
   );
+  const [currentSessionId, setCurrentSessionId] = useState<string>(() => {
+    return localStorage.getItem("hippox-current-session") || "default";
+  });
+  const [isInitializing, setIsInitializing] = useState(true);
+  useEffect(() => {
+    const initDefaultSession = async () => {
+      try {
+        const sessions = await sessionCommands.listSessions();
+        const defaultExists = sessions.some((s) => s.session_id === "default");
+        if (!defaultExists) {
+          const defaultChatMessages: ChatMessage[] = [
+            {
+              id: "welcome",
+              role: "assistant",
+              content:
+                language === "zh"
+                  ? "你好，我是 Hippox AI 运行时。我有自主决策能力，可以执行技能并实时反馈。有什么可以帮你的？"
+                  : "Hello, I am Hippox AI Runtime. I have autonomous decision-making capabilities and can execute skills with real-time feedback. How can I help you?",
+              timestamp: new Date().toLocaleTimeString(),
+            },
+          ];
+          await sessionCommands.createSession(
+            "default",
+            language === "zh" ? "默认对话" : "Default Session",
+            language === "zh"
+              ? "Hippox AI 运行时默认对话"
+              : "Hippox AI Runtime default session",
+            defaultChatMessages,
+            [],
+          );
+        }
+        if (currentSessionId !== "default") {
+          const chatContent =
+            await sessionCommands.loadChatContent(currentSessionId);
+          if (chatContent && chatContent.length > 0) {
+            setChatMessages(chatContent);
+          }
+        }
+      } catch (error) {
+        console.error("Failed to init default session:", error);
+      } finally {
+        setIsInitializing(false);
+      }
+    };
+    initDefaultSession();
+  }, [language]);
+  useEffect(() => {
+    if (!isInitializing && currentSessionId && chatMessages.length > 0) {
+      const saveTimer = setTimeout(() => {
+        sessionCommands
+          .saveChatContent(currentSessionId, chatMessages)
+          .catch(console.error);
+        sessionCommands
+          .saveTerminalContent(currentSessionId, currentSessionTasks)
+          .catch(console.error);
+      }, 1000);
+      return () => clearTimeout(saveTimer);
+    }
+  }, [chatMessages, currentSessionTasks, currentSessionId, isInitializing]);
+  const handleNewSession = async () => {
+    const timestamp = new Date().toLocaleString();
+    const newSessionId = `session_${Date.now()}`;
+    const title =
+      language === "zh" ? `新对话 ${timestamp}` : `New Session ${timestamp}`;
+    const description =
+      language === "zh" ? "新创建的对话" : "Newly created session";
+    const initialChat: ChatMessage[] = [
+      {
+        id: "welcome",
+        role: "assistant",
+        content:
+          language === "zh"
+            ? "你好，我是 Hippox AI 运行时。有什么可以帮你的？"
+            : "Hello, I am Hippox AI Runtime. How can I help you?",
+        timestamp: new Date().toLocaleTimeString(),
+      },
+    ];
+    try {
+      await sessionCommands.createSession(
+        newSessionId,
+        title,
+        description,
+        initialChat,
+        [],
+      );
+      setCurrentSessionId(newSessionId);
+      localStorage.setItem("hippox-current-session", newSessionId);
+      setChatMessages(initialChat);
+      setCurrentSessionTasks([]);
+      setActiveTasks(new Map());
+      setMenuPanelView(null);
+    } catch (error) {
+      console.error("Failed to create new session:", error);
+    }
+  };
+  const handleSwitchSession = async (sessionId: string) => {
+    if (sessionId === currentSessionId) return;
+    try {
+      await sessionCommands.saveChatContent(currentSessionId, chatMessages);
+      await sessionCommands.saveTerminalContent(
+        currentSessionId,
+        currentSessionTasks,
+      );
+      const chatContent = await sessionCommands.loadChatContent(sessionId);
+      const terminalContent =
+        await sessionCommands.loadTerminalContent(sessionId);
+      setCurrentSessionId(sessionId);
+      localStorage.setItem("hippox-current-session", sessionId);
+      if (chatContent && chatContent.length > 0) {
+        setChatMessages(chatContent);
+      } else {
+        setChatMessages([]);
+      }
+      if (terminalContent && terminalContent.length > 0) {
+        setCurrentSessionTasks(terminalContent);
+        const taskMap = new Map();
+        terminalContent.forEach((task: TaskInfo) =>
+          taskMap.set(task.task_id, task),
+        );
+        setActiveTasks(taskMap);
+      } else {
+        setCurrentSessionTasks([]);
+        setActiveTasks(new Map());
+      }
+    } catch (error) {
+      console.error("Failed to switch session:", error);
+    }
+  };
   useEffect(() => {
     const unlistenStep = listen("task_step_update", (event: any) => {
       const { task_id, step_name, step_index, status, output, error } =
@@ -107,7 +236,6 @@ function App() {
         );
         const successMessage =
           language === "zh" ? "✅ 任务已完成" : "✅ Task completed";
-
         if (pendingIndex !== -1) {
           newMessages[pendingIndex] = {
             id: `response_${task_id}`,
@@ -150,7 +278,6 @@ function App() {
         );
         const errorMessage =
           language === "zh" ? "❌ 任务执行失败" : "❌ Task execution failed";
-
         if (pendingIndex !== -1) {
           newMessages[pendingIndex] = {
             id: `error_${task_id}`,
@@ -175,6 +302,7 @@ function App() {
       unlistenFailed.then((fn) => fn());
     };
   }, [language]);
+
   useEffect(() => {
     const loadTasks = async () => {
       try {
@@ -189,19 +317,23 @@ function App() {
     };
     loadTasks();
   }, [language]);
+
   useEffect(() => {
-    setChatMessages([
-      {
-        id: "welcome",
-        role: "assistant",
-        content:
-          language === "zh"
-            ? "你好，我是 Hippox AI 运行时。我有自主决策能力，可以执行技能并实时反馈。有什么可以帮你的？"
-            : "Hello, I am Hippox AI Runtime. I have autonomous decision-making capabilities and can execute skills with real-time feedback. How can I help you?",
-        timestamp: new Date().toLocaleTimeString(),
-      },
-    ]);
-  }, [language]);
+    if (currentSessionId === "default") {
+      setChatMessages([
+        {
+          id: "welcome",
+          role: "assistant",
+          content:
+            language === "zh"
+              ? "你好，我是 Hippox AI 运行时。我有自主决策能力，可以执行技能并实时反馈。有什么可以帮你的？"
+              : "Hello, I am Hippox AI Runtime. I have autonomous decision-making capabilities and can execute skills with real-time feedback. How can I help you?",
+          timestamp: new Date().toLocaleTimeString(),
+        },
+      ]);
+    }
+  }, [language, currentSessionId]);
+
   useEffect(() => {
     const loadLogs = async () => {
       try {
@@ -223,6 +355,7 @@ function App() {
     const interval = setInterval(loadLogs, 3000);
     return () => clearInterval(interval);
   }, []);
+
   const handleMenuClick = (view: string, subView?: string) => {
     if (view === "settings") {
       setMenuPanelView("settings");
@@ -233,12 +366,15 @@ function App() {
       setMenuPanelView(view as MenuPanelView);
     }
   };
+
   const closeMenuPanel = () => {
     setMenuPanelView(null);
   };
+
   const handleSaveConfig = async (config: any) => {
     console.log("config saved:", config);
   };
+
   const handleSendMessage = async (userMessage: string) => {
     const userMsg: ChatMessage = {
       id: Date.now().toString(),
@@ -251,7 +387,7 @@ function App() {
       const taskId = await hippoxCommands.sendMessageAsync(userMessage);
       const newTask: TaskInfo = {
         task_id: taskId,
-        session_id: "default",
+        session_id: currentSessionId,
         user_input: userMessage,
         status: "pending",
         steps: [],
@@ -283,6 +419,7 @@ function App() {
       setChatMessages((prev) => [...prev, errorMsg]);
     }
   };
+
   const clearLogs = async () => {
     try {
       await hippoxCommands.clearLogs();
@@ -291,6 +428,7 @@ function App() {
       console.error("clear logs error:", error);
     }
   };
+
   const resetSession = async () => {
     try {
       await hippoxCommands.resetSession();
@@ -311,17 +449,37 @@ function App() {
       console.error("reset session error:", error);
     }
   };
+
   const toggleTheme = () => {
     setTheme((prev) => (prev === "dark" ? "light" : "dark"));
   };
+
   const toggleLanguage = async () => {
     const newLang = language === "zh" ? "en" : "zh";
     setLanguage(newLang);
     await hippoxCommands.setLanguage(newLang);
   };
+
   const toggleSidebar = () => {
     setSidebarCollapsed((prev) => !prev);
   };
+
+  if (isInitializing) {
+    return (
+      <div
+        className="App"
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          height: "100vh",
+        }}
+      >
+        <div>{t("atomicSkills.loading") || "加载中..."}</div>
+      </div>
+    );
+  }
+
   return (
     <div className="App">
       <TopBar
@@ -340,6 +498,9 @@ function App() {
             onResetSession={resetSession}
             onClearLogs={clearLogs}
             onMenuClick={handleMenuClick}
+            onNewSession={handleNewSession}
+            currentSessionId={currentSessionId}
+            onSwitchSession={handleSwitchSession}
             t={t}
           />
         )}
@@ -357,6 +518,8 @@ function App() {
                 onThemeChange={toggleTheme}
                 onLanguageChange={toggleLanguage}
                 isInitializing={false}
+                currentSessionId={currentSessionId}
+                onSwitchSession={handleSwitchSession}
               />
             </div>
             <div

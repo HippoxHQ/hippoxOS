@@ -157,6 +157,11 @@ export const zh = {
     close: '关闭'
   },
   history: {
+    empty: '暂无对话历史',
+    confirmDelete: '确定要删除这个对话吗？',
+    pin: '置顶',
+    unpin: '取消置顶',
+    delete: '删除',
     dataAnalysis: '数据分析对话',
     codeDebug: '代码调试会话',
     fileProcess: '文件处理任务',
@@ -164,7 +169,7 @@ export const zh = {
     readConfig: '读取配置文件',
     dbConnect: '数据库连接',
     duration: '耗时 {{time}}',
-    failed: '连接失败'
+    failed: '连接失败',
   },
   favorites: {
     dataAnalysisTemplate: '数据分析模板',
@@ -494,6 +499,11 @@ export const en: typeof zh = {
     close: 'Close'
   },
   history: {
+    empty: 'No chat history',
+    confirmDelete: 'Are you sure you want to delete this conversation?',
+    pin: 'Pin',
+    unpin: 'Unpin',
+    delete: 'Delete',
     dataAnalysis: 'Data Analysis Chat',
     codeDebug: 'Code Debug Session',
     fileProcess: 'File Processing Task',
