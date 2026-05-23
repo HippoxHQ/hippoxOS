@@ -6,10 +6,11 @@ use std::path::PathBuf;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let skills_dir = dirs::home_dir()
-        .unwrap_or_else(|| PathBuf::from("."))
-        .join(".hippox")
-        .join("skills");
+    // init dir
+    if let Err(e) = commands::init_directories() {
+        eprintln!("Failed to initialize directories: {}", e);
+    }
+    let skills_dir = commands::get_skills_market_dir();
     if !skills_dir.exists() {
         let _ = std::fs::create_dir_all(&skills_dir);
     }
@@ -52,6 +53,7 @@ pub fn run() {
             commands::get_all_providers,
             commands::get_models_by_provider,
             commands::get_recommended_models,
+            commands::get_data_paths,
         ])
         .setup(|app| {
             if cfg!(debug_assertions) {

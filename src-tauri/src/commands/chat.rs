@@ -123,14 +123,15 @@ impl AppStateWithChat {
         logs.push(ExecutionLog {
             id: Uuid::new_v4().to_string(),
             timestamp: chrono::Local::now().format("%H:%M:%S").to_string(),
-            level,
-            message,
-            details,
+            level: level.clone(),
+            message: message.clone(),
+            details: details.clone(),
             duration,
         });
         if logs.len() > 1000 {
             logs.remove(0);
         }
+        let _ = super::paths::write_log(&level, &message, details.as_deref());
     }
 
     pub async fn get_logs(&self) -> Vec<ExecutionLog> {

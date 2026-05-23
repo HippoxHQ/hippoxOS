@@ -12,7 +12,7 @@ pub static HIPPOX_APP_CONFIG: Lazy<Arc<RwLock<HippoxAppConfig>>> =
 pub struct HippoxAppConfig {
     pub language: String,
     pub theme: String,
-    pub llm_instances: HashMap<String, LlmInstance>, 
+    pub llm_instances: HashMap<String, LlmInstance>,
     pub default_llm_instance_id: String,
     pub workspace: WorkspaceConfig,
     pub engine: EngineConfig,
@@ -625,8 +625,7 @@ pub async fn save_config_to_file() -> Result<(), String> {
 }
 
 fn get_config_file_path() -> std::path::PathBuf {
-    let home = dirs::home_dir().unwrap_or_else(|| std::path::PathBuf::from("."));
-    home.join(".hippox").join("config.json")
+    super::paths::get_settings_dir().join("config.json")
 }
 
 #[tauri::command]
