@@ -220,4 +220,20 @@ export const configCommands = {
     async setDefaultLlmModel(modelName: string): Promise<boolean> {
         return await invoke('set_default_llm_model', { modelName });
     },
+
+    async getSettingsLanguage(): Promise<string> {
+        return await invoke('get_settings_language');
+    },
+
+    async saveSettingsLanguage(language: string): Promise<void> {
+        return await invoke('save_settings_language', { language });
+    },
+
+    async getSettingsTheme(): Promise<string> {
+        return await invoke('get_settings_theme');
+    },
+
+    async saveSettingsTheme(theme: string): Promise<void> {
+        return await invoke('save_settings_theme', { theme });
+    },
 };

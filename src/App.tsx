@@ -11,22 +11,14 @@ import { Theme, Language, ExecutionLog, ChatMessage, TaskInfo } from "./type";
 import { SettingsSubView } from "./components/MenuPanel/SettingsPanel";
 import { hippoxCommands } from "./api/chat";
 import { sessionCommands } from "./api/session";
+import { configCommands } from "./api/config";
 import { listen } from "@tauri-apps/api/event";
 
 function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [theme, setTheme] = useState<Theme>(() => {
-    const saved = localStorage.getItem("hippox-theme") as Theme;
-    return saved || "dark";
-  });
-  useEffect(() => {
-    document.documentElement.setAttribute("data-theme", theme);
-    localStorage.setItem("hippox-theme", theme);
-  }, [theme]);
-  const [language, setLanguage] = useState<Language>(() => {
-    const saved = localStorage.getItem("hippox-language") as Language;
-    return saved || "en";
-  });
+  const [theme, setTheme] = useState<Theme>("dark");
+  const [language, setLanguage] = useState<Language>("en");
+  const [isConfigLoaded, setIsConfigLoaded] = useState(false);
   const { t } = useTranslation(language);
   const [menuPanelView, setMenuPanelView] = useState<MenuPanelView | null>(
     null,
@@ -45,7 +37,29 @@ function App() {
   const [currentSessionId, setCurrentSessionId] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
   useEffect(() => {
+    const loadConfig = async () => {
+      try {
+        const savedTheme = await configCommands.getSettingsTheme();
+        const savedLanguage = await configCommands.getSettingsLanguage();
+        setTheme(savedTheme as Theme);
+        setLanguage(savedLanguage as Language);
+        await hippoxCommands.setLanguage(savedLanguage);
+      } catch (error) {
+        console.error("Failed to load config:", error);
+      } finally {
+        setIsConfigLoaded(true);
+      }
+    };
+    loadConfig();
+  }, []);
+  useEffect(() => {
+    if (isConfigLoaded) {
+      document.documentElement.setAttribute("data-theme", theme);
+    }
+  }, [theme, isConfigLoaded]);
+  useEffect(() => {
     const loadSessions = async () => {
+      if (!isConfigLoaded) return;
       try {
         const sessions = await sessionCommands.listSessions();
         if (sessions.length > 0) {
@@ -61,6 +75,18 @@ function App() {
           );
           if (chatContent && chatContent.length > 0) {
             setChatMessages(chatContent);
+          } else {
+            setChatMessages([
+              {
+                id: "welcome",
+                role: "assistant",
+                content:
+                  language === "zh"
+                    ? "你好，我是 Hippox AI 运行时。我有自主决策能力，可以执行技能并实时反馈。有什么可以帮你的？"
+                    : "Hello, I am Hippox AI Runtime. I have autonomous decision-making capabilities and can execute skills with real-time feedback. How can I help you?",
+                timestamp: new Date().toLocaleTimeString(),
+              },
+            ]);
           }
           setCurrentSessionId(targetSession.session_id);
           localStorage.setItem(
@@ -75,7 +101,7 @@ function App() {
       }
     };
     loadSessions();
-  }, []);
+  }, [isConfigLoaded, language]);
   useEffect(() => {
     if (!isLoading && currentSessionId && chatMessages.length > 0) {
       const saveTimer = setTimeout(() => {
@@ -138,7 +164,17 @@ function App() {
       if (chatContent && chatContent.length > 0) {
         setChatMessages(chatContent);
       } else {
-        setChatMessages([]);
+        setChatMessages([
+          {
+            id: "welcome",
+            role: "assistant",
+            content:
+              language === "zh"
+                ? "你好，我是 Hippox AI 运行时。有什么可以帮你的？"
+                : "Hello, I am Hippox AI Runtime. How can I help you?",
+            timestamp: new Date().toLocaleTimeString(),
+          },
+        ]);
       }
       if (terminalContent && terminalContent.length > 0) {
         setCurrentSessionTasks(terminalContent);
@@ -154,6 +190,17 @@ function App() {
     } catch (error) {
       console.error("Failed to switch session:", error);
     }
+  };
+  const handleToggleTheme = async () => {
+    const newTheme = theme === "dark" ? "light" : "dark";
+    setTheme(newTheme);
+    await configCommands.saveSettingsTheme(newTheme);
+  };
+  const handleToggleLanguage = async () => {
+    const newLang = language === "zh" ? "en" : "zh";
+    setLanguage(newLang);
+    await configCommands.saveSettingsLanguage(newLang);
+    await hippoxCommands.setLanguage(newLang);
   };
   useEffect(() => {
     const unlistenStep = listen("task_step_update", (event: any) => {
@@ -397,18 +444,10 @@ function App() {
       console.error("reset session error:", error);
     }
   };
-  const toggleTheme = () => {
-    setTheme((prev) => (prev === "dark" ? "light" : "dark"));
-  };
-  const toggleLanguage = async () => {
-    const newLang = language === "zh" ? "en" : "zh";
-    setLanguage(newLang);
-    await hippoxCommands.setLanguage(newLang);
-  };
   const toggleSidebar = () => {
     setSidebarCollapsed((prev) => !prev);
   };
-  if (isLoading) {
+  if (isLoading || !isConfigLoaded) {
     return (
       <div
         className="App"
@@ -429,9 +468,9 @@ function App() {
         sidebarCollapsed={sidebarCollapsed}
         onToggleSidebar={toggleSidebar}
         currentTheme={theme}
-        onToggleTheme={toggleTheme}
+        onToggleTheme={handleToggleTheme}
         currentLanguage={language}
-        onToggleLanguage={toggleLanguage}
+        onToggleLanguage={handleToggleLanguage}
         t={t}
       />
       <div className="main-layout">
@@ -458,8 +497,8 @@ function App() {
                 t={t}
                 theme={theme}
                 language={language}
-                onThemeChange={toggleTheme}
-                onLanguageChange={toggleLanguage}
+                onThemeChange={handleToggleTheme}
+                onLanguageChange={handleToggleLanguage}
                 isInitializing={false}
                 currentSessionId={currentSessionId}
                 onSwitchSession={handleSwitchSession}
