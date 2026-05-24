@@ -677,79 +677,22 @@ pub async fn set_default_llm_model(model_name: String) -> Result<bool, String> {
 
 #[tauri::command]
 pub fn get_settings_language() -> Result<String, String> {
-    let settings_dir = get_settings_dir();
-    let config_path = settings_dir.join("config.json");
-    if config_path.exists() {
-        let content = fs::read_to_string(&config_path)
-            .map_err(|e| format!("Failed to read settings config: {}", e))?;
-        let config: serde_json::Value =
-            serde_json::from_str(&content).unwrap_or_else(|_| serde_json::json!({}));
-        if let Some(lang) = config.get("language").and_then(|v| v.as_str()) {
-            return Ok(lang.to_string());
-        }
-    }
-    Ok("en".to_string())
+    let value = crate::common::get_setting_with_default("language", serde_json::json!("en"))?;
+    Ok(value.as_str().unwrap_or("en").to_string())
 }
 
 #[tauri::command]
 pub fn save_settings_language(language: String) -> Result<(), String> {
-    let settings_dir = get_settings_dir();
-    if !settings_dir.exists() {
-        fs::create_dir_all(&settings_dir)
-            .map_err(|e| format!("Failed to create settings directory: {}", e))?;
-    }
-    let config_path = settings_dir.join("config.json");
-    let mut config: serde_json::Value = if config_path.exists() {
-        let content = fs::read_to_string(&config_path)
-            .map_err(|e| format!("Failed to read settings config: {}", e))?;
-        serde_json::from_str(&content).unwrap_or_else(|_| serde_json::json!({}))
-    } else {
-        serde_json::json!({})
-    };
-    config["language"] = serde_json::json!(language);
-    let content = serde_json::to_string_pretty(&config)
-        .map_err(|e| format!("Failed to serialize settings config: {}", e))?;
-    fs::write(&config_path, content)
-        .map_err(|e| format!("Failed to save settings config: {}", e))?;
-    Ok(())
+    crate::common::set_setting("language", serde_json::json!(language))
 }
 
 #[tauri::command]
 pub fn get_settings_theme() -> Result<String, String> {
-    let settings_dir = get_settings_dir();
-    let config_path = settings_dir.join("config.json");
-    if config_path.exists() {
-        let content = fs::read_to_string(&config_path)
-            .map_err(|e| format!("Failed to read settings config: {}", e))?;
-        let config: serde_json::Value =
-            serde_json::from_str(&content).unwrap_or_else(|_| serde_json::json!({}));
-
-        if let Some(theme) = config.get("theme").and_then(|v| v.as_str()) {
-            return Ok(theme.to_string());
-        }
-    }
-    Ok("dark".to_string())
+    let value = crate::common::get_setting_with_default("theme", serde_json::json!("dark"))?;
+    Ok(value.as_str().unwrap_or("dark").to_string())
 }
 
 #[tauri::command]
 pub fn save_settings_theme(theme: String) -> Result<(), String> {
-    let settings_dir = get_settings_dir();
-    if !settings_dir.exists() {
-        fs::create_dir_all(&settings_dir)
-            .map_err(|e| format!("Failed to create settings directory: {}", e))?;
-    }
-    let config_path = settings_dir.join("config.json");
-    let mut config: serde_json::Value = if config_path.exists() {
-        let content = fs::read_to_string(&config_path)
-            .map_err(|e| format!("Failed to read settings config: {}", e))?;
-        serde_json::from_str(&content).unwrap_or_else(|_| serde_json::json!({}))
-    } else {
-        serde_json::json!({})
-    };
-    config["theme"] = serde_json::json!(theme);
-    let content = serde_json::to_string_pretty(&config)
-        .map_err(|e| format!("Failed to serialize settings config: {}", e))?;
-    fs::write(&config_path, content)
-        .map_err(|e| format!("Failed to save settings config: {}", e))?;
-    Ok(())
+    crate::common::set_setting("theme", serde_json::json!(theme))
 }

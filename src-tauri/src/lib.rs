@@ -1,8 +1,11 @@
 #![allow(warnings)]
 mod commands;
+mod common;
 
 use commands::AppStateWithChat;
 use std::path::PathBuf;
+
+use crate::common::init_default_settings;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -10,8 +13,8 @@ pub fn run() {
     if let Err(e) = commands::init_directories() {
         eprintln!("Failed to initialize directories: {}", e);
     }
-    // init settings/config.json
-    if let Err(e) = commands::init_settings_config() {
+    // init settings/config.json using unified settings module
+    if let Err(e) = init_default_settings() {
         eprintln!("Failed to initialize settings config: {}", e);
     }
     if let Err(e) = commands::init_default_session_if_empty() {

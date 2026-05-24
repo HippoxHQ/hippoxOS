@@ -118,34 +118,6 @@ pub fn init_directories() -> Result<(), String> {
     Ok(())
 }
 
-/// Initialize settings/config.json file
-pub fn init_settings_config() -> Result<(), String> {
-    let settings_dir = get_settings_dir();
-    if !settings_dir.exists() {
-        fs::create_dir_all(&settings_dir)
-            .map_err(|e| format!("Failed to create settings directory: {}", e))?;
-    }
-    let config_path = settings_dir.join("config.json");
-    if !config_path.exists() {
-        let default_config = serde_json::json!({
-            "language": "en",
-            "theme": "dark",
-            "dialog_history": {
-                "pinned_sessions": [],
-                "sort_by": "updated_at",
-                "sort_order": "desc",
-                "page_size": 50,
-                "expanded_categories": []
-            }
-        });
-        let content = serde_json::to_string_pretty(&default_config)
-            .map_err(|e| format!("Failed to serialize default config: {}", e))?;
-        fs::write(&config_path, content)
-            .map_err(|e| format!("Failed to write default config: {}", e))?;
-    }
-    Ok(())
-}
-
 /// Write log to file (daily rotation with size limit, auto split when exceeding 10MB)
 pub fn write_log(level: &str, message: &str, details: Option<&str>) -> Result<(), String> {
     let log_dir = get_log_dir();
@@ -617,6 +589,24 @@ pub fn init_default_session_if_empty() -> Result<(), String> {
         .filter_map(|entry| entry.ok())
         .any(|entry| entry.path().is_dir());
     if !has_sessions {
+        let language = crate::common::get_setting_with_default("language", serde_json::json!("en"))
+            .map(|v| v.as_str().unwrap_or("en").to_string())
+            .unwrap_or_else(|_| "en".to_string());
+        let title = if language == "zh" {
+            "默认对话"
+        } else {
+            "Default Session"
+        };
+        let description = if language == "zh" {
+            "Hippox AI 运行时默认对话"
+        } else {
+            "Hippox AI Runtime default session"
+        };
+        let welcome_text = if language == "zh" {
+            "你好，我是 Hippox AI 运行时。我有自主决策能力，可以执行技能并实时反馈。有什么可以帮你的？"
+        } else {
+            "Hello, I am Hippox AI Runtime. I have autonomous decision-making capabilities and can execute skills with real-time feedback. How can I help you?"
+        };
         let session_id = format!("session_{}", chrono::Local::now().timestamp());
         let session_dir = dir.join(&session_id);
         fs::create_dir_all(&session_dir)
@@ -625,14 +615,14 @@ pub fn init_default_session_if_empty() -> Result<(), String> {
             {
                 "id": "welcome",
                 "role": "assistant",
-                "content": "你好，我是 Hippox AI 运行时。我有自主决策能力，可以执行技能并实时反馈。有什么可以帮你的？",
+                "content": welcome_text,
                 "timestamp": chrono::Local::now().format("%H:%M:%S").to_string()
             }
         ]);
         let config = serde_json::json!({
             "session_id": session_id,
-            "title": "默认对话",
-            "description": "Hippox AI 运行时默认对话",
+            "title": title,
+            "description": description,
             "created_at": chrono::Local::now().to_rfc3339(),
             "updated_at": chrono::Local::now().to_rfc3339(),
         });
