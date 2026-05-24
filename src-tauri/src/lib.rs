@@ -103,6 +103,16 @@ pub fn run() {
             commands::scheduled_save,
             commands::scheduled_delete,
             commands::scheduled_list,
+            // system command
+            commands::window_minimize,
+            commands::window_maximize,
+            commands::window_unmaximize,
+            commands::window_close,
+            commands::window_is_maximized,
+            commands::window_toggle_fullscreen,
+            commands::window_get_state,
+            commands::window_set_size,
+            commands::window_set_position,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -13,10 +13,14 @@
     "windows": [
       {
         "title": "HippoX",
-        "width": 800,
-        "height": 600,
+        "width": 1200,
+        "height": 800,
+        "decorations": false,
+        "transparent": false,
         "resizable": true,
-        "fullscreen": false
+        "fullscreen": false,
+        "center": true,
+        "visible": true
       }
     ],
     "security": {
