@@ -218,7 +218,13 @@ export const zh = {
     waiting: '等待中',
     completed: '已完成'
   },
+  taskQueue: {
+    noTasks: '暂无待执行任务',
+    waiting: '等待执行',
+    disabled: '已禁用',
+  },
   scheduled: {
+    complete: '标记完成',
     noTasks: '暂无定时任务，点击下方按钮添加',
     actionType: '动作类型',
     typeNatural: '自然语言',
@@ -582,7 +588,13 @@ export const en: typeof zh = {
     waiting: 'Waiting',
     completed: 'Completed'
   },
+  taskQueue: {
+    noTasks: 'No pending tasks',
+    waiting: 'Waiting',
+    disabled: 'Disabled',
+  },
   scheduled: {
+    complete: 'Mark Complete',
     noTasks: 'No scheduled tasks, click the button below to add',
     actionType: 'Action Type',
     typeNatural: 'Natural Language',

@@ -100,6 +100,9 @@ pub fn run() {
             commands::get_market_config,
             commands::update_market_config,
             commands::get_installed_skills,
+            commands::scheduled_save,
+            commands::scheduled_delete,
+            commands::scheduled_list,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

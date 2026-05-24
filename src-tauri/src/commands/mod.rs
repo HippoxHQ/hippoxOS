@@ -3,6 +3,7 @@ pub mod chat;
 pub mod config;
 pub mod models;
 pub mod paths;
+pub mod scheduled;
 pub mod skills;
 pub mod skills_market;
 
@@ -11,5 +12,6 @@ pub use chat::*;
 pub use config::*;
 pub use models::*;
 pub use paths::*;
+pub use scheduled::*;
 pub use skills::*;
 pub use skills_market::*;

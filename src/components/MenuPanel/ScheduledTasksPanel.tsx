@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
+import { invoke } from "@tauri-apps/api/core";
+import { getDataPaths } from "../../api/paths";
 
 interface ScheduledTask {
   id: string;
@@ -9,6 +11,10 @@ interface ScheduledTask {
   actionType: "naturalLanguage" | "skillFile";
   actionContent: string;
   actionFileName?: string;
+  createdAt: string;
+  updatedAt: string;
+  lastExecutedAt?: string;
+  completed?: boolean;
 }
 
 interface FixedScheduleConfig {
@@ -191,43 +197,106 @@ const ScheduledTasksPanel: React.FC<ScheduledTasksPanelProps> = ({
     "second" | "minute" | "hour" | "day"
   >("hour");
   const [newIntervalValue, setNewIntervalValue] = useState(1);
+  const [scheduledTasksDir, setScheduledTasksDir] = useState<string>("");
+
   useEffect(() => {
-    localStorage.removeItem("scheduled_tasks");
+    loadScheduledTasksDir();
     loadData();
   }, []);
+
+  const loadScheduledTasksDir = async () => {
+    try {
+      const paths = await getDataPaths();
+      setScheduledTasksDir(paths.scheduled_tasks_dir);
+    } catch (error) {
+      console.error("Failed to load scheduled tasks dir:", error);
+    }
+  };
+
   const loadData = async () => {
     setLoading(true);
     try {
-      const savedTasks = localStorage.getItem("scheduled_tasks");
-      if (savedTasks) {
-        const parsedTasks = JSON.parse(savedTasks);
-        setTasks(parsedTasks);
-      } else {
-        setTasks([]);
-      }
+      const savedTasks = await loadTasksFromFiles();
+      const activeTasks = savedTasks.filter((task) => !task.completed);
+      setTasks(activeTasks);
     } catch (error) {
       console.error("Failed to load tasks:", error);
       setTasks([]);
     }
     setLoading(false);
   };
-  const saveTasks = async (newTasks: ScheduledTask[]) => {
+
+  const loadTasksFromFiles = async (): Promise<ScheduledTask[]> => {
     try {
-      localStorage.setItem("scheduled_tasks", JSON.stringify(newTasks));
-      setTasks(newTasks);
-      if (onSave) {
-        onSave({ action: "save", tasks: newTasks });
-      }
+      const tasksListJson = await invoke<string>("scheduled_list");
+      const tasksList = JSON.parse(tasksListJson);
+      return tasksList.map((task: any) => ({
+        id: task.id,
+        name: task.name,
+        scheduleType: task.schedule_type,
+        scheduleConfig: task.schedule_config,
+        enabled: task.enabled,
+        actionType: task.action_type,
+        actionContent: task.action_content,
+        actionFileName: task.action_file_name,
+        createdAt: task.created_at,
+        updatedAt: task.updated_at,
+        lastExecutedAt: task.last_executed_at,
+        completed: task.completed,
+      }));
     } catch (error) {
-      console.error("Failed to save tasks:", error);
+      console.error("Failed to load tasks from files:", error);
+      return [];
     }
   };
-  const handleToggleEnabled = async (taskId: string) => {
-    const updatedTasks = tasks.map((task) =>
-      task.id === taskId ? { ...task, enabled: !task.enabled } : task,
-    );
-    await saveTasks(updatedTasks);
+
+  const saveTaskToFile = async (task: ScheduledTask): Promise<void> => {
+    try {
+      const rustTask = {
+        id: task.id,
+        name: task.name,
+        schedule_type: task.scheduleType,
+        schedule_config: task.scheduleConfig,
+        enabled: task.enabled,
+        action_type: task.actionType,
+        action_content: task.actionContent,
+        action_file_name: task.actionFileName,
+        created_at: task.createdAt,
+        updated_at: task.updatedAt,
+        last_executed_at: task.lastExecutedAt,
+        completed: task.completed,
+      };
+      await invoke("scheduled_save", { taskJson: JSON.stringify(rustTask) });
+    } catch (error) {
+      console.error("Failed to save task to file:", error);
+      throw error;
+    }
   };
+
+  const deleteTaskFile = async (taskId: string): Promise<void> => {
+    try {
+      await invoke("scheduled_delete", { taskId });
+    } catch (error) {
+      console.error("Failed to delete task file:", error);
+      throw error;
+    }
+  };
+
+  const handleToggleEnabled = async (taskId: string) => {
+    const task = tasks.find((t) => t.id === taskId);
+    if (!task) return;
+    const updatedTask = {
+      ...task,
+      enabled: !task.enabled,
+      updatedAt: new Date().toISOString(),
+    };
+    await saveTaskToFile(updatedTask);
+    const updatedTasks = tasks.map((task) =>
+      task.id === taskId ? updatedTask : task,
+    );
+    setTasks(updatedTasks);
+  };
+
   const handleEditTask = (task: ScheduledTask) => {
     setEditingTaskId(task.id);
     setNewTaskName(task.name);
@@ -258,12 +327,28 @@ const ScheduledTasksPanel: React.FC<ScheduledTasksPanelProps> = ({
     }
     setShowAddForm(true);
   };
+
   const handleDeleteTask = async (taskId: string) => {
+    await deleteTaskFile(taskId);
     const updatedTasks = tasks.filter((task) => task.id !== taskId);
-    await saveTasks(updatedTasks);
+    setTasks(updatedTasks);
     if (onSave) {
       onSave({ action: "delete", taskId });
     }
+  };
+
+  const handleCompleteTask = async (taskId: string) => {
+    const task = tasks.find((t) => t.id === taskId);
+    if (!task) return;
+    const completedTask = {
+      ...task,
+      completed: true,
+      lastExecutedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    await saveTaskToFile(completedTask);
+    const updatedTasks = tasks.filter((task) => task.id !== taskId);
+    setTasks(updatedTasks);
   };
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -346,32 +431,30 @@ const ScheduledTasksPanel: React.FC<ScheduledTasksPanelProps> = ({
     } else {
       if (newIntervalValue < 1) return;
     }
+    const now = new Date().toISOString();
     if (editingTaskId) {
+      const updatedTask: ScheduledTask = {
+        id: editingTaskId,
+        name: newTaskName,
+        scheduleType: newScheduleType,
+        scheduleConfig: scheduleConfig,
+        enabled: true,
+        actionType: newActionType,
+        actionContent: actionContent,
+        actionFileName: actionFileName || undefined,
+        createdAt: tasks.find((t) => t.id === editingTaskId)?.createdAt || now,
+        updatedAt: now,
+      };
+      await saveTaskToFile(updatedTask);
       const updatedTasks = tasks.map((task) =>
-        task.id === editingTaskId
-          ? {
-              ...task,
-              name: newTaskName,
-              scheduleType: newScheduleType,
-              scheduleConfig: scheduleConfig,
-              actionType: newActionType,
-              actionContent: actionContent,
-              actionFileName: actionFileName || task.actionFileName,
-            }
-          : task,
+        task.id === editingTaskId ? updatedTask : task,
       );
-      await saveTasks(updatedTasks);
+      setTasks(updatedTasks);
       if (onSave) {
         onSave({
           action: "update",
           taskId: editingTaskId,
-          task: {
-            name: newTaskName,
-            scheduleType: newScheduleType,
-            scheduleConfig,
-            actionType: newActionType,
-            actionContent,
-          },
+          task: updatedTask,
         });
       }
     } else {
@@ -384,15 +467,20 @@ const ScheduledTasksPanel: React.FC<ScheduledTasksPanelProps> = ({
         actionType: newActionType,
         actionContent: actionContent,
         actionFileName: actionFileName || undefined,
+        createdAt: now,
+        updatedAt: now,
+        completed: false,
       };
+      await saveTaskToFile(newTask);
       const updatedTasks = [...tasks, newTask];
-      await saveTasks(updatedTasks);
+      setTasks(updatedTasks);
       if (onSave) {
         onSave({ action: "add", task: newTask });
       }
     }
     resetForm();
   };
+
   const resetForm = () => {
     setShowAddForm(false);
     setEditingTaskId(null);
@@ -489,6 +577,12 @@ const ScheduledTasksPanel: React.FC<ScheduledTasksPanelProps> = ({
     ...buttonStyle,
     color: "var(--error-color, #dc2626)",
     borderColor: "var(--error-color, #dc2626)",
+  };
+
+  const completeButtonStyle: React.CSSProperties = {
+    ...buttonStyle,
+    color: "var(--accent-color, #0066cc)",
+    borderColor: "var(--accent-color, #0066cc)",
   };
 
   const taskCardStyle: React.CSSProperties = {
@@ -691,6 +785,16 @@ const ScheduledTasksPanel: React.FC<ScheduledTasksPanelProps> = ({
                     {task.enabled
                       ? t("scheduled.disable") || "禁用"
                       : t("scheduled.enable") || "启用"}
+                  </button>
+                  <button
+                    style={{
+                      ...completeButtonStyle,
+                      fontSize: "11px",
+                      padding: "4px 10px",
+                    }}
+                    onClick={() => handleCompleteTask(task.id)}
+                  >
+                    {t("scheduled.complete") || "标记完成"}
                   </button>
                   <button
                     style={{

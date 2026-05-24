@@ -199,11 +199,11 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
   ): React.CSSProperties => {
     if (isActive) {
       return {
-        background: "var(--hover-bg)",
+        background: "rgba(0, 102, 204, 0.1)",
         borderRadius: "10px",
         padding: "12px 14px",
         marginBottom: "8px",
-        border: "1px solid var(--accent-color, #0066cc)",
+        border: "1px solid rgba(0, 102, 204, 0.3)",
         cursor: "pointer",
         transition: "all 0.2s ease",
         display: "flex",

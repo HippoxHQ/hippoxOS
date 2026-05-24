@@ -364,12 +364,12 @@ const menuConfig: MenuItem[] = [
         icon: "scheduledTasks",
         label: "menu.scheduledTasks",
       },
+      { id: "taskQueue", icon: "taskQueue", label: "menu.taskQueue" },
       {
         id: "executionHistory",
         icon: "executionHistory",
         label: "menu.executionHistory",
       },
-      { id: "taskQueue", icon: "taskQueue", label: "menu.taskQueue" },
     ],
   },
   {
