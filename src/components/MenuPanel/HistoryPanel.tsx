@@ -39,6 +39,22 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
   const [loading, setLoading] = useState(true);
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const [expandedCategories, setExpandedCategories] = useState<
+    Record<CategoryType, boolean>
+  >({
+    pinned: true,
+    today: true,
+    yesterday: true,
+    last7days: true,
+    last30days: true,
+    older: true,
+  });
+  const toggleCategory = (categoryType: CategoryType) => {
+    setExpandedCategories((prev) => ({
+      ...prev,
+      [categoryType]: !prev[categoryType],
+    }));
+  };
   const menuRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     loadSessions();
@@ -99,8 +115,17 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
     if (confirmed) {
       try {
         await sessionCommands.deleteSession(session.session_id);
-        if (currentSessionId === session.session_id && onSessionSelect) {
-          onSessionSelect("default");
+        if (
+          currentSessionId === session.session_id &&
+          onSessionSelect &&
+          sessions.length > 1
+        ) {
+          const otherSession = sessions.find(
+            (s) => s.session_id !== session.session_id,
+          );
+          if (otherSession) {
+            onSessionSelect(otherSession.session_id);
+          }
         }
         setSessions((prev) =>
           prev.filter((s) => s.session_id !== session.session_id),
@@ -290,115 +315,139 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
   }
   const groupedSessions = getGroupedSessions();
   return (
-    <div style={{ padding: "8px 12px" }}>
+    <div style={{ padding: "8px 12px", userSelect: "none" }}>
       {categories.map((category) => {
         const categorySessions = groupedSessions[category.type];
         if (categorySessions.length === 0) return null;
         return (
           <div key={category.type}>
-            <div style={categoryHeaderStyle}>{category.label}</div>
-            {categorySessions.map((session) => {
-              const isActive = currentSessionId === session.session_id;
-              const isHovered = hoveredId === session.session_id;
-
-              return (
-                <div
-                  key={session.session_id}
-                  style={getCardStyle(isActive, isHovered)}
-                  onMouseEnter={() => setHoveredId(session.session_id)}
-                  onMouseLeave={() => setHoveredId(null)}
-                  onClick={() => handleSelectSession(session.session_id)}
-                >
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: "flex", alignItems: "center" }}>
-                      {session.is_pinned && (
-                        <span style={pinIconStyle}>📌</span>
-                      )}
-                      <span style={titleStyle} title={session.title}>
-                        {session.title || "未命名对话"}
-                      </span>
+            <div
+              style={{
+                ...categoryHeaderStyle,
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                cursor: "pointer",
+              }}
+              onClick={() => toggleCategory(category.type)}
+            >
+              <span>{category.label}</span>
+              <span
+                style={{
+                  fontSize: "12px",
+                  transition: "transform 0.1s",
+                  transform: expandedCategories[category.type]
+                    ? "rotate(0deg)"
+                    : "rotate(-90deg)",
+                }}
+              >
+                ▼
+              </span>
+            </div>
+            {expandedCategories[category.type] &&
+              categorySessions.map((session) => {
+                const isActive = currentSessionId === session.session_id;
+                const isHovered = hoveredId === session.session_id;
+                return (
+                  <div
+                    key={session.session_id}
+                    style={getCardStyle(isActive, isHovered)}
+                    onMouseEnter={() => setHoveredId(session.session_id)}
+                    onMouseLeave={() => setHoveredId(null)}
+                    onClick={() => handleSelectSession(session.session_id)}
+                  >
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: "flex", alignItems: "center" }}>
+                        {session.is_pinned && (
+                          <span style={pinIconStyle}>📌</span>
+                        )}
+                        <span style={titleStyle} title={session.title}>
+                          {session.title || "未命名对话"}
+                        </span>
+                      </div>
+                      <div style={timeStyle}>
+                        {formatDate(session.updated_at)}
+                      </div>
                     </div>
-                    <div style={timeStyle}>
-                      {formatDate(session.updated_at)}
-                    </div>
+                    {(activeMenuId === session.session_id || isHovered) && (
+                      <div>
+                        <button
+                          style={menuButtonStyle}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setActiveMenuId(
+                              activeMenuId === session.session_id
+                                ? null
+                                : session.session_id,
+                            );
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background =
+                              "var(--hover-bg)";
+                            e.currentTarget.style.color = "var(--text-primary)";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = "none";
+                            e.currentTarget.style.color =
+                              "var(--text-secondary)";
+                          }}
+                        >
+                          ⋯
+                        </button>
+                        {activeMenuId === session.session_id && (
+                          <div style={dropdownStyle} ref={menuRef}>
+                            <div
+                              style={dropdownItemStyle}
+                              onClick={(e) => handleRename(session, e)}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.background =
+                                  "var(--hover-bg)";
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.background = "";
+                              }}
+                            >
+                              ✏️ {t("history.rename") || "重命名"}
+                            </div>
+                            <div
+                              style={dropdownItemStyle}
+                              onClick={(e) => handleTogglePin(session, e)}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.background =
+                                  "var(--hover-bg)";
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.background = "";
+                              }}
+                            >
+                              {session.is_pinned ? "📍" : "📌"}{" "}
+                              {session.is_pinned
+                                ? t("history.unpin") || "取消置顶"
+                                : t("history.pin") || "置顶"}
+                            </div>
+                            <div
+                              style={{
+                                ...dropdownItemStyle,
+                                color: "var(--error-color, #dc2626)",
+                              }}
+                              onClick={(e) => handleDelete(session, e)}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.background =
+                                  "var(--error-bg, rgba(220,38,38,0.1))";
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.background = "";
+                              }}
+                            >
+                              🗑️ {t("history.delete") || "删除"}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
-                  {(activeMenuId === session.session_id || isHovered) && (
-                    <div>
-                      <button
-                        style={menuButtonStyle}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setActiveMenuId(
-                            activeMenuId === session.session_id
-                              ? null
-                              : session.session_id,
-                          );
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.background = "var(--hover-bg)";
-                          e.currentTarget.style.color = "var(--text-primary)";
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.background = "none";
-                          e.currentTarget.style.color = "var(--text-secondary)";
-                        }}
-                      >
-                        ⋯
-                      </button>
-                      {activeMenuId === session.session_id && (
-                        <div style={dropdownStyle} ref={menuRef}>
-                          <div
-                            style={dropdownItemStyle}
-                            onClick={(e) => handleRename(session, e)}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.background =
-                                "var(--hover-bg)";
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.background = "";
-                            }}
-                          >
-                            ✏️ {t("history.rename") || "重命名"}
-                          </div>
-                          <div
-                            style={dropdownItemStyle}
-                            onClick={(e) => handleTogglePin(session, e)}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.background =
-                                "var(--hover-bg)";
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.background = "";
-                            }}
-                          >
-                            {session.is_pinned ? "📍" : "📌"}{" "}
-                            {session.is_pinned
-                              ? t("history.unpin") || "取消置顶"
-                              : t("history.pin") || "置顶"}
-                          </div>
-                          <div
-                            style={{
-                              ...dropdownItemStyle,
-                              color: "var(--error-color, #dc2626)",
-                            }}
-                            onClick={(e) => handleDelete(session, e)}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.background =
-                                "var(--error-bg, rgba(220,38,38,0.1))";
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.background = "";
-                            }}
-                          >
-                            🗑️ {t("history.delete") || "删除"}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+                );
+              })}
           </div>
         );
       })}

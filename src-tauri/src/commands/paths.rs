@@ -603,3 +603,48 @@ pub fn load_terminal_content(session_id: &str) -> Result<Option<String>, String>
         Ok(None)
     }
 }
+
+pub fn init_default_session_if_empty() -> Result<(), String> {
+    let dir = get_dialog_history_dir();
+    if !dir.exists() {
+        fs::create_dir_all(&dir)
+            .map_err(|e| format!("Failed to create dialog history directory: {}", e))?;
+    }
+    let has_sessions = fs::read_dir(&dir)
+        .map_err(|e| format!("Failed to read dialog history dir: {}", e))?
+        .filter_map(|entry| entry.ok())
+        .any(|entry| entry.path().is_dir());
+    if !has_sessions {
+        let session_id = format!("session_{}", chrono::Local::now().timestamp());
+        let session_dir = dir.join(&session_id);
+        fs::create_dir_all(&session_dir)
+            .map_err(|e| format!("Failed to create session directory: {}", e))?;
+        let welcome_message = serde_json::json!([
+            {
+                "id": "welcome",
+                "role": "assistant",
+                "content": "你好，我是 Hippox AI 运行时。我有自主决策能力，可以执行技能并实时反馈。有什么可以帮你的？",
+                "timestamp": chrono::Local::now().format("%H:%M:%S").to_string()
+            }
+        ]);
+        let config = serde_json::json!({
+            "session_id": session_id,
+            "title": "默认对话",
+            "description": "Hippox AI 运行时默认对话",
+            "created_at": chrono::Local::now().to_rfc3339(),
+            "updated_at": chrono::Local::now().to_rfc3339(),
+        });
+        let config_path = session_dir.join("config.json");
+        fs::write(&config_path, serde_json::to_string_pretty(&config).unwrap())
+            .map_err(|e| format!("Failed to save config: {}", e))?;
+        let chat_path = session_dir.join("chat.json");
+        fs::write(
+            &chat_path,
+            serde_json::to_string_pretty(&welcome_message).unwrap(),
+        )
+        .map_err(|e| format!("Failed to save chat: {}", e))?;
+        let terminal_path = session_dir.join("terminal.json");
+        fs::write(&terminal_path, "[]").map_err(|e| format!("Failed to save terminal: {}", e))?;
+    }
+    Ok(())
+}

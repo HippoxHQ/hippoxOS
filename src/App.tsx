@@ -35,68 +35,49 @@ function App() {
     useState<SettingsSubView>("aiModel");
   const [menuPanelWidth, setMenuPanelWidth] = useState<number>(320);
   const [executionLogs, setExecutionLogs] = useState<ExecutionLog[]>([]);
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
-    {
-      id: "welcome",
-      role: "assistant",
-      content: "正在加载...",
-      timestamp: new Date().toLocaleTimeString(),
-    },
-  ]);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [activeTasks, setActiveTasks] = useState<Map<string, TaskInfo>>(
     new Map(),
   );
   const [currentSessionTasks, setCurrentSessionTasks] = useState<TaskInfo[]>(
     [],
   );
-  const [currentSessionId, setCurrentSessionId] = useState<string>(() => {
-    return localStorage.getItem("hippox-current-session") || "default";
-  });
-  const [isInitializing, setIsInitializing] = useState(true);
+  const [currentSessionId, setCurrentSessionId] = useState<string>("");
+  const [isLoading, setIsLoading] = useState(true);
   useEffect(() => {
-    const initDefaultSession = async () => {
+    const loadSessions = async () => {
       try {
         const sessions = await sessionCommands.listSessions();
-        const defaultExists = sessions.some((s) => s.session_id === "default");
-        if (!defaultExists) {
-          const defaultChatMessages: ChatMessage[] = [
-            {
-              id: "welcome",
-              role: "assistant",
-              content:
-                language === "zh"
-                  ? "你好，我是 Hippox AI 运行时。我有自主决策能力，可以执行技能并实时反馈。有什么可以帮你的？"
-                  : "Hello, I am Hippox AI Runtime. I have autonomous decision-making capabilities and can execute skills with real-time feedback. How can I help you?",
-              timestamp: new Date().toLocaleTimeString(),
-            },
-          ];
-          await sessionCommands.createSession(
-            "default",
-            language === "zh" ? "默认对话" : "Default Session",
-            language === "zh"
-              ? "Hippox AI 运行时默认对话"
-              : "Hippox AI Runtime default session",
-            defaultChatMessages,
-            [],
+        if (sessions.length > 0) {
+          let lastSessionId = localStorage.getItem("hippox-current-session");
+          let targetSession = sessions.find(
+            (s) => s.session_id === lastSessionId,
           );
-        }
-        if (currentSessionId !== "default") {
-          const chatContent =
-            await sessionCommands.loadChatContent(currentSessionId);
+          if (!targetSession) {
+            targetSession = sessions[0];
+          }
+          const chatContent = await sessionCommands.loadChatContent(
+            targetSession.session_id,
+          );
           if (chatContent && chatContent.length > 0) {
             setChatMessages(chatContent);
           }
+          setCurrentSessionId(targetSession.session_id);
+          localStorage.setItem(
+            "hippox-current-session",
+            targetSession.session_id,
+          );
         }
       } catch (error) {
-        console.error("Failed to init default session:", error);
+        console.error("Failed to load sessions:", error);
       } finally {
-        setIsInitializing(false);
+        setIsLoading(false);
       }
     };
-    initDefaultSession();
-  }, [language]);
+    loadSessions();
+  }, []);
   useEffect(() => {
-    if (!isInitializing && currentSessionId && chatMessages.length > 0) {
+    if (!isLoading && currentSessionId && chatMessages.length > 0) {
       const saveTimer = setTimeout(() => {
         sessionCommands
           .saveChatContent(currentSessionId, chatMessages)
@@ -107,15 +88,10 @@ function App() {
       }, 1000);
       return () => clearTimeout(saveTimer);
     }
-  }, [chatMessages, currentSessionTasks, currentSessionId, isInitializing]);
+  }, [chatMessages, currentSessionTasks, currentSessionId, isLoading]);
   const handleNewSession = async () => {
-    const timestamp = new Date().toLocaleString();
     const newSessionId = `session_${Date.now()}`;
-    const title =
-      language === "zh" ? `新对话 ${timestamp}` : `New Session ${timestamp}`;
-    const description =
-      language === "zh" ? "新创建的对话" : "Newly created session";
-    const initialChat: ChatMessage[] = [
+    const welcomeMessage: ChatMessage[] = [
       {
         id: "welcome",
         role: "assistant",
@@ -129,14 +105,14 @@ function App() {
     try {
       await sessionCommands.createSession(
         newSessionId,
-        title,
-        description,
-        initialChat,
+        language === "zh" ? "新对话" : "New Session",
+        language === "zh" ? "新创建的对话" : "Newly created session",
+        welcomeMessage,
         [],
       );
       setCurrentSessionId(newSessionId);
       localStorage.setItem("hippox-current-session", newSessionId);
-      setChatMessages(initialChat);
+      setChatMessages(welcomeMessage);
       setCurrentSessionTasks([]);
       setActiveTasks(new Map());
       window.dispatchEvent(new CustomEvent("session-created"));
@@ -147,11 +123,13 @@ function App() {
   const handleSwitchSession = async (sessionId: string) => {
     if (sessionId === currentSessionId) return;
     try {
-      await sessionCommands.saveChatContent(currentSessionId, chatMessages);
-      await sessionCommands.saveTerminalContent(
-        currentSessionId,
-        currentSessionTasks,
-      );
+      if (currentSessionId) {
+        await sessionCommands.saveChatContent(currentSessionId, chatMessages);
+        await sessionCommands.saveTerminalContent(
+          currentSessionId,
+          currentSessionTasks,
+        );
+      }
       const chatContent = await sessionCommands.loadChatContent(sessionId);
       const terminalContent =
         await sessionCommands.loadTerminalContent(sessionId);
@@ -192,13 +170,7 @@ function App() {
             if (output) existingStep.output = output;
             if (error) existingStep.error = error;
           } else {
-            steps.push({
-              step_index,
-              step_name,
-              status,
-              output,
-              error,
-            });
+            steps.push({ step_index, step_name, status, output, error });
           }
           steps.sort((a, b) => a.step_index - b.step_index);
           const updatedTask = {
@@ -316,21 +288,6 @@ function App() {
     };
     loadTasks();
   }, [language]);
-  useEffect(() => {
-    if (currentSessionId === "default") {
-      setChatMessages([
-        {
-          id: "welcome",
-          role: "assistant",
-          content:
-            language === "zh"
-              ? "你好，我是 Hippox AI 运行时。我有自主决策能力，可以执行技能并实时反馈。有什么可以帮你的？"
-              : "Hello, I am Hippox AI Runtime. I have autonomous decision-making capabilities and can execute skills with real-time feedback. How can I help you?",
-          timestamp: new Date().toLocaleTimeString(),
-        },
-      ]);
-    }
-  }, [language, currentSessionId]);
   useEffect(() => {
     const loadLogs = async () => {
       try {
@@ -451,7 +408,7 @@ function App() {
   const toggleSidebar = () => {
     setSidebarCollapsed((prev) => !prev);
   };
-  if (isInitializing) {
+  if (isLoading) {
     return (
       <div
         className="App"

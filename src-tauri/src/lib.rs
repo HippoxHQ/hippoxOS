@@ -14,6 +14,9 @@ pub fn run() {
     if let Err(e) = commands::init_settings_config() {
         eprintln!("Failed to initialize settings config: {}", e);
     }
+    if let Err(e) = commands::init_default_session_if_empty() {
+        eprintln!("Failed to initialize default session: {}", e);
+    }
     let skills_dir = commands::get_skills_market_dir();
     if !skills_dir.exists() {
         let _ = std::fs::create_dir_all(&skills_dir);
