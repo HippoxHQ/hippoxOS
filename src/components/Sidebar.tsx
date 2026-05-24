@@ -349,9 +349,9 @@ const menuConfig: MenuItem[] = [
     icon: "skills",
     label: "menu.skillsGroup",
     children: [
+      { id: "skillMarket", icon: "skillMarket", label: "menu.skillMarket" },
       { id: "skills", icon: "skills", label: "menu.skills" },
       { id: "knowledge", icon: "knowledge", label: "menu.knowledge" },
-      { id: "skillMarket", icon: "skillMarket", label: "menu.skillMarket" },
     ],
   },
   {

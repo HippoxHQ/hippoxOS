@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { skillsMarketCommands, MarketSkill } from "../../api/skills";
+import { CategoryIcon, RefreshIcon } from "../../icons";
 
 interface SkillMarketPanelProps {
   t: (key: string, params?: any) => string;
@@ -16,12 +17,14 @@ const SkillMarketPanel: React.FC<SkillMarketPanelProps> = ({ t }) => {
   const [repoUrl, setRepoUrl] = useState("");
   const [branch, setBranch] = useState("main");
   const [categories, setCategories] = useState<string[]>([]);
-
+  const [showCategoryBubble, setShowCategoryBubble] = useState(false);
+  const categoryButtonRef = useRef<HTMLButtonElement>(null);
+  const bubbleTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const bubbleRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     loadMarketConfig();
     loadSkills();
   }, []);
-
   const loadMarketConfig = async () => {
     try {
       const config = await skillsMarketCommands.getMarketConfig();
@@ -31,13 +34,11 @@ const SkillMarketPanel: React.FC<SkillMarketPanelProps> = ({ t }) => {
       console.error("Failed to load market config:", error);
     }
   };
-
   const loadSkills = async () => {
     setLoading(true);
     try {
       const skillsList = await skillsMarketCommands.getMarketSkills();
       setSkills(skillsList);
-      // Extract categories
       const cats = Array.from(new Set(skillsList.map((s) => s.category)));
       setCategories(cats);
     } catch (error) {
@@ -46,13 +47,11 @@ const SkillMarketPanel: React.FC<SkillMarketPanelProps> = ({ t }) => {
       setLoading(false);
     }
   };
-
   const handleUpdateMarket = async () => {
     setUpdating(true);
     try {
       const updatedSkills = await skillsMarketCommands.updateSkillsMarket();
       setSkills(updatedSkills);
-      // Refresh categories
       const cats = Array.from(new Set(updatedSkills.map((s) => s.category)));
       setCategories(cats);
     } catch (error) {
@@ -62,7 +61,6 @@ const SkillMarketPanel: React.FC<SkillMarketPanelProps> = ({ t }) => {
       setUpdating(false);
     }
   };
-
   const handleInstall = async (skill: MarketSkill) => {
     setInstallingId(skill.id);
     try {
@@ -75,7 +73,6 @@ const SkillMarketPanel: React.FC<SkillMarketPanelProps> = ({ t }) => {
       setInstallingId(null);
     }
   };
-
   const handleUninstall = async (skill: MarketSkill) => {
     if (
       // eslint-disable-next-line no-restricted-globals
@@ -96,7 +93,6 @@ const SkillMarketPanel: React.FC<SkillMarketPanelProps> = ({ t }) => {
       setInstallingId(null);
     }
   };
-
   const handleUpdateSkill = async (skill: MarketSkill) => {
     setInstallingId(skill.id);
     try {
@@ -109,7 +105,6 @@ const SkillMarketPanel: React.FC<SkillMarketPanelProps> = ({ t }) => {
       setInstallingId(null);
     }
   };
-
   const handleSaveConfig = async () => {
     try {
       await skillsMarketCommands.updateMarketConfig(repoUrl, branch);
@@ -120,7 +115,29 @@ const SkillMarketPanel: React.FC<SkillMarketPanelProps> = ({ t }) => {
       alert(t("market.saveConfigFailed") || "保存配置失败");
     }
   };
-
+  const handleCategorySelect = (category: string) => {
+    setSelectedCategory(category);
+    setShowCategoryBubble(false);
+  };
+  const handleCategoryButtonMouseEnter = () => {
+    if (bubbleTimerRef.current) {
+      clearTimeout(bubbleTimerRef.current);
+    }
+    setShowCategoryBubble(true);
+  };
+  const handleCategoryButtonMouseLeave = () => {
+    bubbleTimerRef.current = setTimeout(() => {
+      setShowCategoryBubble(false);
+    }, 200);
+  };
+  const handleBubbleMouseEnter = () => {
+    if (bubbleTimerRef.current) {
+      clearTimeout(bubbleTimerRef.current);
+    }
+  };
+  const handleBubbleMouseLeave = () => {
+    setShowCategoryBubble(false);
+  };
   const filteredSkills = skills.filter((skill) => {
     const matchesSearch =
       skill.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -130,6 +147,12 @@ const SkillMarketPanel: React.FC<SkillMarketPanelProps> = ({ t }) => {
     return matchesSearch && matchesCategory;
   });
   const installedCount = skills.filter((s) => s.installed).length;
+  const getSelectedCategoryLabel = () => {
+    if (selectedCategory === "all") {
+      return t("market.all") || "全部";
+    }
+    return selectedCategory;
+  };
   const styles: Record<string, React.CSSProperties> = {
     container: {
       height: "100%",
@@ -138,36 +161,34 @@ const SkillMarketPanel: React.FC<SkillMarketPanelProps> = ({ t }) => {
       overflow: "hidden",
     },
     header: {
-      padding: "16px",
+      padding: "10px",
       borderBottom: "1px solid var(--border-color)",
       background: "var(--bg-secondary)",
     },
-    toolbar: {
+    searchRow: {
       display: "flex",
-      justifyContent: "space-between",
       alignItems: "center",
-      marginBottom: "16px",
-      gap: "12px",
-      flexWrap: "wrap",
+      gap: "8px",
     },
-    updateMarketBtn: {
-      padding: "8px 16px",
+    categoryBtn: {
+      width: "34px",
+      height: "34px",
+      padding: "0",
       background: "var(--bg-tertiary)",
       border: "1px solid var(--border-color)",
       borderRadius: "8px",
       color: "var(--text-primary)",
-      fontSize: "12px",
+      fontSize: "16px",
       cursor: "pointer",
       transition: "all 0.2s",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      flexShrink: 0,
+      position: "relative" as const,
     },
-    configBtn: {
-      padding: "8px 12px",
-      background: "transparent",
-      border: "1px solid var(--border-color)",
-      borderRadius: "8px",
-      color: "var(--text-secondary)",
-      fontSize: "12px",
-      cursor: "pointer",
+    searchInputWrapper: {
+      flex: 1,
     },
     searchInput: {
       width: "100%",
@@ -177,21 +198,73 @@ const SkillMarketPanel: React.FC<SkillMarketPanelProps> = ({ t }) => {
       borderRadius: "8px",
       color: "var(--text-primary)",
       fontSize: "13px",
-      marginBottom: "12px",
     },
-    categoryBar: {
-      display: "flex",
-      gap: "8px",
-      flexWrap: "wrap",
-      marginBottom: "12px",
-    },
-    categoryChip: {
-      padding: "4px 12px",
-      borderRadius: "16px",
-      fontSize: "12px",
+    refreshBtn: {
+      width: "34px",
+      height: "34px",
+      padding: "0",
+      background: "var(--bg-tertiary)",
+      border: "1px solid var(--border-color)",
+      borderRadius: "8px",
+      color: "var(--text-primary)",
+      fontSize: "16px",
       cursor: "pointer",
       transition: "all 0.2s",
-      border: "none",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      flexShrink: 0,
+    },
+    bubbleContainer: {
+      position: "absolute" as const,
+      left: "16px",
+      top: "66px",
+      minWidth: "150px",
+      maxWidth: "200px",
+      background: "var(--bg-secondary, #1e1e1e)",
+      border: "1px solid var(--border-color, #333)",
+      borderRadius: "12px",
+      boxShadow: "0 8px 24px rgba(0,0,0,0.3)",
+      overflow: "hidden",
+      zIndex: 100,
+      pointerEvents: "auto" as const,
+    },
+    bubbleHeader: {
+      padding: "10px 12px",
+      borderBottom: "1px solid var(--border-color, #333)",
+      fontSize: "12px",
+      fontWeight: 600,
+      color: "var(--text-secondary, #aaa)",
+      background: "var(--bg-tertiary, #252525)",
+    },
+    bubbleContent: {
+      maxHeight: "300px",
+      overflowY: "auto" as const,
+      padding: "4px 0",
+    },
+    bubbleItem: {
+      padding: "8px 12px",
+      fontSize: "12px",
+      cursor: "pointer",
+      transition: "all 0.15s",
+      borderLeft: "2px solid transparent",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: "8px",
+    },
+    bubbleItemActive: {
+      background: "var(--hover-bg, #2a2a2a)",
+      borderLeftColor: "#0066cc",
+    },
+    bubbleItemText: {
+      flex: 1,
+      color: "var(--text-primary, #fff)",
+    },
+    bubbleItemCount: {
+      fontSize: "10px",
+      color: "var(--text-tertiary, #888)",
+      flexShrink: 0,
     },
     stats: {
       fontSize: "12px",
@@ -201,7 +274,7 @@ const SkillMarketPanel: React.FC<SkillMarketPanelProps> = ({ t }) => {
     skillList: {
       flex: 1,
       overflowY: "auto",
-      padding: "16px",
+      padding: "10px",
     },
     skillCard: {
       background: "var(--bg-secondary)",
@@ -229,7 +302,7 @@ const SkillMarketPanel: React.FC<SkillMarketPanelProps> = ({ t }) => {
       marginLeft: "8px",
     },
     installedBadge: {
-      background: "var(--accent-color, #0066cc)",
+      background: "#0066cc",
       color: "white",
       fontSize: "10px",
       padding: "2px 8px",
@@ -270,13 +343,13 @@ const SkillMarketPanel: React.FC<SkillMarketPanelProps> = ({ t }) => {
       border: "none",
     },
     installBtn: {
-      background: "var(--accent-color, #0066cc)",
+      background: "#0066cc",
       color: "white",
     },
     uninstallBtn: {
       background: "transparent",
-      color: "var(--error-color, #dc2626)",
-      border: "1px solid var(--error-color, #dc2626)",
+      color: "#dc2626",
+      border: "1px solid #dc2626",
     },
     updateBtn: {
       background: "#f59e0b",
@@ -355,70 +428,98 @@ const SkillMarketPanel: React.FC<SkillMarketPanelProps> = ({ t }) => {
     );
   }
   return (
-    <div style={styles.container}>
+    <div style={{ ...styles.container, position: "relative" }}>
       <div style={styles.header}>
-        <div style={styles.toolbar}>
+        <div style={styles.searchRow}>
           <button
-            style={styles.updateMarketBtn}
+            ref={categoryButtonRef}
+            style={styles.categoryBtn}
+            onMouseEnter={handleCategoryButtonMouseEnter}
+            onMouseLeave={handleCategoryButtonMouseLeave}
+            title={t("market.filterByCategory") || "分类筛选"}
+          >
+            <CategoryIcon size={16} />
+          </button>
+          <div style={styles.searchInputWrapper}>
+            <input
+              type="text"
+              style={styles.searchInput}
+              placeholder={t("market.searchPlaceholder") || "搜索技能..."}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          <button
+            style={styles.refreshBtn}
             onClick={handleUpdateMarket}
             disabled={updating}
+            title={t("market.updateMarket") || "更新市场"}
           >
-            {updating ? "⟳" : "🔄"} {t("market.updateMarket") || "更新市场"}
+            {updating ? "⟳" : <RefreshIcon size={16} />}
           </button>
-          <button
-            style={styles.configBtn}
-            onClick={() => setShowConfigModal(true)}
-          >
-            ⚙️ {t("market.settings") || "设置"}
-          </button>
-        </div>
-        <input
-          type="text"
-          style={styles.searchInput}
-          placeholder={t("market.searchPlaceholder") || "搜索技能..."}
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
-        <div style={styles.categoryBar}>
-          <button
-            style={{
-              ...styles.categoryChip,
-              background:
-                selectedCategory === "all"
-                  ? "var(--accent-color)"
-                  : "var(--bg-tertiary)",
-              color:
-                selectedCategory === "all" ? "white" : "var(--text-secondary)",
-            }}
-            onClick={() => setSelectedCategory("all")}
-          >
-            {t("market.all") || "全部"} ({skills.length})
-          </button>
-          {categories.map((cat) => (
-            <button
-              key={cat}
-              style={{
-                ...styles.categoryChip,
-                background:
-                  selectedCategory === cat
-                    ? "var(--accent-color)"
-                    : "var(--bg-tertiary)",
-                color:
-                  selectedCategory === cat ? "white" : "var(--text-secondary)",
-              }}
-              onClick={() => setSelectedCategory(cat)}
-            >
-              {cat} ({skills.filter((s) => s.category === cat).length})
-            </button>
-          ))}
-        </div>
-        <div style={styles.stats}>
-          {t("market.stats", {
-            installed: installedCount,
-            total: skills.length,
-          }) || `已安装 ${installedCount} / 共 ${skills.length} 个技能`}
         </div>
       </div>
+      {showCategoryBubble && categories.length > 0 && (
+        <div
+          ref={bubbleRef}
+          style={styles.bubbleContainer}
+          onMouseEnter={handleBubbleMouseEnter}
+          onMouseLeave={handleBubbleMouseLeave}
+        >
+          <div style={styles.bubbleHeader}>
+            {t("market.selectCategory") || "选择分类"}
+          </div>
+          <div style={styles.bubbleContent}>
+            <div
+              style={{
+                ...styles.bubbleItem,
+                ...(selectedCategory === "all" ? styles.bubbleItemActive : {}),
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "var(--hover-bg, #2a2a2a)";
+              }}
+              onMouseLeave={(e) => {
+                if (selectedCategory !== "all") {
+                  e.currentTarget.style.background = "";
+                }
+              }}
+              onClick={() => handleCategorySelect("all")}
+            >
+              <span style={styles.bubbleItemText}>
+                {t("market.all") || "全部"}
+              </span>
+              <span style={styles.bubbleItemCount}>({skills.length})</span>
+            </div>
+            {categories.map((cat) => {
+              const count = skills.filter((s) => s.category === cat).length;
+              return (
+                <div
+                  key={cat}
+                  style={{
+                    ...styles.bubbleItem,
+                    ...(selectedCategory === cat
+                      ? styles.bubbleItemActive
+                      : {}),
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background =
+                      "var(--hover-bg, #2a2a2a)";
+                  }}
+                  onMouseLeave={(e) => {
+                    if (selectedCategory !== cat) {
+                      e.currentTarget.style.background = "";
+                    }
+                  }}
+                  onClick={() => handleCategorySelect(cat)}
+                >
+                  <span style={styles.bubbleItemText}>{cat}</span>
+                  <span style={styles.bubbleItemCount}>({count})</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
       <div style={styles.skillList}>
         {filteredSkills.length === 0 ? (
           <div style={styles.emptyState}>
