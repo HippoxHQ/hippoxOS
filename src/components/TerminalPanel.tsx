@@ -4,7 +4,6 @@ import { ExecutionLog, TaskInfo } from "../type";
 import {
   ClearIcon,
   CollapseIcon,
-  ExpandAllIcon,
   ExpandArrowsIcon,
   TaskQueueIcon,
 } from "../icons";
@@ -59,7 +58,7 @@ const styles = {
     textShadow: "0 0 2px rgba(0, 255, 0, 0.3)",
   },
   welcomeRowHeader: {
-    cursor: "default" as const,
+    cursor: "pointer" as const,
   },
   welcomeStepName: {
     color: "var(--terminal-dim, #888)",
@@ -92,12 +91,9 @@ const styles = {
     zIndex: 10,
   },
   taskListButton: {
-    position: "absolute" as const,
-    left: "12px",
-    top: "12px",
-    width: "40px",
-    height: "40px",
-    borderRadius: "20px",
+    width: "34px",
+    height: "34px",
+    borderRadius: "8px",
     background: "var(--bg-tertiary, #2d2d2d)",
     border: "1px solid var(--border-color, #444)",
     color: "var(--text-secondary, #aaa)",
@@ -107,8 +103,7 @@ const styles = {
     justifyContent: "center",
     fontSize: "16px",
     transition: "all 0.2s",
-    backdropFilter: "blur(4px)",
-    zIndex: 10,
+    flexShrink: 0,
   },
   scrollButton: {
     width: "32px",
@@ -127,8 +122,8 @@ const styles = {
   },
   bubbleContainer: {
     position: "absolute" as const,
-    left: "52px",
-    top: "12px",
+    right: "0px",
+    top: "40px",
     minWidth: "300px",
     maxWidth: "360px",
     maxHeight: "600px",
@@ -163,10 +158,6 @@ const styles = {
     alignItems: "center",
     gap: "8px",
   },
-  bubbleItemHover: {
-    background: "var(--hover-bg, #2a2a2a)",
-    borderLeftColor: "var(--accent-color, #00aaff)",
-  },
   bubbleItemActive: {
     background: "var(--hover-bg, #2a2a2a)",
     borderLeftColor: "var(--accent-color, #00aaff)",
@@ -189,6 +180,8 @@ const styles = {
   },
 };
 
+const WELCOME_TASK_ID = "welcome";
+
 const TerminalPanel: React.FC<TerminalPanelProps> = ({
   logs,
   onClearLogs,
@@ -206,41 +199,74 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
   const [showBubble, setShowBubble] = useState(false);
   const bubbleTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [allExpanded, setAllExpanded] = useState(true);
+  const buttonRef = useRef<HTMLDivElement>(null);
+  const [bubblePosition, setBubblePosition] = useState({ right: 0, top: 0 });
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const allTasks = [
+    {
+      task_id: WELCOME_TASK_ID,
+      session_id: "welcome",
+      user_input: "🎉 Hippox AI Runtime 已启动",
+      status: "completed",
+      steps: [],
+      final_output: "",
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    } as TaskInfo,
+    ...activeTasks,
+  ];
+
+  const updateBubblePosition = useCallback(() => {
+    if (buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      const panelRect = buttonRef.current
+        .closest(".terminal-panel")
+        ?.getBoundingClientRect();
+      if (panelRect) {
+        setBubblePosition({
+          right: panelRect.right - rect.right,
+          top: rect.bottom - panelRect.top + 4,
+        });
+      }
+    }
+  }, []);
+
   const toggleAllTasks = () => {
     if (allExpanded) {
       setExpandedTasks(new Set());
+      setAllExpanded(false);
     } else {
-      const allTaskIds = new Set(activeTasks.map((task) => task.task_id));
+      const allTaskIds = new Set(allTasks.map((task) => task.task_id));
       setExpandedTasks(allTaskIds);
+      setAllExpanded(true);
     }
-    setAllExpanded(!allExpanded);
   };
+
   useEffect(() => {
-    const newExpanded = new Set(expandedTasks);
-    activeTasks.forEach((task) => {
-      if (!expandedTasks.has(task.task_id)) {
-        newExpanded.add(task.task_id);
-      }
-    });
-    setExpandedTasks(newExpanded);
-  }, [activeTasks]);
+    const allTaskIds = new Set(allTasks.map((task) => task.task_id));
+    setExpandedTasks(allTaskIds);
+  }, []);
+
   useEffect(() => {
     if (autoScroll && terminalRef.current) {
       terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
     }
-  }, [activeTasks, autoScroll]);
+  }, [allTasks, autoScroll]);
+
   const checkScrollPosition = useCallback(() => {
     if (!terminalRef.current) return;
     const { scrollTop, scrollHeight, clientHeight } = terminalRef.current;
     setShowScrollTop(scrollTop > 100);
     setShowScrollBottom(scrollHeight - scrollTop - clientHeight > 50);
   }, []);
+
   const updateActiveNavOnScroll = useCallback(() => {
-    if (!terminalRef.current || activeTasks.length === 0) return;
+    if (!terminalRef.current || allTasks.length === 0) return;
     const containerRect = terminalRef.current.getBoundingClientRect();
     let closestIndex = -1;
     let minDistance = Infinity;
-    activeTasks.forEach((task, idx) => {
+    allTasks.forEach((task, idx) => {
       const taskElement = taskRefs.current.get(task.task_id);
       if (taskElement) {
         const rect = taskElement.getBoundingClientRect();
@@ -252,7 +278,8 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
       }
     });
     setActiveNavIndex(closestIndex);
-  }, [activeTasks]);
+  }, [allTasks]);
+
   const handleScroll = () => {
     if (!terminalRef.current) return;
     const { scrollTop, scrollHeight, clientHeight } = terminalRef.current;
@@ -261,6 +288,7 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
     checkScrollPosition();
     updateActiveNavOnScroll();
   };
+
   useEffect(() => {
     const element = terminalRef.current;
     if (element) {
@@ -269,14 +297,17 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
       return () => element.removeEventListener("scroll", handleScroll);
     }
   }, [checkScrollPosition]);
+
   useEffect(() => {
     updateActiveNavOnScroll();
-  }, [activeTasks, updateActiveNavOnScroll]);
+  }, [allTasks, updateActiveNavOnScroll]);
+
   const handleClearLogs = async () => {
     await hippoxCommands.clearLogs();
     onClearLogs();
     logToConsole("info", "Terminal logs cleared");
   };
+
   const toggleTaskExpand = (taskId: string) => {
     setExpandedTasks((prev) => {
       const newSet = new Set(prev);
@@ -285,9 +316,20 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
       } else {
         newSet.add(taskId);
       }
+      const allTasksExpanded = allTasks.every((task) =>
+        newSet.has(task.task_id),
+      );
+      setAllExpanded(allTasksExpanded);
       return newSet;
     });
   };
+
+  useEffect(() => {
+    const allTaskIds = new Set(allTasks.map((task) => task.task_id));
+    setExpandedTasks(allTaskIds);
+    setAllExpanded(true);
+  }, []);
+
   const scrollToTop = () => {
     if (terminalRef.current) {
       terminalRef.current.scrollTo({ top: 0, behavior: "auto" });
@@ -297,6 +339,7 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
       }, 100);
     }
   };
+
   const scrollToBottom = () => {
     if (terminalRef.current) {
       terminalRef.current.scrollTo({
@@ -306,8 +349,9 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
       setAutoScroll(true);
     }
   };
+
   const scrollToTask = (index: number) => {
-    const task = activeTasks[index];
+    const task = allTasks[index];
     if (task && taskRefs.current.has(task.task_id)) {
       taskRefs.current.get(task.task_id)?.scrollIntoView({
         behavior: "auto",
@@ -321,22 +365,27 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
       }, 100);
     }
   };
+
   const handleButtonMouseEnter = () => {
     if (bubbleTimerRef.current) {
       clearTimeout(bubbleTimerRef.current);
     }
+    updateBubblePosition();
     setShowBubble(true);
   };
+
   const handleButtonMouseLeave = () => {
     bubbleTimerRef.current = setTimeout(() => {
       setShowBubble(false);
     }, 200);
   };
+
   const handleBubbleMouseEnter = () => {
     if (bubbleTimerRef.current) {
       clearTimeout(bubbleTimerRef.current);
     }
   };
+
   const handleBubbleMouseLeave = () => {
     setShowBubble(false);
   };
@@ -404,78 +453,92 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
 
   const renderWelcomeMessage = () => {
     const welcomeTime = new Date().toLocaleTimeString();
+    const isExpanded = expandedTasks.has(WELCOME_TASK_ID);
     return (
-      <div className="task-row welcome-row">
-        <div className="task-row-header" style={styles.welcomeRowHeader}>
-          <span className="task-expand-icon">▼</span>
+      <div
+        key={WELCOME_TASK_ID}
+        className="task-row welcome-row"
+        ref={(el) => {
+          if (el) taskRefs.current.set(WELCOME_TASK_ID, el);
+          else taskRefs.current.delete(WELCOME_TASK_ID);
+        }}
+      >
+        <div
+          className="task-row-header"
+          style={styles.welcomeRowHeader}
+          onClick={() => toggleTaskExpand(WELCOME_TASK_ID)}
+        >
+          <span className="task-expand-icon">{isExpanded ? "▼" : "▶"}</span>
           <span className="task-status-icon">🦛</span>
           <span className="task-time">[{welcomeTime}]</span>
           <span className="task-input">🎉 {t("terminal.welcome.title")}</span>
           <span className="task-status-text">ready</span>
         </div>
-        <div className="task-steps welcome-steps">
-          <div className="task-step">
-            <span className="step-indent"> </span>
-            <span className="step-icon">🚀</span>
-            <span className="step-name" style={styles.welcomeStepName}>
-              {t("terminal.welcome.subtitle")}
-            </span>
-          </div>
-          <div className="step-output ascii-art" style={styles.asciiArt}>
-            <pre style={styles.asciiPre}>{HIPPOX_ASCII_LOGO}</pre>
-          </div>
-          <div className="task-step">
-            <span className="step-indent"> </span>
-            <span className="step-icon">💡</span>
-            <span className="step-name" style={styles.welcomeStepName}>
-              {t("terminal.welcome.status")}
-            </span>
-          </div>
-          <div className="task-step">
-            <span className="step-indent"> </span>
-            <span className="step-icon">📝</span>
-            <span className="step-name" style={styles.welcomeStepName}>
-              {t("terminal.welcome.commands")}
-            </span>
-          </div>
-          <div className="task-step">
-            <span className="step-indent"> </span>
-            <span className="step-icon">⚙️</span>
-            <span className="step-name" style={styles.welcomeStepName}>
-              {t("terminal.welcome.workflow")}
-            </span>
-          </div>
-          <div className="task-step" style={styles.linksContainer}>
-            <span className="step-indent"> </span>
-            <span className="step-icon">🔗</span>
-            <span className="step-name" style={styles.welcomeStepName}>
-              <span
-                onMouseEnter={() => setHoveredLink("github")}
-                onMouseLeave={() => setHoveredLink(null)}
-                onClick={() => handleLinkClick("https://github.com/HippoxHQ")}
-                style={getLinkStyle("github")}
-              >
-                GitHub
+        {isExpanded && (
+          <div className="task-steps welcome-steps">
+            <div className="task-step">
+              <span className="step-indent"> </span>
+              <span className="step-icon">🚀</span>
+              <span className="step-name" style={styles.welcomeStepName}>
+                {t("terminal.welcome.subtitle")}
               </span>
-              <span
-                onMouseEnter={() => setHoveredLink("website")}
-                onMouseLeave={() => setHoveredLink(null)}
-                onClick={() => handleLinkClick("https://hippox.vercel.app/")}
-                style={getLinkStyle("website")}
-              >
-                Website
+            </div>
+            <div className="step-output ascii-art" style={styles.asciiArt}>
+              <pre style={styles.asciiPre}>{HIPPOX_ASCII_LOGO}</pre>
+            </div>
+            <div className="task-step">
+              <span className="step-indent"> </span>
+              <span className="step-icon">💡</span>
+              <span className="step-name" style={styles.welcomeStepName}>
+                {t("terminal.welcome.status")}
               </span>
-              <span
-                onMouseEnter={() => setHoveredLink("x")}
-                onMouseLeave={() => setHoveredLink(null)}
-                onClick={() => handleLinkClick("https://x.com/HippoxAI")}
-                style={getLinkStyle("x")}
-              >
-                X (Twitter)
+            </div>
+            <div className="task-step">
+              <span className="step-indent"> </span>
+              <span className="step-icon">📝</span>
+              <span className="step-name" style={styles.welcomeStepName}>
+                {t("terminal.welcome.commands")}
               </span>
-            </span>
+            </div>
+            <div className="task-step">
+              <span className="step-indent"> </span>
+              <span className="step-icon">⚙️</span>
+              <span className="step-name" style={styles.welcomeStepName}>
+                {t("terminal.welcome.workflow")}
+              </span>
+            </div>
+            <div className="task-step" style={styles.linksContainer}>
+              <span className="step-indent"> </span>
+              <span className="step-icon">🔗</span>
+              <span className="step-name" style={styles.welcomeStepName}>
+                <span
+                  onMouseEnter={() => setHoveredLink("github")}
+                  onMouseLeave={() => setHoveredLink(null)}
+                  onClick={() => handleLinkClick("https://github.com/HippoxHQ")}
+                  style={getLinkStyle("github")}
+                >
+                  GitHub
+                </span>
+                <span
+                  onMouseEnter={() => setHoveredLink("website")}
+                  onMouseLeave={() => setHoveredLink(null)}
+                  onClick={() => handleLinkClick("https://hippox.vercel.app/")}
+                  style={getLinkStyle("website")}
+                >
+                  Website
+                </span>
+                <span
+                  onMouseEnter={() => setHoveredLink("x")}
+                  onMouseLeave={() => setHoveredLink(null)}
+                  onClick={() => handleLinkClick("https://x.com/HippoxAI")}
+                  style={getLinkStyle("x")}
+                >
+                  X (Twitter)
+                </span>
+              </span>
+            </div>
           </div>
-        </div>
+        )}
         <div className="task-separator"></div>
       </div>
     );
@@ -541,18 +604,6 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
                 >
                   {step.status}
                 </span>
-                {/* {step.output && (
-                  <div className="step-output">
-                    <span className="step-indent"> </span>
-                    <span className="output-text">{step.output}</span>
-                  </div>
-                )}
-                {step.error && (
-                  <div className="step-error">
-                    <span className="step-indent"> </span>
-                    <span className="error-text">❌ {step.error}</span>
-                  </div>
-                )} */}
               </div>
             ))}
           </div>
@@ -575,10 +626,11 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
       </div>
     );
   };
+
   return (
     <div
       className="terminal-panel"
-      style={{ position: "relative", height: "100%" }}
+      style={{ position: "relative", height: "100%", overflow: "visible" }}
     >
       <div className="panel-header">
         <div className="header-title">
@@ -589,24 +641,36 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
               ` (${activeTasks.filter((t) => t.status === "running").length} running)`}
           </span>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          {activeTasks.length > 0 && (
-            <button
-              className="clear-logs-btn"
-              onClick={toggleAllTasks}
-              title={
-                allExpanded
-                  ? t("terminal.collapseAll")
-                  : t("terminal.expandAll")
-              }
-            >
-              {allExpanded ? (
-                <ExpandArrowsIcon size={18} />
-              ) : (
-                <CollapseIcon size={18} />
-              )}
-            </button>
-          )}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            position: "relative",
+          }}
+        >
+          <div
+            ref={buttonRef}
+            style={styles.taskListButton}
+            onMouseEnter={handleButtonMouseEnter}
+            onMouseLeave={handleButtonMouseLeave}
+          >
+            <TaskQueueIcon size={16} />
+          </div>
+
+          <button
+            className="clear-logs-btn"
+            onClick={toggleAllTasks}
+            title={
+              allExpanded ? t("terminal.collapseAll") : t("terminal.expandAll")
+            }
+          >
+            {allExpanded ? (
+              <ExpandArrowsIcon size={18} />
+            ) : (
+              <CollapseIcon size={18} />
+            )}
+          </button>
           <button
             className="clear-logs-btn"
             onClick={handleClearLogs}
@@ -616,9 +680,14 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
           </button>
         </div>
       </div>
+
       <div
         className="terminal-content-wrapper"
-        style={{ position: "relative", height: "calc(100% - 48px)" }}
+        style={{
+          position: "relative",
+          height: "calc(100% - 48px)",
+          overflow: "visible",
+        }}
       >
         <div
           className="terminal-content"
@@ -627,75 +696,13 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
           style={{
             height: "100%",
             overflowY: "auto",
-            paddingLeft: "55px",
+            paddingLeft: "16px",
             paddingRight: "40px",
           }}
         >
-          {activeTasks.length === 0
-            ? renderWelcomeMessage()
-            : activeTasks.map((task, idx) => renderTaskRow(task, idx))}
+          {renderWelcomeMessage()}
+          {activeTasks.map((task, idx) => renderTaskRow(task, idx))}
         </div>
-        {activeTasks.length > 0 && (
-          <div
-            style={styles.taskListButton}
-            onMouseEnter={handleButtonMouseEnter}
-            onMouseLeave={handleButtonMouseLeave}
-          >
-            <TaskQueueIcon size={16} />
-          </div>
-        )}
-        {showBubble && activeTasks.length > 0 && (
-          <div
-            style={styles.bubbleContainer}
-            onMouseEnter={handleBubbleMouseEnter}
-            onMouseLeave={handleBubbleMouseLeave}
-          >
-            <div style={styles.bubbleHeader}>
-              {t("terminal.taskList") || "任务列表"} ({activeTasks.length})
-            </div>
-            <div style={styles.bubbleContent}>
-              {activeTasks.map((task, idx) => {
-                const isActive = activeNavIndex === idx;
-                const preview =
-                  task.user_input.length > 45
-                    ? task.user_input.substring(0, 45) + "..."
-                    : task.user_input;
-                return (
-                  <div
-                    key={task.task_id}
-                    style={{
-                      ...styles.bubbleItem,
-                      ...(isActive ? styles.bubbleItemActive : {}),
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background =
-                        "var(--hover-bg, #2a2a2a)";
-                      e.currentTarget.style.borderLeftColor =
-                        "var(--accent-color, #00aaff)";
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!isActive) {
-                        e.currentTarget.style.background = "";
-                        e.currentTarget.style.borderLeftColor = "transparent";
-                      }
-                    }}
-                    onClick={() => scrollToTask(idx)}
-                  >
-                    <span style={styles.bubbleItemIcon}>
-                      {getTaskStatusIcon(task.status)}
-                    </span>
-                    <span style={styles.bubbleItemText} title={task.user_input}>
-                      {preview}
-                    </span>
-                    <span style={styles.bubbleItemStatus}>
-                      {getTaskStatusText(task.status)}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
         <div style={styles.scrollButtonsContainer}>
           {showScrollTop && (
             <button
@@ -735,6 +742,65 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
           )}
         </div>
       </div>
+      {showBubble && allTasks.length > 0 && (
+        <div
+          style={{
+            ...styles.bubbleContainer,
+            position: "fixed",
+            right: `${window.innerWidth - (buttonRef.current?.getBoundingClientRect().right ?? 0)}px`,
+            top: `${(buttonRef.current?.getBoundingClientRect().bottom ?? 0) + 4}px`,
+          }}
+          onMouseEnter={handleBubbleMouseEnter}
+          onMouseLeave={handleBubbleMouseLeave}
+        >
+          <div style={styles.bubbleHeader}>
+            {t("terminal.taskList") || "任务列表"} ({allTasks.length})
+          </div>
+          <div style={styles.bubbleContent}>
+            {allTasks.map((task, idx) => {
+              const isActive = activeNavIndex === idx;
+              const preview =
+                task.task_id === WELCOME_TASK_ID
+                  ? "🎉 Hippox AI Runtime 已启动"
+                  : task.user_input.length > 45
+                    ? task.user_input.substring(0, 45) + "..."
+                    : task.user_input;
+              return (
+                <div
+                  key={task.task_id}
+                  style={{
+                    ...styles.bubbleItem,
+                    ...(isActive ? styles.bubbleItemActive : {}),
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background =
+                      "var(--hover-bg, #2a2a2a)";
+                    e.currentTarget.style.borderLeftColor =
+                      "var(--accent-color, #00aaff)";
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isActive) {
+                      e.currentTarget.style.background = "";
+                      e.currentTarget.style.borderLeftColor = "transparent";
+                    }
+                  }}
+                  onClick={() => scrollToTask(idx)}
+                >
+                  <span style={styles.bubbleItemIcon}>
+                    {getTaskStatusIcon(task.status)}
+                  </span>
+                  <span style={styles.bubbleItemText} title={preview}>
+                    {preview}
+                  </span>
+                  <span style={styles.bubbleItemStatus}>
+                    {getTaskStatusText(task.status)}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
