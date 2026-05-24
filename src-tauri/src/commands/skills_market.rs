@@ -1,0 +1,379 @@
+use serde::{Deserialize, Serialize};
+use std::fs;
+use std::path::{Path, PathBuf};
+use std::process::Command;
+use tauri::command;
+
+use super::paths::{get_app_root_dir, get_skills_market_dir};
+
+const SKILLS_MARKET_REPO_URL: &str = "https://github.com/HippoxHQ/skills-market.git";
+const MARKET_CONFIG_FILE: &str = "market_config.json";
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MarketSkill {
+    pub id: String,
+    pub name: String,
+    pub description: String,
+    pub category: String,
+    pub version: String,
+    pub author: String,
+    pub installed: bool,
+    pub installed_version: Option<String>,
+    pub local_path: Option<String>,
+    pub readme: Option<String>,
+    pub parameters: Vec<SkillParameterInfo>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SkillParameterInfo {
+    pub name: String,
+    pub param_type: String,
+    pub description: String,
+    pub required: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MarketConfig {
+    pub repo_url: String,
+    pub branch: String,
+    pub last_update: Option<String>,
+}
+
+impl Default for MarketConfig {
+    fn default() -> Self {
+        Self {
+            repo_url: SKILLS_MARKET_REPO_URL.to_string(),
+            branch: "main".to_string(),
+            last_update: None,
+        }
+    }
+}
+
+fn get_market_config_path() -> PathBuf {
+    get_skills_market_dir().join(MARKET_CONFIG_FILE)
+}
+
+fn load_market_config() -> MarketConfig {
+    let config_path = get_market_config_path();
+    if config_path.exists() {
+        if let Ok(content) = fs::read_to_string(&config_path) {
+            if let Ok(config) = serde_json::from_str(&content) {
+                return config;
+            }
+        }
+    }
+    MarketConfig::default()
+}
+
+fn save_market_config(config: &MarketConfig) -> Result<(), String> {
+    let config_path = get_market_config_path();
+    let content = serde_json::to_string_pretty(config)
+        .map_err(|e| format!("Failed to serialize market config: {}", e))?;
+    fs::write(&config_path, content).map_err(|e| format!("Failed to save market config: {}", e))?;
+    Ok(())
+}
+
+/// Parse SKILL.md frontmatter
+fn parse_skill_markdown(content: &str, skill_name: &str) -> Option<MarketSkill> {
+    let mut name = skill_name.to_string();
+    let mut description = String::new();
+    let mut category = String::new();
+    let mut version = "0.1.0".to_string();
+    let mut author = "Unknown".to_string();
+    let mut parameters = Vec::new();
+    let mut readme = String::new();
+    if content.starts_with("---") {
+        if let Some(end_idx) = content[3..].find("---") {
+            let frontmatter = &content[3..3 + end_idx];
+            let body = &content[3 + end_idx + 3..];
+            for line in frontmatter.lines() {
+                if let Some(colon_idx) = line.find(':') {
+                    let key = line[..colon_idx].trim();
+                    let value = line[colon_idx + 1..].trim();
+                    match key {
+                        "name" => name = value.to_string(),
+                        "description" => description = value.to_string(),
+                        "category" => category = value.to_string(),
+                        "version" => version = value.to_string(),
+                        "author" => author = value.to_string(),
+                        _ => {}
+                    }
+                }
+            }
+            readme = body.trim().to_string();
+            // Parse parameters from frontmatter
+            if let Some(params_start) = frontmatter.find("parameters:") {
+                let params_section = &frontmatter[params_start + 11..];
+                if let Some(first_line) = params_section.lines().next() {
+                    if first_line.trim() == "[" || first_line.contains('-') {
+                        for line in params_section.lines() {
+                            if line.trim().starts_with('-') {
+                                if let Some(param_name) = line.trim().strip_prefix('-') {
+                                    let param_name = param_name.trim();
+                                    parameters.push(SkillParameterInfo {
+                                        name: param_name.to_string(),
+                                        param_type: "string".to_string(),
+                                        description: String::new(),
+                                        required: false,
+                                    });
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    } else {
+        // No frontmatter, use first line as description
+        readme = content.to_string();
+        description = content.lines().next().unwrap_or("").to_string();
+    }
+    if name.is_empty() {
+        return None;
+    }
+    Some(MarketSkill {
+        id: skill_name.to_string(),
+        name,
+        description: description.chars().take(200).collect(),
+        category: if category.is_empty() {
+            "general".to_string()
+        } else {
+            category
+        },
+        version,
+        author,
+        installed: false,
+        installed_version: None,
+        local_path: None,
+        readme: Some(readme.chars().take(2000).collect()),
+        parameters,
+    })
+}
+
+/// Scan skills from a directory (Git repo or local)
+fn scan_skills_from_dir(dir_path: &Path) -> Vec<MarketSkill> {
+    let mut skills = Vec::new();
+    if !dir_path.exists() {
+        return skills;
+    }
+    if let Ok(entries) = fs::read_dir(dir_path) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_dir() {
+                let skill_name = path
+                    .file_name()
+                    .unwrap_or_default()
+                    .to_string_lossy()
+                    .to_string();
+                let skill_md_path = path.join("SKILL.md");
+                if skill_md_path.exists() {
+                    if let Ok(content) = fs::read_to_string(&skill_md_path) {
+                        if let Some(mut skill) = parse_skill_markdown(&content, &skill_name) {
+                            skill.local_path = Some(skill_md_path.to_string_lossy().to_string());
+                            skills.push(skill);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    skills
+}
+
+/// Clone or update skills market repository
+#[command]
+pub async fn update_skills_market() -> Result<Vec<MarketSkill>, String> {
+    let market_dir = get_skills_market_dir();
+    let git_dir = market_dir.join(".git");
+    let config = load_market_config();
+    let repo_url = &config.repo_url;
+    let branch = &config.branch;
+    // Ensure directory exists
+    if !market_dir.exists() {
+        fs::create_dir_all(&market_dir)
+            .map_err(|e| format!("Failed to create skills market directory: {}", e))?;
+    }
+    // Clone or pull
+    if !git_dir.exists() {
+        // Clone repository
+        let output = Command::new("git")
+            .args([
+                "clone",
+                "--branch",
+                branch,
+                repo_url,
+                market_dir.to_str().unwrap(),
+            ])
+            .output()
+            .map_err(|e| format!("Git clone failed: {}. Is git installed?", e))?;
+
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            return Err(format!("Failed to clone repository: {}", stderr));
+        }
+    } else {
+        // Pull updates
+        let output = Command::new("git")
+            .current_dir(&market_dir)
+            .args(["pull", "origin", branch])
+            .output()
+            .map_err(|e| format!("Git pull failed: {}", e))?;
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            return Err(format!("Failed to pull updates: {}", stderr));
+        }
+    }
+    // Update last_update timestamp
+    let mut updated_config = config;
+    updated_config.last_update = Some(chrono::Local::now().to_rfc3339());
+    save_market_config(&updated_config)?;
+    // Scan and return skills
+    let mut skills = scan_skills_from_dir(&market_dir);
+    // Check installation status
+    let local_skills_dir = get_app_root_dir().join("skills");
+    for skill in &mut skills {
+        let skill_dir = local_skills_dir.join(&skill.id);
+        if skill_dir.exists() && skill_dir.join("SKILL.md").exists() {
+            skill.installed = true;
+            if let Ok(content) = fs::read_to_string(skill_dir.join("SKILL.md")) {
+                if let Some(installed_skill) = parse_skill_markdown(&content, &skill.id) {
+                    skill.installed_version = Some(installed_skill.version);
+                }
+            }
+        }
+    }
+    Ok(skills)
+}
+
+/// Get all available skills from market (without updating)
+#[command]
+pub async fn get_market_skills() -> Result<Vec<MarketSkill>, String> {
+    let market_dir = get_skills_market_dir();
+
+    if !market_dir.exists() || !market_dir.join(".git").exists() {
+        return Ok(vec![]);
+    }
+
+    let mut skills = scan_skills_from_dir(&market_dir);
+
+    // Check installation status
+    let local_skills_dir = get_app_root_dir().join("skills");
+    for skill in &mut skills {
+        let skill_dir = local_skills_dir.join(&skill.id);
+        if skill_dir.exists() && skill_dir.join("SKILL.md").exists() {
+            skill.installed = true;
+            if let Ok(content) = fs::read_to_string(skill_dir.join("SKILL.md")) {
+                if let Some(installed_skill) = parse_skill_markdown(&content, &skill.id) {
+                    skill.installed_version = Some(installed_skill.version);
+                }
+            }
+        }
+    }
+
+    Ok(skills)
+}
+
+/// Install a skill from market
+#[command]
+pub async fn install_skill(skill_id: String) -> Result<bool, String> {
+    let market_dir = get_skills_market_dir();
+    let source_skill_dir = market_dir.join(&skill_id);
+    let source_skill_md = source_skill_dir.join("SKILL.md");
+
+    if !source_skill_md.exists() {
+        return Err(format!("Skill '{}' not found in market", skill_id));
+    }
+
+    let local_skills_dir = get_app_root_dir().join("skills");
+    if !local_skills_dir.exists() {
+        fs::create_dir_all(&local_skills_dir)
+            .map_err(|e| format!("Failed to create skills directory: {}", e))?;
+    }
+
+    let target_skill_dir = local_skills_dir.join(&skill_id);
+    if target_skill_dir.exists() {
+        // Remove existing
+        fs::remove_dir_all(&target_skill_dir)
+            .map_err(|e| format!("Failed to remove existing skill: {}", e))?;
+    }
+
+    // Copy entire skill folder
+    let copy_options = fs_extra::dir::CopyOptions::new()
+        .overwrite(true)
+        .copy_inside(true);
+    fs_extra::dir::copy(&source_skill_dir, &local_skills_dir, &copy_options)
+        .map_err(|e| format!("Failed to copy skill: {}", e))?;
+
+    Ok(true)
+}
+
+/// Uninstall a skill
+#[command]
+pub async fn uninstall_skill(skill_id: String) -> Result<bool, String> {
+    let local_skills_dir = get_app_root_dir().join("skills").join(&skill_id);
+    if local_skills_dir.exists() {
+        fs::remove_dir_all(&local_skills_dir)
+            .map_err(|e| format!("Failed to uninstall skill: {}", e))?;
+    }
+    Ok(true)
+}
+
+/// Update a specific skill (reinstall from market)
+#[command]
+pub async fn update_skill(skill_id: String) -> Result<bool, String> {
+    // First ensure market is up to date
+    update_skills_market().await?;
+    // Then reinstall
+    install_skill(skill_id).await
+}
+
+/// Get market config
+#[command]
+pub async fn get_market_config() -> Result<MarketConfig, String> {
+    Ok(load_market_config())
+}
+
+/// Update market config (change repo URL)
+#[command]
+pub async fn update_market_config(repo_url: String, branch: String) -> Result<(), String> {
+    let config = MarketConfig {
+        repo_url,
+        branch,
+        last_update: None,
+    };
+    save_market_config(&config)?;
+    Ok(())
+}
+
+/// Get installed skills list
+#[command]
+pub async fn get_installed_skills() -> Result<Vec<MarketSkill>, String> {
+    let local_skills_dir = get_app_root_dir().join("skills");
+    let mut skills = Vec::new();
+    if !local_skills_dir.exists() {
+        return Ok(skills);
+    }
+    if let Ok(entries) = fs::read_dir(&local_skills_dir) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_dir() {
+                let skill_id = path
+                    .file_name()
+                    .unwrap_or_default()
+                    .to_string_lossy()
+                    .to_string();
+                let skill_md_path = path.join("SKILL.md");
+                if skill_md_path.exists() {
+                    if let Ok(content) = fs::read_to_string(&skill_md_path) {
+                        if let Some(mut skill) = parse_skill_markdown(&content, &skill_id) {
+                            skill.installed = true;
+                            skill.local_path = Some(skill_md_path.to_string_lossy().to_string());
+                            skills.push(skill);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    Ok(skills)
+}

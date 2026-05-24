@@ -4,7 +4,6 @@ mod common;
 
 use commands::AppStateWithChat;
 use std::path::PathBuf;
-
 use crate::common::init_default_settings;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -26,6 +25,22 @@ pub fn run() {
     }
     tokio::runtime::Runtime::new().unwrap().block_on(async {
         let _ = commands::load_config_from_file().await;
+    });
+    let rt = tokio::runtime::Runtime::new().unwrap();
+    rt.spawn(async {
+        let market_dir = commands::get_skills_market_dir();
+        if !market_dir.exists() || !market_dir.join(".git").exists() {
+            println!("🔄 Initializing skills market...");
+            match commands::update_skills_market().await {
+                Ok(skills) => println!(
+                    "✅ Skills market initialized: {} skills found",
+                    skills.len()
+                ),
+                Err(e) => eprintln!("❌ Failed to initialize skills market: {}", e),
+            }
+        } else {
+            println!("✅ Skills market already exists");
+        }
     });
     tauri::Builder::default()
         .manage(AppStateWithChat::new())
@@ -80,6 +95,14 @@ pub fn run() {
             commands::save_settings_language,
             commands::get_settings_theme,
             commands::save_settings_theme,
+            commands::update_skills_market,
+            commands::get_market_skills,
+            commands::install_skill,
+            commands::uninstall_skill,
+            commands::update_skill,
+            commands::get_market_config,
+            commands::update_market_config,
+            commands::get_installed_skills,
         ])
         .setup(|app| {
             if cfg!(debug_assertions) {

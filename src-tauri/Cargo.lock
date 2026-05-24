@@ -9,6 +9,7 @@ dependencies = [
  "async-trait",
  "chrono",
  "dirs 6.0.0",
+ "fs_extra",
  "hippox",
  "log",
  "once_cell",
