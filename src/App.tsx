@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import ChatPanel from "./components/ChatPanel";
 import ResizablePanels from "./components/ResizablePanels";
 import Sidebar from "./components/Sidebar";
@@ -139,7 +139,7 @@ function App() {
       setChatMessages(initialChat);
       setCurrentSessionTasks([]);
       setActiveTasks(new Map());
-      setMenuPanelView(null);
+      window.dispatchEvent(new CustomEvent("session-created"));
     } catch (error) {
       console.error("Failed to create new session:", error);
     }
@@ -302,7 +302,6 @@ function App() {
       unlistenFailed.then((fn) => fn());
     };
   }, [language]);
-
   useEffect(() => {
     const loadTasks = async () => {
       try {
@@ -317,7 +316,6 @@ function App() {
     };
     loadTasks();
   }, [language]);
-
   useEffect(() => {
     if (currentSessionId === "default") {
       setChatMessages([
@@ -333,7 +331,6 @@ function App() {
       ]);
     }
   }, [language, currentSessionId]);
-
   useEffect(() => {
     const loadLogs = async () => {
       try {
@@ -355,7 +352,6 @@ function App() {
     const interval = setInterval(loadLogs, 3000);
     return () => clearInterval(interval);
   }, []);
-
   const handleMenuClick = (view: string, subView?: string) => {
     if (view === "settings") {
       setMenuPanelView("settings");
@@ -366,15 +362,12 @@ function App() {
       setMenuPanelView(view as MenuPanelView);
     }
   };
-
   const closeMenuPanel = () => {
     setMenuPanelView(null);
   };
-
   const handleSaveConfig = async (config: any) => {
     console.log("config saved:", config);
   };
-
   const handleSendMessage = async (userMessage: string) => {
     const userMsg: ChatMessage = {
       id: Date.now().toString(),
@@ -419,7 +412,6 @@ function App() {
       setChatMessages((prev) => [...prev, errorMsg]);
     }
   };
-
   const clearLogs = async () => {
     try {
       await hippoxCommands.clearLogs();
@@ -428,7 +420,6 @@ function App() {
       console.error("clear logs error:", error);
     }
   };
-
   const resetSession = async () => {
     try {
       await hippoxCommands.resetSession();
@@ -449,21 +440,17 @@ function App() {
       console.error("reset session error:", error);
     }
   };
-
   const toggleTheme = () => {
     setTheme((prev) => (prev === "dark" ? "light" : "dark"));
   };
-
   const toggleLanguage = async () => {
     const newLang = language === "zh" ? "en" : "zh";
     setLanguage(newLang);
     await hippoxCommands.setLanguage(newLang);
   };
-
   const toggleSidebar = () => {
     setSidebarCollapsed((prev) => !prev);
   };
-
   if (isInitializing) {
     return (
       <div
@@ -479,7 +466,6 @@ function App() {
       </div>
     );
   }
-
   return (
     <div className="App">
       <TopBar

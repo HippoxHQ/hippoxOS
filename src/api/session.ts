@@ -62,4 +62,12 @@ export const sessionCommands = {
         }
         return null;
     },
+
+    async updatePinnedSessions(sessionId: string, pinned: boolean): Promise<string[]> {
+        return await invoke('update_pinned_sessions', { sessionId, pinned });
+    },
+
+    async getPinnedSessions(): Promise<string[]> {
+        return await invoke('get_pinned_sessions');
+    },
 };

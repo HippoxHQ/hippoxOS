@@ -1,5 +1,6 @@
 use chrono::Local;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::fs::{self, File};
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -113,6 +114,32 @@ pub fn init_directories() -> Result<(), String> {
             fs::create_dir_all(&dir)
                 .map_err(|e| format!("Failed to create directory {:?}: {}", dir, e))?;
         }
+    }
+    Ok(())
+}
+
+/// Initialize settings/config.json file
+pub fn init_settings_config() -> Result<(), String> {
+    let settings_dir = get_settings_dir();
+    if !settings_dir.exists() {
+        fs::create_dir_all(&settings_dir)
+            .map_err(|e| format!("Failed to create settings directory: {}", e))?;
+    }
+    let config_path = settings_dir.join("config.json");
+    if !config_path.exists() {
+        let default_config = serde_json::json!({
+            "dialog_history": {
+                "pinned_sessions": [],
+                "sort_by": "updated_at",
+                "sort_order": "desc",
+                "page_size": 50,
+                "expanded_categories": []
+            }
+        });
+        let content = serde_json::to_string_pretty(&default_config)
+            .map_err(|e| format!("Failed to serialize default config: {}", e))?;
+        fs::write(&config_path, content)
+            .map_err(|e| format!("Failed to write default config: {}", e))?;
     }
     Ok(())
 }
@@ -262,7 +289,6 @@ pub fn save_internal_setting(setting_dir: &Path, key: &str, data: &str) -> Resul
 /// Load internal setting from config directory
 pub fn load_internal_setting(setting_dir: &Path, key: &str) -> Result<Option<String>, String> {
     let file_path = setting_dir.join(format!("{}.json", key));
-
     if file_path.exists() {
         let content =
             fs::read_to_string(&file_path).map_err(|e| format!("Failed to read setting: {}", e))?;
@@ -270,6 +296,113 @@ pub fn load_internal_setting(setting_dir: &Path, key: &str) -> Result<Option<Str
     } else {
         Ok(None)
     }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DialogHistoryConfig {
+    #[serde(default)]
+    pub pinned_sessions: Vec<String>,
+    #[serde(default = "default_sort_by")]
+    pub sort_by: String,
+    #[serde(default = "default_sort_order")]
+    pub sort_order: String,
+    #[serde(default = "default_page_size")]
+    pub page_size: usize,
+    #[serde(default)]
+    pub expanded_categories: Vec<String>,
+    #[serde(flatten)]
+    pub extra: HashMap<String, serde_json::Value>,
+}
+
+fn default_sort_by() -> String {
+    "updated_at".to_string()
+}
+
+fn default_sort_order() -> String {
+    "desc".to_string()
+}
+
+fn default_page_size() -> usize {
+    50
+}
+
+impl Default for DialogHistoryConfig {
+    fn default() -> Self {
+        Self {
+            pinned_sessions: vec![],
+            sort_by: "updated_at".to_string(),
+            sort_order: "desc".to_string(),
+            page_size: 50,
+            expanded_categories: vec![],
+            extra: HashMap::new(),
+        }
+    }
+}
+
+#[tauri::command]
+pub fn get_dialog_history_config() -> Result<DialogHistoryConfig, String> {
+    let settings_dir = get_settings_dir();
+    let config_path = settings_dir.join("config.json");
+
+    if config_path.exists() {
+        let content = fs::read_to_string(&config_path)
+            .map_err(|e| format!("Failed to read settings config: {}", e))?;
+        let full_config: serde_json::Value =
+            serde_json::from_str(&content).unwrap_or_else(|_| serde_json::json!({}));
+
+        if let Some(dh) = full_config.get("dialog_history") {
+            Ok(serde_json::from_value(dh.clone())
+                .unwrap_or_else(|_| DialogHistoryConfig::default()))
+        } else {
+            Ok(DialogHistoryConfig::default())
+        }
+    } else {
+        Ok(DialogHistoryConfig::default())
+    }
+}
+
+#[tauri::command]
+pub fn save_dialog_history_config(config: DialogHistoryConfig) -> Result<(), String> {
+    let settings_dir = get_settings_dir();
+    if !settings_dir.exists() {
+        fs::create_dir_all(&settings_dir)
+            .map_err(|e| format!("Failed to create settings directory: {}", e))?;
+    }
+    let config_path = settings_dir.join("config.json");
+    let mut full_config: serde_json::Value = if config_path.exists() {
+        let content = fs::read_to_string(&config_path)
+            .map_err(|e| format!("Failed to read settings config: {}", e))?;
+        serde_json::from_str(&content).unwrap_or_else(|_| serde_json::json!({}))
+    } else {
+        serde_json::json!({})
+    };
+    full_config["dialog_history"] = serde_json::to_value(&config)
+        .map_err(|e| format!("Failed to serialize dialog history config: {}", e))?;
+    let content = serde_json::to_string_pretty(&full_config)
+        .map_err(|e| format!("Failed to serialize settings config: {}", e))?;
+    fs::write(&config_path, content)
+        .map_err(|e| format!("Failed to save settings config: {}", e))?;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn update_pinned_sessions(session_id: String, pinned: bool) -> Result<Vec<String>, String> {
+    let mut config = get_dialog_history_config()?;
+    if pinned {
+        if !config.pinned_sessions.contains(&session_id) {
+            config.pinned_sessions.push(session_id);
+        }
+    } else {
+        config.pinned_sessions.retain(|id| id != &session_id);
+    }
+    save_dialog_history_config(config)?;
+    get_pinned_sessions()
+}
+
+#[tauri::command]
+pub fn get_pinned_sessions() -> Result<Vec<String>, String> {
+    let config = get_dialog_history_config()?;
+    Ok(config.pinned_sessions)
 }
 
 #[tauri::command]
@@ -296,7 +429,6 @@ pub fn create_dialog_session(
         "description": description,
         "created_at": Local::now().to_rfc3339(),
         "updated_at": Local::now().to_rfc3339(),
-        "is_pinned": false,
     });
     let config_path = session_dir.join("config.json");
     let config_content = serde_json::to_string_pretty(&config)
@@ -317,6 +449,7 @@ pub fn list_dialog_sessions() -> Result<Vec<serde_json::Value>, String> {
     if !dir.exists() {
         return Ok(vec![]);
     }
+    let pinned_sessions = get_pinned_sessions()?;
     let mut sessions = vec![];
     for entry in
         fs::read_dir(dir).map_err(|e| format!("Failed to read dialog history dir: {}", e))?
@@ -329,18 +462,20 @@ pub fn list_dialog_sessions() -> Result<Vec<serde_json::Value>, String> {
                 let content = fs::read_to_string(&config_path)
                     .map_err(|e| format!("Failed to read config: {}", e))?;
                 if let Ok(mut config) = serde_json::from_str::<serde_json::Value>(&content) {
-                    // 添加文件夹路径
                     if let Some(obj) = config.as_object_mut() {
+                        let session_id = path
+                            .file_name()
+                            .unwrap_or_default()
+                            .to_string_lossy()
+                            .to_string();
                         obj.insert(
                             "path".to_string(),
                             serde_json::json!(path.to_string_lossy()),
                         );
+                        obj.insert("session_id".to_string(), serde_json::json!(session_id));
                         obj.insert(
-                            "session_id".to_string(),
-                            serde_json::json!(path
-                                .file_name()
-                                .unwrap_or_default()
-                                .to_string_lossy()),
+                            "is_pinned".to_string(),
+                            serde_json::json!(pinned_sessions.contains(&session_id)),
                         );
                     }
                     sessions.push(config);
@@ -395,10 +530,10 @@ pub fn update_session_config(session_id: &str, updates: serde_json::Value) -> Re
 pub fn delete_dialog_session(session_id: &str) -> Result<(), String> {
     let dir = get_dialog_history_dir();
     let session_dir = dir.join(session_id);
-
     if session_dir.exists() {
         fs::remove_dir_all(&session_dir).map_err(|e| format!("Failed to delete session: {}", e))?;
     }
+    let _ = update_pinned_sessions(session_id.to_string(), false);
     Ok(())
 }
 
@@ -413,6 +548,18 @@ pub fn save_chat_content(session_id: &str, content: &str) -> Result<(), String> 
             .map_err(|e| format!("Failed to create session directory: {}", e))?;
     }
     fs::write(&chat_path, content).map_err(|e| format!("Failed to save chat content: {}", e))?;
+    let config_path = session_dir.join("config.json");
+    if config_path.exists() {
+        let cfg_content = fs::read_to_string(&config_path)
+            .map_err(|e| format!("Failed to read config: {}", e))?;
+        let mut config: serde_json::Value = serde_json::from_str(&cfg_content)
+            .map_err(|e| format!("Failed to parse config: {}", e))?;
+        config["updated_at"] = serde_json::json!(Local::now().to_rfc3339());
+        let new_content = serde_json::to_string_pretty(&config)
+            .map_err(|e| format!("Failed to serialize config: {}", e))?;
+        fs::write(&config_path, new_content)
+            .map_err(|e| format!("Failed to save config: {}", e))?;
+    }
     Ok(())
 }
 
@@ -421,12 +568,10 @@ pub fn save_terminal_content(session_id: &str, content: &str) -> Result<(), Stri
     let dir = get_dialog_history_dir();
     let session_dir = dir.join(session_id);
     let terminal_path = session_dir.join("terminal.json");
-
     if !session_dir.exists() {
         fs::create_dir_all(&session_dir)
             .map_err(|e| format!("Failed to create session directory: {}", e))?;
     }
-
     fs::write(&terminal_path, content)
         .map_err(|e| format!("Failed to save terminal content: {}", e))?;
 
@@ -437,7 +582,6 @@ pub fn save_terminal_content(session_id: &str, content: &str) -> Result<(), Stri
 pub fn load_chat_content(session_id: &str) -> Result<Option<String>, String> {
     let dir = get_dialog_history_dir();
     let chat_path = dir.join(session_id).join("chat.json");
-
     if chat_path.exists() {
         let content = fs::read_to_string(&chat_path)
             .map_err(|e| format!("Failed to read chat content: {}", e))?;
@@ -451,7 +595,6 @@ pub fn load_chat_content(session_id: &str) -> Result<Option<String>, String> {
 pub fn load_terminal_content(session_id: &str) -> Result<Option<String>, String> {
     let dir = get_dialog_history_dir();
     let terminal_path = dir.join(session_id).join("terminal.json");
-
     if terminal_path.exists() {
         let content = fs::read_to_string(&terminal_path)
             .map_err(|e| format!("Failed to read terminal content: {}", e))?;
@@ -459,32 +602,4 @@ pub fn load_terminal_content(session_id: &str) -> Result<Option<String>, String>
     } else {
         Ok(None)
     }
-}
-
-pub fn get_pinned_sessions() -> Result<Vec<String>, String> {
-    let settings_dir = get_settings_dir();
-    let pinned_path = settings_dir.join("pinned_sessions.json");
-    if pinned_path.exists() {
-        let content = fs::read_to_string(&pinned_path)
-            .map_err(|e| format!("Failed to read pinned sessions: {}", e))?;
-        let pinned: Vec<String> = serde_json::from_str(&content)
-            .map_err(|e| format!("Failed to parse pinned sessions: {}", e))?;
-        Ok(pinned)
-    } else {
-        Ok(vec![])
-    }
-}
-
-pub fn save_pinned_sessions(pinned: &[String]) -> Result<(), String> {
-    let settings_dir = get_settings_dir();
-    if !settings_dir.exists() {
-        fs::create_dir_all(&settings_dir)
-            .map_err(|e| format!("Failed to create settings directory: {}", e))?;
-    }
-    let pinned_path = settings_dir.join("pinned_sessions.json");
-    let content = serde_json::to_string_pretty(pinned)
-        .map_err(|e| format!("Failed to serialize pinned sessions: {}", e))?;
-    fs::write(&pinned_path, content)
-        .map_err(|e| format!("Failed to save pinned sessions: {}", e))?;
-    Ok(())
 }

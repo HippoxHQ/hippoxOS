@@ -48,7 +48,14 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    const handleSessionCreated = () => {
+      loadSessions();
+    };
+    window.addEventListener("session-created", handleSessionCreated);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      window.removeEventListener("session-created", handleSessionCreated);
+    };
   }, []);
   const loadSessions = async () => {
     setLoading(true);
@@ -68,10 +75,17 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
     e.stopPropagation();
     try {
       const newPinned = !session.is_pinned;
-      await sessionCommands.updateSessionConfig(session.session_id, {
-        is_pinned: newPinned,
-      });
-      await loadSessions();
+      const updatedPinned = await sessionCommands.updatePinnedSessions(
+        session.session_id,
+        newPinned,
+      );
+      setSessions((prev) =>
+        prev.map((s) =>
+          s.session_id === session.session_id
+            ? { ...s, is_pinned: newPinned }
+            : s,
+        ),
+      );
       setActiveMenuId(null);
     } catch (error) {
       console.error("Failed to toggle pin:", error);
@@ -79,18 +93,18 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
   };
   const handleDelete = async (session: DialogSession, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (
-      // eslint-disable-next-line no-restricted-globals
-      confirm(
-        t("history.confirmDelete") || `确定要删除 "${session.title}" 吗？`,
-      )
-    ) {
+    const confirmed = window.confirm(
+      t("history.confirmDelete") || `确定要删除 "${session.title}" 吗？`,
+    );
+    if (confirmed) {
       try {
         await sessionCommands.deleteSession(session.session_id);
         if (currentSessionId === session.session_id && onSessionSelect) {
           onSessionSelect("default");
         }
-        await loadSessions();
+        setSessions((prev) =>
+          prev.filter((s) => s.session_id !== session.session_id),
+        );
         setActiveMenuId(null);
       } catch (error) {
         console.error("Failed to delete session:", error);
@@ -116,6 +130,7 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
     }
   };
   const handleSelectSession = (sessionId: string) => {
+    setActiveMenuId(null);
     if (onSessionSelect) {
       onSessionSelect(sessionId);
     }
@@ -138,7 +153,6 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
     if (updatedDate >= monthAgo) return "last30days";
     return "older";
   };
-
   const getGroupedSessions = () => {
     const grouped: Record<CategoryType, DialogSession[]> = {
       pinned: [],
@@ -148,15 +162,12 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
       last30days: [],
       older: [],
     };
-
     sessions.forEach((session) => {
       const category = getSessionCategory(session);
       grouped[category].push(session);
     });
-
     return grouped;
   };
-
   const getCardStyle = (
     isActive: boolean,
     isHovered: boolean,
@@ -176,7 +187,6 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
         position: "relative",
       };
     }
-
     return {
       background: isHovered ? "var(--hover-bg)" : "var(--bg-secondary)",
       borderRadius: "10px",
@@ -191,7 +201,6 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
       position: "relative",
     };
   };
-
   const titleStyle: React.CSSProperties = {
     fontSize: "14px",
     fontWeight: 500,
@@ -201,18 +210,15 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
     textOverflow: "ellipsis",
     whiteSpace: "nowrap",
   };
-
   const timeStyle: React.CSSProperties = {
     fontSize: "11px",
     color: "var(--text-muted)",
   };
-
   const pinIconStyle: React.CSSProperties = {
     fontSize: "12px",
     marginRight: "8px",
     color: "var(--accent-color, #0066cc)",
   };
-
   const menuButtonStyle: React.CSSProperties = {
     background: "none",
     border: "none",

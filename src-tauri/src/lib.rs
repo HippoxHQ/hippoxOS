@@ -10,6 +10,10 @@ pub fn run() {
     if let Err(e) = commands::init_directories() {
         eprintln!("Failed to initialize directories: {}", e);
     }
+    // init settings/config.json
+    if let Err(e) = commands::init_settings_config() {
+        eprintln!("Failed to initialize settings config: {}", e);
+    }
     let skills_dir = commands::get_skills_market_dir();
     if !skills_dir.exists() {
         let _ = std::fs::create_dir_all(&skills_dir);
@@ -62,6 +66,10 @@ pub fn run() {
             commands::save_terminal_content,
             commands::load_chat_content,
             commands::load_terminal_content,
+            commands::get_dialog_history_config,
+            commands::save_dialog_history_config,
+            commands::update_pinned_sessions,
+            commands::get_pinned_sessions,
         ])
         .setup(|app| {
             if cfg!(debug_assertions) {
