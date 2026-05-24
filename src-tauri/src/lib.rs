@@ -73,6 +73,10 @@ pub fn run() {
             commands::save_dialog_history_config,
             commands::update_pinned_sessions,
             commands::get_pinned_sessions,
+            commands::get_settings_language,
+            commands::save_settings_language,
+            commands::get_settings_theme,
+            commands::save_settings_theme,
         ])
         .setup(|app| {
             if cfg!(debug_assertions) {

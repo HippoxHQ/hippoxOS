@@ -128,6 +128,8 @@ pub fn init_settings_config() -> Result<(), String> {
     let config_path = settings_dir.join("config.json");
     if !config_path.exists() {
         let default_config = serde_json::json!({
+            "language": "en",
+            "theme": "dark",
             "dialog_history": {
                 "pinned_sessions": [],
                 "sort_by": "updated_at",
