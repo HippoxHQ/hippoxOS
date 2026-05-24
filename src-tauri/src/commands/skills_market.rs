@@ -195,7 +195,8 @@ pub async fn update_skills_market() -> Result<Vec<MarketSkill>, String> {
     }
     // Clone or pull
     if !git_dir.exists() {
-        // Clone repository
+        // Clone repository (first time)
+        println!("Cloning skills market repository from {}...", repo_url);
         let output = Command::new("git")
             .args([
                 "clone",
@@ -206,13 +207,13 @@ pub async fn update_skills_market() -> Result<Vec<MarketSkill>, String> {
             ])
             .output()
             .map_err(|e| format!("Git clone failed: {}. Is git installed?", e))?;
-
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
             return Err(format!("Failed to clone repository: {}", stderr));
         }
+        println!("Skills market cloned successfully");
     } else {
-        // Pull updates
+        println!("Pulling latest skills market updates...");
         let output = Command::new("git")
             .current_dir(&market_dir)
             .args(["pull", "origin", branch])
@@ -220,7 +221,14 @@ pub async fn update_skills_market() -> Result<Vec<MarketSkill>, String> {
             .map_err(|e| format!("Git pull failed: {}", e))?;
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
-            return Err(format!("Failed to pull updates: {}", stderr));
+            eprintln!("Git pull warning: {}", stderr);
+        } else {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            if stdout.contains("Already up to date") {
+                println!("Skills market already up to date");
+            } else {
+                println!("Skills market updated successfully");
+            }
         }
     }
     // Update last_update timestamp
@@ -249,13 +257,10 @@ pub async fn update_skills_market() -> Result<Vec<MarketSkill>, String> {
 #[command]
 pub async fn get_market_skills() -> Result<Vec<MarketSkill>, String> {
     let market_dir = get_skills_market_dir();
-
     if !market_dir.exists() || !market_dir.join(".git").exists() {
         return Ok(vec![]);
     }
-
     let mut skills = scan_skills_from_dir(&market_dir);
-
     // Check installation status
     let local_skills_dir = get_app_root_dir().join("skills");
     for skill in &mut skills {
@@ -269,7 +274,6 @@ pub async fn get_market_skills() -> Result<Vec<MarketSkill>, String> {
             }
         }
     }
-
     Ok(skills)
 }
 
@@ -279,31 +283,26 @@ pub async fn install_skill(skill_id: String) -> Result<bool, String> {
     let market_dir = get_skills_market_dir();
     let source_skill_dir = market_dir.join(&skill_id);
     let source_skill_md = source_skill_dir.join("SKILL.md");
-
     if !source_skill_md.exists() {
         return Err(format!("Skill '{}' not found in market", skill_id));
     }
-
     let local_skills_dir = get_app_root_dir().join("skills");
     if !local_skills_dir.exists() {
         fs::create_dir_all(&local_skills_dir)
             .map_err(|e| format!("Failed to create skills directory: {}", e))?;
     }
-
     let target_skill_dir = local_skills_dir.join(&skill_id);
     if target_skill_dir.exists() {
         // Remove existing
         fs::remove_dir_all(&target_skill_dir)
             .map_err(|e| format!("Failed to remove existing skill: {}", e))?;
     }
-
     // Copy entire skill folder
     let copy_options = fs_extra::dir::CopyOptions::new()
         .overwrite(true)
         .copy_inside(true);
     fs_extra::dir::copy(&source_skill_dir, &local_skills_dir, &copy_options)
         .map_err(|e| format!("Failed to copy skill: {}", e))?;
-
     Ok(true)
 }
 

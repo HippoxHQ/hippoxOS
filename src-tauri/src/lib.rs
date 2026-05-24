@@ -2,9 +2,10 @@
 mod commands;
 mod common;
 
+use crate::common::init_default_settings;
 use commands::AppStateWithChat;
 use std::path::PathBuf;
-use crate::common::init_default_settings;
+use std::thread;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -26,21 +27,17 @@ pub fn run() {
     tokio::runtime::Runtime::new().unwrap().block_on(async {
         let _ = commands::load_config_from_file().await;
     });
-    let rt = tokio::runtime::Runtime::new().unwrap();
-    rt.spawn(async {
-        let market_dir = commands::get_skills_market_dir();
-        if !market_dir.exists() || !market_dir.join(".git").exists() {
-            println!("🔄 Initializing skills market...");
+    thread::spawn(|| {
+        println!("Initializing skills market...");
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        rt.block_on(async {
             match commands::update_skills_market().await {
-                Ok(skills) => println!(
-                    "✅ Skills market initialized: {} skills found",
-                    skills.len()
-                ),
-                Err(e) => eprintln!("❌ Failed to initialize skills market: {}", e),
+                Ok(skills) => {
+                    println!("Skills market ready: {} skills available", skills.len());
+                }
+                Err(e) => eprintln!("Failed to initialize skills market: {}", e),
             }
-        } else {
-            println!("✅ Skills market already exists");
-        }
+        });
     });
     tauri::Builder::default()
         .manage(AppStateWithChat::new())
@@ -104,16 +101,6 @@ pub fn run() {
             commands::update_market_config,
             commands::get_installed_skills,
         ])
-        .setup(|app| {
-            if cfg!(debug_assertions) {
-                app.handle().plugin(
-                    tauri_plugin_log::Builder::default()
-                        .level(log::LevelFilter::Info)
-                        .build(),
-                )?;
-            }
-            Ok(())
-        })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
