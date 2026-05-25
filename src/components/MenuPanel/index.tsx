@@ -1,6 +1,4 @@
 import React from "react";
-import ExecutionHistoryPanel from "./ExecutionHistoryPanel";
-import KnowledgePanel from "./KnowledgePanel";
 import ScheduledTasksPanel from "./ScheduledTasksPanel";
 import SettingsPanel, { SettingsSubView } from "./SettingsPanel";
 import SkillMarketPanel from "./SkillMarketPanel";
@@ -210,16 +208,12 @@ const MenuPanel: React.FC<MenuPanelProps> = ({
         return <FavoritesPanel t={t} />;
       case "skills":
         return <SkillsPanel t={t} />;
-      case "knowledge":
-        return <KnowledgePanel t={t} />;
       case "skillMarket":
         return <SkillMarketPanel t={t} />;
       case "taskQueue":
         return <TaskQueuePanel t={t} />;
       case "scheduledTasks":
         return <ScheduledTasksPanel t={t} />;
-      case "executionHistory":
-        return <ExecutionHistoryPanel t={t} />;
       case "atomicSkills":
         return <AtomicSkillsPanel t={t} onSave={onSaveConfig} />;
       case "workspace":

@@ -398,7 +398,6 @@ const menuConfig: MenuItem[] = [
     children: [
       { id: "skillMarket", icon: "skillMarket", label: "menu.skillMarket" },
       { id: "skills", icon: "skills", label: "menu.skills" },
-      { id: "knowledge", icon: "knowledge", label: "menu.knowledge" },
     ],
   },
   {
@@ -412,11 +411,6 @@ const menuConfig: MenuItem[] = [
         label: "menu.scheduledTasks",
       },
       { id: "taskQueue", icon: "taskQueue", label: "menu.taskQueue" },
-      {
-        id: "executionHistory",
-        icon: "executionHistory",
-        label: "menu.executionHistory",
-      },
     ],
   },
   {
@@ -426,7 +420,6 @@ const menuConfig: MenuItem[] = [
     children: [
       { id: "llmModel", icon: "settings", label: "menu.llmModelConfig" },
       { id: "atomicSkills", icon: "skills", label: "menu.atomicSkills" },
-      { id: "system", icon: "settings", label: "menu.systemConfig" },
       {
         id: "engine_group",
         icon: "config",
@@ -454,6 +447,7 @@ const menuConfig: MenuItem[] = [
           },
         ],
       },
+      { id: "system", icon: "settings", label: "menu.systemConfig" },
     ],
   },
 ];

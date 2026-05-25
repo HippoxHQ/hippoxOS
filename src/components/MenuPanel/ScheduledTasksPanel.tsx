@@ -102,41 +102,41 @@ const getScheduleDisplay = (
   t: (key: string, params?: any) => string,
 ): string => {
   if (!config) {
-    return t("scheduled.unknownSchedule") || "未知调度";
+    return t("scheduled.unknownSchedule") || "Unknown schedule";
   }
   if (scheduleType === "interval") {
     const intervalConfig = config as IntervalScheduleConfig;
     const unitText: Record<string, string> = {
-      second: t("scheduled.unitSecond") || "秒",
-      minute: t("scheduled.unitMinute") || "分钟",
-      hour: t("scheduled.unitHour") || "小时",
-      day: t("scheduled.unitDay") || "天",
+      second: t("scheduled.unitSecond") || "second(s)",
+      minute: t("scheduled.unitMinute") || "minute(s)",
+      hour: t("scheduled.unitHour") || "hour(s)",
+      day: t("scheduled.unitDay") || "day(s)",
     };
     const unit = unitText[intervalConfig.unit] || intervalConfig.unit;
     const value = intervalConfig.value || 1;
     return (
       t("scheduled.intervalDisplay")
         ?.replace("{value}", String(value))
-        .replace("{unit}", unit) || `每 ${value} ${unit}`
+        .replace("{unit}", unit) || `Every ${value} ${unit}`
     );
   } else {
     const fixedConfig = config as FixedScheduleConfig;
     const frequencyText: Record<string, string> = {
-      daily: t("scheduled.frequencyDaily") || "每天",
-      weekly: t("scheduled.frequencyWeekly") || "每周",
-      monthly: t("scheduled.frequencyMonthly") || "每月",
-      once: t("scheduled.frequencyOnce") || "单次",
+      daily: t("scheduled.frequencyDaily") || "Daily",
+      weekly: t("scheduled.frequencyWeekly") || "Weekly",
+      monthly: t("scheduled.frequencyMonthly") || "Monthly",
+      once: t("scheduled.frequencyOnce") || "Once",
     };
     let result =
-      frequencyText[fixedConfig.frequency] || fixedConfig.frequency || "每天";
+      frequencyText[fixedConfig.frequency] || fixedConfig.frequency || "Daily";
     if (fixedConfig.frequency === "weekly" && fixedConfig.dayOfWeek?.length) {
       const dayNames = fixedConfig.dayOfWeek.map(
         (d) => t(`scheduled.day${d}`) || String(d),
       );
-      result += ` ${dayNames.join("、")}`;
+      result += ` ${dayNames.join(", ")}`;
     }
     if (fixedConfig.frequency === "monthly" && fixedConfig.dayOfMonth?.length) {
-      result += ` ${fixedConfig.dayOfMonth.join("、")}号`;
+      result += ` day ${fixedConfig.dayOfMonth.join(", ")}`;
     }
     if (fixedConfig.frequency === "once" && fixedConfig.date) {
       result += ` ${fixedConfig.date}`;
@@ -355,6 +355,7 @@ const ScheduledTasksPanel: React.FC<ScheduledTasksPanelProps> = ({
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.name.endsWith(".md") && !file.name.endsWith(".skill.md")) {
+      alert("Please upload a .md or .skill.md file");
       return;
     }
     const reader = new FileReader();
@@ -399,17 +400,20 @@ const ScheduledTasksPanel: React.FC<ScheduledTasksPanelProps> = ({
 
   const handleAddOrUpdateTask = async () => {
     if (!newTaskName.trim()) {
+      alert("Please enter task name");
       return;
     }
     let actionContent = "";
     let actionFileName = "";
     if (newActionType === "naturalLanguage") {
       if (!newNaturalLanguage.trim()) {
+        alert("Please enter task description");
         return;
       }
       actionContent = newNaturalLanguage;
     } else {
       if (!newSkillContent) {
+        alert("Please upload a SKILL.md file");
         return;
       }
       actionContent = newSkillContent;
@@ -417,12 +421,19 @@ const ScheduledTasksPanel: React.FC<ScheduledTasksPanelProps> = ({
     }
     const scheduleConfig = getCurrentScheduleConfig();
     if (newScheduleType === "fixed") {
-      if (!newFixedTime) return;
+      if (!newFixedTime) {
+        alert("Please select execution time");
+        return;
+      }
       if (newFixedFrequency === "once" && !newFixedDate) {
+        alert("Please select execution date");
         return;
       }
     } else {
-      if (newIntervalValue < 1) return;
+      if (newIntervalValue < 1) {
+        alert("Interval value must be at least 1");
+        return;
+      }
     }
     const now = new Date().toISOString();
     if (editingTaskId) {
@@ -494,6 +505,16 @@ const ScheduledTasksPanel: React.FC<ScheduledTasksPanelProps> = ({
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
+  };
+
+  const radioLabelStyle: React.CSSProperties = {
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+    cursor: "pointer",
+    fontSize: "13px",
+    color: "var(--text-primary)",
+    userSelect: "none",
   };
 
   const handleCancelEdit = () => {
@@ -613,6 +634,8 @@ const ScheduledTasksPanel: React.FC<ScheduledTasksPanelProps> = ({
     color: "var(--text-secondary)",
   };
 
+  const weekDayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
   if (loading || isInitializing) {
     return (
       <div
@@ -624,7 +647,7 @@ const ScheduledTasksPanel: React.FC<ScheduledTasksPanelProps> = ({
           justifyContent: "center",
         }}
       >
-        {t("atomicSkills.loading") || "加载中..."}
+        {t("atomicSkills.loading") || "Loading..."}
       </div>
     );
   }
@@ -662,7 +685,8 @@ const ScheduledTasksPanel: React.FC<ScheduledTasksPanelProps> = ({
               fontSize: "14px",
             }}
           >
-            {t("scheduled.noTasks") || "暂无定时任务，点击下方按钮添加"}
+            {t("scheduled.noTasks") ||
+              "No scheduled tasks, click the button below to add"}
           </div>
         ) : (
           tasks.map((task) => {
@@ -703,18 +727,18 @@ const ScheduledTasksPanel: React.FC<ScheduledTasksPanelProps> = ({
                     }
                   >
                     {task.enabled
-                      ? t("scheduled.enabled") || "启用"
-                      : t("scheduled.disabled") || "禁用"}
+                      ? t("scheduled.enabled") || "Enabled"
+                      : t("scheduled.disabled") || "Disabled"}
                   </span>
                   <span style={tagStyle}>
                     {task.scheduleType === "fixed"
-                      ? t("scheduled.typeFixed") || "定时"
-                      : t("scheduled.typeInterval") || "间隔"}
+                      ? t("scheduled.typeFixed") || "Fixed"
+                      : t("scheduled.typeInterval") || "Interval"}
                   </span>
                   <span style={tagStyle}>
                     {task.actionType === "naturalLanguage"
-                      ? t("scheduled.typeNatural") || "自然语言"
-                      : t("scheduled.typeSkillFile") || "SKILL文件"}
+                      ? t("scheduled.typeNatural") || "Natural Language"
+                      : t("scheduled.typeSkillFile") || "SKILL File"}
                   </span>
                 </div>
                 <div
@@ -728,7 +752,7 @@ const ScheduledTasksPanel: React.FC<ScheduledTasksPanelProps> = ({
                   }}
                 >
                   <label style={labelStyle}>
-                    {t("scheduled.schedule") || "执行时间"}
+                    {t("scheduled.schedule") || "Schedule"}
                   </label>
                   <input
                     type="text"
@@ -749,7 +773,7 @@ const ScheduledTasksPanel: React.FC<ScheduledTasksPanelProps> = ({
                   }}
                 >
                   <label style={labelStyle}>
-                    {t("scheduled.action") || "执行动作"}
+                    {t("scheduled.action") || "Action"}
                   </label>
                   <input
                     type="text"
@@ -776,8 +800,8 @@ const ScheduledTasksPanel: React.FC<ScheduledTasksPanelProps> = ({
                     onClick={() => handleToggleEnabled(task.id)}
                   >
                     {task.enabled
-                      ? t("scheduled.disable") || "禁用"
-                      : t("scheduled.enable") || "启用"}
+                      ? t("scheduled.disable") || "Disable"
+                      : t("scheduled.enable") || "Enable"}
                   </button>
                   <button
                     style={{
@@ -787,7 +811,7 @@ const ScheduledTasksPanel: React.FC<ScheduledTasksPanelProps> = ({
                     }}
                     onClick={() => handleCompleteTask(task.id)}
                   >
-                    {t("scheduled.complete") || "标记完成"}
+                    {t("scheduled.complete") || "Complete"}
                   </button>
                   <button
                     style={{
@@ -797,7 +821,7 @@ const ScheduledTasksPanel: React.FC<ScheduledTasksPanelProps> = ({
                     }}
                     onClick={() => handleEditTask(task)}
                   >
-                    {t("scheduled.edit") || "编辑"}
+                    {t("scheduled.edit") || "Edit"}
                   </button>
                   <button
                     style={{
@@ -807,7 +831,7 @@ const ScheduledTasksPanel: React.FC<ScheduledTasksPanelProps> = ({
                     }}
                     onClick={() => handleDeleteTask(task.id)}
                   >
-                    {t("scheduled.delete") || "删除"}
+                    {t("scheduled.delete") || "Delete"}
                   </button>
                 </div>
               </div>
@@ -826,8 +850,8 @@ const ScheduledTasksPanel: React.FC<ScheduledTasksPanelProps> = ({
               }}
             >
               {editingTaskId
-                ? t("scheduled.editTask") || "编辑任务"
-                : t("scheduled.addTask") || "添加定时任务"}
+                ? t("scheduled.editTask") || "Edit Task"
+                : t("scheduled.addTask") || "Add Scheduled Task"}
             </div>
             <div
               className="settings-row"
@@ -840,7 +864,7 @@ const ScheduledTasksPanel: React.FC<ScheduledTasksPanelProps> = ({
               }}
             >
               <label style={labelStyle}>
-                {t("scheduled.taskName") || "任务名称"}
+                {t("scheduled.taskName") || "Task Name"}
               </label>
               <input
                 type="text"
@@ -848,7 +872,7 @@ const ScheduledTasksPanel: React.FC<ScheduledTasksPanelProps> = ({
                 value={newTaskName}
                 onChange={(e) => setNewTaskName(e.target.value)}
                 placeholder={
-                  t("scheduled.taskNamePlaceholder") || "例如：每日备份"
+                  t("scheduled.taskNamePlaceholder") || "e.g.: Daily Backup"
                 }
               />
             </div>
@@ -863,17 +887,10 @@ const ScheduledTasksPanel: React.FC<ScheduledTasksPanelProps> = ({
               }}
             >
               <label style={labelStyle}>
-                {t("scheduled.taskType") || "任务类型"}
+                {t("scheduled.taskType") || "Task Type"}
               </label>
               <div style={{ display: "flex", gap: "12px" }}>
-                <label
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "6px",
-                    cursor: "pointer",
-                  }}
-                >
+                <label style={radioLabelStyle}>
                   <input
                     type="radio"
                     name="scheduleType"
@@ -881,16 +898,9 @@ const ScheduledTasksPanel: React.FC<ScheduledTasksPanelProps> = ({
                     checked={newScheduleType === "fixed"}
                     onChange={() => setNewScheduleType("fixed")}
                   />
-                  {t("scheduled.typeFixed") || "定时执行"}
+                  {t("scheduled.typeFixed") || "Fixed Time"}
                 </label>
-                <label
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "6px",
-                    cursor: "pointer",
-                  }}
-                >
+                <label style={radioLabelStyle}>
                   <input
                     type="radio"
                     name="scheduleType"
@@ -898,7 +908,7 @@ const ScheduledTasksPanel: React.FC<ScheduledTasksPanelProps> = ({
                     checked={newScheduleType === "interval"}
                     onChange={() => setNewScheduleType("interval")}
                   />
-                  {t("scheduled.typeInterval") || "间隔执行"}
+                  {t("scheduled.typeInterval") || "Interval"}
                 </label>
               </div>
             </div>
@@ -915,7 +925,7 @@ const ScheduledTasksPanel: React.FC<ScheduledTasksPanelProps> = ({
                   }}
                 >
                   <label style={labelStyle}>
-                    {t("scheduled.frequency") || "执行频率"}
+                    {t("scheduled.frequency") || "Frequency"}
                   </label>
                   <select
                     style={selectStyle}
@@ -925,16 +935,16 @@ const ScheduledTasksPanel: React.FC<ScheduledTasksPanelProps> = ({
                     }
                   >
                     <option value="daily">
-                      {t("scheduled.frequencyDaily") || "每天"}
+                      {t("scheduled.frequencyDaily") || "Daily"}
                     </option>
                     <option value="weekly">
-                      {t("scheduled.frequencyWeekly") || "每周"}
+                      {t("scheduled.frequencyWeekly") || "Weekly"}
                     </option>
                     <option value="monthly">
-                      {t("scheduled.frequencyMonthly") || "每月"}
+                      {t("scheduled.frequencyMonthly") || "Monthly"}
                     </option>
                     <option value="once">
-                      {t("scheduled.frequencyOnce") || "单次"}
+                      {t("scheduled.frequencyOnce") || "Once"}
                     </option>
                   </select>
                 </div>
@@ -951,7 +961,7 @@ const ScheduledTasksPanel: React.FC<ScheduledTasksPanelProps> = ({
                     }}
                   >
                     <label style={labelStyle}>
-                      {t("scheduled.weekDays") || "选择星期"}
+                      {t("scheduled.weekDays") || "Week Days"}
                     </label>
                     <div
                       style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}
@@ -973,16 +983,7 @@ const ScheduledTasksPanel: React.FC<ScheduledTasksPanelProps> = ({
                           }}
                           onClick={() => toggleWeekDay(day)}
                         >
-                          {t(`scheduled.day${day}`) ||
-                            [
-                              "周日",
-                              "周一",
-                              "周二",
-                              "周三",
-                              "周四",
-                              "周五",
-                              "周六",
-                            ][day]}
+                          {weekDayNames[day]}
                         </button>
                       ))}
                     </div>
@@ -1001,7 +1002,7 @@ const ScheduledTasksPanel: React.FC<ScheduledTasksPanelProps> = ({
                     }}
                   >
                     <label style={labelStyle}>
-                      {t("scheduled.monthDays") || "选择日期"}
+                      {t("scheduled.monthDays") || "Month Days"}
                     </label>
                     <div
                       style={{
@@ -1051,7 +1052,7 @@ const ScheduledTasksPanel: React.FC<ScheduledTasksPanelProps> = ({
                     }}
                   >
                     <label style={labelStyle}>
-                      {t("scheduled.date") || "执行日期"}
+                      {t("scheduled.date") || "Execution Date"}
                     </label>
                     <input
                       type="date"
@@ -1073,7 +1074,7 @@ const ScheduledTasksPanel: React.FC<ScheduledTasksPanelProps> = ({
                   }}
                 >
                   <label style={labelStyle}>
-                    {t("scheduled.time") || "执行时间"}
+                    {t("scheduled.time") || "Execution Time"}
                   </label>
                   <input
                     type="time"
@@ -1098,7 +1099,7 @@ const ScheduledTasksPanel: React.FC<ScheduledTasksPanelProps> = ({
                   }}
                 >
                   <label style={labelStyle}>
-                    {t("scheduled.intervalValue") || "间隔数值"}
+                    {t("scheduled.intervalValue") || "Interval Value"}
                   </label>
                   <input
                     type="number"
@@ -1123,7 +1124,7 @@ const ScheduledTasksPanel: React.FC<ScheduledTasksPanelProps> = ({
                   }}
                 >
                   <label style={labelStyle}>
-                    {t("scheduled.intervalUnit") || "间隔单位"}
+                    {t("scheduled.intervalUnit") || "Interval Unit"}
                   </label>
                   <select
                     style={{ ...selectStyle, maxWidth: "120px" }}
@@ -1131,16 +1132,16 @@ const ScheduledTasksPanel: React.FC<ScheduledTasksPanelProps> = ({
                     onChange={(e) => setNewIntervalUnit(e.target.value as any)}
                   >
                     <option value="second">
-                      {t("scheduled.unitSecond") || "秒"}
+                      {t("scheduled.unitSecond") || "second(s)"}
                     </option>
                     <option value="minute">
-                      {t("scheduled.unitMinute") || "分钟"}
+                      {t("scheduled.unitMinute") || "minute(s)"}
                     </option>
                     <option value="hour">
-                      {t("scheduled.unitHour") || "小时"}
+                      {t("scheduled.unitHour") || "hour(s)"}
                     </option>
                     <option value="day">
-                      {t("scheduled.unitDay") || "天"}
+                      {t("scheduled.unitDay") || "day(s)"}
                     </option>
                   </select>
                 </div>
@@ -1158,17 +1159,10 @@ const ScheduledTasksPanel: React.FC<ScheduledTasksPanelProps> = ({
               }}
             >
               <label style={labelStyle}>
-                {t("scheduled.actionType") || "动作类型"}
+                {t("scheduled.actionType") || "Action Type"}
               </label>
               <div style={{ display: "flex", gap: "12px" }}>
-                <label
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "6px",
-                    cursor: "pointer",
-                  }}
-                >
+                <label style={radioLabelStyle}>
                   <input
                     type="radio"
                     name="actionType"
@@ -1176,16 +1170,9 @@ const ScheduledTasksPanel: React.FC<ScheduledTasksPanelProps> = ({
                     checked={newActionType === "naturalLanguage"}
                     onChange={() => setNewActionType("naturalLanguage")}
                   />
-                  {t("scheduled.typeNatural") || "自然语言描述"}
+                  {t("scheduled.typeNatural") || "Natural Language"}
                 </label>
-                <label
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "6px",
-                    cursor: "pointer",
-                  }}
-                >
+                <label style={radioLabelStyle}>
                   <input
                     type="radio"
                     name="actionType"
@@ -1193,7 +1180,7 @@ const ScheduledTasksPanel: React.FC<ScheduledTasksPanelProps> = ({
                     checked={newActionType === "skillFile"}
                     onChange={() => setNewActionType("skillFile")}
                   />
-                  {t("scheduled.typeSkillFile") || "上传 SKILL.md"}
+                  {t("scheduled.typeSkillFile") || "Upload SKILL.md"}
                 </label>
               </div>
             </div>
@@ -1210,7 +1197,7 @@ const ScheduledTasksPanel: React.FC<ScheduledTasksPanelProps> = ({
                 }}
               >
                 <label style={{ ...labelStyle, paddingTop: "8px" }}>
-                  {t("scheduled.taskDescription") || "任务描述"}
+                  {t("scheduled.taskDescription") || "Task Description"}
                 </label>
                 <textarea
                   style={textareaStyle}
@@ -1218,7 +1205,7 @@ const ScheduledTasksPanel: React.FC<ScheduledTasksPanelProps> = ({
                   onChange={(e) => setNewNaturalLanguage(e.target.value)}
                   placeholder={
                     t("scheduled.naturalLanguagePlaceholder") ||
-                    "例如：每天凌晨2点备份数据库到 /backup 目录"
+                    "e.g.: Backup database to /backup directory at 2am daily"
                   }
                   rows={3}
                 />
@@ -1237,7 +1224,7 @@ const ScheduledTasksPanel: React.FC<ScheduledTasksPanelProps> = ({
                 }}
               >
                 <label style={labelStyle}>
-                  {t("scheduled.skillFile") || "SKILL.md 文件"}
+                  {t("scheduled.skillFile") || "SKILL.md File"}
                 </label>
                 <div
                   style={{
@@ -1266,7 +1253,7 @@ const ScheduledTasksPanel: React.FC<ScheduledTasksPanelProps> = ({
                       }}
                       onClick={() => fileInputRef.current?.click()}
                     >
-                      📁 {t("scheduled.selectFile") || "选择文件"}
+                      📁 {t("scheduled.selectFile") || "Select File"}
                     </button>
                   ) : (
                     <div
@@ -1294,7 +1281,7 @@ const ScheduledTasksPanel: React.FC<ScheduledTasksPanelProps> = ({
                         }}
                         onClick={() => fileInputRef.current?.click()}
                       >
-                        {t("scheduled.replaceFile") || "替换"}
+                        {t("scheduled.replaceFile") || "Replace"}
                       </button>
                       <button
                         type="button"
@@ -1305,7 +1292,7 @@ const ScheduledTasksPanel: React.FC<ScheduledTasksPanelProps> = ({
                         }}
                         onClick={handleRemoveSkillFile}
                       >
-                        {t("scheduled.remove") || "移除"}
+                        {t("scheduled.remove") || "Remove"}
                       </button>
                     </div>
                   )}
@@ -1322,12 +1309,12 @@ const ScheduledTasksPanel: React.FC<ScheduledTasksPanelProps> = ({
               }}
             >
               <button style={buttonStyle} onClick={handleCancelEdit}>
-                {t("settings.cancel") || "取消"}
+                {t("settings.cancel") || "Cancel"}
               </button>
               <button style={addButtonStyle} onClick={handleAddOrUpdateTask}>
                 {editingTaskId
-                  ? t("settings.update") || "更新"
-                  : t("settings.add") || "添加"}
+                  ? t("settings.update") || "Update"
+                  : t("settings.add") || "Add"}
               </button>
             </div>
           </div>
@@ -1336,7 +1323,7 @@ const ScheduledTasksPanel: React.FC<ScheduledTasksPanelProps> = ({
             style={{ ...addButtonStyle, width: "100%" }}
             onClick={() => setShowAddForm(true)}
           >
-            + {t("scheduled.addTask") || "添加定时任务"}
+            + {t("scheduled.addTask") || "Add Scheduled Task"}
           </button>
         )}
       </div>
