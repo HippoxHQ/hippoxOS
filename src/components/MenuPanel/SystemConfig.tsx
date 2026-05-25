@@ -1,13 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { configCommands } from "../../api/config";
-
-interface WorkspaceInstance {
-  id: string;
-  name: string;
-  workspacePath: string;
-  maxLogSize: number;
-  is_default: boolean;
-}
+import { workspaceCommands, WorkspaceInstance } from "../../api/workspace";
 
 interface SystemConfigProps {
   t: (key: string, params?: any) => string;
@@ -21,7 +14,6 @@ interface SystemConfigProps {
   };
   onSaveWorkspace?: (config: any) => void;
 }
-
 const SystemConfig: React.FC<SystemConfigProps> = ({
   t,
   theme,
@@ -40,112 +32,160 @@ const SystemConfig: React.FC<SystemConfigProps> = ({
   const [newWorkspacePath, setNewWorkspacePath] = useState("");
   const [newMaxLogSize, setNewMaxLogSize] = useState(100);
   const [loading, setLoading] = useState(true);
-
   useEffect(() => {
     loadWorkspaceInstances();
   }, []);
-
   const loadWorkspaceInstances = async () => {
     setLoading(true);
     try {
-      const savedInstances = localStorage.getItem("hippox-workspace-instances");
-      const savedDefaultId = localStorage.getItem("hippox-default-workspace");
-      if (savedInstances) {
-        const instances = JSON.parse(savedInstances);
-        setWorkspaceInstances(instances);
-        if (savedDefaultId) {
-          setDefaultInstanceId(savedDefaultId);
-        } else if (instances.length > 0) {
-          setDefaultInstanceId(instances[0].id);
+      const config = await workspaceCommands.getWorkspaceConfig();
+      setWorkspaceInstances(config.instances);
+      setDefaultInstanceId(config.default_instance_id);
+      if (onSaveWorkspace && config.default_instance_id) {
+        const defaultWorkspace = config.instances.find(
+          (i) => i.id === config.default_instance_id,
+        );
+        if (defaultWorkspace) {
+          onSaveWorkspace({
+            workspacePath: defaultWorkspace.workspace_path,
+            maxLogSize: defaultWorkspace.max_log_size,
+          });
         }
-      } else if (initialWorkspaceConfig) {
+      }
+    } catch (error) {
+      console.error("Failed to load workspace instances:", error);
+      if (initialWorkspaceConfig) {
         const defaultInstance: WorkspaceInstance = {
           id: `workspace_${Date.now()}`,
-          name: "默认工作空间",
-          workspacePath: initialWorkspaceConfig.workspacePath || "",
-          maxLogSize: initialWorkspaceConfig.maxLogSize || 100,
+          name: "workspace",
+          workspace_path: initialWorkspaceConfig.workspacePath || "",
+          max_log_size: initialWorkspaceConfig.maxLogSize || 100,
           is_default: true,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
         };
         setWorkspaceInstances([defaultInstance]);
         setDefaultInstanceId(defaultInstance.id);
       }
-    } catch (error) {
-      console.error("Failed to load workspace instances:", error);
     } finally {
       setLoading(false);
     }
   };
-  const saveWorkspaceInstances = (
+
+  const saveWorkspaceInstances = async (
     instances: WorkspaceInstance[],
     defaultId: string,
   ) => {
-    localStorage.setItem(
-      "hippox-workspace-instances",
-      JSON.stringify(instances),
-    );
-    localStorage.setItem("hippox-default-workspace", defaultId);
-    if (onSaveWorkspace) {
-      const defaultWorkspace = instances.find((i) => i.id === defaultId);
-      if (defaultWorkspace) {
-        onSaveWorkspace({
-          workspacePath: defaultWorkspace.workspacePath,
-          maxLogSize: defaultWorkspace.maxLogSize,
-        });
+    try {
+      for (const instance of instances) {
+        if (instance.id === defaultId && !instance.is_default) {
+          await workspaceCommands.setDefaultWorkspace(instance.id);
+        } else if (instance.is_default && instance.id !== defaultId) {
+          const updatedInstance = { ...instance, is_default: false };
+          await workspaceCommands.updateWorkspace(updatedInstance);
+        }
+      }
+      if (defaultId !== defaultInstanceId) {
+        await workspaceCommands.setDefaultWorkspace(defaultId);
+      }
+      if (onSaveWorkspace) {
+        const defaultWorkspace = instances.find((i) => i.id === defaultId);
+        if (defaultWorkspace) {
+          onSaveWorkspace({
+            workspacePath: defaultWorkspace.workspace_path,
+            maxLogSize: defaultWorkspace.max_log_size,
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Failed to save workspace to backend:", error);
+      if (onSaveWorkspace) {
+        const defaultWorkspace = instances.find((i) => i.id === defaultId);
+        if (defaultWorkspace) {
+          onSaveWorkspace({
+            workspacePath: defaultWorkspace.workspace_path,
+            maxLogSize: defaultWorkspace.max_log_size,
+          });
+        }
       }
     }
   };
-  const handleSetDefault = (instanceId: string) => {
-    const updatedInstances = workspaceInstances.map((inst) => ({
-      ...inst,
-      is_default: inst.id === instanceId,
-    }));
-    setWorkspaceInstances(updatedInstances);
-    setDefaultInstanceId(instanceId);
-    saveWorkspaceInstances(updatedInstances, instanceId);
+
+  const handleSetDefault = async (instanceId: string) => {
+    try {
+      await workspaceCommands.setDefaultWorkspace(instanceId);
+      const updatedInstances = workspaceInstances.map((inst) => ({
+        ...inst,
+        is_default: inst.id === instanceId,
+      }));
+      setWorkspaceInstances(updatedInstances);
+      setDefaultInstanceId(instanceId);
+      if (onSaveWorkspace) {
+        const defaultWorkspace = updatedInstances.find(
+          (i) => i.id === instanceId,
+        );
+        if (defaultWorkspace) {
+          onSaveWorkspace({
+            workspacePath: defaultWorkspace.workspace_path,
+            maxLogSize: defaultWorkspace.max_log_size,
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Failed to set default workspace:", error);
+    }
   };
-  const handleDeleteInstance = (instanceId: string) => {
+  const handleDeleteInstance = async (instanceId: string) => {
     if (workspaceInstances.length <= 1) {
       return;
     }
     if (defaultInstanceId === instanceId) {
       return;
     }
-    const updatedInstances = workspaceInstances.filter(
-      (inst) => inst.id !== instanceId,
-    );
-    setWorkspaceInstances(updatedInstances);
-    saveWorkspaceInstances(updatedInstances, defaultInstanceId);
+    try {
+      await workspaceCommands.deleteWorkspace(instanceId);
+      const updatedInstances = workspaceInstances.filter(
+        (inst) => inst.id !== instanceId,
+      );
+      setWorkspaceInstances(updatedInstances);
+    } catch (error) {
+      console.error("Failed to delete workspace:", error);
+    }
   };
-  const handleAddInstance = () => {
+  const handleAddInstance = async () => {
     if (!newWorkspaceName.trim() || !newWorkspacePath.trim()) {
       return;
     }
+    const now = new Date().toISOString();
     const newInstance: WorkspaceInstance = {
       id: `workspace_${Date.now()}`,
       name: newWorkspaceName.trim(),
-      workspacePath: newWorkspacePath.trim(),
-      maxLogSize: newMaxLogSize,
+      workspace_path: newWorkspacePath.trim(),
+      max_log_size: newMaxLogSize,
       is_default: false,
+      created_at: now,
+      updated_at: now,
     };
-    const updatedInstances = [...workspaceInstances, newInstance];
-    setWorkspaceInstances(updatedInstances);
-    setShowAddForm(false);
-    setNewWorkspaceName("");
-    setNewWorkspacePath("");
-    setNewMaxLogSize(100);
-    saveWorkspaceInstances(updatedInstances, defaultInstanceId);
+    try {
+      await workspaceCommands.addWorkspace(newInstance);
+      const updatedInstances = [...workspaceInstances, newInstance];
+      setWorkspaceInstances(updatedInstances);
+      setShowAddForm(false);
+      setNewWorkspaceName("");
+      setNewWorkspacePath("");
+      setNewMaxLogSize(100);
+    } catch (error) {
+      console.error("Failed to add workspace:", error);
+    }
   };
-
   const handleThemeChange = async (newTheme: "light" | "dark") => {
     onThemeChange(newTheme);
     await configCommands.saveSettingsTheme(newTheme);
   };
-
   const handleLanguageChange = async (newLanguage: "zh" | "en") => {
     onLanguageChange(newLanguage);
     await configCommands.saveSettingsLanguage(newLanguage);
   };
-
   const labelStyle: React.CSSProperties = {
     fontSize: "13px",
     color: "var(--text-primary)",
@@ -153,7 +193,6 @@ const SystemConfig: React.FC<SystemConfigProps> = ({
     flexShrink: 0,
     userSelect: "none",
   };
-
   const inputStyle: React.CSSProperties = {
     flex: 1,
     minWidth: 0,
@@ -165,7 +204,6 @@ const SystemConfig: React.FC<SystemConfigProps> = ({
     fontSize: "13px",
     outline: "none",
   };
-
   const selectStyle: React.CSSProperties = {
     flex: 1,
     minWidth: 0,
@@ -178,7 +216,6 @@ const SystemConfig: React.FC<SystemConfigProps> = ({
     cursor: "pointer",
     outline: "none",
   };
-
   const buttonStyle: React.CSSProperties = {
     padding: "6px 16px",
     background: "var(--bg-secondary)",
@@ -332,6 +369,7 @@ const SystemConfig: React.FC<SystemConfigProps> = ({
           >
             📁 {t("settings.workspaceConfig")}
           </div>
+
           {workspaceInstances.map((instance) => (
             <div key={instance.id} style={workspaceCardStyle}>
               <div
@@ -372,7 +410,7 @@ const SystemConfig: React.FC<SystemConfigProps> = ({
                 <label style={labelStyle}>{t("settings.workspacePath")}</label>
                 <input
                   style={inputStyle}
-                  value={instance.workspacePath}
+                  value={instance.workspace_path}
                   disabled
                   placeholder={t("settings.workspacePathPlaceholder")}
                 />
@@ -394,11 +432,10 @@ const SystemConfig: React.FC<SystemConfigProps> = ({
                 <input
                   type="number"
                   style={inputStyle}
-                  value={instance.maxLogSize}
+                  value={instance.max_log_size}
                   disabled
                 />
               </div>
-
               <div
                 style={{
                   display: "flex",
@@ -435,7 +472,6 @@ const SystemConfig: React.FC<SystemConfigProps> = ({
               </div>
             </div>
           ))}
-
           {showAddForm ? (
             <div style={workspaceCardStyle}>
               <div
@@ -490,7 +526,6 @@ const SystemConfig: React.FC<SystemConfigProps> = ({
                   placeholder={t("settings.workspacePathPlaceholder")}
                 />
               </div>
-
               <div
                 className="settings-row"
                 style={{
@@ -513,7 +548,6 @@ const SystemConfig: React.FC<SystemConfigProps> = ({
                   }
                 />
               </div>
-
               <div
                 style={{
                   display: "flex",
