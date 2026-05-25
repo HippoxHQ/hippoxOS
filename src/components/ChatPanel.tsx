@@ -5,7 +5,6 @@ import {
   FolderIcon,
   FolderOpenIcon,
   ChevronRightIcon,
-  SendIcon,
   UserIcon,
   BotIcon,
   TextFileIcon,
@@ -15,16 +14,15 @@ import {
   FileIcon,
 } from "../icons";
 import { workspaceCommands, WorkspaceInstance } from "../api/workspace";
+import { taskManager } from "../TaskManager";
 
 interface ChatPanelProps {
-  messages: ChatMessage[];
   onSendMessage: (message: string) => void | Promise<void>;
   t: (key: string, params?: any) => string;
   language?: string;
 }
 
 const ChatPanel: React.FC<ChatPanelProps> = ({
-  messages,
   onSendMessage,
   t,
   language = "zh",
@@ -44,10 +42,65 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   const [showScrollButton, setShowScrollButton] = useState(false);
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [userScrolled, setUserScrolled] = useState(false);
-
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const getTaskMessage = (
+    taskId: string,
+    status: string,
+    final_output?: string,
+  ): string => {
+    if (status === "completed") {
+      return language === "zh" ? "✅ 任务已完成" : "✅ Task completed";
+    } else if (status === "failed") {
+      return `❌ ${final_output || (language === "zh" ? "任务执行失败" : "Task execution failed")}`;
+    } else {
+      return `⏳ ${language === "zh" ? "任务已提交" : "Task submitted"} ${taskId.slice(0, 8)}...`;
+    }
+  };
+  useEffect(() => {
+    const updateMessages = () => {
+      const userMessages = taskManager.getUserMessages();
+      const tasks = taskManager.getAllTasks();
+      const assistantMessages: ChatMessage[] = tasks.map((task) => ({
+        id: `assistant_${task.task_id}`,
+        role: "assistant" as const,
+        content: getTaskMessage(task.task_id, task.status, task.final_output),
+        timestamp: task.created_at,
+      }));
+      let allMessages: ChatMessage[] = [...userMessages, ...assistantMessages];
+      allMessages.sort(
+        (a, b) =>
+          new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
+      );
+      if (allMessages.length === 0) {
+        allMessages = [
+          {
+            id: "welcome",
+            role: "assistant",
+            content:
+              language === "zh"
+                ? "你好，我是 Hippox AI 运行时。我有自主决策能力，可以执行技能并实时反馈。有什么可以帮你的？"
+                : "Hello, I am Hippox AI Runtime. I have autonomous decision-making capabilities and can execute skills with real-time feedback. How can I help you?",
+            timestamp: new Date().toLocaleTimeString(),
+          },
+        ];
+      }
+      setMessages(allMessages);
+    };
+    updateMessages();
+    const unsubscribe = taskManager.subscribe(() => {
+      updateMessages();
+    });
+    return unsubscribe;
+  }, [language]);
   useEffect(() => {
     loadWorkspaces();
   }, []);
+  useEffect(() => {
+    if (!userScrolled && messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTop =
+        messagesContainerRef.current.scrollHeight;
+    }
+  }, [messages, userScrolled]);
 
   const loadWorkspaces = async () => {
     try {
@@ -95,14 +148,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
       return () => element.removeEventListener("scroll", checkScrollPosition);
     }
   }, [messages]);
-
-  useEffect(() => {
-    if (!userScrolled && messagesContainerRef.current) {
-      messagesContainerRef.current.scrollTop =
-        messagesContainerRef.current.scrollHeight;
-    }
-    checkScrollPosition();
-  }, [messages, userScrolled]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -496,10 +541,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
           background: var(--hover-bg);
         }
 
-        .directory-item:hover {
-          background: rgba(0, 0, 0, 0.08);
-        }
-
         [data-theme="light"] .directory-item:hover {
           background: rgba(0, 0, 0, 0.12);
         }
@@ -612,8 +653,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
           --accent-color: #6366f1;
           --accent-hover: #4f46e5;
           --accent-glow: rgba(99, 102, 241, 0.2);
-          // --hover-bg: rgba(0, 0, 0, 0.12); 
-          --hover-bg: rgba(0, 0, 0, 0.04); 
+          --hover-bg: rgba(0, 0, 0, 0.04);
         }
       `}</style>
       <div
@@ -645,7 +685,9 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
               </div>
               <div className="message-bubble">
                 <div className="message-content">{msg.content}</div>
-                <div className="message-time">{msg.timestamp}</div>
+                <div className="message-time">
+                  {new Date(msg.timestamp).toLocaleTimeString()}
+                </div>
               </div>
             </div>
           ))}

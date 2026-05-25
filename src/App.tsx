@@ -16,6 +16,7 @@ import { sessionCommands } from "./api/session";
 import { configCommands } from "./api/config";
 import { listen } from "@tauri-apps/api/event";
 import { SettingsSubView } from "./components/MenuPanel/SettingsPanel";
+import { taskManager } from "./TaskManager";
 
 function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -33,12 +34,6 @@ function App() {
   const [menuPanelWidth, setMenuPanelWidth] = useState<number>(320);
   const [executionLogs, setExecutionLogs] = useState<ExecutionLog[]>([]);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
-  const [activeTasks, setActiveTasks] = useState<Map<string, TaskInfo>>(
-    new Map(),
-  );
-  const [currentSessionTasks, setCurrentSessionTasks] = useState<TaskInfo[]>(
-    [],
-  );
   const [currentSessionId, setCurrentSessionId] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
   const [initialEngineConfig, setInitialEngineConfig] = useState<any>(null);
@@ -52,7 +47,6 @@ function App() {
         setLanguage(savedLanguage as Language);
         await hippoxCommands.setLanguage(savedLanguage);
 
-        // 加载引擎配置
         const fullConfig = await configCommands.getConfig();
         if (fullConfig.engine) {
           setInitialEngineConfig(fullConfig.engine);
@@ -88,8 +82,40 @@ function App() {
           const chatContent = await sessionCommands.loadChatContent(
             targetSession.session_id,
           );
-          if (chatContent && chatContent.length > 0) {
-            setChatMessages(chatContent);
+          if (chatContent) {
+            try {
+              const parsed =
+                typeof chatContent === "string"
+                  ? JSON.parse(chatContent)
+                  : chatContent;
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                setChatMessages(parsed);
+              } else {
+                setChatMessages([
+                  {
+                    id: "welcome",
+                    role: "assistant",
+                    content:
+                      language === "zh"
+                        ? "你好，我是 Hippox AI 运行时。我有自主决策能力，可以执行技能并实时反馈。有什么可以帮你的？"
+                        : "Hello, I am Hippox AI Runtime. I have autonomous decision-making capabilities and can execute skills with real-time feedback. How can I help you?",
+                    timestamp: new Date().toLocaleTimeString(),
+                  },
+                ]);
+              }
+            } catch {
+              setChatMessages([
+                {
+                  id: "welcome",
+                  role: "assistant",
+                  content:
+                    language === "zh"
+                      ? "你好，我是 Hippox AI 运行时。我有自主决策能力，可以执行技能并实时反馈。有什么可以帮你的？"
+                      : "Hello, I am Hippox AI Runtime. I have autonomous decision-making capabilities and can execute skills with real-time feedback. How can I help you?",
+                  timestamp: new Date().toLocaleTimeString(),
+                },
+              ]);
+            }
           } else {
             setChatMessages([
               {
@@ -104,6 +130,24 @@ function App() {
             ]);
           }
           setCurrentSessionId(targetSession.session_id);
+          taskManager.setSessionId(targetSession.session_id);
+          const terminalContent = await sessionCommands.loadTerminalContent(
+            targetSession.session_id,
+          );
+          if (terminalContent) {
+            try {
+              const parsed =
+                typeof terminalContent === "string"
+                  ? JSON.parse(terminalContent)
+                  : terminalContent;
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                taskManager.setTasks(parsed);
+              }
+            } catch (e) {
+              console.error("Failed to parse terminal content:", e);
+            }
+          }
+
           localStorage.setItem(
             "hippox-current-session",
             targetSession.session_id,
@@ -121,155 +165,64 @@ function App() {
   useEffect(() => {
     if (!isLoading && currentSessionId && chatMessages.length > 0) {
       const saveTimer = setTimeout(() => {
-        sessionCommands
-          .saveChatContent(currentSessionId, chatMessages)
-          .catch(console.error);
-        sessionCommands
-          .saveTerminalContent(currentSessionId, currentSessionTasks)
-          .catch(console.error);
+        (sessionCommands.saveChatContent as any)(
+          currentSessionId,
+          JSON.stringify(chatMessages),
+        ).catch(console.error);
+        (sessionCommands.saveTerminalContent as any)(
+          currentSessionId,
+          JSON.stringify(taskManager.getAllTasks()),
+        ).catch(console.error);
       }, 1000);
       return () => clearTimeout(saveTimer);
     }
-  }, [chatMessages, currentSessionTasks, currentSessionId, isLoading]);
-
-  const handleNewSession = async () => {
-    const newSessionId = `session_${Date.now()}`;
-    const welcomeMessage: ChatMessage[] = [
-      {
-        id: "welcome",
-        role: "assistant",
-        content:
-          language === "zh"
-            ? "你好，我是 Hippox AI 运行时。有什么可以帮你的？"
-            : "Hello, I am Hippox AI Runtime. How can I help you?",
-        timestamp: new Date().toLocaleTimeString(),
-      },
-    ];
-    try {
-      await sessionCommands.createSession(
-        newSessionId,
-        language === "zh" ? "新对话" : "New Session",
-        language === "zh" ? "新创建的对话" : "Newly created session",
-        welcomeMessage,
-        [],
-      );
-      setCurrentSessionId(newSessionId);
-      localStorage.setItem("hippox-current-session", newSessionId);
-      setChatMessages(welcomeMessage);
-      setCurrentSessionTasks([]);
-      setActiveTasks(new Map());
-      window.dispatchEvent(new CustomEvent("session-created"));
-    } catch (error) {
-      console.error("Failed to create new session:", error);
-    }
-  };
-
-  const handleSwitchSession = async (sessionId: string) => {
-    if (sessionId === currentSessionId) return;
-    try {
-      if (currentSessionId) {
-        await sessionCommands.saveChatContent(currentSessionId, chatMessages);
-        await sessionCommands.saveTerminalContent(
-          currentSessionId,
-          currentSessionTasks,
-        );
-      }
-      const chatContent = await sessionCommands.loadChatContent(sessionId);
-      const terminalContent =
-        await sessionCommands.loadTerminalContent(sessionId);
-      setCurrentSessionId(sessionId);
-      localStorage.setItem("hippox-current-session", sessionId);
-      if (chatContent && chatContent.length > 0) {
-        setChatMessages(chatContent);
-      } else {
-        setChatMessages([
-          {
-            id: "welcome",
-            role: "assistant",
-            content:
-              language === "zh"
-                ? "你好，我是 Hippox AI 运行时。有什么可以帮你的？"
-                : "Hello, I am Hippox AI Runtime. How can I help you?",
-            timestamp: new Date().toLocaleTimeString(),
-          },
-        ]);
-      }
-      if (terminalContent && terminalContent.length > 0) {
-        setCurrentSessionTasks(terminalContent);
-        const taskMap = new Map();
-        terminalContent.forEach((task: TaskInfo) =>
-          taskMap.set(task.task_id, task),
-        );
-        setActiveTasks(taskMap);
-      } else {
-        setCurrentSessionTasks([]);
-        setActiveTasks(new Map());
-      }
-    } catch (error) {
-      console.error("Failed to switch session:", error);
-    }
-  };
-
-  const handleToggleTheme = async () => {
-    const newTheme = theme === "dark" ? "light" : "dark";
-    setTheme(newTheme);
-    await configCommands.saveSettingsTheme(newTheme);
-  };
-
-  const handleToggleLanguage = async () => {
-    const newLang = language === "zh" ? "en" : "zh";
-    setLanguage(newLang);
-    await configCommands.saveSettingsLanguage(newLang);
-    await hippoxCommands.setLanguage(newLang);
-  };
+  }, [chatMessages, currentSessionId, isLoading]);
 
   useEffect(() => {
     const unlistenStep = listen("task_step_update", (event: any) => {
       const { task_id, step_name, step_index, status, output, error } =
         event.payload;
-      setActiveTasks((prev) => {
-        const newMap = new Map(prev);
-        const task = newMap.get(task_id);
-        if (task) {
-          const steps = [...task.steps];
-          const existingStep = steps.find((s) => s.step_index === step_index);
-          if (existingStep) {
-            existingStep.status = status;
-            if (output) existingStep.output = output;
-            if (error) existingStep.error = error;
-          } else {
-            steps.push({ step_index, step_name, status, output, error });
-          }
-          steps.sort((a, b) => a.step_index - b.step_index);
-          const updatedTask = {
-            ...task,
-            steps,
-            updated_at: new Date().toISOString(),
-          };
-          newMap.set(task_id, updatedTask);
-          setCurrentSessionTasks(Array.from(newMap.values()));
+
+      const task = taskManager.getTask(task_id);
+      if (task && task.status !== "failed") {
+        const steps = [...task.steps];
+        const existingStep = steps.find((s) => s.step_index === step_index);
+        if (existingStep) {
+          existingStep.status = status;
+          if (output) existingStep.output = output;
+          if (error) existingStep.error = error;
+        } else {
+          steps.push({ step_index, step_name, status, output, error });
         }
-        return newMap;
-      });
+        steps.sort((a, b) => a.step_index - b.step_index);
+
+        const hasFailure = steps.some((s) => s.status === "FAILURE");
+        const taskStatus = hasFailure ? "failed" : task.status;
+
+        taskManager.updateTask(task_id, { steps, status: taskStatus });
+      }
     });
 
     const unlistenComplete = listen("task_complete", (event: any) => {
       const { task_id, final_output } = event.payload;
-      setActiveTasks((prev) => {
-        const newMap = new Map(prev);
-        const task = newMap.get(task_id);
-        if (task) {
-          const updatedTask = {
-            ...task,
-            status: "completed",
-            final_output,
-            updated_at: new Date().toISOString(),
-          };
-          newMap.set(task_id, updatedTask);
-          setCurrentSessionTasks(Array.from(newMap.values()));
-        }
-        return newMap;
-      });
+
+      const task = taskManager.getTask(task_id);
+      if (task) {
+        taskManager.updateTask(task_id, { status: "completed", final_output });
+      } else {
+        const newTask: TaskInfo = {
+          task_id: task_id,
+          session_id: currentSessionId,
+          user_input: "Processing...",
+          status: "completed",
+          steps: [],
+          final_output: final_output,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+        taskManager.addTask(newTask);
+      }
+
       setChatMessages((prev) => {
         const newMessages = [...prev];
         const pendingIndex = newMessages.findIndex(
@@ -279,18 +232,11 @@ function App() {
           language === "zh" ? "✅ 任务已完成" : "✅ Task completed";
         if (pendingIndex !== -1) {
           newMessages[pendingIndex] = {
+            ...newMessages[pendingIndex],
             id: `response_${task_id}`,
-            role: "assistant",
             content: successMessage,
             timestamp: new Date().toLocaleTimeString(),
           };
-        } else {
-          newMessages.push({
-            id: `response_${task_id}`,
-            role: "assistant",
-            content: successMessage,
-            timestamp: new Date().toLocaleTimeString(),
-          });
         }
         return newMessages;
       });
@@ -298,42 +244,40 @@ function App() {
 
     const unlistenFailed = listen("task_failed", (event: any) => {
       const { task_id, error } = event.payload;
-      setActiveTasks((prev) => {
-        const newMap = new Map(prev);
-        const task = newMap.get(task_id);
-        if (task) {
-          const updatedTask = {
-            ...task,
-            status: "failed",
-            final_output: error,
-            updated_at: new Date().toISOString(),
-          };
-          newMap.set(task_id, updatedTask);
-          setCurrentSessionTasks(Array.from(newMap.values()));
-        }
-        return newMap;
-      });
+
+      const task = taskManager.getTask(task_id);
+      if (task) {
+        taskManager.updateTask(task_id, {
+          status: "failed",
+          final_output: error,
+        });
+      } else {
+        const newTask: TaskInfo = {
+          task_id: task_id,
+          session_id: currentSessionId,
+          user_input: "Processing...",
+          status: "failed",
+          steps: [],
+          final_output: error,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+        taskManager.addTask(newTask);
+      }
+
       setChatMessages((prev) => {
         const newMessages = [...prev];
         const pendingIndex = newMessages.findIndex(
           (msg) => msg.id === `pending_${task_id}`,
         );
-        const errorMessage =
-          language === "zh" ? "❌ 任务执行失败" : "❌ Task execution failed";
+
         if (pendingIndex !== -1) {
           newMessages[pendingIndex] = {
+            ...newMessages[pendingIndex],
             id: `error_${task_id}`,
-            role: "assistant",
-            content: errorMessage,
+            content: `❌ ${error}`,
             timestamp: new Date().toLocaleTimeString(),
           };
-        } else {
-          newMessages.push({
-            id: `error_${task_id}`,
-            role: "assistant",
-            content: errorMessage,
-            timestamp: new Date().toLocaleTimeString(),
-          });
         }
         return newMessages;
       });
@@ -344,22 +288,7 @@ function App() {
       unlistenComplete.then((fn) => fn());
       unlistenFailed.then((fn) => fn());
     };
-  }, [language]);
-
-  useEffect(() => {
-    const loadTasks = async () => {
-      try {
-        const tasks = await hippoxCommands.getSessionTasks();
-        const taskMap = new Map();
-        tasks.forEach((task) => taskMap.set(task.task_id, task));
-        setActiveTasks(taskMap);
-        setCurrentSessionTasks(tasks);
-      } catch (error) {
-        console.error("load tasks error:", error);
-      }
-    };
-    loadTasks();
-  }, [language]);
+  }, [language, currentSessionId]);
 
   useEffect(() => {
     const loadLogs = async () => {
@@ -382,6 +311,143 @@ function App() {
     const interval = setInterval(loadLogs, 3000);
     return () => clearInterval(interval);
   }, []);
+
+  const handleNewSession = async () => {
+    const newSessionId = `session_${Date.now()}`;
+    const welcomeMessage: ChatMessage[] = [
+      {
+        id: "welcome",
+        role: "assistant",
+        content:
+          language === "zh"
+            ? "你好，我是 Hippox AI 运行时。有什么可以帮你的？"
+            : "Hello, I am Hippox AI Runtime. How can I help you?",
+        timestamp: new Date().toLocaleTimeString(),
+      },
+    ];
+    try {
+      await (sessionCommands.createSession as any)(
+        newSessionId,
+        language === "zh" ? "新对话" : "New Session",
+        language === "zh" ? "新创建的对话" : "Newly created session",
+        JSON.stringify(welcomeMessage),
+        "[]",
+      );
+      setCurrentSessionId(newSessionId);
+      taskManager.setSessionId(newSessionId);
+      taskManager.clearTasks();
+      localStorage.setItem("hippox-current-session", newSessionId);
+      setChatMessages(welcomeMessage);
+      window.dispatchEvent(new CustomEvent("session-created"));
+    } catch (error) {
+      console.error("Failed to create new session:", error);
+    }
+  };
+
+  const handleSwitchSession = async (sessionId: string) => {
+    if (sessionId === currentSessionId) return;
+    try {
+      if (currentSessionId) {
+        await (sessionCommands.saveChatContent as any)(
+          currentSessionId,
+          JSON.stringify(chatMessages),
+        );
+        await (sessionCommands.saveTerminalContent as any)(
+          currentSessionId,
+          JSON.stringify(taskManager.getAllTasks()),
+        );
+      }
+
+      const chatContent = await sessionCommands.loadChatContent(sessionId);
+      const terminalContent =
+        await sessionCommands.loadTerminalContent(sessionId);
+
+      setCurrentSessionId(sessionId);
+      taskManager.setSessionId(sessionId);
+      localStorage.setItem("hippox-current-session", sessionId);
+
+      if (chatContent) {
+        try {
+          const parsed =
+            typeof chatContent === "string"
+              ? JSON.parse(chatContent)
+              : chatContent;
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setChatMessages(parsed);
+          } else {
+            setChatMessages([
+              {
+                id: "welcome",
+                role: "assistant",
+                content:
+                  language === "zh"
+                    ? "你好，我是 Hippox AI 运行时。有什么可以帮你的？"
+                    : "Hello, I am Hippox AI Runtime. How can I help you?",
+                timestamp: new Date().toLocaleTimeString(),
+              },
+            ]);
+          }
+        } catch {
+          setChatMessages([
+            {
+              id: "welcome",
+              role: "assistant",
+              content:
+                language === "zh"
+                  ? "你好，我是 Hippox AI 运行时。有什么可以帮你的？"
+                  : "Hello, I am Hippox AI Runtime. How can I help you?",
+              timestamp: new Date().toLocaleTimeString(),
+            },
+          ]);
+        }
+      } else {
+        setChatMessages([
+          {
+            id: "welcome",
+            role: "assistant",
+            content:
+              language === "zh"
+                ? "你好，我是 Hippox AI 运行时。有什么可以帮你的？"
+                : "Hello, I am Hippox AI Runtime. How can I help you?",
+            timestamp: new Date().toLocaleTimeString(),
+          },
+        ]);
+      }
+
+      if (terminalContent) {
+        try {
+          const parsed =
+            typeof terminalContent === "string"
+              ? JSON.parse(terminalContent)
+              : terminalContent;
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            taskManager.setTasks(parsed);
+          } else {
+            taskManager.clearTasks();
+          }
+        } catch {
+          taskManager.clearTasks();
+        }
+      } else {
+        taskManager.clearTasks();
+      }
+    } catch (error) {
+      console.error("Failed to switch session:", error);
+    }
+  };
+
+  const handleToggleTheme = async () => {
+    const newTheme = theme === "dark" ? "light" : "dark";
+    setTheme(newTheme);
+    await configCommands.saveSettingsTheme(newTheme);
+  };
+
+  const handleToggleLanguage = async () => {
+    const newLang = language === "zh" ? "en" : "zh";
+    setLanguage(newLang);
+    await configCommands.saveSettingsLanguage(newLang);
+    await hippoxCommands.setLanguage(newLang);
+  };
 
   const handleMenuClick = (view: string, subView?: string) => {
     if (
@@ -408,52 +474,40 @@ function App() {
     setMenuPanelView(null);
   };
 
-  const handleSaveConfig = async (config: any) => {
-    console.log("config saved:", config);
-  };
+  const handleSaveConfig = async (config: any) => {};
 
   const handleSendMessage = async (userMessage: string) => {
+    const now = new Date();
     const userMsg: ChatMessage = {
-      id: Date.now().toString(),
+      id: `user_${Date.now()}`,
       role: "user",
       content: userMessage,
-      timestamp: new Date().toLocaleTimeString(),
+      timestamp: now.toISOString(),
     };
-    setChatMessages((prev) => [...prev, userMsg]);
+    taskManager.addUserMessage(userMsg);
+
     try {
       const taskId = await hippoxCommands.sendMessageAsync(userMessage);
-      const newTask: TaskInfo = {
-        task_id: taskId,
-        session_id: currentSessionId,
-        user_input: userMessage,
-        status: "pending",
-        steps: [],
-        final_output: undefined,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
-      setCurrentSessionTasks((prev) => [...prev, newTask]);
-      setActiveTasks((prev) => {
-        const newMap = new Map(prev);
-        newMap.set(taskId, newTask);
-        return newMap;
-      });
-      const pendingMsg: ChatMessage = {
-        id: `pending_${taskId}`,
-        role: "assistant",
-        content: `⏳ ${language === "zh" ? "任务已提交" : "Task submitted"} ${taskId.slice(0, 8)}...`,
-        timestamp: new Date().toLocaleTimeString(),
-      };
-      setChatMessages((prev) => [...prev, pendingMsg]);
+
+      let existingTask = taskManager.getTask(taskId);
+
+      if (!existingTask) {
+        const newTask: TaskInfo = {
+          task_id: taskId,
+          session_id: currentSessionId,
+          user_input: userMessage,
+          status: "pending",
+          steps: [],
+          final_output: undefined,
+          created_at: now.toISOString(),
+          updated_at: now.toISOString(),
+        };
+        taskManager.addTask(newTask);
+      } else {
+        taskManager.updateTask(taskId, { user_input: userMessage });
+      }
     } catch (error) {
       console.error("send message error:", error);
-      const errorMsg: ChatMessage = {
-        id: Date.now().toString(),
-        role: "assistant",
-        content: `${language === "zh" ? "发送失败" : "Send failed"}: ${error}`,
-        timestamp: new Date().toLocaleTimeString(),
-      };
-      setChatMessages((prev) => [...prev, errorMsg]);
     }
   };
 
@@ -480,8 +534,7 @@ function App() {
           timestamp: new Date().toLocaleTimeString(),
         },
       ]);
-      setActiveTasks(new Map());
-      setCurrentSessionTasks([]);
+      taskManager.clearTasks();
     } catch (error) {
       console.error("reset session error:", error);
     }
@@ -581,20 +634,9 @@ function App() {
         )}
         <ResizablePanels
           leftPanel={
-            <TerminalPanel
-              logs={executionLogs}
-              onClearLogs={clearLogs}
-              t={t}
-              activeTasks={currentSessionTasks}
-            />
+            <TerminalPanel logs={executionLogs} onClearLogs={clearLogs} t={t} />
           }
-          rightPanel={
-            <ChatPanel
-              messages={chatMessages}
-              onSendMessage={handleSendMessage}
-              t={t}
-            />
-          }
+          rightPanel={<ChatPanel onSendMessage={handleSendMessage} t={t} />}
         />
       </div>
       <BottomBar t={t} />

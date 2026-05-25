@@ -7,12 +7,12 @@ import {
   ExpandArrowsIcon,
   TaskQueueIcon,
 } from "../icons";
+import { taskManager } from "../TaskManager";
 
 interface TerminalPanelProps {
   logs: ExecutionLog[];
   onClearLogs: () => void;
   t: (key: string, params?: any) => string;
-  activeTasks?: TaskInfo[];
 }
 
 const logToConsole = (level: string, message: string, data?: any) => {
@@ -186,7 +186,6 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
   logs,
   onClearLogs,
   t,
-  activeTasks = [],
 }) => {
   const terminalRef = useRef<HTMLDivElement>(null);
   const taskRefs = useRef<Map<string, HTMLDivElement>>(new Map());
@@ -201,11 +200,20 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
   const [allExpanded, setAllExpanded] = useState(true);
   const buttonRef = useRef<HTMLDivElement>(null);
   const [bubblePosition, setBubblePosition] = useState({ right: 0, top: 0 });
-
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const [tasks, setTasks] = useState<TaskInfo[]>([]);
+  useEffect(() => {
+    const initialTasks = taskManager.getAllTasks();
+    setTasks(initialTasks);
+    const unsubscribe = taskManager.subscribe(() => {
+      const newTasks = taskManager.getAllTasks();
+      setTasks([...newTasks]);
+    });
+    return unsubscribe;
+  }, []);
+  const activeTasks = tasks;
   const allTasks = [
     {
-      task_id: WELCOME_TASK_ID,
+      task_id: "welcome",
       session_id: "welcome",
       user_input: "🎉 Hippox AI Runtime 已启动",
       status: "completed",
@@ -216,7 +224,6 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
     } as TaskInfo,
     ...activeTasks,
   ];
-
   const updateBubblePosition = useCallback(() => {
     if (buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect();
@@ -329,6 +336,23 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
     setExpandedTasks(allTaskIds);
     setAllExpanded(true);
   }, []);
+
+  const autoExpandedRef = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    activeTasks.forEach((task) => {
+      if (!autoExpandedRef.current.has(task.task_id)) {
+        if (
+          task.status === "failed" ||
+          task.status === "running" ||
+          task.status === "completed"
+        ) {
+          autoExpandedRef.current.add(task.task_id);
+          setExpandedTasks((prev) => new Set(prev).add(task.task_id));
+        }
+      }
+    });
+  }, [activeTasks]);
 
   const scrollToTop = () => {
     if (terminalRef.current) {
@@ -582,7 +606,10 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
           </span>
           <span className="task-time">[{formatTime(task.created_at)}]</span>
           <span className="task-input">📤 {task.user_input}</span>
-          <span className="task-status-text">
+          <span
+            className="task-status-text"
+            style={task.status === "failed" ? { color: "#ff4444" } : {}}
+          >
             {task.status}
             {stepSummary}
           </span>
