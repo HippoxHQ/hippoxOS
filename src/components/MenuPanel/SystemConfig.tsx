@@ -186,7 +186,6 @@ const SystemConfig: React.FC<SystemConfigProps> = ({
             </select>
           </div>
         </div>
-
         <div style={{ padding: "0" }}>
           <div
             style={{

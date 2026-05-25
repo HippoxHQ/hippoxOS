@@ -134,6 +134,11 @@ export const zh = {
     }
   },
   chat: {
+    attachment: '附件',
+    selectWorkspace: '选择工作目录',
+    textFile: '文本文件',
+    image: '图片',
+    video: '视频',
     title: '对话界面',
     mainSession: 'Main Session',
     placeholder: '输入消息...',
@@ -516,6 +521,11 @@ export const en: typeof zh = {
     }
   },
   chat: {
+    attachment: 'Attachment',
+    selectWorkspace: 'Select Workspace',
+    textFile: 'Text File',
+    image: 'Image',
+    video: 'Video',
     title: 'Chat Interface',
     mainSession: 'Main Session',
     placeholder: 'Type a message...',
