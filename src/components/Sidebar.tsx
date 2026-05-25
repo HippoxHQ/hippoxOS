@@ -344,6 +344,7 @@ if (typeof document !== "undefined") {
 const menuConfig: MenuItem[] = [
   { id: "history", icon: "history", label: "menu.history" },
   { id: "favorites", icon: "favorites", label: "menu.favorites" },
+  { id: "workspace", icon: "workspace", label: "menu.workspace" },
   {
     id: "skills_group",
     icon: "skills",
@@ -379,7 +380,6 @@ const menuConfig: MenuItem[] = [
     children: [
       { id: "llmModel", icon: "settings", label: "menu.llmModelConfig" },
       { id: "engine", icon: "settings", label: "menu.engineConfig" },
-      { id: "workspace", icon: "settings", label: "menu.workspaceConfig" },
       { id: "atomicSkills", icon: "skills", label: "menu.atomicSkills" },
       { id: "system", icon: "settings", label: "menu.systemConfig" },
     ],

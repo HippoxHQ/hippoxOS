@@ -24,7 +24,7 @@ function App() {
     null,
   );
   const [settingsSubView, setSettingsSubView] =
-    useState<SettingsSubView>("aiModel");
+    useState<SettingsSubView>("llmModel");
   const [menuPanelWidth, setMenuPanelWidth] = useState<number>(320);
   const [executionLogs, setExecutionLogs] = useState<ExecutionLog[]>([]);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
@@ -359,7 +359,7 @@ function App() {
   const handleMenuClick = (view: string, subView?: string) => {
     if (view === "settings") {
       setMenuPanelView("settings");
-      setSettingsSubView((subView as SettingsSubView) || "aiModel");
+      setSettingsSubView((subView as SettingsSubView) || "llmModel");
     } else if (view === "dashboard") {
       setMenuPanelView(null);
     } else {

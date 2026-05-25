@@ -1,20 +1,23 @@
-import React from 'react';
-import AIModelConfig from './AIModelConfig';
-import EngineConfig from './EngineConfig';
-import WorkspaceConfig from './WorkspaceConfig';
-import SystemConfig from './SystemConfig';
-import AtomicSkillsPanel from './AtomicSkillsPanel';
+import React from "react";
+import AIModelConfig from "./AIModelConfig";
+import EngineConfig from "./EngineConfig";
+import SystemConfig from "./SystemConfig";
+import AtomicSkillsPanel from "./AtomicSkillsPanel";
 
-export type SettingsSubView = 'aiModel' | 'engine' | 'workspace' | 'system' | 'atomicSkills';
+export type SettingsSubView =
+  | "llmModel"
+  | "engine"
+  | "system"
+  | "atomicSkills";
 
 interface SettingsPanelProps {
   subView: SettingsSubView;
   t: (key: string, params?: any) => string;
   onSave?: (config: any) => void;
-  theme?: 'light' | 'dark';
-  language?: 'zh' | 'en';
-  onThemeChange?: (theme: 'light' | 'dark') => void;
-  onLanguageChange?: (language: 'zh' | 'en') => void;
+  theme?: "light" | "dark";
+  language?: "zh" | "en";
+  onThemeChange?: (theme: "light" | "dark") => void;
+  onLanguageChange?: (language: "zh" | "en") => void;
   isInitializing?: boolean;
 }
 
@@ -158,10 +161,10 @@ const settingsPanelStyles = `
   }
 `;
 
-if (typeof document !== 'undefined') {
-  const styleId = 'settings-panel-styles';
+if (typeof document !== "undefined") {
+  const styleId = "settings-panel-styles";
   if (!document.getElementById(styleId)) {
-    const style = document.createElement('style');
+    const style = document.createElement("style");
     style.id = styleId;
     style.textContent = settingsPanelStyles;
     document.head.appendChild(style);
@@ -180,24 +183,30 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
 }) => {
   const renderContent = () => {
     switch (subView) {
-      case 'aiModel':
-        return <AIModelConfig t={t} onSave={onSave} isInitializing={isInitializing} />;
-      case 'engine':
+      case "llmModel":
+        return (
+          <AIModelConfig
+            t={t}
+            onSave={onSave}
+            isInitializing={isInitializing}
+          />
+        );
+      case "engine":
         return <EngineConfig t={t} onSave={onSave} />;
-      case 'workspace':
-        return <WorkspaceConfig t={t} onSave={onSave} />;
-      case 'system':
-        return <SystemConfig
-          t={t}
-          theme={theme || 'light'}
-          language={language || 'en'}
-          onThemeChange={onThemeChange || (() => { })}
-          onLanguageChange={onLanguageChange || (() => { })}
-        />;
-      case 'atomicSkills':  
+      case "system":
+        return (
+          <SystemConfig
+            t={t}
+            theme={theme || "light"}
+            language={language || "en"}
+            onThemeChange={onThemeChange || (() => {})}
+            onLanguageChange={onLanguageChange || (() => {})}
+          />
+        );
+      case "atomicSkills":
         return <AtomicSkillsPanel t={t} onSave={onSave} />;
       default:
-        return <AIModelConfig t={t} onSave={onSave} isInitializing={isInitializing} />;
+        return <></>;
     }
   };
   return <div className="settings-container">{renderContent()}</div>;

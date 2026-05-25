@@ -9,6 +9,7 @@ import FavoritesPanel from "./FavoritesPanel";
 import HistoryPanel from "./HistoryPanel";
 import SkillsPanel from "./SkillsPanel";
 import AtomicSkillsPanel from "./AtomicSkillsPanel";
+import WorkspacePanel from "./Workspace";
 
 export type MenuPanelView =
   | "terminal"
@@ -21,8 +22,8 @@ export type MenuPanelView =
   | "scheduledTasks"
   | "executionHistory"
   | "atomicSkills"
-  | "settings";
-
+  | "settings"
+  | "workspace";
 interface MenuPanelProps {
   currentView: MenuPanelView;
   settingsSubView?: SettingsSubView;
@@ -51,6 +52,7 @@ const viewTitles: Record<MenuPanelView, string> = {
   scheduledTasks: "menu.scheduledTasks",
   executionHistory: "menu.executionHistory",
   settings: "menu.settings",
+  workspace: "menu.workspace",
 };
 
 const menuPanelStyles = `
@@ -418,10 +420,12 @@ const MenuPanel: React.FC<MenuPanelProps> = ({
         return <ExecutionHistoryPanel t={t} />;
       case "atomicSkills":
         return <AtomicSkillsPanel t={t} onSave={onSaveConfig} />;
+      case "workspace":
+        return <WorkspacePanel t={t} />;
       case "settings":
         return (
           <SettingsPanel
-            subView={settingsSubView || "aiModel"}
+            subView={settingsSubView || "llmModel"}
             t={t}
             onSave={onSaveConfig}
             theme={theme}
@@ -439,9 +443,8 @@ const MenuPanel: React.FC<MenuPanelProps> = ({
   const getDisplayTitle = () => {
     if (currentView === "settings" && settingsSubView) {
       const subViewTitles: Record<SettingsSubView, string> = {
-        aiModel: "menu.aiModelConfig",
+        llmModel: "menu.aiModelConfig",
         engine: "menu.engineConfig",
-        workspace: "menu.workspaceConfig",
         system: "menu.systemConfig",
         atomicSkills: "menu.atomicSkills",
       };
