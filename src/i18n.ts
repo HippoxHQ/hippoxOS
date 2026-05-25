@@ -306,6 +306,9 @@ export const zh = {
     actionSync: '同步',
   },
   settings: {
+    addWorkspace: '添加工作空间',
+    workspaceName: '工作空间名称',
+    workspaceNamePlaceholder: '例如: 开发环境',
     update: '更新',
     selectModel: '选择模型',
     selectModelPlaceholder: '请选择模型...',
@@ -693,6 +696,9 @@ export const en: typeof zh = {
     actionSync: 'Sync',
   },
   settings: {
+    addWorkspace: 'Add Workspace',
+    workspaceName: 'Workspace Name',
+    workspaceNamePlaceholder: 'e.g.: Development Environment',
     update: 'Update',
     selectModel: 'Select Model',
     selectModelPlaceholder: 'Please select a model...',
