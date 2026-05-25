@@ -54,6 +54,8 @@ const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
   const [formRedisDb, setFormRedisDb] = useState(0);
   const [formSqlitePath, setFormSqlitePath] = useState("");
 
+  const dbTypes = Object.keys(DB_TYPE_CONFIG);
+
   useEffect(() => {
     loadInstances();
   }, []);
@@ -62,7 +64,11 @@ const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
     checkScrollButtons();
     window.addEventListener("resize", checkScrollButtons);
     return () => window.removeEventListener("resize", checkScrollButtons);
-  }, []);
+  }, [dbTypes]);
+
+  useEffect(() => {
+    setTimeout(checkScrollButtons, 0);
+  }, [dbTypes]);
 
   useEffect(() => {
     setFormPort(DB_TYPE_CONFIG[activeTab]?.defaultPort || 0);
@@ -477,7 +483,6 @@ const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
   }
 
   const currentInstances = getInstancesByType(activeTab);
-  const dbTypes = ["postgresql", "mysql", "redis", "sqlite"];
 
   return (
     <div
