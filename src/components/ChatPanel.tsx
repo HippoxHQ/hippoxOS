@@ -198,7 +198,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
 
         .panel-header {
           display: flex;
-          align-items: baseline;
+          align-items: center;
           justify-content: space-between;
           padding: 16px 20px;
           border-bottom: 1px solid var(--border-color);
@@ -495,9 +495,21 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
           background: var(--hover-bg);
         }
 
+        .directory-item:hover {
+          background: rgba(0, 0, 0, 0.08);
+        }
+
+        [data-theme="light"] .directory-item:hover {
+          background: rgba(0, 0, 0, 0.12);
+        }
+
         .directory-item.selected {
           background: var(--accent-color);
           color: white;
+        }
+
+        .directory-item.selected:hover {
+          background: var(--accent-color);
         }
 
         .workspace-path {
@@ -600,10 +612,13 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
           --accent-color: #6366f1;
           --accent-hover: #4f46e5;
           --accent-glow: rgba(99, 102, 241, 0.2);
-          --hover-bg: rgba(0, 0, 0, 0.04);
+          --hover-bg: rgba(0, 0, 0, 0.12); 
         }
       `}</style>
-      <div className="panel-header">
+      <div
+        className="panel-header"
+        style={{ paddingTop: "13px", paddingBottom: "13px" }}
+      >
         <div className="header-title">
           <span className="title-icon">
             <ChatIcon size={16} />
@@ -740,7 +755,21 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
             disabled={!inputValue.trim()}
             title={t("chat.send")}
           >
-            <SendIcon size={16} />
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M12 5L12 19M12 5L5 12M12 5L19 12"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
           </button>
         </div>
       </div>
