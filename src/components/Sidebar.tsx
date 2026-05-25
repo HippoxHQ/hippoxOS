@@ -447,7 +447,23 @@ const menuConfig: MenuItem[] = [
           },
         ],
       },
-      { id: "system", icon: "settings", label: "menu.systemConfig" },
+      {
+        id: "system_group",
+        icon: "config",
+        label: "menu.systemConfig",
+        children: [
+          {
+            id: "interface",
+            icon: "config",
+            label: "settings.interfaceConfig",
+          },
+          {
+            id: "workspaceConfig",
+            icon: "config",
+            label: "settings.workspaceConfig",
+          },
+        ],
+      },
     ],
   },
 ];
@@ -466,7 +482,9 @@ interface MenuItemComponentProps {
   onMenuClick: (id: string, subId?: string, subSubId?: string) => void;
   t: (key: string) => string;
   engineGroupOpen: boolean;
+  systemGroupOpen: boolean;
   onToggleEngineGroup: (open: boolean) => void;
+  onToggleSystemGroup: (open: boolean) => void;
 }
 
 const SubMenuRenderer: React.FC<{
@@ -475,19 +493,25 @@ const SubMenuRenderer: React.FC<{
   onMenuClick: (id: string, subId?: string, subSubId?: string) => void;
   t: (key: string) => string;
   engineGroupOpen: boolean;
+  systemGroupOpen: boolean;
   onToggleEngineGroup: (open: boolean) => void;
+  onToggleSystemGroup: (open: boolean) => void;
 }> = ({
   children,
   activeSubSubId,
   onMenuClick,
   t,
   engineGroupOpen,
+  systemGroupOpen,
   onToggleEngineGroup,
+  onToggleSystemGroup,
 }) => {
   const toggleSubMenu = (menuId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (menuId === "engine_group") {
       onToggleEngineGroup(!engineGroupOpen);
+    } else if (menuId === "system_group") {
+      onToggleSystemGroup(!systemGroupOpen);
     }
   };
 
@@ -536,6 +560,47 @@ const SubMenuRenderer: React.FC<{
           );
         }
 
+        if (child.id === "system_group") {
+          return (
+            <div key={child.id}>
+              <div
+                className="sub-nav-item"
+                onClick={(e) => toggleSubMenu(child.id, e)}
+              >
+                <span className="sub-nav-icon">
+                  {ChildIcon && <ChildIcon size={16} />}
+                </span>
+                <span className="sub-nav-label">{t(child.label)}</span>
+                <ChevronIcon
+                  className={`chevron ${systemGroupOpen ? "open" : ""}`}
+                />
+              </div>
+              {systemGroupOpen && (
+                <div className="sub-sub-menu">
+                  {child.children!.map((grandChild) => {
+                    const GrandChildIcon = iconMap[grandChild.icon];
+                    return (
+                      <div
+                        key={grandChild.id}
+                        className={`sub-sub-nav-item ${activeSubSubId === grandChild.id ? "active" : ""}`}
+                        onClick={() =>
+                          onMenuClick(grandChild.id, undefined, grandChild.id)
+                        }
+                      >
+                        <span className="sub-sub-nav-icon">
+                          {GrandChildIcon && <GrandChildIcon size={16} />}
+                        </span>
+                        <span className="sub-sub-nav-label">
+                          {t(grandChild.label)}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        }
         return (
           <div
             key={child.id}
@@ -562,7 +627,9 @@ const MenuItemComponent: React.FC<MenuItemComponentProps> = ({
   onMenuClick,
   t,
   engineGroupOpen,
+  systemGroupOpen,
   onToggleEngineGroup,
+  onToggleSystemGroup,
 }) => {
   const [isOpen, setIsOpen] = useState(true);
   const hasChildren = item.children && item.children.length > 0;
@@ -622,13 +689,14 @@ const MenuItemComponent: React.FC<MenuItemComponentProps> = ({
         </div>
         <div className="sub-menu">
           <SubMenuRenderer
-            key={`engine-group-${engineGroupOpen}`}
             children={item.children!}
             activeSubSubId={activeSubSubId}
             onMenuClick={onMenuClick}
             t={t}
             engineGroupOpen={engineGroupOpen}
+            systemGroupOpen={systemGroupOpen}
             onToggleEngineGroup={onToggleEngineGroup}
+            onToggleSystemGroup={onToggleSystemGroup}
           />
         </div>
       </>
@@ -726,11 +794,28 @@ const Sidebar: React.FC<SidebarProps> = ({
     const saved = localStorage.getItem("sidebar-engine-group-open");
     return saved !== null ? saved === "true" : false;
   });
+  const [systemGroupOpen, setSystemGroupOpen] = useState<boolean>(() => {
+    const saved = localStorage.getItem("sidebar-system-group-open");
+    return saved !== null ? saved === "true" : false;
+  });
   useEffect(() => {
     localStorage.setItem("sidebar-engine-group-open", String(engineGroupOpen));
   }, [engineGroupOpen]);
+  useEffect(() => {
+    localStorage.setItem("sidebar-system-group-open", String(systemGroupOpen));
+  }, [systemGroupOpen]);
   const handleMenuClick = (id: string, subId?: string, subSubId?: string) => {
-    if (id === "history" || id === "favorites" || id === "workspace") {
+    if (id === "workspace") {
+      setActiveId(id);
+      setActiveSubId(undefined);
+      setActiveSubSubId(undefined);
+      if (onMenuClick) onMenuClick(id);
+    } else if (id === "workspaceConfig") {
+      setActiveId(id);
+      setActiveSubId(undefined);
+      setActiveSubSubId(id);
+      if (onMenuClick) onMenuClick("settings", id);
+    } else if (id === "history" || id === "favorites") {
       setActiveId(id);
       setActiveSubId(undefined);
       setActiveSubSubId(undefined);
@@ -749,10 +834,15 @@ const Sidebar: React.FC<SidebarProps> = ({
       setActiveSubId(undefined);
       setActiveSubSubId(undefined);
       if (onMenuClick) onMenuClick(id);
-    } else if (id === "llmModel" || id === "atomicSkills" || id === "system") {
+    } else if (id === "llmModel" || id === "atomicSkills") {
       setActiveId(id);
       setActiveSubId(id);
       setActiveSubSubId(undefined);
+      if (onMenuClick) onMenuClick("settings", id);
+    } else if (id === "interface") {
+      setActiveId(id);
+      setActiveSubId(undefined);
+      setActiveSubSubId(id);
       if (onMenuClick) onMenuClick("settings", id);
     } else if (
       id === "engine_database" ||
@@ -818,6 +908,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                 onClick={() => {
                   if (item.id === "settings_group" && item.children?.length) {
                     handleMenuClick("llmModel");
+                  } else if (item.id === "workspace") {
+                    handleMenuClick("workspace");
                   } else if (
                     item.id === "skills_group" &&
                     item.children?.length
@@ -874,7 +966,9 @@ const Sidebar: React.FC<SidebarProps> = ({
             onMenuClick={handleMenuClick}
             t={t}
             engineGroupOpen={engineGroupOpen}
+            systemGroupOpen={systemGroupOpen}
             onToggleEngineGroup={setEngineGroupOpen}
+            onToggleSystemGroup={setSystemGroupOpen}
           />
         ))}
       </nav>

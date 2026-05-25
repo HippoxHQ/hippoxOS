@@ -168,7 +168,7 @@ export const zh = {
   },
   menu: {
     dashboard: '概览',
-    workspace: '工作区',
+    workspace: '工作空间',
     projects: '项目',
     files: '文件',
     sessions: '会话',

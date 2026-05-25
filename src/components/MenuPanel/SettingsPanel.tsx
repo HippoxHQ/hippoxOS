@@ -1,9 +1,14 @@
 import React from "react";
 import AIModelConfig from "./AIModelConfig";
-import SystemConfig from "./SystemConfig";
 import AtomicSkillsPanel from "./AtomicSkillsPanel";
+import InterfaceConfig from "./SystemConfig/InterfaceConfig";
+import WorkspaceConfig from "./SystemConfig/WorkspaceConfig";
 
-export type SettingsSubView = "llmModel" | "atomicSkills" | "system";
+export type SettingsSubView =
+  | "llmModel"
+  | "atomicSkills"
+  | "interface"
+  | "workspaceConfig";
 
 interface SettingsPanelProps {
   subView: SettingsSubView;
@@ -33,17 +38,18 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
       );
     case "atomicSkills":
       return <AtomicSkillsPanel t={t} onSave={onSave} />;
-    case "system":
+    case "interface":
       return (
-        <SystemConfig
+        <InterfaceConfig
           t={t}
           theme={theme || "dark"}
           language={language || "en"}
           onThemeChange={onThemeChange || (() => {})}
           onLanguageChange={onLanguageChange || (() => {})}
-          onSaveWorkspace={onSave}
         />
       );
+    case "workspaceConfig":
+      return <WorkspaceConfig t={t} onSaveWorkspace={onSave} />;
     default:
       return (
         <AIModelConfig t={t} onSave={onSave} isInitializing={isInitializing} />

@@ -8,6 +8,7 @@ import HistoryPanel from "./HistoryPanel";
 import SkillsPanel from "./SkillsPanel";
 import AtomicSkillsPanel from "./AtomicSkillsPanel";
 import WorkspacePanel from "./Workspace";
+import WorkspaceConfig from "./SystemConfig/WorkspaceConfig";
 import EngineContainerPanel from "./EngineConfig/EngineContainerPanel";
 import EngineDatabasePanel from "./EngineConfig/EngineDatabasePanel";
 import EngineNetworkPanel from "./EngineConfig/EngineNetworkPanel";
@@ -26,6 +27,7 @@ export type MenuPanelView =
   | "atomicSkills"
   | "settings"
   | "workspace"
+  | "workspaceConfig"
   | "engine_group";
 
 export type EngineSubView =
@@ -65,6 +67,7 @@ const viewTitles: Record<MenuPanelView, string> = {
   executionHistory: "menu.executionHistory",
   settings: "menu.settings",
   workspace: "menu.workspace",
+  workspaceConfig: "settings.workspaceConfig",
   engine_group: "menu.engineConfig",
 };
 
@@ -194,7 +197,20 @@ const MenuPanel: React.FC<MenuPanelProps> = ({
           return null;
       }
     }
-
+    if (currentView === "settings") {
+      return (
+        <SettingsPanel
+          subView={settingsSubView || "llmModel"}
+          t={t}
+          onSave={onSaveConfig}
+          theme={theme}
+          language={language}
+          onThemeChange={onThemeChange}
+          onLanguageChange={onLanguageChange}
+          isInitializing={isInitializing}
+        />
+      );
+    }
     switch (currentView) {
       case "history":
         return (
@@ -213,24 +229,13 @@ const MenuPanel: React.FC<MenuPanelProps> = ({
       case "taskQueue":
         return <TaskQueuePanel t={t} />;
       case "scheduledTasks":
-        return <ScheduledTasksPanel t={t} />;
+        return <ScheduledTasksPanel t={t} onSave={onSaveConfig} />;
       case "atomicSkills":
         return <AtomicSkillsPanel t={t} onSave={onSaveConfig} />;
       case "workspace":
         return <WorkspacePanel t={t} />;
-      case "settings":
-        return (
-          <SettingsPanel
-            subView={settingsSubView || "llmModel"}
-            t={t}
-            onSave={onSaveConfig}
-            theme={theme}
-            language={language}
-            onThemeChange={onThemeChange}
-            onLanguageChange={onLanguageChange}
-            isInitializing={isInitializing}
-          />
-        );
+      case "workspaceConfig":
+        return <WorkspaceConfig t={t} onSaveWorkspace={onSaveConfig} />;
       default:
         return null;
     }
@@ -239,6 +244,15 @@ const MenuPanel: React.FC<MenuPanelProps> = ({
   const getDisplayTitle = () => {
     if (currentView === "engine_group" && engineSubView) {
       return t(engineSubViewTitles[engineSubView]);
+    }
+    if (currentView === "settings" && settingsSubView) {
+      const settingsTitles: Record<SettingsSubView, string> = {
+        llmModel: "menu.llmModelConfig",
+        atomicSkills: "menu.atomicSkills",
+        interface: "settings.interfaceConfig",
+        workspaceConfig: "settings.workspaceConfig",
+      };
+      return t(settingsTitles[settingsSubView] || "menu.settings");
     }
     const titleKey = viewTitles[currentView];
     return titleKey ? t(titleKey) : "Unknown";
