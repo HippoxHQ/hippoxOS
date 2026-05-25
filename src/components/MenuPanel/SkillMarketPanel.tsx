@@ -55,6 +55,7 @@ const SkillMarketPanel: React.FC<SkillMarketPanelProps> = ({ t }) => {
   const categoryButtonRef = useRef<HTMLButtonElement>(null);
   const bubbleTimerRef = useRef<NodeJS.Timeout | null>(null);
   const bubbleRef = useRef<HTMLDivElement>(null);
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
 
   useEffect(() => {
     loadMarketConfig();
@@ -346,6 +347,8 @@ const SkillMarketPanel: React.FC<SkillMarketPanelProps> = ({ t }) => {
       background: "var(--bg-secondary)",
       padding: "10px 15px",
       border: "1px solid var(--border-color)",
+      transition: "background 0.2s ease",
+      cursor: "pointer",
     },
     skillHeader: {
       display: "flex",
@@ -634,7 +637,17 @@ const SkillMarketPanel: React.FC<SkillMarketPanelProps> = ({ t }) => {
           </div>
         ) : (
           filteredSkills.map((skill) => (
-            <div key={skill.id} style={styles.skillCard}>
+            <div
+              key={skill.id}
+              style={{
+                ...styles.skillCard,
+                ...(hoveredId === skill.id
+                  ? { background: "var(--hover-bg)" }
+                  : {}),
+              }}
+              onMouseEnter={() => setHoveredId(skill.id)}
+              onMouseLeave={() => setHoveredId(null)}
+            >
               <div style={styles.skillHeader}>
                 <div
                   style={{

@@ -601,7 +601,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
           --accent-glow: rgba(129, 140, 248, 0.2);
           --hover-bg: rgba(232, 237, 242, 0.08);
         }
-
         [data-theme="light"] {
           --bg-primary: #f3f4f6;
           --bg-secondary: #ffffff;
@@ -613,7 +612,8 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
           --accent-color: #6366f1;
           --accent-hover: #4f46e5;
           --accent-glow: rgba(99, 102, 241, 0.2);
-          --hover-bg: rgba(0, 0, 0, 0.12); 
+          // --hover-bg: rgba(0, 0, 0, 0.12); 
+          --hover-bg: rgba(0, 0, 0, 0.04); 
         }
       `}</style>
       <div
