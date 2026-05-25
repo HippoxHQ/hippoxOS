@@ -7,6 +7,7 @@ import {
   getMaxLogSize,
 } from "../../../api/paths";
 import { filesCommands } from "../../../api/files";
+import { storageCommands } from "../../../api/config";
 
 interface StorageConfigProps {
   t: (key: string, params?: any) => string;
@@ -66,14 +67,14 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
         maxDialogSizeVal,
         diskInfoVal,
       ] = await Promise.all([
-        getDirectorySize(paths.log_dir),
-        getDirectorySize(paths.dialog_history_dir),
-        getDirectorySize(paths.skills_market_dir),
-        getDirectorySize(paths.scheduled_tasks_dir),
-        getDirectorySize(paths.settings_dir),
-        getMaxLogSize(),
-        getMaxDialogSize(),
-        getDiskInfo(paths.app_root_dir),
+        storageCommands.getDirectorySize(paths.log_dir),
+        storageCommands.getDirectorySize(paths.dialog_history_dir),
+        storageCommands.getDirectorySize(paths.skills_market_dir),
+        storageCommands.getDirectorySize(paths.scheduled_tasks_dir),
+        storageCommands.getDirectorySize(paths.settings_dir),
+        storageCommands.getMaxLogSize(),
+        storageCommands.getMaxDialogSize(),
+        storageCommands.getDiskInfo(paths.app_root_dir),
       ]);
       setLogsSize(logsSizeVal);
       setDialogSize(dialogSizeVal);
@@ -103,7 +104,7 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
     }
     setSavingLogs(true);
     try {
-      await setMaxLogSize(maxLogSize);
+      await storageCommands.setMaxLogSize(maxLogSize);
       if (onSave) onSave({ action: "setMaxLogSize", maxLogSize });
     } catch (error) {
       console.error("Failed to save max log size:", error);
@@ -119,7 +120,7 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
     }
     setSavingDialog(true);
     try {
-      await setMaxDialogSize(maxDialogSize);
+      await storageCommands.setMaxDialogSize(maxDialogSize);
       if (onSave) onSave({ action: "setMaxDialogSize", maxDialogSize });
     } catch (error) {
       console.error("Failed to save max dialog size:", error);

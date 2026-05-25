@@ -131,3 +131,12 @@ pub async fn cmd_read_directory(path: String) -> Result<Vec<FileInfo>, String> {
 pub async fn cmd_path_exists(path: String) -> Result<bool, String> {
     Ok(Path::new(&path).exists())
 }
+
+#[tauri::command]
+pub async fn cmd_read_text_file(path: String) -> Result<String, String> {
+    let path = std::path::Path::new(&path);
+    if !path.exists() {
+        return Err(format!("File does not exist: {}", path.display()));
+    }
+    std::fs::read_to_string(path).map_err(|e| e.to_string())
+}

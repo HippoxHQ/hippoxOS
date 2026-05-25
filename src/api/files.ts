@@ -31,4 +31,8 @@ export const filesCommands = {
     async pathExists(path: string): Promise<boolean> {
         return await invoke("cmd_path_exists", { path });
     },
+
+    async readTextFile(path: string): Promise<string> {
+        return await invoke("cmd_read_text_file", { path });
+    },
 };

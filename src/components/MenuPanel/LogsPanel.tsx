@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef } from "react";
-import { invoke } from "@tauri-apps/api/core";
+import { getDataPaths } from "../../api/paths";
+import { filesCommands } from "../../api/files";
 
 interface LogEntry {
   id: string;
-  level: "info" | "warn" | "error" | "debug";
-  message: string;
-  timestamp: string;
-  source?: string;
+  name: string;
+  size: number;
+  modified: string;
+  path: string;
 }
 
 interface LogsPanelProps {
@@ -17,28 +18,25 @@ interface LogsPanelProps {
 const LogsPanel: React.FC<LogsPanelProps> = ({ t, onClose }) => {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
-  const [autoScroll, setAutoScroll] = useState(true);
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
   const logsContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     loadLogs();
-    const interval = setInterval(loadLogs, 3000);
+    const interval = setInterval(loadLogs, 5000);
     return () => clearInterval(interval);
   }, []);
 
-  useEffect(() => {
-    if (autoScroll && logsContainerRef.current) {
-      logsContainerRef.current.scrollTop =
-        logsContainerRef.current.scrollHeight;
-    }
-  }, [logs, autoScroll]);
-
   const loadLogs = async () => {
     try {
-      const logsData = await fetchLogs();
-      setLogs(logsData);
+      const paths = await getDataPaths();
+      const logsData = await readLogFiles(paths.log_dir);
+      const sortedLogs = logsData.sort(
+        (a, b) =>
+          new Date(b.modified).getTime() - new Date(a.modified).getTime(),
+      );
+      setLogs(sortedLogs);
     } catch (error) {
       console.error("Failed to load logs:", error);
     } finally {
@@ -46,123 +44,57 @@ const LogsPanel: React.FC<LogsPanelProps> = ({ t, onClose }) => {
     }
   };
 
-  const fetchLogs = async (): Promise<LogEntry[]> => {
-    const now = new Date();
-    return [
-      {
-        id: "1",
-        level: "info",
-        message: "Hippox AI Runtime started successfully",
-        timestamp: new Date(now.getTime() - 1000 * 60 * 5).toISOString(),
-        source: "system",
-      },
-      {
-        id: "2",
-        level: "info",
-        message: "Loaded 15 atomic skills",
-        timestamp: new Date(now.getTime() - 1000 * 60 * 4).toISOString(),
-        source: "skills",
-      },
-      {
-        id: "3",
-        level: "warn",
-        message: "Network connection timeout, retrying...",
-        timestamp: new Date(now.getTime() - 1000 * 60 * 3).toISOString(),
-        source: "network",
-      },
-      {
-        id: "4",
-        level: "info",
-        message: "User message received: 'Hello Hippox'",
-        timestamp: new Date(now.getTime() - 1000 * 60 * 2).toISOString(),
-        source: "chat",
-      },
-      {
-        id: "5",
-        level: "error",
-        message: "Failed to connect to database: connection refused",
-        timestamp: new Date(now.getTime() - 1000 * 60).toISOString(),
-        source: "database",
-      },
-      {
-        id: "6",
-        level: "info",
-        message: "Response generated successfully",
-        timestamp: new Date(now.getTime()).toISOString(),
-        source: "chat",
-      },
-    ];
-  };
-
-  const clearLogs = async () => {
-    if (
-      // eslint-disable-next-line no-restricted-globals
-      confirm(
-        t("logs.confirmClear") || "Are you sure you want to clear all logs?",
-      )
-    ) {
-      try {
-        setLogs([]);
-      } catch (error) {
-        console.error("Failed to clear logs:", error);
+  const readLogFiles = async (logDir: string): Promise<LogEntry[]> => {
+    const entries: LogEntry[] = [];
+    try {
+      const exists = await filesCommands.pathExists(logDir);
+      if (!exists) {
+        console.log("Log directory does not exist:", logDir);
+        return entries;
       }
+      const files = await filesCommands.readDirectory(logDir);
+      const logFiles = files.filter(
+        (f) => f.is_directory === false && f.name.endsWith(".log"),
+      );
+      for (const file of logFiles) {
+        entries.push({
+          id: file.path,
+          name: file.name,
+          size: file.size || 0,
+          modified: file.modified || new Date().toISOString(),
+          path: file.path,
+        });
+      }
+    } catch (error) {
+      console.error("Failed to read log directory:", error);
+    }
+    return entries;
+  };
+
+  const handleOpenLogFile = async (filePath: string) => {
+    try {
+      await filesCommands.openPath(filePath);
+    } catch (error) {
+      console.error("Failed to open log file:", error);
     }
   };
 
-  const exportLogs = () => {
-    const logText = logs
-      .map(
-        (log) =>
-          `[${new Date(log.timestamp).toLocaleString()}] [${log.level.toUpperCase()}] ${log.message}`,
-      )
-      .join("\n");
-    const blob = new Blob([logText], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `hippox_logs_${new Date().toISOString().slice(0, 19)}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
+  const formatSize = (bytes: number): string => {
+    if (bytes === 0) return "0 B";
+    const k = 1024;
+    const sizes = ["B", "KB", "MB", "GB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
 
-  const getLevelColor = (level: string): string => {
-    switch (level) {
-      case "error":
-        return "#dc2626";
-      case "warn":
-        return "#f59e0b";
-      case "debug":
-        return "#8b5cf6";
-      default:
-        return "#10b981";
-    }
+  const formatDate = (dateStr: string): string => {
+    const date = new Date(dateStr);
+    return date.toLocaleString();
   };
 
-  const getLevelIcon = (level: string): string => {
-    switch (level) {
-      case "error":
-        return "❌";
-      case "warn":
-        return "⚠️";
-      case "debug":
-        return "🔍";
-      default:
-        return "ℹ️";
-    }
-  };
-
-  const filteredLogs = logs.filter((log) => {
-    const matchesFilter = filter === "all" || log.level === filter;
-    const matchesSearch =
-      !searchTerm ||
-      log.message.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesFilter && matchesSearch;
-  });
-
-  const formatTime = (timestamp: string) => {
-    const date = new Date(timestamp);
-    return date.toLocaleTimeString();
-  };
+  const filteredLogs = logs.filter((log) =>
+    log.name.toLowerCase().includes(searchTerm.toLowerCase()),
+  );
 
   const styles: Record<string, React.CSSProperties> = {
     container: {
@@ -193,70 +125,44 @@ const LogsPanel: React.FC<LogsPanelProps> = ({ t, onClose }) => {
       fontSize: "12px",
       outline: "none",
     },
-    filterGroup: {
+    statsRow: {
       display: "flex",
-      gap: "4px",
-      background: "var(--bg-tertiary)",
-      borderRadius: "6px",
-      padding: "2px",
+      justifyContent: "flex-end",
+      marginTop: "8px",
     },
-    filterBtn: {
-      padding: "4px 10px",
-      background: "transparent",
-      border: "none",
-      borderRadius: "4px",
-      color: "var(--text-secondary)",
-      fontSize: "12px",
-      cursor: "pointer",
-      transition: "all 0.2s",
-    },
-    filterBtnActive: {
-      background: "var(--accent-color, #0066cc)",
-      color: "white",
-    },
-    actionBtn: {
-      padding: "6px 12px",
-      background: "var(--bg-tertiary)",
-      border: "1px solid var(--border-color)",
-      borderRadius: "6px",
-      color: "var(--text-secondary)",
-      fontSize: "12px",
-      cursor: "pointer",
-      transition: "all 0.2s",
+    stats: {
+      fontSize: "11px",
+      color: "var(--text-muted)",
     },
     logsContainer: {
       flex: 1,
       overflowY: "auto",
-      padding: "10px",
     },
     logEntry: {
-      padding: "8px 12px",
-      marginBottom: "4px",
-      borderBottom: "1px solid var(--border-color)",
-      fontFamily: "monospace",
-      fontSize: "12px",
-      display: "flex",
-      gap: "12px",
-      alignItems: "flex-start",
+      background: "var(--bg-secondary)",
+      padding: "12px 15px",
+      border: "1px solid var(--border-color)",
+      transition: "background 0.2s ease",
+      cursor: "pointer",
+      marginBottom: "8px",
     },
-    logTime: {
-      color: "var(--text-tertiary)",
-      flexShrink: 0,
-      minWidth: "70px",
+    logEntryHovered: {
+      background: "var(--hover-bg)",
     },
-    logLevel: {
-      flexShrink: 0,
-      minWidth: "24px",
-    },
-    logMessage: {
-      flex: 1,
+    logName: {
+      fontSize: "14px",
+      fontWeight: 500,
       color: "var(--text-primary)",
-      wordBreak: "break-word",
+      marginBottom: "6px",
+      wordBreak: "break-all",
     },
-    logSource: {
-      color: "var(--text-tertiary)",
-      fontSize: "10px",
-      flexShrink: 0,
+    logMeta: {
+      display: "flex",
+      alignItems: "center",
+      gap: "16px",
+      flexWrap: "wrap",
+      fontSize: "11px",
+      color: "var(--text-muted)",
     },
     loadingState: {
       display: "flex",
@@ -267,13 +173,8 @@ const LogsPanel: React.FC<LogsPanelProps> = ({ t, onClose }) => {
     },
     emptyState: {
       textAlign: "center",
-      padding: "40px 20px",
+      padding: "60px 20px",
       color: "var(--text-muted)",
-    },
-    stats: {
-      fontSize: "11px",
-      color: "var(--text-muted)",
-      marginTop: "8px",
     },
   };
 
@@ -294,85 +195,47 @@ const LogsPanel: React.FC<LogsPanelProps> = ({ t, onClose }) => {
           <input
             type="text"
             style={styles.searchInput}
-            placeholder={t("logs.searchPlaceholder") || "Search logs..."}
+            placeholder={t("logs.searchPlaceholder") || "Search log files..."}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
-          <div style={styles.filterGroup}>
-            <button
-              style={{
-                ...styles.filterBtn,
-                ...(filter === "all" ? styles.filterBtnActive : {}),
-              }}
-              onClick={() => setFilter("all")}
-            >
-              All
-            </button>
-            <button
-              style={{
-                ...styles.filterBtn,
-                ...(filter === "info" ? styles.filterBtnActive : {}),
-              }}
-              onClick={() => setFilter("info")}
-            >
-              Info
-            </button>
-            <button
-              style={{
-                ...styles.filterBtn,
-                ...(filter === "warn" ? styles.filterBtnActive : {}),
-              }}
-              onClick={() => setFilter("warn")}
-            >
-              Warn
-            </button>
-            <button
-              style={{
-                ...styles.filterBtn,
-                ...(filter === "error" ? styles.filterBtnActive : {}),
-              }}
-              onClick={() => setFilter("error")}
-            >
-              Error
-            </button>
-          </div>
-          <button style={styles.actionBtn} onClick={exportLogs}>
-            📥 Export
-          </button>
-          <button style={styles.actionBtn} onClick={clearLogs}>
-            🗑️ Clear
-          </button>
         </div>
-        <div style={styles.stats}>
-          {filteredLogs.length} / {logs.length} logs
+        <div style={styles.statsRow}>
+          <div style={styles.stats}>
+            {filteredLogs.length} / {logs.length} log files
+          </div>
         </div>
       </div>
 
-      <div
-        style={styles.logsContainer}
-        ref={logsContainerRef}
-        onScroll={(e) => {
-          const target = e.target as HTMLDivElement;
-          const isAtBottom =
-            target.scrollHeight - target.scrollTop - target.clientHeight < 50;
-          setAutoScroll(isAtBottom);
-        }}
-      >
+      <div style={styles.logsContainer} ref={logsContainerRef}>
         {filteredLogs.length === 0 ? (
           <div style={styles.emptyState}>
             {searchTerm
-              ? "No matching logs"
-              : t("logs.empty") || "No logs available"}
+              ? "No matching log files"
+              : t("logs.empty") || "No log files available"}
           </div>
         ) : (
-          filteredLogs.map((log) => (
-            <div key={log.id} style={styles.logEntry}>
-              <span style={styles.logTime}>{formatTime(log.timestamp)}</span>
-              <span style={styles.logLevel}>{getLevelIcon(log.level)}</span>
-              <span style={styles.logMessage}>{log.message}</span>
-              {log.source && <span style={styles.logSource}>{log.source}</span>}
-            </div>
-          ))
+          filteredLogs.map((log) => {
+            const isHovered = hoveredId === log.id;
+            return (
+              <div
+                key={log.id}
+                style={{
+                  ...styles.logEntry,
+                  ...(isHovered ? styles.logEntryHovered : {}),
+                }}
+                onMouseEnter={() => setHoveredId(log.id)}
+                onMouseLeave={() => setHoveredId(null)}
+                onClick={() => handleOpenLogFile(log.path)}
+              >
+                <div style={styles.logName}>📄 {log.name}</div>
+                <div style={styles.logMeta}>
+                  <span>📅 {formatDate(log.modified)}</span>
+                  <span>💾 {formatSize(log.size)}</span>
+                </div>
+              </div>
+            );
+          })
         )}
       </div>
     </div>

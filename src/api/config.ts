@@ -237,3 +237,35 @@ export const configCommands = {
         return await invoke('save_settings_theme', { theme });
     },
 };
+
+export interface DiskInfo {
+    total: number;
+    free: number;
+    used: number;
+}
+
+export const storageCommands = {
+    async getDirectorySize(path: string): Promise<number> {
+        return await invoke('get_directory_size', { path });
+    },
+
+    async getDiskInfo(path: string): Promise<DiskInfo> {
+        return await invoke('get_disk_info', { path });
+    },
+
+    async getMaxLogSize(): Promise<number> {
+        return await invoke('get_max_log_size');
+    },
+
+    async setMaxLogSize(maxSizeMb: number): Promise<void> {
+        return await invoke('set_max_log_size', { maxSizeMb });
+    },
+
+    async getMaxDialogSize(): Promise<number> {
+        return await invoke('get_max_dialog_size');
+    },
+
+    async setMaxDialogSize(maxSizeMb: number): Promise<void> {
+        return await invoke('set_max_dialog_size', { maxSizeMb });
+    },
+};

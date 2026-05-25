@@ -9,7 +9,9 @@ use uuid::Uuid;
 use crate::{
     commands::get_settings_dir,
     workspace::{
-        WorkspaceConfigData, WorkspaceInstance, add_workspace, delete_workspace, get_all_workspaces, get_default_workspace, load_workspace_config, set_default_workspace, update_workspace
+        add_workspace, delete_workspace, get_all_workspaces, get_default_workspace,
+        load_workspace_config, set_default_workspace, update_workspace, WorkspaceConfigData,
+        WorkspaceInstance,
     },
 };
 
@@ -735,4 +737,86 @@ pub async fn cmd_delete_workspace(instance_id: String) -> Result<(), String> {
 #[tauri::command]
 pub async fn cmd_set_default_workspace(instance_id: String) -> Result<(), String> {
     set_default_workspace(&instance_id)
+}
+
+#[tauri::command]
+pub async fn cmd_get_max_log_size() -> Result<u64, String> {
+    let settings_dir = crate::commands::paths::get_settings_dir();
+    let config_path = settings_dir.join("config.json");
+    if config_path.exists() {
+        let content = std::fs::read_to_string(&config_path)
+            .map_err(|e| format!("Failed to read settings config: {}", e))?;
+        let full_config: serde_json::Value =
+            serde_json::from_str(&content).unwrap_or_else(|_| serde_json::json!({}));
+        if let Some(size) = full_config.get("max_log_size_mb").and_then(|v| v.as_u64()) {
+            return Ok(size);
+        }
+    }
+    Ok(500)
+}
+
+#[tauri::command]
+pub async fn cmd_set_max_log_size(max_size_mb: u64) -> Result<(), String> {
+    let settings_dir = crate::commands::paths::get_settings_dir();
+    if !settings_dir.exists() {
+        std::fs::create_dir_all(&settings_dir)
+            .map_err(|e| format!("Failed to create settings directory: {}", e))?;
+    }
+    let config_path = settings_dir.join("config.json");
+    let mut full_config: serde_json::Value = if config_path.exists() {
+        let content = std::fs::read_to_string(&config_path)
+            .map_err(|e| format!("Failed to read settings config: {}", e))?;
+        serde_json::from_str(&content).unwrap_or_else(|_| serde_json::json!({}))
+    } else {
+        serde_json::json!({})
+    };
+    full_config["max_log_size_mb"] = serde_json::json!(max_size_mb);
+    let content = serde_json::to_string_pretty(&full_config)
+        .map_err(|e| format!("Failed to serialize settings config: {}", e))?;
+    std::fs::write(&config_path, content)
+        .map_err(|e| format!("Failed to save settings config: {}", e))?;
+    let _ = crate::commands::paths::cleanup_old_logs(max_size_mb);
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn cmd_get_max_dialog_size() -> Result<u64, String> {
+    let settings_dir = crate::commands::paths::get_settings_dir();
+    let config_path = settings_dir.join("config.json");
+    if config_path.exists() {
+        let content = std::fs::read_to_string(&config_path)
+            .map_err(|e| format!("Failed to read settings config: {}", e))?;
+        let full_config: serde_json::Value =
+            serde_json::from_str(&content).unwrap_or_else(|_| serde_json::json!({}));
+        if let Some(size) = full_config
+            .get("max_dialog_size_mb")
+            .and_then(|v| v.as_u64())
+        {
+            return Ok(size);
+        }
+    }
+    Ok(500)
+}
+
+#[tauri::command]
+pub async fn cmd_set_max_dialog_size(max_size_mb: u64) -> Result<(), String> {
+    let settings_dir = crate::commands::paths::get_settings_dir();
+    if !settings_dir.exists() {
+        std::fs::create_dir_all(&settings_dir)
+            .map_err(|e| format!("Failed to create settings directory: {}", e))?;
+    }
+    let config_path = settings_dir.join("config.json");
+    let mut full_config: serde_json::Value = if config_path.exists() {
+        let content = std::fs::read_to_string(&config_path)
+            .map_err(|e| format!("Failed to read settings config: {}", e))?;
+        serde_json::from_str(&content).unwrap_or_else(|_| serde_json::json!({}))
+    } else {
+        serde_json::json!({})
+    };
+    full_config["max_dialog_size_mb"] = serde_json::json!(max_size_mb);
+    let content = serde_json::to_string_pretty(&full_config)
+        .map_err(|e| format!("Failed to serialize settings config: {}", e))?;
+    std::fs::write(&config_path, content)
+        .map_err(|e| format!("Failed to save settings config: {}", e))?;
+    Ok(())
 }
