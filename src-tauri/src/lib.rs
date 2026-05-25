@@ -1,8 +1,10 @@
 #![allow(warnings)]
 mod commands;
 mod common;
+mod workspace;
 
 use crate::common::init_default_settings;
+use crate::workspace::ensure_workspace_config;
 use commands::AppStateWithChat;
 use std::path::PathBuf;
 use std::thread;
@@ -16,6 +18,10 @@ pub fn run() {
     // init settings/config.json using unified settings module
     if let Err(e) = init_default_settings() {
         eprintln!("Failed to initialize settings config: {}", e);
+    }
+    // init workspace
+    if let Err(e) = ensure_workspace_config() {
+        eprintln!("Failed to initialize workspace config: {}", e);
     }
     if let Err(e) = commands::init_default_session_if_empty() {
         eprintln!("Failed to initialize default session: {}", e);
@@ -113,6 +119,14 @@ pub fn run() {
             commands::window_get_state,
             commands::window_set_size,
             commands::window_set_position,
+            // workspace
+            commands::cmd_get_workspace_config,
+            commands::cmd_get_all_workspaces,
+            commands::cmd_get_default_workspace,
+            commands::cmd_add_workspace,
+            commands::cmd_update_workspace,
+            commands::cmd_delete_workspace,
+            commands::cmd_set_default_workspace,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -6,7 +6,12 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 use uuid::Uuid;
 
-use crate::commands::get_settings_dir;
+use crate::{
+    commands::get_settings_dir,
+    workspace::{
+        WorkspaceConfigData, WorkspaceInstance, add_workspace, delete_workspace, get_all_workspaces, get_default_workspace, load_workspace_config, set_default_workspace, update_workspace
+    },
+};
 
 pub static HIPPOX_APP_CONFIG: Lazy<Arc<RwLock<HippoxAppConfig>>> =
     Lazy::new(|| Arc::new(RwLock::new(HippoxAppConfig::default())));
@@ -695,4 +700,39 @@ pub fn get_settings_theme() -> Result<String, String> {
 #[tauri::command]
 pub fn save_settings_theme(theme: String) -> Result<(), String> {
     crate::common::set_setting("theme", serde_json::json!(theme))
+}
+
+#[tauri::command]
+pub async fn cmd_get_workspace_config() -> Result<WorkspaceConfigData, String> {
+    load_workspace_config()
+}
+
+#[tauri::command]
+pub async fn cmd_get_all_workspaces() -> Result<Vec<WorkspaceInstance>, String> {
+    get_all_workspaces()
+}
+
+#[tauri::command]
+pub async fn cmd_get_default_workspace() -> Result<Option<WorkspaceInstance>, String> {
+    get_default_workspace()
+}
+
+#[tauri::command]
+pub async fn cmd_add_workspace(instance: WorkspaceInstance) -> Result<(), String> {
+    add_workspace(instance)
+}
+
+#[tauri::command]
+pub async fn cmd_update_workspace(instance: WorkspaceInstance) -> Result<(), String> {
+    update_workspace(instance)
+}
+
+#[tauri::command]
+pub async fn cmd_delete_workspace(instance_id: String) -> Result<(), String> {
+    delete_workspace(&instance_id)
+}
+
+#[tauri::command]
+pub async fn cmd_set_default_workspace(instance_id: String) -> Result<(), String> {
+    set_default_workspace(&instance_id)
 }
