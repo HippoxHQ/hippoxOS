@@ -743,6 +743,117 @@ export const ChevronRightIcon: React.FC<IconProps> = ({
   </svg>
 );
 
+export const ChatIcon: React.FC<IconProps> = ({ className, size = 18 }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+  </svg>
+);
+
+export const UserIcon: React.FC<IconProps> = ({ className, size = 18 }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+    <circle cx="12" cy="7" r="4" />
+  </svg>
+);
+
+export const BotIcon: React.FC<IconProps> = ({ className, size = 18 }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    <rect x="3" y="8" width="18" height="12" rx="2" />
+    <path d="M9 8V6a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
+    <circle cx="8" cy="13" r="1.5" />
+    <circle cx="16" cy="13" r="1.5" />
+    <path d="M12 17v-2" />
+  </svg>
+);
+
+export const TextFileIcon: React.FC<IconProps> = ({ className, size = 18 }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" />
+    <polyline points="13 2 13 9 20 9" />
+  </svg>
+);
+
+export const ImageIcon: React.FC<IconProps> = ({ className, size = 18 }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    <rect x="2" y="2" width="20" height="20" rx="2" ry="2" />
+    <circle cx="8.5" cy="8.5" r="2.5" />
+    <polyline points="21 15 16 10 5 21" />
+  </svg>
+);
+
+export const VideoIcon: React.FC<IconProps> = ({ className, size = 18 }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    <rect x="2" y="4" width="20" height="16" rx="2" />
+    <polygon points="10 8 16 12 10 16 10 8" />
+  </svg>
+);
+
 export const iconMap: Record<string, React.FC<IconProps>> = {
   dashboard: DashboardIcon,
   workspace: WorkspaceIcon,
@@ -778,4 +889,10 @@ export const iconMap: Record<string, React.FC<IconProps>> = {
   folderOpen: FolderOpenIcon,
   file: FileIcon,
   chevronRight: ChevronRightIcon,
+  chat: ChatIcon,
+  user: UserIcon,
+  bot: BotIcon,
+  textFile: TextFileIcon,
+  image: ImageIcon,
+  video: VideoIcon,
 };

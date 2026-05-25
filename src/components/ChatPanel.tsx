@@ -1,6 +1,19 @@
 import React, { useState, useRef, useEffect } from "react";
 import { ChatMessage } from "../type";
-import { AttachmentIcon, FolderIcon, SendIcon } from "../icons";
+import {
+  AttachmentIcon,
+  FolderIcon,
+  FolderOpenIcon,
+  ChevronRightIcon,
+  SendIcon,
+  UserIcon,
+  BotIcon,
+  TextFileIcon,
+  ImageIcon,
+  VideoIcon,
+  ChatIcon,
+} from "../icons";
+import { workspaceCommands, WorkspaceInstance } from "../api/workspace";
 
 interface ChatPanelProps {
   messages: ChatMessage[];
@@ -19,48 +32,8 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   const [isFocused, setIsFocused] = useState(false);
   const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
   const [showDirectoryMenu, setShowDirectoryMenu] = useState(false);
-  const [selectedDirectory, setSelectedDirectory] = useState(
-    language === "zh" ? "工作目录" : "Workspace",
-  );
-  const [directories, setDirectories] = useState<string[]>(
-    language === "zh"
-      ? [
-          "工作目录 1",
-          "工作目录 2",
-          "工作目录 3",
-          "工作目录 4",
-          "工作目录 5",
-          "工作目录 6",
-          "工作目录 7",
-          "工作目录 8",
-          "工作目录 9",
-          "工作目录 10",
-          "工作目录 11",
-          "工作目录 12",
-          "工作目录 13",
-          "工作目录 14",
-          "工作目录 15",
-          "工作目录 16",
-        ]
-      : [
-          "Workspace 1",
-          "Workspace 2",
-          "Workspace 3",
-          "Workspace 4",
-          "Workspace 5",
-          "Workspace 6",
-          "Workspace 7",
-          "Workspace 8",
-          "Workspace 9",
-          "Workspace 10",
-          "Workspace 11",
-          "Workspace 12",
-          "Workspace 13",
-          "Workspace 14",
-          "Workspace 15",
-          "Workspace 16",
-        ],
-  );
+  const [workspaces, setWorkspaces] = useState<WorkspaceInstance[]>([]);
+  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string>("");
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const attachmentBtnRef = useRef<HTMLDivElement>(null);
@@ -70,6 +43,36 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   const [showScrollButton, setShowScrollButton] = useState(false);
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [userScrolled, setUserScrolled] = useState(false);
+
+  useEffect(() => {
+    loadWorkspaces();
+  }, []);
+
+  const loadWorkspaces = async () => {
+    try {
+      const config = await workspaceCommands.getWorkspaceConfig();
+      setWorkspaces(config.instances);
+      if (config.default_instance_id) {
+        setSelectedWorkspaceId(config.default_instance_id);
+      } else if (config.instances.length > 0) {
+        setSelectedWorkspaceId(config.instances[0].id);
+      }
+    } catch (error) {
+      console.error("Failed to load workspaces:", error);
+    }
+  };
+
+  const handleSelectWorkspace = async (workspaceId: string) => {
+    const workspace = workspaces.find((w) => w.id === workspaceId);
+    if (!workspace) return;
+    try {
+      await workspaceCommands.setDefaultWorkspace(workspaceId);
+      setSelectedWorkspaceId(workspaceId);
+      setShowDirectoryMenu(false);
+    } catch (error) {
+      console.error("Failed to set default workspace:", error);
+    }
+  };
 
   const checkScrollPosition = () => {
     if (!messagesContainerRef.current) return;
@@ -173,9 +176,13 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     setShowAttachmentMenu(false);
   };
 
-  const handleSelectDirectory = (dir: string) => {
-    setSelectedDirectory(dir);
-    setShowDirectoryMenu(false);
+  const getSelectedWorkspaceName = (): string => {
+    const workspace = workspaces.find((w) => w.id === selectedWorkspaceId);
+    if (!workspace) return language === "zh" ? "工作目录" : "Workspace";
+    const path = workspace.workspace_path;
+    const normalizedPath = path.replace(/\\/g, "/");
+    const parts = normalizedPath.split("/");
+    return parts[parts.length - 1] || workspace.name;
   };
 
   return (
@@ -210,6 +217,8 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
 
         .title-icon {
           font-size: 16px;
+          display: inline-flex;
+          align-items: center;
         }
 
         .header-subtitle {
@@ -257,6 +266,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
           font-size: 16px;
           flex-shrink: 0;
           border: 1px solid var(--border-color);
+          color: var(--text-secondary);
         }
 
         .message-bubble {
@@ -366,7 +376,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
         }
 
         .folder-name {
-          max-width: 100px;
+          max-width: 120px;
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
@@ -374,7 +384,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
         }
 
         .chevron {
-          font-size: 8px;
           transition: transform 0.2s;
         }
 
@@ -428,6 +437,9 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
           font-size: 12px;
           transition: background 0.2s;
           white-space: nowrap;
+          display: flex;
+          align-items: center;
+          gap: 8px;
         }
 
         .attachment-item:hover {
@@ -443,8 +455,8 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
           border: 1px solid var(--border-color);
           border-radius: 5px;
           padding: 4px 0;
-          min-width: 140px;
-          max-height: 200px;
+          min-width: 160px;
+          max-height: 300px;
           overflow-y: auto;
           box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
           z-index: 100;
@@ -469,12 +481,14 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
         }
 
         .directory-item {
-          padding: 6px 12px;
+          padding: 8px 12px;
           cursor: pointer;
           color: var(--text-primary);
           font-size: 12px;
           transition: background 0.2s;
-          white-space: nowrap;
+          display: flex;
+          align-items: center;
+          gap: 8px;
         }
 
         .directory-item:hover {
@@ -484,6 +498,25 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
         .directory-item.selected {
           background: var(--accent-color);
           color: white;
+        }
+
+        .workspace-path {
+          font-size: 10px;
+          color: var(--text-tertiary);
+          margin-top: 2px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          max-width: 200px;
+        }
+
+        .selected .workspace-path {
+          color: rgba(255, 255, 255, 0.7);
+        }
+
+        .directory-item-content {
+          flex: 1;
+          min-width: 0;
         }
 
         .scroll-buttons {
@@ -570,12 +603,11 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
           --hover-bg: rgba(0, 0, 0, 0.04);
         }
       `}</style>
-      <div
-        className="panel-header"
-        style={{ paddingTop: "13px", paddingBottom: "13px" }}
-      >
+      <div className="panel-header">
         <div className="header-title">
-          <span className="title-icon">💬</span>
+          <span className="title-icon">
+            <ChatIcon size={16} />
+          </span>
           <span>{t("chat.title")}</span>
         </div>
         <div className="header-subtitle">Claude Sonnet 4.6</div>
@@ -589,7 +621,11 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
           {messages.map((msg) => (
             <div key={msg.id} className={`message-wrapper ${msg.role}`}>
               <div className="message-avatar">
-                {msg.role === "user" ? "👤" : "🦛"}
+                {msg.role === "user" ? (
+                  <UserIcon size={16} />
+                ) : (
+                  <BotIcon size={16} />
+                )}
               </div>
               <div className="message-bubble">
                 <div className="message-content">{msg.content}</div>
@@ -641,8 +677,10 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
               title={t("chat.selectWorkspace")}
             >
               <FolderIcon size={14} />
-              <span className="folder-name">{selectedDirectory}</span>
-              <span className="chevron">▼</span>
+              <span className="folder-name" title={getSelectedWorkspaceName()}>
+                {getSelectedWorkspaceName()}
+              </span>
+              <ChevronRightIcon size={10} className="chevron" />
             </div>
             {showAttachmentMenu && (
               <div className="attachment-menu" ref={attachmentMenuRef}>
@@ -650,31 +688,47 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
                   className="attachment-item"
                   onClick={() => handleAttachment("text")}
                 >
-                  📄 {t("chat.textFile")}
+                  <TextFileIcon size={14} />
+                  {t("chat.textFile")}
                 </div>
                 <div
                   className="attachment-item"
                   onClick={() => handleAttachment("image")}
                 >
-                  🖼️ {t("chat.image")}
+                  <ImageIcon size={14} />
+                  {t("chat.image")}
                 </div>
                 <div
                   className="attachment-item"
                   onClick={() => handleAttachment("video")}
                 >
-                  🎬 {t("chat.video")}
+                  <VideoIcon size={14} />
+                  {t("chat.video")}
                 </div>
               </div>
             )}
             {showDirectoryMenu && (
               <div className="directory-menu" ref={directoryMenuRef}>
-                {directories.map((dir) => (
+                {workspaces.map((workspace) => (
                   <div
-                    key={dir}
-                    className={`directory-item ${selectedDirectory === dir ? "selected" : ""}`}
-                    onClick={() => handleSelectDirectory(dir)}
+                    key={workspace.id}
+                    className={`directory-item ${selectedWorkspaceId === workspace.id ? "selected" : ""}`}
+                    onClick={() => handleSelectWorkspace(workspace.id)}
                   >
-                    📁 {dir}
+                    {selectedWorkspaceId === workspace.id ? (
+                      <FolderOpenIcon size={16} />
+                    ) : (
+                      <FolderIcon size={16} />
+                    )}
+                    <div className="directory-item-content">
+                      <div>{workspace.name}</div>
+                      <div
+                        className="workspace-path"
+                        title={workspace.workspace_path}
+                      >
+                        {workspace.workspace_path}
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -686,21 +740,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
             disabled={!inputValue.trim()}
             title={t("chat.send")}
           >
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                d="M12 5L12 19M12 5L5 12M12 5L19 12"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
+            <SendIcon size={16} />
           </button>
         </div>
       </div>
