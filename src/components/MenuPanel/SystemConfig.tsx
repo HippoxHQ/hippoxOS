@@ -34,11 +34,9 @@ const SystemConfig: React.FC<SystemConfigProps> = ({
   const [newWorkspacePath, setNewWorkspacePath] = useState("");
   const [newMaxLogSize, setNewMaxLogSize] = useState(100);
   const [loading, setLoading] = useState(true);
-
   useEffect(() => {
     loadWorkspaceInstances();
   }, []);
-
   const loadWorkspaceInstances = async () => {
     setLoading(true);
     try {
@@ -128,18 +126,33 @@ const SystemConfig: React.FC<SystemConfigProps> = ({
       const selected = await filesCommands.selectDirectory();
       if (selected) {
         setNewWorkspacePath(selected);
+        if (!newWorkspaceName.trim()) {
+          const dirName = getWorkspaceNameFromPath(selected);
+          setNewWorkspaceName(dirName);
+        }
       }
     } catch (error) {
       console.error("Failed to select directory:", error);
     }
   };
 
+  const getWorkspaceNameFromPath = (path: string): string => {
+    if (!path) return "workspace";
+    const normalizedPath = path.replace(/\\/g, "/");
+    const parts = normalizedPath.split("/");
+    return parts[parts.length - 1] || "workspace";
+  };
+
   const handleAddInstance = async () => {
-    if (!newWorkspaceName.trim() || !newWorkspacePath.trim()) return;
+    if (!newWorkspacePath.trim()) return;
+    let workspaceName = newWorkspaceName.trim();
+    if (!workspaceName) {
+      workspaceName = getWorkspaceNameFromPath(newWorkspacePath);
+    }
     const now = new Date().toISOString();
     const newInstance: WorkspaceInstance = {
       id: `workspace_${Date.now()}`,
-      name: newWorkspaceName.trim(),
+      name: workspaceName,
       workspace_path: newWorkspacePath.trim(),
       max_log_size: newMaxLogSize,
       is_default: false,
@@ -270,7 +283,7 @@ const SystemConfig: React.FC<SystemConfigProps> = ({
           justifyContent: "center",
         }}
       >
-        {t("atomicSkills.loading") || "加载中..."}
+        {t("atomicSkills.loading") || "loading..."}
       </div>
     );
   }
@@ -426,13 +439,12 @@ const SystemConfig: React.FC<SystemConfigProps> = ({
                   <button
                     style={folderButtonStyle}
                     onClick={() => handleOpenDirectory(instance.workspace_path)}
-                    title={t("settings.openDirectory") || "打开目录"}
+                    title={t("settings.openDirectory") || "Open Directory"}
                   >
-                    📂 {t("settings.open") || "打开"}
+                    📂 {t("settings.open") || "Open"}
                   </button>
                 </div>
               </div>
-
               <div
                 className="settings-row"
                 style={{
@@ -499,7 +511,7 @@ const SystemConfig: React.FC<SystemConfigProps> = ({
                   marginBottom: "12px",
                 }}
               >
-                {t("settings.addWorkspace") || "添加工作空间"}
+                {t("settings.addWorkspace") || "Add Workspace"}
               </div>
 
               <div
@@ -513,18 +525,18 @@ const SystemConfig: React.FC<SystemConfigProps> = ({
                 }}
               >
                 <label style={labelStyle}>
-                  {t("settings.workspaceName") || "工作空间名称"}
+                  {t("settings.workspaceName") || "Workspace Name"}
                 </label>
                 <input
                   style={inputStyle}
                   value={newWorkspaceName}
                   onChange={(e) => setNewWorkspaceName(e.target.value)}
                   placeholder={
-                    t("settings.workspaceNamePlaceholder") || "例如: 开发环境"
+                    t("settings.workspaceNamePlaceholder") ||
+                    "Auto from folder name"
                   }
                 />
               </div>
-
               <div
                 className="settings-row"
                 style={{

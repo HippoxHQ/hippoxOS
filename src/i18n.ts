@@ -193,8 +193,10 @@ export const zh = {
     empty: "暂无收藏，添加一条试试～",
   },
   workspace: {
-    title: "工作目录",
-    placeholder: "当前工作目录功能开发中...",
+    title: "工作空间",
+    selectWorkspace: "选择工作空间",
+    empty: "暂无工作空间，请先在设置中添加",
+    emptyDirectory: "目录为空",
   },
   knowledge: {
     soulDesc: '核心人格定义文件',
@@ -588,7 +590,9 @@ export const en: typeof zh = {
   },
   workspace: {
     title: "Workspace",
-    placeholder: "Current workspace feature is under development...",
+    selectWorkspace: "Select Workspace",
+    empty: "No workspace, please add in settings first",
+    emptyDirectory: "Directory is empty",
   },
   knowledge: {
     soulDesc: 'Core personality definition file',
