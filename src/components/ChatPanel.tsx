@@ -570,7 +570,10 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
           --hover-bg: rgba(0, 0, 0, 0.04);
         }
       `}</style>
-      <div className="panel-header">
+      <div
+        className="panel-header"
+        style={{ paddingTop: "13px", paddingBottom: "13px" }}
+      >
         <div className="header-title">
           <span className="title-icon">💬</span>
           <span>{t("chat.title")}</span>

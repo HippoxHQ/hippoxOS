@@ -632,7 +632,10 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
       className="terminal-panel"
       style={{ position: "relative", height: "100%", overflow: "visible" }}
     >
-      <div className="panel-header">
+      <div
+        className="panel-header"
+        style={{ paddingTop: "8px", paddingBottom: "8px" }}
+      >
         <div className="header-title">
           <span className="title-icon">🖥️</span>
           <span>{t("terminal.title")}</span>
