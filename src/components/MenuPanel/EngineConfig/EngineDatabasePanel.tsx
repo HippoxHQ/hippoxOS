@@ -1,4 +1,20 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
+
+interface DatabaseInstance {
+  id: string;
+  name: string;
+  type: "postgresql" | "mysql" | "redis" | "sqlite";
+  host: string;
+  port: number;
+  database: string;
+  username: string;
+  password: string;
+  redis_db?: number;
+  sqlite_path?: string;
+  enabled: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
 
 interface EngineDatabasePanelProps {
   t: (key: string, params?: any) => string;
@@ -6,43 +22,298 @@ interface EngineDatabasePanelProps {
   onSave?: (config: any) => void;
 }
 
+const DB_TYPE_CONFIG: Record<
+  string,
+  { name: string; icon: string; defaultPort: number }
+> = {
+  postgresql: { name: "PostgreSQL", icon: "🐘", defaultPort: 5432 },
+  mysql: { name: "MySQL", icon: "🐬", defaultPort: 3306 },
+  redis: { name: "Redis", icon: "⚡", defaultPort: 6379 },
+  sqlite: { name: "SQLite", icon: "📁", defaultPort: 0 },
+};
+
 const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
   t,
   initialConfig,
   onSave,
 }) => {
-  const [config, setConfig] = useState({
-    postgresql: initialConfig?.postgresql || {
-      host: "",
-      port: 5432,
-      database: "",
-      username: "",
-      password: "",
-    },
-    mysql: initialConfig?.mysql || {
-      host: "",
-      port: 3306,
-      database: "",
-      username: "",
-      password: "",
-    },
-    redis: initialConfig?.redis || {
-      host: "",
-      port: 6379,
-      password: "",
-      db: 0,
-    },
-    sqlite: initialConfig?.sqlite || { path: "" },
-  });
+  const [instances, setInstances] = useState<DatabaseInstance[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<string>("postgresql");
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const tabsRef = useRef<HTMLDivElement>(null);
+  const [showLeftArrow, setShowLeftArrow] = useState(false);
+  const [showRightArrow, setShowRightArrow] = useState(false);
+  const [formName, setFormName] = useState("");
+  const [formHost, setFormHost] = useState("");
+  const [formPort, setFormPort] = useState(5432);
+  const [formDatabase, setFormDatabase] = useState("");
+  const [formUsername, setFormUsername] = useState("");
+  const [formPassword, setFormPassword] = useState("");
+  const [formRedisDb, setFormRedisDb] = useState(0);
+  const [formSqlitePath, setFormSqlitePath] = useState("");
 
-  const handleSave = () => {
+  useEffect(() => {
+    loadInstances();
+  }, []);
+
+  useEffect(() => {
+    checkScrollButtons();
+    window.addEventListener("resize", checkScrollButtons);
+    return () => window.removeEventListener("resize", checkScrollButtons);
+  }, []);
+
+  useEffect(() => {
+    setFormPort(DB_TYPE_CONFIG[activeTab]?.defaultPort || 0);
+  }, [activeTab]);
+
+  const loadInstances = async () => {
+    setLoading(true);
+    try {
+      const savedInstances = await loadInstancesFromStorage();
+      setInstances(savedInstances);
+    } catch (error) {
+      console.error("Failed to load instances:", error);
+      setInstances([]);
+    }
+    setLoading(false);
+  };
+
+  const loadInstancesFromStorage = async (): Promise<DatabaseInstance[]> => {
+    try {
+      const saved = localStorage.getItem("engine_database_instances");
+      if (saved) {
+        return JSON.parse(saved);
+      }
+      if (initialConfig) {
+        const migrated: DatabaseInstance[] = [];
+        const now = new Date().toISOString();
+        if (initialConfig.postgresql?.host) {
+          migrated.push({
+            id: `pg_${Date.now()}`,
+            name: "PostgreSQL",
+            type: "postgresql",
+            host: initialConfig.postgresql.host,
+            port: initialConfig.postgresql.port || 5432,
+            database: initialConfig.postgresql.database,
+            username: initialConfig.postgresql.username,
+            password: initialConfig.postgresql.password,
+            enabled: true,
+            createdAt: now,
+            updatedAt: now,
+          });
+        }
+        if (initialConfig.mysql?.host) {
+          migrated.push({
+            id: `mysql_${Date.now()}`,
+            name: "MySQL",
+            type: "mysql",
+            host: initialConfig.mysql.host,
+            port: initialConfig.mysql.port || 3306,
+            database: initialConfig.mysql.database,
+            username: initialConfig.mysql.username,
+            password: initialConfig.mysql.password,
+            enabled: true,
+            createdAt: now,
+            updatedAt: now,
+          });
+        }
+        if (initialConfig.redis?.host) {
+          migrated.push({
+            id: `redis_${Date.now()}`,
+            name: "Redis",
+            type: "redis",
+            host: initialConfig.redis.host,
+            port: initialConfig.redis.port || 6379,
+            database: "",
+            username: "",
+            password: initialConfig.redis.password,
+            redis_db: initialConfig.redis.db || 0,
+            enabled: true,
+            createdAt: now,
+            updatedAt: now,
+          });
+        }
+        if (initialConfig.sqlite?.path) {
+          migrated.push({
+            id: `sqlite_${Date.now()}`,
+            name: "SQLite",
+            type: "sqlite",
+            host: "",
+            port: 0,
+            database: "",
+            username: "",
+            password: "",
+            sqlite_path: initialConfig.sqlite.path,
+            enabled: true,
+            createdAt: now,
+            updatedAt: now,
+          });
+        }
+        if (migrated.length > 0) {
+          localStorage.setItem(
+            "engine_database_instances",
+            JSON.stringify(migrated),
+          );
+        }
+        return migrated;
+      }
+      return [];
+    } catch (error) {
+      console.error("Failed to load instances from storage:", error);
+      return [];
+    }
+  };
+
+  const saveInstancesToStorage = async (newInstances: DatabaseInstance[]) => {
+    localStorage.setItem(
+      "engine_database_instances",
+      JSON.stringify(newInstances),
+    );
+    const config: any = {};
+    newInstances.forEach((inst) => {
+      if (inst.type === "postgresql") {
+        config.postgresql = {
+          host: inst.host,
+          port: inst.port,
+          database: inst.database,
+          username: inst.username,
+          password: inst.password,
+        };
+      } else if (inst.type === "mysql") {
+        config.mysql = {
+          host: inst.host,
+          port: inst.port,
+          database: inst.database,
+          username: inst.username,
+          password: inst.password,
+        };
+      } else if (inst.type === "redis") {
+        config.redis = {
+          host: inst.host,
+          port: inst.port,
+          password: inst.password,
+          db: inst.redis_db || 0,
+        };
+      } else if (inst.type === "sqlite") {
+        config.sqlite = {
+          path: inst.sqlite_path || "",
+        };
+      }
+    });
     if (onSave) onSave(config);
+  };
+
+  const handleDelete = async (id: string) => {
+    const updated = instances.filter((i) => i.id !== id);
+    setInstances(updated);
+    await saveInstancesToStorage(updated);
+  };
+
+  const handleToggleEnabled = async (id: string) => {
+    const updated = instances.map((i) =>
+      i.id === id
+        ? { ...i, enabled: !i.enabled, updatedAt: new Date().toISOString() }
+        : i,
+    );
+    setInstances(updated);
+    await saveInstancesToStorage(updated);
+  };
+
+  const handleEdit = (instance: DatabaseInstance) => {
+    setEditingId(instance.id);
+    setFormName(instance.name);
+    setFormHost(instance.host || "");
+    setFormPort(instance.port);
+    setFormDatabase(instance.database || "");
+    setFormUsername(instance.username || "");
+    setFormPassword(instance.password || "");
+    setFormRedisDb(instance.redis_db || 0);
+    setFormSqlitePath(instance.sqlite_path || "");
+    setShowAddForm(true);
+  };
+
+  const resetForm = () => {
+    setShowAddForm(false);
+    setEditingId(null);
+    setFormName("");
+    setFormHost("");
+    setFormPort(DB_TYPE_CONFIG[activeTab]?.defaultPort || 5432);
+    setFormDatabase("");
+    setFormUsername("");
+    setFormPassword("");
+    setFormRedisDb(0);
+    setFormSqlitePath("");
+  };
+
+  const handleSave = async () => {
+    if (!formName.trim()) return;
+    const now = new Date().toISOString();
+    const newInstance: DatabaseInstance = {
+      id: editingId || `${activeTab}_${Date.now()}`,
+      name: formName,
+      type: activeTab as any,
+      host: formHost,
+      port: formPort,
+      database: formDatabase,
+      username: formUsername,
+      password: formPassword,
+      redis_db: activeTab === "redis" ? formRedisDb : undefined,
+      sqlite_path: activeTab === "sqlite" ? formSqlitePath : undefined,
+      enabled: true,
+      createdAt: editingId
+        ? instances.find((i) => i.id === editingId)?.createdAt || now
+        : now,
+      updatedAt: now,
+    };
+    let updated: DatabaseInstance[];
+    if (editingId) {
+      updated = instances.map((i) => (i.id === editingId ? newInstance : i));
+    } else {
+      updated = [...instances, newInstance];
+    }
+    setInstances(updated);
+    await saveInstancesToStorage(updated);
+    resetForm();
+  };
+
+  const getInstancesByType = (type: string) => {
+    return instances.filter((i) => i.type === type);
+  };
+
+  const getTypeIcon = (type: string) => {
+    return DB_TYPE_CONFIG[type]?.icon || "🗄️";
+  };
+
+  const getTypeName = (type: string) => {
+    return DB_TYPE_CONFIG[type]?.name || type;
+  };
+
+  const scrollTabs = (direction: "left" | "right") => {
+    if (tabsRef.current) {
+      const scrollAmount = 200;
+      const newScrollLeft =
+        tabsRef.current.scrollLeft +
+        (direction === "left" ? -scrollAmount : scrollAmount);
+      tabsRef.current.scrollTo({ left: newScrollLeft, behavior: "smooth" });
+    }
+  };
+
+  const checkScrollButtons = () => {
+    if (tabsRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = tabsRef.current;
+      setShowLeftArrow(scrollLeft > 0);
+      setShowRightArrow(
+        scrollWidth > clientWidth && scrollLeft + clientWidth < scrollWidth - 5,
+      );
+    }
   };
 
   const labelStyle: React.CSSProperties = {
     fontSize: "13px",
     color: "var(--text-primary)",
-    minWidth: "120px",
+    minWidth: "100px",
     flexShrink: 0,
     userSelect: "none",
   };
@@ -59,23 +330,154 @@ const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
     outline: "none",
   };
 
-  const subtitleStyle: React.CSSProperties = {
-    fontSize: "15px",
-    fontWeight: 500,
+  const buttonStyle: React.CSSProperties = {
+    padding: "6px 16px",
+    background: "var(--bg-secondary)",
+    border: "1px solid var(--border-color)",
+    borderRadius: "6px",
     color: "var(--text-secondary)",
-    margin: "20px 0 12px 0",
-    paddingLeft: "8px",
-    borderLeft: "3px solid var(--accent-color)",
+    fontSize: "12px",
+    cursor: "pointer",
+    transition: "all 0.2s",
   };
 
-  const rowStyle: React.CSSProperties = {
-    display: "flex",
-    alignItems: "center",
-    marginBottom: "12px",
-    gap: "16px",
-    flexWrap: "wrap",
-    paddingLeft: "10px",
+  const addButtonStyle: React.CSSProperties = {
+    ...buttonStyle,
+    background: "var(--accent-color, #0066cc)",
+    color: "white",
+    border: "none",
   };
+
+  const deleteButtonStyle: React.CSSProperties = {
+    ...buttonStyle,
+    color: "var(--error-color, #dc2626)",
+    borderColor: "var(--error-color, #dc2626)",
+  };
+
+  const cardStyle: React.CSSProperties = {
+    background: "var(--bg-secondary)",
+    borderRadius: "8px",
+    padding: "12px",
+    marginBottom: "12px",
+    border: "1px solid var(--border-color)",
+  };
+
+  const badgeStyle: React.CSSProperties = {
+    background: "var(--accent-color, #0066cc)",
+    color: "white",
+    fontSize: "10px",
+    padding: "2px 8px",
+    borderRadius: "12px",
+    marginLeft: "8px",
+  };
+
+  const enabledBadgeStyle: React.CSSProperties = {
+    ...badgeStyle,
+    background: "#10b981",
+  };
+
+  const disabledBadgeStyle: React.CSSProperties = {
+    ...badgeStyle,
+    background: "#6b7280",
+  };
+
+  const tabsStyles = `
+    .db-tabs-container {
+      position: relative;
+      display: flex;
+      align-items: center;
+      margin-bottom: 0px;
+    }
+    .db-tabs-scroll {
+      flex: 1;
+      overflow-x: auto;
+      overflow-y: hidden;
+      scroll-behavior: smooth;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+    .db-tabs-scroll::-webkit-scrollbar {
+      display: none;
+      width: 0;
+      height: 0;
+    }
+    .db-tabs {
+      display: flex;
+      gap: 4px;
+      border-bottom: 1px solid var(--border-color);
+      min-width: max-content;
+    }
+    .db-tab {
+      padding: 8px 16px;
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s;
+      border-radius: 6px 6px 0 0;
+      white-space: nowrap;
+      user-select: none;
+    }
+    .db-tab:hover {
+      color: var(--text-primary);
+      background: var(--hover-bg);
+    }
+    .db-tab.active {
+      color: var(--accent-color, #0066cc);
+      border-bottom: 2px solid var(--accent-color, #0066cc);
+    }
+    .db-tab-scroll-btn {
+      width: 28px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      cursor: pointer;
+      color: var(--text-secondary);
+      font-size: 16px;
+      transition: all 0.2s;
+      flex-shrink: 0;
+      margin: 0 4px;
+      user-select: none;
+    }
+    .db-tab-scroll-btn:hover {
+      background: var(--hover-bg);
+      color: var(--text-primary);
+    }
+  `;
+
+  if (typeof document !== "undefined") {
+    const styleId = "db-tabs-styles";
+    if (!document.getElementById(styleId)) {
+      const style = document.createElement("style");
+      style.id = styleId;
+      style.textContent = tabsStyles;
+      document.head.appendChild(style);
+    }
+  }
+
+  if (loading) {
+    return (
+      <div
+        style={{
+          height: "100%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        {t("atomicSkills.loading") || "Loading..."}
+      </div>
+    );
+  }
+
+  const currentInstances = getInstancesByType(activeTab);
+  const dbTypes = ["postgresql", "mysql", "redis", "sqlite"];
 
   return (
     <div
@@ -86,240 +488,492 @@ const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
         overflow: "hidden",
       }}
     >
-      <div style={{ flex: 1, overflowY: "auto", padding: "10px" }}>
-        <div style={subtitleStyle}>PostgreSQL</div>
-        <div style={rowStyle}>
-          <label style={labelStyle}>Host</label>
-          <input
-            style={inputStyle}
-            value={config.postgresql.host}
-            onChange={(e) =>
-              setConfig({
-                ...config,
-                postgresql: { ...config.postgresql, host: e.target.value },
-              })
-            }
-            placeholder="localhost"
-          />
+      <div className="db-tabs-container" style={{ padding: "0px", margin: 0 }}>
+        {showLeftArrow && (
+          <button
+            className="db-tab-scroll-btn"
+            onClick={() => scrollTabs("left")}
+          >
+            ◀
+          </button>
+        )}
+        <div
+          className="db-tabs-scroll"
+          ref={tabsRef}
+          onScroll={checkScrollButtons}
+        >
+          <div className="db-tabs">
+            {dbTypes.map((type) => (
+              <button
+                key={type}
+                className={`db-tab ${activeTab === type ? "active" : ""}`}
+                onClick={() => {
+                  setActiveTab(type);
+                  resetForm();
+                }}
+              >
+                {getTypeIcon(type)} {getTypeName(type)}
+              </button>
+            ))}
+          </div>
         </div>
-        <div style={rowStyle}>
-          <label style={labelStyle}>Port</label>
-          <input
-            type="number"
-            style={inputStyle}
-            value={config.postgresql.port}
-            onChange={(e) =>
-              setConfig({
-                ...config,
-                postgresql: {
-                  ...config.postgresql,
-                  port: parseInt(e.target.value) || 5432,
-                },
-              })
-            }
-          />
-        </div>
-        <div style={rowStyle}>
-          <label style={labelStyle}>Database</label>
-          <input
-            style={inputStyle}
-            value={config.postgresql.database}
-            onChange={(e) =>
-              setConfig({
-                ...config,
-                postgresql: { ...config.postgresql, database: e.target.value },
-              })
-            }
-          />
-        </div>
-        <div style={rowStyle}>
-          <label style={labelStyle}>Username</label>
-          <input
-            style={inputStyle}
-            value={config.postgresql.username}
-            onChange={(e) =>
-              setConfig({
-                ...config,
-                postgresql: { ...config.postgresql, username: e.target.value },
-              })
-            }
-          />
-        </div>
-        <div style={rowStyle}>
-          <label style={labelStyle}>Password</label>
-          <input
-            type="password"
-            style={inputStyle}
-            value={config.postgresql.password}
-            onChange={(e) =>
-              setConfig({
-                ...config,
-                postgresql: { ...config.postgresql, password: e.target.value },
-              })
-            }
-          />
-        </div>
-
-        <div style={subtitleStyle}>MySQL</div>
-        <div style={rowStyle}>
-          <label style={labelStyle}>Host</label>
-          <input
-            style={inputStyle}
-            value={config.mysql.host}
-            onChange={(e) =>
-              setConfig({
-                ...config,
-                mysql: { ...config.mysql, host: e.target.value },
-              })
-            }
-          />
-        </div>
-        <div style={rowStyle}>
-          <label style={labelStyle}>Port</label>
-          <input
-            type="number"
-            style={inputStyle}
-            value={config.mysql.port}
-            onChange={(e) =>
-              setConfig({
-                ...config,
-                mysql: {
-                  ...config.mysql,
-                  port: parseInt(e.target.value) || 3306,
-                },
-              })
-            }
-          />
-        </div>
-        <div style={rowStyle}>
-          <label style={labelStyle}>Database</label>
-          <input
-            style={inputStyle}
-            value={config.mysql.database}
-            onChange={(e) =>
-              setConfig({
-                ...config,
-                mysql: { ...config.mysql, database: e.target.value },
-              })
-            }
-          />
-        </div>
-        <div style={rowStyle}>
-          <label style={labelStyle}>Username</label>
-          <input
-            style={inputStyle}
-            value={config.mysql.username}
-            onChange={(e) =>
-              setConfig({
-                ...config,
-                mysql: { ...config.mysql, username: e.target.value },
-              })
-            }
-          />
-        </div>
-        <div style={rowStyle}>
-          <label style={labelStyle}>Password</label>
-          <input
-            type="password"
-            style={inputStyle}
-            value={config.mysql.password}
-            onChange={(e) =>
-              setConfig({
-                ...config,
-                mysql: { ...config.mysql, password: e.target.value },
-              })
-            }
-          />
-        </div>
-
-        <div style={subtitleStyle}>Redis</div>
-        <div style={rowStyle}>
-          <label style={labelStyle}>Host</label>
-          <input
-            style={inputStyle}
-            value={config.redis.host}
-            onChange={(e) =>
-              setConfig({
-                ...config,
-                redis: { ...config.redis, host: e.target.value },
-              })
-            }
-          />
-        </div>
-        <div style={rowStyle}>
-          <label style={labelStyle}>Port</label>
-          <input
-            type="number"
-            style={inputStyle}
-            value={config.redis.port}
-            onChange={(e) =>
-              setConfig({
-                ...config,
-                redis: {
-                  ...config.redis,
-                  port: parseInt(e.target.value) || 6379,
-                },
-              })
-            }
-          />
-        </div>
-        <div style={rowStyle}>
-          <label style={labelStyle}>Password</label>
-          <input
-            type="password"
-            style={inputStyle}
-            value={config.redis.password}
-            onChange={(e) =>
-              setConfig({
-                ...config,
-                redis: { ...config.redis, password: e.target.value },
-              })
-            }
-          />
-        </div>
-        <div style={rowStyle}>
-          <label style={labelStyle}>Database</label>
-          <input
-            type="number"
-            style={inputStyle}
-            value={config.redis.db}
-            onChange={(e) =>
-              setConfig({
-                ...config,
-                redis: { ...config.redis, db: parseInt(e.target.value) || 0 },
-              })
-            }
-          />
-        </div>
-        <div style={subtitleStyle}>SQLite</div>
-        <div style={rowStyle}>
-          <label style={labelStyle}>Database Path</label>
-          <input
-            style={inputStyle}
-            value={config.sqlite.path}
-            onChange={(e) =>
-              setConfig({ ...config, sqlite: { path: e.target.value } })
-            }
-            placeholder="/path/to/database.db"
-          />
-        </div>
+        {showRightArrow && (
+          <button
+            className="db-tab-scroll-btn"
+            onClick={() => scrollTabs("right")}
+          >
+            ▶
+          </button>
+        )}
       </div>
-      <button
-        onClick={handleSave}
+
+      <div
         style={{
-          padding: "8px 20px",
-          margin: "10px",
-          background: "var(--accent-color)",
-          border: "none",
-          borderRadius: "6px",
-          color: "white",
-          fontSize: "13px",
-          cursor: "pointer",
-          alignSelf: "flex-end",
+          flex: 1,
+          overflowY: "auto",
+          overflowX: "hidden",
+          padding: "0 10px",
+          margin: 0,
+          paddingTop: "10px",
+          paddingBottom: "10px",
         }}
       >
-        {t("settings.save")}
-      </button>
+        {currentInstances.length === 0 && !showAddForm ? (
+          <div
+            style={{
+              textAlign: "center",
+              padding: "40px 20px",
+              color: "var(--text-secondary)",
+              fontSize: "14px",
+            }}
+          >
+            {t("database.noInstances", { type: getTypeName(activeTab) })}
+          </div>
+        ) : (
+          currentInstances.map((instance) => (
+            <div key={instance.id} style={cardStyle}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  marginBottom: "12px",
+                  flexWrap: "wrap",
+                  gap: "8px",
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: "14px",
+                    fontWeight: 600,
+                    color: "var(--text-primary)",
+                  }}
+                >
+                  {getTypeIcon(instance.type)} {instance.name}
+                </span>
+                <span
+                  style={
+                    instance.enabled ? enabledBadgeStyle : disabledBadgeStyle
+                  }
+                >
+                  {instance.enabled
+                    ? t("database.enabled") || "Enabled"
+                    : t("database.disabled") || "Disabled"}
+                </span>
+              </div>
+
+              {instance.type !== "sqlite" ? (
+                <>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      marginBottom: "12px",
+                      gap: "12px",
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <label style={labelStyle}>
+                      {t("database.host") || "Host"}
+                    </label>
+                    <input
+                      type="text"
+                      style={inputStyle}
+                      value={instance.host}
+                      disabled
+                      readOnly
+                    />
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      marginBottom: "12px",
+                      gap: "12px",
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <label style={labelStyle}>
+                      {t("database.port") || "Port"}
+                    </label>
+                    <input
+                      type="number"
+                      style={inputStyle}
+                      value={instance.port}
+                      disabled
+                      readOnly
+                    />
+                  </div>
+                </>
+              ) : (
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    marginBottom: "12px",
+                    gap: "12px",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <label style={labelStyle}>
+                    {t("database.path") || "Path"}
+                  </label>
+                  <input
+                    type="text"
+                    style={inputStyle}
+                    value={instance.sqlite_path}
+                    disabled
+                    readOnly
+                  />
+                </div>
+              )}
+
+              {instance.type !== "redis" && instance.type !== "sqlite" && (
+                <>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      marginBottom: "12px",
+                      gap: "12px",
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <label style={labelStyle}>
+                      {t("database.database") || "Database"}
+                    </label>
+                    <input
+                      type="text"
+                      style={inputStyle}
+                      value={instance.database}
+                      disabled
+                      readOnly
+                    />
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      marginBottom: "12px",
+                      gap: "12px",
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <label style={labelStyle}>
+                      {t("database.username") || "Username"}
+                    </label>
+                    <input
+                      type="text"
+                      style={inputStyle}
+                      value={instance.username}
+                      disabled
+                      readOnly
+                    />
+                  </div>
+                </>
+              )}
+
+              {instance.type === "redis" && (
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    marginBottom: "12px",
+                    gap: "12px",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <label style={labelStyle}>{t("database.db") || "DB"}</label>
+                  <input
+                    type="number"
+                    style={inputStyle}
+                    value={instance.redis_db}
+                    disabled
+                    readOnly
+                  />
+                </div>
+              )}
+
+              <div
+                style={{
+                  display: "flex",
+                  gap: "8px",
+                  justifyContent: "flex-end",
+                  marginTop: "8px",
+                }}
+              >
+                <button
+                  style={{
+                    ...buttonStyle,
+                    fontSize: "11px",
+                    padding: "4px 10px",
+                  }}
+                  onClick={() => handleToggleEnabled(instance.id)}
+                >
+                  {instance.enabled
+                    ? t("database.disable") || "Disable"
+                    : t("database.enable") || "Enable"}
+                </button>
+                <button
+                  style={{
+                    ...buttonStyle,
+                    fontSize: "11px",
+                    padding: "4px 10px",
+                  }}
+                  onClick={() => handleEdit(instance)}
+                >
+                  {t("database.edit") || "Edit"}
+                </button>
+                <button
+                  style={{
+                    ...deleteButtonStyle,
+                    fontSize: "11px",
+                    padding: "4px 10px",
+                  }}
+                  onClick={() => handleDelete(instance.id)}
+                >
+                  {t("database.delete") || "Delete"}
+                </button>
+              </div>
+            </div>
+          ))
+        )}
+
+        {showAddForm ? (
+          <div style={cardStyle}>
+            <div
+              style={{
+                fontSize: "14px",
+                fontWeight: 600,
+                color: "var(--text-primary)",
+                marginBottom: "12px",
+              }}
+            >
+              {editingId
+                ? t("database.editInstance") || "Edit Database Config"
+                : t("database.addInstance", { type: getTypeName(activeTab) })}
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                marginBottom: "12px",
+                gap: "12px",
+                flexWrap: "wrap",
+              }}
+            >
+              <label style={labelStyle}>
+                {t("database.name") || "Config Name"}
+              </label>
+              <input
+                type="text"
+                style={inputStyle}
+                value={formName}
+                onChange={(e) => setFormName(e.target.value)}
+                placeholder={
+                  t("database.namePlaceholder") || "Example: Database Name"
+                }
+              />
+            </div>
+            {activeTab !== "sqlite" ? (
+              <>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    marginBottom: "12px",
+                    gap: "12px",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <label style={labelStyle}>
+                    {t("database.host") || "Host"}
+                  </label>
+                  <input
+                    type="text"
+                    style={inputStyle}
+                    value={formHost}
+                    onChange={(e) => setFormHost(e.target.value)}
+                    placeholder="localhost"
+                  />
+                </div>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    marginBottom: "12px",
+                    gap: "12px",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <label style={labelStyle}>
+                    {t("database.port") || "Port"}
+                  </label>
+                  <input
+                    type="number"
+                    style={inputStyle}
+                    value={formPort}
+                    onChange={(e) => setFormPort(parseInt(e.target.value) || 0)}
+                  />
+                </div>
+              </>
+            ) : (
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  marginBottom: "12px",
+                  gap: "12px",
+                  flexWrap: "wrap",
+                }}
+              >
+                <label style={labelStyle}>
+                  {t("database.path") || "Database Path"}
+                </label>
+                <input
+                  type="text"
+                  style={inputStyle}
+                  value={formSqlitePath}
+                  onChange={(e) => setFormSqlitePath(e.target.value)}
+                  placeholder="/path/to/database.db"
+                />
+              </div>
+            )}
+            {activeTab !== "redis" && activeTab !== "sqlite" && (
+              <>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    marginBottom: "12px",
+                    gap: "12px",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <label style={labelStyle}>
+                    {t("database.database") || "Database"}
+                  </label>
+                  <input
+                    type="text"
+                    style={inputStyle}
+                    value={formDatabase}
+                    onChange={(e) => setFormDatabase(e.target.value)}
+                  />
+                </div>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    marginBottom: "12px",
+                    gap: "12px",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <label style={labelStyle}>
+                    {t("database.username") || "Username"}
+                  </label>
+                  <input
+                    type="text"
+                    style={inputStyle}
+                    value={formUsername}
+                    onChange={(e) => setFormUsername(e.target.value)}
+                  />
+                </div>
+              </>
+            )}
+            {activeTab !== "sqlite" && (
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  marginBottom: "12px",
+                  gap: "12px",
+                  flexWrap: "wrap",
+                }}
+              >
+                <label style={labelStyle}>
+                  {t("database.password") || "Password"}
+                </label>
+                <input
+                  type="password"
+                  style={inputStyle}
+                  value={formPassword}
+                  onChange={(e) => setFormPassword(e.target.value)}
+                />
+              </div>
+            )}
+            {activeTab === "redis" && (
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  marginBottom: "12px",
+                  gap: "12px",
+                  flexWrap: "wrap",
+                }}
+              >
+                <label style={labelStyle}>{t("database.db") || "DB"}</label>
+                <input
+                  type="number"
+                  style={inputStyle}
+                  value={formRedisDb}
+                  onChange={(e) =>
+                    setFormRedisDb(parseInt(e.target.value) || 0)
+                  }
+                />
+              </div>
+            )}
+
+            <div
+              style={{
+                display: "flex",
+                gap: "8px",
+                justifyContent: "flex-end",
+                marginTop: "8px",
+              }}
+            >
+              <button style={buttonStyle} onClick={resetForm}>
+                {t("settings.cancel") || "Cancel"}
+              </button>
+              <button style={addButtonStyle} onClick={handleSave}>
+                {editingId
+                  ? t("settings.update") || "Update"
+                  : t("settings.add") || "Add"}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button
+            style={{ ...addButtonStyle, width: "100%" }}
+            onClick={() => {
+              resetForm();
+              setShowAddForm(true);
+            }}
+          >
+            + {t("database.addInstance", { type: getTypeName(activeTab) })}
+          </button>
+        )}
+      </div>
     </div>
   );
 };
