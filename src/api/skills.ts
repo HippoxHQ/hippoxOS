@@ -22,7 +22,9 @@ export interface MarketSkill {
     category: string;
     version: string;
     author: string;
+    author_avatar?: string;
     installed: boolean;
+    favorited?: boolean;
     installed_version?: string;
     local_path?: string;
     readme?: string;
@@ -65,25 +67,29 @@ export const skillsMarketCommands = {
     installSkill: (skillId: string): Promise<boolean> =>
         invoke("install_skill", { skillId }),
 
-
     uninstallSkill: (skillId: string): Promise<boolean> =>
         invoke("uninstall_skill", { skillId }),
-
 
     updateSkill: (skillId: string): Promise<boolean> =>
         invoke("update_skill", { skillId }),
 
-
     getMarketConfig: (): Promise<MarketConfig> =>
         invoke("get_market_config"),
-
 
     updateMarketConfig: (repoUrl: string, branch: string): Promise<void> =>
         invoke("update_market_config", { repoUrl, branch }),
 
-
     getInstalledSkills: (): Promise<MarketSkill[]> =>
         invoke("get_installed_skills"),
+
+    getFavoritedSkills: (): Promise<string[]> =>
+        invoke("get_favorited_skills"),
+
+    favoriteSkill: (skillId: string): Promise<boolean> =>
+        invoke("favorite_skill", { skillId }),
+
+    unfavoriteSkill: (skillId: string): Promise<boolean> =>
+        invoke("unfavorite_skill", { skillId }),
 };
 
 

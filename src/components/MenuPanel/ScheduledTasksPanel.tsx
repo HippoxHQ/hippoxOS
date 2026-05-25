@@ -355,9 +355,6 @@ const ScheduledTasksPanel: React.FC<ScheduledTasksPanelProps> = ({
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.name.endsWith(".md") && !file.name.endsWith(".skill.md")) {
-      alert(
-        t("scheduled.invalidSkillFile") || "请上传 .md 或 .skill.md 格式的文件",
-      );
       return;
     }
     const reader = new FileReader();
@@ -402,20 +399,17 @@ const ScheduledTasksPanel: React.FC<ScheduledTasksPanelProps> = ({
 
   const handleAddOrUpdateTask = async () => {
     if (!newTaskName.trim()) {
-      alert(t("scheduled.taskNameRequired") || "请输入任务名称");
       return;
     }
     let actionContent = "";
     let actionFileName = "";
     if (newActionType === "naturalLanguage") {
       if (!newNaturalLanguage.trim()) {
-        alert(t("scheduled.naturalLanguageRequired") || "请描述任务内容");
         return;
       }
       actionContent = newNaturalLanguage;
     } else {
       if (!newSkillContent) {
-        alert(t("scheduled.skillFileRequired") || "请上传 SKILL.md 文件");
         return;
       }
       actionContent = newSkillContent;
@@ -425,7 +419,6 @@ const ScheduledTasksPanel: React.FC<ScheduledTasksPanelProps> = ({
     if (newScheduleType === "fixed") {
       if (!newFixedTime) return;
       if (newFixedFrequency === "once" && !newFixedDate) {
-        alert(t("scheduled.dateRequired") || "请选择执行日期");
         return;
       }
     } else {

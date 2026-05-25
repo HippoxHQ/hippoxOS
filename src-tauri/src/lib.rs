@@ -23,6 +23,10 @@ pub fn run() {
     if let Err(e) = ensure_workspace_config() {
         eprintln!("Failed to initialize workspace config: {}", e);
     }
+    // init favorites directory
+    if let Err(e) = commands::init_favorites_directory() {
+        eprintln!("Failed to initialize favorites directory: {}", e);
+    }
     if let Err(e) = commands::init_default_session_if_empty() {
         eprintln!("Failed to initialize default session: {}", e);
     }
@@ -109,6 +113,9 @@ pub fn run() {
             commands::scheduled_save,
             commands::scheduled_delete,
             commands::scheduled_list,
+            commands::get_favorited_skills,
+            commands::favorite_skill,
+            commands::unfavorite_skill,
             // system command
             commands::window_minimize,
             commands::window_maximize,

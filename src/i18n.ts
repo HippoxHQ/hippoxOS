@@ -134,6 +134,7 @@ export const zh = {
     }
   },
   chat: {
+    skillFile: 'Skill文件',
     attachment: '附件',
     selectWorkspace: '选择工作目录',
     textFile: '文本文件',
@@ -205,6 +206,10 @@ export const zh = {
     apiDesc: '开发者接口文档'
   },
   market: {
+    favorite: '收藏',
+    unfavorite: '取消收藏',
+    run: '运行',
+    favoriteFailed: '操作失败',
     emailDesc: '发送邮件通知',
     visualizerDesc: '生成数据图表',
     codeDesc: '代码审查和优化',
@@ -530,6 +535,7 @@ export const en: typeof zh = {
     }
   },
   chat: {
+    skillFile: 'Skill File',
     attachment: 'Attachment',
     selectWorkspace: 'Select Workspace',
     textFile: 'Text File',
@@ -601,6 +607,10 @@ export const en: typeof zh = {
     apiDesc: 'Developer API documentation'
   },
   market: {
+    favorite: 'Favorite',
+    unfavorite: 'Unfavorite',
+    run: 'Run',
+    favoriteFailed: 'Operation failed',
     emailDesc: 'Send email notifications',
     visualizerDesc: 'Generate data charts',
     codeDesc: 'Code review and optimization',

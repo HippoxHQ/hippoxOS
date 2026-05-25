@@ -12,6 +12,7 @@ import {
   ImageIcon,
   VideoIcon,
   ChatIcon,
+  FileIcon,
 } from "../icons";
 import { workspaceCommands, WorkspaceInstance } from "../api/workspace";
 
@@ -719,6 +720,13 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
                 >
                   <VideoIcon size={14} />
                   {t("chat.video")}
+                </div>
+                <div
+                  className="attachment-item"
+                  onClick={() => handleAttachment("skill")}
+                >
+                  <FileIcon size={14} />
+                  {t("chat.skillFile")}
                 </div>
               </div>
             )}
