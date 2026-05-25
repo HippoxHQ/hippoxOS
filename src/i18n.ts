@@ -306,6 +306,10 @@ export const zh = {
     actionSync: '同步',
   },
   settings: {
+    openDirectory: '打开目录',
+    open: '打开',
+    selectDirectory: '选择目录',
+    browse: '浏览',
     addWorkspace: '添加工作空间',
     workspaceName: '工作空间名称',
     workspaceNamePlaceholder: '例如: 开发环境',
@@ -696,6 +700,10 @@ export const en: typeof zh = {
     actionSync: 'Sync',
   },
   settings: {
+    openDirectory: 'Open Directory',
+    open: 'Open',
+    selectDirectory: 'Select Directory',
+    browse: 'Browse',
     addWorkspace: 'Add Workspace',
     workspaceName: 'Workspace Name',
     workspaceNamePlaceholder: 'e.g.: Development Environment',

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { configCommands } from "../../api/config";
 import { workspaceCommands, WorkspaceInstance } from "../../api/workspace";
+import { filesCommands } from "../../api/files";
 
 interface SystemConfigProps {
   t: (key: string, params?: any) => string;
@@ -14,6 +15,7 @@ interface SystemConfigProps {
   };
   onSaveWorkspace?: (config: any) => void;
 }
+
 const SystemConfig: React.FC<SystemConfigProps> = ({
   t,
   theme,
@@ -32,9 +34,11 @@ const SystemConfig: React.FC<SystemConfigProps> = ({
   const [newWorkspacePath, setNewWorkspacePath] = useState("");
   const [newMaxLogSize, setNewMaxLogSize] = useState(100);
   const [loading, setLoading] = useState(true);
+
   useEffect(() => {
     loadWorkspaceInstances();
   }, []);
+
   const loadWorkspaceInstances = async () => {
     setLoading(true);
     try {
@@ -72,45 +76,6 @@ const SystemConfig: React.FC<SystemConfigProps> = ({
     }
   };
 
-  const saveWorkspaceInstances = async (
-    instances: WorkspaceInstance[],
-    defaultId: string,
-  ) => {
-    try {
-      for (const instance of instances) {
-        if (instance.id === defaultId && !instance.is_default) {
-          await workspaceCommands.setDefaultWorkspace(instance.id);
-        } else if (instance.is_default && instance.id !== defaultId) {
-          const updatedInstance = { ...instance, is_default: false };
-          await workspaceCommands.updateWorkspace(updatedInstance);
-        }
-      }
-      if (defaultId !== defaultInstanceId) {
-        await workspaceCommands.setDefaultWorkspace(defaultId);
-      }
-      if (onSaveWorkspace) {
-        const defaultWorkspace = instances.find((i) => i.id === defaultId);
-        if (defaultWorkspace) {
-          onSaveWorkspace({
-            workspacePath: defaultWorkspace.workspace_path,
-            maxLogSize: defaultWorkspace.max_log_size,
-          });
-        }
-      }
-    } catch (error) {
-      console.error("Failed to save workspace to backend:", error);
-      if (onSaveWorkspace) {
-        const defaultWorkspace = instances.find((i) => i.id === defaultId);
-        if (defaultWorkspace) {
-          onSaveWorkspace({
-            workspacePath: defaultWorkspace.workspace_path,
-            maxLogSize: defaultWorkspace.max_log_size,
-          });
-        }
-      }
-    }
-  };
-
   const handleSetDefault = async (instanceId: string) => {
     try {
       await workspaceCommands.setDefaultWorkspace(instanceId);
@@ -135,13 +100,10 @@ const SystemConfig: React.FC<SystemConfigProps> = ({
       console.error("Failed to set default workspace:", error);
     }
   };
+
   const handleDeleteInstance = async (instanceId: string) => {
-    if (workspaceInstances.length <= 1) {
-      return;
-    }
-    if (defaultInstanceId === instanceId) {
-      return;
-    }
+    if (workspaceInstances.length <= 1) return;
+    if (defaultInstanceId === instanceId) return;
     try {
       await workspaceCommands.deleteWorkspace(instanceId);
       const updatedInstances = workspaceInstances.filter(
@@ -152,10 +114,28 @@ const SystemConfig: React.FC<SystemConfigProps> = ({
       console.error("Failed to delete workspace:", error);
     }
   };
-  const handleAddInstance = async () => {
-    if (!newWorkspaceName.trim() || !newWorkspacePath.trim()) {
-      return;
+
+  const handleOpenDirectory = async (path: string) => {
+    try {
+      await filesCommands.openPath(path);
+    } catch (error) {
+      console.error("Failed to open directory:", error);
     }
+  };
+
+  const handleSelectDirectory = async () => {
+    try {
+      const selected = await filesCommands.selectDirectory();
+      if (selected) {
+        setNewWorkspacePath(selected);
+      }
+    } catch (error) {
+      console.error("Failed to select directory:", error);
+    }
+  };
+
+  const handleAddInstance = async () => {
+    if (!newWorkspaceName.trim() || !newWorkspacePath.trim()) return;
     const now = new Date().toISOString();
     const newInstance: WorkspaceInstance = {
       id: `workspace_${Date.now()}`,
@@ -178,14 +158,17 @@ const SystemConfig: React.FC<SystemConfigProps> = ({
       console.error("Failed to add workspace:", error);
     }
   };
+
   const handleThemeChange = async (newTheme: "light" | "dark") => {
     onThemeChange(newTheme);
     await configCommands.saveSettingsTheme(newTheme);
   };
+
   const handleLanguageChange = async (newLanguage: "zh" | "en") => {
     onLanguageChange(newLanguage);
     await configCommands.saveSettingsLanguage(newLanguage);
   };
+
   const labelStyle: React.CSSProperties = {
     fontSize: "13px",
     color: "var(--text-primary)",
@@ -193,6 +176,7 @@ const SystemConfig: React.FC<SystemConfigProps> = ({
     flexShrink: 0,
     userSelect: "none",
   };
+
   const inputStyle: React.CSSProperties = {
     flex: 1,
     minWidth: 0,
@@ -204,6 +188,7 @@ const SystemConfig: React.FC<SystemConfigProps> = ({
     fontSize: "13px",
     outline: "none",
   };
+
   const selectStyle: React.CSSProperties = {
     flex: 1,
     minWidth: 0,
@@ -216,6 +201,7 @@ const SystemConfig: React.FC<SystemConfigProps> = ({
     cursor: "pointer",
     outline: "none",
   };
+
   const buttonStyle: React.CSSProperties = {
     padding: "6px 16px",
     background: "var(--bg-secondary)",
@@ -226,17 +212,20 @@ const SystemConfig: React.FC<SystemConfigProps> = ({
     cursor: "pointer",
     transition: "all 0.2s",
   };
+
   const addButtonStyle: React.CSSProperties = {
     ...buttonStyle,
     background: "var(--accent-color, #0066cc)",
     color: "white",
     border: "none",
   };
+
   const deleteButtonStyle: React.CSSProperties = {
     ...buttonStyle,
     color: "var(--error-color, #dc2626)",
     borderColor: "var(--error-color, #dc2626)",
   };
+
   const workspaceCardStyle: React.CSSProperties = {
     background: "var(--bg-secondary)",
     borderRadius: "8px",
@@ -244,6 +233,7 @@ const SystemConfig: React.FC<SystemConfigProps> = ({
     marginBottom: "12px",
     border: "1px solid var(--border-color)",
   };
+
   const badgeStyle: React.CSSProperties = {
     background: "var(--accent-color, #0066cc)",
     color: "white",
@@ -252,6 +242,23 @@ const SystemConfig: React.FC<SystemConfigProps> = ({
     borderRadius: "12px",
     marginLeft: "8px",
   };
+
+  const folderButtonStyle: React.CSSProperties = {
+    ...buttonStyle,
+    padding: "8px 10px",
+    fontSize: "11px",
+    display: "flex",
+    alignItems: "center",
+    gap: "4px",
+  };
+
+  const pathRowStyle: React.CSSProperties = {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    flex: 1,
+  };
+
   if (loading) {
     return (
       <div
@@ -267,6 +274,7 @@ const SystemConfig: React.FC<SystemConfigProps> = ({
       </div>
     );
   }
+
   return (
     <div
       className="settings-container"
@@ -408,12 +416,21 @@ const SystemConfig: React.FC<SystemConfigProps> = ({
                 }}
               >
                 <label style={labelStyle}>{t("settings.workspacePath")}</label>
-                <input
-                  style={inputStyle}
-                  value={instance.workspace_path}
-                  disabled
-                  placeholder={t("settings.workspacePathPlaceholder")}
-                />
+                <div style={pathRowStyle}>
+                  <input
+                    style={{ ...inputStyle, flex: 1 }}
+                    value={instance.workspace_path}
+                    disabled
+                    placeholder={t("settings.workspacePathPlaceholder")}
+                  />
+                  <button
+                    style={folderButtonStyle}
+                    onClick={() => handleOpenDirectory(instance.workspace_path)}
+                    title={t("settings.openDirectory") || "打开目录"}
+                  >
+                    📂 {t("settings.open") || "打开"}
+                  </button>
+                </div>
               </div>
 
               <div
@@ -449,11 +466,11 @@ const SystemConfig: React.FC<SystemConfigProps> = ({
                     style={{
                       ...buttonStyle,
                       fontSize: "11px",
-                      padding: "4px 10px",
+                      padding: "8px 10px",
                     }}
                     onClick={() => handleSetDefault(instance.id)}
                   >
-                    {t("settings.setAsDefault") || "设为默认"}
+                    {t("settings.setAsDefault") || "Set Default"}
                   </button>
                 )}
                 {defaultInstanceId !== instance.id &&
@@ -462,11 +479,11 @@ const SystemConfig: React.FC<SystemConfigProps> = ({
                       style={{
                         ...deleteButtonStyle,
                         fontSize: "11px",
-                        padding: "4px 10px",
+                        padding: "8px 10px",
                       }}
                       onClick={() => handleDeleteInstance(instance.id)}
                     >
-                      {t("settings.delete") || "删除"}
+                      {t("settings.delete") || "Delete"}
                     </button>
                   )}
               </div>
@@ -519,12 +536,22 @@ const SystemConfig: React.FC<SystemConfigProps> = ({
                 }}
               >
                 <label style={labelStyle}>{t("settings.workspacePath")}</label>
-                <input
-                  style={inputStyle}
-                  value={newWorkspacePath}
-                  onChange={(e) => setNewWorkspacePath(e.target.value)}
-                  placeholder={t("settings.workspacePathPlaceholder")}
-                />
+                <div style={pathRowStyle}>
+                  <input
+                    style={{ ...inputStyle, flex: 1 }}
+                    value={newWorkspacePath}
+                    readOnly
+                    placeholder={t("settings.workspacePathPlaceholder")}
+                    onClick={handleSelectDirectory}
+                  />
+                  <button
+                    style={folderButtonStyle}
+                    onClick={handleSelectDirectory}
+                    title={t("settings.selectDirectory") || "Select Directory"}
+                  >
+                    📂 {t("settings.browse") || "Browse"}
+                  </button>
+                </div>
               </div>
               <div
                 className="settings-row"
@@ -559,10 +586,10 @@ const SystemConfig: React.FC<SystemConfigProps> = ({
                   style={buttonStyle}
                   onClick={() => setShowAddForm(false)}
                 >
-                  {t("settings.cancel") || "取消"}
+                  {t("settings.cancel") || "Cancel"}
                 </button>
                 <button style={addButtonStyle} onClick={handleAddInstance}>
-                  {t("settings.add") || "添加"}
+                  {t("settings.add") || "Add"}
                 </button>
               </div>
             </div>
@@ -571,7 +598,7 @@ const SystemConfig: React.FC<SystemConfigProps> = ({
               style={{ ...addButtonStyle, width: "100%" }}
               onClick={() => setShowAddForm(true)}
             >
-              + {t("settings.addWorkspace") || "添加工作空间"}
+              + {t("settings.addWorkspace") || "Add WorkSpace"}
             </button>
           )}
         </div>

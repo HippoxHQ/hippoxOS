@@ -127,6 +127,12 @@ pub fn run() {
             commands::cmd_update_workspace,
             commands::cmd_delete_workspace,
             commands::cmd_set_default_workspace,
+            // files
+            commands::cmd_open_path,
+            commands::cmd_select_directory,
+            commands::cmd_select_file,
+            commands::cmd_read_directory,
+            commands::cmd_path_exists,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

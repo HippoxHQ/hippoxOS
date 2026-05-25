@@ -1774,7 +1774,7 @@
     "@svgr/plugin-svgo" "^5.5.0"
     loader-utils "^2.0.0"
 
-"@tauri-apps/api@^2.11.0":
+"@tauri-apps/api@^2.10.1", "@tauri-apps/api@^2.11.0":
   version "2.11.0"
   resolved "https://registry.npmjs.org/@tauri-apps/api/-/api-2.11.0.tgz"
   integrity sha512-7CinYODhky9lmO23xHnUFv0Xt43fbtWMyxZcLcRBlFkcgXKuEirBvHpmtJ89YMhyeGcq20Wuc47Fa4XjyniywA==
@@ -1850,6 +1850,13 @@
     "@tauri-apps/cli-win32-arm64-msvc" "2.11.2"
     "@tauri-apps/cli-win32-ia32-msvc" "2.11.2"
     "@tauri-apps/cli-win32-x64-msvc" "2.11.2"
+
+"@tauri-apps/plugin-shell@^2.3.5":
+  version "2.3.5"
+  resolved "https://registry.npmjs.org/@tauri-apps/plugin-shell/-/plugin-shell-2.3.5.tgz"
+  integrity sha512-jewtULhiQ7lI7+owCKAjc8tYLJr92U16bPOeAa472LHJdgaibLP83NcfAF2e+wkEcA53FxKQAZ7byDzs2eeizg==
+  dependencies:
+    "@tauri-apps/api" "^2.10.1"
 
 "@testing-library/dom@^10.0.0", "@testing-library/dom@^10.4.0", "@testing-library/dom@>=7.21.4":
   version "10.4.1"
