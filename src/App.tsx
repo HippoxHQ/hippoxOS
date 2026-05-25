@@ -3,16 +3,19 @@ import ChatPanel from "./components/ChatPanel";
 import ResizablePanels from "./components/ResizablePanels";
 import Sidebar from "./components/Sidebar";
 import TerminalPanel from "./components/TerminalPanel";
-import MenuPanel, { MenuPanelView } from "./components/MenuPanel";
+import MenuPanel, {
+  MenuPanelView,
+  EngineSubView,
+} from "./components/MenuPanel";
 import TopBar from "./components/TopBar";
 import BottomBar from "./components/BottomBar";
 import { useTranslation } from "./hooks/useTranslation";
 import { Theme, Language, ExecutionLog, ChatMessage, TaskInfo } from "./type";
-import { SettingsSubView } from "./components/MenuPanel/SettingsPanel";
 import { hippoxCommands } from "./api/chat";
 import { sessionCommands } from "./api/session";
 import { configCommands } from "./api/config";
 import { listen } from "@tauri-apps/api/event";
+import { SettingsSubView } from "./components/MenuPanel/SettingsPanel";
 
 function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -25,6 +28,8 @@ function App() {
   );
   const [settingsSubView, setSettingsSubView] =
     useState<SettingsSubView>("llmModel");
+  const [engineSubView, setEngineSubView] =
+    useState<EngineSubView>("engine_database");
   const [menuPanelWidth, setMenuPanelWidth] = useState<number>(320);
   const [executionLogs, setExecutionLogs] = useState<ExecutionLog[]>([]);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
@@ -36,6 +41,8 @@ function App() {
   );
   const [currentSessionId, setCurrentSessionId] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
+  const [initialEngineConfig, setInitialEngineConfig] = useState<any>(null);
+
   useEffect(() => {
     const loadConfig = async () => {
       try {
@@ -44,6 +51,12 @@ function App() {
         setTheme(savedTheme as Theme);
         setLanguage(savedLanguage as Language);
         await hippoxCommands.setLanguage(savedLanguage);
+
+        // 加载引擎配置
+        const fullConfig = await configCommands.getConfig();
+        if (fullConfig.engine) {
+          setInitialEngineConfig(fullConfig.engine);
+        }
       } catch (error) {
         console.error("Failed to load config:", error);
       } finally {
@@ -52,11 +65,13 @@ function App() {
     };
     loadConfig();
   }, []);
+
   useEffect(() => {
     if (isConfigLoaded) {
       document.documentElement.setAttribute("data-theme", theme);
     }
   }, [theme, isConfigLoaded]);
+
   useEffect(() => {
     const loadSessions = async () => {
       if (!isConfigLoaded) return;
@@ -102,6 +117,7 @@ function App() {
     };
     loadSessions();
   }, [isConfigLoaded, language]);
+
   useEffect(() => {
     if (!isLoading && currentSessionId && chatMessages.length > 0) {
       const saveTimer = setTimeout(() => {
@@ -115,6 +131,7 @@ function App() {
       return () => clearTimeout(saveTimer);
     }
   }, [chatMessages, currentSessionTasks, currentSessionId, isLoading]);
+
   const handleNewSession = async () => {
     const newSessionId = `session_${Date.now()}`;
     const welcomeMessage: ChatMessage[] = [
@@ -146,6 +163,7 @@ function App() {
       console.error("Failed to create new session:", error);
     }
   };
+
   const handleSwitchSession = async (sessionId: string) => {
     if (sessionId === currentSessionId) return;
     try {
@@ -191,17 +209,20 @@ function App() {
       console.error("Failed to switch session:", error);
     }
   };
+
   const handleToggleTheme = async () => {
     const newTheme = theme === "dark" ? "light" : "dark";
     setTheme(newTheme);
     await configCommands.saveSettingsTheme(newTheme);
   };
+
   const handleToggleLanguage = async () => {
     const newLang = language === "zh" ? "en" : "zh";
     setLanguage(newLang);
     await configCommands.saveSettingsLanguage(newLang);
     await hippoxCommands.setLanguage(newLang);
   };
+
   useEffect(() => {
     const unlistenStep = listen("task_step_update", (event: any) => {
       const { task_id, step_name, step_index, status, output, error } =
@@ -231,6 +252,7 @@ function App() {
         return newMap;
       });
     });
+
     const unlistenComplete = listen("task_complete", (event: any) => {
       const { task_id, final_output } = event.payload;
       setActiveTasks((prev) => {
@@ -273,6 +295,7 @@ function App() {
         return newMessages;
       });
     });
+
     const unlistenFailed = listen("task_failed", (event: any) => {
       const { task_id, error } = event.payload;
       setActiveTasks((prev) => {
@@ -315,12 +338,14 @@ function App() {
         return newMessages;
       });
     });
+
     return () => {
       unlistenStep.then((fn) => fn());
       unlistenComplete.then((fn) => fn());
       unlistenFailed.then((fn) => fn());
     };
   }, [language]);
+
   useEffect(() => {
     const loadTasks = async () => {
       try {
@@ -335,6 +360,7 @@ function App() {
     };
     loadTasks();
   }, [language]);
+
   useEffect(() => {
     const loadLogs = async () => {
       try {
@@ -356,22 +382,36 @@ function App() {
     const interval = setInterval(loadLogs, 3000);
     return () => clearInterval(interval);
   }, []);
+
   const handleMenuClick = (view: string, subView?: string) => {
-    if (view === "settings") {
+    if (
+      subView === "engine_database" ||
+      subView === "engine_network" ||
+      subView === "engine_container" ||
+      subView === "engine_notification"
+    ) {
+      setMenuPanelView("engine_group");
+      setEngineSubView(subView as EngineSubView);
+      setSettingsSubView("llmModel");
+    } else if (view === "settings") {
       setMenuPanelView("settings");
       setSettingsSubView((subView as SettingsSubView) || "llmModel");
+      setEngineSubView("engine_database");
     } else if (view === "dashboard") {
       setMenuPanelView(null);
     } else {
       setMenuPanelView(view as MenuPanelView);
     }
   };
+
   const closeMenuPanel = () => {
     setMenuPanelView(null);
   };
+
   const handleSaveConfig = async (config: any) => {
     console.log("config saved:", config);
   };
+
   const handleSendMessage = async (userMessage: string) => {
     const userMsg: ChatMessage = {
       id: Date.now().toString(),
@@ -416,6 +456,7 @@ function App() {
       setChatMessages((prev) => [...prev, errorMsg]);
     }
   };
+
   const clearLogs = async () => {
     try {
       await hippoxCommands.clearLogs();
@@ -424,6 +465,7 @@ function App() {
       console.error("clear logs error:", error);
     }
   };
+
   const resetSession = async () => {
     try {
       await hippoxCommands.resetSession();
@@ -444,9 +486,11 @@ function App() {
       console.error("reset session error:", error);
     }
   };
+
   const toggleSidebar = () => {
     setSidebarCollapsed((prev) => !prev);
   };
+
   if (isLoading || !isConfigLoaded) {
     return (
       <div
@@ -462,6 +506,7 @@ function App() {
       </div>
     );
   }
+
   return (
     <div className="App">
       <TopBar
@@ -492,6 +537,7 @@ function App() {
               <MenuPanel
                 currentView={menuPanelView}
                 settingsSubView={settingsSubView}
+                engineSubView={engineSubView}
                 onClose={closeMenuPanel}
                 onSaveConfig={handleSaveConfig}
                 t={t}
@@ -502,6 +548,7 @@ function App() {
                 isInitializing={false}
                 currentSessionId={currentSessionId}
                 onSwitchSession={handleSwitchSession}
+                initialEngineConfig={initialEngineConfig}
               />
             </div>
             <div

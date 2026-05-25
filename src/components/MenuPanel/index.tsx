@@ -10,6 +10,10 @@ import HistoryPanel from "./HistoryPanel";
 import SkillsPanel from "./SkillsPanel";
 import AtomicSkillsPanel from "./AtomicSkillsPanel";
 import WorkspacePanel from "./Workspace";
+import EngineContainerPanel from "./EngineConfig/EngineContainerPanel";
+import EngineDatabasePanel from "./EngineConfig/EngineDatabasePanel";
+import EngineNetworkPanel from "./EngineConfig/EngineNetworkPanel";
+import EngineNotificationPanel from "./EngineConfig/EngineNotificationPanel";
 
 export type MenuPanelView =
   | "terminal"
@@ -23,10 +27,19 @@ export type MenuPanelView =
   | "executionHistory"
   | "atomicSkills"
   | "settings"
-  | "workspace";
+  | "workspace"
+  | "engine_group";
+
+export type EngineSubView =
+  | "engine_database"
+  | "engine_network"
+  | "engine_container"
+  | "engine_notification";
+
 interface MenuPanelProps {
   currentView: MenuPanelView;
   settingsSubView?: SettingsSubView;
+  engineSubView?: EngineSubView;
   onClose: () => void;
   onSaveConfig?: (config: any) => void;
   t: (key: string, params?: any) => string;
@@ -38,6 +51,7 @@ interface MenuPanelProps {
   onSessionSelect?: (sessionId: string) => void;
   currentSessionId?: string;
   onSwitchSession?: (sessionId: string) => void;
+  initialEngineConfig?: any;
 }
 
 const viewTitles: Record<MenuPanelView, string> = {
@@ -53,6 +67,14 @@ const viewTitles: Record<MenuPanelView, string> = {
   executionHistory: "menu.executionHistory",
   settings: "menu.settings",
   workspace: "menu.workspace",
+  engine_group: "menu.engineConfig",
+};
+
+const engineSubViewTitles: Record<EngineSubView, string> = {
+  engine_database: "settings.tab.database",
+  engine_network: "settings.tab.network",
+  engine_container: "settings.tab.container",
+  engine_notification: "settings.tab.notification",
 };
 
 const menuPanelStyles = `
@@ -106,267 +128,6 @@ const menuPanelStyles = `
     overflow-y: auto;
     padding: 0px;
   }
-
-  .panel-section {
-    margin-bottom: 24px;
-  }
-
-  .panel-section h3 {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--text-secondary);
-    margin-bottom: 12px;
-  }
-
-  .history-list,
-  .favorites-list,
-  .knowledge-list,
-  .execution-list {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  .history-item,
-  .favorite-item,
-  .knowledge-item,
-  .execution-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 10px 12px;
-    background: var(--bg-tertiary);
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-
-  .history-item:hover,
-  .favorite-item:hover,
-  .knowledge-item:hover,
-  .execution-item:hover {
-    background: var(--hover-bg);
-  }
-
-  .history-info,
-  .knowledge-info,
-  .exec-info {
-    flex: 1;
-  }
-
-  .history-title,
-  .knowledge-title,
-  .exec-name {
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--text-primary);
-  }
-
-  .history-time,
-  .knowledge-desc,
-  .exec-time {
-    font-size: 11px;
-    color: var(--text-muted);
-  }
-
-  .exec-status {
-    font-size: 14px;
-  }
-
-  .skills-search-input {
-    width: 100%;
-    padding: 8px 12px;
-    background: var(--bg-tertiary);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    color: var(--text-primary);
-    font-size: 13px;
-    margin-bottom: 12px;
-  }
-
-  .skills-search-input:focus {
-    outline: none;
-    border-color: var(--text-secondary);
-  }
-
-  .skills-stats {
-    font-size: 11px;
-    color: var(--text-muted);
-    margin-bottom: 16px;
-  }
-
-  .skill-category {
-    margin-bottom: 16px;
-  }
-
-  .category-title {
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--text-secondary);
-    margin-bottom: 8px;
-  }
-
-  .skill-tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-  }
-
-  .skill-tag {
-    font-size: 11px;
-    padding: 4px 10px;
-    background: var(--bg-tertiary);
-    border-radius: 16px;
-    color: var(--text-secondary);
-    cursor: pointer;
-    transition: all 0.2s;
-    font-family: monospace;
-  }
-
-  .skill-tag:hover {
-    background: var(--hover-bg);
-    color: var(--text-primary);
-  }
-
-  .market-items {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
-
-  .market-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px;
-    background: var(--bg-tertiary);
-    border-radius: 8px;
-  }
-
-  .market-icon {
-    font-size: 24px;
-  }
-
-  .market-info {
-    flex: 1;
-  }
-
-  .market-name {
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--text-primary);
-  }
-
-  .market-desc {
-    font-size: 11px;
-    color: var(--text-muted);
-  }
-
-  .market-install {
-    padding: 4px 12px;
-    background: var(--accent-green);
-    border: none;
-    border-radius: 6px;
-    color: white;
-    font-size: 11px;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-
-  .market-install:hover {
-    opacity: 0.85;
-  }
-
-  .task-queue {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  .task-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 10px 12px;
-    background: var(--bg-tertiary);
-    border-radius: 8px;
-  }
-
-  .task-status {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-  }
-
-  .task-status.running {
-    background: var(--accent-yellow);
-    animation: pulse 1.5s infinite;
-  }
-
-  .task-status.pending {
-    background: var(--text-muted);
-  }
-
-  .task-status.completed {
-    background: var(--accent-green);
-  }
-
-  .task-name {
-    flex: 1;
-    font-size: 13px;
-    color: var(--text-primary);
-  }
-
-  .task-progress {
-    font-size: 11px;
-    color: var(--text-muted);
-  }
-
-  .scheduled-list {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    margin-bottom: 16px;
-  }
-
-  .scheduled-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 10px 12px;
-    background: var(--bg-tertiary);
-    border-radius: 8px;
-    font-size: 13px;
-    color: var(--text-primary);
-  }
-
-  .edit-btn,
-  .add-task-btn {
-    padding: 4px 12px;
-    background: var(--bg-secondary);
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
-    color: var(--text-secondary);
-    font-size: 11px;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-
-  .edit-btn:hover,
-  .add-task-btn:hover {
-    background: var(--hover-bg);
-    color: var(--text-primary);
-  }
-
-  .add-task-btn {
-    width: 100%;
-    margin-top: 8px;
-  }
-
-  @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
-  }
 `;
 
 if (typeof document !== "undefined") {
@@ -382,6 +143,7 @@ if (typeof document !== "undefined") {
 const MenuPanel: React.FC<MenuPanelProps> = ({
   currentView,
   settingsSubView,
+  engineSubView,
   onClose,
   onSaveConfig,
   t,
@@ -393,8 +155,48 @@ const MenuPanel: React.FC<MenuPanelProps> = ({
   onSessionSelect,
   currentSessionId,
   onSwitchSession,
+  initialEngineConfig,
 }) => {
   const renderContent = () => {
+    if (currentView === "engine_group" && engineSubView) {
+      switch (engineSubView) {
+        case "engine_database":
+          return (
+            <EngineDatabasePanel
+              t={t}
+              initialConfig={initialEngineConfig}
+              onSave={onSaveConfig}
+            />
+          );
+        case "engine_network":
+          return (
+            <EngineNetworkPanel
+              t={t}
+              initialConfig={initialEngineConfig}
+              onSave={onSaveConfig}
+            />
+          );
+        case "engine_container":
+          return (
+            <EngineContainerPanel
+              t={t}
+              initialConfig={initialEngineConfig}
+              onSave={onSaveConfig}
+            />
+          );
+        case "engine_notification":
+          return (
+            <EngineNotificationPanel
+              t={t}
+              initialConfig={initialEngineConfig}
+              onSave={onSaveConfig}
+            />
+          );
+        default:
+          return null;
+      }
+    }
+
     switch (currentView) {
       case "history":
         return (
@@ -441,26 +243,11 @@ const MenuPanel: React.FC<MenuPanelProps> = ({
   };
 
   const getDisplayTitle = () => {
-    if (currentView === "settings" && settingsSubView) {
-      const subViewTitles: Record<SettingsSubView, string> = {
-        llmModel: "menu.aiModelConfig",
-        engine: "menu.engineConfig",
-        system: "menu.systemConfig",
-        atomicSkills: "menu.atomicSkills",
-      };
-      const key = subViewTitles[settingsSubView];
-      if (!key) {
-        console.warn("Unknown settings subview:", settingsSubView);
-        return t("menu.settings");
-      }
-      return t(key);
+    if (currentView === "engine_group" && engineSubView) {
+      return t(engineSubViewTitles[engineSubView]);
     }
     const titleKey = viewTitles[currentView];
-    if (!titleKey) {
-      console.warn("Unknown view:", currentView);
-      return "Unknown";
-    }
-    return t(titleKey);
+    return titleKey ? t(titleKey) : "Unknown";
   };
 
   return (
