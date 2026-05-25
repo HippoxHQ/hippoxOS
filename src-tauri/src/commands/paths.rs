@@ -4,6 +4,8 @@ use std::collections::HashMap;
 use std::fs::{self, File};
 use std::io::Write;
 use std::path::{Path, PathBuf};
+use sysinfo::Disks;
+use walkdir::WalkDir;
 
 /// Get application root directory
 ///
@@ -92,6 +94,62 @@ pub fn get_data_paths() -> DataPaths {
         cache_dir: get_cache_dir().to_string_lossy().to_string(),
         settings_dir: get_settings_dir().to_string_lossy().to_string(),
     }
+}
+
+/// Get total size of log files (in bytes)
+pub fn get_logs_size() -> Result<u64, String> {
+    let log_dir = get_log_dir();
+    if !log_dir.exists() {
+        return Ok(0);
+    }
+    let mut total_size = 0;
+    for entry in WalkDir::new(&log_dir)
+        .into_iter()
+        .filter_map(|e| e.ok())
+        .filter(|e| e.path().is_file() && e.path().extension().map_or(false, |ext| ext == "log"))
+    {
+        if let Ok(metadata) = entry.metadata() {
+            total_size += metadata.len();
+        }
+    }
+    Ok(total_size)
+}
+
+/// Clean up old log files when exceeding max size
+pub fn cleanup_old_logs(max_size_mb: u64) -> Result<u64, String> {
+    let log_dir = get_log_dir();
+    if !log_dir.exists() {
+        return Ok(0);
+    }
+    let max_size_bytes = max_size_mb * 1024 * 1024;
+    let mut log_files: Vec<(PathBuf, std::time::SystemTime, u64)> = Vec::new();
+    for entry in WalkDir::new(&log_dir)
+        .into_iter()
+        .filter_map(|e| e.ok())
+        .filter(|e| e.path().is_file() && e.path().extension().map_or(false, |ext| ext == "log"))
+    {
+        if let Ok(metadata) = entry.metadata() {
+            if let Ok(modified) = metadata.modified() {
+                log_files.push((entry.path().to_path_buf(), modified, metadata.len()));
+            }
+        }
+    }
+    // Sort by modified time (oldest first)
+    log_files.sort_by(|a, b| a.1.cmp(&b.1));
+    let mut current_total: u64 = log_files.iter().map(|(_, _, size)| size).sum();
+    let mut deleted_count = 0;
+    for (path, _, size) in log_files {
+        if current_total <= max_size_bytes {
+            break;
+        }
+        if let Err(e) = fs::remove_file(&path) {
+            eprintln!("Failed to remove old log file {:?}: {}", path, e);
+        } else {
+            current_total -= size;
+            deleted_count += 1;
+        }
+    }
+    Ok(deleted_count)
 }
 
 /// Initialize all directories
@@ -578,6 +636,51 @@ pub fn load_terminal_content(session_id: &str) -> Result<Option<String>, String>
     }
 }
 
+#[tauri::command]
+pub fn get_logs_size_command() -> Result<u64, String> {
+    get_logs_size()
+}
+
+#[tauri::command]
+pub fn set_max_log_size(max_size_mb: u64) -> Result<(), String> {
+    let settings_dir = get_settings_dir();
+    if !settings_dir.exists() {
+        fs::create_dir_all(&settings_dir)
+            .map_err(|e| format!("Failed to create settings directory: {}", e))?;
+    }
+    let config_path = settings_dir.join("config.json");
+    let mut full_config: serde_json::Value = if config_path.exists() {
+        let content = fs::read_to_string(&config_path)
+            .map_err(|e| format!("Failed to read settings config: {}", e))?;
+        serde_json::from_str(&content).unwrap_or_else(|_| serde_json::json!({}))
+    } else {
+        serde_json::json!({})
+    };
+    full_config["max_log_size_mb"] = serde_json::json!(max_size_mb);
+    let content = serde_json::to_string_pretty(&full_config)
+        .map_err(|e| format!("Failed to serialize settings config: {}", e))?;
+    fs::write(&config_path, content)
+        .map_err(|e| format!("Failed to save settings config: {}", e))?;
+    let _ = cleanup_old_logs(max_size_mb);
+    Ok(())
+}
+
+#[tauri::command]
+pub fn get_max_log_size() -> Result<u64, String> {
+    let settings_dir = get_settings_dir();
+    let config_path = settings_dir.join("config.json");
+    if config_path.exists() {
+        let content = fs::read_to_string(&config_path)
+            .map_err(|e| format!("Failed to read settings config: {}", e))?;
+        let full_config: serde_json::Value =
+            serde_json::from_str(&content).unwrap_or_else(|_| serde_json::json!({}));
+        if let Some(size) = full_config.get("max_log_size_mb").and_then(|v| v.as_u64()) {
+            return Ok(size);
+        }
+    }
+    Ok(500)
+}
+
 pub fn init_default_session_if_empty() -> Result<(), String> {
     let dir = get_dialog_history_dir();
     if !dir.exists() {
@@ -638,5 +741,92 @@ pub fn init_default_session_if_empty() -> Result<(), String> {
         let terminal_path = session_dir.join("terminal.json");
         fs::write(&terminal_path, "[]").map_err(|e| format!("Failed to save terminal: {}", e))?;
     }
+    Ok(())
+}
+
+#[tauri::command]
+pub fn get_directory_size(path: String) -> Result<u64, String> {
+    let dir = Path::new(&path);
+    if !dir.exists() {
+        return Ok(0);
+    }
+    let mut total_size = 0;
+    let mut file_count = 0;
+    for entry in WalkDir::new(dir)
+        .follow_links(false)
+        .into_iter()
+        .filter_map(|e| e.ok())
+    {
+        let file_path = entry.path();
+        if file_path.is_file() {
+            if let Ok(metadata) = entry.metadata() {
+                let size = metadata.len();
+                total_size += size;
+                file_count += 1;
+            }
+        }
+    }
+    Ok(total_size)
+}
+
+#[tauri::command]
+pub fn get_disk_info(path: String) -> Result<serde_json::Value, String> {
+    use std::path::Path;
+    let path = Path::new(&path);
+    let disks = Disks::new_with_refreshed_list();
+    let disk = disks.iter().find(|d| path.starts_with(d.mount_point()));
+    if let Some(disk) = disk {
+        let total = disk.total_space();
+        let free = disk.available_space();
+        let used = total - free;
+        Ok(serde_json::json!({
+            "total": total,
+            "free": free,
+            "used": used
+        }))
+    } else {
+        Err(format!("No disk found for path: {:?}", path))
+    }
+}
+
+#[tauri::command]
+pub fn get_max_dialog_size() -> Result<u64, String> {
+    let settings_dir = get_settings_dir();
+    let config_path = settings_dir.join("config.json");
+    if config_path.exists() {
+        let content = fs::read_to_string(&config_path)
+            .map_err(|e| format!("Failed to read settings config: {}", e))?;
+        let full_config: serde_json::Value =
+            serde_json::from_str(&content).unwrap_or_else(|_| serde_json::json!({}));
+        if let Some(size) = full_config
+            .get("max_dialog_size_mb")
+            .and_then(|v| v.as_u64())
+        {
+            return Ok(size);
+        }
+    }
+    Ok(500)
+}
+
+#[tauri::command]
+pub fn set_max_dialog_size(maxSizeMb: u64) -> Result<(), String> {
+    let settings_dir = get_settings_dir();
+    if !settings_dir.exists() {
+        fs::create_dir_all(&settings_dir)
+            .map_err(|e| format!("Failed to create settings directory: {}", e))?;
+    }
+    let config_path = settings_dir.join("config.json");
+    let mut full_config: serde_json::Value = if config_path.exists() {
+        let content = fs::read_to_string(&config_path)
+            .map_err(|e| format!("Failed to read settings config: {}", e))?;
+        serde_json::from_str(&content).unwrap_or_else(|_| serde_json::json!({}))
+    } else {
+        serde_json::json!({})
+    };
+    full_config["max_dialog_size_mb"] = serde_json::json!(maxSizeMb);
+    let content = serde_json::to_string_pretty(&full_config)
+        .map_err(|e| format!("Failed to serialize settings config: {}", e))?;
+    fs::write(&config_path, content)
+        .map_err(|e| format!("Failed to save settings config: {}", e))?;
     Ok(())
 }

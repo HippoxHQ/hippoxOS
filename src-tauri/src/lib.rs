@@ -140,6 +140,13 @@ pub fn run() {
             commands::cmd_select_file,
             commands::cmd_read_directory,
             commands::cmd_path_exists,
+            commands::get_logs_size_command,
+            commands::set_max_log_size,
+            commands::get_max_log_size,
+            commands::get_directory_size,
+            commands::get_disk_info,
+            commands::get_max_dialog_size,
+            commands::set_max_dialog_size,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

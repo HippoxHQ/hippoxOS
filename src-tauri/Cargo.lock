@@ -12,15 +12,18 @@ dependencies = [
  "fs_extra",
  "hippox",
  "log",
+ "nix",
  "once_cell",
  "rfd",
  "serde",
  "serde_json",
+ "sysinfo 0.36.1",
  "tauri",
  "tauri-build",
  "tauri-plugin-log",
  "tokio",
  "uuid 1.23.1",
+ "walkdir",
 ]
 
 [[package]]
@@ -3328,7 +3331,7 @@ dependencies = [
  "similar",
  "sqlx",
  "suppaftp",
- "sysinfo",
+ "sysinfo 0.38.4",
  "tar",
  "tokio",
  "toml 1.1.2+spec-1.1.0",
@@ -4816,6 +4819,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "77a5d83df9f36fe23f0c3648c6bbb8b0298bb5f1939c8f2704431371f4b84d43"
 dependencies = [
  "smallvec",
+]
+
+[[package]]
+name = "nix"
+version = "0.31.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cf20d2fde8ff38632c426f1165ed7436270b44f199fc55284c38276f9db47c3d"
+dependencies = [
+ "bitflags 2.11.1",
+ "cfg-if",
+ "cfg_aliases",
+ "libc",
 ]
 
 [[package]]
@@ -8145,6 +8160,20 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.106",
+]
+
+[[package]]
+name = "sysinfo"
+version = "0.36.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "252800745060e7b9ffb7b2badbd8b31cfa4aa2e61af879d0a3bf2a317c20217d"
+dependencies = [
+ "libc",
+ "memchr",
+ "ntapi",
+ "objc2-core-foundation",
+ "objc2-io-kit",
+ "windows 0.61.3",
 ]
 
 [[package]]
