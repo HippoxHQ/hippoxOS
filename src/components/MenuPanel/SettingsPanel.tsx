@@ -3,12 +3,14 @@ import AIModelConfig from "./AIModelConfig";
 import AtomicSkillsPanel from "./AtomicSkillsPanel";
 import InterfaceConfig from "./SystemConfig/InterfaceConfig";
 import WorkspaceConfig from "./SystemConfig/WorkspaceConfig";
+import StorageConfig from "./SystemConfig/StorageConfig";
 
 export type SettingsSubView =
   | "llmModel"
   | "atomicSkills"
   | "interface"
-  | "workspaceConfig";
+  | "workspaceConfig"
+  | "storage";
 
 interface SettingsPanelProps {
   subView: SettingsSubView;
@@ -50,6 +52,8 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
       );
     case "workspaceConfig":
       return <WorkspaceConfig t={t} onSaveWorkspace={onSave} />;
+    case "storage":
+      return <StorageConfig t={t} onSave={onSave} />;
     default:
       return (
         <AIModelConfig t={t} onSave={onSave} isInitializing={isInitializing} />

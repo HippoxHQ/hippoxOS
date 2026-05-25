@@ -23,7 +23,6 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
   const [showAddForm, setShowAddForm] = useState(false);
   const [newWorkspaceName, setNewWorkspaceName] = useState("");
   const [newWorkspacePath, setNewWorkspacePath] = useState("");
-  const [newMaxLogSize, setNewMaxLogSize] = useState(100);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -43,7 +42,6 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
         if (defaultWorkspace) {
           onSaveWorkspace({
             workspacePath: defaultWorkspace.workspace_path,
-            maxLogSize: defaultWorkspace.max_log_size,
           });
         }
       }
@@ -54,7 +52,6 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
           id: `workspace_${Date.now()}`,
           name: "workspace",
           workspace_path: initialWorkspaceConfig.workspacePath || "",
-          max_log_size: initialWorkspaceConfig.maxLogSize || 100,
           is_default: true,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
@@ -83,7 +80,6 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
         if (defaultWorkspace) {
           onSaveWorkspace({
             workspacePath: defaultWorkspace.workspace_path,
-            maxLogSize: defaultWorkspace.max_log_size,
           });
         }
       }
@@ -147,7 +143,6 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
       id: `workspace_${Date.now()}`,
       name: workspaceName,
       workspace_path: newWorkspacePath.trim(),
-      max_log_size: newMaxLogSize,
       is_default: false,
       created_at: now,
       updated_at: now,
@@ -159,12 +154,10 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
       setShowAddForm(false);
       setNewWorkspaceName("");
       setNewWorkspacePath("");
-      setNewMaxLogSize(100);
     } catch (error) {
       console.error("Failed to add workspace:", error);
     }
   };
-
   const labelStyle: React.CSSProperties = {
     fontSize: "13px",
     color: "var(--text-primary)",
@@ -172,7 +165,6 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
     flexShrink: 0,
     userSelect: "none",
   };
-
   const inputStyle: React.CSSProperties = {
     flex: 1,
     minWidth: 0,
@@ -341,24 +333,6 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
               </div>
             </div>
             <div
-              className="settings-row"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                marginBottom: "12px",
-                gap: "12px",
-                flexWrap: "wrap",
-              }}
-            >
-              <label style={labelStyle}>{t("settings.maxLogSize")} (MB)</label>
-              <input
-                type="number"
-                style={inputStyle}
-                value={instance.max_log_size}
-                disabled
-              />
-            </div>
-            <div
               style={{
                 display: "flex",
                 gap: "8px",
@@ -457,26 +431,6 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
                   📂 {t("settings.browse") || "Browse"}
                 </button>
               </div>
-            </div>
-            <div
-              className="settings-row"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                marginBottom: "12px",
-                gap: "12px",
-                flexWrap: "wrap",
-              }}
-            >
-              <label style={labelStyle}>{t("settings.maxLogSize")} (MB)</label>
-              <input
-                type="number"
-                style={inputStyle}
-                value={newMaxLogSize}
-                onChange={(e) =>
-                  setNewMaxLogSize(parseInt(e.target.value) || 100)
-                }
-              />
             </div>
             <div
               style={{

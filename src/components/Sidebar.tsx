@@ -462,10 +462,12 @@ const menuConfig: MenuItem[] = [
             icon: "config",
             label: "settings.workspaceConfig",
           },
+          { id: "storage", icon: "config", label: "menu.storage" },
         ],
       },
     ],
   },
+  { id: "logs", icon: "logs", label: "menu.logs" },
 ];
 
 const getIcon = (iconName: string) => {
@@ -869,6 +871,11 @@ const Sidebar: React.FC<SidebarProps> = ({
       setActiveSubId(undefined);
       setActiveSubSubId(undefined);
       if (onMenuClick) onMenuClick("settings", "llmModel");
+    } else if (id === "storage") {
+      setActiveId(id);
+      setActiveSubId(id);
+      setActiveSubSubId(undefined);
+      if (onMenuClick) onMenuClick("settings", id);
     } else {
       setActiveId(id);
       setActiveSubId(undefined);

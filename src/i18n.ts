@@ -112,6 +112,9 @@ export const zh = {
     disableAll: '全部禁用'
   },
   logs: {
+    searchPlaceholder: "搜索日志...",
+    empty: "暂无日志",
+    confirmClear: "确定要清空所有日志吗？",
     skillsLoaded: '已加载 3 个技能模块',
     listening: '监听用户指令中...',
     listeningDetail: '等待自然语言输入或系统事件',
@@ -166,7 +169,24 @@ export const zh = {
       general: '通用'
     }
   },
+  storage: {
+    usage: "存储使用情况",
+    totalUsed: "总使用空间",
+    cacheSize: "缓存大小",
+    dataDirectories: "数据目录",
+    dataDir: "数据目录",
+    logsDir: "日志目录",
+    tempDir: "临时目录",
+    backupsDir: "备份目录",
+    actions: "操作",
+    clearCache: "清理缓存",
+    cleanup: "清理旧文件",
+    confirmClearCache: "确定要清空所有缓存吗？",
+    confirmCleanup: "确定要清理旧文件吗？",
+  },
   menu: {
+    logs: "日志",
+    storage: "存储",
     dashboard: '概览',
     workspace: '工作空间',
     projects: '项目',
@@ -610,6 +630,9 @@ export const en: typeof zh = {
     disableAll: 'Disable All'
   },
   logs: {
+    searchPlaceholder: 'Search logs...',
+    empty: 'No logs available',
+    confirmClear: 'Are you sure you want to clear all logs?',
     skillsLoaded: 'Loaded 3 skills',
     listening: 'Listening for user commands...',
     listeningDetail: 'Waiting for natural language input or system events',
@@ -664,6 +687,7 @@ export const en: typeof zh = {
       general: 'General'
     }
   },
+
   menu: {
     dashboard: 'Dashboard',
     workspace: 'Workspace',
@@ -693,6 +717,23 @@ export const en: typeof zh = {
     engineConfig: 'Engine Config',
     workspaceConfig: 'Workspace Config',
     systemConfig: 'System Config',
+    logs: 'Logs',
+    storage: 'Storage',
+  },
+  storage: {
+    usage: 'Storage Usage',
+    totalUsed: 'Total Used',
+    cacheSize: 'Cache Size',
+    dataDirectories: 'Data Directories',
+    dataDir: 'Data Directory',
+    logsDir: 'Logs Directory',
+    tempDir: 'Temp Directory',
+    backupsDir: 'Backups Directory',
+    actions: 'Actions',
+    clearCache: 'Clear Cache',
+    cleanup: 'Cleanup Old Files',
+    confirmClearCache: 'Are you sure you want to clear all cache?',
+    confirmCleanup: 'Are you sure you want to cleanup old files?',
   },
   status: {
     healthy: 'Healthy'

@@ -13,6 +13,8 @@ import EngineContainerPanel from "./EngineConfig/EngineContainerPanel";
 import EngineDatabasePanel from "./EngineConfig/EngineDatabasePanel";
 import EngineNetworkPanel from "./EngineConfig/EngineNetworkPanel";
 import EngineNotificationPanel from "./EngineConfig/EngineNotificationPanel";
+import LogsPanel from "./LogsPanel";
+import StorageConfig from "./SystemConfig/StorageConfig";
 
 export type MenuPanelView =
   | "terminal"
@@ -28,6 +30,8 @@ export type MenuPanelView =
   | "settings"
   | "workspace"
   | "workspaceConfig"
+  | "logs"
+  | "storage"
   | "engine_group";
 
 export type EngineSubView =
@@ -69,6 +73,8 @@ const viewTitles: Record<MenuPanelView, string> = {
   workspace: "menu.workspace",
   workspaceConfig: "settings.workspaceConfig",
   engine_group: "menu.engineConfig",
+  logs: "menu.logs",
+  storage: "menu.storage",
 };
 
 const engineSubViewTitles: Record<EngineSubView, string> = {
@@ -236,6 +242,10 @@ const MenuPanel: React.FC<MenuPanelProps> = ({
         return <WorkspacePanel t={t} />;
       case "workspaceConfig":
         return <WorkspaceConfig t={t} onSaveWorkspace={onSaveConfig} />;
+      case "logs":
+        return <LogsPanel t={t} onClose={onClose} />;
+      case "storage":
+        return <StorageConfig t={t} onSave={onSaveConfig} />;
       default:
         return null;
     }
@@ -251,6 +261,7 @@ const MenuPanel: React.FC<MenuPanelProps> = ({
         atomicSkills: "menu.atomicSkills",
         interface: "settings.interfaceConfig",
         workspaceConfig: "settings.workspaceConfig",
+        storage: "menu.storage",
       };
       return t(settingsTitles[settingsSubView] || "menu.settings");
     }

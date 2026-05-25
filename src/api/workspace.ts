@@ -4,7 +4,6 @@ export interface WorkspaceInstance {
     id: string;
     name: string;
     workspace_path: string;
-    max_log_size: number;
     is_default: boolean;
     created_at: string;
     updated_at: string;

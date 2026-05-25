@@ -10,7 +10,6 @@ pub struct WorkspaceInstance {
     pub id: String,
     pub name: String,
     pub workspace_path: String,
-    pub max_log_size: u32,
     pub is_default: bool,
     pub created_at: String,
     pub updated_at: String,
@@ -81,7 +80,6 @@ pub fn init_default_workspace() -> Result<WorkspaceInstance, String> {
         id: format!("workspace_{}", Local::now().timestamp()),
         name: "workspace".to_string(),
         workspace_path: workspace_dir.to_string_lossy().to_string(),
-        max_log_size: 100,
         is_default: true,
         created_at: now.clone(),
         updated_at: now,
@@ -129,7 +127,6 @@ pub fn update_workspace(instance: WorkspaceInstance) -> Result<(), String> {
     if let Some(existing) = config.instances.iter_mut().find(|i| i.id == instance.id) {
         existing.name = instance.name;
         existing.workspace_path = instance.workspace_path;
-        existing.max_log_size = instance.max_log_size;
         existing.updated_at = Local::now().to_rfc3339();
         save_workspace_config(&config)?;
         Ok(())
