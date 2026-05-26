@@ -1,4 +1,24 @@
 export const zh = {
+  llmModel: {
+    default: '默认',
+    apiKey: 'API Key',
+    apiKeyPlaceholder: '请输入 API Key',
+    provider: '提供商',
+    setAsDefault: '设为默认',
+    delete: '删除',
+    add: '添加',
+    addLlmProvider: '添加 LLM 提供商',
+    defaultSuccess: '已成功将 "{{name}}" 设为默认模型',
+    defaultFailed: '设置默认模型失败',
+    deleteSuccess: '已成功删除 "{{name}}"',
+    deleteFailed: '删除模型失败',
+    addSuccess: '已成功添加 {{name}} 模型',
+    addFailed: '添加模型失败',
+    cannotDeleteLast: '无法删除最后一个模型实例',
+    cannotDeleteDefault: '无法删除默认模型',
+    deleteConfirmTitle: '确认删除',
+    deleteConfirmMessage: '确定要删除 "{{name}}" 吗？此操作不可撤销。',
+  },
   network: {
     noInstances: '暂无 {{type}} 配置，点击下方按钮添加',
     enabled: '启用',
@@ -106,10 +126,16 @@ export const zh = {
   },
   atomicSkills: {
     loading: '加载原子能力列表中...',
+    loadError: '加载原子能力失败',
     stats: '共 {{total}} 个原子能力，已启用 {{enabled}} 个',
     empty: '暂无原子能力',
     enableAll: '全部启用',
-    disableAll: '全部禁用'
+    disableAll: '全部禁用',
+    skillToggled: '能力 "{{name}}" 已{{action}}',
+    categoryToggled: '已{{action}}分类 "{{category}}" 下的 {{count}} 个能力',
+    saveSuccess: '配置已保存',
+    enable: '启用',
+    disable: '禁用'
   },
   logs: {
     searchPlaceholder: "搜索日志...",
@@ -290,7 +316,9 @@ export const zh = {
     toggleLanguage: '切换语言'
   },
   common: {
-    close: '关闭'
+    close: '关闭',
+    cancel: '取消',
+    loading: '加载中...',
   },
   history: {
     rename: '重命名',
@@ -530,6 +558,26 @@ export const zh = {
 };
 
 export const en: typeof zh = {
+  llmModel: {
+    default: 'Default',
+    apiKey: 'API Key',
+    apiKeyPlaceholder: 'Enter API Key',
+    provider: 'Provider',
+    setAsDefault: 'Set as Default',
+    delete: 'Delete',
+    add: 'Add',
+    addLlmProvider: 'Add LLM Provider',
+    defaultSuccess: 'Successfully set "{{name}}" as default model',
+    defaultFailed: 'Failed to set default model',
+    deleteSuccess: 'Successfully deleted "{{name}}"',
+    deleteFailed: 'Failed to delete model',
+    addSuccess: 'Successfully added {{name}} model',
+    addFailed: 'Failed to add model',
+    cannotDeleteLast: 'Cannot delete the last model instance',
+    cannotDeleteDefault: 'Cannot delete default model',
+    deleteConfirmTitle: 'Confirm Delete',
+    deleteConfirmMessage: 'Are you sure you want to delete "{{name}}"? This action cannot be undone.',
+  },
   network: {
     noInstances: 'No {{type}} configuration, click the button below to add',
     enabled: 'Enabled',
@@ -637,10 +685,16 @@ export const en: typeof zh = {
   },
   atomicSkills: {
     loading: 'Loading atomic skills...',
+    loadError: 'Failed to load atomic skills',
     stats: '{{total}} atomic skills total, {{enabled}} enabled',
     empty: 'No atomic skills available',
     enableAll: 'Enable All',
-    disableAll: 'Disable All'
+    disableAll: 'Disable All',
+    skillToggled: 'Skill "{{name}}" has been {{action}}',
+    categoryToggled: '{{count}} skills in category "{{category}}" have been {{action}}',
+    saveSuccess: 'Configuration saved',
+    enable: 'enabled',
+    disable: 'disabled'
   },
   logs: {
     searchPlaceholder: 'Search logs...',
@@ -822,7 +876,9 @@ export const en: typeof zh = {
     toggleLanguage: 'Toggle Language'
   },
   common: {
-    close: 'Close'
+    close: 'Close',
+    cancel: 'Cancel',
+    loading: 'Loading...',
   },
   history: {
     rename: 'Rename',

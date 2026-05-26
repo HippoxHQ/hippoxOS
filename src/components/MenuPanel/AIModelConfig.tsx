@@ -6,6 +6,8 @@ import {
   ModelInfo,
   ProviderInfo,
 } from "../../api/llm";
+import { showToast, ToastType } from "../Toast";
+import { showDialog, DialogType } from "../Dialog";
 
 interface AIModelConfigProps {
   t: (key: string, params?: any) => string;
@@ -58,12 +60,10 @@ const AIModelConfig: React.FC<AIModelConfigProps> = ({
         console.error("Failed to load providers:", err);
         return [];
       });
-    const modelsPromise = llmCommands
-      .getAllModels(language)
-      .catch((err: Error) => {
-        console.error("Failed to load models:", err);
-        return [];
-      });
+    const modelsPromise = llmCommands.getAllModels().catch((err: Error) => {
+      console.error("Failed to load models:", err);
+      return [];
+    });
 
     const [instancesData, defaultId, providersData, modelsData] =
       await Promise.all([
@@ -80,34 +80,60 @@ const AIModelConfig: React.FC<AIModelConfigProps> = ({
     setLoading(false);
   };
 
-  const handleSetDefault = async (instanceId: string) => {
+  const handleSetDefault = async (instanceId: string, instanceName: string) => {
     try {
       await llmCommands.setDefaultLlmInstance(instanceId);
       setDefaultInstanceId(instanceId);
+      showToast(
+        ToastType.SUCCESS,
+        t("llmModel.defaultSuccess", { name: instanceName }),
+      );
       if (onSave) {
         onSave({ action: "set_default", instanceId });
       }
     } catch (error) {
       console.error("Failed to set default instance:", error);
+      showToast(ToastType.ERROR, t("llmModel.defaultFailed"));
     }
   };
 
-  const handleDeleteInstance = async (instanceId: string) => {
+  const handleDeleteInstance = async (
+    instanceId: string,
+    instanceName: string,
+  ) => {
     if (Object.keys(instances).length <= 1) {
+      showToast(ToastType.WARNING, t("llmModel.cannotDeleteLast"));
       return;
     }
     if (defaultInstanceId === instanceId) {
+      showToast(ToastType.WARNING, t("llmModel.cannotDeleteDefault"));
       return;
     }
-    try {
-      await llmCommands.deleteLlmInstance(instanceId);
-      await loadData();
-      if (onSave) {
-        onSave({ action: "delete", instanceId });
-      }
-    } catch (error) {
-      console.error("Failed to delete instance:", error);
-    }
+
+    showDialog(
+      DialogType.WARNING,
+      t("llmModel.deleteConfirmTitle"),
+      t("llmModel.deleteConfirmMessage", { name: instanceName }),
+      async () => {
+        try {
+          await llmCommands.deleteLlmInstance(instanceId);
+          await loadData();
+          showToast(
+            ToastType.SUCCESS,
+            t("llmModel.deleteSuccess", { name: instanceName }),
+          );
+          if (onSave) {
+            onSave({ action: "delete", instanceId });
+          }
+        } catch (error) {
+          console.error("Failed to delete instance:", error);
+          showToast(ToastType.ERROR, t("llmModel.deleteFailed"));
+        }
+      },
+      undefined,
+      t("llmModel.delete"),
+      t("common.cancel"),
+    );
   };
 
   const handleProviderChange = (providerId: string) => {
@@ -123,6 +149,7 @@ const AIModelConfig: React.FC<AIModelConfigProps> = ({
 
   const handleAddInstance = async () => {
     if (!newApiKey.trim()) {
+      showToast(ToastType.WARNING, t("llmModel.apiKeyRequired"));
       return;
     }
     const providerModels = availableModels.filter(
@@ -167,11 +194,16 @@ const AIModelConfig: React.FC<AIModelConfigProps> = ({
       setNewApiKey("");
       setExtraConfigValues({});
       await loadData();
+      showToast(
+        ToastType.SUCCESS,
+        t("llmModel.addSuccess", { name: providerInfo?.name || newProvider }),
+      );
       if (onSave) {
         onSave({ action: "add", instance: instanceToAdd });
       }
     } catch (error) {
       console.error("Failed to add instance:", error);
+      showToast(ToastType.ERROR, t("llmModel.addFailed"));
     }
   };
 
@@ -275,7 +307,7 @@ const AIModelConfig: React.FC<AIModelConfigProps> = ({
           justifyContent: "center",
         }}
       >
-        Loading...
+        {t("common.loading") || "Loading..."}
       </div>
     );
   }
@@ -309,6 +341,7 @@ const AIModelConfig: React.FC<AIModelConfigProps> = ({
         {Object.entries(instances).map(([id, instance]) => {
           const extraConfig = instance.extra || {};
           const extraFields = getProviderExtraFields(instance.provider);
+          const instanceName = getProviderName(instance.provider);
           return (
             <div key={id} style={modelCardStyle}>
               <div
@@ -331,7 +364,7 @@ const AIModelConfig: React.FC<AIModelConfigProps> = ({
                   {getProviderName(instance.provider)}
                 </span>
                 {defaultInstanceId === id && (
-                  <span style={badgeStyle}>Default</span>
+                  <span style={badgeStyle}>{t("llmModel.default")}</span>
                 )}
               </div>
 
@@ -345,7 +378,7 @@ const AIModelConfig: React.FC<AIModelConfigProps> = ({
                   flexWrap: "wrap",
                 }}
               >
-                <label style={labelStyle}>API Key</label>
+                <label style={labelStyle}>{t("llmModel.apiKey")}</label>
                 <input
                   type="password"
                   style={inputStyle}
@@ -390,9 +423,9 @@ const AIModelConfig: React.FC<AIModelConfigProps> = ({
                       fontSize: "11px",
                       padding: "4px 10px",
                     }}
-                    onClick={() => handleSetDefault(id)}
+                    onClick={() => handleSetDefault(id, instanceName)}
                   >
-                    Set as Default
+                    {t("llmModel.setAsDefault")}
                   </button>
                 )}
                 {defaultInstanceId !== id &&
@@ -403,9 +436,9 @@ const AIModelConfig: React.FC<AIModelConfigProps> = ({
                         fontSize: "11px",
                         padding: "4px 10px",
                       }}
-                      onClick={() => handleDeleteInstance(id)}
+                      onClick={() => handleDeleteInstance(id, instanceName)}
                     >
-                      Delete
+                      {t("llmModel.delete")}
                     </button>
                   )}
               </div>
@@ -423,7 +456,7 @@ const AIModelConfig: React.FC<AIModelConfigProps> = ({
                 marginBottom: "12px",
               }}
             >
-              Add LLM Provider
+              {t("llmModel.addLlmProvider")}
             </div>
             <div
               className="settings-row"
@@ -435,7 +468,7 @@ const AIModelConfig: React.FC<AIModelConfigProps> = ({
                 flexWrap: "wrap",
               }}
             >
-              <label style={labelStyle}>Provider</label>
+              <label style={labelStyle}>{t("llmModel.provider")}</label>
               <select
                 style={selectStyle}
                 value={newProvider}
@@ -484,13 +517,13 @@ const AIModelConfig: React.FC<AIModelConfigProps> = ({
                 flexWrap: "wrap",
               }}
             >
-              <label style={labelStyle}>API Key</label>
+              <label style={labelStyle}>{t("llmModel.apiKey")}</label>
               <input
                 type="password"
                 style={inputStyle}
                 value={newApiKey}
                 onChange={(e) => setNewApiKey(e.target.value)}
-                placeholder="Enter API Key"
+                placeholder={t("llmModel.apiKeyPlaceholder")}
               />
             </div>
 
@@ -502,10 +535,10 @@ const AIModelConfig: React.FC<AIModelConfigProps> = ({
               }}
             >
               <button style={buttonStyle} onClick={() => setShowAddForm(false)}>
-                Cancel
+                {t("common.cancel")}
               </button>
               <button style={addButtonStyle} onClick={handleAddInstance}>
-                Add
+                {t("llmModel.add")}
               </button>
             </div>
           </div>
@@ -514,7 +547,7 @@ const AIModelConfig: React.FC<AIModelConfigProps> = ({
             style={{ ...addButtonStyle, width: "100%" }}
             onClick={() => setShowAddForm(true)}
           >
-            + Add LLM Provider
+            + {t("llmModel.addLlmProvider")}
           </button>
         )}
       </div>

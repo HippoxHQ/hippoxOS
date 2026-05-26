@@ -18,6 +18,8 @@ import { listen } from "@tauri-apps/api/event";
 import { SettingsSubView } from "./components/MenuPanel/SettingsPanel";
 import { taskManager } from "./TaskManager";
 import { appConfig } from "./config";
+import Toast from "./components/Toast";
+import Dialog from "./components/Dialog";
 
 function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -622,6 +624,8 @@ function App() {
 
   return (
     <div className="App">
+      <Toast />
+      <Dialog />
       <TopBar
         sidebarCollapsed={sidebarCollapsed}
         onToggleSidebar={toggleSidebar}
