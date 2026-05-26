@@ -612,14 +612,14 @@ pub fn cmd_get_all_providers() -> Vec<ProviderInfo> {
         },
         ProviderInfo {
             id: "custom".to_string(),
-            name: "Custom".to_string(),
+            name: "Custom API".to_string(),
             icon: "🦛".to_string(),
             requires_api_key: true,
             requires_extra_config: true,
             extra_config_fields: vec![ExtraConfigField {
                 key: "api_base".to_string(),
                 name: "API Base URL".to_string(),
-                placeholder: "https://api.custom.com/v1".to_string(),
+                placeholder: "https://api.example.com/v1".to_string(),
                 required: true,
             }],
         },

@@ -133,18 +133,23 @@ const AIModelConfig: React.FC<AIModelConfigProps> = ({
     const defaultModelName = defaultModel?.id || "";
     const providerInfo = providers.find((p) => p.id === newProvider);
     const extra: Record<string, string> = {};
+    let apiBase = "";
     if (providerInfo?.requires_extra_config) {
       Object.entries(extraConfigValues).forEach(([key, value]) => {
         if (value) {
           extra[key] = value;
+          if (key === "api_base") {
+            apiBase = value;
+          }
         }
       });
     }
+    const isCustomProvider = newProvider === "custom";
     const instanceToAdd: AddLlmInstanceRequest = {
       name: `${providerInfo?.name || newProvider} Instance`,
       provider: newProvider,
       api_key: newApiKey,
-      api_base: "",
+      api_base: isCustomProvider ? apiBase : "",
       workflow_mode: "react",
       default_model: defaultModelName,
       models: providerModels.map((m) => ({

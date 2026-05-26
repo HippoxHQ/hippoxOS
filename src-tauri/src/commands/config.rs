@@ -870,7 +870,7 @@ async fn init_single_hippox(instance: &LlmInstance, skills_dir: &str) -> Result<
         "baidu" => ModelProvider::Baidu,
         "tencent" => ModelProvider::Tencent,
         "minimax" => ModelProvider::MiniMax,
-        // "custom" => ModelProvider::Custom,
+        "custom" => ModelProvider::Custom,
         _ => {
             println!(
                 "Unknown provider: {}, defaulting to OpenAI",
@@ -888,6 +888,11 @@ async fn init_single_hippox(instance: &LlmInstance, skills_dir: &str) -> Result<
     let mut extra_keys = instance.extra.clone();
     if !instance.api_base.is_empty() && !extra_keys.contains_key("api_base") {
         extra_keys.insert("api_base".to_string(), instance.api_base.clone());
+    }
+    if instance.provider.to_lowercase() == "custom" && !extra_keys.contains_key("api_base") {
+        if !instance.api_base.is_empty() {
+            extra_keys.insert("api_base".to_string(), instance.api_base.clone());
+        }
     }
     let api_key_to_use = if instance.api_key.is_empty() {
         None

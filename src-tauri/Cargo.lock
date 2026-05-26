@@ -3288,9 +3288,9 @@ checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
 
 [[package]]
 name = "hippox"
-version = "0.4.1"
+version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ba12b0d17e85e33cd86f4d607d8e95990c9226626dc458937cebf10d382ecefc"
+checksum = "a91488c7cec43aa2bd7cf8f44130c78be506d32b1eeb8007d20b413dc19c6fa2"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -4272,9 +4272,9 @@ dependencies = [
 
 [[package]]
 name = "langhub"
-version = "0.2.5"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9117082c53fccc38ed8812bc3ad458ff594043a970379c3638ca34b44e65393f"
+checksum = "ce10899a8fb079793acc8f73e9636f67711549e2ef70fed8bb7882e2ac972210"
 dependencies = [
  "reqwest 0.11.27",
  "serde",
