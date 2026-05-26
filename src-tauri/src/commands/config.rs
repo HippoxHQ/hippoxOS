@@ -883,6 +883,7 @@ async fn init_single_hippox(instance: &LlmInstance, skills_dir: &str) -> Result<
         "batch" => WorkflowMode::Batch,
         "chain" => WorkflowMode::Chain,
         "plan_and_execute" => WorkflowMode::PlanAndExecute,
+        "react" => WorkflowMode::ReAct,
         _ => WorkflowMode::ReAct,
     };
     let mut extra_keys = instance.extra.clone();
@@ -900,7 +901,6 @@ async fn init_single_hippox(instance: &LlmInstance, skills_dir: &str) -> Result<
         Some(instance.api_key.clone())
     };
     Hippox::with_workflow_mode(
-        skills_dir,
         model_provider,
         api_key_to_use,
         if extra_keys.is_empty() {
@@ -908,7 +908,7 @@ async fn init_single_hippox(instance: &LlmInstance, skills_dir: &str) -> Result<
         } else {
             Some(extra_keys)
         },
-        ConfigInitMethod::Env,
+        ConfigInitMethod::ParamsJsonStr("{}".to_string()),
         mode,
     )
     .await

@@ -12,6 +12,7 @@ use crate::commands::callback::TauriWorkflowCallback;
 use crate::commands::{
     get_default_hippox, init_all_hippox_instances, load_config_from_file, HIPPOX_APP_CONFIG,
 };
+use crate::workspace::get_default_workspace;
 
 struct LogMessages {
     init_start: String,
@@ -306,11 +307,27 @@ pub async fn send_chat_message(
             None,
         )
         .await;
-
     let hippox = get_default_hippox().await?;
-
+    let workspace_path = get_default_workspace()
+        .ok()
+        .flatten()
+        .map(|ws| ws.workspace_path)
+        .unwrap_or_else(|| {
+            crate::commands::get_app_root_dir()
+                .join("workspace")
+                .to_string_lossy()
+                .to_string()
+        });
+    let system_prompt = format!(
+        "[Important Rule] When performing file download, file write, or file creation operations, \
+         if no target directory is explicitly specified, please use the following workspace directory by default: {}\n\
+         Do not write files to system temp directory or any other non-workspace directories. \
+         If subdirectories need to be created, create them under the workspace directory.",
+        workspace_path
+    );
+    let enhanced_message = format!("{}\n\n{}", system_prompt, message);
     let response = hippox
-        .handle_natural_language(&message, Some(&session), None)
+        .handle_natural_language(&enhanced_message, Some(&session), None)
         .await;
     let duration = start_time.elapsed().as_millis() as u64;
     state
@@ -413,8 +430,26 @@ async fn execute_task_async(
             return;
         }
     };
+    let workspace_path = get_default_workspace()
+        .ok()
+        .flatten()
+        .map(|ws| ws.workspace_path)
+        .unwrap_or_else(|| {
+            crate::commands::get_app_root_dir()
+                .join("workspace")
+                .to_string_lossy()
+                .to_string()
+        });
+    let system_prompt = format!(
+        "[Important Rule] When performing file download, file write, or file creation operations, \
+         if no target directory is explicitly specified, please use the following workspace directory by default: {}\n\
+         Do not write files to system temp directory or any other non-workspace directories. \
+         If subdirectories need to be created, create them under the workspace directory.",
+        workspace_path
+    );
+    let enhanced_message = format!("{}\n\n{}", system_prompt, message);
     let response = hippox
-        .handle_natural_language(&message, Some(&session_id), Some(callback_clone))
+        .handle_natural_language(&enhanced_message, Some(&session_id), Some(callback_clone))
         .await;
     let duration = std::time::Instant::now().elapsed().as_millis() as u64;
     let messages = state.get_log_messages().await;

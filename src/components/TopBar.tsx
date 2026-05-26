@@ -506,9 +506,8 @@ const CloseIcon = () => (
     viewBox="0 0 24 24"
     fill="none"
     stroke="currentColor"
-    strokeWidth="1.75"
-    width="14px"
-    height="14px"
+    width="23px"
+    height="23px"
   >
     <path
       d="M6 18L18 6M6 6l12 12"

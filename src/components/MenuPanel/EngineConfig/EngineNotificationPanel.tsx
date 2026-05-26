@@ -5,6 +5,7 @@ import { showDialog, DialogType } from "../../Dialog";
 interface NotificationInstance {
   id: string;
   name: string;
+  description: string;
   type: "smtp" | "telegram" | "dingtalk" | "feishu" | "wecom" | "github";
   enabled: boolean;
   smtp_host?: string;
@@ -66,6 +67,7 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
   const [showLeftArrow, setShowLeftArrow] = useState(false);
   const [showRightArrow, setShowRightArrow] = useState(false);
   const [formName, setFormName] = useState("");
+  const [formDescription, setFormDescription] = useState("");
   const [formSmtpHost, setFormSmtpHost] = useState("");
   const [formSmtpPort, setFormSmtpPort] = useState(587);
   const [formSmtpUsername, setFormSmtpUsername] = useState("");
@@ -122,6 +124,7 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
           migrated.push({
             id: `smtp_${Date.now()}`,
             name: "SMTP Server",
+            description: initialConfig.smtp.description || "",
             type: "smtp",
             enabled: true,
             smtp_host: initialConfig.smtp.host,
@@ -137,6 +140,7 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
           migrated.push({
             id: `telegram_${Date.now()}`,
             name: "Telegram Bot",
+            description: initialConfig.telegram.description || "",
             type: "telegram",
             enabled: true,
             telegram_botToken: initialConfig.telegram.botToken,
@@ -148,6 +152,7 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
           migrated.push({
             id: `dingtalk_${Date.now()}`,
             name: "DingTalk Robot",
+            description: initialConfig.dingtalk.description || "",
             type: "dingtalk",
             enabled: true,
             dingtalk_accessToken: initialConfig.dingtalk.accessToken,
@@ -159,6 +164,7 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
           migrated.push({
             id: `feishu_${Date.now()}`,
             name: "Feishu Webhook",
+            description: initialConfig.feishu.description || "",
             type: "feishu",
             enabled: true,
             feishu_webhook: initialConfig.feishu.webhook,
@@ -170,6 +176,7 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
           migrated.push({
             id: `wecom_${Date.now()}`,
             name: "WeCom Webhook",
+            description: initialConfig.wecom.description || "",
             type: "wecom",
             enabled: true,
             wecom_webhook: initialConfig.wecom.webhook,
@@ -181,6 +188,7 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
           migrated.push({
             id: `github_${Date.now()}`,
             name: "GitHub API",
+            description: initialConfig.github.description || "",
             type: "github",
             enabled: true,
             github_token: initialConfig.github.token,
@@ -221,19 +229,33 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
           username: inst.smtp_username,
           password: inst.smtp_password,
           from: inst.smtp_from,
+          description: inst.description,
         };
       } else if (inst.type === "telegram" && inst.enabled) {
-        config.telegram = { botToken: inst.telegram_botToken };
+        config.telegram = {
+          botToken: inst.telegram_botToken,
+          description: inst.description,
+        };
       } else if (inst.type === "dingtalk" && inst.enabled) {
-        config.dingtalk = { accessToken: inst.dingtalk_accessToken };
+        config.dingtalk = {
+          accessToken: inst.dingtalk_accessToken,
+          description: inst.description,
+        };
       } else if (inst.type === "feishu" && inst.enabled) {
-        config.feishu = { webhook: inst.feishu_webhook };
+        config.feishu = {
+          webhook: inst.feishu_webhook,
+          description: inst.description,
+        };
       } else if (inst.type === "wecom" && inst.enabled) {
-        config.wecom = { webhook: inst.wecom_webhook };
+        config.wecom = {
+          webhook: inst.wecom_webhook,
+          description: inst.description,
+        };
       } else if (inst.type === "github" && inst.enabled) {
         config.github = {
           token: inst.github_token,
           apiUrl: inst.github_apiUrl,
+          description: inst.description,
         };
       }
     });
@@ -305,6 +327,7 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
   const handleEdit = (instance: NotificationInstance) => {
     setEditingId(instance.id);
     setFormName(instance.name);
+    setFormDescription(instance.description || "");
     setFormSmtpHost(instance.smtp_host || "");
     setFormSmtpPort(instance.smtp_port || 587);
     setFormSmtpUsername(instance.smtp_username || "");
@@ -323,6 +346,7 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
     setShowAddForm(false);
     setEditingId(null);
     setFormName("");
+    setFormDescription("");
     setFormSmtpHost("");
     setFormSmtpPort(587);
     setFormSmtpUsername("");
@@ -343,6 +367,7 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
     const baseInstance: Partial<NotificationInstance> = {
       id: editingId || `${activeTab}_${Date.now()}`,
       name: formName,
+      description: formDescription,
       type: activeTab as any,
       enabled: true,
       createdAt: editingId
@@ -1144,6 +1169,29 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
                 </span>
               </div>
 
+              {instance.description && (
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    marginBottom: "12px",
+                    gap: "12px",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <label style={labelStyle}>
+                    {t("notification.description")}
+                  </label>
+                  <input
+                    type="text"
+                    style={inputStyle}
+                    value={instance.description}
+                    disabled
+                    readOnly
+                  />
+                </div>
+              )}
+
               {renderReadonlyFields(instance)}
 
               <div
@@ -1230,6 +1278,25 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
                 value={formName}
                 onChange={(e) => setFormName(e.target.value)}
                 placeholder={t("notification.namePlaceholder")}
+              />
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                marginBottom: "12px",
+                gap: "12px",
+                flexWrap: "wrap",
+              }}
+            >
+              <label style={labelStyle}>{t("notification.description")}</label>
+              <input
+                type="text"
+                style={inputStyle}
+                value={formDescription}
+                onChange={(e) => setFormDescription(e.target.value)}
+                placeholder={t("notification.descriptionPlaceholder")}
               />
             </div>
 

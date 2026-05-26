@@ -5,6 +5,7 @@ import { showDialog, DialogType } from "../../Dialog";
 interface NetworkInstance {
   id: string;
   name: string;
+  description: string;
   type: "tcp" | "udp" | "ftp";
   host: string;
   port: number;
@@ -47,6 +48,7 @@ const EngineNetworkPanel: React.FC<EngineNetworkPanelProps> = ({
   const [showLeftArrow, setShowLeftArrow] = useState(false);
   const [showRightArrow, setShowRightArrow] = useState(false);
   const [formName, setFormName] = useState("");
+  const [formDescription, setFormDescription] = useState("");
   const [formHost, setFormHost] = useState("");
   const [formPort, setFormPort] = useState(8888);
   const [formEncoding, setFormEncoding] = useState("utf8");
@@ -110,6 +112,7 @@ const EngineNetworkPanel: React.FC<EngineNetworkPanelProps> = ({
           migrated.push({
             id: `tcp_${Date.now()}`,
             name: "TCP Server",
+            description: initialConfig.tcp.description || "",
             type: "tcp",
             host: initialConfig.tcp.host,
             port: initialConfig.tcp.port || 8888,
@@ -123,6 +126,7 @@ const EngineNetworkPanel: React.FC<EngineNetworkPanelProps> = ({
           migrated.push({
             id: `udp_${Date.now()}`,
             name: "UDP Server",
+            description: initialConfig.udp.description || "",
             type: "udp",
             host: initialConfig.udp.host,
             port: initialConfig.udp.port || 9999,
@@ -137,6 +141,7 @@ const EngineNetworkPanel: React.FC<EngineNetworkPanelProps> = ({
           migrated.push({
             id: `ftp_${Date.now()}`,
             name: "FTP Server",
+            description: initialConfig.ftp.description || "",
             type: "ftp",
             host: initialConfig.ftp.host,
             port: initialConfig.ftp.port || 21,
@@ -175,6 +180,7 @@ const EngineNetworkPanel: React.FC<EngineNetworkPanelProps> = ({
           host: inst.host,
           port: inst.port,
           encoding: inst.encoding || "utf8",
+          description: inst.description,
         };
       } else if (inst.type === "udp") {
         config.udp = {
@@ -182,6 +188,7 @@ const EngineNetworkPanel: React.FC<EngineNetworkPanelProps> = ({
           port: inst.port,
           encoding: inst.encoding || "utf8",
           broadcast: inst.broadcast || false,
+          description: inst.description,
         };
       } else if (inst.type === "ftp") {
         config.ftp = {
@@ -190,6 +197,7 @@ const EngineNetworkPanel: React.FC<EngineNetworkPanelProps> = ({
           username: inst.username || "anonymous",
           password: inst.password || "",
           remoteDir: inst.remoteDir || "/",
+          description: inst.description,
         };
       }
     });
@@ -258,6 +266,7 @@ const EngineNetworkPanel: React.FC<EngineNetworkPanelProps> = ({
   const handleEdit = (instance: NetworkInstance) => {
     setEditingId(instance.id);
     setFormName(instance.name);
+    setFormDescription(instance.description || "");
     setFormHost(instance.host || "");
     setFormPort(instance.port);
     setFormEncoding(instance.encoding || "utf8");
@@ -272,6 +281,7 @@ const EngineNetworkPanel: React.FC<EngineNetworkPanelProps> = ({
     setShowAddForm(false);
     setEditingId(null);
     setFormName("");
+    setFormDescription("");
     setFormHost("");
     setFormPort(NETWORK_TYPE_CONFIG[activeTab]?.defaultPort || 8888);
     setFormEncoding("utf8");
@@ -287,6 +297,7 @@ const EngineNetworkPanel: React.FC<EngineNetworkPanelProps> = ({
     const newInstance: NetworkInstance = {
       id: editingId || `${activeTab}_${Date.now()}`,
       name: formName,
+      description: formDescription,
       type: activeTab as any,
       host: formHost,
       port: formPort,
@@ -633,6 +644,27 @@ const EngineNetworkPanel: React.FC<EngineNetworkPanelProps> = ({
                 </span>
               </div>
 
+              {instance.description && (
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    marginBottom: "12px",
+                    gap: "12px",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <label style={labelStyle}>{t("network.description")}</label>
+                  <input
+                    type="text"
+                    style={inputStyle}
+                    value={instance.description}
+                    disabled
+                    readOnly
+                  />
+                </div>
+              )}
+
               <div
                 style={{
                   display: "flex",
@@ -835,6 +867,25 @@ const EngineNetworkPanel: React.FC<EngineNetworkPanelProps> = ({
                 value={formName}
                 onChange={(e) => setFormName(e.target.value)}
                 placeholder={t("network.namePlaceholder")}
+              />
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                marginBottom: "12px",
+                gap: "12px",
+                flexWrap: "wrap",
+              }}
+            >
+              <label style={labelStyle}>{t("network.description")}</label>
+              <input
+                type="text"
+                style={inputStyle}
+                value={formDescription}
+                onChange={(e) => setFormDescription(e.target.value)}
+                placeholder={t("network.descriptionPlaceholder")}
               />
             </div>
 

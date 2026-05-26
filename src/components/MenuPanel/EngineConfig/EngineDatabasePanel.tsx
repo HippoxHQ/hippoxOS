@@ -5,6 +5,7 @@ import { showDialog, DialogType } from "../../Dialog";
 interface DatabaseInstance {
   id: string;
   name: string;
+  description: string;
   type: "postgresql" | "mysql" | "redis" | "sqlite";
   host: string;
   port: number;
@@ -48,6 +49,7 @@ const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
   const [showLeftArrow, setShowLeftArrow] = useState(false);
   const [showRightArrow, setShowRightArrow] = useState(false);
   const [formName, setFormName] = useState("");
+  const [formDescription, setFormDescription] = useState("");
   const [formHost, setFormHost] = useState("");
   const [formPort, setFormPort] = useState(5432);
   const [formDatabase, setFormDatabase] = useState("");
@@ -101,6 +103,7 @@ const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
           migrated.push({
             id: `pg_${Date.now()}`,
             name: "PostgreSQL",
+            description: initialConfig.postgresql.description || "",
             type: "postgresql",
             host: initialConfig.postgresql.host,
             port: initialConfig.postgresql.port || 5432,
@@ -116,6 +119,7 @@ const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
           migrated.push({
             id: `mysql_${Date.now()}`,
             name: "MySQL",
+            description: initialConfig.mysql.description || "",
             type: "mysql",
             host: initialConfig.mysql.host,
             port: initialConfig.mysql.port || 3306,
@@ -131,6 +135,7 @@ const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
           migrated.push({
             id: `redis_${Date.now()}`,
             name: "Redis",
+            description: initialConfig.redis.description || "",
             type: "redis",
             host: initialConfig.redis.host,
             port: initialConfig.redis.port || 6379,
@@ -147,6 +152,7 @@ const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
           migrated.push({
             id: `sqlite_${Date.now()}`,
             name: "SQLite",
+            description: initialConfig.sqlite.description || "",
             type: "sqlite",
             host: "",
             port: 0,
@@ -188,6 +194,7 @@ const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
           database: inst.database,
           username: inst.username,
           password: inst.password,
+          description: inst.description,
         };
       } else if (inst.type === "mysql") {
         config.mysql = {
@@ -196,6 +203,7 @@ const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
           database: inst.database,
           username: inst.username,
           password: inst.password,
+          description: inst.description,
         };
       } else if (inst.type === "redis") {
         config.redis = {
@@ -203,10 +211,12 @@ const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
           port: inst.port,
           password: inst.password,
           db: inst.redis_db || 0,
+          description: inst.description,
         };
       } else if (inst.type === "sqlite") {
         config.sqlite = {
           path: inst.sqlite_path || "",
+          description: inst.description,
         };
       }
     });
@@ -278,6 +288,7 @@ const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
   const handleEdit = (instance: DatabaseInstance) => {
     setEditingId(instance.id);
     setFormName(instance.name);
+    setFormDescription(instance.description || "");
     setFormHost(instance.host || "");
     setFormPort(instance.port);
     setFormDatabase(instance.database || "");
@@ -292,6 +303,7 @@ const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
     setShowAddForm(false);
     setEditingId(null);
     setFormName("");
+    setFormDescription("");
     setFormHost("");
     setFormPort(DB_TYPE_CONFIG[activeTab]?.defaultPort || 5432);
     setFormDatabase("");
@@ -307,6 +319,7 @@ const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
     const newInstance: DatabaseInstance = {
       id: editingId || `${activeTab}_${Date.now()}`,
       name: formName,
+      description: formDescription,
       type: activeTab as any,
       host: formHost,
       port: formPort,
@@ -642,6 +655,27 @@ const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
                 </span>
               </div>
 
+              {instance.description && (
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    marginBottom: "12px",
+                    gap: "12px",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <label style={labelStyle}>{t("database.description")}</label>
+                  <input
+                    type="text"
+                    style={inputStyle}
+                    value={instance.description}
+                    disabled
+                    readOnly
+                  />
+                </div>
+              )}
+
               {instance.type !== "sqlite" ? (
                 <>
                   <div
@@ -848,6 +882,26 @@ const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
                 placeholder={t("database.namePlaceholder")}
               />
             </div>
+
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                marginBottom: "12px",
+                gap: "12px",
+                flexWrap: "wrap",
+              }}
+            >
+              <label style={labelStyle}>{t("database.description")}</label>
+              <input
+                type="text"
+                style={inputStyle}
+                value={formDescription}
+                onChange={(e) => setFormDescription(e.target.value)}
+                placeholder={t("database.descriptionPlaceholder")}
+              />
+            </div>
+
             {activeTab !== "sqlite" ? (
               <>
                 <div

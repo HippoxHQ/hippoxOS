@@ -5,6 +5,7 @@ import { showDialog, DialogType } from "../../Dialog";
 interface ContainerInstance {
   id: string;
   name: string;
+  description: string;
   type: "docker" | "k8s";
   host: string;
   apiVersion?: string;
@@ -49,6 +50,7 @@ const EngineContainerPanel: React.FC<EngineContainerPanelProps> = ({
   const [showLeftArrow, setShowLeftArrow] = useState(false);
   const [showRightArrow, setShowRightArrow] = useState(false);
   const [formName, setFormName] = useState("");
+  const [formDescription, setFormDescription] = useState("");
   const [formHost, setFormHost] = useState("");
   const [formApiVersion, setFormApiVersion] = useState("");
   const [formTlsVerify, setFormTlsVerify] = useState(false);
@@ -100,6 +102,7 @@ const EngineContainerPanel: React.FC<EngineContainerPanelProps> = ({
           migrated.push({
             id: `docker_${Date.now()}`,
             name: "Docker",
+            description: initialConfig.docker.description || "",
             type: "docker",
             host: initialConfig.docker.host,
             apiVersion: initialConfig.docker.apiVersion || "",
@@ -113,6 +116,7 @@ const EngineContainerPanel: React.FC<EngineContainerPanelProps> = ({
           migrated.push({
             id: `k8s_${Date.now()}`,
             name: "Kubernetes",
+            description: initialConfig.k8s.description || "",
             type: "k8s",
             host: "",
             kubeconfig: initialConfig.k8s.kubeconfig || "",
@@ -150,12 +154,14 @@ const EngineContainerPanel: React.FC<EngineContainerPanelProps> = ({
           host: inst.host,
           apiVersion: inst.apiVersion || "",
           tlsVerify: inst.tlsVerify || false,
+          description: inst.description,
         };
       } else if (inst.type === "k8s") {
         config.k8s = {
           kubeconfig: inst.kubeconfig || "",
           context: inst.context || "",
           namespace: inst.namespace || "default",
+          description: inst.description,
         };
       }
     });
@@ -227,6 +233,7 @@ const EngineContainerPanel: React.FC<EngineContainerPanelProps> = ({
   const handleEdit = (instance: ContainerInstance) => {
     setEditingId(instance.id);
     setFormName(instance.name);
+    setFormDescription(instance.description || "");
     setFormHost(instance.host || "");
     setFormApiVersion(instance.apiVersion || "");
     setFormTlsVerify(instance.tlsVerify || false);
@@ -240,6 +247,7 @@ const EngineContainerPanel: React.FC<EngineContainerPanelProps> = ({
     setShowAddForm(false);
     setEditingId(null);
     setFormName("");
+    setFormDescription("");
     if (activeTab === "docker") {
       setFormHost(CONTAINER_TYPE_CONFIG.docker.defaultHost);
       setFormApiVersion("");
@@ -262,6 +270,7 @@ const EngineContainerPanel: React.FC<EngineContainerPanelProps> = ({
       newInstance = {
         id: editingId || `${activeTab}_${Date.now()}`,
         name: formName,
+        description: formDescription,
         type: "docker",
         host: formHost,
         apiVersion: formApiVersion,
@@ -276,6 +285,7 @@ const EngineContainerPanel: React.FC<EngineContainerPanelProps> = ({
       newInstance = {
         id: editingId || `${activeTab}_${Date.now()}`,
         name: formName,
+        description: formDescription,
         type: "k8s",
         host: "",
         kubeconfig: formKubeconfig,
@@ -621,6 +631,27 @@ const EngineContainerPanel: React.FC<EngineContainerPanelProps> = ({
                 </span>
               </div>
 
+              {instance.description && (
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    marginBottom: "12px",
+                    gap: "12px",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <label style={labelStyle}>{t("container.description")}</label>
+                  <input
+                    type="text"
+                    style={inputStyle}
+                    value={instance.description}
+                    disabled
+                    readOnly
+                  />
+                </div>
+              )}
+
               {instance.type === "docker" ? (
                 <>
                   <div
@@ -824,6 +855,25 @@ const EngineContainerPanel: React.FC<EngineContainerPanelProps> = ({
                 value={formName}
                 onChange={(e) => setFormName(e.target.value)}
                 placeholder={t("container.namePlaceholder")}
+              />
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                marginBottom: "12px",
+                gap: "12px",
+                flexWrap: "wrap",
+              }}
+            >
+              <label style={labelStyle}>{t("container.description")}</label>
+              <input
+                type="text"
+                style={inputStyle}
+                value={formDescription}
+                onChange={(e) => setFormDescription(e.target.value)}
+                placeholder={t("container.descriptionPlaceholder")}
               />
             </div>
 
