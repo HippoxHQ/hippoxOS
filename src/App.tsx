@@ -17,6 +17,7 @@ import { configCommands } from "./api/config";
 import { listen } from "@tauri-apps/api/event";
 import { SettingsSubView } from "./components/MenuPanel/SettingsPanel";
 import { taskManager } from "./TaskManager";
+import { appConfig } from "./config";
 
 function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -480,6 +481,16 @@ function App() {
     setLanguage(newLang);
     await configCommands.saveSettingsLanguage(newLang);
     await hippoxCommands.setLanguage(newLang);
+    const welcomeMsg = taskManager
+      .getAssistantMessages()
+      .find((m) => m.id === "welcome");
+    if (welcomeMsg) {
+      const newContent = appConfig.getWelcomeMessage(newLang);
+      taskManager.updateAssistantMessage("welcome", {
+        content: newContent,
+        timestamp: new Date().toISOString(),
+      });
+    }
   };
 
   const handleMenuClick = (view: string, subView?: string) => {
