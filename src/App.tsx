@@ -33,10 +33,37 @@ function App() {
     useState<EngineSubView>("engine_database");
   const [menuPanelWidth, setMenuPanelWidth] = useState<number>(320);
   const [executionLogs, setExecutionLogs] = useState<ExecutionLog[]>([]);
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
   const [initialEngineConfig, setInitialEngineConfig] = useState<any>(null);
+  const [taskManagerVersion, setTaskManagerVersion] = useState(0);
+
+  useEffect(() => {
+    const unsubscribe = taskManager.subscribe(() => {
+      setTaskManagerVersion((prev) => prev + 1);
+    });
+    return unsubscribe;
+  }, []);
+
+  useEffect(() => {
+    if (!isLoading && currentSessionId) {
+      const saveTimer = setTimeout(() => {
+        const allData = taskManager.getAllData();
+        (sessionCommands.saveChatContent as any)(
+          currentSessionId,
+          JSON.stringify({
+            userMessages: allData.userMessages,
+            assistantMessages: allData.assistantMessages,
+          }),
+        ).catch(console.error);
+        (sessionCommands.saveTerminalContent as any)(
+          currentSessionId,
+          JSON.stringify(allData.tasks),
+        ).catch(console.error);
+      }, 500);
+      return () => clearTimeout(saveTimer);
+    }
+  }, [currentSessionId, isLoading, taskManagerVersion]);
 
   useEffect(() => {
     const loadConfig = async () => {
@@ -88,41 +115,39 @@ function App() {
                 typeof chatContent === "string"
                   ? JSON.parse(chatContent)
                   : chatContent;
-              if (Array.isArray(parsed)) {
-                setChatMessages(parsed);
-              } else if (parsed && parsed.chatMessages) {
-                setChatMessages(parsed.chatMessages);
-                if (parsed.userMessages && Array.isArray(parsed.userMessages)) {
-                  parsed.userMessages.forEach((msg: ChatMessage) => {
-                    taskManager.addUserMessage(msg);
-                  });
-                }
+              if (parsed && parsed.userMessages) {
+                parsed.userMessages.forEach((msg: ChatMessage) => {
+                  taskManager.addUserMessage(msg);
+                });
+              }
+              if (parsed && parsed.assistantMessages) {
+                parsed.assistantMessages.forEach((msg: ChatMessage) => {
+                  taskManager.addAssistantMessage(msg);
+                });
               }
             } catch {
-              setChatMessages([
-                {
-                  id: "welcome",
-                  role: "assistant",
-                  content:
-                    language === "zh"
-                      ? "你好，我是 Hippox AI 运行时。我有自主决策能力，可以执行技能并实时反馈。有什么可以帮你的？"
-                      : "Hello, I am Hippox AI Runtime. I have autonomous decision-making capabilities and can execute skills with real-time feedback. How can I help you?",
-                  timestamp: new Date().toLocaleTimeString(),
-                },
-              ]);
-            }
-          } else {
-            setChatMessages([
-              {
+              const welcomeMsg: ChatMessage = {
                 id: "welcome",
                 role: "assistant",
                 content:
                   language === "zh"
                     ? "你好，我是 Hippox AI 运行时。我有自主决策能力，可以执行技能并实时反馈。有什么可以帮你的？"
                     : "Hello, I am Hippox AI Runtime. I have autonomous decision-making capabilities and can execute skills with real-time feedback. How can I help you?",
-                timestamp: new Date().toLocaleTimeString(),
-              },
-            ]);
+                timestamp: new Date().toISOString(),
+              };
+              taskManager.addAssistantMessage(welcomeMsg);
+            }
+          } else {
+            const welcomeMsg: ChatMessage = {
+              id: "welcome",
+              role: "assistant",
+              content:
+                language === "zh"
+                  ? "你好，我是 Hippox AI 运行时。我有自主决策能力，可以执行技能并实时反馈。有什么可以帮你的？"
+                  : "Hello, I am Hippox AI Runtime. I have autonomous decision-making capabilities and can execute skills with real-time feedback. How can I help you?",
+              timestamp: new Date().toISOString(),
+            };
+            taskManager.addAssistantMessage(welcomeMsg);
           }
           setCurrentSessionId(targetSession.session_id);
           taskManager.setSessionId(targetSession.session_id);
@@ -142,7 +167,6 @@ function App() {
               console.error("Failed to parse terminal content:", e);
             }
           }
-
           localStorage.setItem(
             "hippox-current-session",
             targetSession.session_id,
@@ -158,14 +182,14 @@ function App() {
   }, [isConfigLoaded, language]);
 
   useEffect(() => {
-    if (!isLoading && currentSessionId && chatMessages.length > 0) {
+    if (!isLoading && currentSessionId) {
       const saveTimer = setTimeout(() => {
         const allData = taskManager.getAllData();
         (sessionCommands.saveChatContent as any)(
           currentSessionId,
           JSON.stringify({
-            chatMessages: chatMessages,
             userMessages: allData.userMessages,
+            assistantMessages: allData.assistantMessages,
           }),
         ).catch(console.error);
         (sessionCommands.saveTerminalContent as any)(
@@ -175,7 +199,27 @@ function App() {
       }, 1000);
       return () => clearTimeout(saveTimer);
     }
-  }, [chatMessages, currentSessionId, isLoading]);
+  }, [currentSessionId, isLoading]);
+
+  useEffect(() => {
+    if (!isLoading && currentSessionId) {
+      const saveTimer = setTimeout(() => {
+        const allData = taskManager.getAllData();
+        (sessionCommands.saveChatContent as any)(
+          currentSessionId,
+          JSON.stringify({
+            userMessages: allData.userMessages,
+            assistantMessages: allData.assistantMessages,
+          }),
+        ).catch(console.error);
+        (sessionCommands.saveTerminalContent as any)(
+          currentSessionId,
+          JSON.stringify(allData.tasks),
+        ).catch(console.error);
+      }, 500);
+      return () => clearTimeout(saveTimer);
+    }
+  }, [currentSessionId, isLoading, taskManager.getAllData()]);
 
   useEffect(() => {
     const unlistenStep = listen("task_step_update", (event: any) => {
@@ -202,48 +246,26 @@ function App() {
       }
     });
 
-    const unlistenComplete = listen("task_complete", (event: any) => {
-      const { task_id, final_output } = event.payload;
-
-      const task = taskManager.getTask(task_id);
-      if (task) {
-        taskManager.updateTask(task_id, { status: "completed", final_output });
-      } else {
-        const newTask: TaskInfo = {
-          task_id: task_id,
-          session_id: currentSessionId,
-          user_input: "Processing...",
-          status: "completed",
-          steps: [],
-          final_output: final_output,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        };
-        taskManager.addTask(newTask);
-      }
-
-      setChatMessages((prev) => {
-        const newMessages = [...prev];
-        const pendingIndex = newMessages.findIndex(
-          (msg) => msg.id === `pending_${task_id}`,
-        );
-        const successMessage =
-          language === "zh" ? "✅ 任务已完成" : "✅ Task completed";
-        if (pendingIndex !== -1) {
-          newMessages[pendingIndex] = {
-            ...newMessages[pendingIndex],
-            id: `response_${task_id}`,
-            content: successMessage,
-            timestamp: new Date().toLocaleTimeString(),
-          };
-        }
-        return newMessages;
-      });
-    });
-
     const unlistenFailed = listen("task_failed", (event: any) => {
       const { task_id, error } = event.payload;
-
+      const messageId = `assistant_${task_id}`;
+      let existingMsg = taskManager
+        .getAssistantMessages()
+        .find((m) => m.id === messageId);
+      if (!existingMsg) {
+        const errorMsg: ChatMessage = {
+          id: messageId,
+          role: "assistant",
+          content: `❌ ${error}`,
+          timestamp: new Date().toISOString(),
+        };
+        taskManager.addAssistantMessage(errorMsg);
+      } else {
+        taskManager.updateAssistantMessage(messageId, {
+          content: `❌ ${error}`,
+          timestamp: new Date().toISOString(),
+        });
+      }
       const task = taskManager.getTask(task_id);
       if (task) {
         taskManager.updateTask(task_id, {
@@ -263,23 +285,44 @@ function App() {
         };
         taskManager.addTask(newTask);
       }
+    });
 
-      setChatMessages((prev) => {
-        const newMessages = [...prev];
-        const pendingIndex = newMessages.findIndex(
-          (msg) => msg.id === `pending_${task_id}`,
-        );
-
-        if (pendingIndex !== -1) {
-          newMessages[pendingIndex] = {
-            ...newMessages[pendingIndex],
-            id: `error_${task_id}`,
-            content: `❌ ${error}`,
-            timestamp: new Date().toLocaleTimeString(),
-          };
-        }
-        return newMessages;
-      });
+    const unlistenComplete = listen("task_complete", (event: any) => {
+      const { task_id, final_output } = event.payload;
+      const messageId = `assistant_${task_id}`;
+      let existingMsg = taskManager
+        .getAssistantMessages()
+        .find((m) => m.id === messageId);
+      if (!existingMsg) {
+        const successMsg: ChatMessage = {
+          id: messageId,
+          role: "assistant",
+          content: "✅ 任务已完成",
+          timestamp: new Date().toISOString(),
+        };
+        taskManager.addAssistantMessage(successMsg);
+      } else {
+        taskManager.updateAssistantMessage(messageId, {
+          content: "✅ 任务已完成",
+          timestamp: new Date().toISOString(),
+        });
+      }
+      const task = taskManager.getTask(task_id);
+      if (task) {
+        taskManager.updateTask(task_id, { status: "completed", final_output });
+      } else {
+        const newTask: TaskInfo = {
+          task_id: task_id,
+          session_id: currentSessionId,
+          user_input: "Processing...",
+          status: "completed",
+          steps: [],
+          final_output: final_output,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+        taskManager.addTask(newTask);
+      }
     });
 
     return () => {
@@ -313,30 +356,31 @@ function App() {
 
   const handleNewSession = async () => {
     const newSessionId = `session_${Date.now()}`;
-    const welcomeMessage: ChatMessage[] = [
-      {
-        id: "welcome",
-        role: "assistant",
-        content:
-          language === "zh"
-            ? "你好，我是 Hippox AI 运行时。有什么可以帮你的？"
-            : "Hello, I am Hippox AI Runtime. How can I help you?",
-        timestamp: new Date().toLocaleTimeString(),
-      },
-    ];
+    taskManager.clearAll();
+    const welcomeMsg: ChatMessage = {
+      id: "welcome",
+      role: "assistant",
+      content:
+        language === "zh"
+          ? "你好，我是 Hippox AI 运行时。我有自主决策能力，可以执行技能并实时反馈。有什么可以帮你的？"
+          : "Hello, I am Hippox AI Runtime. I have autonomous decision-making capabilities and can execute skills with real-time feedback. How can I help you?",
+      timestamp: new Date().toISOString(),
+    };
+    taskManager.addAssistantMessage(welcomeMsg);
     try {
       await (sessionCommands.createSession as any)(
         newSessionId,
         language === "zh" ? "新对话" : "New Session",
         language === "zh" ? "新创建的对话" : "Newly created session",
-        JSON.stringify(welcomeMessage),
+        JSON.stringify({
+          userMessages: [],
+          assistantMessages: [welcomeMsg],
+        }),
         "[]",
       );
       setCurrentSessionId(newSessionId);
       taskManager.setSessionId(newSessionId);
-      taskManager.clearTasks();
       localStorage.setItem("hippox-current-session", newSessionId);
-      setChatMessages(welcomeMessage);
       window.dispatchEvent(new CustomEvent("session-created"));
     } catch (error) {
       console.error("Failed to create new session:", error);
@@ -351,8 +395,8 @@ function App() {
         await (sessionCommands.saveChatContent as any)(
           currentSessionId,
           JSON.stringify({
-            chatMessages: chatMessages,
             userMessages: allData.userMessages,
+            assistantMessages: allData.assistantMessages,
           }),
         );
         await (sessionCommands.saveTerminalContent as any)(
@@ -360,10 +404,10 @@ function App() {
           JSON.stringify(allData.tasks),
         );
       }
-
       const chatContent = await sessionCommands.loadChatContent(sessionId);
       const terminalContent =
         await sessionCommands.loadTerminalContent(sessionId);
+      taskManager.clearAll();
       setCurrentSessionId(sessionId);
       taskManager.setSessionId(sessionId);
       localStorage.setItem("hippox-current-session", sessionId);
@@ -373,54 +417,39 @@ function App() {
             typeof chatContent === "string"
               ? JSON.parse(chatContent)
               : chatContent;
-          if (Array.isArray(parsed)) {
-            setChatMessages(parsed);
-          } else if (parsed && parsed.chatMessages) {
-            setChatMessages(parsed.chatMessages);
-            if (parsed.userMessages && Array.isArray(parsed.userMessages)) {
-              taskManager.clearUserMessages();
-              parsed.userMessages.forEach((msg: ChatMessage) => {
-                taskManager.addUserMessage(msg);
-              });
-            }
-          } else {
-            setChatMessages([
-              {
-                id: "welcome",
-                role: "assistant",
-                content:
-                  language === "zh"
-                    ? "你好，我是 Hippox AI 运行时。有什么可以帮你的？"
-                    : "Hello, I am Hippox AI Runtime. How can I help you?",
-                timestamp: new Date().toLocaleTimeString(),
-              },
-            ]);
+          if (parsed && parsed.userMessages) {
+            parsed.userMessages.forEach((msg: ChatMessage) => {
+              taskManager.addUserMessage(msg);
+            });
+          }
+          if (parsed && parsed.assistantMessages) {
+            parsed.assistantMessages.forEach((msg: ChatMessage) => {
+              taskManager.addAssistantMessage(msg);
+            });
           }
         } catch {
-          setChatMessages([
-            {
-              id: "welcome",
-              role: "assistant",
-              content:
-                language === "zh"
-                  ? "你好，我是 Hippox AI 运行时。有什么可以帮你的？"
-                  : "Hello, I am Hippox AI Runtime. How can I help you?",
-              timestamp: new Date().toLocaleTimeString(),
-            },
-          ]);
-        }
-      } else {
-        setChatMessages([
-          {
+          const welcomeMsg: ChatMessage = {
             id: "welcome",
             role: "assistant",
             content:
               language === "zh"
-                ? "你好，我是 Hippox AI 运行时。有什么可以帮你的？"
-                : "Hello, I am Hippox AI Runtime. How can I help you?",
-            timestamp: new Date().toLocaleTimeString(),
-          },
-        ]);
+                ? "你好，我是 Hippox AI 运行时。我有自主决策能力，可以执行技能并实时反馈。有什么可以帮你的？"
+                : "Hello, I am Hippox AI Runtime. I have autonomous decision-making capabilities and can execute skills with real-time feedback. How can I help you?",
+            timestamp: new Date().toISOString(),
+          };
+          taskManager.addAssistantMessage(welcomeMsg);
+        }
+      } else {
+        const welcomeMsg: ChatMessage = {
+          id: "welcome",
+          role: "assistant",
+          content:
+            language === "zh"
+              ? "你好，我是 Hippox AI 运行时。我有自主决策能力，可以执行技能并实时反馈。有什么可以帮你的？"
+              : "Hello, I am Hippox AI Runtime. I have autonomous decision-making capabilities and can execute skills with real-time feedback. How can I help you?",
+          timestamp: new Date().toISOString(),
+        };
+        taskManager.addAssistantMessage(welcomeMsg);
       }
       if (terminalContent) {
         try {
@@ -430,14 +459,10 @@ function App() {
               : terminalContent;
           if (Array.isArray(parsed) && parsed.length > 0) {
             taskManager.setTasks(parsed);
-          } else {
-            taskManager.clearTasks();
           }
-        } catch {
-          taskManager.clearTasks();
+        } catch (e) {
+          console.error("Failed to parse terminal content:", e);
         }
-      } else {
-        taskManager.clearTasks();
       }
     } catch (error) {
       console.error("Failed to switch session:", error);
@@ -496,9 +521,19 @@ function App() {
 
     try {
       const taskId = await hippoxCommands.sendMessageAsync(userMessage);
-
+      let existingMsg = taskManager
+        .getAssistantMessages()
+        .find((m) => m.id === `assistant_${taskId}`);
+      if (!existingMsg) {
+        const assistantMsg: ChatMessage = {
+          id: `assistant_${taskId}`,
+          role: "assistant",
+          content: `⏳ ${language === "zh" ? "任务已提交" : "Task submitted"} ${taskId.slice(0, 8)}...`,
+          timestamp: now.toISOString(),
+        };
+        taskManager.addAssistantMessage(assistantMsg);
+      }
       let existingTask = taskManager.getTask(taskId);
-
       if (!existingTask) {
         const newTask: TaskInfo = {
           task_id: taskId,
@@ -516,6 +551,13 @@ function App() {
       }
     } catch (error) {
       console.error("send message error:", error);
+      const errorMsg: ChatMessage = {
+        id: `error_${Date.now()}`,
+        role: "assistant",
+        content: `❌ ${error}`,
+        timestamp: now.toISOString(),
+      };
+      taskManager.addAssistantMessage(errorMsg);
     }
   };
 
@@ -531,18 +573,17 @@ function App() {
   const resetSession = async () => {
     try {
       await hippoxCommands.resetSession();
-      setChatMessages([
-        {
-          id: Date.now().toString(),
-          role: "assistant",
-          content:
-            language === "zh"
-              ? "会话已重置。Hippox 运行时重新就绪，自主决策引擎已刷新。"
-              : "Session reset. Hippox runtime ready, decision engine refreshed.",
-          timestamp: new Date().toLocaleTimeString(),
-        },
-      ]);
-      taskManager.clearTasks();
+      taskManager.clearAll();
+      const welcomeMsg: ChatMessage = {
+        id: "welcome",
+        role: "assistant",
+        content:
+          language === "zh"
+            ? "会话已重置。Hippox 运行时重新就绪，自主决策引擎已刷新。"
+            : "Session reset. Hippox runtime ready, decision engine refreshed.",
+        timestamp: new Date().toISOString(),
+      };
+      taskManager.addAssistantMessage(welcomeMsg);
     } catch (error) {
       console.error("reset session error:", error);
     }

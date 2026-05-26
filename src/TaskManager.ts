@@ -5,8 +5,10 @@ type TaskListener = () => void;
 class TaskManager {
     private tasks: Map<string, TaskInfo> = new Map();
     private userMessages: Map<string, ChatMessage> = new Map();
+    private assistantMessages: Map<string, ChatMessage> = new Map();
     private listeners: Set<TaskListener> = new Set();
     private sessionId: string = "";
+    private version: number = 0;
 
     subscribe(listener: TaskListener): () => void {
         this.listeners.add(listener);
@@ -14,11 +16,16 @@ class TaskManager {
     }
 
     private notify() {
+        this.version++;
         this.listeners.forEach(listener => listener());
     }
 
     setSessionId(sessionId: string) {
         this.sessionId = sessionId;
+    }
+
+    getVersion(): number {
+        return this.version;
     }
 
     getSessionId(): string {
@@ -62,7 +69,6 @@ class TaskManager {
 
     clearTasks() {
         this.tasks.clear();
-        this.userMessages.clear();
         this.notify();
     }
 
@@ -98,7 +104,27 @@ class TaskManager {
         this.notify();
     }
 
-    setTasksAndMessages(tasks: TaskInfo[], userMessages: ChatMessage[]) {
+    addAssistantMessage(message: ChatMessage) {
+        this.assistantMessages.set(message.id, message);
+        this.notify();
+    }
+
+    getAssistantMessages(): ChatMessage[] {
+        return Array.from(this.assistantMessages.values()).sort(
+            (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+        );
+    }
+
+    clearAssistantMessages() {
+        this.assistantMessages.clear();
+        this.notify();
+    }
+
+    hasWelcomeMessage(): boolean {
+        return this.assistantMessages.has("welcome");
+    }
+
+    setTasksAndMessages(tasks: TaskInfo[], userMessages: ChatMessage[], assistantMessages: ChatMessage[] = []) {
         this.tasks.clear();
         if (Array.isArray(tasks)) {
             tasks.forEach(task => {
@@ -115,14 +141,56 @@ class TaskManager {
                 }
             });
         }
+        this.assistantMessages.clear();
+        if (Array.isArray(assistantMessages)) {
+            assistantMessages.forEach(msg => {
+                if (msg && msg.id) {
+                    this.assistantMessages.set(msg.id, msg);
+                }
+            });
+        }
         this.notify();
     }
 
-    getAllData(): { tasks: TaskInfo[]; userMessages: ChatMessage[] } {
+    getAllData(): { tasks: TaskInfo[]; userMessages: ChatMessage[]; assistantMessages: ChatMessage[] } {
         return {
             tasks: this.getAllTasks(),
             userMessages: this.getUserMessages(),
+            assistantMessages: this.getAssistantMessages(),
         };
+    }
+
+    getAllMessages(): ChatMessage[] {
+        const all = [...this.getUserMessages(), ...this.getAssistantMessages()];
+        return all.sort((a, b) =>
+            new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+        );
+    }
+
+    updateAssistantMessage(messageId: string, updates: Partial<ChatMessage>) {
+        const message = this.assistantMessages.get(messageId);
+        if (message) {
+            const updatedMessage = {
+                ...message,
+                ...updates,
+            };
+            this.assistantMessages.set(messageId, updatedMessage);
+            this.notify();
+        } else {
+            console.warn('[TaskManager] Message not found:', messageId);
+        }
+    }
+
+    removeAssistantMessage(messageId: string) {
+        this.assistantMessages.delete(messageId);
+        this.notify();
+    }
+
+    clearAll() {
+        this.tasks.clear();
+        this.userMessages.clear();
+        this.assistantMessages.clear();
+        this.notify();
     }
 }
 

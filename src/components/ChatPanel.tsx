@@ -56,33 +56,22 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
       return `⏳ ${language === "zh" ? "任务已提交" : "Task submitted"} ${taskId.slice(0, 8)}...`;
     }
   };
+
   useEffect(() => {
     const updateMessages = () => {
-      const userMessages = taskManager.getUserMessages();
-      const tasks = taskManager.getAllTasks();
-      const assistantMessages: ChatMessage[] = tasks.map((task) => ({
-        id: `assistant_${task.task_id}`,
-        role: "assistant" as const,
-        content: getTaskMessage(task.task_id, task.status, task.final_output),
-        timestamp: task.created_at,
-      }));
-      let allMessages: ChatMessage[] = [...userMessages, ...assistantMessages];
-      allMessages.sort(
-        (a, b) =>
-          new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
-      );
+      let allMessages = taskManager.getAllMessages();
       if (allMessages.length === 0) {
-        allMessages = [
-          {
-            id: "welcome",
-            role: "assistant",
-            content:
-              language === "zh"
-                ? "你好，我是 Hippox AI 运行时。我有自主决策能力，可以执行技能并实时反馈。有什么可以帮你的？"
-                : "Hello, I am Hippox AI Runtime. I have autonomous decision-making capabilities and can execute skills with real-time feedback. How can I help you?",
-            timestamp: new Date().toLocaleTimeString(),
-          },
-        ];
+        const welcomeMsg: ChatMessage = {
+          id: "welcome",
+          role: "assistant",
+          content:
+            language === "zh"
+              ? "你好，我是 Hippox AI 运行时。我有自主决策能力，可以执行技能并实时反馈。有什么可以帮你的？"
+              : "Hello, I am Hippox AI Runtime. I have autonomous decision-making capabilities and can execute skills with real-time feedback. How can I help you?",
+          timestamp: new Date().toISOString(),
+        };
+        taskManager.addAssistantMessage(welcomeMsg);
+        allMessages = [welcomeMsg];
       }
       setMessages(allMessages);
     };
@@ -92,9 +81,11 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     });
     return unsubscribe;
   }, [language]);
+
   useEffect(() => {
     loadWorkspaces();
   }, []);
+
   useEffect(() => {
     if (!userScrolled && messagesContainerRef.current) {
       messagesContainerRef.current.scrollTop =
