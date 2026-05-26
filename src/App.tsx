@@ -40,14 +40,33 @@ function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [initialEngineConfig, setInitialEngineConfig] = useState<any>(null);
   const [taskManagerVersion, setTaskManagerVersion] = useState(0);
-
+  const [layoutMode, setLayoutMode] = useState<"horizontal" | "vertical">(
+    () => {
+      const saved = localStorage.getItem("hippox-layout-mode");
+      return saved === "horizontal" || saved === "vertical"
+        ? saved
+        : "vertical";
+    },
+  );
+  const handleLayoutModeChange = (mode: "horizontal" | "vertical") => {
+    setLayoutMode(mode);
+    localStorage.setItem("hippox-layout-mode", mode);
+  };
+  useEffect(() => {
+    const savedLayoutMode = localStorage.getItem("hippox-layout-mode") as
+      | "horizontal"
+      | "vertical"
+      | null;
+    if (savedLayoutMode) {
+      setLayoutMode(savedLayoutMode);
+    }
+  }, []);
   useEffect(() => {
     const unsubscribe = taskManager.subscribe(() => {
       setTaskManagerVersion((prev) => prev + 1);
     });
     return unsubscribe;
   }, []);
-
   useEffect(() => {
     if (!isLoading && currentSessionId) {
       const saveTimer = setTimeout(() => {
@@ -67,7 +86,6 @@ function App() {
       return () => clearTimeout(saveTimer);
     }
   }, [currentSessionId, isLoading, taskManagerVersion]);
-
   useEffect(() => {
     const loadConfig = async () => {
       try {
@@ -89,13 +107,11 @@ function App() {
     };
     loadConfig();
   }, []);
-
   useEffect(() => {
     if (isConfigLoaded) {
       document.documentElement.setAttribute("data-theme", theme);
     }
   }, [theme, isConfigLoaded]);
-
   useEffect(() => {
     const loadSessions = async () => {
       if (!isConfigLoaded) return;
@@ -183,7 +199,6 @@ function App() {
     };
     loadSessions();
   }, [isConfigLoaded, language]);
-
   useEffect(() => {
     if (!isLoading && currentSessionId) {
       const saveTimer = setTimeout(() => {
@@ -203,7 +218,6 @@ function App() {
       return () => clearTimeout(saveTimer);
     }
   }, [currentSessionId, isLoading]);
-
   useEffect(() => {
     if (!isLoading && currentSessionId) {
       const saveTimer = setTimeout(() => {
@@ -223,12 +237,10 @@ function App() {
       return () => clearTimeout(saveTimer);
     }
   }, [currentSessionId, isLoading, taskManager.getAllData()]);
-
   useEffect(() => {
     const unlistenStep = listen("task_step_update", (event: any) => {
       const { task_id, step_name, step_index, status, output, error } =
         event.payload;
-
       const task = taskManager.getTask(task_id);
       if (task && task.status !== "failed") {
         const steps = [...task.steps];
@@ -241,14 +253,11 @@ function App() {
           steps.push({ step_index, step_name, status, output, error });
         }
         steps.sort((a, b) => a.step_index - b.step_index);
-
         const hasFailure = steps.some((s) => s.status === "FAILURE");
         const taskStatus = hasFailure ? "failed" : task.status;
-
         taskManager.updateTask(task_id, { steps, status: taskStatus });
       }
     });
-
     const unlistenFailed = listen("task_failed", (event: any) => {
       const { task_id, error } = event.payload;
       const messageId = `assistant_${task_id}`;
@@ -289,7 +298,6 @@ function App() {
         taskManager.addTask(newTask);
       }
     });
-
     const unlistenComplete = listen("task_complete", (event: any) => {
       const { task_id, final_output } = event.payload;
       const messageId = `assistant_${task_id}`;
@@ -327,14 +335,12 @@ function App() {
         taskManager.addTask(newTask);
       }
     });
-
     return () => {
       unlistenStep.then((fn) => fn());
       unlistenComplete.then((fn) => fn());
       unlistenFailed.then((fn) => fn());
     };
   }, [language, currentSessionId]);
-
   useEffect(() => {
     const loadLogs = async () => {
       try {
@@ -356,7 +362,6 @@ function App() {
     const interval = setInterval(loadLogs, 3000);
     return () => clearInterval(interval);
   }, []);
-
   const handleNewSession = async () => {
     const newSessionId = `session_${Date.now()}`;
     taskManager.clearAll();
@@ -389,7 +394,6 @@ function App() {
       console.error("Failed to create new session:", error);
     }
   };
-
   const handleSwitchSession = async (sessionId: string) => {
     if (sessionId === currentSessionId) return;
     try {
@@ -471,13 +475,11 @@ function App() {
       console.error("Failed to switch session:", error);
     }
   };
-
   const handleToggleTheme = async () => {
     const newTheme = theme === "dark" ? "light" : "dark";
     setTheme(newTheme);
     await configCommands.saveSettingsTheme(newTheme);
   };
-
   const handleToggleLanguage = async () => {
     const newLang = language === "zh" ? "en" : "zh";
     setLanguage(newLang);
@@ -494,7 +496,6 @@ function App() {
       });
     }
   };
-
   const handleMenuClick = (view: string, subView?: string) => {
     if (
       subView === "engine_database" ||
@@ -515,13 +516,10 @@ function App() {
       setMenuPanelView(view as MenuPanelView);
     }
   };
-
   const closeMenuPanel = () => {
     setMenuPanelView(null);
   };
-
   const handleSaveConfig = async (config: any) => {};
-
   const handleSendMessage = async (userMessage: string) => {
     const now = new Date();
     const userMsg: ChatMessage = {
@@ -531,7 +529,6 @@ function App() {
       timestamp: now.toISOString(),
     };
     taskManager.addUserMessage(userMsg);
-
     try {
       const taskId = await hippoxCommands.sendMessageAsync(userMessage);
       let existingMsg = taskManager
@@ -573,7 +570,6 @@ function App() {
       taskManager.addAssistantMessage(errorMsg);
     }
   };
-
   const clearLogs = async () => {
     try {
       await hippoxCommands.clearLogs();
@@ -582,7 +578,6 @@ function App() {
       console.error("clear logs error:", error);
     }
   };
-
   const resetSession = async () => {
     try {
       await hippoxCommands.resetSession();
@@ -634,6 +629,8 @@ function App() {
         currentLanguage={language}
         onToggleLanguage={handleToggleLanguage}
         t={t}
+        layoutMode={layoutMode}
+        onLayoutModeChange={handleLayoutModeChange}
       />
       <div className="main-layout">
         {!sidebarCollapsed && (
@@ -701,6 +698,7 @@ function App() {
             <TerminalPanel logs={executionLogs} onClearLogs={clearLogs} t={t} />
           }
           rightPanel={<ChatPanel onSendMessage={handleSendMessage} t={t} />}
+          layoutMode={layoutMode}
         />
       </div>
       <BottomBar t={t} />

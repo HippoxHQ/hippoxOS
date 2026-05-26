@@ -908,6 +908,48 @@ export const PlayIcon: React.FC<IconProps> = ({ className, size = 18 }) => (
   </svg>
 );
 
+export const LayoutVerticalIcon: React.FC<IconProps> = ({
+  className,
+  size = 18,
+}) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+    <line x1="12" y1="3" x2="12" y2="21" />
+  </svg>
+);
+
+export const LayoutHorizontalIcon: React.FC<IconProps> = ({
+  className,
+  size = 18,
+}) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+    <line x1="3" y1="12" x2="21" y2="12" />
+  </svg>
+);
+
 export const iconMap: Record<string, React.FC<IconProps>> = {
   dashboard: DashboardIcon,
   workspace: WorkspaceIcon,
@@ -952,4 +994,6 @@ export const iconMap: Record<string, React.FC<IconProps>> = {
   star: StarIcon,
   starFilled: StarFilledIcon,
   play: PlayIcon,
+  layoutVertical: LayoutVerticalIcon,
+  layoutHorizontal: LayoutHorizontalIcon,
 };

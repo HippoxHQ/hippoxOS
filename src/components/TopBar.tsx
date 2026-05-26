@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { Theme, Language } from "../type";
 import logo from "../assets/logo.png";
+import { LayoutVerticalIcon, LayoutHorizontalIcon } from "../icons";
 
 interface TopBarProps {
   sidebarCollapsed: boolean;
@@ -11,88 +12,221 @@ interface TopBarProps {
   currentLanguage: Language;
   onToggleLanguage: () => void;
   t: (key: string) => string;
+  layoutMode?: "horizontal" | "vertical";
+  onLayoutModeChange?: (mode: "horizontal" | "vertical") => void;
 }
 
 const topBarStyles = `
   .top-bar {
-    height: 48px;
-    background: var(--bg-secondary);
+    height: 40px;
+    background: var(--bg-topbar);
+    backdrop-filter: blur(20px);
     border-bottom: 1px solid var(--border-color);
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 20px;
+    padding: 0 16px;
     flex-shrink: 0;
     position: relative;
     -webkit-app-region: drag;
     app-region: drag;
   }
   
-  .top-bar * {
+  .top-bar-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  
+  .sidebar-toggle {
+    -webkit-app-region: no-drag;
+    app-region: no-drag;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    color: var(--text-secondary);
+    transition: all 0.15s ease;
+  }
+  
+  .sidebar-toggle svg {
+    width: 16px;
+    height: 16px;
+    stroke: currentColor;
+    stroke-width: 1.75;
+    fill: none;
+  }
+  
+  .sidebar-toggle:hover {
+    background: var(--hover-bg);
+    color: var(--text-primary);
+  }
+  
+  .app-brand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     -webkit-app-region: drag;
     app-region: drag;
   }
   
-  .sidebar-toggle-btn,
-  .theme-toggle-btn,
-  .lang-toggle-btn,
-  .window-control-btn {
-    -webkit-app-region: no-drag;
-    app-region: no-drag;
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: var(--text-secondary);
-    padding: 6px 12px;
-    border-radius: 8px;
-    transition: all 0.2s;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-  }
-  
-  .top-bar-center {
+  .app-logo {
+    -webkit-app-region: drag;
+    app-region: drag;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
-    pointer-events: none;  
   }
   
-  .app-logo,
+  .app-logo img {
+    width: 22px;
+    height: 22px;
+    border-radius: 5px;
+  }
+  
   .app-name {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+    letter-spacing: -0.3px;
+    -webkit-app-region: drag;
+    app-region: drag;
+  }
+  
+  .top-bar-center {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
     pointer-events: none;
   }
   
-  .sidebar-toggle-btn:hover,
-  .theme-toggle-btn:hover,
-  .lang-toggle-btn:hover {
+  .search-hint {
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 10px;
+    background: var(--bg-tertiary);
+    border-radius: 100px;
+    font-size: 12px;
+    color: var(--text-tertiary);
+  }
+  
+  .search-hint kbd {
+    font-size: 10px;
+    background: var(--bg-secondary);
+    padding: 2px 5px;
+    border-radius: 5px;
+    font-family: monospace;
+    color: var(--text-secondary);
+  }
+  
+  .top-bar-right {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    -webkit-app-region: no-drag;
+    app-region: no-drag;
+  }
+  
+  .action-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    height: 28px;
+    padding: 0 8px;
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 450;
+    color: var(--text-secondary);
+    transition: all 0.15s ease;
+  }
+  
+  .action-btn svg {
+    width: 14px;
+    height: 14px;
+    stroke: currentColor;
+    stroke-width: 1.75;
+    fill: none;
+  }
+  
+  .action-btn:hover {
     background: var(--hover-bg);
     color: var(--text-primary);
   }
   
-  .window-control-btn:hover {
+  .layout-divider {
+    width: 1px;
+    height: 20px;
+    background: var(--border-color);
+    margin: 0 4px;
+  }
+  
+  .window-controls {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    margin-left: 8px;
+    border-left: 1px solid var(--border-color);
+    height: 40px;
+  }
+  
+  .window-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: var(--text-secondary);
+    font-size: 14px;
+    transition: all 0.15s ease;
+    position: relative;
+    border-radius: 0;
+  }
+  
+  .window-btn:hover {
     background: var(--hover-bg);
     color: var(--text-primary);
   }
   
-  .window-control-btn.close-btn:hover {
-    background: rgba(220, 38, 38, 0.2);
-    color: #dc2626;
+  .window-btn.close:hover {
+    background: rgba(220, 38, 38, 0.12);
+    color: #ef4444;
   }
   
-  .theme-toggle-btn,
-  .lang-toggle-btn {
-    font-size: 13px;
+  .theme-toggle {
+    transition: transform 0.2s ease;
   }
   
-  .sidebar-toggle-btn {
-    font-size: 20px;
+  .theme-toggle:active {
+    transform: scale(0.95);
+  }
+  
+  .layout-btn {
+    transition: all 0.15s ease;
+  }
+  
+  .layout-btn.active {
+    background: var(--hover-bg);
+    color: var(--text-primary);
   }
 `;
 
 if (typeof document !== "undefined") {
-  const styleId = "topbar-styles";
+  const styleId = "topbar-styles-v3";
   if (!document.getElementById(styleId)) {
     const style = document.createElement("style");
     style.id = styleId;
@@ -100,6 +234,59 @@ if (typeof document !== "undefined") {
     document.head.appendChild(style);
   }
 }
+
+const MenuIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+    <path
+      d="M3 12h18M3 6h18M3 18h18"
+      stroke="currentColor"
+      strokeLinecap="round"
+    />
+  </svg>
+);
+
+const CloseIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+    <path
+      d="M6 18L18 6M6 6l12 12"
+      stroke="currentColor"
+      strokeLinecap="round"
+    />
+  </svg>
+);
+
+const CollapseIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+    <path
+      d="M15 18l-6-6 6-6"
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
+const SunIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+    <circle cx="12" cy="12" r="4" fill="currentColor" stroke="none" />
+    <path
+      d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"
+      stroke="currentColor"
+      strokeLinecap="round"
+    />
+  </svg>
+);
+
+const MoonIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+    <path
+      d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
 
 const TopBar: React.FC<TopBarProps> = ({
   sidebarCollapsed,
@@ -109,9 +296,10 @@ const TopBar: React.FC<TopBarProps> = ({
   currentLanguage,
   onToggleLanguage,
   t,
+  layoutMode = "vertical",
+  onLayoutModeChange,
 }) => {
   const [isMaximized, setIsMaximized] = useState(false);
-
   useEffect(() => {
     const checkMaximized = async () => {
       try {
@@ -122,7 +310,6 @@ const TopBar: React.FC<TopBarProps> = ({
       }
     };
     checkMaximized();
-
     const interval = setInterval(checkMaximized, 500);
     return () => clearInterval(interval);
   }, []);
@@ -154,10 +341,10 @@ const TopBar: React.FC<TopBarProps> = ({
   };
 
   return (
-    <div className="top-bar">
+    <div className="top-bar" style={{ paddingRight: "0px" }}>
       <div className="top-bar-left">
         <button
-          className="sidebar-toggle-btn"
+          className="sidebar-toggle"
           onClick={onToggleSidebar}
           title={
             sidebarCollapsed
@@ -165,54 +352,83 @@ const TopBar: React.FC<TopBarProps> = ({
               : t("topbar.collapseSidebar")
           }
         >
-          {sidebarCollapsed ? "☰" : "◀"}
+          {sidebarCollapsed ? <MenuIcon /> : <CollapseIcon />}
         </button>
+
+        <div className="app-brand">
+          <div className="app-logo">
+            <img src={logo} alt="logo" />
+          </div>
+          <div className="app-name">HippoX</div>
+        </div>
       </div>
 
       <div className="top-bar-center">
-        <div className="app-logo">
-          <img src={logo} width="32px" height="32px" alt="logo" />
+        <div className="search-hint">
+          <span>⌘</span>
+          <span>K</span>
+          <span style={{ marginLeft: 4 }}>搜索</span>
         </div>
-        <div className="app-name">HippoX</div>
       </div>
 
       <div className="top-bar-right">
         <button
-          className="theme-toggle-btn"
+          className="action-btn theme-toggle"
           onClick={onToggleTheme}
           title={t("topbar.toggleTheme")}
         >
-          {currentTheme === "dark" ? "☀️" : "🌙"}
+          {currentTheme === "dark" ? <SunIcon /> : <MoonIcon />}
         </button>
         <button
-          className="lang-toggle-btn"
+          className="action-btn"
           onClick={onToggleLanguage}
           title={t("topbar.toggleLanguage")}
         >
           {currentLanguage === "zh" ? "EN" : "中文"}
         </button>
+        {onLayoutModeChange && (
+          <>
+            <div className="layout-divider" />
+            <button
+              className={`action-btn layout-btn ${layoutMode === "horizontal" ? "active" : ""}`}
+              onClick={() => onLayoutModeChange("horizontal")}
+              title={t("topbar.horizontalLayout") || "左右布局"}
+            >
+              <LayoutVerticalIcon />
+            </button>
+            <button
+              className={`action-btn layout-btn ${layoutMode === "vertical" ? "active" : ""}`}
+              onClick={() => onLayoutModeChange("vertical")}
+              title={t("topbar.verticalLayout") || "上下布局"}
+            >
+              <LayoutHorizontalIcon />
+            </button>
+          </>
+        )}
 
-        <button
-          className="window-control-btn"
-          onClick={handleMinimize}
-          title="最小化"
-        >
-          ─
-        </button>
-        <button
-          className="window-control-btn"
-          onClick={handleMaximize}
-          title={isMaximized ? "还原" : "最大化"}
-        >
-          {isMaximized ? "❐" : "□"}
-        </button>
-        <button
-          className="window-control-btn close-btn"
-          onClick={handleClose}
-          title="关闭"
-        >
-          ✕
-        </button>
+        <div className="window-controls">
+          <button
+            className="window-btn"
+            onClick={handleMinimize}
+            title="最小化"
+          >
+            ─
+          </button>
+          <button
+            className="window-btn"
+            onClick={handleMaximize}
+            title={isMaximized ? "还原" : "最大化"}
+          >
+            {isMaximized ? "❐" : "□"}
+          </button>
+          <button
+            className="window-btn close"
+            onClick={handleClose}
+            title="关闭"
+          >
+            <CloseIcon />
+          </button>
+        </div>
       </div>
     </div>
   );

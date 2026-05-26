@@ -337,7 +337,9 @@ export const zh = {
     collapseSidebar: '折叠侧边栏',
     expandSidebar: '展开侧边栏',
     toggleTheme: '切换主题',
-    toggleLanguage: '切换语言'
+    toggleLanguage: '切换语言',
+    verticalLayout: '左右布局',
+    horizontalLayout: '上下布局'
   },
   common: {
     close: '关闭',
@@ -929,7 +931,9 @@ export const en: typeof zh = {
     collapseSidebar: 'Collapse Sidebar',
     expandSidebar: 'Expand Sidebar',
     toggleTheme: 'Toggle Theme',
-    toggleLanguage: 'Toggle Language'
+    toggleLanguage: 'Toggle Language',
+    verticalLayout: 'Vertical Layout',
+    horizontalLayout: 'Horizontal Layout'
   },
   common: {
     close: 'Close',
