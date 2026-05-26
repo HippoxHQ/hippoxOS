@@ -88,20 +88,15 @@ function App() {
                 typeof chatContent === "string"
                   ? JSON.parse(chatContent)
                   : chatContent;
-              if (Array.isArray(parsed) && parsed.length > 0) {
+              if (Array.isArray(parsed)) {
                 setChatMessages(parsed);
-              } else {
-                setChatMessages([
-                  {
-                    id: "welcome",
-                    role: "assistant",
-                    content:
-                      language === "zh"
-                        ? "你好，我是 Hippox AI 运行时。我有自主决策能力，可以执行技能并实时反馈。有什么可以帮你的？"
-                        : "Hello, I am Hippox AI Runtime. I have autonomous decision-making capabilities and can execute skills with real-time feedback. How can I help you?",
-                    timestamp: new Date().toLocaleTimeString(),
-                  },
-                ]);
+              } else if (parsed && parsed.chatMessages) {
+                setChatMessages(parsed.chatMessages);
+                if (parsed.userMessages && Array.isArray(parsed.userMessages)) {
+                  parsed.userMessages.forEach((msg: ChatMessage) => {
+                    taskManager.addUserMessage(msg);
+                  });
+                }
               }
             } catch {
               setChatMessages([
@@ -165,13 +160,17 @@ function App() {
   useEffect(() => {
     if (!isLoading && currentSessionId && chatMessages.length > 0) {
       const saveTimer = setTimeout(() => {
+        const allData = taskManager.getAllData();
         (sessionCommands.saveChatContent as any)(
           currentSessionId,
-          JSON.stringify(chatMessages),
+          JSON.stringify({
+            chatMessages: chatMessages,
+            userMessages: allData.userMessages,
+          }),
         ).catch(console.error);
         (sessionCommands.saveTerminalContent as any)(
           currentSessionId,
-          JSON.stringify(taskManager.getAllTasks()),
+          JSON.stringify(allData.tasks),
         ).catch(console.error);
       }, 1000);
       return () => clearTimeout(saveTimer);
@@ -348,32 +347,42 @@ function App() {
     if (sessionId === currentSessionId) return;
     try {
       if (currentSessionId) {
+        const allData = taskManager.getAllData();
         await (sessionCommands.saveChatContent as any)(
           currentSessionId,
-          JSON.stringify(chatMessages),
+          JSON.stringify({
+            chatMessages: chatMessages,
+            userMessages: allData.userMessages,
+          }),
         );
         await (sessionCommands.saveTerminalContent as any)(
           currentSessionId,
-          JSON.stringify(taskManager.getAllTasks()),
+          JSON.stringify(allData.tasks),
         );
       }
 
       const chatContent = await sessionCommands.loadChatContent(sessionId);
       const terminalContent =
         await sessionCommands.loadTerminalContent(sessionId);
-
       setCurrentSessionId(sessionId);
       taskManager.setSessionId(sessionId);
       localStorage.setItem("hippox-current-session", sessionId);
-
       if (chatContent) {
         try {
           const parsed =
             typeof chatContent === "string"
               ? JSON.parse(chatContent)
               : chatContent;
-          if (Array.isArray(parsed) && parsed.length > 0) {
+          if (Array.isArray(parsed)) {
             setChatMessages(parsed);
+          } else if (parsed && parsed.chatMessages) {
+            setChatMessages(parsed.chatMessages);
+            if (parsed.userMessages && Array.isArray(parsed.userMessages)) {
+              taskManager.clearUserMessages();
+              parsed.userMessages.forEach((msg: ChatMessage) => {
+                taskManager.addUserMessage(msg);
+              });
+            }
           } else {
             setChatMessages([
               {
@@ -413,7 +422,6 @@ function App() {
           },
         ]);
       }
-
       if (terminalContent) {
         try {
           const parsed =

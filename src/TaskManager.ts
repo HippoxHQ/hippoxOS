@@ -97,6 +97,33 @@ class TaskManager {
         this.userMessages.clear();
         this.notify();
     }
+
+    setTasksAndMessages(tasks: TaskInfo[], userMessages: ChatMessage[]) {
+        this.tasks.clear();
+        if (Array.isArray(tasks)) {
+            tasks.forEach(task => {
+                if (task && task.task_id) {
+                    this.tasks.set(task.task_id, task);
+                }
+            });
+        }
+        this.userMessages.clear();
+        if (Array.isArray(userMessages)) {
+            userMessages.forEach(msg => {
+                if (msg && msg.id) {
+                    this.userMessages.set(msg.id, msg);
+                }
+            });
+        }
+        this.notify();
+    }
+
+    getAllData(): { tasks: TaskInfo[]; userMessages: ChatMessage[] } {
+        return {
+            tasks: this.getAllTasks(),
+            userMessages: this.getUserMessages(),
+        };
+    }
 }
 
 export const taskManager = new TaskManager();
