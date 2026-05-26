@@ -163,6 +163,8 @@ pub fn run() {
             commands::cmd_get_all_providers,
             commands::cmd_get_models_by_provider,
             commands::cmd_get_recommended_models,
+            // search
+            commands::cmd_search_content,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

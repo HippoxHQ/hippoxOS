@@ -75,3 +75,18 @@ pub fn init_default_settings() -> Result<(), String> {
     }
     Ok(())
 }
+
+pub fn get_app_data_dir() -> PathBuf {
+    let settings_dir = get_settings_dir();
+    settings_dir.parent().unwrap_or(&settings_dir).to_path_buf()
+}
+
+pub fn get_sessions_dir() -> PathBuf {
+    let app_data_dir = get_app_data_dir();
+    app_data_dir.join("dialog_sessions")
+}
+
+pub fn get_logs_dir() -> PathBuf {
+    let app_data_dir = get_app_data_dir();
+    app_data_dir.join("logs")
+}

@@ -68,6 +68,42 @@ function App() {
     return unsubscribe;
   }, []);
   useEffect(() => {
+    const handleOpenSkill = (e: CustomEvent) => {
+      console.log("Open skill:", e.detail);
+      setMenuPanelView("skillMarket");
+    };
+    const handleSwitchSession = (e: CustomEvent) => {
+      const { sessionId } = e.detail;
+      handleSwitchSession(sessionId);
+    };
+    const handleOpenLog = (e: CustomEvent) => {
+      console.log("Open log:", e.detail);
+    };
+    window.addEventListener(
+      "search-open-skill",
+      handleOpenSkill as EventListener,
+    );
+    window.addEventListener(
+      "search-switch-session",
+      handleSwitchSession as EventListener,
+    );
+    window.addEventListener("search-open-log", handleOpenLog as EventListener);
+    return () => {
+      window.removeEventListener(
+        "search-open-skill",
+        handleOpenSkill as EventListener,
+      );
+      window.removeEventListener(
+        "search-switch-session",
+        handleSwitchSession as EventListener,
+      );
+      window.removeEventListener(
+        "search-open-log",
+        handleOpenLog as EventListener,
+      );
+    };
+  }, []);
+  useEffect(() => {
     if (!isLoading && currentSessionId) {
       const saveTimer = setTimeout(() => {
         const allData = taskManager.getAllData();
