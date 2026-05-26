@@ -9,7 +9,9 @@ use tokio::sync::Mutex;
 use uuid::Uuid;
 
 use crate::commands::callback::TauriWorkflowCallback;
-use crate::commands::{HIPPOX_APP_CONFIG, get_default_hippox, init_all_hippox_instances, load_config_from_file};
+use crate::commands::{
+    get_default_hippox, init_all_hippox_instances, load_config_from_file, HIPPOX_APP_CONFIG,
+};
 
 struct LogMessages {
     init_start: String,
@@ -411,16 +413,44 @@ async fn execute_task_async(
     let response = hippox
         .handle_natural_language(&message, Some(&session_id), Some(callback_clone))
         .await;
-    callback.emit_complete(&response).await;
     let duration = std::time::Instant::now().elapsed().as_millis() as u64;
     let messages = state.get_log_messages().await;
-    state
-        .add_log(
-            "success".to_string(),
-            messages.send_response.replace("{}", &duration.to_string()),
-            Some(response.clone()),
-            Some(duration),
-        )
-        .await;
-    state.complete_task(&task_id, &response).await;
+    let is_error = response.contains("error.llm_error")
+        || response.contains("LLM error")
+        || response.contains("401 Unauthorized")
+        || response.contains("403 Forbidden")
+        || response.contains("429 Too Many Requests")
+        || response.contains("500 Internal Server Error")
+        || response.contains("502 Bad Gateway")
+        || response.contains("503 Service Unavailable")
+        || response.contains("timeout")
+        || response.contains("connection")
+        || response.contains("invalid")
+        || response.contains("Authentication")
+        || response.contains("authentication")
+        || response.to_lowercase().contains("error")
+        || response.starts_with("Error:");
+    if is_error {
+        callback.emit_failed(&response).await;
+        state.fail_task(&task_id, &response).await;
+        state
+            .add_log(
+                "error".to_string(),
+                format!("Task failed: {}", response),
+                Some(response),
+                Some(duration),
+            )
+            .await;
+    } else {
+        callback.emit_complete(&response).await;
+        state.complete_task(&task_id, &response).await;
+        state
+            .add_log(
+                "success".to_string(),
+                messages.send_response.replace("{}", &duration.to_string()),
+                Some(response),
+                Some(duration),
+            )
+            .await;
+    }
 }

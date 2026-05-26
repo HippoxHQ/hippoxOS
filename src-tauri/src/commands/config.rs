@@ -841,15 +841,26 @@ pub async fn init_all_hippox_instances() -> Result<(), String> {
     let mut instances = HIPPOX_INSTANCES.write().await;
     let mut default_instance_id = None;
     for (id, instance) in llm_instances {
-        let hippox = init_single_hippox(&instance, &skills_dir).await?;
-        instances.insert(id.clone(), Arc::new(hippox));
-        if default_id == id {
-            default_instance_id = Some(id);
+        match init_single_hippox(&instance, &skills_dir).await {
+            Ok(hippox) => {
+                instances.insert(id.clone(), Arc::new(hippox));
+                if default_id == id {
+                    default_instance_id = Some(id);
+                }
+                println!("Successfully initialized: {}", instance.name);
+            }
+            Err(e) => {
+                println!("Failed to initialize {}: {}", instance.name, e);
+            }
         }
     }
     if let Some(id) = default_instance_id {
         let mut default_guard = DEFAULT_HIPPOX_INSTANCE_ID.write().await;
         *default_guard = Some(id);
+    } else if !instances.is_empty() {
+        let first_id = instances.keys().next().unwrap().clone();
+        let mut default_guard = DEFAULT_HIPPOX_INSTANCE_ID.write().await;
+        *default_guard = Some(first_id);
     }
     Ok(())
 }
