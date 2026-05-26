@@ -29,10 +29,117 @@ const WorkspacePanel: React.FC<WorkspacePanelProps> = ({ t }) => {
   const [loading, setLoading] = useState(true);
   const [expandedPaths, setExpandedPaths] = useState<Set<string>>(new Set());
   const autoExpandedRef = useRef(false);
+  const watchIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const isRefreshingRef = useRef(false);
+  const workspaceNodesRef = useRef<WorkspaceNode[]>([]);
+  const expandedPathsRef = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    workspaceNodesRef.current = workspaceNodes;
+  }, [workspaceNodes]);
+
+  useEffect(() => {
+    expandedPathsRef.current = expandedPaths;
+  }, [expandedPaths]);
 
   useEffect(() => {
     loadAllWorkspaces();
+    startWatching();
+    return () => {
+      if (watchIntervalRef.current) {
+        clearInterval(watchIntervalRef.current);
+      }
+    };
   }, []);
+
+  const getFileSystemSnapshot = async (path: string): Promise<string> => {
+    try {
+      const entries = await filesCommands.readDirectory(path);
+      const snapshot = entries
+        .map(
+          (e) =>
+            `${e.name}|${e.is_directory ? "dir" : "file"}|${e.size}|${e.modified}`,
+        )
+        .sort()
+        .join("\n");
+      return snapshot;
+    } catch (error) {
+      return "";
+    }
+  };
+
+  const checkForChanges = async (): Promise<boolean> => {
+    const currentNodes = workspaceNodesRef.current;
+    if (currentNodes.length === 0) return false;
+    for (const node of currentNodes) {
+      const currentSnapshot = await getFileSystemSnapshot(
+        node.workspace.workspace_path,
+      );
+      const cachedSnapshot = snapshotCacheRef.current.get(node.workspace.id);
+      if (cachedSnapshot !== currentSnapshot) {
+        return true;
+      }
+    }
+    return false;
+  };
+  const snapshotCacheRef = useRef<Map<string, string>>(new Map());
+  const updateSnapshotCache = async (workspaceId: string, path: string) => {
+    const snapshot = await getFileSystemSnapshot(path);
+    snapshotCacheRef.current.set(workspaceId, snapshot);
+  };
+  const startWatching = () => {
+    if (watchIntervalRef.current) {
+      clearInterval(watchIntervalRef.current);
+    }
+    watchIntervalRef.current = setInterval(async () => {
+      if (isRefreshingRef.current) return;
+      const hasChanges = await checkForChanges();
+      if (hasChanges) {
+        await refreshAllWorkspacesPreserveState();
+      }
+    }, 1000);
+  };
+
+  const refreshAllWorkspacesPreserveState = async () => {
+    if (isRefreshingRef.current) return;
+    isRefreshingRef.current = true;
+    const savedExpandedPaths = new Set(expandedPathsRef.current);
+    const savedWorkspaceExpanded = workspaceNodesRef.current.map(
+      (n) => n.expanded,
+    );
+    try {
+      const config = await workspaceCommands.getWorkspaceConfig();
+      const newNodes: WorkspaceNode[] = [];
+      for (const workspace of config.instances) {
+        const existingIndex = workspaceNodesRef.current.findIndex(
+          (n) => n.workspace.id === workspace.id,
+        );
+        newNodes.push({
+          workspace,
+          treeData: [],
+          expanded:
+            existingIndex !== -1
+              ? savedWorkspaceExpanded[existingIndex]
+              : false,
+          loading: true,
+        });
+      }
+
+      setWorkspaceNodes(newNodes);
+
+      for (let i = 0; i < newNodes.length; i++) {
+        await loadWorkspaceRootWithExpandedState(
+          i,
+          newNodes[i].workspace,
+          savedExpandedPaths,
+        );
+      }
+    } catch (error) {
+      console.error("Failed to refresh workspaces:", error);
+    } finally {
+      isRefreshingRef.current = false;
+    }
+  };
 
   const loadAllWorkspaces = async () => {
     setLoading(true);
@@ -66,7 +173,14 @@ const WorkspacePanel: React.FC<WorkspacePanelProps> = ({ t }) => {
       const entries = await filesCommands.readDirectory(
         workspace.workspace_path,
       );
-      const tree = await buildTree(entries, workspace.workspace_path);
+      const tree = await buildTreeWithExpandedState(
+        entries,
+        workspace.workspace_path,
+        expandedPaths,
+      );
+
+      await updateSnapshotCache(workspace.id, workspace.workspace_path);
+
       setWorkspaceNodes((prev) => {
         const updated = [...prev];
         if (updated[index]) {
@@ -92,6 +206,85 @@ const WorkspacePanel: React.FC<WorkspacePanelProps> = ({ t }) => {
         return updated;
       });
     }
+  };
+
+  const loadWorkspaceRootWithExpandedState = async (
+    index: number,
+    workspace: WorkspaceInstance,
+    savedExpandedPaths: Set<string>,
+  ) => {
+    try {
+      const entries = await filesCommands.readDirectory(
+        workspace.workspace_path,
+      );
+      const tree = await buildTreeWithExpandedState(
+        entries,
+        workspace.workspace_path,
+        savedExpandedPaths,
+      );
+
+      await updateSnapshotCache(workspace.id, workspace.workspace_path);
+
+      setWorkspaceNodes((prev) => {
+        const updated = [...prev];
+        if (updated[index]) {
+          updated[index] = {
+            ...updated[index],
+            treeData: tree,
+            loading: false,
+          };
+        }
+        return updated;
+      });
+    } catch (error) {
+      console.error(`Failed to load workspace ${workspace.name}:`, error);
+      setWorkspaceNodes((prev) => {
+        const updated = [...prev];
+        if (updated[index]) {
+          updated[index] = {
+            ...updated[index],
+            treeData: [],
+            loading: false,
+          };
+        }
+        return updated;
+      });
+    }
+  };
+
+  const buildTreeWithExpandedState = async (
+    entries: FileInfo[],
+    basePath: string,
+    currentExpandedPaths: Set<string>,
+  ): Promise<TreeNode[]> => {
+    const tree: TreeNode[] = [];
+    for (const entry of entries) {
+      const node: TreeNode = {
+        ...entry,
+        children: [],
+        expanded: currentExpandedPaths.has(entry.path),
+      };
+      if (entry.is_directory && currentExpandedPaths.has(entry.path)) {
+        try {
+          const subEntries = await filesCommands.readDirectory(entry.path);
+          node.children = await buildTreeWithExpandedState(
+            subEntries,
+            entry.path,
+            currentExpandedPaths,
+          );
+        } catch (error) {
+          console.error(`Failed to read directory ${entry.path}:`, error);
+          node.children = [];
+        }
+      }
+      tree.push(node);
+    }
+    tree.sort((a, b) => {
+      if (a.is_directory && !b.is_directory) return -1;
+      if (!a.is_directory && b.is_directory) return 1;
+      return a.name.localeCompare(b.name);
+    });
+    return tree;
   };
 
   const buildTree = async (
@@ -178,21 +371,27 @@ const WorkspacePanel: React.FC<WorkspacePanelProps> = ({ t }) => {
     const newExpanded = new Set(expandedPaths);
     if (newExpanded.has(path)) {
       newExpanded.delete(path);
+      setExpandedPaths(newExpanded);
     } else {
       newExpanded.add(path);
       if (!node.children || node.children.length === 0) {
         try {
           const subEntries = await filesCommands.readDirectory(node.path);
-          const children = await buildTree(subEntries, node.path);
+          const children = await buildTreeWithExpandedState(
+            subEntries,
+            node.path,
+            newExpanded,
+          );
           node.children = children;
           setWorkspaceNodes((prev) => [...prev]);
         } catch (error) {
           console.error(`Failed to load directory ${node.path}:`, error);
         }
       }
+      setExpandedPaths(newExpanded);
     }
-    setExpandedPaths(newExpanded);
   };
+
   const getWorkspaceDisplayName = (workspace: WorkspaceInstance): string => {
     const path = workspace.workspace_path;
     const normalizedPath = path.replace(/\\/g, "/");
@@ -200,6 +399,7 @@ const WorkspacePanel: React.FC<WorkspacePanelProps> = ({ t }) => {
     const folderName = parts[parts.length - 1] || workspace.name;
     return folderName !== workspace.name ? folderName : workspace.name;
   };
+
   const renderTreeWithLines = (
     nodes: TreeNode[],
     parentIsLast: boolean[] = [],
@@ -293,6 +493,22 @@ const WorkspacePanel: React.FC<WorkspacePanelProps> = ({ t }) => {
       );
     });
   };
+
+  const manualRefresh = async () => {
+    await refreshAllWorkspacesPreserveState();
+  };
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      (window as any).refreshWorkspace = manualRefresh;
+    }
+    return () => {
+      if (typeof window !== "undefined") {
+        delete (window as any).refreshWorkspace;
+      }
+    };
+  }, []);
+
   if (loading) {
     return (
       <div
@@ -311,6 +527,7 @@ const WorkspacePanel: React.FC<WorkspacePanelProps> = ({ t }) => {
       </div>
     );
   }
+
   if (workspaceNodes.length === 0) {
     return (
       <div
@@ -336,6 +553,7 @@ const WorkspacePanel: React.FC<WorkspacePanelProps> = ({ t }) => {
       </div>
     );
   }
+
   return (
     <div
       style={{
