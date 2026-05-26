@@ -246,7 +246,14 @@ const MenuIcon = () => (
 );
 
 const CloseIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.75"
+    width="25px"
+    height="25px"
+  >
     <path
       d="M6 18L18 6M6 6l12 12"
       stroke="currentColor"
@@ -340,6 +347,18 @@ const TopBar: React.FC<TopBarProps> = ({
     }
   };
 
+  const getMinimizeTitle = () =>
+    currentLanguage === "zh" ? "最小化" : "Minimize";
+  const getMaximizeTitle = () =>
+    currentLanguage === "zh"
+      ? isMaximized
+        ? "还原"
+        : "最大化"
+      : isMaximized
+        ? "Restore"
+        : "Maximize";
+  const getCloseTitle = () => (currentLanguage === "zh" ? "关闭" : "Close");
+
   return (
     <div className="top-bar" style={{ paddingRight: "0px" }}>
       <div className="top-bar-left">
@@ -367,7 +386,9 @@ const TopBar: React.FC<TopBarProps> = ({
         <div className="search-hint">
           <span>⌘</span>
           <span>K</span>
-          <span style={{ marginLeft: 4 }}>搜索</span>
+          <span style={{ marginLeft: 4 }}>
+            {currentLanguage === "zh" ? "搜索" : "Search"}
+          </span>
         </div>
       </div>
 
@@ -392,14 +413,20 @@ const TopBar: React.FC<TopBarProps> = ({
             <button
               className={`action-btn layout-btn ${layoutMode === "horizontal" ? "active" : ""}`}
               onClick={() => onLayoutModeChange("horizontal")}
-              title={t("topbar.horizontalLayout") || "左右布局"}
+              title={
+                t("topbar.horizontalLayout") ||
+                (currentLanguage === "zh" ? "左右布局" : "Horizontal Layout")
+              }
             >
               <LayoutVerticalIcon />
             </button>
             <button
               className={`action-btn layout-btn ${layoutMode === "vertical" ? "active" : ""}`}
               onClick={() => onLayoutModeChange("vertical")}
-              title={t("topbar.verticalLayout") || "上下布局"}
+              title={
+                t("topbar.verticalLayout") ||
+                (currentLanguage === "zh" ? "上下布局" : "Vertical Layout")
+              }
             >
               <LayoutHorizontalIcon />
             </button>
@@ -410,21 +437,47 @@ const TopBar: React.FC<TopBarProps> = ({
           <button
             className="window-btn"
             onClick={handleMinimize}
-            title="最小化"
+            title={getMinimizeTitle()}
+            style={{ fontSize: "20px", lineHeight: 1, fontWeight: 300 }}
           >
             ─
           </button>
           <button
             className="window-btn"
             onClick={handleMaximize}
-            title={isMaximized ? "还原" : "最大化"}
+            title={getMaximizeTitle()}
           >
-            {isMaximized ? "❐" : "□"}
+            {isMaximized ? (
+              <span
+                style={{
+                  fontSize: "20px",
+                  lineHeight: 1,
+                  fontWeight: 400,
+                  marginTop: "2px",
+                }}
+              >
+                ❐
+              </span>
+            ) : (
+              <span
+                style={{
+                  fontSize: "35px",
+                  fontWeight: 300,
+                  lineHeight: 1,
+                  display: "flex",
+                  alignItems: "center",
+                  marginTop: "-8px",
+                }}
+              >
+                □
+              </span>
+            )}
           </button>
           <button
             className="window-btn close"
             onClick={handleClose}
-            title="关闭"
+            title={getCloseTitle()}
+            style={{ marginTop: "2px" }}
           >
             <CloseIcon />
           </button>
