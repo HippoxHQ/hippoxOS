@@ -1,9 +1,9 @@
 import React from "react";
-import AIModelConfig from "./AIModelConfig";
 import AtomicSkillsPanel from "./AtomicSkillsPanel";
 import InterfaceConfig from "./SystemConfig/InterfaceConfig";
 import WorkspaceConfig from "./SystemConfig/WorkspaceConfig";
 import StorageConfig from "./SystemConfig/StorageConfig";
+import LLMModelConfig from "./LLMModelConfig";
 
 export type SettingsSubView =
   | "llmModel"
@@ -36,7 +36,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
   switch (subView) {
     case "llmModel":
       return (
-        <AIModelConfig t={t} onSave={onSave} isInitializing={isInitializing} />
+        <LLMModelConfig t={t} onSave={onSave} isInitializing={isInitializing} />
       );
     case "atomicSkills":
       return <AtomicSkillsPanel t={t} onSave={onSave} />;
@@ -56,7 +56,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
       return <StorageConfig t={t} onSave={onSave} />;
     default:
       return (
-        <AIModelConfig t={t} onSave={onSave} isInitializing={isInitializing} />
+        <LLMModelConfig t={t} onSave={onSave} isInitializing={isInitializing} />
       );
   }
 };

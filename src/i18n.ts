@@ -1,5 +1,10 @@
 export const zh = {
   llmModel: {
+    workflowMode: '工作流模式',
+    workflowModeReAct: '反应式',
+    workflowModeBatch: '批量式',
+    workflowModeChain: '链式',
+    workflowModePlanAndExecute: '计划执行式',
     default: '默认',
     apiKey: 'API Key',
     apiKeyPlaceholder: '请输入 API Key',
@@ -601,6 +606,11 @@ export const zh = {
 
 export const en: typeof zh = {
   llmModel: {
+    workflowMode: 'Workflow Mode',
+    workflowModeReAct: 'ReAct',
+    workflowModeBatch: 'Batch',
+    workflowModeChain: 'Chain',
+    workflowModePlanAndExecute: 'Plan & Execute',
     default: 'Default',
     apiKey: 'API Key',
     apiKeyPlaceholder: 'Enter API Key',

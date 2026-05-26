@@ -9,14 +9,39 @@ import {
 import { showToast, ToastType } from "../Toast";
 import { showDialog, DialogType } from "../Dialog";
 
-interface AIModelConfigProps {
+interface LLMModelConfigProps {
   t: (key: string, params?: any) => string;
   onSave?: (config: any) => void;
   isInitializing?: boolean;
   language?: string;
 }
 
-const AIModelConfig: React.FC<AIModelConfigProps> = ({
+type WorkflowMode = "react" | "batch" | "chain" | "plan_and_execute";
+
+const getWorkflowModes = (t: (key: string) => string) => [
+  {
+    value: "react" as const,
+    label: t("llmModel.workflowModeReAct"),
+    description: "Think → Act → Observe loop",
+  },
+  {
+    value: "batch" as const,
+    label: t("llmModel.workflowModeBatch"),
+    description: "Execute multiple independent skills in parallel",
+  },
+  {
+    value: "chain" as const,
+    label: t("llmModel.workflowModeChain"),
+    description: "Sequential execution with variable passing",
+  },
+  {
+    value: "plan_and_execute" as const,
+    label: t("llmModel.workflowModePlanAndExecute"),
+    description: "One-time planning with full workflow support",
+  },
+];
+
+const LLMModelConfig: React.FC<LLMModelConfigProps> = ({
   t,
   onSave,
   isInitializing = false,
@@ -30,11 +55,14 @@ const AIModelConfig: React.FC<AIModelConfigProps> = ({
   const [showAddForm, setShowAddForm] = useState(false);
   const [newProvider, setNewProvider] = useState("openai");
   const [newApiKey, setNewApiKey] = useState("");
+  const [newWorkflowMode, setNewWorkflowMode] = useState<WorkflowMode>("react");
   const [extraConfigValues, setExtraConfigValues] = useState<
     Record<string, string>
   >({});
   const [currentProviderInfo, setCurrentProviderInfo] =
     useState<ProviderInfo | null>(null);
+
+  const workflowModes = getWorkflowModes(t);
 
   useEffect(() => {
     loadData();
@@ -177,7 +205,7 @@ const AIModelConfig: React.FC<AIModelConfigProps> = ({
       provider: newProvider,
       api_key: newApiKey,
       api_base: isCustomProvider ? apiBase : "",
-      workflow_mode: "react",
+      workflow_mode: newWorkflowMode,
       default_model: defaultModelName,
       models: providerModels.map((m) => ({
         name: m.id,
@@ -192,6 +220,7 @@ const AIModelConfig: React.FC<AIModelConfigProps> = ({
       setShowAddForm(false);
       setNewProvider("openai");
       setNewApiKey("");
+      setNewWorkflowMode("react");
       setExtraConfigValues({});
       await loadData();
       showToast(
@@ -215,6 +244,16 @@ const AIModelConfig: React.FC<AIModelConfigProps> = ({
   const getProviderName = (providerId: string) => {
     const provider = providers.find((p) => p.id === providerId);
     return provider?.name || providerId;
+  };
+
+  const getWorkflowModeLabel = (mode: string) => {
+    const modeMap: Record<string, string> = {
+      react: t("llmModel.workflowModeReAct"),
+      batch: t("llmModel.workflowModeBatch"),
+      chain: t("llmModel.workflowModeChain"),
+      plan_and_execute: t("llmModel.workflowModePlanAndExecute"),
+    };
+    return modeMap[mode] || mode;
   };
 
   const getProviderExtraFields = (providerId: string) => {
@@ -311,9 +350,7 @@ const AIModelConfig: React.FC<AIModelConfigProps> = ({
       </div>
     );
   }
-
   const currentExtraFields = getProviderExtraFields(newProvider);
-
   return (
     <div
       className="settings-container"
@@ -366,6 +403,28 @@ const AIModelConfig: React.FC<AIModelConfigProps> = ({
                 {defaultInstanceId === id && (
                   <span style={badgeStyle}>{t("llmModel.default")}</span>
                 )}
+              </div>
+
+              <div
+                className="settings-row"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  marginBottom: "12px",
+                  gap: "12px",
+                  flexWrap: "wrap",
+                }}
+              >
+                <label style={labelStyle}>
+                  {t("llmModel.workflowMode") || "Workflow Mode"}
+                </label>
+                <input
+                  type="text"
+                  style={inputStyle}
+                  value={getWorkflowModeLabel(instance.workflow_mode)}
+                  disabled
+                  readOnly
+                />
               </div>
 
               <div
@@ -482,6 +541,38 @@ const AIModelConfig: React.FC<AIModelConfigProps> = ({
               </select>
             </div>
 
+            <div
+              className="settings-row"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                marginBottom: "12px",
+                gap: "12px",
+                flexWrap: "wrap",
+              }}
+            >
+              <label style={labelStyle}>
+                {t("llmModel.workflowMode") || "Workflow Mode"}
+              </label>
+              <select
+                style={selectStyle}
+                value={newWorkflowMode}
+                onChange={(e) =>
+                  setNewWorkflowMode(e.target.value as WorkflowMode)
+                }
+              >
+                {workflowModes.map((mode) => (
+                  <option
+                    key={mode.value}
+                    value={mode.value}
+                    title={mode.description}
+                  >
+                    {mode.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             {currentExtraFields.map((field: ExtraConfigField) => (
               <div
                 key={field.key}
@@ -555,4 +646,4 @@ const AIModelConfig: React.FC<AIModelConfigProps> = ({
   );
 };
 
-export default AIModelConfig;
+export default LLMModelConfig;
