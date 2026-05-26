@@ -159,6 +159,10 @@ pub fn run() {
             commands::cmd_set_max_log_size,
             commands::cmd_get_max_dialog_size,
             commands::cmd_set_max_dialog_size,
+            commands::cmd_get_all_models,
+            commands::cmd_get_all_providers,
+            commands::cmd_get_models_by_provider,
+            commands::cmd_get_recommended_models,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

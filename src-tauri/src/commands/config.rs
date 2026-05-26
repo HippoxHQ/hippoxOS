@@ -35,7 +35,6 @@ pub struct HippoxAppConfig {
     pub engine: EngineConfig,
     pub system: SystemConfig,
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LlmInstance {
     pub id: Option<String>,
@@ -48,6 +47,8 @@ pub struct LlmInstance {
     pub models: Vec<ModelConfig>,
     pub created_at: Option<String>,
     pub updated_at: Option<String>,
+    #[serde(default)]
+    pub extra: HashMap<String, String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -70,6 +71,8 @@ pub struct LlmInstanceForFrontend {
     pub models: Vec<ModelConfig>,
     pub created_at: String,
     pub updated_at: String,
+    #[serde(default)]
+    pub extra: HashMap<String, String>,
 }
 
 impl From<&LlmInstance> for LlmInstanceForFrontend {
@@ -85,10 +88,10 @@ impl From<&LlmInstance> for LlmInstanceForFrontend {
             models: instance.models.clone(),
             created_at: instance.created_at.clone().unwrap_or_default(),
             updated_at: instance.updated_at.clone().unwrap_or_default(),
+            extra: instance.extra.clone(),
         }
     }
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AddLlmInstanceRequest {
     pub name: String,
@@ -98,6 +101,8 @@ pub struct AddLlmInstanceRequest {
     pub workflow_mode: String,
     pub default_model: String,
     pub models: Vec<ModelConfig>,
+    #[serde(default)]
+    pub extra: HashMap<String, String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -236,29 +241,8 @@ pub struct GithubConfig {
 
 impl Default for HippoxAppConfig {
     fn default() -> Self {
-        let mut instances = HashMap::new();
-        let default_id = Uuid::new_v4().to_string();
-        instances.insert(
-            default_id.clone(),
-            LlmInstance {
-                id: Some(default_id.clone()),
-                name: "Default Instance".to_string(),
-                provider: "openai".to_string(),
-                api_key: "".to_string(),
-                api_base: "https://api.openai.com/v1".to_string(),
-                workflow_mode: "react".to_string(),
-                default_model: "gpt-4".to_string(),
-                models: vec![ModelConfig {
-                    name: "gpt-4".to_string(),
-                    api_key: "".to_string(),
-                    is_default: true,
-                    provider: "openai".to_string(),
-                }],
-                created_at: Some(chrono::Local::now().to_rfc3339()),
-                updated_at: Some(chrono::Local::now().to_rfc3339()),
-            },
-        );
-
+        let instances = HashMap::new();
+        let default_id = String::new();
         Self {
             language: "en".to_string(),
             theme: "dark".to_string(),
@@ -393,6 +377,7 @@ pub async fn add_llm_instance(request: AddLlmInstanceRequest) -> Result<String, 
         models: request.models,
         created_at: Some(now.clone()),
         updated_at: Some(now),
+        extra: request.extra,
     };
     config.llm_instances.insert(id.clone(), new_instance);
     if config.llm_instances.len() == 1 {
@@ -876,6 +861,16 @@ async fn init_single_hippox(instance: &LlmInstance, skills_dir: &str) -> Result<
         "alibaba" => ModelProvider::Alibaba,
         "zhipu" => ModelProvider::Zhipu,
         "moonshot" => ModelProvider::Moonshot,
+        "cohere" => ModelProvider::Cohere,
+        "mistral" => ModelProvider::Mistral,
+        "groq" => ModelProvider::Groq,
+        "together" => ModelProvider::Together,
+        "baichuan" => ModelProvider::Baichuan,
+        "yi" => ModelProvider::Yi,
+        "baidu" => ModelProvider::Baidu,
+        "tencent" => ModelProvider::Tencent,
+        "minimax" => ModelProvider::MiniMax,
+        // "custom" => ModelProvider::Custom,
         _ => {
             println!(
                 "Unknown provider: {}, defaulting to OpenAI",
@@ -890,11 +885,8 @@ async fn init_single_hippox(instance: &LlmInstance, skills_dir: &str) -> Result<
         "plan_and_execute" => WorkflowMode::PlanAndExecute,
         _ => WorkflowMode::ReAct,
     };
-    let mut extra_keys = std::collections::HashMap::new();
-    if instance.provider.to_lowercase() != "openai" && !instance.api_base.is_empty() {
-        extra_keys.insert("api_base".to_string(), instance.api_base.clone());
-    }
-    if instance.provider.to_lowercase() == "custom" && !instance.api_base.is_empty() {
+    let mut extra_keys = instance.extra.clone();
+    if !instance.api_base.is_empty() && !extra_keys.contains_key("api_base") {
         extra_keys.insert("api_base".to_string(), instance.api_base.clone());
     }
     let api_key_to_use = if instance.api_key.is_empty() {
