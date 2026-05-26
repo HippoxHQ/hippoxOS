@@ -1,3 +1,4 @@
+use hippox::Hippox;
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -17,6 +18,12 @@ use crate::{
 
 pub static HIPPOX_APP_CONFIG: Lazy<Arc<RwLock<HippoxAppConfig>>> =
     Lazy::new(|| Arc::new(RwLock::new(HippoxAppConfig::default())));
+
+pub static HIPPOX_INSTANCES: Lazy<Arc<RwLock<HashMap<String, Arc<Hippox>>>>> =
+    Lazy::new(|| Arc::new(RwLock::new(HashMap::new())));
+
+pub static DEFAULT_HIPPOX_INSTANCE_ID: Lazy<Arc<RwLock<Option<String>>>> =
+    Lazy::new(|| Arc::new(RwLock::new(None)));
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HippoxAppConfig {
@@ -375,7 +382,6 @@ pub async fn add_llm_instance(request: AddLlmInstanceRequest) -> Result<String, 
     let mut config = HIPPOX_APP_CONFIG.write().await;
     let id = Uuid::new_v4().to_string();
     let now = chrono::Local::now().to_rfc3339();
-
     let new_instance = LlmInstance {
         id: Some(id.clone()),
         name: request.name,
@@ -392,9 +398,9 @@ pub async fn add_llm_instance(request: AddLlmInstanceRequest) -> Result<String, 
     if config.llm_instances.len() == 1 {
         config.default_llm_instance_id = id.clone();
     }
-    // unlock
     drop(config);
     save_config_to_file().await?;
+    add_hippox_instance(&id).await?;
     Ok(id)
 }
 
@@ -415,6 +421,7 @@ pub async fn update_llm_instance(
         existing.updated_at = Some(chrono::Local::now().to_rfc3339());
         drop(config);
         save_config_to_file().await?;
+        sync_hippox_instance_on_update(&instance_id).await?;
         Ok(true)
     } else {
         Err("Instance not found".to_string())
@@ -435,6 +442,7 @@ pub async fn delete_llm_instance(instance_id: String) -> Result<bool, String> {
         }
         drop(config);
         save_config_to_file().await?;
+        remove_hippox_instance(&instance_id).await?;
         Ok(true)
     } else {
         Err("Instance not found".to_string())
@@ -445,10 +453,11 @@ pub async fn delete_llm_instance(instance_id: String) -> Result<bool, String> {
 pub async fn set_default_llm_instance(instance_id: String) -> Result<bool, String> {
     let mut config = HIPPOX_APP_CONFIG.write().await;
     if config.llm_instances.contains_key(&instance_id) {
-        config.default_llm_instance_id = instance_id;
-        // unlock
+        config.default_llm_instance_id = instance_id.clone();
         drop(config);
         save_config_to_file().await?;
+        let mut default_guard = DEFAULT_HIPPOX_INSTANCE_ID.write().await;
+        *default_guard = Some(instance_id);
         Ok(true)
     } else {
         Err("Instance not found".to_string())
@@ -572,7 +581,7 @@ pub async fn update_config(path: ConfigPath, value: serde_json::Value) -> Result
             }
             _ => {}
         },
-        ConfigPath::Engine(key) => {}
+        ConfigPath::Engine(_key) => {}
     }
     if let Err(e) = save_config_to_file().await {
         eprintln!("Failed to save config to file: {}", e);
@@ -605,7 +614,7 @@ pub async fn get_config_value(path: ConfigPath) -> Result<serde_json::Value, Str
             "request_timeout" => serde_json::json!(config.system.request_timeout),
             _ => serde_json::Value::Null,
         },
-        ConfigPath::Engine(key) => serde_json::json!({}),
+        ConfigPath::Engine(_key) => serde_json::json!({}),
     };
     Ok(value)
 }
@@ -673,7 +682,6 @@ pub async fn set_default_llm_model(model_name: String) -> Result<bool, String> {
             model.is_default = model.name == model_name;
         }
         instance.default_model = model_name;
-        // unlock
         drop(config);
         save_config_to_file().await?;
         Ok(true)
@@ -819,4 +827,140 @@ pub async fn cmd_set_max_dialog_size(max_size_mb: u64) -> Result<(), String> {
     std::fs::write(&config_path, content)
         .map_err(|e| format!("Failed to save settings config: {}", e))?;
     Ok(())
+}
+
+pub async fn init_all_hippox_instances() -> Result<(), String> {
+    let (skills_dir, llm_instances, default_id) = {
+        let config = HIPPOX_APP_CONFIG.read().await;
+        (
+            config.workspace.skills_dir.clone(),
+            config.llm_instances.clone(),
+            config.default_llm_instance_id.clone(),
+        )
+    };
+    let mut instances = HIPPOX_INSTANCES.write().await;
+    let mut default_instance_id = None;
+    for (id, instance) in llm_instances {
+        let hippox = init_single_hippox(&instance, &skills_dir).await?;
+        instances.insert(id.clone(), Arc::new(hippox));
+        if default_id == id {
+            default_instance_id = Some(id);
+        }
+    }
+    if let Some(id) = default_instance_id {
+        let mut default_guard = DEFAULT_HIPPOX_INSTANCE_ID.write().await;
+        *default_guard = Some(id);
+    }
+    Ok(())
+}
+
+async fn init_single_hippox(instance: &LlmInstance, skills_dir: &str) -> Result<Hippox, String> {
+    use hippox::{ConfigInitMethod, ModelProvider, WorkflowMode};
+    let model_provider = match instance.provider.to_lowercase().as_str() {
+        "openai" => ModelProvider::OpenAI,
+        "anthropic" => ModelProvider::Anthropic,
+        "azure" => ModelProvider::Azure,
+        "google" => ModelProvider::Google,
+        "deepseek" => ModelProvider::DeepSeek,
+        "alibaba" => ModelProvider::Alibaba,
+        "zhipu" => ModelProvider::Zhipu,
+        "moonshot" => ModelProvider::Moonshot,
+        _ => {
+            println!(
+                "Unknown provider: {}, defaulting to OpenAI",
+                instance.provider
+            );
+            ModelProvider::OpenAI
+        }
+    };
+    let mode = match instance.workflow_mode.to_lowercase().as_str() {
+        "batch" => WorkflowMode::Batch,
+        "chain" => WorkflowMode::Chain,
+        "plan_and_execute" => WorkflowMode::PlanAndExecute,
+        _ => WorkflowMode::ReAct,
+    };
+    let mut extra_keys = std::collections::HashMap::new();
+    if instance.provider.to_lowercase() != "openai" && !instance.api_base.is_empty() {
+        extra_keys.insert("api_base".to_string(), instance.api_base.clone());
+    }
+    if instance.provider.to_lowercase() == "custom" && !instance.api_base.is_empty() {
+        extra_keys.insert("api_base".to_string(), instance.api_base.clone());
+    }
+    let api_key_to_use = if instance.api_key.is_empty() {
+        None
+    } else {
+        Some(instance.api_key.clone())
+    };
+    Hippox::with_workflow_mode(
+        skills_dir,
+        model_provider,
+        api_key_to_use,
+        if extra_keys.is_empty() {
+            None
+        } else {
+            Some(extra_keys)
+        },
+        ConfigInitMethod::Env,
+        mode,
+    )
+    .await
+    .map_err(|e| format!("Failed to initialize Hippox for {}: {}", instance.name, e))
+}
+
+pub async fn reinit_single_hippox(instance_id: &str) -> Result<(), String> {
+    let (instance, skills_dir) = {
+        let config = HIPPOX_APP_CONFIG.read().await;
+        let instance = config
+            .llm_instances
+            .get(instance_id)
+            .ok_or_else(|| format!("Instance not found: {}", instance_id))?
+            .clone();
+        let skills_dir = config.workspace.skills_dir.clone();
+        (instance, skills_dir)
+    };
+    let hippox = init_single_hippox(&instance, &skills_dir).await?;
+    let mut instances = HIPPOX_INSTANCES.write().await;
+    instances.insert(instance_id.to_string(), Arc::new(hippox));
+    Ok(())
+}
+
+pub async fn get_default_hippox() -> Result<Arc<Hippox>, String> {
+    let default_guard = DEFAULT_HIPPOX_INSTANCE_ID.read().await;
+    let default_id = default_guard
+        .as_ref()
+        .ok_or_else(|| "No default Hippox instance available".to_string())?;
+    let instances = HIPPOX_INSTANCES.read().await;
+    let hippox = instances
+        .get(default_id)
+        .ok_or_else(|| format!("Hippox instance not found: {}", default_id))?;
+    Ok(hippox.clone())
+}
+
+pub async fn get_hippox_instance(instance_id: &str) -> Result<Arc<Hippox>, String> {
+    let instances = HIPPOX_INSTANCES.read().await;
+    let hippox = instances
+        .get(instance_id)
+        .ok_or_else(|| format!("Hippox instance not found: {}", instance_id))?;
+    Ok(hippox.clone())
+}
+
+pub async fn sync_hippox_instance_on_update(instance_id: &str) -> Result<(), String> {
+    reinit_single_hippox(instance_id).await
+}
+
+pub async fn remove_hippox_instance(instance_id: &str) -> Result<(), String> {
+    let mut instances = HIPPOX_INSTANCES.write().await;
+    instances.remove(instance_id);
+    let mut default_guard = DEFAULT_HIPPOX_INSTANCE_ID.write().await;
+    if default_guard.as_ref() == Some(&instance_id.to_string()) {
+        *default_guard = None;
+        if let Some(first_id) = instances.keys().next() {
+            *default_guard = Some(first_id.clone());
+        }
+    }
+    Ok(())
+}
+
+pub async fn add_hippox_instance(instance_id: &str) -> Result<(), String> {
+    reinit_single_hippox(instance_id).await
 }

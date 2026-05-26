@@ -3,9 +3,11 @@ mod commands;
 mod common;
 mod workspace;
 
+use crate::commands::init_all_hippox_instances;
 use crate::common::init_default_settings;
 use crate::workspace::ensure_workspace_config;
 use commands::AppStateWithChat;
+use hippox::Hippox;
 use std::path::PathBuf;
 use std::thread;
 
@@ -36,6 +38,11 @@ pub fn run() {
     }
     tokio::runtime::Runtime::new().unwrap().block_on(async {
         let _ = commands::load_config_from_file().await;
+    });
+    tokio::runtime::Runtime::new().unwrap().block_on(async {
+        if let Err(e) = init_all_hippox_instances().await {
+            eprintln!("Failed to initialize Hippox instances: {}", e);
+        }
     });
     thread::spawn(|| {
         println!("Initializing skills market...");
