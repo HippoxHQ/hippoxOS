@@ -167,7 +167,7 @@ const topBarStyles = `
   
   .layout-divider {
     width: 1px;
-    height: 20px;
+    height: 40px;
     background: var(--border-color);
     margin: 0 4px;
   }
@@ -251,8 +251,8 @@ const CloseIcon = () => (
     fill="none"
     stroke="currentColor"
     strokeWidth="1.75"
-    width="25px"
-    height="25px"
+    width="23px"
+    height="23px"
   >
     <path
       d="M6 18L18 6M6 6l12 12"
@@ -461,12 +461,12 @@ const TopBar: React.FC<TopBarProps> = ({
             ) : (
               <span
                 style={{
-                  fontSize: "35px",
+                  fontSize: "30px",
                   fontWeight: 300,
                   lineHeight: 1,
                   display: "flex",
                   alignItems: "center",
-                  marginTop: "-8px",
+                  marginTop: "-4px",
                 }}
               >
                 □
@@ -477,7 +477,7 @@ const TopBar: React.FC<TopBarProps> = ({
             className="window-btn close"
             onClick={handleClose}
             title={getCloseTitle()}
-            style={{ marginTop: "2px" }}
+            style={{ paddingTop: "2px" }}
           >
             <CloseIcon />
           </button>
