@@ -8,6 +8,7 @@ import {
   TaskQueueIcon,
 } from "../icons";
 import { taskManager } from "../TaskManager";
+import { HIPPOX_ASCII_LOGO } from "../config";
 
 interface TerminalPanelProps {
   logs: ExecutionLog[];
@@ -31,15 +32,6 @@ const logToConsole = (level: string, message: string, data?: any) => {
       console.log(`[${timestamp}] ${message}`, data || "");
   }
 };
-
-const HIPPOX_ASCII_LOGO = `
-   ██╗  ██╗██╗██████╗ ██████╗  ██████╗ ██╗  ██╗
-   ██║  ██║██║██╔══██╗██╔══██╗██╔═══██╗╚██╗██╔╝
-   ███████║██║██████╔╝██████╔╝██║   ██║ ╚███╔╝ 
-   ██╔══██║██║██╔═══╝ ██╔═══╝ ██║   ██║ ██╔██╗ 
-   ██║  ██║██║██║     ██║     ╚██████╔╝██╔╝ ██╗
-   ╚═╝  ╚═╝╚═╝╚═╝     ╚═╝      ╚═════╝ ╚═╝  ╚═╝
-`;
 
 const styles = {
   asciiArt: {
@@ -201,6 +193,7 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
   const buttonRef = useRef<HTMLDivElement>(null);
   const [bubblePosition, setBubblePosition] = useState({ right: 0, top: 0 });
   const [tasks, setTasks] = useState<TaskInfo[]>([]);
+
   useEffect(() => {
     const initialTasks = taskManager.getAllTasks();
     setTasks(initialTasks);
@@ -224,6 +217,9 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
     } as TaskInfo,
     ...activeTasks,
   ];
+
+  const prevTaskCountRef = useRef(allTasks.length);
+
   const updateBubblePosition = useCallback(() => {
     if (buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect();
@@ -256,10 +252,15 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
   }, []);
 
   useEffect(() => {
-    if (autoScroll && terminalRef.current) {
-      terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
+    if (terminalRef.current && allTasks.length > prevTaskCountRef.current) {
+      setTimeout(() => {
+        if (terminalRef.current) {
+          terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
+        }
+      }, 50);
     }
-  }, [allTasks, autoScroll]);
+    prevTaskCountRef.current = allTasks.length;
+  }, [allTasks]);
 
   const checkScrollPosition = useCallback(() => {
     if (!terminalRef.current) return;
@@ -287,10 +288,19 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
     setActiveNavIndex(closestIndex);
   }, [allTasks]);
 
+  const userScrolledUpRef = useRef(false);
+
   const handleScroll = () => {
     if (!terminalRef.current) return;
     const { scrollTop, scrollHeight, clientHeight } = terminalRef.current;
-    const isAtBottom = scrollHeight - scrollTop - clientHeight <= 10;
+    const isAtBottom = scrollHeight - scrollTop - clientHeight <= 50;
+
+    if (!isAtBottom) {
+      userScrolledUpRef.current = true;
+    } else {
+      userScrolledUpRef.current = false;
+    }
+
     setAutoScroll(isAtBottom);
     checkScrollPosition();
     updateActiveNavOnScroll();
@@ -370,6 +380,7 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
         top: terminalRef.current.scrollHeight,
         behavior: "smooth",
       });
+      userScrolledUpRef.current = false;
       setAutoScroll(true);
     }
   };

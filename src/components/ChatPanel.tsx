@@ -87,11 +87,12 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   }, []);
 
   useEffect(() => {
-    if (!userScrolled && messagesContainerRef.current) {
+    if (messagesContainerRef.current) {
       messagesContainerRef.current.scrollTop =
         messagesContainerRef.current.scrollHeight;
+      setUserScrolled(false);
     }
-  }, [messages, userScrolled]);
+  }, [messages]);
 
   const loadWorkspaces = async () => {
     try {
