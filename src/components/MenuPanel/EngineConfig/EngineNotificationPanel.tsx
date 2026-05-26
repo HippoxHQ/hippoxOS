@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
+import { showToast, ToastType } from "../../Toast";
+import { showDialog, DialogType } from "../../Dialog";
 
 interface NotificationInstance {
   id: string;
@@ -238,20 +240,66 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
     if (onSave) onSave(config);
   };
 
-  const handleDelete = async (id: string) => {
-    const updated = instances.filter((i) => i.id !== id);
-    setInstances(updated);
-    await saveInstancesToStorage(updated);
+  const handleToggleEnabled = (id: string, name: string, enabled: boolean) => {
+    const newEnabled = !enabled;
+    const actionText = newEnabled ? "enable" : "disable";
+
+    if (!newEnabled) {
+      showDialog(
+        DialogType.WARNING,
+        t("notification.disableConfirmTitle"),
+        t("notification.disableConfirmMessage", { name }),
+        async () => {
+          const updated = instances.map((i) =>
+            i.id === id
+              ? {
+                  ...i,
+                  enabled: newEnabled,
+                  updatedAt: new Date().toISOString(),
+                }
+              : i,
+          );
+          setInstances(updated);
+          await saveInstancesToStorage(updated);
+          showToast(
+            ToastType.SUCCESS,
+            t(`notification.${actionText}Success`, { name }),
+          );
+        },
+        undefined,
+        t("notification.disable"),
+        t("common.cancel"),
+      );
+    } else {
+      const updated = instances.map((i) =>
+        i.id === id
+          ? { ...i, enabled: newEnabled, updatedAt: new Date().toISOString() }
+          : i,
+      );
+      setInstances(updated);
+      saveInstancesToStorage(updated);
+      showToast(
+        ToastType.SUCCESS,
+        t(`notification.${actionText}Success`, { name }),
+      );
+    }
   };
 
-  const handleToggleEnabled = async (id: string) => {
-    const updated = instances.map((i) =>
-      i.id === id
-        ? { ...i, enabled: !i.enabled, updatedAt: new Date().toISOString() }
-        : i,
+  const handleDelete = async (id: string, name: string) => {
+    showDialog(
+      DialogType.WARNING,
+      t("notification.deleteConfirmTitle"),
+      t("notification.deleteConfirmMessage", { name }),
+      async () => {
+        const updated = instances.filter((i) => i.id !== id);
+        setInstances(updated);
+        await saveInstancesToStorage(updated);
+        showToast(ToastType.SUCCESS, t("notification.deleteSuccess", { name }));
+      },
+      undefined,
+      t("notification.delete"),
+      t("common.cancel"),
     );
-    setInstances(updated);
-    await saveInstancesToStorage(updated);
   };
 
   const handleEdit = (instance: NotificationInstance) => {
@@ -326,8 +374,16 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
     let updated: NotificationInstance[];
     if (editingId) {
       updated = instances.map((i) => (i.id === editingId ? newInstance : i));
+      showToast(
+        ToastType.SUCCESS,
+        t("notification.updateSuccess", { name: formName }),
+      );
     } else {
       updated = [...instances, newInstance];
+      showToast(
+        ToastType.SUCCESS,
+        t("notification.addSuccess", { type: getTypeName(activeTab) }),
+      );
     }
     setInstances(updated);
     await saveInstancesToStorage(updated);
@@ -535,7 +591,7 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
           justifyContent: "center",
         }}
       >
-        {t("atomicSkills.loading") || "Loading..."}
+        {t("common.loading")}
       </div>
     );
   }
@@ -564,9 +620,7 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
                 flexWrap: "wrap",
               }}
             >
-              <label style={labelStyle}>
-                {t("notification.smtpHost") || "SMTP Host"}
-              </label>
+              <label style={labelStyle}>{t("notification.smtpHost")}</label>
               <input
                 type="text"
                 style={inputStyle}
@@ -584,9 +638,7 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
                 flexWrap: "wrap",
               }}
             >
-              <label style={labelStyle}>
-                {t("notification.smtpPort") || "SMTP Port"}
-              </label>
+              <label style={labelStyle}>{t("notification.smtpPort")}</label>
               <input
                 type="number"
                 style={inputStyle}
@@ -605,9 +657,7 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
                 flexWrap: "wrap",
               }}
             >
-              <label style={labelStyle}>
-                {t("notification.username") || "Username"}
-              </label>
+              <label style={labelStyle}>{t("notification.username")}</label>
               <input
                 type="text"
                 style={inputStyle}
@@ -624,9 +674,7 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
                 flexWrap: "wrap",
               }}
             >
-              <label style={labelStyle}>
-                {t("notification.password") || "Password"}
-              </label>
+              <label style={labelStyle}>{t("notification.password")}</label>
               <input
                 type="password"
                 style={inputStyle}
@@ -643,9 +691,7 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
                 flexWrap: "wrap",
               }}
             >
-              <label style={labelStyle}>
-                {t("notification.fromEmail") || "From Email"}
-              </label>
+              <label style={labelStyle}>{t("notification.fromEmail")}</label>
               <input
                 type="email"
                 style={inputStyle}
@@ -667,9 +713,7 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
               flexWrap: "wrap",
             }}
           >
-            <label style={labelStyle}>
-              {t("notification.botToken") || "Bot Token"}
-            </label>
+            <label style={labelStyle}>{t("notification.botToken")}</label>
             <input
               type="password"
               style={inputStyle}
@@ -690,9 +734,7 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
               flexWrap: "wrap",
             }}
           >
-            <label style={labelStyle}>
-              {t("notification.accessToken") || "Access Token"}
-            </label>
+            <label style={labelStyle}>{t("notification.accessToken")}</label>
             <input
               type="password"
               style={inputStyle}
@@ -712,9 +754,7 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
               flexWrap: "wrap",
             }}
           >
-            <label style={labelStyle}>
-              {t("notification.webhook") || "Webhook URL"}
-            </label>
+            <label style={labelStyle}>{t("notification.webhook")}</label>
             <input
               type="text"
               style={inputStyle}
@@ -735,9 +775,7 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
               flexWrap: "wrap",
             }}
           >
-            <label style={labelStyle}>
-              {t("notification.webhook") || "Webhook URL"}
-            </label>
+            <label style={labelStyle}>{t("notification.webhook")}</label>
             <input
               type="text"
               style={inputStyle}
@@ -759,9 +797,7 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
                 flexWrap: "wrap",
               }}
             >
-              <label style={labelStyle}>
-                {t("notification.accessToken") || "Access Token"}
-              </label>
+              <label style={labelStyle}>{t("notification.accessToken")}</label>
               <input
                 type="password"
                 style={inputStyle}
@@ -778,9 +814,7 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
                 flexWrap: "wrap",
               }}
             >
-              <label style={labelStyle}>
-                {t("notification.apiUrl") || "API URL"}
-              </label>
+              <label style={labelStyle}>{t("notification.apiUrl")}</label>
               <input
                 type="text"
                 style={inputStyle}
@@ -810,9 +844,7 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
                 flexWrap: "wrap",
               }}
             >
-              <label style={labelStyle}>
-                {t("notification.smtpHost") || "SMTP Host"}
-              </label>
+              <label style={labelStyle}>{t("notification.smtpHost")}</label>
               <input
                 type="text"
                 style={inputStyle}
@@ -830,9 +862,7 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
                 flexWrap: "wrap",
               }}
             >
-              <label style={labelStyle}>
-                {t("notification.smtpPort") || "SMTP Port"}
-              </label>
+              <label style={labelStyle}>{t("notification.smtpPort")}</label>
               <input
                 type="number"
                 style={inputStyle}
@@ -850,9 +880,7 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
                 flexWrap: "wrap",
               }}
             >
-              <label style={labelStyle}>
-                {t("notification.username") || "Username"}
-              </label>
+              <label style={labelStyle}>{t("notification.username")}</label>
               <input
                 type="text"
                 style={inputStyle}
@@ -870,9 +898,7 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
                 flexWrap: "wrap",
               }}
             >
-              <label style={labelStyle}>
-                {t("notification.fromEmail") || "From Email"}
-              </label>
+              <label style={labelStyle}>{t("notification.fromEmail")}</label>
               <input
                 type="text"
                 style={inputStyle}
@@ -894,9 +920,7 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
               flexWrap: "wrap",
             }}
           >
-            <label style={labelStyle}>
-              {t("notification.botToken") || "Bot Token"}
-            </label>
+            <label style={labelStyle}>{t("notification.botToken")}</label>
             <input
               type="password"
               style={inputStyle}
@@ -917,9 +941,7 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
               flexWrap: "wrap",
             }}
           >
-            <label style={labelStyle}>
-              {t("notification.accessToken") || "Access Token"}
-            </label>
+            <label style={labelStyle}>{t("notification.accessToken")}</label>
             <input
               type="password"
               style={inputStyle}
@@ -940,9 +962,7 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
               flexWrap: "wrap",
             }}
           >
-            <label style={labelStyle}>
-              {t("notification.webhook") || "Webhook URL"}
-            </label>
+            <label style={labelStyle}>{t("notification.webhook")}</label>
             <input
               type="text"
               style={inputStyle}
@@ -963,9 +983,7 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
               flexWrap: "wrap",
             }}
           >
-            <label style={labelStyle}>
-              {t("notification.webhook") || "Webhook URL"}
-            </label>
+            <label style={labelStyle}>{t("notification.webhook")}</label>
             <input
               type="text"
               style={inputStyle}
@@ -987,9 +1005,7 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
                 flexWrap: "wrap",
               }}
             >
-              <label style={labelStyle}>
-                {t("notification.accessToken") || "Access Token"}
-              </label>
+              <label style={labelStyle}>{t("notification.accessToken")}</label>
               <input
                 type="password"
                 style={inputStyle}
@@ -1007,9 +1023,7 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
                 flexWrap: "wrap",
               }}
             >
-              <label style={labelStyle}>
-                {t("notification.apiUrl") || "API URL"}
-              </label>
+              <label style={labelStyle}>{t("notification.apiUrl")}</label>
               <input
                 type="text"
                 style={inputStyle}
@@ -1096,8 +1110,7 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
               fontSize: "14px",
             }}
           >
-            {t("notification.noInstances", { type: getTypeName(activeTab) }) ||
-              `No ${getTypeName(activeTab)} instances configured`}
+            {t("notification.noInstances", { type: getTypeName(activeTab) })}
           </div>
         ) : (
           currentInstances.map((instance) => (
@@ -1126,8 +1139,8 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
                   }
                 >
                   {instance.enabled
-                    ? t("notification.enabled") || "Enabled"
-                    : t("notification.disabled") || "Disabled"}
+                    ? t("notification.enabled")
+                    : t("notification.disabled")}
                 </span>
               </div>
 
@@ -1147,11 +1160,17 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
                     fontSize: "11px",
                     padding: "4px 10px",
                   }}
-                  onClick={() => handleToggleEnabled(instance.id)}
+                  onClick={() =>
+                    handleToggleEnabled(
+                      instance.id,
+                      instance.name,
+                      instance.enabled,
+                    )
+                  }
                 >
                   {instance.enabled
-                    ? t("notification.disable") || "Disable"
-                    : t("notification.enable") || "Enable"}
+                    ? t("notification.disable")
+                    : t("notification.enable")}
                 </button>
                 <button
                   style={{
@@ -1161,7 +1180,7 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
                   }}
                   onClick={() => handleEdit(instance)}
                 >
-                  {t("notification.edit") || "Edit"}
+                  {t("notification.edit")}
                 </button>
                 <button
                   style={{
@@ -1169,9 +1188,9 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
                     fontSize: "11px",
                     padding: "4px 10px",
                   }}
-                  onClick={() => handleDelete(instance.id)}
+                  onClick={() => handleDelete(instance.id, instance.name)}
                 >
-                  {t("notification.delete") || "Delete"}
+                  {t("notification.delete")}
                 </button>
               </div>
             </div>
@@ -1189,10 +1208,10 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
               }}
             >
               {editingId
-                ? t("notification.editInstance") || "Edit Notification Config"
+                ? t("notification.editInstance")
                 : t("notification.addInstance", {
                     type: getTypeName(activeTab),
-                  }) || `Add ${getTypeName(activeTab)}`}
+                  })}
             </div>
 
             <div
@@ -1204,17 +1223,13 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
                 flexWrap: "wrap",
               }}
             >
-              <label style={labelStyle}>
-                {t("notification.name") || "Config Name"}
-              </label>
+              <label style={labelStyle}>{t("notification.name")}</label>
               <input
                 type="text"
                 style={inputStyle}
                 value={formName}
                 onChange={(e) => setFormName(e.target.value)}
-                placeholder={
-                  t("notification.namePlaceholder") || "Example: My Server"
-                }
+                placeholder={t("notification.namePlaceholder")}
               />
             </div>
 
@@ -1229,12 +1244,10 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
               }}
             >
               <button style={buttonStyle} onClick={resetForm}>
-                {t("settings.cancel") || "Cancel"}
+                {t("common.cancel")}
               </button>
               <button style={addButtonStyle} onClick={handleSave}>
-                {editingId
-                  ? t("settings.update") || "Update"
-                  : t("settings.add") || "Add"}
+                {editingId ? t("settings.update") : t("settings.add")}
               </button>
             </div>
           </div>
@@ -1246,9 +1259,7 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
               setShowAddForm(true);
             }}
           >
-            +{" "}
-            {t("notification.addInstance", { type: getTypeName(activeTab) }) ||
-              `Add ${getTypeName(activeTab)}`}
+            + {t("notification.addInstance", { type: getTypeName(activeTab) })}
           </button>
         )}
       </div>

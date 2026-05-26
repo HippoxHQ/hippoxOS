@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
+import { showToast, ToastType } from "../../Toast";
+import { showDialog, DialogType } from "../../Dialog";
 
 interface DatabaseInstance {
   id: string;
@@ -211,20 +213,66 @@ const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
     if (onSave) onSave(config);
   };
 
-  const handleDelete = async (id: string) => {
-    const updated = instances.filter((i) => i.id !== id);
-    setInstances(updated);
-    await saveInstancesToStorage(updated);
+  const handleToggleEnabled = (id: string, name: string, enabled: boolean) => {
+    const newEnabled = !enabled;
+    const actionText = newEnabled ? "enable" : "disable";
+
+    if (!newEnabled) {
+      showDialog(
+        DialogType.WARNING,
+        t("database.disableConfirmTitle"),
+        t("database.disableConfirmMessage", { name }),
+        async () => {
+          const updated = instances.map((i) =>
+            i.id === id
+              ? {
+                  ...i,
+                  enabled: newEnabled,
+                  updatedAt: new Date().toISOString(),
+                }
+              : i,
+          );
+          setInstances(updated);
+          await saveInstancesToStorage(updated);
+          showToast(
+            ToastType.SUCCESS,
+            t(`database.${actionText}Success`, { name }),
+          );
+        },
+        undefined,
+        t("database.disable"),
+        t("common.cancel"),
+      );
+    } else {
+      const updated = instances.map((i) =>
+        i.id === id
+          ? { ...i, enabled: newEnabled, updatedAt: new Date().toISOString() }
+          : i,
+      );
+      setInstances(updated);
+      saveInstancesToStorage(updated);
+      showToast(
+        ToastType.SUCCESS,
+        t(`database.${actionText}Success`, { name }),
+      );
+    }
   };
 
-  const handleToggleEnabled = async (id: string) => {
-    const updated = instances.map((i) =>
-      i.id === id
-        ? { ...i, enabled: !i.enabled, updatedAt: new Date().toISOString() }
-        : i,
+  const handleDelete = async (id: string, name: string) => {
+    showDialog(
+      DialogType.WARNING,
+      t("database.deleteConfirmTitle"),
+      t("database.deleteConfirmMessage", { name }),
+      async () => {
+        const updated = instances.filter((i) => i.id !== id);
+        setInstances(updated);
+        await saveInstancesToStorage(updated);
+        showToast(ToastType.SUCCESS, t("database.deleteSuccess", { name }));
+      },
+      undefined,
+      t("database.delete"),
+      t("common.cancel"),
     );
-    setInstances(updated);
-    await saveInstancesToStorage(updated);
   };
 
   const handleEdit = (instance: DatabaseInstance) => {
@@ -276,8 +324,16 @@ const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
     let updated: DatabaseInstance[];
     if (editingId) {
       updated = instances.map((i) => (i.id === editingId ? newInstance : i));
+      showToast(
+        ToastType.SUCCESS,
+        t("database.updateSuccess", { name: formName }),
+      );
     } else {
       updated = [...instances, newInstance];
+      showToast(
+        ToastType.SUCCESS,
+        t("database.addSuccess", { type: getTypeName(activeTab) }),
+      );
     }
     setInstances(updated);
     await saveInstancesToStorage(updated);
@@ -477,7 +533,7 @@ const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
           justifyContent: "center",
         }}
       >
-        {t("atomicSkills.loading") || "Loading..."}
+        {t("common.loading")}
       </div>
     );
   }
@@ -581,8 +637,8 @@ const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
                   }
                 >
                   {instance.enabled
-                    ? t("database.enabled") || "Enabled"
-                    : t("database.disabled") || "Disabled"}
+                    ? t("database.enabled")
+                    : t("database.disabled")}
                 </span>
               </div>
 
@@ -597,9 +653,7 @@ const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
                       flexWrap: "wrap",
                     }}
                   >
-                    <label style={labelStyle}>
-                      {t("database.host") || "Host"}
-                    </label>
+                    <label style={labelStyle}>{t("database.host")}</label>
                     <input
                       type="text"
                       style={inputStyle}
@@ -617,9 +671,7 @@ const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
                       flexWrap: "wrap",
                     }}
                   >
-                    <label style={labelStyle}>
-                      {t("database.port") || "Port"}
-                    </label>
+                    <label style={labelStyle}>{t("database.port")}</label>
                     <input
                       type="number"
                       style={inputStyle}
@@ -639,9 +691,7 @@ const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
                     flexWrap: "wrap",
                   }}
                 >
-                  <label style={labelStyle}>
-                    {t("database.path") || "Path"}
-                  </label>
+                  <label style={labelStyle}>{t("database.path")}</label>
                   <input
                     type="text"
                     style={inputStyle}
@@ -663,9 +713,7 @@ const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
                       flexWrap: "wrap",
                     }}
                   >
-                    <label style={labelStyle}>
-                      {t("database.database") || "Database"}
-                    </label>
+                    <label style={labelStyle}>{t("database.database")}</label>
                     <input
                       type="text"
                       style={inputStyle}
@@ -683,9 +731,7 @@ const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
                       flexWrap: "wrap",
                     }}
                   >
-                    <label style={labelStyle}>
-                      {t("database.username") || "Username"}
-                    </label>
+                    <label style={labelStyle}>{t("database.username")}</label>
                     <input
                       type="text"
                       style={inputStyle}
@@ -707,7 +753,7 @@ const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
                     flexWrap: "wrap",
                   }}
                 >
-                  <label style={labelStyle}>{t("database.db") || "DB"}</label>
+                  <label style={labelStyle}>{t("database.db")}</label>
                   <input
                     type="number"
                     style={inputStyle}
@@ -732,11 +778,17 @@ const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
                     fontSize: "11px",
                     padding: "4px 10px",
                   }}
-                  onClick={() => handleToggleEnabled(instance.id)}
+                  onClick={() =>
+                    handleToggleEnabled(
+                      instance.id,
+                      instance.name,
+                      instance.enabled,
+                    )
+                  }
                 >
                   {instance.enabled
-                    ? t("database.disable") || "Disable"
-                    : t("database.enable") || "Enable"}
+                    ? t("database.disable")
+                    : t("database.enable")}
                 </button>
                 <button
                   style={{
@@ -746,7 +798,7 @@ const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
                   }}
                   onClick={() => handleEdit(instance)}
                 >
-                  {t("database.edit") || "Edit"}
+                  {t("database.edit")}
                 </button>
                 <button
                   style={{
@@ -754,9 +806,9 @@ const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
                     fontSize: "11px",
                     padding: "4px 10px",
                   }}
-                  onClick={() => handleDelete(instance.id)}
+                  onClick={() => handleDelete(instance.id, instance.name)}
                 >
-                  {t("database.delete") || "Delete"}
+                  {t("database.delete")}
                 </button>
               </div>
             </div>
@@ -774,7 +826,7 @@ const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
               }}
             >
               {editingId
-                ? t("database.editInstance") || "Edit Database Config"
+                ? t("database.editInstance")
                 : t("database.addInstance", { type: getTypeName(activeTab) })}
             </div>
 
@@ -787,17 +839,13 @@ const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
                 flexWrap: "wrap",
               }}
             >
-              <label style={labelStyle}>
-                {t("database.name") || "Config Name"}
-              </label>
+              <label style={labelStyle}>{t("database.name")}</label>
               <input
                 type="text"
                 style={inputStyle}
                 value={formName}
                 onChange={(e) => setFormName(e.target.value)}
-                placeholder={
-                  t("database.namePlaceholder") || "Example: Database Name"
-                }
+                placeholder={t("database.namePlaceholder")}
               />
             </div>
             {activeTab !== "sqlite" ? (
@@ -811,9 +859,7 @@ const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
                     flexWrap: "wrap",
                   }}
                 >
-                  <label style={labelStyle}>
-                    {t("database.host") || "Host"}
-                  </label>
+                  <label style={labelStyle}>{t("database.host")}</label>
                   <input
                     type="text"
                     style={inputStyle}
@@ -831,9 +877,7 @@ const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
                     flexWrap: "wrap",
                   }}
                 >
-                  <label style={labelStyle}>
-                    {t("database.port") || "Port"}
-                  </label>
+                  <label style={labelStyle}>{t("database.port")}</label>
                   <input
                     type="number"
                     style={inputStyle}
@@ -852,9 +896,7 @@ const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
                   flexWrap: "wrap",
                 }}
               >
-                <label style={labelStyle}>
-                  {t("database.path") || "Database Path"}
-                </label>
+                <label style={labelStyle}>{t("database.path")}</label>
                 <input
                   type="text"
                   style={inputStyle}
@@ -875,9 +917,7 @@ const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
                     flexWrap: "wrap",
                   }}
                 >
-                  <label style={labelStyle}>
-                    {t("database.database") || "Database"}
-                  </label>
+                  <label style={labelStyle}>{t("database.database")}</label>
                   <input
                     type="text"
                     style={inputStyle}
@@ -894,9 +934,7 @@ const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
                     flexWrap: "wrap",
                   }}
                 >
-                  <label style={labelStyle}>
-                    {t("database.username") || "Username"}
-                  </label>
+                  <label style={labelStyle}>{t("database.username")}</label>
                   <input
                     type="text"
                     style={inputStyle}
@@ -916,9 +954,7 @@ const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
                   flexWrap: "wrap",
                 }}
               >
-                <label style={labelStyle}>
-                  {t("database.password") || "Password"}
-                </label>
+                <label style={labelStyle}>{t("database.password")}</label>
                 <input
                   type="password"
                   style={inputStyle}
@@ -937,7 +973,7 @@ const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
                   flexWrap: "wrap",
                 }}
               >
-                <label style={labelStyle}>{t("database.db") || "DB"}</label>
+                <label style={labelStyle}>{t("database.db")}</label>
                 <input
                   type="number"
                   style={inputStyle}
@@ -958,12 +994,10 @@ const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
               }}
             >
               <button style={buttonStyle} onClick={resetForm}>
-                {t("settings.cancel") || "Cancel"}
+                {t("common.cancel")}
               </button>
               <button style={addButtonStyle} onClick={handleSave}>
-                {editingId
-                  ? t("settings.update") || "Update"
-                  : t("settings.add") || "Add"}
+                {editingId ? t("settings.update") : t("settings.add")}
               </button>
             </div>
           </div>

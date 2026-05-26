@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
+import { showToast, ToastType } from "../../Toast";
+import { showDialog, DialogType } from "../../Dialog";
 
 interface ContainerInstance {
   id: string;
@@ -160,20 +162,66 @@ const EngineContainerPanel: React.FC<EngineContainerPanelProps> = ({
     if (onSave) onSave(config);
   };
 
-  const handleDelete = async (id: string) => {
-    const updated = instances.filter((i) => i.id !== id);
-    setInstances(updated);
-    await saveInstancesToStorage(updated);
+  const handleToggleEnabled = (id: string, name: string, enabled: boolean) => {
+    const newEnabled = !enabled;
+    const actionText = newEnabled ? "enable" : "disable";
+
+    if (!newEnabled) {
+      showDialog(
+        DialogType.WARNING,
+        t("container.disableConfirmTitle"),
+        t("container.disableConfirmMessage", { name }),
+        async () => {
+          const updated = instances.map((i) =>
+            i.id === id
+              ? {
+                  ...i,
+                  enabled: newEnabled,
+                  updatedAt: new Date().toISOString(),
+                }
+              : i,
+          );
+          setInstances(updated);
+          await saveInstancesToStorage(updated);
+          showToast(
+            ToastType.SUCCESS,
+            t(`container.${actionText}Success`, { name }),
+          );
+        },
+        undefined,
+        t("container.disable"),
+        t("common.cancel"),
+      );
+    } else {
+      const updated = instances.map((i) =>
+        i.id === id
+          ? { ...i, enabled: newEnabled, updatedAt: new Date().toISOString() }
+          : i,
+      );
+      setInstances(updated);
+      saveInstancesToStorage(updated);
+      showToast(
+        ToastType.SUCCESS,
+        t(`container.${actionText}Success`, { name }),
+      );
+    }
   };
 
-  const handleToggleEnabled = async (id: string) => {
-    const updated = instances.map((i) =>
-      i.id === id
-        ? { ...i, enabled: !i.enabled, updatedAt: new Date().toISOString() }
-        : i,
+  const handleDelete = async (id: string, name: string) => {
+    showDialog(
+      DialogType.WARNING,
+      t("container.deleteConfirmTitle"),
+      t("container.deleteConfirmMessage", { name }),
+      async () => {
+        const updated = instances.filter((i) => i.id !== id);
+        setInstances(updated);
+        await saveInstancesToStorage(updated);
+        showToast(ToastType.SUCCESS, t("container.deleteSuccess", { name }));
+      },
+      undefined,
+      t("container.delete"),
+      t("common.cancel"),
     );
-    setInstances(updated);
-    await saveInstancesToStorage(updated);
   };
 
   const handleEdit = (instance: ContainerInstance) => {
@@ -244,8 +292,16 @@ const EngineContainerPanel: React.FC<EngineContainerPanelProps> = ({
     let updated: ContainerInstance[];
     if (editingId) {
       updated = instances.map((i) => (i.id === editingId ? newInstance : i));
+      showToast(
+        ToastType.SUCCESS,
+        t("container.updateSuccess", { name: formName }),
+      );
     } else {
       updated = [...instances, newInstance];
+      showToast(
+        ToastType.SUCCESS,
+        t("container.addSuccess", { type: getTypeName(activeTab) }),
+      );
     }
     setInstances(updated);
     await saveInstancesToStorage(updated);
@@ -452,7 +508,7 @@ const EngineContainerPanel: React.FC<EngineContainerPanelProps> = ({
           justifyContent: "center",
         }}
       >
-        {t("atomicSkills.loading") || "Loading..."}
+        {t("common.loading")}
       </div>
     );
   }
@@ -531,8 +587,7 @@ const EngineContainerPanel: React.FC<EngineContainerPanelProps> = ({
               fontSize: "14px",
             }}
           >
-            {t("container.noInstances", { type: getTypeName(activeTab) }) ||
-              `No ${getTypeName(activeTab)} configuration, click the button below to add`}
+            {t("container.noInstances", { type: getTypeName(activeTab) })}
           </div>
         ) : (
           currentInstances.map((instance) => (
@@ -561,8 +616,8 @@ const EngineContainerPanel: React.FC<EngineContainerPanelProps> = ({
                   }
                 >
                   {instance.enabled
-                    ? t("container.enabled") || "Enabled"
-                    : t("container.disabled") || "Disabled"}
+                    ? t("container.enabled")
+                    : t("container.disabled")}
                 </span>
               </div>
 
@@ -577,9 +632,7 @@ const EngineContainerPanel: React.FC<EngineContainerPanelProps> = ({
                       flexWrap: "wrap",
                     }}
                   >
-                    <label style={labelStyle}>
-                      {t("container.host") || "Host"}
-                    </label>
+                    <label style={labelStyle}>{t("container.host")}</label>
                     <input
                       type="text"
                       style={inputStyle}
@@ -598,7 +651,7 @@ const EngineContainerPanel: React.FC<EngineContainerPanelProps> = ({
                     }}
                   >
                     <label style={labelStyle}>
-                      {t("container.apiVersion") || "API Version"}
+                      {t("container.apiVersion")}
                     </label>
                     <input
                       type="text"
@@ -617,9 +670,7 @@ const EngineContainerPanel: React.FC<EngineContainerPanelProps> = ({
                       flexWrap: "wrap",
                     }}
                   >
-                    <label style={labelStyle}>
-                      {t("container.tlsVerify") || "TLS Verify"}
-                    </label>
+                    <label style={labelStyle}>{t("container.tlsVerify")}</label>
                     <input
                       type="checkbox"
                       style={checkboxStyle}
@@ -640,7 +691,7 @@ const EngineContainerPanel: React.FC<EngineContainerPanelProps> = ({
                     }}
                   >
                     <label style={labelStyle}>
-                      {t("container.kubeconfig") || "Kubeconfig Path"}
+                      {t("container.kubeconfig")}
                     </label>
                     <input
                       type="text"
@@ -659,9 +710,7 @@ const EngineContainerPanel: React.FC<EngineContainerPanelProps> = ({
                       flexWrap: "wrap",
                     }}
                   >
-                    <label style={labelStyle}>
-                      {t("container.context") || "Context"}
-                    </label>
+                    <label style={labelStyle}>{t("container.context")}</label>
                     <input
                       type="text"
                       style={inputStyle}
@@ -679,9 +728,7 @@ const EngineContainerPanel: React.FC<EngineContainerPanelProps> = ({
                       flexWrap: "wrap",
                     }}
                   >
-                    <label style={labelStyle}>
-                      {t("container.namespace") || "Default Namespace"}
-                    </label>
+                    <label style={labelStyle}>{t("container.namespace")}</label>
                     <input
                       type="text"
                       style={inputStyle}
@@ -707,11 +754,17 @@ const EngineContainerPanel: React.FC<EngineContainerPanelProps> = ({
                     fontSize: "11px",
                     padding: "4px 10px",
                   }}
-                  onClick={() => handleToggleEnabled(instance.id)}
+                  onClick={() =>
+                    handleToggleEnabled(
+                      instance.id,
+                      instance.name,
+                      instance.enabled,
+                    )
+                  }
                 >
                   {instance.enabled
-                    ? t("container.disable") || "Disable"
-                    : t("container.enable") || "Enable"}
+                    ? t("container.disable")
+                    : t("container.enable")}
                 </button>
                 <button
                   style={{
@@ -721,7 +774,7 @@ const EngineContainerPanel: React.FC<EngineContainerPanelProps> = ({
                   }}
                   onClick={() => handleEdit(instance)}
                 >
-                  {t("container.edit") || "Edit"}
+                  {t("container.edit")}
                 </button>
                 <button
                   style={{
@@ -729,9 +782,9 @@ const EngineContainerPanel: React.FC<EngineContainerPanelProps> = ({
                     fontSize: "11px",
                     padding: "4px 10px",
                   }}
-                  onClick={() => handleDelete(instance.id)}
+                  onClick={() => handleDelete(instance.id, instance.name)}
                 >
-                  {t("container.delete") || "Delete"}
+                  {t("container.delete")}
                 </button>
               </div>
             </div>
@@ -749,10 +802,10 @@ const EngineContainerPanel: React.FC<EngineContainerPanelProps> = ({
               }}
             >
               {editingId
-                ? t("container.editInstance") || "Edit Container Config"
+                ? t("container.editInstance")
                 : t("container.addInstance", {
                     type: getTypeName(activeTab),
-                  }) || `Add ${getTypeName(activeTab)} Configuration`}
+                  })}
             </div>
 
             <div
@@ -764,17 +817,13 @@ const EngineContainerPanel: React.FC<EngineContainerPanelProps> = ({
                 flexWrap: "wrap",
               }}
             >
-              <label style={labelStyle}>
-                {t("container.name") || "Config Name"}
-              </label>
+              <label style={labelStyle}>{t("container.name")}</label>
               <input
                 type="text"
                 style={inputStyle}
                 value={formName}
                 onChange={(e) => setFormName(e.target.value)}
-                placeholder={
-                  t("container.namePlaceholder") || "Example: Production Docker"
-                }
+                placeholder={t("container.namePlaceholder")}
               />
             </div>
 
@@ -789,9 +838,7 @@ const EngineContainerPanel: React.FC<EngineContainerPanelProps> = ({
                     flexWrap: "wrap",
                   }}
                 >
-                  <label style={labelStyle}>
-                    {t("container.host") || "Host"}
-                  </label>
+                  <label style={labelStyle}>{t("container.host")}</label>
                   <input
                     type="text"
                     style={inputStyle}
@@ -809,9 +856,7 @@ const EngineContainerPanel: React.FC<EngineContainerPanelProps> = ({
                     flexWrap: "wrap",
                   }}
                 >
-                  <label style={labelStyle}>
-                    {t("container.apiVersion") || "API Version"}
-                  </label>
+                  <label style={labelStyle}>{t("container.apiVersion")}</label>
                   <input
                     type="text"
                     style={inputStyle}
@@ -829,9 +874,7 @@ const EngineContainerPanel: React.FC<EngineContainerPanelProps> = ({
                     flexWrap: "wrap",
                   }}
                 >
-                  <label style={labelStyle}>
-                    {t("container.tlsVerify") || "TLS Verify"}
-                  </label>
+                  <label style={labelStyle}>{t("container.tlsVerify")}</label>
                   <input
                     type="checkbox"
                     style={checkboxStyle}
@@ -851,9 +894,7 @@ const EngineContainerPanel: React.FC<EngineContainerPanelProps> = ({
                     flexWrap: "wrap",
                   }}
                 >
-                  <label style={labelStyle}>
-                    {t("container.kubeconfig") || "Kubeconfig Path"}
-                  </label>
+                  <label style={labelStyle}>{t("container.kubeconfig")}</label>
                   <input
                     type="text"
                     style={inputStyle}
@@ -871,9 +912,7 @@ const EngineContainerPanel: React.FC<EngineContainerPanelProps> = ({
                     flexWrap: "wrap",
                   }}
                 >
-                  <label style={labelStyle}>
-                    {t("container.context") || "Context"}
-                  </label>
+                  <label style={labelStyle}>{t("container.context")}</label>
                   <input
                     type="text"
                     style={inputStyle}
@@ -890,9 +929,7 @@ const EngineContainerPanel: React.FC<EngineContainerPanelProps> = ({
                     flexWrap: "wrap",
                   }}
                 >
-                  <label style={labelStyle}>
-                    {t("container.namespace") || "Default Namespace"}
-                  </label>
+                  <label style={labelStyle}>{t("container.namespace")}</label>
                   <input
                     type="text"
                     style={inputStyle}
@@ -912,12 +949,10 @@ const EngineContainerPanel: React.FC<EngineContainerPanelProps> = ({
               }}
             >
               <button style={buttonStyle} onClick={resetForm}>
-                {t("settings.cancel") || "Cancel"}
+                {t("common.cancel")}
               </button>
               <button style={addButtonStyle} onClick={handleSave}>
-                {editingId
-                  ? t("settings.update") || "Update"
-                  : t("settings.add") || "Add"}
+                {editingId ? t("settings.update") : t("settings.add")}
               </button>
             </div>
           </div>
@@ -929,9 +964,7 @@ const EngineContainerPanel: React.FC<EngineContainerPanelProps> = ({
               setShowAddForm(true);
             }}
           >
-            +{" "}
-            {t("container.addInstance", { type: getTypeName(activeTab) }) ||
-              `Add ${getTypeName(activeTab)} Configuration`}
+            + {t("container.addInstance", { type: getTypeName(activeTab) })}
           </button>
         )}
       </div>

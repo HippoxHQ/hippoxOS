@@ -115,6 +115,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
       await workspaceCommands.setDefaultWorkspace(workspaceId);
       setSelectedWorkspaceId(workspaceId);
       setShowDirectoryMenu(false);
+      await loadWorkspaces();
     } catch (error) {
       console.error("Failed to set default workspace:", error);
     }
@@ -723,7 +724,10 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
             <div
               className="icon-btn folder-btn"
               ref={directoryBtnRef}
-              onClick={() => setShowDirectoryMenu(!showDirectoryMenu)}
+              onClick={async () => {
+                await loadWorkspaces();
+                setShowDirectoryMenu(!showDirectoryMenu);
+              }}
               title={t("chat.selectWorkspace")}
             >
               <FolderIcon size={14} />

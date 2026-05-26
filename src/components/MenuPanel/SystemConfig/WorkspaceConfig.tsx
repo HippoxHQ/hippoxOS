@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { workspaceCommands, WorkspaceInstance } from "../../../api/workspace";
 import { filesCommands } from "../../../api/files";
+import { showToast, ToastType } from "../../Toast";
+import { showDialog, DialogType } from "../../Dialog";
 
 interface WorkspaceConfigProps {
   t: (key: string, params?: any) => string;
@@ -64,7 +66,7 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
     }
   };
 
-  const handleSetDefault = async (instanceId: string) => {
+  const handleSetDefault = async (instanceId: string, instanceName: string) => {
     try {
       await workspaceCommands.setDefaultWorkspace(instanceId);
       const updatedInstances = workspaceInstances.map((inst) => ({
@@ -73,6 +75,10 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
       }));
       setWorkspaceInstances(updatedInstances);
       setDefaultInstanceId(instanceId);
+      showToast(
+        ToastType.SUCCESS,
+        t("workspace.defaultSuccess", { name: instanceName }),
+      );
       if (onSaveWorkspace) {
         const defaultWorkspace = updatedInstances.find(
           (i) => i.id === instanceId,
@@ -85,21 +91,47 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
       }
     } catch (error) {
       console.error("Failed to set default workspace:", error);
+      showToast(ToastType.ERROR, t("workspace.defaultFailed"));
     }
   };
 
-  const handleDeleteInstance = async (instanceId: string) => {
-    if (workspaceInstances.length <= 1) return;
-    if (defaultInstanceId === instanceId) return;
-    try {
-      await workspaceCommands.deleteWorkspace(instanceId);
-      const updatedInstances = workspaceInstances.filter(
-        (inst) => inst.id !== instanceId,
-      );
-      setWorkspaceInstances(updatedInstances);
-    } catch (error) {
-      console.error("Failed to delete workspace:", error);
+  const handleDeleteInstance = async (
+    instanceId: string,
+    instanceName: string,
+  ) => {
+    if (workspaceInstances.length <= 1) {
+      showToast(ToastType.WARNING, t("workspace.cannotDeleteLast"));
+      return;
     }
+    if (defaultInstanceId === instanceId) {
+      showToast(ToastType.WARNING, t("workspace.cannotDeleteDefault"));
+      return;
+    }
+
+    showDialog(
+      DialogType.WARNING,
+      t("workspace.deleteConfirmTitle"),
+      t("workspace.deleteConfirmMessage", { name: instanceName }),
+      async () => {
+        try {
+          await workspaceCommands.deleteWorkspace(instanceId);
+          const updatedInstances = workspaceInstances.filter(
+            (inst) => inst.id !== instanceId,
+          );
+          setWorkspaceInstances(updatedInstances);
+          showToast(
+            ToastType.SUCCESS,
+            t("workspace.deleteSuccess", { name: instanceName }),
+          );
+        } catch (error) {
+          console.error("Failed to delete workspace:", error);
+          showToast(ToastType.ERROR, t("workspace.deleteFailed"));
+        }
+      },
+      undefined,
+      t("workspace.delete"),
+      t("common.cancel"),
+    );
   };
 
   const handleOpenDirectory = async (path: string) => {
@@ -133,7 +165,10 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
   };
 
   const handleAddInstance = async () => {
-    if (!newWorkspacePath.trim()) return;
+    if (!newWorkspacePath.trim()) {
+      showToast(ToastType.WARNING, t("workspace.pathRequired"));
+      return;
+    }
     let workspaceName = newWorkspaceName.trim();
     if (!workspaceName) {
       workspaceName = getWorkspaceNameFromPath(newWorkspacePath);
@@ -154,10 +189,16 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
       setShowAddForm(false);
       setNewWorkspaceName("");
       setNewWorkspacePath("");
+      showToast(
+        ToastType.SUCCESS,
+        t("workspace.addSuccess", { name: workspaceName }),
+      );
     } catch (error) {
       console.error("Failed to add workspace:", error);
+      showToast(ToastType.ERROR, t("workspace.addFailed"));
     }
   };
+
   const labelStyle: React.CSSProperties = {
     fontSize: "13px",
     color: "var(--text-primary)",
@@ -244,7 +285,7 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
           justifyContent: "center",
         }}
       >
-        {t("atomicSkills.loading") || "loading..."}
+        {t("common.loading")}
       </div>
     );
   }
@@ -300,9 +341,7 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
                 📁 {instance.name}
               </span>
               {defaultInstanceId === instance.id && (
-                <span style={badgeStyle}>
-                  {t("settings.defaultBadge") || "Default"}
-                </span>
+                <span style={badgeStyle}>{t("settings.defaultBadge")}</span>
               )}
             </div>
             <div
@@ -326,9 +365,9 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
                 <button
                   style={folderButtonStyle}
                   onClick={() => handleOpenDirectory(instance.workspace_path)}
-                  title={t("settings.openDirectory") || "Open Directory"}
+                  title={t("settings.openDirectory")}
                 >
-                  📂 {t("settings.open") || "Open"}
+                  📂 {t("settings.open")}
                 </button>
               </div>
             </div>
@@ -347,9 +386,9 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
                     fontSize: "11px",
                     padding: "8px 10px",
                   }}
-                  onClick={() => handleSetDefault(instance.id)}
+                  onClick={() => handleSetDefault(instance.id, instance.name)}
                 >
-                  {t("settings.setAsDefault") || "Set Default"}
+                  {t("settings.setAsDefault")}
                 </button>
               )}
               {defaultInstanceId !== instance.id &&
@@ -360,9 +399,11 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
                       fontSize: "11px",
                       padding: "8px 10px",
                     }}
-                    onClick={() => handleDeleteInstance(instance.id)}
+                    onClick={() =>
+                      handleDeleteInstance(instance.id, instance.name)
+                    }
                   >
-                    {t("settings.delete") || "Delete"}
+                    {t("settings.delete")}
                   </button>
                 )}
             </div>
@@ -378,7 +419,7 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
                 marginBottom: "12px",
               }}
             >
-              {t("settings.addWorkspace") || "Add Workspace"}
+              {t("settings.addWorkspace")}
             </div>
 
             <div
@@ -391,17 +432,12 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
                 flexWrap: "wrap",
               }}
             >
-              <label style={labelStyle}>
-                {t("settings.workspaceName") || "Workspace Name"}
-              </label>
+              <label style={labelStyle}>{t("settings.workspaceName")}</label>
               <input
                 style={inputStyle}
                 value={newWorkspaceName}
                 onChange={(e) => setNewWorkspaceName(e.target.value)}
-                placeholder={
-                  t("settings.workspaceNamePlaceholder") ||
-                  "Auto from folder name"
-                }
+                placeholder={t("settings.workspaceNamePlaceholder")}
               />
             </div>
             <div
@@ -426,9 +462,9 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
                 <button
                   style={folderButtonStyle}
                   onClick={handleSelectDirectory}
-                  title={t("settings.selectDirectory") || "Select Directory"}
+                  title={t("settings.selectDirectory")}
                 >
-                  📂 {t("settings.browse") || "Browse"}
+                  📂 {t("settings.browse")}
                 </button>
               </div>
             </div>
@@ -440,10 +476,10 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
               }}
             >
               <button style={buttonStyle} onClick={() => setShowAddForm(false)}>
-                {t("settings.cancel") || "Cancel"}
+                {t("settings.cancel")}
               </button>
               <button style={addButtonStyle} onClick={handleAddInstance}>
-                {t("settings.add") || "Add"}
+                {t("settings.add")}
               </button>
             </div>
           </div>
@@ -452,7 +488,7 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
             style={{ ...addButtonStyle, width: "100%" }}
             onClick={() => setShowAddForm(true)}
           >
-            + {t("settings.addWorkspace") || "Add WorkSpace"}
+            + {t("settings.addWorkspace")}
           </button>
         )}
       </div>
