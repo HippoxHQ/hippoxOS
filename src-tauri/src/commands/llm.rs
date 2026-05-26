@@ -36,9 +36,15 @@ pub struct ExtraConfigField {
     pub required: bool,
 }
 
+fn get_language() -> String {
+    crate::common::get_setting_with_default("language", serde_json::json!("en"))
+        .map(|v| v.as_str().unwrap_or("en").to_string())
+        .unwrap_or_else(|_| "en".to_string())
+}
+
 #[tauri::command]
-pub fn cmd_get_all_models(language: Option<String>) -> Vec<ModelInfo> {
-    let lang = language.unwrap_or_else(|| "en".to_string());
+pub fn cmd_get_all_models() -> Vec<ModelInfo> {
+    let lang = get_language();
     let is_zh = lang == "zh";
 
     vec![
@@ -420,16 +426,16 @@ pub fn cmd_get_all_models(language: Option<String>) -> Vec<ModelInfo> {
 }
 
 #[tauri::command]
-pub fn cmd_get_models_by_provider(provider: String, language: Option<String>) -> Vec<ModelInfo> {
-    cmd_get_all_models(language)
+pub fn cmd_get_models_by_provider(provider: String) -> Vec<ModelInfo> {
+    cmd_get_all_models()
         .into_iter()
         .filter(|m| m.provider == provider)
         .collect()
 }
 
 #[tauri::command]
-pub fn cmd_get_recommended_models(language: Option<String>) -> Vec<ModelInfo> {
-    cmd_get_all_models(language)
+pub fn cmd_get_recommended_models() -> Vec<ModelInfo> {
+    cmd_get_all_models()
         .into_iter()
         .filter(|m| m.recommended)
         .collect()

@@ -59,22 +59,21 @@ export interface ModelConfig {
   provider: string;
 }
 
-
 export const llmCommands = {
-  async getAllModels(language?: string): Promise<ModelInfo[]> {
-    return await invoke('cmd_get_all_models', { language });
+  async getAllModels(): Promise<ModelInfo[]> {
+    return await invoke('cmd_get_all_models');
   },
 
   async getAllProviders(): Promise<ProviderInfo[]> {
     return await invoke('cmd_get_all_providers');
   },
 
-  async getModelsByProvider(provider: string, language?: string): Promise<ModelInfo[]> {
-    return await invoke('cmd_get_models_by_provider', { provider, language });
+  async getModelsByProvider(provider: string): Promise<ModelInfo[]> {
+    return await invoke('cmd_get_models_by_provider', { provider });
   },
 
-  async getRecommendedModels(language?: string): Promise<ModelInfo[]> {
-    return await invoke('cmd_get_recommended_models', { language });
+  async getRecommendedModels(): Promise<ModelInfo[]> {
+    return await invoke('cmd_get_recommended_models');
   },
 
   async getLlmInstances(): Promise<Record<string, LlmInstance>> {

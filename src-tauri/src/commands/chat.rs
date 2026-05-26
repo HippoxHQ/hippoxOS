@@ -24,8 +24,11 @@ struct LogMessages {
 }
 
 impl LogMessages {
-    fn get(lang: &str) -> Self {
-        match lang {
+    pub fn get() -> Self {
+        let lang = crate::common::get_setting_with_default("language", serde_json::json!("en"))
+            .map(|v| v.as_str().unwrap_or("en").to_string())
+            .unwrap_or_else(|_| "en".to_string());
+        match lang.as_str() {
             "zh" => LogMessages {
                 init_start: "正在初始化 Hippox 引擎...".to_string(),
                 init_success: "Hippox 引擎初始化成功".to_string(),
@@ -145,7 +148,7 @@ impl AppStateWithChat {
 
     pub async fn get_log_messages(&self) -> LogMessages {
         let lang = self.get_language().await;
-        LogMessages::get(&lang)
+        LogMessages::get()
     }
 
     pub async fn create_task(&self, task_id: String, session_id: String, user_input: String) {
