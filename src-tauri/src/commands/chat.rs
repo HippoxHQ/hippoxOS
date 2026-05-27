@@ -384,7 +384,6 @@ pub async fn reset_conversation(
     let messages = state.get_log_messages().await;
     let hippox = get_default_hippox().await?;
     let session = session_id.unwrap_or_else(|| "default".to_string());
-    hippox.clear_conversation(&session);
     state
         .add_log(
             "process".to_string(),

@@ -3,11 +3,11 @@ mod commands;
 mod common;
 mod workspace;
 
-use crate::commands::init_all_hippox_instances;
+use crate::commands::{init_all_hippox_instances, sync_all_to_hippox_core};
 use crate::common::init_default_settings;
 use crate::workspace::ensure_workspace_config;
 use commands::AppStateWithChat;
-use hippox::Hippox;
+use hippox::{Hippox, get_hippox_core_config};
 use std::path::PathBuf;
 use std::thread;
 
@@ -40,9 +40,15 @@ pub fn run() {
         let _ = commands::load_config_from_file().await;
     });
     tokio::runtime::Runtime::new().unwrap().block_on(async {
+        if let Err(e) = sync_all_to_hippox_core().await {
+            eprintln!("Failed to sync config to Hippox core: {}", e);
+        }
+    });
+    tokio::runtime::Runtime::new().unwrap().block_on(async {
         if let Err(e) = init_all_hippox_instances().await {
             eprintln!("Failed to initialize Hippox instances: {}", e);
         }
+        println!("Hippox Core Config: {:?}", get_hippox_core_config());
     });
     thread::spawn(|| {
         println!("Initializing skills market...");
@@ -183,6 +189,7 @@ pub fn run() {
             commands::delete_notification_instance,
             commands::toggle_notification_instance,
             commands::get_notification_instances,
+            commands::cmd_sync_all_to_hippox_core,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

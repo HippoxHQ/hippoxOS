@@ -1,4 +1,4 @@
-use hippox::Hippox;
+use hippox::{FTPConfig, Hippox, SMTPConfig};
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -339,6 +339,347 @@ impl Default for HippoxAppConfig {
     }
 }
 
+fn get_hippox_core_config() -> hippox::HippoxConfig {
+    hippox::get_hippox_core_config()
+}
+
+pub async fn sync_all_to_hippox_core() -> Result<(), String> {
+    let config = HIPPOX_APP_CONFIG.read().await;
+    for instance in &config.engine.database_instances {
+        sync_database_instance_to_core(instance).await?;
+    }
+    for instance in &config.engine.container_instances {
+        sync_container_instance_to_core(instance).await?;
+    }
+    for instance in &config.engine.network_instances {
+        sync_network_instance_to_core(instance).await?;
+    }
+    for instance in &config.engine.notification_instances {
+        sync_notification_instance_to_core(instance).await?;
+    }
+    Ok(())
+}
+
+async fn sync_database_instance_to_core(instance: &DatabaseInstance) -> Result<(), String> {
+    match instance.instance_type.to_lowercase().as_str() {
+        "postgresql" | "postgres" => {
+            let core_instance = hippox::PostgreSQLConfig::new(
+                instance.id.clone(),
+                Some(instance.name.clone()),
+                Some(instance.description.clone()),
+                instance.host.clone(),
+                instance.port,
+                instance.database.clone(),
+                instance.username.clone(),
+                instance.password.clone(),
+            );
+            hippox::add_postgresql_instance(core_instance);
+        }
+        "mysql" | "mariadb" => {
+            let core_instance = hippox::MySQLConfig::new(
+                instance.id.clone(),
+                Some(instance.name.clone()),
+                Some(instance.description.clone()),
+                instance.host.clone(),
+                instance.port,
+                instance.database.clone(),
+                instance.username.clone(),
+                instance.password.clone(),
+            );
+            hippox::add_mysql_instance(core_instance);
+        }
+        "redis" => {
+            let core_instance = hippox::RedisConfig::new(
+                instance.id.clone(),
+                Some(instance.name.clone()),
+                Some(instance.description.clone()),
+                instance.host.clone(),
+                instance.port,
+            )
+            .with_password(instance.password.clone())
+            .with_db(instance.redis_db.unwrap_or(0) as usize);
+            hippox::add_redis_instance(core_instance);
+        }
+        "sqlite" => {
+            if let Some(path) = &instance.sqlite_path {
+                let core_instance = hippox::SQLiteConfig::new(
+                    instance.id.clone(),
+                    Some(instance.name.clone()),
+                    Some(instance.description.clone()),
+                    path.clone(),
+                );
+                hippox::add_sqlite_instance(core_instance);
+            }
+        }
+        _ => {
+            eprintln!("Unknown database type: {}", instance.instance_type);
+        }
+    }
+    Ok(())
+}
+
+async fn sync_container_instance_to_core(instance: &ContainerInstance) -> Result<(), String> {
+    match instance.instance_type.to_lowercase().as_str() {
+        "docker" => {
+            let mut core_instance = hippox::DockerConfig::new(
+                instance.id.clone(),
+                Some(instance.name.clone()),
+                Some(instance.description.clone()),
+                instance.host.clone(),
+            );
+            if let Some(api_version) = &instance.api_version {
+                core_instance = core_instance.with_api_version(api_version.clone());
+            }
+            let verify = instance.tls_verify.unwrap_or(false);
+            let cert_path = instance.kubeconfig.clone().unwrap_or_default();
+            core_instance = core_instance.with_tls(verify, cert_path);
+            hippox::add_docker_instance(core_instance);
+        }
+        "kubernetes" | "k8s" => {
+            let mut core_instance = hippox::K8sConfig::new(
+                instance.id.clone(),
+                Some(instance.name.clone()),
+                Some(instance.description.clone()),
+            );
+            if let Some(kubeconfig) = &instance.kubeconfig {
+                core_instance = core_instance.with_kubeconfig(kubeconfig.clone());
+            }
+            if let Some(context) = &instance.context {
+                core_instance = core_instance.with_context(context.clone());
+            }
+            if let Some(namespace) = &instance.namespace {
+                core_instance = core_instance.with_namespace(namespace.clone());
+            }
+            hippox::add_k8s_instance(core_instance);
+        }
+        _ => {
+            eprintln!("Unknown container type: {}", instance.instance_type);
+        }
+    }
+    Ok(())
+}
+
+async fn sync_network_instance_to_core(instance: &NetworkInstance) -> Result<(), String> {
+    match instance.instance_type.to_lowercase().as_str() {
+        "tcp" => {
+            let encoding = instance
+                .encoding
+                .clone()
+                .unwrap_or_else(|| "utf8".to_string());
+            let core_instance = hippox::TCPConfig::new(
+                instance.id.clone(),
+                Some(instance.name.clone()),
+                Some(instance.description.clone()),
+                instance.host.clone(),
+                instance.port,
+            )
+            .with_encoding(encoding);
+            hippox::add_tcp_instance(core_instance);
+        }
+        "udp" => {
+            let encoding = instance
+                .encoding
+                .clone()
+                .unwrap_or_else(|| "utf8".to_string());
+            let broadcast = instance.broadcast.unwrap_or(false);
+            let core_instance = hippox::UDPConfig::new(
+                instance.id.clone(),
+                Some(instance.name.clone()),
+                Some(instance.description.clone()),
+                instance.host.clone(),
+                instance.port,
+            )
+            .with_encoding(encoding)
+            .with_broadcast(broadcast);
+            hippox::add_udp_instance(core_instance);
+        }
+        "ftp" => {
+            let username = instance
+                .username
+                .clone()
+                .unwrap_or_else(|| "anonymous".to_string());
+            let password = instance.password.clone().unwrap_or_default();
+            let remote_dir = instance
+                .remote_dir
+                .clone()
+                .unwrap_or_else(|| "/".to_string());
+            let core_instance = hippox::FTPConfig::new(
+                instance.id.clone(),
+                Some(instance.name.clone()),
+                Some(instance.description.clone()),
+                instance.host.clone(),
+                instance.port,
+            )
+            .with_credentials(username, password)
+            .with_remote_dir(remote_dir);
+            hippox::add_ftp_instance(core_instance);
+        }
+        _ => {
+            eprintln!("Unknown network type: {}", instance.instance_type);
+        }
+    }
+    Ok(())
+}
+
+async fn sync_notification_instance_to_core(instance: &NotificationInstance) -> Result<(), String> {
+    match instance.instance_type.to_lowercase().as_str() {
+        "smtp" | "email" => {
+            if let (Some(host), Some(port), Some(from)) =
+                (&instance.smtp_host, instance.smtp_port, &instance.smtp_from)
+            {
+                let mut core_instance = hippox::SMTPConfig::new(
+                    instance.id.clone(),
+                    Some(instance.name.clone()),
+                    Some(instance.description.clone()),
+                    host.clone(),
+                    port,
+                    from.clone(),
+                );
+                if let (Some(username), Some(password)) =
+                    (&instance.smtp_username, &instance.smtp_password)
+                {
+                    core_instance =
+                        core_instance.with_credentials(username.clone(), password.clone());
+                }
+                hippox::add_smtp_instance(core_instance);
+            }
+        }
+        "telegram" => {
+            if let Some(token) = &instance.telegram_bot_token {
+                let core_instance = hippox::TelegramConfig::new(
+                    instance.id.clone(),
+                    Some(instance.name.clone()),
+                    Some(instance.description.clone()),
+                    token.clone(),
+                );
+                hippox::add_telegram_instance(core_instance);
+            }
+        }
+        "dingtalk" => {
+            if let Some(token) = &instance.dingtalk_access_token {
+                let core_instance = hippox::DingTalkConfig::new(
+                    instance.id.clone(),
+                    Some(instance.name.clone()),
+                    Some(instance.description.clone()),
+                    token.clone(),
+                );
+                hippox::add_dingtalk_instance(core_instance);
+            }
+        }
+        "feishu" => {
+            if let Some(webhook) = &instance.feishu_webhook {
+                let core_instance = hippox::FeishuConfig::new(
+                    instance.id.clone(),
+                    Some(instance.name.clone()),
+                    Some(instance.description.clone()),
+                    webhook.clone(),
+                );
+                hippox::add_feishu_instance(core_instance);
+            }
+        }
+        "wecom" => {
+            if let Some(webhook) = &instance.wecom_webhook {
+                let core_instance = hippox::WeComConfig::new(
+                    instance.id.clone(),
+                    Some(instance.name.clone()),
+                    Some(instance.description.clone()),
+                    webhook.clone(),
+                );
+                hippox::add_wecom_instance(core_instance);
+            }
+        }
+        "github" => {
+            if let Some(token) = &instance.github_token {
+                let api_url = instance
+                    .github_api_url
+                    .clone()
+                    .unwrap_or_else(|| "https://api.github.com".to_string());
+                let core_instance = hippox::GitHubConfig::new(
+                    instance.id.clone(),
+                    Some(instance.name.clone()),
+                    Some(instance.description.clone()),
+                    token.clone(),
+                )
+                .with_api_url(api_url);
+                hippox::add_github_instance(core_instance);
+            }
+        }
+        _ => {
+            eprintln!("Unknown notification type: {}", instance.instance_type);
+        }
+    }
+    Ok(())
+}
+
+async fn remove_database_instance_from_core(instance_type: &str, instance_id: &str) {
+    match instance_type.to_lowercase().as_str() {
+        "postgresql" | "postgres" => {
+            let _ = hippox::remove_postgresql_instance(instance_id);
+        }
+        "mysql" | "mariadb" => {
+            let _ = hippox::remove_mysql_instance(instance_id);
+        }
+        "redis" => {
+            let _ = hippox::remove_redis_instance(instance_id);
+        }
+        "sqlite" => {
+            let _ = hippox::remove_sqlite_instance(instance_id);
+        }
+        _ => {}
+    }
+}
+
+async fn remove_container_instance_from_core(instance_type: &str, instance_id: &str) {
+    match instance_type.to_lowercase().as_str() {
+        "docker" => {
+            let _ = hippox::remove_docker_instance(instance_id);
+        }
+        "kubernetes" | "k8s" => {
+            let _ = hippox::remove_k8s_instance(instance_id);
+        }
+        _ => {}
+    }
+}
+
+async fn remove_network_instance_from_core(instance_type: &str, instance_id: &str) {
+    match instance_type.to_lowercase().as_str() {
+        "tcp" => {
+            let _ = hippox::remove_tcp_instance(instance_id);
+        }
+        "udp" => {
+            let _ = hippox::remove_udp_instance(instance_id);
+        }
+        "ftp" => {
+            let _ = hippox::remove_ftp_instance(instance_id);
+        }
+        _ => {}
+    }
+}
+
+async fn remove_notification_instance_from_core(instance_type: &str, instance_id: &str) {
+    match instance_type.to_lowercase().as_str() {
+        "smtp" | "email" => {
+            let _ = hippox::remove_smtp_instance(instance_id);
+        }
+        "telegram" => {
+            let _ = hippox::remove_telegram_instance(instance_id);
+        }
+        "dingtalk" => {
+            let _ = hippox::remove_dingtalk_instance(instance_id);
+        }
+        "feishu" => {
+            let _ = hippox::remove_feishu_instance(instance_id);
+        }
+        "wecom" => {
+            let _ = hippox::remove_wecom_instance(instance_id);
+        }
+        "github" => {
+            let _ = hippox::remove_github_instance(instance_id);
+        }
+        _ => {}
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SaveContainerInstanceRequest {
     pub id: Option<String>,
@@ -360,22 +701,24 @@ pub async fn save_container_instance(
 ) -> Result<ContainerInstance, String> {
     let mut config = HIPPOX_APP_CONFIG.write().await;
     let now = chrono::Local::now().to_rfc3339();
+    let is_new = request.id.is_none();
+    let instance_id = request
+        .id
+        .clone()
+        .unwrap_or_else(|| Uuid::new_v4().to_string());
     let instance = ContainerInstance {
-        id: request
-            .id
-            .clone()
-            .unwrap_or_else(|| Uuid::new_v4().to_string()),
-        name: request.name,
-        description: request.description,
-        instance_type: request.instance_type,
-        host: request.host,
-        api_version: request.api_version,
+        id: instance_id.clone(),
+        name: request.name.clone(),
+        description: request.description.clone(),
+        instance_type: request.instance_type.clone(),
+        host: request.host.clone(),
+        api_version: request.api_version.clone(),
         tls_verify: request.tls_verify,
-        kubeconfig: request.kubeconfig,
-        context: request.context,
-        namespace: request.namespace,
+        kubeconfig: request.kubeconfig.clone(),
+        context: request.context.clone(),
+        namespace: request.namespace.clone(),
         enabled: request.enabled,
-        created_at: now.clone(),
+        created_at: if is_new { now.clone() } else { now.clone() },
         updated_at: now,
     };
     if let Some(existing_id) = &request.id {
@@ -392,14 +735,23 @@ pub async fn save_container_instance(
     } else {
         config.engine.container_instances.push(instance.clone());
     }
-
     drop(config);
     save_config_to_file().await?;
+    sync_container_instance_to_core(&instance).await?;
     Ok(instance)
 }
 
 #[tauri::command]
 pub async fn delete_container_instance(instance_id: String) -> Result<bool, String> {
+    let instance_type = {
+        let config = HIPPOX_APP_CONFIG.read().await;
+        config
+            .engine
+            .container_instances
+            .iter()
+            .find(|i| i.id == instance_id)
+            .map(|i| i.instance_type.clone())
+    };
     let mut config = HIPPOX_APP_CONFIG.write().await;
     config
         .engine
@@ -407,6 +759,9 @@ pub async fn delete_container_instance(instance_id: String) -> Result<bool, Stri
         .retain(|i| i.id != instance_id);
     drop(config);
     save_config_to_file().await?;
+    if let Some(inst_type) = instance_type {
+        remove_container_instance_from_core(&inst_type, &instance_id).await;
+    }
     Ok(true)
 }
 
@@ -421,8 +776,10 @@ pub async fn toggle_container_instance(instance_id: String, enabled: bool) -> Re
     {
         instance.enabled = enabled;
         instance.updated_at = chrono::Local::now().to_rfc3339();
+        let instance_clone = instance.clone();
         drop(config);
         save_config_to_file().await?;
+        sync_container_instance_to_core(&instance_clone).await?;
         Ok(true)
     } else {
         Err("Instance not found".to_string())
@@ -457,27 +814,27 @@ pub async fn save_database_instance(
 ) -> Result<DatabaseInstance, String> {
     let mut config = HIPPOX_APP_CONFIG.write().await;
     let now = chrono::Local::now().to_rfc3339();
-
+    let is_new = request.id.is_none();
+    let instance_id = request
+        .id
+        .clone()
+        .unwrap_or_else(|| Uuid::new_v4().to_string());
     let instance = DatabaseInstance {
-        id: request
-            .id
-            .clone()
-            .unwrap_or_else(|| Uuid::new_v4().to_string()),
-        name: request.name,
-        description: request.description,
-        instance_type: request.instance_type,
-        host: request.host,
+        id: instance_id.clone(),
+        name: request.name.clone(),
+        description: request.description.clone(),
+        instance_type: request.instance_type.clone(),
+        host: request.host.clone(),
         port: request.port,
-        database: request.database,
-        username: request.username,
-        password: request.password,
+        database: request.database.clone(),
+        username: request.username.clone(),
+        password: request.password.clone(),
         redis_db: request.redis_db,
-        sqlite_path: request.sqlite_path,
+        sqlite_path: request.sqlite_path.clone(),
         enabled: request.enabled,
-        created_at: now.clone(),
+        created_at: if is_new { now.clone() } else { now.clone() },
         updated_at: now,
     };
-
     if let Some(existing_id) = &request.id {
         if let Some(existing) = config
             .engine
@@ -492,14 +849,23 @@ pub async fn save_database_instance(
     } else {
         config.engine.database_instances.push(instance.clone());
     }
-
     drop(config);
     save_config_to_file().await?;
+    sync_database_instance_to_core(&instance).await?;
     Ok(instance)
 }
 
 #[tauri::command]
 pub async fn delete_database_instance(instance_id: String) -> Result<bool, String> {
+    let instance_type = {
+        let config = HIPPOX_APP_CONFIG.read().await;
+        config
+            .engine
+            .database_instances
+            .iter()
+            .find(|i| i.id == instance_id)
+            .map(|i| i.instance_type.clone())
+    };
     let mut config = HIPPOX_APP_CONFIG.write().await;
     config
         .engine
@@ -507,6 +873,9 @@ pub async fn delete_database_instance(instance_id: String) -> Result<bool, Strin
         .retain(|i| i.id != instance_id);
     drop(config);
     save_config_to_file().await?;
+    if let Some(inst_type) = instance_type {
+        remove_database_instance_from_core(&inst_type, &instance_id).await;
+    }
     Ok(true)
 }
 
@@ -521,8 +890,10 @@ pub async fn toggle_database_instance(instance_id: String, enabled: bool) -> Res
     {
         instance.enabled = enabled;
         instance.updated_at = chrono::Local::now().to_rfc3339();
+        let instance_clone = instance.clone();
         drop(config);
         save_config_to_file().await?;
+        sync_database_instance_to_core(&instance_clone).await?;
         Ok(true)
     } else {
         Err("Instance not found".to_string())
@@ -557,27 +928,27 @@ pub async fn save_network_instance(
 ) -> Result<NetworkInstance, String> {
     let mut config = HIPPOX_APP_CONFIG.write().await;
     let now = chrono::Local::now().to_rfc3339();
-
+    let is_new = request.id.is_none();
+    let instance_id = request
+        .id
+        .clone()
+        .unwrap_or_else(|| Uuid::new_v4().to_string());
     let instance = NetworkInstance {
-        id: request
-            .id
-            .clone()
-            .unwrap_or_else(|| Uuid::new_v4().to_string()),
-        name: request.name,
-        description: request.description,
-        instance_type: request.instance_type,
-        host: request.host,
+        id: instance_id.clone(),
+        name: request.name.clone(),
+        description: request.description.clone(),
+        instance_type: request.instance_type.clone(),
+        host: request.host.clone(),
         port: request.port,
-        encoding: request.encoding,
+        encoding: request.encoding.clone(),
         broadcast: request.broadcast,
-        username: request.username,
-        password: request.password,
-        remote_dir: request.remote_dir,
+        username: request.username.clone(),
+        password: request.password.clone(),
+        remote_dir: request.remote_dir.clone(),
         enabled: request.enabled,
-        created_at: now.clone(),
+        created_at: if is_new { now.clone() } else { now.clone() },
         updated_at: now,
     };
-
     if let Some(existing_id) = &request.id {
         if let Some(existing) = config
             .engine
@@ -592,14 +963,23 @@ pub async fn save_network_instance(
     } else {
         config.engine.network_instances.push(instance.clone());
     }
-
     drop(config);
     save_config_to_file().await?;
+    sync_network_instance_to_core(&instance).await?;
     Ok(instance)
 }
 
 #[tauri::command]
 pub async fn delete_network_instance(instance_id: String) -> Result<bool, String> {
+    let instance_type = {
+        let config = HIPPOX_APP_CONFIG.read().await;
+        config
+            .engine
+            .network_instances
+            .iter()
+            .find(|i| i.id == instance_id)
+            .map(|i| i.instance_type.clone())
+    };
     let mut config = HIPPOX_APP_CONFIG.write().await;
     config
         .engine
@@ -607,6 +987,9 @@ pub async fn delete_network_instance(instance_id: String) -> Result<bool, String
         .retain(|i| i.id != instance_id);
     drop(config);
     save_config_to_file().await?;
+    if let Some(inst_type) = instance_type {
+        remove_network_instance_from_core(&inst_type, &instance_id).await;
+    }
     Ok(true)
 }
 
@@ -621,8 +1004,10 @@ pub async fn toggle_network_instance(instance_id: String, enabled: bool) -> Resu
     {
         instance.enabled = enabled;
         instance.updated_at = chrono::Local::now().to_rfc3339();
+        let instance_clone = instance.clone();
         drop(config);
         save_config_to_file().await?;
+        sync_network_instance_to_core(&instance_clone).await?;
         Ok(true)
     } else {
         Err("Instance not found".to_string())
@@ -661,29 +1046,34 @@ pub async fn save_notification_instance(
 ) -> Result<NotificationInstance, String> {
     let mut config = HIPPOX_APP_CONFIG.write().await;
     let now = chrono::Local::now().to_rfc3339();
+
+    let is_new = request.id.is_none();
+    let instance_id = request
+        .id
+        .clone()
+        .unwrap_or_else(|| Uuid::new_v4().to_string());
+
     let instance = NotificationInstance {
-        id: request
-            .id
-            .clone()
-            .unwrap_or_else(|| Uuid::new_v4().to_string()),
-        name: request.name,
-        description: request.description,
-        instance_type: request.instance_type,
+        id: instance_id.clone(),
+        name: request.name.clone(),
+        description: request.description.clone(),
+        instance_type: request.instance_type.clone(),
         enabled: request.enabled,
-        smtp_host: request.smtp_host,
+        smtp_host: request.smtp_host.clone(),
         smtp_port: request.smtp_port,
-        smtp_username: request.smtp_username,
-        smtp_password: request.smtp_password,
-        smtp_from: request.smtp_from,
-        telegram_bot_token: request.telegram_bot_token,
-        dingtalk_access_token: request.dingtalk_access_token,
-        feishu_webhook: request.feishu_webhook,
-        wecom_webhook: request.wecom_webhook,
-        github_token: request.github_token,
-        github_api_url: request.github_api_url,
-        created_at: now.clone(),
+        smtp_username: request.smtp_username.clone(),
+        smtp_password: request.smtp_password.clone(),
+        smtp_from: request.smtp_from.clone(),
+        telegram_bot_token: request.telegram_bot_token.clone(),
+        dingtalk_access_token: request.dingtalk_access_token.clone(),
+        feishu_webhook: request.feishu_webhook.clone(),
+        wecom_webhook: request.wecom_webhook.clone(),
+        github_token: request.github_token.clone(),
+        github_api_url: request.github_api_url.clone(),
+        created_at: if is_new { now.clone() } else { now.clone() },
         updated_at: now,
     };
+
     if let Some(existing_id) = &request.id {
         if let Some(existing) = config
             .engine
@@ -700,11 +1090,21 @@ pub async fn save_notification_instance(
     }
     drop(config);
     save_config_to_file().await?;
+    sync_notification_instance_to_core(&instance).await?;
     Ok(instance)
 }
 
 #[tauri::command]
 pub async fn delete_notification_instance(instance_id: String) -> Result<bool, String> {
+    let instance_type = {
+        let config = HIPPOX_APP_CONFIG.read().await;
+        config
+            .engine
+            .notification_instances
+            .iter()
+            .find(|i| i.id == instance_id)
+            .map(|i| i.instance_type.clone())
+    };
     let mut config = HIPPOX_APP_CONFIG.write().await;
     config
         .engine
@@ -712,6 +1112,9 @@ pub async fn delete_notification_instance(instance_id: String) -> Result<bool, S
         .retain(|i| i.id != instance_id);
     drop(config);
     save_config_to_file().await?;
+    if let Some(inst_type) = instance_type {
+        remove_notification_instance_from_core(&inst_type, &instance_id).await;
+    }
     Ok(true)
 }
 
@@ -729,8 +1132,10 @@ pub async fn toggle_notification_instance(
     {
         instance.enabled = enabled;
         instance.updated_at = chrono::Local::now().to_rfc3339();
+        let instance_clone = instance.clone();
         drop(config);
         save_config_to_file().await?;
+        sync_notification_instance_to_core(&instance_clone).await?;
         Ok(true)
     } else {
         Err("Instance not found".to_string())
@@ -856,6 +1261,11 @@ pub async fn get_llm_instance(
         .llm_instances
         .get(&instance_id)
         .map(|instance| instance.into()))
+}
+
+#[tauri::command]
+pub async fn cmd_sync_all_to_hippox_core() -> Result<(), String> {
+    sync_all_to_hippox_core().await
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -1213,6 +1623,9 @@ pub async fn cmd_set_max_dialog_size(max_size_mb: u64) -> Result<(), String> {
 }
 
 pub async fn init_all_hippox_instances() -> Result<(), String> {
+    if let Err(e) = sync_all_to_hippox_core().await {
+        eprintln!("Failed to sync config to Hippox core: {}", e);
+    }
     let (skills_dir, llm_instances, default_id) = {
         let config = HIPPOX_APP_CONFIG.read().await;
         (
@@ -1268,13 +1681,7 @@ async fn init_single_hippox(instance: &LlmInstance, skills_dir: &str) -> Result<
         "tencent" => ModelProvider::Tencent,
         "minimax" => ModelProvider::MiniMax,
         "custom" => ModelProvider::Custom,
-        _ => {
-            println!(
-                "Unknown provider: {}, defaulting to OpenAI",
-                instance.provider
-            );
-            ModelProvider::OpenAI
-        }
+        _ => ModelProvider::OpenAI,
     };
     let mode = match instance.workflow_mode.to_lowercase().as_str() {
         "batch" => WorkflowMode::Batch,
