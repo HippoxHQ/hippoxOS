@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { showToast, ToastType } from "../../Toast";
 import { showDialog, DialogType } from "../../Dialog";
+import { engineCommands } from "../../../api/config";
 
 interface ContainerInstance {
   id: string;
@@ -8,14 +9,14 @@ interface ContainerInstance {
   description: string;
   type: "docker" | "k8s";
   host: string;
-  apiVersion?: string;
-  tlsVerify?: boolean;
+  api_version?: string;
+  tls_verify?: boolean;
   kubeconfig?: string;
   context?: string;
   namespace?: string;
   enabled: boolean;
-  createdAt: string;
-  updatedAt: string;
+  created_at: string;
+  updated_at: string;
 }
 
 interface EngineContainerPanelProps {
@@ -80,95 +81,19 @@ const EngineContainerPanel: React.FC<EngineContainerPanelProps> = ({
   const loadInstances = async () => {
     setLoading(true);
     try {
-      const savedInstances = await loadInstancesFromStorage();
+      const savedInstances = await engineCommands.getContainerInstances();
       setInstances(savedInstances);
     } catch (error) {
-      console.error("Failed to load instances:", error);
       setInstances([]);
     }
     setLoading(false);
   };
 
-  const loadInstancesFromStorage = async (): Promise<ContainerInstance[]> => {
-    try {
-      const saved = localStorage.getItem("engine_container_instances");
-      if (saved) {
-        return JSON.parse(saved);
-      }
-      if (initialConfig) {
-        const migrated: ContainerInstance[] = [];
-        const now = new Date().toISOString();
-        if (initialConfig.docker?.host) {
-          migrated.push({
-            id: `docker_${Date.now()}`,
-            name: "Docker",
-            description: initialConfig.docker.description || "",
-            type: "docker",
-            host: initialConfig.docker.host,
-            apiVersion: initialConfig.docker.apiVersion || "",
-            tlsVerify: initialConfig.docker.tlsVerify || false,
-            enabled: true,
-            createdAt: now,
-            updatedAt: now,
-          });
-        }
-        if (initialConfig.k8s?.kubeconfig || initialConfig.k8s?.context) {
-          migrated.push({
-            id: `k8s_${Date.now()}`,
-            name: "Kubernetes",
-            description: initialConfig.k8s.description || "",
-            type: "k8s",
-            host: "",
-            kubeconfig: initialConfig.k8s.kubeconfig || "",
-            context: initialConfig.k8s.context || "",
-            namespace: initialConfig.k8s.namespace || "default",
-            enabled: true,
-            createdAt: now,
-            updatedAt: now,
-          });
-        }
-        if (migrated.length > 0) {
-          localStorage.setItem(
-            "engine_container_instances",
-            JSON.stringify(migrated),
-          );
-        }
-        return migrated;
-      }
-      return [];
-    } catch (error) {
-      console.error("Failed to load instances from storage:", error);
-      return [];
-    }
-  };
-
-  const saveInstancesToStorage = async (newInstances: ContainerInstance[]) => {
-    localStorage.setItem(
-      "engine_container_instances",
-      JSON.stringify(newInstances),
-    );
-    const config: any = {};
-    newInstances.forEach((inst) => {
-      if (inst.type === "docker") {
-        config.docker = {
-          host: inst.host,
-          apiVersion: inst.apiVersion || "",
-          tlsVerify: inst.tlsVerify || false,
-          description: inst.description,
-        };
-      } else if (inst.type === "k8s") {
-        config.k8s = {
-          kubeconfig: inst.kubeconfig || "",
-          context: inst.context || "",
-          namespace: inst.namespace || "default",
-          description: inst.description,
-        };
-      }
-    });
-    if (onSave) onSave(config);
-  };
-
-  const handleToggleEnabled = (id: string, name: string, enabled: boolean) => {
+  const handleToggleEnabled = async (
+    id: string,
+    name: string,
+    enabled: boolean,
+  ) => {
     const newEnabled = !enabled;
     const actionText = newEnabled ? "enable" : "disable";
 
@@ -178,17 +103,8 @@ const EngineContainerPanel: React.FC<EngineContainerPanelProps> = ({
         t("container.disableConfirmTitle"),
         t("container.disableConfirmMessage", { name }),
         async () => {
-          const updated = instances.map((i) =>
-            i.id === id
-              ? {
-                  ...i,
-                  enabled: newEnabled,
-                  updatedAt: new Date().toISOString(),
-                }
-              : i,
-          );
-          setInstances(updated);
-          await saveInstancesToStorage(updated);
+          await engineCommands.toggleContainerInstance(id, newEnabled);
+          await loadInstances();
           showToast(
             ToastType.SUCCESS,
             t(`container.${actionText}Success`, { name }),
@@ -199,13 +115,8 @@ const EngineContainerPanel: React.FC<EngineContainerPanelProps> = ({
         t("common.cancel"),
       );
     } else {
-      const updated = instances.map((i) =>
-        i.id === id
-          ? { ...i, enabled: newEnabled, updatedAt: new Date().toISOString() }
-          : i,
-      );
-      setInstances(updated);
-      saveInstancesToStorage(updated);
+      await engineCommands.toggleContainerInstance(id, newEnabled);
+      await loadInstances();
       showToast(
         ToastType.SUCCESS,
         t(`container.${actionText}Success`, { name }),
@@ -219,9 +130,8 @@ const EngineContainerPanel: React.FC<EngineContainerPanelProps> = ({
       t("container.deleteConfirmTitle"),
       t("container.deleteConfirmMessage", { name }),
       async () => {
-        const updated = instances.filter((i) => i.id !== id);
-        setInstances(updated);
-        await saveInstancesToStorage(updated);
+        await engineCommands.deleteContainerInstance(id);
+        await loadInstances();
         showToast(ToastType.SUCCESS, t("container.deleteSuccess", { name }));
       },
       undefined,
@@ -235,8 +145,8 @@ const EngineContainerPanel: React.FC<EngineContainerPanelProps> = ({
     setFormName(instance.name);
     setFormDescription(instance.description || "");
     setFormHost(instance.host || "");
-    setFormApiVersion(instance.apiVersion || "");
-    setFormTlsVerify(instance.tlsVerify || false);
+    setFormApiVersion(instance.api_version || "");
+    setFormTlsVerify(instance.tls_verify || false);
     setFormKubeconfig(instance.kubeconfig || "");
     setFormContext(instance.context || "");
     setFormNamespace(instance.namespace || "default");
@@ -263,59 +173,38 @@ const EngineContainerPanel: React.FC<EngineContainerPanelProps> = ({
   const handleSave = async () => {
     if (!formName.trim()) return;
 
-    const now = new Date().toISOString();
-    let newInstance: ContainerInstance;
-
-    if (activeTab === "docker") {
-      newInstance = {
-        id: editingId || `${activeTab}_${Date.now()}`,
+    try {
+      await engineCommands.saveContainerInstance({
+        id: editingId || undefined,
         name: formName,
         description: formDescription,
-        type: "docker",
+        instance_type: activeTab,
         host: formHost,
-        apiVersion: formApiVersion,
-        tlsVerify: formTlsVerify,
-        enabled: true,
-        createdAt: editingId
-          ? instances.find((i) => i.id === editingId)?.createdAt || now
-          : now,
-        updatedAt: now,
-      };
-    } else {
-      newInstance = {
-        id: editingId || `${activeTab}_${Date.now()}`,
-        name: formName,
-        description: formDescription,
-        type: "k8s",
-        host: "",
-        kubeconfig: formKubeconfig,
-        context: formContext,
+        api_version: formApiVersion || undefined,
+        tls_verify: formTlsVerify,
+        kubeconfig: formKubeconfig || undefined,
+        context: formContext || undefined,
         namespace: formNamespace,
         enabled: true,
-        createdAt: editingId
-          ? instances.find((i) => i.id === editingId)?.createdAt || now
-          : now,
-        updatedAt: now,
-      };
-    }
+      });
 
-    let updated: ContainerInstance[];
-    if (editingId) {
-      updated = instances.map((i) => (i.id === editingId ? newInstance : i));
-      showToast(
-        ToastType.SUCCESS,
-        t("container.updateSuccess", { name: formName }),
-      );
-    } else {
-      updated = [...instances, newInstance];
-      showToast(
-        ToastType.SUCCESS,
-        t("container.addSuccess", { type: getTypeName(activeTab) }),
-      );
+      await loadInstances();
+
+      if (editingId) {
+        showToast(
+          ToastType.SUCCESS,
+          t("container.updateSuccess", { name: formName }),
+        );
+      } else {
+        showToast(
+          ToastType.SUCCESS,
+          t("container.addSuccess", { type: getTypeName(activeTab) }),
+        );
+      }
+      resetForm();
+    } catch (error) {
+      showToast(ToastType.ERROR, t("common.error"));
     }
-    setInstances(updated);
-    await saveInstancesToStorage(updated);
-    resetForm();
   };
 
   const getInstancesByType = (type: string) => {
@@ -687,7 +576,7 @@ const EngineContainerPanel: React.FC<EngineContainerPanelProps> = ({
                     <input
                       type="text"
                       style={inputStyle}
-                      value={instance.apiVersion}
+                      value={instance.api_version || ""}
                       disabled
                       readOnly
                     />
@@ -705,7 +594,7 @@ const EngineContainerPanel: React.FC<EngineContainerPanelProps> = ({
                     <input
                       type="checkbox"
                       style={checkboxStyle}
-                      checked={instance.tlsVerify}
+                      checked={instance.tls_verify || false}
                       disabled
                     />
                   </div>

@@ -10,6 +10,147 @@ export interface HippoxAppConfig {
     system: SystemConfig;
 }
 
+export interface EngineConfig {
+    container_instances: ContainerInstance[];
+    database_instances: DatabaseInstance[];
+    network_instances: NetworkInstance[];
+    notification_instances: NotificationInstance[];
+}
+
+export interface ContainerInstance {
+    id: string;
+    name: string;
+    description: string;
+    type: "docker" | "k8s";
+    host: string;
+    api_version?: string;
+    tls_verify?: boolean;
+    kubeconfig?: string;
+    context?: string;
+    namespace?: string;
+    enabled: boolean;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface DatabaseInstance {
+    id: string;
+    name: string;
+    description: string;
+    type: "postgresql" | "mysql" | "redis" | "sqlite";
+    host: string;
+    port: number;
+    database: string;
+    username: string;
+    password: string;
+    redis_db?: number;
+    sqlite_path?: string;
+    enabled: boolean;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface NetworkInstance {
+    id: string;
+    name: string;
+    description: string;
+    type: "tcp" | "udp" | "ftp";
+    host: string;
+    port: number;
+    encoding?: string;
+    broadcast?: boolean;
+    username?: string;
+    password?: string;
+    remote_dir?: string;
+    enabled: boolean;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface NotificationInstance {
+    id: string;
+    name: string;
+    description: string;
+    type: "smtp" | "telegram" | "dingtalk" | "feishu" | "wecom" | "github";
+    enabled: boolean;
+    smtp_host?: string;
+    smtp_port?: number;
+    smtp_username?: string;
+    smtp_password?: string;
+    smtp_from?: string;
+    telegram_bot_token?: string;
+    dingtalk_access_token?: string;
+    feishu_webhook?: string;
+    wecom_webhook?: string;
+    github_token?: string;
+    github_api_url?: string;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface SaveContainerInstanceRequest {
+    id?: string;
+    name: string;
+    description: string;
+    instance_type: string;
+    host: string;
+    api_version?: string;
+    tls_verify?: boolean;
+    kubeconfig?: string;
+    context?: string;
+    namespace?: string;
+    enabled: boolean;
+}
+
+export interface SaveDatabaseInstanceRequest {
+    id?: string;
+    name: string;
+    description: string;
+    instance_type: string;
+    host: string;
+    port: number;
+    database: string;
+    username: string;
+    password: string;
+    redis_db?: number;
+    sqlite_path?: string;
+    enabled: boolean;
+}
+
+export interface SaveNetworkInstanceRequest {
+    id?: string;
+    name: string;
+    description: string;
+    instance_type: string;
+    host: string;
+    port: number;
+    encoding?: string;
+    broadcast?: boolean;
+    username?: string;
+    password?: string;
+    remote_dir?: string;
+    enabled: boolean;
+}
+
+export interface SaveNotificationInstanceRequest {
+    id?: string;
+    name: string;
+    description: string;
+    instance_type: string;
+    enabled: boolean;
+    smtp_host?: string;
+    smtp_port?: number;
+    smtp_username?: string;
+    smtp_password?: string;
+    smtp_from?: string;
+    telegram_bot_token?: string;
+    dingtalk_access_token?: string;
+    feishu_webhook?: string;
+    wecom_webhook?: string;
+    github_token?: string;
+    github_api_url?: string;
+}
+
 export interface LlmInstance {
     id: string;
     name: string;
@@ -50,24 +191,6 @@ export interface WorkspaceConfig {
     max_backup_count: number;
 }
 
-export interface EngineConfig {
-    postgresql: DatabaseConfig;
-    mysql: DatabaseConfig;
-    redis: RedisConfig;
-    sqlite: SqliteConfig;
-    tcp: TcpConfig;
-    udp: UdpConfig;
-    ftp: FtpConfig;
-    docker: DockerConfig;
-    k8s: K8sConfig;
-    smtp: SmtpConfig;
-    telegram: TelegramConfig;
-    dingtalk: DingtalkConfig;
-    feishu: FeishuConfig;
-    wecom: WecomConfig;
-    github: GithubConfig;
-}
-
 export interface SystemConfig {
     auto_update: boolean;
     telemetry: boolean;
@@ -76,93 +199,11 @@ export interface SystemConfig {
     request_timeout: number;
 }
 
-export interface DatabaseConfig {
-    host: string;
-    port: number;
-    database: string;
-    username: string;
-    password: string;
+export interface DiskInfo {
+    total: number;
+    free: number;
+    used: number;
 }
-
-export interface RedisConfig {
-    host: string;
-    port: number;
-    password: string;
-    db: number;
-}
-
-export interface SqliteConfig {
-    path: string;
-}
-
-export interface TcpConfig {
-    host: string;
-    port: number;
-    encoding: string;
-}
-
-export interface UdpConfig {
-    host: string;
-    port: number;
-    encoding: string;
-    broadcast: boolean;
-}
-
-export interface FtpConfig {
-    host: string;
-    port: number;
-    username: string;
-    password: string;
-    remote_dir: string;
-}
-
-export interface DockerConfig {
-    host: string;
-    api_version: string;
-    tls_verify: boolean;
-}
-
-export interface K8sConfig {
-    kubeconfig: string;
-    context: string;
-    namespace: string;
-}
-
-export interface SmtpConfig {
-    host: string;
-    port: number;
-    username: string;
-    password: string;
-    from: string;
-}
-
-export interface TelegramConfig {
-    bot_token: string;
-}
-
-export interface DingtalkConfig {
-    access_token: string;
-}
-
-export interface FeishuConfig {
-    webhook: string;
-}
-
-export interface WecomConfig {
-    webhook: string;
-}
-
-export interface GithubConfig {
-    token: string;
-    api_url: string;
-}
-
-export type ConfigPath =
-    | { type: 'Language' }
-    | { type: 'Theme' }
-    | { type: 'Workspace'; key: string }
-    | { type: 'System'; key: string }
-    | { type: 'Engine'; key: string };
 
 export const configCommands = {
     async getConfig(): Promise<HippoxAppConfig> {
@@ -238,12 +279,6 @@ export const configCommands = {
     },
 };
 
-export interface DiskInfo {
-    total: number;
-    free: number;
-    used: number;
-}
-
 export const storageCommands = {
     async getDirectorySize(path: string): Promise<number> {
         return await invoke('get_directory_size', { path });
@@ -269,3 +304,61 @@ export const storageCommands = {
         return await invoke('set_max_dialog_size', { maxSizeMb });
     },
 };
+
+export const engineCommands = {
+    async saveContainerInstance(request: SaveContainerInstanceRequest): Promise<ContainerInstance> {
+        return await invoke('save_container_instance', { request });
+    },
+    async deleteContainerInstance(instanceId: string): Promise<boolean> {
+        return await invoke('delete_container_instance', { instanceId });
+    },
+    async toggleContainerInstance(instanceId: string, enabled: boolean): Promise<boolean> {
+        return await invoke('toggle_container_instance', { instanceId, enabled });
+    },
+    async getContainerInstances(): Promise<ContainerInstance[]> {
+        return await invoke('get_container_instances');
+    },
+    async saveDatabaseInstance(request: SaveDatabaseInstanceRequest): Promise<DatabaseInstance> {
+        return await invoke('save_database_instance', { request });
+    },
+    async deleteDatabaseInstance(instanceId: string): Promise<boolean> {
+        return await invoke('delete_database_instance', { instanceId });
+    },
+    async toggleDatabaseInstance(instanceId: string, enabled: boolean): Promise<boolean> {
+        return await invoke('toggle_database_instance', { instanceId, enabled });
+    },
+    async getDatabaseInstances(): Promise<DatabaseInstance[]> {
+        return await invoke('get_database_instances');
+    },
+    async saveNetworkInstance(request: SaveNetworkInstanceRequest): Promise<NetworkInstance> {
+        return await invoke('save_network_instance', { request });
+    },
+    async deleteNetworkInstance(instanceId: string): Promise<boolean> {
+        return await invoke('delete_network_instance', { instanceId });
+    },
+    async toggleNetworkInstance(instanceId: string, enabled: boolean): Promise<boolean> {
+        return await invoke('toggle_network_instance', { instanceId, enabled });
+    },
+    async getNetworkInstances(): Promise<NetworkInstance[]> {
+        return await invoke('get_network_instances');
+    },
+    async saveNotificationInstance(request: SaveNotificationInstanceRequest): Promise<NotificationInstance> {
+        return await invoke('save_notification_instance', { request });
+    },
+    async deleteNotificationInstance(instanceId: string): Promise<boolean> {
+        return await invoke('delete_notification_instance', { instanceId });
+    },
+    async toggleNotificationInstance(instanceId: string, enabled: boolean): Promise<boolean> {
+        return await invoke('toggle_notification_instance', { instanceId, enabled });
+    },
+    async getNotificationInstances(): Promise<NotificationInstance[]> {
+        return await invoke('get_notification_instances');
+    },
+};
+
+export type ConfigPath =
+    | { type: 'Language' }
+    | { type: 'Theme' }
+    | { type: 'Workspace'; key: string }
+    | { type: 'System'; key: string }
+    | { type: 'Engine'; key: string };

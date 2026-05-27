@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { showToast, ToastType } from "../../Toast";
 import { showDialog, DialogType } from "../../Dialog";
+import { engineCommands } from "../../../api/config";
 
 interface NotificationInstance {
   id: string;
@@ -13,14 +14,14 @@ interface NotificationInstance {
   smtp_username?: string;
   smtp_password?: string;
   smtp_from?: string;
-  telegram_botToken?: string;
-  dingtalk_accessToken?: string;
+  telegram_bot_token?: string;
+  dingtalk_access_token?: string;
   feishu_webhook?: string;
   wecom_webhook?: string;
   github_token?: string;
-  github_apiUrl?: string;
-  createdAt: string;
-  updatedAt: string;
+  github_api_url?: string;
+  created_at: string;
+  updated_at: string;
 }
 
 interface EngineNotificationPanelProps {
@@ -99,170 +100,19 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
   const loadInstances = async () => {
     setLoading(true);
     try {
-      const savedInstances = await loadInstancesFromStorage();
+      const savedInstances = await engineCommands.getNotificationInstances();
       setInstances(savedInstances);
     } catch (error) {
-      console.error("Failed to load instances:", error);
       setInstances([]);
     }
     setLoading(false);
   };
 
-  const loadInstancesFromStorage = async (): Promise<
-    NotificationInstance[]
-  > => {
-    try {
-      const saved = localStorage.getItem("engine_notification_instances");
-      if (saved) {
-        return JSON.parse(saved);
-      }
-      if (initialConfig) {
-        const migrated: NotificationInstance[] = [];
-        const now = new Date().toISOString();
-
-        if (initialConfig.smtp?.host) {
-          migrated.push({
-            id: `smtp_${Date.now()}`,
-            name: "SMTP Server",
-            description: initialConfig.smtp.description || "",
-            type: "smtp",
-            enabled: true,
-            smtp_host: initialConfig.smtp.host,
-            smtp_port: initialConfig.smtp.port || 587,
-            smtp_username: initialConfig.smtp.username || "",
-            smtp_password: initialConfig.smtp.password || "",
-            smtp_from: initialConfig.smtp.from || "",
-            createdAt: now,
-            updatedAt: now,
-          });
-        }
-        if (initialConfig.telegram?.botToken) {
-          migrated.push({
-            id: `telegram_${Date.now()}`,
-            name: "Telegram Bot",
-            description: initialConfig.telegram.description || "",
-            type: "telegram",
-            enabled: true,
-            telegram_botToken: initialConfig.telegram.botToken,
-            createdAt: now,
-            updatedAt: now,
-          });
-        }
-        if (initialConfig.dingtalk?.accessToken) {
-          migrated.push({
-            id: `dingtalk_${Date.now()}`,
-            name: "DingTalk Robot",
-            description: initialConfig.dingtalk.description || "",
-            type: "dingtalk",
-            enabled: true,
-            dingtalk_accessToken: initialConfig.dingtalk.accessToken,
-            createdAt: now,
-            updatedAt: now,
-          });
-        }
-        if (initialConfig.feishu?.webhook) {
-          migrated.push({
-            id: `feishu_${Date.now()}`,
-            name: "Feishu Webhook",
-            description: initialConfig.feishu.description || "",
-            type: "feishu",
-            enabled: true,
-            feishu_webhook: initialConfig.feishu.webhook,
-            createdAt: now,
-            updatedAt: now,
-          });
-        }
-        if (initialConfig.wecom?.webhook) {
-          migrated.push({
-            id: `wecom_${Date.now()}`,
-            name: "WeCom Webhook",
-            description: initialConfig.wecom.description || "",
-            type: "wecom",
-            enabled: true,
-            wecom_webhook: initialConfig.wecom.webhook,
-            createdAt: now,
-            updatedAt: now,
-          });
-        }
-        if (initialConfig.github?.token) {
-          migrated.push({
-            id: `github_${Date.now()}`,
-            name: "GitHub API",
-            description: initialConfig.github.description || "",
-            type: "github",
-            enabled: true,
-            github_token: initialConfig.github.token,
-            github_apiUrl:
-              initialConfig.github.apiUrl || "https://api.github.com",
-            createdAt: now,
-            updatedAt: now,
-          });
-        }
-        if (migrated.length > 0) {
-          localStorage.setItem(
-            "engine_notification_instances",
-            JSON.stringify(migrated),
-          );
-        }
-        return migrated;
-      }
-      return [];
-    } catch (error) {
-      console.error("Failed to load instances from storage:", error);
-      return [];
-    }
-  };
-
-  const saveInstancesToStorage = async (
-    newInstances: NotificationInstance[],
+  const handleToggleEnabled = async (
+    id: string,
+    name: string,
+    enabled: boolean,
   ) => {
-    localStorage.setItem(
-      "engine_notification_instances",
-      JSON.stringify(newInstances),
-    );
-    const config: any = {};
-    newInstances.forEach((inst) => {
-      if (inst.type === "smtp" && inst.enabled) {
-        config.smtp = {
-          host: inst.smtp_host,
-          port: inst.smtp_port,
-          username: inst.smtp_username,
-          password: inst.smtp_password,
-          from: inst.smtp_from,
-          description: inst.description,
-        };
-      } else if (inst.type === "telegram" && inst.enabled) {
-        config.telegram = {
-          botToken: inst.telegram_botToken,
-          description: inst.description,
-        };
-      } else if (inst.type === "dingtalk" && inst.enabled) {
-        config.dingtalk = {
-          accessToken: inst.dingtalk_accessToken,
-          description: inst.description,
-        };
-      } else if (inst.type === "feishu" && inst.enabled) {
-        config.feishu = {
-          webhook: inst.feishu_webhook,
-          description: inst.description,
-        };
-      } else if (inst.type === "wecom" && inst.enabled) {
-        config.wecom = {
-          webhook: inst.wecom_webhook,
-          description: inst.description,
-        };
-      } else if (inst.type === "github" && inst.enabled) {
-        config.github = {
-          token: inst.github_token,
-          apiUrl: inst.github_apiUrl,
-          description: inst.description,
-        };
-      }
-    });
-    if (onSave) onSave(config);
-  };
-
-  const handleToggleEnabled = (id: string, name: string, enabled: boolean) => {
     const newEnabled = !enabled;
     const actionText = newEnabled ? "enable" : "disable";
 
@@ -272,17 +122,8 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
         t("notification.disableConfirmTitle"),
         t("notification.disableConfirmMessage", { name }),
         async () => {
-          const updated = instances.map((i) =>
-            i.id === id
-              ? {
-                  ...i,
-                  enabled: newEnabled,
-                  updatedAt: new Date().toISOString(),
-                }
-              : i,
-          );
-          setInstances(updated);
-          await saveInstancesToStorage(updated);
+          await engineCommands.toggleNotificationInstance(id, newEnabled);
+          await loadInstances();
           showToast(
             ToastType.SUCCESS,
             t(`notification.${actionText}Success`, { name }),
@@ -293,13 +134,8 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
         t("common.cancel"),
       );
     } else {
-      const updated = instances.map((i) =>
-        i.id === id
-          ? { ...i, enabled: newEnabled, updatedAt: new Date().toISOString() }
-          : i,
-      );
-      setInstances(updated);
-      saveInstancesToStorage(updated);
+      await engineCommands.toggleNotificationInstance(id, newEnabled);
+      await loadInstances();
       showToast(
         ToastType.SUCCESS,
         t(`notification.${actionText}Success`, { name }),
@@ -313,9 +149,8 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
       t("notification.deleteConfirmTitle"),
       t("notification.deleteConfirmMessage", { name }),
       async () => {
-        const updated = instances.filter((i) => i.id !== id);
-        setInstances(updated);
-        await saveInstancesToStorage(updated);
+        await engineCommands.deleteNotificationInstance(id);
+        await loadInstances();
         showToast(ToastType.SUCCESS, t("notification.deleteSuccess", { name }));
       },
       undefined,
@@ -333,12 +168,12 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
     setFormSmtpUsername(instance.smtp_username || "");
     setFormSmtpPassword(instance.smtp_password || "");
     setFormSmtpFrom(instance.smtp_from || "");
-    setFormTelegramBotToken(instance.telegram_botToken || "");
-    setFormDingtalkAccessToken(instance.dingtalk_accessToken || "");
+    setFormTelegramBotToken(instance.telegram_bot_token || "");
+    setFormDingtalkAccessToken(instance.dingtalk_access_token || "");
     setFormFeishuWebhook(instance.feishu_webhook || "");
     setFormWecomWebhook(instance.wecom_webhook || "");
     setFormGithubToken(instance.github_token || "");
-    setFormGithubApiUrl(instance.github_apiUrl || "https://api.github.com");
+    setFormGithubApiUrl(instance.github_api_url || "https://api.github.com");
     setShowAddForm(true);
   };
 
@@ -362,57 +197,53 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
 
   const handleSave = async () => {
     if (!formName.trim()) return;
-    const now = new Date().toISOString();
 
-    const baseInstance: Partial<NotificationInstance> = {
-      id: editingId || `${activeTab}_${Date.now()}`,
-      name: formName,
-      description: formDescription,
-      type: activeTab as any,
-      enabled: true,
-      createdAt: editingId
-        ? instances.find((i) => i.id === editingId)?.createdAt || now
-        : now,
-      updatedAt: now,
-    };
-    if (activeTab === "smtp") {
-      baseInstance.smtp_host = formSmtpHost;
-      baseInstance.smtp_port = formSmtpPort;
-      baseInstance.smtp_username = formSmtpUsername;
-      baseInstance.smtp_password = formSmtpPassword;
-      baseInstance.smtp_from = formSmtpFrom;
-    } else if (activeTab === "telegram") {
-      baseInstance.telegram_botToken = formTelegramBotToken;
-    } else if (activeTab === "dingtalk") {
-      baseInstance.dingtalk_accessToken = formDingtalkAccessToken;
-    } else if (activeTab === "feishu") {
-      baseInstance.feishu_webhook = formFeishuWebhook;
-    } else if (activeTab === "wecom") {
-      baseInstance.wecom_webhook = formWecomWebhook;
-    } else if (activeTab === "github") {
-      baseInstance.github_token = formGithubToken;
-      baseInstance.github_apiUrl = formGithubApiUrl;
+    try {
+      const request: any = {
+        id: editingId || undefined,
+        name: formName,
+        description: formDescription,
+        instance_type: activeTab,
+        enabled: true,
+      };
+
+      if (activeTab === "smtp") {
+        request.smtp_host = formSmtpHost;
+        request.smtp_port = formSmtpPort;
+        request.smtp_username = formSmtpUsername;
+        request.smtp_password = formSmtpPassword;
+        request.smtp_from = formSmtpFrom;
+      } else if (activeTab === "telegram") {
+        request.telegram_bot_token = formTelegramBotToken;
+      } else if (activeTab === "dingtalk") {
+        request.dingtalk_access_token = formDingtalkAccessToken;
+      } else if (activeTab === "feishu") {
+        request.feishu_webhook = formFeishuWebhook;
+      } else if (activeTab === "wecom") {
+        request.wecom_webhook = formWecomWebhook;
+      } else if (activeTab === "github") {
+        request.github_token = formGithubToken;
+        request.github_api_url = formGithubApiUrl;
+      }
+
+      await engineCommands.saveNotificationInstance(request);
+      await loadInstances();
+
+      if (editingId) {
+        showToast(
+          ToastType.SUCCESS,
+          t("notification.updateSuccess", { name: formName }),
+        );
+      } else {
+        showToast(
+          ToastType.SUCCESS,
+          t("notification.addSuccess", { type: getTypeName(activeTab) }),
+        );
+      }
+      resetForm();
+    } catch (error) {
+      showToast(ToastType.ERROR, t("common.error"));
     }
-
-    const newInstance = baseInstance as NotificationInstance;
-
-    let updated: NotificationInstance[];
-    if (editingId) {
-      updated = instances.map((i) => (i.id === editingId ? newInstance : i));
-      showToast(
-        ToastType.SUCCESS,
-        t("notification.updateSuccess", { name: formName }),
-      );
-    } else {
-      updated = [...instances, newInstance];
-      showToast(
-        ToastType.SUCCESS,
-        t("notification.addSuccess", { type: getTypeName(activeTab) }),
-      );
-    }
-    setInstances(updated);
-    await saveInstancesToStorage(updated);
-    resetForm();
   };
 
   const getInstancesByType = (type: string) => {
@@ -949,7 +780,7 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
             <input
               type="password"
               style={inputStyle}
-              value={instance.telegram_botToken ? "••••••••" : ""}
+              value={instance.telegram_bot_token ? "••••••••" : ""}
               disabled
               readOnly
             />
@@ -970,7 +801,7 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
             <input
               type="password"
               style={inputStyle}
-              value={instance.dingtalk_accessToken ? "••••••••" : ""}
+              value={instance.dingtalk_access_token ? "••••••••" : ""}
               disabled
               readOnly
             />
@@ -1052,7 +883,7 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
               <input
                 type="text"
                 style={inputStyle}
-                value={instance.github_apiUrl || ""}
+                value={instance.github_api_url || ""}
                 disabled
                 readOnly
               />

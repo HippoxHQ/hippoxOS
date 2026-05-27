@@ -165,6 +165,23 @@ pub fn run() {
             commands::cmd_get_recommended_models,
             // search
             commands::cmd_search_content,
+            // Engine Config Commands
+            commands::save_container_instance,
+            commands::delete_container_instance,
+            commands::toggle_container_instance,
+            commands::get_container_instances,
+            commands::save_database_instance,
+            commands::delete_database_instance,
+            commands::toggle_database_instance,
+            commands::get_database_instances,
+            commands::save_network_instance,
+            commands::delete_network_instance,
+            commands::toggle_network_instance,
+            commands::get_network_instances,
+            commands::save_notification_instance,
+            commands::delete_notification_instance,
+            commands::toggle_notification_instance,
+            commands::get_notification_instances,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

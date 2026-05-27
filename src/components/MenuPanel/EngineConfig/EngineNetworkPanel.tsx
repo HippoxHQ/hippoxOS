@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { showToast, ToastType } from "../../Toast";
 import { showDialog, DialogType } from "../../Dialog";
+import { engineCommands } from "../../../api/config";
 
 interface NetworkInstance {
   id: string;
@@ -13,10 +14,10 @@ interface NetworkInstance {
   broadcast?: boolean;
   username?: string;
   password?: string;
-  remoteDir?: string;
+  remote_dir?: string;
   enabled: boolean;
-  createdAt: string;
-  updatedAt: string;
+  created_at: string;
+  updated_at: string;
 }
 
 interface EngineNetworkPanelProps {
@@ -90,121 +91,19 @@ const EngineNetworkPanel: React.FC<EngineNetworkPanelProps> = ({
   const loadInstances = async () => {
     setLoading(true);
     try {
-      const savedInstances = await loadInstancesFromStorage();
+      const savedInstances = await engineCommands.getNetworkInstances();
       setInstances(savedInstances);
     } catch (error) {
-      console.error("Failed to load instances:", error);
       setInstances([]);
     }
     setLoading(false);
   };
 
-  const loadInstancesFromStorage = async (): Promise<NetworkInstance[]> => {
-    try {
-      const saved = localStorage.getItem("engine_network_instances");
-      if (saved) {
-        return JSON.parse(saved);
-      }
-      if (initialConfig) {
-        const migrated: NetworkInstance[] = [];
-        const now = new Date().toISOString();
-        if (initialConfig.tcp?.host) {
-          migrated.push({
-            id: `tcp_${Date.now()}`,
-            name: "TCP Server",
-            description: initialConfig.tcp.description || "",
-            type: "tcp",
-            host: initialConfig.tcp.host,
-            port: initialConfig.tcp.port || 8888,
-            encoding: initialConfig.tcp.encoding || "utf8",
-            enabled: true,
-            createdAt: now,
-            updatedAt: now,
-          });
-        }
-        if (initialConfig.udp?.host) {
-          migrated.push({
-            id: `udp_${Date.now()}`,
-            name: "UDP Server",
-            description: initialConfig.udp.description || "",
-            type: "udp",
-            host: initialConfig.udp.host,
-            port: initialConfig.udp.port || 9999,
-            encoding: initialConfig.udp.encoding || "utf8",
-            broadcast: initialConfig.udp.broadcast || false,
-            enabled: true,
-            createdAt: now,
-            updatedAt: now,
-          });
-        }
-        if (initialConfig.ftp?.host) {
-          migrated.push({
-            id: `ftp_${Date.now()}`,
-            name: "FTP Server",
-            description: initialConfig.ftp.description || "",
-            type: "ftp",
-            host: initialConfig.ftp.host,
-            port: initialConfig.ftp.port || 21,
-            username: initialConfig.ftp.username || "anonymous",
-            password: initialConfig.ftp.password || "",
-            remoteDir: initialConfig.ftp.remoteDir || "/",
-            enabled: true,
-            createdAt: now,
-            updatedAt: now,
-          });
-        }
-        if (migrated.length > 0) {
-          localStorage.setItem(
-            "engine_network_instances",
-            JSON.stringify(migrated),
-          );
-        }
-        return migrated;
-      }
-      return [];
-    } catch (error) {
-      console.error("Failed to load instances from storage:", error);
-      return [];
-    }
-  };
-
-  const saveInstancesToStorage = async (newInstances: NetworkInstance[]) => {
-    localStorage.setItem(
-      "engine_network_instances",
-      JSON.stringify(newInstances),
-    );
-    const config: any = {};
-    newInstances.forEach((inst) => {
-      if (inst.type === "tcp") {
-        config.tcp = {
-          host: inst.host,
-          port: inst.port,
-          encoding: inst.encoding || "utf8",
-          description: inst.description,
-        };
-      } else if (inst.type === "udp") {
-        config.udp = {
-          host: inst.host,
-          port: inst.port,
-          encoding: inst.encoding || "utf8",
-          broadcast: inst.broadcast || false,
-          description: inst.description,
-        };
-      } else if (inst.type === "ftp") {
-        config.ftp = {
-          host: inst.host,
-          port: inst.port,
-          username: inst.username || "anonymous",
-          password: inst.password || "",
-          remoteDir: inst.remoteDir || "/",
-          description: inst.description,
-        };
-      }
-    });
-    if (onSave) onSave(config);
-  };
-
-  const handleToggleEnabled = (id: string, name: string, enabled: boolean) => {
+  const handleToggleEnabled = async (
+    id: string,
+    name: string,
+    enabled: boolean,
+  ) => {
     const newEnabled = !enabled;
     const actionText = newEnabled ? "enable" : "disable";
 
@@ -214,17 +113,8 @@ const EngineNetworkPanel: React.FC<EngineNetworkPanelProps> = ({
         t("network.disableConfirmTitle"),
         t("network.disableConfirmMessage", { name }),
         async () => {
-          const updated = instances.map((i) =>
-            i.id === id
-              ? {
-                  ...i,
-                  enabled: newEnabled,
-                  updatedAt: new Date().toISOString(),
-                }
-              : i,
-          );
-          setInstances(updated);
-          await saveInstancesToStorage(updated);
+          await engineCommands.toggleNetworkInstance(id, newEnabled);
+          await loadInstances();
           showToast(
             ToastType.SUCCESS,
             t(`network.${actionText}Success`, { name }),
@@ -235,13 +125,8 @@ const EngineNetworkPanel: React.FC<EngineNetworkPanelProps> = ({
         t("common.cancel"),
       );
     } else {
-      const updated = instances.map((i) =>
-        i.id === id
-          ? { ...i, enabled: newEnabled, updatedAt: new Date().toISOString() }
-          : i,
-      );
-      setInstances(updated);
-      saveInstancesToStorage(updated);
+      await engineCommands.toggleNetworkInstance(id, newEnabled);
+      await loadInstances();
       showToast(ToastType.SUCCESS, t(`network.${actionText}Success`, { name }));
     }
   };
@@ -252,9 +137,8 @@ const EngineNetworkPanel: React.FC<EngineNetworkPanelProps> = ({
       t("network.deleteConfirmTitle"),
       t("network.deleteConfirmMessage", { name }),
       async () => {
-        const updated = instances.filter((i) => i.id !== id);
-        setInstances(updated);
-        await saveInstancesToStorage(updated);
+        await engineCommands.deleteNetworkInstance(id);
+        await loadInstances();
         showToast(ToastType.SUCCESS, t("network.deleteSuccess", { name }));
       },
       undefined,
@@ -273,7 +157,7 @@ const EngineNetworkPanel: React.FC<EngineNetworkPanelProps> = ({
     setFormBroadcast(instance.broadcast || false);
     setFormUsername(instance.username || "");
     setFormPassword(instance.password || "");
-    setFormRemoteDir(instance.remoteDir || "/");
+    setFormRemoteDir(instance.remote_dir || "/");
     setShowAddForm(true);
   };
 
@@ -293,42 +177,40 @@ const EngineNetworkPanel: React.FC<EngineNetworkPanelProps> = ({
 
   const handleSave = async () => {
     if (!formName.trim()) return;
-    const now = new Date().toISOString();
-    const newInstance: NetworkInstance = {
-      id: editingId || `${activeTab}_${Date.now()}`,
-      name: formName,
-      description: formDescription,
-      type: activeTab as any,
-      host: formHost,
-      port: formPort,
-      encoding: activeTab !== "ftp" ? formEncoding : undefined,
-      broadcast: activeTab === "udp" ? formBroadcast : undefined,
-      username: activeTab === "ftp" ? formUsername : undefined,
-      password: activeTab === "ftp" ? formPassword : undefined,
-      remoteDir: activeTab === "ftp" ? formRemoteDir : undefined,
-      enabled: true,
-      createdAt: editingId
-        ? instances.find((i) => i.id === editingId)?.createdAt || now
-        : now,
-      updatedAt: now,
-    };
-    let updated: NetworkInstance[];
-    if (editingId) {
-      updated = instances.map((i) => (i.id === editingId ? newInstance : i));
-      showToast(
-        ToastType.SUCCESS,
-        t("network.updateSuccess", { name: formName }),
-      );
-    } else {
-      updated = [...instances, newInstance];
-      showToast(
-        ToastType.SUCCESS,
-        t("network.addSuccess", { type: getTypeName(activeTab) }),
-      );
+
+    try {
+      await engineCommands.saveNetworkInstance({
+        id: editingId || undefined,
+        name: formName,
+        description: formDescription,
+        instance_type: activeTab,
+        host: formHost,
+        port: formPort,
+        encoding: activeTab !== "ftp" ? formEncoding : undefined,
+        broadcast: activeTab === "udp" ? formBroadcast : undefined,
+        username: activeTab === "ftp" ? formUsername : undefined,
+        password: activeTab === "ftp" ? formPassword : undefined,
+        remote_dir: activeTab === "ftp" ? formRemoteDir : undefined,
+        enabled: true,
+      });
+
+      await loadInstances();
+
+      if (editingId) {
+        showToast(
+          ToastType.SUCCESS,
+          t("network.updateSuccess", { name: formName }),
+        );
+      } else {
+        showToast(
+          ToastType.SUCCESS,
+          t("network.addSuccess", { type: getTypeName(activeTab) }),
+        );
+      }
+      resetForm();
+    } catch (error) {
+      showToast(ToastType.ERROR, t("common.error"));
     }
-    setInstances(updated);
-    await saveInstancesToStorage(updated);
-    resetForm();
   };
 
   const getInstancesByType = (type: string) => {
@@ -777,7 +659,7 @@ const EngineNetworkPanel: React.FC<EngineNetworkPanelProps> = ({
                     <input
                       type="text"
                       style={inputStyle}
-                      value={instance.remoteDir}
+                      value={instance.remote_dir}
                       disabled
                       readOnly
                     />

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { showToast, ToastType } from "../../Toast";
 import { showDialog, DialogType } from "../../Dialog";
+import { engineCommands } from "../../../api/config";
 
 interface DatabaseInstance {
   id: string;
@@ -15,8 +16,8 @@ interface DatabaseInstance {
   redis_db?: number;
   sqlite_path?: string;
   enabled: boolean;
-  createdAt: string;
-  updatedAt: string;
+  created_at: string;
+  updated_at: string;
 }
 
 interface EngineDatabasePanelProps {
@@ -81,149 +82,19 @@ const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
   const loadInstances = async () => {
     setLoading(true);
     try {
-      const savedInstances = await loadInstancesFromStorage();
+      const savedInstances = await engineCommands.getDatabaseInstances();
       setInstances(savedInstances);
     } catch (error) {
-      console.error("Failed to load instances:", error);
       setInstances([]);
     }
     setLoading(false);
   };
 
-  const loadInstancesFromStorage = async (): Promise<DatabaseInstance[]> => {
-    try {
-      const saved = localStorage.getItem("engine_database_instances");
-      if (saved) {
-        return JSON.parse(saved);
-      }
-      if (initialConfig) {
-        const migrated: DatabaseInstance[] = [];
-        const now = new Date().toISOString();
-        if (initialConfig.postgresql?.host) {
-          migrated.push({
-            id: `pg_${Date.now()}`,
-            name: "PostgreSQL",
-            description: initialConfig.postgresql.description || "",
-            type: "postgresql",
-            host: initialConfig.postgresql.host,
-            port: initialConfig.postgresql.port || 5432,
-            database: initialConfig.postgresql.database,
-            username: initialConfig.postgresql.username,
-            password: initialConfig.postgresql.password,
-            enabled: true,
-            createdAt: now,
-            updatedAt: now,
-          });
-        }
-        if (initialConfig.mysql?.host) {
-          migrated.push({
-            id: `mysql_${Date.now()}`,
-            name: "MySQL",
-            description: initialConfig.mysql.description || "",
-            type: "mysql",
-            host: initialConfig.mysql.host,
-            port: initialConfig.mysql.port || 3306,
-            database: initialConfig.mysql.database,
-            username: initialConfig.mysql.username,
-            password: initialConfig.mysql.password,
-            enabled: true,
-            createdAt: now,
-            updatedAt: now,
-          });
-        }
-        if (initialConfig.redis?.host) {
-          migrated.push({
-            id: `redis_${Date.now()}`,
-            name: "Redis",
-            description: initialConfig.redis.description || "",
-            type: "redis",
-            host: initialConfig.redis.host,
-            port: initialConfig.redis.port || 6379,
-            database: "",
-            username: "",
-            password: initialConfig.redis.password,
-            redis_db: initialConfig.redis.db || 0,
-            enabled: true,
-            createdAt: now,
-            updatedAt: now,
-          });
-        }
-        if (initialConfig.sqlite?.path) {
-          migrated.push({
-            id: `sqlite_${Date.now()}`,
-            name: "SQLite",
-            description: initialConfig.sqlite.description || "",
-            type: "sqlite",
-            host: "",
-            port: 0,
-            database: "",
-            username: "",
-            password: "",
-            sqlite_path: initialConfig.sqlite.path,
-            enabled: true,
-            createdAt: now,
-            updatedAt: now,
-          });
-        }
-        if (migrated.length > 0) {
-          localStorage.setItem(
-            "engine_database_instances",
-            JSON.stringify(migrated),
-          );
-        }
-        return migrated;
-      }
-      return [];
-    } catch (error) {
-      console.error("Failed to load instances from storage:", error);
-      return [];
-    }
-  };
-
-  const saveInstancesToStorage = async (newInstances: DatabaseInstance[]) => {
-    localStorage.setItem(
-      "engine_database_instances",
-      JSON.stringify(newInstances),
-    );
-    const config: any = {};
-    newInstances.forEach((inst) => {
-      if (inst.type === "postgresql") {
-        config.postgresql = {
-          host: inst.host,
-          port: inst.port,
-          database: inst.database,
-          username: inst.username,
-          password: inst.password,
-          description: inst.description,
-        };
-      } else if (inst.type === "mysql") {
-        config.mysql = {
-          host: inst.host,
-          port: inst.port,
-          database: inst.database,
-          username: inst.username,
-          password: inst.password,
-          description: inst.description,
-        };
-      } else if (inst.type === "redis") {
-        config.redis = {
-          host: inst.host,
-          port: inst.port,
-          password: inst.password,
-          db: inst.redis_db || 0,
-          description: inst.description,
-        };
-      } else if (inst.type === "sqlite") {
-        config.sqlite = {
-          path: inst.sqlite_path || "",
-          description: inst.description,
-        };
-      }
-    });
-    if (onSave) onSave(config);
-  };
-
-  const handleToggleEnabled = (id: string, name: string, enabled: boolean) => {
+  const handleToggleEnabled = async (
+    id: string,
+    name: string,
+    enabled: boolean,
+  ) => {
     const newEnabled = !enabled;
     const actionText = newEnabled ? "enable" : "disable";
 
@@ -233,17 +104,8 @@ const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
         t("database.disableConfirmTitle"),
         t("database.disableConfirmMessage", { name }),
         async () => {
-          const updated = instances.map((i) =>
-            i.id === id
-              ? {
-                  ...i,
-                  enabled: newEnabled,
-                  updatedAt: new Date().toISOString(),
-                }
-              : i,
-          );
-          setInstances(updated);
-          await saveInstancesToStorage(updated);
+          await engineCommands.toggleDatabaseInstance(id, newEnabled);
+          await loadInstances();
           showToast(
             ToastType.SUCCESS,
             t(`database.${actionText}Success`, { name }),
@@ -254,13 +116,8 @@ const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
         t("common.cancel"),
       );
     } else {
-      const updated = instances.map((i) =>
-        i.id === id
-          ? { ...i, enabled: newEnabled, updatedAt: new Date().toISOString() }
-          : i,
-      );
-      setInstances(updated);
-      saveInstancesToStorage(updated);
+      await engineCommands.toggleDatabaseInstance(id, newEnabled);
+      await loadInstances();
       showToast(
         ToastType.SUCCESS,
         t(`database.${actionText}Success`, { name }),
@@ -274,9 +131,8 @@ const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
       t("database.deleteConfirmTitle"),
       t("database.deleteConfirmMessage", { name }),
       async () => {
-        const updated = instances.filter((i) => i.id !== id);
-        setInstances(updated);
-        await saveInstancesToStorage(updated);
+        await engineCommands.deleteDatabaseInstance(id);
+        await loadInstances();
         showToast(ToastType.SUCCESS, t("database.deleteSuccess", { name }));
       },
       undefined,
@@ -315,42 +171,40 @@ const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
 
   const handleSave = async () => {
     if (!formName.trim()) return;
-    const now = new Date().toISOString();
-    const newInstance: DatabaseInstance = {
-      id: editingId || `${activeTab}_${Date.now()}`,
-      name: formName,
-      description: formDescription,
-      type: activeTab as any,
-      host: formHost,
-      port: formPort,
-      database: formDatabase,
-      username: formUsername,
-      password: formPassword,
-      redis_db: activeTab === "redis" ? formRedisDb : undefined,
-      sqlite_path: activeTab === "sqlite" ? formSqlitePath : undefined,
-      enabled: true,
-      createdAt: editingId
-        ? instances.find((i) => i.id === editingId)?.createdAt || now
-        : now,
-      updatedAt: now,
-    };
-    let updated: DatabaseInstance[];
-    if (editingId) {
-      updated = instances.map((i) => (i.id === editingId ? newInstance : i));
-      showToast(
-        ToastType.SUCCESS,
-        t("database.updateSuccess", { name: formName }),
-      );
-    } else {
-      updated = [...instances, newInstance];
-      showToast(
-        ToastType.SUCCESS,
-        t("database.addSuccess", { type: getTypeName(activeTab) }),
-      );
+
+    try {
+      await engineCommands.saveDatabaseInstance({
+        id: editingId || undefined,
+        name: formName,
+        description: formDescription,
+        instance_type: activeTab,
+        host: formHost,
+        port: formPort,
+        database: formDatabase,
+        username: formUsername,
+        password: formPassword,
+        redis_db: activeTab === "redis" ? formRedisDb : undefined,
+        sqlite_path: activeTab === "sqlite" ? formSqlitePath : undefined,
+        enabled: true,
+      });
+
+      await loadInstances();
+
+      if (editingId) {
+        showToast(
+          ToastType.SUCCESS,
+          t("database.updateSuccess", { name: formName }),
+        );
+      } else {
+        showToast(
+          ToastType.SUCCESS,
+          t("database.addSuccess", { type: getTypeName(activeTab) }),
+        );
+      }
+      resetForm();
+    } catch (error) {
+      showToast(ToastType.ERROR, t("common.error"));
     }
-    setInstances(updated);
-    await saveInstancesToStorage(updated);
-    resetForm();
   };
 
   const getInstancesByType = (type: string) => {

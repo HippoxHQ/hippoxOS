@@ -35,6 +35,94 @@ pub struct HippoxAppConfig {
     pub engine: EngineConfig,
     pub system: SystemConfig,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct EngineConfig {
+    pub container_instances: Vec<ContainerInstance>,
+    pub database_instances: Vec<DatabaseInstance>,
+    pub network_instances: Vec<NetworkInstance>,
+    pub notification_instances: Vec<NotificationInstance>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ContainerInstance {
+    pub id: String,
+    pub name: String,
+    pub description: String,
+    #[serde(rename = "type")]
+    pub instance_type: String,
+    pub host: String,
+    pub api_version: Option<String>,
+    pub tls_verify: Option<bool>,
+    pub kubeconfig: Option<String>,
+    pub context: Option<String>,
+    pub namespace: Option<String>,
+    pub enabled: bool,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DatabaseInstance {
+    pub id: String,
+    pub name: String,
+    pub description: String,
+    #[serde(rename = "type")]
+    pub instance_type: String,
+    pub host: String,
+    pub port: u16,
+    pub database: String,
+    pub username: String,
+    pub password: String,
+    pub redis_db: Option<i32>,
+    pub sqlite_path: Option<String>,
+    pub enabled: bool,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct NetworkInstance {
+    pub id: String,
+    pub name: String,
+    pub description: String,
+    #[serde(rename = "type")]
+    pub instance_type: String,
+    pub host: String,
+    pub port: u16,
+    pub encoding: Option<String>,
+    pub broadcast: Option<bool>,
+    pub username: Option<String>,
+    pub password: Option<String>,
+    pub remote_dir: Option<String>,
+    pub enabled: bool,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct NotificationInstance {
+    pub id: String,
+    pub name: String,
+    pub description: String,
+    #[serde(rename = "type")]
+    pub instance_type: String,
+    pub enabled: bool,
+    pub smtp_host: Option<String>,
+    pub smtp_port: Option<u16>,
+    pub smtp_username: Option<String>,
+    pub smtp_password: Option<String>,
+    pub smtp_from: Option<String>,
+    pub telegram_bot_token: Option<String>,
+    pub dingtalk_access_token: Option<String>,
+    pub feishu_webhook: Option<String>,
+    pub wecom_webhook: Option<String>,
+    pub github_token: Option<String>,
+    pub github_api_url: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LlmInstance {
     pub id: Option<String>,
@@ -92,6 +180,7 @@ impl From<&LlmInstance> for LlmInstanceForFrontend {
         }
     }
 }
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AddLlmInstanceRequest {
     pub name: String,
@@ -114,25 +203,6 @@ pub struct WorkspaceConfig {
     pub backup_path: String,
     pub max_log_size: u32,
     pub max_backup_count: u32,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct EngineConfig {
-    pub postgresql: DatabaseConfig,
-    pub mysql: DatabaseConfig,
-    pub redis: RedisConfig,
-    pub sqlite: SqliteConfig,
-    pub tcp: TcpConfig,
-    pub udp: UdpConfig,
-    pub ftp: FtpConfig,
-    pub docker: DockerConfig,
-    pub k8s: K8sConfig,
-    pub smtp: SmtpConfig,
-    pub telegram: TelegramConfig,
-    pub dingtalk: DingtalkConfig,
-    pub feishu: FeishuConfig,
-    pub wecom: WecomConfig,
-    pub github: GithubConfig,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -257,82 +327,7 @@ impl Default for HippoxAppConfig {
                 max_log_size: 100,
                 max_backup_count: 10,
             },
-            engine: EngineConfig {
-                postgresql: DatabaseConfig {
-                    host: "localhost".to_string(),
-                    port: 5432,
-                    database: "".to_string(),
-                    username: "".to_string(),
-                    password: "".to_string(),
-                },
-                mysql: DatabaseConfig {
-                    host: "localhost".to_string(),
-                    port: 3306,
-                    database: "".to_string(),
-                    username: "".to_string(),
-                    password: "".to_string(),
-                },
-                redis: RedisConfig {
-                    host: "localhost".to_string(),
-                    port: 6379,
-                    password: "".to_string(),
-                    db: 0,
-                },
-                sqlite: SqliteConfig {
-                    path: "".to_string(),
-                },
-                tcp: TcpConfig {
-                    host: "127.0.0.1".to_string(),
-                    port: 8888,
-                    encoding: "utf8".to_string(),
-                },
-                udp: UdpConfig {
-                    host: "127.0.0.1".to_string(),
-                    port: 9999,
-                    encoding: "utf8".to_string(),
-                    broadcast: false,
-                },
-                ftp: FtpConfig {
-                    host: "".to_string(),
-                    port: 21,
-                    username: "anonymous".to_string(),
-                    password: "".to_string(),
-                    remote_dir: "/".to_string(),
-                },
-                docker: DockerConfig {
-                    host: "unix:///var/run/docker.sock".to_string(),
-                    api_version: "".to_string(),
-                    tls_verify: false,
-                },
-                k8s: K8sConfig {
-                    kubeconfig: "".to_string(),
-                    context: "".to_string(),
-                    namespace: "default".to_string(),
-                },
-                smtp: SmtpConfig {
-                    host: "".to_string(),
-                    port: 587,
-                    username: "".to_string(),
-                    password: "".to_string(),
-                    from: "".to_string(),
-                },
-                telegram: TelegramConfig {
-                    bot_token: "".to_string(),
-                },
-                dingtalk: DingtalkConfig {
-                    access_token: "".to_string(),
-                },
-                feishu: FeishuConfig {
-                    webhook: "".to_string(),
-                },
-                wecom: WecomConfig {
-                    webhook: "".to_string(),
-                },
-                github: GithubConfig {
-                    token: "".to_string(),
-                    api_url: "https://api.github.com".to_string(),
-                },
-            },
+            engine: EngineConfig::default(),
             system: SystemConfig {
                 auto_update: true,
                 telemetry: false,
@@ -342,6 +337,410 @@ impl Default for HippoxAppConfig {
             },
         }
     }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SaveContainerInstanceRequest {
+    pub id: Option<String>,
+    pub name: String,
+    pub description: String,
+    pub instance_type: String,
+    pub host: String,
+    pub api_version: Option<String>,
+    pub tls_verify: Option<bool>,
+    pub kubeconfig: Option<String>,
+    pub context: Option<String>,
+    pub namespace: Option<String>,
+    pub enabled: bool,
+}
+
+#[tauri::command]
+pub async fn save_container_instance(
+    request: SaveContainerInstanceRequest,
+) -> Result<ContainerInstance, String> {
+    let mut config = HIPPOX_APP_CONFIG.write().await;
+    let now = chrono::Local::now().to_rfc3339();
+    let instance = ContainerInstance {
+        id: request
+            .id
+            .clone()
+            .unwrap_or_else(|| Uuid::new_v4().to_string()),
+        name: request.name,
+        description: request.description,
+        instance_type: request.instance_type,
+        host: request.host,
+        api_version: request.api_version,
+        tls_verify: request.tls_verify,
+        kubeconfig: request.kubeconfig,
+        context: request.context,
+        namespace: request.namespace,
+        enabled: request.enabled,
+        created_at: now.clone(),
+        updated_at: now,
+    };
+    if let Some(existing_id) = &request.id {
+        if let Some(existing) = config
+            .engine
+            .container_instances
+            .iter_mut()
+            .find(|i| i.id == *existing_id)
+        {
+            *existing = instance.clone();
+        } else {
+            config.engine.container_instances.push(instance.clone());
+        }
+    } else {
+        config.engine.container_instances.push(instance.clone());
+    }
+
+    drop(config);
+    save_config_to_file().await?;
+    Ok(instance)
+}
+
+#[tauri::command]
+pub async fn delete_container_instance(instance_id: String) -> Result<bool, String> {
+    let mut config = HIPPOX_APP_CONFIG.write().await;
+    config
+        .engine
+        .container_instances
+        .retain(|i| i.id != instance_id);
+    drop(config);
+    save_config_to_file().await?;
+    Ok(true)
+}
+
+#[tauri::command]
+pub async fn toggle_container_instance(instance_id: String, enabled: bool) -> Result<bool, String> {
+    let mut config = HIPPOX_APP_CONFIG.write().await;
+    if let Some(instance) = config
+        .engine
+        .container_instances
+        .iter_mut()
+        .find(|i| i.id == instance_id)
+    {
+        instance.enabled = enabled;
+        instance.updated_at = chrono::Local::now().to_rfc3339();
+        drop(config);
+        save_config_to_file().await?;
+        Ok(true)
+    } else {
+        Err("Instance not found".to_string())
+    }
+}
+
+#[tauri::command]
+pub async fn get_container_instances() -> Result<Vec<ContainerInstance>, String> {
+    let config = HIPPOX_APP_CONFIG.read().await;
+    Ok(config.engine.container_instances.clone())
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SaveDatabaseInstanceRequest {
+    pub id: Option<String>,
+    pub name: String,
+    pub description: String,
+    pub instance_type: String,
+    pub host: String,
+    pub port: u16,
+    pub database: String,
+    pub username: String,
+    pub password: String,
+    pub redis_db: Option<i32>,
+    pub sqlite_path: Option<String>,
+    pub enabled: bool,
+}
+
+#[tauri::command]
+pub async fn save_database_instance(
+    request: SaveDatabaseInstanceRequest,
+) -> Result<DatabaseInstance, String> {
+    let mut config = HIPPOX_APP_CONFIG.write().await;
+    let now = chrono::Local::now().to_rfc3339();
+
+    let instance = DatabaseInstance {
+        id: request
+            .id
+            .clone()
+            .unwrap_or_else(|| Uuid::new_v4().to_string()),
+        name: request.name,
+        description: request.description,
+        instance_type: request.instance_type,
+        host: request.host,
+        port: request.port,
+        database: request.database,
+        username: request.username,
+        password: request.password,
+        redis_db: request.redis_db,
+        sqlite_path: request.sqlite_path,
+        enabled: request.enabled,
+        created_at: now.clone(),
+        updated_at: now,
+    };
+
+    if let Some(existing_id) = &request.id {
+        if let Some(existing) = config
+            .engine
+            .database_instances
+            .iter_mut()
+            .find(|i| i.id == *existing_id)
+        {
+            *existing = instance.clone();
+        } else {
+            config.engine.database_instances.push(instance.clone());
+        }
+    } else {
+        config.engine.database_instances.push(instance.clone());
+    }
+
+    drop(config);
+    save_config_to_file().await?;
+    Ok(instance)
+}
+
+#[tauri::command]
+pub async fn delete_database_instance(instance_id: String) -> Result<bool, String> {
+    let mut config = HIPPOX_APP_CONFIG.write().await;
+    config
+        .engine
+        .database_instances
+        .retain(|i| i.id != instance_id);
+    drop(config);
+    save_config_to_file().await?;
+    Ok(true)
+}
+
+#[tauri::command]
+pub async fn toggle_database_instance(instance_id: String, enabled: bool) -> Result<bool, String> {
+    let mut config = HIPPOX_APP_CONFIG.write().await;
+    if let Some(instance) = config
+        .engine
+        .database_instances
+        .iter_mut()
+        .find(|i| i.id == instance_id)
+    {
+        instance.enabled = enabled;
+        instance.updated_at = chrono::Local::now().to_rfc3339();
+        drop(config);
+        save_config_to_file().await?;
+        Ok(true)
+    } else {
+        Err("Instance not found".to_string())
+    }
+}
+
+#[tauri::command]
+pub async fn get_database_instances() -> Result<Vec<DatabaseInstance>, String> {
+    let config = HIPPOX_APP_CONFIG.read().await;
+    Ok(config.engine.database_instances.clone())
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SaveNetworkInstanceRequest {
+    pub id: Option<String>,
+    pub name: String,
+    pub description: String,
+    pub instance_type: String,
+    pub host: String,
+    pub port: u16,
+    pub encoding: Option<String>,
+    pub broadcast: Option<bool>,
+    pub username: Option<String>,
+    pub password: Option<String>,
+    pub remote_dir: Option<String>,
+    pub enabled: bool,
+}
+
+#[tauri::command]
+pub async fn save_network_instance(
+    request: SaveNetworkInstanceRequest,
+) -> Result<NetworkInstance, String> {
+    let mut config = HIPPOX_APP_CONFIG.write().await;
+    let now = chrono::Local::now().to_rfc3339();
+
+    let instance = NetworkInstance {
+        id: request
+            .id
+            .clone()
+            .unwrap_or_else(|| Uuid::new_v4().to_string()),
+        name: request.name,
+        description: request.description,
+        instance_type: request.instance_type,
+        host: request.host,
+        port: request.port,
+        encoding: request.encoding,
+        broadcast: request.broadcast,
+        username: request.username,
+        password: request.password,
+        remote_dir: request.remote_dir,
+        enabled: request.enabled,
+        created_at: now.clone(),
+        updated_at: now,
+    };
+
+    if let Some(existing_id) = &request.id {
+        if let Some(existing) = config
+            .engine
+            .network_instances
+            .iter_mut()
+            .find(|i| i.id == *existing_id)
+        {
+            *existing = instance.clone();
+        } else {
+            config.engine.network_instances.push(instance.clone());
+        }
+    } else {
+        config.engine.network_instances.push(instance.clone());
+    }
+
+    drop(config);
+    save_config_to_file().await?;
+    Ok(instance)
+}
+
+#[tauri::command]
+pub async fn delete_network_instance(instance_id: String) -> Result<bool, String> {
+    let mut config = HIPPOX_APP_CONFIG.write().await;
+    config
+        .engine
+        .network_instances
+        .retain(|i| i.id != instance_id);
+    drop(config);
+    save_config_to_file().await?;
+    Ok(true)
+}
+
+#[tauri::command]
+pub async fn toggle_network_instance(instance_id: String, enabled: bool) -> Result<bool, String> {
+    let mut config = HIPPOX_APP_CONFIG.write().await;
+    if let Some(instance) = config
+        .engine
+        .network_instances
+        .iter_mut()
+        .find(|i| i.id == instance_id)
+    {
+        instance.enabled = enabled;
+        instance.updated_at = chrono::Local::now().to_rfc3339();
+        drop(config);
+        save_config_to_file().await?;
+        Ok(true)
+    } else {
+        Err("Instance not found".to_string())
+    }
+}
+
+#[tauri::command]
+pub async fn get_network_instances() -> Result<Vec<NetworkInstance>, String> {
+    let config = HIPPOX_APP_CONFIG.read().await;
+    Ok(config.engine.network_instances.clone())
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SaveNotificationInstanceRequest {
+    pub id: Option<String>,
+    pub name: String,
+    pub description: String,
+    pub instance_type: String,
+    pub enabled: bool,
+    pub smtp_host: Option<String>,
+    pub smtp_port: Option<u16>,
+    pub smtp_username: Option<String>,
+    pub smtp_password: Option<String>,
+    pub smtp_from: Option<String>,
+    pub telegram_bot_token: Option<String>,
+    pub dingtalk_access_token: Option<String>,
+    pub feishu_webhook: Option<String>,
+    pub wecom_webhook: Option<String>,
+    pub github_token: Option<String>,
+    pub github_api_url: Option<String>,
+}
+
+#[tauri::command]
+pub async fn save_notification_instance(
+    request: SaveNotificationInstanceRequest,
+) -> Result<NotificationInstance, String> {
+    let mut config = HIPPOX_APP_CONFIG.write().await;
+    let now = chrono::Local::now().to_rfc3339();
+    let instance = NotificationInstance {
+        id: request
+            .id
+            .clone()
+            .unwrap_or_else(|| Uuid::new_v4().to_string()),
+        name: request.name,
+        description: request.description,
+        instance_type: request.instance_type,
+        enabled: request.enabled,
+        smtp_host: request.smtp_host,
+        smtp_port: request.smtp_port,
+        smtp_username: request.smtp_username,
+        smtp_password: request.smtp_password,
+        smtp_from: request.smtp_from,
+        telegram_bot_token: request.telegram_bot_token,
+        dingtalk_access_token: request.dingtalk_access_token,
+        feishu_webhook: request.feishu_webhook,
+        wecom_webhook: request.wecom_webhook,
+        github_token: request.github_token,
+        github_api_url: request.github_api_url,
+        created_at: now.clone(),
+        updated_at: now,
+    };
+    if let Some(existing_id) = &request.id {
+        if let Some(existing) = config
+            .engine
+            .notification_instances
+            .iter_mut()
+            .find(|i| i.id == *existing_id)
+        {
+            *existing = instance.clone();
+        } else {
+            config.engine.notification_instances.push(instance.clone());
+        }
+    } else {
+        config.engine.notification_instances.push(instance.clone());
+    }
+    drop(config);
+    save_config_to_file().await?;
+    Ok(instance)
+}
+
+#[tauri::command]
+pub async fn delete_notification_instance(instance_id: String) -> Result<bool, String> {
+    let mut config = HIPPOX_APP_CONFIG.write().await;
+    config
+        .engine
+        .notification_instances
+        .retain(|i| i.id != instance_id);
+    drop(config);
+    save_config_to_file().await?;
+    Ok(true)
+}
+
+#[tauri::command]
+pub async fn toggle_notification_instance(
+    instance_id: String,
+    enabled: bool,
+) -> Result<bool, String> {
+    let mut config = HIPPOX_APP_CONFIG.write().await;
+    if let Some(instance) = config
+        .engine
+        .notification_instances
+        .iter_mut()
+        .find(|i| i.id == instance_id)
+    {
+        instance.enabled = enabled;
+        instance.updated_at = chrono::Local::now().to_rfc3339();
+        drop(config);
+        save_config_to_file().await?;
+        Ok(true)
+    } else {
+        Err("Instance not found".to_string())
+    }
+}
+
+#[tauri::command]
+pub async fn get_notification_instances() -> Result<Vec<NotificationInstance>, String> {
+    let config = HIPPOX_APP_CONFIG.read().await;
+    Ok(config.engine.notification_instances.clone())
 }
 
 #[tauri::command]
@@ -362,7 +761,6 @@ pub async fn get_default_llm_instance_id() -> Result<String, String> {
 
 #[tauri::command]
 pub async fn add_llm_instance(request: AddLlmInstanceRequest) -> Result<String, String> {
-    println!("add_llm_instance called with request: {:?}", request);
     let mut config = HIPPOX_APP_CONFIG.write().await;
     let id = Uuid::new_v4().to_string();
     let now = chrono::Local::now().to_rfc3339();
@@ -832,10 +1230,9 @@ pub async fn init_all_hippox_instances() -> Result<(), String> {
                 if default_id == id {
                     default_instance_id = Some(id);
                 }
-                println!("Successfully initialized: {}", instance.name);
             }
             Err(e) => {
-                println!("Failed to initialize {}: {}", instance.name, e);
+                eprintln!("Failed to initialize {}: {}", instance.name, e);
             }
         }
     }
