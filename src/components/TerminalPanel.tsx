@@ -510,7 +510,10 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
           <span className="task-status-text">ready</span>
         </div>
         {isExpanded && (
-          <div className="task-steps welcome-steps">
+          <div
+            className="task-steps welcome-steps"
+            style={{ marginLeft: "5px" }}
+          >
             <div className="task-step">
               <span className="step-indent"> </span>
               <span className="step-icon">🚀</span>
@@ -526,50 +529,6 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
               <span className="step-icon">💡</span>
               <span className="step-name" style={styles.welcomeStepName}>
                 {t("terminal.welcome.status")}
-              </span>
-            </div>
-            <div className="task-step">
-              <span className="step-indent"> </span>
-              <span className="step-icon">📝</span>
-              <span className="step-name" style={styles.welcomeStepName}>
-                {t("terminal.welcome.commands")}
-              </span>
-            </div>
-            <div className="task-step">
-              <span className="step-indent"> </span>
-              <span className="step-icon">⚙️</span>
-              <span className="step-name" style={styles.welcomeStepName}>
-                {t("terminal.welcome.workflow")}
-              </span>
-            </div>
-            <div className="task-step" style={styles.linksContainer}>
-              <span className="step-indent"> </span>
-              <span className="step-icon">🔗</span>
-              <span className="step-name" style={styles.welcomeStepName}>
-                <span
-                  onMouseEnter={() => setHoveredLink("github")}
-                  onMouseLeave={() => setHoveredLink(null)}
-                  onClick={() => handleLinkClick("https://github.com/HippoxHQ")}
-                  style={getLinkStyle("github")}
-                >
-                  GitHub
-                </span>
-                <span
-                  onMouseEnter={() => setHoveredLink("website")}
-                  onMouseLeave={() => setHoveredLink(null)}
-                  onClick={() => handleLinkClick("https://hippox.vercel.app/")}
-                  style={getLinkStyle("website")}
-                >
-                  Website
-                </span>
-                <span
-                  onMouseEnter={() => setHoveredLink("x")}
-                  onMouseLeave={() => setHoveredLink(null)}
-                  onClick={() => handleLinkClick("https://x.com/HippoxAI")}
-                  style={getLinkStyle("x")}
-                >
-                  X (Twitter)
-                </span>
               </span>
             </div>
           </div>

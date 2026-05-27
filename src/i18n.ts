@@ -54,6 +54,10 @@ export const zh = {
     tcp: 'TCP',
     udp: 'UDP',
     ftp: 'FTP',
+    type: '网络类型',
+    deleteSuccess: '已成功删除 "{{name}}"',
+    addSuccess: '已成功添加 {{type}} 配置',
+    updateSuccess: '已成功更新 "{{name}}"',
   },
   container: {
     deleteConfirmTitle: '确认删除',
@@ -83,6 +87,10 @@ export const zh = {
     delete: '删除',
     docker: 'Docker',
     k8s: 'Kubernetes',
+    type: '容器类型',
+    deleteSuccess: '已成功删除 "{{name}}"',
+    addSuccess: '已成功添加 {{type}} 配置',
+    updateSuccess: '已成功更新 "{{name}}"',
   },
   notification: {
     deleteConfirmTitle: '确认删除',
@@ -119,6 +127,10 @@ export const zh = {
     feishu: '飞书',
     wecom: '企业微信',
     github: 'GitHub',
+    type: '通知类型',
+    deleteSuccess: '已成功删除 "{{name}}"',
+    addSuccess: '已成功添加 {{type}} 配置',
+    updateSuccess: '已成功更新 "{{name}}"',
   },
   database: {
     deleteConfirmTitle: '确认删除',
@@ -152,6 +164,9 @@ export const zh = {
     mysql: 'MySQL',
     redis: 'Redis',
     sqlite: 'SQLite',
+    deleteSuccess: '已成功删除 "{{name}}"',
+    addSuccess: '已成功添加 {{type}} 配置',
+    updateSuccess: '已成功更新 "{{name}}"',
   },
   welcome: {
     message: '你好，我是 Hippox AI 运行时。我有自主决策能力，可以执行技能并实时反馈。有什么可以帮你的？',
@@ -319,11 +334,9 @@ export const zh = {
       pending: '等待中',
     },
     welcome: {
-      title: 'Hippox AI Runtime',
-      subtitle: 'Hippox AI Runtime 终端',
+      title: 'HippoxOS 启动!',
+      subtitle: '可靠的LLM原生操作系统.',
       status: '状态: 已就绪，等待任务',
-      commands: '指令: 在对话面板中发送消息开始',
-      workflow: '工作流模式: ReAct / PlanAndExecute / Batch'
     }
   },
   chat: {
@@ -576,8 +589,19 @@ export const zh = {
       database: '数据库',
       network: '网络',
       container: '容器',
-      notification: '通知'
-    }
+      notification: '通知',
+      llmModel: 'LLM 模型',
+      workspace: '工作空间',
+      system: '系统',
+      engine: '引擎配置',
+      llm: 'AI 模型'
+    },
+    engine: {
+      database: '数据库配置',
+      network: '网络配置',
+      container: '容器配置',
+      notification: '通知配置'
+    },
   },
   plugins: {
     integration: '集成',
@@ -660,6 +684,10 @@ export const en: typeof zh = {
     tcp: 'TCP',
     udp: 'UDP',
     ftp: 'FTP',
+    type: 'Network Type',
+    deleteSuccess: 'Successfully deleted "{{name}}"',
+    addSuccess: 'Successfully added {{type}} configuration',
+    updateSuccess: 'Successfully updated "{{name}}"',
   },
   container: {
     deleteConfirmTitle: 'Confirm Delete',
@@ -689,6 +717,10 @@ export const en: typeof zh = {
     delete: 'Delete',
     docker: 'Docker',
     k8s: 'Kubernetes',
+    type: 'Container Type',
+    deleteSuccess: 'Successfully deleted "{{name}}"',
+    addSuccess: 'Successfully added {{type}} configuration',
+    updateSuccess: 'Successfully updated "{{name}}"',
   },
   notification: {
     deleteConfirmTitle: 'Confirm Delete',
@@ -725,6 +757,10 @@ export const en: typeof zh = {
     feishu: 'Feishu',
     wecom: 'WeCom',
     github: 'GitHub',
+    type: 'Notification Type',
+    deleteSuccess: 'Successfully deleted "{{name}}"',
+    addSuccess: 'Successfully added {{type}} configuration',
+    updateSuccess: 'Successfully updated "{{name}}"',
   },
   database: {
     deleteConfirmTitle: 'Confirm Delete',
@@ -758,6 +794,9 @@ export const en: typeof zh = {
     mysql: 'MySQL',
     redis: 'Redis',
     sqlite: 'SQLite',
+    deleteSuccess: 'Successfully deleted "{{name}}"',
+    addSuccess: 'Successfully added {{type}} configuration',
+    updateSuccess: 'Successfully updated "{{name}}"',
   },
   welcome: {
     message: 'Hello, I am Hippox AI Runtime. I have autonomous decision-making capabilities and can execute skills with real-time feedback. How can I help you?',
@@ -926,11 +965,9 @@ export const en: typeof zh = {
       pending: 'Pending',
     },
     welcome: {
-      title: 'Hippox AI Runtime',
-      subtitle: 'Hippox AI Runtime Terminal',
+      title: 'HippoxOS Startup!',
+      subtitle: 'A native LLM operating system.',
       status: 'Status: Ready for tasks',
-      commands: 'Commands: Send a message in the chat panel to start',
-      workflow: 'Workflow Mode: ReAct / PlanAndExecute / Batch'
     }
   },
   chat: {
@@ -1183,8 +1220,19 @@ export const en: typeof zh = {
       database: 'Database',
       network: 'Network',
       container: 'Container',
-      notification: 'Notification'
-    }
+      notification: 'Notification',
+      llmModel: 'LLM Model',
+      workspace: 'Workspace',
+      system: 'System',
+      engine: 'Engine Config',
+      llm: 'AI Model'
+    },
+    engine: {
+      database: 'Database Config',
+      network: 'Network Config',
+      container: 'Container Config',
+      notification: 'Notification Config'
+    },
   },
   plugins: {
     integration: 'Integration',
