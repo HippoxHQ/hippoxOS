@@ -55,14 +55,16 @@ export const atomicSkillsCommands = {
         invoke("execute_atomic_skill", { skillName, parameters }),
 };
 
-export const skillsMarketCommands = {
 
+export const skillsMarketCommands = {
     updateSkillsMarket: (): Promise<MarketSkill[]> =>
         invoke("update_skills_market"),
 
-
     getMarketSkills: (): Promise<MarketSkill[]> =>
         invoke("get_market_skills"),
+
+    getMarketCategories: (): Promise<string[]> =>
+        invoke("cmd_get_market_categories"),
 
     installSkill: (skillId: string): Promise<boolean> =>
         invoke("install_skill", { skillId }),

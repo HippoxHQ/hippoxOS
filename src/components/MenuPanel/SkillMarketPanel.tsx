@@ -59,6 +59,7 @@ const SkillMarketPanel: React.FC<SkillMarketPanelProps> = ({ t }) => {
 
   useEffect(() => {
     loadMarketConfig();
+    loadCategories();
     loadSkills();
   }, []);
 
@@ -72,13 +73,20 @@ const SkillMarketPanel: React.FC<SkillMarketPanelProps> = ({ t }) => {
     }
   };
 
+  const loadCategories = async () => {
+    try {
+      const cats = await skillsMarketCommands.getMarketCategories();
+      setCategories(cats);
+    } catch (error) {
+      console.error("Failed to load categories:", error);
+    }
+  };
+
   const loadSkills = async () => {
     setLoading(true);
     try {
       const skillsList = await skillsMarketCommands.getMarketSkills();
       setSkills(skillsList);
-      const cats = Array.from(new Set(skillsList.map((s) => s.category)));
-      setCategories(cats);
     } catch (error) {
       console.error("Failed to load skills:", error);
     } finally {
@@ -91,57 +99,11 @@ const SkillMarketPanel: React.FC<SkillMarketPanelProps> = ({ t }) => {
     try {
       const updatedSkills = await skillsMarketCommands.updateSkillsMarket();
       setSkills(updatedSkills);
-      const cats = Array.from(new Set(updatedSkills.map((s) => s.category)));
-      setCategories(cats);
+      await loadCategories();
     } catch (error) {
       console.error("Failed to update market:", error);
     } finally {
       setUpdating(false);
-    }
-  };
-
-  const handleInstall = async (skill: MarketSkill) => {
-    setInstallingId(skill.id);
-    try {
-      await skillsMarketCommands.installSkill(skill.id);
-      await loadSkills();
-    } catch (error) {
-      console.error("Failed to install skill:", error);
-    } finally {
-      setInstallingId(null);
-    }
-  };
-
-  const handleUninstall = async (skill: MarketSkill) => {
-    if (
-      // eslint-disable-next-line no-restricted-globals
-      !confirm(
-        t("market.confirmUninstall") ||
-          `Are you sure you want to uninstall "${skill.name}"?`,
-      )
-    ) {
-      return;
-    }
-    setInstallingId(skill.id);
-    try {
-      await skillsMarketCommands.uninstallSkill(skill.id);
-      await loadSkills();
-    } catch (error) {
-      console.error("Failed to uninstall skill:", error);
-    } finally {
-      setInstallingId(null);
-    }
-  };
-
-  const handleUpdateSkill = async (skill: MarketSkill) => {
-    setInstallingId(skill.id);
-    try {
-      await skillsMarketCommands.updateSkill(skill.id);
-      await loadSkills();
-    } catch (error) {
-      console.error("Failed to update skill:", error);
-    } finally {
-      setInstallingId(null);
     }
   };
 
@@ -211,15 +173,6 @@ const SkillMarketPanel: React.FC<SkillMarketPanelProps> = ({ t }) => {
       selectedCategory === "all" || skill.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
-
-  const installedCount = skills.filter((s) => s.installed).length;
-
-  const getSelectedCategoryLabel = () => {
-    if (selectedCategory === "all") {
-      return t("market.all") || "All";
-    }
-    return selectedCategory;
-  };
 
   const styles: Record<string, React.CSSProperties> = {
     container: {
@@ -334,11 +287,6 @@ const SkillMarketPanel: React.FC<SkillMarketPanelProps> = ({ t }) => {
       color: "var(--text-tertiary, #888)",
       flexShrink: 0,
     },
-    stats: {
-      fontSize: "12px",
-      color: "var(--text-muted)",
-      marginTop: "8px",
-    },
     skillList: {
       flex: 1,
       overflowY: "auto",
@@ -346,7 +294,7 @@ const SkillMarketPanel: React.FC<SkillMarketPanelProps> = ({ t }) => {
     skillCard: {
       background: "var(--bg-secondary)",
       padding: "10px 15px",
-      border: "1px solid var(--border-color)",
+      borderBottom: "1px solid var(--border-color)",
       transition: "background 0.2s ease",
       cursor: "pointer",
     },
@@ -417,34 +365,7 @@ const SkillMarketPanel: React.FC<SkillMarketPanelProps> = ({ t }) => {
     skillDescription: {
       fontSize: "13px",
       color: "var(--text-secondary)",
-      // marginBottom: "12px",
       lineHeight: 1.4,
-    },
-    skillActions: {
-      display: "flex",
-      gap: "8px",
-      justifyContent: "flex-end",
-    },
-    button: {
-      padding: "6px 12px",
-      borderRadius: "6px",
-      fontSize: "12px",
-      cursor: "pointer",
-      transition: "all 0.2s",
-      border: "none",
-    },
-    installBtn: {
-      background: "#0066cc",
-      color: "white",
-    },
-    uninstallBtn: {
-      background: "transparent",
-      color: "#dc2626",
-      border: "1px solid #dc2626",
-    },
-    updateBtn: {
-      background: "#f59e0b",
-      color: "white",
     },
     iconButton: {
       width: "28px",
@@ -582,14 +503,6 @@ const SkillMarketPanel: React.FC<SkillMarketPanelProps> = ({ t }) => {
                 ...styles.bubbleItem,
                 ...(selectedCategory === "all" ? styles.bubbleItemActive : {}),
               }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = "var(--hover-bg, #2a2a2a)";
-              }}
-              onMouseLeave={(e) => {
-                if (selectedCategory !== "all") {
-                  e.currentTarget.style.background = "";
-                }
-              }}
               onClick={() => handleCategorySelect("all")}
             >
               <span style={styles.bubbleItemText}>
@@ -607,15 +520,6 @@ const SkillMarketPanel: React.FC<SkillMarketPanelProps> = ({ t }) => {
                     ...(selectedCategory === cat
                       ? styles.bubbleItemActive
                       : {}),
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background =
-                      "var(--hover-bg, #2a2a2a)";
-                  }}
-                  onMouseLeave={(e) => {
-                    if (selectedCategory !== cat) {
-                      e.currentTarget.style.background = "";
-                    }
                   }}
                   onClick={() => handleCategorySelect(cat)}
                 >
@@ -731,38 +635,6 @@ const SkillMarketPanel: React.FC<SkillMarketPanelProps> = ({ t }) => {
                 <span>📁 {skill.category}</span>
               </div>
               <div style={styles.skillDescription}>{skill.description}</div>
-              {/* <div style={styles.skillActions}>
-                {!skill.installed ? (
-                  <button
-                    style={{ ...styles.button, ...styles.installBtn }}
-                    onClick={() => handleInstall(skill)}
-                    disabled={installingId === skill.id}
-                  >
-                    {installingId === skill.id ? "⏳" : <PlayIcon size={12} />}{" "}
-                    {t("market.install") || "Install"}
-                  </button>
-                ) : (
-                  <>
-                    {skill.installed_version !== skill.version && (
-                      <button
-                        style={{ ...styles.button, ...styles.updateBtn }}
-                        onClick={() => handleUpdateSkill(skill)}
-                        disabled={installingId === skill.id}
-                      >
-                        {installingId === skill.id ? "⏳" : "🔄"}{" "}
-                        {t("market.update") || "Update"}
-                      </button>
-                    )}
-                    <button
-                      style={{ ...styles.button, ...styles.uninstallBtn }}
-                      onClick={() => handleUninstall(skill)}
-                      disabled={installingId === skill.id}
-                    >
-                      🗑️ {t("market.uninstall") || "Uninstall"}
-                    </button>
-                  </>
-                )}
-              </div> */}
             </div>
           ))
         )}

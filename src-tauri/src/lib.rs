@@ -111,6 +111,7 @@ pub fn run() {
             commands::save_settings_theme,
             commands::update_skills_market,
             commands::get_market_skills,
+            commands::cmd_get_market_categories,
             commands::install_skill,
             commands::uninstall_skill,
             commands::update_skill,
