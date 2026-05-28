@@ -73,17 +73,27 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
       window.removeEventListener("session-created", handleSessionCreated);
     };
   }, []);
+
   const loadSessions = async () => {
     setLoading(true);
     try {
       const list = await sessionCommands.listSessions();
-      setSessions(list);
+      const sorted = [...list].sort((a, b) => {
+        if (a.is_pinned !== b.is_pinned) {
+          return a.is_pinned ? -1 : 1;
+        }
+        return (
+          new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        );
+      });
+      setSessions(sorted);
     } catch (error) {
       console.error("Failed to load sessions:", error);
     } finally {
       setLoading(false);
     }
   };
+
   const handleTogglePin = async (
     session: DialogSession,
     e: React.MouseEvent,
