@@ -716,7 +716,7 @@ pub fn init_default_session_if_empty() -> Result<(), String> {
         } else {
             "Hello, I am Hippox AI Runtime. I have autonomous decision-making capabilities and can execute skills with real-time feedback. How can I help you?"
         };
-        let session_id = format!("session_{}", chrono::Local::now().timestamp());
+        let session_id = format!("session_{}", chrono::Local::now().timestamp_millis());
         let session_dir = dir.join(&session_id);
         fs::create_dir_all(&session_dir)
             .map_err(|e| format!("Failed to create session directory: {}", e))?;
