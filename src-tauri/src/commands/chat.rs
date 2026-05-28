@@ -124,6 +124,7 @@ pub async fn send_chat_message_async(
 ) -> Result<String, String> {
     let task_id = Uuid::new_v4().to_string();
     let session = session_id.clone().unwrap_or_else(|| "default".to_string());
+    let hippox = get_default_hippox().await?;
     state
         .create_task(task_id.clone(), session.clone(), message.clone())
         .await;

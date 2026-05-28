@@ -22,9 +22,6 @@ pub static HIPPOX_APP_CONFIG: Lazy<Arc<RwLock<HippoxAppConfig>>> =
 pub static HIPPOX_INSTANCES: Lazy<Arc<RwLock<HashMap<String, Arc<Hippox>>>>> =
     Lazy::new(|| Arc::new(RwLock::new(HashMap::new())));
 
-pub static DEFAULT_HIPPOX_INSTANCE_ID: Lazy<Arc<RwLock<Option<String>>>> =
-    Lazy::new(|| Arc::new(RwLock::new(None)));
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HippoxAppConfig {
     pub language: String,
@@ -137,6 +134,7 @@ pub struct LlmInstance {
     pub updated_at: Option<String>,
     #[serde(default)]
     pub extra: HashMap<String, String>,
+    pub is_default: Option<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -161,6 +159,7 @@ pub struct LlmInstanceForFrontend {
     pub updated_at: String,
     #[serde(default)]
     pub extra: HashMap<String, String>,
+    pub is_default: Option<bool>,
 }
 
 impl From<&LlmInstance> for LlmInstanceForFrontend {
@@ -177,6 +176,7 @@ impl From<&LlmInstance> for LlmInstanceForFrontend {
             created_at: instance.created_at.clone().unwrap_or_default(),
             updated_at: instance.updated_at.clone().unwrap_or_default(),
             extra: instance.extra.clone(),
+            is_default: None,
         }
     }
 }
@@ -190,6 +190,7 @@ pub struct AddLlmInstanceRequest {
     pub workflow_mode: String,
     pub default_model: String,
     pub models: Vec<ModelConfig>,
+    pub is_default: Option<bool>,
     #[serde(default)]
     pub extra: HashMap<String, String>,
 }
@@ -1151,9 +1152,12 @@ pub async fn get_notification_instances() -> Result<Vec<NotificationInstance>, S
 #[tauri::command]
 pub async fn get_llm_instances() -> Result<HashMap<String, LlmInstanceForFrontend>, String> {
     let config = HIPPOX_APP_CONFIG.read().await;
+    let default_id = &config.default_llm_instance_id;
     let mut result = HashMap::new();
     for (key, instance) in config.llm_instances.iter() {
-        result.insert(key.clone(), instance.into());
+        let mut frontend_instance: LlmInstanceForFrontend = instance.into();
+        frontend_instance.is_default = Some(key == default_id);
+        result.insert(key.clone(), frontend_instance);
     }
     Ok(result)
 }
@@ -1169,6 +1173,12 @@ pub async fn add_llm_instance(request: AddLlmInstanceRequest) -> Result<String, 
     let mut config = HIPPOX_APP_CONFIG.write().await;
     let id = Uuid::new_v4().to_string();
     let now = chrono::Local::now().to_rfc3339();
+    let is_first_instance = config.llm_instances.is_empty();
+    let should_be_default = if is_first_instance {
+        true
+    } else {
+        request.is_default.unwrap_or(false)
+    };
     let new_instance = LlmInstance {
         id: Some(id.clone()),
         name: request.name,
@@ -1181,14 +1191,18 @@ pub async fn add_llm_instance(request: AddLlmInstanceRequest) -> Result<String, 
         created_at: Some(now.clone()),
         updated_at: Some(now),
         extra: request.extra,
+        is_default: Some(should_be_default), 
     };
     config.llm_instances.insert(id.clone(), new_instance);
-    if config.llm_instances.len() == 1 {
+    if should_be_default {
         config.default_llm_instance_id = id.clone();
+    } else if config.default_llm_instance_id.is_empty() && !config.llm_instances.is_empty() {
+        if let Some(first_id) = config.llm_instances.keys().next() {
+            config.default_llm_instance_id = first_id.clone();
+        }
     }
     drop(config);
     save_config_to_file().await?;
-    add_hippox_instance(&id).await?;
     Ok(id)
 }
 
@@ -1209,7 +1223,6 @@ pub async fn update_llm_instance(
         existing.updated_at = Some(chrono::Local::now().to_rfc3339());
         drop(config);
         save_config_to_file().await?;
-        sync_hippox_instance_on_update(&instance_id).await?;
         Ok(true)
     } else {
         Err("Instance not found".to_string())
@@ -1224,13 +1237,15 @@ pub async fn delete_llm_instance(instance_id: String) -> Result<bool, String> {
     }
     if config.llm_instances.remove(&instance_id).is_some() {
         if config.default_llm_instance_id == instance_id {
-            if let Some(first_id) = config.llm_instances.keys().next() {
+            if let Some(first_id) = config.llm_instances.keys().next().cloned() {
                 config.default_llm_instance_id = first_id.clone();
+                if let Some(instance) = config.llm_instances.get_mut(&first_id) {
+                    instance.is_default = Some(true);
+                }
             }
         }
         drop(config);
         save_config_to_file().await?;
-        remove_hippox_instance(&instance_id).await?;
         Ok(true)
     } else {
         Err("Instance not found".to_string())
@@ -1241,11 +1256,15 @@ pub async fn delete_llm_instance(instance_id: String) -> Result<bool, String> {
 pub async fn set_default_llm_instance(instance_id: String) -> Result<bool, String> {
     let mut config = HIPPOX_APP_CONFIG.write().await;
     if config.llm_instances.contains_key(&instance_id) {
+        for (_, instance) in config.llm_instances.iter_mut() {
+            instance.is_default = Some(false);
+        }
+        if let Some(instance) = config.llm_instances.get_mut(&instance_id) {
+            instance.is_default = Some(true);
+        }
         config.default_llm_instance_id = instance_id.clone();
         drop(config);
         save_config_to_file().await?;
-        let mut default_guard = DEFAULT_HIPPOX_INSTANCE_ID.write().await;
-        *default_guard = Some(instance_id);
         Ok(true)
     } else {
         Err("Instance not found".to_string())
@@ -1626,36 +1645,23 @@ pub async fn init_all_hippox_instances() -> Result<(), String> {
     if let Err(e) = sync_all_to_hippox_core().await {
         eprintln!("Failed to sync config to Hippox core: {}", e);
     }
-    let (skills_dir, llm_instances, default_id) = {
+    let (skills_dir, llm_instances) = {
         let config = HIPPOX_APP_CONFIG.read().await;
         (
             config.workspace.skills_dir.clone(),
             config.llm_instances.clone(),
-            config.default_llm_instance_id.clone(),
         )
     };
     let mut instances = HIPPOX_INSTANCES.write().await;
-    let mut default_instance_id = None;
     for (id, instance) in llm_instances {
         match init_single_hippox(&instance, &skills_dir).await {
             Ok(hippox) => {
                 instances.insert(id.clone(), Arc::new(hippox));
-                if default_id == id {
-                    default_instance_id = Some(id);
-                }
             }
             Err(e) => {
-                eprintln!("Failed to initialize {}: {}", instance.name, e);
+                eprintln!("Failed to initialize {} ({}): {}", instance.name, id, e);
             }
         }
-    }
-    if let Some(id) = default_instance_id {
-        let mut default_guard = DEFAULT_HIPPOX_INSTANCE_ID.write().await;
-        *default_guard = Some(id);
-    } else if !instances.is_empty() {
-        let first_id = instances.keys().next().unwrap().clone();
-        let mut default_guard = DEFAULT_HIPPOX_INSTANCE_ID.write().await;
-        *default_guard = Some(first_id);
     }
     Ok(())
 }
@@ -1736,26 +1742,6 @@ pub async fn reinit_single_hippox(instance_id: &str) -> Result<(), String> {
     Ok(())
 }
 
-pub async fn get_default_hippox() -> Result<Arc<Hippox>, String> {
-    let default_guard = DEFAULT_HIPPOX_INSTANCE_ID.read().await;
-    let default_id = default_guard
-        .as_ref()
-        .ok_or_else(|| "No default Hippox instance available".to_string())?;
-    let instances = HIPPOX_INSTANCES.read().await;
-    let hippox = instances
-        .get(default_id)
-        .ok_or_else(|| format!("Hippox instance not found: {}", default_id))?;
-    Ok(hippox.clone())
-}
-
-pub async fn get_hippox_instance(instance_id: &str) -> Result<Arc<Hippox>, String> {
-    let instances = HIPPOX_INSTANCES.read().await;
-    let hippox = instances
-        .get(instance_id)
-        .ok_or_else(|| format!("Hippox instance not found: {}", instance_id))?;
-    Ok(hippox.clone())
-}
-
 pub async fn sync_hippox_instance_on_update(instance_id: &str) -> Result<(), String> {
     reinit_single_hippox(instance_id).await
 }
@@ -1763,16 +1749,53 @@ pub async fn sync_hippox_instance_on_update(instance_id: &str) -> Result<(), Str
 pub async fn remove_hippox_instance(instance_id: &str) -> Result<(), String> {
     let mut instances = HIPPOX_INSTANCES.write().await;
     instances.remove(instance_id);
-    let mut default_guard = DEFAULT_HIPPOX_INSTANCE_ID.write().await;
-    if default_guard.as_ref() == Some(&instance_id.to_string()) {
-        *default_guard = None;
-        if let Some(first_id) = instances.keys().next() {
-            *default_guard = Some(first_id.clone());
-        }
-    }
     Ok(())
 }
 
 pub async fn add_hippox_instance(instance_id: &str) -> Result<(), String> {
     reinit_single_hippox(instance_id).await
+}
+
+pub async fn get_hippox_instance(instance_id: &str) -> Result<Arc<Hippox>, String> {
+    {
+        let instances = HIPPOX_INSTANCES.read().await;
+        if let Some(hippox) = instances.get(instance_id) {
+            return Ok(hippox.clone());
+        }
+    }
+    let (instance_config, skills_dir) = {
+        let config = HIPPOX_APP_CONFIG.read().await;
+        let instance = config
+            .llm_instances
+            .get(instance_id)
+            .ok_or_else(|| format!("LLM instance not found in config: {}", instance_id))?
+            .clone();
+        let skills_dir = config.workspace.skills_dir.clone();
+        (instance, skills_dir)
+    };
+    let hippox = init_single_hippox(&instance_config, &skills_dir).await?;
+    let hippox_arc = Arc::new(hippox);
+    let mut instances = HIPPOX_INSTANCES.write().await;
+    instances.insert(instance_id.to_string(), hippox_arc.clone());
+    Ok(hippox_arc)
+}
+
+pub async fn get_default_hippox() -> Result<Arc<Hippox>, String> {
+    let default_instance_id = {
+        let config = HIPPOX_APP_CONFIG.read().await;
+        if config.llm_instances.is_empty() {
+            return Err(
+                "No LLM instance configured. Please add an LLM configuration in settings."
+                    .to_string(),
+            );
+        }
+        config
+            .llm_instances
+            .iter()
+            .find(|(_, instance)| instance.is_default == Some(true))
+            .map(|(id, _)| id.clone())
+            .or_else(|| config.llm_instances.keys().next().cloned())
+            .unwrap()
+    };
+    get_hippox_instance(&default_instance_id).await
 }

@@ -400,7 +400,7 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({
                   {getProviderIcon(instance.provider)}{" "}
                   {getProviderName(instance.provider)}
                 </span>
-                {defaultInstanceId === id && (
+                {instance.is_default && (
                   <span style={badgeStyle}>{t("llmModel.default")}</span>
                 )}
               </div>

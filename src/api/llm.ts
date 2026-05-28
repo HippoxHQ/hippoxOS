@@ -39,6 +39,7 @@ export interface LlmInstance {
   created_at: string;
   updated_at: string;
   extra?: Record<string, string>;
+  is_default?: boolean;
 }
 
 export interface AddLlmInstanceRequest {
@@ -49,6 +50,7 @@ export interface AddLlmInstanceRequest {
   workflow_mode: string;
   default_model: string;
   models: ModelConfig[];
+  is_default?: boolean;
   extra?: Record<string, string>;
 }
 
