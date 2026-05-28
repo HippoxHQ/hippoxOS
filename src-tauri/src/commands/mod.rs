@@ -1,6 +1,7 @@
 pub mod callback;
 pub mod chat;
 pub mod config;
+pub mod context;
 pub mod files;
 pub mod llm;
 pub mod models;
@@ -14,6 +15,7 @@ pub mod sys;
 pub use callback::*;
 pub use chat::*;
 pub use config::*;
+pub use context::*;
 pub use files::*;
 pub use llm::*;
 pub use models::*;

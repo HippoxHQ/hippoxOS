@@ -3,6 +3,7 @@ mod commands;
 mod common;
 mod context;
 mod state;
+mod types;
 mod workspace;
 
 use crate::commands::{init_all_hippox_instances, sync_all_to_hippox_core};

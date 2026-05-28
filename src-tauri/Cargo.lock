@@ -4664,9 +4664,9 @@ checksum = "f52b00d39961fc5b2736ea853c9cc86238e165017a493d1d5c8eac6bdc4cc273"
 
 [[package]]
 name = "memcontext"
-version = "0.2.0"
+version = "0.3.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bfaba93a130f5aca71577e3c541fcba335dcc9abbbf9636dfbf29218edfb6d77"
+checksum = "95dbdc7981e02fb036f796d5f6f37a80a768c3be25c6c2a0a94498df1913af9d"
 dependencies = [
  "async-trait",
  "chrono",

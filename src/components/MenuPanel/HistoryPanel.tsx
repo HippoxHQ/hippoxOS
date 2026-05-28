@@ -154,10 +154,20 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
       }
     }
   };
-  const handleSelectSession = (sessionId: string) => {
+  const handleSelectSession = async (sessionId: string) => {
     setActiveMenuId(null);
-    if (onSessionSelect) {
-      onSessionSelect(sessionId);
+    if (currentSessionId === sessionId) {
+      return;
+    }
+    try {
+      if (onSessionSelect) {
+        onSessionSelect(sessionId);
+      }
+    } catch (error) {
+      console.error("Failed to recall session context:", error);
+      if (onSessionSelect) {
+        onSessionSelect(sessionId);
+      }
     }
   };
   const formatDate = (dateStr: string) => {

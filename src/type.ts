@@ -9,7 +9,7 @@ export interface ExecutionLog {
 
 export interface ChatMessage {
   id: string;
-  role: 'user' | 'assistant';
+  role: RoleEnum;
   content: string;
   timestamp: string;
 }
@@ -23,7 +23,7 @@ export interface Translations {
 
 export interface ChatMessage {
   id: string;
-  role: 'user' | 'assistant';
+  role: RoleEnum;
   content: string;
   timestamp: string;
 }
@@ -85,7 +85,7 @@ export interface DialogSession {
 
 export interface ChatMessage {
   id: string;
-  role: 'user' | 'assistant';
+  role: RoleEnum;
   content: string;
   timestamp: string;
 }
@@ -95,4 +95,10 @@ export interface TerminalEntry {
   type: 'task' | 'step' | 'log';
   data: any;
   timestamp: string;
+}
+
+export enum RoleEnum {
+  User = 'User',
+  LLM = 'LLM',
+  System = 'System'
 }

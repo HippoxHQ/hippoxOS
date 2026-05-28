@@ -14,6 +14,7 @@ use crate::commands::{
     get_default_hippox, init_all_hippox_instances, load_config_from_file, HIPPOX_APP_CONFIG,
 };
 use crate::state::AppState;
+use crate::types::Role;
 use crate::workspace::get_default_workspace;
 
 pub(crate) struct LogMessages {
@@ -160,22 +161,47 @@ pub async fn send_chat_message(
 ) -> Result<ChatResponse, String> {
     let start_time = std::time::Instant::now();
     let session: String = session_id.clone().unwrap_or_else(|| "default".to_string());
-    let messages = state.get_log_messages().await;
-    state
-        .add_log(
-            "process".to_string(),
-            messages.send_start.replace("{}", &message),
-            None,
-            None,
-        )
-        .await;
     let hippox = get_default_hippox().await?;
     let mem = state.get_memcontext().await;
     if let Some(ref mem) = mem {
         let _ = mem
-            .storage_user_chat(session.clone(), message.clone())
+            .store_message(session.clone(), Role::User.to_string(), message.clone())
             .await;
     }
+    let history_context = if let Some(ref mem) = mem {
+        match mem.recall_time_series(&session, 20).await {
+            Ok(result) => {
+                let filtered: Vec<memcontext::Message> = result
+                    .messages
+                    .into_iter()
+                    .filter(|msg| msg.role != Role::System.to_string())
+                    .collect();
+
+                if filtered.is_empty() {
+                    String::new()
+                } else {
+                    let mut history = String::from("## Previous conversation history\n\n");
+                    for msg in filtered {
+                        let role = if msg.role == Role::User.to_string() {
+                            "User"
+                        } else if msg.role == Role::LLM.to_string() {
+                            "Assistant"
+                        } else {
+                            continue;
+                        };
+                        history.push_str(&format!("{}: {}\n\n", role, msg.content));
+                    }
+                    history
+                }
+            }
+            Err(e) => {
+                eprintln!("Failed to recall history: {}", e);
+                String::new()
+            }
+        }
+    } else {
+        String::new()
+    };
     let workspace_path = get_default_workspace()
         .ok()
         .flatten()
@@ -193,24 +219,23 @@ pub async fn send_chat_message(
          If subdirectories need to be created, create them under the workspace directory.",
         workspace_path
     );
-    let enhanced_message = format!("{}\n\n{}", system_prompt, message);
+    let enhanced_message = if !history_context.is_empty() {
+        format!(
+            "{}\n\n{}\n\n## User\n{}",
+            system_prompt, history_context, message
+        )
+    } else {
+        format!("{}\n\n{}", system_prompt, message)
+    };
     let response = hippox
         .handle_natural_language(&enhanced_message, Some(&session), None)
         .await;
-    let duration = start_time.elapsed().as_millis() as u64;
     if let Some(ref mem) = mem {
         let _ = mem
-            .storage_llm_chat(session.clone(), response.clone())
+            .store_message(session.clone(), Role::LLM.to_string(), response.clone())
             .await;
     }
-    state
-        .add_log(
-            "success".to_string(),
-            messages.send_response.replace("{}", &duration.to_string()),
-            Some(response.clone()),
-            Some(duration),
-        )
-        .await;
+    let duration = start_time.elapsed().as_millis() as u64;
     Ok(ChatResponse {
         success: true,
         message: response,
@@ -300,6 +325,46 @@ async fn execute_task_async(
             return;
         }
     };
+    let mem = state.get_memcontext().await;
+    if let Some(ref mem) = mem {
+        let _ = mem
+            .store_message(session_id.clone(), Role::User.to_string(), message.clone())
+            .await;
+    }
+    let history_context = if let Some(ref mem) = mem {
+        match mem.recall_time_series(&session_id, 20).await {
+            Ok(result) => {
+                let filtered: Vec<memcontext::Message> = result
+                    .messages
+                    .into_iter()
+                    .filter(|msg| msg.role != Role::System.to_string())
+                    .collect();
+
+                if filtered.is_empty() {
+                    String::new()
+                } else {
+                    let mut history = String::from("## Previous conversation history\n\n");
+                    for msg in filtered {
+                        let role = if msg.role == Role::User.to_string() {
+                            "User"
+                        } else if msg.role == Role::LLM.to_string() {
+                            "Assistant"
+                        } else {
+                            continue;
+                        };
+                        history.push_str(&format!("{}: {}\n\n", role, msg.content));
+                    }
+                    history
+                }
+            }
+            Err(e) => {
+                eprintln!("Failed to recall history: {}", e);
+                String::new()
+            }
+        }
+    } else {
+        String::new()
+    };
     let workspace_path = get_default_workspace()
         .ok()
         .flatten()
@@ -317,12 +382,22 @@ async fn execute_task_async(
          If subdirectories need to be created, create them under the workspace directory.",
         workspace_path
     );
-    let enhanced_message = format!("{}\n\n{}", system_prompt, message);
+    let enhanced_message = if !history_context.is_empty() {
+        format!(
+            "{}\n\n{}\n\n## User\n{}",
+            system_prompt, history_context, message
+        )
+    } else {
+        format!("{}\n\n{}", system_prompt, message)
+    };
     let response = hippox
         .handle_natural_language(&enhanced_message, Some(&session_id), Some(callback_clone))
         .await;
-    let duration = std::time::Instant::now().elapsed().as_millis() as u64;
-    let messages = state.get_log_messages().await;
+    if let Some(ref mem) = mem {
+        let _ = mem
+            .store_message(session_id.clone(), Role::LLM.to_string(), response.clone())
+            .await;
+    }
     let is_error = response.contains("error.llm_error")
         || response.contains("LLM error")
         || response.contains("401 Unauthorized")
@@ -341,24 +416,8 @@ async fn execute_task_async(
     if is_error {
         callback.emit_failed(&response).await;
         state.fail_task(&task_id, &response).await;
-        state
-            .add_log(
-                "error".to_string(),
-                format!("Task failed: {}", response),
-                Some(response),
-                Some(duration),
-            )
-            .await;
     } else {
         callback.emit_complete(&response).await;
         state.complete_task(&task_id, &response).await;
-        state
-            .add_log(
-                "success".to_string(),
-                messages.send_response.replace("{}", &duration.to_string()),
-                Some(response),
-                Some(duration),
-            )
-            .await;
     }
 }

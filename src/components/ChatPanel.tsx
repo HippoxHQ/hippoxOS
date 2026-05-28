@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { ChatMessage } from "../type";
+import { ChatMessage, RoleEnum } from "../type";
 import {
   AttachmentIcon,
   FolderIcon,
@@ -15,17 +15,20 @@ import {
 } from "../icons";
 import { workspaceCommands, WorkspaceInstance } from "../api/workspace";
 import { taskManager } from "../TaskManager";
+import { showToast, ToastType } from "./Toast";
 
 interface ChatPanelProps {
-  onSendMessage: (message: string) => void | Promise<void>;
+  onSendMessage: (message: string, sessionId: string) => void | Promise<void>;
   t: (key: string, params?: any) => string;
   language?: string;
+  currentSessionId?: string;
 }
 
 const ChatPanel: React.FC<ChatPanelProps> = ({
   onSendMessage,
   t,
   language = "zh",
+  currentSessionId,
 }) => {
   const [inputValue, setInputValue] = useState("");
   const [isFocused, setIsFocused] = useState(false);
@@ -63,7 +66,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
       if (allMessages.length === 0) {
         const welcomeMsg: ChatMessage = {
           id: "welcome",
-          role: "assistant",
+          role: RoleEnum.LLM,
           content:
             language === "zh"
               ? "你好，我是 Hippox AI 运行时。我有自主决策能力，可以执行技能并实时反馈。有什么可以帮你的？"
@@ -189,7 +192,12 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
 
   const handleSend = () => {
     if (inputValue.trim()) {
-      onSendMessage(inputValue.trim());
+      const sessionId = currentSessionId || "";
+      if (!sessionId) {
+        showToast(ToastType.SUCCESS, "Session ID cannot be empty.");
+        return;
+      }
+      onSendMessage(inputValue.trim(), sessionId);
       setInputValue("");
       setUserScrolled(false);
       if (textareaRef.current) {
@@ -667,23 +675,26 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
           ref={messagesContainerRef}
           onScroll={handleUserScroll}
         >
-          {messages.map((msg) => (
-            <div key={msg.id} className={`message-wrapper ${msg.role}`}>
-              <div className="message-avatar">
-                {msg.role === "user" ? (
-                  <UserIcon size={16} />
-                ) : (
-                  <BotIcon size={16} />
-                )}
-              </div>
-              <div className="message-bubble">
-                <div className="message-content">{msg.content}</div>
-                <div className="message-time">
-                  {new Date(msg.timestamp).toLocaleTimeString()}
+          {messages.map((msg) => {
+            const isUser = msg.role === RoleEnum.User;
+            const isLLM = msg.role === RoleEnum.LLM;
+            return (
+              <div
+                key={msg.id}
+                className={`message-wrapper ${isUser ? "user" : ""}`}
+              >
+                <div className="message-avatar">
+                  {isUser ? <UserIcon size={16} /> : <BotIcon size={16} />}
+                </div>
+                <div className="message-bubble">
+                  <div className="message-content">{msg.content}</div>
+                  <div className="message-time">
+                    {new Date(msg.timestamp).toLocaleTimeString()}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
         {showScrollButton && (
           <div className="scroll-buttons chat-scroll-buttons">

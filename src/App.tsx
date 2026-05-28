@@ -10,7 +10,14 @@ import MenuPanel, {
 import TopBar from "./components/TopBar";
 import BottomBar from "./components/BottomBar";
 import { useTranslation } from "./hooks/useTranslation";
-import { Theme, Language, ExecutionLog, ChatMessage, TaskInfo } from "./type";
+import {
+  Theme,
+  Language,
+  ExecutionLog,
+  ChatMessage,
+  TaskInfo,
+  RoleEnum,
+} from "./type";
 import { hippoxCommands } from "./api/chat";
 import { sessionCommands } from "./api/session";
 import { configCommands } from "./api/config";
@@ -69,7 +76,6 @@ function App() {
   }, []);
   useEffect(() => {
     const handleOpenSkill = (e: CustomEvent) => {
-      console.log("Open skill:", e.detail);
       setMenuPanelView("skillMarket");
     };
     const handleSwitchSession = (e: CustomEvent) => {
@@ -183,7 +189,7 @@ function App() {
             } catch {
               const welcomeMsg: ChatMessage = {
                 id: "welcome",
-                role: "assistant",
+                role: RoleEnum.LLM,
                 content:
                   language === "zh"
                     ? "你好，我是 Hippox AI 运行时。我有自主决策能力，可以执行技能并实时反馈。有什么可以帮你的？"
@@ -195,7 +201,7 @@ function App() {
           } else {
             const welcomeMsg: ChatMessage = {
               id: "welcome",
-              role: "assistant",
+              role: RoleEnum.LLM,
               content:
                 language === "zh"
                   ? "你好，我是 Hippox AI 运行时。我有自主决策能力，可以执行技能并实时反馈。有什么可以帮你的？"
@@ -296,14 +302,14 @@ function App() {
     });
     const unlistenFailed = listen("task_failed", (event: any) => {
       const { task_id, error } = event.payload;
-      const messageId = `assistant_${task_id}`;
+      const messageId = `llm_${task_id}`;
       let existingMsg = taskManager
         .getAssistantMessages()
         .find((m) => m.id === messageId);
       if (!existingMsg) {
         const errorMsg: ChatMessage = {
           id: messageId,
-          role: "assistant",
+          role: RoleEnum.LLM,
           content: `❌ ${error}`,
           timestamp: new Date().toISOString(),
         };
@@ -336,14 +342,14 @@ function App() {
     });
     const unlistenComplete = listen("task_complete", (event: any) => {
       const { task_id, final_output } = event.payload;
-      const messageId = `assistant_${task_id}`;
+      const messageId = `llm_${task_id}`;
       let existingMsg = taskManager
         .getAssistantMessages()
         .find((m) => m.id === messageId);
       if (!existingMsg) {
         const successMsg: ChatMessage = {
           id: messageId,
-          role: "assistant",
+          role: RoleEnum.LLM,
           content: "✅ 任务已完成",
           timestamp: new Date().toISOString(),
         };
@@ -403,7 +409,7 @@ function App() {
     taskManager.clearAll();
     const welcomeMsg: ChatMessage = {
       id: "welcome",
-      role: "assistant",
+      role: RoleEnum.LLM,
       content:
         language === "zh"
           ? "你好，我是 Hippox AI 运行时。我有自主决策能力，可以执行技能并实时反馈。有什么可以帮你的？"
@@ -473,7 +479,7 @@ function App() {
         } catch {
           const welcomeMsg: ChatMessage = {
             id: "welcome",
-            role: "assistant",
+            role: RoleEnum.LLM,
             content:
               language === "zh"
                 ? "你好，我是 Hippox AI 运行时。我有自主决策能力，可以执行技能并实时反馈。有什么可以帮你的？"
@@ -485,7 +491,7 @@ function App() {
       } else {
         const welcomeMsg: ChatMessage = {
           id: "welcome",
-          role: "assistant",
+          role: RoleEnum.LLM,
           content:
             language === "zh"
               ? "你好，我是 Hippox AI 运行时。我有自主决策能力，可以执行技能并实时反馈。有什么可以帮你的？"
@@ -556,24 +562,28 @@ function App() {
     setMenuPanelView(null);
   };
   const handleSaveConfig = async (config: any) => {};
-  const handleSendMessage = async (userMessage: string) => {
+  const handleSendMessage = async (userMessage: string, sessionId: string) => {
     const now = new Date();
+    const finalSessionId = sessionId || currentSessionId;
     const userMsg: ChatMessage = {
       id: `user_${Date.now()}`,
-      role: "user",
+      role: RoleEnum.User,
       content: userMessage,
       timestamp: now.toISOString(),
     };
     taskManager.addUserMessage(userMsg);
     try {
-      const taskId = await hippoxCommands.sendMessageAsync(userMessage);
+      const taskId = await hippoxCommands.sendMessageAsync(
+        userMessage,
+        finalSessionId,
+      );
       let existingMsg = taskManager
         .getAssistantMessages()
-        .find((m) => m.id === `assistant_${taskId}`);
+        .find((m) => m.id === `llm_${taskId}`);
       if (!existingMsg) {
         const assistantMsg: ChatMessage = {
-          id: `assistant_${taskId}`,
-          role: "assistant",
+          id: `llm_${taskId}`,
+          role: RoleEnum.LLM,
           content: `⏳ ${language === "zh" ? "任务已提交" : "Task submitted"} ${taskId.slice(0, 8)}...`,
           timestamp: now.toISOString(),
         };
@@ -599,7 +609,7 @@ function App() {
       console.error("send message error:", error);
       const errorMsg: ChatMessage = {
         id: `error_${Date.now()}`,
-        role: "assistant",
+        role: RoleEnum.LLM,
         content: `❌ ${error}`,
         timestamp: now.toISOString(),
       };
@@ -620,7 +630,7 @@ function App() {
       taskManager.clearAll();
       const welcomeMsg: ChatMessage = {
         id: "welcome",
-        role: "assistant",
+        role: RoleEnum.LLM,
         content:
           language === "zh"
             ? "会话已重置。Hippox 运行时重新就绪，自主决策引擎已刷新。"
@@ -733,7 +743,13 @@ function App() {
           leftPanel={
             <TerminalPanel logs={executionLogs} onClearLogs={clearLogs} t={t} />
           }
-          rightPanel={<ChatPanel onSendMessage={handleSendMessage} t={t} />}
+          rightPanel={
+            <ChatPanel
+              onSendMessage={handleSendMessage}
+              t={t}
+              currentSessionId={currentSessionId}
+            />
+          }
           layoutMode={layoutMode}
         />
       </div>

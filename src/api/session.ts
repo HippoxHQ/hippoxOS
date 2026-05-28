@@ -70,4 +70,5 @@ export const sessionCommands = {
     async getPinnedSessions(): Promise<string[]> {
         return await invoke('get_pinned_sessions');
     },
+
 };
