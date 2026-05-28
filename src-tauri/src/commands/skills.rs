@@ -18,15 +18,15 @@ pub struct SkillParameterInfo {
     pub required: bool,
 }
 
-pub struct AppState {
-    pub skills_dir: PathBuf,
-}
+// pub struct AppState {
+//     pub skills_dir: PathBuf,
+// }
 
-impl AppState {
-    pub fn new(skills_dir: PathBuf) -> Self {
-        Self { skills_dir }
-    }
-}
+// impl AppState {
+//     pub fn new(skills_dir: PathBuf) -> Self {
+//         Self { skills_dir }
+//     }
+// }
 
 #[tauri::command]
 pub fn get_atomic_skills() -> Vec<AtomicSkillInfo> {

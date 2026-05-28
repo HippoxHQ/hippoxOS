@@ -1,5 +1,6 @@
 use hippox::ModelProvider;
 use hippox::{ConfigInitMethod, Hippox, WorkflowMode};
+use memcontext::MemContext;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::collections::HashMap;
@@ -12,9 +13,10 @@ use crate::commands::callback::TauriWorkflowCallback;
 use crate::commands::{
     get_default_hippox, init_all_hippox_instances, load_config_from_file, HIPPOX_APP_CONFIG,
 };
+use crate::state::AppState;
 use crate::workspace::get_default_workspace;
 
-struct LogMessages {
+pub(crate) struct LogMessages {
     init_start: String,
     init_success: String,
     init_failed: String,
@@ -91,149 +93,9 @@ pub struct ExecutionLog {
     pub duration: Option<u64>,
 }
 
-#[derive(Clone)]
-pub struct AppStateWithChat {
-    pub logs: Arc<Mutex<Vec<ExecutionLog>>>,
-    pub language: Arc<Mutex<String>>,
-    pub tasks: Arc<Mutex<HashMap<String, TaskInfo>>>,
-}
-
-impl AppStateWithChat {
-    pub fn new() -> Self {
-        Self {
-            logs: Arc::new(Mutex::new(Vec::new())),
-            language: Arc::new(Mutex::new("en".to_string())),
-            tasks: Arc::new(Mutex::new(HashMap::new())),
-        }
-    }
-
-    pub async fn set_language(&self, lang: String) {
-        let mut language = self.language.lock().await;
-        *language = lang;
-    }
-
-    pub async fn get_language(&self) -> String {
-        self.language.lock().await.clone()
-    }
-
-    pub async fn add_log(
-        &self,
-        level: String,
-        message: String,
-        details: Option<String>,
-        duration: Option<u64>,
-    ) {
-        let mut logs = self.logs.lock().await;
-        logs.push(ExecutionLog {
-            id: Uuid::new_v4().to_string(),
-            timestamp: chrono::Local::now().format("%H:%M:%S").to_string(),
-            level: level.clone(),
-            message: message.clone(),
-            details: details.clone(),
-            duration,
-        });
-        if logs.len() > 1000 {
-            logs.remove(0);
-        }
-        let _ = super::paths::write_log(&level, &message, details.as_deref());
-    }
-
-    pub async fn get_logs(&self) -> Vec<ExecutionLog> {
-        self.logs.lock().await.clone()
-    }
-
-    pub async fn clear_logs(&self) {
-        let mut logs = self.logs.lock().await;
-        logs.clear();
-    }
-
-    pub async fn get_log_messages(&self) -> LogMessages {
-        let lang = self.get_language().await;
-        LogMessages::get()
-    }
-
-    pub async fn create_task(&self, task_id: String, session_id: String, user_input: String) {
-        let now = chrono::Local::now().to_rfc3339();
-        let task = TaskInfo {
-            task_id: task_id.clone(),
-            session_id,
-            user_input,
-            status: "pending".to_string(),
-            steps: vec![],
-            final_output: None,
-            created_at: now.clone(),
-            updated_at: now,
-        };
-        let mut tasks = self.tasks.lock().await;
-        tasks.insert(task_id, task);
-    }
-
-    pub async fn update_task_status(&self, task_id: &str, status: &str) {
-        let mut tasks = self.tasks.lock().await;
-        if let Some(task) = tasks.get_mut(task_id) {
-            task.status = status.to_string();
-            task.updated_at = chrono::Local::now().to_rfc3339();
-        }
-    }
-
-    pub async fn add_task_step(
-        &self,
-        task_id: &str,
-        step_index: usize,
-        step_name: &str,
-        status: &str,
-        output: Option<String>,
-        error: Option<String>,
-    ) {
-        let mut tasks = self.tasks.lock().await;
-        if let Some(task) = tasks.get_mut(task_id) {
-            task.steps.push(TaskStepInfo {
-                step_index,
-                step_name: step_name.to_string(),
-                status: status.to_string(),
-                output,
-                error,
-            });
-            task.updated_at = chrono::Local::now().to_rfc3339();
-        }
-    }
-
-    pub async fn complete_task(&self, task_id: &str, final_output: &str) {
-        let mut tasks = self.tasks.lock().await;
-        if let Some(task) = tasks.get_mut(task_id) {
-            task.status = "completed".to_string();
-            task.final_output = Some(final_output.to_string());
-            task.updated_at = chrono::Local::now().to_rfc3339();
-        }
-    }
-
-    pub async fn fail_task(&self, task_id: &str, error: &str) {
-        let mut tasks = self.tasks.lock().await;
-        if let Some(task) = tasks.get_mut(task_id) {
-            task.status = "failed".to_string();
-            task.final_output = Some(error.to_string());
-            task.updated_at = chrono::Local::now().to_rfc3339();
-        }
-    }
-
-    pub async fn get_task(&self, task_id: &str) -> Option<TaskInfo> {
-        let tasks = self.tasks.lock().await;
-        tasks.get(task_id).cloned()
-    }
-
-    pub async fn get_session_tasks(&self, session_id: &str) -> Vec<TaskInfo> {
-        let tasks = self.tasks.lock().await;
-        tasks
-            .values()
-            .filter(|t| t.session_id == session_id)
-            .cloned()
-            .collect()
-    }
-}
-
 #[tauri::command]
 pub async fn set_hippox_language(
-    state: State<'_, AppStateWithChat>,
+    state: State<'_, AppState>,
     language: String,
 ) -> Result<(), String> {
     state.set_language(language).await;
@@ -241,7 +103,7 @@ pub async fn set_hippox_language(
 }
 
 #[tauri::command]
-pub async fn get_hippox_language(state: State<'_, AppStateWithChat>) -> Result<String, String> {
+pub async fn get_hippox_language(state: State<'_, AppState>) -> Result<String, String> {
     Ok(state.get_language().await)
 }
 
@@ -254,7 +116,7 @@ pub async fn reinitialize_hippox() -> Result<(), String> {
 
 #[tauri::command]
 pub async fn send_chat_message_async(
-    state: State<'_, AppStateWithChat>,
+    state: State<'_, AppState>,
     app_handle: tauri::AppHandle,
     message: String,
     session_id: Option<String>,
@@ -292,12 +154,12 @@ pub async fn send_chat_message_async(
 
 #[tauri::command]
 pub async fn send_chat_message(
-    state: State<'_, AppStateWithChat>,
+    state: State<'_, AppState>,
     message: String,
     session_id: Option<String>,
 ) -> Result<ChatResponse, String> {
     let start_time = std::time::Instant::now();
-    let session = session_id.clone().unwrap_or_else(|| "default".to_string());
+    let session: String = session_id.clone().unwrap_or_else(|| "default".to_string());
     let messages = state.get_log_messages().await;
     state
         .add_log(
@@ -308,6 +170,12 @@ pub async fn send_chat_message(
         )
         .await;
     let hippox = get_default_hippox().await?;
+    let mem = state.get_memcontext().await;
+    if let Some(ref mem) = mem {
+        let _ = mem
+            .storage_user_chat(session.clone(), message.clone())
+            .await;
+    }
     let workspace_path = get_default_workspace()
         .ok()
         .flatten()
@@ -330,6 +198,11 @@ pub async fn send_chat_message(
         .handle_natural_language(&enhanced_message, Some(&session), None)
         .await;
     let duration = start_time.elapsed().as_millis() as u64;
+    if let Some(ref mem) = mem {
+        let _ = mem
+            .storage_llm_chat(session.clone(), response.clone())
+            .await;
+    }
     state
         .add_log(
             "success".to_string(),
@@ -348,7 +221,7 @@ pub async fn send_chat_message(
 
 #[tauri::command]
 pub async fn get_task_status(
-    state: State<'_, AppStateWithChat>,
+    state: State<'_, AppState>,
     task_id: String,
 ) -> Result<Option<TaskInfo>, String> {
     Ok(state.get_task(&task_id).await)
@@ -356,7 +229,7 @@ pub async fn get_task_status(
 
 #[tauri::command]
 pub async fn get_session_tasks(
-    state: State<'_, AppStateWithChat>,
+    state: State<'_, AppState>,
     session_id: Option<String>,
 ) -> Result<Vec<TaskInfo>, String> {
     let session = session_id.unwrap_or_else(|| "default".to_string());
@@ -364,21 +237,19 @@ pub async fn get_session_tasks(
 }
 
 #[tauri::command]
-pub async fn get_execution_logs(
-    state: State<'_, AppStateWithChat>,
-) -> Result<Vec<ExecutionLog>, String> {
+pub async fn get_execution_logs(state: State<'_, AppState>) -> Result<Vec<ExecutionLog>, String> {
     Ok(state.get_logs().await)
 }
 
 #[tauri::command]
-pub async fn clear_execution_logs(state: State<'_, AppStateWithChat>) -> Result<(), String> {
+pub async fn clear_execution_logs(state: State<'_, AppState>) -> Result<(), String> {
     state.clear_logs().await;
     Ok(())
 }
 
 #[tauri::command]
 pub async fn reset_conversation(
-    state: State<'_, AppStateWithChat>,
+    state: State<'_, AppState>,
     session_id: Option<String>,
 ) -> Result<(), String> {
     let messages = state.get_log_messages().await;
@@ -409,7 +280,7 @@ pub async fn get_atomic_skills_list() -> Result<Vec<String>, String> {
 }
 
 async fn execute_task_async(
-    state: AppStateWithChat,
+    state: AppState,
     app_handle: tauri::AppHandle,
     task_id: String,
     message: String,

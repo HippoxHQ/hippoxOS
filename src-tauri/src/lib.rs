@@ -2,17 +2,21 @@
 mod commands;
 mod common;
 mod workspace;
+mod state;
 
 use crate::commands::{init_all_hippox_instances, sync_all_to_hippox_core};
 use crate::common::init_default_settings;
+use crate::state::AppState;
 use crate::workspace::ensure_workspace_config;
-use commands::AppStateWithChat;
-use hippox::{Hippox, get_hippox_core_config};
+use hippox::{get_hippox_core_config, Hippox};
+use memcontext::MemContext;
 use std::path::PathBuf;
 use std::thread;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // application status
+    let app_state = AppState::new();
     // init dir
     if let Err(e) = commands::init_directories() {
         eprintln!("Failed to initialize directories: {}", e);
@@ -62,8 +66,17 @@ pub fn run() {
             }
         });
     });
+    tokio::runtime::Runtime::new().unwrap().block_on(async {
+        match init_memcontext().await {
+            Ok(mem) => {
+                app_state.set_memcontext(mem).await;
+                println!("MemContext initialized successfully");
+            }
+            Err(e) => eprintln!("Failed to initialize MemContext: {}", e),
+        }
+    });
     tauri::Builder::default()
-        .manage(AppStateWithChat::new())
+        .manage(app_state)
         .invoke_handler(tauri::generate_handler![
             commands::get_config,
             commands::set_config,
@@ -193,4 +206,16 @@ pub fn run() {
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+async fn init_memcontext() -> Result<MemContext, String> {
+    use memcontext::{DatabaseType, MemContext, MemContextConfig, StorageType};
+    let config = MemContextConfig {
+        storage_type: StorageType::DB,
+        db_type: Some(DatabaseType::SQLite),
+        sqlite_storage_path: Some("./HippoX/data/sessions.db".to_string()),
+        local_storage_path: None,
+        lancedb_storage_path: None,
+    };
+    MemContext::new(config).await.map_err(|e| e.to_string())
 }
