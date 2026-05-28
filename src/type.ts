@@ -12,6 +12,7 @@ export interface ChatMessage {
   role: RoleEnum;
   content: string;
   timestamp: string;
+  status?: MessageStatus;
 }
 
 export type Theme = 'dark' | 'light';
@@ -20,14 +21,6 @@ export type Language = 'zh' | 'en';
 export interface Translations {
   [key: string]: any;
 }
-
-export interface ChatMessage {
-  id: string;
-  role: RoleEnum;
-  content: string;
-  timestamp: string;
-}
-
 export interface ExecutionLog {
   id: string;
   timestamp: string;
@@ -101,4 +94,10 @@ export enum RoleEnum {
   User = 'User',
   LLM = 'LLM',
   System = 'System'
+}
+
+export enum MessageStatus {
+  Pending = "pending",
+  Completed = "completed",
+  Failed = "failed",
 }

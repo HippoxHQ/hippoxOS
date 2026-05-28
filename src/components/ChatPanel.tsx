@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { ChatMessage, RoleEnum } from "../type";
+import { ChatMessage, MessageStatus, RoleEnum } from "../type";
 import {
   AttachmentIcon,
   FolderIcon,
@@ -46,19 +46,39 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [userScrolled, setUserScrolled] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const getTaskMessage = (
-    taskId: string,
-    status: string,
-    final_output?: string,
-  ): string => {
-    if (status === "completed") {
-      return language === "zh" ? "✅ 任务已完成" : "✅ Task completed";
-    } else if (status === "failed") {
-      return `❌ ${final_output || (language === "zh" ? "任务执行失败" : "Task execution failed")}`;
-    } else {
-      return `⏳ ${language === "zh" ? "任务已提交" : "Task submitted"} ${taskId.slice(0, 8)}...`;
-    }
-  };
+
+  const LoadingSpinner: React.FC = () => (
+    <div className="loading-spinner">
+      <svg
+        width="25"
+        height="25"
+        viewBox="0 0 24 24"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        className="spinner"
+      >
+        <circle
+          cx="12"
+          cy="12"
+          r="10"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeDasharray="31.4"
+          strokeDashoffset="0"
+        >
+          <animateTransform
+            attributeName="transform"
+            type="rotate"
+            from="0 12 12"
+            to="360 12 12"
+            dur="1s"
+            repeatCount="indefinite"
+          />
+        </circle>
+      </svg>
+    </div>
+  );
 
   useEffect(() => {
     const updateMessages = () => {
@@ -67,10 +87,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
         const welcomeMsg: ChatMessage = {
           id: "welcome",
           role: RoleEnum.LLM,
-          content:
-            language === "zh"
-              ? "你好，我是 Hippox AI 运行时。我有自主决策能力，可以执行技能并实时反馈。有什么可以帮你的？"
-              : "Hello, I am Hippox AI Runtime. I have autonomous decision-making capabilities and can execute skills with real-time feedback. How can I help you?",
+          content: t("welcome.message"),
           timestamp: new Date().toISOString(),
         };
         taskManager.addAssistantMessage(welcomeMsg);
@@ -630,6 +647,36 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
           background: var(--text-tertiary);
         }
 
+        .loading-message {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .loading-spinner {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+         }
+
+        .spinner {
+          animation: spin 1s linear infinite;
+         }
+
+        @keyframes spin {
+        from {
+          transform: rotate(0deg);
+         }
+        to {
+          transform: rotate(360deg);
+         }
+        }
+
+        .loading-gif {
+         display: inline-block;
+         vertical-align: middle;
+        }
+
         :root {
           --bg-primary: #0f1117;
           --bg-secondary: #1a1d26;
@@ -686,12 +733,23 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
                 <div className="message-avatar">
                   {isUser ? <UserIcon size={16} /> : <BotIcon size={16} />}
                 </div>
-                <div className="message-bubble">
-                  <div className="message-content">{msg.content}</div>
-                  <div className="message-time">
-                    {new Date(msg.timestamp).toLocaleTimeString()}
+                {msg.status === MessageStatus.Pending ? (
+                  <div
+                    className="message-bubble"
+                    style={{ backgroundColor: "transparent" }}
+                  >
+                    <div className="message-content">
+                      <LoadingSpinner />
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="message-bubble">
+                    <div className="message-content">{msg.content}</div>
+                    <div className="message-time">
+                      {new Date(msg.timestamp).toLocaleTimeString()}
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })}

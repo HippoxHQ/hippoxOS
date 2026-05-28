@@ -17,6 +17,7 @@ import {
   ChatMessage,
   TaskInfo,
   RoleEnum,
+  MessageStatus,
 } from "./type";
 import { hippoxCommands } from "./api/chat";
 import { sessionCommands } from "./api/session";
@@ -59,6 +60,7 @@ function App() {
     setLayoutMode(mode);
     localStorage.setItem("hippox-layout-mode", mode);
   };
+
   useEffect(() => {
     const savedLayoutMode = localStorage.getItem("hippox-layout-mode") as
       | "horizontal"
@@ -190,10 +192,7 @@ function App() {
               const welcomeMsg: ChatMessage = {
                 id: "welcome",
                 role: RoleEnum.LLM,
-                content:
-                  language === "zh"
-                    ? "你好，我是 Hippox AI 运行时。我有自主决策能力，可以执行技能并实时反馈。有什么可以帮你的？"
-                    : "Hello, I am Hippox AI Runtime. I have autonomous decision-making capabilities and can execute skills with real-time feedback. How can I help you?",
+                content: t("welcome.message"),
                 timestamp: new Date().toISOString(),
               };
               taskManager.addAssistantMessage(welcomeMsg);
@@ -202,10 +201,7 @@ function App() {
             const welcomeMsg: ChatMessage = {
               id: "welcome",
               role: RoleEnum.LLM,
-              content:
-                language === "zh"
-                  ? "你好，我是 Hippox AI 运行时。我有自主决策能力，可以执行技能并实时反馈。有什么可以帮你的？"
-                  : "Hello, I am Hippox AI Runtime. I have autonomous decision-making capabilities and can execute skills with real-time feedback. How can I help you?",
+              content: t("welcome.message"),
               timestamp: new Date().toISOString(),
             };
             taskManager.addAssistantMessage(welcomeMsg);
@@ -312,12 +308,14 @@ function App() {
           role: RoleEnum.LLM,
           content: `❌ ${error}`,
           timestamp: new Date().toISOString(),
+          status: MessageStatus.Failed,
         };
         taskManager.addAssistantMessage(errorMsg);
       } else {
         taskManager.updateAssistantMessage(messageId, {
           content: `❌ ${error}`,
           timestamp: new Date().toISOString(),
+          status: MessageStatus.Failed,
         });
       }
       const task = taskManager.getTask(task_id);
@@ -350,14 +348,16 @@ function App() {
         const successMsg: ChatMessage = {
           id: messageId,
           role: RoleEnum.LLM,
-          content: "✅ 任务已完成",
+          content: t("chat.taskCompleted"),
           timestamp: new Date().toISOString(),
+          status: MessageStatus.Completed,
         };
         taskManager.addAssistantMessage(successMsg);
       } else {
         taskManager.updateAssistantMessage(messageId, {
-          content: "✅ 任务已完成",
+          content: t("chat.taskCompleted"),
           timestamp: new Date().toISOString(),
+          status: MessageStatus.Completed,
         });
       }
       const task = taskManager.getTask(task_id);
@@ -410,18 +410,15 @@ function App() {
     const welcomeMsg: ChatMessage = {
       id: "welcome",
       role: RoleEnum.LLM,
-      content:
-        language === "zh"
-          ? "你好，我是 Hippox AI 运行时。我有自主决策能力，可以执行技能并实时反馈。有什么可以帮你的？"
-          : "Hello, I am Hippox AI Runtime. I have autonomous decision-making capabilities and can execute skills with real-time feedback. How can I help you?",
+      content: t("welcome.message"),
       timestamp: new Date().toISOString(),
     };
     taskManager.addAssistantMessage(welcomeMsg);
     try {
       await (sessionCommands.createSession as any)(
         newSessionId,
-        language === "zh" ? "新对话" : "New Session",
-        language === "zh" ? "新创建的对话" : "Newly created session",
+        t("app.newSessionName"),
+        t("app.newSessionDesc"),
         JSON.stringify({
           userMessages: [],
           assistantMessages: [welcomeMsg],
@@ -480,10 +477,7 @@ function App() {
           const welcomeMsg: ChatMessage = {
             id: "welcome",
             role: RoleEnum.LLM,
-            content:
-              language === "zh"
-                ? "你好，我是 Hippox AI 运行时。我有自主决策能力，可以执行技能并实时反馈。有什么可以帮你的？"
-                : "Hello, I am Hippox AI Runtime. I have autonomous decision-making capabilities and can execute skills with real-time feedback. How can I help you?",
+            content: t("welcome.message"),
             timestamp: new Date().toISOString(),
           };
           taskManager.addAssistantMessage(welcomeMsg);
@@ -492,10 +486,7 @@ function App() {
         const welcomeMsg: ChatMessage = {
           id: "welcome",
           role: RoleEnum.LLM,
-          content:
-            language === "zh"
-              ? "你好，我是 Hippox AI 运行时。我有自主决策能力，可以执行技能并实时反馈。有什么可以帮你的？"
-              : "Hello, I am Hippox AI Runtime. I have autonomous decision-making capabilities and can execute skills with real-time feedback. How can I help you?",
+          content: t("welcome.message"),
           timestamp: new Date().toISOString(),
         };
         taskManager.addAssistantMessage(welcomeMsg);
@@ -584,8 +575,9 @@ function App() {
         const assistantMsg: ChatMessage = {
           id: `llm_${taskId}`,
           role: RoleEnum.LLM,
-          content: `⏳ ${language === "zh" ? "任务已提交" : "Task submitted"} ${taskId.slice(0, 8)}...`,
+          content: `⏳ ${t("chat.taskSubmitted")} ${taskId.slice(0, 8)}...`,
           timestamp: now.toISOString(),
+          status: MessageStatus.Pending,
         };
         taskManager.addAssistantMessage(assistantMsg);
       }
@@ -631,10 +623,7 @@ function App() {
       const welcomeMsg: ChatMessage = {
         id: "welcome",
         role: RoleEnum.LLM,
-        content:
-          language === "zh"
-            ? "会话已重置。Hippox 运行时重新就绪，自主决策引擎已刷新。"
-            : "Session reset. Hippox runtime ready, decision engine refreshed.",
+        content: t("session.reset"),
         timestamp: new Date().toISOString(),
       };
       taskManager.addAssistantMessage(welcomeMsg);

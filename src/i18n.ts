@@ -1,4 +1,7 @@
 export const zh = {
+  app: {
+    loading: '加载中...',
+  },
   llmModel: {
     workflowMode: '工作流模式',
     workflowModeReAct: '反应式',
@@ -353,7 +356,10 @@ export const zh = {
     hint: 'Shift+Enter 换行，Enter 发送',
     scrollToBottom: '回到底部',
     notInitialized: 'Hippox 引擎未初始化，请先在设置中配置 API Key。',
-    sendFailed: '发送失败，请检查网络或 API Key 配置。'
+    sendFailed: '发送失败，请检查网络或 API Key 配置。',
+    taskSubmitted: '任务已提交',
+    taskCompleted: '✅ 任务已完成',
+    taskFailed: '❌ 任务执行失败',
   },
   tooltip: {
     theme: '切换主题',
@@ -629,6 +635,9 @@ export const zh = {
 };
 
 export const en: typeof zh = {
+  app: {
+    loading: 'Loading...',
+  },
   llmModel: {
     workflowMode: 'Workflow Mode',
     workflowModeReAct: 'ReAct',
@@ -984,7 +993,10 @@ export const en: typeof zh = {
     hint: 'Shift+Enter for new line, Enter to send',
     scrollToBottom: 'Scroll to bottom',
     notInitialized: 'Hippox engine not initialized, please configure API Key in settings first.',
-    sendFailed: 'Send failed, please check network or API Key configuration.'
+    sendFailed: 'Send failed, please check network or API Key configuration.',
+    taskSubmitted: 'Task submitted',
+    taskCompleted: '✅ Task completed',
+    taskFailed: '❌ Task execution failed',
   },
   tooltip: {
     theme: 'Toggle theme',
