@@ -151,7 +151,7 @@ function App() {
     };
     loadConfig();
   }, []);
-  
+
   useEffect(() => {
     if (isConfigLoaded) {
       document.documentElement.setAttribute("data-theme", theme);
@@ -443,7 +443,7 @@ function App() {
     };
     taskManager.loadSessionData(newSessionId, [], [], [welcomeMsg]);
     try {
-      (sessionCommands.createSession as any)(
+      await (sessionCommands.createSession as any)(
         newSessionId,
         t("app.newSessionName"),
         t("app.newSessionDesc"),

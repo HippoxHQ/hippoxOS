@@ -49,13 +49,16 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
     last30days: true,
     older: true,
   });
+
   const toggleCategory = (categoryType: CategoryType) => {
     setExpandedCategories((prev) => ({
       ...prev,
       [categoryType]: !prev[categoryType],
     }));
   };
+
   const menuRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     loadSessions();
     const handleClickOutside = (event: MouseEvent) => {
@@ -65,9 +68,10 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
     };
     document.addEventListener("mousedown", handleClickOutside);
     const handleSessionCreated = () => {
-      loadSessions();
+      setTimeout(() => loadSessions(), 100);
     };
     window.addEventListener("session-created", handleSessionCreated);
+
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
       window.removeEventListener("session-created", handleSessionCreated);
@@ -82,9 +86,13 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
         if (a.is_pinned !== b.is_pinned) {
           return a.is_pinned ? -1 : 1;
         }
-        return (
-          new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-        );
+        const getTimestamp = (id: string) => {
+          const ts = id.replace("session_", "");
+          return parseInt(ts, 10) || 0;
+        };
+        const aTs = getTimestamp(a.session_id);
+        const bTs = getTimestamp(b.session_id);
+        return bTs - aTs;
       });
       setSessions(sorted);
     } catch (error) {
