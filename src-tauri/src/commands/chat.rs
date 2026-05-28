@@ -315,6 +315,7 @@ async fn execute_task_async(
     let callback = Arc::new(TauriWorkflowCallback::new(
         app_handle.clone(),
         task_id.clone(),
+        session_id.clone(),
     ));
     let callback_clone = callback.clone();
     let hippox = match get_default_hippox().await {

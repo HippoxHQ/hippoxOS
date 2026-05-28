@@ -14,6 +14,7 @@ interface TerminalPanelProps {
   logs: ExecutionLog[];
   onClearLogs: () => void;
   t: (key: string, params?: any) => string;
+  currentSessionId?: string;
 }
 
 const logToConsole = (level: string, message: string, data?: any) => {
@@ -178,6 +179,7 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
   logs,
   onClearLogs,
   t,
+  currentSessionId,
 }) => {
   const terminalRef = useRef<HTMLDivElement>(null);
   const taskRefs = useRef<Map<string, HTMLDivElement>>(new Map());
@@ -195,15 +197,21 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
   const [tasks, setTasks] = useState<TaskInfo[]>([]);
 
   useEffect(() => {
-    const initialTasks = taskManager.getAllTasks();
-    setTasks(initialTasks);
+    const loadInitialTasks = () => {
+      const initialTasks = taskManager.getAllTasks();
+      setTasks(initialTasks);
+    };
+    loadInitialTasks();
     const unsubscribe = taskManager.subscribe(() => {
       const newTasks = taskManager.getAllTasks();
       setTasks([...newTasks]);
     });
     return unsubscribe;
   }, []);
-  const activeTasks = tasks;
+
+  const activeTasks = tasks.filter(
+    (task) => !currentSessionId || task.session_id === currentSessionId,
+  );
   const allTasks = [
     {
       task_id: "welcome",

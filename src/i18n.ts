@@ -1,6 +1,8 @@
 export const zh = {
   app: {
     loading: '加载中...',
+    newSessionName: '新对话',
+    newSessionDesc: '新创建的对话',
   },
   llmModel: {
     workflowMode: '工作流模式',
@@ -637,6 +639,8 @@ export const zh = {
 export const en: typeof zh = {
   app: {
     loading: 'Loading...',
+    newSessionName: 'New Session',
+    newSessionDesc: 'Newly created session',
   },
   llmModel: {
     workflowMode: 'Workflow Mode',

@@ -205,6 +205,8 @@ pub fn run() {
             commands::toggle_notification_instance,
             commands::get_notification_instances,
             commands::cmd_sync_all_to_hippox_core,
+            commands::cmd_save_task_content,
+            commands::cmd_load_task_content,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

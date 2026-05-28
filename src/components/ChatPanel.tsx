@@ -82,7 +82,29 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
 
   useEffect(() => {
     const updateMessages = () => {
-      let allMessages = taskManager.getAllMessages();
+      if (!currentSessionId) {
+        let allMessages = taskManager.getAllMessages();
+        if (allMessages.length === 0) {
+          const welcomeMsg: ChatMessage = {
+            id: "welcome",
+            role: RoleEnum.LLM,
+            content: t("welcome.message"),
+            timestamp: new Date().toISOString(),
+          };
+          taskManager.addAssistantMessage(welcomeMsg);
+          allMessages = [welcomeMsg];
+        }
+        setMessages(allMessages);
+        return;
+      }
+      const userMessages =
+        taskManager.getUserMessagesBySession(currentSessionId);
+      const assistantMessages =
+        taskManager.getAssistantMessagesBySessionAsArray(currentSessionId);
+      let allMessages = [...userMessages, ...assistantMessages].sort(
+        (a, b) =>
+          new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
+      );
       if (allMessages.length === 0) {
         const welcomeMsg: ChatMessage = {
           id: "welcome",
@@ -90,7 +112,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
           content: t("welcome.message"),
           timestamp: new Date().toISOString(),
         };
-        taskManager.addAssistantMessage(welcomeMsg);
+        taskManager.addAssistantMessageToSession(currentSessionId, welcomeMsg);
         allMessages = [welcomeMsg];
       }
       setMessages(allMessages);
@@ -100,7 +122,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
       updateMessages();
     });
     return unsubscribe;
-  }, [language]);
+  }, [language, currentSessionId]);
 
   useEffect(() => {
     loadWorkspaces();

@@ -10,14 +10,16 @@ use tauri::{AppHandle, Emitter};
 pub struct TauriWorkflowCallback {
     app_handle: AppHandle,
     task_id: String,
+    session_id: String,
     completed: Arc<AtomicBool>,
 }
 
 impl TauriWorkflowCallback {
-    pub fn new(app_handle: AppHandle, task_id: String) -> Self {
+    pub fn new(app_handle: AppHandle, task_id: String, session_id: String) -> Self {
         Self {
             app_handle,
             task_id,
+            session_id,
             completed: Arc::new(AtomicBool::new(false)),
         }
     }
@@ -28,7 +30,8 @@ impl TauriWorkflowCallback {
                 "task_complete",
                 &json!({
                     "task_id": self.task_id,
-                    "final_output": final_output
+                    "final_output": final_output,
+                    "session_id": self.session_id
                 }),
             );
         }
@@ -40,7 +43,8 @@ impl TauriWorkflowCallback {
                 "task_failed",
                 &json!({
                     "task_id": self.task_id,
-                    "error": error
+                    "error": error,
+                    "session_id": self.session_id
                 }),
             );
         }
@@ -56,7 +60,8 @@ impl WorkflowCallback for TauriWorkflowCallback {
                 "task_id": self.task_id,
                 "step_name": step_name,
                 "step_index": step_index,
-                "status": "RUNNING"
+                "status": "RUNNING",
+                "session_id": self.session_id
             }),
         );
     }
@@ -69,7 +74,8 @@ impl WorkflowCallback for TauriWorkflowCallback {
                 "step_name": step_name,
                 "step_index": step_index,
                 "status": "SUCCESS",
-                "output": output
+                "output": output,
+                "session_id": self.session_id
             }),
         );
     }
@@ -82,7 +88,8 @@ impl WorkflowCallback for TauriWorkflowCallback {
                 "step_name": step_name,
                 "step_index": step_index,
                 "status": "FAILURE",
-                "error": error
+                "error": error,
+                "session_id": self.session_id
             }),
         );
     }

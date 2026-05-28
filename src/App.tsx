@@ -84,9 +84,7 @@ function App() {
       const { sessionId } = e.detail;
       handleSwitchSession(sessionId);
     };
-    const handleOpenLog = (e: CustomEvent) => {
-      console.log("Open log:", e.detail);
-    };
+    const handleOpenLog = (e: CustomEvent) => {};
     window.addEventListener(
       "search-open-skill",
       handleOpenSkill as EventListener,
@@ -111,6 +109,7 @@ function App() {
       );
     };
   }, []);
+
   useEffect(() => {
     if (!isLoading && currentSessionId) {
       const saveTimer = setTimeout(() => {
@@ -130,6 +129,7 @@ function App() {
       return () => clearTimeout(saveTimer);
     }
   }, [currentSessionId, isLoading, taskManagerVersion]);
+
   useEffect(() => {
     const loadConfig = async () => {
       try {
@@ -151,11 +151,13 @@ function App() {
     };
     loadConfig();
   }, []);
+  
   useEffect(() => {
     if (isConfigLoaded) {
       document.documentElement.setAttribute("data-theme", theme);
     }
   }, [theme, isConfigLoaded]);
+
   useEffect(() => {
     const loadSessions = async () => {
       if (!isConfigLoaded) return;
@@ -172,58 +174,59 @@ function App() {
           const chatContent = await sessionCommands.loadChatContent(
             targetSession.session_id,
           );
+          let userMessages: ChatMessage[] = [];
+          let assistantMessages: ChatMessage[] = [];
           if (chatContent) {
             try {
               const parsed =
                 typeof chatContent === "string"
                   ? JSON.parse(chatContent)
                   : chatContent;
-              if (parsed && parsed.userMessages) {
-                parsed.userMessages.forEach((msg: ChatMessage) => {
-                  taskManager.addUserMessage(msg);
-                });
-              }
-              if (parsed && parsed.assistantMessages) {
-                parsed.assistantMessages.forEach((msg: ChatMessage) => {
-                  taskManager.addAssistantMessage(msg);
-                });
-              }
+              userMessages = parsed?.userMessages || [];
+              assistantMessages = parsed?.assistantMessages || [];
             } catch {
-              const welcomeMsg: ChatMessage = {
+              assistantMessages = [
+                {
+                  id: "welcome",
+                  role: RoleEnum.LLM,
+                  content: t("welcome.message"),
+                  timestamp: new Date().toISOString(),
+                },
+              ];
+            }
+          } else {
+            assistantMessages = [
+              {
                 id: "welcome",
                 role: RoleEnum.LLM,
                 content: t("welcome.message"),
                 timestamp: new Date().toISOString(),
-              };
-              taskManager.addAssistantMessage(welcomeMsg);
-            }
-          } else {
-            const welcomeMsg: ChatMessage = {
-              id: "welcome",
-              role: RoleEnum.LLM,
-              content: t("welcome.message"),
-              timestamp: new Date().toISOString(),
-            };
-            taskManager.addAssistantMessage(welcomeMsg);
+              },
+            ];
           }
-          setCurrentSessionId(targetSession.session_id);
-          taskManager.setSessionId(targetSession.session_id);
           const terminalContent = await sessionCommands.loadTerminalContent(
             targetSession.session_id,
           );
+          let tasks: TaskInfo[] = [];
           if (terminalContent) {
             try {
               const parsed =
                 typeof terminalContent === "string"
                   ? JSON.parse(terminalContent)
                   : terminalContent;
-              if (Array.isArray(parsed) && parsed.length > 0) {
-                taskManager.setTasks(parsed);
-              }
+              tasks = Array.isArray(parsed) ? parsed : [];
             } catch (e) {
               console.error("Failed to parse terminal content:", e);
             }
           }
+          taskManager.loadSessionData(
+            targetSession.session_id,
+            tasks,
+            userMessages,
+            assistantMessages,
+          );
+          await taskManager.loadTasksFromFile(targetSession.session_id);
+          setCurrentSessionId(targetSession.session_id);
           localStorage.setItem(
             "hippox-current-session",
             targetSession.session_id,
@@ -237,9 +240,10 @@ function App() {
     };
     loadSessions();
   }, [isConfigLoaded, language]);
+
   useEffect(() => {
     if (!isLoading && currentSessionId) {
-      const saveTimer = setTimeout(() => {
+      const saveTimer = setTimeout(async () => {
         const allData = taskManager.getAllData();
         (sessionCommands.saveChatContent as any)(
           currentSessionId,
@@ -258,7 +262,7 @@ function App() {
   }, [currentSessionId, isLoading]);
   useEffect(() => {
     if (!isLoading && currentSessionId) {
-      const saveTimer = setTimeout(() => {
+      const saveTimer = setTimeout(async () => {
         const allData = taskManager.getAllData();
         (sessionCommands.saveChatContent as any)(
           currentSessionId,
@@ -275,11 +279,24 @@ function App() {
       return () => clearTimeout(saveTimer);
     }
   }, [currentSessionId, isLoading, taskManager.getAllData()]);
+
   useEffect(() => {
     const unlistenStep = listen("task_step_update", (event: any) => {
-      const { task_id, step_name, step_index, status, output, error } =
-        event.payload;
-      const task = taskManager.getTask(task_id);
+      const {
+        task_id,
+        step_name,
+        step_index,
+        status,
+        output,
+        error,
+        session_id,
+      } = event.payload;
+      if (!session_id) {
+        console.warn("task_step_update missing session_id");
+        return;
+      }
+      const tasksMap = taskManager.getTasksBySession(session_id);
+      const task = tasksMap?.get(task_id);
       if (task && task.status !== "failed") {
         const steps = [...task.steps];
         const existingStep = steps.find((s) => s.step_index === step_index);
@@ -293,15 +310,20 @@ function App() {
         steps.sort((a, b) => a.step_index - b.step_index);
         const hasFailure = steps.some((s) => s.status === "FAILURE");
         const taskStatus = hasFailure ? "failed" : task.status;
-        taskManager.updateTask(task_id, { steps, status: taskStatus });
+        taskManager.updateTaskBySession(session_id, task_id, {
+          steps,
+          status: taskStatus,
+        });
       }
     });
+
     const unlistenFailed = listen("task_failed", (event: any) => {
-      const { task_id, error } = event.payload;
+      const { task_id, error, session_id } = event.payload;
+      if (!session_id) return;
       const messageId = `llm_${task_id}`;
-      let existingMsg = taskManager
-        .getAssistantMessages()
-        .find((m) => m.id === messageId);
+      const assistantMessagesMap =
+        taskManager.getAssistantMessagesBySession(session_id);
+      const existingMsg = assistantMessagesMap?.get(messageId);
       if (!existingMsg) {
         const errorMsg: ChatMessage = {
           id: messageId,
@@ -310,24 +332,24 @@ function App() {
           timestamp: new Date().toISOString(),
           status: MessageStatus.Failed,
         };
-        taskManager.addAssistantMessage(errorMsg);
+        taskManager.addAssistantMessageToSession(session_id, errorMsg);
       } else {
-        taskManager.updateAssistantMessage(messageId, {
+        taskManager.updateAssistantMessageBySession(session_id, messageId, {
           content: `❌ ${error}`,
           timestamp: new Date().toISOString(),
           status: MessageStatus.Failed,
         });
       }
-      const task = taskManager.getTask(task_id);
+      const task = taskManager.getTaskBySession(session_id, task_id);
       if (task) {
-        taskManager.updateTask(task_id, {
+        taskManager.updateTaskBySession(session_id, task_id, {
           status: "failed",
           final_output: error,
         });
       } else {
         const newTask: TaskInfo = {
           task_id: task_id,
-          session_id: currentSessionId,
+          session_id: session_id,
           user_input: "Processing...",
           status: "failed",
           steps: [],
@@ -335,15 +357,17 @@ function App() {
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         };
-        taskManager.addTask(newTask);
+        taskManager.addTaskToSession(session_id, newTask);
       }
     });
+
     const unlistenComplete = listen("task_complete", (event: any) => {
-      const { task_id, final_output } = event.payload;
+      const { task_id, final_output, session_id } = event.payload;
+      if (!session_id) return;
       const messageId = `llm_${task_id}`;
-      let existingMsg = taskManager
-        .getAssistantMessages()
-        .find((m) => m.id === messageId);
+      const assistantMessagesMap =
+        taskManager.getAssistantMessagesBySession(session_id);
+      const existingMsg = assistantMessagesMap?.get(messageId);
       if (!existingMsg) {
         const successMsg: ChatMessage = {
           id: messageId,
@@ -352,21 +376,24 @@ function App() {
           timestamp: new Date().toISOString(),
           status: MessageStatus.Completed,
         };
-        taskManager.addAssistantMessage(successMsg);
+        taskManager.addAssistantMessageToSession(session_id, successMsg);
       } else {
-        taskManager.updateAssistantMessage(messageId, {
+        taskManager.updateAssistantMessageBySession(session_id, messageId, {
           content: t("chat.taskCompleted"),
           timestamp: new Date().toISOString(),
           status: MessageStatus.Completed,
         });
       }
-      const task = taskManager.getTask(task_id);
+      const task = taskManager.getTaskBySession(session_id, task_id);
       if (task) {
-        taskManager.updateTask(task_id, { status: "completed", final_output });
+        taskManager.updateTaskBySession(session_id, task_id, {
+          status: "completed",
+          final_output,
+        });
       } else {
         const newTask: TaskInfo = {
           task_id: task_id,
-          session_id: currentSessionId,
+          session_id: session_id,
           user_input: "Processing...",
           status: "completed",
           steps: [],
@@ -374,7 +401,7 @@ function App() {
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         };
-        taskManager.addTask(newTask);
+        taskManager.addTaskToSession(session_id, newTask);
       }
     });
     return () => {
@@ -382,7 +409,8 @@ function App() {
       unlistenComplete.then((fn) => fn());
       unlistenFailed.then((fn) => fn());
     };
-  }, [language, currentSessionId]);
+  }, [language]);
+
   useEffect(() => {
     const loadLogs = async () => {
       try {
@@ -404,18 +432,18 @@ function App() {
     const interval = setInterval(loadLogs, 3000);
     return () => clearInterval(interval);
   }, []);
+
   const handleNewSession = async () => {
     const newSessionId = `session_${Date.now()}`;
-    taskManager.clearAll();
     const welcomeMsg: ChatMessage = {
       id: "welcome",
       role: RoleEnum.LLM,
       content: t("welcome.message"),
       timestamp: new Date().toISOString(),
     };
-    taskManager.addAssistantMessage(welcomeMsg);
+    taskManager.loadSessionData(newSessionId, [], [], [welcomeMsg]);
     try {
-      await (sessionCommands.createSession as any)(
+      (sessionCommands.createSession as any)(
         newSessionId,
         t("app.newSessionName"),
         t("app.newSessionDesc"),
@@ -426,13 +454,13 @@ function App() {
         "[]",
       );
       setCurrentSessionId(newSessionId);
-      taskManager.setSessionId(newSessionId);
       localStorage.setItem("hippox-current-session", newSessionId);
       window.dispatchEvent(new CustomEvent("session-created"));
     } catch (error) {
       console.error("Failed to create new session:", error);
     }
   };
+
   const handleSwitchSession = async (sessionId: string) => {
     if (sessionId === currentSessionId) return;
     try {
@@ -444,83 +472,69 @@ function App() {
             userMessages: allData.userMessages,
             assistantMessages: allData.assistantMessages,
           }),
-        );
+        ).catch(console.error);
         await (sessionCommands.saveTerminalContent as any)(
           currentSessionId,
           JSON.stringify(allData.tasks),
+        ).catch(console.error);
+      }
+      const hasData = taskManager.getTasksBySession(sessionId) !== undefined;
+      if (!hasData) {
+        const chatContent = await sessionCommands.loadChatContent(sessionId);
+        const terminalContent =
+          await sessionCommands.loadTerminalContent(sessionId);
+        let userMessages: ChatMessage[] = [];
+        let assistantMessages: ChatMessage[] = [];
+        let tasks: TaskInfo[] = [];
+        if (chatContent) {
+          try {
+            const parsed =
+              typeof chatContent === "string"
+                ? JSON.parse(chatContent)
+                : chatContent;
+            userMessages = parsed?.userMessages || [];
+            assistantMessages = parsed?.assistantMessages || [];
+          } catch {}
+        }
+        if (terminalContent) {
+          try {
+            const parsed =
+              typeof terminalContent === "string"
+                ? JSON.parse(terminalContent)
+                : terminalContent;
+            tasks = Array.isArray(parsed) ? parsed : [];
+          } catch {}
+        }
+        taskManager.loadSessionData(
+          sessionId,
+          tasks,
+          userMessages,
+          assistantMessages,
         );
-      }
-      const chatContent = await sessionCommands.loadChatContent(sessionId);
-      const terminalContent =
-        await sessionCommands.loadTerminalContent(sessionId);
-      taskManager.clearAll();
-      setCurrentSessionId(sessionId);
-      taskManager.setSessionId(sessionId);
-      localStorage.setItem("hippox-current-session", sessionId);
-      if (chatContent) {
-        try {
-          const parsed =
-            typeof chatContent === "string"
-              ? JSON.parse(chatContent)
-              : chatContent;
-          if (parsed && parsed.userMessages) {
-            parsed.userMessages.forEach((msg: ChatMessage) => {
-              taskManager.addUserMessage(msg);
-            });
-          }
-          if (parsed && parsed.assistantMessages) {
-            parsed.assistantMessages.forEach((msg: ChatMessage) => {
-              taskManager.addAssistantMessage(msg);
-            });
-          }
-        } catch {
-          const welcomeMsg: ChatMessage = {
-            id: "welcome",
-            role: RoleEnum.LLM,
-            content: t("welcome.message"),
-            timestamp: new Date().toISOString(),
-          };
-          taskManager.addAssistantMessage(welcomeMsg);
-        }
       } else {
-        const welcomeMsg: ChatMessage = {
-          id: "welcome",
-          role: RoleEnum.LLM,
-          content: t("welcome.message"),
-          timestamp: new Date().toISOString(),
-        };
-        taskManager.addAssistantMessage(welcomeMsg);
+        taskManager.switchToSession(sessionId);
       }
-      if (terminalContent) {
-        try {
-          const parsed =
-            typeof terminalContent === "string"
-              ? JSON.parse(terminalContent)
-              : terminalContent;
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            taskManager.setTasks(parsed);
-          }
-        } catch (e) {
-          console.error("Failed to parse terminal content:", e);
-        }
-      }
+      setCurrentSessionId(sessionId);
+      localStorage.setItem("hippox-current-session", sessionId);
+      window.dispatchEvent(new CustomEvent("session-created"));
     } catch (error) {
       console.error("Failed to switch session:", error);
     }
   };
+
   const handleToggleTheme = async () => {
     const newTheme = theme === "dark" ? "light" : "dark";
     setTheme(newTheme);
     await configCommands.saveSettingsTheme(newTheme);
   };
+
   const handleToggleLanguage = async () => {
     const newLang = language === "zh" ? "en" : "zh";
     setLanguage(newLang);
     await configCommands.saveSettingsLanguage(newLang);
     await hippoxCommands.setLanguage(newLang);
-    const welcomeMsg = taskManager
-      .getAssistantMessages()
-      .find((m) => m.id === "welcome");
+    const assistantMessages = taskManager.getAssistantMessages();
+    const welcomeMsg = assistantMessages.find((m) => m.id === "welcome");
     if (welcomeMsg) {
       const newContent = appConfig.getWelcomeMessage(newLang);
       taskManager.updateAssistantMessage("welcome", {
@@ -553,6 +567,7 @@ function App() {
     setMenuPanelView(null);
   };
   const handleSaveConfig = async (config: any) => {};
+
   const handleSendMessage = async (userMessage: string, sessionId: string) => {
     const now = new Date();
     const finalSessionId = sessionId || currentSessionId;
@@ -562,30 +577,31 @@ function App() {
       content: userMessage,
       timestamp: now.toISOString(),
     };
-    taskManager.addUserMessage(userMsg);
+    taskManager.addUserMessageToSession(finalSessionId, userMsg);
     try {
       const taskId = await hippoxCommands.sendMessageAsync(
         userMessage,
         finalSessionId,
       );
-      let existingMsg = taskManager
-        .getAssistantMessages()
-        .find((m) => m.id === `llm_${taskId}`);
+      const messageId = `llm_${taskId}`;
+      const assistantMessagesMap =
+        taskManager.getAssistantMessagesBySession(finalSessionId);
+      const existingMsg = assistantMessagesMap?.get(messageId);
       if (!existingMsg) {
         const assistantMsg: ChatMessage = {
-          id: `llm_${taskId}`,
+          id: messageId,
           role: RoleEnum.LLM,
           content: `⏳ ${t("chat.taskSubmitted")} ${taskId.slice(0, 8)}...`,
           timestamp: now.toISOString(),
           status: MessageStatus.Pending,
         };
-        taskManager.addAssistantMessage(assistantMsg);
+        taskManager.addAssistantMessageToSession(finalSessionId, assistantMsg);
       }
-      let existingTask = taskManager.getTask(taskId);
+      const existingTask = taskManager.getTaskBySession(finalSessionId, taskId);
       if (!existingTask) {
         const newTask: TaskInfo = {
           task_id: taskId,
-          session_id: currentSessionId,
+          session_id: finalSessionId,
           user_input: userMessage,
           status: "pending",
           steps: [],
@@ -593,9 +609,11 @@ function App() {
           created_at: now.toISOString(),
           updated_at: now.toISOString(),
         };
-        taskManager.addTask(newTask);
+        taskManager.addTaskToSession(finalSessionId, newTask);
       } else {
-        taskManager.updateTask(taskId, { user_input: userMessage });
+        taskManager.updateTaskBySession(finalSessionId, taskId, {
+          user_input: userMessage,
+        });
       }
     } catch (error) {
       console.error("send message error:", error);
@@ -605,9 +623,10 @@ function App() {
         content: `❌ ${error}`,
         timestamp: now.toISOString(),
       };
-      taskManager.addAssistantMessage(errorMsg);
+      taskManager.addAssistantMessageToSession(finalSessionId, errorMsg);
     }
   };
+
   const clearLogs = async () => {
     try {
       await hippoxCommands.clearLogs();
@@ -616,26 +635,24 @@ function App() {
       console.error("clear logs error:", error);
     }
   };
+
   const resetSession = async () => {
     try {
       await hippoxCommands.resetSession();
-      taskManager.clearAll();
       const welcomeMsg: ChatMessage = {
         id: "welcome",
         role: RoleEnum.LLM,
         content: t("session.reset"),
         timestamp: new Date().toISOString(),
       };
-      taskManager.addAssistantMessage(welcomeMsg);
+      taskManager.loadSessionData(currentSessionId, [], [], [welcomeMsg]);
     } catch (error) {
       console.error("reset session error:", error);
     }
   };
-
   const toggleSidebar = () => {
     setSidebarCollapsed((prev) => !prev);
   };
-
   if (isLoading || !isConfigLoaded) {
     return (
       <div
@@ -651,7 +668,6 @@ function App() {
       </div>
     );
   }
-
   return (
     <div className="App">
       <Toast />
@@ -730,7 +746,12 @@ function App() {
         )}
         <ResizablePanels
           leftPanel={
-            <TerminalPanel logs={executionLogs} onClearLogs={clearLogs} t={t} />
+            <TerminalPanel
+              logs={executionLogs}
+              onClearLogs={clearLogs}
+              t={t}
+              currentSessionId={currentSessionId}
+            />
           }
           rightPanel={
             <ChatPanel

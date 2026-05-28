@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
-import { ChatMessage, DialogSession } from '../type';
+import { ChatMessage, DialogSession, TaskInfo } from '../type';
 
 export const sessionCommands = {
     async createSession(
@@ -71,4 +71,18 @@ export const sessionCommands = {
         return await invoke('get_pinned_sessions');
     },
 
+    async saveTaskContent(sessionId: string, tasks: TaskInfo[]): Promise<void> {
+        return await invoke('cmd_save_task_content', {
+            sessionId,
+            content: JSON.stringify(tasks, null, 2),
+        });
+    },
+
+    async loadTaskContent(sessionId: string): Promise<TaskInfo[] | null> {
+        const content = await invoke<string | null>('cmd_load_task_content', { sessionId });
+        if (content) {
+            return JSON.parse(content);
+        }
+        return null;
+    },
 };
