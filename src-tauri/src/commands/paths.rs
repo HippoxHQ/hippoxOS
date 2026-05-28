@@ -68,6 +68,11 @@ pub fn get_settings_dir() -> PathBuf {
     get_app_root_dir().join("settings")
 }
 
+/// data directory: HippoX/data
+pub fn get_data_dir() -> PathBuf {
+    get_app_root_dir().join("data")
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DataPaths {
     pub app_root_dir: String,
@@ -163,6 +168,7 @@ pub fn init_directories() -> Result<(), String> {
         get_log_dir(),
         get_cache_dir(),
         get_settings_dir(),
+        get_data_dir(),
         get_cache_dir().join("models"),
         get_cache_dir().join("skills"),
         get_cache_dir().join("temp"),

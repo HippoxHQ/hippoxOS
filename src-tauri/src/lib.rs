@@ -1,11 +1,13 @@
 #![allow(warnings)]
 mod commands;
 mod common;
-mod workspace;
+mod context;
 mod state;
+mod workspace;
 
 use crate::commands::{init_all_hippox_instances, sync_all_to_hippox_core};
 use crate::common::init_default_settings;
+use crate::context::Context;
 use crate::state::AppState;
 use crate::workspace::ensure_workspace_config;
 use hippox::{get_hippox_core_config, Hippox};
@@ -67,10 +69,9 @@ pub fn run() {
         });
     });
     tokio::runtime::Runtime::new().unwrap().block_on(async {
-        match init_memcontext().await {
+        match Context::new().await {
             Ok(mem) => {
                 app_state.set_memcontext(mem).await;
-                println!("MemContext initialized successfully");
             }
             Err(e) => eprintln!("Failed to initialize MemContext: {}", e),
         }
@@ -206,16 +207,4 @@ pub fn run() {
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
-}
-
-async fn init_memcontext() -> Result<MemContext, String> {
-    use memcontext::{DatabaseType, MemContext, MemContextConfig, StorageType};
-    let config = MemContextConfig {
-        storage_type: StorageType::DB,
-        db_type: Some(DatabaseType::SQLite),
-        sqlite_storage_path: Some("./HippoX/data/sessions.db".to_string()),
-        local_storage_path: None,
-        lancedb_storage_path: None,
-    };
-    MemContext::new(config).await.map_err(|e| e.to_string())
 }
