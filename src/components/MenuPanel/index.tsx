@@ -90,7 +90,6 @@ const menuPanelStyles = `
     display: flex;
     flex-direction: column;
     background: var(--bg-primary);
-    border-left: 1px solid var(--border-color);
     overflow: hidden;
   }
 

@@ -990,6 +990,25 @@ export const NewSessionIcon2: React.FC<IconProps> = ({
   </svg>
 );
 
+export const LogsIcon: React.FC<IconProps> = ({ className, size = 18 }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    <path d="M4 4h16" />
+    <path d="M4 12h16" />
+    <path d="M4 20h10" />
+  </svg>
+);
+
 export const iconMap: Record<string, React.FC<IconProps>> = {
   dashboard: DashboardIcon,
   workspace: WorkspaceIcon,
@@ -1036,4 +1055,5 @@ export const iconMap: Record<string, React.FC<IconProps>> = {
   play: PlayIcon,
   layoutVertical: LayoutVerticalIcon,
   layoutHorizontal: LayoutHorizontalIcon,
+  logs: LogsIcon,
 };
