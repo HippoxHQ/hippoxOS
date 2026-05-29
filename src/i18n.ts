@@ -176,7 +176,15 @@ export const zh = {
   welcome: {
     message: '你好，我是 Hippox AI 运行时。我有自主决策能力，可以执行技能并实时反馈。有什么可以帮你的？',
     initRequired: '请先在设置中配置 API Key 和模型提供商来初始化 Hippox 引擎。',
-    initSuccess: 'Hippox 引擎初始化成功！现在可以开始对话了。'
+    initSuccess: 'Hippox 引擎初始化成功！现在可以开始对话了。',
+    subtitle: '原生 LLM 操作系统',
+    examples: '试试这些',
+    example: {
+      analyze: '分析这份数据',
+      code: '写一段代码',
+      search: '搜索 AI 新闻',
+      plan: '规划一个任务'
+    }
   },
   session: {
     reset: '会话已重置。Hippox 运行时重新就绪，自主决策引擎已刷新。'
@@ -841,7 +849,15 @@ export const en: typeof zh = {
   welcome: {
     message: 'Hello, I am Hippox AI Runtime. I have autonomous decision-making capabilities and can execute skills with real-time feedback. How can I help you?',
     initRequired: 'Please configure API Key and model provider in settings to initialize Hippox engine.',
-    initSuccess: 'Hippox engine initialized successfully! You can start chatting now.'
+    initSuccess: 'Hippox engine initialized successfully! You can start chatting now.',
+    subtitle: 'A native LLM operating system',
+    examples: 'Try these',
+    example: {
+      analyze: 'Analyze this data',
+      code: 'Write some code',
+      search: 'Search AI news',
+      plan: 'Plan a task'
+    }
   },
   session: {
     reset: 'Session reset. Hippox runtime ready, decision engine refreshed.'

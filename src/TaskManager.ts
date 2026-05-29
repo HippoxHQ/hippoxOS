@@ -323,6 +323,16 @@ class TaskManager {
             if (task && task.task_id) taskMap.set(task.task_id, task);
         });
     }
+
+    deleteSession(sessionId: string): void {
+        this.tasksBySession.delete(sessionId);
+        this.userMessagesBySession.delete(sessionId);
+        this.assistantMessagesBySession.delete(sessionId);
+        if (this.currentSessionId === sessionId) {
+            this.currentSessionId = "";
+        }
+        this.notify();
+    }
 }
 
 export const taskManager = new TaskManager();
