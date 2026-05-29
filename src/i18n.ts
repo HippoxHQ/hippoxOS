@@ -396,6 +396,33 @@ export const zh = {
     dbConnect: '数据库连接',
     duration: '耗时 {{time}}',
     failed: '连接失败',
+    untitled: '未命名对话',
+    category: {
+      pinned: '置顶',
+      today: '今天',
+      yesterday: '昨天',
+      last7days: '最近7天',
+      last30days: '最近30天',
+      older: '更早'
+    },
+    toast: {
+      pinned: '已置顶',
+      unpinned: '已取消置顶',
+      pinFailed: '操作失败，请重试',
+      deleted: '已删除',
+      deleteFailed: '删除失败，请重试',
+      renamed: '已重命名',
+      renameFailed: '重命名失败，请重试'
+    },
+    dialog: {
+      cannotDeleteTitle: '无法删除',
+      cannotDeleteMessage: '至少需要保留一个对话，无法删除最后一个对话',
+      confirmDeleteTitle: '确认删除',
+      confirmDeleteMessage: '确定要删除Session吗？删除后无法恢复。',
+      gotIt: '知道了',
+      delete: '删除',
+      cancel: '取消'
+    }
   },
   favorites: {
     dataAnalysisTemplate: '数据分析模板',
@@ -1034,7 +1061,34 @@ export const en: typeof zh = {
     readConfig: 'Read config file',
     dbConnect: 'Database connection',
     duration: 'Duration {{time}}',
-    failed: 'Connection failed'
+    failed: 'Connection failed',
+    untitled: 'Untitled Conversation',
+    category: {
+      pinned: 'Pinned',
+      today: 'Today',
+      yesterday: 'Yesterday',
+      last7days: 'Last 7 Days',
+      last30days: 'Last 30 Days',
+      older: 'Older'
+    },
+    toast: {
+      pinned: 'Pinned',
+      unpinned: 'Unpinned',
+      pinFailed: 'Operation failed, please try again',
+      deleted: 'Deleted',
+      deleteFailed: 'Delete failed, please try again',
+      renamed: 'Renamed',
+      renameFailed: 'Rename failed, please try again'
+    },
+    dialog: {
+      cannotDeleteTitle: 'Cannot Delete',
+      cannotDeleteMessage: 'At least one conversation must be kept. Cannot delete the last conversation.',
+      confirmDeleteTitle: 'Confirm Delete',
+      confirmDeleteMessage: 'Are you sure you want to delete Session? This action cannot be undone.',
+      gotIt: 'Got it',
+      delete: 'Delete',
+      cancel: 'Cancel'
+    }
   },
   favorites: {
     dataAnalysisTemplate: 'Data Analysis Template',

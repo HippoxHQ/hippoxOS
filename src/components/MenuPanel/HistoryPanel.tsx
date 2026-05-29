@@ -1,6 +1,8 @@
 import React, { useEffect, useState, useRef } from "react";
 import { sessionCommands } from "../../api/session";
 import { DialogSession } from "../../type";
+import { showDialog, DialogType } from "../Dialog";
+import { showToast, ToastType } from "../Toast";
 
 interface HistoryPanelProps {
   t: (key: string, params?: any) => string;
@@ -17,17 +19,17 @@ type CategoryType =
   | "older";
 
 interface CategoryConfig {
-  label: string;
+  labelKey: string;
   type: CategoryType;
 }
 
 const categories: CategoryConfig[] = [
-  { label: "置顶", type: "pinned" },
-  { label: "今天", type: "today" },
-  { label: "昨天", type: "yesterday" },
-  { label: "最近7天", type: "last7days" },
-  { label: "最近30天", type: "last30days" },
-  { label: "更早", type: "older" },
+  { labelKey: "history.category.pinned", type: "pinned" },
+  { labelKey: "history.category.today", type: "today" },
+  { labelKey: "history.category.yesterday", type: "yesterday" },
+  { labelKey: "history.category.last7days", type: "last7days" },
+  { labelKey: "history.category.last30days", type: "last30days" },
+  { labelKey: "history.category.older", type: "older" },
 ];
 
 const HistoryPanel: React.FC<HistoryPanelProps> = ({
@@ -109,10 +111,7 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
     e.stopPropagation();
     try {
       const newPinned = !session.is_pinned;
-      const updatedPinned = await sessionCommands.updatePinnedSessions(
-        session.session_id,
-        newPinned,
-      );
+      await sessionCommands.updatePinnedSessions(session.session_id, newPinned);
       setSessions((prev) =>
         prev.map((s) =>
           s.session_id === session.session_id
@@ -121,45 +120,66 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
         ),
       );
       setActiveMenuId(null);
+      if (newPinned) {
+        showToast(ToastType.SUCCESS, t("history.toast.pinned"));
+      } else {
+        showToast(ToastType.INFO, t("history.toast.unpinned"));
+      }
     } catch (error) {
       console.error("Failed to toggle pin:", error);
+      showToast(ToastType.ERROR, t("history.toast.pinFailed"));
     }
   };
+
   const handleDelete = async (session: DialogSession, e: React.MouseEvent) => {
     e.stopPropagation();
-    const confirmed = window.confirm(
-      t("history.confirmDelete") || `确定要删除 "${session.title}" 吗？`,
-    );
-    if (confirmed) {
-      try {
-        await sessionCommands.deleteSession(session.session_id);
-        if (
-          currentSessionId === session.session_id &&
-          onSessionSelect &&
-          sessions.length > 1
-        ) {
-          const otherSession = sessions.find(
-            (s) => s.session_id !== session.session_id,
-          );
-          if (otherSession) {
-            onSessionSelect(otherSession.session_id);
-          }
-        }
-        setSessions((prev) =>
-          prev.filter((s) => s.session_id !== session.session_id),
-        );
-        setActiveMenuId(null);
-      } catch (error) {
-        console.error("Failed to delete session:", error);
-      }
+    if (sessions.length <= 1) {
+      showDialog(
+        DialogType.WARNING,
+        t("history.dialog.cannotDeleteTitle"),
+        t("history.dialog.cannotDeleteMessage"),
+        undefined,
+        undefined,
+        t("history.dialog.gotIt"),
+        undefined,
+      );
+      setActiveMenuId(null);
+      return;
     }
+    showDialog(
+      DialogType.WARNING,
+      t("history.dialog.confirmDeleteTitle"),
+      t("history.dialog.confirmDeleteMessage"),
+      async () => {
+        try {
+          await sessionCommands.deleteSession(session.session_id);
+          if (currentSessionId === session.session_id && onSessionSelect) {
+            const otherSession = sessions.find(
+              (s) => s.session_id !== session.session_id,
+            );
+            if (otherSession) {
+              onSessionSelect(otherSession.session_id);
+            }
+          }
+          setSessions((prev) =>
+            prev.filter((s) => s.session_id !== session.session_id),
+          );
+          setActiveMenuId(null);
+          showToast(ToastType.SUCCESS, t("history.toast.deleted"));
+        } catch (error) {
+          console.error("Failed to delete session:", error);
+          showToast(ToastType.ERROR, t("history.toast.deleteFailed"));
+        }
+      },
+      undefined,
+      t("history.dialog.delete"),
+      t("history.dialog.cancel"),
+    );
   };
+
   const handleRename = async (session: DialogSession, e: React.MouseEvent) => {
     e.stopPropagation();
-    const newTitle = prompt(
-      t("history.renamePrompt") || "请输入新名称",
-      session.title,
-    );
+    const newTitle = prompt(t("history.renamePrompt"), session.title);
     if (newTitle && newTitle.trim()) {
       try {
         await sessionCommands.updateSessionConfig(session.session_id, {
@@ -167,11 +187,14 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
         });
         await loadSessions();
         setActiveMenuId(null);
+        showToast(ToastType.SUCCESS, t("history.toast.renamed"));
       } catch (error) {
         console.error("Failed to rename session:", error);
+        showToast(ToastType.ERROR, t("history.toast.renameFailed"));
       }
     }
   };
+
   const handleSelectSession = async (sessionId: string) => {
     setActiveMenuId(null);
     if (currentSessionId === sessionId) {
@@ -188,10 +211,12 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
       }
     }
   };
+
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
     return date.toLocaleDateString();
   };
+
   const getSessionCategory = (session: DialogSession): CategoryType => {
     if (session.is_pinned) return "pinned";
     const now = new Date();
@@ -206,6 +231,7 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
     if (updatedDate >= monthAgo) return "last30days";
     return "older";
   };
+
   const getGroupedSessions = () => {
     const grouped: Record<CategoryType, DialogSession[]> = {
       pinned: [],
@@ -221,6 +247,7 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
     });
     return grouped;
   };
+
   const getCardStyle = (
     isActive: boolean,
     isHovered: boolean,
@@ -254,6 +281,7 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
       position: "relative",
     };
   };
+
   const titleStyle: React.CSSProperties = {
     fontSize: "14px",
     fontWeight: 500,
@@ -263,15 +291,18 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
     textOverflow: "ellipsis",
     whiteSpace: "nowrap",
   };
+
   const timeStyle: React.CSSProperties = {
     fontSize: "11px",
     color: "var(--text-muted)",
   };
+
   const pinIconStyle: React.CSSProperties = {
     fontSize: "12px",
     marginRight: "8px",
     color: "var(--accent-color, #0066cc)",
   };
+
   const menuButtonStyle: React.CSSProperties = {
     background: "none",
     border: "none",
@@ -285,6 +316,7 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
     justifyContent: "center",
     transition: "all 0.2s",
   };
+
   const dropdownStyle: React.CSSProperties = {
     position: "absolute",
     right: "0px",
@@ -297,6 +329,7 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
     minWidth: "110px",
     overflow: "hidden",
   };
+
   const dropdownItemStyle: React.CSSProperties = {
     padding: "8px 12px",
     fontSize: "13px",
@@ -308,6 +341,7 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
     gap: "8px",
     zIndex: "10",
   };
+
   const categoryHeaderStyle: React.CSSProperties = {
     fontSize: "12px",
     fontWeight: 600,
@@ -315,6 +349,7 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
     padding: "12px 0 8px 4px",
     letterSpacing: "0.5px",
   };
+
   if (loading) {
     return (
       <div
@@ -328,6 +363,7 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
       </div>
     );
   }
+
   if (sessions.length === 0) {
     return (
       <div
@@ -341,7 +377,9 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
       </div>
     );
   }
+
   const groupedSessions = getGroupedSessions();
+
   return (
     <div style={{ padding: "8px 12px", userSelect: "none" }}>
       {categories.map((category) => {
@@ -359,7 +397,7 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
               }}
               onClick={() => toggleCategory(category.type)}
             >
-              <span>{category.label}</span>
+              <span>{t(category.labelKey)}</span>
               <span
                 style={{
                   fontSize: "12px",
@@ -390,7 +428,7 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
                           <span style={pinIconStyle}>📌</span>
                         )}
                         <span style={titleStyle} title={session.title}>
-                          {session.title || "未命名对话"}
+                          {session.title || t("history.untitled")}
                         </span>
                       </div>
                       <div style={timeStyle}>
@@ -435,7 +473,7 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
                                 e.currentTarget.style.background = "";
                               }}
                             >
-                              ✏️ {t("history.rename") || "重命名"}
+                              ✏️ {t("history.rename")}
                             </div>
                             <div
                               style={dropdownItemStyle}
@@ -450,8 +488,8 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
                             >
                               {session.is_pinned ? "📍" : "📌"}{" "}
                               {session.is_pinned
-                                ? t("history.unpin") || "取消置顶"
-                                : t("history.pin") || "置顶"}
+                                ? t("history.unpin")
+                                : t("history.pin")}
                             </div>
                             <div
                               style={{
@@ -467,7 +505,7 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
                                 e.currentTarget.style.background = "";
                               }}
                             >
-                              🗑️ {t("history.delete") || "删除"}
+                              🗑️ {t("history.delete")}
                             </div>
                           </div>
                         )}
