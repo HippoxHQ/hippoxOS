@@ -12,6 +12,7 @@ import {
   VideoIcon,
   ChatIcon,
   FileIcon,
+  CopyIcon,
 } from "../icons";
 import { workspaceCommands, WorkspaceInstance } from "../api/workspace";
 import { taskManager } from "../TaskManager";
@@ -274,462 +275,510 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     return parts[parts.length - 1] || workspace.name;
   };
 
+  const copyToClipboard = async (text: string | undefined) => {
+    try {
+      if (!text) {
+        showToast(ToastType.ERROR, t("common.copyFailed") || "Copy Failed");
+        return;
+      }
+      await navigator.clipboard.writeText(text);
+      showToast(ToastType.SUCCESS, t("common.copied") || "Copied");
+    } catch (err) {
+      showToast(ToastType.ERROR, t("common.copyFailed") || "Copy Failed");
+    }
+  };
+
   return (
     <div className="chat-panel">
       <style>{`
-        .chat-panel {
-          display: flex;
-          flex-direction: column;
-          height: 100%;
-          background: var(--bg-primary);
-          overflow: hidden;
-        }
+  .chat-panel {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background: var(--bg-primary);
+    overflow: hidden;
+  }
 
-        .panel-header {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 16px 20px;
-          border-bottom: 1px solid var(--border-color);
-          background: var(--bg-secondary);
-          flex-shrink: 0;
-        }
+  .panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border-color);
+    background: var(--bg-secondary);
+    flex-shrink: 0;
+  }
 
-        .header-title {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          font-size: 14px;
-          font-weight: 500;
-          color: var(--text-primary);
-        }
+  .header-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+  }
 
-        .title-icon {
-          font-size: 16px;
-          display: inline-flex;
-          align-items: center;
-        }
+  .title-icon {
+    font-size: 16px;
+    display: inline-flex;
+    align-items: center;
+  }
 
-        .header-subtitle {
-          font-size: 12px;
-          color: var(--text-tertiary);
-          background: var(--bg-tertiary);
-          padding: 4px 8px;
-          border-radius: 20px;
-        }
+  .header-subtitle {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    background: var(--bg-tertiary);
+    padding: 4px 8px;
+    border-radius: 20px;
+  }
 
-        .chat-messages-wrapper {
-          flex: 1;
-          position: relative;
-          overflow: hidden;
-          background: var(--bg-primary);
-        }
+  .chat-messages-wrapper {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    background: var(--bg-primary);
+  }
 
-        .chat-messages {
-          height: 100%;
-          overflow-y: auto;
-          padding: 20px;
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-        }
+  .chat-messages {
+    height: 100%;
+    overflow-y: auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
 
-        .message-wrapper {
-          display: flex;
-          gap: 12px;
-          animation: fadeIn 0.3s ease;
-        }
+  .message-wrapper {
+    display: flex;
+    gap: 12px;
+    animation: fadeIn 0.3s ease;
+  }
 
-        .message-wrapper.user {
-          flex-direction: row-reverse;
-        }
+  .message-wrapper.user {
+    flex-direction: row-reverse;
+  }
 
-        .message-avatar {
-          width: 32px;
-          height: 32px;
-          border-radius: 50%;
-          background: var(--bg-tertiary);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 16px;
-          flex-shrink: 0;
-          border: 1px solid var(--border-color);
-          color: var(--text-secondary);
-        }
+  .message-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--bg-tertiary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+  }
 
-        .message-bubble {
-          max-width: 70%;
-          padding: 10px 14px;
-          border-radius: 18px;
-          background: var(--bg-secondary);
-          color: var(--text-primary);
-        }
+  .message-content-area {
+    display: flex;
+    flex-direction: column;
+    max-width: 70%;
+  }
 
-        .message-wrapper.user .message-bubble {
-          background: var(--accent-color);
-          color: white;
-        }
+  .message-wrapper.user .message-content-area {
+    align-items: flex-end;
+  }
 
-        .message-content {
-          font-size: 14px;
-          line-height: 1.5;
-          white-space: pre-wrap;
-          word-break: break-word;
-        }
+  .message-bubble {
+    padding: 10px 14px;
+    border-radius: 18px;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+  }
 
-        .message-time {
-          font-size: 10px;
-          color: var(--text-tertiary);
-          margin-top: 4px;
-        }
+  .message-wrapper.user .message-bubble {
+    background: var(--accent-color);
+    color: white;
+  }
 
-        .message-wrapper.user .message-time {
-          color: rgba(255, 255, 255, 0.7);
-        }
+  .message-content {
+    font-size: 14px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
 
-        .chat-input-container {
-          margin: 12px 16px 16px;
-          background: var(--bg-tertiary);
-          border: 1px solid var(--border-color);
-          border-radius: 12px;
-          transition: all 0.2s ease;
-          flex-shrink: 0;
-          cursor: text;
-        }
+  .message-time {
+    font-size: 10px;
+    color: var(--text-tertiary);
+    margin-top: 4px;
+  }
 
-        .chat-input-container.focused {
-          border-color: var(--accent-color);
-          box-shadow: 0 0 0 2px var(--accent-glow);
-        }
+  .message-wrapper.user .message-time {
+    color: rgba(255, 255, 255, 0.7);
+  }
 
-        .input-textarea-wrapper {
-          padding: 10px 12px 6px 12px;
-        }
+  .message-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 6px;
+    margin-top: 4px;
+  }
 
-        .chat-textarea-hermes {
-          width: 100%;
-          background: transparent;
-          border: none;
-          color: var(--text-primary);
-          font-size: 14px;
-          line-height: 1.5;
-          resize: none;
-          outline: none;
-          font-family: inherit;
-          max-height: 100px;
-          min-height: 22px;
-        }
+  .action-btn {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: var(--text-tertiary);
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.2s ease;
+  }
 
-        .chat-textarea-hermes::placeholder {
-          color: var(--text-tertiary);
-        }
+  .action-btn:hover {
+    background: var(--hover-bg);
+    color: var(--text-primary);
+  }
 
-        .action-buttons-row {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 4px 8px 8px 8px;
-        }
+  .chat-input-container {
+    margin: 12px 16px 16px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+    cursor: text;
+  }
 
-        .left-actions {
-          display: flex;
-          align-items: center;
-          gap: 4px;
-          position: relative;
-        }
+  .chat-input-container.focused {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 2px var(--accent-glow);
+  }
 
-        .icon-btn {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 4px;
-          padding: 4px 8px;
-          background: transparent;
-          border: none;
-          border-radius: 6px;
-          cursor: pointer;
-          color: var(--text-secondary);
-          font-size: 12px;
-          transition: all 0.2s ease;
-        }
+  .input-textarea-wrapper {
+    padding: 10px 12px 6px 12px;
+  }
 
-        .icon-btn:hover {
-          background: var(--hover-bg);
-          color: var(--text-primary);
-        }
+  .chat-textarea-hermes {
+    width: 100%;
+    background: transparent;
+    border: none;
+    color: var(--text-primary);
+    font-size: 14px;
+    line-height: 1.5;
+    resize: none;
+    outline: none;
+    font-family: inherit;
+    max-height: 100px;
+    min-height: 22px;
+  }
 
-        .folder-btn {
-          display: flex;
-          align-items: center;
-          gap: 4px;
-        }
+  .chat-textarea-hermes::placeholder {
+    color: var(--text-tertiary);
+  }
 
-        .folder-name {
-          max-width: 120px;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-          font-size: 12px;
-        }
+  .action-buttons-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 8px 8px 8px;
+  }
 
-        .chevron {
-          transition: transform 0.2s;
-        }
+  .left-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    position: relative;
+  }
 
-        .send-icon-btn {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          width: 28px;
-          height: 28px;
-          border-radius: 8px;
-          background: transparent;
-          border: none;
-          cursor: pointer;
-          color: var(--text-tertiary);
-          transition: all 0.2s ease;
-        }
+  .icon-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 4px 8px;
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    color: var(--text-secondary);
+    font-size: 12px;
+    transition: all 0.2s ease;
+  }
 
-        .send-icon-btn.active {
-          background: var(--accent-color);
-          color: white;
-        }
+  .icon-btn:hover {
+    background: var(--hover-bg);
+    color: var(--text-primary);
+  }
 
-        .send-icon-btn.active:hover {
-          transform: scale(1.05);
-          background: var(--accent-hover);
-        }
+  .folder-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
 
-        .send-icon-btn:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-        }
+  .folder-name {
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 12px;
+  }
 
-        .attachment-menu {
-          position: absolute;
-          bottom: 100%;
-          left: 0;
-          margin-bottom: 6px;
-          background: var(--bg-secondary);
-          border: 1px solid var(--border-color);
-          border-radius: 5px;
-          padding: 4px 0;
-          min-width: 120px;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-          z-index: 100;
-        }
+  .chevron {
+    transition: transform 0.2s;
+  }
 
-        .attachment-item {
-          padding: 6px 12px;
-          cursor: pointer;
-          color: var(--text-primary);
-          font-size: 12px;
-          transition: background 0.2s;
-          white-space: nowrap;
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
+  .send-icon-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: var(--text-tertiary);
+    transition: all 0.2s ease;
+  }
 
-        .attachment-item:hover {
-          background: var(--hover-bg);
-        }
+  .send-icon-btn.active {
+    background: var(--accent-color);
+    color: white;
+  }
 
-        .directory-menu {
-          position: absolute;
-          bottom: 100%;
-          left: 0;
-          margin-bottom: 6px;
-          background: var(--bg-secondary);
-          border: 1px solid var(--border-color);
-          border-radius: 5px;
-          padding: 4px 0;
-          min-width: 160px;
-          max-height: 300px;
-          overflow-y: auto;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-          z-index: 100;
-        }
+  .send-icon-btn.active:hover {
+    transform: scale(1.05);
+    background: var(--accent-hover);
+  }
 
-        .directory-menu::-webkit-scrollbar {
-          width: 4px;
-        }
+  .send-icon-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
 
-        .directory-menu::-webkit-scrollbar-track {
-          background: var(--bg-tertiary);
-          border-radius: 2px;
-        }
+  .attachment-menu {
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    margin-bottom: 6px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    padding: 4px 0;
+    min-width: 120px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    z-index: 100;
+  }
 
-        .directory-menu::-webkit-scrollbar-thumb {
-          background: var(--border-color);
-          border-radius: 2px;
-        }
+  .attachment-item {
+    padding: 6px 12px;
+    cursor: pointer;
+    color: var(--text-primary);
+    font-size: 12px;
+    transition: background 0.2s;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
 
-        .directory-menu::-webkit-scrollbar-thumb:hover {
-          background: var(--text-tertiary);
-        }
+  .attachment-item:hover {
+    background: var(--hover-bg);
+  }
 
-        .directory-item {
-          padding: 8px 12px;
-          cursor: pointer;
-          color: var(--text-primary);
-          font-size: 12px;
-          transition: background 0.2s;
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
+  .directory-menu {
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    margin-bottom: 6px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    padding: 4px 0;
+    min-width: 160px;
+    max-height: 300px;
+    overflow-y: auto;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    z-index: 100;
+  }
 
-        .directory-item:hover {
-          background: var(--hover-bg);
-        }
+  .directory-menu::-webkit-scrollbar {
+    width: 4px;
+  }
 
-        [data-theme="light"] .directory-item:hover {
-          background: rgba(0, 0, 0, 0.12);
-        }
+  .directory-menu::-webkit-scrollbar-track {
+    background: var(--bg-tertiary);
+    border-radius: 2px;
+  }
 
-        .directory-item.selected {
-          background: var(--accent-color);
-          color: white;
-        }
+  .directory-menu::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 2px;
+  }
 
-        .directory-item.selected:hover {
-          background: var(--accent-color);
-        }
+  .directory-menu::-webkit-scrollbar-thumb:hover {
+    background: var(--text-tertiary);
+  }
 
-        .workspace-path {
-          font-size: 10px;
-          color: var(--text-tertiary);
-          margin-top: 2px;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-          max-width: 200px;
-        }
+  .directory-item {
+    padding: 8px 12px;
+    cursor: pointer;
+    color: var(--text-primary);
+    font-size: 12px;
+    transition: background 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
 
-        .selected .workspace-path {
-          color: rgba(255, 255, 255, 0.7);
-        }
+  .directory-item:hover {
+    background: var(--hover-bg);
+  }
 
-        .directory-item-content {
-          flex: 1;
-          min-width: 0;
-        }
+  [data-theme="light"] .directory-item:hover {
+    background: rgba(0, 0, 0, 0.12);
+  }
 
-        .scroll-buttons {
-          position: absolute;
-          bottom: 20px;
-          right: 20px;
-        }
+  .directory-item.selected {
+    background: var(--accent-color);
+    color: white;
+  }
 
-        .scroll-btn {
-          width: 32px;
-          height: 32px;
-          border-radius: 16px;
-          background: var(--bg-secondary);
-          border: 1px solid var(--border-color);
-          color: var(--text-secondary);
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: all 0.2s ease;
-          backdrop-filter: blur(8px);
-          font-size: 14px;
-        }
+  .directory-item.selected:hover {
+    background: var(--accent-color);
+  }
 
-        .scroll-btn:hover {
-          background: var(--bg-tertiary);
-          transform: translateY(-2px);
-        }
+  .workspace-path {
+    font-size: 10px;
+    color: var(--text-tertiary);
+    margin-top: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 200px;
+  }
 
-        @keyframes fadeIn {
-          from {
-            opacity: 0;
-            transform: translateY(10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
+  .selected .workspace-path {
+    color: rgba(255, 255, 255, 0.7);
+  }
 
-        .chat-messages::-webkit-scrollbar {
-          width: 6px;
-        }
+  .directory-item-content {
+    flex: 1;
+    min-width: 0;
+  }
 
-        .chat-messages::-webkit-scrollbar-track {
-          background: var(--bg-secondary);
-          border-radius: 3px;
-        }
+  .scroll-buttons {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+  }
 
-        .chat-messages::-webkit-scrollbar-thumb {
-          background: var(--border-color);
-          border-radius: 3px;
-        }
+  .scroll-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 16px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    backdrop-filter: blur(8px);
+    font-size: 14px;
+  }
 
-        .chat-messages::-webkit-scrollbar-thumb:hover {
-          background: var(--text-tertiary);
-        }
+  .scroll-btn:hover {
+    background: var(--bg-tertiary);
+    transform: translateY(-2px);
+  }
 
-        .loading-message {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
 
-        .loading-spinner {
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-         }
+  .chat-messages::-webkit-scrollbar {
+    width: 6px;
+  }
 
-        .spinner {
-          animation: spin 1s linear infinite;
-         }
+  .chat-messages::-webkit-scrollbar-track {
+    background: var(--bg-secondary);
+    border-radius: 3px;
+  }
 
-        @keyframes spin {
-        from {
-          transform: rotate(0deg);
-         }
-        to {
-          transform: rotate(360deg);
-         }
-        }
+  .chat-messages::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 3px;
+  }
 
-        .loading-gif {
-         display: inline-block;
-         vertical-align: middle;
-        }
+  .chat-messages::-webkit-scrollbar-thumb:hover {
+    background: var(--text-tertiary);
+  }
 
-        :root {
-          --bg-primary: #0f1117;
-          --bg-secondary: #1a1d26;
-          --bg-tertiary: #22252f;
-          --border-color: #2d303a;
-          --text-primary: #e8edf2;
-          --text-secondary: #9ca3af;
-          --text-tertiary: #6b7280;
-          --accent-color: #818cf8;
-          --accent-hover: #6366f1;
-          --accent-glow: rgba(129, 140, 248, 0.2);
-          --hover-bg: rgba(232, 237, 242, 0.08);
-        }
-        [data-theme="light"] {
-          --bg-primary: #f3f4f6;
-          --bg-secondary: #ffffff;
-          --bg-tertiary: #e5e7eb;
-          --border-color: #d1d5db;
-          --text-primary: #111827;
-          --text-secondary: #4b5563;
-          --text-tertiary: #9ca3af;
-          --accent-color: #6366f1;
-          --accent-hover: #4f46e5;
-          --accent-glow: rgba(99, 102, 241, 0.2);
-          --hover-bg: rgba(0, 0, 0, 0.04);
-        }
-      `}</style>
+  .loading-message {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .loading-spinner {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .spinner {
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  .loading-gif {
+    display: inline-block;
+    vertical-align: middle;
+  }
+
+  :root {
+    --bg-primary: #0f1117;
+    --bg-secondary: #1a1d26;
+    --bg-tertiary: #22252f;
+    --border-color: #2d303a;
+    --text-primary: #e8edf2;
+    --text-secondary: #9ca3af;
+    --text-tertiary: #6b7280;
+    --accent-color: #818cf8;
+    --accent-hover: #6366f1;
+    --accent-glow: rgba(129, 140, 248, 0.2);
+    --hover-bg: rgba(232, 237, 242, 0.08);
+  }
+  [data-theme="light"] {
+    --bg-primary: #f3f4f6;
+    --bg-secondary: #ffffff;
+    --bg-tertiary: #e5e7eb;
+    --border-color: #d1d5db;
+    --text-primary: #111827;
+    --text-secondary: #4b5563;
+    --text-tertiary: #9ca3af;
+    --accent-color: #6366f1;
+    --accent-hover: #4f46e5;
+    --accent-glow: rgba(99, 102, 241, 0.2);
+    --hover-bg: rgba(0, 0, 0, 0.04);
+  }
+`}</style>
       <div
         className="panel-header"
         style={{ paddingTop: "13px", paddingBottom: "13px" }}
@@ -750,7 +799,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
         >
           {messages.map((msg) => {
             const isUser = msg.role === RoleEnum.User;
-            const isLLM = msg.role === RoleEnum.LLM;
             return (
               <div
                 key={msg.id}
@@ -759,23 +807,39 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
                 <div className="message-avatar">
                   {isUser ? <UserIcon size={16} /> : <BotIcon size={16} />}
                 </div>
-                {msg.status === MessageStatus.Pending ? (
-                  <div
-                    className="message-bubble"
-                    style={{ backgroundColor: "transparent" }}
-                  >
-                    <div className="message-content">
-                      <LoadingSpinner />
+                <div className="message-content-area">
+                  {msg.status === MessageStatus.Pending ? (
+                    <div
+                      className="message-bubble"
+                      style={{ backgroundColor: "transparent" }}
+                    >
+                      <div className="message-content">
+                        <LoadingSpinner />
+                      </div>
                     </div>
-                  </div>
-                ) : (
-                  <div className="message-bubble">
-                    <div className="message-content">{msg.content}</div>
-                    <div className="message-time">
-                      {new Date(msg.timestamp).toLocaleTimeString()}
-                    </div>
-                  </div>
-                )}
+                  ) : (
+                    <>
+                      <div className="message-bubble">
+                        <div className="message-content">{msg.content}</div>
+                        <div className="message-time">
+                          {new Date(msg.timestamp).toLocaleTimeString()}
+                        </div>
+                      </div>
+                      {/* 功能按钮区 - 仅用户消息显示，在气泡外部 */}
+                      {isUser && (
+                        <div className="message-actions">
+                          <button
+                            className="action-btn copy-btn"
+                            onClick={() => copyToClipboard(msg.content)}
+                            title={t("common.copy") || "复制"}
+                          >
+                            <CopyIcon size={12} />
+                          </button>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
               </div>
             );
           })}

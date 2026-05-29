@@ -425,6 +425,7 @@ body {
   background-color: var(--bg-tertiary);
   border-radius: 6px;
   border-left: 3px solid var(--accent-green, #4ec9b0);
+  padding-top: 5px;
 }
 
 .task-error {

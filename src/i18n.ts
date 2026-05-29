@@ -321,6 +321,9 @@ export const zh = {
     appInternalDir: "应用内部目录",
   },
   menu: {
+    main: '主要',
+    aiCapabilities: 'AI 能力',
+    configuration: '配置',
     logs: "日志",
     storage: "存储",
     dashboard: '概览',
@@ -423,6 +426,9 @@ export const zh = {
     minutesAgo: '分钟前',
     hoursAgo: '小时前',
     daysAgo: '天前',
+    copy: '复制',
+    copied: '已复制到剪贴板',
+    copyFailed: '复制失败',
   },
   history: {
     rename: '重命名',
@@ -1002,8 +1008,10 @@ export const en: typeof zh = {
       general: 'General'
     }
   },
-
   menu: {
+    main: 'Main',
+    aiCapabilities: 'AI Capabilities',
+    configuration: 'Configuration',
     dashboard: 'Dashboard',
     workspace: 'Workspace',
     projects: 'Projects',
@@ -1134,6 +1142,9 @@ export const en: typeof zh = {
     minutesAgo: 'min ago',
     hoursAgo: 'hours ago',
     daysAgo: 'days ago',
+    copy: 'Copy',
+    copied: 'Copied to clipboard',
+    copyFailed: 'Copy failed',
   },
   history: {
     rename: 'Rename',

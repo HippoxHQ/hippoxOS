@@ -4,11 +4,13 @@ import { ExecutionLog, TaskInfo } from "../type";
 import {
   ClearIcon,
   CollapseIcon,
+  CopyIcon,
   ExpandArrowsIcon,
   TaskQueueIcon,
 } from "../icons";
 import { taskManager } from "../TaskManager";
 import { HIPPOX_ASCII_LOGO } from "../config";
+import { showToast, ToastType } from "./Toast";
 
 interface TerminalPanelProps {
   logs: ExecutionLog[];
@@ -494,6 +496,19 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
     ...(hoveredLink === linkId ? styles.linkHover : {}),
   });
 
+  const copyToClipboard = async (text: string | undefined) => {
+    try {
+      if (!text) {
+        showToast(ToastType.ERROR, t("common.copyFailed") || "Copy Failed");
+        return;
+      }
+      await navigator.clipboard.writeText(text);
+      showToast(ToastType.SUCCESS, t("common.copied") || "Copied");
+    } catch (err) {
+      showToast(ToastType.ERROR, t("common.copyFailed") || "Copy Failed");
+    }
+  };
+
   const renderWelcomeMessage = () => {
     const welcomeTime = new Date().toLocaleTimeString();
     const isExpanded = expandedTasks.has(WELCOME_TASK_ID);
@@ -523,7 +538,6 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
             style={{ marginLeft: "5px" }}
           >
             <div className="task-step">
-              <span className="step-indent"> </span>
               <span className="step-icon">🚀</span>
               <span className="step-name" style={styles.welcomeStepName}>
                 {t("terminal.welcome.subtitle")}
@@ -533,7 +547,6 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
               <pre style={styles.asciiPre}>{HIPPOX_ASCII_LOGO}</pre>
             </div>
             <div className="task-step">
-              <span className="step-indent"> </span>
               <span className="step-icon">💡</span>
               <span className="step-name" style={styles.welcomeStepName}>
                 {t("terminal.welcome.status")}
@@ -599,7 +612,6 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
                 key={`${task.task_id}-step-${step.step_index}`}
                 className="task-step"
               >
-                <span className="step-indent"> </span>
                 <span className="step-icon">
                   {getStepStatusIcon(step.status)}
                 </span>
@@ -615,15 +627,95 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
         )}
         {isExpanded && task.final_output && task.status === "completed" && (
           <div className="task-final-output">
-            <span className="step-indent"> </span>
-            <span className="output-label">📝 Response:</span>
+            <div
+              className="output-header"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
+            >
+              <span
+                className="output-label"
+                style={{ color: "var(--text-primary)", fontWeight: 500 }}
+              >
+                📝 Response:
+              </span>
+              <button
+                className="copy-output-btn"
+                onClick={() => copyToClipboard(task.final_output)}
+                title={t("common.copy") || "Copy"}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  cursor: "pointer",
+                  color: "var(--text-secondary)",
+                  fontSize: "12px",
+                  padding: "4px 8px",
+                  borderRadius: "4px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "4px",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "var(--hover-bg)";
+                  e.currentTarget.style.color = "var(--text-primary)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "transparent";
+                  e.currentTarget.style.color = "var(--text-secondary)";
+                }}
+              >
+                <CopyIcon size={12} /> {t("common.copy") || "Copy"}
+              </button>
+            </div>
             <div className="output-content">{task.final_output}</div>
           </div>
         )}
         {isExpanded && task.status === "failed" && task.final_output && (
           <div className="task-error">
-            <span className="step-indent"> </span>
-            <span className="error-label">❌ Error:</span>
+            <div
+              className="error-header"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
+            >
+              <span
+                className="error-label"
+                style={{ color: "#ff6666", fontWeight: 500 }}
+              >
+                ❌ Error:
+              </span>
+              <button
+                className="copy-error-btn"
+                onClick={() => copyToClipboard(task.final_output)}
+                title={t("common.copy") || "Copy"}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  cursor: "pointer",
+                  color: "var(--text-secondary)",
+                  fontSize: "12px",
+                  padding: "4px 8px",
+                  borderRadius: "4px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "4px",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "var(--hover-bg)";
+                  e.currentTarget.style.color = "var(--text-primary)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "transparent";
+                  e.currentTarget.style.color = "var(--text-secondary)";
+                }}
+              >
+                <CopyIcon size={12} /> {t("common.copy") || "Copy"}
+              </button>
+            </div>
             <div className="error-content">{task.final_output}</div>
           </div>
         )}
