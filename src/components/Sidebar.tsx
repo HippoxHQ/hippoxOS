@@ -44,6 +44,7 @@ const sidebarStyles = `
     user-select: none;
     z-index: 100;
     position: relative;
+    justify-content: space-between;
   }
 
   .sidebar-header {
@@ -73,13 +74,22 @@ const sidebarStyles = `
     color: var(--text-primary);
   }
 
-  .sidebar-nav {
+  .sidebar-nav-top {
     flex: 1;
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 4px;
     padding: 12px 0;
+  }
+
+  .sidebar-nav-bottom {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 12px 0;
+    border-top: 1px solid var(--border-color);
   }
 
   .sidebar-icon-btn {
@@ -309,7 +319,7 @@ interface MenuItemWithSection extends MenuItem {
   section?: "main" | "ai" | "config";
 }
 
-const menuConfig: MenuItemWithSection[] = [
+const topMenuItems: MenuItemWithSection[] = [
   { id: "history", icon: "history", label: "menu.history", section: "main" },
   {
     id: "favorites",
@@ -323,7 +333,6 @@ const menuConfig: MenuItemWithSection[] = [
     label: "menu.workspace",
     section: "main",
   },
-
   {
     id: "skills_group",
     icon: "skills",
@@ -348,7 +357,10 @@ const menuConfig: MenuItemWithSection[] = [
       { id: "taskQueue", icon: "taskQueue", label: "menu.taskQueue" },
     ],
   },
+  { id: "logs", icon: "logs", label: "menu.logs", section: "config" },
+];
 
+const bottomMenuItems: MenuItemWithSection[] = [
   {
     id: "settings_group",
     icon: "settings",
@@ -404,8 +416,9 @@ const menuConfig: MenuItemWithSection[] = [
       },
     ],
   },
-  { id: "logs", icon: "logs", label: "menu.logs", section: "config" },
 ];
+
+const allMenuItems = [...topMenuItems, ...bottomMenuItems];
 
 const PopupMenu: React.FC<PopupMenuProps> = ({
   items,
@@ -418,6 +431,7 @@ const PopupMenu: React.FC<PopupMenuProps> = ({
   t,
 }) => {
   const popupRef = useRef<HTMLDivElement>(null);
+  const [adjustedPosition, setAdjustedPosition] = useState(position);
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
     const initial: Record<string, boolean> = {};
     const initOpen = (menuItems: MenuItemWithSection[]) => {
@@ -431,6 +445,29 @@ const PopupMenu: React.FC<PopupMenuProps> = ({
     initOpen(items);
     return initial;
   });
+
+  useEffect(() => {
+    if (popupRef.current) {
+      const rect = popupRef.current.getBoundingClientRect();
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+      const gap = 8;
+      let { top, left } = position;
+      if (left + rect.width > viewportWidth - gap) {
+        left = viewportWidth - rect.width - gap;
+      }
+      if (left < gap) {
+        left = gap;
+      }
+      if (top + rect.height > viewportHeight - gap) {
+        top = viewportHeight - rect.height - gap;
+      }
+      if (top < gap) {
+        top = gap;
+      }
+      setAdjustedPosition({ top, left });
+    }
+  }, [position]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -646,16 +683,14 @@ const PopupMenu: React.FC<PopupMenuProps> = ({
         );
       }
     };
-
     menuItems.forEach((item) => processItem(item));
     return result;
   };
-
   return (
     <div
       ref={popupRef}
       className="menu-popup"
-      style={{ top: position.top, left: position.left }}
+      style={{ top: adjustedPosition.top, left: adjustedPosition.left }}
     >
       {renderMenuItems(items)}
     </div>
@@ -790,6 +825,22 @@ const Sidebar: React.FC<SidebarProps> = ({
       handleMenuClick(itemId);
       return;
     }
+    const rect = e.currentTarget.getBoundingClientRect();
+    const viewportWidth = window.innerWidth;
+    const popupWidth = 280;
+    const gap = 8;
+    let left = rect.right + gap;
+    if (left + popupWidth > viewportWidth - gap) {
+      left = rect.left - popupWidth - gap;
+    }
+    if (left < gap) {
+      left = gap;
+    }
+    let top = rect.top;
+    if (top < gap) {
+      top = gap;
+    }
+    const position = { top, left };
     if (
       itemId === "skills_group" ||
       itemId === "tasks_group" ||
@@ -809,21 +860,11 @@ const Sidebar: React.FC<SidebarProps> = ({
       }
       setActiveSubId(undefined);
       setActiveSubSubId(undefined);
-      const rect = e.currentTarget.getBoundingClientRect();
-      const position = {
-        top: rect.top,
-        left: rect.right + 8,
-      };
       setActiveIconId(itemId);
       setPopupPosition(position);
       setPopupVisible(true);
       return;
     }
-    const rect = e.currentTarget.getBoundingClientRect();
-    const position = {
-      top: rect.top,
-      left: rect.right + 8,
-    };
     if (popupVisible && activeIconId === itemId) {
       setPopupVisible(false);
       setActiveIconId(null);
@@ -832,8 +873,9 @@ const Sidebar: React.FC<SidebarProps> = ({
         setPopupVisible(false);
         setActiveIconId(null);
       }
-      handleMenuClick(itemId);
-      setActiveIconId(null);
+      setActiveIconId(itemId);
+      setPopupPosition(position);
+      setPopupVisible(true);
     }
   };
 
@@ -886,7 +928,27 @@ const Sidebar: React.FC<SidebarProps> = ({
     else onResetSession();
   };
 
-  const topLevelItems = menuConfig;
+  const renderButton = (item: MenuItemWithSection) => {
+    const IconComp = iconMap[item.icon];
+    const isActive = isIconActive(item.id);
+    const label = t(item.label);
+    return (
+      <button
+        key={item.id}
+        ref={(el) => {
+          if (el) iconRefs.current.set(item.id, el);
+          else iconRefs.current.delete(item.id);
+        }}
+        className={`sidebar-icon-btn ${isActive ? "active" : ""}`}
+        onClick={(e) => handleIconClick(item.id, e)}
+        onMouseEnter={(e) => handleMouseEnter(e, label)}
+        onMouseLeave={handleMouseLeave}
+      >
+        {IconComp && <IconComp size={18} />}
+        {item.badge && <span className="icon-badge" />}
+      </button>
+    );
+  };
 
   return (
     <aside className="sidebar">
@@ -895,38 +957,23 @@ const Sidebar: React.FC<SidebarProps> = ({
           className="new-session-icon-btn"
           onClick={handleNewSessionClick}
           onMouseEnter={(e) => handleMouseEnter(e, t("actions.newSession"))}
+          onMouseLeave={handleMouseLeave}
         >
           <NewSessionIcon size={18} />
         </button>
       </div>
-
-      <nav className="sidebar-nav">
-        {topLevelItems.map((item) => {
-          const IconComp = iconMap[item.icon];
-          const isActive = isIconActive(item.id);
-          const label = t(item.label);
-          return (
-            <button
-              key={item.id}
-              ref={(el) => {
-                if (el) iconRefs.current.set(item.id, el);
-                else iconRefs.current.delete(item.id);
-              }}
-              className={`sidebar-icon-btn ${isActive ? "active" : ""}`}
-              onClick={(e) => handleIconClick(item.id, e)}
-              onMouseEnter={(e) => handleMouseEnter(e, label)}
-              onMouseLeave={handleMouseLeave}
-            >
-              {IconComp && <IconComp size={18} />}
-              {item.badge && <span className="icon-badge" />}
-            </button>
-          );
-        })}
+      <nav className="sidebar-nav-top">
+        {topMenuItems.map((item) => renderButton(item))}
       </nav>
-
+      <nav
+        className="sidebar-nav-bottom"
+        style={{ flexDirection: "column-reverse" }}
+      >
+        {bottomMenuItems.map((item) => renderButton(item))}
+      </nav>
       {popupVisible && activeIconId && (
         <PopupMenu
-          items={menuConfig.filter((item) => item.id === activeIconId)}
+          items={allMenuItems.filter((item) => item.id === activeIconId)}
           activeId={activeId}
           activeSubId={activeSubId}
           activeSubSubId={activeSubSubId}
