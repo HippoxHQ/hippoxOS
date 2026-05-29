@@ -112,6 +112,16 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({
     try {
       await llmCommands.setDefaultLlmInstance(instanceId);
       setDefaultInstanceId(instanceId);
+      setInstances((prev) => {
+        const newInstances = { ...prev };
+        Object.keys(newInstances).forEach((id) => {
+          newInstances[id] = {
+            ...newInstances[id],
+            is_default: id === instanceId,
+          };
+        });
+        return newInstances;
+      });
       showToast(
         ToastType.SUCCESS,
         t("llmModel.defaultSuccess", { name: instanceName }),
