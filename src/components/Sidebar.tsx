@@ -48,7 +48,7 @@ const sidebarStyles = `
   }
 
   .sidebar-header {
-    padding: 12px 0;
+    padding: 7px 0;
     border-bottom: 1px solid var(--border-color);
     width: 100%;
     display: flex;
