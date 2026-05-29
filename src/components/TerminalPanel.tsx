@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState, useCallback } from "react";
+import React, { useRef, useEffect, useState, useCallback, JSX } from "react";
 import { hippoxCommands } from "../api/chat";
 import { ExecutionLog, TaskInfo } from "../type";
 import {
@@ -11,6 +11,8 @@ import {
 import { taskManager } from "../TaskManager";
 import { HIPPOX_ASCII_LOGO } from "../config";
 import { showToast, ToastType } from "./Toast";
+import { filesCommands } from "../api/files";
+import { open } from "@tauri-apps/plugin-shell";
 
 interface TerminalPanelProps {
   logs: ExecutionLog[];
@@ -214,6 +216,8 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
   const activeTasks = tasks.filter(
     (task) => !currentSessionId || task.session_id === currentSessionId,
   );
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const allTasks = [
     {
       task_id: "welcome",
@@ -669,7 +673,9 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
                 <CopyIcon size={12} /> {t("common.copy") || "Copy"}
               </button>
             </div>
-            <div className="output-content">{task.final_output}</div>
+            <div className="output-content">
+              {renderContentWithLinks(task.final_output)}
+            </div>
           </div>
         )}
         {isExpanded && task.status === "failed" && task.final_output && (
@@ -716,12 +722,122 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
                 <CopyIcon size={12} /> {t("common.copy") || "Copy"}
               </button>
             </div>
-            <div className="error-content">{task.final_output}</div>
+            <div className="error-content">
+              {renderContentWithLinks(task.final_output)}
+            </div>
           </div>
         )}
         <div className="task-separator"></div>
       </div>
     );
+  };
+
+  const openUrl = async (url: string) => {
+    try {
+      open(url);
+    } catch (error) {
+      console.error("Failed to open URL:", error);
+      showToast(
+        ToastType.ERROR,
+        t("common.openUrlFailed", { url }) || `Unable to open link: ${url}`,
+      );
+    }
+  };
+
+  const handleOpenPath = async (path: string) => {
+    try {
+      await filesCommands.openPath(path);
+    } catch (error) {
+      showToast(
+        ToastType.ERROR,
+        t("common.openPathFailed", { path }) || `Unable to open: ${path}`,
+      );
+    }
+  };
+
+  const renderContentWithLinks = (text: string) => {
+    if (!text) return null;
+    const urlRegex = /(https?:\/\/[^\s]+|ftp:\/\/[^\s]+|file:\/\/[^\s]+)/gi;
+    const filePathRegex = /(?:[a-zA-Z]:)?[\\/][\w\-\.\\/]+(?:\.\w+)?/g;
+    const parts: JSX.Element[] = [];
+    let lastIndex = 0;
+    const matches: {
+      index: number;
+      endIndex: number;
+      text: string;
+      type: "url" | "file";
+    }[] = [];
+    let urlMatch: RegExpExecArray | null;
+    urlRegex.lastIndex = 0;
+    while ((urlMatch = urlRegex.exec(text)) !== null) {
+      matches.push({
+        index: urlMatch.index,
+        endIndex: urlMatch.index + urlMatch[0].length,
+        text: urlMatch[0],
+        type: "url",
+      });
+    }
+    let fileMatch: RegExpExecArray | null;
+    filePathRegex.lastIndex = 0;
+    while ((fileMatch = filePathRegex.exec(text)) !== null) {
+      const isOverlap = matches.some(
+        (m) =>
+          (fileMatch!.index >= m.index && fileMatch!.index < m.endIndex) ||
+          (fileMatch!.index + fileMatch![0].length > m.index &&
+            fileMatch!.index + fileMatch![0].length <= m.endIndex),
+      );
+      if (!isOverlap && fileMatch[0].length > 3) {
+        matches.push({
+          index: fileMatch.index,
+          endIndex: fileMatch.index + fileMatch[0].length,
+          text: fileMatch[0],
+          type: "file",
+        });
+      }
+    }
+    matches.sort((a, b) => a.index - b.index);
+    let currentIndex = 0;
+    for (const match of matches) {
+      if (match.index > currentIndex) {
+        parts.push(
+          <span key={`text-${currentIndex}`}>
+            {text.substring(currentIndex, match.index)}
+          </span>,
+        );
+      }
+      const isUrl = match.type === "url";
+      parts.push(
+        <span
+          key={`link-${match.index}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (isUrl) {
+              openUrl(match.text);
+            } else {
+              handleOpenPath(match.text);
+            }
+          }}
+          style={{
+            color: "var(--accent-color, #00aaff)",
+            textDecoration: "underline",
+            cursor: "pointer",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.opacity = "0.8";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.opacity = "1";
+          }}
+        >
+          {match.text}
+        </span>,
+      );
+      currentIndex = match.endIndex;
+    }
+    if (currentIndex < text.length) {
+      parts.push(<span key={`text-end`}>{text.substring(currentIndex)}</span>);
+    }
+    return parts;
   };
 
   return (

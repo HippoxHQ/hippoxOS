@@ -1191,7 +1191,7 @@ pub async fn add_llm_instance(request: AddLlmInstanceRequest) -> Result<String, 
         created_at: Some(now.clone()),
         updated_at: Some(now),
         extra: request.extra,
-        is_default: Some(should_be_default), 
+        is_default: Some(should_be_default),
     };
     config.llm_instances.insert(id.clone(), new_instance);
     if should_be_default {

@@ -429,6 +429,8 @@ export const zh = {
     copy: '复制',
     copied: '已复制到剪贴板',
     copyFailed: '复制失败',
+    openUrlFailed: '无法打开链接: {{url}}',
+    openPathFailed: '无法打开文件: {{path}}',
   },
   history: {
     rename: '重命名',
@@ -1145,6 +1147,8 @@ export const en: typeof zh = {
     copy: 'Copy',
     copied: 'Copied to clipboard',
     copyFailed: 'Copy failed',
+    openUrlFailed: 'Failed to open URL: {{url}}',
+    openPathFailed: 'Failed to open path: {{path}}',
   },
   history: {
     rename: 'Rename',
