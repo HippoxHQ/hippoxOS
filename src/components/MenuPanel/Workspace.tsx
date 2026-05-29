@@ -24,6 +24,33 @@ interface WorkspaceNode {
   loading: boolean;
 }
 
+const EmptyFolderIcon: React.FC<{ size?: number }> = ({ size = 48 }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    style={{ opacity: 0.5 }}
+  >
+    <path
+      d="M22 19C22 19.5304 21.7893 20.0391 21.4142 20.4142C21.0391 20.7893 20.5304 21 20 21H4C3.46957 21 2.96086 20.7893 2.58579 20.4142C2.21071 20.0391 2 19.5304 2 19V5C2 4.46957 2.21071 3.96086 2.58579 3.58579C2.96086 3.21071 3.46957 3 4 3H9L11 6H20C20.5304 6 21.0391 6.21071 21.4142 6.58579C21.7893 6.96086 22 7.46957 22 8V19Z"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      fill="none"
+    />
+    <path
+      d="M12 14V10M10 12H14"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
 const WorkspacePanel: React.FC<WorkspacePanelProps> = ({ t }) => {
   const [workspaceNodes, setWorkspaceNodes] = useState<WorkspaceNode[]>([]);
   const [loading, setLoading] = useState(true);
@@ -521,7 +548,9 @@ const WorkspacePanel: React.FC<WorkspacePanelProps> = ({ t }) => {
         }}
       >
         <div style={{ textAlign: "center" }}>
-          <div style={{ fontSize: "24px", marginBottom: "12px" }}>📁</div>
+          <div style={{ fontSize: "24px", marginBottom: "12px" }}>
+            <FolderIcon size={32} />
+          </div>
           <div>{t("atomicSkills.loading") || "Loading..."}</div>
         </div>
       </div>
@@ -543,7 +572,7 @@ const WorkspacePanel: React.FC<WorkspacePanelProps> = ({ t }) => {
       >
         <div>
           <div style={{ fontSize: "48px", marginBottom: "16px", opacity: 0.5 }}>
-            📂
+            <EmptyFolderIcon size={48} />
           </div>
           <div style={{ fontSize: "13px" }}>
             {t("workspace.empty") ||
@@ -610,15 +639,13 @@ const WorkspacePanel: React.FC<WorkspacePanelProps> = ({ t }) => {
                 cursor: "pointer",
                 transition: "all 0.2s ease",
                 background: "var(--bg-secondary)",
-                border: "1px solid var(--border-color)",
+                borderBottom: "1px solid var(--border-color)",
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.background = "var(--bg-tertiary)";
-                e.currentTarget.style.borderColor = "var(--accent-color)";
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.background = "var(--bg-secondary)";
-                e.currentTarget.style.borderColor = "var(--border-color)";
               }}
               onClick={() => toggleWorkspace(index)}
             >

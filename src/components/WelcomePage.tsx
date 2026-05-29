@@ -1,5 +1,12 @@
 import React, { useState, useRef, useEffect } from "react";
-import { AttachmentIcon, FolderIcon, ChevronRightIcon } from "../icons";
+import {
+  AttachmentIcon,
+  FolderIcon,
+  ChevronRightIcon,
+  FolderOpenIcon,
+} from "../icons";
+import { workspaceCommands, WorkspaceInstance } from "../api/workspace";
+import { showToast, ToastType } from "./Toast";
 
 interface WelcomePageProps {
   onSendMessage: (message: string) => void;
@@ -11,11 +18,55 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t }) => {
   const [isFocused, setIsFocused] = useState(false);
   const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
   const [showDirectoryMenu, setShowDirectoryMenu] = useState(false);
+  const [workspaces, setWorkspaces] = useState<WorkspaceInstance[]>([]);
+  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string>("");
   const attachmentBtnRef = useRef<HTMLDivElement>(null);
   const attachmentMenuRef = useRef<HTMLDivElement>(null);
   const directoryBtnRef = useRef<HTMLDivElement>(null);
   const directoryMenuRef = useRef<HTMLDivElement>(null);
   const [showLogo, setShowLogo] = useState(true);
+
+  const loadWorkspaces = async () => {
+    try {
+      const config = await workspaceCommands.getWorkspaceConfig();
+      setWorkspaces(config.instances);
+      if (config.default_instance_id) {
+        setSelectedWorkspaceId(config.default_instance_id);
+      } else if (config.instances.length > 0) {
+        setSelectedWorkspaceId(config.instances[0].id);
+      }
+    } catch (error) {
+      console.error("Failed to load workspaces:", error);
+    }
+  };
+
+  const handleSelectWorkspace = async (workspaceId: string) => {
+    const workspace = workspaces.find((w) => w.id === workspaceId);
+    if (!workspace) return;
+    try {
+      await workspaceCommands.setDefaultWorkspace(workspaceId);
+      setSelectedWorkspaceId(workspaceId);
+      setShowDirectoryMenu(false);
+      await loadWorkspaces();
+      showToast(ToastType.SUCCESS, t("workspace.defaultSuccess"));
+    } catch (error) {
+      console.error("Failed to set default workspace:", error);
+      showToast(ToastType.ERROR, t("workspace.defaultFailed"));
+    }
+  };
+
+  const getSelectedWorkspaceName = (): string => {
+    const workspace = workspaces.find((w) => w.id === selectedWorkspaceId);
+    if (!workspace) return t("chat.selectWorkspace") || "Workspace";
+    const path = workspace.workspace_path;
+    const normalizedPath = path.replace(/\\/g, "/");
+    const parts = normalizedPath.split("/");
+    return parts[parts.length - 1] || workspace.name;
+  };
+
+  useEffect(() => {
+    loadWorkspaces();
+  }, []);
 
   useEffect(() => {
     const img = new Image();
@@ -62,10 +113,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t }) => {
 
   const handleAttachment = (type: string) => {
     setShowAttachmentMenu(false);
-  };
-
-  const handleSelectWorkspace = (workspaceId: string) => {
-    setShowDirectoryMenu(false);
+    showToast(ToastType.INFO, t("common.comingSoon") || "TODO");
   };
 
   const examples = [
@@ -75,23 +123,12 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t }) => {
     { text: t("welcome.example.plan"), icon: "📋" },
   ];
 
-  const workspaces = [
-    { id: "1", name: "My Workspace", workspace_path: "/home/user/workspace" },
-  ];
-  const selectedWorkspaceId = "1";
-
-  const getSelectedWorkspaceName = (): string => {
-    const workspace = workspaces.find((w) => w.id === selectedWorkspaceId);
-    if (!workspace) return t("chat.selectWorkspace") || "Workspace";
-    const path = workspace.workspace_path;
-    const normalizedPath = path.replace(/\\/g, "/");
-    const parts = normalizedPath.split("/");
-    return parts[parts.length - 1] || workspace.name;
-  };
-
   return (
     <div className="welcome-page">
       <style>{`
+        .my-folder-icon {
+        }
+
         .welcome-page {
           display: flex;
           flex-direction: column;
@@ -296,6 +333,11 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t }) => {
           background: var(--hover-bg);
         }
 
+        .directory-item.selected {
+          background: var(--accent-color);
+          color: white;
+        }
+
         .workspace-path {
           font-size: 10px;
           color: var(--text-tertiary);
@@ -304,6 +346,10 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t }) => {
           text-overflow: ellipsis;
           white-space: nowrap;
           max-width: 200px;
+        }
+
+        .selected .workspace-path {
+          color: rgba(255, 255, 255, 0.7);
         }
 
         .directory-item-content {
@@ -460,7 +506,10 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t }) => {
                 <div
                   className="icon-btn folder-btn"
                   ref={directoryBtnRef}
-                  onClick={() => setShowDirectoryMenu(!showDirectoryMenu)}
+                  onClick={async () => {
+                    await loadWorkspaces();
+                    setShowDirectoryMenu(!showDirectoryMenu);
+                  }}
                   title={t("chat.selectWorkspace")}
                 >
                   <FolderIcon size={14} />
@@ -505,15 +554,25 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t }) => {
                     {workspaces.map((workspace) => (
                       <div
                         key={workspace.id}
-                        className="directory-item"
+                        className={`directory-item ${selectedWorkspaceId === workspace.id ? "selected" : ""}`}
                         onClick={() => handleSelectWorkspace(workspace.id)}
                       >
-                        <FolderIcon size={16} />
+                        {selectedWorkspaceId === workspace.id ? (
+                          <FolderOpenIcon
+                            size={16}
+                            className="my-folder-icon"
+                          />
+                        ) : (
+                          <FolderIcon size={16} className="my-folder-icon" />
+                        )}
                         <div className="directory-item-content">
-                          <div>{workspace.name}</div>
+                          <div style={{ textAlign: "left" }}>
+                            {workspace.name}
+                          </div>
                           <div
                             className="workspace-path"
                             title={workspace.workspace_path}
+                            style={{ textAlign: "left" }}
                           >
                             {workspace.workspace_path}
                           </div>
