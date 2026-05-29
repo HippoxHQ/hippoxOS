@@ -1,4 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
+import { LlmInstance } from './llm';
 
 export interface HippoxAppConfig {
     language: string;
@@ -149,19 +150,6 @@ export interface SaveNotificationInstanceRequest {
     wecom_webhook?: string;
     github_token?: string;
     github_api_url?: string;
-}
-
-export interface LlmInstance {
-    id: string;
-    name: string;
-    provider: string;
-    api_key: string;
-    api_base: string;
-    workflow_mode: string;
-    default_model: string;
-    models: ModelConfig[];
-    created_at: string;
-    updated_at: string;
 }
 
 export interface AddLlmInstanceRequest {

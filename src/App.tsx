@@ -679,6 +679,7 @@ function App() {
       <TopBar
         sidebarCollapsed={sidebarCollapsed}
         onToggleSidebar={toggleSidebar}
+        onNewSession={handleNewSession}
         currentTheme={theme}
         onToggleTheme={handleToggleTheme}
         currentLanguage={language}
