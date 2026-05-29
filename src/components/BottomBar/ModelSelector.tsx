@@ -166,7 +166,7 @@ const getTestModelInstances = (): LlmInstance[] => {
     },
     {
       id: "test_model_8",
-      name: "通义千问 Plus",
+      name: "Qwen Plus",
       provider: "alibaba",
       api_key: "",
       api_base: "https://dashscope.aliyuncs.com/compatible-mode/v1",
@@ -217,6 +217,7 @@ interface ModelSelectorProps {
   onSetDefaultModel: (instanceId: string) => void;
   t: (key: string, params?: Record<string, any>) => string;
   anchorRef: React.RefObject<HTMLElement>;
+  popupRef: React.RefObject<HTMLDivElement | null>;
 }
 
 const ModelSelector: React.FC<ModelSelectorProps> = ({
@@ -227,8 +228,8 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({
   onSetDefaultModel,
   t,
   anchorRef,
+  popupRef,
 }) => {
-  const popupRef = useRef<HTMLDivElement>(null);
   const [tokenUsage, setTokenUsage] = React.useState<
     Record<string, { used: number; limit: number }>
   >({});
@@ -253,25 +254,6 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({
       loadTokenData();
     }
   }, [instances]);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        popupRef.current &&
-        !popupRef.current.contains(event.target as Node)
-      ) {
-        const anchor = anchorRef.current;
-        if (anchor && !anchor.contains(event.target as Node)) {
-          onClose();
-        }
-      }
-    };
-
-    if (isOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [isOpen, anchorRef, onClose]);
 
   const getNetworkStatus = (
     instanceId: string,
@@ -300,6 +282,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({
   return (
     <div
       ref={popupRef}
+      className="model-selector-popup"
       style={{
         position: "fixed",
         bottom: "35px",
@@ -372,7 +355,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({
               fontSize: "13px",
             }}
           >
-            {t("llmModel.noInstances") || "暂无模型配置"}
+            {t("llmModel.noInstances") || "No model configuration"}
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column" }}>

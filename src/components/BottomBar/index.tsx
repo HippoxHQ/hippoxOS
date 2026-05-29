@@ -241,6 +241,30 @@ const BottomBar: React.FC<BottomBarProps> = ({ t }) => {
     };
   }, []);
 
+  const modelPopupRef = useRef<HTMLDivElement>(null);
+  const notificationPopupRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleGlobalClick = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      const isAnyBottomBarBtn = target.closest(".bottom-bar-btn");
+      if (isAnyBottomBarBtn) {
+        return;
+      }
+      const isModelPopup = modelPopupRef.current?.contains(target);
+      const isNotificationPopup =
+        notificationPopupRef.current?.contains(target);
+      if (!isModelPopup && modelPopupVisible) {
+        setModelPopupVisible(false);
+      }
+      if (!isNotificationPopup && notificationCenterVisible) {
+        setNotificationCenterVisible(false);
+      }
+    };
+    document.addEventListener("mousedown", handleGlobalClick);
+    return () => document.removeEventListener("mousedown", handleGlobalClick);
+  }, [modelPopupVisible, notificationCenterVisible]);
+
   const handleSetDefaultModel = async (instanceId: string) => {
     try {
       await configCommands.setDefaultLlmInstance(instanceId);
@@ -251,7 +275,6 @@ const BottomBar: React.FC<BottomBarProps> = ({ t }) => {
         }),
         "",
       );
-      setModelPopupVisible(false);
     } catch (error) {
       console.error("Failed to set default model:", error);
     }
@@ -316,12 +339,14 @@ const BottomBar: React.FC<BottomBarProps> = ({ t }) => {
         onSetDefaultModel={handleSetDefaultModel}
         t={t}
         anchorRef={modelButtonRef as React.RefObject<HTMLElement>}
+        popupRef={modelPopupRef}
       />
       <NotificationCenter
         isOpen={notificationCenterVisible}
         onClose={() => setNotificationCenterVisible(false)}
         anchorRef={notificationButtonRef as React.RefObject<HTMLElement>}
         t={t}
+        popupRef={notificationPopupRef}
       />
     </>
   );

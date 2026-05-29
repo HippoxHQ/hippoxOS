@@ -9,6 +9,7 @@ interface NotificationCenterProps {
   onClose: () => void;
   anchorRef: React.RefObject<HTMLElement>;
   t: (key: string, params?: Record<string, any>) => string;
+  popupRef: React.RefObject<HTMLDivElement | null>;
 }
 
 const generateTestNotifications = (): SystemNotification[] => {
@@ -20,24 +21,24 @@ const generateTestNotifications = (): SystemNotification[] => {
     "error",
   ];
   const titles = [
-    { key: "notification.taskCompleted", default: "任务已完成" },
-    { key: "notification.taskFailed", default: "任务执行失败" },
-    { key: "notification.taskStepUpdate", default: "任务步骤更新" },
-    { key: "notification.taskCreated", default: "新任务已创建" },
-    { key: "notification.skillInstalled", default: "技能已安装" },
-    { key: "notification.skillUpdated", default: "技能已更新" },
-    { key: "notification.systemReady", default: "系统已就绪" },
-    { key: "notification.engineInitialized", default: "引擎已初始化" },
+    { key: "notification.taskCompleted", default: "Task Completed" },
+    { key: "notification.taskFailed", default: "Task Failed" },
+    { key: "notification.taskStepUpdate", default: "Task Step Updated" },
+    { key: "notification.taskCreated", default: "New Task Created" },
+    { key: "notification.skillInstalled", default: "Skill Installed" },
+    { key: "notification.skillUpdated", default: "Skill Updated" },
+    { key: "notification.systemReady", default: "System Ready" },
+    { key: "notification.engineInitialized", default: "Engine Initialized" },
   ];
   const messages = [
-    "数据分析任务已成功完成，共处理 1,234 条记录",
-    "数据库连接失败，请检查网络设置",
-    "代码审查步骤已完成，发现 3 个潜在问题",
-    "新定时任务已创建：每日备份",
-    "WebSearch 技能安装成功",
-    "FileProcessor 技能已更新到 v2.0.0",
-    "Hippox 系统已就绪，等待指令",
-    "LLM 引擎初始化成功，模型已加载",
+    "Data analysis task completed successfully, processed 1,234 records",
+    "Database connection failed, please check network settings",
+    "Code review step completed, found 3 potential issues",
+    "New scheduled task created: Daily backup",
+    "WebSearch skill installed successfully",
+    "FileProcessor skill updated to v2.0.0",
+    "Hippox system is ready, waiting for commands",
+    "LLM engine initialized successfully, model loaded",
   ];
 
   const notifications: SystemNotification[] = [];
@@ -62,9 +63,9 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({
   onClose,
   anchorRef,
   t,
+  popupRef,
 }) => {
   const [notifications, setNotifications] = useState<SystemNotification[]>([]);
-  const popupRef = useRef<HTMLDivElement>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [isTestDataLoaded, setIsTestDataLoaded] = useState(false);
 
@@ -94,25 +95,6 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({
     }
   }, [isOpen, isTestDataLoaded, notifications.length]);
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        popupRef.current &&
-        !popupRef.current.contains(event.target as Node)
-      ) {
-        const anchor = anchorRef.current;
-        if (anchor && !anchor.contains(event.target as Node)) {
-          onClose();
-        }
-      }
-    };
-
-    if (isOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [isOpen, anchorRef, onClose]);
-
   const formatTimestamp = (timestamp: string) => {
     const date = new Date(timestamp);
     const now = new Date();
@@ -120,13 +102,12 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({
     const diffMins = Math.floor(diffMs / 60000);
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
-
-    if (diffMins < 1) return t("notificationCenter.justNow") || "刚刚";
+    if (diffMins < 1) return t("notificationCenter.justNow") || "Just now";
     if (diffMins < 60)
-      return `${diffMins} ${t("common.minutesAgo") || "分钟前"}`;
+      return `${diffMins} ${t("common.minutesAgo") || "min ago"}`;
     if (diffHours < 24)
-      return `${diffHours} ${t("common.hoursAgo") || "小时前"}`;
-    if (diffDays < 7) return `${diffDays} ${t("common.daysAgo") || "天前"}`;
+      return `${diffHours} ${t("common.hoursAgo") || "hours ago"}`;
+    if (diffDays < 7) return `${diffDays} ${t("common.daysAgo") || "days ago"}`;
     return date.toLocaleDateString();
   };
 
@@ -205,6 +186,7 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({
       `}</style>
       <div
         ref={popupRef}
+        className="notification-center-popup"
         style={{
           position: "fixed",
           bottom: "35px",
