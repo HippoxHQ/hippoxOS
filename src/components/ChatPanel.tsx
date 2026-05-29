@@ -46,6 +46,9 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [userScrolled, setUserScrolled] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const handleContainerClick = () => {
+    textareaRef.current?.focus();
+  };
 
   const LoadingSpinner: React.FC = () => (
     <div className="loading-spinner">
@@ -392,6 +395,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
           border-radius: 12px;
           transition: all 0.2s ease;
           flex-shrink: 0;
+          cursor: text;
         }
 
         .chat-input-container.focused {
@@ -788,7 +792,10 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
           </div>
         )}
       </div>
-      <div className={`chat-input-container ${isFocused ? "focused" : ""}`}>
+      <div
+        className={`chat-input-container ${isFocused ? "focused" : ""}`}
+        onClick={handleContainerClick}
+      >
         <div className="input-textarea-wrapper">
           <textarea
             ref={textareaRef}

@@ -25,6 +25,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t }) => {
   const directoryBtnRef = useRef<HTMLDivElement>(null);
   const directoryMenuRef = useRef<HTMLDivElement>(null);
   const [showLogo, setShowLogo] = useState(true);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const loadWorkspaces = async () => {
     try {
@@ -38,6 +39,10 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t }) => {
     } catch (error) {
       console.error("Failed to load workspaces:", error);
     }
+  };
+
+  const handleContainerClick = () => {
+    textareaRef.current?.focus();
   };
 
   const handleSelectWorkspace = async (workspaceId: string) => {
@@ -209,6 +214,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t }) => {
           min-height: 120px;
           display: flex;
           flex-direction: column;
+          cursor: text;
         }
 
        .welcome-input-container.focused {
@@ -495,9 +501,11 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t }) => {
         <form className="welcome-form" onSubmit={handleSubmit}>
           <div
             className={`welcome-input-container ${isFocused ? "focused" : ""}`}
+            onClick={handleContainerClick}
           >
             <div className="input-textarea-wrapper">
               <textarea
+                ref={textareaRef}
                 className="welcome-textarea"
                 placeholder={t("chat.placeholder") || "Ask me anything..."}
                 value={inputValue}
