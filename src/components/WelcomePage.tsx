@@ -116,12 +116,31 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t }) => {
     showToast(ToastType.INFO, t("common.comingSoon") || "TODO");
   };
 
-  const examples = [
-    { text: t("welcome.example.analyze"), icon: "📊" },
-    { text: t("welcome.example.code"), icon: "💻" },
-    { text: t("welcome.example.search"), icon: "🔍" },
-    { text: t("welcome.example.plan"), icon: "📋" },
+  const isZh = t("welcome.subtitle") === "原生 LLM 操作系统";
+
+  const zhExamples = [
+    { text: "分析这份数据", icon: "📊" },
+    { text: "写一段代码", icon: "💻" },
+    { text: "搜索 AI 新闻", icon: "🔍" },
+    { text: "规划一个任务", icon: "📋" },
+    { text: "总结这篇文章", icon: "📝" },
+    { text: "翻译文本", icon: "🌐" },
+    { text: "安排日程", icon: "📅" },
+    { text: "写一封邮件", icon: "✉️" },
   ];
+
+  const enExamples = [
+    { text: "Analyze this data", icon: "📊" },
+    { text: "Write some code", icon: "💻" },
+    { text: "Search AI news", icon: "🔍" },
+    { text: "Plan a task", icon: "📋" },
+    { text: "Summarize this article", icon: "📝" },
+    { text: "Translate text", icon: "🌐" },
+    { text: "Schedule a meeting", icon: "📅" },
+    { text: "Write an email", icon: "✉️" },
+  ];
+
+  const examples = isZh ? zhExamples : enExamples;
 
   return (
     <div className="welcome-page">
@@ -179,7 +198,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t }) => {
 
         .welcome-form {
           width: 100%;
-          margin-bottom: 32px;
+          margin-bottom: 20px;
         }
 
         .welcome-input-container {
@@ -401,7 +420,9 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t }) => {
           display: flex;
           flex-wrap: wrap;
           justify-content: center;
-          gap: 8px;
+          gap: 10px;
+          max-width: 500px;
+          margin: 0 auto;
         }
 
         .example-chip {
