@@ -34,7 +34,7 @@ interface MenuItem {
 
 const sidebarStyles = `
   .sidebar {
-    width: 48px;
+    width: 52px;
     background: var(--bg-secondary);
     border-right: 1px solid var(--border-color);
     display: flex;
@@ -48,7 +48,7 @@ const sidebarStyles = `
   }
 
   .sidebar-header {
-    padding: 9px 0;
+    padding: 12px 0;
     border-bottom: 1px solid var(--border-color);
     width: 100%;
     display: flex;
@@ -59,9 +59,9 @@ const sidebarStyles = `
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
-    border-radius: 6px;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
     background: transparent;
     border: none;
     cursor: pointer;
@@ -79,16 +79,16 @@ const sidebarStyles = `
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 4px;
-    padding: 12px 0;
+    gap: 6px;
+    padding: 16px 0;
   }
 
   .sidebar-nav-bottom {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 4px;
-    padding: 12px 0;
+    gap: 6px;
+    padding: 16px 0;
     border-top: 1px solid var(--border-color);
   }
 
@@ -96,9 +96,9 @@ const sidebarStyles = `
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
-    border-radius: 6px;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
     background: transparent;
     border: none;
     cursor: pointer;
@@ -132,13 +132,12 @@ const sidebarStyles = `
     position: fixed;
     background: var(--bg-secondary);
     border: 1px solid var(--border-color);
-    border-radius: 10px;
+    border-radius: 5px;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
     width: 280px;
     max-height: 500px;
     overflow-y: auto;
     z-index: 201;
-    padding: 8px 0;
   }
 
   .menu-popup::-webkit-scrollbar {
@@ -159,7 +158,7 @@ const sidebarStyles = `
     font-weight: 600;
     letter-spacing: 0.5px;
     text-transform: uppercase;
-    color: var(--text-tertiary);
+    color: var(--text-secondary);
     padding: 8px 12px 4px 12px;
   }
 
@@ -167,13 +166,13 @@ const sidebarStyles = `
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 8px 12px;
-    margin: 0 4px;
+    padding: 10px 0px;
     cursor: pointer;
     transition: all 0.15s ease;
-    color: var(--text-secondary);
-    border-radius: 6px;
+    color: var(--text-primary);
     font-size: 13px;
+    padding-left: 10px;
+    padding-right: 20px;
   }
 
   .popup-menu-item:hover {
@@ -184,6 +183,23 @@ const sidebarStyles = `
   .popup-menu-item.active {
     background: var(--accent-color);
     color: white;
+  }
+
+  .menu-popup > div > div,
+  .menu-popup > div > .popup-menu-item,
+  .menu-popup > .popup-menu-item {
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 0;
+  }
+
+  .menu-popup > div:last-child > div:last-child,
+  .menu-popup > div:last-child > .popup-menu-item:last-child,
+  .menu-popup > .popup-menu-item:last-child {
+    border-bottom: none;
+  }
+
+  .menu-popup > div > div > .popup-menu-item {
+    border-bottom: none;
   }
 
   .popup-menu-icon {
@@ -224,7 +240,7 @@ const sidebarStyles = `
 
   .popup-chevron {
     transition: transform 0.2s ease;
-    color: var(--text-tertiary);
+    color: var(--text-secondary);
     font-size: 12px;
   }
 
@@ -233,7 +249,6 @@ const sidebarStyles = `
   }
 
   .popup-sub-menu {
-    margin-left: 32px;
     display: flex;
     flex-direction: column;
   }
@@ -242,18 +257,17 @@ const sidebarStyles = `
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 6px 12px 6px 0;
-    margin: 0 4px;
+    padding: 8px 0px 8px 0px;
     cursor: pointer;
     transition: all 0.15s ease;
-    color: var(--text-tertiary);
-    border-radius: 6px;
+    color: var(--text-primary);
     font-size: 12px;
+    padding-left: 20px;
   }
 
   .popup-sub-item:hover {
     background: var(--hover-bg);
-    color: var(--text-secondary);
+    color: var(--text-primary);
   }
 
   .popup-sub-item.active {
@@ -279,18 +293,18 @@ const sidebarStyles = `
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 5px 12px 5px 0;
+    padding: 6px 12px 6px 0;
     margin: 0 4px;
     cursor: pointer;
     transition: all 0.15s ease;
-    color: var(--text-tertiary);
+    color: var(--text-primary);
     border-radius: 6px;
     font-size: 11px;
   }
 
   .popup-sub-sub-item:hover {
     background: var(--hover-bg);
-    color: var(--text-secondary);
+    color: var(--text-primary);
   }
 
   .popup-sub-sub-item.active {
@@ -520,7 +534,6 @@ const PopupMenu: React.FC<PopupMenuProps> = ({
         lastSection = section;
       }
       const hasChildren = item.children && item.children.length > 0;
-      const IconComp = iconMap[item.icon];
       const isActive = activeId === item.id;
       const isOpen = openGroups[item.id] || false;
       if (hasChildren) {
@@ -530,16 +543,12 @@ const PopupMenu: React.FC<PopupMenuProps> = ({
               className="popup-menu-item has-children"
               onClick={(e) => toggleGroup(item.id, e)}
             >
-              <span className="popup-menu-icon">
-                {IconComp && <IconComp size={16} />}
-              </span>
               <span className="popup-menu-label">{t(item.label)}</span>
               <span className={`popup-chevron ${isOpen ? "open" : ""}`}>▶</span>
             </div>
             {isOpen && (
               <div className="popup-sub-menu">
                 {item.children!.map((child) => {
-                  const ChildIcon = iconMap[child.icon];
                   const hasGrandChildren =
                     child.children && child.children.length > 0;
 
@@ -559,9 +568,6 @@ const PopupMenu: React.FC<PopupMenuProps> = ({
                               gap: "10px",
                             }}
                           >
-                            <span className="popup-sub-icon">
-                              {ChildIcon && <ChildIcon size={14} />}
-                            </span>
                             <span>{t(child.label)}</span>
                           </span>
                           <span
@@ -573,7 +579,6 @@ const PopupMenu: React.FC<PopupMenuProps> = ({
                         {isGrandOpen && (
                           <div className="popup-sub-sub-menu">
                             {child.children!.map((grandChild) => {
-                              const GrandIcon = iconMap[grandChild.icon];
                               return (
                                 <div
                                   key={grandChild.id}
@@ -582,9 +587,6 @@ const PopupMenu: React.FC<PopupMenuProps> = ({
                                     onMenuClick("settings", grandChild.id);
                                   }}
                                 >
-                                  <span className="popup-sub-icon">
-                                    {GrandIcon && <GrandIcon size={12} />}
-                                  </span>
                                   <span>{t(grandChild.label)}</span>
                                 </div>
                               );
@@ -622,9 +624,6 @@ const PopupMenu: React.FC<PopupMenuProps> = ({
                         }
                       }}
                     >
-                      <span className="popup-sub-icon">
-                        {ChildIcon && <ChildIcon size={14} />}
-                      </span>
                       <span>{t(child.label)}</span>
                     </div>
                   );
@@ -672,9 +671,6 @@ const PopupMenu: React.FC<PopupMenuProps> = ({
               }
             }}
           >
-            <span className="popup-menu-icon">
-              {IconComp && <IconComp size={16} />}
-            </span>
             <span className="popup-menu-label">{t(item.label)}</span>
             {item.badge && (
               <span className="popup-menu-badge">{item.badge}</span>
@@ -816,7 +812,8 @@ const Sidebar: React.FC<SidebarProps> = ({
     if (
       itemId === "history" ||
       itemId === "favorites" ||
-      itemId === "workspace"
+      itemId === "workspace" ||
+      itemId === "logs"
     ) {
       if (popupVisible) {
         setPopupVisible(false);
