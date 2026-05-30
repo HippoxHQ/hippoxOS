@@ -187,6 +187,7 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({
       <div
         ref={popupRef}
         className="notification-center-popup"
+        onMouseDown={(e) => e.stopPropagation()}
         style={{
           position: "fixed",
           bottom: "35px",

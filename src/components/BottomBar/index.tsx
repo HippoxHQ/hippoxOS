@@ -208,6 +208,8 @@ const BottomBar: React.FC<BottomBarProps> = ({ t }) => {
   const [unreadCount, setUnreadCount] = useState(0);
   const modelButtonRef = useRef<HTMLButtonElement>(null);
   const notificationButtonRef = useRef<HTMLButtonElement>(null);
+  const modelPopupRef = useRef<HTMLDivElement>(null);
+  const notificationPopupRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const loadLlmInstances = async () => {
@@ -241,14 +243,13 @@ const BottomBar: React.FC<BottomBarProps> = ({ t }) => {
     };
   }, []);
 
-  const modelPopupRef = useRef<HTMLDivElement>(null);
-  const notificationPopupRef = useRef<HTMLDivElement>(null);
-
   useEffect(() => {
     const handleGlobalClick = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
-      const isAnyBottomBarBtn = target.closest(".bottom-bar-btn");
-      if (isAnyBottomBarBtn) {
+      const isModelButton = modelButtonRef.current?.contains(target);
+      const isNotificationButton =
+        notificationButtonRef.current?.contains(target);
+      if (isModelButton || isNotificationButton) {
         return;
       }
       const isModelPopup = modelPopupRef.current?.contains(target);

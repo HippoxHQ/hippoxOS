@@ -209,6 +209,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({
     <div
       ref={popupRef}
       className="model-selector-popup"
+      onMouseDown={(e) => e.stopPropagation()}
       style={{
         position: "fixed",
         bottom: "35px",
