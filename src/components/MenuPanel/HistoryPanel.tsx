@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import { sessionCommands } from "../../api/session";
 import { DialogSession } from "../../type";
 import { showDialog, DialogType } from "../Dialog";
@@ -38,7 +38,8 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
   currentSessionId,
 }) => {
   const [sessions, setSessions] = useState<DialogSession[]>([]);
-  const [loading, setLoading] = useState(true);
+  const hasLoadedRef = useRef(false);
+  const [loading, setLoading] = useState(false);
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [expandedCategories, setExpandedCategories] = useState<
@@ -58,11 +59,12 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
       [categoryType]: !prev[categoryType],
     }));
   };
-
   const menuRef = useRef<HTMLDivElement>(null);
-
   useEffect(() => {
-    loadSessions();
+    if (!hasLoadedRef.current) {
+      hasLoadedRef.current = true;
+      loadSessions();
+    }
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         setActiveMenuId(null);
@@ -70,17 +72,19 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
     };
     document.addEventListener("mousedown", handleClickOutside);
     const handleSessionCreated = () => {
-      setTimeout(() => loadSessions(), 100);
+      loadSessions(true);
     };
     window.addEventListener("session-created", handleSessionCreated);
-
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
       window.removeEventListener("session-created", handleSessionCreated);
     };
   }, []);
 
-  const loadSessions = async () => {
+  const loadSessions = async (forceRefresh: boolean = false) => {
+    if (!forceRefresh && hasLoadedRef.current && sessions.length > 0) {
+      return;
+    }
     setLoading(true);
     try {
       const list = await sessionCommands.listSessions();
@@ -98,7 +102,7 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
       });
       setSessions(sorted);
     } catch (error) {
-      console.error("Failed to load sessions:", error);
+      showToast(ToastType.ERROR, "Failed to load sessions:" + error);
     } finally {
       setLoading(false);
     }
@@ -126,7 +130,6 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
         showToast(ToastType.INFO, t("history.toast.unpinned"));
       }
     } catch (error) {
-      console.error("Failed to toggle pin:", error);
       showToast(ToastType.ERROR, t("history.toast.pinFailed"));
     }
   };
@@ -167,7 +170,6 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
           setActiveMenuId(null);
           showToast(ToastType.SUCCESS, t("history.toast.deleted"));
         } catch (error) {
-          console.error("Failed to delete session:", error);
           showToast(ToastType.ERROR, t("history.toast.deleteFailed"));
         }
       },
@@ -185,32 +187,40 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
         await sessionCommands.updateSessionConfig(session.session_id, {
           title: newTitle.trim(),
         });
-        await loadSessions();
+        setSessions((prev) =>
+          prev.map((s) =>
+            s.session_id === session.session_id
+              ? { ...s, title: newTitle.trim() }
+              : s,
+          ),
+        );
         setActiveMenuId(null);
         showToast(ToastType.SUCCESS, t("history.toast.renamed"));
       } catch (error) {
-        console.error("Failed to rename session:", error);
         showToast(ToastType.ERROR, t("history.toast.renameFailed"));
       }
     }
   };
 
-  const handleSelectSession = async (sessionId: string) => {
-    setActiveMenuId(null);
-    if (currentSessionId === sessionId) {
-      return;
-    }
-    try {
-      if (onSessionSelect) {
-        onSessionSelect(sessionId);
+  const handleSelectSession = useCallback(
+    async (sessionId: string) => {
+      setActiveMenuId(null);
+      if (currentSessionId === sessionId) {
+        return;
       }
-    } catch (error) {
-      console.error("Failed to recall session context:", error);
-      if (onSessionSelect) {
-        onSessionSelect(sessionId);
+      try {
+        if (onSessionSelect) {
+          onSessionSelect(sessionId);
+        }
+      } catch (error) {
+        showToast(ToastType.ERROR, "Failed to recall session context:" + error);
+        if (onSessionSelect) {
+          onSessionSelect(sessionId);
+        }
       }
-    }
-  };
+    },
+    [currentSessionId, onSessionSelect],
+  );
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -350,7 +360,7 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
     letterSpacing: "0.5px",
   };
 
-  if (loading) {
+  if (loading && sessions.length === 0) {
     return (
       <div
         style={{
