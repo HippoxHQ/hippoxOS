@@ -363,7 +363,8 @@ export const zh = {
   },
   actions: {
     newSession: '新建会话',
-    clearTerminal: '清空终端'
+    clearTerminal: '清空终端',
+    skillMarket: '技能市场',
   },
   runtime: {
     model: '运行时模型',
@@ -1084,7 +1085,8 @@ export const en: typeof zh = {
   },
   actions: {
     newSession: 'New Session',
-    clearTerminal: 'Clear Terminal'
+    clearTerminal: 'Clear Terminal',
+    skillMarket: 'Skill Market'
   },
   runtime: {
     model: 'Runtime Model',

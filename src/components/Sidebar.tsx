@@ -347,15 +347,21 @@ const topMenuItems: MenuItemWithSection[] = [
     label: "menu.workspace",
     section: "main",
   },
+  // {
+  //   id: "skills_group",
+  //   icon: "skills",
+  //   label: "menu.skillsGroup",
+  //   section: "ai",
+  //   children: [
+  //     { id: "skillMarket", icon: "skillMarket", label: "menu.skillMarket" },
+  //     { id: "skills", icon: "skills", label: "menu.skills" },
+  //   ],
+  // },
   {
-    id: "skills_group",
-    icon: "skills",
-    label: "menu.skillsGroup",
+    id: "skillMarket",
+    icon: "skillMarket",
+    label: "menu.skillMarket",
     section: "ai",
-    children: [
-      { id: "skillMarket", icon: "skillMarket", label: "menu.skillMarket" },
-      { id: "skills", icon: "skills", label: "menu.skills" },
-    ],
   },
   {
     id: "tasks_group",
@@ -813,7 +819,8 @@ const Sidebar: React.FC<SidebarProps> = ({
       itemId === "history" ||
       itemId === "favorites" ||
       itemId === "workspace" ||
-      itemId === "logs"
+      itemId === "logs" ||
+      itemId === "skillMarket"
     ) {
       if (popupVisible) {
         setPopupVisible(false);
@@ -896,6 +903,9 @@ const Sidebar: React.FC<SidebarProps> = ({
   };
 
   const isIconActive = (itemId: string): boolean => {
+    if (itemId === "skillMarket") {
+      return activeId === "skillMarket" || activeId === "skills";
+    }
     if (itemId === "skills_group") {
       return (
         activeId === "skills_group" ||
@@ -928,7 +938,10 @@ const Sidebar: React.FC<SidebarProps> = ({
   const renderButton = (item: MenuItemWithSection) => {
     const IconComp = iconMap[item.icon];
     const isActive = isIconActive(item.id);
-    const label = t(item.label);
+    let label = t(item.label);
+    if (item.id === "skillMarket") {
+      label = t("actions.skillMarket");
+    }
     return (
       <button
         key={item.id}

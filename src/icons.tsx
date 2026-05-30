@@ -1027,6 +1027,25 @@ export const CopyIcon: React.FC<IconProps> = ({ className, size = 18 }) => (
   </svg>
 );
 
+export const MarketIcon: React.FC<IconProps> = ({ className, size = 18 }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
+    <line x1="3" y1="6" x2="21" y2="6" />
+    <path d="M16 10a4 4 0 0 1-8 0" />
+  </svg>
+);
+
 export const iconMap: Record<string, React.FC<IconProps>> = {
   dashboard: DashboardIcon,
   workspace: WorkspaceIcon,
@@ -1045,7 +1064,6 @@ export const iconMap: Record<string, React.FC<IconProps>> = {
   history: HistoryIcon,
   favorites: FavoritesIcon,
   knowledge: KnowledgeIcon,
-  skillMarket: SkillsIcon,
   taskQueue: TaskQueueIcon,
   scheduledTasks: ScheduledTasksIcon,
   executionHistory: ExecutionHistoryIcon,
@@ -1075,4 +1093,5 @@ export const iconMap: Record<string, React.FC<IconProps>> = {
   layoutHorizontal: LayoutHorizontalIcon,
   logs: LogsIcon,
   copy: CopyIcon,
+  skillMarket: MarketIcon,
 };
