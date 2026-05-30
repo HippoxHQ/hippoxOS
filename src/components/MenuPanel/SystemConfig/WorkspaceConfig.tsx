@@ -31,10 +31,16 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
     loadWorkspaceInstances();
   }, []);
 
-  const loadWorkspaceInstances = async () => {
+  const loadWorkspaceInstances = async (
+    retryCount: number = 0,
+  ): Promise<void> => {
     setLoading(true);
     try {
       const config = await workspaceCommands.getWorkspaceConfig();
+      if (config.instances.length === 0 && retryCount < 5) {
+        await new Promise((resolve) => setTimeout(resolve, 200));
+        return loadWorkspaceInstances(retryCount + 1);
+      }
       setWorkspaceInstances(config.instances);
       setDefaultInstanceId(config.default_instance_id);
       if (onSaveWorkspace && config.default_instance_id) {
@@ -48,7 +54,10 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
         }
       }
     } catch (error) {
-      console.error("Failed to load workspace instances:", error);
+      showToast(
+        ToastType.ERROR,
+        "Failed to load workspace instances: " + error,
+      );
       if (initialWorkspaceConfig) {
         const defaultInstance: WorkspaceInstance = {
           id: `workspace_${Date.now()}`,
@@ -90,7 +99,6 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
         }
       }
     } catch (error) {
-      console.error("Failed to set default workspace:", error);
       showToast(ToastType.ERROR, t("workspace.defaultFailed"));
     }
   };
@@ -124,7 +132,6 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
             t("workspace.deleteSuccess", { name: instanceName }),
           );
         } catch (error) {
-          console.error("Failed to delete workspace:", error);
           showToast(ToastType.ERROR, t("workspace.deleteFailed"));
         }
       },
@@ -138,7 +145,7 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
     try {
       await filesCommands.openPath(path);
     } catch (error) {
-      console.error("Failed to open directory:", error);
+      showToast(ToastType.ERROR, "Failed to open directory: " + error);
     }
   };
 
@@ -153,7 +160,7 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
         }
       }
     } catch (error) {
-      console.error("Failed to select directory:", error);
+      showToast(ToastType.ERROR, "Failed to select directory: " + error);
     }
   };
 
@@ -194,7 +201,6 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
         t("workspace.addSuccess", { name: workspaceName }),
       );
     } catch (error) {
-      console.error("Failed to add workspace:", error);
       showToast(ToastType.ERROR, t("workspace.addFailed"));
     }
   };

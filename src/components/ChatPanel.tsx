@@ -140,9 +140,13 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     }
   }, [messages]);
 
-  const loadWorkspaces = async () => {
+  const loadWorkspaces = async (retryCount: number = 0): Promise<void> => {
     try {
       const config = await workspaceCommands.getWorkspaceConfig();
+      if (config.instances.length === 0 && retryCount < 5) {
+        await new Promise((resolve) => setTimeout(resolve, 200));
+        return loadWorkspaces(retryCount + 1);
+      }
       setWorkspaces(config.instances);
       if (config.default_instance_id) {
         setSelectedWorkspaceId(config.default_instance_id);
@@ -150,7 +154,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
         setSelectedWorkspaceId(config.instances[0].id);
       }
     } catch (error) {
-      console.error("Failed to load workspaces:", error);
+      showToast(ToastType.ERROR, "Failed to load workspaces: " + error);
     }
   };
 
@@ -163,7 +167,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
       setShowDirectoryMenu(false);
       await loadWorkspaces();
     } catch (error) {
-      console.error("Failed to set default workspace:", error);
+      showToast(ToastType.ERROR, "Failed to set default workspace: " + error);
     }
   };
 

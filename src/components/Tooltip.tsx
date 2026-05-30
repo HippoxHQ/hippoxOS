@@ -231,12 +231,16 @@ const TooltipComponent: React.FC<TooltipProps> = ({
     </div>
   );
 };
+
 let tooltipRoot: any = null;
 let currentTooltipContainer: HTMLElement | null = null;
+
 export const closeTooltip = () => {
+  if (tooltipRoot) {
+    tooltipRoot.unmount();
+    tooltipRoot = null;
+  }
   if (currentTooltipContainer) {
-    const root = createRoot(currentTooltipContainer);
-    root.unmount();
     currentTooltipContainer.remove();
     currentTooltipContainer = null;
   }
@@ -244,28 +248,29 @@ export const closeTooltip = () => {
 
 export const showTooltip = (message: string, targetElement: HTMLElement) => {
   closeTooltip();
+
   const containerId = "global-tooltip-container";
   let container = document.getElementById(containerId);
-  if (container) {
-    while (container.firstChild) {
-      container.removeChild(container.firstChild);
-    }
-  } else {
+  if (!container) {
     container = document.createElement("div");
     container.id = containerId;
     document.body.appendChild(container);
   }
   currentTooltipContainer = container;
   const onClose = () => {
+    if (tooltipRoot) {
+      tooltipRoot.unmount();
+      tooltipRoot = null;
+    }
     if (currentTooltipContainer) {
-      const root = createRoot(currentTooltipContainer);
-      root.unmount();
       currentTooltipContainer.remove();
       currentTooltipContainer = null;
     }
   };
-  const root = createRoot(container);
-  root.render(
+  if (!tooltipRoot) {
+    tooltipRoot = createRoot(container);
+  }
+  tooltipRoot.render(
     <TooltipComponent
       message={message}
       targetElement={targetElement}

@@ -7,6 +7,7 @@ import {
   FileIcon,
   ChevronRightIcon,
 } from "../../icons";
+import { showToast, ToastType } from "../Toast";
 
 interface WorkspacePanelProps {
   t: (key: string, params?: any) => string;
@@ -162,16 +163,20 @@ const WorkspacePanel: React.FC<WorkspacePanelProps> = ({ t }) => {
         );
       }
     } catch (error) {
-      console.error("Failed to refresh workspaces:", error);
+      showToast(ToastType.ERROR, "Failed to refresh workspaces: " + error);
     } finally {
       isRefreshingRef.current = false;
     }
   };
 
-  const loadAllWorkspaces = async () => {
+  const loadAllWorkspaces = async (retryCount: number = 0): Promise<void> => {
     setLoading(true);
     try {
       const config = await workspaceCommands.getWorkspaceConfig();
+      if (config.instances.length === 0 && retryCount < 5) {
+        await new Promise((resolve) => setTimeout(resolve, 200));
+        return loadAllWorkspaces(retryCount + 1);
+      }
       const nodes: WorkspaceNode[] = [];
       for (const workspace of config.instances) {
         nodes.push({
@@ -186,7 +191,7 @@ const WorkspacePanel: React.FC<WorkspacePanelProps> = ({ t }) => {
         await loadWorkspaceRoot(i, nodes[i].workspace);
       }
     } catch (error) {
-      console.error("Failed to load workspaces:", error);
+      showToast(ToastType.ERROR, "Failed to load workspaces: " + error);
     } finally {
       setLoading(false);
     }
@@ -220,7 +225,10 @@ const WorkspacePanel: React.FC<WorkspacePanelProps> = ({ t }) => {
         return updated;
       });
     } catch (error) {
-      console.error(`Failed to load workspace ${workspace.name}:`, error);
+      showToast(
+        ToastType.ERROR,
+        `Failed to load workspace ${workspace.name}:` + error,
+      );
       setWorkspaceNodes((prev) => {
         const updated = [...prev];
         if (updated[index]) {
@@ -264,7 +272,10 @@ const WorkspacePanel: React.FC<WorkspacePanelProps> = ({ t }) => {
         return updated;
       });
     } catch (error) {
-      console.error(`Failed to load workspace ${workspace.name}:`, error);
+      showToast(
+        ToastType.ERROR,
+        `Failed to load workspace ${workspace.name}:` + error,
+      );
       setWorkspaceNodes((prev) => {
         const updated = [...prev];
         if (updated[index]) {
@@ -300,7 +311,10 @@ const WorkspacePanel: React.FC<WorkspacePanelProps> = ({ t }) => {
             currentExpandedPaths,
           );
         } catch (error) {
-          console.error(`Failed to read directory ${entry.path}:`, error);
+          showToast(
+            ToastType.ERROR,
+            `Failed to read directory ${entry.path}: ` + error,
+          );
           node.children = [];
         }
       }
@@ -330,7 +344,10 @@ const WorkspacePanel: React.FC<WorkspacePanelProps> = ({ t }) => {
           const subEntries = await filesCommands.readDirectory(entry.path);
           node.children = await buildTree(subEntries, entry.path);
         } catch (error) {
-          console.error(`Failed to read directory ${entry.path}:`, error);
+          showToast(
+            ToastType.ERROR,
+            `Failed to read directory ${entry.path}: ` + error,
+          );
           node.children = [];
         }
       }
@@ -412,7 +429,10 @@ const WorkspacePanel: React.FC<WorkspacePanelProps> = ({ t }) => {
           node.children = children;
           setWorkspaceNodes((prev) => [...prev]);
         } catch (error) {
-          console.error(`Failed to load directory ${node.path}:`, error);
+          showToast(
+            ToastType.ERROR,
+            `Failed to load directory ${node.path}: ` + error,
+          );
         }
       }
       setExpandedPaths(newExpanded);

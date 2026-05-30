@@ -27,9 +27,13 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t }) => {
   const [showLogo, setShowLogo] = useState(true);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const loadWorkspaces = async () => {
+  const loadWorkspaces = async (retryCount: number = 0): Promise<void> => {
     try {
       const config = await workspaceCommands.getWorkspaceConfig();
+      if (config.instances.length === 0 && retryCount < 5) {
+        await new Promise((resolve) => setTimeout(resolve, 200));
+        return loadWorkspaces(retryCount + 1);
+      }
       setWorkspaces(config.instances);
       if (config.default_instance_id) {
         setSelectedWorkspaceId(config.default_instance_id);
@@ -37,7 +41,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t }) => {
         setSelectedWorkspaceId(config.instances[0].id);
       }
     } catch (error) {
-      console.error("Failed to load workspaces:", error);
+      showToast(ToastType.ERROR, "Failed to load workspaces: " + error);
     }
   };
 
@@ -55,7 +59,6 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t }) => {
       await loadWorkspaces();
       showToast(ToastType.SUCCESS, t("workspace.defaultSuccess"));
     } catch (error) {
-      console.error("Failed to set default workspace:", error);
       showToast(ToastType.ERROR, t("workspace.defaultFailed"));
     }
   };

@@ -3,7 +3,8 @@ import NotificationCenter from "./NotificationCenter";
 import ModelSelector from "./ModelSelector";
 import { LlmInstance } from "../../api/llm";
 import { configCommands } from "../../api/config";
-import { systemNotificationService } from "../../services/NotificationService";
+import { systemNotificationService } from "../../NotificationManager";
+import { showToast, ToastType } from "../Toast";
 
 interface IconProps {
   className?: string;
@@ -211,6 +212,7 @@ const BottomBar: React.FC<BottomBarProps> = ({ t }) => {
   const modelPopupRef = useRef<HTMLDivElement>(null);
   const notificationPopupRef = useRef<HTMLDivElement>(null);
 
+  // Load LLM instances
   useEffect(() => {
     const loadLlmInstances = async () => {
       try {
@@ -220,14 +222,26 @@ const BottomBar: React.FC<BottomBarProps> = ({ t }) => {
         const defaultId = await configCommands.getDefaultLlmInstanceId();
         setDefaultInstanceId(defaultId);
       } catch (error) {
-        console.error("Failed to load LLM instances:", error);
+        showToast(ToastType.ERROR, "Failed to load LLM instances: " + error);
       }
     };
     loadLlmInstances();
   }, []);
 
+  // Load unread count from notification manager
   useEffect(() => {
-    setUnreadCount(systemNotificationService.getUnreadCount());
+    const loadUnreadCount = async () => {
+      try {
+        await systemNotificationService.initialize();
+        const count = await systemNotificationService.getUnreadCount();
+        setUnreadCount(count);
+      } catch (error) {
+        showToast(ToastType.ERROR, "Failed to load unread count: " + error);
+        setUnreadCount(0);
+      }
+    };
+    loadUnreadCount();
+
     const handleCountUpdate = (e: CustomEvent) => {
       setUnreadCount(e.detail.count);
     };
@@ -277,7 +291,7 @@ const BottomBar: React.FC<BottomBarProps> = ({ t }) => {
         "",
       );
     } catch (error) {
-      console.error("Failed to set default model:", error);
+      showToast(ToastType.ERROR, "Failed to set default model: " + error);
     }
   };
 
