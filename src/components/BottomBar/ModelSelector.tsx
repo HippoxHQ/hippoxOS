@@ -1,5 +1,6 @@
-import React, { useRef, useEffect } from "react";
-import { LlmInstance } from "../../api/llm";
+import React, { useRef, useEffect, useState } from "react";
+import { LlmInstance, llmCommands } from "../../api/llm";
+import { healthCommands, HealthCheckResult } from "../../api/health";
 
 interface IconProps {
   size?: number;
@@ -63,151 +64,25 @@ const WifiOffIcon: React.FC<IconProps> = ({ size = 12 }) => (
   </svg>
 );
 
-const getTestModelInstances = (): LlmInstance[] => {
-  const now = new Date().toISOString();
-  return [
-    {
-      id: "test_model_1",
-      name: "GPT-4 Turbo",
-      provider: "openai",
-      api_key: "",
-      api_base: "https://api.openai.com/v1",
-      workflow_mode: "react",
-      default_model: "gpt-4-turbo",
-      models: [],
-      created_at: now,
-      updated_at: now,
-      extra: {},
-      is_default: true,
-    },
-    {
-      id: "test_model_2",
-      name: "Claude 3 Opus",
-      provider: "anthropic",
-      api_key: "",
-      api_base: "https://api.anthropic.com/v1",
-      workflow_mode: "react",
-      default_model: "claude-3-opus",
-      models: [],
-      created_at: now,
-      updated_at: now,
-      extra: {},
-      is_default: false,
-    },
-    {
-      id: "test_model_3",
-      name: "DeepSeek Chat",
-      provider: "deepseek",
-      api_key: "",
-      api_base: "https://api.deepseek.com/v1",
-      workflow_mode: "plan_and_execute",
-      default_model: "deepseek-chat",
-      models: [],
-      created_at: now,
-      updated_at: now,
-      extra: {},
-      is_default: false,
-    },
-    {
-      id: "test_model_4",
-      name: "Gemini 1.5 Pro",
-      provider: "google",
-      api_key: "",
-      api_base: "https://generativelanguage.googleapis.com/v1",
-      workflow_mode: "react",
-      default_model: "gemini-1.5-pro",
-      models: [],
-      created_at: now,
-      updated_at: now,
-      extra: {},
-      is_default: false,
-    },
-    {
-      id: "test_model_5",
-      name: "Mixtral 8x7B",
-      provider: "groq",
-      api_key: "",
-      api_base: "https://api.groq.com/openai/v1",
-      workflow_mode: "batch",
-      default_model: "mixtral-8x7b-32768",
-      models: [],
-      created_at: now,
-      updated_at: now,
-      extra: {},
-      is_default: false,
-    },
-    {
-      id: "test_model_6",
-      name: "Llama 3 70B",
-      provider: "together",
-      api_key: "",
-      api_base: "https://api.together.xyz/v1",
-      workflow_mode: "chain",
-      default_model: "llama-3-70b",
-      models: [],
-      created_at: now,
-      updated_at: now,
-      extra: {},
-      is_default: false,
-    },
-    {
-      id: "test_model_7",
-      name: "Mistral Large",
-      provider: "mistral",
-      api_key: "",
-      api_base: "https://api.mistral.ai/v1",
-      workflow_mode: "react",
-      default_model: "mistral-large-latest",
-      models: [],
-      created_at: now,
-      updated_at: now,
-      extra: {},
-      is_default: false,
-    },
-    {
-      id: "test_model_8",
-      name: "Qwen Plus",
-      provider: "alibaba",
-      api_key: "",
-      api_base: "https://dashscope.aliyuncs.com/compatible-mode/v1",
-      workflow_mode: "plan_and_execute",
-      default_model: "qwen-plus",
-      models: [],
-      created_at: now,
-      updated_at: now,
-      extra: {},
-      is_default: false,
-    },
-    {
-      id: "test_model_9",
-      name: "GLM-4",
-      provider: "zhipu",
-      api_key: "",
-      api_base: "https://open.bigmodel.cn/api/paas/v4",
-      workflow_mode: "react",
-      default_model: "glm-4",
-      models: [],
-      created_at: now,
-      updated_at: now,
-      extra: {},
-      is_default: false,
-    },
-    {
-      id: "test_model_10",
-      name: "Moonshot V1",
-      provider: "moonshot",
-      api_key: "",
-      api_base: "https://api.moonshot.cn/v1",
-      workflow_mode: "chain",
-      default_model: "moonshot-v1-128k",
-      models: [],
-      created_at: now,
-      updated_at: now,
-      extra: {},
-      is_default: false,
-    },
-  ];
-};
+const LoadingIcon: React.FC<IconProps> = ({ size = 12 }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <circle cx="12" cy="12" r="10" />
+    <path d="M12 2 L12 6" />
+    <path d="M12 18 L12 22" />
+    <path d="M2 12 L6 12" />
+    <path d="M18 12 L22 12" />
+  </svg>
+);
 
 interface ModelSelectorProps {
   isOpen: boolean;
@@ -230,55 +105,106 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({
   anchorRef,
   popupRef,
 }) => {
-  const [tokenUsage, setTokenUsage] = React.useState<
-    Record<string, { used: number; limit: number }>
+  const [healthStatus, setHealthStatus] = useState<
+    Record<string, "online" | "offline" | "checking">
   >({});
+  const [currentInstances, setCurrentInstances] =
+    useState<LlmInstance[]>(llmInstances);
+  const [currentDefaultId, setCurrentDefaultId] =
+    useState<string>(defaultInstanceId);
+  const [isCheckingHealth, setIsCheckingHealth] = useState(false);
 
-  const instances =
-    llmInstances.length > 0 ? llmInstances : getTestModelInstances();
-  const defaultId =
-    llmInstances.length > 0 ? defaultInstanceId : "test_model_1";
-
-  React.useEffect(() => {
-    const loadTokenData = () => {
-      const usage: Record<string, { used: number; limit: number }> = {};
-      for (const instance of instances) {
-        usage[instance.id] = {
-          used: Math.floor(Math.random() * 50000),
-          limit: 100000,
-        };
+  const sortInstances = (instances: LlmInstance[]): LlmInstance[] => {
+    return [...instances].sort((a, b) => {
+      if (a.created_at && b.created_at) {
+        return (
+          new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        );
       }
-      setTokenUsage(usage);
-    };
-    if (instances.length > 0) {
-      loadTokenData();
+      return (a.name || "").localeCompare(b.name || "");
+    });
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      loadLatestConfig();
     }
-  }, [instances]);
+  }, [isOpen]);
 
-  const getNetworkStatus = (
-    instanceId: string,
-  ): "online" | "offline" | "unknown" => {
-    if (instanceId === defaultId) return "online";
-    const onlineInstances = [
-      "test_model_1",
-      "test_model_2",
-      "test_model_3",
-      "test_model_4",
-    ];
-    return onlineInstances.includes(instanceId) ? "online" : "offline";
-  };
+  useEffect(() => {
+    setCurrentInstances(sortInstances(llmInstances));
+    setCurrentDefaultId(defaultInstanceId);
+  }, [llmInstances, defaultInstanceId]);
 
-  const getTokenUsage = (instanceId: string) => {
-    return (
-      tokenUsage[instanceId] || {
-        used: Math.floor(Math.random() * 50000),
-        limit: 100000,
+  const loadLatestConfig = async () => {
+    try {
+      const instancesData = await llmCommands.getLlmInstances();
+      const instancesList = Object.values(instancesData) as LlmInstance[];
+      const sortedInstances = sortInstances(instancesList);
+      setCurrentInstances(sortedInstances);
+      const defaultId = await llmCommands.getDefaultLlmInstanceId();
+      setCurrentDefaultId(defaultId);
+      if (sortedInstances.length > 0) {
+        await performHealthChecks(sortedInstances);
       }
-    );
+    } catch (error) {
+      console.error("Failed to load latest LLM config:", error);
+    }
   };
 
-  if (!isOpen) return null;
+  const performHealthChecks = async (instances: LlmInstance[]) => {
+    if (instances.length === 0) return;
+    setIsCheckingHealth(true);
+    setHealthStatus((prev) => {
+      const newStatus = { ...prev };
+      instances.forEach((instance) => {
+        newStatus[instance.id!] = "checking";
+      });
+      return newStatus;
+    });
+    try {
+      const results = await healthCommands.checkAllLlmHealth();
+      setHealthStatus((prev) => {
+        const newStatus = { ...prev };
+        results.forEach((result: HealthCheckResult) => {
+          if (result.status !== "online") {
+            console.warn(
+              `Instance ${result.instance_name} is offline:`,
+              result.message,
+            );
+          }
+          newStatus[result.instance_id] =
+            result.status === "online" ? "online" : "offline";
+        });
+        return newStatus;
+      });
+    } catch (error) {
+      setHealthStatus((prev) => {
+        const newStatus = { ...prev };
+        instances.forEach((instance) => {
+          if (newStatus[instance.id!] === "checking") {
+            newStatus[instance.id!] = "offline";
+          }
+        });
+        return newStatus;
+      });
+    } finally {
+      setIsCheckingHealth(false);
+    }
+  };
 
+  const recheckHealth = async () => {
+    if (currentInstances.length > 0 && !isCheckingHealth) {
+      await performHealthChecks(currentInstances);
+    }
+  };
+
+  const getHealthStatus = (
+    instanceId: string,
+  ): "online" | "offline" | "checking" => {
+    return healthStatus[instanceId] || "checking";
+  };
+  if (!isOpen) return null;
   return (
     <div
       ref={popupRef}
@@ -287,11 +213,11 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({
         position: "fixed",
         bottom: "35px",
         left: "5px",
-        width: "320px",
+        width: "340px",
         maxHeight: "400px",
         background: "var(--bg-primary)",
         border: "1px solid var(--border-color)",
-        borderRadius: "5px",
+        borderRadius: "8px",
         boxShadow: "0 4px 20px rgba(0, 0, 0, 0.3)",
         zIndex: 1000,
         overflow: "hidden",
@@ -319,34 +245,55 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({
         >
           {t("settings.tab.llmModel")}
         </h3>
-        <button
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: "4px",
-            background: "transparent",
-            border: "none",
-            borderRadius: "4px",
-            color: "var(--text-secondary)",
-            cursor: "pointer",
-            transition: "all 0.2s",
-          }}
-          onClick={onClose}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = "var(--hover-bg)";
-            e.currentTarget.style.color = "var(--text-primary)";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = "transparent";
-            e.currentTarget.style.color = "var(--text-secondary)";
-          }}
-        >
-          <CloseIcon size={14} />
-        </button>
+        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+          <button
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "4px",
+              background: "transparent",
+              border: "none",
+              borderRadius: "4px",
+              color: "var(--text-secondary)",
+              cursor: "pointer",
+              transition: "all 0.2s",
+            }}
+            onClick={recheckHealth}
+            disabled={isCheckingHealth}
+            title={t("bottomBar.checkHealth") || "Recheck Health Status"}
+          >
+            <LoadingIcon size={12} />
+          </button>
+          <button
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "4px",
+              background: "transparent",
+              border: "none",
+              borderRadius: "4px",
+              color: "var(--text-secondary)",
+              cursor: "pointer",
+              transition: "all 0.2s",
+            }}
+            onClick={onClose}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "var(--hover-bg)";
+              e.currentTarget.style.color = "var(--text-primary)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "transparent";
+              e.currentTarget.style.color = "var(--text-secondary)";
+            }}
+          >
+            <CloseIcon size={14} />
+          </button>
+        </div>
       </div>
       <div style={{ maxHeight: "350px", overflowY: "auto" }}>
-        {instances.length === 0 ? (
+        {currentInstances.length === 0 ? (
           <div
             style={{
               padding: "40px 20px",
@@ -359,10 +306,11 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column" }}>
-            {instances.map((instance) => {
-              const networkStatus = getNetworkStatus(instance.id);
-              const tokens = getTokenUsage(instance.id);
-              const isDefault = instance.id === defaultId;
+            {currentInstances.map((instance) => {
+              const healthStatusValue = getHealthStatus(instance.id!);
+              const isDefault = instance.id === currentDefaultId;
+              const isChecking = healthStatusValue === "checking";
+
               return (
                 <div
                   key={instance.id}
@@ -372,31 +320,20 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({
                     alignItems: "center",
                     padding: "12px 16px",
                     borderBottom: "1px solid var(--border-color)",
-                    cursor: isDefault ? "default" : "pointer",
                     transition: "background 0.2s",
                     background: isDefault
                       ? "var(--bg-secondary)"
                       : "transparent",
                   }}
-                  onMouseEnter={(e) => {
-                    if (!isDefault) {
-                      e.currentTarget.style.background = "var(--hover-bg)";
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!isDefault) {
-                      e.currentTarget.style.background = "transparent";
-                    }
-                  }}
-                  onClick={() => !isDefault && onSetDefaultModel(instance.id)}
                 >
-                  <div style={{ flex: 1 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
                     <div
                       style={{
                         display: "flex",
                         alignItems: "center",
                         gap: "8px",
                         marginBottom: "6px",
+                        flexWrap: "wrap",
                       }}
                     >
                       <span
@@ -426,61 +363,63 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({
                       style={{
                         display: "flex",
                         alignItems: "center",
-                        gap: "12px",
+                        gap: "8px",
                         fontSize: "11px",
                       }}
                     >
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "4px",
-                          color: "var(--text-tertiary)",
-                        }}
-                      >
-                        {networkStatus === "online" ? (
-                          <>
-                            <WifiIcon size={12} />
-                            <span style={{ color: "#22c55e" }}>
-                              {t("bottomBar.modelStatus.online")}
-                            </span>
-                          </>
-                        ) : networkStatus === "offline" ? (
-                          <>
-                            <WifiOffIcon size={12} />
-                            <span style={{ color: "#ef4444" }}>
-                              {t("bottomBar.modelStatus.offline")}
-                            </span>
-                          </>
-                        ) : (
-                          <span style={{ color: "#f59e0b" }}>
-                            {t("bottomBar.modelStatus.unknown")}
-                          </span>
-                        )}
-                      </div>
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "4px",
-                          color: "var(--text-tertiary)",
-                        }}
-                      >
-                        <span style={{ fontSize: "10px" }}>
-                          {t("bottomBar.tokenUsed")}:
-                        </span>
-                        <span
+                      {isChecking ? (
+                        <div
                           style={{
-                            fontSize: "10px",
-                            fontFamily: "monospace",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "4px",
+                            color: "var(--text-tertiary)",
                           }}
                         >
-                          {t("bottomBar.tokenFormat", {
-                            used: tokens.used.toLocaleString(),
-                            limit: tokens.limit.toLocaleString(),
-                          })}
-                        </span>
-                      </div>
+                          <div
+                            style={{
+                              width: "12px",
+                              height: "12px",
+                              border: "2px solid var(--text-tertiary)",
+                              borderTopColor: "transparent",
+                              borderRadius: "50%",
+                              animation: "spin 0.8s linear infinite",
+                            }}
+                          />
+                          <span style={{ color: "#f59e0b" }}>
+                            {t("bottomBar.modelStatus.checking") ||
+                              "Checking..."}
+                          </span>
+                        </div>
+                      ) : healthStatusValue === "online" ? (
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "4px",
+                            color: "var(--text-tertiary)",
+                          }}
+                        >
+                          <WifiIcon size={12} />
+                          <span style={{ color: "#22c55e" }}>
+                            {t("bottomBar.modelStatus.online")}
+                          </span>
+                        </div>
+                      ) : (
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "4px",
+                            color: "var(--text-tertiary)",
+                          }}
+                        >
+                          <WifiOffIcon size={12} />
+                          <span style={{ color: "#ef4444" }}>
+                            {t("bottomBar.modelStatus.offline")}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </div>
                   {!isDefault && (
@@ -494,6 +433,8 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({
                         color: "var(--text-secondary)",
                         cursor: "pointer",
                         transition: "all 0.2s",
+                        marginLeft: "12px",
+                        flexShrink: 0,
                       }}
                       onMouseEnter={(e) => {
                         e.currentTarget.style.background = "var(--bg-active)";
@@ -505,7 +446,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({
                       }}
                       onClick={(e) => {
                         e.stopPropagation();
-                        onSetDefaultModel(instance.id);
+                        onSetDefaultModel(instance.id!);
                       }}
                     >
                       {t("llmModel.setAsDefault")}
@@ -517,6 +458,16 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({
           </div>
         )}
       </div>
+      <style>{`
+        @keyframes spin {
+          from {
+            transform: rotate(0deg);
+          }
+          to {
+            transform: rotate(360deg);
+          }
+        }
+      `}</style>
     </div>
   );
 };

@@ -825,7 +825,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
                           {new Date(msg.timestamp).toLocaleTimeString()}
                         </div>
                       </div>
-                      {/* 功能按钮区 - 仅用户消息显示，在气泡外部 */}
                       {isUser && (
                         <div className="message-actions">
                           <button

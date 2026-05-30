@@ -887,13 +887,13 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
               <CollapseIcon size={18} />
             )}
           </button>
-          <button
+          {/* <button
             className="clear-logs-btn"
             onClick={handleClearLogs}
             title={t("terminal.clear")}
           >
             <ClearIcon size={16} />
-          </button>
+          </button> */}
         </div>
       </div>
 

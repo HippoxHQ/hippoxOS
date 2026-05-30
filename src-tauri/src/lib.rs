@@ -208,6 +208,7 @@ pub fn run() {
             commands::cmd_sync_all_to_hippox_core,
             commands::cmd_save_task_content,
             commands::cmd_load_task_content,
+            commands::cmd_check_all_llm_health,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
