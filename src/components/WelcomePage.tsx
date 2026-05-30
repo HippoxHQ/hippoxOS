@@ -7,13 +7,19 @@ import {
 } from "../icons";
 import { workspaceCommands, WorkspaceInstance } from "../api/workspace";
 import { showToast, ToastType } from "./Toast";
+import FileUploader, { UploadFile } from "./FileUploader";
 
 interface WelcomePageProps {
   onSendMessage: (message: string) => void;
   t: (key: string) => string;
+  onDragOverInputChange?: (isDragging: boolean) => void;
 }
 
-const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t }) => {
+const WelcomePage: React.FC<WelcomePageProps> = ({
+  onSendMessage,
+  t,
+  onDragOverInputChange,
+}) => {
   const [inputValue, setInputValue] = useState("");
   const [isFocused, setIsFocused] = useState(false);
   const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
@@ -26,6 +32,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t }) => {
   const directoryMenuRef = useRef<HTMLDivElement>(null);
   const [showLogo, setShowLogo] = useState(true);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [uploadedFiles, setUploadedFiles] = useState<UploadFile[]>([]);
 
   const loadWorkspaces = async (retryCount: number = 0): Promise<void> => {
     try {
@@ -45,7 +52,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t }) => {
     }
   };
 
-  const handleContainerClick = () => {
+  const handleContainerClick = (e: React.MouseEvent) => {
     textareaRef.current?.focus();
   };
 
@@ -107,11 +114,26 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t }) => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const handleFilesAdd = (files: UploadFile[]) => {
+    setUploadedFiles((prev) => [...prev, ...files]);
+  };
+
+  const handleFileRemove = (fileId: string) => {
+    setUploadedFiles((prev) => prev.filter((f) => f.id !== fileId));
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (inputValue.trim()) {
-      onSendMessage(inputValue.trim());
+    e.stopPropagation();
+    if (inputValue.trim() || uploadedFiles.length > 0) {
+      let message = inputValue.trim();
+      if (uploadedFiles.length > 0) {
+        const fileInfo = uploadedFiles.map((f) => `[📎 ${f.name}]`).join("\n");
+        message = message ? `${message}\n${fileInfo}` : fileInfo;
+      }
+      onSendMessage(message);
       setInputValue("");
+      setUploadedFiles([]);
     }
   };
 
@@ -253,6 +275,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t }) => {
           align-items: center;
           justify-content: space-between;
           padding: 4px 8px 8px 8px;
+          // border-top: 1px solid var(--border-color);
         }
 
         .left-actions {
@@ -459,6 +482,10 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t }) => {
           font-size: 13px;
         }
 
+        .file-uploader-container {
+          // border-bottom: 1px solid var(--border-color);
+        }
+
         :root {
           --bg-primary: #0f1117;
           --bg-secondary: #1a1d26;
@@ -506,6 +533,18 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t }) => {
             className={`welcome-input-container ${isFocused ? "focused" : ""}`}
             onClick={handleContainerClick}
           >
+            <div
+              className="file-uploader-container"
+              style={{ display: uploadedFiles.length > 0 ? "block" : "none" }}
+            >
+              <FileUploader
+                onFilesAdd={handleFilesAdd}
+                onFileRemove={handleFileRemove}
+                files={uploadedFiles}
+                onDragOverInput={onDragOverInputChange}
+              />
+            </div>
+
             <div className="input-textarea-wrapper">
               <textarea
                 ref={textareaRef}
@@ -525,6 +564,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t }) => {
                 style={{ height: "auto" }}
               />
             </div>
+
             <div className="action-buttons-row">
               <div className="left-actions">
                 <div
@@ -615,9 +655,9 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t }) => {
                 )}
               </div>
               <button
-                className={`send-icon-btn ${inputValue.trim() ? "active" : ""}`}
+                className={`send-icon-btn ${inputValue.trim() || uploadedFiles.length > 0 ? "active" : ""}`}
                 type="submit"
-                disabled={!inputValue.trim()}
+                disabled={!inputValue.trim() && uploadedFiles.length === 0}
                 title={t("chat.send")}
               >
                 <svg
@@ -639,7 +679,6 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t }) => {
             </div>
           </div>
         </form>
-
         <div className="examples-section">
           <div className="examples-title">
             {t("welcome.examples") || "Try these"}

@@ -2,6 +2,7 @@
 mod commands;
 mod common;
 mod context;
+mod events;
 mod state;
 mod types;
 mod workspace;
@@ -9,12 +10,14 @@ mod workspace;
 use crate::commands::{init_all_hippox_instances, sync_all_to_hippox_core};
 use crate::common::init_default_settings;
 use crate::context::Context;
+use crate::events::handle_window_event;
 use crate::state::AppState;
 use crate::workspace::ensure_workspace_config;
 use hippox::{get_hippox_core_config, Hippox};
 use memcontext::MemContext;
 use std::path::PathBuf;
 use std::thread;
+use tauri::{DragDropEvent, WindowEvent};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -80,6 +83,9 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .manage(app_state)
+        .on_window_event(|window, event| {
+            handle_window_event(window, event);
+        })
         .invoke_handler(tauri::generate_handler![
             commands::get_config,
             commands::set_config,

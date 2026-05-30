@@ -17,12 +17,14 @@ import {
 import { workspaceCommands, WorkspaceInstance } from "../api/workspace";
 import { taskManager } from "../TaskManager";
 import { showToast, ToastType } from "./Toast";
+import FileUploader, { UploadFile } from "./FileUploader";
 
 interface ChatPanelProps {
   onSendMessage: (message: string, sessionId: string) => void | Promise<void>;
   t: (key: string, params?: any) => string;
   language?: string;
   currentSessionId?: string;
+  onDragOverInputChange?: (isDragging: boolean) => void;
 }
 
 const ChatPanel: React.FC<ChatPanelProps> = ({
@@ -30,6 +32,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   t,
   language = "zh",
   currentSessionId,
+  onDragOverInputChange,
 }) => {
   const [inputValue, setInputValue] = useState("");
   const [isFocused, setIsFocused] = useState(false);
@@ -47,7 +50,9 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [userScrolled, setUserScrolled] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const handleContainerClick = () => {
+  const [uploadedFiles, setUploadedFiles] = useState<UploadFile[]>([]);
+
+  const handleContainerClick = (e: React.MouseEvent) => {
     textareaRef.current?.focus();
   };
 
@@ -237,16 +242,32 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     }
   };
 
+  const handleFilesAdd = (files: UploadFile[]) => {
+    setUploadedFiles((prev) => [...prev, ...files]);
+  };
+
+  const handleFileRemove = (fileId: string) => {
+    setUploadedFiles((prev) => prev.filter((f) => f.id !== fileId));
+  };
+
   const handleSend = () => {
-    if (inputValue.trim()) {
+    if (inputValue.trim() || uploadedFiles.length > 0) {
       const sessionId = currentSessionId || "";
       if (!sessionId) {
         showToast(ToastType.SUCCESS, "Session ID cannot be empty.");
         return;
       }
-      onSendMessage(inputValue.trim(), sessionId);
+
+      let message = inputValue.trim();
+      if (uploadedFiles.length > 0) {
+        const fileInfo = uploadedFiles.map((f) => `[📎 ${f.name}]`).join("\n");
+        message = message ? `${message}\n${fileInfo}` : fileInfo;
+      }
+
+      onSendMessage(message, sessionId);
       setInputValue("");
-      setUserScrolled(false);
+      setUploadedFiles([]);
+
       if (textareaRef.current) {
         textareaRef.current.style.height = "auto";
       }
@@ -441,19 +462,26 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     color: var(--text-primary);
   }
 
+  .chat-input-section {
+    flex-shrink: 0;
+  }
+
   .chat-input-container {
     margin: 12px 16px 16px;
     background: var(--bg-tertiary);
     border: 1px solid var(--border-color);
     border-radius: 12px;
     transition: all 0.2s ease;
-    flex-shrink: 0;
     cursor: text;
   }
 
   .chat-input-container.focused {
     border-color: var(--accent-color);
     box-shadow: 0 0 0 2px var(--accent-glow);
+  }
+
+  .file-uploader-container {
+    // border-bottom: 1px solid var(--border-color);
   }
 
   .input-textarea-wrapper {
@@ -483,6 +511,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     align-items: center;
     justify-content: space-between;
     padding: 4px 8px 8px 8px;
+    // border-top: 1px solid var(--border-color);
   }
 
   .left-actions {
@@ -859,129 +888,147 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
           </div>
         )}
       </div>
-      <div
-        className={`chat-input-container ${isFocused ? "focused" : ""}`}
-        onClick={handleContainerClick}
-      >
-        <div className="input-textarea-wrapper">
-          <textarea
-            ref={textareaRef}
-            className="chat-textarea-hermes"
-            placeholder={t("chat.placeholder")}
-            value={inputValue}
-            onChange={adjustTextareaHeight}
-            onKeyDown={handleKeyDown}
-            onFocus={() => setIsFocused(true)}
-            onBlur={() => setIsFocused(false)}
-            rows={1}
-          />
-        </div>
-        <div className="action-buttons-row">
-          <div className="left-actions">
-            <div
-              className="icon-btn"
-              ref={attachmentBtnRef}
-              onClick={() => setShowAttachmentMenu(!showAttachmentMenu)}
-              title={t("chat.attachment")}
-            >
-              <AttachmentIcon size={14} />
-            </div>
-            <div
-              className="icon-btn folder-btn"
-              ref={directoryBtnRef}
-              onClick={async () => {
-                await loadWorkspaces();
-                setShowDirectoryMenu(!showDirectoryMenu);
-              }}
-              title={t("chat.selectWorkspace")}
-            >
-              <FolderIcon size={14} />
-              <span className="folder-name" title={getSelectedWorkspaceName()}>
-                {getSelectedWorkspaceName()}
-              </span>
-              <ChevronRightIcon size={10} className="chevron" />
-            </div>
-            {showAttachmentMenu && (
-              <div className="attachment-menu" ref={attachmentMenuRef}>
-                <div
-                  className="attachment-item"
-                  onClick={() => handleAttachment("text")}
-                >
-                  <TextFileIcon size={14} />
-                  {t("chat.textFile")}
-                </div>
-                <div
-                  className="attachment-item"
-                  onClick={() => handleAttachment("image")}
-                >
-                  <ImageIcon size={14} />
-                  {t("chat.image")}
-                </div>
-                <div
-                  className="attachment-item"
-                  onClick={() => handleAttachment("video")}
-                >
-                  <VideoIcon size={14} />
-                  {t("chat.video")}
-                </div>
-                <div
-                  className="attachment-item"
-                  onClick={() => handleAttachment("skill")}
-                >
-                  <FileIcon size={14} />
-                  {t("chat.skillFile")}
-                </div>
+      <div className="chat-input-section">
+        <div
+          className={`chat-input-container ${isFocused ? "focused" : ""}`}
+          onClick={handleContainerClick}
+        >
+          <div
+            className="file-uploader-container"
+            style={{ display: uploadedFiles.length > 0 ? "block" : "none" }}
+          >
+            <FileUploader
+              onFilesAdd={handleFilesAdd}
+              onFileRemove={handleFileRemove}
+              files={uploadedFiles}
+              onDragOverInput={onDragOverInputChange}
+            />
+          </div>
+
+          <div className="input-textarea-wrapper">
+            <textarea
+              ref={textareaRef}
+              className="chat-textarea-hermes"
+              placeholder={t("chat.placeholder")}
+              value={inputValue}
+              onChange={adjustTextareaHeight}
+              onKeyDown={handleKeyDown}
+              onFocus={() => setIsFocused(true)}
+              onBlur={() => setIsFocused(false)}
+              rows={1}
+            />
+          </div>
+
+          <div className="action-buttons-row">
+            <div className="left-actions">
+              <div
+                className="icon-btn"
+                ref={attachmentBtnRef}
+                onClick={() => setShowAttachmentMenu(!showAttachmentMenu)}
+                title={t("chat.attachment")}
+              >
+                <AttachmentIcon size={14} />
               </div>
-            )}
-            {showDirectoryMenu && (
-              <div className="directory-menu" ref={directoryMenuRef}>
-                {workspaces.map((workspace) => (
+              <div
+                className="icon-btn folder-btn"
+                ref={directoryBtnRef}
+                onClick={async () => {
+                  await loadWorkspaces();
+                  setShowDirectoryMenu(!showDirectoryMenu);
+                }}
+                title={t("chat.selectWorkspace")}
+              >
+                <FolderIcon size={14} />
+                <span
+                  className="folder-name"
+                  title={getSelectedWorkspaceName()}
+                >
+                  {getSelectedWorkspaceName()}
+                </span>
+                <ChevronRightIcon size={10} className="chevron" />
+              </div>
+              {showAttachmentMenu && (
+                <div className="attachment-menu" ref={attachmentMenuRef}>
                   <div
-                    key={workspace.id}
-                    className={`directory-item ${selectedWorkspaceId === workspace.id ? "selected" : ""}`}
-                    onClick={() => handleSelectWorkspace(workspace.id)}
+                    className="attachment-item"
+                    onClick={() => handleAttachment("text")}
                   >
-                    {selectedWorkspaceId === workspace.id ? (
-                      <FolderOpenIcon size={16} />
-                    ) : (
-                      <FolderIcon size={16} />
-                    )}
-                    <div className="directory-item-content">
-                      <div>{workspace.name}</div>
-                      <div
-                        className="workspace-path"
-                        title={workspace.workspace_path}
-                      >
-                        {workspace.workspace_path}
+                    <TextFileIcon size={14} />
+                    {t("chat.textFile")}
+                  </div>
+                  <div
+                    className="attachment-item"
+                    onClick={() => handleAttachment("image")}
+                  >
+                    <ImageIcon size={14} />
+                    {t("chat.image")}
+                  </div>
+                  <div
+                    className="attachment-item"
+                    onClick={() => handleAttachment("video")}
+                  >
+                    <VideoIcon size={14} />
+                    {t("chat.video")}
+                  </div>
+                  <div
+                    className="attachment-item"
+                    onClick={() => handleAttachment("skill")}
+                  >
+                    <FileIcon size={14} />
+                    {t("chat.skillFile")}
+                  </div>
+                </div>
+              )}
+              {showDirectoryMenu && (
+                <div className="directory-menu" ref={directoryMenuRef}>
+                  {workspaces.map((workspace) => (
+                    <div
+                      key={workspace.id}
+                      className={`directory-item ${selectedWorkspaceId === workspace.id ? "selected" : ""}`}
+                      onClick={() => handleSelectWorkspace(workspace.id)}
+                    >
+                      {selectedWorkspaceId === workspace.id ? (
+                        <FolderOpenIcon size={16} />
+                      ) : (
+                        <FolderIcon size={16} />
+                      )}
+                      <div className="directory-item-content">
+                        <div>{workspace.name}</div>
+                        <div
+                          className="workspace-path"
+                          title={workspace.workspace_path}
+                        >
+                          {workspace.workspace_path}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-          <button
-            className={`send-icon-btn ${inputValue.trim() ? "active" : ""}`}
-            onClick={handleSend}
-            disabled={!inputValue.trim()}
-            title={t("chat.send")}
-          >
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
+                  ))}
+                </div>
+              )}
+            </div>
+            <button
+              className={`send-icon-btn ${inputValue.trim() || uploadedFiles.length > 0 ? "active" : ""}`}
+              onClick={handleSend}
+              disabled={!inputValue.trim() && uploadedFiles.length === 0}
+              title={t("chat.send")}
             >
-              <path
-                d="M12 5L12 19M12 5L5 12M12 5L19 12"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </button>
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M12 5L12 19M12 5L5 12M12 5L19 12"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
     </div>

@@ -409,6 +409,24 @@ export const zh = {
     taskSubmitted: '任务已提交',
     taskCompleted: '✅ 任务已完成',
     taskFailed: '❌ 任务执行失败',
+    fileUpload: {
+      remove: '移除',
+      scrollLeft: '向左滚动',
+      scrollRight: '向右滚动',
+      dragHere: '拖拽文件到此处上传',
+      file: '文件',
+      image: '图片',
+      video: '视频',
+      text: '文本',
+      code: '代码',
+      pdf: 'PDF',
+      document: '文档',
+      spreadsheet: '表格',
+      presentation: '演示',
+      archive: '压缩包',
+      unknown: '文件',
+      files: '个文件'
+    }
   },
   tooltip: {
     theme: '切换主题',
@@ -717,7 +735,7 @@ export const zh = {
     registryLoaded: '技能注册表加载完成',
     skillsReady: '{{count}} 个技能已就绪',
     waitingForCommand: '等待用户指令...'
-  }
+  },
 };
 
 export const en: typeof zh = {
@@ -1131,6 +1149,24 @@ export const en: typeof zh = {
     taskSubmitted: 'Task submitted',
     taskCompleted: '✅ Task completed',
     taskFailed: '❌ Task execution failed',
+    fileUpload: {
+      remove: 'Remove',
+      scrollLeft: 'Scroll left',
+      scrollRight: 'Scroll right',
+      dragHere: 'Drag files here to upload',
+      file: 'File',
+      image: 'Image',
+      video: 'Video',
+      text: 'Text',
+      code: 'Code',
+      pdf: 'PDF',
+      document: 'Document',
+      spreadsheet: 'Spreadsheet',
+      presentation: 'Presentation',
+      archive: 'Archive',
+      unknown: 'File',
+      files: 'files'
+    }
   },
   tooltip: {
     theme: 'Toggle theme',
