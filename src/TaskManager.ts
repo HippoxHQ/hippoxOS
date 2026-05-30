@@ -1,5 +1,6 @@
 import { sessionCommands } from "./api/session";
 import { TaskInfo, ChatMessage } from "./type";
+import { notificationManager, NotificationType } from "./NotificationManager";
 
 type TaskListener = () => void;
 
@@ -19,6 +20,30 @@ class TaskManager {
     private notify() {
         this.version++;
         this.listeners.forEach(listener => listener());
+    }
+
+    private async sendTaskNotification(
+        type: NotificationType,
+        titleKey: string,
+        message: string,
+        taskId?: string,
+        sessionId?: string,
+        data?: any
+    ) {
+        try {
+            await notificationManager.add({
+                title: titleKey,
+                message,
+                type,
+                data: {
+                    taskId,
+                    sessionId: sessionId || this.currentSessionId,
+                    ...data,
+                },
+            });
+        } catch (error) {
+            console.error("[TaskManager] Failed to send notification:", error);
+        }
     }
 
     setCurrentSession(sessionId: string) {
@@ -61,6 +86,36 @@ class TaskManager {
                 updated_at: new Date().toISOString(),
             };
             tasks.set(taskId, updatedTask);
+            if (updates.status && updates.status !== task.status) {
+                if (updates.status === "completed") {
+                    this.sendTaskNotification(
+                        NotificationType.Success,
+                        "notification.taskCompleted",
+                        `Task "${task.user_input?.substring(0, 50) || taskId}" Executed Successfully`,
+                        taskId,
+                        task.session_id,
+                        { finalOutput: updatedTask.final_output }
+                    );
+                } else if (updates.status === "failed") {
+                    this.sendTaskNotification(
+                        NotificationType.Error,
+                        "notification.taskFailed",
+                        `Task "${task.user_input?.substring(0, 50) || taskId}" Execution Failed: ${updatedTask.final_output || "未知错误"}`,
+                        taskId,
+                        task.session_id,
+                        { error: updatedTask.final_output }
+                    );
+                } else if (updates.status === "running") {
+                    this.sendTaskNotification(
+                        NotificationType.Info,
+                        "notification.taskStarted",
+                        `Task "${task.user_input?.substring(0, 50) || taskId}" Start Execution`,
+                        taskId,
+                        task.session_id,
+                        { status: "running" }
+                    );
+                }
+            }
             this.notify();
         } else {
             console.warn("[TaskManager] Task not found for update:", taskId);
@@ -225,6 +280,28 @@ class TaskManager {
         if (task && tasks) {
             const updatedTask = { ...task, ...updates, updated_at: new Date().toISOString() };
             tasks.set(taskId, updatedTask);
+            if (updates.status && updates.status !== task.status) {
+                if (updates.status === "completed") {
+                    this.sendTaskNotification(
+                        NotificationType.Success,
+                        "notification.taskCompleted",
+                        `Task "${task.user_input?.substring(0, 50) || taskId}" Executed Successfully`,
+                        taskId,
+                        sessionId,
+                        { finalOutput: updatedTask.final_output }
+                    );
+                } else if (updates.status === "failed") {
+                    this.sendTaskNotification(
+                        NotificationType.Error,
+                        "notification.taskFailed",
+                        `Task "${task.user_input?.substring(0, 50) || taskId}" Execution Failed`,
+                        taskId,
+                        sessionId,
+                        { error: updatedTask.final_output }
+                    );
+                }
+            }
+
             if (this.currentSessionId === sessionId) this.notify();
         }
     }

@@ -1,8 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import {
-  SystemNotification,
-  systemNotificationService,
-} from "../../services/Notification";
+import { SystemNotification, notificationManager, NotificationType } from "../../NotificationManager";
 
 interface NotificationCenterProps {
   isOpen: boolean;
@@ -11,52 +8,6 @@ interface NotificationCenterProps {
   t: (key: string, params?: Record<string, any>) => string;
   popupRef: React.RefObject<HTMLDivElement | null>;
 }
-
-const generateTestNotifications = (): SystemNotification[] => {
-  const now = new Date();
-  const types: Array<"info" | "success" | "warning" | "error"> = [
-    "info",
-    "success",
-    "warning",
-    "error",
-  ];
-  const titles = [
-    { key: "notification.taskCompleted", default: "Task Completed" },
-    { key: "notification.taskFailed", default: "Task Failed" },
-    { key: "notification.taskStepUpdate", default: "Task Step Updated" },
-    { key: "notification.taskCreated", default: "New Task Created" },
-    { key: "notification.skillInstalled", default: "Skill Installed" },
-    { key: "notification.skillUpdated", default: "Skill Updated" },
-    { key: "notification.systemReady", default: "System Ready" },
-    { key: "notification.engineInitialized", default: "Engine Initialized" },
-  ];
-  const messages = [
-    "Data analysis task completed successfully, processed 1,234 records",
-    "Database connection failed, please check network settings",
-    "Code review step completed, found 3 potential issues",
-    "New scheduled task created: Daily backup",
-    "WebSearch skill installed successfully",
-    "FileProcessor skill updated to v2.0.0",
-    "Hippox system is ready, waiting for commands",
-    "LLM engine initialized successfully, model loaded",
-  ];
-
-  const notifications: SystemNotification[] = [];
-  for (let i = 0; i < 10; i++) {
-    const date = new Date(now.getTime() - i * 3600000 * (i + 1));
-    const titleIndex = i % titles.length;
-    notifications.push({
-      id: `test_${i}`,
-      title: titles[titleIndex].key,
-      message: messages[i % messages.length],
-      type: types[i % types.length],
-      timestamp: date.toISOString(),
-      read: i >= 3,
-      data: { testId: i },
-    });
-  }
-  return notifications;
-};
 
 const NotificationCenter: React.FC<NotificationCenterProps> = ({
   isOpen,
@@ -67,33 +18,29 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({
 }) => {
   const [notifications, setNotifications] = useState<SystemNotification[]>([]);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
-  const [isTestDataLoaded, setIsTestDataLoaded] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
 
+  // Initialize notification manager and load notifications
   useEffect(() => {
-    if (!isOpen) return;
+    const init = async () => {
+      await notificationManager.initialize();
+      setIsInitialized(true);
+      const allNotifications = await notificationManager.getAll();
+      setNotifications(allNotifications);
+    };
+    init();
+  }, []);
 
-    const unsubscribe = systemNotificationService.subscribe(
-      (newNotifications) => {
-        setNotifications(newNotifications);
+  // Subscribe to notification changes
+  useEffect(() => {
+    if (!isInitialized) return;
+    const unsubscribe = notificationManager.subscribe(
+      (updatedNotifications: SystemNotification[]) => {
+        setNotifications(updatedNotifications);
       },
     );
     return unsubscribe;
-  }, [isOpen]);
-
-  useEffect(() => {
-    if (isOpen && !isTestDataLoaded && notifications.length === 0) {
-      const testNotifications = generateTestNotifications();
-      for (const notif of testNotifications) {
-        systemNotificationService.add({
-          title: notif.title,
-          message: notif.message,
-          type: notif.type,
-          data: notif.data,
-        });
-      }
-      setIsTestDataLoaded(true);
-    }
-  }, [isOpen, isTestDataLoaded, notifications.length]);
+  }, [isInitialized]);
 
   const formatTimestamp = (timestamp: string) => {
     const date = new Date(timestamp);
@@ -111,61 +58,60 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({
     return date.toLocaleDateString();
   };
 
-  const getNotificationIcon = (type: SystemNotification["type"]) => {
+  const getNotificationIcon = (type: NotificationType) => {
     switch (type) {
-      case "success":
+      case NotificationType.Success:
         return "✓";
-      case "error":
+      case NotificationType.Error:
         return "✗";
-      case "warning":
+      case NotificationType.Warning:
         return "⚠";
       default:
         return "ℹ";
     }
   };
 
-  const getIconBgColor = (type: SystemNotification["type"]) => {
+  const getIconBgColor = (type: NotificationType) => {
     switch (type) {
-      case "success":
+      case NotificationType.Success:
         return "rgba(16, 185, 129, 0.15)";
-      case "error":
+      case NotificationType.Error:
         return "rgba(239, 68, 68, 0.15)";
-      case "warning":
+      case NotificationType.Warning:
         return "rgba(245, 158, 11, 0.15)";
       default:
         return "rgba(59, 130, 246, 0.15)";
     }
   };
 
-  const getIconColor = (type: SystemNotification["type"]) => {
+  const getIconColor = (type: NotificationType) => {
     switch (type) {
-      case "success":
+      case NotificationType.Success:
         return "#10b981";
-      case "error":
+      case NotificationType.Error:
         return "#ef4444";
-      case "warning":
+      case NotificationType.Warning:
         return "#f59e0b";
       default:
         return "#3b82f6";
     }
   };
 
-  const handleMarkAsRead = (id: string) => {
-    systemNotificationService.markAsRead(id);
+  const handleMarkAsRead = async (id: string) => {
+    await notificationManager.markAsRead(id);
   };
 
-  const handleMarkAllAsRead = () => {
-    systemNotificationService.markAllAsRead();
+  const handleMarkAllAsRead = async () => {
+    await notificationManager.markAllAsRead();
   };
 
-  const handleDelete = (id: string, e: React.MouseEvent) => {
+  const handleDelete = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    systemNotificationService.delete(id);
+    await notificationManager.delete(id);
   };
 
-  const handleClearAll = () => {
-    systemNotificationService.clearAll();
-    setIsTestDataLoaded(false);
+  const handleClearAll = async () => {
+    await notificationManager.clearAll();
   };
 
   if (!isOpen) return null;
@@ -408,6 +354,19 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({
                       {formatTimestamp(notification.timestamp)}
                     </div>
                   </div>
+
+                  {!notification.read && (
+                    <div
+                      style={{
+                        width: "8px",
+                        height: "8px",
+                        borderRadius: "50%",
+                        background: getIconColor(notification.type),
+                        flexShrink: 0,
+                        marginTop: "8px",
+                      }}
+                    />
+                  )}
 
                   <button
                     style={{

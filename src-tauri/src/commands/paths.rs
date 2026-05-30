@@ -7,6 +7,8 @@ use std::path::{Path, PathBuf};
 use sysinfo::Disks;
 use walkdir::WalkDir;
 
+use crate::commands::get_notifications_dir;
+
 /// Get application root directory
 ///
 /// Windows: C:\Users\<username>\AppData\Roaming\HippoX\
@@ -172,6 +174,7 @@ pub fn init_directories() -> Result<(), String> {
         get_cache_dir().join("models"),
         get_cache_dir().join("skills"),
         get_cache_dir().join("temp"),
+        get_notifications_dir(),
     ];
     for dir in dirs {
         if !dir.exists() {

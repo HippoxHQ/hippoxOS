@@ -3,7 +3,7 @@ import NotificationCenter from "./NotificationCenter";
 import ModelSelector from "./ModelSelector";
 import { LlmInstance } from "../../api/llm";
 import { configCommands } from "../../api/config";
-import { systemNotificationService } from "../../services/Notification";
+import { systemNotificationService } from "../../services/NotificationService";
 
 interface IconProps {
   className?: string;

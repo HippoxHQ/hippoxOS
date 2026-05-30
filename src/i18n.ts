@@ -99,6 +99,7 @@ export const zh = {
   },
   bottomBar: {
     model: '模型',
+    noInstances: '没有模型',
     notifications: '通知',
     clearAll: '清空所有',
     markAllRead: '全部标为已读',
@@ -820,6 +821,7 @@ export const en: typeof zh = {
   bottomBar: {
     model: 'Model',
     notifications: 'Notifications',
+    noInstances: 'No Instances',
     clearAll: 'Clear All',
     markAllRead: 'Mark All Read',
     noNotifications: 'No notifications',

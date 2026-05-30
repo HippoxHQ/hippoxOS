@@ -303,7 +303,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({
               fontSize: "13px",
             }}
           >
-            {t("llmModel.noInstances") || "No model configuration"}
+            {t("bottomBar.noInstances") || "No model configuration"}
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column" }}>

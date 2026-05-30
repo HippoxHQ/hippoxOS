@@ -209,6 +209,23 @@ pub fn run() {
             commands::cmd_save_task_content,
             commands::cmd_load_task_content,
             commands::cmd_check_all_llm_health,
+            commands::cmd_notification_add,
+            commands::cmd_notification_get_all,
+            commands::cmd_notification_get_by_id,
+            commands::cmd_notification_get_unread,
+            commands::cmd_notification_get_unread_count,
+            commands::cmd_notification_mark_as_read,
+            commands::cmd_notification_mark_all_as_read,
+            commands::cmd_notification_delete,
+            commands::cmd_notification_delete_read,
+            commands::cmd_notification_delete_by_type,
+            commands::cmd_notification_clear_all,
+            commands::cmd_notification_get_latest,
+            commands::cmd_notification_get_by_date_range,
+            commands::cmd_notification_info,
+            commands::cmd_notification_success,
+            commands::cmd_notification_warning,
+            commands::cmd_notification_error,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
