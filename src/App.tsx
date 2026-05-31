@@ -36,6 +36,7 @@ import CustomDragCursor from "./components/CustomDragCursor";
 import { invoke } from "@tauri-apps/api/core";
 import { filesCommands } from "./api/files";
 import { getDataPaths } from "./api/paths";
+import FilePreview from "./components/FilePreview";
 
 function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -71,6 +72,20 @@ function App() {
   const handleLayoutModeChange = (mode: "horizontal" | "vertical") => {
     setLayoutMode(mode);
     localStorage.setItem("hippox-layout-mode", mode);
+  };
+  // App.tsx 中添加状态
+  const [isFilePreviewOpen, setIsFilePreviewOpen] = useState(false);
+  const [previewFile, setPreviewFile] = useState<UploadFile | null>(null);
+  const [filePreviewWidth, setFilePreviewWidth] = useState(320);
+
+  const handleFilePreview = (file: UploadFile) => {
+    setPreviewFile(file);
+    setIsFilePreviewOpen(true);
+  };
+
+  const handleCloseFilePreview = () => {
+    setIsFilePreviewOpen(false);
+    setPreviewFile(null);
   };
   useEffect(() => {
     let unlistenDragEnter: (() => void) | undefined;
@@ -989,17 +1004,30 @@ function App() {
                 onClearLogs={clearLogs}
                 t={t}
                 currentSessionId={currentSessionId}
+                onFileClick={handleFilePreview}
               />
             }
             rightPanel={
               <ChatPanel
                 onSendMessage={handleSendMessage}
+                onFileClick={handleFilePreview}
                 t={t}
                 currentSessionId={currentSessionId}
                 onDragOverInputChange={setIsDraggingOverInput}
               />
             }
+            rightExtraPanel={
+              isFilePreviewOpen ? (
+                <FilePreview
+                  file={previewFile}
+                  onClose={handleCloseFilePreview}
+                  t={t}
+                />
+              ) : undefined
+            }
+            isRightExtraOpen={isFilePreviewOpen}
             layoutMode={layoutMode}
+            onLayoutModeChange={handleLayoutModeChange}
           />
         )}
       </div>

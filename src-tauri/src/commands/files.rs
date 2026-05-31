@@ -1,3 +1,5 @@
+use base64::Engine;
+use base64::engine::general_purpose::STANDARD;
 use rfd::AsyncFileDialog;
 use serde::{Deserialize, Serialize};
 use std::fs;
@@ -10,6 +12,15 @@ pub struct FileInfo {
     pub path: String,
     pub is_directory: bool,
     pub size: Option<u64>,
+    pub modified: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FileInfoDetail {
+    pub name: String,
+    pub path: String,
+    pub size: u64,
+    pub mime_type: String,
     pub modified: Option<String>,
 }
 
@@ -139,4 +150,77 @@ pub async fn cmd_read_text_file(path: String) -> Result<String, String> {
         return Err(format!("File does not exist: {}", path.display()));
     }
     std::fs::read_to_string(path).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn cmd_read_image_base64(path: String) -> Result<String, String> {
+    let path = std::path::Path::new(&path);
+    if !path.exists() {
+        return Err(format!("File does not exist: {}", path.display()));
+    }
+    let data = std::fs::read(path).map_err(|e| e.to_string())?;
+    let encoded = STANDARD.encode(&data);
+    let mime = match path.extension().and_then(|e| e.to_str()) {
+        Some("png") => "image/png",
+        Some("jpg") | Some("jpeg") => "image/jpeg",
+        Some("gif") => "image/gif",
+        Some("webp") => "image/webp",
+        Some("bmp") => "image/bmp",
+        Some("svg") => "image/svg+xml",
+        _ => "application/octet-stream",
+    };
+    Ok(format!("data:{};base64,{}", mime, encoded))
+}
+
+#[tauri::command]
+pub async fn cmd_read_file_base64(path: String) -> Result<String, String> {
+    let path = std::path::Path::new(&path);
+    if !path.exists() {
+        return Err(format!("File does not exist: {}", path.display()));
+    }
+    let data = std::fs::read(path).map_err(|e| e.to_string())?;
+    Ok(STANDARD.encode(&data))
+}
+
+#[tauri::command]
+pub async fn cmd_get_file_info(path: String) -> Result<FileInfoDetail, String> {
+    let path = std::path::Path::new(&path);
+    if !path.exists() {
+        return Err(format!("File does not exist: {}", path.display()));
+    }
+    let metadata = fs::metadata(path).map_err(|e| e.to_string())?;
+    let mime_type = match path.extension().and_then(|e| e.to_str()) {
+        Some("png") => "image/png",
+        Some("jpg") | Some("jpeg") => "image/jpeg",
+        Some("gif") => "image/gif",
+        Some("webp") => "image/webp",
+        Some("pdf") => "application/pdf",
+        Some("txt") | Some("md") => "text/plain",
+        Some("json") => "application/json",
+        Some("html") | Some("htm") => "text/html",
+        Some("css") => "text/css",
+        Some("js") | Some("ts") => "application/javascript",
+        Some("py") => "text/x-python",
+        Some("rs") => "text/x-rust",
+        Some("xml") => "application/xml",
+        Some("yaml") | Some("yml") => "text/yaml",
+        _ => "application/octet-stream",
+    }
+    .to_string();
+
+    Ok(FileInfoDetail {
+        name: path
+            .file_name()
+            .unwrap_or_default()
+            .to_string_lossy()
+            .to_string(),
+        path: path.to_string_lossy().to_string(),
+        size: metadata.len(),
+        mime_type,
+        modified: metadata.modified().ok().and_then(|t| {
+            t.duration_since(std::time::UNIX_EPOCH).ok().and_then(|d| {
+                chrono::DateTime::from_timestamp(d.as_secs() as i64, 0).map(|dt| dt.to_rfc3339())
+            })
+        }),
+    })
 }

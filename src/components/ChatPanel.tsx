@@ -25,6 +25,7 @@ interface ChatPanelProps {
     sessionId: string,
     files?: UploadFile[],
   ) => void | Promise<void>;
+  onFileClick?: (file: UploadFile) => void;
   t: (key: string, params?: any) => string;
   language?: string;
   currentSessionId?: string;
@@ -33,6 +34,7 @@ interface ChatPanelProps {
 
 const ChatPanel: React.FC<ChatPanelProps> = ({
   onSendMessage,
+  onFileClick,
   t,
   language = "zh",
   currentSessionId,
@@ -942,7 +944,11 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
                       {isUser && msg.files && msg.files.length > 0 && (
                         <div className="message-files-grid">
                           {msg.files.map((file) => (
-                            <div key={file.id} className="message-file-item">
+                            <div
+                              key={file.id}
+                              className="message-file-item"
+                              onClick={() => onFileClick?.(file)}
+                            >
                               {file.type?.startsWith("image/") &&
                               file.preview ? (
                                 <img

@@ -19,6 +19,7 @@ interface TerminalPanelProps {
   onClearLogs: () => void;
   t: (key: string, params?: any) => string;
   currentSessionId?: string;
+  onFileClick?: (file: UploadFile) => void;
 }
 
 const logToConsole = (level: string, message: string, data?: any) => {
@@ -184,6 +185,7 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
   onClearLogs,
   t,
   currentSessionId,
+  onFileClick,
 }) => {
   const terminalRef = useRef<HTMLDivElement>(null);
   const taskRefs = useRef<Map<string, HTMLDivElement>>(new Map());
@@ -714,7 +716,14 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
                     }}
                   >
                     {(task as any).files.map((file: UploadFile) => (
-                      <div key={file.id} className="task-file-chip">
+                      <div
+                        key={file.id}
+                        className="task-file-chip"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onFileClick?.(file);
+                        }}
+                      >
                         {file.type?.startsWith("image/") && file.preview ? (
                           <img
                             src={file.preview}
