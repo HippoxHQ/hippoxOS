@@ -11,3 +11,20 @@
 <p align="center">
 <a href="./README_zh-CN.md">简体中文</a> | <a href="./README.md">English</a>
 </p>
+
+## 主题
+
+<table>
+  <tr>
+    <td align="left">
+    <h4>Light</h4>
+    </td>
+    <td align="left">
+    <h4>Dark</h4>
+    </td>
+  </tr>
+  <tr>
+    <td align="center"><img src="https://github.com/HippoxHQ/assets/blob/main/demo/demo_1.png?raw=true" width="100%" ></td>
+    <td align="center"><img src="https://github.com/HippoxHQ/assets/blob/main/demo/demo_2.png?raw=true" width="100%"></td>
+  </tr>
+</table>
