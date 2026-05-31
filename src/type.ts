@@ -1,3 +1,15 @@
+export interface UploadFile {
+  id: string;
+  file: File;
+  name: string;
+  size: number;
+  type: string;
+  preview?: string;
+  status: "uploading" | "success" | "error";
+  progress?: number;
+  path?: string;
+}
+
 export interface ExecutionLog {
   id: string;
   timestamp: string;
@@ -13,6 +25,7 @@ export interface ChatMessage {
   content: string;
   timestamp: string;
   status?: MessageStatus;
+  files?: UploadFile[];
 }
 
 export type Theme = 'dark' | 'light';
@@ -62,6 +75,7 @@ export interface TaskInfo {
   final_output?: string;
   created_at: string;
   updated_at: string;
+  files?: UploadFile[];
 }
 
 
@@ -73,13 +87,6 @@ export interface DialogSession {
   updated_at: string;
   is_pinned: boolean;
   path: string;
-}
-
-export interface ChatMessage {
-  id: string;
-  role: RoleEnum;
-  content: string;
-  timestamp: string;
 }
 
 export interface TerminalEntry {

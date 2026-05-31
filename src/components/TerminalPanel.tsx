@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState, useCallback, JSX } from "react";
 import { hippoxCommands } from "../api/chat";
-import { ExecutionLog, TaskInfo } from "../type";
+import { ExecutionLog, TaskInfo, UploadFile } from "../type";
 import {
   ClearIcon,
   CollapseIcon,
@@ -199,6 +199,48 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
   const buttonRef = useRef<HTMLDivElement>(null);
   const [bubblePosition, setBubblePosition] = useState({ right: 0, top: 0 });
   const [tasks, setTasks] = useState<TaskInfo[]>([]);
+  const activeTasks = tasks.filter(
+    (task) => !currentSessionId || task.session_id === currentSessionId,
+  );
+  const [filesScrollStates, setFilesScrollStates] = useState<
+    Map<string, { showLeft: boolean; showRight: boolean }>
+  >(new Map());
+  const filesScrollRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+  const checkFilesScroll = useCallback((taskId: string) => {
+    const scrollElement = filesScrollRefs.current.get(taskId);
+    if (scrollElement) {
+      const { scrollLeft, scrollWidth, clientWidth } = scrollElement;
+      const showLeft = scrollLeft > 0;
+      const showRight = scrollLeft + clientWidth < scrollWidth - 1;
+      setFilesScrollStates((prev) => {
+        const newMap = new Map(prev);
+        newMap.set(taskId, { showLeft, showRight });
+        return newMap;
+      });
+    }
+  }, []);
+
+  const scrollFilesLeft = (taskId: string) => {
+    const scrollElement = filesScrollRefs.current.get(taskId);
+    if (scrollElement) {
+      scrollElement.scrollBy({ left: -300, behavior: "smooth" });
+    }
+  };
+
+  const scrollFilesRight = (taskId: string) => {
+    const scrollElement = filesScrollRefs.current.get(taskId);
+    if (scrollElement) {
+      scrollElement.scrollBy({ left: 300, behavior: "smooth" });
+    }
+  };
+
+  useEffect(() => {
+    activeTasks.forEach((task) => {
+      if ((task as any).files && (task as any).files.length > 0) {
+        setTimeout(() => checkFilesScroll(task.task_id), 100);
+      }
+    });
+  }, [activeTasks, checkFilesScroll]);
 
   useEffect(() => {
     const loadInitialTasks = () => {
@@ -212,10 +254,6 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
     });
     return unsubscribe;
   }, []);
-
-  const activeTasks = tasks.filter(
-    (task) => !currentSessionId || task.session_id === currentSessionId,
-  );
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const allTasks = [
@@ -513,6 +551,14 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
     }
   };
 
+  const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return "0 B";
+    const k = 1024;
+    const sizes = ["B", "KB", "MB", "GB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
+  };
+
   const renderWelcomeMessage = () => {
     const welcomeTime = new Date().toLocaleTimeString();
     const isExpanded = expandedTasks.has(WELCOME_TASK_ID);
@@ -582,6 +628,12 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
       if (runningCount > 0) parts.push(`⟳${runningCount}`);
       stepSummary = ` [${parts.join(" ")}]`;
     }
+
+    const scrollState = filesScrollStates.get(task.task_id) || {
+      showLeft: false,
+      showRight: false,
+    };
+
     return (
       <div
         key={task.task_id}
@@ -609,6 +661,117 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
             {stepSummary}
           </span>
         </div>
+
+        {isExpanded &&
+          (task as any).files &&
+          (task as any).files.length > 0 && (
+            <div className="task-files-scroll-container">
+              <div className="task-files-scroll-wrapper">
+                <div className="task-files-list-wrapper">
+                  {scrollState.showLeft && (
+                    <button
+                      className="task-files-scroll-btn task-files-scroll-left"
+                      onClick={() => scrollFilesLeft(task.task_id)}
+                    >
+                      <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          d="M15 18L9 12L15 6"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    </button>
+                  )}
+                  <div
+                    className="task-files-scroll"
+                    ref={(el) => {
+                      if (el) {
+                        filesScrollRefs.current.set(task.task_id, el);
+                        const checkScroll = () => {
+                          const { scrollLeft, scrollWidth, clientWidth } = el;
+                          const showLeft = scrollLeft > 0;
+                          const showRight =
+                            scrollLeft + clientWidth < scrollWidth - 1;
+                          setFilesScrollStates((prev) => {
+                            const newMap = new Map(prev);
+                            newMap.set(task.task_id, { showLeft, showRight });
+                            return newMap;
+                          });
+                        };
+                        el.addEventListener("scroll", checkScroll);
+                        setTimeout(checkScroll, 100);
+                      } else {
+                        filesScrollRefs.current.delete(task.task_id);
+                      }
+                    }}
+                  >
+                    {(task as any).files.map((file: UploadFile) => (
+                      <div key={file.id} className="task-file-chip">
+                        {file.type?.startsWith("image/") && file.preview ? (
+                          <img
+                            src={file.preview}
+                            alt={file.name}
+                            className="task-file-preview-img"
+                          />
+                        ) : (
+                          <div className="task-file-icon">
+                            {file.type?.startsWith("image/")
+                              ? "🖼️"
+                              : file.type?.startsWith("video/")
+                                ? "🎬"
+                                : file.type === "application/pdf"
+                                  ? "📄"
+                                  : "📎"}
+                          </div>
+                        )}
+                        <div className="task-file-info">
+                          <span className="task-file-name" title={file.name}>
+                            {file.name.length > 25
+                              ? file.name.slice(0, 22) + "..."
+                              : file.name}
+                          </span>
+                          <span className="task-file-size">
+                            {formatFileSize(file.size)}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  {scrollState.showRight && (
+                    <button
+                      className="task-files-scroll-btn task-files-scroll-right"
+                      onClick={() => scrollFilesRight(task.task_id)}
+                    >
+                      <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          d="M9 18L15 12L9 6"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
         {isExpanded && task.steps.length > 0 && (
           <div className="task-steps">
             {task.steps.map((step) => (
@@ -629,6 +792,7 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
             ))}
           </div>
         )}
+
         {isExpanded && task.final_output && task.status === "completed" && (
           <div className="task-final-output">
             <div
@@ -845,6 +1009,136 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
       className="terminal-panel"
       style={{ position: "relative", height: "100%", overflow: "visible" }}
     >
+      <style>{`
+        .task-files-scroll-container {
+          margin: 8px 0 4px 24px;
+        }
+
+        .task-files-scroll-wrapper {
+          border-radius: 8px;
+        }
+
+        .task-files-list-wrapper {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          background: var(--bg-tertiary);
+          border-radius: 8px;
+          padding: 0 4px;
+        }
+
+        .task-files-scroll-btn {
+          flex-shrink: 0;
+          width: 28px;
+          height: 60px;
+          background: var(--bg-secondary);
+          border: 1px solid var(--border-color);
+          border-radius: 6px;
+          color: var(--text-secondary);
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.2s ease;
+          opacity: 0.8;
+        }
+
+        .task-files-scroll-btn:hover {
+          background: var(--accent-color);
+          color: white;
+          border-color: var(--accent-color);
+          opacity: 1;
+        }
+
+        .task-files-scroll {
+          flex: 1;
+          display: flex;
+          flex-wrap: nowrap;
+          gap: 10px;
+          overflow-x: auto;
+          padding: 8px 4px;
+          scrollbar-width: thin;
+          scroll-behavior: smooth;
+        }
+
+        .task-files-scroll::-webkit-scrollbar {
+          height: 4px;
+        }
+
+        .task-files-scroll::-webkit-scrollbar-track {
+          background: var(--bg-tertiary);
+          border-radius: 2px;
+        }
+
+        .task-files-scroll::-webkit-scrollbar-thumb {
+          background: var(--border-color);
+          border-radius: 2px;
+        }
+
+        .task-files-scroll::-webkit-scrollbar-thumb:hover {
+          background: var(--text-tertiary);
+        }
+
+        .task-file-chip {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 6px 10px;
+          min-width: 140px;
+          max-width: 180px;
+          background: var(--bg-tertiary);
+          border: 1px solid var(--border-color);
+          border-radius: 8px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          flex-shrink: 0;
+        }
+
+        .task-file-chip:hover {
+          background: var(--hover-bg);
+          border-color: var(--accent-color);
+          transform: translateY(-1px);
+        }
+
+        .task-file-preview-img {
+          width: 32px;
+          height: 32px;
+          object-fit: cover;
+          border-radius: 4px;
+        }
+
+        .task-file-icon {
+          width: 32px;
+          height: 32px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 18px;
+          background: var(--bg-secondary);
+          border-radius: 4px;
+        }
+
+        .task-file-info {
+          flex: 1;
+          min-width: 0;
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+        }
+
+        .task-file-name {
+          font-size: 11px;
+          color: var(--text-primary);
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .task-file-size {
+          font-size: 9px;
+          color: var(--text-tertiary);
+        }
+      `}</style>
       <div
         className="panel-header"
         style={{ paddingTop: "8px", paddingBottom: "8px" }}
@@ -887,13 +1181,6 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
               <CollapseIcon size={18} />
             )}
           </button>
-          {/* <button
-            className="clear-logs-btn"
-            onClick={handleClearLogs}
-            title={t("terminal.clear")}
-          >
-            <ClearIcon size={16} />
-          </button> */}
         </div>
       </div>
 
@@ -924,7 +1211,6 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
             <button
               style={styles.scrollButton}
               onClick={scrollToTop}
-              title="滚动到顶部"
               onMouseEnter={(e) => {
                 e.currentTarget.style.background = "var(--hover-bg, #3d3d3d)";
                 e.currentTarget.style.color = "var(--text-primary, #fff)";
@@ -942,7 +1228,6 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
             <button
               style={styles.scrollButton}
               onClick={scrollToBottom}
-              title="滚动到底部"
               onMouseEnter={(e) => {
                 e.currentTarget.style.background = "var(--hover-bg, #3d3d3d)";
                 e.currentTarget.style.color = "var(--text-primary, #fff)";

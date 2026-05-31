@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { ChatMessage, MessageStatus, RoleEnum } from "../type";
+import { ChatMessage, MessageStatus, RoleEnum, UploadFile } from "../type";
 import {
   AttachmentIcon,
   FolderIcon,
@@ -17,10 +17,14 @@ import {
 import { workspaceCommands, WorkspaceInstance } from "../api/workspace";
 import { taskManager } from "../TaskManager";
 import { showToast, ToastType } from "./Toast";
-import FileUploader, { UploadFile } from "./FileUploader";
+import FileUploader from "./FileUploader";
 
 interface ChatPanelProps {
-  onSendMessage: (message: string, sessionId: string) => void | Promise<void>;
+  onSendMessage: (
+    message: string,
+    sessionId: string,
+    files?: UploadFile[],
+  ) => void | Promise<void>;
   t: (key: string, params?: any) => string;
   language?: string;
   currentSessionId?: string;
@@ -131,19 +135,18 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
       updateMessages();
     });
     return unsubscribe;
-  }, [language, currentSessionId]);
+  }, [language, currentSessionId, t]);
 
   useEffect(() => {
     loadWorkspaces();
   }, []);
 
   useEffect(() => {
-    if (messagesContainerRef.current) {
+    if (messagesContainerRef.current && !userScrolled) {
       messagesContainerRef.current.scrollTop =
         messagesContainerRef.current.scrollHeight;
-      setUserScrolled(false);
     }
-  }, [messages]);
+  }, [messages, userScrolled]);
 
   const loadWorkspaces = async (retryCount: number = 0): Promise<void> => {
     try {
@@ -257,17 +260,24 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
         showToast(ToastType.SUCCESS, "Session ID cannot be empty.");
         return;
       }
-
-      let message = inputValue.trim();
+      const message = inputValue.trim() || "";
+      const currentFiles = [...uploadedFiles];
+      const userMessage: ChatMessage = {
+        id: `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        role: RoleEnum.User,
+        content: message,
+        timestamp: new Date().toISOString(),
+        files: currentFiles,
+      };
+      taskManager.addUserMessageToSession(sessionId, userMessage);
+      let backendMessage = message;
       if (uploadedFiles.length > 0) {
         const fileInfo = uploadedFiles.map((f) => `[📎 ${f.name}]`).join("\n");
-        message = message ? `${message}\n${fileInfo}` : fileInfo;
+        backendMessage = message ? `${message}\n${fileInfo}` : fileInfo;
       }
-
-      onSendMessage(message, sessionId);
+      onSendMessage(backendMessage, sessionId, currentFiles);
       setInputValue("");
       setUploadedFiles([]);
-
       if (textareaRef.current) {
         textareaRef.current.style.height = "auto";
       }
@@ -311,6 +321,14 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     } catch (err) {
       showToast(ToastType.ERROR, t("common.copyFailed") || "Copy Failed");
     }
+  };
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return "0 B";
+    const k = 1024;
+    const sizes = ["B", "KB", "MB", "GB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
   };
 
   return (
@@ -462,6 +480,76 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     color: var(--text-primary);
   }
 
+  .message-files-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-bottom: 8px;
+    max-width: 300px;
+  }
+
+  .message-file-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 8px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .message-file-item:hover {
+    background: var(--hover-bg);
+    border-color: var(--accent-color);
+    transform: translateY(-1px);
+  }
+
+  .file-preview-img {
+    width: 60px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: 4px;
+  }
+
+  .file-icon-placeholder {
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    background: var(--bg-secondary);
+    border-radius: 4px;
+  }
+
+  .message-file-item .file-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+  }
+
+  .message-file-item .file-name {
+    font-size: 10px;
+    color: var(--text-primary);
+    max-width: 80px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .message-file-item .file-size {
+    font-size: 9px;
+    color: var(--text-tertiary);
+  }
+
+  .message-wrapper.user .message-files-grid {
+    justify-self: flex-end;
+  }
+
   .chat-input-section {
     flex-shrink: 0;
   }
@@ -511,7 +599,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     align-items: center;
     justify-content: space-between;
     padding: 4px 8px 8px 8px;
-    // border-top: 1px solid var(--border-color);
   }
 
   .left-actions {
@@ -852,6 +939,42 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
                     </div>
                   ) : (
                     <>
+                      {isUser && msg.files && msg.files.length > 0 && (
+                        <div className="message-files-grid">
+                          {msg.files.map((file) => (
+                            <div key={file.id} className="message-file-item">
+                              {file.type?.startsWith("image/") &&
+                              file.preview ? (
+                                <img
+                                  src={file.preview}
+                                  alt={file.name}
+                                  className="file-preview-img"
+                                />
+                              ) : (
+                                <div className="file-icon-placeholder">
+                                  {file.type?.startsWith("image/")
+                                    ? "🖼️"
+                                    : file.type?.startsWith("video/")
+                                      ? "🎬"
+                                      : file.type === "application/pdf"
+                                        ? "📄"
+                                        : "📎"}
+                                </div>
+                              )}
+                              <div className="file-info">
+                                <span className="file-name" title={file.name}>
+                                  {file.name.length > 15
+                                    ? file.name.slice(0, 12) + "..."
+                                    : file.name}
+                                </span>
+                                <span className="file-size">
+                                  {formatFileSize(file.size)}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                       <div className="message-bubble">
                         <div className="message-content">{msg.content}</div>
                         <div className="message-time">

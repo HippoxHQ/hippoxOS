@@ -19,6 +19,7 @@ import {
   RoleEnum,
   MessageStatus,
   SystemEvent,
+  UploadFile,
 } from "./type";
 import { hippoxCommands } from "./api/chat";
 import { sessionCommands } from "./api/session";
@@ -767,10 +768,15 @@ function App() {
 
   const handleSaveConfig = async (config: any) => {};
 
-  const handleSendMessage = async (userMessage: string, sessionId: string) => {
+  const handleSendMessage = async (
+    userMessage: string,
+    sessionId: string,
+    files?: UploadFile[],
+  ) => {
     const now = new Date();
     let finalSessionId = sessionId || currentSessionId;
     const isTempSession = finalSessionId.startsWith("temp_");
+
     if (isTempSession) {
       const newSessionId = `session_${Date.now()}`;
       const sessionTitle =
@@ -809,14 +815,6 @@ function App() {
         console.error("Failed to create session:", error);
       }
     }
-
-    const userMsg: ChatMessage = {
-      id: `user_${Date.now()}`,
-      role: RoleEnum.User,
-      content: userMessage,
-      timestamp: now.toISOString(),
-    };
-    taskManager.addUserMessageToSession(finalSessionId, userMsg);
     try {
       const taskId = await hippoxCommands.sendMessageAsync(
         userMessage,
@@ -840,6 +838,7 @@ function App() {
         final_output: undefined,
         created_at: now.toISOString(),
         updated_at: now.toISOString(),
+        files: files,
       };
       taskManager.addTaskToSession(finalSessionId, newTask);
     } catch (error) {
