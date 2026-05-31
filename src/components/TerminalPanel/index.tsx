@@ -22,7 +22,7 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
   const [theme, setTheme] = useState<"light" | "dark">("dark");
   const [i18n, setI18n] = useState<"en" | "zh-cn">("zh-cn");
   const [functionAreaHeight, setFunctionAreaHeight] = useState<number>(400);
-  const [isFunctionAreaVisible, setIsFunctionAreaVisible] = useState(true);
+  const [isFunctionAreaVisible, setIsFunctionAreaVisible] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const loadTheme = async () => {

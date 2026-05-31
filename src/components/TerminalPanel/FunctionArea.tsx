@@ -126,7 +126,7 @@ const FunctionArea: React.FC<FunctionAreaProps> = ({
           terminal={false}
           ai={false}
           timezone="Asia/Shanghai"
-          timeframe="1m"
+          timeframe="1s"
         />
       ),
     },
