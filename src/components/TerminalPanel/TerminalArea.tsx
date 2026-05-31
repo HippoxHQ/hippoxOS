@@ -1,25 +1,28 @@
 import React, { useRef, useEffect, useState, useCallback, JSX } from "react";
-import { hippoxCommands } from "../api/chat";
-import { ExecutionLog, TaskInfo, UploadFile } from "../type";
+import { hippoxCommands } from "../../api/chat";
+import { ExecutionLog, TaskInfo, UploadFile } from "../../type";
 import {
   CollapseIcon,
   CopyIcon,
   ExpandArrowsIcon,
   TaskQueueIcon,
-} from "../icons";
-import { taskManager } from "../TaskManager";
-import { HIPPOX_ASCII_LOGO } from "../config";
-import { showToast, ToastType } from "./Toast";
-import { filesCommands } from "../api/files";
+} from "../../icons";
+import { taskManager } from "../../TaskManager";
+import { HIPPOX_ASCII_LOGO } from "../../config";
+import { showToast, ToastType } from "../Toast";
+import { filesCommands } from "../../api/files";
 import { open } from "@tauri-apps/plugin-shell";
-import { getFileIcon } from "../common";
+import { getFileIcon } from "../../common";
 
-interface TerminalPanelProps {
+interface TerminalAreaProps {
   logs: ExecutionLog[];
   onClearLogs: () => void;
   t: (key: string, params?: any) => string;
   currentSessionId?: string;
   onFileClick?: (file: UploadFile) => void;
+  theme: "light" | "dark";
+  i18n: "en" | "zh-cn";
+  onOpenFunctionArea: () => void;
 }
 
 const logToConsole = (level: string, message: string, data?: any) => {
@@ -180,12 +183,15 @@ const styles = {
 
 const WELCOME_TASK_ID = "welcome";
 
-const TerminalPanel: React.FC<TerminalPanelProps> = ({
+const TerminalArea: React.FC<TerminalAreaProps> = ({
   logs,
   onClearLogs,
   t,
   currentSessionId,
   onFileClick,
+  theme: _theme,
+  i18n: _i18n,
+  onOpenFunctionArea,
 }) => {
   const terminalRef = useRef<HTMLDivElement>(null);
   const taskRefs = useRef<Map<string, HTMLDivElement>>(new Map());
@@ -208,6 +214,7 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
     Map<string, { showLeft: boolean; showRight: boolean }>
   >(new Map());
   const filesScrollRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+
   const checkFilesScroll = useCallback((taskId: string) => {
     const scrollElement = filesScrollRefs.current.get(taskId);
     if (scrollElement) {
@@ -531,15 +538,6 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
     }
   };
 
-  const handleLinkClick = (url: string) => {
-    window.open(url, "_blank", "noopener,noreferrer");
-  };
-
-  const getLinkStyle = (linkId: string) => ({
-    ...styles.link,
-    ...(hoveredLink === linkId ? styles.linkHover : {}),
-  });
-
   const copyToClipboard = async (text: string | undefined) => {
     try {
       if (!text) {
@@ -845,8 +843,52 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
                 <CopyIcon size={12} /> {t("common.copy") || "Copy"}
               </button>
             </div>
-            <div className="output-content">
+            <div className="output-content-text">
               {renderContentWithLinks(task.final_output)}
+            </div>
+            <div
+              className="output-content-func"
+              style={{
+                marginTop: "10px",
+                display: "flex",
+                justifyContent: "flex-end",
+              }}
+            >
+              <button
+                onClick={() => {
+                  onOpenFunctionArea();
+                  window.dispatchEvent(
+                    new CustomEvent("open-chart-with-data", {
+                      detail: { taskId: task.task_id, taskData: task },
+                    }),
+                  );
+                }}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  padding: "6px 12px",
+                  background: "var(--accent-color)",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "6px",
+                  cursor: "pointer",
+                  fontSize: "12px",
+                  fontWeight: 500,
+                  transition: "all 0.2s ease",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.opacity = "0.85";
+                  e.currentTarget.style.transform = "translateY(-1px)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.opacity = "1";
+                  e.currentTarget.style.transform = "translateY(0)";
+                }}
+              >
+                <span>📊</span>
+                <span>{t("terminal.showChart") || "Show Chart"}</span>
+              </button>
             </div>
           </div>
         )}
@@ -894,8 +936,43 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
                 <CopyIcon size={12} /> {t("common.copy") || "Copy"}
               </button>
             </div>
-            <div className="error-content">
+            <div className="error-content-text">
               {renderContentWithLinks(task.final_output)}
+            </div>
+            <div
+              className="error-content-func"
+              style={{
+                marginTop: "10px",
+                display: "flex",
+                justifyContent: "flex-end",
+              }}
+            >
+              <button
+                onClick={() => {
+                  onOpenFunctionArea();
+                  window.dispatchEvent(
+                    new CustomEvent("open-chart-with-data", {
+                      detail: { taskId: task.task_id, taskData: task },
+                    }),
+                  );
+                }}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  padding: "6px 12px",
+                  background: "var(--accent-color)",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "6px",
+                  cursor: "pointer",
+                  fontSize: "12px",
+                  fontWeight: 500,
+                }}
+              >
+                <span>📊</span>
+                <span>{t("terminal.showChart") || "查看K线图"}</span>
+              </button>
             </div>
           </div>
         )}
@@ -1014,8 +1091,8 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
 
   return (
     <div
-      className="terminal-panel"
-      style={{ position: "relative", height: "100%", overflow: "visible" }}
+      className="terminal-area-container"
+      style={{ height: "100%", display: "flex", flexDirection: "column" }}
     >
       <style>{`
         .task-files-scroll-container {
@@ -1196,8 +1273,9 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
         className="terminal-content-wrapper"
         style={{
           position: "relative",
-          height: "calc(100% - 48px)",
+          flex: 1,
           overflow: "visible",
+          minHeight: 0,
         }}
       >
         <div
@@ -1314,4 +1392,4 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
   );
 };
 
-export default TerminalPanel;
+export default TerminalArea;

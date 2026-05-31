@@ -734,6 +734,9 @@ function App() {
     const newTheme = theme === "dark" ? "light" : "dark";
     setTheme(newTheme);
     await configCommands.saveSettingsTheme(newTheme);
+    window.dispatchEvent(
+      new CustomEvent("theme-changed", { detail: { theme: newTheme } }),
+    );
   };
 
   const handleToggleLanguage = async () => {
@@ -741,6 +744,11 @@ function App() {
     setLanguage(newLang);
     await configCommands.saveSettingsLanguage(newLang);
     await hippoxCommands.setLanguage(newLang);
+    window.dispatchEvent(
+      new CustomEvent("language-changed", {
+        detail: { language: newLang },
+      }),
+    );
     const assistantMessages = taskManager.getAssistantMessages();
     const welcomeMsg = assistantMessages.find((m) => m.id === "welcome");
     if (welcomeMsg) {

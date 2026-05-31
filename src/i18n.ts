@@ -379,6 +379,7 @@ export const zh = {
     empty: '暂无日志，等待执行步骤...',
     scrollToBottom: '回到底部',
     taskList: '任务列表',
+    showChart: '查看K线图',
     status: {
       completed: '已完成',
       failed: '失败',
@@ -1119,6 +1120,7 @@ export const en: typeof zh = {
     empty: 'No logs, waiting for execution steps...',
     scrollToBottom: 'Scroll to bottom',
     taskList: 'Task List',
+    showChart: 'View Chart',
     status: {
       completed: 'Completed',
       failed: 'Failed',
