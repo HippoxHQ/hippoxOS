@@ -80,7 +80,7 @@ impl TrayManager {
         let app_handle_clone = app_handle.clone();
         window.on_window_event(move |event| {
             if let WindowEvent::Focused(false) = event {
-                let submenu_label = format!("{}", WindowIdentifier::Submenu);
+                let submenu_label = format!("{}", WindowIdentifier::TraySubmenu);
                 let submenu_window = app_handle_clone.get_webview_window(&submenu_label);
                 let window = window_clone.clone();
                 let app = app_handle_clone.clone();
@@ -105,39 +105,30 @@ impl TrayManager {
     ) -> Result<(f64, f64), Box<dyn std::error::Error>> {
         let mut pos_x = mouse_x;
         let mut pos_y = mouse_y;
-
         if let Some(monitor) = app_handle.primary_monitor()? {
             let screen_width = monitor.size().width as f64;
             let screen_height = monitor.size().height as f64;
-
             let monitor_x = monitor.position().x as f64;
             let monitor_y = monitor.position().y as f64;
-
             let screen_left = monitor_x;
             let screen_right = monitor_x + screen_width;
             let screen_top = monitor_y;
             let screen_bottom = monitor_y + screen_height;
-
             pos_x = mouse_x;
             pos_y = mouse_y;
-
             if pos_x + menu_width > screen_right {
                 pos_x = mouse_x - menu_width;
             }
-
             if pos_y + menu_height > screen_bottom {
                 pos_y = mouse_y - menu_height;
             }
-
             if pos_x < screen_left {
                 pos_x = screen_left;
             }
-
             if pos_y < screen_top {
                 pos_y = screen_top;
             }
         }
-
         Ok((pos_x, pos_y))
     }
 

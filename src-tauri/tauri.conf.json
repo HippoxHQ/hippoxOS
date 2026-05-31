@@ -47,7 +47,7 @@
         {
           "identifier": "submenu-window",
           "description": "Submenu Window",
-          "windows": ["submenu-window"],
+          "windows": ["tray-submenu-window"],
           "permissions": [
             "core:default",
             "core:event:allow-listen",

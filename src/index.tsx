@@ -22,8 +22,8 @@ if (windowType === WindowTypeEnum.Tray) {
       <SystemTrayWindow />
     </React.StrictMode>,
   );
-} else if (windowType === WindowTypeEnum.Submenu) {
-  document.body.classList.add("submenu-window-body");
+} else if (windowType === WindowTypeEnum.TraySubmenu) {
+  document.body.classList.add("tray-submenu-window-body");
   root.render(
     <React.StrictMode>
       <SubmenuWindow />

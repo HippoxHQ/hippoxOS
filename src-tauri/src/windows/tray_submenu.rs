@@ -9,7 +9,7 @@ impl SubmenuManager {
         items: Vec<serde_json::Value>,
         current_default_id: String,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        let window_label = format!("{}", WindowIdentifier::Submenu);
+        let window_label = format!("{}", WindowIdentifier::TraySubmenu);
         if let Some(window) = app_handle.get_webview_window(&window_label) {
             let _ = window.close();
             std::thread::sleep(std::time::Duration::from_millis(100));
@@ -24,7 +24,7 @@ impl SubmenuManager {
             let (mouse_x, mouse_y) = Self::get_mouse_position();
             (mouse_x as f64, mouse_y as f64)
         };
-        let url_type = format!("{}", WindowType::Submenu);
+        let url_type = format!("{}", WindowType::TraySubmenu);
         let menu_width = 200.0;
         let menu_height = 300.0;
         let mut pos_x = x - menu_width - 5.0;

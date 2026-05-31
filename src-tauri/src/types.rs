@@ -21,7 +21,7 @@ impl std::fmt::Display for Role {
 pub enum WindowType {
     Main,
     Tray,
-    Submenu,
+    TraySubmenu,
 }
 
 impl std::fmt::Display for WindowType {
@@ -29,7 +29,7 @@ impl std::fmt::Display for WindowType {
         match self {
             WindowType::Main => write!(f, "main"),
             WindowType::Tray => write!(f, "tray"),
-            WindowType::Submenu => write!(f, "submenu"),
+            WindowType::TraySubmenu => write!(f, "tray-submenu"),
         }
     }
 }
@@ -38,7 +38,7 @@ impl std::fmt::Display for WindowType {
 pub enum WindowIdentifier {
     Main,
     Tray,
-    Submenu,
+    TraySubmenu,
 }
 
 impl std::fmt::Display for WindowIdentifier {
@@ -46,7 +46,7 @@ impl std::fmt::Display for WindowIdentifier {
         match self {
             WindowIdentifier::Main => write!(f, "main-window"),
             WindowIdentifier::Tray => write!(f, "tray-window"),
-            WindowIdentifier::Submenu => write!(f, "submenu-window"),
+            WindowIdentifier::TraySubmenu => write!(f, "tray-submenu-window"),
         }
     }
 }

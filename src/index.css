@@ -35,13 +35,13 @@ body:has(> div:only-child) {
   display: inline-block;
 }
 
-.submenu-window-body {
+.tray-submenu-window-body {
   margin: 0;
   padding: 0;
   background: transparent !important;
   overflow: hidden;
 }
 
-.submenu-window-body #root {
+.tray-submenu-window-body #root {
   background: transparent !important;
 }

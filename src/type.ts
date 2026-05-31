@@ -65,7 +65,6 @@ export interface TaskInfo {
 }
 
 
-// ==================== Session Type ====================
 export interface DialogSession {
   session_id: string;
   title: string;
@@ -105,13 +104,13 @@ export enum MessageStatus {
 export enum WindowTypeEnum {
   Main = 'main',
   Tray = 'tray',
-  Submenu = 'submenu'
+  TraySubmenu = 'tray-submenu'
 }
 
 export enum WindowIdentifierEnum {
   Main = 'main-window',
   Tray = 'tray-window',
-  Submenu = 'submenu-window'
+  TraySubmenu = 'tray-submenu-window'
 }
 
 export enum SystemEvent {
