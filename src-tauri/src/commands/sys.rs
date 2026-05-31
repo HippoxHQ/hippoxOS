@@ -138,3 +138,8 @@ pub async fn cmd_window_hide(app_handle: AppHandle) -> Result<(), String> {
         Err("Window not found".to_string())
     }
 }
+
+#[tauri::command]
+pub async fn cmd_exit_app() -> Result<(), String> {
+    std::process::exit(0);
+}

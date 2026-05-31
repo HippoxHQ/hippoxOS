@@ -245,6 +245,8 @@ pub fn run() {
             commands::cmd_notification_warning,
             commands::cmd_notification_error,
             commands::cmd_create_submenu_window,
+            commands::cmd_emit_to_main_window,
+            commands::cmd_exit_app,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

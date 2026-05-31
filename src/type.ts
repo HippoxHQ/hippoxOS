@@ -113,3 +113,19 @@ export enum WindowIdentifierEnum {
   Tray = 'tray-window',
   Submenu = 'submenu-window'
 }
+
+export enum SystemEvent {
+  NewSession = 'new-session',
+  OpenSkillsMarket = 'open-skills-market',
+  OpenHistory = 'open-history',
+  OpenFavorites = 'open-favorites',
+  OpenScheduledTasks = 'open-scheduled-tasks',
+  OpenSettings = 'open-settings',
+  OpenLlmConfig = 'open-llm-config',
+  CheckUpdates = 'check-updates',
+  ShowAbout = 'show-about',
+  ShowNotification = 'show-notification',
+  OpenHistoryDir = 'open-history-dir',
+  OpenNotificationDir = 'open-notification-dir',
+  OpenWorkspaceDir = 'open-workspace-dir',
+}

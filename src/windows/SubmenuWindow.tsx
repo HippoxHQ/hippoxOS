@@ -105,7 +105,7 @@ const SubmenuWindow: React.FC = () => {
           isDefault: item.id === instanceId,
         })),
       );
-      invoke("emit_to_main_window", {
+      invoke("cmd_emit_to_main_window", {
         event: "show-notification",
         payload: { message: "默认 LLM 已更新" },
       });

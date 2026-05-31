@@ -4,6 +4,7 @@ import { configCommands } from "../api/config";
 import { invoke } from "@tauri-apps/api/core";
 import { zh, en } from "../i18n";
 import { healthCommands, HealthCheckResult } from "../api/health";
+import { SystemEvent } from "../type";
 
 const getTranslation = (language: "zh" | "en", key: string): string => {
   const translations = language === "zh" ? zh : en;
@@ -122,50 +123,21 @@ const SystemTrayWindow: React.FC = () => {
     }
   };
 
-  const setDefaultLLM = async (instanceId: string) => {
-    try {
-      await invoke("set_default_llm_instance", { instanceId });
-      setLlmInstances((prev) =>
-        prev.map((item) => ({
-          ...item,
-          isDefault: item.id === instanceId,
-        })),
-      );
-      const lang = language;
-      const message = lang === "zh" ? "默认 LLM 已更新" : "Default LLM updated";
-      invoke("emit_to_main_window", {
-        event: "show-notification",
-        payload: { message },
-      });
-    } catch (error) {
-      console.error("Failed to set default LLM:", error);
-      const lang = language;
-      const errorMsg =
-        lang === "zh" ? "设置默认 LLM 失败" : "Failed to set default LLM";
-      invoke("emit_to_main_window", {
-        event: "show-notification",
-        payload: { message: errorMsg, type: "error" },
-      });
-    }
-  };
-
   const handleMenuItemClick = (action: string) => {
     if (action === "quit") {
-      invoke("exit_app");
+      invoke("cmd_exit_app");
+    } else if (action === "open_logs_dir") {
+      invoke("cmd_emit_to_main_window", { event: "open-logs-dir" });
     } else if (action === "open_history_dir") {
-      invoke("cmd_open_path", { path: "" });
-    } else if (action === "open_notification_dir") {
-      invoke("cmd_open_path", { path: "" });
-    } else if (action === "open_workspace_dir") {
-      invoke("cmd_open_path", { path: "" });
-    } else if (action === "check_updates") {
-      invoke("emit_to_main_window", { event: "check-updates" });
-    } else if (action === "about") {
-      invoke("emit_to_main_window", { event: "show-about" });
-    } else if (action === "llm_config") {
-      invoke("emit_to_main_window", { event: "open-llm-config" });
+      invoke("cmd_emit_to_main_window", { event: "open-history-dir" });
+    } else if (action === "open_skills_market_dir") {
+      invoke("cmd_emit_to_main_window", { event: "open-skills-market-dir" });
+    } else if (action === "open_scheduled_tasks_dir") {
+      invoke("cmd_emit_to_main_window", { event: "open-scheduled-tasks-dir" });
+    } else if (action === "open_settings_dir") {
+      invoke("cmd_emit_to_main_window", { event: "open-settings-dir" });
     } else {
-      invoke("emit_to_main_window", { event: action });
+      invoke("cmd_emit_to_main_window", { event: action });
     }
   };
 
@@ -180,50 +152,76 @@ const SystemTrayWindow: React.FC = () => {
 
   const menuItems = [
     {
-      id: "new_session",
+      id: SystemEvent.NewSession,
       label: t("actions.newSession") || "新建对话",
       icon: "💬",
     },
     { divider: true },
+    { id: "llm_status", label: t("bottomBar.model") || "LLM 状态", icon: "🤖" },
     {
-      id: "llm_status",
-      label: t("bottomBar.model") || "LLM 状态",
-      icon: "🤖",
-    },
-    {
-      id: "llm_config",
+      id: SystemEvent.OpenLlmConfig,
       label: t("settings.tab.llm") || "LLM 配置",
       icon: "⚙️",
     },
     { divider: true },
     {
-      id: "skills_market",
+      id: SystemEvent.OpenSkillsMarket,
       label: t("actions.skillMarket") || "技能市场",
       icon: "🛒",
     },
-    { id: "history", label: t("menu.history") || "对话历史", icon: "📜" },
-    { id: "favorites", label: t("menu.favorites") || "我的收藏", icon: "⭐" },
     {
-      id: "scheduled_tasks",
+      id: SystemEvent.OpenHistory,
+      label: t("menu.history") || "对话历史",
+      icon: "📜",
+    },
+    {
+      id: SystemEvent.OpenFavorites,
+      label: t("menu.favorites") || "我的收藏",
+      icon: "⭐",
+    },
+    {
+      id: SystemEvent.OpenScheduledTasks,
       label: t("menu.scheduledTasks") || "定时任务",
       icon: "⏰",
     },
     { divider: true },
     {
-      id: "open_history_dir",
-      label: t("settings.openDirectory") || "历史会话目录",
-      icon: "📁",
+      id: "open_logs_dir",
+      label: "日志目录",
+      icon: "📊",
     },
-    { id: "open_notification_dir", label: "通知目录", icon: "🔔" },
-    { id: "open_workspace_dir", label: "默认工作区目录", icon: "🏠" },
-    { divider: true },
-    { id: "settings", label: t("menu.settings") || "设置", icon: "⚙️" },
     {
-      id: "check_updates",
+      id: "open_history_dir",
+      label: t("storage.dialogHistoryDir") || "对话历史目录",
+      icon: "💬",
+    },
+    {
+      id: "open_skills_market_dir",
+      label: t("storage.skillsMarketDir") || "技能市场目录",
+      icon: "📦",
+    },
+    {
+      id: "open_scheduled_tasks_dir",
+      label: t("storage.scheduledTasksDir") || "定时任务目录",
+      icon: "⏰",
+    },
+    {
+      id: "open_settings_dir",
+      label: t("storage.settingsDir") || "设置目录",
+      icon: "⚙️",
+    },
+    { divider: true },
+    {
+      id: SystemEvent.OpenSettings,
+      label: t("menu.settings") || "设置",
+      icon: "⚙️",
+    },
+    {
+      id: SystemEvent.CheckUpdates,
       label: t("settings.update") || "检查更新",
       icon: "🔄",
     },
-    { id: "about", label: "关于", icon: "ℹ️" },
+    { id: SystemEvent.ShowAbout, label: "关于", icon: "ℹ️" },
     { divider: true },
     { id: "quit", label: t("common.close") || "退出", icon: "🚪" },
   ];

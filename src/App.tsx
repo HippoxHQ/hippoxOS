@@ -18,6 +18,7 @@ import {
   TaskInfo,
   RoleEnum,
   MessageStatus,
+  SystemEvent,
 } from "./type";
 import { hippoxCommands } from "./api/chat";
 import { sessionCommands } from "./api/session";
@@ -31,6 +32,9 @@ import Dialog from "./components/Dialog";
 import WelcomePage from "./components/WelcomePage";
 import GlobalDragOverlay from "./components/GlobalDragOverlay";
 import CustomDragCursor from "./components/CustomDragCursor";
+import { invoke } from "@tauri-apps/api/core";
+import { filesCommands } from "./api/files";
+import { getDataPaths } from "./api/paths";
 
 function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -106,6 +110,53 @@ function App() {
     setupFileDropListener();
     return () => {
       if (unlistenFileDrop) unlistenFileDrop();
+    };
+  }, []);
+
+  useEffect(() => {
+    const unlistenNewSession = listen("new-session", () => {
+      handleNewSession();
+    });
+    const unlistenOpenSkillsMarket = listen("open-skills-market", () => {
+      setMenuPanelView("skillMarket");
+    });
+    const unlistenOpenHistory = listen("open-history", () => {
+      setMenuPanelView("history");
+    });
+    const unlistenOpenFavorites = listen("open-favorites", () => {
+      setMenuPanelView("favorites");
+    });
+    const unlistenOpenScheduledTasks = listen("open-scheduled-tasks", () => {
+      setMenuPanelView("scheduledTasks");
+    });
+    const unlistenOpenSettings = listen("open-settings", () => {
+      setMenuPanelView("settings");
+      setSettingsSubView("llmModel");
+    });
+    const unlistenOpenLLMConfig = listen("open-llm-config", () => {
+      setMenuPanelView("settings");
+      setSettingsSubView("llmModel");
+    });
+    const unlistenCheckUpdates = listen("check-updates", () => {
+      console.log("check-updates received");
+    });
+    const unlistenShowAbout = listen("show-about", () => {
+      console.log("show-about received");
+    });
+    const unlistenShowNotification = listen("show-notification", (event) => {
+      console.log("notification:", event.payload);
+    });
+    return () => {
+      unlistenNewSession.then((fn) => fn());
+      unlistenOpenSkillsMarket.then((fn) => fn());
+      unlistenOpenHistory.then((fn) => fn());
+      unlistenOpenFavorites.then((fn) => fn());
+      unlistenOpenScheduledTasks.then((fn) => fn());
+      unlistenOpenSettings.then((fn) => fn());
+      unlistenOpenLLMConfig.then((fn) => fn());
+      unlistenCheckUpdates.then((fn) => fn());
+      unlistenShowAbout.then((fn) => fn());
+      unlistenShowNotification.then((fn) => fn());
     };
   }, []);
 
@@ -216,29 +267,88 @@ function App() {
   }, []);
 
   useEffect(() => {
-    const unlistenNewSession = listen("new-session", () => {
+    const unlistenOpenLogsDir = listen("open-logs-dir", async () => {
+      const paths = await getDataPaths();
+      if (paths.log_dir) await filesCommands.openPath(paths.log_dir);
+    });
+    const unlistenOpenHistoryDir = listen("open-history-dir", async () => {
+      const paths = await getDataPaths();
+      if (paths.dialog_history_dir)
+        await filesCommands.openPath(paths.dialog_history_dir);
+    });
+    const unlistenOpenSkillsMarketDir = listen(
+      "open-skills-market-dir",
+      async () => {
+        const paths = await getDataPaths();
+        if (paths.skills_market_dir)
+          await filesCommands.openPath(paths.skills_market_dir);
+      },
+    );
+    const unlistenOpenScheduledTasksDir = listen(
+      "open-scheduled-tasks-dir",
+      async () => {
+        const paths = await getDataPaths();
+        if (paths.scheduled_tasks_dir)
+          await filesCommands.openPath(paths.scheduled_tasks_dir);
+      },
+    );
+    const unlistenOpenSettingsDir = listen("open-settings-dir", async () => {
+      const paths = await getDataPaths();
+      if (paths.settings_dir) await filesCommands.openPath(paths.settings_dir);
+    });
+
+    return () => {
+      unlistenOpenLogsDir.then((fn) => fn());
+      unlistenOpenHistoryDir.then((fn) => fn());
+      unlistenOpenSkillsMarketDir.then((fn) => fn());
+      unlistenOpenScheduledTasksDir.then((fn) => fn());
+      unlistenOpenSettingsDir.then((fn) => fn());
+    };
+  }, []);
+
+  useEffect(() => {
+    const unlistenNewSession = listen(SystemEvent.NewSession, () => {
       handleNewSession();
     });
-    const unlistenOpenSkillsMarket = listen("open-skills-market", () => {
-      setMenuPanelView("skillMarket");
-    });
-    const unlistenOpenHistory = listen("open-history", () => {
+    const unlistenOpenSkillsMarket = listen(
+      SystemEvent.OpenSkillsMarket,
+      () => {
+        setMenuPanelView("skillMarket");
+      },
+    );
+    const unlistenOpenHistory = listen(SystemEvent.OpenHistory, () => {
       setMenuPanelView("history");
     });
-    const unlistenOpenFavorites = listen("open-favorites", () => {
+    const unlistenOpenFavorites = listen(SystemEvent.OpenFavorites, () => {
       setMenuPanelView("favorites");
     });
-    const unlistenOpenScheduledTasks = listen("open-scheduled-tasks", () => {
-      setMenuPanelView("scheduledTasks");
-    });
-    const unlistenOpenSettings = listen("open-settings", () => {
+    const unlistenOpenScheduledTasks = listen(
+      SystemEvent.OpenScheduledTasks,
+      () => {
+        setMenuPanelView("scheduledTasks");
+      },
+    );
+    const unlistenOpenSettings = listen(SystemEvent.OpenSettings, () => {
       setMenuPanelView("settings");
       setSettingsSubView("llmModel");
     });
-    const unlistenOpenLLMConfig = listen("open-llm-config", () => {
+    const unlistenOpenLlmConfig = listen(SystemEvent.OpenLlmConfig, () => {
       setMenuPanelView("settings");
       setSettingsSubView("llmModel");
     });
+    const unlistenCheckUpdates = listen(SystemEvent.CheckUpdates, () => {
+      console.log("check-updates received");
+    });
+    const unlistenShowAbout = listen(SystemEvent.ShowAbout, () => {
+      console.log("show-about received");
+    });
+    const unlistenShowNotification = listen(
+      SystemEvent.ShowNotification,
+      (event) => {
+        console.log("notification:", event.payload);
+      },
+    );
+
     return () => {
       unlistenNewSession.then((fn) => fn());
       unlistenOpenSkillsMarket.then((fn) => fn());
@@ -246,7 +356,10 @@ function App() {
       unlistenOpenFavorites.then((fn) => fn());
       unlistenOpenScheduledTasks.then((fn) => fn());
       unlistenOpenSettings.then((fn) => fn());
-      unlistenOpenLLMConfig.then((fn) => fn());
+      unlistenOpenLlmConfig.then((fn) => fn());
+      unlistenCheckUpdates.then((fn) => fn());
+      unlistenShowAbout.then((fn) => fn());
+      unlistenShowNotification.then((fn) => fn());
     };
   }, []);
 
