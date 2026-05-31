@@ -4,6 +4,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { configCommands } from "../api/config";
 import { llmCommands } from "../api/llm";
 import { healthCommands, HealthCheckResult } from "../api/health";
+import { zh, en } from "../i18n";
 
 interface LLMInstance {
   id: string;
@@ -12,17 +13,33 @@ interface LLMInstance {
   status?: "online" | "offline" | "checking";
 }
 
+const getTranslation = (language: "zh" | "en", key: string): string => {
+  const translations = language === "zh" ? zh : en;
+  const keys = key.split(".");
+  let value: any = translations;
+  for (const k of keys) {
+    if (value === undefined) return key;
+    value = value[k];
+  }
+  return value || key;
+};
+
 const SubmenuWindow: React.FC = () => {
   const [instances, setInstances] = useState<LLMInstance[]>([]);
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
   const [theme, setTheme] = useState<"dark" | "light">("dark");
+  const [language, setLanguage] = useState<"zh" | "en">("en");
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const loadData = async () => {
       try {
-        const savedTheme = await configCommands.getSettingsTheme();
+        const [savedTheme, savedLanguage] = await Promise.all([
+          configCommands.getSettingsTheme(),
+          configCommands.getSettingsLanguage(),
+        ]);
         setTheme(savedTheme as "dark" | "light");
+        setLanguage(savedLanguage as "zh" | "en");
         setIsLoading(false);
         const instancesData = await llmCommands.getLlmInstances();
         const defaultId = await llmCommands.getDefaultLlmInstanceId();
@@ -79,7 +96,11 @@ const SubmenuWindow: React.FC = () => {
       );
       invoke("cmd_emit_to_main_window", {
         event: "show-notification",
-        payload: { message: "默认 LLM 已更新" },
+        payload: {
+          message:
+            getTranslation(language, "llmModel.defaultSuccess") ||
+            "Default LLM updated",
+        },
       });
     } catch (error) {
       console.error("Failed to set default LLM:", error);
@@ -87,9 +108,12 @@ const SubmenuWindow: React.FC = () => {
   };
 
   const getStatusText = (status?: string) => {
-    if (status === "checking") return "检测中...";
-    if (status === "online") return "在线";
-    return "离线";
+    const t = (key: string) => getTranslation(language, key);
+    if (status === "checking")
+      return t("bottomBar.modelStatus.checking") || "Checking...";
+    if (status === "online")
+      return t("bottomBar.modelStatus.online") || "Online";
+    return t("bottomBar.modelStatus.offline") || "Offline";
   };
 
   const getStatusColor = (status?: string) => {
@@ -99,6 +123,7 @@ const SubmenuWindow: React.FC = () => {
   };
 
   const isDark = theme === "dark";
+  const t = (key: string) => getTranslation(language, key);
 
   const styles = {
     container: {
@@ -175,18 +200,24 @@ const SubmenuWindow: React.FC = () => {
   if (isLoading) {
     return (
       <div style={styles.loadingContainer}>
-        <div style={styles.loadingText}>加载中...</div>
+        <div style={styles.loadingText}>
+          {t("common.loading") || "Loading..."}
+        </div>
       </div>
     );
   }
 
   return (
     <div style={styles.container}>
-      <div style={styles.header}>LLM 实例列表</div>
+      <div style={styles.header}>
+        {t("settings.tab.llmModel") || "LLM Models"}
+      </div>
       <div style={styles.menuContainer}>
         {instances.length === 0 ? (
           <div style={styles.loadingContainer}>
-            <div style={styles.loadingText}>暂无 LLM 配置</div>
+            <div style={styles.loadingText}>
+              {t("bottomBar.noInstances") || "No LLM configured"}
+            </div>
           </div>
         ) : (
           instances.map((instance) => (
@@ -217,7 +248,9 @@ const SubmenuWindow: React.FC = () => {
                 </span>
               </div>
               {instance.isDefault && (
-                <span style={styles.defaultBadge}>默认</span>
+                <span style={styles.defaultBadge}>
+                  {t("llmModel.default") || "Default"}
+                </span>
               )}
             </div>
           ))

@@ -153,77 +153,81 @@ const SystemTrayWindow: React.FC = () => {
   const menuItems = [
     {
       id: SystemEvent.NewSession,
-      label: t("actions.newSession") || "新建对话",
+      label: t("actions.newSession") || "New Session",
       icon: "💬",
     },
     { divider: true },
-    { id: "llm_status", label: t("bottomBar.model") || "LLM 状态", icon: "🤖" },
+    {
+      id: "llm_status",
+      label: t("bottomBar.model") || "LLM Status",
+      icon: "🤖",
+    },
     {
       id: SystemEvent.OpenLlmConfig,
-      label: t("settings.tab.llm") || "LLM 配置",
+      label: t("settings.tab.llm") || "LLM Config",
       icon: "⚙️",
     },
     { divider: true },
     {
       id: SystemEvent.OpenSkillsMarket,
-      label: t("actions.skillMarket") || "技能市场",
+      label: t("actions.skillMarket") || "Skill Market",
       icon: "🛒",
     },
     {
       id: SystemEvent.OpenHistory,
-      label: t("menu.history") || "对话历史",
+      label: t("menu.history") || "History",
       icon: "📜",
     },
     {
       id: SystemEvent.OpenFavorites,
-      label: t("menu.favorites") || "我的收藏",
+      label: t("menu.favorites") || "Favorites",
       icon: "⭐",
     },
     {
       id: SystemEvent.OpenScheduledTasks,
-      label: t("menu.scheduledTasks") || "定时任务",
+      label: t("menu.scheduledTasks") || "Scheduled Tasks",
       icon: "⏰",
     },
     { divider: true },
     {
       id: "open_logs_dir",
-      label: "日志目录",
+      label: t("storage.logsDir") || "Logs Directory",
       icon: "📊",
     },
     {
       id: "open_history_dir",
-      label: t("storage.dialogHistoryDir") || "对话历史目录",
+      label: t("storage.dialogHistoryDir") || "Dialog History Directory",
       icon: "💬",
     },
     {
       id: "open_skills_market_dir",
-      label: t("storage.skillsMarketDir") || "技能市场目录",
+      label: t("storage.skillsMarketDir") || "Skills Market Directory",
       icon: "📦",
     },
     {
       id: "open_scheduled_tasks_dir",
-      label: t("storage.scheduledTasksDir") || "定时任务目录",
+      label: t("storage.scheduledTasksDir") || "Scheduled Tasks Directory",
       icon: "⏰",
     },
     {
       id: "open_settings_dir",
-      label: t("storage.settingsDir") || "设置目录",
+      label: t("storage.settingsDir") || "Settings Directory",
       icon: "⚙️",
     },
     { divider: true },
     {
       id: SystemEvent.OpenSettings,
-      label: t("menu.settings") || "设置",
+      label: t("menu.settings") || "Settings",
       icon: "⚙️",
     },
     {
       id: SystemEvent.CheckUpdates,
-      label: t("settings.update") || "检查更新",
+      label: t("settings.update") || "Check for Updates",
       icon: "🔄",
     },
-    { id: SystemEvent.ShowAbout, label: "关于", icon: "ℹ️" },
+    { id: SystemEvent.ShowAbout, label: "About", icon: "ℹ️" },
     { divider: true },
-    { id: "quit", label: t("common.close") || "退出", icon: "🚪" },
+    { id: "quit", label: t("common.close") || "Quit", icon: "🚪" },
   ];
 
   const styles = {
@@ -328,6 +332,9 @@ const SystemTrayWindow: React.FC = () => {
 
   return (
     <div style={styles.container}>
+      <div style={styles.header}>
+        <span style={styles.title}>Hippox</span>
+      </div>
       <div style={styles.menuContainer}>
         {menuItems.map((item, index) => {
           if (item.divider) {
