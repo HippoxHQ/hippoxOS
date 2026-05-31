@@ -1046,6 +1046,41 @@ export const MarketIcon: React.FC<IconProps> = ({ className, size = 18 }) => (
   </svg>
 );
 
+export const BotIcon2: React.FC<IconProps> = ({ className, size = 13 }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size}
+    height={size}
+    style={{
+      width: size,
+      height: size,
+      minWidth: size,
+      minHeight: size,
+    }}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    <rect x="5" y="8" width="14" height="12" rx="2.5" ry="2.5" />
+    <path d="M8 5 L8 8" />
+    <path d="M16 5 L16 8" />
+    <circle cx="9.5" cy="12.5" r="1.5" fill="currentColor" stroke="none" />
+    <circle cx="14.5" cy="12.5" r="1.5" fill="currentColor" stroke="none" />
+    <path
+      d="M9 16 Q12 18 15 16"
+      stroke="currentColor"
+      fill="none"
+      strokeWidth="1.2"
+    />
+    <circle cx="8" cy="5" r="1.5" fill="currentColor" stroke="none" />
+    <circle cx="16" cy="5" r="1.5" fill="currentColor" stroke="none" />
+  </svg>
+);
+
 export const iconMap: Record<string, React.FC<IconProps>> = {
   dashboard: DashboardIcon,
   workspace: WorkspaceIcon,
@@ -1083,6 +1118,7 @@ export const iconMap: Record<string, React.FC<IconProps>> = {
   chat: ChatIcon,
   user: UserIcon,
   bot: BotIcon,
+  bot2: BotIcon2,
   textFile: TextFileIcon,
   image: ImageIcon,
   video: VideoIcon,

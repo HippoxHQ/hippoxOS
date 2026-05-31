@@ -5,6 +5,7 @@ import { LlmInstance } from "../../api/llm";
 import { configCommands } from "../../api/config";
 import { systemNotificationService } from "../../NotificationManager";
 import { showToast, ToastType } from "../Toast";
+import { BotIcon, BotIcon2 } from "../../icons";
 
 interface IconProps {
   className?: string;
@@ -314,7 +315,7 @@ const BottomBar: React.FC<BottomBarProps> = ({ t }) => {
             onClick={() => setModelPopupVisible(!modelPopupVisible)}
             title={t("bottomBar.model")}
           >
-            <ModelIcon size={14} />
+            <BotIcon2 size={19} />
             <span>{defaultInstance?.name || t("bottomBar.model")}</span>
           </button>
         </div>
