@@ -129,3 +129,12 @@ pub async fn window_set_position(app_handle: AppHandle, x: i32, y: i32) -> Resul
         Err("Window not found".to_string())
     }
 }
+
+#[tauri::command]
+pub async fn cmd_window_hide(app_handle: AppHandle) -> Result<(), String> {
+    if let Some(window) = app_handle.get_webview_window("main") {
+        window.hide().map_err(|e| format!("Failed to hide: {}", e))
+    } else {
+        Err("Window not found".to_string())
+    }
+}

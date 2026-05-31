@@ -10,6 +10,7 @@ import {
 } from "../../icons";
 import { Theme, Language } from "../../type";
 import SearchDialog from "./SearchDialog";
+import { showToast, ToastType } from "../Toast";
 
 interface TopBarProps {
   sidebarCollapsed: boolean;
@@ -305,7 +306,7 @@ const TopBar: React.FC<TopBarProps> = ({
         const maximized = await invoke<boolean>("window_is_maximized");
         setIsMaximized(maximized);
       } catch (error) {
-        console.error("Failed to check window state:", error);
+        showToast(ToastType.ERROR, "Failed to check window state: " + error);
       }
     };
     checkMaximized();
@@ -328,7 +329,7 @@ const TopBar: React.FC<TopBarProps> = ({
     try {
       await invoke("window_minimize");
     } catch (error) {
-      console.error("Failed to minimize:", error);
+      showToast(ToastType.ERROR, "Failed to minimize: " + error);
     }
   };
 
@@ -338,15 +339,15 @@ const TopBar: React.FC<TopBarProps> = ({
       const maximized = await invoke<boolean>("window_is_maximized");
       setIsMaximized(maximized);
     } catch (error) {
-      console.error("Failed to maximize/unmaximize:", error);
+      showToast(ToastType.ERROR, "Failed to maximize/unmaximize: " + error);
     }
   };
 
   const handleClose = async () => {
     try {
-      await invoke("window_close");
+      await invoke("cmd_window_hide");
     } catch (error) {
-      console.error("Failed to close:", error);
+      showToast(ToastType.ERROR, "Failed to close: " + error);
     }
   };
 

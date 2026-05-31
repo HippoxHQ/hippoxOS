@@ -167,6 +167,7 @@ pub fn run() {
             commands::window_get_state,
             commands::window_set_size,
             commands::window_set_position,
+            commands::cmd_window_hide,
             // workspace
             commands::cmd_get_workspace_config,
             commands::cmd_get_all_workspaces,
