@@ -248,7 +248,19 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   };
 
   const handleFilesAdd = (files: UploadFile[]) => {
-    setUploadedFiles((prev) => [...prev, ...files]);
+    setUploadedFiles((prev) => {
+      const existingKeys = new Set(prev.map((f) => `${f.name}_${f.size}`));
+      const newUniqueFiles = files.filter(
+        (f) => !existingKeys.has(`${f.name}_${f.size}`),
+      );
+      console.log(
+        "Adding files:",
+        files.length,
+        "Unique:",
+        newUniqueFiles.length,
+      );
+      return [...prev, ...newUniqueFiles];
+    });
   };
 
   const handleFileRemove = (fileId: string) => {
