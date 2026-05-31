@@ -12,28 +12,6 @@ interface LLMInstance {
   status?: "online" | "offline" | "checking";
 }
 
-const TEST_LLM_INSTANCES: LLMInstance[] = [
-  { id: "test_1", name: "GPT-4 Turbo", isDefault: true, status: "online" },
-  { id: "test_2", name: "Claude-3 Opus", isDefault: false, status: "online" },
-  { id: "test_3", name: "Gemini Pro", isDefault: false, status: "offline" },
-  { id: "test_4", name: "Llama-3-70B", isDefault: false, status: "online" },
-  { id: "test_5", name: "Mistral Large", isDefault: false, status: "checking" },
-  { id: "test_6", name: "Qwen-2.5-72B", isDefault: false, status: "online" },
-  { id: "test_7", name: "DeepSeek-V3", isDefault: false, status: "offline" },
-  { id: "test_8", name: "Yi-34B", isDefault: false, status: "online" },
-  { id: "test_9", name: "Baichuan-4", isDefault: false, status: "checking" },
-  { id: "test_10", name: "ChatGLM4", isDefault: false, status: "online" },
-  { id: "test_11", name: "ChatGLM4", isDefault: false, status: "online" },
-  { id: "test_12", name: "ChatGLM4", isDefault: false, status: "online" },
-  { id: "test_13", name: "ChatGLM4", isDefault: false, status: "online" },
-  { id: "test_14", name: "ChatGLM4", isDefault: false, status: "online" },
-  { id: "test_15", name: "ChatGLM4", isDefault: false, status: "online" },
-  { id: "test_16", name: "ChatGLM4", isDefault: false, status: "online" },
-  { id: "test_17", name: "ChatGLM4", isDefault: false, status: "online" },
-  { id: "test_18", name: "ChatGLM4", isDefault: false, status: "online" },
-  { id: "test_19", name: "ChatGLM4", isDefault: false, status: "online" },
-];
-
 const SubmenuWindow: React.FC = () => {
   const [instances, setInstances] = useState<LLMInstance[]>([]);
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
@@ -45,13 +23,9 @@ const SubmenuWindow: React.FC = () => {
       try {
         const savedTheme = await configCommands.getSettingsTheme();
         setTheme(savedTheme as "dark" | "light");
-
-        setInstances(TEST_LLM_INSTANCES);
         setIsLoading(false);
-
         const instancesData = await llmCommands.getLlmInstances();
         const defaultId = await llmCommands.getDefaultLlmInstanceId();
-
         const instancesList = Object.values(instancesData || {}).map(
           (instance: any) => ({
             id: instance.id,
@@ -60,9 +34,8 @@ const SubmenuWindow: React.FC = () => {
             status: "checking" as const,
           }),
         );
-
         if (instancesList.length > 0) {
-          const mergedInstances = [...instancesList, ...TEST_LLM_INSTANCES];
+          const mergedInstances = [...instancesList];
           setInstances(mergedInstances);
           await performHealthChecks(instancesList);
         }
