@@ -216,6 +216,41 @@ function App() {
   }, []);
 
   useEffect(() => {
+    const unlistenNewSession = listen("new-session", () => {
+      handleNewSession();
+    });
+    const unlistenOpenSkillsMarket = listen("open-skills-market", () => {
+      setMenuPanelView("skillMarket");
+    });
+    const unlistenOpenHistory = listen("open-history", () => {
+      setMenuPanelView("history");
+    });
+    const unlistenOpenFavorites = listen("open-favorites", () => {
+      setMenuPanelView("favorites");
+    });
+    const unlistenOpenScheduledTasks = listen("open-scheduled-tasks", () => {
+      setMenuPanelView("scheduledTasks");
+    });
+    const unlistenOpenSettings = listen("open-settings", () => {
+      setMenuPanelView("settings");
+      setSettingsSubView("llmModel");
+    });
+    const unlistenOpenLLMConfig = listen("open-llm-config", () => {
+      setMenuPanelView("settings");
+      setSettingsSubView("llmModel");
+    });
+    return () => {
+      unlistenNewSession.then((fn) => fn());
+      unlistenOpenSkillsMarket.then((fn) => fn());
+      unlistenOpenHistory.then((fn) => fn());
+      unlistenOpenFavorites.then((fn) => fn());
+      unlistenOpenScheduledTasks.then((fn) => fn());
+      unlistenOpenSettings.then((fn) => fn());
+      unlistenOpenLLMConfig.then((fn) => fn());
+    };
+  }, []);
+
+  useEffect(() => {
     if (!isLoading && currentSessionId) {
       const saveTimer = setTimeout(() => {
         const allData = taskManager.getAllData();

@@ -16,6 +16,7 @@ use crate::state::AppState;
 use crate::workspace::ensure_workspace_config;
 use hippox::{get_hippox_core_config, Hippox};
 use memcontext::MemContext;
+use tauri_plugin_autostart::MacosLauncher;
 use std::path::PathBuf;
 use std::thread;
 use tauri::{DragDropEvent, WindowEvent};
@@ -83,6 +84,10 @@ pub fn run() {
     });
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_autostart::init(
+            MacosLauncher::LaunchAgent,
+            None,
+        ))
         .manage(app_state)
         .setup(|app| {
             TrayManager::setup(app)?;

@@ -137,8 +137,45 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
     }
   };
 
-  const handleExampleClick = (example: string) => {
-    onSendMessage(example);
+  const handleExampleClick = (example: string, command?: string) => {
+    let message = example;
+    switch (command) {
+      case "open_downloads":
+        message = isZh ? "帮我打开下载文件夹" : "Open my Downloads folder";
+        break;
+      case "list_files":
+        message = isZh
+          ? "列出当前目录下的所有文件"
+          : "List all files in current directory";
+        break;
+      case "create_file":
+        message = isZh
+          ? "在桌面创建一个 test.txt 文件"
+          : "Create a test.txt file on desktop";
+        break;
+      case "system_info":
+        message = isZh ? "查看我的系统信息" : "Show my system information";
+        break;
+      case "clean_temp":
+        message = isZh ? "帮我清理临时文件" : "Clean up temporary files for me";
+        break;
+      case "screenshot":
+        message = isZh
+          ? "截图并保存到桌面"
+          : "Take a screenshot and save to desktop";
+        break;
+      case "open_notepad":
+        message = isZh ? "打开记事本" : "Open Notepad";
+        break;
+      case "copy_time":
+        message = isZh
+          ? "复制当前时间到剪贴板"
+          : "Copy current time to clipboard";
+        break;
+      default:
+        message = example;
+    }
+    onSendMessage(message);
   };
 
   const handleAttachment = (type: string) => {
@@ -149,25 +186,25 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
   const isZh = t("welcome.subtitle") === "原生 LLM 操作系统";
 
   const zhExamples = [
-    { text: "分析这份数据", icon: "📊" },
-    { text: "写一段代码", icon: "💻" },
-    { text: "搜索 AI 新闻", icon: "🔍" },
-    { text: "规划一个任务", icon: "📋" },
-    { text: "总结这篇文章", icon: "📝" },
-    { text: "翻译文本", icon: "🌐" },
-    { text: "安排日程", icon: "📅" },
-    { text: "写一封邮件", icon: "✉️" },
+    { text: "打开我的下载文件夹", icon: "📁", command: "open_downloads" },
+    { text: "列出当前目录文件", icon: "📋", command: "list_files" },
+    { text: "创建一个测试文件", icon: "📄", command: "create_file" },
+    { text: "查看系统信息", icon: "💻", command: "system_info" },
+    { text: "清理临时文件", icon: "🗑️", command: "clean_temp" },
+    { text: "截图保存到桌面", icon: "📸", command: "screenshot" },
+    { text: "打开记事本", icon: "📝", command: "open_notepad" },
+    { text: "复制当前时间", icon: "⏰", command: "copy_time" },
   ];
 
   const enExamples = [
-    { text: "Analyze this data", icon: "📊" },
-    { text: "Write some code", icon: "💻" },
-    { text: "Search AI news", icon: "🔍" },
-    { text: "Plan a task", icon: "📋" },
-    { text: "Summarize this article", icon: "📝" },
-    { text: "Translate text", icon: "🌐" },
-    { text: "Schedule a meeting", icon: "📅" },
-    { text: "Write an email", icon: "✉️" },
+    { text: "Open my Downloads folder", icon: "📁", command: "open_downloads" },
+    { text: "List current directory files", icon: "📋", command: "list_files" },
+    { text: "Create a test file", icon: "📄", command: "create_file" },
+    { text: "Check system info", icon: "💻", command: "system_info" },
+    { text: "Clean temporary files", icon: "🗑️", command: "clean_temp" },
+    { text: "Take screenshot to desktop", icon: "📸", command: "screenshot" },
+    { text: "Open Notepad", icon: "📝", command: "open_notepad" },
+    { text: "Copy current time", icon: "⏰", command: "copy_time" },
   ];
 
   const examples = isZh ? zhExamples : enExamples;
@@ -688,7 +725,9 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
               <div
                 key={index}
                 className="example-chip"
-                onClick={() => handleExampleClick(example.text)}
+                onClick={() =>
+                  handleExampleClick(example.text, example.command)
+                }
               >
                 <span className="example-icon">{example.icon}</span>
                 <span>{example.text}</span>
