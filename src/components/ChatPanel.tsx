@@ -19,6 +19,7 @@ import { taskManager } from "../TaskManager";
 import { showToast, ToastType } from "./Toast";
 import FileUploader from "./FileUploader";
 import { getFileIcon } from "../common";
+import { llmCommands, LlmInstance } from "../api/llm";
 
 interface ChatPanelProps {
   onSendMessage: (
@@ -58,9 +59,33 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   const [userScrolled, setUserScrolled] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [uploadedFiles, setUploadedFiles] = useState<UploadFile[]>([]);
+  const [currentModel, setCurrentModel] = useState<LlmInstance | null>(null);
+  const [loadingModel, setLoadingModel] = useState(true);
 
   const handleContainerClick = (e: React.MouseEvent) => {
     textareaRef.current?.focus();
+  };
+
+  const loadCurrentDefaultModel = async () => {
+    try {
+      setLoadingModel(true);
+      const defaultId = await llmCommands.getDefaultLlmInstanceId();
+      if (defaultId) {
+        const instances = await llmCommands.getLlmInstances();
+        const instancesList = Object.values(instances) as LlmInstance[];
+        const defaultModel = instancesList.find(
+          (inst) => inst.id === defaultId,
+        );
+        setCurrentModel(defaultModel || null);
+      } else {
+        setCurrentModel(null);
+      }
+    } catch (error) {
+      console.error("Failed to load default model:", error);
+      setCurrentModel(null);
+    } finally {
+      setLoadingModel(false);
+    }
   };
 
   const LoadingSpinner: React.FC = () => (
@@ -141,6 +166,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   }, [language, currentSessionId, t]);
 
   useEffect(() => {
+    loadCurrentDefaultModel();
     loadWorkspaces();
   }, []);
 
@@ -349,6 +375,16 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   return (
     <div className="chat-panel">
       <style>{`
+
+  .loading-text {
+    opacity: 0.7;
+  }
+
+  .no-model {
+    opacity: 0.7;
+    font-weight: normal;
+  }
+
   .chat-panel {
     display: flex;
     flex-direction: column;
@@ -929,7 +965,15 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
           </span>
           <span>{t("chat.title")}</span>
         </div>
-        <div className="header-subtitle">Claude Sonnet 4.6</div>
+        <div className="header-subtitle">
+          {loadingModel ? (
+            <span className="loading-text">{t("chat.loadingModel")}</span>
+          ) : currentModel ? (
+            <span title={currentModel.name}>{currentModel.name}</span>
+          ) : (
+            <span className="no-model">{t("chat.noModelConfigured")}</span>
+          )}
+        </div>
       </div>
       <div className="chat-messages-wrapper">
         <div

@@ -410,6 +410,8 @@ export const zh = {
     taskSubmitted: '任务已提交',
     taskCompleted: '✅ 任务已完成',
     taskFailed: '❌ 任务执行失败',
+    loadingModel: '加载模型中...',
+    noModelConfigured: '没有配置LLM',
     fileUpload: {
       remove: '移除',
       scrollLeft: '向左滚动',
@@ -1151,6 +1153,8 @@ export const en: typeof zh = {
     taskSubmitted: 'Task submitted',
     taskCompleted: '✅ Task completed',
     taskFailed: '❌ Task execution failed',
+    loadingModel: 'Loading model...',
+    noModelConfigured: 'No LLM configured',
     fileUpload: {
       remove: 'Remove',
       scrollLeft: 'Scroll left',

@@ -332,9 +332,6 @@ const SystemTrayWindow: React.FC = () => {
 
   return (
     <div style={styles.container}>
-      <div style={styles.header}>
-        <span style={styles.title}>Hippox</span>
-      </div>
       <div style={styles.menuContainer}>
         {menuItems.map((item, index) => {
           if (item.divider) {
