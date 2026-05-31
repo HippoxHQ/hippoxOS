@@ -251,7 +251,7 @@ const SystemTrayWindow: React.FC = () => {
     },
     menuContainer: {
       padding: "6px 0",
-      maxHeight: "360px",
+      maxHeight: "345px",
       overflowY: "auto" as const,
       scrollbarColor: isDark ? "#3a3f4a #1a1d26" : "#cbd5e1 #e5e7eb",
     },
@@ -328,9 +328,6 @@ const SystemTrayWindow: React.FC = () => {
 
   return (
     <div style={styles.container}>
-      <div style={styles.header}>
-        <span style={styles.title}>Hippox</span>
-      </div>
       <div style={styles.menuContainer}>
         {menuItems.map((item, index) => {
           if (item.divider) {

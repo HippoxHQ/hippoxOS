@@ -47,11 +47,11 @@ impl TrayManager {
     ) -> Result<(), Box<dyn std::error::Error>> {
         let (mouse_x, mouse_y) = Self::get_mouse_position();
         let menu_width = 260.0;
-        let menu_height = 400.0;
+        let menu_height = 350.0;
         let (pos_x, pos_y) = Self::calculate_window_position(
             app_handle,
             (mouse_x - 100) as f64,
-            (mouse_y - 35) as f64,
+            (mouse_y - 15) as f64,
             menu_width,
             menu_height,
         )?;
