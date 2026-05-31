@@ -253,6 +253,7 @@ const SystemTrayWindow: React.FC = () => {
       padding: "6px 0",
       maxHeight: "360px",
       overflowY: "auto" as const,
+      scrollbarColor: isDark ? "#3a3f4a #1a1d26" : "#cbd5e1 #e5e7eb",
     },
     menuItem: {
       display: "flex" as const,
