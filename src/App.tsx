@@ -137,15 +137,9 @@ function App() {
       setMenuPanelView("settings");
       setSettingsSubView("llmModel");
     });
-    const unlistenCheckUpdates = listen("check-updates", () => {
-      console.log("check-updates received");
-    });
-    const unlistenShowAbout = listen("show-about", () => {
-      console.log("show-about received");
-    });
-    const unlistenShowNotification = listen("show-notification", (event) => {
-      console.log("notification:", event.payload);
-    });
+    const unlistenCheckUpdates = listen("check-updates", () => {});
+    const unlistenShowAbout = listen("show-about", () => {});
+    const unlistenShowNotification = listen("show-notification", (event) => {});
     return () => {
       unlistenNewSession.then((fn) => fn());
       unlistenOpenSkillsMarket.then((fn) => fn());
@@ -336,19 +330,12 @@ function App() {
       setMenuPanelView("settings");
       setSettingsSubView("llmModel");
     });
-    const unlistenCheckUpdates = listen(SystemEvent.CheckUpdates, () => {
-      console.log("check-updates received");
-    });
-    const unlistenShowAbout = listen(SystemEvent.ShowAbout, () => {
-      console.log("show-about received");
-    });
+    const unlistenCheckUpdates = listen(SystemEvent.CheckUpdates, () => {});
+    const unlistenShowAbout = listen(SystemEvent.ShowAbout, () => {});
     const unlistenShowNotification = listen(
       SystemEvent.ShowNotification,
-      (event) => {
-        console.log("notification:", event.payload);
-      },
+      (event) => {},
     );
-
     return () => {
       unlistenNewSession.then((fn) => fn());
       unlistenOpenSkillsMarket.then((fn) => fn());
@@ -906,22 +893,6 @@ function App() {
     }
     return false;
   };
-
-  if (isLoading || !isConfigLoaded) {
-    return (
-      <div
-        className="App"
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          height: "100vh",
-        }}
-      >
-        <div>{t("atomicSkills.loading") || "Loading..."}</div>
-      </div>
-    );
-  }
 
   return (
     <div className="App">
