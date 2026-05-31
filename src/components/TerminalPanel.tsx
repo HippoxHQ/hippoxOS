@@ -2,7 +2,6 @@ import React, { useRef, useEffect, useState, useCallback, JSX } from "react";
 import { hippoxCommands } from "../api/chat";
 import { ExecutionLog, TaskInfo, UploadFile } from "../type";
 import {
-  ClearIcon,
   CollapseIcon,
   CopyIcon,
   ExpandArrowsIcon,
@@ -13,6 +12,7 @@ import { HIPPOX_ASCII_LOGO } from "../config";
 import { showToast, ToastType } from "./Toast";
 import { filesCommands } from "../api/files";
 import { open } from "@tauri-apps/plugin-shell";
+import { getFileIcon } from "../common";
 
 interface TerminalPanelProps {
   logs: ExecutionLog[];
@@ -736,13 +736,7 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
                             />
                           ) : (
                             <div className="task-file-icon">
-                              {file.type?.startsWith("image/")
-                                ? "🖼️"
-                                : file.type?.startsWith("video/")
-                                  ? "🎬"
-                                  : file.type === "application/pdf"
-                                    ? "📄"
-                                    : "📎"}
+                              {getFileIcon(file, 18)}
                             </div>
                           )}
                           <div className="task-file-info">

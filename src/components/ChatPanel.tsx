@@ -18,6 +18,7 @@ import { workspaceCommands, WorkspaceInstance } from "../api/workspace";
 import { taskManager } from "../TaskManager";
 import { showToast, ToastType } from "./Toast";
 import FileUploader from "./FileUploader";
+import { getFileIcon } from "../common";
 
 interface ChatPanelProps {
   onSendMessage: (
@@ -562,8 +563,13 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
 
   .message-wrapper.user .message-files-grid {
     justify-self: flex-end;
+    direction: rtl;
   }
 
+  .message-wrapper.user .message-file-item {
+    direction: ltr;
+  }
+  
   .chat-input-section {
     flex-shrink: 0;
   }
@@ -954,8 +960,13 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
                   ) : (
                     <>
                       {isUser && msg.files && msg.files.length > 0 && (
-                        <div className="message-files-grid">
-                          {msg.files.map((file, idx) => (
+                        <div
+                          className="message-files-grid"
+                          style={{
+                            direction: "rtl",
+                          }}
+                        >
+                          {[...msg.files].reverse().map((file, idx) => (
                             <div
                               key={
                                 file.id ||
@@ -963,6 +974,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
                               }
                               className="message-file-item"
                               onClick={() => onFileClick?.(file)}
+                              style={{ direction: "ltr" }}
                             >
                               {file.type?.startsWith("image/") &&
                               file.preview ? (
@@ -973,13 +985,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
                                 />
                               ) : (
                                 <div className="file-icon-placeholder">
-                                  {file.type?.startsWith("image/")
-                                    ? "🖼️"
-                                    : file.type?.startsWith("video/")
-                                      ? "🎬"
-                                      : file.type === "application/pdf"
-                                        ? "📄"
-                                        : "📎"}
+                                  {getFileIcon(file, 28)}
                                 </div>
                               )}
                               <div className="file-info">
