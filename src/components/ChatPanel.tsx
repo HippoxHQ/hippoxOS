@@ -943,9 +943,12 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
                     <>
                       {isUser && msg.files && msg.files.length > 0 && (
                         <div className="message-files-grid">
-                          {msg.files.map((file) => (
+                          {msg.files.map((file, idx) => (
                             <div
-                              key={file.id}
+                              key={
+                                file.id ||
+                                `file_${idx}_${file.name}_${Date.now()}`
+                              }
                               className="message-file-item"
                               onClick={() => onFileClick?.(file)}
                             >

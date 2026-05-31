@@ -149,20 +149,19 @@ const FileUploader: React.FC<FileUploaderProps> = ({
       } else if (["zip", "rar", "7z", "tar", "gz"].includes(ext)) {
         fileType = "application/zip";
       }
-
       let preview: string | undefined;
       if (fileType.startsWith("image/")) {
         preview = URL.createObjectURL(new File([], fileName));
       }
-
       return {
-        id: `file_${Date.now()}_${index}_${fileName}`,
+        id: `file_${Date.now()}_${Math.random().toString(36).substring(2, 15)}_${index}_${fileName}`,
         file: new File([], fileName),
         name: fileName,
         size: 0,
         type: fileType,
         status: "success" as const,
         path: path,
+        preview,
       };
     });
     onFilesAdd(newFiles);
@@ -344,15 +343,14 @@ const FileUploader: React.FC<FileUploaderProps> = ({
       return getText("chat.fileUpload.archive");
     return getText("chat.fileUpload.file");
   };
-
   const processFiles = (fileList: FileList | File[]) => {
-    const newFiles: UploadFile[] = Array.from(fileList).map((file) => {
+    const newFiles: UploadFile[] = Array.from(fileList).map((file, index) => {
       let preview: string | undefined;
       if (file.type.startsWith("image/")) {
         preview = URL.createObjectURL(file);
       }
       return {
-        id: `${Date.now()}_${Math.random().toString(36).substr(2, 9)}_${file.name}`,
+        id: `${Date.now()}_${Math.random().toString(36).substring(2, 15)}_${file.name}_${index}`,
         file,
         name: file.name,
         size: file.size,

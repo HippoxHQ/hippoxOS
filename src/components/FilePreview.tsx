@@ -89,10 +89,11 @@ const FilePreview: React.FC<FilePreviewProps> = ({
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          padding: "12px 16px",
+          padding: "11px 16px",
           borderBottom: "1px solid var(--border-color)",
           background: "var(--bg-secondary)",
           flexShrink: 0,
+          paddingBottom: "10px",
         }}
       >
         <div

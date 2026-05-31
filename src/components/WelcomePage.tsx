@@ -10,7 +10,7 @@ import { showToast, ToastType } from "./Toast";
 import FileUploader, { UploadFile } from "./FileUploader";
 
 interface WelcomePageProps {
-  onSendMessage: (message: string) => void;
+  onSendMessage: (message: string, files?: UploadFile[]) => void;
   t: (key: string) => string;
   onDragOverInputChange?: (isDragging: boolean) => void;
 }
@@ -127,11 +127,12 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
     e.stopPropagation();
     if (inputValue.trim() || uploadedFiles.length > 0) {
       let message = inputValue.trim();
+      const currentFiles = [...uploadedFiles];
       if (uploadedFiles.length > 0) {
         const fileInfo = uploadedFiles.map((f) => `[📎 ${f.name}]`).join("\n");
         message = message ? `${message}\n${fileInfo}` : fileInfo;
       }
-      onSendMessage(message);
+      onSendMessage(message, currentFiles);
       setInputValue("");
       setUploadedFiles([]);
     }

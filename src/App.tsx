@@ -73,16 +73,13 @@ function App() {
     setLayoutMode(mode);
     localStorage.setItem("hippox-layout-mode", mode);
   };
-  // App.tsx 中添加状态
   const [isFilePreviewOpen, setIsFilePreviewOpen] = useState(false);
   const [previewFile, setPreviewFile] = useState<UploadFile | null>(null);
   const [filePreviewWidth, setFilePreviewWidth] = useState(320);
-
   const handleFilePreview = (file: UploadFile) => {
     setPreviewFile(file);
     setIsFilePreviewOpen(true);
   };
-
   const handleCloseFilePreview = () => {
     setIsFilePreviewOpen(false);
     setPreviewFile(null);
@@ -107,7 +104,6 @@ function App() {
       if (unlistenDragLeave) unlistenDragLeave();
     };
   }, []);
-
   useEffect(() => {
     let unlistenFileDrop: (() => void) | undefined;
     const setupFileDropListener = async () => {
@@ -791,7 +787,6 @@ function App() {
     const now = new Date();
     let finalSessionId = sessionId || currentSessionId;
     const isTempSession = finalSessionId.startsWith("temp_");
-
     if (isTempSession) {
       const newSessionId = `session_${Date.now()}`;
       const sessionTitle =
@@ -829,6 +824,23 @@ function App() {
       } catch (error) {
         console.error("Failed to create session:", error);
       }
+    }
+    const existingMessages =
+      taskManager.getUserMessagesBySession(finalSessionId);
+    const lastMessage = existingMessages[existingMessages.length - 1];
+    const shouldAddUserMessage =
+      !lastMessage ||
+      lastMessage.content !== userMessage ||
+      Date.now() - new Date(lastMessage.timestamp).getTime() > 1000;
+    if (shouldAddUserMessage) {
+      const userMsg: ChatMessage = {
+        id: `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        role: RoleEnum.User,
+        content: userMessage,
+        timestamp: now.toISOString(),
+        files: files,
+      };
+      taskManager.addUserMessageToSession(finalSessionId, userMsg);
     }
     try {
       const taskId = await hippoxCommands.sendMessageAsync(
@@ -992,7 +1004,9 @@ function App() {
 
         {shouldShowWelcome() ? (
           <WelcomePage
-            onSendMessage={(msg) => handleSendMessage(msg, currentSessionId)}
+            onSendMessage={(msg, files) =>
+              handleSendMessage(msg, currentSessionId, files)
+            }
             t={t}
             onDragOverInputChange={setIsDraggingOverInput}
           />

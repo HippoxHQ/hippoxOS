@@ -715,44 +715,49 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
                       }
                     }}
                   >
-                    {(task as any).files.map((file: UploadFile) => (
-                      <div
-                        key={file.id}
-                        className="task-file-chip"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onFileClick?.(file);
-                        }}
-                      >
-                        {file.type?.startsWith("image/") && file.preview ? (
-                          <img
-                            src={file.preview}
-                            alt={file.name}
-                            className="task-file-preview-img"
-                          />
-                        ) : (
-                          <div className="task-file-icon">
-                            {file.type?.startsWith("image/")
-                              ? "🖼️"
-                              : file.type?.startsWith("video/")
-                                ? "🎬"
-                                : file.type === "application/pdf"
-                                  ? "📄"
-                                  : "📎"}
+                    {(task as any).files.map(
+                      (file: UploadFile, idx: number) => (
+                        <div
+                          key={
+                            file.id ||
+                            `task_file_${task.task_id}_${idx}_${file.name}`
+                          }
+                          className="task-file-chip"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onFileClick?.(file);
+                          }}
+                        >
+                          {file.type?.startsWith("image/") && file.preview ? (
+                            <img
+                              src={file.preview}
+                              alt={file.name}
+                              className="task-file-preview-img"
+                            />
+                          ) : (
+                            <div className="task-file-icon">
+                              {file.type?.startsWith("image/")
+                                ? "🖼️"
+                                : file.type?.startsWith("video/")
+                                  ? "🎬"
+                                  : file.type === "application/pdf"
+                                    ? "📄"
+                                    : "📎"}
+                            </div>
+                          )}
+                          <div className="task-file-info">
+                            <span className="task-file-name" title={file.name}>
+                              {file.name.length > 25
+                                ? file.name.slice(0, 22) + "..."
+                                : file.name}
+                            </span>
+                            <span className="task-file-size">
+                              {formatFileSize(file.size)}
+                            </span>
                           </div>
-                        )}
-                        <div className="task-file-info">
-                          <span className="task-file-name" title={file.name}>
-                            {file.name.length > 25
-                              ? file.name.slice(0, 22) + "..."
-                              : file.name}
-                          </span>
-                          <span className="task-file-size">
-                            {formatFileSize(file.size)}
-                          </span>
                         </div>
-                      </div>
-                    ))}
+                      ),
+                    )}
                   </div>
                   {scrollState.showRight && (
                     <button
