@@ -101,3 +101,15 @@ export enum MessageStatus {
   Completed = "completed",
   Failed = "failed",
 }
+
+export enum WindowTypeEnum {
+  Main = 'main',
+  Tray = 'tray',
+  Submenu = 'submenu'
+}
+
+export enum WindowIdentifierEnum {
+  Main = 'main-window',
+  Tray = 'tray-window',
+  Submenu = 'submenu-window'
+}

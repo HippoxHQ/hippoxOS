@@ -16,3 +16,37 @@ impl std::fmt::Display for Role {
         }
     }
 }
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum WindowType {
+    Main,
+    Tray,
+    Submenu,
+}
+
+impl std::fmt::Display for WindowType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            WindowType::Main => write!(f, "main"),
+            WindowType::Tray => write!(f, "tray"),
+            WindowType::Submenu => write!(f, "submenu"),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum WindowIdentifier {
+    Main,
+    Tray,
+    Submenu,
+}
+
+impl std::fmt::Display for WindowIdentifier {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            WindowIdentifier::Main => write!(f, "main-window"),
+            WindowIdentifier::Tray => write!(f, "tray-window"),
+            WindowIdentifier::Submenu => write!(f, "submenu-window"),
+        }
+    }
+}

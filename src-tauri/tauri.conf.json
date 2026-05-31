@@ -25,7 +25,42 @@
       }
     ],
     "security": {
-      "csp": null
+      "csp": null,
+      "capabilities": [
+        {
+          "identifier": "main-window",
+          "description": "Main Window",
+          "windows": ["main"],
+          "permissions": ["core:default", "core:event:default"]
+        },
+        {
+          "identifier": "tray-window",
+          "description": "Tray Window",
+          "windows": ["tray-window"],
+          "permissions": [
+            "core:default",
+            "core:event:allow-listen",
+            "core:event:allow-emit",
+            "core:event:allow-emit-to"
+          ]
+        },
+        {
+          "identifier": "submenu-window",
+          "description": "Submenu Window",
+          "windows": ["submenu-window"],
+          "permissions": [
+            "core:default",
+            "core:event:allow-listen",
+            "core:event:allow-emit",
+            "core:event:allow-emit-to",
+            "core:window:allow-close",
+            "core:window:allow-show",
+            "core:window:allow-hide",
+            "core:window:allow-set-position",
+            "core:window:allow-set-focus"
+          ]
+        }
+      ]
     }
   },
   "bundle": {

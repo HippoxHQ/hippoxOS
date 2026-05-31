@@ -28,6 +28,7 @@ dependencies = [
  "tokio",
  "uuid 1.23.1",
  "walkdir",
+ "winapi",
 ]
 
 [[package]]

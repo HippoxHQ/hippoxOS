@@ -14,6 +14,7 @@ pub mod session;
 pub mod skills;
 pub mod skills_market;
 pub mod sys;
+pub mod windows;
 
 pub use callback::*;
 pub use chat::*;
@@ -31,3 +32,4 @@ pub use session::*;
 pub use skills::*;
 pub use skills_market::*;
 pub use sys::*;
+pub use windows::*;

@@ -5,21 +5,22 @@ mod context;
 mod events;
 mod state;
 mod types;
+mod windows;
 mod workspace;
 
 use crate::commands::{init_all_hippox_instances, sync_all_to_hippox_core};
 use crate::common::init_default_settings;
 use crate::context::Context;
 use crate::events::handle_window_event;
-use crate::events::TrayManager;
 use crate::state::AppState;
+use crate::windows::TrayManager;
 use crate::workspace::ensure_workspace_config;
 use hippox::{get_hippox_core_config, Hippox};
 use memcontext::MemContext;
-use tauri_plugin_autostart::MacosLauncher;
 use std::path::PathBuf;
 use std::thread;
 use tauri::{DragDropEvent, WindowEvent};
+use tauri_plugin_autostart::MacosLauncher;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -243,6 +244,7 @@ pub fn run() {
             commands::cmd_notification_success,
             commands::cmd_notification_warning,
             commands::cmd_notification_error,
+            commands::cmd_create_submenu_window,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
