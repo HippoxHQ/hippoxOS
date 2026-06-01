@@ -5,18 +5,10 @@ import {
   MarketSkill,
 } from "../../api/skills";
 import { SkillData } from "../../types/skill";
-import { PlayIcon, StarFilledIcon, StarIcon } from "../../icons";
+import { PlayIcon, StarFilledIcon } from "../../icons";
 
 interface FavoritesPanelProps {
   t: (key: string, params?: any) => string;
-}
-
-type TabType = "skillFile" | "natural";
-
-interface NaturalFavorite {
-  id: string;
-  content: string;
-  createdAt: string;
 }
 
 const convertLocalToMarket = (skill: SkillData): MarketSkill => {
@@ -38,11 +30,7 @@ const convertLocalToMarket = (skill: SkillData): MarketSkill => {
 };
 
 const FavoritesPanel: React.FC<FavoritesPanelProps> = ({ t }) => {
-  const [activeTab, setActiveTab] = useState<TabType>("skillFile");
   const [skillFavorites, setSkillFavorites] = useState<MarketSkill[]>([]);
-  const [naturalFavorites, setNaturalFavorites] = useState<NaturalFavorite[]>(
-    [],
-  );
   const [loading, setLoading] = useState(true);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
 
@@ -65,7 +53,6 @@ const FavoritesPanel: React.FC<FavoritesPanelProps> = ({ t }) => {
         )
         .map(convertLocalToMarket);
       setSkillFavorites([...marketFavorites, ...localFavorites]);
-      await loadNaturalFavorites();
     } catch (error) {
       console.error("Failed to load favorites:", error);
     } finally {
@@ -73,24 +60,7 @@ const FavoritesPanel: React.FC<FavoritesPanelProps> = ({ t }) => {
     }
   };
 
-  const loadNaturalFavorites = async () => {
-    const demoNatural: NaturalFavorite[] = [
-      {
-        id: "1",
-        content: "每天早上9点备份数据库到 /backup 目录",
-        createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-      },
-      {
-        id: "2",
-        content: "每周一生成项目周报并发送到团队邮箱",
-        createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-      },
-    ];
-    setNaturalFavorites(demoNatural);
-  };
-
-  const handleRun = async (skill: MarketSkill) => {
-  };
+  const handleRun = async (skill: MarketSkill) => {};
 
   const handleDelete = async (skillId: string) => {
     if (
@@ -106,11 +76,6 @@ const FavoritesPanel: React.FC<FavoritesPanelProps> = ({ t }) => {
         console.error("Failed to delete favorite:", error);
       }
     }
-  };
-
-  const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString();
   };
 
   const getAuthorColor = (author: string): string => {
@@ -140,18 +105,6 @@ const FavoritesPanel: React.FC<FavoritesPanelProps> = ({ t }) => {
     return colors[Math.abs(hash) % colors.length];
   };
 
-  const tabButtonStyle = (isActive: boolean): React.CSSProperties => ({
-    padding: "8px 16px",
-    background: "none",
-    border: "none",
-    color: isActive ? "var(--accent-color, #0066cc)" : "var(--text-secondary)",
-    fontSize: "13px",
-    cursor: "pointer",
-    transition: "all 0.2s",
-    borderRadius: "6px 6px 0 0",
-    borderBottom: isActive ? "2px solid var(--accent-color, #0066cc)" : "none",
-  });
-
   const styles: Record<string, React.CSSProperties> = {
     container: {
       height: "100%",
@@ -160,13 +113,6 @@ const FavoritesPanel: React.FC<FavoritesPanelProps> = ({ t }) => {
       overflow: "hidden",
       userSelect: "none",
     },
-    tabContainer: {
-      display: "flex",
-      gap: "4px",
-      borderBottom: "1px solid var(--border-color)",
-      padding: "0",
-      flexShrink: 0,
-    },
     skillList: {
       flex: 1,
       overflowY: "auto",
@@ -174,7 +120,7 @@ const FavoritesPanel: React.FC<FavoritesPanelProps> = ({ t }) => {
     skillCard: {
       background: "var(--bg-secondary)",
       padding: "10px 15px",
-      border: "1px solid var(--border-color)",
+      borderBottom: "1px solid var(--border-color)",
       transition: "background 0.2s ease",
     },
     skillCardHovered: {
@@ -248,38 +194,10 @@ const FavoritesPanel: React.FC<FavoritesPanelProps> = ({ t }) => {
       transition: "all 0.2s",
       color: "var(--text-secondary)",
     },
-    starButton: {
-      color: "#f59e0b",
-    },
-    naturalCard: {
-      background: "var(--bg-secondary)",
-      padding: "12px 14px",
-      border: "1px solid var(--border-color)",
-      borderRadius: "10px",
-      marginBottom: "8px",
-      transition: "background 0.2s ease",
+    rightActions: {
       display: "flex",
+      gap: "8px",
       alignItems: "center",
-      justifyContent: "space-between",
-    },
-    naturalCardHovered: {
-      background: "var(--hover-bg)",
-    },
-    naturalContent: {
-      flex: 1,
-      minWidth: 0,
-    },
-    naturalText: {
-      fontSize: "13px",
-      color: "var(--text-primary)",
-      marginBottom: "6px",
-      overflow: "hidden",
-      textOverflow: "ellipsis",
-      whiteSpace: "nowrap",
-    },
-    naturalTime: {
-      fontSize: "10px",
-      color: "var(--text-muted)",
     },
     emptyState: {
       textAlign: "center",
@@ -293,11 +211,6 @@ const FavoritesPanel: React.FC<FavoritesPanelProps> = ({ t }) => {
       justifyContent: "center",
       height: "200px",
       color: "var(--text-muted)",
-    },
-    rightActions: {
-      display: "flex",
-      gap: "8px",
-      alignItems: "center",
     },
   };
 
@@ -313,137 +226,80 @@ const FavoritesPanel: React.FC<FavoritesPanelProps> = ({ t }) => {
 
   return (
     <div style={styles.container}>
-      <div style={styles.tabContainer}>
-        <button
-          style={tabButtonStyle(activeTab === "skillFile")}
-          onClick={() => setActiveTab("skillFile")}
-        >
-          📄 {t("favorites.tabSkillFile") || "SKILL.md"}
-        </button>
-        <button
-          style={tabButtonStyle(activeTab === "natural")}
-          onClick={() => setActiveTab("natural")}
-        >
-          🗣️ {t("favorites.tabNatural") || "Natural Language"}
-        </button>
-      </div>
-
       <div style={styles.skillList}>
-        {activeTab === "skillFile" ? (
-          skillFavorites.length === 0 ? (
-            <div style={styles.emptyState}>
-              {t("favorites.empty") || "No favorites yet, add one!"}
-            </div>
-          ) : (
-            skillFavorites.map((skill) => {
-              const isHovered = hoveredId === skill.id;
-              return (
-                <div
-                  key={skill.id}
-                  style={{
-                    ...styles.skillCard,
-                    ...(isHovered ? styles.skillCardHovered : {}),
-                  }}
-                  onMouseEnter={() => setHoveredId(skill.id)}
-                  onMouseLeave={() => setHoveredId(null)}
-                >
-                  <div style={styles.skillHeader}>
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "8px",
-                        flex: 1,
-                        flexWrap: "wrap",
-                      }}
-                    >
-                      <span style={styles.skillName}>{skill.name}</span>
-                      <span style={styles.skillVersion}>v{skill.version}</span>
-                    </div>
-                    <div style={styles.rightActions}>
-                      <button
-                        style={styles.iconButton}
-                        onClick={() => handleRun(skill)}
-                        title={t("market.run") || "Run"}
-                      >
-                        <PlayIcon size={12} />
-                      </button>
-                      <button
-                        style={{ ...styles.iconButton, color: "#f59e0b" }}
-                        onClick={() => handleDelete(skill.id)}
-                        title={t("market.unfavorite") || "Remove"}
-                      >
-                        <StarFilledIcon size={12} />
-                      </button>
-                    </div>
-                  </div>
-                  <div style={styles.skillMeta}>
-                    <div style={styles.authorInfo}>
-                      {skill.author_avatar ? (
-                        <img
-                          src={skill.author_avatar}
-                          alt={skill.author}
-                          style={styles.authorAvatar}
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).style.display =
-                              "none";
-                          }}
-                        />
-                      ) : (
-                        <div
-                          style={{
-                            ...styles.authorAvatarPlaceholder,
-                            background: getAuthorColor(skill.author),
-                          }}
-                        >
-                          {skill.author.charAt(0).toUpperCase()}
-                        </div>
-                      )}
-                      <span>{skill.author}</span>
-                    </div>
-                    <span>📁 {skill.category}</span>
-                  </div>
-                  <div style={styles.skillDescription}>{skill.description}</div>
-                </div>
-              );
-            })
-          )
-        ) : naturalFavorites.length === 0 ? (
+        {skillFavorites.length === 0 ? (
           <div style={styles.emptyState}>
             {t("favorites.empty") || "No favorites yet, add one!"}
           </div>
         ) : (
-          naturalFavorites.map((item) => {
-            const isHovered = hoveredId === item.id;
+          skillFavorites.map((skill) => {
+            const isHovered = hoveredId === skill.id;
             return (
               <div
-                key={item.id}
+                key={skill.id}
                 style={{
-                  ...styles.naturalCard,
-                  ...(isHovered ? styles.naturalCardHovered : {}),
+                  ...styles.skillCard,
+                  ...(isHovered ? styles.skillCardHovered : {}),
                 }}
-                onMouseEnter={() => setHoveredId(item.id)}
+                onMouseEnter={() => setHoveredId(skill.id)}
                 onMouseLeave={() => setHoveredId(null)}
               >
-                <div style={styles.naturalContent}>
-                  <div style={styles.naturalText}>💬 {item.content}</div>
-                  <div style={styles.naturalTime}>
-                    {formatDate(item.createdAt)}
+                <div style={styles.skillHeader}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      flex: 1,
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <span style={styles.skillName}>{skill.name}</span>
+                    <span style={styles.skillVersion}>v{skill.version}</span>
+                  </div>
+                  <div style={styles.rightActions}>
+                    <button
+                      style={styles.iconButton}
+                      onClick={() => handleRun(skill)}
+                      title={t("market.run") || "Run"}
+                    >
+                      <PlayIcon size={12} />
+                    </button>
+                    <button
+                      style={{ ...styles.iconButton, color: "#f59e0b" }}
+                      onClick={() => handleDelete(skill.id)}
+                      title={t("market.unfavorite") || "Remove"}
+                    >
+                      <StarFilledIcon size={12} />
+                    </button>
                   </div>
                 </div>
-                <div style={styles.rightActions}>
-                  <button
-                    style={{ ...styles.iconButton, color: "#f59e0b" }}
-                    onClick={() => {
-                      setNaturalFavorites(
-                        naturalFavorites.filter((f) => f.id !== item.id),
-                      );
-                    }}
-                    title="Remove"
-                  >
-                    <StarFilledIcon size={12} />
-                  </button>
+                <div style={styles.skillMeta}>
+                  <div style={styles.authorInfo}>
+                    {skill.author_avatar ? (
+                      <img
+                        src={skill.author_avatar}
+                        alt={skill.author}
+                        style={styles.authorAvatar}
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = "none";
+                        }}
+                      />
+                    ) : (
+                      <div
+                        style={{
+                          ...styles.authorAvatarPlaceholder,
+                          background: getAuthorColor(skill.author),
+                        }}
+                      >
+                        {skill.author.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    <span>{skill.author}</span>
+                  </div>
+                  <span>📁 {skill.category}</span>
                 </div>
+                <div style={styles.skillDescription}>{skill.description}</div>
               </div>
             );
           })

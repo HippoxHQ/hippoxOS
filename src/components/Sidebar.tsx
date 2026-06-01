@@ -600,6 +600,7 @@ const PopupMenu: React.FC<PopupMenuProps> = ({
                                   className={`popup-sub-sub-item ${activeSubSubId === grandChild.id ? "active" : ""}`}
                                   onClick={() => {
                                     onMenuClick("settings", grandChild.id);
+                                    onClose();
                                   }}
                                 >
                                   <span>{t(grandChild.label)}</span>
@@ -637,6 +638,7 @@ const PopupMenu: React.FC<PopupMenuProps> = ({
                         } else {
                           onMenuClick(child.id);
                         }
+                        onClose();
                       }}
                     >
                       <span>{t(child.label)}</span>
@@ -684,6 +686,7 @@ const PopupMenu: React.FC<PopupMenuProps> = ({
               } else {
                 onMenuClick(item.id);
               }
+              onClose();
             }}
           >
             <span className="popup-menu-label">{t(item.label)}</span>
