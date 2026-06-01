@@ -5,6 +5,7 @@ export const zh = {
     newSessionDesc: '新创建的对话',
   },
   skillsManager: {
+    uncategorized: "未分类",
     tagsAndCategory: "标签与分类",
     category: "分类",
     categoryPlaceholder: "输入分类后按回车",
@@ -844,6 +845,7 @@ export const en: typeof zh = {
     newSessionDesc: 'Newly created session',
   },
   skillsManager: {
+    uncategorized: "Uncategorized",
     category: "Category",
     categoryPlaceholder: "Enter category and press Enter",
     tagsAndCategory: "Tags & Category",

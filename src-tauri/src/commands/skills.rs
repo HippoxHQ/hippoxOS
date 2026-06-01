@@ -21,16 +21,6 @@ pub struct SkillParameterInfo {
     pub required: bool,
 }
 
-// pub struct AppState {
-//     pub skills_dir: PathBuf,
-// }
-
-// impl AppState {
-//     pub fn new(skills_dir: PathBuf) -> Self {
-//         Self { skills_dir }
-//     }
-// }
-
 #[tauri::command]
 pub fn get_atomic_skills() -> Vec<AtomicSkillInfo> {
     let skill_names = registry::list_skills();
@@ -219,12 +209,10 @@ fn parse_skill_from_markdown(path: &PathBuf, skill_id: &str) -> Result<SkillData
         fs::read_to_string(path).map_err(|e| format!("Failed to read SKILL.md: {}", e))?;
     let mut name = String::new();
     let mut description = String::new();
-    let mut category = String::new();
     let mut tags = String::new();
     let mut created_at = String::new();
     let mut updated_at = String::new();
     let mut steps = Vec::new();
-    // Parse frontmatter
     if content.starts_with("---") {
         if let Some(end_idx) = content[3..].find("---") {
             let frontmatter = &content[3..3 + end_idx];
@@ -237,7 +225,6 @@ fn parse_skill_from_markdown(path: &PathBuf, skill_id: &str) -> Result<SkillData
                     match key {
                         "name" => name = value.to_string(),
                         "description" => description = value.to_string(),
-                        "category" => category = value.to_string(),
                         "tags" => tags = value.to_string(),
                         "created_at" => created_at = value.to_string(),
                         "updated_at" => updated_at = value.to_string(),
@@ -245,11 +232,14 @@ fn parse_skill_from_markdown(path: &PathBuf, skill_id: &str) -> Result<SkillData
                     }
                 }
             }
+            // Parse steps from body
             let mut current_step: Option<SkillStep> = None;
             let lines: Vec<&str> = body.lines().collect();
             let mut i = 0;
+
             while i < lines.len() {
                 let line = lines[i];
+
                 if line.starts_with("## Step ") {
                     // Save previous step
                     if let Some(step) = current_step.take() {
@@ -289,12 +279,12 @@ fn parse_skill_from_markdown(path: &PathBuf, skill_id: &str) -> Result<SkillData
                 }
                 i += 1;
             }
+
             if let Some(step) = current_step {
                 steps.push(step);
             }
         }
     }
-
     Ok(SkillData {
         id: skill_id.to_string(),
         name: if name.is_empty() {
@@ -303,11 +293,7 @@ fn parse_skill_from_markdown(path: &PathBuf, skill_id: &str) -> Result<SkillData
             name
         },
         description,
-        category: if category.is_empty() {
-            "general".to_string()
-        } else {
-            category
-        },
+        category: "other".to_string(),
         tags,
         steps,
         created_at: if created_at.is_empty() {
@@ -386,23 +372,39 @@ pub async fn cmd_list_local_skills() -> Result<Vec<SkillData>, String> {
         return Ok(vec![]);
     }
     let mut skills = Vec::new();
-    for entry in
+    for category_entry in
         fs::read_dir(&skills_dir).map_err(|e| format!("Failed to read skills directory: {}", e))?
     {
-        let entry = entry.map_err(|e| format!("Failed to read entry: {}", e))?;
-        let path = entry.path();
-        if path.is_dir() {
-            let skill_id = path
+        let category_entry = category_entry.map_err(|e| format!("Failed to read entry: {}", e))?;
+        let category_path = category_entry.path();
+        if category_path.is_dir() {
+            let category_name = category_path
                 .file_name()
                 .unwrap_or_default()
                 .to_string_lossy()
                 .to_string();
-            let skill_md_path = path.join("SKILL.md");
-
-            if skill_md_path.exists() {
-                match parse_skill_from_markdown(&skill_md_path, &skill_id) {
-                    Ok(skill) => skills.push(skill),
-                    Err(e) => eprintln!("Failed to parse skill {}: {}", skill_id, e),
+            for skill_entry in fs::read_dir(&category_path)
+                .map_err(|e| format!("Failed to read category dir: {}", e))?
+            {
+                let skill_entry =
+                    skill_entry.map_err(|e| format!("Failed to read entry: {}", e))?;
+                let skill_path = skill_entry.path();
+                if skill_path.is_dir() {
+                    let skill_id = skill_path
+                        .file_name()
+                        .unwrap_or_default()
+                        .to_string_lossy()
+                        .to_string();
+                    let skill_md_path = skill_path.join("SKILL.md");
+                    if skill_md_path.exists() {
+                        match parse_skill_from_markdown(&skill_md_path, &skill_id) {
+                            Ok(mut skill) => {
+                                skill.category = category_name.clone();
+                                skills.push(skill);
+                            }
+                            Err(e) => eprintln!("Failed to parse skill {}: {}", skill_id, e),
+                        }
+                    }
                 }
             }
         }

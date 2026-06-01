@@ -1,5 +1,3 @@
-// SkillsManagerCardGrid.tsx
-
 import React, { useState, useEffect } from "react";
 import { skillsLocalCommands, skillsMarketCommands } from "../../api/skills";
 import { SkillData } from "../../types/skill";
@@ -32,8 +30,6 @@ const SkillsManagerCardGrid: React.FC<SkillsManagerCardGridProps> = ({
     new Set(),
   );
   const [favoritingId, setFavoritingId] = useState<string | null>(null);
-
-  // 加载收藏状态
   useEffect(() => {
     loadFavorites();
   }, []);
@@ -291,13 +287,11 @@ const SkillsManagerCardGrid: React.FC<SkillsManagerCardGridProps> = ({
           --hover-bg: rgba(0, 0, 0, 0.04);
         }
       `}</style>
-
       <div className="cards-container">
         <div className="skill-card add-card" onClick={onCreateNew}>
           <div className="add-icon">➕</div>
           <div className="add-text">{t("skillsManager.createNew")}</div>
         </div>
-
         {externalSkills.map((skill) => {
           const isFavorited = favoritedSkills.has(skill.id);
           return (
