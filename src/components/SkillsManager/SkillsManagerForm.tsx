@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Skill, StepMaterial } from "./types";
 
-interface SkillEditorFormProps {
+interface SkillsManagerFormProps {
   t: (key: string, params?: any) => string;
   skill: Skill;
   onUpdate: (skill: Skill) => void;
@@ -13,7 +13,7 @@ interface SkillEditorFormProps {
   >;
 }
 
-const SkillEditorForm: React.FC<SkillEditorFormProps> = ({
+const SkillsManagerForm: React.FC<SkillsManagerFormProps> = ({
   t,
   skill,
   onUpdate,
@@ -24,6 +24,7 @@ const SkillEditorForm: React.FC<SkillEditorFormProps> = ({
 }) => {
   const [tagList, setTagList] = useState<string[]>([]);
   const [currentTagInput, setCurrentTagInput] = useState("");
+  const [currentCategoryInput, setCurrentCategoryInput] = useState("");
   const [isNameFocused, setIsNameFocused] = useState(false);
   const [isDescFocused, setIsDescFocused] = useState(false);
   const [isExampleFocused, setIsExampleFocused] = useState(false);
@@ -48,6 +49,23 @@ const SkillEditorForm: React.FC<SkillEditorFormProps> = ({
       setTagList([]);
     }
   }, [skill.id]);
+
+  useEffect(() => {
+    const category = skill.category;
+    if (category && category !== "other") {
+      setCurrentCategoryInput(category);
+    } else {
+      setCurrentCategoryInput("");
+    }
+  }, [skill.category, skill.id]);
+
+  useEffect(() => {
+    if (skill.category && skill.category !== "other") {
+      setCurrentCategoryInput(skill.category);
+    } else {
+      setCurrentCategoryInput("");
+    }
+  }, [skill.category]);
 
   const updateField = (
     field: keyof Omit<Skill, "id" | "steps">,
@@ -160,6 +178,13 @@ const SkillEditorForm: React.FC<SkillEditorFormProps> = ({
     onUpdate({ ...skill, tags: newTags.join(",") });
   };
 
+  const updateCategory = (category: string) => {
+    const trimmed = category.trim();
+    const finalCategory = trimmed || "other";
+    onUpdate({ ...skill, category: finalCategory });
+    setCurrentCategoryInput("");
+  };
+
   const getAvailableDependencies = (currentStepId: string) => {
     const currentIndex = skill.steps.findIndex((s) => s.id === currentStepId);
     return skill.steps.filter((_, idx) => idx < currentIndex);
@@ -171,7 +196,7 @@ const SkillEditorForm: React.FC<SkillEditorFormProps> = ({
     hasValue: boolean,
   ) => {
     if (isFocused || hasValue) return "";
-    return t("skillEditor.stepPlaceholder", { index: index + 1 });
+    return t("skillsManager.stepPlaceholder", { index: index + 1 });
   };
 
   const getMaterialPlaceholder = (
@@ -183,7 +208,7 @@ const SkillEditorForm: React.FC<SkillEditorFormProps> = ({
     if (isFocused || hasValue) return "";
     if (type === "link") return "https://...";
     if (type === "path") return "/path/to/file";
-    return t("skillEditor.notePlaceholder") || "...";
+    return t("skillsManager.notePlaceholder") || "...";
   };
 
   const getSchemaPlaceholder = (
@@ -274,7 +299,15 @@ const SkillEditorForm: React.FC<SkillEditorFormProps> = ({
     font-family: 'JetBrains Mono', 'Fira Code', monospace;
   }
 
+  .tags-category-row {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
   .tags-container {
+    flex: 2;
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -290,6 +323,31 @@ const SkillEditorForm: React.FC<SkillEditorFormProps> = ({
   .tags-container:focus-within {
     border-color: var(--accent-color);
     box-shadow: 0 0 0 2px var(--accent-glow);
+  }
+
+  .category-container {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    min-height: 40px;
+    transition: all 0.2s ease;
+  }
+
+  .category-container:focus-within {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 2px var(--accent-glow);
+  }
+
+  .category-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    white-space: nowrap;
   }
 
   .tag-bubble {
@@ -334,6 +392,21 @@ const SkillEditorForm: React.FC<SkillEditorFormProps> = ({
   }
 
   .tag-input::placeholder {
+    color: var(--text-tertiary);
+    font-size: 12px;
+  }
+
+  .category-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: var(--text-primary);
+    font-size: 13px;
+    padding: 6px 0;
+    outline: none;
+  }
+
+  .category-input::placeholder {
     color: var(--text-tertiary);
     font-size: 12px;
   }
@@ -591,6 +664,122 @@ const SkillEditorForm: React.FC<SkillEditorFormProps> = ({
     background: var(--accent-glow);
   }
 
+  .two-column-labels {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.column-label {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.two-column-row {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.tags-container {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  min-height: 40px;
+  transition: all 0.2s ease;
+}
+
+.tags-container:focus-within {
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 2px var(--accent-glow);
+}
+
+.category-container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  padding: 6px 12px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  min-height: 40px;
+  transition: all 0.2s ease;
+}
+
+.category-container:focus-within {
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 2px var(--accent-glow);
+}
+
+.tag-bubble {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  background: var(--accent-color);
+  color: white;
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: 14px;
+}
+
+.tag-remove {
+  background: transparent;
+  border: none;
+  color: white;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 0;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  opacity: 0.7;
+  transition: opacity 0.15s;
+}
+
+.tag-remove:hover {
+  opacity: 1;
+}
+
+.tag-input {
+  flex: 1;
+  min-width: 80px;
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-size: 13px;
+  padding: 6px 0;
+  outline: none;
+}
+
+.tag-input::placeholder {
+  color: var(--text-tertiary);
+  font-size: 12px;
+}
+
+.category-input {
+  width: 100%;
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-size: 13px;
+  padding: 6px 0;
+  outline: none;
+}
+
+.category-input::placeholder {
+  color: var(--text-tertiary);
+  font-size: 12px;
+}
+
   :root {
     --bg-primary: #0f1117;
     --bg-secondary: #1a1d26;
@@ -623,10 +812,10 @@ const SkillEditorForm: React.FC<SkillEditorFormProps> = ({
       <div className="form-section">
         <div className="form-section-title">
           <span>📝</span>
-          {t("skillEditor.basicInfo")}
+          {t("skillsManager.basicInfo")}
         </div>
         <label className="form-label required">
-          {t("skillEditor.skillName")}
+          {t("skillsManager.skillName")}
         </label>
         <input
           type="text"
@@ -638,7 +827,7 @@ const SkillEditorForm: React.FC<SkillEditorFormProps> = ({
           placeholder={
             isNameFocused || skill.name
               ? ""
-              : t("skillEditor.skillNamePlaceholder")
+              : t("skillsManager.skillNamePlaceholder")
           }
         />
         {errors.name && <div className="error-message">{errors.name}</div>}
@@ -648,10 +837,10 @@ const SkillEditorForm: React.FC<SkillEditorFormProps> = ({
       <div className="form-section">
         <div className="form-section-title">
           <span>📖</span>
-          {t("skillEditor.skillDesc")}
+          {t("skillsManager.skillDesc")}
         </div>
         <label className="form-label required">
-          {t("skillEditor.skillDescLabel")}
+          {t("skillsManager.skillDescLabel")}
         </label>
         <textarea
           className={`form-textarea ${errors.description ? "error" : ""}`}
@@ -663,7 +852,7 @@ const SkillEditorForm: React.FC<SkillEditorFormProps> = ({
           placeholder={
             isDescFocused || skill.description
               ? ""
-              : t("skillEditor.skillDescPlaceholder")
+              : t("skillsManager.skillDescPlaceholder")
           }
         />
         {errors.description && (
@@ -675,7 +864,7 @@ const SkillEditorForm: React.FC<SkillEditorFormProps> = ({
       <div className="form-section">
         <div className="form-section-title">
           <span>🔄</span>
-          {t("skillEditor.executionSteps")}
+          {t("skillsManager.executionSteps")}
         </div>
         <div className="steps-list">
           {skill.steps.map((step, index) => {
@@ -716,7 +905,7 @@ const SkillEditorForm: React.FC<SkillEditorFormProps> = ({
                       className="step-action-btn"
                       onClick={() => addMaterial(step.id)}
                     >
-                      + {t("skillEditor.addMaterial")}
+                      + {t("skillsManager.addMaterial")}
                     </button>
                     {skill.steps.length > 1 && (
                       <button
@@ -732,7 +921,7 @@ const SkillEditorForm: React.FC<SkillEditorFormProps> = ({
                 {availableDeps.length > 0 && (
                   <div className="dependencies-section">
                     <div className="dependencies-title">
-                      🔗 {t("skillEditor.dependencies")}
+                      🔗 {t("skillsManager.dependencies")}
                     </div>
                     <div className="dependencies-list">
                       {availableDeps.map((depStep, depIdx) => (
@@ -741,7 +930,7 @@ const SkillEditorForm: React.FC<SkillEditorFormProps> = ({
                           className={`dependency-chip ${step.dependencies.includes(depStep.id) ? "selected" : ""}`}
                           onClick={() => toggleDependency(step.id, depStep.id)}
                         >
-                          {t("skillEditor.step")}{" "}
+                          {t("skillsManager.step")}{" "}
                           {skill.steps.findIndex((s) => s.id === depStep.id) +
                             1}
                         </div>
@@ -753,7 +942,7 @@ const SkillEditorForm: React.FC<SkillEditorFormProps> = ({
                 {step.materials.length > 0 && (
                   <div className="materials-section">
                     <div className="materials-title">
-                      📎 {t("skillEditor.allowedMaterials")}
+                      📎 {t("skillsManager.allowedMaterials")}
                     </div>
                     <div className="materials-list">
                       {step.materials.map((material) => {
@@ -785,13 +974,13 @@ const SkillEditorForm: React.FC<SkillEditorFormProps> = ({
                                 }
                               >
                                 <option value="link">
-                                  🔗 {t("skillEditor.link")}
+                                  🔗 {t("skillsManager.link")}
                                 </option>
                                 <option value="path">
-                                  📁 {t("skillEditor.path")}
+                                  📁 {t("skillsManager.path")}
                                 </option>
                                 <option value="note">
-                                  📝 {t("skillEditor.note")}
+                                  📝 {t("skillsManager.note")}
                                 </option>
                               </select>
                               <input
@@ -837,7 +1026,7 @@ const SkillEditorForm: React.FC<SkillEditorFormProps> = ({
                             {material.type === "link" && (
                               <div className="material-schema">
                                 <div className="schema-label">
-                                  📥 {t("skillEditor.inputParams")}
+                                  📥 {t("skillsManager.inputParams")}
                                 </div>
                                 <textarea
                                   className="schema-textarea"
@@ -870,7 +1059,7 @@ const SkillEditorForm: React.FC<SkillEditorFormProps> = ({
                                   )}
                                 />
                                 <div className="schema-label">
-                                  📤 {t("skillEditor.outputParams")}
+                                  📤 {t("skillsManager.outputParams")}
                                 </div>
                                 <textarea
                                   className="schema-textarea"
@@ -915,49 +1104,96 @@ const SkillEditorForm: React.FC<SkillEditorFormProps> = ({
           })}
         </div>
         <button className="add-step-btn" onClick={addStep}>
-          + {t("skillEditor.addStep")}
+          + {t("skillsManager.addStep")}
         </button>
       </div>
       <div className="form-divider" />
-
       <div className="form-section">
-        <div className="form-section-title">
-          <span>🏷️</span>
-          {t("skillEditor.tags")}
-        </div>
-        <div className="tags-container">
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
-            {tagList.map((tag, idx) => (
-              <span key={idx} className="tag-bubble">
-                {tag}
-                <button className="tag-remove" onClick={() => removeTag(idx)}>
-                  ×
-                </button>
-              </span>
-            ))}
+        <div className="two-column-labels">
+          <div className="column-label">
+            <div className="form-section-title">
+              <span>🏷️</span>
+              {t("skillsManager.tags")}
+            </div>
           </div>
-          <input
-            type="text"
-            className="tag-input"
-            placeholder={t("skillEditor.tagsPlaceholder")}
-            value={currentTagInput}
-            onChange={(e) => setCurrentTagInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                addTag(currentTagInput.trim());
-                setCurrentTagInput("");
-              }
-            }}
-          />
+          <div className="column-label">
+            <div className="form-section-title">
+              <span>📁</span>
+              {t("skillsManager.category")}
+            </div>
+          </div>
+        </div>
+        <div className="two-column-row">
+          <div className="tags-container">
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+              {tagList.map((tag, idx) => (
+                <span key={idx} className="tag-bubble">
+                  {tag}
+                  <button className="tag-remove" onClick={() => removeTag(idx)}>
+                    ×
+                  </button>
+                </span>
+              ))}
+            </div>
+            <input
+              type="text"
+              className="tag-input"
+              placeholder={t("skillsManager.tagsPlaceholder")}
+              value={currentTagInput}
+              onChange={(e) => setCurrentTagInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  if (currentTagInput.trim()) {
+                    addTag(currentTagInput.trim());
+                    setCurrentTagInput("");
+                  }
+                }
+              }}
+            />
+          </div>
+          <div className="category-container">
+            <span
+              className="tag-bubble"
+              style={{ background: "var(--accent-color)" }}
+            >
+              {skill.category && skill.category !== "other"
+                ? skill.category
+                : "other"}
+              <button
+                className="tag-remove"
+                onClick={() => updateCategory("other")}
+              >
+                ×
+              </button>
+            </span>
+            <input
+              type="text"
+              className="category-input"
+              placeholder="other"
+              value={currentCategoryInput}
+              onChange={(e) => setCurrentCategoryInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  const value = currentCategoryInput.trim();
+                  if (value) {
+                    updateCategory(value);
+                  }
+                  setCurrentCategoryInput("");
+                }
+              }}
+            />
+          </div>
         </div>
       </div>
+
       <div className="form-divider" />
 
       <div className="form-section">
         <div className="form-section-title">
           <span>✨</span>
-          {t("skillEditor.example")}
+          {t("skillsManager.example")}
         </div>
         <textarea
           className="form-textarea"
@@ -969,7 +1205,7 @@ const SkillEditorForm: React.FC<SkillEditorFormProps> = ({
           placeholder={
             isExampleFocused || skill.example
               ? ""
-              : t("skillEditor.examplePlaceholder")
+              : t("skillsManager.examplePlaceholder")
           }
         />
       </div>
@@ -978,4 +1214,4 @@ const SkillEditorForm: React.FC<SkillEditorFormProps> = ({
   );
 };
 
-export default SkillEditorForm;
+export default SkillsManagerForm;

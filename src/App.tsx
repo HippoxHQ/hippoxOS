@@ -33,11 +33,10 @@ import Dialog from "./components/Dialog";
 import WelcomePage from "./components/WelcomePage";
 import GlobalDragOverlay from "./components/GlobalDragOverlay";
 import CustomDragCursor from "./components/CustomDragCursor";
-import { invoke } from "@tauri-apps/api/core";
 import { filesCommands } from "./api/files";
 import { getDataPaths } from "./api/paths";
 import FilePreview from "./components/FilePreview";
-import SkillEditor from "./components/SkillEditor";
+import SkillsManager from "./components/SkillsManager";
 
 function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -77,14 +76,14 @@ function App() {
   const [isFilePreviewOpen, setIsFilePreviewOpen] = useState(false);
   const [previewFile, setPreviewFile] = useState<UploadFile | null>(null);
   const [filePreviewWidth, setFilePreviewWidth] = useState(320);
-  const [showSkillEditor, setShowSkillEditor] = useState(false);
+  const [showSkillsManager, setShowSkillsManager] = useState(false);
 
-  const handleOpenSkillEditor = () => {
-    setShowSkillEditor(true);
+  const handleOpenSkillsManager = () => {
+    setShowSkillsManager(true);
   };
 
-  const handleCloseSkillEditor = () => {
-    setShowSkillEditor(false);
+  const handleCloseSkillsManager = () => {
+    setShowSkillsManager(false);
   };
 
   const handleFilePreview = (file: UploadFile) => {
@@ -673,7 +672,7 @@ function App() {
   }, []);
 
   const handleNewSession = async () => {
-    handleCloseSkillEditor();
+    handleCloseSkillsManager();
     const tempSessionId = `temp_${Date.now()}`;
     taskManager.loadSessionData(tempSessionId, [], [], []);
     setCurrentSessionId(tempSessionId);
@@ -683,7 +682,7 @@ function App() {
   const handleSwitchSession = async (sessionId: string) => {
     if (sessionId === currentSessionId) return;
     if (sessionId.startsWith("temp_")) return;
-    handleCloseSkillEditor();
+    handleCloseSkillsManager();
     try {
       if (currentSessionId && !currentSessionId.startsWith("temp_")) {
         const allData = taskManager.getAllData();
@@ -972,7 +971,7 @@ function App() {
             onNewSession={handleNewSession}
             currentSessionId={currentSessionId}
             onSwitchSession={handleSwitchSession}
-            onOpenSkillEditor={handleOpenSkillEditor}
+            onOpenSkillsManager={handleOpenSkillsManager}
             t={t}
           />
         )}
@@ -1025,10 +1024,10 @@ function App() {
           </>
         )}
 
-        {showSkillEditor ? (
-          <SkillEditor
+        {showSkillsManager ? (
+          <SkillsManager
             t={t}
-            onClose={handleCloseSkillEditor}
+            onClose={handleCloseSkillsManager}
             currentSessionId={currentSessionId}
           />
         ) : shouldShowWelcome() ? (

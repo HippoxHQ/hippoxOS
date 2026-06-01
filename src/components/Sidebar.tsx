@@ -21,7 +21,7 @@ interface SidebarProps {
   onNewSession?: () => void;
   currentSessionId?: string;
   onSwitchSession?: (sessionId: string) => void;
-  onOpenSkillEditor?: () => void;
+  onOpenSkillsManager?: () => void;
   t: (key: string, params?: any) => string;
 }
 
@@ -345,6 +345,18 @@ const topMenuItems: MenuItemWithSection[] = [
     section: "main",
   },
   {
+    id: "skillsManager",
+    icon: "skillsManager",
+    label: "menu.skillsManager",
+    section: "ai",
+  },
+  {
+    id: "skillMarket",
+    icon: "skillMarket",
+    label: "menu.skillMarket",
+    section: "ai",
+  },
+  {
     id: "workspace",
     icon: "workspace",
     label: "menu.workspace",
@@ -360,12 +372,6 @@ const topMenuItems: MenuItemWithSection[] = [
   //     { id: "skills", icon: "skills", label: "menu.skills" },
   //   ],
   // },
-  {
-    id: "skillMarket",
-    icon: "skillMarket",
-    label: "menu.skillMarket",
-    section: "ai",
-  },
   {
     id: "tasks_group",
     icon: "tasks",
@@ -710,7 +716,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   onNewSession,
   currentSessionId,
   onSwitchSession,
-  onOpenSkillEditor,
+  onOpenSkillsManager,
   t,
 }) => {
   const [activeId, setActiveId] = useState("history");
@@ -722,6 +728,13 @@ const Sidebar: React.FC<SidebarProps> = ({
   const iconRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
 
   const handleMenuClick = (id: string, subId?: string, subSubId?: string) => {
+    if (id === "skillsManager") {
+      setActiveId("skillsManager");
+      setActiveSubId(undefined);
+      setActiveSubSubId(undefined);
+      if (onOpenSkillsManager) onOpenSkillsManager();
+      return;
+    }
     if (id === "settings" && subId) {
       const configId = subId;
       setActiveId(configId);
@@ -819,6 +832,14 @@ const Sidebar: React.FC<SidebarProps> = ({
     itemId: string,
     e: React.MouseEvent<HTMLButtonElement>,
   ) => {
+    if (itemId === "skillsManager") {
+      setActiveId("skillsManager");
+      setActiveSubId(undefined);
+      setActiveSubSubId(undefined);
+      if (onOpenSkillsManager) onOpenSkillsManager();
+      setPopupVisible(false);
+      return;
+    }
     if (
       itemId === "history" ||
       itemId === "favorites" ||
@@ -907,6 +928,9 @@ const Sidebar: React.FC<SidebarProps> = ({
   };
 
   const isIconActive = (itemId: string): boolean => {
+    if (itemId === "skillsManager") {
+      return activeId === "skillsManager";
+    }
     if (itemId === "skillMarket") {
       return activeId === "skillMarket" || activeId === "skills";
     }
@@ -985,16 +1009,6 @@ const Sidebar: React.FC<SidebarProps> = ({
               onMouseLeave={handleMouseLeave}
             >
               <NewSessionIcon size={18} />
-            </button>
-            <button
-              className="new-session-icon-btn"
-              onClick={() => onOpenSkillEditor && onOpenSkillEditor()}
-              onMouseEnter={(e) =>
-                handleMouseEnter(e, t("menu.skillEditor") || "Skill Editor")
-              }
-              onMouseLeave={handleMouseLeave}
-            >
-              <EditIcon size={18} />
             </button>
           </div>
           <nav className="sidebar-nav-top">

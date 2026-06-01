@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
-import SkillEditorSidebar from "./SkillEditorSidebar";
-import SkillCardGrid from "./SkillCardGrid";
-import SkillEditorForm from "./SkillEditorForm";
-import SkillMarkdownPreview from "./SkillMarkdownPreview";
+import SkillsManagerSidebar from "./SkillsManagerSidebar";
+import SkillCardGrid from "./SkillsManagerCardGrid";
+import SkillsManagerForm from "./SkillsManagerForm";
+import SkillMarkdownPreview from "./SkillsManagerMarkdownPreview";
 import { skillsLocalCommands } from "../../api/skills";
 import {
   SkillData,
@@ -12,7 +12,7 @@ import {
 } from "../../types/skill";
 import { showToast, ToastType } from "../Toast";
 
-interface SkillEditorProps {
+interface SkillsManagerProps {
   t: (key: string, params?: any) => string;
   onClose?: () => void;
   currentSessionId?: string;
@@ -59,7 +59,7 @@ const sanitizeFolderName = (name: string): string => {
     .trim();
 };
 
-const SkillEditor: React.FC<SkillEditorProps> = ({
+const SkillsManager: React.FC<SkillsManagerProps> = ({
   t,
   onClose,
   currentSessionId,
@@ -124,10 +124,10 @@ const SkillEditor: React.FC<SkillEditorProps> = ({
   const validate = (skill: any): boolean => {
     const newErrors: { name?: string; description?: string } = {};
     if (!skill.name?.trim()) {
-      newErrors.name = t("skillEditor.errorNameRequired");
+      newErrors.name = t("skillsManager.errorNameRequired");
     }
     if (!skill.description?.trim()) {
-      newErrors.description = t("skillEditor.errorDescriptionRequired");
+      newErrors.description = t("skillsManager.errorDescriptionRequired");
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -148,7 +148,7 @@ const SkillEditor: React.FC<SkillEditorProps> = ({
           steps: backendSteps,
         };
         await skillsLocalCommands.updateSkill(request);
-        showToast(ToastType.SUCCESS, t("skillEditor.saveSuccess"));
+        showToast(ToastType.SUCCESS, t("skillsManager.saveSuccess"));
       } else {
         const request: CreateSkillRequest = {
           name: currentFrontendSkill.name,
@@ -158,7 +158,7 @@ const SkillEditor: React.FC<SkillEditorProps> = ({
           steps: backendSteps,
         };
         await skillsLocalCommands.createSkill(request);
-        showToast(ToastType.SUCCESS, t("skillEditor.createSuccess"));
+        showToast(ToastType.SUCCESS, t("skillsManager.createSuccess"));
       }
       await loadData();
       setHasChanges(false);
@@ -167,7 +167,7 @@ const SkillEditor: React.FC<SkillEditorProps> = ({
       setCurrentFrontendSkill(null);
     } catch (error) {
       console.error("Failed to save skill:", error);
-      showToast(ToastType.ERROR, t("skillEditor.saveFailed"));
+      showToast(ToastType.ERROR, t("skillsManager.saveFailed"));
     }
   };
 
@@ -188,7 +188,7 @@ const SkillEditor: React.FC<SkillEditorProps> = ({
       ],
       tags: "",
       example: "",
-      category: "general",
+      category: "other",
     });
     setShowEditor(true);
     setHasChanges(false);
@@ -198,13 +198,16 @@ const SkillEditor: React.FC<SkillEditorProps> = ({
   const deleteSkill = async (skill: SkillData, e: React.MouseEvent) => {
     e.stopPropagation();
     // eslint-disable-next-line no-restricted-globals
-    if (confirm(t("skillEditor.confirmDelete", { name: skill.name }))) {
+    if (confirm(t("skillsManager.confirmDelete", { name: skill.name }))) {
       try {
-        await skillsLocalCommands.deleteSkill(skill.id);
+        await skillsLocalCommands.deleteSkill(
+          skill.id,
+          skill.category || "other",
+        );
         await loadData();
         showToast(
           ToastType.SUCCESS,
-          t("skillEditor.deleteSuccess", { name: skill.name }),
+          t("skillsManager.deleteSuccess", { name: skill.name }),
         );
         if (currentSkill?.id === skill.id) {
           setCurrentSkill(null);
@@ -213,7 +216,7 @@ const SkillEditor: React.FC<SkillEditorProps> = ({
         }
       } catch (error) {
         console.error("Failed to delete skill:", error);
-        showToast(ToastType.ERROR, t("skillEditor.deleteFailed"));
+        showToast(ToastType.ERROR, t("skillsManager.deleteFailed"));
       }
     }
   };
@@ -230,7 +233,7 @@ const SkillEditor: React.FC<SkillEditorProps> = ({
     if (history.action === "delete") {
       showToast(
         ToastType.INFO,
-        t("skillEditor.deletedSkillCannotEdit", { name: history.skill_name }),
+        t("skillsManager.deletedSkillCannotEdit", { name: history.skill_name }),
       );
       return;
     }
@@ -240,7 +243,7 @@ const SkillEditor: React.FC<SkillEditorProps> = ({
     } else {
       showToast(
         ToastType.WARNING,
-        t("skillEditor.skillNotFound", { name: history.skill_name }),
+        t("skillsManager.skillNotFound", { name: history.skill_name }),
       );
     }
   };
@@ -346,7 +349,7 @@ const SkillEditor: React.FC<SkillEditorProps> = ({
 
   return (
     <div style={styles.container}>
-      <SkillEditorSidebar
+      <SkillsManagerSidebar
         t={t}
         skills={skills}
         onSelectHistory={handleSelectHistory}
@@ -367,7 +370,7 @@ const SkillEditor: React.FC<SkillEditorProps> = ({
               <div style={styles.toolbar}>
                 <div>
                   <h2 style={styles.title}>
-                    {currentFrontendSkill.name || t("skillEditor.unnamed")}
+                    {currentFrontendSkill.name || t("skillsManager.unnamed")}
                   </h2>
                 </div>
                 <div style={styles.actions}>
@@ -379,7 +382,7 @@ const SkillEditor: React.FC<SkillEditorProps> = ({
                       }}
                       onClick={() => setViewMode("form")}
                     >
-                      📝 {t("skillEditor.config")}
+                      📝 {t("skillsManager.config")}
                     </button>
                     <button
                       style={{
@@ -390,7 +393,7 @@ const SkillEditor: React.FC<SkillEditorProps> = ({
                       }}
                       onClick={() => setViewMode("markdown")}
                     >
-                      📄 {t("skillEditor.raw")}
+                      📄 {t("skillsManager.raw")}
                     </button>
                   </div>
                   <button
@@ -402,15 +405,15 @@ const SkillEditor: React.FC<SkillEditorProps> = ({
                     onClick={saveCurrentSkill}
                     disabled={!hasChanges}
                   >
-                    💾 {t("skillEditor.save")}
+                    💾 {t("skillsManager.save")}
                   </button>
                   <button style={styles.editorBtn} onClick={closeEditor}>
-                    ✕ {t("skillEditor.close")}
+                    ✕ {t("skillsManager.close")}
                   </button>
                 </div>
               </div>
               {viewMode === "form" ? (
-                <SkillEditorForm
+                <SkillsManagerForm
                   t={t}
                   skill={currentFrontendSkill}
                   onUpdate={updateCurrentSkill}
@@ -430,4 +433,4 @@ const SkillEditor: React.FC<SkillEditorProps> = ({
   );
 };
 
-export default SkillEditor;
+export default SkillsManager;

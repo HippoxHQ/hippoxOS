@@ -1,8 +1,11 @@
-import React, { useState, useEffect } from "react";
-import { skillsLocalCommands } from "../../api/skills";
-import { SkillData } from "../../types/skill";
+// SkillsManagerCardGrid.tsx
 
-interface SkillCardGridProps {
+import React, { useState, useEffect } from "react";
+import { skillsLocalCommands, skillsMarketCommands } from "../../api/skills";
+import { SkillData } from "../../types/skill";
+import { StarIcon, StarFilledIcon, PlayIcon } from "../../icons";
+
+interface SkillsManagerCardGridProps {
   t: (key: string, params?: any) => string;
   skills: SkillData[];
   onCreateNew: () => void;
@@ -13,7 +16,7 @@ interface SkillCardGridProps {
   onRefresh?: () => void;
 }
 
-const SkillCardGrid: React.FC<SkillCardGridProps> = ({
+const SkillsManagerCardGrid: React.FC<SkillsManagerCardGridProps> = ({
   t,
   skills: externalSkills,
   onCreateNew,
@@ -28,46 +31,64 @@ const SkillCardGrid: React.FC<SkillCardGridProps> = ({
   const [favoritedSkills, setFavoritedSkills] = useState<Set<string>>(
     new Set(),
   );
+  const [favoritingId, setFavoritingId] = useState<string | null>(null);
 
+  // 加载收藏状态
   useEffect(() => {
-    // Load favorited skills from localStorage
-    const saved = localStorage.getItem("favorited_skills");
-    if (saved) {
-      try {
-        setFavoritedSkills(new Set(JSON.parse(saved)));
-      } catch (e) {}
-    }
+    loadFavorites();
   }, []);
+
+  const loadFavorites = async () => {
+    try {
+      const favoritedIds = await skillsMarketCommands.getFavoritedSkills();
+      setFavoritedSkills(new Set(favoritedIds));
+    } catch (error) {
+      console.error("Failed to load favorites:", error);
+    }
+  };
+
+  const handleFavorite = async (skill: SkillData, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setFavoritingId(skill.id);
+    try {
+      const isFavorited = favoritedSkills.has(skill.id);
+      if (isFavorited) {
+        await skillsMarketCommands.unfavoriteSkill(skill.id);
+        setFavoritedSkills((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(skill.id);
+          return newSet;
+        });
+      } else {
+        await skillsMarketCommands.favoriteSkill(skill.id);
+        setFavoritedSkills((prev) => {
+          const newSet = new Set(prev);
+          newSet.add(skill.id);
+          return newSet;
+        });
+      }
+      onFavorite?.(skill);
+    } catch (error) {
+      console.error("Failed to toggle favorite:", error);
+    } finally {
+      setFavoritingId(null);
+    }
+  };
 
   const handleDelete = async (skill: SkillData, e: React.MouseEvent) => {
     e.stopPropagation();
     // eslint-disable-next-line no-restricted-globals
-    if (confirm(t("skillEditor.confirmDelete"))) {
+    if (confirm(t("skillsManager.confirmDelete"))) {
       try {
-        await skillsLocalCommands.deleteSkill(skill.id);
+        await skillsLocalCommands.deleteSkill(
+          skill.id,
+          skill.category || "other",
+        );
         onRefresh?.();
       } catch (error) {
         console.error("Failed to delete skill:", error);
       }
     }
-  };
-
-  const handleFavorite = (skill: SkillData, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setFavoritedSkills((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(skill.id)) {
-        newSet.delete(skill.id);
-      } else {
-        newSet.add(skill.id);
-      }
-      localStorage.setItem(
-        "favorited_skills",
-        JSON.stringify(Array.from(newSet)),
-      );
-      return newSet;
-    });
-    onFavorite?.(skill);
   };
 
   const handleRun = (skill: SkillData, e: React.MouseEvent) => {
@@ -274,7 +295,7 @@ const SkillCardGrid: React.FC<SkillCardGridProps> = ({
       <div className="cards-container">
         <div className="skill-card add-card" onClick={onCreateNew}>
           <div className="add-icon">➕</div>
-          <div className="add-text">{t("skillEditor.createNew")}</div>
+          <div className="add-text">{t("skillsManager.createNew")}</div>
         </div>
 
         {externalSkills.map((skill) => {
@@ -289,26 +310,31 @@ const SkillCardGrid: React.FC<SkillCardGridProps> = ({
             >
               <div className="card-header">
                 <div className="card-name">
-                  {skill.name || t("skillEditor.unnamed")}
+                  {skill.name || t("skillsManager.unnamed")}
                 </div>
                 <div className="card-actions">
                   <button
                     className={`icon-btn ${isFavorited ? "active" : ""}`}
                     onClick={(e) => handleFavorite(skill, e)}
+                    disabled={favoritingId === skill.id}
                     title={
                       isFavorited
-                        ? t("skillEditor.unfavorite")
-                        : t("skillEditor.favorite")
+                        ? t("skillsManager.unfavorite")
+                        : t("skillsManager.favorite")
                     }
                   >
-                    {isFavorited ? "⭐" : "☆"}
+                    {isFavorited ? (
+                      <StarFilledIcon size={14} />
+                    ) : (
+                      <StarIcon size={14} />
+                    )}
                   </button>
                   <button
                     className="icon-btn"
                     onClick={(e) => handleRun(skill, e)}
-                    title={t("skillEditor.run")}
+                    title={t("skillsManager.run")}
                   >
-                    ▶
+                    <PlayIcon size={14} />
                   </button>
                   <button
                     className="icon-btn danger"
@@ -317,7 +343,7 @@ const SkillCardGrid: React.FC<SkillCardGridProps> = ({
                         ? onDeleteSkill(skill, e)
                         : handleDelete(skill, e)
                     }
-                    title={t("skillEditor.delete")}
+                    title={t("skillsManager.delete")}
                   >
                     🗑️
                   </button>
@@ -328,7 +354,7 @@ const SkillCardGrid: React.FC<SkillCardGridProps> = ({
                 <span className="card-steps">{skill.steps.length} steps</span>
               </div>
               <div className="card-description">
-                {skill.description || t("skillEditor.noDescription")}
+                {skill.description || t("skillsManager.noDescription")}
               </div>
               <div className="card-tags">
                 {skill.tags &&
@@ -349,4 +375,4 @@ const SkillCardGrid: React.FC<SkillCardGridProps> = ({
   );
 };
 
-export default SkillCardGrid;
+export default SkillsManagerCardGrid;

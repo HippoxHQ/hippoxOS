@@ -143,12 +143,16 @@ pub fn get_skills_local_dir() -> PathBuf {
     get_app_root_dir().join("skills")
 }
 
-pub fn get_skill_dir(skill_id: &str) -> PathBuf {
-    get_skills_local_dir().join(skill_id)
+pub fn get_skill_dir(category: &str, skill_id: &str) -> PathBuf {
+    let safe_category = category
+        .to_lowercase()
+        .replace(|c: char| !c.is_alphanumeric() && c != '_' && c != '-', "_")
+        .replace(" ", "_");
+    get_skills_local_dir().join(safe_category).join(skill_id)
 }
 
-pub fn get_skill_md_path(skill_id: &str) -> PathBuf {
-    get_skill_dir(skill_id).join("SKILL.md")
+pub fn get_skill_md_path(category: &str, skill_id: &str) -> PathBuf {
+    get_skill_dir(category, skill_id).join("SKILL.md")
 }
 
 pub fn get_skills_dir() -> PathBuf {
@@ -409,6 +413,15 @@ pub async fn cmd_list_local_skills() -> Result<Vec<SkillData>, String> {
 #[tauri::command]
 pub async fn cmd_create_skill(request: CreateSkillRequest) -> Result<SkillData, String> {
     ensure_skills_dir()?;
+    let category = if request.category.trim().is_empty() {
+        "other".to_string()
+    } else {
+        request.category.trim().to_string()
+    };
+    let safe_category = category
+        .to_lowercase()
+        .replace(|c: char| !c.is_alphanumeric() && c != '_' && c != '-', "_")
+        .replace(" ", "_");
     let base_name = request
         .name
         .to_lowercase()
@@ -416,7 +429,12 @@ pub async fn cmd_create_skill(request: CreateSkillRequest) -> Result<SkillData, 
         .replace(" ", "_");
     let mut skill_id = base_name.clone();
     let mut counter = 1;
-    while get_skill_dir(&skill_id).exists() {
+    let category_dir = get_skills_local_dir().join(&safe_category);
+    if !category_dir.exists() {
+        fs::create_dir_all(&category_dir)
+            .map_err(|e| format!("Failed to create category directory: {}", e))?;
+    }
+    while get_skill_dir(&category, &skill_id).exists() {
         skill_id = format!("{}_{}", base_name, counter);
         counter += 1;
     }
@@ -425,18 +443,18 @@ pub async fn cmd_create_skill(request: CreateSkillRequest) -> Result<SkillData, 
         id: skill_id.clone(),
         name: request.name,
         description: request.description,
-        category: request.category,
+        category: category.clone(),
         tags: request.tags,
         steps: request.steps,
         created_at: now.clone(),
         updated_at: now.clone(),
         installed: true,
     };
-    let skill_dir = get_skill_dir(&skill_id);
+    let skill_dir = get_skill_dir(&category, &skill_id);
     fs::create_dir_all(&skill_dir)
         .map_err(|e| format!("Failed to create skill directory: {}", e))?;
     let markdown_content = skill_to_markdown(&skill);
-    let skill_md_path = get_skill_md_path(&skill_id);
+    let skill_md_path = get_skill_md_path(&category, &skill_id);
     fs::write(&skill_md_path, markdown_content)
         .map_err(|e| format!("Failed to write SKILL.md: {}", e))?;
     let history = SkillHistory {
@@ -453,18 +471,23 @@ pub async fn cmd_create_skill(request: CreateSkillRequest) -> Result<SkillData, 
 
 #[tauri::command]
 pub async fn cmd_update_skill(request: UpdateSkillRequest) -> Result<SkillData, String> {
-    let skill_dir = get_skill_dir(&request.id);
+    let category = if request.category.trim().is_empty() {
+        "other".to_string()
+    } else {
+        request.category.trim().to_string()
+    };
+    let skill_dir = get_skill_dir(&category, &request.id);
     if !skill_dir.exists() {
         return Err(format!("Skill not found: {}", request.id));
     }
-    let skill_md_path = get_skill_md_path(&request.id);
+    let skill_md_path = get_skill_md_path(&category, &request.id);
     let existing = parse_skill_from_markdown(&skill_md_path, &request.id)?;
     let now = chrono::Local::now().to_rfc3339();
     let skill = SkillData {
         id: request.id.clone(),
         name: request.name,
         description: request.description,
-        category: request.category,
+        category: category.clone(),
         tags: request.tags,
         steps: request.steps,
         created_at: existing.created_at,
@@ -487,17 +510,23 @@ pub async fn cmd_update_skill(request: UpdateSkillRequest) -> Result<SkillData, 
 }
 
 #[tauri::command]
-pub async fn cmd_delete_skill(skill_id: String) -> Result<bool, String> {
-    let skill_dir = get_skill_dir(&skill_id);
+pub async fn cmd_delete_skill(skill_id: String, category: String) -> Result<bool, String> {
+    let category = if category.trim().is_empty() {
+        "other".to_string()
+    } else {
+        category.trim().to_string()
+    };
+    let skill_dir = get_skill_dir(&category, &skill_id);
     if !skill_dir.exists() {
         return Err(format!("Skill not found: {}", skill_id));
     }
-    let skill_name =
-        if let Ok(skill) = parse_skill_from_markdown(&get_skill_md_path(&skill_id), &skill_id) {
-            skill.name
-        } else {
-            skill_id.clone()
-        };
+    let skill_name = if let Ok(skill) =
+        parse_skill_from_markdown(&get_skill_md_path(&category, &skill_id), &skill_id)
+    {
+        skill.name
+    } else {
+        skill_id.clone()
+    };
     fs::remove_dir_all(&skill_dir).map_err(|e| format!("Failed to delete skill: {}", e))?;
     let now = chrono::Local::now().to_rfc3339();
     let history = SkillHistory {
@@ -513,8 +542,16 @@ pub async fn cmd_delete_skill(skill_id: String) -> Result<bool, String> {
 }
 
 #[tauri::command]
-pub async fn cmd_get_skill(skill_id: String) -> Result<Option<SkillData>, String> {
-    let skill_md_path = get_skill_md_path(&skill_id);
+pub async fn cmd_get_skill(
+    skill_id: String,
+    category: String,
+) -> Result<Option<SkillData>, String> {
+    let category = if category.trim().is_empty() {
+        "other".to_string()
+    } else {
+        category.trim().to_string()
+    };
+    let skill_md_path = get_skill_md_path(&category, &skill_id);
     if skill_md_path.exists() {
         Ok(Some(parse_skill_from_markdown(&skill_md_path, &skill_id)?))
     } else {
@@ -533,6 +570,12 @@ pub async fn cmd_get_skill_history(skill_id: String) -> Result<Vec<SkillHistory>
 }
 
 #[tauri::command]
-pub async fn cmd_skill_exists(skill_id: String) -> Result<bool, String> {
-    Ok(get_skill_dir(&skill_id).exists())
+pub async fn cmd_skill_exists(skill_id: String, category: String) -> Result<bool, String> {
+    let category = if category.trim().is_empty() {
+        "other".to_string()
+    } else {
+        category.trim().to_string()
+    };
+
+    Ok(get_skill_dir(&category, &skill_id).exists())
 }

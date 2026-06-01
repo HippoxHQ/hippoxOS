@@ -211,12 +211,12 @@ export const skillsLocalCommands = {
         return await invoke('cmd_update_skill', { request });
     },
 
-    async deleteSkill(skillId: string): Promise<boolean> {
-        return await invoke('cmd_delete_skill', { skillId });
+    async deleteSkill(skillId: string, category: string): Promise<boolean> {
+        return await invoke('cmd_delete_skill', { skillId, category });
     },
 
-    async getSkill(skillId: string): Promise<SkillData | null> {
-        return await invoke('cmd_get_skill', { skillId });
+    async getSkill(skillId: string, category: string): Promise<SkillData | null> {
+        return await invoke('cmd_get_skill', { skillId, category });
     },
 
     async getAllSkillHistory(): Promise<SkillHistory[]> {
@@ -227,7 +227,7 @@ export const skillsLocalCommands = {
         return await invoke('cmd_get_skill_history', { skillId });
     },
 
-    async skillExists(skillId: string): Promise<boolean> {
-        return await invoke('cmd_skill_exists', { skillId });
+    async skillExists(skillId: string, category: string): Promise<boolean> {
+        return await invoke('cmd_skill_exists', { skillId, category });
     },
 };

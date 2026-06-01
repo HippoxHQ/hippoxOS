@@ -4,7 +4,10 @@ export const zh = {
     newSessionName: '新对话',
     newSessionDesc: '新创建的对话',
   },
-  skillEditor: {
+  skillsManager: {
+    tagsAndCategory: "标签与分类",
+    category: "分类",
+    categoryPlaceholder: "输入分类后按回车",
     deletedSkillCannotEdit: "“{{name}}” 已被删除，无法编辑",
     skillNotFound: "找不到技能 “{{ name }}”",
     saveSuccess: "技能保存成功",
@@ -415,6 +418,7 @@ export const zh = {
     appInternalDir: "应用内部目录",
   },
   menu: {
+    skillsManager: "技能管理器",
     skillEditor: "技能编辑器",
     main: '主要',
     aiCapabilities: 'AI 能力',
@@ -839,7 +843,10 @@ export const en: typeof zh = {
     newSessionName: 'New Session',
     newSessionDesc: 'Newly created session',
   },
-  skillEditor: {
+  skillsManager: {
+    category: "Category",
+    categoryPlaceholder: "Enter category and press Enter",
+    tagsAndCategory: "Tags & Category",
     deletedSkillCannotEdit: "Skill \"{{name}}\" has been deleted and cannot be edited",
     skillNotFound: "Skill \"{{name}}\" not found",
     saveSuccess: "Skill saved successfully",
@@ -1222,6 +1229,7 @@ export const en: typeof zh = {
     }
   },
   menu: {
+    skillsManager: "Skills Manager",
     skillEditor: "Skill Editor",
     main: 'Main',
     aiCapabilities: 'AI Capabilities',

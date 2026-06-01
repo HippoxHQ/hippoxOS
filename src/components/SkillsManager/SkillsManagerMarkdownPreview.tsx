@@ -1,12 +1,12 @@
 import React from "react";
 import { Skill } from "./types";
 
-interface SkillMarkdownPreviewProps {
+interface SkillsManagerMarkdownPreviewProps {
   skill: Skill;
   t: (key: string, params?: any) => string;
 }
 
-const SkillMarkdownPreview: React.FC<SkillMarkdownPreviewProps> = ({
+const SkillsManagerMarkdownPreview: React.FC<SkillsManagerMarkdownPreviewProps> = ({
   skill,
   t,
 }) => {
@@ -17,30 +17,30 @@ const SkillMarkdownPreview: React.FC<SkillMarkdownPreviewProps> = ({
     lines.push(`description: ${skill.description}`);
     lines.push("---");
     lines.push("");
-    lines.push(`## ${t("skillEditor.executionSteps")}`);
+    lines.push(`## ${t("skillsManager.executionSteps")}`);
     lines.push("");
 
     skill.steps.forEach((step, idx) => {
       const depInfo =
         step.dependencies.length > 0
-          ? ` (${t("skillEditor.dependenciesLabel")}: ${step.dependencies
+          ? ` (${t("skillsManager.dependenciesLabel")}: ${step.dependencies
               .map((d) => {
                 const depIndex = skill.steps.findIndex((s) => s.id === d);
-                return `${t("skillEditor.step")}${depIndex + 1}`;
+                return `${t("skillsManager.step")}${depIndex + 1}`;
               })
               .join(", ")})`
           : "";
       lines.push(
-        `${idx + 1}. ${step.description || `${t("skillEditor.step")} ${idx + 1}`}${depInfo}`,
+        `${idx + 1}. ${step.description || `${t("skillsManager.step")} ${idx + 1}`}${depInfo}`,
       );
 
       if (step.materials.length > 0) {
-        lines.push(`   - ${t("skillEditor.allowedMaterials")}:`);
+        lines.push(`   - ${t("skillsManager.allowedMaterials")}:`);
         step.materials.forEach((material) => {
           if (material.type === "link" && material.content) {
-            lines.push(`     - ${t("skillEditor.link")}: ${material.content}`);
+            lines.push(`     - ${t("skillsManager.link")}: ${material.content}`);
             if (material.inputSchema) {
-              lines.push(`       - ${t("skillEditor.inputParams")}:`);
+              lines.push(`       - ${t("skillsManager.inputParams")}:`);
               lines.push(`         \`\`\`json`);
               lines.push(
                 `         ${material.inputSchema.replace(/\n/g, "\n         ")}`,
@@ -48,7 +48,7 @@ const SkillMarkdownPreview: React.FC<SkillMarkdownPreviewProps> = ({
               lines.push(`         \`\`\``);
             }
             if (material.outputSchema) {
-              lines.push(`       - ${t("skillEditor.outputParams")}:`);
+              lines.push(`       - ${t("skillsManager.outputParams")}:`);
               lines.push(`         \`\`\`json`);
               lines.push(
                 `         ${material.outputSchema.replace(/\n/g, "\n         ")}`,
@@ -56,9 +56,9 @@ const SkillMarkdownPreview: React.FC<SkillMarkdownPreviewProps> = ({
               lines.push(`         \`\`\``);
             }
           } else if (material.type === "path" && material.content) {
-            lines.push(`     - ${t("skillEditor.path")}: ${material.content}`);
+            lines.push(`     - ${t("skillsManager.path")}: ${material.content}`);
           } else if (material.type === "note" && material.content) {
-            lines.push(`     - ${t("skillEditor.note")}: ${material.content}`);
+            lines.push(`     - ${t("skillsManager.note")}: ${material.content}`);
           }
         });
       }
@@ -66,13 +66,13 @@ const SkillMarkdownPreview: React.FC<SkillMarkdownPreviewProps> = ({
 
     lines.push("");
     if (skill.tags) {
-      lines.push(`## ${t("skillEditor.tags")}`);
+      lines.push(`## ${t("skillsManager.tags")}`);
       lines.push("");
       lines.push(skill.tags);
       lines.push("");
     }
     if (skill.example) {
-      lines.push(`## ${t("skillEditor.example")}`);
+      lines.push(`## ${t("skillsManager.example")}`);
       lines.push("");
       lines.push("```");
       lines.push(skill.example);
@@ -173,4 +173,4 @@ const SkillMarkdownPreview: React.FC<SkillMarkdownPreviewProps> = ({
   );
 };
 
-export default SkillMarkdownPreview;
+export default SkillsManagerMarkdownPreview;

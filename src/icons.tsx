@@ -1279,6 +1279,36 @@ export const EditIcon: React.FC<IconProps> = ({ className, size = 18 }) => (
   </svg>
 );
 
+export const SkillsManagerIcon: React.FC<IconProps> = ({
+  className,
+  size = 18,
+}) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+    <polyline points="14 2 14 8 20 8" />
+    <circle cx="12" cy="13" r="2" />
+    <path d="M12 9v1" />
+    <path d="M12 16v1" />
+    <path d="M9 13H8" />
+    <path d="M16 13h-1" />
+    <polygon
+      points="17 4 17.8 5.6 19.5 5.9 18.2 7.1 18.5 8.8 17 8 15.5 8.8 15.8 7.1 14.5 5.9 16.2 5.6 17 4"
+      fill="currentColor"
+    />
+  </svg>
+);
+
 export const iconMap: Record<string, React.FC<IconProps>> = {
   dashboard: DashboardIcon,
   workspace: WorkspaceIcon,
@@ -1337,4 +1367,5 @@ export const iconMap: Record<string, React.FC<IconProps>> = {
   fileMusic: FileMusicIcon,
   fileDefault: FileDefaultIcon,
   editIcon: EditIcon,
+  skillsManager: SkillsManagerIcon,
 };
