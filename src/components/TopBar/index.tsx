@@ -11,6 +11,7 @@ import {
 import { Theme, Language } from "../../types/type";
 import SearchDialog from "./SearchDialog";
 import { showToast, ToastType } from "../Toast";
+import { windowsCommands } from "../../api/windows";
 
 interface TopBarProps {
   sidebarCollapsed: boolean;
@@ -303,7 +304,7 @@ const TopBar: React.FC<TopBarProps> = ({
   useEffect(() => {
     const checkMaximized = async () => {
       try {
-        const maximized = await invoke<boolean>("window_is_maximized");
+        const maximized = await windowsCommands.windowIsMaximized();
         setIsMaximized(maximized);
       } catch (error) {
         showToast(ToastType.ERROR, "Failed to check window state: " + error);
@@ -327,7 +328,7 @@ const TopBar: React.FC<TopBarProps> = ({
 
   const handleMinimize = async () => {
     try {
-      await invoke("window_minimize");
+      await windowsCommands.windowMinimize();
     } catch (error) {
       showToast(ToastType.ERROR, "Failed to minimize: " + error);
     }
@@ -335,7 +336,7 @@ const TopBar: React.FC<TopBarProps> = ({
 
   const handleMaximize = async () => {
     try {
-      await invoke("window_maximize");
+      await windowsCommands.windowMaximize();
       const maximized = await invoke<boolean>("window_is_maximized");
       setIsMaximized(maximized);
     } catch (error) {
@@ -345,7 +346,7 @@ const TopBar: React.FC<TopBarProps> = ({
 
   const handleClose = async () => {
     try {
-      await invoke("cmd_window_hide");
+      await windowsCommands.windowHide();
     } catch (error) {
       showToast(ToastType.ERROR, "Failed to close: " + error);
     }

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { getCurrentWindow } from "@tauri-apps/api/window";
 import { configCommands } from "../api/config";
-import { invoke } from "@tauri-apps/api/core";
+import { windowsCommands } from "../api/windows";
 import { zh, en } from "../i18n";
 import { healthCommands, HealthCheckResult } from "../api/health";
 import { SystemEvent } from "../types/type";
@@ -25,8 +24,8 @@ interface LLMInstance {
 }
 
 const openLLMSubmenu = async () => {
-  const instancesData = await invoke<any>("get_llm_instances");
-  const defaultId = await invoke<string>("get_default_llm_instance_id");
+  const instancesData = await windowsCommands.getLlmInstances();
+  const defaultId = await windowsCommands.getDefaultLlmInstanceId();
   const items = Object.entries(instancesData || {}).map(
     ([id, instance]: [string, any]) => ({
       id,
@@ -34,10 +33,7 @@ const openLLMSubmenu = async () => {
       isDefault: id === defaultId,
     }),
   );
-  await invoke("cmd_create_submenu_window", {
-    items,
-    currentDefaultId: defaultId,
-  });
+  await windowsCommands.createSubmenuWindow(items, defaultId);
 };
 
 const SystemTrayWindow: React.FC = () => {
@@ -69,8 +65,8 @@ const SystemTrayWindow: React.FC = () => {
   const loadLLMInstances = async () => {
     try {
       setIsLoadingLLM(true);
-      const instancesData = await invoke<any>("get_llm_instances");
-      const defaultId = await invoke<string>("get_default_llm_instance_id");
+      const instancesData = await windowsCommands.getLlmInstances();
+      const defaultId = await windowsCommands.getDefaultLlmInstanceId();
 
       const instancesList = Object.entries(instancesData || {}).map(
         ([id, instance]: [string, any]) => ({
@@ -125,19 +121,19 @@ const SystemTrayWindow: React.FC = () => {
 
   const handleMenuItemClick = (action: string) => {
     if (action === "quit") {
-      invoke("cmd_exit_app");
+      windowsCommands.exitApp();
     } else if (action === "open_logs_dir") {
-      invoke("cmd_emit_to_main_window", { event: "open-logs-dir" });
+      windowsCommands.openLogsDir();
     } else if (action === "open_history_dir") {
-      invoke("cmd_emit_to_main_window", { event: "open-history-dir" });
+      windowsCommands.openHistoryDir();
     } else if (action === "open_skills_market_dir") {
-      invoke("cmd_emit_to_main_window", { event: "open-skills-market-dir" });
+      windowsCommands.openSkillsMarketDir();
     } else if (action === "open_scheduled_tasks_dir") {
-      invoke("cmd_emit_to_main_window", { event: "open-scheduled-tasks-dir" });
+      windowsCommands.openScheduledTasksDir();
     } else if (action === "open_settings_dir") {
-      invoke("cmd_emit_to_main_window", { event: "open-settings-dir" });
+      windowsCommands.openSettingsDir();
     } else {
-      invoke("cmd_emit_to_main_window", { event: action });
+      windowsCommands.sendEvent(action);
     }
   };
 

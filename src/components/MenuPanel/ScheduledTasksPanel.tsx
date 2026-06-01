@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { getDataPaths } from "../../api/paths";
+import { scheduledCommands } from "../../api/scheduled";
 
 interface ScheduledTask {
   id: string;
@@ -228,7 +229,7 @@ const ScheduledTasksPanel: React.FC<ScheduledTasksPanelProps> = ({
 
   const loadTasksFromFiles = async (): Promise<ScheduledTask[]> => {
     try {
-      const tasksListJson = await invoke<string>("scheduled_list");
+      const tasksListJson = await scheduledCommands.listTasks();
       const tasksList = JSON.parse(tasksListJson);
       return tasksList.map((task: any) => ({
         id: task.id,
@@ -266,7 +267,7 @@ const ScheduledTasksPanel: React.FC<ScheduledTasksPanelProps> = ({
         last_executed_at: task.lastExecutedAt,
         completed: task.completed,
       };
-      await invoke("scheduled_save", { taskJson: JSON.stringify(rustTask) });
+      await scheduledCommands.saveTask(JSON.stringify(rustTask));
     } catch (error) {
       console.error("Failed to save task to file:", error);
       throw error;
@@ -275,7 +276,7 @@ const ScheduledTasksPanel: React.FC<ScheduledTasksPanelProps> = ({
 
   const deleteTaskFile = async (taskId: string): Promise<void> => {
     try {
-      await invoke("scheduled_delete", { taskId });
+      await scheduledCommands.deleteTask(taskId);
     } catch (error) {
       console.error("Failed to delete task file:", error);
       throw error;

@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { ExpandArrowsIcon, CollapseIcon } from "../../icons";
+import { atomicSkillsCommands } from "../../api/skills";
 
 interface SkillsPanelProps {
   t: (key: string, params?: any) => string;
@@ -41,9 +42,7 @@ const SkillsPanel: React.FC<SkillsPanelProps> = ({ t }) => {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const skillsData = (await invoke(
-          "get_atomic_skills",
-        )) as AtomicSkillInfo[];
+        const skillsData = await atomicSkillsCommands.getAtomicSkills();
         setSkills(skillsData);
         const skillsByCategory = skillsData.reduce(
           (acc, skill) => {

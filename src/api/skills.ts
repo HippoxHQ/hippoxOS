@@ -40,8 +40,12 @@ export interface MarketConfig {
 
 export const atomicSkillsCommands = {
 
-    getAtomicSkills: (): Promise<AtomicSkillInfo[]> =>
-        invoke("get_atomic_skills"),
+    async getAtomicSkills(): Promise<AtomicSkillInfo[]> {
+        return await invoke('get_atomic_skills');
+    },
+
+    // getAtomicSkills: (): Promise<AtomicSkillInfo[]> =>
+    //     invoke("get_atomic_skills"),
 
 
     getAtomicSkillsByCategory: (category: string): Promise<AtomicSkillInfo[]> =>

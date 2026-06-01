@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { getCurrentWindow } from "@tauri-apps/api/window";
-import { invoke } from "@tauri-apps/api/core";
 import { configCommands } from "../api/config";
 import { llmCommands } from "../api/llm";
 import { healthCommands, HealthCheckResult } from "../api/health";
+import { windowsCommands } from "../api/windows";
 import { zh, en } from "../i18n";
 
 interface LLMInstance {
@@ -87,20 +86,17 @@ const SubmenuWindow: React.FC = () => {
 
   const setDefaultLLM = async (instanceId: string) => {
     try {
-      await invoke("set_default_llm_instance", { instanceId });
+      await windowsCommands.setDefaultLlmInstance(instanceId);
       setInstances((prev) =>
         prev.map((item) => ({
           ...item,
           isDefault: item.id === instanceId,
         })),
       );
-      invoke("cmd_emit_to_main_window", {
-        event: "show-notification",
-        payload: {
-          message:
-            getTranslation(language, "llmModel.defaultSuccess") ||
-            "Default LLM updated",
-        },
+      await windowsCommands.emitToMainWindow("show-notification", {
+        message:
+          getTranslation(language, "llmModel.defaultSuccess") ||
+          "Default LLM updated",
       });
     } catch (error) {
       console.error("Failed to set default LLM:", error);
