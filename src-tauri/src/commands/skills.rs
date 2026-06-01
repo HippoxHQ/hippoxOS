@@ -1,4 +1,5 @@
 use crate::commands::paths::get_app_root_dir;
+use crate::commands::{load_favorites_config, save_favorites_config};
 use hippox::registry;
 use serde::{Deserialize, Serialize};
 use std::fs;
@@ -177,7 +178,6 @@ fn ensure_history_dir() -> Result<(), String> {
 
 fn skill_to_markdown(skill: &SkillData) -> String {
     let mut content = String::new();
-    // Frontmatter
     content.push_str("---\n");
     content.push_str(&format!("name: {}\n", skill.name));
     content.push_str(&format!("description: {}\n", skill.description));
@@ -187,7 +187,6 @@ fn skill_to_markdown(skill: &SkillData) -> String {
     content.push_str(&format!("created_at: {}\n", skill.created_at));
     content.push_str(&format!("updated_at: {}\n", skill.updated_at));
     content.push_str("---\n\n");
-    // Steps
     content.push_str("# Steps\n\n");
     for (idx, step) in skill.steps.iter().enumerate() {
         content.push_str(&format!("## Step {}: {}\n\n", idx + 1, step.name));
@@ -200,7 +199,6 @@ fn skill_to_markdown(skill: &SkillData) -> String {
             content.push_str("\n");
         }
     }
-
     content
 }
 
@@ -232,20 +230,16 @@ fn parse_skill_from_markdown(path: &PathBuf, skill_id: &str) -> Result<SkillData
                     }
                 }
             }
-            // Parse steps from body
             let mut current_step: Option<SkillStep> = None;
             let lines: Vec<&str> = body.lines().collect();
             let mut i = 0;
-
             while i < lines.len() {
                 let line = lines[i];
-
                 if line.starts_with("## Step ") {
                     // Save previous step
                     if let Some(step) = current_step.take() {
                         steps.push(step);
                     }
-                    // Parse step name
                     let step_name = line.trim_start_matches("## Step ").to_string();
                     let step_name = step_name
                         .split(':')
@@ -279,7 +273,6 @@ fn parse_skill_from_markdown(path: &PathBuf, skill_id: &str) -> Result<SkillData
                 }
                 i += 1;
             }
-
             if let Some(step) = current_step {
                 steps.push(step);
             }
@@ -360,7 +353,6 @@ fn get_all_skill_history_records() -> Result<Vec<SkillHistory>, String> {
             }
         }
     }
-    // Sort by timestamp descending
     all_history.sort_by(|a, b| b.timestamp.cmp(&a.timestamp));
     Ok(all_history)
 }
@@ -580,4 +572,69 @@ pub async fn cmd_skill_exists(skill_id: String, category: String) -> Result<bool
     };
 
     Ok(get_skill_dir(&category, &skill_id).exists())
+}
+
+#[tauri::command]
+pub async fn cmd_favorite_local_skill(skill_id: String, category: String) -> Result<bool, String> {
+    let category = if category.trim().is_empty() {
+        "other".to_string()
+    } else {
+        category.trim().to_string()
+    };
+    let source_dir = get_skill_dir(&category, &skill_id);
+
+    if !source_dir.exists() {
+        return Err(format!("Skill not found: {}/{}", category, skill_id));
+    }
+    let favorites_skill_dir = get_app_root_dir()
+        .join("favorites")
+        .join("skill")
+        .join(&category);
+    let target_dir = favorites_skill_dir.join(&skill_id);
+
+    if target_dir.exists() {
+        fs::remove_dir_all(&target_dir).map_err(|e| format!("Failed to remove existing: {}", e))?;
+    }
+    if let Some(parent) = target_dir.parent() {
+        if !parent.exists() {
+            fs::create_dir_all(parent).map_err(|e| format!("Failed to create parent: {}", e))?;
+        }
+    }
+    let copy_options = fs_extra::dir::CopyOptions::new()
+        .overwrite(true)
+        .copy_inside(true);
+    fs_extra::dir::copy(&source_dir, &target_dir, &copy_options)
+        .map_err(|e| format!("Failed to copy skill: {}", e))?;
+    let favorite_id = format!("{}/{}", category, skill_id);
+    let mut favorites = load_favorites_config();
+    if !favorites.favorites.contains(&favorite_id) {
+        favorites.favorites.push(favorite_id);
+        save_favorites_config(&favorites)?;
+    }
+    Ok(true)
+}
+
+#[tauri::command]
+pub async fn cmd_unfavorite_local_skill(
+    skill_id: String,
+    category: String,
+) -> Result<bool, String> {
+    let category = if category.trim().is_empty() {
+        "other".to_string()
+    } else {
+        category.trim().to_string()
+    };
+    let favorite_id = format!("{}/{}", category, skill_id);
+    let target_dir = get_app_root_dir()
+        .join("favorites")
+        .join("skill")
+        .join(&category)
+        .join(&skill_id);
+    if target_dir.exists() {
+        fs::remove_dir_all(&target_dir).map_err(|e| format!("Failed to remove favorite: {}", e))?;
+    }
+    let mut favorites = crate::commands::favorites::load_favorites_config();
+    favorites.favorites.retain(|id| id != &favorite_id);
+    crate::commands::favorites::save_favorites_config(&favorites)?;
+    Ok(true)
 }

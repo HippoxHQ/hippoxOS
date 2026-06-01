@@ -1,6 +1,7 @@
 pub mod chat;
 pub mod config;
 pub mod context;
+pub mod favorites;
 pub mod files;
 pub mod health;
 pub mod llm;
@@ -18,6 +19,7 @@ pub mod windows;
 pub use chat::*;
 pub use config::*;
 pub use context::*;
+pub use favorites::*;
 pub use files::*;
 pub use health::*;
 pub use llm::*;

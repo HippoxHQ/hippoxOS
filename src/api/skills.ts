@@ -230,4 +230,12 @@ export const skillsLocalCommands = {
     async skillExists(skillId: string, category: string): Promise<boolean> {
         return await invoke('cmd_skill_exists', { skillId, category });
     },
+
+    async favoriteLocalSkill(skillId: string, category: string): Promise<boolean> {
+        return await invoke('cmd_favorite_local_skill', { skillId, category });
+    },
+
+    async unfavoriteLocalSkill(skillId: string, category: string): Promise<boolean> {
+        return await invoke('cmd_unfavorite_local_skill', { skillId, category });
+    },
 };

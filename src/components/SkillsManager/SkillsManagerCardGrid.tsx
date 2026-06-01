@@ -24,12 +24,12 @@ const SkillsManagerCardGrid: React.FC<SkillsManagerCardGridProps> = ({
   onRun,
   onRefresh,
 }) => {
-  const [loading, setLoading] = useState(false);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [favoritedSkills, setFavoritedSkills] = useState<Set<string>>(
     new Set(),
   );
   const [favoritingId, setFavoritingId] = useState<string | null>(null);
+
   useEffect(() => {
     loadFavorites();
   }, []);
@@ -47,19 +47,26 @@ const SkillsManagerCardGrid: React.FC<SkillsManagerCardGridProps> = ({
     e.stopPropagation();
     setFavoritingId(skill.id);
     try {
-      const isFavorited = favoritedSkills.has(skill.id);
+      const favoriteId = `${skill.category}/${skill.id}`;
+      const isFavorited = favoritedSkills.has(favoriteId);
       if (isFavorited) {
-        await skillsMarketCommands.unfavoriteSkill(skill.id);
+        await skillsLocalCommands.unfavoriteLocalSkill(
+          skill.id,
+          skill.category || "other",
+        );
         setFavoritedSkills((prev) => {
           const newSet = new Set(prev);
-          newSet.delete(skill.id);
+          newSet.delete(favoriteId);
           return newSet;
         });
       } else {
-        await skillsMarketCommands.favoriteSkill(skill.id);
+        await skillsLocalCommands.favoriteLocalSkill(
+          skill.id,
+          skill.category || "other",
+        );
         setFavoritedSkills((prev) => {
           const newSet = new Set(prev);
-          newSet.add(skill.id);
+          newSet.add(favoriteId);
           return newSet;
         });
       }
@@ -93,15 +100,9 @@ const SkillsManagerCardGrid: React.FC<SkillsManagerCardGridProps> = ({
     window.dispatchEvent(new CustomEvent("run-skill", { detail: { skill } }));
   };
 
-  if (loading) {
-    return (
-      <div className="skill-cards-grid">
-        <div style={{ textAlign: "center", padding: "40px" }}>
-          {t("common.loading")}
-        </div>
-      </div>
-    );
-  }
+  const isFavorited = (skill: SkillData): boolean => {
+    return favoritedSkills.has(`${skill.category}/${skill.id}`);
+  };
 
   return (
     <div className="skill-cards-grid">
@@ -287,13 +288,15 @@ const SkillsManagerCardGrid: React.FC<SkillsManagerCardGridProps> = ({
           --hover-bg: rgba(0, 0, 0, 0.04);
         }
       `}</style>
+
       <div className="cards-container">
         <div className="skill-card add-card" onClick={onCreateNew}>
           <div className="add-icon">➕</div>
           <div className="add-text">{t("skillsManager.createNew")}</div>
         </div>
+
         {externalSkills.map((skill) => {
-          const isFavorited = favoritedSkills.has(skill.id);
+          const favorited = isFavorited(skill);
           return (
             <div
               key={skill.id}
@@ -308,16 +311,16 @@ const SkillsManagerCardGrid: React.FC<SkillsManagerCardGridProps> = ({
                 </div>
                 <div className="card-actions">
                   <button
-                    className={`icon-btn ${isFavorited ? "active" : ""}`}
+                    className={`icon-btn ${favorited ? "active" : ""}`}
                     onClick={(e) => handleFavorite(skill, e)}
                     disabled={favoritingId === skill.id}
                     title={
-                      isFavorited
+                      favorited
                         ? t("skillsManager.unfavorite")
                         : t("skillsManager.favorite")
                     }
                   >
-                    {isFavorited ? (
+                    {favorited ? (
                       <StarFilledIcon size={14} />
                     ) : (
                       <StarIcon size={14} />

@@ -4,11 +4,12 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use tauri::command;
 
+use crate::commands::{get_favorites_config_path, load_favorites_config, save_favorites_config};
+
 use super::paths::{get_app_root_dir, get_skills_market_dir};
 
 const SKILLS_MARKET_REPO_URL: &str = "https://github.com/HippoxHQ/skills-market.git";
 const MARKET_CONFIG_FILE: &str = "market_config.json";
-const FAVORITES_CONFIG_FILE: &str = "favorites.json";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MarketSkill {
@@ -55,36 +56,6 @@ impl Default for MarketConfig {
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct FavoritesConfig {
     pub favorites: Vec<String>,
-}
-
-fn get_favorites_config_path() -> PathBuf {
-    get_skills_market_dir().join(FAVORITES_CONFIG_FILE)
-}
-
-fn load_favorites_config() -> FavoritesConfig {
-    let config_path = get_favorites_config_path();
-    if config_path.exists() {
-        if let Ok(content) = fs::read_to_string(&config_path) {
-            if let Ok(config) = serde_json::from_str(&content) {
-                return config;
-            }
-        }
-    }
-    FavoritesConfig::default()
-}
-
-fn save_favorites_config(config: &FavoritesConfig) -> Result<(), String> {
-    let config_path = get_favorites_config_path();
-    if let Some(parent) = config_path.parent() {
-        if !parent.exists() {
-            fs::create_dir_all(parent).map_err(|e| format!("Failed to create directory: {}", e))?;
-        }
-    }
-    let content = serde_json::to_string_pretty(config)
-        .map_err(|e| format!("Failed to serialize favorites config: {}", e))?;
-    fs::write(&config_path, content)
-        .map_err(|e| format!("Failed to save favorites config: {}", e))?;
-    Ok(())
 }
 
 fn get_favorites_dir() -> PathBuf {
@@ -509,12 +480,6 @@ pub async fn get_installed_skills() -> Result<Vec<MarketSkill>, String> {
         }
     }
     Ok(skills)
-}
-
-#[command]
-pub async fn get_favorited_skills() -> Result<Vec<String>, String> {
-    let favorites = load_favorites_config();
-    Ok(favorites.favorites)
 }
 
 #[command]
