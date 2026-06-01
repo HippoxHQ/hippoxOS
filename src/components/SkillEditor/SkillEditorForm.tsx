@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Skill, StepMaterial } from "./types";
 
 interface SkillEditorFormProps {
@@ -24,6 +24,18 @@ const SkillEditorForm: React.FC<SkillEditorFormProps> = ({
 }) => {
   const [tagList, setTagList] = useState<string[]>([]);
   const [currentTagInput, setCurrentTagInput] = useState("");
+  const [isNameFocused, setIsNameFocused] = useState(false);
+  const [isDescFocused, setIsDescFocused] = useState(false);
+  const [isExampleFocused, setIsExampleFocused] = useState(false);
+  const [stepFocusStates, setStepFocusStates] = useState<
+    Record<string, boolean>
+  >({});
+  const [materialFocusStates, setMaterialFocusStates] = useState<
+    Record<string, boolean>
+  >({});
+  const [schemaFocusStates, setSchemaFocusStates] = useState<
+    Record<string, boolean>
+  >({});
 
   useEffect(() => {
     if (skill.tags) {
@@ -153,6 +165,37 @@ const SkillEditorForm: React.FC<SkillEditorFormProps> = ({
     return skill.steps.filter((_, idx) => idx < currentIndex);
   };
 
+  const getStepPlaceholder = (
+    index: number,
+    isFocused: boolean,
+    hasValue: boolean,
+  ) => {
+    if (isFocused || hasValue) return "";
+    return t("skillEditor.stepPlaceholder", { index: index + 1 });
+  };
+
+  const getMaterialPlaceholder = (
+    type: string,
+    isFocused: boolean,
+    hasValue: boolean,
+    materialId: string,
+  ) => {
+    if (isFocused || hasValue) return "";
+    if (type === "link") return "https://...";
+    if (type === "path") return "/path/to/file";
+    return t("skillEditor.notePlaceholder") || "...";
+  };
+
+  const getSchemaPlaceholder = (
+    type: "input" | "output",
+    isFocused: boolean,
+    hasValue: boolean,
+  ) => {
+    if (isFocused || hasValue) return "";
+    if (type === "input") return '{"param": "type"}';
+    return '{"result": "type"}';
+  };
+
   return (
     <div className="skill-editor-form">
       <style>{`
@@ -163,7 +206,8 @@ const SkillEditorForm: React.FC<SkillEditorFormProps> = ({
   .form-divider {
     height: 1px;
     background: linear-gradient(90deg, transparent, var(--border-color), transparent);
-   } 
+    margin: 4px 0;
+  } 
   .form-section {
     background: var(--bg-secondary);
     padding: 18px 20px;
@@ -176,6 +220,7 @@ const SkillEditorForm: React.FC<SkillEditorFormProps> = ({
     margin-bottom: 14px;
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 8px;
   }
 
@@ -588,11 +633,18 @@ const SkillEditorForm: React.FC<SkillEditorFormProps> = ({
           className={`form-input ${errors.name ? "error" : ""}`}
           value={skill.name}
           onChange={(e) => updateField("name", e.target.value)}
-          placeholder={t("skillEditor.skillNamePlaceholder")}
+          onFocus={() => setIsNameFocused(true)}
+          onBlur={() => setIsNameFocused(false)}
+          placeholder={
+            isNameFocused || skill.name
+              ? ""
+              : t("skillEditor.skillNamePlaceholder")
+          }
         />
         {errors.name && <div className="error-message">{errors.name}</div>}
       </div>
       <div className="form-divider" />
+
       <div className="form-section">
         <div className="form-section-title">
           <span>📖</span>
@@ -605,14 +657,21 @@ const SkillEditorForm: React.FC<SkillEditorFormProps> = ({
           className={`form-textarea ${errors.description ? "error" : ""}`}
           value={skill.description}
           onChange={(e) => updateField("description", e.target.value)}
+          onFocus={() => setIsDescFocused(true)}
+          onBlur={() => setIsDescFocused(false)}
           rows={2}
-          placeholder={t("skillEditor.skillDescPlaceholder")}
+          placeholder={
+            isDescFocused || skill.description
+              ? ""
+              : t("skillEditor.skillDescPlaceholder")
+          }
         />
         {errors.description && (
           <div className="error-message">{errors.description}</div>
         )}
       </div>
       <div className="form-divider" />
+
       <div className="form-section">
         <div className="form-section-title">
           <span>🔄</span>
@@ -621,6 +680,8 @@ const SkillEditorForm: React.FC<SkillEditorFormProps> = ({
         <div className="steps-list">
           {skill.steps.map((step, index) => {
             const availableDeps = getAvailableDependencies(step.id);
+            const isStepFocused = stepFocusStates[step.id] || false;
+            const hasStepValue = !!step.description;
             return (
               <div key={step.id} className="step-card">
                 <div className="step-header">
@@ -632,9 +693,23 @@ const SkillEditorForm: React.FC<SkillEditorFormProps> = ({
                     onChange={(e) =>
                       updateStepDescription(step.id, e.target.value)
                     }
-                    placeholder={t("skillEditor.stepPlaceholder", {
-                      index: index + 1,
-                    })}
+                    onFocus={() =>
+                      setStepFocusStates((prev) => ({
+                        ...prev,
+                        [step.id]: true,
+                      }))
+                    }
+                    onBlur={() =>
+                      setStepFocusStates((prev) => ({
+                        ...prev,
+                        [step.id]: false,
+                      }))
+                    }
+                    placeholder={getStepPlaceholder(
+                      index,
+                      isStepFocused,
+                      hasStepValue,
+                    )}
                   />
                   <div className="step-actions">
                     <button
@@ -681,100 +756,157 @@ const SkillEditorForm: React.FC<SkillEditorFormProps> = ({
                       📎 {t("skillEditor.allowedMaterials")}
                     </div>
                     <div className="materials-list">
-                      {step.materials.map((material) => (
-                        <div key={material.id} className="material-item">
-                          <div className="material-row">
-                            <select
-                              className="material-type-select"
-                              value={material.type}
-                              onChange={(e) =>
-                                updateMaterial(
-                                  step.id,
-                                  material.id,
-                                  "type",
-                                  e.target.value as any,
-                                )
-                              }
-                            >
-                              <option value="link">
-                                🔗 {t("skillEditor.link")}
-                              </option>
-                              <option value="path">
-                                📁 {t("skillEditor.path")}
-                              </option>
-                              <option value="note">
-                                📝 {t("skillEditor.note")}
-                              </option>
-                            </select>
-                            <input
-                              type="text"
-                              className="material-input"
-                              value={material.content}
-                              onChange={(e) =>
-                                updateMaterial(
-                                  step.id,
-                                  material.id,
-                                  "content",
-                                  e.target.value,
-                                )
-                              }
-                              placeholder={
-                                material.type === "link"
-                                  ? "https://..."
-                                  : material.type === "path"
-                                    ? "/path/to/file"
-                                    : "..."
-                              }
-                            />
-                            <button
-                              className="material-remove-btn"
-                              onClick={() =>
-                                removeMaterial(step.id, material.id)
-                              }
-                            >
-                              ✕
-                            </button>
-                          </div>
-                          {material.type === "link" && (
-                            <div className="material-schema">
-                              <div className="schema-label">
-                                📥 {t("skillEditor.inputParams")}
-                              </div>
-                              <textarea
-                                className="schema-textarea"
-                                value={material.inputSchema || ""}
+                      {step.materials.map((material) => {
+                        const materialFocusKey = `${step.id}-${material.id}`;
+                        const isMaterialFocused =
+                          materialFocusStates[materialFocusKey] || false;
+                        const hasMaterialValue = !!material.content;
+                        const isSchemaInputFocused =
+                          schemaFocusStates[`${materialFocusKey}-input`] ||
+                          false;
+                        const isSchemaOutputFocused =
+                          schemaFocusStates[`${materialFocusKey}-output`] ||
+                          false;
+                        const hasInputSchema = !!material.inputSchema;
+                        const hasOutputSchema = !!material.outputSchema;
+                        return (
+                          <div key={material.id} className="material-item">
+                            <div className="material-row">
+                              <select
+                                className="material-type-select"
+                                value={material.type}
                                 onChange={(e) =>
                                   updateMaterial(
                                     step.id,
                                     material.id,
-                                    "inputSchema",
-                                    e.target.value,
+                                    "type",
+                                    e.target.value as any,
                                   )
                                 }
-                                rows={2}
-                                placeholder='{"param": "type"}'
-                              />
-                              <div className="schema-label">
-                                📤 {t("skillEditor.outputParams")}
-                              </div>
-                              <textarea
-                                className="schema-textarea"
-                                value={material.outputSchema || ""}
+                              >
+                                <option value="link">
+                                  🔗 {t("skillEditor.link")}
+                                </option>
+                                <option value="path">
+                                  📁 {t("skillEditor.path")}
+                                </option>
+                                <option value="note">
+                                  📝 {t("skillEditor.note")}
+                                </option>
+                              </select>
+                              <input
+                                type="text"
+                                className="material-input"
+                                value={material.content}
                                 onChange={(e) =>
                                   updateMaterial(
                                     step.id,
                                     material.id,
-                                    "outputSchema",
+                                    "content",
                                     e.target.value,
                                   )
                                 }
-                                rows={2}
-                                placeholder='{"result": "type"}'
+                                onFocus={() =>
+                                  setMaterialFocusStates((prev) => ({
+                                    ...prev,
+                                    [materialFocusKey]: true,
+                                  }))
+                                }
+                                onBlur={() =>
+                                  setMaterialFocusStates((prev) => ({
+                                    ...prev,
+                                    [materialFocusKey]: false,
+                                  }))
+                                }
+                                placeholder={getMaterialPlaceholder(
+                                  material.type,
+                                  isMaterialFocused,
+                                  hasMaterialValue,
+                                  material.id,
+                                )}
                               />
+                              <button
+                                className="material-remove-btn"
+                                onClick={() =>
+                                  removeMaterial(step.id, material.id)
+                                }
+                              >
+                                ✕
+                              </button>
                             </div>
-                          )}
-                        </div>
-                      ))}
+                            {material.type === "link" && (
+                              <div className="material-schema">
+                                <div className="schema-label">
+                                  📥 {t("skillEditor.inputParams")}
+                                </div>
+                                <textarea
+                                  className="schema-textarea"
+                                  value={material.inputSchema || ""}
+                                  onChange={(e) =>
+                                    updateMaterial(
+                                      step.id,
+                                      material.id,
+                                      "inputSchema",
+                                      e.target.value,
+                                    )
+                                  }
+                                  onFocus={() =>
+                                    setSchemaFocusStates((prev) => ({
+                                      ...prev,
+                                      [`${materialFocusKey}-input`]: true,
+                                    }))
+                                  }
+                                  onBlur={() =>
+                                    setSchemaFocusStates((prev) => ({
+                                      ...prev,
+                                      [`${materialFocusKey}-input`]: false,
+                                    }))
+                                  }
+                                  rows={2}
+                                  placeholder={getSchemaPlaceholder(
+                                    "input",
+                                    isSchemaInputFocused,
+                                    hasInputSchema,
+                                  )}
+                                />
+                                <div className="schema-label">
+                                  📤 {t("skillEditor.outputParams")}
+                                </div>
+                                <textarea
+                                  className="schema-textarea"
+                                  value={material.outputSchema || ""}
+                                  onChange={(e) =>
+                                    updateMaterial(
+                                      step.id,
+                                      material.id,
+                                      "outputSchema",
+                                      e.target.value,
+                                    )
+                                  }
+                                  onFocus={() =>
+                                    setSchemaFocusStates((prev) => ({
+                                      ...prev,
+                                      [`${materialFocusKey}-output`]: true,
+                                    }))
+                                  }
+                                  onBlur={() =>
+                                    setSchemaFocusStates((prev) => ({
+                                      ...prev,
+                                      [`${materialFocusKey}-output`]: false,
+                                    }))
+                                  }
+                                  rows={2}
+                                  placeholder={getSchemaPlaceholder(
+                                    "output",
+                                    isSchemaOutputFocused,
+                                    hasOutputSchema,
+                                  )}
+                                />
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -787,6 +919,7 @@ const SkillEditorForm: React.FC<SkillEditorFormProps> = ({
         </button>
       </div>
       <div className="form-divider" />
+
       <div className="form-section">
         <div className="form-section-title">
           <span>🏷️</span>
@@ -820,6 +953,7 @@ const SkillEditorForm: React.FC<SkillEditorFormProps> = ({
         </div>
       </div>
       <div className="form-divider" />
+
       <div className="form-section">
         <div className="form-section-title">
           <span>✨</span>
@@ -829,8 +963,14 @@ const SkillEditorForm: React.FC<SkillEditorFormProps> = ({
           className="form-textarea"
           value={skill.example}
           onChange={(e) => updateField("example", e.target.value)}
+          onFocus={() => setIsExampleFocused(true)}
+          onBlur={() => setIsExampleFocused(false)}
           rows={3}
-          placeholder={t("skillEditor.examplePlaceholder")}
+          placeholder={
+            isExampleFocused || skill.example
+              ? ""
+              : t("skillEditor.examplePlaceholder")
+          }
         />
       </div>
       <div className="form-divider" />
