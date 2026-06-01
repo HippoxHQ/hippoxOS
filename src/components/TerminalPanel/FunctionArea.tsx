@@ -357,6 +357,7 @@ const FunctionArea: React.FC<FunctionAreaProps> = ({
               alignItems: "center",
               justifyContent: "center",
               fontSize: "12px",
+              marginTop: "-10px",
             }}
           >
             ◀
@@ -451,7 +452,14 @@ const FunctionArea: React.FC<FunctionAreaProps> = ({
           ))}
         </div>
 
-        <div style={{ display: "flex", gap: "4px", flexShrink: 0 }}>
+        <div
+          style={{
+            display: "flex",
+            gap: "4px",
+            flexShrink: 0,
+            marginTop: "-10px",
+          }}
+        >
           {showRightScroll && (
             <button
               onClick={() => handleScroll("right")}
