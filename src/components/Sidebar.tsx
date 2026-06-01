@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, JSX } from "react";
-import { iconMap, NewSessionIcon } from "../icons";
+import { EditIcon, iconMap, NewSessionIcon } from "../icons";
 import { showTooltipOnElement } from "./Tooltip";
 
 interface PopupMenuProps {
@@ -21,6 +21,7 @@ interface SidebarProps {
   onNewSession?: () => void;
   currentSessionId?: string;
   onSwitchSession?: (sessionId: string) => void;
+  onOpenSkillEditor?: () => void;
   t: (key: string, params?: any) => string;
 }
 
@@ -47,13 +48,15 @@ const sidebarStyles = `
     justify-content: space-between;
   }
 
-  .sidebar-header {
-    padding: 7px 0;
-    border-bottom: 1px solid var(--border-color);
-    width: 100%;
-    display: flex;
-    justify-content: center;
-  }
+ .sidebar-header {
+  padding: 7px 0;
+  border-bottom: 1px solid var(--border-color);
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
 
   .new-session-icon-btn {
     display: flex;
@@ -707,6 +710,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   onNewSession,
   currentSessionId,
   onSwitchSession,
+  onOpenSkillEditor,
   t,
 }) => {
   const [activeId, setActiveId] = useState("history");
@@ -961,37 +965,60 @@ const Sidebar: React.FC<SidebarProps> = ({
   };
 
   return (
-    <aside className="sidebar">
-      <div className="sidebar-header">
-        <button
-          className="new-session-icon-btn"
-          onClick={handleNewSessionClick}
-          onMouseEnter={(e) => handleMouseEnter(e, t("actions.newSession"))}
-          onMouseLeave={handleMouseLeave}
-        >
-          <NewSessionIcon size={18} />
-        </button>
-      </div>
-      <nav className="sidebar-nav-top">
-        {topMenuItems.map((item) => renderButton(item))}
-      </nav>
-      <nav
-        className="sidebar-nav-bottom"
-        style={{ flexDirection: "column-reverse" }}
-      >
-        {bottomMenuItems.map((item) => renderButton(item))}
-      </nav>
-      {popupVisible && activeIconId && (
-        <PopupMenu
-          items={allMenuItems.filter((item) => item.id === activeIconId)}
-          activeId={activeId}
-          activeSubId={activeSubId}
-          activeSubSubId={activeSubSubId}
-          onMenuClick={handleMenuClick}
-          onClose={handleClosePopup}
-          position={popupPosition}
-          t={t}
-        />
+    <aside
+      className="sidebar"
+      style={{
+        width: collapsed ? 0 : 52,
+        overflow: collapsed ? "hidden" : "visible",
+        padding: collapsed ? 0 : undefined,
+        opacity: collapsed ? 0 : 1,
+        transition: "width 0.2s ease, opacity 0.2s ease",
+      }}
+    >
+      {!collapsed && (
+        <>
+          <div className="sidebar-header">
+            <button
+              className="new-session-icon-btn"
+              onClick={handleNewSessionClick}
+              onMouseEnter={(e) => handleMouseEnter(e, t("actions.newSession"))}
+              onMouseLeave={handleMouseLeave}
+            >
+              <NewSessionIcon size={18} />
+            </button>
+            <button
+              className="new-session-icon-btn"
+              onClick={() => onOpenSkillEditor && onOpenSkillEditor()}
+              onMouseEnter={(e) =>
+                handleMouseEnter(e, t("menu.skillEditor") || "Skill Editor")
+              }
+              onMouseLeave={handleMouseLeave}
+            >
+              <EditIcon size={18} />
+            </button>
+          </div>
+          <nav className="sidebar-nav-top">
+            {topMenuItems.map((item) => renderButton(item))}
+          </nav>
+          <nav
+            className="sidebar-nav-bottom"
+            style={{ flexDirection: "column-reverse" }}
+          >
+            {bottomMenuItems.map((item) => renderButton(item))}
+          </nav>
+          {popupVisible && activeIconId && (
+            <PopupMenu
+              items={allMenuItems.filter((item) => item.id === activeIconId)}
+              activeId={activeId}
+              activeSubId={activeSubId}
+              activeSubSubId={activeSubSubId}
+              onMenuClick={handleMenuClick}
+              onClose={handleClosePopup}
+              position={popupPosition}
+              t={t}
+            />
+          )}
+        </>
       )}
     </aside>
   );

@@ -37,6 +37,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { filesCommands } from "./api/files";
 import { getDataPaths } from "./api/paths";
 import FilePreview from "./components/FilePreview";
+import SkillEditor from "./components/SkillEditor";
 
 function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -76,6 +77,16 @@ function App() {
   const [isFilePreviewOpen, setIsFilePreviewOpen] = useState(false);
   const [previewFile, setPreviewFile] = useState<UploadFile | null>(null);
   const [filePreviewWidth, setFilePreviewWidth] = useState(320);
+  const [showSkillEditor, setShowSkillEditor] = useState(false);
+
+  const handleOpenSkillEditor = () => {
+    setShowSkillEditor(true);
+  };
+
+  const handleCloseSkillEditor = () => {
+    setShowSkillEditor(false);
+  };
+
   const handleFilePreview = (file: UploadFile) => {
     setPreviewFile(file);
     setIsFilePreviewOpen(true);
@@ -662,6 +673,7 @@ function App() {
   }, []);
 
   const handleNewSession = async () => {
+    handleCloseSkillEditor();
     const tempSessionId = `temp_${Date.now()}`;
     taskManager.loadSessionData(tempSessionId, [], [], []);
     setCurrentSessionId(tempSessionId);
@@ -671,6 +683,7 @@ function App() {
   const handleSwitchSession = async (sessionId: string) => {
     if (sessionId === currentSessionId) return;
     if (sessionId.startsWith("temp_")) return;
+    handleCloseSkillEditor();
     try {
       if (currentSessionId && !currentSessionId.startsWith("temp_")) {
         const allData = taskManager.getAllData();
@@ -948,16 +961,18 @@ function App() {
         layoutMode={layoutMode}
         onLayoutModeChange={handleLayoutModeChange}
       />
+
       <div className="main-layout">
         {!sidebarCollapsed && (
           <Sidebar
-            collapsed={false}
+            collapsed={sidebarCollapsed}
             onResetSession={resetSession}
             onClearLogs={clearLogs}
             onMenuClick={handleMenuClick}
             onNewSession={handleNewSession}
             currentSessionId={currentSessionId}
             onSwitchSession={handleSwitchSession}
+            onOpenSkillEditor={handleOpenSkillEditor}
             t={t}
           />
         )}
@@ -1010,7 +1025,13 @@ function App() {
           </>
         )}
 
-        {shouldShowWelcome() ? (
+        {showSkillEditor ? (
+          <SkillEditor
+            t={t}
+            onClose={handleCloseSkillEditor}
+            currentSessionId={currentSessionId}
+          />
+        ) : shouldShowWelcome() ? (
           <WelcomePage
             onSendMessage={(msg, files) =>
               handleSendMessage(msg, currentSessionId, files)
@@ -1053,6 +1074,7 @@ function App() {
           />
         )}
       </div>
+
       <BottomBar t={t} />
     </div>
   );

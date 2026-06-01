@@ -1261,6 +1261,24 @@ export const FileDefaultIcon: React.FC<IconProps> = ({
   </svg>
 );
 
+export const EditIcon: React.FC<IconProps> = ({ className, size = 18 }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    <path d="M17 3l4 4-7 7H10v-4l7-7z" />
+    <path d="M4 20h16" />
+  </svg>
+);
+
 export const iconMap: Record<string, React.FC<IconProps>> = {
   dashboard: DashboardIcon,
   workspace: WorkspaceIcon,
@@ -1318,4 +1336,5 @@ export const iconMap: Record<string, React.FC<IconProps>> = {
   fileZip: FileZipIcon,
   fileMusic: FileMusicIcon,
   fileDefault: FileDefaultIcon,
+  editIcon: EditIcon,
 };
