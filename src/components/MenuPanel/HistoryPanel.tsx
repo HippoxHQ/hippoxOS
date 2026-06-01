@@ -358,6 +358,11 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
     color: "var(--text-secondary)",
     padding: "12px 0 8px 4px",
     letterSpacing: "0.5px",
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    cursor: "pointer",
+    transition: "color 0.2s ease",
   };
 
   if (loading && sessions.length === 0) {
@@ -406,6 +411,12 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
                 cursor: "pointer",
               }}
               onClick={() => toggleCategory(category.type)}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = "var(--text-primary)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = "var(--text-secondary)";
+              }}
             >
               <span>{t(category.labelKey)}</span>
               <span

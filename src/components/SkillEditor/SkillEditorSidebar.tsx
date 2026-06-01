@@ -1,0 +1,384 @@
+import React, { useState, useEffect } from "react";
+import { Skill, SkillHistory } from "./types";
+
+interface SkillEditorSidebarProps {
+  t: (key: string, params?: any) => string;
+  skills: Skill[];
+  skillHistory: SkillHistory[];
+  onSelectHistory?: (history: SkillHistory) => void;
+}
+
+type HistoryCategoryType =
+  | "today"
+  | "yesterday"
+  | "last7days"
+  | "last30days"
+  | "older";
+
+const historyCategories: { labelKey: string; type: HistoryCategoryType }[] = [
+  { labelKey: "今天", type: "today" },
+  { labelKey: "昨天", type: "yesterday" },
+  { labelKey: "最近7天", type: "last7days" },
+  { labelKey: "最近30天", type: "last30days" },
+  { labelKey: "更早", type: "older" },
+];
+
+const SkillEditorSidebar: React.FC<SkillEditorSidebarProps> = ({
+  t,
+  skills,
+  skillHistory,
+  onSelectHistory,
+}) => {
+  const [expandedCategories, setExpandedCategories] = useState<
+    Record<HistoryCategoryType, boolean>
+  >({
+    today: true,
+    yesterday: true,
+    last7days: true,
+    last30days: true,
+    older: true,
+  });
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const [sortedHistory, setSortedHistory] = useState<SkillHistory[]>([]);
+
+  useEffect(() => {
+    const sorted = [...skillHistory].sort((a, b) => {
+      const aTime = new Date(a.timestamp).getTime();
+      const bTime = new Date(b.timestamp).getTime();
+      return bTime - aTime; 
+    });
+    setSortedHistory(sorted);
+  }, [skillHistory]);
+
+  const toggleCategory = (categoryType: HistoryCategoryType) => {
+    setExpandedCategories((prev) => ({
+      ...prev,
+      [categoryType]: !prev[categoryType],
+    }));
+  };
+
+  const totalSteps = skills.reduce((acc, skill) => acc + skill.steps.length, 0);
+  const totalMaterials = skills.reduce(
+    (acc, skill) =>
+      acc + skill.steps.reduce((a, s) => a + s.materials.length, 0),
+    0,
+  );
+  const incompleteSkills = skills.filter(
+    (s) => !s.description || s.steps.length === 0 || !s.steps[0]?.description,
+  ).length;
+
+  const getHistoryCategory = (history: SkillHistory): HistoryCategoryType => {
+    const now = new Date();
+    const historyDate = new Date(history.timestamp);
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
+    const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+    if (historyDate >= today) return "today";
+    if (historyDate >= yesterday) return "yesterday";
+    if (historyDate >= weekAgo) return "last7days";
+    if (historyDate >= monthAgo) return "last30days";
+    return "older";
+  };
+
+  const getGroupedHistory = () => {
+    const grouped: Record<HistoryCategoryType, SkillHistory[]> = {
+      today: [],
+      yesterday: [],
+      last7days: [],
+      last30days: [],
+      older: [],
+    };
+    sortedHistory.forEach((history) => {
+      const category = getHistoryCategory(history);
+      grouped[category].push(history);
+    });
+    return grouped;
+  };
+
+  const getActionIcon = (action: string) => {
+    switch (action) {
+      case "create":
+        return "➕";
+      case "update":
+        return "✏️";
+      case "delete":
+        return "🗑️";
+      default:
+        return "📄";
+    }
+  };
+
+  const getActionText = (action: string) => {
+    switch (action) {
+      case "create":
+        return "创建";
+      case "update":
+        return "更新";
+      case "delete":
+        return "删除";
+      default:
+        return "修改";
+    }
+  };
+
+  const groupedHistory = getGroupedHistory();
+
+  const getCardStyle = (isHovered: boolean): React.CSSProperties => ({
+    background: isHovered ? "var(--hover-bg)" : "var(--bg-tertiary)",
+    borderRadius: "10px",
+    padding: "10px 12px",
+    marginBottom: "6px",
+    border: "1px solid var(--border-color)",
+    cursor: "pointer",
+    transition: "all 0.2s ease",
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+  });
+
+  const groupedSessions = getGroupedHistory();
+
+  return (
+    <div className="skill-editor-sidebar">
+      <style>{`
+        .skill-editor-sidebar {
+          width: 280px;
+          background: var(--bg-secondary);
+          border-right: 1px solid var(--border-color);
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+        }
+
+        /* 统计信息区域 */
+        .stats-section {
+          padding: 16px;
+          border-bottom: 1px solid var(--border-color);
+        }
+
+        .stats-title {
+          font-size: 12px;
+          font-weight: 600;
+          color: var(--text-secondary);
+          margin-bottom: 12px;
+          letter-spacing: 0.5px;
+        }
+
+        .stats-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 12px;
+        }
+
+        .stat-card {
+          background: var(--bg-tertiary);
+          border-radius: 8px;
+          padding: 8px 10px;
+          text-align: center;
+        }
+
+        .stat-number {
+          font-size: 20px;
+          font-weight: 700;
+          color: var(--accent-color);
+        }
+
+        .stat-label {
+          font-size: 10px;
+          color: var(--text-secondary);
+          margin-top: 4px;
+        }
+
+        .stat-warning {
+          background: rgba(239, 68, 68, 0.1);
+        }
+
+        .stat-warning .stat-number {
+          color: #ef4444;
+        }
+
+        /* 修改历史区域 */
+        .history-section {
+          flex: 1;
+          overflow-y: auto;
+          padding: 12px;
+        }
+
+        .category-header {
+          font-size: 12px;
+          font-weight: 600;
+          color: var(--text-secondary);
+          padding: 12px 0 8px 4px;
+          letter-spacing: 0.5px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          cursor: pointer;
+          user-select: none;
+        }
+
+        .category-header:hover {
+          color: var(--text-primary);
+        }
+
+        .category-arrow {
+          font-size: 12px;
+          transition: transform 0.1s;
+        }
+
+        .history-card {
+          background: var(--bg-tertiary);
+          border-radius: 10px;
+          padding: 10px 12px;
+          margin-bottom: 6px;
+          border: 1px solid var(--border-color);
+          cursor: pointer;
+          transition: background 0.2s ease;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+
+        .history-card:hover {
+          background: var(--hover-bg);
+        }
+
+        .history-icon {
+          font-size: 14px;
+          flex-shrink: 0;
+        }
+
+        .history-info {
+          flex: 1;
+          min-width: 0;
+        }
+
+        .history-title {
+          font-size: 14px;
+          font-weight: 500;
+          color: var(--text-primary);
+          margin-bottom: 6px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .history-time {
+          font-size: 11px;
+          color: var(--text-muted);
+        }
+
+        .history-action {
+          font-size: 11px;
+          padding: 2px 6px;
+          border-radius: 10px;
+          background: var(--bg-primary);
+          color: var(--text-secondary);
+          flex-shrink: 0;
+        }
+
+        .empty-history {
+          text-align: center;
+          padding: 40px;
+          color: var(--text-muted);
+          font-size: 13px;
+        }
+      `}</style>
+
+      <div className="skill-editor-sidebar">
+        <div className="stats-section">
+          <div className="stats-title">📊 技能统计</div>
+          <div className="stats-grid">
+            <div className="stat-card">
+              <div className="stat-number">{skills.length}</div>
+              <div className="stat-label">技能总数</div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-number">{totalSteps}</div>
+              <div className="stat-label">执行步骤</div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-number">{totalMaterials}</div>
+              <div className="stat-label">物料资源</div>
+            </div>
+            <div
+              className={`stat-card ${incompleteSkills > 0 ? "stat-warning" : ""}`}
+            >
+              <div className="stat-number">{incompleteSkills}</div>
+              <div className="stat-label">待完善</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="history-section">
+          <div className="stats-title" style={{ marginBottom: "8px" }}>
+            📝 修改历史
+          </div>
+          {historyCategories.map((category) => {
+            const categoryHistory = groupedHistory[category.type];
+            if (categoryHistory.length === 0) return null;
+            return (
+              <div key={category.type}>
+                <div
+                  className="category-header"
+                  onClick={() => toggleCategory(category.type)}
+                >
+                  <span>{category.labelKey}</span>
+                  <span
+                    className="category-arrow"
+                    style={{
+                      transform: expandedCategories[category.type]
+                        ? "rotate(0deg)"
+                        : "rotate(-90deg)",
+                    }}
+                  >
+                    ▼
+                  </span>
+                </div>
+                {expandedCategories[category.type] &&
+                  categoryHistory.map((history) => {
+                    const isHovered = hoveredId === history.id;
+                    return (
+                      <div
+                        key={history.id}
+                        className="history-card"
+                        style={{
+                          background: isHovered
+                            ? "var(--hover-bg)"
+                            : "var(--bg-tertiary)",
+                        }}
+                        onMouseEnter={() => setHoveredId(history.id)}
+                        onMouseLeave={() => setHoveredId(null)}
+                        onClick={() => onSelectHistory?.(history)}
+                      >
+                        <div className="history-icon">
+                          {getActionIcon(history.action)}
+                        </div>
+                        <div className="history-info">
+                          <div className="history-title">
+                            {history.skillName}
+                          </div>
+                          <div className="history-time">
+                            {new Date(history.timestamp).toLocaleString()}
+                          </div>
+                        </div>
+                        <div className="history-action">
+                          {getActionText(history.action)}
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            );
+          })}
+          {sortedHistory.length === 0 && (
+            <div className="empty-history">暂无修改记录</div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default SkillEditorSidebar;
