@@ -259,7 +259,10 @@ pub fn run() {
             commands::cmd_get_skill_history,
             commands::cmd_skill_exists,
             commands::cmd_favorite_local_skill,
-            commands::cmd_unfavorite_local_skill
+            commands::cmd_unfavorite_local_skill,
+            commands::cmd_get_max_favorites_size,
+            commands::cmd_set_max_favorites_size,
+            commands::cmd_get_favorites_dir
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

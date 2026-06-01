@@ -841,3 +841,52 @@ pub fn set_max_dialog_size(maxSizeMb: u64) -> Result<(), String> {
         .map_err(|e| format!("Failed to save settings config: {}", e))?;
     Ok(())
 }
+
+#[tauri::command]
+pub fn cmd_get_favorites_dir() -> String {
+    get_app_root_dir()
+        .join("favorites")
+        .to_string_lossy()
+        .to_string()
+}
+
+pub fn get_favorites_dir() -> PathBuf {
+    get_app_root_dir().join("favorites")
+}
+
+pub fn get_favorites_skill_dir() -> PathBuf {
+    get_favorites_dir().join("skill")
+}
+
+pub fn get_favorites_natural_dir() -> PathBuf {
+    get_favorites_dir().join("natural")
+}
+
+pub fn get_favorites_size() -> Result<u64, String> {
+    let favorites_dir = get_favorites_dir();
+    if !favorites_dir.exists() {
+        return Ok(0);
+    }
+    let mut total_size = 0;
+    for entry in WalkDir::new(&favorites_dir)
+        .into_iter()
+        .filter_map(|e| e.ok())
+        .filter(|e| e.path().is_file())
+    {
+        if let Ok(metadata) = entry.metadata() {
+            total_size += metadata.len();
+        }
+    }
+    Ok(total_size)
+}
+
+pub fn get_max_favorites_size() -> u64 {
+    match crate::common::get_setting("max_favorites_size_mb") {
+        Ok(value) => value.as_u64().unwrap_or(500),
+        Err(_) => 500,
+    }
+}
+
+pub fn set_max_favorites_size(size_mb: u64) -> Result<(), String> {
+    crate::common::set_setting("max_favorites_size_mb", serde_json::json!(size_mb))
+}

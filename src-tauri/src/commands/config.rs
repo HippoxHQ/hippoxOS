@@ -1799,3 +1799,13 @@ pub async fn get_default_hippox() -> Result<Arc<Hippox>, String> {
     };
     get_hippox_instance(&default_instance_id).await
 }
+
+#[tauri::command]
+pub async fn cmd_get_max_favorites_size() -> Result<u64, String> {
+    Ok(crate::commands::paths::get_max_favorites_size())
+}
+
+#[tauri::command]
+pub async fn cmd_set_max_favorites_size(max_size_mb: u64) -> Result<(), String> {
+    crate::commands::paths::set_max_favorites_size(max_size_mb)
+}

@@ -268,6 +268,23 @@ export const configCommands = {
 };
 
 export const storageCommands = {
+
+    async getFavoritesDir(): Promise<string> {
+        return await invoke('cmd_get_favorites_dir');
+    },
+
+    async getMaxFavoritesSize(): Promise<number> {
+        return await invoke('cmd_get_max_favorites_size');
+    },
+
+    async setMaxFavoritesSize(maxSizeMb: number): Promise<void> {
+        return await invoke('cmd_set_max_favorites_size', { maxSizeMb });
+    },
+
+    async clearLogs(): Promise<void> {
+        return await invoke('clear_execution_logs');
+    },
+
     async getDirectorySize(path: string): Promise<number> {
         return await invoke('get_directory_size', { path });
     },
