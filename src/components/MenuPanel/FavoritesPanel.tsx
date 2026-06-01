@@ -1,5 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { skillsMarketCommands, MarketSkill } from "../../api/skills";
+import {
+  skillsMarketCommands,
+  skillsLocalCommands,
+  MarketSkill,
+} from "../../api/skills";
+import { SkillData } from "../../types/skill";
 import { PlayIcon, StarFilledIcon, StarIcon } from "../../icons";
 
 interface FavoritesPanelProps {
@@ -13,6 +18,24 @@ interface NaturalFavorite {
   content: string;
   createdAt: string;
 }
+
+const convertLocalToMarket = (skill: SkillData): MarketSkill => {
+  return {
+    id: `${skill.category}/${skill.id}`,
+    name: skill.name,
+    description: skill.description,
+    category: skill.category,
+    version: "1.0.0",
+    author: "Local",
+    author_avatar: undefined,
+    installed: true,
+    favorited: true,
+    installed_version: "1.0.0",
+    local_path: undefined,
+    readme: undefined,
+    parameters: [],
+  };
+};
 
 const FavoritesPanel: React.FC<FavoritesPanelProps> = ({ t }) => {
   const [activeTab, setActiveTab] = useState<TabType>("skillFile");
@@ -31,11 +54,17 @@ const FavoritesPanel: React.FC<FavoritesPanelProps> = ({ t }) => {
     setLoading(true);
     try {
       const favoritedIds = await skillsMarketCommands.getFavoritedSkills();
-      const allSkills = await skillsMarketCommands.getMarketSkills();
-      const favoritedSkills = allSkills.filter((s) =>
+      const allMarketSkills = await skillsMarketCommands.getMarketSkills();
+      const marketFavorites = allMarketSkills.filter((s) =>
         favoritedIds.includes(s.id),
       );
-      setSkillFavorites(favoritedSkills);
+      const allLocalSkills = await skillsLocalCommands.listLocalSkills();
+      const localFavorites = allLocalSkills
+        .filter((skill) =>
+          favoritedIds.includes(`${skill.category}/${skill.id}`),
+        )
+        .map(convertLocalToMarket);
+      setSkillFavorites([...marketFavorites, ...localFavorites]);
       await loadNaturalFavorites();
     } catch (error) {
       console.error("Failed to load favorites:", error);
@@ -61,7 +90,6 @@ const FavoritesPanel: React.FC<FavoritesPanelProps> = ({ t }) => {
   };
 
   const handleRun = async (skill: MarketSkill) => {
-    console.log("Run skill:", skill.id);
   };
 
   const handleDelete = async (skillId: string) => {
