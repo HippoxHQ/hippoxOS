@@ -106,17 +106,12 @@ const SkillEditorSidebar: React.FC<SkillEditorSidebarProps> = ({
       last30days: [],
       older: [],
     };
-    const sortedHistory = [...skillHistory].sort(
-      (a, b) =>
-        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
-    );
-    sortedHistory.forEach((history) => {
+    skillHistory.forEach((history) => {
       const category = getHistoryCategory(history);
       grouped[category].push(history);
     });
     return grouped;
   };
-
   const getActionIcon = (action: string) => {
     switch (action) {
       case "create":
@@ -129,7 +124,6 @@ const SkillEditorSidebar: React.FC<SkillEditorSidebarProps> = ({
         return "📄";
     }
   };
-
   const getActionText = (action: string): string => {
     switch (action) {
       case "create":
@@ -142,9 +136,10 @@ const SkillEditorSidebar: React.FC<SkillEditorSidebarProps> = ({
         return t("skillEditor.historyActions.modify");
     }
   };
-
   const groupedHistory = getGroupedHistory();
-
+  const getUniqueKey = (history: SkillHistory, index: number) => {
+    return `${history.id}_${history.timestamp}_${index}`;
+  };
   return (
     <div className="skill-editor-sidebar">
       <style>{`
@@ -232,7 +227,7 @@ const SkillEditorSidebar: React.FC<SkillEditorSidebarProps> = ({
         }
 
         .history-card {
-          background: var(--bg-tertiary);
+          background: var(--bg-secondary); 
           border-radius: 10px;
           padding: 10px 12px;
           margin-bottom: 6px;
@@ -245,7 +240,7 @@ const SkillEditorSidebar: React.FC<SkillEditorSidebarProps> = ({
         }
 
         .history-card:hover {
-          background: var(--hover-bg);
+          background: var(--bg-tertiary);
         }
 
         .history-icon {
@@ -362,9 +357,9 @@ const SkillEditorSidebar: React.FC<SkillEditorSidebarProps> = ({
                 </span>
               </div>
               {expandedCategories[category.type] &&
-                categoryHistory.map((history) => (
+                categoryHistory.map((history, idx) => (
                   <div
-                    key={history.id}
+                    key={getUniqueKey(history, idx)}
                     className="history-card"
                     onMouseEnter={() => setHoveredId(history.id)}
                     onMouseLeave={() => setHoveredId(null)}
