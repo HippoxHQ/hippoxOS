@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState, useCallback, JSX } from "react";
 import { hippoxCommands } from "../../api/chat";
-import { ExecutionLog, TaskInfo, UploadFile } from "../../type";
+import { ExecutionLog, TaskInfo, UploadFile } from "../../types/type";
 import {
   CollapseIcon,
   CopyIcon,

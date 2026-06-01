@@ -3,124 +3,72 @@ import SkillEditorSidebar from "./SkillEditorSidebar";
 import SkillCardGrid from "./SkillCardGrid";
 import SkillEditorForm from "./SkillEditorForm";
 import SkillMarkdownPreview from "./SkillMarkdownPreview";
-import { Skill, SkillHistory, SkillEditorProps } from "./types";
+import { skillsLocalCommands } from "../../api/skills";
+import {
+  SkillData,
+  SkillHistory,
+  CreateSkillRequest,
+  UpdateSkillRequest,
+} from "../../types/skill";
+import { showToast, ToastType } from "../Toast";
 
-const DEFAULT_SKILL: Omit<Skill, "id"> = {
-  name: "",
-  description: "",
-  steps: [{ id: "1", description: "", materials: [], dependencies: [] }],
-  tags: "",
-  example: "",
+interface SkillEditorProps {
+  t: (key: string, params?: any) => string;
+  onClose?: () => void;
+  currentSessionId?: string;
+}
+
+const convertToBackendSteps = (
+  steps: any[],
+): Array<{ name: string; description: string; materials: string[] }> => {
+  return steps.map((step, index) => ({
+    name: step.name || step.description?.slice(0, 50) || `Step ${index + 1}`,
+    description: step.description || "",
+    materials:
+      step.materials
+        ?.map((m: any) => {
+          if (typeof m === "string") return m;
+          if (m.content) return m.content;
+          if (m.name) return m.name;
+          return "";
+        })
+        .filter((m: string) => m) || [],
+  }));
 };
 
-const MOCK_SKILLS: Skill[] = [
-  {
-    id: "1",
-    name: "网络搜索",
-    description: "执行网络搜索功能，获取实时信息",
-    steps: [
-      {
-        id: "1-1",
-        description: "解析用户搜索关键词",
-        materials: [
-          {
-            id: "m1",
-            type: "link",
-            content: "https://api.example.com/search",
-            inputSchema:
-              '{\n  "query": "string - 搜索关键词",\n  "limit": "number - 结果数量（默认10）"\n}',
-            outputSchema: '{\n  "rawData": "object - API原始返回数据"\n}',
-          },
-        ],
-        dependencies: [],
-      },
-      {
-        id: "1-2",
-        description: "调用搜索引擎API获取结果",
-        materials: [],
-        dependencies: ["1-1"],
-      },
-      {
-        id: "1-3",
-        description: "整理搜索结果并返回结构化数据",
-        materials: [],
-        dependencies: ["1-2"],
-      },
-    ],
-    tags: "搜索,网络,信息获取",
-    example: '输入："搜索最新的AI新闻"\n输出：返回10条相关的AI新闻链接及摘要',
-  },
-  {
-    id: "2",
-    name: "文件处理",
-    description: "处理各种文件格式的读写和解析操作",
-    steps: [
-      {
-        id: "2-1",
-        description: "识别文件类型",
-        materials: [],
-        dependencies: [],
-      },
-      {
-        id: "2-2",
-        description: "读取文件内容",
-        materials: [{ id: "m2", type: "path", content: "/data/uploads/" }],
-        dependencies: ["2-1"],
-      },
-      {
-        id: "2-3",
-        description: "根据需求处理数据",
-        materials: [],
-        dependencies: ["2-2"],
-      },
-      {
-        id: "2-4",
-        description: "输出处理结果",
-        materials: [],
-        dependencies: ["2-3"],
-      },
-    ],
-    tags: "文件,数据处理,解析",
-    example: '输入："处理这个CSV文件"\n输出：CSV数据的JSON格式数组',
-  },
-];
+const convertToFrontendSteps = (
+  steps: Array<{ name: string; description: string; materials: string[] }>,
+): any[] => {
+  return steps.map((step, index) => ({
+    id: `step-${Date.now()}-${index}`,
+    name: step.name,
+    description: step.description,
+    materials: step.materials.map((m, idx) => ({
+      id: `material-${Date.now()}-${idx}`,
+      type: m.startsWith("http") ? "link" : "text",
+      content: m,
+    })),
+    dependencies: [],
+  }));
+};
 
-const MOCK_HISTORY: SkillHistory[] = [
-  {
-    id: "h1",
-    skillId: "1",
-    skillName: "网络搜索",
-    action: "update",
-    timestamp: new Date().toISOString(),
-    details: "更新了执行步骤",
-  },
-  {
-    id: "h2",
-    skillId: "2",
-    skillName: "文件处理",
-    action: "create",
-    timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-    details: "创建新技能",
-  },
-  {
-    id: "h3",
-    skillId: "1",
-    skillName: "网络搜索",
-    action: "delete",
-    timestamp: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-    details: "删除旧版本",
-  },
-];
+const sanitizeFolderName = (name: string): string => {
+  return name
+    .replace(/[<>:"/\\|?*]/g, "_")
+    .replace(/\s+/g, "_")
+    .trim();
+};
 
 const SkillEditor: React.FC<SkillEditorProps> = ({
   t,
   onClose,
   currentSessionId,
 }) => {
-  const [skills, setSkills] = useState<Skill[]>(MOCK_SKILLS);
-  const [skillHistory, setSkillHistory] =
-    useState<SkillHistory[]>(MOCK_HISTORY);
-  const [currentSkill, setCurrentSkill] = useState<Skill | null>(null);
+  const [skills, setSkills] = useState<SkillData[]>([]);
+  const [skillHistory, setSkillHistory] = useState<SkillHistory[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [currentSkill, setCurrentSkill] = useState<SkillData | null>(null);
+  const [currentFrontendSkill, setCurrentFrontendSkill] = useState<any>(null);
   const [hasChanges, setHasChanges] = useState(false);
   const [viewMode, setViewMode] = useState<"form" | "markdown">("form");
   const [showEditor, setShowEditor] = useState(false);
@@ -128,87 +76,144 @@ const SkillEditor: React.FC<SkillEditorProps> = ({
     {},
   );
 
-  const loadSkill = (skill: Skill) => {
-    setCurrentSkill(JSON.parse(JSON.stringify(skill)));
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      const [skillList, history] = await Promise.all([
+        skillsLocalCommands.listLocalSkills(),
+        skillsLocalCommands.getAllSkillHistory(),
+      ]);
+      const sortedSkills = [...skillList].sort(
+        (a, b) =>
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+      );
+      setSkills(sortedSkills);
+      setSkillHistory(history);
+    } catch (error) {
+      console.error("Failed to load data:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadSkill = (skill: SkillData) => {
+    setCurrentSkill(skill);
+    setCurrentFrontendSkill({
+      id: skill.id,
+      name: skill.name,
+      description: skill.description,
+      steps: convertToFrontendSteps(skill.steps),
+      tags: skill.tags,
+      example: "",
+      category: skill.category,
+    });
     setShowEditor(true);
     setHasChanges(false);
     setErrors({});
   };
 
-  const updateCurrentSkill = (updatedSkill: Skill) => {
-    setCurrentSkill(updatedSkill);
+  const updateCurrentSkill = (updatedFrontendSkill: any) => {
+    setCurrentFrontendSkill(updatedFrontendSkill);
     setHasChanges(true);
   };
 
-  const validate = (skill: Skill): boolean => {
+  const validate = (skill: any): boolean => {
     const newErrors: { name?: string; description?: string } = {};
-    if (!skill.name.trim()) {
+    if (!skill.name?.trim()) {
       newErrors.name = t("skillEditor.errorNameRequired");
     }
-    if (!skill.description.trim()) {
+    if (!skill.description?.trim()) {
       newErrors.description = t("skillEditor.errorDescriptionRequired");
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const saveCurrentSkill = () => {
-    if (!currentSkill) return;
-    if (!validate(currentSkill)) return;
-    const existingSkill = skills.find((s) => s.id === currentSkill.id);
-    const newHistory: SkillHistory = {
-      id: `h-${Date.now()}`,
-      skillId: currentSkill.id,
-      skillName: currentSkill.name,
-      action: existingSkill ? "update" : "create",
-      timestamp: new Date().toISOString(),
-      details: existingSkill ? "更新技能配置" : "创建新技能",
-    };
-    setSkillHistory((prev) => [newHistory, ...prev]);
-
-    setSkills((prev) =>
-      prev.map((s) => (s.id === currentSkill.id ? { ...currentSkill } : s)),
-    );
-    setHasChanges(false);
+  const saveCurrentSkill = async () => {
+    if (!currentFrontendSkill) return;
+    if (!validate(currentFrontendSkill)) return;
+    try {
+      const backendSteps = convertToBackendSteps(currentFrontendSkill.steps);
+      if (currentSkill) {
+        const request: UpdateSkillRequest = {
+          id: currentSkill.id,
+          name: currentFrontendSkill.name,
+          description: currentFrontendSkill.description,
+          category: currentFrontendSkill.category || "general",
+          tags: currentFrontendSkill.tags || "",
+          steps: backendSteps,
+        };
+        await skillsLocalCommands.updateSkill(request);
+        showToast(ToastType.SUCCESS, t("skillEditor.saveSuccess"));
+      } else {
+        const request: CreateSkillRequest = {
+          name: currentFrontendSkill.name,
+          description: currentFrontendSkill.description,
+          category: currentFrontendSkill.category || "general",
+          tags: currentFrontendSkill.tags || "",
+          steps: backendSteps,
+        };
+        await skillsLocalCommands.createSkill(request);
+        showToast(ToastType.SUCCESS, t("skillEditor.createSuccess"));
+      }
+      await loadData();
+      setHasChanges(false);
+      setShowEditor(false);
+      setCurrentSkill(null);
+      setCurrentFrontendSkill(null);
+    } catch (error) {
+      console.error("Failed to save skill:", error);
+      showToast(ToastType.ERROR, t("skillEditor.saveFailed"));
+    }
   };
 
   const createNewSkill = () => {
-    const newId = Date.now().toString();
-    const newSkill: Skill = {
-      id: newId,
+    setCurrentSkill(null);
+    setCurrentFrontendSkill({
+      id: `temp-${Date.now()}`,
       name: "",
       description: "",
       steps: [
-        { id: `${newId}-1`, description: "", materials: [], dependencies: [] },
+        {
+          id: `step-${Date.now()}`,
+          name: "",
+          description: "",
+          materials: [],
+          dependencies: [],
+        },
       ],
       tags: "",
       example: "",
-    };
-    setSkills((prev) => [...prev, newSkill]);
-    setCurrentSkill(newSkill);
+      category: "general",
+    });
     setShowEditor(true);
     setHasChanges(false);
     setErrors({});
   };
 
-  const deleteSkill = (skill: Skill, e: React.MouseEvent) => {
+  const deleteSkill = async (skill: SkillData, e: React.MouseEvent) => {
     e.stopPropagation();
     // eslint-disable-next-line no-restricted-globals
     if (confirm(t("skillEditor.confirmDelete", { name: skill.name }))) {
-      const newHistory: SkillHistory = {
-        id: `h-${Date.now()}`,
-        skillId: skill.id,
-        skillName: skill.name,
-        action: "delete",
-        timestamp: new Date().toISOString(),
-        details: "删除技能",
-      };
-      setSkillHistory((prev) => [newHistory, ...prev]);
-
-      setSkills((prev) => prev.filter((s) => s.id !== skill.id));
-      if (currentSkill?.id === skill.id) {
-        setCurrentSkill(null);
-        setShowEditor(false);
+      try {
+        await skillsLocalCommands.deleteSkill(skill.id);
+        await loadData();
+        showToast(
+          ToastType.SUCCESS,
+          t("skillEditor.deleteSuccess", { name: skill.name }),
+        );
+        if (currentSkill?.id === skill.id) {
+          setCurrentSkill(null);
+          setCurrentFrontendSkill(null);
+          setShowEditor(false);
+        }
+      } catch (error) {
+        console.error("Failed to delete skill:", error);
+        showToast(ToastType.ERROR, t("skillEditor.deleteFailed"));
       }
     }
   };
@@ -216,22 +221,27 @@ const SkillEditor: React.FC<SkillEditorProps> = ({
   const closeEditor = () => {
     setShowEditor(false);
     setCurrentSkill(null);
+    setCurrentFrontendSkill(null);
     setHasChanges(false);
     setErrors({});
   };
 
-  const handleFavorite = (skill: Skill) => {
-    console.log("Favorite skill:", skill.id);
-  };
-
-  const handleRun = (skill: Skill) => {
-    console.log("Run skill:", skill.id);
-  };
-
   const handleSelectHistory = (history: SkillHistory) => {
-    const targetSkill = skills.find((s) => s.id === history.skillId);
+    if (history.action === "delete") {
+      showToast(
+        ToastType.INFO,
+        t("skillEditor.deletedSkillCannotEdit", { name: history.skill_name }),
+      );
+      return;
+    }
+    const targetSkill = skills.find((s) => s.id === history.skill_id);
     if (targetSkill) {
       loadSkill(targetSkill);
+    } else {
+      showToast(
+        ToastType.WARNING,
+        t("skillEditor.skillNotFound", { name: history.skill_name }),
+      );
     }
   };
 
@@ -239,14 +249,14 @@ const SkillEditor: React.FC<SkillEditorProps> = ({
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === "s") {
         e.preventDefault();
-        if (hasChanges && currentSkill) {
+        if (hasChanges && currentFrontendSkill) {
           saveCurrentSkill();
         }
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [hasChanges, currentSkill]);
+  }, [hasChanges, currentFrontendSkill]);
 
   const styles: Record<string, React.CSSProperties> = {
     container: {
@@ -324,12 +334,21 @@ const SkillEditor: React.FC<SkillEditorProps> = ({
     },
   };
 
+  if (loading) {
+    return (
+      <div style={styles.container}>
+        <div style={{ textAlign: "center", padding: "40px" }}>
+          {t("common.loading")}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={styles.container}>
       <SkillEditorSidebar
         t={t}
         skills={skills}
-        skillHistory={skillHistory}
         onSelectHistory={handleSelectHistory}
       />
 
@@ -340,17 +359,15 @@ const SkillEditor: React.FC<SkillEditorProps> = ({
             skills={skills}
             onCreateNew={createNewSkill}
             onSelectSkill={loadSkill}
-            onDeleteSkill={deleteSkill}
-            onFavorite={handleFavorite}
-            onRun={handleRun}
+            onRefresh={loadData}
           />
         ) : (
-          currentSkill && (
+          currentFrontendSkill && (
             <>
               <div style={styles.toolbar}>
                 <div>
                   <h2 style={styles.title}>
-                    {currentSkill.name || t("skillEditor.unnamed")}
+                    {currentFrontendSkill.name || t("skillEditor.unnamed")}
                   </h2>
                 </div>
                 <div style={styles.actions}>
@@ -395,7 +412,7 @@ const SkillEditor: React.FC<SkillEditorProps> = ({
               {viewMode === "form" ? (
                 <SkillEditorForm
                   t={t}
-                  skill={currentSkill}
+                  skill={currentFrontendSkill}
                   onUpdate={updateCurrentSkill}
                   onSave={saveCurrentSkill}
                   hasChanges={hasChanges}
@@ -403,7 +420,7 @@ const SkillEditor: React.FC<SkillEditorProps> = ({
                   setErrors={setErrors}
                 />
               ) : (
-                <SkillMarkdownPreview skill={currentSkill} t={t} />
+                <SkillMarkdownPreview skill={currentFrontendSkill} t={t} />
               )}
             </>
           )

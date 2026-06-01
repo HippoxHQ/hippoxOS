@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState, useCallback } from "react";
-import { ExecutionLog, TaskInfo, UploadFile } from "../../type";
+import { ExecutionLog, TaskInfo, UploadFile } from "../../types/type";
 import { configCommands } from "../../api/config";
 import FunctionArea from "./FunctionArea";
 import TerminalArea from "./TerminalArea";

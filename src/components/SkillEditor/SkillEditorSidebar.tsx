@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from "react";
-import { Skill, SkillHistory } from "./types";
+import { skillsLocalCommands } from "../../api/skills";
+import { SkillData, SkillHistory } from "../../types/skill";
 
 interface SkillEditorSidebarProps {
   t: (key: string, params?: any) => string;
-  skills: Skill[];
-  skillHistory: SkillHistory[];
+  skills: SkillData[];
+  onSkillsChange?: (skills: SkillData[]) => void;
   onSelectHistory?: (history: SkillHistory) => void;
+  onSelectSkill?: (skill: SkillData) => void;
 }
 
 type HistoryCategoryType =
@@ -26,9 +28,9 @@ const historyCategories: { key: string; type: HistoryCategoryType }[] = [
 const SkillEditorSidebar: React.FC<SkillEditorSidebarProps> = ({
   t,
   skills,
-  skillHistory,
   onSelectHistory,
 }) => {
+  const [skillHistory, setSkillHistory] = useState<SkillHistory[]>([]);
   const [expandedCategories, setExpandedCategories] = useState<
     Record<HistoryCategoryType, boolean>
   >({
@@ -39,16 +41,23 @@ const SkillEditorSidebar: React.FC<SkillEditorSidebarProps> = ({
     older: true,
   });
   const [hoveredId, setHoveredId] = useState<string | null>(null);
-  const [sortedHistory, setSortedHistory] = useState<SkillHistory[]>([]);
 
   useEffect(() => {
-    const sorted = [...skillHistory].sort((a, b) => {
-      const aTime = new Date(a.timestamp).getTime();
-      const bTime = new Date(b.timestamp).getTime();
-      return bTime - aTime;
-    });
-    setSortedHistory(sorted);
-  }, [skillHistory]);
+    loadHistory();
+  }, []);
+
+  const loadHistory = async () => {
+    try {
+      const history = await skillsLocalCommands.getAllSkillHistory();
+      const sortedHistory = [...history].sort(
+        (a, b) =>
+          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+      );
+      setSkillHistory(sortedHistory);
+    } catch (error) {
+      console.error("Failed to load history:", error);
+    }
+  };
 
   const toggleCategory = (categoryType: HistoryCategoryType) => {
     setExpandedCategories((prev) => ({
@@ -57,13 +66,21 @@ const SkillEditorSidebar: React.FC<SkillEditorSidebarProps> = ({
     }));
   };
 
-  const totalSteps = skills.reduce((acc, skill) => acc + skill.steps.length, 0);
-  const totalMaterials = skills.reduce(
+  const sortedSkills = [...skills].sort(
+    (a, b) =>
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+  );
+
+  const totalSteps = sortedSkills.reduce(
+    (acc, skill) => acc + skill.steps.length,
+    0,
+  );
+  const totalMaterials = sortedSkills.reduce(
     (acc, skill) =>
       acc + skill.steps.reduce((a, s) => a + s.materials.length, 0),
     0,
   );
-  const incompleteSkills = skills.filter(
+  const incompleteSkills = sortedSkills.filter(
     (s) => !s.description || s.steps.length === 0 || !s.steps[0]?.description,
   ).length;
 
@@ -89,6 +106,10 @@ const SkillEditorSidebar: React.FC<SkillEditorSidebarProps> = ({
       last30days: [],
       older: [],
     };
+    const sortedHistory = [...skillHistory].sort(
+      (a, b) =>
+        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+    );
     sortedHistory.forEach((history) => {
       const category = getHistoryCategory(history);
       grouped[category].push(history);
@@ -249,7 +270,7 @@ const SkillEditorSidebar: React.FC<SkillEditorSidebarProps> = ({
 
         .history-time {
           font-size: 11px;
-          color: var(--text-muted);
+          color: var(--text-secondary);
         }
 
         .history-action {
@@ -264,103 +285,111 @@ const SkillEditorSidebar: React.FC<SkillEditorSidebarProps> = ({
         .empty-history {
           text-align: center;
           padding: 40px;
-          color: var(--text-muted);
+          color: var(--text-secondary);
           font-size: 13px;
+        }
+
+        :root {
+          --bg-primary: #0f1117;
+          --bg-secondary: #1a1d26;
+          --bg-tertiary: #22252f;
+          --border-color: #2d303a;
+          --text-primary: #e8edf2;
+          --text-secondary: #9ca3af;
+          --accent-color: #818cf8;
+          --hover-bg: rgba(232, 237, 242, 0.08);
+        }
+
+        [data-theme="light"] {
+          --bg-primary: #f3f4f6;
+          --bg-secondary: #ffffff;
+          --bg-tertiary: #e5e7eb;
+          --border-color: #d1d5db;
+          --text-primary: #111827;
+          --text-secondary: #4b5563;
+          --accent-color: #6366f1;
+          --hover-bg: rgba(0, 0, 0, 0.04);
         }
       `}</style>
 
-      <div className="skill-editor-sidebar">
-        <div className="stats-section">
-          <div className="stats-title">📊 {t("skillEditor.stats")}</div>
-          <div className="stats-grid">
-            <div className="stat-card">
-              <div className="stat-number">{skills.length}</div>
-              <div className="stat-label">{t("skillEditor.totalSkills")}</div>
-            </div>
-            <div className="stat-card">
-              <div className="stat-number">{totalSteps}</div>
-              <div className="stat-label">{t("skillEditor.totalSteps")}</div>
-            </div>
-            <div className="stat-card">
-              <div className="stat-number">{totalMaterials}</div>
-              <div className="stat-label">
-                {t("skillEditor.totalMaterials")}
-              </div>
-            </div>
-            <div
-              className={`stat-card ${incompleteSkills > 0 ? "stat-warning" : ""}`}
-            >
-              <div className="stat-number">{incompleteSkills}</div>
-              <div className="stat-label">{t("skillEditor.incomplete")}</div>
-            </div>
+      <div className="stats-section">
+        <div className="stats-title">📊 {t("skillEditor.stats")}</div>
+        <div className="stats-grid">
+          <div className="stat-card">
+            <div className="stat-number">{sortedSkills.length}</div>
+            <div className="stat-label">{t("skillEditor.totalSkills")}</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-number">{totalSteps}</div>
+            <div className="stat-label">{t("skillEditor.totalSteps")}</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-number">{totalMaterials}</div>
+            <div className="stat-label">{t("skillEditor.totalMaterials")}</div>
+          </div>
+          <div
+            className={`stat-card ${incompleteSkills > 0 ? "stat-warning" : ""}`}
+          >
+            <div className="stat-number">{incompleteSkills}</div>
+            <div className="stat-label">{t("skillEditor.incomplete")}</div>
           </div>
         </div>
+      </div>
 
-        <div className="history-section">
-          <div className="stats-title" style={{ marginBottom: "8px" }}>
-            📝 {t("skillEditor.modifyHistory")}
-          </div>
-          {historyCategories.map((category) => {
-            const categoryHistory = groupedHistory[category.type];
-            if (categoryHistory.length === 0) return null;
-            return (
-              <div key={category.type}>
-                <div
-                  className="category-header"
-                  onClick={() => toggleCategory(category.type)}
-                >
-                  <span>{t(category.key)}</span>
-                  <span
-                    className="category-arrow"
-                    style={{
-                      transform: expandedCategories[category.type]
-                        ? "rotate(0deg)"
-                        : "rotate(-90deg)",
-                    }}
-                  >
-                    ▼
-                  </span>
-                </div>
-                {expandedCategories[category.type] &&
-                  categoryHistory.map((history) => {
-                    const isHovered = hoveredId === history.id;
-                    return (
-                      <div
-                        key={history.id}
-                        className="history-card"
-                        style={{
-                          background: isHovered
-                            ? "var(--hover-bg)"
-                            : "var(--bg-tertiary)",
-                        }}
-                        onMouseEnter={() => setHoveredId(history.id)}
-                        onMouseLeave={() => setHoveredId(null)}
-                        onClick={() => onSelectHistory?.(history)}
-                      >
-                        <div className="history-icon">
-                          {getActionIcon(history.action)}
-                        </div>
-                        <div className="history-info">
-                          <div className="history-title">
-                            {history.skillName}
-                          </div>
-                          <div className="history-time">
-                            {new Date(history.timestamp).toLocaleString()}
-                          </div>
-                        </div>
-                        <div className="history-action">
-                          {getActionText(history.action)}
-                        </div>
-                      </div>
-                    );
-                  })}
-              </div>
-            );
-          })}
-          {sortedHistory.length === 0 && (
-            <div className="empty-history">{t("skillEditor.noHistory")}</div>
-          )}
+      <div className="history-section">
+        <div className="stats-title" style={{ marginBottom: "8px" }}>
+          📝 {t("skillEditor.modifyHistory")}
         </div>
+        {historyCategories.map((category) => {
+          const categoryHistory = groupedHistory[category.type];
+          if (categoryHistory.length === 0) return null;
+          return (
+            <div key={category.type}>
+              <div
+                className="category-header"
+                onClick={() => toggleCategory(category.type)}
+              >
+                <span>{t(category.key)}</span>
+                <span
+                  className="category-arrow"
+                  style={{
+                    transform: expandedCategories[category.type]
+                      ? "rotate(0deg)"
+                      : "rotate(-90deg)",
+                  }}
+                >
+                  ▼
+                </span>
+              </div>
+              {expandedCategories[category.type] &&
+                categoryHistory.map((history) => (
+                  <div
+                    key={history.id}
+                    className="history-card"
+                    onMouseEnter={() => setHoveredId(history.id)}
+                    onMouseLeave={() => setHoveredId(null)}
+                    onClick={() => onSelectHistory?.(history)}
+                  >
+                    <div className="history-icon">
+                      {getActionIcon(history.action)}
+                    </div>
+                    <div className="history-info">
+                      <div className="history-title">{history.skill_name}</div>
+                      <div className="history-time">
+                        {new Date(history.timestamp).toLocaleString()}
+                      </div>
+                    </div>
+                    <div className="history-action">
+                      {getActionText(history.action)}
+                    </div>
+                  </div>
+                ))}
+            </div>
+          );
+        })}
+        {skillHistory.length === 0 && (
+          <div className="empty-history">{t("skillEditor.noHistory")}</div>
+        )}
       </div>
     </div>
   );

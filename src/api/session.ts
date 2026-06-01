@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
-import { ChatMessage, DialogSession, TaskInfo } from '../type';
+import { ChatMessage, DialogSession, TaskInfo } from '../types/type';
 
 export const sessionCommands = {
     async createSession(

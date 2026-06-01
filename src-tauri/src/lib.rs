@@ -7,6 +7,7 @@ mod state;
 mod types;
 mod windows;
 mod workspace;
+mod wrokflow;
 
 use crate::commands::{init_all_hippox_instances, sync_all_to_hippox_core};
 use crate::common::init_default_settings;
@@ -153,7 +154,6 @@ pub fn run() {
             commands::cmd_get_market_categories,
             commands::install_skill,
             commands::uninstall_skill,
-            commands::update_skill,
             commands::get_market_config,
             commands::update_market_config,
             commands::get_installed_skills,
@@ -250,6 +250,14 @@ pub fn run() {
             commands::cmd_read_image_base64,
             commands::cmd_read_file_base64,
             commands::cmd_get_file_info,
+            commands::cmd_list_local_skills,
+            commands::cmd_create_skill,
+            commands::cmd_update_skill,
+            commands::cmd_delete_skill,
+            commands::cmd_get_skill,
+            commands::cmd_get_all_skill_history,
+            commands::cmd_get_skill_history,
+            commands::cmd_skill_exists,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

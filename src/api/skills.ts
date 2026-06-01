@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import { SkillData, CreateSkillRequest, UpdateSkillRequest, SkillHistory } from "../types/skill";
 
 export interface SkillParameter {
     name: string;
@@ -71,9 +72,6 @@ export const skillsMarketCommands = {
 
     uninstallSkill: (skillId: string): Promise<boolean> =>
         invoke("uninstall_skill", { skillId }),
-
-    updateSkill: (skillId: string): Promise<boolean> =>
-        invoke("update_skill", { skillId }),
 
     getMarketConfig: (): Promise<MarketConfig> =>
         invoke("get_market_config"),
@@ -199,3 +197,37 @@ export function getSkillStats(skills: AtomicSkillInfo[]): {
         categories: categories.size,
     };
 }
+
+export const skillsLocalCommands = {
+    async listLocalSkills(): Promise<SkillData[]> {
+        return await invoke('cmd_list_local_skills');
+    },
+
+    async createSkill(request: CreateSkillRequest): Promise<SkillData> {
+        return await invoke('cmd_create_skill', { request });
+    },
+
+    async updateSkill(request: UpdateSkillRequest): Promise<SkillData> {
+        return await invoke('cmd_update_skill', { request });
+    },
+
+    async deleteSkill(skillId: string): Promise<boolean> {
+        return await invoke('cmd_delete_skill', { skillId });
+    },
+
+    async getSkill(skillId: string): Promise<SkillData | null> {
+        return await invoke('cmd_get_skill', { skillId });
+    },
+
+    async getAllSkillHistory(): Promise<SkillHistory[]> {
+        return await invoke('cmd_get_all_skill_history');
+    },
+
+    async getSkillHistory(skillId: string): Promise<SkillHistory[]> {
+        return await invoke('cmd_get_skill_history', { skillId });
+    },
+
+    async skillExists(skillId: string): Promise<boolean> {
+        return await invoke('cmd_skill_exists', { skillId });
+    },
+};

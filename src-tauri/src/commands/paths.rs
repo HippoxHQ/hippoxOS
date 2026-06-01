@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 use sysinfo::Disks;
 use walkdir::WalkDir;
 
-use crate::commands::get_notifications_dir;
+use crate::commands::{get_notifications_dir, get_skill_history_dir, get_skills_dir};
 
 /// Get application root directory
 ///
@@ -175,6 +175,8 @@ pub fn init_directories() -> Result<(), String> {
         get_cache_dir().join("skills"),
         get_cache_dir().join("temp"),
         get_notifications_dir(),
+        get_skills_dir(),
+        get_skill_history_dir(),
     ];
     for dir in dirs {
         if !dir.exists() {

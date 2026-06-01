@@ -8,7 +8,7 @@ import {
   NewSessionIcon,
   NewSessionIcon2,
 } from "../../icons";
-import { Theme, Language } from "../../type";
+import { Theme, Language } from "../../types/type";
 import SearchDialog from "./SearchDialog";
 import { showToast, ToastType } from "../Toast";
 

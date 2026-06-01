@@ -4,7 +4,7 @@ import { configCommands } from "../api/config";
 import { invoke } from "@tauri-apps/api/core";
 import { zh, en } from "../i18n";
 import { healthCommands, HealthCheckResult } from "../api/health";
-import { SystemEvent } from "../type";
+import { SystemEvent } from "../types/type";
 
 const getTranslation = (language: "zh" | "en", key: string): string => {
   const translations = language === "zh" ? zh : en;

@@ -6,7 +6,7 @@ import App from "./App";
 import SystemTrayWindow from "./windows/SystemTrayWindow";
 import SubmenuWindow from "./windows/SubmenuWindow";
 import reportWebVitals from "./reportWebVitals";
-import { WindowTypeEnum } from "./type";
+import { WindowTypeEnum } from "./types/type";
 
 const root = ReactDOM.createRoot(
   document.getElementById("root") as HTMLElement,

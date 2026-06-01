@@ -20,7 +20,7 @@ import {
   MessageStatus,
   SystemEvent,
   UploadFile,
-} from "./type";
+} from "./types/type";
 import { hippoxCommands } from "./api/chat";
 import { sessionCommands } from "./api/session";
 import { configCommands } from "./api/config";

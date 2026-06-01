@@ -9,13 +9,13 @@ use tauri::{Emitter, State};
 use tokio::sync::Mutex;
 use uuid::Uuid;
 
-use crate::commands::callback::TauriWorkflowCallback;
 use crate::commands::{
     get_default_hippox, init_all_hippox_instances, load_config_from_file, HIPPOX_APP_CONFIG,
 };
 use crate::state::AppState;
 use crate::types::Role;
 use crate::workspace::get_default_workspace;
+use crate::wrokflow::HippoXWorkflowCallback;
 
 pub(crate) struct LogMessages {
     init_start: String,
@@ -313,7 +313,7 @@ async fn execute_task_async(
     session_id: String,
 ) {
     state.update_task_status(&task_id, "running").await;
-    let callback = Arc::new(TauriWorkflowCallback::new(
+    let callback = Arc::new(HippoXWorkflowCallback::new(
         app_handle.clone(),
         task_id.clone(),
         session_id.clone(),

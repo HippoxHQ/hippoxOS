@@ -1,4 +1,3 @@
-pub mod callback;
 pub mod chat;
 pub mod config;
 pub mod context;
@@ -16,7 +15,6 @@ pub mod skills_market;
 pub mod sys;
 pub mod windows;
 
-pub use callback::*;
 pub use chat::*;
 pub use config::*;
 pub use context::*;

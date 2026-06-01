@@ -1,31 +1,58 @@
-import React, { useState } from "react";
-import { Skill } from "./types";
+import React, { useState, useEffect } from "react";
+import { skillsLocalCommands } from "../../api/skills";
+import { SkillData } from "../../types/skill";
 
 interface SkillCardGridProps {
   t: (key: string, params?: any) => string;
-  skills: Skill[];
+  skills: SkillData[];
   onCreateNew: () => void;
-  onSelectSkill: (skill: Skill) => void;
-  onDeleteSkill: (skill: Skill, e: React.MouseEvent) => void;
-  onFavorite?: (skill: Skill) => void;
-  onRun?: (skill: Skill) => void;
+  onSelectSkill: (skill: SkillData) => void;
+  onDeleteSkill?: (skill: SkillData, e: React.MouseEvent) => void;
+  onFavorite?: (skill: SkillData) => void;
+  onRun?: (skill: SkillData) => void;
+  onRefresh?: () => void;
 }
 
 const SkillCardGrid: React.FC<SkillCardGridProps> = ({
   t,
-  skills,
+  skills: externalSkills,
   onCreateNew,
   onSelectSkill,
   onDeleteSkill,
   onFavorite,
   onRun,
+  onRefresh,
 }) => {
+  const [loading, setLoading] = useState(false);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [favoritedSkills, setFavoritedSkills] = useState<Set<string>>(
     new Set(),
   );
 
-  const handleFavorite = (skill: Skill, e: React.MouseEvent) => {
+  useEffect(() => {
+    // Load favorited skills from localStorage
+    const saved = localStorage.getItem("favorited_skills");
+    if (saved) {
+      try {
+        setFavoritedSkills(new Set(JSON.parse(saved)));
+      } catch (e) {}
+    }
+  }, []);
+
+  const handleDelete = async (skill: SkillData, e: React.MouseEvent) => {
+    e.stopPropagation();
+    // eslint-disable-next-line no-restricted-globals
+    if (confirm(t("skillEditor.confirmDelete"))) {
+      try {
+        await skillsLocalCommands.deleteSkill(skill.id);
+        onRefresh?.();
+      } catch (error) {
+        console.error("Failed to delete skill:", error);
+      }
+    }
+  };
+
+  const handleFavorite = (skill: SkillData, e: React.MouseEvent) => {
     e.stopPropagation();
     setFavoritedSkills((prev) => {
       const newSet = new Set(prev);
@@ -34,15 +61,30 @@ const SkillCardGrid: React.FC<SkillCardGridProps> = ({
       } else {
         newSet.add(skill.id);
       }
+      localStorage.setItem(
+        "favorited_skills",
+        JSON.stringify(Array.from(newSet)),
+      );
       return newSet;
     });
     onFavorite?.(skill);
   };
 
-  const handleRun = (skill: Skill, e: React.MouseEvent) => {
+  const handleRun = (skill: SkillData, e: React.MouseEvent) => {
     e.stopPropagation();
     onRun?.(skill);
+    window.dispatchEvent(new CustomEvent("run-skill", { detail: { skill } }));
   };
+
+  if (loading) {
+    return (
+      <div className="skill-cards-grid">
+        <div style={{ textAlign: "center", padding: "40px" }}>
+          {t("common.loading")}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="skill-cards-grid">
@@ -167,10 +209,14 @@ const SkillCardGrid: React.FC<SkillCardGridProps> = ({
           flex-wrap: wrap;
         }
 
-        .installed-badge {
-          background: var(--accent-color);
-          color: white;
-          font-size: 10px;
+        .card-category {
+          background: var(--bg-tertiary);
+          padding: 2px 8px;
+          border-radius: 12px;
+        }
+
+        .card-steps {
+          background: var(--accent-glow);
           padding: 2px 8px;
           border-radius: 12px;
         }
@@ -207,9 +253,7 @@ const SkillCardGrid: React.FC<SkillCardGridProps> = ({
           --border-color: #2d303a;
           --text-primary: #e8edf2;
           --text-secondary: #9ca3af;
-          --text-tertiary: #6b7280;
           --accent-color: #818cf8;
-          --accent-hover: #6366f1;
           --accent-glow: rgba(129, 140, 248, 0.2);
           --hover-bg: rgba(232, 237, 242, 0.08);
         }
@@ -221,9 +265,7 @@ const SkillCardGrid: React.FC<SkillCardGridProps> = ({
           --border-color: #d1d5db;
           --text-primary: #111827;
           --text-secondary: #4b5563;
-          --text-tertiary: #9ca3af;
           --accent-color: #6366f1;
-          --accent-hover: #4f46e5;
           --accent-glow: rgba(99, 102, 241, 0.2);
           --hover-bg: rgba(0, 0, 0, 0.04);
         }
@@ -235,7 +277,7 @@ const SkillCardGrid: React.FC<SkillCardGridProps> = ({
           <div className="add-text">{t("skillEditor.createNew")}</div>
         </div>
 
-        {skills.map((skill) => {
+        {externalSkills.map((skill) => {
           const isFavorited = favoritedSkills.has(skill.id);
           return (
             <div
@@ -270,7 +312,11 @@ const SkillCardGrid: React.FC<SkillCardGridProps> = ({
                   </button>
                   <button
                     className="icon-btn danger"
-                    onClick={(e) => onDeleteSkill(skill, e)}
+                    onClick={(e) =>
+                      onDeleteSkill
+                        ? onDeleteSkill(skill, e)
+                        : handleDelete(skill, e)
+                    }
                     title={t("skillEditor.delete")}
                   >
                     🗑️
@@ -278,11 +324,8 @@ const SkillCardGrid: React.FC<SkillCardGridProps> = ({
                 </div>
               </div>
               <div className="card-meta">
-                {skill.installed && (
-                  <span className="installed-badge">
-                    {t("skillEditor.installed")}
-                  </span>
-                )}
+                <span className="card-category">{skill.category}</span>
+                <span className="card-steps">{skill.steps.length} steps</span>
               </div>
               <div className="card-description">
                 {skill.description || t("skillEditor.noDescription")}

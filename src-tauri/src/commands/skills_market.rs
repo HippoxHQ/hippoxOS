@@ -454,13 +454,6 @@ pub async fn uninstall_skill(skill_id: String) -> Result<bool, String> {
     Ok(true)
 }
 
-/// Update a specific skill (reinstall from market)
-#[command]
-pub async fn update_skill(skill_id: String) -> Result<bool, String> {
-    update_skills_market().await?;
-    install_skill(skill_id).await
-}
-
 /// Get market config
 #[command]
 pub async fn get_market_config() -> Result<MarketConfig, String> {

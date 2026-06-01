@@ -7,14 +7,14 @@ use std::sync::Arc;
 use tauri::{AppHandle, Emitter};
 
 #[derive(Debug, Clone)]
-pub struct TauriWorkflowCallback {
+pub struct HippoXWorkflowCallback {
     app_handle: AppHandle,
     task_id: String,
     session_id: String,
     completed: Arc<AtomicBool>,
 }
 
-impl TauriWorkflowCallback {
+impl HippoXWorkflowCallback {
     pub fn new(app_handle: AppHandle, task_id: String, session_id: String) -> Self {
         Self {
             app_handle,
@@ -52,7 +52,7 @@ impl TauriWorkflowCallback {
 }
 
 #[async_trait]
-impl WorkflowCallback for TauriWorkflowCallback {
+impl WorkflowCallback for HippoXWorkflowCallback {
     async fn on_step_start(&self, step_name: &str, step_index: usize) {
         let _ = self.app_handle.emit(
             "task_step_update",

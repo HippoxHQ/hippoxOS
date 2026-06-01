@@ -5,6 +5,13 @@ export const zh = {
     newSessionDesc: '新创建的对话',
   },
   skillEditor: {
+    deletedSkillCannotEdit: "“{{name}}” 已被删除，无法编辑",
+    skillNotFound: "找不到技能 “{{ name }}”",
+    saveSuccess: "技能保存成功",
+    createSuccess: "技能创建成功",
+    saveFailed: "技能保存失败",
+    deleteSuccess: "技能 “{{name}}” 已删除",
+    deleteFailed: "技能删除失败",
     stats: "技能统计",
     totalSkills: "技能总数",
     totalSteps: "执行步骤",
@@ -67,10 +74,6 @@ export const zh = {
     errorNameRequired: "技能名称不能为空",
     errorDescriptionRequired: "技能描述不能为空",
     confirmDelete: "确定删除技能 \"{{name}}\" 吗？",
-    saveSuccess: "保存成功",
-    saveFailed: "保存失败",
-    deleteSuccess: "删除成功",
-    deleteFailed: "删除失败"
   },
   llmModel: {
     workflowMode: '工作流模式',
@@ -837,6 +840,13 @@ export const en: typeof zh = {
     newSessionDesc: 'Newly created session',
   },
   skillEditor: {
+    deletedSkillCannotEdit: "Skill \"{{name}}\" has been deleted and cannot be edited",
+    skillNotFound: "Skill \"{{name}}\" not found",
+    saveSuccess: "Skill saved successfully",
+    createSuccess: "Skill created successfully",
+    saveFailed: "Failed to save skill",
+    deleteSuccess: "Skill \"{{name}}\" has been deleted",
+    deleteFailed: "Failed to delete skill",
     stats: "Skill Stats",
     totalSkills: "Total Skills",
     totalSteps: "Execution Steps",
@@ -899,10 +909,6 @@ export const en: typeof zh = {
     errorNameRequired: "Skill name is required",
     errorDescriptionRequired: "Skill description is required",
     confirmDelete: "Are you sure you want to delete skill \"{{name}}\"?",
-    saveSuccess: "Saved successfully",
-    saveFailed: "Failed to save",
-    deleteSuccess: "Deleted successfully",
-    deleteFailed: "Failed to delete"
   },
   llmModel: {
     workflowMode: 'Workflow Mode',

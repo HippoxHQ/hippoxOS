@@ -1,5 +1,5 @@
 import { sessionCommands } from "./api/session";
-import { TaskInfo, ChatMessage } from "./type";
+import { TaskInfo, ChatMessage } from "./types/type";
 import { notificationManager, NotificationType } from "./NotificationManager";
 
 type TaskListener = () => void;

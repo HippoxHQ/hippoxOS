@@ -8,8 +8,6 @@ use std::sync::Arc;
 use tauri::{Emitter, State};
 use tokio::sync::Mutex;
 use uuid::Uuid;
-
-use crate::commands::callback::TauriWorkflowCallback;
 use crate::commands::{
     get_default_hippox, init_all_hippox_instances, load_config_from_file, write_log, ExecutionLog,
     LogMessages, TaskInfo, TaskStepInfo, HIPPOX_APP_CONFIG,

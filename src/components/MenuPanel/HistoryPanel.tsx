@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import { sessionCommands } from "../../api/session";
-import { DialogSession } from "../../type";
+import { DialogSession } from "../../types/type";
 import { showDialog, DialogType } from "../Dialog";
 import { showToast, ToastType } from "../Toast";
 

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { ChatMessage, MessageStatus, RoleEnum, UploadFile } from "../type";
+import { ChatMessage, MessageStatus, RoleEnum, UploadFile } from "../types/type";
 import {
   AttachmentIcon,
   FolderIcon,
