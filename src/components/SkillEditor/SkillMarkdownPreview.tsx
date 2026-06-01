@@ -3,10 +3,12 @@ import { Skill } from "./types";
 
 interface SkillMarkdownPreviewProps {
   skill: Skill;
+  t: (key: string, params?: any) => string;
 }
 
 const SkillMarkdownPreview: React.FC<SkillMarkdownPreviewProps> = ({
   skill,
+  t,
 }) => {
   const generateMarkdown = (): string => {
     const lines: string[] = [];
@@ -15,28 +17,28 @@ const SkillMarkdownPreview: React.FC<SkillMarkdownPreviewProps> = ({
     lines.push(`description: ${skill.description}`);
     lines.push("---");
     lines.push("");
-    lines.push("## 执行步骤");
+    lines.push(`## ${t("skillEditor.executionSteps")}`);
     lines.push("");
     skill.steps.forEach((step, idx) => {
       const depInfo =
         step.dependencies.length > 0
-          ? ` (依赖步骤: ${step.dependencies
+          ? ` (${t("skillEditor.dependenciesLabel")}: ${step.dependencies
               .map((d) => {
                 const depIndex = skill.steps.findIndex((s) => s.id === d);
-                return `步骤${depIndex + 1}`;
+                return `${t("skillEditor.step")}${depIndex + 1}`;
               })
               .join(", ")})`
           : "";
       lines.push(
-        `${idx + 1}. ${step.description || `步骤 ${idx + 1}`}${depInfo}`,
+        `${idx + 1}. ${step.description || `${t("skillEditor.step")} ${idx + 1}`}${depInfo}`,
       );
       if (step.materials.length > 0) {
-        lines.push(`   - 允许使用的物料：`);
+        lines.push(`   - ${t("skillEditor.allowedMaterials")}:`);
         step.materials.forEach((material) => {
           if (material.type === "link" && material.content) {
-            lines.push(`     - 链接: ${material.content}`);
+            lines.push(`     - ${t("skillEditor.link")}: ${material.content}`);
             if (material.inputSchema) {
-              lines.push(`       - 输入参数:`);
+              lines.push(`       - ${t("skillEditor.inputParams")}:`);
               lines.push(`         \`\`\`json`);
               lines.push(
                 `         ${material.inputSchema.replace(/\n/g, "\n         ")}`,
@@ -44,7 +46,7 @@ const SkillMarkdownPreview: React.FC<SkillMarkdownPreviewProps> = ({
               lines.push(`         \`\`\``);
             }
             if (material.outputSchema) {
-              lines.push(`       - 输出参数:`);
+              lines.push(`       - ${t("skillEditor.outputParams")}:`);
               lines.push(`         \`\`\`json`);
               lines.push(
                 `         ${material.outputSchema.replace(/\n/g, "\n         ")}`,
@@ -52,22 +54,22 @@ const SkillMarkdownPreview: React.FC<SkillMarkdownPreviewProps> = ({
               lines.push(`         \`\`\``);
             }
           } else if (material.type === "path" && material.content) {
-            lines.push(`     - 路径: ${material.content}`);
+            lines.push(`     - ${t("skillEditor.path")}: ${material.content}`);
           } else if (material.type === "note" && material.content) {
-            lines.push(`     - 备注: ${material.content}`);
+            lines.push(`     - ${t("skillEditor.note")}: ${material.content}`);
           }
         });
       }
     });
     lines.push("");
     if (skill.tags) {
-      lines.push("## 标签");
+      lines.push(`## ${t("skillEditor.tags")}`);
       lines.push("");
       lines.push(skill.tags);
       lines.push("");
     }
     if (skill.example) {
-      lines.push("## 示例");
+      lines.push(`## ${t("skillEditor.example")}`);
       lines.push("");
       lines.push("```");
       lines.push(skill.example);
@@ -76,7 +78,6 @@ const SkillMarkdownPreview: React.FC<SkillMarkdownPreviewProps> = ({
     }
     return lines.join("\n");
   };
-
   return (
     <div className="skill-markdown-preview">
       <style>{`

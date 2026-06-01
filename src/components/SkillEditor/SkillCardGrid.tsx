@@ -59,7 +59,6 @@ const SkillCardGrid: React.FC<SkillCardGridProps> = ({
           gap: 16px;
         }
 
-        /* 技能卡片 */
         .skill-card {
           background: var(--bg-secondary);
           border-radius: 12px;
@@ -75,7 +74,6 @@ const SkillCardGrid: React.FC<SkillCardGridProps> = ({
           box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
         }
 
-        /* 添加卡片 */
         .add-card {
           background: var(--bg-tertiary);
           border: 2px dashed var(--border-color);
@@ -103,7 +101,6 @@ const SkillCardGrid: React.FC<SkillCardGridProps> = ({
           color: var(--text-secondary);
         }
 
-        /* 卡片头部 */
         .card-header {
           display: flex;
           justify-content: space-between;
@@ -117,7 +114,6 @@ const SkillCardGrid: React.FC<SkillCardGridProps> = ({
           color: var(--text-primary);
         }
 
-        /* 卡片操作按钮 */
         .card-actions {
           display: flex;
           gap: 8px;
@@ -161,7 +157,6 @@ const SkillCardGrid: React.FC<SkillCardGridProps> = ({
           border-color: #ef4444;
         }
 
-        /* 卡片元信息 */
         .card-meta {
           display: flex;
           align-items: center;
@@ -180,7 +175,6 @@ const SkillCardGrid: React.FC<SkillCardGridProps> = ({
           border-radius: 12px;
         }
 
-        /* 卡片描述 */
         .card-description {
           font-size: 12px;
           color: var(--text-secondary);
@@ -192,7 +186,6 @@ const SkillCardGrid: React.FC<SkillCardGridProps> = ({
           overflow: hidden;
         }
 
-        /* 卡片标签 */
         .card-tags {
           display: flex;
           flex-wrap: wrap;
@@ -207,7 +200,6 @@ const SkillCardGrid: React.FC<SkillCardGridProps> = ({
           color: var(--text-secondary);
         }
 
-        /* 全局变量 - 确保与 WelcomePage 一致 */
         :root {
           --bg-primary: #0f1117;
           --bg-secondary: #1a1d26;
@@ -240,11 +232,10 @@ const SkillCardGrid: React.FC<SkillCardGridProps> = ({
       <div className="cards-container">
         <div className="skill-card add-card" onClick={onCreateNew}>
           <div className="add-icon">➕</div>
-          <div className="add-text">创建新技能</div>
+          <div className="add-text">{t("skillEditor.createNew")}</div>
         </div>
 
         {skills.map((skill) => {
-          const isHovered = hoveredId === skill.id;
           const isFavorited = favoritedSkills.has(skill.id);
           return (
             <div
@@ -255,26 +246,32 @@ const SkillCardGrid: React.FC<SkillCardGridProps> = ({
               onClick={() => onSelectSkill(skill)}
             >
               <div className="card-header">
-                <div className="card-name">{skill.name || "未命名技能"}</div>
+                <div className="card-name">
+                  {skill.name || t("skillEditor.unnamed")}
+                </div>
                 <div className="card-actions">
                   <button
                     className={`icon-btn ${isFavorited ? "active" : ""}`}
                     onClick={(e) => handleFavorite(skill, e)}
-                    title={isFavorited ? "取消收藏" : "收藏"}
+                    title={
+                      isFavorited
+                        ? t("skillEditor.unfavorite")
+                        : t("skillEditor.favorite")
+                    }
                   >
                     {isFavorited ? "⭐" : "☆"}
                   </button>
                   <button
                     className="icon-btn"
                     onClick={(e) => handleRun(skill, e)}
-                    title="运行"
+                    title={t("skillEditor.run")}
                   >
                     ▶
                   </button>
                   <button
                     className="icon-btn danger"
                     onClick={(e) => onDeleteSkill(skill, e)}
-                    title="删除"
+                    title={t("skillEditor.delete")}
                   >
                     🗑️
                   </button>
@@ -282,11 +279,13 @@ const SkillCardGrid: React.FC<SkillCardGridProps> = ({
               </div>
               <div className="card-meta">
                 {skill.installed && (
-                  <span className="installed-badge">已安装</span>
+                  <span className="installed-badge">
+                    {t("skillEditor.installed")}
+                  </span>
                 )}
               </div>
               <div className="card-description">
-                {skill.description || "暂无描述"}
+                {skill.description || t("skillEditor.noDescription")}
               </div>
               <div className="card-tags">
                 {skill.tags &&

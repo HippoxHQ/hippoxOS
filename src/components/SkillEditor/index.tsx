@@ -112,14 +112,21 @@ const MOCK_HISTORY: SkillHistory[] = [
   },
 ];
 
-const SkillEditor: React.FC<SkillEditorProps> = ({ t, onClose, currentSessionId }) => {
+const SkillEditor: React.FC<SkillEditorProps> = ({
+  t,
+  onClose,
+  currentSessionId,
+}) => {
   const [skills, setSkills] = useState<Skill[]>(MOCK_SKILLS);
-  const [skillHistory, setSkillHistory] = useState<SkillHistory[]>(MOCK_HISTORY);
+  const [skillHistory, setSkillHistory] =
+    useState<SkillHistory[]>(MOCK_HISTORY);
   const [currentSkill, setCurrentSkill] = useState<Skill | null>(null);
   const [hasChanges, setHasChanges] = useState(false);
   const [viewMode, setViewMode] = useState<"form" | "markdown">("form");
   const [showEditor, setShowEditor] = useState(false);
-  const [errors, setErrors] = useState<{ name?: string; description?: string }>({});
+  const [errors, setErrors] = useState<{ name?: string; description?: string }>(
+    {},
+  );
 
   const loadSkill = (skill: Skill) => {
     setCurrentSkill(JSON.parse(JSON.stringify(skill)));
@@ -136,10 +143,10 @@ const SkillEditor: React.FC<SkillEditorProps> = ({ t, onClose, currentSessionId 
   const validate = (skill: Skill): boolean => {
     const newErrors: { name?: string; description?: string } = {};
     if (!skill.name.trim()) {
-      newErrors.name = "技能名称不能为空";
+      newErrors.name = t("skillEditor.errorNameRequired");
     }
     if (!skill.description.trim()) {
-      newErrors.description = "技能描述不能为空";
+      newErrors.description = t("skillEditor.errorDescriptionRequired");
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -160,7 +167,7 @@ const SkillEditor: React.FC<SkillEditorProps> = ({ t, onClose, currentSessionId 
     setSkillHistory((prev) => [newHistory, ...prev]);
 
     setSkills((prev) =>
-      prev.map((s) => (s.id === currentSkill.id ? { ...currentSkill } : s))
+      prev.map((s) => (s.id === currentSkill.id ? { ...currentSkill } : s)),
     );
     setHasChanges(false);
   };
@@ -171,7 +178,9 @@ const SkillEditor: React.FC<SkillEditorProps> = ({ t, onClose, currentSessionId 
       id: newId,
       name: "",
       description: "",
-      steps: [{ id: `${newId}-1`, description: "", materials: [], dependencies: [] }],
+      steps: [
+        { id: `${newId}-1`, description: "", materials: [], dependencies: [] },
+      ],
       tags: "",
       example: "",
     };
@@ -185,7 +194,7 @@ const SkillEditor: React.FC<SkillEditorProps> = ({ t, onClose, currentSessionId 
   const deleteSkill = (skill: Skill, e: React.MouseEvent) => {
     e.stopPropagation();
     // eslint-disable-next-line no-restricted-globals
-    if (confirm(`确定删除技能 "${skill.name}" 吗？`)) {
+    if (confirm(t("skillEditor.confirmDelete", { name: skill.name }))) {
       const newHistory: SkillHistory = {
         id: `h-${Date.now()}`,
         skillId: skill.id,
@@ -246,7 +255,8 @@ const SkillEditor: React.FC<SkillEditorProps> = ({ t, onClose, currentSessionId 
       height: "100%",
       background: "var(--bg-primary)",
       overflow: "hidden",
-      fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+      fontFamily:
+        "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
     },
     main: {
       flex: 1,
@@ -339,7 +349,9 @@ const SkillEditor: React.FC<SkillEditorProps> = ({ t, onClose, currentSessionId 
             <>
               <div style={styles.toolbar}>
                 <div>
-                  <h2 style={styles.title}>{currentSkill.name || "未命名技能"}</h2>
+                  <h2 style={styles.title}>
+                    {currentSkill.name || t("skillEditor.unnamed")}
+                  </h2>
                 </div>
                 <div style={styles.actions}>
                   <div style={styles.viewToggle}>
@@ -350,16 +362,18 @@ const SkillEditor: React.FC<SkillEditorProps> = ({ t, onClose, currentSessionId 
                       }}
                       onClick={() => setViewMode("form")}
                     >
-                      📝 配置
+                      📝 {t("skillEditor.config")}
                     </button>
                     <button
                       style={{
                         ...styles.viewBtn,
-                        ...(viewMode === "markdown" ? styles.viewBtnActive : {}),
+                        ...(viewMode === "markdown"
+                          ? styles.viewBtnActive
+                          : {}),
                       }}
                       onClick={() => setViewMode("markdown")}
                     >
-                      📄 原文
+                      📄 {t("skillEditor.raw")}
                     </button>
                   </div>
                   <button
@@ -371,10 +385,10 @@ const SkillEditor: React.FC<SkillEditorProps> = ({ t, onClose, currentSessionId 
                     onClick={saveCurrentSkill}
                     disabled={!hasChanges}
                   >
-                    💾 保存
+                    💾 {t("skillEditor.save")}
                   </button>
                   <button style={styles.editorBtn} onClick={closeEditor}>
-                    ✕ 关闭
+                    ✕ {t("skillEditor.close")}
                   </button>
                 </div>
               </div>
@@ -389,7 +403,7 @@ const SkillEditor: React.FC<SkillEditorProps> = ({ t, onClose, currentSessionId 
                   setErrors={setErrors}
                 />
               ) : (
-                <SkillMarkdownPreview skill={currentSkill} />
+                <SkillMarkdownPreview skill={currentSkill} t={t} />
               )}
             </>
           )

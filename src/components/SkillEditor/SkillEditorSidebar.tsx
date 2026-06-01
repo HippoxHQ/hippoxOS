@@ -15,12 +15,12 @@ type HistoryCategoryType =
   | "last30days"
   | "older";
 
-const historyCategories: { labelKey: string; type: HistoryCategoryType }[] = [
-  { labelKey: "今天", type: "today" },
-  { labelKey: "昨天", type: "yesterday" },
-  { labelKey: "最近7天", type: "last7days" },
-  { labelKey: "最近30天", type: "last30days" },
-  { labelKey: "更早", type: "older" },
+const historyCategories: { key: string; type: HistoryCategoryType }[] = [
+  { key: "skillEditor.historyCategories.today", type: "today" },
+  { key: "skillEditor.historyCategories.yesterday", type: "yesterday" },
+  { key: "skillEditor.historyCategories.last7days", type: "last7days" },
+  { key: "skillEditor.historyCategories.last30days", type: "last30days" },
+  { key: "skillEditor.historyCategories.older", type: "older" },
 ];
 
 const SkillEditorSidebar: React.FC<SkillEditorSidebarProps> = ({
@@ -45,7 +45,7 @@ const SkillEditorSidebar: React.FC<SkillEditorSidebarProps> = ({
     const sorted = [...skillHistory].sort((a, b) => {
       const aTime = new Date(a.timestamp).getTime();
       const bTime = new Date(b.timestamp).getTime();
-      return bTime - aTime; 
+      return bTime - aTime;
     });
     setSortedHistory(sorted);
   }, [skillHistory]);
@@ -109,35 +109,20 @@ const SkillEditorSidebar: React.FC<SkillEditorSidebarProps> = ({
     }
   };
 
-  const getActionText = (action: string) => {
+  const getActionText = (action: string): string => {
     switch (action) {
       case "create":
-        return "创建";
+        return t("skillEditor.historyActions.create");
       case "update":
-        return "更新";
+        return t("skillEditor.historyActions.update");
       case "delete":
-        return "删除";
+        return t("skillEditor.historyActions.delete");
       default:
-        return "修改";
+        return t("skillEditor.historyActions.modify");
     }
   };
 
   const groupedHistory = getGroupedHistory();
-
-  const getCardStyle = (isHovered: boolean): React.CSSProperties => ({
-    background: isHovered ? "var(--hover-bg)" : "var(--bg-tertiary)",
-    borderRadius: "10px",
-    padding: "10px 12px",
-    marginBottom: "6px",
-    border: "1px solid var(--border-color)",
-    cursor: "pointer",
-    transition: "all 0.2s ease",
-    display: "flex",
-    alignItems: "center",
-    gap: "10px",
-  });
-
-  const groupedSessions = getGroupedHistory();
 
   return (
     <div className="skill-editor-sidebar">
@@ -151,7 +136,6 @@ const SkillEditorSidebar: React.FC<SkillEditorSidebarProps> = ({
           overflow: hidden;
         }
 
-        /* 统计信息区域 */
         .stats-section {
           padding: 16px;
           border-bottom: 1px solid var(--border-color);
@@ -198,7 +182,6 @@ const SkillEditorSidebar: React.FC<SkillEditorSidebarProps> = ({
           color: #ef4444;
         }
 
-        /* 修改历史区域 */
         .history-section {
           flex: 1;
           overflow-y: auto;
@@ -288,32 +271,34 @@ const SkillEditorSidebar: React.FC<SkillEditorSidebarProps> = ({
 
       <div className="skill-editor-sidebar">
         <div className="stats-section">
-          <div className="stats-title">📊 技能统计</div>
+          <div className="stats-title">📊 {t("skillEditor.stats")}</div>
           <div className="stats-grid">
             <div className="stat-card">
               <div className="stat-number">{skills.length}</div>
-              <div className="stat-label">技能总数</div>
+              <div className="stat-label">{t("skillEditor.totalSkills")}</div>
             </div>
             <div className="stat-card">
               <div className="stat-number">{totalSteps}</div>
-              <div className="stat-label">执行步骤</div>
+              <div className="stat-label">{t("skillEditor.totalSteps")}</div>
             </div>
             <div className="stat-card">
               <div className="stat-number">{totalMaterials}</div>
-              <div className="stat-label">物料资源</div>
+              <div className="stat-label">
+                {t("skillEditor.totalMaterials")}
+              </div>
             </div>
             <div
               className={`stat-card ${incompleteSkills > 0 ? "stat-warning" : ""}`}
             >
               <div className="stat-number">{incompleteSkills}</div>
-              <div className="stat-label">待完善</div>
+              <div className="stat-label">{t("skillEditor.incomplete")}</div>
             </div>
           </div>
         </div>
 
         <div className="history-section">
           <div className="stats-title" style={{ marginBottom: "8px" }}>
-            📝 修改历史
+            📝 {t("skillEditor.modifyHistory")}
           </div>
           {historyCategories.map((category) => {
             const categoryHistory = groupedHistory[category.type];
@@ -324,7 +309,7 @@ const SkillEditorSidebar: React.FC<SkillEditorSidebarProps> = ({
                   className="category-header"
                   onClick={() => toggleCategory(category.type)}
                 >
-                  <span>{category.labelKey}</span>
+                  <span>{t(category.key)}</span>
                   <span
                     className="category-arrow"
                     style={{
@@ -373,7 +358,7 @@ const SkillEditorSidebar: React.FC<SkillEditorSidebarProps> = ({
             );
           })}
           {sortedHistory.length === 0 && (
-            <div className="empty-history">暂无修改记录</div>
+            <div className="empty-history">{t("skillEditor.noHistory")}</div>
           )}
         </div>
       </div>
