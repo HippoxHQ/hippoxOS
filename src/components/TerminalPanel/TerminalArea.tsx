@@ -276,7 +276,7 @@ const TerminalArea: React.FC<TerminalAreaProps> = ({
     {
       task_id: "welcome",
       session_id: "welcome",
-      user_input: "🎉 Hippox AI Runtime 已启动",
+      user_input: "🎉 Hippox AI Runtime " + t("terminal.welcome.title"),
       status: TaskStatusEnum.Completed,
       steps: [],
       final_output: "",
@@ -515,13 +515,17 @@ const TerminalArea: React.FC<TerminalAreaProps> = ({
   const getTaskStatusText = (status: string) => {
     switch (status) {
       case TaskStatusEnum.Completed:
-        return t("terminal.status.completed") || "已完成";
+        return t("terminal.status.completed");
       case TaskStatusEnum.Failed:
-        return t("terminal.status.failed") || "失败";
+        return t("terminal.status.failed");
       case TaskStatusEnum.Running:
-        return t("terminal.status.running") || "执行中";
+        return t("terminal.status.running");
       case TaskStatusEnum.Pending:
-        return t("terminal.status.pending") || "等待中";
+        return t("terminal.status.pending");
+      case TaskStatusEnum.Cancelled:
+        return t("terminal.cancelled");
+      case TaskStatusEnum.Timeout:
+        return t("terminal.timeout");
       default:
         return status;
     }
@@ -537,6 +541,19 @@ const TerminalArea: React.FC<TerminalAreaProps> = ({
         return "🔄";
       default:
         return "⏳";
+    }
+  };
+
+  const getStepStatusText = (status: string): string => {
+    switch (status) {
+      case StepStatusEnum.Success:
+        return t("terminal.status.completed");
+      case StepStatusEnum.Failure:
+        return t("terminal.status.failed");
+      case StepStatusEnum.Running:
+        return t("terminal.status.running");
+      default:
+        return status;
     }
   };
 
@@ -560,6 +577,10 @@ const TerminalArea: React.FC<TerminalAreaProps> = ({
     } catch (err) {
       showToast(ToastType.ERROR, t("common.copyFailed") || "Copy Failed");
     }
+  };
+
+  const handleInterruptTask = async (taskId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
   };
 
   const formatFileSize = (bytes: number): string => {
@@ -591,7 +612,9 @@ const TerminalArea: React.FC<TerminalAreaProps> = ({
           <span className="task-status-icon">🦛</span>
           <span className="task-time">[{welcomeTime}]</span>
           <span className="task-input">🎉 {t("terminal.welcome.title")}</span>
-          <span className="task-status-text">ready</span>
+          <span className="task-status-text">
+            {t("terminal.welcome.status")}
+          </span>
         </div>
         {isExpanded && (
           <div
@@ -700,10 +723,6 @@ const TerminalArea: React.FC<TerminalAreaProps> = ({
       return "⚡";
     };
 
-    const handleInterruptTask = async (taskId: string, e: React.MouseEvent) => {
-      e.stopPropagation();
-    };
-
     return (
       <div
         key={task.task_id}
@@ -732,7 +751,7 @@ const TerminalArea: React.FC<TerminalAreaProps> = ({
                   : {}
               }
             >
-              {task.status}
+              {getTaskStatusText(task.status)}
               {stepSummary}
               {task.total_duration_ms !== undefined &&
                 task.total_duration_ms > 0 && (
@@ -893,12 +912,14 @@ const TerminalArea: React.FC<TerminalAreaProps> = ({
                   <span
                     className={`step-status step-status-${step.status.toLowerCase()}`}
                   >
-                    {step.status}
+                    {getStepStatusText(step.status)}
                   </span>
                 </div>
                 {step.parameters && step.parameters !== "{}" && (
                   <div className="step-parameters-row" title={step.parameters}>
-                    <span className="step-parameters-label">📋 参数:</span>
+                    <span className="step-parameters-label">
+                      📋 {t("terminal.stepParameters")}:
+                    </span>
                     <span className="step-parameters-value">
                       {formatParameters(step.parameters)}
                     </span>
@@ -909,183 +930,187 @@ const TerminalArea: React.FC<TerminalAreaProps> = ({
           </div>
         )}
 
-        {isExpanded && task.final_output && task.status === "completed" && (
-          <div className="task-final-output">
-            <div
-              className="output-header"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-              }}
-            >
-              <span
-                className="output-label"
-                style={{ color: "var(--text-primary)", fontWeight: 500 }}
-              >
-                📝 Response:
-              </span>
-              <button
-                className="copy-output-btn"
-                onClick={() => copyToClipboard(task.final_output)}
-                title={t("common.copy") || "Copy"}
-                style={{
-                  background: "transparent",
-                  border: "none",
-                  cursor: "pointer",
-                  color: "var(--text-secondary)",
-                  fontSize: "12px",
-                  padding: "4px 8px",
-                  borderRadius: "4px",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "4px",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = "var(--hover-bg)";
-                  e.currentTarget.style.color = "var(--text-primary)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = "transparent";
-                  e.currentTarget.style.color = "var(--text-secondary)";
-                }}
-              >
-                <CopyIcon size={12} /> {t("common.copy") || "Copy"}
-              </button>
-            </div>
-            <div className="output-content-text">
-              {renderContentWithLinks(task.final_output)}
-            </div>
-            <div
-              className="output-content-func"
-              style={{
-                marginTop: "10px",
-                display: "flex",
-                justifyContent: "flex-end",
-              }}
-            >
-              <button
-                onClick={() => {
-                  onOpenFunctionArea();
-                  window.dispatchEvent(
-                    new CustomEvent("open-chart-with-data", {
-                      detail: { taskId: task.task_id, taskData: task },
-                    }),
-                  );
-                }}
+        {isExpanded &&
+          task.final_output &&
+          task.status === TaskStatusEnum.Completed && (
+            <div className="task-final-output">
+              <div
+                className="output-header"
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  gap: "6px",
-                  padding: "6px 12px",
-                  background: "var(--accent-color)",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "6px",
-                  cursor: "pointer",
-                  fontSize: "12px",
-                  fontWeight: 500,
-                  transition: "all 0.2s ease",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.opacity = "0.85";
-                  e.currentTarget.style.transform = "translateY(-1px)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.opacity = "1";
-                  e.currentTarget.style.transform = "translateY(0)";
+                  justifyContent: "space-between",
                 }}
               >
-                <span>📊</span>
-                <span>{t("terminal.showChart") || "Show Chart"}</span>
-              </button>
-            </div>
-          </div>
-        )}
-        {isExpanded && task.status === "failed" && task.final_output && (
-          <div className="task-error">
-            <div
-              className="error-header"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-              }}
-            >
-              <span
-                className="error-label"
-                style={{ color: "#ff6666", fontWeight: 500 }}
-              >
-                ❌ Error:
-              </span>
-              <button
-                className="copy-error-btn"
-                onClick={() => copyToClipboard(task.final_output)}
-                title={t("common.copy") || "Copy"}
+                <span
+                  className="output-label"
+                  style={{ color: "var(--text-primary)", fontWeight: 500 }}
+                >
+                  📝 Response:
+                </span>
+                <button
+                  className="copy-output-btn"
+                  onClick={() => copyToClipboard(task.final_output)}
+                  title={t("common.copy") || "Copy"}
+                  style={{
+                    background: "transparent",
+                    border: "none",
+                    cursor: "pointer",
+                    color: "var(--text-secondary)",
+                    fontSize: "12px",
+                    padding: "4px 8px",
+                    borderRadius: "4px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "4px",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = "var(--hover-bg)";
+                    e.currentTarget.style.color = "var(--text-primary)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "transparent";
+                    e.currentTarget.style.color = "var(--text-secondary)";
+                  }}
+                >
+                  <CopyIcon size={12} /> {t("common.copy") || "Copy"}
+                </button>
+              </div>
+              <div className="output-content-text">
+                {renderContentWithLinks(task.final_output)}
+              </div>
+              <div
+                className="output-content-func"
                 style={{
-                  background: "transparent",
-                  border: "none",
-                  cursor: "pointer",
-                  color: "var(--text-secondary)",
-                  fontSize: "12px",
-                  padding: "4px 8px",
-                  borderRadius: "4px",
+                  marginTop: "10px",
+                  display: "flex",
+                  justifyContent: "flex-end",
+                }}
+              >
+                <button
+                  onClick={() => {
+                    onOpenFunctionArea();
+                    window.dispatchEvent(
+                      new CustomEvent("open-chart-with-data", {
+                        detail: { taskId: task.task_id, taskData: task },
+                      }),
+                    );
+                  }}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    padding: "6px 12px",
+                    background: "var(--accent-color)",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "6px",
+                    cursor: "pointer",
+                    fontSize: "12px",
+                    fontWeight: 500,
+                    transition: "all 0.2s ease",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.opacity = "0.85";
+                    e.currentTarget.style.transform = "translateY(-1px)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.opacity = "1";
+                    e.currentTarget.style.transform = "translateY(0)";
+                  }}
+                >
+                  <span>📊</span>
+                  <span>{t("terminal.showChart") || "Show Chart"}</span>
+                </button>
+              </div>
+            </div>
+          )}
+        {isExpanded &&
+          task.status === TaskStatusEnum.Failed &&
+          task.final_output && (
+            <div className="task-error">
+              <div
+                className="error-header"
+                style={{
                   display: "flex",
                   alignItems: "center",
-                  gap: "4px",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = "var(--hover-bg)";
-                  e.currentTarget.style.color = "var(--text-primary)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = "transparent";
-                  e.currentTarget.style.color = "var(--text-secondary)";
+                  justifyContent: "space-between",
                 }}
               >
-                <CopyIcon size={12} /> {t("common.copy") || "Copy"}
-              </button>
-            </div>
-            <div className="error-content-text">
-              {renderContentWithLinks(task.final_output)}
-            </div>
-            <div
-              className="error-content-func"
-              style={{
-                marginTop: "10px",
-                display: "flex",
-                justifyContent: "flex-end",
-              }}
-            >
-              <button
-                onClick={() => {
-                  onOpenFunctionArea();
-                  window.dispatchEvent(
-                    new CustomEvent("open-chart-with-data", {
-                      detail: { taskId: task.task_id, taskData: task },
-                    }),
-                  );
-                }}
+                <span
+                  className="error-label"
+                  style={{ color: "#ff6666", fontWeight: 500 }}
+                >
+                  ❌ Error:
+                </span>
+                <button
+                  className="copy-error-btn"
+                  onClick={() => copyToClipboard(task.final_output)}
+                  title={t("common.copy") || "Copy"}
+                  style={{
+                    background: "transparent",
+                    border: "none",
+                    cursor: "pointer",
+                    color: "var(--text-secondary)",
+                    fontSize: "12px",
+                    padding: "4px 8px",
+                    borderRadius: "4px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "4px",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = "var(--hover-bg)";
+                    e.currentTarget.style.color = "var(--text-primary)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "transparent";
+                    e.currentTarget.style.color = "var(--text-secondary)";
+                  }}
+                >
+                  <CopyIcon size={12} /> {t("common.copy") || "Copy"}
+                </button>
+              </div>
+              <div className="error-content-text">
+                {renderContentWithLinks(task.final_output)}
+              </div>
+              <div
+                className="error-content-func"
                 style={{
+                  marginTop: "10px",
                   display: "flex",
-                  alignItems: "center",
-                  gap: "6px",
-                  padding: "6px 12px",
-                  background: "var(--accent-color)",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "6px",
-                  cursor: "pointer",
-                  fontSize: "12px",
-                  fontWeight: 500,
+                  justifyContent: "flex-end",
                 }}
               >
-                <span>📊</span>
-                <span>{t("terminal.showChart") || "查看K线图"}</span>
-              </button>
+                <button
+                  onClick={() => {
+                    onOpenFunctionArea();
+                    window.dispatchEvent(
+                      new CustomEvent("open-chart-with-data", {
+                        detail: { taskId: task.task_id, taskData: task },
+                      }),
+                    );
+                  }}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    padding: "6px 12px",
+                    background: "var(--accent-color)",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "6px",
+                    cursor: "pointer",
+                    fontSize: "12px",
+                    fontWeight: 500,
+                  }}
+                >
+                  <span>📊</span>
+                  <span>{t("terminal.showChart") || "View Chart"}</span>
+                </button>
+              </div>
             </div>
-          </div>
-        )}
+          )}
         <div className="task-separator"></div>
       </div>
     );
@@ -1870,7 +1895,7 @@ const TerminalArea: React.FC<TerminalAreaProps> = ({
           <span className="task-count">
             {activeTasks.filter((t) => t.status === TaskStatusEnum.Running)
               .length > 0 &&
-              ` (${activeTasks.filter((t) => t.status === TaskStatusEnum.Running).length} running)`}
+              ` (${activeTasks.filter((t) => t.status === TaskStatusEnum.Running).length} ${t("terminal.status.running")})`}
           </span>
         </div>
         <div
@@ -1978,14 +2003,14 @@ const TerminalArea: React.FC<TerminalAreaProps> = ({
           onMouseLeave={handleBubbleMouseLeave}
         >
           <div style={styles.bubbleHeader}>
-            {t("terminal.taskList") || "任务列表"} ({allTasks.length})
+            {t("terminal.taskList") || "Task List"} ({allTasks.length})
           </div>
           <div style={styles.bubbleContent}>
             {allTasks.map((task, idx) => {
               const isActive = activeNavIndex === idx;
               const preview =
                 task.task_id === WELCOME_TASK_ID
-                  ? "🎉 Hippox AI Runtime 已启动"
+                  ? "🎉 " + t("terminal.welcome.title")
                   : task.user_input.length > 45
                     ? task.user_input.substring(0, 45) + "..."
                     : task.user_input;
