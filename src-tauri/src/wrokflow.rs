@@ -183,4 +183,22 @@ impl WorkflowCallback for HippoXWorkflowCallback {
             }),
         );
     }
+
+    // Add this new method for workflow resumed
+    async fn on_workflow_resumed(
+        &self,
+        task_id: &str,
+        total_duration_ms: u64,
+        total_steps: usize,
+    ) {
+        let _ = self.app_handle.emit(
+            "task_resumed",
+            &json!({
+                "task_id": task_id,
+                "total_duration_ms": total_duration_ms,
+                "total_steps": total_steps,
+                "session_id": self.session_id
+            }),
+        );
+    }
 }

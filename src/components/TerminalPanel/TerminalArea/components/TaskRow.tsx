@@ -79,10 +79,7 @@ export const TaskRow: React.FC<TaskRowProps> = ({
   const handlePauseTask = async (taskId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     try {
-      console.log("Pausing task:", taskId);
-
       const result = await taskPoolCommands.pauseTask(taskId);
-      console.log("Pause result:", result);
 
       if (result === true) {
         showToast(ToastType.SUCCESS, t("terminal.taskPaused"));
@@ -106,10 +103,19 @@ export const TaskRow: React.FC<TaskRowProps> = ({
     e.stopPropagation();
     try {
       const result = await taskPoolCommands.resumeTask(taskId);
-      if (result) {
+      if (result === true) {
         showToast(ToastType.SUCCESS, t("terminal.taskResumed"));
-        const newTasks = taskManager.getAllTasks();
-        setTasks([...newTasks]);
+        // Manually update task status to Running
+        setTasks((prevTasks) =>
+          prevTasks.map((t) =>
+            t.task_id === taskId ? { ...t, status: TaskStatusEnum.Running } : t,
+          ),
+        );
+        // Also refresh from taskManager
+        setTimeout(async () => {
+          const newTasks = taskManager.getAllTasks();
+          setTasks([...newTasks]);
+        }, 500);
       } else {
         showToast(ToastType.ERROR, t("terminal.resumeFailed"));
       }
@@ -127,17 +133,32 @@ export const TaskRow: React.FC<TaskRowProps> = ({
       t("terminal.interruptConfirm"),
       async () => {
         try {
+          // Immediately update UI to Cancelled
+          setTasks((prevTasks) =>
+            prevTasks.map((t) =>
+              t.task_id === taskId
+                ? { ...t, status: TaskStatusEnum.Cancelled }
+                : t,
+            ),
+          );
           const result = await taskPoolCommands.cancelTask(taskId);
           if (result) {
             showToast(ToastType.SUCCESS, t("terminal.taskInterrupted"));
+            // Refresh from taskManager to ensure consistency
             const newTasks = taskManager.getAllTasks();
             setTasks([...newTasks]);
           } else {
             showToast(ToastType.ERROR, t("terminal.interruptFailed"));
+            // Revert on failure
+            const newTasks = taskManager.getAllTasks();
+            setTasks([...newTasks]);
           }
         } catch (error) {
           console.error("Failed to interrupt task:", error);
           showToast(ToastType.ERROR, t("terminal.interruptFailed"));
+          // Revert on error
+          const newTasks = taskManager.getAllTasks();
+          setTasks([...newTasks]);
         }
       },
       undefined,
