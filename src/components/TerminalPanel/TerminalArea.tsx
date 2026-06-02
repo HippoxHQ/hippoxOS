@@ -1151,6 +1151,7 @@ const TerminalArea: React.FC<TerminalAreaProps> = ({
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
+  padding-left: 20px;
 }
 
 .step-icon {
