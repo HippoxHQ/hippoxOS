@@ -95,14 +95,18 @@ class NotificationManager {
         });
 
         listen("task_step_update", (event: any) => {
-            const { step_name, status, output } = event.payload;
+            const { step_name, status, output, error } = event.payload;
             if (status === "FAILURE") {
+                let errorMsg = error || output || "Unknown error";
+                errorMsg = errorMsg
+                    .replace(/[\u0000-\u001F\u007F-\u009F]/g, '')
+                    .replace(/\\u[0-9a-fA-F]{0,3}$/g, '');
                 this.add({
                     title: "notification.taskStepUpdate",
-                    message: `Step "${step_name}" failed: ${output || "Unknown error"}`,
+                    message: `Step "${step_name}" failed: ${errorMsg}`,
                     type: NotificationType.Warning,
                     data: event.payload,
-                });
+                }).catch(e => console.warn("Failed to add failure notification:", e));
             }
         });
 
@@ -151,7 +155,7 @@ class NotificationManager {
     async add(params: AddNotificationParams): Promise<SystemNotification> {
         try {
             const notification = await invoke<SystemNotification>("cmd_notification_add", {
-                params: {  
+                params: {
                     title: params.title,
                     message: params.message,
                     notificationType: params.type || NotificationType.Info,

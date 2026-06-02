@@ -79,42 +79,42 @@ export const llmCommands = {
   },
 
   async getLlmInstances(): Promise<Record<string, LlmInstance>> {
-    return await invoke('get_llm_instances');
+    return await invoke('cmd_get_llm_instances');
   },
 
   async getDefaultLlmInstanceId(): Promise<string> {
-    return await invoke('get_default_llm_instance_id');
+    return await invoke('cmd_get_default_llm_instance_id');
   },
 
   async addLlmInstance(request: AddLlmInstanceRequest): Promise<string> {
-    return await invoke('add_llm_instance', { request });
+    return await invoke('cmd_add_llm_instance', { request });
   },
 
   async updateLlmInstance(instanceId: string, instance: LlmInstance): Promise<boolean> {
-    return await invoke('update_llm_instance', { instanceId, instance });
+    return await invoke('cmd_update_llm_instance', { instanceId, instance });
   },
 
   async deleteLlmInstance(instanceId: string): Promise<boolean> {
-    return await invoke('delete_llm_instance', { instanceId });
+    return await invoke('cmd_delete_llm_instance', { instanceId });
   },
 
   async setDefaultLlmInstance(instanceId: string): Promise<boolean> {
-    return await invoke('set_default_llm_instance', { instanceId });
+    return await invoke('cmd_set_default_llm_instance', { instanceId });
   },
 
   async getLlmInstance(instanceId: string): Promise<LlmInstance | null> {
-    return await invoke('get_llm_instance', { instanceId });
+    return await invoke('cmd_get_llm_instance', { instanceId });
   },
 
   async addLlmModel(model: ModelConfig): Promise<boolean> {
-    return await invoke('add_llm_model', { model });
+    return await invoke('cmd_add_llm_model', { model });
   },
 
   async removeLlmModel(modelName: string): Promise<boolean> {
-    return await invoke('remove_llm_model', { modelName });
+    return await invoke('cmd_remove_llm_model', { modelName });
   },
 
   async setDefaultLlmModel(modelName: string): Promise<boolean> {
-    return await invoke('set_default_llm_model', { modelName });
+    return await invoke('cmd_set_default_llm_model', { modelName });
   }
 };

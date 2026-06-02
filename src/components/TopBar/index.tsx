@@ -337,7 +337,7 @@ const TopBar: React.FC<TopBarProps> = ({
   const handleMaximize = async () => {
     try {
       await windowsCommands.windowMaximize();
-      const maximized = await invoke<boolean>("window_is_maximized");
+      const maximized = await windowsCommands.windowIsMaximized();
       setIsMaximized(maximized);
     } catch (error) {
       showToast(ToastType.ERROR, "Failed to maximize/unmaximize: " + error);

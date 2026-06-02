@@ -9,55 +9,27 @@ use tauri::{AppHandle, Emitter};
 #[derive(Debug, Clone)]
 pub struct HippoXWorkflowCallback {
     app_handle: AppHandle,
-    task_id: String,
     session_id: String,
     completed: Arc<AtomicBool>,
 }
 
 impl HippoXWorkflowCallback {
-    pub fn new(app_handle: AppHandle, task_id: String, session_id: String) -> Self {
+    pub fn new(app_handle: AppHandle, session_id: String) -> Self {
         Self {
             app_handle,
-            task_id,
             session_id,
             completed: Arc::new(AtomicBool::new(false)),
-        }
-    }
-
-    pub async fn emit_complete(&self, final_output: &str) {
-        if !self.completed.swap(true, Ordering::SeqCst) {
-            let _ = self.app_handle.emit(
-                "task_complete",
-                &json!({
-                    "task_id": self.task_id,
-                    "final_output": final_output,
-                    "session_id": self.session_id
-                }),
-            );
-        }
-    }
-
-    pub async fn emit_failed(&self, error: &str) {
-        if !self.completed.swap(true, Ordering::SeqCst) {
-            let _ = self.app_handle.emit(
-                "task_failed",
-                &json!({
-                    "task_id": self.task_id,
-                    "error": error,
-                    "session_id": self.session_id
-                }),
-            );
         }
     }
 }
 
 #[async_trait]
 impl WorkflowCallback for HippoXWorkflowCallback {
-    async fn on_step_start(&self, step_name: &str, step_index: usize) {
+    async fn on_step_start(&self, task_id: &str, step_name: &str, step_index: usize) {
         let _ = self.app_handle.emit(
             "task_step_update",
             &json!({
-                "task_id": self.task_id,
+                "task_id": task_id,
                 "step_name": step_name,
                 "step_index": step_index,
                 "status": "RUNNING",
@@ -66,11 +38,17 @@ impl WorkflowCallback for HippoXWorkflowCallback {
         );
     }
 
-    async fn on_step_success(&self, step_name: &str, step_index: usize, output: &str) {
+    async fn on_step_success(
+        &self,
+        task_id: &str,
+        step_name: &str,
+        step_index: usize,
+        output: &str,
+    ) {
         let _ = self.app_handle.emit(
             "task_step_update",
             &json!({
-                "task_id": self.task_id,
+                "task_id": task_id,
                 "step_name": step_name,
                 "step_index": step_index,
                 "status": "SUCCESS",
@@ -80,11 +58,17 @@ impl WorkflowCallback for HippoXWorkflowCallback {
         );
     }
 
-    async fn on_step_failure(&self, step_name: &str, step_index: usize, error: &str) {
+    async fn on_step_failure(
+        &self,
+        task_id: &str,
+        step_name: &str,
+        step_index: usize,
+        error: &str,
+    ) {
         let _ = self.app_handle.emit(
             "task_step_update",
             &json!({
-                "task_id": self.task_id,
+                "task_id": task_id,
                 "step_name": step_name,
                 "step_index": step_index,
                 "status": "FAILURE",
@@ -94,11 +78,29 @@ impl WorkflowCallback for HippoXWorkflowCallback {
         );
     }
 
-    async fn on_workflow_complete(&self, final_output: &str) {
-        self.emit_complete(final_output).await;
+    async fn on_workflow_complete(&self, task_id: &str, final_output: &str) {
+        if !self.completed.swap(true, Ordering::SeqCst) {
+            let _ = self.app_handle.emit(
+                "task_complete",
+                &json!({
+                    "task_id": task_id,
+                    "final_output": final_output,
+                    "session_id": self.session_id
+                }),
+            );
+        }
     }
 
-    async fn on_workflow_failed(&self, error: &str) {
-        self.emit_failed(error).await;
+    async fn on_workflow_failed(&self, task_id: &str, error: &str) {
+        if !self.completed.swap(true, Ordering::SeqCst) {
+            let _ = self.app_handle.emit(
+                "task_failed",
+                &json!({
+                    "task_id": task_id,
+                    "error": error,
+                    "session_id": self.session_id
+                }),
+            );
+        }
     }
 }

@@ -21,7 +21,7 @@ pub struct AppState {
     pub tasks: Arc<Mutex<HashMap<String, TaskInfo>>>,
     pub memcontext: Arc<Mutex<Option<Arc<MemContext>>>>,
 }
-// AppStateWithChat
+
 impl AppState {
     pub fn new() -> Self {
         Self {

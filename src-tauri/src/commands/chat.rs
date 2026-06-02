@@ -122,46 +122,7 @@ pub async fn cmd_send_chat_message_async(
     message: String,
     session_id: Option<String>,
 ) -> Result<String, String> {
-    let task_id = Uuid::new_v4().to_string();
     let session = session_id.clone().unwrap_or_else(|| "default".to_string());
-    let hippox = get_default_hippox().await?;
-    state
-        .create_task(task_id.clone(), session.clone(), message.clone())
-        .await;
-    state.update_task_status(&task_id, "pending").await;
-    let messages = state.get_log_messages().await;
-    state
-        .add_log(
-            "process".to_string(),
-            messages.send_start.replace("{}", &message),
-            Some(format!("task_id: {}", task_id)),
-            None,
-        )
-        .await;
-    let state_clone = state.inner().clone();
-    let app_handle_clone = app_handle.clone();
-    let task_id_clone = task_id.clone();
-    tokio::spawn(async move {
-        execute_task_async(
-            state_clone,
-            app_handle_clone,
-            task_id_clone,
-            message,
-            session,
-        )
-        .await;
-    });
-    Ok(task_id)
-}
-
-#[tauri::command]
-pub async fn cmd_send_chat_message(
-    state: State<'_, AppState>,
-    message: String,
-    session_id: Option<String>,
-) -> Result<ChatResponse, String> {
-    let start_time = std::time::Instant::now();
-    let session: String = session_id.clone().unwrap_or_else(|| "default".to_string());
     let hippox = get_default_hippox().await?;
     let mem = state.get_memcontext().await;
     if let Some(ref mem) = mem {
@@ -177,7 +138,6 @@ pub async fn cmd_send_chat_message(
                     .into_iter()
                     .filter(|msg| msg.role != Role::System.to_string())
                     .collect();
-
                 if filtered.is_empty() {
                     String::new()
                 } else {
@@ -228,18 +188,120 @@ pub async fn cmd_send_chat_message(
     } else {
         format!("{}\n\n{}", system_prompt, message)
     };
-    let response = hippox
-        .handle_natural_language(&enhanced_message, Some(&session), None)
+    let callback = Arc::new(HippoXWorkflowCallback::new(
+        app_handle.clone(),
+        session.clone(),
+    ));
+    let core_task_id = hippox.handle_natural_language(&enhanced_message, Some(callback));
+    let messages = LogMessages::get();
+    state
+        .add_log(
+            "process".to_string(),
+            messages.send_start.replace("{}", &message),
+            Some(format!("task_id: {}", core_task_id)),
+            None,
+        )
         .await;
+    state
+        .create_task(core_task_id.clone(), session.clone(), message.clone())
+        .await;
+    state.update_task_status(&core_task_id, "pending").await;
+    Ok(core_task_id)
+}
+
+#[tauri::command]
+pub async fn cmd_send_chat_message(
+    state: State<'_, AppState>,
+    app_handle: tauri::AppHandle,
+    message: String,
+    session_id: Option<String>,
+) -> Result<ChatResponse, String> {
+    let start_time = std::time::Instant::now();
+    let session: String = session_id.clone().unwrap_or_else(|| "default".to_string());
+    let hippox = get_default_hippox().await?;
+
+    let mem = state.get_memcontext().await;
     if let Some(ref mem) = mem {
         let _ = mem
-            .store_message(session.clone(), Role::LLM.to_string(), response.clone())
+            .store_message(session.clone(), Role::User.to_string(), message.clone())
             .await;
     }
+
+    let history_context = if let Some(ref mem) = mem {
+        match mem.recall_time_series(&session, 20).await {
+            Ok(result) => {
+                let filtered: Vec<memcontext::Message> = result
+                    .messages
+                    .into_iter()
+                    .filter(|msg| msg.role != Role::System.to_string())
+                    .collect();
+                if filtered.is_empty() {
+                    String::new()
+                } else {
+                    let mut history = String::from("## Previous conversation history\n\n");
+                    for msg in filtered {
+                        let role = if msg.role == Role::User.to_string() {
+                            "User"
+                        } else if msg.role == Role::LLM.to_string() {
+                            "Assistant"
+                        } else {
+                            continue;
+                        };
+                        history.push_str(&format!("{}: {}\n\n", role, msg.content));
+                    }
+                    history
+                }
+            }
+            Err(e) => {
+                eprintln!("Failed to recall history: {}", e);
+                String::new()
+            }
+        }
+    } else {
+        String::new()
+    };
+
+    let workspace_path = get_default_workspace()
+        .ok()
+        .flatten()
+        .map(|ws| ws.workspace_path)
+        .unwrap_or_else(|| {
+            crate::commands::get_app_root_dir()
+                .join("workspace")
+                .to_string_lossy()
+                .to_string()
+        });
+
+    let system_prompt = format!(
+        "[Important Rule] When performing file download, file write, or file creation operations, \
+         if no target directory is explicitly specified, please use the following workspace directory by default: {}\n\
+         Do not write files to system temp directory or any other non-workspace directories. \
+         If subdirectories need to be created, create them under the workspace directory.",
+        workspace_path
+    );
+
+    let enhanced_message = if !history_context.is_empty() {
+        format!(
+            "{}\n\n{}\n\n## User\n{}",
+            system_prompt, history_context, message
+        )
+    } else {
+        format!("{}\n\n{}", system_prompt, message)
+    };
+    let callback = Arc::new(HippoXWorkflowCallback::new(
+        app_handle.clone(),
+        session.clone(),
+    ));
+    let core_task_id = hippox.handle_natural_language(&enhanced_message, Some(callback));
+    state
+        .create_task(core_task_id.clone(), session.clone(), message.clone())
+        .await;
+    state.update_task_status(&core_task_id, "pending").await;
     let duration = start_time.elapsed().as_millis() as u64;
+    let messages = LogMessages::get();
     Ok(ChatResponse {
         success: true,
-        message: response,
+        message: core_task_id,
         session_id: session,
         error: None,
     })
@@ -263,7 +325,9 @@ pub async fn cmd_get_session_tasks(
 }
 
 #[tauri::command]
-pub async fn cmd_get_execution_logs(state: State<'_, AppState>) -> Result<Vec<ExecutionLog>, String> {
+pub async fn cmd_get_execution_logs(
+    state: State<'_, AppState>,
+) -> Result<Vec<ExecutionLog>, String> {
     Ok(state.get_logs().await)
 }
 
@@ -278,8 +342,7 @@ pub async fn cmd_reset_conversation(
     state: State<'_, AppState>,
     session_id: Option<String>,
 ) -> Result<(), String> {
-    let messages = state.get_log_messages().await;
-    let hippox = get_default_hippox().await?;
+    let messages = LogMessages::get();
     let session = session_id.unwrap_or_else(|| "default".to_string());
     state
         .add_log(
@@ -302,124 +365,5 @@ pub async fn cmd_get_atomic_skills_list() -> Result<Vec<String>, String> {
     match get_default_hippox().await {
         Ok(hippox) => Ok(hippox.get_atomic_skill_names()),
         Err(_) => Ok(vec![]),
-    }
-}
-
-async fn execute_task_async(
-    state: AppState,
-    app_handle: tauri::AppHandle,
-    task_id: String,
-    message: String,
-    session_id: String,
-) {
-    state.update_task_status(&task_id, "running").await;
-    let callback = Arc::new(HippoXWorkflowCallback::new(
-        app_handle.clone(),
-        task_id.clone(),
-        session_id.clone(),
-    ));
-    let callback_clone = callback.clone();
-    let hippox = match get_default_hippox().await {
-        Ok(engine) => engine,
-        Err(e) => {
-            state.fail_task(&task_id, &e).await;
-            callback.emit_failed(&e).await;
-            return;
-        }
-    };
-    let mem = state.get_memcontext().await;
-    if let Some(ref mem) = mem {
-        let _ = mem
-            .store_message(session_id.clone(), Role::User.to_string(), message.clone())
-            .await;
-    }
-    let history_context = if let Some(ref mem) = mem {
-        match mem.recall_time_series(&session_id, 20).await {
-            Ok(result) => {
-                let filtered: Vec<memcontext::Message> = result
-                    .messages
-                    .into_iter()
-                    .filter(|msg| msg.role != Role::System.to_string())
-                    .collect();
-
-                if filtered.is_empty() {
-                    String::new()
-                } else {
-                    let mut history = String::from("## Previous conversation history\n\n");
-                    for msg in filtered {
-                        let role = if msg.role == Role::User.to_string() {
-                            "User"
-                        } else if msg.role == Role::LLM.to_string() {
-                            "Assistant"
-                        } else {
-                            continue;
-                        };
-                        history.push_str(&format!("{}: {}\n\n", role, msg.content));
-                    }
-                    history
-                }
-            }
-            Err(e) => {
-                eprintln!("Failed to recall history: {}", e);
-                String::new()
-            }
-        }
-    } else {
-        String::new()
-    };
-    let workspace_path = get_default_workspace()
-        .ok()
-        .flatten()
-        .map(|ws| ws.workspace_path)
-        .unwrap_or_else(|| {
-            crate::commands::get_app_root_dir()
-                .join("workspace")
-                .to_string_lossy()
-                .to_string()
-        });
-    let system_prompt = format!(
-        "[Important Rule] When performing file download, file write, or file creation operations, \
-         if no target directory is explicitly specified, please use the following workspace directory by default: {}\n\
-         Do not write files to system temp directory or any other non-workspace directories. \
-         If subdirectories need to be created, create them under the workspace directory.",
-        workspace_path
-    );
-    let enhanced_message = if !history_context.is_empty() {
-        format!(
-            "{}\n\n{}\n\n## User\n{}",
-            system_prompt, history_context, message
-        )
-    } else {
-        format!("{}\n\n{}", system_prompt, message)
-    };
-    let response = hippox
-        .handle_natural_language(&enhanced_message, Some(&session_id), Some(callback_clone))
-        .await;
-    if let Some(ref mem) = mem {
-        let _ = mem
-            .store_message(session_id.clone(), Role::LLM.to_string(), response.clone())
-            .await;
-    }
-    let is_error = response.contains("error.llm_error")
-        || response.contains("LLM error")
-        || response.contains("401 Unauthorized")
-        || response.contains("403 Forbidden")
-        || response.contains("429 Too Many Requests")
-        || response.contains("500 Internal Server Error")
-        || response.contains("502 Bad Gateway")
-        || response.contains("503 Service Unavailable")
-        || response.contains("timeout")
-        || response.contains("connection")
-        || response.contains("invalid")
-        || response.contains("Authentication")
-        || response.contains("authentication")
-        || response.to_lowercase().contains("error")
-        || response.starts_with("Error:");
-    if is_error {
-        callback.emit_failed(&response).await;
-        state.fail_task(&task_id, &response).await;
-    } else {
-        callback.emit_complete(&response).await;
-        state.complete_task(&task_id, &response).await;
     }
 }

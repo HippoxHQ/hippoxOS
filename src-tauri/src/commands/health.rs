@@ -145,6 +145,6 @@ async fn send_health_check_message(hippox: &Hippox, language: &str) -> Result<St
         "zh" => "hi",
         _ => "hi",
     };
-    let result = hippox.handle_natural_language(message, None, None).await;
+    let result = hippox.direct_handle_natural_language(message, None).await;
     Ok(result)
 }
