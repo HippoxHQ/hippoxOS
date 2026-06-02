@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { showToast, ToastType } from "../Toast";
+import { atomicSkillsCommands } from "../../api/skills";
 
 interface AtomicSkillsPanelProps {
   t: (key: string, params?: any) => string;
@@ -36,9 +37,8 @@ const AtomicSkillsPanel: React.FC<AtomicSkillsPanelProps> = ({ t, onSave }) => {
   const loadSkills = async () => {
     try {
       setLoading(true);
-      const skillsData = (await invoke(
-        "get_atomic_skills",
-      )) as AtomicSkillInfo[];
+      const skillsData =
+        (await atomicSkillsCommands.getAtomicSkills()) as AtomicSkillInfo[];
       const skillsWithEnabled = skillsData.map((skill) => ({
         ...skill,
         enabled: true,

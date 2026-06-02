@@ -61,23 +61,27 @@ export interface InitConfig {
 export interface TaskStepInfo {
   step_index: number;
   step_name: string;
-  status: string;  // pending, running, success, failure
+  status: string;  // "RUNNING" | "SUCCESS" | "FAILURE"
   output?: string;
   error?: string;
+  duration_ms?: number;
+  parameters?: string;
 }
+
 
 export interface TaskInfo {
   task_id: string;
   session_id: string;
   user_input: string;
-  status: string;  // pending, running, completed, failed
+  status: string; // pending, running, completed, failed
   steps: TaskStepInfo[];
   final_output?: string;
+  total_duration_ms?: number;
+  total_steps?: number;
   created_at: string;
   updated_at: string;
   files?: UploadFile[];
 }
-
 
 export interface DialogSession {
   session_id: string;

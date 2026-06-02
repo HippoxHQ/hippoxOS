@@ -628,10 +628,32 @@ const TerminalArea: React.FC<TerminalAreaProps> = ({
       if (runningCount > 0) parts.push(`⟳${runningCount}`);
       stepSummary = ` [${parts.join(" ")}]`;
     }
-
     const scrollState = filesScrollStates.get(task.task_id) || {
       showLeft: false,
       showRight: false,
+    };
+    const formatDuration = (ms?: number): string => {
+      if (ms === undefined) return "";
+      if (ms === 0) return "<1ms";
+      if (ms >= 1000) {
+        return `${(ms / 1000).toFixed(2)}s`;
+      }
+      return `${ms}ms`;
+    };
+    const formatParameters = (params?: string): string => {
+      if (!params || params === "{}") return "";
+      try {
+        const parsed = JSON.parse(params);
+        const keys = Object.keys(parsed);
+        if (keys.length === 0) return "";
+        const shortParams = keys
+          .slice(0, 3)
+          .map((k) => `${k}: ${JSON.stringify(parsed[k]).substring(0, 30)}`)
+          .join(", ");
+        return keys.length > 3 ? `${shortParams}...` : shortParams;
+      } catch {
+        return params.length > 50 ? params.substring(0, 50) + "..." : params;
+      }
     };
 
     return (
@@ -659,6 +681,12 @@ const TerminalArea: React.FC<TerminalAreaProps> = ({
           >
             {task.status}
             {stepSummary}
+            {task.total_duration_ms !== undefined &&
+              task.total_duration_ms > 0 && (
+                <span className="task-total-duration">
+                  ({formatDuration(task.total_duration_ms)})
+                </span>
+              )}
           </span>
         </div>
 
@@ -789,6 +817,16 @@ const TerminalArea: React.FC<TerminalAreaProps> = ({
                   {getStepStatusIcon(step.status)}
                 </span>
                 <span className="step-name">🔧 {step.step_name}</span>
+                {step.duration_ms !== undefined && (
+                  <span className="step-duration">
+                    ({formatDuration(step.duration_ms)})
+                  </span>
+                )}
+                {step.parameters && step.parameters !== "{}" && (
+                  <span className="step-parameters" title={step.parameters}>
+                    📋 {formatParameters(step.parameters)}
+                  </span>
+                )}
                 <span
                   className={`step-status step-status-${step.status.toLowerCase()}`}
                 >
@@ -1095,6 +1133,36 @@ const TerminalArea: React.FC<TerminalAreaProps> = ({
       style={{ height: "100%", display: "flex", flexDirection: "column" }}
     >
       <style>{`
+
+.step-duration {
+    font-size: 10px;
+    color: var(--text-tertiary);
+    margin-left: 8px;
+    font-family: monospace;
+}
+
+.step-parameters {
+    font-size: 10px;
+    color: var(--text-secondary);
+    margin-left: 8px;
+    background: var(--bg-tertiary);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: monospace;
+    cursor: help;
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.task-total-duration {
+    font-size: 10px;
+    color: var(--text-tertiary);
+    margin-left: 8px;
+    font-family: monospace;
+}
+    
         .task-files-scroll-container {
           margin: 8px 0 4px 24px;
         }
