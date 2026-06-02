@@ -9,7 +9,7 @@ export const sessionCommands = {
         initialChat: ChatMessage[],
         initialTerminal: any[]
     ): Promise<string> {
-        return await invoke('create_dialog_session', {
+        return await invoke('cmd_create_dialog_session', {
             sessionId,
             title,
             description,
@@ -19,36 +19,36 @@ export const sessionCommands = {
     },
 
     async listSessions(): Promise<DialogSession[]> {
-        return await invoke('list_dialog_sessions');
+        return await invoke('cmd_list_dialog_sessions');
     },
 
     async updateSessionConfig(sessionId: string, updates: Partial<DialogSession>): Promise<void> {
-        return await invoke('update_session_config', {
+        return await invoke('cmd_update_session_config', {
             sessionId,
             updates: JSON.stringify(updates),
         });
     },
 
     async deleteSession(sessionId: string): Promise<void> {
-        return await invoke('delete_dialog_session', { sessionId });
+        return await invoke('cmd_delete_dialog_session', { sessionId });
     },
 
     async saveChatContent(sessionId: string, messages: ChatMessage[]): Promise<void> {
-        return await invoke('save_chat_content', {
+        return await invoke('cmd_save_chat_content', {
             sessionId,
             content: JSON.stringify(messages, null, 2),
         });
     },
 
     async saveTerminalContent(sessionId: string, entries: any[]): Promise<void> {
-        return await invoke('save_terminal_content', {
+        return await invoke('cmd_save_terminal_content', {
             sessionId,
             content: JSON.stringify(entries, null, 2),
         });
     },
 
     async loadChatContent(sessionId: string): Promise<ChatMessage[] | null> {
-        const content = await invoke<string | null>('load_chat_content', { sessionId });
+        const content = await invoke<string | null>('cmd_load_chat_content', { sessionId });
         if (content) {
             return JSON.parse(content);
         }
@@ -56,7 +56,7 @@ export const sessionCommands = {
     },
 
     async loadTerminalContent(sessionId: string): Promise<any[] | null> {
-        const content = await invoke<string | null>('load_terminal_content', { sessionId });
+        const content = await invoke<string | null>('cmd_load_terminal_content', { sessionId });
         if (content) {
             return JSON.parse(content);
         }
@@ -64,11 +64,11 @@ export const sessionCommands = {
     },
 
     async updatePinnedSessions(sessionId: string, pinned: boolean): Promise<string[]> {
-        return await invoke('update_pinned_sessions', { sessionId, pinned });
+        return await invoke('cmd_update_pinned_sessions', { sessionId, pinned });
     },
 
     async getPinnedSessions(): Promise<string[]> {
-        return await invoke('get_pinned_sessions');
+        return await invoke('cmd_get_pinned_sessions');
     },
 
     async saveTaskContent(sessionId: string, tasks: TaskInfo[]): Promise<void> {

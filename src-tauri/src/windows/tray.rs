@@ -172,12 +172,12 @@ impl TrayManager {
     }
 
     fn set_default_llm<R: Runtime>(app_handle: &AppHandle<R>, instance_id: String) {
-        use crate::commands::set_default_llm_instance;
+        use crate::commands::cmd_set_default_llm_instance;
         let lang = crate::common::get_setting_with_default("language", serde_json::json!("en"))
             .map(|v| v.as_str().unwrap_or("en").to_string())
             .unwrap_or_else(|_| "en".to_string());
         let rt = tokio::runtime::Runtime::new().unwrap();
-        match rt.block_on(set_default_llm_instance(instance_id.clone())) {
+        match rt.block_on( cmd_set_default_llm_instance(instance_id.clone())) {
             Ok(_) => {
                 let message = if lang == "zh" {
                     "默认 LLM 已更新"

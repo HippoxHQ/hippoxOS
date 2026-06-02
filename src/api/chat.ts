@@ -3,46 +3,46 @@ import { ChatResponse, ExecutionLog, TaskInfo } from '../types/type';
 
 export const hippoxCommands = {
     async setLanguage(language: string): Promise<void> {
-        return await invoke('set_hippox_language', { language });
+        return await invoke('cmd_set_hippox_language', { language });
     },
 
     async getLanguage(): Promise<string> {
-        return await invoke('get_hippox_language');
+        return await invoke('cmd_get_hippox_language');
     },
 
     async sendMessageAsync(message: string, sessionId?: string): Promise<string> {
-        return await invoke('send_chat_message_async', { message, sessionId });
+        return await invoke('cmd_send_chat_message_async', { message, sessionId });
     },
 
     async getTaskStatus(taskId: string): Promise<TaskInfo> {
-        return await invoke('get_task_status', { taskId });
+        return await invoke('cmd_get_task_status', { taskId });
     },
 
     async getSessionTasks(sessionId?: string): Promise<TaskInfo[]> {
-        return await invoke('get_session_tasks', { sessionId });
+        return await invoke('cmd_get_session_tasks', { sessionId });
     },
 
     async sendMessage(message: string, sessionId?: string): Promise<ChatResponse> {
-        return await invoke('send_chat_message', { message, sessionId });
+        return await invoke('cmd_send_chat_message', { message, sessionId });
     },
 
     async getLogs(): Promise<ExecutionLog[]> {
-        return await invoke('get_execution_logs');
+        return await invoke('cmd_get_execution_logs');
     },
 
     async clearLogs(): Promise<void> {
-        return await invoke('clear_execution_logs');
+        return await invoke('cmd_clear_execution_logs');
     },
 
     async resetSession(sessionId?: string): Promise<void> {
-        return await invoke('reset_conversation', { sessionId });
+        return await invoke('cmd_reset_conversation', { sessionId });
     },
 
     async isInitialized(): Promise<boolean> {
-        return await invoke('is_hippox_initialized');
+        return await invoke('cmd_is_hippox_initialized');
     },
 
     async getAtomicSkills(): Promise<string[]> {
-        return await invoke('get_atomic_skills_list');
+        return await invoke('cmd_get_atomic_skills_list');
     }
 };

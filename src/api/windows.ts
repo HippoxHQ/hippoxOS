@@ -18,27 +18,27 @@ export const windowsCommands = {
     },
 
     async windowMinimize(): Promise<void> {
-        return await invoke('window_minimize');
+        return await invoke('cmd_window_minimize');
     },
 
     async windowMaximize(): Promise<void> {
-        return await invoke('window_maximize');
+        return await invoke('cmd_window_maximize');
     },
 
     async windowIsMaximized(): Promise<boolean> {
-        return await invoke('window_is_maximized');
+        return await invoke('cmd_window_is_maximized');
     },
 
     async getLlmInstances(): Promise<any> {
-        return await invoke('get_llm_instances');
+        return await invoke('cmd_get_llm_instances');
     },
 
     async getDefaultLlmInstanceId(): Promise<string> {
-        return await invoke('get_default_llm_instance_id');
+        return await invoke('cmd_get_default_llm_instance_id');
     },
 
     async setDefaultLlmInstance(instanceId: string): Promise<void> {
-        return await invoke('set_default_llm_instance', { instanceId });
+        return await invoke('cmd_set_default_llm_instance', { instanceId });
     },
 
     async openLogsDir(): Promise<void> {

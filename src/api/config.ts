@@ -195,75 +195,75 @@ export interface DiskInfo {
 
 export const configCommands = {
     async getConfig(): Promise<HippoxAppConfig> {
-        return await invoke('get_config');
+        return await invoke('cmd_get_config');
     },
 
     async setConfig(config: HippoxAppConfig): Promise<boolean> {
-        return await invoke('set_config', { config });
+        return await invoke('cmd_set_config', { config });
     },
 
     async updateConfig(path: ConfigPath, value: any): Promise<boolean> {
-        return await invoke('update_config', { path, value });
+        return await invoke('cmd_update_config', { path, value });
     },
 
     async getConfigValue(path: ConfigPath): Promise<any> {
-        return await invoke('get_config_value', { path });
+        return await invoke('cmd_get_config_value', { path });
     },
 
     async getLlmInstances(): Promise<Record<string, LlmInstance>> {
-        return await invoke('get_llm_instances');
+        return await invoke('cmd_get_llm_instances');
     },
 
     async getDefaultLlmInstanceId(): Promise<string> {
-        return await invoke('get_default_llm_instance_id');
+        return await invoke('cmd_get_default_llm_instance_id');
     },
 
     async addLlmInstance(instance: AddLlmInstanceRequest): Promise<string> {
-        return await invoke('add_llm_instance', { request: instance });
+        return await invoke('cmd_add_llm_instance', { request: instance });
     },
 
     async updateLlmInstance(instanceId: string, instance: LlmInstance): Promise<boolean> {
-        return await invoke('update_llm_instance', { instanceId, instance });
+        return await invoke('cmd_update_llm_instance', { instanceId, instance });
     },
 
     async deleteLlmInstance(instanceId: string): Promise<boolean> {
-        return await invoke('delete_llm_instance', { instanceId });
+        return await invoke('cmd_delete_llm_instance', { instanceId });
     },
 
     async setDefaultLlmInstance(instanceId: string): Promise<boolean> {
-        return await invoke('set_default_llm_instance', { instanceId });
+        return await invoke('cmd_set_default_llm_instance', { instanceId });
     },
 
     async getLlmInstance(instanceId: string): Promise<LlmInstance | null> {
-        return await invoke('get_llm_instance', { instanceId });
+        return await invoke('cmd_get_llm_instance', { instanceId });
     },
 
     async addLlmModel(model: ModelConfig): Promise<boolean> {
-        return await invoke('add_llm_model', { model });
+        return await invoke('cmd_add_llm_model', { model });
     },
 
     async removeLlmModel(modelName: string): Promise<boolean> {
-        return await invoke('remove_llm_model', { modelName });
+        return await invoke('cmd_remove_llm_model', { modelName });
     },
 
     async setDefaultLlmModel(modelName: string): Promise<boolean> {
-        return await invoke('set_default_llm_model', { modelName });
+        return await invoke('cmd_set_default_llm_model', { modelName });
     },
 
     async getSettingsLanguage(): Promise<string> {
-        return await invoke('get_settings_language');
+        return await invoke('cmd_get_settings_language');
     },
 
     async saveSettingsLanguage(language: string): Promise<void> {
-        return await invoke('save_settings_language', { language });
+        return await invoke('cmd_save_settings_language', { language });
     },
 
     async getSettingsTheme(): Promise<string> {
-        return await invoke('get_settings_theme');
+        return await invoke('cmd_get_settings_theme');
     },
 
     async saveSettingsTheme(theme: string): Promise<void> {
-        return await invoke('save_settings_theme', { theme });
+        return await invoke('cmd_save_settings_theme', { theme });
     },
 };
 
@@ -282,11 +282,11 @@ export const storageCommands = {
     },
 
     async clearLogs(): Promise<void> {
-        return await invoke('clear_execution_logs');
+        return await invoke('cmd_clear_execution_logs');
     },
 
     async getDirectorySize(path: string): Promise<number> {
-        return await invoke('get_directory_size', { path });
+        return await invoke('cmd_get_directory_size', { path });
     },
 
     async getDiskInfo(path: string): Promise<DiskInfo> {
@@ -312,52 +312,52 @@ export const storageCommands = {
 
 export const engineCommands = {
     async saveContainerInstance(request: SaveContainerInstanceRequest): Promise<ContainerInstance> {
-        return await invoke('save_container_instance', { request });
+        return await invoke('cmd_save_container_instance', { request });
     },
     async deleteContainerInstance(instanceId: string): Promise<boolean> {
-        return await invoke('delete_container_instance', { instanceId });
+        return await invoke('cmd_delete_container_instance', { instanceId });
     },
     async toggleContainerInstance(instanceId: string, enabled: boolean): Promise<boolean> {
-        return await invoke('toggle_container_instance', { instanceId, enabled });
+        return await invoke('cmd_toggle_container_instance', { instanceId, enabled });
     },
     async getContainerInstances(): Promise<ContainerInstance[]> {
-        return await invoke('get_container_instances');
+        return await invoke('cmd_get_container_instances');
     },
     async saveDatabaseInstance(request: SaveDatabaseInstanceRequest): Promise<DatabaseInstance> {
-        return await invoke('save_database_instance', { request });
+        return await invoke('cmd_save_database_instance', { request });
     },
     async deleteDatabaseInstance(instanceId: string): Promise<boolean> {
-        return await invoke('delete_database_instance', { instanceId });
+        return await invoke('cmd_delete_database_instance', { instanceId });
     },
     async toggleDatabaseInstance(instanceId: string, enabled: boolean): Promise<boolean> {
-        return await invoke('toggle_database_instance', { instanceId, enabled });
+        return await invoke('cmd_toggle_database_instance', { instanceId, enabled });
     },
     async getDatabaseInstances(): Promise<DatabaseInstance[]> {
-        return await invoke('get_database_instances');
+        return await invoke('cmd_get_database_instances');
     },
     async saveNetworkInstance(request: SaveNetworkInstanceRequest): Promise<NetworkInstance> {
-        return await invoke('save_network_instance', { request });
+        return await invoke('cmd_save_network_instance', { request });
     },
     async deleteNetworkInstance(instanceId: string): Promise<boolean> {
-        return await invoke('delete_network_instance', { instanceId });
+        return await invoke('cmd_delete_network_instance', { instanceId });
     },
     async toggleNetworkInstance(instanceId: string, enabled: boolean): Promise<boolean> {
-        return await invoke('toggle_network_instance', { instanceId, enabled });
+        return await invoke('cmd_toggle_network_instance', { instanceId, enabled });
     },
     async getNetworkInstances(): Promise<NetworkInstance[]> {
-        return await invoke('get_network_instances');
+        return await invoke('cmd_get_network_instances');
     },
     async saveNotificationInstance(request: SaveNotificationInstanceRequest): Promise<NotificationInstance> {
-        return await invoke('save_notification_instance', { request });
+        return await invoke('cmd_save_notification_instance', { request });
     },
     async deleteNotificationInstance(instanceId: string): Promise<boolean> {
-        return await invoke('delete_notification_instance', { instanceId });
+        return await invoke('cmd_delete_notification_instance', { instanceId });
     },
     async toggleNotificationInstance(instanceId: string, enabled: boolean): Promise<boolean> {
-        return await invoke('toggle_notification_instance', { instanceId, enabled });
+        return await invoke('cmd_toggle_notification_instance', { instanceId, enabled });
     },
     async getNotificationInstances(): Promise<NotificationInstance[]> {
-        return await invoke('get_notification_instances');
+        return await invoke('cmd_get_notification_instances');
     },
 };
 

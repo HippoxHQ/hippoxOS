@@ -697,7 +697,7 @@ pub struct SaveContainerInstanceRequest {
 }
 
 #[tauri::command]
-pub async fn save_container_instance(
+pub async fn cmd_save_container_instance(
     request: SaveContainerInstanceRequest,
 ) -> Result<ContainerInstance, String> {
     let mut config = HIPPOX_APP_CONFIG.write().await;
@@ -743,7 +743,7 @@ pub async fn save_container_instance(
 }
 
 #[tauri::command]
-pub async fn delete_container_instance(instance_id: String) -> Result<bool, String> {
+pub async fn cmd_delete_container_instance(instance_id: String) -> Result<bool, String> {
     let instance_type = {
         let config = HIPPOX_APP_CONFIG.read().await;
         config
@@ -767,7 +767,10 @@ pub async fn delete_container_instance(instance_id: String) -> Result<bool, Stri
 }
 
 #[tauri::command]
-pub async fn toggle_container_instance(instance_id: String, enabled: bool) -> Result<bool, String> {
+pub async fn cmd_toggle_container_instance(
+    instance_id: String,
+    enabled: bool,
+) -> Result<bool, String> {
     let mut config = HIPPOX_APP_CONFIG.write().await;
     if let Some(instance) = config
         .engine
@@ -788,7 +791,7 @@ pub async fn toggle_container_instance(instance_id: String, enabled: bool) -> Re
 }
 
 #[tauri::command]
-pub async fn get_container_instances() -> Result<Vec<ContainerInstance>, String> {
+pub async fn cmd_get_container_instances() -> Result<Vec<ContainerInstance>, String> {
     let config = HIPPOX_APP_CONFIG.read().await;
     Ok(config.engine.container_instances.clone())
 }
@@ -810,7 +813,7 @@ pub struct SaveDatabaseInstanceRequest {
 }
 
 #[tauri::command]
-pub async fn save_database_instance(
+pub async fn cmd_save_database_instance(
     request: SaveDatabaseInstanceRequest,
 ) -> Result<DatabaseInstance, String> {
     let mut config = HIPPOX_APP_CONFIG.write().await;
@@ -857,7 +860,7 @@ pub async fn save_database_instance(
 }
 
 #[tauri::command]
-pub async fn delete_database_instance(instance_id: String) -> Result<bool, String> {
+pub async fn cmd_delete_database_instance(instance_id: String) -> Result<bool, String> {
     let instance_type = {
         let config = HIPPOX_APP_CONFIG.read().await;
         config
@@ -881,7 +884,10 @@ pub async fn delete_database_instance(instance_id: String) -> Result<bool, Strin
 }
 
 #[tauri::command]
-pub async fn toggle_database_instance(instance_id: String, enabled: bool) -> Result<bool, String> {
+pub async fn cmd_toggle_database_instance(
+    instance_id: String,
+    enabled: bool,
+) -> Result<bool, String> {
     let mut config = HIPPOX_APP_CONFIG.write().await;
     if let Some(instance) = config
         .engine
@@ -902,7 +908,7 @@ pub async fn toggle_database_instance(instance_id: String, enabled: bool) -> Res
 }
 
 #[tauri::command]
-pub async fn get_database_instances() -> Result<Vec<DatabaseInstance>, String> {
+pub async fn cmd_get_database_instances() -> Result<Vec<DatabaseInstance>, String> {
     let config = HIPPOX_APP_CONFIG.read().await;
     Ok(config.engine.database_instances.clone())
 }
@@ -924,7 +930,7 @@ pub struct SaveNetworkInstanceRequest {
 }
 
 #[tauri::command]
-pub async fn save_network_instance(
+pub async fn cmd_save_network_instance(
     request: SaveNetworkInstanceRequest,
 ) -> Result<NetworkInstance, String> {
     let mut config = HIPPOX_APP_CONFIG.write().await;
@@ -971,7 +977,7 @@ pub async fn save_network_instance(
 }
 
 #[tauri::command]
-pub async fn delete_network_instance(instance_id: String) -> Result<bool, String> {
+pub async fn cmd_delete_network_instance(instance_id: String) -> Result<bool, String> {
     let instance_type = {
         let config = HIPPOX_APP_CONFIG.read().await;
         config
@@ -995,7 +1001,10 @@ pub async fn delete_network_instance(instance_id: String) -> Result<bool, String
 }
 
 #[tauri::command]
-pub async fn toggle_network_instance(instance_id: String, enabled: bool) -> Result<bool, String> {
+pub async fn cmd_toggle_network_instance(
+    instance_id: String,
+    enabled: bool,
+) -> Result<bool, String> {
     let mut config = HIPPOX_APP_CONFIG.write().await;
     if let Some(instance) = config
         .engine
@@ -1016,7 +1025,7 @@ pub async fn toggle_network_instance(instance_id: String, enabled: bool) -> Resu
 }
 
 #[tauri::command]
-pub async fn get_network_instances() -> Result<Vec<NetworkInstance>, String> {
+pub async fn cmd_get_network_instances() -> Result<Vec<NetworkInstance>, String> {
     let config = HIPPOX_APP_CONFIG.read().await;
     Ok(config.engine.network_instances.clone())
 }
@@ -1042,7 +1051,7 @@ pub struct SaveNotificationInstanceRequest {
 }
 
 #[tauri::command]
-pub async fn save_notification_instance(
+pub async fn cmd_save_notification_instance(
     request: SaveNotificationInstanceRequest,
 ) -> Result<NotificationInstance, String> {
     let mut config = HIPPOX_APP_CONFIG.write().await;
@@ -1096,7 +1105,7 @@ pub async fn save_notification_instance(
 }
 
 #[tauri::command]
-pub async fn delete_notification_instance(instance_id: String) -> Result<bool, String> {
+pub async fn cmd_delete_notification_instance(instance_id: String) -> Result<bool, String> {
     let instance_type = {
         let config = HIPPOX_APP_CONFIG.read().await;
         config
@@ -1120,7 +1129,7 @@ pub async fn delete_notification_instance(instance_id: String) -> Result<bool, S
 }
 
 #[tauri::command]
-pub async fn toggle_notification_instance(
+pub async fn cmd_toggle_notification_instance(
     instance_id: String,
     enabled: bool,
 ) -> Result<bool, String> {
@@ -1144,13 +1153,13 @@ pub async fn toggle_notification_instance(
 }
 
 #[tauri::command]
-pub async fn get_notification_instances() -> Result<Vec<NotificationInstance>, String> {
+pub async fn cmd_get_notification_instances() -> Result<Vec<NotificationInstance>, String> {
     let config = HIPPOX_APP_CONFIG.read().await;
     Ok(config.engine.notification_instances.clone())
 }
 
 #[tauri::command]
-pub async fn get_llm_instances() -> Result<HashMap<String, LlmInstanceForFrontend>, String> {
+pub async fn cmd_get_llm_instances() -> Result<HashMap<String, LlmInstanceForFrontend>, String> {
     let config = HIPPOX_APP_CONFIG.read().await;
     let default_id = &config.default_llm_instance_id;
     let mut result = HashMap::new();
@@ -1163,13 +1172,13 @@ pub async fn get_llm_instances() -> Result<HashMap<String, LlmInstanceForFronten
 }
 
 #[tauri::command]
-pub async fn get_default_llm_instance_id() -> Result<String, String> {
+pub async fn cmd_get_default_llm_instance_id() -> Result<String, String> {
     let config = HIPPOX_APP_CONFIG.read().await;
     Ok(config.default_llm_instance_id.clone())
 }
 
 #[tauri::command]
-pub async fn add_llm_instance(request: AddLlmInstanceRequest) -> Result<String, String> {
+pub async fn cmd_add_llm_instance(request: AddLlmInstanceRequest) -> Result<String, String> {
     let mut config = HIPPOX_APP_CONFIG.write().await;
     let id = Uuid::new_v4().to_string();
     let now = chrono::Local::now().to_rfc3339();
@@ -1207,7 +1216,7 @@ pub async fn add_llm_instance(request: AddLlmInstanceRequest) -> Result<String, 
 }
 
 #[tauri::command]
-pub async fn update_llm_instance(
+pub async fn cmd_update_llm_instance(
     instance_id: String,
     instance: LlmInstanceForFrontend,
 ) -> Result<bool, String> {
@@ -1230,7 +1239,7 @@ pub async fn update_llm_instance(
 }
 
 #[tauri::command]
-pub async fn delete_llm_instance(instance_id: String) -> Result<bool, String> {
+pub async fn cmd_delete_llm_instance(instance_id: String) -> Result<bool, String> {
     let mut config = HIPPOX_APP_CONFIG.write().await;
     if config.llm_instances.len() <= 1 {
         return Err("Cannot delete the last instance".to_string());
@@ -1253,7 +1262,7 @@ pub async fn delete_llm_instance(instance_id: String) -> Result<bool, String> {
 }
 
 #[tauri::command]
-pub async fn set_default_llm_instance(instance_id: String) -> Result<bool, String> {
+pub async fn cmd_set_default_llm_instance(instance_id: String) -> Result<bool, String> {
     let mut config = HIPPOX_APP_CONFIG.write().await;
     if config.llm_instances.contains_key(&instance_id) {
         for (_, instance) in config.llm_instances.iter_mut() {
@@ -1272,7 +1281,7 @@ pub async fn set_default_llm_instance(instance_id: String) -> Result<bool, Strin
 }
 
 #[tauri::command]
-pub async fn get_llm_instance(
+pub async fn cmd_get_llm_instance(
     instance_id: String,
 ) -> Result<Option<LlmInstanceForFrontend>, String> {
     let config = HIPPOX_APP_CONFIG.read().await;
@@ -1297,13 +1306,13 @@ pub enum ConfigPath {
 }
 
 #[tauri::command]
-pub async fn get_config() -> Result<HippoxAppConfig, String> {
+pub async fn cmd_get_config() -> Result<HippoxAppConfig, String> {
     let config = HIPPOX_APP_CONFIG.read().await;
     Ok(config.clone())
 }
 
 #[tauri::command]
-pub async fn set_config(config: HippoxAppConfig) -> Result<bool, String> {
+pub async fn cmd_set_config(config: HippoxAppConfig) -> Result<bool, String> {
     let mut global_config = HIPPOX_APP_CONFIG.write().await;
     *global_config = config;
     if let Err(e) = save_config_to_file().await {
@@ -1313,7 +1322,7 @@ pub async fn set_config(config: HippoxAppConfig) -> Result<bool, String> {
 }
 
 #[tauri::command]
-pub async fn update_config(path: ConfigPath, value: serde_json::Value) -> Result<bool, String> {
+pub async fn cmd_update_config(path: ConfigPath, value: serde_json::Value) -> Result<bool, String> {
     let mut config = HIPPOX_APP_CONFIG.write().await;
 
     match path {
@@ -1402,7 +1411,7 @@ pub async fn update_config(path: ConfigPath, value: serde_json::Value) -> Result
 }
 
 #[tauri::command]
-pub async fn get_config_value(path: ConfigPath) -> Result<serde_json::Value, String> {
+pub async fn cmd_get_config_value(path: ConfigPath) -> Result<serde_json::Value, String> {
     let config = HIPPOX_APP_CONFIG.read().await;
 
     let value = match path {
@@ -1460,7 +1469,7 @@ fn get_config_file_path() -> std::path::PathBuf {
 }
 
 #[tauri::command]
-pub async fn add_llm_model(model: ModelConfig) -> Result<bool, String> {
+pub async fn cmd_add_llm_model(model: ModelConfig) -> Result<bool, String> {
     let mut config = HIPPOX_APP_CONFIG.write().await;
     let default_id = config.default_llm_instance_id.clone();
     if let Some(instance) = config.llm_instances.get_mut(&default_id) {
@@ -1473,7 +1482,7 @@ pub async fn add_llm_model(model: ModelConfig) -> Result<bool, String> {
 }
 
 #[tauri::command]
-pub async fn remove_llm_model(model_name: String) -> Result<bool, String> {
+pub async fn cmd_remove_llm_model(model_name: String) -> Result<bool, String> {
     let mut config = HIPPOX_APP_CONFIG.write().await;
     let default_id = config.default_llm_instance_id.clone();
     if let Some(instance) = config.llm_instances.get_mut(&default_id) {
@@ -1486,7 +1495,7 @@ pub async fn remove_llm_model(model_name: String) -> Result<bool, String> {
 }
 
 #[tauri::command]
-pub async fn set_default_llm_model(model_name: String) -> Result<bool, String> {
+pub async fn cmd_set_default_llm_model(model_name: String) -> Result<bool, String> {
     let mut config = HIPPOX_APP_CONFIG.write().await;
     let default_id = config.default_llm_instance_id.clone();
     if let Some(instance) = config.llm_instances.get_mut(&default_id) {
@@ -1503,24 +1512,24 @@ pub async fn set_default_llm_model(model_name: String) -> Result<bool, String> {
 }
 
 #[tauri::command]
-pub fn get_settings_language() -> Result<String, String> {
+pub fn cmd_get_settings_language() -> Result<String, String> {
     let value = crate::common::get_setting_with_default("language", serde_json::json!("en"))?;
     Ok(value.as_str().unwrap_or("en").to_string())
 }
 
 #[tauri::command]
-pub fn save_settings_language(language: String) -> Result<(), String> {
+pub fn cmd_save_settings_language(language: String) -> Result<(), String> {
     crate::common::set_setting("language", serde_json::json!(language))
 }
 
 #[tauri::command]
-pub fn get_settings_theme() -> Result<String, String> {
+pub fn cmd_get_settings_theme() -> Result<String, String> {
     let value = crate::common::get_setting_with_default("theme", serde_json::json!("dark"))?;
     Ok(value.as_str().unwrap_or("dark").to_string())
 }
 
 #[tauri::command]
-pub fn save_settings_theme(theme: String) -> Result<(), String> {
+pub fn cmd_save_settings_theme(theme: String) -> Result<(), String> {
     crate::common::set_setting("theme", serde_json::json!(theme))
 }
 

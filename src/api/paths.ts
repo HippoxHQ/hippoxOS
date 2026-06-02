@@ -22,29 +22,29 @@ export interface DiskInfo {
 }
 
 export async function getDataPaths(): Promise<DataPaths> {
-  return await invoke('get_data_paths');
+  return await invoke('cmd_get_data_paths');
 }
 
 export async function getDirectorySize(path: string): Promise<number> {
-  return await invoke('get_directory_size', { path });
+  return await invoke('cmd_get_directory_size', { path });
 }
 
 export async function getDiskInfo(path: string): Promise<DiskInfo> {
-  return await invoke('get_disk_info', { path });
+  return await invoke('cmd_get_disk_info', { path });
 }
 
 export async function getMaxLogSize(): Promise<number> {
-  return await invoke('get_max_log_size');
+  return await invoke('cmd_get_max_log_size');
 }
 
 export async function setMaxLogSize(maxSizeMb: number): Promise<void> {
-  return await invoke('set_max_log_size', { maxSizeMb });
+  return await invoke('cmd_set_max_log_size', { maxSizeMb });
 }
 
 export async function getMaxDialogSize(): Promise<number> {
-  return await invoke('get_max_dialog_size');
+  return await invoke('cmd_get_max_dialog_size');
 }
 
 export async function setMaxDialogSize(maxSizeMb: number): Promise<void> {
-  return await invoke('set_max_dialog_size', { maxSizeMb });
+  return await invoke('cmd_set_max_dialog_size', { maxSizeMb });
 }

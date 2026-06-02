@@ -10,7 +10,7 @@ pub struct WindowState {
 }
 
 #[tauri::command]
-pub async fn window_minimize(app_handle: AppHandle) -> Result<(), String> {
+pub async fn cmd_window_minimize(app_handle: AppHandle) -> Result<(), String> {
     if let Some(window) = app_handle.get_webview_window("main") {
         window
             .minimize()
@@ -21,7 +21,7 @@ pub async fn window_minimize(app_handle: AppHandle) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub async fn window_maximize(app_handle: AppHandle) -> Result<(), String> {
+pub async fn cmd_window_maximize(app_handle: AppHandle) -> Result<(), String> {
     if let Some(window) = app_handle.get_webview_window("main") {
         if window.is_maximized().unwrap_or(false) {
             window
@@ -38,7 +38,7 @@ pub async fn window_maximize(app_handle: AppHandle) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub async fn window_unmaximize(app_handle: AppHandle) -> Result<(), String> {
+pub async fn cmd_window_unmaximize(app_handle: AppHandle) -> Result<(), String> {
     if let Some(window) = app_handle.get_webview_window("main") {
         window
             .unmaximize()
@@ -49,7 +49,7 @@ pub async fn window_unmaximize(app_handle: AppHandle) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub async fn window_close(app_handle: AppHandle) -> Result<(), String> {
+pub async fn cmd_window_close(app_handle: AppHandle) -> Result<(), String> {
     if let Some(window) = app_handle.get_webview_window("main") {
         window
             .close()
@@ -60,7 +60,7 @@ pub async fn window_close(app_handle: AppHandle) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub async fn window_is_maximized(app_handle: AppHandle) -> Result<bool, String> {
+pub async fn cmd_window_is_maximized(app_handle: AppHandle) -> Result<bool, String> {
     if let Some(window) = app_handle.get_webview_window("main") {
         window
             .is_maximized()
@@ -71,7 +71,7 @@ pub async fn window_is_maximized(app_handle: AppHandle) -> Result<bool, String> 
 }
 
 #[tauri::command]
-pub async fn window_toggle_fullscreen(app_handle: AppHandle) -> Result<(), String> {
+pub async fn cmd_window_toggle_fullscreen(app_handle: AppHandle) -> Result<(), String> {
     if let Some(window) = app_handle.get_webview_window("main") {
         if window.is_fullscreen().unwrap_or(false) {
             window
@@ -88,7 +88,7 @@ pub async fn window_toggle_fullscreen(app_handle: AppHandle) -> Result<(), Strin
 }
 
 #[tauri::command]
-pub async fn window_get_state(app_handle: AppHandle) -> Result<WindowState, String> {
+pub async fn cmd_window_get_state(app_handle: AppHandle) -> Result<WindowState, String> {
     if let Some(window) = app_handle.get_webview_window("main") {
         let size = window.outer_size().unwrap_or_default();
         Ok(WindowState {
@@ -104,7 +104,7 @@ pub async fn window_get_state(app_handle: AppHandle) -> Result<WindowState, Stri
 }
 
 #[tauri::command]
-pub async fn window_set_size(app_handle: AppHandle, width: u32, height: u32) -> Result<(), String> {
+pub async fn cmd_window_set_size(app_handle: AppHandle, width: u32, height: u32) -> Result<(), String> {
     if let Some(window) = app_handle.get_webview_window("main") {
         window
             .set_size(tauri::Size::Logical(tauri::LogicalSize::new(
@@ -118,7 +118,7 @@ pub async fn window_set_size(app_handle: AppHandle, width: u32, height: u32) -> 
 }
 
 #[tauri::command]
-pub async fn window_set_position(app_handle: AppHandle, x: i32, y: i32) -> Result<(), String> {
+pub async fn cmd_window_set_position(app_handle: AppHandle, x: i32, y: i32) -> Result<(), String> {
     if let Some(window) = app_handle.get_webview_window("main") {
         window
             .set_position(tauri::Position::Logical(tauri::LogicalPosition::new(

@@ -88,7 +88,7 @@ pub struct DataPaths {
 }
 
 #[tauri::command]
-pub fn get_data_paths() -> DataPaths {
+pub fn cmd_get_data_paths() -> DataPaths {
     DataPaths {
         app_root_dir: get_app_root_dir().to_string_lossy().to_string(),
         dialog_history_dir: get_dialog_history_dir().to_string_lossy().to_string(),
@@ -383,7 +383,7 @@ impl Default for DialogHistoryConfig {
 }
 
 #[tauri::command]
-pub fn get_dialog_history_config() -> Result<DialogHistoryConfig, String> {
+pub fn cmd_get_dialog_history_config() -> Result<DialogHistoryConfig, String> {
     let settings_dir = get_settings_dir();
     let config_path = settings_dir.join("config.json");
 
@@ -405,7 +405,7 @@ pub fn get_dialog_history_config() -> Result<DialogHistoryConfig, String> {
 }
 
 #[tauri::command]
-pub fn save_dialog_history_config(config: DialogHistoryConfig) -> Result<(), String> {
+pub fn cmd_save_dialog_history_config(config: DialogHistoryConfig) -> Result<(), String> {
     let settings_dir = get_settings_dir();
     if !settings_dir.exists() {
         fs::create_dir_all(&settings_dir)
@@ -429,8 +429,8 @@ pub fn save_dialog_history_config(config: DialogHistoryConfig) -> Result<(), Str
 }
 
 #[tauri::command]
-pub fn update_pinned_sessions(session_id: String, pinned: bool) -> Result<Vec<String>, String> {
-    let mut config = get_dialog_history_config()?;
+pub fn cmd_update_pinned_sessions(session_id: String, pinned: bool) -> Result<Vec<String>, String> {
+    let mut config = cmd_get_dialog_history_config()?;
     if pinned {
         if !config.pinned_sessions.contains(&session_id) {
             config.pinned_sessions.push(session_id);
@@ -438,18 +438,18 @@ pub fn update_pinned_sessions(session_id: String, pinned: bool) -> Result<Vec<St
     } else {
         config.pinned_sessions.retain(|id| id != &session_id);
     }
-    save_dialog_history_config(config)?;
-    get_pinned_sessions()
+    cmd_save_dialog_history_config(config)?;
+    cmd_get_pinned_sessions()
 }
 
 #[tauri::command]
-pub fn get_pinned_sessions() -> Result<Vec<String>, String> {
-    let config = get_dialog_history_config()?;
+pub fn cmd_get_pinned_sessions() -> Result<Vec<String>, String> {
+    let config = cmd_get_dialog_history_config()?;
     Ok(config.pinned_sessions)
 }
 
 #[tauri::command]
-pub fn create_dialog_session(
+pub fn cmd_create_dialog_session(
     session_id: &str,
     title: &str,
     description: &str,
@@ -487,12 +487,12 @@ pub fn create_dialog_session(
 }
 
 #[tauri::command]
-pub fn list_dialog_sessions() -> Result<Vec<serde_json::Value>, String> {
+pub fn cmd_list_dialog_sessions() -> Result<Vec<serde_json::Value>, String> {
     let dir = get_dialog_history_dir();
     if !dir.exists() {
         return Ok(vec![]);
     }
-    let pinned_sessions = get_pinned_sessions()?;
+    let pinned_sessions = cmd_get_pinned_sessions()?;
     let mut sessions = vec![];
     for entry in
         fs::read_dir(dir).map_err(|e| format!("Failed to read dialog history dir: {}", e))?
@@ -546,7 +546,10 @@ pub fn list_dialog_sessions() -> Result<Vec<serde_json::Value>, String> {
 }
 
 #[tauri::command]
-pub fn update_session_config(session_id: &str, updates: serde_json::Value) -> Result<(), String> {
+pub fn cmd_update_session_config(
+    session_id: &str,
+    updates: serde_json::Value,
+) -> Result<(), String> {
     let dir = get_dialog_history_dir();
     let session_dir = dir.join(session_id);
     let config_path = session_dir.join("config.json");
@@ -570,18 +573,18 @@ pub fn update_session_config(session_id: &str, updates: serde_json::Value) -> Re
 }
 
 #[tauri::command]
-pub fn delete_dialog_session(session_id: &str) -> Result<(), String> {
+pub fn cmd_delete_dialog_session(session_id: &str) -> Result<(), String> {
     let dir = get_dialog_history_dir();
     let session_dir = dir.join(session_id);
     if session_dir.exists() {
         fs::remove_dir_all(&session_dir).map_err(|e| format!("Failed to delete session: {}", e))?;
     }
-    let _ = update_pinned_sessions(session_id.to_string(), false);
+    let _ = cmd_update_pinned_sessions(session_id.to_string(), false);
     Ok(())
 }
 
 #[tauri::command]
-pub fn save_chat_content(session_id: &str, content: &str) -> Result<(), String> {
+pub fn cmd_save_chat_content(session_id: &str, content: &str) -> Result<(), String> {
     let dir = get_dialog_history_dir();
     let session_dir = dir.join(session_id);
     let chat_path = session_dir.join("chat.json");
@@ -607,7 +610,7 @@ pub fn save_chat_content(session_id: &str, content: &str) -> Result<(), String> 
 }
 
 #[tauri::command]
-pub fn save_terminal_content(session_id: &str, content: &str) -> Result<(), String> {
+pub fn cmd_save_terminal_content(session_id: &str, content: &str) -> Result<(), String> {
     let dir = get_dialog_history_dir();
     let session_dir = dir.join(session_id);
     let terminal_path = session_dir.join("terminal.json");
@@ -622,7 +625,7 @@ pub fn save_terminal_content(session_id: &str, content: &str) -> Result<(), Stri
 }
 
 #[tauri::command]
-pub fn load_chat_content(session_id: &str) -> Result<Option<String>, String> {
+pub fn cmd_load_chat_content(session_id: &str) -> Result<Option<String>, String> {
     let dir = get_dialog_history_dir();
     let chat_path = dir.join(session_id).join("chat.json");
     if chat_path.exists() {
@@ -635,7 +638,7 @@ pub fn load_chat_content(session_id: &str) -> Result<Option<String>, String> {
 }
 
 #[tauri::command]
-pub fn load_terminal_content(session_id: &str) -> Result<Option<String>, String> {
+pub fn cmd_load_terminal_content(session_id: &str) -> Result<Option<String>, String> {
     let dir = get_dialog_history_dir();
     let terminal_path = dir.join(session_id).join("terminal.json");
     if terminal_path.exists() {
@@ -648,48 +651,8 @@ pub fn load_terminal_content(session_id: &str) -> Result<Option<String>, String>
 }
 
 #[tauri::command]
-pub fn get_logs_size_command() -> Result<u64, String> {
+pub fn cmd_get_logs_size_command() -> Result<u64, String> {
     get_logs_size()
-}
-
-#[tauri::command]
-pub fn set_max_log_size(max_size_mb: u64) -> Result<(), String> {
-    let settings_dir = get_settings_dir();
-    if !settings_dir.exists() {
-        fs::create_dir_all(&settings_dir)
-            .map_err(|e| format!("Failed to create settings directory: {}", e))?;
-    }
-    let config_path = settings_dir.join("config.json");
-    let mut full_config: serde_json::Value = if config_path.exists() {
-        let content = fs::read_to_string(&config_path)
-            .map_err(|e| format!("Failed to read settings config: {}", e))?;
-        serde_json::from_str(&content).unwrap_or_else(|_| serde_json::json!({}))
-    } else {
-        serde_json::json!({})
-    };
-    full_config["max_log_size_mb"] = serde_json::json!(max_size_mb);
-    let content = serde_json::to_string_pretty(&full_config)
-        .map_err(|e| format!("Failed to serialize settings config: {}", e))?;
-    fs::write(&config_path, content)
-        .map_err(|e| format!("Failed to save settings config: {}", e))?;
-    let _ = cleanup_old_logs(max_size_mb);
-    Ok(())
-}
-
-#[tauri::command]
-pub fn get_max_log_size() -> Result<u64, String> {
-    let settings_dir = get_settings_dir();
-    let config_path = settings_dir.join("config.json");
-    if config_path.exists() {
-        let content = fs::read_to_string(&config_path)
-            .map_err(|e| format!("Failed to read settings config: {}", e))?;
-        let full_config: serde_json::Value =
-            serde_json::from_str(&content).unwrap_or_else(|_| serde_json::json!({}));
-        if let Some(size) = full_config.get("max_log_size_mb").and_then(|v| v.as_u64()) {
-            return Ok(size);
-        }
-    }
-    Ok(500)
 }
 
 pub fn init_default_session_if_empty() -> Result<(), String> {
@@ -756,7 +719,7 @@ pub fn init_default_session_if_empty() -> Result<(), String> {
 }
 
 #[tauri::command]
-pub fn get_directory_size(path: String) -> Result<u64, String> {
+pub fn cmd_get_directory_size(path: String) -> Result<u64, String> {
     let dir = Path::new(&path);
     if !dir.exists() {
         return Ok(0);
@@ -781,7 +744,7 @@ pub fn get_directory_size(path: String) -> Result<u64, String> {
 }
 
 #[tauri::command]
-pub fn get_disk_info(path: String) -> Result<serde_json::Value, String> {
+pub fn cmd_get_disk_info(path: String) -> Result<serde_json::Value, String> {
     use std::path::Path;
     let path = Path::new(&path);
     let disks = Disks::new_with_refreshed_list();
@@ -798,48 +761,6 @@ pub fn get_disk_info(path: String) -> Result<serde_json::Value, String> {
     } else {
         Err(format!("No disk found for path: {:?}", path))
     }
-}
-
-#[tauri::command]
-pub fn get_max_dialog_size() -> Result<u64, String> {
-    let settings_dir = get_settings_dir();
-    let config_path = settings_dir.join("config.json");
-    if config_path.exists() {
-        let content = fs::read_to_string(&config_path)
-            .map_err(|e| format!("Failed to read settings config: {}", e))?;
-        let full_config: serde_json::Value =
-            serde_json::from_str(&content).unwrap_or_else(|_| serde_json::json!({}));
-        if let Some(size) = full_config
-            .get("max_dialog_size_mb")
-            .and_then(|v| v.as_u64())
-        {
-            return Ok(size);
-        }
-    }
-    Ok(500)
-}
-
-#[tauri::command]
-pub fn set_max_dialog_size(maxSizeMb: u64) -> Result<(), String> {
-    let settings_dir = get_settings_dir();
-    if !settings_dir.exists() {
-        fs::create_dir_all(&settings_dir)
-            .map_err(|e| format!("Failed to create settings directory: {}", e))?;
-    }
-    let config_path = settings_dir.join("config.json");
-    let mut full_config: serde_json::Value = if config_path.exists() {
-        let content = fs::read_to_string(&config_path)
-            .map_err(|e| format!("Failed to read settings config: {}", e))?;
-        serde_json::from_str(&content).unwrap_or_else(|_| serde_json::json!({}))
-    } else {
-        serde_json::json!({})
-    };
-    full_config["max_dialog_size_mb"] = serde_json::json!(maxSizeMb);
-    let content = serde_json::to_string_pretty(&full_config)
-        .map_err(|e| format!("Failed to serialize settings config: {}", e))?;
-    fs::write(&config_path, content)
-        .map_err(|e| format!("Failed to save settings config: {}", e))?;
-    Ok(())
 }
 
 #[tauri::command]

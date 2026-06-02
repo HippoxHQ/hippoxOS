@@ -23,7 +23,7 @@ pub struct SkillParameterInfo {
 }
 
 #[tauri::command]
-pub fn get_atomic_skills() -> Vec<AtomicSkillInfo> {
+pub fn cmd_get_atomic_skills() -> Vec<AtomicSkillInfo> {
     let skill_names = registry::list_skills();
     skill_names
         .iter()
@@ -51,16 +51,16 @@ pub fn get_atomic_skills() -> Vec<AtomicSkillInfo> {
 }
 
 #[tauri::command]
-pub fn get_atomic_skills_by_category(category: String) -> Vec<AtomicSkillInfo> {
-    get_atomic_skills()
+pub fn cmd_get_atomic_skills_by_category(category: String) -> Vec<AtomicSkillInfo> {
+    cmd_get_atomic_skills()
         .into_iter()
         .filter(|s| s.category == category)
         .collect()
 }
 
 #[tauri::command]
-pub fn get_skill_categories() -> Vec<String> {
-    let skills = get_atomic_skills();
+pub fn cmd_get_skill_categories() -> Vec<String> {
+    let skills = cmd_get_atomic_skills();
     let mut categories: Vec<String> = skills
         .into_iter()
         .map(|s| s.category)
@@ -72,7 +72,7 @@ pub fn get_skill_categories() -> Vec<String> {
 }
 
 #[tauri::command]
-pub async fn execute_atomic_skill(
+pub async fn cmd_execute_atomic_skill(
     skill_name: String,
     parameters: std::collections::HashMap<String, serde_json::Value>,
 ) -> Result<String, String> {
