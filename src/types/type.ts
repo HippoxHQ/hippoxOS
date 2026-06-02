@@ -139,3 +139,21 @@ export enum SystemEvent {
   OpenNotificationDir = 'open-notification-dir',
   OpenWorkspaceDir = 'open-workspace-dir',
 }
+
+export enum TaskStatusEnum {
+  Pending = "pending",
+  Running = "running",
+  Paused = "paused",
+  Completed = "completed",
+  Cancelled = "cancelled",
+  Failed = "failed",
+  Timeout = "timeout",
+}
+
+export enum StepStatusEnum {
+  Waiting = "WAITING",
+  Running = "RUNNING",
+  Success = "SUCCESS",
+  Failure = "FAILURE",
+  Skipped = "skipped",
+}

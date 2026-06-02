@@ -481,6 +481,8 @@ export const zh = {
     skillOrchestration: '自主Skill编排'
   },
   terminal: {
+    interrupt: '中断',
+    interruptConfirm: '确定要中断当前执行的任务吗？',
     expandAll: '展开所有任务',
     collapseAll: '收起所有任务',
     title: '终端日志',
@@ -1333,6 +1335,8 @@ export const en: typeof zh = {
     skillOrchestration: 'Skill Orchestration'
   },
   terminal: {
+    interrupt: 'Interrupt', 
+    interruptConfirm: 'Are you sure you want to interrupt the current task?',
     expandAll: 'Expand All Tasks',
     collapseAll: 'Collapse All Tasks',
     title: 'Terminal Logs',

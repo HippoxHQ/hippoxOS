@@ -1,10 +1,17 @@
 import React, { useRef, useEffect, useState, useCallback, JSX } from "react";
 import { hippoxCommands } from "../../api/chat";
-import { ExecutionLog, TaskInfo, UploadFile } from "../../types/type";
+import {
+  ExecutionLog,
+  StepStatusEnum,
+  TaskInfo,
+  TaskStatusEnum,
+  UploadFile,
+} from "../../types/type";
 import {
   CollapseIcon,
   CopyIcon,
   ExpandArrowsIcon,
+  SquareIcon,
   TaskQueueIcon,
 } from "../../icons";
 import { taskManager } from "../../TaskManager";
@@ -270,7 +277,7 @@ const TerminalArea: React.FC<TerminalAreaProps> = ({
       task_id: "welcome",
       session_id: "welcome",
       user_input: "🎉 Hippox AI Runtime 已启动",
-      status: "completed",
+      status: TaskStatusEnum.Completed,
       steps: [],
       final_output: "",
       created_at: new Date().toISOString(),
@@ -414,9 +421,9 @@ const TerminalArea: React.FC<TerminalAreaProps> = ({
     activeTasks.forEach((task) => {
       if (!autoExpandedRef.current.has(task.task_id)) {
         if (
-          task.status === "failed" ||
-          task.status === "running" ||
-          task.status === "completed"
+          task.status === TaskStatusEnum.Failed ||
+          task.status === TaskStatusEnum.Running ||
+          task.status === TaskStatusEnum.Completed
         ) {
           autoExpandedRef.current.add(task.task_id);
           setExpandedTasks((prev) => new Set(prev).add(task.task_id));
@@ -486,16 +493,20 @@ const TerminalArea: React.FC<TerminalAreaProps> = ({
     setShowBubble(false);
   };
 
-  const getTaskStatusIcon = (status: string) => {
+  const getTaskStatusIcon = (status: string): string => {
     switch (status) {
-      case "completed":
+      case TaskStatusEnum.Completed:
         return "✅";
-      case "failed":
+      case TaskStatusEnum.Failed:
         return "❌";
-      case "running":
+      case TaskStatusEnum.Running:
         return "🔄";
-      case "pending":
+      case TaskStatusEnum.Pending:
         return "⏳";
+      case TaskStatusEnum.Cancelled:
+        return "⏹️";
+      case TaskStatusEnum.Timeout:
+        return "⏰";
       default:
         return "📌";
     }
@@ -503,26 +514,26 @@ const TerminalArea: React.FC<TerminalAreaProps> = ({
 
   const getTaskStatusText = (status: string) => {
     switch (status) {
-      case "completed":
+      case TaskStatusEnum.Completed:
         return t("terminal.status.completed") || "已完成";
-      case "failed":
+      case TaskStatusEnum.Failed:
         return t("terminal.status.failed") || "失败";
-      case "running":
+      case TaskStatusEnum.Running:
         return t("terminal.status.running") || "执行中";
-      case "pending":
+      case TaskStatusEnum.Pending:
         return t("terminal.status.pending") || "等待中";
       default:
         return status;
     }
   };
 
-  const getStepStatusIcon = (status: string) => {
+  const getStepStatusIcon = (status: string): string => {
     switch (status) {
-      case "SUCCESS":
+      case StepStatusEnum.Success:
         return "✅";
-      case "FAILURE":
+      case StepStatusEnum.Failure:
         return "❌";
-      case "RUNNING":
+      case StepStatusEnum.Running:
         return "🔄";
       default:
         return "⏳";
@@ -612,14 +623,15 @@ const TerminalArea: React.FC<TerminalAreaProps> = ({
   const renderTaskRow = (task: TaskInfo, index: number) => {
     const isExpanded = expandedTasks.has(task.task_id);
     const successCount = task.steps.filter(
-      (s) => s.status === "SUCCESS",
+      (s) => s.status === StepStatusEnum.Success,
     ).length;
     const failureCount = task.steps.filter(
-      (s) => s.status === "FAILURE",
+      (s) => s.status === StepStatusEnum.Failure,
     ).length;
     const runningCount = task.steps.filter(
-      (s) => s.status === "RUNNING",
+      (s) => s.status === StepStatusEnum.Running,
     ).length;
+
     let stepSummary = "";
     if (task.steps.length > 0) {
       const parts = [];
@@ -688,6 +700,10 @@ const TerminalArea: React.FC<TerminalAreaProps> = ({
       return "⚡";
     };
 
+    const handleInterruptTask = async (taskId: string, e: React.MouseEvent) => {
+      e.stopPropagation();
+    };
+
     return (
       <div
         key={task.task_id}
@@ -707,19 +723,35 @@ const TerminalArea: React.FC<TerminalAreaProps> = ({
           </span>
           <span className="task-time">[{formatTime(task.created_at)}]</span>
           <span className="task-input">{task.user_input}</span>
-          <span
-            className="task-status-text"
-            style={task.status === "failed" ? { color: "#ff4444" } : {}}
-          >
-            {task.status}
-            {stepSummary}
-            {task.total_duration_ms !== undefined &&
-              task.total_duration_ms > 0 && (
-                <span className="task-total-duration">
-                  ({formatDuration(task.total_duration_ms)})
-                </span>
-              )}
-          </span>
+          <div className="task-status-right">
+            <span
+              className="task-status-text"
+              style={
+                task.status === TaskStatusEnum.Failed
+                  ? { color: "#ff4444" }
+                  : {}
+              }
+            >
+              {task.status}
+              {stepSummary}
+              {task.total_duration_ms !== undefined &&
+                task.total_duration_ms > 0 && (
+                  <span className="task-total-duration">
+                    ({formatDuration(task.total_duration_ms)})
+                  </span>
+                )}
+            </span>
+            {(task.status === TaskStatusEnum.Running ||
+              task.status === TaskStatusEnum.Pending) && (
+              <button
+                className="task-interrupt-btn"
+                onClick={(e) => handleInterruptTask(task.task_id, e)}
+                title={t("terminal.interrupt")}
+              >
+                <SquareIcon size={12} />
+              </button>
+            )}
+          </div>
         </div>
 
         {isExpanded &&
@@ -1173,6 +1205,33 @@ const TerminalArea: React.FC<TerminalAreaProps> = ({
       style={{ height: "100%", display: "flex", flexDirection: "column" }}
     >
       <style>{`
+
+.task-status-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.task-interrupt-btn {
+  background: rgba(255, 68, 68, 0.15);
+  border: 1px solid rgba(255, 68, 68, 0.3);
+  color: #ff4444;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  width: 24px;
+  height: 24px;
+}
+
+.task-interrupt-btn:hover {
+  background: rgba(255, 68, 68, 0.3);
+  transform: scale(1.05);
+}
 
 .task-step {
   margin-bottom: 10px;
@@ -1809,8 +1868,9 @@ const TerminalArea: React.FC<TerminalAreaProps> = ({
           <span className="title-icon">🖥️</span>
           <span>{t("terminal.title")}</span>
           <span className="task-count">
-            {activeTasks.filter((t) => t.status === "running").length > 0 &&
-              ` (${activeTasks.filter((t) => t.status === "running").length} running)`}
+            {activeTasks.filter((t) => t.status === TaskStatusEnum.Running)
+              .length > 0 &&
+              ` (${activeTasks.filter((t) => t.status === TaskStatusEnum.Running).length} running)`}
           </span>
         </div>
         <div
