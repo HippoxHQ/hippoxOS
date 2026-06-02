@@ -114,6 +114,8 @@ export enum MessageStatus {
   Pending = "pending",
   Completed = "completed",
   Failed = "failed",
+  Cancelled = "cancelled",
+  Paused = "paused",
 }
 
 export enum WindowTypeEnum {

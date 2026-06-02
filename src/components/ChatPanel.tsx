@@ -1,5 +1,10 @@
 import React, { useState, useRef, useEffect } from "react";
-import { ChatMessage, MessageStatus, RoleEnum, UploadFile } from "../types/type";
+import {
+  ChatMessage,
+  MessageStatus,
+  RoleEnum,
+  UploadFile,
+} from "../types/type";
 import {
   AttachmentIcon,
   FolderIcon,
@@ -1001,6 +1006,33 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
                         <LoadingSpinner />
                       </div>
                     </div>
+                  ) : msg.status === MessageStatus.Paused ? (
+                    <div className="message-bubble">
+                      <div className="message-content">
+                        ⏸️ {t("terminal.taskPaused")}
+                      </div>
+                      <div className="message-time">
+                        {new Date(msg.timestamp).toLocaleTimeString()}
+                      </div>
+                    </div>
+                  ) : msg.status === MessageStatus.Cancelled ? (
+                    <div className="message-bubble">
+                      <div className="message-content">
+                        ❌ {t("terminal.cancelled")}
+                      </div>
+                      <div className="message-time">
+                        {new Date(msg.timestamp).toLocaleTimeString()}
+                      </div>
+                    </div>
+                  ) : msg.status === MessageStatus.Failed ? (
+                    <div className="message-bubble">
+                      <div className="message-content">
+                        ❌ {msg.content || t("terminal.failed")}
+                      </div>
+                      <div className="message-time">
+                        {new Date(msg.timestamp).toLocaleTimeString()}
+                      </div>
+                    </div>
                   ) : (
                     <>
                       {isUser && msg.files && msg.files.length > 0 && (
@@ -1057,7 +1089,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
                           <button
                             className="action-btn copy-btn"
                             onClick={() => copyToClipboard(msg.content)}
-                            title={t("common.copy") || "复制"}
+                            title={t("common.copy") || "Copy"}
                           >
                             <CopyIcon size={12} />
                           </button>

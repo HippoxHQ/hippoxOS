@@ -176,6 +176,27 @@ export function useTaskEvents(language: Language) {
                     total_duration_ms,
                     resume_data: checkpoint
                 });
+                const messageId = `llm_${task_id}`;
+                taskManager.updateAssistantMessageBySession(session_id, messageId, {
+                    status: MessageStatus.Paused,
+                    content: `⏸️ ${t("terminal.taskPaused")}`
+                });
+            }
+        });
+
+        const unlistenCancelled = listen("task_cancelled", (event: any) => {
+            console.log("task_cancelled event received:", event.payload);
+            const { task_id, total_duration_ms, total_steps, session_id } = event.payload;
+            if (session_id && task_id) {
+                taskManager.updateTaskBySession(session_id, task_id, {
+                    status: TaskStatusEnum.Cancelled,
+                    total_duration_ms
+                });
+                const messageId = `llm_${task_id}`;
+                taskManager.updateAssistantMessageBySession(session_id, messageId, {
+                    status: MessageStatus.Cancelled,
+                    content: `❌ ${t("terminal.cancelled")}`
+                });
             }
         });
 
@@ -186,6 +207,11 @@ export function useTaskEvents(language: Language) {
                 taskManager.updateTaskBySession(session_id, task_id, {
                     status: TaskStatusEnum.Running
                 });
+                const messageId = `llm_${task_id}`;
+                taskManager.updateAssistantMessageBySession(session_id, messageId, {
+                    status: MessageStatus.Pending,
+                    content: `🔄 ${t("terminal.taskResumed")}`
+                });
             }
         });
 
@@ -195,6 +221,7 @@ export function useTaskEvents(language: Language) {
             unlistenFailed.then((fn) => fn());
             unlistenPaused.then((fn) => fn());
             unlistenResumed.then((fn) => fn());
+            unlistenCancelled.then((fn) => fn());
         };
     }, [language, t]);
 }
