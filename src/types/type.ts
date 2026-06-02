@@ -61,28 +61,32 @@ export interface InitConfig {
 export interface TaskStepInfo {
   step_index: number;
   step_name: string;
-  status: string;  // "RUNNING" | "SUCCESS" | "FAILURE"
+  status: StepStatusEnum;
   output?: string;
   error?: string;
   duration_ms?: number;
   parameters?: string;
 }
 
-
 export interface TaskInfo {
   task_id: string;
   session_id: string;
   user_input: string;
-  status: string; // pending, running, completed, failed
+  status: TaskStatusEnum;
   steps: TaskStepInfo[];
   final_output?: string;
+  error?: string;
   total_duration_ms?: number;
   total_steps?: number;
   created_at: string;
   updated_at: string;
+  started_at?: string;
+  completed_at?: string;
+  duration_ms?: number;
+  progress?: number;
+  resume_data?: string | null;
   files?: UploadFile[];
 }
-
 export interface DialogSession {
   session_id: string;
   title: string;
@@ -156,4 +160,14 @@ export enum StepStatusEnum {
   Success = "SUCCESS",
   Failure = "FAILURE",
   Skipped = "skipped",
+  Paused = "paused",
+  Cancelled = "cancelled",
+}
+
+export interface StepInterruptionInfo {
+  interrupted: boolean;
+  reason: string;
+  step_index: number;
+  step_name: string;
+  checkpoint: string | null;
 }

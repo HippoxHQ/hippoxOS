@@ -197,6 +197,8 @@ export const zh = {
     justNow: '刚刚',
   },
   notification: {
+    taskCancelled: '任务已取消',
+    taskPaused: '任务已暂停',
     deleteConfirmTitle: '确认删除',
     deleteConfirmMessage: '确定要删除 "{{name}}" 吗？此操作不可撤销。',
     enableSuccess: '已成功启用 "{{name}}"',
@@ -499,12 +501,21 @@ export const zh = {
     scrollToBottom: '回到底部',
     taskList: '任务列表',
     showChart: '查看K线图',
+    pause: '暂停',
+    pauseFailed: '暂停任务失败',
+    taskPaused: '任务已暂停',
     status: {
       completed: '已完成',
       failed: '失败',
       running: '执行中',
       pending: '等待中',
+      paused: '已暂停',
+      cancelled: '已取消',
+      timeout: '超时',
     },
+    resume: '恢复',
+    taskResumed: '任务恢复成功',
+    resumeFailed: '恢复任务失败',
     welcome: {
       title: 'HippoxOS 启动!',
       subtitle: '可靠的LLM原生操作系统.',
@@ -563,6 +574,7 @@ export const zh = {
     horizontalLayout: '上下布局'
   },
   common: {
+    confirm: '确认',
     close: '关闭',
     cancel: '取消',
     loading: '加载中...',
@@ -1059,6 +1071,8 @@ export const en: typeof zh = {
     justNow: 'Just now',
   },
   notification: {
+    taskCancelled: 'Task Cancelled',
+    taskPaused: 'Task Paused',
     deleteConfirmTitle: 'Confirm Delete',
     deleteConfirmMessage: 'Are you sure you want to delete "{{name}}"? This action cannot be undone.',
     enableSuccess: 'Successfully enabled "{{name}}"',
@@ -1342,6 +1356,7 @@ export const en: typeof zh = {
     engine: 'Decision Engine',
     skillOrchestration: 'Skill Orchestration'
   },
+
   terminal: {
     expand: "Expand",
     collapse: "Collapse",
@@ -1361,12 +1376,21 @@ export const en: typeof zh = {
     scrollToBottom: 'Scroll to bottom',
     taskList: 'Task List',
     showChart: 'View Chart',
+    pause: 'Pause',
+    pauseFailed: 'Failed to pause task',
+    taskPaused: 'Task paused',
     status: {
       completed: 'Completed',
       failed: 'Failed',
       running: 'Running',
       pending: 'Pending',
+      paused: 'Paused',
+      cancelled: 'Cancelled',
+      timeout: 'Timeout',
     },
+    resume: 'Resume',
+    taskResumed: 'Task resumed successfully',
+    resumeFailed: 'Failed to resume task',
     welcome: {
       title: 'HippoxOS Startup!',
       subtitle: 'A native LLM operating system.',
@@ -1425,6 +1449,7 @@ export const en: typeof zh = {
     horizontalLayout: 'Horizontal Layout'
   },
   common: {
+    confirm: 'Confirm',
     close: 'Close',
     cancel: 'Cancel',
     loading: 'Loading...',

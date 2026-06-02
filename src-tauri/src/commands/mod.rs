@@ -13,6 +13,8 @@ pub mod session;
 pub mod skills;
 pub mod skills_market;
 pub mod sys;
+pub mod task_pool;
+pub mod types;
 pub mod windows;
 
 pub use chat::*;
@@ -30,4 +32,6 @@ pub use session::*;
 pub use skills::*;
 pub use skills_market::*;
 pub use sys::*;
+pub use task_pool::*;
+pub use types::*;
 pub use windows::*;

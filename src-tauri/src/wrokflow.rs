@@ -56,12 +56,6 @@ impl WorkflowCallback for HippoXWorkflowCallback {
         output: &str,
         duration_ms: u64,
     ) {
-        let display_duration = if duration_ms == 0 {
-            "<1ms".to_string()
-        } else {
-            format!("{}ms", duration_ms)
-        };
-
         let _ = self.app_handle.emit(
             "task_step_update",
             &json!({
@@ -93,6 +87,20 @@ impl WorkflowCallback for HippoXWorkflowCallback {
                 "status": "FAILURE",
                 "error": error,
                 "duration_ms": duration_ms,
+                "session_id": self.session_id
+            }),
+        );
+    }
+
+    async fn on_step_interrupted(&self, task_id: &str, info: &hippox::StepInterruptionInfo) {
+        let _ = self.app_handle.emit(
+            "task_step_interrupted",
+            &json!({
+                "task_id": task_id,
+                "step_index": info.step_index,
+                "step_name": info.step_name,
+                "reason": info.reason,
+                "checkpoint": info.checkpoint,
                 "session_id": self.session_id
             }),
         );
@@ -138,5 +146,41 @@ impl WorkflowCallback for HippoXWorkflowCallback {
                 }),
             );
         }
+    }
+
+    async fn on_workflow_cancelled(
+        &self,
+        task_id: &str,
+        total_duration_ms: u64,
+        total_steps: usize,
+    ) {
+        let _ = self.app_handle.emit(
+            "task_cancelled",
+            &json!({
+                "task_id": task_id,
+                "total_duration_ms": total_duration_ms,
+                "total_steps": total_steps,
+                "session_id": self.session_id
+            }),
+        );
+    }
+
+    async fn on_workflow_paused(
+        &self,
+        task_id: &str,
+        checkpoint: Option<&str>,
+        total_duration_ms: u64,
+        total_steps: usize,
+    ) {
+        let _ = self.app_handle.emit(
+            "task_paused",
+            &json!({
+                "task_id": task_id,
+                "checkpoint": checkpoint,
+                "total_duration_ms": total_duration_ms,
+                "total_steps": total_steps,
+                "session_id": self.session_id
+            }),
+        );
     }
 }

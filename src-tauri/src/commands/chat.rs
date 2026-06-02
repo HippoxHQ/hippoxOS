@@ -10,7 +10,7 @@ use tokio::sync::Mutex;
 use uuid::Uuid;
 
 use crate::commands::{
-    get_default_hippox, init_all_hippox_instances, load_config_from_file, HIPPOX_APP_CONFIG,
+    HIPPOX_APP_CONFIG, TaskInfo, get_default_hippox, init_all_hippox_instances, load_config_from_file
 };
 use crate::state::AppState;
 use crate::types::Role;
@@ -53,27 +53,6 @@ impl LogMessages {
             },
         }
     }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct TaskStepInfo {
-    pub step_index: usize,
-    pub step_name: String,
-    pub status: String,
-    pub output: Option<String>,
-    pub error: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct TaskInfo {
-    pub task_id: String,
-    pub session_id: String,
-    pub user_input: String,
-    pub status: String,
-    pub steps: Vec<TaskStepInfo>,
-    pub final_output: Option<String>,
-    pub created_at: String,
-    pub updated_at: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

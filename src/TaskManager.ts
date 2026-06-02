@@ -1,5 +1,5 @@
 import { sessionCommands } from "./api/session";
-import { TaskInfo, ChatMessage } from "./types/type";
+import { TaskInfo, ChatMessage, TaskStatusEnum } from "./types/type";
 import { notificationManager, NotificationType } from "./NotificationManager";
 
 type TaskListener = () => void;
@@ -373,6 +373,56 @@ class TaskManager {
         }
         this.currentSessionId = sessionId;
         this.notify();
+    }
+
+    setupTaskEventListeners() {
+        window.addEventListener("task_step_interrupted", ((event: CustomEvent) => {
+            const { task_id, step_index, step_name, reason, checkpoint, session_id } = event.detail;
+            console.log(`[TaskManager] Step ${step_index} (${step_name}) interrupted: ${reason}`);
+            if (reason === "cancelled") {
+                this.updateTaskBySession(session_id, task_id, {
+                    status: TaskStatusEnum.Cancelled,
+                    final_output: `Task cancelled at step: ${step_name}`
+                });
+            } else if (reason === "paused") {
+                this.updateTaskBySession(session_id, task_id, {
+                    status: TaskStatusEnum.Paused,
+                    resume_data: checkpoint
+                });
+            }
+        }) as EventListener);
+        window.addEventListener("task_cancelled", ((event: CustomEvent) => {
+            const { task_id, total_duration_ms, total_steps, session_id } = event.detail;
+            console.log(`[TaskManager] Task ${task_id} cancelled after ${total_steps} steps`);
+            this.updateTaskBySession(session_id, task_id, {
+                status: TaskStatusEnum.Cancelled,
+                total_duration_ms
+            });
+            this.sendTaskNotification(
+                NotificationType.Warning,
+                "notification.taskCancelled",
+                `Task cancelled after ${total_steps} steps`,
+                task_id,
+                session_id
+            );
+        }) as EventListener);
+        window.addEventListener("task_paused", ((event: CustomEvent) => {
+            const { task_id, checkpoint, total_duration_ms, total_steps, session_id } = event.detail;
+            console.log(`[TaskManager] Task ${task_id} paused at step ${total_steps}`);
+            this.updateTaskBySession(session_id, task_id, {
+                status: TaskStatusEnum.Paused,
+                total_duration_ms,
+                resume_data: checkpoint
+            });
+            this.sendTaskNotification(
+                NotificationType.Info,
+                "notification.taskPaused",
+                `Task paused at step ${total_steps}`,
+                task_id,
+                session_id,
+                { checkpoint }
+            );
+        }) as EventListener);
     }
 
     async saveTasksToFile(sessionId: string): Promise<void> {

@@ -1,16 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-
-export interface UploadFile {
-  id: string;
-  file: File;
-  name: string;
-  size: number;
-  type: string;
-  preview?: string;
-  status: "uploading" | "success" | "error";
-  progress?: number;
-  path?: string;
-}
+import { UploadFile } from "../types/type";
 
 interface FileUploaderProps {
   onFilesAdd: (files: UploadFile[]) => void;

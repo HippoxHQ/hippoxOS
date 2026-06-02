@@ -1,3 +1,9 @@
+use crate::commands::types::{StepInfo, TaskInfo};
+use crate::commands::{
+    get_default_hippox, init_all_hippox_instances, load_config_from_file, write_log, ExecutionLog,
+    LogMessages, HIPPOX_APP_CONFIG,
+};
+use crate::workspace::get_default_workspace;
 use hippox::ModelProvider;
 use hippox::{ConfigInitMethod, Hippox, WorkflowMode};
 use memcontext::MemContext;
@@ -8,17 +14,33 @@ use std::sync::Arc;
 use tauri::{Emitter, State};
 use tokio::sync::Mutex;
 use uuid::Uuid;
-use crate::commands::{
-    get_default_hippox, init_all_hippox_instances, load_config_from_file, write_log, ExecutionLog,
-    LogMessages, TaskInfo, TaskStepInfo, HIPPOX_APP_CONFIG,
-};
-use crate::workspace::get_default_workspace;
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct StoredTask {
+    pub id: String,
+    pub session_id: String,
+    pub input: String,
+    pub status: String,
+    pub steps: Vec<StoredStep>,
+    pub final_output: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct StoredStep {
+    pub step_index: usize,
+    pub step_name: String,
+    pub status: String,
+    pub output: Option<String>,
+    pub error: Option<String>,
+}
 
 #[derive(Clone)]
 pub struct AppState {
     pub logs: Arc<Mutex<Vec<ExecutionLog>>>,
     pub language: Arc<Mutex<String>>,
-    pub tasks: Arc<Mutex<HashMap<String, TaskInfo>>>,
+    pub tasks: Arc<Mutex<HashMap<String, StoredTask>>>,
     pub memcontext: Arc<Mutex<Option<Arc<MemContext>>>>,
 }
 
@@ -88,10 +110,10 @@ impl AppState {
 
     pub async fn create_task(&self, task_id: String, session_id: String, user_input: String) {
         let now = chrono::Local::now().to_rfc3339();
-        let task = TaskInfo {
-            task_id: task_id.clone(),
+        let task = StoredTask {
+            id: task_id.clone(),
             session_id,
-            user_input,
+            input: user_input,
             status: "pending".to_string(),
             steps: vec![],
             final_output: None,
@@ -121,7 +143,7 @@ impl AppState {
     ) {
         let mut tasks = self.tasks.lock().await;
         if let Some(task) = tasks.get_mut(task_id) {
-            task.steps.push(TaskStepInfo {
+            task.steps.push(StoredStep {
                 step_index,
                 step_name: step_name.to_string(),
                 status: status.to_string(),
@@ -152,7 +174,33 @@ impl AppState {
 
     pub async fn get_task(&self, task_id: &str) -> Option<TaskInfo> {
         let tasks = self.tasks.lock().await;
-        tasks.get(task_id).cloned()
+        tasks.get(task_id).map(|t| TaskInfo {
+            id: t.id.clone(),
+            task_type: "natural_language".to_string(),
+            input: t.input.clone(),
+            status: t.status.clone(),
+            steps: t
+                .steps
+                .iter()
+                .map(|s| StepInfo {
+                    step_index: s.step_index,
+                    skill_name: s.step_name.clone(),
+                    status: s.status.clone(),
+                    output: s.output.clone(),
+                    error: s.error.clone(),
+                    duration_ms: None,
+                })
+                .collect(),
+            final_output: t.final_output.clone(),
+            error: None,
+            created_at: chrono::DateTime::parse_from_rfc3339(&t.created_at)
+                .map(|dt| dt.timestamp() as u64)
+                .unwrap_or(0),
+            started_at: None,
+            completed_at: None,
+            duration_ms: None,
+            progress: 0,
+        })
     }
 
     pub async fn get_session_tasks(&self, session_id: &str) -> Vec<TaskInfo> {
@@ -160,7 +208,33 @@ impl AppState {
         tasks
             .values()
             .filter(|t| t.session_id == session_id)
-            .cloned()
+            .map(|t| TaskInfo {
+                id: t.id.clone(),
+                task_type: "natural_language".to_string(),
+                input: t.input.clone(),
+                status: t.status.clone(),
+                steps: t
+                    .steps
+                    .iter()
+                    .map(|s| StepInfo {
+                        step_index: s.step_index,
+                        skill_name: s.step_name.clone(),
+                        status: s.status.clone(),
+                        output: s.output.clone(),
+                        error: s.error.clone(),
+                        duration_ms: None,
+                    })
+                    .collect(),
+                final_output: t.final_output.clone(),
+                error: None,
+                created_at: chrono::DateTime::parse_from_rfc3339(&t.created_at)
+                    .map(|dt| dt.timestamp() as u64)
+                    .unwrap_or(0),
+                started_at: None,
+                completed_at: None,
+                duration_ms: None,
+                progress: 0,
+            })
             .collect()
     }
 }

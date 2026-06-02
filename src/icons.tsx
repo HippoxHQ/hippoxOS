@@ -1337,6 +1337,49 @@ export const CircleIcon: React.FC<IconProps> = ({ className, size = 14 }) => (
   </svg>
 );
 
+export const PauseIcon: React.FC<IconProps> = ({ className, size = 14 }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="currentColor"
+    stroke="none"
+    className={className}
+  >
+    <rect x="6" y="4" width="4" height="16" rx="1" />
+    <rect x="14" y="4" width="4" height="16" rx="1" />
+  </svg>
+);
+
+export const StopIcon: React.FC<IconProps> = ({ className, size = 14 }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="currentColor"
+    stroke="none"
+    className={className}
+  >
+    <rect x="4" y="4" width="16" height="16" rx="2" />
+  </svg>
+);
+
+export const ResumeIcon: React.FC<IconProps> = ({ className, size = 14 }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="currentColor"
+    stroke="none"
+    className={className}
+  >
+    <path d="M5 3l14 9-14 9V3z" />
+  </svg>
+);
+
 export const iconMap: Record<string, React.FC<IconProps>> = {
   dashboard: DashboardIcon,
   workspace: WorkspaceIcon,

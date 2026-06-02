@@ -7,7 +7,8 @@ import {
 } from "../icons";
 import { workspaceCommands, WorkspaceInstance } from "../api/workspace";
 import { showToast, ToastType } from "./Toast";
-import FileUploader, { UploadFile } from "./FileUploader";
+import FileUploader from "./FileUploader";
+import { UploadFile } from "../types/type";
 
 interface WelcomePageProps {
   onSendMessage: (message: string, files?: UploadFile[]) => void;
