@@ -656,6 +656,38 @@ const TerminalArea: React.FC<TerminalAreaProps> = ({
       }
     };
 
+    const getStepEmoji = (stepName: string): string => {
+      if (
+        stepName.includes("file") ||
+        stepName.includes("read") ||
+        stepName.includes("write")
+      )
+        return "📁";
+      if (stepName.includes("calculator") || stepName.includes("math"))
+        return "🔢";
+      if (stepName.includes("random")) return "🎲";
+      if (stepName.includes("http") || stepName.includes("request"))
+        return "🌐";
+      if (
+        stepName.includes("database") ||
+        stepName.includes("postgres") ||
+        stepName.includes("mysql")
+      )
+        return "🗄️";
+      if (stepName.includes("docker") || stepName.includes("k8s")) return "🐳";
+      if (
+        stepName.includes("send") ||
+        stepName.includes("email") ||
+        stepName.includes("telegram")
+      )
+        return "📨";
+      if (stepName.includes("search")) return "🔍";
+      if (stepName.includes("time") || stepName.includes("date")) return "⏰";
+      if (stepName.includes("convert") || stepName.includes("transform"))
+        return "🔄";
+      return "⚡";
+    };
+
     return (
       <div
         key={task.task_id}
@@ -674,7 +706,7 @@ const TerminalArea: React.FC<TerminalAreaProps> = ({
             {getTaskStatusIcon(task.status)}
           </span>
           <span className="task-time">[{formatTime(task.created_at)}]</span>
-          <span className="task-input">📤 {task.user_input}</span>
+          <span className="task-input">{task.user_input}</span>
           <span
             className="task-status-text"
             style={task.status === "failed" ? { color: "#ff4444" } : {}}
@@ -817,7 +849,9 @@ const TerminalArea: React.FC<TerminalAreaProps> = ({
                   <span className="step-icon">
                     {getStepStatusIcon(step.status)}
                   </span>
-                  <span className="step-name">🔧 {step.step_name}</span>
+                  <span className="step-name">
+                    {getStepEmoji(step.step_name)} {step.step_name}
+                  </span>
                   {step.duration_ms !== undefined && (
                     <span className="step-duration">
                       ({formatDuration(step.duration_ms)})
@@ -1680,43 +1714,46 @@ const TerminalArea: React.FC<TerminalAreaProps> = ({
   align-items: center;
   gap: 8px;
   cursor: pointer;
-  padding: 6px 0;
-  border-radius: 4px;
+  padding: 8px 0;  
+  border-radius: 6px;
   transition: background 0.2s;
-}
-
-.task-row-header:hover {
-  background: var(--hover-bg, rgba(255,255,255,0.05));
-}
-
-.task-expand-icon {
-  font-size: 10px;
-  color: var(--text-tertiary);
-  width: 16px;
-}
-
-.task-status-icon {
-  font-size: 12px;
+  font-size: 14px;  
 }
 
 .task-time {
-  font-size: 11px;
+  font-size: 13px; 
   color: var(--text-tertiary);
   font-family: monospace;
 }
 
 .task-input {
-  font-size: 12px;
+  font-size: 14px;  
   color: var(--text-primary);
   flex: 1;
+  font-weight: 500;  
 }
 
 .task-status-text {
-  font-size: 11px;
-  padding: 2px 8px;
+  font-size: 12px;  
+  padding: 2px 10px;  
   border-radius: 4px;
   background: var(--bg-tertiary);
   font-family: monospace;
+  font-weight: 500;
+}
+
+.task-expand-icon {
+  font-size: 12px;  
+  color: var(--text-tertiary);
+  width: 18px; 
+}
+
+.task-status-icon {
+  font-size: 14px;  
+}
+
+.task-row-header:hover {
+  background: var(--hover-bg, rgba(255,255,255,0.05));
 }
 
 .task-steps {
