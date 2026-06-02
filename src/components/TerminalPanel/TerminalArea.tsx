@@ -20,6 +20,8 @@ import { showToast, ToastType } from "../Toast";
 import { filesCommands } from "../../api/files";
 import { open } from "@tauri-apps/plugin-shell";
 import { getFileIcon } from "../../common";
+import { DialogType, showDialog } from "../Dialog";
+import { taskPoolCommands } from "../../api/TaskPool";
 
 interface TerminalAreaProps {
   logs: ExecutionLog[];
@@ -214,6 +216,9 @@ const TerminalArea: React.FC<TerminalAreaProps> = ({
   const buttonRef = useRef<HTMLDivElement>(null);
   const [bubblePosition, setBubblePosition] = useState({ right: 0, top: 0 });
   const [tasks, setTasks] = useState<TaskInfo[]>([]);
+  const [expandedStepParams, setExpandedStepParams] = useState<Set<string>>(
+    new Set(),
+  );
   const activeTasks = tasks.filter(
     (task) => !currentSessionId || task.session_id === currentSessionId,
   );
@@ -221,6 +226,18 @@ const TerminalArea: React.FC<TerminalAreaProps> = ({
     Map<string, { showLeft: boolean; showRight: boolean }>
   >(new Map());
   const filesScrollRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+
+  const toggleStepParams = (stepKey: string) => {
+    setExpandedStepParams((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(stepKey)) {
+        newSet.delete(stepKey);
+      } else {
+        newSet.add(stepKey);
+      }
+      return newSet;
+    });
+  };
 
   const checkFilesScroll = useCallback((taskId: string) => {
     const scrollElement = filesScrollRefs.current.get(taskId);
@@ -581,6 +598,29 @@ const TerminalArea: React.FC<TerminalAreaProps> = ({
 
   const handleInterruptTask = async (taskId: string, e: React.MouseEvent) => {
     e.stopPropagation();
+    showDialog(
+      DialogType.WARNING,
+      t("terminal.interruptConfirmTitle"),
+      t("terminal.interruptConfirm"),
+      async () => {
+        try {
+          const result = await taskPoolCommands.cancelTask(taskId);
+          if (result) {
+            showToast(ToastType.SUCCESS, t("terminal.taskInterrupted"));
+            const newTasks = taskManager.getAllTasks();
+            setTasks([...newTasks]);
+          } else {
+            showToast(ToastType.ERROR, t("terminal.interruptFailed"));
+          }
+        } catch (error) {
+          console.error("Failed to interrupt task:", error);
+          showToast(ToastType.ERROR, t("terminal.interruptFailed"));
+        }
+      },
+      undefined,
+      t("common.confirm"),
+      t("common.cancel"),
+    );
   };
 
   const formatFileSize = (bytes: number): string => {
@@ -915,16 +955,93 @@ const TerminalArea: React.FC<TerminalAreaProps> = ({
                     {getStepStatusText(step.status)}
                   </span>
                 </div>
-                {step.parameters && step.parameters !== "{}" && (
-                  <div className="step-parameters-row" title={step.parameters}>
-                    <span className="step-parameters-label">
-                      📋 {t("terminal.stepParameters")}:
-                    </span>
-                    <span className="step-parameters-value">
-                      {formatParameters(step.parameters)}
-                    </span>
-                  </div>
-                )}
+                {step.parameters &&
+                  step.parameters !== "{}" &&
+                  (() => {
+                    const stepKey = `${task.task_id}-step-${step.step_index}-params`;
+                    const isExpanded = expandedStepParams.has(stepKey);
+                    const getShortParams = (params: string): string => {
+                      if (!params || params === "{}") return "";
+                      try {
+                        const parsed = JSON.parse(params);
+                        const keys = Object.keys(parsed);
+                        if (keys.length === 0) return "";
+                        const shortParams = keys
+                          .slice(0, 3)
+                          .map(
+                            (k) =>
+                              `${k}: ${JSON.stringify(parsed[k]).substring(0, 30)}`,
+                          )
+                          .join(", ");
+                        return keys.length > 3
+                          ? `${shortParams}...`
+                          : shortParams;
+                      } catch {
+                        return params.length > 50
+                          ? params.substring(0, 50) + "..."
+                          : params;
+                      }
+                    };
+
+                    const getFullParams = (params: string): string => {
+                      try {
+                        const parsed = JSON.parse(params);
+                        return JSON.stringify(parsed, null, 2);
+                      } catch {
+                        return params;
+                      }
+                    };
+
+                    const shortParams = getShortParams(step.parameters);
+                    const fullParams = getFullParams(step.parameters);
+                    const hasFullContent =
+                      fullParams !== shortParams && fullParams.length > 60;
+
+                    return (
+                      <div className="step-parameters-row">
+                        <div className="step-parameters-header">
+                          <span className="step-parameters-label">
+                            📋 {t("terminal.stepParameters")}:
+                          </span>
+                          {hasFullContent && (
+                            <button
+                              className="step-parameters-toggle"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleStepParams(stepKey);
+                              }}
+                              title={
+                                isExpanded
+                                  ? t("terminal.collapse")
+                                  : t("terminal.expand")
+                              }
+                            >
+                              {isExpanded
+                                ? `▲ ${t("terminal.collapse")}`
+                                : `▼ ${t("terminal.expand")}`}
+                            </button>
+                          )}
+                        </div>
+                        {isExpanded ? (
+                          <pre className="step-parameters-code">
+                            {fullParams}
+                          </pre>
+                        ) : (
+                          <div
+                            className="step-parameters-short"
+                            title={step.parameters}
+                          >
+                            <span className="step-parameters-value">
+                              {shortParams}
+                            </span>
+                            {!hasFullContent && shortParams !== fullParams && (
+                              <span className="step-parameters-more">...</span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
               </div>
             ))}
           </div>
@@ -1336,19 +1453,23 @@ const TerminalArea: React.FC<TerminalAreaProps> = ({
 }
 
 .step-parameters-row {
-  margin-top: 6px;
+  margin-top: 8px;
   margin-left: 20px;
   padding: 6px 10px;
   background: var(--bg-tertiary);
   border-radius: 6px;
   font-size: 11px;
   font-family: monospace;
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
   border-left: 3px solid var(--accent-color, #00aaff);
   width: calc(100% - 20px);
   box-sizing: border-box;
+}
+
+.step-parameters-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
 }
 
 .step-parameters-label {
@@ -1357,12 +1478,59 @@ const TerminalArea: React.FC<TerminalAreaProps> = ({
   font-weight: 500;
 }
 
+.step-parameters-toggle {
+  background: transparent;
+  border: 1px solid var(--border-color, #444);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.step-parameters-toggle:hover {
+  background: var(--hover-bg);
+  color: var(--text-primary);
+  border-color: var(--accent-color);
+}
+ 
+.step-parameters-short {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.step-parameters-code {
+  margin: 4px 0 0 0;
+  padding: 8px;
+  background: var(--bg-secondary, #1a1a1a);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-family: 'Courier New', 'Fira Code', monospace;
+  font-size: 11px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-x: auto;
+  max-height: 300px;
+  overflow-y: auto;
+  border: 1px solid var(--border-color, #333);
+}
+
 .step-parameters-value {
   color: var(--text-primary);
   word-break: break-all;
   white-space: normal;
   line-height: 1.4;
   font-family: monospace;
+}
+
+.step-parameters-more {
+  color: var(--text-tertiary);
+  font-style: italic;
+  font-size: 10px;
 }
 
 .task-total-duration {

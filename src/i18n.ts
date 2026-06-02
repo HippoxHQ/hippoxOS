@@ -481,6 +481,9 @@ export const zh = {
     skillOrchestration: '自主Skill编排'
   },
   terminal: {
+    expand: "展开",
+    collapse: "收起",
+    interruptConfirmTitle: '确认中断',
     cancelled: '已取消',
     timeout: '超时',
     taskInterrupted: '任务已中断',
@@ -1340,6 +1343,9 @@ export const en: typeof zh = {
     skillOrchestration: 'Skill Orchestration'
   },
   terminal: {
+    expand: "Expand",
+    collapse: "Collapse",
+    interruptConfirmTitle: 'Confirm Interrupt',
     cancelled: 'Cancelled',
     timeout: 'Timeout',
     taskInterrupted: 'Task interrupted',
