@@ -1,21 +1,15 @@
 use serde::{Deserialize, Serialize};
 
-use crate::commands::{ModelConfig, ModelInfo};
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct LlmInstance {
-    pub id: Option<String>,
+pub struct ModelInfo {
+    pub id: String,
     pub name: String,
     pub provider: String,
-    pub api_key: String,
-    pub api_base: String,
-    pub workflow_mode: String,
-    pub default_model: String,
-    pub models: Vec<ModelConfig>,
-    pub created_at: Option<String>,
-    pub updated_at: Option<String>,
-    #[serde(default)]
-    pub extra: std::collections::HashMap<String, String>,
+    pub provider_name: String,
+    pub description: String,
+    pub streaming: bool,
+    pub context_length: Option<usize>,
+    pub recommended: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -426,22 +420,6 @@ pub fn cmd_get_all_models() -> Vec<ModelInfo> {
 }
 
 #[tauri::command]
-pub fn cmd_get_models_by_provider(provider: String) -> Vec<ModelInfo> {
-    cmd_get_all_models()
-        .into_iter()
-        .filter(|m| m.provider == provider)
-        .collect()
-}
-
-#[tauri::command]
-pub fn cmd_get_recommended_models() -> Vec<ModelInfo> {
-    cmd_get_all_models()
-        .into_iter()
-        .filter(|m| m.recommended)
-        .collect()
-}
-
-#[tauri::command]
 pub fn cmd_get_all_providers() -> Vec<ProviderInfo> {
     vec![
         ProviderInfo {
@@ -630,4 +608,20 @@ pub fn cmd_get_all_providers() -> Vec<ProviderInfo> {
             }],
         },
     ]
+}
+
+#[tauri::command]
+pub fn cmd_get_models_by_provider(provider: String) -> Vec<ModelInfo> {
+    cmd_get_all_models()
+        .into_iter()
+        .filter(|m| m.provider == provider)
+        .collect()
+}
+
+#[tauri::command]
+pub fn cmd_get_recommended_models() -> Vec<ModelInfo> {
+    cmd_get_all_models()
+        .into_iter()
+        .filter(|m| m.recommended)
+        .collect()
 }

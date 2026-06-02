@@ -243,3 +243,25 @@ export const skillsLocalCommands = {
         return await invoke('cmd_unfavorite_local_skill', { skillId, category });
     },
 };
+
+export async function getAtomicSkills(): Promise<AtomicSkillInfo[]> {
+    return atomicSkillsCommands.getAtomicSkills();
+}
+
+export async function getAtomicSkillsByCategory(category: string): Promise<AtomicSkillInfo[]> {
+    return atomicSkillsCommands.getAtomicSkillsByCategory(category);
+}
+
+export async function getSkillCategories(): Promise<string[]> {
+    return atomicSkillsCommands.getSkillCategories();
+}
+
+export async function executeAtomicSkill(
+    skillName: string,
+    parameters: Record<string, any>
+): Promise<string> {
+    return atomicSkillsCommands.executeAtomicSkill(skillName, parameters);
+}
+
+
+export type SkillParameterInfo = SkillParameter;
