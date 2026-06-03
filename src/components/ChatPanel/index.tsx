@@ -1250,11 +1250,12 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
         {showScrollButton && (
           <div className="scroll-buttons chat-scroll-buttons">
             <button
+              style={{ height: "32px", width: "32px", borderRadius: "500px" }}
               className="scroll-btn"
               onClick={scrollToBottom}
               title={t("chat.scrollToBottom")}
             >
-              ↓
+              ▼
             </button>
           </div>
         )}
