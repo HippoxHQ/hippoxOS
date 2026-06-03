@@ -87,6 +87,57 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     handleCancelEdit,
   } = useEditMessage({ currentSessionId, onSendMessage, t });
 
+  const formatTimestamp = (timestamp: string): string => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const msgDate = new Date(
+      date.getFullYear(),
+      date.getMonth(),
+      date.getDate(),
+    );
+    const timeStr = date.toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+
+    if (msgDate.getTime() === today.getTime()) {
+      return `${language === "zh" ? "今天" : "Today"} ${timeStr}`;
+    } else if (msgDate.getTime() === yesterday.getTime()) {
+      return `${language === "zh" ? "昨天" : "Yesterday"} ${timeStr}`;
+    } else {
+      return `${date.toLocaleDateString()} ${timeStr}`;
+    }
+  };
+
+  const handleResendMessage = (msg: ChatMessage) => {
+    const sessionId = currentSessionId || "";
+    if (!sessionId) {
+      showToast(ToastType.SUCCESS, "Session ID cannot be empty.");
+      return;
+    }
+    const message = msg.content || "";
+    const currentFiles = msg.files || [];
+    const userMessage: ChatMessage = {
+      id: `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      role: RoleEnum.User,
+      content: message,
+      timestamp: new Date().toISOString(),
+      files: currentFiles,
+    };
+    taskManager.addUserMessageToSession(sessionId, userMessage);
+
+    let backendMessage = message;
+    if (currentFiles.length > 0) {
+      const fileInfo = currentFiles.map((f) => `[📎 ${f.name}]`).join("\n");
+      backendMessage = message ? `${message}\n${fileInfo}` : fileInfo;
+    }
+    onSendMessage(backendMessage, sessionId, currentFiles);
+    showToast(ToastType.SUCCESS, t("chat.resendSuccess") || "Message resent");
+  };
+
   const getRandomPrompts = (count: number = 6): string[] => {
     const prompts = language === "zh" ? zhDefaultPrompts : enDefaultPrompts;
     const shuffled = [...prompts];
@@ -1067,7 +1118,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
           {messages.map((msg, index) => {
             const isUser = msg.role === RoleEnum.User;
             const isLastMessage = index === messages.length - 1;
-
+            const formattedTime = formatTimestamp(msg.timestamp);
             return (
               <div
                 key={msg.id}
@@ -1086,8 +1137,16 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
                         <LoadingSpinner />
                       </div>
                     </div>
-                  ) : msg.status === MessageStatus.Paused ? (
-                    <StatusMessage msg={msg} status={msg.status} t={t} />
+                  ) : msg.status &&
+                    [
+                      MessageStatus.Paused,
+                      MessageStatus.Cancelled,
+                      MessageStatus.Failed,
+                      MessageStatus.Completed,
+                    ].includes(msg.status) ? (
+                    <>
+                      <StatusMessage msg={msg} status={msg.status} t={t} />
+                    </>
                   ) : isUser ? (
                     <>
                       {msg.files && msg.files.length > 0 && (
@@ -1108,9 +1167,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
                       ) : (
                         <div className="message-bubble">
                           <div className="message-content">{msg.content}</div>
-                          <div className="message-time">
-                            {new Date(msg.timestamp).toLocaleTimeString()}
-                          </div>
+                          <div className="message-time">{formattedTime}</div>
                         </div>
                       )}
                       <MessageActions
@@ -1119,6 +1176,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
                         copyToClipboard={copyToClipboard}
                         onLocateTask={handleLocateTask}
                         onEditMessage={handleEditMessage}
+                        onResendMessage={handleResendMessage}
                         t={t}
                       />
                     </>
@@ -1126,9 +1184,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
                     <>
                       <div className="message-bubble">
                         <div className="message-content">{msg.content}</div>
-                        <div className="message-time">
-                          {new Date(msg.timestamp).toLocaleTimeString()}
-                        </div>
+                        <div className="message-time">{formattedTime}</div>
                       </div>
                       <MessageActions
                         msg={msg}

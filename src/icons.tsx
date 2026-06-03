@@ -1415,6 +1415,24 @@ export const EditIcon2: React.FC<IconProps> = ({ className, size = 20 }) => (
   </svg>
 );
 
+export const ResendIcon: React.FC<{ size?: number }> = ({ size = 14 }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.8"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M3 12a9 9 0 0 1 9-9 9 9 0 0 1 9 9 9 9 0 0 1-9 9" />
+    <path d="M3 12V6" />
+    <path d="M3 12h6" />
+  </svg>
+);
+
 export const iconMap: Record<string, React.FC<IconProps>> = {
   dashboard: DashboardIcon,
   workspace: WorkspaceIcon,

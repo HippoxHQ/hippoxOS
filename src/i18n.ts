@@ -523,6 +523,8 @@ export const zh = {
     }
   },
   chat: {
+    resend: '重新发送',
+    resendSuccess: '消息已重新发送',
     endingMessage: "✨ 我还能为你做些什么吗？ ✨",
     suggestionsTitle: "💡 试试这些：",
     edit: '编辑',
@@ -1409,6 +1411,8 @@ export const en: typeof zh = {
     }
   },
   chat: {
+    resend: 'Resend',
+    resendSuccess: 'Message resent',
     endingMessage: "✨ What else can I do for you? ✨",
     suggestionsTitle: "💡 Try these:",
     edit: 'Edit',
