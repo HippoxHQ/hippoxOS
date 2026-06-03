@@ -24,6 +24,8 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
   const [functionAreaHeight, setFunctionAreaHeight] = useState<number>(400);
   const [isFunctionAreaVisible, setIsFunctionAreaVisible] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const pendingModuleRef = useRef<"candleview" | "earthos" | null>(null);
+
   useEffect(() => {
     const loadTheme = async () => {
       try {
@@ -67,11 +69,35 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
     };
   }, []);
 
+  useEffect(() => {
+    const handleSetDefaultModule = (event: CustomEvent) => {
+      const { module } = event.detail;
+      pendingModuleRef.current = module;
+      if (!isFunctionAreaVisible) {
+        setIsFunctionAreaVisible(true);
+      }
+    };
+    window.addEventListener(
+      "set-default-function-module",
+      handleSetDefaultModule as EventListener,
+    );
+    return () => {
+      window.removeEventListener(
+        "set-default-function-module",
+        handleSetDefaultModule as EventListener,
+      );
+    };
+  }, [isFunctionAreaVisible]);
+
   const handleCloseFunctionArea = () => {
     setIsFunctionAreaVisible(false);
+    pendingModuleRef.current = null;
   };
 
-  const handleOpenFunctionArea = () => {
+  const handleOpenFunctionArea = (defaultModule?: "candleview" | "earthos") => {
+    if (defaultModule) {
+      pendingModuleRef.current = defaultModule;
+    }
     setIsFunctionAreaVisible(true);
   };
 
@@ -105,6 +131,7 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
               currentSessionId={currentSessionId}
               onClose={handleCloseFunctionArea}
               containerHeight={functionAreaHeight}
+              defaultModule={pendingModuleRef.current}
             />
           </div>
           <div
@@ -151,7 +178,8 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
           onFileClick={onFileClick}
           theme={theme}
           i18n={i18n}
-          onOpenFunctionArea={handleOpenFunctionArea}
+          onOpenFunctionArea={() => handleOpenFunctionArea()}
+          onOpenMap={() => handleOpenFunctionArea("earthos")}
         />
       </div>
     </div>

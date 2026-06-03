@@ -9,6 +9,7 @@ export interface TerminalAreaProps {
   theme: "light" | "dark";
   i18n: "en" | "zh-cn";
   onOpenFunctionArea: () => void;
+  onOpenMap?: () => void;
 }
 
 export interface FilesScrollState {

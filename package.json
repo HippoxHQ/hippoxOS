@@ -46,6 +46,8 @@
     ]
   },
   "devDependencies": {
-    "@tauri-apps/cli": "^2.11.2"
+    "@tauri-apps/cli": "^2.11.2",
+    "@types/arcgis-js-api": "^4.28.4",
+    "@arcgis/core": "^5.0.19"
   }
 }

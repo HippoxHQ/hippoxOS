@@ -20,7 +20,11 @@ import {
 import { hippoxCommands } from "../../../api/chat";
 import { TaskStatusEnum } from "../../../types/type";
 
-const TerminalArea: React.FC<TerminalAreaProps> = ({
+interface ExtendedTerminalAreaProps extends TerminalAreaProps {
+  onOpenMap?: () => void;
+}
+
+const TerminalArea: React.FC<ExtendedTerminalAreaProps> = ({
   logs,
   onClearLogs,
   t,
@@ -29,6 +33,7 @@ const TerminalArea: React.FC<TerminalAreaProps> = ({
   theme: _theme,
   i18n: _i18n,
   onOpenFunctionArea,
+  onOpenMap,
 }) => {
   const { tasks, setTasks, activeTasks } = useTaskManager(currentSessionId);
   const taskRefs = useRef<Map<string, HTMLDivElement>>(new Map());
@@ -43,6 +48,7 @@ const TerminalArea: React.FC<TerminalAreaProps> = ({
   } = useFilesScroll(activeTasks);
 
   // Build allTasks (including welcome)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const allTasks = [
     {
       task_id: WELCOME_TASK_ID,
@@ -105,7 +111,6 @@ const TerminalArea: React.FC<TerminalAreaProps> = ({
   const handleClearLogs = async () => {
     await hippoxCommands.clearLogs();
     onClearLogs();
-    console.log("Terminal logs cleared");
   };
 
   const isWelcomeExpanded = expandedTasks.has(WELCOME_TASK_ID);
@@ -187,6 +192,7 @@ const TerminalArea: React.FC<TerminalAreaProps> = ({
               onScrollFilesRight={scrollFilesRight}
               onFileClick={onFileClick}
               onOpenFunctionArea={onOpenFunctionArea}
+              onOpenMap={onOpenMap}
               setTasks={setTasks}
               t={t}
             />
