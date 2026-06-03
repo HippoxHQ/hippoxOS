@@ -3,6 +3,7 @@ import { ExecutionLog, TaskInfo, UploadFile } from "../../types/type";
 import { configCommands } from "../../api/config";
 import FunctionArea from "./FunctionArea";
 import TerminalArea from "./TerminalArea";
+import { FunctionInstance } from "./FunctionArea/types";
 
 interface TerminalPanelProps {
   logs: ExecutionLog[];
@@ -24,8 +25,9 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
   const [functionAreaHeight, setFunctionAreaHeight] = useState<number>(400);
   const [isFunctionAreaVisible, setIsFunctionAreaVisible] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-  const pendingModuleRef = useRef<"candleview" | "earthos" | null>(null);
-
+  const pendingModuleRef = useRef<
+    FunctionInstance.Canldeview | FunctionInstance.Earthview | null
+  >(null);
   useEffect(() => {
     const loadTheme = async () => {
       try {
@@ -94,7 +96,9 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
     pendingModuleRef.current = null;
   };
 
-  const handleOpenFunctionArea = (defaultModule?: "candleview" | "earthos") => {
+  const handleOpenFunctionArea = (
+    defaultModule?: FunctionInstance.Canldeview | FunctionInstance.Earthview,
+  ) => {
     if (defaultModule) {
       pendingModuleRef.current = defaultModule;
     }
@@ -179,7 +183,7 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
           theme={theme}
           i18n={i18n}
           onOpenFunctionArea={() => handleOpenFunctionArea()}
-          onOpenMap={() => handleOpenFunctionArea("earthos")}
+          onOpenMap={() => handleOpenFunctionArea(FunctionInstance.Earthview)}
         />
       </div>
     </div>

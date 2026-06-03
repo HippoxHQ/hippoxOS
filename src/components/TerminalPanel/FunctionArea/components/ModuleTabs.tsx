@@ -10,7 +10,6 @@ interface ModuleTabsProps {
   showRightScroll: boolean;
   onScrollLeft: () => void;
   onScrollRight: () => void;
-  onAddModule: () => void;
   onClosePanel: () => void;
   tabsContainerRef: React.RefObject<HTMLDivElement | null>;
   checkScrollPosition: () => void;
@@ -26,7 +25,6 @@ export const ModuleTabs: React.FC<ModuleTabsProps> = ({
   showRightScroll,
   onScrollLeft,
   onScrollRight,
-  onAddModule,
   onClosePanel,
   tabsContainerRef,
   checkScrollPosition,
@@ -183,26 +181,6 @@ export const ModuleTabs: React.FC<ModuleTabsProps> = ({
             ▶
           </button>
         )}
-
-        <button
-          onClick={onAddModule}
-          style={{
-            width: "28px",
-            height: "28px",
-            borderRadius: "4px",
-            background: "var(--bg-tertiary)",
-            border: "1px solid var(--border-color)",
-            color: "var(--text-secondary)",
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: "14px",
-          }}
-          title={t("functionArea.addModule")}
-        >
-          +
-        </button>
 
         <button
           onClick={onClosePanel}

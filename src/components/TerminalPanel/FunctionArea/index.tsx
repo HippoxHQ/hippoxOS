@@ -1,13 +1,16 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import CandleView from "candleview";
-import { LoadingSpinner } from "./components/LoadingSpinner";
 import { ModuleTabs } from "./components/ModuleTabs";
 import { ModuleContent } from "./components/ModuleContent";
-import { EarthOS } from "../../../earthOS";
 import { TEST_CANDLEVIEW_DATA8 } from "../../../test/TestData_3";
 import { useFunctionArea } from "./hooks/useFunctionArea";
-import { FunctionAreaProps, FunctionModule } from "./types";
+import { FunctionAreaProps, FunctionInstance, FunctionModule } from "./types";
 import { getAllModules } from "./constants";
+import {
+  EarthView,
+  BasemapTypeEnum,
+  CoordinateSystemTypeEnum,
+} from "../../../earthview";
 
 const FunctionArea: React.FC<FunctionAreaProps> = ({
   theme,
@@ -31,55 +34,37 @@ const FunctionArea: React.FC<FunctionAreaProps> = ({
     handleScroll,
     handleCloseModule,
     openModule,
-    addTestModule,
   } = useFunctionArea(defaultModule);
-
-  const [earthOSLoading, setEarthOSLoading] = useState(true);
-  const earthOSRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (activeModule === "earthos") {
-      setEarthOSLoading(true);
-      const timer = setTimeout(() => {
-        setEarthOSLoading(false);
-      }, 1500);
-      return () => clearTimeout(timer);
-    }
-  }, [activeModule]);
-
-  useEffect(() => {
-    if (openModules.has("earthos")) {
-      setEarthOSLoading(true);
-    }
-  }, [openModules]);
-
-  const EarthOSWithLoading = useMemo(
+  const earthViewLocale = i18n === "zh-cn" ? "zh" : "en";
+  const earthViewTheme = theme;
+  // layer list
+  const layers = useMemo(() => [], []);
+  // map
+  const EarthViewComponent = useMemo(
     () => (
-      <div ref={earthOSRef} style={{ width: "100%", height: "100%" }}>
-        {earthOSLoading && (
-          <LoadingSpinner message={t("functionArea.loadingMap")} />
-        )}
-        <div
-          style={{
-            display: earthOSLoading ? "none" : "block",
-            width: "100%",
-            height: "100%",
-          }}
-        >
-          <EarthOS
-            basemap="satellite"
-            center={[116.397428, 39.90923]}
-            zoom={10}
-            style={{ width: "100%", height: "100%" }}
-          />
-        </div>
-      </div>
+      <EarthView
+        center={[116.397428, 39.90923]}
+        basemap={BasemapTypeEnum.SATELLITE}
+        coordinateSystem={CoordinateSystemTypeEnum.WGS84}
+        style={{ width: "100%", height: "100%" }}
+        layers={layers}
+        enableDrawing={true}
+        i18n={earthViewLocale}
+        theme={earthViewTheme}
+        onCircleDrawn={(data) => {}}
+        onLoad={(layerManager, view) => {}}
+        onMapClick={(event) => {}}
+      />
     ),
-    [earthOSLoading],
+    [earthViewLocale, earthViewTheme, layers],
   );
 
-  const cachedEarthOS = useMemo(() => EarthOSWithLoading, [EarthOSWithLoading]);
+  const cachedEarthView = useMemo(
+    () => EarthViewComponent,
+    [EarthViewComponent],
+  );
 
+  // chat
   const cachedCandleView = useMemo(
     () => (
       <CandleView
@@ -102,15 +87,15 @@ const FunctionArea: React.FC<FunctionAreaProps> = ({
   );
 
   const allModules = useMemo(
-    () => getAllModules({ cachedCandleView, cachedEarthOS, t }),
-    [cachedCandleView, cachedEarthOS, t],
+    () => getAllModules({ cachedCandleView, cachedEarthView, t }),
+    [cachedCandleView, cachedEarthView, t],
   );
 
   useEffect(() => {
-    if (defaultModule === "earthos") {
+    if (defaultModule === FunctionInstance.Earthview) {
       setTimeout(() => {
         window.dispatchEvent(
-          new CustomEvent("earthos-locate", {
+          new CustomEvent("earthview-locate", {
             detail: { center: [116.397428, 39.90923], zoom: 10 },
           }),
         );
@@ -119,21 +104,24 @@ const FunctionArea: React.FC<FunctionAreaProps> = ({
   }, [defaultModule]);
 
   useEffect(() => {
-    const handleOpenEarthOS = (event: CustomEvent) => {
-      console.log("handleOpenEarthOS called", event.detail);
+    const handleOpenEarthView = (event: CustomEvent) => {
+      console.log("handleOpenEarthView called", event.detail);
       const { center, zoom } = event.detail;
-      openModule("earthos");
+      openModule(FunctionInstance.Earthview);
       setTimeout(() => {
         window.dispatchEvent(
-          new CustomEvent("earthos-locate", { detail: { center, zoom } }),
+          new CustomEvent("EarthView-locate", { detail: { center, zoom } }),
         );
       }, 500);
     };
-    window.addEventListener("open-earthos", handleOpenEarthOS as EventListener);
+    window.addEventListener(
+      "open-earthview",
+      handleOpenEarthView as EventListener,
+    );
     return () =>
       window.removeEventListener(
-        "open-earthos",
-        handleOpenEarthOS as EventListener,
+        "open-earthview",
+        handleOpenEarthView as EventListener,
       );
   }, [openModule]);
 
@@ -172,7 +160,6 @@ const FunctionArea: React.FC<FunctionAreaProps> = ({
         showRightScroll={showRightScroll}
         onScrollLeft={() => handleScroll("left")}
         onScrollRight={() => handleScroll("right")}
-        onAddModule={addTestModule}
         onClosePanel={onClose}
         tabsContainerRef={tabsContainerRef}
         checkScrollPosition={checkScrollPosition}

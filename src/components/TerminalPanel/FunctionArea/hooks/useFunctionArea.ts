@@ -1,25 +1,20 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { FunctionModule } from "../types";
-import { TEST_MODULES } from "../constants";
+import { FunctionInstance, FunctionModule } from "../types";
 
-export const useFunctionArea = (defaultModule?: "candleview" | "earthos" | null) => {
+export const useFunctionArea = (defaultModule?: FunctionInstance.Canldeview | FunctionInstance.Earthview | null) => {
   const [activeModule, setActiveModule] = useState<FunctionModule>(() => {
-    return defaultModule || "candleview";
+    return defaultModule || FunctionInstance.Canldeview;
   });
-  
   const [openModules, setOpenModules] = useState<Set<FunctionModule>>(() => {
     if (defaultModule) {
       return new Set<FunctionModule>([defaultModule]);
     }
-    return new Set<FunctionModule>(["candleview"]);
+    return new Set<FunctionModule>([FunctionInstance.Canldeview]);
   });
-  
   const [showLeftScroll, setShowLeftScroll] = useState(false);
   const [showRightScroll, setShowRightScroll] = useState(false);
-  
   const tabsContainerRef = useRef<HTMLDivElement>(null);
   const hasProcessedDefaultModule = useRef(false);
-
   const checkScrollPosition = useCallback(() => {
     if (tabsContainerRef.current) {
       const { scrollLeft, scrollWidth, clientWidth } = tabsContainerRef.current;
@@ -27,7 +22,6 @@ export const useFunctionArea = (defaultModule?: "candleview" | "earthos" | null)
       setShowRightScroll(scrollLeft + clientWidth < scrollWidth - 5);
     }
   }, []);
-
   useEffect(() => {
     if (defaultModule && !hasProcessedDefaultModule.current) {
       hasProcessedDefaultModule.current = true;
@@ -39,13 +33,11 @@ export const useFunctionArea = (defaultModule?: "candleview" | "earthos" | null)
       });
     }
   }, [defaultModule]);
-
   useEffect(() => {
     checkScrollPosition();
     window.addEventListener("resize", checkScrollPosition);
     return () => window.removeEventListener("resize", checkScrollPosition);
   }, [openModules, checkScrollPosition]);
-
   const handleScroll = useCallback((direction: "left" | "right") => {
     if (tabsContainerRef.current) {
       const scrollAmount = 200;
@@ -56,7 +48,6 @@ export const useFunctionArea = (defaultModule?: "candleview" | "earthos" | null)
       setTimeout(checkScrollPosition, 100);
     }
   }, [checkScrollPosition]);
-
   const handleCloseModule = useCallback((moduleId: FunctionModule, e: React.MouseEvent) => {
     e.stopPropagation();
     const newOpenModules = new Set(openModules);
@@ -68,7 +59,6 @@ export const useFunctionArea = (defaultModule?: "candleview" | "earthos" | null)
     }
     return newOpenModules.size === 0;
   }, [openModules, activeModule]);
-
   const openModule = useCallback((moduleId: FunctionModule) => {
     setOpenModules((prev) => {
       const newSet = new Set(prev);
@@ -80,14 +70,6 @@ export const useFunctionArea = (defaultModule?: "candleview" | "earthos" | null)
     });
     setActiveModule(moduleId);
   }, [checkScrollPosition]);
-
-  const addTestModule = useCallback(() => {
-    const notOpen = TEST_MODULES.filter((m) => !openModules.has(m));
-    if (notOpen.length > 0) {
-      openModule(notOpen[0]);
-    }
-  }, [openModules, openModule]);
-
   return {
     activeModule,
     setActiveModule,
@@ -99,6 +81,5 @@ export const useFunctionArea = (defaultModule?: "candleview" | "earthos" | null)
     handleScroll,
     handleCloseModule,
     openModule,
-    addTestModule,
   };
 };

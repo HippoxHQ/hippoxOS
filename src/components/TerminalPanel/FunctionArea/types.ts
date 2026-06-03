@@ -1,17 +1,6 @@
 export type FunctionModule =
-  | "candleview"
-  | "indicator"
-  | "analysis"
-  | "pattern"
-  | "backtest"
-  | "strategy"
-  | "signal"
-  | "news"
-  | "sentiment"
-  | "volatility"
-  | "correlation"
-  | "risk"
-  | "earthos";
+  | FunctionInstance.Canldeview
+  | FunctionInstance.Earthview;
 
 export interface ModuleConfig {
   id: FunctionModule;
@@ -28,5 +17,10 @@ export interface FunctionAreaProps {
   currentSessionId?: string;
   onClose: () => void;
   containerHeight: number;
-  defaultModule?: "candleview" | "earthos" | null;
+  defaultModule?: FunctionInstance.Canldeview | FunctionInstance.Earthview | null;
+}
+
+export enum FunctionInstance {
+  Canldeview = "candleview",
+  Earthview = "earthview"
 }
