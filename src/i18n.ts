@@ -523,6 +523,9 @@ export const zh = {
     }
   },
   chat: {
+    locateInTerminal: '定位到终端',
+    locatedToTerminal: '已定位到终端任务',
+    noRelatedTask: '未找到关联的终端任务',
     skillFile: 'Skill文件',
     attachment: '附件',
     selectWorkspace: '选择工作目录',
@@ -1398,6 +1401,9 @@ export const en: typeof zh = {
     }
   },
   chat: {
+    locateInTerminal: 'Locate in Terminal',
+    locatedToTerminal: 'Located to terminal task',
+    noRelatedTask: 'No related task found',
     skillFile: 'Skill File',
     attachment: 'Attachment',
     selectWorkspace: 'Select Workspace',

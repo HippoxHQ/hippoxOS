@@ -103,7 +103,7 @@ export const useScrollBehavior = (
   const scrollToTask = useCallback((index: number) => {
     const task = allTasks[index];
     if (task && taskRefs.current.has(task.task_id)) {
-      taskRefs.current.get(task.task_id)?.scrollIntoView({
+      const element = taskRefs.current.get(task.task_id)?.scrollIntoView({
         behavior: "auto",
         block: "start",
       });

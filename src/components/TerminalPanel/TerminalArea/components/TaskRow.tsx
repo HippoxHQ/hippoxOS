@@ -1,5 +1,4 @@
-// TerminalArea/components/TaskRow.tsx
-import React from "react";
+import React, { forwardRef } from "react";
 import {
   getTaskStatusIcon,
   getTaskStatusText,
@@ -42,7 +41,7 @@ interface TaskRowProps {
   t: (key: string, params?: any) => string;
 }
 
-export const TaskRow: React.FC<TaskRowProps> = ({
+export const TaskRow = forwardRef<HTMLDivElement, TaskRowProps>(({
   task,
   isExpanded,
   expandedStepParams,
@@ -57,7 +56,7 @@ export const TaskRow: React.FC<TaskRowProps> = ({
   onOpenFunctionArea,
   setTasks,
   t,
-}) => {
+}, ref) => {
   const successCount = task.steps.filter(
     (s) => s.status === StepStatusEnum.Success,
   ).length;
@@ -202,7 +201,7 @@ export const TaskRow: React.FC<TaskRowProps> = ({
   const isPaused = task.status === TaskStatusEnum.Paused;
 
   return (
-    <div key={task.task_id} className="task-row">
+    <div key={task.task_id} ref={ref} className="task-row">
       <div
         className="task-row-header"
         onClick={() => onToggleExpand(task.task_id)}
@@ -314,4 +313,6 @@ export const TaskRow: React.FC<TaskRowProps> = ({
       <div className="task-separator"></div>
     </div>
   );
-};
+});
+
+TaskRow.displayName = "TaskRow";

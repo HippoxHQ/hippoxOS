@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { useEffect, useRef } from "react";
 import { TerminalAreaProps } from "./types";
 import { WELCOME_TASK_ID } from "./constants";
 import { globalStyles } from "./styles";
@@ -70,6 +70,28 @@ const TerminalArea: React.FC<TerminalAreaProps> = ({
     handleScroll,
   } = useScrollBehavior(allTasks, taskRefs);
 
+  useEffect(() => {
+    const handleLocateTask = (event: CustomEvent) => {
+      const { taskId } = event.detail;
+      const taskIndex = allTasks.findIndex((t) => t.task_id === taskId);
+      if (taskIndex !== -1) {
+        scrollToTask(taskIndex);
+      } else {
+        console.warn(`Task not found: ${taskId}`);
+      }
+    };
+    window.addEventListener(
+      "locate-task-in-terminal",
+      handleLocateTask as EventListener,
+    );
+    return () => {
+      window.removeEventListener(
+        "locate-task-in-terminal",
+        handleLocateTask as EventListener,
+      );
+    };
+  }, [allTasks, scrollToTask]);
+
   const {
     showBubble,
     buttonRef,
@@ -88,7 +110,6 @@ const TerminalArea: React.FC<TerminalAreaProps> = ({
 
   const isWelcomeExpanded = expandedTasks.has(WELCOME_TASK_ID);
 
-  // Bubble position
   const bubblePosition = (() => {
     if (buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect();
@@ -143,6 +164,11 @@ const TerminalArea: React.FC<TerminalAreaProps> = ({
           {activeTasks.map((task, idx) => (
             <TaskRow
               key={task.task_id}
+              ref={(el) => {
+                if (el) {
+                  taskRefs.current.set(task.task_id, el);
+                }
+              }}
               task={task}
               index={idx}
               isExpanded={expandedTasks.has(task.task_id)}

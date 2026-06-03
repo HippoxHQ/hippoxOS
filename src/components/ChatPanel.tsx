@@ -18,6 +18,7 @@ import {
   ChatIcon,
   FileIcon,
   CopyIcon,
+  LocateIcon,
 } from "../icons";
 import { workspaceCommands, WorkspaceInstance } from "../api/workspace";
 import { taskManager } from "../TaskManager";
@@ -515,25 +516,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     justify-content: flex-end;
     gap: 6px;
     margin-top: 4px;
-  }
-
-  .action-btn {
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    color: var(--text-tertiary);
-    font-size: 11px;
-    padding: 2px 8px;
-    border-radius: 4px;
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    transition: all 0.2s ease;
-  }
-
-  .action-btn:hover {
-    background: var(--hover-bg);
-    color: var(--text-primary);
   }
 
   .message-files-grid {
@@ -1087,11 +1069,95 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
                       {isUser && (
                         <div className="message-actions">
                           <button
+                            className="action-btn locate-btn"
+                            onClick={() => {
+                              const relatedTask = taskManager
+                                .getAllTasks()
+                                .find(
+                                  (task) =>
+                                    task.user_input === msg.content ||
+                                    task.task_id === (msg as any).relatedTaskId,
+                                );
+                              if (relatedTask) {
+                                window.dispatchEvent(
+                                  new CustomEvent("locate-task-in-terminal", {
+                                    detail: { taskId: relatedTask.task_id },
+                                  }),
+                                );
+                                showToast(
+                                  ToastType.SUCCESS,
+                                  t("chat.locatedToTerminal") ||
+                                    "Located To Terminal",
+                                );
+                              } else {
+                                showToast(
+                                  ToastType.INFO,
+                                  t("chat.noRelatedTask") || "No Related Task",
+                                );
+                              }
+                            }}
+                            title={
+                              t("chat.locateInTerminal") || "LocateIn Terminal"
+                            }
+                          >
+                            <LocateIcon />
+                          </button>
+                          <button
                             className="action-btn copy-btn"
                             onClick={() => copyToClipboard(msg.content)}
                             title={t("common.copy") || "Copy"}
                           >
                             <CopyIcon size={12} />
+                          </button>
+                        </div>
+                      )}
+
+                      {!isUser && (
+                        <div
+                          className="message-actions"
+                          style={{ justifyContent: "flex-start" }}
+                        >
+                          <button
+                            className="action-btn copy-btn"
+                            onClick={() => copyToClipboard(msg.content)}
+                            title={t("common.copy") || "Copy"}
+                          >
+                            <CopyIcon size={12} />
+                          </button>
+                          <button
+                            className="action-btn locate-btn"
+                            onClick={() => {
+                              const relatedTask = taskManager
+                                .getAllTasks()
+                                .find(
+                                  (task) =>
+                                    task.user_input === msg.content ||
+                                    task.final_output === msg.content ||
+                                    task.task_id === (msg as any).relatedTaskId,
+                                );
+                              if (relatedTask) {
+                                window.dispatchEvent(
+                                  new CustomEvent("locate-task-in-terminal", {
+                                    detail: { taskId: relatedTask.task_id },
+                                  }),
+                                );
+                                showToast(
+                                  ToastType.SUCCESS,
+                                  t("chat.locatedToTerminal") ||
+                                    "Located To Terminal",
+                                );
+                              } else {
+                                showToast(
+                                  ToastType.INFO,
+                                  t("chat.noRelatedTask") || "No Related Task",
+                                );
+                              }
+                            }}
+                            title={
+                              t("chat.locateInTerminal") || "Locate In Terminal"
+                            }
+                          >
+                            <LocateIcon />
                           </button>
                         </div>
                       )}
