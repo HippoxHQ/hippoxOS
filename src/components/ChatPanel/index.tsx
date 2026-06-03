@@ -1,32 +1,31 @@
 import React, { useState, useRef, useEffect } from "react";
+
+import { useEditMessage } from "./hooks";
+import { NormalMessage, StatusMessage, LoadingSpinner } from "./components";
+import { LlmInstance, llmCommands } from "../../api/llm";
+import { WorkspaceInstance, workspaceCommands } from "../../api/workspace";
 import {
-  ChatMessage,
-  MessageStatus,
-  RoleEnum,
-  UploadFile,
-} from "../types/type";
-import {
-  AttachmentIcon,
-  FolderIcon,
-  FolderOpenIcon,
-  ChevronRightIcon,
+  ChatIcon,
   UserIcon,
   BotIcon,
+  AttachmentIcon,
+  FolderIcon,
+  ChevronRightIcon,
   TextFileIcon,
   ImageIcon,
   VideoIcon,
-  ChatIcon,
   FileIcon,
-  CopyIcon,
-  LocateIcon,
-  EditIcon2,
-} from "../icons";
-import { workspaceCommands, WorkspaceInstance } from "../api/workspace";
-import { taskManager } from "../TaskManager";
-import { showToast, ToastType } from "./Toast";
-import FileUploader from "./FileUploader";
-import { getFileIcon } from "../common";
-import { llmCommands, LlmInstance } from "../api/llm";
+  FolderOpenIcon,
+} from "../../icons";
+import { taskManager } from "../../TaskManager";
+import {
+  UploadFile,
+  ChatMessage,
+  RoleEnum,
+  MessageStatus,
+} from "../../types/type";
+import FileUploader from "../FileUploader";
+import { showToast, ToastType } from "../Toast";
 
 interface ChatPanelProps {
   onSendMessage: (
@@ -55,12 +54,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   const [showDirectoryMenu, setShowDirectoryMenu] = useState(false);
   const [workspaces, setWorkspaces] = useState<WorkspaceInstance[]>([]);
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string>("");
-  const messagesContainerRef = useRef<HTMLDivElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const attachmentBtnRef = useRef<HTMLDivElement>(null);
-  const attachmentMenuRef = useRef<HTMLDivElement>(null);
-  const directoryBtnRef = useRef<HTMLDivElement>(null);
-  const directoryMenuRef = useRef<HTMLDivElement>(null);
   const [showScrollButton, setShowScrollButton] = useState(false);
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [userScrolled, setUserScrolled] = useState(false);
@@ -68,48 +61,68 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   const [uploadedFiles, setUploadedFiles] = useState<UploadFile[]>([]);
   const [currentModel, setCurrentModel] = useState<LlmInstance | null>(null);
   const [loadingModel, setLoadingModel] = useState(true);
-  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
-  const [editContent, setEditContent] = useState<string>("");
 
-  const handleEditMessage = (msg: ChatMessage) => {
-    setEditingMessageId(msg.id);
-    setEditContent(msg.content);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const attachmentBtnRef = useRef<HTMLDivElement>(null);
+  const attachmentMenuRef = useRef<HTMLDivElement>(null);
+  const directoryBtnRef = useRef<HTMLDivElement>(null);
+  const directoryMenuRef = useRef<HTMLDivElement>(null);
+
+  const {
+    editingMessageId,
+    editContent,
+    setEditContent,
+    handleEditMessage,
+    handleSaveEdit,
+    handleCancelEdit,
+  } = useEditMessage({ currentSessionId, onSendMessage, t });
+
+  const handleContainerClick = () => textareaRef.current?.focus();
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return "0 B";
+    const k = 1024;
+    const sizes = ["B", "KB", "MB", "GB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
   };
 
-  const handleSaveEdit = async (msg: ChatMessage) => {
-    if (!editContent.trim() && !(msg.files && msg.files.length > 0)) {
-      showToast(ToastType.ERROR, t("chat.editFailed") || "Edit failed");
-      return;
+  const copyToClipboard = async (text: string | undefined) => {
+    try {
+      if (!text) {
+        showToast(ToastType.ERROR, t("common.copyFailed") || "Copy Failed");
+        return;
+      }
+      await navigator.clipboard.writeText(text);
+      showToast(ToastType.SUCCESS, t("common.copied") || "Copied");
+    } catch (err) {
+      showToast(ToastType.ERROR, t("common.copyFailed") || "Copy Failed");
     }
-    const sessionId = currentSessionId || "";
-    const currentFiles = msg.files || [];
-    const editedMessage: ChatMessage = {
-      ...msg,
-      id: `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      content: editContent,
-      timestamp: new Date().toISOString(),
-      edited: true,
-      originalId: msg.id,
-    };
-    taskManager.addUserMessageToSession(sessionId, editedMessage);
-    let backendMessage = editContent;
-    if (currentFiles.length > 0) {
-      const fileInfo = currentFiles.map((f) => `[📎 ${f.name}]`).join("\n");
-      backendMessage = editContent ? `${editContent}\n${fileInfo}` : fileInfo;
+  };
+
+  const handleLocateTask = (msg: ChatMessage) => {
+    const relatedTask = taskManager
+      .getAllTasks()
+      .find(
+        (task) =>
+          task.user_input === msg.content ||
+          task.final_output === msg.content ||
+          task.task_id === (msg as any).relatedTaskId,
+      );
+    if (relatedTask) {
+      window.dispatchEvent(
+        new CustomEvent("locate-task-in-terminal", {
+          detail: { taskId: relatedTask.task_id },
+        }),
+      );
+      showToast(
+        ToastType.SUCCESS,
+        t("chat.locatedToTerminal") || "Located To Terminal",
+      );
+    } else {
+      showToast(ToastType.INFO, t("chat.noRelatedTask") || "No Related Task");
     }
-    onSendMessage(backendMessage, sessionId, currentFiles);
-    setEditingMessageId("");
-    setEditContent("");
-    showToast(ToastType.SUCCESS, t("chat.editSuccess") || "Message resent");
-  };
-
-  const handleCancelEdit = () => {
-    setEditingMessageId("");
-    setEditContent("");
-  };
-
-  const handleContainerClick = (e: React.MouseEvent) => {
-    textareaRef.current?.focus();
   };
 
   const loadCurrentDefaultModel = async () => {
@@ -134,38 +147,133 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     }
   };
 
-  const LoadingSpinner: React.FC = () => (
-    <div className="loading-spinner">
-      <svg
-        width="25"
-        height="25"
-        viewBox="0 0 24 24"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        className="spinner"
-      >
-        <circle
-          cx="12"
-          cy="12"
-          r="10"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeDasharray="31.4"
-          strokeDashoffset="0"
-        >
-          <animateTransform
-            attributeName="transform"
-            type="rotate"
-            from="0 12 12"
-            to="360 12 12"
-            dur="1s"
-            repeatCount="indefinite"
-          />
-        </circle>
-      </svg>
-    </div>
-  );
+  const loadWorkspaces = async (retryCount: number = 0): Promise<void> => {
+    try {
+      const config = await workspaceCommands.getWorkspaceConfig();
+      if (config.instances.length === 0 && retryCount < 5) {
+        await new Promise((resolve) => setTimeout(resolve, 200));
+        return loadWorkspaces(retryCount + 1);
+      }
+      setWorkspaces(config.instances);
+      if (config.default_instance_id) {
+        setSelectedWorkspaceId(config.default_instance_id);
+      } else if (config.instances.length > 0) {
+        setSelectedWorkspaceId(config.instances[0].id);
+      }
+    } catch (error) {
+      showToast(ToastType.ERROR, "Failed to load workspaces: " + error);
+    }
+  };
+
+  const checkScrollPosition = () => {
+    if (!messagesContainerRef.current) return;
+    const { scrollTop, scrollHeight, clientHeight } =
+      messagesContainerRef.current;
+    const atBottom = scrollHeight - scrollTop - clientHeight <= 10;
+    setIsAtBottom(atBottom);
+    setShowScrollButton(scrollHeight > clientHeight && !atBottom);
+    if (atBottom) setUserScrolled(false);
+  };
+
+  const handleUserScroll = () => {
+    if (messagesContainerRef.current) {
+      const { scrollTop, scrollHeight, clientHeight } =
+        messagesContainerRef.current;
+      const atBottom = scrollHeight - scrollTop - clientHeight <= 10;
+      if (!atBottom) setUserScrolled(true);
+    }
+    checkScrollPosition();
+  };
+
+  const scrollToBottom = () => {
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTo({
+        top: messagesContainerRef.current.scrollHeight,
+        behavior: "smooth",
+      });
+      setUserScrolled(false);
+    }
+  };
+
+  const handleFilesAdd = (files: UploadFile[]) => {
+    setUploadedFiles((prev) => {
+      const existingKeys = new Set(prev.map((f) => `${f.name}_${f.size}`));
+      const newUniqueFiles = files.filter(
+        (f) => !existingKeys.has(`${f.name}_${f.size}`),
+      );
+      return [...prev, ...newUniqueFiles];
+    });
+  };
+
+  const handleFileRemove = (fileId: string) => {
+    setUploadedFiles((prev) => prev.filter((f) => f.id !== fileId));
+  };
+
+  const handleSend = () => {
+    if (inputValue.trim() || uploadedFiles.length > 0) {
+      const sessionId = currentSessionId || "";
+      if (!sessionId) {
+        showToast(ToastType.SUCCESS, "Session ID cannot be empty.");
+        return;
+      }
+      const message = inputValue.trim() || "";
+      const currentFiles = [...uploadedFiles];
+      const userMessage: ChatMessage = {
+        id: `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        role: RoleEnum.User,
+        content: message,
+        timestamp: new Date().toISOString(),
+        files: currentFiles,
+      };
+      taskManager.addUserMessageToSession(sessionId, userMessage);
+      let backendMessage = message;
+      if (uploadedFiles.length > 0) {
+        const fileInfo = uploadedFiles.map((f) => `[📎 ${f.name}]`).join("\n");
+        backendMessage = message ? `${message}\n${fileInfo}` : fileInfo;
+      }
+      onSendMessage(backendMessage, sessionId, currentFiles);
+      setInputValue("");
+      setUploadedFiles([]);
+      if (textareaRef.current) textareaRef.current.style.height = "auto";
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
+  const adjustTextareaHeight = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setInputValue(e.target.value);
+    e.target.style.height = "auto";
+    e.target.style.height = Math.min(e.target.scrollHeight, 100) + "px";
+  };
+
+  const handleAttachment = () => setShowAttachmentMenu(false);
+
+  const getSelectedWorkspaceName = (): string => {
+    const workspace = workspaces.find((w) => w.id === selectedWorkspaceId);
+    if (!workspace) return language === "zh" ? "工作目录" : "Workspace";
+    const path = workspace.workspace_path;
+    const normalizedPath = path.replace(/\\/g, "/");
+    const parts = normalizedPath.split("/");
+    return parts[parts.length - 1] || workspace.name;
+  };
+
+  const handleSelectWorkspace = async (workspaceId: string) => {
+    const workspace = workspaces.find((w) => w.id === workspaceId);
+    if (!workspace) return;
+    try {
+      await workspaceCommands.setDefaultWorkspace(workspaceId);
+      setSelectedWorkspaceId(workspaceId);
+      setShowDirectoryMenu(false);
+      await loadWorkspaces();
+    } catch (error) {
+      showToast(ToastType.ERROR, "Failed to set default workspace: " + error);
+    }
+  };
 
   useEffect(() => {
     const updateMessages = () => {
@@ -205,9 +313,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
       setMessages(allMessages);
     };
     updateMessages();
-    const unsubscribe = taskManager.subscribe(() => {
-      updateMessages();
-    });
+    const unsubscribe = taskManager.subscribe(() => updateMessages());
     return unsubscribe;
   }, [language, currentSessionId, t]);
 
@@ -222,49 +328,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
         messagesContainerRef.current.scrollHeight;
     }
   }, [messages, userScrolled]);
-
-  const loadWorkspaces = async (retryCount: number = 0): Promise<void> => {
-    try {
-      const config = await workspaceCommands.getWorkspaceConfig();
-      if (config.instances.length === 0 && retryCount < 5) {
-        await new Promise((resolve) => setTimeout(resolve, 200));
-        return loadWorkspaces(retryCount + 1);
-      }
-      setWorkspaces(config.instances);
-      if (config.default_instance_id) {
-        setSelectedWorkspaceId(config.default_instance_id);
-      } else if (config.instances.length > 0) {
-        setSelectedWorkspaceId(config.instances[0].id);
-      }
-    } catch (error) {
-      showToast(ToastType.ERROR, "Failed to load workspaces: " + error);
-    }
-  };
-
-  const handleSelectWorkspace = async (workspaceId: string) => {
-    const workspace = workspaces.find((w) => w.id === workspaceId);
-    if (!workspace) return;
-    try {
-      await workspaceCommands.setDefaultWorkspace(workspaceId);
-      setSelectedWorkspaceId(workspaceId);
-      setShowDirectoryMenu(false);
-      await loadWorkspaces();
-    } catch (error) {
-      showToast(ToastType.ERROR, "Failed to set default workspace: " + error);
-    }
-  };
-
-  const checkScrollPosition = () => {
-    if (!messagesContainerRef.current) return;
-    const { scrollTop, scrollHeight, clientHeight } =
-      messagesContainerRef.current;
-    const atBottom = scrollHeight - scrollTop - clientHeight <= 10;
-    setIsAtBottom(atBottom);
-    setShowScrollButton(scrollHeight > clientHeight && !atBottom);
-    if (atBottom) {
-      setUserScrolled(false);
-    }
-  };
 
   useEffect(() => {
     const element = messagesContainerRef.current;
@@ -297,126 +360,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-
-  const handleUserScroll = () => {
-    if (messagesContainerRef.current) {
-      const { scrollTop, scrollHeight, clientHeight } =
-        messagesContainerRef.current;
-      const atBottom = scrollHeight - scrollTop - clientHeight <= 10;
-      if (!atBottom) {
-        setUserScrolled(true);
-      }
-    }
-    checkScrollPosition();
-  };
-
-  const scrollToBottom = () => {
-    if (messagesContainerRef.current) {
-      messagesContainerRef.current.scrollTo({
-        top: messagesContainerRef.current.scrollHeight,
-        behavior: "smooth",
-      });
-      setUserScrolled(false);
-    }
-  };
-
-  const handleFilesAdd = (files: UploadFile[]) => {
-    setUploadedFiles((prev) => {
-      const existingKeys = new Set(prev.map((f) => `${f.name}_${f.size}`));
-      const newUniqueFiles = files.filter(
-        (f) => !existingKeys.has(`${f.name}_${f.size}`),
-      );
-      console.log(
-        "Adding files:",
-        files.length,
-        "Unique:",
-        newUniqueFiles.length,
-      );
-      return [...prev, ...newUniqueFiles];
-    });
-  };
-
-  const handleFileRemove = (fileId: string) => {
-    setUploadedFiles((prev) => prev.filter((f) => f.id !== fileId));
-  };
-
-  const handleSend = () => {
-    if (inputValue.trim() || uploadedFiles.length > 0) {
-      const sessionId = currentSessionId || "";
-      if (!sessionId) {
-        showToast(ToastType.SUCCESS, "Session ID cannot be empty.");
-        return;
-      }
-      const message = inputValue.trim() || "";
-      const currentFiles = [...uploadedFiles];
-      const userMessage: ChatMessage = {
-        id: `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        role: RoleEnum.User,
-        content: message,
-        timestamp: new Date().toISOString(),
-        files: currentFiles,
-      };
-      taskManager.addUserMessageToSession(sessionId, userMessage);
-      let backendMessage = message;
-      if (uploadedFiles.length > 0) {
-        const fileInfo = uploadedFiles.map((f) => `[📎 ${f.name}]`).join("\n");
-        backendMessage = message ? `${message}\n${fileInfo}` : fileInfo;
-      }
-      onSendMessage(backendMessage, sessionId, currentFiles);
-      setInputValue("");
-      setUploadedFiles([]);
-      if (textareaRef.current) {
-        textareaRef.current.style.height = "auto";
-      }
-    }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
-  };
-
-  const adjustTextareaHeight = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setInputValue(e.target.value);
-    e.target.style.height = "auto";
-    e.target.style.height = Math.min(e.target.scrollHeight, 100) + "px";
-  };
-
-  const handleAttachment = (type: string) => {
-    setShowAttachmentMenu(false);
-  };
-
-  const getSelectedWorkspaceName = (): string => {
-    const workspace = workspaces.find((w) => w.id === selectedWorkspaceId);
-    if (!workspace) return language === "zh" ? "工作目录" : "Workspace";
-    const path = workspace.workspace_path;
-    const normalizedPath = path.replace(/\\/g, "/");
-    const parts = normalizedPath.split("/");
-    return parts[parts.length - 1] || workspace.name;
-  };
-
-  const copyToClipboard = async (text: string | undefined) => {
-    try {
-      if (!text) {
-        showToast(ToastType.ERROR, t("common.copyFailed") || "Copy Failed");
-        return;
-      }
-      await navigator.clipboard.writeText(text);
-      showToast(ToastType.SUCCESS, t("common.copied") || "Copied");
-    } catch (err) {
-      showToast(ToastType.ERROR, t("common.copyFailed") || "Copy Failed");
-    }
-  };
-
-  const formatFileSize = (bytes: number): string => {
-    if (bytes === 0) return "0 B";
-    const k = 1024;
-    const sizes = ["B", "KB", "MB", "GB"];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
-  };
 
   return (
     <div className="chat-panel">
@@ -982,6 +925,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     --hover-bg: rgba(0, 0, 0, 0.04);
   }
 `}</style>
+
       <div
         className="panel-header"
         style={{ paddingTop: "13px", paddingBottom: "13px" }}
@@ -1002,6 +946,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
           )}
         </div>
       </div>
+
       <div className="chat-messages-wrapper">
         <div
           className="chat-messages"
@@ -1028,242 +973,26 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
                         <LoadingSpinner />
                       </div>
                     </div>
-                  ) : msg.status === MessageStatus.Paused ? (
-                    <div className="message-bubble">
-                      <div className="message-content">
-                        ⏸️ {t("terminal.taskPaused")}
-                      </div>
-                      <div className="message-time">
-                        {new Date(msg.timestamp).toLocaleTimeString()}
-                      </div>
-                    </div>
-                  ) : msg.status === MessageStatus.Cancelled ? (
-                    <div className="message-bubble">
-                      <div className="message-content">
-                        ❌ {t("terminal.cancelled")}
-                      </div>
-                      <div className="message-time">
-                        {new Date(msg.timestamp).toLocaleTimeString()}
-                      </div>
-                    </div>
-                  ) : msg.status === MessageStatus.Failed ? (
-                    <div className="message-bubble">
-                      <div className="message-content">
-                        ❌ {msg.content || t("terminal.failed")}
-                      </div>
-                      <div className="message-time">
-                        {new Date(msg.timestamp).toLocaleTimeString()}
-                      </div>
-                    </div>
+                  ) : msg.status === MessageStatus.Paused ||
+                    msg.status === MessageStatus.Cancelled ||
+                    msg.status === MessageStatus.Failed ? (
+                    <StatusMessage msg={msg} status={msg.status} t={t} />
                   ) : (
-                    <>
-                      {isUser && msg.files && msg.files.length > 0 && (
-                        <div
-                          className="message-files-grid"
-                          style={{
-                            direction: "rtl",
-                          }}
-                        >
-                          {[...msg.files].reverse().map((file, idx) => (
-                            <div
-                              key={
-                                file.id ||
-                                `file_${idx}_${file.name}_${Date.now()}`
-                              }
-                              className="message-file-item"
-                              onClick={() => onFileClick?.(file)}
-                              style={{ direction: "ltr" }}
-                            >
-                              {file.type?.startsWith("image/") &&
-                              file.preview ? (
-                                <img
-                                  src={file.preview}
-                                  alt={file.name}
-                                  className="file-preview-img"
-                                />
-                              ) : (
-                                <div className="file-icon-placeholder">
-                                  {getFileIcon(file, 28)}
-                                </div>
-                              )}
-                              <div className="file-info">
-                                <span className="file-name" title={file.name}>
-                                  {file.name.length > 15
-                                    ? file.name.slice(0, 12) + "..."
-                                    : file.name}
-                                </span>
-                                <span className="file-size">
-                                  {formatFileSize(file.size)}
-                                </span>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-
-                      {editingMessageId === msg.id ? (
-                        <div
-                          className="message-bubble"
-                          style={{
-                            padding: "8px",
-                            background: "var(--bg-tertiary)",
-                          }}
-                        >
-                          <textarea
-                            value={editContent}
-                            onChange={(e) => setEditContent(e.target.value)}
-                            style={{
-                              width: "100%",
-                              minWidth: "280px",
-                              background: "var(--bg-primary)",
-                              border: "1px solid var(--border-color)",
-                              borderRadius: "8px",
-                              color: "var(--text-primary)",
-                              padding: "8px 12px",
-                              fontSize: "14px",
-                              lineHeight: "1.5",
-                              resize: "vertical",
-                              fontFamily: "inherit",
-                            }}
-                            autoFocus
-                          />
-                          <div
-                            style={{
-                              display: "flex",
-                              gap: "8px",
-                              marginTop: "8px",
-                              justifyContent: "flex-end",
-                            }}
-                          >
-                            <button
-                              className="action-btn"
-                              onClick={() => handleSaveEdit(msg)}
-                              style={{
-                                background: "var(--accent-color)",
-                                color: "white",
-                              }}
-                            >
-                              {t("chat.saveEdit") || "Save"}
-                            </button>
-                            <button
-                              className="action-btn"
-                              onClick={handleCancelEdit}
-                            >
-                              {t("chat.cancelEdit") || "Cancel"}
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="message-bubble">
-                          <div className="message-content">{msg.content}</div>
-                          <div className="message-time">
-                            {new Date(msg.timestamp).toLocaleTimeString()}
-                          </div>
-                        </div>
-                      )}
-
-                      {isUser && (
-                        <div className="message-actions">
-                          <button
-                            className="action-btn locate-btn"
-                            onClick={() => {
-                              const relatedTask = taskManager
-                                .getAllTasks()
-                                .find(
-                                  (task) =>
-                                    task.user_input === msg.content ||
-                                    task.task_id === (msg as any).relatedTaskId,
-                                );
-                              if (relatedTask) {
-                                window.dispatchEvent(
-                                  new CustomEvent("locate-task-in-terminal", {
-                                    detail: { taskId: relatedTask.task_id },
-                                  }),
-                                );
-                                showToast(
-                                  ToastType.SUCCESS,
-                                  t("chat.locatedToTerminal") ||
-                                    "Located To Terminal",
-                                );
-                              } else {
-                                showToast(
-                                  ToastType.INFO,
-                                  t("chat.noRelatedTask") || "No Related Task",
-                                );
-                              }
-                            }}
-                            title={
-                              t("chat.locateInTerminal") || "LocateIn Terminal"
-                            }
-                          >
-                            <LocateIcon />
-                          </button>
-                          <button
-                            className="action-btn copy-btn"
-                            onClick={() => copyToClipboard(msg.content)}
-                            title={t("common.copy") || "Copy"}
-                          >
-                            <CopyIcon size={12} />
-                          </button>
-                          <button
-                            className="action-btn edit-btn"
-                            onClick={() => handleEditMessage(msg)}
-                            title={t("chat.edit") || "Edit"}
-                          >
-                            <EditIcon2 size={14} />
-                          </button>
-                        </div>
-                      )}
-                      {!isUser && (
-                        <div
-                          className="message-actions"
-                          style={{ justifyContent: "flex-start" }}
-                        >
-                          <button
-                            className="action-btn copy-btn"
-                            onClick={() => copyToClipboard(msg.content)}
-                            title={t("common.copy") || "Copy"}
-                          >
-                            <CopyIcon size={12} />
-                          </button>
-                          <button
-                            className="action-btn locate-btn"
-                            onClick={() => {
-                              const relatedTask = taskManager
-                                .getAllTasks()
-                                .find(
-                                  (task) =>
-                                    task.user_input === msg.content ||
-                                    task.final_output === msg.content ||
-                                    task.task_id === (msg as any).relatedTaskId,
-                                );
-                              if (relatedTask) {
-                                window.dispatchEvent(
-                                  new CustomEvent("locate-task-in-terminal", {
-                                    detail: { taskId: relatedTask.task_id },
-                                  }),
-                                );
-                                showToast(
-                                  ToastType.SUCCESS,
-                                  t("chat.locatedToTerminal") ||
-                                    "Located To Terminal",
-                                );
-                              } else {
-                                showToast(
-                                  ToastType.INFO,
-                                  t("chat.noRelatedTask") || "No Related Task",
-                                );
-                              }
-                            }}
-                            title={
-                              t("chat.locateInTerminal") || "Locate In Terminal"
-                            }
-                          >
-                            <LocateIcon />
-                          </button>
-                        </div>
-                      )}
-                    </>
+                    <NormalMessage
+                      msg={msg}
+                      isUser={isUser}
+                      editingMessageId={editingMessageId}
+                      editContent={editContent}
+                      setEditContent={setEditContent}
+                      onSaveEdit={handleSaveEdit}
+                      onCancelEdit={handleCancelEdit}
+                      copyToClipboard={copyToClipboard}
+                      onLocateTask={handleLocateTask}
+                      onEditMessage={handleEditMessage}
+                      onFileClick={onFileClick}
+                      formatFileSize={formatFileSize}
+                      t={t}
+                    />
                   )}
                 </div>
               </div>
@@ -1282,6 +1011,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
           </div>
         )}
       </div>
+
       <div className="chat-input-section">
         <div
           className={`chat-input-container ${isFocused ? "focused" : ""}`}
@@ -1298,7 +1028,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
               onDragOverInput={onDragOverInputChange}
             />
           </div>
-
           <div className="input-textarea-wrapper">
             <textarea
               ref={textareaRef}
@@ -1312,7 +1041,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
               rows={1}
             />
           </div>
-
           <div className="action-buttons-row">
             <div className="left-actions">
               <div
@@ -1345,28 +1073,28 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
                 <div className="attachment-menu" ref={attachmentMenuRef}>
                   <div
                     className="attachment-item"
-                    onClick={() => handleAttachment("text")}
+                    onClick={() => handleAttachment()}
                   >
                     <TextFileIcon size={14} />
                     {t("chat.textFile")}
                   </div>
                   <div
                     className="attachment-item"
-                    onClick={() => handleAttachment("image")}
+                    onClick={() => handleAttachment()}
                   >
                     <ImageIcon size={14} />
                     {t("chat.image")}
                   </div>
                   <div
                     className="attachment-item"
-                    onClick={() => handleAttachment("video")}
+                    onClick={() => handleAttachment()}
                   >
                     <VideoIcon size={14} />
                     {t("chat.video")}
                   </div>
                   <div
                     className="attachment-item"
-                    onClick={() => handleAttachment("skill")}
+                    onClick={() => handleAttachment()}
                   >
                     <FileIcon size={14} />
                     {t("chat.skillFile")}
