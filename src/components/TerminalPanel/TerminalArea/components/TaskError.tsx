@@ -2,6 +2,10 @@ import React from "react";
 import { copyToClipboard } from "../utils";
 import { ContentWithLinks } from "./ContentWithLinks";
 import { CopyIcon } from "../../../../icons";
+import {
+  MessageUrlGrid,
+  extractUrls,
+} from "../../../ChatPanel/components/MessageUrlGrid";
 
 interface TaskErrorProps {
   error: string;
@@ -16,6 +20,8 @@ export const TaskError: React.FC<TaskErrorProps> = ({
   onShowChart,
   t,
 }) => {
+  const urls = extractUrls(error);
+
   return (
     <div className="task-error">
       <div
@@ -91,6 +97,11 @@ export const TaskError: React.FC<TaskErrorProps> = ({
           <span>{t("terminal.showChart") || "View Chart"}</span>
         </button>
       </div>
+      {urls.length > 0 && (
+        <div style={{ marginTop: "12px" }}>
+          <MessageUrlGrid urls={urls} t={t} />
+        </div>
+      )}
     </div>
   );
 };

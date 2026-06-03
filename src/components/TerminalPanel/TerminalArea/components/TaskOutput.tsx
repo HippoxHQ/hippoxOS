@@ -2,6 +2,10 @@ import React from "react";
 import { copyToClipboard } from "../utils";
 import { ContentWithLinks } from "./ContentWithLinks";
 import { CopyIcon } from "../../../../icons";
+import {
+  MessageUrlGrid,
+  extractUrls,
+} from "../../../ChatPanel/components/MessageUrlGrid";
 
 interface TaskOutputProps {
   output: string;
@@ -16,6 +20,8 @@ export const TaskOutput: React.FC<TaskOutputProps> = ({
   onShowChart,
   t,
 }) => {
+  const urls = extractUrls(output);
+
   return (
     <div className="task-final-output">
       <div
@@ -100,6 +106,11 @@ export const TaskOutput: React.FC<TaskOutputProps> = ({
           <span>{t("terminal.showChart") || "Show Chart"}</span>
         </button>
       </div>
+      {urls.length > 0 && (
+        <div style={{ marginTop: "12px" }}>
+          <MessageUrlGrid urls={urls} t={t} />
+        </div>
+      )}
     </div>
   );
 };
