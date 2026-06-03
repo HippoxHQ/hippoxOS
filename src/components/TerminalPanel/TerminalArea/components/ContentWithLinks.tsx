@@ -1,12 +1,15 @@
 import React, { JSX } from "react";
-import { openUrl, handleOpenPath } from "../utils";
+import { openUrl, handleOpenPath } from "../../../../utils";
 
 interface ContentWithLinksProps {
   text: string;
   t: (key: string, params?: any) => string;
 }
 
-export const ContentWithLinks: React.FC<ContentWithLinksProps> = ({ text, t }) => {
+export const ContentWithLinks: React.FC<ContentWithLinksProps> = ({
+  text,
+  t,
+}) => {
   if (!text) return null;
   const urlRegex = /(https?:\/\/[^\s]+|ftp:\/\/[^\s]+|file:\/\/[^\s]+)/gi;
   const filePathRegex = /(?:[a-zA-Z]:)?[\\/][\w\-\.\\/]+(?:\.\w+)?/g;
@@ -18,7 +21,7 @@ export const ContentWithLinks: React.FC<ContentWithLinksProps> = ({ text, t }) =
     text: string;
     type: "url" | "file";
   }[] = [];
-  
+
   let urlMatch: RegExpExecArray | null;
   urlRegex.lastIndex = 0;
   while ((urlMatch = urlRegex.exec(text)) !== null) {
@@ -29,7 +32,7 @@ export const ContentWithLinks: React.FC<ContentWithLinksProps> = ({ text, t }) =
       type: "url",
     });
   }
-  
+
   let fileMatch: RegExpExecArray | null;
   filePathRegex.lastIndex = 0;
   while ((fileMatch = filePathRegex.exec(text)) !== null) {
@@ -48,10 +51,10 @@ export const ContentWithLinks: React.FC<ContentWithLinksProps> = ({ text, t }) =
       });
     }
   }
-  
+
   matches.sort((a, b) => a.index - b.index);
   let currentIndex = 0;
-  
+
   for (const match of matches) {
     if (match.index > currentIndex) {
       parts.push(
@@ -89,10 +92,10 @@ export const ContentWithLinks: React.FC<ContentWithLinksProps> = ({ text, t }) =
     );
     currentIndex = match.endIndex;
   }
-  
+
   if (currentIndex < text.length) {
     parts.push(<span key={`text-end`}>{text.substring(currentIndex)}</span>);
   }
-  
+
   return <>{parts}</>;
 };

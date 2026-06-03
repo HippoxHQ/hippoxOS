@@ -34,6 +34,7 @@ import {
 import FileUploader from "../FileUploader";
 import { showToast, ToastType } from "../Toast";
 import { zhDefaultPrompts, enDefaultPrompts } from "../../types/DefaultPrompt";
+import { extractUrls, MessageUrlGrid } from "./components/MessageUrlGrid";
 
 interface ChatPanelProps {
   onSendMessage: (
@@ -1225,6 +1226,13 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
                         )}
                     </>
                   )}
+                  {(() => {
+                    const urls = extractUrls(msg.content);
+                    if (urls.length > 0) {
+                      return <MessageUrlGrid urls={urls} t={t} />;
+                    }
+                    return null;
+                  })()}
                 </div>
               </div>
             );

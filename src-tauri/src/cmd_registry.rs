@@ -179,5 +179,6 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_task_pool_get_stats,
         commands::cmd_task_pool_set_max_concurrent,
         commands::cmd_task_pool_get_tasks_by_session,
+        commands::cmd_get_url_metadata,
     ]
 }

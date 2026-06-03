@@ -15,6 +15,7 @@ pub mod skills_market;
 pub mod sys;
 pub mod task_pool;
 pub mod types;
+pub mod urls;
 pub mod windows;
 
 pub use chat::*;
@@ -34,4 +35,5 @@ pub use skills_market::*;
 pub use sys::*;
 pub use task_pool::*;
 pub use types::*;
+pub use urls::*;
 pub use windows::*;

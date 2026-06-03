@@ -31,7 +31,18 @@
           "identifier": "main-window",
           "description": "Main Window",
           "windows": ["main"],
-          "permissions": ["core:default", "core:event:default"]
+          "permissions": [
+            "core:default",
+            "core:event:allow-listen",
+            "core:event:allow-emit",
+            "core:event:allow-emit-to",
+            "core:window:allow-close",
+            "core:window:allow-show",
+            "core:window:allow-hide",
+            "core:window:allow-set-position",
+            "core:window:allow-set-focus",
+            "shell:allow-open"
+          ]
         },
         {
           "identifier": "tray-window",
@@ -41,7 +52,13 @@
             "core:default",
             "core:event:allow-listen",
             "core:event:allow-emit",
-            "core:event:allow-emit-to"
+            "core:event:allow-emit-to",
+            "core:window:allow-close",
+            "core:window:allow-show",
+            "core:window:allow-hide",
+            "core:window:allow-set-position",
+            "core:window:allow-set-focus",
+            "shell:allow-open"
           ]
         },
         {
@@ -57,7 +74,8 @@
             "core:window:allow-show",
             "core:window:allow-hide",
             "core:window:allow-set-position",
-            "core:window:allow-set-focus"
+            "core:window:allow-set-focus",
+            "shell:allow-open"
           ]
         }
       ]
