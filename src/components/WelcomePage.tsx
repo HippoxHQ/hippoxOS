@@ -174,12 +174,8 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
     e.preventDefault();
     e.stopPropagation();
     if (inputValue.trim() || uploadedFiles.length > 0) {
-      let message = inputValue.trim();
+      const message = inputValue.trim();
       const currentFiles = [...uploadedFiles];
-      if (uploadedFiles.length > 0) {
-        const fileInfo = uploadedFiles.map((f) => `[📎 ${f.name}]`).join("\n");
-        message = message ? `${message}\n${fileInfo}` : fileInfo;
-      }
       onSendMessage(message, currentFiles);
       setInputValue("");
       setUploadedFiles([]);

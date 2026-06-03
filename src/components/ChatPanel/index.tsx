@@ -327,10 +327,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   };
 
   const handleSend = () => {
-    if (isSending) {
-      return;
-    }
-
+    if (isSending) return;
     if (inputValue.trim() || uploadedFiles.length > 0) {
       const sessionId = currentSessionId || "";
       if (!sessionId) {
@@ -344,14 +341,10 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
       if (textareaRef.current) textareaRef.current.style.height = "auto";
       setIsSending(true);
       let backendMessage = message;
-      if (currentFiles.length > 0) {
-        const fileInfo = currentFiles.map((f) => `[📎 ${f.name}]`).join("\n");
-        backendMessage = message ? `${message}\n${fileInfo}` : fileInfo;
-      }
       Promise.resolve(
         onSendMessage(backendMessage, sessionId, currentFiles),
       ).finally(() => {
-        setTimeout(() => setIsSending(false), 100); 
+        setTimeout(() => setIsSending(false), 100);
       });
     }
   };
@@ -1171,20 +1164,22 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
                           formatFileSize={formatFileSize}
                         />
                       )}
-                      {editingMessageId === msg.id ? (
-                        <EditMessageForm
-                          editContent={editContent}
-                          setEditContent={setEditContent}
-                          onSave={() => handleSaveEdit(msg)}
-                          onCancel={handleCancelEdit}
-                          t={t}
-                        />
-                      ) : (
-                        <div className="message-bubble">
-                          <div className="message-content">{msg.content}</div>
-                          <div className="message-time">{formattedTime}</div>
-                        </div>
-                      )}
+                      {msg.content &&
+                        msg.content.trim() &&
+                        (editingMessageId === msg.id ? (
+                          <EditMessageForm
+                            editContent={editContent}
+                            setEditContent={setEditContent}
+                            onSave={() => handleSaveEdit(msg)}
+                            onCancel={handleCancelEdit}
+                            t={t}
+                          />
+                        ) : (
+                          <div className="message-bubble">
+                            <div className="message-content">{msg.content}</div>
+                            <div className="message-time">{formattedTime}</div>
+                          </div>
+                        ))}
                       <MessageActions
                         msg={msg}
                         isUser={true}

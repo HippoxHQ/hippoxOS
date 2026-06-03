@@ -253,7 +253,7 @@ export const globalStyles = `
   display: flex;
   align-items: center;
   gap: 4px;
-  background: var(--bg-tertiary);
+  // background: var(--bg-tertiary);
   border-radius: 8px;
   padding: 0 4px;
 }
@@ -288,7 +288,8 @@ export const globalStyles = `
   gap: 10px;
   overflow-x: auto;
   padding: 8px 4px;
-  scrollbar-width: thin;
+  scrollbar-width: none; 
+  -ms-overflow-style: none; 
   scroll-behavior: smooth;
 }
 
