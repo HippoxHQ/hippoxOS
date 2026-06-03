@@ -26,6 +26,8 @@ export interface ChatMessage {
   timestamp: string;
   status?: MessageStatus;
   files?: UploadFile[];
+  edited?: boolean;
+  originalId?: string;
 }
 
 export type Theme = 'dark' | 'light';

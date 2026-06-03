@@ -523,6 +523,12 @@ export const zh = {
     }
   },
   chat: {
+    edit: '编辑',
+    editMessage: '编辑消息',
+    saveEdit: '确定',
+    cancelEdit: '取消',
+    editSuccess: '消息已重新发送',
+    editFailed: '编辑失败',
     locateInTerminal: '定位到终端',
     locatedToTerminal: '已定位到终端任务',
     noRelatedTask: '未找到关联的终端任务',
@@ -1401,6 +1407,12 @@ export const en: typeof zh = {
     }
   },
   chat: {
+    edit: 'Edit',
+    editMessage: 'Edit message',
+    saveEdit: 'Save',
+    cancelEdit: 'Cancel',
+    editSuccess: 'Message resent',
+    editFailed: 'Edit failed',
     locateInTerminal: 'Locate in Terminal',
     locatedToTerminal: 'Located to terminal task',
     noRelatedTask: 'No related task found',

@@ -1385,7 +1385,7 @@ export const LocateIcon: React.FC<IconProps> = ({ className, size = 20 }) => (
     xmlns="http://www.w3.org/2000/svg"
     width={size}
     height={size}
-    viewBox="0 0 20 20"
+    viewBox="1 0 19 19"
     fill="none"
     stroke="currentColor"
     strokeWidth="1.5"
@@ -1394,6 +1394,24 @@ export const LocateIcon: React.FC<IconProps> = ({ className, size = 20 }) => (
     className={className}
   >
     <path d="M10 13L5 8M5 8L10 3M5 8H15C17.2091 8 19 9.79086 19 12C19 14.2091 17.2091 16 15 16H12" />
+  </svg>
+);
+
+export const EditIcon2: React.FC<IconProps> = ({ className, size = 20 }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size}
+    height={size}
+    viewBox="6 0 20 20"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    <path d="M17 3l4 4-7 7H10v-4l7-7z" />
+    <path d="M4 20h16" />
   </svg>
 );
 

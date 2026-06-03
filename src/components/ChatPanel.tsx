@@ -19,6 +19,7 @@ import {
   FileIcon,
   CopyIcon,
   LocateIcon,
+  EditIcon2,
 } from "../icons";
 import { workspaceCommands, WorkspaceInstance } from "../api/workspace";
 import { taskManager } from "../TaskManager";
@@ -67,6 +68,45 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   const [uploadedFiles, setUploadedFiles] = useState<UploadFile[]>([]);
   const [currentModel, setCurrentModel] = useState<LlmInstance | null>(null);
   const [loadingModel, setLoadingModel] = useState(true);
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [editContent, setEditContent] = useState<string>("");
+
+  const handleEditMessage = (msg: ChatMessage) => {
+    setEditingMessageId(msg.id);
+    setEditContent(msg.content);
+  };
+
+  const handleSaveEdit = async (msg: ChatMessage) => {
+    if (!editContent.trim() && !(msg.files && msg.files.length > 0)) {
+      showToast(ToastType.ERROR, t("chat.editFailed") || "Edit failed");
+      return;
+    }
+    const sessionId = currentSessionId || "";
+    const currentFiles = msg.files || [];
+    const editedMessage: ChatMessage = {
+      ...msg,
+      id: `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      content: editContent,
+      timestamp: new Date().toISOString(),
+      edited: true,
+      originalId: msg.id,
+    };
+    taskManager.addUserMessageToSession(sessionId, editedMessage);
+    let backendMessage = editContent;
+    if (currentFiles.length > 0) {
+      const fileInfo = currentFiles.map((f) => `[📎 ${f.name}]`).join("\n");
+      backendMessage = editContent ? `${editContent}\n${fileInfo}` : fileInfo;
+    }
+    onSendMessage(backendMessage, sessionId, currentFiles);
+    setEditingMessageId("");
+    setEditContent("");
+    showToast(ToastType.SUCCESS, t("chat.editSuccess") || "Message resent");
+  };
+
+  const handleCancelEdit = () => {
+    setEditingMessageId("");
+    setEditContent("");
+  };
 
   const handleContainerClick = (e: React.MouseEvent) => {
     textareaRef.current?.focus();
@@ -1060,12 +1100,68 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
                           ))}
                         </div>
                       )}
-                      <div className="message-bubble">
-                        <div className="message-content">{msg.content}</div>
-                        <div className="message-time">
-                          {new Date(msg.timestamp).toLocaleTimeString()}
+
+                      {editingMessageId === msg.id ? (
+                        <div
+                          className="message-bubble"
+                          style={{
+                            padding: "8px",
+                            background: "var(--bg-tertiary)",
+                          }}
+                        >
+                          <textarea
+                            value={editContent}
+                            onChange={(e) => setEditContent(e.target.value)}
+                            style={{
+                              width: "100%",
+                              minWidth: "280px",
+                              background: "var(--bg-primary)",
+                              border: "1px solid var(--border-color)",
+                              borderRadius: "8px",
+                              color: "var(--text-primary)",
+                              padding: "8px 12px",
+                              fontSize: "14px",
+                              lineHeight: "1.5",
+                              resize: "vertical",
+                              fontFamily: "inherit",
+                            }}
+                            autoFocus
+                          />
+                          <div
+                            style={{
+                              display: "flex",
+                              gap: "8px",
+                              marginTop: "8px",
+                              justifyContent: "flex-end",
+                            }}
+                          >
+                            <button
+                              className="action-btn"
+                              onClick={() => handleSaveEdit(msg)}
+                              style={{
+                                background: "var(--accent-color)",
+                                color: "white",
+                              }}
+                            >
+                              {t("chat.saveEdit") || "Save"}
+                            </button>
+                            <button
+                              className="action-btn"
+                              onClick={handleCancelEdit}
+                            >
+                              {t("chat.cancelEdit") || "Cancel"}
+                            </button>
+                          </div>
                         </div>
-                      </div>
+                      ) : (
+                        <div className="message-bubble">
+                          <div className="message-content">{msg.content}</div>
+                          <div className="message-time">
+                            {new Date(msg.timestamp).toLocaleTimeString()}
+                          </div>
+                        </div>
+                      )}
+
                       {isUser && (
                         <div className="message-actions">
                           <button
@@ -1109,9 +1205,15 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
                           >
                             <CopyIcon size={12} />
                           </button>
+                          <button
+                            className="action-btn edit-btn"
+                            onClick={() => handleEditMessage(msg)}
+                            title={t("chat.edit") || "Edit"}
+                          >
+                            <EditIcon2 size={14} />
+                          </button>
                         </div>
                       )}
-
                       {!isUser && (
                         <div
                           className="message-actions"
