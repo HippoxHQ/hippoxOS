@@ -219,6 +219,7 @@ export function AppContent({
                 t={t}
                 currentSessionId={currentSessionId}
                 onDragOverInputChange={setIsDraggingOverInput}
+                language={language}
               />
             }
             rightExtraPanel={

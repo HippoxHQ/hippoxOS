@@ -1,7 +1,14 @@
 import React, { useState, useRef, useEffect } from "react";
 
 import { useEditMessage } from "./hooks";
-import { NormalMessage, StatusMessage, LoadingSpinner } from "./components";
+import {
+  NormalMessage,
+  StatusMessage,
+  LoadingSpinner,
+  MessageFileGrid,
+  EditMessageForm,
+  MessageActions,
+} from "./components";
 import { LlmInstance, llmCommands } from "../../api/llm";
 import { WorkspaceInstance, workspaceCommands } from "../../api/workspace";
 import {
@@ -26,6 +33,7 @@ import {
 } from "../../types/type";
 import FileUploader from "../FileUploader";
 import { showToast, ToastType } from "../Toast";
+import { zhDefaultPrompts, enDefaultPrompts } from "../../types/DefaultPrompt";
 
 interface ChatPanelProps {
   onSendMessage: (
@@ -61,6 +69,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   const [uploadedFiles, setUploadedFiles] = useState<UploadFile[]>([]);
   const [currentModel, setCurrentModel] = useState<LlmInstance | null>(null);
   const [loadingModel, setLoadingModel] = useState(true);
+  const [suggestionPrompts, setSuggestionPrompts] = useState<string[]>([]);
 
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -77,6 +86,49 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     handleSaveEdit,
     handleCancelEdit,
   } = useEditMessage({ currentSessionId, onSendMessage, t });
+
+  const getRandomPrompts = (count: number = 6): string[] => {
+    const prompts = language === "zh" ? zhDefaultPrompts : enDefaultPrompts;
+    const shuffled = [...prompts];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled.slice(0, count);
+  };
+
+  const shouldShowSuggestions = (msgs: ChatMessage[]) => {
+    if (msgs.length === 0) return false;
+    const lastMsg = msgs[msgs.length - 1];
+    if (lastMsg.role !== RoleEnum.LLM) return false;
+    const excludeStatuses = [MessageStatus.Pending, MessageStatus.Paused];
+    if (lastMsg.status && excludeStatuses.includes(lastMsg.status)) {
+      return false;
+    }
+    return true;
+  };
+
+  useEffect(() => {
+    if (shouldShowSuggestions(messages)) {
+      setSuggestionPrompts(getRandomPrompts(6));
+    }
+  }, [messages, language]);
+
+  const handleSuggestionClick = (prompt: string) => {
+    const sessionId = currentSessionId || "";
+    if (!sessionId) {
+      showToast(ToastType.SUCCESS, "Session ID cannot be empty.");
+      return;
+    }
+    const userMessage: ChatMessage = {
+      id: `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      role: RoleEnum.User,
+      content: prompt,
+      timestamp: new Date().toISOString(),
+    };
+    taskManager.addUserMessageToSession(sessionId, userMessage);
+    onSendMessage(prompt, sessionId);
+  };
 
   const handleContainerClick = () => textareaRef.current?.focus();
 
@@ -361,9 +413,25 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const getEndingMessage = () => {
+    return (
+      t("chat.endingMessage") ||
+      (language === "zh"
+        ? "✨ 我还能为你做些什么吗？ ✨"
+        : "✨ What else can I do for you? ✨")
+    );
+  };
+
   return (
     <div className="chat-panel">
       <style>{`
+
+  .suggestions-title {
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-tertiary);
+  margin-bottom: 8px;
+  }
 
   .loading-text {
     opacity: 0.7;
@@ -898,6 +966,49 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     vertical-align: middle;
   }
 
+  .suggestions-wrapper {
+    margin-top: 12px;
+    width: 100%;
+  }
+
+  .ending-message {
+    text-align: center;
+    padding: 10px 12px;
+    margin: 8px 0 4px 0;
+    font-size: 13px;
+    color: var(--text-secondary);
+    background: var(--bg-tertiary);
+    border-radius: 20px;
+    opacity: 0.9;
+  }
+  
+  .suggestions-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: center;
+    padding: 4px 0;
+  }
+  
+  .suggestion-bubble {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 4px 10px;
+    font-size: 11px;
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+  }
+  
+  .suggestion-bubble:hover {
+    background: var(--accent-color);
+    border-color: var(--accent-color);
+    color: white;
+    transform: translateY(-1px);
+  }
+
   :root {
     --bg-primary: #0f1117;
     --bg-secondary: #1a1d26;
@@ -953,8 +1064,10 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
           ref={messagesContainerRef}
           onScroll={handleUserScroll}
         >
-          {messages.map((msg) => {
+          {messages.map((msg, index) => {
             const isUser = msg.role === RoleEnum.User;
+            const isLastMessage = index === messages.length - 1;
+
             return (
               <div
                 key={msg.id}
@@ -973,26 +1086,88 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
                         <LoadingSpinner />
                       </div>
                     </div>
-                  ) : msg.status === MessageStatus.Paused ||
-                    msg.status === MessageStatus.Cancelled ||
-                    msg.status === MessageStatus.Failed ? (
+                  ) : msg.status === MessageStatus.Paused ? (
                     <StatusMessage msg={msg} status={msg.status} t={t} />
+                  ) : isUser ? (
+                    <>
+                      {msg.files && msg.files.length > 0 && (
+                        <MessageFileGrid
+                          files={msg.files}
+                          onFileClick={onFileClick}
+                          formatFileSize={formatFileSize}
+                        />
+                      )}
+                      {editingMessageId === msg.id ? (
+                        <EditMessageForm
+                          editContent={editContent}
+                          setEditContent={setEditContent}
+                          onSave={() => handleSaveEdit(msg)}
+                          onCancel={handleCancelEdit}
+                          t={t}
+                        />
+                      ) : (
+                        <div className="message-bubble">
+                          <div className="message-content">{msg.content}</div>
+                          <div className="message-time">
+                            {new Date(msg.timestamp).toLocaleTimeString()}
+                          </div>
+                        </div>
+                      )}
+                      <MessageActions
+                        msg={msg}
+                        isUser={true}
+                        copyToClipboard={copyToClipboard}
+                        onLocateTask={handleLocateTask}
+                        onEditMessage={handleEditMessage}
+                        t={t}
+                      />
+                    </>
                   ) : (
-                    <NormalMessage
-                      msg={msg}
-                      isUser={isUser}
-                      editingMessageId={editingMessageId}
-                      editContent={editContent}
-                      setEditContent={setEditContent}
-                      onSaveEdit={handleSaveEdit}
-                      onCancelEdit={handleCancelEdit}
-                      copyToClipboard={copyToClipboard}
-                      onLocateTask={handleLocateTask}
-                      onEditMessage={handleEditMessage}
-                      onFileClick={onFileClick}
-                      formatFileSize={formatFileSize}
-                      t={t}
-                    />
+                    <>
+                      <div className="message-bubble">
+                        <div className="message-content">{msg.content}</div>
+                        <div className="message-time">
+                          {new Date(msg.timestamp).toLocaleTimeString()}
+                        </div>
+                      </div>
+                      <MessageActions
+                        msg={msg}
+                        isUser={false}
+                        copyToClipboard={copyToClipboard}
+                        onLocateTask={handleLocateTask}
+                        onEditMessage={handleEditMessage}
+                        t={t}
+                      />
+                      {isLastMessage &&
+                        shouldShowSuggestions(messages) &&
+                        suggestionPrompts.length > 0 && (
+                          <div className="suggestions-wrapper">
+                            <div className="ending-message">
+                              {getEndingMessage()}
+                            </div>
+                            <div className="suggestions-title">
+                              {t("chat.suggestionsTitle") ||
+                                (language === "zh"
+                                  ? "💡 试试这些："
+                                  : "💡 Try these:")}
+                            </div>
+                            <div className="suggestions-container">
+                              {suggestionPrompts.map((prompt, idx) => (
+                                <div
+                                  key={idx}
+                                  className="suggestion-bubble"
+                                  onClick={() => handleSuggestionClick(prompt)}
+                                  title={prompt}
+                                >
+                                  {prompt.length > 25
+                                    ? prompt.slice(0, 25) + "..."
+                                    : prompt}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                    </>
                   )}
                 </div>
               </div>

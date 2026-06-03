@@ -523,6 +523,8 @@ export const zh = {
     }
   },
   chat: {
+    endingMessage: "✨ 我还能为你做些什么吗？ ✨",
+    suggestionsTitle: "💡 试试这些：",
     edit: '编辑',
     editMessage: '编辑消息',
     saveEdit: '确定',
@@ -1407,6 +1409,8 @@ export const en: typeof zh = {
     }
   },
   chat: {
+    endingMessage: "✨ What else can I do for you? ✨",
+    suggestionsTitle: "💡 Try these:",
     edit: 'Edit',
     editMessage: 'Edit message',
     saveEdit: 'Save',

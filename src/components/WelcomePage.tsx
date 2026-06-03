@@ -9,6 +9,8 @@ import { workspaceCommands, WorkspaceInstance } from "../api/workspace";
 import { showToast, ToastType } from "./Toast";
 import FileUploader from "./FileUploader";
 import { UploadFile } from "../types/type";
+import { zhDefaultPrompts, enDefaultPrompts } from "../types/DefaultPrompt";
+import { showTooltipOnElement } from "./Tooltip";
 
 interface WelcomePageProps {
   onSendMessage: (message: string, files?: UploadFile[]) => void;
@@ -34,7 +36,30 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
   const [showLogo, setShowLogo] = useState(true);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [uploadedFiles, setUploadedFiles] = useState<UploadFile[]>([]);
+  const [currentPrompts, setCurrentPrompts] = useState<string[]>([]);
+  const [language, setLanguage] = useState<"zh" | "en">(
+    t("welcome.subtitle") === "原生 LLM 操作系统" ? "zh" : "en",
+  );
 
+  const getRandomPrompts = (count: number = 20): string[] => {
+    const prompts = isZh ? zhDefaultPrompts : enDefaultPrompts;
+    const shuffled = [...prompts];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled.slice(0, count);
+  };
+
+  const refreshPrompts = () => {
+    setCurrentPrompts(getRandomPrompts(20));
+  };
+
+  useEffect(() => {
+    refreshPrompts();
+    const interval = setInterval(refreshPrompts, 5000);
+    return () => clearInterval(interval);
+  }, [language]);
   const loadWorkspaces = async (retryCount: number = 0): Promise<void> => {
     try {
       const config = await workspaceCommands.getWorkspaceConfig();
@@ -81,6 +106,22 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
   };
 
   useEffect(() => {
+    const handleLanguageChange = (event: CustomEvent) => {
+      const newLang = event.detail.language === "zh" ? "zh" : "en";
+      setLanguage(newLang);
+    };
+    window.addEventListener(
+      "language-changed",
+      handleLanguageChange as EventListener,
+    );
+    return () =>
+      window.removeEventListener(
+        "language-changed",
+        handleLanguageChange as EventListener,
+      );
+  }, []);
+
+  useEffect(() => {
     loadWorkspaces();
   }, []);
 
@@ -121,12 +162,6 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
       const newUniqueFiles = files.filter(
         (f) => !existingKeys.has(`${f.name}_${f.size}`),
       );
-      console.log(
-        "Adding files:",
-        files.length,
-        "Unique:",
-        newUniqueFiles.length,
-      );
       return [...prev, ...newUniqueFiles];
     });
   };
@@ -151,45 +186,8 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
     }
   };
 
-  const handleExampleClick = (example: string, command?: string) => {
-    let message = example;
-    switch (command) {
-      case "open_downloads":
-        message = isZh ? "帮我打开下载文件夹" : "Open my Downloads folder";
-        break;
-      case "list_files":
-        message = isZh
-          ? "列出当前目录下的所有文件"
-          : "List all files in current directory";
-        break;
-      case "create_file":
-        message = isZh
-          ? "在桌面创建一个 test.txt 文件"
-          : "Create a test.txt file on desktop";
-        break;
-      case "system_info":
-        message = isZh ? "查看我的系统信息" : "Show my system information";
-        break;
-      case "clean_temp":
-        message = isZh ? "帮我清理临时文件" : "Clean up temporary files for me";
-        break;
-      case "screenshot":
-        message = isZh
-          ? "截图并保存到桌面"
-          : "Take a screenshot and save to desktop";
-        break;
-      case "open_notepad":
-        message = isZh ? "打开记事本" : "Open Notepad";
-        break;
-      case "copy_time":
-        message = isZh
-          ? "复制当前时间到剪贴板"
-          : "Copy current time to clipboard";
-        break;
-      default:
-        message = example;
-    }
-    onSendMessage(message);
+  const handleExampleClick = (prompt: string) => {
+    onSendMessage(prompt);
   };
 
   const handleAttachment = (type: string) => {
@@ -226,344 +224,353 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
   return (
     <div className="welcome-page">
       <style>{`
-        .my-folder-icon {
-        }
+  .my-folder-icon {
+  }
 
-        .welcome-page {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          height: 100%;
-          width: 100%;
-          background: var(--bg-primary);
-        }
+  .welcome-page {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 100%;
+    width: 100%;
+    background: var(--bg-primary);
+  }
 
-        .welcome-container {
-          max-width: 700px;
-          width: 85%;
-          text-align: center;
-          padding: 40px 20px;
-        }
+  .welcome-container {
+    max-width: 830px;
+    width: 85%;
+    text-align: center;
+    padding: 40px 20px;
+  }
 
-        .welcome-logo {
-          margin: 0 auto 20px auto; 
-          margin-bottom: 20px;
-          display: flex;
-          justify-content: center;
-          width: 500px;
-          height: 170px;
-          border-radius: 5px;
-        }
+  .welcome-logo {
+    margin: 0 auto 20px auto;
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: center;
+    width: 500px;
+    height: 170px;
+    border-radius: 5px;
+  }
 
-        .welcome-logo img {
-          width: 500px;
-          height: 170px;
-          border-radius: 5px;
-        }
+  .welcome-logo img {
+    width: 500px;
+    height: 170px;
+    border-radius: 5px;
+  }
 
-        .welcome-title {
-          font-size: 32px;
-          font-weight: 600;
-          background: linear-gradient(135deg, var(--text-primary) 0%, var(--accent-color, #818cf8) 100%);
-          background-clip: text;
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          margin-bottom: 5px;
-        }
+  .welcome-title {
+    font-size: 32px;
+    font-weight: 600;
+    background: linear-gradient(135deg, var(--text-primary) 0%, var(--accent-color, #818cf8) 100%);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 5px;
+  }
 
-        .welcome-subtitle {
-          font-size: 14px;
-          color: var(--text-secondary);
-          margin-bottom: 25px;
-        }
+  .welcome-subtitle {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-bottom: 25px;
+  }
 
-        .welcome-form {
-          width: 100%;
-          margin-bottom: 20px;
-        }
+  .welcome-form {
+    width: 80%;
+    margin-bottom: 20px;
+    margin: 0 auto 20px auto;
+  }
 
-        .welcome-input-container {
-          background: var(--bg-tertiary);
-          border: 1px solid var(--border-color);
-          border-radius: 12px;
-          transition: all 0.2s ease;
-          min-height: 120px;
-          display: flex;
-          flex-direction: column;
-          cursor: text;
-        }
+  .welcome-input-container {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    transition: all 0.2s ease;
+    min-height: 120px;
+    display: flex;
+    flex-direction: column;
+    cursor: text;
+  }
 
-       .welcome-input-container.focused {
-          border-color: var(--accent-color);
-          box-shadow: 0 0 0 2px var(--accent-glow);
-        }
+  .welcome-input-container.focused {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 2px var(--accent-glow);
+  }
 
-       .input-textarea-wrapper {
-          padding: 12px 12px 8px 12px;
-          flex: 1;
-        }
+  .input-textarea-wrapper {
+    padding: 12px 12px 8px 12px;
+    flex: 1;
+  }
 
-       .welcome-textarea {
-          width: 100%;
-          background: transparent;
-          border: none;
-          color: var(--text-primary);
-          font-size: 14px;
-          line-height: 1.5;
-          resize: none;
-          outline: none;
-          font-family: inherit;
-          min-height: 60px;
-          padding: 0;
-        }
+  .welcome-textarea {
+    width: 100%;
+    background: transparent;
+    border: none;
+    color: var(--text-primary);
+    font-size: 14px;
+    line-height: 1.5;
+    resize: none;
+    outline: none;
+    font-family: inherit;
+    min-height: 60px;
+    padding: 0;
+  }
 
-        .welcome-textarea::placeholder {
-          color: var(--text-tertiary);
-        }
+  .welcome-textarea::placeholder {
+    color: var(--text-tertiary);
+  }
 
-        .action-buttons-row {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 4px 8px 8px 8px;
-          // border-top: 1px solid var(--border-color);
-        }
+  .action-buttons-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 8px 8px 8px;
+  }
 
-        .left-actions {
-          display: flex;
-          align-items: center;
-          gap: 4px;
-          position: relative;
-        }
+  .left-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    position: relative;
+  }
 
-        .icon-btn {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 4px;
-          padding: 4px 8px;
-          background: transparent;
-          border: none;
-          border-radius: 6px;
-          cursor: pointer;
-          color: var(--text-secondary);
-          font-size: 12px;
-          transition: all 0.2s ease;
-        }
+  .icon-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 4px 8px;
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    color: var(--text-secondary);
+    font-size: 12px;
+    transition: all 0.2s ease;
+  }
 
-        .icon-btn:hover {
-          background: var(--hover-bg);
-          color: var(--text-primary);
-        }
+  .icon-btn:hover {
+    background: var(--hover-bg);
+    color: var(--text-primary);
+  }
 
-        .folder-btn {
-          display: flex;
-          align-items: center;
-          gap: 4px;
-        }
+  .folder-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
 
-        .folder-name {
-          max-width: 120px;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-          font-size: 12px;
-        }
+  .folder-name {
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 12px;
+  }
 
-        .chevron {
-          transition: transform 0.2s;
-        }
+  .chevron {
+    transition: transform 0.2s;
+  }
 
-        .attachment-menu {
-          position: absolute;
-          bottom: 100%;
-          left: 0;
-          margin-bottom: 6px;
-          background: var(--bg-secondary);
-          border: 1px solid var(--border-color);
-          border-radius: 8px;
-          padding: 4px 0;
-          min-width: 120px;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-          z-index: 100;
-        }
+  .attachment-menu {
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    margin-bottom: 6px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 4px 0;
+    min-width: 120px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    z-index: 100;
+  }
 
-        .attachment-item {
-          padding: 8px 12px;
-          cursor: pointer;
-          color: var(--text-primary);
-          font-size: 12px;
-          transition: background 0.2s;
-          white-space: nowrap;
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
+  .attachment-item {
+    padding: 8px 12px;
+    cursor: pointer;
+    color: var(--text-primary);
+    font-size: 12px;
+    transition: background 0.2s;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
 
-        .attachment-item:hover {
-          background: var(--hover-bg);
-        }
+  .attachment-item:hover {
+    background: var(--hover-bg);
+  }
 
-        .directory-menu {
-          position: absolute;
-          bottom: 100%;
-          left: 0;
-          margin-bottom: 6px;
-          background: var(--bg-secondary);
-          border: 1px solid var(--border-color);
-          border-radius: 8px;
-          padding: 4px 0;
-          min-width: 160px;
-          max-height: 300px;
-          overflow-y: auto;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-          z-index: 100;
-        }
+  .directory-menu {
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    margin-bottom: 6px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 4px 0;
+    min-width: 160px;
+    max-height: 300px;
+    overflow-y: auto;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    z-index: 100;
+  }
 
-        .directory-item {
-          padding: 8px 12px;
-          cursor: pointer;
-          color: var(--text-primary);
-          font-size: 12px;
-          transition: background 0.2s;
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
+  .directory-item {
+    padding: 8px 12px;
+    cursor: pointer;
+    color: var(--text-primary);
+    font-size: 12px;
+    transition: background 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
 
-        .directory-item:hover {
-          background: var(--hover-bg);
-        }
+  .directory-item:hover {
+    background: var(--hover-bg);
+  }
 
-        .directory-item.selected {
-          background: var(--accent-color);
-          color: white;
-        }
+  .directory-item.selected {
+    background: var(--accent-color);
+    color: white;
+  }
 
-        .workspace-path {
-          font-size: 10px;
-          color: var(--text-tertiary);
-          margin-top: 2px;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-          max-width: 200px;
-        }
+  .workspace-path {
+    font-size: 10px;
+    color: var(--text-tertiary);
+    margin-top: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 200px;
+  }
 
-        .selected .workspace-path {
-          color: rgba(255, 255, 255, 0.7);
-        }
+  .selected .workspace-path {
+    color: rgba(255, 255, 255, 0.7);
+  }
 
-        .directory-item-content {
-          flex: 1;
-          min-width: 0;
-        }
+  .directory-item-content {
+    flex: 1;
+    min-width: 0;
+  }
 
-        .send-icon-btn {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          width: 28px;
-          height: 28px;
-          border-radius: 8px;
-          background: transparent;
-          border: none;
-          cursor: pointer;
-          color: var(--text-tertiary);
-          transition: all 0.2s ease;
-        }
+  .send-icon-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: var(--text-tertiary);
+    transition: all 0.2s ease;
+  }
 
-        .send-icon-btn.active {
-          background: var(--accent-color);
-          color: white;
-        }
+  .send-icon-btn.active {
+    background: var(--accent-color);
+    color: white;
+  }
 
-        .send-icon-btn.active:hover {
-          transform: scale(1.05);
-          background: var(--accent-hover);
-        }
+  .send-icon-btn.active:hover {
+    transform: scale(1.05);
+    background: var(--accent-hover);
+  }
 
-        .send-icon-btn:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-        }
+  .send-icon-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
 
-        .examples-section {
-          margin-top: 8px;
-        }
+  .examples-section {
+    margin-top: 8px;
+  }
 
-        .examples-title {
-          font-size: 12px;
-          color: var(--text-tertiary);
-          margin-bottom: 12px;
-          letter-spacing: 0.5px;
-        }
+  .examples-title {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    margin-bottom: 12px;
+    letter-spacing: 0.5px;
+  }
 
-        .examples-grid {
-          display: flex;
-          flex-wrap: wrap;
-          justify-content: center;
-          gap: 10px;
-          max-width: 500px;
-          margin: 0 auto;
-        }
+ .examples-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  max-width: 800px;
+  margin: 0 auto;
+}
 
-        .example-chip {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          padding: 6px 14px;
-          background: var(--bg-secondary);
-          border: 1px solid var(--border-color);
-          border-radius: 20px;
-          cursor: pointer;
-          transition: all 0.2s ease;
-          font-size: 12px;
-          color: var(--text-secondary);
-        }
+.example-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 11px;
+  color: var(--text-secondary);
+  width: auto;
+  white-space: nowrap;
+}
 
-        .example-chip:hover {
-          background: var(--hover-bg);
-          border-color: var(--accent-color);
-          color: var(--text-primary);
-          transform: translateY(-1px);
-        }
+.example-chip span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 140px;
+}
 
-        .example-icon {
-          font-size: 13px;
-        }
+  .example-chip:hover {
+    background: var(--hover-bg);
+    border-color: var(--accent-color);
+    color: var(--text-primary);
+    transform: translateY(-1px);
+  }
 
-        .file-uploader-container {
-          // border-bottom: 1px solid var(--border-color);
-        }
+  .example-icon {
+    font-size: 13px;
+  }
 
-        :root {
-          --bg-primary: #0f1117;
-          --bg-secondary: #1a1d26;
-          --bg-tertiary: #22252f;
-          --border-color: #2d303a;
-          --text-primary: #e8edf2;
-          --text-secondary: #9ca3af;
-          --text-tertiary: #6b7280;
-          --accent-color: #818cf8;
-          --accent-hover: #6366f1;
-          --accent-glow: rgba(129, 140, 248, 0.2);
-          --hover-bg: rgba(232, 237, 242, 0.08);
-        }
-        [data-theme="light"] {
-          --bg-primary: #f3f4f6;
-          --bg-secondary: #ffffff;
-          --bg-tertiary: #e5e7eb;
-          --border-color: #d1d5db;
-          --text-primary: #111827;
-          --text-secondary: #4b5563;
-          --text-tertiary: #9ca3af;
-          --accent-color: #6366f1;
-          --accent-hover: #4f46e5;
-          --accent-glow: rgba(99, 102, 241, 0.2);
-          --hover-bg: rgba(0, 0, 0, 0.04);
-        }
-      `}</style>
+  .file-uploader-container {
+  }
+
+  :root {
+    --bg-primary: #0f1117;
+    --bg-secondary: #1a1d26;
+    --bg-tertiary: #22252f;
+    --border-color: #2d303a;
+    --text-primary: #e8edf2;
+    --text-secondary: #9ca3af;
+    --text-tertiary: #6b7280;
+    --accent-color: #818cf8;
+    --accent-hover: #6366f1;
+    --accent-glow: rgba(129, 140, 248, 0.2);
+    --hover-bg: rgba(232, 237, 242, 0.08);
+  }
+
+  [data-theme="light"] {
+    --bg-primary: #f3f4f6;
+    --bg-secondary: #ffffff;
+    --bg-tertiary: #e5e7eb;
+    --border-color: #d1d5db;
+    --text-primary: #111827;
+    --text-secondary: #4b5563;
+    --text-tertiary: #9ca3af;
+    --accent-color: #6366f1;
+    --accent-hover: #4f46e5;
+    --accent-glow: rgba(99, 102, 241, 0.2);
+    --hover-bg: rgba(0, 0, 0, 0.04);
+  }
+`}</style>
 
       <div className="welcome-container">
         <div className="welcome-logo">
@@ -650,25 +657,25 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
                       className="attachment-item"
                       onClick={() => handleAttachment("text")}
                     >
-                      📄 {t("chat.textFile") || "文本文件"}
+                      📄 {t("chat.textFile") || "TextFile"}
                     </div>
                     <div
                       className="attachment-item"
                       onClick={() => handleAttachment("image")}
                     >
-                      🖼️ {t("chat.image") || "图片"}
+                      🖼️ {t("chat.image") || "Image"}
                     </div>
                     <div
                       className="attachment-item"
                       onClick={() => handleAttachment("video")}
                     >
-                      🎬 {t("chat.video") || "视频"}
+                      🎬 {t("chat.video") || "Video"}
                     </div>
                     <div
                       className="attachment-item"
                       onClick={() => handleAttachment("skill")}
                     >
-                      📁 {t("chat.skillFile") || "Skill文件"}
+                      📁 {t("chat.skillFile") || "Skill File"}
                     </div>
                   </div>
                 )}
@@ -735,18 +742,39 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
             {t("welcome.examples") || "Try these"}
           </div>
           <div className="examples-grid">
-            {examples.map((example, index) => (
-              <div
-                key={index}
-                className="example-chip"
-                onClick={() =>
-                  handleExampleClick(example.text, example.command)
-                }
-              >
-                <span className="example-icon">{example.icon}</span>
-                <span>{example.text}</span>
-              </div>
-            ))}
+            {currentPrompts.slice(0, 15).map((prompt, index) => {
+              const randomWidths = [
+                150, 170, 190, 210, 160, 180, 200, 220, 155, 175, 195, 215, 165,
+                185, 205, 225,
+              ];
+              const width = randomWidths[index % randomWidths.length];
+              return (
+                <div
+                  key={index}
+                  className="example-chip"
+                  style={{ width: `${width}px` }}
+                  onClick={() => handleExampleClick(prompt)}
+                  onMouseEnter={(e) => {
+                    const span =
+                      e.currentTarget.querySelector("span:last-child");
+                    if (span && span.scrollWidth > span.clientWidth) {
+                      showTooltipOnElement(e.currentTarget, prompt);
+                    }
+                  }}
+                  onMouseLeave={() => {
+                    const container = document.getElementById(
+                      "global-tooltip-container",
+                    );
+                    if (container) container.remove();
+                  }}
+                >
+                  <span className="example-icon">💡</span>
+                  <span>
+                    {prompt.length > 25 ? prompt.slice(0, 25) + "..." : prompt}
+                  </span>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
