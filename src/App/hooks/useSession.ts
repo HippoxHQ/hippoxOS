@@ -5,7 +5,7 @@ import { useTranslation } from "../../hooks/useTranslation";
 import { taskManager } from "../../TaskManager";
 import { ChatMessage, TaskInfo, UploadFile, RoleEnum, MessageStatus, TaskStatusEnum, Language } from "../../types/type";
 
-export function useSession(language: Language, isConfigLoaded: boolean) {
+export function useSession(language: Language, isConfigLoaded: boolean, onCloseSkillsManager?: () => void) {
     const [currentSessionId, setCurrentSessionId] = useState<string>("");
     const [isLoading, setIsLoading] = useState(true);
     const [taskManagerVersion, setTaskManagerVersion] = useState(0);
@@ -141,7 +141,8 @@ export function useSession(language: Language, isConfigLoaded: boolean) {
         taskManager.loadSessionData(tempSessionId, [], [], []);
         setCurrentSessionId(tempSessionId);
         localStorage.setItem("hippox-current-session", tempSessionId);
-    }, []);
+        onCloseSkillsManager?.();
+    }, [onCloseSkillsManager]);
 
     const handleSwitchSession = useCallback(async (sessionId: string) => {
         if (sessionId === currentSessionId) return;

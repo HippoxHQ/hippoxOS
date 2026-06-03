@@ -8,6 +8,7 @@ interface HistoryPanelProps {
   t: (key: string, params?: any) => string;
   onSessionSelect?: (sessionId: string) => void;
   currentSessionId?: string;
+  onCloseSkillsManager?: () => void;
 }
 
 type CategoryType =
@@ -36,6 +37,7 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
   t,
   onSessionSelect,
   currentSessionId,
+  onCloseSkillsManager,
 }) => {
   const [sessions, setSessions] = useState<DialogSession[]>([]);
   const hasLoadedRef = useRef(false);
@@ -207,6 +209,9 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
       setActiveMenuId(null);
       if (currentSessionId === sessionId) {
         return;
+      }
+      if (onCloseSkillsManager) {
+        onCloseSkillsManager();
       }
       try {
         if (onSessionSelect) {

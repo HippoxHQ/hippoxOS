@@ -56,6 +56,7 @@ interface MenuPanelProps {
   currentSessionId?: string;
   onSwitchSession?: (sessionId: string) => void;
   initialEngineConfig?: any;
+  onCloseSkillsManager?: () => void;
 }
 
 const viewTitles: Record<MenuPanelView, string> = {
@@ -162,6 +163,7 @@ const MenuPanel: React.FC<MenuPanelProps> = ({
   currentSessionId,
   onSwitchSession,
   initialEngineConfig,
+  onCloseSkillsManager,
 }) => {
   const renderContent = () => {
     if (currentView === "engine_group" && engineSubView) {
@@ -223,6 +225,7 @@ const MenuPanel: React.FC<MenuPanelProps> = ({
             t={t}
             onSessionSelect={onSwitchSession}
             currentSessionId={currentSessionId}
+            onCloseSkillsManager={onCloseSkillsManager}
           />
         );
       case "favorites":

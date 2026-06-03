@@ -20,17 +20,6 @@ function App() {
   const { language, handleToggleLanguage, t } = useLanguage();
   const { isConfigLoaded, initialEngineConfig } = useConfigLoader();
   const {
-    currentSessionId,
-    isLoading,
-    handleNewSession,
-    handleSwitchSession,
-    handleSendMessage,
-    resetSession,
-    shouldShowWelcome,
-  } = useSession(language, isConfigLoaded);
-  const { sidebarCollapsed, toggleSidebar } = useSidebar();
-  const { layoutMode, handleLayoutModeChange } = useLayoutMode();
-  const {
     menuPanelView,
     settingsSubView,
     engineSubView,
@@ -42,6 +31,17 @@ function App() {
     handleOpenSkillsManager,
     handleCloseSkillsManager,
   } = useMenuPanel();
+  const {
+    currentSessionId,
+    isLoading,
+    handleNewSession,
+    handleSwitchSession,
+    handleSendMessage,
+    resetSession,
+    shouldShowWelcome,
+  } = useSession(language, isConfigLoaded, handleCloseSkillsManager);
+  const { sidebarCollapsed, toggleSidebar } = useSidebar();
+  const { layoutMode, handleLayoutModeChange } = useLayoutMode();
   const {
     isFilePreviewOpen,
     previewFile,

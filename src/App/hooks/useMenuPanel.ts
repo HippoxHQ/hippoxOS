@@ -8,7 +8,6 @@ export function useMenuPanel() {
   const [engineSubView, setEngineSubView] = useState<EngineSubView>("engine_database");
   const [menuPanelWidth, setMenuPanelWidth] = useState<number>(320);
   const [showSkillsManager, setShowSkillsManager] = useState(false);
-
   const handleMenuClick = (view: string, subView?: string) => {
     if (
       subView === "engine_database" ||

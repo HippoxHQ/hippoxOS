@@ -155,6 +155,7 @@ export function AppContent({
                 currentSessionId={currentSessionId}
                 onSwitchSession={onSwitchSession}
                 initialEngineConfig={initialEngineConfig}
+                onCloseSkillsManager={onCloseSkillsManager}
               />
             </div>
             <div
