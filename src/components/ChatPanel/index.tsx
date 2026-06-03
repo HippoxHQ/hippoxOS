@@ -578,7 +578,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   .message-content-area {
     display: flex;
     flex-direction: column;
-    max-width: 70%;
+    max-width: 80%;
   }
 
   .message-wrapper.user .message-content-area {

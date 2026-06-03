@@ -334,22 +334,31 @@ export const MessageUrlGrid: React.FC<MessageUrlGridProps> = ({ urls, t }) => {
 
       <style>{`
         .message-urls-container {
-          margin-top: 8px;
-          margin-bottom: 4px;
-        }
+  margin-top: 8px;
+  margin-bottom: 4px;
+  width: 100%;
+  max-width: 100%;
+  overflow: visible;
+  flex-shrink: 0;
+}
         
-        .urls-scroll-wrapper {
-          border-radius: 12px;
-        }
+      .urls-scroll-wrapper {
+  border-radius: 12px;
+  width: 100%;
+  overflow: visible;
+}
+
         
-        .urls-list-wrapper {
-          display: flex;
-          align-items: center;
-          gap: 4px;
-          background: transparent;
-          border-radius: 12px;
-          padding: 0 4px;
-        }
+       .urls-list-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: transparent; 
+  border-radius: 8px;
+  padding: 0 4px;
+  width: 100%;
+  min-width: 0;   
+}
         
         .urls-scroll-btn {
           flex-shrink: 0;
@@ -374,16 +383,19 @@ export const MessageUrlGrid: React.FC<MessageUrlGridProps> = ({ urls, t }) => {
           opacity: 1;
         }
         
-        .urls-scroll {
-          flex: 1;
-          display: flex;
-          flex-wrap: nowrap;
-          gap: 12px;
-          overflow-x: auto;
-          padding: 8px 4px;
-          scrollbar-width: thin;
-          scroll-behavior: smooth;
-        }
+   .urls-scroll {
+  flex: 1;
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 10px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 8px 4px;
+  scrollbar-width: none;  
+  -ms-overflow-style: none; 
+  scroll-behavior: smooth;
+  min-width: 0;  
+}
         
         .urls-scroll::-webkit-scrollbar {
           height: 4px;
