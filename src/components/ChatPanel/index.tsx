@@ -78,6 +78,8 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   const attachmentMenuRef = useRef<HTMLDivElement>(null);
   const directoryBtnRef = useRef<HTMLDivElement>(null);
   const directoryMenuRef = useRef<HTMLDivElement>(null);
+  const [isSending, setIsSending] = useState(false);
+  const [isResending, setIsResending] = useState(false);
 
   const {
     editingMessageId,
@@ -114,11 +116,16 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   };
 
   const handleResendMessage = (msg: ChatMessage) => {
+    if (isResending) return;
+
     const sessionId = currentSessionId || "";
     if (!sessionId) {
       showToast(ToastType.SUCCESS, "Session ID cannot be empty.");
       return;
     }
+
+    setIsResending(true);
+
     const message = msg.content || "";
     const currentFiles = msg.files || [];
     const userMessage: ChatMessage = {
@@ -135,7 +142,13 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
       const fileInfo = currentFiles.map((f) => `[📎 ${f.name}]`).join("\n");
       backendMessage = message ? `${message}\n${fileInfo}` : fileInfo;
     }
-    onSendMessage(backendMessage, sessionId, currentFiles);
+
+    Promise.resolve(
+      onSendMessage(backendMessage, sessionId, currentFiles),
+    ).finally(() => {
+      setTimeout(() => setIsResending(false), 100);
+    });
+
     showToast(ToastType.SUCCESS, t("chat.resendSuccess") || "Message resent");
   };
 
@@ -314,6 +327,10 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   };
 
   const handleSend = () => {
+    if (isSending) {
+      return;
+    }
+
     if (inputValue.trim() || uploadedFiles.length > 0) {
       const sessionId = currentSessionId || "";
       if (!sessionId) {
@@ -322,23 +339,20 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
       }
       const message = inputValue.trim() || "";
       const currentFiles = [...uploadedFiles];
-      const userMessage: ChatMessage = {
-        id: `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        role: RoleEnum.User,
-        content: message,
-        timestamp: new Date().toISOString(),
-        files: currentFiles,
-      };
-      taskManager.addUserMessageToSession(sessionId, userMessage);
-      let backendMessage = message;
-      if (uploadedFiles.length > 0) {
-        const fileInfo = uploadedFiles.map((f) => `[📎 ${f.name}]`).join("\n");
-        backendMessage = message ? `${message}\n${fileInfo}` : fileInfo;
-      }
-      onSendMessage(backendMessage, sessionId, currentFiles);
       setInputValue("");
       setUploadedFiles([]);
       if (textareaRef.current) textareaRef.current.style.height = "auto";
+      setIsSending(true);
+      let backendMessage = message;
+      if (currentFiles.length > 0) {
+        const fileInfo = currentFiles.map((f) => `[📎 ${f.name}]`).join("\n");
+        backendMessage = message ? `${message}\n${fileInfo}` : fileInfo;
+      }
+      Promise.resolve(
+        onSendMessage(backendMessage, sessionId, currentFiles),
+      ).finally(() => {
+        setTimeout(() => setIsSending(false), 100); 
+      });
     }
   };
 
