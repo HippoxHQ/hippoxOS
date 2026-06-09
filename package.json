@@ -3,6 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@candleview/core": "^2.9.9",
+    "@earthview/core": "^0.2.2",
     "@tauri-apps/api": "^2.11.0",
     "@tauri-apps/plugin-shell": "^2.3.5",
     "@testing-library/dom": "^10.4.0",
@@ -46,8 +48,8 @@
     ]
   },
   "devDependencies": {
+    "@arcgis/core": "^5.0.19",
     "@tauri-apps/cli": "^2.11.2",
-    "@types/arcgis-js-api": "^4.28.4",
-    "@arcgis/core": "^5.0.19"
+    "@types/arcgis-js-api": "^4.28.4"
   }
 }
