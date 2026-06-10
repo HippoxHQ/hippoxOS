@@ -1,4 +1,4 @@
-import { ICandleViewDataPoint } from "candleview";
+import { ICandleViewDataPoint } from "@candleview/core";
 
 export const TEST_CANDLEVIEW_DATA8: ICandleViewDataPoint[] = [
     { time: 1764215111, open: 67000.0, high: 67043.93, low: 66969.47, close: 67004.86, volume: 248593 },

@@ -76,27 +76,7 @@ export const TaskError: React.FC<TaskErrorProps> = ({
           display: "flex",
           justifyContent: "flex-end",
         }}
-      >
-        <button
-          onClick={onShowChart}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "6px",
-            padding: "6px 12px",
-            background: "var(--accent-color)",
-            color: "white",
-            border: "none",
-            borderRadius: "6px",
-            cursor: "pointer",
-            fontSize: "12px",
-            fontWeight: 500,
-          }}
-        >
-          <span>📊</span>
-          <span>{t("terminal.showChart") || "View Chart"}</span>
-        </button>
-      </div>
+      ></div>
       {urls.length > 0 && (
         <div style={{ marginTop: "12px" }}>
           <MessageUrlGrid urls={urls} t={t} />

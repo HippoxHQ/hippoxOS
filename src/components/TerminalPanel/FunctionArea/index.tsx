@@ -1,16 +1,11 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
-import CandleView from "candleview";
 import { ModuleTabs } from "./components/ModuleTabs";
 import { ModuleContent } from "./components/ModuleContent";
-import { TEST_CANDLEVIEW_DATA8 } from "../../../test/TestData_3";
 import { useFunctionArea } from "./hooks/useFunctionArea";
 import { FunctionAreaProps, FunctionInstance, FunctionModule } from "./types";
 import { getAllModules } from "./constants";
-import {
-  EarthView,
-  BasemapTypeEnum,
-  CoordinateSystemTypeEnum,
-} from "../../../earthview";
+import IntegratedCandleView from "./integrations/IntegratedCandleView";
+import { IntegratedEarthView } from "./integrations/IntegratedEarthView";
 
 const FunctionArea: React.FC<FunctionAreaProps> = ({
   theme,
@@ -21,8 +16,7 @@ const FunctionArea: React.FC<FunctionAreaProps> = ({
   containerHeight,
   defaultModule,
 }) => {
-  const [candleKey, setCandleKey] = useState(0);
-
+  const earthViewRef = useRef<any>(null);
   const {
     activeModule,
     setActiveModule,
@@ -35,74 +29,56 @@ const FunctionArea: React.FC<FunctionAreaProps> = ({
     handleCloseModule,
     openModule,
   } = useFunctionArea(defaultModule);
-  const earthViewLocale = i18n === "zh-cn" ? "zh" : "en";
-  const earthViewTheme = theme;
-  // layer list
-  const layers = useMemo(() => [], []);
-  // map
-  const EarthViewComponent = useMemo(
+  const handleEarthViewLoad = (earthView: any) => {
+    earthViewRef.current = earthView;
+  };
+  const integratedEarthView = useMemo(
     () => (
-      <EarthView
-        center={[116.397428, 39.90923]}
-        basemap={BasemapTypeEnum.SATELLITE}
-        coordinateSystem={CoordinateSystemTypeEnum.WGS84}
-        style={{ width: "100%", height: "100%" }}
-        layers={layers}
-        enableDrawing={true}
-        i18n={earthViewLocale}
-        theme={earthViewTheme}
-        onCircleDrawn={(data) => {}}
-        onLoad={(layerManager, view) => {}}
-        onMapClick={(event) => {}}
-      />
-    ),
-    [earthViewLocale, earthViewTheme, layers],
-  );
-
-  const cachedEarthView = useMemo(
-    () => EarthViewComponent,
-    [EarthViewComponent],
-  );
-
-  // chat
-  const cachedCandleView = useMemo(
-    () => (
-      <CandleView
-        key={`candle-${currentSessionId}-${candleKey}`}
-        data={TEST_CANDLEVIEW_DATA8}
-        title="BTC/USDT Candlestick Chart"
+      <IntegratedEarthView
         theme={theme}
         i18n={i18n}
-        height={"100%"}
-        width={"100%"}
-        leftpanel={true}
-        toppanel={true}
-        terminal={false}
-        ai={false}
-        timezone="Asia/Shanghai"
-        timeframe="1s"
+        onLoad={handleEarthViewLoad}
+        onMapClick={(event) => {
+          console.log("Map click in function area:", event);
+        }}
+        onMoveEnd={(center, zoom) => {
+          console.log("Map moved:", center, zoom);
+        }}
       />
     ),
-    [theme, i18n, currentSessionId, candleKey],
+    [theme, i18n],
   );
-
+  const integratedCandleView = useMemo(
+    () => (
+      <IntegratedCandleView
+        theme={theme}
+        i18n={i18n}
+        currentSessionId={currentSessionId}
+        symbol="BTC/USDT"
+      />
+    ),
+    [theme, i18n, currentSessionId],
+  );
   const allModules = useMemo(
-    () => getAllModules({ cachedCandleView, cachedEarthView, t }),
-    [cachedCandleView, cachedEarthView, t],
+    () =>
+      getAllModules({
+        cachedCandleView: integratedCandleView,
+        cachedEarthView: integratedEarthView,
+        t,
+      }),
+    [integratedCandleView, integratedEarthView, t],
   );
-
   useEffect(() => {
     if (defaultModule === FunctionInstance.Earthview) {
       setTimeout(() => {
         window.dispatchEvent(
           new CustomEvent("earthview-locate", {
-            detail: { center: [116.397428, 39.90923], zoom: 10 },
+            detail: { center: [-74.006, 40.7128], zoom: 12 },
           }),
         );
       }, 500);
     }
   }, [defaultModule]);
-
   useEffect(() => {
     const handleOpenEarthView = (event: CustomEvent) => {
       console.log("handleOpenEarthView called", event.detail);
@@ -110,7 +86,7 @@ const FunctionArea: React.FC<FunctionAreaProps> = ({
       openModule(FunctionInstance.Earthview);
       setTimeout(() => {
         window.dispatchEvent(
-          new CustomEvent("EarthView-locate", { detail: { center, zoom } }),
+          new CustomEvent("earthview-locate", { detail: { center, zoom } }),
         );
       }, 500);
     };
@@ -124,23 +100,16 @@ const FunctionArea: React.FC<FunctionAreaProps> = ({
         handleOpenEarthView as EventListener,
       );
   }, [openModule]);
-
-  useEffect(() => {
-    setCandleKey((prev) => prev + 1);
-  }, [currentSessionId]);
-
   const modules = allModules.filter((m) => openModules.has(m.id));
   const activeModuleContent = modules.find(
     (m) => m.id === activeModule,
   )?.component;
-
   const handleModuleClose = (moduleId: FunctionModule, e: React.MouseEvent) => {
     const shouldClose = handleCloseModule(moduleId, e);
     if (shouldClose) {
       onClose();
     }
   };
-
   return (
     <div
       className="function-area-container"
@@ -165,13 +134,11 @@ const FunctionArea: React.FC<FunctionAreaProps> = ({
         checkScrollPosition={checkScrollPosition}
         t={t}
       />
-
       <ModuleContent
         activeModuleContent={activeModuleContent}
         activeModule={activeModule}
         t={t}
       />
-
       <style>{`
         .hide-scrollbar::-webkit-scrollbar {
           display: none;
