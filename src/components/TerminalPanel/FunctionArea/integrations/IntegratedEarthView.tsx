@@ -3,7 +3,7 @@ import {
   CoordinateSystemTypeEnum,
   EarthView,
 } from "@earthview/core";
-import React, { useEffect, useRef, useState, useCallback } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 interface IntegratedEarthViewProps {
   theme: "light" | "dark";
@@ -23,34 +23,6 @@ export const IntegratedEarthView: React.FC<IntegratedEarthViewProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const earthViewRef = useRef<EarthView | null>(null);
   const [isReady, setIsReady] = useState(false);
-  const saveAndRestoreTheme = useCallback(() => {
-    const root = document.documentElement;
-    const savedVariables: Record<string, string> = {};
-    const variablesToSave = [
-      "--bg-primary",
-      "--bg-secondary",
-      "--bg-tertiary",
-      "--text-primary",
-      "--text-secondary",
-      "--text-tertiary",
-      "--border-color",
-      "--accent-color",
-      "--hover-bg",
-    ];
-    variablesToSave.forEach((varName) => {
-      savedVariables[varName] =
-        getComputedStyle(root).getPropertyValue(varName);
-    });
-    return savedVariables;
-  }, []);
-  const restoreTheme = useCallback((savedVariables: Record<string, string>) => {
-    const root = document.documentElement;
-    Object.entries(savedVariables).forEach(([varName, value]) => {
-      if (value) {
-        root.style.setProperty(varName, value);
-      }
-    });
-  }, []);
   useEffect(() => {
     const handleLocate = (event: CustomEvent) => {
       const { center, zoom } = event.detail;
@@ -74,6 +46,7 @@ export const IntegratedEarthView: React.FC<IntegratedEarthViewProps> = ({
       );
     };
   }, [isReady]);
+
   useEffect(() => {
     if (!containerRef.current) return;
     if (earthViewRef.current) {
@@ -81,14 +54,13 @@ export const IntegratedEarthView: React.FC<IntegratedEarthViewProps> = ({
       earthViewRef.current = null;
       setIsReady(false);
     }
-    const savedTheme = saveAndRestoreTheme();
     const earthView = new EarthView({
       container: containerRef.current,
       basemap: BasemapTypeEnum.SATELLITE,
       center: [-74.006, 40.7128],
       zoom: 10,
       coordinateSystem: CoordinateSystemTypeEnum.WGS84,
-      theme: theme === "dark" ? "dark" : "light",  
+      theme: theme === "dark" ? "dark" : "light",
       i18n: i18n === "zh-cn" ? "zh" : "en",
       enableDrawing: true,
       onLoad: () => {
@@ -103,26 +75,14 @@ export const IntegratedEarthView: React.FC<IntegratedEarthViewProps> = ({
       },
     });
     earthViewRef.current = earthView;
-    setTimeout(() => {
-      restoreTheme(savedTheme);
-    }, 0);
     return () => {
       if (earthViewRef.current) {
         earthViewRef.current.destroy();
         earthViewRef.current = null;
         setIsReady(false);
       }
-      restoreTheme(savedTheme);
     };
-  }, [
-    theme,
-    i18n,
-    onLoad,
-    onMapClick,
-    onMoveEnd,
-    saveAndRestoreTheme,
-    restoreTheme,
-  ]);
+  }, [theme, i18n, onLoad, onMapClick, onMoveEnd]);
 
   return (
     <div
@@ -135,3 +95,5 @@ export const IntegratedEarthView: React.FC<IntegratedEarthViewProps> = ({
     />
   );
 };
+
+export default IntegratedEarthView;

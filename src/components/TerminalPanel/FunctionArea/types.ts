@@ -8,6 +8,7 @@ export interface ModuleConfig {
   icon: string;
   component: React.ReactNode;
   closable?: boolean;
+  taskId?: string;
 }
 
 export interface FunctionAreaProps {
@@ -18,6 +19,7 @@ export interface FunctionAreaProps {
   onClose: () => void;
   containerHeight: number;
   defaultModule?: FunctionInstance.Canldeview | FunctionInstance.Earthview | null;
+  defaultTaskId?: string;
 }
 
 export enum FunctionInstance {

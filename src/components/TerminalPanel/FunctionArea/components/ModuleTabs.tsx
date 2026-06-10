@@ -3,9 +3,10 @@ import { ModuleConfig, FunctionModule } from "../types";
 
 interface ModuleTabsProps {
   modules: ModuleConfig[];
-  activeModule: FunctionModule;
-  onModuleChange: (moduleId: FunctionModule) => void;
-  onCloseModule: (moduleId: FunctionModule, e: React.MouseEvent) => void;
+  activeModule: FunctionModule | null;
+  activeTaskId?: string | null;
+  onModuleChange: (moduleId: FunctionModule, taskId?: string) => void;
+  onCloseModule: (moduleKey: string, e: React.MouseEvent) => void;
   showLeftScroll: boolean;
   showRightScroll: boolean;
   onScrollLeft: () => void;
@@ -19,6 +20,7 @@ interface ModuleTabsProps {
 export const ModuleTabs: React.FC<ModuleTabsProps> = ({
   modules,
   activeModule,
+  activeTaskId,
   onModuleChange,
   onCloseModule,
   showLeftScroll,
@@ -30,6 +32,16 @@ export const ModuleTabs: React.FC<ModuleTabsProps> = ({
   checkScrollPosition,
   t,
 }) => {
+  const isActive = (module: ModuleConfig): boolean => {
+    if (module.id !== activeModule) return false;
+    if (activeTaskId) {
+      return module.taskId === activeTaskId;
+    }
+    return !module.taskId;
+  };
+  const getModuleKey = (module: ModuleConfig): string => {
+    return module.taskId ? `${module.id}_${module.taskId}` : module.id;
+  };
   return (
     <div
       style={{
@@ -80,77 +92,79 @@ export const ModuleTabs: React.FC<ModuleTabsProps> = ({
         }}
         className="hide-scrollbar"
       >
-        {modules.map((module) => (
-          <div
-            key={module.id}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-              padding: "6px 8px 6px 14px",
-              background:
-                activeModule === module.id
+        {modules.map((module) => {
+          const active = isActive(module);
+          const moduleKey = getModuleKey(module);
+
+          return (
+            <div
+              key={moduleKey}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                padding: "6px 8px 6px 14px",
+                background: active
                   ? "var(--bg-tertiary, #2d2d2d)"
                   : "transparent",
-              borderRadius: "8px 8px 0 0",
-              color:
-                activeModule === module.id
+                borderRadius: "8px 8px 0 0",
+                color: active
                   ? "var(--text-primary, #fff)"
                   : "var(--text-secondary, #aaa)",
-              cursor: "pointer",
-              fontSize: "13px",
-              fontWeight: activeModule === module.id ? 500 : 400,
-              transition: "all 0.2s ease",
-              borderBottom:
-                activeModule === module.id
+                cursor: "pointer",
+                fontSize: "13px",
+                fontWeight: active ? 500 : 400,
+                transition: "all 0.2s ease",
+                borderBottom: active
                   ? "2px solid var(--accent-color, #00aaff)"
                   : "2px solid transparent",
-              marginBottom: "-1px",
-              whiteSpace: "nowrap",
-              flexShrink: 0,
-            }}
-            onClick={() => onModuleChange(module.id)}
-            onMouseEnter={(e) => {
-              if (activeModule !== module.id) {
-                e.currentTarget.style.background = "var(--hover-bg, #2a2a2a)";
-                e.currentTarget.style.color = "var(--text-primary, #fff)";
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (activeModule !== module.id) {
-                e.currentTarget.style.background = "transparent";
-                e.currentTarget.style.color = "var(--text-secondary, #aaa)";
-              }
-            }}
-          >
-            <span>{module.icon}</span>
-            <span>{module.name}</span>
-            {module.closable && (
-              <span
-                onClick={(e) => onCloseModule(module.id, e)}
-                style={{
-                  marginLeft: "4px",
-                  fontSize: "12px",
-                  opacity: 0.7,
-                  cursor: "pointer",
-                  padding: "2px",
-                  borderRadius: "2px",
-                }}
-                onMouseEnter={(e) => {
-                  e.stopPropagation();
-                  e.currentTarget.style.background = "var(--bg-secondary)";
-                  e.currentTarget.style.opacity = "1";
-                }}
-                onMouseLeave={(e) => {
+                marginBottom: "-1px",
+                whiteSpace: "nowrap",
+                flexShrink: 0,
+              }}
+              onClick={() => onModuleChange(module.id, module.taskId)}
+              onMouseEnter={(e) => {
+                if (!active) {
+                  e.currentTarget.style.background = "var(--hover-bg, #2a2a2a)";
+                  e.currentTarget.style.color = "var(--text-primary, #fff)";
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!active) {
                   e.currentTarget.style.background = "transparent";
-                  e.currentTarget.style.opacity = "0.7";
-                }}
-              >
-                ✕
-              </span>
-            )}
-          </div>
-        ))}
+                  e.currentTarget.style.color = "var(--text-secondary, #aaa)";
+                }
+              }}
+            >
+              <span>{module.icon}</span>
+              <span>{module.name}</span>
+              {module.closable && (
+                <span
+                  onClick={(e) => onCloseModule(moduleKey, e)}
+                  style={{
+                    marginLeft: "4px",
+                    fontSize: "12px",
+                    opacity: 0.7,
+                    cursor: "pointer",
+                    padding: "2px",
+                    borderRadius: "2px",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.stopPropagation();
+                    e.currentTarget.style.background = "var(--bg-secondary)";
+                    e.currentTarget.style.opacity = "1";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "transparent";
+                    e.currentTarget.style.opacity = "0.7";
+                  }}
+                >
+                  ✕
+                </span>
+              )}
+            </div>
+          );
+        })}
       </div>
 
       <div

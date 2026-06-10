@@ -20,6 +20,7 @@ import { PauseIcon, PlayIcon, StopIcon } from "../../../../icons";
 import { taskManager } from "../../../../TaskManager";
 import { showDialog, DialogType } from "../../../Dialog";
 import { showToast, ToastType } from "../../../Toast";
+import { FunctionInstance } from "../../FunctionArea/types";
 
 interface TaskRowProps {
   task: TaskInfo;
@@ -37,7 +38,6 @@ interface TaskRowProps {
   onScrollFilesRight: (taskId: string) => void;
   onFileClick?: (file: UploadFile) => void;
   onOpenFunctionArea: () => void;
-  onOpenMap?: () => void;
   setTasks: React.Dispatch<React.SetStateAction<TaskInfo[]>>;
   t: (key: string, params?: any) => string;
 }
@@ -58,7 +58,6 @@ export const TaskRow = forwardRef<HTMLDivElement, TaskRowProps>(
       onFileClick,
       onOpenFunctionArea,
       setTasks,
-      onOpenMap,
       t,
     },
     ref,
@@ -110,7 +109,6 @@ export const TaskRow = forwardRef<HTMLDivElement, TaskRowProps>(
         const result = await taskPoolCommands.resumeTask(taskId);
         if (result === true) {
           showToast(ToastType.SUCCESS, t("terminal.taskResumed"));
-          // Manually update task status to Running
           setTasks((prevTasks) =>
             prevTasks.map((t) =>
               t.task_id === taskId
@@ -118,7 +116,6 @@ export const TaskRow = forwardRef<HTMLDivElement, TaskRowProps>(
                 : t,
             ),
           );
-          // Also refresh from taskManager
           setTimeout(async () => {
             const newTasks = taskManager.getAllTasks();
             setTasks([...newTasks]);
@@ -133,16 +130,19 @@ export const TaskRow = forwardRef<HTMLDivElement, TaskRowProps>(
     };
 
     const handleShowMap = () => {
-      if (onOpenMap) {
-        onOpenMap();
-      } else {
-        onOpenFunctionArea();
+      onOpenFunctionArea();
+      setTimeout(() => {
         window.dispatchEvent(
-          new CustomEvent("open-earthos", {
-            detail: { center: [116.397428, 39.90923], zoom: 10 },
+          new CustomEvent("function-area-open-module", {
+            detail: {
+              moduleType: FunctionInstance.Earthview,
+              taskId: task.task_id,
+              center: [116.397428, 39.90923],
+              zoom: 10,
+            },
           }),
         );
-      }
+      }, 100);
     };
 
     const handleInterruptTask = async (taskId: string, e: React.MouseEvent) => {
@@ -153,7 +153,6 @@ export const TaskRow = forwardRef<HTMLDivElement, TaskRowProps>(
         t("terminal.interruptConfirm"),
         async () => {
           try {
-            // Immediately update UI to Cancelled
             setTasks((prevTasks) =>
               prevTasks.map((t) =>
                 t.task_id === taskId
@@ -164,19 +163,16 @@ export const TaskRow = forwardRef<HTMLDivElement, TaskRowProps>(
             const result = await taskPoolCommands.cancelTask(taskId);
             if (result) {
               showToast(ToastType.SUCCESS, t("terminal.taskInterrupted"));
-              // Refresh from taskManager to ensure consistency
               const newTasks = taskManager.getAllTasks();
               setTasks([...newTasks]);
             } else {
               showToast(ToastType.ERROR, t("terminal.interruptFailed"));
-              // Revert on failure
               const newTasks = taskManager.getAllTasks();
               setTasks([...newTasks]);
             }
           } catch (error) {
             console.error("Failed to interrupt task:", error);
             showToast(ToastType.ERROR, t("terminal.interruptFailed"));
-            // Revert on error
             const newTasks = taskManager.getAllTasks();
             setTasks([...newTasks]);
           }
@@ -193,11 +189,21 @@ export const TaskRow = forwardRef<HTMLDivElement, TaskRowProps>(
 
     const handleShowChart = () => {
       onOpenFunctionArea();
-      window.dispatchEvent(
-        new CustomEvent("open-chart-with-data", {
-          detail: { taskId: task.task_id, taskData: task },
-        }),
-      );
+      setTimeout(() => {
+        window.dispatchEvent(
+          new CustomEvent("function-area-open-module", {
+            detail: {
+              moduleType: FunctionInstance.Canldeview,
+              taskId: task.task_id,
+            },
+          }),
+        );
+        window.dispatchEvent(
+          new CustomEvent("open-chart-with-data", {
+            detail: { taskId: task.task_id, taskData: task },
+          }),
+        );
+      }, 100);
     };
 
     const copyToClipboard = async (

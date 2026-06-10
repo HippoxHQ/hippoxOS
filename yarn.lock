@@ -1102,10 +1102,10 @@
   resolved "https://registry.npmjs.org/@bcoe/v8-coverage/-/v8-coverage-0.2.3.tgz"
   integrity sha512-0hYQ8SB4Db5zvZB4axdMHGwEaQjkZzFjQiN9LVYvIFB2nSUHW9tYpxWriPrWDASIxiaXax83REcLxuSdnGPZtw==
 
-"@candleview/core@^3.0.0":
-  version "3.0.0"
-  resolved "https://registry.npmjs.org/@candleview/core/-/core-3.0.0.tgz"
-  integrity sha512-BtyvYi0Cd990+wn8Bz0ElTfCTydv60hwbkQFr4/0e9R/7T64pczcQelE6yjT9M94BKaQotq39jj706qiYdYnjw==
+"@candleview/core@^3.0.1":
+  version "3.0.1"
+  resolved "https://registry.npmjs.org/@candleview/core/-/core-3.0.1.tgz"
+  integrity sha512-wcKFRLL0CsbxPcCK8qPS41+oMjA8qCFJWZxdVLUXBOwyFIdLst0wXWcN49KQq9+y0YGC9WRoEZwS/0qN3XiTMQ==
   dependencies:
     lightweight-charts "^5.0.9"
 
@@ -1220,10 +1220,10 @@
   resolved "https://registry.npmjs.org/@csstools/selector-specificity/-/selector-specificity-2.2.0.tgz"
   integrity sha512-+OJ9konv95ClSTOJCmMZqpd5+YGsB2S+x6w3E1oaM8UuR5j8nTNHYSz8c9BEPGDOCMQYIEEGlVPj/VY64iTbGw==
 
-"@earthview/core@^0.2.2":
-  version "0.2.2"
-  resolved "https://registry.npmjs.org/@earthview/core/-/core-0.2.2.tgz"
-  integrity sha512-aR+qp3SUYFNXC5fMPaksnYYMcMhwTEA/FZ7pLdHyYxfRcAw5kijG7jppX4EYsQDsuUFfI9h7747JapcBaKIDsA==
+"@earthview/core@^0.2.5":
+  version "0.2.5"
+  resolved "https://registry.npmjs.org/@earthview/core/-/core-0.2.5.tgz"
+  integrity sha512-dbGd0eXu593sb2+07URdUESyQIthE2Wq0/fx2bdYGV4krA0oaqh/KEIAoptWcJk1v9+iYN/nvwBqZSRv8mb1Qg==
   dependencies:
     "@types/ol-ext" "npm:@siedlerchr/types-ol-ext"
     ol "^10.9.0"

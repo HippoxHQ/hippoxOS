@@ -20,9 +20,7 @@ import {
 import { hippoxCommands } from "../../../api/chat";
 import { TaskStatusEnum } from "../../../types/type";
 
-interface ExtendedTerminalAreaProps extends TerminalAreaProps {
-  onOpenMap?: () => void;
-}
+interface ExtendedTerminalAreaProps extends TerminalAreaProps {}
 
 const TerminalArea: React.FC<ExtendedTerminalAreaProps> = ({
   logs,
@@ -33,7 +31,6 @@ const TerminalArea: React.FC<ExtendedTerminalAreaProps> = ({
   theme: _theme,
   i18n: _i18n,
   onOpenFunctionArea,
-  onOpenMap,
 }) => {
   const { tasks, setTasks, activeTasks } = useTaskManager(currentSessionId);
   const taskRefs = useRef<Map<string, HTMLDivElement>>(new Map());
@@ -192,7 +189,6 @@ const TerminalArea: React.FC<ExtendedTerminalAreaProps> = ({
               onScrollFilesRight={scrollFilesRight}
               onFileClick={onFileClick}
               onOpenFunctionArea={onOpenFunctionArea}
-              onOpenMap={onOpenMap}
               setTasks={setTasks}
               t={t}
             />
