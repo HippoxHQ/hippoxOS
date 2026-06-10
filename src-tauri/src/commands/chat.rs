@@ -1,3 +1,9 @@
+use crate::commands::{load_config_from_file, TaskInfo, HIPPOX_APP_CONFIG};
+use crate::hippox_core::{get_default_hippox, init_all_hippox_instances};
+use crate::state::AppState;
+use crate::types::Role;
+use crate::workspace::get_default_workspace;
+use crate::wrokflow::HippoXWorkflowCallback;
 use hippox::ModelProvider;
 use hippox::{ConfigInitMethod, Hippox, WorkflowMode};
 use memcontext::MemContext;
@@ -8,14 +14,6 @@ use std::sync::Arc;
 use tauri::{Emitter, State};
 use tokio::sync::Mutex;
 use uuid::Uuid;
-
-use crate::commands::{
-    HIPPOX_APP_CONFIG, TaskInfo, get_default_hippox, init_all_hippox_instances, load_config_from_file
-};
-use crate::state::AppState;
-use crate::types::Role;
-use crate::workspace::get_default_workspace;
-use crate::wrokflow::HippoXWorkflowCallback;
 
 pub(crate) struct LogMessages {
     init_start: String,

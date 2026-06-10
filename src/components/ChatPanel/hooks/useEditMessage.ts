@@ -12,12 +12,10 @@ interface UseEditMessageProps {
 export const useEditMessage = ({ currentSessionId, onSendMessage, t }: UseEditMessageProps) => {
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editContent, setEditContent] = useState<string>("");
-
   const handleEditMessage = (msg: ChatMessage) => {
     setEditingMessageId(msg.id);
     setEditContent(msg.content);
   };
-
   const handleSaveEdit = async (msg: ChatMessage) => {
     if (!editContent.trim() && !(msg.files && msg.files.length > 0)) {
       showToast(ToastType.ERROR, t("chat.editFailed") || "Edit failed");
@@ -44,12 +42,10 @@ export const useEditMessage = ({ currentSessionId, onSendMessage, t }: UseEditMe
     setEditContent("");
     showToast(ToastType.SUCCESS, t("chat.editSuccess") || "Message resent");
   };
-
   const handleCancelEdit = () => {
     setEditingMessageId(null);
     setEditContent("");
   };
-
   return {
     editingMessageId,
     editContent,

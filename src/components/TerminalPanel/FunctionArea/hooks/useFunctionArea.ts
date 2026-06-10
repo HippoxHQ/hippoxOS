@@ -101,6 +101,7 @@ export const useFunctionArea = (defaultModule?: FunctionModule, defaultTaskId?: 
     if (taskId === undefined) return true;
     return taskIds.has(taskId || '');
   }, [openModulesMap]);
+
   const checkScrollPosition = useCallback(() => {
     if (tabsContainerRef.current) {
       const { scrollLeft, scrollWidth, clientWidth } = tabsContainerRef.current;
@@ -108,6 +109,15 @@ export const useFunctionArea = (defaultModule?: FunctionModule, defaultTaskId?: 
       setShowRightScroll(scrollLeft + clientWidth < scrollWidth - 1);
     }
   }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      checkScrollPosition();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [openModulesMap, checkScrollPosition]);
+
+
   const handleScroll = useCallback((direction: "left" | "right") => {
     if (tabsContainerRef.current) {
       const scrollAmount = 200;

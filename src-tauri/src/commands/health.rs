@@ -1,4 +1,4 @@
-use crate::commands::config::{get_hippox_instance, HIPPOX_APP_CONFIG, HIPPOX_INSTANCES};
+use crate::{commands::config::{HIPPOX_APP_CONFIG, HIPPOX_INSTANCES, get_hippox_instance}, hippox_core::LlmInstance};
 use hippox::Hippox;
 use serde::{Deserialize, Serialize};
 use tauri::State;
@@ -62,7 +62,7 @@ pub async fn cmd_check_all_llm_health(
 
 async fn check_single_llm_health(
     instance_id: &str,
-    instance: &crate::commands::config::LlmInstance,
+    instance: &LlmInstance,
     language: &str,
 ) -> HealthCheckResult {
     let start_time = std::time::Instant::now();

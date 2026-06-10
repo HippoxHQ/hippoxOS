@@ -4,6 +4,7 @@ import { sessionCommands } from "../../api/session";
 import { useTranslation } from "../../hooks/useTranslation";
 import { taskManager } from "../../TaskManager";
 import { ChatMessage, TaskInfo, UploadFile, RoleEnum, MessageStatus, TaskStatusEnum, Language } from "../../types/type";
+import { getSystemPrompt } from "../../llm/prompts/basis";
 
 export function useSession(language: Language, isConfigLoaded: boolean, onCloseSkillsManager?: () => void) {
     const [currentSessionId, setCurrentSessionId] = useState<string>("");
@@ -272,10 +273,11 @@ export function useSession(language: Language, isConfigLoaded: boolean, onCloseS
             };
             taskManager.addUserMessageToSession(finalSessionId, userMsg);
         }
-
         try {
+            const systemPrompt = getSystemPrompt(language as 'zh' | 'en');
+            const fullMessage = `${systemPrompt}\n\n用户问题：${userMessage}`;
             const taskId = await hippoxCommands.sendMessageAsync(
-                userMessage,
+                fullMessage,
                 finalSessionId,
             );
             const messageId = `llm_${taskId}`;
@@ -309,7 +311,7 @@ export function useSession(language: Language, isConfigLoaded: boolean, onCloseS
             };
             taskManager.addAssistantMessageToSession(finalSessionId, errorMsg);
         }
-    }, [currentSessionId, t]);
+    }, [currentSessionId, t, language]);
 
     const resetSession = useCallback(async () => {
         try {

@@ -62,7 +62,6 @@ export function useTaskEvents(language: Language) {
                 });
             }
         });
-
         const unlistenComplete = listen("task_complete", (event: any) => {
             const {
                 task_id,
@@ -76,7 +75,6 @@ export function useTaskEvents(language: Language) {
             const assistantMessagesMap =
                 taskManager.getAssistantMessagesBySession(session_id);
             const existingMsg = assistantMessagesMap?.get(messageId);
-
             if (!existingMsg) {
                 const successMsg: ChatMessage = {
                     id: messageId,

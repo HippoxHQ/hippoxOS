@@ -1,7 +1,6 @@
 use crate::commands::types::{StepInfo, TaskInfo};
 use crate::commands::{
-    get_default_hippox, init_all_hippox_instances, load_config_from_file, write_log, ExecutionLog,
-    LogMessages, HIPPOX_APP_CONFIG,
+    load_config_from_file, write_log, ExecutionLog, LogMessages, HIPPOX_APP_CONFIG,
 };
 use crate::workspace::get_default_workspace;
 use hippox::ModelProvider;

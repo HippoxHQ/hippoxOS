@@ -1,4 +1,4 @@
-import React, { forwardRef } from "react";
+import React, { forwardRef, useEffect } from "react";
 import {
   getTaskStatusIcon,
   getTaskStatusText,
@@ -221,12 +221,10 @@ export const TaskRow = forwardRef<HTMLDivElement, TaskRowProps>(
         showToast(ToastType.ERROR, t("common.copyFailed") || "Copy Failed");
       }
     };
-
     const isRunningOrPending =
       task.status === TaskStatusEnum.Running ||
       task.status === TaskStatusEnum.Pending;
     const isPaused = task.status === TaskStatusEnum.Paused;
-
     return (
       <div key={task.task_id} ref={ref} className="task-row">
         <div
