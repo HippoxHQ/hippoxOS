@@ -1,6 +1,6 @@
 use std::{collections::HashMap, sync::Arc};
 
-use hippox::{Hippox, IdentityInformation};
+use hippox::{Hippox, HippoxConfig, IdentityInformation};
 use serde::{Deserialize, Serialize};
 
 use crate::commands::{get_hippox_instance, ModelConfig, HIPPOX_APP_CONFIG, HIPPOX_INSTANCES};
@@ -130,7 +130,7 @@ pub(crate) async fn init_single_hippox(
     instance: &LlmInstance,
     skills_dir: &str,
 ) -> Result<Hippox, String> {
-    use hippox::{ConfigInitMethod, ModelProvider, WorkflowMode};
+    use hippox::{ModelProvider, WorkflowMode};
     let model_provider = match instance.provider.to_lowercase().as_str() {
         "openai" => ModelProvider::OpenAI,
         "anthropic" => ModelProvider::Anthropic,
@@ -181,7 +181,7 @@ pub(crate) async fn init_single_hippox(
         } else {
             Some(extra_keys)
         },
-        ConfigInitMethod::ParamsJsonStr("{}".to_string()),
+        Some(HippoxConfig::default()),
         mode,
     )
     .await

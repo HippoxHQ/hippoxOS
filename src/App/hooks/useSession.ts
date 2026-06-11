@@ -272,8 +272,9 @@ export function useSession(language: Language, isConfigLoaded: boolean, onCloseS
         }
         try {
             const systemPrompt = getSystemPrompt(language as 'zh' | 'en');
-            const fullMessage = `${systemPrompt}\n\n用户问题：${userMessage}`;
+            const fullMessage = `${systemPrompt}\n\n User: ${userMessage}`;
             const taskId = await hippoxCommands.sendMessageAsync(
+                userMessage,
                 fullMessage,
                 finalSessionId,
             );

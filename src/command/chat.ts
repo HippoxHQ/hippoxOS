@@ -10,8 +10,8 @@ export const hippoxCommands = {
         return await invoke('cmd_get_hippox_language');
     },
 
-    async sendMessageAsync(message: string, sessionId?: string): Promise<string> {
-        return await invoke('cmd_send_chat_message_async', { message, sessionId });
+    async sendMessageAsync(rawMessage: string, message: string, sessionId?: string): Promise<string> {
+        return await invoke('cmd_send_chat_message_async', { rawMessage, message, sessionId });
     },
 
     async getTaskStatus(taskId: string): Promise<TaskInfo> {

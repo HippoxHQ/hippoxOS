@@ -86,9 +86,7 @@ pub async fn recall_session_context(
          [END_CONTEXT_RECALL]",
         compressed_history
     );
-    let response = hippox
-        .direct_handle_natural_language(&recall_prompt, None)
-        .await;
+    let response = hippox.execute(&recall_prompt, None).await;
     Ok(format!(
         "Session '{}' recalled. LLM response: {}",
         session_id,

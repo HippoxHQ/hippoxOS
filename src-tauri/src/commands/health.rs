@@ -1,4 +1,7 @@
-use crate::{commands::config::{HIPPOX_APP_CONFIG, HIPPOX_INSTANCES, get_hippox_instance}, hippox_core::LlmInstance};
+use crate::{
+    commands::config::{get_hippox_instance, HIPPOX_APP_CONFIG, HIPPOX_INSTANCES},
+    hippox_core::LlmInstance,
+};
 use hippox::Hippox;
 use serde::{Deserialize, Serialize};
 use tauri::State;
@@ -141,10 +144,6 @@ async fn check_single_llm_health(
 }
 
 async fn send_health_check_message(hippox: &Hippox, language: &str) -> Result<String, String> {
-    let message = match language {
-        "zh" => "hi",
-        _ => "hi",
-    };
-    let result = hippox.direct_handle_natural_language(message, None).await;
+    let result = hippox.heartbeat().await;
     Ok(result)
 }

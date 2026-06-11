@@ -118,15 +118,6 @@ impl WorkflowCallback for HippoXWorkflowCallback {
     ) {
         if !self.completed.swap(true, Ordering::SeqCst) {
             let app_handle = self.app_handle.clone();
-            let session_id = self.session_id.clone();
-            let output = final_output.to_string();
-            tokio::spawn(async move {
-                if let Some(mem) = app_handle.state::<AppState>().get_memcontext().await {
-                    let _ = mem
-                        .store_message(session_id, Role::LLM.to_string(), output)
-                        .await;
-                }
-            });
             let _ = self.app_handle.emit(
                 "task_complete",
                 &json!({

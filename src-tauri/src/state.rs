@@ -4,7 +4,7 @@ use crate::commands::{
 };
 use crate::workspace::get_default_workspace;
 use hippox::ModelProvider;
-use hippox::{ConfigInitMethod, Hippox, WorkflowMode};
+use hippox::{Hippox, WorkflowMode};
 use memcontext::MemContext;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
