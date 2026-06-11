@@ -1,6 +1,7 @@
 use crate::commands::{load_config_from_file, TaskInfo, HIPPOX_APP_CONFIG};
 use crate::context::{get_conversation_history, store_user_message, Context};
 use crate::hippox_core::{get_default_hippox, init_all_hippox_instances};
+use crate::llm::prompts::get_system_prompt;
 use crate::state::AppState;
 use crate::types::Role;
 use crate::workspace::get_default_workspace;
@@ -88,14 +89,7 @@ async fn build_enhanced_message(
                 .to_string_lossy()
                 .to_string()
         });
-
-    let system_prompt = format!(
-        "[Important Rule] When performing file download, file write, or file creation operations, \
-         if no target directory is explicitly specified, please use the following workspace directory by default: {}\n\
-         Do not write files to system temp directory or any other non-workspace directories. \
-         If subdirectories need to be created, create them under the workspace directory.",
-        workspace_path
-    );
+    let system_prompt = get_system_prompt(&workspace_path);
     let history_context = if let Some(mem_ref) = mem {
         get_conversation_history(mem_ref, session_id, 20)
             .await

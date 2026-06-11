@@ -1255,13 +1255,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
                       );
                     })()
                   )}
-                  {(() => {
-                    const urls = extractUrls(msg.content);
-                    if (urls.length > 0) {
-                      return <MessageUrlGrid urls={urls} t={t} />;
-                    }
-                    return null;
-                  })()}
                 </div>
               </div>
             );
