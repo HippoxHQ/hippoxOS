@@ -15,12 +15,12 @@ import {
   TaskStatusEnum,
   UploadFile,
 } from "../../../../types/type";
-import { taskPoolCommands } from "../../../../api/TaskPool";
+import { taskPoolCommands } from "../../../../core/TaskPool";
 import { PauseIcon, PlayIcon, StopIcon } from "../../../../icons";
-import { taskManager } from "../../../../TaskManager";
 import { showDialog, DialogType } from "../../../Dialog";
 import { showToast, ToastType } from "../../../Toast";
 import { FunctionInstance } from "../../FunctionArea/types";
+import { taskManager } from "../../../../core/TaskManager";
 
 interface TaskRowProps {
   task: TaskInfo;
@@ -79,6 +79,15 @@ export const TaskRow = forwardRef<HTMLDivElement, TaskRowProps>(
       if (runningCount > 0) parts.push(`⟳${runningCount}`);
       stepSummary = ` [${parts.join(" ")}]`;
     }
+
+    const getRawOutput = (
+      taskId: string,
+      sessionId: string,
+    ): string | undefined => {
+      const tasksMap = (taskManager as any).tasksBySession?.get(sessionId);
+      const task = tasksMap?.get(taskId);
+      return task?.rawOutput || task?.final_output;
+    };
 
     const handlePauseTask = async (taskId: string, e: React.MouseEvent) => {
       e.stopPropagation();
@@ -319,7 +328,9 @@ export const TaskRow = forwardRef<HTMLDivElement, TaskRowProps>(
           task.final_output &&
           task.status === TaskStatusEnum.Completed && (
             <TaskOutput
-              output={task.final_output}
+              output={
+                getRawOutput(task.task_id, task.session_id) || task.final_output
+              }
               onCopy={handleCopyOutput}
               onShowChart={handleShowChart}
               onShowMap={handleShowMap}
@@ -331,7 +342,7 @@ export const TaskRow = forwardRef<HTMLDivElement, TaskRowProps>(
           task.status === TaskStatusEnum.Failed &&
           task.final_output && (
             <TaskError
-              error={task.final_output}
+              error={(task as any).rawOutput || task.final_output}
               onCopy={handleCopyOutput}
               onShowChart={handleShowChart}
               t={t}

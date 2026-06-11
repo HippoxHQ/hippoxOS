@@ -1,6 +1,4 @@
 import React, { useState, useEffect, useRef } from "react";
-import { workspaceCommands, WorkspaceInstance } from "../../api/workspace";
-import { filesCommands, FileInfo } from "../../api/files";
 import {
   FolderOpenIcon,
   FolderIcon,
@@ -8,6 +6,8 @@ import {
   ChevronRightIcon,
 } from "../../icons";
 import { showToast, ToastType } from "../Toast";
+import { FileInfo, filesCommands } from "../../command/files";
+import { WorkspaceInstance, workspaceCommands } from "../../command/workspace";
 
 interface WorkspacePanelProps {
   t: (key: string, params?: any) => string;

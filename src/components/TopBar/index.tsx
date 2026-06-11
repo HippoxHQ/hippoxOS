@@ -11,7 +11,7 @@ import {
 import { Theme, Language } from "../../types/type";
 import SearchDialog from "./SearchDialog";
 import { showToast, ToastType } from "../Toast";
-import { windowsCommands } from "../../api/windows";
+import { windowsCommands } from "../../command/windows";
 
 interface TopBarProps {
   sidebarCollapsed: boolean;

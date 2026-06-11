@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { workspaceCommands, WorkspaceInstance } from "../../../api/workspace";
-import { filesCommands } from "../../../api/files";
 import { showToast, ToastType } from "../../Toast";
 import { showDialog, DialogType } from "../../Dialog";
+import { filesCommands } from "../../../command/files";
+import { WorkspaceInstance, workspaceCommands } from "../../../command/workspace";
 
 interface WorkspaceConfigProps {
   t: (key: string, params?: any) => string;

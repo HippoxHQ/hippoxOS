@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from "react";
-import { skillsMarketCommands, MarketSkill } from "../../api/skills";
 import {
   CategoryIcon,
   RefreshIcon,
@@ -7,6 +6,7 @@ import {
   StarFilledIcon,
   PlayIcon,
 } from "../../icons";
+import { MarketSkill, skillsMarketCommands } from "../../command/skills";
 
 interface SkillMarketPanelProps {
   t: (key: string, params?: any) => string;

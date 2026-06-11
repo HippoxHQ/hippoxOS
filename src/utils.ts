@@ -1,6 +1,6 @@
 import { open } from "@tauri-apps/plugin-shell";
 import { showToast, ToastType } from "./components/Toast";
-import { filesCommands } from "./api/files";
+import { filesCommands } from "./command/files";
 
 export const openUrl = async (
     url: string,

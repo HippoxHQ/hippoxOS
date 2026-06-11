@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { openUrl } from "../../../utils";
-import { urlCommands, UrlMetadata } from "../../../api/url";
+import { urlCommands } from "../../../command/url";
 
 interface UrlPreview {
   url: string;

@@ -1,24 +1,22 @@
 import { useState, useEffect, useCallback } from "react";
-import { hippoxCommands } from "../../api/chat";
-import { sessionCommands } from "../../api/session";
 import { useTranslation } from "../../hooks/useTranslation";
-import { taskManager } from "../../TaskManager";
 import { ChatMessage, TaskInfo, UploadFile, RoleEnum, MessageStatus, TaskStatusEnum, Language } from "../../types/type";
 import { getSystemPrompt } from "../../llm/prompts/basis";
+import { hippoxCommands } from "../../command/chat";
+import { sessionCommands } from "../../command/session";
+import { taskManager } from "../../core/TaskManager";
 
 export function useSession(language: Language, isConfigLoaded: boolean, onCloseSkillsManager?: () => void) {
     const [currentSessionId, setCurrentSessionId] = useState<string>("");
     const [isLoading, setIsLoading] = useState(true);
     const [taskManagerVersion, setTaskManagerVersion] = useState(0);
     const { t } = useTranslation(language);
-
     useEffect(() => {
         const unsubscribe = taskManager.subscribe(() => {
             setTaskManagerVersion((prev) => prev + 1);
         });
         return unsubscribe;
     }, []);
-
     useEffect(() => {
         if (!isLoading && currentSessionId) {
             const saveTimer = setTimeout(() => {
@@ -38,7 +36,6 @@ export function useSession(language: Language, isConfigLoaded: boolean, onCloseS
             return () => clearTimeout(saveTimer);
         }
     }, [currentSessionId, isLoading, taskManagerVersion]);
-
     useEffect(() => {
         const loadSessions = async () => {
             if (!isConfigLoaded) return;

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { hippoxCommands } from "../../api/chat";
-import { configCommands } from "../../api/config";
+import { hippoxCommands } from "../../command/chat";
+import { configCommands } from "../../command/config";
 
 export function useConfigLoader() {
   const [isConfigLoaded, setIsConfigLoaded] = useState(false);

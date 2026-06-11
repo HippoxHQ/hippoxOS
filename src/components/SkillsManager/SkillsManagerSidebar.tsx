@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { skillsLocalCommands } from "../../api/skills";
 import { SkillData, SkillHistory } from "../../types/skill";
+import { skillsLocalCommands } from "../../command/skills";
 
 interface SkillsManagerSidebarProps {
   t: (key: string, params?: any) => string;

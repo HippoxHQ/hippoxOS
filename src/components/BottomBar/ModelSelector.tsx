@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState } from "react";
-import { LlmInstance, llmCommands } from "../../api/llm";
-import { healthCommands, HealthCheckResult } from "../../api/health";
+import { healthCommands, HealthCheckResult } from "../../command/health";
+import { LlmInstance, llmCommands } from "../../command/llm";
 
 interface IconProps {
   size?: number;

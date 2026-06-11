@@ -1,11 +1,7 @@
 import React, { useState, useEffect } from "react";
-import {
-  skillsMarketCommands,
-  skillsLocalCommands,
-  MarketSkill,
-} from "../../api/skills";
 import { SkillData } from "../../types/skill";
 import { PlayIcon, StarFilledIcon } from "../../icons";
+import { MarketSkill, skillsMarketCommands, skillsLocalCommands } from "../../command/skills";
 
 interface FavoritesPanelProps {
   t: (key: string, params?: any) => string;

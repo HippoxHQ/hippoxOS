@@ -17,8 +17,8 @@ import {
   ScrollButtons,
   TaskBubble,
 } from "./components";
-import { hippoxCommands } from "../../../api/chat";
 import { TaskStatusEnum } from "../../../types/type";
+import { hippoxCommands } from "../../../command/chat";
 
 interface ExtendedTerminalAreaProps extends TerminalAreaProps {}
 

@@ -3,7 +3,6 @@ import SkillsManagerSidebar from "./SkillsManagerSidebar";
 import SkillCardGrid from "./SkillsManagerCardGrid";
 import SkillsManagerForm from "./SkillsManagerForm";
 import SkillMarkdownPreview from "./SkillsManagerMarkdownPreview";
-import { skillsLocalCommands } from "../../api/skills";
 import {
   SkillData,
   SkillHistory,
@@ -11,6 +10,7 @@ import {
   UpdateSkillRequest,
 } from "../../types/skill";
 import { showToast, ToastType } from "../Toast";
+import { skillsLocalCommands } from "../../command/skills";
 
 interface SkillsManagerProps {
   t: (key: string, params?: any) => string;

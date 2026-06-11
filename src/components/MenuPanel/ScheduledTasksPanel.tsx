@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { getDataPaths } from "../../api/paths";
-import { scheduledCommands } from "../../api/scheduled";
+import { getDataPaths } from "../../command/paths";
+import { scheduledCommands } from "../../command/scheduled";
 
 interface ScheduledTask {
   id: string;

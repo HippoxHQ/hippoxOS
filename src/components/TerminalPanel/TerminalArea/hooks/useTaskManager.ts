@@ -1,10 +1,9 @@
 import { useState, useEffect } from "react";
-import { taskManager } from "../../../../TaskManager";
 import { TaskInfo } from "../../../../types/type";
+import { taskManager } from "../../../../core/TaskManager";
 
 export const useTaskManager = (currentSessionId?: string) => {
   const [tasks, setTasks] = useState<TaskInfo[]>([]);
-
   useEffect(() => {
     const loadInitialTasks = () => {
       const initialTasks = taskManager.getAllTasks();
@@ -17,10 +16,8 @@ export const useTaskManager = (currentSessionId?: string) => {
     });
     return unsubscribe;
   }, []);
-
   const activeTasks = tasks.filter(
     (task) => !currentSessionId || task.session_id === currentSessionId,
   );
-
   return { tasks, setTasks, activeTasks };
 };

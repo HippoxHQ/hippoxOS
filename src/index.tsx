@@ -3,8 +3,8 @@ import ReactDOM from "react-dom/client";
 import "./index.css";
 import "./App.css";
 import App from "./App";
-import SystemTrayWindow from "./windows/SystemTrayWindow";
-import SubmenuWindow from "./windows/SubmenuWindow";
+import SystemTrayWindow from "./components/windows/SystemTrayWindow";
+import SubmenuWindow from "./components/windows/SubmenuWindow";
 import reportWebVitals from "./reportWebVitals";
 import { WindowTypeEnum } from "./types/type";
 

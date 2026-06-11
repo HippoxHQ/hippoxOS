@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
-import { ChatResponse, ExecutionLog, TaskInfo } from '../types/type';
+import { TaskInfo, ChatResponse, ExecutionLog } from '../types/type';
 
 export const hippoxCommands = {
     async setLanguage(language: string): Promise<void> {

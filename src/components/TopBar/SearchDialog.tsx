@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import { SearchIcon, ClearIcon } from "../../icons";
-import { searchService } from "../../api/search";
+import { searchService } from "../../command/search";
 
 interface SearchResult {
   category: "skill" | "session" | "log";

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
-import { getDataPaths } from "../../api/paths";
-import { filesCommands } from "../../api/files";
+import { filesCommands } from "../../command/files";
+import { getDataPaths } from "../../command/paths";
 
 interface LogEntry {
   id: string;

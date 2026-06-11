@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { getDataPaths } from "../../../api/paths";
-import { filesCommands } from "../../../api/files";
-import { storageCommands } from "../../../api/config";
 import { showToast, ToastType } from "../../Toast";
+import { storageCommands } from "../../../command/config";
+import { filesCommands } from "../../../command/files";
+import { getDataPaths } from "../../../command/paths";
 
 interface StorageConfigProps {
   t: (key: string, params?: any) => string;
@@ -183,7 +183,7 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
     }
     setCleaningDialog(true);
     try {
-      const { sessionCommands } = await import("../../../api/session");
+      const { sessionCommands } = await import("../../../command/session");
       const sessions = await sessionCommands.listSessions();
       for (const session of sessions) {
         const sessionId = session.session_id;
@@ -216,7 +216,7 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
     }
     setCleaningFavorites(true);
     try {
-      const { skillsMarketCommands } = await import("../../../api/skills");
+      const { skillsMarketCommands } = await import("../../../command/skills");
       const favoritedIds = await skillsMarketCommands.getFavoritedSkills();
       for (const id of favoritedIds) {
         await skillsMarketCommands.unfavoriteSkill(id);

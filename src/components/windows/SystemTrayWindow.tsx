@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { configCommands } from "../api/config";
-import { windowsCommands } from "../api/windows";
-import { zh, en } from "../i18n";
-import { healthCommands, HealthCheckResult } from "../api/health";
-import { SystemEvent } from "../types/type";
+import { zh, en } from "../../i18n";
+import { SystemEvent } from "../../types/type";
+import { configCommands } from "../../command/config";
+import { healthCommands, HealthCheckResult } from "../../command/health";
+import { windowsCommands } from "../../command/windows";
 
 const getTranslation = (language: "zh" | "en", key: string): string => {
   const translations = language === "zh" ? zh : en;
@@ -118,7 +118,6 @@ const SystemTrayWindow: React.FC = () => {
       setIsCheckingHealth(false);
     }
   };
-
   const handleMenuItemClick = (action: string) => {
     if (action === "quit") {
       windowsCommands.exitApp();
@@ -136,16 +135,13 @@ const SystemTrayWindow: React.FC = () => {
       windowsCommands.sendEvent(action);
     }
   };
-
   const recheckHealth = async () => {
     if (!isCheckingHealth && llmInstances.length > 0) {
       await performHealthChecks(llmInstances);
     }
   };
-
   const isDark = theme === "dark";
   const t = (key: string) => getTranslation(language, key);
-
   const menuItems = [
     {
       id: SystemEvent.NewSession,

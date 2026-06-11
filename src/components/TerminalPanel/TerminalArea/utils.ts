@@ -1,5 +1,3 @@
-import { open } from "@tauri-apps/plugin-shell";
-import { filesCommands } from "../../../api/files";
 import { TaskStatusEnum, StepStatusEnum } from "../../../types/type";
 import { showToast, ToastType } from "../../Toast";
 
@@ -167,3 +165,4 @@ export const copyToClipboard = async (text: string | undefined, t: (key: string)
     showToast(ToastType.ERROR, t("common.copyFailed") || "Copy Failed");
   }
 };
+

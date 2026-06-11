@@ -561,7 +561,15 @@ export const zh = {
       title: 'HippoxOS 启动!',
       subtitle: '可靠的LLM原生操作系统.',
       status: '状态: 已就绪，等待任务',
-    }
+    },
+    executableCommands: "可执行命令",
+    remoteResources: "远程资源",
+    localResources: "本地资源",
+    warnings: "警告",
+    info: "信息",
+    warning: "警告",
+    tableRows: "行",
+    tableMoreRows: "还有",
   },
   chat: {
     resend: '重新发送',
@@ -1489,7 +1497,15 @@ export const en: typeof zh = {
       title: 'HippoxOS Startup!',
       subtitle: 'A native LLM operating system.',
       status: 'Status: Ready for tasks',
-    }
+    },
+    executableCommands: "Executable Commands",
+    remoteResources: "Remote Resources",
+    localResources: "Local Resources",
+    warnings: "Warnings",
+    info: "Info",
+    warning: "Warning",
+    tableRows: "rows",
+    tableMoreRows: "More rows",
   },
   chat: {
     resend: 'Resend',

@@ -28,6 +28,7 @@ export interface ChatMessage {
   files?: UploadFile[];
   edited?: boolean;
   originalId?: string;
+  rawResponse?: string;
 }
 
 export type Theme = 'dark' | 'light';
@@ -77,6 +78,7 @@ export interface TaskInfo {
   status: TaskStatusEnum;
   steps: TaskStepInfo[];
   final_output?: string;
+  rawOutput?: string;
   error?: string;
   total_duration_ms?: number;
   total_steps?: number;

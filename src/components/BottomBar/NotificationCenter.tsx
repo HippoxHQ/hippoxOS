@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { SystemNotification, notificationManager, NotificationType } from "../../NotificationManager";
+import { SystemNotification, notificationManager, NotificationType } from "../../core/NotificationManager";
 
 interface NotificationCenterProps {
   isOpen: boolean;

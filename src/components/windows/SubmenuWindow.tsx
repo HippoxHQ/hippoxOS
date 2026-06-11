@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { configCommands } from "../api/config";
-import { llmCommands } from "../api/llm";
-import { healthCommands, HealthCheckResult } from "../api/health";
-import { windowsCommands } from "../api/windows";
-import { zh, en } from "../i18n";
+import { zh, en } from "../../i18n";
+import { configCommands } from "../../command/config";
+import { healthCommands, HealthCheckResult } from "../../command/health";
+import { llmCommands } from "../../command/llm";
+import { windowsCommands } from "../../command/windows";
 
 interface LLMInstance {
   id: string;

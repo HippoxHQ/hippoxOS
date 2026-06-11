@@ -10,10 +10,10 @@ import { useSession } from "./hooks/useSession";
 import { useLayoutMode } from "./hooks/useLayoutMode";
 import { useSidebar } from "./hooks/useSidebar";
 import { useSystemEvents, useDirectoryEvents } from "./hooks/useSystemEvents";
-import { useTaskEvents } from "./hooks/useTaskEvents";
 import { useSearchEvents } from "./hooks/useSearchEvents";
-import { taskManager } from "../TaskManager";
 import { AppContent } from "./components/AppContent";
+import { taskManager } from "../core/TaskManager";
+import { useTaskEvents } from "./hooks/useTaskEvents";
 
 function App() {
   const { theme, handleToggleTheme } = useTheme();
@@ -55,7 +55,6 @@ function App() {
     setIsDraggingOverInput,
     showDragCursor,
   } = useDragAndDrop();
-
   useTaskEvents(language);
   useSystemEvents(
     handleNewSession,
@@ -67,13 +66,10 @@ function App() {
   );
   useDirectoryEvents();
   useSearchEvents(() => handleMenuClick("skillMarket"), handleSwitchSession);
-
   useEffect(() => {
     taskManager.setupTaskEventListeners();
   }, []);
-
   const handleSaveConfig = async (config: any) => {};
-
   return (
     <AppContent
       theme={theme}

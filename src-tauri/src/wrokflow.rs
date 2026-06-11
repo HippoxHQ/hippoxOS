@@ -4,7 +4,10 @@ use serde_json::json;
 use std::fmt::Debug;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
-use tauri::{AppHandle, Emitter};
+use tauri::{AppHandle, Emitter, Manager};
+
+use crate::state::AppState;
+use crate::types::Role;
 
 #[derive(Debug, Clone)]
 pub struct HippoXWorkflowCallback {
@@ -114,6 +117,16 @@ impl WorkflowCallback for HippoXWorkflowCallback {
         total_steps: usize,
     ) {
         if !self.completed.swap(true, Ordering::SeqCst) {
+            let app_handle = self.app_handle.clone();
+            let session_id = self.session_id.clone();
+            let output = final_output.to_string();
+            tokio::spawn(async move {
+                if let Some(mem) = app_handle.state::<AppState>().get_memcontext().await {
+                    let _ = mem
+                        .store_message(session_id, Role::LLM.to_string(), output)
+                        .await;
+                }
+            });
             let _ = self.app_handle.emit(
                 "task_complete",
                 &json!({
@@ -135,6 +148,16 @@ impl WorkflowCallback for HippoXWorkflowCallback {
         total_steps: usize,
     ) {
         if !self.completed.swap(true, Ordering::SeqCst) {
+            let app_handle = self.app_handle.clone();
+            let session_id = self.session_id.clone();
+            let err_msg = format!("Error: {}", error);
+            tokio::spawn(async move {
+                if let Some(mem) = app_handle.state::<AppState>().get_memcontext().await {
+                    let _ = mem
+                        .store_message(session_id, Role::LLM.to_string(), err_msg)
+                        .await;
+                }
+            });
             let _ = self.app_handle.emit(
                 "task_failed",
                 &json!({
@@ -185,12 +208,7 @@ impl WorkflowCallback for HippoXWorkflowCallback {
     }
 
     // Add this new method for workflow resumed
-    async fn on_workflow_resumed(
-        &self,
-        task_id: &str,
-        total_duration_ms: u64,
-        total_steps: usize,
-    ) {
+    async fn on_workflow_resumed(&self, task_id: &str, total_duration_ms: u64, total_steps: usize) {
         let _ = self.app_handle.emit(
             "task_resumed",
             &json!({

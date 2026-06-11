@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { skillsLocalCommands, skillsMarketCommands } from "../../api/skills";
 import { SkillData } from "../../types/skill";
 import { StarIcon, StarFilledIcon, PlayIcon } from "../../icons";
+import { skillsMarketCommands, skillsLocalCommands } from "../../command/skills";
 
 interface SkillsManagerCardGridProps {
   t: (key: string, params?: any) => string;

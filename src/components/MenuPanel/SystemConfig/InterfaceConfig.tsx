@@ -1,5 +1,5 @@
 import React from "react";
-import { configCommands } from "../../../api/config";
+import { configCommands } from "../../../command/config";
 
 interface InterfaceConfigProps {
   t: (key: string, params?: any) => string;

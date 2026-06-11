@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import { SystemNotification } from "../NotificationManager";
+import { SystemNotification } from "../core/NotificationManager";
 
 export const notificationBackendCommands = {
     async add(params: { title: string; message: string; type?: string; data?: any }): Promise<SystemNotification> {

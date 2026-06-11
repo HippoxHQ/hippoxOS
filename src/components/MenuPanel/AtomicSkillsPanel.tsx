@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { showToast, ToastType } from "../Toast";
-import { atomicSkillsCommands } from "../../api/skills";
+import { atomicSkillsCommands } from "../../command/skills";
 
 interface AtomicSkillsPanelProps {
   t: (key: string, params?: any) => string;

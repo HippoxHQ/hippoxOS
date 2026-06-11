@@ -1,13 +1,7 @@
 import React, { useState, useEffect } from "react";
-import {
-  AddLlmInstanceRequest,
-  ExtraConfigField,
-  llmCommands,
-  ModelInfo,
-  ProviderInfo,
-} from "../../api/llm";
 import { showToast, ToastType } from "../Toast";
 import { showDialog, DialogType } from "../Dialog";
+import { ProviderInfo, ModelInfo, llmCommands, AddLlmInstanceRequest, ExtraConfigField } from "../../command/llm";
 
 interface LLMModelConfigProps {
   t: (key: string, params?: any) => string;

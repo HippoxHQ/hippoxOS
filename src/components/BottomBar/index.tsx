@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef } from "react";
 import NotificationCenter from "./NotificationCenter";
 import ModelSelector from "./ModelSelector";
-import { LlmInstance } from "../../api/llm";
-import { configCommands } from "../../api/config";
-import { systemNotificationService } from "../../NotificationManager";
 import { showToast, ToastType } from "../Toast";
 import { BotIcon, BotIcon2 } from "../../icons";
+import { configCommands } from "../../command/config";
+import { LlmInstance } from "../../command/llm";
+import { systemNotificationService } from "../../core/NotificationManager";
 
 interface IconProps {
   className?: string;

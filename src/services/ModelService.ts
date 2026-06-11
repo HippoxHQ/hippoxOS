@@ -1,5 +1,5 @@
-import { configCommands } from '../api/config';
-import { LlmInstance } from '../api/llm';
+import { configCommands } from "../command/config";
+import { LlmInstance } from "../command/llm";
 
 export interface ModelStatus {
     instanceId: string;

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { showToast, ToastType } from "../../Toast";
 import { showDialog, DialogType } from "../../Dialog";
-import { engineCommands } from "../../../api/config";
+import { engineCommands } from "../../../command/config";
 
 interface ContainerInstance {
   id: string;

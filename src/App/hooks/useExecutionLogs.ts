@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { hippoxCommands } from "../../api/chat";
 import { ExecutionLog } from "../../types/type";
+import { hippoxCommands } from "../../command/chat";
 
 export function useExecutionLogs() {
   const [executionLogs, setExecutionLogs] = useState<ExecutionLog[]>([]);

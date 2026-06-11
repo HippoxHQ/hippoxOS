@@ -1,8 +1,8 @@
 import { useEffect } from "react";
 import { listen } from "@tauri-apps/api/event";
-import { filesCommands } from "../../api/files";
-import { getDataPaths } from "../../api/paths";
 import { SystemEvent } from "../../types/type";
+import { filesCommands } from "../../command/files";
+import { getDataPaths } from "../../command/paths";
 
 export function useSystemEvents(
   onNewSession: () => void,

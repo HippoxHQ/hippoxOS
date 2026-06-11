@@ -9,8 +9,6 @@ import {
   EditMessageForm,
   MessageActions,
 } from "./components";
-import { LlmInstance, llmCommands } from "../../api/llm";
-import { WorkspaceInstance, workspaceCommands } from "../../api/workspace";
 import {
   ChatIcon,
   UserIcon,
@@ -24,7 +22,6 @@ import {
   FileIcon,
   FolderOpenIcon,
 } from "../../icons";
-import { taskManager } from "../../TaskManager";
 import {
   UploadFile,
   ChatMessage,
@@ -35,6 +32,10 @@ import FileUploader from "../FileUploader";
 import { showToast, ToastType } from "../Toast";
 import { zhDefaultPrompts, enDefaultPrompts } from "../../types/DefaultPrompt";
 import { extractUrls, MessageUrlGrid } from "./components/MessageUrlGrid";
+import { workspaceCommands, WorkspaceInstance } from "../../command/workspace";
+import { llmCommands, LlmInstance } from "../../command/llm";
+import { taskManager } from "../../core/TaskManager";
+import { isStructuredLLMResponse, parseLLMResponse } from "../../llm/utils";
 
 interface ChatPanelProps {
   onSendMessage: (
@@ -194,9 +195,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     taskManager.addUserMessageToSession(sessionId, userMessage);
     onSendMessage(prompt, sessionId);
   };
-
   const handleContainerClick = () => textareaRef.current?.focus();
-
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return "0 B";
     const k = 1024;
@@ -204,7 +203,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
   };
-
   const copyToClipboard = async (text: string | undefined) => {
     try {
       if (!text) {
@@ -217,7 +215,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
       showToast(ToastType.ERROR, t("common.copyFailed") || "Copy Failed");
     }
   };
-
   const handleLocateTask = (msg: ChatMessage) => {
     const relatedTask = taskManager
       .getAllTasks()
@@ -301,7 +298,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     }
     checkScrollPosition();
   };
-
   const scrollToBottom = () => {
     if (messagesContainerRef.current) {
       messagesContainerRef.current.scrollTo({
@@ -311,7 +307,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
       setUserScrolled(false);
     }
   };
-
   const handleFilesAdd = (files: UploadFile[]) => {
     setUploadedFiles((prev) => {
       const existingKeys = new Set(prev.map((f) => `${f.name}_${f.size}`));
@@ -706,7 +701,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   .chat-input-section {
     flex-shrink: 0;
   }
-
   .chat-input-container {
     margin: 12px 16px 16px;
     background: var(--bg-tertiary);
@@ -715,20 +709,16 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     transition: all 0.2s ease;
     cursor: text;
   }
-
   .chat-input-container.focused {
     border-color: var(--accent-color);
     box-shadow: 0 0 0 2px var(--accent-glow);
   }
-
   .file-uploader-container {
     // border-bottom: 1px solid var(--border-color);
   }
-
   .input-textarea-wrapper {
     padding: 10px 12px 6px 12px;
   }
-
   .chat-textarea-hermes {
     width: 100%;
     background: transparent;
@@ -1150,11 +1140,8 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
                       MessageStatus.Paused,
                       MessageStatus.Cancelled,
                       MessageStatus.Failed,
-                      MessageStatus.Completed,
                     ].includes(msg.status) ? (
-                    <>
-                      <StatusMessage msg={msg} status={msg.status} t={t} />
-                    </>
+                    <StatusMessage msg={msg} status={msg.status} t={t} />
                   ) : isUser ? (
                     <>
                       {msg.files && msg.files.length > 0 && (
@@ -1191,49 +1178,82 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
                       />
                     </>
                   ) : (
-                    <>
-                      <div className="message-bubble">
-                        <div className="message-content">{msg.content}</div>
-                        <div className="message-time">{formattedTime}</div>
-                      </div>
-                      <MessageActions
-                        msg={msg}
-                        isUser={false}
-                        copyToClipboard={copyToClipboard}
-                        onLocateTask={handleLocateTask}
-                        onEditMessage={handleEditMessage}
-                        t={t}
-                      />
-                      {isLastMessage &&
-                        shouldShowSuggestions(messages) &&
-                        suggestionPrompts.length > 0 && (
-                          <div className="suggestions-wrapper">
-                            <div className="ending-message">
-                              {getEndingMessage()}
+                    (() => {
+                      let displayContent = msg.content;
+                      let displaySubtitle = null;
+                      if (isStructuredLLMResponse(msg.content)) {
+                        const parsed = parseLLMResponse(msg.content);
+                        if (parsed?.chatResponse) {
+                          displayContent = parsed.chatResponse.m;
+                          if (parsed.chatResponse.s) {
+                            displaySubtitle = parsed.chatResponse.s;
+                          }
+                        }
+                      }
+                      return (
+                        <>
+                          <div className="message-bubble">
+                            <div className="message-content">
+                              {displayContent}
                             </div>
-                            <div className="suggestions-title">
-                              {t("chat.suggestionsTitle") ||
-                                (language === "zh"
-                                  ? "💡 试试这些："
-                                  : "💡 Try these:")}
-                            </div>
-                            <div className="suggestions-container">
-                              {suggestionPrompts.map((prompt, idx) => (
-                                <div
-                                  key={idx}
-                                  className="suggestion-bubble"
-                                  onClick={() => handleSuggestionClick(prompt)}
-                                  title={prompt}
-                                >
-                                  {prompt.length > 25
-                                    ? prompt.slice(0, 25) + "..."
-                                    : prompt}
-                                </div>
-                              ))}
-                            </div>
+                            {displaySubtitle && (
+                              <div
+                                className="message-subtitle"
+                                style={{
+                                  fontSize: "11px",
+                                  color: "var(--text-tertiary)",
+                                  marginTop: "6px",
+                                  paddingTop: "4px",
+                                  borderTop: "1px solid var(--border-color)",
+                                }}
+                              >
+                                {displaySubtitle}
+                              </div>
+                            )}
+                            <div className="message-time">{formattedTime}</div>
                           </div>
-                        )}
-                    </>
+                          <MessageActions
+                            msg={msg}
+                            isUser={false}
+                            copyToClipboard={copyToClipboard}
+                            onLocateTask={handleLocateTask}
+                            onEditMessage={handleEditMessage}
+                            t={t}
+                          />
+                          {isLastMessage &&
+                            shouldShowSuggestions(messages) &&
+                            suggestionPrompts.length > 0 && (
+                              <div className="suggestions-wrapper">
+                                <div className="ending-message">
+                                  {getEndingMessage()}
+                                </div>
+                                <div className="suggestions-title">
+                                  {t("chat.suggestionsTitle") ||
+                                    (language === "zh"
+                                      ? "💡 试试这些："
+                                      : "💡 Try these:")}
+                                </div>
+                                <div className="suggestions-container">
+                                  {suggestionPrompts.map((prompt, idx) => (
+                                    <div
+                                      key={idx}
+                                      className="suggestion-bubble"
+                                      onClick={() =>
+                                        handleSuggestionClick(prompt)
+                                      }
+                                      title={prompt}
+                                    >
+                                      {prompt.length > 25
+                                        ? prompt.slice(0, 25) + "..."
+                                        : prompt}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                        </>
+                      );
+                    })()
                   )}
                   {(() => {
                     const urls = extractUrls(msg.content);

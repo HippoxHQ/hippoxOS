@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
-import { hippoxCommands } from "../../api/chat";
-import { configCommands } from "../../api/config";
 import { appConfig } from "../../config";
 import { useTranslation } from "../../hooks/useTranslation";
-import { taskManager } from "../../TaskManager";
 import { Language } from "../../types/type";
+import { hippoxCommands } from "../../command/chat";
+import { configCommands } from "../../command/config";
+import { taskManager } from "../../core/TaskManager";
 
 export function useLanguage() {
   const [language, setLanguage] = useState<Language>("en");

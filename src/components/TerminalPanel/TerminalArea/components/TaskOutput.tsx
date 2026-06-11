@@ -2,10 +2,13 @@ import React from "react";
 import { ContentWithLinks } from "./ContentWithLinks";
 import { CopyIcon } from "../../../../icons";
 import {
-  MessageUrlGrid,
-  extractUrls,
-} from "../../../ChatPanel/components/MessageUrlGrid";
-
+  isStructuredLLMResponse,
+  parseLLMResponse,
+} from "../../../../llm/utils";
+import {
+  isTerminalResponseEmpty,
+  renderTerminalResponse,
+} from "../terminalrenderer";
 interface TaskOutputProps {
   output: string;
   onCopy: () => void;
@@ -21,8 +24,79 @@ export const TaskOutput: React.FC<TaskOutputProps> = ({
   onShowMap,
   t,
 }) => {
-  const urls = extractUrls(output);
-
+  if (!output || output.trim() === "") {
+    return null;
+  }
+  let renderedContent: React.ReactNode = null;
+  let isStructured = false;
+  let shouldHide = false;
+  if (isStructuredLLMResponse(output)) {
+    const parsed = parseLLMResponse(output);
+    if (parsed?.terminalResponse) {
+      isStructured = true;
+      if (isTerminalResponseEmpty(parsed.terminalResponse)) {
+        shouldHide = true;
+      } else {
+        renderedContent = renderTerminalResponse(parsed.terminalResponse, t);
+      }
+    } else if (parsed?.terminalResponse === null) {
+      shouldHide = true;
+    }
+  }
+  if (shouldHide) {
+    return null;
+  }
+  if (isStructured && renderedContent) {
+    return (
+      <div className="task-final-output">
+        <div
+          className="output-header"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
+          <span
+            className="output-label"
+            style={{ color: "var(--text-primary)", fontWeight: 500 }}
+          >
+            📝 {t("terminal.response") || "Response:"}
+          </span>
+          <button
+            className="copy-output-btn"
+            onClick={onCopy}
+            title={t("common.copy")}
+            style={{
+              background: "transparent",
+              border: "none",
+              cursor: "pointer",
+              color: "var(--text-secondary)",
+              fontSize: "12px",
+              padding: "4px 8px",
+              borderRadius: "4px",
+              display: "flex",
+              alignItems: "center",
+              gap: "4px",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "var(--hover-bg)";
+              e.currentTarget.style.color = "var(--text-primary)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "transparent";
+              e.currentTarget.style.color = "var(--text-secondary)";
+            }}
+          >
+            <CopyIcon size={12} /> {t("common.copy")}
+          </button>
+        </div>
+        <div className="output-content-structured" style={{ marginTop: "8px" }}>
+          {renderedContent}
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="task-final-output">
       <div
@@ -139,11 +213,6 @@ export const TaskOutput: React.FC<TaskOutputProps> = ({
           </button>
         )}
       </div>
-      {urls.length > 0 && (
-        <div style={{ marginTop: "12px" }}>
-          <MessageUrlGrid urls={urls} t={t} />
-        </div>
-      )}
     </div>
   );
 };
