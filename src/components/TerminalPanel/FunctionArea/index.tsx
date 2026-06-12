@@ -61,6 +61,20 @@ const FunctionArea: React.FC<FunctionAreaProps> = ({
     [theme, i18n],
   );
   useEffect(() => {
+    if (modulesComponents.size === 0) return;
+
+    const newMap = new Map<string, React.ReactNode>();
+    modulesComponents.forEach((_, moduleKey) => {
+      const { moduleId, taskId } = parseModuleKey(moduleKey);
+      if (moduleId === FunctionInstance.Canldeview) {
+        newMap.set(moduleKey, createCandleViewForTask(taskId));
+      } else if (moduleId === FunctionInstance.Earthview) {
+        newMap.set(moduleKey, createEarthViewForTask(taskId));
+      }
+    });
+    setModulesComponents(newMap);
+  }, [theme, i18n, createCandleViewForTask, createEarthViewForTask]);
+  useEffect(() => {
     const handleOpenModule = (event: CustomEvent) => {
       const { moduleType, taskId, center, zoom } = event.detail;
       const result = openModule(moduleType, taskId);

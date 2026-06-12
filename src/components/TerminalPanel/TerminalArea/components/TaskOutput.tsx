@@ -94,6 +94,56 @@ export const TaskOutput: React.FC<TaskOutputProps> = ({
         <div className="output-content-structured" style={{ marginTop: "8px" }}>
           {renderedContent}
         </div>
+        <div
+          className="output-content-func"
+          style={{
+            marginTop: "10px",
+            display: "flex",
+            justifyContent: "flex-end",
+            gap: "8px",
+          }}
+        >
+          <button
+            onClick={onShowChart}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              padding: "6px 12px",
+              background: "var(--accent-color)",
+              color: "white",
+              border: "none",
+              borderRadius: "6px",
+              cursor: "pointer",
+              fontSize: "12px",
+              fontWeight: 500,
+            }}
+          >
+            <span>📊</span>
+            <span>{t("terminal.showChart")}</span>
+          </button>
+          {onShowMap && (
+            <button
+              onClick={onShowMap}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                padding: "6px 12px",
+                background: "var(--accent-color)",
+                color: "white",
+                border: "none",
+                borderRadius: "6px",
+                cursor: "pointer",
+                fontSize: "12px",
+                fontWeight: 500,
+              }}
+            >
+              <span>🗺️</span>
+              <span>{t("terminal.showMap")}</span>
+            </button>
+          )}
+        </div>
       </div>
     );
   }
