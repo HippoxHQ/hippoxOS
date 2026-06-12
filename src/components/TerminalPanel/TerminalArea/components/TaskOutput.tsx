@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { ContentWithLinks } from "./ContentWithLinks";
 import { CopyIcon } from "../../../../icons";
 import {
@@ -9,12 +9,15 @@ import {
   isTerminalResponseEmpty,
   renderTerminalResponse,
 } from "../terminalrenderer";
+
 interface TaskOutputProps {
   output: string;
   onCopy: () => void;
-  onShowChart: () => void;
-  onShowMap?: () => void;
+  onShowChart: (chartData?: any) => void;
+  onShowMap?: (mapData?: any) => void;
   t: (key: string) => string;
+  taskId?: string;
+  autoOpen?: boolean;
 }
 
 export const TaskOutput: React.FC<TaskOutputProps> = ({
@@ -23,17 +26,32 @@ export const TaskOutput: React.FC<TaskOutputProps> = ({
   onShowChart,
   onShowMap,
   t,
+  taskId,
+  autoOpen = true,
 }) => {
   if (!output || output.trim() === "") {
     return null;
   }
+
   let renderedContent: React.ReactNode = null;
-  let isStructured = false;
-  let shouldHide = false;
+  let isStructured: boolean = false;
+  let shouldHide: boolean = false;
+  let hasEarthview: boolean = false;
+  let hasCandleview: boolean = false;
+  let earthviewData: any = null;
+  let candleviewData: any = null;
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  let autoOpenedRef = React.useRef(false);
   if (isStructuredLLMResponse(output)) {
     const parsed = parseLLMResponse(output);
     if (parsed?.terminalResponse) {
       isStructured = true;
+      const tr = parsed.terminalResponse as any;
+      hasEarthview = !!tr.earthview && Object.keys(tr.earthview).length > 0;
+      hasCandleview = !!tr.candleview && Object.keys(tr.candleview).length > 0;
+      earthviewData = tr.earthview || null;
+      candleviewData = tr.candleview || null;
+
       if (isTerminalResponseEmpty(parsed.terminalResponse)) {
         shouldHide = true;
       } else {
@@ -43,9 +61,42 @@ export const TaskOutput: React.FC<TaskOutputProps> = ({
       shouldHide = true;
     }
   }
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  useEffect(() => {
+    if (autoOpen && !autoOpenedRef.current) {
+      if (hasEarthview && earthviewData) {
+        console.log("Auto-opening map with data:", earthviewData);
+        autoOpenedRef.current = true;
+        onShowMap?.(earthviewData);
+      }
+      else if (hasCandleview && candleviewData) {
+        console.log("Auto-opening chart with data:", candleviewData);
+        autoOpenedRef.current = true;
+        onShowChart(candleviewData);
+      }
+    }
+  }, [
+    hasEarthview,
+    hasCandleview,
+    earthviewData,
+    candleviewData,
+    autoOpen,
+    onShowMap,
+    onShowChart,
+  ]);
+
   if (shouldHide) {
     return null;
   }
+
+  const handleShowMap = () => {
+    onShowMap?.(earthviewData);
+  };
+
+  const handleShowChart = () => {
+    onShowChart(candleviewData);
+  };
+
   if (isStructured && renderedContent) {
     return (
       <div className="task-final-output">
@@ -94,58 +145,101 @@ export const TaskOutput: React.FC<TaskOutputProps> = ({
         <div className="output-content-structured" style={{ marginTop: "8px" }}>
           {renderedContent}
         </div>
-        <div
-          className="output-content-func"
-          style={{
-            marginTop: "10px",
-            display: "flex",
-            justifyContent: "flex-end",
-            gap: "8px",
-          }}
-        >
-          <button
-            onClick={onShowChart}
+        {(hasCandleview || hasEarthview) && (
+          <div
+            className="output-content-func"
             style={{
+              marginTop: "12px",
               display: "flex",
-              alignItems: "center",
-              gap: "6px",
-              padding: "6px 12px",
-              background: "var(--accent-color)",
-              color: "white",
-              border: "none",
-              borderRadius: "6px",
-              cursor: "pointer",
-              fontSize: "12px",
-              fontWeight: 500,
+              justifyContent: "flex-end",
+              gap: "10px",
             }}
           >
-            <span>📊</span>
-            <span>{t("terminal.showChart")}</span>
-          </button>
-          {onShowMap && (
-            <button
-              onClick={onShowMap}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "6px",
-                padding: "6px 12px",
-                background: "var(--accent-color)",
-                color: "white",
-                border: "none",
-                borderRadius: "6px",
-                cursor: "pointer",
-                fontSize: "12px",
-                fontWeight: 500,
-              }}
-            >
-              <span>🗺️</span>
-              <span>{t("terminal.showMap")}</span>
-            </button>
-          )}
-        </div>
+            {hasCandleview && (
+              <button
+                onClick={handleShowChart}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  padding: "8px 16px",
+                  background: "var(--accent-color, #00aaff)",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "8px",
+                  cursor: "pointer",
+                  fontSize: "13px",
+                  fontWeight: 500,
+                  transition: "all 0.2s ease",
+                  boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.opacity = "0.85";
+                  e.currentTarget.style.transform = "translateY(-1px)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.opacity = "1";
+                  e.currentTarget.style.transform = "translateY(0)";
+                }}
+              >
+                <span>📊</span>
+                <span>{t("terminal.showChart") || "Show Chart"}</span>
+              </button>
+            )}
+            {hasEarthview && (
+              <button
+                onClick={handleShowMap}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  padding: "8px 16px",
+                  background: "var(--accent-color, #00aaff)",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "8px",
+                  cursor: "pointer",
+                  fontSize: "13px",
+                  fontWeight: 500,
+                  transition: "all 0.2s ease",
+                  boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.opacity = "0.85";
+                  e.currentTarget.style.transform = "translateY(-1px)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.opacity = "1";
+                  e.currentTarget.style.transform = "translateY(0)";
+                }}
+              >
+                <span>🗺️</span>
+                <span>{t("terminal.showMap") || "Show Map"}</span>
+              </button>
+            )}
+          </div>
+        )}
       </div>
     );
+  }
+  let hasCandleviewInText: boolean = false;
+  let hasEarthviewInText: boolean = false;
+  let extractedCandleviewData: any = null;
+  let extractedEarthviewData: any = null;
+  try {
+    const jsonMatch = output.match(/\{[\s\S]*"candleview"[\s\S]*\}/);
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[0]);
+      if (parsed.candleview) {
+        hasCandleviewInText = true;
+        extractedCandleviewData = parsed.candleview;
+      }
+      if (parsed.earthview) {
+        hasEarthviewInText = true;
+        extractedEarthviewData = parsed.earthview;
+      }
+    }
+  } catch {
   }
   return (
     <div className="task-final-output">
@@ -194,75 +288,80 @@ export const TaskOutput: React.FC<TaskOutputProps> = ({
       <div className="output-content-text">
         <ContentWithLinks text={output} t={t} />
       </div>
-      <div
-        className="output-content-func"
-        style={{
-          marginTop: "10px",
-          display: "flex",
-          justifyContent: "flex-end",
-          gap: "8px",
-        }}
-      >
-        <button
-          onClick={onShowChart}
+      {(hasCandleviewInText || hasEarthviewInText) && (
+        <div
+          className="output-content-func"
           style={{
+            marginTop: "12px",
             display: "flex",
-            alignItems: "center",
-            gap: "6px",
-            padding: "6px 12px",
-            background: "var(--accent-color)",
-            color: "white",
-            border: "none",
-            borderRadius: "6px",
-            cursor: "pointer",
-            fontSize: "12px",
-            fontWeight: 500,
-            transition: "all 0.2s ease",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.opacity = "0.85";
-            e.currentTarget.style.transform = "translateY(-1px)";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.opacity = "1";
-            e.currentTarget.style.transform = "translateY(0)";
+            justifyContent: "flex-end",
+            gap: "10px",
           }}
         >
-          <span>📊</span>
-          <span>{t("terminal.showChart")}</span>
-        </button>
-
-        {onShowMap && (
-          <button
-            onClick={onShowMap}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-              padding: "6px 12px",
-              background: "var(--accent-color)",
-              color: "white",
-              border: "none",
-              borderRadius: "6px",
-              cursor: "pointer",
-              fontSize: "12px",
-              fontWeight: 500,
-              transition: "all 0.2s ease",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.opacity = "0.85";
-              e.currentTarget.style.transform = "translateY(-1px)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.opacity = "1";
-              e.currentTarget.style.transform = "translateY(0)";
-            }}
-          >
-            <span>🗺️</span>
-            <span>{t("terminal.showMap")}</span>
-          </button>
-        )}
-      </div>
+          {hasCandleviewInText && (
+            <button
+              onClick={() => onShowChart(extractedCandleviewData)}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                padding: "8px 16px",
+                background: "var(--accent-color, #00aaff)",
+                color: "white",
+                border: "none",
+                borderRadius: "8px",
+                cursor: "pointer",
+                fontSize: "13px",
+                fontWeight: 500,
+                transition: "all 0.2s ease",
+                boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.opacity = "0.85";
+                e.currentTarget.style.transform = "translateY(-1px)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.opacity = "1";
+                e.currentTarget.style.transform = "translateY(0)";
+              }}
+            >
+              <span>📊</span>
+              <span>{t("terminal.showChart") || "Show Chart"}</span>
+            </button>
+          )}
+          {hasEarthviewInText && (
+            <button
+              onClick={() => onShowMap?.(extractedEarthviewData)}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                padding: "8px 16px",
+                background: "var(--accent-color, #00aaff)",
+                color: "white",
+                border: "none",
+                borderRadius: "8px",
+                cursor: "pointer",
+                fontSize: "13px",
+                fontWeight: 500,
+                transition: "all 0.2s ease",
+                boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.opacity = "0.85";
+                e.currentTarget.style.transform = "translateY(-1px)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.opacity = "1";
+                e.currentTarget.style.transform = "translateY(0)";
+              }}
+            >
+              <span>🗺️</span>
+              <span>{t("terminal.showMap") || "Show Map"}</span>
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 };

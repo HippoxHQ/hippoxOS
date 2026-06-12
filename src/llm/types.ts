@@ -51,6 +51,10 @@ export interface TerminalResponse {
   warnings?: string[];
   /** Success/failure status */
   status?: 'success' | 'error' | 'warning' | 'info';
+  /** EarthView map operations */
+  earthview?: EarthViewOperation;
+  /** CandleView chart operations */
+  candleview?: CandleViewOperation;
 }
 
 /**
@@ -74,26 +78,126 @@ export interface HippoxOSResult {
   chatResponse: ChatResponse;
 }
 
+export interface EarthViewOperation {
+  view?: {
+    center?: [number, number];
+  };
+  markers?: Array<{
+    id?: string;
+    longitude: number;
+    latitude: number;
+    title?: string;
+    name?: string;
+    color?: string;
+    size?: number;
+    pointType?: 'circle' | 'square' | 'triangle' | 'pin' | 'star' | 'heart' | 'flag';
+    pointText?: string;
+    bubbleBoxTitle?: string;
+    bubbleBoxDescription?: string;
+    bubbleBoxCoverImage?: string;
+  }>;
+  circles?: Array<{
+    id?: string;
+    center: [number, number];
+    radius: number;
+    title?: string;
+    fillColor?: string;
+    outlineColor?: string;
+    outlineWidth?: number;
+  }>;
+  polygons?: Array<{
+    id?: string;
+    points: [number, number][];
+    title?: string;
+    fillColor?: string;
+    outlineColor?: string;
+    outlineWidth?: number;
+  }>;
+  polylines?: Array<{
+    id?: string;
+    points: [number, number][];
+    title?: string;
+    color?: string;
+    width?: number;
+  }>;
+  heatmap?: Array<{
+    id?: string;
+    longitude: number;
+    latitude: number;
+    value?: number;
+    title?: string;
+  }>;
+  clusters?: Array<{
+    id?: string;
+    longitude: number;
+    latitude: number;
+    title?: string;
+    popupContent?: string;
+  }>;
+  barcharts?: Array<{
+    id?: string;
+    longitude: number;
+    latitude: number;
+    value: number;
+    title?: string;
+    color?: string;
+  }>;
+}
+export interface CandleViewOperation {
+  timeframe?: '1m' | '5m' | '15m' | '30m' | '1h' | '4h' | '1d' | '1w' | '1M';
+  timezone?: 'NewYork' | 'London' | 'Tokyo' | 'Shanghai' | 'UTC';
+  chartType?: 'candle' | 'bar' | 'line' | 'area' | 'heikinashi' | 'hollow';
+  title?: string;
+  mainIndicators?: Array<{
+    type: 'MA' | 'EMA' | 'BOLLINGER' | 'ICHIMOKU' | 'DONCHIAN' | 'ENVELOPE' | 'VWAP' | 'HEATMAP' | 'MARKETPROFILE';
+    enabled: boolean;
+    parameters?: Record<string, any>;
+  }>;
+  subIndicators?: Array<{
+    type: 'RSI' | 'MACD' | 'VOLUME' | 'SAR' | 'KDJ' | 'ATR' | 'STOCHASTIC' | 'CCI' | 'BBWIDTH' | 'ADX' | 'OBV';
+    enabled: boolean;
+  }>;
+  staticMarks?: Array<{
+    time: number;
+    type: 'text' | 'arrow';
+    text?: string;
+    direction: 'up' | 'down';
+    color?: string;
+    backgroundColor?: string;
+    fontSize?: number;
+    label?: string;
+  }>;
+  priceEvents?: Array<{
+    price: number;
+    title?: string;
+    color?: string;
+    showPrice?: boolean;
+  }>;
+  screenshot?: {
+    watermark?: string;
+    opacity?: number;
+  };
+  drawingTools?: {
+    tool?: 'cursor' | 'crosshair' | 'brush';
+    action?: 'enable' | 'disable' | 'clear';
+  };
+}
+
 /**
  * Validate if response is a valid HippoxOSResult
  */
 export function isValidHippoxOSResult(obj: any): obj is HippoxOSResult {
   if (!obj || typeof obj !== 'object') return false;
-
   // Check if chatResponse exists and has correct format
   if (!obj.chatResponse || typeof obj.chatResponse !== 'object') return false;
   if (typeof obj.chatResponse.m !== 'string') return false;
-
   // s field is optional, must be string if present
   if (obj.chatResponse.s !== undefined && typeof obj.chatResponse.s !== 'string') return false;
-
   // terminalResponse can be null or object
   if (obj.terminalResponse !== null && typeof obj.terminalResponse !== 'object') return false;
-
   // Validate terminalResponse field types (if present)
   if (obj.terminalResponse) {
     const tr = obj.terminalResponse;
-
     if (tr.links !== undefined && !Array.isArray(tr.links)) return false;
     if (tr.local !== undefined && !Array.isArray(tr.local)) return false;
     if (tr.commands !== undefined && !Array.isArray(tr.commands)) return false;
@@ -102,8 +206,10 @@ export function isValidHippoxOSResult(obj: any): obj is HippoxOSResult {
     if (tr.metrics !== undefined && !Array.isArray(tr.metrics)) return false;
     if (tr.warnings !== undefined && !Array.isArray(tr.warnings)) return false;
     if (tr.status !== undefined && !['success', 'error', 'warning', 'info'].includes(tr.status)) return false;
+    // earthview and candleview are optional, just check they are objects if present
+    if (tr.earthview !== undefined && typeof tr.earthview !== 'object') return false;
+    if (tr.candleview !== undefined && typeof tr.candleview !== 'object') return false;
   }
-
   return true;
 }
 

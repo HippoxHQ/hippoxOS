@@ -34,7 +34,7 @@ const FunctionArea: React.FC<FunctionAreaProps> = ({
     Map<string, React.ReactNode>
   >(new Map());
   const createCandleViewForTask = useCallback(
-    (taskId?: string) => {
+    (taskId?: string, chartData?: any) => {
       return (
         <IntegratedCandleView
           key={`candleview_${taskId || "default"}`}
@@ -43,40 +43,30 @@ const FunctionArea: React.FC<FunctionAreaProps> = ({
           currentSessionId={currentSessionId}
           symbol={taskId ? `Task ${taskId.slice(-6)}` : "BTC/USDT"}
           taskId={taskId}
+          chartData={chartData}
         />
       );
     },
     [theme, i18n, currentSessionId],
   );
   const createEarthViewForTask = useCallback(
-    (taskId?: string) => {
+    (taskId?: string, mapData?: any) => {
       return (
         <IntegratedEarthView
           key={`earthview_${taskId || "default"}`}
           theme={theme}
           i18n={i18n}
+          taskId={taskId}
+          mapData={mapData}
         />
       );
     },
     [theme, i18n],
   );
   useEffect(() => {
-    if (modulesComponents.size === 0) return;
-
-    const newMap = new Map<string, React.ReactNode>();
-    modulesComponents.forEach((_, moduleKey) => {
-      const { moduleId, taskId } = parseModuleKey(moduleKey);
-      if (moduleId === FunctionInstance.Canldeview) {
-        newMap.set(moduleKey, createCandleViewForTask(taskId));
-      } else if (moduleId === FunctionInstance.Earthview) {
-        newMap.set(moduleKey, createEarthViewForTask(taskId));
-      }
-    });
-    setModulesComponents(newMap);
-  }, [theme, i18n, createCandleViewForTask, createEarthViewForTask]);
-  useEffect(() => {
     const handleOpenModule = (event: CustomEvent) => {
-      const { moduleType, taskId, center, zoom } = event.detail;
+      const { moduleType, taskId, center, zoom, chartData, mapData } =
+        event.detail;
       const result = openModule(moduleType, taskId);
       const moduleKey = taskId ? `${moduleType}_${taskId}` : moduleType;
       setModulesComponents((prev) => {
@@ -86,8 +76,8 @@ const FunctionArea: React.FC<FunctionAreaProps> = ({
         const newMap = new Map(prev);
         const component =
           moduleType === FunctionInstance.Canldeview
-            ? createCandleViewForTask(taskId)
-            : createEarthViewForTask(taskId);
+            ? createCandleViewForTask(taskId, chartData)
+            : createEarthViewForTask(taskId, mapData);
         newMap.set(moduleKey, component);
         return newMap;
       });
@@ -95,7 +85,7 @@ const FunctionArea: React.FC<FunctionAreaProps> = ({
         setTimeout(() => {
           window.dispatchEvent(
             new CustomEvent("earthview-locate", {
-              detail: { center, zoom, taskId },
+              detail: { center, zoom, taskId, mapData },
             }),
           );
         }, 500);
@@ -112,6 +102,7 @@ const FunctionArea: React.FC<FunctionAreaProps> = ({
       );
     };
   }, [openModule, createCandleViewForTask, createEarthViewForTask]);
+
   const buildModules = (): ModuleConfig[] => {
     const moduleKeys = getOpenModuleKeys();
     const result: ModuleConfig[] = [];
@@ -134,6 +125,7 @@ const FunctionArea: React.FC<FunctionAreaProps> = ({
     }
     return result;
   };
+
   const modules = buildModules();
   const activeModuleContent = modules.find((m) => {
     if (m.id !== activeModule) return false;
@@ -142,9 +134,11 @@ const FunctionArea: React.FC<FunctionAreaProps> = ({
     }
     return !m.taskId;
   })?.component;
+
   const handleModuleChange = (moduleId: FunctionInstance, taskId?: string) => {
     switchToModule(moduleId, taskId);
   };
+
   const handleModuleCloseWrapper = (moduleKey: string, e: React.MouseEvent) => {
     const shouldClose = handleCloseModule(moduleKey, e);
     setModulesComponents((prev) => {
@@ -156,6 +150,7 @@ const FunctionArea: React.FC<FunctionAreaProps> = ({
       onClose();
     }
   };
+
   return (
     <div
       className="function-area-container"

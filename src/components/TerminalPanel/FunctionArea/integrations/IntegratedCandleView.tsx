@@ -3,7 +3,7 @@ import {
   ICandleViewDataPoint,
   MainChartType,
 } from "@candleview/core";
-import React, { useRef, useEffect, useState } from "react";
+import React, { useRef, useEffect, useState, useCallback } from "react";
 import { TEST_CANDLEVIEW_DATA8 } from "../../../../test/TestData_3";
 
 interface IntegratedCandleViewProps {
@@ -13,6 +13,7 @@ interface IntegratedCandleViewProps {
   data?: ICandleViewDataPoint[];
   symbol?: string;
   taskId?: string;
+  chartData?: any;
 }
 
 export const IntegratedCandleView: React.FC<IntegratedCandleViewProps> = ({
@@ -22,18 +23,85 @@ export const IntegratedCandleView: React.FC<IntegratedCandleViewProps> = ({
   data,
   symbol = "BTC/USDT",
   taskId,
+  chartData,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const candleViewRef = useRef<CandleView | null>(null);
   const [isReady, setIsReady] = useState(false);
-  const chartData = data || TEST_CANDLEVIEW_DATA8;
+  const chartDataFromProps = data || TEST_CANDLEVIEW_DATA8;
   const isValidData =
-    chartData && Array.isArray(chartData) && chartData.length > 0;
+    chartDataFromProps &&
+    Array.isArray(chartDataFromProps) &&
+    chartDataFromProps.length > 0;
+  const applyCandleViewConfig = useCallback(
+    (config: any) => {
+      if (!candleViewRef.current || !isReady) return;
+      const cv = candleViewRef.current;
+      if (config?.chartType) {
+        try {
+          cv.setChartType(config.chartType as MainChartType);
+        } catch (e) {
+          console.warn("Failed to set chart type:", e);
+        }
+      }
+      if (config?.title) {
+        try {
+          cv.setTitle(config.title);
+        } catch (e) {
+          console.warn("Failed to set title:", e);
+        }
+      }
+      if (config?.mainIndicators && Array.isArray(config.mainIndicators)) {
+        config.mainIndicators.forEach((indicator: any) => {
+          try {
+            if (indicator.enabled) {
+              cv.openMainChartIndicator(indicator.type, indicator.parameters);
+            } else {
+              cv.closeMainChartIndicator(indicator.type);
+            }
+          } catch (e) {
+            console.warn(`Failed to apply indicator ${indicator.type}:`, e);
+          }
+        });
+      }
+      if (config?.subIndicators && Array.isArray(config.subIndicators)) {
+        config.subIndicators.forEach((indicator: any) => {
+          try {
+            if (indicator.enabled) {
+              cv.openSubChartIndicator(indicator.type);
+            } else {
+              cv.closeSubChartIndicator(indicator.type);
+            }
+          } catch (e) {
+            console.warn(`Failed to apply sub-indicator ${indicator.type}:`, e);
+          }
+        });
+      }
+      if (config?.staticMarks && Array.isArray(config.staticMarks)) {
+        try {
+          cv.addStaticMarks(config.staticMarks);
+        } catch (e) {
+          console.warn("Failed to add static marks:", e);
+        }
+      }
+      if (config?.priceEvents && Array.isArray(config.priceEvents)) {
+        try {
+          cv.registerPriceEvents(config.priceEvents);
+        } catch (e) {
+          console.warn("Failed to register price events:", e);
+        }
+      }
+    },
+    [isReady],
+  );
+
   useEffect(() => {
     if (!containerRef.current) return;
     if (candleViewRef.current) return;
     if (!isValidData) {
-      console.error("No valid data for chart initialization", { chartData });
+      console.error("No valid data for chart initialization", {
+        chartDataFromProps,
+      });
       return;
     }
     try {
@@ -44,11 +112,16 @@ export const IntegratedCandleView: React.FC<IntegratedCandleViewProps> = ({
         locale: i18n === "zh-cn" ? "zh-cn" : "en",
         technologyPanel: true,
         drawingPanel: true,
-        data: chartData,
+        data: chartDataFromProps,
         activeTimeframe: undefined,
       });
       candleViewRef.current = candleView;
       setIsReady(true);
+      setTimeout(() => {
+        if (chartData) {
+          applyCandleViewConfig(chartData);
+        }
+      }, 500);
     } catch (error) {
       console.error("Failed to initialize CandleView:", error);
     }
@@ -62,8 +135,14 @@ export const IntegratedCandleView: React.FC<IntegratedCandleViewProps> = ({
   }, []);
 
   useEffect(() => {
+    if (isReady && candleViewRef.current && chartData) {
+      applyCandleViewConfig(chartData);
+    }
+  }, [chartData, isReady, applyCandleViewConfig]);
+
+  useEffect(() => {
     if (!candleViewRef.current || !isValidData) return;
-    candleViewRef.current.setData(chartData);
+    candleViewRef.current.setData(chartDataFromProps);
     setTimeout(() => {
       try {
         const chart = candleViewRef.current?.getChart();
@@ -72,7 +151,7 @@ export const IntegratedCandleView: React.FC<IntegratedCandleViewProps> = ({
         }
       } catch (e) {}
     }, 100);
-  }, [chartData]);
+  }, [chartDataFromProps]);
 
   useEffect(() => {
     if (candleViewRef.current) {
@@ -88,14 +167,16 @@ export const IntegratedCandleView: React.FC<IntegratedCandleViewProps> = ({
 
   useEffect(() => {
     const handleChartData = (event: CustomEvent) => {
-      const { taskData } = event.detail;
+      const { taskData, chartData: eventChartData } = event.detail;
+      if (eventChartData && candleViewRef.current && isReady) {
+        applyCandleViewConfig(eventChartData);
+      }
       if (taskData?.final_output) {
         try {
           const parsedData = JSON.parse(taskData.final_output);
           if (Array.isArray(parsedData) && parsedData.length > 0) {
             if (candleViewRef.current) {
               candleViewRef.current.setData(parsedData);
-
               setTimeout(() => {
                 try {
                   const chart = candleViewRef.current?.getChart();
@@ -123,7 +204,7 @@ export const IntegratedCandleView: React.FC<IntegratedCandleViewProps> = ({
         handleChartData as EventListener,
       );
     };
-  }, []);
+  }, [applyCandleViewConfig, isReady]);
 
   useEffect(() => {
     if (candleViewRef.current && currentSessionId && isReady) {

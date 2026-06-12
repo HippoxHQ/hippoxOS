@@ -137,8 +137,8 @@ export const TaskRow = forwardRef<HTMLDivElement, TaskRowProps>(
         showToast(ToastType.ERROR, t("terminal.resumeFailed"));
       }
     };
-
-    const handleShowMap = () => {
+    const handleShowMap = (mapData?: any) => {
+      console.log("Opening map with data:", mapData);
       onOpenFunctionArea();
       setTimeout(() => {
         window.dispatchEvent(
@@ -146,14 +146,14 @@ export const TaskRow = forwardRef<HTMLDivElement, TaskRowProps>(
             detail: {
               moduleType: FunctionInstance.Earthview,
               taskId: task.task_id,
-              center: [116.397428, 39.90923],
-              zoom: 10,
+              mapData: mapData,
+              center: mapData?.view?.center,
+              zoom: mapData?.view?.zoom,
             },
           }),
         );
       }, 100);
     };
-
     const handleInterruptTask = async (taskId: string, e: React.MouseEvent) => {
       e.stopPropagation();
       showDialog(
@@ -334,6 +334,7 @@ export const TaskRow = forwardRef<HTMLDivElement, TaskRowProps>(
               onCopy={handleCopyOutput}
               onShowChart={handleShowChart}
               onShowMap={handleShowMap}
+              taskId={task.task_id}
               t={t}
             />
           )}

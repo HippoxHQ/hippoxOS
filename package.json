@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
-    "@candleview/core": "^3.0.1",
+    "@candleview/core": "^3.0.2",
     "@earthview/core": "^0.2.5",
     "@tauri-apps/api": "^2.11.0",
     "@tauri-apps/plugin-shell": "^2.3.5",
