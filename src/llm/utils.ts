@@ -1,4 +1,4 @@
-import { HippoxOSResult } from "../llm/types";
+import { HippoxOSResult, isValidHippoxOSResult } from "../llm/types";
 
 export function parseLLMResponse(content: string): HippoxOSResult | null {
     try {
@@ -21,14 +21,6 @@ export function parseLLMResponse(content: string): HippoxOSResult | null {
         }
         return null;
     }
-}
-
-function isValidHippoxOSResult(obj: any): obj is HippoxOSResult {
-    if (!obj || typeof obj !== 'object') return false;
-    if (!obj.chatResponse || typeof obj.chatResponse !== 'object') return false;
-    if (typeof obj.chatResponse.m !== 'string') return false;
-    if (obj.terminalResponse !== null && typeof obj.terminalResponse !== 'object') return false;
-    return true;
 }
 
 export function isStructuredLLMResponse(content: string): boolean {
