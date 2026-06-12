@@ -4,7 +4,7 @@
   "private": true,
   "dependencies": {
     "@candleview/core": "^3.0.2",
-    "@earthview/core": "^0.2.5",
+    "@earthview/core": "^0.2.7",
     "@tauri-apps/api": "^2.11.0",
     "@tauri-apps/plugin-shell": "^2.3.5",
     "@testing-library/dom": "^10.4.0",
