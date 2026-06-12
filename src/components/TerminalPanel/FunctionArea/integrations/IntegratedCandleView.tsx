@@ -94,7 +94,6 @@ export const IntegratedCandleView: React.FC<IntegratedCandleViewProps> = ({
     },
     [isReady],
   );
-
   useEffect(() => {
     if (!containerRef.current) return;
     if (candleViewRef.current) return;

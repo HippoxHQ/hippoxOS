@@ -230,7 +230,7 @@ export const IntegratedEarthView: React.FC<IntegratedEarthViewProps> = ({
         latitude: marker.latitude,
         name: marker.name || marker.title || "",
         pointColor: marker.color || "#FF5722",
-        pointSize: marker.size || 12,
+        pointSize: marker.size || 15,
         pointType: marker.pointType || "circle",
         pointText: marker.pointText || "",
         bubbleBoxTitle: marker.bubbleBoxTitle || marker.title,
