@@ -17,7 +17,9 @@ pub mod task_pool;
 pub mod types;
 pub mod urls;
 pub mod windows;
+pub mod profile;
 
+pub use profile::*;
 pub use chat::*;
 pub use config::*;
 pub use context::*;

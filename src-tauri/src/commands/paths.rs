@@ -50,11 +50,6 @@ pub fn get_scheduled_tasks_dir() -> PathBuf {
     get_app_root_dir().join("ScheduledTasks")
 }
 
-/// Scheduled tasks history directory: HippoX/ScheduledTasksHistory
-pub fn get_scheduled_tasks_history_dir() -> PathBuf {
-    get_app_root_dir().join("ScheduledTasksHistory")
-}
-
 /// Log directory: HippoX/logs
 pub fn get_log_dir() -> PathBuf {
     get_app_root_dir().join("logs")
@@ -81,7 +76,6 @@ pub struct DataPaths {
     pub dialog_history_dir: String,
     pub skills_market_dir: String,
     pub scheduled_tasks_dir: String,
-    pub scheduled_tasks_history_dir: String,
     pub log_dir: String,
     pub cache_dir: String,
     pub settings_dir: String,
@@ -94,9 +88,6 @@ pub fn cmd_get_data_paths() -> DataPaths {
         dialog_history_dir: get_dialog_history_dir().to_string_lossy().to_string(),
         skills_market_dir: get_skills_market_dir().to_string_lossy().to_string(),
         scheduled_tasks_dir: get_scheduled_tasks_dir().to_string_lossy().to_string(),
-        scheduled_tasks_history_dir: get_scheduled_tasks_history_dir()
-            .to_string_lossy()
-            .to_string(),
         log_dir: get_log_dir().to_string_lossy().to_string(),
         cache_dir: get_cache_dir().to_string_lossy().to_string(),
         settings_dir: get_settings_dir().to_string_lossy().to_string(),
@@ -166,7 +157,6 @@ pub fn init_directories() -> Result<(), String> {
         get_dialog_history_dir(),
         get_skills_market_dir(),
         get_scheduled_tasks_dir(),
-        get_scheduled_tasks_history_dir(),
         get_log_dir(),
         get_cache_dir(),
         get_settings_dir(),
@@ -282,40 +272,6 @@ pub fn list_scheduled_task_ids() -> Result<Vec<String>, String> {
         }
     }
     Ok(tasks)
-}
-
-/// Record scheduled task execution history
-pub fn record_task_execution(
-    task_id: &str,
-    task_name: &str,
-    status: &str,
-    output: &str,
-    error: Option<&str>,
-    duration_ms: u64,
-) -> Result<String, String> {
-    let dir = get_scheduled_tasks_history_dir();
-    if !dir.exists() {
-        fs::create_dir_all(&dir)
-            .map_err(|e| format!("Failed to create task history directory: {}", e))?;
-    }
-    let timestamp = Local::now().format("%Y%m%d_%H%M%S").to_string();
-    let filename = format!("execution_{}_{}_{}.json", timestamp, task_id, status);
-    let file_path = dir.join(filename);
-    let record = serde_json::json!({
-        "id": uuid::Uuid::new_v4().to_string(),
-        "task_id": task_id,
-        "task_name": task_name,
-        "executed_at": Local::now().to_rfc3339(),
-        "status": status,
-        "output": output,
-        "error": error,
-        "duration_ms": duration_ms,
-    });
-    let content = serde_json::to_string_pretty(&record)
-        .map_err(|e| format!("Failed to serialize execution record: {}", e))?;
-    fs::write(&file_path, content)
-        .map_err(|e| format!("Failed to save execution record: {}", e))?;
-    Ok(file_path.to_string_lossy().to_string())
 }
 
 /// Save internal setting to config directory

@@ -48,6 +48,15 @@ pub fn run() {
     if let Err(e) = commands::init_favorites_directory() {
         eprintln!("Failed to initialize favorites directory: {}", e);
     }
+    // Initialize profile
+    match commands::init_default_profile() {
+        Ok(profile) => {
+            println!("Profile initialized: {} ({})", profile.name, profile.id);
+        }
+        Err(e) => {
+            eprintln!("Failed to initialize profile: {}", e);
+        }
+    }
     if let Err(e) = commands::init_default_session_if_empty() {
         eprintln!("Failed to initialize default session: {}", e);
     }
