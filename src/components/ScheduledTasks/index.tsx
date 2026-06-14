@@ -96,51 +96,94 @@ const ScheduledTasksManager: React.FC<ScheduledTasksManagerProps> = ({
       d.setDate(d.getDate() - (6 - i));
       return d.toLocaleDateString();
     });
-
     const trend = last7Days.map((date) => {
       return tasks.filter((t) => {
         if (!t.last_executed_at) return false;
         return new Date(t.last_executed_at).toLocaleDateString() === date;
       }).length;
     });
-
     return { labels: last7Days.map((d) => d.slice(5)), values: trend };
   };
 
   const handleTaskCreated = async (task: ScheduledTask) => {
-    await loadTasks();
+    setTasks((prevTasks) => [task, ...prevTasks]);
     setSelectedTask(task);
     setShowRightPanel(true);
     showToast(ToastType.SUCCESS, t("scheduled.addSuccess") || "创建成功");
   };
 
   const handleTaskUpdated = async (task: ScheduledTask) => {
-    await loadTasks();
+    setTasks((prevTasks) =>
+      prevTasks.map((t) => (t.id === task.id ? task : t)),
+    );
     setSelectedTask(task);
     setShowRightPanel(true);
     showToast(ToastType.SUCCESS, t("scheduled.updateSuccess") || "更新成功");
   };
 
-  const handleTaskDeleted = async (taskId: string) => {
-    await loadTasks();
-    if (selectedTask?.id === taskId) {
-      const remainingTasks = tasks.filter((t) => t.id !== taskId);
-      if (remainingTasks.length > 0) {
-        setSelectedTask(remainingTasks[0]);
-        setShowRightPanel(true);
-      } else {
-        setSelectedTask(null);
-        setShowRightPanel(false);
+  const handleTaskToggled = async (taskId: string, enabled: boolean) => {
+    try {
+      const updatedTask = await scheduledTasksCommands.toggle(taskId, enabled);
+      setTasks((prevTasks) =>
+        prevTasks.map((task) => (task.id === taskId ? updatedTask : task)),
+      );
+      if (selectedTask?.id === taskId) {
+        setSelectedTask(updatedTask);
       }
+      showToast(
+        ToastType.SUCCESS,
+        enabled
+          ? t("scheduled.enabledSuccess") || "已启用"
+          : t("scheduled.disabledSuccess") || "已禁用",
+      );
+    } catch (error) {
+      console.error("Failed to toggle task:", error);
+      showToast(ToastType.ERROR, t("scheduled.toggleFailed") || "操作失败");
     }
-    showToast(ToastType.SUCCESS, t("scheduled.deleteSuccess") || "删除成功");
   };
 
-  const handleTaskToggled = async (taskId: string, enabled: boolean) => {
-    await loadTasks();
-    const updatedTask = tasks.find((t) => t.id === taskId);
-    if (updatedTask && selectedTask?.id === taskId) {
-      setSelectedTask(updatedTask);
+  const handleTaskDeleted = async (taskId: string) => {
+    try {
+      await scheduledTasksCommands.delete(taskId);
+      setTasks((prevTasks) => {
+        const newTasks = prevTasks.filter((task) => task.id !== taskId);
+        if (selectedTask?.id === taskId) {
+          if (newTasks.length > 0) {
+            setSelectedTask(newTasks[0]);
+            setShowRightPanel(true);
+          } else {
+            setSelectedTask(null);
+            setShowRightPanel(false);
+          }
+        }
+        return newTasks;
+      });
+      showToast(ToastType.SUCCESS, t("scheduled.deleteSuccess") || "删除成功");
+    } catch (error) {
+      console.error("Failed to delete task:", error);
+      showToast(ToastType.ERROR, t("scheduled.deleteFailed") || "删除失败");
+    }
+  };
+
+  const handleCompleteTask = async (taskId: string) => {
+    try {
+      const completedTask = await scheduledTasksCommands.complete(taskId);
+      setTasks((prevTasks) =>
+        prevTasks.map((task) => (task.id === taskId ? completedTask : task)),
+      );
+      if (selectedTask?.id === taskId) {
+        setSelectedTask(completedTask);
+      }
+      showToast(
+        ToastType.SUCCESS,
+        t("scheduled.completeSuccess") || "任务已完成",
+      );
+    } catch (error) {
+      console.error("Failed to complete task:", error);
+      showToast(
+        ToastType.ERROR,
+        t("scheduled.completeFailed") || "标记完成失败",
+      );
     }
   };
 
@@ -250,14 +293,7 @@ const ScheduledTasksManager: React.FC<ScheduledTasksManagerProps> = ({
             onSelectTask={handleSelectTask}
             onToggleTask={handleTaskToggled}
             onDeleteTask={handleTaskDeleted}
-            onCompleteTask={async (taskId) => {
-              await scheduledTasksCommands.complete(taskId);
-              await loadTasks();
-              showToast(
-                ToastType.SUCCESS,
-                t("scheduled.completeSuccess") || "任务已完成",
-              );
-            }}
+            onCompleteTask={handleCompleteTask}
             searchQuery={searchQuery}
             onSearchChange={setSearchQuery}
             statusFilter={statusFilter}

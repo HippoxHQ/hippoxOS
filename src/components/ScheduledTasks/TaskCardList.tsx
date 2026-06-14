@@ -623,7 +623,10 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
                     {!task.completed && (
                       <>
                         <button
-                          onClick={() => onToggleTask(task.id, !task.enabled)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onToggleTask(task.id, !task.enabled);
+                          }}
                           title={
                             task.enabled
                               ? t("scheduled.disable") || "禁用"
@@ -650,7 +653,10 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
                           {task.enabled ? "⏸️" : "▶️"}
                         </button>
                         <button
-                          onClick={() => onCompleteTask(task.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onCompleteTask(task.id);
+                          }}
                           title={t("scheduled.complete") || "完成"}
                           style={{
                             background: "none",
@@ -675,7 +681,8 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
                       </>
                     )}
                     <button
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.stopPropagation();
                         if (
                           // eslint-disable-next-line no-restricted-globals
                           confirm(

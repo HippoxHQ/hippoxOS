@@ -78,7 +78,6 @@ export const TrendLineChart: React.FC<{
   color?: string;
   t: (key: string, params?: any) => string;
 }> = ({ data, color = "#818cf8", t }) => {
-  // 从 props 接收 t
   return (
     <ResponsiveContainer width="100%" height={130}>
       <AreaChart
