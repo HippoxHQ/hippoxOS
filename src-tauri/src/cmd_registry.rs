@@ -80,10 +80,6 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::get_favorited_skills,
         commands::favorite_skill,
         commands::unfavorite_skill,
-        // Scheduled Tasks
-        commands::scheduled_save,
-        commands::scheduled_delete,
-        commands::scheduled_list,
         // Files
         commands::cmd_open_path,
         commands::cmd_select_directory,
@@ -180,5 +176,15 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_task_pool_set_max_concurrent,
         commands::cmd_task_pool_get_tasks_by_session,
         commands::cmd_get_url_metadata,
+        // scheduled tasks
+        commands::cmd_scheduled_task_create,
+        commands::cmd_scheduled_task_update,
+        commands::cmd_scheduled_task_get,
+        commands::cmd_scheduled_task_list,
+        commands::cmd_scheduled_task_delete,
+        commands::cmd_scheduled_task_toggle,
+        commands::cmd_scheduled_task_complete,
+        commands::cmd_scheduled_task_get_natural_language,
+        commands::cmd_scheduled_task_get_skill_md,
     ]
 }

@@ -109,11 +109,6 @@ const Sidebar: React.FC<SidebarProps> = ({
       setActiveSubId(undefined);
       setActiveSubSubId(undefined);
       if (onMenuClick) onMenuClick(id);
-    } else if (id === "scheduledTasks" || id === "taskQueue") {
-      setActiveId(id);
-      setActiveSubId(undefined);
-      setActiveSubSubId(undefined);
-      if (onMenuClick) onMenuClick(id);
     } else if (id === "logs") {
       setActiveId(id);
       setActiveSubId(undefined);
@@ -154,6 +149,14 @@ const Sidebar: React.FC<SidebarProps> = ({
       handleClosePopup();
       return;
     }
+    if (itemId === "tasks_group") {
+      setActiveId("scheduledTasks");
+      setActiveSubId(undefined);
+      setActiveSubSubId(undefined);
+      if (onMenuClick) onMenuClick("scheduledTasks");
+      handleClosePopup();
+      return;
+    }
     if (
       itemId === "history" ||
       itemId === "favorites" ||
@@ -183,20 +186,13 @@ const Sidebar: React.FC<SidebarProps> = ({
       top = gap;
     }
     const position = { top, left };
-
-    if (
-      itemId === "skills_group" ||
-      itemId === "tasks_group" ||
-      itemId === "settings_group"
-    ) {
+    if (itemId === "skills_group" || itemId === "settings_group") {
       if (isPopupVisible(itemId)) {
         handleClosePopup();
         return;
       }
       if (itemId === "skills_group") {
         setActiveId("skills_group");
-      } else if (itemId === "tasks_group") {
-        setActiveId("tasks_group");
       } else if (itemId === "settings_group") {
         setActiveId("settings_group");
       }

@@ -1,5 +1,4 @@
 import React from "react";
-import ScheduledTasksPanel from "./ScheduledTasksPanel";
 import SettingsPanel, { SettingsSubView } from "./SettingsPanel";
 import SkillMarketPanel from "./SkillMarketPanel";
 import TaskQueuePanel from "./TaskQueuePanel";
@@ -24,7 +23,6 @@ export type MenuPanelView =
   | "knowledge"
   | "skillMarket"
   | "taskQueue"
-  | "scheduledTasks"
   | "executionHistory"
   | "atomicSkills"
   | "settings"
@@ -68,7 +66,6 @@ const viewTitles: Record<MenuPanelView, string> = {
   knowledge: "menu.knowledge",
   skillMarket: "menu.skillMarket",
   taskQueue: "menu.taskQueue",
-  scheduledTasks: "menu.scheduledTasks",
   executionHistory: "menu.executionHistory",
   settings: "menu.settings",
   workspace: "menu.workspace",
@@ -236,8 +233,6 @@ const MenuPanel: React.FC<MenuPanelProps> = ({
         return <SkillMarketPanel t={t} />;
       case "taskQueue":
         return <TaskQueuePanel t={t} />;
-      case "scheduledTasks":
-        return <ScheduledTasksPanel t={t} onSave={onSaveConfig} />;
       case "atomicSkills":
         return <AtomicSkillsPanel t={t} onSave={onSaveConfig} />;
       case "workspace":

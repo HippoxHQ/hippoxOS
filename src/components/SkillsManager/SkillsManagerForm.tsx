@@ -231,7 +231,6 @@ const SkillsManagerForm: React.FC<SkillsManagerFormProps> = ({
   .form-divider {
     height: 1px;
     background: linear-gradient(90deg, transparent, var(--border-color), transparent);
-    margin: 4px 0;
   } 
   .form-section {
     background: var(--bg-secondary);

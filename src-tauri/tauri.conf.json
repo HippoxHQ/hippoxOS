@@ -15,6 +15,8 @@
         "title": "HippoX",
         "width": 1350,
         "height": 800,
+        "minWidth": 500,
+        "minHeight": 400,
         "decorations": false,
         "transparent": false,
         "resizable": true,

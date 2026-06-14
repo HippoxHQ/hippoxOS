@@ -14,6 +14,7 @@ import { AppContent } from "./components/AppContent";
 import { taskManager } from "../core/TaskManager";
 import { useTaskEvents } from "./hooks/useTaskEvents";
 import { useLayoutSwapMode } from "./hooks/useLayoutSwapMode";
+
 function App() {
   const { isConfigLoaded, initialEngineConfig, initialTheme, initialLanguage } =
     useConfigLoader();
@@ -26,10 +27,13 @@ function App() {
     menuPanelWidth,
     setMenuPanelWidth,
     showSkillsManager,
+    showScheduledTasks,
     handleMenuClick,
     closeMenuPanel,
     handleOpenSkillsManager,
     handleCloseSkillsManager,
+    handleOpenScheduledTasks,
+    handleCloseScheduledTasks,
   } = useMenuPanel();
   const {
     currentSessionId,
@@ -55,13 +59,14 @@ function App() {
     setIsDraggingOverInput,
     showDragCursor,
   } = useDragAndDrop();
+
   useTaskEvents(language);
   useSystemEvents(
     handleNewSession,
     () => handleMenuClick("skillMarket"),
     () => handleMenuClick("history"),
     () => handleMenuClick("favorites"),
-    () => handleMenuClick("scheduledTasks"),
+    () => handleOpenScheduledTasks,  
     (subView) => handleMenuClick("settings", subView),
   );
   useDirectoryEvents();
@@ -70,6 +75,17 @@ function App() {
     taskManager.setupTaskEventListeners();
   }, []);
   const handleSaveConfig = async (config: any) => {};
+  const handleMenuClickWrapper = (view: string, subView?: string) => {
+    if (view === "scheduledTasks") {
+      handleOpenScheduledTasks();
+      return;
+    }
+    if (view === "skillsManager") {
+      handleOpenSkillsManager();
+      return;
+    }
+    handleMenuClick(view, subView);
+  };
   if (!isConfigLoaded) {
     return (
       <div
@@ -85,6 +101,7 @@ function App() {
       </div>
     );
   }
+
   return (
     <AppContent
       theme={theme}
@@ -107,10 +124,12 @@ function App() {
       menuPanelWidth={menuPanelWidth}
       setMenuPanelWidth={setMenuPanelWidth}
       showSkillsManager={showSkillsManager}
-      onMenuClick={handleMenuClick}
+      showScheduledTasks={showScheduledTasks}
+      onMenuClick={handleMenuClickWrapper}
       onCloseMenuPanel={closeMenuPanel}
       onOpenSkillsManager={handleOpenSkillsManager}
       onCloseSkillsManager={handleCloseSkillsManager}
+      onCloseScheduledTasks={handleCloseScheduledTasks}
       onSaveConfig={handleSaveConfig}
       initialEngineConfig={initialEngineConfig}
       isFilePreviewOpen={isFilePreviewOpen}

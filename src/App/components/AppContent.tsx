@@ -14,6 +14,7 @@ import Toast from "../../components/Toast";
 import TopBar from "../../components/TopBar";
 import WelcomePage from "../../components/WelcomePage";
 import { UploadFile, Theme, Language } from "../../types/type";
+import ScheduledTasksManager from "../../components/ScheduledTasks";
 
 interface AppContentProps {
   theme: Theme;
@@ -40,10 +41,12 @@ interface AppContentProps {
   menuPanelWidth: number;
   setMenuPanelWidth: (width: number) => void;
   showSkillsManager: boolean;
+  showScheduledTasks: boolean;
   onMenuClick: (view: string, subView?: string) => void;
   onCloseMenuPanel: () => void;
   onOpenSkillsManager: () => void;
   onCloseSkillsManager: () => void;
+  onCloseScheduledTasks: () => void;
   onSaveConfig: (config: any) => void;
   initialEngineConfig: any;
   isFilePreviewOpen: boolean;
@@ -81,10 +84,12 @@ export function AppContent({
   menuPanelWidth,
   setMenuPanelWidth,
   showSkillsManager,
+  showScheduledTasks,
   onMenuClick,
   onCloseMenuPanel,
   onOpenSkillsManager,
   onCloseSkillsManager,
+  onCloseScheduledTasks,
   onSaveConfig,
   initialEngineConfig,
   isFilePreviewOpen,
@@ -176,6 +181,7 @@ export function AppContent({
             t={t}
           />
         )}
+
         {menuPanelView && (
           <>
             <div className="menu-panel-left" style={{ width: menuPanelWidth }}>
@@ -225,11 +231,16 @@ export function AppContent({
             </div>
           </>
         )}
-
         {showSkillsManager ? (
           <SkillsManager
             t={t}
             onClose={onCloseSkillsManager}
+            currentSessionId={currentSessionId}
+          />
+        ) : showScheduledTasks ? (
+          <ScheduledTasksManager
+            t={t}
+            onClose={onCloseScheduledTasks}
             currentSessionId={currentSessionId}
           />
         ) : showWelcome ? (
