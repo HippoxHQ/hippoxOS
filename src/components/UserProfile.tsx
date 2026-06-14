@@ -7,7 +7,7 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip,
+  Tooltip as RechartsTooltip,
   ResponsiveContainer,
   PieChart,
   Pie,
@@ -16,6 +16,8 @@ import {
 import CalendarHeatmap from "react-calendar-heatmap";
 import "react-calendar-heatmap/dist/styles.css";
 import { sysCommands } from "../command/sys";
+import { showToast, ToastType } from "./Toast";
+import { showTooltip } from "./Tooltip";
 
 const UserIcon = () => (
   <svg
@@ -299,6 +301,24 @@ const LoadingSpinnerIcon = () => (
   </svg>
 );
 
+const RefreshCwIcon = () => (
+  <svg
+    width="12"
+    height="12"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M23 4v6h-6" />
+    <path d="M1 20v-6h6" />
+    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10" />
+    <path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14" />
+  </svg>
+);
+
 interface UserProfileProps {
   t: (key: string, params?: any) => string;
   onClose?: () => void;
@@ -367,22 +387,22 @@ const UserProfile: React.FC<UserProfileProps> = ({
       longestStreak: 28,
       achievements: [
         {
-          name: t("user.achievementEarlyBird") || "",
+          name: t("user.achievementEarlyBird") || "早起鸟",
           unlocked: true,
           icon: <SunriseIcon />,
         },
         {
-          name: t("user.achievementEfficiency") || "",
+          name: t("user.achievementEfficiency") || "效率达人",
           unlocked: true,
           icon: <ZapIcon />,
         },
         {
-          name: t("user.achievementExplorer") || "",
+          name: t("user.achievementExplorer") || "探索者",
           unlocked: false,
           icon: <CompassIcon />,
         },
         {
-          name: t("user.achievementTokenMaster") || "",
+          name: t("user.achievementTokenMaster") || "Token 大师",
           unlocked: true,
           icon: <GemIcon />,
         },
@@ -398,9 +418,14 @@ const UserProfile: React.FC<UserProfileProps> = ({
           username: systemUsername,
           email: `${systemUsername}@hippox.local`,
         }));
+        showToast(
+          ToastType.SUCCESS,
+          t("user.dataLoaded") || "用户数据加载成功",
+        );
       }
     } catch (e) {
       console.error("Failed to get system username:", e);
+      showToast(ToastType.ERROR, t("user.loadFailed") || "加载用户数据失败");
     }
   };
 
@@ -539,6 +564,14 @@ const UserProfile: React.FC<UserProfileProps> = ({
     return total ? Math.round((night / total) * 100) : 0;
   };
 
+  const handleRefreshData = () => {
+    generateMockActivityData();
+    generateMockDialogData();
+    generateMockHourlyData();
+    generateMockTokenData();
+    showToast(ToastType.SUCCESS, t("user.dataRefreshed") || "数据已刷新");
+  };
+
   useEffect(() => {
     loadUserData();
     generateMockActivityData();
@@ -607,26 +640,50 @@ const UserProfile: React.FC<UserProfileProps> = ({
             {t("user.profile") || "个人资料"}
           </span>
         </div>
-        <button
-          onClick={onClose}
-          style={{
-            background: "none",
-            border: "none",
-            fontSize: "16px",
-            cursor: "pointer",
-            color: "var(--text-secondary)",
-            padding: "4px 8px",
-            borderRadius: "4px",
-            display: "flex",
-            alignItems: "center",
-          }}
-          onMouseEnter={(e) =>
-            (e.currentTarget.style.background = "var(--hover-bg)")
-          }
-          onMouseLeave={(e) => (e.currentTarget.style.background = "none")}
-        >
-          <CloseIcon />
-        </button>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <button
+            onClick={handleRefreshData}
+            style={{
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              color: "var(--text-secondary)",
+              padding: "4px 8px",
+              borderRadius: "4px",
+              display: "flex",
+              alignItems: "center",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "var(--hover-bg)";
+              const target = e.currentTarget;
+              showTooltip(t("user.refreshTooltip") || "刷新数据", target);
+            }}
+            onMouseLeave={(e) => (e.currentTarget.style.background = "none")}
+          >
+            <RefreshCwIcon />
+          </button>
+          <button
+            onClick={onClose}
+            style={{
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              color: "var(--text-secondary)",
+              padding: "4px 8px",
+              borderRadius: "4px",
+              display: "flex",
+              alignItems: "center",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "var(--hover-bg)";
+              const target = e.currentTarget;
+              showTooltip(t("common.close") || "关闭", target);
+            }}
+            onMouseLeave={(e) => (e.currentTarget.style.background = "none")}
+          >
+            <CloseIcon />
+          </button>
+        </div>
       </div>
       <div style={{ flex: 1, overflowY: "auto" }}>
         <div
@@ -653,6 +710,13 @@ const UserProfile: React.FC<UserProfileProps> = ({
               color: "white",
               flexShrink: 0,
             }}
+            onMouseEnter={(e) => {
+              const target = e.currentTarget;
+              showTooltip(
+                stats.username || t("user.defaultUsername") || "用户",
+                target,
+              );
+            }}
           >
             {stats.username?.charAt(0) || "U"}
           </div>
@@ -673,7 +737,7 @@ const UserProfile: React.FC<UserProfileProps> = ({
                   color: "var(--text-primary)",
                 }}
               >
-                {stats.username || t("user.defaultUsername") || ""}
+                {stats.username || t("user.defaultUsername") || "用户"}
               </span>
               <div
                 style={{ display: "flex", gap: "10px", alignItems: "center" }}
@@ -688,7 +752,15 @@ const UserProfile: React.FC<UserProfileProps> = ({
                       display: "inline-flex",
                       alignItems: "center",
                     }}
-                    title={ach.name}
+                    onMouseEnter={(e) => {
+                      const target = e.currentTarget;
+                      showTooltip(
+                        ach.unlocked
+                          ? ach.name
+                          : `${ach.name} (${t("user.locked") || "未解锁"})`,
+                        target,
+                      );
+                    }}
                   >
                     {ach.icon}
                   </span>
@@ -719,6 +791,13 @@ const UserProfile: React.FC<UserProfileProps> = ({
                 alignItems: "center",
                 gap: "6px",
                 minWidth: 0,
+              }}
+              onMouseEnter={(e) => {
+                const target = e.currentTarget;
+                showTooltip(
+                  t("user.totalSessionsTooltip") || "总对话次数",
+                  target,
+                );
               }}
             >
               <span
@@ -760,6 +839,13 @@ const UserProfile: React.FC<UserProfileProps> = ({
                 gap: "6px",
                 minWidth: 0,
               }}
+              onMouseEnter={(e) => {
+                const target = e.currentTarget;
+                showTooltip(
+                  t("user.totalMessagesTooltip") || "总消息数量",
+                  target,
+                );
+              }}
             >
               <span
                 style={{
@@ -799,6 +885,13 @@ const UserProfile: React.FC<UserProfileProps> = ({
                 alignItems: "center",
                 gap: "6px",
                 minWidth: 0,
+              }}
+              onMouseEnter={(e) => {
+                const target = e.currentTarget;
+                showTooltip(
+                  t("user.totalTokensTooltip") || "总 Token 消耗",
+                  target,
+                );
               }}
             >
               <span
@@ -840,6 +933,13 @@ const UserProfile: React.FC<UserProfileProps> = ({
                 gap: "6px",
                 minWidth: 0,
               }}
+              onMouseEnter={(e) => {
+                const target = e.currentTarget;
+                showTooltip(
+                  t("user.totalTasksTooltip") || "总任务执行次数",
+                  target,
+                );
+              }}
             >
               <span
                 style={{
@@ -879,6 +979,13 @@ const UserProfile: React.FC<UserProfileProps> = ({
                 alignItems: "center",
                 gap: "6px",
                 minWidth: 0,
+              }}
+              onMouseEnter={(e) => {
+                const target = e.currentTarget;
+                showTooltip(
+                  t("user.currentStreakTooltip") || "当前连续活跃天数",
+                  target,
+                );
               }}
             >
               <span
@@ -922,6 +1029,13 @@ const UserProfile: React.FC<UserProfileProps> = ({
                 alignItems: "center",
                 gap: "6px",
                 minWidth: 0,
+              }}
+              onMouseEnter={(e) => {
+                const target = e.currentTarget;
+                showTooltip(
+                  t("user.longestStreakTooltip") || "历史最长连续活跃天数",
+                  target,
+                );
               }}
             >
               <span
@@ -1033,17 +1147,41 @@ const UserProfile: React.FC<UserProfileProps> = ({
               paddingLeft: "15px",
             }}
           >
-            <span>
+            <span
+              onMouseEnter={(e) => {
+                const target = e.currentTarget;
+                showTooltip(
+                  t("user.totalActivitiesTooltip") || "全年总活动次数",
+                  target,
+                );
+              }}
+            >
               {t("user.totalActivities") || "总活动"}:{" "}
               {activityData.reduce((s, d) => s + d.count, 0)}
               {t("user.times") || "次"}
             </span>
-            <span>
+            <span
+              onMouseEnter={(e) => {
+                const target = e.currentTarget;
+                showTooltip(
+                  t("user.avgDailyTooltip") || "平均每日活动次数",
+                  target,
+                );
+              }}
+            >
               {t("user.avgDaily") || "日均"}:{" "}
               {(activityData.reduce((s, d) => s + d.count, 0) / 365).toFixed(1)}
               {t("user.times") || "次"}
             </span>
-            <span>
+            <span
+              onMouseEnter={(e) => {
+                const target = e.currentTarget;
+                showTooltip(
+                  t("user.maxDailyTooltip") || "单日最高活动次数",
+                  target,
+                );
+              }}
+            >
               {t("user.maxDaily") || "最高"}:{" "}
               {Math.max(...activityData.map((d) => d.count), 0)}
               {t("user.times") || "次"}
@@ -1101,7 +1239,13 @@ const UserProfile: React.FC<UserProfileProps> = ({
                 {(["week", "month", "year"] as const).map((range) => (
                   <button
                     key={range}
-                    onClick={() => setDateRange(range)}
+                    onClick={() => {
+                      setDateRange(range);
+                      showToast(
+                        ToastType.INFO,
+                        `${t("user.switchTo") || "切换到"} ${range === "week" ? t("user.week") || "周" : range === "month" ? t("user.month") || "月" : t("user.year") || "年"}`,
+                      );
+                    }}
                     style={{
                       padding: "2px 8px",
                       fontSize: "9px",
@@ -1114,6 +1258,13 @@ const UserProfile: React.FC<UserProfileProps> = ({
                       color:
                         dateRange === range ? "white" : "var(--text-secondary)",
                       cursor: "pointer",
+                    }}
+                    onMouseEnter={(e) => {
+                      const target = e.currentTarget;
+                      showTooltip(
+                        `${range === "week" ? t("user.week") || "周" : range === "month" ? t("user.month") || "月" : t("user.year") || "年"} ${t("user.timeRange") || "时间范围"}`,
+                        target,
+                      );
                     }}
                   >
                     {range === "week"
@@ -1140,7 +1291,12 @@ const UserProfile: React.FC<UserProfileProps> = ({
                 style={{ display: "flex", alignItems: "center", gap: "12px" }}
               >
                 <span
-                  style={{ fontSize: "28px", color: "var(--accent-color)" }}
+                  style={{
+                    fontSize: "28px",
+                    color: "var(--accent-color)",
+                    display: "inline-flex",
+                    alignItems: "center",
+                  }}
                 >
                   🔮
                 </span>
@@ -1163,7 +1319,15 @@ const UserProfile: React.FC<UserProfileProps> = ({
                 </div>
               </div>
               <div style={{ display: "flex", gap: "20px", textAlign: "right" }}>
-                <div>
+                <div
+                  onMouseEnter={(e) => {
+                    const target = e.currentTarget;
+                    showTooltip(
+                      t("user.inputTokensTooltip") || "输入 Token 总量",
+                      target,
+                    );
+                  }}
+                >
                   <div
                     style={{
                       fontSize: "11px",
@@ -1179,7 +1343,15 @@ const UserProfile: React.FC<UserProfileProps> = ({
                     {t("user.inputTokens") || "输入 Token"}
                   </div>
                 </div>
-                <div>
+                <div
+                  onMouseEnter={(e) => {
+                    const target = e.currentTarget;
+                    showTooltip(
+                      t("user.outputTokensTooltip") || "输出 Token 总量",
+                      target,
+                    );
+                  }}
+                >
                   <div
                     style={{
                       fontSize: "11px",
@@ -1195,7 +1367,15 @@ const UserProfile: React.FC<UserProfileProps> = ({
                     {t("user.outputTokens") || "输出 Token"}
                   </div>
                 </div>
-                <div>
+                <div
+                  onMouseEnter={(e) => {
+                    const target = e.currentTarget;
+                    showTooltip(
+                      t("user.avgDailyTokensTooltip") || "平均每日 Token 消耗",
+                      target,
+                    );
+                  }}
+                >
                   <div
                     style={{
                       fontSize: "11px",
@@ -1209,7 +1389,15 @@ const UserProfile: React.FC<UserProfileProps> = ({
                     {t("user.avgDailyTokens") || "日均消耗"}
                   </div>
                 </div>
-                <div>
+                <div
+                  onMouseEnter={(e) => {
+                    const target = e.currentTarget;
+                    showTooltip(
+                      t("user.peakDayTooltip") || "单日最高 Token 消耗",
+                      target,
+                    );
+                  }}
+                >
                   <div
                     style={{
                       fontSize: "11px",
@@ -1225,7 +1413,16 @@ const UserProfile: React.FC<UserProfileProps> = ({
                     {t("user.peakDay") || "峰值日"}
                   </div>
                 </div>
-                <div>
+                <div
+                  onMouseEnter={(e) => {
+                    const target = e.currentTarget;
+                    showTooltip(
+                      t("user.inputOutputRatioTooltip") ||
+                        "输入输出 Token 比例",
+                      target,
+                    );
+                  }}
+                >
                   <div
                     style={{
                       fontSize: "11px",
@@ -1305,7 +1502,7 @@ const UserProfile: React.FC<UserProfileProps> = ({
                       tickLine={false}
                       tickFormatter={formatNumber}
                     />
-                    <Tooltip
+                    <RechartsTooltip
                       contentStyle={{
                         background: "var(--bg-secondary)",
                         border: "1px solid var(--border-color)",
@@ -1367,7 +1564,7 @@ const UserProfile: React.FC<UserProfileProps> = ({
                       axisLine={false}
                       tickLine={false}
                     />
-                    <Tooltip
+                    <RechartsTooltip
                       contentStyle={{
                         background: "var(--bg-secondary)",
                         border: "1px solid var(--border-color)",
@@ -1387,12 +1584,28 @@ const UserProfile: React.FC<UserProfileProps> = ({
                     color: "var(--text-muted)",
                   }}
                 >
-                  <span>
+                  <span
+                    onMouseEnter={(e) => {
+                      const target = e.currentTarget;
+                      showTooltip(
+                        t("user.totalDialogTooltip") || "总对话次数",
+                        target,
+                      );
+                    }}
+                  >
                     {t("user.totalDialog") || "总对话"}:{" "}
                     {dialogData.reduce((s, d) => s + d.count, 0)}
                     {t("user.times") || "次"}
                   </span>
-                  <span>
+                  <span
+                    onMouseEnter={(e) => {
+                      const target = e.currentTarget;
+                      showTooltip(
+                        t("user.avgDailyDialogTooltip") || "平均每日对话次数",
+                        target,
+                      );
+                    }}
+                  >
                     {t("user.avgDailyDialog") || "日均"}:{" "}
                     {(
                       dialogData.reduce((s, d) => s + d.count, 0) /
@@ -1400,7 +1613,15 @@ const UserProfile: React.FC<UserProfileProps> = ({
                     ).toFixed(1)}
                     {t("user.times") || "次"}
                   </span>
-                  <span>
+                  <span
+                    onMouseEnter={(e) => {
+                      const target = e.currentTarget;
+                      showTooltip(
+                        t("user.peakDialogTooltip") || "单日最高对话次数",
+                        target,
+                      );
+                    }}
+                  >
                     {t("user.peakDialog") || "峰值"}:{" "}
                     {Math.max(...dialogData.map((d) => d.count), 0)}
                     {t("user.times") || "次"}
@@ -1454,6 +1675,13 @@ const UserProfile: React.FC<UserProfileProps> = ({
                           alignItems: "center",
                           gap: "4px",
                           marginBottom: "2px",
+                        }}
+                        onMouseEnter={(e) => {
+                          const target = e.currentTarget;
+                          showTooltip(
+                            `${item.name}: ${formatNumber(item.value)} ${t("user.tokens") || "Token"} (${Math.round((item.value / totalTokens) * 100)}%)`,
+                            target,
+                          );
                         }}
                       >
                         <div
@@ -1545,7 +1773,7 @@ const UserProfile: React.FC<UserProfileProps> = ({
                   axisLine={false}
                   tickLine={false}
                 />
-                <Tooltip
+                <RechartsTooltip
                   contentStyle={{
                     background: "var(--bg-secondary)",
                     border: "1px solid var(--border-color)",
@@ -1565,13 +1793,37 @@ const UserProfile: React.FC<UserProfileProps> = ({
                 color: "var(--text-muted)",
               }}
             >
-              <span>
+              <span
+                onMouseEnter={(e) => {
+                  const target = e.currentTarget;
+                  showTooltip(
+                    t("user.peakHourTooltip") || "最活跃的时间段",
+                    target,
+                  );
+                }}
+              >
                 {t("user.peakHour") || "最活跃时段"}: {getPeakHour()}
               </span>
-              <span>
+              <span
+                onMouseEnter={(e) => {
+                  const target = e.currentTarget;
+                  showTooltip(
+                    t("user.morningPeakTooltip") || "清晨时段(6-12点)活动占比",
+                    target,
+                  );
+                }}
+              >
                 {t("user.morningPeak") || "清晨(6-12)"}: {getMorningPercent()}%
               </span>
-              <span>
+              <span
+                onMouseEnter={(e) => {
+                  const target = e.currentTarget;
+                  showTooltip(
+                    t("user.nightPeakTooltip") || "夜晚时段(18-24点)活动占比",
+                    target,
+                  );
+                }}
+              >
                 {t("user.nightPeak") || "夜晚(18-24)"}: {getNightPercent()}%
               </span>
             </div>

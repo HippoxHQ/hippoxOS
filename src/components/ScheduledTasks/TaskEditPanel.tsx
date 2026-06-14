@@ -14,6 +14,8 @@ import {
 } from "../../command/scheduledtasks";
 import { ScheduledTask } from "./types";
 import { showToast, ToastType } from "../Toast";
+import { showDialog, DialogType } from "../Dialog";
+import { showTooltip } from "../Tooltip";
 
 const EditIcon = () => (
   <svg
@@ -454,19 +456,17 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
 
   const handleDelete = async () => {
     if (!task) return;
-    // eslint-disable-next-line no-restricted-globals
-    if (!confirm(t("scheduled.confirmDelete") || "确定删除此任务吗？")) return;
-    setIsDeleting(true);
-    try {
-      await scheduledTasksCommands.delete(task.id);
-      onTaskDeleted(task.id);
-      showToast(ToastType.SUCCESS, t("scheduled.deleteSuccess") || "删除成功");
-    } catch (error) {
-      console.error("Failed to delete task:", error);
-      showToast(ToastType.ERROR, t("scheduled.deleteFailed") || "删除失败");
-    } finally {
-      setIsDeleting(false);
-    }
+    showDialog(
+      DialogType.WARNING,
+      t("scheduled.confirmDeleteTitle") || "确认删除",
+      t("scheduled.confirmDeleteMessage", { name: task.name }) ||
+        `确定要删除任务"${task.name}"吗？此操作不可撤销。`,
+      async () => {
+      },
+      undefined,
+      t("scheduled.delete") || "删除",
+      t("settings.cancel") || "取消",
+    );
   };
 
   const handleToggle = async () => {
@@ -507,6 +507,10 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
       const content = event.target?.result as string;
       setSkillContent(content);
       setSkillFileName(file.name);
+      showToast(
+        ToastType.SUCCESS,
+        t("scheduled.fileLoaded") || `文件 "${file.name}" 加载成功`,
+      );
     };
     reader.readAsText(file);
   };
@@ -517,6 +521,7 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
+    showToast(ToastType.INFO, t("scheduled.fileRemoved") || "文件已移除");
   };
 
   const toggleWeekDay = (day: number) => {
@@ -732,6 +737,13 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder={t("scheduled.taskNamePlaceholder") || "例如：每日备份"}
+            onMouseEnter={(e) => {
+              const target = e.currentTarget;
+              showTooltip(
+                t("scheduled.taskNameTooltip") || "给任务起一个易于识别的名称",
+                target,
+              );
+            }}
           />
         </div>
 
@@ -810,6 +822,13 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
                         fontSize: "12px",
                       }}
                       onClick={() => toggleWeekDay(idx)}
+                      onMouseEnter={(e) => {
+                        const target = e.currentTarget;
+                        showTooltip(
+                          t("scheduled.weekDayTooltip") || `选择${day}执行`,
+                          target,
+                        );
+                      }}
                     >
                       {day}
                     </button>
@@ -851,6 +870,14 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
                         fontSize: "12px",
                       }}
                       onClick={() => toggleMonthDay(day)}
+                      onMouseEnter={(e) => {
+                        const target = e.currentTarget;
+                        showTooltip(
+                          t("scheduled.monthDayTooltip") ||
+                            `选择每月${day}日执行`,
+                          target,
+                        );
+                      }}
                     >
                       {day}
                     </button>
@@ -988,6 +1015,14 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
                 type="button"
                 style={primaryButtonStyle}
                 onClick={() => fileInputRef.current?.click()}
+                onMouseEnter={(e) => {
+                  const target = e.currentTarget;
+                  showTooltip(
+                    t("scheduled.selectFileTooltip") ||
+                      "点击选择 SKILL.md 文件",
+                    target,
+                  );
+                }}
               >
                 <FolderOpenIcon />
                 {t("scheduled.selectFile") || "选择文件"}
@@ -1120,6 +1155,15 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
               style={toggleButtonStyle}
               onClick={handleToggle}
               disabled={isToggling}
+              onMouseEnter={(e) => {
+                const target = e.currentTarget;
+                showTooltip(
+                  task?.enabled
+                    ? t("scheduled.disableTooltip") || "禁用任务"
+                    : t("scheduled.enableTooltip") || "启用任务",
+                  target,
+                );
+              }}
             >
               {task?.enabled ? <PauseIcon /> : <PlayIcon />}
               {task?.enabled
@@ -1130,6 +1174,10 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
               style={deleteButtonStyle}
               onClick={handleDelete}
               disabled={isDeleting}
+              onMouseEnter={(e) => {
+                const target = e.currentTarget;
+                showTooltip(t("scheduled.deleteTooltip") || "删除任务", target);
+              }}
             >
               <TrashIcon />
               {t("scheduled.delete") || "删除"}
@@ -1140,6 +1188,10 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
           style={primaryButtonStyle}
           onClick={handleSave}
           disabled={isSaving}
+          onMouseEnter={(e) => {
+            const target = e.currentTarget;
+            showTooltip(t("scheduled.saveTooltip") || "保存任务配置", target);
+          }}
         >
           <SaveIcon />
           {isSaving

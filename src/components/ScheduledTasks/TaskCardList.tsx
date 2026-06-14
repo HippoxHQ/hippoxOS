@@ -3,6 +3,8 @@ import {
   ScheduledTask,
   fromScheduleConfig,
 } from "../../command/scheduledtasks";
+import { showDialog, DialogType } from "../Dialog";
+import { showTooltip } from "../Tooltip";
 
 const SearchIcon = () => (
   <svg
@@ -212,7 +214,6 @@ const EmptyListIcon = () => (
   </svg>
 );
 
-// ListIcon - defined before usage in filterOptions
 const ListIcon = () => (
   <svg
     width="14"
@@ -372,6 +373,23 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
     };
   }, [showFilterPopup]);
 
+  const handleDeleteWithDialog = (taskId: string, taskName: string) => {
+    showDialog(
+      DialogType.WARNING,
+      t("scheduled.confirmDeleteTitle") || "确认删除",
+      t("scheduled.confirmDeleteMessage", { name: taskName }) ||
+        `确定要删除任务"${taskName}"吗？此操作不可撤销。`,
+      () => onDeleteTask(taskId),
+      undefined,
+      t("scheduled.delete") || "删除",
+      t("settings.cancel") || "取消",
+    );
+  };
+
+  const handleCompleteWithToast = (taskId: string) => {
+    onCompleteTask(taskId);
+  };
+
   const filterOptions = [
     {
       key: "all" as const,
@@ -407,6 +425,15 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
   const getCurrentFilterIcon = () => {
     const current = filterOptions.find((opt) => opt.key === statusFilter);
     return current ? current.icon : <ListIcon />;
+  };
+
+  const handleToggleWithTooltip = (
+    e: React.MouseEvent,
+    taskId: string,
+    enabled: boolean,
+  ) => {
+    e.stopPropagation();
+    onToggleTask(taskId, !enabled);
   };
 
   return (
@@ -706,6 +733,16 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
                     opacity: task.completed ? 0.7 : 1,
                   }}
                   onClick={() => onSelectTask(task)}
+                  onMouseEnter={(e) => {
+                    const target = e.currentTarget;
+                    showTooltip(
+                      task.completed
+                        ? t("scheduled.taskCompleted") || "任务已完成"
+                        : t("scheduled.clickToEdit") || "点击编辑任务",
+                      target,
+                    );
+                  }}
+                  onMouseLeave={() => {}}
                 >
                   <div
                     style={{
@@ -932,20 +969,27 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
                             display: "flex",
                             alignItems: "center",
                           }}
-                          onMouseEnter={(e) =>
-                            (e.currentTarget.style.background =
-                              "rgba(16, 185, 129, 0.15)")
-                          }
-                          onMouseLeave={(e) =>
-                            (e.currentTarget.style.background = "none")
-                          }
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background =
+                              "rgba(16, 185, 129, 0.15)";
+                            const target = e.currentTarget;
+                            showTooltip(
+                              task.enabled
+                                ? t("scheduled.disableTooltip") || "禁用任务"
+                                : t("scheduled.enableTooltip") || "启用任务",
+                              target,
+                            );
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = "none";
+                          }}
                         >
                           {task.enabled ? <PauseIcon /> : <PlayIcon />}
                         </button>
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            onCompleteTask(task.id);
+                            handleCompleteWithToast(task.id);
                           }}
                           title={t("scheduled.complete") || "完成"}
                           style={{
@@ -960,13 +1004,19 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
                             display: "flex",
                             alignItems: "center",
                           }}
-                          onMouseEnter={(e) =>
-                            (e.currentTarget.style.background =
-                              "rgba(139, 92, 246, 0.15)")
-                          }
-                          onMouseLeave={(e) =>
-                            (e.currentTarget.style.background = "none")
-                          }
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background =
+                              "rgba(139, 92, 246, 0.15)";
+                            const target = e.currentTarget;
+                            showTooltip(
+                              t("scheduled.completeTooltip") ||
+                                "标记任务为已完成",
+                              target,
+                            );
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = "none";
+                          }}
                         >
                           <CheckIcon />
                         </button>
@@ -975,15 +1025,7 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        if (
-                          // eslint-disable-next-line no-restricted-globals
-                          confirm(
-                            t("scheduled.confirmDelete") ||
-                              "确定删除此任务吗？",
-                          )
-                        ) {
-                          onDeleteTask(task.id);
-                        }
+                        handleDeleteWithDialog(task.id, task.name);
                       }}
                       title={t("scheduled.delete") || "删除"}
                       style={{
@@ -998,13 +1040,18 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
                         display: "flex",
                         alignItems: "center",
                       }}
-                      onMouseEnter={(e) =>
-                        (e.currentTarget.style.background =
-                          "rgba(239, 68, 68, 0.15)")
-                      }
-                      onMouseLeave={(e) =>
-                        (e.currentTarget.style.background = "none")
-                      }
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background =
+                          "rgba(239, 68, 68, 0.15)";
+                        const target = e.currentTarget;
+                        showTooltip(
+                          t("scheduled.deleteTooltip") || "删除任务",
+                          target,
+                        );
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = "none";
+                      }}
                     >
                       <TrashIcon />
                     </button>
