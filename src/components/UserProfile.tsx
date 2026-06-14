@@ -17,6 +17,288 @@ import CalendarHeatmap from "react-calendar-heatmap";
 import "react-calendar-heatmap/dist/styles.css";
 import { sysCommands } from "../command/sys";
 
+const UserIcon = () => (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+    <circle cx="12" cy="7" r="4" />
+  </svg>
+);
+
+const CloseIcon = () => (
+  <svg
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <line x1="18" y1="6" x2="6" y2="18" />
+    <line x1="6" y1="6" x2="18" y2="18" />
+  </svg>
+);
+
+const MessageIcon = () => (
+  <svg
+    width="13"
+    height="13"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+  </svg>
+);
+
+const FileTextIcon = () => (
+  <svg
+    width="13"
+    height="13"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+    <polyline points="14 2 14 8 20 8" />
+    <line x1="16" y1="13" x2="8" y2="13" />
+    <line x1="16" y1="17" x2="8" y2="17" />
+    <polyline points="10 9 9 9 8 9" />
+  </svg>
+);
+
+const CrystalIcon = () => (
+  <svg
+    width="13"
+    height="13"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M12 2v4" />
+    <path d="M12 18v4" />
+    <path d="M4.93 4.93l2.83 2.83" />
+    <path d="M16.24 16.24l2.83 2.83" />
+    <path d="M2 12h4" />
+    <path d="M18 12h4" />
+    <path d="M4.93 19.07l2.83-2.83" />
+    <path d="M16.24 7.76l2.83-2.83" />
+    <circle cx="12" cy="12" r="4" />
+  </svg>
+);
+
+const SettingsIcon = () => (
+  <svg
+    width="13"
+    height="13"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <circle cx="12" cy="12" r="3" />
+    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+  </svg>
+);
+
+const FireIcon = () => (
+  <svg
+    width="13"
+    height="13"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" />
+  </svg>
+);
+
+const TrophyIcon = () => (
+  <svg
+    width="13"
+    height="13"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
+    <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
+    <path d="M4 22h16" />
+    <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" />
+    <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
+    <path d="M18 2H6v7a6 6 0 0 0 12 0V2z" />
+  </svg>
+);
+
+const ChartIcon = () => (
+  <svg
+    width="12"
+    height="12"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M21 12v3a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4v-3" />
+    <path d="M12 2v8" />
+    <path d="m16 6-4 4-4-4" />
+  </svg>
+);
+
+const BarChart3Icon = () => (
+  <svg
+    width="12"
+    height="12"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M12 20V10" />
+    <path d="M18 20V4" />
+    <path d="M6 20v-4" />
+  </svg>
+);
+
+const ClockIcon = () => (
+  <svg
+    width="12"
+    height="12"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <circle cx="12" cy="12" r="10" />
+    <polyline points="12 6 12 12 16 14" />
+  </svg>
+);
+
+const SunriseIcon = () => (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M17 18a5 5 0 0 0-10 0" />
+    <line x1="12" y1="9" x2="12" y2="2" />
+    <line x1="4.22" y1="10.22" x2="5.64" y2="11.64" />
+    <line x1="1" y1="18" x2="3" y2="18" />
+    <line x1="21" y1="18" x2="23" y2="18" />
+    <line x1="18.36" y1="11.64" x2="19.78" y2="10.22" />
+    <line x1="23" y1="22" x2="1" y2="22" />
+    <path d="M8 6s1.5-2 4-2 4 2 4 2" />
+  </svg>
+);
+
+const ZapIcon = () => (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+  </svg>
+);
+
+const CompassIcon = () => (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <circle cx="12" cy="12" r="10" />
+    <polygon points="16.24 7.76 14 12 12 14.24 7.76 16.24 9.76 12 12 9.76 16.24 7.76" />
+  </svg>
+);
+
+const GemIcon = () => (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M12 2v4" />
+    <path d="M12 18v4" />
+    <path d="M4.93 4.93l2.83 2.83" />
+    <path d="M16.24 16.24l2.83 2.83" />
+    <path d="M2 12h4" />
+    <path d="M18 12h4" />
+    <path d="M4.93 19.07l2.83-2.83" />
+    <path d="M16.24 7.76l2.83-2.83" />
+    <circle cx="12" cy="12" r="4" />
+  </svg>
+);
+
+const LoadingSpinnerIcon = () => (
+  <svg
+    width="32"
+    height="32"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className="loading-spinner-svg"
+  >
+    <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+  </svg>
+);
+
 interface UserProfileProps {
   t: (key: string, params?: any) => string;
   onClose?: () => void;
@@ -85,24 +367,24 @@ const UserProfile: React.FC<UserProfileProps> = ({
       longestStreak: 28,
       achievements: [
         {
-          name: t("user.achievementEarlyBird") || "早起鸟",
+          name: t("user.achievementEarlyBird") || "",
           unlocked: true,
-          icon: "🌅",
+          icon: <SunriseIcon />,
         },
         {
-          name: t("user.achievementEfficiency") || "效率达人",
+          name: t("user.achievementEfficiency") || "",
           unlocked: true,
-          icon: "⚡",
+          icon: <ZapIcon />,
         },
         {
-          name: t("user.achievementExplorer") || "探索者",
+          name: t("user.achievementExplorer") || "",
           unlocked: false,
-          icon: "🧭",
+          icon: <CompassIcon />,
         },
         {
-          name: t("user.achievementTokenMaster") || "Token 大师",
+          name: t("user.achievementTokenMaster") || "",
           unlocked: true,
-          icon: "🔮",
+          icon: <GemIcon />,
         },
       ],
     };
@@ -275,17 +557,16 @@ const UserProfile: React.FC<UserProfileProps> = ({
           background: "var(--bg-primary)",
         }}
       >
-        <div
-          style={{
-            width: 32,
-            height: 32,
-            border: "3px solid var(--border-color)",
-            borderTopColor: "var(--accent-color)",
-            borderRadius: "50%",
-            animation: "spin 0.8s linear infinite",
-          }}
-        ></div>
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        <div className="loading-spinner">
+          <LoadingSpinnerIcon />
+        </div>
+        <style>{`
+          @keyframes spin { to { transform: rotate(360deg); } }
+          .loading-spinner-svg {
+            animation: spin 0.8s linear infinite;
+            color: var(--accent-color);
+          }
+        `}</style>
       </div>
     );
   }
@@ -313,7 +594,9 @@ const UserProfile: React.FC<UserProfileProps> = ({
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          <span style={{ fontSize: "16px" }}>👤</span>
+          <span style={{ fontSize: "16px", color: "var(--text-secondary)" }}>
+            <UserIcon />
+          </span>
           <span
             style={{
               fontSize: "14px",
@@ -334,13 +617,15 @@ const UserProfile: React.FC<UserProfileProps> = ({
             color: "var(--text-secondary)",
             padding: "4px 8px",
             borderRadius: "4px",
+            display: "flex",
+            alignItems: "center",
           }}
           onMouseEnter={(e) =>
             (e.currentTarget.style.background = "var(--hover-bg)")
           }
           onMouseLeave={(e) => (e.currentTarget.style.background = "none")}
         >
-          ✕
+          <CloseIcon />
         </button>
       </div>
       <div style={{ flex: 1, overflowY: "auto" }}>
@@ -388,10 +673,10 @@ const UserProfile: React.FC<UserProfileProps> = ({
                   color: "var(--text-primary)",
                 }}
               >
-                {stats.username || t("user.defaultUsername") || "用户"}
+                {stats.username || t("user.defaultUsername") || ""}
               </span>
               <div
-                style={{ display: "flex", gap: "3px", alignItems: "center" }}
+                style={{ display: "flex", gap: "10px", alignItems: "center" }}
               >
                 {stats.achievements?.map((ach: any, idx: number) => (
                   <span
@@ -400,6 +685,8 @@ const UserProfile: React.FC<UserProfileProps> = ({
                       fontSize: "11px",
                       opacity: ach.unlocked ? 1 : 0.3,
                       cursor: "default",
+                      display: "inline-flex",
+                      alignItems: "center",
                     }}
                     title={ach.name}
                   >
@@ -416,139 +703,263 @@ const UserProfile: React.FC<UserProfileProps> = ({
               {stats.joinDate?.toLocaleDateString() || "2024年1月"}
             </div>
           </div>
-         
-         
-         <div
-  style={{
-    flex: "0 0 auto",
-    display: "grid",
-    gridTemplateColumns: "repeat(3, minmax(85px, auto))",
-    gap: "6px 12px",
-    marginLeft: "auto",
-  }}
->
-  <div style={{ display: "flex", alignItems: "center", gap: "6px", minWidth: 0 }}>
-    <span style={{ fontSize: "13px", flexShrink: 0, color: "var(--text-secondary)" }}>💬</span>
-    <div style={{ minWidth: 0 }}>
-      <div
-        style={{
-          fontSize: "14px",
-          fontWeight: 700,
-          color: "var(--text-primary)",
-          lineHeight: 1.2,
-          whiteSpace: "nowrap",
-        }}
-      >
-        {stats.totalSessions}
-      </div>
-      <div style={{ fontSize: "8px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>
-        {t("user.totalSessions") || "对话"}
-      </div>
-    </div>
-  </div>
-  <div style={{ display: "flex", alignItems: "center", gap: "6px", minWidth: 0 }}>
-    <span style={{ fontSize: "13px", flexShrink: 0, color: "var(--text-secondary)" }}>📝</span>
-    <div style={{ minWidth: 0 }}>
-      <div
-        style={{
-          fontSize: "14px",
-          fontWeight: 700,
-          color: "var(--text-primary)",
-          lineHeight: 1.2,
-          whiteSpace: "nowrap",
-        }}
-      >
-        {formatNumber(stats.totalMessages)}
-      </div>
-      <div style={{ fontSize: "8px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>
-        {t("user.totalMessages") || "消息"}
-      </div>
-    </div>
-  </div>
-  <div style={{ display: "flex", alignItems: "center", gap: "6px", minWidth: 0 }}>
-    <span style={{ fontSize: "13px", flexShrink: 0, color: "var(--text-secondary)" }}>🔮</span>
-    <div style={{ minWidth: 0 }}>
-      <div
-        style={{
-          fontSize: "14px",
-          fontWeight: 700,
-          color: "var(--text-primary)",
-          lineHeight: 1.2,
-          whiteSpace: "nowrap",
-        }}
-      >
-        {formatNumber(stats.totalTokensUsed)}
-      </div>
-      <div style={{ fontSize: "8px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>
-        {t("user.totalTokens") || "Token"}
-      </div>
-    </div>
-  </div>
-  <div style={{ display: "flex", alignItems: "center", gap: "6px", minWidth: 0 }}>
-    <span style={{ fontSize: "13px", flexShrink: 0, color: "var(--text-secondary)" }}>⚙️</span>
-    <div style={{ minWidth: 0 }}>
-      <div
-        style={{
-          fontSize: "14px",
-          fontWeight: 700,
-          color: "var(--text-primary)",
-          lineHeight: 1.2,
-          whiteSpace: "nowrap",
-        }}
-      >
-        {formatNumber(stats.totalTasksExecuted)}
-      </div>
-      <div style={{ fontSize: "8px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>
-        {t("user.totalTasks") || "任务"}
-      </div>
-    </div>
-  </div>
-  <div style={{ display: "flex", alignItems: "center", gap: "6px", minWidth: 0 }}>
-    <span style={{ fontSize: "13px", flexShrink: 0, color: "var(--text-secondary)" }}>🔥</span>
-    <div style={{ minWidth: 0 }}>
-      <div
-        style={{
-          fontSize: "14px",
-          fontWeight: 700,
-          color: "var(--text-primary)",
-          lineHeight: 1.2,
-          whiteSpace: "nowrap",
-        }}
-      >
-        {stats.streakDays}
-        <span style={{ fontSize: "9px", color: "var(--text-muted)" }}>
-          {t("user.days") || "天"}
-        </span>
-      </div>
-      <div style={{ fontSize: "8px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>
-        {t("user.currentStreak") || "连续"}
-      </div>
-    </div>
-  </div>
-  <div style={{ display: "flex", alignItems: "center", gap: "6px", minWidth: 0 }}>
-    <span style={{ fontSize: "13px", flexShrink: 0, color: "var(--text-secondary)" }}>🏆</span>
-    <div style={{ minWidth: 0 }}>
-      <div
-        style={{
-          fontSize: "14px",
-          fontWeight: 700,
-          color: "var(--text-primary)",
-          lineHeight: 1.2,
-          whiteSpace: "nowrap",
-        }}
-      >
-        {stats.longestStreak}
-        <span style={{ fontSize: "9px", color: "var(--text-muted)" }}>
-          {t("user.days") || "天"}
-        </span>
-      </div>
-      <div style={{ fontSize: "8px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>
-        {t("user.longestStreak") || "最长"}
-      </div>
-    </div>
-  </div>
-</div>
 
+          <div
+            style={{
+              flex: "0 0 auto",
+              display: "grid",
+              gridTemplateColumns: "repeat(3, minmax(85px, auto))",
+              gap: "6px 12px",
+              marginLeft: "auto",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                minWidth: 0,
+              }}
+            >
+              <span
+                style={{
+                  fontSize: "13px",
+                  flexShrink: 0,
+                  color: "var(--text-secondary)",
+                }}
+              >
+                <MessageIcon />
+              </span>
+              <div style={{ minWidth: 0 }}>
+                <div
+                  style={{
+                    fontSize: "14px",
+                    fontWeight: 700,
+                    color: "var(--text-primary)",
+                    lineHeight: 1.2,
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {stats.totalSessions}
+                </div>
+                <div
+                  style={{
+                    fontSize: "8px",
+                    color: "var(--text-muted)",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {t("user.totalSessions") || "对话"}
+                </div>
+              </div>
+            </div>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                minWidth: 0,
+              }}
+            >
+              <span
+                style={{
+                  fontSize: "13px",
+                  flexShrink: 0,
+                  color: "var(--text-secondary)",
+                }}
+              >
+                <FileTextIcon />
+              </span>
+              <div style={{ minWidth: 0 }}>
+                <div
+                  style={{
+                    fontSize: "14px",
+                    fontWeight: 700,
+                    color: "var(--text-primary)",
+                    lineHeight: 1.2,
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {formatNumber(stats.totalMessages)}
+                </div>
+                <div
+                  style={{
+                    fontSize: "8px",
+                    color: "var(--text-muted)",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {t("user.totalMessages") || "消息"}
+                </div>
+              </div>
+            </div>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                minWidth: 0,
+              }}
+            >
+              <span
+                style={{
+                  fontSize: "13px",
+                  flexShrink: 0,
+                  color: "var(--text-secondary)",
+                }}
+              >
+                <CrystalIcon />
+              </span>
+              <div style={{ minWidth: 0 }}>
+                <div
+                  style={{
+                    fontSize: "14px",
+                    fontWeight: 700,
+                    color: "var(--text-primary)",
+                    lineHeight: 1.2,
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {formatNumber(stats.totalTokensUsed)}
+                </div>
+                <div
+                  style={{
+                    fontSize: "8px",
+                    color: "var(--text-muted)",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {t("user.totalTokens") || "Token"}
+                </div>
+              </div>
+            </div>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                minWidth: 0,
+              }}
+            >
+              <span
+                style={{
+                  fontSize: "13px",
+                  flexShrink: 0,
+                  color: "var(--text-secondary)",
+                }}
+              >
+                <SettingsIcon />
+              </span>
+              <div style={{ minWidth: 0 }}>
+                <div
+                  style={{
+                    fontSize: "14px",
+                    fontWeight: 700,
+                    color: "var(--text-primary)",
+                    lineHeight: 1.2,
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {formatNumber(stats.totalTasksExecuted)}
+                </div>
+                <div
+                  style={{
+                    fontSize: "8px",
+                    color: "var(--text-muted)",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {t("user.totalTasks") || "任务"}
+                </div>
+              </div>
+            </div>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                minWidth: 0,
+              }}
+            >
+              <span
+                style={{
+                  fontSize: "13px",
+                  flexShrink: 0,
+                  color: "var(--text-secondary)",
+                }}
+              >
+                <FireIcon />
+              </span>
+              <div style={{ minWidth: 0 }}>
+                <div
+                  style={{
+                    fontSize: "14px",
+                    fontWeight: 700,
+                    color: "var(--text-primary)",
+                    lineHeight: 1.2,
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {stats.streakDays}
+                  <span style={{ fontSize: "9px", color: "var(--text-muted)" }}>
+                    {t("user.days") || "天"}
+                  </span>
+                </div>
+                <div
+                  style={{
+                    fontSize: "8px",
+                    color: "var(--text-muted)",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {t("user.currentStreak") || "连续"}
+                </div>
+              </div>
+            </div>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                minWidth: 0,
+              }}
+            >
+              <span
+                style={{
+                  fontSize: "13px",
+                  flexShrink: 0,
+                  color: "var(--text-secondary)",
+                }}
+              >
+                <TrophyIcon />
+              </span>
+              <div style={{ minWidth: 0 }}>
+                <div
+                  style={{
+                    fontSize: "14px",
+                    fontWeight: 700,
+                    color: "var(--text-primary)",
+                    lineHeight: 1.2,
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {stats.longestStreak}
+                  <span style={{ fontSize: "9px", color: "var(--text-muted)" }}>
+                    {t("user.days") || "天"}
+                  </span>
+                </div>
+                <div
+                  style={{
+                    fontSize: "8px",
+                    color: "var(--text-muted)",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {t("user.longestStreak") || "最长"}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
         <div
           style={{
@@ -565,7 +976,11 @@ const UserProfile: React.FC<UserProfileProps> = ({
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-              <span style={{ fontSize: "12px" }}>📊</span>
+              <span
+                style={{ fontSize: "12px", color: "var(--text-secondary)" }}
+              >
+                <ChartIcon />
+              </span>
               <span
                 style={{
                   fontSize: "14px",
@@ -644,19 +1059,8 @@ const UserProfile: React.FC<UserProfileProps> = ({
           .color-006d32 { fill: #006d32; }
           .color-26a641 { fill: #26a641; }
           .color-39d353 { fill: #39d353; }
+          .react-calendar-heatmap { display: block !important; }
         `}</style>
-
-        <style>{`
-  .react-calendar-heatmap rect { rx: 2; ry: 2; }
-  .react-calendar-heatmap-weekday-labels text { font-size: 8px; fill: var(--text-muted); }
-  .react-calendar-heatmap-month-labels text { font-size: 8px; fill: var(--text-secondary); }
-  .color-empty { fill: var(--bg-tertiary); }
-  .color-0e4429 { fill: #0e4429; }
-  .color-006d32 { fill: #006d32; }
-  .color-26a641 { fill: #26a641; }
-  .color-39d353 { fill: #39d353; }
-  .react-calendar-heatmap { display: block !important; }
-`}</style>
 
         <div
           style={{
@@ -678,7 +1082,11 @@ const UserProfile: React.FC<UserProfileProps> = ({
               <div
                 style={{ display: "flex", alignItems: "center", gap: "6px" }}
               >
-                <span style={{ fontSize: "12px" }}>🔮</span>
+                <span
+                  style={{ fontSize: "12px", color: "var(--text-secondary)" }}
+                >
+                  <CrystalIcon />
+                </span>
                 <span
                   style={{
                     fontSize: "14px",
@@ -731,7 +1139,11 @@ const UserProfile: React.FC<UserProfileProps> = ({
               <div
                 style={{ display: "flex", alignItems: "center", gap: "12px" }}
               >
-                <span style={{ fontSize: "28px" }}>🔮</span>
+                <span
+                  style={{ fontSize: "28px", color: "var(--accent-color)" }}
+                >
+                  🔮
+                </span>
                 <div>
                   <div style={{ fontSize: "9px", color: "var(--text-muted)" }}>
                     {t("user.tokenStats") || "Token 统计"}
@@ -848,8 +1260,12 @@ const UserProfile: React.FC<UserProfileProps> = ({
                     fontWeight: 600,
                     color: "var(--text-secondary)",
                     marginBottom: "6px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "4px",
                   }}
                 >
+                  <ChartIcon />
                   {t("user.tokenTrend") || "Token 消耗趋势"}
                 </div>
                 <ResponsiveContainer width="100%" height={100}>
@@ -921,8 +1337,12 @@ const UserProfile: React.FC<UserProfileProps> = ({
                     fontWeight: 600,
                     color: "var(--text-secondary)",
                     marginBottom: "6px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "4px",
                   }}
                 >
+                  <BarChart3Icon />
                   {t("user.dailyDialogCount") || "每日对话次数"}
                 </div>
                 <ResponsiveContainer width="100%" height={100}>
@@ -1087,7 +1507,11 @@ const UserProfile: React.FC<UserProfileProps> = ({
               <div
                 style={{ display: "flex", alignItems: "center", gap: "6px" }}
               >
-                <span style={{ fontSize: "12px" }}>⏰</span>
+                <span
+                  style={{ fontSize: "12px", color: "var(--text-secondary)" }}
+                >
+                  <ClockIcon />
+                </span>
                 <span
                   style={{
                     fontSize: "14px",

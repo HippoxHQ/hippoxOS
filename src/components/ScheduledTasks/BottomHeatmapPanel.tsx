@@ -224,7 +224,7 @@ const BottomHeatmapPanel: React.FC<BottomHeatmapPanelProps> = ({
     <div
       className="bottom-heatmap-panel"
       style={{
-        height: isExpanded ? "188px" : "40px",
+        height: isExpanded ? "188px" : "33px",
         flexShrink: 0,
         overflow: "hidden",
         transition: "height 0.3s ease",
