@@ -15,6 +15,25 @@ import TopBar from "../../components/TopBar";
 import WelcomePage from "../../components/WelcomePage";
 import { UploadFile, Theme, Language } from "../../types/type";
 import ScheduledTasksManager from "../../components/ScheduledTasks";
+import UserProfile from "../../components/UserProfile";
+import { ContentPanelView } from "../hooks/useMenuPanel";
+import HistoryPanel from "../../components/MenuPanel/HistoryPanel";
+import FavoritesPanel from "../../components/MenuPanel/FavoritesPanel";
+import SkillsPanel from "../../components/MenuPanel/SkillsPanel";
+import SkillMarketPanel from "../../components/MenuPanel/SkillMarketPanel";
+import TaskQueuePanel from "../../components/MenuPanel/TaskQueuePanel";
+import AtomicSkillsPanel from "../../components/MenuPanel/AtomicSkillsPanel";
+import WorkspacePanel from "../../components/MenuPanel/Workspace";
+import WorkspaceConfig from "../../components/MenuPanel/SystemConfig/WorkspaceConfig";
+import LogsPanel from "../../components/MenuPanel/LogsPanel";
+import StorageConfig from "../../components/MenuPanel/SystemConfig/StorageConfig";
+import SettingsPanel, {
+  SettingsSubView,
+} from "../../components/MenuPanel/SettingsPanel";
+import EngineContainerPanel from "../../components/MenuPanel/EngineConfig/EngineContainerPanel";
+import EngineDatabasePanel from "../../components/MenuPanel/EngineConfig/EngineDatabasePanel";
+import EngineNetworkPanel from "../../components/MenuPanel/EngineConfig/EngineNetworkPanel";
+import EngineNotificationPanel from "../../components/MenuPanel/EngineConfig/EngineNotificationPanel";
 
 interface AppContentProps {
   theme: Theme;
@@ -36,17 +55,18 @@ interface AppContentProps {
   sidebarCollapsed: boolean;
   onToggleSidebar: () => void;
   menuPanelView: any;
-  settingsSubView: any;
+  settingsSubView: SettingsSubView;
   engineSubView: any;
   menuPanelWidth: number;
   setMenuPanelWidth: (width: number) => void;
-  showSkillsManager: boolean;
-  showScheduledTasks: boolean;
+  currentContentPanel: ContentPanelView;
   onMenuClick: (view: string, subView?: string) => void;
   onCloseMenuPanel: () => void;
   onOpenSkillsManager: () => void;
   onCloseSkillsManager: () => void;
   onCloseScheduledTasks: () => void;
+  onCloseUserProfile: () => void;
+  onCloseContentPanel: () => void;
   onSaveConfig: (config: any) => void;
   initialEngineConfig: any;
   isFilePreviewOpen: boolean;
@@ -83,13 +103,14 @@ export function AppContent({
   engineSubView,
   menuPanelWidth,
   setMenuPanelWidth,
-  showSkillsManager,
-  showScheduledTasks,
+  currentContentPanel,
   onMenuClick,
   onCloseMenuPanel,
   onOpenSkillsManager,
   onCloseSkillsManager,
   onCloseScheduledTasks,
+  onCloseUserProfile,
+  onCloseContentPanel,
   onSaveConfig,
   initialEngineConfig,
   isFilePreviewOpen,
@@ -106,6 +127,7 @@ export function AppContent({
   onLayoutSwapModeChange,
 }: AppContentProps) {
   const showWelcome = shouldShowWelcome();
+
   const leftPanelContent =
     layoutSwapMode === "terminal-left" ? (
       <TerminalPanel
@@ -146,6 +168,151 @@ export function AppContent({
       />
     );
 
+  const renderEngineConfig = () => {
+    switch (engineSubView) {
+      case "engine_database":
+        return (
+          <EngineDatabasePanel
+            t={t}
+            initialConfig={initialEngineConfig}
+            onSave={onSaveConfig}
+          />
+        );
+      case "engine_network":
+        return (
+          <EngineNetworkPanel
+            t={t}
+            initialConfig={initialEngineConfig}
+            onSave={onSaveConfig}
+          />
+        );
+      case "engine_container":
+        return (
+          <EngineContainerPanel
+            t={t}
+            initialConfig={initialEngineConfig}
+            onSave={onSaveConfig}
+          />
+        );
+      case "engine_notification":
+        return (
+          <EngineNotificationPanel
+            t={t}
+            initialConfig={initialEngineConfig}
+            onSave={onSaveConfig}
+          />
+        );
+      default:
+        return null;
+    }
+  };
+
+  const renderContent = () => {
+    switch (currentContentPanel) {
+      case "history":
+        return (
+          <HistoryPanel
+            t={t}
+            onSessionSelect={onSwitchSession}
+            currentSessionId={currentSessionId}
+            onCloseSkillsManager={onCloseContentPanel}
+          />
+        );
+      case "favorites":
+        return <FavoritesPanel t={t} />;
+      case "skills":
+        return <SkillsPanel t={t} />;
+      case "skillMarket":
+        return <SkillMarketPanel t={t} />;
+      case "taskQueue":
+        return <TaskQueuePanel t={t} />;
+      case "atomicSkills":
+        return <AtomicSkillsPanel t={t} onSave={onSaveConfig} />;
+      case "workspace":
+        return <WorkspacePanel t={t} />;
+      case "workspaceConfig":
+        return <WorkspaceConfig t={t} onSaveWorkspace={onSaveConfig} />;
+      case "logs":
+        return <LogsPanel t={t} onClose={onCloseContentPanel} />;
+      case "storage":
+        return <StorageConfig t={t} onSave={onSaveConfig} />;
+      case "settings":
+        return (
+          <SettingsPanel
+            subView={settingsSubView || "llmModel"}
+            t={t}
+            onSave={onSaveConfig}
+            theme={theme}
+            language={language}
+            onThemeChange={onToggleTheme}
+            onLanguageChange={onToggleLanguage}
+            isInitializing={false}
+          />
+        );
+      case "engine_group":
+        return renderEngineConfig();
+      case "skillsManager":
+        return (
+          <SkillsManager
+            t={t}
+            onClose={onCloseSkillsManager}
+            currentSessionId={currentSessionId}
+          />
+        );
+      case "scheduledTasks":
+        return (
+          <ScheduledTasksManager
+            t={t}
+            onClose={onCloseScheduledTasks}
+            currentSessionId={currentSessionId}
+          />
+        );
+      case "userProfile":
+        return (
+          <UserProfile
+            t={t}
+            onClose={onCloseUserProfile}
+            currentSessionId={currentSessionId}
+          />
+        );
+      default:
+        return null;
+    }
+  };
+
+  const styles = {
+    mainLayout: {
+      display: "flex" as const,
+      flex: 1,
+      overflow: "hidden" as const,
+    },
+    contentArea: {
+      flex: 1,
+      overflow: "hidden" as const,
+      display: "flex" as const,
+      flexDirection: "column" as const,
+    },
+    resizeHandle: {
+      width: "4px",
+      background: "var(--border-color)",
+      cursor: "col-resize" as const,
+      transition: "all 0.2s",
+      position: "relative" as const,
+      flexShrink: 0,
+    },
+    handleLine: {
+      position: "absolute" as const,
+      top: "50%",
+      left: "50%",
+      transform: "translate(-50%, -50%)",
+      width: "2px",
+      height: "40px",
+      background: "var(--text-muted)",
+      borderRadius: "2px",
+      transition: "background 0.2s",
+    },
+  };
+
   return (
     <div className="App">
       <CustomDragCursor isDragging={showDragCursor} />
@@ -167,7 +334,7 @@ export function AppContent({
         onLayoutSwapModeChange={onLayoutSwapModeChange}
       />
 
-      <div className="main-layout">
+      <div style={styles.mainLayout}>
         {!sidebarCollapsed && (
           <Sidebar
             collapsed={sidebarCollapsed}
@@ -181,7 +348,6 @@ export function AppContent({
             t={t}
           />
         )}
-
         {menuPanelView && (
           <>
             <div className="menu-panel-left" style={{ width: menuPanelWidth }}>
@@ -200,11 +366,11 @@ export function AppContent({
                 currentSessionId={currentSessionId}
                 onSwitchSession={onSwitchSession}
                 initialEngineConfig={initialEngineConfig}
-                onCloseSkillsManager={onCloseSkillsManager}
+                onCloseSkillsManager={onCloseContentPanel}
               />
             </div>
             <div
-              className="resize-handle-menu"
+              style={styles.resizeHandle}
               onMouseDown={(e) => {
                 e.preventDefault();
                 const startX = e.clientX;
@@ -226,49 +392,55 @@ export function AppContent({
                 document.addEventListener("mousemove", onMouseMove);
                 document.addEventListener("mouseup", onMouseUp);
               }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "var(--scrollbar-thumb)";
+                const line = e.currentTarget.querySelector(
+                  ".handle-line",
+                ) as HTMLElement;
+                if (line) line.style.background = "var(--text-secondary)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "var(--border-color)";
+                const line = e.currentTarget.querySelector(
+                  ".handle-line",
+                ) as HTMLElement;
+                if (line) line.style.background = "var(--text-muted)";
+              }}
             >
-              <div className="handle-line"></div>
+              <div style={styles.handleLine} className="handle-line"></div>
             </div>
           </>
         )}
-        {showSkillsManager ? (
-          <SkillsManager
-            t={t}
-            onClose={onCloseSkillsManager}
-            currentSessionId={currentSessionId}
-          />
-        ) : showScheduledTasks ? (
-          <ScheduledTasksManager
-            t={t}
-            onClose={onCloseScheduledTasks}
-            currentSessionId={currentSessionId}
-          />
-        ) : showWelcome ? (
-          <WelcomePage
-            onSendMessage={(msg, files) =>
-              onSendMessage(msg, currentSessionId, files)
-            }
-            t={t}
-            onDragOverInputChange={setIsDraggingOverInput}
-          />
-        ) : (
-          <ResizablePanels
-            leftPanel={leftPanelContent}
-            rightPanel={rightPanelContent}
-            rightExtraPanel={
-              isFilePreviewOpen ? (
-                <FilePreview
-                  file={previewFile}
-                  onClose={onCloseFilePreview}
-                  t={t}
-                />
-              ) : undefined
-            }
-            isRightExtraOpen={isFilePreviewOpen}
-            layoutMode="horizontal"
-            onLayoutModeChange={() => {}}
-          />
-        )}
+        <div style={styles.contentArea}>
+          {currentContentPanel ? (
+            renderContent()
+          ) : showWelcome ? (
+            <WelcomePage
+              onSendMessage={(msg, files) =>
+                onSendMessage(msg, currentSessionId, files)
+              }
+              t={t}
+              onDragOverInputChange={setIsDraggingOverInput}
+            />
+          ) : (
+            <ResizablePanels
+              leftPanel={leftPanelContent}
+              rightPanel={rightPanelContent}
+              rightExtraPanel={
+                isFilePreviewOpen ? (
+                  <FilePreview
+                    file={previewFile}
+                    onClose={onCloseFilePreview}
+                    t={t}
+                  />
+                ) : undefined
+              }
+              isRightExtraOpen={isFilePreviewOpen}
+              layoutMode="horizontal"
+              onLayoutModeChange={() => {}}
+            />
+          )}
+        </div>
       </div>
       <BottomBar t={t} />
     </div>

@@ -26,14 +26,17 @@ function App() {
     engineSubView,
     menuPanelWidth,
     setMenuPanelWidth,
-    showSkillsManager,
-    showScheduledTasks,
+    currentContentPanel,
+    closeContentPanel,
+    resetToChat,
     handleMenuClick,
     closeMenuPanel,
     handleOpenSkillsManager,
     handleCloseSkillsManager,
     handleOpenScheduledTasks,
     handleCloseScheduledTasks,
+    handleOpenUserProfile,
+    handleCloseUserProfile,
   } = useMenuPanel();
   const {
     currentSessionId,
@@ -59,14 +62,17 @@ function App() {
     setIsDraggingOverInput,
     showDragCursor,
   } = useDragAndDrop();
-
   useTaskEvents(language);
+  const handleNewSessionWithClose = () => {
+    resetToChat();
+    handleNewSession();
+  };
   useSystemEvents(
-    handleNewSession,
+    handleNewSessionWithClose,
     () => handleMenuClick("skillMarket"),
     () => handleMenuClick("history"),
     () => handleMenuClick("favorites"),
-    () => handleOpenScheduledTasks,  
+    () => handleOpenScheduledTasks(),
     (subView) => handleMenuClick("settings", subView),
   );
   useDirectoryEvents();
@@ -82,6 +88,10 @@ function App() {
     }
     if (view === "skillsManager") {
       handleOpenSkillsManager();
+      return;
+    }
+    if (view === "userProfile") {
+      handleOpenUserProfile();
       return;
     }
     handleMenuClick(view, subView);
@@ -101,7 +111,6 @@ function App() {
       </div>
     );
   }
-
   return (
     <AppContent
       theme={theme}
@@ -111,7 +120,7 @@ function App() {
       t={t}
       currentSessionId={currentSessionId}
       isLoading={isLoading}
-      onNewSession={handleNewSession}
+      onNewSession={handleNewSessionWithClose}
       onSwitchSession={handleSwitchSession}
       onSendMessage={handleSendMessage}
       onResetSession={resetSession}
@@ -123,13 +132,14 @@ function App() {
       engineSubView={engineSubView}
       menuPanelWidth={menuPanelWidth}
       setMenuPanelWidth={setMenuPanelWidth}
-      showSkillsManager={showSkillsManager}
-      showScheduledTasks={showScheduledTasks}
+      currentContentPanel={currentContentPanel}
       onMenuClick={handleMenuClickWrapper}
       onCloseMenuPanel={closeMenuPanel}
       onOpenSkillsManager={handleOpenSkillsManager}
       onCloseSkillsManager={handleCloseSkillsManager}
       onCloseScheduledTasks={handleCloseScheduledTasks}
+      onCloseUserProfile={handleCloseUserProfile}
+      onCloseContentPanel={closeContentPanel}
       onSaveConfig={handleSaveConfig}
       initialEngineConfig={initialEngineConfig}
       isFilePreviewOpen={isFilePreviewOpen}

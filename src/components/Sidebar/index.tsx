@@ -1,3 +1,4 @@
+// Sidebar/index.tsx - 修复 userProfile 点击逻辑
 import React, { useEffect, useRef } from "react";
 import { PopupMenu, SidebarButton } from "./components";
 import { SidebarProps } from "./types";
@@ -47,6 +48,13 @@ const Sidebar: React.FC<SidebarProps> = ({
       setActiveSubId(undefined);
       setActiveSubSubId(undefined);
       if (onOpenSkillsManager) onOpenSkillsManager();
+      return;
+    }
+    if (id === "userProfile") {
+      setActiveId("userProfile");
+      setActiveSubId(undefined);
+      setActiveSubSubId(undefined);
+      if (onMenuClick) onMenuClick("userProfile");
       return;
     }
     if (id === "settings" && subId) {
@@ -141,35 +149,27 @@ const Sidebar: React.FC<SidebarProps> = ({
     itemId: string,
     e: React.MouseEvent<HTMLButtonElement>,
   ) => {
-    if (itemId === "skillsManager") {
-      setActiveId("skillsManager");
-      setActiveSubId(undefined);
-      setActiveSubSubId(undefined);
-      if (onOpenSkillsManager) onOpenSkillsManager();
-      handleClosePopup();
-      return;
-    }
-    if (itemId === "tasks_group") {
-      setActiveId("scheduledTasks");
-      setActiveSubId(undefined);
-      setActiveSubSubId(undefined);
-      if (onMenuClick) onMenuClick("scheduledTasks");
-      handleClosePopup();
-      return;
-    }
-    if (
-      itemId === "history" ||
-      itemId === "favorites" ||
-      itemId === "workspace" ||
-      itemId === "logs" ||
-      itemId === "skillMarket"
-    ) {
+    // 直接点击打开的页面（不弹出菜单）
+    const directOpenItems = [
+      "skillsManager",
+      "tasks_group",
+      "history",
+      "favorites",
+      "workspace",
+      "logs",
+      "skillMarket",
+      "userProfile", // 添加 userProfile 到直接打开列表
+    ];
+
+    if (directOpenItems.includes(itemId)) {
       if (popupVisible) {
         handleClosePopup();
       }
       handleMenuClick(itemId);
       return;
     }
+
+    // 需要弹出菜单的项目
     const rect = e.currentTarget.getBoundingClientRect();
     const viewportWidth = window.innerWidth;
     const popupWidth = 280;
@@ -186,6 +186,7 @@ const Sidebar: React.FC<SidebarProps> = ({
       top = gap;
     }
     const position = { top, left };
+
     if (itemId === "skills_group" || itemId === "settings_group") {
       if (isPopupVisible(itemId)) {
         handleClosePopup();
@@ -201,6 +202,7 @@ const Sidebar: React.FC<SidebarProps> = ({
       showPopup(itemId, position);
       return;
     }
+
     if (isPopupVisible(itemId)) {
       handleClosePopup();
     } else {
@@ -228,6 +230,9 @@ const Sidebar: React.FC<SidebarProps> = ({
   const isIconActive = (itemId: string): boolean => {
     if (itemId === "skillsManager") {
       return activeId === "skillsManager";
+    }
+    if (itemId === "userProfile") {
+      return activeId === "userProfile";
     }
     if (itemId === "skillMarket") {
       return activeId === "skillMarket" || activeId === "skills";
@@ -264,6 +269,9 @@ const Sidebar: React.FC<SidebarProps> = ({
   const getButtonLabel = (item: { id: string; label: string }) => {
     if (item.id === "skillMarket") {
       return t("actions.skillMarket");
+    }
+    if (item.id === "userProfile") {
+      return t("menu.userProfile") || "个人资料";
     }
     return t(item.label);
   };
@@ -319,6 +327,22 @@ const Sidebar: React.FC<SidebarProps> = ({
             className="sidebar-nav-bottom"
             style={{ flexDirection: "column-reverse" }}
           >
+            <SidebarButton
+              item={{
+                id: "userProfile",
+                icon: "user",
+                label: "menu.userProfile",
+              }}
+              isActive={isIconActive("userProfile")}
+              label={t("menu.userProfile") || "个人资料"}
+              onClick={(e) => handleIconClick("userProfile", e)}
+              onMouseEnter={handleMouseEnter}
+              onMouseLeave={handleMouseLeave}
+              buttonRef={(el) => {
+                if (el) iconRefs.current.set("userProfile", el);
+                else iconRefs.current.delete("userProfile");
+              }}
+            />
             {bottomMenuItems.map((item) => renderButton(item))}
           </nav>
           {popupVisible && activeIconId && (

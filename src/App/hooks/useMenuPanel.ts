@@ -2,22 +2,32 @@ import { useState } from "react";
 import { MenuPanelView, EngineSubView } from "../../components/MenuPanel";
 import { SettingsSubView } from "../../components/MenuPanel/SettingsPanel";
 
+export type ContentPanelView =
+  | "history"
+  | "favorites"
+  | "skills"
+  | "skillMarket"
+  | "taskQueue"
+  | "atomicSkills"
+  | "workspace"
+  | "workspaceConfig"
+  | "logs"
+  | "storage"
+  | "settings"
+  | "engine_group"
+  | "skillsManager"
+  | "scheduledTasks"
+  | "userProfile"
+  | null;
+
 export function useMenuPanel() {
   const [menuPanelView, setMenuPanelView] = useState<MenuPanelView | null>(null);
   const [settingsSubView, setSettingsSubView] = useState<SettingsSubView>("llmModel");
   const [engineSubView, setEngineSubView] = useState<EngineSubView>("engine_database");
   const [menuPanelWidth, setMenuPanelWidth] = useState<number>(320);
-  const [showSkillsManager, setShowSkillsManager] = useState(false);
-  const [showScheduledTasks, setShowScheduledTasks] = useState(false);
+  const [currentContentPanel, setCurrentContentPanel] = useState<ContentPanelView>(null);
   const handleMenuClick = (view: string, subView?: string) => {
-    if (view === "skillsManager") {
-      setShowSkillsManager(true);
-      setShowScheduledTasks(false);
-      return;
-    }
-    if (view === "scheduledTasks") {
-      setShowScheduledTasks(true);
-      setShowSkillsManager(false);
+    if (view === "skillsManager" || view === "scheduledTasks" || view === "userProfile") {
       return;
     }
     if (
@@ -29,46 +39,60 @@ export function useMenuPanel() {
       setMenuPanelView("engine_group");
       setEngineSubView(subView as EngineSubView);
       setSettingsSubView("llmModel");
-      setShowSkillsManager(false);
-      setShowScheduledTasks(false);
     } else if (view === "settings") {
       setMenuPanelView("settings");
       setSettingsSubView((subView as SettingsSubView) || "llmModel");
       setEngineSubView("engine_database");
-      setShowSkillsManager(false);
-      setShowScheduledTasks(false);
     } else if (view === "dashboard") {
       setMenuPanelView(null);
-      setShowSkillsManager(false);
-      setShowScheduledTasks(false);
     } else {
-      setMenuPanelView(view as MenuPanelView);
-      setShowSkillsManager(false);
-      setShowScheduledTasks(false);
+      if (menuPanelView === (view as MenuPanelView)) {
+        setMenuPanelView(null);
+      } else {
+        setMenuPanelView(view as MenuPanelView);
+      }
     }
   };
-
   const closeMenuPanel = () => {
     setMenuPanelView(null);
   };
 
   const handleOpenSkillsManager = () => {
-    setShowSkillsManager(true);
-    setShowScheduledTasks(false);
+    setCurrentContentPanel("skillsManager");
   };
-
   const handleCloseSkillsManager = () => {
-    setShowSkillsManager(false);
+    if (currentContentPanel === "skillsManager") {
+      setCurrentContentPanel(null);
+    }
   };
-
   const handleOpenScheduledTasks = () => {
-    setShowScheduledTasks(true);
-    setShowSkillsManager(false);
+    setCurrentContentPanel("scheduledTasks");
   };
-
   const handleCloseScheduledTasks = () => {
-    setShowScheduledTasks(false);
+    if (currentContentPanel === "scheduledTasks") {
+      setCurrentContentPanel(null);
+    }
   };
+  const handleOpenUserProfile = () => {
+    setCurrentContentPanel("userProfile");
+  };
+  const handleCloseUserProfile = () => {
+    if (currentContentPanel === "userProfile") {
+      setCurrentContentPanel(null);
+    }
+  };
+  const handleOpenHistory = () => {
+    setCurrentContentPanel("history");
+  };
+  const closeContentPanel = () => {
+    setCurrentContentPanel(null);
+  };
+  const resetToChat = () => {
+    setCurrentContentPanel(null);
+  };
+  const showSkillsManager = currentContentPanel === "skillsManager";
+  const showScheduledTasks = currentContentPanel === "scheduledTasks";
+  const showUserProfile = currentContentPanel === "userProfile";
 
   return {
     menuPanelView,
@@ -76,13 +100,20 @@ export function useMenuPanel() {
     engineSubView,
     menuPanelWidth,
     setMenuPanelWidth,
-    showSkillsManager,
-    showScheduledTasks,
-    handleMenuClick,
     closeMenuPanel,
+    handleMenuClick,
+    currentContentPanel,
+    closeContentPanel,
+    resetToChat,
     handleOpenSkillsManager,
     handleCloseSkillsManager,
     handleOpenScheduledTasks,
     handleCloseScheduledTasks,
+    handleOpenUserProfile,
+    handleCloseUserProfile,
+    handleOpenHistory,
+    showSkillsManager,
+    showScheduledTasks,
+    showUserProfile,
   };
 }
