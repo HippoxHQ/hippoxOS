@@ -67,9 +67,9 @@ const BottomHeatmapPanel: React.FC<BottomHeatmapPanelProps> = ({
   };
   const getTooltipMessage = (date: string, count: number) => {
     if (!count || count === 0) {
-      return "无执行记录";
+      return t("scheduled.noExecutionRecord") || "无执行记录";
     }
-    return `${date}\n执行次数: ${count} 次`;
+    return `${date}\n${t("scheduled.executionCount") || "执行次数"}: ${count} ${t("scheduled.times") || "次"}`;
   };
   const getDateFromCell = (cell: Element): string | null => {
     const dataDate = cell.getAttribute("data-date");
@@ -145,14 +145,20 @@ const BottomHeatmapPanel: React.FC<BottomHeatmapPanelProps> = ({
         if ((cell as any).__heatmapEventsAttached) return;
         (cell as any).__heatmapEventsAttached = true;
         const handleMouseEnter = () => {
-          const message = getTooltipMessage(date || "未知日期", count);
+          const message = getTooltipMessage(
+            date || t("common.unknown") || "未知日期",
+            count,
+          );
           showTooltip(message, cell as any as HTMLElement);
         };
         const handleMouseLeave = () => {
           closeTooltip();
         };
         const handleClick = () => {
-          const message = getTooltipMessage(date || "未知日期", count);
+          const message = getTooltipMessage(
+            date || t("common.unknown") || "未知日期",
+            count,
+          );
           showTooltip(message, cell as any as HTMLElement);
           setTimeout(() => {
             closeTooltip();
@@ -241,7 +247,9 @@ const BottomHeatmapPanel: React.FC<BottomHeatmapPanelProps> = ({
           }
           onMouseLeave={(e) => (e.currentTarget.style.background = "none")}
         >
-          {isExpanded ? "▼ 展开" : "▲ 收起"}
+          {isExpanded
+            ? "▼ " + (t("scheduled.expand") || "展开")
+            : "▲ " + (t("scheduled.collapse") || "收起")}
         </button>
       </div>
 
@@ -267,18 +275,18 @@ const BottomHeatmapPanel: React.FC<BottomHeatmapPanelProps> = ({
               showWeekdayLabels={true}
               gutterSize={4}
               monthLabels={[
-                "1月",
-                "2月",
-                "3月",
-                "4月",
-                "5月",
-                "6月",
-                "7月",
-                "8月",
-                "9月",
-                "10月",
-                "11月",
-                "12月",
+                t("scheduled.jan") || "1月",
+                t("scheduled.feb") || "2月",
+                t("scheduled.mar") || "3月",
+                t("scheduled.apr") || "4月",
+                t("scheduled.may") || "5月",
+                t("scheduled.jun") || "6月",
+                t("scheduled.jul") || "7月",
+                t("scheduled.aug") || "8月",
+                t("scheduled.sep") || "9月",
+                t("scheduled.oct") || "10月",
+                t("scheduled.nov") || "11月",
+                t("scheduled.dec") || "12月",
               ]}
             />
           </div>
@@ -294,7 +302,7 @@ const BottomHeatmapPanel: React.FC<BottomHeatmapPanelProps> = ({
             }}
           >
             <span style={{ fontSize: "9px", color: "var(--text-muted)" }}>
-              少
+              {t("scheduled.less") || "少"}
             </span>
             <div
               style={{
@@ -329,7 +337,7 @@ const BottomHeatmapPanel: React.FC<BottomHeatmapPanelProps> = ({
               }}
             ></div>
             <span style={{ fontSize: "9px", color: "var(--text-muted)" }}>
-              多
+              {t("scheduled.more") || "多"}
             </span>
           </div>
         </>

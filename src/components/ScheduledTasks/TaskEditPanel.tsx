@@ -62,7 +62,15 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
     if (Array.isArray(weekNames) && weekNames.length === 7) {
       return weekNames;
     }
-    return DEFAULT_WEEK_DAYS;
+    return [
+      t("scheduled.sun") || "日",
+      t("scheduled.mon") || "一",
+      t("scheduled.tue") || "二",
+      t("scheduled.wed") || "三",
+      t("scheduled.thu") || "四",
+      t("scheduled.fri") || "五",
+      t("scheduled.sat") || "六",
+    ];
   };
 
   const weekDayNames = getWeekDayNames();
@@ -872,7 +880,10 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
                 textAlign: "right",
               }}
             >
-              <span>执行次数: {task.execution_count || 0}</span>
+              <span>
+                {t("scheduled.executeCount") || "执行次数"}:{" "}
+                {task.execution_count || 0}
+              </span>
             </div>
           </div>
         )}
@@ -894,7 +905,9 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
               onClick={handleToggle}
               disabled={isToggling}
             >
-              {task?.enabled ? "⏸️ 禁用" : "▶️ 启用"}
+              {task?.enabled
+                ? "⏸️ " + (t("scheduled.disable") || "禁用")
+                : "▶️ " + (t("scheduled.enable") || "启用")}
             </button>
             <button
               style={deleteButtonStyle}
@@ -910,7 +923,9 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
           onClick={handleSave}
           disabled={isSaving}
         >
-          {isSaving ? "💾 保存中..." : "💾 " + (t("settings.save") || "保存")}
+          {isSaving
+            ? "💾 " + (t("common.saving") || "保存中...")
+            : "💾 " + (t("settings.save") || "保存")}
         </button>
       </div>
     </div>

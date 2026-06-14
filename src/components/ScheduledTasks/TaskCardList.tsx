@@ -35,7 +35,7 @@ const getScheduleDisplay = (
     };
     const unit = unitText[config.unit] || config.unit;
     const value = config.value || 1;
-    return `每 ${value} ${unit}`;
+    return `${t("scheduled.every") || "每"} ${value} ${unit}`;
   } else {
     const frequencyText: Record<string, string> = {
       daily: t("scheduled.frequencyDaily") || "每天",
@@ -49,13 +49,21 @@ const getScheduleDisplay = (
         const dayKey = `scheduled.day${d}`;
         const translated = t(dayKey);
         return translated === dayKey
-          ? ["日", "一", "二", "三", "四", "五", "六"][d]
+          ? [
+              t("scheduled.sunShort") || "日",
+              t("scheduled.monShort") || "一",
+              t("scheduled.tueShort") || "二",
+              t("scheduled.wedShort") || "三",
+              t("scheduled.thuShort") || "四",
+              t("scheduled.friShort") || "五",
+              t("scheduled.satShort") || "六",
+            ][d]
           : translated;
       });
       result += ` ${dayNames.join(",")}`;
     }
     if (config.frequency === "monthly" && config.day_of_month?.length) {
-      result += ` ${config.day_of_month.join(",")}日`;
+      result += ` ${config.day_of_month.join(",")}${t("scheduled.dayUnit") || "日"}`;
     }
     if (config.time) {
       result += ` ${config.time}`;
@@ -95,8 +103,6 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
   const [showFilterPopup, setShowFilterPopup] = useState(false);
   const filterButtonRef = useRef<HTMLButtonElement>(null);
   const popupRef = useRef<HTMLDivElement>(null);
-
-  // 根据父容器宽度计算列数
   useEffect(() => {
     const calculateColumns = () => {
       if (containerRef.current) {
@@ -106,22 +112,17 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
         setColumns(calculatedColumns);
       }
     };
-
     calculateColumns();
     window.addEventListener("resize", calculateColumns);
-
     const resizeObserver = new ResizeObserver(calculateColumns);
     if (containerRef.current) {
       resizeObserver.observe(containerRef.current);
     }
-
     return () => {
       window.removeEventListener("resize", calculateColumns);
       resizeObserver.disconnect();
     };
   }, []);
-
-  // 点击外部关闭弹窗
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -134,13 +135,11 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
         setShowFilterPopup(false);
       }
     };
-
     document.addEventListener("mousedown", handleClickOutside);
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [showFilterPopup]);
-
   const filterOptions = [
     {
       key: "all" as const,

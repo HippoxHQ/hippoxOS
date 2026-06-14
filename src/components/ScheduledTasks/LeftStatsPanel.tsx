@@ -231,7 +231,7 @@ const LeftStatsPanel: React.FC<LeftStatsPanelProps> = ({
     >
       <div
         style={{
-          padding: "16px",
+          padding: "10px",
           borderBottom: "1px solid var(--border-color)",
           background:
             "linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 100%)",
@@ -268,29 +268,28 @@ const LeftStatsPanel: React.FC<LeftStatsPanelProps> = ({
         >
           <ProgressRing
             percentage={completionRate}
-            label="完成率"
+            label={t("scheduled.completionRateLabel") || "完成率"}
             color="#8b5cf6"
             size={70}
           />
           <ProgressRing
             percentage={successRate}
-            label="成功率"
+            label={t("scheduled.successRateLabel") || "成功率"}
             color="#10b981"
             size={70}
           />
           <ProgressRing
             percentage={enabledRate}
-            label="活跃率"
+            label={t("scheduled.activeRateLabel") || "活跃率"}
             color="#f59e0b"
             size={70}
           />
         </div>
       </div>
 
-      {/* 饼图区域 - 状态分布 */}
       <div
         style={{
-          padding: "16px",
+          padding: "10px",
           borderBottom: "1px solid var(--border-color)",
         }}
       >
@@ -318,22 +317,25 @@ const LeftStatsPanel: React.FC<LeftStatsPanelProps> = ({
         <div
           style={{
             display: "flex",
+            flexDirection: "column",
             alignItems: "center",
-            justifyContent: "space-between",
-            gap: "16px",
+            // gap: "20px",
           }}
         >
-          <StatusPieChart
-            data={pieChartData}
-            total={pieData.reduce((sum, d) => sum + d.value, 0)}
-            t={t}
-          />
+          <div style={{ width: "180px", margin: "0 auto" }}>
+            <StatusPieChart
+              data={pieChartData}
+              total={pieData.reduce((sum, d) => sum + d.value, 0)}
+              t={t}
+            />
+          </div>
           <div
             style={{
-              flex: 1,
               display: "flex",
-              flexDirection: "column",
-              gap: "8px",
+              flexWrap: "wrap",
+              justifyContent: "center",
+              gap: "16px",
+              width: "100%",
             }}
           >
             {pieData.map((item, index) => (
@@ -354,7 +356,7 @@ const LeftStatsPanel: React.FC<LeftStatsPanelProps> = ({
                     background: item.color,
                   }}
                 ></div>
-                <span style={{ flex: 1, color: "var(--text-secondary)" }}>
+                <span style={{ color: "var(--text-secondary)" }}>
                   {item.label}
                 </span>
                 <span
@@ -381,10 +383,9 @@ const LeftStatsPanel: React.FC<LeftStatsPanelProps> = ({
         </div>
       </div>
 
-      {/* 折线图区域 - 执行趋势 */}
       <div
         style={{
-          padding: "16px",
+          padding: "10px",
           borderBottom: "1px solid var(--border-color)",
         }}
       >
@@ -409,11 +410,10 @@ const LeftStatsPanel: React.FC<LeftStatsPanelProps> = ({
             {t("scheduled.executionTrend") || "执行趋势"}
           </span>
         </div>
-        <TrendLineChart data={lineChartData} />
+        <TrendLineChart data={lineChartData} t={t} />
       </div>
 
-      {/* 快速统计卡片 */}
-      <div style={{ padding: "16px" }}>
+      <div style={{ padding: "10px" }}>
         <div
           style={{
             display: "flex",

@@ -186,5 +186,6 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_scheduled_task_complete,
         commands::cmd_scheduled_task_get_natural_language,
         commands::cmd_scheduled_task_get_skill_md,
+        commands::cmd_get_system_username,
     ]
 }

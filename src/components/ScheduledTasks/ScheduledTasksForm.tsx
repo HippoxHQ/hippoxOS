@@ -64,7 +64,15 @@ const ScheduledTasksForm: React.FC<ScheduledTasksFormProps> = ({
   const [isSaving, setIsSaving] = useState(false);
   const [isToggling, setIsToggling] = useState(false);
 
-  const weekDayNames = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
+  const getWeekDayNames = (): string[] => {
+    const weekNames = t("scheduled.weekDayNames");
+    if (Array.isArray(weekNames) && weekNames.length === 7) {
+      return weekNames;
+    }
+    return [t("scheduled.sun") || "周日", t("scheduled.mon") || "周一", t("scheduled.tue") || "周二", t("scheduled.wed") || "周三", t("scheduled.thu") || "周四", t("scheduled.fri") || "周五", t("scheduled.sat") || "周六"];
+  };
+
+  const weekDayNames = getWeekDayNames();
 
   const getScheduleConfig = () => {
     if (scheduleType === "fixed") {
@@ -222,7 +230,6 @@ const ScheduledTasksForm: React.FC<ScheduledTasksFormProps> = ({
 
   return (
     <div style={{ padding: "20px", maxWidth: "600px", margin: "0 auto", width: "100%" }}>
-      {/* 任务名称 */}
       <div style={{ marginBottom: "20px" }}>
         <label style={labelStyle}>
           {t("scheduled.taskName") || "任务名称"} <span style={{ color: "#ef4444" }}>*</span>
@@ -236,7 +243,6 @@ const ScheduledTasksForm: React.FC<ScheduledTasksFormProps> = ({
         />
       </div>
 
-      {/* 调度类型 */}
       <div style={{ marginBottom: "20px" }}>
         <label style={labelStyle}>{t("scheduled.taskType") || "任务类型"}</label>
         <div style={{ display: "flex", gap: "20px" }}>
@@ -259,7 +265,6 @@ const ScheduledTasksForm: React.FC<ScheduledTasksFormProps> = ({
         </div>
       </div>
 
-      {/* 固定时间配置 */}
       {scheduleType === "fixed" && (
         <>
           <div style={{ marginBottom: "20px" }}>
@@ -353,7 +358,6 @@ const ScheduledTasksForm: React.FC<ScheduledTasksFormProps> = ({
         </>
       )}
 
-      {/* 间隔时间配置 */}
       {scheduleType === "interval" && (
         <div style={{ display: "flex", gap: "12px", marginBottom: "20px" }}>
           <div style={{ flex: 1 }}>
@@ -382,7 +386,6 @@ const ScheduledTasksForm: React.FC<ScheduledTasksFormProps> = ({
         </div>
       )}
 
-      {/* 动作类型 */}
       <div style={{ marginBottom: "20px" }}>
         <label style={labelStyle}>{t("scheduled.actionType") || "动作类型"}</label>
         <div style={{ display: "flex", gap: "20px" }}>
@@ -405,7 +408,6 @@ const ScheduledTasksForm: React.FC<ScheduledTasksFormProps> = ({
         </div>
       </div>
 
-      {/* 自然语言内容 */}
       {actionType === "naturallanguage" && (
         <div style={{ marginBottom: "20px" }}>
           <label style={labelStyle}>{t("scheduled.taskDescription") || "任务描述"}</label>
@@ -419,7 +421,6 @@ const ScheduledTasksForm: React.FC<ScheduledTasksFormProps> = ({
         </div>
       )}
 
-      {/* SKILL.md 文件上传 */}
       {actionType === "skillfile" && (
         <div style={{ marginBottom: "20px" }}>
           <label style={labelStyle}>{t("scheduled.skillFile") || "SKILL.md 文件"}</label>
@@ -487,7 +488,6 @@ const ScheduledTasksForm: React.FC<ScheduledTasksFormProps> = ({
         </div>
       )}
 
-      {/* 操作按钮 */}
       <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end", marginTop: "24px" }}>
         {isEditing && onToggle && (
           <button

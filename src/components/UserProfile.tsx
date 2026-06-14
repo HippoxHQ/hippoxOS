@@ -15,6 +15,7 @@ import {
 } from "recharts";
 import CalendarHeatmap from "react-calendar-heatmap";
 import "react-calendar-heatmap/dist/styles.css";
+import { sysCommands } from "../command/sys";
 
 interface UserProfileProps {
   t: (key: string, params?: any) => string;
@@ -38,12 +39,6 @@ const UserProfile: React.FC<UserProfileProps> = ({
   );
   const [dialogData, setDialogData] = useState<any[]>([]);
   const heatmapContainerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    loadUserData();
-    generateMockActivityData();
-    generateMockDialogData();
-  }, []);
 
   useEffect(() => {
     generateMockTokenData();
@@ -71,36 +66,59 @@ const UserProfile: React.FC<UserProfileProps> = ({
 
   const loadUserData = async () => {
     setLoading(true);
+    const defaultUserData = {
+      username: t("user.defaultUsername") || "用户",
+      email: `${t("user.defaultUsername") || "user"}@hippox.local`,
+      joinDate: new Date(2024, 0, 1),
+      totalSessions: 47,
+      totalMessages: 1234,
+      totalTokensUsed: 1250000,
+      totalTasksExecuted: 892,
+      favoriteSkills: [
+        t("user.skillDataAnalysis") || "数据分析",
+        t("user.skillFileProcess") || "文件处理",
+        t("user.skillNetworkRequest") || "网络请求",
+        t("user.skillCodeGen") || "代码生成",
+        t("user.skillDocProcess") || "文档处理",
+      ],
+      streakDays: 15,
+      longestStreak: 28,
+      achievements: [
+        {
+          name: t("user.achievementEarlyBird") || "早起鸟",
+          unlocked: true,
+          icon: "🌅",
+        },
+        {
+          name: t("user.achievementEfficiency") || "效率达人",
+          unlocked: true,
+          icon: "⚡",
+        },
+        {
+          name: t("user.achievementExplorer") || "探索者",
+          unlocked: false,
+          icon: "🧭",
+        },
+        {
+          name: t("user.achievementTokenMaster") || "Token 大师",
+          unlocked: true,
+          icon: "🔮",
+        },
+      ],
+    };
+    setUserData(defaultUserData);
+    setLoading(false);
     try {
-      const mockUserData = {
-        username: "开发者",
-        email: "developer@hippox.ai",
-        joinDate: new Date(2024, 0, 1),
-        totalSessions: 47,
-        totalMessages: 1234,
-        totalTokensUsed: 1250000,
-        totalTasksExecuted: 892,
-        favoriteSkills: [
-          "数据分析",
-          "文件处理",
-          "网络请求",
-          "代码生成",
-          "文档处理",
-        ],
-        streakDays: 15,
-        longestStreak: 28,
-        achievements: [
-          { name: "Test1", unlocked: true, icon: "🌅" },
-          { name: "Test2", unlocked: true, icon: "⚡" },
-          { name: "Test3", unlocked: false, icon: "🧭" },
-          { name: "Test4", unlocked: true, icon: "🔮" },
-        ],
-      };
-      setUserData(mockUserData);
-    } catch (error) {
-      console.error("Failed to load user data:", error);
-    } finally {
-      setLoading(false);
+      const systemUsername = await sysCommands.getSystemUsername();
+      if (systemUsername && systemUsername !== "用户") {
+        setUserData((prev: any) => ({
+          ...prev,
+          username: systemUsername,
+          email: `${systemUsername}@hippox.local`,
+        }));
+      }
+    } catch (e) {
+      console.error("Failed to get system username:", e);
     }
   };
 
@@ -143,7 +161,7 @@ const UserProfile: React.FC<UserProfileProps> = ({
       let label: string;
       if (dateRange === "year") {
         const date = new Date(today.getFullYear(), today.getMonth() - i, 1);
-        label = `${date.getMonth() + 1}月`;
+        label = `${date.getMonth() + 1}${t("user.monthUnit") || "月"}`;
       } else {
         const date = new Date();
         date.setDate(today.getDate() - i);
@@ -162,9 +180,21 @@ const UserProfile: React.FC<UserProfileProps> = ({
     const total = data.reduce((sum, d) => sum + d.total, 0);
     setTotalTokens(total);
     setCategoryData([
-      { name: "对话", value: Math.floor(total * 0.45), color: "#818cf8" },
-      { name: "任务", value: Math.floor(total * 0.35), color: "#10b981" },
-      { name: "技能", value: Math.floor(total * 0.2), color: "#f59e0b" },
+      {
+        name: t("user.chatTokens") || "对话",
+        value: Math.floor(total * 0.45),
+        color: "#818cf8",
+      },
+      {
+        name: t("user.taskTokens") || "任务",
+        value: Math.floor(total * 0.35),
+        color: "#10b981",
+      },
+      {
+        name: t("user.skillTokens") || "技能",
+        value: Math.floor(total * 0.2),
+        color: "#f59e0b",
+      },
     ]);
   };
 
@@ -193,7 +223,6 @@ const UserProfile: React.FC<UserProfileProps> = ({
     achievements: [],
   };
 
-  // eslint-disable-next-line react-hooks/rules-of-hooks
   const [hourlyData, setHourlyData] = useState<any[]>([]);
 
   const generateMockHourlyData = () => {
@@ -204,16 +233,16 @@ const UserProfile: React.FC<UserProfileProps> = ({
       else if (i >= 14 && i <= 17) count = Math.floor(Math.random() * 30) + 35;
       else if (i >= 20 && i <= 22) count = Math.floor(Math.random() * 25) + 25;
       else count = Math.floor(Math.random() * 15) + 5;
-      data.push({ hour: `${i}时`, count });
+      data.push({ hour: `${i}${t("user.hourUnit") || "时"}`, count });
     }
     setHourlyData(data);
   };
 
   const getPeakHour = () => {
-    if (hourlyData.length === 0) return "暂无";
+    if (hourlyData.length === 0) return t("user.notAvailable") || "暂无";
     const max = Math.max(...hourlyData.map((d) => d.count));
     const peak = hourlyData.find((d) => d.count === max);
-    return peak?.hour || "暂无";
+    return peak?.hour || t("user.notAvailable") || "暂无";
   };
 
   const getMorningPercent = () => {
@@ -228,7 +257,6 @@ const UserProfile: React.FC<UserProfileProps> = ({
     return total ? Math.round((night / total) * 100) : 0;
   };
 
-  // eslint-disable-next-line react-hooks/rules-of-hooks
   useEffect(() => {
     loadUserData();
     generateMockActivityData();
@@ -360,7 +388,7 @@ const UserProfile: React.FC<UserProfileProps> = ({
                   color: "var(--text-primary)",
                 }}
               >
-                {stats.username || "用户"}
+                {stats.username || t("user.defaultUsername") || "用户"}
               </span>
               <div
                 style={{ display: "flex", gap: "3px", alignItems: "center" }}
@@ -388,126 +416,139 @@ const UserProfile: React.FC<UserProfileProps> = ({
               {stats.joinDate?.toLocaleDateString() || "2024年1月"}
             </div>
           </div>
-          <div
-            style={{
-              flex: "0 0 auto",
-              display: "grid",
-              gridTemplateColumns: "repeat(3, 1fr)",
-              gap: "6px 12px",
-              marginLeft: "auto",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-              <span style={{ fontSize: "13px" }}>💬</span>
-              <div>
-                <div
-                  style={{
-                    fontSize: "14px",
-                    fontWeight: 700,
-                    color: "#818cf8",
-                    lineHeight: 1.2,
-                  }}
-                >
-                  {stats.totalSessions}
-                </div>
-                <div style={{ fontSize: "8px", color: "var(--text-muted)" }}>
-                  {t("user.totalSessions") || "对话"}
-                </div>
-              </div>
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-              <span style={{ fontSize: "13px" }}>📝</span>
-              <div>
-                <div
-                  style={{
-                    fontSize: "14px",
-                    fontWeight: 700,
-                    color: "#10b981",
-                    lineHeight: 1.2,
-                  }}
-                >
-                  {formatNumber(stats.totalMessages)}
-                </div>
-                <div style={{ fontSize: "8px", color: "var(--text-muted)" }}>
-                  {t("user.totalMessages") || "消息"}
-                </div>
-              </div>
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-              <span style={{ fontSize: "13px" }}>🔮</span>
-              <div>
-                <div
-                  style={{
-                    fontSize: "14px",
-                    fontWeight: 700,
-                    color: "#f59e0b",
-                    lineHeight: 1.2,
-                  }}
-                >
-                  {formatNumber(stats.totalTokensUsed)}
-                </div>
-                <div style={{ fontSize: "8px", color: "var(--text-muted)" }}>
-                  {t("user.totalTokens") || "Token"}
-                </div>
-              </div>
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-              <span style={{ fontSize: "13px" }}>⚙️</span>
-              <div>
-                <div
-                  style={{
-                    fontSize: "14px",
-                    fontWeight: 700,
-                    color: "#8b5cf6",
-                    lineHeight: 1.2,
-                  }}
-                >
-                  {formatNumber(stats.totalTasksExecuted)}
-                </div>
-                <div style={{ fontSize: "8px", color: "var(--text-muted)" }}>
-                  {t("user.totalTasks") || "任务"}
-                </div>
-              </div>
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-              <span style={{ fontSize: "13px" }}>🔥</span>
-              <div>
-                <div
-                  style={{
-                    fontSize: "14px",
-                    fontWeight: 700,
-                    color: "#ef4444",
-                    lineHeight: 1.2,
-                  }}
-                >
-                  {stats.streakDays}
-                  <span style={{ fontSize: "9px" }}>天</span>
-                </div>
-                <div style={{ fontSize: "8px", color: "var(--text-muted)" }}>
-                  {t("user.currentStreak") || "连续"}
-                </div>
-              </div>
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-              <span style={{ fontSize: "13px" }}>🏆</span>
-              <div>
-                <div
-                  style={{
-                    fontSize: "14px",
-                    fontWeight: 700,
-                    color: "#f59e0b",
-                    lineHeight: 1.2,
-                  }}
-                >
-                  {stats.longestStreak}
-                  <span style={{ fontSize: "9px" }}>天</span>
-                </div>
-                <div style={{ fontSize: "8px", color: "var(--text-muted)" }}>
-                  {t("user.longestStreak") || "最长"}
-                </div>
-              </div>
-            </div>
-          </div>
+         
+         
+         <div
+  style={{
+    flex: "0 0 auto",
+    display: "grid",
+    gridTemplateColumns: "repeat(3, minmax(85px, auto))",
+    gap: "6px 12px",
+    marginLeft: "auto",
+  }}
+>
+  <div style={{ display: "flex", alignItems: "center", gap: "6px", minWidth: 0 }}>
+    <span style={{ fontSize: "13px", flexShrink: 0, color: "var(--text-secondary)" }}>💬</span>
+    <div style={{ minWidth: 0 }}>
+      <div
+        style={{
+          fontSize: "14px",
+          fontWeight: 700,
+          color: "var(--text-primary)",
+          lineHeight: 1.2,
+          whiteSpace: "nowrap",
+        }}
+      >
+        {stats.totalSessions}
+      </div>
+      <div style={{ fontSize: "8px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>
+        {t("user.totalSessions") || "对话"}
+      </div>
+    </div>
+  </div>
+  <div style={{ display: "flex", alignItems: "center", gap: "6px", minWidth: 0 }}>
+    <span style={{ fontSize: "13px", flexShrink: 0, color: "var(--text-secondary)" }}>📝</span>
+    <div style={{ minWidth: 0 }}>
+      <div
+        style={{
+          fontSize: "14px",
+          fontWeight: 700,
+          color: "var(--text-primary)",
+          lineHeight: 1.2,
+          whiteSpace: "nowrap",
+        }}
+      >
+        {formatNumber(stats.totalMessages)}
+      </div>
+      <div style={{ fontSize: "8px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>
+        {t("user.totalMessages") || "消息"}
+      </div>
+    </div>
+  </div>
+  <div style={{ display: "flex", alignItems: "center", gap: "6px", minWidth: 0 }}>
+    <span style={{ fontSize: "13px", flexShrink: 0, color: "var(--text-secondary)" }}>🔮</span>
+    <div style={{ minWidth: 0 }}>
+      <div
+        style={{
+          fontSize: "14px",
+          fontWeight: 700,
+          color: "var(--text-primary)",
+          lineHeight: 1.2,
+          whiteSpace: "nowrap",
+        }}
+      >
+        {formatNumber(stats.totalTokensUsed)}
+      </div>
+      <div style={{ fontSize: "8px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>
+        {t("user.totalTokens") || "Token"}
+      </div>
+    </div>
+  </div>
+  <div style={{ display: "flex", alignItems: "center", gap: "6px", minWidth: 0 }}>
+    <span style={{ fontSize: "13px", flexShrink: 0, color: "var(--text-secondary)" }}>⚙️</span>
+    <div style={{ minWidth: 0 }}>
+      <div
+        style={{
+          fontSize: "14px",
+          fontWeight: 700,
+          color: "var(--text-primary)",
+          lineHeight: 1.2,
+          whiteSpace: "nowrap",
+        }}
+      >
+        {formatNumber(stats.totalTasksExecuted)}
+      </div>
+      <div style={{ fontSize: "8px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>
+        {t("user.totalTasks") || "任务"}
+      </div>
+    </div>
+  </div>
+  <div style={{ display: "flex", alignItems: "center", gap: "6px", minWidth: 0 }}>
+    <span style={{ fontSize: "13px", flexShrink: 0, color: "var(--text-secondary)" }}>🔥</span>
+    <div style={{ minWidth: 0 }}>
+      <div
+        style={{
+          fontSize: "14px",
+          fontWeight: 700,
+          color: "var(--text-primary)",
+          lineHeight: 1.2,
+          whiteSpace: "nowrap",
+        }}
+      >
+        {stats.streakDays}
+        <span style={{ fontSize: "9px", color: "var(--text-muted)" }}>
+          {t("user.days") || "天"}
+        </span>
+      </div>
+      <div style={{ fontSize: "8px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>
+        {t("user.currentStreak") || "连续"}
+      </div>
+    </div>
+  </div>
+  <div style={{ display: "flex", alignItems: "center", gap: "6px", minWidth: 0 }}>
+    <span style={{ fontSize: "13px", flexShrink: 0, color: "var(--text-secondary)" }}>🏆</span>
+    <div style={{ minWidth: 0 }}>
+      <div
+        style={{
+          fontSize: "14px",
+          fontWeight: 700,
+          color: "var(--text-primary)",
+          lineHeight: 1.2,
+          whiteSpace: "nowrap",
+        }}
+      >
+        {stats.longestStreak}
+        <span style={{ fontSize: "9px", color: "var(--text-muted)" }}>
+          {t("user.days") || "天"}
+        </span>
+      </div>
+      <div style={{ fontSize: "8px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>
+        {t("user.longestStreak") || "最长"}
+      </div>
+    </div>
+  </div>
+</div>
+
         </div>
         <div
           style={{
@@ -527,7 +568,7 @@ const UserProfile: React.FC<UserProfileProps> = ({
               <span style={{ fontSize: "12px" }}>📊</span>
               <span
                 style={{
-                  fontSize: "11px",
+                  fontSize: "14px",
                   fontWeight: 600,
                   color: "var(--text-secondary)",
                 }}
@@ -559,7 +600,9 @@ const UserProfile: React.FC<UserProfileProps> = ({
                   return `color-${color.replace("#", "")}`;
                 }}
                 titleForValue={(value) =>
-                  value ? `${value.date}\n${value.count}次` : "无活动"
+                  value
+                    ? `${value.date}\n${value.count}${t("user.times") || "次"}`
+                    : t("user.noActivity") || "无活动"
                 }
               />
             </div>
@@ -576,15 +619,19 @@ const UserProfile: React.FC<UserProfileProps> = ({
             }}
           >
             <span>
-              总活动: {activityData.reduce((s, d) => s + d.count, 0)}次
+              {t("user.totalActivities") || "总活动"}:{" "}
+              {activityData.reduce((s, d) => s + d.count, 0)}
+              {t("user.times") || "次"}
             </span>
             <span>
-              日均:{" "}
+              {t("user.avgDaily") || "日均"}:{" "}
               {(activityData.reduce((s, d) => s + d.count, 0) / 365).toFixed(1)}
-              次
+              {t("user.times") || "次"}
             </span>
             <span>
-              最高: {Math.max(...activityData.map((d) => d.count), 0)}次
+              {t("user.maxDaily") || "最高"}:{" "}
+              {Math.max(...activityData.map((d) => d.count), 0)}
+              {t("user.times") || "次"}
             </span>
           </div>
         </div>
@@ -634,7 +681,7 @@ const UserProfile: React.FC<UserProfileProps> = ({
                 <span style={{ fontSize: "12px" }}>🔮</span>
                 <span
                   style={{
-                    fontSize: "11px",
+                    fontSize: "14px",
                     fontWeight: 600,
                     color: "var(--text-secondary)",
                   }}
@@ -661,7 +708,11 @@ const UserProfile: React.FC<UserProfileProps> = ({
                       cursor: "pointer",
                     }}
                   >
-                    {range === "week" ? "周" : range === "month" ? "月" : "年"}
+                    {range === "week"
+                      ? t("user.week") || "周"
+                      : range === "month"
+                        ? t("user.month") || "月"
+                        : t("user.year") || "年"}
                   </button>
                 ))}
               </div>
@@ -683,7 +734,7 @@ const UserProfile: React.FC<UserProfileProps> = ({
                 <span style={{ fontSize: "28px" }}>🔮</span>
                 <div>
                   <div style={{ fontSize: "9px", color: "var(--text-muted)" }}>
-                    Token 统计
+                    {t("user.tokenStats") || "Token 统计"}
                   </div>
                   <div
                     style={{
@@ -713,7 +764,7 @@ const UserProfile: React.FC<UserProfileProps> = ({
                     )}
                   </div>
                   <div style={{ fontSize: "8px", color: "var(--text-muted)" }}>
-                    输入 Token
+                    {t("user.inputTokens") || "输入 Token"}
                   </div>
                 </div>
                 <div>
@@ -729,7 +780,7 @@ const UserProfile: React.FC<UserProfileProps> = ({
                     )}
                   </div>
                   <div style={{ fontSize: "8px", color: "var(--text-muted)" }}>
-                    输出 Token
+                    {t("user.outputTokens") || "输出 Token"}
                   </div>
                 </div>
                 <div>
@@ -743,7 +794,7 @@ const UserProfile: React.FC<UserProfileProps> = ({
                     {formatNumber(Math.floor(totalTokens / tokenData.length))}
                   </div>
                   <div style={{ fontSize: "8px", color: "var(--text-muted)" }}>
-                    日均消耗
+                    {t("user.avgDailyTokens") || "日均消耗"}
                   </div>
                 </div>
                 <div>
@@ -759,7 +810,7 @@ const UserProfile: React.FC<UserProfileProps> = ({
                     )}
                   </div>
                   <div style={{ fontSize: "8px", color: "var(--text-muted)" }}>
-                    峰值日
+                    {t("user.peakDay") || "峰值日"}
                   </div>
                 </div>
                 <div>
@@ -777,7 +828,7 @@ const UserProfile: React.FC<UserProfileProps> = ({
                     :1
                   </div>
                   <div style={{ fontSize: "8px", color: "var(--text-muted)" }}>
-                    输入/输出比
+                    {t("user.inputOutputRatio") || "输入/输出比"}
                   </div>
                 </div>
               </div>
@@ -799,7 +850,7 @@ const UserProfile: React.FC<UserProfileProps> = ({
                     marginBottom: "6px",
                   }}
                 >
-                  Token 消耗趋势
+                  {t("user.tokenTrend") || "Token 消耗趋势"}
                 </div>
                 <ResponsiveContainer width="100%" height={100}>
                   <AreaChart
@@ -872,7 +923,7 @@ const UserProfile: React.FC<UserProfileProps> = ({
                     marginBottom: "6px",
                   }}
                 >
-                  每日对话次数
+                  {t("user.dailyDialogCount") || "每日对话次数"}
                 </div>
                 <ResponsiveContainer width="100%" height={100}>
                   <BarChart
@@ -917,18 +968,22 @@ const UserProfile: React.FC<UserProfileProps> = ({
                   }}
                 >
                   <span>
-                    总对话: {dialogData.reduce((s, d) => s + d.count, 0)}次
+                    {t("user.totalDialog") || "总对话"}:{" "}
+                    {dialogData.reduce((s, d) => s + d.count, 0)}
+                    {t("user.times") || "次"}
                   </span>
                   <span>
-                    日均:{" "}
+                    {t("user.avgDailyDialog") || "日均"}:{" "}
                     {(
                       dialogData.reduce((s, d) => s + d.count, 0) /
                       dialogData.length
                     ).toFixed(1)}
-                    次
+                    {t("user.times") || "次"}
                   </span>
                   <span>
-                    峰值: {Math.max(...dialogData.map((d) => d.count), 0)}次
+                    {t("user.peakDialog") || "峰值"}:{" "}
+                    {Math.max(...dialogData.map((d) => d.count), 0)}
+                    {t("user.times") || "次"}
                   </span>
                 </div>
               </div>
@@ -948,7 +1003,7 @@ const UserProfile: React.FC<UserProfileProps> = ({
                     marginBottom: "6px",
                   }}
                 >
-                  Token 分布
+                  {t("user.tokenDistribution") || "Token 分布"}
                 </div>
                 <div
                   style={{ display: "flex", alignItems: "center", gap: "8px" }}
@@ -1035,12 +1090,12 @@ const UserProfile: React.FC<UserProfileProps> = ({
                 <span style={{ fontSize: "12px" }}>⏰</span>
                 <span
                   style={{
-                    fontSize: "11px",
+                    fontSize: "14px",
                     fontWeight: 600,
                     color: "var(--text-secondary)",
                   }}
                 >
-                  活跃时段分布
+                  {t("user.hourlyDistribution") || "活跃时段分布"}
                 </span>
               </div>
             </div>
@@ -1086,9 +1141,15 @@ const UserProfile: React.FC<UserProfileProps> = ({
                 color: "var(--text-muted)",
               }}
             >
-              <span>最活跃时段: {getPeakHour()}</span>
-              <span>清晨(6-12): {getMorningPercent()}%</span>
-              <span>夜晚(18-24): {getNightPercent()}%</span>
+              <span>
+                {t("user.peakHour") || "最活跃时段"}: {getPeakHour()}
+              </span>
+              <span>
+                {t("user.morningPeak") || "清晨(6-12)"}: {getMorningPercent()}%
+              </span>
+              <span>
+                {t("user.nightPeak") || "夜晚(18-24)"}: {getNightPercent()}%
+              </span>
             </div>
           </div>
         </div>

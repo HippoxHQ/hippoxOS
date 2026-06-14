@@ -159,7 +159,6 @@ const ScheduledTasksManager: React.FC<ScheduledTasksManagerProps> = ({
     setSelectedTask(null);
   };
 
-  // 左侧分隔线拖拽逻辑
   const handleLeftResizeMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
     const startX = e.clientX;
@@ -185,7 +184,6 @@ const ScheduledTasksManager: React.FC<ScheduledTasksManagerProps> = ({
     document.addEventListener("mouseup", onMouseUp);
   };
 
-  // 右侧分隔线拖拽逻辑（仅在右侧面板显示时启用）
   const handleRightResizeMouseDown = (e: React.MouseEvent) => {
     if (!showRightPanel) return;
     e.preventDefault();

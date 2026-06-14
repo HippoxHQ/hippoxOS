@@ -76,7 +76,9 @@ export const StatusPieChart: React.FC<{
 export const TrendLineChart: React.FC<{
   data: Array<{ label: string; value: number }>;
   color?: string;
-}> = ({ data, color = "#818cf8" }) => {
+  t: (key: string, params?: any) => string;
+}> = ({ data, color = "#818cf8", t }) => {
+  // 从 props 接收 t
   return (
     <ResponsiveContainer width="100%" height={130}>
       <AreaChart
@@ -116,7 +118,10 @@ export const TrendLineChart: React.FC<{
             fontSize: "11px",
             color: "var(--text-primary)",
           }}
-          formatter={(value: any) => [`${value} 次`, "执行次数"]}
+          formatter={(value: any) => [
+            `${value} ${t("scheduled.times")}`,
+            t("scheduled.executionCount"),
+          ]}
         />
         <Area
           type="monotone"

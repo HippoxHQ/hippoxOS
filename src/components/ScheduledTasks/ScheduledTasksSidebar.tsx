@@ -12,7 +12,7 @@ interface ScheduledTasksSidebarProps {
 
 const getScheduleDisplay = (
   task: ScheduledTask,
-  t: (key: string, params?: any) => string
+  t: (key: string, params?: any) => string,
 ): string => {
   const config = task.schedule_config;
   if (config.type === "interval") {
@@ -23,7 +23,7 @@ const getScheduleDisplay = (
       day: t("scheduled.unitDay") || "d",
     };
     const unit = unitText[config.config.unit] || config.config.unit;
-    return `每 ${config.config.value} ${unit}`;
+    return `${t("scheduled.every") || "每"} ${config.config.value} ${unit}`;
   } else {
     const freqText: Record<string, string> = {
       daily: t("scheduled.frequencyDaily") || "每天",
@@ -32,11 +32,17 @@ const getScheduleDisplay = (
       once: t("scheduled.frequencyOnce") || "单次",
     };
     let text = freqText[config.config.frequency] || config.config.frequency;
-    if (config.config.frequency === "weekly" && config.config.day_of_week?.length) {
+    if (
+      config.config.frequency === "weekly" &&
+      config.config.day_of_week?.length
+    ) {
       text += ` ${config.config.day_of_week.join(",")}`;
     }
-    if (config.config.frequency === "monthly" && config.config.day_of_month?.length) {
-      text += ` ${config.config.day_of_month.join(",")}日`;
+    if (
+      config.config.frequency === "monthly" &&
+      config.config.day_of_month?.length
+    ) {
+      text += ` ${config.config.day_of_month.join(",")}${t("scheduled.dayUnit") || "日"}`;
     }
     if (config.config.time) {
       text += ` ${config.config.time}`;
@@ -56,7 +62,9 @@ const ScheduledTasksSidebar: React.FC<ScheduledTasksSidebarProps> = ({
   return (
     <div className="scheduled-sidebar">
       <div className="stats-section">
-        <div className="stats-title">📊 {t("scheduled.statistics") || "统计"}</div>
+        <div className="stats-title">
+          📊 {t("scheduled.statistics") || "统计"}
+        </div>
         <div className="stats-grid">
           <div className="stat-card">
             <div className="stat-number">{stats.total}</div>
@@ -68,9 +76,13 @@ const ScheduledTasksSidebar: React.FC<ScheduledTasksSidebarProps> = ({
           </div>
           <div className="stat-card">
             <div className="stat-number">{stats.completed}</div>
-            <div className="stat-label">{t("scheduled.completed") || "已完成"}</div>
+            <div className="stat-label">
+              {t("scheduled.completed") || "已完成"}
+            </div>
           </div>
-          <div className={`stat-card ${stats.failed > 0 ? "stat-warning" : ""}`}>
+          <div
+            className={`stat-card ${stats.failed > 0 ? "stat-warning" : ""}`}
+          >
             <div className="stat-number">{stats.failed}</div>
             <div className="stat-label">{t("scheduled.failed") || "失败"}</div>
           </div>
@@ -90,8 +102,12 @@ const ScheduledTasksSidebar: React.FC<ScheduledTasksSidebarProps> = ({
         {tasks.length === 0 ? (
           <div className="empty-state" style={{ padding: "40px 20px" }}>
             <div className="empty-icon">🕐</div>
-            <div className="empty-text">{t("scheduled.noTasks") || "暂无定时任务"}</div>
-            <div className="empty-hint">{t("scheduled.clickAdd") || "点击上方按钮添加"}</div>
+            <div className="empty-text">
+              {t("scheduled.noTasks") || "暂无定时任务"}
+            </div>
+            <div className="empty-hint">
+              {t("scheduled.clickAdd") || "点击上方按钮添加"}
+            </div>
           </div>
         ) : (
           tasks.map((task) => (
@@ -104,21 +120,31 @@ const ScheduledTasksSidebar: React.FC<ScheduledTasksSidebarProps> = ({
                 <span className="task-item-name" title={task.name}>
                   {task.name}
                 </span>
-                <span className={`task-status-badge ${task.enabled ? "task-status-enabled" : "task-status-disabled"}`}>
-                  {task.enabled ? (t("scheduled.enabled") || "启用") : (t("scheduled.disabled") || "禁用")}
+                <span
+                  className={`task-status-badge ${task.enabled ? "task-status-enabled" : "task-status-disabled"}`}
+                >
+                  {task.enabled
+                    ? t("scheduled.enabled") || "启用"
+                    : t("scheduled.disabled") || "禁用"}
                 </span>
               </div>
               <div className="task-item-schedule">
                 {getScheduleDisplay(task, t)}
               </div>
               <div className="task-item-action">
-                {task.action_type === "naturallanguage" ? "💬 自然语言" : "📄 SKILL.md"}
+                {task.action_type === "naturallanguage"
+                  ? `💬 ${t("scheduled.naturalLanguage") || "自然语言"}`
+                  : `📄 ${t("scheduled.skillFileLabel") || "SKILL.md"}`}
               </div>
               <div className="task-item-footer">
-                <span>执行 {task.execution_count} 次</span>
+                <span>
+                  {t("scheduled.execute") || "执行"} {task.execution_count}{" "}
+                  {t("scheduled.times") || "次"}
+                </span>
                 {task.last_executed_at && (
                   <span className="task-item-badge">
-                    最近: {new Date(task.last_executed_at).toLocaleDateString()}
+                    {t("scheduled.recent") || "最近"}:{" "}
+                    {new Date(task.last_executed_at).toLocaleDateString()}
                   </span>
                 )}
               </div>
