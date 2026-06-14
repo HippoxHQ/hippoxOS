@@ -7,14 +7,13 @@ import { useFilePreview } from "./hooks/useFilePreview";
 import { useExecutionLogs } from "./hooks/useExecutionLogs";
 import { useConfigLoader } from "./hooks/useConfigLoader";
 import { useSession } from "./hooks/useSession";
-import { useLayoutMode } from "./hooks/useLayoutMode";
 import { useSidebar } from "./hooks/useSidebar";
 import { useSystemEvents, useDirectoryEvents } from "./hooks/useSystemEvents";
 import { useSearchEvents } from "./hooks/useSearchEvents";
 import { AppContent } from "./components/AppContent";
 import { taskManager } from "../core/TaskManager";
 import { useTaskEvents } from "./hooks/useTaskEvents";
-
+import { useLayoutSwapMode } from "./hooks/useLayoutSwapMode";
 function App() {
   const { isConfigLoaded, initialEngineConfig, initialTheme, initialLanguage } =
     useConfigLoader();
@@ -42,7 +41,7 @@ function App() {
     shouldShowWelcome,
   } = useSession(language, isConfigLoaded, handleCloseSkillsManager);
   const { sidebarCollapsed, toggleSidebar } = useSidebar();
-  const { layoutMode, handleLayoutModeChange } = useLayoutMode();
+  const { layoutSwapMode, handleLayoutSwapModeChange } = useLayoutSwapMode();
   const {
     isFilePreviewOpen,
     previewFile,
@@ -124,8 +123,8 @@ function App() {
       isDraggingOverInput={isDraggingOverInput}
       setIsDraggingOverInput={setIsDraggingOverInput}
       showDragCursor={showDragCursor}
-      layoutMode={layoutMode}
-      onLayoutModeChange={handleLayoutModeChange}
+      layoutSwapMode={layoutSwapMode}
+      onLayoutSwapModeChange={handleLayoutSwapModeChange}
     />
   );
 }

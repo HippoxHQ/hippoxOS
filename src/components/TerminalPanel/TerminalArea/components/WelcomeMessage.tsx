@@ -8,6 +8,27 @@ interface WelcomeMessageProps {
   t: (key: string) => string;
 }
 
+const animationStyle = `
+  @keyframes asciiBreathing {
+    0% { 
+      color: var(--text-secondary);
+      opacity: 0.7;
+    }
+    50% { 
+      color: var(--accent-color);
+      opacity: 0.85;
+    }
+    100% { 
+      color: var(--text-secondary);
+      opacity: 0.7;
+    }
+  }
+  
+  .ascii-animated {
+    animation: asciiBreathing 4s ease-in-out infinite;
+  }
+`;
+
 export const WelcomeMessage: React.FC<WelcomeMessageProps> = ({
   isExpanded,
   onToggle,
@@ -17,6 +38,7 @@ export const WelcomeMessage: React.FC<WelcomeMessageProps> = ({
 
   return (
     <div key={WELCOME_TASK_ID} className="task-row welcome-row">
+      <style>{animationStyle}</style>
       <div
         className="task-row-header"
         style={styles.welcomeRowHeader}
@@ -37,7 +59,15 @@ export const WelcomeMessage: React.FC<WelcomeMessageProps> = ({
             </span>
           </div>
           <div className="step-output ascii-art" style={styles.asciiArt}>
-            <pre style={styles.asciiPre}>{HIPPOX_ASCII_LOGO}</pre>
+            <pre 
+              className="ascii-animated"
+              style={{
+                ...styles.asciiPre,
+                animation: "asciiBreathing 4s ease-in-out infinite",
+              }}
+            >
+              {HIPPOX_ASCII_LOGO}
+            </pre>
           </div>
           <div className="task-step">
             <span className="step-icon">💡</span>

@@ -56,8 +56,8 @@ interface AppContentProps {
   isDraggingOverInput: boolean;
   setIsDraggingOverInput: (value: boolean) => void;
   showDragCursor: boolean;
-  layoutMode: "horizontal" | "vertical";
-  onLayoutModeChange: (mode: "horizontal" | "vertical") => void;
+  layoutSwapMode: "terminal-left" | "chat-left";
+  onLayoutSwapModeChange: (mode: "terminal-left" | "chat-left") => void;
 }
 
 export function AppContent({
@@ -97,10 +97,49 @@ export function AppContent({
   isDraggingOverInput,
   setIsDraggingOverInput,
   showDragCursor,
-  layoutMode,
-  onLayoutModeChange,
+  layoutSwapMode,
+  onLayoutSwapModeChange,
 }: AppContentProps) {
   const showWelcome = shouldShowWelcome();
+  const leftPanelContent =
+    layoutSwapMode === "terminal-left" ? (
+      <TerminalPanel
+        logs={executionLogs}
+        onClearLogs={onClearLogs}
+        t={t}
+        currentSessionId={currentSessionId}
+        onFileClick={onFilePreview}
+      />
+    ) : (
+      <ChatPanel
+        onSendMessage={onSendMessage}
+        onFileClick={onFilePreview}
+        t={t}
+        currentSessionId={currentSessionId}
+        onDragOverInputChange={setIsDraggingOverInput}
+        language={language}
+      />
+    );
+
+  const rightPanelContent =
+    layoutSwapMode === "terminal-left" ? (
+      <ChatPanel
+        onSendMessage={onSendMessage}
+        onFileClick={onFilePreview}
+        t={t}
+        currentSessionId={currentSessionId}
+        onDragOverInputChange={setIsDraggingOverInput}
+        language={language}
+      />
+    ) : (
+      <TerminalPanel
+        logs={executionLogs}
+        onClearLogs={onClearLogs}
+        t={t}
+        currentSessionId={currentSessionId}
+        onFileClick={onFilePreview}
+      />
+    );
 
   return (
     <div className="App">
@@ -119,8 +158,8 @@ export function AppContent({
         currentLanguage={language}
         onToggleLanguage={onToggleLanguage}
         t={t}
-        layoutMode={layoutMode}
-        onLayoutModeChange={onLayoutModeChange}
+        layoutSwapMode={layoutSwapMode}
+        onLayoutSwapModeChange={onLayoutSwapModeChange}
       />
 
       <div className="main-layout">
@@ -203,25 +242,8 @@ export function AppContent({
           />
         ) : (
           <ResizablePanels
-            leftPanel={
-              <TerminalPanel
-                logs={executionLogs}
-                onClearLogs={onClearLogs}
-                t={t}
-                currentSessionId={currentSessionId}
-                onFileClick={onFilePreview}
-              />
-            }
-            rightPanel={
-              <ChatPanel
-                onSendMessage={onSendMessage}
-                onFileClick={onFilePreview}
-                t={t}
-                currentSessionId={currentSessionId}
-                onDragOverInputChange={setIsDraggingOverInput}
-                language={language}
-              />
-            }
+            leftPanel={leftPanelContent}
+            rightPanel={rightPanelContent}
             rightExtraPanel={
               isFilePreviewOpen ? (
                 <FilePreview
@@ -232,8 +254,8 @@ export function AppContent({
               ) : undefined
             }
             isRightExtraOpen={isFilePreviewOpen}
-            layoutMode={layoutMode}
-            onLayoutModeChange={onLayoutModeChange}
+            layoutMode="horizontal"
+            onLayoutModeChange={() => {}}
           />
         )}
       </div>

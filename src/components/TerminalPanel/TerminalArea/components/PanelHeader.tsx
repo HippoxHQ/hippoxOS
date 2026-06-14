@@ -16,6 +16,42 @@ interface PanelHeaderProps {
   t: (key: string) => string;
 }
 
+const TerminalIcon: React.FC<{ size?: number }> = ({ size = 19 }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <rect
+      x="3"
+      y="4"
+      width="18"
+      height="16"
+      rx="2"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      fill="none"
+    />
+    <path
+      d="M8 10L10 12L8 14"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      fill="none"
+    />
+    <path
+      d="M13 14H16"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+      fill="none"
+    />
+  </svg>
+);
+
 export const PanelHeader: React.FC<PanelHeaderProps> = ({
   activeTasks,
   allExpanded,
@@ -35,7 +71,9 @@ export const PanelHeader: React.FC<PanelHeaderProps> = ({
       style={{ paddingTop: "8px", paddingBottom: "8px" }}
     >
       <div className="header-title">
-        <span className="title-icon">🖥️</span>
+        <span className="title-icon">
+          <TerminalIcon size={19} />
+        </span>
         <span>{t("terminal.title")}</span>
         <span className="task-count">
           {runningCount > 0 &&

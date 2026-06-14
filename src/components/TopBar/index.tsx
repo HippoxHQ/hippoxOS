@@ -13,6 +13,62 @@ import SearchDialog from "./SearchDialog";
 import { showToast, ToastType } from "../Toast";
 import { windowsCommands } from "../../command/windows";
 
+const TerminalLeftIcon = () => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.75"
+    width="16"
+    height="16"
+  >
+    <rect
+      x="2"
+      y="4"
+      width="20"
+      height="16"
+      rx="2"
+      stroke="currentColor"
+      fill="none"
+    />
+    <path
+      d="M9 8L6 12L9 16"
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path d="M12 16h6" stroke="currentColor" strokeLinecap="round" />
+  </svg>
+);
+
+const ChatLeftIcon = () => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.75"
+    width="16"
+    height="16"
+  >
+    <rect
+      x="2"
+      y="4"
+      width="20"
+      height="16"
+      rx="2"
+      stroke="currentColor"
+      fill="none"
+    />
+    <path
+      d="M15 8L18 12L15 16"
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path d="M12 16h-6" stroke="currentColor" strokeLinecap="round" />
+  </svg>
+);
+
 interface TopBarProps {
   sidebarCollapsed: boolean;
   onToggleSidebar: () => void;
@@ -22,8 +78,8 @@ interface TopBarProps {
   currentLanguage: Language;
   onToggleLanguage: () => void;
   t: (key: string) => string;
-  layoutMode?: "horizontal" | "vertical";
-  onLayoutModeChange?: (mode: "horizontal" | "vertical") => void;
+  layoutSwapMode?: "terminal-left" | "chat-left";
+  onLayoutSwapModeChange?: (mode: "terminal-left" | "chat-left") => void;
 }
 
 const topBarStyles = `
@@ -157,9 +213,54 @@ const topBarStyles = `
     color: var(--text-primary);
   }
   
+  .layout-switch-group {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    background: var(--bg-tertiary);
+    border-radius: 6px;
+    padding: 2px;
+    margin-left: 4px;
+  }
+  
+  .layout-switch-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    height: 24px;
+    padding: 0 10px;
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 450;
+    color: var(--text-secondary);
+    transition: all 0.15s ease;
+  }
+  
+  .layout-switch-btn svg {
+    width: 14px;
+    height: 14px;
+    stroke: currentColor;
+    stroke-width: 1.75;
+    fill: none;
+  }
+  
+  .layout-switch-btn:hover {
+    background: var(--hover-bg);
+    color: var(--text-primary);
+  }
+  
+  .layout-switch-btn.active {
+    background: var(--accent-color, #00aaff);
+    color: white;
+  }
+  
   .layout-divider {
     width: 1px;
-    height: 40px;
+    height: 20px;
     background: var(--border-color);
     margin: 0 4px;
   }
@@ -206,19 +307,10 @@ const topBarStyles = `
   .theme-toggle:active {
     transform: scale(0.95);
   }
-  
-  .layout-btn {
-    transition: all 0.15s ease;
-  }
-  
-  .layout-btn.active {
-    background: var(--hover-bg);
-    color: var(--text-primary);
-  }
 `;
 
 if (typeof document !== "undefined") {
-  const styleId = "topbar-styles-v3";
+  const styleId = "topbar-styles-v4";
   if (!document.getElementById(styleId)) {
     const style = document.createElement("style");
     style.id = styleId;
@@ -295,8 +387,8 @@ const TopBar: React.FC<TopBarProps> = ({
   currentLanguage,
   onToggleLanguage,
   t,
-  layoutMode = "vertical",
-  onLayoutModeChange,
+  layoutSwapMode = "terminal-left",
+  onLayoutSwapModeChange,
 }) => {
   const [isMaximized, setIsMaximized] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -381,6 +473,8 @@ const TopBar: React.FC<TopBarProps> = ({
   const getCloseTitle = () => (currentLanguage === "zh" ? "关闭" : "Close");
   const getNewSessionTitle = () =>
     currentLanguage === "zh" ? "新建会话 (⌘N)" : "New Session (⌘N)";
+
+  const isZh = currentLanguage === "zh";
 
   return (
     <>
@@ -478,29 +572,32 @@ const TopBar: React.FC<TopBarProps> = ({
           >
             {currentLanguage === "zh" ? "EN" : "中文"}
           </button>
-          {onLayoutModeChange && (
+
+          {onLayoutSwapModeChange && (
             <>
               <div className="layout-divider" />
-              <button
-                className={`action-btn layout-btn ${layoutMode === "horizontal" ? "active" : ""}`}
-                onClick={() => onLayoutModeChange("horizontal")}
-                title={
-                  t("topbar.horizontalLayout") ||
-                  (currentLanguage === "zh" ? "左右布局" : "Horizontal Layout")
-                }
-              >
-                <LayoutVerticalIcon />
-              </button>
-              <button
-                className={`action-btn layout-btn ${layoutMode === "vertical" ? "active" : ""}`}
-                onClick={() => onLayoutModeChange("vertical")}
-                title={
-                  t("topbar.verticalLayout") ||
-                  (currentLanguage === "zh" ? "上下布局" : "Vertical Layout")
-                }
-              >
-                <LayoutHorizontalIcon />
-              </button>
+              <div className="layout-switch-group">
+                <button
+                  className={`layout-switch-btn ${layoutSwapMode === "terminal-left" ? "active" : ""}`}
+                  onClick={() => onLayoutSwapModeChange("terminal-left")}
+                  title={
+                    isZh ? "终端在左，对话在右" : "Terminal Left, Chat Right"
+                  }
+                >
+                  <TerminalLeftIcon />
+                  <span>{isZh ? "终端｜对话" : "Term｜Chat"}</span>
+                </button>
+                <button
+                  className={`layout-switch-btn ${layoutSwapMode === "chat-left" ? "active" : ""}`}
+                  onClick={() => onLayoutSwapModeChange("chat-left")}
+                  title={
+                    isZh ? "对话在左，终端在右" : "Chat Left, Terminal Right"
+                  }
+                >
+                  <ChatLeftIcon />
+                  <span>{isZh ? "对话｜终端" : "Chat｜Term"}</span>
+                </button>
+              </div>
             </>
           )}
 
@@ -555,7 +652,6 @@ const TopBar: React.FC<TopBarProps> = ({
           </div>
         </div>
       </div>
-
       <SearchDialog
         isOpen={isSearchOpen}
         onClose={closeSearch}
