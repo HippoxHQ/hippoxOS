@@ -5,6 +5,8 @@ import { configCommands } from "../../command/config";
 export function useConfigLoader() {
   const [isConfigLoaded, setIsConfigLoaded] = useState(false);
   const [initialEngineConfig, setInitialEngineConfig] = useState<any>(null);
+  const [initialTheme, setInitialTheme] = useState<string>("dark");
+  const [initialLanguage, setInitialLanguage] = useState<string>("en");
 
   useEffect(() => {
     const loadConfig = async () => {
@@ -12,6 +14,8 @@ export function useConfigLoader() {
         const savedTheme = await configCommands.getSettingsTheme();
         const savedLanguage = await configCommands.getSettingsLanguage();
         const fullConfig = await configCommands.getConfig();
+        setInitialTheme(savedTheme);
+        setInitialLanguage(savedLanguage);
         if (fullConfig.engine) {
           setInitialEngineConfig(fullConfig.engine);
         }
@@ -28,5 +32,7 @@ export function useConfigLoader() {
   return {
     isConfigLoaded,
     initialEngineConfig,
+    initialTheme,
+    initialLanguage,
   };
 }

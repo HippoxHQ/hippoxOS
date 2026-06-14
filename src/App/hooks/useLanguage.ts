@@ -6,14 +6,28 @@ import { hippoxCommands } from "../../command/chat";
 import { configCommands } from "../../command/config";
 import { taskManager } from "../../core/TaskManager";
 
-export function useLanguage() {
-  const [language, setLanguage] = useState<Language>("en");
+export function useLanguage(initialLanguage?: string) {
+  const [language, setLanguage] = useState<Language>(() => {
+    if (initialLanguage) {
+      return initialLanguage as Language;
+    }
+    const saved = localStorage.getItem("hippox-language");
+    return (saved === "zh" || saved === "en") ? saved as Language : "en";
+  });
+
+  useEffect(() => {
+    if (initialLanguage) {
+      setLanguage(initialLanguage as Language);
+    }
+  }, [initialLanguage]);
+
   const { t } = useTranslation(language);
 
   const handleToggleLanguage = async () => {
     const newLang = language === "zh" ? "en" : "zh";
     setLanguage(newLang);
     await configCommands.saveSettingsLanguage(newLang);
+    localStorage.setItem("hippox-language", newLang);
     await hippoxCommands.setLanguage(newLang);
     window.dispatchEvent(
       new CustomEvent("language-changed", {

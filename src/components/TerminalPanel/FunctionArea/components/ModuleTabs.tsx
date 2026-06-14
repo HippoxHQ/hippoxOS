@@ -12,6 +12,8 @@ interface ModuleTabsProps {
   onScrollLeft: () => void;
   onScrollRight: () => void;
   onClosePanel: () => void;
+  onToggleFullscreen?: () => void;
+  isFullscreen?: boolean;
   tabsContainerRef: React.RefObject<HTMLDivElement | null>;
   checkScrollPosition: () => void;
   t: (key: string) => string;
@@ -28,6 +30,8 @@ export const ModuleTabs: React.FC<ModuleTabsProps> = ({
   onScrollLeft,
   onScrollRight,
   onClosePanel,
+  onToggleFullscreen,
+  isFullscreen = false,
   tabsContainerRef,
   checkScrollPosition,
   t,
@@ -193,6 +197,41 @@ export const ModuleTabs: React.FC<ModuleTabsProps> = ({
             }}
           >
             ▶
+          </button>
+        )}
+
+        {onToggleFullscreen && (
+          <button
+            onClick={onToggleFullscreen}
+            style={{
+              width: "28px",
+              height: "28px",
+              borderRadius: "4px",
+              background: "var(--bg-tertiary)",
+              border: "1px solid var(--border-color)",
+              color: "var(--text-secondary)",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: "14px",
+              transition: "all 0.2s ease",
+            }}
+            title={
+              isFullscreen
+                ? t("functionArea.exitFullscreen") || "Exit Fullscreen"
+                : t("functionArea.fullscreen") || "Fullscreen"
+            }
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "var(--hover-bg, #3d3d3d)";
+              e.currentTarget.style.color = "var(--text-primary, #fff)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "var(--bg-tertiary)";
+              e.currentTarget.style.color = "var(--text-secondary)";
+            }}
+          >
+            {isFullscreen ? "🗗" : "🗖"}
           </button>
         )}
 

@@ -15,7 +15,10 @@ const FunctionArea: React.FC<FunctionAreaProps> = ({
   containerHeight,
   defaultModule,
   defaultTaskId,
+  onFullscreenChange,
 }) => {
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
   const {
     activeModule,
     activeTaskId,
@@ -30,9 +33,11 @@ const FunctionArea: React.FC<FunctionAreaProps> = ({
     openModule,
     parseModuleKey,
   } = useFunctionArea(defaultModule || undefined, defaultTaskId);
+
   const [modulesComponents, setModulesComponents] = useState<
     Map<string, React.ReactNode>
   >(new Map());
+
   const createCandleViewForTask = useCallback(
     (taskId?: string, chartData?: any) => {
       return (
@@ -49,6 +54,7 @@ const FunctionArea: React.FC<FunctionAreaProps> = ({
     },
     [theme, i18n, currentSessionId],
   );
+
   const createEarthViewForTask = useCallback(
     (taskId?: string, mapData?: any) => {
       return (
@@ -63,6 +69,14 @@ const FunctionArea: React.FC<FunctionAreaProps> = ({
     },
     [theme, i18n],
   );
+
+  const handleToggleFullscreen = () => {
+    const newFullscreenState = !isFullscreen;
+    setIsFullscreen(newFullscreenState);
+    if (onFullscreenChange) {
+      onFullscreenChange(newFullscreenState);
+    }
+  };
 
   useEffect(() => {
     const moduleKeys = getOpenModuleKeys();
@@ -95,7 +109,7 @@ const FunctionArea: React.FC<FunctionAreaProps> = ({
     const handleOpenModule = (event: CustomEvent) => {
       const { moduleType, taskId, center, zoom, chartData, mapData } =
         event.detail;
-      const result = openModule(moduleType, taskId);
+      openModule(moduleType, taskId);
       const moduleKey = taskId ? `${moduleType}_${taskId}` : moduleType;
       setModulesComponents((prev) => {
         if (prev.has(moduleKey)) {
@@ -187,6 +201,14 @@ const FunctionArea: React.FC<FunctionAreaProps> = ({
         flexDirection: "column",
         height: "100%",
         backgroundColor: "var(--bg-secondary)",
+        ...(isFullscreen && {
+          position: "absolute" as const,
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 100,
+        }),
       }}
     >
       <ModuleTabs
@@ -200,6 +222,8 @@ const FunctionArea: React.FC<FunctionAreaProps> = ({
         onScrollLeft={() => handleScroll("left")}
         onScrollRight={() => handleScroll("right")}
         onClosePanel={onClose}
+        onToggleFullscreen={handleToggleFullscreen}
+        isFullscreen={isFullscreen}
         tabsContainerRef={tabsContainerRef}
         checkScrollPosition={checkScrollPosition}
         t={t}

@@ -7,7 +7,7 @@ use crate::types::Role;
 use crate::workspace::get_default_workspace;
 use crate::wrokflow::HippoXWorkflowCallback;
 use hippox::ModelProvider;
-use hippox::{Hippox, WorkflowMode};
+use hippox::{Hippox, HippoxResult, WorkflowMode};
 use memcontext::MemContext;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -149,7 +149,19 @@ pub async fn cmd_send_chat_message_async(
         app_handle.clone(),
         session.clone(),
     ));
-    let core_task_id = hippox.submit(&enhanced_message, Some(callback));
+
+    // Handle HippoxResult from submit
+    let core_task_id = match hippox.submit(&enhanced_message, Some(callback)) {
+        HippoxResult {
+            data: Some(task_id),
+            ..
+        } => task_id,
+        HippoxResult {
+            error: Some(err), ..
+        } => return Err(err),
+        _ => return Err("Failed to submit task".to_string()),
+    };
+
     let messages = LogMessages::get();
     state
         .add_log(
@@ -177,29 +189,33 @@ pub async fn cmd_send_chat_message(
     let session = session_id.clone().unwrap_or_else(|| "default".to_string());
     let hippox = get_default_hippox().await?;
     let mem = state.get_memcontext().await;
-
     // Store user message
     if let Some(ref mem_ref) = mem {
         let _ = store_user_message(mem_ref, &session, &message).await;
     }
-
     // Build enhanced message with history
     let enhanced_message = build_enhanced_message(mem.as_deref(), &session, &message).await;
-
     let callback = Arc::new(HippoXWorkflowCallback::new(
         app_handle.clone(),
         session.clone(),
     ));
-    let core_task_id = hippox.submit(&enhanced_message, Some(callback));
-
+    // Handle HippoxResult from submit
+    let core_task_id = match hippox.submit(&enhanced_message, Some(callback)) {
+        HippoxResult {
+            data: Some(task_id),
+            ..
+        } => task_id,
+        HippoxResult {
+            error: Some(err), ..
+        } => return Err(err),
+        _ => return Err("Failed to submit task".to_string()),
+    };
     state
         .create_task(core_task_id.clone(), session.clone(), message.clone())
         .await;
     state.update_task_status(&core_task_id, "pending").await;
-
     let duration = start_time.elapsed().as_millis() as u64;
     let messages = LogMessages::get();
-
     Ok(ChatResponse {
         success: true,
         message: core_task_id,
@@ -264,7 +280,18 @@ pub async fn cmd_is_hippox_initialized() -> Result<bool, String> {
 #[tauri::command]
 pub async fn cmd_get_atomic_skills_list() -> Result<Vec<String>, String> {
     match get_default_hippox().await {
-        Ok(hippox) => Ok(hippox.get_atomic_skill_names()),
+        Ok(hippox) => {
+            // Handle HippoxResult from get_atomic_skill_names
+            match hippox.get_atomic_skill_names() {
+                HippoxResult {
+                    data: Some(skills), ..
+                } => Ok(skills),
+                HippoxResult {
+                    error: Some(err), ..
+                } => Err(err),
+                _ => Ok(vec![]),
+            }
+        }
         Err(_) => Ok(vec![]),
     }
 }

@@ -16,9 +16,10 @@ import { taskManager } from "../core/TaskManager";
 import { useTaskEvents } from "./hooks/useTaskEvents";
 
 function App() {
-  const { theme, handleToggleTheme } = useTheme();
-  const { language, handleToggleLanguage, t } = useLanguage();
-  const { isConfigLoaded, initialEngineConfig } = useConfigLoader();
+  const { isConfigLoaded, initialEngineConfig, initialTheme, initialLanguage } =
+    useConfigLoader();
+  const { theme, handleToggleTheme } = useTheme(initialTheme);
+  const { language, handleToggleLanguage, t } = useLanguage(initialLanguage);
   const {
     menuPanelView,
     settingsSubView,
@@ -70,6 +71,21 @@ function App() {
     taskManager.setupTaskEventListeners();
   }, []);
   const handleSaveConfig = async (config: any) => {};
+  if (!isConfigLoaded) {
+    return (
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          height: "100vh",
+          backgroundColor: initialTheme === "dark" ? "#1a1a1a" : "#f5f5f5",
+        }}
+      >
+        <div>Loading...</div>
+      </div>
+    );
+  }
   return (
     <AppContent
       theme={theme}

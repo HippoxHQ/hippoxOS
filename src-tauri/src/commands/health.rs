@@ -144,6 +144,9 @@ async fn check_single_llm_health(
 }
 
 async fn send_health_check_message(hippox: &Hippox, language: &str) -> Result<String, String> {
-    let result = hippox.heartbeat().await;
-    Ok(result)
+    hippox
+        .heartbeat()
+        .await
+        .into_result()
+        .map_err(|err| err.to_string())
 }

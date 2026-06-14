@@ -20,6 +20,7 @@ export interface FunctionAreaProps {
   containerHeight: number;
   defaultModule?: FunctionInstance.Canldeview | FunctionInstance.Earthview | null;
   defaultTaskId?: string;
+  onFullscreenChange?: (isFullscreen: boolean) => void;
 }
 
 export enum FunctionInstance {

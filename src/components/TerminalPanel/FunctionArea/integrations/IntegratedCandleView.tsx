@@ -2,6 +2,7 @@ import {
   CandleView,
   ICandleViewDataPoint,
   MainChartType,
+  TimeframeEnum,
 } from "@candleview/core";
 import React, { useRef, useEffect, useState, useCallback } from "react";
 import { TEST_CANDLEVIEW_DATA8 } from "../../../../test/TestData_3";
@@ -112,7 +113,7 @@ export const IntegratedCandleView: React.FC<IntegratedCandleViewProps> = ({
         technologyPanel: true,
         drawingPanel: true,
         data: chartDataFromProps,
-        activeTimeframe: undefined,
+        timeframe: TimeframeEnum.ONE_SECOND,
       });
       candleViewRef.current = candleView;
       setIsReady(true);
