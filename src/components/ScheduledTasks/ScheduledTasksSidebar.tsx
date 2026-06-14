@@ -1,6 +1,106 @@
 import React from "react";
 import { ScheduledTask } from "./types";
 
+const BarChartIcon = () => (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M12 20V10" />
+    <path d="M18 20V4" />
+    <path d="M6 20v-4" />
+  </svg>
+);
+
+const ListIcon = () => (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <line x1="8" y1="6" x2="21" y2="6" />
+    <line x1="8" y1="12" x2="21" y2="12" />
+    <line x1="8" y1="18" x2="21" y2="18" />
+    <line x1="3" y1="6" x2="3.01" y2="6" />
+    <line x1="3" y1="12" x2="3.01" y2="12" />
+    <line x1="3" y1="18" x2="3.01" y2="18" />
+  </svg>
+);
+
+const PlusIcon = () => (
+  <svg
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <line x1="12" y1="5" x2="12" y2="19" />
+    <line x1="5" y1="12" x2="19" y2="12" />
+  </svg>
+);
+
+const ClockIcon = () => (
+  <svg
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <circle cx="12" cy="12" r="10" />
+    <polyline points="12 6 12 12 16 14" />
+  </svg>
+);
+
+const MessageSquareIcon = () => (
+  <svg
+    width="12"
+    height="12"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+  </svg>
+);
+
+const FileIcon = () => (
+  <svg
+    width="12"
+    height="12"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" />
+    <polyline points="13 2 13 9 20 9" />
+  </svg>
+);
+
 interface ScheduledTasksSidebarProps {
   t: (key: string, params?: any) => string;
   tasks: ScheduledTask[];
@@ -62,8 +162,12 @@ const ScheduledTasksSidebar: React.FC<ScheduledTasksSidebarProps> = ({
   return (
     <div className="scheduled-sidebar">
       <div className="stats-section">
-        <div className="stats-title">
-          📊 {t("scheduled.statistics") || "统计"}
+        <div
+          className="stats-title"
+          style={{ display: "flex", alignItems: "center", gap: "6px" }}
+        >
+          <BarChartIcon />
+          {t("scheduled.statistics") || "统计"}
         </div>
         <div className="stats-grid">
           <div className="stat-card">
@@ -91,17 +195,31 @@ const ScheduledTasksSidebar: React.FC<ScheduledTasksSidebarProps> = ({
 
       <div className="task-list-section">
         <div className="task-list-header">
-          <span className="task-list-title">
-            📋 {t("scheduled.taskList") || "任务列表"}
+          <span
+            className="task-list-title"
+            style={{ display: "flex", alignItems: "center", gap: "6px" }}
+          >
+            <ListIcon />
+            {t("scheduled.taskList") || "任务列表"}
           </span>
-          <button className="add-task-btn" onClick={onCreateNew}>
-            + {t("scheduled.add") || "新建"}
+          <button
+            className="add-task-btn"
+            onClick={onCreateNew}
+            style={{ display: "flex", alignItems: "center", gap: "4px" }}
+          >
+            <PlusIcon />
+            {t("scheduled.add") || "新建"}
           </button>
         </div>
 
         {tasks.length === 0 ? (
           <div className="empty-state" style={{ padding: "40px 20px" }}>
-            <div className="empty-icon">🕐</div>
+            <div
+              className="empty-icon"
+              style={{ fontSize: "48px", opacity: 0.5, marginBottom: "16px" }}
+            >
+              <ClockIcon />
+            </div>
             <div className="empty-text">
               {t("scheduled.noTasks") || "暂无定时任务"}
             </div>
@@ -131,10 +249,21 @@ const ScheduledTasksSidebar: React.FC<ScheduledTasksSidebarProps> = ({
               <div className="task-item-schedule">
                 {getScheduleDisplay(task, t)}
               </div>
-              <div className="task-item-action">
-                {task.action_type === "naturallanguage"
-                  ? `💬 ${t("scheduled.naturalLanguage") || "自然语言"}`
-                  : `📄 ${t("scheduled.skillFileLabel") || "SKILL.md"}`}
+              <div
+                className="task-item-action"
+                style={{ display: "flex", alignItems: "center", gap: "4px" }}
+              >
+                {task.action_type === "naturallanguage" ? (
+                  <>
+                    <MessageSquareIcon />
+                    {t("scheduled.naturalLanguage") || "自然语言"}
+                  </>
+                ) : (
+                  <>
+                    <FileIcon />
+                    {t("scheduled.skillFileLabel") || "SKILL.md"}
+                  </>
+                )}
               </div>
               <div className="task-item-footer">
                 <span>

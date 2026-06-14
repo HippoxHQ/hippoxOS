@@ -8,6 +8,12 @@ import TaskCardList from "./TaskCardList";
 import TaskEditPanel from "./TaskEditPanel";
 import BottomHeatmapPanel from "./BottomHeatmapPanel";
 
+const LoadingSpinnerIcon = () => (
+  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="loading-spinner-svg">
+    <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+  </svg>
+);
+
 interface ScheduledTasksManagerProps {
   t: (key: string, params?: any) => string;
   onClose?: () => void;
@@ -257,7 +263,9 @@ const ScheduledTasksManager: React.FC<ScheduledTasksManagerProps> = ({
     return (
       <div className="scheduled-tasks-container">
         <div className="loading-container">
-          <div className="loading-spinner"></div>
+          <div className="loading-spinner">
+            <LoadingSpinnerIcon />
+          </div>
           <span>{t("common.loading") || "加载中..."}</span>
         </div>
       </div>

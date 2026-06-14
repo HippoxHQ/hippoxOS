@@ -15,6 +15,198 @@ import {
 import { ScheduledTask } from "./types";
 import { showToast, ToastType } from "../Toast";
 
+const EditIcon = () => (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M17 3l4 4-7 7H10v-4l7-7z" />
+    <path d="M4 20h16" />
+  </svg>
+);
+
+const XIcon = () => (
+  <svg
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <line x1="18" y1="6" x2="6" y2="18" />
+    <line x1="6" y1="6" x2="18" y2="18" />
+  </svg>
+);
+
+const SaveIcon = () => (
+  <svg
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+    <polyline points="17 21 17 13 7 13 7 21" />
+    <polyline points="7 3 7 8 15 8" />
+  </svg>
+);
+
+const TrashIcon = () => (
+  <svg
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <polyline points="3 6 5 6 21 6" />
+    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+  </svg>
+);
+
+const PlayIcon = () => (
+  <svg
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <polygon points="5 3 19 12 5 21 5 3" />
+  </svg>
+);
+
+const PauseIcon = () => (
+  <svg
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <rect x="6" y="4" width="4" height="16" />
+    <rect x="14" y="4" width="4" height="16" />
+  </svg>
+);
+
+const FolderOpenIcon = () => (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+  </svg>
+);
+
+const FileIcon = () => (
+  <svg
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" />
+    <polyline points="13 2 13 9 20 9" />
+  </svg>
+);
+
+const HistoryIcon = () => (
+  <svg
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <circle cx="12" cy="12" r="10" />
+    <polyline points="12 6 12 12 16 14" />
+  </svg>
+);
+
+const CheckCircleIcon = () => (
+  <svg
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+    <polyline points="22 4 12 14.01 9 11.01" />
+  </svg>
+);
+
+const XCircleIcon = () => (
+  <svg
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <circle cx="12" cy="12" r="10" />
+    <line x1="18" y1="6" x2="6" y2="18" />
+    <line x1="6" y1="6" x2="18" y2="18" />
+  </svg>
+);
+
+const EditPenIcon = () => (
+  <svg
+    width="48"
+    height="48"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M17 3l4 4-7 7H10v-4l7-7z" />
+    <path d="M4 20h16" />
+  </svg>
+);
+
 interface TaskEditPanelProps {
   t: (key: string, params?: any) => string;
   task: ScheduledTask | null;
@@ -433,8 +625,15 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
             padding: "40px",
           }}
         >
-          <div style={{ fontSize: "48px", opacity: 0.5, marginBottom: "16px" }}>
-            ✏️
+          <div
+            style={{
+              fontSize: "48px",
+              opacity: 0.5,
+              marginBottom: "16px",
+              color: "var(--text-muted)",
+            }}
+          >
+            <EditPenIcon />
           </div>
           <div
             style={{
@@ -476,7 +675,9 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
           flexShrink: 0,
         }}
       >
-        <span style={{ fontSize: "16px" }}>✏️</span>
+        <span style={{ fontSize: "16px", color: "var(--accent-color)" }}>
+          <EditIcon />
+        </span>
         <span
           style={{
             flex: 1,
@@ -499,13 +700,15 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
             fontSize: "16px",
             padding: "4px 8px",
             borderRadius: "4px",
+            display: "flex",
+            alignItems: "center",
           }}
           onMouseEnter={(e) =>
             (e.currentTarget.style.background = "var(--bg-tertiary)")
           }
           onMouseLeave={(e) => (e.currentTarget.style.background = "none")}
         >
-          ✕
+          <XIcon />
         </button>
       </div>
 
@@ -786,7 +989,8 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
                 style={primaryButtonStyle}
                 onClick={() => fileInputRef.current?.click()}
               >
-                📁 {t("scheduled.selectFile") || "选择文件"}
+                <FolderOpenIcon />
+                {t("scheduled.selectFile") || "选择文件"}
               </button>
             ) : (
               <div
@@ -804,9 +1008,13 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
                     background: "var(--bg-tertiary)",
                     padding: "6px 12px",
                     borderRadius: "6px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "4px",
                   }}
                 >
-                  📄 {skillFileName}
+                  <FileIcon />
+                  {skillFileName}
                 </span>
                 <button
                   type="button"
@@ -820,6 +1028,7 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
                   style={deleteButtonStyle}
                   onClick={handleRemoveSkillFile}
                 >
+                  <TrashIcon />
                   {t("scheduled.remove") || "移除"}
                 </button>
               </div>
@@ -846,7 +1055,7 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
                 marginBottom: "12px",
               }}
             >
-              <span>📜</span>
+              <HistoryIcon />
               <span>{t("scheduled.executionHistory") || "执行历史"}</span>
             </div>
             <div
@@ -866,9 +1075,16 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
               <span
                 style={{
                   color: task.last_status === "failed" ? "#ef4444" : "#10b981",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "4px",
                 }}
               >
-                {task.last_status === "failed" ? "❌" : "✅"}{" "}
+                {task.last_status === "failed" ? (
+                  <XCircleIcon />
+                ) : (
+                  <CheckCircleIcon />
+                )}
                 {task.last_status || "success"}
               </span>
             </div>
@@ -905,16 +1121,18 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
               onClick={handleToggle}
               disabled={isToggling}
             >
+              {task?.enabled ? <PauseIcon /> : <PlayIcon />}
               {task?.enabled
-                ? "⏸️ " + (t("scheduled.disable") || "禁用")
-                : "▶️ " + (t("scheduled.enable") || "启用")}
+                ? t("scheduled.disable") || "禁用"
+                : t("scheduled.enable") || "启用"}
             </button>
             <button
               style={deleteButtonStyle}
               onClick={handleDelete}
               disabled={isDeleting}
             >
-              🗑️ {t("scheduled.delete") || "删除"}
+              <TrashIcon />
+              {t("scheduled.delete") || "删除"}
             </button>
           </>
         )}
@@ -923,9 +1141,10 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
           onClick={handleSave}
           disabled={isSaving}
         >
+          <SaveIcon />
           {isSaving
-            ? "💾 " + (t("common.saving") || "保存中...")
-            : "💾 " + (t("settings.save") || "保存")}
+            ? t("common.saving") || "保存中..."
+            : t("settings.save") || "保存"}
         </button>
       </div>
     </div>

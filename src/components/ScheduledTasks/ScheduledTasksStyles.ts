@@ -186,10 +186,13 @@ export const scheduledTasksStyles = `
   .loading-spinner {
     width: 32px;
     height: 32px;
-    border: 3px solid var(--border-color);
-    border-top-color: var(--accent-color);
-    border-radius: 50%;
+  }
+
+  .loading-spinner-svg {
+    width: 32px;
+    height: 32px;
     animation: spin 0.8s linear infinite;
+    color: var(--accent-color);
   }
 
   @keyframes spin {

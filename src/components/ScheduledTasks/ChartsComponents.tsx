@@ -14,6 +14,14 @@ import {
   RadialBar,
 } from "recharts";
 
+const ChartIcon = () => (
+  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 12v3a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4v-3" />
+    <path d="M12 2v8" />
+    <path d="m16 6-4 4-4-4" />
+  </svg>
+);
+
 export const StatusPieChart: React.FC<{
   data: Array<{ name: string; value: number; color: string }>;
   total: number;
@@ -22,7 +30,9 @@ export const StatusPieChart: React.FC<{
   if (total === 0) {
     return (
       <div className="pie-empty">
-        <div className="pie-empty-icon">📊</div>
+        <div className="pie-empty-icon" style={{ color: "var(--text-muted)" }}>
+          <ChartIcon />
+        </div>
         <div className="pie-empty-text">
           {t("scheduled.noData") || "暂无数据"}
         </div>

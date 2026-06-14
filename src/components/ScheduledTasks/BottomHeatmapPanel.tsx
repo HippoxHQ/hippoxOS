@@ -3,6 +3,24 @@ import CalendarHeatmap from "react-calendar-heatmap";
 import { showTooltip, closeTooltip } from "../Tooltip";
 import "react-calendar-heatmap/dist/styles.css";
 
+const FireIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" />
+  </svg>
+);
+
+const ChevronUpIcon = () => (
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="18 15 12 9 6 15" />
+  </svg>
+);
+
+const ChevronDownIcon = () => (
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="6 9 12 15 18 9" />
+  </svg>
+);
+
 interface BottomHeatmapPanelProps {
   t: (key: string, params?: any) => string;
   tasks?: any[];
@@ -222,7 +240,9 @@ const BottomHeatmapPanel: React.FC<BottomHeatmapPanelProps> = ({
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          <span className="bottom-heatmap-icon">🔥</span>
+          <span className="bottom-heatmap-icon" style={{ color: "var(--text-secondary)" }}>
+            <FireIcon />
+          </span>
           <span className="bottom-heatmap-title">
             {t("scheduled.executionHeatmap") ||
               `全年执行热力图（${currentYear}年）`}
@@ -234,7 +254,7 @@ const BottomHeatmapPanel: React.FC<BottomHeatmapPanelProps> = ({
             background: "none",
             border: "none",
             cursor: "pointer",
-            fontSize: "14px",
+            fontSize: "12px",
             color: "var(--text-muted)",
             padding: "4px 8px",
             borderRadius: "4px",
@@ -247,9 +267,8 @@ const BottomHeatmapPanel: React.FC<BottomHeatmapPanelProps> = ({
           }
           onMouseLeave={(e) => (e.currentTarget.style.background = "none")}
         >
-          {isExpanded
-            ? "▼ " + (t("scheduled.expand") || "展开")
-            : "▲ " + (t("scheduled.collapse") || "收起")}
+          {isExpanded ? <ChevronDownIcon /> : <ChevronUpIcon />}
+          <span>{isExpanded ? (t("scheduled.expand") || "展开") : (t("scheduled.collapse") || "收起")}</span>
         </button>
       </div>
 

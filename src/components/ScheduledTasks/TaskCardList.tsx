@@ -4,6 +4,235 @@ import {
   fromScheduleConfig,
 } from "../../command/scheduledtasks";
 
+const SearchIcon = () => (
+  <svg
+    width="12"
+    height="12"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <circle cx="11" cy="11" r="8" />
+    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+  </svg>
+);
+
+const XIcon = () => (
+  <svg
+    width="10"
+    height="10"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <line x1="18" y1="6" x2="6" y2="18" />
+    <line x1="6" y1="6" x2="18" y2="18" />
+  </svg>
+);
+
+const ChevronDownIcon = () => (
+  <svg
+    width="10"
+    height="10"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <polyline points="6 9 12 15 18 9" />
+  </svg>
+);
+
+const CheckIcon = () => (
+  <svg
+    width="12"
+    height="12"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <polyline points="20 6 9 17 4 12" />
+  </svg>
+);
+
+const PlusIcon = () => (
+  <svg
+    width="12"
+    height="12"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <line x1="12" y1="5" x2="12" y2="19" />
+    <line x1="5" y1="12" x2="19" y2="12" />
+  </svg>
+);
+
+const ClockIcon = () => (
+  <svg
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <circle cx="12" cy="12" r="10" />
+    <polyline points="12 6 12 12 16 14" />
+  </svg>
+);
+
+const CalendarIcon = () => (
+  <svg
+    width="12"
+    height="12"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+    <line x1="16" y1="2" x2="16" y2="6" />
+    <line x1="8" y1="2" x2="8" y2="6" />
+    <line x1="3" y1="10" x2="21" y2="10" />
+  </svg>
+);
+
+const PlayIcon = () => (
+  <svg
+    width="12"
+    height="12"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <polygon points="5 3 19 12 5 21 5 3" />
+  </svg>
+);
+
+const PauseIcon = () => (
+  <svg
+    width="12"
+    height="12"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <rect x="6" y="4" width="4" height="16" />
+    <rect x="14" y="4" width="4" height="16" />
+  </svg>
+);
+
+const TrashIcon = () => (
+  <svg
+    width="12"
+    height="12"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <polyline points="3 6 5 6 21 6" />
+    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+  </svg>
+);
+
+const MessageSquareIcon = () => (
+  <svg
+    width="12"
+    height="12"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+  </svg>
+);
+
+const FileIcon = () => (
+  <svg
+    width="12"
+    height="12"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" />
+    <polyline points="13 2 13 9 20 9" />
+  </svg>
+);
+
+const EmptyListIcon = () => (
+  <svg
+    width="48"
+    height="48"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+    <line x1="16" y1="2" x2="16" y2="6" />
+    <line x1="8" y1="2" x2="8" y2="6" />
+    <line x1="3" y1="10" x2="21" y2="10" />
+  </svg>
+);
+
+// ListIcon - defined before usage in filterOptions
+const ListIcon = () => (
+  <svg
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <line x1="8" y1="6" x2="21" y2="6" />
+    <line x1="8" y1="12" x2="21" y2="12" />
+    <line x1="8" y1="18" x2="21" y2="18" />
+    <line x1="3" y1="6" x2="3.01" y2="6" />
+    <line x1="3" y1="12" x2="3.01" y2="12" />
+    <line x1="3" y1="18" x2="3.01" y2="18" />
+  </svg>
+);
+
 interface TaskCardListProps {
   t: (key: string, params?: any) => string;
   tasks: ScheduledTask[];
@@ -103,6 +332,7 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
   const [showFilterPopup, setShowFilterPopup] = useState(false);
   const filterButtonRef = useRef<HTMLButtonElement>(null);
   const popupRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     const calculateColumns = () => {
       if (containerRef.current) {
@@ -123,6 +353,7 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
       resizeObserver.disconnect();
     };
   }, []);
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -140,29 +371,30 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [showFilterPopup]);
+
   const filterOptions = [
     {
       key: "all" as const,
       label: t("scheduled.all") || "全部",
-      icon: "📋",
+      icon: <ListIcon />,
       color: "#818cf8",
     },
     {
       key: "enabled" as const,
       label: t("scheduled.enabled") || "启用",
-      icon: "✅",
+      icon: <PlayIcon />,
       color: "#10b981",
     },
     {
       key: "disabled" as const,
       label: t("scheduled.disabled") || "禁用",
-      icon: "⏸️",
+      icon: <PauseIcon />,
       color: "#6b7280",
     },
     {
       key: "completed" as const,
       label: t("scheduled.completed") || "完成",
-      icon: "✓",
+      icon: <CheckIcon />,
       color: "#8b5cf6",
     },
   ];
@@ -174,7 +406,7 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
 
   const getCurrentFilterIcon = () => {
     const current = filterOptions.find((opt) => opt.key === statusFilter);
-    return current ? current.icon : "📋";
+    return current ? current.icon : <ListIcon />;
   };
 
   return (
@@ -216,7 +448,7 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
               color: "var(--text-muted)",
             }}
           >
-            🔍
+            <SearchIcon />
           </span>
           <input
             type="text"
@@ -247,10 +479,12 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
                 cursor: "pointer",
                 fontSize: "12px",
                 padding: "2px 4px",
+                display: "flex",
+                alignItems: "center",
               }}
               onClick={() => onSearchChange("")}
             >
-              ✕
+              <XIcon />
             </button>
           )}
         </div>
@@ -279,9 +513,17 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
               (e.currentTarget.style.background = "var(--bg-tertiary)")
             }
           >
-            <span style={{ fontSize: "12px" }}>{getCurrentFilterIcon()}</span>
+            <span
+              style={{
+                fontSize: "12px",
+                display: "flex",
+                alignItems: "center",
+              }}
+            >
+              {getCurrentFilterIcon()}
+            </span>
             <span>{getCurrentFilterLabel()}</span>
-            <span style={{ fontSize: "10px" }}>▼</span>
+            <ChevronDownIcon />
           </button>
 
           {showFilterPopup && (
@@ -334,13 +576,26 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
                         : "transparent")
                   }
                 >
-                  <span style={{ fontSize: "14px" }}>{option.icon}</span>
+                  <span
+                    style={{
+                      fontSize: "14px",
+                      display: "flex",
+                      alignItems: "center",
+                    }}
+                  >
+                    {option.icon}
+                  </span>
                   <span style={{ flex: 1 }}>{option.label}</span>
                   {statusFilter === option.key && (
                     <span
-                      style={{ color: "var(--accent-color)", fontSize: "12px" }}
+                      style={{
+                        color: "var(--accent-color)",
+                        fontSize: "12px",
+                        display: "flex",
+                        alignItems: "center",
+                      }}
                     >
-                      ✓
+                      <CheckIcon />
                     </span>
                   )}
                 </button>
@@ -367,7 +622,7 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
           }}
           onClick={onCreateNew}
         >
-          <span>+</span>
+          <PlusIcon />
           <span>{t("scheduled.addTask") || "新建任务"}</span>
         </button>
       </div>
@@ -393,9 +648,14 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
             }}
           >
             <div
-              style={{ fontSize: "48px", opacity: 0.5, marginBottom: "16px" }}
+              style={{
+                fontSize: "48px",
+                opacity: 0.5,
+                marginBottom: "16px",
+                color: "var(--text-muted)",
+              }}
             >
-              📋
+              <EmptyListIcon />
             </div>
             <div
               style={{
@@ -463,8 +723,14 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
                         overflow: "hidden",
                       }}
                     >
-                      <span style={{ fontSize: "14px", flexShrink: 0 }}>
-                        🕐
+                      <span
+                        style={{
+                          fontSize: "14px",
+                          flexShrink: 0,
+                          color: "var(--text-muted)",
+                        }}
+                      >
+                        <ClockIcon />
                       </span>
                       <span
                         title={task.name}
@@ -495,9 +761,13 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
                             borderRadius: "12px",
                             background: "#8b5cf6",
                             color: "white",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "2px",
                           }}
                         >
-                          ✓ {t("scheduled.completed") || "已完成"}
+                          <CheckIcon />
+                          {t("scheduled.completed") || "已完成"}
                         </span>
                       )}
                       <span
@@ -528,8 +798,15 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
                       fontSize: "11px",
                     }}
                   >
-                    <span style={{ width: "20px", color: "var(--text-muted)" }}>
-                      ⏰
+                    <span
+                      style={{
+                        width: "20px",
+                        color: "var(--text-muted)",
+                        display: "flex",
+                        alignItems: "center",
+                      }}
+                    >
+                      <ClockIcon />
                     </span>
                     <span
                       style={{
@@ -553,8 +830,19 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
                       fontSize: "11px",
                     }}
                   >
-                    <span style={{ width: "20px", color: "var(--text-muted)" }}>
-                      {task.action_type === "naturallanguage" ? "💬" : "📄"}
+                    <span
+                      style={{
+                        width: "20px",
+                        color: "var(--text-muted)",
+                        display: "flex",
+                        alignItems: "center",
+                      }}
+                    >
+                      {task.action_type === "naturallanguage" ? (
+                        <MessageSquareIcon />
+                      ) : (
+                        <FileIcon />
+                      )}
                     </span>
                     <span
                       title={actionPreview}
@@ -586,7 +874,7 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
                         color: "var(--text-muted)",
                       }}
                     >
-                      <span>▶️</span>
+                      <PlayIcon />
                       <span>
                         {task.execution_count || 0}{" "}
                         {t("scheduled.executions") || "次"}
@@ -602,7 +890,7 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
                           color: "var(--text-muted)",
                         }}
                       >
-                        <span>📅</span>
+                        <CalendarIcon />
                         <span>
                           {new Date(task.last_executed_at).toLocaleDateString()}
                         </span>
@@ -641,6 +929,8 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
                             borderRadius: "4px",
                             transition: "all 0.2s",
                             color: "#10b981",
+                            display: "flex",
+                            alignItems: "center",
                           }}
                           onMouseEnter={(e) =>
                             (e.currentTarget.style.background =
@@ -650,7 +940,7 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
                             (e.currentTarget.style.background = "none")
                           }
                         >
-                          {task.enabled ? "⏸️" : "▶️"}
+                          {task.enabled ? <PauseIcon /> : <PlayIcon />}
                         </button>
                         <button
                           onClick={(e) => {
@@ -667,6 +957,8 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
                             borderRadius: "4px",
                             transition: "all 0.2s",
                             color: "#8b5cf6",
+                            display: "flex",
+                            alignItems: "center",
                           }}
                           onMouseEnter={(e) =>
                             (e.currentTarget.style.background =
@@ -676,7 +968,7 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
                             (e.currentTarget.style.background = "none")
                           }
                         >
-                          ✓
+                          <CheckIcon />
                         </button>
                       </>
                     )}
@@ -703,6 +995,8 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
                         borderRadius: "4px",
                         transition: "all 0.2s",
                         color: "#ef4444",
+                        display: "flex",
+                        alignItems: "center",
                       }}
                       onMouseEnter={(e) =>
                         (e.currentTarget.style.background =
@@ -712,7 +1006,7 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
                         (e.currentTarget.style.background = "none")
                       }
                     >
-                      🗑️
+                      <TrashIcon />
                     </button>
                   </div>
                 </div>
