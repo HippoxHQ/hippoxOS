@@ -430,10 +430,6 @@ const UserProfile: React.FC<UserProfileProps> = ({
           username: systemUsername,
           email: `${systemUsername}@hippox.local`,
         }));
-        showToast(
-          ToastType.SUCCESS,
-          t("user.dataLoaded") || "用户数据加载成功",
-        );
       }
     } catch (e) {
       console.error("Failed to get system username:", e);

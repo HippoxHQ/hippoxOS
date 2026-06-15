@@ -28,17 +28,17 @@ export const bottomMenuItems: MenuItemWithSection[] = [
         children: [
             { id: "llmModel", icon: "settings", label: "menu.llmModelConfig" },
             { id: "atomicSkills", icon: "skills", label: "menu.atomicSkills" },
-            {
-                id: "engine_group",
-                icon: "config",
-                label: "menu.engineConfig",
-                children: [
-                    { id: "engine_database", icon: "database", label: "settings.tab.database" },
-                    { id: "engine_network", icon: "network", label: "settings.tab.network" },
-                    { id: "engine_container", icon: "container", label: "settings.tab.container" },
-                    { id: "engine_notification", icon: "notification", label: "settings.tab.notification" },
-                ],
-            },
+            // {
+            //     id: "engine_group",
+            //     icon: "config",
+            //     label: "menu.engineConfig",
+            //     children: [
+            //         { id: "engine_database", icon: "database", label: "settings.tab.database" },
+            //         { id: "engine_network", icon: "network", label: "settings.tab.network" },
+            //         { id: "engine_container", icon: "container", label: "settings.tab.container" },
+            //         { id: "engine_notification", icon: "notification", label: "settings.tab.notification" },
+            //     ],
+            // },
             {
                 id: "system_group",
                 icon: "config",

@@ -5,6 +5,7 @@ export const zh = {
     newSessionDesc: '新创建的对话',
   },
   user: {
+    userProfile: "个人页面",
     totalSessionsTooltip: "总对话次数",
     totalMessagesTooltip: "总消息数量",
     totalTokensTooltip: "总 Token 消耗",
@@ -562,6 +563,7 @@ export const zh = {
     appInternalDir: "应用内部目录",
   },
   menu: {
+    userProfile: "个人页面",
     skillsManager: "技能管理器",
     skillEditor: "技能编辑器",
     main: '主要',
@@ -1133,6 +1135,7 @@ export const en: typeof zh = {
     newSessionDesc: 'Newly created session',
   },
   user: {
+    userProfile: "Profile",
     totalSessionsTooltip: "Total chat sessions",
     totalMessagesTooltip: "Total messages",
     totalTokensTooltip: "Total Token consumption",
@@ -1650,6 +1653,7 @@ export const en: typeof zh = {
     }
   },
   menu: {
+    userProfile: "Profile",
     skillsManager: "Skills Manager",
     skillEditor: "Skill Editor",
     main: 'Main',
