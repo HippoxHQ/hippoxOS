@@ -444,6 +444,7 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
         flexDirection: "column",
         overflow: "hidden",
         height: "100%",
+        userSelect: "none",
       }}
     >
       <div
@@ -965,13 +966,14 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
                             padding: "4px 8px",
                             borderRadius: "4px",
                             transition: "all 0.2s",
-                            color: "#10b981",
+                            color: task.enabled ? "#f59e0b" : "#10b981",
                             display: "flex",
                             alignItems: "center",
                           }}
                           onMouseEnter={(e) => {
-                            e.currentTarget.style.background =
-                              "rgba(16, 185, 129, 0.15)";
+                            e.currentTarget.style.background = task.enabled
+                              ? "rgba(245, 158, 11, 0.15)"
+                              : "rgba(16, 185, 129, 0.15)";
                             const target = e.currentTarget;
                             showTooltip(
                               task.enabled

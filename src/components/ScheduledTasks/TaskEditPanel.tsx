@@ -710,7 +710,7 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
         style={{
           display: "flex",
           alignItems: "center",
-          padding: "10px 14px",
+          padding: "9px 14px",
           borderBottom: "1px solid var(--border-color)",
           gap: "8px",
           flexShrink: 0,
@@ -736,19 +736,26 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
           style={{
             background: "none",
             border: "none",
-            color: "var(--text-muted)",
             cursor: "pointer",
-            padding: "4px 6px",
+            fontSize: "18px",
+            color: "var(--text-secondary)",
+            padding: "4px 8px",
             borderRadius: "4px",
             display: "flex",
             alignItems: "center",
+            justifyContent: "center",
+            transition: "all 0.2s",
           }}
-          onMouseEnter={(e) =>
-            (e.currentTarget.style.background = "var(--bg-tertiary)")
-          }
-          onMouseLeave={(e) => (e.currentTarget.style.background = "none")}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = "var(--hover-bg)";
+            e.currentTarget.style.color = "var(--text-primary)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = "none";
+            e.currentTarget.style.color = "var(--text-secondary)";
+          }}
         >
-          <XIcon />
+          ✕
         </button>
       </div>
 
@@ -1665,17 +1672,39 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
         {isEditMode && (
           <>
             <button
-              style={toggleButtonStyle}
               onClick={handleToggle}
               disabled={isToggling}
+              style={{
+                padding: "5px 14px",
+                background: task?.enabled
+                  ? "rgba(245, 158, 11, 0.15)"
+                  : "rgba(16, 185, 129, 0.15)",
+                border: `1px solid ${task?.enabled ? "#f59e0b" : "#10b981"}`,
+                borderRadius: "6px",
+                color: task?.enabled ? "#f59e0b" : "#10b981",
+                fontSize: "11px",
+                fontWeight: 500,
+                cursor: "pointer",
+                transition: "all 0.2s",
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+              }}
               onMouseEnter={(e) => {
-                const target = e.currentTarget;
+                e.currentTarget.style.background = task?.enabled
+                  ? "rgba(245, 158, 11, 0.25)"
+                  : "rgba(16, 185, 129, 0.25)";
                 showTooltip(
                   task?.enabled
                     ? t("scheduled.disableTooltip") || "禁用任务"
                     : t("scheduled.enableTooltip") || "启用任务",
-                  target,
+                  e.currentTarget,
                 );
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = task?.enabled
+                  ? "rgba(245, 158, 11, 0.15)"
+                  : "rgba(16, 185, 129, 0.15)";
               }}
             >
               {task?.enabled ? <PauseIcon /> : <PlayIcon />}

@@ -42,42 +42,44 @@ export const StatusPieChart: React.FC<{
   if (!hasData) {
     let defaultEmptyColor = emptyColor || "#e5e7eb";
     return (
-      <ResponsiveContainer width="100%" height={140}>
-        <PieChart>
-          <Pie
-            data={[{ name: "empty", value: 1, color: defaultEmptyColor }]}
-            cx="50%"
-            cy="50%"
-            innerRadius={35}
-            outerRadius={55}
-            dataKey="value"
-            stroke="none"
-          >
-            <Cell fill={defaultEmptyColor} />
-          </Pie>
-          <text
-            x="50%"
-            y="48%"
-            textAnchor="middle"
-            dominantBaseline="middle"
-            fill="var(--text-primary)"
-            fontSize="16"
-            fontWeight="bold"
-          >
-            0
-          </text>
-          <text
-            x="50%"
-            y="62%"
-            textAnchor="middle"
-            dominantBaseline="middle"
-            fill="var(--text-secondary)"
-            fontSize="9"
-          >
-            {t("scheduled.total") || "总计"}
-          </text>
-        </PieChart>
-      </ResponsiveContainer>
+      <div style={{ userSelect: "none", width: "100%", height: 140 }}>
+        <ResponsiveContainer width="100%" height={140}>
+          <PieChart>
+            <Pie
+              data={[{ name: "empty", value: 1, color: defaultEmptyColor }]}
+              cx="50%"
+              cy="50%"
+              innerRadius={35}
+              outerRadius={55}
+              dataKey="value"
+              stroke="none"
+            >
+              <Cell fill={defaultEmptyColor} />
+            </Pie>
+            <text
+              x="50%"
+              y="48%"
+              textAnchor="middle"
+              dominantBaseline="middle"
+              fill="var(--text-primary)"
+              fontSize="16"
+              fontWeight="bold"
+            >
+              0
+            </text>
+            <text
+              x="50%"
+              y="62%"
+              textAnchor="middle"
+              dominantBaseline="middle"
+              fill="var(--text-secondary)"
+              fontSize="9"
+            >
+              {t("scheduled.total") || "总计"}
+            </text>
+          </PieChart>
+        </ResponsiveContainer>
+      </div>
     );
   }
 
@@ -130,65 +132,73 @@ export const TrendLineChart: React.FC<{
   t: (key: string, params?: any) => string;
 }> = ({ data, color = "#818cf8", t }) => {
   return (
-    <ResponsiveContainer width="100%" height={130}>
-      <AreaChart
-        data={data}
-        margin={{ top: 10, right: 5, left: -10, bottom: 5 }}
-      >
-        <defs>
-          <linearGradient id="trendGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor={color} stopOpacity={0.35} />
-            <stop offset="100%" stopColor={color} stopOpacity={0.02} />
-          </linearGradient>
-        </defs>
-        <CartesianGrid
-          strokeDasharray="3 3"
-          stroke="var(--border-color)"
-          strokeOpacity={0.3}
-          vertical={false}
-        />
-        <XAxis
-          dataKey="label"
-          tick={{ fill: "var(--text-muted)", fontSize: 9 }}
-          axisLine={{ stroke: "var(--border-color)" }}
-          tickLine={false}
-          interval={0}
-        />
-        <YAxis
-          tick={{ fill: "var(--text-muted)", fontSize: 9 }}
-          axisLine={false}
-          tickLine={false}
-          width={25}
-        />
-        <Tooltip
-          contentStyle={{
-            background: "var(--bg-secondary)",
-            border: "1px solid var(--border-color)",
-            borderRadius: "6px",
-            fontSize: "11px",
-            color: "var(--text-primary)",
-          }}
-          formatter={(value: any) => [
-            `${value} ${t("scheduled.times")}`,
-            t("scheduled.executionCount"),
-          ]}
-        />
-        <Area
-          type="monotone"
-          dataKey="value"
-          stroke={color}
-          strokeWidth={2}
-          fill="url(#trendGradient)"
-          dot={{
-            r: 3.5,
-            fill: color,
-            stroke: "var(--bg-secondary)",
-            strokeWidth: 1.5,
-          }}
-          activeDot={{ r: 5 }}
-        />
-      </AreaChart>
-    </ResponsiveContainer>
+    <div style={{ userSelect: "none", width: "100%", height: 130 }}>
+      <ResponsiveContainer width="100%" height={130}>
+        <AreaChart
+          data={data}
+          margin={{ top: 10, right: 5, left: -10, bottom: 5 }}
+        >
+          <defs>
+            <linearGradient
+              id="trendGradient"
+              x1="0%"
+              y1="0%"
+              x2="0%"
+              y2="100%"
+            >
+              <stop offset="0%" stopColor={color} stopOpacity={0.35} />
+              <stop offset="100%" stopColor={color} stopOpacity={0.02} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid
+            strokeDasharray="3 3"
+            stroke="var(--border-color)"
+            strokeOpacity={0.3}
+            vertical={false}
+          />
+          <XAxis
+            dataKey="label"
+            tick={{ fill: "var(--text-muted)", fontSize: 9 }}
+            axisLine={{ stroke: "var(--border-color)" }}
+            tickLine={false}
+            interval={0}
+          />
+          <YAxis
+            tick={{ fill: "var(--text-muted)", fontSize: 9 }}
+            axisLine={false}
+            tickLine={false}
+            width={25}
+          />
+          <Tooltip
+            contentStyle={{
+              background: "var(--bg-secondary)",
+              border: "1px solid var(--border-color)",
+              borderRadius: "6px",
+              fontSize: "11px",
+              color: "var(--text-primary)",
+            }}
+            formatter={(value: any) => [
+              `${value} ${t("scheduled.times")}`,
+              t("scheduled.executionCount"),
+            ]}
+          />
+          <Area
+            type="monotone"
+            dataKey="value"
+            stroke={color}
+            strokeWidth={2}
+            fill="url(#trendGradient)"
+            dot={{
+              r: 3.5,
+              fill: color,
+              stroke: "var(--bg-secondary)",
+              strokeWidth: 1.5,
+            }}
+            activeDot={{ r: 5 }}
+          />
+        </AreaChart>
+      </ResponsiveContainer>
+    </div>
   );
 };
 
@@ -206,7 +216,14 @@ export const ProgressRing: React.FC<{
   const backgroundColor = isDarkTheme ? "#2a2a2a" : "#e5e7eb";
 
   return (
-    <div style={{ width: size, height: size, position: "relative" }}>
+    <div
+      style={{
+        userSelect: "none",
+        width: size,
+        height: size,
+        position: "relative",
+      }}
+    >
       <ResponsiveContainer width="100%" height="100%">
         <RadialBarChart
           cx="50%"

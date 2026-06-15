@@ -350,7 +350,6 @@ const LeftStatsPanel: React.FC<LeftStatsPanelProps> = ({
         icon: <SparklesIcon />,
       },
     ];
-
     return (
       <div
         style={{
@@ -374,12 +373,6 @@ const LeftStatsPanel: React.FC<LeftStatsPanelProps> = ({
               transition: "all 0.2s ease",
               minWidth: 0,
               boxSizing: "border-box",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = "var(--bg-secondary)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "var(--bg-tertiary)";
             }}
           >
             <div
@@ -433,14 +426,14 @@ const LeftStatsPanel: React.FC<LeftStatsPanelProps> = ({
         display: "flex",
         flexDirection: "column",
         overflowY: "auto",
+        userSelect: "none",
       }}
     >
       <div
         style={{
           padding: "10px",
           borderBottom: "1px solid var(--border-color)",
-          background:
-            "linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 100%)",
+          background: "var(--bg-secondary)",
         }}
       >
         <div
@@ -451,7 +444,7 @@ const LeftStatsPanel: React.FC<LeftStatsPanelProps> = ({
             marginBottom: "16px",
           }}
         >
-          <span style={{ fontSize: "16px", color: "var(--text-secondary)", }}>
+          <span style={{ fontSize: "16px", color: "var(--text-secondary)" }}>
             <TargetIcon />
           </span>
           <span
@@ -509,7 +502,7 @@ const LeftStatsPanel: React.FC<LeftStatsPanelProps> = ({
             marginBottom: "16px",
           }}
         >
-          <span style={{ fontSize: "16px", color: "var(--text-secondary)", }}>
+          <span style={{ fontSize: "16px", color: "var(--text-secondary)" }}>
             <PieChartIcon />
           </span>
           <span
@@ -609,7 +602,7 @@ const LeftStatsPanel: React.FC<LeftStatsPanelProps> = ({
             marginBottom: "16px",
           }}
         >
-          <span style={{ fontSize: "16px", color: "var(--text-secondary)", }}>
+          <span style={{ fontSize: "16px", color: "var(--text-secondary)" }}>
             <LineChartIcon />
           </span>
           <span
