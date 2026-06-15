@@ -10,6 +10,7 @@ export function useSession(language: Language, isConfigLoaded: boolean, onCloseS
     const [currentSessionId, setCurrentSessionId] = useState<string>("");
     const [isLoading, setIsLoading] = useState(true);
     const [taskManagerVersion, setTaskManagerVersion] = useState(0);
+    const [pendingNewSession, setPendingNewSession] = useState(false);
     const { t } = useTranslation(language);
     useEffect(() => {
         const unsubscribe = taskManager.subscribe(() => {
@@ -18,20 +19,16 @@ export function useSession(language: Language, isConfigLoaded: boolean, onCloseS
         return unsubscribe;
     }, []);
     useEffect(() => {
-        if (!isLoading && currentSessionId) {
+        if (!isLoading && currentSessionId && !currentSessionId.startsWith("temp_") && !currentSessionId.startsWith("pending_")) {
             const saveTimer = setTimeout(() => {
                 const allData = taskManager.getAllData();
-                (sessionCommands.saveChatContent as any)(
-                    currentSessionId,
-                    JSON.stringify({
-                        userMessages: allData.userMessages,
-                        assistantMessages: allData.assistantMessages,
-                    }),
-                ).catch(console.error);
-                (sessionCommands.saveTerminalContent as any)(
-                    currentSessionId,
-                    JSON.stringify(allData.tasks),
-                ).catch(console.error);
+                const userMessages = (allData?.userMessages || []) as ChatMessage[];
+                const assistantMessages = (allData?.assistantMessages || []) as ChatMessage[];
+                const allMessages = [...userMessages, ...assistantMessages].sort(
+                    (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+                );
+                sessionCommands.saveChatContent(currentSessionId, allMessages).catch(console.error);
+                sessionCommands.saveTerminalContent(currentSessionId, allData?.tasks || []).catch(console.error);
             }, 500);
             return () => clearTimeout(saveTimer);
         }
@@ -43,48 +40,32 @@ export function useSession(language: Language, isConfigLoaded: boolean, onCloseS
                 const sessions = await sessionCommands.listSessions();
                 if (sessions.length > 0) {
                     for (const session of sessions) {
-                        const chatContent = await sessionCommands.loadChatContent(
-                            session.session_id,
-                        );
-                        const terminalContent = await sessionCommands.loadTerminalContent(
-                            session.session_id,
-                        );
+                        const chatContent = await sessionCommands.loadChatContent(session.session_id);
+                        const terminalContent = await sessionCommands.loadTerminalContent(session.session_id);
                         let userMessages: ChatMessage[] = [];
                         let assistantMessages: ChatMessage[] = [];
                         let tasks: TaskInfo[] = [];
                         if (chatContent) {
-                            try {
-                                const parsed =
-                                    typeof chatContent === "string"
-                                        ? JSON.parse(chatContent)
-                                        : chatContent;
-                                userMessages = parsed?.userMessages || [];
-                                assistantMessages = parsed?.assistantMessages || [];
-                            } catch { }
+                            const allMessages = chatContent as ChatMessage[];
+                            userMessages = allMessages.filter(msg => msg.role === RoleEnum.User);
+                            assistantMessages = allMessages.filter(msg => msg.role === RoleEnum.LLM);
                         }
                         if (terminalContent) {
-                            try {
-                                const parsed =
-                                    typeof terminalContent === "string"
-                                        ? JSON.parse(terminalContent)
-                                        : terminalContent;
-                                tasks = Array.isArray(parsed) ? parsed : [];
-                            } catch { }
+                            tasks = terminalContent as TaskInfo[];
                         }
                         if (!taskManager.getTasksBySession(session.session_id)) {
-                            taskManager.loadSessionData(
-                                session.session_id,
-                                tasks,
-                                userMessages,
-                                assistantMessages,
-                            );
+                            taskManager.loadSessionData(session.session_id, tasks, userMessages, assistantMessages);
                         }
                     }
+                    const firstSession = sessions[0];
+                    setCurrentSessionId(firstSession.session_id);
+                    localStorage.setItem("hippox-current-session", firstSession.session_id);
+                    setPendingNewSession(false);
+                } else {
+                    setCurrentSessionId("");
+                    localStorage.removeItem("hippox-current-session");
+                    setPendingNewSession(false);
                 }
-                const tempSessionId = `temp_${Date.now()}`;
-                taskManager.loadSessionData(tempSessionId, [], [], []);
-                setCurrentSessionId(tempSessionId);
-                localStorage.setItem("hippox-current-session", tempSessionId);
             } catch (error) {
                 console.error("Failed to load sessions:", error);
             } finally {
@@ -93,117 +74,6 @@ export function useSession(language: Language, isConfigLoaded: boolean, onCloseS
         };
         loadSessions();
     }, [isConfigLoaded]);
-
-    useEffect(() => {
-        if (!isLoading && currentSessionId) {
-            const saveTimer = setTimeout(async () => {
-                const allData = taskManager.getAllData();
-                (sessionCommands.saveChatContent as any)(
-                    currentSessionId,
-                    JSON.stringify({
-                        userMessages: allData.userMessages,
-                        assistantMessages: allData.assistantMessages,
-                    }),
-                ).catch(console.error);
-                (sessionCommands.saveTerminalContent as any)(
-                    currentSessionId,
-                    JSON.stringify(allData.tasks),
-                ).catch(console.error);
-            }, 1000);
-            return () => clearTimeout(saveTimer);
-        }
-    }, [currentSessionId, isLoading]);
-
-    useEffect(() => {
-        if (!isLoading && currentSessionId) {
-            const saveTimer = setTimeout(async () => {
-                const allData = taskManager.getAllData();
-                (sessionCommands.saveChatContent as any)(
-                    currentSessionId,
-                    JSON.stringify({
-                        userMessages: allData.userMessages,
-                        assistantMessages: allData.assistantMessages,
-                    }),
-                ).catch(console.error);
-                (sessionCommands.saveTerminalContent as any)(
-                    currentSessionId,
-                    JSON.stringify(allData.tasks),
-                ).catch(console.error);
-            }, 500);
-            return () => clearTimeout(saveTimer);
-        }
-    }, [currentSessionId, isLoading, taskManager.getAllData()]);
-
-    const handleNewSession = useCallback(async () => {
-        const tempSessionId = `temp_${Date.now()}`;
-        taskManager.loadSessionData(tempSessionId, [], [], []);
-        setCurrentSessionId(tempSessionId);
-        localStorage.setItem("hippox-current-session", tempSessionId);
-        onCloseSkillsManager?.();
-    }, [onCloseSkillsManager]);
-
-    const handleSwitchSession = useCallback(async (sessionId: string) => {
-        if (sessionId === currentSessionId) return;
-        if (sessionId.startsWith("temp_")) return;
-        try {
-            if (currentSessionId && !currentSessionId.startsWith("temp_")) {
-                const allData = taskManager.getAllData();
-                await (sessionCommands.saveChatContent as any)(
-                    currentSessionId,
-                    JSON.stringify({
-                        userMessages: allData.userMessages,
-                        assistantMessages: allData.assistantMessages,
-                    }),
-                ).catch(console.error);
-                await (sessionCommands.saveTerminalContent as any)(
-                    currentSessionId,
-                    JSON.stringify(allData.tasks),
-                ).catch(console.error);
-            }
-            const hasData = taskManager.getTasksBySession(sessionId) !== undefined;
-            if (!hasData) {
-                const chatContent = await sessionCommands.loadChatContent(sessionId);
-                const terminalContent =
-                    await sessionCommands.loadTerminalContent(sessionId);
-                let userMessages: ChatMessage[] = [];
-                let assistantMessages: ChatMessage[] = [];
-                let tasks: TaskInfo[] = [];
-                if (chatContent) {
-                    try {
-                        const parsed =
-                            typeof chatContent === "string"
-                                ? JSON.parse(chatContent)
-                                : chatContent;
-                        userMessages = parsed?.userMessages || [];
-                        assistantMessages = parsed?.assistantMessages || [];
-                    } catch { }
-                }
-                if (terminalContent) {
-                    try {
-                        const parsed =
-                            typeof terminalContent === "string"
-                                ? JSON.parse(terminalContent)
-                                : terminalContent;
-                        tasks = Array.isArray(parsed) ? parsed : [];
-                    } catch { }
-                }
-                taskManager.loadSessionData(
-                    sessionId,
-                    tasks,
-                    userMessages,
-                    assistantMessages,
-                );
-            } else {
-                taskManager.switchToSession(sessionId);
-            }
-            setCurrentSessionId(sessionId);
-            localStorage.setItem("hippox-current-session", sessionId);
-            window.dispatchEvent(new CustomEvent("session-created"));
-        } catch (error) {
-            console.error("Failed to switch session:", error);
-        }
-    }, [currentSessionId]);
-
     const handleSendMessage = useCallback(async (
         userMessage: string,
         sessionId: string,
@@ -211,73 +81,55 @@ export function useSession(language: Language, isConfigLoaded: boolean, onCloseS
     ) => {
         const now = new Date();
         let finalSessionId = sessionId || currentSessionId;
-        const isTempSession = finalSessionId.startsWith("temp_");
-
-        if (isTempSession) {
+        if (finalSessionId && finalSessionId.startsWith("pending_")) {
             const newSessionId = `session_${Date.now()}`;
-            const sessionTitle =
-                userMessage.length > 30
-                    ? userMessage.slice(0, 30) + "..."
-                    : userMessage;
-            const tempUserMessages =
-                taskManager.getUserMessagesBySession(finalSessionId);
-            const tempAssistantMessages =
-                taskManager.getAssistantMessagesBySessionAsArray(finalSessionId);
+            const sessionTitle = userMessage.length > 30 ? userMessage.slice(0, 30) + "..." : userMessage;
+            const tempUserMessages = taskManager.getUserMessagesBySession(finalSessionId);
+            const tempAssistantMessages = taskManager.getAssistantMessagesBySessionAsArray(finalSessionId);
             const tempTasksMap = taskManager.getTasksBySession(finalSessionId);
             const tempTasks = tempTasksMap ? Array.from(tempTasksMap.values()) : [];
-            try {
-                await (sessionCommands.createSession as any)(
-                    newSessionId,
-                    sessionTitle,
-                    t("app.newSessionDesc"),
-                    JSON.stringify({
-                        userMessages: tempUserMessages,
-                        assistantMessages: tempAssistantMessages,
-                    }),
-                    JSON.stringify(tempTasks),
-                );
-                taskManager.loadSessionData(
-                    newSessionId,
-                    tempTasks,
-                    tempUserMessages,
-                    tempAssistantMessages,
-                );
-                taskManager.deleteSession(finalSessionId);
-                finalSessionId = newSessionId;
-                setCurrentSessionId(newSessionId);
-                localStorage.setItem("hippox-current-session", newSessionId);
-                window.dispatchEvent(new CustomEvent("session-created"));
-            } catch (error) {
-                console.error("Failed to create session:", error);
-            }
+            await sessionCommands.createSession(
+                newSessionId,
+                sessionTitle,
+                t("app.newSessionDesc"),
+                [],
+                []
+            );
+            taskManager.loadSessionData(newSessionId, tempTasks, tempUserMessages, tempAssistantMessages);
+            taskManager.deleteSession(finalSessionId);
+            finalSessionId = newSessionId;
+            setCurrentSessionId(newSessionId);
+            localStorage.setItem("hippox-current-session", newSessionId);
+            window.dispatchEvent(new CustomEvent("session-created"));
+            setPendingNewSession(false);
+        } else if (!finalSessionId) {
+            const newSessionId = `session_${Date.now()}`;
+            const sessionTitle = userMessage.length > 30 ? userMessage.slice(0, 30) + "..." : userMessage;
+            await sessionCommands.createSession(
+                newSessionId,
+                sessionTitle,
+                t("app.newSessionDesc"),
+                [],
+                []
+            );
+            taskManager.loadSessionData(newSessionId, [], [], []);
+            finalSessionId = newSessionId;
+            setCurrentSessionId(newSessionId);
+            localStorage.setItem("hippox-current-session", newSessionId);
+            window.dispatchEvent(new CustomEvent("session-created"));
         }
-
-        const existingMessages =
-            taskManager.getUserMessagesBySession(finalSessionId);
-        const lastMessage = existingMessages[existingMessages.length - 1];
-        const shouldAddUserMessage =
-            !lastMessage ||
-            lastMessage.content !== userMessage ||
-            Date.now() - new Date(lastMessage.timestamp).getTime() > 1000;
-
-        if (shouldAddUserMessage) {
-            const userMsg: ChatMessage = {
-                id: `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-                role: RoleEnum.User,
-                content: userMessage,
-                timestamp: now.toISOString(),
-                files: files,
-            };
-            taskManager.addUserMessageToSession(finalSessionId, userMsg);
-        }
+        const userMsg: ChatMessage = {
+            id: `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            role: RoleEnum.User,
+            content: userMessage,
+            timestamp: now.toISOString(),
+            files: files,
+        };
+        taskManager.addUserMessageToSession(finalSessionId, userMsg);
         try {
             const systemPrompt = getSystemPrompt(language as 'zh' | 'en');
             const fullMessage = `${systemPrompt}\n\n User: ${userMessage}`;
-            const taskId = await hippoxCommands.sendMessageAsync(
-                userMessage,
-                fullMessage,
-                finalSessionId,
-            );
+            const taskId = await hippoxCommands.sendMessageAsync(userMessage, fullMessage, finalSessionId);
             const messageId = `llm_${taskId}`;
             const assistantMsg: ChatMessage = {
                 id: messageId,
@@ -310,34 +162,74 @@ export function useSession(language: Language, isConfigLoaded: boolean, onCloseS
             taskManager.addAssistantMessageToSession(finalSessionId, errorMsg);
         }
     }, [currentSessionId, t, language]);
-
+    const handleNewSession = useCallback(async () => {
+        const pendingId = `pending_${Date.now()}`;
+        taskManager.loadSessionData(pendingId, [], [], []);
+        setCurrentSessionId(pendingId);
+        localStorage.setItem("hippox-current-session", pendingId);
+        setPendingNewSession(true);
+        onCloseSkillsManager?.();
+    }, [onCloseSkillsManager]);
+    const handleSwitchSession = useCallback(async (sessionId: string) => {
+        if (sessionId === currentSessionId) return;
+        if (currentSessionId && !currentSessionId.startsWith("pending_") && !currentSessionId.startsWith("temp_")) {
+            try {
+                const allData = taskManager.getAllData();
+                const userMessages = (allData?.userMessages || []) as ChatMessage[];
+                const assistantMessages = (allData?.assistantMessages || []) as ChatMessage[];
+                const allMessages = [...userMessages, ...assistantMessages].sort(
+                    (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+                );
+                await sessionCommands.saveChatContent(currentSessionId, allMessages).catch(console.error);
+                await sessionCommands.saveTerminalContent(currentSessionId, allData?.tasks || []).catch(console.error);
+            } catch (error) {
+                console.error("Failed to save current session:", error);
+            }
+        }
+        const hasData = taskManager.getTasksBySession(sessionId) !== undefined;
+        if (!hasData) {
+            const chatContent = await sessionCommands.loadChatContent(sessionId);
+            const terminalContent = await sessionCommands.loadTerminalContent(sessionId);
+            let userMessages: ChatMessage[] = [];
+            let assistantMessages: ChatMessage[] = [];
+            let tasks: TaskInfo[] = [];
+            if (chatContent) {
+                const allMessages = chatContent as ChatMessage[];
+                userMessages = allMessages.filter(msg => msg.role === RoleEnum.User);
+                assistantMessages = allMessages.filter(msg => msg.role === RoleEnum.LLM);
+            }
+            if (terminalContent) {
+                tasks = terminalContent as TaskInfo[];
+            }
+            taskManager.loadSessionData(sessionId, tasks, userMessages, assistantMessages);
+        } else {
+            taskManager.switchToSession(sessionId);
+        }
+        setCurrentSessionId(sessionId);
+        localStorage.setItem("hippox-current-session", sessionId);
+        window.dispatchEvent(new CustomEvent("session-created"));
+    }, [currentSessionId]);
+    const shouldShowWelcome = useCallback(() => {
+        if (isLoading) return true;
+        if (!currentSessionId) return true;
+        if (currentSessionId.startsWith("pending_")) {
+            const userMessages = taskManager.getUserMessagesBySession(currentSessionId);
+            const assistantMessages = taskManager.getAssistantMessagesBySessionAsArray(currentSessionId);
+            return userMessages.length === 0 && assistantMessages.length === 0;
+        }
+        const userMessages = taskManager.getUserMessagesBySession(currentSessionId);
+        const assistantMessages = taskManager.getAssistantMessagesBySessionAsArray(currentSessionId);
+        return userMessages.length === 0 && assistantMessages.length === 0;
+    }, [isLoading, currentSessionId]);
     const resetSession = useCallback(async () => {
+        if (!currentSessionId || currentSessionId.startsWith("pending_")) return;
         try {
             await hippoxCommands.resetSession();
-            const welcomeMsg: ChatMessage = {
-                id: "welcome",
-                role: RoleEnum.LLM,
-                content: t("session.reset"),
-                timestamp: new Date().toISOString(),
-            };
-            taskManager.loadSessionData(currentSessionId, [], [], [welcomeMsg]);
+            taskManager.loadSessionData(currentSessionId, [], [], []);
         } catch (error) {
             console.error("reset session error:", error);
         }
-    }, [currentSessionId, t]);
-
-    const shouldShowWelcome = useCallback(() => {
-        if (isLoading) return true;
-        if (currentSessionId?.startsWith("temp_")) {
-            const userMessages =
-                taskManager.getUserMessagesBySession(currentSessionId);
-            const assistantMessages =
-                taskManager.getAssistantMessagesBySessionAsArray(currentSessionId);
-            return userMessages.length === 0 && assistantMessages.length === 0;
-        }
-        return false;
-    }, [isLoading, currentSessionId]);
-
+    }, [currentSessionId]);
     return {
         currentSessionId,
         isLoading,

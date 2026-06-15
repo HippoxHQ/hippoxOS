@@ -173,26 +173,17 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     }
     return true;
   };
-
   useEffect(() => {
     if (shouldShowSuggestions(messages)) {
       setSuggestionPrompts(getRandomPrompts(6));
     }
   }, [messages, language]);
-
   const handleSuggestionClick = (prompt: string) => {
     const sessionId = currentSessionId || "";
     if (!sessionId) {
       showToast(ToastType.SUCCESS, "Session ID cannot be empty.");
       return;
     }
-    const userMessage: ChatMessage = {
-      id: `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      role: RoleEnum.User,
-      content: prompt,
-      timestamp: new Date().toISOString(),
-    };
-    taskManager.addUserMessageToSession(sessionId, userMessage);
     onSendMessage(prompt, sessionId);
   };
   const handleContainerClick = () => textareaRef.current?.focus();
