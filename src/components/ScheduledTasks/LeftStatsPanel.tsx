@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   ProgressRing,
   StatusPieChart,
@@ -54,10 +54,10 @@ const LineChartIcon = () => (
   </svg>
 );
 
-const BarChartIcon = () => (
+const BarChart3Icon = () => (
   <svg
-    width="16"
-    height="16"
+    width="20"
+    height="20"
     viewBox="0 0 24 24"
     fill="none"
     stroke="currentColor"
@@ -214,23 +214,6 @@ const ListIcon = () => (
   </svg>
 );
 
-const BarChart3Icon = () => (
-  <svg
-    width="20"
-    height="20"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M12 20V10" />
-    <path d="M18 20V4" />
-    <path d="M6 20v-4" />
-  </svg>
-);
-
 interface LeftStatsPanelProps {
   t: (key: string, params?: any) => string;
   stats: {
@@ -252,6 +235,23 @@ const LeftStatsPanel: React.FC<LeftStatsPanelProps> = ({
   executionTrend,
   tasks = [],
 }) => {
+  const [isDarkTheme, setIsDarkTheme] = useState(true);
+  useEffect(() => {
+    const checkTheme = () => {
+      const isDark =
+        document.documentElement.getAttribute("data-theme") === "dark" ||
+        window.matchMedia("(prefers-color-scheme: dark)").matches;
+      setIsDarkTheme(isDark);
+    };
+    checkTheme();
+    const observer = new MutationObserver(checkTheme);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-theme"],
+    });
+    return () => observer.disconnect();
+  }, []);
+
   const runningTasks = stats.enabled;
   const failedTasks = tasks.filter(
     (t: any) => t.last_status === "failed",
@@ -290,8 +290,19 @@ const LeftStatsPanel: React.FC<LeftStatsPanelProps> = ({
       value: stats.completed,
       color: "#8b5cf6",
     },
-  ].filter((d) => d.value > 0);
-  const pieChartData = pieData.map((item) => ({
+  ];
+  const nonZeroData = pieData.filter((d) => d.value > 0);
+  const hasData = nonZeroData.length > 0;
+  const emptyDataColor = isDarkTheme ? "#3a3a3a" : "#e5e7eb";
+  const emptyDataBorderColor = isDarkTheme ? "#4a4a4a" : "#d1d5db";
+  const displayPieData: Array<{ label: string; value: number; color: string }> =
+    hasData ? nonZeroData : [];
+  const pieTotal = displayPieData.reduce(
+    (sum: number, d: { label: string; value: number; color: string }) =>
+      sum + d.value,
+    0,
+  );
+  const displayPieChartData = displayPieData.map((item) => ({
     name: item.label,
     value: item.value,
     color: item.color,
@@ -300,82 +311,46 @@ const LeftStatsPanel: React.FC<LeftStatsPanelProps> = ({
     label,
     value: executionTrend.values[idx],
   }));
-  const otherStats = [
-    {
-      label: t("scheduled.running") || "运行中",
-      value: runningTasks,
-      icon: <PlayIcon />,
-      color: "#10b981",
-    },
-    {
-      label: t("scheduled.failed") || "执行失败",
-      value: failedTasks,
-      icon: <XCircleIcon />,
-      color: "#ef4444",
-    },
-    {
-      label: t("scheduled.pending") || "待执行",
-      value: pendingTasks,
-      icon: <ClockIcon />,
-      color: "#f59e0b",
-    },
-    {
-      label: t("scheduled.scheduled") || "计划中",
-      value: scheduledTasks,
-      icon: <CalendarIcon />,
-      color: "#3b82f6",
-    },
-    {
-      label: t("scheduled.newIn7Days") || "近7日新增",
-      value: newTasksCount,
-      icon: <SparklesIcon />,
-      color: "#f59e0b",
-    },
-  ];
   const completionRate =
     stats.total > 0 ? (stats.completed / stats.total) * 100 : 0;
   const enabledRate = stats.total > 0 ? (stats.enabled / stats.total) * 100 : 0;
   const successRate =
     stats.total > 0 ? (stats.completed / stats.total) * 100 : 0;
+
   const renderStatCards = () => {
     const cards = [
       {
         label: t("scheduled.total") || "总任务",
         value: stats.total,
         icon: <ListIcon />,
-        color: "#818cf8",
       },
       {
         label: t("scheduled.enabled") || "运行中",
         value: runningTasks,
         icon: <PlayIcon />,
-        color: "#10b981",
       },
       {
         label: t("scheduled.completed") || "已完成",
         value: successTasks,
         icon: <CheckCircleIcon />,
-        color: "#8b5cf6",
       },
       {
         label: t("scheduled.failed") || "失败",
         value: failedTasks,
         icon: <XCircleIcon />,
-        color: "#ef4444",
       },
       {
         label: t("scheduled.disabled") || "已暂停",
         value: stats.disabled,
         icon: <PauseIcon />,
-        color: "#6b7280",
       },
       {
         label: t("scheduled.newIn7Days") || "近7日新增",
         value: newTasksCount,
         icon: <SparklesIcon />,
-        color: "#f59e0b",
       },
     ];
+
     return (
       <div
         style={{
@@ -393,35 +368,40 @@ const LeftStatsPanel: React.FC<LeftStatsPanelProps> = ({
               display: "flex",
               alignItems: "center",
               gap: "8px",
-              padding: "10px 8px",
+              padding: "8px 10px",
               background: "var(--bg-tertiary)",
-              borderRadius: "8px",
+              borderRadius: "6px",
               transition: "all 0.2s ease",
               minWidth: 0,
               boxSizing: "border-box",
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.transform = "translateY(-1px)";
               e.currentTarget.style.background = "var(--bg-secondary)";
-              e.currentTarget.style.boxShadow = "0 2px 6px rgba(0, 0, 0, 0.1)";
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.transform = "translateY(0)";
               e.currentTarget.style.background = "var(--bg-tertiary)";
-              e.currentTarget.style.boxShadow = "none";
             }}
           >
-            <div style={{ fontSize: "20px", flexShrink: 0, color: card.color }}>
+            <div
+              style={{
+                width: "28px",
+                height: "28px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "var(--text-secondary)",
+                flexShrink: 0,
+              }}
+            >
               {card.icon}
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div
                 style={{
-                  fontSize: "18px",
-                  fontWeight: 700,
+                  fontSize: "16px",
+                  fontWeight: 500,
                   lineHeight: 1.2,
-                  wordBreak: "keep-all",
-                  color: card.color,
+                  color: "var(--text-primary)",
                 }}
               >
                 {card.value}
@@ -429,7 +409,7 @@ const LeftStatsPanel: React.FC<LeftStatsPanelProps> = ({
               <div
                 style={{
                   fontSize: "9px",
-                  color: "var(--text-secondary)",
+                  color: "var(--text-muted)",
                   marginTop: "2px",
                   whiteSpace: "nowrap",
                   overflow: "hidden",
@@ -471,7 +451,7 @@ const LeftStatsPanel: React.FC<LeftStatsPanelProps> = ({
             marginBottom: "16px",
           }}
         >
-          <span style={{ fontSize: "16px", color: "var(--accent-color)" }}>
+          <span style={{ fontSize: "16px", color: "var(--text-secondary)", }}>
             <TargetIcon />
           </span>
           <span
@@ -529,7 +509,7 @@ const LeftStatsPanel: React.FC<LeftStatsPanelProps> = ({
             marginBottom: "16px",
           }}
         >
-          <span style={{ fontSize: "16px", color: "var(--accent-color)" }}>
+          <span style={{ fontSize: "16px", color: "var(--text-secondary)", }}>
             <PieChartIcon />
           </span>
           <span
@@ -553,9 +533,10 @@ const LeftStatsPanel: React.FC<LeftStatsPanelProps> = ({
         >
           <div style={{ width: "180px", margin: "0 auto" }}>
             <StatusPieChart
-              data={pieChartData}
-              total={pieData.reduce((sum, d) => sum + d.value, 0)}
+              data={displayPieChartData}
+              total={pieTotal}
               t={t}
+              emptyColor={!hasData ? emptyDataColor : undefined}
             />
           </div>
           <div
@@ -604,7 +585,9 @@ const LeftStatsPanel: React.FC<LeftStatsPanelProps> = ({
                     textAlign: "right",
                   }}
                 >
-                  {Math.round((item.value / (stats.total || 1)) * 100)}%
+                  {stats.total > 0
+                    ? `${Math.round((item.value / stats.total) * 100)}%`
+                    : "0%"}
                 </span>
               </div>
             ))}
@@ -626,7 +609,7 @@ const LeftStatsPanel: React.FC<LeftStatsPanelProps> = ({
             marginBottom: "16px",
           }}
         >
-          <span style={{ fontSize: "16px", color: "var(--accent-color)" }}>
+          <span style={{ fontSize: "16px", color: "var(--text-secondary)", }}>
             <LineChartIcon />
           </span>
           <span
@@ -650,10 +633,10 @@ const LeftStatsPanel: React.FC<LeftStatsPanelProps> = ({
             display: "flex",
             alignItems: "center",
             gap: "8px",
-            marginBottom: "16px",
+            marginBottom: "10px",
           }}
         >
-          <span style={{ fontSize: "16px", color: "var(--accent-color)" }}>
+          <span style={{ fontSize: "16px", color: "var(--text-secondary)" }}>
             <BarChart3Icon />
           </span>
           <span

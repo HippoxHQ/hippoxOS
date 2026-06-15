@@ -38,7 +38,7 @@ import {
   LoadingSpinnerIcon,
   RefreshCwIcon,
 } from "./icons";
-import Heatmap from "./Heatmap";
+import Heatmap from "../Heatmap";
 import {
   loadAllTasksFromBackups,
   loadAllSessions,

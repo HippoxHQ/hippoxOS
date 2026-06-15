@@ -123,8 +123,8 @@ const ScheduledTasksManager: React.FC<ScheduledTasksManagerProps> = ({
 
   const handleTaskCreated = async (task: ScheduledTask) => {
     setTasks((prevTasks) => [task, ...prevTasks]);
-    setSelectedTask(task);
-    setShowRightPanel(true);
+    setSelectedTask(null);
+    setShowRightPanel(false);
     showToast(ToastType.SUCCESS, t("scheduled.addSuccess") || "创建成功");
   };
 

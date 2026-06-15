@@ -19,8 +19,8 @@ import { showTooltip } from "../Tooltip";
 
 const EditIcon = () => (
   <svg
-    width="16"
-    height="16"
+    width="14"
+    height="14"
     viewBox="0 0 24 24"
     fill="none"
     stroke="currentColor"
@@ -35,8 +35,8 @@ const EditIcon = () => (
 
 const XIcon = () => (
   <svg
-    width="14"
-    height="14"
+    width="12"
+    height="12"
     viewBox="0 0 24 24"
     fill="none"
     stroke="currentColor"
@@ -51,8 +51,8 @@ const XIcon = () => (
 
 const SaveIcon = () => (
   <svg
-    width="14"
-    height="14"
+    width="12"
+    height="12"
     viewBox="0 0 24 24"
     fill="none"
     stroke="currentColor"
@@ -68,8 +68,8 @@ const SaveIcon = () => (
 
 const TrashIcon = () => (
   <svg
-    width="14"
-    height="14"
+    width="12"
+    height="12"
     viewBox="0 0 24 24"
     fill="none"
     stroke="currentColor"
@@ -84,8 +84,8 @@ const TrashIcon = () => (
 
 const PlayIcon = () => (
   <svg
-    width="14"
-    height="14"
+    width="12"
+    height="12"
     viewBox="0 0 24 24"
     fill="none"
     stroke="currentColor"
@@ -99,8 +99,8 @@ const PlayIcon = () => (
 
 const PauseIcon = () => (
   <svg
-    width="14"
-    height="14"
+    width="12"
+    height="12"
     viewBox="0 0 24 24"
     fill="none"
     stroke="currentColor"
@@ -115,8 +115,8 @@ const PauseIcon = () => (
 
 const FolderOpenIcon = () => (
   <svg
-    width="16"
-    height="16"
+    width="14"
+    height="14"
     viewBox="0 0 24 24"
     fill="none"
     stroke="currentColor"
@@ -130,8 +130,8 @@ const FolderOpenIcon = () => (
 
 const FileIcon = () => (
   <svg
-    width="14"
-    height="14"
+    width="12"
+    height="12"
     viewBox="0 0 24 24"
     fill="none"
     stroke="currentColor"
@@ -146,8 +146,8 @@ const FileIcon = () => (
 
 const HistoryIcon = () => (
   <svg
-    width="14"
-    height="14"
+    width="12"
+    height="12"
     viewBox="0 0 24 24"
     fill="none"
     stroke="currentColor"
@@ -162,8 +162,8 @@ const HistoryIcon = () => (
 
 const CheckCircleIcon = () => (
   <svg
-    width="14"
-    height="14"
+    width="12"
+    height="12"
     viewBox="0 0 24 24"
     fill="none"
     stroke="currentColor"
@@ -178,8 +178,8 @@ const CheckCircleIcon = () => (
 
 const XCircleIcon = () => (
   <svg
-    width="14"
-    height="14"
+    width="12"
+    height="12"
     viewBox="0 0 24 24"
     fill="none"
     stroke="currentColor"
@@ -195,8 +195,8 @@ const XCircleIcon = () => (
 
 const EditPenIcon = () => (
   <svg
-    width="48"
-    height="48"
+    width="40"
+    height="40"
     viewBox="0 0 24 24"
     fill="none"
     stroke="currentColor"
@@ -443,7 +443,6 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
         };
         const response = await scheduledTasksCommands.create(request);
         onTaskCreated(response.task);
-        showToast(ToastType.SUCCESS, t("scheduled.addSuccess") || "创建成功");
         resetForm();
       }
     } catch (error) {
@@ -462,6 +461,20 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
       t("scheduled.confirmDeleteMessage", { name: task.name }) ||
         `确定要删除任务"${task.name}"吗？此操作不可撤销。`,
       async () => {
+        setIsDeleting(true);
+        try {
+          await scheduledTasksCommands.delete(task.id);
+          onTaskDeleted(task.id);
+          showToast(
+            ToastType.SUCCESS,
+            t("scheduled.deleteSuccess") || "删除成功",
+          );
+        } catch (error) {
+          console.error("Failed to delete task:", error);
+          showToast(ToastType.ERROR, t("scheduled.deleteFailed") || "删除失败");
+        } finally {
+          setIsDeleting(false);
+        }
       },
       undefined,
       t("scheduled.delete") || "删除",
@@ -538,27 +551,31 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
       setFixedMonthDays([...fixedMonthDays, day].sort());
     }
   };
+
   const labelStyle: React.CSSProperties = {
     display: "block",
-    fontSize: "12px",
+    fontSize: "11px",
     fontWeight: 500,
     color: "var(--text-secondary)",
-    marginBottom: "6px",
+    marginBottom: "4px",
   };
+
   const inputStyle: React.CSSProperties = {
     width: "100%",
-    padding: "8px 12px",
+    padding: "6px 10px",
     background: "var(--bg-tertiary)",
     border: "1px solid var(--border-color)",
     borderRadius: "6px",
     color: "var(--text-primary)",
-    fontSize: "13px",
+    fontSize: "12px",
     outline: "none",
     boxSizing: "border-box" as const,
+    transition: "border-color 0.2s",
   };
+
   const textareaStyle: React.CSSProperties = {
     ...inputStyle,
-    minHeight: "80px",
+    minHeight: "70px",
     resize: "vertical" as const,
     fontFamily: "inherit",
   };
@@ -571,21 +588,38 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
   const radioLabelStyle: React.CSSProperties = {
     display: "flex",
     alignItems: "center",
-    gap: "8px",
+    gap: "6px",
     cursor: "pointer",
-    fontSize: "13px",
+    fontSize: "12px",
     color: "var(--text-primary)",
   };
 
+  const radioInputStyle: React.CSSProperties = {
+    appearance: "none",
+    width: "14px",
+    height: "14px",
+    margin: 0,
+    background: "var(--bg-tertiary)",
+    border: "1px solid var(--border-color)",
+    borderRadius: "50%",
+    cursor: "pointer",
+    position: "relative",
+    transition: "all 0.2s",
+  };
+
   const buttonStyle: React.CSSProperties = {
-    padding: "6px 16px",
+    padding: "5px 14px",
     background: "var(--bg-tertiary)",
     border: "1px solid var(--border-color)",
     borderRadius: "6px",
     color: "var(--text-secondary)",
-    fontSize: "12px",
+    fontSize: "11px",
+    fontWeight: 500,
     cursor: "pointer",
     transition: "all 0.2s",
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
   };
 
   const primaryButtonStyle: React.CSSProperties = {
@@ -599,14 +633,16 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
     ...buttonStyle,
     color: "#ef4444",
     borderColor: "#ef4444",
+    background: "transparent",
   };
 
   const toggleButtonStyle: React.CSSProperties = {
     ...buttonStyle,
-    background: "rgba(16, 185, 129, 0.15)",
+    background: "rgba(16, 185, 129, 0.1)",
     color: "#10b981",
     border: "1px solid #10b981",
   };
+
   if (!task && !isCreating && !isSaving) {
     return (
       <div
@@ -627,14 +663,14 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
             justifyContent: "center",
             height: "100%",
             textAlign: "center",
-            padding: "40px",
+            padding: "32px",
           }}
         >
           <div
             style={{
-              fontSize: "48px",
-              opacity: 0.5,
-              marginBottom: "16px",
+              fontSize: "40px",
+              opacity: 0.4,
+              marginBottom: "12px",
               color: "var(--text-muted)",
             }}
           >
@@ -642,14 +678,14 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
           </div>
           <div
             style={{
-              fontSize: "14px",
+              fontSize: "12px",
               color: "var(--text-secondary)",
-              marginBottom: "8px",
+              marginBottom: "6px",
             }}
           >
             {t("scheduled.selectTaskToEdit") || "选择一个任务进行编辑"}
           </div>
-          <div style={{ fontSize: "12px", color: "var(--text-muted)" }}>
+          <div style={{ fontSize: "10px", color: "var(--text-muted)" }}>
             {t("scheduled.clickTaskHint") || "点击左侧任务卡片开始编辑"}
           </div>
         </div>
@@ -659,8 +695,8 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
   const isEditMode = !!task;
   return (
     <div
+      className="task-edit-panel-no-select"
       style={{
-        width: "380px",
         flexShrink: 0,
         background: "var(--bg-secondary)",
         display: "flex",
@@ -674,19 +710,19 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
         style={{
           display: "flex",
           alignItems: "center",
-          padding: "12px 16px",
+          padding: "10px 14px",
           borderBottom: "1px solid var(--border-color)",
-          gap: "10px",
+          gap: "8px",
           flexShrink: 0,
         }}
       >
-        <span style={{ fontSize: "16px", color: "var(--accent-color)" }}>
+        <span style={{ fontSize: "14px", color: "var(--text-secondary)" }}>
           <EditIcon />
         </span>
         <span
           style={{
             flex: 1,
-            fontSize: "14px",
+            fontSize: "12px",
             fontWeight: 600,
             color: "var(--text-primary)",
           }}
@@ -702,8 +738,7 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
             border: "none",
             color: "var(--text-muted)",
             cursor: "pointer",
-            fontSize: "16px",
-            padding: "4px 8px",
+            padding: "4px 6px",
             borderRadius: "4px",
             display: "flex",
             alignItems: "center",
@@ -722,11 +757,11 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
           flex: 1,
           overflowY: "auto",
           overflowX: "hidden",
-          padding: "16px",
+          padding: "12px 14px",
           minHeight: 0,
         }}
       >
-        <div style={{ marginBottom: "16px" }}>
+        <div style={{ marginBottom: "12px" }}>
           <label style={labelStyle}>
             {t("scheduled.taskName") || "任务名称"}{" "}
             <span style={{ color: "#ef4444" }}>*</span>
@@ -740,14 +775,14 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
             onMouseEnter={(e) => {
               const target = e.currentTarget;
               showTooltip(
-                t("scheduled.taskNameTooltip") || "给任务起一个易于识别的名称",
+                t("scheduled.taskNameToolTip") || "给任务起一个易于识别的名称",
                 target,
               );
             }}
           />
         </div>
 
-        <div style={{ marginBottom: "16px" }}>
+        <div style={{ marginBottom: "12px" }}>
           <label style={labelStyle}>
             {t("scheduled.taskType") || "任务类型"}
           </label>
@@ -757,6 +792,14 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
                 type="radio"
                 checked={scheduleType === "fixed"}
                 onChange={() => setScheduleType("fixed")}
+                style={radioInputStyle}
+                onMouseEnter={(e) => {
+                  const target = e.currentTarget;
+                  showTooltip(
+                    t("scheduled.fixedTooltip") || "在指定时间执行",
+                    target,
+                  );
+                }}
               />
               <span>{t("scheduled.typeFixed") || "定时执行"}</span>
             </label>
@@ -765,6 +808,14 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
                 type="radio"
                 checked={scheduleType === "interval"}
                 onChange={() => setScheduleType("interval")}
+                style={radioInputStyle}
+                onMouseEnter={(e) => {
+                  const target = e.currentTarget;
+                  showTooltip(
+                    t("scheduled.intervalToolTip") || "按固定间隔重复执行",
+                    target,
+                  );
+                }}
               />
               <span>{t("scheduled.typeInterval") || "间隔执行"}</span>
             </label>
@@ -773,7 +824,7 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
 
         {scheduleType === "fixed" && (
           <>
-            <div style={{ marginBottom: "16px" }}>
+            <div style={{ marginBottom: "12px" }}>
               <label style={labelStyle}>
                 {t("scheduled.frequency") || "执行频率"}
               </label>
@@ -798,28 +849,29 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
             </div>
 
             {fixedFrequency === "weekly" && (
-              <div style={{ marginBottom: "16px" }}>
+              <div style={{ marginBottom: "12px" }}>
                 <label style={labelStyle}>
                   {t("scheduled.weekDays") || "选择星期"}
                 </label>
-                <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+                <div style={{ display: "flex", gap: "5px", flexWrap: "wrap" }}>
                   {weekDayNames.map((day: string, idx: number) => (
                     <button
                       key={idx}
                       type="button"
                       style={{
-                        width: "36px",
-                        height: "32px",
+                        width: "32px",
+                        height: "28px",
                         background: fixedWeekDays.includes(idx)
                           ? "var(--accent-color)"
                           : "var(--bg-tertiary)",
                         border: "1px solid var(--border-color)",
-                        borderRadius: "6px",
+                        borderRadius: "5px",
                         color: fixedWeekDays.includes(idx)
                           ? "white"
                           : "var(--text-secondary)",
                         cursor: "pointer",
-                        fontSize: "12px",
+                        fontSize: "11px",
+                        transition: "all 0.2s",
                       }}
                       onClick={() => toggleWeekDay(idx)}
                       onMouseEnter={(e) => {
@@ -838,16 +890,16 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
             )}
 
             {fixedFrequency === "monthly" && (
-              <div style={{ marginBottom: "16px" }}>
+              <div style={{ marginBottom: "12px" }}>
                 <label style={labelStyle}>
                   {t("scheduled.monthDays") || "选择日期"}
                 </label>
                 <div
                   style={{
                     display: "flex",
-                    gap: "6px",
+                    gap: "5px",
                     flexWrap: "wrap",
-                    maxHeight: "120px",
+                    maxHeight: "100px",
                     overflowY: "auto",
                   }}
                 >
@@ -856,18 +908,19 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
                       key={day}
                       type="button"
                       style={{
-                        width: "36px",
-                        height: "32px",
+                        width: "32px",
+                        height: "28px",
                         background: fixedMonthDays.includes(day)
                           ? "var(--accent-color)"
                           : "var(--bg-tertiary)",
                         border: "1px solid var(--border-color)",
-                        borderRadius: "6px",
+                        borderRadius: "5px",
                         color: fixedMonthDays.includes(day)
                           ? "white"
                           : "var(--text-secondary)",
                         cursor: "pointer",
-                        fontSize: "12px",
+                        fontSize: "11px",
+                        transition: "all 0.2s",
                       }}
                       onClick={() => toggleMonthDay(day)}
                       onMouseEnter={(e) => {
@@ -887,7 +940,7 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
             )}
 
             {fixedFrequency === "once" && (
-              <div style={{ marginBottom: "16px" }}>
+              <div style={{ marginBottom: "12px" }}>
                 <label style={labelStyle}>
                   {t("scheduled.date") || "执行日期"}
                 </label>
@@ -900,13 +953,13 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
               </div>
             )}
 
-            <div style={{ marginBottom: "16px" }}>
+            <div style={{ marginBottom: "12px" }}>
               <label style={labelStyle}>
                 {t("scheduled.time") || "执行时间"}
               </label>
               <input
                 type="time"
-                style={{ ...inputStyle, maxWidth: "150px" }}
+                style={{ ...inputStyle, maxWidth: "120px" }}
                 value={fixedTime}
                 onChange={(e) => setFixedTime(e.target.value)}
               />
@@ -915,7 +968,7 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
         )}
 
         {scheduleType === "interval" && (
-          <div style={{ display: "flex", gap: "12px", marginBottom: "16px" }}>
+          <div style={{ display: "flex", gap: "10px", marginBottom: "12px" }}>
             <div style={{ flex: 1 }}>
               <label style={labelStyle}>
                 {t("scheduled.intervalValue") || "间隔数值"}
@@ -956,7 +1009,7 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
           </div>
         )}
 
-        <div style={{ marginBottom: "16px" }}>
+        <div style={{ marginBottom: "12px" }}>
           <label style={labelStyle}>
             {t("scheduled.actionType") || "动作类型"}
           </label>
@@ -966,6 +1019,7 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
                 type="radio"
                 checked={actionType === "naturallanguage"}
                 onChange={() => setActionType("naturallanguage")}
+                style={radioInputStyle}
               />
               <span>{t("scheduled.typeNatural") || "自然语言"}</span>
             </label>
@@ -974,6 +1028,7 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
                 type="radio"
                 checked={actionType === "skillfile"}
                 onChange={() => setActionType("skillfile")}
+                style={radioInputStyle}
               />
               <span>{t("scheduled.typeSkillFile") || "SKILL.md 文件"}</span>
             </label>
@@ -981,7 +1036,7 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
         </div>
 
         {actionType === "naturallanguage" && (
-          <div style={{ marginBottom: "16px" }}>
+          <div style={{ marginBottom: "12px" }}>
             <label style={labelStyle}>
               {t("scheduled.taskDescription") || "任务描述"}
             </label>
@@ -993,13 +1048,13 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
                 t("scheduled.naturalLanguagePlaceholder") ||
                 "例如：每天凌晨2点备份数据库到 /backup 目录"
               }
-              rows={4}
+              rows={3}
             />
           </div>
         )}
 
         {actionType === "skillfile" && (
-          <div style={{ marginBottom: "16px" }}>
+          <div style={{ marginBottom: "12px" }}>
             <label style={labelStyle}>
               {t("scheduled.skillFile") || "SKILL.md 文件"}
             </label>
@@ -1032,17 +1087,17 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  gap: "8px",
+                  gap: "6px",
                   flexWrap: "wrap",
                 }}
               >
                 <span
                   style={{
-                    fontSize: "13px",
+                    fontSize: "11px",
                     color: "var(--text-primary)",
                     background: "var(--bg-tertiary)",
-                    padding: "6px 12px",
-                    borderRadius: "6px",
+                    padding: "5px 10px",
+                    borderRadius: "5px",
                     display: "flex",
                     alignItems: "center",
                     gap: "4px",
@@ -1074,8 +1129,8 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
         {isEditMode && task && task.last_executed_at && (
           <div
             style={{
-              marginTop: "20px",
-              paddingTop: "16px",
+              marginTop: "16px",
+              paddingTop: "12px",
               borderTop: "1px solid var(--border-color)",
             }}
           >
@@ -1083,11 +1138,11 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
               style={{
                 display: "flex",
                 alignItems: "center",
-                gap: "6px",
-                fontSize: "12px",
+                gap: "5px",
+                fontSize: "10px",
                 fontWeight: 600,
                 color: "var(--text-secondary)",
-                marginBottom: "12px",
+                marginBottom: "8px",
               }}
             >
               <HistoryIcon />
@@ -1098,10 +1153,10 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
-                padding: "8px 12px",
+                padding: "6px 10px",
                 background: "var(--bg-tertiary)",
-                borderRadius: "6px",
-                fontSize: "11px",
+                borderRadius: "5px",
+                fontSize: "10px",
               }}
             >
               <span style={{ color: "var(--text-muted)" }}>
@@ -1112,7 +1167,7 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
                   color: task.last_status === "failed" ? "#ef4444" : "#10b981",
                   display: "flex",
                   alignItems: "center",
-                  gap: "4px",
+                  gap: "3px",
                 }}
               >
                 {task.last_status === "failed" ? (
@@ -1125,8 +1180,8 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
             </div>
             <div
               style={{
-                marginTop: "8px",
-                fontSize: "11px",
+                marginTop: "6px",
+                fontSize: "10px",
                 color: "var(--text-muted)",
                 textAlign: "right",
               }}
@@ -1138,15 +1193,473 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
             </div>
           </div>
         )}
+
+        {isEditMode && task && (
+          <div
+            style={{
+              marginTop: "16px",
+              padding: "10px",
+              background: "var(--bg-tertiary)",
+              borderRadius: "6px",
+              fontSize: "12px",
+              display: "flex",
+              flexDirection: "column",
+              gap: "10px",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: "8px",
+              }}
+            >
+              <span
+                style={{
+                  color: "var(--text-secondary)",
+                  flexShrink: 0,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "4px",
+                }}
+              >
+                {task.enabled ? (
+                  <svg
+                    width="12"
+                    height="12"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <polygon points="5 3 19 12 5 21 5 3" />
+                  </svg>
+                ) : (
+                  <svg
+                    width="12"
+                    height="12"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <rect x="6" y="4" width="4" height="16" />
+                    <rect x="14" y="4" width="4" height="16" />
+                  </svg>
+                )}
+                {t("scheduled.status") || "状态"}:
+              </span>
+              <span
+                style={{
+                  flex: 1,
+                  color: task.enabled
+                    ? "#10b981"
+                    : task.completed
+                      ? "#8b5cf6"
+                      : "var(--text-muted)",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                  fontSize: "11px",
+                  cursor: "pointer",
+                }}
+                onMouseEnter={(e) => {
+                  const statusText = task.completed
+                    ? t("scheduled.completed") || "已完成"
+                    : task.enabled
+                      ? t("scheduled.enabled") || "已启用"
+                      : t("scheduled.disabled") || "已禁用";
+                  showTooltip(statusText, e.currentTarget);
+                }}
+              >
+                {task.completed
+                  ? t("scheduled.completed") || "已完成"
+                  : task.enabled
+                    ? t("scheduled.enabled") || "已启用"
+                    : t("scheduled.disabled") || "已禁用"}
+              </span>
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: "8px",
+              }}
+            >
+              <span
+                style={{
+                  color: "var(--text-secondary)",
+                  flexShrink: 0,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "4px",
+                }}
+              >
+                <FileIcon />
+                ID:
+              </span>
+              <span
+                style={{
+                  flex: 1,
+                  color: "var(--text-secondary)",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                  fontSize: "11px",
+                  fontFamily: "monospace",
+                  cursor: "pointer",
+                }}
+                onMouseEnter={(e) => {
+                  showTooltip(task.id, e.currentTarget);
+                }}
+              >
+                {task.id}
+              </span>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(task.id);
+                  showToast(ToastType.SUCCESS, t("common.copied") || "已复制");
+                }}
+                style={{
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  color: "var(--text-muted)",
+                  padding: "2px 4px",
+                  borderRadius: "4px",
+                  fontSize: "10px",
+                  display: "flex",
+                  alignItems: "center",
+                  flexShrink: 0,
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "var(--bg-secondary)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "none";
+                }}
+              >
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                </svg>
+              </button>
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: "8px",
+              }}
+            >
+              <span
+                style={{
+                  color: "var(--text-secondary)",
+                  flexShrink: 0,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "4px",
+                }}
+              >
+                <EditIcon />
+                {t("scheduled.taskName") || "名称"}:
+              </span>
+              <span
+                style={{
+                  flex: 1,
+                  color: "var(--text-secondary)",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                  fontSize: "11px",
+                  cursor: "pointer",
+                }}
+                onMouseEnter={(e) => {
+                  showTooltip(task.name, e.currentTarget);
+                }}
+              >
+                {task.name}
+              </span>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(task.name);
+                  showToast(ToastType.SUCCESS, t("common.copied") || "已复制");
+                }}
+                style={{
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  color: "var(--text-muted)",
+                  padding: "2px 4px",
+                  borderRadius: "4px",
+                  fontSize: "10px",
+                  display: "flex",
+                  alignItems: "center",
+                  flexShrink: 0,
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "var(--bg-secondary)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "none";
+                }}
+              >
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                </svg>
+              </button>
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: "8px",
+              }}
+            >
+              <span
+                style={{
+                  color: "var(--text-secondary)",
+                  flexShrink: 0,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "4px",
+                }}
+              >
+                <HistoryIcon />
+                {t("scheduled.createdAt") || "创建时间"}:
+              </span>
+              <span
+                style={{
+                  flex: 1,
+                  color: "var(--text-secondary)",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                  fontSize: "11px",
+                  cursor: "pointer",
+                }}
+                onMouseEnter={(e) => {
+                  showTooltip(
+                    new Date(task.created_at).toLocaleString(),
+                    e.currentTarget,
+                  );
+                }}
+              >
+                {new Date(task.created_at).toLocaleString()}
+              </span>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(
+                    new Date(task.created_at).toLocaleString(),
+                  );
+                  showToast(ToastType.SUCCESS, t("common.copied") || "已复制");
+                }}
+                style={{
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  color: "var(--text-muted)",
+                  padding: "2px 4px",
+                  borderRadius: "4px",
+                  fontSize: "10px",
+                  display: "flex",
+                  alignItems: "center",
+                  flexShrink: 0,
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "var(--bg-secondary)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "none";
+                }}
+              >
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                </svg>
+              </button>
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: "8px",
+              }}
+            >
+              <span
+                style={{
+                  color: "var(--text-secondary)",
+                  flexShrink: 0,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "4px",
+                }}
+              >
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <circle cx="12" cy="12" r="10" />
+                  <polyline points="12 6 12 12 16 14" />
+                </svg>
+                {t("scheduled.updatedAt") || "更新时间"}:
+              </span>
+              <span
+                style={{
+                  flex: 1,
+                  color: "var(--text-secondary)",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                  fontSize: "11px",
+                  cursor: "pointer",
+                }}
+                onMouseEnter={(e) => {
+                  showTooltip(
+                    new Date(task.updated_at).toLocaleString(),
+                    e.currentTarget,
+                  );
+                }}
+              >
+                {new Date(task.updated_at).toLocaleString()}
+              </span>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(
+                    new Date(task.updated_at).toLocaleString(),
+                  );
+                  showToast(ToastType.SUCCESS, t("common.copied") || "已复制");
+                }}
+                style={{
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  color: "var(--text-muted)",
+                  padding: "2px 4px",
+                  borderRadius: "4px",
+                  fontSize: "10px",
+                  display: "flex",
+                  alignItems: "center",
+                  flexShrink: 0,
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "var(--bg-secondary)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "none";
+                }}
+              >
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                </svg>
+              </button>
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: "8px",
+              }}
+            >
+              <span
+                style={{
+                  color: "var(--text-secondary)",
+                  flexShrink: 0,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "4px",
+                }}
+              >
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+                {t("scheduled.executeCount") || "执行次数"}:
+              </span>
+              <span
+                style={{
+                  flex: 1,
+                  color: "var(--text-secondary)",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                  fontSize: "11px",
+                  cursor: "pointer",
+                }}
+                onMouseEnter={(e) => {
+                  showTooltip(
+                    `${t("scheduled.executeCount") || "执行次数"}: ${task.execution_count || 0} ${t("scheduled.times") || "次"}`,
+                    e.currentTarget,
+                  );
+                }}
+              >
+                {task.execution_count || 0} {t("scheduled.times") || "次"}
+              </span>
+            </div>
+          </div>
+        )}
       </div>
 
       <div
         style={{
-          padding: "12px 16px",
+          padding: "10px 14px",
           borderTop: "1px solid var(--border-color)",
           display: "flex",
-          gap: "12px",
+          gap: "10px",
           flexShrink: 0,
+          justifyContent: "flex-end",
         }}
       >
         {isEditMode && (
@@ -1202,5 +1715,57 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
     </div>
   );
 };
+
+const radioCheckedStyle = `
+input[type="radio"]:checked {
+  background: #a0a0a0 !important;
+  border-color: #a0a0a0 !important;
+  box-shadow: inset 0 0 0 2px var(--bg-secondary) !important;
+}
+  input[type="radio"]:checked:hover {
+    background: var(--accent-color);
+  }
+  input[type="radio"]:focus {
+    outline: none;
+  }
+`;
+
+const noSelectStyle = `
+.task-edit-panel-no-select {
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+.task-edit-panel-no-select input,
+.task-edit-panel-no-select textarea,
+.task-edit-panel-no-select [contenteditable="true"] {
+  user-select: text;
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+}
+`;
+
+if (typeof document !== "undefined") {
+  const noSelectStyleId = "task-edit-panel-no-select-styles";
+  if (!document.getElementById(noSelectStyleId)) {
+    const style = document.createElement("style");
+    style.id = noSelectStyleId;
+    style.textContent = noSelectStyle;
+    document.head.appendChild(style);
+  }
+}
+
+if (typeof document !== "undefined") {
+  const styleId = "task-edit-radio-styles";
+  if (!document.getElementById(styleId)) {
+    const style = document.createElement("style");
+    style.id = styleId;
+    style.textContent = radioCheckedStyle;
+    document.head.appendChild(style);
+  }
+}
 
 export default TaskEditPanel;

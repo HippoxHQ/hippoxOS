@@ -15,7 +15,16 @@ import {
 } from "recharts";
 
 const ChartIcon = () => (
-  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+  <svg
+    width="48"
+    height="48"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
     <path d="M21 12v3a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4v-3" />
     <path d="M12 2v8" />
     <path d="m16 6-4 4-4-4" />
@@ -26,17 +35,49 @@ export const StatusPieChart: React.FC<{
   data: Array<{ name: string; value: number; color: string }>;
   total: number;
   t: (key: string) => string;
-}> = ({ data, total, t }) => {
-  if (total === 0) {
+  emptyColor?: string;
+}> = ({ data, total, t, emptyColor }) => {
+  const hasData = data.some((d) => d.value > 0);
+
+  if (!hasData) {
+    let defaultEmptyColor = emptyColor || "#e5e7eb";
     return (
-      <div className="pie-empty">
-        <div className="pie-empty-icon" style={{ color: "var(--text-muted)" }}>
-          <ChartIcon />
-        </div>
-        <div className="pie-empty-text">
-          {t("scheduled.noData") || "暂无数据"}
-        </div>
-      </div>
+      <ResponsiveContainer width="100%" height={140}>
+        <PieChart>
+          <Pie
+            data={[{ name: "empty", value: 1, color: defaultEmptyColor }]}
+            cx="50%"
+            cy="50%"
+            innerRadius={35}
+            outerRadius={55}
+            dataKey="value"
+            stroke="none"
+          >
+            <Cell fill={defaultEmptyColor} />
+          </Pie>
+          <text
+            x="50%"
+            y="48%"
+            textAnchor="middle"
+            dominantBaseline="middle"
+            fill="var(--text-primary)"
+            fontSize="16"
+            fontWeight="bold"
+          >
+            0
+          </text>
+          <text
+            x="50%"
+            y="62%"
+            textAnchor="middle"
+            dominantBaseline="middle"
+            fill="var(--text-secondary)"
+            fontSize="9"
+          >
+            {t("scheduled.total") || "总计"}
+          </text>
+        </PieChart>
+      </ResponsiveContainer>
     );
   }
 
@@ -158,6 +199,11 @@ export const ProgressRing: React.FC<{
   size?: number;
 }> = ({ percentage, label, color, size = 70 }) => {
   const data = [{ name: label, value: percentage, fill: color }];
+  const isDarkTheme =
+    typeof document !== "undefined" &&
+    (document.documentElement.getAttribute("data-theme") === "dark" ||
+      window.matchMedia("(prefers-color-scheme: dark)").matches);
+  const backgroundColor = isDarkTheme ? "#2a2a2a" : "#e5e7eb";
 
   return (
     <div style={{ width: size, height: size, position: "relative" }}>
@@ -172,7 +218,12 @@ export const ProgressRing: React.FC<{
           startAngle={90}
           endAngle={-270}
         >
-          <RadialBar background dataKey="value" cornerRadius={4} fill={color} />
+          <RadialBar
+            background={{ fill: backgroundColor }}
+            dataKey="value"
+            cornerRadius={4}
+            fill={color}
+          />
         </RadialBarChart>
       </ResponsiveContainer>
       <div

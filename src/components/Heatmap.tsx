@@ -1,5 +1,5 @@
 import React from "react";
-import { formatLocalDate } from "./utils";
+import { formatLocalDate } from "./UserProfile/utils";
 
 interface HeatmapProps {
   data: any[];
