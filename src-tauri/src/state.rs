@@ -2,6 +2,7 @@ use crate::commands::types::{StepInfo, TaskInfo};
 use crate::commands::{
     load_config_from_file, write_log, ExecutionLog, LogMessages, HIPPOX_APP_CONFIG,
 };
+use crate::scheduled_task_pool::TaskPool;
 use crate::workspace::get_default_workspace;
 use hippox::ModelProvider;
 use hippox::{Hippox, WorkflowMode};
@@ -41,6 +42,7 @@ pub struct AppState {
     pub language: Arc<Mutex<String>>,
     pub tasks: Arc<Mutex<HashMap<String, StoredTask>>>,
     pub memcontext: Arc<Mutex<Option<Arc<MemContext>>>>,
+    pub task_pool: Arc<Mutex<Option<TaskPool>>>,
 }
 
 impl AppState {
@@ -50,6 +52,7 @@ impl AppState {
             language: Arc::new(Mutex::new("en".to_string())),
             tasks: Arc::new(Mutex::new(HashMap::new())),
             memcontext: Arc::new(Mutex::new(None)),
+            task_pool: Arc::new(Mutex::new(None)),
         }
     }
 
@@ -69,6 +72,16 @@ impl AppState {
 
     pub async fn get_language(&self) -> String {
         self.language.lock().await.clone()
+    }
+
+    pub async fn set_task_pool(&self, pool: TaskPool) {
+        let mut guard = self.task_pool.lock().await;
+        *guard = Some(pool);
+    }
+
+    pub async fn get_task_pool(&self) -> Option<TaskPool> {
+        let guard = self.task_pool.lock().await;
+        guard.clone()
     }
 
     pub async fn add_log(

@@ -1,8 +1,12 @@
 use crate::commands::paths::get_app_root_dir;
+use crate::scheduled_task::scheduled_task_executor;
+use crate::scheduled_task_pool;
+use crate::state::AppState;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
+use tauri::State;
 use tokio::sync::Mutex;
 use uuid::Uuid;
 
@@ -30,7 +34,7 @@ pub enum ScheduleType {
     Interval,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub enum ActionType {
     NaturalLanguage,
@@ -156,7 +160,7 @@ fn create_task_directory(task_id: &str) -> Result<(), String> {
 }
 
 /// Save task configuration to file
-fn save_task_config(task: &ScheduledTask) -> Result<(), String> {
+pub fn save_task_config(task: &ScheduledTask) -> Result<(), String> {
     let task_dir = get_task_dir(&task.id);
     if !task_dir.exists() {
         create_task_directory(&task.id)?;
@@ -171,7 +175,7 @@ fn save_task_config(task: &ScheduledTask) -> Result<(), String> {
 }
 
 /// Save natural language content (always created, even if empty)
-fn save_natural_language_content(task_id: &str, content: &str) -> Result<(), String> {
+pub fn save_natural_language_content(task_id: &str, content: &str) -> Result<(), String> {
     let natural_lang_path = get_task_natural_language_path(task_id);
     let natural_lang = NaturalLanguageContent {
         content: content.to_string(),
@@ -184,14 +188,14 @@ fn save_natural_language_content(task_id: &str, content: &str) -> Result<(), Str
 }
 
 /// Save SKILL.md content
-fn save_skill_md_content(task_id: &str, content: &str) -> Result<(), String> {
+pub fn save_skill_md_content(task_id: &str, content: &str) -> Result<(), String> {
     let skill_md_path = get_task_skill_md_path(task_id);
     fs::write(&skill_md_path, content).map_err(|e| format!("Failed to write SKILL.md: {}", e))?;
     Ok(())
 }
 
 /// Load task configuration from file
-fn load_task_config(task_id: &str) -> Result<Option<ScheduledTask>, String> {
+pub fn load_task_config(task_id: &str) -> Result<Option<ScheduledTask>, String> {
     let config_path = get_task_config_path(task_id);
     if !config_path.exists() {
         return Ok(None);
@@ -204,7 +208,9 @@ fn load_task_config(task_id: &str) -> Result<Option<ScheduledTask>, String> {
 }
 
 /// Load natural language content from file
-fn load_natural_language_content(task_id: &str) -> Result<Option<NaturalLanguageContent>, String> {
+pub fn load_natural_language_content(
+    task_id: &str,
+) -> Result<Option<NaturalLanguageContent>, String> {
     let natural_lang_path = get_task_natural_language_path(task_id);
     if !natural_lang_path.exists() {
         return Ok(None);
@@ -217,7 +223,7 @@ fn load_natural_language_content(task_id: &str) -> Result<Option<NaturalLanguage
 }
 
 /// Load SKILL.md content from file
-fn load_skill_md_content(task_id: &str) -> Result<Option<String>, String> {
+pub fn load_skill_md_content(task_id: &str) -> Result<Option<String>, String> {
     let skill_md_path = get_task_skill_md_path(task_id);
     if !skill_md_path.exists() {
         return Ok(None);
@@ -295,6 +301,7 @@ pub struct ScheduledTaskResponse {
 /// Create a scheduled task
 #[tauri::command]
 pub async fn cmd_scheduled_task_create(
+    state: State<'_, AppState>,
     request: CreateScheduledTaskRequest,
 ) -> Result<ScheduledTaskResponse, String> {
     let task_id = get_next_task_id()?;
@@ -330,6 +337,11 @@ pub async fn cmd_scheduled_task_create(
         save_skill_md_content(&task_id, &skill_content)?;
     }
 
+    // Add to task pool
+    if let Some(pool) = state.get_task_pool().await {
+        let _ = scheduled_task_pool::add_task_to_pool(pool, task.clone()).await;
+    }
+
     Ok(ScheduledTaskResponse {
         task,
         natural_language_content: Some(natural_content),
@@ -344,6 +356,7 @@ pub async fn cmd_scheduled_task_create(
 /// Update a scheduled task
 #[tauri::command]
 pub async fn cmd_scheduled_task_update(
+    state: State<'_, AppState>,
     request: UpdateScheduledTaskRequest,
 ) -> Result<ScheduledTaskResponse, String> {
     let now = chrono::Local::now().to_rfc3339();
@@ -383,6 +396,11 @@ pub async fn cmd_scheduled_task_update(
     let skill_content = request.skill_md_content.unwrap_or_default();
     if !skill_content.is_empty() {
         save_skill_md_content(&request.id, &skill_content)?;
+    }
+
+    // Update task pool
+    if let Some(pool) = state.get_task_pool().await {
+        let _ = scheduled_task_pool::update_task_in_pool(pool, task.clone()).await;
     }
 
     Ok(ScheduledTaskResponse {
@@ -432,7 +450,15 @@ pub async fn cmd_scheduled_task_list() -> Result<Vec<ScheduledTask>, String> {
 
 /// Delete a scheduled task
 #[tauri::command]
-pub async fn cmd_scheduled_task_delete(task_id: String) -> Result<bool, String> {
+pub async fn cmd_scheduled_task_delete(
+    state: State<'_, AppState>,
+    task_id: String,
+) -> Result<bool, String> {
+    // Remove from task pool first
+    if let Some(pool) = state.get_task_pool().await {
+        scheduled_task_pool::remove_task_from_pool(pool, &task_id).await;
+    }
+
     let task_dir = get_task_dir(&task_id);
     if task_dir.exists() {
         fs::remove_dir_all(&task_dir)
@@ -444,6 +470,7 @@ pub async fn cmd_scheduled_task_delete(task_id: String) -> Result<bool, String> 
 /// Enable/disable a scheduled task
 #[tauri::command]
 pub async fn cmd_scheduled_task_toggle(
+    state: State<'_, AppState>,
     task_id: String,
     enabled: bool,
 ) -> Result<ScheduledTask, String> {
@@ -452,12 +479,21 @@ pub async fn cmd_scheduled_task_toggle(
     task.enabled = enabled;
     task.updated_at = chrono::Local::now().to_rfc3339();
     save_task_config(&task)?;
+
+    // Sync with task pool
+    if let Some(pool) = state.get_task_pool().await {
+        let _ = scheduled_task_pool::toggle_task_in_pool(pool, &task_id, enabled).await;
+    }
+
     Ok(task)
 }
 
 /// Mark a task as completed
 #[tauri::command]
-pub async fn cmd_scheduled_task_complete(task_id: String) -> Result<ScheduledTask, String> {
+pub async fn cmd_scheduled_task_complete(
+    state: State<'_, AppState>,
+    task_id: String,
+) -> Result<ScheduledTask, String> {
     let mut task =
         load_task_config(&task_id)?.ok_or_else(|| format!("Task not found: {}", task_id))?;
     task.completed = true;
@@ -465,6 +501,12 @@ pub async fn cmd_scheduled_task_complete(task_id: String) -> Result<ScheduledTas
     task.updated_at = chrono::Local::now().to_rfc3339();
     task.last_executed_at = Some(chrono::Local::now().to_rfc3339());
     save_task_config(&task)?;
+
+    // Remove from task pool (disable)
+    if let Some(pool) = state.get_task_pool().await {
+        let _ = scheduled_task_pool::toggle_task_in_pool(pool, &task_id, false).await;
+    }
+
     Ok(task)
 }
 

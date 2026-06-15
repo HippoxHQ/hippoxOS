@@ -9,6 +9,7 @@ dependencies = [
  "async-trait",
  "base64 0.22.1",
  "chrono",
+ "cron",
  "dirs 6.0.0",
  "fs_extra",
  "futures",

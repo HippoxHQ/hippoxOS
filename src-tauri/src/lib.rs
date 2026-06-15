@@ -32,7 +32,7 @@ use tauri_plugin_autostart::MacosLauncher;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    // application status
+    let rt = tokio::runtime::Runtime::new().unwrap();
     let app_state = AppState::new();
     // init dir
     if let Err(e) = commands::init_directories() {
@@ -52,9 +52,7 @@ pub fn run() {
     }
     // Initialize profile
     match commands::init_default_profile() {
-        Ok(profile) => {
-            println!("Profile initialized: {} ({})", profile.name, profile.id);
-        }
+        Ok(profile) => {}
         Err(e) => {
             eprintln!("Failed to initialize profile: {}", e);
         }
@@ -63,43 +61,35 @@ pub fn run() {
     if !skills_dir.exists() {
         let _ = std::fs::create_dir_all(&skills_dir);
     }
-    tokio::runtime::Runtime::new().unwrap().block_on(async {
+    rt.block_on(async {
         let _ = commands::load_config_from_file().await;
-    });
-    tokio::runtime::Runtime::new().unwrap().block_on(async {
         if let Err(e) = sync_all_to_hippox_core().await {
             eprintln!("Failed to sync config to Hippox core: {}", e);
         }
-    });
-    tokio::runtime::Runtime::new().unwrap().block_on(async {
         if let Err(e) = init_all_hippox_instances().await {
             eprintln!("Failed to initialize Hippox instances: {}", e);
         }
-        println!("Hippox Core Config: {:?}", get_hippox_core_config());
-    });
-    thread::spawn(|| {
-        println!("Initializing skills market...");
-        let rt = tokio::runtime::Runtime::new().unwrap();
-        rt.block_on(async {
-            match commands::update_skills_market().await {
-                Ok(skills) => {
-                    println!("Skills market ready: {} skills available", skills.len());
-                }
-                Err(e) => eprintln!("Failed to initialize skills market: {}", e),
-            }
-        });
-    });
-    tokio::runtime::Runtime::new().unwrap().block_on(async {
         match Context::new().await {
             Ok(mem) => {
                 app_state.set_memcontext(mem).await;
             }
             Err(e) => eprintln!("Failed to initialize MemContext: {}", e),
         }
+        let task_pool = scheduled_task_pool::init_task_pool().await;
+        let task_pool_for_state = task_pool.clone();
+        app_state.set_task_pool(task_pool_for_state).await;
+        scheduled_task_persist_task_pool::scheduled_task_persist_task_pool(task_pool.clone()).await;
     });
-    tokio::runtime::Runtime::new().unwrap().block_on(async {
-        scheduled_task_persist_task_pool().await;
+    thread::spawn(|| {
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        rt.block_on(async {
+            match commands::update_skills_market().await {
+                Ok(skills) => {}
+                Err(e) => eprintln!("Failed to initialize skills market: {}", e),
+            }
+        });
     });
+    let _guard = rt.enter();
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_autostart::init(
