@@ -100,7 +100,10 @@ class NotificationManager {
                 let errorMsg = error || output || "Unknown error";
                 errorMsg = errorMsg
                     .replace(/[\u0000-\u001F\u007F-\u009F]/g, '')
-                    .replace(/\\u[0-9a-fA-F]{0,3}$/g, '');
+                    .replace(/\\u[0-9a-fA-F]{0,3}$/g, '')
+                    .replace(/\\u[0-9a-fA-F]{1,3}\s/g, ' ')
+                    .replace(/[^\x20-\x7E\u4e00-\u9fa5]/g, '')
+                    .slice(0, 200);
                 this.add({
                     title: "notification.taskStepUpdate",
                     message: `Step "${step_name}" failed: ${errorMsg}`,

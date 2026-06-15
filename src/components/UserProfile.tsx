@@ -18,6 +18,7 @@ import "react-calendar-heatmap/dist/styles.css";
 import { sysCommands } from "../command/sys";
 import { showToast, ToastType } from "./Toast";
 import { showTooltip } from "./Tooltip";
+import { taskPoolCommands } from "../core/TaskPool";
 
 const UserIcon = () => (
   <svg
@@ -341,6 +342,17 @@ const UserProfile: React.FC<UserProfileProps> = ({
   );
   const [dialogData, setDialogData] = useState<any[]>([]);
   const heatmapContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const persistTaskPool = async () => {
+      try {
+        const result = await taskPoolCommands.persist();
+      } catch (error) {
+        console.error("Failed to persist task pool:", error);
+      }
+    };
+    persistTaskPool();
+  }, []);
 
   useEffect(() => {
     generateMockTokenData();

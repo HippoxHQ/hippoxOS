@@ -6,6 +6,7 @@ mod context;
 mod events;
 mod hippox_core;
 mod llm;
+mod scheduled_task;
 mod state;
 mod types;
 mod windows;
@@ -18,6 +19,7 @@ use crate::context::Context;
 use crate::events::handle_window_event;
 use crate::hippox_core::*;
 use crate::llm::*;
+use crate::scheduled_task::*;
 use crate::state::AppState;
 use crate::windows::TrayManager;
 use crate::workspace::ensure_workspace_config;
@@ -97,6 +99,9 @@ pub fn run() {
             }
             Err(e) => eprintln!("Failed to initialize MemContext: {}", e),
         }
+    });
+    tokio::runtime::Runtime::new().unwrap().block_on(async {
+        scheduled_task_persist_task_pool().await;
     });
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())

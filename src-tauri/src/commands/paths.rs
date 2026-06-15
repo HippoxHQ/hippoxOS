@@ -150,6 +150,11 @@ pub fn cleanup_old_logs(max_size_mb: u64) -> Result<u64, String> {
     Ok(deleted_count)
 }
 
+/// Get taskpool backup directory: HippoX/taskpool
+pub fn get_taskpool_dir() -> PathBuf {
+    get_app_root_dir().join("taskpool")
+}
+
 /// Initialize all directories
 pub fn init_directories() -> Result<(), String> {
     let dirs = vec![
@@ -167,6 +172,7 @@ pub fn init_directories() -> Result<(), String> {
         get_notifications_dir(),
         get_skills_dir(),
         get_skill_history_dir(),
+        get_taskpool_dir(),
     ];
     for dir in dirs {
         if !dir.exists() {

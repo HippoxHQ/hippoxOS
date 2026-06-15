@@ -1,6 +1,6 @@
 use crate::commands::paths::get_app_root_dir;
 use crate::commands::{load_favorites_config, save_favorites_config};
-use hippox::registry;
+use hippox::{get_skill, list_skills};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
@@ -24,11 +24,11 @@ pub struct SkillParameterInfo {
 
 #[tauri::command]
 pub fn cmd_get_atomic_skills() -> Vec<AtomicSkillInfo> {
-    let skill_names = registry::list_skills();
+    let skill_names = list_skills();
     skill_names
         .iter()
         .filter_map(|name| {
-            registry::get_skill(name).map(|skill| {
+            get_skill(name).map(|skill| {
                 let params: Vec<SkillParameterInfo> = skill
                     .parameters()
                     .into_iter()
@@ -76,8 +76,7 @@ pub async fn cmd_execute_atomic_skill(
     skill_name: String,
     parameters: std::collections::HashMap<String, serde_json::Value>,
 ) -> Result<String, String> {
-    let skill = registry::get_skill(&skill_name)
-        .ok_or_else(|| format!("Skill not found: {}", skill_name))?;
+    let skill = get_skill(&skill_name).ok_or_else(|| format!("Skill not found: {}", skill_name))?;
     skill.execute(&parameters).await.map_err(|e| e.to_string())
 }
 

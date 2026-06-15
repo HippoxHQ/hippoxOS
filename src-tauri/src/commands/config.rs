@@ -1,4 +1,4 @@
-use hippox::{FTPConfig, Hippox, SMTPConfig};
+use hippox::Hippox;
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -10,10 +10,17 @@ use uuid::Uuid;
 use crate::{
     commands::get_settings_dir,
     hippox_core::{
-        ContainerInstance, DatabaseInstance, LlmInstance, NetworkInstance, NotificationInstance, init_single_hippox, remove_container_instance_from_core, remove_database_instance_from_core, remove_network_instance_from_core, remove_notification_instance_from_core, sync_all_to_hippox_core, sync_container_instance_to_core, sync_database_instance_to_core, sync_network_instance_to_core, sync_notification_instance_to_core
+        init_single_hippox, remove_container_instance_from_core,
+        remove_database_instance_from_core, remove_network_instance_from_core,
+        remove_notification_instance_from_core, sync_all_to_hippox_core,
+        sync_container_instance_to_core, sync_database_instance_to_core,
+        sync_network_instance_to_core, sync_notification_instance_to_core, ContainerInstance,
+        DatabaseInstance, LlmInstance, NetworkInstance, NotificationInstance,
     },
     workspace::{
-        WorkspaceConfigData, WorkspaceInstance, add_workspace, delete_workspace, get_all_workspaces, get_default_workspace, load_workspace_config, set_default_workspace, update_workspace
+        add_workspace, delete_workspace, get_all_workspaces, get_default_workspace,
+        load_workspace_config, set_default_workspace, update_workspace, WorkspaceConfigData,
+        WorkspaceInstance,
     },
 };
 

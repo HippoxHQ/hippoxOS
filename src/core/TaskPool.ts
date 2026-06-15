@@ -180,6 +180,27 @@ class TaskPoolManager {
 
 export const taskPoolManager = new TaskPoolManager();
 
+export interface TaskPoolPersistResult {
+    success: boolean;
+    message: string;
+    backup_file: string | null;
+    timestamp?: string;
+}
+
+export interface BackupFileInfo {
+    filename: string;
+    path: string;
+    size: number;
+    modified: number | null;
+}
+
+export interface CleanupResult {
+    success: boolean;
+    deleted_count: number;
+    message: string;
+}
+
+
 // Helper functions for easy access
 export const taskPoolCommands = {
     getAllTasks: (limit?: number) => taskPoolManager.getAllTasks(limit),
@@ -195,6 +216,18 @@ export const taskPoolCommands = {
     refresh: () => taskPoolManager.refresh(),
     startAutoRefresh: (intervalMs?: number) => taskPoolManager.startAutoRefresh(intervalMs),
     stopAutoRefresh: () => taskPoolManager.stopAutoRefresh(),
+
+    async persist(): Promise<TaskPoolPersistResult> {
+        return await invoke('cmd_task_pool_persist');
+    },
+
+    async listBackups(): Promise<BackupFileInfo[]> {
+        return await invoke('cmd_task_pool_list_backups');
+    },
+
+    async cleanupBackups(keepCount: number): Promise<CleanupResult> {
+        return await invoke('cmd_task_pool_cleanup_backups', { keepCount });
+    },
 };
 
 // React hook for using task pool
