@@ -13,325 +13,46 @@ import {
   Pie,
   Cell,
 } from "recharts";
-import CalendarHeatmap from "react-calendar-heatmap";
-import "react-calendar-heatmap/dist/styles.css";
-import { sysCommands } from "../command/sys";
-import { showToast, ToastType } from "./Toast";
-import { showTooltip } from "./Tooltip";
-import { taskPoolCommands } from "../core/TaskPool";
+import { sysCommands } from "../../command/sys";
+import { showToast, ToastType } from "../Toast";
+import { showTooltip } from "../Tooltip";
+import { taskPoolCommands } from "../../core/TaskPool";
 
-const UserIcon = () => (
-  <svg
-    width="16"
-    height="16"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-    <circle cx="12" cy="7" r="4" />
-  </svg>
-);
-
-const CloseIcon = () => (
-  <svg
-    width="14"
-    height="14"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <line x1="18" y1="6" x2="6" y2="18" />
-    <line x1="6" y1="6" x2="18" y2="18" />
-  </svg>
-);
-
-const MessageIcon = () => (
-  <svg
-    width="13"
-    height="13"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-  </svg>
-);
-
-const FileTextIcon = () => (
-  <svg
-    width="13"
-    height="13"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-    <polyline points="14 2 14 8 20 8" />
-    <line x1="16" y1="13" x2="8" y2="13" />
-    <line x1="16" y1="17" x2="8" y2="17" />
-    <polyline points="10 9 9 9 8 9" />
-  </svg>
-);
-
-const CrystalIcon = () => (
-  <svg
-    width="13"
-    height="13"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M12 2v4" />
-    <path d="M12 18v4" />
-    <path d="M4.93 4.93l2.83 2.83" />
-    <path d="M16.24 16.24l2.83 2.83" />
-    <path d="M2 12h4" />
-    <path d="M18 12h4" />
-    <path d="M4.93 19.07l2.83-2.83" />
-    <path d="M16.24 7.76l2.83-2.83" />
-    <circle cx="12" cy="12" r="4" />
-  </svg>
-);
-
-const SettingsIcon = () => (
-  <svg
-    width="13"
-    height="13"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <circle cx="12" cy="12" r="3" />
-    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
-  </svg>
-);
-
-const FireIcon = () => (
-  <svg
-    width="13"
-    height="13"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" />
-  </svg>
-);
-
-const TrophyIcon = () => (
-  <svg
-    width="13"
-    height="13"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
-    <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
-    <path d="M4 22h16" />
-    <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" />
-    <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
-    <path d="M18 2H6v7a6 6 0 0 0 12 0V2z" />
-  </svg>
-);
-
-const ChartIcon = () => (
-  <svg
-    width="12"
-    height="12"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M21 12v3a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4v-3" />
-    <path d="M12 2v8" />
-    <path d="m16 6-4 4-4-4" />
-  </svg>
-);
-
-const BarChart3Icon = () => (
-  <svg
-    width="12"
-    height="12"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M12 20V10" />
-    <path d="M18 20V4" />
-    <path d="M6 20v-4" />
-  </svg>
-);
-
-const ClockIcon = () => (
-  <svg
-    width="12"
-    height="12"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <circle cx="12" cy="12" r="10" />
-    <polyline points="12 6 12 12 16 14" />
-  </svg>
-);
-
-const SunriseIcon = () => (
-  <svg
-    width="16"
-    height="16"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M17 18a5 5 0 0 0-10 0" />
-    <line x1="12" y1="9" x2="12" y2="2" />
-    <line x1="4.22" y1="10.22" x2="5.64" y2="11.64" />
-    <line x1="1" y1="18" x2="3" y2="18" />
-    <line x1="21" y1="18" x2="23" y2="18" />
-    <line x1="18.36" y1="11.64" x2="19.78" y2="10.22" />
-    <line x1="23" y1="22" x2="1" y2="22" />
-    <path d="M8 6s1.5-2 4-2 4 2 4 2" />
-  </svg>
-);
-
-const ZapIcon = () => (
-  <svg
-    width="16"
-    height="16"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-  </svg>
-);
-
-const CompassIcon = () => (
-  <svg
-    width="16"
-    height="16"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <circle cx="12" cy="12" r="10" />
-    <polygon points="16.24 7.76 14 12 12 14.24 7.76 16.24 9.76 12 12 9.76 16.24 7.76" />
-  </svg>
-);
-
-const GemIcon = () => (
-  <svg
-    width="16"
-    height="16"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M12 2v4" />
-    <path d="M12 18v4" />
-    <path d="M4.93 4.93l2.83 2.83" />
-    <path d="M16.24 16.24l2.83 2.83" />
-    <path d="M2 12h4" />
-    <path d="M18 12h4" />
-    <path d="M4.93 19.07l2.83-2.83" />
-    <path d="M16.24 7.76l2.83-2.83" />
-    <circle cx="12" cy="12" r="4" />
-  </svg>
-);
-
-const LoadingSpinnerIcon = () => (
-  <svg
-    width="32"
-    height="32"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className="loading-spinner-svg"
-  >
-    <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-  </svg>
-);
-
-const RefreshCwIcon = () => (
-  <svg
-    width="12"
-    height="12"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M23 4v6h-6" />
-    <path d="M1 20v-6h6" />
-    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10" />
-    <path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14" />
-  </svg>
-);
-
-interface UserProfileProps {
-  t: (key: string, params?: any) => string;
-  onClose?: () => void;
-  currentSessionId?: string;
-}
+import { UserProfileProps, UserStats } from "./types";
+import {
+  UserIcon,
+  CloseIcon,
+  MessageIcon,
+  FileTextIcon,
+  CrystalIcon,
+  SettingsIcon,
+  FireIcon,
+  TrophyIcon,
+  ChartIcon,
+  BarChart3Icon,
+  ClockIcon,
+  SunriseIcon,
+  ZapIcon,
+  CompassIcon,
+  GemIcon,
+  LoadingSpinnerIcon,
+  RefreshCwIcon,
+} from "./icons";
+import Heatmap from "./Heatmap";
+import {
+  loadAllTasksFromBackups,
+  loadAllSessions,
+  loadSessionChat,
+  formatNumber,
+  formatLocalDate,
+} from "./utils";
 
 const UserProfile: React.FC<UserProfileProps> = ({
   t,
   onClose,
   currentSessionId,
 }) => {
-  const [userData, setUserData] = useState<any>(null);
+  const [userData, setUserData] = useState<UserStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [activityData, setActivityData] = useState<any[]>([]);
   const [tokenData, setTokenData] = useState<any[]>([]);
@@ -341,26 +62,235 @@ const UserProfile: React.FC<UserProfileProps> = ({
     "month",
   );
   const [dialogData, setDialogData] = useState<any[]>([]);
+  const [hourlyData, setHourlyData] = useState<any[]>([]);
   const heatmapContainerRef = useRef<HTMLDivElement>(null);
+  const [heatmapKey, setHeatmapKey] = useState(0);
 
   useEffect(() => {
     const persistTaskPool = async () => {
       try {
-        const result = await taskPoolCommands.persist();
+        await taskPoolCommands.persist();
       } catch (error) {
         console.error("Failed to persist task pool:", error);
       }
     };
     persistTaskPool();
+    loadRealUserData();
   }, []);
 
+  const loadRealUserData = async () => {
+    setLoading(true);
+    try {
+      const sessions = await loadAllSessions();
+      const totalSessions = sessions.length;
+      const allTasks = await loadAllTasksFromBackups();
+      const totalTasksExecuted = allTasks.length;
+
+      let totalMessages = 0;
+      let totalInputTokens = 0;
+      let totalOutputTokens = 0;
+      const activityByDate: Map<string, number> = new Map();
+      const dailyDialogCount: Map<string, number> = new Map();
+      const hourlyCount: Map<number, number> = new Map();
+      for (let i = 0; i < 24; i++) hourlyCount.set(i, 0);
+
+      for (const session of sessions) {
+        const sessionId = session.session_id;
+        const chatMessages = await loadSessionChat(sessionId);
+        totalMessages += chatMessages.length;
+
+        for (const msg of chatMessages) {
+          const date = msg.timestamp ? msg.timestamp.split("T")[0] : null;
+          if (date) {
+            activityByDate.set(date, (activityByDate.get(date) || 0) + 1);
+            dailyDialogCount.set(date, (dailyDialogCount.get(date) || 0) + 1);
+          }
+          if (msg.timestamp) {
+            const hour = new Date(msg.timestamp).getHours();
+            hourlyCount.set(hour, (hourlyCount.get(hour) || 0) + 1);
+          }
+        }
+      }
+
+      for (const task of allTasks) {
+        totalInputTokens += task.input_token_count || 0;
+        totalOutputTokens += task.output_token_count || 0;
+      }
+      const totalTokensUsed = totalInputTokens + totalOutputTokens;
+
+      const today = new Date();
+      const startDate = new Date(new Date().getFullYear(), 0, 1);
+      const endDate = new Date(new Date().getFullYear(), 11, 31);
+      const heatmapData: any[] = [];
+
+      let currentDate = new Date(startDate);
+      while (currentDate <= endDate) {
+        const dateStr = formatLocalDate(currentDate);
+        const count = activityByDate.get(dateStr) || 0;
+        heatmapData.push({ date: dateStr, count });
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+
+      setActivityData(heatmapData);
+      setHeatmapKey((prev) => prev + 1);
+      setTotalTokens(totalTokensUsed);
+      setCategoryData([
+        {
+          name: t("user.inputTokens") || "输入 Token",
+          value: totalInputTokens,
+          color: "#818cf8",
+        },
+        {
+          name: t("user.outputTokens") || "输出 Token",
+          value: totalOutputTokens,
+          color: "#10b981",
+        },
+      ]);
+
+      const last7Days: any[] = [];
+      for (let i = 6; i >= 0; i--) {
+        const date = new Date();
+        date.setDate(today.getDate() - i);
+        const dateStr = `${date.getMonth() + 1}/${date.getDate()}`;
+        const key = date.toISOString().split("T")[0];
+        last7Days.push({
+          label: dateStr,
+          count: dailyDialogCount.get(key) || 0,
+        });
+      }
+      setDialogData(last7Days);
+
+      const hourlyDataArray: any[] = [];
+      for (let i = 0; i < 24; i++) {
+        hourlyDataArray.push({
+          hour: `${i}${t("user.hourUnit") || "时"}`,
+          count: hourlyCount.get(i) || 0,
+        });
+      }
+      setHourlyData(hourlyDataArray);
+
+      let streak = 0;
+      const checkDate = new Date();
+      for (let i = 0; i < 365; i++) {
+        const dateStr = checkDate.toISOString().split("T")[0];
+        if (activityByDate.has(dateStr)) {
+          streak++;
+          checkDate.setDate(checkDate.getDate() - 1);
+        } else {
+          break;
+        }
+      }
+
+      let username = t("user.defaultUsername") || "用户";
+      let email = `${username}@hippox.local`;
+      try {
+        const systemUsername = await sysCommands.getSystemUsername();
+        if (systemUsername && systemUsername !== "用户") {
+          username = systemUsername;
+          email = `${systemUsername}@hippox.local`;
+        }
+      } catch (e) {
+        console.error("Failed to get system username:", e);
+      }
+
+      setUserData({
+        username,
+        email,
+        joinDate: new Date(),
+        totalSessions,
+        totalMessages,
+        totalTokensUsed,
+        totalTasksExecuted,
+        favoriteSkills: [],
+        streakDays: streak,
+        longestStreak: 0,
+        achievements: [
+          {
+            name: t("user.achievementEarlyBird") || "早起鸟",
+            unlocked: totalMessages > 100,
+            icon: <SunriseIcon />,
+          },
+          {
+            name: t("user.achievementEfficiency") || "效率达人",
+            unlocked: totalTasksExecuted > 50,
+            icon: <ZapIcon />,
+          },
+          {
+            name: t("user.achievementExplorer") || "探索者",
+            unlocked: totalSessions > 10,
+            icon: <CompassIcon />,
+          },
+          {
+            name: t("user.achievementTokenMaster") || "Token 大师",
+            unlocked: totalTokensUsed > 1000000,
+            icon: <GemIcon />,
+          },
+        ],
+      });
+    } catch (error) {
+      console.error("Failed to load user data:", error);
+      showToast(ToastType.ERROR, t("user.loadFailed") || "加载用户数据失败");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    generateMockTokenData();
-  }, [dateRange]);
+    const regenerateTokenData = async () => {
+      const allTasks = await loadAllTasksFromBackups();
+      const tasksByDate: Map<string, { input: number; output: number }> =
+        new Map();
+      for (const task of allTasks) {
+        if (task.completed_at) {
+          const date = new Date(task.completed_at * 1000);
+          let key: string;
+          if (dateRange === "year") {
+            key = `${date.getFullYear()}-${date.getMonth() + 1}`;
+          } else if (dateRange === "month") {
+            key = date.toISOString().split("T")[0];
+          } else {
+            key = date.toISOString().split("T")[0];
+          }
+          const existing = tasksByDate.get(key) || { input: 0, output: 0 };
+          existing.input += task.input_token_count || 0;
+          existing.output += task.output_token_count || 0;
+          tasksByDate.set(key, existing);
+        }
+      }
+
+      const days = dateRange === "year" ? 12 : dateRange === "month" ? 30 : 7;
+      const result: any[] = [];
+      const now = new Date();
+      for (let i = days - 1; i >= 0; i--) {
+        let label: string;
+        let key: string;
+        if (dateRange === "year") {
+          const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+          label = `${date.getMonth() + 1}${t("user.monthUnit") || "月"}`;
+          key = `${date.getFullYear()}-${date.getMonth() + 1}`;
+        } else {
+          const date = new Date();
+          date.setDate(now.getDate() - i);
+          label = `${date.getMonth() + 1}/${date.getDate()}`;
+          key = date.toISOString().split("T")[0];
+        }
+        const data = tasksByDate.get(key) || { input: 0, output: 0 };
+        result.push({
+          label,
+          inputTokens: data.input,
+          outputTokens: data.output,
+          total: data.input + data.output,
+        });
+      }
+      setTokenData(result);
+      const newTotalTokens = result.reduce((sum, d) => sum + d.total, 0);
+      setTotalTokens(newTotalTokens);
+    };
+    regenerateTokenData();
+  }, [dateRange, t]);
 
   useEffect(() => {
     if (!heatmapContainerRef.current) return;
-
     const fixSvgSize = () => {
       const svg = heatmapContainerRef.current?.querySelector("svg");
       if (svg) {
@@ -368,190 +298,13 @@ const UserProfile: React.FC<UserProfileProps> = ({
         svg.style.height = "180px";
       }
     };
-
     const timer = setTimeout(fixSvgSize, 150);
     const interval = setInterval(fixSvgSize, 500);
-
     return () => {
       clearTimeout(timer);
       clearInterval(interval);
     };
   }, [activityData]);
-
-  const loadUserData = async () => {
-    setLoading(true);
-    const defaultUserData = {
-      username: t("user.defaultUsername") || "用户",
-      email: `${t("user.defaultUsername") || "user"}@hippox.local`,
-      joinDate: new Date(2024, 0, 1),
-      totalSessions: 47,
-      totalMessages: 1234,
-      totalTokensUsed: 1250000,
-      totalTasksExecuted: 892,
-      favoriteSkills: [
-        t("user.skillDataAnalysis") || "数据分析",
-        t("user.skillFileProcess") || "文件处理",
-        t("user.skillNetworkRequest") || "网络请求",
-        t("user.skillCodeGen") || "代码生成",
-        t("user.skillDocProcess") || "文档处理",
-      ],
-      streakDays: 15,
-      longestStreak: 28,
-      achievements: [
-        {
-          name: t("user.achievementEarlyBird") || "早起鸟",
-          unlocked: true,
-          icon: <SunriseIcon />,
-        },
-        {
-          name: t("user.achievementEfficiency") || "效率达人",
-          unlocked: true,
-          icon: <ZapIcon />,
-        },
-        {
-          name: t("user.achievementExplorer") || "探索者",
-          unlocked: false,
-          icon: <CompassIcon />,
-        },
-        {
-          name: t("user.achievementTokenMaster") || "Token 大师",
-          unlocked: true,
-          icon: <GemIcon />,
-        },
-      ],
-    };
-    setUserData(defaultUserData);
-    setLoading(false);
-    try {
-      const systemUsername = await sysCommands.getSystemUsername();
-      if (systemUsername && systemUsername !== "用户") {
-        setUserData((prev: any) => ({
-          ...prev,
-          username: systemUsername,
-          email: `${systemUsername}@hippox.local`,
-        }));
-      }
-    } catch (e) {
-      console.error("Failed to get system username:", e);
-      showToast(ToastType.ERROR, t("user.loadFailed") || "加载用户数据失败");
-    }
-  };
-
-  const generateMockActivityData = () => {
-    const data = [];
-    const today = new Date();
-    for (let i = 0; i < 365; i++) {
-      const date = new Date();
-      date.setDate(today.getDate() - i);
-      const dayOfWeek = date.getDay();
-      const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-      let count = Math.floor(Math.random() * 15) + 1;
-      if (isWeekend) count = Math.floor(count * 0.5);
-      if (i < 7) count = Math.floor(count * 1.5);
-      data.push({ date: date.toISOString().split("T")[0], count });
-    }
-    setActivityData(data);
-  };
-
-  const generateMockDialogData = () => {
-    const data = [];
-    const today = new Date();
-    for (let i = 6; i >= 0; i--) {
-      const date = new Date();
-      date.setDate(today.getDate() - i);
-      const count = Math.floor(Math.random() * 20) + 5;
-      data.push({
-        label: `${date.getMonth() + 1}/${date.getDate()}`,
-        count: count,
-      });
-    }
-    setDialogData(data);
-  };
-
-  const generateMockTokenData = () => {
-    const data = [];
-    const days = dateRange === "year" ? 12 : dateRange === "month" ? 30 : 7;
-    const today = new Date();
-    for (let i = days - 1; i >= 0; i--) {
-      let label: string;
-      if (dateRange === "year") {
-        const date = new Date(today.getFullYear(), today.getMonth() - i, 1);
-        label = `${date.getMonth() + 1}${t("user.monthUnit") || "月"}`;
-      } else {
-        const date = new Date();
-        date.setDate(today.getDate() - i);
-        label = `${date.getMonth() + 1}/${date.getDate()}`;
-      }
-      const inputTokens = Math.floor(Math.random() * 8000) + 1000;
-      const outputTokens = Math.floor(Math.random() * 4000) + 500;
-      data.push({
-        label,
-        inputTokens,
-        outputTokens,
-        total: inputTokens + outputTokens,
-      });
-    }
-    setTokenData(data);
-    const total = data.reduce((sum, d) => sum + d.total, 0);
-    setTotalTokens(total);
-    setCategoryData([
-      {
-        name: t("user.chatTokens") || "对话",
-        value: Math.floor(total * 0.45),
-        color: "#818cf8",
-      },
-      {
-        name: t("user.taskTokens") || "任务",
-        value: Math.floor(total * 0.35),
-        color: "#10b981",
-      },
-      {
-        name: t("user.skillTokens") || "技能",
-        value: Math.floor(total * 0.2),
-        color: "#f59e0b",
-      },
-    ]);
-  };
-
-  const formatNumber = (num: number): string => {
-    if (num >= 1000000) return (num / 1000000).toFixed(1) + "M";
-    if (num >= 1000) return (num / 1000).toFixed(1) + "K";
-    return num.toString();
-  };
-
-  const getCellColor = (value: any) => {
-    if (!value || !value.count) return "var(--bg-tertiary)";
-    if (value.count <= 3) return "#0e4429";
-    if (value.count <= 7) return "#006d32";
-    if (value.count <= 12) return "#26a641";
-    return "#39d353";
-  };
-
-  const stats = userData || {
-    totalSessions: 0,
-    totalMessages: 0,
-    totalTokensUsed: 0,
-    totalTasksExecuted: 0,
-    streakDays: 0,
-    longestStreak: 0,
-    favoriteSkills: [],
-    achievements: [],
-  };
-
-  const [hourlyData, setHourlyData] = useState<any[]>([]);
-
-  const generateMockHourlyData = () => {
-    const data = [];
-    for (let i = 0; i < 24; i++) {
-      let count;
-      if (i >= 9 && i <= 11) count = Math.floor(Math.random() * 30) + 40;
-      else if (i >= 14 && i <= 17) count = Math.floor(Math.random() * 30) + 35;
-      else if (i >= 20 && i <= 22) count = Math.floor(Math.random() * 25) + 25;
-      else count = Math.floor(Math.random() * 15) + 5;
-      data.push({ hour: `${i}${t("user.hourUnit") || "时"}`, count });
-    }
-    setHourlyData(data);
-  };
 
   const getPeakHour = () => {
     if (hourlyData.length === 0) return t("user.notAvailable") || "暂无";
@@ -573,19 +326,23 @@ const UserProfile: React.FC<UserProfileProps> = ({
   };
 
   const handleRefreshData = () => {
-    generateMockActivityData();
-    generateMockDialogData();
-    generateMockHourlyData();
-    generateMockTokenData();
+    loadRealUserData();
     showToast(ToastType.SUCCESS, t("user.dataRefreshed") || "数据已刷新");
   };
 
-  useEffect(() => {
-    loadUserData();
-    generateMockActivityData();
-    generateMockDialogData();
-    generateMockHourlyData();
-  }, []);
+  const stats = userData || {
+    username: t("user.defaultUsername") || "用户",
+    email: "",
+    joinDate: new Date(),
+    totalSessions: 0,
+    totalMessages: 0,
+    totalTokensUsed: 0,
+    totalTasksExecuted: 0,
+    favoriteSkills: [],
+    streakDays: 0,
+    longestStreak: 0,
+    achievements: [],
+  };
 
   if (loading) {
     return (
@@ -603,10 +360,7 @@ const UserProfile: React.FC<UserProfileProps> = ({
         </div>
         <style>{`
           @keyframes spin { to { transform: rotate(360deg); } }
-          .loading-spinner-svg {
-            animation: spin 0.8s linear infinite;
-            color: var(--accent-color);
-          }
+          .loading-spinner-svg { animation: spin 0.8s linear infinite; color: var(--accent-color); }
         `}</style>
       </div>
     );
@@ -623,6 +377,7 @@ const UserProfile: React.FC<UserProfileProps> = ({
         overflow: "hidden",
       }}
     >
+      {/* Header */}
       <div
         style={{
           display: "flex",
@@ -663,8 +418,10 @@ const UserProfile: React.FC<UserProfileProps> = ({
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.background = "var(--hover-bg)";
-              const target = e.currentTarget;
-              showTooltip(t("user.refreshTooltip") || "刷新数据", target);
+              showTooltip(
+                t("user.refreshTooltip") || "刷新数据",
+                e.currentTarget,
+              );
             }}
             onMouseLeave={(e) => (e.currentTarget.style.background = "none")}
           >
@@ -684,8 +441,7 @@ const UserProfile: React.FC<UserProfileProps> = ({
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.background = "var(--hover-bg)";
-              const target = e.currentTarget;
-              showTooltip(t("common.close") || "关闭", target);
+              showTooltip(t("common.close") || "关闭", e.currentTarget);
             }}
             onMouseLeave={(e) => (e.currentTarget.style.background = "none")}
           >
@@ -693,7 +449,9 @@ const UserProfile: React.FC<UserProfileProps> = ({
           </button>
         </div>
       </div>
+
       <div style={{ flex: 1, overflowY: "auto" }}>
+        {/* User Info Section */}
         <div
           style={{
             display: "flex",
@@ -718,13 +476,12 @@ const UserProfile: React.FC<UserProfileProps> = ({
               color: "white",
               flexShrink: 0,
             }}
-            onMouseEnter={(e) => {
-              const target = e.currentTarget;
+            onMouseEnter={(e) =>
               showTooltip(
                 stats.username || t("user.defaultUsername") || "用户",
-                target,
-              );
-            }}
+                e.currentTarget,
+              )
+            }
           >
             {stats.username?.charAt(0) || "U"}
           </div>
@@ -760,15 +517,14 @@ const UserProfile: React.FC<UserProfileProps> = ({
                       display: "inline-flex",
                       alignItems: "center",
                     }}
-                    onMouseEnter={(e) => {
-                      const target = e.currentTarget;
+                    onMouseEnter={(e) =>
                       showTooltip(
                         ach.unlocked
                           ? ach.name
                           : `${ach.name} (${t("user.locked") || "未解锁"})`,
-                        target,
-                      );
-                    }}
+                        e.currentTarget,
+                      )
+                    }
                   >
                     {ach.icon}
                   </span>
@@ -784,6 +540,7 @@ const UserProfile: React.FC<UserProfileProps> = ({
             </div>
           </div>
 
+          {/* Stats Grid */}
           <div
             style={{
               flex: "0 0 auto",
@@ -800,13 +557,12 @@ const UserProfile: React.FC<UserProfileProps> = ({
                 gap: "6px",
                 minWidth: 0,
               }}
-              onMouseEnter={(e) => {
-                const target = e.currentTarget;
+              onMouseEnter={(e) =>
                 showTooltip(
                   t("user.totalSessionsTooltip") || "总对话次数",
-                  target,
-                );
-              }}
+                  e.currentTarget,
+                )
+              }
             >
               <span
                 style={{
@@ -817,7 +573,7 @@ const UserProfile: React.FC<UserProfileProps> = ({
               >
                 <MessageIcon />
               </span>
-              <div style={{ minWidth: 0 }}>
+              <div>
                 <div
                   style={{
                     fontSize: "14px",
@@ -847,13 +603,12 @@ const UserProfile: React.FC<UserProfileProps> = ({
                 gap: "6px",
                 minWidth: 0,
               }}
-              onMouseEnter={(e) => {
-                const target = e.currentTarget;
+              onMouseEnter={(e) =>
                 showTooltip(
                   t("user.totalMessagesTooltip") || "总消息数量",
-                  target,
-                );
-              }}
+                  e.currentTarget,
+                )
+              }
             >
               <span
                 style={{
@@ -864,7 +619,7 @@ const UserProfile: React.FC<UserProfileProps> = ({
               >
                 <FileTextIcon />
               </span>
-              <div style={{ minWidth: 0 }}>
+              <div>
                 <div
                   style={{
                     fontSize: "14px",
@@ -894,13 +649,12 @@ const UserProfile: React.FC<UserProfileProps> = ({
                 gap: "6px",
                 minWidth: 0,
               }}
-              onMouseEnter={(e) => {
-                const target = e.currentTarget;
+              onMouseEnter={(e) =>
                 showTooltip(
                   t("user.totalTokensTooltip") || "总 Token 消耗",
-                  target,
-                );
-              }}
+                  e.currentTarget,
+                )
+              }
             >
               <span
                 style={{
@@ -911,7 +665,7 @@ const UserProfile: React.FC<UserProfileProps> = ({
               >
                 <CrystalIcon />
               </span>
-              <div style={{ minWidth: 0 }}>
+              <div>
                 <div
                   style={{
                     fontSize: "14px",
@@ -941,13 +695,12 @@ const UserProfile: React.FC<UserProfileProps> = ({
                 gap: "6px",
                 minWidth: 0,
               }}
-              onMouseEnter={(e) => {
-                const target = e.currentTarget;
+              onMouseEnter={(e) =>
                 showTooltip(
                   t("user.totalTasksTooltip") || "总任务执行次数",
-                  target,
-                );
-              }}
+                  e.currentTarget,
+                )
+              }
             >
               <span
                 style={{
@@ -958,7 +711,7 @@ const UserProfile: React.FC<UserProfileProps> = ({
               >
                 <SettingsIcon />
               </span>
-              <div style={{ minWidth: 0 }}>
+              <div>
                 <div
                   style={{
                     fontSize: "14px",
@@ -988,13 +741,12 @@ const UserProfile: React.FC<UserProfileProps> = ({
                 gap: "6px",
                 minWidth: 0,
               }}
-              onMouseEnter={(e) => {
-                const target = e.currentTarget;
+              onMouseEnter={(e) =>
                 showTooltip(
                   t("user.currentStreakTooltip") || "当前连续活跃天数",
-                  target,
-                );
-              }}
+                  e.currentTarget,
+                )
+              }
             >
               <span
                 style={{
@@ -1005,7 +757,7 @@ const UserProfile: React.FC<UserProfileProps> = ({
               >
                 <FireIcon />
               </span>
-              <div style={{ minWidth: 0 }}>
+              <div>
                 <div
                   style={{
                     fontSize: "14px",
@@ -1038,13 +790,12 @@ const UserProfile: React.FC<UserProfileProps> = ({
                 gap: "6px",
                 minWidth: 0,
               }}
-              onMouseEnter={(e) => {
-                const target = e.currentTarget;
+              onMouseEnter={(e) =>
                 showTooltip(
                   t("user.longestStreakTooltip") || "历史最长连续活跃天数",
-                  target,
-                );
-              }}
+                  e.currentTarget,
+                )
+              }
             >
               <span
                 style={{
@@ -1055,7 +806,7 @@ const UserProfile: React.FC<UserProfileProps> = ({
               >
                 <TrophyIcon />
               </span>
-              <div style={{ minWidth: 0 }}>
+              <div>
                 <div
                   style={{
                     fontSize: "14px",
@@ -1083,12 +834,9 @@ const UserProfile: React.FC<UserProfileProps> = ({
             </div>
           </div>
         </div>
-        <div
-          style={{
-            background: "var(--bg-secondary)",
-            padding: "10px",
-          }}
-        >
+
+        {/* Heatmap Section */}
+        <div style={{ background: "var(--bg-secondary)", padding: "10px" }}>
           <div
             style={{
               display: "flex",
@@ -1120,28 +868,12 @@ const UserProfile: React.FC<UserProfileProps> = ({
               overflowY: "hidden",
               display: "flex",
               justifyContent: "flex-start",
-              height: "150px",
+              height: "180px",
             }}
             ref={heatmapContainerRef}
           >
             <div style={{ display: "inline-block" }}>
-              <CalendarHeatmap
-                startDate={new Date(new Date().getFullYear(), 0, 1)}
-                endDate={new Date(new Date().getFullYear(), 11, 31)}
-                values={activityData}
-                gutterSize={3}
-                showWeekdayLabels={true}
-                classForValue={(value) => {
-                  if (!value) return "color-empty";
-                  const color = getCellColor(value);
-                  return `color-${color.replace("#", "")}`;
-                }}
-                titleForValue={(value) =>
-                  value
-                    ? `${value.date}\n${value.count}${t("user.times") || "次"}`
-                    : t("user.noActivity") || "无活动"
-                }
-              />
+              <Heatmap data={activityData} t={t} />
             </div>
           </div>
           <div
@@ -1156,39 +888,36 @@ const UserProfile: React.FC<UserProfileProps> = ({
             }}
           >
             <span
-              onMouseEnter={(e) => {
-                const target = e.currentTarget;
+              onMouseEnter={(e) =>
                 showTooltip(
                   t("user.totalActivitiesTooltip") || "全年总活动次数",
-                  target,
-                );
-              }}
+                  e.currentTarget,
+                )
+              }
             >
               {t("user.totalActivities") || "总活动"}:{" "}
               {activityData.reduce((s, d) => s + d.count, 0)}
               {t("user.times") || "次"}
             </span>
             <span
-              onMouseEnter={(e) => {
-                const target = e.currentTarget;
+              onMouseEnter={(e) =>
                 showTooltip(
                   t("user.avgDailyTooltip") || "平均每日活动次数",
-                  target,
-                );
-              }}
+                  e.currentTarget,
+                )
+              }
             >
               {t("user.avgDaily") || "日均"}:{" "}
               {(activityData.reduce((s, d) => s + d.count, 0) / 365).toFixed(1)}
               {t("user.times") || "次"}
             </span>
             <span
-              onMouseEnter={(e) => {
-                const target = e.currentTarget;
+              onMouseEnter={(e) =>
                 showTooltip(
                   t("user.maxDailyTooltip") || "单日最高活动次数",
-                  target,
-                );
-              }}
+                  e.currentTarget,
+                )
+              }
             >
               {t("user.maxDaily") || "最高"}:{" "}
               {Math.max(...activityData.map((d) => d.count), 0)}
@@ -1196,18 +925,8 @@ const UserProfile: React.FC<UserProfileProps> = ({
             </span>
           </div>
         </div>
-        <style>{`
-          .react-calendar-heatmap rect { rx: 2; ry: 2; }
-          .react-calendar-heatmap-weekday-labels text { font-size: 8px; fill: var(--text-muted); }
-          .react-calendar-heatmap-month-labels text { font-size: 8px; fill: var(--text-secondary); }
-          .color-empty { fill: var(--bg-tertiary); }
-          .color-0e4429 { fill: #0e4429; }
-          .color-006d32 { fill: #006d32; }
-          .color-26a641 { fill: #26a641; }
-          .color-39d353 { fill: #39d353; }
-          .react-calendar-heatmap { display: block !important; }
-        `}</style>
 
+        {/* Token Stats Section */}
         <div
           style={{
             background: "var(--bg-secondary)",
@@ -1215,14 +934,13 @@ const UserProfile: React.FC<UserProfileProps> = ({
             paddingBottom: "15px",
           }}
         >
-          <div style={{}}>
+          <div style={{ padding: "0px 10px" }}>
             <div
               style={{
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
                 marginBottom: "8px",
-                padding: "0px 10px",
               }}
             >
               <div
@@ -1267,13 +985,12 @@ const UserProfile: React.FC<UserProfileProps> = ({
                         dateRange === range ? "white" : "var(--text-secondary)",
                       cursor: "pointer",
                     }}
-                    onMouseEnter={(e) => {
-                      const target = e.currentTarget;
+                    onMouseEnter={(e) =>
                       showTooltip(
                         `${range === "week" ? t("user.week") || "周" : range === "month" ? t("user.month") || "月" : t("user.year") || "年"} ${t("user.timeRange") || "时间范围"}`,
-                        target,
-                      );
-                    }}
+                        e.currentTarget,
+                      )
+                    }
                   >
                     {range === "week"
                       ? t("user.week") || "周"
@@ -1328,13 +1045,12 @@ const UserProfile: React.FC<UserProfileProps> = ({
               </div>
               <div style={{ display: "flex", gap: "20px", textAlign: "right" }}>
                 <div
-                  onMouseEnter={(e) => {
-                    const target = e.currentTarget;
+                  onMouseEnter={(e) =>
                     showTooltip(
                       t("user.inputTokensTooltip") || "输入 Token 总量",
-                      target,
-                    );
-                  }}
+                      e.currentTarget,
+                    )
+                  }
                 >
                   <div
                     style={{
@@ -1352,13 +1068,12 @@ const UserProfile: React.FC<UserProfileProps> = ({
                   </div>
                 </div>
                 <div
-                  onMouseEnter={(e) => {
-                    const target = e.currentTarget;
+                  onMouseEnter={(e) =>
                     showTooltip(
                       t("user.outputTokensTooltip") || "输出 Token 总量",
-                      target,
-                    );
-                  }}
+                      e.currentTarget,
+                    )
+                  }
                 >
                   <div
                     style={{
@@ -1376,13 +1091,12 @@ const UserProfile: React.FC<UserProfileProps> = ({
                   </div>
                 </div>
                 <div
-                  onMouseEnter={(e) => {
-                    const target = e.currentTarget;
+                  onMouseEnter={(e) =>
                     showTooltip(
                       t("user.avgDailyTokensTooltip") || "平均每日 Token 消耗",
-                      target,
-                    );
-                  }}
+                      e.currentTarget,
+                    )
+                  }
                 >
                   <div
                     style={{
@@ -1391,20 +1105,21 @@ const UserProfile: React.FC<UserProfileProps> = ({
                       color: "var(--text-primary)",
                     }}
                   >
-                    {formatNumber(Math.floor(totalTokens / tokenData.length))}
+                    {formatNumber(
+                      Math.floor(totalTokens / Math.max(tokenData.length, 1)),
+                    )}
                   </div>
                   <div style={{ fontSize: "8px", color: "var(--text-muted)" }}>
                     {t("user.avgDailyTokens") || "日均消耗"}
                   </div>
                 </div>
                 <div
-                  onMouseEnter={(e) => {
-                    const target = e.currentTarget;
+                  onMouseEnter={(e) =>
                     showTooltip(
                       t("user.peakDayTooltip") || "单日最高 Token 消耗",
-                      target,
-                    );
-                  }}
+                      e.currentTarget,
+                    )
+                  }
                 >
                   <div
                     style={{
@@ -1422,14 +1137,13 @@ const UserProfile: React.FC<UserProfileProps> = ({
                   </div>
                 </div>
                 <div
-                  onMouseEnter={(e) => {
-                    const target = e.currentTarget;
+                  onMouseEnter={(e) =>
                     showTooltip(
                       t("user.inputOutputRatioTooltip") ||
                         "输入输出 Token 比例",
-                      target,
-                    );
-                  }}
+                      e.currentTarget,
+                    )
+                  }
                 >
                   <div
                     style={{
@@ -1440,7 +1154,10 @@ const UserProfile: React.FC<UserProfileProps> = ({
                   >
                     {(
                       tokenData.reduce((s, d) => s + d.inputTokens, 0) /
-                      tokenData.reduce((s, d) => s + d.outputTokens, 1)
+                      Math.max(
+                        tokenData.reduce((s, d) => s + d.outputTokens, 1),
+                        1,
+                      )
                     ).toFixed(1)}
                     :1
                   </div>
@@ -1593,42 +1310,39 @@ const UserProfile: React.FC<UserProfileProps> = ({
                   }}
                 >
                   <span
-                    onMouseEnter={(e) => {
-                      const target = e.currentTarget;
+                    onMouseEnter={(e) =>
                       showTooltip(
                         t("user.totalDialogTooltip") || "总对话次数",
-                        target,
-                      );
-                    }}
+                        e.currentTarget,
+                      )
+                    }
                   >
                     {t("user.totalDialog") || "总对话"}:{" "}
                     {dialogData.reduce((s, d) => s + d.count, 0)}
                     {t("user.times") || "次"}
                   </span>
                   <span
-                    onMouseEnter={(e) => {
-                      const target = e.currentTarget;
+                    onMouseEnter={(e) =>
                       showTooltip(
                         t("user.avgDailyDialogTooltip") || "平均每日对话次数",
-                        target,
-                      );
-                    }}
+                        e.currentTarget,
+                      )
+                    }
                   >
                     {t("user.avgDailyDialog") || "日均"}:{" "}
                     {(
                       dialogData.reduce((s, d) => s + d.count, 0) /
-                      dialogData.length
+                      Math.max(dialogData.length, 1)
                     ).toFixed(1)}
                     {t("user.times") || "次"}
                   </span>
                   <span
-                    onMouseEnter={(e) => {
-                      const target = e.currentTarget;
+                    onMouseEnter={(e) =>
                       showTooltip(
                         t("user.peakDialogTooltip") || "单日最高对话次数",
-                        target,
-                      );
-                    }}
+                        e.currentTarget,
+                      )
+                    }
                   >
                     {t("user.peakDialog") || "峰值"}:{" "}
                     {Math.max(...dialogData.map((d) => d.count), 0)}
@@ -1684,13 +1398,12 @@ const UserProfile: React.FC<UserProfileProps> = ({
                           gap: "4px",
                           marginBottom: "2px",
                         }}
-                        onMouseEnter={(e) => {
-                          const target = e.currentTarget;
+                        onMouseEnter={(e) =>
                           showTooltip(
-                            `${item.name}: ${formatNumber(item.value)} ${t("user.tokens") || "Token"} (${Math.round((item.value / totalTokens) * 100)}%)`,
-                            target,
-                          );
-                        }}
+                            `${item.name}: ${formatNumber(item.value)} ${t("user.tokens") || "Token"} (${Math.round((item.value / Math.max(totalTokens, 1)) * 100)}%)`,
+                            e.currentTarget,
+                          )
+                        }
                       >
                         <div
                           style={{
@@ -1699,7 +1412,7 @@ const UserProfile: React.FC<UserProfileProps> = ({
                             borderRadius: "1px",
                             background: item.color,
                           }}
-                        ></div>
+                        />
                         <span
                           style={{
                             fontSize: "8px",
@@ -1725,6 +1438,8 @@ const UserProfile: React.FC<UserProfileProps> = ({
               </div>
             </div>
           </div>
+
+          {/* Hourly Distribution */}
           <div
             style={{
               background: "var(--bg-secondary)",
@@ -1802,35 +1517,32 @@ const UserProfile: React.FC<UserProfileProps> = ({
               }}
             >
               <span
-                onMouseEnter={(e) => {
-                  const target = e.currentTarget;
+                onMouseEnter={(e) =>
                   showTooltip(
                     t("user.peakHourTooltip") || "最活跃的时间段",
-                    target,
-                  );
-                }}
+                    e.currentTarget,
+                  )
+                }
               >
                 {t("user.peakHour") || "最活跃时段"}: {getPeakHour()}
               </span>
               <span
-                onMouseEnter={(e) => {
-                  const target = e.currentTarget;
+                onMouseEnter={(e) =>
                   showTooltip(
                     t("user.morningPeakTooltip") || "清晨时段(6-12点)活动占比",
-                    target,
-                  );
-                }}
+                    e.currentTarget,
+                  )
+                }
               >
                 {t("user.morningPeak") || "清晨(6-12)"}: {getMorningPercent()}%
               </span>
               <span
-                onMouseEnter={(e) => {
-                  const target = e.currentTarget;
+                onMouseEnter={(e) =>
                   showTooltip(
                     t("user.nightPeakTooltip") || "夜晚时段(18-24点)活动占比",
-                    target,
-                  );
-                }}
+                    e.currentTarget,
+                  )
+                }
               >
                 {t("user.nightPeak") || "夜晚(18-24)"}: {getNightPercent()}%
               </span>
