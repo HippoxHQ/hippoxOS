@@ -42,7 +42,7 @@ pub fn cmd_get_atomic_skills() -> Vec<AtomicSkillInfo> {
                 AtomicSkillInfo {
                     name: name.clone(),
                     description: skill.description().to_string(),
-                    category: skill.category().to_string(),
+                    category: skill.category().name().to_string(),
                     parameters: params,
                 }
             })
