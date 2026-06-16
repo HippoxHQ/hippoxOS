@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { ResourceLink, TerminalResponse } from "../../../llm/types";
 import { openUrl } from "../../../utils";
 import { urlCommands } from "../../../command/url";
+import MetricsGrid from "./components/responsearea/MetricsGrid";
+import DataTable from "./components/responsearea/DataTable";
 
 interface LinkMetadata {
   title: string;
@@ -165,12 +167,12 @@ const LinkItem: React.FC<{
         style={{
           display: "flex",
           alignItems: "flex-start",
-          gap: "12px",
-          padding: "10px 12px",
-          margin: "8px 0",
+          gap: "10px",
+          padding: "8px 10px",
+          margin: "6px 0",
           background: "var(--bg-tertiary)",
           border: "1px solid var(--border-color)",
-          borderRadius: "8px",
+          borderRadius: "6px",
           cursor: "pointer",
           transition: "all 0.2s ease",
         }}
@@ -185,20 +187,21 @@ const LinkItem: React.FC<{
           e.currentTarget.style.transform = "translateX(0)";
         }}
       >
-        <span style={{ fontSize: "20px" }}>📁{tagIcon}</span>
+        <span style={{ fontSize: "18px" }}>📁{tagIcon}</span>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div
             style={{
               fontWeight: 600,
               color: "var(--text-primary)",
-              marginBottom: "4px",
+              marginBottom: "2px",
+              fontSize: "13px",
             }}
           >
             {link.n}
           </div>
           <div
             style={{
-              fontSize: "12px",
+              fontSize: "11px",
               color: "var(--text-secondary)",
               marginBottom: "2px",
             }}
@@ -207,7 +210,7 @@ const LinkItem: React.FC<{
           </div>
           <div
             style={{
-              fontSize: "10px",
+              fontSize: "9px",
               color: "var(--text-tertiary)",
               fontFamily: "monospace",
               wordBreak: "break-all",
@@ -216,7 +219,7 @@ const LinkItem: React.FC<{
             {link.u}
           </div>
         </div>
-        <span style={{ fontSize: "12px", color: "var(--text-tertiary)" }}>
+        <span style={{ fontSize: "11px", color: "var(--text-tertiary)" }}>
           ↗
         </span>
       </div>
@@ -228,11 +231,11 @@ const LinkItem: React.FC<{
       onClick={handleClick}
       style={{
         display: "flex",
-        gap: "12px",
-        margin: "8px 0",
+        gap: "10px",
+        margin: "6px 0",
         background: "var(--bg-tertiary)",
         border: "1px solid var(--border-color)",
-        borderRadius: "12px",
+        borderRadius: "10px",
         cursor: "pointer",
         transition: "all 0.2s ease",
         overflow: "hidden",
@@ -251,8 +254,8 @@ const LinkItem: React.FC<{
       <div
         className="link-image-container"
         style={{
-          width: "80px",
-          minWidth: "80px",
+          width: "64px",
+          minWidth: "64px",
           position: "relative",
           display: "flex",
           alignItems: "center",
@@ -283,13 +286,13 @@ const LinkItem: React.FC<{
           style={{
             position: "relative",
             zIndex: 2,
-            width: "40px",
-            height: "40px",
+            width: "34px",
+            height: "34px",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             background: "rgba(255, 255, 255, 0.9)",
-            borderRadius: "10px",
+            borderRadius: "8px",
             boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
           }}
         >
@@ -299,8 +302,8 @@ const LinkItem: React.FC<{
               alt={domain}
               className="link-favicon"
               style={{
-                width: "24px",
-                height: "24px",
+                width: "20px",
+                height: "20px",
                 objectFit: "contain",
                 display: "none",
               }}
@@ -311,7 +314,7 @@ const LinkItem: React.FC<{
           <span
             className="link-fallback-icon"
             style={{
-              fontSize: "22px",
+              fontSize: "18px",
               fontWeight: 500,
               lineHeight: 1,
               display:
@@ -325,21 +328,21 @@ const LinkItem: React.FC<{
         </div>
       </div>
 
-      <div style={{ flex: 1, minWidth: 0, padding: "10px 12px 10px 0" }}>
+      <div style={{ flex: 1, minWidth: 0, padding: "8px 10px 8px 0" }}>
         <div
           style={{
             display: "flex",
             alignItems: "center",
-            gap: "6px",
-            marginBottom: "4px",
+            gap: "4px",
+            marginBottom: "2px",
           }}
         >
-          <span style={{ fontSize: "12px", opacity: 0.7 }}>{tagIcon}</span>
+          <span style={{ fontSize: "11px", opacity: 0.7 }}>{tagIcon}</span>
           <div
             style={{
               fontWeight: 600,
               color: "var(--text-primary)",
-              fontSize: "13px",
+              fontSize: "12px",
               overflow: "hidden",
               textOverflow: "ellipsis",
               whiteSpace: "nowrap",
@@ -351,15 +354,15 @@ const LinkItem: React.FC<{
         </div>
         <div
           style={{
-            fontSize: "11px",
+            fontSize: "10px",
             color: "var(--text-secondary)",
-            marginBottom: "4px",
+            marginBottom: "2px",
             overflow: "hidden",
             textOverflow: "ellipsis",
             display: "-webkit-box",
             WebkitLineClamp: 2,
             WebkitBoxOrient: "vertical",
-            lineHeight: "1.35",
+            lineHeight: "1.3",
           }}
         >
           {metadata.description ||
@@ -369,7 +372,7 @@ const LinkItem: React.FC<{
         </div>
         <div
           style={{
-            fontSize: "10px",
+            fontSize: "9px",
             color: "var(--text-tertiary)",
             fontFamily: "monospace",
             wordBreak: "break-all",
@@ -384,9 +387,9 @@ const LinkItem: React.FC<{
 
       <span
         style={{
-          fontSize: "12px",
+          fontSize: "11px",
           color: "var(--text-tertiary)",
-          padding: "10px 12px 0 0",
+          padding: "8px 10px 0 0",
           opacity: 0.6,
         }}
       >
@@ -412,11 +415,11 @@ const CommandsList: React.FC<{
     );
   };
   return (
-    <div className="terminal-commands" style={{ margin: "12px 0" }}>
+    <div className="terminal-commands" style={{ margin: "8px 0" }}>
       <div
         style={{
-          marginBottom: "8px",
-          fontSize: "12px",
+          marginBottom: "6px",
+          fontSize: "11px",
           fontWeight: 500,
           color: "var(--text-secondary)",
         }}
@@ -432,11 +435,11 @@ const CommandsList: React.FC<{
             justifyContent: "space-between",
             background: "var(--bg-secondary)",
             border: "1px solid var(--border-color)",
-            borderRadius: "6px",
-            padding: "8px 12px",
-            marginBottom: "6px",
+            borderRadius: "5px",
+            padding: "6px 10px",
+            marginBottom: "4px",
             fontFamily: "monospace",
-            fontSize: "12px",
+            fontSize: "11px",
           }}
         >
           <code style={{ color: "#4caf50", flex: 1 }}>{cmd}</code>
@@ -447,8 +450,9 @@ const CommandsList: React.FC<{
               border: "none",
               cursor: "pointer",
               color: "var(--text-tertiary)",
-              padding: "4px 8px",
-              borderRadius: "4px",
+              padding: "2px 6px",
+              borderRadius: "3px",
+              fontSize: "12px",
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.background = "var(--hover-bg)";
@@ -488,13 +492,13 @@ const CodeBlock: React.FC<{
       : lines.slice(0, 15).join("\n") + "\n...";
 
   return (
-    <div className="terminal-code-block" style={{ margin: "12px 0" }}>
+    <div className="terminal-code-block" style={{ margin: "8px 0" }}>
       {block.description && (
         <div
           style={{
-            fontSize: "11px",
+            fontSize: "10px",
             color: "var(--text-secondary)",
-            marginBottom: "6px",
+            marginBottom: "4px",
           }}
         >
           📝 {block.description}
@@ -507,16 +511,16 @@ const CodeBlock: React.FC<{
             alignItems: "center",
             justifyContent: "space-between",
             background: "var(--bg-secondary)",
-            padding: "6px 12px",
-            borderTopLeftRadius: "8px",
-            borderTopRightRadius: "8px",
+            padding: "4px 10px",
+            borderTopLeftRadius: "6px",
+            borderTopRightRadius: "6px",
             borderBottom: "1px solid var(--border-color)",
-            fontSize: "11px",
+            fontSize: "10px",
             color: "var(--text-tertiary)",
           }}
         >
           <span>{block.language}</span>
-          <div style={{ display: "flex", gap: "8px" }}>
+          <div style={{ display: "flex", gap: "6px" }}>
             {shouldCollapse && (
               <button
                 onClick={() => setExpanded(!expanded)}
@@ -525,7 +529,7 @@ const CodeBlock: React.FC<{
                   border: "none",
                   cursor: "pointer",
                   color: "var(--text-tertiary)",
-                  fontSize: "11px",
+                  fontSize: "10px",
                 }}
               >
                 {expanded
@@ -540,7 +544,7 @@ const CodeBlock: React.FC<{
                 border: "none",
                 cursor: "pointer",
                 color: copied ? "#4caf50" : "var(--text-tertiary)",
-                fontSize: "11px",
+                fontSize: "10px",
               }}
             >
               {copied
@@ -552,12 +556,12 @@ const CodeBlock: React.FC<{
         <pre
           style={{
             margin: 0,
-            padding: "12px",
+            padding: "10px",
             background: "var(--bg-primary)",
-            borderBottomLeftRadius: "8px",
-            borderBottomRightRadius: "8px",
+            borderBottomLeftRadius: "6px",
+            borderBottomRightRadius: "6px",
             overflow: "auto",
-            fontSize: "12px",
+            fontSize: "11px",
             fontFamily: "monospace",
             color: "var(--text-primary)",
             border: "1px solid var(--border-color)",
@@ -571,174 +575,6 @@ const CodeBlock: React.FC<{
   );
 };
 
-const DataTable: React.FC<{
-  table: { headers: string[]; rows: (string | number)[][]; title?: string };
-  t: (key: string) => string;
-}> = ({ table, t }) => {
-  const MAX_DISPLAY_ROWS = 100;
-  const displayRows = table.rows.slice(0, MAX_DISPLAY_ROWS);
-  const hasMoreRows = table.rows.length > MAX_DISPLAY_ROWS;
-
-  return (
-    <div
-      className="terminal-table"
-      style={{ margin: "12px 0", overflowX: "auto" }}
-    >
-      {table.title && (
-        <div
-          style={{
-            fontSize: "12px",
-            fontWeight: 500,
-            color: "var(--text-secondary)",
-            marginBottom: "8px",
-          }}
-        >
-          📊 {table.title} ({t("terminal.tableRows") || "rows"}:{" "}
-          {table.rows.length})
-        </div>
-      )}
-      <div style={{ maxHeight: "400px", overflowY: "auto" }}>
-        <table
-          style={{
-            width: "100%",
-            borderCollapse: "collapse",
-            fontSize: "12px",
-            background: "var(--bg-secondary)",
-            border: "1px solid var(--border-color)",
-          }}
-        >
-          <thead
-            style={{
-              position: "sticky",
-              top: 0,
-              background: "var(--bg-tertiary)",
-            }}
-          >
-            <tr>
-              {table.headers.map((header, idx) => (
-                <th
-                  key={idx}
-                  style={{
-                    padding: "10px 12px",
-                    textAlign: "left",
-                    fontWeight: 600,
-                    color: "var(--text-primary)",
-                    borderBottom: "1px solid var(--border-color)",
-                    borderRight:
-                      idx !== table.headers.length - 1
-                        ? "1px solid var(--border-color)"
-                        : "none",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {header}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {displayRows.map((row, rowIdx) => (
-              <tr
-                key={rowIdx}
-                style={{
-                  borderBottom:
-                    rowIdx === displayRows.length - 1
-                      ? "none"
-                      : "1px solid var(--border-color)",
-                }}
-              >
-                {row.map((cell, cellIdx) => (
-                  <td
-                    key={cellIdx}
-                    style={{
-                      padding: "8px 12px",
-                      color: "var(--text-secondary)",
-                      borderRight:
-                        cellIdx !== row.length - 1
-                          ? "1px solid var(--border-color)"
-                          : "none",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {cell}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {hasMoreRows && (
-          <div
-            style={{
-              textAlign: "center",
-              padding: "8px",
-              color: "var(--text-tertiary)",
-              fontSize: "11px",
-            }}
-          >
-            {t("terminal.tableMoreRows") || "More rows"} (
-            {table.rows.length - MAX_DISPLAY_ROWS})
-          </div>
-        )}
-      </div>
-    </div>
-  );
-};
-
-const MetricsGrid: React.FC<{
-  metrics: { key: string; value: string | number; unit?: string }[];
-  t: (key: string) => string;
-}> = ({ metrics, t }) => {
-  return (
-    <div
-      className="terminal-metrics"
-      style={{
-        display: "grid",
-        gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))",
-        gap: "12px",
-        margin: "12px 0",
-      }}
-    >
-      {metrics.map((metric, idx) => (
-        <div
-          key={idx}
-          style={{
-            background: "var(--bg-tertiary)",
-            borderRadius: "10px",
-            padding: "12px",
-            border: "1px solid var(--border-color)",
-            textAlign: "center",
-          }}
-        >
-          <div
-            style={{
-              fontSize: "11px",
-              color: "var(--text-tertiary)",
-              marginBottom: "6px",
-            }}
-          >
-            {metric.key}
-          </div>
-          <div
-            style={{
-              fontSize: "24px",
-              fontWeight: 600,
-              color: "var(--accent-color)",
-            }}
-          >
-            {metric.value}
-          </div>
-          {metric.unit && (
-            <div style={{ fontSize: "10px", color: "var(--text-tertiary)" }}>
-              {metric.unit}
-            </div>
-          )}
-        </div>
-      ))}
-    </div>
-  );
-};
-
 const WarningsList: React.FC<{
   warnings: string[];
   t: (key: string) => string;
@@ -747,19 +583,19 @@ const WarningsList: React.FC<{
     <div
       className="terminal-warnings"
       style={{
-        margin: "12px 0",
-        padding: "10px 12px",
+        margin: "8px 0",
+        padding: "8px 10px",
         background: "rgba(255, 165, 0, 0.1)",
-        borderRadius: "8px",
+        borderRadius: "6px",
         borderLeft: "3px solid #ffa500",
       }}
     >
       <div
         style={{
-          fontSize: "12px",
+          fontSize: "11px",
           fontWeight: 500,
           color: "#ffa500",
-          marginBottom: "8px",
+          marginBottom: "6px",
         }}
       >
         ⚠️ {t("terminal.warnings") || "Warnings"}
@@ -768,9 +604,9 @@ const WarningsList: React.FC<{
         <div
           key={idx}
           style={{
-            fontSize: "11px",
+            fontSize: "10px",
             color: "var(--text-secondary)",
-            marginBottom: "4px",
+            marginBottom: "2px",
           }}
         >
           • {warning}
@@ -810,16 +646,16 @@ const StatusBanner: React.FC<{
       style={{
         display: "flex",
         alignItems: "center",
-        gap: "10px",
-        padding: "10px 14px",
+        gap: "8px",
+        padding: "6px 12px",
         background: config.bg,
-        borderRadius: "8px",
-        margin: "12px 0",
+        borderRadius: "6px",
+        margin: "8px 0",
         border: `1px solid ${config.color}`,
       }}
     >
-      <span style={{ fontSize: "18px" }}>{config.icon}</span>
-      <span style={{ fontSize: "13px", color: "var(--text-primary)" }}>
+      <span style={{ fontSize: "15px" }}>{config.icon}</span>
+      <span style={{ fontSize: "12px", color: "var(--text-primary)" }}>
         {statusText}: {message}
       </span>
     </div>
@@ -834,10 +670,10 @@ const TextMessage: React.FC<{ text: string }> = ({ text }) => {
       style={{
         whiteSpace: "pre-wrap",
         wordBreak: "break-word",
-        fontSize: "13px",
-        lineHeight: "1.6",
+        fontSize: "12px",
+        lineHeight: "1.5",
         color: "var(--text-primary)",
-        margin: "12px 0",
+        margin: "8px 0",
       }}
     >
       {text}
@@ -908,10 +744,10 @@ export function renderTerminalResponse(
       <div
         key="links-title"
         style={{
-          fontSize: "12px",
+          fontSize: "11px",
           fontWeight: 500,
           color: "var(--text-secondary)",
-          marginTop: "12px",
+          marginTop: "8px",
         }}
       >
         🌐 {t("terminal.remoteResources") || "Remote Resources"}
@@ -929,10 +765,10 @@ export function renderTerminalResponse(
       <div
         key="local-title"
         style={{
-          fontSize: "12px",
+          fontSize: "11px",
           fontWeight: 500,
           color: "var(--text-secondary)",
-          marginTop: "12px",
+          marginTop: "8px",
         }}
       >
         📁 {t("terminal.localResources") || "Local Resources"}
