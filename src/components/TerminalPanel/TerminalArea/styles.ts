@@ -232,7 +232,6 @@ export const globalStyles = `
 .task-total-duration {
   font-size: 10px;
   color: var(--text-tertiary);
-  margin-left: 8px;
   font-family: monospace;
   background: var(--bg-tertiary);
   padding: 2px 6px;
