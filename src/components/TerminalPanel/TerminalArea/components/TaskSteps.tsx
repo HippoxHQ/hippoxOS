@@ -24,7 +24,7 @@ export const TaskSteps: React.FC<TaskStepsProps> = ({
       {steps.map((step) => (
         <div key={`${taskId}-step-${step.step_index}`} className="task-step">
           <div className="step-main-row">
-            <span className="step-icon">{getStepStatusIcon(step.status)}</span>
+            {/* <span className="step-icon">{getStepStatusIcon(step.status)}</span> */}
             <span className="step-name">
               {getStepEmoji(step.step_name)} {step.step_name}
             </span>
