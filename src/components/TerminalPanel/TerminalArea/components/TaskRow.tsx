@@ -240,10 +240,10 @@ export const TaskRow = forwardRef<HTMLDivElement, TaskRowProps>(
           onClick={() => onToggleExpand(task.task_id)}
           style={{
             display: "flex",
-            alignItems: isExpanded ? "flex-start" : "center",
+            alignItems: "flex-start",
             flexWrap: "wrap",
-            gap: "4px 8px",
-            padding: "4px 8px",
+            gap: "4px 5px",
+            padding: "4px 0px",
             cursor: "pointer",
           }}
         >
@@ -251,8 +251,8 @@ export const TaskRow = forwardRef<HTMLDivElement, TaskRowProps>(
             className="task-expand-icon"
             style={{
               flexShrink: 0,
-              alignSelf: isExpanded ? "flex-start" : "center",
-              paddingTop: isExpanded ? "2px" : "0",
+              alignSelf: "flex-start",
+              paddingTop: "2px",
             }}
           >
             {isExpanded ? "▼" : "▶"}
@@ -261,8 +261,7 @@ export const TaskRow = forwardRef<HTMLDivElement, TaskRowProps>(
             className="task-status-icon"
             style={{
               flexShrink: 0,
-              alignSelf: isExpanded ? "flex-start" : "center",
-              paddingTop: isExpanded ? "2px" : "0",
+              alignSelf: "flex-start",
             }}
           >
             {getTaskStatusIcon(task.status)}
@@ -279,7 +278,7 @@ export const TaskRow = forwardRef<HTMLDivElement, TaskRowProps>(
               lineHeight: "1.5",
               padding: "0",
               minWidth: "0",
-              alignSelf: isExpanded ? "flex-start" : "center",
+              alignSelf: "flex-start",
               maxHeight: isExpanded ? "7.5em" : "none",
               display: "-webkit-box",
               WebkitLineClamp: isExpanded ? 5 : "unset",
@@ -296,8 +295,7 @@ export const TaskRow = forwardRef<HTMLDivElement, TaskRowProps>(
               gap: "8px",
               flexShrink: 0,
               marginLeft: "auto",
-              alignSelf: isExpanded ? "flex-start" : "center",
-              paddingTop: isExpanded ? "2px" : "0",
+              alignSelf: "flex-start",
             }}
           >
             <span
