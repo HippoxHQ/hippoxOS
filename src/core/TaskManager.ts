@@ -1,7 +1,7 @@
 import { sessionCommands } from "../command/session";
 import { ChatMessage } from "../types/types";
 import { notificationManager, NotificationType } from "./NotificationManager";
-import { TaskInfo, TaskStatusEnum } from "./types";
+import { StepStatusEnum, TaskInfo, TaskStatusEnum, TaskStepInfo } from "./types";
 
 type TaskListener = () => void;
 
@@ -18,7 +18,7 @@ class TaskManager {
         return () => this.listeners.delete(listener);
     }
 
-    private notify() {
+    public notify() {
         this.version++;
         this.listeners.forEach(listener => listener());
     }
