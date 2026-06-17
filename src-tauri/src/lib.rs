@@ -11,7 +11,7 @@ mod state;
 mod types;
 mod windows;
 mod workspace;
-mod wrokflow;
+mod callback;
 
 use crate::cmd_registry::*;
 use crate::common::init_default_settings;

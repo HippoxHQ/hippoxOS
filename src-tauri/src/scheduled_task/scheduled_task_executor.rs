@@ -182,7 +182,7 @@ impl ScheduledTaskExecutor {
         // Create result object
         let mut result = ScheduledTaskExecutionResult::new(&self.task, content.clone());
         // Execute the task and wait for completion
-        let exec_result = hippox.execute(&prompt, None).await;
+        let exec_result = hippox.execute(&prompt, None, None).await;
         match exec_result {
             HippoxResult {
                 data: Some(output),

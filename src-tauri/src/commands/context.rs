@@ -87,7 +87,7 @@ pub async fn recall_session_context(
         compressed_history
     );
     let response = hippox
-        .execute(&recall_prompt, None)
+        .execute(&recall_prompt, None, None)
         .await
         .into_result()
         .map_err(|err| format!("Failed to recall session '{}': {}", session_id, err))?;

@@ -77,7 +77,10 @@ pub async fn cmd_execute_atomic_skill(
     parameters: std::collections::HashMap<String, serde_json::Value>,
 ) -> Result<String, String> {
     let skill = get_skill(&skill_name).ok_or_else(|| format!("Skill not found: {}", skill_name))?;
-    skill.execute(&parameters).await.map_err(|e| e.to_string())
+    skill
+        .execute(&parameters, None, None)
+        .await
+        .map_err(|e| e.to_string())
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

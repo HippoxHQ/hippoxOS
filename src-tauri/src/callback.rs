@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use hippox::WorkflowCallback;
+use hippox::{SkillCallback, WorkflowCallback};
 use serde_json::json;
 use std::fmt::Debug;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -206,6 +206,101 @@ impl WorkflowCallback for HippoXWorkflowCallback {
                 "task_id": task_id,
                 "total_duration_ms": total_duration_ms,
                 "total_steps": total_steps,
+                "session_id": self.session_id
+            }),
+        );
+    }
+}
+
+// ======================= Skill Call Back =======================
+
+#[derive(Debug, Clone)]
+pub struct HippoxSkillCallback {
+    app_handle: AppHandle,
+    session_id: String,
+    task_id: Option<String>,
+}
+
+impl HippoxSkillCallback {
+    pub fn new(app_handle: AppHandle, session_id: String) -> Self {
+        Self {
+            app_handle,
+            session_id,
+            task_id: None,
+        }
+    }
+
+    pub fn with_task_id(mut self, task_id: impl Into<String>) -> Self {
+        self.task_id = Some(task_id.into());
+        self
+    }
+}
+
+impl SkillCallback for HippoxSkillCallback {
+    fn on_progress(
+        &self,
+        task_id: Option<String>,
+        step_index: Option<usize>,
+        progress: u8,
+        message: &str,
+    ) {
+        let _ = self.app_handle.emit(
+            "skill_callback_progress",
+            &json!({
+                "task_id": task_id.or_else(|| self.task_id.clone()),
+                "step_index": step_index,
+                "progress": progress,
+                "message": message,
+                "session_id": self.session_id
+            }),
+        );
+    }
+
+    fn on_start(&self, task_id: Option<String>, step_index: Option<usize>, skill_name: &str) {
+        let _ = self.app_handle.emit(
+            "skill_callback_start",
+            &json!({
+                "task_id": task_id.or_else(|| self.task_id.clone()),
+                "step_index": step_index,
+                "skill_name": skill_name,
+                "session_id": self.session_id
+            }),
+        );
+    }
+
+    fn on_complete(
+        &self,
+        task_id: Option<String>,
+        step_index: Option<usize>,
+        skill_name: &str,
+        result: &str,
+    ) {
+        let _ = self.app_handle.emit(
+            "skill_callback_complete",
+            &json!({
+                "task_id": task_id.or_else(|| self.task_id.clone()),
+                "step_index": step_index,
+                "skill_name": skill_name,
+                "result": result,
+                "session_id": self.session_id
+            }),
+        );
+    }
+
+    fn on_error(
+        &self,
+        task_id: Option<String>,
+        step_index: Option<usize>,
+        skill_name: &str,
+        error: &str,
+    ) {
+        let _ = self.app_handle.emit(
+            "skill_callback_error",
+            &json!({
+                "task_id": task_id.or_else(|| self.task_id.clone()),
+                "step_index": step_index,
+                "skill_name": skill_name,
+                "error": error,
                 "session_id": self.session_id
             }),
         );

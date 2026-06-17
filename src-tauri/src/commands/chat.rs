@@ -1,3 +1,4 @@
+use crate::callback::{HippoXWorkflowCallback, HippoxSkillCallback};
 use crate::commands::{load_config_from_file, TaskInfo, HIPPOX_APP_CONFIG};
 use crate::context::{get_conversation_history, store_user_message, Context};
 use crate::hippox_core::{get_default_hippox, init_all_hippox_instances};
@@ -5,7 +6,6 @@ use crate::llm::prompts::get_system_prompt;
 use crate::state::AppState;
 use crate::types::Role;
 use crate::workspace::get_default_workspace;
-use crate::wrokflow::HippoXWorkflowCallback;
 use hippox::ModelProvider;
 use hippox::{Hippox, HippoxResult, WorkflowMode};
 use memcontext::MemContext;
@@ -145,13 +145,21 @@ pub async fn cmd_send_chat_message_async(
     }
     // Build enhanced message with history
     let enhanced_message = build_enhanced_message(mem.as_deref(), &session, &message).await;
-    let callback = Arc::new(HippoXWorkflowCallback::new(
+    let workflow_callback = Arc::new(HippoXWorkflowCallback::new(
         app_handle.clone(),
         session.clone(),
     ));
-
+    // atom skill callback
+    let skill_callback = Arc::new(HippoxSkillCallback::new(
+        app_handle.clone(),
+        session.clone(),
+    ));
     // Handle HippoxResult from submit
-    let core_task_id = match hippox.submit(&enhanced_message, Some(callback)) {
+    let core_task_id = match hippox.submit(
+        &enhanced_message,
+        Some(workflow_callback),
+        Some(skill_callback),
+    ) {
         HippoxResult {
             data: Some(task_id),
             ..
@@ -195,12 +203,21 @@ pub async fn cmd_send_chat_message(
     }
     // Build enhanced message with history
     let enhanced_message = build_enhanced_message(mem.as_deref(), &session, &message).await;
-    let callback = Arc::new(HippoXWorkflowCallback::new(
+    let workflow_callback = Arc::new(HippoXWorkflowCallback::new(
+        app_handle.clone(),
+        session.clone(),
+    ));
+    // atom skill callback
+    let skill_callback = Arc::new(HippoxSkillCallback::new(
         app_handle.clone(),
         session.clone(),
     ));
     // Handle HippoxResult from submit
-    let core_task_id = match hippox.submit(&enhanced_message, Some(callback)) {
+    let core_task_id = match hippox.submit(
+        &enhanced_message,
+        Some(workflow_callback),
+        Some(skill_callback),
+    ) {
         HippoxResult {
             data: Some(task_id),
             ..
