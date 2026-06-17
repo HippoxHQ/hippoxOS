@@ -23,7 +23,6 @@ export const styles = {
     color: "var(--accent-color)",
     opacity: 0.85,
     margin: 0,
-    padding: "4px 0",
     whiteSpace: "pre" as const,
     background: "transparent",
     border: "none",

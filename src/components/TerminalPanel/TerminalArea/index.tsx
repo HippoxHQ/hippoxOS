@@ -154,8 +154,6 @@ const TerminalArea: React.FC<ExtendedTerminalAreaProps> = ({
           style={{
             height: "100%",
             overflowY: "auto",
-            paddingLeft: "16px",
-            paddingRight: "40px",
           }}
         >
           <WelcomeMessage

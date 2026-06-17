@@ -561,7 +561,6 @@ export const globalStyles = `
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 4px;
 }
 
 .output-label {
@@ -597,15 +596,14 @@ export const globalStyles = `
   color: #ff6666;
   background: rgba(255, 68, 68, 0.1);
   padding: 8px 12px;
-  border-radius: 6px;
-  margin-top: 8px;
+  border-radius: 5px;
+  margin-top: 5px;
 }
 
 .error-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 4px;
 }
 
 .error-label {
@@ -654,8 +652,14 @@ export const globalStyles = `
 .terminal-content {
   height: 100%;
   overflow-y: auto;
-  padding-left: 16px;
-  padding-right: 40px;
+  padding-left: 10px;
+  padding-right: 10px;
+}
+
+.task-row {
+  margin-bottom: 2px;
+  font-family: "Consolas", "Monaco", "Courier New", monospace;
+  font-size: 13px;
 }
 
 .task-row-header {
@@ -663,7 +667,7 @@ export const globalStyles = `
   align-items: center;
   gap: 8px;
   cursor: pointer;
-  padding: 8px 0;  
+  padding: 5px 0;  
   border-radius: 6px;
   transition: background 0.2s;
   font-size: 14px;  
@@ -706,19 +710,23 @@ export const globalStyles = `
 }
 
 .task-steps {
-  margin-left: 24px;
+   margin-left: 10px;
   margin-top: 4px;
-  margin-bottom: 8px;
+  margin-bottom: 4px;
 }
 
-.task-final-output {
-  margin-top: 8px;
-  margin-left: 24px;
+.task-final-output,
+.task-error {
+  margin-top: 4px;
+  padding: 8px 10px;
+  background-color: var(--bg-tertiary);
+  border-radius: 6px;
+  border-left: 3px solid var(--accent-green, #4ec9b0);
+  padding-top: 5px;
 }
 
 .task-error {
-  margin-top: 8px;
-  margin-left: 24px;
+  border-left-color: var(--accent-red, #f48771);
 }
 
 .link {
