@@ -198,5 +198,7 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_update_profile_settings,
         commands::cmd_get_profile_setting,
         commands::cmd_set_profile_setting,
+        commands::cmd_get_crate_version,
+        commands::cmd_get_hippox_versions,
     ]
 }

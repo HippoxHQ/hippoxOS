@@ -6,12 +6,12 @@ import { BotIcon, BotIcon2 } from "../../icons";
 import { configCommands } from "../../command/config";
 import { LlmInstance } from "../../command/llm";
 import { systemNotificationService } from "../../core/NotificationManager";
-
+import { basisCommands } from "../../command/basis";
+import { healthCommands, HealthCheckResult } from "../../command/health";
 interface IconProps {
   className?: string;
   size?: number;
 }
-
 const ModelIcon: React.FC<IconProps> = ({ size = 18 }) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
@@ -30,7 +30,6 @@ const ModelIcon: React.FC<IconProps> = ({ size = 18 }) => (
     <circle cx="12" cy="12" r="2" />
   </svg>
 );
-
 const BellIcon: React.FC<IconProps> = ({ size = 18 }) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
@@ -47,7 +46,6 @@ const BellIcon: React.FC<IconProps> = ({ size = 18 }) => (
     <path d="M13.73 21a2 2 0 0 1-3.46 0" />
   </svg>
 );
-
 const BellDotIcon: React.FC<IconProps> = ({ size = 18 }) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
@@ -65,7 +63,6 @@ const BellDotIcon: React.FC<IconProps> = ({ size = 18 }) => (
     <circle cx="19" cy="5" r="2.5" fill="red" stroke="red" />
   </svg>
 );
-
 const bottomBarStyles = `
   .bottom-bar {
     height: 30px;
@@ -105,6 +102,7 @@ const bottomBarStyles = `
     font-weight: 450;
     color: var(--text-secondary);
     transition: all 0.15s ease;
+    position: relative;
   }
   
   .bottom-bar-btn svg {
@@ -123,6 +121,37 @@ const bottomBarStyles = `
   .bottom-bar-active {
     background: var(--hover-bg);
     color: var(--text-primary);
+  }
+
+  .status-dot {
+  position: absolute;
+  bottom: -1px;
+  right: -1px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1.5px solid var(--bg-secondary);
+  transition: background-color 0.3s ease;
+  }
+  
+  .status-dot.online {
+    background: #22c55e;
+    animation: pulse-dot 2s infinite;
+  }
+  
+  .status-dot.offline {
+    background: #ef4444;
+    animation: none;
+  }
+  
+  .status-dot.checking {
+    background: #f59e0b;
+    animation: pulse-dot 0.8s infinite;
+  }
+  
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
   }
   
   .version-info {
@@ -165,10 +194,6 @@ const bottomBarStyles = `
     justify-content: center;
   }
   
-  .bottom-bar-btn {
-    position: relative;
-  }
-  
   @keyframes pulse {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.5; }
@@ -185,7 +210,6 @@ const bottomBarStyles = `
     }
   }
 `;
-
 if (typeof document !== "undefined") {
   const styleId = "bottom-bar-styles";
   if (!document.getElementById(styleId)) {
@@ -195,24 +219,56 @@ if (typeof document !== "undefined") {
     document.head.appendChild(style);
   }
 }
-
 interface BottomBarProps {
   t: (key: string, params?: Record<string, any>) => string;
 }
-
+type StatusDotState = "online" | "offline" | "checking";
 const BottomBar: React.FC<BottomBarProps> = ({ t }) => {
-  const version = "v2026.3.8";
+  const [hippoxVersion, setHippoxVersion] = useState<string>("");
   const [modelPopupVisible, setModelPopupVisible] = useState(false);
   const [notificationCenterVisible, setNotificationCenterVisible] =
     useState(false);
   const [llmInstances, setLlmInstances] = useState<LlmInstance[]>([]);
   const [defaultInstanceId, setDefaultInstanceId] = useState<string>("");
   const [unreadCount, setUnreadCount] = useState(0);
+  const [statusDot, setStatusDot] = useState<StatusDotState>("checking");
   const modelButtonRef = useRef<HTMLButtonElement>(null);
   const notificationButtonRef = useRef<HTMLButtonElement>(null);
   const modelPopupRef = useRef<HTMLDivElement>(null);
   const notificationPopupRef = useRef<HTMLDivElement>(null);
-
+  const checkLlmHealth = async (instances: LlmInstance[]) => {
+    if (instances.length === 0) {
+      setStatusDot("offline");
+      return;
+    }
+    try {
+      setStatusDot("checking");
+      const results = await healthCommands.checkAllLlmHealth();
+      const defaultId = await configCommands.getDefaultLlmInstanceId();
+      const targetId = defaultId || instances[0]?.id;
+      const targetResult = results.find(
+        (r: HealthCheckResult) => r.instance_id === targetId,
+      );
+      setStatusDot(targetResult?.status === "online" ? "online" : "offline");
+    } catch (error) {
+      console.error("Failed to check LLM health:", error);
+      setStatusDot("offline");
+    }
+  };
+  useEffect(() => {
+    const loadVersion = async () => {
+      try {
+        const result = await basisCommands.getHippoxVersions();
+        const version = result?.["hippox"];
+        if (version && version !== "unknown") {
+          setHippoxVersion(`v${version}`);
+        }
+      } catch (error) {
+        console.error("Failed to fetch hippox version:", error);
+      }
+    };
+    loadVersion();
+  }, []);
   // Load LLM instances
   useEffect(() => {
     const loadLlmInstances = async () => {
@@ -222,13 +278,14 @@ const BottomBar: React.FC<BottomBarProps> = ({ t }) => {
         setLlmInstances(instancesList);
         const defaultId = await configCommands.getDefaultLlmInstanceId();
         setDefaultInstanceId(defaultId);
+        await checkLlmHealth(instancesList);
       } catch (error) {
         showToast(ToastType.ERROR, "Failed to load LLM instances: " + error);
+        setStatusDot("offline");
       }
     };
     loadLlmInstances();
   }, []);
-
   // Load unread count from notification manager
   useEffect(() => {
     const loadUnreadCount = async () => {
@@ -242,7 +299,6 @@ const BottomBar: React.FC<BottomBarProps> = ({ t }) => {
       }
     };
     loadUnreadCount();
-
     const handleCountUpdate = (e: CustomEvent) => {
       setUnreadCount(e.detail.count);
     };
@@ -257,7 +313,6 @@ const BottomBar: React.FC<BottomBarProps> = ({ t }) => {
       );
     };
   }, []);
-
   useEffect(() => {
     const handleGlobalClick = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
@@ -280,11 +335,11 @@ const BottomBar: React.FC<BottomBarProps> = ({ t }) => {
     document.addEventListener("mousedown", handleGlobalClick);
     return () => document.removeEventListener("mousedown", handleGlobalClick);
   }, [modelPopupVisible, notificationCenterVisible]);
-
   const handleSetDefaultModel = async (instanceId: string) => {
     try {
       await configCommands.setDefaultLlmInstance(instanceId);
       setDefaultInstanceId(instanceId);
+      await checkLlmHealth(llmInstances);
       systemNotificationService.addSuccess(
         t("llmModel.defaultSuccess", {
           name: llmInstances.find((i) => i.id === instanceId)?.name,
@@ -295,12 +350,26 @@ const BottomBar: React.FC<BottomBarProps> = ({ t }) => {
       showToast(ToastType.ERROR, "Failed to set default model: " + error);
     }
   };
-
-  const getDefaultInstance = () => {
-    if (defaultInstanceId) {
-      return llmInstances.find((i) => i.id === defaultInstanceId);
+  const handleOpenModelSelector = async () => {
+    setModelPopupVisible(!modelPopupVisible);
+    if (!modelPopupVisible) {
+      await checkLlmHealth(llmInstances);
     }
-    return llmInstances[0];
+  };
+  const getDefaultInstance = () => {
+    let instance;
+    if (defaultInstanceId) {
+      instance = llmInstances.find((i) => i.id === defaultInstanceId);
+    } else {
+      instance = llmInstances[0];
+    }
+    if (instance) {
+      instance = {
+        ...instance,
+        name: instance.name.replace(/Instance/gi, "").trim() || instance.name,
+      };
+    }
+    return instance;
   };
 
   const defaultInstance = getDefaultInstance();
@@ -312,20 +381,29 @@ const BottomBar: React.FC<BottomBarProps> = ({ t }) => {
           <button
             ref={modelButtonRef}
             className={`bottom-bar-btn ${modelPopupVisible ? "bottom-bar-active" : ""}`}
-            onClick={() => setModelPopupVisible(!modelPopupVisible)}
+            onClick={handleOpenModelSelector}
             title={t("bottomBar.model")}
           >
-            <BotIcon2 size={19} />
+            <div style={{ position: "relative", display: "inline-flex" }}>
+              <BotIcon2 size={19} />
+              <span className={`status-dot ${statusDot}`} />
+            </div>
             <span>{defaultInstance?.name || t("bottomBar.model")}</span>
           </button>
         </div>
 
         <div className="bottom-bar-right">
-          <span className="version-info">{version}</span>
-          <span className="health-status">
+          {!hippoxVersion ? (
+            <span className="version-info">{t("common.loading")}</span>
+          ) : (
+            <span className="version-info">
+              {t("bottomBar.engine")} {hippoxVersion}
+            </span>
+          )}
+          {/* <span className="health-status">
             <span className="status-dot-small"></span>
             {t("status.healthy")}
-          </span>
+          </span> */}
           <button
             ref={notificationButtonRef}
             className={`bottom-bar-btn ${notificationCenterVisible ? "bottom-bar-active" : ""}`}

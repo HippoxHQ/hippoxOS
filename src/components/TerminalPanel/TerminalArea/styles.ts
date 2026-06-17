@@ -74,9 +74,7 @@ export const globalStyles = `
 }
 
 .task-step {
-  margin-bottom: 10px;
   padding: 4px 0;
-  border-bottom: 1px solid var(--border-color, #333);
 }
 
 .step-main-row {

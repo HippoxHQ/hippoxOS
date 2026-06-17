@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { WELCOME_TASK_ID, styles } from "../constants";
 import { HIPPOX_ASCII_LOGO } from "../../../../config";
+import { basisCommands } from "../../../../command/basis";
 
 interface WelcomeMessageProps {
   isExpanded: boolean;
@@ -27,6 +28,16 @@ const animationStyle = `
   .ascii-animated {
     animation: asciiBreathing 4s ease-in-out infinite;
   }
+
+  .version-pulse {
+    display: inline-block;
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
 `;
 
 export const WelcomeMessage: React.FC<WelcomeMessageProps> = ({
@@ -35,6 +46,28 @@ export const WelcomeMessage: React.FC<WelcomeMessageProps> = ({
   t,
 }) => {
   const welcomeTime = new Date().toLocaleTimeString();
+  const [hippoxVersion, setHippoxVersion] = useState<string>("");
+  const [atomicVersion, setAtomicVersion] = useState<string>("");
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadVersions = async () => {
+      try {
+        const result = await basisCommands.getHippoxVersions();
+        if (result) {
+          setHippoxVersion(result["hippox"] || "");
+          setAtomicVersion(result["hippox-atomic-skills"] || "");
+        }
+      } catch (error) {
+        console.error("Failed to fetch versions:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadVersions();
+  }, []);
+
+  const showVersion = !loading && hippoxVersion;
 
   return (
     <div key={WELCOME_TASK_ID} className="task-row welcome-row">
@@ -52,14 +85,8 @@ export const WelcomeMessage: React.FC<WelcomeMessageProps> = ({
       </div>
       {isExpanded && (
         <div className="task-steps welcome-steps" style={{ marginLeft: "5px" }}>
-          <div className="task-step">
-            <span className="step-icon">🚀</span>
-            <span className="step-name" style={styles.welcomeStepName}>
-              {t("terminal.welcome.subtitle")}
-            </span>
-          </div>
           <div className="step-output ascii-art" style={styles.asciiArt}>
-            <pre 
+            <pre
               className="ascii-animated"
               style={{
                 ...styles.asciiPre,
@@ -69,6 +96,44 @@ export const WelcomeMessage: React.FC<WelcomeMessageProps> = ({
               {HIPPOX_ASCII_LOGO}
             </pre>
           </div>
+          {showVersion && (
+            <div className="task-step">
+              <span className="step-icon">🤖</span>
+              <span className="step-name" style={styles.welcomeStepName}>
+                {t("terminal.welcome.engineInfo") || "基于 Hippox LLM 引擎"}
+                <span
+                  style={{
+                    marginLeft: "8px",
+                    color: "var(--accent-color)",
+                    fontWeight: "bold",
+                    fontSize: "11px",
+                  }}
+                >
+                  v{hippoxVersion}
+                  {atomicVersion && (
+                    <span
+                      style={{
+                        marginLeft: "6px",
+                        color: "var(--text-tertiary)",
+                        fontSize: "10px",
+                        fontWeight: "normal",
+                      }}
+                    >
+                      (atomic-skills v{atomicVersion})
+                    </span>
+                  )}
+                </span>
+              </span>
+            </div>
+          )}
+
+          <div className="task-step">
+            <span className="step-icon">🚀</span>
+            <span className="step-name" style={styles.welcomeStepName}>
+              {t("terminal.welcome.subtitle")}
+            </span>
+          </div>
+
           <div className="task-step">
             <span className="step-icon">💡</span>
             <span className="step-name" style={styles.welcomeStepName}>

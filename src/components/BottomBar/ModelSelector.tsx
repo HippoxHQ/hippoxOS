@@ -1,11 +1,12 @@
 import React, { useRef, useEffect, useState } from "react";
 import { healthCommands, HealthCheckResult } from "../../command/health";
 import { LlmInstance, llmCommands } from "../../command/llm";
-
 interface IconProps {
   size?: number;
 }
-
+const filterInstanceName = (name: string): string => {
+  return name.replace(/Instance/gi, "").trim() || name;
+};
 const CloseIcon: React.FC<IconProps> = ({ size = 14 }) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
@@ -22,7 +23,6 @@ const CloseIcon: React.FC<IconProps> = ({ size = 14 }) => (
     <line x1="6" y1="6" x2="18" y2="18" />
   </svg>
 );
-
 const WifiIcon: React.FC<IconProps> = ({ size = 12 }) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
@@ -41,7 +41,6 @@ const WifiIcon: React.FC<IconProps> = ({ size = 12 }) => (
     <line x1="12" y1="20" x2="12.01" y2="20" />
   </svg>
 );
-
 const WifiOffIcon: React.FC<IconProps> = ({ size = 12 }) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
@@ -63,7 +62,6 @@ const WifiOffIcon: React.FC<IconProps> = ({ size = 12 }) => (
     <line x1="12" y1="20" x2="12.01" y2="20" />
   </svg>
 );
-
 const LoadingIcon: React.FC<IconProps> = ({ size = 12 }) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
@@ -83,7 +81,6 @@ const LoadingIcon: React.FC<IconProps> = ({ size = 12 }) => (
     <path d="M18 12 L22 12" />
   </svg>
 );
-
 interface ModelSelectorProps {
   isOpen: boolean;
   onClose: () => void;
@@ -94,7 +91,6 @@ interface ModelSelectorProps {
   anchorRef: React.RefObject<HTMLElement>;
   popupRef: React.RefObject<HTMLDivElement | null>;
 }
-
 const ModelSelector: React.FC<ModelSelectorProps> = ({
   isOpen,
   onClose,
@@ -113,7 +109,6 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({
   const [currentDefaultId, setCurrentDefaultId] =
     useState<string>(defaultInstanceId);
   const [isCheckingHealth, setIsCheckingHealth] = useState(false);
-
   const sortInstances = (instances: LlmInstance[]): LlmInstance[] => {
     return [...instances].sort((a, b) => {
       if (a.created_at && b.created_at) {
@@ -124,18 +119,15 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({
       return (a.name || "").localeCompare(b.name || "");
     });
   };
-
   useEffect(() => {
     if (isOpen) {
       loadLatestConfig();
     }
   }, [isOpen]);
-
   useEffect(() => {
     setCurrentInstances(sortInstances(llmInstances));
     setCurrentDefaultId(defaultInstanceId);
   }, [llmInstances, defaultInstanceId]);
-
   const loadLatestConfig = async () => {
     try {
       const instancesData = await llmCommands.getLlmInstances();
@@ -151,7 +143,6 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({
       console.error("Failed to load latest LLM config:", error);
     }
   };
-
   const performHealthChecks = async (instances: LlmInstance[]) => {
     if (instances.length === 0) return;
     setIsCheckingHealth(true);
@@ -192,13 +183,11 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({
       setIsCheckingHealth(false);
     }
   };
-
   const recheckHealth = async () => {
     if (currentInstances.length > 0 && !isCheckingHealth) {
       await performHealthChecks(currentInstances);
     }
   };
-
   const getHealthStatus = (
     instanceId: string,
   ): "online" | "offline" | "checking" => {
@@ -344,7 +333,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({
                           color: "var(--text-primary)",
                         }}
                       >
-                        {instance.name}
+                        {filterInstanceName(instance.name)}
                       </span>
                       {isDefault && (
                         <span
