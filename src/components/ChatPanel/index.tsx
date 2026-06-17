@@ -36,6 +36,7 @@ import { workspaceCommands, WorkspaceInstance } from "../../command/workspace";
 import { llmCommands, LlmInstance } from "../../command/llm";
 import { taskManager } from "../../core/TaskManager";
 import { isStructuredLLMResponse, parseLLMResponse } from "../../llm/utils";
+import logo from "../../assets/logo.png";
 
 interface ChatPanelProps {
   onSendMessage: (
@@ -1007,19 +1008,19 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   }
 
   .suggestions-wrapper {
-    margin-top: 12px;
     width: 100%;
   }
 
   .ending-message {
     text-align: center;
-    padding: 10px 12px;
+    padding: 5px;
     margin: 8px 0 4px 0;
     font-size: 13px;
     color: var(--text-secondary);
     background: var(--bg-tertiary);
     border-radius: 20px;
     opacity: 0.9;
+    margin-bottom: 5px;
   }
   
   .suggestions-container {
@@ -1113,7 +1114,20 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
                 className={`message-wrapper ${isUser ? "user" : ""}`}
               >
                 <div className="message-avatar">
-                  {isUser ? <UserIcon size={16} /> : <BotIcon size={16} />}
+                  {isUser ? (
+                    <UserIcon size={16} />
+                  ) : (
+                    <img
+                      src={logo}
+                      alt="Hippox LLM"
+                      style={{
+                        width: "32px",
+                        height: "32px",
+                        borderRadius: "50%",
+                        objectFit: "cover",
+                      }}
+                    />
+                  )}
                 </div>
                 <div className="message-content-area">
                   {msg.status === MessageStatus.Pending ? (
