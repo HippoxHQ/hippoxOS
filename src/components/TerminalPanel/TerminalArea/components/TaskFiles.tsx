@@ -1,7 +1,7 @@
 import React from "react";
 import { formatFileSize } from "../utils";
-import { UploadFile } from "../../../../types/type";
 import { getFileIcon } from "../../../../common";
+import { UploadFile } from "../../../../core/types";
 
 interface TaskFilesProps {
   files: UploadFile[];

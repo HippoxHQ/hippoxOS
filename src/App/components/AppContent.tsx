@@ -13,7 +13,6 @@ import TerminalPanel from "../../components/TerminalPanel";
 import Toast from "../../components/Toast";
 import TopBar from "../../components/TopBar";
 import WelcomePage from "../../components/WelcomePage";
-import { UploadFile, Theme, Language } from "../../types/type";
 import ScheduledTasksManager from "../../components/ScheduledTasks";
 import UserProfile from "../../components/UserProfile";
 import { ContentPanelView } from "../hooks/useMenuPanel";
@@ -34,6 +33,8 @@ import EngineContainerPanel from "../../components/MenuPanel/EngineConfig/Engine
 import EngineDatabasePanel from "../../components/MenuPanel/EngineConfig/EngineDatabasePanel";
 import EngineNetworkPanel from "../../components/MenuPanel/EngineConfig/EngineNetworkPanel";
 import EngineNotificationPanel from "../../components/MenuPanel/EngineConfig/EngineNotificationPanel";
+import { Language, Theme } from "../../types/types";
+import { UploadFile } from "../../core/types";
 
 interface AppContentProps {
   theme: Theme;

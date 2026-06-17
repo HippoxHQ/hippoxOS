@@ -9,18 +9,13 @@ import { TaskSteps } from "./TaskSteps";
 import { TaskFiles } from "./TaskFiles";
 import { TaskOutput } from "./TaskOutput";
 import { TaskError } from "./TaskError";
-import {
-  StepStatusEnum,
-  TaskInfo,
-  TaskStatusEnum,
-  UploadFile,
-} from "../../../../types/type";
 import { taskPoolCommands } from "../../../../core/TaskPool";
 import { PauseIcon, PlayIcon, StopIcon } from "../../../../icons";
 import { showDialog, DialogType } from "../../../Dialog";
 import { showToast, ToastType } from "../../../Toast";
 import { FunctionInstance } from "../../FunctionArea/types";
 import { taskManager } from "../../../../core/TaskManager";
+import { TaskInfo, UploadFile, StepStatusEnum, TaskStatusEnum } from "../../../../core/types";
 
 interface TaskRowProps {
   task: TaskInfo;

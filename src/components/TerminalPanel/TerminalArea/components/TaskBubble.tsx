@@ -1,7 +1,7 @@
 import React from "react";
 import { WELCOME_TASK_ID, styles } from "../constants";
 import { getTaskStatusIcon, getTaskStatusText } from "../utils";
-import { TaskInfo } from "../../../../types/type";
+import { TaskInfo } from "../../../../core/types";
 
 interface TaskBubbleProps {
   allTasks: TaskInfo[];

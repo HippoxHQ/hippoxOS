@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Language } from "../../types/type";
+import { Language } from "../../types/types";
 import { useTranslation } from "../../hooks/useTranslation";
 import { setupSkillEventListeners } from "../../core/SkillListener";
 

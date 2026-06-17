@@ -1,6 +1,7 @@
 import { sessionCommands } from "../command/session";
-import { ChatMessage, TaskInfo, TaskStatusEnum } from "../types/type";
+import { ChatMessage } from "../types/types";
 import { notificationManager, NotificationType } from "./NotificationManager";
+import { TaskInfo, TaskStatusEnum } from "./types";
 
 type TaskListener = () => void;
 
@@ -428,7 +429,15 @@ class TaskManager {
     async saveTasksToFile(sessionId: string): Promise<void> {
         const tasks = this.tasksBySession.get(sessionId);
         if (!tasks) return;
-        const tasksArray = Array.from(tasks.values());
+        const terminalStates = [
+            TaskStatusEnum.Completed,
+            TaskStatusEnum.Failed,
+            TaskStatusEnum.Cancelled,
+            TaskStatusEnum.Timeout,
+        ];
+        const tasksArray = Array.from(tasks.values())
+            .filter(task => terminalStates.includes(task.status as TaskStatusEnum));
+        if (tasksArray.length === 0) return;
         await sessionCommands.saveTaskContent(sessionId, tasksArray).catch(console.error);
     }
 

@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "../../hooks/useTranslation";
-import { ChatMessage, TaskInfo, UploadFile, RoleEnum, MessageStatus, TaskStatusEnum, Language } from "../../types/type";
 import { getSystemPrompt } from "../../llm/prompts/basis";
 import { hippoxCommands } from "../../command/chat";
 import { sessionCommands } from "../../command/session";
 import { taskManager } from "../../core/TaskManager";
+import { TaskInfo, UploadFile, TaskStatusEnum } from "../../core/types";
+import { Language, ChatMessage, RoleEnum, MessageStatus } from "../../types/types";
 
 export function useSession(language: Language, isConfigLoaded: boolean, onCloseSkillsManager?: () => void) {
     const [currentSessionId, setCurrentSessionId] = useState<string>("");

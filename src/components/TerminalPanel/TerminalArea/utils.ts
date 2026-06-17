@@ -1,4 +1,4 @@
-import { TaskStatusEnum, StepStatusEnum } from "../../../types/type";
+import { TaskStatusEnum, StepStatusEnum } from "../../../core/types";
 import { showToast, ToastType } from "../../Toast";
 
 export const logToConsole = (level: string, message: string, data?: any) => {

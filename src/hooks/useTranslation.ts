@@ -1,5 +1,5 @@
 import { en, zh } from "../i18n";
-import { Language, Translations } from "../types/type";
+import { Language, Translations } from "../types/types";
 
 export function useTranslation(language: Language) {
   const translations: Translations = language === 'zh' ? zh : en;

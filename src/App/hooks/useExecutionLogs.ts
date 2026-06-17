@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ExecutionLog } from "../../types/type";
+import { ExecutionLog } from "../../types/types";
 import { hippoxCommands } from "../../command/chat";
 
 export function useExecutionLogs() {

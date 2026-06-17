@@ -23,11 +23,10 @@ import {
   FolderOpenIcon,
 } from "../../icons";
 import {
-  UploadFile,
   ChatMessage,
   RoleEnum,
   MessageStatus,
-} from "../../types/type";
+} from "../../types/types";
 import FileUploader from "../FileUploader";
 import { showToast, ToastType } from "../Toast";
 import { zhDefaultPrompts, enDefaultPrompts } from "../../types/DefaultPrompt";
@@ -37,6 +36,7 @@ import { llmCommands, LlmInstance } from "../../command/llm";
 import { taskManager } from "../../core/TaskManager";
 import { isStructuredLLMResponse, parseLLMResponse } from "../../llm/utils";
 import logo from "../../assets/logo.png";
+import { UploadFile } from "../../core/types";
 
 interface ChatPanelProps {
   onSendMessage: (

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { appConfig } from "../../config";
 import { useTranslation } from "../../hooks/useTranslation";
-import { Language } from "../../types/type";
+import { Language } from "../../types/types";
 import { hippoxCommands } from "../../command/chat";
 import { configCommands } from "../../command/config";
 import { taskManager } from "../../core/TaskManager";

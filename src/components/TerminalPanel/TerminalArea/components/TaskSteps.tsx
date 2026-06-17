@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import { StepParameters } from "./StepParameters";
-import { TaskStepInfo, StepStatusEnum } from "../../../../types/type";
 import { getStepEmoji } from "../constants";
 import { formatDuration, getStepStatusText } from "../utils";
+import { TaskStepInfo, StepStatusEnum } from "../../../../core/types";
 
 interface TaskStepsProps {
   steps: TaskStepInfo[];

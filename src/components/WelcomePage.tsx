@@ -7,10 +7,10 @@ import {
 } from "../icons";
 import { showToast, ToastType } from "./Toast";
 import FileUploader from "./FileUploader";
-import { UploadFile } from "../types/type";
 import { zhDefaultPrompts, enDefaultPrompts } from "../types/DefaultPrompt";
 import { showTooltipOnElement } from "./Tooltip";
 import { WorkspaceInstance, workspaceCommands } from "../command/workspace";
+import { UploadFile } from "../core/types";
 
 interface WelcomePageProps {
   onSendMessage: (message: string, files?: UploadFile[]) => void;

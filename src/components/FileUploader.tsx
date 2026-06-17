@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { UploadFile } from "../types/type";
+import { UploadFile } from "../core/types";
 
 interface FileUploaderProps {
   onFilesAdd: (files: UploadFile[]) => void;

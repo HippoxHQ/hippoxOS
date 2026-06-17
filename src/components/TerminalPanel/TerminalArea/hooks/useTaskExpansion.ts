@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { TaskInfo, TaskStatusEnum } from "../../../../types/type";
+import { TaskInfo, TaskStatusEnum } from "../../../../core/types";
 
 export const useTaskExpansion = (allTasks: TaskInfo[], activeTasks: TaskInfo[]) => {
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
@@ -7,7 +7,6 @@ export const useTaskExpansion = (allTasks: TaskInfo[], activeTasks: TaskInfo[]) 
   const autoExpandedRef = useRef<Set<string>>(new Set());
   const allTasksRef = useRef<TaskInfo[]>(allTasks);
   const isInitializedRef = useRef(false);
-
   // Only run once on mount to initialize expanded state
   useEffect(() => {
     if (!isInitializedRef.current) {
@@ -18,7 +17,6 @@ export const useTaskExpansion = (allTasks: TaskInfo[], activeTasks: TaskInfo[]) 
     }
     allTasksRef.current = allTasks;
   }, [allTasks]);
-
   useEffect(() => {
     activeTasks.forEach((task) => {
       if (!autoExpandedRef.current.has(task.task_id)) {
@@ -33,7 +31,6 @@ export const useTaskExpansion = (allTasks: TaskInfo[], activeTasks: TaskInfo[]) 
       }
     });
   }, [activeTasks]);
-
   const toggleTaskExpand = (taskId: string) => {
     setExpandedTasks((prev) => {
       const newSet = new Set(prev);
@@ -49,7 +46,6 @@ export const useTaskExpansion = (allTasks: TaskInfo[], activeTasks: TaskInfo[]) 
       return newSet;
     });
   };
-
   const toggleAllTasks = () => {
     if (allExpanded) {
       setExpandedTasks(new Set());
@@ -60,7 +56,6 @@ export const useTaskExpansion = (allTasks: TaskInfo[], activeTasks: TaskInfo[]) 
       setAllExpanded(true);
     }
   };
-
   return {
     expandedTasks,
     allExpanded,

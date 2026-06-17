@@ -1,6 +1,6 @@
 import React from "react";
 import { getFileIcon } from "../../../common";
-import { UploadFile } from "../../../types/type";
+import { UploadFile } from "../../../core/types";
 
 interface MessageFileGridProps {
   files: UploadFile[];

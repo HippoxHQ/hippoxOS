@@ -9,7 +9,7 @@ import {
   FileMusicIcon,
   FileDefaultIcon,
 } from "./icons";
-import { UploadFile } from "./types/type";
+import { UploadFile } from "./core/types";
 
 export const getFileIcon = (
   file: UploadFile,

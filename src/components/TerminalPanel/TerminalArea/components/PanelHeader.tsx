@@ -4,7 +4,7 @@ import {
   ExpandArrowsIcon,
   CollapseIcon,
 } from "../../../../icons";
-import { TaskStatusEnum } from "../../../../types/type";
+import { TaskStatusEnum } from "../../../../core/types";
 
 interface PanelHeaderProps {
   activeTasks: any[];
@@ -64,7 +64,6 @@ export const PanelHeader: React.FC<PanelHeaderProps> = ({
   const runningCount = activeTasks.filter(
     (t) => t.status === TaskStatusEnum.Running,
   ).length;
-
   return (
     <div
       className="panel-header"

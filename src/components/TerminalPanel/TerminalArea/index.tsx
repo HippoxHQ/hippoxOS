@@ -17,8 +17,8 @@ import {
   ScrollButtons,
   TaskBubble,
 } from "./components";
-import { TaskStatusEnum } from "../../../types/type";
 import { hippoxCommands } from "../../../command/chat";
+import { TaskStatusEnum } from "../../../core/types";
 
 interface ExtendedTerminalAreaProps extends TerminalAreaProps {}
 
@@ -39,7 +39,6 @@ const TerminalArea: React.FC<ExtendedTerminalAreaProps> = ({
     filesScrollStates,
     setFilesScrollStates,
     filesScrollRefs,
-    checkFilesScroll,
     scrollFilesLeft,
     scrollFilesRight,
   } = useFilesScroll(activeTasks);

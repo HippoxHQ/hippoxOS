@@ -2,7 +2,7 @@ import React from "react";
 import { MessageFileGrid } from "./MessageFileGrid";
 import { EditMessageForm } from "./EditMessageForm";
 import { MessageActions } from "./MessageActions";
-import { ChatMessage } from "../../../types/type";
+import { ChatMessage } from "../../../types/types";
 
 interface NormalMessageProps {
   msg: ChatMessage;

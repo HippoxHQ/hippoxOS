@@ -1,6 +1,7 @@
 import { listen } from "@tauri-apps/api/event";
-import { TaskStatusEnum, ChatMessage, RoleEnum, MessageStatus, TaskInfo } from "../types/type";
+import { ChatMessage, RoleEnum, MessageStatus } from "../types/types";
 import { taskManager } from "./TaskManager";
+import { TaskInfo, TaskStatusEnum } from "./types";
 
 export interface TaskEventHandlers {
     onTranslation: (key: string) => string;

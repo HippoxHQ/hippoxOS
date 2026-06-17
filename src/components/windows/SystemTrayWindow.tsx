@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { zh, en } from "../../i18n";
-import { SystemEvent } from "../../types/type";
+import { SystemEvent } from "../../types/types";
 import { configCommands } from "../../command/config";
 import { healthCommands, HealthCheckResult } from "../../command/health";
 import { windowsCommands } from "../../command/windows";

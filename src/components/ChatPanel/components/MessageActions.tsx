@@ -1,6 +1,6 @@
 import React from "react";
 import { LocateIcon, CopyIcon, EditIcon2, ResendIcon } from "../../../icons";
-import { ChatMessage } from "../../../types/type";
+import { ChatMessage } from "../../../types/types";
 
 interface MessageActionsProps {
   msg: ChatMessage;

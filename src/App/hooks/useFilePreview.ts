@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { UploadFile } from "../../types/type";
+import { UploadFile } from "../../core/types";
 
 export function useFilePreview() {
   const [isFilePreviewOpen, setIsFilePreviewOpen] = useState(false);

@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { UploadFile, ChatMessage } from "../../../types/type";
 import { showToast, ToastType } from "../../Toast";
 import { taskManager } from "../../../core/TaskManager";
+import { UploadFile } from "../../../core/types";
+import { ChatMessage } from "../../../types/types";
 
 interface UseEditMessageProps {
   currentSessionId?: string;

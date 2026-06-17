@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { listen } from "@tauri-apps/api/event";
-import { SystemEvent } from "../../types/type";
+import { SystemEvent } from "../../types/types";
 import { filesCommands } from "../../command/files";
 import { getDataPaths } from "../../command/paths";
 

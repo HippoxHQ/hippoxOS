@@ -1,9 +1,10 @@
 import React, { useRef, useEffect, useState } from "react";
-import { ExecutionLog, UploadFile } from "../../types/type";
+import { ExecutionLog } from "../../types/types";
 import FunctionArea from "./FunctionArea";
 import TerminalArea from "./TerminalArea";
 import { FunctionInstance } from "./FunctionArea/types";
 import { configCommands } from "../../command/config";
+import { UploadFile } from "../../core/types";
 
 interface TerminalPanelProps {
   logs: ExecutionLog[];

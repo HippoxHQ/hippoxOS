@@ -1,6 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
 import React from 'react';
-import { TaskInfo, TaskStatusEnum } from '../types/type';
+import { TaskInfo, TaskStatusEnum } from './types';
 
 export interface TaskStepInfo {
     step_index: number;
