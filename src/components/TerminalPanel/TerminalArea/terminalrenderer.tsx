@@ -639,7 +639,6 @@ const StatusBanner: React.FC<{
     color: "var(--text-secondary)",
     bg: "var(--bg-tertiary)",
   };
-
   return (
     <div
       className="terminal-status-banner"
@@ -653,8 +652,8 @@ const StatusBanner: React.FC<{
         border: `1px solid ${config.color}`,
       }}
     >
-      <span style={{ fontSize: "10px" }}>{config.icon}</span>
-      <span style={{ fontSize: "10px", color: "var(--text-primary)" }}>
+      <span style={{ fontSize: "12px" }}>{config.icon}</span>
+      <span style={{ fontSize: "12px", color: "var(--text-primary)" }}>
         {statusText}: {message}
       </span>
     </div>
