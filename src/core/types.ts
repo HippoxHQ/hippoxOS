@@ -82,14 +82,15 @@ export interface TaskStepInfo {
     step_name: string;
     /** Current execution status of this step */
     status: StepStatusEnum;
-    /** Output/result from this step execution */
-    output?: string;
+
     /** Error message if this step failed */
     error?: string;
     /** Duration of this step execution in milliseconds */
     duration_ms?: number;
-    /** JSON string of parameters passed to this step */
-    parameters?: string;
+    /** JSON string of input parameters passed to this step */
+    input?: string;
+    /** Output/result from this step execution, JSON string of output to this step */
+    output?: string;
     /** Real-time execution progress of this step (0-100), from skill_callback_progress */
     progress?: number;
     /** Human-readable progress message, from skill_callback_progress */

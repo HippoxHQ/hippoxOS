@@ -20,7 +20,7 @@ export const handleTaskStepUpdate = (
         output,
         error,
         duration_ms,
-        parameters,
+        input,
         session_id,
     } = event.payload;
 
@@ -43,17 +43,17 @@ export const handleTaskStepUpdate = (
                 ...(output !== undefined && { output }),
                 ...(error !== undefined && { error }),
                 ...(duration_ms !== undefined && { duration_ms }),
-                ...(parameters !== undefined && { parameters }),
+                ...(input !== undefined && { input }),
             };
         } else {
             steps.push({
                 step_index,
                 step_name,
                 status,
-                output,
                 error,
                 duration_ms,
-                parameters,
+                input,
+                output,
             });
         }
         steps.sort((a, b) => a.step_index - b.step_index);

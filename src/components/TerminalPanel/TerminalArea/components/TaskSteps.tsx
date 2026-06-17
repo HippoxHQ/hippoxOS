@@ -282,9 +282,9 @@ export const TaskSteps: React.FC<TaskStepsProps> = ({
               </span>
             </div>
 
-            {step.parameters && step.parameters !== "{}" && (
+            {step.input && step.input !== "{}" && (
               <StepParameters
-                parameters={step.parameters}
+                parameters={step.input}
                 stepKey={`${taskId}-step-${step.step_index}-params`}
                 isExpanded={expandedStepParams.has(
                   `${taskId}-step-${step.step_index}-params`,
