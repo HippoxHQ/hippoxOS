@@ -90,7 +90,7 @@ export const ModuleTabs: React.FC<ModuleTabsProps> = ({
           gap: "4px",
           overflowX: "auto",
           overflowY: "hidden",
-          minHeight: "40px",
+          minHeight: "30px",
           scrollbarWidth: "none",
           msOverflowStyle: "none",
         }}
@@ -99,7 +99,6 @@ export const ModuleTabs: React.FC<ModuleTabsProps> = ({
         {modules.map((module) => {
           const active = isActive(module);
           const moduleKey = getModuleKey(module);
-
           return (
             <div
               key={moduleKey}
@@ -107,7 +106,7 @@ export const ModuleTabs: React.FC<ModuleTabsProps> = ({
                 display: "flex",
                 alignItems: "center",
                 gap: "6px",
-                padding: "6px 8px 6px 14px",
+                padding: "0px 8px 0px 14px",
                 background: active
                   ? "var(--bg-tertiary, #2d2d2d)"
                   : "transparent",

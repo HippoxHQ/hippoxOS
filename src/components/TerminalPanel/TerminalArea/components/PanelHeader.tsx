@@ -68,7 +68,7 @@ export const PanelHeader: React.FC<PanelHeaderProps> = ({
   return (
     <div
       className="panel-header"
-      style={{ paddingTop: "8px", paddingBottom: "8px" }}
+      style={{ paddingTop: "3px", paddingBottom: "3px", height: "41px" }}
     >
       <div className="header-title">
         <span className="title-icon">
@@ -91,8 +91,8 @@ export const PanelHeader: React.FC<PanelHeaderProps> = ({
         <div
           ref={buttonRef as React.RefObject<HTMLDivElement>}
           style={{
-            width: "34px",
-            height: "34px",
+            width: "28px",
+            height: "28px",
             borderRadius: "8px",
             background: "var(--bg-tertiary, #2d2d2d)",
             border: "1px solid var(--border-color, #444)",
@@ -110,7 +110,6 @@ export const PanelHeader: React.FC<PanelHeaderProps> = ({
         >
           <TaskQueueIcon size={16} />
         </div>
-
         <button
           className="clear-logs-btn"
           onClick={onToggleAllTasks}

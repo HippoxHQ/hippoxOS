@@ -169,7 +169,6 @@ pub async fn cmd_send_chat_message_async(
         } => return Err(err),
         _ => return Err("Failed to submit task".to_string()),
     };
-
     let messages = LogMessages::get();
     state
         .add_log(

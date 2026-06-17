@@ -95,7 +95,7 @@ const menuPanelStyles = `
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 9px 16px;
+    padding: 4px 16px;
     border-bottom: 1px solid var(--border-color);
     background: var(--bg-secondary);
     flex-shrink: 0;

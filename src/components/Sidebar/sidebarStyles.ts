@@ -1,6 +1,6 @@
 export const sidebarStyles = `
   .sidebar {
-    width: 52px;
+    width: 45px;
     background: var(--bg-secondary);
     border-right: 1px solid var(--border-color);
     display: flex;
@@ -14,7 +14,7 @@ export const sidebarStyles = `
   }
 
  .sidebar-header {
-  padding: 7px 0;
+  padding: 2px 0;
   border-bottom: 1px solid var(--border-color);
   width: 100%;
   display: flex;
@@ -64,8 +64,8 @@ export const sidebarStyles = `
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 36px;
-    height: 36px;
+    width: 30px;
+    height: 30px;
     border-radius: 8px;
     background: transparent;
     border: none;

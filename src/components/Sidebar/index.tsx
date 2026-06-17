@@ -301,7 +301,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     <aside
       className="sidebar"
       style={{
-        width: collapsed ? 0 : 52,
+        width: collapsed ? 0 : 45,
         overflow: collapsed ? "hidden" : "visible",
         padding: collapsed ? 0 : undefined,
         opacity: collapsed ? 0 : 1,
