@@ -429,16 +429,13 @@ class TaskManager {
     async saveTasksToFile(sessionId: string): Promise<void> {
         const tasks = this.tasksBySession.get(sessionId);
         if (!tasks) return;
-        const terminalStates = [
-            TaskStatusEnum.Completed,
-            TaskStatusEnum.Failed,
-            TaskStatusEnum.Cancelled,
-            TaskStatusEnum.Timeout,
-        ];
-        const tasksArray = Array.from(tasks.values())
-            .filter(task => terminalStates.includes(task.status as TaskStatusEnum));
+        const tasksArray = Array.from(tasks.values());
         if (tasksArray.length === 0) return;
-        await sessionCommands.saveTaskContent(sessionId, tasksArray).catch(console.error);
+        try {
+            await sessionCommands.saveTaskContent(sessionId, tasksArray);
+        } catch (error) {
+            console.error("[TaskManager] Failed to save tasks:", error);
+        }
     }
 
     async saveCurrentSessionToFile(): Promise<void> {
