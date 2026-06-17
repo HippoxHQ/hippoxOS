@@ -1,4 +1,4 @@
-import React, { forwardRef, useEffect } from "react";
+import React, { forwardRef } from "react";
 import {
   getTaskStatusIcon,
   getTaskStatusText,
@@ -138,7 +138,6 @@ export const TaskRow = forwardRef<HTMLDivElement, TaskRowProps>(
       }
     };
     const handleShowMap = (mapData?: any) => {
-      console.log("Opening map with data:", mapData);
       onOpenFunctionArea();
       setTimeout(() => {
         window.dispatchEvent(
@@ -239,14 +238,68 @@ export const TaskRow = forwardRef<HTMLDivElement, TaskRowProps>(
         <div
           className="task-row-header"
           onClick={() => onToggleExpand(task.task_id)}
+          style={{
+            display: "flex",
+            alignItems: isExpanded ? "flex-start" : "center",
+            flexWrap: "wrap",
+            gap: "4px 8px",
+            padding: "4px 8px",
+            cursor: "pointer",
+          }}
         >
-          <span className="task-expand-icon">{isExpanded ? "▼" : "▶"}</span>
-          <span className="task-status-icon">
+          <span
+            className="task-expand-icon"
+            style={{
+              flexShrink: 0,
+              alignSelf: isExpanded ? "flex-start" : "center",
+              paddingTop: isExpanded ? "2px" : "0",
+            }}
+          >
+            {isExpanded ? "▼" : "▶"}
+          </span>
+          <span
+            className="task-status-icon"
+            style={{
+              flexShrink: 0,
+              alignSelf: isExpanded ? "flex-start" : "center",
+              paddingTop: isExpanded ? "2px" : "0",
+            }}
+          >
             {getTaskStatusIcon(task.status)}
           </span>
-          <span className="task-time">[{formatTime(task.created_at)}]</span>
-          <span className="task-input">{task.user_input}</span>
-          <div className="task-status-right">
+          <span
+            key={`input-${isExpanded}`}
+            className="task-input"
+            style={{
+              flex: "1 1 0",
+              whiteSpace: isExpanded ? "pre-wrap" : "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              wordBreak: isExpanded ? "break-word" : "normal",
+              lineHeight: "1.5",
+              padding: "0",
+              minWidth: "0",
+              alignSelf: isExpanded ? "flex-start" : "center",
+              maxHeight: isExpanded ? "7.5em" : "none",
+              display: "-webkit-box",
+              WebkitLineClamp: isExpanded ? 5 : "unset",
+              WebkitBoxOrient: "vertical",
+            }}
+          >
+            {task.user_input}
+          </span>
+          <div
+            className="task-status-right"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              flexShrink: 0,
+              marginLeft: "auto",
+              alignSelf: isExpanded ? "flex-start" : "center",
+              paddingTop: isExpanded ? "2px" : "0",
+            }}
+          >
             <span
               className="task-status-text"
               style={
@@ -274,6 +327,12 @@ export const TaskRow = forwardRef<HTMLDivElement, TaskRowProps>(
                   className="task-pause-btn"
                   onClick={(e) => handlePauseTask(task.task_id, e)}
                   title={t("terminal.pause")}
+                  style={{
+                    background: "transparent",
+                    border: "none",
+                    cursor: "pointer",
+                    padding: "2px",
+                  }}
                 >
                   <PauseIcon size={14} />
                 </button>
@@ -281,6 +340,12 @@ export const TaskRow = forwardRef<HTMLDivElement, TaskRowProps>(
                   className="task-interrupt-btn"
                   onClick={(e) => handleInterruptTask(task.task_id, e)}
                   title={t("terminal.interrupt")}
+                  style={{
+                    background: "transparent",
+                    border: "none",
+                    cursor: "pointer",
+                    padding: "2px",
+                  }}
                 >
                   <StopIcon size={14} />
                 </button>
@@ -291,13 +356,21 @@ export const TaskRow = forwardRef<HTMLDivElement, TaskRowProps>(
                 className="task-resume-btn"
                 onClick={(e) => handleResumeTask(task.task_id, e)}
                 title={t("terminal.resume")}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  cursor: "pointer",
+                  padding: "2px",
+                }}
               >
                 <PlayIcon size={14} />
               </button>
             )}
+            <span className="task-time" style={{ flexShrink: 0 }}>
+              [{formatTime(task.created_at)}]
+            </span>
           </div>
         </div>
-
         {isExpanded &&
           (task as any).files &&
           (task as any).files.length > 0 && (
