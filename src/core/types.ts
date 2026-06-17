@@ -70,10 +70,10 @@ export interface TaskInfo {
  * - Each step belongs to the parent task via the containing TaskInfo
  * 
  * Execution Flow:
- * 1. Step starts → status: RUNNING
- * 2. Step executes → output generated
- * 3. Step completes → status: SUCCESS
- * 4. Step fails → status: FAILURE, error recorded
+ * 1. Step starts → status: RUNNING, started_at set, log added
+ * 2. Step progresses → progress updates (0-100), progress_message updates, log added
+ * 3. Step completes → status: SUCCESS, output set, completed_at set, log added
+ * 4. Step fails → status: FAILURE, error set, completed_at set, log added
  */
 export interface TaskStepInfo {
     /** Step order/index within the parent task (0-based) */
@@ -90,6 +90,19 @@ export interface TaskStepInfo {
     duration_ms?: number;
     /** JSON string of parameters passed to this step */
     parameters?: string;
+    /** Real-time execution progress of this step (0-100), from skill_callback_progress */
+    progress?: number;
+    /** Human-readable progress message, from skill_callback_progress */
+    progress_message?: string;
+    /** Start timestamp of this step (ISO format), from skill_callback_start */
+    started_at?: string;
+    /** Completion timestamp of this step (ISO format), from skill_callback_complete or skill_callback_error */
+    completed_at?: string;
+    /** 
+     * Execution logs for this step, each string represents one log line
+     * Collected from all skill events (start, progress, complete, error)
+     */
+    logs?: string[];
 }
 
 export enum TaskStatusEnum {
