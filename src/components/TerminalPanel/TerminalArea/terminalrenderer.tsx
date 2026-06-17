@@ -647,15 +647,14 @@ const StatusBanner: React.FC<{
         display: "flex",
         alignItems: "center",
         gap: "8px",
-        padding: "6px 12px",
+        padding: "5px 12px",
         background: config.bg,
         borderRadius: "6px",
-        margin: "8px 0",
         border: `1px solid ${config.color}`,
       }}
     >
-      <span style={{ fontSize: "15px" }}>{config.icon}</span>
-      <span style={{ fontSize: "12px", color: "var(--text-primary)" }}>
+      <span style={{ fontSize: "10px" }}>{config.icon}</span>
+      <span style={{ fontSize: "10px", color: "var(--text-primary)" }}>
         {statusText}: {message}
       </span>
     </div>

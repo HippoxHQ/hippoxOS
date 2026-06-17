@@ -668,7 +668,7 @@ export const globalStyles = `
   gap: 8px;
   cursor: pointer;
   padding: 5px 0;  
-  border-radius: 6px;
+  border-radius: 5px;
   transition: background 0.2s;
   font-size: 14px;  
 }
@@ -710,7 +710,7 @@ export const globalStyles = `
 }
 
 .task-steps {
-   margin-left: 10px;
+  margin-left: 10px;
   margin-top: 4px;
   margin-bottom: 4px;
 }
@@ -718,11 +718,12 @@ export const globalStyles = `
 .task-final-output,
 .task-error {
   margin-top: 4px;
-  padding: 8px 10px;
+  padding: 0px 10px;
   background-color: var(--bg-tertiary);
-  border-radius: 6px;
+  border-radius: 5px;
   border-left: 3px solid var(--accent-green, #4ec9b0);
   padding-top: 5px;
+  padding-bottom: 10px;
 }
 
 .task-error {

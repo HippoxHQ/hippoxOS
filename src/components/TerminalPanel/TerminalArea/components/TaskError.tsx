@@ -92,7 +92,6 @@ export const TaskError: React.FC<TaskErrorProps> = ({
       <div
         className="error-content-func"
         style={{
-          marginTop: "10px",
           display: "flex",
           justifyContent: "flex-end",
         }}
