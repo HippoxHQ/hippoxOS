@@ -401,7 +401,7 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
   const groupedSessions = getGroupedSessions();
 
   return (
-    <div style={{ padding: "8px 12px", userSelect: "none" }}>
+    <div style={{ padding: "0px 10px", userSelect: "none" }}>
       {categories.map((category) => {
         const categorySessions = groupedSessions[category.type];
         if (categorySessions.length === 0) return null;
