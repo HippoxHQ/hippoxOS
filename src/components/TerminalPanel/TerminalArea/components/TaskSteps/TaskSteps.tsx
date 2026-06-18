@@ -104,11 +104,11 @@ export const TaskSteps: React.FC<TaskStepsProps> = ({
                 style={{
                   position: "absolute",
                   left: "6px",
-                  top: "0",
+                  top: "17px",
                   bottom: "-8px",
-                  width: "2px",
-                  backgroundColor: "var(--border-color, #333)",
-                  opacity: 0.5,
+                  width: "1px",
+                  backgroundColor: "var(--text-primary)",
+                  opacity: 0.3,
                 }}
               />
             )}
@@ -117,7 +117,7 @@ export const TaskSteps: React.FC<TaskStepsProps> = ({
               style={{
                 position: "absolute",
                 left: "0",
-                top: "10px",
+                top: "6px",
                 width: "14px",
                 height: "14px",
                 borderRadius: "50%",
@@ -132,16 +132,15 @@ export const TaskSteps: React.FC<TaskStepsProps> = ({
               style={{
                 position: "absolute",
                 left: "6px",
-                top: "4px",
+                top: "13px",
                 width: "25px",
-                height: "14px",
-                borderBottom: "2px solid var(--border-color, #333)",
-                borderLeft: "2px solid var(--border-color, #333)",
-                opacity: 0.5,
+                height: "0px",
+                borderBottom: "1px solid var(--text-primary)",
+                borderLeft: "1px solid var(--text-primary)",
+                opacity: 0.3,
                 zIndex: 0,
               }}
             />
-
             <div
               className="task-step"
               style={{ paddingBottom: isLast ? "0" : "8px" }}
