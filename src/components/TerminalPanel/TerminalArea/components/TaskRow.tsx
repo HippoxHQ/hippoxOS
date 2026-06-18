@@ -399,7 +399,6 @@ export const TaskRow = forwardRef<HTMLDivElement, TaskRowProps>(
           task.final_output &&
           task.status === TaskStatusEnum.Completed && (
             <>
-              <div className="task-separator" />
               <TaskOutput
                 output={
                   getRawOutput(task.task_id, task.session_id) ||
