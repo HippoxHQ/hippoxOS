@@ -154,7 +154,7 @@ export const globalStyles = `
   padding: 6px 10px;
   background: var(--bg-tertiary);
   border-radius: 6px;
-  font-size: 11px;
+  font-size: 12px;
   font-family: monospace;
   border-left: 3px solid var(--accent-color, #00aaff);
   width: calc(100% - 20px);
@@ -169,7 +169,7 @@ export const globalStyles = `
 }
 
 .step-parameters-label {
-  color: var(--text-secondary);
+  color: var(--text-primary);
   flex-shrink: 0;
   font-weight: 500;
 }
@@ -177,7 +177,7 @@ export const globalStyles = `
 .step-parameters-toggle {
   background: transparent;
   border: 1px solid var(--border-color, #444);
-  color: var(--text-secondary);
+  color: var(--text-primary);
   cursor: pointer;
   font-size: 10px;
   padding: 2px 8px;
@@ -195,7 +195,7 @@ export const globalStyles = `
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 11px;
+  font-size: 12px;
   font-family: monospace;
   color: var(--text-primary);
   margin-top: 2px;
@@ -208,7 +208,7 @@ export const globalStyles = `
   border-radius: 6px;
   color: var(--text-primary);
   font-family: 'Courier New', 'Fira Code', monospace;
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.5;
   white-space: pre-wrap;
   word-break: break-word;

@@ -168,7 +168,6 @@ export const TaskSteps: React.FC<TaskStepsProps> = ({
                     marginTop: "6px",
                     marginBottom: "6px",
                     width: "100%",
-                    paddingRight: "35%",
                   }}
                 >
                   <div
@@ -193,9 +192,9 @@ export const TaskSteps: React.FC<TaskStepsProps> = ({
                         flex: 1,
                         maxHeight: isLogExpanded ? "120px" : "20px",
                         overflowY: isLogExpanded ? "auto" : "hidden",
-                        fontSize: "11px",
+                        fontSize: "12px",
                         fontFamily: "monospace",
-                        color: "var(--text-secondary)",
+                        color: "var(--text-primary)",
                         lineHeight: "1.6",
                         transition: "max-height 0.3s ease",
                         scrollbarWidth: "thin",
@@ -211,8 +210,6 @@ export const TaskSteps: React.FC<TaskStepsProps> = ({
                               logIdx < displayLogs.length - 1
                                 ? "1px solid var(--border-color, rgba(255,255,255,0.05))"
                                 : "none",
-                            opacity:
-                              logIdx === displayLogs.length - 1 ? 1 : 0.8,
                             whiteSpace: "nowrap",
                             overflow: "hidden",
                             textOverflow: "ellipsis",
@@ -222,26 +219,23 @@ export const TaskSteps: React.FC<TaskStepsProps> = ({
                         </div>
                       ))}
                     </div>
-                    {logs.length > 0 && (
-                      <span
-                        style={{
-                          fontSize: "11px",
-                          color: "var(--text-primary)",
-                          flexShrink: 0,
-                          opacity: 0.6,
-                          marginTop: "1px",
-                          userSelect: "none",
-                        }}
-                      >
-                        {isLogExpanded
-                          ? "▲"
-                          : `▼ ${logs.length} ${t("task.logsCount")}`}
-                      </span>
-                    )}
+                    <span
+                      style={{
+                        fontSize: "12px",
+                        color: "var(--text-primary)",
+                        flexShrink: 0,
+                        marginTop: "1px",
+                        userSelect: "none",
+                        minWidth: "60px",
+                        textAlign: "right",
+                      }}
+                    >
+                      {isLogExpanded ? "▲" : "▼"} {logs.length}{" "}
+                      {t("task.logsCount")}
+                    </span>
                   </div>
                 </div>
               )}
-
               {hasProgress && (
                 <div
                   style={{
@@ -307,7 +301,6 @@ export const TaskSteps: React.FC<TaskStepsProps> = ({
                   </span>
                 </div>
               )}
-
               {step.input && step.input !== "{}" && (
                 <StepParameters
                   parameters={step.input}
@@ -320,7 +313,6 @@ export const TaskSteps: React.FC<TaskStepsProps> = ({
                   type="input"
                 />
               )}
-
               {step.output && step.output !== "{}" && (
                 <StepParameters
                   parameters={step.output}
