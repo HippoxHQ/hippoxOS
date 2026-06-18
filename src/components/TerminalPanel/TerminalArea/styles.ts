@@ -157,7 +157,7 @@ export const globalStyles = `
   font-size: 12px;
   font-family: monospace;
   border-left: 2px solid var(--accent-color, #00aaff);
-  width: calc(100% - 20px);
+  width: calc(100% - 10px);
   box-sizing: border-box;
 }
 

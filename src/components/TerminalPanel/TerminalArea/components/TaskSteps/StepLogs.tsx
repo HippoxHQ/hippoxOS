@@ -23,7 +23,7 @@ export const StepLogs: React.FC<StepLogsProps> = ({
         padding: "6px 10px",
         background: "var(--bg-tertiary)",
         borderRadius: "6px",
-        width: "calc(100% - 20px)",
+        width: "calc(100% - 10px)",
         boxSizing: "border-box",
       }}
     >

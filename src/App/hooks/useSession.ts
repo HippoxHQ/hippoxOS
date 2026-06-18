@@ -11,7 +11,6 @@ import { Language, ChatMessage, RoleEnum, MessageStatus } from "../../types/type
  * Custom hook that manages the current session state and all session-related operations.
  * 
  * This hook is the central piece for session management, handling:
- * - Loading sessions from disk on app startup
  * - Creating new sessions
  * - Switching between sessions
  * - Sending messages within a session
@@ -59,7 +58,6 @@ export function useSession(
     const [pendingNewSession, setPendingNewSession] = useState(false);
     /** Translation function for i18n support */
     const { t } = useTranslation(language);
-
     /**
      * Subscribe to taskManager changes.
      * When any data in taskManager changes, increment the version counter,
@@ -85,8 +83,9 @@ export function useSession(
      * - Uses 500ms debounce to avoid excessive disk writes
      * - Saves both chat messages and terminal tasks
      * 
-     * @note Empty sessions (no messages) will still be saved with empty arrays.
-     *       This is intentional for creating session directories on disk.
+     * CRITICAL: Only saves when there is actual data in memory.
+     * This prevents empty data from overwriting valid data on disk
+     * (e.g., after F5 refresh when memory is empty but disk has data).
      */
     useEffect(() => {
         if (
@@ -99,6 +98,10 @@ export function useSession(
                 const allData = taskManager.getAllData();
                 const userMessages = (allData?.userMessages || []) as ChatMessage[];
                 const assistantMessages = (allData?.assistantMessages || []) as ChatMessage[];
+                if (userMessages.length === 0 && assistantMessages.length === 0) {
+                    console.log(`[AutoSave] Skipping save for ${currentSessionId} - no data in memory`);
+                    return;
+                }
                 // Merge and sort all messages by timestamp for consistent ordering
                 const allMessages = [...userMessages, ...assistantMessages].sort(
                     (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
@@ -112,50 +115,12 @@ export function useSession(
         }
     }, [currentSessionId, isLoading, taskManagerVersion]);
 
-    /**
-     * Load session list on app startup.
-     * 
-     * This effect runs once when the app configuration is loaded.
-     * It reads the list of sessions from disk and sets the first session
-     * as the current session. If no sessions exist, the user sees the welcome page.
-     * 
-     * CRITICAL: This effect is READ-ONLY for the session list.
-     * It does NOT load message content or task data into taskManager.
-     * This prevents:
-     * - Slow startup (lazy loading)
-     * - Data corruption from malformed JSON files
-     * - Memory bloat from loading all sessions
-     * 
-     * Session data is loaded lazily when the user switches to a session
-     * (see handleSwitchSession below).
-     */
     useEffect(() => {
-        const loadSessions = async () => {
-            // Wait for config to be loaded before attempting to read sessions
-            if (!isConfigLoaded) return;
-            try {
-                // Read session list from disk (just metadata, not content)
-                const sessions = await sessionCommands.listSessions();
-                if (sessions.length > 0) {
-                    // Set the first session as current (user will see this session)
-                    const firstSession = sessions[0];
-                    setCurrentSessionId(firstSession.session_id);
-                    localStorage.setItem("hippox-current-session", firstSession.session_id);
-                } else {
-                    // No sessions exist → show welcome page
-                    setCurrentSessionId("");
-                    localStorage.removeItem("hippox-current-session");
-                }
-            } catch (error) {
-                // On error, clear session state to show welcome page
-                console.error("Failed to load sessions:", error);
-                setCurrentSessionId("");
-            } finally {
-                // Mark loading as complete regardless of success/failure
-                setIsLoading(false);
-            }
-        };
-        loadSessions();
+        if (isConfigLoaded) {
+            setCurrentSessionId("");
+            localStorage.removeItem("hippox-current-session");
+            setIsLoading(false);
+        }
     }, [isConfigLoaded]);
 
     /**
@@ -305,25 +270,29 @@ export function useSession(
      * Switch to a different session.
      * 
      * This is the core lazy-loading mechanism:
-     * 1. Save the current session to disk (if valid)
-     * 2. Check if target session data is already in memory
-     * 3. If not, load it from disk
-     * 4. If yes, just switch to it
+     * 1. Check if the current session has data before saving (prevents empty data from corrupting disk)
+     * 2. If current session has data, save it to disk before switching
+     * 3. Check if target session data is already in memory
+     * 4. If not, load it from disk
+     * 5. If yes, just switch to it
      * 
      * This lazy-loading strategy is critical for performance and data safety:
      * - Only loads data that the user actually views
      * - Handles malformed JSON gracefully (loads as empty, doesn't corrupt disk)
+     * - Prevents empty data from overwriting valid data on disk (e.g., after F5 refresh)
      * 
      * @param sessionId - The ID of the session to switch to
      */
     const handleSwitchSession = useCallback(async (sessionId: string) => {
         // No-op if already on this session
         if (sessionId === currentSessionId) return;
+        const allData = taskManager.getAllData();
+        const hasData = (allData?.userMessages || []).length > 0
+            || (allData?.assistantMessages || []).length > 0;
         // Save current session data to disk before switching away
-        // This ensures no data is lost when moving between sessions
-        if (currentSessionId && !currentSessionId.startsWith("pending_") && !currentSessionId.startsWith("temp_")) {
+        // Only saves when there is actual data to prevent empty data overwriting disk
+        if (currentSessionId && !currentSessionId.startsWith("pending_") && !currentSessionId.startsWith("temp_") && hasData) {
             try {
-                const allData = taskManager.getAllData();
                 const userMessages = (allData?.userMessages || []) as ChatMessage[];
                 const assistantMessages = (allData?.assistantMessages || []) as ChatMessage[];
                 // Merge and sort messages
@@ -338,8 +307,8 @@ export function useSession(
             }
         }
         // Check if target session is already in memory
-        const hasData = taskManager.getTasksBySession(sessionId) !== undefined;
-        if (!hasData) {
+        const hasTargetData = taskManager.getTasksBySession(sessionId) !== undefined;
+        if (!hasTargetData) {
             // Lazy load: read from disk and load into memory
             const chatContent = await sessionCommands.loadChatContent(sessionId);
             const terminalContent = await sessionCommands.loadTerminalContent(sessionId);
