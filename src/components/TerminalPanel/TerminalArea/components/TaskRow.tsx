@@ -15,7 +15,12 @@ import { showDialog, DialogType } from "../../../Dialog";
 import { showToast, ToastType } from "../../../Toast";
 import { FunctionInstance } from "../../FunctionArea/types";
 import { taskManager } from "../../../../core/TaskManager";
-import { TaskInfo, UploadFile, StepStatusEnum, TaskStatusEnum } from "../../../../core/types";
+import {
+  TaskInfo,
+  UploadFile,
+  StepStatusEnum,
+  TaskStatusEnum,
+} from "../../../../core/types";
 
 interface TaskRowProps {
   task: TaskInfo;
@@ -393,16 +398,20 @@ export const TaskRow = forwardRef<HTMLDivElement, TaskRowProps>(
         {isExpanded &&
           task.final_output &&
           task.status === TaskStatusEnum.Completed && (
-            <TaskOutput
-              output={
-                getRawOutput(task.task_id, task.session_id) || task.final_output
-              }
-              onCopy={handleCopyOutput}
-              onShowChart={handleShowChart}
-              onShowMap={handleShowMap}
-              taskId={task.task_id}
-              t={t}
-            />
+            <>
+              <div className="task-separator" />
+              <TaskOutput
+                output={
+                  getRawOutput(task.task_id, task.session_id) ||
+                  task.final_output
+                }
+                onCopy={handleCopyOutput}
+                onShowChart={handleShowChart}
+                onShowMap={handleShowMap}
+                taskId={task.task_id}
+                t={t}
+              />
+            </>
           )}
 
         {isExpanded &&

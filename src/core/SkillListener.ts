@@ -25,7 +25,7 @@ export interface SkillCompleteEvent {
     task_id: string | null;
     step_index: number | null;
     skill_name: string;
-    result: string;
+    output: string;
     session_id: string;
 }
 
@@ -43,6 +43,42 @@ export interface SkillLogEvent {
     msg: string;
     session_id: string;
 }
+
+type LogBatchKey = string; // `${sessionId}-${taskId}-${stepIndex}`
+const logBatchMap = new Map<LogBatchKey, string[]>();
+let logBatchTimer: NodeJS.Timeout | null = null;
+
+const flushLogBatch = () => {
+    if (logBatchMap.size === 0) return;
+
+    logBatchMap.forEach((logs, key) => {
+        const [sessionId, taskId, stepIndexStr] = key.split('-');
+        const stepIndex = parseInt(stepIndexStr, 10);
+
+        const tasks = taskManager.getTasksBySession(sessionId);
+        if (!tasks) return;
+        const task = tasks.get(taskId);
+        if (!task) return;
+
+        const steps = [...task.steps];
+        const existingIndex = steps.findIndex((s) => s.step_index === stepIndex);
+        if (existingIndex !== -1) {
+            const currentLogs = steps[existingIndex].logs || [];
+            steps[existingIndex] = {
+                ...steps[existingIndex],
+                logs: [...currentLogs, ...logs],
+            };
+            tasks.set(taskId, {
+                ...task,
+                steps,
+                updated_at: new Date().toISOString(),
+            });
+        }
+    });
+
+    logBatchMap.clear();
+    taskManager.notify();
+};
 
 const updateTaskStepBySession = (
     sessionId: string,
@@ -120,14 +156,14 @@ export const handleSkillProgress = (event: any, t: (key: string) => string) => {
 
 // Skill complete handler
 export const handleSkillComplete = (event: any, t: (key: string) => string) => {
-    const { task_id, step_index, skill_name, result, session_id } = event.payload;
+    const { task_id, step_index, skill_name, output, session_id } = event.payload;
     if (!session_id || !task_id || step_index === null) {
         console.warn("skill_callback_complete missing required fields");
         return;
     }
     updateTaskStepBySession(session_id, task_id, step_index, {
         status: StepStatusEnum.Success,
-        output: result,
+        output: output,
         completed_at: new Date().toISOString(),
         logs: [`✅ ${t("skill.completed") || "Completed"}: ${skill_name}`],
     });
@@ -136,12 +172,10 @@ export const handleSkillComplete = (event: any, t: (key: string) => string) => {
 // Skill error handler
 export const handleSkillError = (event: any, t: (key: string) => string) => {
     const { task_id, step_index, skill_name, error, session_id } = event.payload;
-
     if (!session_id || !task_id || step_index === null) {
         console.warn("skill_callback_error missing required fields");
         return;
     }
-
     updateTaskStepBySession(session_id, task_id, step_index, {
         status: StepStatusEnum.Failure,
         error: error,
@@ -150,16 +184,25 @@ export const handleSkillError = (event: any, t: (key: string) => string) => {
     });
 };
 
-// Skill log handler
+// Skill log handler 
 export const handleSkillLog = (event: any, t: (key: string) => string) => {
     const { task_id, step_index, msg, session_id } = event.payload;
     if (!session_id || !task_id || step_index === null) {
         console.warn("skill_callback_log missing required fields");
         return;
     }
-    updateTaskStepBySession(session_id, task_id, step_index, {
-        logs: [msg],
-    });
+    const key = `${session_id}-${task_id}-${step_index}` as LogBatchKey;
+    if (!logBatchMap.has(key)) {
+        logBatchMap.set(key, []);
+    }
+    logBatchMap.get(key)!.push(msg);
+    if (logBatchTimer) {
+        clearTimeout(logBatchTimer);
+    }
+    logBatchTimer = setTimeout(() => {
+        flushLogBatch();
+        logBatchTimer = null;
+    }, 100);
 };
 
 // Setup skill event listeners

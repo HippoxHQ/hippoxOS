@@ -150,7 +150,7 @@ export const globalStyles = `
 
 .step-parameters-row {
   margin-top: 8px;
-  margin-left: 20px;
+  margin-left: 10px;
   padding: 6px 10px;
   background: var(--bg-tertiary);
   border-radius: 6px;
@@ -192,12 +192,15 @@ export const globalStyles = `
 }
  
 .step-parameters-short {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  flex-wrap: wrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  font-family: monospace;
+  color: var(--text-primary);
+  margin-top: 2px;
 }
-
+  
 .step-parameters-code {
   margin: 4px 0 0 0;
   padding: 8px;

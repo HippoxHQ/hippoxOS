@@ -9,7 +9,6 @@ import {
   useFilesScroll,
   useBubbleMenu,
   useStepParams,
-  useTaskStepManager,
 } from "./hooks";
 import {
   PanelHeader,
@@ -33,7 +32,6 @@ const TerminalArea: React.FC<ExtendedTerminalAreaProps> = ({
   i18n: _i18n,
   onOpenFunctionArea,
 }) => {
-  useTaskStepManager(t);
   const { tasks, setTasks, activeTasks } = useTaskManager(currentSessionId);
   const taskRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const { expandedStepParams, toggleStepParams } = useStepParams();

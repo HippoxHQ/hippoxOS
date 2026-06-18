@@ -240,15 +240,15 @@ impl SkillCallback for HippoxSkillCallback {
     fn on_progress(
         &self,
         task_id: Option<String>,
-        step_index: Option<usize>,
-        progress: u8,
-        message: &str,
+        skill_index: Option<usize>,
+        progress: Option<u8>,
+        message: Option<String>,
     ) {
         let _ = self.app_handle.emit(
             "skill_callback_progress",
             &json!({
                 "task_id": task_id.or_else(|| self.task_id.clone()),
-                "step_index": step_index,
+                "step_index": skill_index,
                 "progress": progress,
                 "message": message,
                 "session_id": self.session_id
@@ -256,12 +256,17 @@ impl SkillCallback for HippoxSkillCallback {
         );
     }
 
-    fn on_start(&self, task_id: Option<String>, step_index: Option<usize>, skill_name: &str) {
+    fn on_start(
+        &self,
+        task_id: Option<String>,
+        skill_index: Option<usize>,
+        skill_name: Option<String>,
+    ) {
         let _ = self.app_handle.emit(
             "skill_callback_start",
             &json!({
                 "task_id": task_id.or_else(|| self.task_id.clone()),
-                "step_index": step_index,
+                "step_index": skill_index,
                 "skill_name": skill_name,
                 "session_id": self.session_id
             }),
@@ -271,17 +276,17 @@ impl SkillCallback for HippoxSkillCallback {
     fn on_complete(
         &self,
         task_id: Option<String>,
-        step_index: Option<usize>,
-        skill_name: &str,
-        result: &str,
+        skill_index: Option<usize>,
+        skill_name: Option<String>,
+        output: Option<String>,
     ) {
         let _ = self.app_handle.emit(
             "skill_callback_complete",
             &json!({
                 "task_id": task_id.or_else(|| self.task_id.clone()),
-                "step_index": step_index,
+                "step_index": skill_index,
                 "skill_name": skill_name,
-                "result": result,
+                "output": output,
                 "session_id": self.session_id
             }),
         );
@@ -290,15 +295,15 @@ impl SkillCallback for HippoxSkillCallback {
     fn on_error(
         &self,
         task_id: Option<String>,
-        step_index: Option<usize>,
-        skill_name: &str,
-        error: &str,
+        skill_index: Option<usize>,
+        skill_name: Option<String>,
+        error: Option<String>,
     ) {
         let _ = self.app_handle.emit(
             "skill_callback_error",
             &json!({
                 "task_id": task_id.or_else(|| self.task_id.clone()),
-                "step_index": step_index,
+                "step_index": skill_index,
                 "skill_name": skill_name,
                 "error": error,
                 "session_id": self.session_id
@@ -306,12 +311,12 @@ impl SkillCallback for HippoxSkillCallback {
         );
     }
 
-    fn on_log(&self, task_id: Option<String>, step_index: Option<usize>, message: &str) {
+    fn on_log(&self, task_id: Option<String>, skill_index: Option<usize>, message: Option<String>) {
         let _ = self.app_handle.emit(
             "skill_callback_log",
             &json!({
                 "task_id": task_id.or_else(|| self.task_id.clone()),
-                "step_index": step_index,
+                "step_index": skill_index,
                 "msg": message,
                 "session_id": self.session_id
             }),

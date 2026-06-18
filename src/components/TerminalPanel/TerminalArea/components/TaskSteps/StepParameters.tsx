@@ -1,5 +1,5 @@
 import React from "react";
-import { formatParameters, getFullParams, getShortParams } from "../../utils";
+import { getFullParams, getShortParams } from "../../utils";
 
 interface StepParametersProps {
   parameters: string;
@@ -19,42 +19,59 @@ export const StepParameters: React.FC<StepParametersProps> = ({
   type = "input",
 }) => {
   if (!parameters || parameters === "{}") return null;
-
-  const shortParams = getShortParams(parameters);
   const fullParams = getFullParams(parameters);
-  const hasFullContent = fullParams !== shortParams && fullParams.length > 60;
+  const shortParams = getShortParams(parameters);
   const label =
     type === "output"
-      ? `${t("terminal.stepOutput") || "Ouput"}`
+      ? `${t("terminal.stepOutput") || "Output"}`
       : `${t("terminal.stepInput") || "Input"}`;
+  const briefContent = type === "output" ? parameters : shortParams;
   return (
     <div className="step-parameters-row">
       <div className="step-parameters-header">
         <span className="step-parameters-label">{label}:</span>
-        {hasFullContent && (
+        {isExpanded ? (
           <button
             className="step-parameters-toggle"
             onClick={(e) => {
               e.stopPropagation();
               onToggle(stepKey);
             }}
-            title={isExpanded ? t("terminal.collapse") : t("terminal.expand")}
+            title={t("terminal.collapse")}
           >
-            {isExpanded
-              ? `▲ ${t("terminal.collapse")}`
-              : `▼ ${t("terminal.expand")}`}
+            ▲ {t("terminal.collapse")}
           </button>
+        ) : (
+          <>
+            <span
+              className="step-parameters-short"
+              style={{
+                flex: 1,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+                margin: "0 8px",
+              }}
+            >
+              {briefContent}
+            </span>
+            <button
+              className="step-parameters-toggle"
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggle(stepKey);
+              }}
+              title={t("terminal.expand")}
+            >
+              ▼ {t("terminal.expand")}
+            </button>
+          </>
         )}
       </div>
-      {isExpanded ? (
-        <pre className="step-parameters-code">{fullParams}</pre>
-      ) : (
-        <div className="step-parameters-short" title={parameters}>
-          <span className="step-parameters-value">{shortParams}</span>
-          {!hasFullContent && shortParams !== fullParams && (
-            <span className="step-parameters-more">...</span>
-          )}
-        </div>
+      {isExpanded && (
+        <pre className="step-parameters-code">
+          {type === "output" ? parameters : fullParams}
+        </pre>
       )}
     </div>
   );
