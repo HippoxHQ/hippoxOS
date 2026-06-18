@@ -1,9 +1,9 @@
 export { PanelHeader } from "./PanelHeader";
 export { WelcomeMessage } from "./WelcomeMessage";
 export { TaskRow } from "./TaskRow";
-export { TaskSteps } from "./TaskSteps";
+export { TaskSteps } from "./TaskSteps/TaskSteps";
 export { TaskFiles } from "./TaskFiles";
-export { StepParameters } from "./StepParameters";
+export { StepParameters } from "./TaskSteps/StepParameters";
 export { TaskOutput } from "./TaskOutput";
 export { TaskError } from "./TaskError";
 export { ScrollButtons } from "./ScrollButtons";

@@ -5,7 +5,7 @@ import {
   formatTime,
   formatDuration,
 } from "../utils";
-import { TaskSteps } from "./TaskSteps";
+import { TaskSteps } from "./TaskSteps/TaskSteps";
 import { TaskFiles } from "./TaskFiles";
 import { TaskOutput } from "./TaskOutput";
 import { TaskError } from "./TaskError";

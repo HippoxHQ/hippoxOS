@@ -1,5 +1,5 @@
 import React from "react";
-import { formatParameters, getFullParams, getShortParams } from "../utils";
+import { formatParameters, getFullParams, getShortParams } from "../../utils";
 
 interface StepParametersProps {
   parameters: string;
@@ -7,6 +7,7 @@ interface StepParametersProps {
   isExpanded: boolean;
   onToggle: (stepKey: string) => void;
   t: (key: string) => string;
+  type?: "input" | "output";
 }
 
 export const StepParameters: React.FC<StepParametersProps> = ({
@@ -15,19 +16,21 @@ export const StepParameters: React.FC<StepParametersProps> = ({
   isExpanded,
   onToggle,
   t,
+  type = "input",
 }) => {
   if (!parameters || parameters === "{}") return null;
 
   const shortParams = getShortParams(parameters);
   const fullParams = getFullParams(parameters);
   const hasFullContent = fullParams !== shortParams && fullParams.length > 60;
-
+  const label =
+    type === "output"
+      ? `${t("terminal.stepOutput") || "Ouput"}`
+      : `${t("terminal.stepInput") || "Input"}`;
   return (
     <div className="step-parameters-row">
       <div className="step-parameters-header">
-        <span className="step-parameters-label">
-          📋 {t("terminal.stepParameters")}:
-        </span>
+        <span className="step-parameters-label">{label}:</span>
         {hasFullContent && (
           <button
             className="step-parameters-toggle"
@@ -37,7 +40,9 @@ export const StepParameters: React.FC<StepParametersProps> = ({
             }}
             title={isExpanded ? t("terminal.collapse") : t("terminal.expand")}
           >
-            {isExpanded ? `▲ ${t("terminal.collapse")}` : `▼ ${t("terminal.expand")}`}
+            {isExpanded
+              ? `▲ ${t("terminal.collapse")}`
+              : `▼ ${t("terminal.expand")}`}
           </button>
         )}
       </div>

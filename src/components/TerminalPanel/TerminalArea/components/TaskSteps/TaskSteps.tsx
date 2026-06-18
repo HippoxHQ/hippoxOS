@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from "react";
+import { getStepEmoji } from "../../constants";
+import { formatDuration, getStepStatusText } from "../../utils";
+import { TaskStepInfo, StepStatusEnum } from "../../../../../core/types";
 import { StepParameters } from "./StepParameters";
-import { getStepEmoji } from "../constants";
-import { formatDuration, getStepStatusText } from "../utils";
-import { TaskStepInfo, StepStatusEnum } from "../../../../core/types";
 
 interface TaskStepsProps {
   steps: TaskStepInfo[];
@@ -281,7 +281,6 @@ export const TaskSteps: React.FC<TaskStepsProps> = ({
                 {Math.round(progress)}%
               </span>
             </div>
-
             {step.input && step.input !== "{}" && (
               <StepParameters
                 parameters={step.input}
@@ -291,6 +290,18 @@ export const TaskSteps: React.FC<TaskStepsProps> = ({
                 )}
                 onToggle={onToggleStepParams}
                 t={t}
+              />
+            )}
+            {step.output && step.output !== "{}" && (
+              <StepParameters
+                parameters={step.output}
+                stepKey={`${taskId}-step-${step.step_index}-output-params`}
+                isExpanded={expandedStepParams.has(
+                  `${taskId}-step-${step.step_index}-output-params`,
+                )}
+                onToggle={onToggleStepParams}
+                t={t}
+                type="output"
               />
             )}
           </div>

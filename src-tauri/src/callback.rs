@@ -33,10 +33,10 @@ impl WorkflowCallback for HippoXWorkflowCallback {
         task_id: &str,
         step_name: &str,
         step_index: usize,
-        parameters: Option<&std::collections::HashMap<String, serde_json::Value>>,
+        input: Option<&std::collections::HashMap<String, serde_json::Value>>,
     ) {
         let params_json =
-            parameters.map(|p| serde_json::to_string(p).unwrap_or_else(|_| "{}".to_string()));
+            input.map(|p| serde_json::to_string(p).unwrap_or_else(|_| "{}".to_string()));
 
         let _ = self.app_handle.emit(
             "task_step_update",
@@ -45,7 +45,7 @@ impl WorkflowCallback for HippoXWorkflowCallback {
                 "step_name": step_name,
                 "step_index": step_index,
                 "status": "RUNNING",
-                "parameters": params_json,
+                "input": params_json,
                 "session_id": self.session_id
             }),
         );
