@@ -1,8 +1,9 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef } from "react";
 import { getStepEmoji } from "../../constants";
 import { formatDuration, getStepStatusText } from "../../utils";
 import { TaskStepInfo, StepStatusEnum } from "../../../../../core/types";
 import { StepParameters } from "./StepParameters";
+import { StepLogs } from "./StepLogs";
 
 interface TaskStepsProps {
   steps: TaskStepInfo[];
@@ -21,6 +22,7 @@ export const TaskSteps: React.FC<TaskStepsProps> = ({
 }) => {
   const [expandedLogs, setExpandedLogs] = useState<Set<number>>(new Set());
   const logContainerRefs = useRef<Map<number, HTMLDivElement>>(new Map());
+
   const toggleLogs = (stepIndex: number) => {
     setExpandedLogs((prev) => {
       const newSet = new Set(prev);
@@ -41,6 +43,7 @@ export const TaskSteps: React.FC<TaskStepsProps> = ({
       return newSet;
     });
   };
+
   const getProgressColor = (status: StepStatusEnum) => {
     switch (status) {
       case StepStatusEnum.Success:
@@ -84,7 +87,6 @@ export const TaskSteps: React.FC<TaskStepsProps> = ({
         const colors = getProgressColor(step.status);
         const logs = step.logs || [];
         const isLogExpanded = expandedLogs.has(index);
-        const displayLogs = isLogExpanded ? logs : logs.slice(-1);
         const hasProgress =
           step.progress !== undefined &&
           step.progress !== null &&
@@ -112,7 +114,6 @@ export const TaskSteps: React.FC<TaskStepsProps> = ({
                 }}
               />
             )}
-
             <div
               style={{
                 position: "absolute",
@@ -127,7 +128,6 @@ export const TaskSteps: React.FC<TaskStepsProps> = ({
                 zIndex: 1,
               }}
             />
-
             <div
               style={{
                 position: "absolute",
@@ -161,89 +161,14 @@ export const TaskSteps: React.FC<TaskStepsProps> = ({
                   {t(getStepStatusText(step.status))}
                 </span>
               </div>
-              {logs.length > 0 && (
-                <div
-                  style={{
-                    paddingLeft: "10px",
-                    marginTop: "6px",
-                    marginBottom: "6px",
-                    width: "100%",
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "flex-start",
-                      gap: "8px",
-                      cursor: "pointer",
-                    }}
-                    onClick={() => toggleLogs(index)}
-                  >
-                    <div
-                      ref={(el) => {
-                        if (el && logs.length > 1) {
-                          logContainerRefs.current.set(index, el);
-                        }
-                      }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                      }}
-                      style={{
-                        flex: 1,
-                        maxHeight: isLogExpanded ? "120px" : "20px",
-                        overflowY: isLogExpanded ? "auto" : "hidden",
-                        fontSize: "12px",
-                        fontFamily: "monospace",
-                        color: "var(--text-primary)",
-                        lineHeight: "1.6",
-                        transition: "max-height 0.3s ease",
-                        scrollbarWidth: "thin",
-                        scrollbarColor: "var(--border-color) transparent",
-                      }}
-                    >
-                      {displayLogs.map((log, logIdx) => (
-                        <div
-                          key={logIdx}
-                          style={{
-                            padding: "1px 0",
-                            borderBottom:
-                              logIdx < displayLogs.length - 1
-                                ? "1px solid var(--border-color, rgba(255,255,255,0.05))"
-                                : "none",
-                            whiteSpace: "nowrap",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                          }}
-                        >
-                          {log}
-                        </div>
-                      ))}
-                    </div>
-                    <span
-                      style={{
-                        fontSize: "12px",
-                        color: "var(--text-primary)",
-                        flexShrink: 0,
-                        marginTop: "1px",
-                        userSelect: "none",
-                        minWidth: "60px",
-                        textAlign: "right",
-                      }}
-                    >
-                      {isLogExpanded ? "▲" : "▼"} {logs.length}{" "}
-                      {t("task.logsCount")}
-                    </span>
-                  </div>
-                </div>
-              )}
               {hasProgress && (
                 <div
                   style={{
                     display: "flex",
                     alignItems: "center",
-                    gap: "10px",
-                    marginTop: logs.length > 0 ? "2px" : "4px",
-                    width: "100%",
+                    gap: "0px",
+                    marginTop: "4px",
+                    width: "calc(100% - 10px)",
                     paddingLeft: "10px",
                   }}
                 >
@@ -300,6 +225,15 @@ export const TaskSteps: React.FC<TaskStepsProps> = ({
                     {Math.round(progress)}%
                   </span>
                 </div>
+              )}
+              {logs.length > 0 && (
+                <StepLogs
+                  logs={logs}
+                  stepIndex={index}
+                  isExpanded={isLogExpanded}
+                  onToggle={() => toggleLogs(index)}
+                  t={t}
+                />
               )}
               {step.input && step.input !== "{}" && (
                 <StepParameters

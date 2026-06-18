@@ -149,14 +149,14 @@ export const globalStyles = `
 }
 
 .step-parameters-row {
-  margin-top: 8px;
+  margin-top: 0px;
   margin-left: 10px;
   padding: 6px 10px;
   background: var(--bg-tertiary);
   border-radius: 6px;
   font-size: 12px;
   font-family: monospace;
-  border-left: 3px solid var(--accent-color, #00aaff);
+  border-left: 2px solid var(--accent-color, #00aaff);
   width: calc(100% - 20px);
   box-sizing: border-box;
 }

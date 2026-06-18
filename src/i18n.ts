@@ -869,6 +869,7 @@ export const zh = {
     selectCategory: '选择分类',
   },
   task: {
+    logs: "日志",
     step: "步骤",
     logsCount: "条日志",
     loadingData: "正在加载数据模块...",
@@ -2035,6 +2036,7 @@ export const en: typeof zh = {
     selectCategory: 'Select category',
   },
   task: {
+    logs: "Logs",
     step: "Step",
     logsCount: "logs",
     loadingData: "Loading data module...",
