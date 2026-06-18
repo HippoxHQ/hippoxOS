@@ -37,6 +37,13 @@ export interface SkillErrorEvent {
     session_id: string;
 }
 
+export interface SkillLogEvent {
+    task_id: string | null;
+    step_index: number | null;
+    msg: string;
+    session_id: string;
+}
+
 const updateTaskStepBySession = (
     sessionId: string,
     taskId: string,
@@ -86,12 +93,10 @@ const updateTaskStepBySession = (
 // Skill start handler
 export const handleSkillStart = (event: any, t: (key: string) => string) => {
     const { task_id, step_index, skill_name, session_id } = event.payload;
-
     if (!session_id || !task_id || step_index === null) {
         console.warn("skill_callback_start missing required fields");
         return;
     }
-
     updateTaskStepBySession(session_id, task_id, step_index, {
         status: StepStatusEnum.Running,
         started_at: new Date().toISOString(),
@@ -102,12 +107,10 @@ export const handleSkillStart = (event: any, t: (key: string) => string) => {
 // Skill progress handler
 export const handleSkillProgress = (event: any, t: (key: string) => string) => {
     const { task_id, step_index, progress, message, session_id } = event.payload;
-
     if (!session_id || !task_id || step_index === null) {
         console.warn("skill_callback_progress missing required fields");
         return;
     }
-
     updateTaskStepBySession(session_id, task_id, step_index, {
         progress: progress,
         progress_message: message,
@@ -118,12 +121,10 @@ export const handleSkillProgress = (event: any, t: (key: string) => string) => {
 // Skill complete handler
 export const handleSkillComplete = (event: any, t: (key: string) => string) => {
     const { task_id, step_index, skill_name, result, session_id } = event.payload;
-
     if (!session_id || !task_id || step_index === null) {
         console.warn("skill_callback_complete missing required fields");
         return;
     }
-
     updateTaskStepBySession(session_id, task_id, step_index, {
         status: StepStatusEnum.Success,
         output: result,
@@ -149,32 +150,43 @@ export const handleSkillError = (event: any, t: (key: string) => string) => {
     });
 };
 
+// Skill log handler
+export const handleSkillLog = (event: any, t: (key: string) => string) => {
+    const { task_id, step_index, msg, session_id } = event.payload;
+    if (!session_id || !task_id || step_index === null) {
+        console.warn("skill_callback_log missing required fields");
+        return;
+    }
+    updateTaskStepBySession(session_id, task_id, step_index, {
+        logs: [msg],
+    });
+};
+
 // Setup skill event listeners
 export const setupSkillEventListeners = async (
     t: (key: string) => string
 ): Promise<Array<() => void>> => {
     const unlistenFunctions: Array<() => void> = [];
-
     const unlistenStart = await listen("skill_callback_start", (event: any) => {
         handleSkillStart(event, t);
     });
     unlistenFunctions.push(unlistenStart);
-
     const unlistenProgress = await listen("skill_callback_progress", (event: any) => {
         handleSkillProgress(event, t);
     });
     unlistenFunctions.push(unlistenProgress);
-
     const unlistenComplete = await listen("skill_callback_complete", (event: any) => {
         handleSkillComplete(event, t);
     });
     unlistenFunctions.push(unlistenComplete);
-
     const unlistenError = await listen("skill_callback_error", (event: any) => {
         handleSkillError(event, t);
     });
     unlistenFunctions.push(unlistenError);
-
+    const unlistenLog = await listen("skill_callback_log", (event: any) => {
+        handleSkillLog(event, t);
+    });
+    unlistenFunctions.push(unlistenLog);
     return unlistenFunctions;
 };
 
@@ -183,4 +195,5 @@ export const skillEventHandlers = {
     onProgress: handleSkillProgress,
     onComplete: handleSkillComplete,
     onError: handleSkillError,
+    onLog: handleSkillLog,
 };

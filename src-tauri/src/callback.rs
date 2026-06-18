@@ -305,4 +305,16 @@ impl SkillCallback for HippoxSkillCallback {
             }),
         );
     }
+
+    fn on_log(&self, task_id: Option<String>, step_index: Option<usize>, message: &str) {
+        let _ = self.app_handle.emit(
+            "skill_callback_log",
+            &json!({
+                "task_id": task_id.or_else(|| self.task_id.clone()),
+                "step_index": step_index,
+                "msg": message,
+                "session_id": self.session_id
+            }),
+        );
+    }
 }

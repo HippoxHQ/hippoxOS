@@ -82,7 +82,6 @@ export interface TaskStepInfo {
     step_name: string;
     /** Current execution status of this step */
     status: StepStatusEnum;
-
     /** Error message if this step failed */
     error?: string;
     /** Duration of this step execution in milliseconds */
