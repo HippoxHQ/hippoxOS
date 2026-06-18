@@ -241,7 +241,7 @@ impl SkillCallback for HippoxSkillCallback {
         &self,
         task_id: Option<String>,
         skill_index: Option<usize>,
-        progress: Option<u8>,
+        progress: Option<u32>,
         message: Option<String>,
     ) {
         let _ = self.app_handle.emit(
