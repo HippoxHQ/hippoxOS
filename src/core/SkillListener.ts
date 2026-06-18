@@ -44,42 +44,6 @@ export interface SkillLogEvent {
     session_id: string;
 }
 
-type LogBatchKey = string; // `${sessionId}-${taskId}-${stepIndex}`
-const logBatchMap = new Map<LogBatchKey, string[]>();
-let logBatchTimer: NodeJS.Timeout | null = null;
-
-const flushLogBatch = () => {
-    if (logBatchMap.size === 0) return;
-
-    logBatchMap.forEach((logs, key) => {
-        const [sessionId, taskId, stepIndexStr] = key.split('-');
-        const stepIndex = parseInt(stepIndexStr, 10);
-
-        const tasks = taskManager.getTasksBySession(sessionId);
-        if (!tasks) return;
-        const task = tasks.get(taskId);
-        if (!task) return;
-
-        const steps = [...task.steps];
-        const existingIndex = steps.findIndex((s) => s.step_index === stepIndex);
-        if (existingIndex !== -1) {
-            const currentLogs = steps[existingIndex].logs || [];
-            steps[existingIndex] = {
-                ...steps[existingIndex],
-                logs: [...currentLogs, ...logs],
-            };
-            tasks.set(taskId, {
-                ...task,
-                steps,
-                updated_at: new Date().toISOString(),
-            });
-        }
-    });
-
-    logBatchMap.clear();
-    taskManager.notify();
-};
-
 const updateTaskStepBySession = (
     sessionId: string,
     taskId: string,
@@ -136,7 +100,6 @@ export const handleSkillStart = (event: any, t: (key: string) => string) => {
     updateTaskStepBySession(session_id, task_id, step_index, {
         status: StepStatusEnum.Running,
         started_at: new Date().toISOString(),
-        logs: [`▶️ ${t("skill.starting") || "Starting"}: ${skill_name}`],
     });
 };
 
@@ -150,7 +113,6 @@ export const handleSkillProgress = (event: any, t: (key: string) => string) => {
     updateTaskStepBySession(session_id, task_id, step_index, {
         progress: progress,
         progress_message: message,
-        logs: [`📊 ${message} (${progress}%)`],
     });
 };
 
@@ -165,7 +127,6 @@ export const handleSkillComplete = (event: any, t: (key: string) => string) => {
         status: StepStatusEnum.Success,
         output: output,
         completed_at: new Date().toISOString(),
-        logs: [`✅ ${t("skill.completed") || "Completed"}: ${skill_name}`],
     });
 };
 
@@ -180,56 +141,64 @@ export const handleSkillError = (event: any, t: (key: string) => string) => {
         status: StepStatusEnum.Failure,
         error: error,
         completed_at: new Date().toISOString(),
-        logs: [`❌ ${t("skill.failed") || "Failed"}: ${skill_name} - ${error}`],
     });
 };
 
 // Skill log handler 
 export const handleSkillLog = (event: any, t: (key: string) => string) => {
-    const { task_id, step_index, msg, session_id } = event.payload;
+    const { task_id, step_index, skill_name, session_id, msg } = event.payload;
     if (!session_id || !task_id || step_index === null) {
         console.warn("skill_callback_log missing required fields");
         return;
     }
-    const key = `${session_id}-${task_id}-${step_index}` as LogBatchKey;
-    if (!logBatchMap.has(key)) {
-        logBatchMap.set(key, []);
+    const tasks = taskManager.getTasksBySession(session_id);
+    const task = tasks?.get(task_id);
+    if (task) {
+        const steps = [...task.steps];
+        const existingIndex = steps.findIndex((s) => s.step_index === step_index);
+        if (existingIndex !== -1) {
+            const currentLogs = steps[existingIndex].logs || [];
+            if (currentLogs.includes(msg)) {
+                return;
+            }
+        }
     }
-    logBatchMap.get(key)!.push(msg);
-    if (logBatchTimer) {
-        clearTimeout(logBatchTimer);
-    }
-    logBatchTimer = setTimeout(() => {
-        flushLogBatch();
-        logBatchTimer = null;
-    }, 100);
+    updateTaskStepBySession(session_id, task_id, step_index, {
+        logs: [msg],
+    });
 };
 
-// Setup skill event listeners
+// Setup skill event listeners 
 export const setupSkillEventListeners = async (
     t: (key: string) => string
 ): Promise<Array<() => void>> => {
     const unlistenFunctions: Array<() => void> = [];
+
     const unlistenStart = await listen("skill_callback_start", (event: any) => {
         handleSkillStart(event, t);
     });
     unlistenFunctions.push(unlistenStart);
+
     const unlistenProgress = await listen("skill_callback_progress", (event: any) => {
         handleSkillProgress(event, t);
     });
     unlistenFunctions.push(unlistenProgress);
+
     const unlistenComplete = await listen("skill_callback_complete", (event: any) => {
         handleSkillComplete(event, t);
     });
     unlistenFunctions.push(unlistenComplete);
+
     const unlistenError = await listen("skill_callback_error", (event: any) => {
         handleSkillError(event, t);
     });
     unlistenFunctions.push(unlistenError);
+
     const unlistenLog = await listen("skill_callback_log", (event: any) => {
         handleSkillLog(event, t);
     });
     unlistenFunctions.push(unlistenLog);
+
     return unlistenFunctions;
 };
 
