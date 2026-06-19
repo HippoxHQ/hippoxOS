@@ -12,6 +12,7 @@ import { showTooltipOnElement } from "./Tooltip";
 import { WorkspaceInstance, workspaceCommands } from "../command/workspace";
 import { UploadFile } from "../core/types";
 import ArtText from "./arts/ArtText";
+import banner from "../assets/banner.png";
 
 interface WelcomePageProps {
   onSendMessage: (message: string, files?: UploadFile[]) => void;
@@ -34,7 +35,6 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
   const attachmentMenuRef = useRef<HTMLDivElement>(null);
   const directoryBtnRef = useRef<HTMLDivElement>(null);
   const directoryMenuRef = useRef<HTMLDivElement>(null);
-  const [showLogo, setShowLogo] = useState(true);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [uploadedFiles, setUploadedFiles] = useState<UploadFile[]>([]);
   const [currentPrompts, setCurrentPrompts] = useState<string[]>([]);
@@ -124,14 +124,6 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
 
   useEffect(() => {
     loadWorkspaces();
-  }, []);
-
-  useEffect(() => {
-    const img = new Image();
-    img.src =
-      "https://github.com/HippoxHQ/assets/blob/main/banner/bg.png?raw=true";
-    img.onload = () => setShowLogo(true);
-    img.onerror = () => setShowLogo(false);
   }, []);
 
   useEffect(() => {
@@ -568,15 +560,9 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
     --hover-bg: rgba(0, 0, 0, 0.04);
   }
 `}</style>
-
       <div className="welcome-container">
         <div className="welcome-logo">
-          {showLogo && (
-            <img
-              src="https://github.com/HippoxHQ/assets/blob/main/banner/bg.png?raw=true"
-              alt="HippoxOS Banner"
-            />
-          )}
+          <img src={banner} alt="HippoxOS Banner" />
         </div>
         <ArtText
           text={"HippoxOS"}
