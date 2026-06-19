@@ -429,6 +429,7 @@ export const zh = {
     message: '你好，我是 Hippox AI 运行时。我有自主决策能力，可以执行技能并实时反馈。有什么可以帮你的？',
     initRequired: '请先在设置中配置 API Key 和模型提供商来初始化 Hippox 引擎。',
     initSuccess: 'Hippox 引擎初始化成功！现在可以开始对话了。',
+    title: '河马OS',
     subtitle: '原生 LLM 操作系统',
     examples: '试试这些',
     example: {
@@ -1595,6 +1596,7 @@ export const en: typeof zh = {
     message: 'Hello, I am Hippox AI Runtime. I have autonomous decision-making capabilities and can execute skills with real-time feedback. How can I help you?',
     initRequired: 'Please configure API Key and model provider in settings to initialize Hippox engine.',
     initSuccess: 'Hippox engine initialized successfully! You can start chatting now.',
+    title: 'HippoxOS',
     subtitle: 'A native LLM operating system',
     examples: 'Try these',
     example: {

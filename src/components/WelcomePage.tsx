@@ -11,6 +11,7 @@ import { zhDefaultPrompts, enDefaultPrompts } from "../types/DefaultPrompt";
 import { showTooltipOnElement } from "./Tooltip";
 import { WorkspaceInstance, workspaceCommands } from "../command/workspace";
 import { UploadFile } from "../core/types";
+import ArtText from "./arts/ArtText";
 
 interface WelcomePageProps {
   onSendMessage: (message: string, files?: UploadFile[]) => void;
@@ -268,7 +269,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
   .welcome-subtitle {
     font-size: 14px;
     color: var(--text-secondary);
-    margin-bottom: 25px;
+    margin: 20px 0px;
   }
 
   .welcome-form {
@@ -577,11 +578,19 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
             />
           )}
         </div>
-        <h1 className="welcome-title">HippoxOS</h1>
+        <ArtText
+          text={"HippoxOS"}
+          fontSize={52}
+          fontWeight="300"
+          letterSpacing={4}
+          textColor="#818cf8"
+          lightColor="#ffffff"
+          animationDuration={3}
+          glowSize={2}
+        />
         <p className="welcome-subtitle">
           {t("welcome.subtitle") || "A native LLM operating system"}
         </p>
-
         <form className="welcome-form" onSubmit={handleSubmit}>
           <div
             className={`welcome-input-container ${isFocused ? "focused" : ""}`}

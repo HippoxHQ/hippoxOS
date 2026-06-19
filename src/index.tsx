@@ -7,6 +7,9 @@ import SystemTrayWindow from "./components/windows/SystemTrayWindow";
 import SubmenuWindow from "./components/windows/SubmenuWindow";
 import reportWebVitals from "./reportWebVitals";
 import { WindowTypeEnum } from "./types/types";
+import "@fontsource/great-vibes";
+import "@fontsource/dancing-script";
+import "@fontsource/pacifico";
 
 const root = ReactDOM.createRoot(
   document.getElementById("root") as HTMLElement,
