@@ -71,11 +71,15 @@ export const TaskRow = forwardRef<HTMLDivElement, TaskRowProps>(
     const runningCount = task.steps.filter(
       (s) => s.status === StepStatusEnum.Running,
     ).length;
+    const timeoutCount = task.steps.filter(
+      (s) => s.status === StepStatusEnum.Timeout,
+    ).length;
     let stepSummary = "";
     if (task.steps.length > 0) {
       const parts = [];
       if (successCount > 0) parts.push(`✓${successCount}`);
       if (failureCount > 0) parts.push(`✗${failureCount}`);
+      if (timeoutCount > 0) parts.push(`⏱${timeoutCount}`);
       if (runningCount > 0) parts.push(`⟳${runningCount}`);
       stepSummary = ` [${parts.join(" ")}]`;
     }

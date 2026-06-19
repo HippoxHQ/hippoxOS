@@ -95,6 +95,28 @@ impl WorkflowCallback for HippoXWorkflowCallback {
         );
     }
 
+    async fn on_step_timeout(
+        &self,
+        task_id: &str,
+        step_name: &str,
+        step_index: usize,
+        error: &str,
+        duration_ms: u64,
+    ) {
+        let _ = self.app_handle.emit(
+            "task_step_update",
+            &json!({
+                "task_id": task_id,
+                "step_name": step_name,
+                "step_index": step_index,
+                "status": "TIMEOUT",
+                "error": error,
+                "duration_ms": duration_ms,
+                "session_id": self.session_id
+            }),
+        );
+    }
+
     async fn on_step_interrupted(&self, task_id: &str, info: &hippox::StepInterruptionInfo) {
         let _ = self.app_handle.emit(
             "task_step_interrupted",

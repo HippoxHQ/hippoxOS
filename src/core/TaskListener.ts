@@ -131,18 +131,22 @@ export const handleTaskFailed = (
     const messageId = `llm_${task_id}`;
     const assistantMessagesMap = taskManager.getAssistantMessagesBySession(session_id);
     const existingMsg = assistantMessagesMap?.get(messageId);
+    const isTimeout = error?.toLowerCase().includes("timeout");
+    const errorContent = isTimeout
+        ? `⏰ ${error}`
+        : `❌ ${error}`;
     if (!existingMsg) {
         const errorMsg: ChatMessage = {
             id: messageId,
             role: RoleEnum.LLM,
-            content: `❌ ${error}`,
+            content: errorContent,
             timestamp: new Date().toISOString(),
             status: MessageStatus.Failed,
         };
         taskManager.addAssistantMessageToSession(session_id, errorMsg);
     } else {
         taskManager.updateAssistantMessageBySession(session_id, messageId, {
-            content: `❌ ${error}`,
+            content: errorContent,
             timestamp: new Date().toISOString(),
             status: MessageStatus.Failed,
         });
@@ -204,7 +208,7 @@ export const handleTaskCancelled = (
         const messageId = `llm_${task_id}`;
         taskManager.updateAssistantMessageBySession(session_id, messageId, {
             status: MessageStatus.Cancelled,
-            content: `❌ ${t("terminal.cancelled")}`,
+            content: `⏹️ ${t("terminal.cancelled")}`,
         });
     }
 };
@@ -214,7 +218,6 @@ export const handleTaskResumed = (
     t: (key: string) => string
 ) => {
     const { task_id, session_id } = event.payload;
-
     if (session_id && task_id) {
         taskManager.updateTaskBySession(session_id, task_id, {
             status: TaskStatusEnum.Running,
@@ -231,22 +234,27 @@ export const setupTaskEventListeners = async (
     t: (key: string) => string
 ): Promise<Array<() => void>> => {
     const unlistenFunctions: Array<() => void> = [];
+
     const unlistenStep = await listen("task_step_update", (event: any) => {
         handleTaskStepUpdate(event, t);
     });
     unlistenFunctions.push(unlistenStep);
+
     const unlistenComplete = await listen("task_complete", (event: any) => {
         handleTaskComplete(event, t);
     });
     unlistenFunctions.push(unlistenComplete);
+
     const unlistenFailed = await listen("task_failed", (event: any) => {
         handleTaskFailed(event, t);
     });
     unlistenFunctions.push(unlistenFailed);
+
     const unlistenPaused = await listen("task_paused", (event: any) => {
         handleTaskPaused(event, t);
     });
     unlistenFunctions.push(unlistenPaused);
+
     const unlistenCancelled = await listen("task_cancelled", (event: any) => {
         handleTaskCancelled(event, t);
     });
@@ -256,5 +264,6 @@ export const setupTaskEventListeners = async (
         handleTaskResumed(event, t);
     });
     unlistenFunctions.push(unlistenResumed);
+
     return unlistenFunctions;
 };

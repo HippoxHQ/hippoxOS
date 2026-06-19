@@ -58,6 +58,12 @@ export const TaskSteps: React.FC<TaskStepsProps> = ({
           end: "#ef5350",
           glow: "rgba(244, 67, 54, 0.3)",
         };
+      case StepStatusEnum.Timeout:
+        return {
+          start: "#ff9800",
+          end: "#ffc107",
+          glow: "rgba(255, 152, 0, 0.3)",
+        };
       default:
         return {
           start: "#00aaff",
@@ -73,6 +79,8 @@ export const TaskSteps: React.FC<TaskStepsProps> = ({
         return "#4caf50";
       case StepStatusEnum.Failure:
         return "#f44336";
+      case StepStatusEnum.Timeout:
+        return "#ff9800";
       case StepStatusEnum.Running:
         return "#ffa500";
       default:

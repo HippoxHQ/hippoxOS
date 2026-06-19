@@ -49,7 +49,7 @@ export const globalStyles = `
 .task-status-right {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 5px;
   flex-shrink: 0;
 }
 
@@ -148,6 +148,12 @@ export const globalStyles = `
   50% { opacity: 0.6; }
 }
 
+.step-status-timeout {
+  background: rgba(255, 152, 0, 0.15);
+  color: #ff9800;
+  border: 1px solid rgba(255, 152, 0, 0.3);
+}
+  
 .step-parameters-row {
   margin-top: 0px;
   margin-left: 10px;
@@ -165,7 +171,6 @@ export const globalStyles = `
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 4px;
 }
 
 .step-parameters-label {

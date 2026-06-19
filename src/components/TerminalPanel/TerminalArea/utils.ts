@@ -68,6 +68,8 @@ export const getStepStatusIcon = (status: string): string => {
       return "❌";
     case StepStatusEnum.Running:
       return "🔄";
+    case StepStatusEnum.Timeout:
+      return "⏰";
     default:
       return "⏳";
   }
@@ -81,6 +83,8 @@ export const getStepStatusText = (status: string): string => {
       return "terminal.status.failed";
     case StepStatusEnum.Running:
       return "terminal.status.running";
+    case StepStatusEnum.Timeout:
+      return "terminal.status.timeout";
     default:
       return status;
   }

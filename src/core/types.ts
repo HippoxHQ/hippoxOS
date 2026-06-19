@@ -121,6 +121,7 @@ export enum StepStatusEnum {
     Success = "SUCCESS",
     Failure = "FAILURE",
     Skipped = "skipped",
+    Timeout = "TIMEOUT",
     Paused = "paused",
     Cancelled = "cancelled",
 }
