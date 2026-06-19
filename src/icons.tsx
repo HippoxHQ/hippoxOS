@@ -1433,6 +1433,25 @@ export const ResendIcon: React.FC<{ size?: number }> = ({ size = 14 }) => (
   </svg>
 );
 
+export const HistoryChatIcon2 = ({ size = 16 }: { size?: number }) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.75"
+    width={size}
+    height={size}
+  >
+    <circle cx="12" cy="12" r="10" stroke="currentColor" fill="none" />
+    <path
+      d="M12 6v6l4 2"
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
 export const iconMap: Record<string, React.FC<IconProps>> = {
   dashboard: DashboardIcon,
   workspace: WorkspaceIcon,

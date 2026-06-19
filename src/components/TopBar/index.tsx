@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import logo from "../../assets/logo.png";
 import {
@@ -7,6 +7,7 @@ import {
   LayoutHorizontalIcon,
   NewSessionIcon,
   NewSessionIcon2,
+  HistoryChatIcon2,
 } from "../../icons";
 import { Theme, Language } from "../../types/types";
 import SearchDialog from "./SearchDialog";
@@ -69,6 +70,24 @@ const ChatLeftIcon = () => (
   </svg>
 );
 
+const HistoryIcon = ({ size = 16 }: { size?: number }) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.75"
+    width={size}
+    height={size}
+  >
+    <path
+      d="M12 8v4l3 3M12 4a8 8 0 1 0 0 16 8 8 0 0 0 0-16z"
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
 interface TopBarProps {
   sidebarCollapsed: boolean;
   onToggleSidebar: () => void;
@@ -80,6 +99,10 @@ interface TopBarProps {
   t: (key: string) => string;
   layoutSwapMode?: "terminal-left" | "chat-left";
   onLayoutSwapModeChange?: (mode: "terminal-left" | "chat-left") => void;
+  onSwitchSession?: (sessionId: string) => void;
+  currentSessionId?: string;
+  onHistoryClick?: () => void;
+  isHistoryOpen?: boolean;
 }
 
 const topBarStyles = `
@@ -106,6 +129,8 @@ const topBarStyles = `
     gap: 5px;
     flex-shrink: 0;
     min-width: 0;
+    position: relative;
+    z-index: 1000;
   }
   
   .sidebar-toggle {
@@ -516,10 +541,14 @@ const TopBar: React.FC<TopBarProps> = ({
   t,
   layoutSwapMode = "terminal-left",
   onLayoutSwapModeChange,
+  onSwitchSession,
+  currentSessionId,
+  onHistoryClick,
+  isHistoryOpen,
 }) => {
   const [isMaximized, setIsMaximized] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-
+  const historyButtonRef = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     const checkMaximized = async () => {
       try {
@@ -533,7 +562,6 @@ const TopBar: React.FC<TopBarProps> = ({
     const interval = setInterval(checkMaximized, 500);
     return () => clearInterval(interval);
   }, []);
-
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
@@ -544,7 +572,15 @@ const TopBar: React.FC<TopBarProps> = ({
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
-
+  useEffect(() => {
+    if (isHistoryOpen && historyButtonRef.current) {
+      window.dispatchEvent(
+        new CustomEvent("history-anchor-update", {
+          detail: { anchorElement: historyButtonRef.current },
+        })
+      );
+    }
+  }, [isHistoryOpen]);
   const handleMinimize = async () => {
     try {
       await windowsCommands.windowMinimize();
@@ -571,7 +607,7 @@ const TopBar: React.FC<TopBarProps> = ({
     }
   };
 
-  const handleNewSession = () => {
+  const handleNewSessionClick = () => {
     if (onNewSession) {
       onNewSession();
     } else {
@@ -626,10 +662,18 @@ const TopBar: React.FC<TopBarProps> = ({
           </button>
           <button
             className="sidebar-toggle"
-            onClick={handleNewSession}
+            onClick={handleNewSessionClick}
             title={getNewSessionTitle()}
           >
             <NewSessionIcon2 size={16} />
+          </button>
+          <button
+            ref={historyButtonRef}
+            className="sidebar-toggle"
+            onClick={onHistoryClick}
+            title={t("history.title") || "History Chat"}
+          >
+            <HistoryChatIcon2 size={16} />
           </button>
         </div>
         <div className="top-bar-center">

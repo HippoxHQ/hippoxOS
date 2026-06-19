@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import CustomDragCursor from "../../components/CustomDragCursor";
 import GlobalDragOverlay from "../../components/GlobalDragOverlay";
 import BottomBar from "../../components/BottomBar";
@@ -14,7 +14,7 @@ import Toast from "../../components/Toast";
 import TopBar from "../../components/TopBar";
 import WelcomePage from "../../components/WelcomePage";
 import ScheduledTasksManager from "../../components/ScheduledTasks";
-import UserProfile from "../../components/UserProfile";
+import UserProfile from "../../components/UserProfile"; 
 import { ContentPanelView } from "../hooks/useMenuPanel";
 import HistoryPanel from "../../components/MenuPanel/HistoryPanel";
 import FavoritesPanel from "../../components/MenuPanel/FavoritesPanel";
@@ -35,6 +35,7 @@ import EngineNetworkPanel from "../../components/MenuPanel/EngineConfig/EngineNe
 import EngineNotificationPanel from "../../components/MenuPanel/EngineConfig/EngineNotificationPanel";
 import { Language, Theme } from "../../types/types";
 import { UploadFile } from "../../core/types";
+import HistoryChatDropdown from "../../components/HistoryChatDropdown";
 
 interface AppContentProps {
   theme: Theme;
@@ -128,7 +129,29 @@ export function AppContent({
   onLayoutSwapModeChange,
 }: AppContentProps) {
   const showWelcome = shouldShowWelcome();
-
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [historyAnchor, setHistoryAnchor] = useState<HTMLElement | null>(null);
+  useEffect(() => {
+    const handleAnchorUpdate = (e: CustomEvent) => {
+      setHistoryAnchor(e.detail.anchorElement);
+    };
+    window.addEventListener(
+      "history-anchor-update",
+      handleAnchorUpdate as EventListener,
+    );
+    return () => {
+      window.removeEventListener(
+        "history-anchor-update",
+        handleAnchorUpdate as EventListener,
+      );
+    };
+  }, []);
+  const handleHistoryClick = () => {
+    setIsHistoryOpen(!isHistoryOpen);
+  };
+  const handleHistoryClose = () => {
+    setIsHistoryOpen(false);
+  };
   const leftPanelContent =
     layoutSwapMode === "terminal-left" ? (
       <TerminalPanel
@@ -148,7 +171,6 @@ export function AppContent({
         language={language}
       />
     );
-
   const rightPanelContent =
     layoutSwapMode === "terminal-left" ? (
       <ChatPanel
@@ -168,7 +190,6 @@ export function AppContent({
         onFileClick={onFilePreview}
       />
     );
-
   const renderEngineConfig = () => {
     switch (engineSubView) {
       case "engine_database":
@@ -207,7 +228,6 @@ export function AppContent({
         return null;
     }
   };
-
   const renderContent = () => {
     switch (currentContentPanel) {
       case "history":
@@ -280,7 +300,6 @@ export function AppContent({
         return null;
     }
   };
-
   const styles = {
     mainLayout: {
       display: "flex" as const,
@@ -313,7 +332,6 @@ export function AppContent({
       transition: "background 0.2s",
     },
   };
-
   return (
     <div className="App">
       <CustomDragCursor isDragging={showDragCursor} />
@@ -333,8 +351,19 @@ export function AppContent({
         t={t}
         layoutSwapMode={layoutSwapMode}
         onLayoutSwapModeChange={onLayoutSwapModeChange}
+        onSwitchSession={onSwitchSession}
+        currentSessionId={currentSessionId}
+        onHistoryClick={handleHistoryClick}
+        isHistoryOpen={isHistoryOpen}
       />
-
+      <HistoryChatDropdown
+        isOpen={isHistoryOpen}
+        onClose={handleHistoryClose}
+        t={t}
+        onSessionSelect={onSwitchSession}
+        currentSessionId={currentSessionId}
+        anchorElement={historyAnchor}
+      />
       <div style={styles.mainLayout}>
         {!sidebarCollapsed && (
           <Sidebar

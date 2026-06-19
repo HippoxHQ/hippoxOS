@@ -777,6 +777,8 @@ export const zh = {
     duration: '耗时 {{time}}',
     failed: '连接失败',
     untitled: '未命名对话',
+    title: '历史会话',
+    viewAll: '查看全部 →',
     category: {
       pinned: '置顶',
       today: '今天',
@@ -1945,6 +1947,8 @@ export const en: typeof zh = {
     duration: 'Duration {{time}}',
     failed: 'Connection failed',
     untitled: 'Untitled Conversation',
+    title: 'History',
+    viewAll: 'View All →',
     category: {
       pinned: 'Pinned',
       today: 'Today',
