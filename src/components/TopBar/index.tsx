@@ -96,12 +96,16 @@ const topBarStyles = `
     position: relative;
     -webkit-app-region: drag;
     app-region: drag;
+    min-width: 0;
+    gap: 5px;
   }
   
   .top-bar-left {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 5px;
+    flex-shrink: 0;
+    min-width: 0;
   }
   
   .sidebar-toggle {
@@ -119,6 +123,7 @@ const topBarStyles = `
     cursor: pointer;
     color: var(--text-secondary);
     transition: all 0.15s ease;
+    flex-shrink: 0;
   }
   
   .sidebar-toggle svg {
@@ -137,9 +142,10 @@ const topBarStyles = `
   .app-brand {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     -webkit-app-region: drag;
     app-region: drag;
+    flex-shrink: 0;
   }
   
   .app-logo {
@@ -148,6 +154,7 @@ const topBarStyles = `
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0;
   }
   
   .app-logo img {
@@ -163,16 +170,16 @@ const topBarStyles = `
     letter-spacing: -0.3px;
     -webkit-app-region: drag;
     app-region: drag;
+    white-space: nowrap;
   }
   
-  .top-bar-center {
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-    pointer-events: none;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+ .top-bar-center {
+   flex: 1;
+   display: flex;
+   align-items: center;
+   justify-content: flex-end;
+   min-width: 0;
+   padding: 0 8px;
   }
   
   .top-bar-right {
@@ -181,6 +188,7 @@ const topBarStyles = `
     gap: 4px;
     -webkit-app-region: no-drag;
     app-region: no-drag;
+    flex-shrink: 0;
   }
   
   .action-btn {
@@ -198,6 +206,7 @@ const topBarStyles = `
     font-weight: 450;
     color: var(--text-secondary);
     transition: all 0.15s ease;
+    flex-shrink: 0;
   }
   
   .action-btn svg {
@@ -221,6 +230,7 @@ const topBarStyles = `
     border-radius: 6px;
     padding: 2px;
     margin-left: 4px;
+    flex-shrink: 0;
   }
   
   .layout-switch-btn {
@@ -238,6 +248,7 @@ const topBarStyles = `
     font-weight: 450;
     color: var(--text-secondary);
     transition: all 0.15s ease;
+    white-space: nowrap;
   }
   
   .layout-switch-btn svg {
@@ -263,15 +274,18 @@ const topBarStyles = `
     height: 20px;
     background: var(--border-color);
     margin: 0 4px;
+    flex-shrink: 0;
   }
   
   .window-controls {
     display: flex;
     align-items: center;
     gap: 2px;
-    margin-left: 8px;
+    margin-left: 4px;
     border-left: 1px solid var(--border-color);
     height: 40px;
+    flex-shrink: 0;
+    padding-left: 4px;
   }
   
   .window-btn {
@@ -288,6 +302,7 @@ const topBarStyles = `
     transition: all 0.15s ease;
     position: relative;
     border-radius: 0;
+    flex-shrink: 0;
   }
   
   .window-btn:hover {
@@ -307,10 +322,127 @@ const topBarStyles = `
   .theme-toggle:active {
     transform: scale(0.95);
   }
+
+ .search-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  height: 28px;
+  flex: 1;
+  justify-content: space-between;
+  min-width: 40px;
+  max-width: 65%;      
+  }
+  
+  .search-input-wrapper:hover {
+    background: var(--hover-bg);
+  }
+  
+  .search-input-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    overflow: hidden;
+  }
+  
+  .search-input-left span {
+    font-size: 12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  
+  .search-kbd {
+    font-size: 10px;
+    background: var(--bg-secondary);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: monospace;
+    color: var(--text-secondary);
+    flex-shrink: 0;
+  }
+
+  @media (max-width: 720px) {
+    .app-name {
+      display: none;
+    }
+    .layout-switch-btn span {
+      display: none;
+    }
+    .layout-switch-btn {
+      padding: 0 6px;
+    }
+    .layout-divider {
+      display: none;
+    }
+  }
+  
+  @media (max-width: 580px) {
+    .search-input-wrapper {
+      min-width: 32px;
+      padding: 4px 8px;
+    }
+    .search-input-left span {
+      display: none;
+    }
+    .search-kbd {
+      display: none;
+    }
+    .top-bar {
+      padding: 0 8px;
+      gap: 4px;
+    }
+    .window-btn {
+      width: 32px;
+    }
+    .window-controls {
+      margin-left: 2px;
+      padding-left: 2px;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .top-bar-left {
+      gap: 4px;
+    }
+    .app-brand {
+      gap: 4px;
+    }
+    .sidebar-toggle {
+      width: 24px;
+      height: 24px;
+    }
+    .sidebar-toggle svg {
+      width: 14px;
+      height: 14px;
+    }
+    .search-input-wrapper {
+      min-width: 24px;
+      padding: 4px 6px;
+    }
+    .search-input-wrapper svg {
+      width: 14px;
+      height: 14px;
+    }
+    .window-btn {
+      width: 28px;
+      font-size: 12px;
+    }
+    .top-bar-right {
+      gap: 2px;
+    }
+  }
 `;
 
 if (typeof document !== "undefined") {
-  const styleId = "topbar-styles-v4";
+  const styleId = "topbar-styles-v6";
   if (!document.getElementById(styleId)) {
     const style = document.createElement("style");
     style.id = styleId;
@@ -347,12 +479,7 @@ const CloseIcon = () => (
 
 const CollapseIcon = () => (
   <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.75">
-    <path
-      d="M13 16l-6-6 6-6"
-      stroke="currentColor"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
+    <path d="M13 16l-6-6 6-6" stroke="currentColor" strokeLinecap="round" />
   </svg>
 );
 
@@ -478,7 +605,7 @@ const TopBar: React.FC<TopBarProps> = ({
 
   return (
     <>
-      <div className="top-bar" style={{ paddingRight: "0px" }}>
+      <div className="top-bar">
         <div className="top-bar-left">
           <div className="app-brand">
             <div className="app-logo">
@@ -505,58 +632,15 @@ const TopBar: React.FC<TopBarProps> = ({
             <NewSessionIcon2 size={16} />
           </button>
         </div>
-
         <div className="top-bar-center">
-          <button
-            onClick={openSearch}
-            style={{
-              pointerEvents: "auto",
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              padding: "4px 12px",
-              background: "var(--bg-tertiary)",
-              border: "1px solid var(--border-color)",
-              borderRadius: "6px",
-              fontSize: "13px",
-              color: "var(--text-secondary)",
-              cursor: "pointer",
-              transition: "all 0.2s ease",
-              height: "28px",
-              width: "350px",
-              justifyContent: "space-between",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background =
-                currentTheme === "dark"
-                  ? "rgba(255, 255, 255, 0.12)"
-                  : "rgba(0, 0, 0, 0.08)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "var(--bg-tertiary)";
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <button className="search-input-wrapper" onClick={openSearch}>
+            <div className="search-input-left">
               <SearchIcon />
-              <span style={{ fontSize: "12px" }}>
-                {currentLanguage === "zh" ? "搜索" : "Search"}
-              </span>
+              <span>{currentLanguage === "zh" ? "搜索" : "Search"}</span>
             </div>
-            <kbd
-              style={{
-                fontSize: "10px",
-                background: "var(--bg-secondary)",
-                padding: "2px 6px",
-                borderRadius: "4px",
-                fontFamily: "monospace",
-                color: "var(--text-secondary)",
-              }}
-            >
-              ⌘K
-            </kbd>
+            <kbd className="search-kbd">⌘K</kbd>
           </button>
         </div>
-
         <div className="top-bar-right">
           <button
             className="action-btn theme-toggle"
@@ -572,7 +656,6 @@ const TopBar: React.FC<TopBarProps> = ({
           >
             {currentLanguage === "zh" ? "EN" : "中文"}
           </button>
-
           {onLayoutSwapModeChange && (
             <>
               <div className="layout-divider" />
@@ -600,7 +683,6 @@ const TopBar: React.FC<TopBarProps> = ({
               </div>
             </>
           )}
-
           <div className="window-controls">
             <button
               className="window-btn"

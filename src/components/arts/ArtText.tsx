@@ -12,7 +12,6 @@ interface ArtTextProps {
   fontFamily?: string;
   glowSize?: number;
 }
-
 const ArtText: React.FC<ArtTextProps> = ({
   text,
   className = "",
@@ -84,12 +83,17 @@ const ArtText: React.FC<ArtTextProps> = ({
               repeatCount="indefinite"
             />
           </linearGradient>
-          <filter id={glowId}>
+          <filter id={glowId} x="-20%" y="-20%" width="140%" height="140%">
             <feGaussianBlur stdDeviation={glowSize} result="blur" />
             <feMerge>
               <feMergeNode in="blur" />
               <feMergeNode in="SourceGraphic" />
             </feMerge>
+          </filter>
+          <filter id="antialias">
+            <feComponentTransfer>
+              <feFuncA type="linear" slope="1.05" />
+            </feComponentTransfer>
           </filter>
         </defs>
         <text
@@ -105,6 +109,9 @@ const ArtText: React.FC<ArtTextProps> = ({
           filter={`url(#${glowId})`}
           style={{
             fontStyle: "italic",
+            WebkitFontSmoothing: "antialiased",
+            MozOsxFontSmoothing: "grayscale",
+            textRendering: "geometricPrecision",
           }}
         >
           {text}

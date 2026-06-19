@@ -12,7 +12,7 @@ import { showTooltipOnElement } from "./Tooltip";
 import { WorkspaceInstance, workspaceCommands } from "../command/workspace";
 import { UploadFile } from "../core/types";
 import ArtText from "./arts/ArtText";
-import banner from "../assets/banner.png";
+import banner from "../assets/banner.svg";
 
 interface WelcomePageProps {
   onSendMessage: (message: string, files?: UploadFile[]) => void;
@@ -237,13 +237,11 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
     margin-bottom: 20px;
     display: flex;
     justify-content: center;
-    width: 500px;
     height: 170px;
     border-radius: 5px;
   }
 
   .welcome-logo img {
-    width: 500px;
     height: 170px;
     border-radius: 5px;
   }
@@ -266,6 +264,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
 
   .welcome-form {
     width: 80%;
+    min-width: 325px;
     margin-bottom: 20px;
     margin: 0 auto 20px auto;
   }
