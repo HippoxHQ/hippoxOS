@@ -14,7 +14,7 @@ import { AppContent } from "./components/AppContent";
 import { taskManager } from "../core/TaskManager";
 import { useTaskEvents } from "./hooks/useTaskEvents";
 import { useLayoutSwapMode } from "./hooks/useLayoutSwapMode";
-import { useSkillEvents } from "./hooks/useSkillEvents";
+import { useDriverEvents } from "./hooks/useDriverEvents";
 
 function App() {
   const { isConfigLoaded, initialEngineConfig, initialTheme, initialLanguage } =
@@ -65,8 +65,8 @@ function App() {
   } = useDragAndDrop();
   // task listener
   useTaskEvents(language);
-  // skill listener
-  useSkillEvents(language);
+  // driver listener
+  useDriverEvents(language);
   const handleNewSessionWithClose = () => {
     resetToChat();
     handleNewSession();

@@ -25,7 +25,7 @@ impl From<Task> for TaskInfo {
             .iter()
             .map(|s| StepInfo {
                 step_index: s.step_index,
-                skill_name: s.skill_name.clone(),
+                driver_name: s.driver_name.clone(),
                 status: format!("{:?}", s.status).to_lowercase(),
                 output: s.output.clone(),
                 error: s.error.clone(),
@@ -52,7 +52,7 @@ impl From<Task> for TaskInfo {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StepInfo {
     pub step_index: usize,
-    pub skill_name: String,
+    pub driver_name: String,
     pub status: String,
     pub output: Option<String>,
     pub error: Option<String>,
@@ -66,4 +66,3 @@ pub struct TaskPoolStats {
     pub total_count: usize,
     pub max_concurrent: usize,
 }
-

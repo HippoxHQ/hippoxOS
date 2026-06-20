@@ -3957,7 +3957,7 @@ dependencies = [
  "chrono",
  "futures",
  "futures-util",
- "hippox-atomic-skills",
+ "hippox_drivers",
  "langhub",
  "once_cell",
  "regex",
@@ -3970,8 +3970,8 @@ dependencies = [
 ]
 
 [[package]]
-name = "hippox-atomic-skills"
-version = "0.2.0"
+name = "hippox_drivers"
+version = "0.3.0"
 dependencies = [
  "aes 0.9.1",
  "aes-gcm",

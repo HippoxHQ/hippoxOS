@@ -1,5 +1,5 @@
 import React from "react";
-import AtomicSkillsPanel from "./AtomicSkillsPanel";
+import AtomicSkillsPanel from "./DriversPanel";
 import InterfaceConfig from "./SystemConfig/InterfaceConfig";
 import WorkspaceConfig from "./SystemConfig/WorkspaceConfig";
 import StorageConfig from "./SystemConfig/StorageConfig";

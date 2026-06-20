@@ -1,14 +1,14 @@
 import { useEffect } from "react";
 import { Language } from "../../types/types";
 import { useTranslation } from "../../hooks/useTranslation";
-import { setupSkillEventListeners } from "../../core/SkillListener";
+import { setupDriverEventListeners } from "../../core/DriverListener";
 
-export function useSkillEvents(language: Language) {
+export function useDriverEvents(language: Language) {
     const { t } = useTranslation(language);
     useEffect(() => {
         let unlistenFunctions: Array<() => void> = [];
         const setupListeners = async () => {
-            unlistenFunctions = await setupSkillEventListeners(t);
+            unlistenFunctions = await setupDriverEventListeners(t);
         };
         setupListeners();
         return () => {

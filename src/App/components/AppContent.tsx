@@ -18,10 +18,9 @@ import UserProfile from "../../components/UserProfile";
 import { ContentPanelView } from "../hooks/useMenuPanel";
 import HistoryPanel from "../../components/MenuPanel/HistoryPanel";
 import FavoritesPanel from "../../components/MenuPanel/FavoritesPanel";
-import SkillsPanel from "../../components/MenuPanel/SkillsPanel";
 import SkillMarketPanel from "../../components/MenuPanel/SkillMarketPanel";
 import TaskQueuePanel from "../../components/MenuPanel/TaskQueuePanel";
-import AtomicSkillsPanel from "../../components/MenuPanel/AtomicSkillsPanel";
+import AtomicSkillsPanel from "../../components/MenuPanel/DriversPanel";
 import WorkspacePanel from "../../components/MenuPanel/Workspace";
 import WorkspaceConfig from "../../components/MenuPanel/SystemConfig/WorkspaceConfig";
 import LogsPanel from "../../components/MenuPanel/LogsPanel";
@@ -36,6 +35,7 @@ import EngineNotificationPanel from "../../components/MenuPanel/EngineConfig/Eng
 import { Language, Theme } from "../../types/types";
 import { UploadFile } from "../../core/types";
 import HistoryChatDropdown from "../../components/HistoryChatDropdown";
+import SkillsPanel from "../../components/MenuPanel/SkillsPanel";
 
 interface AppContentProps {
   theme: Theme;
@@ -241,8 +241,8 @@ export function AppContent({
         );
       case "favorites":
         return <FavoritesPanel t={t} />;
-      case "skills":
-        return <SkillsPanel t={t} />;
+      // case "skills":
+      //   return <SkillsPanel t={t} />;
       case "skillMarket":
         return <SkillMarketPanel t={t} />;
       case "taskQueue":

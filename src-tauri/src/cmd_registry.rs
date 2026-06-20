@@ -53,11 +53,12 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_get_pinned_sessions,
         commands::cmd_save_task_content,
         commands::cmd_load_task_content,
+        // Drivers
+        commands::cmd_get_drivers,
+        commands::cmd_get_drivers_by_category,
+        commands::cmd_get_driver_categories,
+        commands::cmd_execute_driver,
         // Skills
-        commands::cmd_get_atomic_skills,
-        commands::cmd_get_atomic_skills_by_category,
-        commands::cmd_get_skill_categories,
-        commands::cmd_execute_atomic_skill,
         commands::cmd_list_local_skills,
         commands::cmd_create_skill,
         commands::cmd_update_skill,

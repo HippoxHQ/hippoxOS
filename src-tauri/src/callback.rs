@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use hippox::{SkillCallback, WorkflowCallback};
+use hippox::{DriverCallback, WorkflowCallback};
 use serde_json::json;
 use std::fmt::Debug;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -234,16 +234,16 @@ impl WorkflowCallback for HippoXWorkflowCallback {
     }
 }
 
-// ======================= Skill Call Back =======================
+// ======================= Driver Call Back =======================
 
 #[derive(Debug, Clone)]
-pub struct HippoxSkillCallback {
+pub struct HippoxDriverCallback {
     app_handle: AppHandle,
     session_id: String,
     task_id: Option<String>,
 }
 
-impl HippoxSkillCallback {
+impl HippoxDriverCallback {
     pub fn new(app_handle: AppHandle, session_id: String) -> Self {
         Self {
             app_handle,
@@ -258,19 +258,19 @@ impl HippoxSkillCallback {
     }
 }
 
-impl SkillCallback for HippoxSkillCallback {
+impl DriverCallback for HippoxDriverCallback {
     fn on_progress(
         &self,
         task_id: Option<String>,
-        skill_index: Option<usize>,
+        driver_index: Option<usize>,
         progress: Option<u32>,
         message: Option<String>,
     ) {
         let _ = self.app_handle.emit(
-            "skill_callback_progress",
+            "driver_callback_progress",
             &json!({
                 "task_id": task_id.or_else(|| self.task_id.clone()),
-                "step_index": skill_index,
+                "step_index": driver_index,
                 "progress": progress,
                 "message": message,
                 "session_id": self.session_id
@@ -281,15 +281,15 @@ impl SkillCallback for HippoxSkillCallback {
     fn on_start(
         &self,
         task_id: Option<String>,
-        skill_index: Option<usize>,
-        skill_name: Option<String>,
+        driver_index: Option<usize>,
+        driver_name: Option<String>,
     ) {
         let _ = self.app_handle.emit(
-            "skill_callback_start",
+            "driver_callback_start",
             &json!({
                 "task_id": task_id.or_else(|| self.task_id.clone()),
-                "step_index": skill_index,
-                "skill_name": skill_name,
+                "step_index": driver_index,
+                "driver_name": driver_name,
                 "session_id": self.session_id
             }),
         );
@@ -298,16 +298,16 @@ impl SkillCallback for HippoxSkillCallback {
     fn on_complete(
         &self,
         task_id: Option<String>,
-        skill_index: Option<usize>,
-        skill_name: Option<String>,
+        driver_index: Option<usize>,
+        driver_name: Option<String>,
         output: Option<String>,
     ) {
         let _ = self.app_handle.emit(
-            "skill_callback_complete",
+            "driver_callback_complete",
             &json!({
                 "task_id": task_id.or_else(|| self.task_id.clone()),
-                "step_index": skill_index,
-                "skill_name": skill_name,
+                "step_index": driver_index,
+                "driver_name": driver_name,
                 "output": output,
                 "session_id": self.session_id
             }),
@@ -317,28 +317,33 @@ impl SkillCallback for HippoxSkillCallback {
     fn on_error(
         &self,
         task_id: Option<String>,
-        skill_index: Option<usize>,
-        skill_name: Option<String>,
+        driver_index: Option<usize>,
+        driver_name: Option<String>,
         error: Option<String>,
     ) {
         let _ = self.app_handle.emit(
-            "skill_callback_error",
+            "driver_callback_error",
             &json!({
                 "task_id": task_id.or_else(|| self.task_id.clone()),
-                "step_index": skill_index,
-                "skill_name": skill_name,
+                "step_index": driver_index,
+                "driver_name": driver_name,
                 "error": error,
                 "session_id": self.session_id
             }),
         );
     }
 
-    fn on_log(&self, task_id: Option<String>, skill_index: Option<usize>, message: Option<String>) {
+    fn on_log(
+        &self,
+        task_id: Option<String>,
+        driver_index: Option<usize>,
+        message: Option<String>,
+    ) {
         let _ = self.app_handle.emit(
-            "skill_callback_log",
+            "driver_callback_log",
             &json!({
                 "task_id": task_id.or_else(|| self.task_id.clone()),
-                "step_index": skill_index,
+                "step_index": driver_index,
                 "msg": message,
                 "session_id": self.session_id
             }),

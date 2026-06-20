@@ -1,19 +1,12 @@
 import { invoke } from "@tauri-apps/api/core";
 import { SkillData, CreateSkillRequest, UpdateSkillRequest, SkillHistory } from "../types/skill";
+import { DriverInfo } from "./drivers";
 
 export interface SkillParameter {
     name: string;
     param_type: string;
     description: string;
     required: boolean;
-}
-
-export interface AtomicSkillInfo {
-    name: string;
-    description: string;
-    category: string;
-    enabled: boolean;
-    parameters: SkillParameter[];
 }
 
 export interface MarketSkill {
@@ -37,29 +30,6 @@ export interface MarketConfig {
     branch: string;
     last_update?: string;
 }
-
-export const atomicSkillsCommands = {
-
-    async getAtomicSkills(): Promise<AtomicSkillInfo[]> {
-        return await invoke('cmd_get_atomic_skills');
-    },
-
-    // getAtomicSkills: (): Promise<AtomicSkillInfo[]> =>
-    //     invoke("get_atomic_skills"),
-
-
-    getAtomicSkillsByCategory: (category: string): Promise<AtomicSkillInfo[]> =>
-        invoke("cmd_get_atomic_skills_by_category", { category }),
-
-
-    getSkillCategories: (): Promise<string[]> =>
-        invoke("get_skill_categories"),
-
-
-    executeAtomicSkill: (skillName: string, parameters: Record<string, any>): Promise<string> =>
-        invoke("cmd_execute_atomic_skill", { skillName, parameters }),
-};
-
 
 export const skillsMarketCommands = {
     updateSkillsMarket: (): Promise<MarketSkill[]> =>
@@ -117,17 +87,6 @@ export const localSkillsCommands = {
     saveSkillsConfig: (enabledSkills: string[], disabledSkills: string[]): Promise<void> =>
         invoke("save_skills_config", { enabledSkills, disabledSkills }),
 };
-
-export function groupSkillsByCategory(skills: AtomicSkillInfo[]): Record<string, AtomicSkillInfo[]> {
-    const grouped: Record<string, AtomicSkillInfo[]> = {};
-    for (const skill of skills) {
-        if (!grouped[skill.category]) {
-            grouped[skill.category] = [];
-        }
-        grouped[skill.category].push(skill);
-    }
-    return grouped;
-}
 
 export function getCategoryDisplayName(category: string, t: (key: string) => string): string {
     const categoryMap: Record<string, string> = {
@@ -187,20 +146,6 @@ export function filterSkillsByCategory<T extends { category: string }>(
     return skills.filter((skill) => skill.category === category);
 }
 
-export function getSkillStats(skills: AtomicSkillInfo[]): {
-    total: number;
-    enabled: number;
-    disabled: number;
-    categories: number;
-} {
-    const categories = new Set(skills.map((s) => s.category));
-    return {
-        total: skills.length,
-        enabled: skills.filter((s) => s.enabled).length,
-        disabled: skills.filter((s) => !s.enabled).length,
-        categories: categories.size,
-    };
-}
 
 export const skillsLocalCommands = {
     async listLocalSkills(): Promise<SkillData[]> {
@@ -243,25 +188,5 @@ export const skillsLocalCommands = {
         return await invoke('cmd_unfavorite_local_skill', { skillId, category });
     },
 };
-
-export async function getAtomicSkills(): Promise<AtomicSkillInfo[]> {
-    return atomicSkillsCommands.getAtomicSkills();
-}
-
-export async function getAtomicSkillsByCategory(category: string): Promise<AtomicSkillInfo[]> {
-    return atomicSkillsCommands.getAtomicSkillsByCategory(category);
-}
-
-export async function getSkillCategories(): Promise<string[]> {
-    return atomicSkillsCommands.getSkillCategories();
-}
-
-export async function executeAtomicSkill(
-    skillName: string,
-    parameters: Record<string, any>
-): Promise<string> {
-    return atomicSkillsCommands.executeAtomicSkill(skillName, parameters);
-}
-
 
 export type SkillParameterInfo = SkillParameter;

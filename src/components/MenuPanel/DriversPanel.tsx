@@ -1,28 +1,15 @@
 import React, { useState, useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { showToast, ToastType } from "../Toast";
-import { atomicSkillsCommands } from "../../command/skills";
+import { DriverInfo, driversCommands } from "../../command/drivers";
 
-interface AtomicSkillsPanelProps {
+interface DriversPanelPanelProps {
   t: (key: string, params?: any) => string;
   onSave?: (config: any) => void;
 }
 
-interface AtomicSkillInfo {
-  name: string;
-  description: string;
-  category: string;
-  enabled: boolean;
-  parameters: {
-    name: string;
-    param_type: string;
-    description: string;
-    required: boolean;
-  }[];
-}
-
-const AtomicSkillsPanel: React.FC<AtomicSkillsPanelProps> = ({ t, onSave }) => {
-  const [skills, setSkills] = useState<AtomicSkillInfo[]>([]);
+const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
+  const [skills, setSkills] = useState<DriverInfo[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<string>("");
@@ -37,8 +24,7 @@ const AtomicSkillsPanel: React.FC<AtomicSkillsPanelProps> = ({ t, onSave }) => {
   const loadSkills = async () => {
     try {
       setLoading(true);
-      const skillsData =
-        (await atomicSkillsCommands.getAtomicSkills()) as AtomicSkillInfo[];
+      const skillsData = (await driversCommands.getDrivers()) as DriverInfo[];
       const skillsWithEnabled = skillsData.map((skill) => ({
         ...skill,
         enabled: true,
@@ -536,4 +522,4 @@ const AtomicSkillsPanel: React.FC<AtomicSkillsPanelProps> = ({ t, onSave }) => {
   );
 };
 
-export default AtomicSkillsPanel;
+export default DriversPanelPanel;

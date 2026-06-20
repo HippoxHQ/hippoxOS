@@ -1,4 +1,4 @@
-use crate::callback::{HippoXWorkflowCallback, HippoxSkillCallback};
+use crate::callback::{HippoXWorkflowCallback, HippoxDriverCallback};
 use crate::commands::{load_config_from_file, TaskInfo, HIPPOX_APP_CONFIG};
 use crate::context::{get_conversation_history, store_user_message, Context};
 use crate::hippox_core::{get_default_hippox, init_all_hippox_instances};
@@ -150,7 +150,7 @@ pub async fn cmd_send_chat_message_async(
         session.clone(),
     ));
     // atom skill callback
-    let skill_callback = Arc::new(HippoxSkillCallback::new(
+    let skill_callback = Arc::new(HippoxDriverCallback::new(
         app_handle.clone(),
         session.clone(),
     ));
@@ -207,7 +207,7 @@ pub async fn cmd_send_chat_message(
         session.clone(),
     ));
     // atom skill callback
-    let skill_callback = Arc::new(HippoxSkillCallback::new(
+    let skill_callback = Arc::new(HippoxDriverCallback::new(
         app_handle.clone(),
         session.clone(),
     ));
@@ -298,7 +298,7 @@ pub async fn cmd_get_atomic_skills_list() -> Result<Vec<String>, String> {
     match get_default_hippox().await {
         Ok(hippox) => {
             // Handle HippoxResult from get_atomic_skill_names
-            match hippox.get_atomic_skill_names() {
+            match hippox.get_driver_names() {
                 HippoxResult {
                     data: Some(skills), ..
                 } => Ok(skills),

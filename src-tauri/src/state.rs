@@ -165,7 +165,6 @@ impl AppState {
             task.updated_at = chrono::Local::now().to_rfc3339();
         }
     }
-
     pub async fn complete_task(&self, task_id: &str, final_output: &str) {
         let mut tasks = self.tasks.lock().await;
         if let Some(task) = tasks.get_mut(task_id) {
@@ -174,7 +173,6 @@ impl AppState {
             task.updated_at = chrono::Local::now().to_rfc3339();
         }
     }
-
     pub async fn fail_task(&self, task_id: &str, error: &str) {
         let mut tasks = self.tasks.lock().await;
         if let Some(task) = tasks.get_mut(task_id) {
@@ -183,7 +181,6 @@ impl AppState {
             task.updated_at = chrono::Local::now().to_rfc3339();
         }
     }
-
     pub async fn get_task(&self, task_id: &str) -> Option<TaskInfo> {
         let tasks = self.tasks.lock().await;
         tasks.get(task_id).map(|t| TaskInfo {
@@ -196,7 +193,7 @@ impl AppState {
                 .iter()
                 .map(|s| StepInfo {
                     step_index: s.step_index,
-                    skill_name: s.step_name.clone(),
+                    driver_name: s.step_name.clone(),
                     status: s.status.clone(),
                     output: s.output.clone(),
                     error: s.error.clone(),
@@ -214,7 +211,6 @@ impl AppState {
             progress: 0,
         })
     }
-
     pub async fn get_session_tasks(&self, session_id: &str) -> Vec<TaskInfo> {
         let tasks = self.tasks.lock().await;
         tasks
@@ -230,7 +226,7 @@ impl AppState {
                     .iter()
                     .map(|s| StepInfo {
                         step_index: s.step_index,
-                        skill_name: s.step_name.clone(),
+                        driver_name: s.step_name.clone(),
                         status: s.status.clone(),
                         output: s.output.clone(),
                         error: s.error.clone(),

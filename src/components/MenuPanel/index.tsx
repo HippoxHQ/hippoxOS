@@ -5,7 +5,7 @@ import TaskQueuePanel from "./TaskQueuePanel";
 import FavoritesPanel from "./FavoritesPanel";
 import HistoryPanel from "./HistoryPanel";
 import SkillsPanel from "./SkillsPanel";
-import AtomicSkillsPanel from "./AtomicSkillsPanel";
+import AtomicSkillsPanel from "./DriversPanel";
 import WorkspacePanel from "./Workspace";
 import WorkspaceConfig from "./SystemConfig/WorkspaceConfig";
 import EngineContainerPanel from "./EngineConfig/EngineContainerPanel";

@@ -2,11 +2,11 @@ import { listen } from "@tauri-apps/api/event";
 import { taskManager } from "./TaskManager";
 import { StepStatusEnum, TaskStepInfo } from "./types";
 
-export interface SkillEventHandlers {
+export interface DriverEventHandlers {
     onTranslation: (key: string) => string;
 }
 
-export interface SkillProgressEvent {
+export interface DriverProgressEvent {
     task_id: string | null;
     step_index: number | null;
     progress: number;
@@ -14,30 +14,30 @@ export interface SkillProgressEvent {
     session_id: string;
 }
 
-export interface SkillStartEvent {
+export interface DriverStartEvent {
     task_id: string | null;
     step_index: number | null;
-    skill_name: string;
+    driver_name: string;
     session_id: string;
 }
 
-export interface SkillCompleteEvent {
+export interface DriverCompleteEvent {
     task_id: string | null;
     step_index: number | null;
-    skill_name: string;
+    driver_name: string;
     output: string;
     session_id: string;
 }
 
-export interface SkillErrorEvent {
+export interface DriverErrorEvent {
     task_id: string | null;
     step_index: number | null;
-    skill_name: string;
+    driver_name: string;
     error: string;
     session_id: string;
 }
 
-export interface SkillLogEvent {
+export interface DriverLogEvent {
     task_id: string | null;
     step_index: number | null;
     msg: string;
@@ -90,11 +90,11 @@ const updateTaskStepBySession = (
     taskManager.notify();
 };
 
-// Skill start handler
-export const handleSkillStart = (event: any, t: (key: string) => string) => {
-    const { task_id, step_index, skill_name, session_id } = event.payload;
+// Driver start handler
+export const handleDriverStart = (event: any, t: (key: string) => string) => {
+    const { task_id, step_index, driver_name, session_id } = event.payload;
     if (!session_id || !task_id || step_index === null) {
-        console.warn("skill_callback_start missing required fields");
+        console.warn("driver_callback_start missing required fields");
         return;
     }
     updateTaskStepBySession(session_id, task_id, step_index, {
@@ -103,11 +103,11 @@ export const handleSkillStart = (event: any, t: (key: string) => string) => {
     });
 };
 
-// Skill progress handler
-export const handleSkillProgress = (event: any, t: (key: string) => string) => {
+// Driver progress handler
+export const handleDriverProgress = (event: any, t: (key: string) => string) => {
     const { task_id, step_index, progress, message, session_id } = event.payload;
     if (!session_id || !task_id || step_index === null) {
-        console.warn("skill_callback_progress missing required fields");
+        console.warn("driver_callback_progress missing required fields");
         return;
     }
     updateTaskStepBySession(session_id, task_id, step_index, {
@@ -116,11 +116,11 @@ export const handleSkillProgress = (event: any, t: (key: string) => string) => {
     });
 };
 
-// Skill complete handler
-export const handleSkillComplete = (event: any, t: (key: string) => string) => {
-    const { task_id, step_index, skill_name, output, session_id } = event.payload;
+// Driver complete handler
+export const handleDriverComplete = (event: any, t: (key: string) => string) => {
+    const { task_id, step_index, driver_name, output, session_id } = event.payload;
     if (!session_id || !task_id || step_index === null) {
-        console.warn("skill_callback_complete missing required fields");
+        console.warn("driver_callback_complete missing required fields");
         return;
     }
     updateTaskStepBySession(session_id, task_id, step_index, {
@@ -130,11 +130,11 @@ export const handleSkillComplete = (event: any, t: (key: string) => string) => {
     });
 };
 
-// Skill error handler
-export const handleSkillError = (event: any, t: (key: string) => string) => {
-    const { task_id, step_index, skill_name, error, session_id } = event.payload;
+// Driver error handler
+export const handleDriverError = (event: any, t: (key: string) => string) => {
+    const { task_id, step_index, driver_name, error, session_id } = event.payload;
     if (!session_id || !task_id || step_index === null) {
-        console.warn("skill_callback_error missing required fields");
+        console.warn("driver_callback_error missing required fields");
         return;
     }
     updateTaskStepBySession(session_id, task_id, step_index, {
@@ -144,11 +144,11 @@ export const handleSkillError = (event: any, t: (key: string) => string) => {
     });
 };
 
-// Skill log handler 
-export const handleSkillLog = (event: any, t: (key: string) => string) => {
-    const { task_id, step_index, skill_name, session_id, msg } = event.payload;
+// Driver log handler 
+export const handleDriverLog = (event: any, t: (key: string) => string) => {
+    const { task_id, step_index, driver_name, session_id, msg } = event.payload;
     if (!session_id || !task_id || step_index === null) {
-        console.warn("skill_callback_log missing required fields");
+        console.warn("driver_callback_log missing required fields");
         return;
     }
     const tasks = taskManager.getTasksBySession(session_id);
@@ -168,44 +168,44 @@ export const handleSkillLog = (event: any, t: (key: string) => string) => {
     });
 };
 
-// Setup skill event listeners 
-export const setupSkillEventListeners = async (
+// Setup driver event listeners 
+export const setupDriverEventListeners = async (
     t: (key: string) => string
 ): Promise<Array<() => void>> => {
     const unlistenFunctions: Array<() => void> = [];
 
-    const unlistenStart = await listen("skill_callback_start", (event: any) => {
-        handleSkillStart(event, t);
+    const unlistenStart = await listen("driver_callback_start", (event: any) => {
+        handleDriverStart(event, t);
     });
     unlistenFunctions.push(unlistenStart);
 
-    const unlistenProgress = await listen("skill_callback_progress", (event: any) => {
-        handleSkillProgress(event, t);
+    const unlistenProgress = await listen("driver_callback_progress", (event: any) => {
+        handleDriverProgress(event, t);
     });
     unlistenFunctions.push(unlistenProgress);
 
-    const unlistenComplete = await listen("skill_callback_complete", (event: any) => {
-        handleSkillComplete(event, t);
+    const unlistenComplete = await listen("driver_callback_complete", (event: any) => {
+        handleDriverComplete(event, t);
     });
     unlistenFunctions.push(unlistenComplete);
 
-    const unlistenError = await listen("skill_callback_error", (event: any) => {
-        handleSkillError(event, t);
+    const unlistenError = await listen("driver_callback_error", (event: any) => {
+        handleDriverError(event, t);
     });
     unlistenFunctions.push(unlistenError);
 
-    const unlistenLog = await listen("skill_callback_log", (event: any) => {
-        handleSkillLog(event, t);
+    const unlistenLog = await listen("driver_callback_log", (event: any) => {
+        handleDriverLog(event, t);
     });
     unlistenFunctions.push(unlistenLog);
 
     return unlistenFunctions;
 };
 
-export const skillEventHandlers = {
-    onStart: handleSkillStart,
-    onProgress: handleSkillProgress,
-    onComplete: handleSkillComplete,
-    onError: handleSkillError,
-    onLog: handleSkillLog,
+export const driverEventHandlers = {
+    onStart: handleDriverStart,
+    onProgress: handleDriverProgress,
+    onComplete: handleDriverComplete,
+    onError: handleDriverError,
+    onLog: handleDriverLog,
 };

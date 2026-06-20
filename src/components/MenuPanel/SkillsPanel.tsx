@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { ExpandArrowsIcon, CollapseIcon } from "../../icons";
-import { atomicSkillsCommands } from "../../command/skills";
+import { driversCommands } from "../../command/drivers";
 
 interface SkillsPanelProps {
   t: (key: string, params?: any) => string;
@@ -26,7 +26,7 @@ interface CategoryInfo {
   skills: AtomicSkillInfo[];
 }
 
-const SkillsPanel: React.FC<SkillsPanelProps> = ({ t }) => {
+const SkillsPanel2: React.FC<SkillsPanelProps> = ({ t }) => {
   const [skills, setSkills] = useState<AtomicSkillInfo[]>([]);
   const [categories, setCategories] = useState<CategoryInfo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,7 +42,7 @@ const SkillsPanel: React.FC<SkillsPanelProps> = ({ t }) => {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const skillsData = await atomicSkillsCommands.getAtomicSkills();
+        const skillsData = await driversCommands.getDrivers();
         setSkills(skillsData);
         const skillsByCategory = skillsData.reduce(
           (acc, skill) => {
@@ -603,4 +603,4 @@ const SkillsPanel: React.FC<SkillsPanelProps> = ({ t }) => {
   );
 };
 
-export default SkillsPanel;
+export default SkillsPanel2;

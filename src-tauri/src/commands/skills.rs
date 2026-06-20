@@ -1,18 +1,10 @@
 use crate::commands::paths::get_app_root_dir;
 use crate::commands::{load_favorites_config, save_favorites_config};
-use hippox::{get_skill, list_skills};
+use hippox::{get_driver, list_drivers};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
 use uuid::Uuid;
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct AtomicSkillInfo {
-    pub name: String,
-    pub description: String,
-    pub category: String,
-    pub parameters: Vec<SkillParameterInfo>,
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SkillParameterInfo {
@@ -20,67 +12,6 @@ pub struct SkillParameterInfo {
     pub param_type: String,
     pub description: String,
     pub required: bool,
-}
-
-#[tauri::command]
-pub fn cmd_get_atomic_skills() -> Vec<AtomicSkillInfo> {
-    let skill_names = list_skills();
-    skill_names
-        .iter()
-        .filter_map(|name| {
-            get_skill(name).map(|skill| {
-                let params: Vec<SkillParameterInfo> = skill
-                    .parameters()
-                    .into_iter()
-                    .map(|p| SkillParameterInfo {
-                        name: p.name,
-                        param_type: p.param_type,
-                        description: p.description,
-                        required: p.required,
-                    })
-                    .collect();
-                AtomicSkillInfo {
-                    name: name.clone(),
-                    description: skill.description().to_string(),
-                    category: skill.category().name().to_string(),
-                    parameters: params,
-                }
-            })
-        })
-        .collect()
-}
-
-#[tauri::command]
-pub fn cmd_get_atomic_skills_by_category(category: String) -> Vec<AtomicSkillInfo> {
-    cmd_get_atomic_skills()
-        .into_iter()
-        .filter(|s| s.category == category)
-        .collect()
-}
-
-#[tauri::command]
-pub fn cmd_get_skill_categories() -> Vec<String> {
-    let skills = cmd_get_atomic_skills();
-    let mut categories: Vec<String> = skills
-        .into_iter()
-        .map(|s| s.category)
-        .collect::<std::collections::HashSet<_>>()
-        .into_iter()
-        .collect();
-    categories.sort();
-    categories
-}
-
-#[tauri::command]
-pub async fn cmd_execute_atomic_skill(
-    skill_name: String,
-    parameters: std::collections::HashMap<String, serde_json::Value>,
-) -> Result<String, String> {
-    let skill = get_skill(&skill_name).ok_or_else(|| format!("Skill not found: {}", skill_name))?;
-    skill
-        .execute(&parameters, None, None)
-        .await
-        .map_err(|e| e.to_string())
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
