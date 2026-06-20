@@ -56,6 +56,7 @@ const HistoryChatDropdown: React.FC<HistoryChatDropdownProps> = ({
     older: true,
   });
   const [position, setPosition] = useState({ top: 0, left: 0 });
+  const [isVisible, setIsVisible] = useState(false);
 
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -89,6 +90,7 @@ const HistoryChatDropdown: React.FC<HistoryChatDropdownProps> = ({
       setLoading(false);
     }
   };
+
   const updatePosition = useCallback(() => {
     if (!anchorElement) return;
     const rect = anchorElement.getBoundingClientRect();
@@ -106,6 +108,7 @@ const HistoryChatDropdown: React.FC<HistoryChatDropdownProps> = ({
       left: left,
     });
   }, [anchorElement]);
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -124,22 +127,36 @@ const HistoryChatDropdown: React.FC<HistoryChatDropdownProps> = ({
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [isOpen, onClose, anchorElement]);
+
   useEffect(() => {
     if (isOpen) {
+      setIsVisible(false);
       loadSessions();
-      updatePosition();
+      requestAnimationFrame(() => {
+        updatePosition();
+        requestAnimationFrame(() => {
+          setIsVisible(true);
+        });
+      });
+    } else {
+      setIsVisible(false);
     }
   }, [isOpen, updatePosition]);
+
   useEffect(() => {
     if (isOpen) {
-      window.addEventListener("resize", updatePosition);
-      window.addEventListener("scroll", updatePosition);
+      const handleUpdate = () => {
+        updatePosition();
+      };
+      window.addEventListener("resize", handleUpdate);
+      window.addEventListener("scroll", handleUpdate);
       return () => {
-        window.removeEventListener("resize", updatePosition);
-        window.removeEventListener("scroll", updatePosition);
+        window.removeEventListener("resize", handleUpdate);
+        window.removeEventListener("scroll", handleUpdate);
       };
     }
   }, [isOpen, updatePosition]);
+
   useEffect(() => {
     const handleSessionCreated = () => {
       loadSessions();
@@ -229,6 +246,11 @@ const HistoryChatDropdown: React.FC<HistoryChatDropdownProps> = ({
         overflow: "hidden",
         display: "flex",
         flexDirection: "column",
+        opacity: isVisible ? 1 : 0,
+        transform: isVisible ? "scale(1)" : "scale(0.95)",
+        transformOrigin: "top left",
+        transition: "opacity 0.1s ease, transform 0.12s ease",
+        pointerEvents: isVisible ? "auto" : "none",
       }}
       onClick={(e) => e.stopPropagation()}
     >
