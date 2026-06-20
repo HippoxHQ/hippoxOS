@@ -1,9 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
-import {
-  SearchDialogProps,
-  SearchResult,
-  SearchSuggestion,
-} from "./types";
+import { SearchDialogProps, SearchResult, SearchSuggestion } from "./types";
 import { useSearch } from "./hooks/useSearch";
 import { useDialogPosition } from "./hooks/useDialogPosition";
 import { useKeyboardNavigation } from "./hooks/useKeyboardNavigation";
@@ -13,6 +9,8 @@ import { SearchResults } from "./components/SearchResults";
 import { SearchSkeleton } from "./components/SearchSkeleton";
 import { EmptyState } from "./components/EmptyState";
 import { QuickActions } from "./components/QuickActions";
+import { sessionCommands } from "../../../command/session";
+import { filesCommands } from "../../../command/files";
 
 const SearchDialog: React.FC<SearchDialogProps> = ({
   isOpen,
@@ -27,14 +25,19 @@ const SearchDialog: React.FC<SearchDialogProps> = ({
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [isLoading, setIsLoading] = useState(false);
   const [isInputFocused, setIsInputFocused] = useState(false);
+  const [recentMessages, setRecentMessages] = useState<SearchResult[]>([]);
+  const [isLoadingRecent, setIsLoadingRecent] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const isOpenRef = useRef(isOpen);
+
   useEffect(() => {
     isOpenRef.current = isOpen;
   }, [isOpen]);
+
   const { sessionTitlesMap, loading: titlesLoading } = useSessionTitles();
   const { position, isDragging, dialogRef, handleDragStart } =
     useDialogPosition(isOpen);
+
   const { isLoading: searchLoading } = useSearch({
     searchQuery,
     sessionTitlesMap,
@@ -46,46 +49,161 @@ const SearchDialog: React.FC<SearchDialogProps> = ({
       setIsLoading(loading);
     }, []),
   });
-  const handleResultClick = useCallback((result: SearchResult) => {
-    switch (result.category) {
-      case "message":
-        if (result.sessionId) {
-          window.dispatchEvent(
-            new CustomEvent("search-switch-session", {
-              detail: {
-                sessionId: result.sessionId,
-                title: result.sessionTitle || "会话",
-                highlightMessageId: result.id,
-              },
-            })
-          );
-        }
-        break;
-      case "skill":
-        window.dispatchEvent(
-          new CustomEvent("search-open-skill", {
-            detail: { path: result.path, title: result.title },
-          })
-        );
-        break;
-      case "session":
-        const sessionId = result.id.replace("session_", "");
-        window.dispatchEvent(
-          new CustomEvent("search-switch-session", {
-            detail: { sessionId, title: result.title },
-          })
-        );
-        break;
-      case "log":
-        window.dispatchEvent(
-          new CustomEvent("search-open-log", {
-            detail: { path: result.path, highlight: result.highlight },
-          })
-        );
-        break;
+
+  const readSessionChatFromFile = async (
+    sessionDir: string,
+  ): Promise<any[]> => {
+    try {
+      const chatPath = `${sessionDir}/chat.json`;
+      const exists = await filesCommands.pathExists(chatPath);
+      if (!exists) return [];
+      const content = await filesCommands.readTextFile(chatPath);
+      return JSON.parse(content);
+    } catch {
+      return [];
     }
-    onClose();
-  }, [onClose]);
+  };
+
+  const loadRecentMessages = useCallback(async () => {
+    if (!isOpen) return;
+    setIsLoadingRecent(true);
+    try {
+      const sessions = await sessionCommands.listSessions();
+      if (!sessions || sessions.length === 0) {
+        setRecentMessages([]);
+        setIsLoadingRecent(false);
+        return;
+      }
+      const allMessages: SearchResult[] = [];
+      for (const session of sessions) {
+        const sessionId = session.session_id;
+        const sessionTitle = session.title || `会话 ${sessionId.slice(-6)}`;
+        const sessionPath = (session as any).path;
+        if (!sessionPath) continue;
+        const messages = await readSessionChatFromFile(sessionPath);
+        for (const msg of messages) {
+          if (!msg.content) continue;
+          let displayContent = msg.content;
+          try {
+            const parsed = JSON.parse(msg.content);
+            if (parsed?.chatResponse?.m) {
+              displayContent = parsed.chatResponse.m;
+            } else if (parsed?.terminalResponse?.m) {
+              displayContent = parsed.terminalResponse.m;
+            }
+          } catch {}
+          allMessages.push({
+            category: "message",
+            id: msg.id || `msg_${Date.now()}`,
+            title: sessionTitle,
+            description:
+              displayContent.length > 100
+                ? displayContent.substring(0, 100) + "..."
+                : displayContent,
+            path: sessionId,
+            timestamp: msg.timestamp,
+            highlight: null,
+            sessionId: sessionId,
+            sessionTitle: sessionTitle,
+            messageContent: displayContent,
+          });
+        }
+      }
+      allMessages.sort((a, b) => {
+        if (!a.timestamp) return 1;
+        if (!b.timestamp) return -1;
+        return (
+          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+        );
+      });
+      setRecentMessages(allMessages.slice(0, 5));
+    } catch (error) {
+      console.error("Failed to load recent messages:", error);
+      setRecentMessages([]);
+    } finally {
+      setIsLoadingRecent(false);
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (isOpen) {
+      setSearchQuery("");
+      setSearchResults([]);
+      setSelectedIndex(-1);
+      setIsLoading(false);
+      loadRecentMessages();
+      setTimeout(() => {
+        searchInputRef.current?.focus();
+      }, 50);
+    }
+  }, [isOpen, loadRecentMessages]);
+
+  const handleResultClick = useCallback(
+    async (result: SearchResult) => {
+      switch (result.category) {
+        case "message": {
+          const sessionId = result.sessionId || result.path;
+          if (sessionId) {
+            onClose();
+            setTimeout(() => {
+              window.dispatchEvent(
+                new CustomEvent("search-switch-session", {
+                  detail: {
+                    sessionId: sessionId,
+                    title: result.sessionTitle || result.title || "会话",
+                    highlightMessageId: result.id,
+                  },
+                }),
+              );
+              window.dispatchEvent(
+                new CustomEvent("session-selected", {
+                  detail: {
+                    sessionId: sessionId,
+                    title: result.sessionTitle || result.title || "会话",
+                  },
+                }),
+              );
+            }, 100);
+          }
+          break;
+        }
+        case "skill":
+          window.dispatchEvent(
+            new CustomEvent("search-open-skill", {
+              detail: { path: result.path, title: result.title },
+            }),
+          );
+          onClose();
+          break;
+        case "session": {
+          const sessionId = result.id.replace("session_", "");
+          onClose();
+          setTimeout(() => {
+            window.dispatchEvent(
+              new CustomEvent("search-switch-session", {
+                detail: { sessionId, title: result.title },
+              }),
+            );
+            window.dispatchEvent(
+              new CustomEvent("session-selected", {
+                detail: { sessionId, title: result.title },
+              }),
+            );
+          }, 100);
+          break;
+        }
+        case "log":
+          window.dispatchEvent(
+            new CustomEvent("search-open-log", {
+              detail: { path: result.path, highlight: result.highlight },
+            }),
+          );
+          onClose();
+          break;
+      }
+    },
+    [onClose],
+  );
   useKeyboardNavigation({
     isOpen,
     searchQuery,
@@ -97,17 +215,6 @@ const SearchDialog: React.FC<SearchDialogProps> = ({
     onResultClick: handleResultClick,
     onClose,
   });
-  useEffect(() => {
-    if (isOpen) {
-      setSearchQuery("");
-      setSearchResults([]);
-      setSelectedIndex(-1);
-      setIsLoading(false);
-      setTimeout(() => {
-        searchInputRef.current?.focus();
-      }, 50);
-    }
-  }, [isOpen]);
   const clearSearch = useCallback(() => {
     setSearchQuery("");
     setSearchResults([]);
@@ -148,14 +255,18 @@ const SearchDialog: React.FC<SearchDialogProps> = ({
       },
     ];
   }, [currentLanguage, currentTheme, onToggleTheme, onToggleLanguage]);
-  const handleQuickAction = useCallback((action: () => void) => {
-    action();
-    onClose();
-  }, [onClose]);
+  const handleQuickAction = useCallback(
+    (action: () => void) => {
+      action();
+      onClose();
+    },
+    [onClose],
+  );
   if (!isOpen) return null;
   const isLoadingState = isLoading || searchLoading || titlesLoading;
   const hasResults = searchResults.length > 0;
   const hasQuery = searchQuery.trim().length > 0;
+  const hasRecentMessages = recentMessages.length > 0;
   return (
     <div
       style={{
@@ -206,7 +317,6 @@ const SearchDialog: React.FC<SearchDialogProps> = ({
           isDragging={isDragging}
           onDragStart={handleDragStart}
         />
-
         <div
           style={{
             maxHeight: "340px",
@@ -231,11 +341,91 @@ const SearchDialog: React.FC<SearchDialogProps> = ({
               )}
             </>
           ) : (
-            <QuickActions
-              suggestions={getSearchSuggestions()}
-              onActionClick={handleQuickAction}
-              language={currentLanguage}
-            />
+            <>
+              {isLoadingRecent ? (
+                <div
+                  style={{
+                    padding: "24px",
+                    textAlign: "center",
+                    color: "var(--text-secondary)",
+                    fontSize: "12px",
+                  }}
+                >
+                  {currentLanguage === "zh" ? "加载中..." : "Loading..."}
+                </div>
+              ) : hasRecentMessages ? (
+                <>
+                  <div
+                    style={{
+                      padding: "6px 12px",
+                      fontSize: "11px",
+                      fontWeight: 600,
+                      textTransform: "uppercase",
+                      color: "var(--text-muted)",
+                      letterSpacing: "0.5px",
+                      paddingTop: "8px",
+                    }}
+                  >
+                    {currentLanguage === "zh" ? "最近对话" : "Recent Messages"}
+                  </div>
+                  {recentMessages.map((result) => (
+                    <div
+                      key={result.id}
+                      style={{
+                        padding: "8px 12px",
+                        cursor: "pointer",
+                        borderBottom: "1px solid var(--border-color)",
+                        transition: "background 0.15s ease",
+                      }}
+                      onClick={() => handleResultClick(result)}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = "var(--hover-bg)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = "transparent";
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontSize: "13px",
+                          fontWeight: 500,
+                          color: "var(--text-primary)",
+                          marginBottom: "2px",
+                        }}
+                      >
+                        {result.title}
+                      </div>
+                      <div
+                        style={{
+                          fontSize: "11px",
+                          color: "var(--text-secondary)",
+                          wordBreak: "break-word",
+                          lineHeight: 1.3,
+                        }}
+                      >
+                        {result.description}
+                      </div>
+                      {result.timestamp && (
+                        <div
+                          style={{
+                            fontSize: "10px",
+                            color: "var(--text-muted)",
+                            marginTop: "2px",
+                          }}
+                        >
+                          {new Date(result.timestamp).toLocaleString()}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </>
+              ) : null}
+              <QuickActions
+                suggestions={getSearchSuggestions()}
+                onActionClick={handleQuickAction}
+                language={currentLanguage}
+              />
+            </>
           )}
         </div>
       </div>
