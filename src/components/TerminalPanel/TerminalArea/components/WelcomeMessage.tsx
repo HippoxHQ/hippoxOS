@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { WELCOME_TASK_ID, styles } from "../constants";
-import { HIPPOX_ASCII_LOGO } from "../../../../config";
 import { basisCommands } from "../../../../command/basis";
 
 interface WelcomeMessageProps {
@@ -9,36 +8,114 @@ interface WelcomeMessageProps {
   t: (key: string) => string;
 }
 
-const animationStyle = `
-  @keyframes asciiBreathing {
-    0% { 
-      color: var(--text-secondary);
-      opacity: 0.7;
-    }
-    50% { 
-      color: var(--accent-color);
-      opacity: 0.85;
-    }
-    100% { 
-      color: var(--text-secondary);
-      opacity: 0.7;
-    }
-  }
-  
-  .ascii-animated {
-    animation: asciiBreathing 4s ease-in-out infinite;
-  }
-
-  .version-pulse {
-    display: inline-block;
-    animation: pulse 2s ease-in-out infinite;
-  }
-
-  @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
-  }
-`;
+const HippoxAsciiLogo: React.FC = () => {
+  const asciiArt = [
+    "██╗  ██╗██╗██████╗ ██████╗  ██████╗ ██╗  ██╗      ██████╗  ███████╗",
+    "██║  ██║██║██╔══██╗██╔══██╗██╔═══██╗╚██╗██╔╝     ██╔═══██╗ ██╔════╝",
+    "███████║██║██████╔╝██████╔╝██║   ██║ ╚███╔╝      ██║   ██║ ███████╗",
+    "██╔══██║██║██╔═══╝ ██╔═══╝ ██║   ██║ ██╔██╗      ██║   ██║ ╚════██║",
+    "██║  ██║██║██║     ██║     ╚██████╔╝██╔╝ ██╗     ╚██████╔╝ ███████║",
+    "╚═╝  ╚═╝╚═╝╚═╝     ╚═╝      ╚═════╝ ╚═╝  ╚═╝      ╚═════╝  ╚══════╝",
+  ];
+  const maxLineLength = Math.max(...asciiArt.map((line) => line.length));
+  const charWidth = 10.5;
+  const charHeight = 22;
+  const padding = 8;
+  const svgWidth = maxLineLength * charWidth + padding * 2;
+  const svgHeight = asciiArt.length * charHeight + padding * 2;
+  return (
+    <svg
+      viewBox={`0 0 ${svgWidth} ${svgHeight}`}
+      xmlns="http://www.w3.org/2000/svg"
+      style={{
+        width: "100%",
+        maxWidth: "100%",
+        height: "auto",
+        display: "block",
+        margin: "0 auto",
+        overflow: "visible",
+        fontFamily: "'Courier New', 'Fira Code', monospace",
+        fontVariant: "none",
+        shapeRendering: "crispEdges",
+      }}
+    >
+      <defs>
+        <linearGradient id="ascii-glow" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#818cf8">
+            <animate
+              attributeName="stop-color"
+              values="#818cf8;#a78bfa;#6366f1;#8b5cf6;#818cf8"
+              dur="10s"
+              repeatCount="indefinite"
+            />
+          </stop>
+          <stop offset="50%" stopColor="#a78bfa">
+            <animate
+              attributeName="stop-color"
+              values="#a78bfa;#8b5cf6;#818cf8;#6366f1;#a78bfa"
+              dur="10s"
+              repeatCount="indefinite"
+            />
+          </stop>
+          <stop offset="100%" stopColor="#6366f1">
+            <animate
+              attributeName="stop-color"
+              values="#6366f1;#818cf8;#a78bfa;#8b5cf6;#6366f1"
+              dur="10s"
+              repeatCount="indefinite"
+            />
+          </stop>
+        </linearGradient>
+        <filter id="ascii-glow-filter">
+          <feGaussianBlur stdDeviation="1.5" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+      </defs>
+      {asciiArt.map((line, lineIndex) => {
+        const chars = line.split("");
+        const yPos = padding + (lineIndex + 1) * charHeight - 4;
+        return (
+          <g key={lineIndex}>
+            {chars.map((char, charIndex) => {
+              if (char === " ") return null;
+              const xPos = padding + charIndex * charWidth;
+              const delay = (lineIndex * 1.5 + charIndex * 0.25) % 3;
+              return (
+                <text
+                  key={`${lineIndex}-${charIndex}`}
+                  x={xPos}
+                  y={yPos}
+                  fontSize="15"
+                  fontWeight="400"
+                  fontFamily="'Courier New', 'Fira Code', monospace"
+                  fill="url(#ascii-glow)"
+                  opacity="0.88"
+                  filter="url(#ascii-glow-filter)"
+                  style={{
+                    textRendering: "geometricPrecision",
+                    shapeRendering: "crispEdges",
+                  }}
+                >
+                  <animate
+                    attributeName="opacity"
+                    values="0.65;1;0.65"
+                    dur="3.5s"
+                    begin={`${delay}s`}
+                    repeatCount="indefinite"
+                  />
+                  {char}
+                </text>
+              );
+            })}
+          </g>
+        );
+      })}
+    </svg>
+  );
+};
 
 export const WelcomeMessage: React.FC<WelcomeMessageProps> = ({
   isExpanded,
@@ -49,7 +126,6 @@ export const WelcomeMessage: React.FC<WelcomeMessageProps> = ({
   const [hippoxVersion, setHippoxVersion] = useState<string>("");
   const [atomicVersion, setAtomicVersion] = useState<string>("");
   const [loading, setLoading] = useState(true);
-
   useEffect(() => {
     const loadVersions = async () => {
       try {
@@ -66,12 +142,19 @@ export const WelcomeMessage: React.FC<WelcomeMessageProps> = ({
     };
     loadVersions();
   }, []);
-
   const showVersion = !loading && hippoxVersion;
-
   return (
     <div key={WELCOME_TASK_ID} className="task-row welcome-row">
-      <style>{animationStyle}</style>
+      <style>{`
+        .ascii-art {
+          overflow: visible !important;
+          width: 100% !important;
+          max-width: 100% !important;
+        }
+        .welcome-steps {
+          overflow: visible !important;
+        }
+      `}</style>
       <div
         className="task-row-header"
         style={styles.welcomeRowHeader}
@@ -84,17 +167,15 @@ export const WelcomeMessage: React.FC<WelcomeMessageProps> = ({
         <span className="task-status-text">{t("terminal.welcome.status")}</span>
       </div>
       {isExpanded && (
-        <div className="task-steps welcome-steps" style={{ marginLeft: "5px" }}>
-          <div className="step-output ascii-art" style={styles.asciiArt}>
-            <pre
-              className="ascii-animated"
-              style={{
-                ...styles.asciiPre,
-                animation: "asciiBreathing 4s ease-in-out infinite",
-              }}
-            >
-              {HIPPOX_ASCII_LOGO}
-            </pre>
+        <div
+          className="task-steps welcome-steps"
+          style={{ marginLeft: "5px", overflow: "visible" }}
+        >
+          <div
+            className="step-output ascii-art"
+            style={{ ...styles.asciiArt, overflow: "visible", width: "100%" }}
+          >
+            <HippoxAsciiLogo />
           </div>
           {showVersion && (
             <div className="task-step">
@@ -126,14 +207,12 @@ export const WelcomeMessage: React.FC<WelcomeMessageProps> = ({
               </span>
             </div>
           )}
-
           <div className="task-step">
             <span className="step-icon">🚀</span>
             <span className="step-name" style={styles.welcomeStepName}>
               {t("terminal.welcome.subtitle")}
             </span>
           </div>
-
           <div className="task-step">
             <span className="step-icon">💡</span>
             <span className="step-name" style={styles.welcomeStepName}>
