@@ -132,6 +132,7 @@ export interface UploadFile {
     name: string;
     size: number;
     type: string;
+    content?: string;
     preview?: string;
     status: "uploading" | "success" | "error";
     progress?: number;

@@ -4,7 +4,7 @@ import { showDialog, DialogType } from "../Dialog";
 import { showToast, ToastType } from "../Toast";
 import { sessionCommands } from "../../command/session";
 
-interface HistoryPanelProps {
+interface HistoryChatPanelProps {
   t: (key: string, params?: any) => string;
   onSessionSelect?: (sessionId: string) => void;
   currentSessionId?: string;
@@ -33,7 +33,7 @@ const categories: CategoryConfig[] = [
   { labelKey: "history.category.older", type: "older" },
 ];
 
-const HistoryPanel: React.FC<HistoryPanelProps> = ({
+const HistoryChatPanel: React.FC<HistoryChatPanelProps> = ({
   t,
   onSessionSelect,
   currentSessionId,
@@ -547,4 +547,4 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
   );
 };
 
-export default HistoryPanel;
+export default HistoryChatPanel;

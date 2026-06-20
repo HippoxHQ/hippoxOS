@@ -14,8 +14,8 @@ export function useSearchEvents(
       onSwitchSession(sessionId);
     };
 
-    const handleOpenLog = (e: CustomEvent) => {};
-    
+    const handleOpenLog = (e: CustomEvent) => { };
+
     window.addEventListener(
       "search-open-skill",
       handleOpenSkill as EventListener,
@@ -25,7 +25,7 @@ export function useSearchEvents(
       handleSwitchSession as EventListener,
     );
     window.addEventListener("search-open-log", handleOpenLog as EventListener);
-    
+
     return () => {
       window.removeEventListener(
         "search-open-skill",

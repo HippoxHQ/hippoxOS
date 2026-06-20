@@ -7,9 +7,12 @@ import {
   PlayIcon,
 } from "../../icons";
 import { MarketSkill, skillsMarketCommands } from "../../command/skills";
+import { UploadFile } from "../../core/types";
+import { runSkill } from "./utils/skillRunner";
 
 interface SkillMarketPanelProps {
   t: (key: string, params?: any) => string;
+  onSendSkillMessage: (message: string, files?: UploadFile[]) => void;
 }
 
 const getAuthorColor = (author: string): string => {
@@ -39,7 +42,10 @@ const getAuthorColor = (author: string): string => {
   return colors[Math.abs(hash) % colors.length];
 };
 
-const SkillMarketPanel: React.FC<SkillMarketPanelProps> = ({ t }) => {
+const SkillMarketPanel: React.FC<SkillMarketPanelProps> = ({
+  t,
+  onSendSkillMessage,
+}) => {
   const [skills, setSkills] = useState<MarketSkill[]>([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
@@ -124,7 +130,7 @@ const SkillMarketPanel: React.FC<SkillMarketPanelProps> = ({ t }) => {
   };
 
   const handleRun = async (skill: MarketSkill) => {
-    console.log("Run skill:", skill.id);
+    await runSkill(skill, onSendSkillMessage, t);
   };
 
   const handleSaveConfig = async () => {

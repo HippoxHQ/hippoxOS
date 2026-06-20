@@ -14,9 +14,9 @@ import Toast from "../../components/Toast";
 import TopBar from "../../components/TopBar";
 import WelcomePage from "../../components/WelcomePage";
 import ScheduledTasksManager from "../../components/ScheduledTasks";
-import UserProfile from "../../components/UserProfile"; 
+import UserProfile from "../../components/UserProfile";
 import { ContentPanelView } from "../hooks/useMenuPanel";
-import HistoryPanel from "../../components/MenuPanel/HistoryPanel";
+import HistoryPanel from "../../components/MenuPanel/HistoryChatPanel";
 import FavoritesPanel from "../../components/MenuPanel/FavoritesPanel";
 import SkillMarketPanel from "../../components/MenuPanel/SkillMarketPanel";
 import TaskQueuePanel from "../../components/MenuPanel/TaskQueuePanel";
@@ -82,6 +82,7 @@ interface AppContentProps {
   showDragCursor: boolean;
   layoutSwapMode: "terminal-left" | "chat-left";
   onLayoutSwapModeChange: (mode: "terminal-left" | "chat-left") => void;
+  onSendSkillMessage: (message: string, files?: UploadFile[]) => void;
 }
 
 export function AppContent({
@@ -126,6 +127,7 @@ export function AppContent({
   showDragCursor,
   layoutSwapMode,
   onLayoutSwapModeChange,
+  onSendSkillMessage,
 }: AppContentProps) {
   const showWelcome = shouldShowWelcome();
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
@@ -227,6 +229,7 @@ export function AppContent({
         return null;
     }
   };
+
   const renderContent = () => {
     switch (currentContentPanel) {
       case "history":
@@ -238,16 +241,10 @@ export function AppContent({
             onCloseSkillsManager={onCloseContentPanel}
           />
         );
-      case "favorites":
-        return <FavoritesPanel t={t} />;
-      // case "skills":
-      //   return <SkillsPanel t={t} />;
-      case "skillMarket":
-        return <SkillMarketPanel t={t} />;
       case "taskQueue":
         return <TaskQueuePanel t={t} />;
-      case "atomicSkills":
-        return <AtomicSkillsPanel t={t} onSave={onSaveConfig} />;
+      // case "atomicSkills":
+        // return <AtomicSkillsPanel t={t} onSave={onSaveConfig} />;
       case "workspace":
         return <WorkspacePanel t={t} />;
       case "workspaceConfig":
@@ -299,6 +296,7 @@ export function AppContent({
         return null;
     }
   };
+
   const styles = {
     mainLayout: {
       display: "flex" as const,
@@ -396,6 +394,7 @@ export function AppContent({
                 onSwitchSession={onSwitchSession}
                 initialEngineConfig={initialEngineConfig}
                 onCloseSkillsManager={onCloseContentPanel}
+                onSendSkillMessage={onSendSkillMessage}
               />
             </div>
             <div

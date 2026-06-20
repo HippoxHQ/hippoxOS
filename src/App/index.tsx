@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useCallback, useEffect } from "react";
 import { useTheme } from "./hooks/useTheme";
 import { useLanguage } from "./hooks/useLanguage";
 import { useDragAndDrop } from "./hooks/useDragAndDrop";
@@ -15,6 +15,8 @@ import { taskManager } from "../core/TaskManager";
 import { useTaskEvents } from "./hooks/useTaskEvents";
 import { useLayoutSwapMode } from "./hooks/useLayoutSwapMode";
 import { useDriverEvents } from "./hooks/useDriverEvents";
+import { UploadFile } from "../core/types";
+import { useSendSkillMessage } from "./hooks/useSendSkillMessage";
 
 function App() {
   const { isConfigLoaded, initialEngineConfig, initialTheme, initialLanguage } =
@@ -100,6 +102,14 @@ function App() {
     }
     handleMenuClick(view, subView);
   };
+  const { onSendSkillMessage } = useSendSkillMessage({
+    currentSessionId,
+    currentContentPanel,
+    closeContentPanel,
+    handleNewSession,
+    handleSendMessage,
+    shouldShowWelcome,
+  });
   if (!isConfigLoaded) {
     return (
       <div
@@ -115,6 +125,7 @@ function App() {
       </div>
     );
   }
+
   return (
     <AppContent
       theme={theme}
@@ -158,6 +169,7 @@ function App() {
       showDragCursor={showDragCursor}
       layoutSwapMode={layoutSwapMode}
       onLayoutSwapModeChange={handleLayoutSwapModeChange}
+      onSendSkillMessage={onSendSkillMessage}
     />
   );
 }

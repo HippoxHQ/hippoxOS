@@ -1,10 +1,17 @@
 import React, { useState, useEffect } from "react";
 import { SkillData } from "../../types/skill";
 import { PlayIcon, StarFilledIcon } from "../../icons";
-import { MarketSkill, skillsMarketCommands, skillsLocalCommands } from "../../command/skills";
+import {
+  MarketSkill,
+  skillsMarketCommands,
+  skillsLocalCommands,
+} from "../../command/skills";
+import { runSkill } from "./utils/skillRunner";
+import { UploadFile } from "../../core/types";
 
 interface FavoritesPanelProps {
   t: (key: string, params?: any) => string;
+  onSendSkillMessage: (message: string, files?: UploadFile[]) => void;
 }
 
 const convertLocalToMarket = (skill: SkillData): MarketSkill => {
@@ -25,15 +32,16 @@ const convertLocalToMarket = (skill: SkillData): MarketSkill => {
   };
 };
 
-const FavoritesPanel: React.FC<FavoritesPanelProps> = ({ t }) => {
+const FavoritesPanel: React.FC<FavoritesPanelProps> = ({
+  t,
+  onSendSkillMessage,
+}) => {
   const [skillFavorites, setSkillFavorites] = useState<MarketSkill[]>([]);
   const [loading, setLoading] = useState(true);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
-
   useEffect(() => {
     loadFavorites();
   }, []);
-
   const loadFavorites = async () => {
     setLoading(true);
     try {
@@ -55,9 +63,13 @@ const FavoritesPanel: React.FC<FavoritesPanelProps> = ({ t }) => {
       setLoading(false);
     }
   };
-
-  const handleRun = async (skill: MarketSkill) => {};
-
+  const handleRun = async (skill: MarketSkill) => {
+    if (!onSendSkillMessage) {
+      console.error("onSendSkillMessage is undefined!");
+      return;
+    }
+    await runSkill(skill, onSendSkillMessage, t);
+  };
   const handleDelete = async (skillId: string) => {
     if (
       // eslint-disable-next-line no-restricted-globals
@@ -73,7 +85,6 @@ const FavoritesPanel: React.FC<FavoritesPanelProps> = ({ t }) => {
       }
     }
   };
-
   const getAuthorColor = (author: string): string => {
     const colors = [
       "#6366f1",
@@ -100,7 +111,6 @@ const FavoritesPanel: React.FC<FavoritesPanelProps> = ({ t }) => {
     }
     return colors[Math.abs(hash) % colors.length];
   };
-
   const styles: Record<string, React.CSSProperties> = {
     container: {
       height: "100%",
@@ -255,18 +265,18 @@ const FavoritesPanel: React.FC<FavoritesPanelProps> = ({ t }) => {
                   </div>
                   <div style={styles.rightActions}>
                     <button
-                      style={styles.iconButton}
-                      onClick={() => handleRun(skill)}
-                      title={t("market.run") || "Run"}
-                    >
-                      <PlayIcon size={12} />
-                    </button>
-                    <button
                       style={{ ...styles.iconButton, color: "#f59e0b" }}
                       onClick={() => handleDelete(skill.id)}
                       title={t("market.unfavorite") || "Remove"}
                     >
                       <StarFilledIcon size={12} />
+                    </button>
+                    <button
+                      style={styles.iconButton}
+                      onClick={() => handleRun(skill)}
+                      title={t("market.run") || "Run"}
+                    >
+                      <PlayIcon size={12} />
                     </button>
                   </div>
                 </div>

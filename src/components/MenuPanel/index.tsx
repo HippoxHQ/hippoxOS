@@ -3,7 +3,7 @@ import SettingsPanel, { SettingsSubView } from "./SettingsPanel";
 import SkillMarketPanel from "./SkillMarketPanel";
 import TaskQueuePanel from "./TaskQueuePanel";
 import FavoritesPanel from "./FavoritesPanel";
-import HistoryPanel from "./HistoryPanel";
+import HistoryPanel from "./HistoryChatPanel";
 import AtomicSkillsPanel from "./DriversPanel";
 import WorkspacePanel from "./Workspace";
 import WorkspaceConfig from "./SystemConfig/WorkspaceConfig";
@@ -13,6 +13,7 @@ import EngineNetworkPanel from "./EngineConfig/EngineNetworkPanel";
 import EngineNotificationPanel from "./EngineConfig/EngineNotificationPanel";
 import LogsPanel from "./LogsPanel";
 import StorageConfig from "./SystemConfig/StorageConfig";
+import { UploadFile } from "../../core/types";
 
 export type MenuPanelView =
   | "terminal"
@@ -54,6 +55,8 @@ interface MenuPanelProps {
   onSwitchSession?: (sessionId: string) => void;
   initialEngineConfig?: any;
   onCloseSkillsManager?: () => void;
+  onSendMessage?: (message: string, files?: UploadFile[]) => void;
+  onSendSkillMessage: (message: string, files?: UploadFile[]) => void;
 }
 
 const viewTitles: Record<MenuPanelView, string> = {
@@ -160,6 +163,8 @@ const MenuPanel: React.FC<MenuPanelProps> = ({
   onSwitchSession,
   initialEngineConfig,
   onCloseSkillsManager,
+  onSendMessage = () => {},
+  onSendSkillMessage,
 }) => {
   const renderContent = () => {
     if (currentView === "engine_group" && engineSubView) {
@@ -225,9 +230,11 @@ const MenuPanel: React.FC<MenuPanelProps> = ({
           />
         );
       case "favorites":
-        return <FavoritesPanel t={t} />;
+        return <FavoritesPanel t={t} onSendSkillMessage={onSendSkillMessage} />;
       case "skillMarket":
-        return <SkillMarketPanel t={t} />;
+        return (
+          <SkillMarketPanel t={t} onSendSkillMessage={onSendSkillMessage} />
+        );
       case "taskQueue":
         return <TaskQueuePanel t={t} />;
       case "drivers":
