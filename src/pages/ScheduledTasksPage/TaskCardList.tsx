@@ -3,8 +3,8 @@ import {
   ScheduledTask,
   fromScheduleConfig,
 } from "../../command/scheduledtasks";
-import { showDialog, DialogType } from "../Dialog";
-import { showTooltip } from "../Tooltip";
+import { showDialog, DialogType } from "../../components/Dialog";
+import { showTooltip } from "../../components/Tooltip";
 
 const SearchIcon = () => (
   <svg

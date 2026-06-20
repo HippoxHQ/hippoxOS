@@ -13,9 +13,6 @@ import {
   Pie,
   Cell,
 } from "recharts";
-import { sysCommands } from "../../command/sys";
-import { showToast, ToastType } from "../Toast";
-import { showTooltip } from "../Tooltip";
 import { taskPoolCommands } from "../../core/TaskPool";
 
 import { UserProfileProps, UserStats } from "./types";
@@ -38,7 +35,6 @@ import {
   LoadingSpinnerIcon,
   RefreshCwIcon,
 } from "./icons";
-import Heatmap from "../Heatmap";
 import {
   loadAllTasksFromBackups,
   loadAllSessions,
@@ -46,6 +42,10 @@ import {
   formatNumber,
   formatLocalDate,
 } from "./utils";
+import { sysCommands } from "../../command/sys";
+import Heatmap from "../../components/Heatmap";
+import { showToast, ToastType } from "../../components/Toast";
+import { showTooltip } from "../../components/Tooltip";
 
 const UserProfile: React.FC<UserProfileProps> = ({
   t,

@@ -13,9 +13,9 @@ import {
   fromScheduleConfig,
 } from "../../command/scheduledtasks";
 import { ScheduledTask } from "./types";
-import { showToast, ToastType } from "../Toast";
-import { showDialog, DialogType } from "../Dialog";
-import { showTooltip } from "../Tooltip";
+import { showDialog, DialogType } from "../../components/Dialog";
+import { showToast, ToastType } from "../../components/Toast";
+import { showTooltip } from "../../components/Tooltip";
 
 const EditIcon = () => (
   <svg

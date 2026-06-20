@@ -5,13 +5,13 @@ import {
   ChevronRightIcon,
   FolderOpenIcon,
 } from "../icons";
-import { showToast, ToastType } from "./Toast";
-import FileUploader from "./FileUploader";
+import { showToast, ToastType } from "../components/Toast";
+import FileUploader from "../components/FileUploader";
 import { zhDefaultPrompts, enDefaultPrompts } from "../types/DefaultPrompt";
-import { showTooltipOnElement } from "./Tooltip";
+import { showTooltipOnElement } from "../components/Tooltip";
 import { WorkspaceInstance, workspaceCommands } from "../command/workspace";
 import { UploadFile } from "../core/types";
-import ArtText from "./arts/ArtText";
+import ArtText from "../components/arts/ArtText";
 import banner from "../assets/banner.svg";
 
 interface WelcomePageProps {

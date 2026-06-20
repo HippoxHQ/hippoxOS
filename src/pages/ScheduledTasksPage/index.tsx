@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { scheduledTasksCommands } from "../../command/scheduledtasks";
 import { ScheduledTask } from "./types";
-import { showToast, ToastType } from "../Toast";
 import { scheduledTasksStyles } from "./ScheduledTasksStyles";
 import LeftStatsPanel from "./LeftStatsPanel";
 import TaskCardList from "./TaskCardList";
 import TaskEditPanel from "./TaskEditPanel";
 import BottomHeatmapPanel from "./BottomHeatmapPanel";
+import { showToast, ToastType } from "../../components/Toast";
 
 const LoadingSpinnerIcon = () => (
   <svg

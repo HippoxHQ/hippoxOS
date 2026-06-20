@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { scheduledTasksCommands } from "../../command/scheduledtasks";
-import Heatmap from "../Heatmap";
-import { showToast, ToastType } from "../Toast";
+import Heatmap from "../../components/Heatmap";
+import { showToast, ToastType } from "../../components/Toast";
 
 const FireIcon = () => (
   <svg

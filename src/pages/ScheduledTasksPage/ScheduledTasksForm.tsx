@@ -4,7 +4,7 @@ import {
   FixedScheduleConfig,
   IntervalScheduleConfig,
 } from "./types";
-import { showToast, ToastType } from "../Toast";
+import { showToast, ToastType } from "../../components/Toast";
 
 const FolderOpenIcon = () => (
   <svg

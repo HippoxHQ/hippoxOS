@@ -9,8 +9,8 @@ import {
   CreateSkillRequest,
   UpdateSkillRequest,
 } from "../../types/skill";
-import { showToast, ToastType } from "../Toast";
 import { skillsLocalCommands } from "../../command/skills";
+import { showToast, ToastType } from "../../components/Toast";
 
 interface SkillsManagerProps {
   t: (key: string, params?: any) => string;

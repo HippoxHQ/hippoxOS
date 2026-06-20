@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { filesCommands } from "../command/files";
-import { UploadFile } from "../core/types";
+import { filesCommands } from "../../command/files";
+import { UploadFile } from "../../core/types";
 
-interface FilePreviewProps {
+interface TextFilePreviewProps {
   file: UploadFile | null;
   onClose: () => void;
   t?: (key: string) => string;
 }
 
-const FilePreview: React.FC<FilePreviewProps> = ({
+const TextFilePreview: React.FC<TextFilePreviewProps> = ({
   file,
   onClose,
   t = (key: string) => key,
@@ -209,4 +209,4 @@ const FilePreview: React.FC<FilePreviewProps> = ({
   );
 };
 
-export default FilePreview;
+export default TextFilePreview;

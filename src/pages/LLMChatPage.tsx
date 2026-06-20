@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 
-interface ResizablePanelsProps {
+interface LLMChatPageProps {
   leftPanel: React.ReactNode;
   rightPanel: React.ReactNode;
   rightExtraPanel?: React.ReactNode;
@@ -9,7 +9,7 @@ interface ResizablePanelsProps {
   onLayoutModeChange?: (mode: "horizontal" | "vertical") => void;
 }
 
-const ResizablePanels: React.FC<ResizablePanelsProps> = ({
+const LLMChatPage: React.FC<LLMChatPageProps> = ({
   leftPanel,
   rightPanel,
   rightExtraPanel,
@@ -231,4 +231,4 @@ const ResizablePanels: React.FC<ResizablePanelsProps> = ({
   );
 };
 
-export default ResizablePanels;
+export default LLMChatPage;

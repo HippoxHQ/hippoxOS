@@ -4,23 +4,15 @@ import GlobalDragOverlay from "../../components/GlobalDragOverlay";
 import BottomBar from "../../components/BottomBar";
 import ChatPanel from "../../components/ChatPanel";
 import Dialog from "../../components/Dialog";
-import FilePreview from "../../components/FilePreview";
 import MenuPanel from "../../components/MenuPanel";
-import ResizablePanels from "../../components/ResizablePanels";
 import Sidebar from "../../components/Sidebar";
-import SkillsManager from "../../components/SkillsManager";
 import TerminalPanel from "../../components/TerminalPanel";
 import Toast from "../../components/Toast";
 import TopBar from "../../components/TopBar";
-import WelcomePage from "../../components/WelcomePage";
-import ScheduledTasksManager from "../../components/ScheduledTasks";
-import UserProfile from "../../components/UserProfile";
+import WelcomePage from "../../pages/WelcomePage";
 import { ContentPanelView } from "../hooks/useMenuPanel";
 import HistoryPanel from "../../components/MenuPanel/HistoryChatPanel";
-import FavoritesPanel from "../../components/MenuPanel/FavoritesPanel";
-import SkillMarketPanel from "../../components/MenuPanel/SkillMarketPanel";
 import TaskQueuePanel from "../../components/MenuPanel/TaskQueuePanel";
-import AtomicSkillsPanel from "../../components/MenuPanel/DriversPanel";
 import WorkspacePanel from "../../components/MenuPanel/Workspace";
 import WorkspaceConfig from "../../components/MenuPanel/SystemConfig/WorkspaceConfig";
 import LogsPanel from "../../components/MenuPanel/LogsPanel";
@@ -35,6 +27,11 @@ import EngineNotificationPanel from "../../components/MenuPanel/EngineConfig/Eng
 import { Language, Theme } from "../../types/types";
 import { UploadFile } from "../../core/types";
 import HistoryChatDropdown from "../../components/HistoryChatDropdown";
+import LLMChatPage from "../../pages/LLMChatPage";
+import TextFilePreview from "../../components/filepreview/TextFilePreview";
+import ScheduledTasksManager from "../../pages/ScheduledTasksPage";
+import SkillsManager from "../../pages/SkillsManagerPage";
+import UserProfile from "../../pages/UserProfilePage";
 
 interface AppContentProps {
   theme: Theme;
@@ -451,12 +448,12 @@ export function AppContent({
               onDragOverInputChange={setIsDraggingOverInput}
             />
           ) : (
-            <ResizablePanels
+            <LLMChatPage
               leftPanel={leftPanelContent}
               rightPanel={rightPanelContent}
               rightExtraPanel={
                 isFilePreviewOpen ? (
-                  <FilePreview
+                  <TextFilePreview
                     file={previewFile}
                     onClose={onCloseFilePreview}
                     t={t}
