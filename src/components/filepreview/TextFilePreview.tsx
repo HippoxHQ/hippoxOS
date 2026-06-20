@@ -93,7 +93,8 @@ const TextFilePreview: React.FC<TextFilePreviewProps> = ({
           borderBottom: "1px solid var(--border-color)",
           background: "var(--bg-secondary)",
           flexShrink: 0,
-          paddingBottom: "10px",
+          paddingBottom: "5.5px",
+          paddingTop: "5.5px",
         }}
       >
         <div
@@ -152,7 +153,7 @@ const TextFilePreview: React.FC<TextFilePreviewProps> = ({
         大小: {formatFileSize(file.size)} | 类型: {file.type || "未知"}
       </div>
 
-      <div style={{ flex: 1, overflow: "auto", padding: 16 }}>
+      <div style={{ flex: 1, overflow: "auto" }}>
         {isLoading && (
           <div
             style={{
@@ -180,7 +181,7 @@ const TextFilePreview: React.FC<TextFilePreviewProps> = ({
           <pre
             style={{
               background: "var(--bg-secondary)",
-              padding: 16,
+              padding: 10,
               borderRadius: 8,
               fontSize: 13,
               fontFamily: "monospace",

@@ -168,7 +168,6 @@ const UserProfile: React.FC<UserProfileProps> = ({
         });
       }
       setHourlyData(hourlyDataArray);
-
       let streak = 0;
       const checkDate = new Date();
       for (let i = 0; i < 365; i++) {
@@ -180,7 +179,6 @@ const UserProfile: React.FC<UserProfileProps> = ({
           break;
         }
       }
-
       let username = t("user.defaultUsername") || "用户";
       let email = `${username}@hippox.local`;
       try {
@@ -192,7 +190,6 @@ const UserProfile: React.FC<UserProfileProps> = ({
       } catch (e) {
         console.error("Failed to get system username:", e);
       }
-
       setUserData({
         username,
         email,
@@ -234,7 +231,6 @@ const UserProfile: React.FC<UserProfileProps> = ({
       setLoading(false);
     }
   };
-
   useEffect(() => {
     const regenerateTokenData = async () => {
       const allTasks = await loadAllTasksFromBackups();
@@ -257,7 +253,6 @@ const UserProfile: React.FC<UserProfileProps> = ({
           tasksByDate.set(key, existing);
         }
       }
-
       const days = dateRange === "year" ? 12 : dateRange === "month" ? 30 : 7;
       const result: any[] = [];
       const now = new Date();
@@ -288,7 +283,6 @@ const UserProfile: React.FC<UserProfileProps> = ({
     };
     regenerateTokenData();
   }, [dateRange, t]);
-
   useEffect(() => {
     if (!heatmapContainerRef.current) return;
     const fixSvgSize = () => {
@@ -305,31 +299,26 @@ const UserProfile: React.FC<UserProfileProps> = ({
       clearInterval(interval);
     };
   }, [activityData]);
-
   const getPeakHour = () => {
     if (hourlyData.length === 0) return t("user.notAvailable") || "暂无";
     const max = Math.max(...hourlyData.map((d) => d.count));
     const peak = hourlyData.find((d) => d.count === max);
     return peak?.hour || t("user.notAvailable") || "暂无";
   };
-
   const getMorningPercent = () => {
     const morning = hourlyData.slice(6, 12).reduce((s, d) => s + d.count, 0);
     const total = hourlyData.reduce((s, d) => s + d.count, 0);
     return total ? Math.round((morning / total) * 100) : 0;
   };
-
   const getNightPercent = () => {
     const night = hourlyData.slice(18, 24).reduce((s, d) => s + d.count, 0);
     const total = hourlyData.reduce((s, d) => s + d.count, 0);
     return total ? Math.round((night / total) * 100) : 0;
   };
-
   const handleRefreshData = () => {
     loadRealUserData();
     showToast(ToastType.SUCCESS, t("user.dataRefreshed") || "数据已刷新");
   };
-
   const stats = userData || {
     username: t("user.defaultUsername") || "用户",
     email: "",
@@ -343,7 +332,6 @@ const UserProfile: React.FC<UserProfileProps> = ({
     longestStreak: 0,
     achievements: [],
   };
-
   if (loading) {
     return (
       <div
@@ -365,7 +353,6 @@ const UserProfile: React.FC<UserProfileProps> = ({
       </div>
     );
   }
-
   return (
     <div
       style={{
@@ -449,7 +436,6 @@ const UserProfile: React.FC<UserProfileProps> = ({
           </button>
         </div>
       </div>
-
       <div style={{ flex: 1, overflowY: "auto" }}>
         {/* User Info Section */}
         <div
@@ -834,7 +820,6 @@ const UserProfile: React.FC<UserProfileProps> = ({
             </div>
           </div>
         </div>
-
         {/* Heatmap Section */}
         <div style={{ background: "var(--bg-secondary)", padding: "10px" }}>
           <div

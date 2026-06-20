@@ -3957,7 +3957,7 @@ dependencies = [
  "chrono",
  "futures",
  "futures-util",
- "hippox_drivers",
+ "hippox-drivers",
  "langhub",
  "once_cell",
  "regex",
@@ -3970,8 +3970,8 @@ dependencies = [
 ]
 
 [[package]]
-name = "hippox_drivers"
-version = "0.3.0"
+name = "hippox-drivers"
+version = "0.3.1"
 dependencies = [
  "aes 0.9.1",
  "aes-gcm",
@@ -4008,6 +4008,7 @@ dependencies = [
  "local-ip-address",
  "lopdf 0.40.0",
  "md5",
+ "nix 0.31.3",
  "once_cell",
  "password-hash 0.6.1",
  "pbkdf2 0.13.0",
@@ -4018,6 +4019,7 @@ dependencies = [
  "quick-xml 0.40.1",
  "rand 0.10.1",
  "rand_core 0.6.4",
+ "raw-cpuid",
  "redis",
  "regex",
  "reqwest 0.13.3",
@@ -7713,6 +7715,15 @@ dependencies = [
  "rav1e",
  "rayon",
  "rgb",
+]
+
+[[package]]
+name = "raw-cpuid"
+version = "11.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "498cd0dc59d73224351ee52a95fee0f1a617a2eae0e7d9d720cc622c73a54186"
+dependencies = [
+ "bitflags 2.11.1",
 ]
 
 [[package]]
