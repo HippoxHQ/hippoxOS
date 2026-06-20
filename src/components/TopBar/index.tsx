@@ -375,6 +375,7 @@ const topBarStyles = `
     gap: 8px;
     min-width: 0;
     overflow: hidden;
+    color: var(--text-secondary);
   }
   
   .search-input-left span {
@@ -382,6 +383,7 @@ const topBarStyles = `
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    color: var(--text-secondary);
   }
   
   .search-kbd {

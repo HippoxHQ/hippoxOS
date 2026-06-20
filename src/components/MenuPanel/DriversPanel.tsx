@@ -9,7 +9,7 @@ interface DriversPanelPanelProps {
 }
 
 const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
-  const [skills, setSkills] = useState<DriverInfo[]>([]);
+  const [drivers, setDrivers] = useState<DriverInfo[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<string>("");
@@ -18,107 +18,109 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
   const [showRightArrow, setShowRightArrow] = useState(false);
 
   useEffect(() => {
-    loadSkills();
+    loadDrivers();
   }, []);
 
-  const loadSkills = async () => {
+  const loadDrivers = async () => {
     try {
       setLoading(true);
-      const skillsData = (await driversCommands.getDrivers()) as DriverInfo[];
-      const skillsWithEnabled = skillsData.map((skill) => ({
-        ...skill,
+      const driversData = (await driversCommands.getDrivers()) as DriverInfo[];
+      const driversWithEnabled = driversData.map((driver) => ({
+        ...driver,
         enabled: true,
       }));
-      setSkills(skillsWithEnabled);
-      const cats = Array.from(new Set(skillsData.map((s) => s.category)));
+      setDrivers(driversWithEnabled);
+      const cats = Array.from(new Set(driversData.map((s) => s.category)));
       setCategories(cats);
       if (cats.length > 0) {
         setActiveTab(cats[0]);
       }
     } catch (error) {
-      console.error("Failed to load atomic skills:", error);
-      showToast(ToastType.ERROR, t("atomicSkills.loadError"));
+      console.error("Failed to load drivers:", error);
+      showToast(ToastType.ERROR, t("drivers.loadError"));
     } finally {
       setLoading(false);
     }
   };
 
-  const handleToggleSkill = (skillName: string, enabled: boolean) => {
-    setSkills((prev) =>
-      prev.map((skill) =>
-        skill.name === skillName ? { ...skill, enabled } : skill,
+  const handleToggleDriver = (driverName: string, enabled: boolean) => {
+    setDrivers((prev) =>
+      prev.map((driver) =>
+        driver.name === driverName ? { ...driver, enabled } : driver,
       ),
     );
     const actionText = enabled ? "enable" : "disable";
     showToast(
       ToastType.INFO,
-      t("atomicSkills.skillToggled", {
-        name: skillName,
-        action: t(`atomicSkills.${actionText}`),
+      t("drivers.driverToggled", {
+        name: driverName,
+        action: t(`drivers.${actionText}`),
       }),
     );
   };
 
   const handleToggleAllInTab = (category: string, enabled: boolean) => {
-    const categorySkills = skills.filter((s) => s.category === category);
-    setSkills((prev) =>
-      prev.map((skill) =>
-        skill.category === category ? { ...skill, enabled } : skill,
+    const categoryDrivers = drivers.filter((s) => s.category === category);
+    setDrivers((prev) =>
+      prev.map((driver) =>
+        driver.category === category ? { ...driver, enabled } : driver,
       ),
     );
     const categoryName = getCategoryName(category);
     const actionText = enabled ? "enable" : "disable";
-    const enabledCount = categorySkills.length;
+    const enabledCount = categoryDrivers.length;
     showToast(
       ToastType.SUCCESS,
-      t("atomicSkills.categoryToggled", {
+      t("drivers.categoryToggled", {
         category: categoryName,
-        action: t(`atomicSkills.${actionText}`),
+        action: t(`drivers.${actionText}`),
         count: enabledCount,
       }),
     );
   };
 
   const handleSave = () => {
-    const enabledSkills = skills.filter((s) => s.enabled).map((s) => s.name);
-    const disabledSkills = skills.filter((s) => !s.enabled).map((s) => s.name);
+    const enabledDrivers = drivers.filter((s) => s.enabled).map((s) => s.name);
+    const disabledDrivers = drivers
+      .filter((s) => !s.enabled)
+      .map((s) => s.name);
     const config = {
-      enabled_skills: enabledSkills,
-      disabled_skills: disabledSkills,
-      all_skills: skills,
+      enabled_drivers: enabledDrivers,
+      disabled_drivers: disabledDrivers,
+      all_drivers: drivers,
     };
     if (onSave) {
       onSave(config);
     }
-    showToast(ToastType.SUCCESS, t("atomicSkills.saveSuccess"));
+    showToast(ToastType.SUCCESS, t("drivers.saveSuccess"));
   };
 
   const getCategoryName = (category: string) => {
     const categoryKeyMap: Record<string, string> = {
-      file: "skills.category.fileSystem",
-      net: "skills.category.network",
-      system: "skills.category.system",
-      db: "skills.category.database",
-      math: "skills.category.math",
-      time: "skills.category.time",
-      devops: "skills.category.devops",
-      document: "skills.category.document",
-      message: "skills.category.message",
-      task: "skills.category.task",
-      general: "skills.category.general",
+      file: "drivers.category.fileSystem",
+      net: "drivers.category.network",
+      system: "drivers.category.system",
+      db: "drivers.category.database",
+      math: "drivers.category.math",
+      time: "drivers.category.time",
+      devops: "drivers.category.devops",
+      document: "drivers.category.document",
+      message: "drivers.category.message",
+      task: "drivers.category.task",
+      general: "drivers.category.general",
     };
     const key = categoryKeyMap[category];
     return key ? t(key) : category;
   };
 
-  const getCategorySkills = (category: string) => {
-    return skills.filter((s) => s.category === category);
+  const getCategoryDrivers = (category: string) => {
+    return drivers.filter((s) => s.category === category);
   };
 
   const getCategoryEnabledCount = (category: string) => {
-    const categorySkills = skills.filter((s) => s.category === category);
-    const enabledCount = categorySkills.filter((s) => s.enabled).length;
-    return { enabledCount, totalCount: categorySkills.length };
+    const categoryDrivers = drivers.filter((s) => s.category === category);
+    const enabledCount = categoryDrivers.filter((s) => s.enabled).length;
+    return { enabledCount, totalCount: categoryDrivers.length };
   };
 
   const isCategoryFullyEnabled = (category: string) => {
@@ -187,7 +189,7 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
     transition: "all 0.2s",
   };
 
-  const skillCardStyle: React.CSSProperties = {
+  const driverCardStyle: React.CSSProperties = {
     background: "var(--bg-secondary)",
     borderRadius: "8px",
     padding: "12px",
@@ -238,13 +240,13 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
   };
 
   const tabsStyles = `
-        .atomic-tabs-container {
+        .driver-tabs-container {
             position: relative;
             display: flex;
             align-items: center;
             margin-bottom: 0px;
         }
-        .atomic-tabs-scroll {
+        .driver-tabs-scroll {
             flex: 1;
             overflow-x: auto;
             overflow-y: hidden;
@@ -253,18 +255,18 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
             scrollbar-width: none;
             -ms-overflow-style: none;
         }
-        .atomic-tabs-scroll::-webkit-scrollbar {
+        .driver-tabs-scroll::-webkit-scrollbar {
             display: none;
             width: 0;
             height: 0;
         }
-        .atomic-tabs {
+        .driver-tabs {
             display: flex;
             gap: 4px;
             border-bottom: 1px solid var(--border-color);
             min-width: max-content;
         }
-        .atomic-tab {
+        .driver-tab {
             padding: 8px 16px;
             background: none;
             border: none;
@@ -276,15 +278,15 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
             white-space: nowrap;
             user-select: none;
         }
-        .atomic-tab:hover {
+        .driver-tab:hover {
             color: var(--text-primary);
             background: var(--hover-bg);
         }
-        .atomic-tab.active {
+        .driver-tab.active {
             color: var(--accent-color, #0066cc);
             border-bottom: 2px solid var(--accent-color, #0066cc);
         }
-        .atomic-tab-scroll-btn {
+        .driver-tab-scroll-btn {
             width: 28px;
             height: 32px;
             display: flex;
@@ -301,22 +303,22 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
             margin: 0 4px;
             user-select: none;
         }
-        .atomic-tab-scroll-btn:hover {
+        .driver-tab-scroll-btn:hover {
             background: var(--hover-bg);
             color: var(--text-primary);
         }
-        .atomic-tab-scroll-btn.disabled {
+        .driver-tab-scroll-btn.disabled {
             opacity: 0.4;
             cursor: not-allowed;
         }
-        .atomic-tab-scroll-btn.disabled:hover {
+        .driver-tab-scroll-btn.disabled:hover {
             background: var(--bg-secondary);
             color: var(--text-secondary);
         }
     `;
 
   if (typeof document !== "undefined") {
-    const styleId = "atomic-tabs-styles";
+    const styleId = "driver-tabs-styles";
     if (!document.getElementById(styleId)) {
       const style = document.createElement("style");
       style.id = styleId;
@@ -348,13 +350,13 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
             color: "var(--text-muted)",
           }}
         >
-          {t("atomicSkills.loading")}
+          {t("drivers.loading")}
         </div>
       </div>
     );
   }
 
-  const currentCategorySkills = getCategorySkills(activeTab);
+  const currentCategoryDrivers = getCategoryDrivers(activeTab);
   const { enabledCount, totalCount } = getCategoryEnabledCount(activeTab);
   const isFullyEnabled = isCategoryFullyEnabled(activeTab);
 
@@ -372,27 +374,27 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
       }}
     >
       <div
-        className="atomic-tabs-container"
+        className="driver-tabs-container"
         style={{ padding: "0px", margin: 0 }}
       >
         {showLeftArrow && (
           <button
-            className="atomic-tab-scroll-btn"
+            className="driver-tab-scroll-btn"
             onClick={() => scrollTabs("left")}
           >
             ◀
           </button>
         )}
         <div
-          className="atomic-tabs-scroll"
+          className="driver-tabs-scroll"
           ref={tabsRef}
           onScroll={checkScrollButtons}
         >
-          <div className="atomic-tabs">
+          <div className="driver-tabs">
             {categories.map((category) => (
               <button
                 key={category}
-                className={`atomic-tab ${activeTab === category ? "active" : ""}`}
+                className={`driver-tab ${activeTab === category ? "active" : ""}`}
                 onClick={() => setActiveTab(category)}
               >
                 {getCategoryName(category)}
@@ -402,7 +404,7 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
         </div>
         {showRightArrow && (
           <button
-            className="atomic-tab-scroll-btn"
+            className="driver-tab-scroll-btn"
             onClick={() => scrollTabs("right")}
           >
             ▶
@@ -435,7 +437,7 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
               color: "var(--text-secondary)",
             }}
           >
-            {t("atomicSkills.stats", {
+            {t("drivers.stats", {
               total: totalCount,
               enabled: enabledCount,
             })}
@@ -444,12 +446,10 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
             style={buttonStyle}
             onClick={() => handleToggleAllInTab(activeTab, !isFullyEnabled)}
           >
-            {isFullyEnabled
-              ? t("atomicSkills.disableAll")
-              : t("atomicSkills.enableAll")}
+            {isFullyEnabled ? t("drivers.disableAll") : t("drivers.enableAll")}
           </button>
         </div>
-        {currentCategorySkills.length === 0 ? (
+        {currentCategoryDrivers.length === 0 ? (
           <div
             style={{
               textAlign: "center",
@@ -457,11 +457,11 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
               color: "var(--text-muted)",
             }}
           >
-            {t("atomicSkills.empty")}
+            {t("drivers.empty")}
           </div>
         ) : (
-          currentCategorySkills.map((skill) => (
-            <div key={skill.name} style={skillCardStyle}>
+          currentCategoryDrivers.map((driver) => (
+            <div key={driver.name} style={driverCardStyle}>
               <div
                 style={{
                   display: "flex",
@@ -478,28 +478,28 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
                       color: "var(--text-primary)",
                     }}
                   >
-                    {skill.name}
+                    {driver.name}
                   </span>
                 </div>
                 <label style={toggleSwitchStyle}>
                   <input
                     type="checkbox"
                     style={{ opacity: 0, width: 0, height: 0 }}
-                    checked={skill.enabled}
+                    checked={driver.enabled}
                     onChange={(e) =>
-                      handleToggleSkill(skill.name, e.target.checked)
+                      handleToggleDriver(driver.name, e.target.checked)
                     }
                   />
                   <span
                     style={{
                       ...toggleSliderStyle,
-                      ...(skill.enabled ? toggleSliderCheckedStyle : {}),
+                      ...(driver.enabled ? toggleSliderCheckedStyle : {}),
                     }}
                   >
                     <span
                       style={{
                         ...toggleKnobStyle,
-                        ...(skill.enabled ? toggleKnobCheckedStyle : {}),
+                        ...(driver.enabled ? toggleKnobCheckedStyle : {}),
                       }}
                     />
                   </span>
@@ -512,7 +512,7 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
                   lineHeight: 1.4,
                 }}
               >
-                {skill.description}
+                {driver.description}
               </div>
             </div>
           ))

@@ -131,7 +131,7 @@ export const PopupMenu: React.FC<PopupMenuProps> = ({
                       onClick={() => {
                         if (
                           child.id === "llmModel" ||
-                          child.id === "atomicSkills" ||
+                          child.id === "drivers" ||
                           child.id === "interface" ||
                           child.id === "workspaceConfig" ||
                           child.id === "storage"
@@ -163,7 +163,7 @@ export const PopupMenu: React.FC<PopupMenuProps> = ({
             onClick={() => {
               if (
                 item.id === "llmModel" ||
-                item.id === "atomicSkills" ||
+                item.id === "drivers" ||
                 item.id === "interface" ||
                 item.id === "workspaceConfig" ||
                 item.id === "storage"

@@ -27,7 +27,7 @@ export const bottomMenuItems: MenuItemWithSection[] = [
         section: "config",
         children: [
             { id: "llmModel", icon: "settings", label: "menu.llmModelConfig" },
-            { id: "atomicSkills", icon: "skills", label: "menu.atomicSkills" },
+            { id: "drivers", icon: "skills", label: "menu.drivers" },
             // {
             //     id: "engine_group",
             //     icon: "config",

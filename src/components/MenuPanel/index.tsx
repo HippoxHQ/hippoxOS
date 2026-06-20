@@ -4,7 +4,6 @@ import SkillMarketPanel from "./SkillMarketPanel";
 import TaskQueuePanel from "./TaskQueuePanel";
 import FavoritesPanel from "./FavoritesPanel";
 import HistoryPanel from "./HistoryPanel";
-import SkillsPanel from "./SkillsPanel";
 import AtomicSkillsPanel from "./DriversPanel";
 import WorkspacePanel from "./Workspace";
 import WorkspaceConfig from "./SystemConfig/WorkspaceConfig";
@@ -24,7 +23,7 @@ export type MenuPanelView =
   | "skillMarket"
   | "taskQueue"
   | "executionHistory"
-  | "atomicSkills"
+  | "drivers"
   | "settings"
   | "workspace"
   | "workspaceConfig"
@@ -62,7 +61,7 @@ const viewTitles: Record<MenuPanelView, string> = {
   history: "menu.history",
   favorites: "menu.favorites",
   skills: "menu.skills",
-  atomicSkills: "menu.atomicSkills",
+  drivers: "menu.drivers",
   knowledge: "menu.knowledge",
   skillMarket: "menu.skillMarket",
   taskQueue: "menu.taskQueue",
@@ -227,13 +226,11 @@ const MenuPanel: React.FC<MenuPanelProps> = ({
         );
       case "favorites":
         return <FavoritesPanel t={t} />;
-      case "skills":
-        return <SkillsPanel t={t} />;
       case "skillMarket":
         return <SkillMarketPanel t={t} />;
       case "taskQueue":
         return <TaskQueuePanel t={t} />;
-      case "atomicSkills":
+      case "drivers":
         return <AtomicSkillsPanel t={t} onSave={onSaveConfig} />;
       case "workspace":
         return <WorkspacePanel t={t} />;
@@ -255,7 +252,7 @@ const MenuPanel: React.FC<MenuPanelProps> = ({
     if (currentView === "settings" && settingsSubView) {
       const settingsTitles: Record<SettingsSubView, string> = {
         llmModel: "menu.llmModelConfig",
-        atomicSkills: "menu.atomicSkills",
+        drivers: "menu.drivers",
         interface: "settings.interfaceConfig",
         workspaceConfig: "settings.workspaceConfig",
         storage: "menu.storage",

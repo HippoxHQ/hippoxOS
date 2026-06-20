@@ -35,7 +35,6 @@ import EngineNotificationPanel from "../../components/MenuPanel/EngineConfig/Eng
 import { Language, Theme } from "../../types/types";
 import { UploadFile } from "../../core/types";
 import HistoryChatDropdown from "../../components/HistoryChatDropdown";
-import SkillsPanel from "../../components/MenuPanel/SkillsPanel";
 
 interface AppContentProps {
   theme: Theme;

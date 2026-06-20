@@ -77,7 +77,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     }
     if (
       id === "llmModel" ||
-      id === "atomicSkills" ||
+      id === "drivers" ||
       id === "interface" ||
       id === "workspaceConfig" ||
       id === "storage" ||
@@ -168,8 +168,6 @@ const Sidebar: React.FC<SidebarProps> = ({
       handleMenuClick(itemId);
       return;
     }
-
-    // 需要弹出菜单的项目
     const rect = e.currentTarget.getBoundingClientRect();
     const viewportWidth = window.innerWidth;
     const popupWidth = 280;
@@ -186,7 +184,6 @@ const Sidebar: React.FC<SidebarProps> = ({
       top = gap;
     }
     const position = { top, left };
-
     if (itemId === "skills_group" || itemId === "settings_group") {
       if (isPopupVisible(itemId)) {
         handleClosePopup();
@@ -202,7 +199,6 @@ const Sidebar: React.FC<SidebarProps> = ({
       showPopup(itemId, position);
       return;
     }
-
     if (isPopupVisible(itemId)) {
       handleClosePopup();
     } else {
@@ -212,21 +208,18 @@ const Sidebar: React.FC<SidebarProps> = ({
       showPopup(itemId, position);
     }
   };
-
   const handleMouseEnter = (
     e: React.MouseEvent<HTMLButtonElement>,
     label: string,
   ) => {
     showTooltipOnElement(e.currentTarget, label);
   };
-
   const handleMouseLeave = () => {
     const container = document.getElementById("global-tooltip-container");
     if (container) {
       container.remove();
     }
   };
-
   const isIconActive = (itemId: string): boolean => {
     if (itemId === "skillsManager") {
       return activeId === "skillsManager";

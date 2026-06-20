@@ -7,7 +7,7 @@ import LLMModelConfig from "./LLMModelConfig";
 
 export type SettingsSubView =
   | "llmModel"
-  | "atomicSkills"
+  | "drivers"
   | "interface"
   | "workspaceConfig"
   | "storage";
@@ -38,7 +38,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
       return (
         <LLMModelConfig t={t} onSave={onSave} isInitializing={isInitializing} />
       );
-    case "atomicSkills":
+    case "drivers":
       return <AtomicSkillsPanel t={t} onSave={onSave} />;
     case "interface":
       return (
