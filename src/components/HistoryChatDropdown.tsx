@@ -268,7 +268,7 @@ const HistoryChatDropdown: React.FC<HistoryChatDropdownProps> = ({
       <div
         style={{
           overflowY: "auto",
-          padding: "6px 10px",
+          padding: "6px 0px",
           flex: 1,
         }}
       >
@@ -302,16 +302,17 @@ const HistoryChatDropdown: React.FC<HistoryChatDropdownProps> = ({
               <div key={category.type}>
                 <div
                   style={{
-                    fontSize: "11px",
+                    fontSize: "13px",
                     fontWeight: 600,
                     color: "var(--text-secondary)",
-                    padding: "8px 4px 4px 4px",
                     letterSpacing: "0.5px",
                     display: "flex",
                     justifyContent: "space-between",
                     alignItems: "center",
                     cursor: "pointer",
                     userSelect: "none",
+                    padding: "0px 10px",
+                    marginBottom: "5px",
                   }}
                   onClick={() => toggleCategory(category.type)}
                   onMouseEnter={(e) => {
@@ -342,8 +343,7 @@ const HistoryChatDropdown: React.FC<HistoryChatDropdownProps> = ({
                       <div
                         key={session.session_id}
                         style={{
-                          padding: "8px 10px",
-                          marginBottom: "4px",
+                          padding: "8px 15px",
                           borderRadius: "0px",
                           cursor: "pointer",
                           background: isActive
