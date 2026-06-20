@@ -30,7 +30,7 @@ export const runSkill = async (
             status: "success",
             path: skill.local_path,
         };
-        const message = t("skill.runMessage", { name: skill.name }) || `运行技能: ${skill.name}`;
+        const message = t("skills.runSkill", { name: skill.name }) || `运行技能: ${skill.name}`;
         onSendMessage(message, [skillFile]);
     } catch (error) {
         console.error("Failed to run skill:", error);

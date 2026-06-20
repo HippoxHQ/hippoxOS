@@ -518,6 +518,7 @@ export const zh = {
     resetFailed: '❌ 重置会话失败'
   },
   skills: {
+    "runSkill": "运行技能",
     "title": "技能编辑器",
     "description": "编辑 skill.md 文件",
     "noFiles": "暂无技能文件",
@@ -1714,6 +1715,7 @@ export const en: typeof zh = {
     resetFailed: '❌ Session reset failed'
   },
   skills: {
+    "runSkill": "Run Skill",
     "title": "Skill Editor",
     "description": "Edit skill.md files",
     "noFiles": "No skill files",

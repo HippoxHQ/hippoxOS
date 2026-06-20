@@ -26,7 +26,6 @@ const LLMChatPage: React.FC<LLMChatPageProps> = ({
   const dragType = useRef<"horizontal" | "vertical">("horizontal");
   const startXRef = useRef(0);
   const startWidthRef = useRef(0);
-
   useEffect(() => {
     const savedLeftWidth = localStorage.getItem("hippox-left-width");
     const savedTopHeight = localStorage.getItem("hippox-top-height");
@@ -38,7 +37,6 @@ const LLMChatPage: React.FC<LLMChatPageProps> = ({
     if (savedRightExtraWidth)
       setRightExtraWidth(parseFloat(savedRightExtraWidth));
   }, []);
-
   const saveLeftWidth = (width: number) => {
     localStorage.setItem("hippox-left-width", width.toString());
   };

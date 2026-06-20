@@ -30,11 +30,9 @@ export const useSendSkillMessage = ({
         },
         [
             currentSessionId,
-            currentContentPanel,
             closeContentPanel,
             handleNewSession,
             handleSendMessage,
-            shouldShowWelcome,
         ],
     );
     return { onSendSkillMessage };

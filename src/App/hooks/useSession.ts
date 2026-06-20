@@ -216,7 +216,7 @@ export function useSession(
             const assistantMsg: ChatMessage = {
                 id: messageId,
                 role: RoleEnum.LLM,
-                content: `⏳ ${t("chat.taskSubmitted")} ${taskId.slice(0, 8)}...`,
+                content: `${t("chat.taskSubmitted")} ${taskId.slice(0, 8)}...`,
                 timestamp: now.toISOString(),
                 status: MessageStatus.Pending,
             };
@@ -240,7 +240,7 @@ export function useSession(
             const errorMsg: ChatMessage = {
                 id: `error_${Date.now()}`,
                 role: RoleEnum.LLM,
-                content: `❌ ${error}`,
+                content: `${error}`,
                 timestamp: now.toISOString(),
             };
             taskManager.addAssistantMessageToSession(finalSessionId, errorMsg);
