@@ -577,7 +577,7 @@ const TopBar: React.FC<TopBarProps> = ({
       window.dispatchEvent(
         new CustomEvent("history-anchor-update", {
           detail: { anchorElement: historyButtonRef.current },
-        })
+        }),
       );
     }
   }, [isHistoryOpen]);
@@ -588,7 +588,6 @@ const TopBar: React.FC<TopBarProps> = ({
       showToast(ToastType.ERROR, "Failed to minimize: " + error);
     }
   };
-
   const handleMaximize = async () => {
     try {
       await windowsCommands.windowMaximize();
@@ -598,7 +597,6 @@ const TopBar: React.FC<TopBarProps> = ({
       showToast(ToastType.ERROR, "Failed to maximize/unmaximize: " + error);
     }
   };
-
   const handleClose = async () => {
     try {
       await windowsCommands.windowHide();
@@ -606,7 +604,6 @@ const TopBar: React.FC<TopBarProps> = ({
       showToast(ToastType.ERROR, "Failed to close: " + error);
     }
   };
-
   const handleNewSessionClick = () => {
     if (onNewSession) {
       onNewSession();
@@ -614,15 +611,12 @@ const TopBar: React.FC<TopBarProps> = ({
       window.dispatchEvent(new CustomEvent("search-new-session"));
     }
   };
-
   const openSearch = () => {
     setIsSearchOpen(true);
   };
-
   const closeSearch = () => {
     setIsSearchOpen(false);
   };
-
   const getMinimizeTitle = () =>
     currentLanguage === "zh" ? "最小化" : "Minimize";
   const getMaximizeTitle = () =>
@@ -636,9 +630,7 @@ const TopBar: React.FC<TopBarProps> = ({
   const getCloseTitle = () => (currentLanguage === "zh" ? "关闭" : "Close");
   const getNewSessionTitle = () =>
     currentLanguage === "zh" ? "新建会话 (⌘N)" : "New Session (⌘N)";
-
   const isZh = currentLanguage === "zh";
-
   return (
     <>
       <div className="top-bar">
@@ -647,7 +639,7 @@ const TopBar: React.FC<TopBarProps> = ({
             <div className="app-logo">
               <img src={logo} alt="logo" />
             </div>
-            <div className="app-name">HippoX</div>
+            <div className="app-name">HippoxOS</div>
           </div>
           <button
             className="sidebar-toggle"
