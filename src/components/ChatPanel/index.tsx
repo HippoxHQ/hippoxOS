@@ -1,3 +1,4 @@
+// ChatPanel/index.tsx
 import React, { useState, useRef, useEffect } from "react";
 import { useEditMessage } from "./hooks";
 import {
@@ -20,6 +21,7 @@ import {
   VideoIcon,
   FileIcon,
   FolderOpenIcon,
+  TaskQueueIcon,
 } from "../../icons";
 import { ChatMessage, RoleEnum, MessageStatus } from "../../types/types";
 import FileUploader from "../FileUploader";
@@ -33,6 +35,7 @@ import { isStructuredLLMResponse, parseLLMResponse } from "../../llm/utils";
 import logo from "../../assets/logo.png";
 import { UploadFile } from "../../core/types";
 import { useLLMChatPage } from "../../pages/LLMChatPage";
+
 interface ChatPanelProps {
   onSendMessage: (
     message: string,
@@ -47,6 +50,7 @@ interface ChatPanelProps {
   navigationContent?: React.ReactNode;
   isLeftPanel?: boolean;
 }
+
 const ChatPanel: React.FC<ChatPanelProps> = ({
   onSendMessage,
   onFileClick,
@@ -72,18 +76,22 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   const [loadingModel, setLoadingModel] = useState(true);
   const [suggestionPrompts, setSuggestionPrompts] = useState<string[]>([]);
   const [activeNavIndex, setActiveNavIndex] = useState<number>(-1);
+  const [showNavBubble, setShowNavBubble] = useState(false);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const attachmentBtnRef = useRef<HTMLDivElement>(null);
   const attachmentMenuRef = useRef<HTMLDivElement>(null);
   const directoryBtnRef = useRef<HTMLDivElement>(null);
   const directoryMenuRef = useRef<HTMLDivElement>(null);
+  const navButtonRef = useRef<HTMLDivElement>(null);
+  const navBubbleTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [isSending, setIsSending] = useState(false);
   const [isResending, setIsResending] = useState(false);
   const { leftCollapsed, rightCollapsed, toggleLeft, toggleRight } =
     useLLMChatPage();
   const isCollapsed = isLeftPanel ? leftCollapsed : rightCollapsed;
   const togglePanel = isLeftPanel ? toggleLeft : toggleRight;
+
   const {
     editingMessageId,
     editContent,
@@ -92,6 +100,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     handleSaveEdit,
     handleCancelEdit,
   } = useEditMessage({ currentSessionId, onSendMessage, t });
+
   const formatTimestamp = (timestamp: string): string => {
     const date = new Date(timestamp);
     const now = new Date();
@@ -115,6 +124,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
       return `${date.toLocaleDateString()} ${timeStr}`;
     }
   };
+
   const handleScrollUpdate = () => {
     if (!messagesContainerRef.current) return;
     const container = messagesContainerRef.current;
@@ -132,6 +142,35 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     });
     setActiveNavIndex(closestIndex);
   };
+
+  const handleNavButtonMouseEnter = () => {
+    if (navBubbleTimerRef.current) {
+      clearTimeout(navBubbleTimerRef.current);
+      navBubbleTimerRef.current = null;
+    }
+    setShowNavBubble(true);
+  };
+
+  const handleNavButtonMouseLeave = () => {
+    navBubbleTimerRef.current = setTimeout(() => {
+      setShowNavBubble(false);
+    }, 200);
+  };
+
+  const handleNavBubbleMouseEnter = () => {
+    if (navBubbleTimerRef.current) {
+      clearTimeout(navBubbleTimerRef.current);
+      navBubbleTimerRef.current = null;
+    }
+    setShowNavBubble(true);
+  };
+
+  const handleNavBubbleMouseLeave = () => {
+    navBubbleTimerRef.current = setTimeout(() => {
+      setShowNavBubble(false);
+    }, 200);
+  };
+
   const handleResendMessage = (msg: ChatMessage) => {
     if (isResending) return;
     const sessionId = currentSessionId || "";
@@ -162,6 +201,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     });
     showToast(ToastType.SUCCESS, t("chat.resendSuccess") || "Message resent");
   };
+
   const getRandomPrompts = (count: number = 6): string[] => {
     const prompts = language === "zh" ? zhDefaultPrompts : enDefaultPrompts;
     const shuffled = [...prompts];
@@ -171,6 +211,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     }
     return shuffled.slice(0, count);
   };
+
   const shouldShowSuggestions = (msgs: ChatMessage[]) => {
     if (msgs.length === 0) return false;
     const lastMsg = msgs[msgs.length - 1];
@@ -181,11 +222,13 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     }
     return true;
   };
+
   useEffect(() => {
     if (shouldShowSuggestions(messages)) {
       setSuggestionPrompts(getRandomPrompts(6));
     }
   }, [messages, language]);
+
   const handleSuggestionClick = (prompt: string) => {
     const sessionId = currentSessionId || "";
     if (!sessionId) {
@@ -194,7 +237,9 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     }
     onSendMessage(prompt, sessionId);
   };
+
   const handleContainerClick = () => textareaRef.current?.focus();
+
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return "0 B";
     const k = 1024;
@@ -202,6 +247,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
   };
+
   const copyToClipboard = async (text: string | undefined) => {
     try {
       if (!text) {
@@ -214,6 +260,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
       showToast(ToastType.ERROR, t("common.copyFailed") || "Copy Failed");
     }
   };
+
   const handleLocateTask = (msg: ChatMessage) => {
     const relatedTask = taskManager
       .getAllTasks()
@@ -237,6 +284,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
       showToast(ToastType.INFO, t("chat.noRelatedTask") || "No Related Task");
     }
   };
+
   const loadCurrentDefaultModel = async () => {
     try {
       setLoadingModel(true);
@@ -258,6 +306,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
       setLoadingModel(false);
     }
   };
+
   const loadWorkspaces = async (retryCount: number = 0): Promise<void> => {
     try {
       const config = await workspaceCommands.getWorkspaceConfig();
@@ -275,6 +324,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
       showToast(ToastType.ERROR, "Failed to load workspaces: " + error);
     }
   };
+
   const checkScrollPosition = () => {
     if (!messagesContainerRef.current) return;
     const { scrollTop, scrollHeight, clientHeight } =
@@ -285,6 +335,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     if (atBottom) setUserScrolled(false);
     handleScrollUpdate();
   };
+
   const handleUserScroll = () => {
     if (messagesContainerRef.current) {
       const { scrollTop, scrollHeight, clientHeight } =
@@ -294,6 +345,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     }
     checkScrollPosition();
   };
+
   const scrollToBottom = () => {
     if (messagesContainerRef.current) {
       messagesContainerRef.current.scrollTo({
@@ -303,6 +355,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
       setUserScrolled(false);
     }
   };
+
   const scrollToMessage = (index: number) => {
     if (!messagesContainerRef.current) return;
     const messageElements =
@@ -315,6 +368,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
       setActiveNavIndex(index);
     }
   };
+
   const handleFilesAdd = (files: UploadFile[]) => {
     setUploadedFiles((prev) => {
       const existingKeys = new Set(prev.map((f) => `${f.name}_${f.size}`));
@@ -324,9 +378,11 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
       return [...prev, ...newUniqueFiles];
     });
   };
+
   const handleFileRemove = (fileId: string) => {
     setUploadedFiles((prev) => prev.filter((f) => f.id !== fileId));
   };
+
   const handleSend = () => {
     if (isSending) return;
     if (inputValue.trim() || uploadedFiles.length > 0) {
@@ -349,18 +405,22 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
       });
     }
   };
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
     }
   };
+
   const adjustTextareaHeight = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInputValue(e.target.value);
     e.target.style.height = "auto";
     e.target.style.height = Math.min(e.target.scrollHeight, 100) + "px";
   };
+
   const handleAttachment = () => setShowAttachmentMenu(false);
+
   const getSelectedWorkspaceName = (): string => {
     const workspace = workspaces.find((w) => w.id === selectedWorkspaceId);
     if (!workspace) return language === "zh" ? "工作目录" : "Workspace";
@@ -369,6 +429,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     const parts = normalizedPath.split("/");
     return parts[parts.length - 1] || workspace.name;
   };
+
   const handleSelectWorkspace = async (workspaceId: string) => {
     const workspace = workspaces.find((w) => w.id === workspaceId);
     if (!workspace) return;
@@ -381,6 +442,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
       showToast(ToastType.ERROR, "Failed to set default workspace: " + error);
     }
   };
+
   const buildNavigationContent = (): React.ReactNode => {
     const userMessages = messages.filter((m) => m.role === RoleEnum.User);
     if (userMessages.length === 0) {
@@ -459,6 +521,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
       </div>
     );
   };
+
   useEffect(() => {
     const updateMessages = () => {
       if (!currentSessionId) {
@@ -500,10 +563,12 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     const unsubscribe = taskManager.subscribe(() => updateMessages());
     return unsubscribe;
   }, [language, currentSessionId, t]);
+
   useEffect(() => {
     loadCurrentDefaultModel();
     loadWorkspaces();
   }, []);
+
   useEffect(() => {
     if (messagesContainerRef.current && !userScrolled) {
       messagesContainerRef.current.scrollTop =
@@ -511,6 +576,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     }
     setTimeout(handleScrollUpdate, 100);
   }, [messages, userScrolled]);
+
   useEffect(() => {
     const element = messagesContainerRef.current;
     if (element) {
@@ -519,6 +585,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
       return () => element.removeEventListener("scroll", checkScrollPosition);
     }
   }, [messages]);
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -537,10 +604,20 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
       ) {
         setShowDirectoryMenu(false);
       }
+      if (
+        navButtonRef.current &&
+        !navButtonRef.current.contains(event.target as Node) &&
+        !document
+          .querySelector(".chat-nav-bubble")
+          ?.contains(event.target as Node)
+      ) {
+        setShowNavBubble(false);
+      }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
   const getEndingMessage = () => {
     return (
       t("chat.endingMessage") ||
@@ -549,7 +626,20 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
         : "✨ What else can I do for you? ✨")
     );
   };
+
   const navigation = buildNavigationContent();
+
+  const navBubblePosition = (() => {
+    if (navButtonRef.current) {
+      const rect = navButtonRef.current.getBoundingClientRect();
+      return {
+        right: window.innerWidth - rect.right,
+        top: rect.bottom + 4,
+      };
+    }
+    return { right: 0, top: 0 };
+  })();
+
   const collapseIcon = isLeftPanel
     ? isCollapsed
       ? "▶"
@@ -557,6 +647,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     : isCollapsed
       ? "◀"
       : "▶";
+
   return (
     <div
       className="chat-panel"
@@ -592,7 +683,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 10px 16px;
+    padding: 8px 16px;
     border-bottom: 1px solid var(--border-color);
     background: var(--bg-secondary);
     flex-shrink: 0;
@@ -640,6 +731,86 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   .collapse-btn:hover {
     background: var(--hover-bg);
     color: var(--text-primary);
+  }
+  .nav-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    background: var(--bg-tertiary, #2d2d2d);
+    border: 1px solid var(--border-color, #444);
+    color: var(--text-secondary, #aaa);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+  .nav-btn:hover {
+    background: var(--hover-bg);
+    border-color: var(--accent-color);
+    color: var(--text-primary);
+  }
+  .chat-nav-bubble {
+    position: fixed;
+    min-width: 280px;
+    max-width: 340px;
+    max-height: 500px;
+    background: var(--bg-secondary, #1e1e1e);
+    border: 1px solid var(--border-color, #333);
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    overflow: hidden;
+    z-index: 100;
+    pointer-events: auto;
+  }
+  .chat-nav-bubble-header {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border-color, #333);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary, #aaa);
+    background: var(--bg-tertiary, #252525);
+  }
+  .chat-nav-bubble-content {
+    max-height: 340px;
+    overflow-y: auto;
+    padding: 8px 0;
+  }
+  .chat-nav-bubble-item {
+    padding: 8px 12px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+    border-left: 2px solid transparent;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .chat-nav-bubble-item:hover {
+    background: var(--hover-bg, #2a2a2a);
+    border-left-color: var(--accent-color, #00aaff);
+  }
+  .chat-nav-bubble-item-active {
+    background: var(--hover-bg, #2a2a2a);
+    border-left-color: var(--accent-color, #00aaff);
+  }
+  .chat-nav-bubble-item-icon {
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+  .chat-nav-bubble-item-text {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--text-primary, #fff);
+  }
+  .chat-nav-bubble-item-status {
+    font-size: 10px;
+    color: var(--text-tertiary, #888);
+    flex-shrink: 0;
   }
   .chat-messages-wrapper {
     flex: 1;
@@ -1091,36 +1262,11 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     color: white;
     transform: translateY(-1px);
   }
-  :root {
-    --bg-primary: #0f1117;
-    --bg-secondary: #1a1d26;
-    --bg-tertiary: #22252f;
-    --border-color: #2d303a;
-    --text-primary: #e8edf2;
-    --text-secondary: #9ca3af;
-    --text-tertiary: #6b7280;
-    --accent-color: #818cf8;
-    --accent-hover: #6366f1;
-    --accent-glow: rgba(129, 140, 248, 0.2);
-    --hover-bg: rgba(232, 237, 242, 0.08);
-  }
-  [data-theme="light"] {
-    --bg-primary: #f3f4f6;
-    --bg-secondary: #ffffff;
-    --bg-tertiary: #e5e7eb;
-    --border-color: #d1d5db;
-    --text-primary: #111827;
-    --text-secondary: #4b5563;
-    --text-tertiary: #9ca3af;
-    --accent-color: #6366f1;
-    --accent-hover: #4f46e5;
-    --accent-glow: rgba(99, 102, 241, 0.2);
-    --hover-bg: rgba(0, 0, 0, 0.04);
-  }
 `}</style>
+
       <div
         className="panel-header"
-        style={{ paddingTop: "10px", paddingBottom: "10px" }}
+        style={{ paddingTop: "6px", paddingBottom: "6px" }}
       >
         <div className="header-title">
           <span className="title-icon">
@@ -1128,6 +1274,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
           </span>
           <span>{t("chat.title")}</span>
         </div>
+
         <div className="header-right">
           <div className="header-subtitle">
             {loadingModel ? (
@@ -1138,6 +1285,31 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
               <span className="no-model">{t("chat.noModelConfigured")}</span>
             )}
           </div>
+
+          <div
+            ref={navButtonRef}
+            style={{
+              width: "28px",
+              height: "28px",
+              borderRadius: "8px",
+              background: "var(--bg-tertiary, #2d2d2d)",
+              border: "1px solid var(--border-color, #444)",
+              color: "var(--text-secondary, #aaa)",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: "16px",
+              transition: "all 0.2s",
+              flexShrink: 0,
+            }}
+            onMouseEnter={handleNavButtonMouseEnter}
+            onMouseLeave={handleNavButtonMouseLeave}
+            title={t("chat.navigation") || "Navigation"}
+          >
+            <TaskQueueIcon size={16} />
+          </div>
+
           <button
             className="collapse-btn"
             onClick={togglePanel}
@@ -1147,6 +1319,121 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
           </button>
         </div>
       </div>
+
+      {showNavBubble && (
+        <div
+          className="chat-nav-bubble"
+          style={{
+            position: "fixed",
+            right: navBubblePosition.right,
+            top: navBubblePosition.top,
+            minWidth: "300px",
+            maxWidth: "360px",
+            maxHeight: "600px",
+            background: "var(--bg-secondary, #1e1e1e)",
+            border: "1px solid var(--border-color, #333)",
+            borderRadius: "12px",
+            boxShadow: "0 8px 24px rgba(0,0,0,0.3)",
+            overflow: "hidden",
+            zIndex: 100,
+            pointerEvents: "auto",
+          }}
+          onMouseEnter={handleNavBubbleMouseEnter}
+          onMouseLeave={handleNavBubbleMouseLeave}
+        >
+          <div
+            style={{
+              padding: "10px 12px",
+              borderBottom: "1px solid var(--border-color, #333)",
+              fontSize: "12px",
+              fontWeight: 600,
+              color: "var(--text-secondary, #aaa)",
+              background: "var(--bg-tertiary, #252525)",
+            }}
+          >
+            {t("chat.navigation") || "Navigation"} (
+            {messages.filter((m) => m.role === RoleEnum.User).length})
+          </div>
+          <div
+            style={{
+              maxHeight: "340px",
+              overflowY: "auto",
+              padding: "8px 0",
+            }}
+          >
+            {messages
+              .filter((m) => m.role === RoleEnum.User)
+              .map((msg, idx) => {
+                const isActive = idx === activeNavIndex;
+                const preview = msg.content?.slice(0, 45) || "...";
+                return (
+                  <div
+                    key={msg.id}
+                    style={{
+                      padding: "8px 12px",
+                      fontSize: "12px",
+                      cursor: "pointer",
+                      transition: "all 0.15s",
+                      borderLeft: isActive
+                        ? "2px solid var(--accent-color, #00aaff)"
+                        : "2px solid transparent",
+                      background: isActive
+                        ? "var(--hover-bg, #2a2a2a)"
+                        : "transparent",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                    }}
+                    onClick={() => {
+                      const userMessages = messages.filter(
+                        (m) => m.role === RoleEnum.User,
+                      );
+                      const targetIndex = messages.indexOf(userMessages[idx]);
+                      scrollToMessage(targetIndex);
+                      setShowNavBubble(false);
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background =
+                        "var(--hover-bg, #2a2a2a)";
+                      e.currentTarget.style.borderLeftColor =
+                        "var(--accent-color, #00aaff)";
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isActive) {
+                        e.currentTarget.style.background = "transparent";
+                        e.currentTarget.style.borderLeftColor = "transparent";
+                      }
+                    }}
+                  >
+                    <span style={{ fontSize: "14px", flexShrink: 0 }}>💬</span>
+                    <span
+                      style={{
+                        flex: 1,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                        color: "var(--text-primary, #fff)",
+                      }}
+                      title={msg.content}
+                    >
+                      {preview}
+                    </span>
+                    <span
+                      style={{
+                        fontSize: "10px",
+                        color: "var(--text-tertiary, #888)",
+                        flexShrink: 0,
+                      }}
+                    >
+                      {idx + 1}
+                    </span>
+                  </div>
+                );
+              })}
+          </div>
+        </div>
+      )}
+
       <div className="chat-messages-wrapper">
         <div
           className="chat-messages"
@@ -1326,6 +1613,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
           </div>
         )}
       </div>
+
       <div className="chat-input-section">
         <div
           className={`chat-input-container ${isFocused ? "focused" : ""}`}

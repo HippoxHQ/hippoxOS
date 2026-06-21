@@ -710,6 +710,7 @@ export const zh = {
     tableMoreRows: "还有",
   },
   chat: {
+    navigation: '对话导航',
     resend: '重新发送',
     resendSuccess: '消息已重新发送',
     endingMessage: "✨ 我还能为你做些什么吗？ ✨",
@@ -1924,6 +1925,7 @@ export const en: typeof zh = {
     tableMoreRows: "More rows",
   },
   chat: {
+    navigation: 'Chat Navigation',
     resend: 'Resend',
     resendSuccess: 'Message resent',
     endingMessage: "✨ What else can I do for you? ✨",

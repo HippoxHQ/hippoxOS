@@ -34,6 +34,7 @@ export const TaskFiles: React.FC<TaskFilesProps> = ({
     new Map(),
   );
   const isMountedRef = useRef(true);
+  const scrollCheckTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const isSkillFile = (file: UploadFile): boolean => {
     return file.name?.endsWith(".md") || file.name?.endsWith(".skill.md");
@@ -162,6 +163,14 @@ export const TaskFiles: React.FC<TaskFilesProps> = ({
     return imagePreviews.get(key);
   };
 
+  useEffect(() => {
+    return () => {
+      if (scrollCheckTimeoutRef.current) {
+        clearTimeout(scrollCheckTimeoutRef.current);
+      }
+    };
+  }, []);
+
   return (
     <div className="task-files-scroll-container">
       <div className="task-files-scroll-wrapper">
@@ -192,20 +201,68 @@ export const TaskFiles: React.FC<TaskFilesProps> = ({
             className="task-files-scroll"
             ref={(el) => {
               if (el) {
-                filesScrollRefs.current.set(taskId, el);
-                const checkScroll = () => {
-                  const { scrollLeft, scrollWidth, clientWidth } = el;
-                  const showLeft = scrollLeft > 0;
-                  const showRight = scrollLeft + clientWidth < scrollWidth - 1;
-                  setFilesScrollStates((prev) => {
-                    const newMap = new Map(prev);
-                    newMap.set(taskId, { showLeft, showRight });
-                    return newMap;
+                const existingRef = filesScrollRefs.current.get(taskId);
+                if (existingRef !== el) {
+                  filesScrollRefs.current.set(taskId, el);
+                  requestAnimationFrame(() => {
+                    if (scrollCheckTimeoutRef.current) {
+                      clearTimeout(scrollCheckTimeoutRef.current);
+                    }
+                    scrollCheckTimeoutRef.current = setTimeout(() => {
+                      const { scrollLeft, scrollWidth, clientWidth } = el;
+                      const showLeft = scrollLeft > 0;
+                      const showRight =
+                        scrollLeft + clientWidth < scrollWidth - 1;
+                      setFilesScrollStates((prev) => {
+                        const currentState = prev.get(taskId);
+                        if (
+                          currentState &&
+                          currentState.showLeft === showLeft &&
+                          currentState.showRight === showRight
+                        ) {
+                          return prev;
+                        }
+                        const newMap = new Map(prev);
+                        newMap.set(taskId, { showLeft, showRight });
+                        return newMap;
+                      });
+                      scrollCheckTimeoutRef.current = null;
+                    }, 100);
                   });
-                };
-                el.addEventListener("scroll", checkScroll);
-                setTimeout(checkScroll, 100);
+                }
+
+                if (!(el as any).__scrollListenerAttached) {
+                  const handleScroll = () => {
+                    const { scrollLeft, scrollWidth, clientWidth } = el;
+                    const showLeft = scrollLeft > 0;
+                    const showRight =
+                      scrollLeft + clientWidth < scrollWidth - 1;
+                    setFilesScrollStates((prev) => {
+                      const currentState = prev.get(taskId);
+                      if (
+                        currentState &&
+                        currentState.showLeft === showLeft &&
+                        currentState.showRight === showRight
+                      ) {
+                        return prev;
+                      }
+                      const newMap = new Map(prev);
+                      newMap.set(taskId, { showLeft, showRight });
+                      return newMap;
+                    });
+                  };
+                  el.addEventListener("scroll", handleScroll);
+                  (el as any).__scrollListenerAttached = true;
+                  (el as any).__scrollHandler = handleScroll;
+                }
               } else {
+                const existingEl = filesScrollRefs.current.get(taskId);
+                if (existingEl && (existingEl as any).__scrollHandler) {
+                  existingEl.removeEventListener(
+                    "scroll",
+                    (existingEl as any).__scrollHandler,
+                  );
+                }
                 filesScrollRefs.current.delete(taskId);
               }
             }}
@@ -215,7 +272,6 @@ export const TaskFiles: React.FC<TaskFilesProps> = ({
               const displayName = getDisplayName(file);
               const imagePreview = getImagePreview(file);
               const isImage = isImageFile(file);
-
               return (
                 <div
                   key={file.id || `task_file_${taskId}_${idx}_${file.name}`}

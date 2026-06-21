@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { ContentWithLinks } from "./ContentWithLinks";
 import { CopyIcon } from "../../../../icons";
 import {
@@ -29,10 +29,7 @@ export const TaskOutput: React.FC<TaskOutputProps> = ({
   taskId,
   autoOpen = true,
 }) => {
-  if (!output || output.trim() === "") {
-    return null;
-  }
-
+  const autoOpenedRef = useRef(false);
   let renderedContent: React.ReactNode = null;
   let isStructured: boolean = false;
   let shouldHide: boolean = false;
@@ -40,63 +37,52 @@ export const TaskOutput: React.FC<TaskOutputProps> = ({
   let hasCandleview: boolean = false;
   let earthviewData: any = null;
   let candleviewData: any = null;
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  let autoOpenedRef = React.useRef(false);
-
-  if (isStructuredLLMResponse(output)) {
-    const parsed = parseLLMResponse(output);
-    if (parsed?.terminalResponse) {
-      isStructured = true;
-      const tr = parsed.terminalResponse as any;
-      hasEarthview = !!tr.earthview && Object.keys(tr.earthview).length > 0;
-      hasCandleview = !!tr.candleview && Object.keys(tr.candleview).length > 0;
-      earthviewData = tr.earthview || null;
-      candleviewData = tr.candleview || null;
-      if (isTerminalResponseEmpty(parsed.terminalResponse)) {
+  if (output && output.trim() !== "") {
+    if (isStructuredLLMResponse(output)) {
+      const parsed = parseLLMResponse(output);
+      if (parsed?.terminalResponse) {
+        isStructured = true;
+        const tr = parsed.terminalResponse as any;
+        hasEarthview = !!tr.earthview && Object.keys(tr.earthview).length > 0;
+        hasCandleview =
+          !!tr.candleview && Object.keys(tr.candleview).length > 0;
+        earthviewData = tr.earthview || null;
+        candleviewData = tr.candleview || null;
+        if (isTerminalResponseEmpty(parsed.terminalResponse)) {
+          shouldHide = true;
+        } else {
+          renderedContent = renderTerminalResponse(parsed.terminalResponse, t);
+        }
+      } else if (parsed?.terminalResponse === null) {
         shouldHide = true;
-      } else {
-        renderedContent = renderTerminalResponse(parsed.terminalResponse, t);
       }
-    } else if (parsed?.terminalResponse === null) {
-      shouldHide = true;
     }
   }
 
-  // eslint-disable-next-line react-hooks/rules-of-hooks
   useEffect(() => {
     if (autoOpen && !autoOpenedRef.current) {
       if (hasEarthview && earthviewData) {
-        console.log("Auto-opening map with data:", earthviewData);
         autoOpenedRef.current = true;
         onShowMap?.(earthviewData);
       } else if (hasCandleview && candleviewData) {
-        console.log("Auto-opening chart with data:", candleviewData);
         autoOpenedRef.current = true;
         onShowChart(candleviewData);
       }
     }
-  }, [
-    hasEarthview,
-    hasCandleview,
-    earthviewData,
-    candleviewData,
-    autoOpen,
-    onShowMap,
-    onShowChart,
-  ]);
-
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasEarthview, hasCandleview, earthviewData, candleviewData, autoOpen]);
+  if (!output || output.trim() === "") {
+    return null;
+  }
   if (shouldHide) {
     return null;
   }
-
   const handleShowMap = () => {
     onShowMap?.(earthviewData);
   };
-
   const handleShowChart = () => {
     onShowChart(candleviewData);
   };
-
   if (isStructured && renderedContent) {
     return (
       <div className="task-final-output">
@@ -222,7 +208,6 @@ export const TaskOutput: React.FC<TaskOutputProps> = ({
       </div>
     );
   }
-
   let hasCandleviewInText: boolean = false;
   let hasEarthviewInText: boolean = false;
   let extractedCandleviewData: any = null;
@@ -241,7 +226,6 @@ export const TaskOutput: React.FC<TaskOutputProps> = ({
       }
     }
   } catch {}
-
   return (
     <div className="task-final-output">
       <div

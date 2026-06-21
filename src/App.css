@@ -20,6 +20,8 @@
   --accent-blue: #9cdcfe;
   --accent-yellow: #dcdcaa;
   --accent-red: #f48771;
+  --accent-color: #818cf8;
+  --accent-glow: rgba(129, 140, 248, 0.2);
 }
 
 [data-theme="light"] {
@@ -44,6 +46,8 @@
   --accent-blue: #2563eb;
   --accent-yellow: #b8860b;
   --accent-red: #dc2626;
+  --accent-color: #6366f1;
+  --accent-glow: rgba(99, 102, 241, 0.2);
 }
 
 * {

@@ -1,4 +1,4 @@
-import React, { forwardRef } from "react";
+import React, { forwardRef, useCallback } from "react";
 import {
   getTaskStatusIcon,
   getTaskStatusText,
@@ -139,17 +139,19 @@ export const TaskRow = forwardRef<HTMLDivElement, TaskRowProps>(
       }
     };
 
-    const handleShowMap = (mapData?: any) => {
-      console.log("TaskRow handleShowMap:", { mapData, taskId: task.task_id });
-      window.dispatchEvent(
-        new CustomEvent("open-map-in-panel", {
-          detail: {
-            mapData: mapData,
-            taskId: task.task_id,
-          },
-        }),
-      );
-    };
+    const handleShowMap = useCallback(
+      (mapData?: any) => {
+        window.dispatchEvent(
+          new CustomEvent("open-map-in-panel", {
+            detail: {
+              mapData: mapData,
+              taskId: task.task_id,
+            },
+          }),
+        );
+      },
+      [task.task_id],
+    );
 
     const handleInterruptTask = async (taskId: string, e: React.MouseEvent) => {
       e.stopPropagation();
@@ -189,11 +191,11 @@ export const TaskRow = forwardRef<HTMLDivElement, TaskRowProps>(
       );
     };
 
-    const handleCopyOutput = () => {
+    const handleCopyOutput = useCallback(() => {
       copyToClipboard(task.final_output, t);
-    };
+    }, [task.final_output, t]);
 
-    const handleShowChart = () => {
+    const handleShowChart = useCallback(() => {
       window.dispatchEvent(
         new CustomEvent("open-chart-in-panel", {
           detail: {
@@ -202,8 +204,7 @@ export const TaskRow = forwardRef<HTMLDivElement, TaskRowProps>(
           },
         }),
       );
-    };
-
+    }, [task, task.task_id]);
     const copyToClipboard = async (
       text: string | undefined,
       t: (key: string) => string,
@@ -219,12 +220,10 @@ export const TaskRow = forwardRef<HTMLDivElement, TaskRowProps>(
         showToast(ToastType.ERROR, t("common.copyFailed") || "Copy Failed");
       }
     };
-
     const isRunningOrPending =
       task.status === TaskStatusEnum.Running ||
       task.status === TaskStatusEnum.Pending;
     const isPaused = task.status === TaskStatusEnum.Paused;
-
     return (
       <div key={task.task_id} ref={ref} className="task-row">
         <div
