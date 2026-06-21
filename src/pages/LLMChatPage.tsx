@@ -133,48 +133,57 @@ const LLMChatPage: React.FC<LLMChatPageProps> = ({
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
-          width: "48px",
-          minWidth: "48px",
+          width: "45px",
+          minWidth: "45px",
           background: "var(--bg-secondary)",
           borderRight: isLeft ? "1px solid var(--border-color)" : "none",
           borderLeft: !isLeft ? "1px solid var(--border-color)" : "none",
-          padding: "8px 0",
           gap: "12px",
           overflow: "hidden",
           flexShrink: 0,
           height: "100%",
         }}
       >
-        <button
-          className="collapse-toggle-btn"
-          onClick={onToggle}
+        <div
           style={{
-            background: "transparent",
-            border: "none",
-            color: "var(--text-secondary)",
-            cursor: "pointer",
-            fontSize: "18px",
-            padding: "6px",
-            borderRadius: "6px",
-            transition: "all 0.2s",
+            borderBottom: "1px solid var(--border-color)",
+            padding: "4px 0px",
+            width: "100%",
             display: "flex",
-            alignItems: "center",
             justifyContent: "center",
-            width: "32px",
-            height: "32px",
           }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = "var(--hover-bg)";
-            e.currentTarget.style.color = "var(--text-primary)";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = "transparent";
-            e.currentTarget.style.color = "var(--text-secondary)";
-          }}
-          title={`Expand ${title}`}
         >
-          {isLeft ? "▶" : "◀"}
-        </button>
+          <button
+            className="collapse-toggle-btn"
+            onClick={onToggle}
+            style={{
+              background: "transparent",
+              border: "none",
+              color: "var(--text-secondary)",
+              cursor: "pointer",
+              fontSize: "18px",
+              padding: "6px",
+              borderRadius: "6px",
+              transition: "all 0.2s",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: "32px",
+              height: "32px",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "var(--hover-bg)";
+              e.currentTarget.style.color = "var(--text-primary)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "transparent";
+              e.currentTarget.style.color = "var(--text-secondary)";
+            }}
+            title={`Expand ${title}`}
+          >
+            {isLeft ? "▶" : "◀"}
+          </button>
+        </div>
         <div
           style={{
             display: "flex",

@@ -117,7 +117,7 @@ const FunctionPanel: React.FC<FunctionPanelProps> = ({
       <div
         ref={containerRef}
         style={{
-          width: 48,
+          width: "45px",
           flexShrink: 0,
           overflow: "hidden",
           background: "var(--bg-secondary)",
@@ -131,36 +131,46 @@ const FunctionPanel: React.FC<FunctionPanelProps> = ({
           position: "relative",
         }}
       >
-        <button
-          onClick={onToggleCollapse}
+        <div
           style={{
-            background: "transparent",
-            border: "none",
-            color: "var(--text-secondary)",
-            cursor: "pointer",
-            fontSize: "18px",
-            padding: "6px",
-            borderRadius: "6px",
-            transition: "all 0.2s",
+            borderBottom: "1px solid var(--border-color)",
+            padding: "4px 0px",
+            width: "100%",
             display: "flex",
-            alignItems: "center",
             justifyContent: "center",
-            width: "32px",
-            height: "32px",
-            flexShrink: 0,
           }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = "var(--hover-bg)";
-            e.currentTarget.style.color = "var(--text-primary)";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = "transparent";
-            e.currentTarget.style.color = "var(--text-secondary)";
-          }}
-          title={t("functionArea.expand") || "Expand"}
         >
-          ◀
-        </button>
+          <button
+            onClick={onToggleCollapse}
+            style={{
+              background: "transparent",
+              border: "none",
+              color: "var(--text-secondary)",
+              cursor: "pointer",
+              fontSize: "18px",
+              padding: "6px",
+              borderRadius: "6px",
+              transition: "all 0.2s",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: "32px",
+              height: "32px",
+              flexShrink: 0,
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "var(--hover-bg)";
+              e.currentTarget.style.color = "var(--text-primary)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "transparent";
+              e.currentTarget.style.color = "var(--text-secondary)";
+            }}
+            title={t("functionArea.expand") || "Expand"}
+          >
+            ◀
+          </button>
+        </div>
         <div
           style={{
             display: "flex",
