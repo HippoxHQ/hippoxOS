@@ -224,14 +224,40 @@ export const TaskFiles: React.FC<TaskFilesProps> = ({
                     e.stopPropagation();
                     onFileClick?.(file);
                   }}
-                  style={
-                    isSkill
-                      ? {
-                          borderColor: "var(--accent-color)",
-                          background: "var(--accent-glow)",
-                        }
-                      : undefined
-                  }
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    padding: "6px 10px",
+                    minWidth: "140px",
+                    maxWidth: "180px",
+                    background: isSkill
+                      ? "var(--accent-glow)"
+                      : "var(--bg-tertiary)",
+                    border: isSkill
+                      ? "1px solid var(--accent-color)"
+                      : "1px solid var(--border-color)",
+                    borderRadius: "8px",
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",
+                    flexShrink: 0,
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = "var(--hover-bg)";
+                    if (!isSkill) {
+                      e.currentTarget.style.borderColor = "var(--accent-color)";
+                    }
+                    e.currentTarget.style.transform = "translateY(-1px)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = isSkill
+                      ? "var(--accent-glow)"
+                      : "var(--bg-tertiary)";
+                    if (!isSkill) {
+                      e.currentTarget.style.borderColor = "var(--border-color)";
+                    }
+                    e.currentTarget.style.transform = "translateY(0)";
+                  }}
                 >
                   {isImage && imagePreview ? (
                     <img

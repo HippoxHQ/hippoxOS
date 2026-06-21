@@ -9,6 +9,9 @@ export interface TerminalAreaProps {
   onFileClick?: (file: UploadFile) => void;
   theme: "light" | "dark";
   i18n: "en" | "zh-cn";
+  isCollapsed?: boolean;
+  togglePanel?: () => void;
+  collapseIcon?: string;
 }
 
 export interface FilesScrollState {

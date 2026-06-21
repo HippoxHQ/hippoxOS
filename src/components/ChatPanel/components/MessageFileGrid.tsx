@@ -148,8 +148,17 @@ export const MessageFileGrid: React.FC<MessageFileGridProps> = ({
   };
 
   return (
-    <div className="message-files-grid" style={{ direction: "rtl" }}>
-      {[...files].reverse().map((file, idx) => {
+    <div
+      className="message-files-grid"
+      style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(3, 1fr)",
+        gap: "8px",
+        marginBottom: "8px",
+        maxWidth: "300px",
+      }}
+    >
+      {files.map((file, idx) => {
         const isSkill = isSkillFile(file);
         const displayName = getDisplayName(file);
         const imagePreview = getImagePreview(file);
@@ -161,13 +170,36 @@ export const MessageFileGrid: React.FC<MessageFileGridProps> = ({
             className={`message-file-item ${isSkill ? "skill-file-item" : ""}`}
             onClick={() => onFileClick?.(file)}
             style={{
-              direction: "ltr",
-              ...(isSkill
-                ? {
-                    borderColor: "var(--accent-color)",
-                    background: "var(--accent-glow)",
-                  }
-                : {}),
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: "4px",
+              padding: "8px",
+              background: isSkill ? "var(--accent-glow)" : "var(--bg-tertiary)",
+              border: isSkill
+                ? "1px solid var(--accent-color)"
+                : "1px solid var(--border-color)",
+              borderRadius: "8px",
+              cursor: "pointer",
+              transition: "all 0.2s ease",
+              minWidth: "60px",
+              flexShrink: 0,
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "var(--hover-bg)";
+              if (!isSkill) {
+                e.currentTarget.style.borderColor = "var(--accent-color)";
+              }
+              e.currentTarget.style.transform = "translateY(-1px)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = isSkill
+                ? "var(--accent-glow)"
+                : "var(--bg-tertiary)";
+              if (!isSkill) {
+                e.currentTarget.style.borderColor = "var(--border-color)";
+              }
+              e.currentTarget.style.transform = "translateY(0)";
             }}
           >
             {isImage && imagePreview ? (
@@ -190,24 +222,70 @@ export const MessageFileGrid: React.FC<MessageFileGridProps> = ({
               <div
                 className="file-icon-placeholder"
                 style={{
+                  width: "60px",
+                  height: "60px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "28px",
                   background: "var(--accent-glow)",
                   border: "1px solid var(--accent-color)",
+                  borderRadius: "4px",
                 }}
               >
                 <span style={{ fontSize: "28px" }}>{getSkillIcon()}</span>
               </div>
             ) : (
-              <div className="file-icon-placeholder">
+              <div
+                className="file-icon-placeholder"
+                style={{
+                  width: "60px",
+                  height: "60px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "28px",
+                  background: "var(--bg-secondary)",
+                  borderRadius: "4px",
+                }}
+              >
                 {getFileIcon(file, 28)}
               </div>
             )}
-            <div className="file-info">
-              <span className="file-name" title={displayName}>
+            <div
+              className="file-info"
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                width: "100%",
+              }}
+            >
+              <span
+                className="file-name"
+                title={displayName}
+                style={{
+                  fontSize: "10px",
+                  color: "var(--text-primary)",
+                  maxWidth: "80px",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
                 {displayName.length > 15
                   ? displayName.slice(0, 12) + "..."
                   : displayName}
               </span>
-              <span className="file-size">{formatFileSize(file.size)}</span>
+              <span
+                className="file-size"
+                style={{
+                  fontSize: "9px",
+                  color: "var(--text-tertiary)",
+                }}
+              >
+                {formatFileSize(file.size)}
+              </span>
               {isSkill && (
                 <span
                   style={{

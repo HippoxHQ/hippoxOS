@@ -337,6 +337,11 @@ export const globalStyles = `
   transform: translateY(-1px);
 }
 
+.task-file-chip.skill-file-chip {
+  border-color: var(--accent-color) !important;
+  background: var(--accent-glow) !important;
+}
+
 .task-file-preview-img {
   width: 32px;
   height: 32px;

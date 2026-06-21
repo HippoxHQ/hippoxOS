@@ -195,6 +195,7 @@ export function AppContent({
     onFilePreview(file);
     functionPanel.openPreview(file);
   };
+
   const leftPanelContent =
     layoutSwapMode === "terminal-left" ? (
       <TerminalPanel
@@ -203,6 +204,7 @@ export function AppContent({
         t={t}
         currentSessionId={currentSessionId}
         onFileClick={handleFileClick}
+        isLeftPanel={true}
       />
     ) : (
       <ChatPanel
@@ -212,8 +214,10 @@ export function AppContent({
         currentSessionId={currentSessionId}
         onDragOverInputChange={setIsDraggingOverInput}
         language={language}
+        isLeftPanel={true}
       />
     );
+    
   const rightPanelContent =
     layoutSwapMode === "terminal-left" ? (
       <ChatPanel
@@ -223,6 +227,7 @@ export function AppContent({
         currentSessionId={currentSessionId}
         onDragOverInputChange={setIsDraggingOverInput}
         language={language}
+        isLeftPanel={false}
       />
     ) : (
       <TerminalPanel
@@ -231,8 +236,10 @@ export function AppContent({
         t={t}
         currentSessionId={currentSessionId}
         onFileClick={handleFileClick}
+        isLeftPanel={false}
       />
     );
+
   const renderEngineConfig = () => {
     switch (engineSubView) {
       case "engine_database":

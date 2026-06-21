@@ -1,4 +1,3 @@
-// src/components/TerminalArea/index.tsx
 import React, { useEffect, useRef } from "react";
 import { TerminalAreaProps } from "./types";
 import { WELCOME_TASK_ID } from "./constants";
@@ -29,6 +28,9 @@ const TerminalArea: React.FC<TerminalAreaProps> = ({
   onFileClick,
   theme: _theme,
   i18n: _i18n,
+  isCollapsed,
+  togglePanel,
+  collapseIcon,
 }) => {
   const { tasks, setTasks, activeTasks } = useTaskManager(currentSessionId);
   const taskRefs = useRef<Map<string, HTMLDivElement>>(new Map());
@@ -132,6 +134,9 @@ const TerminalArea: React.FC<TerminalAreaProps> = ({
         onButtonMouseLeave={handleButtonMouseLeave}
         buttonRef={buttonRef as React.RefObject<HTMLDivElement>}
         t={t}
+        isCollapsed={isCollapsed}
+        togglePanel={togglePanel}
+        collapseIcon={collapseIcon}
       />
       <div
         className="terminal-content-wrapper"

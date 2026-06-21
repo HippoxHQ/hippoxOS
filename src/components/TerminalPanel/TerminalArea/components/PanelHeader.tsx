@@ -1,3 +1,4 @@
+// src/components/TerminalArea/components/PanelHeader.tsx
 import React from "react";
 import {
   TaskQueueIcon,
@@ -14,6 +15,9 @@ interface PanelHeaderProps {
   onButtonMouseLeave: () => void;
   buttonRef: React.RefObject<HTMLDivElement | null>;
   t: (key: string) => string;
+  isCollapsed?: boolean;
+  togglePanel?: () => void;
+  collapseIcon?: string;
 }
 
 const TerminalIcon: React.FC<{ size?: number }> = ({ size = 19 }) => (
@@ -60,6 +64,9 @@ export const PanelHeader: React.FC<PanelHeaderProps> = ({
   onButtonMouseLeave,
   buttonRef,
   t,
+  isCollapsed,
+  togglePanel,
+  collapseIcon,
 }) => {
   const runningCount = activeTasks.filter(
     (t) => t.status === TaskStatusEnum.Running,
@@ -67,17 +74,48 @@ export const PanelHeader: React.FC<PanelHeaderProps> = ({
   return (
     <div
       className="panel-header"
-      style={{ paddingTop: "3px", paddingBottom: "3px", height: "41px" }}
+      style={{
+        padding: "6px 16px",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        borderBottom: "1px solid var(--border-color)",
+        background: "var(--bg-secondary)",
+        flexShrink: 0,
+        minHeight: "40px",
+      }}
     >
-      <div className="header-title">
-        <span className="title-icon">
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+          fontSize: "13px",
+          fontWeight: 500,
+          color: "var(--text-primary)",
+        }}
+      >
+        <span
+          style={{
+            fontSize: "14px",
+            display: "inline-flex",
+            alignItems: "center",
+          }}
+        >
           <TerminalIcon size={19} />
         </span>
         <span>{t("terminal.title")}</span>
-        <span className="task-count">
-          {runningCount > 0 &&
-            ` (${runningCount} ${t("terminal.status.running")})`}
-        </span>
+        {runningCount > 0 && (
+          <span
+            style={{
+              fontSize: "11px",
+              color: "var(--text-tertiary)",
+              marginLeft: "4px",
+            }}
+          >
+            ({runningCount} {t("terminal.status.running")})
+          </span>
+        )}
       </div>
       <div
         style={{
@@ -110,7 +148,6 @@ export const PanelHeader: React.FC<PanelHeaderProps> = ({
           <TaskQueueIcon size={16} />
         </div>
         <button
-          className="clear-logs-btn"
           onClick={onToggleAllTasks}
           title={
             allExpanded ? t("terminal.collapseAll") : t("terminal.expandAll")
@@ -134,6 +171,35 @@ export const PanelHeader: React.FC<PanelHeaderProps> = ({
             <CollapseIcon size={18} />
           )}
         </button>
+        {togglePanel && (
+          <button
+            onClick={togglePanel}
+            title={isCollapsed ? "Expand" : "Collapse"}
+            style={{
+              background: "transparent",
+              border: "none",
+              color: "var(--text-secondary)",
+              cursor: "pointer",
+              fontSize: "12px",
+              padding: "4px 6px",
+              borderRadius: "4px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              transition: "all 0.2s",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "var(--hover-bg)";
+              e.currentTarget.style.color = "var(--text-primary)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "transparent";
+              e.currentTarget.style.color = "var(--text-secondary)";
+            }}
+          >
+            {collapseIcon}
+          </button>
+        )}
       </div>
     </div>
   );

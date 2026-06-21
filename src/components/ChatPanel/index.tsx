@@ -1,5 +1,4 @@
 import React, { useState, useRef, useEffect } from "react";
-
 import { useEditMessage } from "./hooks";
 import {
   NormalMessage,
@@ -22,11 +21,7 @@ import {
   FileIcon,
   FolderOpenIcon,
 } from "../../icons";
-import {
-  ChatMessage,
-  RoleEnum,
-  MessageStatus,
-} from "../../types/types";
+import { ChatMessage, RoleEnum, MessageStatus } from "../../types/types";
 import FileUploader from "../FileUploader";
 import { showToast, ToastType } from "../Toast";
 import { zhDefaultPrompts, enDefaultPrompts } from "../../types/DefaultPrompt";
@@ -37,7 +32,7 @@ import { taskManager } from "../../core/TaskManager";
 import { isStructuredLLMResponse, parseLLMResponse } from "../../llm/utils";
 import logo from "../../assets/logo.png";
 import { UploadFile } from "../../core/types";
-
+import { useLLMChatPage } from "../../pages/LLMChatPage";
 interface ChatPanelProps {
   onSendMessage: (
     message: string,
@@ -49,8 +44,9 @@ interface ChatPanelProps {
   language?: string;
   currentSessionId?: string;
   onDragOverInputChange?: (isDragging: boolean) => void;
+  navigationContent?: React.ReactNode;
+  isLeftPanel?: boolean;
 }
-
 const ChatPanel: React.FC<ChatPanelProps> = ({
   onSendMessage,
   onFileClick,
@@ -58,6 +54,8 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   language = "zh",
   currentSessionId,
   onDragOverInputChange,
+  navigationContent,
+  isLeftPanel = true,
 }) => {
   const [inputValue, setInputValue] = useState("");
   const [isFocused, setIsFocused] = useState(false);
@@ -73,7 +71,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   const [currentModel, setCurrentModel] = useState<LlmInstance | null>(null);
   const [loadingModel, setLoadingModel] = useState(true);
   const [suggestionPrompts, setSuggestionPrompts] = useState<string[]>([]);
-
+  const [activeNavIndex, setActiveNavIndex] = useState<number>(-1);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const attachmentBtnRef = useRef<HTMLDivElement>(null);
@@ -82,7 +80,10 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   const directoryMenuRef = useRef<HTMLDivElement>(null);
   const [isSending, setIsSending] = useState(false);
   const [isResending, setIsResending] = useState(false);
-
+  const { leftCollapsed, rightCollapsed, toggleLeft, toggleRight } =
+    useLLMChatPage();
+  const isCollapsed = isLeftPanel ? leftCollapsed : rightCollapsed;
+  const togglePanel = isLeftPanel ? toggleLeft : toggleRight;
   const {
     editingMessageId,
     editContent,
@@ -91,7 +92,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     handleSaveEdit,
     handleCancelEdit,
   } = useEditMessage({ currentSessionId, onSendMessage, t });
-
   const formatTimestamp = (timestamp: string): string => {
     const date = new Date(timestamp);
     const now = new Date();
@@ -107,7 +107,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
       hour: "2-digit",
       minute: "2-digit",
     });
-
     if (msgDate.getTime() === today.getTime()) {
       return `${language === "zh" ? "今天" : "Today"} ${timeStr}`;
     } else if (msgDate.getTime() === yesterday.getTime()) {
@@ -116,18 +115,31 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
       return `${date.toLocaleDateString()} ${timeStr}`;
     }
   };
-
+  const handleScrollUpdate = () => {
+    if (!messagesContainerRef.current) return;
+    const container = messagesContainerRef.current;
+    const messageElements = container.querySelectorAll(".message-wrapper");
+    let closestIndex = -1;
+    let closestDistance = Infinity;
+    messageElements.forEach((el, index) => {
+      const rect = el.getBoundingClientRect();
+      const containerRect = container.getBoundingClientRect();
+      const distance = Math.abs(rect.top - containerRect.top);
+      if (distance < closestDistance) {
+        closestDistance = distance;
+        closestIndex = index;
+      }
+    });
+    setActiveNavIndex(closestIndex);
+  };
   const handleResendMessage = (msg: ChatMessage) => {
     if (isResending) return;
-
     const sessionId = currentSessionId || "";
     if (!sessionId) {
       showToast(ToastType.SUCCESS, "Session ID cannot be empty.");
       return;
     }
-
     setIsResending(true);
-
     const message = msg.content || "";
     const currentFiles = msg.files || [];
     const userMessage: ChatMessage = {
@@ -138,22 +150,18 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
       files: currentFiles,
     };
     taskManager.addUserMessageToSession(sessionId, userMessage);
-
     let backendMessage = message;
     if (currentFiles.length > 0) {
       const fileInfo = currentFiles.map((f) => `[📎 ${f.name}]`).join("\n");
       backendMessage = message ? `${message}\n${fileInfo}` : fileInfo;
     }
-
     Promise.resolve(
       onSendMessage(backendMessage, sessionId, currentFiles),
     ).finally(() => {
       setTimeout(() => setIsResending(false), 100);
     });
-
     showToast(ToastType.SUCCESS, t("chat.resendSuccess") || "Message resent");
   };
-
   const getRandomPrompts = (count: number = 6): string[] => {
     const prompts = language === "zh" ? zhDefaultPrompts : enDefaultPrompts;
     const shuffled = [...prompts];
@@ -163,7 +171,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     }
     return shuffled.slice(0, count);
   };
-
   const shouldShowSuggestions = (msgs: ChatMessage[]) => {
     if (msgs.length === 0) return false;
     const lastMsg = msgs[msgs.length - 1];
@@ -230,7 +237,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
       showToast(ToastType.INFO, t("chat.noRelatedTask") || "No Related Task");
     }
   };
-
   const loadCurrentDefaultModel = async () => {
     try {
       setLoadingModel(true);
@@ -252,7 +258,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
       setLoadingModel(false);
     }
   };
-
   const loadWorkspaces = async (retryCount: number = 0): Promise<void> => {
     try {
       const config = await workspaceCommands.getWorkspaceConfig();
@@ -270,7 +275,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
       showToast(ToastType.ERROR, "Failed to load workspaces: " + error);
     }
   };
-
   const checkScrollPosition = () => {
     if (!messagesContainerRef.current) return;
     const { scrollTop, scrollHeight, clientHeight } =
@@ -279,8 +283,8 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     setIsAtBottom(atBottom);
     setShowScrollButton(scrollHeight > clientHeight && !atBottom);
     if (atBottom) setUserScrolled(false);
+    handleScrollUpdate();
   };
-
   const handleUserScroll = () => {
     if (messagesContainerRef.current) {
       const { scrollTop, scrollHeight, clientHeight } =
@@ -299,6 +303,18 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
       setUserScrolled(false);
     }
   };
+  const scrollToMessage = (index: number) => {
+    if (!messagesContainerRef.current) return;
+    const messageElements =
+      messagesContainerRef.current.querySelectorAll(".message-wrapper");
+    if (index >= 0 && index < messageElements.length) {
+      messageElements[index].scrollIntoView({
+        block: "center",
+        behavior: "smooth",
+      });
+      setActiveNavIndex(index);
+    }
+  };
   const handleFilesAdd = (files: UploadFile[]) => {
     setUploadedFiles((prev) => {
       const existingKeys = new Set(prev.map((f) => `${f.name}_${f.size}`));
@@ -308,11 +324,9 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
       return [...prev, ...newUniqueFiles];
     });
   };
-
   const handleFileRemove = (fileId: string) => {
     setUploadedFiles((prev) => prev.filter((f) => f.id !== fileId));
   };
-
   const handleSend = () => {
     if (isSending) return;
     if (inputValue.trim() || uploadedFiles.length > 0) {
@@ -335,22 +349,18 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
       });
     }
   };
-
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
     }
   };
-
   const adjustTextareaHeight = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInputValue(e.target.value);
     e.target.style.height = "auto";
     e.target.style.height = Math.min(e.target.scrollHeight, 100) + "px";
   };
-
   const handleAttachment = () => setShowAttachmentMenu(false);
-
   const getSelectedWorkspaceName = (): string => {
     const workspace = workspaces.find((w) => w.id === selectedWorkspaceId);
     if (!workspace) return language === "zh" ? "工作目录" : "Workspace";
@@ -359,7 +369,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     const parts = normalizedPath.split("/");
     return parts[parts.length - 1] || workspace.name;
   };
-
   const handleSelectWorkspace = async (workspaceId: string) => {
     const workspace = workspaces.find((w) => w.id === workspaceId);
     if (!workspace) return;
@@ -372,7 +381,84 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
       showToast(ToastType.ERROR, "Failed to set default workspace: " + error);
     }
   };
-
+  const buildNavigationContent = (): React.ReactNode => {
+    const userMessages = messages.filter((m) => m.role === RoleEnum.User);
+    if (userMessages.length === 0) {
+      return (
+        <div
+          style={{
+            fontSize: "10px",
+            color: "var(--text-tertiary)",
+            textAlign: "center",
+            padding: "8px 4px",
+            writingMode: "vertical-rl",
+            letterSpacing: "1px",
+            opacity: 0.5,
+          }}
+        >
+          {t("chat.noMessages") || "No Messages"}
+        </div>
+      );
+    }
+    return (
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: "4px",
+          width: "100%",
+          padding: "0 4px",
+        }}
+      >
+        {userMessages.map((msg, idx) => {
+          const isActive = idx === activeNavIndex;
+          const preview = msg.content?.slice(0, 8) || "...";
+          return (
+            <button
+              key={msg.id}
+              onClick={() => scrollToMessage(idx)}
+              style={{
+                width: "32px",
+                height: "32px",
+                borderRadius: "6px",
+                border: isActive
+                  ? "1px solid var(--accent-color)"
+                  : "1px solid var(--border-color)",
+                background: isActive
+                  ? "var(--accent-glow)"
+                  : "var(--bg-tertiary)",
+                color: isActive
+                  ? "var(--accent-color)"
+                  : "var(--text-secondary)",
+                cursor: "pointer",
+                fontSize: "10px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                transition: "all 0.15s",
+                flexShrink: 0,
+                fontWeight: isActive ? 600 : 400,
+              }}
+              title={msg.content || t("chat.emptyMessage")}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "var(--hover-bg)";
+                e.currentTarget.style.borderColor = "var(--accent-color)";
+              }}
+              onMouseLeave={(e) => {
+                if (!isActive) {
+                  e.currentTarget.style.background = "var(--bg-tertiary)";
+                  e.currentTarget.style.borderColor = "var(--border-color)";
+                }
+              }}
+            >
+              {preview}
+            </button>
+          );
+        })}
+      </div>
+    );
+  };
   useEffect(() => {
     const updateMessages = () => {
       if (!currentSessionId) {
@@ -414,19 +500,17 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     const unsubscribe = taskManager.subscribe(() => updateMessages());
     return unsubscribe;
   }, [language, currentSessionId, t]);
-
   useEffect(() => {
     loadCurrentDefaultModel();
     loadWorkspaces();
   }, []);
-
   useEffect(() => {
     if (messagesContainerRef.current && !userScrolled) {
       messagesContainerRef.current.scrollTop =
         messagesContainerRef.current.scrollHeight;
     }
+    setTimeout(handleScrollUpdate, 100);
   }, [messages, userScrolled]);
-
   useEffect(() => {
     const element = messagesContainerRef.current;
     if (element) {
@@ -435,7 +519,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
       return () => element.removeEventListener("scroll", checkScrollPosition);
     }
   }, [messages]);
-
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -458,7 +541,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-
   const getEndingMessage = () => {
     return (
       t("chat.endingMessage") ||
@@ -467,27 +549,39 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
         : "✨ What else can I do for you? ✨")
     );
   };
-
+  const navigation = buildNavigationContent();
+  const collapseIcon = isLeftPanel
+    ? isCollapsed
+      ? "▶"
+      : "◀"
+    : isCollapsed
+      ? "◀"
+      : "▶";
   return (
-    <div className="chat-panel">
-      <style>{`
+    <div
+      className="chat-panel"
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        height: "100%",
+        overflow: "hidden",
+      }}
+    >
 
+      <style>{`
   .suggestions-title {
   text-align: center;
   font-size: 12px;
   color: var(--text-tertiary);
   margin-bottom: 8px;
   }
-
   .loading-text {
     opacity: 0.7;
   }
-
   .no-model {
     opacity: 0.7;
     font-weight: normal;
   }
-
   .chat-panel {
     display: flex;
     flex-direction: column;
@@ -495,66 +589,81 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     background: var(--bg-primary);
     overflow: hidden;
   }
-
   .panel-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 16px 20px;
+    padding: 8px 16px;
     border-bottom: 1px solid var(--border-color);
     background: var(--bg-secondary);
     flex-shrink: 0;
+    min-height: 40px;
   }
-
   .header-title {
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 500;
     color: var(--text-primary);
   }
-
   .title-icon {
-    font-size: 16px;
+    font-size: 14px;
     display: inline-flex;
     align-items: center;
   }
-
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
   .header-subtitle {
-    font-size: 12px;
+    font-size: 11px;
     color: var(--text-tertiary);
     background: var(--bg-tertiary);
-    padding: 4px 8px;
-    border-radius: 20px;
+    padding: 2px 8px;
+    border-radius: 12px;
   }
-
+  .collapse-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 12px;
+    padding: 4px 6px;
+    border-radius: 4px;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+  }
+  .collapse-btn:hover {
+    background: var(--hover-bg);
+    color: var(--text-primary);
+  }
   .chat-messages-wrapper {
     flex: 1;
     position: relative;
     overflow: hidden;
     background: var(--bg-primary);
   }
-
   .chat-messages {
     height: 100%;
     overflow-y: auto;
-    padding: 20px;
+    padding: 16px 20px;
     display: flex;
     flex-direction: column;
     gap: 16px;
   }
-
   .message-wrapper {
     display: flex;
     gap: 12px;
     animation: fadeIn 0.3s ease;
   }
-
   .message-wrapper.user {
     flex-direction: row-reverse;
   }
-
   .message-avatar {
     width: 32px;
     height: 32px;
@@ -568,53 +677,44 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     border: 1px solid var(--border-color);
     color: var(--text-secondary);
   }
-
   .message-content-area {
     display: flex;
     flex-direction: column;
     max-width: 80%;
   }
-
   .message-wrapper.user .message-content-area {
     align-items: flex-end;
   }
-
   .message-bubble {
     padding: 10px 14px;
     border-radius: 18px;
     background: var(--bg-secondary);
     color: var(--text-primary);
   }
-
   .message-wrapper.user .message-bubble {
     background: var(--accent-color);
     color: white;
   }
-
   .message-content {
     font-size: 14px;
     line-height: 1.5;
     white-space: pre-wrap;
     word-break: break-word;
   }
-
   .message-time {
     font-size: 10px;
     color: var(--text-tertiary);
     margin-top: 4px;
   }
-
   .message-wrapper.user .message-time {
     color: rgba(255, 255, 255, 0.7);
   }
-
   .message-actions {
     display: flex;
     justify-content: flex-end;
     gap: 6px;
     margin-top: 4px;
   }
-
   .message-files-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -622,7 +722,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     margin-bottom: 8px;
     max-width: 300px;
   }
-
   .message-file-item {
     display: flex;
     flex-direction: column;
@@ -635,20 +734,17 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     cursor: pointer;
     transition: all 0.2s ease;
   }
-
   .message-file-item:hover {
     background: var(--hover-bg);
     border-color: var(--accent-color);
     transform: translateY(-1px);
   }
-
   .file-preview-img {
     width: 60px;
     height: 60px;
     object-fit: cover;
     border-radius: 4px;
   }
-
   .file-icon-placeholder {
     width: 60px;
     height: 60px;
@@ -659,14 +755,12 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     background: var(--bg-secondary);
     border-radius: 4px;
   }
-
   .message-file-item .file-info {
     display: flex;
     flex-direction: column;
     align-items: center;
     width: 100%;
   }
-
   .message-file-item .file-name {
     font-size: 10px;
     color: var(--text-primary);
@@ -675,26 +769,22 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-
   .message-file-item .file-size {
     font-size: 9px;
     color: var(--text-tertiary);
   }
-
   .message-wrapper.user .message-files-grid {
     justify-self: flex-end;
     direction: rtl;
   }
-
   .message-wrapper.user .message-file-item {
     direction: ltr;
   }
-  
   .chat-input-section {
     flex-shrink: 0;
   }
   .chat-input-container {
-    margin: 12px 16px 16px;
+    margin: 8px 16px 12px;
     background: var(--bg-tertiary);
     border: 1px solid var(--border-color);
     border-radius: 12px;
@@ -706,10 +796,9 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     box-shadow: 0 0 0 2px var(--accent-glow);
   }
   .file-uploader-container {
-    // border-bottom: 1px solid var(--border-color);
   }
   .input-textarea-wrapper {
-    padding: 10px 12px 6px 12px;
+    padding: 8px 12px 4px 12px;
   }
   .chat-textarea-hermes {
     width: 100%;
@@ -724,25 +813,21 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     max-height: 100px;
     min-height: 22px;
   }
-
   .chat-textarea-hermes::placeholder {
     color: var(--text-tertiary);
   }
-
   .action-buttons-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 4px 8px 8px 8px;
+    padding: 2px 8px 6px 8px;
   }
-
   .left-actions {
     display: flex;
     align-items: center;
     gap: 4px;
     position: relative;
   }
-
   .icon-btn {
     display: flex;
     align-items: center;
@@ -757,18 +842,15 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     font-size: 12px;
     transition: all 0.2s ease;
   }
-
   .icon-btn:hover {
     background: var(--hover-bg);
     color: var(--text-primary);
   }
-
   .folder-btn {
     display: flex;
     align-items: center;
     gap: 4px;
   }
-
   .folder-name {
     max-width: 120px;
     overflow: hidden;
@@ -776,11 +858,9 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     white-space: nowrap;
     font-size: 12px;
   }
-
   .chevron {
     transition: transform 0.2s;
   }
-
   .send-icon-btn {
     display: flex;
     align-items: center;
@@ -794,22 +874,18 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     color: var(--text-tertiary);
     transition: all 0.2s ease;
   }
-
   .send-icon-btn.active {
     background: var(--accent-color);
     color: white;
   }
-
   .send-icon-btn.active:hover {
     transform: scale(1.05);
     background: var(--accent-hover);
   }
-
   .send-icon-btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
   }
-
   .attachment-menu {
     position: absolute;
     bottom: 100%;
@@ -823,7 +899,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     z-index: 100;
   }
-
   .attachment-item {
     padding: 6px 12px;
     cursor: pointer;
@@ -835,11 +910,9 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     align-items: center;
     gap: 8px;
   }
-
   .attachment-item:hover {
     background: var(--hover-bg);
   }
-
   .directory-menu {
     position: absolute;
     bottom: 100%;
@@ -855,25 +928,20 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     z-index: 100;
   }
-
   .directory-menu::-webkit-scrollbar {
     width: 4px;
   }
-
   .directory-menu::-webkit-scrollbar-track {
     background: var(--bg-tertiary);
     border-radius: 2px;
   }
-
   .directory-menu::-webkit-scrollbar-thumb {
     background: var(--border-color);
     border-radius: 2px;
   }
-
   .directory-menu::-webkit-scrollbar-thumb:hover {
     background: var(--text-tertiary);
   }
-
   .directory-item {
     padding: 8px 12px;
     cursor: pointer;
@@ -884,24 +952,19 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     align-items: center;
     gap: 8px;
   }
-
   .directory-item:hover {
     background: var(--hover-bg);
   }
-
   [data-theme="light"] .directory-item:hover {
     background: rgba(0, 0, 0, 0.12);
   }
-
   .directory-item.selected {
     background: var(--accent-color);
     color: white;
   }
-
   .directory-item.selected:hover {
     background: var(--accent-color);
   }
-
   .workspace-path {
     font-size: 10px;
     color: var(--text-tertiary);
@@ -911,22 +974,18 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     white-space: nowrap;
     max-width: 200px;
   }
-
   .selected .workspace-path {
     color: rgba(255, 255, 255, 0.7);
   }
-
   .directory-item-content {
     flex: 1;
     min-width: 0;
   }
-
   .scroll-buttons {
     position: absolute;
     bottom: 20px;
     right: 20px;
   }
-
   .scroll-btn {
     width: 32px;
     height: 32px;
@@ -942,12 +1001,10 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     backdrop-filter: blur(8px);
     font-size: 14px;
   }
-
   .scroll-btn:hover {
     background: var(--bg-tertiary);
     transform: translateY(-2px);
   }
-
   @keyframes fadeIn {
     from {
       opacity: 0;
@@ -958,41 +1015,33 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
       transform: translateY(0);
     }
   }
-
   .chat-messages::-webkit-scrollbar {
     width: 6px;
   }
-
   .chat-messages::-webkit-scrollbar-track {
     background: var(--bg-secondary);
     border-radius: 3px;
   }
-
   .chat-messages::-webkit-scrollbar-thumb {
     background: var(--border-color);
     border-radius: 3px;
   }
-
   .chat-messages::-webkit-scrollbar-thumb:hover {
     background: var(--text-tertiary);
   }
-
   .loading-message {
     display: flex;
     align-items: center;
     gap: 8px;
   }
-
   .loading-spinner {
     display: inline-flex;
     align-items: center;
     justify-content: center;
   }
-
   .spinner {
     animation: spin 1s linear infinite;
   }
-
   @keyframes spin {
     from {
       transform: rotate(0deg);
@@ -1001,16 +1050,13 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
       transform: rotate(360deg);
     }
   }
-
   .loading-gif {
     display: inline-block;
     vertical-align: middle;
   }
-
   .suggestions-wrapper {
     width: 100%;
   }
-
   .ending-message {
     text-align: center;
     padding: 5px;
@@ -1022,7 +1068,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     opacity: 0.9;
     margin-bottom: 5px;
   }
-  
   .suggestions-container {
     display: flex;
     flex-wrap: wrap;
@@ -1030,7 +1075,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     justify-content: center;
     padding: 4px 0;
   }
-  
   .suggestion-bubble {
     background: var(--bg-secondary);
     border: 1px solid var(--border-color);
@@ -1042,14 +1086,12 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     transition: all 0.2s ease;
     white-space: nowrap;
   }
-  
   .suggestion-bubble:hover {
     background: var(--accent-color);
     border-color: var(--accent-color);
     color: white;
     transform: translateY(-1px);
   }
-
   :root {
     --bg-primary: #0f1117;
     --bg-secondary: #1a1d26;
@@ -1077,27 +1119,33 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     --hover-bg: rgba(0, 0, 0, 0.04);
   }
 `}</style>
-      <div
-        className="panel-header"
-        style={{ paddingTop: "8px", paddingBottom: "8px" }}
-      >
+
+      <div className="panel-header">
         <div className="header-title">
           <span className="title-icon">
-            <ChatIcon size={16} />
+            <ChatIcon size={14} />
           </span>
           <span>{t("chat.title")}</span>
         </div>
-        <div className="header-subtitle">
-          {loadingModel ? (
-            <span className="loading-text">{t("chat.loadingModel")}</span>
-          ) : currentModel ? (
-            <span title={currentModel.name}>{currentModel.name}</span>
-          ) : (
-            <span className="no-model">{t("chat.noModelConfigured")}</span>
-          )}
+        <div className="header-right">
+          <div className="header-subtitle">
+            {loadingModel ? (
+              <span className="loading-text">{t("chat.loadingModel")}</span>
+            ) : currentModel ? (
+              <span title={currentModel.name}>{currentModel.name}</span>
+            ) : (
+              <span className="no-model">{t("chat.noModelConfigured")}</span>
+            )}
+          </div>
+          <button
+            className="collapse-btn"
+            onClick={togglePanel}
+            title={isCollapsed ? "Expand" : "Collapse"}
+          >
+            {collapseIcon}
+          </button>
         </div>
       </div>
-
       <div className="chat-messages-wrapper">
         <div
           className="chat-messages"
@@ -1277,7 +1325,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
           </div>
         )}
       </div>
-
       <div className="chat-input-section">
         <div
           className={`chat-input-container ${isFocused ? "focused" : ""}`}
@@ -1419,8 +1466,10 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
           </div>
         </div>
       </div>
+      <div style={{ display: "none" }} data-navigation-content>
+        {navigation}
+      </div>
     </div>
   );
 };
-
 export default ChatPanel;
