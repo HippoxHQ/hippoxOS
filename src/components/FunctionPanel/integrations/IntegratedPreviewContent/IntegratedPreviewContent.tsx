@@ -1,8 +1,8 @@
 import React, { useMemo } from "react";
-import { UploadFile } from "../../../core/types";
-import ImageFilePreview from "./GlobalFilePreview/ImageFilePreview";
-import SkillFilePreview from "./GlobalFilePreview/SkillFilePreview";
-import TextFilePreview from "./GlobalFilePreview/TextFilePreview";
+import { UploadFile } from "../../../../core/types";
+import ImageFilePreview from "./ImageFilePreview";
+import SkillFilePreview from "./SkillFilePreview";
+import TextFilePreview from "./TextFilePreview";
 
 interface PreviewContentProps {
   file: UploadFile | null | undefined;

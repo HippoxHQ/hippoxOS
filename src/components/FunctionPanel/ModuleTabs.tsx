@@ -66,7 +66,7 @@ export const ModuleTabs: React.FC<ModuleTabsProps> = ({
       style={{
         display: "flex",
         alignItems: "center",
-        padding: "10px 12px 0",
+        padding: "0px 5px",
         borderBottom: "1px solid var(--border-color)",
         flexShrink: 0,
         gap: 8,
@@ -79,7 +79,6 @@ export const ModuleTabs: React.FC<ModuleTabsProps> = ({
           ◀
         </button>
       )}
-
       <div
         ref={containerRef}
         style={{
@@ -175,13 +174,11 @@ export const ModuleTabs: React.FC<ModuleTabsProps> = ({
           );
         })}
       </div>
-
       {showRight && (
         <button onClick={() => scroll("right")} style={scrollButtonStyle}>
           ▶
         </button>
       )}
-
       <button
         onClick={onClosePanel}
         style={{

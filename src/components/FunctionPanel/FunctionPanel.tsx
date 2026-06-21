@@ -1,5 +1,5 @@
 import React, { useRef, useMemo, useCallback } from "react";
-import PreviewContent from "./integrations/PreviewContent";
+import PreviewContent from "./integrations/IntegratedPreviewContent/IntegratedPreviewContent";
 import IntegratedCandleView from "./integrations/IntegratedCandleView";
 import IntegratedEarthView from "./integrations/IntegratedEarthView";
 import { ModuleTabs } from "./ModuleTabs";
