@@ -161,7 +161,7 @@ const LLMChatPage: React.FC<LLMChatPageProps> = ({
               border: "none",
               color: "var(--text-secondary)",
               cursor: "pointer",
-              fontSize: "18px",
+              fontSize: "15px",
               padding: "6px",
               borderRadius: "6px",
               transition: "all 0.2s",
@@ -359,14 +359,14 @@ const LLMChatPage: React.FC<LLMChatPageProps> = ({
         <div
           className="panel-left"
           style={{
-            flex: leftCollapsed ? "0 0 48px" : rightCollapsed ? 1 : "0 0 auto",
+            flex: leftCollapsed ? "0 0 45px" : rightCollapsed ? 1 : "0 0 auto",
             width: leftCollapsed
-              ? "48px"
+              ? "45px"
               : rightCollapsed
                 ? "auto"
                 : `${leftWidth}%`,
             overflow: "hidden",
-            minWidth: leftCollapsed ? "48px" : "150px",
+            minWidth: leftCollapsed ? "45px" : "150px",
             display: "flex",
             flexDirection: "row",
           }}
@@ -384,10 +384,10 @@ const LLMChatPage: React.FC<LLMChatPageProps> = ({
         )}
         <div
           style={{
-            flex: rightCollapsed ? "0 0 48px" : leftCollapsed ? 1 : 1,
-            width: rightCollapsed ? "48px" : "auto",
+            flex: rightCollapsed ? "0 0 45px" : leftCollapsed ? 1 : 1,
+            width: rightCollapsed ? "45px" : "auto",
             overflow: "hidden",
-            minWidth: rightCollapsed ? "48px" : "150px",
+            minWidth: rightCollapsed ? "45px" : "150px",
             display: "flex",
             flexDirection: "row",
             justifyContent: rightCollapsed ? "flex-end" : "flex-start",

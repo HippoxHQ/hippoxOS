@@ -147,7 +147,7 @@ const FunctionPanel: React.FC<FunctionPanelProps> = ({
               border: "none",
               color: "var(--text-secondary)",
               cursor: "pointer",
-              fontSize: "18px",
+              fontSize: "15px",
               padding: "6px",
               borderRadius: "6px",
               transition: "all 0.2s",

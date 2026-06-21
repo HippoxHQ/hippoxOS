@@ -1,4 +1,3 @@
-// ChatPanel/index.tsx
 import React, { useState, useRef, useEffect } from "react";
 import { useEditMessage } from "./hooks";
 import {
@@ -719,7 +718,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     border: none;
     color: var(--text-secondary);
     cursor: pointer;
-    font-size: 12px;
+    font-size: 15px;
     padding: 4px 6px;
     border-radius: 4px;
     transition: all 0.2s;
@@ -1291,7 +1290,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
             style={{
               width: "28px",
               height: "28px",
-              borderRadius: "8px",
+              borderRadius: "5px",
               background: "var(--bg-tertiary, #2d2d2d)",
               border: "1px solid var(--border-color, #444)",
               color: "var(--text-secondary, #aaa)",
@@ -1303,23 +1302,47 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
               transition: "all 0.2s",
               flexShrink: 0,
             }}
-            onMouseEnter={handleNavButtonMouseEnter}
-            onMouseLeave={handleNavButtonMouseLeave}
+            onMouseEnter={(e) => {
+              handleNavButtonMouseEnter();
+            }}
+            onMouseLeave={(e) => {
+              handleNavButtonMouseLeave();
+            }}
             title={t("chat.navigation") || "Navigation"}
           >
             <TaskQueueIcon size={16} />
           </div>
-
           <button
-            className="collapse-btn"
             onClick={togglePanel}
             title={isCollapsed ? "Expand" : "Collapse"}
+            style={{
+              width: "28px",
+              height: "28px",
+              borderRadius: "5px",
+              background: "transparent",
+              border: "none",
+              color: "var(--text-secondary)",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: "15px",
+              transition: "all 0.2s",
+              flexShrink: 0,
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "var(--hover-bg)";
+              e.currentTarget.style.color = "var(--text-primary)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "transparent";
+              e.currentTarget.style.color = "var(--text-secondary)";
+            }}
           >
             {collapseIcon}
           </button>
         </div>
       </div>
-
       {showNavBubble && (
         <div
           className="chat-nav-bubble"

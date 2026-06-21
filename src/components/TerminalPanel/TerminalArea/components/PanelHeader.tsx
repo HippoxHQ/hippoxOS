@@ -1,4 +1,3 @@
-// src/components/TerminalArea/components/PanelHeader.tsx
 import React from "react";
 import {
   TaskQueueIcon,
@@ -75,7 +74,7 @@ export const PanelHeader: React.FC<PanelHeaderProps> = ({
     <div
       className="panel-header"
       style={{
-        padding: "6px 16px",
+        padding: "4px 16px",
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
@@ -130,7 +129,7 @@ export const PanelHeader: React.FC<PanelHeaderProps> = ({
           style={{
             width: "28px",
             height: "28px",
-            borderRadius: "8px",
+            borderRadius: "5px",
             background: "var(--bg-tertiary, #2d2d2d)",
             border: "1px solid var(--border-color, #444)",
             color: "var(--text-secondary, #aaa)",
@@ -153,16 +152,26 @@ export const PanelHeader: React.FC<PanelHeaderProps> = ({
             allExpanded ? t("terminal.collapseAll") : t("terminal.expandAll")
           }
           style={{
+            width: "28px",
+            height: "28px",
+            borderRadius: "5px",
             background: "transparent",
             border: "none",
-            cursor: "pointer",
             color: "var(--text-secondary)",
-            padding: "4px 8px",
-            borderRadius: "4px",
+            cursor: "pointer",
             display: "flex",
             alignItems: "center",
-            gap: "4px",
+            justifyContent: "center",
             transition: "all 0.2s",
+            flexShrink: 0,
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = "var(--hover-bg)";
+            e.currentTarget.style.color = "var(--text-primary)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = "transparent";
+            e.currentTarget.style.color = "var(--text-secondary)";
           }}
         >
           {allExpanded ? (
@@ -176,17 +185,19 @@ export const PanelHeader: React.FC<PanelHeaderProps> = ({
             onClick={togglePanel}
             title={isCollapsed ? "Expand" : "Collapse"}
             style={{
+              width: "28px",
+              height: "28px",
+              borderRadius: "5px",
               background: "transparent",
               border: "none",
               color: "var(--text-secondary)",
               cursor: "pointer",
-              fontSize: "12px",
-              padding: "4px 6px",
-              borderRadius: "4px",
+              fontSize: "15px",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               transition: "all 0.2s",
+              flexShrink: 0,
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.background = "var(--hover-bg)";
