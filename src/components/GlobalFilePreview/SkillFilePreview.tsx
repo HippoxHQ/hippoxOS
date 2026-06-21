@@ -22,7 +22,6 @@ const SkillFilePreview: React.FC<SkillFilePreviewProps> = ({
   const [skillDescription, setSkillDescription] = useState<string>("");
   const [skillVersion, setSkillVersion] = useState<string>("");
   const [skillAuthor, setSkillAuthor] = useState<string>("");
-
   const readSkillFile = useCallback(async (filePath: string) => {
     setIsLoading(true);
     try {
@@ -35,14 +34,12 @@ const SkillFilePreview: React.FC<SkillFilePreviewProps> = ({
       setIsLoading(false);
     }
   }, []);
-
   const parseSkillMetadata = (content: string) => {
     const lines = content.split("\n");
     let name = "";
     let description = "";
     let version = "";
     let author = "";
-
     for (const line of lines) {
       const trimmed = line.trim();
       if (trimmed.startsWith("# ")) {
@@ -63,17 +60,14 @@ const SkillFilePreview: React.FC<SkillFilePreviewProps> = ({
         if (match) author = match[1];
       }
     }
-
     if (!name && file?.name) {
       name = file.name.replace(/\.md$/i, "").replace(/_/g, " ");
     }
-
     setSkillName(name || file?.name || "Unknown Skill");
     setSkillDescription(description || "No description available");
     setSkillVersion(version || "1.0.0");
     setSkillAuthor(author || "Unknown");
   };
-
   useEffect(() => {
     if (file?.path) {
       setFileContent("");
@@ -81,7 +75,6 @@ const SkillFilePreview: React.FC<SkillFilePreviewProps> = ({
       readSkillFile(file.path);
     }
   }, [file, readSkillFile]);
-
   const handleUseSkill = () => {
     if (onSendSkillMessage && file) {
       const skillPrompt = `@skill ${file.path}`;
@@ -89,9 +82,7 @@ const SkillFilePreview: React.FC<SkillFilePreviewProps> = ({
       onClose();
     }
   };
-
   if (!file) return null;
-
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return "0 B";
     const k = 1024;
@@ -99,10 +90,8 @@ const SkillFilePreview: React.FC<SkillFilePreviewProps> = ({
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
   };
-
   const isSkillFile =
     file.name?.endsWith(".md") || file.name?.endsWith(".skill.md");
-
   return (
     <div
       style={{

@@ -1193,6 +1193,22 @@ export const zh = {
     skillsReady: '{{count}} 个技能已就绪',
     waitingForCommand: '等待用户指令...'
   },
+  imagePreview: {
+    zoomIn: "放大 (+)",
+    zoomOut: "缩小 (-)",
+    rotate: "旋转 (R)",
+    fitToScreen: "适应屏幕 (F)",
+    reset: "重置 (0)",
+    close: "关闭 (Esc)",
+    loading: "加载中...",
+    loadFailed: "加载图片失败",
+    tooltipZoom: "🖱️ 滚动: 缩放",
+    tooltipPan: "↕ 拖动: 平移",
+    tooltipZoomKeys: "⌨️ +/-: 缩放",
+    tooltipReset: "⌨️ 0: 重置",
+    tooltipRotate: "⌨️ R: 旋转",
+    tooltipFit: "⌨️ F: 适应屏幕",
+  },
 };
 
 export const en: typeof zh = {
@@ -2390,5 +2406,21 @@ export const en: typeof zh = {
     registryLoaded: 'Skill registry loaded',
     skillsReady: '{{count}} skills ready',
     waitingForCommand: 'Waiting for user command...'
-  }
+  },
+  imagePreview: {
+    zoomIn: "Zoom In (+)",
+    zoomOut: "Zoom Out (-)",
+    rotate: "Rotate (R)",
+    fitToScreen: "Fit to Screen (F)",
+    reset: "Reset (0)",
+    close: "Close (Esc)",
+    loading: "Loading...",
+    loadFailed: "Failed to load image",
+    tooltipZoom: "🖱️ Scroll: Zoom",
+    tooltipPan: "↕ Drag: Pan",
+    tooltipZoomKeys: "⌨️ +/-: Zoom",
+    tooltipReset: "⌨️ 0: Reset",
+    tooltipRotate: "⌨️ R: Rotate",
+    tooltipFit: "⌨️ F: Fit",
+  },
 };

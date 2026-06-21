@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import CustomDragCursor from "../../components/CustomDragCursor";
 import GlobalDragOverlay from "../../components/GlobalDragOverlay";
 import BottomBar from "../../components/BottomBar";
@@ -28,12 +28,10 @@ import { Language, Theme } from "../../types/types";
 import { UploadFile } from "../../core/types";
 import HistoryChatDropdown from "../../components/HistoryChatDropdown";
 import LLMChatPage from "../../pages/LLMChatPage";
-import TextFilePreview from "../../components/filepreview/TextFilePreview";
-import ImageFilePreview from "../../components/filepreview/ImageFilePreview";
-import SkillFilePreview from "../../components/filepreview/SkillFilePreview";
 import ScheduledTasksManager from "../../pages/ScheduledTasksPage";
 import SkillsManager from "../../pages/SkillsManagerPage";
 import UserProfile from "../../pages/UserProfilePage";
+import GlobalFilePreview from "../../components/GlobalFilePreview/GlobalFilePreview";
 
 interface AppContentProps {
   theme: Theme;
@@ -131,6 +129,58 @@ export function AppContent({
   const showWelcome = shouldShowWelcome();
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [historyAnchor, setHistoryAnchor] = useState<HTMLElement | null>(null);
+  const [rightExtraWidth, setRightExtraWidth] = useState<number>(480);
+  const isDraggingRightExtra = useRef(false);
+  const startXRef = useRef(0);
+  const startWidthRef = useRef(0);
+
+  useEffect(() => {
+    const savedWidth = localStorage.getItem("hippox-right-extra-width");
+    if (savedWidth) {
+      setRightExtraWidth(parseFloat(savedWidth));
+    }
+  }, []);
+
+  const saveRightExtraWidth = (width: number) => {
+    localStorage.setItem("hippox-right-extra-width", width.toString());
+  };
+
+  const handleRightExtraMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    isDraggingRightExtra.current = true;
+    startXRef.current = e.clientX;
+    startWidthRef.current = rightExtraWidth;
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+  };
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (isDraggingRightExtra.current) {
+        const delta = startXRef.current - e.clientX;
+        const newWidth = Math.min(
+          800,
+          Math.max(320, startWidthRef.current + delta),
+        );
+        if (newWidth !== rightExtraWidth) {
+          setRightExtraWidth(newWidth);
+          saveRightExtraWidth(newWidth);
+        }
+      }
+    };
+    const handleMouseUp = () => {
+      isDraggingRightExtra.current = false;
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [rightExtraWidth]);
+
   useEffect(() => {
     const handleAnchorUpdate = (e: CustomEvent) => {
       setHistoryAnchor(e.detail.anchorElement);
@@ -147,44 +197,13 @@ export function AppContent({
     };
   }, []);
 
-  const isSkillFile =
-    previewFile?.name?.endsWith(".md") ||
-    previewFile?.name?.endsWith(".skill.md");
-  const isImageFile = previewFile?.type?.startsWith("image/");
-  const isTextFile = !isImageFile && !isSkillFile;
-
-  const renderPreviewPanel = () => {
-    if (!previewFile) return null;
-    if (isSkillFile) {
-      return (
-        <SkillFilePreview
-          file={previewFile}
-          onClose={onCloseFilePreview}
-          onSendSkillMessage={onSendSkillMessage}
-          t={t}
-        />
-      );
-    }
-    if (isImageFile) {
-      return (
-        <ImageFilePreview
-          file={previewFile}
-          onClose={onCloseFilePreview}
-          t={t}
-        />
-      );
-    }
-    return (
-      <TextFilePreview file={previewFile} onClose={onCloseFilePreview} t={t} />
-    );
-  };
-
   const handleHistoryClick = () => {
     setIsHistoryOpen(!isHistoryOpen);
   };
   const handleHistoryClose = () => {
     setIsHistoryOpen(false);
   };
+
   const leftPanelContent =
     layoutSwapMode === "terminal-left" ? (
       <TerminalPanel
@@ -223,6 +242,7 @@ export function AppContent({
         onFileClick={onFilePreview}
       />
     );
+
   const renderEngineConfig = () => {
     switch (engineSubView) {
       case "engine_database":
@@ -359,6 +379,7 @@ export function AppContent({
       transition: "background 0.2s",
     },
   };
+
   return (
     <div className="App">
       <CustomDragCursor isDragging={showDragCursor} />
@@ -484,15 +505,37 @@ export function AppContent({
             <LLMChatPage
               leftPanel={leftPanelContent}
               rightPanel={rightPanelContent}
-              rightExtraPanel={
-                isFilePreviewOpen ? renderPreviewPanel() : undefined
-              }
-              isRightExtraOpen={isFilePreviewOpen}
               layoutMode="horizontal"
               onLayoutModeChange={() => {}}
             />
           )}
         </div>
+        {isFilePreviewOpen && previewFile && (
+          <>
+            <div
+              className="resize-handle resize-handle-vertical"
+              onMouseDown={handleRightExtraMouseDown}
+              style={{ width: "4px", cursor: "col-resize", flexShrink: 0 }}
+            >
+              <div className="handle-line"></div>
+            </div>
+            <div
+              style={{
+                width: `${rightExtraWidth}px`,
+                overflow: "hidden",
+                flexShrink: 0,
+              }}
+            >
+              <GlobalFilePreview
+                file={previewFile}
+                isOpen={isFilePreviewOpen}
+                onClose={onCloseFilePreview}
+                onSendSkillMessage={onSendSkillMessage}
+                t={t}
+              />
+            </div>
+          </>
+        )}
       </div>
       <BottomBar t={t} />
     </div>

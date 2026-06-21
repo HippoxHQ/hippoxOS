@@ -144,7 +144,6 @@ const TerminalArea: React.FC<ExtendedTerminalAreaProps> = ({
           flex: 1,
           overflow: "visible",
           minHeight: 0,
-          paddingTop: "5px",
         }}
       >
         <div
