@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import { TerminalAreaProps } from "./types";
 import { WELCOME_TASK_ID } from "./constants";
-import { globalStyles } from "./styles";
+import { globalStyles } from "../styles";
 import {
   useTaskManager,
   useScrollBehavior,

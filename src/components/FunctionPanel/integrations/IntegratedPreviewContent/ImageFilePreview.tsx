@@ -84,13 +84,11 @@ const ImageFilePreview: React.FC<ImageFilePreviewProps> = memo(
       },
       [t],
     );
-
     useEffect(() => {
       if (file?.path) {
         readImageFile(file.path);
       }
     }, [file?.path]); // eslint-disable-line react-hooks/exhaustive-deps
-
     const handleZoomIn = useCallback(() => {
       setScale((prev) => Math.min(prev + 0.25, 5));
     }, []);
@@ -398,21 +396,6 @@ const ImageFilePreview: React.FC<ImageFilePreviewProps> = memo(
                 <path d="M3 12a9 9 0 109-9 9.75 9.75 0 00-6.25 2.25L3 8" />
                 <path d="M3 3v5h5" />
               </svg>
-            </button>
-            <div
-              style={{
-                width: 1,
-                height: 24,
-                background: "var(--border-color)",
-                margin: "0 4px",
-              }}
-            />
-            <button
-              onClick={onClose}
-              style={{ ...iconButtonStyle, color: "var(--text-primary)" }}
-              title={t("imagePreview.close") || "Close (Esc)"}
-            >
-              ✕
             </button>
           </div>
         </div>

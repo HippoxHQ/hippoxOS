@@ -99,6 +99,7 @@ export const ModuleTabs: React.FC<ModuleTabsProps> = ({
           scrollbarWidth: "none",
           msOverflowStyle: "none",
           padding: "0 2px",
+          marginTop: "10px",
         }}
         className="hide-scrollbar"
       >

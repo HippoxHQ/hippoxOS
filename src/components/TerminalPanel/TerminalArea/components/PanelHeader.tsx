@@ -74,7 +74,7 @@ export const PanelHeader: React.FC<PanelHeaderProps> = ({
     <div
       className="panel-header"
       style={{
-        padding: "4px 16px",
+        padding: "6px 16px",
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",

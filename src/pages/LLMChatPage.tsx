@@ -1,4 +1,8 @@
-import React, { useState, useRef, useEffect } from "react";
+// LLMChatPage.tsx
+import React, { useState, useRef, useEffect, useCallback } from "react";
+import { taskManager } from "../core/TaskManager";
+import { TaskStatusEnum } from "../core/types";
+
 interface LLMChatPageProps {
   leftPanel: React.ReactNode;
   rightPanel: React.ReactNode;
@@ -8,7 +12,307 @@ interface LLMChatPageProps {
   rightTitle?: string;
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
+  t?: (key: string, params?: any) => string;
 }
+
+interface CollapsedTaskListProps {
+  tasks: any[];
+  activeNavIndex: number;
+  onLocateTask: (idx: number) => void;
+}
+
+const CollapsedTaskList: React.FC<CollapsedTaskListProps> = ({
+  tasks,
+  activeNavIndex,
+  onLocateTask,
+}) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [showUp, setShowUp] = useState(false);
+  const [showDown, setShowDown] = useState(false);
+
+  const checkScroll = useCallback(() => {
+    if (!containerRef.current) return;
+    const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
+    const canScrollUp = scrollTop > 0;
+    const canScrollDown = scrollTop + clientHeight < scrollHeight - 1;
+    setShowUp(canScrollUp);
+    setShowDown(canScrollDown);
+  }, []);
+
+  const updateScrollButtons = useCallback(() => {
+    if (!containerRef.current) return;
+    const { scrollHeight, clientHeight } = containerRef.current;
+    const canScroll = scrollHeight > clientHeight;
+    if (canScroll) {
+      requestAnimationFrame(() => {
+        checkScroll();
+      });
+    } else {
+      setShowUp(false);
+      setShowDown(false);
+    }
+  }, [checkScroll]);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (el) {
+      el.addEventListener("scroll", checkScroll);
+      const resizeObserver = new ResizeObserver(() => {
+        updateScrollButtons();
+      });
+      resizeObserver.observe(el);
+      setTimeout(updateScrollButtons, 50);
+      return () => {
+        el.removeEventListener("scroll", checkScroll);
+        resizeObserver.disconnect();
+      };
+    }
+  }, [checkScroll, updateScrollButtons]);
+
+  useEffect(() => {
+    setTimeout(updateScrollButtons, 100);
+  }, [tasks, updateScrollButtons]);
+
+  const scrollUp = () => {
+    if (containerRef.current) {
+      containerRef.current.scrollBy({ top: -200, behavior: "smooth" });
+    }
+  };
+
+  const scrollDown = () => {
+    if (containerRef.current) {
+      containerRef.current.scrollBy({ top: 200, behavior: "smooth" });
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case TaskStatusEnum.Running:
+        return "#ffa500";
+      case TaskStatusEnum.Pending:
+        return "#888";
+      case TaskStatusEnum.Paused:
+        return "#ffa500";
+      case TaskStatusEnum.Completed:
+        return "#4caf50";
+      case TaskStatusEnum.Failed:
+        return "#ff4444";
+      default:
+        return "var(--text-tertiary)";
+    }
+  };
+
+  const getStatusEmoji = (status: string) => {
+    switch (status) {
+      case TaskStatusEnum.Running:
+        return "🔄";
+      case TaskStatusEnum.Pending:
+        return "⏳";
+      case TaskStatusEnum.Paused:
+        return "⏸️";
+      case TaskStatusEnum.Completed:
+        return "✅";
+      case TaskStatusEnum.Failed:
+        return "❌";
+      default:
+        return "📌";
+    }
+  };
+
+  if (tasks.length === 0) {
+    return (
+      <div
+        style={{
+          flex: 1,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          width: "100%",
+          minHeight: 0,
+        }}
+      >
+        <div
+          style={{
+            fontSize: "10px",
+            color: "var(--text-tertiary)",
+            textAlign: "center",
+            padding: "8px 4px",
+            writingMode: "vertical-rl",
+            letterSpacing: "1px",
+            opacity: 0.5,
+          }}
+        >
+          No Tasks
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      style={{
+        flex: 1,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        width: "100%",
+        minHeight: 0,
+        position: "relative",
+      }}
+    >
+      {showUp && (
+        <button
+          onClick={scrollUp}
+          style={{
+            width: "30px",
+            height: "20px",
+            borderRadius: "4px",
+            background: "var(--bg-tertiary)",
+            border: "1px solid var(--border-color)",
+            color: "var(--text-secondary)",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: "10px",
+            flexShrink: 0,
+            transition: "all 0.2s",
+            padding: "0",
+            margin: "0",
+            outline: "none",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = "var(--hover-bg)";
+            e.currentTarget.style.color = "var(--text-primary)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = "var(--bg-tertiary)";
+            e.currentTarget.style.color = "var(--text-secondary)";
+          }}
+          title="Scroll Up"
+        >
+          ▲
+        </button>
+      )}
+      <div
+        ref={containerRef}
+        style={{
+          flex: 1,
+          width: "100%",
+          overflowY: "auto",
+          overflowX: "hidden",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: "6px",
+          padding: "4px 2px",
+          scrollbarWidth: "none",
+          msOverflowStyle: "none",
+          minHeight: 0,
+        }}
+        className="collapsed-task-list"
+      >
+        {tasks.map((task, idx) => {
+          const isActive = idx === activeNavIndex;
+          const preview = task.user_input?.slice(0, 6) || "...";
+          return (
+            <button
+              key={task.task_id}
+              onClick={() => onLocateTask(idx)}
+              style={{
+                width: "30px",
+                height: "30px",
+                borderRadius: "8px",
+                border: isActive
+                  ? "1px solid var(--accent-color)"
+                  : "1px solid transparent",
+                background: isActive ? "var(--accent-color)" : "transparent",
+                color: isActive ? "white" : "var(--text-secondary)",
+                cursor: "pointer",
+                fontSize: "10px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                transition: "all 0.15s",
+                flexShrink: 0,
+                fontWeight: isActive ? 600 : 400,
+                position: "relative",
+              }}
+              title={task.user_input || "Task"}
+              onMouseEnter={(e) => {
+                if (!isActive) {
+                  e.currentTarget.style.background = "var(--hover-bg)";
+                  e.currentTarget.style.color = "var(--text-primary)";
+                  e.currentTarget.style.borderColor = "var(--border-color)";
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!isActive) {
+                  e.currentTarget.style.background = "transparent";
+                  e.currentTarget.style.color = "var(--text-secondary)";
+                  e.currentTarget.style.borderColor = "transparent";
+                }
+              }}
+            >
+              <span
+                style={{
+                  position: "absolute",
+                  top: "2px",
+                  right: "2px",
+                  fontSize: "6px",
+                  color: getStatusColor(task.status),
+                }}
+              >
+                {getStatusEmoji(task.status)}
+              </span>
+              {preview}
+            </button>
+          );
+        })}
+      </div>
+      {showDown && (
+        <button
+          onClick={scrollDown}
+          style={{
+            width: "30px",
+            height: "20px",
+            borderRadius: "4px",
+            background: "var(--bg-tertiary)",
+            border: "1px solid var(--border-color)",
+            color: "var(--text-secondary)",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: "10px",
+            flexShrink: 0,
+            transition: "all 0.2s",
+            padding: "0",
+            margin: "0",
+            outline: "none",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = "var(--hover-bg)";
+            e.currentTarget.style.color = "var(--text-primary)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = "var(--bg-tertiary)";
+            e.currentTarget.style.color = "var(--text-secondary)";
+          }}
+          title="Scroll Down"
+        >
+          ▼
+        </button>
+      )}
+      <style>{`
+        .collapsed-task-list::-webkit-scrollbar {
+          display: none;
+        }
+      `}</style>
+    </div>
+  );
+};
+
 const LLMChatPage: React.FC<LLMChatPageProps> = ({
   leftPanel,
   rightPanel,
@@ -18,14 +322,17 @@ const LLMChatPage: React.FC<LLMChatPageProps> = ({
   rightTitle = "Terminal",
   leftIcon = "💬",
   rightIcon = "🖥️",
+  t = (key: string) => key,
 }) => {
   const [leftWidth, setLeftWidth] = useState<number>(50);
   const [topHeight, setTopHeight] = useState<number>(60);
   const [leftCollapsed, setLeftCollapsed] = useState<boolean>(false);
   const [rightCollapsed, setRightCollapsed] = useState<boolean>(false);
+  const [activeNavIndex, setActiveNavIndex] = useState<number>(-1);
   const containerRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
   const dragType = useRef<"horizontal" | "vertical">("horizontal");
+
   useEffect(() => {
     const savedLeftWidth = localStorage.getItem("hippox-left-width");
     const savedTopHeight = localStorage.getItem("hippox-top-height");
@@ -36,18 +343,23 @@ const LLMChatPage: React.FC<LLMChatPageProps> = ({
     if (savedLeftCollapsed) setLeftCollapsed(savedLeftCollapsed === "true");
     if (savedRightCollapsed) setRightCollapsed(savedRightCollapsed === "true");
   }, []);
+
   const saveLeftWidth = (width: number) => {
     localStorage.setItem("hippox-left-width", width.toString());
   };
+
   const saveTopHeight = (height: number) => {
     localStorage.setItem("hippox-top-height", height.toString());
   };
+
   const saveLeftCollapsed = (collapsed: boolean) => {
     localStorage.setItem("hippox-left-collapsed", collapsed.toString());
   };
+
   const saveRightCollapsed = (collapsed: boolean) => {
     localStorage.setItem("hippox-right-collapsed", collapsed.toString());
   };
+
   const handleToggleLeft = () => {
     if (leftCollapsed) {
       setLeftCollapsed(false);
@@ -61,6 +373,7 @@ const LLMChatPage: React.FC<LLMChatPageProps> = ({
     setLeftCollapsed(true);
     saveLeftCollapsed(true);
   };
+
   const handleToggleRight = () => {
     if (rightCollapsed) {
       setRightCollapsed(false);
@@ -74,6 +387,7 @@ const LLMChatPage: React.FC<LLMChatPageProps> = ({
     setRightCollapsed(true);
     saveRightCollapsed(true);
   };
+
   const handleMouseDown = (
     e: React.MouseEvent,
     type: "horizontal" | "vertical",
@@ -86,6 +400,7 @@ const LLMChatPage: React.FC<LLMChatPageProps> = ({
     document.body.style.userSelect = "none";
     e.preventDefault();
   };
+
   const handleMouseMove = (e: MouseEvent) => {
     if (isDragging.current && containerRef.current) {
       const containerRect = containerRef.current.getBoundingClientRect();
@@ -104,11 +419,13 @@ const LLMChatPage: React.FC<LLMChatPageProps> = ({
       }
     }
   };
+
   const handleMouseUp = () => {
     isDragging.current = false;
     document.body.style.cursor = "";
     document.body.style.userSelect = "";
   };
+
   useEffect(() => {
     window.addEventListener("mousemove", handleMouseMove);
     window.addEventListener("mouseup", handleMouseUp);
@@ -117,15 +434,15 @@ const LLMChatPage: React.FC<LLMChatPageProps> = ({
       window.removeEventListener("mouseup", handleMouseUp);
     };
   }, []);
+
   const renderCollapsedSidebar = (
     isLeft: boolean,
     title: string,
     icon: React.ReactNode,
     onToggle: () => void,
-    children?: React.ReactNode,
   ) => {
-    const isCollapsed = isLeft ? leftCollapsed : rightCollapsed;
-    if (!isCollapsed) return null;
+    const allTasks = taskManager.getAllTasks();
+
     return (
       <div
         className="collapsed-sidebar"
@@ -138,7 +455,6 @@ const LLMChatPage: React.FC<LLMChatPageProps> = ({
           background: "var(--bg-secondary)",
           borderRight: isLeft ? "1px solid var(--border-color)" : "none",
           borderLeft: !isLeft ? "1px solid var(--border-color)" : "none",
-          gap: "12px",
           overflow: "hidden",
           flexShrink: 0,
           height: "100%",
@@ -151,6 +467,7 @@ const LLMChatPage: React.FC<LLMChatPageProps> = ({
             width: "100%",
             display: "flex",
             justifyContent: "center",
+            flexShrink: 0,
           }}
         >
           <button
@@ -192,6 +509,9 @@ const LLMChatPage: React.FC<LLMChatPageProps> = ({
             gap: "4px",
             fontSize: "10px",
             color: "var(--text-tertiary)",
+            flexShrink: 0,
+            paddingTop: "8px",
+            paddingBottom: "8px",
           }}
         >
           <span style={{ fontSize: "16px" }}>{icon}</span>
@@ -206,23 +526,25 @@ const LLMChatPage: React.FC<LLMChatPageProps> = ({
             {title}
           </span>
         </div>
-        <div
-          style={{
-            flex: 1,
-            width: "100%",
-            overflow: "hidden",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: "4px",
-            paddingTop: "8px",
+        <CollapsedTaskList
+          tasks={allTasks}
+          activeNavIndex={activeNavIndex}
+          onLocateTask={(idx) => {
+            const task = allTasks[idx];
+            if (task) {
+              window.dispatchEvent(
+                new CustomEvent("locate-task-in-terminal", {
+                  detail: { taskId: task.task_id },
+                }),
+              );
+              setActiveNavIndex(idx);
+            }
           }}
-        >
-          {children}
-        </div>
+        />
       </div>
     );
   };
+
   const getLeftPanelContent = () => {
     if (leftCollapsed) {
       return renderCollapsedSidebar(
@@ -230,7 +552,6 @@ const LLMChatPage: React.FC<LLMChatPageProps> = ({
         leftTitle,
         leftIcon,
         handleToggleLeft,
-        (leftPanel as any)?.props?.navigationContent || null,
       );
     }
     return (
@@ -247,29 +568,14 @@ const LLMChatPage: React.FC<LLMChatPageProps> = ({
       </div>
     );
   };
+
   const getRightPanelContent = () => {
     if (rightCollapsed) {
-      const sidebar = renderCollapsedSidebar(
+      return renderCollapsedSidebar(
         false,
         rightTitle,
         rightIcon,
         handleToggleRight,
-        (rightPanel as any)?.props?.navigationContent || null,
-      );
-      return (
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "row",
-            height: "100%",
-            width: "100%",
-            overflow: "hidden",
-            flex: 1,
-            justifyContent: "flex-end",
-          }}
-        >
-          {sidebar}
-        </div>
       );
     }
     return (
@@ -286,12 +592,14 @@ const LLMChatPage: React.FC<LLMChatPageProps> = ({
       </div>
     );
   };
+
   const contextValue = {
     leftCollapsed,
     rightCollapsed,
     toggleLeft: handleToggleLeft,
     toggleRight: handleToggleRight,
   };
+
   if (layoutMode === "vertical") {
     const topPanel = getLeftPanelContent();
     const bottomPanel = getRightPanelContent();
@@ -347,8 +655,10 @@ const LLMChatPage: React.FC<LLMChatPageProps> = ({
       </LLMChatPageProvider>
     );
   }
+
   const leftPanelContent = getLeftPanelContent();
   const rightPanelContent = getRightPanelContent();
+
   return (
     <LLMChatPageProvider value={contextValue}>
       <div
@@ -400,12 +710,14 @@ const LLMChatPage: React.FC<LLMChatPageProps> = ({
     </LLMChatPageProvider>
   );
 };
+
 const LLMChatPageContext = React.createContext<{
   leftCollapsed: boolean;
   rightCollapsed: boolean;
   toggleLeft: () => void;
   toggleRight: () => void;
 } | null>(null);
+
 export const useLLMChatPage = () => {
   const ctx = React.useContext(LLMChatPageContext);
   if (!ctx) {
@@ -413,5 +725,7 @@ export const useLLMChatPage = () => {
   }
   return ctx;
 };
+
 const LLMChatPageProvider = LLMChatPageContext.Provider;
+
 export default LLMChatPage;

@@ -97,26 +97,6 @@ const TextFilePreview: React.FC<TextFilePreviewProps> = ({
             {file.name}
           </span>
         </div>
-        <button
-          onClick={onClose}
-          style={{
-            background: "transparent",
-            border: "none",
-            color: "var(--text-secondary)",
-            cursor: "pointer",
-            fontSize: 16,
-            padding: "4px 8px",
-            borderRadius: 6,
-          }}
-          onMouseEnter={(e) =>
-            (e.currentTarget.style.background = "var(--hover-bg)")
-          }
-          onMouseLeave={(e) =>
-            (e.currentTarget.style.background = "transparent")
-          }
-        >
-          ✕
-        </button>
       </div>
       <div
         style={{

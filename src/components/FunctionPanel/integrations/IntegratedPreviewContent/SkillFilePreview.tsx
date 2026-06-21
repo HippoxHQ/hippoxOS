@@ -163,29 +163,8 @@ const SkillFilePreview: React.FC<SkillFilePreviewProps> = ({
               Use Skill
             </button>
           )}
-          <button
-            onClick={onClose}
-            style={{
-              background: "transparent",
-              border: "none",
-              color: "var(--text-secondary)",
-              cursor: "pointer",
-              fontSize: 16,
-              padding: "4px 8px",
-              borderRadius: 6,
-            }}
-            onMouseEnter={(e) =>
-              (e.currentTarget.style.background = "var(--hover-bg)")
-            }
-            onMouseLeave={(e) =>
-              (e.currentTarget.style.background = "transparent")
-            }
-          >
-            ✕
-          </button>
         </div>
       </div>
-
       <div
         style={{
           padding: "8px 16px",
@@ -202,7 +181,6 @@ const SkillFilePreview: React.FC<SkillFilePreviewProps> = ({
         <span>Author: {skillAuthor}</span>
         <span>Size: {formatFileSize(fileSize)}</span>
       </div>
-
       <div
         style={{
           flex: 1,
