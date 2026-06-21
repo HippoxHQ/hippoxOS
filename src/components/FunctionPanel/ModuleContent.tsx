@@ -1,15 +1,14 @@
 import React from "react";
-import { FunctionModule } from "../types";
 
 interface ModuleContentProps {
   activeModuleContent: React.ReactNode;
-  activeModule: FunctionModule | null;
+  activeModuleKey: string | null;
   t: (key: string) => string;
 }
 
 export const ModuleContent: React.FC<ModuleContentProps> = ({
   activeModuleContent,
-  activeModule,
+  activeModuleKey,
   t,
 }) => {
   return (
@@ -17,8 +16,11 @@ export const ModuleContent: React.FC<ModuleContentProps> = ({
       className="function-content"
       style={{
         flex: 1,
-        overflow: "auto",
+        overflow: "hidden",
         minHeight: 0,
+        width: "100%",
+        height: "100%",
+        position: "relative",
       }}
     >
       {activeModuleContent || (
@@ -28,6 +30,7 @@ export const ModuleContent: React.FC<ModuleContentProps> = ({
             alignItems: "center",
             justifyContent: "center",
             height: "100%",
+            width: "100%",
             color: "var(--text-tertiary)",
           }}
         >

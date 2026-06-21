@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { filesCommands } from "../../command/files";
-import { UploadFile } from "../../core/types";
+import { filesCommands } from "../../../command/files";
+import { UploadFile } from "../../../core/types";
 
 interface TextFilePreviewProps {
   file: UploadFile | null;

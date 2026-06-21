@@ -42,6 +42,7 @@ export const TaskOutput: React.FC<TaskOutputProps> = ({
   let candleviewData: any = null;
   // eslint-disable-next-line react-hooks/rules-of-hooks
   let autoOpenedRef = React.useRef(false);
+
   if (isStructuredLLMResponse(output)) {
     const parsed = parseLLMResponse(output);
     if (parsed?.terminalResponse) {
@@ -51,7 +52,6 @@ export const TaskOutput: React.FC<TaskOutputProps> = ({
       hasCandleview = !!tr.candleview && Object.keys(tr.candleview).length > 0;
       earthviewData = tr.earthview || null;
       candleviewData = tr.candleview || null;
-
       if (isTerminalResponseEmpty(parsed.terminalResponse)) {
         shouldHide = true;
       } else {
@@ -61,6 +61,7 @@ export const TaskOutput: React.FC<TaskOutputProps> = ({
       shouldHide = true;
     }
   }
+
   // eslint-disable-next-line react-hooks/rules-of-hooks
   useEffect(() => {
     if (autoOpen && !autoOpenedRef.current) {
@@ -68,8 +69,7 @@ export const TaskOutput: React.FC<TaskOutputProps> = ({
         console.log("Auto-opening map with data:", earthviewData);
         autoOpenedRef.current = true;
         onShowMap?.(earthviewData);
-      }
-      else if (hasCandleview && candleviewData) {
+      } else if (hasCandleview && candleviewData) {
         console.log("Auto-opening chart with data:", candleviewData);
         autoOpenedRef.current = true;
         onShowChart(candleviewData);
@@ -222,6 +222,7 @@ export const TaskOutput: React.FC<TaskOutputProps> = ({
       </div>
     );
   }
+
   let hasCandleviewInText: boolean = false;
   let hasEarthviewInText: boolean = false;
   let extractedCandleviewData: any = null;
@@ -239,8 +240,8 @@ export const TaskOutput: React.FC<TaskOutputProps> = ({
         extractedEarthviewData = parsed.earthview;
       }
     }
-  } catch {
-  }
+  } catch {}
+
   return (
     <div className="task-final-output">
       <div

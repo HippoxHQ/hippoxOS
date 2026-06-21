@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useTheme } from "./hooks/useTheme";
 import { useLanguage } from "./hooks/useLanguage";
 import { useDragAndDrop } from "./hooks/useDragAndDrop";
@@ -65,14 +65,16 @@ function App() {
     setIsDraggingOverInput,
     showDragCursor,
   } = useDragAndDrop();
-  // task listener
+  const [isFunctionPanelOpen, setIsFunctionPanelOpen] = useState(false);
+
   useTaskEvents(language);
-  // driver listener
   useDriverEvents(language);
+
   const handleNewSessionWithClose = () => {
     resetToChat();
     handleNewSession();
   };
+
   useSystemEvents(
     handleNewSessionWithClose,
     () => handleMenuClick("skillMarket"),
@@ -83,10 +85,88 @@ function App() {
   );
   useDirectoryEvents();
   useSearchEvents(() => handleMenuClick("skillMarket"), handleSwitchSession);
+
   useEffect(() => {
     taskManager.setupTaskEventListeners();
   }, []);
+
+  useEffect(() => {
+    const handleOpenPreview = (event: CustomEvent) => {
+      const { file } = event.detail;
+      if (file) {
+        setIsFunctionPanelOpen(true);
+        setTimeout(() => {
+          window.dispatchEvent(
+            new CustomEvent("open-preview-in-panel-internal", {
+              detail: { file },
+            }),
+          );
+        }, 100);
+      }
+    };
+
+    const handleOpenMap = (event: CustomEvent) => {
+      const { mapData, taskId } = event.detail;
+      setIsFunctionPanelOpen(true);
+      setTimeout(() => {
+        window.dispatchEvent(
+          new CustomEvent("open-map-in-panel-internal", {
+            detail: { mapData, taskId },
+          }),
+        );
+      }, 100);
+    };
+
+    const handleOpenChart = (event: CustomEvent) => {
+      const { chartData, taskId } = event.detail;
+      setIsFunctionPanelOpen(true);
+      setTimeout(() => {
+        window.dispatchEvent(
+          new CustomEvent("open-chart-in-panel-internal", {
+            detail: { chartData, taskId },
+          }),
+        );
+      }, 100);
+    };
+
+    window.addEventListener(
+      "open-preview-in-panel",
+      handleOpenPreview as EventListener,
+    );
+    window.addEventListener(
+      "open-map-in-panel",
+      handleOpenMap as EventListener,
+    );
+    window.addEventListener(
+      "open-chart-in-panel",
+      handleOpenChart as EventListener,
+    );
+
+    return () => {
+      window.removeEventListener(
+        "open-preview-in-panel",
+        handleOpenPreview as EventListener,
+      );
+      window.removeEventListener(
+        "open-map-in-panel",
+        handleOpenMap as EventListener,
+      );
+      window.removeEventListener(
+        "open-chart-in-panel",
+        handleOpenChart as EventListener,
+      );
+    };
+  }, []);
+
+  const handleCloseFunctionPanel = () => {
+    setIsFunctionPanelOpen(false);
+    if (isFilePreviewOpen) {
+      handleCloseFilePreview();
+    }
+  };
+
   const handleSaveConfig = async (config: any) => {};
+
   const handleMenuClickWrapper = (view: string, subView?: string) => {
     if (view === "scheduledTasks") {
       handleOpenScheduledTasks();
@@ -102,6 +182,7 @@ function App() {
     }
     handleMenuClick(view, subView);
   };
+
   const { onSendSkillMessage } = useSendSkillMessage({
     currentSessionId,
     currentContentPanel,
@@ -110,6 +191,7 @@ function App() {
     handleSendMessage,
     shouldShowWelcome,
   });
+
   if (!isConfigLoaded) {
     return (
       <div
@@ -170,6 +252,8 @@ function App() {
       layoutSwapMode={layoutSwapMode}
       onLayoutSwapModeChange={handleLayoutSwapModeChange}
       onSendSkillMessage={onSendSkillMessage}
+      isFunctionPanelOpen={isFunctionPanelOpen}
+      onCloseFunctionPanel={handleCloseFunctionPanel}
     />
   );
 }

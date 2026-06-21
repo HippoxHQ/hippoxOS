@@ -1,19 +1,16 @@
 import React from "react";
-import { ModuleConfig, FunctionModule } from "../types";
+import { ModuleConfig } from "./types";
 
 interface ModuleTabsProps {
   modules: ModuleConfig[];
-  activeModule: FunctionModule | null;
-  activeTaskId?: string | null;
-  onModuleChange: (moduleId: FunctionModule, taskId?: string) => void;
+  activeModuleKey: string | null;
+  onModuleChange: (moduleKey: string) => void;
   onCloseModule: (moduleKey: string, e: React.MouseEvent) => void;
   showLeftScroll: boolean;
   showRightScroll: boolean;
   onScrollLeft: () => void;
   onScrollRight: () => void;
   onClosePanel: () => void;
-  onToggleFullscreen?: () => void;
-  isFullscreen?: boolean;
   tabsContainerRef: React.RefObject<HTMLDivElement | null>;
   checkScrollPosition: () => void;
   t: (key: string) => string;
@@ -21,8 +18,7 @@ interface ModuleTabsProps {
 
 export const ModuleTabs: React.FC<ModuleTabsProps> = ({
   modules,
-  activeModule,
-  activeTaskId,
+  activeModuleKey,
   onModuleChange,
   onCloseModule,
   showLeftScroll,
@@ -30,22 +26,17 @@ export const ModuleTabs: React.FC<ModuleTabsProps> = ({
   onScrollLeft,
   onScrollRight,
   onClosePanel,
-  onToggleFullscreen,
-  isFullscreen = false,
   tabsContainerRef,
   checkScrollPosition,
   t,
 }) => {
-  const isActive = (module: ModuleConfig): boolean => {
-    if (module.id !== activeModule) return false;
-    if (activeTaskId) {
-      return module.taskId === activeTaskId;
-    }
-    return !module.taskId;
-  };
   const getModuleKey = (module: ModuleConfig): string => {
+    if (module.fileId) {
+      return `preview_${module.fileId}`;
+    }
     return module.taskId ? `${module.id}_${module.taskId}` : module.id;
   };
+
   return (
     <div
       style={{
@@ -53,9 +44,10 @@ export const ModuleTabs: React.FC<ModuleTabsProps> = ({
         alignItems: "center",
         justifyContent: "space-between",
         padding: "10px 12px 0 12px",
-        borderBottom: "1px solid var(--border-color, #333)",
+        borderBottom: "1px solid var(--border-color)",
         flexShrink: 0,
         gap: "8px",
+        background: "var(--bg-secondary)",
       }}
     >
       {showLeftScroll && (
@@ -97,8 +89,8 @@ export const ModuleTabs: React.FC<ModuleTabsProps> = ({
         className="hide-scrollbar"
       >
         {modules.map((module) => {
-          const active = isActive(module);
           const moduleKey = getModuleKey(module);
+          const isActive = activeModuleKey === moduleKey;
           return (
             <div
               key={moduleKey}
@@ -107,35 +99,34 @@ export const ModuleTabs: React.FC<ModuleTabsProps> = ({
                 alignItems: "center",
                 gap: "6px",
                 padding: "0px 8px 0px 14px",
-                background: active
-                  ? "var(--bg-tertiary, #2d2d2d)"
-                  : "transparent",
+                background: isActive ? "var(--bg-tertiary)" : "transparent",
                 borderRadius: "8px 8px 0 0",
-                color: active
-                  ? "var(--text-primary, #fff)"
-                  : "var(--text-secondary, #aaa)",
+                color: isActive
+                  ? "var(--text-primary)"
+                  : "var(--text-secondary)",
                 cursor: "pointer",
                 fontSize: "13px",
-                fontWeight: active ? 500 : 400,
+                fontWeight: isActive ? 500 : 400,
                 transition: "all 0.2s ease",
-                borderBottom: active
-                  ? "2px solid var(--accent-color, #00aaff)"
+                borderBottom: isActive
+                  ? "2px solid var(--accent-color)"
                   : "2px solid transparent",
                 marginBottom: "-1px",
                 whiteSpace: "nowrap",
                 flexShrink: 0,
+                height: "30px",
               }}
-              onClick={() => onModuleChange(module.id, module.taskId)}
+              onClick={() => onModuleChange(moduleKey)}
               onMouseEnter={(e) => {
-                if (!active) {
-                  e.currentTarget.style.background = "var(--hover-bg, #2a2a2a)";
-                  e.currentTarget.style.color = "var(--text-primary, #fff)";
+                if (!isActive) {
+                  e.currentTarget.style.background = "var(--hover-bg)";
+                  e.currentTarget.style.color = "var(--text-primary)";
                 }
               }}
               onMouseLeave={(e) => {
-                if (!active) {
+                if (!isActive) {
                   e.currentTarget.style.background = "transparent";
-                  e.currentTarget.style.color = "var(--text-secondary, #aaa)";
+                  e.currentTarget.style.color = "var(--text-secondary)";
                 }
               }}
             >
@@ -199,41 +190,6 @@ export const ModuleTabs: React.FC<ModuleTabsProps> = ({
           </button>
         )}
 
-        {onToggleFullscreen && (
-          <button
-            onClick={onToggleFullscreen}
-            style={{
-              width: "28px",
-              height: "28px",
-              borderRadius: "4px",
-              background: "var(--bg-tertiary)",
-              border: "1px solid var(--border-color)",
-              color: "var(--text-secondary)",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: "14px",
-              transition: "all 0.2s ease",
-            }}
-            title={
-              isFullscreen
-                ? t("functionArea.exitFullscreen") || "Exit Fullscreen"
-                : t("functionArea.fullscreen") || "Fullscreen"
-            }
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = "var(--hover-bg, #3d3d3d)";
-              e.currentTarget.style.color = "var(--text-primary, #fff)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "var(--bg-tertiary)";
-              e.currentTarget.style.color = "var(--text-secondary)";
-            }}
-          >
-            {isFullscreen ? "🗗" : "🗖"}
-          </button>
-        )}
-
         <button
           onClick={onClosePanel}
           style={{
@@ -249,11 +205,17 @@ export const ModuleTabs: React.FC<ModuleTabsProps> = ({
             justifyContent: "center",
             fontSize: "14px",
           }}
-          title={t("functionArea.closePanel")}
+          title={t("functionArea.closePanel") || "Close"}
         >
           ✕
         </button>
       </div>
+
+      <style>{`
+        .hide-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
+      `}</style>
     </div>
   );
 };

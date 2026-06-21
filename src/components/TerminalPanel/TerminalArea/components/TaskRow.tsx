@@ -13,7 +13,6 @@ import { taskPoolCommands } from "../../../../core/TaskPool";
 import { PauseIcon, PlayIcon, StopIcon } from "../../../../icons";
 import { showDialog, DialogType } from "../../../Dialog";
 import { showToast, ToastType } from "../../../Toast";
-import { FunctionInstance } from "../../FunctionArea/types";
 import { taskManager } from "../../../../core/TaskManager";
 import {
   TaskInfo,
@@ -37,7 +36,6 @@ interface TaskRowProps {
   onScrollFilesLeft: (taskId: string) => void;
   onScrollFilesRight: (taskId: string) => void;
   onFileClick?: (file: UploadFile) => void;
-  onOpenFunctionArea: () => void;
   setTasks: React.Dispatch<React.SetStateAction<TaskInfo[]>>;
   t: (key: string, params?: any) => string;
 }
@@ -56,7 +54,6 @@ export const TaskRow = forwardRef<HTMLDivElement, TaskRowProps>(
       onScrollFilesLeft,
       onScrollFilesRight,
       onFileClick,
-      onOpenFunctionArea,
       setTasks,
       t,
     },
@@ -141,22 +138,19 @@ export const TaskRow = forwardRef<HTMLDivElement, TaskRowProps>(
         showToast(ToastType.ERROR, t("terminal.resumeFailed"));
       }
     };
+
     const handleShowMap = (mapData?: any) => {
-      onOpenFunctionArea();
-      setTimeout(() => {
-        window.dispatchEvent(
-          new CustomEvent("function-area-open-module", {
-            detail: {
-              moduleType: FunctionInstance.Earthview,
-              taskId: task.task_id,
-              mapData: mapData,
-              center: mapData?.view?.center,
-              zoom: mapData?.view?.zoom,
-            },
-          }),
-        );
-      }, 100);
+      console.log("TaskRow handleShowMap:", { mapData, taskId: task.task_id });
+      window.dispatchEvent(
+        new CustomEvent("open-map-in-panel", {
+          detail: {
+            mapData: mapData,
+            taskId: task.task_id,
+          },
+        }),
+      );
     };
+
     const handleInterruptTask = async (taskId: string, e: React.MouseEvent) => {
       e.stopPropagation();
       showDialog(
@@ -200,22 +194,14 @@ export const TaskRow = forwardRef<HTMLDivElement, TaskRowProps>(
     };
 
     const handleShowChart = () => {
-      onOpenFunctionArea();
-      setTimeout(() => {
-        window.dispatchEvent(
-          new CustomEvent("function-area-open-module", {
-            detail: {
-              moduleType: FunctionInstance.Canldeview,
-              taskId: task.task_id,
-            },
-          }),
-        );
-        window.dispatchEvent(
-          new CustomEvent("open-chart-with-data", {
-            detail: { taskId: task.task_id, taskData: task },
-          }),
-        );
-      }, 100);
+      window.dispatchEvent(
+        new CustomEvent("open-chart-in-panel", {
+          detail: {
+            chartData: task,
+            taskId: task.task_id,
+          },
+        }),
+      );
     };
 
     const copyToClipboard = async (
@@ -233,10 +219,12 @@ export const TaskRow = forwardRef<HTMLDivElement, TaskRowProps>(
         showToast(ToastType.ERROR, t("common.copyFailed") || "Copy Failed");
       }
     };
+
     const isRunningOrPending =
       task.status === TaskStatusEnum.Running ||
       task.status === TaskStatusEnum.Pending;
     const isPaused = task.status === TaskStatusEnum.Paused;
+
     return (
       <div key={task.task_id} ref={ref} className="task-row">
         <div

@@ -1,3 +1,4 @@
+// src/components/TerminalArea/index.tsx
 import React, { useEffect, useRef } from "react";
 import { TerminalAreaProps } from "./types";
 import { WELCOME_TASK_ID } from "./constants";
@@ -20,9 +21,7 @@ import {
 import { hippoxCommands } from "../../../command/chat";
 import { TaskStatusEnum } from "../../../core/types";
 
-interface ExtendedTerminalAreaProps extends TerminalAreaProps {}
-
-const TerminalArea: React.FC<ExtendedTerminalAreaProps> = ({
+const TerminalArea: React.FC<TerminalAreaProps> = ({
   logs,
   onClearLogs,
   t,
@@ -30,7 +29,6 @@ const TerminalArea: React.FC<ExtendedTerminalAreaProps> = ({
   onFileClick,
   theme: _theme,
   i18n: _i18n,
-  onOpenFunctionArea,
 }) => {
   const { tasks, setTasks, activeTasks } = useTaskManager(currentSessionId);
   const taskRefs = useRef<Map<string, HTMLDivElement>>(new Map());
@@ -43,8 +41,6 @@ const TerminalArea: React.FC<ExtendedTerminalAreaProps> = ({
     scrollFilesRight,
   } = useFilesScroll(activeTasks);
 
-  // Build allTasks (including welcome)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   const allTasks = [
     {
       task_id: WELCOME_TASK_ID,
@@ -185,7 +181,6 @@ const TerminalArea: React.FC<ExtendedTerminalAreaProps> = ({
               onScrollFilesLeft={scrollFilesLeft}
               onScrollFilesRight={scrollFilesRight}
               onFileClick={onFileClick}
-              onOpenFunctionArea={onOpenFunctionArea}
               setTasks={setTasks}
               t={t}
             />

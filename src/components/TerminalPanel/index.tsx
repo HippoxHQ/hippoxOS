@@ -1,8 +1,7 @@
-import React, { useRef, useEffect, useState } from "react";
+// src/components/TerminalPanel/index.tsx
+import React, { useEffect, useState } from "react";
 import { ExecutionLog } from "../../types/types";
-import FunctionArea from "./FunctionArea";
 import TerminalArea from "./TerminalArea";
-import { FunctionInstance } from "./FunctionArea/types";
 import { configCommands } from "../../command/config";
 import { UploadFile } from "../../core/types";
 
@@ -23,12 +22,7 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
 }) => {
   const [theme, setTheme] = useState<"light" | "dark">("dark");
   const [i18n, setI18n] = useState<"en" | "zh-cn">("zh-cn");
-  const [functionAreaHeight, setFunctionAreaHeight] = useState<number>(400);
-  const [isFunctionAreaVisible, setIsFunctionAreaVisible] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const pendingModuleRef = useRef<
-    FunctionInstance.Canldeview | FunctionInstance.Earthview | null
-  >(null);
+
   useEffect(() => {
     const loadTheme = async () => {
       try {
@@ -72,43 +66,8 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
     };
   }, []);
 
-  useEffect(() => {
-    const handleSetDefaultModule = (event: CustomEvent) => {
-      const { module } = event.detail;
-      pendingModuleRef.current = module;
-      if (!isFunctionAreaVisible) {
-        setIsFunctionAreaVisible(true);
-      }
-    };
-    window.addEventListener(
-      "set-default-function-module",
-      handleSetDefaultModule as EventListener,
-    );
-    return () => {
-      window.removeEventListener(
-        "set-default-function-module",
-        handleSetDefaultModule as EventListener,
-      );
-    };
-  }, [isFunctionAreaVisible]);
-
-  const handleCloseFunctionArea = () => {
-    setIsFunctionAreaVisible(false);
-    pendingModuleRef.current = null;
-  };
-
-  const handleOpenFunctionArea = (
-    defaultModule?: FunctionInstance.Canldeview | FunctionInstance.Earthview,
-  ) => {
-    if (defaultModule) {
-      pendingModuleRef.current = defaultModule;
-    }
-    setIsFunctionAreaVisible(true);
-  };
-
   return (
     <div
-      ref={containerRef}
       className="terminal-panel"
       style={{
         display: "flex",
@@ -118,55 +77,6 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
         position: "relative",
       }}
     >
-      {isFunctionAreaVisible && (
-        <>
-          <div
-            className="function-area"
-            style={{
-              height: functionAreaHeight,
-              flexShrink: 0,
-              overflow: "hidden",
-              borderBottom: "1px solid var(--border-color, #333)",
-            }}
-          >
-            <FunctionArea
-              theme={theme}
-              i18n={i18n}
-              t={t}
-              currentSessionId={currentSessionId}
-              onClose={handleCloseFunctionArea}
-              containerHeight={functionAreaHeight}
-              defaultModule={pendingModuleRef.current}
-            />
-          </div>
-          <div
-            className="resize-handle resize-handle-horizontal"
-            onMouseDown={(e) => {
-              e.preventDefault();
-              const startY = e.clientY;
-              const startHeight = functionAreaHeight;
-              const onMouseMove = (moveEvent: MouseEvent) => {
-                const newHeight = startHeight + (moveEvent.clientY - startY);
-                if (newHeight >= 150 && newHeight <= 800) {
-                  setFunctionAreaHeight(newHeight);
-                }
-              };
-              const onMouseUp = () => {
-                document.removeEventListener("mousemove", onMouseMove);
-                document.removeEventListener("mouseup", onMouseUp);
-                document.body.style.cursor = "";
-                document.body.style.userSelect = "";
-              };
-              document.body.style.cursor = "row-resize";
-              document.body.style.userSelect = "none";
-              document.addEventListener("mousemove", onMouseMove);
-              document.addEventListener("mouseup", onMouseUp);
-            }}
-          >
-            <div className="handle-line"></div>
-          </div>
-        </>
-      )}
       <div
         className="terminal-area"
         style={{
@@ -183,8 +93,6 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
           onFileClick={onFileClick}
           theme={theme}
           i18n={i18n}
-          onOpenFunctionArea={() => handleOpenFunctionArea()}
-          onOpenMap={() => handleOpenFunctionArea(FunctionInstance.Earthview)}
         />
       </div>
     </div>

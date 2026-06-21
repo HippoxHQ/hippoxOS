@@ -5,7 +5,7 @@ import {
   TimeframeEnum,
 } from "@candleview/core";
 import React, { useRef, useEffect, useState, useCallback } from "react";
-import { TEST_CANDLEVIEW_DATA8 } from "../../../../test/TestData_3";
+import { TEST_CANDLEVIEW_DATA8 } from "../../../test/TestData_3";
 
 interface IntegratedCandleViewProps {
   theme: "light" | "dark";

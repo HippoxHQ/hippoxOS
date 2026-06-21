@@ -1,106 +1,107 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { FunctionModule, FunctionInstance } from "../types";
-const getModuleKey = (moduleId: FunctionModule, taskId?: string): string => {
+import { FunctionModule } from "../types";
+
+const getModuleKey = (moduleId: FunctionModule, taskId?: string, fileId?: string): string => {
+  if (moduleId === "preview" && fileId) {
+    return `preview_${fileId}`;
+  }
   return taskId ? `${moduleId}_${taskId}` : moduleId;
 };
-const parseModuleKey = (key: string): { moduleId: FunctionModule; taskId?: string } => {
+
+const parseModuleKey = (key: string): { moduleId: FunctionModule; taskId?: string; fileId?: string } => {
   const parts = key.split('_');
   if (parts.length === 1) {
     return { moduleId: parts[0] as FunctionModule };
   }
   const moduleId = parts[0] as FunctionModule;
-  const taskId = parts.slice(1).join('_');
-  return { moduleId, taskId };
+  const rest = parts.slice(1).join('_');
+  if (moduleId === "preview") {
+    return { moduleId, fileId: rest };
+  }
+  return { moduleId, taskId: rest };
 };
-export const useFunctionArea = (defaultModule?: FunctionModule, defaultTaskId?: string) => {
-  const [openModulesMap, setOpenModulesMap] = useState<Map<FunctionModule, Set<string>>>(new Map());
-  const [activeModule, setActiveModule] = useState<FunctionModule | null>(null);
-  const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
+
+export const useFunctionPanel = () => {
+  const [openModulesMap, setOpenModulesMap] = useState<Map<string, Set<string>>>(new Map());
+  const [activeModuleKey, setActiveModuleKey] = useState<string | null>(null);
   const [showLeftScroll, setShowLeftScroll] = useState(false);
   const [showRightScroll, setShowRightScroll] = useState(false);
   const tabsContainerRef = useRef<HTMLDivElement>(null);
-  const getActiveKey = useCallback(() => {
-    if (!activeModule) return null;
-    return activeTaskId ? `${activeModule}_${activeTaskId}` : activeModule;
-  }, [activeModule, activeTaskId]);
+
   const getOpenModuleKeys = useCallback((): string[] => {
     const keys: string[] = [];
-    Array.from(openModulesMap.entries()).forEach(([moduleId, taskIds]) => {
+    openModulesMap.forEach((taskIds, moduleId) => {
       if (taskIds.size === 0 || (taskIds.size === 1 && taskIds.has(''))) {
         keys.push(moduleId);
       } else {
-        Array.from(taskIds).forEach((taskId) => {
-          if (taskId !== '') {
-            keys.push(getModuleKey(moduleId, taskId));
+        taskIds.forEach((id) => {
+          if (id !== '') {
+            keys.push(getModuleKey(moduleId as FunctionModule, id, id));
           }
         });
       }
     });
     return keys;
   }, [openModulesMap]);
+
   const openModule = useCallback((
     moduleId: FunctionModule,
     taskId?: string,
-  ): { moduleId: FunctionModule; taskId?: string } => {
+    fileId?: string,
+  ) => {
+    const key = getModuleKey(moduleId, taskId, fileId);
     setOpenModulesMap(prev => {
       const newMap = new Map(prev);
-      const taskIds = newMap.get(moduleId) || new Set<string>();
-      const targetTaskId = taskId || '';
-      if (!taskIds.has(targetTaskId)) {
-        taskIds.add(targetTaskId);
-        newMap.set(moduleId, taskIds);
+      const moduleKey = moduleId;
+      const taskIds = newMap.get(moduleKey) || new Set<string>();
+      const id = fileId || taskId || '';
+      if (!taskIds.has(id)) {
+        taskIds.add(id);
+        newMap.set(moduleKey, taskIds);
       }
       return newMap;
     });
-    setActiveModule(moduleId);
-    setActiveTaskId(taskId || null);
-    return { moduleId, taskId };
+    setActiveModuleKey(key);
+    return key;
   }, []);
-  const switchToModuleByKey = useCallback((moduleKey: string) => {
-    const { moduleId, taskId } = parseModuleKey(moduleKey);
-    setActiveModule(moduleId);
-    setActiveTaskId(taskId || null);
+
+  const switchToModule = useCallback((key: string) => {
+    setActiveModuleKey(key);
   }, []);
-  const switchToModule = useCallback((moduleId: FunctionModule, taskId?: string) => {
-    setActiveModule(moduleId);
-    setActiveTaskId(taskId || null);
-  }, []);
+
   const handleCloseModule = useCallback((moduleKey: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    const { moduleId, taskId } = parseModuleKey(moduleKey);
+    const { moduleId, taskId, fileId } = parseModuleKey(moduleKey);
+    let hasRemaining = false;
     setOpenModulesMap(prev => {
       const newMap = new Map(prev);
       const taskIds = newMap.get(moduleId);
       if (taskIds) {
-        taskIds.delete(taskId || '');
+        const id = fileId || taskId || '';
+        taskIds.delete(id);
         if (taskIds.size === 0) {
           newMap.delete(moduleId);
         } else {
           newMap.set(moduleId, taskIds);
         }
       }
+      let total = 0;
+      newMap.forEach((ids) => {
+        total += ids.size;
+      });
+      hasRemaining = total > 0;
       return newMap;
     });
-    const currentActiveKey = getActiveKey();
-    if (currentActiveKey === moduleKey) {
+    if (activeModuleKey === moduleKey) {
       const remainingKeys = getOpenModuleKeys();
       if (remainingKeys.length > 0) {
-        const { moduleId: nextModuleId, taskId: nextTaskId } = parseModuleKey(remainingKeys[0]);
-        setActiveModule(nextModuleId);
-        setActiveTaskId(nextTaskId || null);
+        setActiveModuleKey(remainingKeys[0]);
       } else {
-        setActiveModule(null);
-        setActiveTaskId(null);
+        setActiveModuleKey(null);
       }
     }
-    return openModulesMap.size === 1;
-  }, [openModulesMap, getActiveKey, getOpenModuleKeys]);
-  const isModuleOpen = useCallback((moduleId: FunctionModule, taskId?: string): boolean => {
-    const taskIds = openModulesMap.get(moduleId);
-    if (!taskIds) return false;
-    if (taskId === undefined) return true;
-    return taskIds.has(taskId || '');
-  }, [openModulesMap]);
+    return hasRemaining;
+  }, [activeModuleKey, getOpenModuleKeys]);
 
   const checkScrollPosition = useCallback(() => {
     if (tabsContainerRef.current) {
@@ -117,7 +118,6 @@ export const useFunctionArea = (defaultModule?: FunctionModule, defaultTaskId?: 
     return () => clearTimeout(timer);
   }, [openModulesMap, checkScrollPosition]);
 
-
   const handleScroll = useCallback((direction: "left" | "right") => {
     if (tabsContainerRef.current) {
       const scrollAmount = 200;
@@ -127,6 +127,7 @@ export const useFunctionArea = (defaultModule?: FunctionModule, defaultTaskId?: 
       setTimeout(checkScrollPosition, 200);
     }
   }, [checkScrollPosition]);
+
   useEffect(() => {
     const container = tabsContainerRef.current;
     if (container) {
@@ -135,20 +136,14 @@ export const useFunctionArea = (defaultModule?: FunctionModule, defaultTaskId?: 
       return () => container.removeEventListener("scroll", checkScrollPosition);
     }
   }, [checkScrollPosition]);
-  useEffect(() => {
-    if (defaultModule) {
-      openModule(defaultModule, defaultTaskId);
-    }
-  }, [defaultModule, defaultTaskId, openModule]);
+
   return {
     openModulesMap,
-    activeModule,
-    activeTaskId,
-    getActiveKey,
+    setOpenModulesMap,
+    activeModuleKey,
+    setActiveModuleKey,
     getOpenModuleKeys,
     switchToModule,
-    switchToModuleByKey,
-    setActiveModule: switchToModule,
     showLeftScroll,
     showRightScroll,
     tabsContainerRef,
@@ -156,7 +151,6 @@ export const useFunctionArea = (defaultModule?: FunctionModule, defaultTaskId?: 
     handleScroll,
     handleCloseModule,
     openModule,
-    isModuleOpen,
     parseModuleKey,
   };
 };

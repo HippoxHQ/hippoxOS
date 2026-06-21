@@ -31,7 +31,7 @@ import LLMChatPage from "../../pages/LLMChatPage";
 import ScheduledTasksManager from "../../pages/ScheduledTasksPage";
 import SkillsManager from "../../pages/SkillsManagerPage";
 import UserProfile from "../../pages/UserProfilePage";
-import GlobalFilePreview from "../../components/GlobalFilePreview/GlobalFilePreview";
+import FunctionPanel from "../../components/FunctionPanel/FunctionPanel";
 
 interface AppContentProps {
   theme: Theme;
@@ -80,6 +80,8 @@ interface AppContentProps {
   layoutSwapMode: "terminal-left" | "chat-left";
   onLayoutSwapModeChange: (mode: "terminal-left" | "chat-left") => void;
   onSendSkillMessage: (message: string, files?: UploadFile[]) => void;
+  isFunctionPanelOpen: boolean;
+  onCloseFunctionPanel: () => void;
 }
 
 export function AppContent({
@@ -125,6 +127,8 @@ export function AppContent({
   layoutSwapMode,
   onLayoutSwapModeChange,
   onSendSkillMessage,
+  isFunctionPanelOpen,
+  onCloseFunctionPanel,
 }: AppContentProps) {
   const showWelcome = shouldShowWelcome();
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
@@ -133,6 +137,15 @@ export function AppContent({
   const isDraggingRightExtra = useRef(false);
   const startXRef = useRef(0);
   const startWidthRef = useRef(0);
+
+  const handleFileClick = (file: UploadFile) => {
+    onFilePreview(file);
+    window.dispatchEvent(
+      new CustomEvent("open-preview-in-panel", {
+        detail: { file },
+      }),
+    );
+  };
 
   useEffect(() => {
     const savedWidth = localStorage.getItem("hippox-right-extra-width");
@@ -211,12 +224,12 @@ export function AppContent({
         onClearLogs={onClearLogs}
         t={t}
         currentSessionId={currentSessionId}
-        onFileClick={onFilePreview}
+        onFileClick={handleFileClick}
       />
     ) : (
       <ChatPanel
         onSendMessage={onSendMessage}
-        onFileClick={onFilePreview}
+        onFileClick={handleFileClick}
         t={t}
         currentSessionId={currentSessionId}
         onDragOverInputChange={setIsDraggingOverInput}
@@ -227,7 +240,7 @@ export function AppContent({
     layoutSwapMode === "terminal-left" ? (
       <ChatPanel
         onSendMessage={onSendMessage}
-        onFileClick={onFilePreview}
+        onFileClick={handleFileClick}
         t={t}
         currentSessionId={currentSessionId}
         onDragOverInputChange={setIsDraggingOverInput}
@@ -239,7 +252,7 @@ export function AppContent({
         onClearLogs={onClearLogs}
         t={t}
         currentSessionId={currentSessionId}
-        onFileClick={onFilePreview}
+        onFileClick={handleFileClick}
       />
     );
 
@@ -510,7 +523,7 @@ export function AppContent({
             />
           )}
         </div>
-        {isFilePreviewOpen && previewFile && (
+        {isFunctionPanelOpen && (
           <>
             <div
               className="resize-handle resize-handle-vertical"
@@ -526,12 +539,13 @@ export function AppContent({
                 flexShrink: 0,
               }}
             >
-              <GlobalFilePreview
-                file={previewFile}
-                isOpen={isFilePreviewOpen}
-                onClose={onCloseFilePreview}
-                onSendSkillMessage={onSendSkillMessage}
+              <FunctionPanel
+                theme={theme}
+                i18n={language === "zh" ? "zh-cn" : "en"}
                 t={t}
+                currentSessionId={currentSessionId}
+                onClose={onCloseFunctionPanel}
+                onSendSkillMessage={onSendSkillMessage}
               />
             </div>
           </>
