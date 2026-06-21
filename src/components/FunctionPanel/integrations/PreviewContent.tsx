@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { UploadFile } from "../../../core/types";
 import ImageFilePreview from "./GlobalFilePreview/ImageFilePreview";
 import SkillFilePreview from "./GlobalFilePreview/SkillFilePreview";
@@ -17,6 +17,34 @@ export const PreviewContent: React.FC<PreviewContentProps> = ({
   onSendSkillMessage,
   t,
 }) => {
+  const isSkillFile =
+    file?.name?.endsWith(".md") || file?.name?.endsWith(".skill.md") || false;
+  const isImageFile =
+    file?.type?.startsWith("image/") ||
+    /\.(png|jpg|jpeg|gif|webp|bmp|svg|ico)$/i.test(file?.name || "") ||
+    false;
+  const content = useMemo(() => {
+    if (!file) {
+      return null;
+    }
+    const key = file.id || file.path || file.name || "file";
+    if (isSkillFile) {
+      return (
+        <SkillFilePreview
+          key={key}
+          file={file}
+          onClose={onClose}
+          onSendSkillMessage={onSendSkillMessage}
+          t={t}
+        />
+      );
+    }
+    if (isImageFile) {
+      return <ImageFilePreview key={key} file={file} onClose={onClose} t={t} />;
+    }
+    return <TextFilePreview key={key} file={file} onClose={onClose} t={t} />;
+  }, [file, isSkillFile, isImageFile, onClose, onSendSkillMessage, t]);
+
   if (!file) {
     return (
       <div
@@ -34,43 +62,7 @@ export const PreviewContent: React.FC<PreviewContentProps> = ({
     );
   }
 
-  const isSkillFile =
-    file.name?.endsWith(".md") || file.name?.endsWith(".skill.md");
-  const isImageFile =
-    file.type?.startsWith("image/") ||
-    /\.(png|jpg|jpeg|gif|webp|bmp|svg|ico)$/i.test(file.name || "");
-
-  if (isSkillFile) {
-    return (
-      <SkillFilePreview
-        key={file.id || file.path || file.name}
-        file={file}
-        onClose={onClose}
-        onSendSkillMessage={onSendSkillMessage}
-        t={t}
-      />
-    );
-  }
-
-  if (isImageFile) {
-    return (
-      <ImageFilePreview
-        key={file.id || file.path || file.name}
-        file={file}
-        onClose={onClose}
-        t={t}
-      />
-    );
-  }
-
-  return (
-    <TextFilePreview
-      key={file.id || file.path || file.name}
-      file={file}
-      onClose={onClose}
-      t={t}
-    />
-  );
+  return content;
 };
 
 export default PreviewContent;

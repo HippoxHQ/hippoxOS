@@ -55,4 +55,15 @@ export const filesCommands = {
     async getFileInfo(path: string): Promise<FileInfoDetail> {
         return await invoke("cmd_get_file_info", { path });
     },
+
+    async readFileBase64AndSize(path: string): Promise<{ base64: string; size: number }> {
+        const [base64, info] = await Promise.all([
+            this.readImageBase64(path),
+            this.getFileInfo(path).catch(() => null)
+        ]);
+        return {
+            base64,
+            size: info?.size ?? Math.ceil(base64.length * 0.75)
+        };
+    },
 };

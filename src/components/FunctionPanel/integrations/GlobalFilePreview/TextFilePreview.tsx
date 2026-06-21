@@ -16,33 +16,43 @@ const TextFilePreview: React.FC<TextFilePreviewProps> = ({
   const [fileContent, setFileContent] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const readTextFile = useCallback(async (filePath: string) => {
-    setIsLoading(true);
-    try {
-      const content = await filesCommands.readTextFile(filePath);
-      setFileContent(content);
-    } catch (err) {
-      setError("Failed to read file");
-    } finally {
-      setIsLoading(false);
-    }
+  const [fileSize, setFileSize] = useState<number>(0);
+  const [fileType, setFileType] = useState<string>("");
+  const formatFileSize = useCallback((bytes: number): string => {
+    if (bytes === 0) return "Unknown size";
+    const k = 1024;
+    const sizes = ["B", "KB", "MB", "GB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
   }, []);
+  const readTextFile = useCallback(
+    async (filePath: string) => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const [content, fileInfo] = await Promise.all([
+          filesCommands.readTextFile(filePath),
+          filesCommands.getFileInfo(filePath).catch(() => null),
+        ]);
+        setFileContent(content);
+        setFileSize(fileInfo?.size || 0);
+        setFileType(fileInfo?.mime_type || file?.type || "Unknown");
+      } catch (err) {
+        setError("Failed to read file");
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [file?.type],
+  );
   useEffect(() => {
     if (file?.path) {
       setFileContent("");
       setError(null);
       readTextFile(file.path);
     }
-  }, [file, readTextFile]);
+  }, [file?.path]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!file) return null;
-  const formatFileSize = (bytes: number): string => {
-    if (bytes === 0) return "0 B";
-    const k = 1024;
-    const sizes = ["B", "KB", "MB", "GB"];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
-  };
   return (
     <div
       style={{
@@ -117,7 +127,7 @@ const TextFilePreview: React.FC<TextFilePreviewProps> = ({
           borderBottom: "1px solid var(--border-color)",
         }}
       >
-        Size: {formatFileSize(file.size)} | Type: {file.type || "Unknown"}
+        Size: {formatFileSize(fileSize)} | Type: {fileType}
       </div>
       <div style={{ flex: 1, overflow: "auto", padding: 16 }}>
         {isLoading && (

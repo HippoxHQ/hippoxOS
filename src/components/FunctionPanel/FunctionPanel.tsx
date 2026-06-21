@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { useRef, useMemo, useCallback } from "react";
 import PreviewContent from "./integrations/PreviewContent";
 import IntegratedCandleView from "./integrations/IntegratedCandleView";
 import IntegratedEarthView from "./integrations/IntegratedEarthView";
@@ -26,46 +26,54 @@ const FunctionPanel: React.FC<FunctionPanelProps> = ({
   width = 480,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const renderItemContent = (item: any) => {
-    if (!item) return null;
-    switch (item.type) {
-      case "preview":
-        return (
-          <PreviewContent
-            key={item.id}
-            file={item.data}
-            onClose={() => controller.closeItem(item.id)}
-            onSendSkillMessage={onSendSkillMessage}
-            t={t}
-          />
-        );
-      case "map":
-        return (
-          <IntegratedEarthView
-            key={item.id}
-            theme={theme}
-            i18n={i18n}
-            taskId={item.data?.taskId}
-            mapData={item.data?.mapData}
-          />
-        );
-      case "chart":
-        return (
-          <IntegratedCandleView
-            key={item.id}
-            theme={theme}
-            i18n={i18n}
-            currentSessionId={currentSessionId}
-            taskId={item.data?.taskId}
-            chartData={item.data?.chartData}
-          />
-        );
-      default:
-        return null;
-    }
-  };
+  const renderItemContent = useCallback(
+    (item: any) => {
+      if (!item) return null;
+
+      switch (item.type) {
+        case "preview":
+          return (
+            <PreviewContent
+              key={item.id}
+              file={item.data}
+              onClose={() => controller.closeItem(item.id)}
+              onSendSkillMessage={onSendSkillMessage}
+              t={t}
+            />
+          );
+        case "map":
+          return (
+            <IntegratedEarthView
+              key={item.id}
+              theme={theme}
+              i18n={i18n}
+              taskId={item.data?.taskId}
+              mapData={item.data?.mapData}
+            />
+          );
+        case "chart":
+          return (
+            <IntegratedCandleView
+              key={item.id}
+              theme={theme}
+              i18n={i18n}
+              currentSessionId={currentSessionId}
+              taskId={item.data?.taskId}
+              chartData={item.data?.chartData}
+            />
+          );
+        default:
+          return null;
+      }
+    },
+    [theme, i18n, currentSessionId, onSendSkillMessage, t, controller],
+  );
+
   const activeItem = controller.getActiveItem?.() || null;
-  const activeContent = activeItem ? renderItemContent(activeItem) : null;
+  const activeContent = useMemo(() => {
+    return activeItem ? renderItemContent(activeItem) : null;
+  }, [activeItem, renderItemContent]);
+
   if (!controller.isOpen || controller.items.length === 0) {
     return (
       <div
@@ -93,6 +101,7 @@ const FunctionPanel: React.FC<FunctionPanelProps> = ({
       </div>
     );
   }
+
   return (
     <div
       ref={containerRef}

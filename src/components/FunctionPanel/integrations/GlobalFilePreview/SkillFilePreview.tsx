@@ -22,11 +22,24 @@ const SkillFilePreview: React.FC<SkillFilePreviewProps> = ({
   const [skillDescription, setSkillDescription] = useState<string>("");
   const [skillVersion, setSkillVersion] = useState<string>("");
   const [skillAuthor, setSkillAuthor] = useState<string>("");
+  const [fileSize, setFileSize] = useState<number>(0);
+  const formatFileSize = useCallback((bytes: number): string => {
+    if (bytes === 0) return "Unknown size";
+    const k = 1024;
+    const sizes = ["B", "KB", "MB", "GB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
+  }, []);
   const readSkillFile = useCallback(async (filePath: string) => {
     setIsLoading(true);
+    setError(null);
     try {
-      const content = await filesCommands.readTextFile(filePath);
+      const [content, fileInfo] = await Promise.all([
+        filesCommands.readTextFile(filePath),
+        filesCommands.getFileInfo(filePath).catch(() => null),
+      ]);
       setFileContent(content);
+      setFileSize(fileInfo?.size || 0);
       parseSkillMetadata(content);
     } catch (err) {
       setError("Failed to read skill file");
@@ -74,7 +87,7 @@ const SkillFilePreview: React.FC<SkillFilePreviewProps> = ({
       setError(null);
       readSkillFile(file.path);
     }
-  }, [file, readSkillFile]);
+  }, [file?.path]); // eslint-disable-line react-hooks/exhaustive-deps
   const handleUseSkill = () => {
     if (onSendSkillMessage && file) {
       const skillPrompt = `@skill ${file.path}`;
@@ -83,13 +96,6 @@ const SkillFilePreview: React.FC<SkillFilePreviewProps> = ({
     }
   };
   if (!file) return null;
-  const formatFileSize = (bytes: number): string => {
-    if (bytes === 0) return "0 B";
-    const k = 1024;
-    const sizes = ["B", "KB", "MB", "GB"];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
-  };
   const isSkillFile =
     file.name?.endsWith(".md") || file.name?.endsWith(".skill.md");
   return (
@@ -194,7 +200,7 @@ const SkillFilePreview: React.FC<SkillFilePreviewProps> = ({
       >
         <span>Version: {skillVersion}</span>
         <span>Author: {skillAuthor}</span>
-        <span>Size: {formatFileSize(file.size)}</span>
+        <span>Size: {formatFileSize(fileSize)}</span>
       </div>
 
       <div

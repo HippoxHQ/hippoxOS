@@ -18,6 +18,7 @@ export const MessageFileGrid: React.FC<MessageFileGridProps> = ({
   const [imagePreviews, setImagePreviews] = useState<Map<string, string>>(
     new Map(),
   );
+  const [fileSizes, setFileSizes] = useState<Map<string, number>>(new Map());
   const isMountedRef = useRef(true);
 
   const isSkillFile = (file: UploadFile): boolean => {
@@ -56,13 +57,11 @@ export const MessageFileGrid: React.FC<MessageFileGridProps> = ({
     if (!file.path) {
       return file.name || "skill.md";
     }
-
     try {
       const exists = await filesCommands.pathExists(file.path);
       if (!exists) {
         return "skill.md";
       }
-
       const content = await filesCommands.readTextFile(file.path);
       const name = extractSkillName(content);
       return name || file.name || "skill.md";
@@ -74,13 +73,11 @@ export const MessageFileGrid: React.FC<MessageFileGridProps> = ({
 
   const loadImagePreview = async (file: UploadFile): Promise<string> => {
     if (!file.path) return "";
-
     try {
       const exists = await filesCommands.pathExists(file.path);
       if (!exists) {
         return "";
       }
-
       const base64 = await filesCommands.readImageBase64(file.path);
       return base64;
     } catch (error) {
@@ -89,22 +86,30 @@ export const MessageFileGrid: React.FC<MessageFileGridProps> = ({
     }
   };
 
+  const getFileSize = async (file: UploadFile): Promise<number> => {
+    if (!file.path) return 0;
+    try {
+      const info = await filesCommands.getFileInfo(file.path);
+      return info.size || 0;
+    } catch (error) {
+      console.error("Failed to get file size:", file.path, error);
+      return 0;
+    }
+  };
+
   useEffect(() => {
     isMountedRef.current = true;
-
     const loadData = async () => {
       const newSkillNames = new Map<string, string>();
       const newImagePreviews = new Map<string, string>();
-
+      const newFileSizes = new Map<string, number>();
       for (const file of files) {
         const key = file.id || file.path || file.name;
-
         if (isSkillFile(file)) {
           const displayName = await getSkillDisplayName(file);
           if (!isMountedRef.current) return;
           newSkillNames.set(key, displayName);
         }
-
         if (isImageFile(file)) {
           const preview = await loadImagePreview(file);
           if (!isMountedRef.current) return;
@@ -112,16 +117,19 @@ export const MessageFileGrid: React.FC<MessageFileGridProps> = ({
             newImagePreviews.set(key, preview);
           }
         }
+        const size = await getFileSize(file);
+        if (!isMountedRef.current) return;
+        if (size > 0) {
+          newFileSizes.set(key, size);
+        }
       }
-
       if (isMountedRef.current) {
         setSkillNames(newSkillNames);
         setImagePreviews(newImagePreviews);
+        setFileSizes(newFileSizes);
       }
     };
-
     loadData();
-
     return () => {
       isMountedRef.current = false;
     };
@@ -131,20 +139,23 @@ export const MessageFileGrid: React.FC<MessageFileGridProps> = ({
     if (!isSkillFile(file)) {
       return file.name;
     }
-
     const key = file.id || file.path || file.name;
     const skillName = skillNames.get(key);
-
     if (skillName) {
       return skillName;
     }
-
     return file.name || "skill.md";
   };
 
   const getImagePreview = (file: UploadFile): string | undefined => {
     const key = file.id || file.path || file.name;
     return imagePreviews.get(key);
+  };
+
+  const getFileSizeDisplay = (file: UploadFile): number => {
+    const key = file.id || file.path || file.name;
+    const size = fileSizes.get(key);
+    return size || file.size || 0;
   };
 
   return (
@@ -163,7 +174,7 @@ export const MessageFileGrid: React.FC<MessageFileGridProps> = ({
         const displayName = getDisplayName(file);
         const imagePreview = getImagePreview(file);
         const isImage = isImageFile(file);
-
+        const fileSize = getFileSizeDisplay(file);
         return (
           <div
             key={file.id || `file_${idx}_${file.name}_${Date.now()}`}
@@ -284,7 +295,7 @@ export const MessageFileGrid: React.FC<MessageFileGridProps> = ({
                   color: "var(--text-tertiary)",
                 }}
               >
-                {formatFileSize(file.size)}
+                {formatFileSize(fileSize)}
               </span>
               {isSkill && (
                 <span
