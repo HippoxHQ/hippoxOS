@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import ImageFilePreview from "./ImageFilePreview";
 import SkillFilePreview from "./SkillFilePreview";
 import TextFilePreview from "./TextFilePreview";
-import { UploadFile } from "../../../core/types";
+import { UploadFile } from "../../../../core/types";
 
 interface GlobalFilePreviewProps {
   file: UploadFile | null;

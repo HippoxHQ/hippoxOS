@@ -1,122 +1,128 @@
-import React from "react";
-import { ModuleConfig } from "./types";
+import React, { useRef, useEffect, useState } from "react";
+import { FunctionPanelItem } from "./hooks/useFunctionPanelController";
 
 interface ModuleTabsProps {
-  modules: ModuleConfig[];
-  activeModuleKey: string | null;
-  onModuleChange: (moduleKey: string) => void;
-  onCloseModule: (moduleKey: string, e: React.MouseEvent) => void;
-  showLeftScroll: boolean;
-  showRightScroll: boolean;
-  onScrollLeft: () => void;
-  onScrollRight: () => void;
+  items: FunctionPanelItem[];
+  activeItemId: string | null;
+  onSwitch: (id: string) => void;
+  onClose: (id: string) => void;
   onClosePanel: () => void;
-  tabsContainerRef: React.RefObject<HTMLDivElement | null>;
-  checkScrollPosition: () => void;
   t: (key: string) => string;
 }
 
 export const ModuleTabs: React.FC<ModuleTabsProps> = ({
-  modules,
-  activeModuleKey,
-  onModuleChange,
-  onCloseModule,
-  showLeftScroll,
-  showRightScroll,
-  onScrollLeft,
-  onScrollRight,
+  items,
+  activeItemId,
+  onSwitch,
+  onClose,
   onClosePanel,
-  tabsContainerRef,
-  checkScrollPosition,
   t,
 }) => {
-  const getModuleKey = (module: ModuleConfig): string => {
-    if (module.fileId) {
-      return `preview_${module.fileId}`;
-    }
-    return module.taskId ? `${module.id}_${module.taskId}` : module.id;
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [showLeft, setShowLeft] = useState(false);
+  const [showRight, setShowRight] = useState(false);
+  const checkScroll = () => {
+    if (!containerRef.current) return;
+    const { scrollLeft, scrollWidth, clientWidth } = containerRef.current;
+    setShowLeft(scrollLeft > 0);
+    setShowRight(scrollLeft + clientWidth < scrollWidth - 1);
   };
-
+  useEffect(() => {
+    const el = containerRef.current;
+    if (el) {
+      el.addEventListener("scroll", checkScroll);
+      checkScroll();
+      return () => el.removeEventListener("scroll", checkScroll);
+    }
+  }, [items]);
+  useEffect(() => {
+    setTimeout(checkScroll, 50);
+  }, [items]);
+  const scroll = (dir: "left" | "right") => {
+    if (!containerRef.current) return;
+    const amount = 200;
+    containerRef.current.scrollBy({
+      left: dir === "left" ? -amount : amount,
+      behavior: "smooth",
+    });
+    setTimeout(checkScroll, 200);
+  };
+  const scrollButtonStyle: React.CSSProperties = {
+    flexShrink: 0,
+    width: 24,
+    height: 28,
+    borderRadius: 4,
+    background: "var(--bg-tertiary)",
+    border: "1px solid var(--border-color)",
+    color: "var(--text-secondary)",
+    cursor: "pointer",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: 12,
+  };
   return (
     <div
       style={{
         display: "flex",
         alignItems: "center",
-        justifyContent: "space-between",
-        padding: "10px 12px 0 12px",
+        padding: "10px 12px 0",
         borderBottom: "1px solid var(--border-color)",
         flexShrink: 0,
-        gap: "8px",
+        gap: 8,
         background: "var(--bg-secondary)",
+        minHeight: 40,
       }}
     >
-      {showLeftScroll && (
-        <button
-          onClick={onScrollLeft}
-          style={{
-            flexShrink: 0,
-            width: "24px",
-            height: "28px",
-            borderRadius: "4px",
-            background: "var(--bg-tertiary)",
-            border: "1px solid var(--border-color)",
-            color: "var(--text-secondary)",
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: "12px",
-            marginTop: "-10px",
-          }}
-        >
+      {showLeft && (
+        <button onClick={() => scroll("left")} style={scrollButtonStyle}>
           ◀
         </button>
       )}
 
       <div
-        ref={tabsContainerRef}
-        onScroll={checkScrollPosition}
+        ref={containerRef}
         style={{
           flex: 1,
           display: "flex",
-          gap: "4px",
+          gap: 4,
           overflowX: "auto",
           overflowY: "hidden",
-          minHeight: "30px",
+          minHeight: 30,
           scrollbarWidth: "none",
           msOverflowStyle: "none",
+          padding: "0 2px",
         }}
         className="hide-scrollbar"
       >
-        {modules.map((module) => {
-          const moduleKey = getModuleKey(module);
-          const isActive = activeModuleKey === moduleKey;
+        {items.map((item) => {
+          const isActive = activeItemId === item.id;
           return (
             <div
-              key={moduleKey}
+              key={item.id}
+              onClick={() => onSwitch(item.id)}
               style={{
                 display: "flex",
                 alignItems: "center",
-                gap: "6px",
-                padding: "0px 8px 0px 14px",
+                gap: 6,
+                padding: "0 8px 0 14px",
                 background: isActive ? "var(--bg-tertiary)" : "transparent",
                 borderRadius: "8px 8px 0 0",
                 color: isActive
                   ? "var(--text-primary)"
                   : "var(--text-secondary)",
                 cursor: "pointer",
-                fontSize: "13px",
+                fontSize: 13,
                 fontWeight: isActive ? 500 : 400,
-                transition: "all 0.2s ease",
                 borderBottom: isActive
                   ? "2px solid var(--accent-color)"
                   : "2px solid transparent",
-                marginBottom: "-1px",
+                marginBottom: -1,
                 whiteSpace: "nowrap",
                 flexShrink: 0,
-                height: "30px",
+                height: 30,
+                transition: "all 0.2s ease",
               }}
-              onClick={() => onModuleChange(moduleKey)}
               onMouseEnter={(e) => {
                 if (!isActive) {
                   e.currentTarget.style.background = "var(--hover-bg)";
@@ -130,86 +136,81 @@ export const ModuleTabs: React.FC<ModuleTabsProps> = ({
                 }
               }}
             >
-              <span>{module.icon}</span>
-              <span>{module.name}</span>
-              {module.closable && (
-                <span
-                  onClick={(e) => onCloseModule(moduleKey, e)}
-                  style={{
-                    marginLeft: "4px",
-                    fontSize: "12px",
-                    opacity: 0.7,
-                    cursor: "pointer",
-                    padding: "2px",
-                    borderRadius: "2px",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.stopPropagation();
-                    e.currentTarget.style.background = "var(--bg-secondary)";
-                    e.currentTarget.style.opacity = "1";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = "transparent";
-                    e.currentTarget.style.opacity = "0.7";
-                  }}
-                >
-                  ✕
-                </span>
-              )}
+              <span>{item.icon}</span>
+              <span
+                style={{
+                  maxWidth: 120,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                }}
+              >
+                {item.title}
+              </span>
+              <span
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onClose(item.id);
+                }}
+                style={{
+                  marginLeft: 4,
+                  fontSize: 12,
+                  opacity: 0.7,
+                  cursor: "pointer",
+                  padding: "2px 4px",
+                  borderRadius: 2,
+                }}
+                onMouseEnter={(e) => {
+                  e.stopPropagation();
+                  e.currentTarget.style.background = "var(--bg-secondary)";
+                  e.currentTarget.style.opacity = "1";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "transparent";
+                  e.currentTarget.style.opacity = "0.7";
+                }}
+              >
+                ✕
+              </span>
             </div>
           );
         })}
       </div>
 
-      <div
-        style={{
-          display: "flex",
-          gap: "4px",
-          flexShrink: 0,
-          marginTop: "-10px",
-        }}
-      >
-        {showRightScroll && (
-          <button
-            onClick={onScrollRight}
-            style={{
-              width: "24px",
-              height: "28px",
-              borderRadius: "4px",
-              background: "var(--bg-tertiary)",
-              border: "1px solid var(--border-color)",
-              color: "var(--text-secondary)",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: "12px",
-            }}
-          >
-            ▶
-          </button>
-        )}
-
-        <button
-          onClick={onClosePanel}
-          style={{
-            width: "28px",
-            height: "28px",
-            borderRadius: "4px",
-            background: "var(--bg-tertiary)",
-            border: "1px solid var(--border-color)",
-            color: "var(--text-secondary)",
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: "14px",
-          }}
-          title={t("functionArea.closePanel") || "Close"}
-        >
-          ✕
+      {showRight && (
+        <button onClick={() => scroll("right")} style={scrollButtonStyle}>
+          ▶
         </button>
-      </div>
+      )}
+
+      <button
+        onClick={onClosePanel}
+        style={{
+          width: 28,
+          height: 28,
+          borderRadius: 4,
+          background: "var(--bg-tertiary)",
+          border: "1px solid var(--border-color)",
+          color: "var(--text-secondary)",
+          cursor: "pointer",
+          fontSize: 14,
+          flexShrink: 0,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          transition: "all 0.2s",
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = "var(--hover-bg)";
+          e.currentTarget.style.color = "var(--text-primary)";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = "var(--bg-tertiary)";
+          e.currentTarget.style.color = "var(--text-secondary)";
+        }}
+        title={t("functionArea.closePanel") || "Close Panel"}
+      >
+        ✕
+      </button>
 
       <style>{`
         .hide-scrollbar::-webkit-scrollbar {

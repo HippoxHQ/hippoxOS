@@ -1,8 +1,8 @@
 import React from "react";
 import { UploadFile } from "../../../core/types";
-import ImageFilePreview from "../GlobalFilePreview/ImageFilePreview";
-import SkillFilePreview from "../GlobalFilePreview/SkillFilePreview";
-import TextFilePreview from "../GlobalFilePreview/TextFilePreview";
+import ImageFilePreview from "./GlobalFilePreview/ImageFilePreview";
+import SkillFilePreview from "./GlobalFilePreview/SkillFilePreview";
+import TextFilePreview from "./GlobalFilePreview/TextFilePreview";
 
 interface PreviewContentProps {
   file: UploadFile | null | undefined;
@@ -33,13 +33,17 @@ export const PreviewContent: React.FC<PreviewContentProps> = ({
       </div>
     );
   }
+
   const isSkillFile =
     file.name?.endsWith(".md") || file.name?.endsWith(".skill.md");
-  const isImageFile = file.type?.startsWith("image/");
+  const isImageFile =
+    file.type?.startsWith("image/") ||
+    /\.(png|jpg|jpeg|gif|webp|bmp|svg|ico)$/i.test(file.name || "");
+
   if (isSkillFile) {
     return (
       <SkillFilePreview
-        key={file.id || file.path}
+        key={file.id || file.path || file.name}
         file={file}
         onClose={onClose}
         onSendSkillMessage={onSendSkillMessage}
@@ -47,19 +51,21 @@ export const PreviewContent: React.FC<PreviewContentProps> = ({
       />
     );
   }
+
   if (isImageFile) {
     return (
       <ImageFilePreview
-        key={file.id || file.path}
+        key={file.id || file.path || file.name}
         file={file}
         onClose={onClose}
         t={t}
       />
     );
   }
+
   return (
     <TextFilePreview
-      key={file.id || file.path}
+      key={file.id || file.path || file.name}
       file={file}
       onClose={onClose}
       t={t}

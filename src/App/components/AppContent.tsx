@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import CustomDragCursor from "../../components/CustomDragCursor";
 import GlobalDragOverlay from "../../components/GlobalDragOverlay";
 import BottomBar from "../../components/BottomBar";
@@ -32,6 +32,7 @@ import ScheduledTasksManager from "../../pages/ScheduledTasksPage";
 import SkillsManager from "../../pages/SkillsManagerPage";
 import UserProfile from "../../pages/UserProfilePage";
 import FunctionPanel from "../../components/FunctionPanel/FunctionPanel";
+import { FunctionPanelController } from "../../components/FunctionPanel/hooks/useFunctionPanelController";
 
 interface AppContentProps {
   theme: Theme;
@@ -80,8 +81,7 @@ interface AppContentProps {
   layoutSwapMode: "terminal-left" | "chat-left";
   onLayoutSwapModeChange: (mode: "terminal-left" | "chat-left") => void;
   onSendSkillMessage: (message: string, files?: UploadFile[]) => void;
-  isFunctionPanelOpen: boolean;
-  onCloseFunctionPanel: () => void;
+  functionPanel: FunctionPanelController;
 }
 
 export function AppContent({
@@ -127,96 +127,74 @@ export function AppContent({
   layoutSwapMode,
   onLayoutSwapModeChange,
   onSendSkillMessage,
-  isFunctionPanelOpen,
-  onCloseFunctionPanel,
+  functionPanel,
 }: AppContentProps) {
   const showWelcome = shouldShowWelcome();
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [historyAnchor, setHistoryAnchor] = useState<HTMLElement | null>(null);
-  const [rightExtraWidth, setRightExtraWidth] = useState<number>(480);
-  const isDraggingRightExtra = useRef(false);
-  const startXRef = useRef(0);
-  const startWidthRef = useRef(0);
-
-  const handleFileClick = (file: UploadFile) => {
-    onFilePreview(file);
-    window.dispatchEvent(
-      new CustomEvent("open-preview-in-panel", {
-        detail: { file },
-      }),
-    );
-  };
-
+  const [functionPanelWidth, setFunctionPanelWidth] = useState<number>(480);
+  const isDraggingFunctionPanel = useRef(false);
+  const dragStartX = useRef(0);
+  const dragStartWidth = useRef(0);
   useEffect(() => {
-    const savedWidth = localStorage.getItem("hippox-right-extra-width");
-    if (savedWidth) {
-      setRightExtraWidth(parseFloat(savedWidth));
+    const saved = localStorage.getItem("hippox-function-panel-width");
+    if (saved) {
+      const w = parseFloat(saved);
+      if (!isNaN(w) && w > 0) setFunctionPanelWidth(w);
     }
   }, []);
-
-  const saveRightExtraWidth = (width: number) => {
-    localStorage.setItem("hippox-right-extra-width", width.toString());
-  };
-
-  const handleRightExtraMouseDown = (e: React.MouseEvent) => {
-    e.preventDefault();
-    isDraggingRightExtra.current = true;
-    startXRef.current = e.clientX;
-    startWidthRef.current = rightExtraWidth;
-    document.body.style.cursor = "col-resize";
-    document.body.style.userSelect = "none";
-  };
-
+  const saveFunctionPanelWidth = useCallback((w: number) => {
+    localStorage.setItem("hippox-function-panel-width", w.toString());
+  }, []);
+  const handleFunctionPanelResizeMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      isDraggingFunctionPanel.current = true;
+      dragStartX.current = e.clientX;
+      dragStartWidth.current = functionPanelWidth;
+      document.body.style.cursor = "col-resize";
+      document.body.style.userSelect = "none";
+    },
+    [functionPanelWidth],
+  );
   useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      if (isDraggingRightExtra.current) {
-        const delta = startXRef.current - e.clientX;
-        const newWidth = Math.min(
-          800,
-          Math.max(320, startWidthRef.current + delta),
-        );
-        if (newWidth !== rightExtraWidth) {
-          setRightExtraWidth(newWidth);
-          saveRightExtraWidth(newWidth);
-        }
+    const onMouseMove = (e: MouseEvent) => {
+      if (!isDraggingFunctionPanel.current) return;
+      const delta = dragStartX.current - e.clientX;
+      const newWidth = Math.min(
+        800,
+        Math.max(320, dragStartWidth.current + delta),
+      );
+      if (newWidth !== functionPanelWidth) {
+        setFunctionPanelWidth(newWidth);
+        saveFunctionPanelWidth(newWidth);
       }
     };
-    const handleMouseUp = () => {
-      isDraggingRightExtra.current = false;
-      document.body.style.cursor = "";
-      document.body.style.userSelect = "";
+    const onMouseUp = () => {
+      if (isDraggingFunctionPanel.current) {
+        isDraggingFunctionPanel.current = false;
+        document.body.style.cursor = "";
+        document.body.style.userSelect = "";
+      }
     };
-    window.addEventListener("mousemove", handleMouseMove);
-    window.addEventListener("mouseup", handleMouseUp);
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseup", onMouseUp);
     return () => {
-      window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("mouseup", handleMouseUp);
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", onMouseUp);
     };
-  }, [rightExtraWidth]);
-
-  useEffect(() => {
-    const handleAnchorUpdate = (e: CustomEvent) => {
-      setHistoryAnchor(e.detail.anchorElement);
-    };
-    window.addEventListener(
-      "history-anchor-update",
-      handleAnchorUpdate as EventListener,
-    );
-    return () => {
-      window.removeEventListener(
-        "history-anchor-update",
-        handleAnchorUpdate as EventListener,
-      );
-    };
-  }, []);
-
+  }, [functionPanelWidth, saveFunctionPanelWidth]);
   const handleHistoryClick = () => {
     setIsHistoryOpen(!isHistoryOpen);
   };
   const handleHistoryClose = () => {
     setIsHistoryOpen(false);
   };
-
+  const handleFileClick = (file: UploadFile) => {
+    onFilePreview(file);
+    functionPanel.openPreview(file);
+  };
   const leftPanelContent =
     layoutSwapMode === "terminal-left" ? (
       <TerminalPanel
@@ -255,7 +233,6 @@ export function AppContent({
         onFileClick={handleFileClick}
       />
     );
-
   const renderEngineConfig = () => {
     switch (engineSubView) {
       case "engine_database":
@@ -294,7 +271,6 @@ export function AppContent({
         return null;
     }
   };
-
   const renderContent = () => {
     switch (currentContentPanel) {
       case "history":
@@ -359,7 +335,6 @@ export function AppContent({
         return null;
     }
   };
-
   const styles = {
     mainLayout: {
       display: "flex" as const,
@@ -391,8 +366,26 @@ export function AppContent({
       borderRadius: "2px",
       transition: "background 0.2s",
     },
+    functionPanelResizeHandle: {
+      width: "4px",
+      background: "var(--border-color)",
+      cursor: "col-resize" as const,
+      flexShrink: 0,
+      position: "relative" as const,
+      transition: "background 0.2s",
+    },
+    functionPanelResizeHandleLine: {
+      position: "absolute" as const,
+      top: "50%",
+      left: "50%",
+      transform: "translate(-50%, -50%)",
+      width: "2px",
+      height: "40px",
+      background: "var(--text-muted)",
+      borderRadius: "2px",
+      transition: "background 0.2s",
+    },
   };
-
   return (
     <div className="App">
       <CustomDragCursor isDragging={showDragCursor} />
@@ -523,31 +516,41 @@ export function AppContent({
             />
           )}
         </div>
-        {isFunctionPanelOpen && (
+        {functionPanel.isOpen && (
           <>
             <div
               className="resize-handle resize-handle-vertical"
-              onMouseDown={handleRightExtraMouseDown}
-              style={{ width: "4px", cursor: "col-resize", flexShrink: 0 }}
-            >
-              <div className="handle-line"></div>
-            </div>
-            <div
-              style={{
-                width: `${rightExtraWidth}px`,
-                overflow: "hidden",
-                flexShrink: 0,
+              onMouseDown={handleFunctionPanelResizeMouseDown}
+              style={styles.functionPanelResizeHandle}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "var(--scrollbar-thumb)";
+                const line = e.currentTarget.querySelector(
+                  ".function-panel-handle-line",
+                ) as HTMLElement;
+                if (line) line.style.background = "var(--text-secondary)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "var(--border-color)";
+                const line = e.currentTarget.querySelector(
+                  ".function-panel-handle-line",
+                ) as HTMLElement;
+                if (line) line.style.background = "var(--text-muted)";
               }}
             >
-              <FunctionPanel
-                theme={theme}
-                i18n={language === "zh" ? "zh-cn" : "en"}
-                t={t}
-                currentSessionId={currentSessionId}
-                onClose={onCloseFunctionPanel}
-                onSendSkillMessage={onSendSkillMessage}
+              <div
+                style={styles.functionPanelResizeHandleLine}
+                className="function-panel-handle-line"
               />
             </div>
+            <FunctionPanel
+              controller={functionPanel}
+              theme={theme}
+              i18n={language === "zh" ? "zh-cn" : "en"}
+              t={t}
+              currentSessionId={currentSessionId}
+              onSendSkillMessage={onSendSkillMessage}
+              width={functionPanelWidth}
+            />
           </>
         )}
       </div>
