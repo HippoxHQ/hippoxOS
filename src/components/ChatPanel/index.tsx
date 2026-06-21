@@ -1184,20 +1184,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
       transform: translateY(0);
     }
   }
-  .chat-messages::-webkit-scrollbar {
-    width: 6px;
-  }
-  .chat-messages::-webkit-scrollbar-track {
-    background: var(--bg-secondary);
-    border-radius: 3px;
-  }
-  .chat-messages::-webkit-scrollbar-thumb {
-    background: var(--border-color);
-    border-radius: 3px;
-  }
-  .chat-messages::-webkit-scrollbar-thumb:hover {
-    background: var(--text-tertiary);
-  }
   .loading-message {
     display: flex;
     align-items: center;
