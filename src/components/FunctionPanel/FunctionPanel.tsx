@@ -1,4 +1,10 @@
-import React, { useRef, useMemo, useCallback } from "react";
+import React, {
+  useRef,
+  useMemo,
+  useCallback,
+  useState,
+  useEffect,
+} from "react";
 import PreviewContent from "./integrations/IntegratedPreviewContent/IntegratedPreviewContent";
 import IntegratedCandleView from "./integrations/IntegratedCandleView";
 import IntegratedEarthView from "./integrations/IntegratedEarthView";
@@ -14,6 +20,8 @@ interface FunctionPanelProps {
   currentSessionId?: string;
   onSendSkillMessage?: (message: string, files?: any[]) => void;
   width?: number;
+  isCollapsed?: boolean;
+  onToggleCollapse?: () => void;
 }
 
 const FunctionPanel: React.FC<FunctionPanelProps> = ({
@@ -24,12 +32,14 @@ const FunctionPanel: React.FC<FunctionPanelProps> = ({
   currentSessionId,
   onSendSkillMessage,
   width = 480,
+  isCollapsed = false,
+  onToggleCollapse,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
+
   const renderItemContent = useCallback(
     (item: any) => {
       if (!item) return null;
-
       switch (item.type) {
         case "preview":
           return (
@@ -79,7 +89,7 @@ const FunctionPanel: React.FC<FunctionPanelProps> = ({
       <div
         ref={containerRef}
         style={{
-          width,
+          width: isCollapsed ? 48 : width,
           flexShrink: 0,
           overflow: "hidden",
           background: "var(--bg-primary)",
@@ -98,6 +108,90 @@ const FunctionPanel: React.FC<FunctionPanelProps> = ({
             {t("functionArea.noModule") || "No module open"}
           </div>
         </div>
+      </div>
+    );
+  }
+
+  if (isCollapsed) {
+    return (
+      <div
+        ref={containerRef}
+        style={{
+          width: 48,
+          flexShrink: 0,
+          overflow: "hidden",
+          background: "var(--bg-secondary)",
+          borderLeft: "1px solid var(--border-color)",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          padding: "8px 0",
+          gap: "8px",
+          height: "100%",
+          position: "relative",
+        }}
+      >
+        <button
+          onClick={onToggleCollapse}
+          style={{
+            background: "transparent",
+            border: "none",
+            color: "var(--text-secondary)",
+            cursor: "pointer",
+            fontSize: "18px",
+            padding: "6px",
+            borderRadius: "6px",
+            transition: "all 0.2s",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            width: "32px",
+            height: "32px",
+            flexShrink: 0,
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = "var(--hover-bg)";
+            e.currentTarget.style.color = "var(--text-primary)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = "transparent";
+            e.currentTarget.style.color = "var(--text-secondary)";
+          }}
+          title={t("functionArea.expand") || "Expand"}
+        >
+          ◀
+        </button>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: "4px",
+            fontSize: "10px",
+            color: "var(--text-tertiary)",
+            flexShrink: 0,
+          }}
+        >
+          <span style={{ fontSize: "16px" }}>📂</span>
+          <span
+            style={{
+              writingMode: "vertical-rl",
+              letterSpacing: "2px",
+              fontSize: "10px",
+              opacity: 0.6,
+            }}
+          >
+            {t("functionArea.title") || "Functions"}
+          </span>
+        </div>
+        <CollapsedTabList
+          items={controller.items}
+          activeItemId={controller.activeItemId}
+          onSwitch={(id) => {
+            controller.switchTo(id);
+            if (onToggleCollapse) onToggleCollapse();
+          }}
+        />
       </div>
     );
   }
@@ -123,6 +217,7 @@ const FunctionPanel: React.FC<FunctionPanelProps> = ({
         onSwitch={controller.switchTo}
         onClose={controller.closeItem}
         onClosePanel={controller.closePanel}
+        onToggleCollapse={onToggleCollapse}
         t={t}
       />
       <ModuleContent content={activeContent} isEmpty={!activeContent} t={t} />
@@ -140,6 +235,209 @@ const FunctionPanel: React.FC<FunctionPanelProps> = ({
         }
         .function-panel-content::-webkit-scrollbar-thumb:hover {
           background: var(--text-tertiary);
+        }
+      `}</style>
+    </div>
+  );
+};
+
+interface CollapsedTabListProps {
+  items: any[];
+  activeItemId: string | null;
+  onSwitch: (id: string) => void;
+}
+
+const CollapsedTabList: React.FC<CollapsedTabListProps> = ({
+  items,
+  activeItemId,
+  onSwitch,
+}) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [showUp, setShowUp] = useState(false);
+  const [showDown, setShowDown] = useState(false);
+
+  const checkScroll = useCallback(() => {
+    if (!containerRef.current) return;
+    const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
+    const canScrollUp = scrollTop > 0;
+    const canScrollDown = scrollTop + clientHeight < scrollHeight - 1;
+    setShowUp(canScrollUp);
+    setShowDown(canScrollDown);
+  }, []);
+
+  const updateScrollButtons = useCallback(() => {
+    if (!containerRef.current) return;
+    const { scrollHeight, clientHeight } = containerRef.current;
+    const canScroll = scrollHeight > clientHeight;
+    if (canScroll) {
+      requestAnimationFrame(() => {
+        checkScroll();
+      });
+    } else {
+      setShowUp(false);
+      setShowDown(false);
+    }
+  }, [checkScroll]);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (el) {
+      el.addEventListener("scroll", checkScroll);
+      const resizeObserver = new ResizeObserver(() => {
+        updateScrollButtons();
+      });
+      resizeObserver.observe(el);
+      setTimeout(updateScrollButtons, 50);
+      return () => {
+        el.removeEventListener("scroll", checkScroll);
+        resizeObserver.disconnect();
+      };
+    }
+  }, [checkScroll, updateScrollButtons]);
+
+  useEffect(() => {
+    setTimeout(updateScrollButtons, 100);
+  }, [items, updateScrollButtons]);
+
+  const scrollUp = () => {
+    if (containerRef.current) {
+      containerRef.current.scrollBy({ top: -200, behavior: "smooth" });
+    }
+  };
+
+  const scrollDown = () => {
+    if (containerRef.current) {
+      containerRef.current.scrollBy({ top: 200, behavior: "smooth" });
+    }
+  };
+
+  const scrollButtonStyle: React.CSSProperties = {
+    width: "32px",
+    height: "24px",
+    borderRadius: "4px",
+    background: "var(--bg-tertiary)",
+    border: "1px solid var(--border-color)",
+    color: "var(--text-secondary)",
+    cursor: "pointer",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: "12px",
+    flexShrink: 0,
+    transition: "all 0.2s",
+  };
+
+  return (
+    <div
+      style={{
+        flex: 1,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        width: "100%",
+        minHeight: 0,
+        position: "relative",
+      }}
+    >
+      {showUp && (
+        <button
+          onClick={scrollUp}
+          style={scrollButtonStyle}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = "var(--hover-bg)";
+            e.currentTarget.style.color = "var(--text-primary)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = "var(--bg-tertiary)";
+            e.currentTarget.style.color = "var(--text-secondary)";
+          }}
+          title="Scroll Up"
+        >
+          ▲
+        </button>
+      )}
+      <div
+        ref={containerRef}
+        style={{
+          flex: 1,
+          width: "100%",
+          overflowY: "auto",
+          overflowX: "hidden",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: "6px",
+          padding: "4px 2px",
+          scrollbarWidth: "none",
+          msOverflowStyle: "none",
+          minHeight: 0,
+        }}
+        className="collapsed-tab-list"
+      >
+        {items.map((item) => {
+          const isActive = item.id === activeItemId;
+          return (
+            <button
+              key={item.id}
+              onClick={() => onSwitch(item.id)}
+              style={{
+                width: "32px",
+                height: "32px",
+                borderRadius: "6px",
+                border: isActive
+                  ? "1px solid var(--accent-color)"
+                  : "1px solid var(--border-color)",
+                background: isActive
+                  ? "var(--accent-glow)"
+                  : "var(--bg-tertiary)",
+                color: isActive
+                  ? "var(--accent-color)"
+                  : "var(--text-secondary)",
+                cursor: "pointer",
+                fontSize: "14px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                transition: "all 0.15s",
+                flexShrink: 0,
+              }}
+              title={item.title}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "var(--hover-bg)";
+                e.currentTarget.style.borderColor = "var(--accent-color)";
+              }}
+              onMouseLeave={(e) => {
+                if (!isActive) {
+                  e.currentTarget.style.background = "var(--bg-tertiary)";
+                  e.currentTarget.style.borderColor = "var(--border-color)";
+                }
+              }}
+            >
+              {item.icon}
+            </button>
+          );
+        })}
+      </div>
+      {showDown && (
+        <button
+          onClick={scrollDown}
+          style={scrollButtonStyle}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = "var(--hover-bg)";
+            e.currentTarget.style.color = "var(--text-primary)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = "var(--bg-tertiary)";
+            e.currentTarget.style.color = "var(--text-secondary)";
+          }}
+          title="Scroll Down"
+        >
+          ▼
+        </button>
+      )}
+      <style>{`
+        .collapsed-tab-list::-webkit-scrollbar {
+          display: none;
         }
       `}</style>
     </div>

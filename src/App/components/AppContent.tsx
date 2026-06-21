@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useRef, useCallback, useEffect } from "react";
 import CustomDragCursor from "../../components/CustomDragCursor";
 import GlobalDragOverlay from "../../components/GlobalDragOverlay";
 import BottomBar from "../../components/BottomBar";
@@ -133,19 +133,45 @@ export function AppContent({
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [historyAnchor, setHistoryAnchor] = useState<HTMLElement | null>(null);
   const [functionPanelWidth, setFunctionPanelWidth] = useState<number>(480);
+  const [functionPanelCollapsed, setFunctionPanelCollapsed] =
+    useState<boolean>(false);
   const isDraggingFunctionPanel = useRef(false);
   const dragStartX = useRef(0);
   const dragStartWidth = useRef(0);
+
   useEffect(() => {
     const saved = localStorage.getItem("hippox-function-panel-width");
     if (saved) {
       const w = parseFloat(saved);
       if (!isNaN(w) && w > 0) setFunctionPanelWidth(w);
     }
+    const savedCollapsed = localStorage.getItem(
+      "hippox-function-panel-collapsed",
+    );
+    if (savedCollapsed) {
+      setFunctionPanelCollapsed(savedCollapsed === "true");
+    }
   }, []);
+
   const saveFunctionPanelWidth = useCallback((w: number) => {
     localStorage.setItem("hippox-function-panel-width", w.toString());
   }, []);
+
+  const saveFunctionPanelCollapsed = useCallback((collapsed: boolean) => {
+    localStorage.setItem(
+      "hippox-function-panel-collapsed",
+      collapsed.toString(),
+    );
+  }, []);
+
+  const handleToggleFunctionPanelCollapse = useCallback(() => {
+    setFunctionPanelCollapsed((prev) => {
+      const newState = !prev;
+      saveFunctionPanelCollapsed(newState);
+      return newState;
+    });
+  }, [saveFunctionPanelCollapsed]);
+
   const handleFunctionPanelResizeMouseDown = useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault();
@@ -158,6 +184,7 @@ export function AppContent({
     },
     [functionPanelWidth],
   );
+
   useEffect(() => {
     const onMouseMove = (e: MouseEvent) => {
       if (!isDraggingFunctionPanel.current) return;
@@ -185,12 +212,15 @@ export function AppContent({
       window.removeEventListener("mouseup", onMouseUp);
     };
   }, [functionPanelWidth, saveFunctionPanelWidth]);
+
   const handleHistoryClick = () => {
     setIsHistoryOpen(!isHistoryOpen);
   };
+
   const handleHistoryClose = () => {
     setIsHistoryOpen(false);
   };
+
   const handleFileClick = (file: UploadFile) => {
     onFilePreview(file);
     functionPanel.openPreview(file);
@@ -278,6 +308,7 @@ export function AppContent({
         return null;
     }
   };
+
   const renderContent = () => {
     switch (currentContentPanel) {
       case "history":
@@ -342,6 +373,7 @@ export function AppContent({
         return null;
     }
   };
+
   const styles = {
     mainLayout: {
       display: "flex" as const,
@@ -393,6 +425,7 @@ export function AppContent({
       transition: "background 0.2s",
     },
   };
+
   return (
     <div className="App">
       <CustomDragCursor isDragging={showDragCursor} />
@@ -531,7 +564,7 @@ export function AppContent({
             />
           )}
         </div>
-        {functionPanel.isOpen && (
+        {functionPanel.isOpen && !functionPanelCollapsed && (
           <>
             <div
               className="resize-handle resize-handle-vertical"
@@ -565,8 +598,23 @@ export function AppContent({
               currentSessionId={currentSessionId}
               onSendSkillMessage={onSendSkillMessage}
               width={functionPanelWidth}
+              isCollapsed={false}
+              onToggleCollapse={handleToggleFunctionPanelCollapse}
             />
           </>
+        )}
+        {functionPanel.isOpen && functionPanelCollapsed && (
+          <FunctionPanel
+            controller={functionPanel}
+            theme={theme}
+            i18n={language === "zh" ? "zh-cn" : "en"}
+            t={t}
+            currentSessionId={currentSessionId}
+            onSendSkillMessage={onSendSkillMessage}
+            width={functionPanelWidth}
+            isCollapsed={true}
+            onToggleCollapse={handleToggleFunctionPanelCollapse}
+          />
         )}
       </div>
       <BottomBar t={t} />

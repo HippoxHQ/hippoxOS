@@ -7,6 +7,7 @@ interface ModuleTabsProps {
   onSwitch: (id: string) => void;
   onClose: (id: string) => void;
   onClosePanel: () => void;
+  onToggleCollapse?: () => void;
   t: (key: string) => string;
 }
 
@@ -16,17 +17,20 @@ export const ModuleTabs: React.FC<ModuleTabsProps> = ({
   onSwitch,
   onClose,
   onClosePanel,
+  onToggleCollapse,
   t,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [showLeft, setShowLeft] = useState(false);
   const [showRight, setShowRight] = useState(false);
+
   const checkScroll = () => {
     if (!containerRef.current) return;
     const { scrollLeft, scrollWidth, clientWidth } = containerRef.current;
     setShowLeft(scrollLeft > 0);
     setShowRight(scrollLeft + clientWidth < scrollWidth - 1);
   };
+
   useEffect(() => {
     const el = containerRef.current;
     if (el) {
@@ -35,9 +39,11 @@ export const ModuleTabs: React.FC<ModuleTabsProps> = ({
       return () => el.removeEventListener("scroll", checkScroll);
     }
   }, [items]);
+
   useEffect(() => {
     setTimeout(checkScroll, 50);
   }, [items]);
+
   const scroll = (dir: "left" | "right") => {
     if (!containerRef.current) return;
     const amount = 200;
@@ -47,6 +53,7 @@ export const ModuleTabs: React.FC<ModuleTabsProps> = ({
     });
     setTimeout(checkScroll, 200);
   };
+
   const scrollButtonStyle: React.CSSProperties = {
     flexShrink: 0,
     width: 24,
@@ -61,6 +68,7 @@ export const ModuleTabs: React.FC<ModuleTabsProps> = ({
     justifyContent: "center",
     fontSize: 12,
   };
+
   return (
     <div
       style={{
@@ -208,7 +216,37 @@ export const ModuleTabs: React.FC<ModuleTabsProps> = ({
       >
         ✕
       </button>
-
+      {onToggleCollapse && (
+        <button
+          onClick={onToggleCollapse}
+          style={{
+            width: 28,
+            height: 28,
+            borderRadius: 4,
+            background: "var(--bg-tertiary)",
+            border: "1px solid var(--border-color)",
+            color: "var(--text-secondary)",
+            cursor: "pointer",
+            fontSize: 14,
+            flexShrink: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            transition: "all 0.2s",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = "var(--hover-bg)";
+            e.currentTarget.style.color = "var(--text-primary)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = "var(--bg-tertiary)";
+            e.currentTarget.style.color = "var(--text-secondary)";
+          }}
+          title={t("functionArea.collapse") || "Collapse"}
+        >
+          ▶
+        </button>
+      )}
       <style>{`
         .hide-scrollbar::-webkit-scrollbar {
           display: none;
