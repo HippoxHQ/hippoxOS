@@ -567,7 +567,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
         overflow: "hidden",
       }}
     >
-
       <style>{`
   .suggestions-title {
   text-align: center;
@@ -593,7 +592,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 8px 16px;
+    padding: 10px 16px;
     border-bottom: 1px solid var(--border-color);
     background: var(--bg-secondary);
     flex-shrink: 0;
@@ -1119,8 +1118,10 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     --hover-bg: rgba(0, 0, 0, 0.04);
   }
 `}</style>
-
-      <div className="panel-header">
+      <div
+        className="panel-header"
+        style={{ paddingTop: "10px", paddingBottom: "10px" }}
+      >
         <div className="header-title">
           <span className="title-icon">
             <ChatIcon size={14} />

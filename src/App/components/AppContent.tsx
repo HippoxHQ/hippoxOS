@@ -217,7 +217,7 @@ export function AppContent({
         isLeftPanel={true}
       />
     );
-    
+
   const rightPanelContent =
     layoutSwapMode === "terminal-left" ? (
       <ChatPanel
@@ -520,6 +520,14 @@ export function AppContent({
               rightPanel={rightPanelContent}
               layoutMode="horizontal"
               onLayoutModeChange={() => {}}
+              leftTitle={
+                layoutSwapMode === "terminal-left" ? "Terminal" : "Chat"
+              }
+              rightTitle={
+                layoutSwapMode === "terminal-left" ? "Chat" : "Terminal"
+              }
+              leftIcon={layoutSwapMode === "terminal-left" ? "🖥️" : "💬"}
+              rightIcon={layoutSwapMode === "terminal-left" ? "💬" : "🖥️"}
             />
           )}
         </div>
