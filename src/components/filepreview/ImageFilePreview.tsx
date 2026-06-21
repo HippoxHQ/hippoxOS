@@ -2,28 +2,28 @@ import React, { useState, useEffect, useCallback } from "react";
 import { filesCommands } from "../../command/files";
 import { UploadFile } from "../../core/types";
 
-interface TextFilePreviewProps {
+interface ImageFilePreviewProps {
   file: UploadFile | null;
   onClose: () => void;
   t?: (key: string) => string;
 }
 
-const TextFilePreview: React.FC<TextFilePreviewProps> = ({
+const ImageFilePreview: React.FC<ImageFilePreviewProps> = ({
   file,
   onClose,
   t = (key: string) => key,
 }) => {
-  const [fileContent, setFileContent] = useState<string>("");
+  const [imageBase64, setImageBase64] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const readTextFile = useCallback(async (filePath: string) => {
+  const readImageFile = useCallback(async (filePath: string) => {
     setIsLoading(true);
     try {
-      const content = await filesCommands.readTextFile(filePath);
-      setFileContent(content);
+      const base64 = await filesCommands.readImageBase64(filePath);
+      setImageBase64(base64);
     } catch (err) {
-      setError("Failed to read file");
+      setError("Failed to load image");
     } finally {
       setIsLoading(false);
     }
@@ -31,11 +31,11 @@ const TextFilePreview: React.FC<TextFilePreviewProps> = ({
 
   useEffect(() => {
     if (file?.path) {
-      setFileContent("");
+      setImageBase64("");
       setError(null);
-      readTextFile(file.path);
+      readImageFile(file.path);
     }
-  }, [file, readTextFile]);
+  }, [file, readImageFile]);
 
   if (!file) return null;
 
@@ -79,7 +79,7 @@ const TextFilePreview: React.FC<TextFilePreviewProps> = ({
             color: "var(--text-primary)",
           }}
         >
-          <span>📄</span>
+          <span>🖼️</span>
           <span
             style={{
               overflow: "hidden",
@@ -125,7 +125,17 @@ const TextFilePreview: React.FC<TextFilePreviewProps> = ({
         Size: {formatFileSize(file.size)} | Type: {file.type || "Unknown"}
       </div>
 
-      <div style={{ flex: 1, overflow: "auto", padding: 16 }}>
+      <div
+        style={{
+          flex: 1,
+          overflow: "auto",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: 16,
+          background: "var(--bg-primary)",
+        }}
+      >
         {isLoading && (
           <div
             style={{
@@ -142,26 +152,21 @@ const TextFilePreview: React.FC<TextFilePreviewProps> = ({
             {error}
           </div>
         )}
-        {!isLoading && !error && (
-          <pre
+        {!isLoading && !error && imageBase64 && (
+          <img
+            src={imageBase64}
+            alt={file.name}
             style={{
-              background: "var(--bg-secondary)",
-              padding: 16,
+              maxWidth: "100%",
+              maxHeight: "100%",
+              objectFit: "contain",
               borderRadius: 8,
-              fontSize: 13,
-              fontFamily: "monospace",
-              overflow: "auto",
-              whiteSpace: "pre-wrap",
-              color: "var(--text-primary)",
-              margin: 0,
             }}
-          >
-            {fileContent || "File is empty"}
-          </pre>
+          />
         )}
       </div>
     </div>
   );
 };
 
-export default TextFilePreview;
+export default ImageFilePreview;

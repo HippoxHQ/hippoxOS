@@ -29,6 +29,8 @@ import { UploadFile } from "../../core/types";
 import HistoryChatDropdown from "../../components/HistoryChatDropdown";
 import LLMChatPage from "../../pages/LLMChatPage";
 import TextFilePreview from "../../components/filepreview/TextFilePreview";
+import ImageFilePreview from "../../components/filepreview/ImageFilePreview";
+import SkillFilePreview from "../../components/filepreview/SkillFilePreview";
 import ScheduledTasksManager from "../../pages/ScheduledTasksPage";
 import SkillsManager from "../../pages/SkillsManagerPage";
 import UserProfile from "../../pages/UserProfilePage";
@@ -144,6 +146,39 @@ export function AppContent({
       );
     };
   }, []);
+
+  const isSkillFile =
+    previewFile?.name?.endsWith(".md") ||
+    previewFile?.name?.endsWith(".skill.md");
+  const isImageFile = previewFile?.type?.startsWith("image/");
+  const isTextFile = !isImageFile && !isSkillFile;
+
+  const renderPreviewPanel = () => {
+    if (!previewFile) return null;
+    if (isSkillFile) {
+      return (
+        <SkillFilePreview
+          file={previewFile}
+          onClose={onCloseFilePreview}
+          onSendSkillMessage={onSendSkillMessage}
+          t={t}
+        />
+      );
+    }
+    if (isImageFile) {
+      return (
+        <ImageFilePreview
+          file={previewFile}
+          onClose={onCloseFilePreview}
+          t={t}
+        />
+      );
+    }
+    return (
+      <TextFilePreview file={previewFile} onClose={onCloseFilePreview} t={t} />
+    );
+  };
+
   const handleHistoryClick = () => {
     setIsHistoryOpen(!isHistoryOpen);
   };
@@ -240,8 +275,6 @@ export function AppContent({
         );
       case "taskQueue":
         return <TaskQueuePanel t={t} />;
-      // case "atomicSkills":
-        // return <AtomicSkillsPanel t={t} onSave={onSaveConfig} />;
       case "workspace":
         return <WorkspacePanel t={t} />;
       case "workspaceConfig":
@@ -452,13 +485,7 @@ export function AppContent({
               leftPanel={leftPanelContent}
               rightPanel={rightPanelContent}
               rightExtraPanel={
-                isFilePreviewOpen ? (
-                  <TextFilePreview
-                    file={previewFile}
-                    onClose={onCloseFilePreview}
-                    t={t}
-                  />
-                ) : undefined
+                isFilePreviewOpen ? renderPreviewPanel() : undefined
               }
               isRightExtraOpen={isFilePreviewOpen}
               layoutMode="horizontal"

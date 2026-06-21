@@ -19,13 +19,14 @@ const LLMChatPage: React.FC<LLMChatPageProps> = ({
 }) => {
   const [leftWidth, setLeftWidth] = useState<number>(50);
   const [topHeight, setTopHeight] = useState<number>(60);
-  const [rightExtraWidth, setRightExtraWidth] = useState<number>(320);
+  const [rightExtraWidth, setRightExtraWidth] = useState<number>(480);
   const containerRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
   const isDraggingRightExtra = useRef(false);
   const dragType = useRef<"horizontal" | "vertical">("horizontal");
   const startXRef = useRef(0);
   const startWidthRef = useRef(0);
+
   useEffect(() => {
     const savedLeftWidth = localStorage.getItem("hippox-left-width");
     const savedTopHeight = localStorage.getItem("hippox-top-height");
@@ -37,6 +38,7 @@ const LLMChatPage: React.FC<LLMChatPageProps> = ({
     if (savedRightExtraWidth)
       setRightExtraWidth(parseFloat(savedRightExtraWidth));
   }, []);
+
   const saveLeftWidth = (width: number) => {
     localStorage.setItem("hippox-left-width", width.toString());
   };
@@ -46,6 +48,7 @@ const LLMChatPage: React.FC<LLMChatPageProps> = ({
   const saveRightExtraWidth = (width: number) => {
     localStorage.setItem("hippox-right-extra-width", width.toString());
   };
+
   const handleMouseDown = (
     e: React.MouseEvent,
     type: "horizontal" | "vertical",
@@ -57,6 +60,7 @@ const LLMChatPage: React.FC<LLMChatPageProps> = ({
     document.body.style.userSelect = "none";
     e.preventDefault();
   };
+
   const handleRightExtraMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
     isDraggingRightExtra.current = true;
@@ -65,6 +69,7 @@ const LLMChatPage: React.FC<LLMChatPageProps> = ({
     document.body.style.cursor = "col-resize";
     document.body.style.userSelect = "none";
   };
+
   const handleMouseMove = (e: MouseEvent) => {
     if (isDragging.current && containerRef.current) {
       const containerRect = containerRef.current.getBoundingClientRect();
@@ -85,8 +90,8 @@ const LLMChatPage: React.FC<LLMChatPageProps> = ({
     if (isDraggingRightExtra.current) {
       const delta = startXRef.current - e.clientX;
       const newWidth = Math.min(
-        600,
-        Math.max(250, startWidthRef.current + delta),
+        800,
+        Math.max(320, startWidthRef.current + delta),
       );
       if (newWidth !== rightExtraWidth) {
         setRightExtraWidth(newWidth);
@@ -94,12 +99,14 @@ const LLMChatPage: React.FC<LLMChatPageProps> = ({
       }
     }
   };
+
   const handleMouseUp = () => {
     isDragging.current = false;
     isDraggingRightExtra.current = false;
     document.body.style.cursor = "";
     document.body.style.userSelect = "";
   };
+
   useEffect(() => {
     window.addEventListener("mousemove", handleMouseMove);
     window.addEventListener("mouseup", handleMouseUp);
@@ -108,6 +115,7 @@ const LLMChatPage: React.FC<LLMChatPageProps> = ({
       window.removeEventListener("mouseup", handleMouseUp);
     };
   }, []);
+
   if (layoutMode === "vertical") {
     return (
       <div
@@ -171,6 +179,7 @@ const LLMChatPage: React.FC<LLMChatPageProps> = ({
       </div>
     );
   }
+
   return (
     <div
       className="panels-container horizontal-layout"
