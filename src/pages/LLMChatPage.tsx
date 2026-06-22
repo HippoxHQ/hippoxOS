@@ -1,4 +1,3 @@
-// LLMChatPage.tsx
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { taskManager } from "../core/TaskManager";
 import { TaskStatusEnum } from "../core/types";
@@ -119,6 +118,13 @@ const CollapsedTaskList: React.FC<CollapsedTaskListProps> = ({
     }
   };
 
+  const getDisplayText = (text: string): string => {
+    if (!text) return "...";
+    const clean = text.trim();
+    if (clean.length <= 2) return clean;
+    return clean.slice(0, 2);
+  };
+
   if (tasks.length === 0) {
     return (
       <div
@@ -214,7 +220,7 @@ const CollapsedTaskList: React.FC<CollapsedTaskListProps> = ({
       >
         {tasks.map((task, idx) => {
           const isActive = idx === activeNavIndex;
-          const preview = task.user_input?.slice(0, 6) || "...";
+          const preview = getDisplayText(task.user_input);
           return (
             <button
               key={task.task_id}
@@ -237,6 +243,10 @@ const CollapsedTaskList: React.FC<CollapsedTaskListProps> = ({
                 flexShrink: 0,
                 fontWeight: isActive ? 600 : 400,
                 position: "relative",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+                maxWidth: "30px",
               }}
               title={task.user_input || "Task"}
               onMouseEnter={(e) => {
@@ -532,11 +542,19 @@ const LLMChatPage: React.FC<LLMChatPageProps> = ({
           onLocateTask={(idx) => {
             const task = allTasks[idx];
             if (task) {
-              window.dispatchEvent(
-                new CustomEvent("locate-task-in-terminal", {
-                  detail: { taskId: task.task_id },
-                }),
-              );
+              if (rightCollapsed && !leftCollapsed) {
+                window.dispatchEvent(
+                  new CustomEvent("locate-task-in-terminal", {
+                    detail: { taskId: task.task_id },
+                  }),
+                );
+              } else {
+                window.dispatchEvent(
+                  new CustomEvent("locate-task-in-chat", {
+                    detail: { taskId: task.task_id },
+                  }),
+                );
+              }
               setActiveNavIndex(idx);
             }
           }}

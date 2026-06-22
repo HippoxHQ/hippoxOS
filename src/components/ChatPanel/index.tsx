@@ -275,10 +275,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
           detail: { taskId: relatedTask.task_id },
         }),
       );
-      showToast(
-        ToastType.SUCCESS,
-        t("chat.locatedToTerminal") || "Located To Terminal",
-      );
     } else {
       showToast(ToastType.INFO, t("chat.noRelatedTask") || "No Related Task");
     }
@@ -567,6 +563,59 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     loadCurrentDefaultModel();
     loadWorkspaces();
   }, []);
+
+  const messagesRef = useRef<ChatMessage[]>(messages);
+
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
+
+  useEffect(() => {
+    const handleLocateTaskInChat = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const { taskId } = customEvent.detail;
+      if (!taskId) return;
+      const task = taskManager.getAllTasks().find((t) => t.task_id === taskId);
+      if (!task) {
+        showToast(ToastType.INFO, t("chat.noRelatedTask") || "No Related Task");
+        return;
+      }
+      const currentMessages = messagesRef.current;
+      let targetIndex = -1;
+      for (let i = 0; i < currentMessages.length; i++) {
+        const msg = currentMessages[i];
+        if (msg.role === RoleEnum.User) {
+          let contentMatch = false;
+          if (msg.content && task.user_input) {
+            contentMatch =
+              msg.content === task.user_input ||
+              msg.content.includes(task.user_input) ||
+              task.user_input.includes(msg.content);
+          }
+          let filesMatch = false;
+          if (msg.files && msg.files.length > 0 && (task as any).files) {
+            const taskFiles = (task as any).files || [];
+            filesMatch = msg.files.some((f: any) =>
+              taskFiles.some(
+                (tf: any) => f.name === tf.name || f.path === tf.path,
+              ),
+            );
+          }
+          if (contentMatch || filesMatch) {
+            targetIndex = i;
+            break;
+          }
+        }
+      }
+      if (targetIndex !== -1) {
+        scrollToMessage(targetIndex);
+      }
+    };
+    window.addEventListener("locate-task-in-chat", handleLocateTaskInChat);
+    return () => {
+      window.removeEventListener("locate-task-in-chat", handleLocateTaskInChat);
+    };
+  }, [t]); 
 
   useEffect(() => {
     if (messagesContainerRef.current && !userScrolled) {
