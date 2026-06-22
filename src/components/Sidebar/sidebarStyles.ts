@@ -225,7 +225,7 @@ export const sidebarStyles = `
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 8px 0px 8px 0px;
+    padding: 10px 0px 10px 0px;
     cursor: pointer;
     transition: all 0.15s ease;
     color: var(--text-primary);
