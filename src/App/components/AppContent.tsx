@@ -2,11 +2,9 @@ import React, { useState, useRef, useCallback, useEffect } from "react";
 import CustomDragCursor from "../../components/CustomDragCursor";
 import GlobalDragOverlay from "../../components/GlobalDragOverlay";
 import BottomBar from "../../components/BottomBar";
-import ChatPanel from "../../components/ChatPanel";
 import Dialog from "../../components/Dialog";
 import MenuPanel from "../../components/MenuPanel";
 import Sidebar from "../../components/Sidebar";
-import TerminalPanel from "../../components/TerminalPanel";
 import Toast from "../../components/Toast";
 import TopBar from "../../components/TopBar";
 import WelcomePage from "../../pages/WelcomePage";
@@ -27,12 +25,14 @@ import EngineNotificationPanel from "../../components/MenuPanel/EngineConfig/Eng
 import { Language, Theme } from "../../types/types";
 import { UploadFile } from "../../core/types";
 import HistoryChatDropdown from "../../components/HistoryChatDropdown";
-import LLMChatPage from "../../pages/LLMChatPage";
+import LLMChatPage from "../../pages/ChatPage";
 import ScheduledTasksManager from "../../pages/ScheduledTasksPage";
 import SkillsManager from "../../pages/SkillsManagerPage";
 import UserProfile from "../../pages/UserProfilePage";
 import FunctionPanel from "../../components/FunctionPanel/FunctionPanel";
 import { FunctionPanelController } from "../../components/FunctionPanel/hooks/useFunctionPanelController";
+import ChatPanel from "../../pages/ChatPage/ChatPanel";
+import TerminalPanel from "../../pages/ChatPage/TerminalPanel";
 
 interface AppContentProps {
   theme: Theme;
