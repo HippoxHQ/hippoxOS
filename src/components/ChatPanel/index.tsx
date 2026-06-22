@@ -171,7 +171,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   };
 
   const handleResendMessage = (msg: ChatMessage) => {
-    if (isResending) return;
+    if (isResending || isSending) return;
     const sessionId = currentSessionId || "";
     if (!sessionId) {
       showToast(ToastType.SUCCESS, "Session ID cannot be empty.");
@@ -180,25 +180,11 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     setIsResending(true);
     const message = msg.content || "";
     const currentFiles = msg.files || [];
-    const userMessage: ChatMessage = {
-      id: `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      role: RoleEnum.User,
-      content: message,
-      timestamp: new Date().toISOString(),
-      files: currentFiles,
-    };
-    taskManager.addUserMessageToSession(sessionId, userMessage);
-    let backendMessage = message;
-    if (currentFiles.length > 0) {
-      const fileInfo = currentFiles.map((f) => `[📎 ${f.name}]`).join("\n");
-      backendMessage = message ? `${message}\n${fileInfo}` : fileInfo;
-    }
-    Promise.resolve(
-      onSendMessage(backendMessage, sessionId, currentFiles),
-    ).finally(() => {
-      setTimeout(() => setIsResending(false), 100);
-    });
-    showToast(ToastType.SUCCESS, t("chat.resendSuccess") || "Message resent");
+    Promise.resolve(onSendMessage(message, sessionId, currentFiles)).finally(
+      () => {
+        setTimeout(() => setIsResending(false), 300);
+      },
+    );
   };
 
   const getRandomPrompts = (count: number = 6): string[] => {
