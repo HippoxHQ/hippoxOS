@@ -1,5 +1,6 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { configCommands } from "../../../command/config";
+import { disable, enable } from "@tauri-apps/plugin-autostart";
 
 interface UniversalSettingsProps {
   t: (key: string, params?: any) => string;
@@ -142,6 +143,23 @@ const UniversalSettings: React.FC<UniversalSettingsProps> = ({
   functionPanelPosition = "right",
   onFunctionPanelPositionChange,
 }) => {
+  const [autoStartEnabled, setAutoStartEnabled] = useState(false);
+  const [autoStartLoading, setAutoStartLoading] = useState(true);
+
+  useEffect(() => {
+    const loadAutoStart = async () => {
+      try {
+        const saved = await configCommands.getSettingsAutoStart();
+        setAutoStartEnabled(saved);
+      } catch (error) {
+        console.error("Failed to load auto start setting:", error);
+      } finally {
+        setAutoStartLoading(false);
+      }
+    };
+    loadAutoStart();
+  }, []);
+
   const handleThemeChange = async (newTheme: "light" | "dark") => {
     onThemeChange(newTheme);
     await configCommands.saveSettingsTheme(newTheme);
@@ -160,6 +178,22 @@ const UniversalSettings: React.FC<UniversalSettingsProps> = ({
   const handleFunctionPanelPositionChange = (position: "left" | "right") => {
     onFunctionPanelPositionChange?.(position);
     configCommands.saveSettingsFunctionPanelPosition(position);
+  };
+
+  const handleAutoStartToggle = async () => {
+    const newState = !autoStartEnabled;
+    try {
+      if (newState) {
+        await enable();
+      } else {
+        await disable();
+      }
+      setAutoStartEnabled(newState);
+      await configCommands.saveSettingsAutoStart(newState);
+    } catch (error) {
+      console.error("Failed to toggle auto start:", error);
+      setAutoStartEnabled(!newState);
+    }
   };
 
   const labelStyle: React.CSSProperties = {
@@ -240,6 +274,34 @@ const UniversalSettings: React.FC<UniversalSettingsProps> = ({
     minWidth: 0,
   };
 
+  const toggleSwitchStyle = (isActive: boolean): React.CSSProperties => ({
+    width: "44px",
+    height: "24px",
+    borderRadius: "12px",
+    background: isActive
+      ? "var(--accent-color, #00aaff)"
+      : "var(--bg-tertiary)",
+    border: "1px solid var(--border-color)",
+    cursor: "pointer",
+    transition: "all 0.2s",
+    position: "relative",
+    flexShrink: 0,
+    outline: "none",
+    padding: 0,
+  });
+
+  const toggleKnobStyle = (isActive: boolean): React.CSSProperties => ({
+    position: "absolute",
+    top: "2px",
+    left: isActive ? "22px" : "2px",
+    width: "18px",
+    height: "18px",
+    borderRadius: "50%",
+    background: "white",
+    transition: "all 0.2s",
+    boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+  });
+
   return (
     <div
       style={{
@@ -247,15 +309,13 @@ const UniversalSettings: React.FC<UniversalSettingsProps> = ({
         display: "flex",
         flexDirection: "column",
         overflow: "hidden",
-        padding: "0 10px",
       }}
     >
       <div
         style={{
           flex: 1,
           overflowY: "auto",
-          paddingTop: "10px",
-          paddingBottom: "10px",
+          padding: "10px 10px",
         }}
       >
         <div
@@ -356,6 +416,44 @@ const UniversalSettings: React.FC<UniversalSettingsProps> = ({
               </span>
             </button>
           </div>
+        </div>
+
+        <div
+          style={{
+            borderTop: "1px solid var(--border-color, #333)",
+            marginBottom: "10px",
+          }}
+        ></div>
+
+        <div
+          style={{
+            fontSize: "13px",
+            fontWeight: 600,
+            color: "var(--text-secondary)",
+            marginBottom: "12px",
+            paddingLeft: "4px",
+          }}
+        >
+          🎨 {t("settings.interfaceConfig")}
+        </div>
+
+        <div style={rowStyle}>
+          <label style={labelStyle}>
+            {t("settings.autoStart") || "开机自启动"}
+          </label>
+          <button
+            type="button"
+            style={toggleSwitchStyle(autoStartEnabled)}
+            onClick={handleAutoStartToggle}
+            disabled={autoStartLoading}
+            title={
+              autoStartEnabled
+                ? t("settings.disableAutoStart") || "关闭开机自启动"
+                : t("settings.enableAutoStart") || "开启开机自启动"
+            }
+          >
+            <span style={toggleKnobStyle(autoStartEnabled)} />
+          </button>
         </div>
       </div>
     </div>

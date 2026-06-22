@@ -194,6 +194,15 @@ export interface DiskInfo {
 }
 
 export const configCommands = {
+    
+    async getSettingsAutoStart(): Promise<boolean> {
+        return await invoke('cmd_get_settings_auto_start');
+    },
+
+    async saveSettingsAutoStart(enabled: boolean): Promise<void> {
+        return await invoke('cmd_save_settings_auto_start', { enabled });
+    },
+
     async getSettingsLayoutSwapMode(): Promise<string> {
         return await invoke('cmd_get_settings_layout_swap_mode');
     },

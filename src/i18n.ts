@@ -1099,6 +1099,9 @@ export const zh = {
     taskNamePlaceholder: '例如：每日备份',
   },
   settings: {
+    autoStart: '开机自启动',
+    enableAutoStart: '开启开机自启动',
+    disableAutoStart: '关闭开机自启动',
     panelLayout: '面板布局',
     terminalLeft: '终端｜对话',
     chatLeft: '对话｜终端',
@@ -2321,6 +2324,9 @@ export const en: typeof zh = {
     taskNamePlaceholder: 'e.g.: Daily Backup',
   },
   settings: {
+    autoStart: 'Auto Start',
+    enableAutoStart: 'Enable auto start',
+    disableAutoStart: 'Disable auto start',
     panelLayout: 'Panel Layout',
     terminalLeft: 'Term｜Chat',
     chatLeft: 'Chat｜Term',

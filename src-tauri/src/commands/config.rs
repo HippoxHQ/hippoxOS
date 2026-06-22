@@ -1315,3 +1315,14 @@ pub fn cmd_get_settings_function_panel_position() -> Result<String, String> {
 pub fn cmd_save_settings_function_panel_position(position: String) -> Result<(), String> {
     crate::common::set_setting("function_panel_position", serde_json::json!(position))
 }
+
+#[tauri::command]
+pub fn cmd_get_settings_auto_start() -> Result<bool, String> {
+    let value = crate::common::get_setting_with_default("auto_start", serde_json::json!(false))?;
+    Ok(value.as_bool().unwrap_or(false))
+}
+
+#[tauri::command]
+pub fn cmd_save_settings_auto_start(enabled: bool) -> Result<(), String> {
+    crate::common::set_setting("auto_start", serde_json::json!(enabled))
+}
