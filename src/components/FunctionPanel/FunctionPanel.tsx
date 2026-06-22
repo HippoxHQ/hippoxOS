@@ -11,6 +11,7 @@ import IntegratedEarthView from "./integrations/IntegratedEarthView";
 import { ModuleTabs } from "./ModuleTabs";
 import { ModuleContent } from "./ModuleContent";
 import { FunctionPanelController } from "./hooks/useFunctionPanelController";
+import TableFilePreview from "./integrations/IntegratedPreviewContent/TableFilePreview";
 
 interface FunctionPanelProps {
   controller: FunctionPanelController;
@@ -52,6 +53,15 @@ const FunctionPanel: React.FC<FunctionPanelProps> = ({
     (item: any) => {
       if (!item) return null;
       switch (item.type) {
+        case "table":
+          return (
+            <TableFilePreview
+              key={item.id}
+              file={item.data}
+              onClose={() => controller.closeItem(item.id)}
+              t={t}
+            />
+          );
         case "preview":
           return (
             <PreviewContent

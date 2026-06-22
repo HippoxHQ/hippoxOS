@@ -5,7 +5,11 @@ import {
   renderTerminalResponse,
 } from "../terminalrenderer";
 import { CopyIcon } from "../../../../icons";
-import { isStructuredLLMResponse, parseLLMResponse } from "../../../../llm/utils";
+import {
+  isStructuredLLMResponse,
+  parseLLMResponse,
+} from "../../../../llm/utils";
+import { UploadFile } from "../../../../core/types";
 
 interface TaskOutputProps {
   output: string;
@@ -15,6 +19,7 @@ interface TaskOutputProps {
   t: (key: string) => string;
   taskId?: string;
   autoOpen?: boolean;
+  onFileClick?: (file: UploadFile) => void;
 }
 
 export const TaskOutput: React.FC<TaskOutputProps> = ({
@@ -25,6 +30,7 @@ export const TaskOutput: React.FC<TaskOutputProps> = ({
   t,
   taskId,
   autoOpen = true,
+  onFileClick,
 }) => {
   const autoOpenedRef = useRef(false);
   let renderedContent: React.ReactNode = null;
@@ -48,7 +54,11 @@ export const TaskOutput: React.FC<TaskOutputProps> = ({
         if (isTerminalResponseEmpty(parsed.terminalResponse)) {
           shouldHide = true;
         } else {
-          renderedContent = renderTerminalResponse(parsed.terminalResponse, t);
+          renderedContent = renderTerminalResponse(
+            parsed.terminalResponse,
+            t,
+            onFileClick,
+          );
         }
       } else if (parsed?.terminalResponse === null) {
         shouldHide = true;

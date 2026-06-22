@@ -1,5 +1,5 @@
-use base64::Engine;
 use base64::engine::general_purpose::STANDARD;
+use base64::Engine;
 use rfd::AsyncFileDialog;
 use serde::{Deserialize, Serialize};
 use std::fs;
@@ -223,4 +223,25 @@ pub async fn cmd_get_file_info(path: String) -> Result<FileInfoDetail, String> {
             })
         }),
     })
+}
+
+#[tauri::command]
+pub async fn cmd_save_csv_file(content: String, default_name: String) -> Result<(), String> {
+    use rfd::AsyncFileDialog;
+    use std::fs;
+    use std::path::Path;
+    let file_path = AsyncFileDialog::new()
+        .set_title("Save CSV File")
+        .add_filter("CSV File", &["csv"])
+        .set_file_name(&default_name)
+        .save_file()
+        .await;
+    match file_path {
+        Some(path) => {
+            let path_str = path.path().to_string_lossy().to_string();
+            fs::write(&path_str, content).map_err(|e| format!("Failed to write file: {}", e))?;
+            Ok(())
+        }
+        None => Err("User cancelled save dialog".to_string()),
+    }
 }

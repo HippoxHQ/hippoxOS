@@ -4,6 +4,21 @@ export const zh = {
     newSessionName: '新对话',
     newSessionDesc: '新创建的对话',
   },
+  table: {
+    downloadSuccess: "文件下载成功",
+    downloadFailed: "文件下载失败",
+    searchPlaceholder: "搜索...",
+    noData: "暂无数据",
+    noMatchingRows: "没有匹配的行",
+    noDataRows: "没有数据行",
+    loading: "加载表格中...",
+    rows: "行",
+    cols: "列",
+    sortedBy: "已按第 {{column}} 列排序 ({{direction}})",
+    clear: "清除",
+    download: "下载 CSV",
+    downloadTitle: "下载 CSV 文件",
+  },
   drivers: {
     loading: '加载驱动列表中...',
     loadError: '加载驱动失败',
@@ -653,6 +668,7 @@ export const zh = {
     skillOrchestration: '自主Skill编排'
   },
   terminal: {
+    clickToPreview: "预览",
     response: "响应:",
     expand: "展开",
     collapse: "收起",
@@ -1227,6 +1243,21 @@ export const en: typeof zh = {
     loading: 'Loading...',
     newSessionName: 'New Session',
     newSessionDesc: 'Newly created session',
+  },
+  table: {
+    downloadSuccess: "File downloaded successfully",
+    downloadFailed: "Failed to download file",
+    searchPlaceholder: "Search...",
+    noData: "No data",
+    noMatchingRows: "No matching rows",
+    noDataRows: "No data rows",
+    loading: "Loading table...",
+    rows: "rows",
+    cols: "cols",
+    sortedBy: "Sorted by column {{column}} ({{direction}})",
+    clear: "Clear",
+    download: "Download CSV",
+    downloadTitle: "Download CSV File",
   },
   drivers: {
     loading: 'Loading drivers...',
@@ -1876,8 +1907,8 @@ export const en: typeof zh = {
     engine: 'Decision Engine',
     skillOrchestration: 'Skill Orchestration'
   },
-
   terminal: {
+    clickToPreview: "Preview",
     response: "Response:",
     expand: "Expand",
     collapse: "Collapse",

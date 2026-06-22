@@ -4,6 +4,7 @@ import DataTable from "./components/responsearea/DataTable";
 import { urlCommands } from "../../../command/url";
 import { ResourceLink, TerminalResponse } from "../../../llm/types";
 import { openUrl } from "../../../utils";
+import { UploadFile } from "../../../core/types";
 
 interface LinkMetadata {
   title: string;
@@ -682,6 +683,7 @@ const TextMessage: React.FC<{ text: string }> = ({ text }) => {
 export function renderTerminalResponse(
   terminalResponse: TerminalResponse | null,
   t: (key: string) => string,
+  onFileClick?: (file: UploadFile) => void,
 ): React.ReactNode {
   if (!terminalResponse) return null;
   const elements: React.ReactNode[] = [];
@@ -717,7 +719,14 @@ export function renderTerminalResponse(
 
   if (terminalResponse.tables && terminalResponse.tables.length > 0) {
     terminalResponse.tables.forEach((table, idx) => {
-      elements.push(<DataTable key={`table-${idx}`} table={table} t={t} />);
+      elements.push(
+        <DataTable
+          key={`table-${idx}`}
+          table={table}
+          t={t}
+          onFileClick={onFileClick}
+        />,
+      );
     });
   }
 

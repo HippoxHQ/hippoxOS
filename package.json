@@ -20,6 +20,7 @@
     "@types/react": "^19.0.0",
     "@types/react-calendar-heatmap": "^1.9.0",
     "@types/react-dom": "^19.0.0",
+    "papaparse": "^5.5.4",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-scripts": "5.0.1",
@@ -53,6 +54,7 @@
     ]
   },
   "devDependencies": {
-    "@tauri-apps/cli": "^2.11.2"
+    "@tauri-apps/cli": "^2.11.2",
+    "@types/papaparse": "^5.5.2"
   }
 }

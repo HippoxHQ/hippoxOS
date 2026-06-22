@@ -17,6 +17,11 @@ export interface FileInfoDetail {
 }
 
 export const filesCommands = {
+
+    async saveFile(content: string, defaultName: string): Promise<void> {
+        return await invoke("cmd_save_csv_file", { content, defaultName });
+    },
+
     async openPath(path: string): Promise<void> {
         return await invoke("cmd_open_path", { path });
     },

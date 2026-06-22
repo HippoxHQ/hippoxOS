@@ -1,14 +1,43 @@
-const DataTable: React.FC<{
+import React from "react";
+import { UploadFile } from "../../../../../core/types";
+
+interface DataTableProps {
   table: { headers: string[]; rows: (string | number)[][]; title?: string };
   t: (key: string) => string;
-}> = ({ table, t }) => {
+  onFileClick?: (file: UploadFile) => void;
+}
+
+const DataTable: React.FC<DataTableProps> = ({ table, t, onFileClick }) => {
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     e.stopPropagation();
   };
+  const handleTableClick = () => {
+    if (!onFileClick) return;
+    const headers = table.headers.join(",");
+    const rows = table.rows.map((row) => row.join(",")).join("\n");
+    const csvContent = `${headers}\n${rows}`;
+    const file: UploadFile = {
+      id: `table_${Date.now()}`,
+      name: `${table.title || "table"}.csv`,
+      size: csvContent.length,
+      file: new File([csvContent], `${table.title || "table"}.csv`, {
+        type: "text/csv",
+      }),
+      type: "text/csv",
+      status: "success" as const,
+    };
+    onFileClick(file);
+  };
+
   return (
     <div
       className="terminal-table"
-      style={{ margin: "12px 0", overflowX: "auto" }}
+      style={{
+        margin: "12px 0",
+        overflowX: "auto",
+        cursor: onFileClick ? "pointer" : "default",
+      }}
+      onClick={handleTableClick}
     >
       {table.title && (
         <div
@@ -17,10 +46,26 @@ const DataTable: React.FC<{
             fontWeight: 500,
             color: "var(--text-secondary)",
             marginBottom: "8px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
           }}
         >
-          📊 {table.title} ({t("terminal.tableRows") || "rows"}:{" "}
-          {table.rows.length})
+          <span>
+            📊 {table.title} ({t("terminal.tableRows") || "rows"}:{" "}
+            {table.rows.length})
+          </span>
+          {onFileClick && (
+            <span
+              style={{
+                fontSize: "11px",
+                color: "var(--accent-color)",
+                opacity: 0.8,
+              }}
+            >
+              {t("terminal.clickToPreview")} ↗
+            </span>
+          )}
         </div>
       )}
       <div

@@ -13,7 +13,12 @@ import { showDialog, DialogType } from "../../../../components/Dialog";
 import { showToast, ToastType } from "../../../../components/Toast";
 import { taskManager } from "../../../../core/TaskManager";
 import { taskPoolCommands } from "../../../../core/TaskPool";
-import { TaskInfo, UploadFile, StepStatusEnum, TaskStatusEnum } from "../../../../core/types";
+import {
+  TaskInfo,
+  UploadFile,
+  StepStatusEnum,
+  TaskStatusEnum,
+} from "../../../../core/types";
 import { PauseIcon, StopIcon, PlayIcon } from "../../../../icons";
 
 interface TaskRowProps {
@@ -394,6 +399,7 @@ export const TaskRow = forwardRef<HTMLDivElement, TaskRowProps>(
                 onShowMap={handleShowMap}
                 taskId={task.task_id}
                 t={t}
+                onFileClick={onFileClick}
               />
             </>
           )}

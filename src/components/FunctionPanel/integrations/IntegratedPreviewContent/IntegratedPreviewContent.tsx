@@ -3,6 +3,7 @@ import { UploadFile } from "../../../../core/types";
 import ImageFilePreview from "./ImageFilePreview";
 import SkillFilePreview from "./SkillFilePreview";
 import TextFilePreview from "./TextFilePreview";
+import TableFilePreview from "./TableFilePreview";
 
 interface PreviewContentProps {
   file: UploadFile | null | undefined;
@@ -23,6 +24,11 @@ export const PreviewContent: React.FC<PreviewContentProps> = ({
     file?.type?.startsWith("image/") ||
     /\.(png|jpg|jpeg|gif|webp|bmp|svg|ico)$/i.test(file?.name || "") ||
     false;
+  const isTableFile =
+    /\.(csv|tsv)$/i.test(file?.name || "") ||
+    file?.type === "text/csv" ||
+    file?.type === "text/tab-separated-values" ||
+    false;
   const content = useMemo(() => {
     if (!file) {
       return null;
@@ -42,9 +48,19 @@ export const PreviewContent: React.FC<PreviewContentProps> = ({
     if (isImageFile) {
       return <ImageFilePreview key={key} file={file} onClose={onClose} t={t} />;
     }
+    if (isTableFile) {
+      return <TableFilePreview key={key} file={file} onClose={onClose} t={t} />;
+    }
     return <TextFilePreview key={key} file={file} onClose={onClose} t={t} />;
-  }, [file, isSkillFile, isImageFile, onClose, onSendSkillMessage, t]);
-
+  }, [
+    file,
+    isSkillFile,
+    isImageFile,
+    isTableFile,
+    onClose,
+    onSendSkillMessage,
+    t,
+  ]);
   if (!file) {
     return (
       <div
@@ -61,7 +77,6 @@ export const PreviewContent: React.FC<PreviewContentProps> = ({
       </div>
     );
   }
-
   return content;
 };
 
