@@ -88,25 +88,6 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
       unsubscribe();
     };
   }, []);
-  useEffect(() => {
-    const handleLocateTask = (event: CustomEvent) => {
-      const { taskId } = event.detail;
-      const index = taskList.findIndex((t) => t.task_id === taskId);
-      if (index !== -1) {
-        setActiveNavIndex(index);
-      }
-    };
-    window.addEventListener(
-      "locate-task-in-terminal",
-      handleLocateTask as EventListener,
-    );
-    return () => {
-      window.removeEventListener(
-        "locate-task-in-terminal",
-        handleLocateTask as EventListener,
-      );
-    };
-  }, [taskList]);
   const buildNavigationContent = (): React.ReactNode => {
     if (taskList.length === 0) {
       return (

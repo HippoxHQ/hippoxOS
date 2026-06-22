@@ -18,6 +18,7 @@ interface CollapsedTaskListProps {
   tasks: any[];
   activeNavIndex: number;
   onLocateTask: (idx: number) => void;
+  isLeft: boolean;
 }
 
 const CollapsedTaskList: React.FC<CollapsedTaskListProps> = ({
@@ -509,7 +510,7 @@ const LLMChatPage: React.FC<LLMChatPageProps> = ({
             title={`Expand ${title}`}
           >
             {/* {isLeft ? "▶" : "◀"} */}
-            {isLeft ? "≫" : "≪"}  
+            {isLeft ? "≫" : "≪"}
             {/* {isLeft ? "❯" : "❮"} */}
             {/* {isLeft ? "›" : "‹"}   */}
           </button>
@@ -545,22 +546,20 @@ const LLMChatPage: React.FC<LLMChatPageProps> = ({
           onLocateTask={(idx) => {
             const task = allTasks[idx];
             if (task) {
-              if (rightCollapsed && !leftCollapsed) {
-                window.dispatchEvent(
-                  new CustomEvent("locate-task-in-terminal", {
-                    detail: { taskId: task.task_id },
-                  }),
-                );
-              } else {
-                window.dispatchEvent(
-                  new CustomEvent("locate-task-in-chat", {
-                    detail: { taskId: task.task_id },
-                  }),
-                );
-              }
+              window.dispatchEvent(
+                new CustomEvent("locate-task-in-terminal", {
+                  detail: { taskId: task.task_id },
+                }),
+              );
+              window.dispatchEvent(
+                new CustomEvent("locate-task-in-chat", {
+                  detail: { taskId: task.task_id },
+                }),
+              );
               setActiveNavIndex(idx);
             }
           }}
+          isLeft={isLeft}
         />
       </div>
     );
