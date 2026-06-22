@@ -238,11 +238,11 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
   const navigation = buildNavigationContent();
   const collapseIcon = isLeftPanel
     ? isCollapsed
-      ? "▶"
-      : "◀"
+      ? "≫"
+      : "≪"
     : isCollapsed
-      ? "◀"
-      : "▶";
+      ? "≪"
+      : "≫";
   return (
     <div
       className="terminal-panel"

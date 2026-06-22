@@ -508,7 +508,10 @@ const LLMChatPage: React.FC<LLMChatPageProps> = ({
             }}
             title={`Expand ${title}`}
           >
-            {isLeft ? "▶" : "◀"}
+            {/* {isLeft ? "▶" : "◀"} */}
+            {isLeft ? "≫" : "≪"}  
+            {/* {isLeft ? "❯" : "❮"} */}
+            {/* {isLeft ? "›" : "‹"}   */}
           </button>
         </div>
         <div

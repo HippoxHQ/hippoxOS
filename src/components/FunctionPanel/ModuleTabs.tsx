@@ -84,7 +84,7 @@ export const ModuleTabs: React.FC<ModuleTabsProps> = ({
     >
       {showLeft && (
         <button onClick={() => scroll("left")} style={scrollButtonStyle}>
-          ◀
+          ≪
         </button>
       )}
       <div
@@ -185,7 +185,7 @@ export const ModuleTabs: React.FC<ModuleTabsProps> = ({
       </div>
       {showRight && (
         <button onClick={() => scroll("right")} style={scrollButtonStyle}>
-          ▶
+          ≫
         </button>
       )}
       <button
@@ -245,7 +245,7 @@ export const ModuleTabs: React.FC<ModuleTabsProps> = ({
           }}
           title={t("functionArea.collapse") || "Collapse"}
         >
-          ▶
+          ≫
         </button>
       )}
       <style>{`

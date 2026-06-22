@@ -615,7 +615,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     return () => {
       window.removeEventListener("locate-task-in-chat", handleLocateTaskInChat);
     };
-  }, [t]); 
+  }, [t]);
 
   useEffect(() => {
     if (messagesContainerRef.current && !userScrolled) {
@@ -690,11 +690,11 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
 
   const collapseIcon = isLeftPanel
     ? isCollapsed
-      ? "▶"
-      : "◀"
+      ? "≫"
+      : "≪"
     : isCollapsed
-      ? "◀"
-      : "▶";
+      ? "≪"
+      : "≫";
 
   return (
     <div

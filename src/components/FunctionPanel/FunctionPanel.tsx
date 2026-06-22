@@ -125,7 +125,6 @@ const FunctionPanel: React.FC<FunctionPanelProps> = ({
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
-          padding: "8px 0",
           gap: "8px",
           height: "100%",
           position: "relative",
@@ -168,7 +167,7 @@ const FunctionPanel: React.FC<FunctionPanelProps> = ({
             }}
             title={t("functionArea.expand") || "Expand"}
           >
-            ◀
+            ≪
           </button>
         </div>
         <div
