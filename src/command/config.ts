@@ -194,6 +194,22 @@ export interface DiskInfo {
 }
 
 export const configCommands = {
+    async getSettingsLayoutSwapMode(): Promise<string> {
+        return await invoke('cmd_get_settings_layout_swap_mode');
+    },
+
+    async saveSettingsLayoutSwapMode(mode: string): Promise<void> {
+        return await invoke('cmd_save_settings_layout_swap_mode', { mode });
+    },
+
+    async getSettingsFunctionPanelPosition(): Promise<string> {
+        return await invoke('cmd_get_settings_function_panel_position');
+    },
+
+    async saveSettingsFunctionPanelPosition(position: string): Promise<void> {
+        return await invoke('cmd_save_settings_function_panel_position', { position });
+    },
+
     async getConfig(): Promise<HippoxAppConfig> {
         return await invoke('cmd_get_config');
     },

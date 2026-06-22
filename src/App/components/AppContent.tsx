@@ -599,6 +599,10 @@ export function AppContent({
                 initialEngineConfig={initialEngineConfig}
                 onCloseSkillsManager={onCloseContentPanel}
                 onSendSkillMessage={onSendSkillMessage}
+                layoutSwapMode={layoutSwapMode}
+                onLayoutSwapModeChange={onLayoutSwapModeChange}
+                functionPanelPosition={functionPanelPosition}
+                onFunctionPanelPositionChange={onFunctionPanelPositionChange}
               />
             </div>
             <div

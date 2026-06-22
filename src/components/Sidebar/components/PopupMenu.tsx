@@ -187,7 +187,7 @@ export const PopupMenu: React.FC<PopupMenuProps> = ({
         const isSettingsChild =
           item.id === "llmModel" ||
           item.id === "drivers" ||
-          item.id === "interface" ||
+          item.id === "universal" ||
           item.id === "workspaceConfig" ||
           item.id === "storage";
         result.push(
@@ -199,7 +199,7 @@ export const PopupMenu: React.FC<PopupMenuProps> = ({
               if (
                 item.id === "llmModel" ||
                 item.id === "drivers" ||
-                item.id === "interface" ||
+                item.id === "universal" ||
                 item.id === "workspaceConfig" ||
                 item.id === "storage"
               ) {

@@ -1,14 +1,14 @@
 import React from "react";
 import AtomicSkillsPanel from "./DriversPanel";
-import InterfaceConfig from "./SystemConfig/InterfaceConfig";
 import WorkspaceConfig from "./SystemConfig/WorkspaceConfig";
 import StorageConfig from "./SystemConfig/StorageConfig";
 import LLMModelConfig from "./LLMModelConfig";
+import UniversalSettings from "./SystemConfig/UniversalSettings";
 
 export type SettingsSubView =
   | "llmModel"
   | "drivers"
-  | "interface"
+  | "universal"
   | "workspaceConfig"
   | "storage";
 
@@ -21,6 +21,10 @@ interface SettingsPanelProps {
   onThemeChange?: (theme: "light" | "dark") => void;
   onLanguageChange?: (language: "zh" | "en") => void;
   isInitializing?: boolean;
+  layoutSwapMode?: "terminal-left" | "chat-left";
+  onLayoutSwapModeChange?: (mode: "terminal-left" | "chat-left") => void;
+  functionPanelPosition?: "left" | "right";
+  onFunctionPanelPositionChange?: (position: "left" | "right") => void;
 }
 
 const SettingsPanel: React.FC<SettingsPanelProps> = ({
@@ -32,6 +36,10 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
   onThemeChange,
   onLanguageChange,
   isInitializing,
+  layoutSwapMode = "terminal-left",
+  onLayoutSwapModeChange,
+  functionPanelPosition = "right",
+  onFunctionPanelPositionChange,
 }) => {
   switch (subView) {
     case "llmModel":
@@ -40,14 +48,18 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
       );
     case "drivers":
       return <AtomicSkillsPanel t={t} onSave={onSave} />;
-    case "interface":
+    case "universal":
       return (
-        <InterfaceConfig
+        <UniversalSettings
           t={t}
           theme={theme || "dark"}
           language={language || "en"}
           onThemeChange={onThemeChange || (() => {})}
           onLanguageChange={onLanguageChange || (() => {})}
+          layoutSwapMode={layoutSwapMode}
+          onLayoutSwapModeChange={onLayoutSwapModeChange}
+          functionPanelPosition={functionPanelPosition}
+          onFunctionPanelPositionChange={onFunctionPanelPositionChange}
         />
       );
     case "workspaceConfig":

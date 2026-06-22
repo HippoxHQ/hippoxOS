@@ -1,4 +1,3 @@
-// Sidebar/index.tsx - 修复 userProfile 点击逻辑
 import React, { useEffect, useRef } from "react";
 import { PopupMenu, SidebarButton } from "./components";
 import { SidebarProps } from "./types";
@@ -78,7 +77,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     if (
       id === "llmModel" ||
       id === "drivers" ||
-      id === "interface" ||
+      id === "universal" ||
       id === "workspaceConfig" ||
       id === "storage" ||
       id === "engine_database" ||
@@ -149,7 +148,6 @@ const Sidebar: React.FC<SidebarProps> = ({
     itemId: string,
     e: React.MouseEvent<HTMLButtonElement>,
   ) => {
-    // 直接点击打开的页面（不弹出菜单）
     const directOpenItems = [
       "skillsManager",
       "tasks_group",
@@ -158,9 +156,8 @@ const Sidebar: React.FC<SidebarProps> = ({
       "workspace",
       "logs",
       "skillMarket",
-      "userProfile", // 添加 userProfile 到直接打开列表
+      "userProfile",
     ];
-
     if (directOpenItems.includes(itemId)) {
       if (popupVisible) {
         handleClosePopup();

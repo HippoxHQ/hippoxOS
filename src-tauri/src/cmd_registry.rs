@@ -205,5 +205,9 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_search_messages,
         commands::cmd_search_messages_formatted,
         commands::cmd_search_all,
+        commands::cmd_get_settings_layout_swap_mode,
+        commands::cmd_save_settings_layout_swap_mode,
+        commands::cmd_get_settings_function_panel_position,
+        commands::cmd_save_settings_function_panel_position,
     ]
 }

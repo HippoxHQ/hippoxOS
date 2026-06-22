@@ -57,6 +57,10 @@ interface MenuPanelProps {
   onCloseSkillsManager?: () => void;
   onSendMessage?: (message: string, files?: UploadFile[]) => void;
   onSendSkillMessage: (message: string, files?: UploadFile[]) => void;
+  layoutSwapMode?: "terminal-left" | "chat-left";
+  onLayoutSwapModeChange?: (mode: "terminal-left" | "chat-left") => void;
+  functionPanelPosition?: "left" | "right";
+  onFunctionPanelPositionChange?: (position: "left" | "right") => void;
 }
 
 const viewTitles: Record<MenuPanelView, string> = {
@@ -165,6 +169,10 @@ const MenuPanel: React.FC<MenuPanelProps> = ({
   onCloseSkillsManager,
   onSendMessage = () => {},
   onSendSkillMessage,
+  layoutSwapMode = "terminal-left",
+  onLayoutSwapModeChange,
+  functionPanelPosition = "right",
+  onFunctionPanelPositionChange,
 }) => {
   const renderContent = () => {
     if (currentView === "engine_group" && engineSubView) {
@@ -216,6 +224,10 @@ const MenuPanel: React.FC<MenuPanelProps> = ({
           onThemeChange={onThemeChange}
           onLanguageChange={onLanguageChange}
           isInitializing={isInitializing}
+          layoutSwapMode={layoutSwapMode}
+          onLayoutSwapModeChange={onLayoutSwapModeChange}
+          functionPanelPosition={functionPanelPosition}
+          onFunctionPanelPositionChange={onFunctionPanelPositionChange}
         />
       );
     }
@@ -260,7 +272,7 @@ const MenuPanel: React.FC<MenuPanelProps> = ({
       const settingsTitles: Record<SettingsSubView, string> = {
         llmModel: "menu.llmModelConfig",
         drivers: "menu.drivers",
-        interface: "settings.interfaceConfig",
+        universal: "settings.universalSettings",
         workspaceConfig: "settings.workspaceConfig",
         storage: "menu.storage",
       };

@@ -1,24 +1,42 @@
-import { useState, useEffect } from "react";
+import { useState, useCallback, useEffect } from "react";
+import { configCommands } from "../../command/config";
 
-export type LayoutSwapMode = "terminal-left" | "chat-left";
-
-export function useLayoutSwapMode() {
-    const [layoutSwapMode, setLayoutSwapMode] = useState<LayoutSwapMode>(() => {
-        const saved = localStorage.getItem("hippox-layout-swap-mode");
-        return saved === "terminal-left" || saved === "chat-left" ? saved as LayoutSwapMode : "terminal-left";
-    });
-    const handleLayoutSwapModeChange = (mode: LayoutSwapMode) => {
-        setLayoutSwapMode(mode);
-        localStorage.setItem("hippox-layout-swap-mode", mode);
-    };
+export const useLayoutSwapMode = () => {
+    const [layoutSwapMode, setLayoutSwapMode] = useState<"terminal-left" | "chat-left">("terminal-left");
+    const [isLoading, setIsLoading] = useState(true);
     useEffect(() => {
-        const savedMode = localStorage.getItem("hippox-layout-swap-mode") as LayoutSwapMode | null;
-        if (savedMode) {
-            setLayoutSwapMode(savedMode);
-        }
+        const loadMode = async () => {
+            try {
+                const saved = await configCommands.getSettingsLayoutSwapMode();
+                if (saved === "terminal-left" || saved === "chat-left") {
+                    setLayoutSwapMode(saved);
+                } else {
+                    await configCommands.saveSettingsLayoutSwapMode("terminal-left");
+                    setLayoutSwapMode("terminal-left");
+                }
+            } catch (error) {
+                console.error("Failed to load layout swap mode:", error);
+                try {
+                    await configCommands.saveSettingsLayoutSwapMode("terminal-left");
+                } catch (saveError) {
+                    console.error("Failed to save default layout swap mode:", saveError);
+                }
+                setLayoutSwapMode("terminal-left");
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        loadMode();
+    }, []);
+    const handleLayoutSwapModeChange = useCallback((mode: "terminal-left" | "chat-left") => {
+        setLayoutSwapMode(mode);
+        configCommands.saveSettingsLayoutSwapMode(mode).catch((error) => {
+            console.error("Failed to save layout swap mode:", error);
+        });
     }, []);
     return {
         layoutSwapMode,
         handleLayoutSwapModeChange,
+        isLoading,
     };
-}
+};

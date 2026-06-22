@@ -1287,3 +1287,31 @@ pub async fn cmd_get_max_favorites_size() -> Result<u64, String> {
 pub async fn cmd_set_max_favorites_size(max_size_mb: u64) -> Result<(), String> {
     crate::commands::paths::set_max_favorites_size(max_size_mb)
 }
+
+#[tauri::command]
+pub fn cmd_get_settings_layout_swap_mode() -> Result<String, String> {
+    let value = crate::common::get_setting_with_default(
+        "layout_swap_mode",
+        serde_json::json!("terminal-left"),
+    )?;
+    Ok(value.as_str().unwrap_or("terminal-left").to_string())
+}
+
+#[tauri::command]
+pub fn cmd_save_settings_layout_swap_mode(mode: String) -> Result<(), String> {
+    crate::common::set_setting("layout_swap_mode", serde_json::json!(mode))
+}
+
+#[tauri::command]
+pub fn cmd_get_settings_function_panel_position() -> Result<String, String> {
+    let value = crate::common::get_setting_with_default(
+        "function_panel_position",
+        serde_json::json!("right"),
+    )?;
+    Ok(value.as_str().unwrap_or("right").to_string())
+}
+
+#[tauri::command]
+pub fn cmd_save_settings_function_panel_position(position: String) -> Result<(), String> {
+    crate::common::set_setting("function_panel_position", serde_json::json!(position))
+}

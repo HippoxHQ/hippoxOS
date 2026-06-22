@@ -27,7 +27,7 @@ export const bottomMenuItems: MenuItemWithSection[] = [
         section: "config",
         children: [
             { id: "llmModel", icon: "settings", label: "menu.llmModelConfig" },
-            { id: "interface", icon: "config", label: "settings.interfaceConfig" },
+            { id: "universal", icon: "config", label: "settings.universalSettings" },
             { id: "workspaceConfig", icon: "config", label: "settings.workspaceConfig" },
             { id: "storage", icon: "config", label: "menu.storage" },
             { id: "drivers", icon: "skills", label: "menu.drivers" },
@@ -36,7 +36,7 @@ export const bottomMenuItems: MenuItemWithSection[] = [
             //     icon: "config",
             //     label: "menu.systemConfig",
             //     children: [
-            //         { id: "interface", icon: "config", label: "settings.interfaceConfig" },
+            //         { id: "interface", icon: "config", label: "settings.universalSettings" },
             //         { id: "workspaceConfig", icon: "config", label: "settings.workspaceConfig" },
             //         { id: "storage", icon: "config", label: "menu.storage" },
             //     ],
