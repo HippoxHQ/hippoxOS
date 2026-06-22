@@ -9,6 +9,7 @@ interface ModuleTabsProps {
   onClosePanel: () => void;
   onToggleCollapse?: () => void;
   t: (key: string) => string;
+  functionPanelPosition?: "left" | "right";
 }
 
 export const ModuleTabs: React.FC<ModuleTabsProps> = ({
@@ -19,10 +20,13 @@ export const ModuleTabs: React.FC<ModuleTabsProps> = ({
   onClosePanel,
   onToggleCollapse,
   t,
+  functionPanelPosition = "right",
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [showLeft, setShowLeft] = useState(false);
   const [showRight, setShowRight] = useState(false);
+  const collapseIcon = functionPanelPosition === "left" ? "≪" : "≫";
+  const expandIcon = functionPanelPosition === "left" ? "≫" : "≪";
 
   const checkScroll = () => {
     if (!containerRef.current) return;
@@ -84,7 +88,7 @@ export const ModuleTabs: React.FC<ModuleTabsProps> = ({
     >
       {showLeft && (
         <button onClick={() => scroll("left")} style={scrollButtonStyle}>
-          ≪
+          ◀
         </button>
       )}
       <div
@@ -185,7 +189,7 @@ export const ModuleTabs: React.FC<ModuleTabsProps> = ({
       </div>
       {showRight && (
         <button onClick={() => scroll("right")} style={scrollButtonStyle}>
-          ≫
+          ▶
         </button>
       )}
       <button
@@ -245,7 +249,7 @@ export const ModuleTabs: React.FC<ModuleTabsProps> = ({
           }}
           title={t("functionArea.collapse") || "Collapse"}
         >
-          ≫
+          {collapseIcon}
         </button>
       )}
       <style>{`

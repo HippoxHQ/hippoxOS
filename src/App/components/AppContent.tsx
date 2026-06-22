@@ -493,6 +493,7 @@ export function AppContent({
         width={functionPanelWidth}
         isCollapsed={collapsed}
         onToggleCollapse={handleToggleFunctionPanelCollapse}
+        functionPanelPosition={functionPanelPosition}
       />
     );
 

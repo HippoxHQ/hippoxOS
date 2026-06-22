@@ -22,6 +22,7 @@ interface FunctionPanelProps {
   width?: number;
   isCollapsed?: boolean;
   onToggleCollapse?: () => void;
+  functionPanelPosition?: "left" | "right";
 }
 
 const FunctionPanel: React.FC<FunctionPanelProps> = ({
@@ -34,8 +35,18 @@ const FunctionPanel: React.FC<FunctionPanelProps> = ({
   width = 480,
   isCollapsed = false,
   onToggleCollapse,
+  functionPanelPosition = "right",
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const controllerRef = useRef(controller);
+  const itemsRef = useRef(controller.items);
+  const activeItemIdRef = useRef(controller.activeItemId);
+
+  useEffect(() => {
+    controllerRef.current = controller;
+    itemsRef.current = controller.items;
+    activeItemIdRef.current = controller.activeItemId;
+  }, [controller, controller.items, controller.activeItemId]);
 
   const renderItemContent = useCallback(
     (item: any) => {
@@ -79,10 +90,19 @@ const FunctionPanel: React.FC<FunctionPanelProps> = ({
     [theme, i18n, currentSessionId, onSendSkillMessage, t, controller],
   );
 
-  const activeItem = controller.getActiveItem?.() || null;
+  const renderItemContentRef = useRef(renderItemContent);
+
+  useEffect(() => {
+    renderItemContentRef.current = renderItemContent;
+  }, [renderItemContent]);
+
+  const activeItem = useMemo(() => {
+    return controller.getActiveItem?.() || null;
+  }, [controller.getActiveItem, controller.items, controller.activeItemId]);
+
   const activeContent = useMemo(() => {
-    return activeItem ? renderItemContent(activeItem) : null;
-  }, [activeItem, renderItemContent]);
+    return activeItem ? renderItemContentRef.current(activeItem) : null;
+  }, [activeItem]);
 
   if (!controller.isOpen || controller.items.length === 0) {
     return (
@@ -113,6 +133,7 @@ const FunctionPanel: React.FC<FunctionPanelProps> = ({
   }
 
   if (isCollapsed) {
+    const expandIcon = functionPanelPosition === "left" ? "≫" : "≪";
     return (
       <div
         ref={containerRef}
@@ -167,7 +188,7 @@ const FunctionPanel: React.FC<FunctionPanelProps> = ({
             }}
             title={t("functionArea.expand") || "Expand"}
           >
-            ≪
+            {expandIcon}
           </button>
         </div>
         <div
@@ -182,16 +203,6 @@ const FunctionPanel: React.FC<FunctionPanelProps> = ({
           }}
         >
           <span style={{ fontSize: "16px" }}>📂</span>
-          {/* <span
-            style={{
-              writingMode: "vertical-rl",
-              letterSpacing: "2px",
-              fontSize: "10px",
-              opacity: 0.6,
-            }}
-          >
-            {t("functionArea.title") || "Functions"}
-          </span> */}
         </div>
         <CollapsedTabList
           items={controller.items}
@@ -228,6 +239,7 @@ const FunctionPanel: React.FC<FunctionPanelProps> = ({
         onClosePanel={controller.closePanel}
         onToggleCollapse={onToggleCollapse}
         t={t}
+        functionPanelPosition={functionPanelPosition}
       />
       <ModuleContent content={activeContent} isEmpty={!activeContent} t={t} />
       <style>{`
@@ -254,16 +266,19 @@ interface CollapsedTabListProps {
   items: any[];
   activeItemId: string | null;
   onSwitch: (id: string) => void;
+  functionPanelPosition?: "left" | "right";
 }
 
 const CollapsedTabList: React.FC<CollapsedTabListProps> = ({
   items,
   activeItemId,
   onSwitch,
+  functionPanelPosition = "right",
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [showUp, setShowUp] = useState(false);
   const [showDown, setShowDown] = useState(false);
+  const expandIcon = functionPanelPosition === "left" ? "≫" : "≪";
 
   const checkScroll = useCallback(() => {
     if (!containerRef.current) return;
@@ -453,4 +468,4 @@ const CollapsedTabList: React.FC<CollapsedTabListProps> = ({
   );
 };
 
-export default FunctionPanel;
+export default React.memo(FunctionPanel);
