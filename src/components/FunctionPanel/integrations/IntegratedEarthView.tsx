@@ -11,6 +11,7 @@ import {
   BarChartLayer,
 } from "@earthview/core";
 import React, { useEffect, useRef, useState, useCallback } from "react";
+
 interface IntegratedEarthViewProps {
   theme: "light" | "dark";
   i18n: "en" | "zh-cn";
@@ -23,6 +24,74 @@ interface IntegratedEarthViewProps {
 
 const DEFAULT_CENTER: [number, number] = [-74.006, 40.7128];
 const DEFAULT_ZOOM: number = 12;
+
+const normalizeColor = (color: any): number[] => {
+  if (!color) return [255, 87, 34, 1];
+  if (Array.isArray(color) && color.length >= 3) {
+    const r = color[0] ?? 255;
+    const g = color[1] ?? 87;
+    const b = color[2] ?? 34;
+    const a = color[3] ?? 1;
+    return [r, g, b, a];
+  }
+  if (typeof color === "string") {
+    let hex = color.replace("#", "");
+    let r,
+      g,
+      b,
+      a = 1;
+    if (hex.length === 3) {
+      r = parseInt(hex[0] + hex[0], 16);
+      g = parseInt(hex[1] + hex[1], 16);
+      b = parseInt(hex[2] + hex[2], 16);
+    } else if (hex.length === 4) {
+      r = parseInt(hex[0] + hex[0], 16);
+      g = parseInt(hex[1] + hex[1], 16);
+      b = parseInt(hex[2] + hex[2], 16);
+      a = parseInt(hex[3] + hex[3], 16) / 255;
+    } else if (hex.length === 6) {
+      r = parseInt(hex.substring(0, 2), 16);
+      g = parseInt(hex.substring(2, 4), 16);
+      b = parseInt(hex.substring(4, 6), 16);
+    } else if (hex.length === 8) {
+      r = parseInt(hex.substring(0, 2), 16);
+      g = parseInt(hex.substring(2, 4), 16);
+      b = parseInt(hex.substring(4, 6), 16);
+      a = parseInt(hex.substring(6, 8), 16) / 255;
+    } else {
+      return [255, 87, 34, 1];
+    }
+    return [r, g, b, a];
+  }
+
+  if (typeof color === "string" && color.startsWith("rgba")) {
+    const match = color.match(
+      /rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/,
+    );
+    if (match) {
+      const r = parseInt(match[1], 10);
+      const g = parseInt(match[2], 10);
+      const b = parseInt(match[3], 10);
+      const a = match[4] ? parseFloat(match[4]) : 1;
+      return [r, g, b, a];
+    }
+  }
+
+  if (typeof color === "string" && color.startsWith("rgb")) {
+    const match = color.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+    if (match) {
+      return [
+        parseInt(match[1], 10),
+        parseInt(match[2], 10),
+        parseInt(match[3], 10),
+        1,
+      ];
+    }
+  }
+
+  return [255, 87, 34, 1];
+};
+
 export const IntegratedEarthView: React.FC<IntegratedEarthViewProps> = ({
   theme,
   i18n,
@@ -37,6 +106,7 @@ export const IntegratedEarthView: React.FC<IntegratedEarthViewProps> = ({
   const [isReady, setIsReady] = useState(false);
   const pendingMapDataRef = useRef<any>(null);
   const hasLocatedRef = useRef<boolean>(false);
+
   const locateToCoordinate = useCallback(
     (center: [number, number], source: string = "unknown") => {
       if (!earthViewRef.current || !isReady) {
@@ -58,6 +128,7 @@ export const IntegratedEarthView: React.FC<IntegratedEarthViewProps> = ({
     },
     [isReady],
   );
+
   const getFirstMarkerCoordinate = useCallback(
     (markers: any[]): [number, number] | null => {
       if (!markers || markers.length === 0) return null;
@@ -77,6 +148,7 @@ export const IntegratedEarthView: React.FC<IntegratedEarthViewProps> = ({
     },
     [],
   );
+
   const getFirstPolylineCoordinate = useCallback(
     (polylines: any[]): [number, number] | null => {
       if (!polylines || polylines.length === 0) return null;
@@ -104,6 +176,7 @@ export const IntegratedEarthView: React.FC<IntegratedEarthViewProps> = ({
     },
     [],
   );
+
   const getFirstCircleCoordinate = useCallback(
     (circles: any[]): [number, number] | null => {
       if (!circles || circles.length === 0) return null;
@@ -128,6 +201,7 @@ export const IntegratedEarthView: React.FC<IntegratedEarthViewProps> = ({
     },
     [],
   );
+
   const getFirstPolygonCoordinate = useCallback(
     (polygons: any[]): [number, number] | null => {
       if (!polygons || polygons.length === 0) return null;
@@ -155,6 +229,7 @@ export const IntegratedEarthView: React.FC<IntegratedEarthViewProps> = ({
     },
     [],
   );
+
   const getFirstCoordinateFromConfig = useCallback(
     (config: any): [number, number] | null => {
       if (!config) {
@@ -224,16 +299,18 @@ export const IntegratedEarthView: React.FC<IntegratedEarthViewProps> = ({
       layerManager.addLayer(markerLayer);
     }
     for (const marker of markers) {
+      const colorArray = normalizeColor(marker.color || "#FF5722");
+      const colorString = `rgba(${colorArray[0]}, ${colorArray[1]}, ${colorArray[2]}, ${colorArray[3] ?? 1})`;
       await markerLayer.addMarker({
         id: marker.id || `marker_${Date.now()}_${Math.random()}`,
         longitude: marker.longitude,
         latitude: marker.latitude,
         name: marker.name || marker.title || "",
-        pointColor: marker.color || "#FF5722",
+        pointColor: colorString,
         pointSize: marker.size || 15,
         pointType: marker.pointType || "circle",
         pointText: marker.pointText || "",
-        bubbleBoxTitle: marker.bubbleBoxTitle || marker.title,
+        bubbleBoxTitle: marker.bubbleBoxTitle || marker.title || "",
         bubbleBoxDescription: marker.bubbleBoxDescription || "",
         bubbleBoxCoverImage: marker.bubbleBoxCoverImage || "",
       });
@@ -257,8 +334,8 @@ export const IntegratedEarthView: React.FC<IntegratedEarthViewProps> = ({
         center: circle.center,
         radius: circle.radius,
         title: circle.title || "",
-        fillColor: circle.fillColor || "rgba(255,87,34,0.3)",
-        outlineColor: circle.outlineColor || "#FF5722",
+        fillColor: normalizeColor(circle.fillColor || "rgba(255,87,34,0.3)"),
+        outlineColor: normalizeColor(circle.outlineColor || "#FF5722"),
         outlineWidth: circle.outlineWidth || 3,
       });
     }
@@ -280,8 +357,8 @@ export const IntegratedEarthView: React.FC<IntegratedEarthViewProps> = ({
         id: polygon.id || `polygon_${Date.now()}_${Math.random()}`,
         points: polygon.points,
         title: polygon.title || "",
-        fillColor: polygon.fillColor || "rgba(0,0,255,0.3)",
-        outlineColor: polygon.outlineColor || "#0000FF",
+        fillColor: normalizeColor(polygon.fillColor || "rgba(0,0,255,0.3)"),
+        outlineColor: normalizeColor(polygon.outlineColor || "#0000FF"),
         outlineWidth: polygon.outlineWidth || 3,
       });
     }
@@ -303,7 +380,7 @@ export const IntegratedEarthView: React.FC<IntegratedEarthViewProps> = ({
         id: polyline.id || `polyline_${Date.now()}_${Math.random()}`,
         points: polyline.points,
         title: polyline.title || "",
-        color: polyline.color || "#FF0000",
+        color: normalizeColor(polyline.color || "#FF0000"),
         width: polyline.width || 3,
       });
     }
@@ -313,7 +390,6 @@ export const IntegratedEarthView: React.FC<IntegratedEarthViewProps> = ({
     if (!earthViewRef.current || !heatmapData.length) return;
     const layerManager = earthViewRef.current.getLayerManager();
     let heatmapLayer = layerManager.getLayer("llm-heatmap") as HeatmapLayer;
-
     if (!heatmapLayer) {
       heatmapLayer = new HeatmapLayer("llm-heatmap", "LLM热力图", {
         visible: true,
@@ -499,6 +575,7 @@ export const IntegratedEarthView: React.FC<IntegratedEarthViewProps> = ({
       );
     };
   }, [isReady, applyEarthViewConfig, locateToCoordinate]);
+
   useEffect(() => {
     if (isReady && earthViewRef.current && mapData) {
       applyEarthViewConfig(mapData);
@@ -506,6 +583,7 @@ export const IntegratedEarthView: React.FC<IntegratedEarthViewProps> = ({
       pendingMapDataRef.current = mapData;
     }
   }, [mapData, isReady, applyEarthViewConfig]);
+
   useEffect(() => {
     if (!containerRef.current) return;
     if (earthViewRef.current) {
@@ -514,6 +592,7 @@ export const IntegratedEarthView: React.FC<IntegratedEarthViewProps> = ({
       setIsReady(false);
       hasLocatedRef.current = false;
     }
+
     let initialCenter: [number, number] = DEFAULT_CENTER;
     const firstCoord = getFirstCoordinateFromConfig(mapData);
     if (firstCoord) {
@@ -543,6 +622,7 @@ export const IntegratedEarthView: React.FC<IntegratedEarthViewProps> = ({
         initialCenter = [lng, lat];
       }
     }
+
     const earthView = new EarthView({
       container: containerRef.current,
       basemap: BasemapTypeEnum.SATELLITE,

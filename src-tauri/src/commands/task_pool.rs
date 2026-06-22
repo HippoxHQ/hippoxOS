@@ -6,8 +6,7 @@ use crate::{
     state::AppState,
 };
 use hippox::{
-    cancel_task, get_all_tasks, get_task, get_task_status, pause_task, pending_count, resume_task,
-    retry_task, running_count, set_max_concurrent, HippoxResult, Task,
+    HippoxResult, Task, cancel_task, get_all_tasks, get_all_tasks_detailed, get_task, get_task_status, pause_task, pending_count, resume_task, retry_task, running_count, set_max_concurrent,
 };
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
@@ -31,54 +30,115 @@ fn ensure_taskpool_backup_dir() -> Result<(), String> {
 /// Get all tasks in the pool
 #[tauri::command]
 pub async fn cmd_task_pool_get_all_tasks(limit: Option<usize>) -> Result<Vec<TaskInfo>, String> {
-    let tasks = get_all_tasks(limit).await;
-    Ok(tasks.into_iter().map(TaskInfo::from).collect())
+    match get_all_tasks_detailed(limit).await {
+        HippoxResult {
+            data: Some(tasks), ..
+        } => Ok(tasks.into_iter().map(TaskInfo::from).collect()),
+        HippoxResult { error: Some(e), .. } => Err(e),
+        _ => Err("Failed to get tasks: unknown error".to_string()),
+    }
 }
 
 /// Get a single task by ID
 #[tauri::command]
 pub async fn cmd_task_pool_get_task(task_id: String) -> Result<Option<TaskInfo>, String> {
-    let task = get_task(&task_id).await;
-    Ok(task.map(TaskInfo::from))
+    match get_task(&task_id).await {
+        HippoxResult {
+            data: Some(task), ..
+        } => Ok(Some(TaskInfo::from(task))),
+        HippoxResult { error: Some(e), .. } => Err(e),
+        _ => Ok(None),
+    }
 }
 
 /// Get task status by ID
 #[tauri::command]
 pub async fn cmd_task_pool_get_task_status(task_id: String) -> Result<Option<String>, String> {
-    let status = get_task_status(&task_id).await;
-    Ok(status.map(|s| format!("{:?}", s).to_lowercase()))
+    match get_task_status(&task_id).await {
+        HippoxResult {
+            data: Some(status), ..
+        } => Ok(Some(format!("{:?}", status).to_lowercase())),
+        HippoxResult { error: Some(e), .. } => Err(e),
+        _ => Ok(None),
+    }
 }
 
 /// Cancel a task
 #[tauri::command]
 pub async fn cmd_task_pool_cancel_task(task_id: String) -> Result<bool, String> {
-    Ok(cancel_task(&task_id).await)
+    match cancel_task(&task_id).await {
+        HippoxResult {
+            data: Some(success),
+            ..
+        } => Ok(success),
+        HippoxResult { error: Some(e), .. } => Err(e),
+        _ => Err("Failed to cancel task: unknown error".to_string()),
+    }
 }
 
 /// Pause a task
 #[tauri::command]
 pub async fn cmd_task_pool_pause_task(task_id: String) -> Result<bool, String> {
-    Ok(pause_task(&task_id).await)
+    match pause_task(&task_id).await {
+        HippoxResult {
+            data: Some(success),
+            ..
+        } => Ok(success),
+        HippoxResult { error: Some(e), .. } => Err(e),
+        _ => Err("Failed to pause task: unknown error".to_string()),
+    }
 }
 
 /// Resume a paused task
 #[tauri::command]
 pub async fn cmd_task_pool_resume_task(task_id: String) -> Result<bool, String> {
-    Ok(resume_task(&task_id).await)
+    match resume_task(&task_id).await {
+        HippoxResult {
+            data: Some(success),
+            ..
+        } => Ok(success),
+        HippoxResult { error: Some(e), .. } => Err(e),
+        _ => Err("Failed to resume task: unknown error".to_string()),
+    }
 }
 
 /// Retry a failed task
 #[tauri::command]
 pub async fn cmd_task_pool_retry_task(task_id: String) -> Result<bool, String> {
-    Ok(retry_task(&task_id).await)
+    match retry_task(&task_id).await {
+        HippoxResult {
+            data: Some(success),
+            ..
+        } => Ok(success),
+        HippoxResult { error: Some(e), .. } => Err(e),
+        _ => Err("Failed to retry task: unknown error".to_string()),
+    }
 }
 
 /// Get task pool statistics
 #[tauri::command]
 pub async fn cmd_task_pool_get_stats() -> Result<TaskPoolStats, String> {
-    let running = running_count().await;
-    let pending = pending_count().await;
-    let all_tasks = get_all_tasks(None).await;
+    let running = match running_count().await {
+        HippoxResult {
+            data: Some(count), ..
+        } => count,
+        HippoxResult { error: Some(e), .. } => return Err(e),
+        _ => return Err("Failed to get running count".to_string()),
+    };
+    let pending = match pending_count().await {
+        HippoxResult {
+            data: Some(count), ..
+        } => count,
+        HippoxResult { error: Some(e), .. } => return Err(e),
+        _ => return Err("Failed to get pending count".to_string()),
+    };
+    let all_tasks = match get_all_tasks_detailed(None).await {
+        HippoxResult {
+            data: Some(tasks), ..
+        } => tasks,
+        HippoxResult { error: Some(e), .. } => return Err(e),
+        _ => return Err("Failed to get all tasks".to_string()),
+    };
     Ok(TaskPoolStats {
         running_count: running,
         pending_count: pending,
@@ -90,8 +150,11 @@ pub async fn cmd_task_pool_get_stats() -> Result<TaskPoolStats, String> {
 /// Set maximum concurrent tasks
 #[tauri::command]
 pub async fn cmd_task_pool_set_max_concurrent(max: usize) -> Result<(), String> {
-    set_max_concurrent(max).await;
-    Ok(())
+    match set_max_concurrent(max).await {
+        HippoxResult { data: Some(()), .. } => Ok(()),
+        HippoxResult { error: Some(e), .. } => Err(e),
+        _ => Err("Failed to set max concurrent".to_string()),
+    }
 }
 
 /// Get tasks by session (filter)

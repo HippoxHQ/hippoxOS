@@ -35,7 +35,20 @@ PRIORITY RULES - MUST FOLLOW:
 
 EARTHVIEW FIELDS (map operations):
 - view: Map view control. { center: [longitude, latitude] }
-- markers: Mark points on map. **IMPORTANT: Always provide bubbleBoxTitle and bubbleBoxDescription for each marker. Keep them concise to avoid excessive tokens.** [{ id: "optional", longitude: number, latitude: number, title: string (max 20 chars), name: string (max 20 chars), color: string, size: 5-20, pointType: "circle|square|triangle|pin|star|heart|flag", pointText: "string", bubbleBoxTitle: "string (REQUIRED - max 30 characters, concise title for popup)", bubbleBoxDescription: "string (REQUIRED - max 100 characters, brief description for popup)", bubbleBoxCoverImage: "url (optional)" }]
+- markers: Mark points on map. **IMPORTANT: Always provide bubbleBoxTitle and bubbleBoxDescription for each marker. Keep them concise to avoid excessive tokens.** 
+  Color supports: #RRGGBB, rgba(), or [r,g,b,a] array format (a = opacity 0-1).
+  [{ id: "optional", longitude: number, latitude: number, title: string (max 20 chars), name: string (max 20 chars), color: string | [r,g,b,a], size: 5-20, pointType: "circle|square|triangle|pin|star|heart|flag", pointText: "string", bubbleBoxTitle: "string (REQUIRED - max 30 characters, concise title for popup)", bubbleBoxDescription: "string (REQUIRED - max 100 characters, brief description for popup)", bubbleBoxCoverImage: "url (optional)" }]
+- circles: Draw circles on map. fillColor = fill color, outlineColor = border color.
+  Color supports: #RRGGBB, rgba(), or [r,g,b,a] array format.
+  [{ center: [longitude,latitude], radius: number(meters), title: "string", fillColor: string | [r,g,b,a] (default rgba(255,87,34,0.3)), outlineColor: string | [r,g,b,a] (default #FF5722), outlineWidth: number (default 3) }]
+- polygons: Draw polygons on map. fillColor = fill color, outlineColor = border color.
+  Color supports: #RRGGBB, rgba(), or [r,g,b,a] array format.
+  [{ points: [[longitude,latitude]], title: "string", fillColor: string | [r,g,b,a] (default rgba(0,0,255,0.3)), outlineColor: string | [r,g,b,a] (default #0000FF), outlineWidth: number (default 3) }]
+- polylines: Draw lines on map. color = line color.
+  Color supports: #RRGGBB, rgba(), or [r,g,b,a] array format.
+  [{ points: [[longitude,latitude]], title: "string", color: string | [r,g,b,a] (default #FF0000), width: number (default 3) }]
+- barcharts: Bar chart markers on map. color supports #RRGGBB or [r,g,b,a] array.
+  [{ longitude: number, latitude: number, value: number, title: "string", color: string | [r,g,b,a] }]
 
 CANDLEVIEW FIELDS (K-line chart operations):
 - timeframe: Time period. "1m|5m|15m|30m|1h|4h|1d|1w|1M"
@@ -63,10 +76,10 @@ SCHEMA:
     "status": "success|error|warning|info",
      "earthview": {
   "view": {"center": [number,number]},
-  "markers": [{"id": "string", "longitude": number, "latitude": number, "title": "string (max 20)", "name": "string (max 20)", "color": "string", "size": number, "pointType": "string", "pointText": "string", "bubbleBoxTitle": "string (max 30)", "bubbleBoxDescription": "string (max 100)", "bubbleBoxCoverImage": "string"}],
-  "circles": [{"id": "string", "center": [number,number], "radius": number, "title": "string", "fillColor": "string", "outlineColor": "string", "outlineWidth": number}],
-  "polygons": [{"id": "string", "points": [[number,number]], "title": "string", "fillColor": "string", "outlineColor": "string", "outlineWidth": number}],
-  "polylines": [{"id": "string", "points": [[number,number]], "title": "string", "color": "string", "width": number}],
+  "markers": [{"id": "string", "longitude": number, "latitude": number, "title": "string (max 20)", "name": "string (max 20)", "color": "color (supports #RRGGBB, rgba(), or [r,g,b,a] array, a=opacity)", "size": number, ...}],
+  "circles": [{"id": "string", "center": [number,number], "radius": number, "title": "string", "fillColor": "color (supports #RRGGBB, rgba(), or [r,g,b,a] array, a=opacity)", "outlineColor": "color", "outlineWidth": number}],
+  "polygons": [{"id": "string", "points": [[number,number]], "title": "string", "fillColor": "color (supports #RRGGBB, rgba(), or [r,g,b,a] array, a=opacity)", "outlineColor": "color", "outlineWidth": number}],
+  "polylines": [{"id": "string", "points": [[number,number]], "title": "string", "color": "color (supports #RRGGBB, rgba(), or [r,g,b,a] array, a=opacity)", "width": number}],
   "heatmap": [{"id": "string", "longitude": number, "latitude": number, "value": number, "title": "string"}],
   "clusters": [{"id": "string", "longitude": number, "latitude": number, "title": "string", "popupContent": "string"}],
   "barcharts": [{"id": "string", "longitude": number, "latitude": number, "value": number, "title": "string", "color": "string"}]
@@ -154,7 +167,29 @@ ${workspaceInfo}
 
 EARTHVIEW 字段说明（地图操作）：
 - view：地图视图控制。{ center: [经度,纬度] }
-- markers：在地图上标记点位。**重要：请务必为每个标记点填写 bubbleBoxTitle 和 bubbleBoxDescription，并严格控制长度以避免 token 过多。**[{ id: "可选", longitude: 经度, latitude: 纬度, title: "标题（最多20字）", name: "名称（最多20字）", color: 颜色, size: 5-20, pointType: "circle|square|triangle|pin|star|heart|flag", pointText: 文字, bubbleBoxTitle: "气泡标题（必填，最多30字）", bubbleBoxDescription: "气泡描述（必填，最多100字）", bubbleBoxCoverImage: "封面图URL（可选）" }]
+- markers：在地图上标记点位。**重要：请务必为每个标记点填写 bubbleBoxTitle 和 bubbleBoxDescription。**
+  颜色支持 #RRGGBB、rgba() 或 [r,g,b,a] 数组格式（a为透明度0-1）。
+  [{ id: "可选", longitude: 经度, latitude: 纬度, title: "标题（最多20字）", 
+     name: "名称（最多20字）", color: 颜色, size: 5-20, 
+     pointType: "circle|square|triangle|pin|star|heart|flag", 
+     pointText: "文字", 
+     bubbleBoxTitle: "气泡标题（必填，最多30字）", 
+     bubbleBoxDescription: "气泡描述（必填，最多100字）", 
+     bubbleBoxCoverImage: "封面图URL（可选）" }]
+- circles：在地图上绘制圆形。fillColor为填充色，outlineColor为边框色。
+  颜色支持 #RRGGBB、rgba() 或 [r,g,b,a] 数组格式。
+  [{ center: [经度,纬度], radius: 半径(米), title: "标题", 
+     fillColor: 填充颜色(默认 rgba(255,87,34,0.3)), 
+     outlineColor: 边框颜色(默认 #FF5722), outlineWidth: 边框宽度(默认3) }]
+- polygons：在地图上绘制多边形。fillColor为填充色，outlineColor为边框色。
+  颜色支持 #RRGGBB、rgba() 或 [r,g,b,a] 数组格式。
+  [{ points: [[经度,纬度]], title: "标题", 
+     fillColor: 填充颜色(默认 rgba(0,0,255,0.3)), 
+     outlineColor: 边框颜色(默认 #0000FF), outlineWidth: 边框宽度(默认3) }]
+- polylines：在地图上绘制线段。color为线条颜色。
+  颜色支持 #RRGGBB、rgba() 或 [r,g,b,a] 数组格式。
+  [{ points: [[经度,纬度]], title: "标题", 
+     color: 线条颜色(默认 #FF0000), width: 线条宽度(默认3) }]
 
 CANDLEVIEW 字段说明（K线图操作）：
 - timeframe：K线周期。"1m|5m|15m|30m|1h|4h|1d|1w|1M"
@@ -182,10 +217,10 @@ SCHEMA:
     "status": "success|error|warning|info",
     "earthview": {
   "view": {"center": [数字,数字]},
-  "markers": [{"id": "字符串", "longitude": 数字, "latitude": 数字, "title": "字符串（最多20字）", "name": "字符串（最多20字）", "color": "字符串", "size": 数字, "pointType": "字符串", "pointText": "字符串", "bubbleBoxTitle": "字符串（最多30字）", "bubbleBoxDescription": "字符串（最多100字）", "bubbleBoxCoverImage": "字符串"}],
-  "circles": [{"id": "字符串", "center": [数字,数字], "radius": 数字, "title": "字符串", "fillColor": "字符串", "outlineColor": "字符串", "outlineWidth": 数字}],
-  "polygons": [{"id": "字符串", "points": [[数字,数字]], "title": "字符串", "fillColor": "字符串", "outlineColor": "字符串", "outlineWidth": 数字}],
-  "polylines": [{"id": "字符串", "points": [[数字,数字]], "title": "字符串", "color": "字符串", "width": 数字}],
+  "markers": [{"id": "字符串", "longitude": 数字, "latitude": 数字, "title": "字符串（最多20字）", "name": "字符串（最多20字）", "color": "颜色(支持 #RRGGBB、rgba() 或 [r,g,b,a] 数组，a为透明度)", "size": 数字, ...}],
+  "circles": [{"id": "字符串", "center": [数字,数字], "radius": 数字, "title": "字符串", "fillColor": "颜色(支持 #RRGGBB、rgba() 或 [r,g,b,a] 数组，a为透明度)", "outlineColor": "颜色", "outlineWidth": 数字}],
+  "polygons": [{"id": "字符串", "points": [[数字,数字]], "title": "字符串", "fillColor": "颜色(支持 #RRGGBB、rgba() 或 [r,g,b,a] 数组，a为透明度)", "outlineColor": "颜色", "outlineWidth": 数字}],
+  "polylines": [{"id": "字符串", "points": [[数字,数字]], "title": "字符串", "color": "颜色(支持 #RRGGBB、rgba() 或 [r,g,b,a] 数组，a为透明度)", "width": 数字}],
   "heatmap": [{"id": "字符串", "longitude": 数字, "latitude": 数字, "value": 数字, "title": "字符串"}],
   "clusters": [{"id": "字符串", "longitude": 数字, "latitude": 数字, "title": "字符串", "popupContent": "字符串"}],
   "barcharts": [{"id": "字符串", "longitude": 数字, "latitude": 数字, "value": 数字, "title": "字符串", "color": "字符串"}]

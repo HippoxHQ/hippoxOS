@@ -78,18 +78,23 @@ export const TaskOutput: React.FC<TaskOutputProps> = ({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasEarthview, hasCandleview, earthviewData, candleviewData, autoOpen]);
+
   if (!output || output.trim() === "") {
     return null;
   }
+
   if (shouldHide) {
     return null;
   }
+
   const handleShowMap = () => {
     onShowMap?.(earthviewData);
   };
+
   const handleShowChart = () => {
     onShowChart(candleviewData);
   };
+
   if (isStructured && renderedContent) {
     return (
       <div className="task-final-output">
