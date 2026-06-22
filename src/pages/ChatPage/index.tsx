@@ -528,7 +528,7 @@ const LLMChatPage: React.FC<LLMChatPageProps> = ({
           }}
         >
           <span style={{ fontSize: "16px" }}>{icon}</span>
-          <span
+          {/* <span
             style={{
               writingMode: "vertical-rl",
               letterSpacing: "2px",
@@ -537,7 +537,7 @@ const LLMChatPage: React.FC<LLMChatPageProps> = ({
             }}
           >
             {title}
-          </span>
+          </span> */}
         </div>
         <CollapsedTaskList
           tasks={allTasks}

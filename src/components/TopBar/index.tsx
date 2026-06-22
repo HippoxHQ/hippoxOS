@@ -70,6 +70,68 @@ const ChatLeftIcon = () => (
   </svg>
 );
 
+const FunctionLeftIcon = () => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.75"
+    width="16"
+    height="16"
+  >
+    <rect
+      x="2"
+      y="4"
+      width="8"
+      height="16"
+      rx="1.5"
+      stroke="currentColor"
+      fill="none"
+    />
+    <rect
+      x="12"
+      y="4"
+      width="10"
+      height="16"
+      rx="1.5"
+      stroke="currentColor"
+      fill="none"
+    />
+    <path d="M6 8h0" stroke="currentColor" />
+  </svg>
+);
+
+const FunctionRightIcon = () => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.75"
+    width="16"
+    height="16"
+  >
+    <rect
+      x="2"
+      y="4"
+      width="10"
+      height="16"
+      rx="1.5"
+      stroke="currentColor"
+      fill="none"
+    />
+    <rect
+      x="14"
+      y="4"
+      width="8"
+      height="16"
+      rx="1.5"
+      stroke="currentColor"
+      fill="none"
+    />
+    <path d="M18 8h0" stroke="currentColor" />
+  </svg>
+);
+
 const HistoryIcon = ({ size = 16 }: { size?: number }) => (
   <svg
     viewBox="0 0 24 24"
@@ -99,6 +161,8 @@ interface TopBarProps {
   t: (key: string) => string;
   layoutSwapMode?: "terminal-left" | "chat-left";
   onLayoutSwapModeChange?: (mode: "terminal-left" | "chat-left") => void;
+  functionPanelPosition?: "left" | "right";
+  onFunctionPanelPositionChange?: (position: "left" | "right") => void;
   onSwitchSession?: (sessionId: string) => void;
   currentSessionId?: string;
   onHistoryClick?: () => void;
@@ -411,6 +475,15 @@ const topBarStyles = `
     }
   }
   
+  @media (max-width: 600px) {
+  .action-btn.theme-toggle {
+    display: none;
+    }
+  .action-btn:not(.theme-toggle) {
+    display: none;
+    }
+  }
+
   @media (max-width: 580px) {
     .search-input-wrapper {
       min-width: 32px;
@@ -543,6 +616,8 @@ const TopBar: React.FC<TopBarProps> = ({
   t,
   layoutSwapMode = "terminal-left",
   onLayoutSwapModeChange,
+  functionPanelPosition = "right",
+  onFunctionPanelPositionChange,
   onSwitchSession,
   currentSessionId,
   onHistoryClick,
@@ -694,6 +769,7 @@ const TopBar: React.FC<TopBarProps> = ({
           >
             {currentLanguage === "zh" ? "EN" : "中文"}
           </button>
+
           {onLayoutSwapModeChange && (
             <>
               <div className="layout-divider" />
@@ -701,26 +777,51 @@ const TopBar: React.FC<TopBarProps> = ({
                 <button
                   className={`layout-switch-btn ${layoutSwapMode === "terminal-left" ? "active" : ""}`}
                   onClick={() => onLayoutSwapModeChange("terminal-left")}
-                  title={
-                    isZh ? "终端在左，对话在右" : "Terminal Left, Chat Right"
-                  }
+                  // title={
+                  //   isZh ? "终端在左，对话在右" : "Terminal Left, Chat Right"
+                  // }
                 >
                   <TerminalLeftIcon />
-                  <span>{isZh ? "终端｜对话" : "Term｜Chat"}</span>
+                  {/* <span>{isZh ? "终端｜对话" : "Term｜Chat"}</span> */}
                 </button>
                 <button
                   className={`layout-switch-btn ${layoutSwapMode === "chat-left" ? "active" : ""}`}
                   onClick={() => onLayoutSwapModeChange("chat-left")}
-                  title={
-                    isZh ? "对话在左，终端在右" : "Chat Left, Terminal Right"
-                  }
+                  // title={
+                  //   isZh ? "对话在左，终端在右" : "Chat Left, Terminal Right"
+                  // }
                 >
                   <ChatLeftIcon />
-                  <span>{isZh ? "对话｜终端" : "Chat｜Term"}</span>
+                  {/* <span>{isZh ? "对话｜终端" : "Chat｜Term"}</span> */}
                 </button>
               </div>
             </>
           )}
+
+          {onFunctionPanelPositionChange && (
+            <>
+              <div className="layout-divider" />
+              <div className="layout-switch-group">
+                <button
+                  className={`layout-switch-btn ${functionPanelPosition === "left" ? "active" : ""}`}
+                  onClick={() => onFunctionPanelPositionChange("left")}
+                  // title={isZh ? "功能区在左" : "Function Panel Left"}
+                >
+                  <FunctionLeftIcon />
+                  {/* <span>{isZh ? "功能区左" : "Func Left"}</span> */}
+                </button>
+                <button
+                  className={`layout-switch-btn ${functionPanelPosition === "right" ? "active" : ""}`}
+                  onClick={() => onFunctionPanelPositionChange("right")}
+                  // title={isZh ? "功能区在右" : "Function Panel Right"}
+                >
+                  <FunctionRightIcon />
+                  {/* <span>{isZh ? "功能区右" : "Func Right"}</span> */}
+                </button>
+              </div>
+            </>
+          )}
+
           <div className="window-controls">
             <button
               className="window-btn"

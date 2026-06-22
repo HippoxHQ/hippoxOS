@@ -182,7 +182,7 @@ const FunctionPanel: React.FC<FunctionPanelProps> = ({
           }}
         >
           <span style={{ fontSize: "16px" }}>📂</span>
-          <span
+          {/* <span
             style={{
               writingMode: "vertical-rl",
               letterSpacing: "2px",
@@ -191,7 +191,7 @@ const FunctionPanel: React.FC<FunctionPanelProps> = ({
             }}
           >
             {t("functionArea.title") || "Functions"}
-          </span>
+          </span> */}
         </div>
         <CollapsedTabList
           items={controller.items}

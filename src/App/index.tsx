@@ -17,6 +17,7 @@ import { useLayoutSwapMode } from "./hooks/useLayoutSwapMode";
 import { useDriverEvents } from "./hooks/useDriverEvents";
 import { useSendSkillMessage } from "./hooks/useSendSkillMessage";
 import { useFunctionPanelController } from "../components/FunctionPanel/hooks/useFunctionPanelController";
+import { useFunctionPanelPosition } from "./hooks/useFunctionPanelPosition";
 
 function App() {
   const { isConfigLoaded, initialEngineConfig, initialTheme, initialLanguage } =
@@ -52,6 +53,8 @@ function App() {
   } = useSession(language, isConfigLoaded, handleCloseSkillsManager);
   const { sidebarCollapsed, toggleSidebar } = useSidebar();
   const { layoutSwapMode, handleLayoutSwapModeChange } = useLayoutSwapMode();
+  const { functionPanelPosition, handleFunctionPanelPositionChange } =
+    useFunctionPanelPosition();
   const {
     isFilePreviewOpen,
     previewFile,
@@ -167,6 +170,8 @@ function App() {
       showDragCursor={showDragCursor}
       layoutSwapMode={layoutSwapMode}
       onLayoutSwapModeChange={handleLayoutSwapModeChange}
+      functionPanelPosition={functionPanelPosition}
+      onFunctionPanelPositionChange={handleFunctionPanelPositionChange}
       onSendSkillMessage={onSendSkillMessage}
       functionPanel={functionPanel}
     />

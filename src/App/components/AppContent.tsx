@@ -80,6 +80,8 @@ interface AppContentProps {
   showDragCursor: boolean;
   layoutSwapMode: "terminal-left" | "chat-left";
   onLayoutSwapModeChange: (mode: "terminal-left" | "chat-left") => void;
+  functionPanelPosition: "left" | "right";
+  onFunctionPanelPositionChange: (position: "left" | "right") => void;
   onSendSkillMessage: (message: string, files?: UploadFile[]) => void;
   functionPanel: FunctionPanelController;
 }
@@ -126,6 +128,8 @@ export function AppContent({
   showDragCursor,
   layoutSwapMode,
   onLayoutSwapModeChange,
+  functionPanelPosition,
+  onFunctionPanelPositionChange,
   onSendSkillMessage,
   functionPanel,
 }: AppContentProps) {
@@ -426,6 +430,115 @@ export function AppContent({
     },
   };
 
+  const renderMainContentWithFunctionPanel = () => {
+    const contentElement = currentContentPanel ? (
+      renderContent()
+    ) : showWelcome ? (
+      <WelcomePage
+        onSendMessage={(msg, files) =>
+          onSendMessage(msg, currentSessionId, files)
+        }
+        t={t}
+        onDragOverInputChange={setIsDraggingOverInput}
+      />
+    ) : (
+      <LLMChatPage
+        leftPanel={leftPanelContent}
+        rightPanel={rightPanelContent}
+        layoutMode="horizontal"
+        onLayoutModeChange={() => {}}
+        leftTitle={layoutSwapMode === "terminal-left" ? "Terminal" : "Chat"}
+        rightTitle={layoutSwapMode === "terminal-left" ? "Chat" : "Terminal"}
+        leftIcon={layoutSwapMode === "terminal-left" ? "🖥️" : "💬"}
+        rightIcon={layoutSwapMode === "terminal-left" ? "💬" : "🖥️"}
+      />
+    );
+
+    const functionPanelElement = functionPanel.isOpen && (
+      <>
+        <div
+          className="resize-handle resize-handle-vertical"
+          onMouseDown={handleFunctionPanelResizeMouseDown}
+          style={styles.functionPanelResizeHandle}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = "var(--scrollbar-thumb)";
+            const line = e.currentTarget.querySelector(
+              ".function-panel-handle-line",
+            ) as HTMLElement;
+            if (line) line.style.background = "var(--text-secondary)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = "var(--border-color)";
+            const line = e.currentTarget.querySelector(
+              ".function-panel-handle-line",
+            ) as HTMLElement;
+            if (line) line.style.background = "var(--text-muted)";
+          }}
+        >
+          <div
+            style={styles.functionPanelResizeHandleLine}
+            className="function-panel-handle-line"
+          />
+        </div>
+        <FunctionPanel
+          controller={functionPanel}
+          theme={theme}
+          i18n={language === "zh" ? "zh-cn" : "en"}
+          t={t}
+          currentSessionId={currentSessionId}
+          onSendSkillMessage={onSendSkillMessage}
+          width={functionPanelWidth}
+          isCollapsed={functionPanelCollapsed}
+          onToggleCollapse={handleToggleFunctionPanelCollapse}
+        />
+      </>
+    );
+    if (functionPanelPosition === "left" && functionPanel.isOpen) {
+      return (
+        <>
+          {functionPanelCollapsed ? (
+            <FunctionPanel
+              controller={functionPanel}
+              theme={theme}
+              i18n={language === "zh" ? "zh-cn" : "en"}
+              t={t}
+              currentSessionId={currentSessionId}
+              onSendSkillMessage={onSendSkillMessage}
+              width={functionPanelWidth}
+              isCollapsed={true}
+              onToggleCollapse={handleToggleFunctionPanelCollapse}
+            />
+          ) : (
+            functionPanelElement
+          )}
+          <div style={styles.contentArea}>{contentElement}</div>
+        </>
+      );
+    } else {
+      return (
+        <>
+          <div style={styles.contentArea}>{contentElement}</div>
+          {functionPanel.isOpen &&
+            !functionPanelCollapsed &&
+            functionPanelElement}
+          {functionPanel.isOpen && functionPanelCollapsed && (
+            <FunctionPanel
+              controller={functionPanel}
+              theme={theme}
+              i18n={language === "zh" ? "zh-cn" : "en"}
+              t={t}
+              currentSessionId={currentSessionId}
+              onSendSkillMessage={onSendSkillMessage}
+              width={functionPanelWidth}
+              isCollapsed={true}
+              onToggleCollapse={handleToggleFunctionPanelCollapse}
+            />
+          )}
+        </>
+      );
+    }
+  };
+
   return (
     <div className="App">
       <CustomDragCursor isDragging={showDragCursor} />
@@ -445,6 +558,8 @@ export function AppContent({
         t={t}
         layoutSwapMode={layoutSwapMode}
         onLayoutSwapModeChange={onLayoutSwapModeChange}
+        functionPanelPosition={functionPanelPosition}
+        onFunctionPanelPositionChange={onFunctionPanelPositionChange}
         onSwitchSession={onSwitchSession}
         currentSessionId={currentSessionId}
         onHistoryClick={handleHistoryClick}
@@ -536,86 +651,7 @@ export function AppContent({
             </div>
           </>
         )}
-        <div style={styles.contentArea}>
-          {currentContentPanel ? (
-            renderContent()
-          ) : showWelcome ? (
-            <WelcomePage
-              onSendMessage={(msg, files) =>
-                onSendMessage(msg, currentSessionId, files)
-              }
-              t={t}
-              onDragOverInputChange={setIsDraggingOverInput}
-            />
-          ) : (
-            <LLMChatPage
-              leftPanel={leftPanelContent}
-              rightPanel={rightPanelContent}
-              layoutMode="horizontal"
-              onLayoutModeChange={() => {}}
-              leftTitle={
-                layoutSwapMode === "terminal-left" ? "Terminal" : "Chat"
-              }
-              rightTitle={
-                layoutSwapMode === "terminal-left" ? "Chat" : "Terminal"
-              }
-              leftIcon={layoutSwapMode === "terminal-left" ? "🖥️" : "💬"}
-              rightIcon={layoutSwapMode === "terminal-left" ? "💬" : "🖥️"}
-            />
-          )}
-        </div>
-        {functionPanel.isOpen && !functionPanelCollapsed && (
-          <>
-            <div
-              className="resize-handle resize-handle-vertical"
-              onMouseDown={handleFunctionPanelResizeMouseDown}
-              style={styles.functionPanelResizeHandle}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = "var(--scrollbar-thumb)";
-                const line = e.currentTarget.querySelector(
-                  ".function-panel-handle-line",
-                ) as HTMLElement;
-                if (line) line.style.background = "var(--text-secondary)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = "var(--border-color)";
-                const line = e.currentTarget.querySelector(
-                  ".function-panel-handle-line",
-                ) as HTMLElement;
-                if (line) line.style.background = "var(--text-muted)";
-              }}
-            >
-              <div
-                style={styles.functionPanelResizeHandleLine}
-                className="function-panel-handle-line"
-              />
-            </div>
-            <FunctionPanel
-              controller={functionPanel}
-              theme={theme}
-              i18n={language === "zh" ? "zh-cn" : "en"}
-              t={t}
-              currentSessionId={currentSessionId}
-              onSendSkillMessage={onSendSkillMessage}
-              width={functionPanelWidth}
-              isCollapsed={false}
-              onToggleCollapse={handleToggleFunctionPanelCollapse}
-            />
-          </>
-        )}
-        {functionPanel.isOpen && functionPanelCollapsed && (
-          <FunctionPanel
-            controller={functionPanel}
-            theme={theme}
-            i18n={language === "zh" ? "zh-cn" : "en"}
-            t={t}
-            currentSessionId={currentSessionId}
-            onSendSkillMessage={onSendSkillMessage}
-            width={functionPanelWidth}
-            isCollapsed={true}
-            onToggleCollapse={handleToggleFunctionPanelCollapse}
-          />
-        )}
+        {renderMainContentWithFunctionPanel()}
       </div>
       <BottomBar t={t} />
     </div>
