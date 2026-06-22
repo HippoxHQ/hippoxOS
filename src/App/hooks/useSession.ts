@@ -6,6 +6,7 @@ import { sessionCommands } from "../../command/session";
 import { taskManager } from "../../core/TaskManager";
 import { TaskInfo, UploadFile, TaskStatusEnum } from "../../core/types";
 import { Language, ChatMessage, RoleEnum, MessageStatus } from "../../types/types";
+import { workspaceCommands } from "../../command/workspace";
 
 /**
  * Custom hook that manages the current session state and all session-related operations.
@@ -207,7 +208,10 @@ export function useSession(
         taskManager.addUserMessageToSession(finalSessionId, userMsg);
         // Send to backend and handle response
         try {
-            const systemPrompt = getSystemPrompt(language as 'zh' | 'en');
+            const workspacePath = await workspaceCommands.getDefaultWorkspace()
+                .then(ws => ws?.workspace_path)
+                .catch(() => undefined);
+            const systemPrompt = getSystemPrompt(language as 'zh' | 'en', workspacePath);
             const fullMessage = `${systemPrompt}\n\n User: ${userMessage}`;
             // Submit to LLM backend
             const taskId = await hippoxCommands.sendMessageAsync(userMessage, fullMessage, finalSessionId);

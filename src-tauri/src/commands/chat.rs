@@ -2,7 +2,6 @@ use crate::callback::{HippoXWorkflowCallback, HippoxDriverCallback};
 use crate::commands::{load_config_from_file, TaskInfo, HIPPOX_APP_CONFIG};
 use crate::context::{get_conversation_history, store_user_message, Context};
 use crate::hippox_core::{get_default_hippox, init_all_hippox_instances};
-use crate::llm::prompts::get_system_prompt;
 use crate::state::AppState;
 use crate::types::Role;
 use crate::workspace::get_default_workspace;
@@ -79,17 +78,6 @@ async fn build_enhanced_message(
     session_id: &str,
     message: &str,
 ) -> String {
-    let workspace_path = get_default_workspace()
-        .ok()
-        .flatten()
-        .map(|ws| ws.workspace_path)
-        .unwrap_or_else(|| {
-            crate::commands::get_app_root_dir()
-                .join("workspace")
-                .to_string_lossy()
-                .to_string()
-        });
-    let system_prompt = get_system_prompt(&workspace_path);
     let history_context = if let Some(mem_ref) = mem {
         get_conversation_history(mem_ref, session_id, 20)
             .await
@@ -98,12 +86,9 @@ async fn build_enhanced_message(
         String::new()
     };
     if !history_context.is_empty() {
-        format!(
-            "{}\n\n{}\n\n## User\n{}",
-            system_prompt, history_context, message
-        )
+        format!("{}\n\n## User\n{}", history_context, message)
     } else {
-        format!("{}\n\n{}", system_prompt, message)
+        format!("{}", message)
     }
 }
 
@@ -202,6 +187,7 @@ pub async fn cmd_send_chat_message(
     }
     // Build enhanced message with history
     let enhanced_message = build_enhanced_message(mem.as_deref(), &session, &message).await;
+
     let workflow_callback = Arc::new(HippoXWorkflowCallback::new(
         app_handle.clone(),
         session.clone(),

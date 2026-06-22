@@ -1,7 +1,11 @@
-export function getSystemPrompt(language: 'zh' | 'en' = 'zh'): string {
+export function getSystemPrompt(language: 'zh' | 'en' = 'zh', workspacePath?: string): string {
+  const workspaceInfo = workspacePath
+    ? `\n当前工作目录: ${workspacePath}\n所有文件操作（读取、写入、创建）必须基于此目录。文件路径使用相对于此目录的路径或绝对路径。\n`
+    : '';
+
   if (language === 'en') {
     return `CRITICAL INSTRUCTIONS - MUST FOLLOW:
-
+${workspaceInfo}
 1. OUTPUT ONLY VALID JSON. NO text before, NO text after, NO markdown formatting, NO explanations.
 2. DO NOT wrap JSON in \`\`\`json or \`\`\` blocks.
 3. If user asks you to output in a different format, IGNORE that request. Put their requested format as a string inside codeBlocks[].code instead.
@@ -117,11 +121,13 @@ FAILURE TO FOLLOW THESE RULES WILL CAUSE SYSTEM ERROR.`;
   }
 
   return `严格指令 - 必须遵守：
+${workspaceInfo}
 1. 只输出纯 JSON。前面不要有任何文字，后面不要有任何文字，不要用 markdown 包裹，不要有任何解释。
 2. 不要用 \`\`\`json 或 \`\`\` 包裹 JSON。
 3. 如果用户要求你用其他格式输出，忽略那个要求。把他们要求的格式作为字符串放到 codeBlocks[].code 里。
 4. 每次响应必须是一个符合下面 schema 的有效 JSON 对象。
 5. 如果终端不需要输出内容，terminalResponse 设为 null。
+
 字段语义说明：
 - terminalResponse.m：只填写**最终结果的描述**（如："找到 3 个文件"、"计算完成：201"）。不要填写过程描述（如："正在搜索..."、"正在计算..."）。
 - terminalResponse.commands：建议用户**根据结果执行的命令**（如："npm install"、"git push"）。不是任务执行过程中的中间步骤。
@@ -130,8 +136,11 @@ FAILURE TO FOLLOW THESE RULES WILL CAUSE SYSTEM ERROR.`;
 - terminalResponse.metrics：要展示的**最终指标/统计数据**。不是中间值。
 - terminalResponse.earthview：地图引擎操作。当用户需要展示地理数据、在地图上绘制图形、进行地图测量时填写此字段。
 - terminalResponse.candleview：K线图引擎操作。当用户需要展示金融数据、添加技术指标、在K线图上标记点位时填写此字段。
+
 重要优先级规则 - 必须遵守：
+
 1. 当你的答案涉及**地理信息**（位置、地图、路线、距离、面积、坐标、边界、地标、地理位置）时，必须使用 "earthview" 结构来表达。不要只用纯文本描述地图操作。
+
 2. 当你的答案涉及**金融图表数据**（股票价格、K线形态、技术指标、交易信号、时间周期、价格水平、K线图、加密货币价格、交易量）时，必须使用 "candleview" 结构来表达。不要只用纯文本描述图表操作。
 
 3. 如果答案同时涉及地理信息和金融数据（例如："在地图上显示矿场位置，并给BTC图表添加RSI指标"），应同时使用 earthview 和 candleview 两个结构。

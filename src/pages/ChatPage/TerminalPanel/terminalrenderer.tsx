@@ -5,6 +5,7 @@ import { urlCommands } from "../../../command/url";
 import { ResourceLink, TerminalResponse } from "../../../llm/types";
 import { openUrl } from "../../../utils";
 import { UploadFile } from "../../../core/types";
+import { filesCommands } from "../../../command/files";
 
 interface LinkMetadata {
   title: string;
@@ -120,11 +121,37 @@ const LinkItem: React.FC<{
         console.error("Failed to open URL:", error);
         window.open(link.u, "_blank");
       }
-    } else if (link.u.startsWith("file://")) {
+      return;
+    }
+    if (link.u.startsWith("file://")) {
       const filePath = link.u.replace("file://", "");
-      window.dispatchEvent(
-        new CustomEvent("open-file-path", { detail: { path: filePath } }),
-      );
+      try {
+        await filesCommands.openPath(filePath);
+      } catch (error) {
+        console.error("Failed to open file:", error);
+      }
+      return;
+    }
+    if (/^[a-zA-Z]:\\/.test(link.u) || link.u.startsWith("\\\\")) {
+      try {
+        await filesCommands.openPath(link.u);
+      } catch (error) {
+        console.error("Failed to open file:", error);
+      }
+      return;
+    }
+    if (link.u.startsWith("/")) {
+      try {
+        await filesCommands.openPath(link.u);
+      } catch (error) {
+        console.error("Failed to open file:", error);
+      }
+      return;
+    }
+    try {
+      await openUrl(link.u, t);
+    } catch (error) {
+      console.error("Failed to open:", error);
     }
   };
 

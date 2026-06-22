@@ -463,6 +463,19 @@ const WorkspacePanel: React.FC<WorkspacePanelProps> = ({ t }) => {
         }
       }
       const connector = isLast ? "└── " : "├── ";
+
+      const handleNodeClick = async () => {
+        if (node.is_directory) {
+          toggleNode(node, node.path);
+        } else {
+          try {
+            await filesCommands.openPath(node.path);
+          } catch (error) {
+            showToast(ToastType.ERROR, `Failed to open file: ${error}`);
+          }
+        }
+      };
+
       return (
         <div key={node.path}>
           <div
@@ -482,7 +495,7 @@ const WorkspacePanel: React.FC<WorkspacePanelProps> = ({ t }) => {
             onMouseLeave={(e) => {
               e.currentTarget.style.background = "transparent";
             }}
-            onClick={() => node.is_directory && toggleNode(node, node.path)}
+            onClick={handleNodeClick}
           >
             <span
               style={{
