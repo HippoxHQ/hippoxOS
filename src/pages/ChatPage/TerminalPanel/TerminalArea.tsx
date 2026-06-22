@@ -1,7 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import { TerminalAreaProps } from "./types";
 import { WELCOME_TASK_ID } from "./constants";
-import { globalStyles } from "../styles";
 import {
   useTaskManager,
   useScrollBehavior,
@@ -17,8 +16,8 @@ import {
   ScrollButtons,
   TaskBubble,
 } from "./components";
-import { hippoxCommands } from "../../../../command/chat";
-import { TaskStatusEnum } from "../../../../core/types";
+import { TaskStatusEnum } from "../../../core/types";
+import { globalStyles } from "./styles";
 
 const TerminalArea: React.FC<TerminalAreaProps> = ({
   logs,

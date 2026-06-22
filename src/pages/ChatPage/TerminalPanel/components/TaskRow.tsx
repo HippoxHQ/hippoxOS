@@ -9,12 +9,12 @@ import { TaskSteps } from "./TaskSteps/TaskSteps";
 import { TaskFiles } from "./TaskFiles";
 import { TaskOutput } from "./TaskOutput";
 import { TaskError } from "./TaskError";
-import { showDialog, DialogType } from "../../../../../components/Dialog";
-import { showToast, ToastType } from "../../../../../components/Toast";
-import { taskManager } from "../../../../../core/TaskManager";
-import { taskPoolCommands } from "../../../../../core/TaskPool";
-import { TaskInfo, UploadFile, StepStatusEnum, TaskStatusEnum } from "../../../../../core/types";
-import { PauseIcon, StopIcon, PlayIcon } from "../../../../../icons";
+import { showDialog, DialogType } from "../../../../components/Dialog";
+import { showToast, ToastType } from "../../../../components/Toast";
+import { taskManager } from "../../../../core/TaskManager";
+import { taskPoolCommands } from "../../../../core/TaskPool";
+import { TaskInfo, UploadFile, StepStatusEnum, TaskStatusEnum } from "../../../../core/types";
+import { PauseIcon, StopIcon, PlayIcon } from "../../../../icons";
 
 interface TaskRowProps {
   task: TaskInfo;
@@ -89,7 +89,6 @@ export const TaskRow = forwardRef<HTMLDivElement, TaskRowProps>(
       e.stopPropagation();
       try {
         const result = await taskPoolCommands.pauseTask(taskId);
-
         if (result === true) {
           showToast(ToastType.SUCCESS, t("terminal.taskPaused"));
           const newTasks = taskManager.getAllTasks();

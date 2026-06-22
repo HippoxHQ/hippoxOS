@@ -1,10 +1,10 @@
 import React, { useEffect, useState, useRef } from "react";
-import TerminalArea from "./TerminalArea";
 import { useLLMChatPage } from "..";
 import { configCommands } from "../../../command/config";
 import { taskManager } from "../../../core/TaskManager";
 import { UploadFile, TaskStatusEnum } from "../../../core/types";
 import { ExecutionLog } from "../../../types/types";
+import TerminalArea from "./TerminalArea";
 
 interface TerminalPanelProps {
   logs: ExecutionLog[];

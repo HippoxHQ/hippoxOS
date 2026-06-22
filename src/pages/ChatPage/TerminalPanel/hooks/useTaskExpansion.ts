@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { TaskInfo, TaskStatusEnum } from "../../../../../core/types";
+import { TaskInfo, TaskStatusEnum } from "../../../../core/types";
 
 export const useTaskExpansion = (allTasks: TaskInfo[], activeTasks: TaskInfo[]) => {
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());

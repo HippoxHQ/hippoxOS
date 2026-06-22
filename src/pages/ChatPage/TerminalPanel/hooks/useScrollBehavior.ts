@@ -1,5 +1,5 @@
 import { useRef, useState, useCallback, useEffect } from "react";
-import { TaskInfo } from "../../../../../core/types";
+import { TaskInfo } from "../../../../core/types";
 
 export const useScrollBehavior = (
   allTasks: TaskInfo[],

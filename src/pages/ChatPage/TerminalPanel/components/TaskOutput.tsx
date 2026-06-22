@@ -4,8 +4,8 @@ import {
   isTerminalResponseEmpty,
   renderTerminalResponse,
 } from "../terminalrenderer";
-import { CopyIcon } from "../../../../../icons";
-import { isStructuredLLMResponse, parseLLMResponse } from "../../../../../llm/utils";
+import { CopyIcon } from "../../../../icons";
+import { isStructuredLLMResponse, parseLLMResponse } from "../../../../llm/utils";
 
 interface TaskOutputProps {
   output: string;

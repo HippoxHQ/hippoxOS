@@ -1,5 +1,5 @@
-import { showToast, ToastType } from "../../../../components/Toast";
-import { TaskStatusEnum, StepStatusEnum } from "../../../../core/types";
+import { showToast, ToastType } from "../../../components/Toast";
+import { TaskStatusEnum, StepStatusEnum } from "../../../core/types";
 
 export const logToConsole = (level: string, message: string, data?: any) => {
   const timestamp = new Date().toLocaleTimeString();

@@ -3,7 +3,7 @@ import { getStepEmoji } from "../../constants";
 import { formatDuration, getStepStatusText } from "../../utils";
 import { StepParameters } from "./StepParameters";
 import { StepLogs } from "./StepLogs";
-import { TaskStepInfo, StepStatusEnum } from "../../../../../../core/types";
+import { TaskStepInfo, StepStatusEnum } from "../../../../../core/types";
 
 interface TaskStepsProps {
   steps: TaskStepInfo[];

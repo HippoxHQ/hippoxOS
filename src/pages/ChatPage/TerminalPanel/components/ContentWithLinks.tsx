@@ -1,5 +1,5 @@
 import React, { JSX } from "react";
-import { handleOpenPath, openUrl } from "../../../../../utils";
+import { openUrl, handleOpenPath } from "../../../../utils";
 
 interface ContentWithLinksProps {
   text: string;

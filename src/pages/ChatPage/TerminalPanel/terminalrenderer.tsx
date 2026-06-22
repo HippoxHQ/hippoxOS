@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
 import MetricsGrid from "./components/responsearea/MetricsGrid";
 import DataTable from "./components/responsearea/DataTable";
-import { urlCommands } from "../../../../command/url";
-import { ResourceLink, TerminalResponse } from "../../../../llm/types";
-import { openUrl } from "../../../../utils";
+import { urlCommands } from "../../../command/url";
+import { ResourceLink, TerminalResponse } from "../../../llm/types";
+import { openUrl } from "../../../utils";
 
 interface LinkMetadata {
   title: string;

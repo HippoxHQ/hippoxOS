@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { taskManager } from "../../../../../core/TaskManager";
-import { TaskInfo } from "../../../../../core/types";
+import { TaskInfo } from "../../../../core/types";
+import { taskManager } from "../../../../core/TaskManager";
 
 export const useTaskManager = (currentSessionId?: string) => {
   const [tasks, setTasks] = useState<TaskInfo[]>([]);

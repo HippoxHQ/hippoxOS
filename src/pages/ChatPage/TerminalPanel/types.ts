@@ -1,5 +1,5 @@
-import { UploadFile } from "../../../../core/types";
-import { ExecutionLog } from "../../../../types/types";
+import { UploadFile } from "../../../core/types";
+import { ExecutionLog } from "../../../types/types";
 
 export interface TerminalAreaProps {
   logs: ExecutionLog[];

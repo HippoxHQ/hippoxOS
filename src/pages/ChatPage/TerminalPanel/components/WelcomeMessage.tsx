@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { WELCOME_TASK_ID, styles } from "../constants";
-import { basisCommands } from "../../../../../command/basis";
+import { basisCommands } from "../../../../command/basis";
 
 interface WelcomeMessageProps {
   isExpanded: boolean;

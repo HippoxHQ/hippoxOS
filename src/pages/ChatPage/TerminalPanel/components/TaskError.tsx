@@ -1,6 +1,6 @@
 import React from "react";
 import { ContentWithLinks } from "./ContentWithLinks";
-import { CopyIcon } from "../../../../../icons";
+import { CopyIcon } from "../../../../icons";
 
 interface TaskErrorProps {
   error: string;

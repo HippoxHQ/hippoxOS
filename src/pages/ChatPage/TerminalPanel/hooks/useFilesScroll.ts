@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { FilesScrollState } from "../types";
-import { TaskInfo } from "../../../../../core/types";
+import { TaskInfo } from "../../../../core/types";
 
 export const useFilesScroll = (activeTasks: TaskInfo[]) => {
   const [filesScrollStates, setFilesScrollStates] = useState<

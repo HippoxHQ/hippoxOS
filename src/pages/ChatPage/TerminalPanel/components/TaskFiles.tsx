@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import { formatFileSize } from "../utils";
-import { filesCommands } from "../../../../../command/files";
-import { getFileIcon } from "../../../../../common";
-import { UploadFile } from "../../../../../core/types";
+import { filesCommands } from "../../../../command/files";
+import { getFileIcon } from "../../../../common";
+import { UploadFile } from "../../../../core/types";
 
 interface TaskFilesProps {
   files: UploadFile[];

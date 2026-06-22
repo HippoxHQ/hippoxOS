@@ -1,6 +1,6 @@
 import React from "react";
-import { TaskStatusEnum } from "../../../../../core/types";
-import { CollapseIcon, ExpandArrowsIcon, TaskQueueIcon } from "../../../../../icons";
+import { TaskStatusEnum } from "../../../../core/types";
+import { TaskQueueIcon, ExpandArrowsIcon, CollapseIcon } from "../../../../icons";
 
 interface PanelHeaderProps {
   activeTasks: any[];
