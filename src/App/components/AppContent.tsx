@@ -157,6 +157,22 @@ export function AppContent({
     }
   }, []);
 
+  useEffect(() => {
+    const handleAnchorUpdate = (event: CustomEvent) => {
+      setHistoryAnchor(event.detail.anchorElement);
+    };
+    window.addEventListener(
+      "history-anchor-update",
+      handleAnchorUpdate as EventListener,
+    );
+    return () => {
+      window.removeEventListener(
+        "history-anchor-update",
+        handleAnchorUpdate as EventListener,
+      );
+    };
+  }, []);
+
   const saveFunctionPanelWidth = useCallback((w: number) => {
     localStorage.setItem("hippox-function-panel-width", w.toString());
   }, []);
@@ -604,6 +620,7 @@ export function AppContent({
                 onLayoutSwapModeChange={onLayoutSwapModeChange}
                 functionPanelPosition={functionPanelPosition}
                 onFunctionPanelPositionChange={onFunctionPanelPositionChange}
+                onFileClick={handleFileClick}
               />
             </div>
             <div

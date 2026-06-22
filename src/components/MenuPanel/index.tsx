@@ -61,6 +61,7 @@ interface MenuPanelProps {
   onLayoutSwapModeChange?: (mode: "terminal-left" | "chat-left") => void;
   functionPanelPosition?: "left" | "right";
   onFunctionPanelPositionChange?: (position: "left" | "right") => void;
+  onFileClick?: (file: UploadFile) => void;
 }
 
 const viewTitles: Record<MenuPanelView, string> = {
@@ -173,6 +174,7 @@ const MenuPanel: React.FC<MenuPanelProps> = ({
   onLayoutSwapModeChange,
   functionPanelPosition = "right",
   onFunctionPanelPositionChange,
+  onFileClick,
 }) => {
   const renderContent = () => {
     if (currentView === "engine_group" && engineSubView) {
@@ -242,10 +244,20 @@ const MenuPanel: React.FC<MenuPanelProps> = ({
           />
         );
       case "favorites":
-        return <FavoritesPanel t={t} onSendSkillMessage={onSendSkillMessage} />;
+        return (
+          <FavoritesPanel
+            t={t}
+            onSendSkillMessage={onSendSkillMessage}
+            onFileClick={onFileClick}
+          />
+        );
       case "skillMarket":
         return (
-          <SkillMarketPanel t={t} onSendSkillMessage={onSendSkillMessage} />
+          <SkillMarketPanel
+            t={t}
+            onSendSkillMessage={onSendSkillMessage}
+            onFileClick={onFileClick}
+          />
         );
       case "taskQueue":
         return <TaskQueuePanel t={t} />;
@@ -256,7 +268,7 @@ const MenuPanel: React.FC<MenuPanelProps> = ({
       case "workspaceConfig":
         return <WorkspaceConfig t={t} onSaveWorkspace={onSaveConfig} />;
       case "logs":
-        return <LogsPanel t={t} onClose={onClose} />;
+        return <LogsPanel t={t} onClose={onClose} onFileClick={onFileClick} />;
       case "storage":
         return <StorageConfig t={t} onSave={onSaveConfig} />;
       default:

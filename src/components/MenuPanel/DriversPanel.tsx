@@ -427,7 +427,7 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            marginBottom: "16px",
+            marginBottom: "10px",
             padding: "0 4px",
           }}
         >

@@ -9,10 +9,12 @@ import {
 import { MarketSkill, skillsMarketCommands } from "../../command/skills";
 import { UploadFile } from "../../core/types";
 import { runSkill } from "./utils/skillRunner";
+import { filesCommands } from "../../command/files";
 
 interface SkillMarketPanelProps {
   t: (key: string, params?: any) => string;
   onSendSkillMessage: (message: string, files?: UploadFile[]) => void;
+  onFileClick?: (file: UploadFile) => void;
 }
 
 const getAuthorColor = (author: string): string => {
@@ -45,6 +47,7 @@ const getAuthorColor = (author: string): string => {
 const SkillMarketPanel: React.FC<SkillMarketPanelProps> = ({
   t,
   onSendSkillMessage,
+  onFileClick,
 }) => {
   const [skills, setSkills] = useState<MarketSkill[]>([]);
   const [loading, setLoading] = useState(true);
@@ -557,6 +560,29 @@ const SkillMarketPanel: React.FC<SkillMarketPanelProps> = ({
               }}
               onMouseEnter={() => setHoveredId(skill.id)}
               onMouseLeave={() => setHoveredId(null)}
+              onClick={async () => {
+                if (onFileClick && skill.local_path) {
+                  try {
+                    const content = await filesCommands.readTextFile(
+                      skill.local_path,
+                    );
+                    const skillFile: UploadFile = {
+                      id: `skill_${skill.id}`,
+                      name: `${skill.name}.skill.md`,
+                      path: skill.local_path,
+                      size: content.length,
+                      file: new File([content], `${skill.name}.skill.md`, {
+                        type: "text/markdown",
+                      }),
+                      type: "text/markdown",
+                      status: "success",
+                    };
+                    onFileClick(skillFile);
+                  } catch (error) {
+                    console.error("Failed to read skill file:", error);
+                  }
+                }
+              }}
             >
               <div style={styles.skillHeader}>
                 <div
@@ -592,7 +618,10 @@ const SkillMarketPanel: React.FC<SkillMarketPanelProps> = ({
                         ? "#f59e0b"
                         : "var(--text-tertiary)",
                     }}
-                    onClick={() => handleFavorite(skill)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleFavorite(skill);
+                    }}
                     disabled={favoritingId === skill.id}
                     title={
                       skill.favorited
@@ -608,7 +637,10 @@ const SkillMarketPanel: React.FC<SkillMarketPanelProps> = ({
                   </button>
                   <button
                     style={styles.iconButton}
-                    onClick={() => handleRun(skill)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleRun(skill);
+                    }}
                     title={t("market.run") || "Run"}
                   >
                     <PlayIcon size={14} />
@@ -645,7 +677,6 @@ const SkillMarketPanel: React.FC<SkillMarketPanelProps> = ({
           ))
         )}
       </div>
-
       {showConfigModal && (
         <div
           style={styles.modalOverlay}

@@ -8,10 +8,12 @@ import {
 } from "../../command/skills";
 import { runSkill } from "./utils/skillRunner";
 import { UploadFile } from "../../core/types";
+import { filesCommands } from "../../command/files";
 
 interface FavoritesPanelProps {
   t: (key: string, params?: any) => string;
   onSendSkillMessage: (message: string, files?: UploadFile[]) => void;
+  onFileClick?: (file: UploadFile) => void;
 }
 
 const convertLocalToMarket = (skill: SkillData): MarketSkill => {
@@ -35,6 +37,7 @@ const convertLocalToMarket = (skill: SkillData): MarketSkill => {
 const FavoritesPanel: React.FC<FavoritesPanelProps> = ({
   t,
   onSendSkillMessage,
+  onFileClick,
 }) => {
   const [skillFavorites, setSkillFavorites] = useState<MarketSkill[]>([]);
   const [loading, setLoading] = useState(true);
@@ -128,6 +131,7 @@ const FavoritesPanel: React.FC<FavoritesPanelProps> = ({
       padding: "10px 15px",
       borderBottom: "1px solid var(--border-color)",
       transition: "background 0.2s ease",
+      cursor: "pointer",
     },
     skillCardHovered: {
       background: "var(--hover-bg)",
@@ -249,6 +253,29 @@ const FavoritesPanel: React.FC<FavoritesPanelProps> = ({
                 }}
                 onMouseEnter={() => setHoveredId(skill.id)}
                 onMouseLeave={() => setHoveredId(null)}
+                onClick={async () => {
+                  if (onFileClick && skill.local_path) {
+                    try {
+                      const content = await filesCommands.readTextFile(
+                        skill.local_path,
+                      );
+                      const skillFile: UploadFile = {
+                        id: `skill_${skill.id}`,
+                        name: `${skill.name}.skill.md`,
+                        path: skill.local_path,
+                        size: content.length,
+                        file: new File([content], `${skill.name}.skill.md`, {
+                          type: "text/markdown",
+                        }),
+                        type: "text/markdown",
+                        status: "success",
+                      };
+                      onFileClick(skillFile);
+                    } catch (error) {
+                      console.error("Failed to read skill file:", error);
+                    }
+                  }
+                }}
               >
                 <div style={styles.skillHeader}>
                   <div
@@ -266,14 +293,20 @@ const FavoritesPanel: React.FC<FavoritesPanelProps> = ({
                   <div style={styles.rightActions}>
                     <button
                       style={{ ...styles.iconButton, color: "#f59e0b" }}
-                      onClick={() => handleDelete(skill.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDelete(skill.id);
+                      }}
                       title={t("market.unfavorite") || "Remove"}
                     >
                       <StarFilledIcon size={12} />
                     </button>
                     <button
                       style={styles.iconButton}
-                      onClick={() => handleRun(skill)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRun(skill);
+                      }}
                       title={t("market.run") || "Run"}
                     >
                       <PlayIcon size={12} />

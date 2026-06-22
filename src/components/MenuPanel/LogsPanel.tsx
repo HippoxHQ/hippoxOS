@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { filesCommands } from "../../command/files";
 import { getDataPaths } from "../../command/paths";
+import { UploadFile } from "../../core/types";
 
 interface LogEntry {
   id: string;
@@ -13,9 +14,10 @@ interface LogEntry {
 interface LogsPanelProps {
   t: (key: string, params?: any) => string;
   onClose?: () => void;
+  onFileClick?: (file: UploadFile) => void;
 }
 
-const LogsPanel: React.FC<LogsPanelProps> = ({ t, onClose }) => {
+const LogsPanel: React.FC<LogsPanelProps> = ({ t, onClose, onFileClick }) => {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -71,11 +73,26 @@ const LogsPanel: React.FC<LogsPanelProps> = ({ t, onClose }) => {
     return entries;
   };
 
-  const handleOpenLogFile = async (filePath: string) => {
-    try {
-      await filesCommands.openPath(filePath);
-    } catch (error) {
-      console.error("Failed to open log file:", error);
+  const handleOpenLogFile = async (log: LogEntry) => {
+    if (onFileClick) {
+      try {
+        const content = await filesCommands.readTextFile(log.path);
+        const logFile: UploadFile = {
+          id: log.id,
+          name: log.name,
+          path: log.path,
+          size: log.size,
+          file: new File([content], log.name, { type: "text/plain" }),
+          type: "text/plain",
+          status: "success" as const,
+        };
+        onFileClick(logFile);
+      } catch (error) {
+        console.error("Failed to read log file:", error);
+        await filesCommands.openPath(log.path);
+      }
+    } else {
+      await filesCommands.openPath(log.path);
     }
   };
 
@@ -140,11 +157,10 @@ const LogsPanel: React.FC<LogsPanelProps> = ({ t, onClose }) => {
     },
     logEntry: {
       background: "var(--bg-secondary)",
-      padding: "12px 15px",
-      border: "1px solid var(--border-color)",
-      transition: "background 0.2s ease",
+      padding: "10px 15px",
+      borderBottom: "1px solid var(--border-color)",
+      transition: "background 0.2s",
       cursor: "pointer",
-      marginBottom: "8px",
     },
     logEntryHovered: {
       background: "var(--hover-bg)",
@@ -226,7 +242,7 @@ const LogsPanel: React.FC<LogsPanelProps> = ({ t, onClose }) => {
                 }}
                 onMouseEnter={() => setHoveredId(log.id)}
                 onMouseLeave={() => setHoveredId(null)}
-                onClick={() => handleOpenLogFile(log.path)}
+                onClick={() => handleOpenLogFile(log)}
               >
                 <div style={styles.logName}>📄 {log.name}</div>
                 <div style={styles.logMeta}>

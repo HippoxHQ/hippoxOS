@@ -109,7 +109,7 @@ const TextFilePreview: React.FC<TextFilePreviewProps> = ({
       >
         Size: {formatFileSize(fileSize)} | Type: {fileType}
       </div>
-      <div style={{ flex: 1, overflow: "auto", padding: 16 }}>
+      <div style={{ flex: 1, overflow: "auto" }}>
         {isLoading && (
           <div
             style={{
