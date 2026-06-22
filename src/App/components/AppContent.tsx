@@ -192,10 +192,11 @@ export function AppContent({
   useEffect(() => {
     const onMouseMove = (e: MouseEvent) => {
       if (!isDraggingFunctionPanel.current) return;
-      const delta = dragStartX.current - e.clientX;
+      const delta = e.clientX - dragStartX.current;
+      const adjustedDelta = functionPanelPosition === "right" ? -delta : delta;
       const newWidth = Math.min(
         800,
-        Math.max(320, dragStartWidth.current + delta),
+        Math.max(320, dragStartWidth.current + adjustedDelta),
       );
       if (newWidth !== functionPanelWidth) {
         setFunctionPanelWidth(newWidth);
@@ -215,7 +216,7 @@ export function AppContent({
       window.removeEventListener("mousemove", onMouseMove);
       window.removeEventListener("mouseup", onMouseUp);
     };
-  }, [functionPanelWidth, saveFunctionPanelWidth]);
+  }, [functionPanelWidth, saveFunctionPanelWidth, functionPanelPosition]);
 
   const handleHistoryClick = () => {
     setIsHistoryOpen(!isHistoryOpen);
@@ -454,89 +455,80 @@ export function AppContent({
       />
     );
 
-    const functionPanelElement = functionPanel.isOpen && (
-      <>
+    const renderResizeHandle = () => (
+      <div
+        className="resize-handle resize-handle-vertical"
+        onMouseDown={handleFunctionPanelResizeMouseDown}
+        style={styles.functionPanelResizeHandle}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = "var(--scrollbar-thumb)";
+          const line = e.currentTarget.querySelector(
+            ".function-panel-handle-line",
+          ) as HTMLElement;
+          if (line) line.style.background = "var(--text-secondary)";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = "var(--border-color)";
+          const line = e.currentTarget.querySelector(
+            ".function-panel-handle-line",
+          ) as HTMLElement;
+          if (line) line.style.background = "var(--text-muted)";
+        }}
+      >
         <div
-          className="resize-handle resize-handle-vertical"
-          onMouseDown={handleFunctionPanelResizeMouseDown}
-          style={styles.functionPanelResizeHandle}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = "var(--scrollbar-thumb)";
-            const line = e.currentTarget.querySelector(
-              ".function-panel-handle-line",
-            ) as HTMLElement;
-            if (line) line.style.background = "var(--text-secondary)";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = "var(--border-color)";
-            const line = e.currentTarget.querySelector(
-              ".function-panel-handle-line",
-            ) as HTMLElement;
-            if (line) line.style.background = "var(--text-muted)";
-          }}
-        >
-          <div
-            style={styles.functionPanelResizeHandleLine}
-            className="function-panel-handle-line"
-          />
-        </div>
-        <FunctionPanel
-          controller={functionPanel}
-          theme={theme}
-          i18n={language === "zh" ? "zh-cn" : "en"}
-          t={t}
-          currentSessionId={currentSessionId}
-          onSendSkillMessage={onSendSkillMessage}
-          width={functionPanelWidth}
-          isCollapsed={functionPanelCollapsed}
-          onToggleCollapse={handleToggleFunctionPanelCollapse}
+          style={styles.functionPanelResizeHandleLine}
+          className="function-panel-handle-line"
         />
-      </>
+      </div>
     );
+
+    const renderFunctionPanelComponent = (collapsed: boolean) => (
+      <FunctionPanel
+        controller={functionPanel}
+        theme={theme}
+        i18n={language === "zh" ? "zh-cn" : "en"}
+        t={t}
+        currentSessionId={currentSessionId}
+        onSendSkillMessage={onSendSkillMessage}
+        width={functionPanelWidth}
+        isCollapsed={collapsed}
+        onToggleCollapse={handleToggleFunctionPanelCollapse}
+      />
+    );
+
     if (functionPanelPosition === "left" && functionPanel.isOpen) {
       return (
         <>
           {functionPanelCollapsed ? (
-            <FunctionPanel
-              controller={functionPanel}
-              theme={theme}
-              i18n={language === "zh" ? "zh-cn" : "en"}
-              t={t}
-              currentSessionId={currentSessionId}
-              onSendSkillMessage={onSendSkillMessage}
-              width={functionPanelWidth}
-              isCollapsed={true}
-              onToggleCollapse={handleToggleFunctionPanelCollapse}
-            />
+            renderFunctionPanelComponent(true)
           ) : (
-            functionPanelElement
+            <>
+              {renderFunctionPanelComponent(false)}
+              {renderResizeHandle()}
+            </>
           )}
           <div style={styles.contentArea}>{contentElement}</div>
         </>
       );
-    } else {
+    }
+
+    if (functionPanel.isOpen) {
       return (
         <>
           <div style={styles.contentArea}>{contentElement}</div>
-          {functionPanel.isOpen &&
-            !functionPanelCollapsed &&
-            functionPanelElement}
-          {functionPanel.isOpen && functionPanelCollapsed && (
-            <FunctionPanel
-              controller={functionPanel}
-              theme={theme}
-              i18n={language === "zh" ? "zh-cn" : "en"}
-              t={t}
-              currentSessionId={currentSessionId}
-              onSendSkillMessage={onSendSkillMessage}
-              width={functionPanelWidth}
-              isCollapsed={true}
-              onToggleCollapse={handleToggleFunctionPanelCollapse}
-            />
+          {functionPanelCollapsed ? (
+            renderFunctionPanelComponent(true)
+          ) : (
+            <>
+              {renderResizeHandle()}
+              {renderFunctionPanelComponent(false)}
+            </>
           )}
         </>
       );
     }
+
+    return <div style={styles.contentArea}>{contentElement}</div>;
   };
 
   return (

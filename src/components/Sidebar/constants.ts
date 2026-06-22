@@ -27,17 +27,20 @@ export const bottomMenuItems: MenuItemWithSection[] = [
         section: "config",
         children: [
             { id: "llmModel", icon: "settings", label: "menu.llmModelConfig" },
+            { id: "interface", icon: "config", label: "settings.interfaceConfig" },
+            { id: "workspaceConfig", icon: "config", label: "settings.workspaceConfig" },
+            { id: "storage", icon: "config", label: "menu.storage" },
             { id: "drivers", icon: "skills", label: "menu.drivers" },
-            {
-                id: "system_group",
-                icon: "config",
-                label: "menu.systemConfig",
-                children: [
-                    { id: "interface", icon: "config", label: "settings.interfaceConfig" },
-                    { id: "workspaceConfig", icon: "config", label: "settings.workspaceConfig" },
-                    { id: "storage", icon: "config", label: "menu.storage" },
-                ],
-            },
+            // {
+            //     id: "system_group",
+            //     icon: "config",
+            //     label: "menu.systemConfig",
+            //     children: [
+            //         { id: "interface", icon: "config", label: "settings.interfaceConfig" },
+            //         { id: "workspaceConfig", icon: "config", label: "settings.workspaceConfig" },
+            //         { id: "storage", icon: "config", label: "menu.storage" },
+            //     ],
+            // },
         ],
     },
 ];
