@@ -224,7 +224,7 @@ const UniversalSettings: React.FC<UniversalSettingsProps> = ({
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: "12px",
+    marginBottom: "20px",
     gap: "12px",
     flexWrap: "nowrap",
   };
