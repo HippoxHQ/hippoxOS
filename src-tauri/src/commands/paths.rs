@@ -508,10 +508,7 @@ pub fn cmd_list_dialog_sessions() -> Result<Vec<serde_json::Value>, String> {
 }
 
 #[tauri::command]
-pub fn cmd_update_session_config(
-    session_id: &str,
-    updates: serde_json::Value,
-) -> Result<(), String> {
+pub fn cmd_update_session_config(session_id: &str, updates: String) -> Result<(), String> {
     let dir = get_dialog_history_dir();
     let session_dir = dir.join(session_id);
     let config_path = session_dir.join("config.json");
@@ -522,7 +519,9 @@ pub fn cmd_update_session_config(
         fs::read_to_string(&config_path).map_err(|e| format!("Failed to read config: {}", e))?;
     let mut config: serde_json::Value =
         serde_json::from_str(&content).map_err(|e| format!("Failed to parse config: {}", e))?;
-    if let Some(obj) = updates.as_object() {
+    let updates_json: serde_json::Value =
+        serde_json::from_str(&updates).map_err(|e| format!("Failed to parse updates: {}", e))?;
+    if let Some(obj) = updates_json.as_object() {
         for (key, value) in obj {
             config[key] = value.clone();
         }
