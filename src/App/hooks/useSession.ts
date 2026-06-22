@@ -208,9 +208,8 @@ export function useSession(
         taskManager.addUserMessageToSession(finalSessionId, userMsg);
         // Send to backend and handle response
         try {
-            const workspacePath = await workspaceCommands.getDefaultWorkspace()
-                .then(ws => ws?.workspace_path)
-                .catch(() => undefined);
+            const workspace = await workspaceCommands.getDefaultWorkspace();
+            const workspacePath = workspace?.workspace_path;
             const systemPrompt = getSystemPrompt(language as 'zh' | 'en', workspacePath);
             const fullMessage = `${systemPrompt}\n\n User: ${userMessage}`;
             // Submit to LLM backend

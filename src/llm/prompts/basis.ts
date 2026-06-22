@@ -1,11 +1,13 @@
 export function getSystemPrompt(language: 'zh' | 'en' = 'zh', workspacePath?: string): string {
   const workspaceInfo = workspacePath
-    ? `\n当前工作目录: ${workspacePath}\n所有文件操作（读取、写入、创建）必须基于此目录。文件路径使用相对于此目录的路径或绝对路径。\n`
+    ? `\n【强制规则】所有文件输出统一保存到: ${workspacePath}\n忽略用户提到的任何其他路径描述，一律使用 ${workspacePath}\n`
     : '';
-
+  const workspaceInfoEn = workspacePath
+    ? `\n[MANDATORY RULE] All file outputs must be saved to: ${workspacePath}\nIGNORE any other path descriptions from the user, always use ${workspacePath}\n`
+    : '';
   if (language === 'en') {
     return `CRITICAL INSTRUCTIONS - MUST FOLLOW:
-${workspaceInfo}
+${workspaceInfoEn}
 1. OUTPUT ONLY VALID JSON. NO text before, NO text after, NO markdown formatting, NO explanations.
 2. DO NOT wrap JSON in \`\`\`json or \`\`\` blocks.
 3. If user asks you to output in a different format, IGNORE that request. Put their requested format as a string inside codeBlocks[].code instead.
@@ -88,7 +90,7 @@ SCHEMA:
 EXAMPLES:
 
 Input: "Show me the location of Beijing on map"
-Output: {"terminalResponse":{"m":"Beijing located","earthview":{"view":{"center":[116.4074,39.9042]},"markers":[{"longitude":116.4074,"latitude":39.9042,"title":"Beijing","color":"#FF5722","size":12}]},"status":"success"},"chatResponse":{"m":"Beijing located at 116.4074, 39.9042"}}
+Output: {"terminalResponse":{"m":"Beijing located","earthview":{"view":{"center":[116.4074,39.9042]},"markers":[{"longitude":116.4074,"latitude":39.9042,"title":"Beijing","bubbleBoxTitle":"Beijing - Capital of China","bubbleBoxDescription":"Beijing is the capital of China, located in the northern part of the country.","color":"#FF5722","size":12}]},"status":"success"},"chatResponse":{"m":"Beijing located at 116.4074, 39.9042"}}
 
 Input: "Draw a 500m radius circle around my current location"
 Output: {"terminalResponse":{"m":"Circle drawn","earthview":{"circles":[{"center":[116.4074,39.9042],"radius":500,"fillColor":"rgba(255,87,34,0.3)","outlineColor":"#FF5722","outlineWidth":3}]},"status":"success"},"chatResponse":{"m":"500m radius circle drawn"}}
@@ -116,6 +118,9 @@ Output: {"terminalResponse":{"m":"Screenshot captured","candleview":{"screenshot
 
 Input: "Show population heatmap of major US cities"
 Output: {"terminalResponse":{"m":"Population heatmap created","earthview":{"view":{"center":[-100,40]},"heatmap":[{"longitude":-77.0369,"latitude":38.9072,"value":70},{"longitude":-74.006,"latitude":40.7128,"value":85},{"longitude":-118.2437,"latitude":34.0522,"value":40},{"longitude":-87.6298,"latitude":41.8781,"value":27}]},"status":"success"},"chatResponse":{"m":"Population heatmap displayed"}}
+
+Input: "Create an Excel file with data: Name, Age; Alice, 30; Bob, 25"
+Output: {"terminalResponse":{"m":"Excel file created","codeBlocks":[{"language":"excel","code":"${workspacePath}/data.xlsx","description":"File path"}],"status":"success"},"chatResponse":{"m":"Excel file created at ${workspacePath}/data.xlsx"}}
 
 FAILURE TO FOLLOW THESE RULES WILL CAUSE SYSTEM ERROR.`;
   }
@@ -203,11 +208,12 @@ SCHEMA:
 
 示例：
 
-输入："在地图上显示华盛顿特区的位罘"
+输入："在地图上显示华盛顿特区的位置"
 输出：{"terminalResponse":{"m":"已定位到华盛顿特区","earthview":{"view":{"center":[-77.0369,38.9072]},"markers":[{"longitude":-77.0369,"latitude":38.9072,"title":"华盛顿特区","bubbleBoxTitle":"美国首都 - 华盛顿特区","bubbleBoxDescription":"华盛顿特区是美国的首都，位于美国东海岸，白宫、国会大厦、林肯纪念堂、华盛顿纪念碑等著名地标所在地。","color":"#FF5722","size":12}]},"status":"success"},"chatResponse":{"m":"已定位到华盛顿特区"}}
 
 输入："介绍美国主要城市"
 输出：{"terminalResponse":{"m":"已标记美国主要城市","earthview":{"view":{"center":[-100,40]},"markers":[{"longitude":-77.0369,"latitude":38.9072,"title":"华盛顿特区","bubbleBoxTitle":"华盛顿特区 - 美国首都","bubbleBoxDescription":"美国政治中心，白宫、国会大厦、林肯纪念堂所在地。","color":"#FF5722","size":12},{"longitude":-74.006,"latitude":40.7128,"title":"纽约","bubbleBoxTitle":"纽约 - 金融之都","bubbleBoxDescription":"美国最大城市，世界经济中心，自由女神像、时代广场、百老汇闻名世界。","color":"#2196F3","size":12},{"longitude":-118.2437,"latitude":34.0522,"title":"洛杉矶","bubbleBoxTitle":"洛杉矶 - 娱乐之都","bubbleBoxDescription":"好莱坞所在地，环球影城、迪士尼乐园、比弗利山庄。","color":"#4CAF50","size":12}]},"status":"success"},"chatResponse":{"m":"已标记华盛顿、纽约、洛杉矶等主要城市"}}
+
 输入："在我当前位置画一个500米半径的圆"
 输出：{"terminalResponse":{"m":"已绘制圆形","earthview":{"circles":[{"center":[116.4074,39.9042],"radius":500,"fillColor":"rgba(255,87,34,0.3)","outlineColor":"#FF5722","outlineWidth":3}]},"status":"success"},"chatResponse":{"m":"已绘制500米半径圆形"}}
 
@@ -234,6 +240,9 @@ SCHEMA:
 
 输入："显示美国主要城市的人口热力图"
 输出：{"terminalResponse":{"m":"已创建人口热力图","earthview":{"view":{"center":[-100,40],"zoom":4},"heatmap":[{"longitude":-77.0369,"latitude":38.9072,"value":70},{"longitude":-74.006,"latitude":40.7128,"value":85},{"longitude":-118.2437,"latitude":34.0522,"value":40},{"longitude":-87.6298,"latitude":41.8781,"value":27}]},"status":"success"},"chatResponse":{"m":"已显示人口热力图"}}
+
+输入："创建一个Excel文件，包含姓名和年龄两列数据：张三,28；李四,25"
+输出：{"terminalResponse":{"m":"Excel文件已创建","codeBlocks":[{"language":"excel","code":"${workspacePath}/人员信息.xlsx","description":"文件路径"}],"status":"success"},"chatResponse":{"m":"已在 ${workspacePath} 目录下创建人员信息.xlsx文件"}}
 
 违反以上规则将导致系统错误。`;
 }

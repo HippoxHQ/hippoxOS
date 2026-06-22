@@ -3972,8 +3972,6 @@ dependencies = [
 [[package]]
 name = "hippox-drivers"
 version = "0.3.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8254e364cf5863409257cba1f36a61dedc3c2af13b2aeae386619bf298c7b43b"
 dependencies = [
  "aes 0.9.1",
  "aes-gcm",
