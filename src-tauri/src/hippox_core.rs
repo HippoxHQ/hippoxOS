@@ -151,7 +151,6 @@ pub(crate) async fn init_single_hippox(
         "custom" => ModelProvider::Custom,
         _ => ModelProvider::OpenAI,
     };
-    let mode = WorkflowMode::ReAct;
     let mut extra_keys = instance.extra.clone();
     if !instance.api_base.is_empty() && !extra_keys.contains_key("api_base") {
         extra_keys.insert("api_base".to_string(), instance.api_base.clone());
@@ -175,7 +174,6 @@ pub(crate) async fn init_single_hippox(
             Some(extra_keys)
         },
         Some(HippoxConfig::default()),
-        mode,
     )
     .await
     .map_err(|e| format!("Failed to initialize Hippox for {}: {}", instance.name, e));

@@ -47,6 +47,7 @@ interface ChatPanelProps {
     message: string,
     sessionId: string,
     files?: UploadFile[],
+    workflowMode?: string,
   ) => void | Promise<void>;
   onFileClick?: (file: UploadFile) => void;
   t: (key: string, params?: any) => string;
@@ -235,7 +236,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
       showToast(ToastType.SUCCESS, "Session ID cannot be empty.");
       return;
     }
-    onSendMessage(prompt, sessionId);
+    onSendMessage(prompt, sessionId, undefined, selectedWorkflowMode);
   };
 
   const handleContainerClick = () => textareaRef.current?.focus();
@@ -451,7 +452,12 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
       setIsSending(true);
       let backendMessage = message;
       Promise.resolve(
-        onSendMessage(backendMessage, sessionId, currentFiles),
+        onSendMessage(
+          backendMessage,
+          sessionId,
+          currentFiles,
+          selectedWorkflowMode,
+        ),
       ).finally(() => {
         setTimeout(() => setIsSending(false), 100);
       });
