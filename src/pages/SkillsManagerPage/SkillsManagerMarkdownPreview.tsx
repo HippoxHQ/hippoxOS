@@ -19,7 +19,6 @@ const SkillsManagerMarkdownPreview: React.FC<SkillsManagerMarkdownPreviewProps> 
     lines.push("");
     lines.push(`## ${t("skillsManager.executionSteps")}`);
     lines.push("");
-
     skill.steps.forEach((step, idx) => {
       const depInfo =
         step.dependencies.length > 0
@@ -33,7 +32,6 @@ const SkillsManagerMarkdownPreview: React.FC<SkillsManagerMarkdownPreviewProps> 
       lines.push(
         `${idx + 1}. ${step.description || `${t("skillsManager.step")} ${idx + 1}`}${depInfo}`,
       );
-
       if (step.materials.length > 0) {
         lines.push(`   - ${t("skillsManager.allowedMaterials")}:`);
         step.materials.forEach((material) => {
@@ -63,7 +61,6 @@ const SkillsManagerMarkdownPreview: React.FC<SkillsManagerMarkdownPreviewProps> 
         });
       }
     });
-
     lines.push("");
     if (skill.tags) {
       lines.push(`## ${t("skillsManager.tags")}`);
@@ -81,9 +78,7 @@ const SkillsManagerMarkdownPreview: React.FC<SkillsManagerMarkdownPreviewProps> 
     }
     return lines.join("\n");
   };
-
   const markdown = generateMarkdown();
-
   return (
     <div className="skill-markdown-preview">
       <style>{`

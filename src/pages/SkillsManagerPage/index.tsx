@@ -196,57 +196,12 @@ const SkillsManager: React.FC<SkillsManagerProps> = ({
     setErrors({});
   };
 
-  const deleteSkill = async (skill: SkillData, e: React.MouseEvent) => {
-    e.stopPropagation();
-    // eslint-disable-next-line no-restricted-globals
-    if (confirm(t("skillsManager.confirmDelete", { name: skill.name }))) {
-      try {
-        await skillsLocalCommands.deleteSkill(
-          skill.id,
-          skill.category || "other",
-        );
-        await loadData();
-        showToast(
-          ToastType.SUCCESS,
-          t("skillsManager.deleteSuccess", { name: skill.name }),
-        );
-        if (currentSkill?.id === skill.id) {
-          setCurrentSkill(null);
-          setCurrentFrontendSkill(null);
-          setShowEditor(false);
-        }
-      } catch (error) {
-        console.error("Failed to delete skill:", error);
-        showToast(ToastType.ERROR, t("skillsManager.deleteFailed"));
-      }
-    }
-  };
-
   const closeEditor = () => {
     setShowEditor(false);
     setCurrentSkill(null);
     setCurrentFrontendSkill(null);
     setHasChanges(false);
     setErrors({});
-  };
-
-  const handleSelectHistory = (history: SkillHistory) => {
-    if (history.action === "delete") {
-      showToast(
-        ToastType.INFO,
-        t("skillsManager.deletedSkillCannotEdit", { name: history.skill_name }),
-      );
-      return;
-    }
-    const targetSkill = skills.find((s) => s.id === history.skill_id);
-    if (targetSkill) {
-      loadSkill(targetSkill);
-    } else {
-      showToast(
-        ToastType.WARNING,
-        t("skillsManager.skillNotFound", { name: history.skill_name }),
-      );
-    }
   };
 
   useEffect(() => {
@@ -362,6 +317,29 @@ const SkillsManager: React.FC<SkillsManagerProps> = ({
             t={t}
             skills={skills}
             onCreateNew={createNewSkill}
+            onCreateNewWithCategory={(category) => {
+              setCurrentSkill(null);
+              setCurrentFrontendSkill({
+                id: `temp-${Date.now()}`,
+                name: "",
+                description: "",
+                steps: [
+                  {
+                    id: `step-${Date.now()}`,
+                    name: "",
+                    description: "",
+                    materials: [],
+                    dependencies: [],
+                  },
+                ],
+                tags: "",
+                example: "",
+                category: category,
+              });
+              setShowEditor(true);
+              setHasChanges(false);
+              setErrors({});
+            }}
             onSelectSkill={loadSkill}
             onRefresh={loadData}
           />
