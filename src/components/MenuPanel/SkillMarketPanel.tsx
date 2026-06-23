@@ -5,6 +5,7 @@ import {
   StarIcon,
   StarFilledIcon,
   PlayIcon,
+  SearchIcon,
 } from "../../icons";
 import { MarketSkill, skillsMarketCommands } from "../../command/skills";
 import { UploadFile } from "../../core/types";
@@ -131,10 +132,12 @@ const SkillMarketPanel: React.FC<SkillMarketPanelProps> = ({
       setFavoritingId(null);
     }
   };
+
   const handleRun = async (skill: MarketSkill) => {
     const pendingId = `pending_${Date.now()}`;
     await runSkill(skill, onSendSkillMessage, t, pendingId);
   };
+
   const handleSaveConfig = async () => {
     try {
       await skillsMarketCommands.updateMarketConfig(repoUrl, branch);
@@ -144,29 +147,39 @@ const SkillMarketPanel: React.FC<SkillMarketPanelProps> = ({
       console.error("Failed to save config:", error);
     }
   };
+
   const handleCategorySelect = (category: string) => {
     setSelectedCategory(category);
     setShowCategoryBubble(false);
   };
+
   const handleCategoryButtonMouseEnter = () => {
     if (bubbleTimerRef.current) {
       clearTimeout(bubbleTimerRef.current);
     }
     setShowCategoryBubble(true);
   };
+
   const handleCategoryButtonMouseLeave = () => {
     bubbleTimerRef.current = setTimeout(() => {
       setShowCategoryBubble(false);
     }, 200);
   };
+
   const handleBubbleMouseEnter = () => {
     if (bubbleTimerRef.current) {
       clearTimeout(bubbleTimerRef.current);
     }
   };
+
   const handleBubbleMouseLeave = () => {
     setShowCategoryBubble(false);
   };
+
+  const handleClearSearch = () => {
+    setSearchTerm("");
+  };
+
   const filteredSkills = skills.filter((skill) => {
     const matchesSearch =
       skill.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -175,6 +188,7 @@ const SkillMarketPanel: React.FC<SkillMarketPanelProps> = ({
       selectedCategory === "all" || skill.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
+
   const styles: Record<string, React.CSSProperties> = {
     container: {
       height: "100%",
@@ -193,16 +207,15 @@ const SkillMarketPanel: React.FC<SkillMarketPanelProps> = ({
       gap: "8px",
     },
     categoryBtn: {
-      width: "34px",
-      height: "34px",
+      width: "28px",
+      height: "28px",
       padding: "0",
       background: "var(--bg-tertiary)",
       border: "1px solid var(--border-color)",
-      borderRadius: "8px",
+      borderRadius: "5px",
       color: "var(--text-primary)",
       fontSize: "16px",
       cursor: "pointer",
-      // transition: "all 0.2s",
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
@@ -211,27 +224,55 @@ const SkillMarketPanel: React.FC<SkillMarketPanelProps> = ({
     },
     searchInputWrapper: {
       flex: 1,
-    },
-    searchInput: {
-      width: "100%",
-      padding: "8px 12px",
+      position: "relative" as const,
+      display: "flex",
+      alignItems: "center",
+      gap: "8px",
+      padding: "1.5px 12px",
       background: "var(--bg-tertiary)",
       border: "1px solid var(--border-color)",
       borderRadius: "8px",
+      // transition: "border-color 0.2s ease, box-shadow 0.2s ease",
+    },
+    searchInput: {
+      flex: 1,
+      background: "transparent",
+      border: "none",
+      outline: "none",
       color: "var(--text-primary)",
       fontSize: "13px",
+      padding: "4px 0",
+    },
+    searchIcon: {
+      flexShrink: 0,
+      color: "var(--text-tertiary)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    clearBtn: {
+      background: "transparent",
+      border: "none",
+      color: "var(--text-tertiary)",
+      cursor: "pointer",
+      fontSize: "14px",
+      padding: "2px 6px",
+      borderRadius: "4px",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      flexShrink: 0,
     },
     refreshBtn: {
-      width: "34px",
-      height: "34px",
+      width: "28px",
+      height: "28px",
       padding: "0",
       background: "var(--bg-tertiary)",
       border: "1px solid var(--border-color)",
-      borderRadius: "8px",
+      borderRadius: "5px",
       color: "var(--text-primary)",
       fontSize: "16px",
       cursor: "pointer",
-      // transition: "all 0.2s",
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
@@ -268,7 +309,6 @@ const SkillMarketPanel: React.FC<SkillMarketPanelProps> = ({
       padding: "8px 12px",
       fontSize: "12px",
       cursor: "pointer",
-      // transition: "all 0.15s",
       borderLeft: "2px solid transparent",
       display: "flex",
       alignItems: "center",
@@ -296,7 +336,6 @@ const SkillMarketPanel: React.FC<SkillMarketPanelProps> = ({
       background: "var(--bg-secondary)",
       padding: "10px 15px",
       borderBottom: "1px solid var(--border-color)",
-      // transition: "background 0.2s ease",
       cursor: "pointer",
     },
     skillHeader: {
@@ -378,13 +417,8 @@ const SkillMarketPanel: React.FC<SkillMarketPanelProps> = ({
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      transition: "all 0.15s",
+      // transition: "all 0.15s",
       color: "var(--text-secondary)",
-    },
-    iconButtonHover: {
-      background: "var(--hover-bg)",
-      color: "var(--text-primary)",
-      borderColor: "var(--accent-color)",
     },
     modalOverlay: {
       position: "fixed",
@@ -450,6 +484,65 @@ const SkillMarketPanel: React.FC<SkillMarketPanelProps> = ({
     },
   };
 
+  const globalStyles = `
+    .market-search-input-wrapper {
+      flex: 1;
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 1.5px 12px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      border-radius: 5px;
+      // transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    .market-search-input-wrapper:focus-within {
+      border-color: var(--accent-color);
+      box-shadow: 0 0 0 2px var(--accent-glow);
+    }
+    .market-search-input-wrapper svg {
+      flex-shrink: 0;
+      color: var(--text-tertiary);
+    }
+    .market-search-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--text-primary);
+      font-size: 13px;
+      padding: 4px 0;
+    }
+    .market-search-clear {
+      background: transparent;
+      border: none;
+      color: var(--text-tertiary);
+      cursor: pointer;
+      font-size: 14px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .market-search-clear:hover {
+      color: var(--text-primary);
+      background: var(--hover-bg);
+    }
+  `;
+
+  if (typeof document !== "undefined") {
+    const styleId = "market-panel-styles";
+    if (!document.getElementById(styleId)) {
+      const style = document.createElement("style");
+      style.id = styleId;
+      style.textContent = globalStyles;
+      document.head.appendChild(style);
+    }
+  }
+
   if (loading) {
     return (
       <div style={styles.container}>
@@ -473,14 +566,24 @@ const SkillMarketPanel: React.FC<SkillMarketPanelProps> = ({
           >
             <CategoryIcon size={16} />
           </button>
-          <div style={styles.searchInputWrapper}>
+          <div className="market-search-input-wrapper">
+            <SearchIcon />
             <input
               type="text"
-              style={styles.searchInput}
+              className="market-search-input"
               placeholder={t("market.searchPlaceholder") || "Search skills..."}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
+            {searchTerm && (
+              <button
+                className="market-search-clear"
+                onClick={handleClearSearch}
+                title={t("market.clearSearch") || "Clear search"}
+              >
+                ✕
+              </button>
+            )}
           </div>
           <button
             style={styles.refreshBtn}

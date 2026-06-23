@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { SkillData } from "../../types/skill";
-import { PlayIcon, StarFilledIcon } from "../../icons";
+import { PlayIcon, StarFilledIcon, SearchIcon } from "../../icons";
 import {
   MarketSkill,
   skillsMarketCommands,
@@ -10,6 +10,7 @@ import { runSkill } from "./utils/skillRunner";
 import { UploadFile } from "../../core/types";
 import { filesCommands } from "../../command/files";
 import { showDialog, DialogType } from "../../components/Dialog";
+
 interface FavoritesPanelProps {
   t: (key: string, params?: any) => string;
   onSendSkillMessage: (message: string, files?: UploadFile[]) => void;
@@ -42,6 +43,7 @@ const FavoritesPanel: React.FC<FavoritesPanelProps> = ({
   const [skillFavorites, setSkillFavorites] = useState<MarketSkill[]>([]);
   const [loading, setLoading] = useState(true);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     loadFavorites();
@@ -103,6 +105,10 @@ const FavoritesPanel: React.FC<FavoritesPanelProps> = ({
     );
   };
 
+  const handleClearSearch = () => {
+    setSearchTerm("");
+  };
+
   const getAuthorColor = (author: string): string => {
     const colors = [
       "#6366f1",
@@ -130,6 +136,15 @@ const FavoritesPanel: React.FC<FavoritesPanelProps> = ({
     return colors[Math.abs(hash) % colors.length];
   };
 
+  const filteredFavorites = skillFavorites.filter((skill) => {
+    const matchesSearch =
+      skill.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      skill.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      skill.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      skill.author.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesSearch;
+  });
+
   const styles: Record<string, React.CSSProperties> = {
     container: {
       height: "100%",
@@ -137,6 +152,58 @@ const FavoritesPanel: React.FC<FavoritesPanelProps> = ({
       flexDirection: "column",
       overflow: "hidden",
       userSelect: "none",
+    },
+    header: {
+      padding: "10px",
+      borderBottom: "1px solid var(--border-color)",
+      background: "var(--bg-secondary)",
+      flexShrink: 0,
+    },
+    searchRow: {
+      display: "flex",
+      alignItems: "center",
+      gap: "8px",
+    },
+    searchInputWrapper: {
+      flex: 1,
+      position: "relative" as const,
+      display: "flex",
+      alignItems: "center",
+      gap: "8px",
+      padding: "1.5px 12px",
+      background: "var(--bg-tertiary)",
+      border: "1px solid var(--border-color)",
+      borderRadius: "8px",
+      // transition: "border-color 0.2s ease, box-shadow 0.2s ease",
+    },
+    searchInput: {
+      flex: 1,
+      background: "transparent",
+      border: "none",
+      outline: "none",
+      color: "var(--text-primary)",
+      fontSize: "13px",
+      padding: "4px 0",
+    },
+    searchIcon: {
+      flexShrink: 0,
+      color: "var(--text-tertiary)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    clearBtn: {
+      background: "transparent",
+      border: "none",
+      color: "var(--text-tertiary)",
+      cursor: "pointer",
+      fontSize: "14px",
+      padding: "2px 6px",
+      borderRadius: "4px",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      flexShrink: 0,
     },
     skillList: {
       flex: 1,
@@ -218,11 +285,6 @@ const FavoritesPanel: React.FC<FavoritesPanelProps> = ({
       justifyContent: "center",
       color: "var(--text-secondary)",
     },
-    iconButtonHover: {
-      background: "var(--hover-bg)",
-      color: "var(--text-primary)",
-      borderColor: "var(--accent-color)",
-    },
     iconButtonActive: {
       color: "#f59e0b",
       borderColor: "#f59e0b",
@@ -247,6 +309,65 @@ const FavoritesPanel: React.FC<FavoritesPanelProps> = ({
     },
   };
 
+  const globalStyles = `
+    .favorites-search-input-wrapper {
+      flex: 1;
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 1.5px 12px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      border-radius: 5px;
+      // transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    .favorites-search-input-wrapper:focus-within {
+      border-color: var(--accent-color);
+      box-shadow: 0 0 0 2px var(--accent-glow);
+    }
+    .favorites-search-input-wrapper svg {
+      flex-shrink: 0;
+      color: var(--text-tertiary);
+    }
+    .favorites-search-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--text-primary);
+      font-size: 13px;
+      padding: 4px 0;
+    }
+    .favorites-search-clear {
+      background: transparent;
+      border: none;
+      color: var(--text-tertiary);
+      cursor: pointer;
+      font-size: 14px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .favorites-search-clear:hover {
+      color: var(--text-primary);
+      background: var(--hover-bg);
+    }
+  `;
+
+  if (typeof document !== "undefined") {
+    const styleId = "favorites-panel-styles";
+    if (!document.getElementById(styleId)) {
+      const style = document.createElement("style");
+      style.id = styleId;
+      style.textContent = globalStyles;
+      document.head.appendChild(style);
+    }
+  }
+
   if (loading) {
     return (
       <div style={styles.container}>
@@ -259,13 +380,41 @@ const FavoritesPanel: React.FC<FavoritesPanelProps> = ({
 
   return (
     <div style={styles.container}>
+      <div style={styles.header}>
+        <div style={styles.searchRow}>
+          <div className="favorites-search-input-wrapper">
+            <SearchIcon />
+            <input
+              type="text"
+              className="favorites-search-input"
+              placeholder={
+                t("favorites.searchPlaceholder") || "Search favorites..."
+              }
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+            {searchTerm && (
+              <button
+                className="favorites-search-clear"
+                onClick={handleClearSearch}
+                title={t("favorites.clearSearch") || "Clear search"}
+              >
+                ✕
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
       <div style={styles.skillList}>
-        {skillFavorites.length === 0 ? (
+        {filteredFavorites.length === 0 ? (
           <div style={styles.emptyState}>
-            {t("favorites.empty") || "No favorites yet, add one!"}
+            {searchTerm
+              ? t("favorites.noSearchResults") || "No matching favorites found"
+              : t("favorites.empty") || "No favorites yet, add one!"}
           </div>
         ) : (
-          skillFavorites.map((skill) => {
+          filteredFavorites.map((skill) => {
             const isHovered = hoveredId === skill.id;
             return (
               <div
@@ -317,8 +466,7 @@ const FavoritesPanel: React.FC<FavoritesPanelProps> = ({
                     <button
                       style={{
                         ...styles.iconButton,
-                        color: "#f59e0b",
-                        borderColor: "#f59e0b",
+                        ...styles.iconButtonActive,
                       }}
                       onClick={(e) => {
                         e.stopPropagation();

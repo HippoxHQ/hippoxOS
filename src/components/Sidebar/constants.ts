@@ -3,9 +3,8 @@ import { MenuItemWithSection } from "./types";
 export const topMenuItems: MenuItemWithSection[] = [
     { id: "history", icon: "history", label: "menu.history", section: "main" },
     { id: "skillsManager", icon: "skillsManager", label: "menu.skillsManager", section: "ai" },
-    { id: "favorites", icon: "favorites", label: "menu.favorites", section: "main" },
     { id: "skillMarket", icon: "skillMarket", label: "menu.skillMarket", section: "ai" },
-    { id: "workspace", icon: "workspace", label: "menu.workspace", section: "main" },
+    { id: "favorites", icon: "favorites", label: "menu.favorites", section: "main" },
     {
         id: "tasks_group",
         icon: "tasks",
@@ -16,6 +15,7 @@ export const topMenuItems: MenuItemWithSection[] = [
             { id: "taskQueue", icon: "taskQueue", label: "menu.taskQueue" },
         ],
     },
+    { id: "workspace", icon: "workspace", label: "menu.workspace", section: "main" },
     { id: "logs", icon: "logs", label: "menu.logs", section: "config" },
 ];
 

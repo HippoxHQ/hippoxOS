@@ -31,6 +31,13 @@ export const zh = {
     saveSuccess: '配置已保存',
     enable: '启用',
     disable: '禁用',
+    searchPlaceholder: '搜索驱动...',
+    filterByCategory: '按分类筛选',
+    selectCategory: '选择分类',
+    all: '全部',
+    noSearchResults: '没有找到匹配的驱动',
+    refresh: '刷新',
+    clearSearch: '清除搜索',
     category: {
       fileSystem: '文件系统',
       network: '网络通信',
@@ -499,6 +506,7 @@ export const zh = {
     disable: '禁用'
   },
   logs: {
+    clearSearch: '清除搜索',
     searchPlaceholder: "搜索日志...",
     empty: "暂无日志",
     confirmClear: "确定要清空所有日志吗？",
@@ -869,6 +877,9 @@ export const zh = {
     }
   },
   favorites: {
+    searchPlaceholder: '搜索收藏...',
+    clearSearch: '清除搜索',
+    noSearchResults: '没有找到匹配的收藏',
     dataAnalysisTemplate: '数据分析模板',
     codeReviewFlow: '代码审查流程',
     deployChecklist: '部署检查清单',
@@ -910,6 +921,12 @@ export const zh = {
     apiDesc: '开发者接口文档'
   },
   market: {
+    searchPlaceholder: '搜索技能...',
+    clearSearch: '清除搜索',
+    filterByCategory: '按分类筛选',
+    selectCategory: '选择分类',
+    all: '全部',
+    noSearchResults: '没有找到匹配的技能',
     favorite: '收藏',
     unfavorite: '取消收藏',
     run: '运行',
@@ -923,10 +940,7 @@ export const zh = {
     installFailed: '安装失败',
     uninstallFailed: '卸载失败',
     saveConfigFailed: '保存配置失败',
-    searchPlaceholder: '搜索技能...',
-    all: '全部',
     stats: '已安装 {{installed}} / 共 {{total}} 个技能',
-    noSearchResults: '没有找到匹配的技能',
     noSkills: '暂无技能',
     installed: '已安装',
     updateAvailable: '有更新',
@@ -936,8 +950,6 @@ export const zh = {
     repositorySettings: '仓库设置',
     repoUrl: '仓库地址',
     branch: '分支',
-    filterByCategory: '分类筛选',
-    selectCategory: '选择分类',
   },
   task: {
     logs: "日志",
@@ -1294,6 +1306,13 @@ export const en: typeof zh = {
     saveSuccess: 'Configuration saved',
     enable: 'enabled',
     disable: 'disabled',
+    searchPlaceholder: 'Search drivers...',
+    filterByCategory: 'Filter by category',
+    selectCategory: 'Select category',
+    all: 'All',
+    noSearchResults: 'No matching drivers found',
+    refresh: 'Refresh',
+    clearSearch: 'Clear search',
     category: {
       fileSystem: 'File System',
       network: 'Network',
@@ -1762,6 +1781,7 @@ export const en: typeof zh = {
     disable: 'disabled'
   },
   logs: {
+    clearSearch: 'Clear search',
     searchPlaceholder: 'Search logs...',
     empty: 'No logs available',
     confirmClear: 'Are you sure you want to clear all logs?',
@@ -2132,6 +2152,9 @@ export const en: typeof zh = {
     }
   },
   favorites: {
+    searchPlaceholder: 'Search favorites...',
+    clearSearch: 'Clear search',
+    noSearchResults: 'No matching favorites found',
     dataAnalysisTemplate: 'Data Analysis Template',
     codeReviewFlow: 'Code Review Flow',
     deployChecklist: 'Deploy Checklist',
@@ -2173,6 +2196,12 @@ export const en: typeof zh = {
     apiDesc: 'Developer API documentation'
   },
   market: {
+    searchPlaceholder: 'Search skills...',
+    clearSearch: 'Clear search',
+    filterByCategory: 'Filter by category',
+    selectCategory: 'Select category',
+    all: 'All',
+    noSearchResults: 'No matching skills found',
     favorite: 'Favorite',
     unfavorite: 'Unfavorite',
     run: 'Run',
@@ -2186,10 +2215,7 @@ export const en: typeof zh = {
     installFailed: 'Installation failed',
     uninstallFailed: 'Uninstall failed',
     saveConfigFailed: 'Failed to save configuration',
-    searchPlaceholder: 'Search skills...',
-    all: 'All',
     stats: '{{installed}} / {{total}} skills installed',
-    noSearchResults: 'No matching skills found',
     noSkills: 'No skills available',
     installed: 'Installed',
     updateAvailable: 'Update available',
@@ -2199,8 +2225,6 @@ export const en: typeof zh = {
     repositorySettings: 'Repository Settings',
     repoUrl: 'Repository URL',
     branch: 'Branch',
-    filterByCategory: 'Filter by category',
-    selectCategory: 'Select category',
   },
   task: {
     logs: "Logs",
