@@ -9,7 +9,7 @@ import {
 import { runSkill } from "./utils/skillRunner";
 import { UploadFile } from "../../core/types";
 import { filesCommands } from "../../command/files";
-
+import { showDialog, DialogType } from "../../components/Dialog";
 interface FavoritesPanelProps {
   t: (key: string, params?: any) => string;
   onSendSkillMessage: (message: string, files?: UploadFile[]) => void;
@@ -42,9 +42,11 @@ const FavoritesPanel: React.FC<FavoritesPanelProps> = ({
   const [skillFavorites, setSkillFavorites] = useState<MarketSkill[]>([]);
   const [loading, setLoading] = useState(true);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
+
   useEffect(() => {
     loadFavorites();
   }, []);
+
   const loadFavorites = async () => {
     setLoading(true);
     try {
@@ -76,21 +78,31 @@ const FavoritesPanel: React.FC<FavoritesPanelProps> = ({
     await runSkill(skill, onSendSkillMessage, t, pendingId);
   };
 
-  const handleDelete = async (skillId: string) => {
-    if (
-      // eslint-disable-next-line no-restricted-globals
-      confirm(
-        t("market.confirmUninstall") || `Are you sure you want to delete?`,
-      )
-    ) {
-      try {
-        await skillsMarketCommands.unfavoriteSkill(skillId);
-        await loadFavorites();
-      } catch (error) {
-        console.error("Failed to delete favorite:", error);
-      }
-    }
+  const handleDelete = (skillId: string, skillName: string) => {
+    showDialog(
+      DialogType.WARNING,
+      t("favorites.confirmDeleteTitle") || "Remove Favorite",
+      t("favorites.confirmDeleteMessage", { name: skillName }) ||
+        `Are you sure you want to remove "${skillName}" from favorites?`,
+      async () => {
+        try {
+          await skillsMarketCommands.unfavoriteSkill(skillId);
+          await loadFavorites();
+        } catch (error) {
+          console.error("Failed to delete favorite:", error);
+          showDialog(
+            DialogType.ERROR,
+            t("favorites.deleteErrorTitle") || "Error",
+            t("favorites.deleteErrorMessage") || "Failed to remove favorite",
+          );
+        }
+      },
+      undefined,
+      t("favorites.confirmDelete") || "Remove",
+      t("favorites.cancelDelete") || "Cancel",
+    );
   };
+
   const getAuthorColor = (author: string): string => {
     const colors = [
       "#6366f1",
@@ -117,6 +129,7 @@ const FavoritesPanel: React.FC<FavoritesPanelProps> = ({
     }
     return colors[Math.abs(hash) % colors.length];
   };
+
   const styles: Record<string, React.CSSProperties> = {
     container: {
       height: "100%",
@@ -133,7 +146,6 @@ const FavoritesPanel: React.FC<FavoritesPanelProps> = ({
       background: "var(--bg-secondary)",
       padding: "10px 15px",
       borderBottom: "1px solid var(--border-color)",
-      // transition: "background 0.2s ease",
       cursor: "pointer",
     },
     skillCardHovered: {
@@ -205,7 +217,6 @@ const FavoritesPanel: React.FC<FavoritesPanelProps> = ({
       alignItems: "center",
       justifyContent: "center",
       color: "var(--text-secondary)",
-      // transition: "all 0.15s",
     },
     iconButtonHover: {
       background: "var(--hover-bg)",
@@ -311,7 +322,7 @@ const FavoritesPanel: React.FC<FavoritesPanelProps> = ({
                       }}
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleDelete(skill.id);
+                        handleDelete(skill.id, skill.name);
                       }}
                       title={t("market.unfavorite") || "Remove"}
                       onMouseEnter={(e) => {
