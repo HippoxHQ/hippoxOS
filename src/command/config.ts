@@ -9,6 +9,7 @@ export interface HippoxAppConfig {
     workspace: WorkspaceConfig;
     engine: EngineConfig;
     system: SystemConfig;
+    disabled_drivers?: string[];
 }
 
 export interface EngineConfig {
@@ -194,7 +195,7 @@ export interface DiskInfo {
 }
 
 export const configCommands = {
-    
+
     async getSettingsAutoStart(): Promise<boolean> {
         return await invoke('cmd_get_settings_auto_start');
     },
@@ -221,6 +222,14 @@ export const configCommands = {
 
     async getConfig(): Promise<HippoxAppConfig> {
         return await invoke('cmd_get_config');
+    },
+
+    async getDisabledDrivers(): Promise<string[]> {
+        return await invoke('cmd_get_disabled_drivers');
+    },
+
+    async setDisabledDrivers(disabled: string[]): Promise<void> {
+        return await invoke('cmd_set_disabled_drivers', { disabled });
     },
 
     async setConfig(config: HippoxAppConfig): Promise<boolean> {

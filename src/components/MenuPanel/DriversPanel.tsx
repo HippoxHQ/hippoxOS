@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { showToast, ToastType } from "../Toast";
 import { DriverInfo, driversCommands } from "../../command/drivers";
+import { configCommands } from "../../command/config";
 
 interface DriversPanelPanelProps {
   t: (key: string, params?: any) => string;
@@ -16,18 +17,47 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
   const tabsRef = useRef<HTMLDivElement>(null);
   const [showLeftArrow, setShowLeftArrow] = useState(false);
   const [showRightArrow, setShowRightArrow] = useState(false);
+  const [disabledDrivers, setDisabledDrivers] = useState<Set<string>>(
+    new Set(),
+  );
 
   useEffect(() => {
     loadDrivers();
   }, []);
 
+  const loadDisabledDriversConfig = async (): Promise<Set<string>> => {
+    try {
+      const disabled = await configCommands.getDisabledDrivers();
+      return new Set(disabled);
+    } catch (error) {
+      console.warn(
+        "Failed to load disabled drivers config, using empty set:",
+        error,
+      );
+      return new Set();
+    }
+  };
+
+  const saveDisabledDriversConfig = async (
+    disabled: Set<string>,
+  ): Promise<void> => {
+    try {
+      await configCommands.setDisabledDrivers(Array.from(disabled));
+    } catch (error) {
+      console.error("Failed to save disabled drivers config:", error);
+      throw error;
+    }
+  };
+
   const loadDrivers = async () => {
     try {
       setLoading(true);
       const driversData = (await driversCommands.getDrivers()) as DriverInfo[];
+      const disabled = await loadDisabledDriversConfig();
+      setDisabledDrivers(disabled);
       const driversWithEnabled = driversData.map((driver) => ({
         ...driver,
-        enabled: true,
+        enabled: !disabled.has(driver.name),
       }));
       setDrivers(driversWithEnabled);
       const cats = Array.from(new Set(driversData.map((s) => s.category)));
@@ -43,56 +73,81 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
     }
   };
 
-  const handleToggleDriver = (driverName: string, enabled: boolean) => {
+  const handleToggleDriver = async (driverName: string, enabled: boolean) => {
     setDrivers((prev) =>
       prev.map((driver) =>
         driver.name === driverName ? { ...driver, enabled } : driver,
       ),
     );
-    const actionText = enabled ? "enable" : "disable";
-    showToast(
-      ToastType.INFO,
-      t("drivers.driverToggled", {
-        name: driverName,
-        action: t(`drivers.${actionText}`),
-      }),
-    );
+    const newDisabled = new Set(disabledDrivers);
+    if (enabled) {
+      newDisabled.delete(driverName);
+    } else {
+      newDisabled.add(driverName);
+    }
+    setDisabledDrivers(newDisabled);
+    try {
+      await saveDisabledDriversConfig(newDisabled);
+      const actionText = enabled ? "enable" : "disable";
+      showToast(
+        ToastType.INFO,
+        t("drivers.driverToggled", {
+          name: driverName,
+          action: t(`drivers.${actionText}`),
+        }),
+      );
+    } catch (error) {
+      setDrivers((prev) =>
+        prev.map((driver) =>
+          driver.name === driverName
+            ? { ...driver, enabled: !enabled }
+            : driver,
+        ),
+      );
+      setDisabledDrivers(disabledDrivers);
+      showToast(ToastType.ERROR, t("drivers.saveFailed"));
+    }
   };
 
-  const handleToggleAllInTab = (category: string, enabled: boolean) => {
+  const handleToggleAllInTab = async (category: string, enabled: boolean) => {
     const categoryDrivers = drivers.filter((s) => s.category === category);
+    const driverNames = categoryDrivers.map((s) => s.name);
     setDrivers((prev) =>
       prev.map((driver) =>
         driver.category === category ? { ...driver, enabled } : driver,
       ),
     );
-    const categoryName = getCategoryName(category);
-    const actionText = enabled ? "enable" : "disable";
-    const enabledCount = categoryDrivers.length;
-    showToast(
-      ToastType.SUCCESS,
-      t("drivers.categoryToggled", {
-        category: categoryName,
-        action: t(`drivers.${actionText}`),
-        count: enabledCount,
-      }),
-    );
-  };
-
-  const handleSave = () => {
-    const enabledDrivers = drivers.filter((s) => s.enabled).map((s) => s.name);
-    const disabledDrivers = drivers
-      .filter((s) => !s.enabled)
-      .map((s) => s.name);
-    const config = {
-      enabled_drivers: enabledDrivers,
-      disabled_drivers: disabledDrivers,
-      all_drivers: drivers,
-    };
-    if (onSave) {
-      onSave(config);
+    const newDisabled = new Set(disabledDrivers);
+    if (enabled) {
+      driverNames.forEach((name) => newDisabled.delete(name));
+    } else {
+      driverNames.forEach((name) => newDisabled.add(name));
     }
-    showToast(ToastType.SUCCESS, t("drivers.saveSuccess"));
+    setDisabledDrivers(newDisabled);
+    try {
+      await saveDisabledDriversConfig(newDisabled);
+      const categoryName = getCategoryName(category);
+      const actionText = enabled ? "enable" : "disable";
+      const enabledCount = categoryDrivers.length;
+      showToast(
+        ToastType.SUCCESS,
+        t("drivers.categoryToggled", {
+          category: categoryName,
+          action: t(`drivers.${actionText}`),
+          count: enabledCount,
+        }),
+      );
+    } catch (error) {
+      setDrivers((prev) =>
+        prev.map((driver) =>
+          driver.category === category
+            ? { ...driver, enabled: !enabled }
+            : driver,
+        ),
+      );
+      setDisabledDrivers(disabledDrivers);
+      showToast(ToastType.ERROR, t("drivers.saveFailed"));
+    }
   };
 
   const getCategoryName = (category: string) => {
@@ -158,26 +213,6 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
     setTimeout(checkScrollButtons, 0);
   }, [categories]);
 
-  const labelStyle: React.CSSProperties = {
-    fontSize: "13px",
-    color: "var(--text-primary)",
-    minWidth: "100px",
-    flexShrink: 0,
-    userSelect: "none",
-  };
-
-  const inputStyle: React.CSSProperties = {
-    flex: 1,
-    minWidth: 0,
-    padding: "8px 12px",
-    background: "var(--bg-tertiary)",
-    border: "1px solid var(--border-color)",
-    borderRadius: "6px",
-    color: "var(--text-primary)",
-    fontSize: "13px",
-    outline: "none",
-  };
-
   const buttonStyle: React.CSSProperties = {
     padding: "6px 16px",
     background: "var(--bg-secondary)",
@@ -186,7 +221,6 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
     color: "var(--text-secondary)",
     fontSize: "12px",
     cursor: "pointer",
-    // transition: "all 0.2s",
   };
 
   const driverCardStyle: React.CSSProperties = {
@@ -213,7 +247,6 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
     right: 0,
     bottom: 0,
     backgroundColor: "var(--bg-tertiary)",
-    // transition: "0.3s",
     borderRadius: "24px",
     border: "1px solid var(--border-color)",
   };
@@ -231,7 +264,6 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
     left: "3px",
     bottom: "2px",
     backgroundColor: "white",
-    // transition: "0.3s",
     borderRadius: "50%",
   };
 
@@ -273,7 +305,6 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
             color: var(--text-secondary);
             font-size: 13px;
             cursor: pointer;
-            // transition: all 0.2s;
             border-radius: 6px 6px 0 0;
             white-space: nowrap;
             user-select: none;
@@ -298,7 +329,6 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
             cursor: pointer;
             color: var(--text-secondary);
             font-size: 16px;
-            // transition: all 0.2s;
             flex-shrink: 0;
             margin: 0 4px;
             user-select: none;

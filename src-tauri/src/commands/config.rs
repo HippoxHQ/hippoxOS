@@ -40,6 +40,8 @@ pub struct HippoxAppConfig {
     pub engine: EngineConfig,
     pub system: SystemConfig,
     pub workspace_config: WorkspaceConfigData,
+    #[serde(default)]
+    pub disabled_drivers: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -250,6 +252,7 @@ impl Default for HippoxAppConfig {
                 request_timeout: 30,
             },
             workspace_config: WorkspaceConfigData::default(),
+            disabled_drivers: Vec::new(),
         }
     }
 }
@@ -1018,18 +1021,46 @@ pub async fn cmd_get_config_value(path: ConfigPath) -> Result<serde_json::Value,
 pub async fn load_config_from_file() -> Result<(), String> {
     let config_path = get_config_file_path();
     if let Ok(content) = std::fs::read_to_string(&config_path) {
+        let full_config: serde_json::Value =
+            serde_json::from_str(&content).unwrap_or_else(|_| serde_json::json!({}));
         if let Ok(mut config) = serde_json::from_str::<HippoxAppConfig>(&content) {
-            let full_config: serde_json::Value =
-                serde_json::from_str(&content).unwrap_or_else(|_| serde_json::json!({}));
             if let Some(ws_config) = full_config.get("workspace_config") {
                 if let Ok(ws) = serde_json::from_value(ws_config.clone()) {
                     config.workspace_config = ws;
+                }
+            }
+            if let Some(disabled) = full_config.get("disabled_drivers") {
+                if let Ok(drivers) = serde_json::from_value(disabled.clone()) {
+                    config.disabled_drivers = drivers;
+                }
+            } else {
+                config.disabled_drivers = Vec::new();
+            }
+            let mut updated_full = full_config.clone();
+            if let Some(obj) = updated_full.as_object_mut() {
+                if !obj.contains_key("disabled_drivers") {
+                    obj.insert("disabled_drivers".to_string(), serde_json::json!([]));
                 }
             }
             let mut global_config = HIPPOX_APP_CONFIG.write().await;
             *global_config = config;
         }
     }
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn cmd_get_disabled_drivers() -> Result<Vec<String>, String> {
+    let config = HIPPOX_APP_CONFIG.read().await;
+    Ok(config.disabled_drivers.clone())
+}
+
+#[tauri::command]
+pub async fn cmd_set_disabled_drivers(disabled: Vec<String>) -> Result<(), String> {
+    let mut config = HIPPOX_APP_CONFIG.write().await;
+    config.disabled_drivers = disabled;
+    drop(config);
+    save_config_to_file().await?;
     Ok(())
 }
 
@@ -1052,14 +1083,8 @@ pub async fn save_config_to_file() -> Result<(), String> {
         for (key, value) in main_config.as_object().unwrap() {
             obj.insert(key.clone(), value.clone());
         }
-    }
-    if let Some(obj) = full_config.as_object_mut() {
-        if !obj.contains_key("workspace_config") {
-            if let Ok(ws_config) = load_workspace_config() {
-                if let Ok(ws_json) = serde_json::to_value(&ws_config) {
-                    obj.insert("workspace_config".to_string(), ws_json);
-                }
-            }
+        if !obj.contains_key("disabled_drivers") {
+            obj.insert("disabled_drivers".to_string(), serde_json::json!([]));
         }
     }
     let content = serde_json::to_string_pretty(&full_config).map_err(|e| e.to_string())?;
