@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect } from "react";
 import { ContentWithLinks } from "./ContentWithLinks";
 import {
   isTerminalResponseEmpty,
@@ -10,6 +10,25 @@ import {
   parseLLMResponse,
 } from "../../../../llm/utils";
 import { UploadFile } from "../../../../core/types";
+
+if (!(window as any).__openedTasks) {
+  (window as any).__openedTasks = new Map<
+    string,
+    { map: boolean; chart: boolean }
+  >();
+}
+const openedTasks = (window as any).__openedTasks as Map<
+  string,
+  { map: boolean; chart: boolean }
+>;
+
+export const resetAutoOpenState = (taskId?: string) => {
+  if (taskId) {
+    openedTasks.delete(taskId);
+  } else {
+    openedTasks.clear();
+  }
+};
 
 interface TaskOutputProps {
   output: string;
@@ -32,7 +51,6 @@ export const TaskOutput: React.FC<TaskOutputProps> = ({
   autoOpen = true,
   onFileClick,
 }) => {
-  const autoOpenedRef = useRef(false);
   let renderedContent: React.ReactNode = null;
   let isStructured: boolean = false;
   let shouldHide: boolean = false;
@@ -40,6 +58,7 @@ export const TaskOutput: React.FC<TaskOutputProps> = ({
   let hasCandleview: boolean = false;
   let earthviewData: any = null;
   let candleviewData: any = null;
+
   if (output && output.trim() !== "") {
     if (isStructuredLLMResponse(output)) {
       const parsed = parseLLMResponse(output);
@@ -66,18 +85,40 @@ export const TaskOutput: React.FC<TaskOutputProps> = ({
     }
   }
 
+  const hasExecutedRef = React.useRef(false);
+
   useEffect(() => {
-    if (autoOpen && !autoOpenedRef.current) {
-      if (hasEarthview && earthviewData) {
-        autoOpenedRef.current = true;
-        onShowMap?.(earthviewData);
-      } else if (hasCandleview && candleviewData) {
-        autoOpenedRef.current = true;
-        onShowChart(candleviewData);
+    if (hasExecutedRef.current) return;
+    if (!autoOpen) return;
+    if (!taskId) return;
+    const taskState = openedTasks.get(taskId);
+    if (hasEarthview && earthviewData) {
+      if (taskState?.map) {
+        hasExecutedRef.current = true;
+        return;
       }
+      hasExecutedRef.current = true;
+      openedTasks.set(taskId, { map: true, chart: taskState?.chart || false });
+      onShowMap?.(earthviewData);
+    } else if (hasCandleview && candleviewData) {
+      if (taskState?.chart) {
+        hasExecutedRef.current = true;
+        return;
+      }
+      hasExecutedRef.current = true;
+      openedTasks.set(taskId, { map: taskState?.map || false, chart: true });
+      onShowChart(candleviewData);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasEarthview, hasCandleview, earthviewData, candleviewData, autoOpen]);
+  }, [
+    hasEarthview,
+    hasCandleview,
+    earthviewData,
+    candleviewData,
+    autoOpen,
+    taskId,
+    onShowMap,
+    onShowChart,
+  ]);
 
   if (!output || output.trim() === "") {
     return null;
@@ -220,6 +261,7 @@ export const TaskOutput: React.FC<TaskOutputProps> = ({
       </div>
     );
   }
+
   let hasCandleviewInText: boolean = false;
   let hasEarthviewInText: boolean = false;
   let extractedCandleviewData: any = null;
@@ -238,6 +280,7 @@ export const TaskOutput: React.FC<TaskOutputProps> = ({
       }
     }
   } catch {}
+
   return (
     <div className="task-final-output">
       <div
