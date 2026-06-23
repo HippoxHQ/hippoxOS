@@ -59,6 +59,7 @@ pub struct UpdateSkillRequest {
     pub name: String,
     pub description: String,
     pub category: String,
+    pub old_category: String, 
     pub tags: String,
     pub steps: Vec<SkillStep>,
 }
@@ -398,35 +399,94 @@ pub async fn cmd_create_skill(request: CreateSkillRequest) -> Result<SkillData, 
 
 #[tauri::command]
 pub async fn cmd_update_skill(request: UpdateSkillRequest) -> Result<SkillData, String> {
-    let category = if request.category.trim().is_empty() {
+    let new_category = if request.category.trim().is_empty() {
         "other".to_string()
     } else {
         request.category.trim().to_string()
     };
-    let skill_dir = get_skill_dir(&category, &request.id);
-    if !skill_dir.exists() {
+    let old_skill_dir = get_skill_dir(&request.old_category, &request.id);
+    if !old_skill_dir.exists() {
         return Err(format!("Skill not found: {}", request.id));
     }
-    let skill_md_path = get_skill_md_path(&category, &request.id);
-    let existing = parse_skill_from_markdown(&skill_md_path, &request.id)?;
+    let old_skill_md_path = get_skill_md_path(&request.old_category, &request.id);
+    let old_skill = parse_skill_from_markdown(&old_skill_md_path, &request.id)?;
+    let base_name = request
+        .name
+        .to_lowercase()
+        .replace(|c: char| !c.is_alphanumeric() && c != '_' && c != '-', "_")
+        .replace(" ", "_");
+    let mut new_id = base_name.clone();
+    let mut counter = 1;
+    while get_skill_dir(&new_category, &new_id).exists() && new_id != request.id {
+        new_id = format!("{}_{}", base_name, counter);
+        counter += 1;
+    }
     let now = chrono::Local::now().to_rfc3339();
     let skill = SkillData {
-        id: request.id.clone(),
+        id: new_id.clone(),
         name: request.name,
         description: request.description,
-        category: category.clone(),
+        category: new_category.clone(),
         tags: request.tags,
         steps: request.steps,
-        created_at: existing.created_at,
+        created_at: old_skill.created_at,
         updated_at: now.clone(),
         installed: true,
     };
-    let markdown_content = skill_to_markdown(&skill);
-    fs::write(&skill_md_path, markdown_content)
-        .map_err(|e| format!("Failed to write SKILL.md: {}", e))?;
+    let category_changed = request.old_category != new_category;
+    if new_id != request.id || category_changed {
+        let new_skill_dir = get_skill_dir(&new_category, &new_id);
+        if new_skill_dir.exists() {
+            return Err(format!("Skill already exists: {}", new_id));
+        }
+        let category_dir = new_skill_dir
+            .parent()
+            .ok_or_else(|| "Invalid category path".to_string())?;
+        if !category_dir.exists() {
+            std::fs::create_dir_all(category_dir)
+                .map_err(|e| format!("Failed to create category directory: {}", e))?;
+        }
+        std::fs::rename(&old_skill_dir, &new_skill_dir)
+            .map_err(|e| format!("Failed to move skill directory: {}", e))?;
+        let new_skill_md_path = get_skill_md_path(&new_category, &new_id);
+        let markdown_content = skill_to_markdown(&skill);
+        std::fs::write(&new_skill_md_path, markdown_content)
+            .map_err(|e| format!("Failed to write SKILL.md: {}", e))?;
+        let old_category_dir = get_skill_dir(&request.old_category, "");
+        if let Some(parent) = old_category_dir.parent() {
+            if parent.exists() {
+                let is_empty = std::fs::read_dir(parent)
+                    .map(|mut dir| dir.next().is_none())
+                    .unwrap_or(false);
+                if is_empty {
+                    let _ = std::fs::remove_dir(parent);
+                }
+            }
+        }
+        let history_file = get_skill_history_file_path(&request.id);
+        if history_file.exists() {
+            let content = std::fs::read_to_string(&history_file)
+                .map_err(|e| format!("Failed to read history: {}", e))?;
+            if let Ok(mut histories) = serde_json::from_str::<Vec<SkillHistory>>(&content) {
+                for h in histories.iter_mut() {
+                    h.skill_id = new_id.clone();
+                }
+                let new_content = serde_json::to_string_pretty(&histories)
+                    .map_err(|e| format!("Failed to serialize history: {}", e))?;
+                let new_history_file = get_skill_history_file_path(&new_id);
+                std::fs::write(&new_history_file, new_content)
+                    .map_err(|e| format!("Failed to save history: {}", e))?;
+                let _ = std::fs::remove_file(&history_file);
+            }
+        }
+    } else {
+        let markdown_content = skill_to_markdown(&skill);
+        std::fs::write(&old_skill_md_path, markdown_content)
+            .map_err(|e| format!("Failed to write SKILL.md: {}", e))?;
+    }
     let history = SkillHistory {
         id: Uuid::new_v4().to_string(),
-        skill_id: skill.id.clone(),
+        skill_id: new_id.clone(),
         skill_name: skill.name.clone(),
         action: "update".to_string(),
         timestamp: now,

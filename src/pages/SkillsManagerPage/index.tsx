@@ -141,6 +141,7 @@ const SkillsManager: React.FC<SkillsManagerProps> = ({
       if (currentSkill) {
         const request: UpdateSkillRequest = {
           id: currentSkill.id,
+          old_category: currentSkill.category || "other",
           name: currentFrontendSkill.name,
           description: currentFrontendSkill.description,
           category: currentFrontendSkill.category || "general",

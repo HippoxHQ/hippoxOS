@@ -38,6 +38,7 @@ export interface UpdateSkillRequest {
     name: string;
     description: string;
     category: string;
+    old_category: string;
     tags: string;
     steps: SkillStep[];
 }

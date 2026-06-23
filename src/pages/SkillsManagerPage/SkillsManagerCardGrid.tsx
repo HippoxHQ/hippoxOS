@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { SkillData } from "../../types/skill";
-import { StarIcon, StarFilledIcon, PlayIcon } from "../../icons";
-import { skillsMarketCommands, skillsLocalCommands } from "../../command/skills";
+import { StarIcon, StarFilledIcon, PlayIcon, DeleteIcon } from "../../icons";
+import {
+  skillsMarketCommands,
+  skillsLocalCommands,
+} from "../../command/skills";
 
 interface SkillsManagerCardGridProps {
   t: (key: string, params?: any) => string;
@@ -342,7 +345,7 @@ const SkillsManagerCardGrid: React.FC<SkillsManagerCardGridProps> = ({
                     }
                     title={t("skillsManager.delete")}
                   >
-                    🗑️
+                    <DeleteIcon size={16} />
                   </button>
                 </div>
               </div>
