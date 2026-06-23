@@ -10,7 +10,7 @@ export const globalStyles = `
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
+  // transition: all 0.2s ease;
   width: 24px;
   height: 24px;
 }
@@ -30,7 +30,7 @@ export const globalStyles = `
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
+  // transition: all 0.2s ease;
   width: 24px;
   height: 24px;
 }
@@ -63,7 +63,7 @@ export const globalStyles = `
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
+  // transition: all 0.2s ease;
   width: 24px;
   height: 24px;
 }
@@ -187,7 +187,7 @@ export const globalStyles = `
   font-size: 10px;
   padding: 2px 8px;
   border-radius: 4px;
-  transition: all 0.2s;
+  // transition: all 0.2s;
 }
 
 .step-parameters-toggle:hover {
@@ -275,7 +275,7 @@ export const globalStyles = `
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
+  // transition: all 0.2s ease;
   opacity: 0.8;
 }
 
@@ -327,7 +327,7 @@ export const globalStyles = `
   border: 1px solid var(--border-color);
   border-radius: 8px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  // transition: all 0.2s ease;
   flex-shrink: 0;
 }
 
@@ -423,7 +423,7 @@ export const globalStyles = `
   align-items: center;
   justify-content: center;
   font-size: 16px;
-  transition: all 0.2s;
+  // transition: all 0.2s;
   backdrop-filter: blur(4px);
 }
 
@@ -439,7 +439,7 @@ export const globalStyles = `
   align-items: center;
   justify-content: center;
   font-size: 16px;
-  transition: all 0.2s;
+  // transition: all 0.2s;
   flex-shrink: 0;
 }
 
@@ -478,7 +478,7 @@ export const globalStyles = `
   padding: 8px 12px;
   font-size: 12px;
   cursor: pointer;
-  transition: all 0.15s;
+  // transition: all 0.15s;
   border-left: 2px solid transparent;
   display: flex;
   align-items: center;
@@ -544,7 +544,7 @@ export const globalStyles = `
   display: flex;
   align-items: center;
   gap: 4px;
-  transition: all 0.2s;
+  // transition: all 0.2s;
 }
 
 .clear-logs-btn:hover {
@@ -587,7 +587,7 @@ export const globalStyles = `
   display: flex;
   align-items: center;
   gap: 4px;
-  transition: all 0.2s;
+  // transition: all 0.2s;
 }
 
 .copy-output-btn:hover {
@@ -630,7 +630,7 @@ export const globalStyles = `
   display: flex;
   align-items: center;
   gap: 4px;
-  transition: all 0.2s;
+  // transition: all 0.2s;
 }
 
 .copy-error-btn:hover {
@@ -676,7 +676,7 @@ export const globalStyles = `
   cursor: pointer;
   padding: 5px 0;  
   border-radius: 5px;
-  transition: background 0.2s;
+  // transition: background 0.2s;
   font-size: 14px;  
 }
 

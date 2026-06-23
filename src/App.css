@@ -159,7 +159,7 @@ body {
   width: 4px;
   background: var(--border-color);
   cursor: col-resize;
-  transition: all 0.2s;
+  /* transition: all 0.2s; */
   position: relative;
   flex-shrink: 0;
 }
@@ -178,7 +178,7 @@ body {
   height: 40px;
   background: var(--text-muted);
   border-radius: 2px;
-  transition: background 0.2s;
+  /* transition: background 0.2s; */
 }
 
 .resize-handle:hover .handle-line {
@@ -212,7 +212,7 @@ body {
 ::-webkit-scrollbar-thumb {
   background: var(--scrollbar-thumb);
   border-radius: 3px;
-  transition: background 0.2s;
+  /* transition: background 0.2s; */
 }
 
 ::-webkit-scrollbar-thumb:hover {
@@ -261,7 +261,7 @@ body {
   width: 4px;
   background: var(--border-color);
   cursor: col-resize;
-  transition: all 0.2s;
+  /* transition: all 0.2s; */
   position: relative;
   flex-shrink: 0;
 }
@@ -280,7 +280,7 @@ body {
   height: 40px;
   background: var(--text-muted);
   border-radius: 2px;
-  transition: background 0.2s;
+  /* transition: background 0.2s; */
 }
 
 .resize-handle-menu:hover .handle-line {
@@ -442,7 +442,7 @@ body {
   padding: 4px 8px;
   border-radius: 4px;
   color: var(--text-secondary);
-  transition: all 0.2s;
+  /* transition: all 0.2s; */
 }
 
 .clear-logs-btn:hover {
@@ -455,7 +455,7 @@ body {
   height: 4px;
   background: var(--border-color);
   cursor: row-resize;
-  transition: all 0.2s;
+  /* transition: all 0.2s; */
   position: relative;
   flex-shrink: 0;
 }
@@ -474,7 +474,7 @@ body {
   height: 2px;
   background: var(--text-muted);
   border-radius: 2px;
-  transition: background 0.2s;
+  /* transition: background 0.2s; */
 }
 
 .resize-handle-horizontal:hover .handle-line {

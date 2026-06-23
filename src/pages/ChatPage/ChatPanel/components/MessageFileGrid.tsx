@@ -192,7 +192,7 @@ export const MessageFileGrid: React.FC<MessageFileGridProps> = ({
                 : "1px solid var(--border-color)",
               borderRadius: "8px",
               cursor: "pointer",
-              transition: "all 0.2s ease",
+              // transition: "all 0.2s ease",
               minWidth: "60px",
               flexShrink: 0,
             }}

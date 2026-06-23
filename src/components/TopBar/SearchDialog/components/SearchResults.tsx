@@ -104,7 +104,7 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
                     cursor: "pointer",
                     borderBottom: "1px solid var(--border-color)",
                     background: "var(--bg-secondary)",
-                    transition: "background 0.15s ease",
+                    // transition: "background 0.15s ease",
                   }}
                   onClick={() => toggleExpand(category)}
                   onMouseEnter={(e) => {
@@ -131,7 +131,7 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
                       cursor: "pointer",
                       borderBottom: "1px solid var(--border-color)",
                       background: "var(--bg-secondary)",
-                      transition: "background 0.15s ease",
+                      // transition: "background 0.15s ease",
                     }}
                     onClick={() => toggleExpand(category)}
                     onMouseEnter={(e) => {

@@ -151,7 +151,7 @@ const DataTable: React.FC<DataTableProps> = ({ table, t, onFileClick }) => {
                       rowIdx === table.rows.length - 1
                         ? "none"
                         : "1px solid var(--border-color)",
-                    transition: "background 0.15s ease",
+                    // transition: "background 0.15s ease",
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.background = "var(--hover-bg)";

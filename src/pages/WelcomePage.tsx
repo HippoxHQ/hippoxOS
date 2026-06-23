@@ -273,7 +273,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
     background: var(--bg-tertiary);
     border: 1px solid var(--border-color);
     border-radius: 12px;
-    transition: all 0.2s ease;
+    // transition: all 0.2s ease;
     min-height: 120px;
     display: flex;
     flex-direction: column;
@@ -334,7 +334,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
     cursor: pointer;
     color: var(--text-secondary);
     font-size: 12px;
-    transition: all 0.2s ease;
+    // transition: all 0.2s ease;
   }
 
   .icon-btn:hover {
@@ -357,7 +357,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
   }
 
   .chevron {
-    transition: transform 0.2s;
+    // transition: transform 0.2s;
   }
 
   .attachment-menu {
@@ -379,7 +379,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
     cursor: pointer;
     color: var(--text-primary);
     font-size: 12px;
-    transition: background 0.2s;
+    // transition: background 0.2s;
     white-space: nowrap;
     display: flex;
     align-items: center;
@@ -411,7 +411,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
     cursor: pointer;
     color: var(--text-primary);
     font-size: 12px;
-    transition: background 0.2s;
+    // transition: background 0.2s;
     display: flex;
     align-items: center;
     gap: 8px;
@@ -456,7 +456,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
     border: none;
     cursor: pointer;
     color: var(--text-tertiary);
-    transition: all 0.2s ease;
+    // transition: all 0.2s ease;
   }
 
   .send-icon-btn.active {
@@ -503,7 +503,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
   border: 1px solid var(--border-color);
   border-radius: 20px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  // transition: all 0.2s ease;
   font-size: 11px;
   color: var(--text-secondary);
   width: auto;

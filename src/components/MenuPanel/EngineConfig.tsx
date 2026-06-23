@@ -577,7 +577,7 @@ const EngineConfig: React.FC<EngineConfigProps> = ({ t, initialConfig, onSave })
         color: var(--text-secondary);
         font-size: 13px;
         cursor: pointer;
-        transition: all 0.2s;
+        // transition: all 0.2s;
         border-radius: 6px 6px 0 0;
         white-space: nowrap;
         user-select: none;
@@ -602,7 +602,7 @@ const EngineConfig: React.FC<EngineConfigProps> = ({ t, initialConfig, onSave })
         cursor: pointer;
         color: var(--text-secondary);
         font-size: 16px;
-        transition: all 0.2s;
+        // transition: all 0.2s;
         flex-shrink: 0;
         margin: 0 4px;
         user-select: none;
@@ -682,7 +682,7 @@ const EngineConfig: React.FC<EngineConfigProps> = ({ t, initialConfig, onSave })
                 border: 'none', borderRadius: '6px',
                 color: 'white', fontSize: '13px',
                 fontWeight: 500, cursor: 'pointer',
-                transition: 'all 0.2s',
+                // transition: 'all 0.2s',
                 alignSelf: 'flex-end',
                 marginRight: '10px',
                 marginBottom: '10px'

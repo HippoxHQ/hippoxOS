@@ -134,7 +134,7 @@ export const PanelHeader: React.FC<PanelHeaderProps> = ({
             alignItems: "center",
             justifyContent: "center",
             fontSize: "16px",
-            transition: "all 0.2s",
+            // transition: "all 0.2s",
             flexShrink: 0,
           }}
           onMouseEnter={onButtonMouseEnter}
@@ -158,7 +158,7 @@ export const PanelHeader: React.FC<PanelHeaderProps> = ({
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            transition: "all 0.2s",
+            // transition: "all 0.2s",
             flexShrink: 0,
           }}
           onMouseEnter={(e) => {
@@ -192,7 +192,7 @@ export const PanelHeader: React.FC<PanelHeaderProps> = ({
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              transition: "all 0.2s",
+              // transition: "all 0.2s",
               flexShrink: 0,
             }}
             onMouseEnter={(e) => {

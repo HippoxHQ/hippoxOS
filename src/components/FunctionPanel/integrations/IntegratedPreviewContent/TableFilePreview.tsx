@@ -363,7 +363,7 @@ const TableFilePreview: React.FC<TableFilePreviewProps> = ({
               fontSize: 16,
               padding: "4px 8px",
               borderRadius: 4,
-              transition: "all 0.2s",
+              // transition: "all 0.2s",
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.background = "var(--hover-bg)";
@@ -618,7 +618,7 @@ const TableFilePreview: React.FC<TableFilePreviewProps> = ({
                           rowIndex % 2 === 0
                             ? "var(--bg-primary)"
                             : "var(--bg-tertiary)",
-                        transition: "background 0.15s ease",
+                        // transition: "background 0.15s ease",
                         height: getRowHeight(rowIndex),
                         opacity: isEmptyRow ? 0.4 : 1,
                       }}
@@ -693,7 +693,7 @@ const TableFilePreview: React.FC<TableFilePreviewProps> = ({
                                 right: 0,
                                 height: "3px",
                                 background: "transparent",
-                                transition: "background 0.15s",
+                                // transition: "background 0.15s",
                                 pointerEvents: "none",
                               }}
                               onMouseEnter={(e) => {

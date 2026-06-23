@@ -54,7 +54,7 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
           height: "35px",
           marginBottom: "5px",
           borderRadius: "5px",
-          transition: "border-color 0.2s ease",
+          // transition: "border-color 0.2s ease",
           cursor: isDragging ? "grabbing" : "grab",
         }}
         onMouseDown={onDragStart}

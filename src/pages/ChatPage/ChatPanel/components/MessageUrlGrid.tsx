@@ -372,7 +372,7 @@ export const MessageUrlGrid: React.FC<MessageUrlGridProps> = ({ urls, t }) => {
           display: flex;
           align-items: center;
           justify-content: center;
-          transition: all 0.2s ease;
+          // transition: all 0.2s ease;
           opacity: 0.8;
         }
         
@@ -422,7 +422,7 @@ export const MessageUrlGrid: React.FC<MessageUrlGridProps> = ({ urls, t }) => {
           border: 1px solid var(--border-color);
           border-radius: 12px;
           cursor: pointer;
-          transition: all 0.2s ease;
+          // transition: all 0.2s ease;
           flex-shrink: 0;
           overflow: hidden;
           display: flex;
@@ -443,7 +443,7 @@ export const MessageUrlGrid: React.FC<MessageUrlGridProps> = ({ urls, t }) => {
           align-items: center;
           justify-content: center;
           overflow: hidden;
-          transition: background-color 0.3s ease;
+          // transition: background-color 0.3s ease;
         }
         
         .url-glass-bg {

@@ -3,9 +3,6 @@ import { invoke } from "@tauri-apps/api/core";
 import logo from "../../assets/logo.png";
 import {
   SearchIcon,
-  LayoutVerticalIcon,
-  LayoutHorizontalIcon,
-  NewSessionIcon,
   NewSessionIcon2,
   HistoryChatIcon2,
 } from "../../icons";
@@ -211,7 +208,7 @@ const topBarStyles = `
     border-radius: 6px;
     cursor: pointer;
     color: var(--text-secondary);
-    transition: all 0.15s ease;
+    // transition: all 0.15s ease;
     flex-shrink: 0;
   }
   
@@ -294,7 +291,7 @@ const topBarStyles = `
     font-size: 12px;
     font-weight: 450;
     color: var(--text-secondary);
-    transition: all 0.15s ease;
+    // transition: all 0.15s ease;
     flex-shrink: 0;
   }
   
@@ -336,7 +333,7 @@ const topBarStyles = `
     font-size: 11px;
     font-weight: 450;
     color: var(--text-secondary);
-    transition: all 0.15s ease;
+    // transition: all 0.15s ease;
     white-space: nowrap;
   }
   
@@ -388,7 +385,7 @@ const topBarStyles = `
     cursor: pointer;
     color: var(--text-secondary);
     font-size: 14px;
-    transition: all 0.15s ease;
+    // transition: all 0.15s ease;
     position: relative;
     border-radius: 0;
     flex-shrink: 0;
@@ -405,7 +402,7 @@ const topBarStyles = `
   }
   
   .theme-toggle {
-    transition: transform 0.2s ease;
+    // transition: transform 0.2s ease;
   }
   
   .theme-toggle:active {
@@ -421,7 +418,7 @@ const topBarStyles = `
   border: 1px solid var(--border-color);
   border-radius: 6px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  // transition: all 0.2s ease;
   height: 28px;
   flex: 1;
   justify-content: space-between;

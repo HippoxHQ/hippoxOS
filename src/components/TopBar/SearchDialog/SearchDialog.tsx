@@ -375,7 +375,7 @@ const SearchDialog: React.FC<SearchDialogProps> = ({
                         padding: "8px 12px",
                         cursor: "pointer",
                         borderBottom: "1px solid var(--border-color)",
-                        transition: "background 0.15s ease",
+                        // transition: "background 0.15s ease",
                       }}
                       onClick={() => handleResultClick(result)}
                       onMouseEnter={(e) => {

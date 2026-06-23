@@ -232,7 +232,7 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
     color: "var(--text-secondary)",
     fontSize: "12px",
     cursor: "pointer",
-    transition: "all 0.2s",
+    // transition: "all 0.2s",
   };
 
   const addButtonStyle: React.CSSProperties = {

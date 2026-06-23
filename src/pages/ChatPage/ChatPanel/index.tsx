@@ -484,7 +484,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                transition: "all 0.15s",
+                // transition: "all 0.15s",
                 flexShrink: 0,
                 fontWeight: isActive ? 600 : 400,
               }}
@@ -761,7 +761,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     font-size: 15px;
     padding: 4px 6px;
     border-radius: 4px;
-    transition: all 0.2s;
+    // transition: all 0.2s;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -783,7 +783,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     align-items: center;
     justify-content: center;
     font-size: 16px;
-    transition: all 0.2s;
+    // transition: all 0.2s;
     flex-shrink: 0;
   }
   .nav-btn:hover {
@@ -821,7 +821,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     padding: 8px 12px;
     font-size: 12px;
     cursor: pointer;
-    transition: all 0.15s;
+    // transition: all 0.15s;
     border-left: 2px solid transparent;
     display: flex;
     align-items: center;
@@ -941,7 +941,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     border: 1px solid var(--border-color);
     border-radius: 8px;
     cursor: pointer;
-    transition: all 0.2s ease;
+    // transition: all 0.2s ease;
   }
   .message-file-item:hover {
     background: var(--hover-bg);
@@ -997,7 +997,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     background: var(--bg-tertiary);
     border: 1px solid var(--border-color);
     border-radius: 12px;
-    transition: all 0.2s ease;
+    // transition: all 0.2s ease;
     cursor: text;
   }
   .chat-input-container.focused {
@@ -1049,7 +1049,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     cursor: pointer;
     color: var(--text-secondary);
     font-size: 12px;
-    transition: all 0.2s ease;
+    // transition: all 0.2s ease;
   }
   .icon-btn:hover {
     background: var(--hover-bg);
@@ -1068,7 +1068,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     font-size: 12px;
   }
   .chevron {
-    transition: transform 0.2s;
+    // transition: transform 0.2s;
   }
   .send-icon-btn {
     display: flex;
@@ -1081,7 +1081,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     border: none;
     cursor: pointer;
     color: var(--text-tertiary);
-    transition: all 0.2s ease;
+    // transition: all 0.2s ease;
   }
   .send-icon-btn.active {
     background: var(--accent-color);
@@ -1113,7 +1113,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     cursor: pointer;
     color: var(--text-primary);
     font-size: 12px;
-    transition: background 0.2s;
+    // transition: background 0.2s;
     white-space: nowrap;
     display: flex;
     align-items: center;
@@ -1156,7 +1156,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     cursor: pointer;
     color: var(--text-primary);
     font-size: 12px;
-    transition: background 0.2s;
+    // transition: background 0.2s;
     display: flex;
     align-items: center;
     gap: 8px;
@@ -1206,7 +1206,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.2s ease;
+    // transition: all 0.2s ease;
     backdrop-filter: blur(8px);
     font-size: 14px;
   }
@@ -1278,7 +1278,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     font-size: 11px;
     color: var(--text-primary);
     cursor: pointer;
-    transition: all 0.2s ease;
+    // transition: all 0.2s ease;
     white-space: nowrap;
   }
   .suggestion-bubble:hover {
@@ -1325,7 +1325,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
               alignItems: "center",
               justifyContent: "center",
               fontSize: "16px",
-              transition: "all 0.2s",
+              // transition: "all 0.2s",
               flexShrink: 0,
             }}
             onMouseEnter={(e) => {
@@ -1353,7 +1353,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
               alignItems: "center",
               justifyContent: "center",
               fontSize: "15px",
-              transition: "all 0.2s",
+              // transition: "all 0.2s",
               flexShrink: 0,
             }}
             onMouseEnter={(e) => {
@@ -1422,7 +1422,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
                       padding: "8px 12px",
                       fontSize: "12px",
                       cursor: "pointer",
-                      transition: "all 0.15s",
+                      // transition: "all 0.15s",
                       borderLeft: isActive
                         ? "2px solid var(--accent-color, #00aaff)"
                         : "2px solid transparent",

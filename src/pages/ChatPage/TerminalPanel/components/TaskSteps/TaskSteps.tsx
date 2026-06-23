@@ -198,7 +198,7 @@ export const TaskSteps: React.FC<TaskStepsProps> = ({
                         height: "100%",
                         background: `linear-gradient(90deg, ${colors.start}, ${colors.end})`,
                         borderRadius: "4px",
-                        transition: "width 0.3s ease",
+                        // transition: "width 0.3s ease",
                         position: "relative",
                         boxShadow: `0 0 12px ${colors.glow}`,
                       }}

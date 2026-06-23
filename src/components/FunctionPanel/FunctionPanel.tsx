@@ -180,7 +180,7 @@ const FunctionPanel: React.FC<FunctionPanelProps> = ({
               fontSize: "15px",
               padding: "6px",
               borderRadius: "6px",
-              transition: "all 0.2s",
+              // transition: "all 0.2s",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -358,7 +358,7 @@ const CollapsedTabList: React.FC<CollapsedTabListProps> = ({
     justifyContent: "center",
     fontSize: "12px",
     flexShrink: 0,
-    transition: "all 0.2s",
+    // transition: "all 0.2s",
   };
 
   return (
@@ -432,7 +432,7 @@ const CollapsedTabList: React.FC<CollapsedTabListProps> = ({
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                transition: "all 0.15s",
+                // transition: "all 0.15s",
                 flexShrink: 0,
               }}
               title={item.title}

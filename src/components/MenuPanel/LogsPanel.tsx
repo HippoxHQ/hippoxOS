@@ -159,7 +159,7 @@ const LogsPanel: React.FC<LogsPanelProps> = ({ t, onClose, onFileClick }) => {
       background: "var(--bg-secondary)",
       padding: "10px 15px",
       borderBottom: "1px solid var(--border-color)",
-      transition: "background 0.2s",
+      // transition: "background 0.2s",
       cursor: "pointer",
     },
     logEntryHovered: {

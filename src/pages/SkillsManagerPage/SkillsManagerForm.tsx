@@ -269,7 +269,7 @@ const SkillsManagerForm: React.FC<SkillsManagerFormProps> = ({
     color: var(--text-primary);
     font-size: 14px;
     box-sizing: border-box;
-    transition: all 0.2s ease;
+    // transition: all 0.2s ease;
   }
 
   .form-input:focus,
@@ -314,7 +314,7 @@ const SkillsManagerForm: React.FC<SkillsManagerFormProps> = ({
     border: 1px solid var(--border-color);
     border-radius: 8px;
     min-height: 40px;
-    transition: all 0.2s ease;
+    // transition: all 0.2s ease;
   }
 
   .tags-container:focus-within {
@@ -332,7 +332,7 @@ const SkillsManagerForm: React.FC<SkillsManagerFormProps> = ({
     border: 1px solid var(--border-color);
     border-radius: 8px;
     min-height: 40px;
-    transition: all 0.2s ease;
+    // transition: all 0.2s ease;
   }
 
   .category-container:focus-within {
@@ -370,7 +370,7 @@ const SkillsManagerForm: React.FC<SkillsManagerFormProps> = ({
     height: 16px;
     border-radius: 50%;
     opacity: 0.7;
-    transition: opacity 0.15s;
+    // transition: opacity 0.15s;
   }
 
   .tag-remove:hover {
@@ -452,7 +452,7 @@ const SkillsManagerForm: React.FC<SkillsManagerFormProps> = ({
     border-radius: 8px;
     color: var(--text-primary);
     font-size: 13px;
-    transition: all 0.2s ease;
+    // transition: all 0.2s ease;
   }
 
   .step-input:focus {
@@ -474,7 +474,7 @@ const SkillsManagerForm: React.FC<SkillsManagerFormProps> = ({
     border-radius: 6px;
     color: var(--text-secondary);
     font-size: 12px;
-    transition: all 0.15s ease;
+    // transition: all 0.15s ease;
   }
 
   .step-action-btn:hover {
@@ -513,7 +513,7 @@ const SkillsManagerForm: React.FC<SkillsManagerFormProps> = ({
     border-radius: 16px;
     font-size: 11px;
     cursor: pointer;
-    transition: all 0.15s ease;
+    // transition: all 0.15s ease;
   }
 
   .dependency-chip:hover {
@@ -566,7 +566,7 @@ const SkillsManagerForm: React.FC<SkillsManagerFormProps> = ({
     font-size: 12px;
     color: var(--text-primary);
     cursor: pointer;
-    transition: all 0.15s ease;
+    // transition: all 0.15s ease;
   }
 
   .material-type-select:hover {
@@ -581,7 +581,7 @@ const SkillsManagerForm: React.FC<SkillsManagerFormProps> = ({
     border-radius: 6px;
     font-size: 13px;
     color: var(--text-primary);
-    transition: all 0.15s ease;
+    // transition: all 0.15s ease;
   }
 
   .material-input:focus {
@@ -597,7 +597,7 @@ const SkillsManagerForm: React.FC<SkillsManagerFormProps> = ({
     font-size: 14px;
     padding: 5px;
     color: var(--text-secondary);
-    transition: all 0.15s ease;
+    // transition: all 0.15s ease;
     border-radius: 4px;
   }
 
@@ -631,7 +631,7 @@ const SkillsManagerForm: React.FC<SkillsManagerFormProps> = ({
     resize: vertical;
     margin-bottom: 10px;
     color: var(--text-primary);
-    transition: all 0.15s ease;
+    // transition: all 0.15s ease;
     min-height: 80px;
   }
 
@@ -652,7 +652,7 @@ const SkillsManagerForm: React.FC<SkillsManagerFormProps> = ({
     cursor: pointer;
     color: var(--text-secondary);
     width: 100%;
-    transition: all 0.15s ease;
+    // transition: all 0.15s ease;
   }
 
   .add-step-btn:hover {
@@ -691,7 +691,7 @@ const SkillsManagerForm: React.FC<SkillsManagerFormProps> = ({
   border: 1px solid var(--border-color);
   border-radius: 8px;
   min-height: 40px;
-  transition: all 0.2s ease;
+  // transition: all 0.2s ease;
 }
 
 .tags-container:focus-within {
@@ -708,7 +708,7 @@ const SkillsManagerForm: React.FC<SkillsManagerFormProps> = ({
   border: 1px solid var(--border-color);
   border-radius: 8px;
   min-height: 40px;
-  transition: all 0.2s ease;
+  // transition: all 0.2s ease;
 }
 
 .category-container:focus-within {
@@ -739,7 +739,7 @@ const SkillsManagerForm: React.FC<SkillsManagerFormProps> = ({
   height: 16px;
   border-radius: 50%;
   opacity: 0.7;
-  transition: opacity 0.15s;
+  // transition: opacity 0.15s;
 }
 
 .tag-remove:hover {

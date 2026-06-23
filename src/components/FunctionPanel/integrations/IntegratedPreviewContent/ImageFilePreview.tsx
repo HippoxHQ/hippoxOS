@@ -225,7 +225,7 @@ const ImageFilePreview: React.FC<ImageFilePreviewProps> = memo(
       () =>
         ({
           transform: `translate(${position.x}px, ${position.y}px) scale(${scale}) rotate(${rotation}deg)`,
-          transition: isDragging ? "none" : "transform 0.2s ease-out",
+          // transition: isDragging ? "none" : "transform 0.2s ease-out",
           willChange: "transform",
         }) as React.CSSProperties,
       [position.x, position.y, scale, rotation, isDragging],
@@ -499,7 +499,7 @@ const iconButtonStyle: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  transition: "all 0.2s",
+  // transition: "all 0.2s",
 };
 
 ImageFilePreview.displayName = "ImageFilePreview";

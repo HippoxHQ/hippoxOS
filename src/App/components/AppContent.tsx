@@ -411,7 +411,7 @@ export function AppContent({
       width: "4px",
       background: "var(--border-color)",
       cursor: "col-resize" as const,
-      transition: "all 0.2s",
+      // transition: "all 0.2s",
       position: "relative" as const,
       flexShrink: 0,
     },
@@ -424,7 +424,7 @@ export function AppContent({
       height: "40px",
       background: "var(--text-muted)",
       borderRadius: "2px",
-      transition: "background 0.2s",
+      // transition: "background 0.2s",
     },
     functionPanelResizeHandle: {
       width: "4px",
@@ -432,7 +432,7 @@ export function AppContent({
       cursor: "col-resize" as const,
       flexShrink: 0,
       position: "relative" as const,
-      transition: "background 0.2s",
+      // transition: "background 0.2s",
     },
     functionPanelResizeHandleLine: {
       position: "absolute" as const,
@@ -443,7 +443,7 @@ export function AppContent({
       height: "40px",
       background: "var(--text-muted)",
       borderRadius: "2px",
-      transition: "background 0.2s",
+      // transition: "background 0.2s",
     },
   };
 

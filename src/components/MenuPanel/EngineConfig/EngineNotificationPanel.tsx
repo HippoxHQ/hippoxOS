@@ -306,7 +306,7 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
     color: "var(--text-secondary)",
     fontSize: "12px",
     cursor: "pointer",
-    transition: "all 0.2s",
+    // transition: "all 0.2s",
   };
 
   const addButtonStyle: React.CSSProperties = {
@@ -383,7 +383,7 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
       color: var(--text-secondary);
       font-size: 13px;
       cursor: pointer;
-      transition: all 0.2s;
+      // transition: all 0.2s;
       border-radius: 6px 6px 0 0;
       white-space: nowrap;
       user-select: none;
@@ -408,7 +408,7 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
       cursor: pointer;
       color: var(--text-secondary);
       font-size: 16px;
-      transition: all 0.2s;
+      // transition: all 0.2s;
       flex-shrink: 0;
       margin: 0 4px;
       user-select: none;

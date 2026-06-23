@@ -257,7 +257,7 @@ const UniversalSettings: React.FC<UniversalSettingsProps> = ({
     fontSize: "11px",
     fontWeight: 450,
     color: isActive ? "white" : "var(--text-secondary)",
-    transition: "all 0.15s ease",
+    // transition: "all 0.15s ease",
     whiteSpace: "nowrap",
     overflow: "hidden",
     textOverflow: "ellipsis",
@@ -283,7 +283,7 @@ const UniversalSettings: React.FC<UniversalSettingsProps> = ({
       : "var(--bg-tertiary)",
     border: "1px solid var(--border-color)",
     cursor: "pointer",
-    transition: "all 0.2s",
+    // transition: "all 0.2s",
     position: "relative",
     flexShrink: 0,
     outline: "none",
@@ -298,7 +298,7 @@ const UniversalSettings: React.FC<UniversalSettingsProps> = ({
     height: "18px",
     borderRadius: "50%",
     background: "white",
-    transition: "all 0.2s",
+    // transition: "all 0.2s",
     boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
   });
 

@@ -186,7 +186,7 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
     color: "var(--text-secondary)",
     fontSize: "12px",
     cursor: "pointer",
-    transition: "all 0.2s",
+    // transition: "all 0.2s",
   };
 
   const driverCardStyle: React.CSSProperties = {
@@ -213,7 +213,7 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
     right: 0,
     bottom: 0,
     backgroundColor: "var(--bg-tertiary)",
-    transition: "0.3s",
+    // transition: "0.3s",
     borderRadius: "24px",
     border: "1px solid var(--border-color)",
   };
@@ -231,7 +231,7 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
     left: "3px",
     bottom: "2px",
     backgroundColor: "white",
-    transition: "0.3s",
+    // transition: "0.3s",
     borderRadius: "50%",
   };
 
@@ -273,7 +273,7 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
             color: var(--text-secondary);
             font-size: 13px;
             cursor: pointer;
-            transition: all 0.2s;
+            // transition: all 0.2s;
             border-radius: 6px 6px 0 0;
             white-space: nowrap;
             user-select: none;
@@ -298,7 +298,7 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
             cursor: pointer;
             color: var(--text-secondary);
             font-size: 16px;
-            transition: all 0.2s;
+            // transition: all 0.2s;
             flex-shrink: 0;
             margin: 0 4px;
             user-select: none;

@@ -130,7 +130,7 @@ const FavoritesPanel: React.FC<FavoritesPanelProps> = ({
       background: "var(--bg-secondary)",
       padding: "10px 15px",
       borderBottom: "1px solid var(--border-color)",
-      transition: "background 0.2s ease",
+      // transition: "background 0.2s ease",
       cursor: "pointer",
     },
     skillCardHovered: {
@@ -201,7 +201,7 @@ const FavoritesPanel: React.FC<FavoritesPanelProps> = ({
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      transition: "all 0.2s",
+      // transition: "all 0.2s",
       color: "var(--text-secondary)",
     },
     rightActions: {

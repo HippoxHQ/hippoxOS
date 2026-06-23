@@ -3,6 +3,14 @@ import { DialogSession } from "../../types/types";
 import { showDialog, DialogType } from "../Dialog";
 import { showToast, ToastType } from "../Toast";
 import { sessionCommands } from "../../command/session";
+import {
+  DeleteIcon,
+  MoreVerticalIcon,
+  PinFilledIcon,
+  PinIcon,
+  RenameIcon,
+  UnPinIcon,
+} from "../../icons";
 
 interface HistoryChatPanelProps {
   t: (key: string, params?: any) => string;
@@ -307,7 +315,6 @@ const HistoryChatPanel: React.FC<HistoryChatPanelProps> = ({
     });
     return grouped;
   };
-
   const getCardStyle = (
     isActive: boolean,
     isHovered: boolean,
@@ -317,10 +324,10 @@ const HistoryChatPanel: React.FC<HistoryChatPanelProps> = ({
         background: "rgba(0, 102, 204, 0.1)",
         borderRadius: "10px",
         padding: "12px 14px",
-        marginBottom: "8px",
+        marginBottom: "5px",
         border: "1px solid rgba(0, 102, 204, 0.3)",
         cursor: "pointer",
-        transition: "all 0.2s ease",
+        // transition: "all 0.2s ease",
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
@@ -331,10 +338,10 @@ const HistoryChatPanel: React.FC<HistoryChatPanelProps> = ({
       background: isHovered ? "var(--hover-bg)" : "var(--bg-secondary)",
       borderRadius: "10px",
       padding: "12px 14px",
-      marginBottom: "8px",
+      marginBottom: "5px",
       border: "1px solid var(--border-color)",
       cursor: "pointer",
-      transition: "background 0.2s ease",
+      // transition: "background 0.2s ease",
       display: "flex",
       alignItems: "center",
       justifyContent: "space-between",
@@ -388,7 +395,7 @@ const HistoryChatPanel: React.FC<HistoryChatPanelProps> = ({
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    transition: "all 0.2s",
+    // transition: "all 0.2s",
   };
 
   const dropdownStyle: React.CSSProperties = {
@@ -397,7 +404,7 @@ const HistoryChatPanel: React.FC<HistoryChatPanelProps> = ({
     top: "30px",
     background: "var(--bg-secondary)",
     border: "1px solid var(--border-color)",
-    borderRadius: "8px",
+    borderRadius: "5px",
     boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
     zIndex: 200,
     minWidth: "110px",
@@ -409,7 +416,7 @@ const HistoryChatPanel: React.FC<HistoryChatPanelProps> = ({
     fontSize: "13px",
     color: "var(--text-primary)",
     cursor: "pointer",
-    transition: "background 0.2s",
+    // transition: "background 0.2s",
     display: "flex",
     alignItems: "center",
     gap: "8px",
@@ -417,7 +424,7 @@ const HistoryChatPanel: React.FC<HistoryChatPanelProps> = ({
   };
 
   const categoryHeaderStyle: React.CSSProperties = {
-    fontSize: "12px",
+    fontSize: "14px",
     fontWeight: 600,
     color: "var(--text-secondary)",
     padding: "12px 0 8px 4px",
@@ -426,7 +433,8 @@ const HistoryChatPanel: React.FC<HistoryChatPanelProps> = ({
     justifyContent: "space-between",
     alignItems: "center",
     cursor: "pointer",
-    transition: "color 0.2s ease",
+    // transition: "color 0.2s ease",
+    paddingBottom: "5px",
   };
 
   if (loading && sessions.length === 0) {
@@ -460,7 +468,7 @@ const HistoryChatPanel: React.FC<HistoryChatPanelProps> = ({
   const groupedSessions = getGroupedSessions();
 
   return (
-    <div style={{ padding: "0px 10px", userSelect: "none" }}>
+    <div style={{ padding: "0px 5px", userSelect: "none" }}>
       {categories.map((category) => {
         const categorySessions = groupedSessions[category.type];
         if (categorySessions.length === 0) return null;
@@ -486,7 +494,7 @@ const HistoryChatPanel: React.FC<HistoryChatPanelProps> = ({
               <span
                 style={{
                   fontSize: "12px",
-                  transition: "transform 0.1s",
+                  // transition: "transform 0.1s",
                   transform: expandedCategories[category.type]
                     ? "rotate(0deg)"
                     : "rotate(-90deg)",
@@ -515,7 +523,9 @@ const HistoryChatPanel: React.FC<HistoryChatPanelProps> = ({
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: "flex", alignItems: "center" }}>
                         {session.is_pinned && (
-                          <span style={pinIconStyle}>📌</span>
+                          <span style={pinIconStyle}>
+                            <PinFilledIcon size={16} />
+                          </span>
                         )}
                         {isEditing ? (
                           <input
@@ -563,7 +573,7 @@ const HistoryChatPanel: React.FC<HistoryChatPanelProps> = ({
                                 "var(--text-secondary)";
                             }}
                           >
-                            ⋯
+                            <MoreVerticalIcon size={18} />
                           </button>
                           {activeMenuId === session.session_id && (
                             <div style={dropdownStyle} ref={menuRef}>
@@ -578,7 +588,7 @@ const HistoryChatPanel: React.FC<HistoryChatPanelProps> = ({
                                   e.currentTarget.style.background = "";
                                 }}
                               >
-                                ✏️ {t("history.rename")}
+                                <RenameIcon size={16} /> {t("history.rename")}
                               </div>
                               <div
                                 style={dropdownItemStyle}
@@ -591,7 +601,11 @@ const HistoryChatPanel: React.FC<HistoryChatPanelProps> = ({
                                   e.currentTarget.style.background = "";
                                 }}
                               >
-                                {session.is_pinned ? "📍" : "📌"}{" "}
+                                {session.is_pinned ? (
+                                  <UnPinIcon size={16} />
+                                ) : (
+                                  <PinIcon size={16} />
+                                )}{" "}
                                 {session.is_pinned
                                   ? t("history.unpin")
                                   : t("history.pin")}
@@ -610,7 +624,7 @@ const HistoryChatPanel: React.FC<HistoryChatPanelProps> = ({
                                   e.currentTarget.style.background = "";
                                 }}
                               >
-                                🗑️ {t("history.delete")}
+                                <DeleteIcon size={16} /> {t("history.delete")}
                               </div>
                             </div>
                           )}

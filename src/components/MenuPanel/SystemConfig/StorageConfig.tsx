@@ -306,7 +306,7 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
           height: "100%",
           background: color || getProgressColor(percent),
           borderRadius: "4px",
-          transition: "width 0.3s ease",
+          // transition: "width 0.3s ease",
         }}
       />
     </div>
@@ -497,7 +497,7 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
     color: "var(--text-secondary)",
     fontSize: "12px",
     cursor: "pointer",
-    transition: "all 0.2s",
+    // transition: "all 0.2s",
   };
 
   const primaryButtonStyle: React.CSSProperties = {

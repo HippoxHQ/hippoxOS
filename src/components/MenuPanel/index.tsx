@@ -123,7 +123,7 @@ const menuPanelStyles = `
     color: var(--text-secondary);
     padding: 4px 8px;
     border-radius: 6px;
-    transition: all 0.2s;
+    // transition: all 0.2s;
     display: flex;
     align-items: center;
     justify-content: center;

@@ -223,7 +223,7 @@ const SkillsManagerSidebar: React.FC<SkillsManagerSidebarProps> = ({
 
         .category-arrow {
           font-size: 12px;
-          transition: transform 0.1s;
+          // transition: transform 0.1s;
         }
 
         .history-card {
@@ -233,7 +233,7 @@ const SkillsManagerSidebar: React.FC<SkillsManagerSidebarProps> = ({
           margin-bottom: 6px;
           border: 1px solid var(--border-color);
           cursor: pointer;
-          transition: background 0.2s ease;
+          // transition: background 0.2s ease;
           display: flex;
           align-items: center;
           gap: 10px;

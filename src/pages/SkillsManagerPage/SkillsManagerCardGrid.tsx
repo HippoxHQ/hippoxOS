@@ -125,7 +125,7 @@ const SkillsManagerCardGrid: React.FC<SkillsManagerCardGridProps> = ({
           border: 1px solid var(--border-color);
           padding: 16px;
           cursor: pointer;
-          transition: all 0.2s ease;
+          // transition: all 0.2s ease;
         }
 
         .skill-card:hover {
@@ -178,7 +178,7 @@ const SkillsManagerCardGrid: React.FC<SkillsManagerCardGridProps> = ({
           display: flex;
           gap: 8px;
           opacity: 0;
-          transition: opacity 0.15s ease;
+          // transition: opacity 0.15s ease;
         }
 
         .skill-card:hover .card-actions {
@@ -195,7 +195,7 @@ const SkillsManagerCardGrid: React.FC<SkillsManagerCardGridProps> = ({
           display: flex;
           align-items: center;
           justify-content: center;
-          transition: all 0.2s;
+          // transition: all 0.2s;
           color: var(--text-secondary);
           font-size: 13px;
         }

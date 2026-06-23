@@ -133,7 +133,7 @@ export const ModuleTabs: React.FC<ModuleTabsProps> = ({
                 whiteSpace: "nowrap",
                 flexShrink: 0,
                 height: 30,
-                transition: "all 0.2s ease",
+                // transition: "all 0.2s ease",
               }}
               onMouseEnter={(e) => {
                 if (!isActive) {
@@ -207,7 +207,7 @@ export const ModuleTabs: React.FC<ModuleTabsProps> = ({
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          transition: "all 0.2s",
+          // transition: "all 0.2s",
         }}
         onMouseEnter={(e) => {
           e.currentTarget.style.background = "var(--hover-bg)";
@@ -237,7 +237,7 @@ export const ModuleTabs: React.FC<ModuleTabsProps> = ({
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            transition: "all 0.2s",
+            // transition: "all 0.2s",
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.background = "var(--hover-bg)";

@@ -34,7 +34,7 @@ export const sidebarStyles = `
     border: none;
     cursor: pointer;
     color: var(--text-secondary);
-    transition: all 0.2s ease;
+    // transition: all 0.2s ease;
   }
 
   .new-session-icon-btn:hover {
@@ -71,7 +71,7 @@ export const sidebarStyles = `
     border: none;
     cursor: pointer;
     color: var(--text-secondary);
-    transition: all 0.2s ease;
+    // transition: all 0.2s ease;
     position: relative;
   }
 
@@ -136,7 +136,7 @@ export const sidebarStyles = `
     gap: 12px;
     padding: 10px 0px;
     cursor: pointer;
-    transition: all 0.15s ease;
+    // transition: all 0.15s ease;
     color: var(--text-primary);
     font-size: 13px;
     padding-left: 10px;
@@ -207,7 +207,7 @@ export const sidebarStyles = `
   }
 
   .popup-chevron {
-    transition: transform 0.2s ease;
+    // transition: transform 0.2s ease;
     color: var(--text-secondary);
     font-size: 12px;
   }
@@ -227,7 +227,7 @@ export const sidebarStyles = `
     gap: 10px;
     padding: 10px 0px 10px 0px;
     cursor: pointer;
-    transition: all 0.15s ease;
+    // transition: all 0.15s ease;
     color: var(--text-primary);
     font-size: 12px;
     padding-left: 20px;
@@ -265,7 +265,7 @@ export const sidebarStyles = `
     padding: 6px 12px 6px 0;
     margin: 0 4px;
     cursor: pointer;
-    transition: all 0.15s ease;
+    // transition: all 0.15s ease;
     color: var(--text-primary);
     border-radius: 6px;
     font-size: 11px;

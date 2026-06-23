@@ -209,7 +209,7 @@ export const TaskOutput: React.FC<TaskOutputProps> = ({
                   cursor: "pointer",
                   fontSize: "13px",
                   fontWeight: 500,
-                  transition: "all 0.2s ease",
+                  // transition: "all 0.2s ease",
                   boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
                 }}
                 onMouseEnter={(e) => {
@@ -240,7 +240,7 @@ export const TaskOutput: React.FC<TaskOutputProps> = ({
                   cursor: "pointer",
                   fontSize: "13px",
                   fontWeight: 500,
-                  transition: "all 0.2s ease",
+                  // transition: "all 0.2s ease",
                   boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
                 }}
                 onMouseEnter={(e) => {
@@ -353,7 +353,7 @@ export const TaskOutput: React.FC<TaskOutputProps> = ({
                 cursor: "pointer",
                 fontSize: "13px",
                 fontWeight: 500,
-                transition: "all 0.2s ease",
+                // transition: "all 0.2s ease",
                 boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
               }}
               onMouseEnter={(e) => {
@@ -384,7 +384,7 @@ export const TaskOutput: React.FC<TaskOutputProps> = ({
                 cursor: "pointer",
                 fontSize: "13px",
                 fontWeight: 500,
-                transition: "all 0.2s ease",
+                // transition: "all 0.2s ease",
                 boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
               }}
               onMouseEnter={(e) => {

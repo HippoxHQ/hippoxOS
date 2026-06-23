@@ -33,7 +33,7 @@ export const SearchResultItem: React.FC<SearchResultItemProps> = ({
         cursor: "pointer",
         borderBottom: "1px solid var(--border-color)",
         background: "transparent",
-        transition: "background 0.15s ease",
+        // transition: "background 0.15s ease",
       }}
       onClick={() => onClick(result)}
       onMouseEnter={(e) => {

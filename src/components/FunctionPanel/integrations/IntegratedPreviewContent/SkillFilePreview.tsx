@@ -155,7 +155,7 @@ const SkillFilePreview: React.FC<SkillFilePreviewProps> = ({
                 padding: "4px 12px",
                 borderRadius: 6,
                 fontWeight: 500,
-                transition: "all 0.2s",
+                // transition: "all 0.2s",
               }}
               onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.85")}
               onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}

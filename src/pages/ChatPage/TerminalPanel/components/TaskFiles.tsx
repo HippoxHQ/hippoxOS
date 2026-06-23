@@ -306,7 +306,7 @@ export const TaskFiles: React.FC<TaskFilesProps> = ({
                       : "1px solid var(--border-color)",
                     borderRadius: "8px",
                     cursor: "pointer",
-                    transition: "all 0.2s ease",
+                    // transition: "all 0.2s ease",
                     flexShrink: 0,
                   }}
                   onMouseEnter={(e) => {

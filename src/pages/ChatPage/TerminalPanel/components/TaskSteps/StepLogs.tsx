@@ -81,7 +81,7 @@ export const StepLogs: React.FC<StepLogsProps> = ({
             fontSize: "10px",
             padding: "2px 8px",
             borderRadius: "4px",
-            transition: "all 0.2s",
+            // transition: "all 0.2s",
             flexShrink: 0,
           }}
         >

@@ -295,7 +295,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         overflow: collapsed ? "hidden" : "visible",
         padding: collapsed ? 0 : undefined,
         opacity: collapsed ? 0 : 1,
-        transition: "width 0.2s ease, opacity 0.2s ease",
+        // transition: "width 0.2s ease, opacity 0.2s ease",
       }}
     >
       {!collapsed && (
