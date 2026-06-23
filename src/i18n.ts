@@ -912,7 +912,11 @@ export const zh = {
     deleteConfirmTitle: '确认删除',
     deleteConfirmMessage: '确定要删除此工作空间吗？此操作不可撤销。',
     delete: '删除',
-    title: '工作空间'
+    title: '工作空间',
+    searchPlaceholder: '搜索工作空间...',
+    clearSearch: '清除搜索',
+    noSearchResults: '没有找到匹配的工作空间',
+    noWorkspaces: '暂无工作空间',
   },
   knowledge: {
     soulDesc: '核心人格定义文件',
@@ -2187,7 +2191,11 @@ export const en: typeof zh = {
     deleteConfirmTitle: 'Confirm Delete',
     deleteConfirmMessage: 'Are you sure you want to delete this workspace? This action cannot be undone.',
     delete: 'Delete',
-    title: 'Workspace'
+    title: 'Workspace',
+    searchPlaceholder: 'Search workspaces...',
+    clearSearch: 'Clear search',
+    noSearchResults: 'No matching workspaces found',
+    noWorkspaces: 'No workspaces available',
   },
   knowledge: {
     soulDesc: 'Core personality definition file',

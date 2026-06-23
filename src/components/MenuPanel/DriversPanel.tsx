@@ -284,10 +284,10 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
   };
 
   const buttonStyle: React.CSSProperties = {
-    padding: "6px 16px",
+    padding: "5px 10px",
     background: "var(--bg-secondary)",
     border: "1px solid var(--border-color)",
-    borderRadius: "6px",
+    borderRadius: "5px",
     color: "var(--text-secondary)",
     fontSize: "12px",
     cursor: "pointer",
@@ -295,10 +295,10 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
 
   const driverCardStyle: React.CSSProperties = {
     background: "var(--bg-secondary)",
-    borderRadius: "8px",
-    padding: "12px",
-    marginBottom: "12px",
-    border: "1px solid var(--border-color)",
+    borderRadius: "0px",
+    padding: "10px",
+    marginBottom: "0px",
+    borderBottom: "1px solid var(--border-color)",
   };
 
   const toggleSwitchStyle: React.CSSProperties = {
@@ -411,13 +411,13 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
     },
     bubbleContainer: {
       position: "absolute" as const,
-      left: "16px",
-      top: "66px",
-      minWidth: "150px",
-      maxWidth: "200px",
+      left: "10px",
+      top: "40px",
+      minWidth: "200px",
+      maxWidth: "235px",
       background: "var(--bg-secondary, #1e1e1e)",
       border: "1px solid var(--border-color, #333)",
-      borderRadius: "12px",
+      borderRadius: "5px",
       boxShadow: "0 8px 24px rgba(0,0,0,0.3)",
       overflow: "hidden",
       zIndex: 100,
@@ -676,7 +676,6 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
           </div>
         </div>
       </div>
-
       {showCategoryBubble && categories.length > 0 && (
         <div
           ref={bubbleRef}
@@ -721,7 +720,6 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
           </div>
         </div>
       )}
-
       <div
         className="driver-tabs-container"
         style={{ padding: "0px", margin: 0 }}
@@ -760,16 +758,13 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
           </button>
         )}
       </div>
-
       <div
         style={{
           flex: 1,
           overflowY: "auto",
           overflowX: "hidden",
-          padding: "0 10px",
+          padding: "10px 0px",
           margin: 0,
-          paddingTop: "10px",
-          paddingBottom: "10px",
         }}
       >
         {currentCategoryDrivers.length === 0 ? (

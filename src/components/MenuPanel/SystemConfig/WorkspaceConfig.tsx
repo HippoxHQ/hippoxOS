@@ -2,7 +2,11 @@ import React, { useState, useEffect } from "react";
 import { showToast, ToastType } from "../../Toast";
 import { showDialog, DialogType } from "../../Dialog";
 import { filesCommands } from "../../../command/files";
-import { WorkspaceInstance, workspaceCommands } from "../../../command/workspace";
+import {
+  WorkspaceInstance,
+  workspaceCommands,
+} from "../../../command/workspace";
+import { SearchIcon } from "../../../icons";
 
 interface WorkspaceConfigProps {
   t: (key: string, params?: any) => string;
@@ -26,6 +30,7 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
   const [newWorkspaceName, setNewWorkspaceName] = useState("");
   const [newWorkspacePath, setNewWorkspacePath] = useState("");
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     loadWorkspaceInstances();
@@ -205,6 +210,17 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
     }
   };
 
+  const handleClearSearch = () => {
+    setSearchTerm("");
+  };
+
+  const filteredInstances = workspaceInstances.filter((instance) => {
+    const matchesSearch =
+      instance.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      instance.workspace_path.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesSearch;
+  });
+
   const labelStyle: React.CSSProperties = {
     fontSize: "13px",
     color: "var(--text-primary)",
@@ -212,13 +228,14 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
     flexShrink: 0,
     userSelect: "none",
   };
+
   const inputStyle: React.CSSProperties = {
     flex: 1,
     minWidth: 0,
     padding: "8px 12px",
     background: "var(--bg-tertiary)",
     border: "1px solid var(--border-color)",
-    borderRadius: "6px",
+    borderRadius: "5px",
     color: "var(--text-primary)",
     fontSize: "13px",
     outline: "none",
@@ -228,11 +245,10 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
     padding: "6px 16px",
     background: "var(--bg-secondary)",
     border: "1px solid var(--border-color)",
-    borderRadius: "6px",
+    borderRadius: "5px",
     color: "var(--text-secondary)",
     fontSize: "12px",
     cursor: "pointer",
-    // transition: "all 0.2s",
   };
 
   const addButtonStyle: React.CSSProperties = {
@@ -250,10 +266,8 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
 
   const workspaceCardStyle: React.CSSProperties = {
     background: "var(--bg-secondary)",
-    borderRadius: "8px",
     padding: "12px",
-    marginBottom: "12px",
-    border: "1px solid var(--border-color)",
+    borderBottom: "1px solid var(--border-color)",
   };
 
   const badgeStyle: React.CSSProperties = {
@@ -281,6 +295,120 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
     flex: 1,
   };
 
+  const styles: Record<string, React.CSSProperties> = {
+    searchInputWrapper: {
+      flex: 1,
+      position: "relative" as const,
+      display: "flex",
+      alignItems: "center",
+      gap: "8px",
+      padding: "4px 12px",
+      background: "var(--bg-tertiary)",
+      border: "1px solid var(--border-color)",
+      borderRadius: "8px",
+      // transition: "border-color 0.2s ease, box-shadow 0.2s ease",
+    },
+    searchInput: {
+      flex: 1,
+      background: "transparent",
+      border: "none",
+      outline: "none",
+      color: "var(--text-primary)",
+      fontSize: "13px",
+      padding: "4px 0",
+    },
+    searchIcon: {
+      flexShrink: 0,
+      color: "var(--text-tertiary)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    clearBtn: {
+      background: "transparent",
+      border: "none",
+      color: "var(--text-tertiary)",
+      cursor: "pointer",
+      fontSize: "14px",
+      padding: "2px 6px",
+      borderRadius: "4px",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      flexShrink: 0,
+    },
+    header: {
+      padding: "10px",
+      borderBottom: "1px solid var(--border-color)",
+      background: "var(--bg-secondary)",
+      flexShrink: 0,
+    },
+    searchRow: {
+      display: "flex",
+      alignItems: "center",
+      gap: "8px",
+    },
+  };
+
+  const globalStyles = `
+    .workspace-search-input-wrapper {
+      flex: 1;
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 1.5px 12px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      border-radius: 5px;
+      // transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    .workspace-search-input-wrapper:focus-within {
+      border-color: var(--accent-color);
+      box-shadow: 0 0 0 2px var(--accent-glow);
+    }
+    .workspace-search-input-wrapper svg {
+      flex-shrink: 0;
+      color: var(--text-tertiary);
+    }
+    .workspace-search-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--text-primary);
+      font-size: 13px;
+      padding: 4px 0;
+    }
+    .workspace-search-clear {
+      background: transparent;
+      border: none;
+      color: var(--text-tertiary);
+      cursor: pointer;
+      font-size: 14px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .workspace-search-clear:hover {
+      color: var(--text-primary);
+      background: var(--hover-bg);
+    }
+  `;
+
+  if (typeof document !== "undefined") {
+    const styleId = "workspace-config-styles";
+    if (!document.getElementById(styleId)) {
+      const style = document.createElement("style");
+      style.id = styleId;
+      style.textContent = globalStyles;
+      document.head.appendChild(style);
+    }
+  }
+
   if (loading) {
     return (
       <div
@@ -303,119 +431,157 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
         display: "flex",
         flexDirection: "column",
         overflow: "hidden",
-        padding: "0 10px",
       }}
     >
+      {/* Search Header */}
+      <div style={styles.header}>
+        <div style={styles.searchRow}>
+          <div className="workspace-search-input-wrapper">
+            <SearchIcon />
+            <input
+              type="text"
+              className="workspace-search-input"
+              placeholder={
+                t("workspace.searchPlaceholder") || "Search workspaces..."
+              }
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+            {searchTerm && (
+              <button
+                className="workspace-search-clear"
+                onClick={handleClearSearch}
+                title={t("workspace.clearSearch") || "Clear search"}
+              >
+                ✕
+              </button>
+            )}
+          </div>
+          <button
+            style={{
+              ...addButtonStyle,
+              padding: "5px 10px",
+              fontSize: "15px",
+              whiteSpace: "nowrap",
+            }}
+            onClick={() => setShowAddForm(true)}
+          >
+            +
+          </button>
+        </div>
+      </div>
+
       <div
         style={{
           flex: 1,
           overflowY: "auto",
-          paddingTop: "10px",
           paddingBottom: "10px",
         }}
       >
-        <div
-          style={{
-            fontSize: "13px",
-            fontWeight: 600,
-            color: "var(--text-secondary)",
-            marginBottom: "12px",
-            paddingLeft: "4px",
-          }}
-        >
-          📁 {t("settings.workspaceConfig")}
-        </div>
-
-        {workspaceInstances.map((instance) => (
-          <div key={instance.id} style={workspaceCardStyle}>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                marginBottom: "12px",
-                flexWrap: "wrap",
-                gap: "8px",
-              }}
-            >
-              <span
+        {filteredInstances.length === 0 ? (
+          <div
+            style={{
+              textAlign: "center",
+              padding: "40px 20px",
+              color: "var(--text-muted)",
+              fontSize: "13px",
+            }}
+          >
+            {searchTerm
+              ? t("workspace.noSearchResults") || "No matching workspaces found"
+              : t("workspace.noWorkspaces") || "No workspaces available"}
+          </div>
+        ) : (
+          filteredInstances.map((instance) => (
+            <div key={instance.id} style={workspaceCardStyle}>
+              <div
                 style={{
-                  fontSize: "14px",
-                  fontWeight: 600,
-                  color: "var(--text-primary)",
+                  display: "flex",
+                  alignItems: "center",
+                  flexWrap: "wrap",
+                  gap: "8px",
                 }}
               >
-                📁 {instance.name}
-              </span>
-              {defaultInstanceId === instance.id && (
-                <span style={badgeStyle}>{t("settings.defaultBadge")}</span>
-              )}
-            </div>
-            <div
-              className="settings-row"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                marginBottom: "12px",
-                gap: "12px",
-                flexWrap: "wrap",
-              }}
-            >
-              <label style={labelStyle}>{t("settings.workspacePath")}</label>
-              <div style={pathRowStyle}>
-                <input
-                  style={{ ...inputStyle, flex: 1 }}
-                  value={instance.workspace_path}
-                  disabled
-                  placeholder={t("settings.workspacePathPlaceholder")}
-                />
-                <button
-                  style={folderButtonStyle}
-                  onClick={() => handleOpenDirectory(instance.workspace_path)}
-                  title={t("settings.openDirectory")}
-                >
-                  📂 {t("settings.open")}
-                </button>
-              </div>
-            </div>
-            <div
-              style={{
-                display: "flex",
-                gap: "8px",
-                justifyContent: "flex-end",
-                marginTop: "8px",
-              }}
-            >
-              {defaultInstanceId !== instance.id && (
-                <button
+                <span
                   style={{
-                    ...buttonStyle,
-                    fontSize: "11px",
-                    padding: "8px 10px",
+                    fontSize: "14px",
+                    fontWeight: 600,
+                    color: "var(--text-primary)",
                   }}
-                  onClick={() => handleSetDefault(instance.id, instance.name)}
                 >
-                  {t("settings.setAsDefault")}
-                </button>
-              )}
-              {defaultInstanceId !== instance.id &&
-                workspaceInstances.length > 1 && (
+                  📁 {instance.name}
+                </span>
+                {defaultInstanceId === instance.id && (
+                  <span style={badgeStyle}>{t("settings.defaultBadge")}</span>
+                )}
+              </div>
+              <div
+                className="settings-row"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  marginBottom: "12px",
+                  gap: "12px",
+                  flexWrap: "wrap",
+                }}
+              >
+                <label style={labelStyle}>{t("settings.workspacePath")}</label>
+                <div style={pathRowStyle}>
+                  <input
+                    style={{ ...inputStyle, flex: 1 }}
+                    value={instance.workspace_path}
+                    disabled
+                    placeholder={t("settings.workspacePathPlaceholder")}
+                  />
+                  <button
+                    style={folderButtonStyle}
+                    onClick={() => handleOpenDirectory(instance.workspace_path)}
+                    title={t("settings.openDirectory")}
+                  >
+                    📂 {t("settings.open")}
+                  </button>
+                </div>
+              </div>
+              <div
+                style={{
+                  display: "flex",
+                  gap: "8px",
+                  justifyContent: "flex-end",
+                  marginTop: "8px",
+                }}
+              >
+                {defaultInstanceId !== instance.id && (
                   <button
                     style={{
-                      ...deleteButtonStyle,
+                      ...buttonStyle,
                       fontSize: "11px",
                       padding: "8px 10px",
                     }}
-                    onClick={() =>
-                      handleDeleteInstance(instance.id, instance.name)
-                    }
+                    onClick={() => handleSetDefault(instance.id, instance.name)}
                   >
-                    {t("settings.delete")}
+                    {t("settings.setAsDefault")}
                   </button>
                 )}
+                {defaultInstanceId !== instance.id &&
+                  workspaceInstances.length > 1 && (
+                    <button
+                      style={{
+                        ...deleteButtonStyle,
+                        fontSize: "11px",
+                        padding: "8px 10px",
+                      }}
+                      onClick={() =>
+                        handleDeleteInstance(instance.id, instance.name)
+                      }
+                    >
+                      {t("settings.delete")}
+                    </button>
+                  )}
+              </div>
             </div>
-          </div>
-        ))}
-        {showAddForm ? (
+          ))
+        )}
+        {showAddForm && (
           <div style={workspaceCardStyle}>
             <div
               style={{
@@ -489,13 +655,6 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
               </button>
             </div>
           </div>
-        ) : (
-          <button
-            style={{ ...addButtonStyle, width: "100%" }}
-            onClick={() => setShowAddForm(true)}
-          >
-            + {t("settings.addWorkspace")}
-          </button>
         )}
       </div>
     </div>

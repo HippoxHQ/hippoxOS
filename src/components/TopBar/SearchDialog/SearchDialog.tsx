@@ -286,7 +286,9 @@ const SearchDialog: React.FC<SearchDialogProps> = ({
         ref={dialogRef}
         style={{
           position: "fixed",
-          width: "540px",
+          width: "min(540px, 90vw)",
+          minWidth: "320px",
+          maxWidth: "90vw",
           background: "var(--bg-secondary)",
           border: "1px solid var(--border-color)",
           borderRadius: "8px",
