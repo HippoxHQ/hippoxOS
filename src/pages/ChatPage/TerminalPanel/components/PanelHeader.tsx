@@ -1,6 +1,12 @@
 import React from "react";
 import { TaskStatusEnum } from "../../../../core/types";
-import { TaskQueueIcon, ExpandArrowsIcon, CollapseIcon } from "../../../../icons";
+import {
+  TaskQueueIcon,
+  ExpandArrowsIcon,
+  CollapseIcon,
+  ExpandAllIcon2,
+  CollapseAllIcon2,
+} from "../../../../icons";
 
 interface PanelHeaderProps {
   activeTasks: any[];
@@ -171,9 +177,9 @@ export const PanelHeader: React.FC<PanelHeaderProps> = ({
           }}
         >
           {allExpanded ? (
-            <ExpandArrowsIcon size={18} />
+            <CollapseAllIcon2 size={18} />
           ) : (
-            <CollapseIcon size={18} />
+            <ExpandAllIcon2 size={18} />
           )}
         </button>
         {togglePanel && (
