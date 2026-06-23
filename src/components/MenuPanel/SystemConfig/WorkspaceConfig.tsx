@@ -306,7 +306,6 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
       background: "var(--bg-tertiary)",
       border: "1px solid var(--border-color)",
       borderRadius: "8px",
-      // transition: "border-color 0.2s ease, box-shadow 0.2s ease",
     },
     searchInput: {
       flex: 1,
@@ -361,7 +360,6 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
       background: var(--bg-tertiary);
       border: 1px solid var(--border-color);
       border-radius: 5px;
-      // transition: border-color 0.2s ease, box-shadow 0.2s ease;
     }
     .workspace-search-input-wrapper:focus-within {
       border-color: var(--accent-color);
@@ -424,6 +422,8 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
     );
   }
 
+  const hasInstances = filteredInstances.length > 0;
+
   return (
     <div
       style={{
@@ -470,7 +470,6 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
           </button>
         </div>
       </div>
-
       <div
         style={{
           flex: 1,
@@ -478,7 +477,81 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
           paddingBottom: "10px",
         }}
       >
-        {filteredInstances.length === 0 ? (
+        {showAddForm && (
+          <div style={workspaceCardStyle}>
+            <div
+              style={{
+                fontSize: "14px",
+                fontWeight: 600,
+                color: "var(--text-primary)",
+                marginBottom: "12px",
+              }}
+            >
+              {t("settings.addWorkspace")}
+            </div>
+            <div
+              className="settings-row"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                marginBottom: "12px",
+                gap: "12px",
+                flexWrap: "wrap",
+              }}
+            >
+              <label style={labelStyle}>{t("settings.workspaceName")}</label>
+              <input
+                style={inputStyle}
+                value={newWorkspaceName}
+                onChange={(e) => setNewWorkspaceName(e.target.value)}
+                placeholder={t("settings.workspaceNamePlaceholder")}
+              />
+            </div>
+            <div
+              className="settings-row"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                marginBottom: "12px",
+                gap: "12px",
+                flexWrap: "wrap",
+              }}
+            >
+              <label style={labelStyle}>{t("settings.workspacePath")}</label>
+              <div style={pathRowStyle}>
+                <input
+                  style={{ ...inputStyle, flex: 1 }}
+                  value={newWorkspacePath}
+                  readOnly
+                  placeholder={t("settings.workspacePathPlaceholder")}
+                  onClick={handleSelectDirectory}
+                />
+                <button
+                  style={folderButtonStyle}
+                  onClick={handleSelectDirectory}
+                  title={t("settings.selectDirectory")}
+                >
+                  📂 {t("settings.browse")}
+                </button>
+              </div>
+            </div>
+            <div
+              style={{
+                display: "flex",
+                gap: "8px",
+                justifyContent: "flex-end",
+              }}
+            >
+              <button style={buttonStyle} onClick={() => setShowAddForm(false)}>
+                {t("settings.cancel")}
+              </button>
+              <button style={addButtonStyle} onClick={handleAddInstance}>
+                {t("settings.add")}
+              </button>
+            </div>
+          </div>
+        )}
+        {!hasInstances && !showAddForm ? (
           <div
             style={{
               textAlign: "center",
@@ -580,81 +653,6 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
               </div>
             </div>
           ))
-        )}
-        {showAddForm && (
-          <div style={workspaceCardStyle}>
-            <div
-              style={{
-                fontSize: "14px",
-                fontWeight: 600,
-                color: "var(--text-primary)",
-                marginBottom: "12px",
-              }}
-            >
-              {t("settings.addWorkspace")}
-            </div>
-
-            <div
-              className="settings-row"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                marginBottom: "12px",
-                gap: "12px",
-                flexWrap: "wrap",
-              }}
-            >
-              <label style={labelStyle}>{t("settings.workspaceName")}</label>
-              <input
-                style={inputStyle}
-                value={newWorkspaceName}
-                onChange={(e) => setNewWorkspaceName(e.target.value)}
-                placeholder={t("settings.workspaceNamePlaceholder")}
-              />
-            </div>
-            <div
-              className="settings-row"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                marginBottom: "12px",
-                gap: "12px",
-                flexWrap: "wrap",
-              }}
-            >
-              <label style={labelStyle}>{t("settings.workspacePath")}</label>
-              <div style={pathRowStyle}>
-                <input
-                  style={{ ...inputStyle, flex: 1 }}
-                  value={newWorkspacePath}
-                  readOnly
-                  placeholder={t("settings.workspacePathPlaceholder")}
-                  onClick={handleSelectDirectory}
-                />
-                <button
-                  style={folderButtonStyle}
-                  onClick={handleSelectDirectory}
-                  title={t("settings.selectDirectory")}
-                >
-                  📂 {t("settings.browse")}
-                </button>
-              </div>
-            </div>
-            <div
-              style={{
-                display: "flex",
-                gap: "8px",
-                justifyContent: "flex-end",
-              }}
-            >
-              <button style={buttonStyle} onClick={() => setShowAddForm(false)}>
-                {t("settings.cancel")}
-              </button>
-              <button style={addButtonStyle} onClick={handleAddInstance}>
-                {t("settings.add")}
-              </button>
-            </div>
-          </div>
         )}
       </div>
     </div>

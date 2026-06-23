@@ -1,7 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { showToast, ToastType } from "../Toast";
 import { showDialog, DialogType } from "../Dialog";
-import { ProviderInfo, ModelInfo, llmCommands, AddLlmInstanceRequest, ExtraConfigField } from "../../command/llm";
+import {
+  ProviderInfo,
+  ModelInfo,
+  llmCommands,
+  AddLlmInstanceRequest,
+  ExtraConfigField,
+} from "../../command/llm";
+import { SearchIcon } from "../../icons";
 
 interface LLMModelConfigProps {
   t: (key: string, params?: any) => string;
@@ -55,6 +62,7 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({
   >({});
   const [currentProviderInfo, setCurrentProviderInfo] =
     useState<ProviderInfo | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
 
   const workflowModes = getWorkflowModes(t);
 
@@ -265,6 +273,21 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({
     return provider?.extra_config_fields || [];
   };
 
+  const handleClearSearch = () => {
+    setSearchTerm("");
+  };
+
+  const filteredInstances = Object.entries(instances).filter(
+    ([id, instance]) => {
+      const providerName = getProviderName(instance.provider).toLowerCase();
+      const search = searchTerm.toLowerCase();
+      return (
+        providerName.includes(search) ||
+        instance.provider.toLowerCase().includes(search)
+      );
+    },
+  );
+
   const labelStyle: React.CSSProperties = {
     fontSize: "13px",
     color: "var(--text-primary)",
@@ -279,7 +302,7 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({
     padding: "8px 12px",
     background: "var(--bg-tertiary)",
     border: "1px solid var(--border-color)",
-    borderRadius: "6px",
+    borderRadius: "5px",
     color: "var(--text-primary)",
     fontSize: "13px",
     outline: "none",
@@ -294,11 +317,10 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({
     padding: "6px 16px",
     background: "var(--bg-secondary)",
     border: "1px solid var(--border-color)",
-    borderRadius: "6px",
+    borderRadius: "5px",
     color: "var(--text-secondary)",
     fontSize: "12px",
     cursor: "pointer",
-    // transition: "all 0.2s",
   };
 
   const addButtonStyle: React.CSSProperties = {
@@ -316,10 +338,9 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({
 
   const modelCardStyle: React.CSSProperties = {
     background: "var(--bg-secondary)",
-    borderRadius: "8px",
-    padding: "12px",
-    marginBottom: "12px",
-    border: "1px solid var(--border-color)",
+    // borderRadius: "8px",
+    padding: "10px",
+    borderBottom: "1px solid var(--border-color)",
   };
 
   const badgeStyle: React.CSSProperties = {
@@ -339,6 +360,118 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({
     flexWrap: "wrap",
   };
 
+  const styles: Record<string, React.CSSProperties> = {
+    searchInputWrapper: {
+      flex: 1,
+      position: "relative" as const,
+      display: "flex",
+      alignItems: "center",
+      gap: "8px",
+      padding: "4px 12px",
+      background: "var(--bg-tertiary)",
+      border: "1px solid var(--border-color)",
+      borderRadius: "5px",
+    },
+    searchInput: {
+      flex: 1,
+      background: "transparent",
+      border: "none",
+      outline: "none",
+      color: "var(--text-primary)",
+      fontSize: "13px",
+      padding: "4px 0",
+    },
+    searchIcon: {
+      flexShrink: 0,
+      color: "var(--text-tertiary)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    clearBtn: {
+      background: "transparent",
+      border: "none",
+      color: "var(--text-tertiary)",
+      cursor: "pointer",
+      fontSize: "14px",
+      padding: "2px 6px",
+      borderRadius: "5px",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      flexShrink: 0,
+    },
+    header: {
+      padding: "10px",
+      borderBottom: "1px solid var(--border-color)",
+      background: "var(--bg-secondary)",
+      flexShrink: 0,
+    },
+    searchRow: {
+      display: "flex",
+      alignItems: "center",
+      gap: "8px",
+    },
+  };
+
+  const globalStyles = `
+    .llm-search-input-wrapper {
+      flex: 1;
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 1.5px 12px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      border-radius: 5px;
+    }
+    .llm-search-input-wrapper:focus-within {
+      border-color: var(--accent-color);
+      box-shadow: 0 0 0 2px var(--accent-glow);
+    }
+    .llm-search-input-wrapper svg {
+      flex-shrink: 0;
+      color: var(--text-tertiary);
+    }
+    .llm-search-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--text-primary);
+      font-size: 13px;
+      padding: 4px 0;
+    }
+    .llm-search-clear {
+      background: transparent;
+      border: none;
+      color: var(--text-tertiary);
+      cursor: pointer;
+      font-size: 14px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .llm-search-clear:hover {
+      color: var(--text-primary);
+      background: var(--hover-bg);
+    }
+  `;
+
+  if (typeof document !== "undefined") {
+    const styleId = "llm-config-styles";
+    if (!document.getElementById(styleId)) {
+      const style = document.createElement("style");
+      style.id = styleId;
+      style.textContent = globalStyles;
+      document.head.appendChild(style);
+    }
+  }
+
   if (loading || isInitializing) {
     return (
       <div
@@ -355,6 +488,8 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({
     );
   }
   const currentExtraFields = getProviderExtraFields(newProvider);
+  const instanceEntries = filteredInstances;
+  const hasInstances = instanceEntries.length > 0;
   return (
     <div
       className="settings-container"
@@ -368,148 +503,53 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({
         gap: 0,
       }}
     >
+      {/* Search Header */}
+      <div style={styles.header}>
+        <div style={styles.searchRow}>
+          <div className="llm-search-input-wrapper">
+            <SearchIcon />
+            <input
+              type="text"
+              className="llm-search-input"
+              placeholder={
+                t("llmModel.searchPlaceholder") || "Search providers..."
+              }
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+            {searchTerm && (
+              <button
+                className="llm-search-clear"
+                onClick={handleClearSearch}
+                title={t("llmModel.clearSearch") || "Clear search"}
+              >
+                ✕
+              </button>
+            )}
+          </div>
+          <button
+            style={{
+              ...addButtonStyle,
+              padding: "5px 10px",
+              fontSize: "15px",
+              whiteSpace: "nowrap",
+            }}
+            onClick={() => setShowAddForm(true)}
+          >
+            +
+          </button>
+        </div>
+      </div>
       <div
         style={{
           flex: 1,
           overflowY: "auto",
           overflowX: "hidden",
-          padding: "0 10px",
+          padding: "0px 0px",
           margin: 0,
-          paddingTop: "10px",
-          paddingBottom: "10px",
         }}
       >
-        {Object.entries(instances).map(([id, instance]) => {
-          const extraConfig = instance.extra || {};
-          const extraFields = getProviderExtraFields(instance.provider);
-          const instanceName = getProviderName(instance.provider);
-          return (
-            <div key={id} style={modelCardStyle}>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  marginBottom: "12px",
-                  flexWrap: "wrap",
-                  gap: "8px",
-                }}
-              >
-                <span
-                  style={{
-                    fontSize: "14px",
-                    fontWeight: 600,
-                    color: "var(--text-primary)",
-                  }}
-                >
-                  {getProviderIcon(instance.provider)}{" "}
-                  {getProviderName(instance.provider)}
-                </span>
-                {instance.is_default && (
-                  <span style={badgeStyle}>{t("llmModel.default")}</span>
-                )}
-              </div>
-
-              <div
-                className="settings-row"
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  marginBottom: "12px",
-                  gap: "12px",
-                  flexWrap: "wrap",
-                }}
-              >
-                <label style={labelStyle}>
-                  {t("llmModel.workflowMode") || "Workflow Mode"}
-                </label>
-                <input
-                  type="text"
-                  style={inputStyle}
-                  value={getWorkflowModeLabel(instance.workflow_mode)}
-                  disabled
-                  readOnly
-                />
-              </div>
-
-              <div
-                className="settings-row"
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  marginBottom: "12px",
-                  gap: "12px",
-                  flexWrap: "wrap",
-                }}
-              >
-                <label style={labelStyle}>{t("llmModel.apiKey")}</label>
-                <input
-                  type="password"
-                  style={inputStyle}
-                  value={instance.api_key}
-                  placeholder="••••••••"
-                  disabled
-                />
-              </div>
-              {Object.entries(extraConfig).map(([key, value]) => {
-                if (!value) return null;
-                const fieldInfo = extraFields.find((f) => f.key === key);
-                const fieldName = fieldInfo?.name || key;
-                return (
-                  <div
-                    key={key}
-                    className="settings-row"
-                    style={extraConfigRowStyle}
-                  >
-                    <label style={labelStyle}>{fieldName}</label>
-                    <input
-                      type="password"
-                      style={inputStyle}
-                      value={String(value)}
-                      disabled
-                      placeholder="••••••••"
-                    />
-                  </div>
-                );
-              })}
-              <div
-                style={{
-                  display: "flex",
-                  gap: "8px",
-                  justifyContent: "flex-end",
-                  marginTop: "8px",
-                }}
-              >
-                {defaultInstanceId !== id && (
-                  <button
-                    style={{
-                      ...buttonStyle,
-                      fontSize: "11px",
-                      padding: "4px 10px",
-                    }}
-                    onClick={() => handleSetDefault(id, instanceName)}
-                  >
-                    {t("llmModel.setAsDefault")}
-                  </button>
-                )}
-                {defaultInstanceId !== id &&
-                  Object.keys(instances).length > 1 && (
-                    <button
-                      style={{
-                        ...deleteButtonStyle,
-                        fontSize: "11px",
-                        padding: "4px 10px",
-                      }}
-                      onClick={() => handleDeleteInstance(id, instanceName)}
-                    >
-                      {t("llmModel.delete")}
-                    </button>
-                  )}
-              </div>
-            </div>
-          );
-        })}
-
-        {showAddForm ? (
+        {showAddForm && (
           <div style={modelCardStyle}>
             <div
               style={{
@@ -637,13 +677,150 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({
               </button>
             </div>
           </div>
-        ) : (
-          <button
-            style={{ ...addButtonStyle, width: "100%" }}
-            onClick={() => setShowAddForm(true)}
+        )}
+        {!hasInstances && !showAddForm ? (
+          <div
+            style={{
+              textAlign: "center",
+              padding: "40px 20px",
+              color: "var(--text-muted)",
+              fontSize: "13px",
+            }}
           >
-            + {t("llmModel.addLlmProvider")}
-          </button>
+            {searchTerm
+              ? t("llmModel.noSearchResults") || "No matching providers found"
+              : t("llmModel.noProviders") || "No providers available"}
+          </div>
+        ) : (
+          instanceEntries.map(([id, instance]) => {
+            const extraConfig = instance.extra || {};
+            const extraFields = getProviderExtraFields(instance.provider);
+            const instanceName = getProviderName(instance.provider);
+            return (
+              <div key={id} style={modelCardStyle}>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    marginBottom: "12px",
+                    flexWrap: "wrap",
+                    gap: "8px",
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: "14px",
+                      fontWeight: 600,
+                      color: "var(--text-primary)",
+                    }}
+                  >
+                    {getProviderIcon(instance.provider)}{" "}
+                    {getProviderName(instance.provider)}
+                  </span>
+                  {instance.is_default && (
+                    <span style={badgeStyle}>{t("llmModel.default")}</span>
+                  )}
+                </div>
+
+                <div
+                  className="settings-row"
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    marginBottom: "12px",
+                    gap: "12px",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <label style={labelStyle}>
+                    {t("llmModel.workflowMode") || "Workflow Mode"}
+                  </label>
+                  <input
+                    type="text"
+                    style={inputStyle}
+                    value={getWorkflowModeLabel(instance.workflow_mode)}
+                    disabled
+                    readOnly
+                  />
+                </div>
+
+                <div
+                  className="settings-row"
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    marginBottom: "12px",
+                    gap: "12px",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <label style={labelStyle}>{t("llmModel.apiKey")}</label>
+                  <input
+                    type="password"
+                    style={inputStyle}
+                    value={instance.api_key}
+                    placeholder="••••••••"
+                    disabled
+                  />
+                </div>
+                {Object.entries(extraConfig).map(([key, value]) => {
+                  if (!value) return null;
+                  const fieldInfo = extraFields.find((f) => f.key === key);
+                  const fieldName = fieldInfo?.name || key;
+                  return (
+                    <div
+                      key={key}
+                      className="settings-row"
+                      style={extraConfigRowStyle}
+                    >
+                      <label style={labelStyle}>{fieldName}</label>
+                      <input
+                        type="password"
+                        style={inputStyle}
+                        value={String(value)}
+                        disabled
+                        placeholder="••••••••"
+                      />
+                    </div>
+                  );
+                })}
+                <div
+                  style={{
+                    display: "flex",
+                    gap: "8px",
+                    justifyContent: "flex-end",
+                    marginTop: "8px",
+                  }}
+                >
+                  {defaultInstanceId !== id && (
+                    <button
+                      style={{
+                        ...buttonStyle,
+                        fontSize: "11px",
+                        padding: "4px 10px",
+                      }}
+                      onClick={() => handleSetDefault(id, instanceName)}
+                    >
+                      {t("llmModel.setAsDefault")}
+                    </button>
+                  )}
+                  {defaultInstanceId !== id &&
+                    Object.keys(instances).length > 1 && (
+                      <button
+                        style={{
+                          ...deleteButtonStyle,
+                          fontSize: "11px",
+                          padding: "4px 10px",
+                        }}
+                        onClick={() => handleDeleteInstance(id, instanceName)}
+                      >
+                        {t("llmModel.delete")}
+                      </button>
+                    )}
+                </div>
+              </div>
+            );
+          })
         )}
       </div>
     </div>
