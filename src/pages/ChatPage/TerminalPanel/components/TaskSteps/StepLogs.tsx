@@ -15,6 +15,9 @@ export const StepLogs: React.FC<StepLogsProps> = ({
   t,
 }) => {
   if (!logs || logs.length === 0) return null;
+
+  const briefContent = logs[logs.length - 1];
+
   return (
     <div
       className="step-parameters-row"
@@ -38,57 +41,94 @@ export const StepLogs: React.FC<StepLogsProps> = ({
         <span className="step-parameters-label">
           {t("task.logs") || "Logs"}:
         </span>
-        {!isExpanded && (
-          <span
-            className="step-parameters-short"
+        {isExpanded ? (
+          <button
+            className="step-parameters-toggle"
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggle();
+            }}
+            title={t("terminal.collapse")}
             style={{
-              flex: 1,
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
+              background: "transparent",
+              border: "1px solid var(--border-color, #444)",
               color: "var(--text-primary)",
-              fontSize: "11px",
-              fontFamily: "monospace",
-              marginTop: "2px",
+              cursor: "pointer",
+              fontSize: "10px",
+              padding: "2px 8px",
+              borderRadius: "4px",
+              flexShrink: 0,
+              transition: "all 0.2s",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "var(--hover-bg)";
+              e.currentTarget.style.borderColor = "var(--accent-color)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "transparent";
+              e.currentTarget.style.borderColor = "var(--border-color, #444)";
             }}
           >
-            {logs[logs.length - 1]}
-          </span>
+            ▲ {t("terminal.collapse")}
+          </button>
+        ) : (
+          <>
+            <span
+              className="step-parameters-short"
+              style={{
+                flex: 1,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+                margin: "0 8px",
+                color: "var(--text-primary)",
+                fontSize: "11px",
+                fontFamily: "monospace",
+              }}
+            >
+              {briefContent}
+            </span>
+            <span
+              style={{
+                fontSize: "11px",
+                color: "var(--text-secondary)",
+                flexShrink: 0,
+                userSelect: "none",
+              }}
+            >
+              {logs.length} {t("task.logsCount")}
+            </span>
+            <button
+              className="step-parameters-toggle"
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggle();
+              }}
+              title={t("terminal.expand")}
+              style={{
+                background: "transparent",
+                border: "1px solid var(--border-color, #444)",
+                color: "var(--text-primary)",
+                cursor: "pointer",
+                fontSize: "10px",
+                padding: "2px 8px",
+                borderRadius: "4px",
+                flexShrink: 0,
+                transition: "all 0.2s",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "var(--hover-bg)";
+                e.currentTarget.style.borderColor = "var(--accent-color)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "transparent";
+                e.currentTarget.style.borderColor = "var(--border-color, #444)";
+              }}
+            >
+              ▼ {t("terminal.expand")}
+            </button>
+          </>
         )}
-        {isExpanded && <span style={{ flex: 1 }} />}
-        <span
-          style={{
-            fontSize: "11px",
-            color: "var(--text-secondary)",
-            flexShrink: 0,
-            userSelect: "none",
-          }}
-        >
-          {logs.length} {t("task.logsCount")}
-        </span>
-        <button
-          className="step-parameters-toggle"
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggle();
-          }}
-          title={isExpanded ? t("terminal.collapse") : t("terminal.expand")}
-          style={{
-            background: "transparent",
-            border: "1px solid var(--border-color, #444)",
-            color: "var(--text-secondary)",
-            cursor: "pointer",
-            fontSize: "10px",
-            padding: "2px 8px",
-            borderRadius: "4px",
-            // transition: "all 0.2s",
-            flexShrink: 0,
-          }}
-        >
-          {isExpanded
-            ? `▲ ${t("terminal.collapse")}`
-            : `▼ ${t("terminal.expand")}`}
-        </button>
       </div>
       {isExpanded && (
         <pre
