@@ -30,7 +30,6 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_set_hippox_language,
         commands::cmd_get_hippox_language,
         commands::cmd_send_chat_message_async,
-        commands::cmd_send_chat_message,
         commands::cmd_get_task_status,
         commands::cmd_get_session_tasks,
         commands::cmd_get_execution_logs,

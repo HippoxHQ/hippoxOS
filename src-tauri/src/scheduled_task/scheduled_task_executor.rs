@@ -5,6 +5,7 @@
 //! - Natural language tasks: read from natural_language.json
 //! - Skill file tasks: read from SKILL.md
 
+use crate::commands::cmd_get_disabled_drivers;
 use crate::commands::scheduled_tasks::{
     get_task_dir, load_natural_language_content, load_skill_md_content, load_task_config,
     ScheduledTask,
@@ -181,8 +182,15 @@ impl ScheduledTaskExecutor {
         );
         // Create result object
         let mut result = ScheduledTaskExecutionResult::new(&self.task, content.clone());
+        // disabled drivers
+        let disabled_drivers = cmd_get_disabled_drivers().await.ok();
+        let disable_drivers_refs = disabled_drivers
+            .as_ref()
+            .map(|v| v.iter().map(|s| s.as_str()).collect::<Vec<_>>());
         // Execute the task and wait for completion
-        let exec_result = hippox.execute(&prompt, None, None).await;
+        let exec_result = hippox
+            .execute(&prompt, None, None, disable_drivers_refs)
+            .await;
         match exec_result {
             HippoxResult {
                 data: Some(output),

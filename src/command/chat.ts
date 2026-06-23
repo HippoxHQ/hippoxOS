@@ -23,10 +23,6 @@ export const hippoxCommands = {
         return await invoke('cmd_get_session_tasks', { sessionId });
     },
 
-    async sendMessage(message: string, sessionId?: string): Promise<ChatResponse> {
-        return await invoke('cmd_send_chat_message', { message, sessionId });
-    },
-
     async getLogs(): Promise<ExecutionLog[]> {
         return await invoke('cmd_get_execution_logs');
     },

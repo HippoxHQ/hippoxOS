@@ -1051,8 +1051,16 @@ pub async fn load_config_from_file() -> Result<(), String> {
 
 #[tauri::command]
 pub async fn cmd_get_disabled_drivers() -> Result<Vec<String>, String> {
-    let config = HIPPOX_APP_CONFIG.read().await;
-    Ok(config.disabled_drivers.clone())
+    let config_path = get_config_file_path();
+    let content = std::fs::read_to_string(&config_path)
+        .map_err(|e| format!("Failed to read config file: {}", e))?;
+    let full_config: serde_json::Value = serde_json::from_str(&content)
+        .map_err(|e| format!("Failed to parse config file: {}", e))?;
+    let disabled = full_config
+        .get("disabled_drivers")
+        .and_then(|v| serde_json::from_value::<Vec<String>>(v.clone()).ok())
+        .unwrap_or_default();
+    Ok(disabled)
 }
 
 #[tauri::command]

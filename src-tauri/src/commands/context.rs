@@ -1,3 +1,4 @@
+use crate::commands::cmd_get_disabled_drivers;
 use crate::hippox_core::get_default_hippox;
 use crate::state::AppState;
 use crate::types::Role;
@@ -86,8 +87,13 @@ pub async fn recall_session_context(
          [END_CONTEXT_RECALL]",
         compressed_history
     );
+    // disabled drivers
+    let disabled_drivers = cmd_get_disabled_drivers().await.ok();
+    let disable_drivers_refs = disabled_drivers
+        .as_ref()
+        .map(|v| v.iter().map(|s| s.as_str()).collect::<Vec<_>>());
     let response = hippox
-        .execute(&recall_prompt, None, None)
+        .execute(&recall_prompt, None, None, disable_drivers_refs)
         .await
         .into_result()
         .map_err(|err| format!("Failed to recall session '{}': {}", session_id, err))?;
