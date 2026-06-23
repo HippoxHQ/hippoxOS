@@ -1885,6 +1885,64 @@ export const CloseIcon: React.FC<IconProps> = ({ className, size = 16 }) => (
   </svg>
 );
 
+export const ExpandAllIcon2: React.FC<IconProps> = ({
+  className,
+  size = 16,
+}) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    <line x1="3" y1="3" x2="8" y2="8" />
+    <line x1="3" y1="3" x2="8" y2="3" />
+    <line x1="3" y1="3" x2="3" y2="8" />
+    <line x1="21" y1="3" x2="16" y2="8" />
+    <line x1="21" y1="3" x2="16" y2="3" />
+    <line x1="21" y1="3" x2="21" y2="8" />
+    <line x1="3" y1="21" x2="8" y2="16" />
+    <line x1="3" y1="21" x2="8" y2="21" />
+    <line x1="3" y1="21" x2="3" y2="16" />
+    <line x1="21" y1="21" x2="16" y2="16" />
+    <line x1="21" y1="21" x2="16" y2="21" />
+    <line x1="21" y1="21" x2="21" y2="16" />
+  </svg>
+);
+
+export const CollapseAllIcon2: React.FC<IconProps> = ({
+  className,
+  size = 16,
+}) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="butt"
+    strokeLinejoin="miter"
+    className={className}
+  >
+    <polyline points="8 2 8 8 2 8" />
+    <line x1="2" y1="2" x2="9" y2="9" />
+    <polyline points="16 2 16 8 22 8" />
+    <line x1="22" y1="2" x2="15" y2="9" />
+    <polyline points="8 22 8 16 2 16" />
+    <line x1="2" y1="22" x2="9" y2="15" />
+    <polyline points="16 22 16 16 22 16" />
+    <line x1="22" y1="22" x2="15" y2="15" />
+  </svg>
+);
+
 export const iconMap: Record<string, React.FC<IconProps>> = {
   dashboard: DashboardIcon,
   workspace: WorkspaceIcon,

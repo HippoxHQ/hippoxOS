@@ -1,9 +1,9 @@
-import React from "react";
+import React, { useRef, useState } from "react";
 import SettingsPanel, { SettingsSubView } from "./SettingsPanel";
 import SkillMarketPanel from "./SkillMarketPanel";
 import TaskQueuePanel from "./TaskQueuePanel";
 import FavoritesPanel from "./FavoritesPanel";
-import HistoryPanel from "./HistoryChatPanel";
+import HistoryPanel, { HistoryChatPanelRef } from "./HistoryChatPanel";
 import AtomicSkillsPanel from "./DriversPanel";
 import WorkspacePanel from "./Workspace";
 import WorkspaceConfig from "./SystemConfig/WorkspaceConfig";
@@ -14,6 +14,7 @@ import EngineNotificationPanel from "./EngineConfig/EngineNotificationPanel";
 import LogsPanel from "./LogsPanel";
 import StorageConfig from "./SystemConfig/StorageConfig";
 import { UploadFile } from "../../core/types";
+import { CloseIcon, CollapseAllIcon2, ExpandAllIcon2 } from "../../icons";
 
 export type MenuPanelView =
   | "terminal"
@@ -123,7 +124,6 @@ const menuPanelStyles = `
     color: var(--text-secondary);
     padding: 4px 8px;
     border-radius: 6px;
-    // transition: all 0.2s;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -176,6 +176,10 @@ const MenuPanel: React.FC<MenuPanelProps> = ({
   onFunctionPanelPositionChange,
   onFileClick,
 }) => {
+  const historyPanelRef = useRef<HistoryChatPanelRef>(null);
+  const [isExpanded, setIsExpanded] = useState(true);
+  const [isAtBottom, setIsAtBottom] = useState(false);
+
   const renderContent = () => {
     if (currentView === "engine_group" && engineSubView) {
       switch (engineSubView) {
@@ -237,6 +241,7 @@ const MenuPanel: React.FC<MenuPanelProps> = ({
       case "history":
         return (
           <HistoryPanel
+            ref={historyPanelRef}
             t={t}
             onSessionSelect={onSwitchSession}
             currentSessionId={currentSessionId}
@@ -294,17 +299,110 @@ const MenuPanel: React.FC<MenuPanelProps> = ({
     return titleKey ? t(titleKey) : "Unknown";
   };
 
+  const controlButtonStyle: React.CSSProperties = {
+    background: "none",
+    border: "none",
+    cursor: "pointer",
+    fontSize: "14px",
+    color: "var(--text-secondary)",
+    padding: "2px 6px",
+    borderRadius: "4px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    // transition: "all 0.15s",
+    lineHeight: 1,
+    width: "32px",
+    height: "32px",
+  };
+
+  const handleExpandToggle = () => {
+    const newExpanded = !isExpanded;
+    setIsExpanded(newExpanded);
+    if (newExpanded) {
+      historyPanelRef.current?.expandAll();
+    } else {
+      historyPanelRef.current?.collapseAll();
+    }
+  };
+
+  const handleScrollToggle = () => {
+    const newAtBottom = !isAtBottom;
+    setIsAtBottom(newAtBottom);
+    if (newAtBottom) {
+      historyPanelRef.current?.scrollToBottom();
+    } else {
+      historyPanelRef.current?.scrollToTop();
+    }
+  };
+
   return (
     <div className="menu-panel">
       <div className="menu-panel-header">
         <div className="menu-panel-title">{getDisplayTitle()}</div>
-        <button
-          className="menu-panel-close"
-          onClick={onClose}
-          title={t("common.close")}
-        >
-          ✕
-        </button>
+        <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+          {currentView === "history" && (
+            <>
+              <button
+                style={controlButtonStyle}
+                onClick={handleExpandToggle}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = "var(--text-primary)";
+                  e.currentTarget.style.background = "var(--hover-bg)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = "var(--text-secondary)";
+                  e.currentTarget.style.background = "none";
+                }}
+                title={
+                  isExpanded
+                    ? t("history.collapseAll") || "收起全部"
+                    : t("history.expandAll") || "展开全部"
+                }
+              >
+                {isExpanded ? (
+                  <CollapseAllIcon2 size={16} />
+                ) : (
+                  <ExpandAllIcon2 size={16} />
+                )}
+              </button>
+              <button
+                style={controlButtonStyle}
+                onClick={handleScrollToggle}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = "var(--text-primary)";
+                  e.currentTarget.style.background = "var(--hover-bg)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = "var(--text-secondary)";
+                  e.currentTarget.style.background = "none";
+                }}
+                title={
+                  isAtBottom
+                    ? t("history.scrollToTop") || "滚动到顶部"
+                    : t("history.scrollToBottom") || "滚动到底部"
+                }
+              >
+                {isAtBottom ? "▲" : "▼"}
+              </button>
+              <div
+                style={{
+                  width: "1px",
+                  height: "16px",
+                  background: "var(--border-color)",
+                  margin: "0 4px",
+                }}
+              />
+            </>
+          )}
+          <button
+            className="menu-panel-close"
+            onClick={onClose}
+            title={t("common.close")}
+          >
+            ✕
+          </button>
+        </div>
       </div>
       <div className="menu-panel-body">{renderContent()}</div>
     </div>

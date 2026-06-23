@@ -808,6 +808,10 @@ export const zh = {
     openPathFailed: '无法打开文件: {{path}}',
   },
   history: {
+    expandAll: '展开全部',
+    collapseAll: '收起全部',
+    scrollToTop: '滚动到顶部',
+    scrollToBottom: '滚动到底部',
     rename: '重命名',
     renamePrompt: '请输入新名称',
     empty: '暂无对话历史',
@@ -2050,6 +2054,10 @@ export const en: typeof zh = {
     openPathFailed: 'Failed to open path: {{path}}',
   },
   history: {
+    expandAll: 'Expand All',
+    collapseAll: 'Collapse All',
+    scrollToTop: 'Scroll to Top',
+    scrollToBottom: 'Scroll to Bottom',
     rename: 'Rename',
     renamePrompt: 'Please enter a new name',
     empty: 'No chat history',

@@ -200,7 +200,7 @@ const SkillsManagerCardGrid: React.FC<SkillsManagerCardGridProps> = ({
           background: var(--bg-tertiary);
           border: 1px solid var(--border-color);
           border-radius: 8px;
-          transition: all 0.2s ease;
+          // transition: all 0.2s ease;
           flex: 1;
         }
         .skill-manager-search-input-wrapper:focus-within {
@@ -258,7 +258,7 @@ const SkillsManagerCardGrid: React.FC<SkillsManagerCardGridProps> = ({
           color: white;
           font-size: 12px;
           cursor: pointer;
-          transition: all 0.2s ease;
+          // transition: all 0.2s ease;
           white-space: nowrap;
         }
         .search-add-btn:hover {
@@ -309,7 +309,7 @@ const SkillsManagerCardGrid: React.FC<SkillsManagerCardGridProps> = ({
           border: 1px solid var(--border-color);
           padding: 12px 14px;
           cursor: pointer;
-          transition: all 0.2s ease;
+          // transition: all 0.2s ease;
         }
         .skill-card:hover {
           transform: translateY(-2px);
@@ -359,7 +359,7 @@ const SkillsManagerCardGrid: React.FC<SkillsManagerCardGridProps> = ({
           display: flex;
           gap: 4px;
           opacity: 0;
-          transition: opacity 0.15s ease;
+          // transition: opacity 0.15s ease;
           flex-shrink: 0;
         }
         .skill-card:hover .card-actions {
@@ -377,7 +377,7 @@ const SkillsManagerCardGrid: React.FC<SkillsManagerCardGridProps> = ({
           justify-content: center;
           color: var(--text-secondary);
           font-size: 11px;
-          transition: all 0.15s;
+          // transition: all 0.15s;
         }
         .icon-btn:hover {
           background: var(--hover-bg);
