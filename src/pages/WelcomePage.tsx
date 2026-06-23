@@ -57,6 +57,26 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
   const [language, setLanguage] = useState<"zh" | "en">(
     t("welcome.subtitle") === "原生 LLM 操作系统" ? "zh" : "en",
   );
+  const [workflowDisplayNames, setWorkflowDisplayNames] = useState<
+    Map<string, string>
+  >(new Map());
+
+  const loadWorkflowDisplayNames = async () => {
+    try {
+      const lang = localStorage.getItem("hippox-language") || "en";
+      const modes = await workflowCommands.getWorkflowModeNames();
+      const displayNames = new Map<string, string>();
+
+      for (const mode of modes) {
+        const displayName =
+          await workflowCommands.workflowModeDisplayNameByLang(mode, lang);
+        displayNames.set(mode, displayName);
+      }
+      setWorkflowDisplayNames(displayNames);
+    } catch (error) {
+      console.error("Failed to load workflow display names:", error);
+    }
+  };
 
   useEffect(() => {
     if (externalWorkflowMode) {
@@ -153,6 +173,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
     const handleLanguageChange = (event: CustomEvent) => {
       const newLang = event.detail.language === "zh" ? "zh" : "en";
       setLanguage(newLang);
+      loadWorkflowDisplayNames();
     };
     window.addEventListener(
       "language-changed",
@@ -168,6 +189,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
   useEffect(() => {
     loadWorkspaces();
     loadWorkflowModes();
+    loadWorkflowDisplayNames();
   }, []);
 
   useEffect(() => {
@@ -669,6 +691,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
                   </span>
                   <ChevronRightIcon size={10} className="chevron" />
                 </div>
+
                 <div
                   className="icon-btn folder-btn"
                   ref={workflowBtnRef}
@@ -690,10 +713,12 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
                     />
                   </svg>
                   <span className="folder-name" title={selectedWorkflowMode}>
-                    {selectedWorkflowMode}
+                    {workflowDisplayNames.get(selectedWorkflowMode) ||
+                      selectedWorkflowMode}
                   </span>
                   <ChevronRightIcon size={10} className="chevron" />
                 </div>
+
                 {showAttachmentMenu && (
                   <div className="attachment-menu" ref={attachmentMenuRef}>
                     <div
@@ -754,6 +779,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
                     ))}
                   </div>
                 )}
+
                 {showWorkflowMenu && (
                   <div className="directory-menu" ref={workflowMenuRef}>
                     {workflowModes.map((mode) => (
@@ -763,7 +789,9 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
                         onClick={() => handleWorkflowModeChange(mode)}
                       >
                         <div className="directory-item-content">
-                          <div style={{ textAlign: "left" }}>{mode}</div>
+                          <div style={{ textAlign: "left" }}>
+                            {workflowDisplayNames.get(mode) || mode}
+                          </div>
                         </div>
                       </div>
                     ))}

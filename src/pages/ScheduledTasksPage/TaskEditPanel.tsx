@@ -249,6 +249,10 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isToggling, setIsToggling] = useState(false);
+  const [workflowDisplayNames, setWorkflowDisplayNames] = useState<
+    Map<string, string>
+  >(new Map());
+
   const getWeekDayNames = (): string[] => {
     const weekNames = t("scheduled.weekDayNames");
     if (Array.isArray(weekNames) && weekNames.length === 7) {
@@ -265,11 +269,21 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
     ];
   };
   const weekDayNames = getWeekDayNames();
+
   const loadWorkflowModes = async () => {
     setIsLoadingWorkflows(true);
     try {
       const modes = await workflowCommands.getWorkflowModeNames();
       setWorkflowModes(modes);
+      const lang = localStorage.getItem("hippox-language") || "en";
+      const displayNames = new Map<string, string>();
+      for (const mode of modes) {
+        const displayName =
+          await workflowCommands.workflowModeDisplayNameByLang(mode, lang);
+        displayNames.set(mode, displayName);
+      }
+      setWorkflowDisplayNames(displayNames);
+
       if (modes.length > 0 && !workflowMode) {
         setWorkflowMode(modes[0]);
       }
@@ -279,6 +293,22 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
       setIsLoadingWorkflows(false);
     }
   };
+
+  useEffect(() => {
+    const handleLanguageChange = () => {
+      loadWorkflowModes();
+    };
+    window.addEventListener(
+      "language-changed",
+      handleLanguageChange as EventListener,
+    );
+    return () => {
+      window.removeEventListener(
+        "language-changed",
+        handleLanguageChange as EventListener,
+      );
+    };
+  }, []);
 
   useEffect(() => {
     loadWorkflowModes();
@@ -1083,7 +1113,7 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
           >
             {workflowModes.map((mode) => (
               <option key={mode} value={mode}>
-                {mode}
+                {workflowDisplayNames.get(mode) || mode}
               </option>
             ))}
             {workflowModes.length === 0 && <option value="ReAct">ReAct</option>}
@@ -1764,13 +1794,14 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
                   showTooltip(task.workflow_mode || "ReAct", e.currentTarget);
                 }}
               >
-                {task.workflow_mode || "ReAct"}
+                {workflowDisplayNames.get(task.workflow_mode || "ReAct") ||
+                  task.workflow_mode ||
+                  "ReAct"}
               </span>
             </div>
           </div>
         )}
       </div>
-
       <div
         style={{
           padding: "10px 14px",

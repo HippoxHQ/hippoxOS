@@ -106,6 +106,9 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     useLLMChatPage();
   const isCollapsed = isLeftPanel ? leftCollapsed : rightCollapsed;
   const togglePanel = isLeftPanel ? toggleLeft : toggleRight;
+  const [workflowDisplayNames, setWorkflowDisplayNames] = useState<
+    Map<string, string>
+  >(new Map());
 
   const {
     editingMessageId,
@@ -115,6 +118,22 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     handleSaveEdit,
     handleCancelEdit,
   } = useEditMessage({ currentSessionId, onSendMessage, t });
+
+  const loadWorkflowDisplayNames = async () => {
+    try {
+      const lang = localStorage.getItem("hippox-language") || "en";
+      const modes = await workflowCommands.getWorkflowModeNames();
+      const displayNames = new Map<string, string>();
+      for (const mode of modes) {
+        const displayName =
+          await workflowCommands.workflowModeDisplayNameByLang(mode, lang);
+        displayNames.set(mode, displayName);
+      }
+      setWorkflowDisplayNames(displayNames);
+    } catch (error) {
+      console.error("Failed to load workflow display names:", error);
+    }
+  };
 
   const formatTimestamp = (timestamp: string): string => {
     const date = new Date(timestamp);
@@ -649,9 +668,26 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   }, [language, currentSessionId, t]);
 
   useEffect(() => {
+    const handleLanguageChange = () => {
+      loadWorkflowDisplayNames();
+    };
+    window.addEventListener(
+      "language-changed",
+      handleLanguageChange as EventListener,
+    );
+    return () => {
+      window.removeEventListener(
+        "language-changed",
+        handleLanguageChange as EventListener,
+      );
+    };
+  }, []);
+
+  useEffect(() => {
     loadCurrentDefaultModel();
     loadWorkspaces();
     loadWorkflowModes();
+    loadWorkflowDisplayNames();
   }, []);
 
   const messagesRef = useRef<ChatMessage[]>(messages);
@@ -1827,6 +1863,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
                 </span>
                 <ChevronRightIcon size={10} className="chevron" />
               </div>
+
               <div
                 className="icon-btn folder-btn"
                 ref={workflowBtnRef}
@@ -1848,10 +1885,12 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
                   />
                 </svg>
                 <span className="folder-name" title={selectedWorkflowMode}>
-                  {selectedWorkflowMode}
+                  {workflowDisplayNames.get(selectedWorkflowMode) ||
+                    selectedWorkflowMode}
                 </span>
                 <ChevronRightIcon size={10} className="chevron" />
               </div>
+
               {showAttachmentMenu && (
                 <div className="attachment-menu" ref={attachmentMenuRef}>
                   <div
@@ -1919,7 +1958,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
                       onClick={() => handleWorkflowModeChange(mode)}
                     >
                       <div className="directory-item-content">
-                        <div>{mode}</div>
+                        <div>{workflowDisplayNames.get(mode) || mode}</div>
                       </div>
                     </div>
                   ))}

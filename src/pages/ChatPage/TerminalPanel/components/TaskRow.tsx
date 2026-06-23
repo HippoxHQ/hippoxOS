@@ -1,4 +1,4 @@
-import React, { forwardRef, useCallback } from "react";
+import React, { forwardRef, useCallback, useEffect, useState } from "react";
 import {
   getTaskStatusIcon,
   getTaskStatusText,
@@ -20,6 +20,7 @@ import {
   TaskStatusEnum,
 } from "../../../../core/types";
 import { PauseIcon, StopIcon, PlayIcon } from "../../../../icons";
+import { workflowCommands } from "../../../../command/workflow";
 
 interface TaskRowProps {
   task: TaskInfo;
@@ -40,6 +41,8 @@ interface TaskRowProps {
   t: (key: string, params?: any) => string;
 }
 
+const workflowDisplayNameCache = new Map<string, string>();
+
 export const TaskRow = forwardRef<HTMLDivElement, TaskRowProps>(
   (
     {
@@ -59,6 +62,9 @@ export const TaskRow = forwardRef<HTMLDivElement, TaskRowProps>(
     },
     ref,
   ) => {
+    const [workflowDisplayName, setWorkflowDisplayName] = useState<string>("");
+    const [isLoadingWorkflowName, setIsLoadingWorkflowName] = useState(true);
+
     const successCount = task.steps.filter(
       (s) => s.status === StepStatusEnum.Success,
     ).length;
@@ -80,6 +86,55 @@ export const TaskRow = forwardRef<HTMLDivElement, TaskRowProps>(
       if (runningCount > 0) parts.push(`⟳${runningCount}`);
       stepSummary = ` [${parts.join(" ")}]`;
     }
+
+    const loadWorkflowDisplayName = async () => {
+      if (!task.workflow_mode) {
+        setIsLoadingWorkflowName(false);
+        return;
+      }
+      const lang = localStorage.getItem("hippox-language") || "en";
+      const cacheKey = `${task.workflow_mode}_${lang}`;
+      if (workflowDisplayNameCache.has(cacheKey)) {
+        setWorkflowDisplayName(workflowDisplayNameCache.get(cacheKey) || "");
+        setIsLoadingWorkflowName(false);
+        return;
+      }
+      try {
+        const displayName =
+          await workflowCommands.workflowModeDisplayNameByLang(
+            task.workflow_mode,
+            lang,
+          );
+        workflowDisplayNameCache.set(cacheKey, displayName);
+        setWorkflowDisplayName(displayName);
+      } catch (error) {
+        console.error("Failed to load workflow display name:", error);
+        setWorkflowDisplayName(task.workflow_mode);
+      } finally {
+        setIsLoadingWorkflowName(false);
+      }
+    };
+
+    useEffect(() => {
+      loadWorkflowDisplayName();
+    }, [task.workflow_mode]);
+
+    useEffect(() => {
+      const handleLanguageChange = () => {
+        setIsLoadingWorkflowName(true);
+        loadWorkflowDisplayName();
+      };
+      window.addEventListener(
+        "language-changed",
+        handleLanguageChange as EventListener,
+      );
+      return () => {
+        window.removeEventListener(
+          "language-changed",
+          handleLanguageChange as EventListener,
+        );
+      };
+    }, [task.workflow_mode]);
 
     const getRawOutput = (
       taskId: string,
@@ -204,6 +259,7 @@ export const TaskRow = forwardRef<HTMLDivElement, TaskRowProps>(
         }),
       );
     }, [task, task.task_id]);
+
     const copyToClipboard = async (
       text: string | undefined,
       t: (key: string) => string,
@@ -219,10 +275,12 @@ export const TaskRow = forwardRef<HTMLDivElement, TaskRowProps>(
         showToast(ToastType.ERROR, t("common.copyFailed") || "Copy Failed");
       }
     };
+
     const isRunningOrPending =
       task.status === TaskStatusEnum.Running ||
       task.status === TaskStatusEnum.Pending;
     const isPaused = task.status === TaskStatusEnum.Paused;
+
     return (
       <div key={task.task_id} ref={ref} className="task-row">
         <div
@@ -256,6 +314,38 @@ export const TaskRow = forwardRef<HTMLDivElement, TaskRowProps>(
           >
             {getTaskStatusIcon(task.status)}
           </span>
+          {task.workflow_mode && (
+            <span
+              className="task-workflow-mode"
+              style={{
+                fontSize: "10px",
+                padding: "2px 8px",
+                borderRadius: "5px",
+                background: "var(--accent-glow)",
+                color: "var(--text-primary)",
+                border: "1px solid var(--accent-color)",
+                opacity: 0.8,
+                flexShrink: 0,
+                alignSelf: "flex-start",
+                fontFamily: "monospace",
+                fontWeight: 500,
+                letterSpacing: "0.3px",
+                transition: "all 0.2s ease",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.opacity = "1";
+                e.currentTarget.style.transform = "scale(1.05)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.opacity = "0.8";
+                e.currentTarget.style.transform = "scale(1)";
+              }}
+            >
+              {isLoadingWorkflowName
+                ? "..."
+                : workflowDisplayName || task.workflow_mode}
+            </span>
+          )}
           <span
             key={`input-${isExpanded}`}
             className="task-input"
