@@ -1,15 +1,12 @@
 import React, { useEffect, useState, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import logo from "../../assets/logo.png";
-import {
-  SearchIcon,
-  NewSessionIcon2,
-  HistoryChatIcon2,
-} from "../../icons";
+import { SearchIcon, NewSessionIcon2, HistoryChatIcon2 } from "../../icons";
 import { Theme, Language } from "../../types/types";
 import SearchDialog from "./SearchDialog";
 import { showToast, ToastType } from "../Toast";
 import { windowsCommands } from "../../command/windows";
+import { UploadFile } from "../../core/types";
 
 const TerminalLeftIcon = () => (
   <svg
@@ -146,25 +143,6 @@ const HistoryIcon = ({ size = 16 }: { size?: number }) => (
     />
   </svg>
 );
-
-interface TopBarProps {
-  sidebarCollapsed: boolean;
-  onToggleSidebar: () => void;
-  onNewSession?: () => void;
-  currentTheme: Theme;
-  onToggleTheme: () => void;
-  currentLanguage: Language;
-  onToggleLanguage: () => void;
-  t: (key: string) => string;
-  layoutSwapMode?: "terminal-left" | "chat-left";
-  onLayoutSwapModeChange?: (mode: "terminal-left" | "chat-left") => void;
-  functionPanelPosition?: "left" | "right";
-  onFunctionPanelPositionChange?: (position: "left" | "right") => void;
-  onSwitchSession?: (sessionId: string) => void;
-  currentSessionId?: string;
-  onHistoryClick?: () => void;
-  isHistoryOpen?: boolean;
-}
 
 const topBarStyles = `
   .top-bar {
@@ -602,6 +580,26 @@ const MoonIcon = () => (
   </svg>
 );
 
+interface TopBarProps {
+  sidebarCollapsed: boolean;
+  onToggleSidebar: () => void;
+  onNewSession?: () => void;
+  currentTheme: Theme;
+  onToggleTheme: () => void;
+  currentLanguage: Language;
+  onToggleLanguage: () => void;
+  t: (key: string) => string;
+  layoutSwapMode?: "terminal-left" | "chat-left";
+  onLayoutSwapModeChange?: (mode: "terminal-left" | "chat-left") => void;
+  functionPanelPosition?: "left" | "right";
+  onFunctionPanelPositionChange?: (position: "left" | "right") => void;
+  onSwitchSession?: (sessionId: string) => void;
+  currentSessionId?: string;
+  onHistoryClick?: () => void;
+  isHistoryOpen?: boolean;
+  onFileClick?: (file: UploadFile) => void;
+}
+
 const TopBar: React.FC<TopBarProps> = ({
   sidebarCollapsed,
   onToggleSidebar,
@@ -619,6 +617,7 @@ const TopBar: React.FC<TopBarProps> = ({
   currentSessionId,
   onHistoryClick,
   isHistoryOpen,
+  onFileClick,
 }) => {
   const [isMaximized, setIsMaximized] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -877,6 +876,7 @@ const TopBar: React.FC<TopBarProps> = ({
         currentTheme={currentTheme}
         onToggleTheme={onToggleTheme}
         onToggleLanguage={onToggleLanguage}
+        onFileClick={onFileClick}
       />
     </>
   );

@@ -575,6 +575,7 @@ export function AppContent({
         currentSessionId={currentSessionId}
         onHistoryClick={handleHistoryClick}
         isHistoryOpen={isHistoryOpen}
+        onFileClick={handleFileClick}
       />
       <HistoryChatDropdown
         isOpen={isHistoryOpen}

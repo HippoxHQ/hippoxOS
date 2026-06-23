@@ -443,7 +443,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
   .directory-menu {
     position: absolute;
     bottom: 100%;
-    left: 0;
+    left: 168px;
     margin-bottom: 6px;
     background: var(--bg-secondary);
     border: 1px solid var(--border-color);

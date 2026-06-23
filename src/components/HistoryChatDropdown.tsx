@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef, useCallback } from "react";
 import { DialogSession } from "../types/types";
 import { showToast, ToastType } from "./Toast";
 import { sessionCommands } from "../command/session";
+import { PinFilledIcon } from "../icons";
 
 interface HistoryChatDropdownProps {
   t: (key: string, params?: any) => string;
@@ -290,7 +291,7 @@ const HistoryChatDropdown: React.FC<HistoryChatDropdownProps> = ({
       <div
         style={{
           overflowY: "auto",
-          padding: "6px 0px",
+          padding: "0px 0px",
           flex: 1,
         }}
       >
@@ -335,6 +336,7 @@ const HistoryChatDropdown: React.FC<HistoryChatDropdownProps> = ({
                     userSelect: "none",
                     padding: "0px 10px",
                     marginBottom: "5px",
+                    marginTop: "5px",
                   }}
                   onClick={() => toggleCategory(category.type)}
                   onMouseEnter={(e) => {
@@ -397,7 +399,7 @@ const HistoryChatDropdown: React.FC<HistoryChatDropdownProps> = ({
                                 flexShrink: 0,
                               }}
                             >
-                              📌
+                              <PinFilledIcon size={16} />
                             </span>
                           )}
                           <span

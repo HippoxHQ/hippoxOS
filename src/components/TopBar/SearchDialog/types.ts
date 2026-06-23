@@ -1,3 +1,4 @@
+import { UploadFile } from "../../../core/types";
 import { ChatMessage } from "../../../types/types";
 
 export interface SearchResult {
@@ -19,15 +20,6 @@ export interface SearchSuggestion {
   description: string;
   action: () => void;
   icon: string;
-}
-
-export interface SearchDialogProps {
-  isOpen: boolean;
-  onClose: () => void;
-  currentLanguage: "zh" | "en";
-  currentTheme: "dark" | "light";
-  onToggleTheme: () => void;
-  onToggleLanguage: () => void;
 }
 
 export interface MessageSearchResult {

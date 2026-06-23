@@ -84,7 +84,16 @@ function App() {
     (subView) => handleMenuClick("settings", subView),
   );
   useDirectoryEvents();
-  // useSearchEvents(() => handleMenuClick("skillMarket"), handleSwitchSession);
+  useEffect(() => {
+    const handleSearchNewSession = () => {
+      handleNewSessionWithClose();
+    };
+    window.addEventListener("search-new-session", handleSearchNewSession);
+    return () => {
+      window.removeEventListener("search-new-session", handleSearchNewSession);
+    };
+  }, [handleNewSessionWithClose]);
+  useSearchEvents(() => handleMenuClick("skillMarket"), handleSwitchSession);
   useEffect(() => {
     const onSwitchEvent = (e: CustomEvent) => {
       const sessionId = e.detail?.sessionId;

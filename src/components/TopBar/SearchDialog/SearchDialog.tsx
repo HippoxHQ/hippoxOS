@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
-import { SearchDialogProps, SearchResult, SearchSuggestion } from "./types";
+import { SearchResult, SearchSuggestion } from "./types";
 import { useSearch } from "./hooks/useSearch";
 import { useDialogPosition } from "./hooks/useDialogPosition";
 import { useKeyboardNavigation } from "./hooks/useKeyboardNavigation";
@@ -11,6 +11,17 @@ import { EmptyState } from "./components/EmptyState";
 import { QuickActions } from "./components/QuickActions";
 import { sessionCommands } from "../../../command/session";
 import { filesCommands } from "../../../command/files";
+import { UploadFile } from "../../../core/types";
+
+export interface SearchDialogProps {
+  isOpen: boolean;
+  onClose: () => void;
+  currentLanguage: "zh" | "en";
+  currentTheme: "dark" | "light";
+  onToggleTheme: () => void;
+  onToggleLanguage: () => void;
+  onFileClick?: (file: UploadFile) => void;
+}
 
 const SearchDialog: React.FC<SearchDialogProps> = ({
   isOpen,
@@ -19,6 +30,7 @@ const SearchDialog: React.FC<SearchDialogProps> = ({
   currentTheme,
   onToggleTheme,
   onToggleLanguage,
+  onFileClick,
 }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
@@ -144,25 +156,25 @@ const SearchDialog: React.FC<SearchDialogProps> = ({
         case "message": {
           const sessionId = result.sessionId || result.path;
           if (sessionId) {
-            onClose();
+            window.dispatchEvent(
+              new CustomEvent("search-switch-session", {
+                detail: {
+                  sessionId: sessionId,
+                  title: result.sessionTitle || result.title || "会话",
+                  highlightMessageId: result.id,
+                },
+              }),
+            );
+            window.dispatchEvent(
+              new CustomEvent("session-selected", {
+                detail: {
+                  sessionId: sessionId,
+                  title: result.sessionTitle || result.title || "会话",
+                },
+              }),
+            );
             setTimeout(() => {
-              window.dispatchEvent(
-                new CustomEvent("search-switch-session", {
-                  detail: {
-                    sessionId: sessionId,
-                    title: result.sessionTitle || result.title || "会话",
-                    highlightMessageId: result.id,
-                  },
-                }),
-              );
-              window.dispatchEvent(
-                new CustomEvent("session-selected", {
-                  detail: {
-                    sessionId: sessionId,
-                    title: result.sessionTitle || result.title || "会话",
-                  },
-                }),
-              );
+              onClose();
             }, 100);
           }
           break;
@@ -173,37 +185,57 @@ const SearchDialog: React.FC<SearchDialogProps> = ({
               detail: { path: result.path, title: result.title },
             }),
           );
-          onClose();
+          setTimeout(() => {
+            onClose();
+          }, 100);
           break;
         case "session": {
           const sessionId = result.id.replace("session_", "");
-          onClose();
+          window.dispatchEvent(
+            new CustomEvent("search-switch-session", {
+              detail: { sessionId, title: result.title },
+            }),
+          );
+          window.dispatchEvent(
+            new CustomEvent("session-selected", {
+              detail: { sessionId, title: result.title },
+            }),
+          );
           setTimeout(() => {
-            window.dispatchEvent(
-              new CustomEvent("search-switch-session", {
-                detail: { sessionId, title: result.title },
-              }),
-            );
-            window.dispatchEvent(
-              new CustomEvent("session-selected", {
-                detail: { sessionId, title: result.title },
-              }),
-            );
+            onClose();
           }, 100);
           break;
         }
-        case "log":
-          window.dispatchEvent(
-            new CustomEvent("search-open-log", {
-              detail: { path: result.path, highlight: result.highlight },
-            }),
-          );
-          onClose();
+        case "log": {
+          try {
+            const content = await filesCommands.readTextFile(result.path);
+            const file: UploadFile = {
+              id: `log_${Date.now()}`,
+              name: result.title || result.path.split("/").pop() || "log.log",
+              path: result.path,
+              size: content.length,
+              file: new File([content], result.title || "log.log", {
+                type: "text/plain",
+              }),
+              type: "text/plain",
+              status: "success" as const,
+            };
+            if (onFileClick) {
+              onFileClick(file);
+            }
+          } catch (error) {
+            console.error("Failed to read log file:", error);
+          }
+          setTimeout(() => {
+            onClose();
+          }, 100);
           break;
+        }
       }
     },
     [onClose],
   );
+
   useKeyboardNavigation({
     isOpen,
     searchQuery,
