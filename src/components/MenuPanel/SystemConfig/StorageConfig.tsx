@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { showToast, ToastType } from "../../Toast";
+import { showDialog, DialogType } from "../../Dialog";
 import { storageCommands } from "../../../command/config";
 import { filesCommands } from "../../../command/files";
 import { getDataPaths } from "../../../command/paths";
@@ -103,6 +104,10 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
       setAppTotalSize(total);
     } catch (error) {
       console.error("Failed to load storage data:", error);
+      showToast(
+        ToastType.ERROR,
+        t("storage.loadFailed") || "Failed to load storage data",
+      );
     } finally {
       setLoading(false);
     }
@@ -110,7 +115,10 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
 
   const handleSaveMaxLogSize = async () => {
     if (maxLogSize < 500) {
-      alert(t("storage.maxLogSizeMin") || "Minimum size is 500MB");
+      showToast(
+        ToastType.WARNING,
+        t("storage.maxLogSizeMin") || "Minimum size is 500MB",
+      );
       return;
     }
     setSavingLogs(true);
@@ -123,7 +131,10 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
       );
     } catch (error) {
       console.error("Failed to save max log size:", error);
-      alert(t("storage.saveFailed") || "Failed to save settings");
+      showToast(
+        ToastType.ERROR,
+        t("storage.saveFailed") || "Failed to save settings",
+      );
     } finally {
       setSavingLogs(false);
     }
@@ -131,7 +142,10 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
 
   const handleSaveMaxDialogSize = async () => {
     if (maxDialogSize < 500) {
-      alert(t("storage.maxDialogSizeMin") || "Minimum size is 500MB");
+      showToast(
+        ToastType.WARNING,
+        t("storage.maxDialogSizeMin") || "Minimum size is 500MB",
+      );
       return;
     }
     setSavingDialog(true);
@@ -144,7 +158,10 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
       );
     } catch (error) {
       console.error("Failed to save max dialog size:", error);
-      alert(t("storage.saveFailed") || "Failed to save settings");
+      showToast(
+        ToastType.ERROR,
+        t("storage.saveFailed") || "Failed to save settings",
+      );
     } finally {
       setSavingDialog(false);
     }
@@ -152,7 +169,10 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
 
   const handleSaveMaxFavoritesSize = async () => {
     if (maxFavoritesSize < 500) {
-      alert(t("storage.maxFavoritesSizeMin") || "Minimum size is 500MB");
+      showToast(
+        ToastType.WARNING,
+        t("storage.maxFavoritesSizeMin") || "Minimum size is 500MB",
+      );
       return;
     }
     setSavingFavorites(true);
@@ -165,96 +185,118 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
       );
     } catch (error) {
       console.error("Failed to save max favorites size:", error);
-      alert(t("storage.saveFailed") || "Failed to save settings");
+      showToast(
+        ToastType.ERROR,
+        t("storage.saveFailed") || "Failed to save settings",
+      );
     } finally {
       setSavingFavorites(false);
     }
   };
 
   const handleClearDialogHistory = async () => {
-    if (
-      // eslint-disable-next-line no-restricted-globals
-      !confirm(
-        t("storage.confirmClearDialog") ||
-          "Are you sure you want to clear all dialog history? This action cannot be undone.",
-      )
-    ) {
-      return;
-    }
-    setCleaningDialog(true);
-    try {
-      const { sessionCommands } = await import("../../../command/session");
-      const sessions = await sessionCommands.listSessions();
-      for (const session of sessions) {
-        const sessionId = session.session_id;
-        if (sessionId && sessionId !== "welcome") {
-          await sessionCommands.deleteSession(sessionId);
+    showDialog(
+      DialogType.WARNING,
+      t("storage.confirmTitle") || "Confirm",
+      t("storage.confirmClearDialog") ||
+        "Are you sure you want to clear all dialog history? This action cannot be undone.",
+      async () => {
+        setCleaningDialog(true);
+        try {
+          const { sessionCommands } = await import("../../../command/session");
+          const sessions = await sessionCommands.listSessions();
+          for (const session of sessions) {
+            const sessionId = session.session_id;
+            if (sessionId && sessionId !== "welcome") {
+              await sessionCommands.deleteSession(sessionId);
+            }
+          }
+          await loadData();
+          showToast(
+            ToastType.SUCCESS,
+            t("storage.dialogCleared") || "Dialog history cleared",
+          );
+        } catch (error) {
+          console.error("Failed to clear dialog history:", error);
+          showToast(
+            ToastType.ERROR,
+            t("storage.clearFailed") || "Failed to clear",
+          );
+        } finally {
+          setCleaningDialog(false);
         }
-      }
-      await loadData();
-      showToast(
-        ToastType.SUCCESS,
-        t("storage.dialogCleared") || "Dialog history cleared",
-      );
-    } catch (error) {
-      console.error("Failed to clear dialog history:", error);
-      showToast(ToastType.ERROR, t("storage.clearFailed") || "Failed to clear");
-    } finally {
-      setCleaningDialog(false);
-    }
+      },
+      undefined,
+      t("storage.confirm") || "Confirm",
+      t("storage.cancel") || "Cancel",
+    );
   };
 
   const handleClearFavorites = async () => {
-    if (
-      // eslint-disable-next-line no-restricted-globals
-      !confirm(
-        t("storage.confirmClearFavorites") ||
-          "Are you sure you want to clear all favorites? This action cannot be undone.",
-      )
-    ) {
-      return;
-    }
-    setCleaningFavorites(true);
-    try {
-      const { skillsMarketCommands } = await import("../../../command/skills");
-      const favoritedIds = await skillsMarketCommands.getFavoritedSkills();
-      for (const id of favoritedIds) {
-        await skillsMarketCommands.unfavoriteSkill(id);
-      }
-      await loadData();
-      showToast(
-        ToastType.SUCCESS,
-        t("storage.favoritesCleared") || "Favorites cleared",
-      );
-    } catch (error) {
-      console.error("Failed to clear favorites:", error);
-      showToast(ToastType.ERROR, t("storage.clearFailed") || "Failed to clear");
-    } finally {
-      setCleaningFavorites(false);
-    }
+    showDialog(
+      DialogType.WARNING,
+      t("storage.confirmTitle") || "Confirm",
+      t("storage.confirmClearFavorites") ||
+        "Are you sure you want to clear all favorites? This action cannot be undone.",
+      async () => {
+        setCleaningFavorites(true);
+        try {
+          const { skillsMarketCommands } =
+            await import("../../../command/skills");
+          const favoritedIds = await skillsMarketCommands.getFavoritedSkills();
+          for (const id of favoritedIds) {
+            await skillsMarketCommands.unfavoriteSkill(id);
+          }
+          await loadData();
+          showToast(
+            ToastType.SUCCESS,
+            t("storage.favoritesCleared") || "Favorites cleared",
+          );
+        } catch (error) {
+          console.error("Failed to clear favorites:", error);
+          showToast(
+            ToastType.ERROR,
+            t("storage.clearFailed") || "Failed to clear",
+          );
+        } finally {
+          setCleaningFavorites(false);
+        }
+      },
+      undefined,
+      t("storage.confirm") || "Confirm",
+      t("storage.cancel") || "Cancel",
+    );
   };
 
   const handleClearLogs = async () => {
-    if (
-      // eslint-disable-next-line no-restricted-globals
-      !confirm(
-        t("storage.confirmClearLogs") ||
-          "Are you sure you want to clear all logs? This action cannot be undone.",
-      )
-    ) {
-      return;
-    }
-    setCleaningLogs(true);
-    try {
-      await storageCommands.clearLogs();
-      await loadData();
-      showToast(ToastType.SUCCESS, t("storage.logsCleared") || "Logs cleared");
-    } catch (error) {
-      console.error("Failed to clear logs:", error);
-      showToast(ToastType.ERROR, t("storage.clearFailed") || "Failed to clear");
-    } finally {
-      setCleaningLogs(false);
-    }
+    showDialog(
+      DialogType.WARNING,
+      t("storage.confirmTitle") || "Confirm",
+      t("storage.confirmClearLogs") ||
+        "Are you sure you want to clear all logs? This action cannot be undone.",
+      async () => {
+        setCleaningLogs(true);
+        try {
+          await storageCommands.clearLogs();
+          await loadData();
+          showToast(
+            ToastType.SUCCESS,
+            t("storage.logsCleared") || "Logs cleared",
+          );
+        } catch (error) {
+          console.error("Failed to clear logs:", error);
+          showToast(
+            ToastType.ERROR,
+            t("storage.clearFailed") || "Failed to clear",
+          );
+        } finally {
+          setCleaningLogs(false);
+        }
+      },
+      undefined,
+      t("storage.confirm") || "Confirm",
+      t("storage.cancel") || "Cancel",
+    );
   };
 
   const handleOpenDirectory = async (path: string) => {
@@ -263,6 +305,10 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
         await filesCommands.openPath(path);
       } catch (error) {
         console.error("Failed to open directory:", error);
+        showToast(
+          ToastType.ERROR,
+          t("storage.openFailed") || "Failed to open directory",
+        );
       }
     }
   };
@@ -306,7 +352,6 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
           height: "100%",
           background: color || getProgressColor(percent),
           borderRadius: "4px",
-          // transition: "width 0.3s ease",
         }}
       />
     </div>
@@ -497,7 +542,6 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
     color: "var(--text-secondary)",
     fontSize: "12px",
     cursor: "pointer",
-    // transition: "all 0.2s",
   };
 
   const primaryButtonStyle: React.CSSProperties = {

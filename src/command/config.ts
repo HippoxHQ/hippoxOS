@@ -315,23 +315,23 @@ export const storageCommands = {
     },
 
     async getDiskInfo(path: string): Promise<DiskInfo> {
-        return await invoke('get_disk_info', { path });
+        return await invoke('cmd_get_disk_info', { path });
     },
 
     async getMaxLogSize(): Promise<number> {
-        return await invoke('get_max_log_size');
+        return await invoke('cmd_get_max_log_size');
     },
 
     async setMaxLogSize(maxSizeMb: number): Promise<void> {
-        return await invoke('set_max_log_size', { maxSizeMb });
+        return await invoke('cmd_set_max_log_size', { maxSizeMb });
     },
 
     async getMaxDialogSize(): Promise<number> {
-        return await invoke('get_max_dialog_size');
+        return await invoke('cmd_get_max_dialog_size');
     },
 
     async setMaxDialogSize(maxSizeMb: number): Promise<void> {
-        return await invoke('set_max_dialog_size', { maxSizeMb });
+        return await invoke('cmd_set_max_dialog_size', { maxSizeMb });
     },
 };
 
