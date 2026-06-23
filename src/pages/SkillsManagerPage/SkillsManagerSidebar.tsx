@@ -5,6 +5,8 @@ import {
   skillsMarketCommands,
   skillsLocalCommands,
 } from "../../command/skills";
+import { UploadFile } from "../../core/types";
+import { runSkill } from "../../components/MenuPanel/utils/skillRunner";
 
 interface SkillsManagerSidebarProps {
   t: (key: string, params?: any) => string;
@@ -12,6 +14,7 @@ interface SkillsManagerSidebarProps {
   onSelectSkill: (skill: SkillData) => void;
   selectedSkillId?: string;
   onRefresh?: () => void;
+  onSendSkillMessage?: (message: string, files?: UploadFile[]) => void;
 }
 
 const SkillsManagerSidebar: React.FC<SkillsManagerSidebarProps> = ({
@@ -20,6 +23,7 @@ const SkillsManagerSidebar: React.FC<SkillsManagerSidebarProps> = ({
   onSelectSkill,
   selectedSkillId,
   onRefresh,
+  onSendSkillMessage,
 }) => {
   const [expandedCategories, setExpandedCategories] = useState<
     Record<string, boolean>
@@ -111,9 +115,29 @@ const SkillsManagerSidebar: React.FC<SkillsManagerSidebarProps> = ({
     }
   };
 
-  const handleRun = (skill: SkillData, e: React.MouseEvent) => {
+  const handleRun = async (skill: SkillData, e: React.MouseEvent) => {
     e.stopPropagation();
-    window.dispatchEvent(new CustomEvent("run-skill", { detail: { skill } }));
+    if (!onSendSkillMessage) {
+      console.warn("onSendSkillMessage is not provided");
+      return;
+    }
+    const allLocalSkills = await skillsLocalCommands.listLocalSkills();
+    const found = allLocalSkills.find((s) => s.id === skill.id);
+    if (!found) {
+      console.error("Skill not found locally:", skill.id);
+      return;
+    }
+    const sessionId = `session_${Date.now()}`;
+    const marketSkill = {
+      id: found.id,
+      name: found.name,
+      category: found.category || "other",
+      local_path: skill.path,
+      version: "1.0.0",
+      author: "Local",
+      description: found.description,
+    };
+    await runSkill(marketSkill as any, onSendSkillMessage, t, sessionId);
   };
 
   const toggleCategory = (category: string) => {

@@ -84,7 +84,22 @@ function App() {
     (subView) => handleMenuClick("settings", subView),
   );
   useDirectoryEvents();
-  useSearchEvents(() => handleMenuClick("skillMarket"), handleSwitchSession);
+  // useSearchEvents(() => handleMenuClick("skillMarket"), handleSwitchSession);
+  useEffect(() => {
+    const onSwitchEvent = (e: CustomEvent) => {
+      const sessionId = e.detail?.sessionId;
+      if (sessionId) {
+        handleSwitchSession(sessionId);
+      }
+    };
+    window.addEventListener("switch-session", onSwitchEvent as EventListener);
+    return () => {
+      window.removeEventListener(
+        "switch-session",
+        onSwitchEvent as EventListener,
+      );
+    };
+  }, [handleSwitchSession]);
   useEffect(() => {
     taskManager.setupTaskEventListeners();
   }, []);

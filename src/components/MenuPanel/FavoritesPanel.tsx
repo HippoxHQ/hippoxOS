@@ -28,7 +28,7 @@ const convertLocalToMarket = (skill: SkillData): MarketSkill => {
     installed: true,
     favorited: true,
     installed_version: "1.0.0",
-    local_path: undefined,
+    local_path: skill.path,
     readme: undefined,
     parameters: [],
   };
@@ -66,13 +66,16 @@ const FavoritesPanel: React.FC<FavoritesPanelProps> = ({
       setLoading(false);
     }
   };
+
   const handleRun = async (skill: MarketSkill) => {
     if (!onSendSkillMessage) {
       console.error("onSendSkillMessage is undefined!");
       return;
     }
-    await runSkill(skill, onSendSkillMessage, t);
+    const pendingId = `pending_${Date.now()}`;
+    await runSkill(skill, onSendSkillMessage, t, pendingId);
   };
+
   const handleDelete = async (skillId: string) => {
     if (
       // eslint-disable-next-line no-restricted-globals

@@ -372,6 +372,7 @@ export function AppContent({
             t={t}
             onClose={onCloseSkillsManager}
             currentSessionId={currentSessionId}
+            onSendSkillMessage={onSendSkillMessage}
           />
         );
       case "scheduledTasks":

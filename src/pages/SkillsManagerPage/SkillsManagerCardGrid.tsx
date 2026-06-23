@@ -11,6 +11,8 @@ import {
   skillsMarketCommands,
   skillsLocalCommands,
 } from "../../command/skills";
+import { UploadFile } from "../../core/types";
+import { runSkill } from "../../components/MenuPanel/utils/skillRunner";
 
 interface SkillsManagerCardGridProps {
   t: (key: string, params?: any) => string;
@@ -22,6 +24,7 @@ interface SkillsManagerCardGridProps {
   onFavorite?: (skill: SkillData) => void;
   onRun?: (skill: SkillData) => void;
   onRefresh?: () => void;
+  onSendSkillMessage?: (message: string, files?: UploadFile[]) => void;
 }
 
 const SkillsManagerCardGrid: React.FC<SkillsManagerCardGridProps> = ({
@@ -34,6 +37,7 @@ const SkillsManagerCardGrid: React.FC<SkillsManagerCardGridProps> = ({
   onFavorite,
   onRun,
   onRefresh,
+  onSendSkillMessage,
 }) => {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [favoritedSkills, setFavoritedSkills] = useState<Set<string>>(
@@ -106,10 +110,30 @@ const SkillsManagerCardGrid: React.FC<SkillsManagerCardGridProps> = ({
     }
   };
 
-  const handleRun = (skill: SkillData, e: React.MouseEvent) => {
+  const handleRun = async (skill: SkillData, e: React.MouseEvent) => {
     e.stopPropagation();
+    if (!onSendSkillMessage) {
+      console.warn("onSendSkillMessage is not provided");
+      return;
+    }
+    const allLocalSkills = await skillsLocalCommands.listLocalSkills();
+    const found = allLocalSkills.find((s) => s.id === skill.id);
+    if (!found) {
+      console.error("Skill not found locally:", skill.id);
+      return;
+    }
+    const sessionId = `session_${Date.now()}`;
+    const marketSkill = {
+      id: found.id,
+      name: found.name,
+      category: found.category || "other",
+      local_path: skill.path,
+      version: "1.0.0",
+      author: "Local",
+      description: found.description,
+    };
+    await runSkill(marketSkill as any, onSendSkillMessage, t, sessionId);
     onRun?.(skill);
-    window.dispatchEvent(new CustomEvent("run-skill", { detail: { skill } }));
   };
 
   const isFavorited = (skill: SkillData): boolean => {

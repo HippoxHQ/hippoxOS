@@ -19,14 +19,21 @@ export const useSendSkillMessage = ({
     shouldShowWelcome,
 }: UseSendSkillMessageParams) => {
     const onSendSkillMessage = useCallback(
-        (message: string, files?: UploadFile[]) => {
+        (message: string, files?: UploadFile[], sessionId?: string) => {
             closeContentPanel();
+            if (sessionId) {
+                const pendingId = `pending_${Date.now()}`;
+                handleSendMessage(message, pendingId, files);
+                return;
+            }
             if (!currentSessionId || currentSessionId.startsWith("pending_")) {
                 handleNewSession();
-            }
-            setTimeout(() => {
+                setTimeout(() => {
+                    handleSendMessage(message, currentSessionId, files);
+                }, 200);
+            } else {
                 handleSendMessage(message, currentSessionId, files);
-            }, 200);
+            }
         },
         [
             currentSessionId,

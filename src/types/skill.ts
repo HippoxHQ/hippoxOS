@@ -14,6 +14,7 @@ export interface SkillData {
     created_at: string;
     updated_at: string;
     installed: boolean;
+    path: string;
 }
 
 export interface SkillHistory {

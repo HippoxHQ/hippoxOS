@@ -131,11 +131,10 @@ const SkillMarketPanel: React.FC<SkillMarketPanelProps> = ({
       setFavoritingId(null);
     }
   };
-
   const handleRun = async (skill: MarketSkill) => {
-    await runSkill(skill, onSendSkillMessage, t);
+    const pendingId = `pending_${Date.now()}`;
+    await runSkill(skill, onSendSkillMessage, t, pendingId);
   };
-
   const handleSaveConfig = async () => {
     try {
       await skillsMarketCommands.updateMarketConfig(repoUrl, branch);
@@ -145,35 +144,29 @@ const SkillMarketPanel: React.FC<SkillMarketPanelProps> = ({
       console.error("Failed to save config:", error);
     }
   };
-
   const handleCategorySelect = (category: string) => {
     setSelectedCategory(category);
     setShowCategoryBubble(false);
   };
-
   const handleCategoryButtonMouseEnter = () => {
     if (bubbleTimerRef.current) {
       clearTimeout(bubbleTimerRef.current);
     }
     setShowCategoryBubble(true);
   };
-
   const handleCategoryButtonMouseLeave = () => {
     bubbleTimerRef.current = setTimeout(() => {
       setShowCategoryBubble(false);
     }, 200);
   };
-
   const handleBubbleMouseEnter = () => {
     if (bubbleTimerRef.current) {
       clearTimeout(bubbleTimerRef.current);
     }
   };
-
   const handleBubbleMouseLeave = () => {
     setShowCategoryBubble(false);
   };
-
   const filteredSkills = skills.filter((skill) => {
     const matchesSearch =
       skill.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -182,7 +175,6 @@ const SkillMarketPanel: React.FC<SkillMarketPanelProps> = ({
       selectedCategory === "all" || skill.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
-
   const styles: Record<string, React.CSSProperties> = {
     container: {
       height: "100%",

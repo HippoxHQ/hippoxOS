@@ -11,11 +11,13 @@ import {
 } from "../../types/skill";
 import { skillsLocalCommands } from "../../command/skills";
 import { showToast, ToastType } from "../../components/Toast";
+import { UploadFile } from "../../core/types";
 
 interface SkillsManagerProps {
   t: (key: string, params?: any) => string;
   onClose?: () => void;
   currentSessionId?: string;
+  onSendSkillMessage?: (message: string, files?: UploadFile[]) => void;
 }
 
 const convertToBackendSteps = (
@@ -52,17 +54,11 @@ const convertToFrontendSteps = (
   }));
 };
 
-const sanitizeFolderName = (name: string): string => {
-  return name
-    .replace(/[<>:"/\\|?*]/g, "_")
-    .replace(/\s+/g, "_")
-    .trim();
-};
-
 const SkillsManager: React.FC<SkillsManagerProps> = ({
   t,
   onClose,
   currentSessionId,
+  onSendSkillMessage,
 }) => {
   const [skills, setSkills] = useState<SkillData[]>([]);
   const [skillHistory, setSkillHistory] = useState<SkillHistory[]>([]);
@@ -75,7 +71,6 @@ const SkillsManager: React.FC<SkillsManagerProps> = ({
   const [errors, setErrors] = useState<{ name?: string; description?: string }>(
     {},
   );
-
   const loadData = async () => {
     setLoading(true);
     try {
@@ -310,6 +305,8 @@ const SkillsManager: React.FC<SkillsManagerProps> = ({
         skills={skills}
         onSelectSkill={loadSkill}
         selectedSkillId={currentSkill?.id}
+        onRefresh={loadData}
+        onSendSkillMessage={onSendSkillMessage}
       />
       <div style={styles.main}>
         {!showEditor ? (
@@ -342,6 +339,7 @@ const SkillsManager: React.FC<SkillsManagerProps> = ({
             }}
             onSelectSkill={loadSkill}
             onRefresh={loadData}
+            onSendSkillMessage={onSendSkillMessage}
           />
         ) : (
           currentFrontendSkill && (

@@ -25,6 +25,7 @@ pub struct SkillData {
     pub created_at: String,
     pub updated_at: String,
     pub installed: bool,
+    pub path: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -59,7 +60,7 @@ pub struct UpdateSkillRequest {
     pub name: String,
     pub description: String,
     pub category: String,
-    pub old_category: String, 
+    pub old_category: String,
     pub tags: String,
     pub steps: Vec<SkillStep>,
 }
@@ -234,6 +235,7 @@ fn parse_skill_from_markdown(path: &PathBuf, skill_id: &str) -> Result<SkillData
             updated_at
         },
         installed: true,
+        path: path.to_string_lossy().to_string(),
     })
 }
 
@@ -326,6 +328,7 @@ pub async fn cmd_list_local_skills() -> Result<Vec<SkillData>, String> {
                         match parse_skill_from_markdown(&skill_md_path, &skill_id) {
                             Ok(mut skill) => {
                                 skill.category = category_name.clone();
+                                skill.path = skill_md_path.to_string_lossy().to_string();
                                 skills.push(skill);
                             }
                             Err(e) => eprintln!("Failed to parse skill {}: {}", skill_id, e),
@@ -367,6 +370,7 @@ pub async fn cmd_create_skill(request: CreateSkillRequest) -> Result<SkillData, 
         counter += 1;
     }
     let now = chrono::Local::now().to_rfc3339();
+    let skill_md_path = get_skill_md_path(&category, &skill_id);
     let skill = SkillData {
         id: skill_id.clone(),
         name: request.name,
@@ -377,6 +381,7 @@ pub async fn cmd_create_skill(request: CreateSkillRequest) -> Result<SkillData, 
         created_at: now.clone(),
         updated_at: now.clone(),
         installed: true,
+        path: skill_md_path.to_string_lossy().to_string(),
     };
     let skill_dir = get_skill_dir(&category, &skill_id);
     fs::create_dir_all(&skill_dir)
@@ -422,19 +427,8 @@ pub async fn cmd_update_skill(request: UpdateSkillRequest) -> Result<SkillData, 
         counter += 1;
     }
     let now = chrono::Local::now().to_rfc3339();
-    let skill = SkillData {
-        id: new_id.clone(),
-        name: request.name,
-        description: request.description,
-        category: new_category.clone(),
-        tags: request.tags,
-        steps: request.steps,
-        created_at: old_skill.created_at,
-        updated_at: now.clone(),
-        installed: true,
-    };
     let category_changed = request.old_category != new_category;
-    if new_id != request.id || category_changed {
+    let (skill, skill_md_path) = if new_id != request.id || category_changed {
         let new_skill_dir = get_skill_dir(&new_category, &new_id);
         if new_skill_dir.exists() {
             return Err(format!("Skill already exists: {}", new_id));
@@ -449,6 +443,18 @@ pub async fn cmd_update_skill(request: UpdateSkillRequest) -> Result<SkillData, 
         std::fs::rename(&old_skill_dir, &new_skill_dir)
             .map_err(|e| format!("Failed to move skill directory: {}", e))?;
         let new_skill_md_path = get_skill_md_path(&new_category, &new_id);
+        let skill = SkillData {
+            id: new_id.clone(),
+            name: request.name.clone(),
+            description: request.description.clone(),
+            category: new_category.clone(),
+            tags: request.tags.clone(),
+            steps: request.steps.clone(),
+            created_at: old_skill.created_at.clone(),
+            updated_at: now.clone(),
+            installed: true,
+            path: new_skill_md_path.to_string_lossy().to_string(),
+        };
         let markdown_content = skill_to_markdown(&skill);
         std::fs::write(&new_skill_md_path, markdown_content)
             .map_err(|e| format!("Failed to write SKILL.md: {}", e))?;
@@ -479,11 +485,25 @@ pub async fn cmd_update_skill(request: UpdateSkillRequest) -> Result<SkillData, 
                 let _ = std::fs::remove_file(&history_file);
             }
         }
+        (skill, new_skill_md_path)
     } else {
+        let skill = SkillData {
+            id: new_id.clone(),
+            name: request.name.clone(),
+            description: request.description.clone(),
+            category: new_category.clone(),
+            tags: request.tags.clone(),
+            steps: request.steps.clone(),
+            created_at: old_skill.created_at.clone(),
+            updated_at: now.clone(),
+            installed: true,
+            path: old_skill_md_path.to_string_lossy().to_string(),
+        };
         let markdown_content = skill_to_markdown(&skill);
         std::fs::write(&old_skill_md_path, markdown_content)
             .map_err(|e| format!("Failed to write SKILL.md: {}", e))?;
-    }
+        (skill, old_skill_md_path.clone())
+    };
     let history = SkillHistory {
         id: Uuid::new_v4().to_string(),
         skill_id: new_id.clone(),
@@ -540,7 +560,9 @@ pub async fn cmd_get_skill(
     };
     let skill_md_path = get_skill_md_path(&category, &skill_id);
     if skill_md_path.exists() {
-        Ok(Some(parse_skill_from_markdown(&skill_md_path, &skill_id)?))
+        let mut skill = parse_skill_from_markdown(&skill_md_path, &skill_id)?;
+        skill.path = skill_md_path.to_string_lossy().to_string();
+        Ok(Some(skill))
     } else {
         Ok(None)
     }
