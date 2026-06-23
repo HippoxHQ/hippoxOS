@@ -200,7 +200,6 @@ const SkillsManagerCardGrid: React.FC<SkillsManagerCardGridProps> = ({
           background: var(--bg-tertiary);
           border: 1px solid var(--border-color);
           border-radius: 8px;
-          // transition: all 0.2s ease;
           flex: 1;
         }
         .skill-manager-search-input-wrapper:focus-within {
@@ -258,7 +257,6 @@ const SkillsManagerCardGrid: React.FC<SkillsManagerCardGridProps> = ({
           color: white;
           font-size: 12px;
           cursor: pointer;
-          // transition: all 0.2s ease;
           white-space: nowrap;
         }
         .search-add-btn:hover {
@@ -309,7 +307,10 @@ const SkillsManagerCardGrid: React.FC<SkillsManagerCardGridProps> = ({
           border: 1px solid var(--border-color);
           padding: 12px 14px;
           cursor: pointer;
-          // transition: all 0.2s ease;
+          height: 145px;
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
         }
         .skill-card:hover {
           transform: translateY(-2px);
@@ -323,7 +324,7 @@ const SkillsManagerCardGrid: React.FC<SkillsManagerCardGridProps> = ({
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          min-height: 120px;
+          height: 145px;
         }
         .add-card:hover {
           border-color: var(--accent-color);
@@ -343,7 +344,8 @@ const SkillsManagerCardGrid: React.FC<SkillsManagerCardGridProps> = ({
           display: flex;
           justify-content: space-between;
           align-items: flex-start;
-          margin-bottom: 8px;
+          margin-bottom: 6px;
+          flex-shrink: 0;
         }
         .card-name {
           font-size: 14px;
@@ -359,7 +361,6 @@ const SkillsManagerCardGrid: React.FC<SkillsManagerCardGridProps> = ({
           display: flex;
           gap: 4px;
           opacity: 0;
-          // transition: opacity 0.15s ease;
           flex-shrink: 0;
         }
         .skill-card:hover .card-actions {
@@ -377,7 +378,6 @@ const SkillsManagerCardGrid: React.FC<SkillsManagerCardGridProps> = ({
           justify-content: center;
           color: var(--text-secondary);
           font-size: 11px;
-          // transition: all 0.15s;
         }
         .icon-btn:hover {
           background: var(--hover-bg);
@@ -396,38 +396,41 @@ const SkillsManagerCardGrid: React.FC<SkillsManagerCardGridProps> = ({
         .card-meta {
           display: flex;
           align-items: center;
-          gap: 8px;
-          margin-bottom: 6px;
+          gap: 6px;
+          margin-bottom: 4px;
           font-size: 10px;
           color: var(--text-tertiary);
-          flex-wrap: wrap;
+          flex-shrink: 0;
+          flex-wrap: nowrap;
+          overflow: hidden;
+          max-width: 100%;
         }
         .card-meta-item {
           background: var(--bg-tertiary);
           padding: 1px 8px;
           border-radius: 10px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          text-align: center;
+          min-width: 0;
+        }
+        .card-meta-item.equal {
+          flex: 1;
+        }
+        .card-meta-item.fixed {
+          flex: 0 0 50px;
+          max-width: 50px;
         }
         .card-description {
           font-size: 12px;
           color: var(--text-secondary);
           line-height: 1.4;
           display: -webkit-box;
-          -webkit-line-clamp: 2;
+          -webkit-line-clamp: 4;
           -webkit-box-orient: vertical;
           overflow: hidden;
-        }
-        .card-tags {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 4px;
-          margin-top: 6px;
-        }
-        .card-tag {
-          background: var(--bg-tertiary);
-          padding: 1px 8px;
-          border-radius: 10px;
-          font-size: 9px;
-          color: var(--text-tertiary);
+          flex: 1;
         }
         .empty-state {
           text-align: center;
@@ -541,6 +544,12 @@ const SkillsManagerCardGrid: React.FC<SkillsManagerCardGridProps> = ({
                 <div className="cards-container">
                   {skillsInCategory.map((skill) => {
                     const favorited = isFavorited(skill);
+                    const tags = skill.tags
+                      ? skill.tags.split(",").filter((tag) => tag.trim())
+                      : [];
+                    const displayTags = tags.slice(0, 4);
+                    const isEqual = tags.length >= 4;
+
                     return (
                       <div
                         key={skill.id}
@@ -590,19 +599,26 @@ const SkillsManagerCardGrid: React.FC<SkillsManagerCardGridProps> = ({
                             </button>
                           </div>
                         </div>
+
                         <div className="card-meta">
-                          <span className="card-meta-item">
+                          <span
+                            className={`card-meta-item ${
+                              isEqual ? "equal" : "fixed"
+                            }`}
+                          >
                             {skill.steps.length} steps
                           </span>
-                          {skill.tags &&
-                            skill.tags
-                              .split(",")
-                              .slice(0, 1)
-                              .map((tag, idx) => (
-                                <span key={idx} className="card-meta-item">
-                                  #{tag.trim()}
-                                </span>
-                              ))}
+                          {displayTags.map((tag, idx) => (
+                            <span
+                              key={idx}
+                              className={`card-meta-item ${
+                                isEqual ? "equal" : "fixed"
+                              }`}
+                              title={tag.trim()}
+                            >
+                              #{tag.trim()}
+                            </span>
+                          ))}
                         </div>
                         <div className="card-description">
                           {skill.description ||
