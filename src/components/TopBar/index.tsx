@@ -168,7 +168,7 @@ interface TopBarProps {
 
 const topBarStyles = `
   .top-bar {
-    height: 40px;
+    height: 35px;
     background: var(--bg-secondary);
     backdrop-filter: blur(20px);
     border-bottom: 1px solid var(--border-color);
@@ -324,7 +324,7 @@ const topBarStyles = `
     align-items: center;
     justify-content: center;
     gap: 4px;
-    height: 24px;
+    height: 20px;
     padding: 0 10px;
     background: transparent;
     border: none;
@@ -419,7 +419,7 @@ const topBarStyles = `
   border-radius: 6px;
   cursor: pointer;
   // transition: all 0.2s ease;
-  height: 28px;
+  height: 25px;
   flex: 1;
   justify-content: space-between;
   min-width: 40px;

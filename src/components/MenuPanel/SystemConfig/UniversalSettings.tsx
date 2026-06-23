@@ -248,7 +248,7 @@ const UniversalSettings: React.FC<UniversalSettingsProps> = ({
     gap: "4px",
     flex: "1 1 auto",
     minWidth: 0,
-    height: "24px",
+    height: "28px",
     padding: "0 8px",
     background: isActive ? "var(--accent-color, #00aaff)" : "transparent",
     border: "none",
