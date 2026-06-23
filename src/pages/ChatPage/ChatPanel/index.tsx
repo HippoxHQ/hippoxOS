@@ -16,6 +16,8 @@ import {
   WorkspaceInstance,
   workspaceCommands,
 } from "../../../command/workspace";
+import { workflowCommands } from "../../../command/workflow";
+import { sessionCommands } from "../../../command/session";
 import FileUploader from "../../../components/FileUploader";
 import { showToast, ToastType } from "../../../components/Toast";
 import { taskManager } from "../../../core/TaskManager";
@@ -53,6 +55,7 @@ interface ChatPanelProps {
   onDragOverInputChange?: (isDragging: boolean) => void;
   navigationContent?: React.ReactNode;
   isLeftPanel?: boolean;
+  onWorkflowModeChange?: (mode: string) => void;
 }
 
 const ChatPanel: React.FC<ChatPanelProps> = ({
@@ -64,13 +67,18 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   onDragOverInputChange,
   navigationContent,
   isLeftPanel = true,
+  onWorkflowModeChange,
 }) => {
   const [inputValue, setInputValue] = useState("");
   const [isFocused, setIsFocused] = useState(false);
   const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
   const [showDirectoryMenu, setShowDirectoryMenu] = useState(false);
+  const [showWorkflowMenu, setShowWorkflowMenu] = useState(false);
   const [workspaces, setWorkspaces] = useState<WorkspaceInstance[]>([]);
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string>("");
+  const [workflowModes, setWorkflowModes] = useState<string[]>([]);
+  const [selectedWorkflowMode, setSelectedWorkflowMode] =
+    useState<string>("ReAct");
   const [showScrollButton, setShowScrollButton] = useState(false);
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [userScrolled, setUserScrolled] = useState(false);
@@ -87,6 +95,8 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   const attachmentMenuRef = useRef<HTMLDivElement>(null);
   const directoryBtnRef = useRef<HTMLDivElement>(null);
   const directoryMenuRef = useRef<HTMLDivElement>(null);
+  const workflowBtnRef = useRef<HTMLDivElement>(null);
+  const workflowMenuRef = useRef<HTMLDivElement>(null);
   const navButtonRef = useRef<HTMLDivElement>(null);
   const navBubbleTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [isSending, setIsSending] = useState(false);
@@ -293,6 +303,52 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     }
   };
 
+  const loadWorkflowModes = async () => {
+    try {
+      const modes = await workflowCommands.getWorkflowModeNames();
+      setWorkflowModes(modes);
+      if (modes.length > 0 && !selectedWorkflowMode) {
+        setSelectedWorkflowMode(modes[0]);
+      }
+    } catch (error) {
+      console.error("Failed to load workflow modes:", error);
+    }
+  };
+
+  const loadSessionWorkflowMode = async (sessionId: string) => {
+    if (
+      !sessionId ||
+      sessionId.startsWith("pending_") ||
+      sessionId.startsWith("temp_")
+    ) {
+      return;
+    }
+    try {
+      const cached = localStorage.getItem(`workflow_mode_${sessionId}`);
+      if (cached) {
+        setSelectedWorkflowMode(cached);
+        return;
+      }
+      const config = await sessionCommands.loadSessionConfig(sessionId);
+      if (config && config.workflow_mode) {
+        setSelectedWorkflowMode(config.workflow_mode);
+        localStorage.setItem(
+          `workflow_mode_${sessionId}`,
+          config.workflow_mode,
+        );
+      } else {
+        const defaultMode = "ReAct";
+        setSelectedWorkflowMode(defaultMode);
+        await sessionCommands.updateSessionConfig(sessionId, {
+          workflow_mode: defaultMode,
+        });
+        localStorage.setItem(`workflow_mode_${sessionId}`, defaultMode);
+      }
+    } catch (error) {
+      console.error("Failed to load session workflow mode:", error);
+    }
+  };
+
   const loadWorkspaces = async (retryCount: number = 0): Promise<void> => {
     try {
       const config = await workspaceCommands.getWorkspaceConfig();
@@ -310,6 +366,16 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
       showToast(ToastType.ERROR, "Failed to load workspaces: " + error);
     }
   };
+
+  useEffect(() => {
+    if (
+      currentSessionId &&
+      !currentSessionId.startsWith("pending_") &&
+      !currentSessionId.startsWith("temp_")
+    ) {
+      loadSessionWorkflowMode(currentSessionId);
+    }
+  }, [currentSessionId]);
 
   const checkScrollPosition = () => {
     if (!messagesContainerRef.current) return;
@@ -426,6 +492,32 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
       await loadWorkspaces();
     } catch (error) {
       showToast(ToastType.ERROR, "Failed to set default workspace: " + error);
+    }
+  };
+
+  const handleWorkflowModeChange = async (mode: string) => {
+    setSelectedWorkflowMode(mode);
+    setShowWorkflowMenu(false);
+    if (onWorkflowModeChange) {
+      onWorkflowModeChange(mode);
+    }
+    if (
+      currentSessionId &&
+      !currentSessionId.startsWith("pending_") &&
+      !currentSessionId.startsWith("temp_")
+    ) {
+      try {
+        await sessionCommands.updateSessionConfig(currentSessionId, {
+          workflow_mode: mode,
+        });
+        localStorage.setItem(`workflow_mode_${currentSessionId}`, mode);
+      } catch (error) {
+        console.error("Failed to save workflow mode:", error);
+        showToast(ToastType.ERROR, "Failed to save workflow mode");
+      }
+    } else {
+      const key = currentSessionId || "pending";
+      localStorage.setItem(`workflow_mode_${key}`, mode);
     }
   };
 
@@ -553,6 +645,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   useEffect(() => {
     loadCurrentDefaultModel();
     loadWorkspaces();
+    loadWorkflowModes();
   }, []);
 
   const messagesRef = useRef<ChatMessage[]>(messages);
@@ -642,6 +735,14 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
         !directoryBtnRef.current.contains(event.target as Node)
       ) {
         setShowDirectoryMenu(false);
+      }
+      if (
+        workflowMenuRef.current &&
+        !workflowMenuRef.current.contains(event.target as Node) &&
+        workflowBtnRef.current &&
+        !workflowBtnRef.current.contains(event.target as Node)
+      ) {
+        setShowWorkflowMenu(false);
       }
       if (
         navButtonRef.current &&
@@ -1720,6 +1821,31 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
                 </span>
                 <ChevronRightIcon size={10} className="chevron" />
               </div>
+              <div
+                className="icon-btn folder-btn"
+                ref={workflowBtnRef}
+                onClick={() => setShowWorkflowMenu(!showWorkflowMenu)}
+                title={t("chat.selectWorkflowMode") || "Workflow Mode"}
+              >
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path
+                    d="M4 7h16M4 12h16M4 17h10"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+                <span className="folder-name" title={selectedWorkflowMode}>
+                  {selectedWorkflowMode}
+                </span>
+                <ChevronRightIcon size={10} className="chevron" />
+              </div>
               {showAttachmentMenu && (
                 <div className="attachment-menu" ref={attachmentMenuRef}>
                   <div
@@ -1773,6 +1899,21 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
                         >
                           {workspace.workspace_path}
                         </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {showWorkflowMenu && (
+                <div className="directory-menu" ref={workflowMenuRef}>
+                  {workflowModes.map((mode) => (
+                    <div
+                      key={mode}
+                      className={`directory-item ${selectedWorkflowMode === mode ? "selected" : ""}`}
+                      onClick={() => handleWorkflowModeChange(mode)}
+                    >
+                      <div className="directory-item-content">
+                        <div>{mode}</div>
                       </div>
                     </div>
                   ))}

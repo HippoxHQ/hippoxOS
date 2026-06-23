@@ -56,15 +56,12 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({
   const [showAddForm, setShowAddForm] = useState(false);
   const [newProvider, setNewProvider] = useState("openai");
   const [newApiKey, setNewApiKey] = useState("");
-  const [newWorkflowMode, setNewWorkflowMode] = useState<WorkflowMode>("react");
   const [extraConfigValues, setExtraConfigValues] = useState<
     Record<string, string>
   >({});
   const [currentProviderInfo, setCurrentProviderInfo] =
     useState<ProviderInfo | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-
-  const workflowModes = getWorkflowModes(t);
 
   useEffect(() => {
     loadData();
@@ -217,7 +214,6 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({
       provider: newProvider,
       api_key: newApiKey,
       api_base: isCustomProvider ? apiBase : "",
-      workflow_mode: newWorkflowMode,
       default_model: defaultModelName,
       models: providerModels.map((m) => ({
         name: m.id,
@@ -232,7 +228,7 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({
       setShowAddForm(false);
       setNewProvider("openai");
       setNewApiKey("");
-      setNewWorkflowMode("react");
+      // setNewWorkflowMode("react");
       setExtraConfigValues({});
       await loadData();
       showToast(
@@ -258,15 +254,15 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({
     return provider?.name || providerId;
   };
 
-  const getWorkflowModeLabel = (mode: string) => {
-    const modeMap: Record<string, string> = {
-      react: t("llmModel.workflowModeReAct"),
-      batch: t("llmModel.workflowModeBatch"),
-      chain: t("llmModel.workflowModeChain"),
-      plan_and_execute: t("llmModel.workflowModePlanAndExecute"),
-    };
-    return modeMap[mode] || mode;
-  };
+  // const getWorkflowModeLabel = (mode: string) => {
+  //   const modeMap: Record<string, string> = {
+  //     react: t("llmModel.workflowModeReAct"),
+  //     batch: t("llmModel.workflowModeBatch"),
+  //     chain: t("llmModel.workflowModeChain"),
+  //     plan_and_execute: t("llmModel.workflowModePlanAndExecute"),
+  //   };
+  //   return modeMap[mode] || mode;
+  // };
 
   const getProviderExtraFields = (providerId: string) => {
     const provider = providers.find((p) => p.id === providerId);
@@ -584,39 +580,6 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({
                 ))}
               </select>
             </div>
-
-            <div
-              className="settings-row"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                marginBottom: "12px",
-                gap: "12px",
-                flexWrap: "wrap",
-              }}
-            >
-              <label style={labelStyle}>
-                {t("llmModel.workflowMode") || "Workflow Mode"}
-              </label>
-              <select
-                style={selectStyle}
-                value={newWorkflowMode}
-                onChange={(e) =>
-                  setNewWorkflowMode(e.target.value as WorkflowMode)
-                }
-              >
-                {workflowModes.map((mode) => (
-                  <option
-                    key={mode.value}
-                    value={mode.value}
-                    title={mode.description}
-                  >
-                    {mode.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
             {currentExtraFields.map((field: ExtraConfigField) => (
               <div
                 key={field.key}
@@ -641,7 +604,6 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({
                 />
               </div>
             ))}
-
             <div
               className="settings-row"
               style={{
@@ -735,15 +697,7 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({
                   <label style={labelStyle}>
                     {t("llmModel.workflowMode") || "Workflow Mode"}
                   </label>
-                  <input
-                    type="text"
-                    style={inputStyle}
-                    value={getWorkflowModeLabel(instance.workflow_mode)}
-                    disabled
-                    readOnly
-                  />
                 </div>
-
                 <div
                   className="settings-row"
                   style={{

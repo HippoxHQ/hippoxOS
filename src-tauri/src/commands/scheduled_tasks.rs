@@ -25,6 +25,8 @@ pub struct ScheduledTask {
     pub completed: bool,
     pub execution_count: u32,
     pub last_status: Option<String>,
+    #[serde(default)]
+    pub workflow_mode: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -277,6 +279,7 @@ pub struct CreateScheduledTaskRequest {
     pub action_type: ActionType,
     pub natural_language_content: Option<String>,
     pub skill_md_content: Option<String>,
+    pub workflow_mode: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -289,6 +292,7 @@ pub struct UpdateScheduledTaskRequest {
     pub action_type: ActionType,
     pub natural_language_content: Option<String>,
     pub skill_md_content: Option<String>,
+    pub workflow_mode: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -306,7 +310,6 @@ pub async fn cmd_scheduled_task_create(
 ) -> Result<ScheduledTaskResponse, String> {
     let task_id = get_next_task_id()?;
     let now = chrono::Local::now().to_rfc3339();
-
     let task = ScheduledTask {
         id: task_id.clone(),
         name: request.name,
@@ -321,27 +324,23 @@ pub async fn cmd_scheduled_task_create(
         completed: false,
         execution_count: 0,
         last_status: None,
+        workflow_mode: request.workflow_mode,
     };
-
     // Create task directory and save files
     create_task_directory(&task_id)?;
     save_task_config(&task)?;
-
     // Save natural language content (always created)
     let natural_content = request.natural_language_content.unwrap_or_default();
     save_natural_language_content(&task_id, &natural_content)?;
-
     // Save SKILL.md content (if provided)
     let skill_content = request.skill_md_content.unwrap_or_default();
     if !skill_content.is_empty() {
         save_skill_md_content(&task_id, &skill_content)?;
     }
-
     // Add to task pool
     if let Some(pool) = state.get_task_pool().await {
         let _ = scheduled_task_pool::add_task_to_pool(pool, task.clone()).await;
     }
-
     Ok(ScheduledTaskResponse {
         task,
         natural_language_content: Some(natural_content),
@@ -360,7 +359,6 @@ pub async fn cmd_scheduled_task_update(
     request: UpdateScheduledTaskRequest,
 ) -> Result<ScheduledTaskResponse, String> {
     let now = chrono::Local::now().to_rfc3339();
-
     let mut task = ScheduledTask {
         id: request.id.clone(),
         name: request.name,
@@ -375,6 +373,7 @@ pub async fn cmd_scheduled_task_update(
         completed: false,
         execution_count: 0,
         last_status: None,
+        workflow_mode: request.workflow_mode,
     };
     // Load existing task to preserve created_at and other fields
     if let Some(existing_task) = load_task_config(&request.id)? {
@@ -385,24 +384,19 @@ pub async fn cmd_scheduled_task_update(
         task.execution_count = existing_task.execution_count;
         task.last_status = existing_task.last_status;
     }
-
     save_task_config(&task)?;
-
     // Save natural language content
     let natural_content = request.natural_language_content.unwrap_or_default();
     save_natural_language_content(&request.id, &natural_content)?;
-
     // Save SKILL.md content (if provided)
     let skill_content = request.skill_md_content.unwrap_or_default();
     if !skill_content.is_empty() {
         save_skill_md_content(&request.id, &skill_content)?;
     }
-
     // Update task pool
     if let Some(pool) = state.get_task_pool().await {
         let _ = scheduled_task_pool::update_task_in_pool(pool, task.clone()).await;
     }
-
     Ok(ScheduledTaskResponse {
         task,
         natural_language_content: Some(natural_content),

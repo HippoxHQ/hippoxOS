@@ -35,14 +35,11 @@ impl TaskScheduler {
         if handle_lock.is_some() {
             return Ok(());
         }
-
         if !self.task.enabled || self.task.completed {
             return Ok(());
         }
-
         let task = self.task.clone();
         let pool_clone = pool.clone();
-
         let handle = tokio::spawn(async move {
             match parse_schedule(&task) {
                 Ok(ScheduleOrInterval::Cron(schedule)) => {
@@ -397,6 +394,7 @@ pub async fn add_cron_job_to_pool(pool: TaskPool, job: CronJob) -> Result<(), St
         completed: false,
         execution_count: 0,
         last_status: None,
+        workflow_mode: None,
     };
     let mut task_scheduler = TaskScheduler::new(virtual_task);
     if let Err(e) = scheduler.start(pool.clone()).await {

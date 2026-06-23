@@ -67,7 +67,6 @@ pub struct LlmInstanceForFrontend {
     pub provider: String,
     pub api_key: String,
     pub api_base: String,
-    pub workflow_mode: String,
     pub default_model: String,
     pub models: Vec<ModelConfig>,
     pub created_at: String,
@@ -85,7 +84,6 @@ impl From<&LlmInstance> for LlmInstanceForFrontend {
             provider: instance.provider.clone(),
             api_key: instance.api_key.clone(),
             api_base: instance.api_base.clone(),
-            workflow_mode: instance.workflow_mode.clone(),
             default_model: instance.default_model.clone(),
             models: instance.models.clone(),
             created_at: instance.created_at.clone().unwrap_or_default(),
@@ -772,7 +770,6 @@ pub async fn cmd_add_llm_instance(request: AddLlmInstanceRequest) -> Result<Stri
         provider: request.provider,
         api_key: request.api_key,
         api_base: request.api_base,
-        workflow_mode: request.workflow_mode,
         default_model: request.default_model,
         models: request.models,
         created_at: Some(now.clone()),
@@ -804,7 +801,6 @@ pub async fn cmd_update_llm_instance(
         existing.provider = instance.provider;
         existing.api_key = instance.api_key;
         existing.api_base = instance.api_base;
-        existing.workflow_mode = instance.workflow_mode;
         existing.default_model = instance.default_model;
         existing.models = instance.models;
         existing.updated_at = Some(chrono::Local::now().to_rfc3339());

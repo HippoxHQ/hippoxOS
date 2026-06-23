@@ -7,7 +7,7 @@ use crate::hippox_core::{get_default_hippox, init_all_hippox_instances};
 use crate::state::AppState;
 use crate::types::Role;
 use crate::workspace::get_default_workspace;
-use hippox::ModelProvider;
+use hippox::{ModelProvider, string_to_workflow_mode};
 use hippox::{Hippox, HippoxResult, WorkflowMode};
 use memcontext::MemContext;
 use serde::{Deserialize, Serialize};
@@ -122,6 +122,7 @@ pub async fn cmd_send_chat_message_async(
     raw_message: String,
     message: String,
     session_id: Option<String>,
+    workflow_mode: Option<String>,
 ) -> Result<String, String> {
     let session = session_id.clone().unwrap_or_else(|| "default".to_string());
     let hippox = get_default_hippox().await?;
@@ -146,9 +147,17 @@ pub async fn cmd_send_chat_message_async(
     let disable_drivers_refs = disabled_drivers
         .as_ref()
         .map(|v| v.iter().map(|s| s.as_str()).collect::<Vec<_>>());
+    // default workflow
+    let workflow_mode_enum = if let Some(mode_str) = workflow_mode {
+        string_to_workflow_mode(&mode_str)
+            .ok_or_else(|| format!("Invalid workflow mode: {}", mode_str))?
+    } else {
+        WorkflowMode::ReAct
+    };
     // Handle HippoxResult from submit
     let core_task_id = match hippox.submit(
         &enhanced_message,
+        workflow_mode_enum,
         Some(workflow_callback),
         Some(skill_callback),
         disable_drivers_refs,

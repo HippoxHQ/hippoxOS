@@ -71,39 +71,39 @@ pub async fn recall_and_compress_history(
     Ok(compressed)
 }
 
-pub async fn recall_session_context(
-    mem: &MemContext,
-    session_id: &str,
-    limit: Option<usize>,
-) -> Result<String, String> {
-    let compressed_history = recall_and_compress_history(mem, session_id, limit).await?;
-    let hippox = get_default_hippox().await?;
-    let recall_prompt = format!(
-        "[SYSTEM_CONTEXT_RECALL]\n\
-         You are now restoring a previous conversation session.\n\
-         Please carefully read and remember the following conversation history.\n\
-         After reading, just reply with 'OK, I have recalled the conversation history.'\n\n\
-         {}\n\n\
-         [END_CONTEXT_RECALL]",
-        compressed_history
-    );
-    // disabled drivers
-    let disabled_drivers = cmd_get_disabled_drivers().await.ok();
-    let disable_drivers_refs = disabled_drivers
-        .as_ref()
-        .map(|v| v.iter().map(|s| s.as_str()).collect::<Vec<_>>());
-    let response = hippox
-        .execute(&recall_prompt, None, None, disable_drivers_refs)
-        .await
-        .into_result()
-        .map_err(|err| format!("Failed to recall session '{}': {}", session_id, err))?;
-    Ok(format!(
-        "Session '{}' recalled. LLM response: {}",
-        session_id,
-        if response.len() > 100 {
-            format!("{}...", &response[..100])
-        } else {
-            response
-        }
-    ))
-}
+// pub async fn recall_session_context(
+//     mem: &MemContext,
+//     session_id: &str,
+//     limit: Option<usize>,
+// ) -> Result<String, String> {
+//     let compressed_history = recall_and_compress_history(mem, session_id, limit).await?;
+//     let hippox = get_default_hippox().await?;
+//     let recall_prompt = format!(
+//         "[SYSTEM_CONTEXT_RECALL]\n\
+//          You are now restoring a previous conversation session.\n\
+//          Please carefully read and remember the following conversation history.\n\
+//          After reading, just reply with 'OK, I have recalled the conversation history.'\n\n\
+//          {}\n\n\
+//          [END_CONTEXT_RECALL]",
+//         compressed_history
+//     );
+//     // disabled drivers
+//     let disabled_drivers = cmd_get_disabled_drivers().await.ok();
+//     let disable_drivers_refs = disabled_drivers
+//         .as_ref()
+//         .map(|v| v.iter().map(|s| s.as_str()).collect::<Vec<_>>());
+//     let response = hippox
+//         .execute(&recall_prompt, None, None, disable_drivers_refs)
+//         .await
+//         .into_result()
+//         .map_err(|err| format!("Failed to recall session '{}': {}", session_id, err))?;
+//     Ok(format!(
+//         "Session '{}' recalled. LLM response: {}",
+//         session_id,
+//         if response.len() > 100 {
+//             format!("{}...", &response[..100])
+//         } else {
+//             response
+//         }
+//     ))
+// }

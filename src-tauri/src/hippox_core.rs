@@ -91,7 +91,6 @@ pub struct LlmInstance {
     pub provider: String,
     pub api_key: String,
     pub api_base: String,
-    pub workflow_mode: String,
     pub default_model: String,
     pub models: Vec<ModelConfig>,
     pub created_at: Option<String>,
@@ -152,13 +151,7 @@ pub(crate) async fn init_single_hippox(
         "custom" => ModelProvider::Custom,
         _ => ModelProvider::OpenAI,
     };
-    let mode = match instance.workflow_mode.to_lowercase().as_str() {
-        "batch" => WorkflowMode::Batch,
-        "chain" => WorkflowMode::Chain,
-        "plan_and_execute" => WorkflowMode::PlanAndExecute,
-        "react" => WorkflowMode::ReAct,
-        _ => WorkflowMode::ReAct,
-    };
+    let mode = WorkflowMode::ReAct;
     let mut extra_keys = instance.extra.clone();
     if !instance.api_base.is_empty() && !extra_keys.contains_key("api_base") {
         extra_keys.insert("api_base".to_string(), instance.api_base.clone());

@@ -56,6 +56,7 @@ export interface TaskInfo {
     resume_data?: string | null;
     /** Files uploaded as part of this task */
     files?: UploadFile[];
+    workflow_mode?: string;
 }
 
 /**

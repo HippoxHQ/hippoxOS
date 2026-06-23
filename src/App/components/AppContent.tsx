@@ -48,6 +48,7 @@ interface AppContentProps {
     message: string,
     sessionId: string,
     files?: UploadFile[],
+    workflowMode?: string,
   ) => void;
   onResetSession: () => void;
   shouldShowWelcome: () => boolean;
@@ -453,8 +454,8 @@ export function AppContent({
       renderContent()
     ) : showWelcome ? (
       <WelcomePage
-        onSendMessage={(msg, files) =>
-          onSendMessage(msg, currentSessionId, files)
+        onSendMessage={(msg, files, workflowMode) =>
+          onSendMessage(msg, currentSessionId, files, workflowMode)
         }
         t={t}
         onDragOverInputChange={setIsDraggingOverInput}

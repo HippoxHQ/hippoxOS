@@ -31,7 +31,7 @@ import { workspaceCommands } from "../../command/workspace";
 export function useSession(
     language: Language,
     isConfigLoaded: boolean,
-    onCloseSkillsManager?: () => void
+    onCloseSkillsManager?: () => void,
 ) {
     /**
      * ID of the currently active session.
@@ -40,6 +40,10 @@ export function useSession(
      * - Empty string when no session is active (welcome page should be shown)
      */
     const [currentSessionId, setCurrentSessionId] = useState<string>("");
+    /**
+     * Current workflow mode for the session
+     */
+    const [currentWorkflowMode, setCurrentWorkflowMode] = useState<string>("ReAct");
     /**
      * Whether session data is still being loaded on app startup.
      * Used to prevent premature rendering and auto-save operations.
@@ -59,6 +63,7 @@ export function useSession(
     const [pendingNewSession, setPendingNewSession] = useState(false);
     /** Translation function for i18n support */
     const { t } = useTranslation(language);
+
     /**
      * Subscribe to taskManager changes.
      * When any data in taskManager changes, increment the version counter,
@@ -130,7 +135,7 @@ export function useSession(
      * This handler orchestrates the entire message sending flow:
      * 1. Resolves the session ID (creates new session if needed)
      * 2. Adds user message to taskManager
-     * 3. Sends message to backend LLM
+     * 3. Sends message to backend LLM with workflow mode
      * 4. Creates a pending assistant message
      * 5. Creates a task for tracking execution
      * 
@@ -142,11 +147,13 @@ export function useSession(
      * @param userMessage - The user's message text
      * @param sessionId - The session ID to send in (optional, uses current if not provided)
      * @param files - Optional files attached to the message
+     * @param workflowMode - Optional workflow mode for this message
      */
     const handleSendMessage = useCallback(async (
         userMessage: string,
         sessionId: string,
         files?: UploadFile[],
+        workflowMode?: string,
     ) => {
         const now = new Date();
         let finalSessionId = sessionId || currentSessionId;
@@ -161,13 +168,14 @@ export function useSession(
             const tempAssistantMessages = taskManager.getAssistantMessagesBySessionAsArray(finalSessionId);
             const tempTasksMap = taskManager.getTasksBySession(finalSessionId);
             const tempTasks = tempTasksMap ? Array.from(tempTasksMap.values()) : [];
-            // Create the real session on disk
+            // Create the real session on disk with workflow mode
             await sessionCommands.createSession(
                 newSessionId,
                 sessionTitle,
                 t("app.newSessionDesc"),
                 [],  // No initial chat content (will be saved later)
-                []   // No initial terminal content
+                [],   // No initial terminal content
+                workflowMode || currentWorkflowMode,  // Save workflow mode to config
             );
             // Move pending data to the new session
             taskManager.loadSessionData(newSessionId, tempTasks, tempUserMessages, tempAssistantMessages);
@@ -177,6 +185,10 @@ export function useSession(
             localStorage.setItem("hippox-current-session", newSessionId);
             window.dispatchEvent(new CustomEvent("session-created"));
             setPendingNewSession(false);
+            // Save workflow mode to localStorage for this session
+            if (workflowMode || currentWorkflowMode) {
+                localStorage.setItem(`workflow_mode_${newSessionId}`, workflowMode || currentWorkflowMode);
+            }
         }
         // Case 2: No session → create brand new session
         else if (!finalSessionId) {
@@ -189,13 +201,17 @@ export function useSession(
                 sessionTitle,
                 t("app.newSessionDesc"),
                 [],
-                []
+                [],
+                workflowMode || currentWorkflowMode,  // Save workflow mode to config
             );
             taskManager.loadSessionData(newSessionId, [], [], []);
             finalSessionId = newSessionId;
             setCurrentSessionId(newSessionId);
             localStorage.setItem("hippox-current-session", newSessionId);
             window.dispatchEvent(new CustomEvent("session-created"));
+            if (workflowMode || currentWorkflowMode) {
+                localStorage.setItem(`workflow_mode_${newSessionId}`, workflowMode || currentWorkflowMode);
+            }
         }
         // Create and add user message
         const userMsg: ChatMessage = {
@@ -212,8 +228,14 @@ export function useSession(
             const workspacePath = workspace?.workspace_path;
             const systemPrompt = getSystemPrompt(language as 'zh' | 'en', workspacePath);
             const fullMessage = `${systemPrompt}\n\n User: ${userMessage}`;
-            // Submit to LLM backend
-            const taskId = await hippoxCommands.sendMessageAsync(userMessage, fullMessage, finalSessionId);
+            // Submit to LLM backend with workflow mode
+            const mode = workflowMode || currentWorkflowMode;
+            const taskId = await hippoxCommands.sendMessageAsync(
+                userMessage,
+                fullMessage,
+                finalSessionId,
+                mode,  // Pass workflow mode to backend
+            );
             const messageId = `llm_${taskId}`;
             // Create pending assistant message (will be updated when task completes)
             const assistantMsg: ChatMessage = {
@@ -235,6 +257,7 @@ export function useSession(
                 created_at: now.toISOString(),
                 updated_at: now.toISOString(),
                 files: files,
+                workflow_mode: mode,  // Store workflow mode in task
             };
             taskManager.addTaskToSession(finalSessionId, newTask);
         } catch (error) {
@@ -248,7 +271,7 @@ export function useSession(
             };
             taskManager.addAssistantMessageToSession(finalSessionId, errorMsg);
         }
-    }, [currentSessionId, t, language]);
+    }, [currentSessionId, t, language, currentWorkflowMode]);
 
     /**
      * Create a new session.
@@ -397,6 +420,10 @@ export function useSession(
         isLoading,
         /** Version counter for triggering auto-save effects */
         taskManagerVersion,
+        /** Current workflow mode for the session */
+        currentWorkflowMode,
+        /** Set current workflow mode */
+        setCurrentWorkflowMode,
         /** Create a new pending session */
         handleNewSession,
         /** Switch to an existing session by ID */

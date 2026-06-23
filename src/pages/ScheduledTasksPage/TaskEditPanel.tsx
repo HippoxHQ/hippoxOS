@@ -16,6 +16,7 @@ import { ScheduledTask } from "./types";
 import { showDialog, DialogType } from "../../components/Dialog";
 import { showToast, ToastType } from "../../components/Toast";
 import { showTooltip } from "../../components/Tooltip";
+import { workflowCommands } from "../../command/workflow";
 
 const EditIcon = () => (
   <svg
@@ -218,9 +219,7 @@ interface TaskEditPanelProps {
   onTaskDeleted: (taskId: string) => void;
   onClose: () => void;
 }
-
 const DEFAULT_WEEK_DAYS = ["日", "一", "二", "三", "四", "五", "六"];
-
 const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
   t,
   task,
@@ -237,20 +236,19 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
   const [skillContent, setSkillContent] = useState("");
   const [skillFileName, setSkillFileName] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
-
+  const [workflowMode, setWorkflowMode] = useState<string>("ReAct");
+  const [workflowModes, setWorkflowModes] = useState<string[]>([]);
+  const [isLoadingWorkflows, setIsLoadingWorkflows] = useState(false);
   const [fixedFrequency, setFixedFrequency] = useState<Frequency>("daily");
   const [fixedTime, setFixedTime] = useState("09:00");
   const [fixedWeekDays, setFixedWeekDays] = useState<number[]>([1]);
   const [fixedMonthDays, setFixedMonthDays] = useState<number[]>([1]);
   const [fixedDate, setFixedDate] = useState("");
-
   const [intervalUnit, setIntervalUnit] = useState<IntervalUnit>("hour");
   const [intervalValue, setIntervalValue] = useState(1);
-
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isToggling, setIsToggling] = useState(false);
-
   const getWeekDayNames = (): string[] => {
     const weekNames = t("scheduled.weekDayNames");
     if (Array.isArray(weekNames) && weekNames.length === 7) {
@@ -266,24 +264,36 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
       t("scheduled.sat") || "六",
     ];
   };
-
   const weekDayNames = getWeekDayNames();
+  const loadWorkflowModes = async () => {
+    setIsLoadingWorkflows(true);
+    try {
+      const modes = await workflowCommands.getWorkflowModeNames();
+      setWorkflowModes(modes);
+      if (modes.length > 0 && !workflowMode) {
+        setWorkflowMode(modes[0]);
+      }
+    } catch (error) {
+      console.error("Failed to load workflow modes:", error);
+    } finally {
+      setIsLoadingWorkflows(false);
+    }
+  };
 
   useEffect(() => {
-    if (task) {
-      loadTaskData();
-    } else if (isCreating) {
-      resetForm();
-    }
-  }, [task, isCreating]);
+    loadWorkflowModes();
+  }, []);
 
   const loadTaskData = async () => {
     if (!task) return;
-
     setName(task.name);
     setScheduleType(task.schedule_type);
     setActionType(task.action_type);
-
+    if (task.workflow_mode) {
+      setWorkflowMode(task.workflow_mode);
+    } else if (workflowModes.length > 0) {
+      setWorkflowMode(workflowModes[0]);
+    }
     if (task.action_type === "naturallanguage") {
       const content = await scheduledTasksCommands.getNaturalLanguage(task.id);
       setNaturalLanguage(content || "");
@@ -295,7 +305,6 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
       setSkillFileName("SKILL.md");
       setNaturalLanguage("");
     }
-
     const { scheduleType: st, config } = fromScheduleConfig(
       task.schedule_config,
     );
@@ -313,6 +322,17 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
     }
   };
 
+  useEffect(() => {
+    if (task) {
+      loadTaskData();
+    } else if (isCreating) {
+      resetForm();
+      if (workflowModes.length > 0) {
+        setWorkflowMode(workflowModes[0]);
+      }
+    }
+  }, [task, isCreating, workflowModes]);
+
   const resetForm = () => {
     setName("");
     setScheduleType("fixed");
@@ -327,6 +347,9 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
     setFixedDate("");
     setIntervalUnit("hour");
     setIntervalValue(1);
+    if (workflowModes.length > 0) {
+      setWorkflowMode(workflowModes[0]);
+    }
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -422,6 +445,7 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
             actionType === "naturallanguage" ? naturalLanguage : undefined,
           skill_md_content:
             actionType === "skillfile" ? skillContent : undefined,
+          workflow_mode: workflowMode,
         };
         const response = await scheduledTasksCommands.update(request);
         onTaskUpdated(response.task);
@@ -440,6 +464,7 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
             actionType === "naturallanguage" ? naturalLanguage : undefined,
           skill_md_content:
             actionType === "skillfile" ? skillContent : undefined,
+          workflow_mode: workflowMode,
         };
         const response = await scheduledTasksCommands.create(request);
         onTaskCreated(response.task);
@@ -544,6 +569,7 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
       setFixedWeekDays([...fixedWeekDays, day].sort());
     }
   };
+
   const toggleMonthDay = (day: number) => {
     if (fixedMonthDays.includes(day)) {
       setFixedMonthDays(fixedMonthDays.filter((d) => d !== day));
@@ -692,7 +718,9 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
       </div>
     );
   }
+
   const isEditMode = !!task;
+
   return (
     <div
       className="task-edit-panel-no-select"
@@ -1040,6 +1068,38 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
               <span>{t("scheduled.typeSkillFile") || "SKILL.md 文件"}</span>
             </label>
           </div>
+        </div>
+
+        {/* Workflow Mode Selection */}
+        <div style={{ marginBottom: "12px" }}>
+          <label style={labelStyle}>
+            {t("scheduled.workflowMode") || "工作流模式"}
+          </label>
+          <select
+            style={selectStyle}
+            value={workflowMode}
+            onChange={(e) => setWorkflowMode(e.target.value)}
+            disabled={isLoadingWorkflows || workflowModes.length === 0}
+          >
+            {workflowModes.map((mode) => (
+              <option key={mode} value={mode}>
+                {mode}
+              </option>
+            ))}
+            {workflowModes.length === 0 && <option value="ReAct">ReAct</option>}
+          </select>
+          {workflowModes.length === 0 && (
+            <div
+              style={{
+                fontSize: "10px",
+                color: "var(--text-muted)",
+                marginTop: "4px",
+              }}
+            >
+              {t("scheduled.noWorkflowModes") ||
+                "暂无工作流模式，使用默认 ReAct"}
+            </div>
+          )}
         </div>
 
         {actionType === "naturallanguage" && (
@@ -1653,6 +1713,58 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
                 }}
               >
                 {task.execution_count || 0} {t("scheduled.times") || "次"}
+              </span>
+            </div>
+
+            {/* Display workflow mode in info section */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: "8px",
+              }}
+            >
+              <span
+                style={{
+                  color: "var(--text-secondary)",
+                  flexShrink: 0,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "4px",
+                }}
+              >
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path
+                    d="M4 7h16M4 12h16M4 17h10"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+                {t("scheduled.workflowMode") || "工作流模式"}:
+              </span>
+              <span
+                style={{
+                  flex: 1,
+                  color: "var(--text-secondary)",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                  fontSize: "11px",
+                  cursor: "pointer",
+                }}
+                onMouseEnter={(e) => {
+                  showTooltip(task.workflow_mode || "ReAct", e.currentTarget);
+                }}
+              >
+                {task.workflow_mode || "ReAct"}
               </span>
             </div>
           </div>

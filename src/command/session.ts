@@ -8,7 +8,8 @@ export const sessionCommands = {
         title: string,
         description: string,
         initialChat: ChatMessage[],
-        initialTerminal: any[]
+        initialTerminal: any[],
+        workflowMode?: string,
     ): Promise<string> {
         return await invoke('cmd_create_dialog_session', {
             sessionId,
@@ -16,6 +17,7 @@ export const sessionCommands = {
             description,
             initialChatContent: JSON.stringify(initialChat, null, 2),
             initialTerminalContent: JSON.stringify(initialTerminal, null, 2),
+            workflowMode,
         });
     },
 
@@ -23,7 +25,11 @@ export const sessionCommands = {
         return await invoke('cmd_list_dialog_sessions');
     },
 
-    async updateSessionConfig(sessionId: string, updates: Partial<DialogSession>): Promise<void> {
+    async loadSessionConfig(sessionId: string): Promise<any | null> {
+        return await invoke('cmd_load_session_config', { sessionId });
+    },
+
+    async updateSessionConfig(sessionId: string, updates: Record<string, any>): Promise<void> {
         return await invoke('cmd_update_session_config', {
             sessionId,
             updates: JSON.stringify(updates),

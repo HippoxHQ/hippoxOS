@@ -36,6 +36,7 @@ export interface ScheduledTask {
   completed: boolean;
   execution_count: number;
   last_status: string | null;
+  workflow_mode?: string;
 }
 
 export interface ScheduledTaskResponse {
@@ -52,6 +53,7 @@ export interface CreateScheduledTaskRequest {
   action_type: ActionType;
   natural_language_content?: string;
   skill_md_content?: string;
+  workflow_mode?: string;
 }
 
 export interface UpdateScheduledTaskRequest {
@@ -63,6 +65,7 @@ export interface UpdateScheduledTaskRequest {
   action_type: ActionType;
   natural_language_content?: string;
   skill_md_content?: string;
+  workflow_mode?: string;
 }
 
 export function toScheduleConfig(

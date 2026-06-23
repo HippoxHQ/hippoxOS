@@ -14,6 +14,7 @@ export interface ScheduledTask {
   last_status: string | null;
   natural_language_content?: string;
   skill_md_content?: string;
+  workflow_mode?: string;
 }
 
 export type ScheduleConfig =

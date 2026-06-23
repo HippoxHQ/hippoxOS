@@ -411,44 +411,6 @@ pub fn cmd_get_pinned_sessions() -> Result<Vec<String>, String> {
 }
 
 #[tauri::command]
-pub fn cmd_create_dialog_session(
-    session_id: &str,
-    title: &str,
-    description: &str,
-    initial_chat_content: &str,
-    initial_terminal_content: &str,
-) -> Result<String, String> {
-    let dir = get_dialog_history_dir();
-    if !dir.exists() {
-        fs::create_dir_all(&dir)
-            .map_err(|e| format!("Failed to create dialog history directory: {}", e))?;
-    }
-    let session_dir = dir.join(session_id);
-    if !session_dir.exists() {
-        fs::create_dir_all(&session_dir)
-            .map_err(|e| format!("Failed to create session directory: {}", e))?;
-    }
-    let config = serde_json::json!({
-        "session_id": session_id,
-        "title": title,
-        "description": description,
-        "created_at": Local::now().to_rfc3339(),
-        "updated_at": Local::now().to_rfc3339(),
-    });
-    let config_path = session_dir.join("config.json");
-    let config_content = serde_json::to_string_pretty(&config)
-        .map_err(|e| format!("Failed to serialize config: {}", e))?;
-    fs::write(&config_path, config_content).map_err(|e| format!("Failed to save config: {}", e))?;
-    let chat_path = session_dir.join("chat.json");
-    fs::write(&chat_path, initial_chat_content)
-        .map_err(|e| format!("Failed to save chat history: {}", e))?;
-    let terminal_path = session_dir.join("terminal.json");
-    fs::write(&terminal_path, initial_terminal_content)
-        .map_err(|e| format!("Failed to save terminal history: {}", e))?;
-    Ok(session_dir.to_string_lossy().to_string())
-}
-
-#[tauri::command]
 pub fn cmd_list_dialog_sessions() -> Result<Vec<serde_json::Value>, String> {
     let dir = get_dialog_history_dir();
     if !dir.exists() {
@@ -730,6 +692,21 @@ pub fn cmd_get_favorites_dir() -> String {
         .join("favorites")
         .to_string_lossy()
         .to_string()
+}
+
+#[tauri::command]
+pub fn cmd_load_session_config(session_id: &str) -> Result<Option<serde_json::Value>, String> {
+    let dir = get_dialog_history_dir();
+    let config_path = dir.join(session_id).join("config.json");
+    if config_path.exists() {
+        let content = fs::read_to_string(&config_path)
+            .map_err(|e| format!("Failed to read config: {}", e))?;
+        let config: serde_json::Value =
+            serde_json::from_str(&content).map_err(|e| format!("Failed to parse config: {}", e))?;
+        Ok(Some(config))
+    } else {
+        Ok(None)
+    }
 }
 
 pub fn get_favorites_dir() -> PathBuf {

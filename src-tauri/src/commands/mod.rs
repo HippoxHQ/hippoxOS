@@ -20,7 +20,9 @@ pub mod task_pool;
 pub mod types;
 pub mod urls;
 pub mod windows;
+pub mod workflow;
 
+pub use workflow::*;
 pub use basis::*;
 pub use chat::*;
 pub use config::*;

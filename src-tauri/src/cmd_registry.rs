@@ -214,5 +214,20 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_get_disabled_drivers,
         commands::cmd_set_disabled_drivers,
         commands::cmd_get_drivers,
+        // workflow
+        commands::cmd_get_workflow_mode_names,
+        commands::cmd_get_workflow_mode_names_zh,
+        commands::cmd_get_workflow_mode_names_en,
+        commands::cmd_get_workflow_mode_names_by_lang,
+        commands::cmd_string_to_workflow_mode,
+        commands::cmd_workflow_mode_to_string,
+        commands::cmd_workflow_mode_display_name,
+        commands::cmd_workflow_mode_display_name_zh,
+        commands::cmd_workflow_mode_display_name_by_lang,
+        commands::cmd_workflow_mode_description_zh,
+        commands::cmd_workflow_mode_description_en,
+        commands::cmd_workflow_mode_description,
+        commands::cmd_get_all_workflow_mode_info,
+        commands::cmd_load_session_config,
     ]
 }

@@ -187,9 +187,21 @@ impl ScheduledTaskExecutor {
         let disable_drivers_refs = disabled_drivers
             .as_ref()
             .map(|v| v.iter().map(|s| s.as_str()).collect::<Vec<_>>());
+        let workflow_mode = self
+            .task
+            .workflow_mode
+            .clone()
+            .unwrap_or_else(|| "ReAct".to_string());
+        let mode = match workflow_mode.as_str() {
+            "ReAct" => hippox::WorkflowMode::ReAct,
+            "Batch" => hippox::WorkflowMode::Batch,
+            "Chain" => hippox::WorkflowMode::Chain,
+            "PlanAndExecute" => hippox::WorkflowMode::PlanAndExecute,
+            _ => hippox::WorkflowMode::ReAct,
+        };
         // Execute the task and wait for completion
         let exec_result = hippox
-            .execute(&prompt, None, None, disable_drivers_refs)
+            .execute(&prompt, mode, None, None, disable_drivers_refs)
             .await;
         match exec_result {
             HippoxResult {
@@ -219,7 +231,6 @@ impl ScheduledTaskExecutor {
                 self.task.id, e
             );
         }
-
         // Update task config with last execution info
         self.update_task_after_execution(&result).await?;
         Ok(result)
@@ -252,7 +263,6 @@ impl ScheduledTaskExecutor {
             Some("failed".to_string())
         };
         task.updated_at = chrono::Local::now().to_rfc3339();
-
         crate::commands::scheduled_tasks::save_task_config(&task)?;
         Ok(())
     }

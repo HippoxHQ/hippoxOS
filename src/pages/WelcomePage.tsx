@@ -10,37 +10,59 @@ import FileUploader from "../components/FileUploader";
 import { zhDefaultPrompts, enDefaultPrompts } from "../types/DefaultPrompt";
 import { showTooltipOnElement } from "../components/Tooltip";
 import { WorkspaceInstance, workspaceCommands } from "../command/workspace";
+import { workflowCommands } from "../command/workflow";
 import { UploadFile } from "../core/types";
 import ArtText from "../components/arts/ArtText";
 import banner from "../assets/banner.svg";
 
 interface WelcomePageProps {
-  onSendMessage: (message: string, files?: UploadFile[]) => void;
+  onSendMessage: (
+    message: string,
+    files?: UploadFile[],
+    workflowMode?: string,
+  ) => void;
   t: (key: string) => string;
   onDragOverInputChange?: (isDragging: boolean) => void;
+  workflowMode?: string;
+  onWorkflowModeChange?: (mode: string) => void;
 }
 
 const WelcomePage: React.FC<WelcomePageProps> = ({
   onSendMessage,
   t,
   onDragOverInputChange,
+  workflowMode: externalWorkflowMode,
+  onWorkflowModeChange,
 }) => {
   const [inputValue, setInputValue] = useState("");
   const [isFocused, setIsFocused] = useState(false);
   const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
   const [showDirectoryMenu, setShowDirectoryMenu] = useState(false);
+  const [showWorkflowMenu, setShowWorkflowMenu] = useState(false);
   const [workspaces, setWorkspaces] = useState<WorkspaceInstance[]>([]);
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string>("");
+  const [workflowModes, setWorkflowModes] = useState<string[]>([]);
+  const [selectedWorkflowMode, setSelectedWorkflowMode] = useState<string>(
+    externalWorkflowMode || "ReAct",
+  );
   const attachmentBtnRef = useRef<HTMLDivElement>(null);
   const attachmentMenuRef = useRef<HTMLDivElement>(null);
   const directoryBtnRef = useRef<HTMLDivElement>(null);
   const directoryMenuRef = useRef<HTMLDivElement>(null);
+  const workflowBtnRef = useRef<HTMLDivElement>(null);
+  const workflowMenuRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [uploadedFiles, setUploadedFiles] = useState<UploadFile[]>([]);
   const [currentPrompts, setCurrentPrompts] = useState<string[]>([]);
   const [language, setLanguage] = useState<"zh" | "en">(
     t("welcome.subtitle") === "原生 LLM 操作系统" ? "zh" : "en",
   );
+
+  useEffect(() => {
+    if (externalWorkflowMode) {
+      setSelectedWorkflowMode(externalWorkflowMode);
+    }
+  }, [externalWorkflowMode]);
 
   const getRandomPrompts = (count: number = 20): string[] => {
     const prompts = isZh ? zhDefaultPrompts : enDefaultPrompts;
@@ -61,6 +83,19 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
     const interval = setInterval(refreshPrompts, 5000);
     return () => clearInterval(interval);
   }, [language]);
+
+  const loadWorkflowModes = async () => {
+    try {
+      const modes = await workflowCommands.getWorkflowModeNames();
+      setWorkflowModes(modes);
+      if (modes.length > 0 && !selectedWorkflowMode) {
+        setSelectedWorkflowMode(modes[0]);
+      }
+    } catch (error) {
+      console.error("Failed to load workflow modes:", error);
+    }
+  };
+
   const loadWorkspaces = async (retryCount: number = 0): Promise<void> => {
     try {
       const config = await workspaceCommands.getWorkspaceConfig();
@@ -97,6 +132,14 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
     }
   };
 
+  const handleWorkflowModeChange = (mode: string) => {
+    setSelectedWorkflowMode(mode);
+    setShowWorkflowMenu(false);
+    if (onWorkflowModeChange) {
+      onWorkflowModeChange(mode);
+    }
+  };
+
   const getSelectedWorkspaceName = (): string => {
     const workspace = workspaces.find((w) => w.id === selectedWorkspaceId);
     if (!workspace) return t("chat.selectWorkspace") || "Workspace";
@@ -124,6 +167,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
 
   useEffect(() => {
     loadWorkspaces();
+    loadWorkflowModes();
   }, []);
 
   useEffect(() => {
@@ -143,6 +187,14 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
         !directoryBtnRef.current.contains(event.target as Node)
       ) {
         setShowDirectoryMenu(false);
+      }
+      if (
+        workflowMenuRef.current &&
+        !workflowMenuRef.current.contains(event.target as Node) &&
+        workflowBtnRef.current &&
+        !workflowBtnRef.current.contains(event.target as Node)
+      ) {
+        setShowWorkflowMenu(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -169,14 +221,14 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
     if (inputValue.trim() || uploadedFiles.length > 0) {
       const message = inputValue.trim();
       const currentFiles = [...uploadedFiles];
-      onSendMessage(message, currentFiles);
+      onSendMessage(message, currentFiles, selectedWorkflowMode);
       setInputValue("");
       setUploadedFiles([]);
     }
   };
 
   const handleExampleClick = (prompt: string) => {
-    onSendMessage(prompt);
+    onSendMessage(prompt, [], selectedWorkflowMode);
   };
 
   const handleAttachment = (type: string) => {
@@ -185,30 +237,6 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
   };
 
   const isZh = t("welcome.subtitle") === "原生 LLM 操作系统";
-
-  const zhExamples = [
-    { text: "打开我的下载文件夹", icon: "📁", command: "open_downloads" },
-    { text: "列出当前目录文件", icon: "📋", command: "list_files" },
-    { text: "创建一个测试文件", icon: "📄", command: "create_file" },
-    { text: "查看系统信息", icon: "💻", command: "system_info" },
-    { text: "清理临时文件", icon: "🗑️", command: "clean_temp" },
-    { text: "截图保存到桌面", icon: "📸", command: "screenshot" },
-    { text: "打开记事本", icon: "📝", command: "open_notepad" },
-    { text: "复制当前时间", icon: "⏰", command: "copy_time" },
-  ];
-
-  const enExamples = [
-    { text: "Open my Downloads folder", icon: "📁", command: "open_downloads" },
-    { text: "List current directory files", icon: "📋", command: "list_files" },
-    { text: "Create a test file", icon: "📄", command: "create_file" },
-    { text: "Check system info", icon: "💻", command: "system_info" },
-    { text: "Clean temporary files", icon: "🗑️", command: "clean_temp" },
-    { text: "Take screenshot to desktop", icon: "📸", command: "screenshot" },
-    { text: "Open Notepad", icon: "📝", command: "open_notepad" },
-    { text: "Copy current time", icon: "⏰", command: "copy_time" },
-  ];
-
-  const examples = isZh ? zhExamples : enExamples;
 
   return (
     <div className="welcome-page">
@@ -641,6 +669,31 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
                   </span>
                   <ChevronRightIcon size={10} className="chevron" />
                 </div>
+                <div
+                  className="icon-btn folder-btn"
+                  ref={workflowBtnRef}
+                  onClick={() => setShowWorkflowMenu(!showWorkflowMenu)}
+                  title={t("chat.selectWorkflowMode") || "Workflow Mode"}
+                >
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <path
+                      d="M4 7h16M4 12h16M4 17h10"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                  <span className="folder-name" title={selectedWorkflowMode}>
+                    {selectedWorkflowMode}
+                  </span>
+                  <ChevronRightIcon size={10} className="chevron" />
+                </div>
                 {showAttachmentMenu && (
                   <div className="attachment-menu" ref={attachmentMenuRef}>
                     <div
@@ -696,6 +749,21 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
                           >
                             {workspace.workspace_path}
                           </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {showWorkflowMenu && (
+                  <div className="directory-menu" ref={workflowMenuRef}>
+                    {workflowModes.map((mode) => (
+                      <div
+                        key={mode}
+                        className={`directory-item ${selectedWorkflowMode === mode ? "selected" : ""}`}
+                        onClick={() => handleWorkflowModeChange(mode)}
+                      >
+                        <div className="directory-item-content">
+                          <div style={{ textAlign: "left" }}>{mode}</div>
                         </div>
                       </div>
                     ))}

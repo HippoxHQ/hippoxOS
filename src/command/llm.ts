@@ -47,7 +47,6 @@ export interface AddLlmInstanceRequest {
   provider: string;
   api_key: string;
   api_base: string;
-  workflow_mode: string;
   default_model: string;
   models: ModelConfig[];
   is_default?: boolean;

@@ -50,8 +50,6 @@ export interface InitConfig {
   workflow_mode?: 'react' | 'batch' | 'chain' | 'plan_and_execute';
 }
 
-
-
 export interface DialogSession {
   session_id: string;
   title: string;
@@ -60,6 +58,7 @@ export interface DialogSession {
   updated_at: string;
   is_pinned: boolean;
   path: string;
+  workflow_mode?: string;
 }
 
 export interface TerminalEntry {
