@@ -169,7 +169,7 @@ interface TopBarProps {
 const topBarStyles = `
   .top-bar {
     height: 40px;
-    background: var(--bg-topbar);
+    background: var(--bg-secondary);
     backdrop-filter: blur(20px);
     border-bottom: 1px solid var(--border-color);
     display: flex;

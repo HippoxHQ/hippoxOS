@@ -1,391 +1,577 @@
-import React, { useState, useEffect } from "react";
-import { SkillData, SkillHistory } from "../../types/skill";
-import { skillsLocalCommands } from "../../command/skills";
+import React, { useState } from "react";
+import { SkillData } from "../../types/skill";
+import { PlayIcon, DeleteIcon, StarIcon, StarFilledIcon } from "../../icons";
+import {
+  skillsMarketCommands,
+  skillsLocalCommands,
+} from "../../command/skills";
 
 interface SkillsManagerSidebarProps {
   t: (key: string, params?: any) => string;
   skills: SkillData[];
-  onSkillsChange?: (skills: SkillData[]) => void;
-  onSelectHistory?: (history: SkillHistory) => void;
-  onSelectSkill?: (skill: SkillData) => void;
+  onSelectSkill: (skill: SkillData) => void;
+  selectedSkillId?: string;
+  onRefresh?: () => void;
 }
-
-type HistoryCategoryType =
-  | "today"
-  | "yesterday"
-  | "last7days"
-  | "last30days"
-  | "older";
-
-const historyCategories: { key: string; type: HistoryCategoryType }[] = [
-  { key: "skillsManager.historyCategories.today", type: "today" },
-  { key: "skillsManager.historyCategories.yesterday", type: "yesterday" },
-  { key: "skillsManager.historyCategories.last7days", type: "last7days" },
-  { key: "skillsManager.historyCategories.last30days", type: "last30days" },
-  { key: "skillsManager.historyCategories.older", type: "older" },
-];
 
 const SkillsManagerSidebar: React.FC<SkillsManagerSidebarProps> = ({
   t,
   skills,
-  onSelectHistory,
+  onSelectSkill,
+  selectedSkillId,
+  onRefresh,
 }) => {
-  const [skillHistory, setSkillHistory] = useState<SkillHistory[]>([]);
   const [expandedCategories, setExpandedCategories] = useState<
-    Record<HistoryCategoryType, boolean>
-  >({
-    today: true,
-    yesterday: true,
-    last7days: true,
-    last30days: true,
-    older: true,
+    Record<string, boolean>
+  >(() => {
+    const initial: Record<string, boolean> = {};
+    const grouped = skills.reduce<Record<string, SkillData[]>>((acc, skill) => {
+      const category = skill.category || "other";
+      if (!acc[category]) {
+        acc[category] = [];
+      }
+      acc[category].push(skill);
+      return acc;
+    }, {});
+    Object.keys(grouped).forEach((cat) => {
+      initial[cat] = true;
+    });
+    return initial;
   });
   const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const [favoritedSkills, setFavoritedSkills] = useState<Set<string>>(
+    new Set(),
+  );
+  const [favoritingId, setFavoritingId] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadHistory();
-  }, []);
-
-  const loadHistory = async () => {
+  const loadFavorites = async () => {
     try {
-      const history = await skillsLocalCommands.getAllSkillHistory();
-      const sortedHistory = [...history].sort(
-        (a, b) =>
-          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
-      );
-      setSkillHistory(sortedHistory);
+      const favoritedIds = await skillsMarketCommands.getFavoritedSkills();
+      setFavoritedSkills(new Set(favoritedIds));
     } catch (error) {
-      console.error("Failed to load history:", error);
+      console.error("Failed to load favorites:", error);
     }
   };
 
-  const toggleCategory = (categoryType: HistoryCategoryType) => {
+  React.useEffect(() => {
+    loadFavorites();
+  }, []);
+
+  const isFavorited = (skill: SkillData): boolean => {
+    return favoritedSkills.has(`${skill.category}/${skill.id}`);
+  };
+
+  const handleFavorite = async (skill: SkillData, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setFavoritingId(skill.id);
+    try {
+      const favoriteId = `${skill.category}/${skill.id}`;
+      const isFav = favoritedSkills.has(favoriteId);
+      if (isFav) {
+        await skillsLocalCommands.unfavoriteLocalSkill(
+          skill.id,
+          skill.category || "other",
+        );
+        setFavoritedSkills((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(favoriteId);
+          return newSet;
+        });
+      } else {
+        await skillsLocalCommands.favoriteLocalSkill(
+          skill.id,
+          skill.category || "other",
+        );
+        setFavoritedSkills((prev) => {
+          const newSet = new Set(prev);
+          newSet.add(favoriteId);
+          return newSet;
+        });
+      }
+    } catch (error) {
+      console.error("Failed to toggle favorite:", error);
+    } finally {
+      setFavoritingId(null);
+    }
+  };
+
+  const handleDelete = async (skill: SkillData, e: React.MouseEvent) => {
+    e.stopPropagation();
+    // eslint-disable-next-line no-restricted-globals
+    if (confirm(t("skillsManager.confirmDelete"))) {
+      try {
+        await skillsLocalCommands.deleteSkill(
+          skill.id,
+          skill.category || "other",
+        );
+        onRefresh?.();
+      } catch (error) {
+        console.error("Failed to delete skill:", error);
+      }
+    }
+  };
+
+  const handleRun = (skill: SkillData, e: React.MouseEvent) => {
+    e.stopPropagation();
+    window.dispatchEvent(new CustomEvent("run-skill", { detail: { skill } }));
+  };
+
+  const toggleCategory = (category: string) => {
     setExpandedCategories((prev) => ({
       ...prev,
-      [categoryType]: !prev[categoryType],
+      [category]: !prev[category],
     }));
   };
 
-  const sortedSkills = [...skills].sort(
-    (a, b) =>
-      new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+  const groupedSkills = skills.reduce<Record<string, SkillData[]>>(
+    (acc, skill) => {
+      const category = skill.category || "other";
+      if (!acc[category]) {
+        acc[category] = [];
+      }
+      acc[category].push(skill);
+      return acc;
+    },
+    {},
   );
 
-  const totalSteps = sortedSkills.reduce(
-    (acc, skill) => acc + skill.steps.length,
-    0,
-  );
-  const totalMaterials = sortedSkills.reduce(
+  const categoryKeys = Object.keys(groupedSkills);
+  const defaultExpanded: Record<string, boolean> = {};
+  if (categoryKeys.length > 0) {
+    defaultExpanded[categoryKeys[0]] = true;
+  }
+  const initialExpanded = { ...defaultExpanded, ...expandedCategories };
+
+  const sortSkillsByDate = (skillsList: SkillData[]) => {
+    return [...skillsList].sort(
+      (a, b) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+    );
+  };
+
+  const getCategoryColor = (category: string): string => {
+    const colors = [
+      "#6366f1",
+      "#8b5cf6",
+      "#ec4899",
+      "#f43f5e",
+      "#f59e0b",
+      "#eab308",
+      "#84cc16",
+      "#10b981",
+      "#06b6d4",
+      "#3b82f6",
+      "#ef4444",
+      "#14b8a6",
+      "#a855f7",
+      "#d946ef",
+      "#f97316",
+      "#0ea5e9",
+    ];
+    let hash = 0;
+    for (let i = 0; i < category.length; i++) {
+      hash = (hash << 5) - hash + category.charCodeAt(i);
+      hash |= 0;
+    }
+    return colors[Math.abs(hash) % colors.length];
+  };
+
+  const totalSteps = skills.reduce((acc, skill) => acc + skill.steps.length, 0);
+  const totalMaterials = skills.reduce(
     (acc, skill) =>
       acc + skill.steps.reduce((a, s) => a + s.materials.length, 0),
     0,
   );
-  const incompleteSkills = sortedSkills.filter(
-    (s) => !s.description || s.steps.length === 0 || !s.steps[0]?.description,
-  ).length;
+  const incompleteSkills = skills.filter((s) => {
+    if (!s.description || s.description.trim() === "") return true;
+    if (s.steps.length === 0) return true;
+    if (
+      s.steps.some(
+        (step) => !step.description || step.description.trim() === "",
+      )
+    )
+      return true;
+    return false;
+  }).length;
 
-  const getHistoryCategory = (history: SkillHistory): HistoryCategoryType => {
-    const now = new Date();
-    const historyDate = new Date(history.timestamp);
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
-    const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
-    const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
-    if (historyDate >= today) return "today";
-    if (historyDate >= yesterday) return "yesterday";
-    if (historyDate >= weekAgo) return "last7days";
-    if (historyDate >= monthAgo) return "last30days";
-    return "older";
+  const styles: Record<string, React.CSSProperties> = {
+    container: {
+      width: "280px",
+      background: "var(--bg-secondary)",
+      borderRight: "1px solid var(--border-color)",
+      display: "flex",
+      flexDirection: "column",
+      overflow: "hidden",
+      flexShrink: 0,
+    },
+    statsSection: {
+      padding: "10px 10px",
+      borderBottom: "1px solid var(--border-color)",
+      flexShrink: 0,
+    },
+    statsTitle: {
+      fontSize: "12px",
+      fontWeight: 600,
+      color: "var(--text-secondary)",
+      marginBottom: "10px",
+      letterSpacing: "0.5px",
+    },
+    statsGrid: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: "10px",
+    },
+    statCard: {
+      background: "var(--bg-tertiary)",
+      borderRadius: "8px",
+      padding: "8px 10px",
+      textAlign: "center",
+    },
+    statNumber: {
+      fontSize: "18px",
+      fontWeight: 700,
+      color: "var(--accent-color)",
+    },
+    statLabel: {
+      fontSize: "10px",
+      color: "var(--text-secondary)",
+      marginTop: "2px",
+    },
+    statWarning: {
+      background: "rgba(239, 68, 68, 0.1)",
+    },
+    statWarningNumber: {
+      color: "#ef4444",
+    },
+    list: {
+      background: "var(--bg-primary)",
+      flex: 1,
+      overflowY: "auto",
+    },
+    categoryHeader: {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      padding: "10px 10px",
+      cursor: "pointer",
+      fontSize: "12px",
+      fontWeight: 600,
+      color: "var(--text-secondary)",
+      letterSpacing: "0.3px",
+      borderBottom: "1px solid var(--border-color)",
+      userSelect: "none",
+      background: "var(--bg-secondary)",
+    },
+    categoryArrow: {
+      fontSize: "10px",
+      transition: "transform 0.15s",
+    },
+    skillCard: {
+      background: "var(--bg-secondary)",
+      padding: "10px 12px",
+      borderBottom: "1px solid var(--border-color)",
+      cursor: "pointer",
+      WebkitTapHighlightColor: "transparent",
+      userSelect: "none",
+      transition: "none",
+      borderLeft: "3px solid transparent",
+    },
+    skillCardHovered: {
+      background: "var(--hover-bg)",
+    },
+    skillCardActive: {
+      background: "var(--accent-glow)",
+      borderLeft: "3px solid var(--accent-color)",
+      borderBottom: "1px solid var(--border-color)",
+    },
+    skillHeader: {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginBottom: "6px",
+      flexWrap: "wrap",
+      gap: "4px",
+    },
+    skillName: {
+      fontSize: "14px",
+      fontWeight: 600,
+      color: "var(--text-primary)",
+    },
+    skillMeta: {
+      display: "flex",
+      alignItems: "center",
+      gap: "12px",
+      marginBottom: "6px",
+      fontSize: "11px",
+      color: "var(--text-muted)",
+      flexWrap: "wrap",
+    },
+    skillCategoryTag: {
+      background: "var(--bg-tertiary)",
+      padding: "0 6px",
+      borderRadius: "8px",
+    },
+    skillDescription: {
+      fontSize: "12px",
+      color: "var(--text-secondary)",
+      lineHeight: 1.4,
+      display: "-webkit-box",
+      WebkitLineClamp: 2,
+      WebkitBoxOrient: "vertical",
+      overflow: "hidden",
+    },
+    iconButton: {
+      width: "26px",
+      height: "26px",
+      borderRadius: "6px",
+      background: "transparent",
+      border: "1px solid var(--border-color)",
+      cursor: "pointer",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      color: "var(--text-secondary)",
+      flexShrink: 0,
+    },
+    iconButtonHover: {
+      background: "var(--hover-bg)",
+      color: "var(--text-primary)",
+      borderColor: "var(--accent-color)",
+    },
+    iconButtonActive: {
+      color: "#f59e0b",
+      borderColor: "#f59e0b",
+    },
+    iconButtonDangerHover: {
+      background: "rgba(239, 68, 68, 0.1)",
+      color: "#ef4444",
+      borderColor: "#ef4444",
+    },
+    rightActions: {
+      display: "flex",
+      gap: "6px",
+      alignItems: "center",
+    },
+    emptyState: {
+      textAlign: "center",
+      padding: "40px 16px",
+      color: "var(--text-tertiary)",
+      fontSize: "13px",
+    },
   };
 
-  const getGroupedHistory = () => {
-    const grouped: Record<HistoryCategoryType, SkillHistory[]> = {
-      today: [],
-      yesterday: [],
-      last7days: [],
-      last30days: [],
-      older: [],
-    };
-    skillHistory.forEach((history) => {
-      const category = getHistoryCategory(history);
-      grouped[category].push(history);
-    });
-    return grouped;
-  };
-  const getActionIcon = (action: string) => {
-    switch (action) {
-      case "create":
-        return "➕";
-      case "update":
-        return "✏️";
-      case "delete":
-        return "🗑️";
-      default:
-        return "📄";
-    }
-  };
-  const getActionText = (action: string): string => {
-    switch (action) {
-      case "create":
-        return t("skillsManager.historyActions.create");
-      case "update":
-        return t("skillsManager.historyActions.update");
-      case "delete":
-        return t("skillsManager.historyActions.delete");
-      default:
-        return t("skillsManager.historyActions.modify");
-    }
-  };
-  const groupedHistory = getGroupedHistory();
-  const getUniqueKey = (history: SkillHistory, index: number) => {
-    return `${history.id}_${history.timestamp}_${index}`;
-  };
   return (
-    <div className="skill-editor-sidebar">
-      <style>{`
-        .skill-editor-sidebar {
-          width: 280px;
-          background: var(--bg-secondary);
-          border-right: 1px solid var(--border-color);
-          display: flex;
-          flex-direction: column;
-          overflow: hidden;
-        }
-
-        .stats-section {
-          padding: 16px;
-          border-bottom: 1px solid var(--border-color);
-        }
-
-        .stats-title {
-          font-size: 12px;
-          font-weight: 600;
-          color: var(--text-secondary);
-          margin-bottom: 12px;
-          letter-spacing: 0.5px;
-        }
-
-        .stats-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 12px;
-        }
-
-        .stat-card {
-          background: var(--bg-tertiary);
-          border-radius: 8px;
-          padding: 8px 10px;
-          text-align: center;
-        }
-
-        .stat-number {
-          font-size: 20px;
-          font-weight: 700;
-          color: var(--accent-color);
-        }
-
-        .stat-label {
-          font-size: 10px;
-          color: var(--text-secondary);
-          margin-top: 4px;
-        }
-
-        .stat-warning {
-          background: rgba(239, 68, 68, 0.1);
-        }
-
-        .stat-warning .stat-number {
-          color: #ef4444;
-        }
-
-        .history-section {
-          flex: 1;
-          overflow-y: auto;
-          padding: 12px;
-        }
-
-        .category-header {
-          font-size: 12px;
-          font-weight: 600;
-          color: var(--text-secondary);
-          padding: 12px 0 8px 4px;
-          letter-spacing: 0.5px;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          cursor: pointer;
-          user-select: none;
-        }
-
-        .category-header:hover {
-          color: var(--text-primary);
-        }
-
-        .category-arrow {
-          font-size: 12px;
-          // transition: transform 0.1s;
-        }
-
-        .history-card {
-          background: var(--bg-secondary); 
-          border-radius: 10px;
-          padding: 10px 12px;
-          margin-bottom: 6px;
-          border: 1px solid var(--border-color);
-          cursor: pointer;
-          // transition: background 0.2s ease;
-          display: flex;
-          align-items: center;
-          gap: 10px;
-        }
-
-        .history-card:hover {
-          background: var(--bg-tertiary);
-        }
-
-        .history-icon {
-          font-size: 14px;
-          flex-shrink: 0;
-        }
-
-        .history-info {
-          flex: 1;
-          min-width: 0;
-        }
-
-        .history-title {
-          font-size: 14px;
-          font-weight: 500;
-          color: var(--text-primary);
-          margin-bottom: 6px;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-        }
-
-        .history-time {
-          font-size: 11px;
-          color: var(--text-secondary);
-        }
-
-        .history-action {
-          font-size: 11px;
-          padding: 2px 6px;
-          border-radius: 10px;
-          background: var(--bg-primary);
-          color: var(--text-secondary);
-          flex-shrink: 0;
-        }
-
-        .empty-history {
-          text-align: center;
-          padding: 40px;
-          color: var(--text-secondary);
-          font-size: 13px;
-        }
-
-        :root {
-          --bg-primary: #0f1117;
-          --bg-secondary: #1a1d26;
-          --bg-tertiary: #22252f;
-          --border-color: #2d303a;
-          --text-primary: #e8edf2;
-          --text-secondary: #9ca3af;
-          --accent-color: #818cf8;
-          --hover-bg: rgba(232, 237, 242, 0.08);
-        }
-
-        [data-theme="light"] {
-          --bg-primary: #f3f4f6;
-          --bg-secondary: #ffffff;
-          --bg-tertiary: #e5e7eb;
-          --border-color: #d1d5db;
-          --text-primary: #111827;
-          --text-secondary: #4b5563;
-          --accent-color: #6366f1;
-          --hover-bg: rgba(0, 0, 0, 0.04);
-        }
-      `}</style>
-
-      <div className="stats-section">
-        <div className="stats-title">📊 {t("skillsManager.stats")}</div>
-        <div className="stats-grid">
-          <div className="stat-card">
-            <div className="stat-number">{sortedSkills.length}</div>
-            <div className="stat-label">{t("skillsManager.totalSkills")}</div>
+    <div style={styles.container}>
+      <div style={styles.statsSection}>
+        <div style={styles.statsTitle}>📊 {t("skillsManager.stats")}</div>
+        <div style={styles.statsGrid}>
+          <div style={styles.statCard}>
+            <div style={styles.statNumber}>{skills.length}</div>
+            <div style={styles.statLabel}>{t("skillsManager.totalSkills")}</div>
           </div>
-          <div className="stat-card">
-            <div className="stat-number">{totalSteps}</div>
-            <div className="stat-label">{t("skillsManager.totalSteps")}</div>
+          <div style={styles.statCard}>
+            <div style={styles.statNumber}>{totalSteps}</div>
+            <div style={styles.statLabel}>{t("skillsManager.totalSteps")}</div>
           </div>
-          <div className="stat-card">
-            <div className="stat-number">{totalMaterials}</div>
-            <div className="stat-label">
+          <div style={styles.statCard}>
+            <div style={styles.statNumber}>{totalMaterials}</div>
+            <div style={styles.statLabel}>
               {t("skillsManager.totalMaterials")}
             </div>
           </div>
           <div
-            className={`stat-card ${incompleteSkills > 0 ? "stat-warning" : ""}`}
+            style={{
+              ...styles.statCard,
+              ...(incompleteSkills > 0 ? styles.statWarning : {}),
+            }}
           >
-            <div className="stat-number">{incompleteSkills}</div>
-            <div className="stat-label">{t("skillsManager.incomplete")}</div>
+            <div
+              style={{
+                ...styles.statNumber,
+                ...(incompleteSkills > 0 ? styles.statWarningNumber : {}),
+              }}
+            >
+              {incompleteSkills}
+            </div>
+            <div style={styles.statLabel}>{t("skillsManager.incomplete")}</div>
           </div>
         </div>
       </div>
-
-      <div className="history-section">
-        <div className="stats-title" style={{ marginBottom: "8px" }}>
-          📝 {t("skillsManager.modifyHistory")}
-        </div>
-        {historyCategories.map((category) => {
-          const categoryHistory = groupedHistory[category.type];
-          if (categoryHistory.length === 0) return null;
-          return (
-            <div key={category.type}>
-              <div
-                className="category-header"
-                onClick={() => toggleCategory(category.type)}
-              >
-                <span>{t(category.key)}</span>
-                <span
-                  className="category-arrow"
-                  style={{
-                    transform: expandedCategories[category.type]
-                      ? "rotate(0deg)"
-                      : "rotate(-90deg)",
+      <div style={styles.list}>
+        {Object.keys(groupedSkills).length === 0 ? (
+          <div style={styles.emptyState}>{t("skillsManager.noSkills")}</div>
+        ) : (
+          Object.keys(groupedSkills).map((category) => {
+            const skillsInCategory = sortSkillsByDate(groupedSkills[category]);
+            const isExpanded = initialExpanded[category] !== false;
+            const categoryColor = getCategoryColor(category);
+            return (
+              <div key={category}>
+                <div
+                  style={styles.categoryHeader}
+                  onClick={() => toggleCategory(category)}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.color = "var(--text-primary)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.color = "var(--text-secondary)";
                   }}
                 >
-                  ▼
-                </span>
-              </div>
-              {expandedCategories[category.type] &&
-                categoryHistory.map((history, idx) => (
-                  <div
-                    key={getUniqueKey(history, idx)}
-                    className="history-card"
-                    onMouseEnter={() => setHoveredId(history.id)}
-                    onMouseLeave={() => setHoveredId(null)}
-                    onClick={() => onSelectHistory?.(history)}
+                  <span
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "6px",
+                    }}
                   >
-                    <div className="history-icon">
-                      {getActionIcon(history.action)}
-                    </div>
-                    <div className="history-info">
-                      <div className="history-title">{history.skill_name}</div>
-                      <div className="history-time">
-                        {new Date(history.timestamp).toLocaleString()}
+                    <span
+                      style={{
+                        display: "inline-block",
+                        width: "8px",
+                        height: "8px",
+                        borderRadius: "50%",
+                        background: categoryColor,
+                        flexShrink: 0,
+                      }}
+                    />
+                    {category}
+                    <span
+                      style={{
+                        fontSize: "10px",
+                        color: "var(--text-tertiary)",
+                        fontWeight: 400,
+                      }}
+                    >
+                      ({skillsInCategory.length})
+                    </span>
+                  </span>
+                  <span
+                    style={{
+                      ...styles.categoryArrow,
+                      transform: isExpanded ? "rotate(0deg)" : "rotate(-90deg)",
+                    }}
+                  >
+                    ▼
+                  </span>
+                </div>
+                {isExpanded &&
+                  skillsInCategory.map((skill) => {
+                    const isActive = selectedSkillId === skill.id;
+                    const isHovered = hoveredId === skill.id;
+                    const favorited = isFavorited(skill);
+                    return (
+                      <div
+                        key={skill.id}
+                        style={{
+                          ...styles.skillCard,
+                          ...(isHovered ? styles.skillCardHovered : {}),
+                        }}
+                        onMouseEnter={() => setHoveredId(skill.id)}
+                        onMouseLeave={() => setHoveredId(null)}
+                        onClick={() => onSelectSkill(skill)}
+                      >
+                        <div style={styles.skillHeader}>
+                          <span style={styles.skillName}>{skill.name}</span>
+                          <div style={styles.rightActions}>
+                            <button
+                              style={{
+                                ...styles.iconButton,
+                                ...(favorited ? styles.iconButtonActive : {}),
+                              }}
+                              onClick={(e) => handleFavorite(skill, e)}
+                              disabled={favoritingId === skill.id}
+                              title={
+                                favorited
+                                  ? t("skillsManager.unfavorite")
+                                  : t("skillsManager.favorite")
+                              }
+                              onMouseEnter={(e) => {
+                                if (!favorited) {
+                                  e.currentTarget.style.background =
+                                    "var(--hover-bg)";
+                                  e.currentTarget.style.color =
+                                    "var(--text-primary)";
+                                }
+                              }}
+                              onMouseLeave={(e) => {
+                                if (!favorited) {
+                                  e.currentTarget.style.background =
+                                    "transparent";
+                                  e.currentTarget.style.color =
+                                    "var(--text-secondary)";
+                                }
+                              }}
+                            >
+                              {favorited ? (
+                                <StarFilledIcon size={12} />
+                              ) : (
+                                <StarIcon size={12} />
+                              )}
+                            </button>
+                            <button
+                              style={styles.iconButton}
+                              onClick={(e) => handleRun(skill, e)}
+                              title={t("skillsManager.run")}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.background =
+                                  "var(--hover-bg)";
+                                e.currentTarget.style.color =
+                                  "var(--text-primary)";
+                                e.currentTarget.style.borderColor =
+                                  "var(--accent-color)";
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.background =
+                                  "transparent";
+                                e.currentTarget.style.color =
+                                  "var(--text-secondary)";
+                                e.currentTarget.style.borderColor =
+                                  "var(--border-color)";
+                              }}
+                            >
+                              <PlayIcon size={12} />
+                            </button>
+                            <button
+                              style={styles.iconButton}
+                              onClick={(e) => handleDelete(skill, e)}
+                              title={t("skillsManager.delete")}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.background =
+                                  "rgba(239, 68, 68, 0.1)";
+                                e.currentTarget.style.color = "#ef4444";
+                                e.currentTarget.style.borderColor = "#ef4444";
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.background =
+                                  "transparent";
+                                e.currentTarget.style.color =
+                                  "var(--text-secondary)";
+                                e.currentTarget.style.borderColor =
+                                  "var(--border-color)";
+                              }}
+                            >
+                              <DeleteIcon size={14} />
+                            </button>
+                          </div>
+                        </div>
+                        <div style={styles.skillMeta}>
+                          <span>{skill.steps?.length || 0} steps</span>
+                          {skill.tags && (
+                            <span style={styles.skillCategoryTag}>
+                              {skill.tags.split(",").slice(0, 2).join(", ")}
+                            </span>
+                          )}
+                        </div>
+                        <div style={styles.skillDescription}>
+                          {skill.description ||
+                            t("skillsManager.noDescription")}
+                        </div>
                       </div>
-                    </div>
-                    <div className="history-action">
-                      {getActionText(history.action)}
-                    </div>
-                  </div>
-                ))}
-            </div>
-          );
-        })}
-        {skillHistory.length === 0 && (
-          <div className="empty-history">{t("skillsManager.noHistory")}</div>
+                    );
+                  })}
+              </div>
+            );
+          })
         )}
       </div>
     </div>

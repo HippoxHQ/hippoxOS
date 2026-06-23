@@ -353,9 +353,9 @@ const SkillsManager: React.FC<SkillsManagerProps> = ({
       <SkillsManagerSidebar
         t={t}
         skills={skills}
-        onSelectHistory={handleSelectHistory}
+        onSelectSkill={loadSkill}
+        selectedSkillId={currentSkill?.id}
       />
-
       <div style={styles.main}>
         {!showEditor ? (
           <SkillCardGrid

@@ -633,28 +633,6 @@ const WorkspacePanel: React.FC<WorkspacePanelProps> = ({ t }) => {
           50% { opacity: 0.6; transform: scale(1.05); }
         }
       `}</style>
-      <div
-        style={{
-          padding: "12px 16px",
-          borderBottom: "1px solid var(--border-color)",
-          background: "var(--bg-secondary)",
-          flexShrink: 0,
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          <FolderIcon size={16} />
-          <span
-            style={{
-              fontSize: "13px",
-              fontWeight: 600,
-              color: "var(--text-primary)",
-              letterSpacing: "0.3px",
-            }}
-          >
-            {t("workspace.title") || "Workspace"}
-          </span>
-        </div>
-      </div>
 
       <div
         style={{
