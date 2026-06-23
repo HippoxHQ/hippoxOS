@@ -204,8 +204,17 @@ const FavoritesPanel: React.FC<FavoritesPanelProps> = ({
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      // transition: "all 0.2s",
       color: "var(--text-secondary)",
+      // transition: "all 0.15s",
+    },
+    iconButtonHover: {
+      background: "var(--hover-bg)",
+      color: "var(--text-primary)",
+      borderColor: "var(--accent-color)",
+    },
+    iconButtonActive: {
+      color: "#f59e0b",
+      borderColor: "#f59e0b",
     },
     rightActions: {
       display: "flex",
@@ -295,12 +304,25 @@ const FavoritesPanel: React.FC<FavoritesPanelProps> = ({
                   </div>
                   <div style={styles.rightActions}>
                     <button
-                      style={{ ...styles.iconButton, color: "#f59e0b" }}
+                      style={{
+                        ...styles.iconButton,
+                        color: "#f59e0b",
+                        borderColor: "#f59e0b",
+                      }}
                       onClick={(e) => {
                         e.stopPropagation();
                         handleDelete(skill.id);
                       }}
                       title={t("market.unfavorite") || "Remove"}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background =
+                          "rgba(245, 158, 11, 0.15)";
+                        e.currentTarget.style.borderColor = "#f59e0b";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = "transparent";
+                        e.currentTarget.style.borderColor = "#f59e0b";
+                      }}
                     >
                       <StarFilledIcon size={12} />
                     </button>
@@ -311,6 +333,18 @@ const FavoritesPanel: React.FC<FavoritesPanelProps> = ({
                         handleRun(skill);
                       }}
                       title={t("market.run") || "Run"}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = "var(--hover-bg)";
+                        e.currentTarget.style.color = "var(--text-primary)";
+                        e.currentTarget.style.borderColor =
+                          "var(--accent-color)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = "transparent";
+                        e.currentTarget.style.color = "var(--text-secondary)";
+                        e.currentTarget.style.borderColor =
+                          "var(--border-color)";
+                      }}
                     >
                       <PlayIcon size={12} />
                     </button>

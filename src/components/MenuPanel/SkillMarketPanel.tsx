@@ -378,8 +378,13 @@ const SkillMarketPanel: React.FC<SkillMarketPanelProps> = ({
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      // transition: "all 0.2s",
+      transition: "all 0.15s",
       color: "var(--text-secondary)",
+    },
+    iconButtonHover: {
+      background: "var(--hover-bg)",
+      color: "var(--text-primary)",
+      borderColor: "var(--accent-color)",
     },
     modalOverlay: {
       position: "fixed",
@@ -609,6 +614,7 @@ const SkillMarketPanel: React.FC<SkillMarketPanelProps> = ({
                       color: skill.favorited
                         ? "#f59e0b"
                         : "var(--text-tertiary)",
+                      ...(skill.favorited ? { borderColor: "#f59e0b" } : {}),
                     }}
                     onClick={(e) => {
                       e.stopPropagation();
@@ -620,6 +626,25 @@ const SkillMarketPanel: React.FC<SkillMarketPanelProps> = ({
                         ? t("market.unfavorite") || "Unfavorite"
                         : t("market.favorite") || "Favorite"
                     }
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = "var(--hover-bg)";
+                      if (!skill.favorited) {
+                        e.currentTarget.style.color = "var(--text-primary)";
+                        e.currentTarget.style.borderColor =
+                          "var(--accent-color)";
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "transparent";
+                      if (!skill.favorited) {
+                        e.currentTarget.style.color = "var(--text-tertiary)";
+                        e.currentTarget.style.borderColor =
+                          "var(--border-color)";
+                      } else {
+                        e.currentTarget.style.color = "#f59e0b";
+                        e.currentTarget.style.borderColor = "#f59e0b";
+                      }
+                    }}
                   >
                     {skill.favorited ? (
                       <StarFilledIcon size={14} />
@@ -627,6 +652,7 @@ const SkillMarketPanel: React.FC<SkillMarketPanelProps> = ({
                       <StarIcon size={14} />
                     )}
                   </button>
+
                   <button
                     style={styles.iconButton}
                     onClick={(e) => {
@@ -634,6 +660,16 @@ const SkillMarketPanel: React.FC<SkillMarketPanelProps> = ({
                       handleRun(skill);
                     }}
                     title={t("market.run") || "Run"}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = "var(--hover-bg)";
+                      e.currentTarget.style.color = "var(--text-primary)";
+                      e.currentTarget.style.borderColor = "var(--accent-color)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "transparent";
+                      e.currentTarget.style.color = "var(--text-secondary)";
+                      e.currentTarget.style.borderColor = "var(--border-color)";
+                    }}
                   >
                     <PlayIcon size={14} />
                   </button>

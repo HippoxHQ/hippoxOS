@@ -498,10 +498,7 @@ const SkillsManagerSidebar: React.FC<SkillsManagerSidebarProps> = ({
                           <span style={styles.skillName}>{skill.name}</span>
                           <div style={styles.rightActions}>
                             <button
-                              style={{
-                                ...styles.iconButton,
-                                ...(favorited ? styles.iconButtonActive : {}),
-                              }}
+                              className={`icon-btn ${favorited ? "active" : ""}`}
                               onClick={(e) => handleFavorite(skill, e)}
                               disabled={favoritingId === skill.id}
                               title={
@@ -509,22 +506,6 @@ const SkillsManagerSidebar: React.FC<SkillsManagerSidebarProps> = ({
                                   ? t("skillsManager.unfavorite")
                                   : t("skillsManager.favorite")
                               }
-                              onMouseEnter={(e) => {
-                                if (!favorited) {
-                                  e.currentTarget.style.background =
-                                    "var(--hover-bg)";
-                                  e.currentTarget.style.color =
-                                    "var(--text-primary)";
-                                }
-                              }}
-                              onMouseLeave={(e) => {
-                                if (!favorited) {
-                                  e.currentTarget.style.background =
-                                    "transparent";
-                                  e.currentTarget.style.color =
-                                    "var(--text-secondary)";
-                                }
-                              }}
                             >
                               {favorited ? (
                                 <StarFilledIcon size={12} />

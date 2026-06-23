@@ -39,6 +39,7 @@ pub struct HippoxAppConfig {
     pub workspace: WorkspaceConfig,
     pub engine: EngineConfig,
     pub system: SystemConfig,
+    pub workspace_config: WorkspaceConfigData,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -248,6 +249,7 @@ impl Default for HippoxAppConfig {
                 max_concurrent_tasks: 10,
                 request_timeout: 30,
             },
+            workspace_config: WorkspaceConfigData::default(),
         }
     }
 }
@@ -1016,7 +1018,14 @@ pub async fn cmd_get_config_value(path: ConfigPath) -> Result<serde_json::Value,
 pub async fn load_config_from_file() -> Result<(), String> {
     let config_path = get_config_file_path();
     if let Ok(content) = std::fs::read_to_string(&config_path) {
-        if let Ok(config) = serde_json::from_str::<HippoxAppConfig>(&content) {
+        if let Ok(mut config) = serde_json::from_str::<HippoxAppConfig>(&content) {
+            let full_config: serde_json::Value =
+                serde_json::from_str(&content).unwrap_or_else(|_| serde_json::json!({}));
+            if let Some(ws_config) = full_config.get("workspace_config") {
+                if let Ok(ws) = serde_json::from_value(ws_config.clone()) {
+                    config.workspace_config = ws;
+                }
+            }
             let mut global_config = HIPPOX_APP_CONFIG.write().await;
             *global_config = config;
         }
@@ -1031,8 +1040,29 @@ pub async fn save_config_to_file() -> Result<(), String> {
             let _ = std::fs::create_dir_all(parent);
         }
     }
+    let mut full_config: serde_json::Value = if config_path.exists() {
+        let content = std::fs::read_to_string(&config_path).map_err(|e| e.to_string())?;
+        serde_json::from_str(&content).unwrap_or_else(|_| serde_json::json!({}))
+    } else {
+        serde_json::json!({})
+    };
     let config = HIPPOX_APP_CONFIG.read().await;
-    let content = serde_json::to_string_pretty(&*config).map_err(|e| e.to_string())?;
+    let main_config = serde_json::to_value(&*config).map_err(|e| e.to_string())?;
+    if let Some(obj) = full_config.as_object_mut() {
+        for (key, value) in main_config.as_object().unwrap() {
+            obj.insert(key.clone(), value.clone());
+        }
+    }
+    if let Some(obj) = full_config.as_object_mut() {
+        if !obj.contains_key("workspace_config") {
+            if let Ok(ws_config) = load_workspace_config() {
+                if let Ok(ws_json) = serde_json::to_value(&ws_config) {
+                    obj.insert("workspace_config".to_string(), ws_json);
+                }
+            }
+        }
+    }
+    let content = serde_json::to_string_pretty(&full_config).map_err(|e| e.to_string())?;
     std::fs::write(config_path, content).map_err(|e| e.to_string())?;
     Ok(())
 }
