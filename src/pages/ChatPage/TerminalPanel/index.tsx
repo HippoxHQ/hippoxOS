@@ -181,7 +181,7 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                transition: "all 0.15s",
+                // transition: "all 0.15s",
                 flexShrink: 0,
                 fontWeight: isActive ? 600 : 400,
                 position: "relative",

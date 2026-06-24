@@ -202,7 +202,7 @@ const LinkItem: React.FC<{
           border: "1px solid var(--border-color)",
           borderRadius: "6px",
           cursor: "pointer",
-          transition: "all 0.2s ease",
+          // transition: "all 0.2s ease",
         }}
         onMouseEnter={(e) => {
           e.currentTarget.style.background = "var(--hover-bg)";
@@ -265,7 +265,7 @@ const LinkItem: React.FC<{
         border: "1px solid var(--border-color)",
         borderRadius: "10px",
         cursor: "pointer",
-        transition: "all 0.2s ease",
+        // transition: "all 0.2s ease",
         overflow: "hidden",
       }}
       onMouseEnter={(e) => {

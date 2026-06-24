@@ -485,7 +485,7 @@ const WorkspacePanel: React.FC<WorkspacePanelProps> = ({ t }) => {
               padding: "3px 0",
               cursor: "pointer",
               borderRadius: "4px",
-              transition: "all 0.15s ease",
+              // transition: "all 0.15s ease",
               fontFamily: "'Fira Code', 'Cascadia Code', monospace",
               fontSize: "12px",
             }}
@@ -648,7 +648,7 @@ const WorkspacePanel: React.FC<WorkspacePanelProps> = ({ t }) => {
                 alignItems: "center",
                 padding: "8px 12px",
                 cursor: "pointer",
-                transition: "all 0.2s ease",
+                // transition: "all 0.2s ease",
                 background: "var(--bg-secondary)",
                 borderBottom: "1px solid var(--border-color)",
               }}
@@ -725,7 +725,7 @@ const WorkspacePanel: React.FC<WorkspacePanelProps> = ({ t }) => {
                 style={{
                   fontSize: "11px",
                   color: "var(--text-tertiary)",
-                  transition: "transform 0.2s",
+                  // transition: "transform 0.2s",
                   transform: node.expanded ? "rotate(90deg)" : "rotate(0deg)",
                   display: "inline-flex",
                   alignItems: "center",

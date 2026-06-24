@@ -330,7 +330,7 @@ export const TaskRow = forwardRef<HTMLDivElement, TaskRowProps>(
                 fontFamily: "monospace",
                 fontWeight: 500,
                 letterSpacing: "0.3px",
-                transition: "all 0.2s ease",
+                // transition: "all 0.2s ease",
                 marginTop: "2px",
               }}
               onMouseEnter={(e) => {

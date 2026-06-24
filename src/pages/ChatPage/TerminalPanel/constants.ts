@@ -73,7 +73,7 @@ export const styles = {
     alignItems: "center",
     justifyContent: "center",
     fontSize: "16px",
-    transition: "all 0.2s",
+    // transition: "all 0.2s",
     flexShrink: 0,
   },
   scrollButton: {
@@ -88,7 +88,7 @@ export const styles = {
     alignItems: "center",
     justifyContent: "center",
     fontSize: "16px",
-    transition: "all 0.2s",
+    // transition: "all 0.2s",
     backdropFilter: "blur(4px)",
   },
   bubbleContainer: {
@@ -123,7 +123,7 @@ export const styles = {
     padding: "8px 12px",
     fontSize: "12px",
     cursor: "pointer",
-    transition: "all 0.15s",
+    // transition: "all 0.15s",
     borderLeft: "2px solid transparent",
     display: "flex",
     alignItems: "center",

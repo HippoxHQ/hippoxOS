@@ -58,7 +58,7 @@ export const StepLogs: React.FC<StepLogsProps> = ({
               padding: "2px 8px",
               borderRadius: "4px",
               flexShrink: 0,
-              transition: "all 0.2s",
+              // transition: "all 0.2s",
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.background = "var(--hover-bg)";
@@ -114,7 +114,7 @@ export const StepLogs: React.FC<StepLogsProps> = ({
                 padding: "2px 8px",
                 borderRadius: "4px",
                 flexShrink: 0,
-                transition: "all 0.2s",
+                // transition: "all 0.2s",
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.background = "var(--hover-bg)";

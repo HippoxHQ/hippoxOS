@@ -692,7 +692,7 @@ export function AppContent({
                 const startWidth = menuPanelWidth;
                 const onMouseMove = (moveEvent: MouseEvent) => {
                   const newWidth = startWidth + (moveEvent.clientX - startX);
-                  if (newWidth >= 0 && newWidth <= 300) {
+                  if (newWidth >= 0 && newWidth <= 320) {
                     setMenuPanelWidth(newWidth);
                   }
                 };
