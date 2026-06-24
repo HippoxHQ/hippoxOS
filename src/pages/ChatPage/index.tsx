@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { taskManager } from "../../core/TaskManager";
 import { TaskStatusEnum } from "../../core/types";
+import { showTooltipOnElement } from "../../components/Tooltip";
 
 interface LLMChatPageProps {
   leftPanel: React.ReactNode;
@@ -257,6 +258,10 @@ const CollapsedTaskList: React.FC<CollapsedTaskListProps> = ({
                   e.currentTarget.style.color = "var(--text-primary)";
                   e.currentTarget.style.borderColor = "var(--border-color)";
                 }
+                showTooltipOnElement(
+                  e.currentTarget,
+                  task.user_input || "Task",
+                );
               }}
               onMouseLeave={(e) => {
                 if (!isActive) {
@@ -524,6 +529,7 @@ const LLMChatPage: React.FC<LLMChatPageProps> = ({
             onMouseEnter={(e) => {
               e.currentTarget.style.background = "var(--hover-bg)";
               e.currentTarget.style.color = "var(--text-primary)";
+              showTooltipOnElement(e.currentTarget, `Expand ${title}`);
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.background = "transparent";
