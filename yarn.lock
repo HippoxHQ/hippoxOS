@@ -1220,10 +1220,10 @@
   resolved "https://registry.npmjs.org/@csstools/selector-specificity/-/selector-specificity-2.2.0.tgz"
   integrity sha512-+OJ9konv95ClSTOJCmMZqpd5+YGsB2S+x6w3E1oaM8UuR5j8nTNHYSz8c9BEPGDOCMQYIEEGlVPj/VY64iTbGw==
 
-"@earthview/core@^0.2.7":
-  version "0.2.7"
-  resolved "https://registry.npmjs.org/@earthview/core/-/core-0.2.7.tgz"
-  integrity sha512-/0J1f0ZvsjDgzKFF5TvTfxrr8BhOPQ22pVA6WfuthDzUB2QVI+33ubYUM9GcbUeUAnRb3smmuhjnrd5VZUsaRQ==
+"@earthview/core@^0.2.8":
+  version "0.2.8"
+  resolved "https://registry.yarnpkg.com/@earthview/core/-/core-0.2.8.tgz#b5ceb47aaf319d8e265b343272d2656784ff8f70"
+  integrity sha512-eWku1sRYfUpt2TqX6mfZ5w4wzMlw0h/Ptp63JM+ouBJUWMGIQKNmx4kvyvojJWpSGKfmZfJQwiHIPlkZi2o7Tg==
   dependencies:
     "@types/ol-ext" "npm:@siedlerchr/types-ol-ext"
     ol "^10.9.0"

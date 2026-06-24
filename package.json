@@ -4,7 +4,7 @@
   "private": true,
   "dependencies": {
     "@candleview/core": "^3.1.0",
-    "@earthview/core": "^0.2.7",
+    "@earthview/core": "^0.2.8",
     "@fontsource/dancing-script": "^5.2.8",
     "@fontsource/great-vibes": "^5.2.8",
     "@fontsource/pacifico": "^5.2.7",
