@@ -140,9 +140,28 @@ export function AppContent({
   const [functionPanelWidth, setFunctionPanelWidth] = useState<number>(480);
   const [functionPanelCollapsed, setFunctionPanelCollapsed] =
     useState<boolean>(false);
+  const [isFunctionPanelMaximized, setIsFunctionPanelMaximized] =
+    useState(false);
+
   const isDraggingFunctionPanel = useRef(false);
   const dragStartX = useRef(0);
   const dragStartWidth = useRef(0);
+
+  useEffect(() => {
+    const handleToggleMaximize = () => {
+      setIsFunctionPanelMaximized((prev) => !prev);
+    };
+    window.addEventListener(
+      "toggle-function-panel-maximize",
+      handleToggleMaximize,
+    );
+    return () => {
+      window.removeEventListener(
+        "toggle-function-panel-maximize",
+        handleToggleMaximize,
+      );
+    };
+  }, []);
 
   useEffect(() => {
     const saved = localStorage.getItem("hippox-function-panel-width");
@@ -172,6 +191,10 @@ export function AppContent({
         handleAnchorUpdate as EventListener,
       );
     };
+  }, []);
+
+  const handleToggleFunctionPanelMaximize = useCallback(() => {
+    setIsFunctionPanelMaximized((prev) => !prev);
   }, []);
 
   const saveFunctionPanelWidth = useCallback((w: number) => {
@@ -234,6 +257,25 @@ export function AppContent({
       window.removeEventListener("mouseup", onMouseUp);
     };
   }, [functionPanelWidth, saveFunctionPanelWidth, functionPanelPosition]);
+
+  useEffect(() => {
+    const handleSessionSwitch = () => {
+      if (isFunctionPanelMaximized) {
+        setIsFunctionPanelMaximized(false);
+        setFunctionPanelWidth((prev) => prev);
+      }
+    };
+    window.addEventListener("session-created", handleSessionSwitch);
+    return () => {
+      window.removeEventListener("session-created", handleSessionSwitch);
+    };
+  }, [isFunctionPanelMaximized]);
+
+  useEffect(() => {
+    if (isFunctionPanelMaximized) {
+      setIsFunctionPanelMaximized(false);
+    }
+  }, [currentContentPanel]);
 
   const handleHistoryClick = () => {
     setIsHistoryOpen(!isHistoryOpen);
@@ -413,7 +455,6 @@ export function AppContent({
       width: "4px",
       background: "var(--border-color)",
       cursor: "col-resize" as const,
-      // transition: "all 0.2s",
       position: "relative" as const,
       flexShrink: 0,
     },
@@ -426,7 +467,6 @@ export function AppContent({
       height: "40px",
       background: "var(--text-muted)",
       borderRadius: "2px",
-      // transition: "background 0.2s",
     },
     functionPanelResizeHandle: {
       width: "4px",
@@ -434,7 +474,6 @@ export function AppContent({
       cursor: "col-resize" as const,
       flexShrink: 0,
       position: "relative" as const,
-      // transition: "background 0.2s",
     },
     functionPanelResizeHandleLine: {
       position: "absolute" as const,
@@ -445,7 +484,6 @@ export function AppContent({
       height: "40px",
       background: "var(--text-muted)",
       borderRadius: "2px",
-      // transition: "background 0.2s",
     },
   };
 
@@ -470,6 +508,7 @@ export function AppContent({
         rightTitle={layoutSwapMode === "terminal-left" ? "Chat" : "Terminal"}
         leftIcon={layoutSwapMode === "terminal-left" ? "🖥️" : "💬"}
         rightIcon={layoutSwapMode === "terminal-left" ? "💬" : "🖥️"}
+        isFunctionPanelMaximized={isFunctionPanelMaximized}
       />
     );
 
@@ -499,7 +538,6 @@ export function AppContent({
         />
       </div>
     );
-
     const renderFunctionPanelComponent = (collapsed: boolean) => (
       <FunctionPanel
         controller={functionPanel}
@@ -508,14 +546,26 @@ export function AppContent({
         t={t}
         currentSessionId={currentSessionId}
         onSendSkillMessage={onSendSkillMessage}
-        width={functionPanelWidth}
+        width={isFunctionPanelMaximized ? "100%" : functionPanelWidth}
         isCollapsed={collapsed}
         onToggleCollapse={handleToggleFunctionPanelCollapse}
         functionPanelPosition={functionPanelPosition}
+        isMaximized={isFunctionPanelMaximized}
+        onToggleMaximize={handleToggleFunctionPanelMaximize}
       />
     );
-
     if (functionPanelPosition === "left" && functionPanel.isOpen) {
+      if (isFunctionPanelMaximized) {
+        return (
+          <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
+            {functionPanelCollapsed ? (
+              renderFunctionPanelComponent(true)
+            ) : (
+              <>{renderFunctionPanelComponent(false)}</>
+            )}
+          </div>
+        );
+      }
       return (
         <>
           {functionPanelCollapsed ? (
@@ -530,8 +580,18 @@ export function AppContent({
         </>
       );
     }
-
     if (functionPanel.isOpen) {
+      if (isFunctionPanelMaximized) {
+        return (
+          <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
+            {functionPanelCollapsed ? (
+              renderFunctionPanelComponent(true)
+            ) : (
+              <>{renderFunctionPanelComponent(false)}</>
+            )}
+          </div>
+        );
+      }
       return (
         <>
           <div style={styles.contentArea}>{contentElement}</div>
@@ -546,7 +606,6 @@ export function AppContent({
         </>
       );
     }
-
     return <div style={styles.contentArea}>{contentElement}</div>;
   };
 

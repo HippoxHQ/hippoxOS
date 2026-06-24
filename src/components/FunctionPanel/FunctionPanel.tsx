@@ -20,10 +20,12 @@ interface FunctionPanelProps {
   t: (key: string, params?: any) => string;
   currentSessionId?: string;
   onSendSkillMessage?: (message: string, files?: any[]) => void;
-  width?: number;
+  width?: number | string;
   isCollapsed?: boolean;
   onToggleCollapse?: () => void;
   functionPanelPosition?: "left" | "right";
+  isMaximized?: boolean;
+  onToggleMaximize?: () => void;
 }
 
 const FunctionPanel: React.FC<FunctionPanelProps> = ({
@@ -37,7 +39,10 @@ const FunctionPanel: React.FC<FunctionPanelProps> = ({
   isCollapsed = false,
   onToggleCollapse,
   functionPanelPosition = "right",
+  isMaximized,
+  onToggleMaximize,
 }) => {
+  const panelWidth = typeof width === "string" ? width : width;
   const containerRef = useRef<HTMLDivElement>(null);
   const controllerRef = useRef(controller);
   const itemsRef = useRef(controller.items);
@@ -114,12 +119,15 @@ const FunctionPanel: React.FC<FunctionPanelProps> = ({
     return activeItem ? renderItemContentRef.current(activeItem) : null;
   }, [activeItem]);
 
+  const isMaximizedMode = typeof width === "string" && width === "100%";
+
   if (!controller.isOpen || controller.items.length === 0) {
     return (
       <div
         ref={containerRef}
         style={{
-          width: isCollapsed ? 48 : width,
+          width: typeof width === "string" ? width : width,
+          flex: isMaximizedMode ? 1 : "0 0 auto",
           flexShrink: 0,
           overflow: "hidden",
           background: "var(--bg-primary)",
@@ -250,6 +258,8 @@ const FunctionPanel: React.FC<FunctionPanelProps> = ({
         onToggleCollapse={onToggleCollapse}
         t={t}
         functionPanelPosition={functionPanelPosition}
+        isMaximized={isMaximized}
+        onToggleMaximize={onToggleMaximize}
       />
       <ModuleContent content={activeContent} isEmpty={!activeContent} t={t} />
       <style>{`

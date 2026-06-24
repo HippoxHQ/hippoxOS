@@ -10,6 +10,8 @@ interface ModuleTabsProps {
   onToggleCollapse?: () => void;
   t: (key: string) => string;
   functionPanelPosition?: "left" | "right";
+  isMaximized?: boolean;
+  onToggleMaximize?: () => void;
 }
 
 export const ModuleTabs: React.FC<ModuleTabsProps> = ({
@@ -21,6 +23,8 @@ export const ModuleTabs: React.FC<ModuleTabsProps> = ({
   onToggleCollapse,
   t,
   functionPanelPosition = "right",
+  isMaximized,
+  onToggleMaximize,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [showLeft, setShowLeft] = useState(false);
@@ -220,6 +224,38 @@ export const ModuleTabs: React.FC<ModuleTabsProps> = ({
         title={t("functionArea.closePanel") || "Close Panel"}
       >
         ✕
+      </button>
+      <button
+        onClick={() => {
+          window.dispatchEvent(
+            new CustomEvent("toggle-function-panel-maximize", {}),
+          );
+        }}
+        style={{
+          width: 28,
+          height: 28,
+          borderRadius: 4,
+          background: "var(--bg-tertiary)",
+          border: "1px solid var(--border-color)",
+          color: "var(--text-secondary)",
+          cursor: "pointer",
+          fontSize: 14,
+          flexShrink: 0,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = "var(--hover-bg)";
+          e.currentTarget.style.color = "var(--text-primary)";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = "var(--bg-tertiary)";
+          e.currentTarget.style.color = "var(--text-secondary)";
+        }}
+        title={isMaximized ? "Minimize" : "Maximize"}
+      >
+        {isMaximized ? "⤢" : "⤡"}
       </button>
       {onToggleCollapse && (
         <button

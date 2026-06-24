@@ -12,6 +12,7 @@ interface LLMChatPageProps {
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
   t?: (key: string, params?: any) => string;
+  isFunctionPanelMaximized?: boolean;
 }
 
 interface CollapsedTaskListProps {
@@ -334,6 +335,7 @@ const LLMChatPage: React.FC<LLMChatPageProps> = ({
   leftIcon = "💬",
   rightIcon = "🖥️",
   t = (key: string) => key,
+  isFunctionPanelMaximized = false,
 }) => {
   const [leftWidth, setLeftWidth] = useState<number>(50);
   const [topHeight, setTopHeight] = useState<number>(60);
@@ -371,7 +373,19 @@ const LLMChatPage: React.FC<LLMChatPageProps> = ({
     localStorage.setItem("hippox-right-collapsed", collapsed.toString());
   };
 
+  const exitMaximize = useCallback(() => {
+    window.dispatchEvent(new CustomEvent("toggle-function-panel-maximize"));
+  }, []);
+
   const handleToggleLeft = () => {
+    if (isFunctionPanelMaximized) {
+      exitMaximize();
+      setTimeout(() => {
+        setLeftCollapsed(false);
+        saveLeftCollapsed(false);
+      }, 50);
+      return;
+    }
     if (leftCollapsed) {
       setLeftCollapsed(false);
       saveLeftCollapsed(false);
@@ -386,6 +400,14 @@ const LLMChatPage: React.FC<LLMChatPageProps> = ({
   };
 
   const handleToggleRight = () => {
+    if (isFunctionPanelMaximized) {
+      exitMaximize();
+      setTimeout(() => {
+        setRightCollapsed(false);
+        saveRightCollapsed(false);
+      }, 50);
+      return;
+    }
     if (rightCollapsed) {
       setRightCollapsed(false);
       saveRightCollapsed(false);
@@ -403,7 +425,7 @@ const LLMChatPage: React.FC<LLMChatPageProps> = ({
     e: React.MouseEvent,
     type: "horizontal" | "vertical",
   ) => {
-    if (leftCollapsed || rightCollapsed) return;
+    if (leftCollapsed || rightCollapsed || isFunctionPanelMaximized) return;
     isDragging.current = true;
     dragType.current = type;
     document.body.style.cursor =
@@ -509,10 +531,7 @@ const LLMChatPage: React.FC<LLMChatPageProps> = ({
             }}
             title={`Expand ${title}`}
           >
-            {/* {isLeft ? "▶" : "◀"} */}
             {isLeft ? "≫" : "≪"}
-            {/* {isLeft ? "❯" : "❮"} */}
-            {/* {isLeft ? "›" : "‹"}   */}
           </button>
         </div>
         <div
@@ -529,16 +548,6 @@ const LLMChatPage: React.FC<LLMChatPageProps> = ({
           }}
         >
           <span style={{ fontSize: "16px" }}>{icon}</span>
-          {/* <span
-            style={{
-              writingMode: "vertical-rl",
-              letterSpacing: "2px",
-              fontSize: "10px",
-              opacity: 0.6,
-            }}
-          >
-            {title}
-          </span> */}
         </div>
         <CollapsedTaskList
           tasks={allTasks}
@@ -566,7 +575,7 @@ const LLMChatPage: React.FC<LLMChatPageProps> = ({
   };
 
   const getLeftPanelContent = () => {
-    if (leftCollapsed) {
+    if (leftCollapsed || isFunctionPanelMaximized) {
       return renderCollapsedSidebar(
         true,
         leftTitle,
@@ -590,7 +599,7 @@ const LLMChatPage: React.FC<LLMChatPageProps> = ({
   };
 
   const getRightPanelContent = () => {
-    if (rightCollapsed) {
+    if (rightCollapsed || isFunctionPanelMaximized) {
       return renderCollapsedSidebar(
         false,
         rightTitle,
@@ -614,67 +623,11 @@ const LLMChatPage: React.FC<LLMChatPageProps> = ({
   };
 
   const contextValue = {
-    leftCollapsed,
-    rightCollapsed,
+    leftCollapsed: leftCollapsed || isFunctionPanelMaximized,
+    rightCollapsed: rightCollapsed || isFunctionPanelMaximized,
     toggleLeft: handleToggleLeft,
     toggleRight: handleToggleRight,
   };
-
-  if (layoutMode === "vertical") {
-    const topPanel = getLeftPanelContent();
-    const bottomPanel = getRightPanelContent();
-    return (
-      <LLMChatPageProvider value={contextValue}>
-        <div
-          className="panels-container vertical-layout"
-          ref={containerRef}
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            flex: 1,
-            overflow: "hidden",
-          }}
-        >
-          <div
-            className="panel-top"
-            style={{
-              height: leftCollapsed ? "auto" : `${topHeight}%`,
-              overflow: "hidden",
-              minHeight: leftCollapsed ? "auto" : "100px",
-              display: "flex",
-              flexDirection: "row",
-            }}
-          >
-            {topPanel}
-          </div>
-          {!leftCollapsed && !rightCollapsed && (
-            <div
-              className="resize-handle resize-handle-horizontal"
-              onMouseDown={(e) => handleMouseDown(e, "vertical")}
-              style={{ height: "4px", cursor: "row-resize", flexShrink: 0 }}
-            >
-              <div className="handle-line"></div>
-            </div>
-          )}
-          <div
-            style={{
-              flex: leftCollapsed || rightCollapsed ? 1 : undefined,
-              height:
-                leftCollapsed || rightCollapsed
-                  ? "100%"
-                  : `${100 - topHeight}%`,
-              overflow: "hidden",
-              minHeight: rightCollapsed ? "auto" : "100px",
-              display: "flex",
-              flexDirection: "row",
-            }}
-          >
-            {bottomPanel}
-          </div>
-        </div>
-      </LLMChatPageProvider>
-    );
-  }
 
   const leftPanelContent = getLeftPanelContent();
   const rightPanelContent = getRightPanelContent();
@@ -689,21 +642,28 @@ const LLMChatPage: React.FC<LLMChatPageProps> = ({
         <div
           className="panel-left"
           style={{
-            flex: leftCollapsed ? "0 0 45px" : rightCollapsed ? 1 : "0 0 auto",
-            width: leftCollapsed
-              ? "45px"
-              : rightCollapsed
-                ? "auto"
-                : `${leftWidth}%`,
+            flex:
+              leftCollapsed || isFunctionPanelMaximized
+                ? "0 0 45px"
+                : rightCollapsed
+                  ? 1
+                  : "0 0 auto",
+            width:
+              leftCollapsed || isFunctionPanelMaximized
+                ? "45px"
+                : rightCollapsed
+                  ? "100%"
+                  : `${leftWidth}%`,
             overflow: "hidden",
-            minWidth: leftCollapsed ? "45px" : "150px",
+            minWidth:
+              leftCollapsed || isFunctionPanelMaximized ? "45px" : "150px",
             display: "flex",
             flexDirection: "row",
           }}
         >
           {leftPanelContent}
         </div>
-        {!leftCollapsed && !rightCollapsed && (
+        {!leftCollapsed && !rightCollapsed && !isFunctionPanelMaximized && (
           <div
             className="resize-handle resize-handle-vertical"
             onMouseDown={(e) => handleMouseDown(e, "horizontal")}
@@ -714,14 +674,18 @@ const LLMChatPage: React.FC<LLMChatPageProps> = ({
         )}
         <div
           style={{
-            flex: rightCollapsed ? "0 0 45px" : leftCollapsed ? 1 : 1,
-            width: rightCollapsed ? "45px" : "auto",
+            flex: rightCollapsed || isFunctionPanelMaximized ? "0 0 45px" : 1,
+            width: rightCollapsed || isFunctionPanelMaximized ? "45px" : "auto",
             overflow: "hidden",
-            minWidth: rightCollapsed ? "45px" : "150px",
+            minWidth:
+              rightCollapsed || isFunctionPanelMaximized ? "45px" : "150px",
             display: "flex",
             flexDirection: "row",
-            justifyContent: rightCollapsed ? "flex-end" : "flex-start",
-            marginLeft: rightCollapsed ? "auto" : 0,
+            justifyContent:
+              rightCollapsed || isFunctionPanelMaximized
+                ? "flex-end"
+                : "flex-start",
+            marginLeft: rightCollapsed || isFunctionPanelMaximized ? "auto" : 0,
           }}
         >
           {rightPanelContent}
