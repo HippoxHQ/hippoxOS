@@ -346,8 +346,8 @@ const topBarStyles = `
     align-items: center;
     gap: 2px;
     margin-left: 4px;
-    border-left: 1px solid var(--border-color);
-    height: 40px;
+    // border-left: 1px solid var(--border-color);
+    height: 35px;
     flex-shrink: 0;
     padding-left: 4px;
   }
@@ -356,8 +356,8 @@ const topBarStyles = `
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 40px;
-    height: 40px;
+    width: 34px;
+    height: 34px;
     background: transparent;
     border: none;
     cursor: pointer;
