@@ -258,42 +258,42 @@ const getScheduleDisplay = (
 ): string => {
   if (scheduleType === "interval") {
     const unitText: Record<string, string> = {
-      second: t("scheduled.unitSecond") || "秒",
-      minute: t("scheduled.unitMinute") || "分钟",
-      hour: t("scheduled.unitHour") || "小时",
-      day: t("scheduled.unitDay") || "天",
+      second: t("scheduled.unitSecond"),
+      minute: t("scheduled.unitMinute"),
+      hour: t("scheduled.unitHour"),
+      day: t("scheduled.unitDay"),
     };
     const unit = unitText[config.unit] || config.unit;
     const value = config.value || 1;
-    return `${t("scheduled.every") || "每"} ${value} ${unit}`;
+    return `${t("scheduled.every")} ${value} ${unit}`;
   } else {
     const frequencyText: Record<string, string> = {
-      daily: t("scheduled.frequencyDaily") || "每天",
-      weekly: t("scheduled.frequencyWeekly") || "每周",
-      monthly: t("scheduled.frequencyMonthly") || "每月",
-      once: t("scheduled.frequencyOnce") || "单次",
+      daily: t("scheduled.frequencyDaily"),
+      weekly: t("scheduled.frequencyWeekly"),
+      monthly: t("scheduled.frequencyMonthly"),
+      once: t("scheduled.frequencyOnce"),
     };
-    let result = frequencyText[config.frequency] || config.frequency || "每天";
+    let result = frequencyText[config.frequency] || config.frequency;
     if (config.frequency === "weekly" && config.day_of_week?.length) {
       const dayNames = config.day_of_week.map((d: number) => {
         const dayKey = `scheduled.day${d}`;
         const translated = t(dayKey);
         return translated === dayKey
           ? [
-              t("scheduled.sunShort") || "日",
-              t("scheduled.monShort") || "一",
-              t("scheduled.tueShort") || "二",
-              t("scheduled.wedShort") || "三",
-              t("scheduled.thuShort") || "四",
-              t("scheduled.friShort") || "五",
-              t("scheduled.satShort") || "六",
+              t("scheduled.sunShort"),
+              t("scheduled.monShort"),
+              t("scheduled.tueShort"),
+              t("scheduled.wedShort"),
+              t("scheduled.thuShort"),
+              t("scheduled.friShort"),
+              t("scheduled.satShort"),
             ][d]
           : translated;
       });
       result += ` ${dayNames.join(",")}`;
     }
     if (config.frequency === "monthly" && config.day_of_month?.length) {
-      result += ` ${config.day_of_month.join(",")}${t("scheduled.dayUnit") || "日"}`;
+      result += ` ${config.day_of_month.join(",")}${t("scheduled.dayUnit")}`;
     }
     if (config.time) {
       result += ` ${config.time}`;
@@ -310,7 +310,7 @@ const getActionPreview = (
     const content = (task as any).natural_language_content || "";
     return content.length > 60 ? content.substring(0, 60) + "..." : content;
   } else {
-    return t("scheduled.skillFile") || "SKILL.md 文件";
+    return t("scheduled.skillFile");
   }
 };
 
@@ -376,13 +376,12 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
   const handleDeleteWithDialog = (taskId: string, taskName: string) => {
     showDialog(
       DialogType.WARNING,
-      t("scheduled.confirmDeleteTitle") || "确认删除",
-      t("scheduled.confirmDeleteMessage", { name: taskName }) ||
-        `确定要删除任务"${taskName}"吗？此操作不可撤销。`,
+      t("scheduled.confirmDeleteTitle"),
+      t("scheduled.confirmDeleteMessage", { name: taskName }),
       () => onDeleteTask(taskId),
       undefined,
-      t("scheduled.delete") || "删除",
-      t("settings.cancel") || "取消",
+      t("scheduled.delete"),
+      t("settings.cancel"),
     );
   };
 
@@ -393,25 +392,25 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
   const filterOptions = [
     {
       key: "all" as const,
-      label: t("scheduled.all") || "全部",
+      label: t("scheduled.all"),
       icon: <ListIcon />,
       color: "#818cf8",
     },
     {
       key: "enabled" as const,
-      label: t("scheduled.enabled") || "启用",
+      label: t("scheduled.enabled"),
       icon: <PlayIcon />,
       color: "#10b981",
     },
     {
       key: "disabled" as const,
-      label: t("scheduled.disabled") || "禁用",
+      label: t("scheduled.disabled"),
       icon: <PauseIcon />,
       color: "#6b7280",
     },
     {
       key: "completed" as const,
-      label: t("scheduled.completed") || "完成",
+      label: t("scheduled.completed"),
       icon: <CheckIcon />,
       color: "#8b5cf6",
     },
@@ -419,7 +418,7 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
 
   const getCurrentFilterLabel = () => {
     const current = filterOptions.find((opt) => opt.key === statusFilter);
-    return current ? current.label : t("scheduled.all") || "全部";
+    return current ? current.label : t("scheduled.all");
   };
 
   const getCurrentFilterIcon = () => {
@@ -449,9 +448,9 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
     >
       <div
         style={{
-          padding: "12px 16px",
+          padding: "8px 16px",
           borderBottom: "1px solid var(--border-color)",
-          background: "var(--bg-primary)",
+          background: "var(--bg-secondary)",
           display: "flex",
           alignItems: "center",
           gap: "12px",
@@ -490,9 +489,7 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
               fontSize: "13px",
               outline: "none",
             }}
-            placeholder={
-              t("scheduled.searchPlaceholder") || "按名称或描述搜索..."
-            }
+            placeholder={t("scheduled.searchPlaceholder")}
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
           />
@@ -524,10 +521,10 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
               display: "flex",
               alignItems: "center",
               gap: "6px",
-              padding: "6px 12px",
+              padding: "7.5px 12px",
               background: "var(--bg-tertiary)",
               border: "1px solid var(--border-color)",
-              borderRadius: "6px",
+              borderRadius: "5px",
               color: "var(--text-secondary)",
               fontSize: "12px",
               cursor: "pointer",
@@ -637,7 +634,7 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
             display: "flex",
             alignItems: "center",
             gap: "6px",
-            padding: "6px 16px",
+            padding: "8.5px 16px",
             background: "var(--accent-color)",
             border: "none",
             borderRadius: "6px",
@@ -651,7 +648,7 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
           onClick={onCreateNew}
         >
           <PlusIcon />
-          <span>{t("scheduled.addTask") || "新建任务"}</span>
+          <span>{t("scheduled.addTask")}</span>
         </button>
       </div>
       <div
@@ -692,10 +689,10 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
                 marginBottom: "8px",
               }}
             >
-              {t("scheduled.noTasks") || "暂无定时任务"}
+              {t("scheduled.noTasks")}
             </div>
             <div style={{ fontSize: "12px", color: "var(--text-muted)" }}>
-              {t("scheduled.clickCreateHint") || "点击上方按钮创建新任务"}
+              {t("scheduled.clickCreateHint")}
             </div>
           </div>
         ) : (
@@ -703,8 +700,8 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
             style={{
               display: "grid",
               gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
-              gap: "12px",
-              padding: "12px",
+              gap: "10px",
+              padding: "10px",
             }}
           >
             {tasks.map((task) => {
@@ -738,8 +735,8 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
                     const target = e.currentTarget;
                     showTooltip(
                       task.completed
-                        ? t("scheduled.taskCompleted") || "任务已完成"
-                        : t("scheduled.clickToEdit") || "点击编辑任务",
+                        ? t("scheduled.taskCompleted")
+                        : t("scheduled.clickToEdit"),
                       target,
                     );
                   }}
@@ -805,7 +802,7 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
                           }}
                         >
                           <CheckIcon />
-                          {t("scheduled.completed") || "已完成"}
+                          {t("scheduled.completed")}
                         </span>
                       )}
                       <span
@@ -821,8 +818,8 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
                         }}
                       >
                         {task.enabled && !task.completed
-                          ? t("scheduled.enabled") || "启用"
-                          : t("scheduled.disabled") || "禁用"}
+                          ? t("scheduled.enabled")
+                          : t("scheduled.disabled")}
                       </span>
                     </div>
                   </div>
@@ -914,8 +911,7 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
                     >
                       <PlayIcon />
                       <span>
-                        {task.execution_count || 0}{" "}
-                        {t("scheduled.executions") || "次"}
+                        {task.execution_count} {t("scheduled.executions")}
                       </span>
                     </span>
                     {task.last_executed_at && (
@@ -955,8 +951,8 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
                           }}
                           title={
                             task.enabled
-                              ? t("scheduled.disable") || "禁用"
-                              : t("scheduled.enable") || "启用"
+                              ? t("scheduled.disable")
+                              : t("scheduled.enable")
                           }
                           style={{
                             background: "none",
@@ -977,8 +973,8 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
                             const target = e.currentTarget;
                             showTooltip(
                               task.enabled
-                                ? t("scheduled.disableTooltip") || "禁用任务"
-                                : t("scheduled.enableTooltip") || "启用任务",
+                                ? t("scheduled.disableTooltip")
+                                : t("scheduled.enableTooltip"),
                               target,
                             );
                           }}
@@ -993,7 +989,7 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
                             e.stopPropagation();
                             handleCompleteWithToast(task.id);
                           }}
-                          title={t("scheduled.complete") || "完成"}
+                          title={t("scheduled.complete")}
                           style={{
                             background: "none",
                             border: "none",
@@ -1010,11 +1006,7 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
                             e.currentTarget.style.background =
                               "rgba(139, 92, 246, 0.15)";
                             const target = e.currentTarget;
-                            showTooltip(
-                              t("scheduled.completeTooltip") ||
-                                "标记任务为已完成",
-                              target,
-                            );
+                            showTooltip(t("scheduled.completeTooltip"), target);
                           }}
                           onMouseLeave={(e) => {
                             e.currentTarget.style.background = "none";
@@ -1029,7 +1021,7 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
                         e.stopPropagation();
                         handleDeleteWithDialog(task.id, task.name);
                       }}
-                      title={t("scheduled.delete") || "删除"}
+                      title={t("scheduled.delete")}
                       style={{
                         background: "none",
                         border: "none",
@@ -1046,10 +1038,7 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
                         e.currentTarget.style.background =
                           "rgba(239, 68, 68, 0.15)";
                         const target = e.currentTarget;
-                        showTooltip(
-                          t("scheduled.deleteTooltip") || "删除任务",
-                          target,
-                        );
+                        showTooltip(t("scheduled.deleteTooltip"), target);
                       }}
                       onMouseLeave={(e) => {
                         e.currentTarget.style.background = "none";

@@ -209,7 +209,7 @@ const SkillsManagerCardGrid: React.FC<SkillsManagerCardGridProps> = ({
         }
         .search-bar-wrapper {
           background: var(--bg-secondary);
-          padding: 10px 20px;
+          padding: 8px 20px;
           border-bottom: 1px solid var(--border-color);
           flex-shrink: 0;
           display: flex;
@@ -294,7 +294,7 @@ const SkillsManagerCardGrid: React.FC<SkillsManagerCardGridProps> = ({
         }
         .category-section {
           margin-bottom: 10px;
-          padding: 0px 15px;
+          padding: 0px 10px;
         }
         .category-header {
           display: flex;

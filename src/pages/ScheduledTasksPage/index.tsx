@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { ScheduledTask, scheduledTasksCommands } from "../../command/scheduledtasks";
+import {
+  ScheduledTask,
+  scheduledTasksCommands,
+} from "../../command/scheduledtasks";
 import { scheduledTasksStyles } from "./ScheduledTasksStyles";
 import LeftStatsPanel from "./LeftStatsPanel";
 import TaskCardList from "./TaskCardList";
@@ -73,7 +76,7 @@ const ScheduledTasksManager: React.FC<ScheduledTasksManagerProps> = ({
       setShowRightPanel(false);
     } catch (error) {
       console.error("Failed to load tasks:", error);
-      showToast(ToastType.ERROR, t("scheduled.loadFailed") || "加载失败");
+      showToast(ToastType.ERROR, t("scheduled.loadFailed"));
     } finally {
       setLoading(false);
     }
@@ -124,7 +127,7 @@ const ScheduledTasksManager: React.FC<ScheduledTasksManagerProps> = ({
     setTasks((prevTasks) => [task, ...prevTasks]);
     setSelectedTask(null);
     setShowRightPanel(false);
-    showToast(ToastType.SUCCESS, t("scheduled.addSuccess") || "创建成功");
+    showToast(ToastType.SUCCESS, t("scheduled.addSuccess"));
   };
 
   const handleTaskUpdated = async (task: ScheduledTask) => {
@@ -133,7 +136,7 @@ const ScheduledTasksManager: React.FC<ScheduledTasksManagerProps> = ({
     );
     setSelectedTask(task);
     setShowRightPanel(true);
-    showToast(ToastType.SUCCESS, t("scheduled.updateSuccess") || "更新成功");
+    showToast(ToastType.SUCCESS, t("scheduled.updateSuccess"));
   };
 
   const handleTaskToggled = async (taskId: string, enabled: boolean) => {
@@ -148,12 +151,12 @@ const ScheduledTasksManager: React.FC<ScheduledTasksManagerProps> = ({
       showToast(
         ToastType.SUCCESS,
         enabled
-          ? t("scheduled.enabledSuccess") || "已启用"
-          : t("scheduled.disabledSuccess") || "已禁用",
+          ? t("scheduled.enabledSuccess")
+          : t("scheduled.disabledSuccess"),
       );
     } catch (error) {
       console.error("Failed to toggle task:", error);
-      showToast(ToastType.ERROR, t("scheduled.toggleFailed") || "操作失败");
+      showToast(ToastType.ERROR, t("scheduled.toggleFailed"));
     }
   };
 
@@ -173,10 +176,10 @@ const ScheduledTasksManager: React.FC<ScheduledTasksManagerProps> = ({
         }
         return newTasks;
       });
-      showToast(ToastType.SUCCESS, t("scheduled.deleteSuccess") || "删除成功");
+      showToast(ToastType.SUCCESS, t("scheduled.deleteSuccess"));
     } catch (error) {
       console.error("Failed to delete task:", error);
-      showToast(ToastType.ERROR, t("scheduled.deleteFailed") || "删除失败");
+      showToast(ToastType.ERROR, t("scheduled.deleteFailed"));
     }
   };
 
@@ -189,16 +192,10 @@ const ScheduledTasksManager: React.FC<ScheduledTasksManagerProps> = ({
       if (selectedTask?.id === taskId) {
         setSelectedTask(completedTask);
       }
-      showToast(
-        ToastType.SUCCESS,
-        t("scheduled.completeSuccess") || "任务已完成",
-      );
+      showToast(ToastType.SUCCESS, t("scheduled.completeSuccess"));
     } catch (error) {
       console.error("Failed to complete task:", error);
-      showToast(
-        ToastType.ERROR,
-        t("scheduled.completeFailed") || "标记完成失败",
-      );
+      showToast(ToastType.ERROR, t("scheduled.completeFailed"));
     }
   };
 
@@ -275,7 +272,7 @@ const ScheduledTasksManager: React.FC<ScheduledTasksManagerProps> = ({
           <div className="loading-spinner">
             <LoadingSpinnerIcon />
           </div>
-          <span>{t("common.loading") || "加载中..."}</span>
+          <span>{t("common.loading")}</span>
         </div>
       </div>
     );
@@ -294,14 +291,12 @@ const ScheduledTasksManager: React.FC<ScheduledTasksManagerProps> = ({
             tasks={tasks}
           />
         </div>
-
         <div
           className="resize-handle-scheduled"
           onMouseDown={handleLeftResizeMouseDown}
         >
           <div className="handle-line"></div>
         </div>
-
         <div className="scheduled-center-wrapper">
           <TaskCardList
             t={t}

@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
-import { invoke } from "@tauri-apps/api/core";
 import { showToast, ToastType } from "../Toast";
 import { DriverInfo, driversCommands } from "../../command/drivers";
 import { configCommands } from "../../command/config";
-import { CategoryIcon, RefreshIcon, SearchIcon } from "../../icons";
+import { CategoryIcon, SearchIcon } from "../../icons";
 
 interface DriversPanelPanelProps {
   t: (key: string, params?: any) => string;
@@ -32,16 +31,6 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
     loadDrivers();
   }, []);
 
-  useEffect(() => {
-    checkScrollButtons();
-    window.addEventListener("resize", checkScrollButtons);
-    return () => window.removeEventListener("resize", checkScrollButtons);
-  }, [categories]);
-
-  useEffect(() => {
-    setTimeout(checkScrollButtons, 0);
-  }, [categories]);
-
   const filteredDrivers = drivers.filter((driver) => {
     const matchesSearch =
       driver.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -54,6 +43,20 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
   const filteredCategories = Array.from(
     new Set(filteredDrivers.map((s) => s.category)),
   );
+
+  useEffect(() => {
+    checkScrollButtons();
+    window.addEventListener("resize", checkScrollButtons);
+    return () => window.removeEventListener("resize", checkScrollButtons);
+  }, [categories, filteredCategories]);
+
+  useEffect(() => {
+    setTimeout(checkScrollButtons, 100);
+  }, [categories, filteredCategories]);
+
+  useEffect(() => {
+    setTimeout(checkScrollButtons, 50);
+  }, [activeTab]);
 
   useEffect(() => {
     if (filteredCategories.length > 0) {
@@ -254,6 +257,7 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
     } else {
       setActiveTab(category);
     }
+    setTimeout(checkScrollButtons, 100);
   };
 
   const handleCategoryButtonMouseEnter = () => {
@@ -352,7 +356,6 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
       background: "var(--bg-tertiary)",
       border: "1px solid var(--border-color)",
       borderRadius: "8px",
-      // transition: "border-color 0.2s ease, box-shadow 0.2s ease",
     },
     searchInput: {
       flex: 1,
@@ -395,6 +398,7 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
       padding: "10px",
       borderBottom: "1px solid var(--border-color)",
       background: "var(--bg-secondary)",
+      flexShrink: 0,
     },
     clearBtn: {
       background: "transparent",
@@ -467,6 +471,8 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
       display: flex;
       align-items: center;
       margin-bottom: 0px;
+      flex-shrink: 0;
+      background: var(--bg-secondary)
     }
     .driver-tabs-scroll {
       flex: 1;
@@ -545,7 +551,6 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
       background: var(--bg-tertiary);
       border: 1px solid var(--border-color);
       border-radius: 5px;
-      // transition: border-color 0.2s ease, box-shadow 0.2s ease;
     }
     .driver-search-input-wrapper:focus-within {
       border-color: var(--accent-color);
@@ -580,6 +585,13 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
     .driver-search-clear:hover {
       color: var(--text-primary);
       background: var(--hover-bg);
+    }
+    .driver-list-container {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      margin: 0;
+      min-height: 0;
     }
   `;
 
@@ -654,7 +666,7 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
             <CategoryIcon size={16} />
           </button>
           <div className="driver-search-input-wrapper">
-            <SearchIcon  />
+            <SearchIcon />
             <input
               type="text"
               className="driver-search-input"
@@ -758,15 +770,41 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
           </button>
         )}
       </div>
+
+      {/* Stats and toggle buttons - 不跟随滚动 */}
       <div
         style={{
-          flex: 1,
-          overflowY: "auto",
-          overflowX: "hidden",
-          padding: "10px 0px",
-          margin: 0,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginBottom: "0px",
+          padding: "8px 14px",
+          flexShrink: 0,
+          borderBottom: "1px solid var(--border-color)",
+          background: "var(--bg-secondary)",
         }}
       >
+        <div
+          style={{
+            fontSize: "13px",
+            color: "var(--text-secondary)",
+          }}
+        >
+          {t("drivers.stats", {
+            total: totalCount,
+            enabled: enabledCount,
+          })}
+        </div>
+        <button
+          style={buttonStyle}
+          onClick={() => handleToggleAllInTab(activeTab, !isFullyEnabled)}
+        >
+          {isFullyEnabled ? t("drivers.disableAll") : t("drivers.enableAll")}
+        </button>
+      </div>
+
+      {/* Driver list - 可滚动区域 */}
+      <div className="driver-list-container">
         {currentCategoryDrivers.length === 0 ? (
           <div
             style={{
@@ -780,93 +818,62 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
               : t("drivers.empty")}
           </div>
         ) : (
-          <>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                marginBottom: "10px",
-                padding: "0 4px",
-              }}
-            >
+          currentCategoryDrivers.map((driver) => (
+            <div key={driver.name} style={driverCardStyle}>
               <div
                 style={{
-                  fontSize: "13px",
-                  color: "var(--text-secondary)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  marginBottom: "8px",
                 }}
               >
-                {t("drivers.stats", {
-                  total: totalCount,
-                  enabled: enabledCount,
-                })}
-              </div>
-              <button
-                style={buttonStyle}
-                onClick={() => handleToggleAllInTab(activeTab, !isFullyEnabled)}
-              >
-                {isFullyEnabled
-                  ? t("drivers.disableAll")
-                  : t("drivers.enableAll")}
-              </button>
-            </div>
-            {currentCategoryDrivers.map((driver) => (
-              <div key={driver.name} style={driverCardStyle}>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    marginBottom: "8px",
-                  }}
-                >
-                  <div>
+                <div>
+                  <span
+                    style={{
+                      fontSize: "14px",
+                      fontWeight: 600,
+                      color: "var(--text-primary)",
+                    }}
+                  >
+                    {driver.name}
+                  </span>
+                </div>
+                <label style={toggleSwitchStyle}>
+                  <input
+                    type="checkbox"
+                    style={{ opacity: 0, width: 0, height: 0 }}
+                    checked={driver.enabled}
+                    onChange={(e) =>
+                      handleToggleDriver(driver.name, e.target.checked)
+                    }
+                  />
+                  <span
+                    style={{
+                      ...toggleSliderStyle,
+                      ...(driver.enabled ? toggleSliderCheckedStyle : {}),
+                    }}
+                  >
                     <span
                       style={{
-                        fontSize: "14px",
-                        fontWeight: 600,
-                        color: "var(--text-primary)",
+                        ...toggleKnobStyle,
+                        ...(driver.enabled ? toggleKnobCheckedStyle : {}),
                       }}
-                    >
-                      {driver.name}
-                    </span>
-                  </div>
-                  <label style={toggleSwitchStyle}>
-                    <input
-                      type="checkbox"
-                      style={{ opacity: 0, width: 0, height: 0 }}
-                      checked={driver.enabled}
-                      onChange={(e) =>
-                        handleToggleDriver(driver.name, e.target.checked)
-                      }
                     />
-                    <span
-                      style={{
-                        ...toggleSliderStyle,
-                        ...(driver.enabled ? toggleSliderCheckedStyle : {}),
-                      }}
-                    >
-                      <span
-                        style={{
-                          ...toggleKnobStyle,
-                          ...(driver.enabled ? toggleKnobCheckedStyle : {}),
-                        }}
-                      />
-                    </span>
-                  </label>
-                </div>
-                <div
-                  style={{
-                    fontSize: "12px",
-                    color: "var(--text-muted)",
-                    lineHeight: 1.4,
-                  }}
-                >
-                  {driver.description}
-                </div>
+                  </span>
+                </label>
               </div>
-            ))}
-          </>
+              <div
+                style={{
+                  fontSize: "12px",
+                  color: "var(--text-muted)",
+                  lineHeight: 1.4,
+                }}
+              >
+                {driver.description}
+              </div>
+            </div>
+          ))
         )}
       </div>
     </div>

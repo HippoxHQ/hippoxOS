@@ -15,8 +15,8 @@ import {
 } from "../../command/scheduledtasks";
 import { showDialog, DialogType } from "../../components/Dialog";
 import { showToast, ToastType } from "../../components/Toast";
-import { showTooltip } from "../../components/Tooltip";
 import { workflowCommands } from "../../command/workflow";
+import { showTooltip } from "../../components/Tooltip";
 
 const EditIcon = () => (
   <svg
@@ -259,13 +259,13 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
       return weekNames;
     }
     return [
-      t("scheduled.sun") || "日",
-      t("scheduled.mon") || "一",
-      t("scheduled.tue") || "二",
-      t("scheduled.wed") || "三",
-      t("scheduled.thu") || "四",
-      t("scheduled.fri") || "五",
-      t("scheduled.sat") || "六",
+      t("scheduled.sun"),
+      t("scheduled.mon"),
+      t("scheduled.tue"),
+      t("scheduled.wed"),
+      t("scheduled.thu"),
+      t("scheduled.fri"),
+      t("scheduled.sat"),
     ];
   };
   const weekDayNames = getWeekDayNames();
@@ -404,52 +404,34 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
 
   const validateForm = (): boolean => {
     if (!name.trim()) {
-      showToast(
-        ToastType.WARNING,
-        t("scheduled.taskNameRequired") || "请输入任务名称",
-      );
+      showToast(ToastType.WARNING, t("scheduled.taskNameRequired"));
       return false;
     }
 
     if (actionType === "naturallanguage") {
       if (!naturalLanguage.trim()) {
-        showToast(
-          ToastType.WARNING,
-          t("scheduled.taskDescriptionRequired") || "请输入任务描述",
-        );
+        showToast(ToastType.WARNING, t("scheduled.taskDescriptionRequired"));
         return false;
       }
     } else {
       if (!skillContent) {
-        showToast(
-          ToastType.WARNING,
-          t("scheduled.skillFileRequired") || "请上传 SKILL.md 文件",
-        );
+        showToast(ToastType.WARNING, t("scheduled.skillFileRequired"));
         return false;
       }
     }
 
     if (scheduleType === "fixed") {
       if (!fixedTime) {
-        showToast(
-          ToastType.WARNING,
-          t("scheduled.timeRequired") || "请选择执行时间",
-        );
+        showToast(ToastType.WARNING, t("scheduled.timeRequired"));
         return false;
       }
       if (fixedFrequency === "once" && !fixedDate) {
-        showToast(
-          ToastType.WARNING,
-          t("scheduled.dateRequired") || "请选择执行日期",
-        );
+        showToast(ToastType.WARNING, t("scheduled.dateRequired"));
         return false;
       }
     } else {
       if (intervalValue < 1) {
-        showToast(
-          ToastType.WARNING,
-          t("scheduled.intervalValueInvalid") || "间隔值必须大于0",
-        );
+        showToast(ToastType.WARNING, t("scheduled.intervalValueInvalid"));
         return false;
       }
     }
@@ -479,10 +461,7 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
         };
         const response = await scheduledTasksCommands.update(request);
         onTaskUpdated(response.task);
-        showToast(
-          ToastType.SUCCESS,
-          t("scheduled.updateSuccess") || "更新成功",
-        );
+        showToast(ToastType.SUCCESS, t("scheduled.updateSuccess"));
       } else {
         const request: CreateScheduledTaskRequest = {
           name: name.trim(),
@@ -502,7 +481,7 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
       }
     } catch (error) {
       console.error("Failed to save task:", error);
-      showToast(ToastType.ERROR, t("scheduled.saveFailed") || "保存失败");
+      showToast(ToastType.ERROR, t("scheduled.saveFailed"));
     } finally {
       setIsSaving(false);
     }
@@ -512,28 +491,24 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
     if (!task) return;
     showDialog(
       DialogType.WARNING,
-      t("scheduled.confirmDeleteTitle") || "确认删除",
-      t("scheduled.confirmDeleteMessage", { name: task.name }) ||
-        `确定要删除任务"${task.name}"吗？此操作不可撤销。`,
+      t("scheduled.confirmDeleteTitle"),
+      t("scheduled.confirmDeleteMessage", { name: task.name }),
       async () => {
         setIsDeleting(true);
         try {
           await scheduledTasksCommands.delete(task.id);
           onTaskDeleted(task.id);
-          showToast(
-            ToastType.SUCCESS,
-            t("scheduled.deleteSuccess") || "删除成功",
-          );
+          showToast(ToastType.SUCCESS, t("scheduled.deleteSuccess"));
         } catch (error) {
           console.error("Failed to delete task:", error);
-          showToast(ToastType.ERROR, t("scheduled.deleteFailed") || "删除失败");
+          showToast(ToastType.ERROR, t("scheduled.deleteFailed"));
         } finally {
           setIsDeleting(false);
         }
       },
       undefined,
-      t("scheduled.delete") || "删除",
-      t("settings.cancel") || "取消",
+      t("scheduled.delete"),
+      t("settings.cancel"),
     );
   };
 
@@ -549,12 +524,12 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
       showToast(
         ToastType.SUCCESS,
         updatedTask.enabled
-          ? t("scheduled.enabledSuccess") || "已启用"
-          : t("scheduled.disabledSuccess") || "已禁用",
+          ? t("scheduled.enabledSuccess")
+          : t("scheduled.disabledSuccess"),
       );
     } catch (error) {
       console.error("Failed to toggle task:", error);
-      showToast(ToastType.ERROR, t("scheduled.toggleFailed") || "操作失败");
+      showToast(ToastType.ERROR, t("scheduled.toggleFailed"));
     } finally {
       setIsToggling(false);
     }
@@ -564,10 +539,7 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.name.endsWith(".md") && !file.name.endsWith(".skill.md")) {
-      showToast(
-        ToastType.ERROR,
-        t("scheduled.invalidFile") || "请上传 .md 或 .skill.md 文件",
-      );
+      showToast(ToastType.ERROR, t("scheduled.invalidFile"));
       return;
     }
     const reader = new FileReader();
@@ -575,10 +547,7 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
       const content = event.target?.result as string;
       setSkillContent(content);
       setSkillFileName(file.name);
-      showToast(
-        ToastType.SUCCESS,
-        t("scheduled.fileLoaded") || `文件 "${file.name}" 加载成功`,
-      );
+      showToast(ToastType.SUCCESS, t("scheduled.fileLoaded"));
     };
     reader.readAsText(file);
   };
@@ -589,7 +558,7 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
-    showToast(ToastType.INFO, t("scheduled.fileRemoved") || "文件已移除");
+    showToast(ToastType.INFO, t("scheduled.fileRemoved"));
   };
 
   const toggleWeekDay = (day: number) => {
@@ -739,10 +708,10 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
               marginBottom: "6px",
             }}
           >
-            {t("scheduled.selectTaskToEdit") || "选择一个任务进行编辑"}
+            {t("scheduled.selectTaskToEdit")}
           </div>
           <div style={{ fontSize: "10px", color: "var(--text-muted)" }}>
-            {t("scheduled.clickTaskHint") || "点击左侧任务卡片开始编辑"}
+            {t("scheduled.clickTaskHint")}
           </div>
         </div>
       </div>
@@ -768,7 +737,7 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
         style={{
           display: "flex",
           alignItems: "center",
-          padding: "9px 14px",
+          padding: "8.5px 14px",
           borderBottom: "1px solid var(--border-color)",
           gap: "8px",
           flexShrink: 0,
@@ -785,9 +754,7 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
             color: "var(--text-primary)",
           }}
         >
-          {isEditMode
-            ? t("scheduled.editTask") || "编辑任务"
-            : t("scheduled.addTask") || "新建任务"}
+          {isEditMode ? t("scheduled.editTask") : t("scheduled.addTask")}
         </span>
         <button
           onClick={onClose}
@@ -828,7 +795,7 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
       >
         <div style={{ marginBottom: "12px" }}>
           <label style={labelStyle}>
-            {t("scheduled.taskName") || "任务名称"}{" "}
+            {t("scheduled.taskName")}{" "}
             <span style={{ color: "#ef4444" }}>*</span>
           </label>
           <input
@@ -836,21 +803,16 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
             style={inputStyle}
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder={t("scheduled.taskNamePlaceholder") || "例如：每日备份"}
+            placeholder={t("scheduled.taskNamePlaceholder")}
             onMouseEnter={(e) => {
               const target = e.currentTarget;
-              showTooltip(
-                t("scheduled.taskNameToolTip") || "给任务起一个易于识别的名称",
-                target,
-              );
+              showTooltip(t("scheduled.taskNameToolTip"), target);
             }}
           />
         </div>
 
         <div style={{ marginBottom: "12px" }}>
-          <label style={labelStyle}>
-            {t("scheduled.taskType") || "任务类型"}
-          </label>
+          <label style={labelStyle}>{t("scheduled.taskType")}</label>
           <div style={{ display: "flex", gap: "20px" }}>
             <label style={radioLabelStyle}>
               <input
@@ -860,13 +822,10 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
                 style={radioInputStyle}
                 onMouseEnter={(e) => {
                   const target = e.currentTarget;
-                  showTooltip(
-                    t("scheduled.fixedTooltip") || "在指定时间执行",
-                    target,
-                  );
+                  showTooltip(t("scheduled.fixedToolTip"), target);
                 }}
               />
-              <span>{t("scheduled.typeFixed") || "定时执行"}</span>
+              <span>{t("scheduled.typeFixed")}</span>
             </label>
             <label style={radioLabelStyle}>
               <input
@@ -876,13 +835,10 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
                 style={radioInputStyle}
                 onMouseEnter={(e) => {
                   const target = e.currentTarget;
-                  showTooltip(
-                    t("scheduled.intervalToolTip") || "按固定间隔重复执行",
-                    target,
-                  );
+                  showTooltip(t("scheduled.intervalToolTip"), target);
                 }}
               />
-              <span>{t("scheduled.typeInterval") || "间隔执行"}</span>
+              <span>{t("scheduled.typeInterval")}</span>
             </label>
           </div>
         </div>
@@ -890,34 +846,24 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
         {scheduleType === "fixed" && (
           <>
             <div style={{ marginBottom: "12px" }}>
-              <label style={labelStyle}>
-                {t("scheduled.frequency") || "执行频率"}
-              </label>
+              <label style={labelStyle}>{t("scheduled.frequency")}</label>
               <select
                 style={selectStyle}
                 value={fixedFrequency}
                 onChange={(e) => setFixedFrequency(e.target.value as Frequency)}
               >
-                <option value="daily">
-                  {t("scheduled.frequencyDaily") || "每天"}
-                </option>
-                <option value="weekly">
-                  {t("scheduled.frequencyWeekly") || "每周"}
-                </option>
+                <option value="daily">{t("scheduled.frequencyDaily")}</option>
+                <option value="weekly">{t("scheduled.frequencyWeekly")}</option>
                 <option value="monthly">
-                  {t("scheduled.frequencyMonthly") || "每月"}
+                  {t("scheduled.frequencyMonthly")}
                 </option>
-                <option value="once">
-                  {t("scheduled.frequencyOnce") || "单次"}
-                </option>
+                <option value="once">{t("scheduled.frequencyOnce")}</option>
               </select>
             </div>
 
             {fixedFrequency === "weekly" && (
               <div style={{ marginBottom: "12px" }}>
-                <label style={labelStyle}>
-                  {t("scheduled.weekDays") || "选择星期"}
-                </label>
+                <label style={labelStyle}>{t("scheduled.weekDays")}</label>
                 <div style={{ display: "flex", gap: "5px", flexWrap: "wrap" }}>
                   {weekDayNames.map((day: string, idx: number) => (
                     <button
@@ -942,7 +888,7 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
                       onMouseEnter={(e) => {
                         const target = e.currentTarget;
                         showTooltip(
-                          t("scheduled.weekDayTooltip") || `选择${day}执行`,
+                          t("scheduled.weekDayToolTip", { day: day }),
                           target,
                         );
                       }}
@@ -956,9 +902,7 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
 
             {fixedFrequency === "monthly" && (
               <div style={{ marginBottom: "12px" }}>
-                <label style={labelStyle}>
-                  {t("scheduled.monthDays") || "选择日期"}
-                </label>
+                <label style={labelStyle}>{t("scheduled.monthDays")}</label>
                 <div
                   style={{
                     display: "flex",
@@ -991,8 +935,7 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
                       onMouseEnter={(e) => {
                         const target = e.currentTarget;
                         showTooltip(
-                          t("scheduled.monthDayTooltip") ||
-                            `选择每月${day}日执行`,
+                          t("scheduled.monthDayToolTip", { day: day }),
                           target,
                         );
                       }}
@@ -1006,9 +949,7 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
 
             {fixedFrequency === "once" && (
               <div style={{ marginBottom: "12px" }}>
-                <label style={labelStyle}>
-                  {t("scheduled.date") || "执行日期"}
-                </label>
+                <label style={labelStyle}>{t("scheduled.date")}</label>
                 <input
                   type="date"
                   style={inputStyle}
@@ -1019,9 +960,7 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
             )}
 
             <div style={{ marginBottom: "12px" }}>
-              <label style={labelStyle}>
-                {t("scheduled.time") || "执行时间"}
-              </label>
+              <label style={labelStyle}>{t("scheduled.time")}</label>
               <input
                 type="time"
                 style={{ ...inputStyle, maxWidth: "120px" }}
@@ -1035,9 +974,7 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
         {scheduleType === "interval" && (
           <div style={{ display: "flex", gap: "10px", marginBottom: "12px" }}>
             <div style={{ flex: 1 }}>
-              <label style={labelStyle}>
-                {t("scheduled.intervalValue") || "间隔数值"}
-              </label>
+              <label style={labelStyle}>{t("scheduled.intervalValue")}</label>
               <input
                 type="number"
                 style={inputStyle}
@@ -1049,9 +986,7 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
               />
             </div>
             <div style={{ flex: 1 }}>
-              <label style={labelStyle}>
-                {t("scheduled.intervalUnit") || "间隔单位"}
-              </label>
+              <label style={labelStyle}>{t("scheduled.intervalUnit")}</label>
               <select
                 style={selectStyle}
                 value={intervalUnit}
@@ -1059,25 +994,17 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
                   setIntervalUnit(e.target.value as IntervalUnit)
                 }
               >
-                <option value="second">
-                  {t("scheduled.unitSecond") || "秒"}
-                </option>
-                <option value="minute">
-                  {t("scheduled.unitMinute") || "分钟"}
-                </option>
-                <option value="hour">
-                  {t("scheduled.unitHour") || "小时"}
-                </option>
-                <option value="day">{t("scheduled.unitDay") || "天"}</option>
+                <option value="second">{t("scheduled.unitSecond")}</option>
+                <option value="minute">{t("scheduled.unitMinute")}</option>
+                <option value="hour">{t("scheduled.unitHour")}</option>
+                <option value="day">{t("scheduled.unitDay")}</option>
               </select>
             </div>
           </div>
         )}
 
         <div style={{ marginBottom: "12px" }}>
-          <label style={labelStyle}>
-            {t("scheduled.actionType") || "动作类型"}
-          </label>
+          <label style={labelStyle}>{t("scheduled.actionType")}</label>
           <div style={{ display: "flex", gap: "20px" }}>
             <label style={radioLabelStyle}>
               <input
@@ -1086,7 +1013,7 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
                 onChange={() => setActionType("naturallanguage")}
                 style={radioInputStyle}
               />
-              <span>{t("scheduled.typeNatural") || "自然语言"}</span>
+              <span>{t("scheduled.typeNatural")}</span>
             </label>
             <label style={radioLabelStyle}>
               <input
@@ -1095,16 +1022,14 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
                 onChange={() => setActionType("skillfile")}
                 style={radioInputStyle}
               />
-              <span>{t("scheduled.typeSkillFile") || "SKILL.md 文件"}</span>
+              <span>{t("scheduled.typeSkillFile")}</span>
             </label>
           </div>
         </div>
 
         {/* Workflow Mode Selection */}
         <div style={{ marginBottom: "12px" }}>
-          <label style={labelStyle}>
-            {t("scheduled.workflowMode") || "工作流模式"}
-          </label>
+          <label style={labelStyle}>{t("scheduled.workflowMode")}</label>
           <select
             style={selectStyle}
             value={workflowMode}
@@ -1126,25 +1051,19 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
                 marginTop: "4px",
               }}
             >
-              {t("scheduled.noWorkflowModes") ||
-                "暂无工作流模式，使用默认 ReAct"}
+              {t("scheduled.noWorkflowModes")}
             </div>
           )}
         </div>
 
         {actionType === "naturallanguage" && (
           <div style={{ marginBottom: "12px" }}>
-            <label style={labelStyle}>
-              {t("scheduled.taskDescription") || "任务描述"}
-            </label>
+            <label style={labelStyle}>{t("scheduled.taskDescription")}</label>
             <textarea
               style={textareaStyle}
               value={naturalLanguage}
               onChange={(e) => setNaturalLanguage(e.target.value)}
-              placeholder={
-                t("scheduled.naturalLanguagePlaceholder") ||
-                "例如：每天凌晨2点备份数据库到 /backup 目录"
-              }
+              placeholder={t("scheduled.naturalLanguagePlaceholder")}
               rows={3}
             />
           </div>
@@ -1152,9 +1071,7 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
 
         {actionType === "skillfile" && (
           <div style={{ marginBottom: "12px" }}>
-            <label style={labelStyle}>
-              {t("scheduled.skillFile") || "SKILL.md 文件"}
-            </label>
+            <label style={labelStyle}>{t("scheduled.skillFile")}</label>
             <input
               ref={fileInputRef}
               type="file"
@@ -1169,15 +1086,11 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
                 onClick={() => fileInputRef.current?.click()}
                 onMouseEnter={(e) => {
                   const target = e.currentTarget;
-                  showTooltip(
-                    t("scheduled.selectFileTooltip") ||
-                      "点击选择 SKILL.md 文件",
-                    target,
-                  );
+                  showTooltip(t("scheduled.selectFileToolTip"), target);
                 }}
               >
                 <FolderOpenIcon />
-                {t("scheduled.selectFile") || "选择文件"}
+                {t("scheduled.selectFile")}
               </button>
             ) : (
               <div
@@ -1208,7 +1121,7 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
                   style={buttonStyle}
                   onClick={() => fileInputRef.current?.click()}
                 >
-                  {t("scheduled.replaceFile") || "替换"}
+                  {t("scheduled.replaceFile")}
                 </button>
                 <button
                   type="button"
@@ -1216,7 +1129,7 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
                   onClick={handleRemoveSkillFile}
                 >
                   <TrashIcon />
-                  {t("scheduled.remove") || "移除"}
+                  {t("scheduled.remove")}
                 </button>
               </div>
             )}
@@ -1243,7 +1156,7 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
               }}
             >
               <HistoryIcon />
-              <span>{t("scheduled.executionHistory") || "执行历史"}</span>
+              <span>{t("scheduled.executionHistory")}</span>
             </div>
             <div
               style={{
@@ -1284,8 +1197,7 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
               }}
             >
               <span>
-                {t("scheduled.executeCount") || "执行次数"}:{" "}
-                {task.execution_count || 0}
+                {t("scheduled.executeCount")}: {task.execution_count || 0}
               </span>
             </div>
           </div>
@@ -1345,7 +1257,7 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
                     <rect x="14" y="4" width="4" height="16" />
                   </svg>
                 )}
-                {t("scheduled.status") || "状态"}:
+                {t("scheduled.status")}:
               </span>
               <span
                 style={{
@@ -1363,18 +1275,18 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
                 }}
                 onMouseEnter={(e) => {
                   const statusText = task.completed
-                    ? t("scheduled.completed") || "已完成"
+                    ? t("scheduled.completed")
                     : task.enabled
-                      ? t("scheduled.enabled") || "已启用"
-                      : t("scheduled.disabled") || "已禁用";
+                      ? t("scheduled.enabled")
+                      : t("scheduled.disabled");
                   showTooltip(statusText, e.currentTarget);
                 }}
               >
                 {task.completed
-                  ? t("scheduled.completed") || "已完成"
+                  ? t("scheduled.completed")
                   : task.enabled
-                    ? t("scheduled.enabled") || "已启用"
-                    : t("scheduled.disabled") || "已禁用"}
+                    ? t("scheduled.enabled")
+                    : t("scheduled.disabled")}
               </span>
             </div>
 
@@ -1418,7 +1330,7 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
               <button
                 onClick={() => {
                   navigator.clipboard.writeText(task.id);
-                  showToast(ToastType.SUCCESS, t("common.copied") || "已复制");
+                  showToast(ToastType.SUCCESS, t("common.copied"));
                 }}
                 style={{
                   background: "none",
@@ -1471,7 +1383,7 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
                 }}
               >
                 <EditIcon />
-                {t("scheduled.taskName") || "名称"}:
+                {t("scheduled.taskName")}:
               </span>
               <span
                 style={{
@@ -1492,7 +1404,7 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
               <button
                 onClick={() => {
                   navigator.clipboard.writeText(task.name);
-                  showToast(ToastType.SUCCESS, t("common.copied") || "已复制");
+                  showToast(ToastType.SUCCESS, t("common.copied"));
                 }}
                 style={{
                   background: "none",
@@ -1545,7 +1457,7 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
                 }}
               >
                 <HistoryIcon />
-                {t("scheduled.createdAt") || "创建时间"}:
+                {t("scheduled.createdAt")}:
               </span>
               <span
                 style={{
@@ -1571,7 +1483,7 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
                   navigator.clipboard.writeText(
                     new Date(task.created_at).toLocaleString(),
                   );
-                  showToast(ToastType.SUCCESS, t("common.copied") || "已复制");
+                  showToast(ToastType.SUCCESS, t("common.copied"));
                 }}
                 style={{
                   background: "none",
@@ -1634,7 +1546,7 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
                   <circle cx="12" cy="12" r="10" />
                   <polyline points="12 6 12 12 16 14" />
                 </svg>
-                {t("scheduled.updatedAt") || "更新时间"}:
+                {t("scheduled.updatedAt")}:
               </span>
               <span
                 style={{
@@ -1660,7 +1572,7 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
                   navigator.clipboard.writeText(
                     new Date(task.updated_at).toLocaleString(),
                   );
-                  showToast(ToastType.SUCCESS, t("common.copied") || "已复制");
+                  showToast(ToastType.SUCCESS, t("common.copied"));
                 }}
                 style={{
                   background: "none",
@@ -1723,7 +1635,7 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
                   <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
                   <circle cx="12" cy="12" r="3" />
                 </svg>
-                {t("scheduled.executeCount") || "执行次数"}:
+                {t("scheduled.executeCount")}:
               </span>
               <span
                 style={{
@@ -1737,12 +1649,12 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
                 }}
                 onMouseEnter={(e) => {
                   showTooltip(
-                    `${t("scheduled.executeCount") || "执行次数"}: ${task.execution_count || 0} ${t("scheduled.times") || "次"}`,
+                    `${t("scheduled.executeCount")}: ${task.execution_count || 0} ${t("scheduled.times")}`,
                     e.currentTarget,
                   );
                 }}
               >
-                {task.execution_count || 0} {t("scheduled.times") || "次"}
+                {task.execution_count || 0} {t("scheduled.times")}
               </span>
             </div>
 
@@ -1778,7 +1690,7 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
                     strokeLinejoin="round"
                   />
                 </svg>
-                {t("scheduled.workflowMode") || "工作流模式"}:
+                {t("scheduled.workflowMode")}:
               </span>
               <span
                 style={{
@@ -1839,8 +1751,8 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
                   : "rgba(16, 185, 129, 0.25)";
                 showTooltip(
                   task?.enabled
-                    ? t("scheduled.disableTooltip") || "禁用任务"
-                    : t("scheduled.enableTooltip") || "启用任务",
+                    ? t("scheduled.disableToolTip")
+                    : t("scheduled.enableToolTip"),
                   e.currentTarget,
                 );
               }}
@@ -1851,9 +1763,7 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
               }}
             >
               {task?.enabled ? <PauseIcon /> : <PlayIcon />}
-              {task?.enabled
-                ? t("scheduled.disable") || "禁用"
-                : t("scheduled.enable") || "启用"}
+              {task?.enabled ? t("scheduled.disable") : t("scheduled.enable")}
             </button>
             <button
               style={deleteButtonStyle}
@@ -1861,11 +1771,11 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
               disabled={isDeleting}
               onMouseEnter={(e) => {
                 const target = e.currentTarget;
-                showTooltip(t("scheduled.deleteTooltip") || "删除任务", target);
+                showTooltip(t("scheduled.deleteToolTip"), target);
               }}
             >
               <TrashIcon />
-              {t("scheduled.delete") || "删除"}
+              {t("scheduled.delete")}
             </button>
           </>
         )}
@@ -1875,13 +1785,11 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
           disabled={isSaving}
           onMouseEnter={(e) => {
             const target = e.currentTarget;
-            showTooltip(t("scheduled.saveTooltip") || "保存任务配置", target);
+            showTooltip(t("scheduled.saveToolTip"), target);
           }}
         >
           <SaveIcon />
-          {isSaving
-            ? t("common.saving") || "保存中..."
-            : t("settings.save") || "保存"}
+          {isSaving ? t("common.saving") : t("settings.save")}
         </button>
       </div>
     </div>

@@ -14,23 +14,6 @@ import {
   RadialBar,
 } from "recharts";
 
-const ChartIcon = () => (
-  <svg
-    width="48"
-    height="48"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.5"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M21 12v3a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4v-3" />
-    <path d="M12 2v8" />
-    <path d="m16 6-4 4-4-4" />
-  </svg>
-);
-
 export const StatusPieChart: React.FC<{
   data: Array<{ name: string; value: number; color: string }>;
   total: number;
@@ -38,7 +21,6 @@ export const StatusPieChart: React.FC<{
   emptyColor?: string;
 }> = ({ data, total, t, emptyColor }) => {
   const hasData = data.some((d) => d.value > 0);
-
   if (!hasData) {
     let defaultEmptyColor = emptyColor || "#e5e7eb";
     return (
@@ -75,7 +57,7 @@ export const StatusPieChart: React.FC<{
               fill="var(--text-secondary)"
               fontSize="9"
             >
-              {t("scheduled.total") || "总计"}
+              {t("scheduled.total")}
             </text>
           </PieChart>
         </ResponsiveContainer>
@@ -119,7 +101,7 @@ export const StatusPieChart: React.FC<{
           fill="var(--text-secondary)"
           fontSize="9"
         >
-          {t("scheduled.total") || "总计"}
+          {t("scheduled.total")}
         </text>
       </PieChart>
     </ResponsiveContainer>
@@ -214,7 +196,6 @@ export const ProgressRing: React.FC<{
     (document.documentElement.getAttribute("data-theme") === "dark" ||
       window.matchMedia("(prefers-color-scheme: dark)").matches);
   const backgroundColor = isDarkTheme ? "#2a2a2a" : "#e5e7eb";
-
   return (
     <div
       style={{

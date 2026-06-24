@@ -108,10 +108,8 @@ const BottomHeatmapPanel: React.FC<BottomHeatmapPanelProps> = ({
       });
       currentDate.setDate(currentDate.getDate() + 1);
     }
-
     return result;
   };
-
   const loadRealData = async () => {
     setLoading(true);
     try {
@@ -120,10 +118,7 @@ const BottomHeatmapPanel: React.FC<BottomHeatmapPanelProps> = ({
       setHeatmapData(data);
     } catch (error) {
       console.error("Failed to load scheduled tasks:", error);
-      showToast(
-        ToastType.ERROR,
-        t("scheduled.loadFailed") || "加载定时任务失败",
-      );
+      showToast(ToastType.ERROR, t("scheduled.loadFailed"));
     } finally {
       setLoading(false);
     }
@@ -176,8 +171,7 @@ const BottomHeatmapPanel: React.FC<BottomHeatmapPanelProps> = ({
             className="bottom-heatmap-title"
             style={{ fontSize: "12px", color: "var(--text-secondary)" }}
           >
-            {t("scheduled.executionHeatmap") ||
-              `全年执行热力图（${currentYear}年）`}
+            {t("scheduled.executionHeatmap")}
           </span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
@@ -197,7 +191,7 @@ const BottomHeatmapPanel: React.FC<BottomHeatmapPanelProps> = ({
               (e.currentTarget.style.background = "var(--bg-tertiary)")
             }
             onMouseLeave={(e) => (e.currentTarget.style.background = "none")}
-            title={t("user.refreshTooltip") || "刷新数据"}
+            title={t("user.refreshTooltip")}
           >
             <RefreshCwIcon />
           </button>
@@ -222,9 +216,7 @@ const BottomHeatmapPanel: React.FC<BottomHeatmapPanelProps> = ({
           >
             {isExpanded ? <ChevronDownIcon /> : <ChevronUpIcon />}
             <span style={{ fontSize: "11px" }}>
-              {isExpanded
-                ? t("scheduled.collapse") || "收起"
-                : t("scheduled.expand") || "展开"}
+              {isExpanded ? t("scheduled.collapse") : t("scheduled.expand")}
             </span>
           </button>
         </div>
@@ -252,7 +244,7 @@ const BottomHeatmapPanel: React.FC<BottomHeatmapPanelProps> = ({
                 fontSize: "12px",
               }}
             >
-              {t("common.loading") || "加载中..."}
+              {t("common.loading")}
             </div>
           ) : (
             <div style={{ display: "inline-block" }}>

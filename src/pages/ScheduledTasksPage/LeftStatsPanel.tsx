@@ -276,17 +276,17 @@ const LeftStatsPanel: React.FC<LeftStatsPanelProps> = ({
   }).length;
   const pieData = [
     {
-      label: t("scheduled.enabled") || "已启用",
+      label: t("scheduled.enabled"),
       value: stats.enabled,
       color: "#10b981",
     },
     {
-      label: t("scheduled.disabled") || "已禁用",
+      label: t("scheduled.disabled"),
       value: stats.disabled,
       color: "#6b7280",
     },
     {
-      label: t("scheduled.completed") || "已完成",
+      label: t("scheduled.completed"),
       value: stats.completed,
       color: "#8b5cf6",
     },
@@ -320,32 +320,32 @@ const LeftStatsPanel: React.FC<LeftStatsPanelProps> = ({
   const renderStatCards = () => {
     const cards = [
       {
-        label: t("scheduled.total") || "总任务",
+        label: t("scheduled.total"),
         value: stats.total,
         icon: <ListIcon />,
       },
       {
-        label: t("scheduled.enabled") || "运行中",
+        label: t("scheduled.enabled"),
         value: runningTasks,
         icon: <PlayIcon />,
       },
       {
-        label: t("scheduled.completed") || "已完成",
+        label: t("scheduled.completed"),
         value: successTasks,
         icon: <CheckCircleIcon />,
       },
       {
-        label: t("scheduled.failed") || "失败",
+        label: t("scheduled.failed"),
         value: failedTasks,
         icon: <XCircleIcon />,
       },
       {
-        label: t("scheduled.disabled") || "已暂停",
+        label: t("scheduled.disabled"),
         value: stats.disabled,
         icon: <PauseIcon />,
       },
       {
-        label: t("scheduled.newIn7Days") || "近7日新增",
+        label: t("scheduled.newIn7Days"),
         value: newTasksCount,
         icon: <SparklesIcon />,
       },
@@ -456,7 +456,7 @@ const LeftStatsPanel: React.FC<LeftStatsPanelProps> = ({
               textTransform: "uppercase",
             }}
           >
-            {t("scheduled.completionRate") || "完成率仪表盘"}
+            {t("scheduled.completionRate")}
           </span>
         </div>
         <div
@@ -469,19 +469,19 @@ const LeftStatsPanel: React.FC<LeftStatsPanelProps> = ({
         >
           <ProgressRing
             percentage={completionRate}
-            label={t("scheduled.completionRateLabel") || "完成率"}
+            label={t("scheduled.completionRateLabel")}
             color="#8b5cf6"
             size={70}
           />
           <ProgressRing
             percentage={successRate}
-            label={t("scheduled.successRateLabel") || "成功率"}
+            label={t("scheduled.successRateLabel")}
             color="#10b981"
             size={70}
           />
           <ProgressRing
             percentage={enabledRate}
-            label={t("scheduled.activeRateLabel") || "活跃率"}
+            label={t("scheduled.activeRateLabel")}
             color="#f59e0b"
             size={70}
           />
@@ -514,7 +514,7 @@ const LeftStatsPanel: React.FC<LeftStatsPanelProps> = ({
               textTransform: "uppercase",
             }}
           >
-            {t("scheduled.statusDistribution") || "任务状态分布"}
+            {t("scheduled.statusDistribution")}
           </span>
         </div>
         <div
@@ -614,7 +614,7 @@ const LeftStatsPanel: React.FC<LeftStatsPanelProps> = ({
               textTransform: "uppercase",
             }}
           >
-            {t("scheduled.executionTrend") || "执行趋势"}
+            {t("scheduled.executionTrend")}
           </span>
         </div>
         <TrendLineChart data={lineChartData} t={t} />
@@ -641,7 +641,7 @@ const LeftStatsPanel: React.FC<LeftStatsPanelProps> = ({
               textTransform: "uppercase",
             }}
           >
-            {t("scheduled.quickStats") || "快速统计"}
+            {t("scheduled.quickStats")}
           </span>
         </div>
         {renderStatCards()}
