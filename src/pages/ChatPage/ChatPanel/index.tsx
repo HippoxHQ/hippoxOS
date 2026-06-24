@@ -109,6 +109,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   const [workflowDisplayNames, setWorkflowDisplayNames] = useState<
     Map<string, string>
   >(new Map());
+  const [showTopScrollButton, setShowTopScrollButton] = useState(false);
 
   const {
     editingMessageId,
@@ -404,6 +405,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     const atBottom = scrollHeight - scrollTop - clientHeight <= 10;
     setIsAtBottom(atBottom);
     setShowScrollButton(scrollHeight > clientHeight && !atBottom);
+    setShowTopScrollButton(scrollTop > 50);
     if (atBottom) setUserScrolled(false);
     handleScrollUpdate();
   };
@@ -416,6 +418,15 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
       if (!atBottom) setUserScrolled(true);
     }
     checkScrollPosition();
+  };
+
+  const scrollToTop = () => {
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTo({
+        top: 0,
+        behavior: "smooth",
+      });
+    }
   };
 
   const scrollToBottom = () => {
@@ -1792,16 +1803,31 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
             );
           })}
         </div>
-        {showScrollButton && (
-          <div className="scroll-buttons chat-scroll-buttons">
-            <button
-              style={{ height: "32px", width: "32px", borderRadius: "500px" }}
-              className="scroll-btn"
-              onClick={scrollToBottom}
-              title={t("chat.scrollToBottom")}
-            >
-              ▼
-            </button>
+        {(showScrollButton || showTopScrollButton) && (
+          <div
+            className="scroll-buttons chat-scroll-buttons"
+            style={{ display: "flex", flexDirection: "column", gap: "6px" }}
+          >
+            {showTopScrollButton && (
+              <button
+                style={{ height: "32px", width: "32px", borderRadius: "500px" }}
+                className="scroll-btn"
+                onClick={scrollToTop}
+                title={t("chat.scrollToTop") || "Scroll to top"}
+              >
+                ▲
+              </button>
+            )}
+            {showScrollButton && (
+              <button
+                style={{ height: "32px", width: "32px", borderRadius: "500px" }}
+                className="scroll-btn"
+                onClick={scrollToBottom}
+                title={t("chat.scrollToBottom")}
+              >
+                ▼
+              </button>
+            )}
           </div>
         )}
       </div>

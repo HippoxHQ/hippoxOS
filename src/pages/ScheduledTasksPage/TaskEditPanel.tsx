@@ -288,7 +288,6 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
         setWorkflowMode(modes[0]);
       }
     } catch (error) {
-      console.error("Failed to load workflow modes:", error);
     } finally {
       setIsLoadingWorkflows(false);
     }
@@ -461,7 +460,6 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
         };
         const response = await scheduledTasksCommands.update(request);
         onTaskUpdated(response.task);
-        showToast(ToastType.SUCCESS, t("scheduled.updateSuccess"));
       } else {
         const request: CreateScheduledTaskRequest = {
           name: name.trim(),
@@ -480,7 +478,6 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
         resetForm();
       }
     } catch (error) {
-      console.error("Failed to save task:", error);
       showToast(ToastType.ERROR, t("scheduled.saveFailed"));
     } finally {
       setIsSaving(false);
@@ -498,9 +495,7 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
         try {
           await scheduledTasksCommands.delete(task.id);
           onTaskDeleted(task.id);
-          showToast(ToastType.SUCCESS, t("scheduled.deleteSuccess"));
         } catch (error) {
-          console.error("Failed to delete task:", error);
           showToast(ToastType.ERROR, t("scheduled.deleteFailed"));
         } finally {
           setIsDeleting(false);
@@ -521,14 +516,7 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
         !task.enabled,
       );
       onTaskUpdated(updatedTask);
-      showToast(
-        ToastType.SUCCESS,
-        updatedTask.enabled
-          ? t("scheduled.enabledSuccess")
-          : t("scheduled.disabledSuccess"),
-      );
     } catch (error) {
-      console.error("Failed to toggle task:", error);
       showToast(ToastType.ERROR, t("scheduled.toggleFailed"));
     } finally {
       setIsToggling(false);

@@ -821,7 +821,7 @@ const ScheduledTasksStatus: React.FC<ScheduledTasksStatusProps> = ({
                   style={{
                     display: "flex",
                     alignItems: "flex-start",
-                    gap: "20px",
+                    gap: "10px",
                     padding: "10px 14px",
                     borderBottom: "1px solid var(--border-color)",
                     transition: "background 0.2s",
@@ -945,6 +945,40 @@ const ScheduledTasksStatus: React.FC<ScheduledTasksStatusProps> = ({
                       }}
                     >
                       {getScheduleDisplay(task)}
+                    </div>
+
+                    <div
+                      style={{
+                        fontSize: "10px",
+                        color: "var(--text-secondary)",
+                        marginBottom: "2px",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "4px",
+                      }}
+                    >
+                      <svg
+                        width="10"
+                        height="10"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        style={{ flexShrink: 0 }}
+                      >
+                        <path
+                          d="M4 7h16M4 12h16M4 17h10"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                      <span>
+                        {t("scheduled.workflowMode")}:{" "}
+                        {task.workflow_mode || "ReAct"}
+                      </span>
                     </div>
 
                     <div

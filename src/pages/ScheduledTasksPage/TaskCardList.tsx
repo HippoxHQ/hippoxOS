@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import {
   ScheduledTask,
   fromScheduleConfig,
+  scheduledTasksCommands,
 } from "../../command/scheduledtasks";
 import { showDialog, DialogType } from "../../components/Dialog";
 import { showTooltip } from "../../components/Tooltip";
@@ -304,12 +305,23 @@ const getScheduleDisplay = (
 
 const getActionPreview = (
   task: ScheduledTask,
+  content: string,
   t: (key: string, params?: any) => string,
 ): string => {
   if (task.action_type === "naturallanguage") {
-    const content = (task as any).natural_language_content || "";
-    return content.length > 60 ? content.substring(0, 60) + "..." : content;
+    return content.length > 60
+      ? content.substring(0, 60) + "..."
+      : content || t("scheduled.noContent");
   } else {
+    if (content) {
+      const lines = content.split("\n");
+      const titleLine = lines.find((line) => line.startsWith("# "));
+      if (titleLine) {
+        const title = titleLine.replace(/^#\s*/, "").trim();
+        return title.length > 60 ? title.substring(0, 60) + "..." : title;
+      }
+      return "SKILL.md";
+    }
     return t("scheduled.skillFile");
   }
 };
@@ -333,6 +345,46 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
   const [showFilterPopup, setShowFilterPopup] = useState(false);
   const filterButtonRef = useRef<HTMLButtonElement>(null);
   const popupRef = useRef<HTMLDivElement>(null);
+  const [taskContents, setTaskContents] = useState<Map<string, string>>(
+    new Map(),
+  );
+  const [loadingContents, setLoadingContents] = useState<Set<string>>(
+    new Set(),
+  );
+
+  useEffect(() => {
+    const loadContents = async () => {
+      for (const task of tasks) {
+        if (!taskContents.has(task.id) && !loadingContents.has(task.id)) {
+          setLoadingContents((prev) => new Set(prev).add(task.id));
+          try {
+            let content = "";
+            if (task.action_type === "naturallanguage") {
+              const result = await scheduledTasksCommands.getNaturalLanguage(
+                task.id,
+              );
+              content = result || "";
+            } else {
+              const result = await scheduledTasksCommands.getSkillMd(task.id);
+              content = result || "";
+            }
+            setTaskContents((prev) => new Map(prev).set(task.id, content));
+          } catch (error) {
+            console.error("Failed to load task content:", error);
+          } finally {
+            setLoadingContents((prev) => {
+              const newSet = new Set(prev);
+              newSet.delete(task.id);
+              return newSet;
+            });
+          }
+        }
+      }
+    };
+    if (tasks.length > 0) {
+      loadContents();
+    }
+  }, [tasks]);
 
   useEffect(() => {
     const calculateColumns = () => {
@@ -573,7 +625,7 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
                   style={{
                     display: "flex",
                     alignItems: "center",
-                    gap: "8px",
+                    gap: "2px",
                     width: "100%",
                     padding: "8px 12px",
                     background:
@@ -713,7 +765,9 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
                 config,
                 t,
               );
-              const actionPreview = getActionPreview(task, t);
+              const content = taskContents.get(task.id) || "";
+              const isLoading = loadingContents.has(task.id);
+              const actionPreview = getActionPreview(task, content, t);
 
               return (
                 <div
@@ -754,19 +808,20 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
                       style={{
                         display: "flex",
                         alignItems: "center",
-                        gap: "8px",
+                        gap: "2px",
                         overflow: "hidden",
                       }}
                     >
-                      <span
+                      {/* <span
                         style={{
                           fontSize: "14px",
                           flexShrink: 0,
                           color: "var(--text-muted)",
+                          alignItems: "center"
                         }}
                       >
                         <ClockIcon />
-                      </span>
+                      </span> */}
                       <span
                         title={task.name}
                         style={{
@@ -828,7 +883,7 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
                     style={{
                       display: "flex",
                       alignItems: "center",
-                      gap: "8px",
+                      gap: "2px",
                       marginBottom: "6px",
                       fontSize: "11px",
                     }}
@@ -860,7 +915,7 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
                     style={{
                       display: "flex",
                       alignItems: "center",
-                      gap: "8px",
+                      gap: "2px",
                       marginBottom: "6px",
                       fontSize: "11px",
                     }}
@@ -893,6 +948,51 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
                     </span>
                   </div>
 
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "2px",
+                      marginBottom: "6px",
+                      fontSize: "11px",
+                    }}
+                  >
+                    <span
+                      style={{
+                        width: "20px",
+                        color: "var(--text-muted)",
+                        display: "flex",
+                        alignItems: "center",
+                      }}
+                    >
+                      <svg
+                        width="12"
+                        height="12"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                      >
+                        <path
+                          d="M4 7h16M4 12h16M4 17h10"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    </span>
+                    <span
+                      style={{
+                        color: "var(--text-secondary)",
+                        flex: 1,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {t("scheduled.workflowMode")}:{" "}
+                      {task.workflow_mode || "ReAct"}
+                    </span>
+                  </div>
                   <div
                     style={{
                       display: "flex",
@@ -931,12 +1031,11 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
                       </span>
                     )}
                   </div>
-
                   <div
                     onClick={(e) => e.stopPropagation()}
                     style={{
                       display: "flex",
-                      gap: "8px",
+                      gap: "2px",
                       justifyContent: "flex-end",
                       paddingTop: "8px",
                       borderTop: "1px solid var(--border-color)",

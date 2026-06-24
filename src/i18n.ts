@@ -979,6 +979,10 @@ export const zh = {
     disabled: '已禁用',
   },
   scheduled: {
+    enableToolTip: '启用',
+    disableToolTip: '禁用',
+    deleteToolTip: '删除',
+    saveToolTip: '保存',
     workflowMode: '工作流模式',
     tasks: "定时任务",
     filtered: "筛选后",
@@ -2266,6 +2270,10 @@ export const en: typeof zh = {
     disabled: 'Disabled',
   },
   scheduled: {
+    enableToolTip: 'Enable',
+    disableToolTip: 'Disable',
+    deleteToolTip: 'Delete',
+    saveToolTip: 'Save',
     workflowMode: 'Wrokflow Mode',
     tasks: "Scheduled Tasks",
     filtered: "filtered",
