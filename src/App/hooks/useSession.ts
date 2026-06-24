@@ -105,7 +105,7 @@ export function useSession(
                 const userMessages = (allData?.userMessages || []) as ChatMessage[];
                 const assistantMessages = (allData?.assistantMessages || []) as ChatMessage[];
                 if (userMessages.length === 0 && assistantMessages.length === 0) {
-                    console.log(`[AutoSave] Skipping save for ${currentSessionId} - no data in memory`);
+                    // !important, security checks to prevent empty data from overwriting valid data on the disk.
                     return;
                 }
                 // Merge and sort all messages by timestamp for consistent ordering
