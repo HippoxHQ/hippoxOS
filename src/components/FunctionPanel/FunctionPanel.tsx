@@ -149,7 +149,6 @@ const FunctionPanel: React.FC<FunctionPanelProps> = ({
       </div>
     );
   }
-
   if (isCollapsed) {
     const expandIcon = functionPanelPosition === "left" ? "≫" : "≪";
     return (
@@ -160,7 +159,14 @@ const FunctionPanel: React.FC<FunctionPanelProps> = ({
           flexShrink: 0,
           overflow: "hidden",
           background: "var(--bg-secondary)",
-          borderLeft: "1px solid var(--border-color)",
+          borderRight:
+            functionPanelPosition === "left"
+              ? "1px solid var(--border-color)"
+              : "none",
+          borderLeft:
+            functionPanelPosition === "left"
+              ? "none"
+              : "1px solid var(--border-color)",
           display: "flex",
           flexDirection: "column",
           alignItems: "center",

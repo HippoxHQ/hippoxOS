@@ -142,6 +142,7 @@ export function AppContent({
     useState<boolean>(false);
   const [isFunctionPanelMaximized, setIsFunctionPanelMaximized] =
     useState(false);
+  const [prevMaximizedState, setPrevMaximizedState] = useState<boolean>(false);
 
   const isDraggingFunctionPanel = useRef(false);
   const dragStartX = useRef(0);
@@ -212,9 +213,23 @@ export function AppContent({
     setFunctionPanelCollapsed((prev) => {
       const newState = !prev;
       saveFunctionPanelCollapsed(newState);
+      if (newState) {
+        setPrevMaximizedState(isFunctionPanelMaximized);
+        if (isFunctionPanelMaximized) {
+          setIsFunctionPanelMaximized(false);
+        }
+      } else {
+        if (prevMaximizedState) {
+          setIsFunctionPanelMaximized(true);
+        }
+      }
       return newState;
     });
-  }, [saveFunctionPanelCollapsed]);
+  }, [
+    saveFunctionPanelCollapsed,
+    isFunctionPanelMaximized,
+    prevMaximizedState,
+  ]);
 
   const handleFunctionPanelResizeMouseDown = useCallback(
     (e: React.MouseEvent) => {
@@ -511,7 +526,6 @@ export function AppContent({
         isFunctionPanelMaximized={isFunctionPanelMaximized}
       />
     );
-
     const renderResizeHandle = () => (
       <div
         className="resize-handle resize-handle-vertical"
@@ -554,61 +568,39 @@ export function AppContent({
         onToggleMaximize={handleToggleFunctionPanelMaximize}
       />
     );
-    if (functionPanelPosition === "left" && functionPanel.isOpen) {
-      if (isFunctionPanelMaximized) {
-        return (
-          <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
-            {functionPanelCollapsed ? (
-              renderFunctionPanelComponent(true)
-            ) : (
-              <>{renderFunctionPanelComponent(false)}</>
-            )}
-          </div>
-        );
-      }
+    if (!functionPanel.isOpen) {
+      return <div style={styles.contentArea}>{contentElement}</div>;
+    }
+    if (isFunctionPanelMaximized) {
       return (
-        <>
-          {functionPanelCollapsed ? (
-            renderFunctionPanelComponent(true)
-          ) : (
-            <>
-              {renderFunctionPanelComponent(false)}
-              {renderResizeHandle()}
-            </>
-          )}
-          <div style={styles.contentArea}>{contentElement}</div>
-        </>
+        <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
+          {renderFunctionPanelComponent(functionPanelCollapsed)}
+        </div>
       );
     }
-    if (functionPanel.isOpen) {
-      if (isFunctionPanelMaximized) {
-        return (
-          <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
-            {functionPanelCollapsed ? (
-              renderFunctionPanelComponent(true)
-            ) : (
-              <>{renderFunctionPanelComponent(false)}</>
-            )}
-          </div>
-        );
-      }
-      return (
-        <>
-          <div style={styles.contentArea}>{contentElement}</div>
-          {functionPanelCollapsed ? (
-            renderFunctionPanelComponent(true)
-          ) : (
-            <>
-              {renderResizeHandle()}
-              {renderFunctionPanelComponent(false)}
-            </>
-          )}
-        </>
-      );
-    }
-    return <div style={styles.contentArea}>{contentElement}</div>;
-  };
+    const functionPanelElement = renderFunctionPanelComponent(
+      functionPanelCollapsed,
+    );
+    const resizeHandle = functionPanelCollapsed ? null : renderResizeHandle();
 
+    if (functionPanelPosition === "left") {
+      return (
+        <>
+          {functionPanelElement}
+          {resizeHandle}
+          <div style={styles.contentArea}>{contentElement}</div>
+        </>
+      );
+    } else {
+      return (
+        <>
+          <div style={styles.contentArea}>{contentElement}</div>
+          {resizeHandle}
+          {functionPanelElement}
+        </>
+      );
+    }
+  };
   return (
     <div className="App">
       <CustomDragCursor isDragging={showDragCursor} />
