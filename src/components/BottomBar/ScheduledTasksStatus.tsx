@@ -5,6 +5,7 @@ import {
 } from "../../command/scheduledtasks";
 import { showDialog, DialogType } from "../../components/Dialog";
 import { showToast, ToastType } from "../../components/Toast";
+import { workflowCommands } from "../../command/workflow";
 
 interface ScheduledTasksStatusProps {
   isOpen: boolean;
@@ -159,6 +160,13 @@ const ScheduledTasksStatus: React.FC<ScheduledTasksStatusProps> = ({
   const [showFilterPopup, setShowFilterPopup] = useState(false);
   const filterButtonRef = useRef<HTMLButtonElement>(null);
   const filterPopupRef = useRef<HTMLDivElement>(null);
+  const workflowDisplayNameCache = new Map<string, string>();
+  const [workflowDisplayNames, setWorkflowDisplayNames] = useState<
+    Map<string, string>
+  >(new Map());
+  const [loadingWorkflowNames, setLoadingWorkflowNames] = useState<Set<string>>(
+    new Set(),
+  );
 
   const loadTasks = async () => {
     setLoading(true);
@@ -170,11 +178,98 @@ const ScheduledTasksStatus: React.FC<ScheduledTasksStatusProps> = ({
       );
       setTasks(sorted);
     } catch (error) {
-      console.error("Failed to load scheduled tasks:", error);
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    const loadWorkflowNames = async () => {
+      const lang = localStorage.getItem("hippox-language") || "en";
+      const tasksWithWorkflow = tasks.filter(
+        (t) =>
+          t.workflow_mode &&
+          !workflowDisplayNames.has(t.workflow_mode) &&
+          !loadingWorkflowNames.has(t.workflow_mode),
+      );
+      for (const task of tasksWithWorkflow) {
+        const mode = task.workflow_mode!;
+        setLoadingWorkflowNames((prev) => new Set(prev).add(mode));
+        try {
+          const cacheKey = `${mode}_${lang}`;
+          let displayName = workflowDisplayNameCache.get(cacheKey);
+          if (!displayName) {
+            displayName = await workflowCommands.workflowModeDisplayNameByLang(
+              mode,
+              lang,
+            );
+            workflowDisplayNameCache.set(cacheKey, displayName || mode);
+          }
+          setWorkflowDisplayNames((prev) =>
+            new Map(prev).set(mode, displayName || mode),
+          );
+        } catch (error) {
+          setWorkflowDisplayNames((prev) => new Map(prev).set(mode, mode));
+        } finally {
+          setLoadingWorkflowNames((prev) => {
+            const newSet = new Set(prev);
+            newSet.delete(mode);
+            return newSet;
+          });
+        }
+      }
+    };
+    if (tasks.length > 0) {
+      loadWorkflowNames();
+    }
+  }, [tasks]);
+
+  useEffect(() => {
+    const handleLanguageChange = () => {
+      workflowDisplayNameCache.clear();
+      setWorkflowDisplayNames(new Map());
+      const loadNames = async () => {
+        const lang = localStorage.getItem("hippox-language") || "en";
+        for (const task of tasks) {
+          if (task.workflow_mode) {
+            try {
+              const cacheKey = `${task.workflow_mode}_${lang}`;
+              let displayName = workflowDisplayNameCache.get(cacheKey);
+              if (!displayName) {
+                displayName =
+                  await workflowCommands.workflowModeDisplayNameByLang(
+                    task.workflow_mode,
+                    lang,
+                  );
+                workflowDisplayNameCache.set(
+                  cacheKey,
+                  displayName || task.workflow_mode,
+                );
+              }
+              setWorkflowDisplayNames((prev) =>
+                new Map(prev).set(
+                  task.workflow_mode!,
+                  displayName || task.workflow_mode!,
+                ),
+              );
+            } catch (error) {
+            }
+          }
+        }
+      };
+      loadNames();
+    };
+    window.addEventListener(
+      "language-changed",
+      handleLanguageChange as EventListener,
+    );
+    return () => {
+      window.removeEventListener(
+        "language-changed",
+        handleLanguageChange as EventListener,
+      );
+    };
+  }, [tasks]);
 
   useEffect(() => {
     if (isOpen) {
@@ -203,14 +298,11 @@ const ScheduledTasksStatus: React.FC<ScheduledTasksStatusProps> = ({
 
   const filteredTasks = useMemo(() => {
     return tasks.filter((task) => {
-      // Status filter
       if (statusFilter === "enabled" && (!task.enabled || task.completed))
         return false;
       if (statusFilter === "disabled" && (task.enabled || task.completed))
         return false;
       if (statusFilter === "completed" && !task.completed) return false;
-
-      // Search filter
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
         const nameMatch = task.name.toLowerCase().includes(query);
@@ -287,7 +379,6 @@ const ScheduledTasksStatus: React.FC<ScheduledTasksStatusProps> = ({
     const diffMins = Math.floor(diffMs / 60000);
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
-
     if (diffMins < 1) return t("notificationCenter.justNow");
     if (diffMins < 60) return `${diffMins} ${t("common.minutesAgo")}`;
     if (diffHours < 24) return `${diffHours} ${t("common.hoursAgo")}`;
@@ -308,7 +399,6 @@ const ScheduledTasksStatus: React.FC<ScheduledTasksStatusProps> = ({
           : t("scheduled.disabledSuccess"),
       );
     } catch (error) {
-      console.error("Failed to toggle task:", error);
       showToast(ToastType.ERROR, t("scheduled.toggleFailed"));
     }
   };
@@ -321,7 +411,6 @@ const ScheduledTasksStatus: React.FC<ScheduledTasksStatusProps> = ({
       );
       showToast(ToastType.SUCCESS, t("scheduled.completeSuccess"));
     } catch (error) {
-      console.error("Failed to complete task:", error);
       showToast(ToastType.ERROR, t("scheduled.completeFailed"));
     }
   };
@@ -339,7 +428,6 @@ const ScheduledTasksStatus: React.FC<ScheduledTasksStatusProps> = ({
           );
           showToast(ToastType.SUCCESS, t("scheduled.deleteSuccess"));
         } catch (error) {
-          console.error("Failed to delete task:", error);
           showToast(ToastType.ERROR, t("scheduled.deleteFailed"));
         }
       },
@@ -933,7 +1021,6 @@ const ScheduledTasksStatus: React.FC<ScheduledTasksStatusProps> = ({
                         </span>
                       </div>
                     </div>
-
                     <div
                       style={{
                         fontSize: "10px",
@@ -977,10 +1064,11 @@ const ScheduledTasksStatus: React.FC<ScheduledTasksStatusProps> = ({
                       </svg>
                       <span>
                         {t("scheduled.workflowMode")}:{" "}
-                        {task.workflow_mode || "ReAct"}
+                        {workflowDisplayNames.get(
+                          task.workflow_mode || "ReAct",
+                        ) || task.workflow_mode}
                       </span>
                     </div>
-
                     <div
                       style={{
                         fontSize: "9px",

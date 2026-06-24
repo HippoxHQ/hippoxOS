@@ -979,6 +979,7 @@ export const zh = {
     disabled: '已禁用',
   },
   scheduled: {
+    noContent: '没有内容',
     enableToolTip: '启用',
     disableToolTip: '禁用',
     deleteToolTip: '删除',
@@ -2270,6 +2271,7 @@ export const en: typeof zh = {
     disabled: 'Disabled',
   },
   scheduled: {
+    noContent: 'No Content',
     enableToolTip: 'Enable',
     disableToolTip: 'Disable',
     deleteToolTip: 'Delete',

@@ -305,6 +305,11 @@ const HistoryChatPanel = forwardRef<HistoryChatPanelRef, HistoryChatPanelProps>(
         setEditingId(null);
         setEditValue("");
         showToast(ToastType.SUCCESS, t("history.toast.renamed"));
+        window.dispatchEvent(
+          new CustomEvent("session-title-updated", {
+            detail: { sessionId: session.session_id, title: trimmed },
+          }),
+        );
       } catch (error) {
         showToast(ToastType.ERROR, t("history.toast.renameFailed"));
       }
@@ -499,7 +504,7 @@ const HistoryChatPanel = forwardRef<HistoryChatPanelRef, HistoryChatPanelProps>(
       cursor: "pointer",
       paddingBottom: "5px",
     };
-   
+
     if (loading && sessions.length === 0) {
       return (
         <div

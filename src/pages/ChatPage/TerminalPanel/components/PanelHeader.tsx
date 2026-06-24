@@ -84,6 +84,8 @@ export const PanelHeader: React.FC<PanelHeaderProps> = ({
         background: "var(--bg-secondary)",
         flexShrink: 0,
         minHeight: "40px",
+        gap: "8px",
+        overflow: "hidden",
       }}
     >
       <div
@@ -94,6 +96,9 @@ export const PanelHeader: React.FC<PanelHeaderProps> = ({
           fontSize: "13px",
           fontWeight: 500,
           color: "var(--text-primary)",
+          flex: 1,
+          minWidth: 0,
+          overflow: "hidden",
         }}
       >
         <span
@@ -101,17 +106,30 @@ export const PanelHeader: React.FC<PanelHeaderProps> = ({
             fontSize: "14px",
             display: "inline-flex",
             alignItems: "center",
+            flexShrink: 0,
           }}
         >
           <TerminalIcon size={19} />
         </span>
-        <span>{t("terminal.title")}</span>
+        <span
+          style={{
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+            flexShrink: 1,
+            minWidth: 0,
+          }}
+        >
+          {t("terminal.title")}
+        </span>
         {runningCount > 0 && (
           <span
             style={{
               fontSize: "11px",
               color: "var(--text-tertiary)",
               marginLeft: "4px",
+              flexShrink: 0,
+              whiteSpace: "nowrap",
             }}
           >
             ({runningCount} {t("terminal.status.running")})
@@ -124,6 +142,7 @@ export const PanelHeader: React.FC<PanelHeaderProps> = ({
           alignItems: "center",
           gap: "8px",
           position: "relative",
+          flexShrink: 0,
         }}
       >
         <div

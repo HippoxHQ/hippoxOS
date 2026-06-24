@@ -110,6 +110,66 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     Map<string, string>
   >(new Map());
   const [showTopScrollButton, setShowTopScrollButton] = useState(false);
+  const [sessionTitle, setSessionTitle] = useState<string>("");
+  const [isLoadingTitle, setIsLoadingTitle] = useState(false);
+  const hasLoadedTitleRef = useRef<Record<string, boolean>>({});
+
+  const loadSessionTitle = async (sessionId: string) => {
+    if (
+      !sessionId ||
+      sessionId.startsWith("pending_") ||
+      sessionId.startsWith("temp_")
+    ) {
+      setSessionTitle("");
+      return;
+    }
+    if (hasLoadedTitleRef.current[sessionId]) {
+      return;
+    }
+    setIsLoadingTitle(true);
+    try {
+      const list = await sessionCommands.listSessions();
+      const session = list.find((s: any) => s.session_id === sessionId);
+      if (session && session.title) {
+        setSessionTitle(session.title);
+        hasLoadedTitleRef.current[sessionId] = true;
+      } else {
+        setSessionTitle(t("chat.title"));
+      }
+    } catch (error) {
+      console.error("Failed to load session title:", error);
+      setSessionTitle(t("chat.title"));
+    } finally {
+      setIsLoadingTitle(false);
+    }
+  };
+
+  useEffect(() => {
+    if (currentSessionId) {
+      loadSessionTitle(currentSessionId);
+    }
+  }, [currentSessionId]);
+
+  useEffect(() => {
+    const handleSessionTitleUpdated = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const { sessionId, title } = customEvent.detail;
+      if (sessionId === currentSessionId && title) {
+        setSessionTitle(title);
+        localStorage.setItem(`session_title_${sessionId}`, title);
+      }
+    };
+    window.addEventListener(
+      "session-title-updated",
+      handleSessionTitleUpdated as EventListener,
+    );
+    return () => {
+      window.removeEventListener(
+        "session-title-updated",
+        handleSessionTitleUpdated as EventListener,
+      );
+    };
+  }, [currentSessionId]);
 
   const {
     editingMessageId,
@@ -396,6 +456,19 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     ) {
       loadSessionWorkflowMode(currentSessionId);
     }
+  }, [currentSessionId]);
+
+  useEffect(() => {
+    const handleSessionCreated = () => {
+      if (currentSessionId) {
+        hasLoadedTitleRef.current = {};
+        loadSessionTitle(currentSessionId);
+      }
+    };
+    window.addEventListener("session-created", handleSessionCreated);
+    return () => {
+      window.removeEventListener("session-created", handleSessionCreated);
+    };
   }, [currentSessionId]);
 
   const checkScrollPosition = () => {
@@ -882,31 +955,44 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     flex-shrink: 0;
     min-height: 40px;
   }
-  .header-title {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--text-primary);
-  }
+   .header-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  flex: 1;
+  min-width: 0;
+}
   .title-icon {
     font-size: 14px;
     display: inline-flex;
     align-items: center;
   }
   .header-right {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .header-subtitle {
-    font-size: 11px;
-    color: var(--text-tertiary);
-    background: var(--bg-tertiary);
-    padding: 2px 8px;
-    border-radius: 12px;
-  }
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  min-width: 0;
+  max-width: 60%; 
+}
+ .header-subtitle {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  background: var(--bg-tertiary);
+  padding: 2px 8px;
+  border-radius: 12px;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: block;  
+  flex-shrink: 1;
+  min-width: 0;
+  line-height: 1.5;
+}
   .collapse-btn {
     background: transparent;
     border: none;
@@ -1179,32 +1265,40 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   .chat-textarea-hermes::placeholder {
     color: var(--text-tertiary);
   }
-  .action-buttons-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 2px 8px 6px 8px;
-  }
-  .left-actions {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    position: relative;
-  }
+   .action-buttons-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2px 8px 6px 8px;
+  gap: 4px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+.left-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  position: relative;
+  flex-wrap: wrap;
+  min-width: 0;
+  flex: 1;
+}
   .icon-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 4px;
-    padding: 4px 8px;
-    background: transparent;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    color: var(--text-secondary);
-    font-size: 12px;
-    // transition: all 0.2s ease;
-  }
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  font-size: 12px;
+  // transition: all 0.2s ease;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
   .icon-btn:hover {
     background: var(--hover-bg);
     color: var(--text-primary);
@@ -1214,29 +1308,30 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     align-items: center;
     gap: 4px;
   }
-  .folder-name {
-    max-width: 120px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font-size: 12px;
-  }
+   .folder-name {
+  max-width: 80px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+}
   .chevron {
     // transition: transform 0.2s;
   }
   .send-icon-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 28px;
-    height: 28px;
-    border-radius: 8px;
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    color: var(--text-tertiary);
-    // transition: all 0.2s ease;
-  }
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--text-tertiary);
+  // transition: all 0.2s ease;
+  flex-shrink: 0;
+}
   .send-icon-btn.active {
     background: var(--accent-color);
     color: white;
@@ -1451,7 +1546,20 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
           <span className="title-icon">
             <ChatIcon size={14} />
           </span>
-          <span>{t("chat.title")}</span>
+          <span
+            style={{
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+              flex: 1,
+              minWidth: 0,
+            }}
+            title={sessionTitle || t("chat.title")}
+          >
+            {isLoadingTitle
+              ? t("common.loading")
+              : sessionTitle || t("chat.title")}
+          </span>
         </div>
 
         <div className="header-right">
@@ -1871,6 +1979,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
               >
                 <AttachmentIcon size={14} />
               </div>
+
               <div
                 className="icon-btn folder-btn"
                 ref={directoryBtnRef}
@@ -1879,6 +1988,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
                   setShowDirectoryMenu(!showDirectoryMenu);
                 }}
                 title={t("chat.selectWorkspace")}
+                style={{ minWidth: 0 }}
               >
                 <FolderIcon size={14} />
                 <span
@@ -1889,12 +1999,12 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
                 </span>
                 <ChevronRightIcon size={10} className="chevron" />
               </div>
-
               <div
                 className="icon-btn folder-btn"
                 ref={workflowBtnRef}
                 onClick={() => setShowWorkflowMenu(!showWorkflowMenu)}
                 title={t("chat.selectWorkflowMode") || "Workflow Mode"}
+                style={{ minWidth: 0 }}
               >
                 <svg
                   width="14"

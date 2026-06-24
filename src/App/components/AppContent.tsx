@@ -523,9 +523,12 @@ export function AppContent({
         rightTitle={layoutSwapMode === "terminal-left" ? "Chat" : "Terminal"}
         leftIcon={layoutSwapMode === "terminal-left" ? "🖥️" : "💬"}
         rightIcon={layoutSwapMode === "terminal-left" ? "💬" : "🖥️"}
-        isFunctionPanelMaximized={isFunctionPanelMaximized}
+        isFunctionPanelMaximized={
+          functionPanel.isOpen ? isFunctionPanelMaximized : false
+        }
       />
     );
+
     const renderResizeHandle = () => (
       <div
         className="resize-handle resize-handle-vertical"
@@ -552,6 +555,7 @@ export function AppContent({
         />
       </div>
     );
+
     const renderFunctionPanelComponent = (collapsed: boolean) => (
       <FunctionPanel
         controller={functionPanel}
@@ -569,6 +573,9 @@ export function AppContent({
       />
     );
     if (!functionPanel.isOpen) {
+      if (isFunctionPanelMaximized) {
+        setIsFunctionPanelMaximized(false);
+      }
       return <div style={styles.contentArea}>{contentElement}</div>;
     }
     if (isFunctionPanelMaximized) {
@@ -582,7 +589,6 @@ export function AppContent({
       functionPanelCollapsed,
     );
     const resizeHandle = functionPanelCollapsed ? null : renderResizeHandle();
-
     if (functionPanelPosition === "left") {
       return (
         <>
@@ -601,6 +607,7 @@ export function AppContent({
       );
     }
   };
+
   return (
     <div className="App">
       <CustomDragCursor isDragging={showDragCursor} />
