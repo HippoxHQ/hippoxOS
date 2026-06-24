@@ -39,6 +39,26 @@ export interface ScheduledTask {
   workflow_mode?: string;
 }
 
+// export interface ScheduledTask {
+//   id: string;
+//   name: string;
+//   schedule_type: 'fixed' | 'interval';
+//   schedule_config: ScheduleConfig;
+//   enabled: boolean;
+//   action_type: 'naturallanguage' | 'skillfile';
+//   created_at: string;
+//   updated_at: string;
+//   last_executed_at: string | null;
+//   next_execution_at: string | null;
+//   completed: boolean;
+//   execution_count: number;
+//   last_status: string | null;
+//   natural_language_content?: string;
+//   skill_md_content?: string;
+//   workflow_mode?: string;
+// }
+
+
 export interface ScheduledTaskResponse {
   task: ScheduledTask;
   natural_language_content: string | null;

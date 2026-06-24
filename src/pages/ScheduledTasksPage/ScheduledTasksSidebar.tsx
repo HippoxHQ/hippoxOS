@@ -1,5 +1,5 @@
 import React from "react";
-import { ScheduledTask } from "./types";
+import { ScheduledTask } from "../../command/scheduledtasks";
 
 const BarChartIcon = () => (
   <svg

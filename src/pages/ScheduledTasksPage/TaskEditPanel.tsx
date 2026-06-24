@@ -11,8 +11,8 @@ import {
   IntervalScheduleConfig,
   toScheduleConfig,
   fromScheduleConfig,
+  ScheduledTask,
 } from "../../command/scheduledtasks";
-import { ScheduledTask } from "./types";
 import { showDialog, DialogType } from "../../components/Dialog";
 import { showToast, ToastType } from "../../components/Toast";
 import { showTooltip } from "../../components/Tooltip";

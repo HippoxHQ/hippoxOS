@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { scheduledTasksCommands } from "../../command/scheduledtasks";
-import { ScheduledTask } from "./types";
+import { ScheduledTask, scheduledTasksCommands } from "../../command/scheduledtasks";
 import { scheduledTasksStyles } from "./ScheduledTasksStyles";
 import LeftStatsPanel from "./LeftStatsPanel";
 import TaskCardList from "./TaskCardList";

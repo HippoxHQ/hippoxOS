@@ -1,35 +1,20 @@
 import React, { useState, useEffect, useRef } from "react";
 import NotificationCenter from "./NotificationCenter";
 import ModelSelector from "./ModelSelector";
+import ScheduledTasksStatus from "./ScheduledTasksStatus";
 import { showToast, ToastType } from "../Toast";
-import { BotIcon, BotIcon2 } from "../../icons";
+import { BotIcon2 } from "../../icons";
 import { configCommands } from "../../command/config";
 import { LlmInstance } from "../../command/llm";
 import { systemNotificationService } from "../../core/NotificationManager";
 import { basisCommands } from "../../command/basis";
 import { healthCommands, HealthCheckResult } from "../../command/health";
+
 interface IconProps {
   className?: string;
   size?: number;
 }
-const ModelIcon: React.FC<IconProps> = ({ size = 18 }) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.5"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-    <line x1="9" y1="9" x2="15" y2="15" />
-    <line x1="15" y1="9" x2="9" y2="15" />
-    <circle cx="12" cy="12" r="2" />
-  </svg>
-);
+
 const BellIcon: React.FC<IconProps> = ({ size = 18 }) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
@@ -46,6 +31,7 @@ const BellIcon: React.FC<IconProps> = ({ size = 18 }) => (
     <path d="M13.73 21a2 2 0 0 1-3.46 0" />
   </svg>
 );
+
 const BellDotIcon: React.FC<IconProps> = ({ size = 18 }) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
@@ -63,6 +49,24 @@ const BellDotIcon: React.FC<IconProps> = ({ size = 18 }) => (
     <circle cx="19" cy="5" r="2.5" fill="red" stroke="red" />
   </svg>
 );
+
+const ClockIcon: React.FC<IconProps> = ({ size = 14 }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <circle cx="12" cy="12" r="10" />
+    <polyline points="12 6 12 12 16 14" />
+  </svg>
+);
+
 const bottomBarStyles = `
   .bottom-bar {
     height: 30px;
@@ -210,6 +214,7 @@ const bottomBarStyles = `
     }
   }
 `;
+
 if (typeof document !== "undefined") {
   const styleId = "bottom-bar-styles";
   if (!document.getElementById(styleId)) {
@@ -219,23 +224,30 @@ if (typeof document !== "undefined") {
     document.head.appendChild(style);
   }
 }
+
 interface BottomBarProps {
   t: (key: string, params?: Record<string, any>) => string;
 }
+
 type StatusDotState = "online" | "offline" | "checking";
+
 const BottomBar: React.FC<BottomBarProps> = ({ t }) => {
   const [hippoxVersion, setHippoxVersion] = useState<string>("");
   const [modelPopupVisible, setModelPopupVisible] = useState(false);
   const [notificationCenterVisible, setNotificationCenterVisible] =
     useState(false);
+  const [scheduledTasksVisible, setScheduledTasksVisible] = useState(false);
   const [llmInstances, setLlmInstances] = useState<LlmInstance[]>([]);
   const [defaultInstanceId, setDefaultInstanceId] = useState<string>("");
   const [unreadCount, setUnreadCount] = useState(0);
   const [statusDot, setStatusDot] = useState<StatusDotState>("checking");
   const modelButtonRef = useRef<HTMLButtonElement>(null);
   const notificationButtonRef = useRef<HTMLButtonElement>(null);
+  const scheduledTasksButtonRef = useRef<HTMLButtonElement>(null);
   const modelPopupRef = useRef<HTMLDivElement>(null);
   const notificationPopupRef = useRef<HTMLDivElement>(null);
+  const scheduledTasksPopupRef = useRef<HTMLDivElement>(null);
+
   const checkLlmHealth = async (instances: LlmInstance[]) => {
     if (instances.length === 0) {
       setStatusDot("offline");
@@ -255,6 +267,7 @@ const BottomBar: React.FC<BottomBarProps> = ({ t }) => {
       setStatusDot("offline");
     }
   };
+
   useEffect(() => {
     const loadVersion = async () => {
       try {
@@ -269,6 +282,7 @@ const BottomBar: React.FC<BottomBarProps> = ({ t }) => {
     };
     loadVersion();
   }, []);
+
   // Load LLM instances
   useEffect(() => {
     const loadLlmInstances = async () => {
@@ -286,6 +300,7 @@ const BottomBar: React.FC<BottomBarProps> = ({ t }) => {
     };
     loadLlmInstances();
   }, []);
+
   // Load unread count from notification manager
   useEffect(() => {
     const loadUnreadCount = async () => {
@@ -299,6 +314,7 @@ const BottomBar: React.FC<BottomBarProps> = ({ t }) => {
       }
     };
     loadUnreadCount();
+
     const handleCountUpdate = (e: CustomEvent) => {
       setUnreadCount(e.detail.count);
     };
@@ -313,28 +329,41 @@ const BottomBar: React.FC<BottomBarProps> = ({ t }) => {
       );
     };
   }, []);
+
   useEffect(() => {
     const handleGlobalClick = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
       const isModelButton = modelButtonRef.current?.contains(target);
       const isNotificationButton =
         notificationButtonRef.current?.contains(target);
-      if (isModelButton || isNotificationButton) {
+      const isScheduledTasksButton =
+        scheduledTasksButtonRef.current?.contains(target);
+
+      if (isModelButton || isNotificationButton || isScheduledTasksButton) {
         return;
       }
+
       const isModelPopup = modelPopupRef.current?.contains(target);
       const isNotificationPopup =
         notificationPopupRef.current?.contains(target);
+      const isScheduledTasksPopup =
+        scheduledTasksPopupRef.current?.contains(target);
+
       if (!isModelPopup && modelPopupVisible) {
         setModelPopupVisible(false);
       }
       if (!isNotificationPopup && notificationCenterVisible) {
         setNotificationCenterVisible(false);
       }
+      if (!isScheduledTasksPopup && scheduledTasksVisible) {
+        setScheduledTasksVisible(false);
+      }
     };
+
     document.addEventListener("mousedown", handleGlobalClick);
     return () => document.removeEventListener("mousedown", handleGlobalClick);
-  }, [modelPopupVisible, notificationCenterVisible]);
+  }, [modelPopupVisible, notificationCenterVisible, scheduledTasksVisible]);
+
   const handleSetDefaultModel = async (instanceId: string) => {
     try {
       await configCommands.setDefaultLlmInstance(instanceId);
@@ -350,12 +379,14 @@ const BottomBar: React.FC<BottomBarProps> = ({ t }) => {
       showToast(ToastType.ERROR, "Failed to set default model: " + error);
     }
   };
+
   const handleOpenModelSelector = async () => {
     setModelPopupVisible(!modelPopupVisible);
     if (!modelPopupVisible) {
       await checkLlmHealth(llmInstances);
     }
   };
+
   const getDefaultInstance = () => {
     let instance;
     if (defaultInstanceId) {
@@ -391,7 +422,6 @@ const BottomBar: React.FC<BottomBarProps> = ({ t }) => {
             <span>{defaultInstance?.name || t("bottomBar.model")}</span>
           </button>
         </div>
-
         <div className="bottom-bar-right">
           {!hippoxVersion ? (
             <span className="version-info">{t("common.loading")}</span>
@@ -400,16 +430,24 @@ const BottomBar: React.FC<BottomBarProps> = ({ t }) => {
               {t("bottomBar.engine")} {hippoxVersion}
             </span>
           )}
-          {/* <span className="health-status">
-            <span className="status-dot-small"></span>
-            {t("status.healthy")}
-          </span> */}
+          <button
+            ref={scheduledTasksButtonRef}
+            className={`bottom-bar-btn ${scheduledTasksVisible ? "bottom-bar-active" : ""}`}
+            onClick={() => {
+              setNotificationCenterVisible(false);
+              setScheduledTasksVisible(!scheduledTasksVisible);
+            }}
+            title={t("scheduled.tasks")}
+          >
+            <ClockIcon size={14} />
+          </button>
           <button
             ref={notificationButtonRef}
             className={`bottom-bar-btn ${notificationCenterVisible ? "bottom-bar-active" : ""}`}
-            onClick={() =>
-              setNotificationCenterVisible(!notificationCenterVisible)
-            }
+            onClick={() => {
+              setScheduledTasksVisible(false);
+              setNotificationCenterVisible(!notificationCenterVisible);
+            }}
             title={t("bottomBar.notifications")}
           >
             {unreadCount > 0 ? (
@@ -425,6 +463,7 @@ const BottomBar: React.FC<BottomBarProps> = ({ t }) => {
           </button>
         </div>
       </div>
+
       <ModelSelector
         isOpen={modelPopupVisible}
         onClose={() => setModelPopupVisible(false)}
@@ -435,12 +474,21 @@ const BottomBar: React.FC<BottomBarProps> = ({ t }) => {
         anchorRef={modelButtonRef as React.RefObject<HTMLElement>}
         popupRef={modelPopupRef}
       />
+
       <NotificationCenter
         isOpen={notificationCenterVisible}
         onClose={() => setNotificationCenterVisible(false)}
         anchorRef={notificationButtonRef as React.RefObject<HTMLElement>}
         t={t}
         popupRef={notificationPopupRef}
+      />
+
+      <ScheduledTasksStatus
+        isOpen={scheduledTasksVisible}
+        onClose={() => setScheduledTasksVisible(false)}
+        anchorRef={scheduledTasksButtonRef as React.RefObject<HTMLElement>}
+        t={t}
+        popupRef={scheduledTasksPopupRef}
       />
     </>
   );
