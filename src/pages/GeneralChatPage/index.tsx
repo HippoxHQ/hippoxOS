@@ -4,10 +4,11 @@ import { TaskStatusEnum } from "../../core/types";
 import { showTooltipOnElement } from "../../components/Tooltip";
 import HistoryChatPanel, { HistoryChatPanelRef } from "./HistoryChatPanel";
 import { CollapseAllIcon2, ExpandAllIcon2 } from "../../icons";
+import { configCommands } from "../../command/config";
+import ChatPanel from "./ChatPanel";
+import TerminalPanel from "./TerminalPanel";
 
 interface LLMChatPageProps {
-  leftPanel: React.ReactNode;
-  rightPanel: React.ReactNode;
   layoutMode?: "horizontal" | "vertical";
   onLayoutModeChange?: (mode: "horizontal" | "vertical") => void;
   leftTitle?: string;
@@ -19,6 +20,17 @@ interface LLMChatPageProps {
   currentSessionId?: string;
   onSwitchSession?: (sessionId: string) => void;
   onCloseSkillsManager?: () => void;
+  onSendMessage?: (
+    message: string,
+    sessionId: string,
+    files?: any[],
+    workflowMode?: string,
+  ) => void;
+  onFileClick?: (file: any) => void;
+  language?: "zh" | "en";
+  onDragOverInputChange?: (isDragging: boolean) => void;
+  executionLogs?: any[];
+  onClearLogs?: () => void;
 }
 
 interface CollapsedTaskListProps {
@@ -624,8 +636,6 @@ const CollapsedHistoryList: React.FC<CollapsedHistoryListProps> = ({
 };
 
 const LLMChatPage: React.FC<LLMChatPageProps> = ({
-  leftPanel,
-  rightPanel,
   layoutMode = "vertical",
   onLayoutModeChange,
   leftTitle = "Chat",
@@ -637,6 +647,12 @@ const LLMChatPage: React.FC<LLMChatPageProps> = ({
   currentSessionId,
   onSwitchSession,
   onCloseSkillsManager,
+  onSendMessage,
+  onFileClick,
+  language = "en",
+  onDragOverInputChange,
+  executionLogs,
+  onClearLogs,
 }) => {
   const [leftWidth, setLeftWidth] = useState<number>(50);
   const [historyWidth, setHistoryWidth] = useState<number>(280);
@@ -651,13 +667,75 @@ const LLMChatPage: React.FC<LLMChatPageProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const historyPanelRef = useRef<HistoryChatPanelRef>(null);
   const [historySessions, setHistorySessions] = useState<any[]>([]);
-
+  const [layoutSwapMode, setLayoutSwapMode] = useState<
+    "terminal-left" | "chat-left"
+  >("terminal-left");
+  const [isLayoutLoading, setIsLayoutLoading] = useState(true);
   const isDragging = useRef(false);
   const dragType = useRef<"horizontal" | "history">("horizontal");
   const dragStartX = useRef(0);
   const dragStartHistoryWidth = useRef(0);
   const dragStartLeftWidth = useRef(50);
   const dragStartContainerRect = useRef<DOMRect | null>(null);
+
+  const leftPanel = (
+    <ChatPanel
+      onSendMessage={onSendMessage || (() => {})}
+      onFileClick={onFileClick}
+      t={t}
+      currentSessionId={currentSessionId}
+      onDragOverInputChange={onDragOverInputChange}
+      language={language}
+      isLeftPanel={true}
+    />
+  );
+
+  const rightPanel = (
+    <TerminalPanel
+      logs={executionLogs || []}
+      onClearLogs={onClearLogs || (() => {})}
+      t={t}
+      currentSessionId={currentSessionId}
+      onFileClick={onFileClick}
+      isLeftPanel={false}
+    />
+  );
+
+  useEffect(() => {
+    const loadLayoutMode = async () => {
+      try {
+        const mode =
+          await configCommands.getSettingsGeneralChatLayoutSwapMode();
+        if (mode === "terminal-left" || mode === "chat-left") {
+          setLayoutSwapMode(mode);
+        }
+      } catch (error) {
+        console.error("Failed to load general chat layout mode:", error);
+      } finally {
+        setIsLayoutLoading(false);
+      }
+    };
+    loadLayoutMode();
+  }, []);
+
+  useEffect(() => {
+    const handleLayoutChange = (event: CustomEvent) => {
+      const { pageType, mode } = event.detail;
+      if (pageType === "general") {
+        setLayoutSwapMode(mode);
+      }
+    };
+    window.addEventListener(
+      "layout-swap-mode-changed",
+      handleLayoutChange as EventListener,
+    );
+    return () => {
+      window.removeEventListener(
+        "layout-swap-mode-changed",
+        handleLayoutChange as EventListener,
+      );
+    };
+  }, []);
 
   useEffect(() => {
     const loadSessions = async () => {
@@ -952,12 +1030,17 @@ const LLMChatPage: React.FC<LLMChatPageProps> = ({
         handleToggleLeft,
       );
     }
-    return React.cloneElement(leftPanel as React.ReactElement<any>, {
-      isCollapsed: false,
-      togglePanel: handleToggleLeft,
-      collapseIcon: "≪",
-      isLeftPanel: true,
-    });
+    const isTerminalLeft = layoutSwapMode === "terminal-left";
+    const panel = isTerminalLeft ? leftPanel : rightPanel;
+    if (React.isValidElement(panel)) {
+      return React.cloneElement(panel, {
+        isCollapsed: false,
+        togglePanel: isTerminalLeft ? handleToggleLeft : handleToggleRight,
+        collapseIcon: isTerminalLeft ? "≪" : "≫",
+        isLeftPanel: true,
+      } as any);
+    }
+    return panel;
   };
 
   const getRightPanelContent = () => {
@@ -969,12 +1052,17 @@ const LLMChatPage: React.FC<LLMChatPageProps> = ({
         handleToggleRight,
       );
     }
-    return React.cloneElement(rightPanel as React.ReactElement<any>, {
-      isCollapsed: false,
-      togglePanel: handleToggleRight,
-      collapseIcon: "≫",
-      isLeftPanel: false,
-    });
+    const isTerminalLeft = layoutSwapMode === "terminal-left";
+    const panel = isTerminalLeft ? rightPanel : leftPanel;
+    if (React.isValidElement(panel)) {
+      return React.cloneElement(panel, {
+        isCollapsed: false,
+        togglePanel: isTerminalLeft ? handleToggleRight : handleToggleLeft,
+        collapseIcon: isTerminalLeft ? "≫" : "≪",
+        isLeftPanel: false,
+      } as any);
+    }
+    return panel;
   };
 
   const getHistoryPanelContent = () => {

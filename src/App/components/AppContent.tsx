@@ -436,16 +436,12 @@ export function AppContent({
       } else {
         contentElement = (
           <LLMChatPage
-            leftPanel={leftPanelContent}
-            rightPanel={rightPanelContent}
             layoutMode="horizontal"
             onLayoutModeChange={() => {}}
-            leftTitle={layoutSwapMode === "terminal-left" ? "Terminal" : "Chat"}
-            rightTitle={
-              layoutSwapMode === "terminal-left" ? "Chat" : "Terminal"
-            }
-            leftIcon={layoutSwapMode === "terminal-left" ? "🖥️" : "💬"}
-            rightIcon={layoutSwapMode === "terminal-left" ? "💬" : "🖥️"}
+            leftTitle={t("chat.title") || "Chat"}
+            rightTitle={t("terminal.title") || "Terminal"}
+            leftIcon="💬"
+            rightIcon="🖥️"
             isFunctionPanelMaximized={
               functionPanel.isOpen ? isFunctionPanelMaximized : false
             }
@@ -459,13 +455,11 @@ export function AppContent({
     } else if (isMapPage) {
       contentElement = (
         <MapsPage
-          leftPanel={leftPanelContent}
-          rightPanel={rightPanelContent}
           layoutMode="horizontal"
           onLayoutModeChange={() => {}}
-          leftTitle={layoutSwapMode === "terminal-left" ? "Terminal" : "Chat"}
+          leftTitle={t("chat.title") || "Chat"}
           rightTitle="Map"
-          leftIcon={layoutSwapMode === "terminal-left" ? "🖥️" : "💬"}
+          leftIcon="💬"
           rightIcon="🗺️"
           isFunctionPanelMaximized={
             functionPanel.isOpen ? isFunctionPanelMaximized : false
@@ -481,13 +475,11 @@ export function AppContent({
     } else if (isChartPage) {
       contentElement = (
         <ChartPage
-          leftPanel={leftPanelContent}
-          rightPanel={rightPanelContent}
           layoutMode="horizontal"
           onLayoutModeChange={() => {}}
-          leftTitle={layoutSwapMode === "terminal-left" ? "Terminal" : "Chat"}
+          leftTitle={t("chat.title") || "Chat"}
           rightTitle="Chart"
-          leftIcon={layoutSwapMode === "terminal-left" ? "🖥️" : "💬"}
+          leftIcon="💬"
           rightIcon="📊"
           isFunctionPanelMaximized={
             functionPanel.isOpen ? isFunctionPanelMaximized : false
@@ -503,7 +495,31 @@ export function AppContent({
     } else {
       switch (currentContentPanel) {
         case "codeEditorChat":
-          contentElement = <CodeEditorPage t={t} />;
+          contentElement = (
+            <CodeEditorPage
+              layoutMode="horizontal"
+              onLayoutModeChange={() => {}}
+              leftTitle={t("chat.title") || "Chat"}
+              rightTitle={t("codeEditor.title") || "Code Editor"}
+              leftIcon="💬"
+              rightIcon="💻"
+              isFunctionPanelMaximized={
+                functionPanel.isOpen ? isFunctionPanelMaximized : false
+              }
+              currentSessionId={currentSessionId}
+              onSwitchSession={onSwitchSession}
+              onCloseSkillsManager={onCloseContentPanel}
+              t={t}
+              theme={theme === "dark" ? "dark" : "light"}
+              i18n={language === "zh" ? "zh-cn" : "en"}
+              onSendMessage={onSendMessage}
+              onFileClick={handleFileClick}
+              language={language}
+              onDragOverInputChange={setIsDraggingOverInput}
+              executionLogs={executionLogs}
+              onClearLogs={onClearLogs}
+            />
+          );
           break;
         case "taskQueue":
           contentElement = <TaskQueuePanel t={t} />;
@@ -693,7 +709,6 @@ export function AppContent({
         onToggleLanguage={onToggleLanguage}
         t={t}
         layoutSwapMode={layoutSwapMode}
-        onLayoutSwapModeChange={onLayoutSwapModeChange}
         functionPanelPosition={functionPanelPosition}
         onFunctionPanelPositionChange={onFunctionPanelPositionChange}
         onSwitchSession={onSwitchSession}

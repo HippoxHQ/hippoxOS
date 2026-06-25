@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import CodeEditPanel from "./CodeEditPanel/CodeEditPanel";
 import FileTreePanel from "./FileTreePanel";
+import { configCommands } from "../../command/config";
 
 interface CodingPageProps {
   t: (key: string) => string;
@@ -22,6 +23,10 @@ const CodingPage: React.FC<CodingPageProps> = ({ t, onClose }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isLeftHover, setIsLeftHover] = useState(false);
   const [isRightHover, setIsRightHover] = useState(false);
+  const [layoutSwapMode, setLayoutSwapMode] = useState<
+    "terminal-left" | "chat-left"
+  >("terminal-left");
+  const [isLayoutLoading, setIsLayoutLoading] = useState(true);
 
   const handleFileSelect = (path: string) => {
     setSelectedFile(path);
@@ -36,6 +41,42 @@ const CodingPage: React.FC<CodingPageProps> = ({ t, onClose }) => {
     document.body.style.cursor = "col-resize";
     document.body.style.userSelect = "none";
   };
+
+  useEffect(() => {
+    const loadLayoutMode = async () => {
+      try {
+        const mode = await configCommands.getSettingsCodeEditorLayoutSwapMode();
+        if (mode === "terminal-left" || mode === "chat-left") {
+          setLayoutSwapMode(mode);
+        }
+      } catch (error) {
+        console.error("Failed to load code editor layout mode:", error);
+      } finally {
+        setIsLayoutLoading(false);
+      }
+    };
+    loadLayoutMode();
+  }, []);
+
+  useEffect(() => {
+    const handleLayoutChange = (event: CustomEvent) => {
+      const { pageType, mode } = event.detail;
+      if (pageType === "codeeditor") {
+        setLayoutSwapMode(mode);
+      }
+    };
+    window.addEventListener(
+      "layout-swap-mode-changed",
+      handleLayoutChange as EventListener,
+    );
+    return () => {
+      window.removeEventListener(
+        "layout-swap-mode-changed",
+        handleLayoutChange as EventListener,
+      );
+    };
+  }, []);
+
   useEffect(() => {
     const onMouseMove = (e: MouseEvent) => {
       if (isDraggingLeft.current) {

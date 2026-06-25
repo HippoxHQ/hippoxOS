@@ -8,8 +8,6 @@ interface UniversalSettingsProps {
   language: "zh" | "en";
   onThemeChange: (theme: "light" | "dark") => void;
   onLanguageChange: (language: "zh" | "en") => void;
-  layoutSwapMode?: "terminal-left" | "chat-left";
-  onLayoutSwapModeChange?: (mode: "terminal-left" | "chat-left") => void;
   functionPanelPosition?: "left" | "right";
   onFunctionPanelPositionChange?: (position: "left" | "right") => void;
 }
@@ -132,32 +130,179 @@ const FunctionRightIcon = () => (
   </svg>
 );
 
+const emitLayoutChangeEvent = (pageType: string, mode: string) => {
+  window.dispatchEvent(
+    new CustomEvent("layout-swap-mode-changed", {
+      detail: { pageType, mode },
+    }),
+  );
+};
+
+const LayoutSwitch: React.FC<{
+  value: "terminal-left" | "chat-left";
+  onChange: (mode: "terminal-left" | "chat-left") => void;
+  label: string;
+  description?: string;
+  pageType: "general" | "chart" | "map" | "codeeditor";
+}> = ({ value, onChange, label, description, pageType }) => {
+  const layoutSwitchGroupStyle: React.CSSProperties = {
+    display: "flex",
+    alignItems: "center",
+    gap: "2px",
+    background: "var(--bg-tertiary)",
+    borderRadius: "6px",
+    padding: "2px",
+    flex: "1 1 auto",
+    minWidth: 0,
+    overflow: "hidden",
+  };
+
+  const layoutSwitchBtnStyle = (isActive: boolean): React.CSSProperties => ({
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "4px",
+    flex: "1 1 auto",
+    minWidth: 0,
+    height: "28px",
+    padding: "0 8px",
+    background: isActive ? "var(--accent-color, #00aaff)" : "transparent",
+    border: "none",
+    borderRadius: "4px",
+    cursor: "pointer",
+    fontSize: "11px",
+    fontWeight: 450,
+    color: isActive ? "white" : "var(--text-secondary)",
+    whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    position: "relative",
+    zIndex: 1,
+    pointerEvents: "auto",
+  });
+
+  const btnTextStyle: React.CSSProperties = {
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+    flexShrink: 1,
+    minWidth: 0,
+  };
+
+  const handleChange = (mode: "terminal-left" | "chat-left") => {
+    onChange(mode);
+    emitLayoutChangeEvent(pageType, mode);
+  };
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        marginBottom: "16px",
+        gap: "12px",
+        flexWrap: "nowrap",
+      }}
+    >
+      <div
+        style={{
+          fontSize: "13px",
+          color: "var(--text-primary)",
+          minWidth: "80px",
+          flexShrink: 0,
+          userSelect: "none",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
+        }}
+      >
+        {label}
+        {description && (
+          <span
+            style={{
+              fontSize: "10px",
+              color: "var(--text-tertiary)",
+              marginLeft: "4px",
+              display: "block",
+              fontWeight: 400,
+            }}
+          >
+            {description}
+          </span>
+        )}
+      </div>
+      <div style={layoutSwitchGroupStyle}>
+        <button
+          type="button"
+          style={layoutSwitchBtnStyle(value === "terminal-left")}
+          onClick={() => handleChange("terminal-left")}
+          title="终端在左"
+        >
+          <TerminalLeftIcon />
+          <span style={btnTextStyle}>终端｜对话</span>
+        </button>
+        <button
+          type="button"
+          style={layoutSwitchBtnStyle(value === "chat-left")}
+          onClick={() => handleChange("chat-left")}
+          title="对话在左"
+        >
+          <ChatLeftIcon />
+          <span style={btnTextStyle}>对话｜终端</span>
+        </button>
+      </div>
+    </div>
+  );
+};
+
 const UniversalSettings: React.FC<UniversalSettingsProps> = ({
   t,
   theme,
   language,
   onThemeChange,
   onLanguageChange,
-  layoutSwapMode = "terminal-left",
-  onLayoutSwapModeChange,
   functionPanelPosition = "right",
   onFunctionPanelPositionChange,
 }) => {
   const [autoStartEnabled, setAutoStartEnabled] = useState(false);
   const [autoStartLoading, setAutoStartLoading] = useState(true);
+  const [generalLayout, setGeneralLayout] = useState<
+    "terminal-left" | "chat-left"
+  >("terminal-left");
+  const [chartLayout, setChartLayout] = useState<"terminal-left" | "chat-left">(
+    "terminal-left",
+  );
+  const [mapLayout, setMapLayout] = useState<"terminal-left" | "chat-left">(
+    "terminal-left",
+  );
+  const [codeEditorLayout, setCodeEditorLayout] = useState<
+    "terminal-left" | "chat-left"
+  >("terminal-left");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const loadAutoStart = async () => {
+    const loadAllSettings = async () => {
       try {
-        const saved = await configCommands.getSettingsAutoStart();
-        setAutoStartEnabled(saved);
+        const [general, chart, map, codeEditor, autoStart] = await Promise.all([
+          configCommands.getSettingsGeneralChatLayoutSwapMode(),
+          configCommands.getSettingsChartChatLayoutSwapMode(),
+          configCommands.getSettingsMapChatLayoutSwapMode(),
+          configCommands.getSettingsCodeEditorLayoutSwapMode(),
+          configCommands.getSettingsAutoStart(),
+        ]);
+        setGeneralLayout(general as "terminal-left" | "chat-left");
+        setChartLayout(chart as "terminal-left" | "chat-left");
+        setMapLayout(map as "terminal-left" | "chat-left");
+        setCodeEditorLayout(codeEditor as "terminal-left" | "chat-left");
+        setAutoStartEnabled(autoStart);
       } catch (error) {
-        console.error("Failed to load auto start setting:", error);
+        console.error("Failed to load settings:", error);
       } finally {
-        setAutoStartLoading(false);
+        setLoading(false);
       }
     };
-    loadAutoStart();
+    loadAllSettings();
   }, []);
 
   const handleThemeChange = async (newTheme: "light" | "dark") => {
@@ -170,14 +315,40 @@ const UniversalSettings: React.FC<UniversalSettingsProps> = ({
     await configCommands.saveSettingsLanguage(newLanguage);
   };
 
-  const handleLayoutSwapChange = (mode: "terminal-left" | "chat-left") => {
-    onLayoutSwapModeChange?.(mode);
-    configCommands.saveSettingsLayoutSwapMode(mode);
+  const handleGeneralLayoutChange = async (
+    mode: "terminal-left" | "chat-left",
+  ) => {
+    setGeneralLayout(mode);
+    await configCommands.saveSettingsGeneralChatLayoutSwapMode(mode);
+  };
+
+  const handleChartLayoutChange = async (
+    mode: "terminal-left" | "chat-left",
+  ) => {
+    setChartLayout(mode);
+    await configCommands.saveSettingsChartChatLayoutSwapMode(mode);
+  };
+
+  const handleMapLayoutChange = async (mode: "terminal-left" | "chat-left") => {
+    setMapLayout(mode);
+    await configCommands.saveSettingsMapChatLayoutSwapMode(mode);
+  };
+
+  const handleCodeEditorLayoutChange = async (
+    mode: "terminal-left" | "chat-left",
+  ) => {
+    setCodeEditorLayout(mode);
+    await configCommands.saveSettingsCodeEditorLayoutSwapMode(mode);
   };
 
   const handleFunctionPanelPositionChange = (position: "left" | "right") => {
     onFunctionPanelPositionChange?.(position);
     configCommands.saveSettingsFunctionPanelPosition(position);
+    window.dispatchEvent(
+      new CustomEvent("function-panel-position-changed", {
+        detail: { position },
+      }),
+    );
   };
 
   const handleAutoStartToggle = async () => {
@@ -257,7 +428,6 @@ const UniversalSettings: React.FC<UniversalSettingsProps> = ({
     fontSize: "11px",
     fontWeight: 450,
     color: isActive ? "white" : "var(--text-secondary)",
-    // transition: "all 0.15s ease",
     whiteSpace: "nowrap",
     overflow: "hidden",
     textOverflow: "ellipsis",
@@ -283,7 +453,6 @@ const UniversalSettings: React.FC<UniversalSettingsProps> = ({
       : "var(--bg-tertiary)",
     border: "1px solid var(--border-color)",
     cursor: "pointer",
-    // transition: "all 0.2s",
     position: "relative",
     flexShrink: 0,
     outline: "none",
@@ -298,9 +467,25 @@ const UniversalSettings: React.FC<UniversalSettingsProps> = ({
     height: "18px",
     borderRadius: "50%",
     background: "white",
-    // transition: "all 0.2s",
     boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
   });
+
+  if (loading) {
+    return (
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          height: "100%",
+          color: "var(--text-secondary)",
+          fontSize: "13px",
+        }}
+      >
+        {t("common.loading") || "Loading..."}
+      </div>
+    );
+  }
 
   return (
     <div
@@ -329,7 +514,6 @@ const UniversalSettings: React.FC<UniversalSettingsProps> = ({
         >
           🎨 {t("settings.interfaceConfig")}
         </div>
-
         <div style={rowStyle}>
           <label style={labelStyle}>{t("settings.theme")}</label>
           <select
@@ -343,7 +527,6 @@ const UniversalSettings: React.FC<UniversalSettingsProps> = ({
             <option value="dark">{t("settings.themeDark")}</option>
           </select>
         </div>
-
         <div style={rowStyle}>
           <label style={labelStyle}>{t("settings.language")}</label>
           <select
@@ -357,37 +540,6 @@ const UniversalSettings: React.FC<UniversalSettingsProps> = ({
             <option value="en">{t("settings.langEn")}</option>
           </select>
         </div>
-
-        <div style={rowStyle}>
-          <label style={labelStyle}>
-            {t("settings.panelLayout") || "面板布局"}
-          </label>
-          <div style={layoutSwitchGroupStyle}>
-            <button
-              type="button"
-              style={layoutSwitchBtnStyle(layoutSwapMode === "terminal-left")}
-              onClick={() => handleLayoutSwapChange("terminal-left")}
-              title={t("settings.terminalLeft") || "终端在左"}
-            >
-              <TerminalLeftIcon />
-              <span style={btnTextStyle}>
-                {t("settings.terminalLeft") || "终端｜对话"}
-              </span>
-            </button>
-            <button
-              type="button"
-              style={layoutSwitchBtnStyle(layoutSwapMode === "chat-left")}
-              onClick={() => handleLayoutSwapChange("chat-left")}
-              title={t("settings.chatLeft") || "对话在左"}
-            >
-              <ChatLeftIcon />
-              <span style={btnTextStyle}>
-                {t("settings.chatLeft") || "对话｜终端"}
-              </span>
-            </button>
-          </div>
-        </div>
-
         <div style={rowStyle}>
           <label style={labelStyle}>
             {t("settings.functionPanelPosition") || "功能区位置"}
@@ -417,14 +569,13 @@ const UniversalSettings: React.FC<UniversalSettingsProps> = ({
             </button>
           </div>
         </div>
-
         <div
           style={{
             borderTop: "1px solid var(--border-color, #333)",
             marginBottom: "10px",
+            marginTop: "4px",
           }}
-        ></div>
-
+        />
         <div
           style={{
             fontSize: "13px",
@@ -434,9 +585,54 @@ const UniversalSettings: React.FC<UniversalSettingsProps> = ({
             paddingLeft: "4px",
           }}
         >
-          🎨 {t("settings.interfaceConfig")}
+          📐 {t("settings.panelLayout") || "面板布局"}
         </div>
-
+        <LayoutSwitch
+          value={generalLayout}
+          onChange={handleGeneralLayoutChange}
+          label={t("settings.generalChat") || "通用对话"}
+          description={t("settings.generalChatDesc") || "默认对话页面"}
+          pageType="general"
+        />
+        <LayoutSwitch
+          value={chartLayout}
+          onChange={handleChartLayoutChange}
+          label={t("settings.chartChat") || "图表对话"}
+          description={t("settings.chartChatDesc") || "K线图分析页面"}
+          pageType="chart"
+        />
+        <LayoutSwitch
+          value={mapLayout}
+          onChange={handleMapLayoutChange}
+          label={t("settings.mapChat") || "地图对话"}
+          description={t("settings.mapChatDesc") || "地理信息页面"}
+          pageType="map"
+        />
+        <LayoutSwitch
+          value={codeEditorLayout}
+          onChange={handleCodeEditorLayoutChange}
+          label={t("settings.codeEditorChat") || "代码编辑器"}
+          description={t("settings.codeEditorDesc") || "代码编辑页面"}
+          pageType="codeeditor"
+        />
+        <div
+          style={{
+            borderTop: "1px solid var(--border-color, #333)",
+            marginBottom: "10px",
+            marginTop: "4px",
+          }}
+        />
+        <div
+          style={{
+            fontSize: "13px",
+            fontWeight: 600,
+            color: "var(--text-secondary)",
+            marginBottom: "12px",
+            paddingLeft: "4px",
+          }}
+        >
+          ⚙️ {t("settings.systemConfig") || "系统配置"}
+        </div>
         <div style={rowStyle}>
           <label style={labelStyle}>
             {t("settings.autoStart") || "开机自启动"}

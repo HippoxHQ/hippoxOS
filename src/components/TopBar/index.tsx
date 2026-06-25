@@ -590,7 +590,6 @@ interface TopBarProps {
   onToggleLanguage: () => void;
   t: (key: string) => string;
   layoutSwapMode?: "terminal-left" | "chat-left";
-  onLayoutSwapModeChange?: (mode: "terminal-left" | "chat-left") => void;
   functionPanelPosition?: "left" | "right";
   onFunctionPanelPositionChange?: (position: "left" | "right") => void;
   onSwitchSession?: (sessionId: string) => void;
@@ -610,7 +609,6 @@ const TopBar: React.FC<TopBarProps> = ({
   onToggleLanguage,
   t,
   layoutSwapMode = "terminal-left",
-  onLayoutSwapModeChange,
   functionPanelPosition = "right",
   onFunctionPanelPositionChange,
   onSwitchSession,
@@ -765,35 +763,6 @@ const TopBar: React.FC<TopBarProps> = ({
           >
             {currentLanguage === "zh" ? "EN" : "中文"}
           </button>
-
-          {onLayoutSwapModeChange && (
-            <>
-              <div className="layout-divider" />
-              <div className="layout-switch-group">
-                <button
-                  className={`layout-switch-btn ${layoutSwapMode === "terminal-left" ? "active" : ""}`}
-                  onClick={() => onLayoutSwapModeChange("terminal-left")}
-                  // title={
-                  //   isZh ? "终端在左，对话在右" : "Terminal Left, Chat Right"
-                  // }
-                >
-                  <TerminalLeftIcon />
-                  {/* <span>{isZh ? "终端｜对话" : "Term｜Chat"}</span> */}
-                </button>
-                <button
-                  className={`layout-switch-btn ${layoutSwapMode === "chat-left" ? "active" : ""}`}
-                  onClick={() => onLayoutSwapModeChange("chat-left")}
-                  // title={
-                  //   isZh ? "对话在左，终端在右" : "Chat Left, Terminal Right"
-                  // }
-                >
-                  <ChatLeftIcon />
-                  {/* <span>{isZh ? "对话｜终端" : "Chat｜Term"}</span> */}
-                </button>
-              </div>
-            </>
-          )}
-
           {onFunctionPanelPositionChange && (
             <>
               <div className="layout-divider" />

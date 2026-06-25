@@ -56,8 +56,6 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
           language={language || "en"}
           onThemeChange={onThemeChange || (() => {})}
           onLanguageChange={onLanguageChange || (() => {})}
-          layoutSwapMode={layoutSwapMode}
-          onLayoutSwapModeChange={onLayoutSwapModeChange}
           functionPanelPosition={functionPanelPosition}
           onFunctionPanelPositionChange={onFunctionPanelPositionChange}
         />

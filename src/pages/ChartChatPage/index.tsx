@@ -4,11 +4,13 @@ import { TaskStatusEnum } from "../../core/types";
 import { showTooltipOnElement } from "../../components/Tooltip";
 import { CollapseAllIcon2, ExpandAllIcon2 } from "../../icons";
 import ChartChatPageCandleView from "./ChartChatPageCandleView";
-import HistoryChartChatPanel, { HistoryChartChatPanelRef } from "./HistoryChartChatPanel";
+import HistoryChartChatPanel, {
+  HistoryChartChatPanelRef,
+} from "./HistoryChartChatPanel";
+import { configCommands } from "../../command/config";
+import ChatPanel from "../GeneralChatPage/ChatPanel";
 
 interface ChartPageProps {
-  leftPanel: React.ReactNode;
-  rightPanel: React.ReactNode;
   layoutMode?: "horizontal" | "vertical";
   onLayoutModeChange?: (mode: "horizontal" | "vertical") => void;
   leftTitle?: string;
@@ -24,13 +26,23 @@ interface ChartPageProps {
   i18n?: "en" | "zh-cn";
   chartData?: any;
   symbol?: string;
+  onSendMessage?: (
+    message: string,
+    sessionId: string,
+    files?: any[],
+    workflowMode?: string,
+  ) => void;
+  onFileClick?: (file: any) => void;
+  language?: "zh" | "en";
+  onDragOverInputChange?: (isDragging: boolean) => void;
+  executionLogs?: any[];
+  onClearLogs?: () => void;
 }
 
 interface CollapsedTaskListProps {
   tasks: any[];
   activeNavIndex: number;
   onLocateTask: (idx: number) => void;
-  isLeft: boolean;
 }
 
 const CollapsedTaskList: React.FC<CollapsedTaskListProps> = ({
@@ -629,8 +641,6 @@ const CollapsedHistoryList: React.FC<CollapsedHistoryListProps> = ({
 };
 
 const ChartPage: React.FC<ChartPageProps> = ({
-  leftPanel,
-  rightPanel,
   layoutMode = "vertical",
   onLayoutModeChange,
   leftTitle = "Chat",
@@ -646,11 +656,16 @@ const ChartPage: React.FC<ChartPageProps> = ({
   i18n = "en",
   chartData,
   symbol = "BTC/USDT",
+  onSendMessage,
+  onFileClick,
+  language = "en",
+  onDragOverInputChange,
+  executionLogs,
+  onClearLogs,
 }) => {
-  const [leftWidth, setLeftWidth] = useState<number>(50);
+  const [chatPanelWidth, setChatPanelWidth] = useState<number>(400);
   const [historyWidth, setHistoryWidth] = useState<number>(280);
-  const [leftCollapsed, setLeftCollapsed] = useState<boolean>(false);
-  const [rightCollapsed, setRightCollapsed] = useState<boolean>(false);
+  const [chatPanelCollapsed, setChatPanelCollapsed] = useState<boolean>(false);
   const [historyCollapsed, setHistoryCollapsed] = useState<boolean>(false);
   const [activeNavIndex, setActiveNavIndex] = useState<number>(-1);
   const [isResizeHover, setIsResizeHover] = useState(false);
@@ -664,10 +679,32 @@ const ChartPage: React.FC<ChartPageProps> = ({
   const dragType = useRef<"horizontal" | "history">("horizontal");
   const dragStartX = useRef(0);
   const dragStartHistoryWidth = useRef(0);
-  const dragStartLeftWidth = useRef(50);
+  const dragStartChatPanelWidth = useRef(400);
   const dragStartContainerRect = useRef<DOMRect | null>(null);
-
-  const chartViewContent = (
+  const [layoutSwapMode, setLayoutSwapMode] = useState<
+    "terminal-left" | "chat-left"
+  >("terminal-left");
+  const isChatOnLeft = layoutSwapMode === "terminal-left";
+  const handleToggleChatPanel = useCallback(() => {
+    if (isFunctionPanelMaximized) return;
+    setChatPanelCollapsed((prev) => {
+      const newState = !prev;
+      saveChatPanelCollapsed(newState);
+      return newState;
+    });
+  }, [isFunctionPanelMaximized]);
+  const chatPanel = (
+    <ChatPanel
+      onSendMessage={onSendMessage || (() => {})}
+      onFileClick={onFileClick}
+      t={t}
+      currentSessionId={currentSessionId}
+      onDragOverInputChange={onDragOverInputChange}
+      language={language}
+      isLeftPanel={isChatOnLeft}
+    />
+  );
+  const chartPanel = (
     <div
       style={{
         flex: 1,
@@ -687,7 +724,131 @@ const ChartPage: React.FC<ChartPageProps> = ({
       />
     </div>
   );
-
+  const collapsedChatSidebar = (
+    <div
+      className="collapsed-sidebar"
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        width: "45px",
+        minWidth: "45px",
+        background: "var(--bg-secondary)",
+        borderRight: isChatOnLeft ? "1px solid var(--border-color)" : "none",
+        borderLeft: !isChatOnLeft ? "1px solid var(--border-color)" : "none",
+        overflow: "hidden",
+        flexShrink: 0,
+        height: "100%",
+      }}
+    >
+      <div
+        style={{
+          borderBottom: "1px solid var(--border-color)",
+          padding: "4px 0px",
+          width: "100%",
+          display: "flex",
+          justifyContent: "center",
+          flexShrink: 0,
+        }}
+      >
+        <button
+          className="collapse-toggle-btn"
+          onClick={handleToggleChatPanel}
+          style={{
+            background: "transparent",
+            border: "none",
+            color: "var(--text-secondary)",
+            cursor: "pointer",
+            fontSize: "15px",
+            padding: "6px",
+            borderRadius: "6px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            width: "32px",
+            height: "32px",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = "var(--hover-bg)";
+            e.currentTarget.style.color = "var(--text-primary)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = "transparent";
+            e.currentTarget.style.color = "var(--text-secondary)";
+          }}
+          title={isChatOnLeft ? "向右展开" : "向左展开"}
+        >
+          {isChatOnLeft ? "≫" : "≪"}
+        </button>
+      </div>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: "4px",
+          fontSize: "10px",
+          color: "var(--text-tertiary)",
+          flexShrink: 0,
+          paddingTop: "8px",
+          paddingBottom: "8px",
+        }}
+      >
+        <span style={{ fontSize: "16px" }}>{leftIcon}</span>
+      </div>
+      <CollapsedTaskList
+        tasks={taskManager.getAllTasks()}
+        activeNavIndex={activeNavIndex}
+        onLocateTask={(idx) => {
+          const task = taskManager.getAllTasks()[idx];
+          if (task) {
+            window.dispatchEvent(
+              new CustomEvent("locate-task-in-terminal", {
+                detail: { taskId: task.task_id },
+              }),
+            );
+            window.dispatchEvent(
+              new CustomEvent("locate-task-in-chat", {
+                detail: { taskId: task.task_id },
+              }),
+            );
+            setActiveNavIndex(idx);
+          }
+        }}
+      />
+    </div>
+  );
+  useEffect(() => {
+    const loadLayoutMode = async () => {
+      try {
+        const mode = await configCommands.getSettingsChartChatLayoutSwapMode();
+        if (mode === "terminal-left" || mode === "chat-left") {
+          setLayoutSwapMode(mode);
+        }
+      } catch (error) {
+        console.error("Failed to load chart chat layout mode:", error);
+      }
+    };
+    loadLayoutMode();
+  }, []);
+  useEffect(() => {
+    const handleLayoutChange = (event: CustomEvent) => {
+      const { pageType, mode } = event.detail;
+      if (pageType === "chart") {
+        setLayoutSwapMode(mode);
+      }
+    };
+    window.addEventListener(
+      "layout-swap-mode-changed",
+      handleLayoutChange as EventListener,
+    );
+    return () => {
+      window.removeEventListener(
+        "layout-swap-mode-changed",
+        handleLayoutChange as EventListener,
+      );
+    };
+  }, []);
   useEffect(() => {
     const loadSessions = async () => {
       try {
@@ -715,19 +876,16 @@ const ChartPage: React.FC<ChartPageProps> = ({
     const savedHistoryCollapsed = localStorage.getItem(
       "hippox-chart-history-collapsed",
     );
-    const savedLeftCollapsed = localStorage.getItem(
-      "hippox-chart-left-collapsed",
+    const savedChatPanelCollapsed = localStorage.getItem(
+      "hippox-chart-chat-collapsed",
     );
-    const savedRightCollapsed = localStorage.getItem(
-      "hippox-chart-right-collapsed",
-    );
-    const savedLeftWidth = localStorage.getItem("hippox-chart-left-width");
+    const savedChatPanelWidth = localStorage.getItem("hippox-chart-chat-width");
     if (savedHistoryWidth) setHistoryWidth(parseFloat(savedHistoryWidth));
     if (savedHistoryCollapsed)
       setHistoryCollapsed(savedHistoryCollapsed === "true");
-    if (savedLeftCollapsed) setLeftCollapsed(savedLeftCollapsed === "true");
-    if (savedRightCollapsed) setRightCollapsed(savedRightCollapsed === "true");
-    if (savedLeftWidth) setLeftWidth(parseFloat(savedLeftWidth));
+    if (savedChatPanelCollapsed)
+      setChatPanelCollapsed(savedChatPanelCollapsed === "true");
+    if (savedChatPanelWidth) setChatPanelWidth(parseFloat(savedChatPanelWidth));
   }, []);
 
   const saveHistoryWidth = (width: number) => {
@@ -740,15 +898,12 @@ const ChartPage: React.FC<ChartPageProps> = ({
       collapsed.toString(),
     );
   };
-
-  const saveLeftCollapsed = (collapsed: boolean) => {
-    localStorage.setItem("hippox-chart-left-collapsed", collapsed.toString());
+  const saveChatPanelCollapsed = (collapsed: boolean) => {
+    localStorage.setItem("hippox-chart-chat-collapsed", collapsed.toString());
   };
-
-  const saveRightCollapsed = (collapsed: boolean) => {
-    localStorage.setItem("hippox-chart-right-collapsed", collapsed.toString());
+  const saveChatPanelWidth = (width: number) => {
+    localStorage.setItem("hippox-chart-chat-width", width.toString());
   };
-
   const handleExpandToggle = () => {
     const newExpanded = !isHistoryExpanded;
     setIsHistoryExpanded(newExpanded);
@@ -758,7 +913,6 @@ const ChartPage: React.FC<ChartPageProps> = ({
       historyPanelRef.current?.collapseAll();
     }
   };
-
   const handleScrollToggle = () => {
     const newAtBottom = !isHistoryAtBottom;
     setIsHistoryAtBottom(newAtBottom);
@@ -768,42 +922,10 @@ const ChartPage: React.FC<ChartPageProps> = ({
       historyPanelRef.current?.scrollToTop();
     }
   };
-
   const handleToggleHistory = () => {
     setHistoryCollapsed(!historyCollapsed);
     saveHistoryCollapsed(!historyCollapsed);
   };
-
-  const handleToggleLeft = () => {
-    if (isFunctionPanelMaximized) return;
-    if (leftCollapsed) {
-      setLeftCollapsed(false);
-      saveLeftCollapsed(false);
-      return;
-    }
-    if (rightCollapsed) {
-      setRightCollapsed(false);
-      saveRightCollapsed(false);
-    }
-    setLeftCollapsed(true);
-    saveLeftCollapsed(true);
-  };
-
-  const handleToggleRight = () => {
-    if (isFunctionPanelMaximized) return;
-    if (rightCollapsed) {
-      setRightCollapsed(false);
-      saveRightCollapsed(false);
-      return;
-    }
-    if (leftCollapsed) {
-      setLeftCollapsed(false);
-      saveLeftCollapsed(false);
-    }
-    setRightCollapsed(true);
-    saveRightCollapsed(true);
-  };
-
   const handleSessionSelect = useCallback(
     (sessionId: string) => {
       if (onSwitchSession) {
@@ -812,25 +934,23 @@ const ChartPage: React.FC<ChartPageProps> = ({
     },
     [onSwitchSession],
   );
-
   const handleMouseDown = (
     e: React.MouseEvent,
     type: "horizontal" | "history",
   ) => {
-    if (leftCollapsed || rightCollapsed || isFunctionPanelMaximized) return;
+    if (chatPanelCollapsed || isFunctionPanelMaximized) return;
     if (type === "history" && historyCollapsed) return;
     isDragging.current = true;
     dragType.current = type;
     dragStartX.current = e.clientX;
     dragStartHistoryWidth.current = historyCollapsed ? 45 : historyWidth;
-    dragStartLeftWidth.current = leftWidth;
+    dragStartChatPanelWidth.current = chatPanelWidth;
     dragStartContainerRect.current =
       containerRef.current?.getBoundingClientRect() || null;
     document.body.style.cursor = "col-resize";
     document.body.style.userSelect = "none";
     e.preventDefault();
   };
-
   const handleMouseMove = (e: MouseEvent) => {
     if (!isDragging.current || !containerRef.current) return;
     const deltaX = e.clientX - dragStartX.current;
@@ -842,18 +962,13 @@ const ChartPage: React.FC<ChartPageProps> = ({
       const historyWidthPx = dragStartHistoryWidth.current;
       const mainAreaWidth = containerWidth - historyWidthPx;
       if (mainAreaWidth <= 0) return;
-      const startLeftWidthPx =
-        (dragStartLeftWidth.current / 100) * mainAreaWidth;
-      let newWidthPx = startLeftWidthPx + deltaX;
-      const minWidthPx = mainAreaWidth * 0.25;
-      const maxWidthPx = mainAreaWidth * 0.75;
+      const startWidthPx = dragStartChatPanelWidth.current;
+      let newWidthPx = startWidthPx + deltaX;
+      const minWidthPx = 200;
+      const maxWidthPx = mainAreaWidth * 0.6;
       newWidthPx = Math.max(minWidthPx, Math.min(maxWidthPx, newWidthPx));
-      const newWidthPercent = (newWidthPx / mainAreaWidth) * 100;
-      setLeftWidth(newWidthPercent);
-      localStorage.setItem(
-        "hippox-chart-left-width",
-        newWidthPercent.toString(),
-      );
+      setChatPanelWidth(newWidthPx);
+      saveChatPanelWidth(newWidthPx);
     } else if (dragType.current === "history") {
       const newWidth = dragStartHistoryWidth.current + deltaX;
       const clamped = Math.min(400, Math.max(180, newWidth));
@@ -861,13 +976,11 @@ const ChartPage: React.FC<ChartPageProps> = ({
       saveHistoryWidth(clamped);
     }
   };
-
   const handleMouseUp = () => {
     isDragging.current = false;
     document.body.style.cursor = "";
     document.body.style.userSelect = "";
   };
-
   useEffect(() => {
     window.addEventListener("mousemove", handleMouseMove);
     window.addEventListener("mouseup", handleMouseUp);
@@ -876,217 +989,6 @@ const ChartPage: React.FC<ChartPageProps> = ({
       window.removeEventListener("mouseup", handleMouseUp);
     };
   }, []);
-
-  const renderCollapsedSidebar = (
-    isLeft: boolean,
-    title: string,
-    icon: React.ReactNode,
-    onToggle: () => void,
-  ) => {
-    const allTasks = taskManager.getAllTasks();
-    return (
-      <div
-        className="collapsed-sidebar"
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          width: "45px",
-          minWidth: "45px",
-          background: "var(--bg-secondary)",
-          borderRight: isLeft ? "1px solid var(--border-color)" : "none",
-          borderLeft: !isLeft ? "1px solid var(--border-color)" : "none",
-          overflow: "hidden",
-          flexShrink: 0,
-          height: "100%",
-        }}
-      >
-        <div
-          style={{
-            borderBottom: "1px solid var(--border-color)",
-            padding: "4px 0px",
-            width: "100%",
-            display: "flex",
-            justifyContent: "center",
-            flexShrink: 0,
-          }}
-        >
-          <button
-            className="collapse-toggle-btn"
-            onClick={onToggle}
-            style={{
-              background: "transparent",
-              border: "none",
-              color: "var(--text-secondary)",
-              cursor: "pointer",
-              fontSize: "15px",
-              padding: "6px",
-              borderRadius: "6px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              width: "32px",
-              height: "32px",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = "var(--hover-bg)";
-              e.currentTarget.style.color = "var(--text-primary)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "transparent";
-              e.currentTarget.style.color = "var(--text-secondary)";
-            }}
-            title={`Expand ${title}`}
-          >
-            {isLeft ? "≫" : "≪"}
-          </button>
-        </div>
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: "4px",
-            fontSize: "10px",
-            color: "var(--text-tertiary)",
-            flexShrink: 0,
-            paddingTop: "8px",
-            paddingBottom: "8px",
-          }}
-        >
-          <span style={{ fontSize: "16px" }}>{icon}</span>
-        </div>
-        <CollapsedTaskList
-          tasks={allTasks}
-          activeNavIndex={activeNavIndex}
-          onLocateTask={(idx) => {
-            const task = allTasks[idx];
-            if (task) {
-              window.dispatchEvent(
-                new CustomEvent("locate-task-in-terminal", {
-                  detail: { taskId: task.task_id },
-                }),
-              );
-              window.dispatchEvent(
-                new CustomEvent("locate-task-in-chat", {
-                  detail: { taskId: task.task_id },
-                }),
-              );
-              setActiveNavIndex(idx);
-            }
-          }}
-          isLeft={isLeft}
-        />
-      </div>
-    );
-  };
-
-  const getLeftPanelContent = () => {
-    if (leftCollapsed || isFunctionPanelMaximized) {
-      return renderCollapsedSidebar(
-        true,
-        leftTitle,
-        leftIcon,
-        handleToggleLeft,
-      );
-    }
-    return React.cloneElement(leftPanel as React.ReactElement<any>, {
-      isCollapsed: false,
-      togglePanel: handleToggleLeft,
-      collapseIcon: "≪",
-      isLeftPanel: true,
-    });
-  };
-
-  const getRightPanelContent = () => {
-    if (rightCollapsed || isFunctionPanelMaximized) {
-      return renderCollapsedSidebar(
-        false,
-        rightTitle,
-        rightIcon,
-        handleToggleRight,
-      );
-    }
-    if (rightTitle === "Chart" || rightTitle === "图表") {
-      return (
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            height: "100%",
-            width: "100%",
-            overflow: "hidden",
-            background: "var(--bg-primary)",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              padding: "6px 12px",
-              borderBottom: "1px solid var(--border-color)",
-              background: "var(--bg-secondary)",
-              flexShrink: 0,
-              minHeight: "40px",
-            }}
-          >
-            <span
-              style={{
-                fontSize: "14px",
-                fontWeight: 600,
-                color: "var(--text-primary)",
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-              }}
-            >
-              <span>📊</span>
-              {t("chart.title") || "Chart View"}
-            </span>
-            <button
-              onClick={handleToggleRight}
-              title={rightCollapsed ? "Expand" : "Collapse"}
-              style={{
-                width: "28px",
-                height: "28px",
-                borderRadius: "5px",
-                background: "transparent",
-                border: "none",
-                color: "var(--text-secondary)",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: "15px",
-                flexShrink: 0,
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = "var(--hover-bg)";
-                e.currentTarget.style.color = "var(--text-primary)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = "transparent";
-                e.currentTarget.style.color = "var(--text-secondary)";
-              }}
-            >
-              ≫
-            </button>
-          </div>
-          <div style={{ flex: 1, overflow: "hidden", position: "relative" }}>
-            {chartViewContent}
-          </div>
-        </div>
-      );
-    }
-    return React.cloneElement(rightPanel as React.ReactElement<any>, {
-      isCollapsed: false,
-      togglePanel: handleToggleRight,
-      collapseIcon: "≫",
-      isLeftPanel: false,
-    });
-  };
-
   const getHistoryPanelContent = () => {
     if (historyCollapsed || isFunctionPanelMaximized) {
       return (
@@ -1333,13 +1235,9 @@ const ChartPage: React.FC<ChartPageProps> = ({
     );
   };
 
-  const leftPanelContent = getLeftPanelContent();
-  const rightPanelContent = getRightPanelContent();
   const historyPanelContent = getHistoryPanelContent();
   const historyWidthPx =
     historyCollapsed || isFunctionPanelMaximized ? 45 : historyWidth;
-  const isLeftCollapsed = leftCollapsed || isFunctionPanelMaximized;
-  const isRightCollapsed = rightCollapsed || isFunctionPanelMaximized;
 
   return (
     <div
@@ -1392,6 +1290,7 @@ const ChartPage: React.FC<ChartPageProps> = ({
           display: none;
         }
       `}</style>
+
       {!isFunctionPanelMaximized && (
         <>
           <div
@@ -1446,29 +1345,44 @@ const ChartPage: React.FC<ChartPageProps> = ({
         </>
       )}
 
-      <div
-        className="panel-left"
-        style={{
-          flex: isLeftCollapsed
-            ? "0 0 45px"
-            : isRightCollapsed
-              ? 1
-              : "0 0 auto",
-          width: isLeftCollapsed
-            ? "45px"
-            : isRightCollapsed
-              ? "100%"
-              : `${leftWidth}%`,
-          overflow: "hidden",
-          minWidth: isLeftCollapsed ? "45px" : "150px",
-          display: "flex",
-          flexDirection: "row",
-        }}
-      >
-        {leftPanelContent}
-      </div>
+      {!chatPanelCollapsed && !isFunctionPanelMaximized ? (
+        <div
+          className="panel-chat"
+          style={{
+            flex: "0 0 auto",
+            width: `${chatPanelWidth}px`,
+            overflow: "hidden",
+            minWidth: "200px",
+            display: "flex",
+            flexDirection: "row",
+            borderRight: isChatOnLeft
+              ? "1px solid var(--border-color)"
+              : "none",
+            borderLeft: !isChatOnLeft
+              ? "1px solid var(--border-color)"
+              : "none",
+            order: isChatOnLeft ? 1 : 3,
+          }}
+        >
+          {React.cloneElement(chatPanel as React.ReactElement<any>, {
+            isCollapsed: false,
+            togglePanel: handleToggleChatPanel,
+            collapseIcon: isChatOnLeft ? "≪" : "≫",
+            isLeftPanel: isChatOnLeft,
+          })}
+        </div>
+      ) : !isFunctionPanelMaximized ? (
+        <div
+          style={{
+            flex: "0 0 45px",
+            order: isChatOnLeft ? 1 : 3,
+          }}
+        >
+          {collapsedChatSidebar}
+        </div>
+      ) : null}
 
-      {!isLeftCollapsed && !isRightCollapsed && !isFunctionPanelMaximized && (
+      {!chatPanelCollapsed && !isFunctionPanelMaximized && (
         <div
           className="resize-handle resize-handle-vertical"
           onMouseDown={(e) => handleMouseDown(e, "horizontal")}
@@ -1481,6 +1395,7 @@ const ChartPage: React.FC<ChartPageProps> = ({
             flexShrink: 0,
             position: "relative",
             transition: "width 0.15s, background 0.15s",
+            order: 2,
           }}
           onMouseEnter={() => setIsResizeHover(true)}
           onMouseLeave={() => setIsResizeHover(false)}
@@ -1503,20 +1418,17 @@ const ChartPage: React.FC<ChartPageProps> = ({
           )}
         </div>
       )}
-
       <div
         style={{
-          flex: isRightCollapsed ? "0 0 45px" : 1,
-          width: isRightCollapsed ? "45px" : "auto",
+          flex: 1,
           overflow: "hidden",
-          minWidth: isRightCollapsed ? "45px" : "150px",
+          minWidth: "150px",
           display: "flex",
           flexDirection: "row",
-          justifyContent: isRightCollapsed ? "flex-end" : "flex-start",
-          marginLeft: isRightCollapsed ? "auto" : 0,
+          order: isChatOnLeft ? 3 : 1,
         }}
       >
-        {rightPanelContent}
+        {chartPanel}
       </div>
     </div>
   );

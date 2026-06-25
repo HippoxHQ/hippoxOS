@@ -204,12 +204,36 @@ export const configCommands = {
         return await invoke('cmd_save_settings_auto_start', { enabled });
     },
 
-    async getSettingsLayoutSwapMode(): Promise<string> {
-        return await invoke('cmd_get_settings_layout_swap_mode');
+    async getSettingsGeneralChatLayoutSwapMode(): Promise<string> {
+        return await invoke('cmd_get_settings_general_chat_layout_swap_mode');
     },
 
-    async saveSettingsLayoutSwapMode(mode: string): Promise<void> {
-        return await invoke('cmd_save_settings_layout_swap_mode', { mode });
+    async saveSettingsGeneralChatLayoutSwapMode(mode: string): Promise<void> {
+        return await invoke('cmd_save_settings_general_chat_layout_swap_mode', { mode });
+    },
+
+    async getSettingsChartChatLayoutSwapMode(): Promise<string> {
+        return await invoke('cmd_get_settings_chart_chat_layout_swap_mode');
+    },
+
+    async saveSettingsChartChatLayoutSwapMode(mode: string): Promise<void> {
+        return await invoke('cmd_save_settings_chart_chat_layout_swap_mode', { mode });
+    },
+
+    async getSettingsMapChatLayoutSwapMode(): Promise<string> {
+        return await invoke('cmd_get_settings_map_chat_layout_swap_mode');
+    },
+
+    async saveSettingsMapChatLayoutSwapMode(mode: string): Promise<void> {
+        return await invoke('cmd_save_settings_map_chat_layout_swap_mode', { mode });
+    },
+
+    async getSettingsCodeEditorLayoutSwapMode(): Promise<string> {
+        return await invoke('cmd_get_settings_codeeditor_chat_layout_swap_mode');
+    },
+
+    async saveSettingsCodeEditorLayoutSwapMode(mode: string): Promise<void> {
+        return await invoke('cmd_save_settings_codeeditor_chat_layout_swap_mode', { mode });
     },
 
     async getSettingsFunctionPanelPosition(): Promise<string> {

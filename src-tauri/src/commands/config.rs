@@ -1348,7 +1348,7 @@ pub async fn cmd_set_max_favorites_size(max_size_mb: u64) -> Result<(), String> 
 }
 
 #[tauri::command]
-pub fn cmd_get_settings_layout_swap_mode() -> Result<String, String> {
+pub fn cmd_get_settings_general_chat_layout_swap_mode() -> Result<String, String> {
     let value = crate::common::get_setting_with_default(
         "layout_swap_mode",
         serde_json::json!("terminal-left"),
@@ -1357,8 +1357,50 @@ pub fn cmd_get_settings_layout_swap_mode() -> Result<String, String> {
 }
 
 #[tauri::command]
-pub fn cmd_save_settings_layout_swap_mode(mode: String) -> Result<(), String> {
-    crate::common::set_setting("layout_swap_mode", serde_json::json!(mode))
+pub fn cmd_save_settings_general_chat_layout_swap_mode(mode: String) -> Result<(), String> {
+    crate::common::set_setting("general_chat_layout_swap_mode", serde_json::json!(mode))
+}
+
+#[tauri::command]
+pub fn cmd_get_settings_chart_chat_layout_swap_mode() -> Result<String, String> {
+    let value = crate::common::get_setting_with_default(
+        "chart_chat_layout_swap_mode",
+        serde_json::json!("terminal-left"),
+    )?;
+    Ok(value.as_str().unwrap_or("terminal-left").to_string())
+}
+
+#[tauri::command]
+pub fn cmd_save_settings_chart_chat_layout_swap_mode(mode: String) -> Result<(), String> {
+    crate::common::set_setting("chart_chat_layout_swap_mode", serde_json::json!(mode))
+}
+
+#[tauri::command]
+pub fn cmd_get_settings_map_chat_layout_swap_mode() -> Result<String, String> {
+    let value = crate::common::get_setting_with_default(
+        "map_chat_layout_swap_mode",
+        serde_json::json!("terminal-left"),
+    )?;
+    Ok(value.as_str().unwrap_or("terminal-left").to_string())
+}
+
+#[tauri::command]
+pub fn cmd_save_settings_map_chat_layout_swap_mode(mode: String) -> Result<(), String> {
+    crate::common::set_setting("map_chat_layout_swap_mode", serde_json::json!(mode))
+}
+
+#[tauri::command]
+pub fn cmd_get_settings_codeeditor_chat_layout_swap_mode() -> Result<String, String> {
+    let value = crate::common::get_setting_with_default(
+        "codeeditor_chat_layout_swap_mode",
+        serde_json::json!("terminal-left"),
+    )?;
+    Ok(value.as_str().unwrap_or("terminal-left").to_string())
+}
+
+#[tauri::command]
+pub fn cmd_save_settings_codeeditor_chat_layout_swap_mode(mode: String) -> Result<(), String> {
+    crate::common::set_setting("codeeditor_chat_layout_swap_mode", serde_json::json!(mode))
 }
 
 #[tauri::command]
