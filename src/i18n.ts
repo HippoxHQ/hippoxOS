@@ -637,6 +637,7 @@ export const zh = {
     confirmClearLogsTitle: "确认清空日志",
   },
   menu: {
+    codeEditor: "代码编辑器",
     userProfile: "个人页面",
     skillsManager: "技能管理器",
     skillEditor: "技能编辑器",
@@ -1878,6 +1879,7 @@ export const en: typeof zh = {
     }
   },
   menu: {
+    codeEditor: "Code Editor",
     userProfile: "Profile",
     skillsManager: "Skills Manager",
     skillEditor: "Skill Editor",
