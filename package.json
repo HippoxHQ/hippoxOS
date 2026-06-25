@@ -8,6 +8,7 @@
     "@fontsource/dancing-script": "^5.2.8",
     "@fontsource/great-vibes": "^5.2.8",
     "@fontsource/pacifico": "^5.2.7",
+    "@monaco-editor/react": "^4.7.0",
     "@tauri-apps/api": "^2.11.0",
     "@tauri-apps/plugin-autostart": "^2.5.1",
     "@tauri-apps/plugin-shell": "^2.3.5",

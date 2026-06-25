@@ -33,7 +33,7 @@ import FunctionPanel from "../../components/FunctionPanel/FunctionPanel";
 import { FunctionPanelController } from "../../components/FunctionPanel/hooks/useFunctionPanelController";
 import ChatPanel from "../../pages/ChatPage/ChatPanel";
 import TerminalPanel from "../../pages/ChatPage/TerminalPanel";
-import CodeEditorPage from "../../pages/CodeEditorPage/CodeEditorPage";
+import CodeEditorPage from "../../pages/CodeEditorPage";
 
 interface AppContentProps {
   theme: Theme;
