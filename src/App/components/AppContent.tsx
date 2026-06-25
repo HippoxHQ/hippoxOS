@@ -34,6 +34,8 @@ import { FunctionPanelController } from "../../components/FunctionPanel/hooks/us
 import ChatPanel from "../../pages/ChatPage/ChatPanel";
 import TerminalPanel from "../../pages/ChatPage/TerminalPanel";
 import CodeEditorPage from "../../pages/CodeEditorPage";
+import ChartPage from "../../pages/ChartPage";
+import MapsPage from "../../pages/MapsPage";
 
 interface AppContentProps {
   theme: Theme;
@@ -396,6 +398,10 @@ export function AppContent({
         );
       case "codeEditor":
         return <CodeEditorPage t={t} />;
+      case "chart":
+        return <ChartPage t={t} />;
+      case "map":
+        return <MapsPage t={t} />;
       case "taskQueue":
         return <TaskQueuePanel t={t} />;
       case "workspace":

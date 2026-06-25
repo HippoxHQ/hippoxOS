@@ -69,6 +69,8 @@ const Sidebar: React.FC<SidebarProps> = ({
       "logs",
       "skillMarket",
       "userProfile",
+      "chart",
+      "map",
     ];
 
     if (directOpenItems.includes(itemId)) {

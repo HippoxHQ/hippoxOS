@@ -125,7 +125,9 @@ function App() {
       view === "skillsManager" ||
       view === "scheduledTasks" ||
       view === "userProfile" ||
-      view === "codeEditor"
+      view === "codeEditor" ||
+      view === "chart" ||
+      view === "map"
     ) {
       switchContentArea(view);
       return;

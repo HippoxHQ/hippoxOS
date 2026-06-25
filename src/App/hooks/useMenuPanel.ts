@@ -19,6 +19,8 @@ export type ContentPanelView =
   | "scheduledTasks"
   | "userProfile"
   | "codeEditor"
+  | "chart"
+  | "map"
   | null;
 
 export function useMenuPanel() {
@@ -78,6 +80,8 @@ export function useMenuPanel() {
       "scheduledTasks",
       "userProfile",
       "codeEditor",
+      "chart",
+      "map",
     ];
     if (contentViews.includes(view)) {
       setCurrentContentPanel(view as ContentPanelView);

@@ -1965,6 +1965,46 @@ export const CodeEditorIcon: React.FC<IconProps> = ({
   </svg>
 );
 
+export const ChartIcon: React.FC<IconProps> = ({ className, size = 18 }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    <rect x="3" y="14" width="4" height="7" rx="0.5" />
+    <rect x="10" y="10" width="4" height="11" rx="0.5" />
+    <rect x="17" y="6" width="4" height="15" rx="0.5" />
+    <line x1="3" y1="3" x2="3" y2="21" />
+    <line x1="3" y1="21" x2="21" y2="21" />
+  </svg>
+);
+
+export const MapIcon: React.FC<IconProps> = ({ className, size = 18 }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    <circle cx="12" cy="12" r="10" />
+    <line x1="2" y1="12" x2="22" y2="12" />
+    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+  </svg>
+);
+
 export const iconMap: Record<string, React.FC<IconProps>> = {
   dashboard: DashboardIcon,
   workspace: WorkspaceIcon,
@@ -2031,4 +2071,6 @@ export const iconMap: Record<string, React.FC<IconProps>> = {
   rename: RenameIcon,
   delete: DeleteIcon,
   codeEditor: CodeEditorIcon,
+  chart: ChartIcon,
+  map: MapIcon,
 };
