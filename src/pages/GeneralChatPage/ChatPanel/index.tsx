@@ -1099,7 +1099,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   }
   .message-wrapper {
   display: flex;
-  gap: 12px;
+  gap: 8px;
   animation: fadeIn 0.3s ease;
   min-width: 0;
   max-width: 100%;
@@ -1138,8 +1138,8 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   flex: 1;
 }
 .message-bubble {
-  padding: 10px 14px;
-  border-radius: 18px;
+  padding: 10px 15px;
+  border-radius: 5px;
   background: var(--bg-secondary);
   color: var(--text-primary);
   max-width: 100%;
@@ -1246,7 +1246,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     margin: 8px 16px 12px;
     background: var(--bg-tertiary);
     border: 1px solid var(--border-color);
-    border-radius: 12px;
+    border-radius: 5px;
     cursor: text;
   }
   .chat-input-container.focused {

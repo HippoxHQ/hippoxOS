@@ -677,6 +677,7 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
         margin: 0,
         gap: 0,
         position: "relative",
+        userSelect: "none",
       }}
     >
       <div style={styles.header}>

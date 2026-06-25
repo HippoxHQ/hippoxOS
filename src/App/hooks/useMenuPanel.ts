@@ -51,6 +51,7 @@ export function useMenuPanel() {
     const menuViews: string[] = [
       "skills",
       "knowledge",
+      "favorites",
       "skillMarket",
       "taskQueue",
       "executionHistory",

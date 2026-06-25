@@ -541,7 +541,6 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
       )}
     </div>
   );
-
   const labelStyleSmall: React.CSSProperties = {
     fontSize: "12px",
     color: "var(--text-primary)",
@@ -550,7 +549,6 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
     userSelect: "none",
     ...ellipsisStyle,
   };
-
   const inputStyle: React.CSSProperties = {
     flex: 1,
     minWidth: 0,
@@ -562,7 +560,6 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
     fontSize: "13px",
     outline: "none",
   };
-
   const buttonStyle: React.CSSProperties = {
     padding: "6px 16px",
     background: "var(--bg-secondary)",
@@ -572,28 +569,24 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
     fontSize: "12px",
     cursor: "pointer",
   };
-
   const primaryButtonStyle: React.CSSProperties = {
     ...buttonStyle,
     background: "var(--accent-color, #0066cc)",
     color: "white",
     border: "none",
   };
-
   const cardStyle: React.CSSProperties = {
     background: "var(--bg-secondary)",
     padding: "16px",
     border: "1px solid var(--border-color)",
     overflow: "hidden",
   };
-
   const folderButtonStyle: React.CSSProperties = {
     ...buttonStyle,
     padding: "6px 10px",
     fontSize: "11px",
     flexShrink: 0,
   };
-
   const pathRowStyle: React.CSSProperties = {
     display: "flex",
     alignItems: "center",
@@ -602,7 +595,6 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
     minWidth: 0,
     overflow: "hidden",
   };
-
   if (loading) {
     return (
       <div
@@ -613,15 +605,13 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
           justifyContent: "center",
         }}
       >
-        {t("atomicSkills.loading") || "Loading..."}
+        {t("settings.loading") || "Loading..."}
       </div>
     );
   }
-
   const logsPercent = getPercentage(logsSize, maxLogSize);
   const dialogPercent = getPercentage(dialogSize, maxDialogSize);
   const favoritesPercent = getPercentage(favoritesSize, maxFavoritesSize);
-
   return (
     <div
       style={{

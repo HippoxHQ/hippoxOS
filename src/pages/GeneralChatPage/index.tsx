@@ -679,26 +679,30 @@ const LLMChatPage: React.FC<LLMChatPageProps> = ({
   const dragStartContainerRect = useRef<DOMRect | null>(null);
 
   const leftPanel = (
-    <ChatPanel
-      onSendMessage={onSendMessage || (() => {})}
-      onFileClick={onFileClick}
-      t={t}
-      currentSessionId={currentSessionId}
-      onDragOverInputChange={onDragOverInputChange}
-      language={language}
-      isLeftPanel={true}
-    />
+    <div style={{ width: "100%", height: "100%" }}>
+      <ChatPanel
+        onSendMessage={onSendMessage || (() => {})}
+        onFileClick={onFileClick}
+        t={t}
+        currentSessionId={currentSessionId}
+        onDragOverInputChange={onDragOverInputChange}
+        language={language}
+        isLeftPanel={true}
+      />
+    </div>
   );
 
   const rightPanel = (
-    <TerminalPanel
-      logs={executionLogs || []}
-      onClearLogs={onClearLogs || (() => {})}
-      t={t}
-      currentSessionId={currentSessionId}
-      onFileClick={onFileClick}
-      isLeftPanel={false}
-    />
+    <div style={{ width: "100%", height: "100%" }}>
+      <TerminalPanel
+        logs={executionLogs || []}
+        onClearLogs={onClearLogs || (() => {})}
+        t={t}
+        currentSessionId={currentSessionId}
+        onFileClick={onFileClick}
+        isLeftPanel={false}
+      />
+    </div>
   );
 
   useEffect(() => {
@@ -1427,16 +1431,8 @@ const LLMChatPage: React.FC<LLMChatPageProps> = ({
       <div
         className="panel-left"
         style={{
-          flex: isLeftCollapsed
-            ? "0 0 45px"
-            : isRightCollapsed
-              ? 1
-              : "0 0 auto",
-          width: isLeftCollapsed
-            ? "45px"
-            : isRightCollapsed
-              ? "100%"
-              : `${leftWidth}%`,
+          flex: isLeftCollapsed ? "0 0 45px" : "0 0 auto",
+          width: isLeftCollapsed ? "45px" : `${leftWidth}%`,
           overflow: "hidden",
           minWidth: isLeftCollapsed ? "45px" : "150px",
           display: "flex",

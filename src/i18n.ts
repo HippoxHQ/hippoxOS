@@ -1172,6 +1172,7 @@ export const zh = {
     taskNamePlaceholder: '例如：每日备份',
   },
   settings: {
+    loading: "加载中...",
     panelLayout: '面板布局',
     terminalLeft: '终端｜对话',
     chatLeft: '对话｜终端',
@@ -2477,6 +2478,7 @@ export const en: typeof zh = {
     taskNamePlaceholder: 'e.g.: Daily Backup',
   },
   settings: {
+    loading: "Loading",
     panelLayout: 'Panel Layout',
     terminalLeft: 'Term｜Chat',
     chatLeft: 'Chat｜Term',

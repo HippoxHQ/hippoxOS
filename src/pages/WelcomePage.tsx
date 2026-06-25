@@ -322,7 +322,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
   .welcome-input-container {
     background: var(--bg-tertiary);
     border: 1px solid var(--border-color);
-    border-radius: 12px;
+    border-radius: 5px;
     // transition: all 0.2s ease;
     min-height: 120px;
     display: flex;

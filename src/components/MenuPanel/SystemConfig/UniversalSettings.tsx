@@ -494,6 +494,7 @@ const UniversalSettings: React.FC<UniversalSettingsProps> = ({
         display: "flex",
         flexDirection: "column",
         overflow: "hidden",
+        userSelect: "none",
       }}
     >
       <div

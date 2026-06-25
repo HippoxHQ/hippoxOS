@@ -3,7 +3,9 @@ import SettingsPanel, { SettingsSubView } from "./SettingsPanel";
 import SkillMarketPanel from "./SkillMarketPanel";
 import TaskQueuePanel from "./TaskQueuePanel";
 import FavoritesPanel from "./FavoritesPanel";
-import HistoryPanel, { HistoryChatPanelRef } from "../../pages/GeneralChatPage/HistoryChatPanel";
+import HistoryPanel, {
+  HistoryChatPanelRef,
+} from "../../pages/GeneralChatPage/HistoryChatPanel";
 import AtomicSkillsPanel from "./DriversPanel";
 import WorkspacePanel from "./Workspace";
 import WorkspaceConfig from "./SystemConfig/WorkspaceConfig";
@@ -336,7 +338,7 @@ const MenuPanel: React.FC<MenuPanelProps> = ({
   };
 
   return (
-    <div className="menu-panel">
+    <div className="menu-panel" style={{ userSelect: "none" }}>
       <div className="menu-panel-header">
         <div className="menu-panel-title">{getDisplayTitle()}</div>
         <div
