@@ -355,11 +355,52 @@ const CodeEdit: React.FC<CodeEditProps> = ({ t, selectedFile }) => {
 
   useEffect(() => {
     isMountedRef.current = true;
-    const savedTheme = localStorage.getItem("hippox-theme") as "dark" | "light";
-    setTheme(savedTheme === "light" ? "light" : "vs-dark");
-
+    const loadTheme = () => {
+      const savedTheme = localStorage.getItem("hippox-theme") as
+        | "dark"
+        | "light";
+      setTheme(savedTheme === "light" ? "light" : "vs-dark");
+    };
+    loadTheme();
+    const handleThemeChange = (e: CustomEvent) => {
+      const newTheme = e.detail?.theme as "dark" | "light";
+      if (newTheme) {
+        setTheme(newTheme === "light" ? "light" : "vs-dark");
+      }
+    };
+    window.addEventListener(
+      "theme-changed",
+      handleThemeChange as EventListener,
+    );
     return () => {
       isMountedRef.current = false;
+      window.removeEventListener(
+        "theme-changed",
+        handleThemeChange as EventListener,
+      );
+    };
+  }, []);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    const savedTheme = localStorage.getItem("hippox-theme") as "dark" | "light";
+    setTheme(savedTheme === "light" ? "light" : "vs-dark");
+    const handleThemeChange = (e: CustomEvent) => {
+      const newTheme = e.detail?.theme as "dark" | "light";
+      if (newTheme) {
+        setTheme(newTheme === "light" ? "light" : "vs-dark");
+      }
+    };
+    window.addEventListener(
+      "theme-changed",
+      handleThemeChange as EventListener,
+    );
+    return () => {
+      isMountedRef.current = false;
+      window.removeEventListener(
+        "theme-changed",
+        handleThemeChange as EventListener,
+      );
     };
   }, []);
 
@@ -531,27 +572,6 @@ const CodeEdit: React.FC<CodeEditProps> = ({ t, selectedFile }) => {
     };
   }, [tabs]);
 
-  const handleFormat = () => {
-    if (editorRef.current) {
-      try {
-        editorRef.current.getAction("editor.action.formatDocument")?.run();
-      } catch (e) {}
-    }
-  };
-
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(code);
-      showToast(ToastType.SUCCESS, t("common.copied") || "Copied");
-    } catch {
-      showToast(ToastType.ERROR, t("common.copyFailed") || "Copy Failed");
-    }
-  };
-
-  const handleSave = () => {
-    showToast(ToastType.SUCCESS, t("common.saved") || "Saved");
-  };
-
   const getCurrentBreadcrumbs = (): { name: string; path: string }[] => {
     if (!activeTab) return [];
     const parts = activeTab.split("/").filter(Boolean);
@@ -589,7 +609,7 @@ const CodeEdit: React.FC<CodeEditProps> = ({ t, selectedFile }) => {
           borderBottom: "1px solid var(--border-color)",
           background: "var(--bg-secondary)",
           flexShrink: 0,
-          minHeight: "30px",
+          minHeight: "40px",
           position: "relative",
           overflow: "hidden",
         }}
@@ -603,12 +623,10 @@ const CodeEdit: React.FC<CodeEditProps> = ({ t, selectedFile }) => {
             overflowX: "auto",
             overflowY: "hidden",
             minWidth: 0,
-            padding: "0 4px",
             scrollbarWidth: "none",
             msOverflowStyle: "none",
-            gap: "2px",
             flex: 1,
-            height: "30px",
+            height: "40px",
           }}
           onWheel={(e) => {
             if (tabsContainerRef.current) {
@@ -641,10 +659,9 @@ const CodeEdit: React.FC<CodeEditProps> = ({ t, selectedFile }) => {
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  gap: "4px",
-                  padding: "0 8px 0 10px",
-                  height: "30px",
-                  borderRadius: "4px 4px 0 0",
+                  gap: "8px",
+                  padding: "0px 10px",
+                  height: "40px",
                   cursor: "pointer",
                   background: isActive ? "var(--bg-primary)" : "transparent",
                   color: isActive
@@ -754,7 +771,7 @@ const CodeEdit: React.FC<CodeEditProps> = ({ t, selectedFile }) => {
             display: "flex",
             alignItems: "center",
             gap: "4px",
-            padding: "2px 12px",
+            padding: "0px 12px",
             borderBottom: "1px solid var(--border-color)",
             background: "var(--bg-tertiary)",
             flexShrink: 0,
@@ -796,7 +813,7 @@ const CodeEdit: React.FC<CodeEditProps> = ({ t, selectedFile }) => {
                 {crumb.name}
               </span>
               {index < breadcrumbs.length - 1 && (
-                <span style={{ color: "var(--text-muted)", fontSize: "10px" }}>
+                <span style={{ color: "var(--text-muted)", fontSize: "16px" }}>
                   ›
                 </span>
               )}
@@ -804,103 +821,16 @@ const CodeEdit: React.FC<CodeEditProps> = ({ t, selectedFile }) => {
           ))}
         </div>
       )}
-
       <div
+        ref={containerRef}
         style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "4px",
-          padding: "2px 8px",
-          borderBottom: "1px solid var(--border-color)",
-          background: "var(--bg-secondary)",
-          flexShrink: 0,
-          minHeight: "28px",
-          flexWrap: "wrap",
+          flex: 1,
+          width: "100%",
+          minWidth: 0,
+          minHeight: "300px",
+          position: "relative",
         }}
-      >
-        <button
-          onClick={handleFormat}
-          style={{
-            padding: "2px 8px",
-            background: "transparent",
-            border: "none",
-            borderRadius: "4px",
-            color: "var(--text-secondary)",
-            fontSize: "11px",
-            cursor: "pointer",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = "var(--hover-bg)";
-            e.currentTarget.style.color = "var(--text-primary)";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = "transparent";
-            e.currentTarget.style.color = "var(--text-secondary)";
-          }}
-        >
-          🔧 {t("editor.format") || "Format"}
-        </button>
-        <button
-          onClick={handleCopy}
-          style={{
-            padding: "2px 8px",
-            background: "transparent",
-            border: "none",
-            borderRadius: "4px",
-            color: "var(--text-secondary)",
-            fontSize: "11px",
-            cursor: "pointer",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = "var(--hover-bg)";
-            e.currentTarget.style.color = "var(--text-primary)";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = "transparent";
-            e.currentTarget.style.color = "var(--text-secondary)";
-          }}
-        >
-          📋 {t("common.copy") || "Copy"}
-        </button>
-        <button
-          onClick={handleSave}
-          style={{
-            padding: "2px 10px",
-            background: "var(--accent-color)",
-            border: "none",
-            borderRadius: "4px",
-            color: "white",
-            fontSize: "11px",
-            cursor: "pointer",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.opacity = "0.85";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.opacity = "1";
-          }}
-        >
-          💾 {t("settings.save") || "Save"}
-        </button>
-        {activeTab && (
-          <span
-            style={{
-              fontSize: "10px",
-              color: "var(--text-muted)",
-              marginLeft: "auto",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-              maxWidth: "200px",
-            }}
-            title={activeTab}
-          >
-            {activeTab}
-          </span>
-        )}
-      </div>
-
-      <div ref={containerRef} style={{ flex: 1, width: "100%", minWidth: 0 }} />
+      />
     </div>
   );
 };
