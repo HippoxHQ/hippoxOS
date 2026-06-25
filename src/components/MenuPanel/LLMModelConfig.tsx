@@ -17,31 +17,6 @@ interface LLMModelConfigProps {
   language?: string;
 }
 
-type WorkflowMode = "react" | "batch" | "chain" | "plan_and_execute";
-
-const getWorkflowModes = (t: (key: string) => string) => [
-  {
-    value: "react" as const,
-    label: t("llmModel.workflowModeReAct"),
-    description: "Think → Act → Observe loop",
-  },
-  {
-    value: "batch" as const,
-    label: t("llmModel.workflowModeBatch"),
-    description: "Execute multiple independent skills in parallel",
-  },
-  {
-    value: "chain" as const,
-    label: t("llmModel.workflowModeChain"),
-    description: "Sequential execution with variable passing",
-  },
-  {
-    value: "plan_and_execute" as const,
-    label: t("llmModel.workflowModePlanAndExecute"),
-    description: "One-time planning with full workflow support",
-  },
-];
-
 const LLMModelConfig: React.FC<LLMModelConfigProps> = ({
   t,
   onSave,
@@ -254,16 +229,6 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({
     return provider?.name || providerId;
   };
 
-  // const getWorkflowModeLabel = (mode: string) => {
-  //   const modeMap: Record<string, string> = {
-  //     react: t("llmModel.workflowModeReAct"),
-  //     batch: t("llmModel.workflowModeBatch"),
-  //     chain: t("llmModel.workflowModeChain"),
-  //     plan_and_execute: t("llmModel.workflowModePlanAndExecute"),
-  //   };
-  //   return modeMap[mode] || mode;
-  // };
-
   const getProviderExtraFields = (providerId: string) => {
     const provider = providers.find((p) => p.id === providerId);
     return provider?.extra_config_fields || [];
@@ -290,6 +255,9 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({
     minWidth: "100px",
     flexShrink: 0,
     userSelect: "none",
+    whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
   };
 
   const inputStyle: React.CSSProperties = {
@@ -337,6 +305,14 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({
     // borderRadius: "8px",
     padding: "10px",
     borderBottom: "1px solid var(--border-color)",
+    overflow: "hidden",
+  };
+
+  const textEllipsisStyle: React.CSSProperties = {
+    whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    maxWidth: "100%",
   };
 
   const badgeStyle: React.CSSProperties = {
@@ -402,17 +378,21 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({
       borderBottom: "1px solid var(--border-color)",
       background: "var(--bg-secondary)",
       flexShrink: 0,
+      width: "100%",
+      boxSizing: "border-box",
     },
     searchRow: {
       display: "flex",
       alignItems: "center",
       gap: "8px",
+      width: "100%",
     },
   };
 
   const globalStyles = `
     .llm-search-input-wrapper {
       flex: 1;
+       min-width: 0; 
       position: relative;
       display: flex;
       align-items: center;
@@ -432,6 +412,7 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({
     }
     .llm-search-input {
       flex: 1;
+       min-width: 0;  
       background: transparent;
       border: none;
       outline: none;
@@ -674,6 +655,9 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({
                       fontSize: "14px",
                       fontWeight: 600,
                       color: "var(--text-primary)",
+                      ...textEllipsisStyle,
+                      flexShrink: 1,
+                      minWidth: 0,
                     }}
                   >
                     {getProviderIcon(instance.provider)}{" "}

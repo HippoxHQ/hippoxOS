@@ -357,6 +357,12 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
     </div>
   );
 
+  const ellipsisStyle: React.CSSProperties = {
+    whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+  };
+
   const StatsCard: React.FC<{
     icon: string;
     title: string;
@@ -396,9 +402,10 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
+          minWidth: 0,
         }}
       >
-        <span>
+        <span style={{ ...ellipsisStyle, flexShrink: 1, minWidth: 0 }}>
           {icon} {title}
         </span>
         {showClear && onClear && (
@@ -409,6 +416,7 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
               fontSize: "11px",
               color: "#ef4444",
               borderColor: "#ef4444",
+              flexShrink: 0,
             }}
             onClick={onClear}
             disabled={clearing}
@@ -425,14 +433,28 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
           display: "flex",
           justifyContent: "space-between",
           marginBottom: "8px",
+          minWidth: 0,
         }}
       >
-        <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>
+        <span
+          style={{
+            fontSize: "12px",
+            color: "var(--text-secondary)",
+            ...ellipsisStyle,
+          }}
+        >
           {t("storage.currentSize") || "Current Size"}:{" "}
           {formatSize(currentSize)}
         </span>
         {maxSize && (
-          <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>
+          <span
+            style={{
+              fontSize: "12px",
+              color: "var(--text-secondary)",
+              ...ellipsisStyle,
+              flexShrink: 0,
+            }}
+          >
             {t("storage.maxLimit") || "Max Limit"}: {maxSize} MB
           </span>
         )}
@@ -469,10 +491,11 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
               display: "flex",
               alignItems: "center",
               gap: "12px",
-              flexWrap: "wrap",
+              flexWrap: "nowrap",
+              minWidth: 0,
             }}
           >
-            <label style={labelStyleSmall}>
+            <label style={{ ...labelStyleSmall, flexShrink: 0 }}>
               {t("storage.maxSize") || "Max Size"}
             </label>
             <div
@@ -481,11 +504,12 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
                 gap: "8px",
                 alignItems: "center",
                 flex: 1,
+                minWidth: 0,
               }}
             >
               <input
                 type="number"
-                style={{ ...inputStyle, maxWidth: "120px" }}
+                style={{ ...inputStyle, maxWidth: "120px", flexShrink: 0 }}
                 value={maxSizeValue}
                 onChange={(e) =>
                   onMaxSizeChange(parseInt(e.target.value) || 500)
@@ -494,12 +518,16 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
                 step={100}
               />
               <span
-                style={{ fontSize: "13px", color: "var(--text-secondary)" }}
+                style={{
+                  fontSize: "13px",
+                  color: "var(--text-secondary)",
+                  flexShrink: 0,
+                }}
               >
                 MB
               </span>
               <button
-                style={primaryButtonStyle}
+                style={{ ...primaryButtonStyle, flexShrink: 0 }}
                 onClick={onSave}
                 disabled={saving}
               >
@@ -520,6 +548,7 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
     minWidth: "70px",
     flexShrink: 0,
     userSelect: "none",
+    ...ellipsisStyle,
   };
 
   const inputStyle: React.CSSProperties = {
@@ -555,12 +584,14 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
     background: "var(--bg-secondary)",
     padding: "16px",
     border: "1px solid var(--border-color)",
+    overflow: "hidden",
   };
 
   const folderButtonStyle: React.CSSProperties = {
     ...buttonStyle,
     padding: "6px 10px",
     fontSize: "11px",
+    flexShrink: 0,
   };
 
   const pathRowStyle: React.CSSProperties = {
@@ -568,6 +599,8 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
     alignItems: "center",
     gap: "8px",
     flex: 1,
+    minWidth: 0,
+    overflow: "hidden",
   };
 
   if (loading) {
@@ -602,6 +635,7 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
         style={{
           flex: 1,
           overflowY: "auto",
+          overflowX: "hidden",
         }}
       >
         <div style={cardStyle}>
@@ -611,6 +645,7 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
               fontWeight: 600,
               color: "var(--text-secondary)",
               marginBottom: "16px",
+              ...ellipsisStyle,
             }}
           >
             💾 {t("storage.diskStatistics") || "Disk Statistics"}
@@ -620,21 +655,40 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
               display: "flex",
               justifyContent: "space-between",
               marginBottom: "12px",
-              flexWrap: "wrap",
+              flexWrap: "nowrap",
               gap: "8px",
               paddingBottom: "12px",
               borderBottom: "1px solid var(--border-color)",
+              minWidth: 0,
             }}
           >
-            <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>
+            <span
+              style={{
+                fontSize: "12px",
+                color: "var(--text-secondary)",
+                ...ellipsisStyle,
+              }}
+            >
               {t("storage.totalSpace") || "Total Space"}:{" "}
               {formatSize(diskInfo.total)}
             </span>
-            <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>
+            <span
+              style={{
+                fontSize: "12px",
+                color: "var(--text-secondary)",
+                ...ellipsisStyle,
+              }}
+            >
               {t("storage.freeSpace") || "Free Space"}:{" "}
               {formatSize(diskInfo.free)}
             </span>
-            <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>
+            <span
+              style={{
+                fontSize: "12px",
+                color: "var(--text-secondary)",
+                ...ellipsisStyle,
+              }}
+            >
               {t("storage.usedSpace") || "Used Space"}:{" "}
               {formatSize(diskInfo.used)}
             </span>
@@ -667,6 +721,7 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
                 fontSize: "11px",
                 color: "var(--text-muted)",
                 textAlign: "right",
+                ...ellipsisStyle,
               }}
             >
               {((diskInfo.used / diskInfo.total) * 100).toFixed(1)}%{" "}
@@ -680,13 +735,27 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
               justifyContent: "space-between",
               marginBottom: "8px",
               paddingTop: "4px",
+              minWidth: 0,
             }}
           >
-            <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>
+            <span
+              style={{
+                fontSize: "12px",
+                color: "var(--text-secondary)",
+                ...ellipsisStyle,
+              }}
+            >
               {t("storage.appTotalSize") || "Application Total Size"}:{" "}
               {formatSize(appTotalSize)}
             </span>
-            <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>
+            <span
+              style={{
+                fontSize: "12px",
+                color: "var(--text-secondary)",
+                ...ellipsisStyle,
+                flexShrink: 0,
+              }}
+            >
               {t("storage.breakdown") || "Breakdown"}:
             </span>
           </div>
@@ -704,12 +773,21 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
                 justifyContent: "space-between",
                 marginBottom: "4px",
                 fontSize: "11px",
+                minWidth: 0,
               }}
             >
-              <span style={{ color: "var(--text-secondary)" }}>
+              <span
+                style={{ color: "var(--text-secondary)", ...ellipsisStyle }}
+              >
                 📊 {t("storage.logsStatistics") || "Logs"}
               </span>
-              <span style={{ color: "var(--text-primary)" }}>
+              <span
+                style={{
+                  color: "var(--text-primary)",
+                  ...ellipsisStyle,
+                  flexShrink: 0,
+                }}
+              >
                 {formatSize(logsSize)}
               </span>
             </div>
@@ -719,12 +797,21 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
                 justifyContent: "space-between",
                 marginBottom: "4px",
                 fontSize: "11px",
+                minWidth: 0,
               }}
             >
-              <span style={{ color: "var(--text-secondary)" }}>
+              <span
+                style={{ color: "var(--text-secondary)", ...ellipsisStyle }}
+              >
                 💬 {t("storage.dialogStatistics") || "Dialog History"}
               </span>
-              <span style={{ color: "var(--text-primary)" }}>
+              <span
+                style={{
+                  color: "var(--text-primary)",
+                  ...ellipsisStyle,
+                  flexShrink: 0,
+                }}
+              >
                 {formatSize(dialogSize)}
               </span>
             </div>
@@ -734,12 +821,21 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
                 justifyContent: "space-between",
                 marginBottom: "4px",
                 fontSize: "11px",
+                minWidth: 0,
               }}
             >
-              <span style={{ color: "var(--text-secondary)" }}>
+              <span
+                style={{ color: "var(--text-secondary)", ...ellipsisStyle }}
+              >
                 ⭐ {t("storage.favoritesStatistics") || "Favorites"}
               </span>
-              <span style={{ color: "var(--text-primary)" }}>
+              <span
+                style={{
+                  color: "var(--text-primary)",
+                  ...ellipsisStyle,
+                  flexShrink: 0,
+                }}
+              >
                 {formatSize(favoritesSize)}
               </span>
             </div>
@@ -749,12 +845,21 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
                 justifyContent: "space-between",
                 marginBottom: "4px",
                 fontSize: "11px",
+                minWidth: 0,
               }}
             >
-              <span style={{ color: "var(--text-secondary)" }}>
+              <span
+                style={{ color: "var(--text-secondary)", ...ellipsisStyle }}
+              >
                 📦 {t("storage.skillsMarketDir") || "Skills Market"}
               </span>
-              <span style={{ color: "var(--text-primary)" }}>
+              <span
+                style={{
+                  color: "var(--text-primary)",
+                  ...ellipsisStyle,
+                  flexShrink: 0,
+                }}
+              >
                 {formatSize(skillsMarketSize)}
               </span>
             </div>
@@ -764,12 +869,21 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
                 justifyContent: "space-between",
                 marginBottom: "4px",
                 fontSize: "11px",
+                minWidth: 0,
               }}
             >
-              <span style={{ color: "var(--text-secondary)" }}>
+              <span
+                style={{ color: "var(--text-secondary)", ...ellipsisStyle }}
+              >
                 ⏰ {t("storage.scheduledTasksDir") || "Scheduled Tasks"}
               </span>
-              <span style={{ color: "var(--text-primary)" }}>
+              <span
+                style={{
+                  color: "var(--text-primary)",
+                  ...ellipsisStyle,
+                  flexShrink: 0,
+                }}
+              >
                 {formatSize(scheduledTasksSize)}
               </span>
             </div>
@@ -779,12 +893,21 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
                 justifyContent: "space-between",
                 marginBottom: "4px",
                 fontSize: "11px",
+                minWidth: 0,
               }}
             >
-              <span style={{ color: "var(--text-secondary)" }}>
+              <span
+                style={{ color: "var(--text-secondary)", ...ellipsisStyle }}
+              >
                 ⚙️ {t("storage.settingsDir") || "Settings"}
               </span>
-              <span style={{ color: "var(--text-primary)" }}>
+              <span
+                style={{
+                  color: "var(--text-primary)",
+                  ...ellipsisStyle,
+                  flexShrink: 0,
+                }}
+              >
                 {formatSize(settingsSize)}
               </span>
             </div>
@@ -846,6 +969,7 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
               fontWeight: 600,
               color: "var(--text-secondary)",
               marginBottom: "12px",
+              ...ellipsisStyle,
             }}
           >
             📂 {t("storage.dataDirectories") || "Data Directories"}
@@ -857,15 +981,16 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
               alignItems: "center",
               marginBottom: "12px",
               gap: "12px",
-              flexWrap: "wrap",
+              flexWrap: "nowrap",
+              minWidth: 0,
             }}
           >
-            <label style={labelStyleSmall}>
+            <label style={{ ...labelStyleSmall, flexShrink: 0 }}>
               {t("storage.logsDir") || "Logs Directory"}
             </label>
             <div style={pathRowStyle}>
               <input
-                style={{ ...inputStyle, flex: 1 }}
+                style={{ ...inputStyle, flex: 1, minWidth: 0 }}
                 value={logsDir}
                 disabled
                 readOnly
@@ -885,15 +1010,16 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
               alignItems: "center",
               marginBottom: "12px",
               gap: "12px",
-              flexWrap: "wrap",
+              flexWrap: "nowrap",
+              minWidth: 0,
             }}
           >
-            <label style={labelStyleSmall}>
+            <label style={{ ...labelStyleSmall, flexShrink: 0 }}>
               {t("storage.dialogHistoryDir") || "Dialog History Directory"}
             </label>
             <div style={pathRowStyle}>
               <input
-                style={{ ...inputStyle, flex: 1 }}
+                style={{ ...inputStyle, flex: 1, minWidth: 0 }}
                 value={dialogHistoryDir}
                 disabled
                 readOnly
@@ -913,15 +1039,16 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
               alignItems: "center",
               marginBottom: "12px",
               gap: "12px",
-              flexWrap: "wrap",
+              flexWrap: "nowrap",
+              minWidth: 0,
             }}
           >
-            <label style={labelStyleSmall}>
+            <label style={{ ...labelStyleSmall, flexShrink: 0 }}>
               {t("storage.favoritesDir") || "Favorites Directory"}
             </label>
             <div style={pathRowStyle}>
               <input
-                style={{ ...inputStyle, flex: 1 }}
+                style={{ ...inputStyle, flex: 1, minWidth: 0 }}
                 value={favoritesDir}
                 disabled
                 readOnly
@@ -941,15 +1068,16 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
               alignItems: "center",
               marginBottom: "12px",
               gap: "12px",
-              flexWrap: "wrap",
+              flexWrap: "nowrap",
+              minWidth: 0,
             }}
           >
-            <label style={labelStyleSmall}>
+            <label style={{ ...labelStyleSmall, flexShrink: 0 }}>
               {t("storage.skillsMarketDir") || "Skills Market Directory"}
             </label>
             <div style={pathRowStyle}>
               <input
-                style={{ ...inputStyle, flex: 1 }}
+                style={{ ...inputStyle, flex: 1, minWidth: 0 }}
                 value={skillsMarketDir}
                 disabled
                 readOnly
@@ -969,15 +1097,16 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
               alignItems: "center",
               marginBottom: "12px",
               gap: "12px",
-              flexWrap: "wrap",
+              flexWrap: "nowrap",
+              minWidth: 0,
             }}
           >
-            <label style={labelStyleSmall}>
+            <label style={{ ...labelStyleSmall, flexShrink: 0 }}>
               {t("storage.scheduledTasksDir") || "Scheduled Tasks Directory"}
             </label>
             <div style={pathRowStyle}>
               <input
-                style={{ ...inputStyle, flex: 1 }}
+                style={{ ...inputStyle, flex: 1, minWidth: 0 }}
                 value={scheduledTasksDir}
                 disabled
                 readOnly
@@ -997,15 +1126,16 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
               alignItems: "center",
               marginBottom: "12px",
               gap: "12px",
-              flexWrap: "wrap",
+              flexWrap: "nowrap",
+              minWidth: 0,
             }}
           >
-            <label style={labelStyleSmall}>
+            <label style={{ ...labelStyleSmall, flexShrink: 0 }}>
               {t("storage.settingsDir") || "Settings Directory"}
             </label>
             <div style={pathRowStyle}>
               <input
-                style={{ ...inputStyle, flex: 1 }}
+                style={{ ...inputStyle, flex: 1, minWidth: 0 }}
                 value={settingsDir}
                 disabled
                 readOnly

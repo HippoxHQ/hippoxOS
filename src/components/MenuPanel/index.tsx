@@ -108,12 +108,18 @@ const menuPanelStyles = `
     background: var(--bg-secondary);
     flex-shrink: 0;
     min-height: 40px;
+    overflow: hidden;
   }
 
   .menu-panel-title {
     font-size: 14px;
     font-weight: 600;
     color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+    flex: 1;
   }
 
   .menu-panel-close {
@@ -127,6 +133,7 @@ const menuPanelStyles = `
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0;
   }
 
   .menu-panel-close:hover {
@@ -310,10 +317,10 @@ const MenuPanel: React.FC<MenuPanelProps> = ({
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    // transition: "all 0.15s",
     lineHeight: 1,
     width: "32px",
     height: "32px",
+    flexShrink: 0,
   };
 
   const handleExpandToggle = () => {
@@ -340,7 +347,14 @@ const MenuPanel: React.FC<MenuPanelProps> = ({
     <div className="menu-panel">
       <div className="menu-panel-header">
         <div className="menu-panel-title">{getDisplayTitle()}</div>
-        <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "4px",
+            flexShrink: 0,
+          }}
+        >
           {currentView === "history" && (
             <>
               <button
@@ -391,6 +405,7 @@ const MenuPanel: React.FC<MenuPanelProps> = ({
                   height: "16px",
                   background: "var(--border-color)",
                   margin: "0 4px",
+                  flexShrink: 0,
                 }}
               />
             </>

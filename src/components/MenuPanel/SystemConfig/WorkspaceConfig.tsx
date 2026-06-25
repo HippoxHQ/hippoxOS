@@ -221,17 +221,26 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
     return matchesSearch;
   });
 
+  const ellipsisStyle: React.CSSProperties = {
+    whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+  };
+
   const labelStyle: React.CSSProperties = {
     fontSize: "13px",
     color: "var(--text-primary)",
     minWidth: "100px",
     flexShrink: 0,
     userSelect: "none",
+    ...ellipsisStyle,
   };
 
   const inputStyle: React.CSSProperties = {
     flex: 1,
     minWidth: 0,
+    width: "100%",
+    maxWidth: "100%",
     padding: "8px 12px",
     background: "var(--bg-tertiary)",
     border: "1px solid var(--border-color)",
@@ -239,6 +248,7 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
     color: "var(--text-primary)",
     fontSize: "13px",
     outline: "none",
+    boxSizing: "border-box",
   };
 
   const buttonStyle: React.CSSProperties = {
@@ -268,6 +278,10 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
     background: "var(--bg-secondary)",
     padding: "12px",
     borderBottom: "1px solid var(--border-color)",
+    width: "100%",
+    maxWidth: "100%",
+    boxSizing: "border-box",
+    overflow: "hidden",
   };
 
   const badgeStyle: React.CSSProperties = {
@@ -293,11 +307,14 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
     alignItems: "center",
     gap: "8px",
     flex: 1,
+    minWidth: 0,
+    width: "100%",
+    overflow: "hidden",
   };
-
   const styles: Record<string, React.CSSProperties> = {
     searchInputWrapper: {
       flex: 1,
+      minWidth: 0,
       position: "relative" as const,
       display: "flex",
       alignItems: "center",
@@ -341,61 +358,74 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
       borderBottom: "1px solid var(--border-color)",
       background: "var(--bg-secondary)",
       flexShrink: 0,
+      width: "100%",
+      maxWidth: "100%",
+      boxSizing: "border-box",
+      overflow: "hidden",
     },
     searchRow: {
       display: "flex",
       alignItems: "center",
       gap: "8px",
+      width: "100%",
+      minWidth: 0,
+      overflow: "hidden",
     },
   };
 
   const globalStyles = `
-    .workspace-search-input-wrapper {
-      flex: 1;
-      position: relative;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 1.5px 12px;
-      background: var(--bg-tertiary);
-      border: 1px solid var(--border-color);
-      border-radius: 5px;
-    }
-    .workspace-search-input-wrapper:focus-within {
-      border-color: var(--accent-color);
-      box-shadow: 0 0 0 2px var(--accent-glow);
-    }
-    .workspace-search-input-wrapper svg {
-      flex-shrink: 0;
-      color: var(--text-tertiary);
-    }
-    .workspace-search-input {
-      flex: 1;
-      background: transparent;
-      border: none;
-      outline: none;
-      color: var(--text-primary);
-      font-size: 13px;
-      padding: 4px 0;
-    }
-    .workspace-search-clear {
-      background: transparent;
-      border: none;
-      color: var(--text-tertiary);
-      cursor: pointer;
-      font-size: 14px;
-      padding: 2px 6px;
-      border-radius: 4px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-    }
-    .workspace-search-clear:hover {
-      color: var(--text-primary);
-      background: var(--hover-bg);
-    }
-  `;
+  .workspace-search-input-wrapper {
+    flex: 1 1 0%;
+    min-width: 130px;
+    overflow: hidden;
+    // width: 100%;
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 1.5px 12px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    box-sizing: border-box;
+  }
+  .workspace-search-input-wrapper:focus-within {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 2px var(--accent-glow);
+  }
+  .workspace-search-input-wrapper svg {
+    flex-shrink: 0;
+    color: var(--text-tertiary);
+  }
+  .workspace-search-input {
+    flex: 1;
+    min-width: 0;
+    width: 0;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text-primary);
+    font-size: 13px;
+    padding: 4px 0;
+  }
+  .workspace-search-clear {
+    background: transparent;
+    border: none;
+    color: var(--text-tertiary);
+    cursor: pointer;
+    font-size: 14px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .workspace-search-clear:hover {
+    color: var(--text-primary);
+    background: var(--hover-bg);
+  }
+`;
 
   if (typeof document !== "undefined") {
     const styleId = "workspace-config-styles";
@@ -431,12 +461,16 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
         display: "flex",
         flexDirection: "column",
         overflow: "hidden",
+        width: "100%",
+        maxWidth: "100%",
       }}
     >
-      {/* Search Header */}
       <div style={styles.header}>
         <div style={styles.searchRow}>
-          <div className="workspace-search-input-wrapper">
+          <div
+            className="workspace-search-input-wrapper"
+            style={{ flex: 1, minWidth: "130px" }}
+          >
             <SearchIcon />
             <input
               type="text"
@@ -457,6 +491,7 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
               </button>
             )}
           </div>
+
           <button
             style={{
               ...addButtonStyle,
@@ -475,6 +510,9 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
           flex: 1,
           overflowY: "auto",
           paddingBottom: "10px",
+          width: "100%",
+          maxWidth: "100%",
+          overflowX: "hidden",
         }}
       >
         {showAddForm && (
@@ -571,8 +609,9 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  flexWrap: "wrap",
+                  flexWrap: "nowrap",
                   gap: "8px",
+                  minWidth: 0,
                 }}
               >
                 <span
@@ -580,12 +619,17 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
                     fontSize: "14px",
                     fontWeight: 600,
                     color: "var(--text-primary)",
+                    ...ellipsisStyle,
+                    flexShrink: 1,
+                    minWidth: 0,
                   }}
                 >
                   📁 {instance.name}
                 </span>
                 {defaultInstanceId === instance.id && (
-                  <span style={badgeStyle}>{t("settings.defaultBadge")}</span>
+                  <span style={{ ...badgeStyle, flexShrink: 0 }}>
+                    {t("settings.defaultBadge")}
+                  </span>
                 )}
               </div>
               <div
@@ -595,19 +639,28 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
                   alignItems: "center",
                   marginBottom: "12px",
                   gap: "12px",
-                  flexWrap: "wrap",
+                  flexWrap: "nowrap",
+                  minWidth: 0,
+                  width: "100%",
+                  overflow: "hidden",
                 }}
               >
                 <label style={labelStyle}>{t("settings.workspacePath")}</label>
                 <div style={pathRowStyle}>
                   <input
-                    style={{ ...inputStyle, flex: 1 }}
+                    style={{
+                      ...inputStyle,
+                      flex: 1,
+                      minWidth: 0,
+                      width: "100%",
+                      boxSizing: "border-box",
+                    }}
                     value={instance.workspace_path}
                     disabled
                     placeholder={t("settings.workspacePathPlaceholder")}
                   />
                   <button
-                    style={folderButtonStyle}
+                    style={{ ...folderButtonStyle, flexShrink: 0 }}
                     onClick={() => handleOpenDirectory(instance.workspace_path)}
                     title={t("settings.openDirectory")}
                   >

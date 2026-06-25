@@ -287,6 +287,12 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
     setSearchTerm("");
   };
 
+  const ellipsisStyle: React.CSSProperties = {
+    whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+  };
+
   const buttonStyle: React.CSSProperties = {
     padding: "5px 10px",
     background: "var(--bg-secondary)",
@@ -295,6 +301,7 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
     color: "var(--text-secondary)",
     fontSize: "12px",
     cursor: "pointer",
+    flexShrink: 0,
   };
 
   const driverCardStyle: React.CSSProperties = {
@@ -303,6 +310,7 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
     padding: "10px",
     marginBottom: "0px",
     borderBottom: "1px solid var(--border-color)",
+    overflow: "hidden",
   };
 
   const toggleSwitchStyle: React.CSSProperties = {
@@ -348,6 +356,7 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
   const styles: Record<string, React.CSSProperties> = {
     searchInputWrapper: {
       flex: 1,
+      minWidth: 0,
       position: "relative" as const,
       display: "flex",
       alignItems: "center",
@@ -356,9 +365,11 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
       background: "var(--bg-tertiary)",
       border: "1px solid var(--border-color)",
       borderRadius: "8px",
+      overflow: "hidden",
     },
     searchInput: {
       flex: 1,
+      minWidth: 0,
       background: "transparent",
       border: "none",
       outline: "none",
@@ -393,12 +404,14 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
       display: "flex",
       alignItems: "center",
       gap: "8px",
+      minWidth: 0,
     },
     header: {
       padding: "10px",
       borderBottom: "1px solid var(--border-color)",
       background: "var(--bg-secondary)",
       flexShrink: 0,
+      overflow: "hidden",
     },
     clearBtn: {
       background: "transparent",
@@ -434,6 +447,7 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
       fontWeight: 600,
       color: "var(--text-secondary, #aaa)",
       background: "var(--bg-tertiary, #252525)",
+      ...ellipsisStyle,
     },
     bubbleContent: {
       maxHeight: "300px",
@@ -449,6 +463,7 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
       alignItems: "center",
       justifyContent: "space-between",
       gap: "8px",
+      minWidth: 0,
     },
     bubbleItemActive: {
       background: "var(--hover-bg, #2a2a2a)",
@@ -457,6 +472,8 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
     bubbleItemText: {
       flex: 1,
       color: "var(--text-primary, #fff)",
+      ...ellipsisStyle,
+      minWidth: 0,
     },
     bubbleItemCount: {
       fontSize: "10px",
@@ -472,7 +489,8 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
       align-items: center;
       margin-bottom: 0px;
       flex-shrink: 0;
-      background: var(--bg-secondary)
+      background: var(--bg-secondary);
+      overflow: hidden;
     }
     .driver-tabs-scroll {
       flex: 1;
@@ -482,6 +500,7 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
       -webkit-overflow-scrolling: touch;
       scrollbar-width: none;
       -ms-overflow-style: none;
+      min-width: 0;
     }
     .driver-tabs-scroll::-webkit-scrollbar {
       display: none;
@@ -504,6 +523,9 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
       border-radius: 6px 6px 0 0;
       white-space: nowrap;
       user-select: none;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 150px;
     }
     .driver-tab:hover {
       color: var(--text-primary);
@@ -543,6 +565,7 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
     }
     .driver-search-input-wrapper {
       flex: 1;
+      min-width: 0;
       position: relative;
       display: flex;
       align-items: center;
@@ -551,6 +574,7 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
       background: var(--bg-tertiary);
       border: 1px solid var(--border-color);
       border-radius: 5px;
+      overflow: hidden;
     }
     .driver-search-input-wrapper:focus-within {
       border-color: var(--accent-color);
@@ -562,6 +586,7 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
     }
     .driver-search-input {
       flex: 1;
+      min-width: 0;
       background: transparent;
       border: none;
       outline: none;
@@ -771,7 +796,6 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
         )}
       </div>
 
-      {/* Stats and toggle buttons - 不跟随滚动 */}
       <div
         style={{
           display: "flex",
@@ -782,12 +806,15 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
           flexShrink: 0,
           borderBottom: "1px solid var(--border-color)",
           background: "var(--bg-secondary)",
+          minWidth: 0,
         }}
       >
         <div
           style={{
             fontSize: "13px",
             color: "var(--text-secondary)",
+            ...ellipsisStyle,
+            minWidth: 0,
           }}
         >
           {t("drivers.stats", {
@@ -803,7 +830,6 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
         </button>
       </div>
 
-      {/* Driver list - 可滚动区域 */}
       <div className="driver-list-container">
         {currentCategoryDrivers.length === 0 ? (
           <div
@@ -811,6 +837,7 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
               textAlign: "center",
               padding: "40px",
               color: "var(--text-muted)",
+              ...ellipsisStyle,
             }}
           >
             {searchTerm
@@ -826,14 +853,16 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
                   alignItems: "center",
                   justifyContent: "space-between",
                   marginBottom: "8px",
+                  minWidth: 0,
                 }}
               >
-                <div>
+                <div style={{ ...ellipsisStyle, minWidth: 0, flexShrink: 1 }}>
                   <span
                     style={{
                       fontSize: "14px",
                       fontWeight: 600,
                       color: "var(--text-primary)",
+                      ...ellipsisStyle,
                     }}
                   >
                     {driver.name}
@@ -868,6 +897,7 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
                   fontSize: "12px",
                   color: "var(--text-muted)",
                   lineHeight: 1.4,
+                  ...ellipsisStyle,
                 }}
               >
                 {driver.description}
