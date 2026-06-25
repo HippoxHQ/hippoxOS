@@ -15,6 +15,7 @@ interface NormalMessageProps {
   copyToClipboard: (text: string | undefined) => void;
   onLocateTask: (msg: ChatMessage) => void;
   onEditMessage: (msg: ChatMessage) => void;
+  onResendMessage?: (msg: ChatMessage) => void;
   onFileClick?: (file: any) => void;
   formatFileSize: (bytes: number) => string;
   t: (key: string, params?: any) => string;
@@ -31,6 +32,7 @@ export const NormalMessage: React.FC<NormalMessageProps> = ({
   copyToClipboard,
   onLocateTask,
   onEditMessage,
+  onResendMessage,
   onFileClick,
   formatFileSize,
   t,
@@ -38,7 +40,11 @@ export const NormalMessage: React.FC<NormalMessageProps> = ({
   return (
     <>
       {isUser && msg.files && msg.files.length > 0 && (
-        <MessageFileGrid files={msg.files} onFileClick={onFileClick} formatFileSize={formatFileSize} />
+        <MessageFileGrid
+          files={msg.files}
+          onFileClick={onFileClick}
+          formatFileSize={formatFileSize}
+        />
       )}
 
       {editingMessageId === msg.id ? (
@@ -50,9 +56,34 @@ export const NormalMessage: React.FC<NormalMessageProps> = ({
           t={t}
         />
       ) : (
-        <div className="message-bubble">
-          <div className="message-content">{msg.content}</div>
-          <div className="message-time">{new Date(msg.timestamp).toLocaleTimeString()}</div>
+        <div
+          className="message-bubble"
+          style={{
+            padding: "10px 14px",
+            borderRadius: "18px",
+            background: "var(--bg-secondary)",
+            color: "var(--text-primary)",
+            maxWidth: "100%",
+            overflow: "hidden",
+            wordBreak: "break-word",
+          }}
+        >
+          <div
+            className="message-content"
+            style={{
+              fontSize: "14px",
+              lineHeight: "1.5",
+              whiteSpace: "pre-wrap",
+              wordBreak: "break-word",
+              overflowWrap: "break-word",
+              maxWidth: "100%",
+            }}
+          >
+            {msg.content}
+          </div>
+          <div className="message-time">
+            {new Date(msg.timestamp).toLocaleTimeString()}
+          </div>
         </div>
       )}
 
@@ -62,6 +93,7 @@ export const NormalMessage: React.FC<NormalMessageProps> = ({
         copyToClipboard={copyToClipboard}
         onLocateTask={onLocateTask}
         onEditMessage={onEditMessage}
+        onResendMessage={onResendMessage}
         t={t}
       />
     </>

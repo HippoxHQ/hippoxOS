@@ -35,10 +35,12 @@ export const StepLogs: React.FC<StepLogsProps> = ({
         style={{
           display: "flex",
           alignItems: "center",
-          gap: "8px",
+          gap: "6px",
+          flexWrap: "wrap",
+          minWidth: 0,
         }}
       >
-        <span className="step-parameters-label">
+        <span className="step-parameters-label" style={{ flexShrink: 0 }}>
           {t("task.logs") || "Logs"}:
         </span>
         {isExpanded ? (
@@ -58,7 +60,6 @@ export const StepLogs: React.FC<StepLogsProps> = ({
               padding: "2px 8px",
               borderRadius: "4px",
               flexShrink: 0,
-              // transition: "all 0.2s",
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.background = "var(--hover-bg)";
@@ -76,11 +77,11 @@ export const StepLogs: React.FC<StepLogsProps> = ({
             <span
               className="step-parameters-short"
               style={{
-                flex: 1,
+                flex: "1 1 40px",
+                minWidth: "20px",
                 overflow: "hidden",
                 textOverflow: "ellipsis",
                 whiteSpace: "nowrap",
-                margin: "0 8px",
                 color: "var(--text-primary)",
                 fontSize: "11px",
                 fontFamily: "monospace",
@@ -88,45 +89,58 @@ export const StepLogs: React.FC<StepLogsProps> = ({
             >
               {briefContent}
             </span>
-            <span
+            <div
               style={{
-                fontSize: "11px",
-                color: "var(--text-secondary)",
-                flexShrink: 0,
-                userSelect: "none",
+                display: "flex",
+                alignItems: "center",
+                gap: "4px",
+                flex: "0 1 auto",
+                flexWrap: "wrap",
+                justifyContent: "flex-end",
               }}
             >
-              {logs.length} {t("task.logsCount")}
-            </span>
-            <button
-              className="step-parameters-toggle"
-              onClick={(e) => {
-                e.stopPropagation();
-                onToggle();
-              }}
-              title={t("terminal.expand")}
-              style={{
-                background: "transparent",
-                border: "1px solid var(--border-color, #444)",
-                color: "var(--text-primary)",
-                cursor: "pointer",
-                fontSize: "10px",
-                padding: "2px 8px",
-                borderRadius: "4px",
-                flexShrink: 0,
-                // transition: "all 0.2s",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = "var(--hover-bg)";
-                e.currentTarget.style.borderColor = "var(--accent-color)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = "transparent";
-                e.currentTarget.style.borderColor = "var(--border-color, #444)";
-              }}
-            >
-              ▼ {t("terminal.expand")}
-            </button>
+              <span
+                style={{
+                  fontSize: "10px",
+                  color: "var(--text-secondary)",
+                  userSelect: "none",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {logs.length}
+                {t("task.logsCount")}
+              </span>
+              <button
+                className="step-parameters-toggle"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggle();
+                }}
+                title={t("terminal.expand")}
+                style={{
+                  background: "transparent",
+                  border: "1px solid var(--border-color, #444)",
+                  color: "var(--text-primary)",
+                  cursor: "pointer",
+                  fontSize: "10px",
+                  padding: "2px 8px",
+                  borderRadius: "4px",
+                  flexShrink: 0,
+                  whiteSpace: "nowrap",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "var(--hover-bg)";
+                  e.currentTarget.style.borderColor = "var(--accent-color)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "transparent";
+                  e.currentTarget.style.borderColor =
+                    "var(--border-color, #444)";
+                }}
+              >
+                ▼ {t("terminal.expand")}
+              </button>
+            </div>
           </>
         )}
       </div>

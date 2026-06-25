@@ -368,28 +368,33 @@ export const TaskRow = forwardRef<HTMLDivElement, TaskRowProps>(
           >
             {task.user_input}
           </span>
+
           <div
             className="task-status-right"
             style={{
               display: "flex",
               alignItems: "center",
-              gap: "8px",
+              gap: "6px",
               flexShrink: 0,
               marginLeft: "auto",
               alignSelf: "flex-start",
+              flexWrap: "wrap",
+              justifyContent: "flex-end",
+              maxWidth: "100%",
             }}
           >
             <span
               className="task-status-text"
-              style={
-                task.status === TaskStatusEnum.Failed
+              style={{
+                ...(task.status === TaskStatusEnum.Failed
                   ? { color: "#ff4444" }
                   : task.status === TaskStatusEnum.Paused
                     ? { color: "#ffa500" }
                     : task.status === TaskStatusEnum.Cancelled
                       ? { color: "#888888" }
-                      : {}
-              }
+                      : {}),
+                whiteSpace: "nowrap",
+              }}
             >
               {getTaskStatusText(t, task.status)}
               {stepSummary}
@@ -400,54 +405,69 @@ export const TaskRow = forwardRef<HTMLDivElement, TaskRowProps>(
                   </span>
                 )}
             </span>
-            {isRunningOrPending && (
-              <>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "4px",
+                flexWrap: "wrap",
+              }}
+            >
+              {isRunningOrPending && (
+                <>
+                  <button
+                    className="task-pause-btn"
+                    onClick={(e) => handlePauseTask(task.task_id, e)}
+                    title={t("terminal.pause")}
+                    style={{
+                      background: "transparent",
+                      border: "none",
+                      cursor: "pointer",
+                      padding: "2px",
+                      display: "flex",
+                      alignItems: "center",
+                    }}
+                  >
+                    <PauseIcon size={14} />
+                  </button>
+                  <button
+                    className="task-interrupt-btn"
+                    onClick={(e) => handleInterruptTask(task.task_id, e)}
+                    title={t("terminal.interrupt")}
+                    style={{
+                      background: "transparent",
+                      border: "none",
+                      cursor: "pointer",
+                      padding: "2px",
+                      display: "flex",
+                      alignItems: "center",
+                    }}
+                  >
+                    <StopIcon size={14} />
+                  </button>
+                </>
+              )}
+              {isPaused && (
                 <button
-                  className="task-pause-btn"
-                  onClick={(e) => handlePauseTask(task.task_id, e)}
-                  title={t("terminal.pause")}
+                  className="task-resume-btn"
+                  onClick={(e) => handleResumeTask(task.task_id, e)}
+                  title={t("terminal.resume")}
                   style={{
                     background: "transparent",
                     border: "none",
                     cursor: "pointer",
                     padding: "2px",
+                    display: "flex",
+                    alignItems: "center",
                   }}
                 >
-                  <PauseIcon size={14} />
+                  <PlayIcon size={14} />
                 </button>
-                <button
-                  className="task-interrupt-btn"
-                  onClick={(e) => handleInterruptTask(task.task_id, e)}
-                  title={t("terminal.interrupt")}
-                  style={{
-                    background: "transparent",
-                    border: "none",
-                    cursor: "pointer",
-                    padding: "2px",
-                  }}
-                >
-                  <StopIcon size={14} />
-                </button>
-              </>
-            )}
-            {isPaused && (
-              <button
-                className="task-resume-btn"
-                onClick={(e) => handleResumeTask(task.task_id, e)}
-                title={t("terminal.resume")}
-                style={{
-                  background: "transparent",
-                  border: "none",
-                  cursor: "pointer",
-                  padding: "2px",
-                }}
-              >
-                <PlayIcon size={14} />
-              </button>
-            )}
-            <span className="task-time" style={{ flexShrink: 0 }}>
-              [{formatTime(task.created_at)}]
-            </span>
+              )}
+              <span className="task-time" style={{ whiteSpace: "nowrap" }}>
+                [{formatTime(task.created_at)}]
+              </span>
+            </div>
           </div>
         </div>
         {isExpanded &&

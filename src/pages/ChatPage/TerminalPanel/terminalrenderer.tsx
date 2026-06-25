@@ -671,16 +671,29 @@ const StatusBanner: React.FC<{
       className="terminal-status-banner"
       style={{
         display: "flex",
-        alignItems: "center",
+        alignItems: "flex-start",
         gap: "8px",
         padding: "5px 12px",
         background: config.bg,
         borderRadius: "6px",
         border: `1px solid ${config.color}`,
+        maxWidth: "100%",
+        width: "100%",
+        boxSizing: "border-box",
       }}
     >
-      <span style={{ fontSize: "12px" }}>{config.icon}</span>
-      <span style={{ fontSize: "12px", color: "var(--text-primary)" }}>
+      <span style={{ fontSize: "12px", flexShrink: 0 }}>{config.icon}</span>
+      <span
+        style={{
+          fontSize: "12px",
+          color: "var(--text-primary)",
+          wordBreak: "break-word",
+          whiteSpace: "pre-wrap",
+          overflowWrap: "break-word",
+          flex: 1,
+          minWidth: 0,
+        }}
+      >
         {statusText}: {message}
       </span>
     </div>

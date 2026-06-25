@@ -21,14 +21,41 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
   onResendMessage,
   t,
 }) => {
-
   if (isUser) {
     return (
-      <div className="message-actions">
+      <div
+        className="message-actions"
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          gap: "4px",
+          justifyContent: "flex-end",
+          marginTop: "4px",
+        }}
+      >
         <button
           className="action-btn locate-btn"
           onClick={() => onLocateTask(msg)}
           title={t("chat.locateInTerminal") || "Locate In Terminal"}
+          style={{
+            background: "transparent",
+            border: "none",
+            cursor: "pointer",
+            padding: "4px 6px",
+            borderRadius: "4px",
+            color: "var(--text-secondary)",
+            display: "flex",
+            alignItems: "center",
+            fontSize: "12px",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = "var(--hover-bg)";
+            e.currentTarget.style.color = "var(--text-primary)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = "transparent";
+            e.currentTarget.style.color = "var(--text-secondary)";
+          }}
         >
           <LocateIcon />
         </button>
@@ -36,6 +63,25 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
           className="action-btn copy-btn"
           onClick={() => copyToClipboard(msg.content)}
           title={t("common.copy") || "Copy"}
+          style={{
+            background: "transparent",
+            border: "none",
+            cursor: "pointer",
+            padding: "4px 6px",
+            borderRadius: "4px",
+            color: "var(--text-secondary)",
+            display: "flex",
+            alignItems: "center",
+            fontSize: "12px",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = "var(--hover-bg)";
+            e.currentTarget.style.color = "var(--text-primary)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = "transparent";
+            e.currentTarget.style.color = "var(--text-secondary)";
+          }}
         >
           <CopyIcon size={12} />
         </button>
@@ -43,6 +89,25 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
           className="action-btn edit-btn"
           onClick={() => onEditMessage?.(msg)}
           title={t("chat.edit") || "Edit"}
+          style={{
+            background: "transparent",
+            border: "none",
+            cursor: "pointer",
+            padding: "4px 6px",
+            borderRadius: "4px",
+            color: "var(--text-secondary)",
+            display: "flex",
+            alignItems: "center",
+            fontSize: "12px",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = "var(--hover-bg)";
+            e.currentTarget.style.color = "var(--text-primary)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = "transparent";
+            e.currentTarget.style.color = "var(--text-secondary)";
+          }}
         >
           <EditIcon2 size={14} />
         </button>
@@ -50,6 +115,25 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
           className="action-btn resend-btn"
           onClick={() => onResendMessage?.(msg)}
           title={t("chat.resend") || "Resend"}
+          style={{
+            background: "transparent",
+            border: "none",
+            cursor: "pointer",
+            padding: "4px 6px",
+            borderRadius: "4px",
+            color: "var(--text-secondary)",
+            display: "flex",
+            alignItems: "center",
+            fontSize: "12px",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = "var(--hover-bg)";
+            e.currentTarget.style.color = "var(--text-primary)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = "transparent";
+            e.currentTarget.style.color = "var(--text-secondary)";
+          }}
         >
           <ResendIcon size={14} />
         </button>
@@ -58,11 +142,39 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
   }
 
   return (
-    <div className="message-actions" style={{ justifyContent: "flex-start" }}>
+    <div
+      className="message-actions"
+      style={{
+        display: "flex",
+        flexWrap: "wrap",
+        gap: "4px",
+        justifyContent: "flex-start",
+        marginTop: "4px",
+      }}
+    >
       <button
         className="action-btn copy-btn"
         onClick={() => copyToClipboard(msg.content)}
         title={t("common.copy") || "Copy"}
+        style={{
+          background: "transparent",
+          border: "none",
+          cursor: "pointer",
+          padding: "4px 6px",
+          borderRadius: "4px",
+          color: "var(--text-secondary)",
+          display: "flex",
+          alignItems: "center",
+          fontSize: "12px",
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = "var(--hover-bg)";
+          e.currentTarget.style.color = "var(--text-primary)";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = "transparent";
+          e.currentTarget.style.color = "var(--text-secondary)";
+        }}
       >
         <CopyIcon size={12} />
       </button>
@@ -70,6 +182,25 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
         className="action-btn locate-btn"
         onClick={() => onLocateTask(msg)}
         title={t("chat.locateInTerminal") || "Locate In Terminal"}
+        style={{
+          background: "transparent",
+          border: "none",
+          cursor: "pointer",
+          padding: "4px 6px",
+          borderRadius: "4px",
+          color: "var(--text-secondary)",
+          display: "flex",
+          alignItems: "center",
+          fontSize: "12px",
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = "var(--hover-bg)";
+          e.currentTarget.style.color = "var(--text-primary)";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = "transparent";
+          e.currentTarget.style.color = "var(--text-secondary)";
+        }}
       >
         <LocateIcon />
       </button>

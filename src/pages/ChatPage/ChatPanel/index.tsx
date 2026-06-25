@@ -1106,13 +1106,17 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     gap: 16px;
   }
   .message-wrapper {
-    display: flex;
-    gap: 12px;
-    animation: fadeIn 0.3s ease;
-  }
-  .message-wrapper.user {
-    flex-direction: row-reverse;
-  }
+  display: flex;
+  gap: 12px;
+  animation: fadeIn 0.3s ease;
+  min-width: 0;
+  max-width: 100%;
+}
+.message-wrapper.user {
+  flex-direction: row-reverse;
+  min-width: 0;
+  max-width: 100%;
+}
   .message-avatar {
     width: 32px;
     height: 32px;
@@ -1127,29 +1131,44 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     color: var(--text-secondary);
   }
   .message-content-area {
-    display: flex;
-    flex-direction: column;
-    max-width: 80%;
-  }
-  .message-wrapper.user .message-content-area {
-    align-items: flex-end;
-  }
-  .message-bubble {
-    padding: 10px 14px;
-    border-radius: 18px;
-    background: var(--bg-secondary);
-    color: var(--text-primary);
-  }
-  .message-wrapper.user .message-bubble {
-    background: var(--accent-color);
-    color: white;
-  }
-  .message-content {
-    font-size: 14px;
-    line-height: 1.5;
-    white-space: pre-wrap;
-    word-break: break-word;
-  }
+  display: flex;
+  flex-direction: column;
+  max-width: 80%;
+  min-width: 0;
+  overflow: hidden;
+  flex: 1;
+}
+.message-wrapper.user .message-content-area {
+  align-items: flex-end;
+  max-width: 80%;
+  min-width: 0;
+  overflow: hidden;
+  flex: 1;
+}
+.message-bubble {
+  padding: 10px 14px;
+  border-radius: 18px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  max-width: 100%;
+  overflow: hidden;
+  word-break: break-word;
+}
+.message-wrapper.user .message-bubble {
+  background: var(--accent-color);
+  color: white;
+  max-width: 100%;
+  overflow: hidden;
+  word-break: break-word;
+}
+.message-content {
+  font-size: 14px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  max-width: 100%;
+}
   .message-time {
     font-size: 10px;
     color: var(--text-tertiary);
@@ -1513,29 +1532,35 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     margin-bottom: 5px;
   }
   .suggestions-container {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    justify-content: center;
-    padding: 4px 0;
-  }
-  .suggestion-bubble {
-    background: var(--bg-secondary);
-    border: 1px solid var(--border-color);
-    border-radius: 16px;
-    padding: 4px 10px;
-    font-size: 11px;
-    color: var(--text-primary);
-    cursor: pointer;
-    // transition: all 0.2s ease;
-    white-space: nowrap;
-  }
-  .suggestion-bubble:hover {
-    background: var(--accent-color);
-    border-color: var(--accent-color);
-    color: white;
-    transform: translateY(-1px);
-  }
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+  padding: 4px 0;
+  max-width: 100%;
+  min-width: 0;
+}
+.suggestion-bubble {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 4px 10px;
+  font-size: 11px;
+  color: var(--text-primary);
+  cursor: pointer;
+  white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 1;
+  min-width: 0;
+}
+.suggestion-bubble:hover {
+  background: var(--accent-color);
+  border-color: var(--accent-color);
+  color: white;
+  transform: translateY(-1px);
+}
 `}</style>
 
       <div
