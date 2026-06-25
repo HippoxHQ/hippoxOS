@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { SkillData } from "../../types/skill";
 import { PlayIcon, DeleteIcon, StarIcon, StarFilledIcon } from "../../icons";
 import {
@@ -47,6 +47,21 @@ const SkillsManagerSidebar: React.FC<SkillsManagerSidebarProps> = ({
     new Set(),
   );
   const [favoritingId, setFavoritingId] = useState<string | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [showStats, setShowStats] = useState(true);
+
+  useEffect(() => {
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const width = entry.contentRect.width;
+        setShowStats(width >= 200);
+      }
+    });
+    if (containerRef.current) {
+      observer.observe(containerRef.current);
+    }
+    return () => observer.disconnect();
+  }, []);
 
   const loadFavorites = async () => {
     try {
@@ -221,6 +236,8 @@ const SkillsManagerSidebar: React.FC<SkillsManagerSidebarProps> = ({
   const styles: Record<string, React.CSSProperties> = {
     container: {
       width: "280px",
+      minWidth: "160px",
+      maxWidth: "320px",
       background: "var(--bg-secondary)",
       borderRight: "1px solid var(--border-color)",
       display: "flex",
@@ -232,6 +249,7 @@ const SkillsManagerSidebar: React.FC<SkillsManagerSidebarProps> = ({
       padding: "10px 10px",
       borderBottom: "1px solid var(--border-color)",
       flexShrink: 0,
+      overflow: "hidden",
     },
     statsTitle: {
       fontSize: "12px",
@@ -239,27 +257,32 @@ const SkillsManagerSidebar: React.FC<SkillsManagerSidebarProps> = ({
       color: "var(--text-secondary)",
       marginBottom: "10px",
       letterSpacing: "0.5px",
+      whiteSpace: "nowrap",
     },
     statsGrid: {
       display: "grid",
       gridTemplateColumns: "1fr 1fr",
-      gap: "10px",
+      gap: "8px",
     },
     statCard: {
       background: "var(--bg-tertiary)",
-      borderRadius: "8px",
-      padding: "8px 10px",
+      borderRadius: "6px",
+      padding: "6px 8px",
       textAlign: "center",
+      overflow: "hidden",
     },
     statNumber: {
-      fontSize: "18px",
+      fontSize: "16px",
       fontWeight: 700,
       color: "var(--accent-color)",
     },
     statLabel: {
-      fontSize: "10px",
+      fontSize: "9px",
       color: "var(--text-secondary)",
-      marginTop: "2px",
+      marginTop: "1px",
+      whiteSpace: "nowrap",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
     },
     statWarning: {
       background: "rgba(239, 68, 68, 0.1)",
@@ -276,7 +299,7 @@ const SkillsManagerSidebar: React.FC<SkillsManagerSidebarProps> = ({
       display: "flex",
       alignItems: "center",
       justifyContent: "space-between",
-      padding: "10px 10px",
+      padding: "8px 10px",
       cursor: "pointer",
       fontSize: "12px",
       fontWeight: 600,
@@ -292,7 +315,7 @@ const SkillsManagerSidebar: React.FC<SkillsManagerSidebarProps> = ({
     },
     skillCard: {
       background: "var(--bg-secondary)",
-      padding: "10px 12px",
+      padding: "8px 10px",
       borderBottom: "1px solid var(--border-color)",
       cursor: "pointer",
       WebkitTapHighlightColor: "transparent",
@@ -312,21 +335,26 @@ const SkillsManagerSidebar: React.FC<SkillsManagerSidebarProps> = ({
       display: "flex",
       alignItems: "center",
       justifyContent: "space-between",
-      marginBottom: "6px",
+      marginBottom: "4px",
       flexWrap: "wrap",
       gap: "4px",
     },
     skillName: {
-      fontSize: "14px",
+      fontSize: "13px",
       fontWeight: 600,
       color: "var(--text-primary)",
+      whiteSpace: "nowrap",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      flex: 1,
+      minWidth: 0,
     },
     skillMeta: {
       display: "flex",
       alignItems: "center",
-      gap: "12px",
-      marginBottom: "6px",
-      fontSize: "11px",
+      gap: "8px",
+      marginBottom: "4px",
+      fontSize: "10px",
       color: "var(--text-muted)",
       flexWrap: "wrap",
     },
@@ -334,20 +362,24 @@ const SkillsManagerSidebar: React.FC<SkillsManagerSidebarProps> = ({
       background: "var(--bg-tertiary)",
       padding: "0 6px",
       borderRadius: "8px",
+      whiteSpace: "nowrap",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      maxWidth: "80px",
     },
     skillDescription: {
-      fontSize: "12px",
+      fontSize: "11px",
       color: "var(--text-secondary)",
-      lineHeight: 1.4,
+      lineHeight: 1.3,
       display: "-webkit-box",
       WebkitLineClamp: 2,
       WebkitBoxOrient: "vertical",
       overflow: "hidden",
     },
     iconButton: {
-      width: "26px",
-      height: "26px",
-      borderRadius: "6px",
+      width: "24px",
+      height: "24px",
+      borderRadius: "4px",
       background: "transparent",
       border: "1px solid var(--border-color)",
       cursor: "pointer",
@@ -373,54 +405,63 @@ const SkillsManagerSidebar: React.FC<SkillsManagerSidebarProps> = ({
     },
     rightActions: {
       display: "flex",
-      gap: "6px",
+      gap: "4px",
       alignItems: "center",
+      flexShrink: 0,
     },
     emptyState: {
       textAlign: "center",
-      padding: "40px 16px",
+      padding: "30px 12px",
       color: "var(--text-tertiary)",
-      fontSize: "13px",
+      fontSize: "12px",
     },
   };
 
   return (
-    <div style={styles.container}>
-      <div style={styles.statsSection}>
-        <div style={styles.statsTitle}>📊 {t("skillsManager.stats")}</div>
-        <div style={styles.statsGrid}>
-          <div style={styles.statCard}>
-            <div style={styles.statNumber}>{skills.length}</div>
-            <div style={styles.statLabel}>{t("skillsManager.totalSkills")}</div>
-          </div>
-          <div style={styles.statCard}>
-            <div style={styles.statNumber}>{totalSteps}</div>
-            <div style={styles.statLabel}>{t("skillsManager.totalSteps")}</div>
-          </div>
-          <div style={styles.statCard}>
-            <div style={styles.statNumber}>{totalMaterials}</div>
-            <div style={styles.statLabel}>
-              {t("skillsManager.totalMaterials")}
+    <div ref={containerRef} style={styles.container}>
+      {showStats && (
+        <div style={styles.statsSection}>
+          <div style={styles.statsTitle}>📊 {t("skillsManager.stats")}</div>
+          <div style={styles.statsGrid}>
+            <div style={styles.statCard}>
+              <div style={styles.statNumber}>{skills.length}</div>
+              <div style={styles.statLabel}>
+                {t("skillsManager.totalSkills")}
+              </div>
             </div>
-          </div>
-          <div
-            style={{
-              ...styles.statCard,
-              ...(incompleteSkills > 0 ? styles.statWarning : {}),
-            }}
-          >
+            <div style={styles.statCard}>
+              <div style={styles.statNumber}>{totalSteps}</div>
+              <div style={styles.statLabel}>
+                {t("skillsManager.totalSteps")}
+              </div>
+            </div>
+            <div style={styles.statCard}>
+              <div style={styles.statNumber}>{totalMaterials}</div>
+              <div style={styles.statLabel}>
+                {t("skillsManager.totalMaterials")}
+              </div>
+            </div>
             <div
               style={{
-                ...styles.statNumber,
-                ...(incompleteSkills > 0 ? styles.statWarningNumber : {}),
+                ...styles.statCard,
+                ...(incompleteSkills > 0 ? styles.statWarning : {}),
               }}
             >
-              {incompleteSkills}
+              <div
+                style={{
+                  ...styles.statNumber,
+                  ...(incompleteSkills > 0 ? styles.statWarningNumber : {}),
+                }}
+              >
+                {incompleteSkills}
+              </div>
+              <div style={styles.statLabel}>
+                {t("skillsManager.incomplete")}
+              </div>
             </div>
-            <div style={styles.statLabel}>{t("skillsManager.incomplete")}</div>
           </div>
         </div>
-      </div>
+      )}
       <div style={styles.list}>
         {Object.keys(groupedSkills).length === 0 ? (
           <div style={styles.emptyState}>{t("skillsManager.noSkills")}</div>
@@ -446,6 +487,8 @@ const SkillsManagerSidebar: React.FC<SkillsManagerSidebarProps> = ({
                       display: "flex",
                       alignItems: "center",
                       gap: "6px",
+                      overflow: "hidden",
+                      minWidth: 0,
                     }}
                   >
                     <span
@@ -458,12 +501,21 @@ const SkillsManagerSidebar: React.FC<SkillsManagerSidebarProps> = ({
                         flexShrink: 0,
                       }}
                     />
-                    {category}
+                    <span
+                      style={{
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                      }}
+                    >
+                      {category}
+                    </span>
                     <span
                       style={{
                         fontSize: "10px",
                         color: "var(--text-tertiary)",
                         fontWeight: 400,
+                        flexShrink: 0,
                       }}
                     >
                       ({skillsInCategory.length})
@@ -506,11 +558,35 @@ const SkillsManagerSidebar: React.FC<SkillsManagerSidebarProps> = ({
                                   ? t("skillsManager.unfavorite")
                                   : t("skillsManager.favorite")
                               }
+                              style={{
+                                ...styles.iconButton,
+                                ...(favorited ? styles.iconButtonActive : {}),
+                              }}
+                              onMouseEnter={(e) => {
+                                if (!favorited) {
+                                  e.currentTarget.style.background =
+                                    "var(--hover-bg)";
+                                  e.currentTarget.style.color =
+                                    "var(--text-primary)";
+                                  e.currentTarget.style.borderColor =
+                                    "var(--accent-color)";
+                                }
+                              }}
+                              onMouseLeave={(e) => {
+                                if (!favorited) {
+                                  e.currentTarget.style.background =
+                                    "transparent";
+                                  e.currentTarget.style.color =
+                                    "var(--text-secondary)";
+                                  e.currentTarget.style.borderColor =
+                                    "var(--border-color)";
+                                }
+                              }}
                             >
                               {favorited ? (
-                                <StarFilledIcon size={12} />
+                                <StarFilledIcon size={11} />
                               ) : (
-                                <StarIcon size={12} />
+                                <StarIcon size={11} />
                               )}
                             </button>
                             <button
@@ -534,7 +610,7 @@ const SkillsManagerSidebar: React.FC<SkillsManagerSidebarProps> = ({
                                   "var(--border-color)";
                               }}
                             >
-                              <PlayIcon size={12} />
+                              <PlayIcon size={11} />
                             </button>
                             <button
                               style={styles.iconButton}
@@ -555,7 +631,7 @@ const SkillsManagerSidebar: React.FC<SkillsManagerSidebarProps> = ({
                                   "var(--border-color)";
                               }}
                             >
-                              <DeleteIcon size={14} />
+                              <DeleteIcon size={13} />
                             </button>
                           </div>
                         </div>

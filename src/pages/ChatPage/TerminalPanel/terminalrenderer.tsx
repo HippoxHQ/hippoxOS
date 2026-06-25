@@ -202,7 +202,8 @@ const LinkItem: React.FC<{
           border: "1px solid var(--border-color)",
           borderRadius: "6px",
           cursor: "pointer",
-          // transition: "all 0.2s ease",
+          overflow: "hidden",
+          maxWidth: "100%",
         }}
         onMouseEnter={(e) => {
           e.currentTarget.style.background = "var(--hover-bg)";
@@ -216,13 +217,16 @@ const LinkItem: React.FC<{
         }}
       >
         <span style={{ fontSize: "18px" }}>📁{tagIcon}</span>
-        <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ flex: 1, minWidth: 0, overflow: "hidden" }}>
           <div
             style={{
               fontWeight: 600,
               color: "var(--text-primary)",
               marginBottom: "2px",
               fontSize: "13px",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
             }}
           >
             {link.n}
@@ -232,6 +236,9 @@ const LinkItem: React.FC<{
               fontSize: "11px",
               color: "var(--text-secondary)",
               marginBottom: "2px",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
             }}
           >
             {link.d}
@@ -241,7 +248,9 @@ const LinkItem: React.FC<{
               fontSize: "9px",
               color: "var(--text-tertiary)",
               fontFamily: "monospace",
-              wordBreak: "break-all",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
             }}
           >
             {link.u}
@@ -265,8 +274,8 @@ const LinkItem: React.FC<{
         border: "1px solid var(--border-color)",
         borderRadius: "10px",
         cursor: "pointer",
-        // transition: "all 0.2s ease",
         overflow: "hidden",
+        maxWidth: "100%",
       }}
       onMouseEnter={(e) => {
         e.currentTarget.style.background = "var(--hover-bg)";
@@ -359,26 +368,17 @@ const LinkItem: React.FC<{
       <div style={{ flex: 1, minWidth: 0, padding: "8px 10px 8px 0" }}>
         <div
           style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "4px",
-            marginBottom: "2px",
+            fontWeight: 600,
+            color: "var(--text-primary)",
+            fontSize: "12px",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+            flex: 1,
+            minWidth: 0,
           }}
         >
-          <span style={{ fontSize: "11px", opacity: 0.7 }}>{tagIcon}</span>
-          <div
-            style={{
-              fontWeight: 600,
-              color: "var(--text-primary)",
-              fontSize: "12px",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-              flex: 1,
-            }}
-          >
-            {metadata.title}
-          </div>
+          {metadata.title}
         </div>
         <div
           style={{
@@ -387,10 +387,9 @@ const LinkItem: React.FC<{
             marginBottom: "2px",
             overflow: "hidden",
             textOverflow: "ellipsis",
-            display: "-webkit-box",
-            WebkitLineClamp: 2,
-            WebkitBoxOrient: "vertical",
+            whiteSpace: "nowrap",
             lineHeight: "1.3",
+            minWidth: 0,
           }}
         >
           {metadata.description ||
@@ -403,10 +402,10 @@ const LinkItem: React.FC<{
             fontSize: "9px",
             color: "var(--text-tertiary)",
             fontFamily: "monospace",
-            wordBreak: "break-all",
             overflow: "hidden",
             textOverflow: "ellipsis",
             whiteSpace: "nowrap",
+            minWidth: 0,
           }}
         >
           {domain}

@@ -316,8 +316,8 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
   const toggleSwitchStyle: React.CSSProperties = {
     position: "relative",
     display: "inline-block",
-    width: "44px",
-    height: "24px",
+    width: "40px",
+    height: "20px",
     flexShrink: 0,
   };
 
@@ -341,8 +341,8 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
   const toggleKnobStyle: React.CSSProperties = {
     position: "absolute",
     content: '""',
-    height: "18px",
-    width: "18px",
+    height: "15px",
+    width: "15px",
     left: "3px",
     bottom: "2px",
     backgroundColor: "white",
@@ -350,7 +350,7 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
   };
 
   const toggleKnobCheckedStyle: React.CSSProperties = {
-    transform: "translateX(20px)",
+    transform: "translateX(18px)",
   };
 
   const styles: Record<string, React.CSSProperties> = {

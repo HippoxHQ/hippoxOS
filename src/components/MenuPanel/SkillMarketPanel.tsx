@@ -200,11 +200,15 @@ const SkillMarketPanel: React.FC<SkillMarketPanelProps> = ({
       padding: "10px",
       borderBottom: "1px solid var(--border-color)",
       background: "var(--bg-secondary)",
+      width: "100%",
+      boxSizing: "border-box",
     },
     searchRow: {
       display: "flex",
       alignItems: "center",
       gap: "8px",
+      width: "100%",
+      minWidth: 0,
     },
     categoryBtn: {
       width: "28px",
@@ -223,7 +227,8 @@ const SkillMarketPanel: React.FC<SkillMarketPanelProps> = ({
       position: "relative" as const,
     },
     searchInputWrapper: {
-      flex: 1,
+      flex: "1 1 0%",
+      minWidth: 0,
       position: "relative" as const,
       display: "flex",
       alignItems: "center",
@@ -232,10 +237,10 @@ const SkillMarketPanel: React.FC<SkillMarketPanelProps> = ({
       background: "var(--bg-tertiary)",
       border: "1px solid var(--border-color)",
       borderRadius: "8px",
-      // transition: "border-color 0.2s ease, box-shadow 0.2s ease",
     },
     searchInput: {
       flex: 1,
+      minWidth: 0,
       background: "transparent",
       border: "none",
       outline: "none",
@@ -417,7 +422,6 @@ const SkillMarketPanel: React.FC<SkillMarketPanelProps> = ({
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      // transition: "all 0.15s",
       color: "var(--text-secondary)",
     },
     modalOverlay: {
@@ -470,6 +474,20 @@ const SkillMarketPanel: React.FC<SkillMarketPanelProps> = ({
       justifyContent: "flex-end",
       marginTop: "20px",
     },
+    button: {
+      padding: "8px 16px",
+      background: "var(--bg-tertiary)",
+      border: "1px solid var(--border-color)",
+      borderRadius: "6px",
+      color: "var(--text-secondary)",
+      fontSize: "13px",
+      cursor: "pointer",
+    },
+    installBtn: {
+      background: "#0066cc",
+      color: "white",
+      border: "none",
+    },
     loadingState: {
       display: "flex",
       alignItems: "center",
@@ -486,17 +504,19 @@ const SkillMarketPanel: React.FC<SkillMarketPanelProps> = ({
 
   const globalStyles = `
     .market-search-input-wrapper {
-      flex: 1;
-      position: relative;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 1.5px 12px;
-      background: var(--bg-tertiary);
-      border: 1px solid var(--border-color);
-      border-radius: 5px;
-      // transition: border-color 0.2s ease, box-shadow 0.2s ease;
-    }
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 1.5px 12px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 5px;
+  box-sizing: border-box;
+}
     .market-search-input-wrapper:focus-within {
       border-color: var(--accent-color);
       box-shadow: 0 0 0 2px var(--accent-glow);
@@ -507,6 +527,7 @@ const SkillMarketPanel: React.FC<SkillMarketPanelProps> = ({
     }
     .market-search-input {
       flex: 1;
+      min-width: 0; 
       background: transparent;
       border: none;
       outline: none;
@@ -566,7 +587,10 @@ const SkillMarketPanel: React.FC<SkillMarketPanelProps> = ({
           >
             <CategoryIcon size={16} />
           </button>
-          <div className="market-search-input-wrapper">
+          <div
+            className="market-search-input-wrapper"
+            style={{ flex: "1 1 0%", minWidth: 0, width: "100%" }}
+          >
             <SearchIcon />
             <input
               type="text"

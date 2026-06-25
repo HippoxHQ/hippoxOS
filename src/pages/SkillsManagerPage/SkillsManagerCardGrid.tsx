@@ -206,25 +206,31 @@ const SkillsManagerCardGrid: React.FC<SkillsManagerCardGridProps> = ({
           flex-direction: column;
           overflow: hidden;
           user-select: none;
+          min-width: 0;
         }
         .search-bar-wrapper {
           background: var(--bg-secondary);
-          padding: 8px 20px;
+          padding: 8px 16px;
           border-bottom: 1px solid var(--border-color);
           flex-shrink: 0;
           display: flex;
           align-items: center;
-          gap: 12px;
+          gap: 10px;
+          width: 100%;
+          box-sizing: border-box;
+          min-width: 0;
         }
         .skill-manager-search-input-wrapper {
           display: flex;
           align-items: center;
-          gap: 8px;
-          padding: 6px 12px;
+          gap: 6px;
+          padding: 5px 10px;
           background: var(--bg-tertiary);
           border: 1px solid var(--border-color);
-          border-radius: 8px;
+          border-radius: 6px;
           flex: 1;
+          min-width: 0;
+          overflow: hidden;
         }
         .skill-manager-search-input-wrapper:focus-within {
           border-color: var(--accent-color);
@@ -236,13 +242,14 @@ const SkillsManagerCardGrid: React.FC<SkillsManagerCardGridProps> = ({
         }
         .search-input {
           flex: 1;
+          min-width: 0;
+          width: 0;
           background: transparent;
           border: none;
           outline: none;
           color: var(--text-primary);
           font-size: 13px;
           padding: 2px 0;
-          min-width: 60px;
         }
         .search-input::placeholder {
           color: var(--text-tertiary);
@@ -254,11 +261,12 @@ const SkillsManagerCardGrid: React.FC<SkillsManagerCardGridProps> = ({
           color: var(--text-tertiary);
           cursor: pointer;
           font-size: 14px;
-          padding: 2px 6px;
+          padding: 2px 4px;
           border-radius: 4px;
           display: flex;
           align-items: center;
           justify-content: center;
+          flex-shrink: 0;
         }
         .search-clear:hover {
           color: var(--text-primary);
@@ -269,12 +277,12 @@ const SkillsManagerCardGrid: React.FC<SkillsManagerCardGridProps> = ({
           color: var(--text-tertiary);
           white-space: nowrap;
           flex-shrink: 0;
-          padding-left: 8px;
+          padding-left: 6px;
           border-left: 1px solid var(--border-color);
         }
         .search-add-btn {
           flex-shrink: 0;
-          padding: 8.5px 14px;
+          padding: 6px 12px;
           background: var(--accent-color);
           border: none;
           border-radius: 6px;
@@ -285,16 +293,17 @@ const SkillsManagerCardGrid: React.FC<SkillsManagerCardGridProps> = ({
         }
         .search-add-btn:hover {
           opacity: 0.85;
-          transform: scale(0.98);
         }
         .scrollable-content {
           flex: 1;
           overflow-y: auto;
           padding: 5px 0;
+          min-width: 0;
         }
         .category-section {
           margin-bottom: 10px;
           padding: 0px 10px;
+          min-width: 0;
         }
         .category-header {
           display: flex;
@@ -314,27 +323,36 @@ const SkillsManagerCardGrid: React.FC<SkillsManagerCardGridProps> = ({
           font-size: 13px;
           font-weight: 600;
           color: var(--text-primary);
+          white-space: nowrap;
         }
         .category-count {
           font-size: 11px;
           color: var(--text-tertiary);
           font-weight: 400;
+          flex-shrink: 0;
         }
         .cards-container {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-          gap: 12px;
+          grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+          gap: 10px;
+          min-width: 0;
+        }
+        @media (max-width: 600px) {
+          .cards-container {
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+          }
         }
         .skill-card {
           background: var(--bg-secondary);
-          border-radius: 10px;
+          border-radius: 8px;
           border: 1px solid var(--border-color);
-          padding: 12px 14px;
+          padding: 10px 12px;
           cursor: pointer;
-          height: 145px;
+          height: 130px;
           display: flex;
           flex-direction: column;
           overflow: hidden;
+          min-width: 0;
         }
         .skill-card:hover {
           transform: translateY(-2px);
@@ -348,7 +366,8 @@ const SkillsManagerCardGrid: React.FC<SkillsManagerCardGridProps> = ({
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          height: 145px;
+          height: 130px;
+          min-width: 0;
         }
         .add-card:hover {
           border-color: var(--accent-color);
@@ -356,43 +375,51 @@ const SkillsManagerCardGrid: React.FC<SkillsManagerCardGridProps> = ({
           transform: translateY(-2px);
         }
         .add-icon {
-          font-size: 28px;
+          font-size: 24px;
           margin-bottom: 4px;
           opacity: 0.6;
         }
         .add-text {
-          font-size: 12px;
+          font-size: 11px;
           color: var(--text-secondary);
+          white-space: nowrap;
         }
         .card-header {
           display: flex;
           justify-content: space-between;
           align-items: flex-start;
-          margin-bottom: 6px;
+          margin-bottom: 4px;
           flex-shrink: 0;
+          min-width: 0;
         }
         .card-name {
-          font-size: 14px;
+          font-size: 13px;
           font-weight: 600;
           color: var(--text-primary);
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
           flex: 1;
-          margin-right: 8px;
+          margin-right: 6px;
+          min-width: 0;
         }
         .card-actions {
           display: flex;
-          gap: 4px;
+          gap: 2px;
           opacity: 0;
           flex-shrink: 0;
         }
         .skill-card:hover .card-actions {
           opacity: 1;
         }
+        @media (max-width: 500px) {
+          .card-actions {
+            opacity: 1;
+          }
+        }
         .icon-btn {
-          width: 24px;
-          height: 24px;
+          width: 22px;
+          height: 22px;
           border-radius: 4px;
           background: transparent;
           border: 1px solid var(--border-color);
@@ -401,7 +428,8 @@ const SkillsManagerCardGrid: React.FC<SkillsManagerCardGridProps> = ({
           align-items: center;
           justify-content: center;
           color: var(--text-secondary);
-          font-size: 11px;
+          font-size: 10px;
+          flex-shrink: 0;
         }
         .icon-btn:hover {
           background: var(--hover-bg);
@@ -420,7 +448,7 @@ const SkillsManagerCardGrid: React.FC<SkillsManagerCardGridProps> = ({
         .card-meta {
           display: flex;
           align-items: center;
-          gap: 6px;
+          gap: 4px;
           margin-bottom: 4px;
           font-size: 10px;
           color: var(--text-tertiary);
@@ -431,56 +459,58 @@ const SkillsManagerCardGrid: React.FC<SkillsManagerCardGridProps> = ({
         }
         .card-meta-item {
           background: var(--bg-tertiary);
-          padding: 1px 8px;
-          border-radius: 10px;
+          padding: 1px 6px;
+          border-radius: 8px;
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
           text-align: center;
           min-width: 0;
+          max-width: 60px;
         }
         .card-meta-item.equal {
           flex: 1;
+          max-width: none;
         }
         .card-meta-item.fixed {
-          flex: 0 0 50px;
+          flex: 0 0 auto;
           max-width: 50px;
         }
         .card-description {
-          font-size: 12px;
+          font-size: 11px;
           color: var(--text-secondary);
-          line-height: 1.4;
+          line-height: 1.3;
           display: -webkit-box;
-          -webkit-line-clamp: 4;
+          -webkit-line-clamp: 3;
           -webkit-box-orient: vertical;
           overflow: hidden;
           flex: 1;
         }
         .empty-state {
           text-align: center;
-          padding: 60px 20px;
-          color: var(--text-tertiary);
-        }
-        .empty-state-icon {
-          font-size: 48px;
-          margin-bottom: 12px;
-          opacity: 0.5;
-        }
-        .empty-state-text {
-          font-size: 14px;
-        }
-        .no-results {
-          text-align: center;
           padding: 40px 20px;
           color: var(--text-tertiary);
         }
+        .empty-state-icon {
+          font-size: 40px;
+          margin-bottom: 10px;
+          opacity: 0.5;
+        }
+        .empty-state-text {
+          font-size: 13px;
+        }
+        .no-results {
+          text-align: center;
+          padding: 30px 20px;
+          color: var(--text-tertiary);
+        }
         .no-results-icon {
-          font-size: 32px;
-          margin-bottom: 8px;
+          font-size: 28px;
+          margin-bottom: 6px;
           opacity: 0.5;
         }
         .no-results-text {
-          font-size: 13px;
+          font-size: 12px;
         }
         :root {
           --bg-primary: #0f1117;
@@ -571,8 +601,7 @@ const SkillsManagerCardGrid: React.FC<SkillsManagerCardGridProps> = ({
                     const tags = skill.tags
                       ? skill.tags.split(",").filter((tag) => tag.trim())
                       : [];
-                    const displayTags = tags.slice(0, 4);
-                    const isEqual = tags.length >= 4;
+                    const displayTags = tags.slice(0, 3);
 
                     return (
                       <div
@@ -598,9 +627,9 @@ const SkillsManagerCardGrid: React.FC<SkillsManagerCardGridProps> = ({
                               }
                             >
                               {favorited ? (
-                                <StarFilledIcon size={12} />
+                                <StarFilledIcon size={11} />
                               ) : (
-                                <StarIcon size={12} />
+                                <StarIcon size={11} />
                               )}
                             </button>
                             <button
@@ -608,7 +637,7 @@ const SkillsManagerCardGrid: React.FC<SkillsManagerCardGridProps> = ({
                               onClick={(e) => handleRun(skill, e)}
                               title={t("skillsManager.run")}
                             >
-                              <PlayIcon size={12} />
+                              <PlayIcon size={11} />
                             </button>
                             <button
                               className="icon-btn danger"
@@ -619,25 +648,19 @@ const SkillsManagerCardGrid: React.FC<SkillsManagerCardGridProps> = ({
                               }
                               title={t("skillsManager.delete")}
                             >
-                              <DeleteIcon size={14} />
+                              <DeleteIcon size={13} />
                             </button>
                           </div>
                         </div>
 
                         <div className="card-meta">
-                          <span
-                            className={`card-meta-item ${
-                              isEqual ? "equal" : "fixed"
-                            }`}
-                          >
-                            {skill.steps.length} steps
+                          <span className="card-meta-item fixed">
+                            {skill.steps.length}s
                           </span>
                           {displayTags.map((tag, idx) => (
                             <span
                               key={idx}
-                              className={`card-meta-item ${
-                                isEqual ? "equal" : "fixed"
-                              }`}
+                              className="card-meta-item fixed"
                               title={tag.trim()}
                             >
                               #{tag.trim()}
