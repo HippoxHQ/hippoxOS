@@ -27,8 +27,12 @@ export function useMenuPanel() {
   const [engineSubView, setEngineSubView] = useState<EngineSubView>("engine_database");
   const [menuPanelWidth, setMenuPanelWidth] = useState<number>(320);
   const [currentContentPanel, setCurrentContentPanel] = useState<ContentPanelView>(null);
-  const handleMenuClick = (view: string, subView?: string) => {
-    if (view === "skillsManager" || view === "scheduledTasks" || view === "userProfile" || view === "codeEditor") {
+
+  const switchMenuPanel = (view: string, subView?: string) => {
+    if (view === "settings") {
+      setMenuPanelView("settings");
+      setSettingsSubView((subView as SettingsSubView) || "llmModel");
+      setEngineSubView("engine_database");
       return;
     }
     if (
@@ -40,63 +44,53 @@ export function useMenuPanel() {
       setMenuPanelView("engine_group");
       setEngineSubView(subView as EngineSubView);
       setSettingsSubView("llmModel");
-    } else if (view === "settings") {
-      setMenuPanelView("settings");
-      setSettingsSubView((subView as SettingsSubView) || "llmModel");
-      setEngineSubView("engine_database");
-    } else if (view === "dashboard") {
-      setMenuPanelView(null);
+      return;
+    }
+    const menuViews: string[] = [
+      "history",
+      "favorites",
+      "skills",
+      "knowledge",
+      "skillMarket",
+      "taskQueue",
+      "executionHistory",
+      "drivers",
+      "workspace",
+      "workspaceConfig",
+      "logs",
+      "storage",
+      "terminal",
+    ];
+    if (menuViews.includes(view)) {
+      setMenuPanelView(view as MenuPanelView);
     } else {
-      if (menuPanelView === (view as MenuPanelView)) {
-        setMenuPanelView(null);
-      } else {
-        setMenuPanelView(view as MenuPanelView);
-      }
+      setMenuPanelView(null);
     }
   };
+
   const closeMenuPanel = () => {
     setMenuPanelView(null);
   };
 
-  const handleOpenSkillsManager = () => {
-    setCurrentContentPanel("skillsManager");
-  };
-  const handleCloseSkillsManager = () => {
-    if (currentContentPanel === "skillsManager") {
-      setCurrentContentPanel(null);
+  const switchContentArea = (view: string) => {
+    const contentViews: string[] = [
+      "skillsManager",
+      "scheduledTasks",
+      "userProfile",
+      "codeEditor",
+    ];
+    if (contentViews.includes(view)) {
+      setCurrentContentPanel(view as ContentPanelView);
     }
   };
-  const handleOpenScheduledTasks = () => {
-    setCurrentContentPanel("scheduledTasks");
-  };
-  const handleCloseScheduledTasks = () => {
-    if (currentContentPanel === "scheduledTasks") {
-      setCurrentContentPanel(null);
-    }
-  };
-  const handleOpenUserProfile = () => {
-    setCurrentContentPanel("userProfile");
-  };
-  const handleOpenCodeEditor = () => {
-    setCurrentContentPanel("codeEditor");
-  };
-  const handleCloseUserProfile = () => {
-    if (currentContentPanel === "userProfile") {
-      setCurrentContentPanel(null);
-    }
-  };
-  const handleOpenHistory = () => {
-    setCurrentContentPanel("history");
-  };
+
   const closeContentPanel = () => {
     setCurrentContentPanel(null);
   };
+
   const resetToChat = () => {
     setCurrentContentPanel(null);
   };
-  const showSkillsManager = currentContentPanel === "skillsManager";
-  const showScheduledTasks = currentContentPanel === "scheduledTasks";
-  const showUserProfile = currentContentPanel === "userProfile";
 
   return {
     menuPanelView,
@@ -105,20 +99,10 @@ export function useMenuPanel() {
     menuPanelWidth,
     setMenuPanelWidth,
     closeMenuPanel,
-    handleMenuClick,
+    switchMenuPanel,
+    switchContentArea,
     currentContentPanel,
     closeContentPanel,
     resetToChat,
-    handleOpenSkillsManager,
-    handleCloseSkillsManager,
-    handleOpenScheduledTasks,
-    handleCloseScheduledTasks,
-    handleOpenUserProfile,
-    handleOpenCodeEditor,
-    handleCloseUserProfile,
-    handleOpenHistory,
-    showSkillsManager,
-    showScheduledTasks,
-    showUserProfile,
   };
 }

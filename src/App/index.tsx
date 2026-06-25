@@ -33,15 +33,9 @@ function App() {
     currentContentPanel,
     closeContentPanel,
     resetToChat,
-    handleMenuClick,
+    switchMenuPanel,
     closeMenuPanel,
-    handleOpenSkillsManager,
-    handleCloseSkillsManager,
-    handleOpenScheduledTasks,
-    handleCloseScheduledTasks,
-    handleOpenUserProfile,
-    handleOpenCodeEditor,
-    handleCloseUserProfile,
+    switchContentArea,
   } = useMenuPanel();
   const {
     currentSessionId,
@@ -51,7 +45,7 @@ function App() {
     handleSendMessage,
     resetSession,
     shouldShowWelcome,
-  } = useSession(language, isConfigLoaded, handleCloseSkillsManager);
+  } = useSession(language, isConfigLoaded);
   const { sidebarCollapsed, toggleSidebar } = useSidebar();
   const { layoutSwapMode, handleLayoutSwapModeChange } = useLayoutSwapMode();
   const { functionPanelPosition, handleFunctionPanelPositionChange } =
@@ -72,19 +66,22 @@ function App() {
   const functionPanel = useFunctionPanelController();
   useTaskEvents(language);
   useDriverEvents(language);
+
   const handleNewSessionWithClose = () => {
     resetToChat();
     handleNewSession();
   };
+
   useSystemEvents(
     handleNewSessionWithClose,
-    () => handleMenuClick("skillMarket"),
-    () => handleMenuClick("history"),
-    () => handleMenuClick("favorites"),
-    () => handleOpenScheduledTasks(),
-    (subView) => handleMenuClick("settings", subView),
+    () => switchMenuPanel("skillMarket"),
+    () => switchMenuPanel("history"),
+    () => switchMenuPanel("favorites"),
+    () => switchContentArea("scheduledTasks"),
+    (subView) => switchMenuPanel("settings", subView),
   );
   useDirectoryEvents();
+
   useEffect(() => {
     const handleSearchNewSession = () => {
       handleNewSessionWithClose();
@@ -94,7 +91,9 @@ function App() {
       window.removeEventListener("search-new-session", handleSearchNewSession);
     };
   }, [handleNewSessionWithClose]);
-  useSearchEvents(() => handleMenuClick("skillMarket"), handleSwitchSession);
+
+  useSearchEvents(() => switchMenuPanel("skillMarket"), handleSwitchSession);
+
   useEffect(() => {
     const onSwitchEvent = (e: CustomEvent) => {
       const sessionId = e.detail?.sessionId;
@@ -110,29 +109,30 @@ function App() {
       );
     };
   }, [handleSwitchSession]);
+
   useEffect(() => {
     taskManager.setupTaskEventListeners();
   }, []);
+
   const handleSaveConfig = async (config: any) => {};
-  const handleMenuClickWrapper = (view: string, subView?: string) => {
-    if (view === "scheduledTasks") {
-      handleOpenScheduledTasks();
+
+  const handleSidebarClick = (view: string, subView?: string) => {
+    if (view === "tasks_group") {
+      switchContentArea("scheduledTasks");
       return;
     }
-    if (view === "skillsManager") {
-      handleOpenSkillsManager();
+    if (
+      view === "skillsManager" ||
+      view === "scheduledTasks" ||
+      view === "userProfile" ||
+      view === "codeEditor"
+    ) {
+      switchContentArea(view);
       return;
     }
-    if (view === "userProfile") {
-      handleOpenUserProfile();
-      return;
-    }
-    if (view === "codeEditor") {
-      handleOpenCodeEditor();
-      return;
-    }
-    handleMenuClick(view, subView);
+    switchMenuPanel(view, subView);
   };
+
   const { onSendSkillMessage } = useSendSkillMessage({
     currentSessionId,
     currentContentPanel,
@@ -141,6 +141,7 @@ function App() {
     handleSendMessage,
     shouldShowWelcome,
   });
+
   if (!isConfigLoaded) {
     return (
       <div
@@ -156,6 +157,7 @@ function App() {
       </div>
     );
   }
+
   return (
     <AppContent
       theme={theme}
@@ -178,12 +180,8 @@ function App() {
       menuPanelWidth={menuPanelWidth}
       setMenuPanelWidth={setMenuPanelWidth}
       currentContentPanel={currentContentPanel}
-      onMenuClick={handleMenuClickWrapper}
+      onMenuClick={handleSidebarClick}
       onCloseMenuPanel={closeMenuPanel}
-      onOpenSkillsManager={handleOpenSkillsManager}
-      onCloseSkillsManager={handleCloseSkillsManager}
-      onCloseScheduledTasks={handleCloseScheduledTasks}
-      onCloseUserProfile={handleCloseUserProfile}
       onCloseContentPanel={closeContentPanel}
       onSaveConfig={handleSaveConfig}
       initialEngineConfig={initialEngineConfig}

@@ -25,7 +25,6 @@ const Sidebar: React.FC<SidebarProps> = ({
   onNewSession,
   currentSessionId,
   onSwitchSession,
-  onOpenSkillsManager,
   t,
 }) => {
   const [activeId, setActiveId] = React.useState("history");
@@ -42,112 +41,17 @@ const Sidebar: React.FC<SidebarProps> = ({
   } = usePopupMenu();
 
   const handleMenuClick = (id: string, subId?: string, subSubId?: string) => {
-    if (id === "skillsManager") {
-      setActiveId("skillsManager");
-      setActiveSubId(undefined);
-      setActiveSubSubId(undefined);
-      if (onOpenSkillsManager) onOpenSkillsManager();
-      return;
-    }
-    if (id === "userProfile") {
-      setActiveId("userProfile");
-      setActiveSubId(undefined);
-      setActiveSubSubId(undefined);
-      if (onMenuClick) onMenuClick("userProfile");
-      return;
-    }
-    if (id === "codeEditor") {
-      setActiveId(id);
-      setActiveSubId(undefined);
-      setActiveSubSubId(undefined);
-      if (onMenuClick) onMenuClick(id);
-      return;
-    }
-    if (id === "settings" && subId) {
-      const configId = subId;
-      setActiveId(configId);
-      if (
-        configId === "engine_database" ||
-        configId === "engine_network" ||
-        configId === "engine_container" ||
-        configId === "engine_notification"
-      ) {
-        setActiveSubId(undefined);
-        setActiveSubSubId(configId);
+    setActiveId(id);
+    setActiveSubId(subId);
+    setActiveSubSubId(subSubId);
+    if (onMenuClick) {
+      if (subSubId) {
+        onMenuClick(id, subSubId);
+      } else if (subId) {
+        onMenuClick(id, subId);
       } else {
-        setActiveSubId(configId);
-        setActiveSubSubId(undefined);
+        onMenuClick(id);
       }
-      if (onMenuClick) onMenuClick("settings", configId);
-      return;
-    }
-    if (
-      id === "llmModel" ||
-      id === "drivers" ||
-      id === "universal" ||
-      id === "workspaceConfig" ||
-      id === "storage" ||
-      id === "engine_database" ||
-      id === "engine_network" ||
-      id === "engine_container" ||
-      id === "engine_notification"
-    ) {
-      setActiveId(id);
-      if (
-        id === "engine_database" ||
-        id === "engine_network" ||
-        id === "engine_container" ||
-        id === "engine_notification"
-      ) {
-        setActiveSubId(undefined);
-        setActiveSubSubId(id);
-      } else {
-        setActiveSubId(id);
-        setActiveSubSubId(undefined);
-      }
-      if (onMenuClick) onMenuClick("settings", id);
-      return;
-    }
-    if (id === "workspace") {
-      setActiveId(id);
-      setActiveSubId(undefined);
-      setActiveSubSubId(undefined);
-      if (onMenuClick) onMenuClick(id);
-    } else if (id === "history" || id === "favorites") {
-      setActiveId(id);
-      setActiveSubId(undefined);
-      setActiveSubSubId(undefined);
-      if (onMenuClick) onMenuClick(id);
-    } else if (id === "skillMarket" || id === "skills") {
-      setActiveId(id);
-      setActiveSubId(undefined);
-      setActiveSubSubId(undefined);
-      if (onMenuClick) onMenuClick(id);
-    } else if (id === "logs") {
-      setActiveId(id);
-      setActiveSubId(undefined);
-      setActiveSubSubId(undefined);
-      if (onMenuClick) onMenuClick(id);
-    } else if (id === "skills_group") {
-      setActiveId("skills");
-      setActiveSubId(undefined);
-      setActiveSubSubId(undefined);
-      if (onMenuClick) onMenuClick("skills");
-    } else if (id === "tasks_group") {
-      setActiveId("scheduledTasks");
-      setActiveSubId(undefined);
-      setActiveSubSubId(undefined);
-      if (onMenuClick) onMenuClick("scheduledTasks");
-    } else if (id === "settings_group") {
-      setActiveId("llmModel");
-      setActiveSubId(undefined);
-      setActiveSubSubId(undefined);
-      if (onMenuClick) onMenuClick("settings", "llmModel");
-    } else {
-      setActiveId(id);
-      setActiveSubId(undefined);
-      setActiveSubSubId(undefined);
-      if (onMenuClick) onMenuClick(id);
     }
   };
 
@@ -166,6 +70,7 @@ const Sidebar: React.FC<SidebarProps> = ({
       "skillMarket",
       "userProfile",
     ];
+
     if (directOpenItems.includes(itemId)) {
       if (popupVisible) {
         handleClosePopup();
@@ -173,6 +78,7 @@ const Sidebar: React.FC<SidebarProps> = ({
       handleMenuClick(itemId);
       return;
     }
+
     const rect = e.currentTarget.getBoundingClientRect();
     const viewportWidth = window.innerWidth;
     const popupWidth = 280;
@@ -189,21 +95,19 @@ const Sidebar: React.FC<SidebarProps> = ({
       top = gap;
     }
     const position = { top, left };
+
     if (itemId === "skills_group" || itemId === "settings_group") {
       if (isPopupVisible(itemId)) {
         handleClosePopup();
         return;
       }
-      if (itemId === "skills_group") {
-        setActiveId("skills_group");
-      } else if (itemId === "settings_group") {
-        setActiveId("settings_group");
-      }
+      setActiveId(itemId);
       setActiveSubId(undefined);
       setActiveSubSubId(undefined);
       showPopup(itemId, position);
       return;
     }
+
     if (isPopupVisible(itemId)) {
       handleClosePopup();
     } else {
@@ -213,24 +117,30 @@ const Sidebar: React.FC<SidebarProps> = ({
       showPopup(itemId, position);
     }
   };
+
   const handleMouseEnter = (
     e: React.MouseEvent<HTMLButtonElement>,
     label: string,
   ) => {
     showTooltipOnElement(e.currentTarget, label);
   };
+
   const handleMouseLeave = () => {
     const container = document.getElementById("global-tooltip-container");
     if (container) {
       container.remove();
     }
   };
+
   const isIconActive = (itemId: string): boolean => {
     if (itemId === "skillsManager") {
       return activeId === "skillsManager";
     }
     if (itemId === "userProfile") {
       return activeId === "userProfile";
+    }
+    if (itemId === "codeEditor") {
+      return activeId === "codeEditor";
     }
     if (itemId === "skillMarket") {
       return activeId === "skillMarket" || activeId === "skills";
@@ -269,7 +179,10 @@ const Sidebar: React.FC<SidebarProps> = ({
       return t("actions.skillMarket");
     }
     if (item.id === "userProfile") {
-      return t("menu.userProfile") || "个人资料";
+      return t("menu.userProfile") || "User Profile";
+    }
+    if (item.id === "codeEditor") {
+      return t("menu.codeEditor") || "Code Editor";
     }
     return t(item.label);
   };
@@ -303,7 +216,6 @@ const Sidebar: React.FC<SidebarProps> = ({
         overflow: collapsed ? "hidden" : "visible",
         padding: collapsed ? 0 : undefined,
         opacity: collapsed ? 0 : 1,
-        // transition: "width 0.2s ease, opacity 0.2s ease",
       }}
     >
       {!collapsed && (

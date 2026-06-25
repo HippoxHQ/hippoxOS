@@ -63,10 +63,6 @@ interface AppContentProps {
   currentContentPanel: ContentPanelView;
   onMenuClick: (view: string, subView?: string) => void;
   onCloseMenuPanel: () => void;
-  onOpenSkillsManager: () => void;
-  onCloseSkillsManager: () => void;
-  onCloseScheduledTasks: () => void;
-  onCloseUserProfile: () => void;
   onCloseContentPanel: () => void;
   onSaveConfig: (config: any) => void;
   initialEngineConfig: any;
@@ -111,10 +107,6 @@ export function AppContent({
   currentContentPanel,
   onMenuClick,
   onCloseMenuPanel,
-  onOpenSkillsManager,
-  onCloseSkillsManager,
-  onCloseScheduledTasks,
-  onCloseUserProfile,
   onCloseContentPanel,
   onSaveConfig,
   initialEngineConfig,
@@ -431,7 +423,7 @@ export function AppContent({
         return (
           <SkillsManager
             t={t}
-            onClose={onCloseSkillsManager}
+            onClose={onCloseContentPanel}
             currentSessionId={currentSessionId}
             onSendSkillMessage={onSendSkillMessage}
           />
@@ -440,7 +432,7 @@ export function AppContent({
         return (
           <ScheduledTasksManager
             t={t}
-            onClose={onCloseScheduledTasks}
+            onClose={onCloseContentPanel}
             currentSessionId={currentSessionId}
           />
         );
@@ -448,7 +440,7 @@ export function AppContent({
         return (
           <UserProfile
             t={t}
-            onClose={onCloseUserProfile}
+            onClose={onCloseContentPanel}
             currentSessionId={currentSessionId}
           />
         );
@@ -656,7 +648,6 @@ export function AppContent({
             onNewSession={onNewSession}
             currentSessionId={currentSessionId}
             onSwitchSession={onSwitchSession}
-            onOpenSkillsManager={onOpenSkillsManager}
             t={t}
           />
         )}
