@@ -56,6 +56,13 @@ const Sidebar: React.FC<SidebarProps> = ({
       if (onMenuClick) onMenuClick("userProfile");
       return;
     }
+    if (id === "codeEditor") {
+      setActiveId(id);
+      setActiveSubId(undefined);
+      setActiveSubSubId(undefined);
+      if (onMenuClick) onMenuClick(id);
+      return;
+    }
     if (id === "settings" && subId) {
       const configId = subId;
       setActiveId(configId);
@@ -152,6 +159,7 @@ const Sidebar: React.FC<SidebarProps> = ({
       "skillsManager",
       "tasks_group",
       "history",
+      "codeEditor",
       "favorites",
       "workspace",
       "logs",

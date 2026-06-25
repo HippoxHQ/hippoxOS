@@ -31,7 +31,8 @@ export type MenuPanelView =
   | "workspaceConfig"
   | "logs"
   | "storage"
-  | "engine_group";
+  | "engine_group"
+  | "codeEditor";
 
 export type EngineSubView =
   | "engine_database"
@@ -81,6 +82,7 @@ const viewTitles: Record<MenuPanelView, string> = {
   engine_group: "menu.engineConfig",
   logs: "menu.logs",
   storage: "menu.storage",
+  codeEditor: "menu.codeEditor",
 };
 
 const engineSubViewTitles: Record<EngineSubView, string> = {

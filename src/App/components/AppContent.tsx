@@ -33,6 +33,7 @@ import FunctionPanel from "../../components/FunctionPanel/FunctionPanel";
 import { FunctionPanelController } from "../../components/FunctionPanel/hooks/useFunctionPanelController";
 import ChatPanel from "../../pages/ChatPage/ChatPanel";
 import TerminalPanel from "../../pages/ChatPage/TerminalPanel";
+import CodeEditorPage from "../../pages/CodeEditorPage/CodeEditorPage";
 
 interface AppContentProps {
   theme: Theme;
@@ -399,6 +400,8 @@ export function AppContent({
             onCloseSkillsManager={onCloseContentPanel}
           />
         );
+      case "codeEditor":
+        return <CodeEditorPage t={t} />;
       case "taskQueue":
         return <TaskQueuePanel t={t} />;
       case "workspace":

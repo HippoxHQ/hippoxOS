@@ -1943,6 +1943,28 @@ export const CollapseAllIcon2: React.FC<IconProps> = ({
   </svg>
 );
 
+export const CodeEditorIcon: React.FC<IconProps> = ({
+  className,
+  size = 18,
+}) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    <polyline points="5 6 1 12 5 18" />
+    <polyline points="19 6 23 12 19 18" />
+    <line x1="15" y1="2" x2="9" y2="22" />
+  </svg>
+);
+
 export const iconMap: Record<string, React.FC<IconProps>> = {
   dashboard: DashboardIcon,
   workspace: WorkspaceIcon,
@@ -2008,4 +2030,5 @@ export const iconMap: Record<string, React.FC<IconProps>> = {
   moreVertical: MoreVerticalIcon,
   rename: RenameIcon,
   delete: DeleteIcon,
+  codeEditor: CodeEditorIcon,
 };

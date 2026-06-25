@@ -18,6 +18,7 @@ export type ContentPanelView =
   | "skillsManager"
   | "scheduledTasks"
   | "userProfile"
+  | "codeEditor"
   | null;
 
 export function useMenuPanel() {
@@ -27,7 +28,7 @@ export function useMenuPanel() {
   const [menuPanelWidth, setMenuPanelWidth] = useState<number>(320);
   const [currentContentPanel, setCurrentContentPanel] = useState<ContentPanelView>(null);
   const handleMenuClick = (view: string, subView?: string) => {
-    if (view === "skillsManager" || view === "scheduledTasks" || view === "userProfile") {
+    if (view === "skillsManager" || view === "scheduledTasks" || view === "userProfile" || view === "codeEditor") {
       return;
     }
     if (
@@ -76,6 +77,9 @@ export function useMenuPanel() {
   const handleOpenUserProfile = () => {
     setCurrentContentPanel("userProfile");
   };
+  const handleOpenCodeEditor = () => {
+    setCurrentContentPanel("codeEditor");
+  };
   const handleCloseUserProfile = () => {
     if (currentContentPanel === "userProfile") {
       setCurrentContentPanel(null);
@@ -110,6 +114,7 @@ export function useMenuPanel() {
     handleOpenScheduledTasks,
     handleCloseScheduledTasks,
     handleOpenUserProfile,
+    handleOpenCodeEditor,
     handleCloseUserProfile,
     handleOpenHistory,
     showSkillsManager,

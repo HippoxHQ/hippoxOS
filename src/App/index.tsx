@@ -40,6 +40,7 @@ function App() {
     handleOpenScheduledTasks,
     handleCloseScheduledTasks,
     handleOpenUserProfile,
+    handleOpenCodeEditor,
     handleCloseUserProfile,
   } = useMenuPanel();
   const {
@@ -124,6 +125,10 @@ function App() {
     }
     if (view === "userProfile") {
       handleOpenUserProfile();
+      return;
+    }
+    if (view === "codeEditor") {
+      handleOpenCodeEditor();
       return;
     }
     handleMenuClick(view, subView);
