@@ -7,6 +7,9 @@ interface CodeEditPanelProps {
   selectedFile: string | null;
   rightHeight: number;
   onRightResizeMouseDown: (e: React.MouseEvent) => void;
+  isRightDragging: boolean;
+  isRightHover: boolean;
+  setIsRightHover: (value: boolean) => void;
 }
 
 const CodeEditPanel: React.FC<CodeEditPanelProps> = ({
@@ -14,8 +17,11 @@ const CodeEditPanel: React.FC<CodeEditPanelProps> = ({
   selectedFile,
   rightHeight,
   onRightResizeMouseDown,
+  isRightDragging,
+  isRightHover,
+  setIsRightHover,
 }) => {
-  const totalHeight = 400;
+  const isActive = isRightDragging || isRightHover;
 
   return (
     <div
@@ -43,32 +49,32 @@ const CodeEditPanel: React.FC<CodeEditPanelProps> = ({
 
       <div
         style={{
-          height: "4px",
-          background: "var(--border-color)",
+          height: isActive ? "4px" : "1px",
+          background: isActive ? "var(--scrollbar-thumb)" : "var(--border-color)",
           cursor: "row-resize",
           flexShrink: 0,
           position: "relative",
+          transition: "height 0.15s, background 0.15s",
         }}
         onMouseDown={onRightResizeMouseDown}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.background = "var(--scrollbar-thumb)";
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.background = "var(--border-color)";
-        }}
+        onMouseEnter={() => setIsRightHover(true)}
+        onMouseLeave={() => setIsRightHover(false)}
       >
-        <div
-          style={{
-            position: "absolute",
-            top: "50%",
-            left: "50%",
-            transform: "translate(-50%, -50%)",
-            width: "40px",
-            height: "2px",
-            background: "var(--text-muted)",
-            borderRadius: "2px",
-          }}
-        />
+        {isActive && (
+          <div
+            style={{
+              position: "absolute",
+              top: "50%",
+              left: "50%",
+              transform: "translate(-50%, -50%)",
+              width: "40px",
+              height: "2px",
+              background: "var(--text-muted)",
+              borderRadius: "2px",
+              opacity: 0.5,
+            }}
+          />
+        )}
       </div>
 
       <div

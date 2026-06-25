@@ -20,6 +20,8 @@ const CodingPage: React.FC<CodingPageProps> = ({ t, onClose }) => {
   const dragStartY = useRef(0);
   const dragStartHeight = useRef(0);
   const containerRef = useRef<HTMLDivElement>(null);
+  const [isLeftHover, setIsLeftHover] = useState(false);
+  const [isRightHover, setIsRightHover] = useState(false);
 
   const handleFileSelect = (path: string) => {
     setSelectedFile(path);
@@ -87,6 +89,9 @@ const CodingPage: React.FC<CodingPageProps> = ({ t, onClose }) => {
     document.body.style.userSelect = "none";
   };
 
+  const isLeftDragging = isDraggingLeft.current;
+  const isRightDragging = isDraggingRight.current;
+
   return (
     <div
       ref={containerRef}
@@ -100,81 +105,6 @@ const CodingPage: React.FC<CodingPageProps> = ({ t, onClose }) => {
         overflow: "hidden",
       }}
     >
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          padding: "4px 12px",
-          borderBottom: "1px solid var(--border-color)",
-          background: "var(--bg-secondary)",
-          flexShrink: 0,
-          minHeight: "36px",
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            minWidth: 0,
-          }}
-        >
-          <span
-            style={{
-              fontSize: "12px",
-              fontWeight: 600,
-              color: "var(--text-primary)",
-              whiteSpace: "nowrap",
-            }}
-          >
-            📝 {t("menu.codeEditor") || "Code Editor"}
-          </span>
-          {selectedFile && (
-            <span
-              style={{
-                fontSize: "11px",
-                color: "var(--text-secondary)",
-                background: "var(--bg-tertiary)",
-                padding: "2px 8px",
-                borderRadius: "4px",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-                maxWidth: "200px",
-              }}
-              title={selectedFile}
-            >
-              {selectedFile.split("/").pop()}
-            </span>
-          )}
-        </div>
-        <button
-          onClick={onClose}
-          style={{
-            padding: "2px 6px",
-            background: "transparent",
-            border: "none",
-            color: "var(--text-secondary)",
-            cursor: "pointer",
-            fontSize: "16px",
-            borderRadius: "4px",
-            display: "flex",
-            alignItems: "center",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = "var(--hover-bg)";
-            e.currentTarget.style.color = "var(--text-primary)";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = "transparent";
-            e.currentTarget.style.color = "var(--text-secondary)";
-          }}
-        >
-          ✕
-        </button>
-      </div>
-
       <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
         <div style={{ width: leftWidth, minWidth: 0, flexShrink: 0 }}>
           <FileTreePanel
@@ -186,32 +116,35 @@ const CodingPage: React.FC<CodingPageProps> = ({ t, onClose }) => {
 
         <div
           style={{
-            width: "4px",
-            background: "var(--border-color)",
+            width: isLeftDragging || isLeftHover ? "4px" : "1px",
+            background:
+              isLeftDragging || isLeftHover
+                ? "var(--scrollbar-thumb)"
+                : "var(--border-color)",
             cursor: "col-resize",
             flexShrink: 0,
             position: "relative",
+            transition: "width 0.15s, background 0.15s",
           }}
           onMouseDown={handleLeftResizeMouseDown}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = "var(--scrollbar-thumb)";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = "var(--border-color)";
-          }}
+          onMouseEnter={() => setIsLeftHover(true)}
+          onMouseLeave={() => setIsLeftHover(false)}
         >
-          <div
-            style={{
-              position: "absolute",
-              top: "50%",
-              left: "50%",
-              transform: "translate(-50%, -50%)",
-              width: "2px",
-              height: "40px",
-              background: "var(--text-muted)",
-              borderRadius: "2px",
-            }}
-          />
+          {(isLeftDragging || isLeftHover) && (
+            <div
+              style={{
+                position: "absolute",
+                top: "50%",
+                left: "50%",
+                transform: "translate(-50%, -50%)",
+                width: "2px",
+                height: "40px",
+                background: "var(--text-muted)",
+                borderRadius: "2px",
+                opacity: 0.5,
+              }}
+            />
+          )}
         </div>
 
         <div
@@ -228,6 +161,9 @@ const CodingPage: React.FC<CodingPageProps> = ({ t, onClose }) => {
             selectedFile={selectedFile}
             rightHeight={rightHeight}
             onRightResizeMouseDown={handleRightResizeMouseDown}
+            isRightDragging={isRightDragging}
+            isRightHover={isRightHover}
+            setIsRightHover={setIsRightHover}
           />
         </div>
       </div>
