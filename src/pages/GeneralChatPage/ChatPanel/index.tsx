@@ -1243,7 +1243,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     flex-shrink: 0;
   }
   .chat-input-container {
-    margin: 8px 16px 12px;
+    margin: 8px 10px 10px;
     background: var(--bg-tertiary);
     border: 1px solid var(--border-color);
     border-radius: 5px;

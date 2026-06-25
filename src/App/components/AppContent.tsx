@@ -33,7 +33,7 @@ import ChartPage from "../../pages/ChartChatPage";
 import MapsPage from "../../pages/MapsChatPage";
 import ChatPanel from "../../pages/GeneralChatPage/ChatPanel";
 import TerminalPanel from "../../pages/GeneralChatPage/TerminalPanel";
-import LLMChatPage from "../../pages/GeneralChatPage";
+import GeneralChatPage from "../../pages/GeneralChatPage";
 
 interface AppContentProps {
   theme: Theme;
@@ -435,7 +435,7 @@ export function AppContent({
         );
       } else {
         contentElement = (
-          <LLMChatPage
+          <GeneralChatPage
             layoutMode="horizontal"
             onLayoutModeChange={() => {}}
             leftTitle={t("chat.title") || "Chat"}

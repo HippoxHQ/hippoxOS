@@ -8,7 +8,7 @@ import { configCommands } from "../../command/config";
 import ChatPanel from "./ChatPanel";
 import TerminalPanel from "./TerminalPanel";
 
-interface LLMChatPageProps {
+interface GeneralChatPageProps {
   layoutMode?: "horizontal" | "vertical";
   onLayoutModeChange?: (mode: "horizontal" | "vertical") => void;
   leftTitle?: string;
@@ -635,7 +635,7 @@ const CollapsedHistoryList: React.FC<CollapsedHistoryListProps> = ({
   );
 };
 
-const LLMChatPage: React.FC<LLMChatPageProps> = ({
+const GeneralChatPage: React.FC<GeneralChatPageProps> = ({
   layoutMode = "vertical",
   onLayoutModeChange,
   leftTitle = "Chat",
@@ -1496,4 +1496,4 @@ const LLMChatPage: React.FC<LLMChatPageProps> = ({
   );
 };
 
-export default LLMChatPage;
+export default GeneralChatPage;
