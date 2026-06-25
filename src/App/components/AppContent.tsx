@@ -136,6 +136,8 @@ export function AppContent({
   const [isFunctionPanelMaximized, setIsFunctionPanelMaximized] =
     useState(false);
   const [prevMaximizedState, setPrevMaximizedState] = useState<boolean>(false);
+  const [isFuncPanelResizeHover, setIsFuncPanelResizeHover] = useState(false);
+  const [isMenuResizeHover, setIsMenuResizeHover] = useState(false);
 
   const isDraggingFunctionPanel = useRef(false);
   const dragStartX = useRef(0);
@@ -462,11 +464,12 @@ export function AppContent({
       flexDirection: "column" as const,
     },
     resizeHandle: {
-      width: "4px",
+      width: "1px",
       background: "var(--border-color)",
       cursor: "col-resize" as const,
       position: "relative" as const,
       flexShrink: 0,
+      transition: "width 0.15s, background 0.15s",
     },
     handleLine: {
       position: "absolute" as const,
@@ -477,13 +480,16 @@ export function AppContent({
       height: "40px",
       background: "var(--text-muted)",
       borderRadius: "2px",
+      opacity: 0.5,
+      zIndex: 11,
     },
     functionPanelResizeHandle: {
-      width: "4px",
+      width: "1px",
       background: "var(--border-color)",
       cursor: "col-resize" as const,
       flexShrink: 0,
       position: "relative" as const,
+      transition: "width 0.15s, background 0.15s",
     },
     functionPanelResizeHandleLine: {
       position: "absolute" as const,
@@ -494,6 +500,8 @@ export function AppContent({
       height: "40px",
       background: "var(--text-muted)",
       borderRadius: "2px",
+      opacity: 0.5,
+      zIndex: 11,
     },
   };
 
@@ -528,26 +536,22 @@ export function AppContent({
       <div
         className="resize-handle resize-handle-vertical"
         onMouseDown={handleFunctionPanelResizeMouseDown}
-        style={styles.functionPanelResizeHandle}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.background = "var(--scrollbar-thumb)";
-          const line = e.currentTarget.querySelector(
-            ".function-panel-handle-line",
-          ) as HTMLElement;
-          if (line) line.style.background = "var(--text-secondary)";
+        style={{
+          ...styles.functionPanelResizeHandle,
+          width: "3px",
+          background: isFuncPanelResizeHover
+            ? "var(--scrollbar-thumb)"
+            : "var(--border-color)",
         }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.background = "var(--border-color)";
-          const line = e.currentTarget.querySelector(
-            ".function-panel-handle-line",
-          ) as HTMLElement;
-          if (line) line.style.background = "var(--text-muted)";
-        }}
+        onMouseEnter={() => setIsFuncPanelResizeHover(true)}
+        onMouseLeave={() => setIsFuncPanelResizeHover(false)}
       >
-        <div
-          style={styles.functionPanelResizeHandleLine}
-          className="function-panel-handle-line"
-        />
+        {isFuncPanelResizeHover && (
+          <div
+            style={styles.functionPanelResizeHandleLine}
+            className="function-panel-handle-line"
+          />
+        )}
       </div>
     );
 
@@ -605,6 +609,36 @@ export function AppContent({
 
   return (
     <div className="App">
+      <style>{`
+        .menu-panel-resize-handle {
+          position: relative;
+          z-index: 1;
+        }
+        .menu-panel-resize-handle::after {
+          content: '';
+          position: absolute;
+          top: -10px;
+          left: -8px;
+          right: -8px;
+          bottom: -10px;
+          cursor: col-resize;
+          z-index: 10;
+        }
+        .resize-handle-vertical {
+          position: relative;
+          z-index: 1;
+        }
+        .resize-handle-vertical::after {
+          content: '';
+          position: absolute;
+          top: -10px;
+          left: -8px;
+          right: -8px;
+          bottom: -10px;
+          cursor: col-resize;
+          z-index: 10;
+        }
+      `}</style>
       <CustomDragCursor isDragging={showDragCursor} />
       <GlobalDragOverlay
         isDragging={isGlobalDragging && !isDraggingOverInput}
@@ -679,7 +713,17 @@ export function AppContent({
               />
             </div>
             <div
-              style={styles.resizeHandle}
+              className="menu-panel-resize-handle"
+              style={{
+                width: "3px",
+                background: isMenuResizeHover
+                  ? "var(--scrollbar-thumb)"
+                  : "var(--border-color)",
+                cursor: "col-resize",
+                flexShrink: 0,
+                position: "relative",
+                transition: "width 0.15s, background 0.15s",
+              }}
               onMouseDown={(e) => {
                 e.preventDefault();
                 const startX = e.clientX;
@@ -701,22 +745,12 @@ export function AppContent({
                 document.addEventListener("mousemove", onMouseMove);
                 document.addEventListener("mouseup", onMouseUp);
               }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = "var(--scrollbar-thumb)";
-                const line = e.currentTarget.querySelector(
-                  ".handle-line",
-                ) as HTMLElement;
-                if (line) line.style.background = "var(--text-secondary)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = "var(--border-color)";
-                const line = e.currentTarget.querySelector(
-                  ".handle-line",
-                ) as HTMLElement;
-                if (line) line.style.background = "var(--text-muted)";
-              }}
+              onMouseEnter={() => setIsMenuResizeHover(true)}
+              onMouseLeave={() => setIsMenuResizeHover(false)}
             >
-              <div style={styles.handleLine} className="handle-line"></div>
+              {isMenuResizeHover && (
+                <div style={styles.handleLine} className="handle-line" />
+              )}
             </div>
           </>
         )}

@@ -35,6 +35,25 @@ const CodeEditPanel: React.FC<CodeEditPanelProps> = ({
         minWidth: 0,
       }}
     >
+      <style>{`
+        .coding-right-resize-handle {
+          position: relative;
+          z-index: 1;
+        }
+        .coding-right-resize-handle::after {
+          content: '';
+          position: absolute;
+          top: -10px;
+          left: -8px;
+          right: -8px;
+          bottom: -10px;
+          cursor: row-resize;
+          z-index: 10;
+        }
+        .coding-right-resize-handle:hover::after {
+          cursor: row-resize;
+        }
+      `}</style>
       <div
         style={{
           flex: 1,
@@ -48,9 +67,12 @@ const CodeEditPanel: React.FC<CodeEditPanelProps> = ({
       </div>
 
       <div
+        className="coding-right-resize-handle"
         style={{
           height: isActive ? "4px" : "1px",
-          background: isActive ? "var(--scrollbar-thumb)" : "var(--border-color)",
+          background: isActive
+            ? "var(--scrollbar-thumb)"
+            : "var(--border-color)",
           cursor: "row-resize",
           flexShrink: 0,
           position: "relative",
@@ -72,6 +94,7 @@ const CodeEditPanel: React.FC<CodeEditPanelProps> = ({
               background: "var(--text-muted)",
               borderRadius: "2px",
               opacity: 0.5,
+              zIndex: 11,
             }}
           />
         )}

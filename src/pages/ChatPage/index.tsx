@@ -185,7 +185,6 @@ const CollapsedTaskList: React.FC<CollapsedTaskListProps> = ({
             justifyContent: "center",
             fontSize: "10px",
             flexShrink: 0,
-            // transition: "all 0.2s",
             padding: "0",
             margin: "0",
             outline: "none",
@@ -242,7 +241,6 @@ const CollapsedTaskList: React.FC<CollapsedTaskListProps> = ({
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                // transition: "all 0.15s",
                 flexShrink: 0,
                 fontWeight: isActive ? 600 : 400,
                 position: "relative",
@@ -303,7 +301,6 @@ const CollapsedTaskList: React.FC<CollapsedTaskListProps> = ({
             justifyContent: "center",
             fontSize: "10px",
             flexShrink: 0,
-            // transition: "all 0.2s",
             padding: "0",
             margin: "0",
             outline: "none",
@@ -347,6 +344,7 @@ const LLMChatPage: React.FC<LLMChatPageProps> = ({
   const [leftCollapsed, setLeftCollapsed] = useState<boolean>(false);
   const [rightCollapsed, setRightCollapsed] = useState<boolean>(false);
   const [activeNavIndex, setActiveNavIndex] = useState<number>(-1);
+  const [isResizeHover, setIsResizeHover] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
   const dragType = useRef<"horizontal" | "vertical">("horizontal");
@@ -519,7 +517,6 @@ const LLMChatPage: React.FC<LLMChatPageProps> = ({
               fontSize: "15px",
               padding: "6px",
               borderRadius: "6px",
-              // transition: "all 0.2s",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -640,6 +637,22 @@ const LLMChatPage: React.FC<LLMChatPageProps> = ({
 
   return (
     <LLMChatPageProvider value={contextValue}>
+      <style>{`
+        .resize-handle-vertical {
+          position: relative;
+          z-index: 1;
+        }
+        .resize-handle-vertical::after {
+          content: '';
+          position: absolute;
+          top: -10px;
+          left: -8px;
+          right: -8px;
+          bottom: -10px;
+          cursor: col-resize;
+          z-index: 10;
+        }
+      `}</style>
       <div
         className="panels-container horizontal-layout"
         ref={containerRef}
@@ -673,9 +686,35 @@ const LLMChatPage: React.FC<LLMChatPageProps> = ({
           <div
             className="resize-handle resize-handle-vertical"
             onMouseDown={(e) => handleMouseDown(e, "horizontal")}
-            style={{ width: "4px", cursor: "col-resize", flexShrink: 0 }}
+            style={{
+              width: "3px",
+              background: isResizeHover
+                ? "var(--scrollbar-thumb)"
+                : "var(--border-color)",
+              cursor: "col-resize",
+              flexShrink: 0,
+              position: "relative",
+              transition: "width 0.15s, background 0.15s",
+            }}
+            onMouseEnter={() => setIsResizeHover(true)}
+            onMouseLeave={() => setIsResizeHover(false)}
           >
-            <div className="handle-line"></div>
+            {isResizeHover && (
+              <div
+                style={{
+                  position: "absolute",
+                  top: "50%",
+                  left: "50%",
+                  transform: "translate(-50%, -50%)",
+                  width: "2px",
+                  height: "40px",
+                  background: "var(--text-muted)",
+                  borderRadius: "2px",
+                  opacity: 0.5,
+                  zIndex: 11,
+                }}
+              />
+            )}
           </div>
         )}
         <div

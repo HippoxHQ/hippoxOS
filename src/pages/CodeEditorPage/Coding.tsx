@@ -36,7 +36,6 @@ const CodingPage: React.FC<CodingPageProps> = ({ t, onClose }) => {
     document.body.style.cursor = "col-resize";
     document.body.style.userSelect = "none";
   };
-
   useEffect(() => {
     const onMouseMove = (e: MouseEvent) => {
       if (isDraggingLeft.current) {
@@ -57,7 +56,6 @@ const CodingPage: React.FC<CodingPageProps> = ({ t, onClose }) => {
         setRightHeight(newHeight);
       }
     };
-
     const onMouseUp = () => {
       if (isDraggingLeft.current) {
         isDraggingLeft.current = false;
@@ -70,7 +68,6 @@ const CodingPage: React.FC<CodingPageProps> = ({ t, onClose }) => {
         document.body.style.userSelect = "";
       }
     };
-
     window.addEventListener("mousemove", onMouseMove);
     window.addEventListener("mouseup", onMouseUp);
     return () => {
@@ -78,7 +75,6 @@ const CodingPage: React.FC<CodingPageProps> = ({ t, onClose }) => {
       window.removeEventListener("mouseup", onMouseUp);
     };
   }, [leftWidth]);
-
   const handleRightResizeMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -88,9 +84,9 @@ const CodingPage: React.FC<CodingPageProps> = ({ t, onClose }) => {
     document.body.style.cursor = "row-resize";
     document.body.style.userSelect = "none";
   };
-
   const isLeftDragging = isDraggingLeft.current;
   const isRightDragging = isDraggingRight.current;
+  const isLeftActive = isLeftDragging || isLeftHover;
 
   return (
     <div
@@ -105,7 +101,33 @@ const CodingPage: React.FC<CodingPageProps> = ({ t, onClose }) => {
         overflow: "hidden",
       }}
     >
-      <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
+      <style>{`
+        .coding-left-resize-handle {
+          position: relative;
+          z-index: 1;
+        }
+        .coding-left-resize-handle::after {
+          content: '';
+          position: absolute;
+          top: -10px;
+          left: -8px;
+          right: -8px;
+          bottom: -10px;
+          cursor: col-resize;
+          z-index: 10;
+        }
+        .coding-left-resize-handle:hover::after {
+          cursor: col-resize;
+        }
+      `}</style>
+      <div
+        style={{
+          flex: 1,
+          display: "flex",
+          overflow: "hidden",
+          position: "relative",
+        }}
+      >
         <div style={{ width: leftWidth, minWidth: 0, flexShrink: 0 }}>
           <FileTreePanel
             t={t}
@@ -113,14 +135,13 @@ const CodingPage: React.FC<CodingPageProps> = ({ t, onClose }) => {
             selectedFile={selectedFile}
           />
         </div>
-
         <div
+          className="coding-left-resize-handle"
           style={{
-            width: isLeftDragging || isLeftHover ? "4px" : "1px",
-            background:
-              isLeftDragging || isLeftHover
-                ? "var(--scrollbar-thumb)"
-                : "var(--border-color)",
+            width: isLeftActive ? "4px" : "1px",
+            background: isLeftActive
+              ? "var(--scrollbar-thumb)"
+              : "var(--border-color)",
             cursor: "col-resize",
             flexShrink: 0,
             position: "relative",
@@ -130,7 +151,7 @@ const CodingPage: React.FC<CodingPageProps> = ({ t, onClose }) => {
           onMouseEnter={() => setIsLeftHover(true)}
           onMouseLeave={() => setIsLeftHover(false)}
         >
-          {(isLeftDragging || isLeftHover) && (
+          {isLeftActive && (
             <div
               style={{
                 position: "absolute",
@@ -142,6 +163,7 @@ const CodingPage: React.FC<CodingPageProps> = ({ t, onClose }) => {
                 background: "var(--text-muted)",
                 borderRadius: "2px",
                 opacity: 0.5,
+                zIndex: 11,
               }}
             />
           )}
