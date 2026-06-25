@@ -40,6 +40,16 @@ pub fn get_dialog_history_dir() -> PathBuf {
     get_app_root_dir().join("DialogHistory")
 }
 
+/// Chart Dialog history directory: HippoX/ChartDialogHistory
+pub fn get_chart_dialog_history_dir() -> PathBuf {
+    get_app_root_dir().join("ChartDialogHistory")
+}
+
+/// Map Dialog history directory: HippoX/MapDialogHistory
+pub fn get_map_dialog_history_dir() -> PathBuf {
+    get_app_root_dir().join("MapDialogHistory")
+}
+
 /// Skill market directory: HippoX/SkillsMarket
 pub fn get_skills_market_dir() -> PathBuf {
     get_app_root_dir().join("SkillsMarket")
@@ -70,28 +80,50 @@ pub fn get_data_dir() -> PathBuf {
     get_app_root_dir().join("data")
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct DataPaths {
-    pub app_root_dir: String,
-    pub dialog_history_dir: String,
-    pub skills_market_dir: String,
-    pub scheduled_tasks_dir: String,
-    pub log_dir: String,
-    pub cache_dir: String,
-    pub settings_dir: String,
+/// Get taskpool backup directory: HippoX/taskpool
+pub fn get_taskpool_dir() -> PathBuf {
+    get_app_root_dir().join("taskpool")
 }
 
-#[tauri::command]
-pub fn cmd_get_data_paths() -> DataPaths {
-    DataPaths {
-        app_root_dir: get_app_root_dir().to_string_lossy().to_string(),
-        dialog_history_dir: get_dialog_history_dir().to_string_lossy().to_string(),
-        skills_market_dir: get_skills_market_dir().to_string_lossy().to_string(),
-        scheduled_tasks_dir: get_scheduled_tasks_dir().to_string_lossy().to_string(),
-        log_dir: get_log_dir().to_string_lossy().to_string(),
-        cache_dir: get_cache_dir().to_string_lossy().to_string(),
-        settings_dir: get_settings_dir().to_string_lossy().to_string(),
+pub fn get_favorites_dir() -> PathBuf {
+    get_app_root_dir().join("favorites")
+}
+
+pub fn get_favorites_skill_dir() -> PathBuf {
+    get_favorites_dir().join("skill")
+}
+
+pub fn get_favorites_natural_dir() -> PathBuf {
+    get_favorites_dir().join("natural")
+}
+
+pub fn get_favorites_size() -> Result<u64, String> {
+    let favorites_dir = get_favorites_dir();
+    if !favorites_dir.exists() {
+        return Ok(0);
     }
+    let mut total_size = 0;
+    for entry in WalkDir::new(&favorites_dir)
+        .into_iter()
+        .filter_map(|e| e.ok())
+        .filter(|e| e.path().is_file())
+    {
+        if let Ok(metadata) = entry.metadata() {
+            total_size += metadata.len();
+        }
+    }
+    Ok(total_size)
+}
+
+pub fn get_max_favorites_size() -> u64 {
+    match crate::common::get_setting("max_favorites_size_mb") {
+        Ok(value) => value.as_u64().unwrap_or(500),
+        Err(_) => 500,
+    }
+}
+
+pub fn set_max_favorites_size(size_mb: u64) -> Result<(), String> {
+    crate::common::set_setting("max_favorites_size_mb", serde_json::json!(size_mb))
 }
 
 /// Get total size of log files (in bytes)
@@ -150,39 +182,6 @@ pub fn cleanup_old_logs(max_size_mb: u64) -> Result<u64, String> {
     Ok(deleted_count)
 }
 
-/// Get taskpool backup directory: HippoX/taskpool
-pub fn get_taskpool_dir() -> PathBuf {
-    get_app_root_dir().join("taskpool")
-}
-
-/// Initialize all directories
-pub fn init_directories() -> Result<(), String> {
-    let dirs = vec![
-        get_app_root_dir(),
-        get_dialog_history_dir(),
-        get_skills_market_dir(),
-        get_scheduled_tasks_dir(),
-        get_log_dir(),
-        get_cache_dir(),
-        get_settings_dir(),
-        get_data_dir(),
-        get_cache_dir().join("models"),
-        get_cache_dir().join("skills"),
-        get_cache_dir().join("temp"),
-        get_notifications_dir(),
-        get_skills_dir(),
-        get_skill_history_dir(),
-        get_taskpool_dir(),
-    ];
-    for dir in dirs {
-        if !dir.exists() {
-            fs::create_dir_all(&dir)
-                .map_err(|e| format!("Failed to create directory {:?}: {}", dir, e))?;
-        }
-    }
-    Ok(())
-}
-
 /// Write log to file (daily rotation with size limit, auto split when exceeding 10MB)
 pub fn write_log(level: &str, message: &str, details: Option<&str>) -> Result<(), String> {
     let log_dir = get_log_dir();
@@ -221,86 +220,90 @@ pub fn write_log(level: &str, message: &str, details: Option<&str>) -> Result<()
     Ok(())
 }
 
-/// Save dialog session to file
-pub fn save_dialog_session(session_id: &str, data: &str) -> Result<String, String> {
-    let dir = get_dialog_history_dir();
-    if !dir.exists() {
-        fs::create_dir_all(&dir)
-            .map_err(|e| format!("Failed to create dialog history directory: {}", e))?;
-    }
-    let timestamp = Local::now().format("%Y%m%d_%H%M%S").to_string();
-    let filename = format!("session_{}_{}.json", timestamp, session_id);
-    let file_path = dir.join(filename);
-    fs::write(&file_path, data).map_err(|e| format!("Failed to save dialog session: {}", e))?;
-    Ok(file_path.to_string_lossy().to_string())
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DataPaths {
+    pub app_root_dir: String,
+    pub dialog_history_dir: String,
+    pub chart_dialog_history_dir: String,
+    pub map_dialog_history_dir: String,
+    pub skills_market_dir: String,
+    pub scheduled_tasks_dir: String,
+    pub log_dir: String,
+    pub cache_dir: String,
+    pub settings_dir: String,
 }
 
-/// Save scheduled task configuration to file
-pub fn save_scheduled_task(task_id: &str, data: &str) -> Result<String, String> {
-    let dir = get_scheduled_tasks_dir();
-    if !dir.exists() {
-        fs::create_dir_all(&dir)
-            .map_err(|e| format!("Failed to create scheduled tasks directory: {}", e))?;
+#[tauri::command]
+pub fn cmd_get_data_paths() -> DataPaths {
+    DataPaths {
+        app_root_dir: get_app_root_dir().to_string_lossy().to_string(),
+        dialog_history_dir: get_dialog_history_dir().to_string_lossy().to_string(),
+        chart_dialog_history_dir: get_chart_dialog_history_dir().to_string_lossy().to_string(),
+        map_dialog_history_dir: get_map_dialog_history_dir().to_string_lossy().to_string(),
+        skills_market_dir: get_skills_market_dir().to_string_lossy().to_string(),
+        scheduled_tasks_dir: get_scheduled_tasks_dir().to_string_lossy().to_string(),
+        log_dir: get_log_dir().to_string_lossy().to_string(),
+        cache_dir: get_cache_dir().to_string_lossy().to_string(),
+        settings_dir: get_settings_dir().to_string_lossy().to_string(),
     }
-    let filename = format!("{}.json", task_id);
-    let file_path = dir.join(filename);
-    fs::write(&file_path, data).map_err(|e| format!("Failed to save scheduled task: {}", e))?;
-    Ok(file_path.to_string_lossy().to_string())
 }
 
-/// Delete scheduled task configuration
-pub fn delete_scheduled_task(task_id: &str) -> Result<(), String> {
-    let dir = get_scheduled_tasks_dir();
-    let file_path = dir.join(format!("{}.json", task_id));
-    if file_path.exists() {
-        fs::remove_file(file_path)
-            .map_err(|e| format!("Failed to delete scheduled task: {}", e))?;
-    }
-    Ok(())
+#[tauri::command]
+pub fn cmd_get_favorites_dir() -> String {
+    get_app_root_dir()
+        .join("favorites")
+        .to_string_lossy()
+        .to_string()
 }
 
-/// List all scheduled task IDs
-pub fn list_scheduled_task_ids() -> Result<Vec<String>, String> {
-    let dir = get_scheduled_tasks_dir();
+#[tauri::command]
+pub fn cmd_get_directory_size(path: String) -> Result<u64, String> {
+    let dir = Path::new(&path);
     if !dir.exists() {
-        return Ok(vec![]);
+        return Ok(0);
     }
-    let mut tasks = vec![];
-    for entry in
-        fs::read_dir(dir).map_err(|e| format!("Failed to read scheduled tasks dir: {}", e))?
+    let mut total_size = 0;
+    let mut file_count = 0;
+    for entry in WalkDir::new(dir)
+        .follow_links(false)
+        .into_iter()
+        .filter_map(|e| e.ok())
     {
-        let entry = entry.map_err(|e| format!("Failed to read entry: {}", e))?;
-        let path = entry.path();
-        if path.is_file() && path.extension().and_then(|e| e.to_str()) == Some("json") {
-            if let Some(name) = path.file_stem().and_then(|n| n.to_str()) {
-                tasks.push(name.to_string());
+        let file_path = entry.path();
+        if file_path.is_file() {
+            if let Ok(metadata) = entry.metadata() {
+                let size = metadata.len();
+                total_size += size;
+                file_count += 1;
             }
         }
     }
-    Ok(tasks)
+    Ok(total_size)
 }
 
-/// Save internal setting to config directory
-pub fn save_internal_setting(setting_dir: &Path, key: &str, data: &str) -> Result<String, String> {
-    if !setting_dir.exists() {
-        fs::create_dir_all(setting_dir)
-            .map_err(|e| format!("Failed to create setting directory: {}", e))?;
-    }
-    let file_path = setting_dir.join(format!("{}.json", key));
-    fs::write(&file_path, data).map_err(|e| format!("Failed to save setting: {}", e))?;
-    Ok(file_path.to_string_lossy().to_string())
-}
-
-/// Load internal setting from config directory
-pub fn load_internal_setting(setting_dir: &Path, key: &str) -> Result<Option<String>, String> {
-    let file_path = setting_dir.join(format!("{}.json", key));
-    if file_path.exists() {
-        let content =
-            fs::read_to_string(&file_path).map_err(|e| format!("Failed to read setting: {}", e))?;
-        Ok(Some(content))
+#[tauri::command]
+pub fn cmd_get_disk_info(path: String) -> Result<serde_json::Value, String> {
+    use std::path::Path;
+    let path = Path::new(&path);
+    let disks = Disks::new_with_refreshed_list();
+    let disk = disks.iter().find(|d| path.starts_with(d.mount_point()));
+    if let Some(disk) = disk {
+        let total = disk.total_space();
+        let free = disk.available_space();
+        let used = total - free;
+        Ok(serde_json::json!({
+            "total": total,
+            "free": free,
+            "used": used
+        }))
     } else {
-        Ok(None)
+        Err(format!("No disk found for path: {:?}", path))
     }
+}
+
+#[tauri::command]
+pub fn cmd_get_logs_size_command() -> Result<u64, String> {
+    get_logs_size()
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -574,127 +577,6 @@ pub fn cmd_load_terminal_content(session_id: &str) -> Result<Option<String>, Str
 }
 
 #[tauri::command]
-pub fn cmd_get_logs_size_command() -> Result<u64, String> {
-    get_logs_size()
-}
-
-pub fn init_default_session_if_empty() -> Result<(), String> {
-    let dir = get_dialog_history_dir();
-    if !dir.exists() {
-        fs::create_dir_all(&dir)
-            .map_err(|e| format!("Failed to create dialog history directory: {}", e))?;
-    }
-    let has_sessions = fs::read_dir(&dir)
-        .map_err(|e| format!("Failed to read dialog history dir: {}", e))?
-        .filter_map(|entry| entry.ok())
-        .any(|entry| entry.path().is_dir());
-    if !has_sessions {
-        let language = crate::common::get_setting_with_default("language", serde_json::json!("en"))
-            .map(|v| v.as_str().unwrap_or("en").to_string())
-            .unwrap_or_else(|_| "en".to_string());
-        let title = if language == "zh" {
-            "默认对话"
-        } else {
-            "Default Session"
-        };
-        let description = if language == "zh" {
-            "Hippox AI 运行时默认对话"
-        } else {
-            "Hippox AI Runtime default session"
-        };
-        let welcome_text = if language == "zh" {
-            "你好，我是 Hippox AI 运行时。我有自主决策能力，可以执行技能并实时反馈。有什么可以帮你的？"
-        } else {
-            "Hello, I am Hippox AI Runtime. I have autonomous decision-making capabilities and can execute skills with real-time feedback. How can I help you?"
-        };
-        let session_id = format!("session_{}", chrono::Local::now().timestamp_millis());
-        let session_dir = dir.join(&session_id);
-        fs::create_dir_all(&session_dir)
-            .map_err(|e| format!("Failed to create session directory: {}", e))?;
-        let welcome_message = serde_json::json!([
-            {
-                "id": "welcome",
-                "role": "assistant",
-                "content": welcome_text,
-                "timestamp": chrono::Local::now().format("%H:%M:%S").to_string()
-            }
-        ]);
-        let config = serde_json::json!({
-            "session_id": session_id,
-            "title": title,
-            "description": description,
-            "created_at": chrono::Local::now().to_rfc3339(),
-            "updated_at": chrono::Local::now().to_rfc3339(),
-        });
-        let config_path = session_dir.join("config.json");
-        fs::write(&config_path, serde_json::to_string_pretty(&config).unwrap())
-            .map_err(|e| format!("Failed to save config: {}", e))?;
-        let chat_path = session_dir.join("chat.json");
-        fs::write(
-            &chat_path,
-            serde_json::to_string_pretty(&welcome_message).unwrap(),
-        )
-        .map_err(|e| format!("Failed to save chat: {}", e))?;
-        let terminal_path = session_dir.join("terminal.json");
-        fs::write(&terminal_path, "[]").map_err(|e| format!("Failed to save terminal: {}", e))?;
-    }
-    Ok(())
-}
-
-#[tauri::command]
-pub fn cmd_get_directory_size(path: String) -> Result<u64, String> {
-    let dir = Path::new(&path);
-    if !dir.exists() {
-        return Ok(0);
-    }
-    let mut total_size = 0;
-    let mut file_count = 0;
-    for entry in WalkDir::new(dir)
-        .follow_links(false)
-        .into_iter()
-        .filter_map(|e| e.ok())
-    {
-        let file_path = entry.path();
-        if file_path.is_file() {
-            if let Ok(metadata) = entry.metadata() {
-                let size = metadata.len();
-                total_size += size;
-                file_count += 1;
-            }
-        }
-    }
-    Ok(total_size)
-}
-
-#[tauri::command]
-pub fn cmd_get_disk_info(path: String) -> Result<serde_json::Value, String> {
-    use std::path::Path;
-    let path = Path::new(&path);
-    let disks = Disks::new_with_refreshed_list();
-    let disk = disks.iter().find(|d| path.starts_with(d.mount_point()));
-    if let Some(disk) = disk {
-        let total = disk.total_space();
-        let free = disk.available_space();
-        let used = total - free;
-        Ok(serde_json::json!({
-            "total": total,
-            "free": free,
-            "used": used
-        }))
-    } else {
-        Err(format!("No disk found for path: {:?}", path))
-    }
-}
-
-#[tauri::command]
-pub fn cmd_get_favorites_dir() -> String {
-    get_app_root_dir()
-        .join("favorites")
-        .to_string_lossy()
-        .to_string()
-}
-
-#[tauri::command]
 pub fn cmd_load_session_config(session_id: &str) -> Result<Option<serde_json::Value>, String> {
     let dir = get_dialog_history_dir();
     let config_path = dir.join(session_id).join("config.json");
@@ -707,45 +589,4 @@ pub fn cmd_load_session_config(session_id: &str) -> Result<Option<serde_json::Va
     } else {
         Ok(None)
     }
-}
-
-pub fn get_favorites_dir() -> PathBuf {
-    get_app_root_dir().join("favorites")
-}
-
-pub fn get_favorites_skill_dir() -> PathBuf {
-    get_favorites_dir().join("skill")
-}
-
-pub fn get_favorites_natural_dir() -> PathBuf {
-    get_favorites_dir().join("natural")
-}
-
-pub fn get_favorites_size() -> Result<u64, String> {
-    let favorites_dir = get_favorites_dir();
-    if !favorites_dir.exists() {
-        return Ok(0);
-    }
-    let mut total_size = 0;
-    for entry in WalkDir::new(&favorites_dir)
-        .into_iter()
-        .filter_map(|e| e.ok())
-        .filter(|e| e.path().is_file())
-    {
-        if let Ok(metadata) = entry.metadata() {
-            total_size += metadata.len();
-        }
-    }
-    Ok(total_size)
-}
-
-pub fn get_max_favorites_size() -> u64 {
-    match crate::common::get_setting("max_favorites_size_mb") {
-        Ok(value) => value.as_u64().unwrap_or(500),
-        Err(_) => 500,
-    }
-}
-
-pub fn set_max_favorites_size(size_mb: u64) -> Result<(), String> {
-    crate::common::set_setting("max_favorites_size_mb", serde_json::json!(size_mb))
 }

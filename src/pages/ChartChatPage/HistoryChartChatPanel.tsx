@@ -19,14 +19,14 @@ import {
   UnPinIcon,
 } from "../../icons";
 
-export interface HistoryChatPanelRef {
+export interface HistoryChartChatPanelRef {
   scrollToTop: () => void;
   scrollToBottom: () => void;
   expandAll: () => void;
   collapseAll: () => void;
 }
 
-interface HistoryChatPanelProps {
+interface HistoryChartChatPanelProps {
   t: (key: string, params?: any) => string;
   onSessionSelect?: (sessionId: string) => void;
   currentSessionId?: string;
@@ -55,14 +55,17 @@ const categories: CategoryConfig[] = [
   { labelKey: "history.category.older", type: "older" },
 ];
 
-const HistoryChatPanel = forwardRef<HistoryChatPanelRef, HistoryChatPanelProps>(
+const HistoryChartChatPanel = forwardRef<
+  HistoryChartChatPanelRef,
+  HistoryChartChatPanelProps
+>(
   (
     {
       t,
       onSessionSelect,
       currentSessionId,
       onCloseSkillsManager,
-    }: HistoryChatPanelProps,
+    }: HistoryChartChatPanelProps,
     ref,
   ) => {
     const [sessions, setSessions] = useState<DialogSession[]>([]);
@@ -715,6 +718,6 @@ const HistoryChatPanel = forwardRef<HistoryChatPanelRef, HistoryChatPanelProps>(
   },
 );
 
-HistoryChatPanel.displayName = "HistoryChatPanel";
+HistoryChartChatPanel.displayName = "HistoryChartChatPanel";
 
-export default HistoryChatPanel;
+export default HistoryChartChatPanel;

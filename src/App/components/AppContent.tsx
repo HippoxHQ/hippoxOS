@@ -362,71 +362,6 @@ export function AppContent({
     }
   };
 
-  const renderContent = () => {
-    switch (currentContentPanel) {
-      case "generalChat":
-        return null;
-      case "codeEditorChat":
-        return <CodeEditorPage t={t} />;
-      case "chartChat":
-        return <ChartPage t={t} />;
-      case "mapChat":
-        return <MapsPage t={t} />;
-      case "taskQueue":
-        return <TaskQueuePanel t={t} />;
-      case "workspace":
-        return <WorkspacePanel t={t} />;
-      case "workspaceConfig":
-        return <WorkspaceConfig t={t} onSaveWorkspace={onSaveConfig} />;
-      case "logs":
-        return <LogsPanel t={t} onClose={onCloseContentPanel} />;
-      case "storage":
-        return <StorageConfig t={t} onSave={onSaveConfig} />;
-      case "settings":
-        return (
-          <SettingsPanel
-            subView={settingsSubView || "llmModel"}
-            t={t}
-            onSave={onSaveConfig}
-            theme={theme}
-            language={language}
-            onThemeChange={onToggleTheme}
-            onLanguageChange={onToggleLanguage}
-            isInitializing={false}
-          />
-        );
-      case "engine_group":
-        return renderEngineConfig();
-      case "skillsManager":
-        return (
-          <SkillsManager
-            t={t}
-            onClose={onCloseContentPanel}
-            currentSessionId={currentSessionId}
-            onSendSkillMessage={onSendSkillMessage}
-          />
-        );
-      case "scheduledTasks":
-        return (
-          <ScheduledTasksManager
-            t={t}
-            onClose={onCloseContentPanel}
-            currentSessionId={currentSessionId}
-          />
-        );
-      case "userProfile":
-        return (
-          <UserProfile
-            t={t}
-            onClose={onCloseContentPanel}
-            currentSessionId={currentSessionId}
-          />
-        );
-      default:
-        return null;
-    }
-  };
-
   const styles = {
     mainLayout: {
       display: "flex" as const,
@@ -481,30 +416,57 @@ export function AppContent({
     },
   };
 
-  const renderMainContentWithFunctionPanel = () => {
-    const showChatPage =
+  const renderMainLayout = () => {
+    const isChatPage =
       !currentContentPanel || currentContentPanel === "generalChat";
-    const contentElement =
-      currentContentPanel && currentContentPanel !== "generalChat" ? (
-        renderContent()
-      ) : showWelcome && !currentContentPanel ? (
-        <WelcomePage
-          onSendMessage={(msg, files, workflowMode) =>
-            onSendMessage(msg, currentSessionId, files, workflowMode)
-          }
-          t={t}
-          onDragOverInputChange={setIsDraggingOverInput}
-        />
-      ) : (
-        <LLMChatPage
+    const isMapPage = currentContentPanel === "mapChat";
+    const isChartPage = currentContentPanel === "chartChat";
+    let contentElement: React.ReactNode;
+    if (isChatPage) {
+      if (showWelcome && !currentContentPanel) {
+        contentElement = (
+          <WelcomePage
+            onSendMessage={(msg, files, workflowMode) =>
+              onSendMessage(msg, currentSessionId, files, workflowMode)
+            }
+            t={t}
+            onDragOverInputChange={setIsDraggingOverInput}
+          />
+        );
+      } else {
+        contentElement = (
+          <LLMChatPage
+            leftPanel={leftPanelContent}
+            rightPanel={rightPanelContent}
+            layoutMode="horizontal"
+            onLayoutModeChange={() => {}}
+            leftTitle={layoutSwapMode === "terminal-left" ? "Terminal" : "Chat"}
+            rightTitle={
+              layoutSwapMode === "terminal-left" ? "Chat" : "Terminal"
+            }
+            leftIcon={layoutSwapMode === "terminal-left" ? "🖥️" : "💬"}
+            rightIcon={layoutSwapMode === "terminal-left" ? "💬" : "🖥️"}
+            isFunctionPanelMaximized={
+              functionPanel.isOpen ? isFunctionPanelMaximized : false
+            }
+            currentSessionId={currentSessionId}
+            onSwitchSession={onSwitchSession}
+            onCloseSkillsManager={onCloseContentPanel}
+            t={t}
+          />
+        );
+      }
+    } else if (isMapPage) {
+      contentElement = (
+        <MapsPage
           leftPanel={leftPanelContent}
           rightPanel={rightPanelContent}
           layoutMode="horizontal"
           onLayoutModeChange={() => {}}
           leftTitle={layoutSwapMode === "terminal-left" ? "Terminal" : "Chat"}
-          rightTitle={layoutSwapMode === "terminal-left" ? "Chat" : "Terminal"}
+          rightTitle="Map"
           leftIcon={layoutSwapMode === "terminal-left" ? "🖥️" : "💬"}
-          rightIcon={layoutSwapMode === "terminal-left" ? "💬" : "🖥️"}
+          rightIcon="🗺️"
           isFunctionPanelMaximized={
             functionPanel.isOpen ? isFunctionPanelMaximized : false
           }
@@ -512,9 +474,103 @@ export function AppContent({
           onSwitchSession={onSwitchSession}
           onCloseSkillsManager={onCloseContentPanel}
           t={t}
+          theme={theme === "dark" ? "dark" : "light"}
+          i18n={language === "zh" ? "zh-cn" : "en"}
         />
       );
-
+    } else if (isChartPage) {
+      contentElement = (
+        <ChartPage
+          leftPanel={leftPanelContent}
+          rightPanel={rightPanelContent}
+          layoutMode="horizontal"
+          onLayoutModeChange={() => {}}
+          leftTitle={layoutSwapMode === "terminal-left" ? "Terminal" : "Chat"}
+          rightTitle="Chart"
+          leftIcon={layoutSwapMode === "terminal-left" ? "🖥️" : "💬"}
+          rightIcon="📊"
+          isFunctionPanelMaximized={
+            functionPanel.isOpen ? isFunctionPanelMaximized : false
+          }
+          currentSessionId={currentSessionId}
+          onSwitchSession={onSwitchSession}
+          onCloseSkillsManager={onCloseContentPanel}
+          t={t}
+          theme={theme === "dark" ? "dark" : "light"}
+          i18n={language === "zh" ? "zh-cn" : "en"}
+        />
+      );
+    } else {
+      switch (currentContentPanel) {
+        case "codeEditorChat":
+          contentElement = <CodeEditorPage t={t} />;
+          break;
+        case "taskQueue":
+          contentElement = <TaskQueuePanel t={t} />;
+          break;
+        case "workspace":
+          contentElement = <WorkspacePanel t={t} />;
+          break;
+        case "workspaceConfig":
+          contentElement = (
+            <WorkspaceConfig t={t} onSaveWorkspace={onSaveConfig} />
+          );
+          break;
+        case "logs":
+          contentElement = <LogsPanel t={t} onClose={onCloseContentPanel} />;
+          break;
+        case "storage":
+          contentElement = <StorageConfig t={t} onSave={onSaveConfig} />;
+          break;
+        case "settings":
+          contentElement = (
+            <SettingsPanel
+              subView={settingsSubView || "llmModel"}
+              t={t}
+              onSave={onSaveConfig}
+              theme={theme}
+              language={language}
+              onThemeChange={onToggleTheme}
+              onLanguageChange={onToggleLanguage}
+              isInitializing={false}
+            />
+          );
+          break;
+        case "engine_group":
+          contentElement = renderEngineConfig();
+          break;
+        case "skillsManager":
+          contentElement = (
+            <SkillsManager
+              t={t}
+              onClose={onCloseContentPanel}
+              currentSessionId={currentSessionId}
+              onSendSkillMessage={onSendSkillMessage}
+            />
+          );
+          break;
+        case "scheduledTasks":
+          contentElement = (
+            <ScheduledTasksManager
+              t={t}
+              onClose={onCloseContentPanel}
+              currentSessionId={currentSessionId}
+            />
+          );
+          break;
+        case "userProfile":
+          contentElement = (
+            <UserProfile
+              t={t}
+              onClose={onCloseContentPanel}
+              currentSessionId={currentSessionId}
+            />
+          );
+          break;
+        default:
+          contentElement = null;
+      }
+    }
     const renderResizeHandle = () => (
       <div
         className="resize-handle resize-handle-vertical"
@@ -537,7 +593,6 @@ export function AppContent({
         )}
       </div>
     );
-
     const renderFunctionPanelComponent = (collapsed: boolean) => (
       <FunctionPanel
         controller={functionPanel}
@@ -554,14 +609,12 @@ export function AppContent({
         onToggleMaximize={handleToggleFunctionPanelMaximize}
       />
     );
-
     if (!functionPanel.isOpen) {
       if (isFunctionPanelMaximized) {
         setIsFunctionPanelMaximized(false);
       }
       return <div style={styles.contentArea}>{contentElement}</div>;
     }
-
     if (isFunctionPanelMaximized) {
       return (
         <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
@@ -569,12 +622,10 @@ export function AppContent({
         </div>
       );
     }
-
     const functionPanelElement = renderFunctionPanelComponent(
       functionPanelCollapsed,
     );
     const resizeHandle = functionPanelCollapsed ? null : renderResizeHandle();
-
     if (functionPanelPosition === "left") {
       return (
         <>
@@ -731,7 +782,7 @@ export function AppContent({
             </div>
           </>
         )}
-        {renderMainContentWithFunctionPanel()}
+        {renderMainLayout()}
       </div>
       <BottomBar t={t} />
     </div>

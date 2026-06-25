@@ -21,7 +21,9 @@ pub mod types;
 pub mod urls;
 pub mod windows;
 pub mod workflow;
+pub mod dirs;
 
+pub use dirs::*;
 pub use workflow::*;
 pub use basis::*;
 pub use chat::*;

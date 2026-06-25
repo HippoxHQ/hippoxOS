@@ -637,6 +637,7 @@ export const zh = {
     confirmClearLogsTitle: "确认清空日志",
   },
   menu: {
+    general: "通用",
     chart: "图表",
     map: "地图",
     codeEditor: "代码编辑器",
@@ -831,6 +832,7 @@ export const zh = {
     openPathFailed: '无法打开文件: {{path}}',
   },
   history: {
+    loading: "加载历史会话中...",
     expandAll: '展开全部',
     collapseAll: '收起全部',
     scrollToTop: '滚动到顶部',
@@ -1881,6 +1883,7 @@ export const en: typeof zh = {
     }
   },
   menu: {
+    general: "General",
     chart: "Chart",
     map: "Map",
     codeEditor: "Code Editor",
@@ -2126,6 +2129,7 @@ export const en: typeof zh = {
     openPathFailed: 'Failed to open path: {{path}}',
   },
   history: {
+    loading: "Loading History Chat...",
     expandAll: 'Expand All',
     collapseAll: 'Collapse All',
     scrollToTop: 'Scroll to Top',

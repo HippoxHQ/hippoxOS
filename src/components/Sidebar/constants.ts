@@ -1,7 +1,7 @@
 import { MenuItemWithSection } from "./types";
 
 export const topMenuItems: MenuItemWithSection[] = [
-    { id: "generalChat", icon: "history", label: "menu.history", section: "main" },
+    { id: "generalChat", icon: "history", label: "menu.general", section: "main" },
     { id: "codeEditorChat", icon: "codeEditor", label: "menu.codeEditor", section: "main" },
     { id: "chartChat", icon: "chart", label: "menu.chart", section: "main" },
     { id: "mapChat", icon: "map", label: "menu.map", section: "main" },
