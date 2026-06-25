@@ -3,7 +3,7 @@ import SettingsPanel, { SettingsSubView } from "./SettingsPanel";
 import SkillMarketPanel from "./SkillMarketPanel";
 import TaskQueuePanel from "./TaskQueuePanel";
 import FavoritesPanel from "./FavoritesPanel";
-import HistoryPanel, { HistoryChatPanelRef } from "./HistoryChatPanel";
+import HistoryPanel, { HistoryChatPanelRef } from "../../pages/GeneralChatPage/HistoryChatPanel";
 import AtomicSkillsPanel from "./DriversPanel";
 import WorkspacePanel from "./Workspace";
 import WorkspaceConfig from "./SystemConfig/WorkspaceConfig";
@@ -247,16 +247,6 @@ const MenuPanel: React.FC<MenuPanelProps> = ({
       );
     }
     switch (currentView) {
-      case "history":
-        return (
-          <HistoryPanel
-            ref={historyPanelRef}
-            t={t}
-            onSessionSelect={onSwitchSession}
-            currentSessionId={currentSessionId}
-            onCloseSkillsManager={onCloseSkillsManager}
-          />
-        );
       case "favorites":
         return (
           <FavoritesPanel

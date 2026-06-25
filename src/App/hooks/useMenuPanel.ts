@@ -3,7 +3,7 @@ import { MenuPanelView, EngineSubView } from "../../components/MenuPanel";
 import { SettingsSubView } from "../../components/MenuPanel/SettingsPanel";
 
 export type ContentPanelView =
-  | "history"
+  | "generalChat"
   | "favorites"
   | "skills"
   | "skillMarket"
@@ -18,9 +18,9 @@ export type ContentPanelView =
   | "skillsManager"
   | "scheduledTasks"
   | "userProfile"
-  | "codeEditor"
-  | "chart"
-  | "map"
+  | "codeEditorChat"
+  | "chartChat"
+  | "mapChat"
   | null;
 
 export function useMenuPanel() {
@@ -49,8 +49,6 @@ export function useMenuPanel() {
       return;
     }
     const menuViews: string[] = [
-      "history",
-      "favorites",
       "skills",
       "knowledge",
       "skillMarket",
@@ -79,9 +77,10 @@ export function useMenuPanel() {
       "skillsManager",
       "scheduledTasks",
       "userProfile",
-      "codeEditor",
-      "chart",
-      "map",
+      "codeEditorChat",
+      "chartChat",
+      "mapChat",
+      "generalChat",
     ];
     if (contentViews.includes(view)) {
       setCurrentContentPanel(view as ContentPanelView);

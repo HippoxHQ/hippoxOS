@@ -7,8 +7,8 @@ import React, {
   useImperativeHandle,
 } from "react";
 import { DialogSession } from "../../types/types";
-import { showDialog, DialogType } from "../Dialog";
-import { showToast, ToastType } from "../Toast";
+import { showDialog, DialogType } from "../../components/Dialog";
+import { showToast, ToastType } from "../../components/Toast";
 import { sessionCommands } from "../../command/session";
 import {
   DeleteIcon,

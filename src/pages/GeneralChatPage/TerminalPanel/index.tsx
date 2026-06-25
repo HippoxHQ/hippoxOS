@@ -1,5 +1,4 @@
 import React, { useEffect, useState, useRef } from "react";
-import { useLLMChatPage } from "..";
 import { configCommands } from "../../../command/config";
 import { taskManager } from "../../../core/TaskManager";
 import { UploadFile, TaskStatusEnum } from "../../../core/types";
@@ -14,7 +13,11 @@ interface TerminalPanelProps {
   onFileClick?: (file: UploadFile) => void;
   navigationContent?: React.ReactNode;
   isLeftPanel?: boolean;
+  isCollapsed?: boolean;
+  togglePanel?: () => void;
+  collapseIcon?: string;
 }
+
 const TerminalPanel: React.FC<TerminalPanelProps> = ({
   logs,
   onClearLogs,
@@ -23,16 +26,20 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
   onFileClick,
   navigationContent,
   isLeftPanel = false,
+  isCollapsed = false,
+  togglePanel,
+  collapseIcon: collapseIconProp,
 }) => {
   const [theme, setTheme] = useState<"light" | "dark">("dark");
   const [i18n, setI18n] = useState<"en" | "zh-cn">("zh-cn");
   const [activeNavIndex, setActiveNavIndex] = useState<number>(-1);
   const [taskList, setTaskList] = useState<any[]>([]);
   const terminalAreaRef = useRef<HTMLDivElement>(null);
-  const { leftCollapsed, rightCollapsed, toggleLeft, toggleRight } =
-    useLLMChatPage();
-  const isCollapsed = isLeftPanel ? leftCollapsed : rightCollapsed;
-  const togglePanel = isLeftPanel ? toggleLeft : toggleRight;
+
+  const collapseIcon =
+    collapseIconProp ||
+    (isLeftPanel ? (isCollapsed ? "≫" : "≪") : isCollapsed ? "≪" : "≫");
+
   useEffect(() => {
     const loadTheme = async () => {
       try {
@@ -88,6 +95,7 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
       unsubscribe();
     };
   }, []);
+
   const buildNavigationContent = (): React.ReactNode => {
     if (taskList.length === 0) {
       return (
@@ -181,7 +189,6 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                // transition: "all 0.15s",
                 flexShrink: 0,
                 fontWeight: isActive ? 600 : 400,
                 position: "relative",
@@ -216,14 +223,9 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
       </div>
     );
   };
+
   const navigation = buildNavigationContent();
-  const collapseIcon = isLeftPanel
-    ? isCollapsed
-      ? "≫"
-      : "≪"
-    : isCollapsed
-      ? "≪"
-      : "≫";
+
   return (
     <div
       className="terminal-panel"
@@ -262,4 +264,5 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
     </div>
   );
 };
+
 export default TerminalPanel;

@@ -18,6 +18,7 @@ import { useDriverEvents } from "./hooks/useDriverEvents";
 import { useSendSkillMessage } from "./hooks/useSendSkillMessage";
 import { useFunctionPanelController } from "../components/FunctionPanel/hooks/useFunctionPanelController";
 import { useFunctionPanelPosition } from "./hooks/useFunctionPanelPosition";
+import { sessionCommands } from "../command/session";
 
 function App() {
   const { isConfigLoaded, initialEngineConfig, initialTheme, initialLanguage } =
@@ -67,6 +68,7 @@ function App() {
   useTaskEvents(language);
   useDriverEvents(language);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const handleNewSessionWithClose = () => {
     resetToChat();
     handleNewSession();
@@ -116,7 +118,7 @@ function App() {
 
   const handleSaveConfig = async (config: any) => {};
 
-  const handleSidebarClick = (view: string, subView?: string) => {
+  const handleSidebarClick = async (view: string, subView?: string) => {
     if (view === "tasks_group") {
       switchContentArea("scheduledTasks");
       return;
@@ -125,11 +127,42 @@ function App() {
       view === "skillsManager" ||
       view === "scheduledTasks" ||
       view === "userProfile" ||
-      view === "codeEditor" ||
-      view === "chart" ||
-      view === "map"
+      view === "codeEditorChat" ||
+      view === "chartChat" ||
+      view === "mapChat"
     ) {
       switchContentArea(view);
+      return;
+    }
+    if (view === "generalChat") {
+      try {
+        const sessions = await sessionCommands.listSessions();
+        const sortedSessions = [...sessions].sort((a, b) => {
+          if (a.is_pinned && !b.is_pinned) return -1;
+          if (!a.is_pinned && b.is_pinned) return 1;
+          const getTimestamp = (id: string) => {
+            const ts = id.replace("session_", "");
+            return parseInt(ts, 10) || 0;
+          };
+          const aTs = getTimestamp(a.session_id);
+          const bTs = getTimestamp(b.session_id);
+          return bTs - aTs;
+        });
+        if (sortedSessions.length > 0) {
+          switchContentArea("generalChat");
+          const latestSession = sortedSessions[0];
+          if (currentSessionId !== latestSession.session_id) {
+            await handleSwitchSession(latestSession.session_id);
+          }
+        } else {
+          resetToChat();
+          handleNewSession();
+        }
+      } catch (error) {
+        console.error("Failed to load sessions:", error);
+        resetToChat();
+        handleNewSession();
+      }
       return;
     }
     switchMenuPanel(view, subView);

@@ -9,7 +9,6 @@ import Toast from "../../components/Toast";
 import TopBar from "../../components/TopBar";
 import WelcomePage from "../../pages/WelcomePage";
 import { ContentPanelView } from "../hooks/useMenuPanel";
-import HistoryPanel from "../../components/MenuPanel/HistoryChatPanel";
 import TaskQueuePanel from "../../components/MenuPanel/TaskQueuePanel";
 import WorkspacePanel from "../../components/MenuPanel/Workspace";
 import WorkspaceConfig from "../../components/MenuPanel/SystemConfig/WorkspaceConfig";
@@ -24,18 +23,17 @@ import EngineNetworkPanel from "../../components/MenuPanel/EngineConfig/EngineNe
 import EngineNotificationPanel from "../../components/MenuPanel/EngineConfig/EngineNotificationPanel";
 import { Language, Theme } from "../../types/types";
 import { UploadFile } from "../../core/types";
-import HistoryChatDropdown from "../../components/HistoryChatDropdown";
-import LLMChatPage from "../../pages/ChatPage";
 import ScheduledTasksManager from "../../pages/ScheduledTasksPage";
 import SkillsManager from "../../pages/SkillsManagerPage";
 import UserProfile from "../../pages/UserProfilePage";
 import FunctionPanel from "../../components/FunctionPanel/FunctionPanel";
 import { FunctionPanelController } from "../../components/FunctionPanel/hooks/useFunctionPanelController";
-import ChatPanel from "../../pages/ChatPage/ChatPanel";
-import TerminalPanel from "../../pages/ChatPage/TerminalPanel";
 import CodeEditorPage from "../../pages/CodeEditorPage";
-import ChartPage from "../../pages/ChartPage";
-import MapsPage from "../../pages/MapsPage";
+import ChartPage from "../../pages/ChartChatPage";
+import MapsPage from "../../pages/MapsChatPage";
+import ChatPanel from "../../pages/GeneralChatPage/ChatPanel";
+import TerminalPanel from "../../pages/GeneralChatPage/TerminalPanel";
+import LLMChatPage from "../../pages/GeneralChatPage";
 
 interface AppContentProps {
   theme: Theme;
@@ -130,8 +128,6 @@ export function AppContent({
   functionPanel,
 }: AppContentProps) {
   const showWelcome = shouldShowWelcome();
-  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
-  const [historyAnchor, setHistoryAnchor] = useState<HTMLElement | null>(null);
   const [functionPanelWidth, setFunctionPanelWidth] = useState<number>(480);
   const [functionPanelCollapsed, setFunctionPanelCollapsed] =
     useState<boolean>(false);
@@ -140,7 +136,6 @@ export function AppContent({
   const [prevMaximizedState, setPrevMaximizedState] = useState<boolean>(false);
   const [isFuncPanelResizeHover, setIsFuncPanelResizeHover] = useState(false);
   const [isMenuResizeHover, setIsMenuResizeHover] = useState(false);
-
   const isDraggingFunctionPanel = useRef(false);
   const dragStartX = useRef(0);
   const dragStartWidth = useRef(0);
@@ -176,20 +171,10 @@ export function AppContent({
   }, []);
 
   useEffect(() => {
-    const handleAnchorUpdate = (event: CustomEvent) => {
-      setHistoryAnchor(event.detail.anchorElement);
-    };
-    window.addEventListener(
-      "history-anchor-update",
-      handleAnchorUpdate as EventListener,
-    );
-    return () => {
-      window.removeEventListener(
-        "history-anchor-update",
-        handleAnchorUpdate as EventListener,
-      );
-    };
-  }, []);
+    if (currentContentPanel === "generalChat") {
+      onCloseContentPanel();
+    }
+  }, [currentContentPanel, onCloseContentPanel]);
 
   const handleToggleFunctionPanelMaximize = useCallback(() => {
     setIsFunctionPanelMaximized((prev) => !prev);
@@ -289,14 +274,6 @@ export function AppContent({
     }
   }, [currentContentPanel]);
 
-  const handleHistoryClick = () => {
-    setIsHistoryOpen(!isHistoryOpen);
-  };
-
-  const handleHistoryClose = () => {
-    setIsHistoryOpen(false);
-  };
-
   const handleFileClick = (file: UploadFile) => {
     onFilePreview(file);
     functionPanel.openPreview(file);
@@ -387,20 +364,13 @@ export function AppContent({
 
   const renderContent = () => {
     switch (currentContentPanel) {
-      case "history":
-        return (
-          <HistoryPanel
-            t={t}
-            onSessionSelect={onSwitchSession}
-            currentSessionId={currentSessionId}
-            onCloseSkillsManager={onCloseContentPanel}
-          />
-        );
-      case "codeEditor":
+      case "generalChat":
+        return null;
+      case "codeEditorChat":
         return <CodeEditorPage t={t} />;
-      case "chart":
+      case "chartChat":
         return <ChartPage t={t} />;
-      case "map":
+      case "mapChat":
         return <MapsPage t={t} />;
       case "taskQueue":
         return <TaskQueuePanel t={t} />;
@@ -512,31 +482,38 @@ export function AppContent({
   };
 
   const renderMainContentWithFunctionPanel = () => {
-    const contentElement = currentContentPanel ? (
-      renderContent()
-    ) : showWelcome ? (
-      <WelcomePage
-        onSendMessage={(msg, files, workflowMode) =>
-          onSendMessage(msg, currentSessionId, files, workflowMode)
-        }
-        t={t}
-        onDragOverInputChange={setIsDraggingOverInput}
-      />
-    ) : (
-      <LLMChatPage
-        leftPanel={leftPanelContent}
-        rightPanel={rightPanelContent}
-        layoutMode="horizontal"
-        onLayoutModeChange={() => {}}
-        leftTitle={layoutSwapMode === "terminal-left" ? "Terminal" : "Chat"}
-        rightTitle={layoutSwapMode === "terminal-left" ? "Chat" : "Terminal"}
-        leftIcon={layoutSwapMode === "terminal-left" ? "🖥️" : "💬"}
-        rightIcon={layoutSwapMode === "terminal-left" ? "💬" : "🖥️"}
-        isFunctionPanelMaximized={
-          functionPanel.isOpen ? isFunctionPanelMaximized : false
-        }
-      />
-    );
+    const showChatPage =
+      !currentContentPanel || currentContentPanel === "generalChat";
+    const contentElement =
+      currentContentPanel && currentContentPanel !== "generalChat" ? (
+        renderContent()
+      ) : showWelcome && !currentContentPanel ? (
+        <WelcomePage
+          onSendMessage={(msg, files, workflowMode) =>
+            onSendMessage(msg, currentSessionId, files, workflowMode)
+          }
+          t={t}
+          onDragOverInputChange={setIsDraggingOverInput}
+        />
+      ) : (
+        <LLMChatPage
+          leftPanel={leftPanelContent}
+          rightPanel={rightPanelContent}
+          layoutMode="horizontal"
+          onLayoutModeChange={() => {}}
+          leftTitle={layoutSwapMode === "terminal-left" ? "Terminal" : "Chat"}
+          rightTitle={layoutSwapMode === "terminal-left" ? "Chat" : "Terminal"}
+          leftIcon={layoutSwapMode === "terminal-left" ? "🖥️" : "💬"}
+          rightIcon={layoutSwapMode === "terminal-left" ? "💬" : "🖥️"}
+          isFunctionPanelMaximized={
+            functionPanel.isOpen ? isFunctionPanelMaximized : false
+          }
+          currentSessionId={currentSessionId}
+          onSwitchSession={onSwitchSession}
+          onCloseSkillsManager={onCloseContentPanel}
+          t={t}
+        />
+      );
 
     const renderResizeHandle = () => (
       <div
@@ -577,12 +554,14 @@ export function AppContent({
         onToggleMaximize={handleToggleFunctionPanelMaximize}
       />
     );
+
     if (!functionPanel.isOpen) {
       if (isFunctionPanelMaximized) {
         setIsFunctionPanelMaximized(false);
       }
       return <div style={styles.contentArea}>{contentElement}</div>;
     }
+
     if (isFunctionPanelMaximized) {
       return (
         <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
@@ -590,10 +569,12 @@ export function AppContent({
         </div>
       );
     }
+
     const functionPanelElement = renderFunctionPanelComponent(
       functionPanelCollapsed,
     );
     const resizeHandle = functionPanelCollapsed ? null : renderResizeHandle();
+
     if (functionPanelPosition === "left") {
       return (
         <>
@@ -666,17 +647,7 @@ export function AppContent({
         onFunctionPanelPositionChange={onFunctionPanelPositionChange}
         onSwitchSession={onSwitchSession}
         currentSessionId={currentSessionId}
-        onHistoryClick={handleHistoryClick}
-        isHistoryOpen={isHistoryOpen}
         onFileClick={handleFileClick}
-      />
-      <HistoryChatDropdown
-        isOpen={isHistoryOpen}
-        onClose={handleHistoryClose}
-        t={t}
-        onSessionSelect={onSwitchSession}
-        currentSessionId={currentSessionId}
-        anchorElement={historyAnchor}
       />
       <div style={styles.mainLayout}>
         {!sidebarCollapsed && (

@@ -27,7 +27,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   onSwitchSession,
   t,
 }) => {
-  const [activeId, setActiveId] = React.useState("history");
+  const [activeId, setActiveId] = React.useState("generalChat");
   const [activeSubId, setActiveSubId] = React.useState<string>();
   const [activeSubSubId, setActiveSubSubId] = React.useState<string>();
   const {
@@ -62,15 +62,15 @@ const Sidebar: React.FC<SidebarProps> = ({
     const directOpenItems = [
       "skillsManager",
       "tasks_group",
-      "history",
-      "codeEditor",
+      "generalChat",
+      "codeEditorChat",
       "favorites",
       "workspace",
       "logs",
       "skillMarket",
       "userProfile",
-      "chart",
-      "map",
+      "chartChat",
+      "mapChat",
     ];
 
     if (directOpenItems.includes(itemId)) {
@@ -141,8 +141,11 @@ const Sidebar: React.FC<SidebarProps> = ({
     if (itemId === "userProfile") {
       return activeId === "userProfile";
     }
-    if (itemId === "codeEditor") {
-      return activeId === "codeEditor";
+    if (itemId === "generalChat") {
+      return activeId === "generalChat";
+    }
+    if (itemId === "codeEditorChat") {
+      return activeId === "codeEditorChat";
     }
     if (itemId === "skillMarket") {
       return activeId === "skillMarket" || activeId === "skills";
@@ -183,7 +186,10 @@ const Sidebar: React.FC<SidebarProps> = ({
     if (item.id === "userProfile") {
       return t("menu.userProfile") || "User Profile";
     }
-    if (item.id === "codeEditor") {
+    if (item.id === "generalChat") {
+      return t("menu.history") || "History";
+    }
+    if (item.id === "codeEditorChat") {
       return t("menu.codeEditor") || "Code Editor";
     }
     return t(item.label);

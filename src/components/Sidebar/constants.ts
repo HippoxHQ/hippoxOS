@@ -1,10 +1,10 @@
 import { MenuItemWithSection } from "./types";
 
 export const topMenuItems: MenuItemWithSection[] = [
-    { id: "history", icon: "history", label: "menu.history", section: "main" },
-    { id: "codeEditor", icon: "codeEditor", label: "menu.codeEditor", section: "main" },
-    { id: "chart", icon: "chart", label: "menu.chart", section: "main" },
-    { id: "map", icon: "map", label: "menu.map", section: "main" },
+    { id: "generalChat", icon: "history", label: "menu.history", section: "main" },
+    { id: "codeEditorChat", icon: "codeEditor", label: "menu.codeEditor", section: "main" },
+    { id: "chartChat", icon: "chart", label: "menu.chart", section: "main" },
+    { id: "mapChat", icon: "map", label: "menu.map", section: "main" },
     { id: "skillsManager", icon: "skillsManager", label: "menu.skillsManager", section: "ai" },
     { id: "skillMarket", icon: "skillMarket", label: "menu.skillMarket", section: "ai" },
     { id: "favorites", icon: "favorites", label: "menu.favorites", section: "main" },

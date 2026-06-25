@@ -10,7 +10,6 @@ import {
 } from "./components";
 import { extractUrls, MessageUrlGrid } from "./components/MessageUrlGrid";
 import logo from "../../../assets/logo.png";
-import { useLLMChatPage } from "..";
 import { LlmInstance, llmCommands } from "../../../command/llm";
 import {
   WorkspaceInstance,
@@ -57,6 +56,9 @@ interface ChatPanelProps {
   navigationContent?: React.ReactNode;
   isLeftPanel?: boolean;
   onWorkflowModeChange?: (mode: string) => void;
+  isCollapsed?: boolean;
+  togglePanel?: () => void;
+  collapseIcon?: string;
 }
 
 const ChatPanel: React.FC<ChatPanelProps> = ({
@@ -69,6 +71,9 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   navigationContent,
   isLeftPanel = true,
   onWorkflowModeChange,
+  isCollapsed = false,
+  togglePanel,
+  collapseIcon: collapseIconProp,
 }) => {
   const [inputValue, setInputValue] = useState("");
   const [isFocused, setIsFocused] = useState(false);
@@ -102,10 +107,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   const navBubbleTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [isSending, setIsSending] = useState(false);
   const [isResending, setIsResending] = useState(false);
-  const { leftCollapsed, rightCollapsed, toggleLeft, toggleRight } =
-    useLLMChatPage();
-  const isCollapsed = isLeftPanel ? leftCollapsed : rightCollapsed;
-  const togglePanel = isLeftPanel ? toggleLeft : toggleRight;
   const [workflowDisplayNames, setWorkflowDisplayNames] = useState<
     Map<string, string>
   >(new Map());
@@ -113,6 +114,9 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   const [sessionTitle, setSessionTitle] = useState<string>("");
   const [isLoadingTitle, setIsLoadingTitle] = useState(false);
   const hasLoadedTitleRef = useRef<Record<string, boolean>>({});
+  const collapseIcon =
+    collapseIconProp ||
+    (isLeftPanel ? (isCollapsed ? "≫" : "≪") : isCollapsed ? "≪" : "≫");
 
   const loadSessionTitle = async (sessionId: string) => {
     if (
@@ -685,7 +689,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                // transition: "all 0.15s",
                 flexShrink: 0,
                 fontWeight: isActive ? 600 : 400,
               }}
@@ -906,14 +909,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     return { right: 0, top: 0 };
   })();
 
-  const collapseIcon = isLeftPanel
-    ? isCollapsed
-      ? "≫"
-      : "≪"
-    : isCollapsed
-      ? "≪"
-      : "≫";
-
   return (
     <div
       className="chat-panel"
@@ -1001,7 +996,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     font-size: 15px;
     padding: 4px 6px;
     border-radius: 4px;
-    // transition: all 0.2s;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1023,7 +1017,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     align-items: center;
     justify-content: center;
     font-size: 16px;
-    // transition: all 0.2s;
     flex-shrink: 0;
   }
   .nav-btn:hover {
@@ -1061,7 +1054,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     padding: 8px 12px;
     font-size: 12px;
     cursor: pointer;
-    // transition: all 0.15s;
     border-left: 2px solid transparent;
     display: flex;
     align-items: center;
@@ -1200,7 +1192,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     border: 1px solid var(--border-color);
     border-radius: 8px;
     cursor: pointer;
-    // transition: all 0.2s ease;
   }
   .message-file-item:hover {
     background: var(--hover-bg);
@@ -1256,7 +1247,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     background: var(--bg-tertiary);
     border: 1px solid var(--border-color);
     border-radius: 12px;
-    // transition: all 0.2s ease;
     cursor: text;
   }
   .chat-input-container.focused {
@@ -1314,7 +1304,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   cursor: pointer;
   color: var(--text-secondary);
   font-size: 12px;
-  // transition: all 0.2s ease;
   flex-shrink: 0;
   white-space: nowrap;
 }
@@ -1335,7 +1324,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   font-size: 12px;
 }
   .chevron {
-    // transition: transform 0.2s;
   }
   .send-icon-btn {
   display: flex;
@@ -1348,7 +1336,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   border: none;
   cursor: pointer;
   color: var(--text-tertiary);
-  // transition: all 0.2s ease;
   flex-shrink: 0;
 }
   .send-icon-btn.active {
@@ -1381,7 +1368,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     cursor: pointer;
     color: var(--text-primary);
     font-size: 12px;
-    // transition: background 0.2s;
     white-space: nowrap;
     display: flex;
     align-items: center;
@@ -1424,7 +1410,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     cursor: pointer;
     color: var(--text-primary);
     font-size: 12px;
-    // transition: background 0.2s;
     display: flex;
     align-items: center;
     gap: 8px;
@@ -1474,7 +1459,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     display: flex;
     align-items: center;
     justify-content: center;
-    // transition: all 0.2s ease;
     backdrop-filter: blur(8px);
     font-size: 14px;
   }
@@ -1612,7 +1596,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
               alignItems: "center",
               justifyContent: "center",
               fontSize: "16px",
-              // transition: "all 0.2s",
               flexShrink: 0,
             }}
             onMouseEnter={(e) => {
@@ -1640,7 +1623,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
               alignItems: "center",
               justifyContent: "center",
               fontSize: "15px",
-              // transition: "all 0.2s",
               flexShrink: 0,
             }}
             onMouseEnter={(e) => {
@@ -1709,7 +1691,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
                       padding: "8px 12px",
                       fontSize: "12px",
                       cursor: "pointer",
-                      // transition: "all 0.15s",
                       borderLeft: isActive
                         ? "2px solid var(--accent-color, #00aaff)"
                         : "2px solid transparent",
