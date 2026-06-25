@@ -50,6 +50,11 @@ pub fn get_map_dialog_history_dir() -> PathBuf {
     get_app_root_dir().join("MapDialogHistory")
 }
 
+/// Map Dialog history directory: HippoX/CodeEditorDialogHistory
+pub fn get_codeeditor_dialog_history_dir() -> PathBuf {
+    get_app_root_dir().join("CodeEditorDialogHistory")
+}
+
 /// Skill market directory: HippoX/SkillsMarket
 pub fn get_skills_market_dir() -> PathBuf {
     get_app_root_dir().join("SkillsMarket")
