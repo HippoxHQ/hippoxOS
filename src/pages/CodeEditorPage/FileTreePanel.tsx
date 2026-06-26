@@ -1,4 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { readDir, stat } from "@tauri-apps/plugin-fs";
+import { join } from "@tauri-apps/api/path";
 
 interface FileNode {
   name: string;
@@ -11,95 +13,8 @@ interface FileTreePanelProps {
   t: (key: string) => string;
   onFileSelect: (path: string) => void;
   selectedFile: string | null;
+  workspacePath?: string | null;
 }
-
-const mockFileTree: FileNode[] = [
-  {
-    name: "src",
-    path: "/src",
-    isDirectory: true,
-    children: [
-      {
-        name: "components",
-        path: "/src/components",
-        isDirectory: true,
-        children: [
-          {
-            name: "Button.tsx",
-            path: "/src/components/Button.tsx",
-            isDirectory: false,
-          },
-          {
-            name: "Header.tsx",
-            path: "/src/components/Header.tsx",
-            isDirectory: false,
-          },
-          {
-            name: "Sidebar.tsx",
-            path: "/src/components/Sidebar.tsx",
-            isDirectory: false,
-          },
-        ],
-      },
-      {
-        name: "pages",
-        path: "/src/pages",
-        isDirectory: true,
-        children: [
-          { name: "Home.tsx", path: "/src/pages/Home.tsx", isDirectory: false },
-          {
-            name: "Settings.tsx",
-            path: "/src/pages/Settings.tsx",
-            isDirectory: false,
-          },
-        ],
-      },
-      {
-        name: "utils",
-        path: "/src/utils",
-        isDirectory: true,
-        children: [
-          {
-            name: "helpers.ts",
-            path: "/src/utils/helpers.ts",
-            isDirectory: false,
-          },
-          {
-            name: "constants.ts",
-            path: "/src/utils/constants.ts",
-            isDirectory: false,
-          },
-        ],
-      },
-      { name: "App.tsx", path: "/src/App.tsx", isDirectory: false },
-      { name: "index.tsx", path: "/src/index.tsx", isDirectory: false },
-    ],
-  },
-  {
-    name: "public",
-    path: "/public",
-    isDirectory: true,
-    children: [
-      { name: "index.html", path: "/public/index.html", isDirectory: false },
-      { name: "favicon.ico", path: "/public/favicon.ico", isDirectory: false },
-    ],
-  },
-  {
-    name: "package.json",
-    path: "/package.json",
-    isDirectory: false,
-  },
-  {
-    name: "tsconfig.json",
-    path: "/tsconfig.json",
-    isDirectory: false,
-  },
-  {
-    name: "README.md",
-    path: "/README.md",
-    isDirectory: false,
-  },
-];
 
 const getFileIcon = (fileName: string): string => {
   const ext = fileName.split(".").pop()?.toLowerCase() || "";
@@ -132,29 +47,172 @@ const getFileIcon = (fileName: string): string => {
     vue: "🟢",
     svelte: "🟠",
     zig: "⚡",
+    txt: "📄",
+    log: "📄",
+    gitignore: "📄",
+    env: "📄",
   };
   return icons[ext] || "📄";
+};
+
+const isCodeFile = (fileName: string): boolean => {
+  const codeExts = [
+    "ts",
+    "tsx",
+    "js",
+    "jsx",
+    "py",
+    "rs",
+    "go",
+    "java",
+    "cpp",
+    "c",
+    "h",
+    "hpp",
+    "php",
+    "rb",
+    "swift",
+    "kt",
+    "vue",
+    "svelte",
+    "zig",
+    "sql",
+    "sh",
+    "bash",
+  ];
+  const ext = fileName.split(".").pop()?.toLowerCase() || "";
+  return codeExts.includes(ext);
 };
 
 const FileTreePanel: React.FC<FileTreePanelProps> = ({
   t,
   onFileSelect,
   selectedFile,
+  workspacePath,
 }) => {
-  const [expandedPaths, setExpandedPaths] = useState<Set<string>>(
-    new Set(["/src"]),
-  );
-
-  const toggleExpand = (path: string) => {
-    setExpandedPaths((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(path)) {
-        newSet.delete(path);
-      } else {
-        newSet.add(path);
+  const [fileTree, setFileTree] = useState<FileNode[]>([]);
+  const [expandedPaths, setExpandedPaths] = useState<Set<string>>(new Set());
+  const [loading, setLoading] = useState(false);
+  const loadDirectoryTree = async (path: string): Promise<FileNode[]> => {
+    try {
+      const entries = await readDir(path);
+      const nodes: FileNode[] = [];
+      for (const entry of entries) {
+        const name = entry.name;
+        if (name.startsWith(".") && name !== ".git") continue;
+        if (
+          name === "node_modules" ||
+          name === "target" ||
+          name === "dist" ||
+          name === "build"
+        )
+          continue;
+        const fullPath = await join(path, name);
+        const isDirectory = entry.isDirectory;
+        const node: FileNode = {
+          name: name,
+          path: fullPath,
+          isDirectory: isDirectory,
+          children: isDirectory ? [] : undefined,
+        };
+        if (isDirectory) {
+        }
+        nodes.push(node);
       }
-      return newSet;
-    });
+      return nodes.sort((a, b) => {
+        if (a.isDirectory && !b.isDirectory) return -1;
+        if (!a.isDirectory && b.isDirectory) return 1;
+        return a.name.localeCompare(b.name);
+      });
+    } catch (error) {
+      console.error("Failed to read directory:", error);
+      return [];
+    }
+  };
+
+  const loadChildren = async (node: FileNode): Promise<FileNode[]> => {
+    if (!node.isDirectory) return [];
+    try {
+      const entries = await readDir(node.path);
+      const children: FileNode[] = [];
+      for (const entry of entries) {
+        const name = entry.name;
+        if (name.startsWith(".") && name !== ".git") continue;
+        if (
+          name === "node_modules" ||
+          name === "target" ||
+          name === "dist" ||
+          name === "build"
+        )
+          continue;
+        const fullPath = await join(node.path, name);
+        const isDirectory = entry.isDirectory;
+        children.push({
+          name: name,
+          path: fullPath,
+          isDirectory: isDirectory,
+          children: isDirectory ? [] : undefined,
+        });
+      }
+      return children.sort((a, b) => {
+        if (a.isDirectory && !b.isDirectory) return -1;
+        if (!a.isDirectory && b.isDirectory) return 1;
+        return a.name.localeCompare(b.name);
+      });
+    } catch (error) {
+      console.error("Failed to load children:", error);
+      return [];
+    }
+  };
+
+  useEffect(() => {
+    const initFileTree = async () => {
+      if (!workspacePath) {
+        setFileTree([]);
+        return;
+      }
+      setLoading(true);
+      try {
+        const tree = await loadDirectoryTree(workspacePath);
+        setFileTree(tree);
+        setExpandedPaths(new Set([workspacePath]));
+      } catch (error) {
+        console.error("Failed to load file tree:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    initFileTree();
+  }, [workspacePath]);
+
+  const toggleExpand = async (path: string, node?: FileNode) => {
+    const newSet = new Set(expandedPaths);
+    if (newSet.has(path)) {
+      newSet.delete(path);
+      setExpandedPaths(newSet);
+      return;
+    }
+    newSet.add(path);
+    setExpandedPaths(newSet);
+    if (
+      node &&
+      node.isDirectory &&
+      (!node.children || node.children.length === 0)
+    ) {
+      const children = await loadChildren(node);
+      const updateTree = (nodes: FileNode[]): FileNode[] => {
+        return nodes.map((n) => {
+          if (n.path === path) {
+            return { ...n, children };
+          }
+          if (n.children) {
+            return { ...n, children: updateTree(n.children) };
+          }
+          return n;
+        });
+      };
+      setFileTree((prev) => updateTree(prev));
+    }
   };
 
   const renderFileTree = (nodes: FileNode[], level: number = 0) => {
@@ -166,7 +224,7 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({
         return (
           <div key={node.path}>
             <div
-              onClick={() => toggleExpand(node.path)}
+              onClick={() => toggleExpand(node.path, node)}
               style={{
                 display: "flex",
                 alignItems: "center",
@@ -186,6 +244,7 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({
               onMouseLeave={(e) => {
                 e.currentTarget.style.background = "transparent";
               }}
+              title={node.path}
             >
               <span style={{ fontSize: "14px", flexShrink: 0 }}>
                 {isExpanded ? "📂" : "📁"}
@@ -200,8 +259,22 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({
                 {node.name}
               </span>
             </div>
-            {isExpanded && node.children && (
+            {isExpanded && node.children && node.children.length > 0 && (
               <div>{renderFileTree(node.children, level + 1)}</div>
+            )}
+            {isExpanded && node.children && node.children.length === 0 && (
+              <div
+                style={{
+                  paddingLeft: `${(level + 1) * 16 + 8}px`,
+                  fontSize: "11px",
+                  color: "var(--text-muted)",
+                  padding: "2px 8px 2px 8px",
+                }}
+              >
+                <span style={{ paddingLeft: `${(level + 1) * 16}px` }}>
+                  (empty)
+                </span>
+              </div>
             )}
           </div>
         );
@@ -235,6 +308,7 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({
               e.currentTarget.style.background = "transparent";
             }
           }}
+          title={node.path}
         >
           <span style={{ fontSize: "14px", flexShrink: 0 }}>
             {getFileIcon(node.name)}
@@ -253,6 +327,61 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({
     });
   };
 
+  if (loading) {
+    return (
+      <div
+        style={{
+          height: "100%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          color: "var(--text-muted)",
+          fontSize: "12px",
+        }}
+      >
+        {t("common.loading") || "Loading..."}
+      </div>
+    );
+  }
+
+  if (!workspacePath) {
+    return (
+      <div
+        style={{
+          height: "100%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          color: "var(--text-muted)",
+          fontSize: "12px",
+          padding: "20px",
+          textAlign: "center",
+        }}
+      >
+        {t("editor.noWorkspace") || "No workspace loaded"}
+      </div>
+    );
+  }
+
+  if (fileTree.length === 0) {
+    return (
+      <div
+        style={{
+          height: "100%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          color: "var(--text-muted)",
+          fontSize: "12px",
+          padding: "20px",
+          textAlign: "center",
+        }}
+      >
+        {t("editor.emptyDirectory") || "Empty directory"}
+      </div>
+    );
+  }
+
   return (
     <div
       style={{
@@ -263,20 +392,7 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({
         userSelect: "none",
       }}
     >
-      {mockFileTree.length === 0 ? (
-        <div
-          style={{
-            color: "var(--text-muted)",
-            fontSize: "12px",
-            textAlign: "center",
-            padding: "20px",
-          }}
-        >
-          {t("editor.noWorkspace") || "No workspace loaded"}
-        </div>
-      ) : (
-        renderFileTree(mockFileTree)
-      )}
+      {renderFileTree(fileTree)}
     </div>
   );
 };

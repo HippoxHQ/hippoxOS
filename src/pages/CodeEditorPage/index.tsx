@@ -9,6 +9,9 @@ import HistoryCodeEditorChatPanel, {
 } from "./HistoryCodeEditorChatPanel";
 import CodeEditorChatPanel from "./CodeEditorChatPanel";
 import { useCodeEditorSession } from "../../app/hooks/session/useCodeEditorChatSession";
+import { codeEditorSessionCommands } from "../../command/session/codeeditor";
+import { showToast, ToastType } from "../../components/Toast";
+import CodeEditorWelcomePage from "./CodeEditorWelcomePage";
 
 interface CodeEditorPageProps {
   layoutMode?: "horizontal" | "vertical";
@@ -655,6 +658,7 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
     handleSwitchSession,
     handleNewSession,
     shouldShowWelcome,
+    createSessionWithWorkspace,
   } = useCodeEditorSession(
     language as "zh" | "en",
     isConfigLoaded,
@@ -673,6 +677,7 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const historyPanelRef = useRef<HistoryCodeEditorChatPanelRef>(null);
   const [historySessions, setHistorySessions] = useState<any[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const isDragging = useRef(false);
   const dragType = useRef<"horizontal" | "history">("horizontal");
   const dragStartX = useRef(0);
@@ -683,6 +688,9 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
     "terminal-left" | "chat-left"
   >("terminal-left");
   const isChatOnLeft = layoutSwapMode === "terminal-left";
+  const [isCreatingSession, setIsCreatingSession] = useState(false);
+  const [workspacePath, setWorkspacePath] = useState<string | null>(null);
+  const hasHistorySessions = historySessions.length > 0;
 
   const handleSendMessage = useCallback(
     (
@@ -713,128 +721,116 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
     saveChatPanelCollapsed(!chatPanelCollapsed);
   };
 
-  const chatPanel = (
-    <CodeEditorChatPanel
-      onSendMessage={handleSendMessage}
-      onFileClick={onFileClick}
-      t={t}
-      currentSessionId={currentSessionId}
-      onDragOverInputChange={onDragOverInputChange}
-      language={language}
-      isLeftPanel={isChatOnLeft}
-    />
+  const loadWorkspacePath = useCallback(async (sessionId: string) => {
+    if (
+      !sessionId ||
+      sessionId.startsWith("pending_") ||
+      sessionId.startsWith("temp_")
+    ) {
+      setWorkspacePath(null);
+      return;
+    }
+    try {
+      const config =
+        await codeEditorSessionCommands.loadCodeEditorSessionConfig(sessionId);
+      console.log("[CodeEditorPage] Loaded session config:", config);
+      if (config && config.workspace_path) {
+        setWorkspacePath(config.workspace_path);
+        console.log(
+          "[CodeEditorPage] Workspace path set to:",
+          config.workspace_path,
+        );
+      } else {
+        setWorkspacePath(null);
+      }
+    } catch (error) {
+      console.error("[CodeEditorPage] Failed to load workspace path:", error);
+      setWorkspacePath(null);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (currentSessionId) {
+      loadWorkspacePath(currentSessionId);
+    } else {
+      setWorkspacePath(null);
+    }
+  }, [currentSessionId, loadWorkspacePath]);
+
+  const handleNewSessionWithWorkspace = useCallback(
+    async (workspacePath: string) => {
+      const sessionId = `codeeditor_session_${Date.now()}`;
+      const pathParts = workspacePath.split(/[\\/]/);
+      const title = pathParts[pathParts.length - 1] || "Code Editor";
+      const description = `Workspace: ${workspacePath}`;
+
+      await codeEditorSessionCommands.createCodeEditorSession(
+        sessionId,
+        title,
+        description,
+        [],
+        [],
+        "ReAct",
+        workspacePath,
+      );
+
+      handleSwitchSession(sessionId);
+      window.dispatchEvent(new CustomEvent("codeeditor-session-created"));
+      localStorage.setItem("codeeditor-last-workspace", workspacePath);
+    },
+    [handleSwitchSession],
   );
 
-  const codeEditorPanel = (
-    <div
-      style={{
-        flex: 1,
-        width: "100%",
-        height: "100%",
-        background: "var(--bg-primary)",
-        position: "relative",
-        overflow: "hidden",
-        minWidth: 0,
-      }}
-    >
-      <CodingPage t={t} onClose={() => {}} />
-    </div>
+  const loadHistorySessions = useCallback(async () => {
+    setIsLoadingHistory(true);
+    try {
+      const list = await codeEditorSessionCommands.listCodeEditorSessions();
+      setHistorySessions(list);
+    } catch (error) {
+      console.error("Failed to load history sessions:", error);
+    } finally {
+      setIsLoadingHistory(false);
+    }
+  }, []);
+
+  
+  const handleSelectWorkspace = useCallback(
+    async (workspacePath: string, workspaceType: "directory" | "file") => {
+      setIsCreatingSession(true);
+      try {
+        await createSessionWithWorkspace(workspacePath, workspaceType);
+        await loadHistorySessions();
+        if (currentSessionId) {
+          await loadWorkspacePath(currentSessionId);
+        }
+        showToast(
+          ToastType.SUCCESS,
+          language === "zh"
+            ? `已打开: ${workspacePath}`
+            : `Opened: ${workspacePath}`,
+        );
+      } catch (error) {
+        console.error("Failed to create session with workspace:", error);
+        showToast(
+          ToastType.ERROR,
+          language === "zh" ? `打开失败: ${error}` : `Failed to open: ${error}`,
+        );
+      } finally {
+        setIsCreatingSession(false);
+      }
+    },
+    [
+      language,
+      createSessionWithWorkspace,
+      loadHistorySessions,
+      currentSessionId,
+      loadWorkspacePath,
+    ],
   );
 
-  const collapsedChatSidebar = (
-    <div
-      className="collapsed-sidebar"
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        width: "45px",
-        minWidth: "45px",
-        background: "var(--bg-secondary)",
-        borderRight: isChatOnLeft ? "1px solid var(--border-color)" : "none",
-        borderLeft: !isChatOnLeft ? "1px solid var(--border-color)" : "none",
-        overflow: "hidden",
-        flexShrink: 0,
-        height: "100%",
-      }}
-    >
-      <div
-        style={{
-          borderBottom: "1px solid var(--border-color)",
-          padding: "4px 0px",
-          width: "100%",
-          display: "flex",
-          justifyContent: "center",
-          flexShrink: 0,
-        }}
-      >
-        <button
-          className="collapse-toggle-btn"
-          onClick={handleToggleChatPanel}
-          style={{
-            background: "transparent",
-            border: "none",
-            color: "var(--text-secondary)",
-            cursor: "pointer",
-            fontSize: "15px",
-            padding: "6px",
-            borderRadius: "6px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            width: "32px",
-            height: "32px",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = "var(--hover-bg)";
-            e.currentTarget.style.color = "var(--text-primary)";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = "transparent";
-            e.currentTarget.style.color = "var(--text-secondary)";
-          }}
-          title={isChatOnLeft ? "向右展开" : "向左展开"}
-        >
-          {isChatOnLeft ? "≫" : "≪"}
-        </button>
-      </div>
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          gap: "4px",
-          fontSize: "10px",
-          color: "var(--text-tertiary)",
-          flexShrink: 0,
-          paddingTop: "8px",
-          paddingBottom: "8px",
-        }}
-      >
-        <span style={{ fontSize: "16px" }}>{leftIcon}</span>
-      </div>
-      <CollapsedTaskList
-        tasks={taskManager.getAllTasks()}
-        activeNavIndex={activeNavIndex}
-        onLocateTask={(idx) => {
-          const task = taskManager.getAllTasks()[idx];
-          if (task) {
-            window.dispatchEvent(
-              new CustomEvent("locate-task-in-terminal", {
-                detail: { taskId: task.task_id },
-              }),
-            );
-            window.dispatchEvent(
-              new CustomEvent("locate-task-in-chat", {
-                detail: { taskId: task.task_id },
-              }),
-            );
-            setActiveNavIndex(idx);
-          }
-        }}
-      />
-    </div>
-  );
+  useEffect(() => {
+    loadHistorySessions();
+  }, [loadHistorySessions]);
 
   useEffect(() => {
     const loadLayoutMode = async () => {
@@ -870,32 +866,9 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
   }, []);
 
   useEffect(() => {
-    const loadSessions = async () => {
-      try {
-        const { codeEditorSessionCommands } =
-          await import("../../command/session/codeeditor");
-        const list = await codeEditorSessionCommands.listCodeEditorSessions();
-        setHistorySessions(list);
-      } catch (error) {
-        console.error("Failed to load history sessions:", error);
-      }
-    };
-    loadSessions();
-    const handleSessionCreated = () => {
-      loadSessions();
-    };
-    window.addEventListener("codeeditor-session-created", handleSessionCreated);
-    return () => {
-      window.removeEventListener(
-        "codeeditor-session-created",
-        handleSessionCreated,
-      );
-    };
-  }, []);
-
-  useEffect(() => {
     const handleSessionCreated = () => {
       historyPanelRef.current?.refreshSessions();
+      loadHistorySessions();
     };
     window.addEventListener("codeeditor-session-created", handleSessionCreated);
     return () => {
@@ -904,17 +877,18 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
         handleSessionCreated,
       );
     };
-  }, []);
+  }, [loadHistorySessions]);
 
   useEffect(() => {
     const handleTitleUpdated = () => {
       historyPanelRef.current?.refreshSessions();
+      loadHistorySessions();
     };
     window.addEventListener("session-title-updated", handleTitleUpdated);
     return () => {
       window.removeEventListener("session-title-updated", handleTitleUpdated);
     };
-  }, []);
+  }, [loadHistorySessions]);
 
   useEffect(() => {
     const savedHistoryWidth = localStorage.getItem(
@@ -1314,6 +1288,7 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
             t={t}
             onSessionSelect={handleSessionSelect}
             currentSessionId={currentSessionId}
+            onNewSession={handleNewSessionClick}
           />
         </div>
       </div>
@@ -1323,6 +1298,179 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
   const historyPanelContent = getHistoryPanelContent();
   const historyWidthPx =
     historyCollapsed || isFunctionPanelMaximized ? 45 : historyWidth;
+
+  const chatPanel = (
+    <CodeEditorChatPanel
+      onSendMessage={handleSendMessage}
+      onFileClick={onFileClick}
+      t={t}
+      currentSessionId={currentSessionId}
+      onDragOverInputChange={onDragOverInputChange}
+      language={language}
+      isLeftPanel={isChatOnLeft}
+    />
+  );
+
+  const codeEditorPanel = (
+    <div
+      style={{
+        flex: 1,
+        width: "100%",
+        height: "100%",
+        background: "var(--bg-primary)",
+        position: "relative",
+        overflow: "hidden",
+        minWidth: 0,
+      }}
+    >
+      <CodingPage t={t} onClose={() => {}} workspacePath={workspacePath} />
+    </div>
+  );
+
+  const collapsedChatSidebar = (
+    <div
+      className="collapsed-sidebar"
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        width: "45px",
+        minWidth: "45px",
+        background: "var(--bg-secondary)",
+        borderRight: isChatOnLeft ? "1px solid var(--border-color)" : "none",
+        borderLeft: !isChatOnLeft ? "1px solid var(--border-color)" : "none",
+        overflow: "hidden",
+        flexShrink: 0,
+        height: "100%",
+      }}
+    >
+      <div
+        style={{
+          borderBottom: "1px solid var(--border-color)",
+          padding: "4px 0px",
+          width: "100%",
+          display: "flex",
+          justifyContent: "center",
+          flexShrink: 0,
+        }}
+      >
+        <button
+          className="collapse-toggle-btn"
+          onClick={handleToggleChatPanel}
+          style={{
+            background: "transparent",
+            border: "none",
+            color: "var(--text-secondary)",
+            cursor: "pointer",
+            fontSize: "15px",
+            padding: "6px",
+            borderRadius: "6px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            width: "32px",
+            height: "32px",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = "var(--hover-bg)";
+            e.currentTarget.style.color = "var(--text-primary)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = "transparent";
+            e.currentTarget.style.color = "var(--text-secondary)";
+          }}
+          title={isChatOnLeft ? "向右展开" : "向左展开"}
+        >
+          {isChatOnLeft ? "≫" : "≪"}
+        </button>
+      </div>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: "4px",
+          fontSize: "10px",
+          color: "var(--text-tertiary)",
+          flexShrink: 0,
+          paddingTop: "8px",
+          paddingBottom: "8px",
+        }}
+      >
+        <span style={{ fontSize: "16px" }}>{leftIcon}</span>
+      </div>
+      <CollapsedTaskList
+        tasks={taskManager.getAllTasks()}
+        activeNavIndex={activeNavIndex}
+        onLocateTask={(idx) => {
+          const task = taskManager.getAllTasks()[idx];
+          if (task) {
+            window.dispatchEvent(
+              new CustomEvent("locate-task-in-terminal", {
+                detail: { taskId: task.task_id },
+              }),
+            );
+            window.dispatchEvent(
+              new CustomEvent("locate-task-in-chat", {
+                detail: { taskId: task.task_id },
+              }),
+            );
+            setActiveNavIndex(idx);
+          }
+        }}
+      />
+    </div>
+  );
+
+  if (isLoadingHistory) {
+    return (
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          height: "100%",
+          width: "100%",
+          color: "var(--text-muted)",
+          background: "var(--bg-primary)",
+        }}
+      >
+        <div style={{ textAlign: "center" }}>
+          <div
+            style={{
+              width: "32px",
+              height: "32px",
+              border: "2px solid var(--border-color)",
+              borderTop: "2px solid var(--accent-color)",
+              borderRadius: "50%",
+              animation: "spin 0.8s linear infinite",
+              margin: "0 auto 12px",
+            }}
+          />
+          <div>{t("common.loading") || "Loading..."}</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!hasHistorySessions) {
+    return (
+      <div
+        style={{
+          height: "100%",
+          width: "100%",
+          background: "var(--bg-primary)",
+        }}
+      >
+        <CodeEditorWelcomePage
+          t={t}
+          language={language}
+          onSelectWorkspace={handleSelectWorkspace}
+          isLoading={isCreatingSession}
+        />
+      </div>
+    );
+  }
 
   return (
     <div
@@ -1373,6 +1521,10 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
         .collapsed-history-list::-webkit-scrollbar,
         .collapsed-task-list::-webkit-scrollbar {
           display: none;
+        }
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
         }
       `}</style>
 

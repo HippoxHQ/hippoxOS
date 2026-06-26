@@ -10,6 +10,8 @@ export const codeEditorSessionCommands = {
         initialChat: ChatMessage[],
         initialTerminal: any[],
         workflowMode?: string,
+        workspacePath?: string,
+        workspaceType?: "directory" | "file",
     ): Promise<string> {
         return await invoke('cmd_create_codeeditor_dialog_session', {
             sessionId,
@@ -18,9 +20,10 @@ export const codeEditorSessionCommands = {
             initialChatContent: JSON.stringify(initialChat, null, 2),
             initialTerminalContent: JSON.stringify(initialTerminal, null, 2),
             workflowMode,
+            workspacePath,
+            workspaceType,
         });
     },
-
     async listCodeEditorSessions(): Promise<any[]> {
         return await invoke('cmd_list_codeeditor_dialog_sessions');
     },

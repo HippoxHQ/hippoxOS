@@ -6,14 +6,17 @@ import { configCommands } from "../../command/config";
 interface CodingPageProps {
   t: (key: string) => string;
   onClose?: () => void;
+  workspacePath?: string | null;
 }
 
-const CodingPage: React.FC<CodingPageProps> = ({ t, onClose }) => {
+const CodingPage: React.FC<CodingPageProps> = ({
+  t,
+  onClose,
+  workspacePath,
+}) => {
   const [leftWidth, setLeftWidth] = useState(240);
   const [rightHeight, setRightHeight] = useState(200);
-  const [selectedFile, setSelectedFile] = useState<string | null>(
-    "/src/App.tsx",
-  );
+  const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const isDraggingLeft = useRef(false);
   const isDraggingRight = useRef(false);
   const dragStartX = useRef(0);
@@ -27,6 +30,10 @@ const CodingPage: React.FC<CodingPageProps> = ({ t, onClose }) => {
     "terminal-left" | "chat-left"
   >("terminal-left");
   const [isLayoutLoading, setIsLayoutLoading] = useState(true);
+
+  useEffect(() => {
+    console.log("[CodingPage] workspacePath received:", workspacePath);
+  }, [workspacePath]);
 
   const handleFileSelect = (path: string) => {
     setSelectedFile(path);
@@ -116,6 +123,7 @@ const CodingPage: React.FC<CodingPageProps> = ({ t, onClose }) => {
       window.removeEventListener("mouseup", onMouseUp);
     };
   }, [leftWidth]);
+
   const handleRightResizeMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -125,6 +133,7 @@ const CodingPage: React.FC<CodingPageProps> = ({ t, onClose }) => {
     document.body.style.cursor = "row-resize";
     document.body.style.userSelect = "none";
   };
+
   const isLeftDragging = isDraggingLeft.current;
   const isRightDragging = isDraggingRight.current;
   const isLeftActive = isLeftDragging || isLeftHover;
@@ -174,6 +183,7 @@ const CodingPage: React.FC<CodingPageProps> = ({ t, onClose }) => {
             t={t}
             onFileSelect={handleFileSelect}
             selectedFile={selectedFile}
+            workspacePath={workspacePath}
           />
         </div>
         <div

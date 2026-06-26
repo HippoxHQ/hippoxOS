@@ -1,4 +1,5 @@
 #![allow(warnings)]
+mod callback;
 mod cmd_registry;
 mod commands;
 mod common;
@@ -10,7 +11,6 @@ mod state;
 mod types;
 mod windows;
 mod workspace;
-mod callback;
 
 use crate::cmd_registry::*;
 use crate::common::init_default_settings;
@@ -27,6 +27,7 @@ use std::path::PathBuf;
 use std::thread;
 use tauri::{DragDropEvent, WindowEvent};
 use tauri_plugin_autostart::MacosLauncher;
+use tauri_plugin_fs;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -94,6 +95,7 @@ pub fn run() {
             MacosLauncher::LaunchAgent,
             None,
         ))
+        .plugin(tauri_plugin_fs::init())
         .manage(app_state)
         .setup(|app| {
             TrayManager::setup(app)?;

@@ -46,7 +46,13 @@
             "shell:allow-open",
             "autostart:allow-enable",
             "autostart:allow-disable",
-            "autostart:allow-is-enabled"
+            "autostart:allow-is-enabled",
+            "fs:allow-read-dir",
+            "fs:allow-read-file",
+            "fs:allow-stat",
+            "fs:allow-exists",
+            "fs:allow-write-file",
+            "fs:allow-read-text-file"
           ]
         },
         {
@@ -63,7 +69,11 @@
             "core:window:allow-hide",
             "core:window:allow-set-position",
             "core:window:allow-set-focus",
-            "shell:allow-open"
+            "shell:allow-open",
+            "fs:allow-read-dir",
+            "fs:allow-read-file",
+            "fs:allow-stat",
+            "fs:allow-exists"
           ]
         },
         {

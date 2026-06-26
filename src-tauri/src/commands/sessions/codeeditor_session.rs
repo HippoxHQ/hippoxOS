@@ -50,6 +50,8 @@ pub fn cmd_create_codeeditor_dialog_session(
     initial_chat_content: &str,
     initial_terminal_content: &str,
     workflow_mode: Option<String>,
+    workspace_path: Option<String>,
+    workspace_type: Option<String>, 
 ) -> Result<String, String> {
     let dir = get_codeeditor_dialog_history_dir();
     if !dir.exists() {
@@ -72,6 +74,8 @@ pub fn cmd_create_codeeditor_dialog_session(
         "created_at": Local::now().to_rfc3339(),
         "updated_at": Local::now().to_rfc3339(),
         "workflow_mode": workflow_mode.unwrap_or_else(|| "ReAct".to_string()),
+        "workspace_path": workspace_path.unwrap_or_default(),
+        "workspace_type": workspace_type.unwrap_or_else(|| "directory".to_string()),
     });
     let config_path = session_dir.join("config.json");
     let config_content = serde_json::to_string_pretty(&config)

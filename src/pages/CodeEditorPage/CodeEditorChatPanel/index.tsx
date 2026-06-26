@@ -1020,6 +1020,8 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
         height: "100%",
         overflow: "hidden",
       }}
+      onDragOver={(e) => e.preventDefault()}
+      onDrop={(e) => e.preventDefault()}
     >
       <div
         className="panel-header"

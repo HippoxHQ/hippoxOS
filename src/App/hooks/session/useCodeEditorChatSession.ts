@@ -18,6 +18,8 @@ export function useCodeEditorSession(
     const [isLoading, setIsLoading] = useState(true);
     const [taskManagerVersion, setTaskManagerVersion] = useState(0);
     const [pendingNewSession, setPendingNewSession] = useState(false);
+    const [pendingWorkspacePath, setPendingWorkspacePath] = useState<string>("");
+    const [pendingWorkspaceType, setPendingWorkspaceType] = useState<"directory" | "file">("directory");
     const { t } = useTranslation(language);
 
     useEffect(() => {
@@ -136,15 +138,22 @@ export function useCodeEditorSession(
                 [],
                 [],
                 workflowMode || currentWorkflowMode,
+                pendingWorkspacePath || undefined,
+                pendingWorkspaceType,
             );
-
             taskManager.loadSessionData(newSessionId, tempTasks, tempUserMessages, tempAssistantMessages, SessionDomain.CodeEditor);
             taskManager.deleteSession(finalSessionId, SessionDomain.CodeEditor);
             finalSessionId = newSessionId;
             setCurrentSessionId(newSessionId);
             window.dispatchEvent(new CustomEvent("codeeditor-session-created"));
             setPendingNewSession(false);
-
+            setPendingWorkspacePath("");
+            setPendingWorkspaceType("directory");
+            if (pendingWorkspacePath) {
+                window.dispatchEvent(new CustomEvent("workspace-loaded", {
+                    detail: { path: pendingWorkspacePath, type: pendingWorkspaceType }
+                }));
+            }
         } else if (!finalSessionId) {
             const newSessionId = `codeeditor_session_${Date.now()}`;
             const sessionTitle = userMessage.length > 30
@@ -158,12 +167,22 @@ export function useCodeEditorSession(
                 [],
                 [],
                 workflowMode || currentWorkflowMode,
+                pendingWorkspacePath || undefined,
+                pendingWorkspaceType,
             );
 
             taskManager.loadSessionData(newSessionId, [], [], [], SessionDomain.CodeEditor);
             finalSessionId = newSessionId;
             setCurrentSessionId(newSessionId);
             window.dispatchEvent(new CustomEvent("codeeditor-session-created"));
+            setPendingWorkspacePath("");
+            setPendingWorkspaceType("directory");
+
+            if (pendingWorkspacePath) {
+                window.dispatchEvent(new CustomEvent("workspace-loaded", {
+                    detail: { path: pendingWorkspacePath, type: pendingWorkspaceType }
+                }));
+            }
         }
 
         const userMsg: ChatMessage = {
@@ -223,13 +242,20 @@ export function useCodeEditorSession(
             };
             taskManager.addAssistantMessageToSession(finalSessionId, errorMsg, SessionDomain.CodeEditor);
         }
-    }, [currentSessionId, t, language, currentWorkflowMode]);
+    }, [currentSessionId, t, language, currentWorkflowMode, pendingWorkspacePath, pendingWorkspaceType]);
 
-    const handleNewSession = useCallback(async () => {
+    const handleNewSession = useCallback(async (workspacePath?: string, workspaceType?: "directory" | "file") => {
         const pendingId = `pending_${Date.now()}`;
         taskManager.loadSessionData(pendingId, [], [], [], SessionDomain.CodeEditor);
         setCurrentSessionId(pendingId);
         setPendingNewSession(true);
+        if (workspacePath) {
+            setPendingWorkspacePath(workspacePath);
+            setPendingWorkspaceType(workspaceType || "directory");
+        } else {
+            setPendingWorkspacePath("");
+            setPendingWorkspaceType("directory");
+        }
     }, []);
 
     const handleSwitchSession = useCallback(async (sessionId: string) => {
@@ -279,9 +305,19 @@ export function useCodeEditorSession(
         } else {
             taskManager.switchToSession(sessionId, SessionDomain.CodeEditor);
         }
-
         setCurrentSessionId(sessionId);
         window.dispatchEvent(new CustomEvent("codeeditor-session-created"));
+        try {
+            const config = await codeEditorSessionCommands.loadCodeEditorSessionConfig(sessionId);
+            if (config && config.workspace_path) {
+                const workspaceType = config.workspace_type || "directory";
+                window.dispatchEvent(new CustomEvent("workspace-loaded", {
+                    detail: { path: config.workspace_path, type: workspaceType }
+                }));
+            }
+        } catch (error) {
+            console.error("Failed to load workspace config:", error);
+        }
     }, [currentSessionId]);
 
     const shouldShowWelcome = useCallback(() => {
@@ -310,6 +346,36 @@ export function useCodeEditorSession(
         }
     }, [currentSessionId]);
 
+    const createSessionWithWorkspace = useCallback(async (
+        workspacePath: string,
+        workspaceType: "directory" | "file"
+    ) => {
+        const newSessionId = `codeeditor_session_${Date.now()}`;
+        const pathParts = workspacePath.split(/[\\/]/);
+        const title = pathParts[pathParts.length - 1] || "Code Editor";
+
+        await codeEditorSessionCommands.createCodeEditorSession(
+            newSessionId,
+            title,
+            `Workspace: ${workspacePath}`,
+            [],
+            [],
+            "ReAct",
+            workspacePath,
+            workspaceType,
+        );
+        taskManager.loadSessionData(newSessionId, [], [], [], SessionDomain.CodeEditor);
+        setCurrentSessionId(newSessionId);
+        setPendingNewSession(false);
+        setPendingWorkspacePath("");
+        setPendingWorkspaceType("directory");
+        window.dispatchEvent(new CustomEvent("codeeditor-session-created"));
+        window.dispatchEvent(new CustomEvent("workspace-loaded", {
+            detail: { path: workspacePath, type: workspaceType }
+        }));
+        return newSessionId;
+    }, []);
+
     return {
         currentSessionId,
         isLoading,
@@ -321,5 +387,8 @@ export function useCodeEditorSession(
         handleSendMessage,
         resetSession,
         shouldShowWelcome,
+        createSessionWithWorkspace,
+        pendingWorkspacePath,
+        pendingWorkspaceType,
     };
 }

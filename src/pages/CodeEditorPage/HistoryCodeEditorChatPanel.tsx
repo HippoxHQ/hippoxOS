@@ -32,6 +32,7 @@ interface HistoryCodeEditorChatPanelProps {
   t: (key: string, params?: any) => string;
   onSessionSelect?: (sessionId: string) => void;
   currentSessionId?: string;
+  onNewSession?: () => void;
 }
 
 type CategoryType =
@@ -61,7 +62,12 @@ const HistoryCodeEditorChatPanel = forwardRef<
   HistoryCodeEditorChatPanelProps
 >(
   (
-    { t, onSessionSelect, currentSessionId }: HistoryCodeEditorChatPanelProps,
+    {
+      t,
+      onSessionSelect,
+      currentSessionId,
+      onNewSession,
+    }: HistoryCodeEditorChatPanelProps,
     ref,
   ) => {
     const [sessions, setSessions] = useState<DialogSession[]>([]);
