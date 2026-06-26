@@ -18,6 +18,7 @@ import {
   RenameIcon,
   UnPinIcon,
 } from "../../icons";
+import { taskManager } from "../../core/TaskManager";
 
 export interface HistoryCodeEditorChatPanelRef {
   scrollToTop: () => void;
@@ -270,6 +271,10 @@ const HistoryCodeEditorChatPanel = forwardRef<
             await codeEditorSessionCommands.deleteCodeEditorSession(
               session.session_id,
             );
+            const domain = taskManager.getDomainFromSessionId(
+              session.session_id,
+            );
+            taskManager.deleteSession(session.session_id, domain);
             if (currentSessionId === session.session_id && onSessionSelect) {
               const otherSession = sessions.find(
                 (s) => s.session_id !== session.session_id,

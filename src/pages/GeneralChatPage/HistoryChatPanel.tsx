@@ -18,6 +18,7 @@ import {
   UnPinIcon,
 } from "../../icons";
 import { sessionCommands } from "../../command/session/general";
+import { taskManager } from "../../core/TaskManager";
 
 export interface HistoryChatPanelRef {
   scrollToTop: () => void;
@@ -251,6 +252,10 @@ const HistoryChatPanel = forwardRef<HistoryChatPanelRef, HistoryChatPanelProps>(
         async () => {
           try {
             await sessionCommands.deleteSession(session.session_id);
+            const domain = taskManager.getDomainFromSessionId(
+              session.session_id,
+            );
+            taskManager.deleteSession(session.session_id, domain);
             if (currentSessionId === session.session_id && onSessionSelect) {
               const otherSession = sessions.find(
                 (s) => s.session_id !== session.session_id,
