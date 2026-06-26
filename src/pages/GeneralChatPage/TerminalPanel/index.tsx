@@ -235,6 +235,7 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
         height: "100%",
         overflow: "hidden",
         position: "relative",
+        width: "100%",
       }}
     >
       <div

@@ -47,22 +47,19 @@ impl Default for DialogHistoryConfig {
     }
 }
 
+fn get_config_path() -> std::path::PathBuf {
+    get_settings_dir().join("general_session.json")
+}
+
 fn get_dialog_history_config() -> Result<DialogHistoryConfig, String> {
-    let settings_dir = get_settings_dir();
-    let config_path = settings_dir.join("config.json");
+    let config_path = get_config_path();
 
     if config_path.exists() {
         let content = fs::read_to_string(&config_path)
-            .map_err(|e| format!("Failed to read settings config: {}", e))?;
-        let full_config: serde_json::Value =
-            serde_json::from_str(&content).unwrap_or_else(|_| serde_json::json!({}));
-
-        if let Some(dh) = full_config.get("dialog_history") {
-            Ok(serde_json::from_value(dh.clone())
-                .unwrap_or_else(|_| DialogHistoryConfig::default()))
-        } else {
-            Ok(DialogHistoryConfig::default())
-        }
+            .map_err(|e| format!("Failed to read general session config: {}", e))?;
+        let config: DialogHistoryConfig =
+            serde_json::from_str(&content).unwrap_or_else(|_| DialogHistoryConfig::default());
+        Ok(config)
     } else {
         Ok(DialogHistoryConfig::default())
     }
@@ -74,20 +71,11 @@ fn save_dialog_history_config(config: &DialogHistoryConfig) -> Result<(), String
         fs::create_dir_all(&settings_dir)
             .map_err(|e| format!("Failed to create settings directory: {}", e))?;
     }
-    let config_path = settings_dir.join("config.json");
-    let mut full_config: serde_json::Value = if config_path.exists() {
-        let content = fs::read_to_string(&config_path)
-            .map_err(|e| format!("Failed to read settings config: {}", e))?;
-        serde_json::from_str(&content).unwrap_or_else(|_| serde_json::json!({}))
-    } else {
-        serde_json::json!({})
-    };
-    full_config["dialog_history"] = serde_json::to_value(config)
-        .map_err(|e| format!("Failed to serialize dialog history config: {}", e))?;
-    let content = serde_json::to_string_pretty(&full_config)
-        .map_err(|e| format!("Failed to serialize settings config: {}", e))?;
+    let config_path = get_config_path();
+    let content = serde_json::to_string_pretty(config)
+        .map_err(|e| format!("Failed to serialize general session config: {}", e))?;
     fs::write(&config_path, content)
-        .map_err(|e| format!("Failed to save settings config: {}", e))?;
+        .map_err(|e| format!("Failed to save general session config: {}", e))?;
     Ok(())
 }
 

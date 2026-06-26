@@ -3,6 +3,44 @@ use std::fs;
 use chrono::Local;
 
 use crate::commands::get_codeeditor_dialog_history_dir;
+use crate::commands::get_settings_dir;
+
+fn get_config_path() -> std::path::PathBuf {
+    get_settings_dir().join("codeeditor_session.json")
+}
+
+fn get_pinned_sessions_from_config() -> Result<Vec<String>, String> {
+    let config_path = get_config_path();
+    if config_path.exists() {
+        let content = fs::read_to_string(&config_path)
+            .map_err(|e| format!("Failed to read codeeditor session config: {}", e))?;
+        let config: serde_json::Value =
+            serde_json::from_str(&content).unwrap_or_else(|_| serde_json::json!({}));
+        Ok(config
+            .get("pinned_sessions")
+            .and_then(|v| serde_json::from_value(v.clone()).ok())
+            .unwrap_or_default())
+    } else {
+        Ok(vec![])
+    }
+}
+
+fn save_pinned_sessions_to_config(pinned_sessions: &[String]) -> Result<(), String> {
+    let settings_dir = get_settings_dir();
+    if !settings_dir.exists() {
+        fs::create_dir_all(&settings_dir)
+            .map_err(|e| format!("Failed to create settings directory: {}", e))?;
+    }
+    let config_path = get_config_path();
+    let config = serde_json::json!({
+        "pinned_sessions": pinned_sessions,
+    });
+    let content = serde_json::to_string_pretty(&config)
+        .map_err(|e| format!("Failed to serialize codeeditor session config: {}", e))?;
+    fs::write(&config_path, content)
+        .map_err(|e| format!("Failed to save codeeditor session config: {}", e))?;
+    Ok(())
+}
 
 #[tauri::command]
 pub fn cmd_create_codeeditor_dialog_session(
@@ -54,6 +92,7 @@ pub fn cmd_list_codeeditor_dialog_sessions() -> Result<Vec<serde_json::Value>, S
     if !dir.exists() {
         return Ok(vec![]);
     }
+    let pinned_sessions = get_pinned_sessions_from_config()?;
     let mut sessions = vec![];
     for entry in fs::read_dir(dir)
         .map_err(|e| format!("Failed to read codeeditor dialog history dir: {}", e))?
@@ -77,6 +116,10 @@ pub fn cmd_list_codeeditor_dialog_sessions() -> Result<Vec<serde_json::Value>, S
                             serde_json::json!(path.to_string_lossy()),
                         );
                         obj.insert("session_id".to_string(), serde_json::json!(session_id));
+                        obj.insert(
+                            "is_pinned".to_string(),
+                            serde_json::json!(pinned_sessions.contains(&session_id)),
+                        );
                     }
                     sessions.push(config);
                 }
@@ -84,6 +127,17 @@ pub fn cmd_list_codeeditor_dialog_sessions() -> Result<Vec<serde_json::Value>, S
         }
     }
     sessions.sort_by(|a, b| {
+        let a_pinned = a
+            .get("is_pinned")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false);
+        let b_pinned = b
+            .get("is_pinned")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false);
+        if a_pinned != b_pinned {
+            return b_pinned.cmp(&a_pinned);
+        }
         let a_time = a.get("updated_at").and_then(|v| v.as_str()).unwrap_or("");
         let b_time = b.get("updated_at").and_then(|v| v.as_str()).unwrap_or("");
         b_time.cmp(a_time)
@@ -144,6 +198,10 @@ pub fn cmd_delete_codeeditor_dialog_session(session_id: &str) -> Result<(), Stri
     if session_dir.exists() {
         fs::remove_dir_all(&session_dir)
             .map_err(|e| format!("Failed to delete codeeditor session: {}", e))?;
+    }
+    let pinned = get_pinned_sessions_from_config()?;
+    if pinned.contains(&session_id.to_string()) {
+        let _ = cmd_update_pinned_codeeditor_sessions(session_id.to_string(), false);
     }
     Ok(())
 }
@@ -246,19 +304,7 @@ pub fn cmd_update_pinned_codeeditor_sessions(
     session_id: String,
     pinned: bool,
 ) -> Result<Vec<String>, String> {
-    let settings_dir = crate::commands::get_settings_dir();
-    let config_path = settings_dir.join("codeeditor_config.json");
-    let mut config: serde_json::Value = if config_path.exists() {
-        let content = fs::read_to_string(&config_path)
-            .map_err(|e| format!("Failed to read codeeditor config: {}", e))?;
-        serde_json::from_str(&content).unwrap_or_else(|_| serde_json::json!({}))
-    } else {
-        serde_json::json!({})
-    };
-    let mut pinned_sessions: Vec<String> = config
-        .get("pinned_sessions")
-        .and_then(|v| serde_json::from_value(v.clone()).ok())
-        .unwrap_or_default();
+    let mut pinned_sessions = get_pinned_sessions_from_config()?;
     if pinned {
         if !pinned_sessions.contains(&session_id) {
             pinned_sessions.push(session_id);
@@ -266,29 +312,11 @@ pub fn cmd_update_pinned_codeeditor_sessions(
     } else {
         pinned_sessions.retain(|id| id != &session_id);
     }
-    config["pinned_sessions"] = serde_json::to_value(&pinned_sessions)
-        .map_err(|e| format!("Failed to serialize pinned sessions: {}", e))?;
-    let content = serde_json::to_string_pretty(&config)
-        .map_err(|e| format!("Failed to serialize codeeditor config: {}", e))?;
-    fs::write(&config_path, content)
-        .map_err(|e| format!("Failed to save codeeditor config: {}", e))?;
+    save_pinned_sessions_to_config(&pinned_sessions)?;
     Ok(pinned_sessions)
 }
 
 #[tauri::command]
 pub fn cmd_get_pinned_codeeditor_sessions() -> Result<Vec<String>, String> {
-    let settings_dir = crate::commands::get_settings_dir();
-    let config_path = settings_dir.join("codeeditor_config.json");
-    if config_path.exists() {
-        let content = fs::read_to_string(&config_path)
-            .map_err(|e| format!("Failed to read codeeditor config: {}", e))?;
-        let config: serde_json::Value =
-            serde_json::from_str(&content).unwrap_or_else(|_| serde_json::json!({}));
-        Ok(config
-            .get("pinned_sessions")
-            .and_then(|v| serde_json::from_value(v.clone()).ok())
-            .unwrap_or_default())
-    } else {
-        Ok(vec![])
-    }
+    get_pinned_sessions_from_config()
 }
