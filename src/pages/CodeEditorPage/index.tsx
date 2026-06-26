@@ -891,8 +891,7 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
         if (mode === "terminal-left" || mode === "chat-left") {
           setLayoutSwapMode(mode);
         }
-      } catch (error) {
-      }
+      } catch (error) {}
     };
     loadLayoutMode();
   }, []);
@@ -957,8 +956,7 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
           const path = paths[0];
           await createSessionWithLockRef.current(path, "directory");
         });
-      } catch (error) {
-      }
+      } catch (error) {}
     };
     setupFileDropListener();
     return () => {
@@ -1367,6 +1365,13 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
             onSessionSelect={handleSessionSelect}
             currentSessionId={currentSessionId}
             onNewSession={handleNewSessionClick}
+            onAllSessionsDeleted={() => {
+              setHistorySessions([]);
+              handleSwitchSession("");
+              setTimeout(() => {
+                handleNewSession();
+              }, 100);
+            }}
           />
         </div>
       </div>

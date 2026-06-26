@@ -22,7 +22,9 @@ pub mod types;
 pub mod urls;
 pub mod windows;
 pub mod workflow;
+pub mod net;
 
+pub use net::*;
 pub use basis::*;
 pub use chat::*;
 pub use config::*;

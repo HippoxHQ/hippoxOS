@@ -47,6 +47,7 @@
             "autostart:allow-enable",
             "autostart:allow-disable",
             "autostart:allow-is-enabled",
+            "dialog:allow-open", 
             {
               "identifier": "fs:allow-read-dir",
               "allow": [{ "path": "**" }]

@@ -1,8 +1,23 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { open } from "@tauri-apps/plugin-dialog";
 import { showToast, ToastType } from "../../components/Toast";
 import { stat } from "@tauri-apps/plugin-fs";
+import { githubCommands } from "../../command/net/github";
+import {
+  GithubIcon,
+  FolderTargetIcon,
+  BrowseFolderIcon,
+  RepoIcon,
+  CheckCircleIcon,
+  SpinnerIcon,
+  AlertCircleIcon,
+  InfoIcon,
+  CloseIcon,
+  FolderIcon,
+  FileIcon,
+  ChevronRightIcon,
+} from "../../icons";
 
 interface CodeEditorWelcomePageProps {
   t: (key: string, params?: any) => string;
@@ -11,13 +26,31 @@ interface CodeEditorWelcomePageProps {
     workspacePath: string,
     workspaceType: "directory" | "file",
   ) => Promise<void>;
+  onCloneFromGithub?: (
+    repoUrl: string,
+    targetPath?: string,
+    branch?: string,
+  ) => Promise<void>;
   isLoading?: boolean;
+}
+
+interface GithubRepoInfo {
+  valid: boolean;
+  owner?: string;
+  name?: string;
+  description?: string;
+  stars?: number;
+  forks?: number;
+  private?: boolean;
+  default_branch?: string;
+  error?: string;
 }
 
 const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({
   t,
   language = "en",
   onSelectWorkspace,
+  onCloneFromGithub,
   isLoading = false,
 }) => {
   const [selectedPath, setSelectedPath] = useState<string>("");
@@ -25,8 +58,25 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({
     "directory",
   );
   const [isDragOver, setIsDragOver] = useState(false);
+  const [showGithubDialog, setShowGithubDialog] = useState(false);
+  const [githubRepoUrl, setGithubRepoUrl] = useState("");
+  const [cloneTargetPath, setCloneTargetPath] = useState<string>("");
+  const [selectedBranch, setSelectedBranch] = useState<string>("");
+  const [branches, setBranches] = useState<string[]>([]);
+  const [isCloning, setIsCloning] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [isLoadingBranches, setIsLoadingBranches] = useState(false);
+  const [repoInfo, setRepoInfo] = useState<GithubRepoInfo | null>(null);
+  const [showRepoInfo, setShowRepoInfo] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dialogPosition, setDialogPosition] = useState({ x: 0, y: 0 });
+  const [dialogOffset, setDialogOffset] = useState({ x: 0, y: 0 });
+  const [showBranchDropdown, setShowBranchDropdown] = useState(false);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const verifyTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const branchDropdownRef = useRef<HTMLDivElement>(null);
 
-  // 只保留 UI 高亮，不处理任何业务逻辑
   useEffect(() => {
     let unlistenDragEnter: (() => void) | undefined;
     let unlistenDragLeave: (() => void) | undefined;
@@ -47,18 +97,31 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({
     };
   }, []);
 
-  // 删除所有 files-dropped 和 file-drop 监听！！！
-  // 拖拽创建会话由 CodeEditorPage 统一处理
-
-  const checkIsDirectory = async (path: string): Promise<boolean> => {
-    try {
-      const info = await stat(path);
-      return info.isDirectory;
-    } catch {
-      const lastPart = path.split(/[\\/]/).pop() || "";
-      return !lastPart.includes(".");
+  useEffect(() => {
+    if (showGithubDialog) {
+      const width = Math.min(480, window.innerWidth * 0.9);
+      const height = 380;
+      setDialogPosition({
+        x: (window.innerWidth - width) / 2,
+        y: (window.innerHeight - height) / 2,
+      });
     }
-  };
+  }, [showGithubDialog]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        branchDropdownRef.current &&
+        !branchDropdownRef.current.contains(event.target as Node)
+      ) {
+        setShowBranchDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   const handleSelectFolder = async () => {
     try {
@@ -74,7 +137,10 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({
         await onSelectWorkspace(selected, "directory");
       }
     } catch (error) {
-      console.error("Failed to select workspace:", error);
+      showToast(
+        ToastType.ERROR,
+        language === "zh" ? "选择目录失败" : "Failed to select directory",
+      );
     }
   };
 
@@ -97,9 +163,227 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({
         await onSelectWorkspace(selected, "file");
       }
     } catch (error) {
-      console.error("Failed to select file:", error);
+      showToast(
+        ToastType.ERROR,
+        language === "zh" ? "选择文件失败" : "Failed to select file",
+      );
     }
   };
+
+  const handleSelectCloneTarget = async () => {
+    try {
+      const selected = await open({
+        directory: true,
+        multiple: false,
+        title:
+          language === "zh"
+            ? "选择克隆目标目录"
+            : "Select Clone Target Directory",
+      });
+      if (selected && typeof selected === "string") {
+        setCloneTargetPath(selected);
+      }
+    } catch (error) {
+      showToast(
+        ToastType.ERROR,
+        language === "zh" ? "选择目录失败" : "Failed to select directory",
+      );
+    }
+  };
+
+  const loadBranches = async (url: string) => {
+    if (!url.trim()) return;
+    setIsLoadingBranches(true);
+    try {
+      const result = await githubCommands.getGithubBranches(url.trim());
+      if (result.branches && result.branches.length > 0) {
+        setBranches(result.branches);
+        if (
+          repoInfo?.default_branch &&
+          result.branches.includes(repoInfo.default_branch)
+        ) {
+          setSelectedBranch(repoInfo.default_branch);
+        } else {
+          setSelectedBranch(result.branches[0]);
+        }
+      }
+    } catch (error) {
+    } finally {
+      setIsLoadingBranches(false);
+    }
+  };
+
+  const verifyGithubRepo = async (url: string) => {
+    if (!url.trim()) {
+      setRepoInfo(null);
+      setShowRepoInfo(false);
+      setBranches([]);
+      setSelectedBranch("");
+      return;
+    }
+
+    const githubPattern =
+      /^(https?:\/\/)?(www\.)?github\.com\/[\w-]+\/[\w-]+(\.git)?$/;
+    if (!githubPattern.test(url.trim())) {
+      setRepoInfo(null);
+      setShowRepoInfo(false);
+      setBranches([]);
+      setSelectedBranch("");
+      return;
+    }
+    setIsVerifying(true);
+    try {
+      const info = await githubCommands.verifyGithubRepo(url.trim());
+      setRepoInfo(info);
+      setShowRepoInfo(true);
+      if (info.valid) {
+        await loadBranches(url.trim());
+      } else {
+        setBranches([]);
+        setSelectedBranch("");
+      }
+    } catch (error) {
+      setRepoInfo(null);
+      setShowRepoInfo(false);
+      setBranches([]);
+      setSelectedBranch("");
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
+  useEffect(() => {
+    if (verifyTimerRef.current) {
+      clearTimeout(verifyTimerRef.current);
+    }
+    if (githubRepoUrl.trim()) {
+      verifyTimerRef.current = setTimeout(() => {
+        verifyGithubRepo(githubRepoUrl);
+      }, 600);
+    } else {
+      setRepoInfo(null);
+      setShowRepoInfo(false);
+      setBranches([]);
+      setSelectedBranch("");
+    }
+    return () => {
+      if (verifyTimerRef.current) {
+        clearTimeout(verifyTimerRef.current);
+      }
+    };
+  }, [githubRepoUrl]);
+
+  const handleGithubClone = async () => {
+    if (!githubRepoUrl.trim()) {
+      showToast(
+        ToastType.WARNING,
+        language === "zh"
+          ? "请输入 GitHub 仓库地址"
+          : "Please enter GitHub repo URL",
+      );
+      return;
+    }
+
+    if (!repoInfo?.valid) {
+      showToast(
+        ToastType.WARNING,
+        language === "zh"
+          ? "请输入有效的 GitHub 仓库地址"
+          : "Please enter a valid GitHub repository URL",
+      );
+      return;
+    }
+
+    if (!cloneTargetPath.trim()) {
+      showToast(
+        ToastType.WARNING,
+        language === "zh"
+          ? "请选择克隆目标目录"
+          : "Please select clone target directory",
+      );
+      return;
+    }
+
+    setIsCloning(true);
+    setShowGithubDialog(false);
+
+    try {
+      const branch = selectedBranch || repoInfo.default_branch || "main";
+      if (onCloneFromGithub) {
+        await onCloneFromGithub(githubRepoUrl.trim(), cloneTargetPath, branch);
+      } else {
+        window.dispatchEvent(
+          new CustomEvent("github-clone-request", {
+            detail: {
+              repoUrl: githubRepoUrl.trim(),
+              targetPath: cloneTargetPath,
+              branch: branch,
+            },
+          }),
+        );
+        await onSelectWorkspace(cloneTargetPath, "directory");
+      }
+      setGithubRepoUrl("");
+      setCloneTargetPath("");
+      setRepoInfo(null);
+      setShowRepoInfo(false);
+      setBranches([]);
+      setSelectedBranch("");
+    } catch (error) {
+      showToast(
+        ToastType.ERROR,
+        language === "zh" ? "克隆仓库失败" : "Failed to clone repository",
+      );
+    } finally {
+      setIsCloning(false);
+    }
+  };
+
+  const handleGithubClick = () => {
+    setShowGithubDialog(true);
+    setGithubRepoUrl("");
+    setCloneTargetPath("");
+    setRepoInfo(null);
+    setShowRepoInfo(false);
+    setBranches([]);
+    setSelectedBranch("");
+  };
+
+  const handleDialogMouseDown = (e: React.MouseEvent) => {
+    if ((e.target as HTMLElement).closest(".dialog-header, .dialog-header *")) {
+      setIsDragging(true);
+      setDialogOffset({
+        x: e.clientX - dialogPosition.x,
+        y: e.clientY - dialogPosition.y,
+      });
+      e.preventDefault();
+    }
+  };
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (isDragging) {
+        setDialogPosition({
+          x: e.clientX - dialogOffset.x,
+          y: e.clientY - dialogOffset.y,
+        });
+      }
+    };
+
+    const handleMouseUp = () => {
+      setIsDragging(false);
+    };
+
+    if (isDragging) {
+      window.addEventListener("mousemove", handleMouseMove);
+      window.addEventListener("mouseup", handleMouseUp);
+    }
+
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [isDragging, dialogOffset]);
 
   const isZh = language === "zh";
 
@@ -133,7 +417,6 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({
         setIsDragOver(false);
       }}
     >
-      {/* 拖拽高亮遮罩 */}
       {isDragOver && (
         <div
           style={{
@@ -144,7 +427,6 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({
             borderRadius: "12px",
             pointerEvents: "none",
             zIndex: 10,
-            // transition: "all 0.2s ease",
             animation: "dropHighlight 0.3s ease",
           }}
         />
@@ -161,26 +443,54 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({
       >
         <div
           style={{
-            fontSize: "64px",
-            marginBottom: "16px",
+            marginBottom: "20px",
             display: "flex",
             justifyContent: "center",
+            alignItems: "center",
+            gap: "12px",
           }}
         >
-          💻
+          <div
+            style={{
+              width: "56px",
+              height: "56px",
+              borderRadius: "14px",
+              background: "var(--bg-secondary)",
+              border: "2px solid var(--border-color)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: "28px",
+              fontWeight: 400,
+              color: "var(--accent-color)",
+              fontFamily: "monospace",
+            }}
+          >
+            {`{ }`}
+          </div>
+          <div>
+            <div
+              style={{
+                fontSize: "25px",
+                fontWeight: 600,
+                color: "var(--text-primary)",
+                letterSpacing: "-0.5px",
+              }}
+            >
+              Hippox
+            </div>
+            <div
+              style={{
+                fontSize: "11px",
+                color: "var(--text-muted)",
+                fontWeight: 400,
+                letterSpacing: "0.3px",
+              }}
+            >
+              {isZh ? "代码编辑器" : "Code Editor"}
+            </div>
+          </div>
         </div>
-
-        <h1
-          style={{
-            fontSize: "24px",
-            fontWeight: 600,
-            color: "var(--text-primary)",
-            marginBottom: "8px",
-          }}
-        >
-          {isZh ? "Hippox 代码编辑器" : "Hippox Code Editor"}
-        </h1>
-
         <p
           style={{
             fontSize: "14px",
@@ -190,10 +500,9 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({
           }}
         >
           {isZh
-            ? "选择一个工作区目录或文件开始编码，AI 助手将协助你完成所有开发任务"
-            : "Select a workspace directory or file to start coding, AI assistant will help you with all development tasks"}
+            ? "选择一个工作区目录或文件开始编码，LLM 将协助你完成所有开发任务"
+            : "Select a workspace directory or file to start coding, LLM assistant will help you with all development tasks"}
         </p>
-
         <div
           style={{
             display: "flex",
@@ -210,7 +519,6 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({
               padding: "32px 16px",
               cursor: "pointer",
               background: "var(--bg-secondary)",
-              // transition: "all 0.2s",
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.borderColor = "var(--accent-color)";
@@ -221,7 +529,9 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({
               e.currentTarget.style.background = "var(--bg-secondary)";
             }}
           >
-            <div style={{ fontSize: "32px", marginBottom: "8px" }}>📁</div>
+            <div style={{ fontSize: "32px", marginBottom: "8px" }}>
+              <FolderIcon size={32} />
+            </div>
             <div style={{ fontSize: "13px", color: "var(--text-primary)" }}>
               {isZh ? "选择目录" : "Select Folder"}
             </div>
@@ -236,7 +546,6 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({
               padding: "32px 16px",
               cursor: "pointer",
               background: "var(--bg-secondary)",
-              // transition: "all 0.2s",
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.borderColor = "var(--accent-color)";
@@ -247,9 +556,38 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({
               e.currentTarget.style.background = "var(--bg-secondary)";
             }}
           >
-            <div style={{ fontSize: "32px", marginBottom: "8px" }}>📄</div>
+            <div style={{ fontSize: "32px", marginBottom: "8px" }}>
+              <FileIcon size={32} />
+            </div>
             <div style={{ fontSize: "13px", color: "var(--text-primary)" }}>
               {isZh ? "选择文件" : "Select File"}
+            </div>
+          </div>
+
+          <div
+            onClick={handleGithubClick}
+            style={{
+              flex: 1,
+              border: "2px dashed var(--border-color)",
+              borderRadius: "12px",
+              padding: "32px 16px",
+              cursor: "pointer",
+              background: "var(--bg-secondary)",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = "var(--accent-color)";
+              e.currentTarget.style.background = "var(--hover-bg)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = "var(--border-color)";
+              e.currentTarget.style.background = "var(--bg-secondary)";
+            }}
+          >
+            <div style={{ fontSize: "32px", marginBottom: "8px" }}>
+              <GithubIcon size={32} />
+            </div>
+            <div style={{ fontSize: "13px", color: "var(--text-primary)" }}>
+              {isZh ? "GitHub 拉取" : "GitHub Clone"}
             </div>
           </div>
         </div>
@@ -263,14 +601,12 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({
               ? "var(--accent-glow)"
               : "var(--bg-secondary)",
             marginBottom: "24px",
-            // transition: "all 0.2s ease",
           }}
         >
           <div
             style={{
               fontSize: "12px",
               color: isDragOver ? "var(--accent-color)" : "var(--text-muted)",
-              // transition: "color 0.2s ease",
             }}
           >
             {isDragOver
@@ -296,7 +632,12 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({
                 gap: "8px",
               }}
             >
-              {selectedType === "directory" ? "📁" : "📄"} {selectedPath}
+              {selectedType === "directory" ? (
+                <FolderIcon size={16} />
+              ) : (
+                <FileIcon size={16} />
+              )}
+              {selectedPath}
             </div>
           )}
         </div>
@@ -313,7 +654,7 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({
             : "After selecting a workspace, Hippox will automatically create a session and load the content"}
         </div>
 
-        {isLoading && (
+        {(isLoading || isCloning) && (
           <div
             style={{
               marginTop: "16px",
@@ -325,21 +666,677 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({
               gap: "8px",
             }}
           >
-            <span
-              style={{
-                display: "inline-block",
-                width: "16px",
-                height: "16px",
-                border: "2px solid var(--border-color)",
-                borderTop: "2px solid var(--accent-color)",
-                borderRadius: "50%",
-                animation: "spin 0.8s linear infinite",
-              }}
-            />
-            {isZh ? "正在创建会话..." : "Creating session..."}
+            <SpinnerIcon size={16} />
+            {isCloning
+              ? isZh
+                ? "正在克隆仓库..."
+                : "Cloning repository..."
+              : isZh
+                ? "正在创建会话..."
+                : "Creating session..."}
           </div>
         )}
       </div>
+
+      {showGithubDialog && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000,
+            background: "rgba(0, 0, 0, 0.5)",
+            backdropFilter: "blur(4px)",
+            animation: "fadeIn 0.2s ease",
+            pointerEvents: "auto",
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowGithubDialog(false);
+              setGithubRepoUrl("");
+              setCloneTargetPath("");
+              setRepoInfo(null);
+              setShowRepoInfo(false);
+              setBranches([]);
+              setSelectedBranch("");
+            }
+          }}
+        >
+          <div
+            ref={dialogRef}
+            style={{
+              width: "min(480px, 90vw)",
+              minWidth: "320px",
+              maxWidth: "90vw",
+              background: "var(--bg-secondary)",
+              border: "1px solid var(--border-color)",
+              borderRadius: "8px",
+              boxShadow: "0 8px 20px rgba(0, 0, 0, 0.3)",
+              overflow: "hidden",
+              pointerEvents: "auto",
+              padding: "4px",
+              position: "fixed",
+              left: dialogPosition.x,
+              top: dialogPosition.y,
+              cursor: isDragging ? "grabbing" : "default",
+            }}
+            onClick={(e) => e.stopPropagation()}
+            onMouseDown={handleDialogMouseDown}
+          >
+            <div
+              className="dialog-header"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "6px 12px",
+                borderBottom: "1px solid var(--border-color)",
+                background: "var(--bg-secondary)",
+                height: "32px",
+                borderRadius: "5px",
+                cursor: "grab",
+              }}
+            >
+              <span
+                style={{
+                  fontSize: "12px",
+                  fontWeight: 600,
+                  color: "var(--text-primary)",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                }}
+              >
+                <GithubIcon size={14} />
+                {isZh ? "从 GitHub 拉取仓库" : "Clone from GitHub"}
+              </span>
+              <button
+                onClick={() => {
+                  setShowGithubDialog(false);
+                  setGithubRepoUrl("");
+                  setCloneTargetPath("");
+                  setRepoInfo(null);
+                  setShowRepoInfo(false);
+                  setBranches([]);
+                  setSelectedBranch("");
+                }}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: "22px",
+                  height: "22px",
+                  background: "transparent",
+                  border: "none",
+                  cursor: "pointer",
+                  color: "var(--text-secondary)",
+                  borderRadius: "4px",
+                  padding: 0,
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "var(--hover-bg)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "transparent";
+                }}
+              >
+                <CloseIcon size={14} />
+              </button>
+            </div>
+
+            <div
+              style={{
+                padding: "10px 14px 14px 14px",
+                background: "var(--bg-primary)",
+                borderRadius: "5px",
+              }}
+            >
+              <div style={{ marginBottom: "8px" }}>
+                <label
+                  style={{
+                    fontSize: "11px",
+                    fontWeight: 500,
+                    color: "var(--text-secondary)",
+                    display: "block",
+                    marginBottom: "4px",
+                  }}
+                >
+                  {isZh ? "仓库地址" : "Repository URL"}
+                </label>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    border: `1px solid ${isFocused ? "var(--accent-color)" : "var(--border-color)"}`,
+                    borderRadius: "6px",
+                    background: "var(--bg-secondary)",
+                    padding: "0 10px",
+                    transition: "border-color 0.2s ease",
+                    height: "32px",
+                  }}
+                >
+                  <RepoIcon size={13} />
+                  <input
+                    type="text"
+                    value={githubRepoUrl}
+                    onChange={(e) => setGithubRepoUrl(e.target.value)}
+                    placeholder="github.com/user/repo"
+                    onFocus={() => setIsFocused(true)}
+                    onBlur={() => setIsFocused(false)}
+                    onKeyDown={(e) => {
+                      if (
+                        e.key === "Enter" &&
+                        repoInfo?.valid &&
+                        cloneTargetPath
+                      ) {
+                        handleGithubClone();
+                      }
+                      if (e.key === "Escape") {
+                        setShowGithubDialog(false);
+                        setGithubRepoUrl("");
+                        setCloneTargetPath("");
+                        setRepoInfo(null);
+                        setShowRepoInfo(false);
+                        setBranches([]);
+                        setSelectedBranch("");
+                      }
+                    }}
+                    style={{
+                      flex: 1,
+                      background: "transparent",
+                      border: "none",
+                      outline: "none",
+                      color: "var(--text-primary)",
+                      fontSize: "12px",
+                      padding: "6px 0",
+                      fontFamily: "monospace",
+                    }}
+                    autoFocus
+                  />
+                  {isVerifying && <SpinnerIcon size={13} />}
+                  {!isVerifying && repoInfo?.valid && (
+                    <CheckCircleIcon size={13} />
+                  )}
+                  {!isVerifying && repoInfo && !repoInfo.valid && (
+                    <AlertCircleIcon size={13} />
+                  )}
+                  {githubRepoUrl && (
+                    <button
+                      onClick={() => {
+                        setGithubRepoUrl("");
+                        setRepoInfo(null);
+                        setShowRepoInfo(false);
+                        setBranches([]);
+                        setSelectedBranch("");
+                      }}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        width: "18px",
+                        height: "18px",
+                        background: "transparent",
+                        border: "none",
+                        cursor: "pointer",
+                        color: "var(--text-muted)",
+                        borderRadius: "4px",
+                        flexShrink: 0,
+                        padding: 0,
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = "var(--hover-bg)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = "transparent";
+                      }}
+                    >
+                      <CloseIcon size={12} />
+                    </button>
+                  )}
+                </div>
+                {showRepoInfo && repoInfo && (
+                  <div
+                    style={{
+                      marginTop: "4px",
+                      padding: "6px 10px",
+                      borderRadius: "4px",
+                      fontSize: "13px",
+                      background: repoInfo.valid
+                        ? "var(--bg-tertiary)"
+                        : "var(--bg-tertiary)",
+                      border: `1px solid ${repoInfo.valid ? "rgba(76, 175, 80, 0.3)" : "rgba(255, 68, 68, 0.3)"}`,
+                    }}
+                  >
+                    {repoInfo.valid ? (
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "8px",
+                          flexWrap: "wrap",
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontWeight: 500,
+                            color: "var(--text-primary)",
+                            fontSize: "13px",
+                          }}
+                        >
+                          {repoInfo.owner}/{repoInfo.name}
+                        </span>
+                        {repoInfo.description && (
+                          <span
+                            style={{
+                              color: "var(--text-secondary)",
+                              fontSize: "13px",
+                            }}
+                          >
+                            {repoInfo.description.length > 40
+                              ? repoInfo.description.slice(0, 40) + "..."
+                              : repoInfo.description}
+                          </span>
+                        )}
+                        <span
+                          style={{
+                            color: "var(--text-muted)",
+                            fontSize: "12px",
+                          }}
+                        >
+                          ⭐ {repoInfo.stars || 0} · 🍴 {repoInfo.forks || 0}
+                        </span>
+                        {repoInfo.private && (
+                          <span
+                            style={{
+                              color: "var(--text-muted)",
+                              fontSize: "12px",
+                            }}
+                          >
+                            🔒
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      <span
+                        style={{
+                          color: "var(--error-color)",
+                          fontSize: "13px",
+                        }}
+                      >
+                        {repoInfo.error || isZh
+                          ? "无效的仓库"
+                          : "Invalid repository"}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {repoInfo?.valid && branches.length > 0 && (
+                <div style={{ marginBottom: "8px" }}>
+                  <label
+                    style={{
+                      fontSize: "11px",
+                      fontWeight: 500,
+                      color: "var(--text-secondary)",
+                      display: "block",
+                      marginBottom: "4px",
+                    }}
+                  >
+                    {isZh ? "分支" : "Branch"}
+                  </label>
+                  <div ref={branchDropdownRef} style={{ position: "relative" }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        border: "1px solid var(--border-color)",
+                        borderRadius: "6px",
+                        background: "var(--bg-secondary)",
+                        padding: "0 10px",
+                        height: "32px",
+                        cursor: "pointer",
+                        userSelect: "none",
+                      }}
+                      onClick={() => setShowBranchDropdown(!showBranchDropdown)}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.borderColor =
+                          "var(--accent-color)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.borderColor =
+                          "var(--border-color)";
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontSize: "12px",
+                          color: "var(--text-primary)",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "6px",
+                        }}
+                      >
+                        <span>🌿</span>
+                        {selectedBranch ||
+                          (isZh ? "选择分支" : "Select branch")}
+                      </span>
+                      <ChevronRightIcon size={12} />
+                    </div>
+                    {showBranchDropdown && (
+                      <div
+                        style={{
+                          position: "absolute",
+                          top: "34px",
+                          left: 0,
+                          right: 0,
+                          maxHeight: "150px",
+                          overflowY: "auto",
+                          background: "var(--bg-secondary)",
+                          border: "1px solid var(--border-color)",
+                          borderRadius: "6px",
+                          boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
+                          zIndex: 10,
+                        }}
+                      >
+                        {isLoadingBranches ? (
+                          <div
+                            style={{
+                              padding: "8px 12px",
+                              textAlign: "center",
+                              color: "var(--text-muted)",
+                              fontSize: "12px",
+                            }}
+                          >
+                            {isZh ? "加载中..." : "Loading..."}
+                          </div>
+                        ) : (
+                          branches.map((branch) => (
+                            <div
+                              key={branch}
+                              style={{
+                                padding: "6px 12px",
+                                fontSize: "12px",
+                                color:
+                                  selectedBranch === branch
+                                    ? "var(--accent-color)"
+                                    : "var(--text-primary)",
+                                cursor: "pointer",
+                                background:
+                                  selectedBranch === branch
+                                    ? "var(--accent-glow)"
+                                    : "transparent",
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "6px",
+                              }}
+                              onClick={() => {
+                                setSelectedBranch(branch);
+                                setShowBranchDropdown(false);
+                              }}
+                              onMouseEnter={(e) => {
+                                if (selectedBranch !== branch) {
+                                  e.currentTarget.style.background =
+                                    "var(--hover-bg)";
+                                }
+                              }}
+                              onMouseLeave={(e) => {
+                                if (selectedBranch !== branch) {
+                                  e.currentTarget.style.background =
+                                    "transparent";
+                                }
+                              }}
+                            >
+                              <span>🌿</span>
+                              {branch}
+                              {selectedBranch === branch && (
+                                <span
+                                  style={{
+                                    marginLeft: "auto",
+                                    color: "var(--accent-color)",
+                                  }}
+                                >
+                                  ✓
+                                </span>
+                              )}
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <div style={{ marginBottom: "12px" }}>
+                <label
+                  style={{
+                    fontSize: "11px",
+                    fontWeight: 500,
+                    color: "var(--text-secondary)",
+                    display: "block",
+                    marginBottom: "4px",
+                  }}
+                >
+                  {isZh ? "克隆到" : "Clone to"}
+                </label>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                  }}
+                >
+                  <div
+                    style={{
+                      flex: 1,
+                      display: "flex",
+                      alignItems: "center",
+                      border: "1px solid var(--border-color)",
+                      borderRadius: "6px",
+                      background: "var(--bg-secondary)",
+                      padding: "0 10px",
+                      height: "32px",
+                      cursor: "pointer",
+                    }}
+                    onClick={handleSelectCloneTarget}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = "var(--accent-color)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = "var(--border-color)";
+                    }}
+                  >
+                    <FolderTargetIcon size={13} />
+                    <span
+                      style={{
+                        flex: 1,
+                        fontSize: "12px",
+                        color: cloneTargetPath
+                          ? "var(--text-primary)"
+                          : "var(--text-muted)",
+                        padding: "6px 0",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {cloneTargetPath ||
+                        (isZh
+                          ? "选择目标目录..."
+                          : "Select target directory...")}
+                    </span>
+                    {cloneTargetPath && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setCloneTargetPath("");
+                        }}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          width: "18px",
+                          height: "18px",
+                          background: "transparent",
+                          border: "none",
+                          cursor: "pointer",
+                          color: "var(--text-muted)",
+                          borderRadius: "4px",
+                          flexShrink: 0,
+                          padding: 0,
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = "var(--hover-bg)";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = "transparent";
+                        }}
+                      >
+                        <CloseIcon size={12} />
+                      </button>
+                    )}
+                  </div>
+                  <button
+                    onClick={handleSelectCloneTarget}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: "4px",
+                      padding: "0 12px",
+                      height: "32px",
+                      background: "var(--bg-tertiary)",
+                      border: "1px solid var(--border-color)",
+                      borderRadius: "6px",
+                      cursor: "pointer",
+                      color: "var(--text-secondary)",
+                      fontSize: "11px",
+                      whiteSpace: "nowrap",
+                      flexShrink: 0,
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = "var(--hover-bg)";
+                      e.currentTarget.style.color = "var(--text-primary)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "var(--bg-tertiary)";
+                      e.currentTarget.style.color = "var(--text-secondary)";
+                    }}
+                  >
+                    <BrowseFolderIcon size={13} />
+                    {isZh ? "浏览" : "Browse"}
+                  </button>
+                </div>
+              </div>
+
+              <div
+                style={{
+                  display: "flex",
+                  gap: "6px",
+                  justifyContent: "flex-end",
+                  paddingTop: "2px",
+                }}
+              >
+                <button
+                  onClick={() => {
+                    setShowGithubDialog(false);
+                    setGithubRepoUrl("");
+                    setCloneTargetPath("");
+                    setRepoInfo(null);
+                    setShowRepoInfo(false);
+                    setBranches([]);
+                    setSelectedBranch("");
+                  }}
+                  style={{
+                    padding: "4px 14px",
+                    height: "28px",
+                    fontSize: "11px",
+                    background: "transparent",
+                    border: "1px solid var(--border-color)",
+                    borderRadius: "6px",
+                    color: "var(--text-secondary)",
+                    cursor: "pointer",
+                    transition: "all 0.15s",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = "var(--hover-bg)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "transparent";
+                  }}
+                >
+                  {isZh ? "取消" : "Cancel"}
+                </button>
+                <button
+                  onClick={handleGithubClone}
+                  disabled={
+                    isCloning || !repoInfo?.valid || !cloneTargetPath.trim()
+                  }
+                  style={{
+                    padding: "4px 16px",
+                    height: "28px",
+                    fontSize: "11px",
+                    fontWeight: 500,
+                    background:
+                      isCloning || !repoInfo?.valid || !cloneTargetPath.trim()
+                        ? "var(--bg-tertiary)"
+                        : "var(--accent-color)",
+                    border: "none",
+                    borderRadius: "6px",
+                    color:
+                      isCloning || !repoInfo?.valid || !cloneTargetPath.trim()
+                        ? "var(--text-muted)"
+                        : "#fff",
+                    cursor:
+                      isCloning || !repoInfo?.valid || !cloneTargetPath.trim()
+                        ? "not-allowed"
+                        : "pointer",
+                    opacity:
+                      isCloning || !repoInfo?.valid || !cloneTargetPath.trim()
+                        ? 0.6
+                        : 1,
+                    transition: "all 0.15s",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "4px",
+                  }}
+                  onMouseEnter={(e) => {
+                    if (
+                      !isCloning &&
+                      repoInfo?.valid &&
+                      cloneTargetPath.trim()
+                    ) {
+                      e.currentTarget.style.background = "var(--accent-hover)";
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (
+                      !isCloning &&
+                      repoInfo?.valid &&
+                      cloneTargetPath.trim()
+                    ) {
+                      e.currentTarget.style.background = "var(--accent-color)";
+                    }
+                  }}
+                >
+                  {isCloning && <SpinnerIcon size={12} />}
+                  {isCloning
+                    ? isZh
+                      ? "克隆中..."
+                      : "Cloning..."
+                    : isZh
+                      ? "拉取"
+                      : "Clone"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <style>{`
         @keyframes spin {
@@ -349,6 +1346,10 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({
         @keyframes dropHighlight {
           from { opacity: 0; transform: scale(0.98); }
           to { opacity: 1; transform: scale(1); }
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
         }
       `}</style>
     </div>

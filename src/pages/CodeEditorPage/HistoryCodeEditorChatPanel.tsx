@@ -33,6 +33,7 @@ interface HistoryCodeEditorChatPanelProps {
   onSessionSelect?: (sessionId: string) => void;
   currentSessionId?: string;
   onNewSession?: () => void;
+  onAllSessionsDeleted?: () => void;
 }
 
 type CategoryType =
@@ -67,6 +68,7 @@ const HistoryCodeEditorChatPanel = forwardRef<
       onSessionSelect,
       currentSessionId,
       onNewSession,
+      onAllSessionsDeleted,
     }: HistoryCodeEditorChatPanelProps,
     ref,
   ) => {
@@ -239,9 +241,6 @@ const HistoryCodeEditorChatPanel = forwardRef<
           ),
         );
         setActiveMenuId(null);
-        if (newPinned) {
-        } else {
-        }
       } catch (error) {}
     };
 
@@ -250,19 +249,7 @@ const HistoryCodeEditorChatPanel = forwardRef<
       e: React.MouseEvent,
     ) => {
       e.stopPropagation();
-      if (sessions.length <= 1) {
-        showDialog(
-          DialogType.WARNING,
-          t("history.dialog.cannotDeleteTitle"),
-          t("history.dialog.cannotDeleteMessage"),
-          undefined,
-          undefined,
-          t("history.dialog.gotIt"),
-          undefined,
-        );
-        setActiveMenuId(null);
-        return;
-      }
+
       showDialog(
         DialogType.WARNING,
         t("history.dialog.confirmDeleteTitle"),
@@ -276,18 +263,30 @@ const HistoryCodeEditorChatPanel = forwardRef<
               session.session_id,
             );
             taskManager.deleteSession(session.session_id, domain);
-            if (currentSessionId === session.session_id && onSessionSelect) {
-              const otherSession = sessions.find(
-                (s) => s.session_id !== session.session_id,
-              );
-              if (otherSession) {
-                onSessionSelect(otherSession.session_id);
+
+            const newSessions = sessions.filter(
+              (s) => s.session_id !== session.session_id,
+            );
+            setSessions(newSessions);
+            setActiveMenuId(null);
+            if (currentSessionId === session.session_id) {
+              if (newSessions.length > 0) {
+                const pinnedSession = newSessions.find((s) => s.is_pinned);
+                const targetSession = pinnedSession || newSessions[0];
+                if (onSessionSelect) {
+                  onSessionSelect(targetSession.session_id);
+                }
+              } else {
+                if (onAllSessionsDeleted) {
+                  onAllSessionsDeleted();
+                }
               }
             }
-            setSessions((prev) =>
-              prev.filter((s) => s.session_id !== session.session_id),
-            );
-            setActiveMenuId(null);
+            if (newSessions.length === 0) {
+              if (onAllSessionsDeleted) {
+                onAllSessionsDeleted();
+              }
+            }
           } catch (error) {}
         },
         undefined,

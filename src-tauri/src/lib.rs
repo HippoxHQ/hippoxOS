@@ -28,6 +28,7 @@ use std::thread;
 use tauri::{DragDropEvent, WindowEvent};
 use tauri_plugin_autostart::MacosLauncher;
 use tauri_plugin_fs;
+use tauri_plugin_dialog;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -96,6 +97,7 @@ pub fn run() {
             None,
         ))
         .plugin(tauri_plugin_fs::init())
+        .plugin(tauri_plugin_dialog::init()) 
         .manage(app_state)
         .setup(|app| {
             TrayManager::setup(app)?;
