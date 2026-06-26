@@ -536,18 +536,21 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
     setIsAtBottom(atBottom);
     setShowScrollButton(scrollHeight > clientHeight && !atBottom);
     setShowTopScrollButton(scrollTop > 50);
-    if (atBottom) setUserScrolled(false);
-    handleScrollUpdate();
   };
 
   const handleUserScroll = () => {
-    if (messagesContainerRef.current) {
-      const { scrollTop, scrollHeight, clientHeight } =
-        messagesContainerRef.current;
-      const atBottom = scrollHeight - scrollTop - clientHeight <= 10;
-      if (!atBottom) setUserScrolled(true);
+    if (!messagesContainerRef.current) return;
+    const { scrollTop, scrollHeight, clientHeight } =
+      messagesContainerRef.current;
+    const atBottom = scrollHeight - scrollTop - clientHeight <= 10;
+    if (atBottom) {
+      setUserScrolled(false);
+    } else {
+      setUserScrolled(true);
     }
-    checkScrollPosition();
+    setIsAtBottom(atBottom);
+    setShowScrollButton(scrollHeight > clientHeight && !atBottom);
+    setShowTopScrollButton(scrollTop > 50);
   };
 
   const scrollToTop = () => {
@@ -934,7 +937,7 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
       messagesContainerRef.current.scrollTop =
         messagesContainerRef.current.scrollHeight;
     }
-    setTimeout(handleScrollUpdate, 100);
+    // setTimeout(handleScrollUpdate, 100);
   }, [messages, userScrolled]);
 
   useEffect(() => {

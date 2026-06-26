@@ -308,10 +308,36 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     return true;
   };
 
+  const prevMessageCountRef = useRef(0);
+  const suggestionTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const isFirstLoadRef = useRef(true);
+
   useEffect(() => {
-    if (shouldShowSuggestions(messages)) {
-      setSuggestionPrompts(getRandomPrompts(6));
+    if (suggestionTimerRef.current) {
+      clearInterval(suggestionTimerRef.current);
+      suggestionTimerRef.current = null;
     }
+    if (shouldShowSuggestions(messages)) {
+      const currentLength = messages.length;
+      const hasNewMessage = currentLength !== prevMessageCountRef.current;
+      if (hasNewMessage || isFirstLoadRef.current) {
+        isFirstLoadRef.current = false;
+        prevMessageCountRef.current = currentLength;
+        setSuggestionPrompts(getRandomPrompts(6));
+      }
+      suggestionTimerRef.current = setInterval(() => {
+        setSuggestionPrompts(getRandomPrompts(6));
+      }, 10000);
+    } else {
+      prevMessageCountRef.current = 0;
+      isFirstLoadRef.current = true;
+    }
+    return () => {
+      if (suggestionTimerRef.current) {
+        clearInterval(suggestionTimerRef.current);
+        suggestionTimerRef.current = null;
+      }
+    };
   }, [messages, language]);
 
   const handleSuggestionClick = (prompt: string) => {
@@ -916,7 +942,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
         overflow: "hidden",
       }}
     >
-    
       <div
         className="panel-header"
         style={{ paddingTop: "6px", paddingBottom: "6px" }}
