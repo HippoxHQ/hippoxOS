@@ -1,14 +1,12 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { useEditMessage } from "./hooks";
 import {
-  NormalMessage,
   StatusMessage,
   LoadingSpinner,
   MessageFileGrid,
   EditMessageForm,
   MessageActions,
 } from "./components";
-import { extractUrls, MessageUrlGrid } from "./components/MessageUrlGrid";
 import logo from "../../../assets/logo.png";
 import { LlmInstance, llmCommands } from "../../../command/llm";
 import {
@@ -40,7 +38,6 @@ import {
 } from "../../../types/DefaultPrompt";
 import { ChatMessage, RoleEnum, MessageStatus } from "../../../types/types";
 import { chartSessionCommands } from "../../../command/session/chart";
-import { useChartSession } from "../../../App/hooks/session/useChartChatSession";
 
 interface ChartChatPanelProps {
   onSendMessage: (
@@ -140,9 +137,14 @@ const ChartChatPanel: React.FC<ChartChatPanelProps> = ({
 
   const getMessages = useCallback((): ChatMessage[] => {
     if (!currentSessionId) return [welcomeMsg];
-    const userMessages = taskManager.getUserMessagesBySession(currentSessionId, SessionDomain.Chart);
-    const assistantMessages =
-      taskManager.getAssistantMessagesBySessionAsArray(currentSessionId, SessionDomain.Chart);
+    const userMessages = taskManager.getUserMessagesBySession(
+      currentSessionId,
+      SessionDomain.Chart,
+    );
+    const assistantMessages = taskManager.getAssistantMessagesBySessionAsArray(
+      currentSessionId,
+      SessionDomain.Chart,
+    );
     const allMessages = [...userMessages, ...assistantMessages].sort(
       (a, b) =>
         new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
@@ -1002,7 +1004,6 @@ const ChartChatPanel: React.FC<ChartChatPanelProps> = ({
         overflow: "hidden",
       }}
     >
-     
       <div
         className="panel-header"
         style={{ paddingTop: "6px", paddingBottom: "6px" }}

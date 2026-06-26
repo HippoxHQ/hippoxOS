@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { taskManager } from "../../core/TaskManager";
-import { TaskStatusEnum, SessionDomain } from "../../core/types";
 import { showTooltipOnElement } from "../../components/Tooltip";
 import { CollapseAllIcon2, ExpandAllIcon2 } from "../../icons";
 import CodingPage from "./Coding";
@@ -9,7 +8,7 @@ import HistoryCodeEditorChatPanel, {
   HistoryCodeEditorChatPanelRef,
 } from "./HistoryCodeEditorChatPanel";
 import CodeEditorChatPanel from "./CodeEditorChatPanel";
-import { useCodeEditorSession } from "../../App/hooks/session/useCodeEditorChatSession";
+import { useCodeEditorSession } from "../../app/hooks/session/useCodeEditorChatSession";
 
 interface CodeEditorPageProps {
   layoutMode?: "horizontal" | "vertical";

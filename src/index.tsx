@@ -2,7 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import "./styles/index.css";
 import "./styles/App.css";
-import App from "./App";
+import App from "./app";
 import SystemTrayWindow from "./components/windows/SystemTrayWindow";
 import SubmenuWindow from "./components/windows/SubmenuWindow";
 import reportWebVitals from "./reportWebVitals";

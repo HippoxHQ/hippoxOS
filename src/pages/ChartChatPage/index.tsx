@@ -9,7 +9,7 @@ import HistoryChartChatPanel, {
 } from "./HistoryChartChatPanel";
 import { configCommands } from "../../command/config";
 import ChartChatPanel from "./ChartChatPanel";
-import { useChartSession } from "../../App/hooks/session/useChartChatSession";
+import { useChartSession } from "../../app/hooks/session/useChartChatSession";
 
 interface ChartPageProps {
   layoutMode?: "horizontal" | "vertical";
@@ -662,7 +662,6 @@ const ChartPage: React.FC<ChartPageProps> = ({
     handleNewSession: chartHandleNewSession,
     shouldShowWelcome: chartShouldShowWelcome,
   } = useChartSession(language as "zh" | "en", true);
-
   const [chatPanelWidth, setChatPanelWidth] = useState<number>(400);
   const [historyWidth, setHistoryWidth] = useState<number>(280);
   const [chatPanelCollapsed, setChatPanelCollapsed] = useState<boolean>(false);

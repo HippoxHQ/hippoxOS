@@ -192,6 +192,7 @@ export const zh = {
     takeProfitSuggestion: "止盈建议: {{value}}",
   },
   skillsManager: {
+    noSkills: "没有技能",
     deletedSkillCannotEdit: "\"{{name}}\" 已被删除，无法编辑",
     skillNotFound: "找不到技能 \"{{name}}\"",
     deleteSuccess: "技能 \"{{name}}\" 已删除",
@@ -269,6 +270,8 @@ export const zh = {
     confirmDelete: "确定删除技能 \"{{name}}\" 吗？",
   },
   llmModel: {
+    noProviders: "没有模型",
+    searchPlaceholder: "搜索模型",
     workflowMode: '工作流模式',
     workflowModeReAct: '反应式',
     workflowModeBatch: '批量式',
@@ -907,6 +910,7 @@ export const zh = {
     deleteErrorMessage: "移除收藏失败，请重试",
   },
   workspace: {
+    emptyDirectory: "目录为空",
     defaultSuccess: '已成功设为默认工作空间',
     defaultFailed: '设置默认工作空间失败',
     deleteSuccess: '已成功删除',
@@ -1499,6 +1503,7 @@ export const en: typeof zh = {
     takeProfitSuggestion: "Take Profit: {{value}}",
   },
   skillsManager: {
+    noSkills: "No Skills",
     searchPlaceholder: "Search skills...",
     noSearchResults: "No matching skills found",
     uncategorized: "Uncategorized",
@@ -1576,6 +1581,8 @@ export const en: typeof zh = {
     confirmDelete: "Are you sure you want to delete skill \"{{name}}\"?",
   },
   llmModel: {
+    noProviders: "No Providers",
+    searchPlaceholder: "Search Model",
     workflowMode: 'Workflow Mode',
     workflowModeReAct: 'ReAct',
     workflowModeBatch: 'Batch',
@@ -2214,6 +2221,7 @@ export const en: typeof zh = {
     deleteErrorMessage: "Failed to remove favorite, please try again",
   },
   workspace: {
+    emptyDirectory: "Directory is Empty",
     defaultSuccess: 'Successfully set as default workspace',
     defaultFailed: 'Failed to set default workspace',
     deleteSuccess: 'Successfully deleted',
