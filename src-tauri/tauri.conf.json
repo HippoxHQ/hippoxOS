@@ -47,12 +47,30 @@
             "autostart:allow-enable",
             "autostart:allow-disable",
             "autostart:allow-is-enabled",
-            "fs:allow-read-dir",
-            "fs:allow-read-file",
-            "fs:allow-stat",
-            "fs:allow-exists",
-            "fs:allow-write-file",
-            "fs:allow-read-text-file"
+            {
+              "identifier": "fs:allow-read-dir",
+              "allow": [{ "path": "**" }]
+            },
+            {
+              "identifier": "fs:allow-read-file",
+              "allow": [{ "path": "**" }]
+            },
+            {
+              "identifier": "fs:allow-stat",
+              "allow": [{ "path": "**" }]
+            },
+            {
+              "identifier": "fs:allow-exists",
+              "allow": [{ "path": "**" }]
+            },
+            {
+              "identifier": "fs:allow-write-file",
+              "allow": [{ "path": "**" }]
+            },
+            {
+              "identifier": "fs:allow-read-text-file",
+              "allow": [{ "path": "**" }]
+            }
           ]
         },
         {
@@ -70,10 +88,22 @@
             "core:window:allow-set-position",
             "core:window:allow-set-focus",
             "shell:allow-open",
-            "fs:allow-read-dir",
-            "fs:allow-read-file",
-            "fs:allow-stat",
-            "fs:allow-exists"
+            {
+              "identifier": "fs:allow-read-dir",
+              "allow": [{ "path": "**" }]
+            },
+            {
+              "identifier": "fs:allow-read-file",
+              "allow": [{ "path": "**" }]
+            },
+            {
+              "identifier": "fs:allow-stat",
+              "allow": [{ "path": "**" }]
+            },
+            {
+              "identifier": "fs:allow-exists",
+              "allow": [{ "path": "**" }]
+            }
           ]
         },
         {

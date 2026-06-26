@@ -1436,6 +1436,7 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
               onFileRemove={handleFileRemove}
               files={uploadedFiles}
               onDragOverInput={onDragOverInputChange}
+              disableDragCapture={true}
             />
           </div>
           <div className="input-textarea-wrapper">

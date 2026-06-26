@@ -8,6 +8,7 @@ interface FileUploaderProps {
   disabled?: boolean;
   onDragOverInput?: (isDragging: boolean) => void;
   t?: (key: string, params?: any) => string;
+  disableDragCapture?: boolean;
 }
 
 const FileUploader: React.FC<FileUploaderProps> = ({
@@ -17,6 +18,7 @@ const FileUploader: React.FC<FileUploaderProps> = ({
   disabled = false,
   onDragOverInput,
   t,
+  disableDragCapture = false,
 }) => {
   const [isInputDragging, setIsInputDragging] = useState(false);
   const [showLeftArrow, setShowLeftArrow] = useState(false);
@@ -45,6 +47,9 @@ const FileUploader: React.FC<FileUploaderProps> = ({
   };
 
   useEffect(() => {
+    if (disableDragCapture) {
+      return;
+    }
     const handleFilesDropped = (event: CustomEvent) => {
       const { filePaths } = event.detail;
       if (filePaths && filePaths.length > 0) {
@@ -332,6 +337,7 @@ const FileUploader: React.FC<FileUploaderProps> = ({
       return getText("chat.fileUpload.archive");
     return getText("chat.fileUpload.file");
   };
+
   const processFiles = (fileList: FileList | File[]) => {
     const newFiles: UploadFile[] = Array.from(fileList).map((file, index) => {
       let preview: string | undefined;
@@ -357,6 +363,9 @@ const FileUploader: React.FC<FileUploaderProps> = ({
     if (e.dataTransfer) {
       e.dataTransfer.dropEffect = "copy";
     }
+    if (disableDragCapture) {
+      return;
+    }
     if (!disabled && !isInputDragging) {
       setIsInputDragging(true);
       onDragOverInput?.(true);
@@ -366,6 +375,9 @@ const FileUploader: React.FC<FileUploaderProps> = ({
   const handleDragLeave = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    if (disableDragCapture) {
+      return;
+    }
     setIsInputDragging(false);
     onDragOverInput?.(false);
   };
@@ -373,6 +385,9 @@ const FileUploader: React.FC<FileUploaderProps> = ({
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    if (disableDragCapture) {
+      return;
+    }
     setIsInputDragging(false);
     onDragOverInput?.(false);
     if (disabled) return;
@@ -402,7 +417,25 @@ const FileUploader: React.FC<FileUploaderProps> = ({
   }, [files]);
 
   return (
-    <div className="file-uploader-component">
+    <div
+      className="file-uploader-component"
+      onDragOver={
+        disableDragCapture
+          ? (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+            }
+          : undefined
+      }
+      onDrop={
+        disableDragCapture
+          ? (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+            }
+          : undefined
+      }
+    >
       <style>{`
         .file-uploader-component {
           position: relative;

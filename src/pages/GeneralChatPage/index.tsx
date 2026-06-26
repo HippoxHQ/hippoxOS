@@ -1401,19 +1401,18 @@ const GeneralChatPage: React.FC<GeneralChatPageProps> = ({
               className="resize-handle resize-handle-history"
               onMouseDown={(e) => handleMouseDown(e, "history")}
               style={{
-                width: "3px",
+                width: "0px",
                 background: isHistoryResizeHover
                   ? "var(--scrollbar-thumb)"
                   : "var(--border-color)",
                 cursor: "col-resize",
                 flexShrink: 0,
                 position: "relative",
-                transition: "width 0.15s, background 0.15s",
               }}
               onMouseEnter={() => setIsHistoryResizeHover(true)}
               onMouseLeave={() => setIsHistoryResizeHover(false)}
             >
-              {isHistoryResizeHover && (
+              {/* {isHistoryResizeHover && (
                 <div
                   style={{
                     position: "absolute",
@@ -1428,7 +1427,7 @@ const GeneralChatPage: React.FC<GeneralChatPageProps> = ({
                     zIndex: 11,
                   }}
                 />
-              )}
+              )} */}
             </div>
           )}
         </>
@@ -1453,7 +1452,7 @@ const GeneralChatPage: React.FC<GeneralChatPageProps> = ({
           className="resize-handle resize-handle-vertical"
           onMouseDown={(e) => handleMouseDown(e, "horizontal")}
           style={{
-            width: "3px",
+            width: "1px",
             background: isResizeHover
               ? "var(--scrollbar-thumb)"
               : "var(--border-color)",
@@ -1465,7 +1464,7 @@ const GeneralChatPage: React.FC<GeneralChatPageProps> = ({
           onMouseEnter={() => setIsResizeHover(true)}
           onMouseLeave={() => setIsResizeHover(false)}
         >
-          {isResizeHover && (
+          {/* {isResizeHover && (
             <div
               style={{
                 position: "absolute",
@@ -1480,7 +1479,7 @@ const GeneralChatPage: React.FC<GeneralChatPageProps> = ({
                 zIndex: 11,
               }}
             />
-          )}
+          )} */}
         </div>
       )}
 

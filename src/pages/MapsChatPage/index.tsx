@@ -1379,7 +1379,7 @@ const MapsPage: React.FC<MapsPageProps> = ({
               className="resize-handle resize-handle-history"
               onMouseDown={(e) => handleMouseDown(e, "history")}
               style={{
-                width: "3px",
+                width: "0px",
                 background: isHistoryResizeHover
                   ? "var(--scrollbar-thumb)"
                   : "var(--border-color)",
@@ -1391,7 +1391,7 @@ const MapsPage: React.FC<MapsPageProps> = ({
               onMouseEnter={() => setIsHistoryResizeHover(true)}
               onMouseLeave={() => setIsHistoryResizeHover(false)}
             >
-              {isHistoryResizeHover && (
+              {/* {isHistoryResizeHover && (
                 <div
                   style={{
                     position: "absolute",
@@ -1406,7 +1406,7 @@ const MapsPage: React.FC<MapsPageProps> = ({
                     zIndex: 11,
                   }}
                 />
-              )}
+              )} */}
             </div>
           )}
         </>
@@ -1454,7 +1454,7 @@ const MapsPage: React.FC<MapsPageProps> = ({
           className="resize-handle resize-handle-vertical"
           onMouseDown={(e) => handleMouseDown(e, "horizontal")}
           style={{
-            width: "3px",
+            width: "0px",
             background: isResizeHover
               ? "var(--scrollbar-thumb)"
               : "var(--border-color)",
@@ -1467,7 +1467,7 @@ const MapsPage: React.FC<MapsPageProps> = ({
           onMouseEnter={() => setIsResizeHover(true)}
           onMouseLeave={() => setIsResizeHover(false)}
         >
-          {isResizeHover && (
+          {/* {isResizeHover && (
             <div
               style={{
                 position: "absolute",
@@ -1482,7 +1482,7 @@ const MapsPage: React.FC<MapsPageProps> = ({
                 zIndex: 11,
               }}
             />
-          )}
+          )} */}
         </div>
       )}
 

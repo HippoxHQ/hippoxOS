@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { open } from "@tauri-apps/plugin-dialog";
 import { showToast, ToastType } from "../../components/Toast";
@@ -26,8 +26,7 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({
   );
   const [isDragOver, setIsDragOver] = useState(false);
 
-  const isProcessingRef = useRef(false);
-
+  // 只保留 UI 高亮，不处理任何业务逻辑
   useEffect(() => {
     let unlistenDragEnter: (() => void) | undefined;
     let unlistenDragLeave: (() => void) | undefined;
@@ -48,78 +47,8 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({
     };
   }, []);
 
-  useEffect(() => {
-    let unlistenFileDrop: (() => void) | undefined;
-
-    const setupFileDropListener = async () => {
-      unlistenFileDrop = await listen<string[]>("file-drop", async (event) => {
-        const paths = event.payload;
-        if (paths && paths.length > 0) {
-          if (isProcessingRef.current) return;
-          isProcessingRef.current = true;
-
-          const path = paths[0];
-          setIsDragOver(false);
-
-          try {
-            const isDir = await checkIsDirectory(path);
-            const type = isDir ? "directory" : "file";
-            setSelectedPath(path);
-            setSelectedType(type);
-            await onSelectWorkspace(path, type);
-          } catch (error) {
-            console.error("Failed to process dropped file:", error);
-            showToast(
-              ToastType.ERROR,
-              language === "zh"
-                ? `处理拖拽文件失败: ${error}`
-                : `Failed to process dropped file: ${error}`,
-            );
-          } finally {
-            setTimeout(() => {
-              isProcessingRef.current = false;
-            }, 500);
-          }
-        }
-      });
-    };
-    setupFileDropListener();
-
-    return () => {
-      if (unlistenFileDrop) unlistenFileDrop();
-    };
-  }, [onSelectWorkspace, language]);
-
-  useEffect(() => {
-    const handleFilesDropped = async (event: Event) => {
-      const customEvent = event as CustomEvent;
-      const paths = customEvent.detail?.filePaths;
-      if (paths && paths.length > 0) {
-        if (isProcessingRef.current) return;
-        isProcessingRef.current = true;
-
-        const path = paths[0];
-        try {
-          const isDir = await checkIsDirectory(path);
-          const type = isDir ? "directory" : "file";
-          setSelectedPath(path);
-          setSelectedType(type);
-          await onSelectWorkspace(path, type);
-        } catch (error) {
-          console.error("Failed to process dropped files:", error);
-        } finally {
-          setTimeout(() => {
-            isProcessingRef.current = false;
-          }, 500);
-        }
-      }
-    };
-
-    window.addEventListener("files-dropped", handleFilesDropped);
-    return () => {
-      window.removeEventListener("files-dropped", handleFilesDropped);
-    };
-  }, [onSelectWorkspace]);
+  // 删除所有 files-dropped 和 file-drop 监听！！！
+  // 拖拽创建会话由 CodeEditorPage 统一处理
 
   const checkIsDirectory = async (path: string): Promise<boolean> => {
     try {
@@ -146,12 +75,6 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({
       }
     } catch (error) {
       console.error("Failed to select workspace:", error);
-      showToast(
-        ToastType.ERROR,
-        language === "zh"
-          ? `选择工作区失败: ${error}`
-          : `Failed to select workspace: ${error}`,
-      );
     }
   };
 
@@ -175,12 +98,6 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({
       }
     } catch (error) {
       console.error("Failed to select file:", error);
-      showToast(
-        ToastType.ERROR,
-        language === "zh"
-          ? `选择文件失败: ${error}`
-          : `Failed to select file: ${error}`,
-      );
     }
   };
 

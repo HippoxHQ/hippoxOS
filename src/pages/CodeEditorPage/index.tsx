@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { taskManager } from "../../core/TaskManager";
-import { showTooltipOnElement } from "../../components/Tooltip";
 import { CollapseAllIcon2, ExpandAllIcon2 } from "../../icons";
 import CodingPage from "./Coding";
 import { configCommands } from "../../command/config";
@@ -10,8 +9,49 @@ import HistoryCodeEditorChatPanel, {
 import CodeEditorChatPanel from "./CodeEditorChatPanel";
 import { useCodeEditorSession } from "../../app/hooks/session/useCodeEditorChatSession";
 import { codeEditorSessionCommands } from "../../command/session/codeeditor";
-import { showToast, ToastType } from "../../components/Toast";
 import CodeEditorWelcomePage from "./CodeEditorWelcomePage";
+import { listen } from "@tauri-apps/api/event";
+
+const GLOBAL_SESSION_LOCK = {
+  isCreating: false,
+  lastPath: "",
+  lastTime: 0,
+  lockedPaths: new Map<string, number>(),
+  cleanup() {
+    const now = Date.now();
+    for (const [path, time] of Array.from(this.lockedPaths.entries())) {
+      if (now - time > 5000) {
+        this.lockedPaths.delete(path);
+      }
+    }
+  },
+  tryLock(path: string): boolean {
+    this.cleanup();
+    const now = Date.now();
+    if (this.isCreating) {
+      return false;
+    }
+    if (this.lockedPaths.has(path)) {
+      const lockTime = this.lockedPaths.get(path)!;
+      if (now - lockTime < 5000) {
+        return false;
+      }
+    }
+    this.isCreating = true;
+    this.lastPath = path;
+    this.lastTime = now;
+    this.lockedPaths.set(path, now);
+    return true;
+  },
+  unlock() {
+    this.isCreating = false;
+    setTimeout(() => {
+      if (this.lastPath) {
+        this.lockedPaths.delete(this.lastPath);
+      }
+    }, 3000);
+  },
+};
 
 interface CodeEditorPageProps {
   layoutMode?: "horizontal" | "vertical";
@@ -272,10 +312,6 @@ const CollapsedTaskList: React.FC<CollapsedTaskListProps> = ({
                   e.currentTarget.style.color = "var(--text-primary)";
                   e.currentTarget.style.borderColor = "var(--border-color)";
                 }
-                showTooltipOnElement(
-                  e.currentTarget,
-                  task.user_input || "Task",
-                );
               }}
               onMouseLeave={(e) => {
                 if (!isActive) {
@@ -558,10 +594,6 @@ const CollapsedHistoryList: React.FC<CollapsedHistoryListProps> = ({
                   e.currentTarget.style.color = "var(--text-primary)";
                   e.currentTarget.style.borderColor = "var(--border-color)";
                 }
-                showTooltipOnElement(
-                  e.currentTarget,
-                  session.title || "Untitled",
-                );
               }}
               onMouseLeave={(e) => {
                 if (!isActive) {
@@ -692,6 +724,9 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
   const [workspacePath, setWorkspacePath] = useState<string | null>(null);
   const hasHistorySessions = historySessions.length > 0;
 
+  const fileDropProcessingRef = useRef(false);
+  const fileDropLastPathRef = useRef("");
+
   const handleSendMessage = useCallback(
     (
       message: string,
@@ -733,13 +768,8 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
     try {
       const config =
         await codeEditorSessionCommands.loadCodeEditorSessionConfig(sessionId);
-      console.log("[CodeEditorPage] Loaded session config:", config);
       if (config && config.workspace_path) {
         setWorkspacePath(config.workspace_path);
-        console.log(
-          "[CodeEditorPage] Workspace path set to:",
-          config.workspace_path,
-        );
       } else {
         setWorkspacePath(null);
       }
@@ -793,9 +823,41 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
     }
   }, []);
 
-  
-  const handleSelectWorkspace = useCallback(
+  const createSessionWithWorkspaceRef = useRef(createSessionWithWorkspace);
+  const loadHistorySessionsRef = useRef(loadHistorySessions);
+  const loadWorkspacePathRef = useRef(loadWorkspacePath);
+  const currentSessionIdRef = useRef(currentSessionId);
+  const languageRef = useRef(language);
+
+  useEffect(() => {
+    createSessionWithWorkspaceRef.current = createSessionWithWorkspace;
+    loadHistorySessionsRef.current = loadHistorySessions;
+    loadWorkspacePathRef.current = loadWorkspacePath;
+    currentSessionIdRef.current = currentSessionId;
+    languageRef.current = language;
+  }, [
+    createSessionWithWorkspace,
+    loadHistorySessions,
+    loadWorkspacePath,
+    currentSessionId,
+    language,
+  ]);
+
+  const createSessionWithLock = useCallback(
     async (workspacePath: string, workspaceType: "directory" | "file") => {
+      if (!GLOBAL_SESSION_LOCK.tryLock(workspacePath)) {
+        return;
+      }
+      if (fileDropProcessingRef.current) {
+        GLOBAL_SESSION_LOCK.unlock();
+        return;
+      }
+      if (fileDropLastPathRef.current === workspacePath) {
+        GLOBAL_SESSION_LOCK.unlock();
+        return;
+      }
+      fileDropProcessingRef.current = true;
+      fileDropLastPathRef.current = workspacePath;
       setIsCreatingSession(true);
       try {
         await createSessionWithWorkspace(workspacePath, workspaceType);
@@ -803,20 +865,12 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
         if (currentSessionId) {
           await loadWorkspacePath(currentSessionId);
         }
-        showToast(
-          ToastType.SUCCESS,
-          language === "zh"
-            ? `已打开: ${workspacePath}`
-            : `Opened: ${workspacePath}`,
-        );
       } catch (error) {
         console.error("Failed to create session with workspace:", error);
-        showToast(
-          ToastType.ERROR,
-          language === "zh" ? `打开失败: ${error}` : `Failed to open: ${error}`,
-        );
       } finally {
         setIsCreatingSession(false);
+        fileDropProcessingRef.current = false;
+        GLOBAL_SESSION_LOCK.unlock();
       }
     },
     [
@@ -826,6 +880,13 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
       currentSessionId,
       loadWorkspacePath,
     ],
+  );
+
+  const handleSelectWorkspace = useCallback(
+    async (workspacePath: string, workspaceType: "directory" | "file") => {
+      await createSessionWithLock(workspacePath, workspaceType);
+    },
+    [createSessionWithLock],
   );
 
   useEffect(() => {
@@ -889,6 +950,29 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
       window.removeEventListener("session-title-updated", handleTitleUpdated);
     };
   }, [loadHistorySessions]);
+
+  useEffect(() => {
+    let unlisten: (() => void) | undefined;
+    const setupFileDropListener = async () => {
+      try {
+        unlisten = await listen<string[]>("file-drop", async (event) => {
+          const paths = event.payload;
+          if (!paths || paths.length === 0) return;
+          const path = paths[0];
+          await createSessionWithLock(path, "directory");
+        });
+      } catch (error) {
+        console.error("[CodeEditorPage] Failed to setup file-drop:", error);
+      }
+    };
+    setupFileDropListener();
+    return () => {
+      if (unlisten) {
+        unlisten();
+        unlisten = undefined;
+      }
+    };
+  }, [createSessionWithLock]);
 
   useEffect(() => {
     const savedHistoryWidth = localStorage.getItem(
@@ -1067,7 +1151,6 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
               onMouseEnter={(e) => {
                 e.currentTarget.style.background = "var(--hover-bg)";
                 e.currentTarget.style.color = "var(--text-primary)";
-                showTooltipOnElement(e.currentTarget, "Expand History");
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.background = "transparent";
@@ -1549,19 +1632,18 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
               className="resize-handle resize-handle-history"
               onMouseDown={(e) => handleMouseDown(e, "history")}
               style={{
-                width: "3px",
+                width: "0px",
                 background: isHistoryResizeHover
                   ? "var(--scrollbar-thumb)"
                   : "var(--border-color)",
                 cursor: "col-resize",
                 flexShrink: 0,
                 position: "relative",
-                transition: "width 0.15s, background 0.15s",
               }}
               onMouseEnter={() => setIsHistoryResizeHover(true)}
               onMouseLeave={() => setIsHistoryResizeHover(false)}
             >
-              {isHistoryResizeHover && (
+              {/* {isHistoryResizeHover && (
                 <div
                   style={{
                     position: "absolute",
@@ -1576,7 +1658,7 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
                     zIndex: 11,
                   }}
                 />
-              )}
+              )} */}
             </div>
           )}
         </>
@@ -1624,20 +1706,19 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
           className="resize-handle resize-handle-vertical"
           onMouseDown={(e) => handleMouseDown(e, "horizontal")}
           style={{
-            width: "3px",
+            width: "0px",
             background: isResizeHover
               ? "var(--scrollbar-thumb)"
               : "var(--border-color)",
             cursor: "col-resize",
             flexShrink: 0,
             position: "relative",
-            transition: "width 0.15s, background 0.15s",
             order: isChatOnLeft ? 2 : 2,
           }}
           onMouseEnter={() => setIsResizeHover(true)}
           onMouseLeave={() => setIsResizeHover(false)}
         >
-          {isResizeHover && (
+          {/* {isResizeHover && (
             <div
               style={{
                 position: "absolute",
@@ -1652,7 +1733,7 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
                 zIndex: 11,
               }}
             />
-          )}
+          )} */}
         </div>
       )}
 

@@ -155,7 +155,6 @@ const HistoryCodeEditorChatPanel = forwardRef<
         });
         setSessions(sorted);
       } catch (error) {
-        showToast(ToastType.ERROR, "Failed to load sessions:" + error);
       } finally {
         setLoading(false);
       }
@@ -241,13 +240,9 @@ const HistoryCodeEditorChatPanel = forwardRef<
         );
         setActiveMenuId(null);
         if (newPinned) {
-          showToast(ToastType.SUCCESS, t("history.toast.pinned"));
         } else {
-          showToast(ToastType.INFO, t("history.toast.unpinned"));
         }
-      } catch (error) {
-        showToast(ToastType.ERROR, t("history.toast.pinFailed"));
-      }
+      } catch (error) {}
     };
 
     const handleDelete = async (
@@ -293,10 +288,7 @@ const HistoryCodeEditorChatPanel = forwardRef<
               prev.filter((s) => s.session_id !== session.session_id),
             );
             setActiveMenuId(null);
-            showToast(ToastType.SUCCESS, t("history.toast.deleted"));
-          } catch (error) {
-            showToast(ToastType.ERROR, t("history.toast.deleteFailed"));
-          }
+          } catch (error) {}
         },
         undefined,
         t("history.dialog.delete"),
@@ -337,15 +329,12 @@ const HistoryCodeEditorChatPanel = forwardRef<
         await loadSessions(true);
         setEditingId(null);
         setEditValue("");
-        showToast(ToastType.SUCCESS, t("history.toast.renamed"));
         window.dispatchEvent(
           new CustomEvent("session-title-updated", {
             detail: { sessionId: session.session_id, title: trimmed },
           }),
         );
-      } catch (error) {
-        showToast(ToastType.ERROR, t("history.toast.renameFailed"));
-      }
+      } catch (error) {}
       isSavingRef.current = false;
     };
 
@@ -370,10 +359,6 @@ const HistoryCodeEditorChatPanel = forwardRef<
             onSessionSelect(sessionId);
           }
         } catch (error) {
-          showToast(
-            ToastType.ERROR,
-            "Failed to recall session context:" + error,
-          );
           if (onSessionSelect) {
             onSessionSelect(sessionId);
           }
