@@ -102,9 +102,6 @@ export function useSession(
         ) {
             const currentDomain = taskManager.getCurrentDomain();
             if (currentDomain !== SessionDomain.General) {
-                console.debug(
-                    `[useSession] Skipping save - current domain is "${currentDomain}", not "General"`
-                );
                 return;
             }
             const saveTimer = setTimeout(() => {

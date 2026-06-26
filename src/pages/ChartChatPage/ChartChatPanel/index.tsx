@@ -367,7 +367,7 @@ const ChartChatPanel: React.FC<ChartChatPanelProps> = ({
     } else {
       prevMessageCountRef.current = 0;
       isFirstLoadRef.current = true;
-      setSuggestionPrompts([]);
+      // setSuggestionPrompts([]);
     }
     return () => {
       if (suggestionTimerRef.current) {

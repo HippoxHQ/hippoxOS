@@ -70,7 +70,7 @@ const CollapsedTaskList: React.FC<CollapsedTaskListProps> = ({
       setShowUp(false);
       setShowDown(false);
     }
-  }, [checkScroll]);
+  }, []);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -90,7 +90,7 @@ const CollapsedTaskList: React.FC<CollapsedTaskListProps> = ({
 
   useEffect(() => {
     setTimeout(updateScrollButtons, 100);
-  }, [tasks, updateScrollButtons]);
+  }, [tasks]);
 
   const scrollUp = () => {
     if (containerRef.current) {
@@ -379,7 +379,7 @@ const CollapsedHistoryList: React.FC<CollapsedHistoryListProps> = ({
       setShowUp(false);
       setShowDown(false);
     }
-  }, [checkScroll]);
+  }, []);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -399,7 +399,7 @@ const CollapsedHistoryList: React.FC<CollapsedHistoryListProps> = ({
 
   useEffect(() => {
     setTimeout(updateScrollButtons, 100);
-  }, [sessions, updateScrollButtons]);
+  }, [sessions]);
 
   const scrollUp = () => {
     if (containerRef.current) {
@@ -679,30 +679,26 @@ const GeneralChatPage: React.FC<GeneralChatPageProps> = ({
   const dragStartContainerRect = useRef<DOMRect | null>(null);
 
   const leftPanel = (
-    <div style={{ width: "100%", height: "100%" }}>
-      <ChatPanel
-        onSendMessage={onSendMessage || (() => {})}
-        onFileClick={onFileClick}
-        t={t}
-        currentSessionId={currentSessionId}
-        onDragOverInputChange={onDragOverInputChange}
-        language={language}
-        isLeftPanel={true}
-      />
-    </div>
+    <ChatPanel
+      onSendMessage={onSendMessage || (() => {})}
+      onFileClick={onFileClick}
+      t={t}
+      currentSessionId={currentSessionId}
+      onDragOverInputChange={onDragOverInputChange}
+      language={language}
+      isLeftPanel={true}
+    />
   );
 
   const rightPanel = (
-    <div style={{ width: "100%", height: "100%" }}>
-      <TerminalPanel
-        logs={executionLogs || []}
-        onClearLogs={onClearLogs || (() => {})}
-        t={t}
-        currentSessionId={currentSessionId}
-        onFileClick={onFileClick}
-        isLeftPanel={false}
-      />
-    </div>
+    <TerminalPanel
+      logs={executionLogs || []}
+      onClearLogs={onClearLogs || (() => {})}
+      t={t}
+      currentSessionId={currentSessionId}
+      onFileClick={onFileClick}
+      isLeftPanel={false}
+    />
   );
 
   useEffect(() => {

@@ -300,15 +300,22 @@ const CodeEdit: React.FC<CodeEditProps> = ({ t, selectedFile }) => {
 
   const addTab = (path: string) => {
     if (!path) return;
-    const exists = tabs.some((tab) => tab.path === path);
-    if (exists) {
-      setActiveTab(path);
-      return;
-    }
-    const name = path.split("/").pop() || path;
-    setTabs((prev) => [...prev, { path, name }]);
-    setActiveTab(path);
+    setTabs((prev) => {
+      const exists = prev.some((tab) => tab.path === path);
+      if (exists) {
+        setActiveTab(path);
+        return prev;
+      }
+      const name = path.split("/").pop() || path;
+      return [...prev, { path, name }];
+    });
   };
+
+  useEffect(() => {
+    if (selectedFile) {
+      addTab(selectedFile);
+    }
+  }, [selectedFile]);
 
   const closeTab = (path: string, e?: React.MouseEvent) => {
     e?.stopPropagation();
@@ -503,15 +510,13 @@ const CodeEdit: React.FC<CodeEditProps> = ({ t, selectedFile }) => {
   useEffect(() => {
     const container = tabsContainerRef.current;
     if (!container) return;
-
     container.addEventListener("scroll", updateScrollbar);
     window.addEventListener("resize", updateScrollbar);
-
     const observer = new ResizeObserver(updateScrollbar);
     observer.observe(container);
-
-    setTimeout(updateScrollbar, 50);
-
+    if (container && container.scrollWidth > 0 && container.clientWidth > 0) {
+      setTimeout(updateScrollbar, 50);
+    }
     return () => {
       container.removeEventListener("scroll", updateScrollbar);
       window.removeEventListener("resize", updateScrollbar);

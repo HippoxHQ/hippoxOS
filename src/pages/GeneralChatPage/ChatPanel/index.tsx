@@ -936,6 +936,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     height: 100%;
     background: var(--bg-primary);
     overflow: hidden;
+    width: 100%;
   }
   .panel-header {
     display: flex;

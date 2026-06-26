@@ -383,7 +383,7 @@ const MapsChatPage: React.FC<MapsChatPageProps> = ({
     } else {
       prevMessageCountRef.current = 0;
       isFirstLoadRef.current = true;
-      setSuggestionPrompts([]);
+      // setSuggestionPrompts([]);
     }
     return () => {
       if (suggestionTimerRef.current) {
@@ -919,8 +919,7 @@ const MapsChatPage: React.FC<MapsChatPageProps> = ({
       messagesContainerRef.current.scrollTop =
         messagesContainerRef.current.scrollHeight;
     }
-    setTimeout(handleScrollUpdate, 100);
-  }, [messages, userScrolled]);
+  }, [messages]);
 
   useEffect(() => {
     const element = messagesContainerRef.current;

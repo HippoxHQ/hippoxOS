@@ -654,6 +654,7 @@ export const globalStyles = `
   flex: 1;
   overflow: visible;
   min-height: 0;
+  width: 100%;
 }
 
 .terminal-content {

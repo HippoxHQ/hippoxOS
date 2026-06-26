@@ -74,11 +74,10 @@ class TaskManager {
         return this.assistantMessagesBySession.get(key)!;
     }
 
-    /**
-     * 验证 sessionId 和 domain 是否匹配当前上下文
-     * 如果不匹配，返回 false 并打印警告
-     */
     private validateDomainMatch(domain: SessionDomain, sessionId: string, operation: string): boolean {
+        if (sessionId.startsWith("pending_")) {
+            return true;
+        }
         const actualDomain = this.getDomainFromSessionId(sessionId);
         if (domain !== actualDomain) {
             console.error(
@@ -133,9 +132,6 @@ class TaskManager {
         }
     }
 
-    /**
-     * 设置当前会话 - 需要传入 domain 严格匹配
-     */
     setCurrentSession(sessionId: string, domain: SessionDomain) {
         if (!this.validateDomainMatch(domain, sessionId, "setCurrentSession")) {
             return;

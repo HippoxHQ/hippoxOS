@@ -67,7 +67,7 @@ const CollapsedTaskList: React.FC<CollapsedTaskListProps> = ({
       setShowUp(false);
       setShowDown(false);
     }
-  }, [checkScroll]);
+  }, []);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -87,7 +87,7 @@ const CollapsedTaskList: React.FC<CollapsedTaskListProps> = ({
 
   useEffect(() => {
     setTimeout(updateScrollButtons, 100);
-  }, [tasks, updateScrollButtons]);
+  }, [tasks]);
 
   const scrollUp = () => {
     if (containerRef.current) {
@@ -355,6 +355,17 @@ const CollapsedHistoryList: React.FC<CollapsedHistoryListProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const [showUp, setShowUp] = useState(false);
   const [showDown, setShowDown] = useState(false);
+
+  const sortedSessions = React.useMemo(() => {
+    return [...sessions].sort((a, b) => {
+      if (a.is_pinned && !b.is_pinned) return -1;
+      if (!a.is_pinned && b.is_pinned) return 1;
+      const aTs = new Date(a.created_at).getTime();
+      const bTs = new Date(b.created_at).getTime();
+      return bTs - aTs;
+    });
+  }, [sessions]);
+
   const checkScroll = useCallback(() => {
     if (!containerRef.current) return;
     const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
@@ -416,18 +427,6 @@ const CollapsedHistoryList: React.FC<CollapsedHistoryListProps> = ({
     if (clean.length <= 2) return clean;
     return clean.slice(0, 2);
   };
-
-  const sortedSessions = [...sessions].sort((a, b) => {
-    if (a.is_pinned && !b.is_pinned) return -1;
-    if (!a.is_pinned && b.is_pinned) return 1;
-    const getTimestamp = (id: string) => {
-      const ts = id.replace("session_", "");
-      return parseInt(ts, 10) || 0;
-    };
-    const aTs = getTimestamp(a.session_id);
-    const bTs = getTimestamp(b.session_id);
-    return bTs - aTs;
-  });
 
   if (sessions.length === 0) {
     return (
