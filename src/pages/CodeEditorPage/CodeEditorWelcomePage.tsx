@@ -73,6 +73,7 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({
   const [dialogPosition, setDialogPosition] = useState({ x: 0, y: 0 });
   const [dialogOffset, setDialogOffset] = useState({ x: 0, y: 0 });
   const [showBranchDropdown, setShowBranchDropdown] = useState(false);
+  const [cloneError, setCloneError] = useState<string>("");
   const dialogRef = useRef<HTMLDivElement>(null);
   const verifyTimerRef = useRef<NodeJS.Timeout | null>(null);
   const branchDropdownRef = useRef<HTMLDivElement>(null);
@@ -100,11 +101,12 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({
   useEffect(() => {
     if (showGithubDialog) {
       const width = Math.min(480, window.innerWidth * 0.9);
-      const height = 380;
+      const height = 420;
       setDialogPosition({
         x: (window.innerWidth - width) / 2,
         y: (window.innerHeight - height) / 2,
       });
+      setCloneError("");
     }
   }, [showGithubDialog]);
 
@@ -182,6 +184,7 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({
       });
       if (selected && typeof selected === "string") {
         setCloneTargetPath(selected);
+        setCloneError("");
       }
     } catch (error) {
       showToast(
@@ -189,6 +192,13 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({
         language === "zh" ? "选择目录失败" : "Failed to select directory",
       );
     }
+  };
+
+  const handleCloneTargetPathChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    setCloneTargetPath(e.target.value);
+    setCloneError("");
   };
 
   const loadBranches = async (url: string) => {
@@ -305,7 +315,7 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({
     }
 
     setIsCloning(true);
-    setShowGithubDialog(false);
+    setCloneError("");
 
     try {
       const branch = selectedBranch || repoInfo.default_branch || "main";
@@ -321,19 +331,81 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({
             },
           }),
         );
+        await new Promise<void>((resolve, reject) => {
+          const timeout = setTimeout(() => {
+            window.removeEventListener("github-clone-complete", handler);
+            reject(new Error("Clone timeout"));
+          }, 300000);
+
+          const handler = (event: Event) => {
+            const customEvent = event as CustomEvent;
+            if (
+              customEvent.detail?.repoUrl === githubRepoUrl.trim() &&
+              customEvent.detail?.targetPath === cloneTargetPath
+            ) {
+              clearTimeout(timeout);
+              window.removeEventListener("github-clone-complete", handler);
+              if (customEvent.detail?.error) {
+                reject(new Error(customEvent.detail.error));
+              } else {
+                resolve();
+              }
+            }
+          };
+          window.addEventListener("github-clone-complete", handler);
+        });
+
         await onSelectWorkspace(cloneTargetPath, "directory");
       }
+
       setGithubRepoUrl("");
       setCloneTargetPath("");
       setRepoInfo(null);
       setShowRepoInfo(false);
       setBranches([]);
       setSelectedBranch("");
+      setCloneError("");
+      setShowGithubDialog(false);
     } catch (error) {
-      showToast(
-        ToastType.ERROR,
-        language === "zh" ? "克隆仓库失败" : "Failed to clone repository",
-      );
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      if (
+        errorMsg.includes("already exists") ||
+        errorMsg.includes("destination path")
+      ) {
+        setCloneError(
+          language === "zh"
+            ? "目标目录已存在且不为空，请选择其他目录"
+            : "Destination path already exists and is not empty, please choose another directory",
+        );
+        showToast(
+          ToastType.ERROR,
+          language === "zh"
+            ? "目录已存在，请选择其他目录"
+            : "Directory exists, please choose another",
+        );
+      } else if (errorMsg.includes("Failed to create directory")) {
+        setCloneError(
+          language === "zh"
+            ? "无法创建目录，请检查路径权限"
+            : "Failed to create directory, please check permissions",
+        );
+        showToast(
+          ToastType.ERROR,
+          language === "zh"
+            ? "无法创建目录，请检查权限"
+            : "Failed to create directory, check permissions",
+        );
+      } else {
+        setCloneError(
+          language === "zh"
+            ? "克隆失败，请检查网络或重试"
+            : "Clone failed, please check network or retry",
+        );
+        showToast(
+          ToastType.ERROR,
+          language === "zh" ? "克隆仓库失败" : "Failed to clone repository",
+        );
+      }
     } finally {
       setIsCloning(false);
     }
@@ -347,6 +419,7 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({
     setShowRepoInfo(false);
     setBranches([]);
     setSelectedBranch("");
+    setCloneError("");
   };
 
   const handleDialogMouseDown = (e: React.MouseEvent) => {
@@ -693,7 +766,7 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({
             pointerEvents: "auto",
           }}
           onClick={(e) => {
-            if (e.target === e.currentTarget) {
+            if (e.target === e.currentTarget && !isCloning) {
               setShowGithubDialog(false);
               setGithubRepoUrl("");
               setCloneTargetPath("");
@@ -701,6 +774,7 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({
               setShowRepoInfo(false);
               setBranches([]);
               setSelectedBranch("");
+              setCloneError("");
             }
           }}
         >
@@ -754,6 +828,7 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({
               </span>
               <button
                 onClick={() => {
+                  if (isCloning) return;
                   setShowGithubDialog(false);
                   setGithubRepoUrl("");
                   setCloneTargetPath("");
@@ -761,6 +836,7 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({
                   setShowRepoInfo(false);
                   setBranches([]);
                   setSelectedBranch("");
+                  setCloneError("");
                 }}
                 style={{
                   display: "flex",
@@ -770,13 +846,16 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({
                   height: "22px",
                   background: "transparent",
                   border: "none",
-                  cursor: "pointer",
+                  cursor: isCloning ? "not-allowed" : "pointer",
                   color: "var(--text-secondary)",
                   borderRadius: "4px",
                   padding: 0,
+                  opacity: isCloning ? 0.5 : 1,
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.background = "var(--hover-bg)";
+                  if (!isCloning) {
+                    e.currentTarget.style.background = "var(--hover-bg)";
+                  }
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.background = "transparent";
@@ -825,6 +904,7 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({
                     placeholder="github.com/user/repo"
                     onFocus={() => setIsFocused(true)}
                     onBlur={() => setIsFocused(false)}
+                    disabled={isCloning}
                     onKeyDown={(e) => {
                       if (
                         e.key === "Enter" &&
@@ -833,7 +913,7 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({
                       ) {
                         handleGithubClone();
                       }
-                      if (e.key === "Escape") {
+                      if (e.key === "Escape" && !isCloning) {
                         setShowGithubDialog(false);
                         setGithubRepoUrl("");
                         setCloneTargetPath("");
@@ -841,6 +921,7 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({
                         setShowRepoInfo(false);
                         setBranches([]);
                         setSelectedBranch("");
+                        setCloneError("");
                       }
                     }}
                     style={{
@@ -852,6 +933,7 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({
                       fontSize: "12px",
                       padding: "6px 0",
                       fontFamily: "monospace",
+                      opacity: isCloning ? 0.6 : 1,
                     }}
                     autoFocus
                   />
@@ -862,7 +944,7 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({
                   {!isVerifying && repoInfo && !repoInfo.valid && (
                     <AlertCircleIcon size={13} />
                   )}
-                  {githubRepoUrl && (
+                  {githubRepoUrl && !isCloning && (
                     <button
                       onClick={() => {
                         setGithubRepoUrl("");
@@ -870,6 +952,7 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({
                         setShowRepoInfo(false);
                         setBranches([]);
                         setSelectedBranch("");
+                        setCloneError("");
                       }}
                       style={{
                         display: "flex",
@@ -998,13 +1081,19 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({
                         background: "var(--bg-secondary)",
                         padding: "0 10px",
                         height: "32px",
-                        cursor: "pointer",
+                        cursor: isCloning ? "not-allowed" : "pointer",
                         userSelect: "none",
+                        opacity: isCloning ? 0.6 : 1,
                       }}
-                      onClick={() => setShowBranchDropdown(!showBranchDropdown)}
+                      onClick={() => {
+                        if (!isCloning)
+                          setShowBranchDropdown(!showBranchDropdown);
+                      }}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.borderColor =
-                          "var(--accent-color)";
+                        if (!isCloning) {
+                          e.currentTarget.style.borderColor =
+                            "var(--accent-color)";
+                        }
                       }}
                       onMouseLeave={(e) => {
                         e.currentTarget.style.borderColor =
@@ -1074,8 +1163,10 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({
                                 gap: "6px",
                               }}
                               onClick={() => {
-                                setSelectedBranch(branch);
-                                setShowBranchDropdown(false);
+                                if (!isCloning) {
+                                  setSelectedBranch(branch);
+                                  setShowBranchDropdown(false);
+                                }
                               }}
                               onMouseEnter={(e) => {
                                 if (selectedBranch !== branch) {
@@ -1135,45 +1226,42 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({
                       flex: 1,
                       display: "flex",
                       alignItems: "center",
-                      border: "1px solid var(--border-color)",
+                      border: `1px solid ${cloneError ? "var(--error-color)" : "var(--border-color)"}`,
                       borderRadius: "6px",
                       background: "var(--bg-secondary)",
                       padding: "0 10px",
                       height: "32px",
-                      cursor: "pointer",
-                    }}
-                    onClick={handleSelectCloneTarget}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.borderColor = "var(--accent-color)";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.borderColor = "var(--border-color)";
                     }}
                   >
                     <FolderTargetIcon size={13} />
-                    <span
+                    <input
+                      type="text"
+                      value={cloneTargetPath}
+                      onChange={handleCloneTargetPathChange}
+                      placeholder={
+                        isZh
+                          ? "输入或选择目标目录..."
+                          : "Enter or select target directory..."
+                      }
+                      disabled={isCloning}
                       style={{
                         flex: 1,
+                        background: "transparent",
+                        border: "none",
+                        outline: "none",
+                        color: cloneError
+                          ? "var(--error-color)"
+                          : "var(--text-primary)",
                         fontSize: "12px",
-                        color: cloneTargetPath
-                          ? "var(--text-primary)"
-                          : "var(--text-muted)",
                         padding: "6px 0",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
+                        opacity: isCloning ? 0.6 : 1,
                       }}
-                    >
-                      {cloneTargetPath ||
-                        (isZh
-                          ? "选择目标目录..."
-                          : "Select target directory...")}
-                    </span>
-                    {cloneTargetPath && (
+                    />
+                    {cloneTargetPath && !isCloning && (
                       <button
-                        onClick={(e) => {
-                          e.stopPropagation();
+                        onClick={() => {
                           setCloneTargetPath("");
+                          setCloneError("");
                         }}
                         style={{
                           display: "flex",
@@ -1202,6 +1290,7 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({
                   </div>
                   <button
                     onClick={handleSelectCloneTarget}
+                    disabled={isCloning}
                     style={{
                       display: "flex",
                       alignItems: "center",
@@ -1212,25 +1301,55 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({
                       background: "var(--bg-tertiary)",
                       border: "1px solid var(--border-color)",
                       borderRadius: "6px",
-                      cursor: "pointer",
-                      color: "var(--text-secondary)",
+                      cursor: isCloning ? "not-allowed" : "pointer",
+                      color: isCloning
+                        ? "var(--text-muted)"
+                        : "var(--text-secondary)",
                       fontSize: "11px",
                       whiteSpace: "nowrap",
                       flexShrink: 0,
+                      opacity: isCloning ? 0.6 : 1,
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.background = "var(--hover-bg)";
-                      e.currentTarget.style.color = "var(--text-primary)";
+                      if (!isCloning) {
+                        e.currentTarget.style.background = "var(--hover-bg)";
+                        e.currentTarget.style.color = "var(--text-primary)";
+                      }
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.background = "var(--bg-tertiary)";
-                      e.currentTarget.style.color = "var(--text-secondary)";
+                      if (!isCloning) {
+                        e.currentTarget.style.background = "var(--bg-tertiary)";
+                        e.currentTarget.style.color = "var(--text-secondary)";
+                      }
                     }}
                   >
                     <BrowseFolderIcon size={13} />
                     {isZh ? "浏览" : "Browse"}
                   </button>
                 </div>
+                {/* 错误信息显示区域 */}
+                {cloneError && (
+                  <div
+                    style={{
+                      marginTop: "6px",
+                      padding: "6px 10px",
+                      borderRadius: "6px",
+                      fontSize: "12px",
+                      color: "var(--error-color)",
+                      background: "rgba(255, 68, 68, 0.08)",
+                      border: "1px solid rgba(255, 68, 68, 0.15)",
+                      display: "flex",
+                      alignItems: "flex-start",
+                      gap: "6px",
+                      wordBreak: "break-all",
+                    }}
+                  >
+                    <AlertCircleIcon
+                      size={14}
+                    />
+                    <span>{cloneError}</span>
+                  </div>
+                )}
               </div>
 
               <div
@@ -1243,6 +1362,7 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({
               >
                 <button
                   onClick={() => {
+                    if (isCloning) return;
                     setShowGithubDialog(false);
                     setGithubRepoUrl("");
                     setCloneTargetPath("");
@@ -1250,7 +1370,9 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({
                     setShowRepoInfo(false);
                     setBranches([]);
                     setSelectedBranch("");
+                    setCloneError("");
                   }}
+                  disabled={isCloning}
                   style={{
                     padding: "4px 14px",
                     height: "28px",
@@ -1258,12 +1380,17 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({
                     background: "transparent",
                     border: "1px solid var(--border-color)",
                     borderRadius: "6px",
-                    color: "var(--text-secondary)",
-                    cursor: "pointer",
+                    color: isCloning
+                      ? "var(--text-muted)"
+                      : "var(--text-secondary)",
+                    cursor: isCloning ? "not-allowed" : "pointer",
                     transition: "all 0.15s",
+                    opacity: isCloning ? 0.6 : 1,
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.background = "var(--hover-bg)";
+                    if (!isCloning) {
+                      e.currentTarget.style.background = "var(--hover-bg)";
+                    }
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.background = "transparent";

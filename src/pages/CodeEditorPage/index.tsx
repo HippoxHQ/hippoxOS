@@ -11,6 +11,8 @@ import { useCodeEditorSession } from "../../app/hooks/session/useCodeEditorChatS
 import { codeEditorSessionCommands } from "../../command/session/codeeditor";
 import CodeEditorWelcomePage from "./CodeEditorWelcomePage";
 import { listen } from "@tauri-apps/api/event";
+import { githubCommands } from "../../command/net/github";
+import { showToast, ToastType } from "../../components/Toast";
 
 const GLOBAL_SESSION_LOCK = {
   isCreating: false,
@@ -879,6 +881,39 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
     },
     [createSessionWithLock],
   );
+
+  useEffect(() => {
+    const handleGithubCloneRequest = async (event: CustomEvent) => {
+      const { repoUrl, targetPath, branch } = event.detail;
+      try {
+        await githubCommands.cloneRepository(
+          repoUrl,
+          targetPath,
+          branch || "main",
+        );
+        await handleSelectWorkspace(targetPath, "directory");
+        window.dispatchEvent(
+          new CustomEvent("github-clone-complete", {
+            detail: { repoUrl, targetPath, branch },
+          }),
+        );
+      } catch (error) {
+        console.log('克隆失败')
+        console.log(error)
+        showToast(
+          ToastType.ERROR,
+          language === "zh" ? "克隆失败" : "Clone Failed",
+        );
+      }
+    };
+    const listener: EventListener = (event: Event) => {
+      handleGithubCloneRequest(event as CustomEvent);
+    };
+    window.addEventListener("github-clone-request", listener);
+    return () => {
+      window.removeEventListener("github-clone-request", listener);
+    };
+  }, [handleSelectWorkspace]);
 
   useEffect(() => {
     loadHistorySessions();

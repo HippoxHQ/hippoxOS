@@ -1,3 +1,5 @@
+use std::{fs, path::Path};
+
 use tauri::command;
 
 #[command]
@@ -194,5 +196,39 @@ pub async fn cmd_get_github_branches(repo_url: String) -> Result<serde_json::Val
             );
             Ok(serde_json::Value::Object(result))
         }
+    }
+}
+
+#[command]
+pub async fn cmd_clone_github_repo(
+    repo_url: String,
+    target_path: String,
+    branch: Option<String>,
+) -> Result<String, String> {
+    use tokio::process::Command as TokioCommand;
+    use tokio::time::{timeout, Duration};
+    let target = Path::new(&target_path);
+    if !target.exists() {
+        fs::create_dir_all(target).map_err(|e| format!("Failed to create directory: {}", e))?;
+    }
+    let mut cmd = TokioCommand::new("git");
+    cmd.arg("clone");
+    if let Some(b) = branch {
+        if !b.is_empty() {
+            cmd.arg("-b").arg(&b);
+        }
+    }
+    cmd.arg(&repo_url).arg(&target_path);
+    match timeout(Duration::from_secs(300), cmd.output()).await {
+        Ok(Ok(output)) => {
+            if output.status.success() {
+                Ok(format!("Successfully cloned to: {}", target_path))
+            } else {
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                Err(format!("Git clone failed: {}", stderr))
+            }
+        }
+        Ok(Err(e)) => Err(format!("Failed to execute git: {}", e)),
+        Err(_) => Err("Clone timeout (5 minutes)".to_string()),
     }
 }

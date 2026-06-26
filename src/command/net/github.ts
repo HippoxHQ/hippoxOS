@@ -29,4 +29,8 @@ export const githubCommands = {
     }> => {
         return await invoke("cmd_get_github_branches", { repoUrl });
     },
+
+    cloneRepository: async (repoUrl: string, targetPath: string, branch?: string): Promise<void> => {
+        return await invoke("cmd_clone_github_repo", { repoUrl, targetPath, branch });
+    },
 };

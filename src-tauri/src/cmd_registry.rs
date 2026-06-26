@@ -276,5 +276,6 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_get_all_workflow_mode_info,
         commands::cmd_verify_github_repo,
         commands::cmd_get_github_branches,
+        commands::cmd_clone_github_repo
     ]
 }
