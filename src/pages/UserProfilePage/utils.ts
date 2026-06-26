@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { taskPoolCommands } from "../../core/TaskPool";
-import { sessionCommands } from "../../command/session";
+import { sessionCommands } from "../../command/session/general";
 
 export const loadAllTasksFromBackups = async (): Promise<any[]> => {
   try {

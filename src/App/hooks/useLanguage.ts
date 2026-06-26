@@ -34,15 +34,15 @@ export function useLanguage(initialLanguage?: string) {
         detail: { language: newLang },
       }),
     );
-    const assistantMessages = taskManager.getAssistantMessages();
-    const welcomeMsg = assistantMessages.find((m) => m.id === "welcome");
-    if (welcomeMsg) {
-      const newContent = appConfig.getWelcomeMessage(newLang);
-      taskManager.updateAssistantMessage("welcome", {
-        content: newContent,
-        timestamp: new Date().toISOString(),
-      });
-    }
+    // const assistantMessages = taskManager.getAssistantMessages();
+    // const welcomeMsg = assistantMessages.find((m) => m.id === "welcome");
+    // if (welcomeMsg) {
+    //   const newContent = appConfig.getWelcomeMessage(newLang);
+    //   taskManager.updateAssistantMessage("welcome", {
+    //     content: newContent,
+    //     timestamp: new Date().toISOString(),
+    //   });
+    // }
   };
 
   return {

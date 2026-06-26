@@ -1,7 +1,8 @@
+import { sessionCommands } from "../../../../command/session/general";
 import { taskManager } from "../../../../core/TaskManager";
+import { SessionDomain } from "../../../../core/types";
 import { ChatMessage } from "../../../../types/types";
 import { MessageSearchResult } from "../types";
-import { sessionCommands } from "../../../../command/session";
 
 export const generateHighlight = (text: string, keyword: string): string => {
   if (!text || !keyword) return text;
@@ -30,9 +31,9 @@ export const getSessionTitle = (
 };
 
 const getMessagesForSession = (sessionId: string): ChatMessage[] => {
-  const userMessages = taskManager.getUserMessagesBySession?.(sessionId) || [];
+  const userMessages = taskManager.getUserMessagesBySession?.(sessionId, SessionDomain.General) || [];
   const assistantMessages =
-    taskManager.getAssistantMessagesBySessionAsArray?.(sessionId) || [];
+    taskManager.getAssistantMessagesBySessionAsArray?.(sessionId, SessionDomain.General) || [];
 
   return [...userMessages, ...assistantMessages].sort(
     (a, b) =>

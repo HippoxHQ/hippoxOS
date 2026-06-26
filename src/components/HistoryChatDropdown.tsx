@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import { DialogSession } from "../types/types";
 import { showToast, ToastType } from "./Toast";
-import { sessionCommands } from "../command/session";
 import { PinFilledIcon } from "../icons";
+import { sessionCommands } from "../command/session/general";
 
 interface HistoryChatDropdownProps {
   t: (key: string, params?: any) => string;

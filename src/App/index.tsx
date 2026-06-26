@@ -6,7 +6,7 @@ import { useMenuPanel } from "./hooks/useMenuPanel";
 import { useFilePreview } from "./hooks/useFilePreview";
 import { useExecutionLogs } from "./hooks/useExecutionLogs";
 import { useConfigLoader } from "./hooks/useConfigLoader";
-import { useSession } from "./hooks/useSession";
+import { useSession } from "./hooks/session/useGeneralChatSession";
 import { useSidebar } from "./hooks/useSidebar";
 import { useSystemEvents, useDirectoryEvents } from "./hooks/useSystemEvents";
 import { useSearchEvents } from "./hooks/useSearchEvents";
@@ -18,7 +18,7 @@ import { useDriverEvents } from "./hooks/useDriverEvents";
 import { useSendSkillMessage } from "./hooks/useSendSkillMessage";
 import { useFunctionPanelController } from "../components/FunctionPanel/hooks/useFunctionPanelController";
 import { useFunctionPanelPosition } from "./hooks/useFunctionPanelPosition";
-import { sessionCommands } from "../command/session";
+import { sessionCommands } from "../command/session/general";
 
 function App() {
   const { isConfigLoaded, initialEngineConfig, initialTheme, initialLanguage } =

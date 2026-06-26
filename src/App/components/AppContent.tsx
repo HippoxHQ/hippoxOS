@@ -22,7 +22,7 @@ import EngineDatabasePanel from "../../components/MenuPanel/EngineConfig/EngineD
 import EngineNetworkPanel from "../../components/MenuPanel/EngineConfig/EngineNetworkPanel";
 import EngineNotificationPanel from "../../components/MenuPanel/EngineConfig/EngineNotificationPanel";
 import { Language, Theme } from "../../types/types";
-import { UploadFile } from "../../core/types";
+import { SessionDomain, UploadFile } from "../../core/types";
 import ScheduledTasksManager from "../../pages/ScheduledTasksPage";
 import SkillsManager from "../../pages/SkillsManagerPage";
 import UserProfile from "../../pages/UserProfilePage";
@@ -279,50 +279,6 @@ export function AppContent({
     functionPanel.openPreview(file);
   };
 
-  const leftPanelContent =
-    layoutSwapMode === "terminal-left" ? (
-      <TerminalPanel
-        logs={executionLogs}
-        onClearLogs={onClearLogs}
-        t={t}
-        currentSessionId={currentSessionId}
-        onFileClick={handleFileClick}
-        isLeftPanel={true}
-      />
-    ) : (
-      <ChatPanel
-        onSendMessage={onSendMessage}
-        onFileClick={handleFileClick}
-        t={t}
-        currentSessionId={currentSessionId}
-        onDragOverInputChange={setIsDraggingOverInput}
-        language={language}
-        isLeftPanel={true}
-      />
-    );
-
-  const rightPanelContent =
-    layoutSwapMode === "terminal-left" ? (
-      <ChatPanel
-        onSendMessage={onSendMessage}
-        onFileClick={handleFileClick}
-        t={t}
-        currentSessionId={currentSessionId}
-        onDragOverInputChange={setIsDraggingOverInput}
-        language={language}
-        isLeftPanel={false}
-      />
-    ) : (
-      <TerminalPanel
-        logs={executionLogs}
-        onClearLogs={onClearLogs}
-        t={t}
-        currentSessionId={currentSessionId}
-        onFileClick={handleFileClick}
-        isLeftPanel={false}
-      />
-    );
-
   const renderEngineConfig = () => {
     switch (engineSubView) {
       case "engine_database":
@@ -421,6 +377,7 @@ export function AppContent({
       !currentContentPanel || currentContentPanel === "generalChat";
     const isMapPage = currentContentPanel === "mapChat";
     const isChartPage = currentContentPanel === "chartChat";
+    const isCodeEditorChat = currentContentPanel === "codeEditorChat";
     let contentElement: React.ReactNode;
     if (isChatPage) {
       if (showWelcome && !currentContentPanel) {
@@ -446,9 +403,17 @@ export function AppContent({
               functionPanel.isOpen ? isFunctionPanelMaximized : false
             }
             currentSessionId={currentSessionId}
-            onSwitchSession={onSwitchSession}
+            onSwitchSession={(sessionId) => {
+              onSwitchSession(sessionId);
+            }}
             onCloseSkillsManager={onCloseContentPanel}
             t={t}
+            onSendMessage={onSendMessage}
+            onFileClick={handleFileClick}
+            language={language}
+            onDragOverInputChange={setIsDraggingOverInput}
+            executionLogs={executionLogs}
+            onClearLogs={onClearLogs}
           />
         );
       }
@@ -464,12 +429,15 @@ export function AppContent({
           isFunctionPanelMaximized={
             functionPanel.isOpen ? isFunctionPanelMaximized : false
           }
-          currentSessionId={currentSessionId}
-          onSwitchSession={onSwitchSession}
           onCloseSkillsManager={onCloseContentPanel}
           t={t}
           theme={theme === "dark" ? "dark" : "light"}
           i18n={language === "zh" ? "zh-cn" : "en"}
+          onFileClick={handleFileClick}
+          language={language}
+          onDragOverInputChange={setIsDraggingOverInput}
+          executionLogs={executionLogs}
+          onClearLogs={onClearLogs}
         />
       );
     } else if (isChartPage) {
@@ -484,43 +452,41 @@ export function AppContent({
           isFunctionPanelMaximized={
             functionPanel.isOpen ? isFunctionPanelMaximized : false
           }
-          currentSessionId={currentSessionId}
-          onSwitchSession={onSwitchSession}
+          t={t}
+          theme={theme === "dark" ? "dark" : "light"}
+          i18n={language === "zh" ? "zh-cn" : "en"}
+          onFileClick={handleFileClick}
+          language={language}
+          onDragOverInputChange={setIsDraggingOverInput}
+          executionLogs={executionLogs}
+          onClearLogs={onClearLogs}
+        />
+      );
+    } else if (isCodeEditorChat) {
+      contentElement = (
+        <CodeEditorPage
+          layoutMode="horizontal"
+          onLayoutModeChange={() => {}}
+          leftTitle={t("chat.title") || "Chat"}
+          rightTitle={t("codeEditor.title") || "Code Editor"}
+          leftIcon="💬"
+          rightIcon="💻"
+          isFunctionPanelMaximized={
+            functionPanel.isOpen ? isFunctionPanelMaximized : false
+          }
           onCloseSkillsManager={onCloseContentPanel}
           t={t}
           theme={theme === "dark" ? "dark" : "light"}
           i18n={language === "zh" ? "zh-cn" : "en"}
+          onFileClick={handleFileClick}
+          language={language}
+          onDragOverInputChange={setIsDraggingOverInput}
+          executionLogs={executionLogs}
+          onClearLogs={onClearLogs}
         />
       );
     } else {
       switch (currentContentPanel) {
-        case "codeEditorChat":
-          contentElement = (
-            <CodeEditorPage
-              layoutMode="horizontal"
-              onLayoutModeChange={() => {}}
-              leftTitle={t("chat.title") || "Chat"}
-              rightTitle={t("codeEditor.title") || "Code Editor"}
-              leftIcon="💬"
-              rightIcon="💻"
-              isFunctionPanelMaximized={
-                functionPanel.isOpen ? isFunctionPanelMaximized : false
-              }
-              currentSessionId={currentSessionId}
-              onSwitchSession={onSwitchSession}
-              onCloseSkillsManager={onCloseContentPanel}
-              t={t}
-              theme={theme === "dark" ? "dark" : "light"}
-              i18n={language === "zh" ? "zh-cn" : "en"}
-              onSendMessage={onSendMessage}
-              onFileClick={handleFileClick}
-              language={language}
-              onDragOverInputChange={setIsDraggingOverInput}
-              executionLogs={executionLogs}
-              onClearLogs={onClearLogs}
-            />
-          );
-          break;
         case "taskQueue":
           contentElement = <TaskQueuePanel t={t} />;
           break;

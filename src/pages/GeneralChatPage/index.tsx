@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { taskManager } from "../../core/TaskManager";
-import { TaskStatusEnum } from "../../core/types";
+import { SessionDomain, TaskStatusEnum } from "../../core/types";
 import { showTooltipOnElement } from "../../components/Tooltip";
 import HistoryChatPanel, { HistoryChatPanelRef } from "./HistoryChatPanel";
 import { CollapseAllIcon2, ExpandAllIcon2 } from "../../icons";
@@ -18,7 +18,7 @@ interface GeneralChatPageProps {
   t?: (key: string, params?: any) => string;
   isFunctionPanelMaximized?: boolean;
   currentSessionId?: string;
-  onSwitchSession?: (sessionId: string) => void;
+  onSwitchSession?: (sessionId: string, domain: SessionDomain) => void;
   onCloseSkillsManager?: () => void;
   onSendMessage?: (
     message: string,
@@ -706,6 +706,14 @@ const GeneralChatPage: React.FC<GeneralChatPageProps> = ({
   );
 
   useEffect(() => {
+    if (currentSessionId) {
+      taskManager.setCurrentSession(currentSessionId, SessionDomain.General);
+    } else {
+      taskManager.setCurrentDomain(SessionDomain.General);
+    }
+  }, [currentSessionId]);
+
+  useEffect(() => {
     const loadLayoutMode = async () => {
       try {
         const mode =
@@ -744,7 +752,8 @@ const GeneralChatPage: React.FC<GeneralChatPageProps> = ({
   useEffect(() => {
     const loadSessions = async () => {
       try {
-        const { sessionCommands } = await import("../../command/session");
+        const { sessionCommands } =
+          await import("../../command/session/general");
         const list = await sessionCommands.listSessions();
         setHistorySessions(list);
       } catch (error) {
@@ -851,7 +860,7 @@ const GeneralChatPage: React.FC<GeneralChatPageProps> = ({
   const handleSessionSelect = useCallback(
     (sessionId: string) => {
       if (onSwitchSession) {
-        onSwitchSession(sessionId);
+        onSwitchSession(sessionId, SessionDomain.General);
       }
     },
     [onSwitchSession],

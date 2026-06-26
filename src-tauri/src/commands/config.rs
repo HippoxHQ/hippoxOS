@@ -100,7 +100,6 @@ pub struct AddLlmInstanceRequest {
     pub provider: String,
     pub api_key: String,
     pub api_base: String,
-    pub workflow_mode: String,
     pub default_model: String,
     pub models: Vec<ModelConfig>,
     pub is_default: Option<bool>,

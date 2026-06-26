@@ -203,7 +203,7 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
       async () => {
         setCleaningDialog(true);
         try {
-          const { sessionCommands } = await import("../../../command/session");
+          const { sessionCommands } = await import("../../../command/session/general");
           const sessions = await sessionCommands.listSessions();
           for (const session of sessions) {
             const sessionId = session.session_id;

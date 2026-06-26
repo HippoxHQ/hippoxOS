@@ -16,11 +16,10 @@ import {
   workspaceCommands,
 } from "../../../command/workspace";
 import { workflowCommands } from "../../../command/workflow";
-import { sessionCommands } from "../../../command/session";
 import FileUploader from "../../../components/FileUploader";
 import { showToast, ToastType } from "../../../components/Toast";
 import { taskManager } from "../../../core/TaskManager";
-import { UploadFile } from "../../../core/types";
+import { SessionDomain, UploadFile } from "../../../core/types";
 import {
   ChatIcon,
   TaskQueueIcon,
@@ -40,6 +39,7 @@ import {
   enDefaultPrompts,
 } from "../../../types/DefaultPrompt";
 import { ChatMessage, RoleEnum, MessageStatus } from "../../../types/types";
+import { sessionCommands } from "../../../command/session/general";
 
 interface ChatPanelProps {
   onSendMessage: (
@@ -714,40 +714,37 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
 
   useEffect(() => {
     const updateMessages = () => {
+      setMessages([]);
+
       if (!currentSessionId) {
-        let allMessages = taskManager.getAllMessages();
-        if (allMessages.length === 0) {
-          const welcomeMsg: ChatMessage = {
-            id: "welcome",
-            role: RoleEnum.LLM,
-            content: t("welcome.message"),
-            timestamp: new Date().toISOString(),
-          };
-          taskManager.addAssistantMessage(welcomeMsg);
-          allMessages = [welcomeMsg];
-        }
-        setMessages(allMessages);
+        setMessages([]);
         return;
       }
-      const userMessages =
-        taskManager.getUserMessagesBySession(currentSessionId);
+      const userMessages = taskManager.getUserMessagesBySession(
+        currentSessionId,
+        SessionDomain.General,
+      );
       const assistantMessages =
-        taskManager.getAssistantMessagesBySessionAsArray(currentSessionId);
-      let allMessages = [...userMessages, ...assistantMessages].sort(
+        taskManager.getAssistantMessagesBySessionAsArray(
+          currentSessionId,
+          SessionDomain.General,
+        );
+      const messageMap = new Map<string, ChatMessage>();
+      const allMessages = [...userMessages, ...assistantMessages];
+      allMessages.sort(
         (a, b) =>
           new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
       );
-      if (allMessages.length === 0) {
-        const welcomeMsg: ChatMessage = {
-          id: "welcome",
-          role: RoleEnum.LLM,
-          content: t("welcome.message"),
-          timestamp: new Date().toISOString(),
-        };
-        taskManager.addAssistantMessageToSession(currentSessionId, welcomeMsg);
-        allMessages = [welcomeMsg];
-      }
-      setMessages(allMessages);
+      allMessages.forEach((msg) => {
+        if (msg && msg.id) {
+          messageMap.set(msg.id, msg);
+        }
+      });
+      const result = Array.from(messageMap.values()).sort(
+        (a, b) =>
+          new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
+      );
+      setMessages(result);
     };
     updateMessages();
     const unsubscribe = taskManager.subscribe(() => updateMessages());

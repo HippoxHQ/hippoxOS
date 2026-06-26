@@ -7,7 +7,8 @@ import { HistoryChatPanelRef } from "../GeneralChatPage/HistoryChatPanel";
 import HistoryMapChatPanel from "./HistoryMapChatPanel";
 import MapsChatPageEarthView from "./MapsChatPageEarthView";
 import { configCommands } from "../../command/config";
-import ChatPanel from "../GeneralChatPage/ChatPanel";
+import MapsChatPage from "./MapsChatPanel";
+import { useMapSession } from "../../App/hooks/session/useMapChatSession";
 
 interface MapsPageProps {
   layoutMode?: "horizontal" | "vertical";
@@ -18,8 +19,6 @@ interface MapsPageProps {
   rightIcon?: React.ReactNode;
   t?: (key: string, params?: any) => string;
   isFunctionPanelMaximized?: boolean;
-  currentSessionId?: string;
-  onSwitchSession?: (sessionId: string) => void;
   onCloseSkillsManager?: () => void;
   theme?: "light" | "dark";
   i18n?: "en" | "zh-cn";
@@ -27,12 +26,6 @@ interface MapsPageProps {
   onMapLoad?: (earthView: any) => void;
   onMapClick?: (event: any) => void;
   onMapMoveEnd?: (center: [number, number], zoom: number) => void;
-  onSendMessage?: (
-    message: string,
-    sessionId: string,
-    files?: any[],
-    workflowMode?: string,
-  ) => void;
   onFileClick?: (file: any) => void;
   language?: "zh" | "en";
   onDragOverInputChange?: (isDragging: boolean) => void;
@@ -650,8 +643,6 @@ const MapsPage: React.FC<MapsPageProps> = ({
   rightIcon = "🗺️",
   t = (key: string) => key,
   isFunctionPanelMaximized = false,
-  currentSessionId,
-  onSwitchSession,
   onCloseSkillsManager,
   theme = "dark",
   i18n = "en",
@@ -659,13 +650,20 @@ const MapsPage: React.FC<MapsPageProps> = ({
   onMapLoad,
   onMapClick,
   onMapMoveEnd,
-  onSendMessage,
   onFileClick,
   language = "en",
   onDragOverInputChange,
   executionLogs,
   onClearLogs,
 }) => {
+  const {
+    currentSessionId: mapSessionId,
+    handleSendMessage: mapHandleSendMessage,
+    handleSwitchSession: mapHandleSwitchSession,
+    handleNewSession: mapHandleNewSession,
+    shouldShowWelcome: mapShouldShowWelcome,
+  } = useMapSession(language as "zh" | "en", true);
+
   const [chatPanelWidth, setChatPanelWidth] = useState<number>(400);
   const [historyWidth, setHistoryWidth] = useState<number>(280);
   const [chatPanelCollapsed, setChatPanelCollapsed] = useState<boolean>(false);
@@ -700,11 +698,11 @@ const MapsPage: React.FC<MapsPageProps> = ({
   }, [isFunctionPanelMaximized]);
 
   const chatPanel = (
-    <ChatPanel
-      onSendMessage={onSendMessage || (() => {})}
+    <MapsChatPage
+      onSendMessage={mapHandleSendMessage}
       onFileClick={onFileClick}
       t={t}
-      currentSessionId={currentSessionId}
+      currentSessionId={mapSessionId}
       onDragOverInputChange={onDragOverInputChange}
       language={language}
       isLeftPanel={isChatOnLeft}
@@ -732,6 +730,7 @@ const MapsPage: React.FC<MapsPageProps> = ({
       />
     </div>
   );
+
   const collapsedChatSidebar = (
     <div
       className="collapsed-sidebar"
@@ -863,8 +862,9 @@ const MapsPage: React.FC<MapsPageProps> = ({
   useEffect(() => {
     const loadSessions = async () => {
       try {
-        const { sessionCommands } = await import("../../command/session");
-        const list = await sessionCommands.listSessions();
+        const { mapSessionCommands } =
+          await import("../../command/session/map");
+        const list = await mapSessionCommands.listMapSessions();
         setHistorySessions(list);
       } catch (error) {
         console.error("Failed to load history sessions:", error);
@@ -874,9 +874,9 @@ const MapsPage: React.FC<MapsPageProps> = ({
     const handleSessionCreated = () => {
       loadSessions();
     };
-    window.addEventListener("session-created", handleSessionCreated);
+    window.addEventListener("map-session-created", handleSessionCreated);
     return () => {
-      window.removeEventListener("session-created", handleSessionCreated);
+      window.removeEventListener("map-session-created", handleSessionCreated);
     };
   }, []);
 
@@ -940,11 +940,9 @@ const MapsPage: React.FC<MapsPageProps> = ({
 
   const handleSessionSelect = useCallback(
     (sessionId: string) => {
-      if (onSwitchSession) {
-        onSwitchSession(sessionId);
-      }
+      mapHandleSwitchSession(sessionId);
     },
-    [onSwitchSession],
+    [mapHandleSwitchSession],
   );
 
   const handleMouseDown = (
@@ -1084,7 +1082,7 @@ const MapsPage: React.FC<MapsPageProps> = ({
           </div>
           <CollapsedHistoryList
             sessions={historySessions}
-            currentSessionId={currentSessionId}
+            currentSessionId={mapSessionId}
             onSelectSession={handleSessionSelect}
           />
         </div>
@@ -1246,7 +1244,7 @@ const MapsPage: React.FC<MapsPageProps> = ({
             ref={historyPanelRef}
             t={t}
             onSessionSelect={handleSessionSelect}
-            currentSessionId={currentSessionId}
+            currentSessionId={mapSessionId}
             onCloseSkillsManager={onCloseSkillsManager}
           />
         </div>

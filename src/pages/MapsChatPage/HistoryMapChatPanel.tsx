@@ -9,7 +9,7 @@ import React, {
 import { DialogSession } from "../../types/types";
 import { showDialog, DialogType } from "../../components/Dialog";
 import { showToast, ToastType } from "../../components/Toast";
-import { sessionCommands } from "../../command/session";
+import { mapSessionCommands } from "../../command/session/map";
 import {
   DeleteIcon,
   MoreVerticalIcon,
@@ -159,10 +159,10 @@ const HistoryMapChatPanel = forwardRef<
       const handleSessionCreated = () => {
         loadSessions(true);
       };
-      window.addEventListener("session-created", handleSessionCreated);
+      window.addEventListener("map-session-created", handleSessionCreated);
       return () => {
         document.removeEventListener("mousedown", handleClickOutside);
-        window.removeEventListener("session-created", handleSessionCreated);
+        window.removeEventListener("map-session-created", handleSessionCreated);
       };
     }, [editingId]);
 
@@ -179,13 +179,13 @@ const HistoryMapChatPanel = forwardRef<
       }
       setLoading(true);
       try {
-        const list = await sessionCommands.listSessions();
+        const list = await mapSessionCommands.listMapSessions();
         const sorted = [...list].sort((a, b) => {
           if (a.is_pinned !== b.is_pinned) {
             return a.is_pinned ? -1 : 1;
           }
           const getTimestamp = (id: string) => {
-            const ts = id.replace("session_", "");
+            const ts = id.replace("map_session_", "");
             return parseInt(ts, 10) || 0;
           };
           const aTs = getTimestamp(a.session_id);
@@ -207,7 +207,7 @@ const HistoryMapChatPanel = forwardRef<
       e.stopPropagation();
       try {
         const newPinned = !session.is_pinned;
-        await sessionCommands.updatePinnedSessions(
+        await mapSessionCommands.updatePinnedMapSessions(
           session.session_id,
           newPinned,
         );
@@ -253,7 +253,7 @@ const HistoryMapChatPanel = forwardRef<
         t("history.dialog.confirmDeleteMessage"),
         async () => {
           try {
-            await sessionCommands.deleteSession(session.session_id);
+            await mapSessionCommands.deleteMapSession(session.session_id);
             if (currentSessionId === session.session_id && onSessionSelect) {
               const otherSession = sessions.find(
                 (s) => s.session_id !== session.session_id,
@@ -301,7 +301,7 @@ const HistoryMapChatPanel = forwardRef<
         return;
       }
       try {
-        await sessionCommands.updateSessionConfig(session.session_id, {
+        await mapSessionCommands.updateMapSessionConfig(session.session_id, {
           title: trimmed,
         });
         await loadSessions(true);
@@ -574,7 +574,6 @@ const HistoryMapChatPanel = forwardRef<
                     transform: expandedCategories[category.type]
                       ? "rotate(0deg)"
                       : "rotate(-90deg)",
-                    // transition: "transform 0.15s",
                   }}
                 >
                   ▼
@@ -718,6 +717,6 @@ const HistoryMapChatPanel = forwardRef<
   },
 );
 
-HistoryMapChatPanel.displayName = "HistoryChatPanel";
+HistoryMapChatPanel.displayName = "HistoryMapChatPanel";
 
 export default HistoryMapChatPanel;

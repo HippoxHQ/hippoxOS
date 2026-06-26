@@ -1,13 +1,14 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { taskManager } from "../../core/TaskManager";
-import { TaskStatusEnum } from "../../core/types";
+import { TaskStatusEnum, SessionDomain } from "../../core/types";
 import { showTooltipOnElement } from "../../components/Tooltip";
 import { CollapseAllIcon2, ExpandAllIcon2 } from "../../icons";
 import { HistoryChatPanelRef } from "../GeneralChatPage/HistoryChatPanel";
 import CodingPage from "./Coding";
 import { configCommands } from "../../command/config";
-import ChatPanel from "../GeneralChatPage/ChatPanel";
 import HistoryCodeEditorChatPanel from "./HistoryCodeEditorChatPanel";
+import CodeEditorChatPanel from "./CodeEditorChatPanel";
+import { useCodeEditorSession } from "../../App/hooks/session/useCodeEditorChatSession";
 
 interface CodeEditorPageProps {
   layoutMode?: "horizontal" | "vertical";
@@ -18,22 +19,15 @@ interface CodeEditorPageProps {
   rightIcon?: React.ReactNode;
   t?: (key: string, params?: any) => string;
   isFunctionPanelMaximized?: boolean;
-  currentSessionId?: string;
-  onSwitchSession?: (sessionId: string) => void;
   onCloseSkillsManager?: () => void;
   theme?: "light" | "dark";
   i18n?: "en" | "zh-cn";
-  onSendMessage?: (
-    message: string,
-    sessionId: string,
-    files?: any[],
-    workflowMode?: string,
-  ) => void;
   onFileClick?: (file: any) => void;
   language?: "zh" | "en";
   onDragOverInputChange?: (isDragging: boolean) => void;
   executionLogs?: any[];
   onClearLogs?: () => void;
+  isConfigLoaded?: boolean;
 }
 
 interface CollapsedTaskListProps {
@@ -646,18 +640,28 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
   rightIcon = "💻",
   t = (key: string) => key,
   isFunctionPanelMaximized = false,
-  currentSessionId,
-  onSwitchSession,
   onCloseSkillsManager,
   theme = "dark",
   i18n = "en",
-  onSendMessage,
   onFileClick,
   language = "en",
   onDragOverInputChange,
   executionLogs,
   onClearLogs,
+  isConfigLoaded = true,
 }) => {
+  const {
+    currentSessionId,
+    handleSendMessage: handleSendMessageHook,
+    handleSwitchSession,
+    handleNewSession,
+    shouldShowWelcome,
+  } = useCodeEditorSession(
+    language as "zh" | "en",
+    isConfigLoaded,
+    onCloseSkillsManager,
+  );
+
   const [chatPanelWidth, setChatPanelWidth] = useState<number>(400);
   const [historyWidth, setHistoryWidth] = useState<number>(280);
   const [chatPanelCollapsed, setChatPanelCollapsed] = useState<boolean>(false);
@@ -679,15 +683,40 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
   const [layoutSwapMode, setLayoutSwapMode] = useState<
     "terminal-left" | "chat-left"
   >("terminal-left");
+  const isChatOnLeft = layoutSwapMode === "terminal-left";
+
+  const handleSendMessage = useCallback(
+    (
+      message: string,
+      sessionId: string,
+      files?: any[],
+      workflowMode?: string,
+    ) => {
+      handleSendMessageHook(message, sessionId, files, workflowMode);
+    },
+    [handleSendMessageHook],
+  );
+
+  const handleSessionSelect = useCallback(
+    (sessionId: string) => {
+      handleSwitchSession(sessionId);
+    },
+    [handleSwitchSession],
+  );
+
+  const handleNewSessionClick = useCallback(() => {
+    handleNewSession();
+  }, [handleNewSession]);
+
   const handleToggleChatPanel = () => {
     if (isFunctionPanelMaximized) return;
     setChatPanelCollapsed(!chatPanelCollapsed);
     saveChatPanelCollapsed(!chatPanelCollapsed);
   };
-  const isChatOnLeft = layoutSwapMode === "terminal-left";
+
   const chatPanel = (
-    <ChatPanel
-      onSendMessage={onSendMessage || (() => {})}
+    <CodeEditorChatPanel
+      onSendMessage={handleSendMessage}
       onFileClick={onFileClick}
       t={t}
       currentSessionId={currentSessionId}
@@ -696,6 +725,7 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
       isLeftPanel={isChatOnLeft}
     />
   );
+
   const codeEditorPanel = (
     <div
       style={{
@@ -843,8 +873,9 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
   useEffect(() => {
     const loadSessions = async () => {
       try {
-        const { sessionCommands } = await import("../../command/session");
-        const list = await sessionCommands.listSessions();
+        const { codeEditorSessionCommands } =
+          await import("../../command/session/codeeditor");
+        const list = await codeEditorSessionCommands.listCodeEditorSessions();
         setHistorySessions(list);
       } catch (error) {
         console.error("Failed to load history sessions:", error);
@@ -854,9 +885,12 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
     const handleSessionCreated = () => {
       loadSessions();
     };
-    window.addEventListener("session-created", handleSessionCreated);
+    window.addEventListener("codeeditor-session-created", handleSessionCreated);
     return () => {
-      window.removeEventListener("session-created", handleSessionCreated);
+      window.removeEventListener(
+        "codeeditor-session-created",
+        handleSessionCreated,
+      );
     };
   }, []);
 
@@ -927,15 +961,6 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
     setHistoryCollapsed(!historyCollapsed);
     saveHistoryCollapsed(!historyCollapsed);
   };
-
-  const handleSessionSelect = useCallback(
-    (sessionId: string) => {
-      if (onSwitchSession) {
-        onSwitchSession(sessionId);
-      }
-    },
-    [onSwitchSession],
-  );
 
   const handleMouseDown = (
     e: React.MouseEvent,
@@ -1190,6 +1215,35 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
               }
             >
               {isHistoryAtBottom ? "▲" : "▼"}
+            </button>
+            <button
+              style={{
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                fontSize: "14px",
+                color: "var(--text-secondary)",
+                padding: "2px 6px",
+                borderRadius: "4px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                lineHeight: 1,
+                width: "28px",
+                height: "28px",
+              }}
+              onClick={handleNewSessionClick}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = "var(--text-primary)";
+                e.currentTarget.style.background = "var(--hover-bg)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = "var(--text-secondary)";
+                e.currentTarget.style.background = "none";
+              }}
+              title={t("history.newSession") || "新建会话"}
+            >
+              +
             </button>
             <div
               style={{

@@ -1,6 +1,6 @@
 import { listen } from "@tauri-apps/api/event";
 import { taskManager } from "./TaskManager";
-import { StepStatusEnum, TaskStepInfo } from "./types";
+import { SessionDomain, StepStatusEnum, TaskStepInfo } from "./types";
 
 export interface DriverEventHandlers {
     onTranslation: (key: string) => string;
@@ -44,13 +44,13 @@ export interface DriverLogEvent {
     session_id: string;
 }
 
-const updateTaskStepBySession = (
+const updateTaskStepByGeneralSession = (
     sessionId: string,
     taskId: string,
     stepIndex: number,
     updates: Partial<TaskStepInfo>
 ): void => {
-    const tasks = taskManager.getTasksBySession(sessionId);
+    const tasks = taskManager.getTasksBySession(sessionId, SessionDomain.General);
     if (!tasks) return;
     const task = tasks.get(taskId);
     if (!task) return;
@@ -97,7 +97,7 @@ export const handleDriverStart = (event: any, t: (key: string) => string) => {
         console.warn("driver_callback_start missing required fields");
         return;
     }
-    updateTaskStepBySession(session_id, task_id, step_index, {
+    updateTaskStepByGeneralSession(session_id, task_id, step_index, {
         status: StepStatusEnum.Running,
         started_at: new Date().toISOString(),
     });
@@ -110,7 +110,7 @@ export const handleDriverProgress = (event: any, t: (key: string) => string) => 
         console.warn("driver_callback_progress missing required fields");
         return;
     }
-    updateTaskStepBySession(session_id, task_id, step_index, {
+    updateTaskStepByGeneralSession(session_id, task_id, step_index, {
         progress: progress,
         progress_message: message,
     });
@@ -123,7 +123,7 @@ export const handleDriverComplete = (event: any, t: (key: string) => string) => 
         console.warn("driver_callback_complete missing required fields");
         return;
     }
-    updateTaskStepBySession(session_id, task_id, step_index, {
+    updateTaskStepByGeneralSession(session_id, task_id, step_index, {
         status: StepStatusEnum.Success,
         output: output,
         completed_at: new Date().toISOString(),
@@ -137,7 +137,7 @@ export const handleDriverError = (event: any, t: (key: string) => string) => {
         console.warn("driver_callback_error missing required fields");
         return;
     }
-    updateTaskStepBySession(session_id, task_id, step_index, {
+    updateTaskStepByGeneralSession(session_id, task_id, step_index, {
         status: StepStatusEnum.Failure,
         error: error,
         completed_at: new Date().toISOString(),
@@ -151,7 +151,7 @@ export const handleDriverLog = (event: any, t: (key: string) => string) => {
         console.warn("driver_callback_log missing required fields");
         return;
     }
-    const tasks = taskManager.getTasksBySession(session_id);
+    const tasks = taskManager.getTasksBySession(session_id, SessionDomain.General);
     const task = tasks?.get(task_id);
     if (task) {
         const steps = [...task.steps];
@@ -163,7 +163,7 @@ export const handleDriverLog = (event: any, t: (key: string) => string) => {
             }
         }
     }
-    updateTaskStepBySession(session_id, task_id, step_index, {
+    updateTaskStepByGeneralSession(session_id, task_id, step_index, {
         logs: [msg],
     });
 };

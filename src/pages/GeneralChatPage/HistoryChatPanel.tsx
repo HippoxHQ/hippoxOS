@@ -9,7 +9,6 @@ import React, {
 import { DialogSession } from "../../types/types";
 import { showDialog, DialogType } from "../../components/Dialog";
 import { showToast, ToastType } from "../../components/Toast";
-import { sessionCommands } from "../../command/session";
 import {
   DeleteIcon,
   MoreVerticalIcon,
@@ -18,6 +17,7 @@ import {
   RenameIcon,
   UnPinIcon,
 } from "../../icons";
+import { sessionCommands } from "../../command/session/general";
 
 export interface HistoryChatPanelRef {
   scrollToTop: () => void;

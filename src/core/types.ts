@@ -140,3 +140,10 @@ export interface UploadFile {
     path?: string;
 }
 
+export enum SessionDomain {
+    General = "general",
+    Chart = "chart",
+    Map = "map",
+    CodeEditor = "codeeditor",
+}
+

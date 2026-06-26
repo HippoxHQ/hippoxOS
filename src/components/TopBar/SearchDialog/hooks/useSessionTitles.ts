@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { sessionCommands } from "../../../../command/session";
+import { sessionCommands } from "../../../../command/session/general";
 
 export const useSessionTitles = () => {
   const [sessionTitlesMap, setSessionTitlesMap] = useState<Map<string, string>>(
@@ -12,7 +12,7 @@ export const useSessionTitles = () => {
       const sessions = await sessionCommands.listSessions();
       const map = new Map<string, string>();
       sessions.forEach((session) => {
-        map.set(session.session_id, session.title || `会话 ${session.session_id.slice(-6)}`);
+        map.set(session.session_id, session.title || `session ${session.session_id.slice(-6)}`);
       });
       setSessionTitlesMap(map);
     } catch (error) {

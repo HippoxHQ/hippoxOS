@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { showToast, ToastType } from "../../../../components/Toast";
 import { taskManager } from "../../../../core/TaskManager";
-import { UploadFile } from "../../../../core/types";
+import { SessionDomain, UploadFile } from "../../../../core/types";
 import { ChatMessage } from "../../../../types/types";
 
 interface UseEditMessageProps {
@@ -32,7 +32,7 @@ export const useEditMessage = ({ currentSessionId, onSendMessage, t }: UseEditMe
       edited: true,
       originalId: msg.id,
     };
-    taskManager.addUserMessageToSession(sessionId, editedMessage);
+    taskManager.addUserMessageToSession(sessionId, editedMessage, SessionDomain.General);
     let backendMessage = editContent;
     if (currentFiles.length > 0) {
       const fileInfo = currentFiles.map((f) => `[📎 ${f.name}]`).join("\n");

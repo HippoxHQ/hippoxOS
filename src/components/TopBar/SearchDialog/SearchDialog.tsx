@@ -9,9 +9,9 @@ import { SearchResults } from "./components/SearchResults";
 import { SearchSkeleton } from "./components/SearchSkeleton";
 import { EmptyState } from "./components/EmptyState";
 import { QuickActions } from "./components/QuickActions";
-import { sessionCommands } from "../../../command/session";
 import { filesCommands } from "../../../command/files";
 import { UploadFile } from "../../../core/types";
+import { sessionCommands } from "../../../command/session/general";
 
 export interface SearchDialogProps {
   isOpen: boolean;

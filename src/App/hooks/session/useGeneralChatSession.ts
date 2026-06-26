@@ -1,12 +1,12 @@
 import { useState, useEffect, useCallback } from "react";
-import { useTranslation } from "../../hooks/useTranslation";
-import { getSystemPrompt } from "../../llm/prompts/basis";
-import { hippoxCommands } from "../../command/chat";
-import { sessionCommands } from "../../command/session";
-import { taskManager } from "../../core/TaskManager";
-import { TaskInfo, UploadFile, TaskStatusEnum } from "../../core/types";
-import { Language, ChatMessage, RoleEnum, MessageStatus } from "../../types/types";
-import { workspaceCommands } from "../../command/workspace";
+import { useTranslation } from "../../../hooks/useTranslation";
+import { getSystemPrompt } from "../../../llm/prompts/basis";
+import { hippoxCommands } from "../../../command/chat";
+import { taskManager } from "../../../core/TaskManager";
+import { TaskInfo, UploadFile, TaskStatusEnum, SessionDomain } from "../../../core/types";
+import { Language, ChatMessage, RoleEnum, MessageStatus } from "../../../types/types";
+import { workspaceCommands } from "../../../command/workspace";
+import { sessionCommands } from "../../../command/session/general";
 
 /**
  * Custom hook that manages the current session state and all session-related operations.
@@ -100,10 +100,18 @@ export function useSession(
             !currentSessionId.startsWith("temp_") &&
             !currentSessionId.startsWith("pending_")
         ) {
+            const currentDomain = taskManager.getCurrentDomain();
+            if (currentDomain !== SessionDomain.General) {
+                console.debug(
+                    `[useSession] Skipping save - current domain is "${currentDomain}", not "General"`
+                );
+                return;
+            }
             const saveTimer = setTimeout(() => {
-                const allData = taskManager.getAllData();
-                const userMessages = (allData?.userMessages || []) as ChatMessage[];
-                const assistantMessages = (allData?.assistantMessages || []) as ChatMessage[];
+                const tasksMap = taskManager.getTasksBySession(currentSessionId, SessionDomain.General);
+                const userMessages = taskManager.getUserMessagesBySession(currentSessionId, SessionDomain.General);
+                const assistantMessages = taskManager.getAssistantMessagesBySessionAsArray(currentSessionId, SessionDomain.General);
+                const tasksArray: TaskInfo[] = tasksMap ? Array.from(tasksMap.values()) : [];
                 if (userMessages.length === 0 && assistantMessages.length === 0) {
                     // !important, security checks to prevent empty data from overwriting valid data on the disk.
                     return;
@@ -114,7 +122,7 @@ export function useSession(
                 );
                 // Persist to disk (errors are caught and logged, not thrown)
                 sessionCommands.saveChatContent(currentSessionId, allMessages).catch(console.error);
-                sessionCommands.saveTerminalContent(currentSessionId, allData?.tasks || []).catch(console.error);
+                sessionCommands.saveTerminalContent(currentSessionId, tasksArray).catch(console.error);
             }, 500);
             // Cleanup: clear the timer if dependencies change before it fires
             return () => clearTimeout(saveTimer);
@@ -164,9 +172,9 @@ export function useSession(
                 ? userMessage.slice(0, 30) + "..."
                 : userMessage;
             // Retrieve existing data from the pending session
-            const tempUserMessages = taskManager.getUserMessagesBySession(finalSessionId);
-            const tempAssistantMessages = taskManager.getAssistantMessagesBySessionAsArray(finalSessionId);
-            const tempTasksMap = taskManager.getTasksBySession(finalSessionId);
+            const tempUserMessages = taskManager.getUserMessagesBySession(finalSessionId, SessionDomain.General);
+            const tempAssistantMessages = taskManager.getAssistantMessagesBySessionAsArray(finalSessionId, SessionDomain.General);
+            const tempTasksMap = taskManager.getTasksBySession(finalSessionId, SessionDomain.General);
             const tempTasks = tempTasksMap ? Array.from(tempTasksMap.values()) : [];
             // Create the real session on disk with workflow mode
             await sessionCommands.createSession(
@@ -178,8 +186,8 @@ export function useSession(
                 workflowMode || currentWorkflowMode,  // Save workflow mode to config
             );
             // Move pending data to the new session
-            taskManager.loadSessionData(newSessionId, tempTasks, tempUserMessages, tempAssistantMessages);
-            taskManager.deleteSession(finalSessionId);
+            taskManager.loadSessionData(newSessionId, tempTasks, tempUserMessages, tempAssistantMessages, SessionDomain.General);
+            taskManager.deleteSession(finalSessionId, SessionDomain.General);
             finalSessionId = newSessionId;
             setCurrentSessionId(newSessionId);
             localStorage.setItem("hippox-current-session", newSessionId);
@@ -204,7 +212,7 @@ export function useSession(
                 [],
                 workflowMode || currentWorkflowMode,  // Save workflow mode to config
             );
-            taskManager.loadSessionData(newSessionId, [], [], []);
+            taskManager.loadSessionData(newSessionId, [], [], [], SessionDomain.General);
             finalSessionId = newSessionId;
             setCurrentSessionId(newSessionId);
             localStorage.setItem("hippox-current-session", newSessionId);
@@ -221,7 +229,7 @@ export function useSession(
             timestamp: now.toISOString(),
             files: files,
         };
-        taskManager.addUserMessageToSession(finalSessionId, userMsg);
+        taskManager.addUserMessageToSession(finalSessionId, userMsg, SessionDomain.General);
         // Send to backend and handle response
         try {
             const workspace = await workspaceCommands.getDefaultWorkspace();
@@ -245,7 +253,7 @@ export function useSession(
                 timestamp: now.toISOString(),
                 status: MessageStatus.Pending,
             };
-            taskManager.addAssistantMessageToSession(finalSessionId, assistantMsg);
+            taskManager.addAssistantMessageToSession(finalSessionId, assistantMsg, SessionDomain.General);
             // Create task for tracking execution progress
             const newTask: TaskInfo = {
                 task_id: taskId,
@@ -259,7 +267,7 @@ export function useSession(
                 files: files,
                 workflow_mode: mode,  // Store workflow mode in task
             };
-            taskManager.addTaskToSession(finalSessionId, newTask);
+            taskManager.addTaskToSession(finalSessionId, newTask, SessionDomain.General);
         } catch (error) {
             // Handle send errors
             console.error("send message error:", error);
@@ -269,7 +277,7 @@ export function useSession(
                 content: `${error}`,
                 timestamp: now.toISOString(),
             };
-            taskManager.addAssistantMessageToSession(finalSessionId, errorMsg);
+            taskManager.addAssistantMessageToSession(finalSessionId, errorMsg, SessionDomain.General);
         }
     }, [currentSessionId, t, language, currentWorkflowMode]);
 
@@ -285,7 +293,7 @@ export function useSession(
      */
     const handleNewSession = useCallback(async () => {
         const pendingId = `pending_${Date.now()}`;
-        taskManager.loadSessionData(pendingId, [], [], []);
+        taskManager.loadSessionData(pendingId, [], [], [], SessionDomain.General);
         setCurrentSessionId(pendingId);
         localStorage.setItem("hippox-current-session", pendingId);
         setPendingNewSession(true);
@@ -312,28 +320,33 @@ export function useSession(
     const handleSwitchSession = useCallback(async (sessionId: string) => {
         // No-op if already on this session
         if (sessionId === currentSessionId) return;
-        const allData = taskManager.getAllData();
-        const hasData = (allData?.userMessages || []).length > 0
-            || (allData?.assistantMessages || []).length > 0;
+        if (sessionId.startsWith("chart_session_") ||
+            sessionId.startsWith("map_session_") ||
+            sessionId.startsWith("codeeditor_session_")) {
+            return;
+        }
+        const hasData = taskManager.hasSessionMessages(currentSessionId, SessionDomain.General);
         // Save current session data to disk before switching away
         // Only saves when there is actual data to prevent empty data overwriting disk
         if (currentSessionId && !currentSessionId.startsWith("pending_") && !currentSessionId.startsWith("temp_") && hasData) {
             try {
-                const userMessages = (allData?.userMessages || []) as ChatMessage[];
-                const assistantMessages = (allData?.assistantMessages || []) as ChatMessage[];
+                const tasksMap = taskManager.getTasksBySession(currentSessionId, SessionDomain.General);
+                const userMessages = taskManager.getUserMessagesBySession(currentSessionId, SessionDomain.General);
+                const assistantMessages = taskManager.getAssistantMessagesBySessionAsArray(currentSessionId, SessionDomain.General);
+                const tasksArray: TaskInfo[] = tasksMap ? Array.from(tasksMap.values()) : [];
                 // Merge and sort messages
                 const allMessages = [...userMessages, ...assistantMessages].sort(
                     (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
                 );
                 await sessionCommands.saveChatContent(currentSessionId, allMessages).catch(console.error);
-                await sessionCommands.saveTerminalContent(currentSessionId, allData?.tasks || []).catch(console.error);
+                await sessionCommands.saveTerminalContent(currentSessionId, tasksArray).catch(console.error);
             } catch (error) {
                 console.error("Failed to save current session:", error);
                 // Continue even if save fails (error is logged, not thrown)
             }
         }
         // Check if target session is already in memory
-        const hasTargetData = taskManager.getTasksBySession(sessionId) !== undefined;
+        const hasTargetData = taskManager.getTasksBySession(sessionId, SessionDomain.General) !== undefined;
         if (!hasTargetData) {
             // Lazy load: read from disk and load into memory
             const chatContent = await sessionCommands.loadChatContent(sessionId);
@@ -350,10 +363,10 @@ export function useSession(
                 tasks = terminalContent as TaskInfo[];
             }
             // Load data into taskManager memory
-            taskManager.loadSessionData(sessionId, tasks, userMessages, assistantMessages);
+            taskManager.loadSessionData(sessionId, tasks, userMessages, assistantMessages, SessionDomain.General);
         } else {
             // Already in memory, just switch
-            taskManager.switchToSession(sessionId);
+            taskManager.switchToSession(sessionId, SessionDomain.General);
         }
         setCurrentSessionId(sessionId);
         localStorage.setItem("hippox-current-session", sessionId);
@@ -379,13 +392,13 @@ export function useSession(
         if (!currentSessionId) return true;
         // Pending sessions have no data yet
         if (currentSessionId.startsWith("pending_")) {
-            const userMessages = taskManager.getUserMessagesBySession(currentSessionId);
-            const assistantMessages = taskManager.getAssistantMessagesBySessionAsArray(currentSessionId);
+            const userMessages = taskManager.getUserMessagesBySession(currentSessionId, SessionDomain.General);
+            const assistantMessages = taskManager.getAssistantMessagesBySessionAsArray(currentSessionId, SessionDomain.General);
             return userMessages.length === 0 && assistantMessages.length === 0;
         }
         // Real session: check if it has any messages
-        const userMessages = taskManager.getUserMessagesBySession(currentSessionId);
-        const assistantMessages = taskManager.getAssistantMessagesBySessionAsArray(currentSessionId);
+        const userMessages = taskManager.getUserMessagesBySession(currentSessionId, SessionDomain.General);
+        const assistantMessages = taskManager.getAssistantMessagesBySessionAsArray(currentSessionId, SessionDomain.General);
         return userMessages.length === 0 && assistantMessages.length === 0;
     }, [isLoading, currentSessionId]);
 
@@ -404,7 +417,7 @@ export function useSession(
         try {
             await hippoxCommands.resetSession();
             // Clear all data for this session in taskManager
-            taskManager.loadSessionData(currentSessionId, [], [], []);
+            taskManager.loadSessionData(currentSessionId, [], [], [], SessionDomain.General);
         } catch (error) {
             console.error("reset session error:", error);
         }

@@ -9,7 +9,7 @@ import React, {
 import { DialogSession } from "../../types/types";
 import { showDialog, DialogType } from "../../components/Dialog";
 import { showToast, ToastType } from "../../components/Toast";
-import { sessionCommands } from "../../command/session";
+import { codeEditorSessionCommands } from "../../command/session/codeeditor";
 import {
   DeleteIcon,
   MoreVerticalIcon,
@@ -159,10 +159,16 @@ const HistoryCodeEditorChatPanel = forwardRef<
       const handleSessionCreated = () => {
         loadSessions(true);
       };
-      window.addEventListener("session-created", handleSessionCreated);
+      window.addEventListener(
+        "codeeditor-session-created",
+        handleSessionCreated,
+      );
       return () => {
         document.removeEventListener("mousedown", handleClickOutside);
-        window.removeEventListener("session-created", handleSessionCreated);
+        window.removeEventListener(
+          "codeeditor-session-created",
+          handleSessionCreated,
+        );
       };
     }, [editingId]);
 
@@ -179,13 +185,13 @@ const HistoryCodeEditorChatPanel = forwardRef<
       }
       setLoading(true);
       try {
-        const list = await sessionCommands.listSessions();
+        const list = await codeEditorSessionCommands.listCodeEditorSessions();
         const sorted = [...list].sort((a, b) => {
           if (a.is_pinned !== b.is_pinned) {
             return a.is_pinned ? -1 : 1;
           }
           const getTimestamp = (id: string) => {
-            const ts = id.replace("session_", "");
+            const ts = id.replace("codeeditor_session_", "");
             return parseInt(ts, 10) || 0;
           };
           const aTs = getTimestamp(a.session_id);
@@ -207,7 +213,7 @@ const HistoryCodeEditorChatPanel = forwardRef<
       e.stopPropagation();
       try {
         const newPinned = !session.is_pinned;
-        await sessionCommands.updatePinnedSessions(
+        await codeEditorSessionCommands.updatePinnedCodeEditorSessions(
           session.session_id,
           newPinned,
         );
@@ -253,7 +259,9 @@ const HistoryCodeEditorChatPanel = forwardRef<
         t("history.dialog.confirmDeleteMessage"),
         async () => {
           try {
-            await sessionCommands.deleteSession(session.session_id);
+            await codeEditorSessionCommands.deleteCodeEditorSession(
+              session.session_id,
+            );
             if (currentSessionId === session.session_id && onSessionSelect) {
               const otherSession = sessions.find(
                 (s) => s.session_id !== session.session_id,
@@ -301,9 +309,12 @@ const HistoryCodeEditorChatPanel = forwardRef<
         return;
       }
       try {
-        await sessionCommands.updateSessionConfig(session.session_id, {
-          title: trimmed,
-        });
+        await codeEditorSessionCommands.updateCodeEditorSessionConfig(
+          session.session_id,
+          {
+            title: trimmed,
+          },
+        );
         await loadSessions(true);
         setEditingId(null);
         setEditValue("");
@@ -574,7 +585,6 @@ const HistoryCodeEditorChatPanel = forwardRef<
                     transform: expandedCategories[category.type]
                       ? "rotate(0deg)"
                       : "rotate(-90deg)",
-                    // transition: "transform 0.15s",
                   }}
                 >
                   ▼

@@ -1,7 +1,7 @@
 import { listen } from "@tauri-apps/api/event";
 import { ChatMessage, RoleEnum, MessageStatus } from "../types/types";
 import { taskManager } from "./TaskManager";
-import { TaskInfo, TaskStatusEnum } from "./types";
+import { SessionDomain, TaskInfo, TaskStatusEnum } from "./types";
 
 export interface TaskEventHandlers {
     onTranslation: (key: string) => string;
@@ -23,12 +23,12 @@ export const handleTaskStepUpdate = (
         input,
         session_id,
     } = event.payload;
-
     if (!session_id) {
         console.warn("task_step_update missing session_id");
         return;
     }
-    const tasksMap = taskManager.getTasksBySession(session_id);
+    const domain = taskManager.getDomainFromSessionId(session_id);
+    const tasksMap = taskManager.getTasksBySession(session_id, domain);
     const task = tasksMap?.get(task_id);
     if (task && task.status !== TaskStatusEnum.Failed) {
         const currentSteps = task.steps || [];
@@ -62,7 +62,7 @@ export const handleTaskStepUpdate = (
         taskManager.updateTaskBySession(session_id, task_id, {
             steps: steps,
             status: taskStatus,
-        });
+        }, domain);
     }
 };
 
@@ -78,8 +78,9 @@ export const handleTaskComplete = (
         session_id,
     } = event.payload;
     if (!session_id) return;
+    const domain = taskManager.getDomainFromSessionId(session_id);
     const messageId = `llm_${task_id}`;
-    const assistantMessagesMap = taskManager.getAssistantMessagesBySession(session_id);
+    const assistantMessagesMap = taskManager.getAssistantMessagesMapBySession(session_id, domain);
     const existingMsg = assistantMessagesMap?.get(messageId);
     if (!existingMsg) {
         const successMsg: ChatMessage = {
@@ -89,22 +90,22 @@ export const handleTaskComplete = (
             timestamp: new Date().toISOString(),
             status: MessageStatus.Completed,
         };
-        taskManager.addAssistantMessageToSession(session_id, successMsg);
+        taskManager.addAssistantMessageToSession(session_id, successMsg, domain);
     } else {
         taskManager.updateAssistantMessageBySession(session_id, messageId, {
             content: final_output || t("chat.taskCompleted"),
             timestamp: new Date().toISOString(),
             status: MessageStatus.Completed,
-        });
+        }, domain);
     }
-    const task = taskManager.getTaskBySession(session_id, task_id);
+    const task = taskManager.getTaskBySession(session_id, task_id, domain);
     if (task) {
         taskManager.updateTaskBySession(session_id, task_id, {
             status: TaskStatusEnum.Completed,
             final_output: final_output,
             total_duration_ms,
             total_steps,
-        });
+        }, domain);
     } else {
         const newTask: TaskInfo = {
             task_id: task_id,
@@ -118,7 +119,7 @@ export const handleTaskComplete = (
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
         };
-        taskManager.addTaskToSession(session_id, newTask);
+        taskManager.addTaskToSession(session_id, newTask, domain);
     }
 };
 
@@ -128,8 +129,9 @@ export const handleTaskFailed = (
 ) => {
     const { task_id, error, total_duration_ms, total_steps, session_id } = event.payload;
     if (!session_id) return;
+    const domain = taskManager.getDomainFromSessionId(session_id);
     const messageId = `llm_${task_id}`;
-    const assistantMessagesMap = taskManager.getAssistantMessagesBySession(session_id);
+    const assistantMessagesMap = taskManager.getAssistantMessagesMapBySession(session_id, domain);
     const existingMsg = assistantMessagesMap?.get(messageId);
     const isTimeout = error?.toLowerCase().includes("timeout");
     const errorContent = isTimeout
@@ -143,22 +145,22 @@ export const handleTaskFailed = (
             timestamp: new Date().toISOString(),
             status: MessageStatus.Failed,
         };
-        taskManager.addAssistantMessageToSession(session_id, errorMsg);
+        taskManager.addAssistantMessageToSession(session_id, errorMsg, domain);
     } else {
         taskManager.updateAssistantMessageBySession(session_id, messageId, {
             content: errorContent,
             timestamp: new Date().toISOString(),
             status: MessageStatus.Failed,
-        });
+        }, domain);
     }
-    const task = taskManager.getTaskBySession(session_id, task_id);
+    const task = taskManager.getTaskBySession(session_id, task_id, domain);
     if (task) {
         taskManager.updateTaskBySession(session_id, task_id, {
             status: TaskStatusEnum.Failed,
             final_output: error,
             total_duration_ms,
             total_steps,
-        });
+        }, domain);
     } else {
         const newTask: TaskInfo = {
             task_id: task_id,
@@ -172,7 +174,7 @@ export const handleTaskFailed = (
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
         };
-        taskManager.addTaskToSession(session_id, newTask);
+        taskManager.addTaskToSession(session_id, newTask, domain);
     }
 };
 
@@ -181,18 +183,18 @@ export const handleTaskPaused = (
     t: (key: string) => string
 ) => {
     const { task_id, checkpoint, total_duration_ms, total_steps, session_id } = event.payload;
-    if (session_id && task_id) {
-        taskManager.updateTaskBySession(session_id, task_id, {
-            status: TaskStatusEnum.Paused,
-            total_duration_ms,
-            resume_data: checkpoint,
-        });
-        const messageId = `llm_${task_id}`;
-        taskManager.updateAssistantMessageBySession(session_id, messageId, {
-            status: MessageStatus.Paused,
-            content: `⏸️ ${t("terminal.taskPaused")}`,
-        });
-    }
+    if (!session_id || !task_id) return;
+    const domain = taskManager.getDomainFromSessionId(session_id);
+    taskManager.updateTaskBySession(session_id, task_id, {
+        status: TaskStatusEnum.Paused,
+        total_duration_ms,
+        resume_data: checkpoint,
+    }, domain);
+    const messageId = `llm_${task_id}`;
+    taskManager.updateAssistantMessageBySession(session_id, messageId, {
+        status: MessageStatus.Paused,
+        content: `⏸️ ${t("terminal.taskPaused")}`,
+    }, domain);
 };
 
 export const handleTaskCancelled = (
@@ -200,17 +202,17 @@ export const handleTaskCancelled = (
     t: (key: string) => string
 ) => {
     const { task_id, total_duration_ms, total_steps, session_id } = event.payload;
-    if (session_id && task_id) {
-        taskManager.updateTaskBySession(session_id, task_id, {
-            status: TaskStatusEnum.Cancelled,
-            total_duration_ms,
-        });
-        const messageId = `llm_${task_id}`;
-        taskManager.updateAssistantMessageBySession(session_id, messageId, {
-            status: MessageStatus.Cancelled,
-            content: `⏹️ ${t("terminal.cancelled")}`,
-        });
-    }
+    if (!session_id || !task_id) return;
+    const domain = taskManager.getDomainFromSessionId(session_id);
+    taskManager.updateTaskBySession(session_id, task_id, {
+        status: TaskStatusEnum.Cancelled,
+        total_duration_ms,
+    }, domain);
+    const messageId = `llm_${task_id}`;
+    taskManager.updateAssistantMessageBySession(session_id, messageId, {
+        status: MessageStatus.Cancelled,
+        content: `⏹️ ${t("terminal.cancelled")}`,
+    }, domain);
 };
 
 export const handleTaskResumed = (
@@ -218,16 +220,16 @@ export const handleTaskResumed = (
     t: (key: string) => string
 ) => {
     const { task_id, session_id } = event.payload;
-    if (session_id && task_id) {
-        taskManager.updateTaskBySession(session_id, task_id, {
-            status: TaskStatusEnum.Running,
-        });
-        const messageId = `llm_${task_id}`;
-        taskManager.updateAssistantMessageBySession(session_id, messageId, {
-            status: MessageStatus.Pending,
-            content: `🔄 ${t("terminal.taskResumed")}`,
-        });
-    }
+    if (!session_id || !task_id) return;
+    const domain = taskManager.getDomainFromSessionId(session_id);
+    taskManager.updateTaskBySession(session_id, task_id, {
+        status: TaskStatusEnum.Running,
+    }, domain);
+    const messageId = `llm_${task_id}`;
+    taskManager.updateAssistantMessageBySession(session_id, messageId, {
+        status: MessageStatus.Pending,
+        content: `🔄 ${t("terminal.taskResumed")}`,
+    }, domain);
 };
 
 export const setupTaskEventListeners = async (
