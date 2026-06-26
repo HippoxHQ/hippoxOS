@@ -1120,6 +1120,7 @@ const MapsPage: React.FC<MapsPageProps> = ({
           overflow: "hidden",
           flex: 1,
           minWidth: "180px",
+          userSelect: "none",
         }}
       >
         <div
@@ -1151,7 +1152,6 @@ const MapsPage: React.FC<MapsPageProps> = ({
               flexShrink: 0,
             }}
           >
-            {/* 新建会话按钮 - "+" */}
             <button
               style={{
                 background: "none",

@@ -1138,6 +1138,7 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
           overflow: "hidden",
           flex: 1,
           minWidth: "180px",
+          userSelect: "none",
         }}
       >
         <div

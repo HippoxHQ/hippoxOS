@@ -1391,6 +1391,7 @@ const GeneralChatPage: React.FC<GeneralChatPageProps> = ({
               display: "flex",
               flexDirection: "row",
               borderRight: "1px solid var(--border-color)",
+              userSelect: "none",
             }}
           >
             {historyPanelContent}

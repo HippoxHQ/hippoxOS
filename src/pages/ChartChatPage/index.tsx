@@ -1110,6 +1110,7 @@ const ChartPage: React.FC<ChartPageProps> = ({
           overflow: "hidden",
           flex: 1,
           minWidth: "180px",
+          userSelect: "none",
         }}
       >
         <div

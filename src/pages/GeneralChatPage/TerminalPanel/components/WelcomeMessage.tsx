@@ -157,7 +157,11 @@ export const WelcomeMessage: React.FC<WelcomeMessageProps> = ({
       `}</style>
       <div
         className="task-row-header"
-        style={styles.welcomeRowHeader}
+        style={{
+          ...styles.welcomeRowHeader,
+          userSelect: "none",
+          marginTop: "5px",
+        }}
         onClick={onToggle}
       >
         <span className="task-expand-icon">{isExpanded ? "▼" : "▶"}</span>
@@ -173,7 +177,12 @@ export const WelcomeMessage: React.FC<WelcomeMessageProps> = ({
         >
           <div
             className="step-output ascii-art"
-            style={{ ...styles.asciiArt, overflow: "visible", width: "100%" }}
+            style={{
+              ...styles.asciiArt,
+              overflow: "visible",
+              width: "100%",
+              userSelect: "none",
+            }}
           >
             <HippoxAsciiLogo />
           </div>
