@@ -17,6 +17,7 @@ const GLOBAL_SESSION_LOCK = {
   lastPath: "",
   lastTime: 0,
   lockedPaths: new Map<string, number>(),
+  processingPaths: new Set<string>(),
   cleanup() {
     const now = Date.now();
     for (const [path, time] of Array.from(this.lockedPaths.entries())) {
@@ -28,6 +29,9 @@ const GLOBAL_SESSION_LOCK = {
   tryLock(path: string): boolean {
     this.cleanup();
     const now = Date.now();
+    if (this.processingPaths.has(path)) {
+      return false;
+    }
     if (this.isCreating) {
       return false;
     }
@@ -41,10 +45,15 @@ const GLOBAL_SESSION_LOCK = {
     this.lastPath = path;
     this.lastTime = now;
     this.lockedPaths.set(path, now);
+    this.processingPaths.add(path);
     return true;
   },
-  unlock() {
+  unlock(path?: string) {
     this.isCreating = false;
+    const targetPath = path || this.lastPath;
+    if (targetPath) {
+      this.processingPaths.delete(targetPath);
+    }
     setTimeout(() => {
       if (this.lastPath) {
         this.lockedPaths.delete(this.lastPath);
@@ -724,9 +733,6 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
   const [workspacePath, setWorkspacePath] = useState<string | null>(null);
   const hasHistorySessions = historySessions.length > 0;
 
-  const fileDropProcessingRef = useRef(false);
-  const fileDropLastPathRef = useRef("");
-
   const handleSendMessage = useCallback(
     (
       message: string,
@@ -774,7 +780,6 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
         setWorkspacePath(null);
       }
     } catch (error) {
-      console.error("[CodeEditorPage] Failed to load workspace path:", error);
       setWorkspacePath(null);
     }
   }, []);
@@ -817,7 +822,6 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
       const list = await codeEditorSessionCommands.listCodeEditorSessions();
       setHistorySessions(list);
     } catch (error) {
-      console.error("Failed to load history sessions:", error);
     } finally {
       setIsLoadingHistory(false);
     }
@@ -848,16 +852,6 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
       if (!GLOBAL_SESSION_LOCK.tryLock(workspacePath)) {
         return;
       }
-      if (fileDropProcessingRef.current) {
-        GLOBAL_SESSION_LOCK.unlock();
-        return;
-      }
-      if (fileDropLastPathRef.current === workspacePath) {
-        GLOBAL_SESSION_LOCK.unlock();
-        return;
-      }
-      fileDropProcessingRef.current = true;
-      fileDropLastPathRef.current = workspacePath;
       setIsCreatingSession(true);
       try {
         await createSessionWithWorkspace(workspacePath, workspaceType);
@@ -866,15 +860,12 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
           await loadWorkspacePath(currentSessionId);
         }
       } catch (error) {
-        console.error("Failed to create session with workspace:", error);
       } finally {
         setIsCreatingSession(false);
-        fileDropProcessingRef.current = false;
-        GLOBAL_SESSION_LOCK.unlock();
+        GLOBAL_SESSION_LOCK.unlock(workspacePath);
       }
     },
     [
-      language,
       createSessionWithWorkspace,
       loadHistorySessions,
       currentSessionId,
@@ -901,7 +892,6 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
           setLayoutSwapMode(mode);
         }
       } catch (error) {
-        console.error("Failed to load code editor layout mode:", error);
       }
     };
     loadLayoutMode();
@@ -951,6 +941,12 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
     };
   }, [loadHistorySessions]);
 
+  const createSessionWithLockRef = useRef(createSessionWithLock);
+
+  useEffect(() => {
+    createSessionWithLockRef.current = createSessionWithLock;
+  }, [createSessionWithLock]);
+
   useEffect(() => {
     let unlisten: (() => void) | undefined;
     const setupFileDropListener = async () => {
@@ -959,10 +955,9 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
           const paths = event.payload;
           if (!paths || paths.length === 0) return;
           const path = paths[0];
-          await createSessionWithLock(path, "directory");
+          await createSessionWithLockRef.current(path, "directory");
         });
       } catch (error) {
-        console.error("[CodeEditorPage] Failed to setup file-drop:", error);
       }
     };
     setupFileDropListener();
@@ -972,7 +967,7 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
         unlisten = undefined;
       }
     };
-  }, [createSessionWithLock]);
+  }, []);
 
   useEffect(() => {
     const savedHistoryWidth = localStorage.getItem(
@@ -1642,24 +1637,7 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
               }}
               onMouseEnter={() => setIsHistoryResizeHover(true)}
               onMouseLeave={() => setIsHistoryResizeHover(false)}
-            >
-              {/* {isHistoryResizeHover && (
-                <div
-                  style={{
-                    position: "absolute",
-                    top: "50%",
-                    left: "50%",
-                    transform: "translate(-50%, -50%)",
-                    width: "2px",
-                    height: "40px",
-                    background: "var(--text-muted)",
-                    borderRadius: "2px",
-                    opacity: 0.5,
-                    zIndex: 11,
-                  }}
-                />
-              )} */}
-            </div>
+            />
           )}
         </>
       )}
@@ -1717,24 +1695,7 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
           }}
           onMouseEnter={() => setIsResizeHover(true)}
           onMouseLeave={() => setIsResizeHover(false)}
-        >
-          {/* {isResizeHover && (
-            <div
-              style={{
-                position: "absolute",
-                top: "50%",
-                left: "50%",
-                transform: "translate(-50%, -50%)",
-                width: "2px",
-                height: "40px",
-                background: "var(--text-muted)",
-                borderRadius: "2px",
-                opacity: 0.5,
-                zIndex: 11,
-              }}
-            />
-          )} */}
-        </div>
+        />
       )}
 
       <div

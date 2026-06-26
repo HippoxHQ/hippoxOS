@@ -516,6 +516,7 @@ export const globalStyles = `
   align-items: center;
   justify-content: space-between;
   border-bottom: 1px solid var(--border-color, #333);
+  user-select: none;
 }
 
 .header-title {

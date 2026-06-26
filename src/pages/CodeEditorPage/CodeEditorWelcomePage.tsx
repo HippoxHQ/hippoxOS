@@ -144,7 +144,7 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({
             borderRadius: "12px",
             pointerEvents: "none",
             zIndex: 10,
-            transition: "all 0.2s ease",
+            // transition: "all 0.2s ease",
             animation: "dropHighlight 0.3s ease",
           }}
         />
@@ -210,7 +210,7 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({
               padding: "32px 16px",
               cursor: "pointer",
               background: "var(--bg-secondary)",
-              transition: "all 0.2s",
+              // transition: "all 0.2s",
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.borderColor = "var(--accent-color)";
@@ -236,7 +236,7 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({
               padding: "32px 16px",
               cursor: "pointer",
               background: "var(--bg-secondary)",
-              transition: "all 0.2s",
+              // transition: "all 0.2s",
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.borderColor = "var(--accent-color)";
@@ -263,14 +263,14 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({
               ? "var(--accent-glow)"
               : "var(--bg-secondary)",
             marginBottom: "24px",
-            transition: "all 0.2s ease",
+            // transition: "all 0.2s ease",
           }}
         >
           <div
             style={{
               fontSize: "12px",
               color: isDragOver ? "var(--accent-color)" : "var(--text-muted)",
-              transition: "color 0.2s ease",
+              // transition: "color 0.2s ease",
             }}
           >
             {isDragOver

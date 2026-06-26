@@ -236,7 +236,7 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({
                 color: "var(--text-primary)",
                 fontSize: "13px",
                 userSelect: "none",
-                transition: "background 0.15s",
+                // transition: "background 0.15s",
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.background = "var(--hover-bg)";
@@ -296,7 +296,7 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({
             color: isSelected ? "var(--accent-color)" : "var(--text-primary)",
             fontSize: "13px",
             userSelect: "none",
-            transition: "background 0.15s",
+            // transition: "background 0.15s",
           }}
           onMouseEnter={(e) => {
             if (!isSelected) {

@@ -76,7 +76,7 @@ const CodeEditPanel: React.FC<CodeEditPanelProps> = ({
           cursor: "row-resize",
           flexShrink: 0,
           position: "relative",
-          transition: "height 0.15s, background 0.15s",
+          // transition: "height 0.15s, background 0.15s",
         }}
         onMouseDown={onRightResizeMouseDown}
         onMouseEnter={() => setIsRightHover(true)}

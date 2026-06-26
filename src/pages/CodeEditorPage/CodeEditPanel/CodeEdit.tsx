@@ -470,7 +470,7 @@ const CodeEdit: React.FC<CodeEditProps> = ({ t, selectedFile }) => {
                 display: none;
               }
               .scrollbar-thumb {
-                transition: background 0.15s;
+                // transition: background 0.15s;
               }
               .scrollbar-thumb:hover {
                 background: var(--scrollbar-thumb-hover, var(--scrollbar-thumb)) !important;
@@ -505,7 +505,7 @@ const CodeEdit: React.FC<CodeEditProps> = ({ t, selectedFile }) => {
                   minWidth: "60px",
                   maxWidth: "160px",
                   position: "relative",
-                  transition: "background 0.15s",
+                  // transition: "background 0.15s",
                 }}
                 onMouseEnter={(e) => {
                   if (!isActive) {
