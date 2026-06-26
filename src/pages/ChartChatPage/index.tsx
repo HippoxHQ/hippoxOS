@@ -1131,6 +1131,35 @@ const ChartPage: React.FC<ChartPageProps> = ({
                 background: "none",
                 border: "none",
                 cursor: "pointer",
+                fontSize: "25px",
+                color: "var(--text-secondary)",
+                padding: "2px 6px",
+                borderRadius: "4px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                lineHeight: 1,
+                width: "28px",
+                height: "28px",
+              }}
+              onClick={handleNewSession}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = "var(--text-primary)";
+                e.currentTarget.style.background = "var(--hover-bg)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = "var(--text-secondary)";
+                e.currentTarget.style.background = "none";
+              }}
+              title={t("history.newSession") || "New Session"}
+            >
+              +
+            </button>
+            <button
+              style={{
+                background: "none",
+                border: "none",
+                cursor: "pointer",
                 fontSize: "14px",
                 color: "var(--text-secondary)",
                 padding: "2px 6px",
@@ -1153,8 +1182,8 @@ const ChartPage: React.FC<ChartPageProps> = ({
               }}
               title={
                 isHistoryExpanded
-                  ? t("history.collapseAll") || "收起全部"
-                  : t("history.expandAll") || "展开全部"
+                  ? t("history.collapseAll")
+                  : t("history.expandAll")
               }
             >
               {isHistoryExpanded ? (
@@ -1190,40 +1219,11 @@ const ChartPage: React.FC<ChartPageProps> = ({
               }}
               title={
                 isHistoryAtBottom
-                  ? t("history.scrollToTop") || "滚动到顶部"
-                  : t("history.scrollToBottom") || "滚动到底部"
+                  ? t("history.scrollToTop")
+                  : t("history.scrollToBottom")
               }
             >
               {isHistoryAtBottom ? "▲" : "▼"}
-            </button>
-            <button
-              style={{
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                fontSize: "14px",
-                color: "var(--text-secondary)",
-                padding: "2px 6px",
-                borderRadius: "4px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                lineHeight: 1,
-                width: "28px",
-                height: "28px",
-              }}
-              onClick={handleNewSession}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.color = "var(--text-primary)";
-                e.currentTarget.style.background = "var(--hover-bg)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.color = "var(--text-secondary)";
-                e.currentTarget.style.background = "none";
-              }}
-              title={t("history.newSession") || "新建会话"}
-            >
-              +
             </button>
             <div
               style={{
@@ -1259,7 +1259,7 @@ const ChartPage: React.FC<ChartPageProps> = ({
                 e.currentTarget.style.color = "var(--text-secondary)";
                 e.currentTarget.style.background = "none";
               }}
-              title={t("history.collapse") || "收起面板"}
+              title={t("history.collapse")}
             >
               ◀
             </button>

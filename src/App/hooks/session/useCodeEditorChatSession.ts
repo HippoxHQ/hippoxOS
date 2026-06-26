@@ -46,6 +46,7 @@ export function useCodeEditorSession(
                 const userMessages = taskManager.getUserMessagesBySession(currentSessionId, SessionDomain.CodeEditor);
                 const assistantMessages = taskManager.getAssistantMessagesBySessionAsArray(currentSessionId, SessionDomain.CodeEditor);
                 const tasksArray: TaskInfo[] = tasksMap ? Array.from(tasksMap.values()) : [];
+
                 if (userMessages.length === 0 && assistantMessages.length === 0) {
                     return;
                 }
@@ -71,7 +72,6 @@ export function useCodeEditorSession(
                         });
                         const sessionId = sorted[0].session_id;
                         setCurrentSessionId(sessionId);
-                        localStorage.setItem("hippox-current-codeeditor-session", sessionId);
                         Promise.all([
                             codeEditorSessionCommands.loadChatContent(sessionId),
                             codeEditorSessionCommands.loadTerminalContent(sessionId)
@@ -87,7 +87,6 @@ export function useCodeEditorSession(
                         const pendingId = `pending_${Date.now()}`;
                         taskManager.loadSessionData(pendingId, [], [], [], SessionDomain.CodeEditor);
                         setCurrentSessionId(pendingId);
-                        localStorage.setItem("hippox-current-codeeditor-session", pendingId);
                         setPendingNewSession(true);
                         setIsLoading(false);
                     }
@@ -96,7 +95,6 @@ export function useCodeEditorSession(
                     const pendingId = `pending_${Date.now()}`;
                     taskManager.loadSessionData(pendingId, [], [], [], SessionDomain.CodeEditor);
                     setCurrentSessionId(pendingId);
-                    localStorage.setItem("hippox-current-codeeditor-session", pendingId);
                     setPendingNewSession(true);
                     setIsLoading(false);
                 });
@@ -111,6 +109,7 @@ export function useCodeEditorSession(
     ) => {
         const now = new Date();
         let finalSessionId = sessionId || currentSessionId;
+
         if (finalSessionId && !finalSessionId.startsWith("pending_") &&
             !finalSessionId.startsWith("codeeditor_session_") && !finalSessionId.startsWith("temp_")) {
             console.error(
@@ -118,15 +117,18 @@ export function useCodeEditorSession(
             );
             return;
         }
+
         if (finalSessionId && finalSessionId.startsWith("pending_")) {
             const newSessionId = `codeeditor_session_${Date.now()}`;
             const sessionTitle = userMessage.length > 30
                 ? userMessage.slice(0, 30) + "..."
                 : userMessage;
+
             const tempUserMessages = taskManager.getUserMessagesBySession(finalSessionId, SessionDomain.CodeEditor);
             const tempAssistantMessages = taskManager.getAssistantMessagesBySessionAsArray(finalSessionId, SessionDomain.CodeEditor);
             const tempTasksMap = taskManager.getTasksBySession(finalSessionId, SessionDomain.CodeEditor);
             const tempTasks = tempTasksMap ? Array.from(tempTasksMap.values()) : [];
+
             await codeEditorSessionCommands.createCodeEditorSession(
                 newSessionId,
                 sessionTitle,
@@ -135,18 +137,20 @@ export function useCodeEditorSession(
                 [],
                 workflowMode || currentWorkflowMode,
             );
+
             taskManager.loadSessionData(newSessionId, tempTasks, tempUserMessages, tempAssistantMessages, SessionDomain.CodeEditor);
             taskManager.deleteSession(finalSessionId, SessionDomain.CodeEditor);
             finalSessionId = newSessionId;
             setCurrentSessionId(newSessionId);
-            localStorage.setItem("hippox-current-codeeditor-session", newSessionId);
             window.dispatchEvent(new CustomEvent("codeeditor-session-created"));
             setPendingNewSession(false);
+
         } else if (!finalSessionId) {
             const newSessionId = `codeeditor_session_${Date.now()}`;
             const sessionTitle = userMessage.length > 30
                 ? userMessage.slice(0, 30) + "..."
                 : userMessage;
+
             await codeEditorSessionCommands.createCodeEditorSession(
                 newSessionId,
                 sessionTitle,
@@ -155,10 +159,10 @@ export function useCodeEditorSession(
                 [],
                 workflowMode || currentWorkflowMode,
             );
+
             taskManager.loadSessionData(newSessionId, [], [], [], SessionDomain.CodeEditor);
             finalSessionId = newSessionId;
             setCurrentSessionId(newSessionId);
-            localStorage.setItem("hippox-current-codeeditor-session", newSessionId);
             window.dispatchEvent(new CustomEvent("codeeditor-session-created"));
         }
 
@@ -225,10 +229,8 @@ export function useCodeEditorSession(
         const pendingId = `pending_${Date.now()}`;
         taskManager.loadSessionData(pendingId, [], [], [], SessionDomain.CodeEditor);
         setCurrentSessionId(pendingId);
-        localStorage.setItem("hippox-current-codeeditor-session", pendingId);
         setPendingNewSession(true);
-        onCloseSkillsManager?.();
-    }, [onCloseSkillsManager]);
+    }, []);
 
     const handleSwitchSession = useCallback(async (sessionId: string) => {
         if (sessionId === currentSessionId) return;
@@ -279,7 +281,6 @@ export function useCodeEditorSession(
         }
 
         setCurrentSessionId(sessionId);
-        localStorage.setItem("hippox-current-codeeditor-session", sessionId);
         window.dispatchEvent(new CustomEvent("codeeditor-session-created"));
     }, [currentSessionId]);
 

@@ -560,45 +560,6 @@ const HistoryChartChatPanel = forwardRef<
           overflowY: "auto",
         }}
       >
-        {/* 新建会话按钮 - 放在顶部 */}
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "center",
-            padding: "8px 0 4px 0",
-          }}
-        >
-          <button
-            onClick={handleNewSession}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-              padding: "6px 16px",
-              borderRadius: "20px",
-              background: "var(--accent-color)",
-              color: "white",
-              border: "none",
-              cursor: "pointer",
-              fontSize: "13px",
-              fontWeight: 500,
-              transition: "all 0.2s",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.opacity = "0.85";
-              e.currentTarget.style.transform = "scale(1.02)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.opacity = "1";
-              e.currentTarget.style.transform = "scale(1)";
-            }}
-            title={t("history.newSession") || "新建会话"}
-          >
-            <AddIcon size={16} />
-            {t("history.newSession") || "新建会话"}
-          </button>
-        </div>
-
         {sessions.length === 0 ? (
           <div
             style={{

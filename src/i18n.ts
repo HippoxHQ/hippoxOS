@@ -832,6 +832,7 @@ export const zh = {
     openPathFailed: '无法打开文件: {{path}}',
   },
   history: {
+    newSession: "新会话",
     loading: "加载历史会话中...",
     expandAll: '展开全部',
     collapseAll: '收起全部',
@@ -2138,6 +2139,7 @@ export const en: typeof zh = {
     openPathFailed: 'Failed to open path: {{path}}',
   },
   history: {
+    newSession: "New Session",
     loading: "Loading History Chat...",
     expandAll: 'Expand All',
     collapseAll: 'Collapse All',

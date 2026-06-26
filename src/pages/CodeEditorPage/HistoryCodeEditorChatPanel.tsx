@@ -24,13 +24,13 @@ export interface HistoryCodeEditorChatPanelRef {
   scrollToBottom: () => void;
   expandAll: () => void;
   collapseAll: () => void;
+  refreshSessions: () => Promise<void>;
 }
 
 interface HistoryCodeEditorChatPanelProps {
   t: (key: string, params?: any) => string;
   onSessionSelect?: (sessionId: string) => void;
   currentSessionId?: string;
-  onCloseSkillsManager?: () => void;
 }
 
 type CategoryType =
@@ -60,16 +60,10 @@ const HistoryCodeEditorChatPanel = forwardRef<
   HistoryCodeEditorChatPanelProps
 >(
   (
-    {
-      t,
-      onSessionSelect,
-      currentSessionId,
-      onCloseSkillsManager,
-    }: HistoryCodeEditorChatPanelProps,
+    { t, onSessionSelect, currentSessionId }: HistoryCodeEditorChatPanelProps,
     ref,
   ) => {
     const [sessions, setSessions] = useState<DialogSession[]>([]);
-    const hasLoadedRef = useRef(false);
     const [loading, setLoading] = useState(false);
     const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
     const [hoveredId, setHoveredId] = useState<string | null>(null);
@@ -87,6 +81,7 @@ const HistoryCodeEditorChatPanel = forwardRef<
       last30days: true,
       older: true,
     });
+
     useImperativeHandle(ref, () => ({
       scrollToTop: () => {
         if (scrollContainerRef.current) {
@@ -121,6 +116,9 @@ const HistoryCodeEditorChatPanel = forwardRef<
           older: false,
         });
       },
+      refreshSessions: async () => {
+        await loadSessions(true);
+      },
     }));
 
     const toggleCategory = (categoryType: CategoryType) => {
@@ -132,57 +130,7 @@ const HistoryCodeEditorChatPanel = forwardRef<
 
     const menuRef = useRef<HTMLDivElement>(null);
 
-    useEffect(() => {
-      if (!hasLoadedRef.current) {
-        hasLoadedRef.current = true;
-        loadSessions();
-      }
-
-      const handleClickOutside = (event: MouseEvent) => {
-        if (
-          menuRef.current &&
-          !menuRef.current.contains(event.target as Node)
-        ) {
-          setActiveMenuId(null);
-        }
-        if (
-          editingId &&
-          editInputRef.current &&
-          !editInputRef.current.contains(event.target as Node)
-        ) {
-          const target = event.target as HTMLElement;
-          if (target.closest(".menu-panel-close")) return;
-        }
-      };
-      document.addEventListener("mousedown", handleClickOutside);
-
-      const handleSessionCreated = () => {
-        loadSessions(true);
-      };
-      window.addEventListener(
-        "codeeditor-session-created",
-        handleSessionCreated,
-      );
-      return () => {
-        document.removeEventListener("mousedown", handleClickOutside);
-        window.removeEventListener(
-          "codeeditor-session-created",
-          handleSessionCreated,
-        );
-      };
-    }, [editingId]);
-
-    useEffect(() => {
-      if (editingId && editInputRef.current) {
-        editInputRef.current.focus();
-        editInputRef.current.select();
-      }
-    }, [editingId]);
-
     const loadSessions = async (forceRefresh: boolean = false) => {
-      if (!forceRefresh && hasLoadedRef.current && sessions.length > 0) {
-        return;
-      }
       setLoading(true);
       try {
         const list = await codeEditorSessionCommands.listCodeEditorSessions();
@@ -205,6 +153,66 @@ const HistoryCodeEditorChatPanel = forwardRef<
         setLoading(false);
       }
     };
+
+    useEffect(() => {
+      loadSessions();
+    }, []);
+
+    useEffect(() => {
+      const handleSessionCreated = () => {
+        loadSessions(true);
+      };
+      window.addEventListener(
+        "codeeditor-session-created",
+        handleSessionCreated,
+      );
+      return () => {
+        window.removeEventListener(
+          "codeeditor-session-created",
+          handleSessionCreated,
+        );
+      };
+    }, []);
+
+    useEffect(() => {
+      const handleTitleUpdated = () => {
+        loadSessions(true);
+      };
+      window.addEventListener("session-title-updated", handleTitleUpdated);
+      return () => {
+        window.removeEventListener("session-title-updated", handleTitleUpdated);
+      };
+    }, []);
+
+    useEffect(() => {
+      const handleClickOutside = (event: MouseEvent) => {
+        if (
+          menuRef.current &&
+          !menuRef.current.contains(event.target as Node)
+        ) {
+          setActiveMenuId(null);
+        }
+        if (
+          editingId &&
+          editInputRef.current &&
+          !editInputRef.current.contains(event.target as Node)
+        ) {
+          const target = event.target as HTMLElement;
+          if (target.closest(".menu-panel-close")) return;
+        }
+      };
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => {
+        document.removeEventListener("mousedown", handleClickOutside);
+      };
+    }, [editingId]);
+
+    useEffect(() => {
+      if (editingId && editInputRef.current) {
+        editInputRef.current.focus();
+        editInputRef.current.select();
+      }
+    }, [editingId]);
 
     const handleTogglePin = async (
       session: DialogSession,
@@ -345,9 +353,6 @@ const HistoryCodeEditorChatPanel = forwardRef<
         setActiveMenuId(null);
         if (currentSessionId === sessionId) {
           return;
-        }
-        if (onCloseSkillsManager) {
-          onCloseSkillsManager();
         }
         try {
           if (onSessionSelect) {
@@ -518,6 +523,7 @@ const HistoryCodeEditorChatPanel = forwardRef<
       cursor: "pointer",
       paddingBottom: "5px",
     };
+
     if (loading && sessions.length === 0) {
       return (
         <div
@@ -531,20 +537,9 @@ const HistoryCodeEditorChatPanel = forwardRef<
         </div>
       );
     }
-    if (sessions.length === 0) {
-      return (
-        <div
-          style={{
-            textAlign: "center",
-            padding: "40px",
-            color: "var(--text-muted)",
-          }}
-        >
-          {t("history.empty") || "No History Chat"}
-        </div>
-      );
-    }
+
     const groupedSessions = getGroupedSessions();
+
     return (
       <div
         ref={scrollContainerRef}
@@ -555,174 +550,191 @@ const HistoryCodeEditorChatPanel = forwardRef<
           overflowY: "auto",
         }}
       >
-        {categories.map((category) => {
-          const categorySessions = groupedSessions[category.type];
-          if (categorySessions.length === 0) return null;
-          return (
-            <div key={category.type}>
-              <div
-                style={{
-                  ...categoryHeaderStyle,
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  cursor: "pointer",
-                }}
-                onClick={() => toggleCategory(category.type)}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.color = "var(--text-primary)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.color = "var(--text-secondary)";
-                }}
-              >
-                <span>
-                  {t(category.labelKey)} ({categorySessions.length})
-                </span>
-                <span
+        {sessions.length === 0 ? (
+          <div
+            style={{
+              textAlign: "center",
+              padding: "40px",
+              color: "var(--text-muted)",
+            }}
+          >
+            {t("history.empty") || "No History Chat"}
+          </div>
+        ) : (
+          categories.map((category) => {
+            const categorySessions = groupedSessions[category.type];
+            if (categorySessions.length === 0) return null;
+            return (
+              <div key={category.type}>
+                <div
                   style={{
-                    fontSize: "12px",
-                    transform: expandedCategories[category.type]
-                      ? "rotate(0deg)"
-                      : "rotate(-90deg)",
+                    ...categoryHeaderStyle,
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    cursor: "pointer",
+                  }}
+                  onClick={() => toggleCategory(category.type)}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.color = "var(--text-primary)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.color = "var(--text-secondary)";
                   }}
                 >
-                  ▼
-                </span>
-              </div>
-              {expandedCategories[category.type] &&
-                categorySessions.map((session) => {
-                  const isActive = currentSessionId === session.session_id;
-                  const isHovered = hoveredId === session.session_id;
-                  const isEditing = editingId === session.session_id;
-                  return (
-                    <div
-                      key={session.session_id}
-                      style={getCardStyle(isActive, isHovered)}
-                      onMouseEnter={() => setHoveredId(session.session_id)}
-                      onMouseLeave={() => setHoveredId(null)}
-                      onClick={() => {
-                        if (!isEditing) {
-                          handleSelectSession(session.session_id);
-                        }
-                      }}
-                    >
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ display: "flex", alignItems: "center" }}>
-                          {session.is_pinned && (
-                            <span style={pinIconStyle}>
-                              <PinFilledIcon size={16} />
-                            </span>
-                          )}
-                          {isEditing ? (
-                            <input
-                              ref={editInputRef}
-                              type="text"
-                              style={titleInputStyle}
-                              value={editValue}
-                              onChange={(e) => setEditValue(e.target.value)}
-                              onKeyDown={(e) => handleKeyDown(e, session)}
-                              onBlur={() => saveEdit(session)}
-                              onClick={(e) => e.stopPropagation()}
-                            />
-                          ) : (
-                            <span style={titleStyle} title={session.title}>
-                              {session.title || t("history.untitled")}
-                            </span>
-                          )}
-                        </div>
-                        <div style={timeStyle}>
-                          {formatDate(session.created_at)}
-                        </div>
-                      </div>
-                      {!isEditing &&
-                        (activeMenuId === session.session_id || isHovered) && (
-                          <div>
-                            <button
-                              style={menuButtonStyle}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setActiveMenuId(
-                                  activeMenuId === session.session_id
-                                    ? null
-                                    : session.session_id,
-                                );
-                              }}
-                              onMouseEnter={(e) => {
-                                e.currentTarget.style.background =
-                                  "var(--hover-bg)";
-                                e.currentTarget.style.color =
-                                  "var(--text-primary)";
-                              }}
-                              onMouseLeave={(e) => {
-                                e.currentTarget.style.background = "none";
-                                e.currentTarget.style.color =
-                                  "var(--text-secondary)";
-                              }}
-                            >
-                              <MoreVerticalIcon size={18} />
-                            </button>
-                            {activeMenuId === session.session_id && (
-                              <div style={dropdownStyle} ref={menuRef}>
-                                <div
-                                  style={dropdownItemStyle}
-                                  onClick={(e) => startEdit(session, e)}
-                                  onMouseEnter={(e) => {
-                                    e.currentTarget.style.background =
-                                      "var(--hover-bg)";
-                                  }}
-                                  onMouseLeave={(e) => {
-                                    e.currentTarget.style.background = "";
-                                  }}
-                                >
-                                  <RenameIcon size={16} /> {t("history.rename")}
-                                </div>
-                                <div
-                                  style={dropdownItemStyle}
-                                  onClick={(e) => handleTogglePin(session, e)}
-                                  onMouseEnter={(e) => {
-                                    e.currentTarget.style.background =
-                                      "var(--hover-bg)";
-                                  }}
-                                  onMouseLeave={(e) => {
-                                    e.currentTarget.style.background = "";
-                                  }}
-                                >
-                                  {session.is_pinned ? (
-                                    <UnPinIcon size={16} />
-                                  ) : (
-                                    <PinIcon size={16} />
-                                  )}{" "}
-                                  {session.is_pinned
-                                    ? t("history.unpin")
-                                    : t("history.pin")}
-                                </div>
-                                <div
-                                  style={{
-                                    ...dropdownItemStyle,
-                                    color: "var(--error-color, #dc2626)",
-                                  }}
-                                  onClick={(e) => handleDelete(session, e)}
-                                  onMouseEnter={(e) => {
-                                    e.currentTarget.style.background =
-                                      "var(--error-bg, rgba(220,38,38,0.1))";
-                                  }}
-                                  onMouseLeave={(e) => {
-                                    e.currentTarget.style.background = "";
-                                  }}
-                                >
-                                  <DeleteIcon size={16} /> {t("history.delete")}
-                                </div>
-                              </div>
+                  <span>
+                    {t(category.labelKey)} ({categorySessions.length})
+                  </span>
+                  <span
+                    style={{
+                      fontSize: "12px",
+                      transform: expandedCategories[category.type]
+                        ? "rotate(0deg)"
+                        : "rotate(-90deg)",
+                    }}
+                  >
+                    ▼
+                  </span>
+                </div>
+                {expandedCategories[category.type] &&
+                  categorySessions.map((session) => {
+                    const isActive = currentSessionId === session.session_id;
+                    const isHovered = hoveredId === session.session_id;
+                    const isEditing = editingId === session.session_id;
+                    return (
+                      <div
+                        key={session.session_id}
+                        style={getCardStyle(isActive, isHovered)}
+                        onMouseEnter={() => setHoveredId(session.session_id)}
+                        onMouseLeave={() => setHoveredId(null)}
+                        onClick={() => {
+                          if (!isEditing) {
+                            handleSelectSession(session.session_id);
+                          }
+                        }}
+                      >
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div
+                            style={{ display: "flex", alignItems: "center" }}
+                          >
+                            {session.is_pinned && (
+                              <span style={pinIconStyle}>
+                                <PinFilledIcon size={16} />
+                              </span>
+                            )}
+                            {isEditing ? (
+                              <input
+                                ref={editInputRef}
+                                type="text"
+                                style={titleInputStyle}
+                                value={editValue}
+                                onChange={(e) => setEditValue(e.target.value)}
+                                onKeyDown={(e) => handleKeyDown(e, session)}
+                                onBlur={() => saveEdit(session)}
+                                onClick={(e) => e.stopPropagation()}
+                              />
+                            ) : (
+                              <span style={titleStyle} title={session.title}>
+                                {session.title || t("history.untitled")}
+                              </span>
                             )}
                           </div>
-                        )}
-                    </div>
-                  );
-                })}
-            </div>
-          );
-        })}
+                          <div style={timeStyle}>
+                            {formatDate(session.created_at)}
+                          </div>
+                        </div>
+                        {!isEditing &&
+                          (activeMenuId === session.session_id ||
+                            isHovered) && (
+                            <div>
+                              <button
+                                style={menuButtonStyle}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setActiveMenuId(
+                                    activeMenuId === session.session_id
+                                      ? null
+                                      : session.session_id,
+                                  );
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.background =
+                                    "var(--hover-bg)";
+                                  e.currentTarget.style.color =
+                                    "var(--text-primary)";
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.background = "none";
+                                  e.currentTarget.style.color =
+                                    "var(--text-secondary)";
+                                }}
+                              >
+                                <MoreVerticalIcon size={18} />
+                              </button>
+                              {activeMenuId === session.session_id && (
+                                <div style={dropdownStyle} ref={menuRef}>
+                                  <div
+                                    style={dropdownItemStyle}
+                                    onClick={(e) => startEdit(session, e)}
+                                    onMouseEnter={(e) => {
+                                      e.currentTarget.style.background =
+                                        "var(--hover-bg)";
+                                    }}
+                                    onMouseLeave={(e) => {
+                                      e.currentTarget.style.background = "";
+                                    }}
+                                  >
+                                    <RenameIcon size={16} />{" "}
+                                    {t("history.rename")}
+                                  </div>
+                                  <div
+                                    style={dropdownItemStyle}
+                                    onClick={(e) => handleTogglePin(session, e)}
+                                    onMouseEnter={(e) => {
+                                      e.currentTarget.style.background =
+                                        "var(--hover-bg)";
+                                    }}
+                                    onMouseLeave={(e) => {
+                                      e.currentTarget.style.background = "";
+                                    }}
+                                  >
+                                    {session.is_pinned ? (
+                                      <UnPinIcon size={16} />
+                                    ) : (
+                                      <PinIcon size={16} />
+                                    )}{" "}
+                                    {session.is_pinned
+                                      ? t("history.unpin")
+                                      : t("history.pin")}
+                                  </div>
+                                  <div
+                                    style={{
+                                      ...dropdownItemStyle,
+                                      color: "var(--error-color, #dc2626)",
+                                    }}
+                                    onClick={(e) => handleDelete(session, e)}
+                                    onMouseEnter={(e) => {
+                                      e.currentTarget.style.background =
+                                        "var(--error-bg, rgba(220,38,38,0.1))";
+                                    }}
+                                    onMouseLeave={(e) => {
+                                      e.currentTarget.style.background = "";
+                                    }}
+                                  >
+                                    <DeleteIcon size={16} />{" "}
+                                    {t("history.delete")}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                      </div>
+                    );
+                  })}
+              </div>
+            );
+          })
+        )}
       </div>
     );
   },

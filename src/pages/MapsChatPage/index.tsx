@@ -3,8 +3,9 @@ import { taskManager } from "../../core/TaskManager";
 import { TaskStatusEnum } from "../../core/types";
 import { showTooltipOnElement } from "../../components/Tooltip";
 import { CollapseAllIcon2, ExpandAllIcon2 } from "../../icons";
-import { HistoryChatPanelRef } from "../GeneralChatPage/HistoryChatPanel";
-import HistoryMapChatPanel from "./HistoryMapChatPanel";
+import HistoryMapChatPanel, {
+  HistoryMapChatPanelRef,
+} from "./HistoryMapChatPanel";
 import MapsChatPageEarthView from "./MapsChatPageEarthView";
 import { configCommands } from "../../command/config";
 import MapsChatPage from "./MapsChatPanel";
@@ -674,7 +675,7 @@ const MapsPage: React.FC<MapsPageProps> = ({
   const [isHistoryExpanded, setIsHistoryExpanded] = useState(true);
   const [isHistoryAtBottom, setIsHistoryAtBottom] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-  const historyPanelRef = useRef<HistoryChatPanelRef>(null);
+  const historyPanelRef = useRef<HistoryMapChatPanelRef>(null);
   const [historySessions, setHistorySessions] = useState<any[]>([]);
   const isDragging = useRef(false);
   const dragType = useRef<"horizontal" | "history">("horizontal");
@@ -881,6 +882,26 @@ const MapsPage: React.FC<MapsPageProps> = ({
   }, []);
 
   useEffect(() => {
+    const handleSessionCreated = () => {
+      historyPanelRef.current?.refreshSessions();
+    };
+    window.addEventListener("map-session-created", handleSessionCreated);
+    return () => {
+      window.removeEventListener("map-session-created", handleSessionCreated);
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleTitleUpdated = () => {
+      historyPanelRef.current?.refreshSessions();
+    };
+    window.addEventListener("session-title-updated", handleTitleUpdated);
+    return () => {
+      window.removeEventListener("session-title-updated", handleTitleUpdated);
+    };
+  }, []);
+
+  useEffect(() => {
     const savedHistoryWidth = localStorage.getItem("hippox-map-history-width");
     const savedHistoryCollapsed = localStorage.getItem(
       "hippox-map-history-collapsed",
@@ -945,13 +966,16 @@ const MapsPage: React.FC<MapsPageProps> = ({
     [mapHandleSwitchSession],
   );
 
+  const handleNewSession = useCallback(() => {
+    mapHandleNewSession();
+  }, [mapHandleNewSession]);
+
   const handleMouseDown = (
     e: React.MouseEvent,
     type: "horizontal" | "history",
   ) => {
     if (chatPanelCollapsed || isFunctionPanelMaximized) return;
     if (type === "history" && historyCollapsed) return;
-
     isDragging.current = true;
     dragType.current = type;
     dragStartX.current = e.clientX;
@@ -959,7 +983,6 @@ const MapsPage: React.FC<MapsPageProps> = ({
     dragStartChatPanelWidth.current = chatPanelWidth;
     dragStartContainerRect.current =
       containerRef.current?.getBoundingClientRect() || null;
-
     document.body.style.cursor = "col-resize";
     document.body.style.userSelect = "none";
     e.preventDefault();
@@ -1129,6 +1152,36 @@ const MapsPage: React.FC<MapsPageProps> = ({
               flexShrink: 0,
             }}
           >
+            {/* 新建会话按钮 - "+" */}
+            <button
+              style={{
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                fontSize: "25px",
+                color: "var(--text-secondary)",
+                padding: "2px 6px",
+                borderRadius: "4px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                lineHeight: 1,
+                width: "28px",
+                height: "28px",
+              }}
+              onClick={handleNewSession}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = "var(--text-primary)";
+                e.currentTarget.style.background = "var(--hover-bg)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = "var(--text-secondary)";
+                e.currentTarget.style.background = "none";
+              }}
+              title={t("history.newSession") || "New Session"}
+            >
+              +
+            </button>
             <button
               style={{
                 background: "none",
@@ -1156,8 +1209,8 @@ const MapsPage: React.FC<MapsPageProps> = ({
               }}
               title={
                 isHistoryExpanded
-                  ? t("history.collapseAll") || "收起全部"
-                  : t("history.expandAll") || "展开全部"
+                  ? t("history.collapseAll")
+                  : t("history.expandAll")
               }
             >
               {isHistoryExpanded ? (
@@ -1193,8 +1246,8 @@ const MapsPage: React.FC<MapsPageProps> = ({
               }}
               title={
                 isHistoryAtBottom
-                  ? t("history.scrollToTop") || "滚动到顶部"
-                  : t("history.scrollToBottom") || "滚动到底部"
+                  ? t("history.scrollToTop")
+                  : t("history.scrollToBottom")
               }
             >
               {isHistoryAtBottom ? "▲" : "▼"}
@@ -1233,7 +1286,7 @@ const MapsPage: React.FC<MapsPageProps> = ({
                 e.currentTarget.style.color = "var(--text-secondary)";
                 e.currentTarget.style.background = "none";
               }}
-              title={t("history.collapse") || "收起面板"}
+              title={t("history.collapse")}
             >
               ◀
             </button>
@@ -1245,7 +1298,6 @@ const MapsPage: React.FC<MapsPageProps> = ({
             t={t}
             onSessionSelect={handleSessionSelect}
             currentSessionId={mapSessionId}
-            onCloseSkillsManager={onCloseSkillsManager}
           />
         </div>
       </div>
