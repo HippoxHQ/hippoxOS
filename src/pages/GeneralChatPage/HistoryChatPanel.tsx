@@ -400,7 +400,7 @@ const HistoryChatPanel = forwardRef<HistoryChatPanelRef, HistoryChatPanelProps>(
       if (isActive) {
         return {
           background: "rgba(0, 102, 204, 0.1)",
-          borderRadius: "10px",
+          borderRadius: "5px",
           padding: "12px 14px",
           marginBottom: "5px",
           border: "1px solid rgba(0, 102, 204, 0.3)",
@@ -413,7 +413,7 @@ const HistoryChatPanel = forwardRef<HistoryChatPanelRef, HistoryChatPanelProps>(
       }
       return {
         background: isHovered ? "var(--hover-bg)" : "var(--bg-secondary)",
-        borderRadius: "10px",
+        borderRadius: "5px",
         padding: "12px 14px",
         marginBottom: "5px",
         border: "1px solid var(--border-color)",

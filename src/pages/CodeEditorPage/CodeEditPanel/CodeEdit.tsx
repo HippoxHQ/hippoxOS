@@ -319,15 +319,28 @@ const CodeEdit: React.FC<CodeEditProps> = ({ t, selectedFile }) => {
 
   const closeTab = (path: string, e?: React.MouseEvent) => {
     e?.stopPropagation();
+    if (!path || tabs.length === 0) return;
     const newTabs = tabs.filter((tab) => tab.path !== path);
     setTabs(newTabs);
-
     if (activeTab === path) {
       if (newTabs.length > 0) {
         const currentIndex = tabs.findIndex((tab) => tab.path === path);
-        const nextIndex = Math.min(currentIndex, newTabs.length - 1);
-        setActiveTab(newTabs[nextIndex].path);
-        onFileSwitch(newTabs[nextIndex].path);
+        const safeIndex = currentIndex >= 0 ? currentIndex : 0;
+        const nextIndex = Math.min(safeIndex, newTabs.length - 1);
+        const nextPath = newTabs[nextIndex]?.path;
+        if (nextPath) {
+          setActiveTab(nextPath);
+          onFileSwitch(nextPath);
+        } else {
+          const fallbackPath = newTabs[0]?.path;
+          if (fallbackPath) {
+            setActiveTab(fallbackPath);
+            onFileSwitch(fallbackPath);
+          } else {
+            setActiveTab(null);
+            onFileSwitch(null);
+          }
+        }
       } else {
         setActiveTab(null);
         onFileSwitch(null);
