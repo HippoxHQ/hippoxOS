@@ -276,6 +276,17 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_get_all_workflow_mode_info,
         commands::cmd_verify_github_repo,
         commands::cmd_get_github_branches,
-        commands::cmd_clone_github_repo
+        commands::cmd_clone_github_repo,
+        commands::cmd_is_git_repo,            
+        commands::cmd_get_current_branch,     
+        commands::cmd_get_local_branches,     
+        commands::cmd_get_commit_history,     
+        commands::cmd_get_git_status,         
+        commands::cmd_get_remote_url,
+        commands::cmd_get_remote_status,
+        commands::cmd_get_remote_branches,
+        commands::cmd_git_pull,
+        commands::cmd_git_push,
+        commands::cmd_get_file_diff 
     ]
 }

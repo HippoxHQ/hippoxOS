@@ -1,98 +1,30 @@
 import React, { useState, useEffect } from "react";
-import { readDir, stat } from "@tauri-apps/plugin-fs";
+import { readDir } from "@tauri-apps/plugin-fs";
 import { join } from "@tauri-apps/api/path";
+import { FileNode } from "../types";
+import { getFileIcon } from "../fileUtils";
 
-interface FileNode {
-  name: string;
-  path: string;
-  isDirectory: boolean;
-  children?: FileNode[];
-}
-
-interface FileTreePanelProps {
-  t: (key: string) => string;
-  onFileSelect: (path: string) => void;
+interface FileTreeSectionProps {
+  workspacePath: string | null | undefined;
   selectedFile: string | null;
-  workspacePath?: string | null;
+  onFileSelect: (path: string) => void;
+  searchQuery: string;
+  isCollapsed: boolean;
+  t: (key: string) => string;
 }
 
-const getFileIcon = (fileName: string): string => {
-  const ext = fileName.split(".").pop()?.toLowerCase() || "";
-  const icons: Record<string, string> = {
-    ts: "📘",
-    tsx: "📘",
-    js: "📜",
-    jsx: "📜",
-    py: "🐍",
-    rs: "🦀",
-    go: "🐹",
-    java: "☕",
-    cpp: "⚙️",
-    c: "⚙️",
-    html: "🌐",
-    css: "🎨",
-    json: "📋",
-    md: "📝",
-    xml: "📄",
-    yaml: "📄",
-    yml: "📄",
-    toml: "📄",
-    sh: "📟",
-    bash: "📟",
-    sql: "🗄️",
-    php: "🐘",
-    rb: "💎",
-    swift: "🦅",
-    kt: "📱",
-    vue: "🟢",
-    svelte: "🟠",
-    zig: "⚡",
-    txt: "📄",
-    log: "📄",
-    gitignore: "📄",
-    env: "📄",
-  };
-  return icons[ext] || "📄";
-};
-
-const isCodeFile = (fileName: string): boolean => {
-  const codeExts = [
-    "ts",
-    "tsx",
-    "js",
-    "jsx",
-    "py",
-    "rs",
-    "go",
-    "java",
-    "cpp",
-    "c",
-    "h",
-    "hpp",
-    "php",
-    "rb",
-    "swift",
-    "kt",
-    "vue",
-    "svelte",
-    "zig",
-    "sql",
-    "sh",
-    "bash",
-  ];
-  const ext = fileName.split(".").pop()?.toLowerCase() || "";
-  return codeExts.includes(ext);
-};
-
-const FileTreePanel: React.FC<FileTreePanelProps> = ({
-  t,
-  onFileSelect,
-  selectedFile,
+export const FileTreeSection: React.FC<FileTreeSectionProps> = ({
   workspacePath,
+  selectedFile,
+  onFileSelect,
+  searchQuery,
+  isCollapsed,
+  t,
 }) => {
   const [fileTree, setFileTree] = useState<FileNode[]>([]);
   const [expandedPaths, setExpandedPaths] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
+
   const loadDirectoryTree = async (path: string): Promise<FileNode[]> => {
     try {
       const entries = await readDir(path);
@@ -115,8 +47,6 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({
           isDirectory: isDirectory,
           children: isDirectory ? [] : undefined,
         };
-        if (isDirectory) {
-        }
         nodes.push(node);
       }
       return nodes.sort((a, b) => {
@@ -215,6 +145,65 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({
     }
   };
 
+  const filterTree = (nodes: FileNode[], query: string): FileNode[] => {
+    if (!query.trim()) return nodes;
+
+    const lowerQuery = query.toLowerCase();
+    const filterNode = (node: FileNode): FileNode | null => {
+      const nameMatch = node.name.toLowerCase().includes(lowerQuery);
+
+      if (node.isDirectory && node.children) {
+        const filteredChildren = node.children
+          .map((child) => filterNode(child))
+          .filter((child): child is FileNode => child !== null);
+
+        if (filteredChildren.length > 0 || nameMatch) {
+          return {
+            ...node,
+            children: filteredChildren,
+          };
+        }
+        return null;
+      }
+
+      return nameMatch ? node : null;
+    };
+
+    return nodes
+      .map((node) => filterNode(node))
+      .filter((node): node is FileNode => node !== null);
+  };
+
+  useEffect(() => {
+    if (searchQuery.trim()) {
+      const expandMatchingPaths = (nodes: FileNode[], pathSet: Set<string>) => {
+        for (const node of nodes) {
+          if (node.isDirectory) {
+            if (node.children) {
+              expandMatchingPaths(node.children, pathSet);
+            }
+            const hasMatchingChild = (n: FileNode): boolean => {
+              if (n.name.toLowerCase().includes(searchQuery.toLowerCase())) {
+                return true;
+              }
+              if (n.isDirectory && n.children) {
+                return n.children.some((child) => hasMatchingChild(child));
+              }
+              return false;
+            };
+            if (hasMatchingChild(node)) {
+              pathSet.add(node.path);
+            }
+          }
+        }
+      };
+
+      const newExpanded = new Set(expandedPaths);
+      expandMatchingPaths(fileTree, newExpanded);
+      setExpandedPaths(newExpanded);
+    }
+  }, [searchQuery, fileTree]);
+
   const renderFileTree = (nodes: FileNode[], level: number = 0) => {
     return nodes.map((node) => {
       const isExpanded = expandedPaths.has(node.path);
@@ -236,7 +225,6 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({
                 color: "var(--text-primary)",
                 fontSize: "13px",
                 userSelect: "none",
-                // transition: "background 0.15s",
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.background = "var(--hover-bg)";
@@ -296,7 +284,6 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({
             color: isSelected ? "var(--accent-color)" : "var(--text-primary)",
             fontSize: "13px",
             userSelect: "none",
-            // transition: "background 0.15s",
           }}
           onMouseEnter={(e) => {
             if (!isSelected) {
@@ -327,16 +314,18 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({
     });
   };
 
+  const filteredTree = filterTree(fileTree, searchQuery);
+
   if (loading) {
     return (
       <div
         style={{
-          height: "100%",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           color: "var(--text-muted)",
           fontSize: "12px",
+          padding: "20px",
         }}
       >
         {t("common.loading") || "Loading..."}
@@ -348,7 +337,6 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({
     return (
       <div
         style={{
-          height: "100%",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -363,38 +351,25 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({
     );
   }
 
-  if (fileTree.length === 0) {
+  if (filteredTree.length === 0) {
     return (
       <div
         style={{
-          height: "100%",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           color: "var(--text-muted)",
           fontSize: "12px",
-          padding: "20px",
+          padding: "12px",
           textAlign: "center",
         }}
       >
-        {t("editor.emptyDirectory") || "Empty directory"}
+        {searchQuery.trim()
+          ? t("editor.noSearchResults") || "No matching files found"
+          : t("editor.emptyDirectory") || "Empty directory"}
       </div>
     );
   }
 
-  return (
-    <div
-      style={{
-        height: "100%",
-        overflow: "auto",
-        padding: "8px 4px",
-        background: "var(--bg-secondary)",
-        userSelect: "none",
-      }}
-    >
-      {renderFileTree(fileTree)}
-    </div>
-  );
+  return <div>{renderFileTree(filteredTree)}</div>;
 };
-
-export default FileTreePanel;

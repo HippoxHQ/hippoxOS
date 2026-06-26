@@ -1327,7 +1327,6 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({
                     {isZh ? "浏览" : "Browse"}
                   </button>
                 </div>
-                {/* 错误信息显示区域 */}
                 {cloneError && (
                   <div
                     style={{
@@ -1351,7 +1350,6 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({
                   </div>
                 )}
               </div>
-
               <div
                 style={{
                   display: "flex",

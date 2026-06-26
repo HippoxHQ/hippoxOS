@@ -232,3 +232,443 @@ pub async fn cmd_clone_github_repo(
         Err(_) => Err("Clone timeout (5 minutes)".to_string()),
     }
 }
+
+#[command]
+pub async fn cmd_is_git_repo(path: String) -> Result<bool, String> {
+    let git_dir = Path::new(&path).join(".git");
+    Ok(git_dir.exists() && git_dir.is_dir())
+}
+
+#[command]
+pub async fn cmd_get_current_branch(path: String) -> Result<String, String> {
+    use tokio::process::Command as TokioCommand;
+
+    let output = TokioCommand::new("git")
+        .arg("-C")
+        .arg(&path)
+        .arg("rev-parse")
+        .arg("--abbrev-ref")
+        .arg("HEAD")
+        .output()
+        .await
+        .map_err(|e| format!("Failed to execute git: {}", e))?;
+
+    if output.status.success() {
+        let branch = String::from_utf8_lossy(&output.stdout).trim().to_string();
+        Ok(branch)
+    } else {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        Err(format!("Failed to get current branch: {}", stderr))
+    }
+}
+
+#[command]
+pub async fn cmd_get_local_branches(path: String) -> Result<Vec<String>, String> {
+    use tokio::process::Command as TokioCommand;
+
+    let output = TokioCommand::new("git")
+        .arg("-C")
+        .arg(&path)
+        .arg("branch")
+        .arg("--format=%(refname:short)")
+        .output()
+        .await
+        .map_err(|e| format!("Failed to execute git: {}", e))?;
+
+    if output.status.success() {
+        let branches = String::from_utf8_lossy(&output.stdout)
+            .lines()
+            .filter(|line| !line.is_empty())
+            .map(|s| s.trim().to_string())
+            .collect();
+        Ok(branches)
+    } else {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        Err(format!("Failed to get branches: {}", stderr))
+    }
+}
+
+#[command]
+pub async fn cmd_get_commit_history(path: String) -> Result<serde_json::Value, String> {
+    use tokio::process::Command as TokioCommand;
+
+    let output = TokioCommand::new("git")
+        .arg("-C")
+        .arg(&path)
+        .arg("log")
+        .arg("--all")
+        .arg("--pretty=format:%H|%h|%s|%an|%ai|%d|%p")
+        .arg("--topo-order")
+        .output()
+        .await
+        .map_err(|e| format!("Failed to execute git: {}", e))?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(format!("Failed to get commit history: {}", stderr));
+    }
+
+    let output_str = String::from_utf8_lossy(&output.stdout);
+    let mut commits = Vec::new();
+
+    for line in output_str.lines() {
+        if line.is_empty() {
+            continue;
+        }
+        let parts: Vec<&str> = line.split('|').collect();
+        if parts.len() >= 6 {
+            let full_hash = parts[0].to_string();
+            let short_hash = parts[1].to_string();
+            let message = parts[2].to_string();
+            let author = parts[3].to_string();
+            let date = parts[4].to_string();
+            let refs = parts[5].to_string();
+            let parents = if parts.len() > 6 && !parts[6].is_empty() {
+                parts[6]
+                    .split_whitespace()
+                    .map(|s| s.to_string())
+                    .collect::<Vec<String>>()
+            } else {
+                Vec::new()
+            };
+
+            let mut branch = None;
+            let mut is_head = false;
+            if refs.contains("HEAD ->") {
+                is_head = true;
+                if let Some(start) = refs.find("HEAD -> ") {
+                    let rest = &refs[start + 8..];
+                    if let Some(end) = rest.find(',') {
+                        branch = Some(rest[..end].trim().to_string());
+                    } else if let Some(end) = rest.find(')') {
+                        branch = Some(rest[..end].trim().to_string());
+                    } else {
+                        branch = Some(rest.trim().to_string());
+                    }
+                }
+            } else if refs.contains("tag:") {
+            } else if !refs.is_empty() && refs != " " {
+                let clean_refs = refs.trim_matches(|c| c == '(' || c == ')' || c == ' ');
+                for r in clean_refs.split(',') {
+                    let r = r.trim();
+                    if !r.is_empty() && !r.contains("tag:") && !r.contains("HEAD") {
+                        branch = Some(r.to_string());
+                        break;
+                    }
+                }
+            }
+
+            commits.push(serde_json::json!({
+                "hash": full_hash,
+                "shortHash": short_hash,
+                "message": message,
+                "author": author,
+                "date": date,
+                "branch": branch,
+                "isHead": is_head,
+                "parents": parents,
+            }));
+        }
+    }
+
+    Ok(serde_json::json!({ "commits": commits }))
+}
+
+#[command]
+pub async fn cmd_get_git_status(path: String) -> Result<serde_json::Value, String> {
+    use tokio::process::Command as TokioCommand;
+
+    let output = TokioCommand::new("git")
+        .arg("-C")
+        .arg(&path)
+        .arg("status")
+        .arg("--porcelain")
+        .arg("-u")
+        .output()
+        .await
+        .map_err(|e| format!("Failed to execute git: {}", e))?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(format!("Failed to get git status: {}", stderr));
+    }
+
+    let output_str = String::from_utf8_lossy(&output.stdout);
+    let mut changes = Vec::new();
+    let has_changes = !output_str.trim().is_empty();
+
+    for line in output_str.lines() {
+        if line.is_empty() {
+            continue;
+        }
+        let status = line.get(0..2).unwrap_or("??").to_string();
+        let file = line.get(3..).unwrap_or("").trim().to_string();
+
+        let status_desc = match status.as_str() {
+            "M " => "modified",
+            " M" => "modified",
+            "A " => "added",
+            "AM" => "added",
+            "D " => "deleted",
+            " D" => "deleted",
+            "R " => "renamed",
+            "C " => "copied",
+            "??" => "untracked",
+            "!!" => "ignored",
+            _ => "unknown",
+        };
+
+        changes.push(serde_json::json!({
+            "file": file,
+            "status": status,
+            "statusDesc": status_desc,
+        }));
+    }
+
+    Ok(serde_json::json!({
+        "hasChanges": has_changes,
+        "changes": changes,
+    }))
+}
+
+#[command]
+pub async fn cmd_get_remote_url(path: String) -> Result<String, String> {
+    use tokio::process::Command as TokioCommand;
+
+    let output = TokioCommand::new("git")
+        .arg("-C")
+        .arg(&path)
+        .arg("remote")
+        .arg("get-url")
+        .arg("origin")
+        .output()
+        .await
+        .map_err(|e| format!("Failed to execute git: {}", e))?;
+
+    if output.status.success() {
+        let url = String::from_utf8_lossy(&output.stdout).trim().to_string();
+        if url.is_empty() {
+            Err("No remote origin configured".to_string())
+        } else {
+            Ok(url)
+        }
+    } else {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        if stderr.contains("No such remote") {
+            Err("No remote origin configured".to_string())
+        } else {
+            Err(format!("Failed to get remote URL: {}", stderr))
+        }
+    }
+}
+
+#[command]
+pub async fn cmd_get_remote_status(
+    path: String,
+    branch: String,
+) -> Result<serde_json::Value, String> {
+    use tokio::process::Command as TokioCommand;
+    let _fetch_output = TokioCommand::new("git")
+        .arg("-C")
+        .arg(&path)
+        .arg("fetch")
+        .arg("origin")
+        .arg(&branch)
+        .output()
+        .await
+        .map_err(|e| format!("Failed to fetch: {}", e))?;
+    let output = TokioCommand::new("git")
+        .arg("-C")
+        .arg(&path)
+        .arg("rev-list")
+        .arg("--count")
+        .arg("--left-right")
+        .arg(&format!("origin/{}...{}", branch, branch))
+        .output()
+        .await
+        .map_err(|e| format!("Failed to execute git: {}", e))?;
+    if output.status.success() {
+        let result = String::from_utf8_lossy(&output.stdout).trim().to_string();
+        let parts: Vec<&str> = result.split_whitespace().collect();
+        let behind = if parts.len() > 0 {
+            parts[0].parse::<i32>().unwrap_or(0)
+        } else {
+            0
+        };
+        let ahead = if parts.len() > 1 {
+            parts[1].parse::<i32>().unwrap_or(0)
+        } else {
+            0
+        };
+        Ok(serde_json::json!({
+            "ahead": ahead,
+            "behind": behind,
+            "isSynced": ahead == 0 && behind == 0,
+            "isAhead": ahead > 0,
+            "isBehind": behind > 0,
+            "isDiverged": ahead > 0 && behind > 0,
+        }))
+    } else {
+        Ok(serde_json::json!({
+            "ahead": 0,
+            "behind": 0,
+            "isSynced": true,
+            "isAhead": false,
+            "isBehind": false,
+            "isDiverged": false,
+        }))
+    }
+}
+
+#[command]
+pub async fn cmd_get_remote_branches(path: String) -> Result<Vec<String>, String> {
+    use tokio::process::Command as TokioCommand;
+
+    let output = TokioCommand::new("git")
+        .arg("-C")
+        .arg(&path)
+        .arg("branch")
+        .arg("-r")
+        .arg("--format=%(refname:short)")
+        .output()
+        .await
+        .map_err(|e| format!("Failed to execute git: {}", e))?;
+
+    if output.status.success() {
+        let branches = String::from_utf8_lossy(&output.stdout)
+            .lines()
+            .filter(|line| !line.is_empty())
+            .map(|s| s.trim().to_string())
+            .collect();
+        Ok(branches)
+    } else {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        Err(format!("Failed to get remote branches: {}", stderr))
+    }
+}
+
+#[command]
+pub async fn cmd_git_pull(path: String, branch: String) -> Result<String, String> {
+    use tokio::process::Command as TokioCommand;
+    use tokio::time::{timeout, Duration};
+
+    let output = timeout(
+        Duration::from_secs(120),
+        TokioCommand::new("git")
+            .arg("-C")
+            .arg(&path)
+            .arg("pull")
+            .arg("origin")
+            .arg(&branch)
+            .output(),
+    )
+    .await
+    .map_err(|_| "Pull timeout (2 minutes)".to_string())?
+    .map_err(|e| format!("Failed to execute git: {}", e))?;
+
+    if output.status.success() {
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        Ok(format!("Pull successful: {}", stdout))
+    } else {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        Err(format!("Pull failed: {}", stderr))
+    }
+}
+
+#[command]
+pub async fn cmd_git_push(path: String, branch: String) -> Result<String, String> {
+    use tokio::process::Command as TokioCommand;
+    use tokio::time::{timeout, Duration};
+
+    let output = timeout(
+        Duration::from_secs(120),
+        TokioCommand::new("git")
+            .arg("-C")
+            .arg(&path)
+            .arg("push")
+            .arg("origin")
+            .arg(&branch)
+            .output(),
+    )
+    .await
+    .map_err(|_| "Push timeout (2 minutes)".to_string())?
+    .map_err(|e| format!("Failed to execute git: {}", e))?;
+
+    if output.status.success() {
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        Ok(format!("Push successful: {}", stdout))
+    } else {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        Err(format!("Push failed: {}", stderr))
+    }
+}
+
+#[command]
+pub async fn cmd_get_file_diff(path: String, file: String) -> Result<serde_json::Value, String> {
+    use tokio::process::Command as TokioCommand;
+    let output = TokioCommand::new("git")
+        .arg("-C")
+        .arg(&path)
+        .arg("diff")
+        .arg("--no-color")
+        .arg("--no-prefix")
+        .arg("--unified=3")
+        .arg("--")
+        .arg(&file)
+        .output()
+        .await
+        .map_err(|e| format!("Failed to execute git: {}", e))?;
+    if output.status.success() {
+        let diff_content = String::from_utf8_lossy(&output.stdout).to_string();
+        if diff_content.is_empty() {
+            let check_output = TokioCommand::new("git")
+                .arg("-C")
+                .arg(&path)
+                .arg("ls-files")
+                .arg("--others")
+                .arg("--exclude-standard")
+                .arg("--")
+                .arg(&file)
+                .output()
+                .await
+                .map_err(|e| format!("Failed to execute git: {}", e))?;
+            let is_untracked = !String::from_utf8_lossy(&check_output.stdout)
+                .trim()
+                .is_empty();
+            if is_untracked {
+                let file_path = Path::new(&path).join(&file);
+                if file_path.exists() {
+                    let content = std::fs::read_to_string(&file_path)
+                        .map_err(|e| format!("Failed to read file: {}", e))?;
+                    return Ok(serde_json::json!({
+                        "type": "new_file",
+                        "content": content,
+                        "diff": diff_content,
+                    }));
+                }
+            }
+            return Ok(serde_json::json!({
+                "type": "no_diff",
+                "diff": "",
+            }));
+        }
+        let mut additions = 0;
+        let mut deletions = 0;
+        for line in diff_content.lines() {
+            if line.starts_with("+") && !line.starts_with("+++") {
+                additions += 1;
+            } else if line.starts_with("-") && !line.starts_with("---") {
+                deletions += 1;
+            }
+        }
+        Ok(serde_json::json!({
+            "type": "diff",
+            "diff": diff_content,
+            "additions": additions,
+            "deletions": deletions,
+        }))
+    } else {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        Err(format!("Failed to get diff: {}", stderr))
+    }
+}
