@@ -18,6 +18,8 @@ dependencies = [
  "memcontext",
  "nix 0.31.3",
  "once_cell",
+ "rayon",
+ "regex",
  "reqwest 0.13.3",
  "rfd 0.17.2",
  "scraper",

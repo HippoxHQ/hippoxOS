@@ -13,6 +13,31 @@ export interface FileMoveResult {
     new_path?: string;
 }
 
+export interface SearchMatch {
+    line: string;
+    line_number: number;
+    start_index: number;
+    end_index: number;
+    context_before: string;
+    context_after: string;
+    matched_text: string;
+}
+
+export interface FileSearchResult {
+    file_path: string;
+    relative_path: string;
+    match_count: number;
+    matches: SearchMatch[];
+}
+
+export interface SearchInFilesResult {
+    success: boolean;
+    message: string;
+    total_files: number;
+    total_matches: number;
+    results: FileSearchResult[];
+}
+
 export const codeEditorCommands = {
     openInExplorer: async (path: string): Promise<FileOperationResult> => {
         return await invoke("cmd_open_in_explorer", { path });
@@ -40,5 +65,9 @@ export const codeEditorCommands = {
 
     copy: async (sourcePath: string, targetPath: string): Promise<FileOperationResult> => {
         return await invoke("cmd_copy", { sourcePath, targetPath });
+    },
+
+    searchInFiles: async (workspacePath: string, query: string): Promise<SearchInFilesResult> => {
+        return await invoke("cmd_search_in_files", { workspacePath, query });
     },
 };

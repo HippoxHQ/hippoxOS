@@ -16,6 +16,7 @@ interface FileTreeSectionProps {
   searchQuery: string;
   isCollapsed: boolean;
   t: (key: string, params?: Record<string, string | number>) => string;
+  onFileTreeChange?: (tree: FileNode[]) => void;
 }
 
 export const FileTreeSection: React.FC<FileTreeSectionProps> = ({
@@ -25,6 +26,7 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({
   searchQuery,
   isCollapsed,
   t,
+  onFileTreeChange,
 }) => {
   const [fileTree, setFileTree] = useState<FileNode[]>([]);
   const [expandedPaths, setExpandedPaths] = useState<Set<string>>(new Set());
@@ -360,6 +362,10 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({
       return [];
     }
   };
+
+  useEffect(() => {
+    onFileTreeChange?.(fileTree);
+  }, [fileTree, onFileTreeChange]);
 
   useEffect(() => {
     const initFileTree = async () => {
