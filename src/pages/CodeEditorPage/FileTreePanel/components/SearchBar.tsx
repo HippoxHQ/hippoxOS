@@ -52,7 +52,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
           onChange={(e) => setSearchQuery(e.target.value)}
           onFocus={() => setIsSearchFocused(true)}
           onBlur={() => setIsSearchFocused(false)}
-          placeholder={t("fileTree.search") || "Search files..."}
+          placeholder={t("codeEditor.search") || "Search files..."}
           style={{
             flex: 1,
             background: "transparent",

@@ -989,6 +989,7 @@ export const zh = {
     disabled: '已禁用',
   },
   codeEditor: {
+    search: '搜索...',
     loading: '加载中...',
     noWorkspace: '未加载工作区',
     noSearchResults: '未找到匹配的文件',
@@ -2360,6 +2361,7 @@ export const en: typeof zh = {
     disabled: 'Disabled',
   },
   codeEditor: {
+    search: 'Search...',
     loading: 'Loading...',
     noWorkspace: 'No workspace loaded',
     noSearchResults: 'No matching files found',
