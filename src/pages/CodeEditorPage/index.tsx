@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { taskManager } from "../../core/TaskManager";
-import { CollapseAllIcon2, ExpandAllIcon2 } from "../../icons";
+import { CollapseAllIcon2, ExpandAllIcon2, FileIcon, FolderIcon, GithubIcon } from "../../icons";
 import CodingPage from "./Coding";
 import { configCommands } from "../../command/config";
 import HistoryCodeEditorChatPanel, {
@@ -13,6 +13,9 @@ import CodeEditorWelcomePage from "./CodeEditorWelcomePage";
 import { listen } from "@tauri-apps/api/event";
 import { githubCommands } from "../../command/net/github";
 import { showToast, ToastType } from "../../components/Toast";
+import { open } from "@tauri-apps/plugin-dialog";
+import { CloseIcon } from "../../icons";
+import GithubClone from "./GithubClone";
 
 const GLOBAL_SESSION_LOCK = {
   isCreating: false,
@@ -734,6 +737,27 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
   const [isCreatingSession, setIsCreatingSession] = useState(false);
   const [workspacePath, setWorkspacePath] = useState<string | null>(null);
   const hasHistorySessions = historySessions.length > 0;
+  const [showMenuPopup, setShowMenuPopup] = useState(false);
+  const [showGithubDialog, setShowGithubDialog] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        menuRef.current &&
+        !menuRef.current.contains(event.target as Node) &&
+        buttonRef.current &&
+        !buttonRef.current.contains(event.target as Node)
+      ) {
+        setShowMenuPopup(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   const handleSendMessage = useCallback(
     (
@@ -755,8 +779,58 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
   );
 
   const handleNewSessionClick = useCallback(() => {
-    handleNewSession();
-  }, [handleNewSession]);
+    setShowMenuPopup(!showMenuPopup);
+  }, [showMenuPopup]);
+
+  const handleSelectFolder = async () => {
+    setShowMenuPopup(false);
+    try {
+      const selected = await open({
+        directory: true,
+        multiple: false,
+        title:
+          language === "zh" ? "选择工作区目录" : "Select Workspace Directory",
+      });
+      if (selected && typeof selected === "string") {
+        await handleSelectWorkspace(selected, "directory");
+      }
+    } catch (error) {
+      showToast(
+        ToastType.ERROR,
+        language === "zh" ? "选择目录失败" : "Failed to select directory",
+      );
+    }
+  };
+
+  const handleSelectFile = async () => {
+    setShowMenuPopup(false);
+    try {
+      const selected = await open({
+        directory: false,
+        multiple: false,
+        title: language === "zh" ? "选择文件" : "Select File",
+        filters: [
+          {
+            name: language === "zh" ? "所有文件" : "All Files",
+            extensions: ["*"],
+          },
+        ],
+      });
+      if (selected && typeof selected === "string") {
+        await handleSelectWorkspace(selected, "file");
+      }
+    } catch (error) {
+      showToast(
+        ToastType.ERROR,
+        language === "zh" ? "选择文件失败" : "Failed to select file",
+      );
+    }
+  };
+
+  const handleSelectGithub = () => {
+    setShowMenuPopup(false);
+    setShowGithubDialog(true);
+  };
 
   const handleToggleChatPanel = () => {
     if (isFunctionPanelMaximized) return;
@@ -882,38 +956,34 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
     [createSessionWithLock],
   );
 
-  useEffect(() => {
-    const handleGithubCloneRequest = async (event: CustomEvent) => {
-      const { repoUrl, targetPath, branch } = event.detail;
-      try {
-        await githubCommands.cloneRepository(
-          repoUrl,
-          targetPath,
-          branch || "main",
-        );
-        await handleSelectWorkspace(targetPath, "directory");
-        window.dispatchEvent(
-          new CustomEvent("github-clone-complete", {
-            detail: { repoUrl, targetPath, branch },
-          }),
-        );
-      } catch (error) {
-        console.log('克隆失败')
-        console.log(error)
-        showToast(
-          ToastType.ERROR,
-          language === "zh" ? "克隆失败" : "Clone Failed",
-        );
-      }
-    };
-    const listener: EventListener = (event: Event) => {
-      handleGithubCloneRequest(event as CustomEvent);
-    };
-    window.addEventListener("github-clone-request", listener);
-    return () => {
-      window.removeEventListener("github-clone-request", listener);
-    };
-  }, [handleSelectWorkspace]);
+  const handleGithubClone = async (
+    repoUrl: string,
+    targetPath: string,
+    branch: string,
+  ) => {
+    try {
+      await githubCommands.cloneRepository(
+        repoUrl,
+        targetPath,
+        branch || "main",
+      );
+      await handleSelectWorkspace(targetPath, "directory");
+      setShowGithubDialog(false);
+      window.dispatchEvent(
+        new CustomEvent("github-clone-complete", {
+          detail: { repoUrl, targetPath, branch },
+        }),
+      );
+    } catch (error) {
+      console.log("克隆失败");
+      console.log(error);
+      showToast(
+        ToastType.ERROR,
+        language === "zh" ? "克隆失败" : "Clone Failed",
+      );
+      throw error;
+    }
+  };
 
   useEffect(() => {
     loadHistorySessions();
@@ -1255,6 +1325,7 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
             }}
           >
             <button
+              ref={buttonRef}
               style={{
                 background: "none",
                 border: "none",
@@ -1414,8 +1485,6 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
   };
 
   const historyPanelContent = getHistoryPanelContent();
-  const historyWidthPx =
-    historyCollapsed || isFunctionPanelMaximized ? 45 : historyWidth;
 
   const chatPanel = (
     <CodeEditorChatPanel
@@ -1591,166 +1660,282 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
   }
 
   return (
-    <div
-      className="panels-container horizontal-layout"
-      ref={containerRef}
-      style={{ display: "flex", flex: 1, overflow: "hidden" }}
-    >
-      <style>{`
-        .resize-handle-vertical {
-          position: relative;
-          z-index: 1;
-        }
-        .resize-handle-vertical::after {
-          content: '';
-          position: absolute;
-          top: -10px;
-          left: -8px;
-          right: -8px;
-          bottom: -10px;
-          cursor: col-resize;
-          z-index: 10;
-        }
-        .resize-handle-history {
-          position: relative;
-          z-index: 1;
-        }
-        .resize-handle-history::after {
-          content: '';
-          position: absolute;
-          top: -10px;
-          left: -8px;
-          right: -8px;
-          bottom: -10px;
-          cursor: col-resize;
-          z-index: 10;
-        }
-        .collapsed-sidebar {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          width: 45px;
-          min-width: 45px;
-          background: var(--bg-secondary);
-          overflow: hidden;
-          flex-shrink: 0;
-          height: 100%;
-        }
-        .collapsed-history-list::-webkit-scrollbar,
-        .collapsed-task-list::-webkit-scrollbar {
-          display: none;
-        }
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
+    <>
+      <div
+        className="panels-container horizontal-layout"
+        ref={containerRef}
+        style={{ display: "flex", flex: 1, overflow: "hidden" }}
+      >
+        <style>{`
+          .resize-handle-vertical {
+            position: relative;
+            z-index: 1;
+          }
+          .resize-handle-vertical::after {
+            content: '';
+            position: absolute;
+            top: -10px;
+            left: -8px;
+            right: -8px;
+            bottom: -10px;
+            cursor: col-resize;
+            z-index: 10;
+          }
+          .resize-handle-history {
+            position: relative;
+            z-index: 1;
+          }
+          .resize-handle-history::after {
+            content: '';
+            position: absolute;
+            top: -10px;
+            left: -8px;
+            right: -8px;
+            bottom: -10px;
+            cursor: col-resize;
+            z-index: 10;
+          }
+          .collapsed-sidebar {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 45px;
+            min-width: 45px;
+            background: var(--bg-secondary);
+            overflow: hidden;
+            flex-shrink: 0;
+            height: 100%;
+          }
+          .collapsed-history-list::-webkit-scrollbar,
+          .collapsed-task-list::-webkit-scrollbar {
+            display: none;
+          }
+          @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+          }
+        `}</style>
 
-      {!isFunctionPanelMaximized && (
-        <>
+        {!isFunctionPanelMaximized && (
+          <>
+            <div
+              className="panel-history"
+              style={{
+                flex: historyCollapsed ? "0 0 45px" : "0 0 auto",
+                width: historyCollapsed ? "45px" : `${historyWidth}px`,
+                overflow: "hidden",
+                minWidth: historyCollapsed ? "45px" : "180px",
+                display: "flex",
+                flexDirection: "row",
+                borderRight: "1px solid var(--border-color)",
+              }}
+            >
+              {historyPanelContent}
+            </div>
+            {!historyCollapsed && (
+              <div
+                className="resize-handle resize-handle-history"
+                onMouseDown={(e) => handleMouseDown(e, "history")}
+                style={{
+                  width: "0px",
+                  background: isHistoryResizeHover
+                    ? "var(--scrollbar-thumb)"
+                    : "var(--border-color)",
+                  cursor: "col-resize",
+                  flexShrink: 0,
+                  position: "relative",
+                }}
+                onMouseEnter={() => setIsHistoryResizeHover(true)}
+                onMouseLeave={() => setIsHistoryResizeHover(false)}
+              />
+            )}
+          </>
+        )}
+
+        {!chatPanelCollapsed && !isFunctionPanelMaximized ? (
           <div
-            className="panel-history"
+            className="panel-chat"
             style={{
-              flex: historyCollapsed ? "0 0 45px" : "0 0 auto",
-              width: historyCollapsed ? "45px" : `${historyWidth}px`,
+              flex: "0 0 auto",
+              width: `${chatPanelWidth}px`,
               overflow: "hidden",
-              minWidth: historyCollapsed ? "45px" : "180px",
+              minWidth: "200px",
               display: "flex",
               flexDirection: "row",
-              borderRight: "1px solid var(--border-color)",
+              borderRight: isChatOnLeft
+                ? "1px solid var(--border-color)"
+                : "none",
+              borderLeft: !isChatOnLeft
+                ? "1px solid var(--border-color)"
+                : "none",
+              order: isChatOnLeft ? 1 : 3,
             }}
           >
-            {historyPanelContent}
+            {React.cloneElement(chatPanel as React.ReactElement<any>, {
+              isCollapsed: false,
+              togglePanel: handleToggleChatPanel,
+              collapseIcon: isChatOnLeft ? "≪" : "≫",
+              isLeftPanel: isChatOnLeft,
+            })}
           </div>
-          {!historyCollapsed && (
-            <div
-              className="resize-handle resize-handle-history"
-              onMouseDown={(e) => handleMouseDown(e, "history")}
-              style={{
-                width: "0px",
-                background: isHistoryResizeHover
-                  ? "var(--scrollbar-thumb)"
-                  : "var(--border-color)",
-                cursor: "col-resize",
-                flexShrink: 0,
-                position: "relative",
-              }}
-              onMouseEnter={() => setIsHistoryResizeHover(true)}
-              onMouseLeave={() => setIsHistoryResizeHover(false)}
-            />
-          )}
-        </>
-      )}
+        ) : !isFunctionPanelMaximized ? (
+          <div
+            style={{
+              flex: "0 0 45px",
+              order: isChatOnLeft ? 1 : 3,
+            }}
+          >
+            {collapsedChatSidebar}
+          </div>
+        ) : null}
 
-      {!chatPanelCollapsed && !isFunctionPanelMaximized ? (
+        {!chatPanelCollapsed && !isFunctionPanelMaximized && (
+          <div
+            className="resize-handle resize-handle-vertical"
+            onMouseDown={(e) => handleMouseDown(e, "horizontal")}
+            style={{
+              width: "0px",
+              background: isResizeHover
+                ? "var(--scrollbar-thumb)"
+                : "var(--border-color)",
+              cursor: "col-resize",
+              flexShrink: 0,
+              position: "relative",
+              order: isChatOnLeft ? 2 : 2,
+            }}
+            onMouseEnter={() => setIsResizeHover(true)}
+            onMouseLeave={() => setIsResizeHover(false)}
+          />
+        )}
+
         <div
-          className="panel-chat"
           style={{
-            flex: "0 0 auto",
-            width: `${chatPanelWidth}px`,
+            flex: 1,
             overflow: "hidden",
-            minWidth: "200px",
+            minWidth: "150px",
             display: "flex",
             flexDirection: "row",
-            borderRight: isChatOnLeft
-              ? "1px solid var(--border-color)"
-              : "none",
-            borderLeft: !isChatOnLeft
-              ? "1px solid var(--border-color)"
-              : "none",
-            order: isChatOnLeft ? 1 : 3,
+            order: isChatOnLeft ? 3 : 1,
           }}
         >
-          {React.cloneElement(chatPanel as React.ReactElement<any>, {
-            isCollapsed: false,
-            togglePanel: handleToggleChatPanel,
-            collapseIcon: isChatOnLeft ? "≪" : "≫",
-            isLeftPanel: isChatOnLeft,
-          })}
+          {codeEditorPanel}
         </div>
-      ) : !isFunctionPanelMaximized ? (
-        <div
-          style={{
-            flex: "0 0 45px",
-            order: isChatOnLeft ? 1 : 3,
-          }}
-        >
-          {collapsedChatSidebar}
-        </div>
-      ) : null}
+      </div>
 
-      {!chatPanelCollapsed && !isFunctionPanelMaximized && (
+      {showMenuPopup && (
         <div
-          className="resize-handle resize-handle-vertical"
-          onMouseDown={(e) => handleMouseDown(e, "horizontal")}
+          ref={menuRef}
           style={{
-            width: "0px",
-            background: isResizeHover
-              ? "var(--scrollbar-thumb)"
-              : "var(--border-color)",
-            cursor: "col-resize",
-            flexShrink: 0,
-            position: "relative",
-            order: isChatOnLeft ? 2 : 2,
+            position: "fixed",
+            zIndex: 9999,
+            background: "var(--bg-secondary)",
+            border: "1px solid var(--border-color)",
+            borderRadius: "5px",
+            boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+            padding: "4px",
+            minWidth: "120px",
+            top: "68px",
+            left: "100px",
           }}
-          onMouseEnter={() => setIsResizeHover(true)}
-          onMouseLeave={() => setIsResizeHover(false)}
-        />
+        >
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "1px",
+            }}
+          >
+            <div
+              onClick={handleSelectFolder}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "10px",
+                padding: "5px 10px",
+                borderRadius: "5px",
+                cursor: "pointer",
+                color: "var(--text-primary)",
+                fontSize: "12px",
+                transition: "background 0.1s ease",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "var(--hover-bg)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "transparent";
+              }}
+            >
+              <FolderIcon size={14} />
+              <span>{language === "zh" ? "选择目录" : "Select Folder"}</span>
+            </div>
+
+            <div
+              onClick={handleSelectFile}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                padding: "4px 10px",
+                borderRadius: "4px",
+                cursor: "pointer",
+                color: "var(--text-primary)",
+                fontSize: "12px",
+                transition: "background 0.1s ease",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "var(--hover-bg)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "transparent";
+              }}
+            >
+              <FileIcon size={14} />
+              <span>{language === "zh" ? "选择文件" : "Select File"}</span>
+            </div>
+
+            <div
+              onClick={handleSelectGithub}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                padding: "4px 10px",
+                borderRadius: "4px",
+                cursor: "pointer",
+                color: "var(--text-primary)",
+                fontSize: "12px",
+                transition: "background 0.1s ease",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "var(--hover-bg)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "transparent";
+              }}
+            >
+              <GithubIcon size={14} />
+              <span>{language === "zh" ? "GitHub 拉取" : "GitHub Clone"}</span>
+            </div>
+          </div>
+        </div>
       )}
 
-      <div
-        style={{
-          flex: 1,
-          overflow: "hidden",
-          minWidth: "150px",
-          display: "flex",
-          flexDirection: "row",
-          order: isChatOnLeft ? 3 : 1,
-        }}
-      >
-        {codeEditorPanel}
-      </div>
-    </div>
+      <GithubClone
+        t={t}
+        language={language}
+        isOpen={showGithubDialog}
+        onClose={() => setShowGithubDialog(false)}
+        onClone={handleGithubClone}
+        isLoading={isCreatingSession}
+      />
+
+      <style>{`
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+      `}</style>
+    </>
   );
 };
 
