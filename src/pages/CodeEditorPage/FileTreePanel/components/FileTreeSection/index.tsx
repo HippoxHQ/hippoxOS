@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef } from "react";
 import { readDir } from "@tauri-apps/plugin-fs";
 import { join } from "@tauri-apps/api/path";
-import { FileNode } from "../types";
-import { getFileIcon } from "../fileUtils";
-import { ContextMenu, ContextMenuItemType } from "./ContextMenu";
-import { codeEditorCommands } from "../../../../command/CodeEditor";
+import { codeEditorCommands } from "../../../../../command/CodeEditor";
+import { showToast, ToastType } from "../../../../../components/Toast";
+import { getFileIcon } from "../../fileUtils";
+import { FileNode } from "../../types";
+import { ContextMenuItemType, ContextMenu } from "../ContextMenu";
+import { DialogType, showDialog } from "../../../../../components/Dialog";
 
 interface FileTreeSectionProps {
   workspacePath: string | null | undefined;
@@ -12,7 +14,7 @@ interface FileTreeSectionProps {
   onFileSelect: (path: string) => void;
   searchQuery: string;
   isCollapsed: boolean;
-  t: (key: string) => string;
+  t: (key: string, params?: Record<string, string | number>) => string;
 }
 
 export const FileTreeSection: React.FC<FileTreeSectionProps> = ({
@@ -27,13 +29,11 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({
   const [expandedPaths, setExpandedPaths] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-
   const [contextMenu, setContextMenu] = useState<{
     x: number;
     y: number;
     node: FileNode;
   } | null>(null);
-
   const [editingPath, setEditingPath] = useState<string | null>(null);
   const [editingType, setEditingType] = useState<
     "rename" | "newfile" | "newfolder"
@@ -41,6 +41,8 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({
   const [editValue, setEditValue] = useState("");
   const [editParentPath, setEditParentPath] = useState<string | null>(null);
   const editInputRef = useRef<HTMLInputElement>(null);
+  const isConfirmingRef = useRef<boolean>(false);
+  const initialEditValueRef = useRef<string>("");
 
   const loadDirectoryTree = async (path: string): Promise<FileNode[]> => {
     try {
@@ -211,7 +213,6 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({
           }
         }
       };
-
       const newExpanded = new Set(expandedPaths);
       expandMatchingPaths(fileTree, newExpanded);
       setExpandedPaths(newExpanded);
@@ -222,7 +223,6 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({
     const handleContextMenu = (e: Event) => {
       e.preventDefault();
     };
-
     const container = containerRef.current;
     if (container) {
       container.addEventListener("contextmenu", handleContextMenu);
@@ -235,7 +235,6 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({
   const handleContextMenu = (e: React.MouseEvent, node: FileNode) => {
     e.preventDefault();
     e.stopPropagation();
-
     setContextMenu({
       x: e.clientX,
       y: e.clientY,
@@ -247,20 +246,16 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({
     const target = e.target as HTMLElement;
     const isContainer = target === containerRef.current;
     const isFileTreeRoot = target.classList?.contains("file-tree-root");
-
     if (isContainer || isFileTreeRoot) {
       e.preventDefault();
       e.stopPropagation();
-
       if (!workspacePath) return;
-
       const rootNode: FileNode = {
         name: workspacePath.split(/[\\/]/).pop() || "Root",
         path: workspacePath,
         isDirectory: true,
         children: fileTree,
       };
-
       setContextMenu({
         x: e.clientX,
         y: e.clientY,
@@ -277,7 +272,7 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({
     if (!expandedPaths.has(node.path)) {
       toggleExpand(node.path, node);
     }
-    startEditing("newfile", node.path, "新建文件.txt");
+    startEditing("newfile", node.path, t("codeEditor.defaultFileName"));
     closeContextMenu();
   };
 
@@ -285,14 +280,17 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({
     if (!expandedPaths.has(node.path)) {
       toggleExpand(node.path, node);
     }
-    startEditing("newfolder", node.path, "新建文件夹");
+    startEditing("newfolder", node.path, t("codeEditor.defaultFolderName"));
     closeContextMenu();
   };
 
   const handleOpenInExplorer = async (path: string) => {
     const result = await codeEditorCommands.openInExplorer(path);
     if (!result.success) {
-      alert(result.message);
+      showToast(
+        ToastType.ERROR,
+        result.message || t("codeEditor.openInExplorer"),
+      );
     }
     closeContextMenu();
   };
@@ -300,7 +298,10 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({
   const handleOpenInTerminal = async (path: string) => {
     const result = await codeEditorCommands.openInTerminal(path);
     if (!result.success) {
-      alert(result.message);
+      showToast(
+        ToastType.ERROR,
+        result.message || t("codeEditor.openInTerminal"),
+      );
     }
     closeContextMenu();
   };
@@ -318,14 +319,286 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({
     closeContextMenu();
   };
 
+  const startRename = (node: FileNode) => {
+    startEditing("rename", node.path, node.name);
+    closeContextMenu();
+  };
+
+  const confirmEdit = async () => {
+    if (isConfirmingRef.current) return;
+    isConfirmingRef.current = true;
+
+    if (!editingPath) {
+      cancelEdit();
+      isConfirmingRef.current = false;
+      return;
+    }
+    const trimmedName = editValue.trim();
+    if (editingType === "rename") {
+      if (!trimmedName || trimmedName === initialEditValueRef.current) {
+        cancelEdit();
+        isConfirmingRef.current = false;
+        return;
+      }
+    } else {
+      if (!trimmedName) {
+        cancelEdit();
+        isConfirmingRef.current = false;
+        return;
+      }
+    }
+    const currentType = editingType;
+    const currentParentPath = editParentPath;
+    const currentPath = editingPath;
+    setEditingPath(null);
+    setEditParentPath(null);
+    if (currentType === "rename") {
+      const result = await codeEditorCommands.rename(currentPath, trimmedName);
+      if (result.success) {
+        updateNodeName(currentPath, trimmedName);
+        showToast(ToastType.SUCCESS, t("codeEditor.renameSuccess"));
+      } else {
+        if (result.message && result.message.includes("already exists")) {
+          showToast(
+            ToastType.WARNING,
+            t("codeEditor.fileExists", { name: trimmedName }),
+          );
+        } else {
+          showToast(
+            ToastType.ERROR,
+            result.message || t("codeEditor.renameFailed"),
+          );
+        }
+        setEditingPath(currentPath);
+        setEditParentPath(null);
+      }
+    } else if (currentType === "newfile") {
+      const parentPath = currentParentPath || currentPath;
+      const result = await codeEditorCommands.createFile(
+        parentPath,
+        trimmedName,
+      );
+      if (result.success) {
+        await addNodeToParent(parentPath, trimmedName, false);
+        showToast(ToastType.SUCCESS, t("codeEditor.createSuccess"));
+      } else {
+        if (result.message && result.message.includes("folder named")) {
+          showToast(
+            ToastType.WARNING,
+            t("codeEditor.fileFolderConflict", {
+              type: t("codeEditor.newFile"),
+              conflict: t("codeEditor.newFolder"),
+              name: trimmedName,
+            }),
+          );
+        } else if (
+          result.message &&
+          result.message.includes("already exists")
+        ) {
+          showToast(
+            ToastType.WARNING,
+            t("codeEditor.fileExists", { name: trimmedName }),
+          );
+        } else {
+          showToast(
+            ToastType.ERROR,
+            result.message || t("codeEditor.createFileFailed"),
+          );
+        }
+        setEditingPath(currentPath);
+        setEditParentPath(currentParentPath);
+      }
+    } else if (currentType === "newfolder") {
+      const parentPath = currentParentPath || currentPath;
+      const result = await codeEditorCommands.createFolder(
+        parentPath,
+        trimmedName,
+      );
+      if (result.success) {
+        await addNodeToParent(parentPath, trimmedName, true);
+        showToast(ToastType.SUCCESS, t("codeEditor.createSuccess"));
+      } else {
+        if (result.message && result.message.includes("file named")) {
+          showToast(
+            ToastType.WARNING,
+            t("codeEditor.fileFolderConflict", {
+              type: t("codeEditor.newFolder"),
+              conflict: t("codeEditor.newFile"),
+              name: trimmedName,
+            }),
+          );
+        } else if (
+          result.message &&
+          result.message.includes("already exists")
+        ) {
+          showToast(
+            ToastType.WARNING,
+            t("codeEditor.folderExists", { name: trimmedName }),
+          );
+        } else {
+          showToast(
+            ToastType.ERROR,
+            result.message || t("codeEditor.createFolderFailed"),
+          );
+        }
+        setEditingPath(currentPath);
+        setEditParentPath(currentParentPath);
+      }
+    }
+    setTimeout(() => {
+      isConfirmingRef.current = false;
+    }, 300);
+  };
+  const isCancelActionRef = useRef<boolean>(false);
+  const cancelEdit = () => {
+    isCancelActionRef.current = true;
+    setEditingPath(null);
+    setEditParentPath(null);
+    setTimeout(() => {
+      isConfirmingRef.current = false;
+      isCancelActionRef.current = false;
+    }, 300);
+  };
+
+  const autoSaveEdit = async () => {
+    if (isConfirmingRef.current || isCancelActionRef.current) {
+      return;
+    }
+    if (!editingPath) return;
+    const trimmedName = editValue.trim();
+    if (editingType === "rename") {
+      if (!trimmedName || trimmedName === initialEditValueRef.current) {
+        cancelEdit();
+        return;
+      }
+    } else {
+      if (!trimmedName) {
+        cancelEdit();
+        return;
+      }
+    }
+    const currentType = editingType;
+    const currentParentPath = editParentPath;
+    const currentPath = editingPath;
+    setEditingPath(null);
+    setEditParentPath(null);
+    if (currentType === "rename") {
+      const result = await codeEditorCommands.rename(currentPath, trimmedName);
+      if (result.success) {
+        updateNodeName(currentPath, trimmedName);
+        showToast(ToastType.SUCCESS, t("codeEditor.renameSuccess"));
+      } else {
+        if (result.message && result.message.includes("already exists")) {
+          showToast(
+            ToastType.WARNING,
+            t("codeEditor.fileExists", { name: trimmedName }),
+          );
+        } else {
+          showToast(
+            ToastType.ERROR,
+            result.message || t("codeEditor.renameFailed"),
+          );
+        }
+        setEditingPath(currentPath);
+        setEditParentPath(null);
+      }
+    } else if (currentType === "newfile") {
+      const parentPath = currentParentPath || currentPath;
+      const result = await codeEditorCommands.createFile(
+        parentPath,
+        trimmedName,
+      );
+      if (result.success) {
+        await addNodeToParent(parentPath, trimmedName, false);
+        showToast(ToastType.SUCCESS, t("codeEditor.createSuccess"));
+      } else {
+        if (result.message && result.message.includes("folder named")) {
+          showToast(
+            ToastType.WARNING,
+            t("codeEditor.fileFolderConflict", {
+              type: t("codeEditor.newFile"),
+              conflict: t("codeEditor.newFolder"),
+              name: trimmedName,
+            }),
+          );
+        } else if (
+          result.message &&
+          result.message.includes("already exists")
+        ) {
+          showToast(
+            ToastType.WARNING,
+            t("codeEditor.fileExists", { name: trimmedName }),
+          );
+        } else {
+          showToast(
+            ToastType.ERROR,
+            result.message || t("codeEditor.createFileFailed"),
+          );
+        }
+        setEditingPath(currentPath);
+        setEditParentPath(currentParentPath);
+      }
+    } else if (currentType === "newfolder") {
+      const parentPath = currentParentPath || currentPath;
+      const result = await codeEditorCommands.createFolder(
+        parentPath,
+        trimmedName,
+      );
+      if (result.success) {
+        await addNodeToParent(parentPath, trimmedName, true);
+        showToast(ToastType.SUCCESS, t("codeEditor.createSuccess"));
+      } else {
+        if (result.message && result.message.includes("file named")) {
+          showToast(
+            ToastType.WARNING,
+            t("codeEditor.fileFolderConflict", {
+              type: t("codeEditor.newFolder"),
+              conflict: t("codeEditor.newFile"),
+              name: trimmedName,
+            }),
+          );
+        } else if (
+          result.message &&
+          result.message.includes("already exists")
+        ) {
+          showToast(
+            ToastType.WARNING,
+            t("codeEditor.folderExists", { name: trimmedName }),
+          );
+        } else {
+          showToast(
+            ToastType.ERROR,
+            result.message || t("codeEditor.createFolderFailed"),
+          );
+        }
+        setEditingPath(currentPath);
+        setEditParentPath(currentParentPath);
+      }
+    }
+  };
+
+  const handleEditBlur = () => {
+    setTimeout(() => {
+      if (isConfirmingRef.current || isCancelActionRef.current) {
+        return;
+      }
+      if (editingPath) {
+        autoSaveEdit();
+      }
+    }, 200);
+  };
+
   const startEditing = (
     type: "rename" | "newfile" | "newfolder",
     path: string,
     initialValue: string,
   ) => {
+    isConfirmingRef.current = false;
+    isCancelActionRef.current = false;
     setEditingType(type);
     setEditingPath(path);
     setEditValue(initialValue);
+    initialEditValueRef.current = initialValue;
     if (type === "newfile" || type === "newfolder") {
       setEditParentPath(path);
     } else {
@@ -346,63 +619,6 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({
         }
       }
     }, 50);
-  };
-
-  const startRename = (node: FileNode) => {
-    startEditing("rename", node.path, node.name);
-    closeContextMenu();
-  };
-
-  const confirmEdit = async () => {
-    if (!editingPath || !editValue.trim()) {
-      cancelEdit();
-      return;
-    }
-
-    const trimmedName = editValue.trim();
-    const currentType = editingType;
-    const currentParentPath = editParentPath;
-    const currentPath = editingPath;
-
-    setEditingPath(null);
-    setEditParentPath(null);
-
-    if (currentType === "rename") {
-      const result = await codeEditorCommands.rename(currentPath, trimmedName);
-      if (result.success) {
-        updateNodeName(currentPath, trimmedName);
-      } else {
-        alert(result.message);
-        setEditingPath(currentPath);
-        setEditParentPath(null);
-      }
-    } else if (currentType === "newfile") {
-      const parentPath = currentParentPath || currentPath;
-      const result = await codeEditorCommands.createFile(
-        parentPath,
-        trimmedName,
-      );
-      if (result.success) {
-        await addNodeToParent(parentPath, trimmedName, false);
-      } else {
-        alert(result.message);
-        setEditingPath(currentPath);
-        setEditParentPath(currentParentPath);
-      }
-    } else if (currentType === "newfolder") {
-      const parentPath = currentParentPath || currentPath;
-      const result = await codeEditorCommands.createFolder(
-        parentPath,
-        trimmedName,
-      );
-      if (result.success) {
-        await addNodeToParent(parentPath, trimmedName, true);
-      } else {
-        alert(result.message);
-        setEditingPath(currentPath);
-        setEditParentPath(currentParentPath);
-      }
-    }
   };
 
   const updateNodeName = (path: string, newName: string) => {
@@ -432,12 +648,32 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({
       isDirectory: isDirectory,
       children: isDirectory ? [] : undefined,
     };
+    if (parentPath === workspacePath) {
+      setFileTree((prev) => {
+        const exists = prev.some(
+          (child) => child.name === name && child.isDirectory === isDirectory,
+        );
+        if (exists) return prev;
+        const newTree = [...prev, newNode].sort((a, b) => {
+          if (a.isDirectory && !b.isDirectory) return -1;
+          if (!a.isDirectory && b.isDirectory) return 1;
+          return a.name.localeCompare(b.name);
+        });
+        return newTree;
+      });
+      if (workspacePath) {
+        setExpandedPaths((prev) => new Set(prev).add(workspacePath));
+      }
+      return;
+    }
 
     const addNode = (nodes: FileNode[]): FileNode[] => {
       return nodes.map((node) => {
         if (node.path === parentPath) {
           const children = node.children || [];
-          const exists = children.some((child) => child.name === name);
+          const exists = children.some(
+            (child) => child.name === name && child.isDirectory === isDirectory,
+          );
           if (exists) {
             return node;
           }
@@ -454,13 +690,7 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({
         return node;
       });
     };
-
     setFileTree((prev) => addNode(prev));
-  };
-
-  const cancelEdit = () => {
-    setEditingPath(null);
-    setEditParentPath(null);
   };
 
   const handleEditKeyDown = (e: React.KeyboardEvent) => {
@@ -475,19 +705,31 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({
 
   const handleDelete = async (node: FileNode) => {
     const confirmMsg = node.isDirectory
-      ? `确定要删除文件夹 "${node.name}" 及其所有内容吗？`
-      : `确定要删除文件 "${node.name}" 吗？`;
-
-    // eslint-disable-next-line no-restricted-globals
-    if (!confirm(confirmMsg)) return;
-
-    const result = await codeEditorCommands.delete(node.path);
-    if (result.success) {
-      removeNode(node.path);
-    } else {
-      alert(result.message);
-    }
-    closeContextMenu();
+      ? t("codeEditor.deleteFolderConfirm", { name: node.name })
+      : t("codeEditor.deleteFileConfirm", { name: node.name });
+    showDialog(
+      DialogType.WARNING,
+      t("codeEditor.delete"),
+      confirmMsg,
+      async () => {
+        const result = await codeEditorCommands.delete(node.path);
+        if (result.success) {
+          removeNode(node.path);
+          showToast(ToastType.SUCCESS, t("codeEditor.deleteSuccess"));
+        } else {
+          showToast(
+            ToastType.ERROR,
+            result.message || t("codeEditor.deleteFailed"),
+          );
+        }
+        closeContextMenu();
+      },
+      () => {
+        closeContextMenu();
+      },
+      t("codeEditor.delete"),
+      t("common.cancel"),
+    );
   };
 
   const removeNode = (path: string) => {
@@ -514,80 +756,80 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({
       if (isRoot) {
         items.push(
           {
-            label: "新建文件",
+            label: t("codeEditor.newFile"),
             action: () => handleNewFile(node),
           },
           {
-            label: "新建文件夹",
+            label: t("codeEditor.newFolder"),
             action: () => handleNewFolder(node),
           },
           {
             divider: true,
           },
           {
-            label: "打开文件所在目录",
+            label: t("codeEditor.openInExplorer"),
             action: () => handleOpenInExplorer(fullPath),
           },
           {
-            label: "在终端中打开",
+            label: t("codeEditor.openInTerminal"),
             action: () => handleOpenInTerminal(fullPath),
           },
           {
             divider: true,
           },
           {
-            label: "复制路径",
+            label: t("codeEditor.copyPath"),
             action: () => handleCopyPath(fullPath),
           },
         );
       } else {
         items.push(
           {
-            label: "新建文件",
+            label: t("codeEditor.newFile"),
             action: () => handleNewFile(node),
           },
           {
-            label: "新建文件夹",
+            label: t("codeEditor.newFolder"),
             action: () => handleNewFolder(node),
           },
           {
             divider: true,
           },
           {
-            label: "打开文件所在目录",
+            label: t("codeEditor.openInExplorer"),
             action: () => handleOpenInExplorer(fullPath),
           },
           {
-            label: "在终端中打开",
+            label: t("codeEditor.openInTerminal"),
             action: () => handleOpenInTerminal(fullPath),
           },
           {
             divider: true,
           },
           {
-            label: "剪切",
+            label: t("codeEditor.cut"),
             action: () => handleCut(node),
           },
           {
-            label: "复制",
+            label: t("codeEditor.copy"),
             action: () => handleCopy(node),
           },
           {
             divider: true,
           },
           {
-            label: "复制路径",
+            label: t("codeEditor.copyPath"),
             action: () => handleCopyPath(fullPath),
           },
           {
             divider: true,
           },
           {
-            label: "重命名",
+            label: t("codeEditor.rename"),
             action: () => startRename(node),
           },
           {
-            label: "删除",
+            label: t("codeEditor.delete"),
             action: () => handleDelete(node),
           },
         );
@@ -595,40 +837,40 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({
     } else {
       items.push(
         {
-          label: "打开文件所在目录",
+          label: t("codeEditor.openInExplorer"),
           action: () => handleOpenInExplorer(fullPath),
         },
         {
-          label: "在终端中打开",
+          label: t("codeEditor.openInTerminal"),
           action: () => handleOpenInTerminal(fullPath),
         },
         {
           divider: true,
         },
         {
-          label: "剪切",
+          label: t("codeEditor.cut"),
           action: () => handleCut(node),
         },
         {
-          label: "复制",
+          label: t("codeEditor.copy"),
           action: () => handleCopy(node),
         },
         {
           divider: true,
         },
         {
-          label: "复制路径",
+          label: t("codeEditor.copyPath"),
           action: () => handleCopyPath(fullPath),
         },
         {
           divider: true,
         },
         {
-          label: "重命名",
+          label: t("codeEditor.rename"),
           action: () => startRename(node),
         },
         {
-          label: "删除",
+          label: t("codeEditor.delete"),
           action: () => handleDelete(node),
         },
       );
@@ -645,12 +887,10 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({
 
   const renderFileTreeWithNewItem = (nodes: FileNode[], level: number = 0) => {
     const result: React.ReactNode[] = [];
-
     for (const node of nodes) {
       const isExpanded = expandedPaths.has(node.path);
       const isSelected = selectedFile === node.path;
       const isRenaming = editingPath === node.path && editingType === "rename";
-
       if (node.isDirectory) {
         result.push(
           <div key={node.path}>
@@ -673,6 +913,7 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({
                   value={editValue}
                   onChange={(e) => setEditValue(e.target.value)}
                   onKeyDown={handleEditKeyDown}
+                  onBlur={handleEditBlur}
                   style={{
                     flex: 1,
                     background: "var(--bg-primary)",
@@ -754,16 +995,13 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({
                 </span>
               </div>
             )}
-            {/* 当目录展开时，渲染子节点 */}
             {isExpanded && (
               <div>
-                {/* 先渲染已有的子节点 */}
                 {node.children && node.children.length > 0 && (
                   <div>
                     {renderFileTreeWithNewItem(node.children, level + 1)}
                   </div>
                 )}
-                {/* 如果没有子节点，显示 (empty) */}
                 {(!node.children || node.children.length === 0) && (
                   <div
                     style={{
@@ -778,7 +1016,6 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({
                     </span>
                   </div>
                 )}
-                {/* 在子节点列表末尾显示新建项 */}
                 {isEditingNewInParent(node.path) && (
                   <div
                     style={{
@@ -802,6 +1039,7 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({
                       value={editValue}
                       onChange={(e) => setEditValue(e.target.value)}
                       onKeyDown={handleEditKeyDown}
+                      onBlur={handleEditBlur}
                       style={{
                         flex: 1,
                         background: "var(--bg-primary)",
@@ -874,6 +1112,7 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({
                   value={editValue}
                   onChange={(e) => setEditValue(e.target.value)}
                   onKeyDown={handleEditKeyDown}
+                  onBlur={handleEditBlur}
                   style={{
                     flex: 1,
                     background: "var(--bg-primary)",
@@ -970,6 +1209,111 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({
     return result;
   };
 
+  const renderEmptyStateWithNewItem = () => {
+    const isEditingRoot = isEditingNewInParent(workspacePath || "");
+    return (
+      <div
+        ref={containerRef}
+        className="file-tree-root"
+        onContextMenu={handleRootContextMenu}
+        style={{
+          width: "100%",
+          height: "100%",
+          minHeight: "100%",
+          padding: "12px",
+          textAlign: "center",
+          color: "var(--text-muted)",
+          fontSize: "12px",
+        }}
+      >
+        {searchQuery.trim()
+          ? t("codeEditor.noSearchResults")
+          : t("codeEditor.emptyDirectory")}
+
+        {isEditingRoot && (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "4px",
+              padding: "2px 8px",
+              marginTop: "8px",
+              borderRadius: "4px",
+              background: "var(--hover-bg)",
+              justifyContent: "center",
+            }}
+          >
+            <span style={{ fontSize: "14px", flexShrink: 0 }}>
+              {editingType === "newfolder" ? "📁" : "📜"}
+            </span>
+            <input
+              ref={editInputRef}
+              type="text"
+              value={editValue}
+              onChange={(e) => setEditValue(e.target.value)}
+              onKeyDown={handleEditKeyDown}
+              onBlur={handleEditBlur}
+              style={{
+                flex: 1,
+                maxWidth: "300px",
+                background: "var(--bg-primary)",
+                border: "1px solid var(--accent-color)",
+                borderRadius: "3px",
+                color: "var(--text-primary)",
+                fontSize: "13px",
+                padding: "2px 6px",
+                outline: "none",
+              }}
+            />
+            <button
+              onClick={confirmEdit}
+              style={{
+                background: "var(--accent-color)",
+                border: "none",
+                borderRadius: "3px",
+                color: "white",
+                cursor: "pointer",
+                fontSize: "12px",
+                padding: "2px 6px",
+                flexShrink: 0,
+              }}
+            >
+              ✓
+            </button>
+            <button
+              onClick={cancelEdit}
+              style={{
+                background: "transparent",
+                border: "1px solid var(--border-color)",
+                borderRadius: "3px",
+                color: "var(--text-muted)",
+                cursor: "pointer",
+                fontSize: "12px",
+                padding: "2px 6px",
+                flexShrink: 0,
+              }}
+            >
+              ✕
+            </button>
+          </div>
+        )}
+
+        {contextMenu && (
+          <ContextMenu
+            x={contextMenu.x}
+            y={contextMenu.y}
+            items={getContextMenuItems(contextMenu.node)}
+            onClose={closeContextMenu}
+          />
+        )}
+      </div>
+    );
+  };
+
+  const isEditingRootNewItem = () => {
+    return isEditingNewInParent(workspacePath || "");
+  };
+
   const filteredTree = filterTree(fileTree, searchQuery);
 
   if (loading) {
@@ -984,7 +1328,7 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({
           padding: "20px",
         }}
       >
-        {t("common.loading") || "Loading..."}
+        {t("codeEditor.loading")}
       </div>
     );
   }
@@ -1002,41 +1346,13 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({
           textAlign: "center",
         }}
       >
-        {t("editor.noWorkspace") || "No workspace loaded"}
+        {t("codeEditor.noWorkspace")}
       </div>
     );
   }
 
   if (filteredTree.length === 0) {
-    return (
-      <div
-        ref={containerRef}
-        className="file-tree-root"
-        onContextMenu={handleRootContextMenu}
-        style={{
-          width: "100%",
-          height: "100%",
-          minHeight: "100%",
-          padding: "12px",
-          textAlign: "center",
-          color: "var(--text-muted)",
-          fontSize: "12px",
-        }}
-      >
-        {searchQuery.trim()
-          ? t("editor.noSearchResults") || "No matching files found"
-          : t("editor.emptyDirectory") || "Empty directory"}
-
-        {contextMenu && (
-          <ContextMenu
-            x={contextMenu.x}
-            y={contextMenu.y}
-            items={getContextMenuItems(contextMenu.node)}
-            onClose={closeContextMenu}
-          />
-        )}
-      </div>
-    );
+    return renderEmptyStateWithNewItem();
   }
 
   return (
@@ -1051,6 +1367,74 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({
       }}
     >
       {renderFileTreeWithNewItem(filteredTree)}
+
+      {isEditingRootNewItem() && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "4px",
+            padding: "2px 8px",
+            paddingLeft: "8px",
+            marginTop: "4px",
+            borderRadius: "4px",
+            background: "var(--hover-bg)",
+          }}
+        >
+          <span style={{ fontSize: "14px", flexShrink: 0 }}>
+            {editingType === "newfolder" ? "📁" : "📜"}
+          </span>
+          <input
+            ref={editInputRef}
+            type="text"
+            value={editValue}
+            onChange={(e) => setEditValue(e.target.value)}
+            onKeyDown={handleEditKeyDown}
+            onBlur={handleEditBlur}
+            style={{
+              flex: 1,
+              background: "var(--bg-primary)",
+              border: "1px solid var(--accent-color)",
+              borderRadius: "3px",
+              color: "var(--text-primary)",
+              fontSize: "13px",
+              padding: "2px 6px",
+              outline: "none",
+              minWidth: 0,
+            }}
+          />
+          <button
+            onClick={confirmEdit}
+            style={{
+              background: "var(--accent-color)",
+              border: "none",
+              borderRadius: "3px",
+              color: "white",
+              cursor: "pointer",
+              fontSize: "12px",
+              padding: "2px 6px",
+              flexShrink: 0,
+            }}
+          >
+            ✓
+          </button>
+          <button
+            onClick={cancelEdit}
+            style={{
+              background: "transparent",
+              border: "1px solid var(--border-color)",
+              borderRadius: "3px",
+              color: "var(--text-muted)",
+              cursor: "pointer",
+              fontSize: "12px",
+              padding: "2px 6px",
+              flexShrink: 0,
+            }}
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {contextMenu && (
         <ContextMenu

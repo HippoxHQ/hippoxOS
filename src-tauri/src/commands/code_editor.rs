@@ -146,15 +146,20 @@ pub async fn cmd_create_file(
     file_name: String,
 ) -> Result<FileOperationResult, String> {
     let path_buf = PathBuf::from(&base_path).join(&file_name);
-
     if path_buf.exists() {
+        if path_buf.is_dir() {
+            return Ok(FileOperationResult {
+                success: false,
+                message: format!("A folder named '{}' already exists at this path", file_name),
+                path: None,
+            });
+        }
         return Ok(FileOperationResult {
             success: false,
             message: format!("File already exists: {}", file_name),
             path: None,
         });
     }
-
     if let Some(parent) = path_buf.parent() {
         if !parent.exists() {
             if let Err(e) = fs::create_dir_all(parent) {
@@ -166,7 +171,6 @@ pub async fn cmd_create_file(
             }
         }
     }
-
     match fs::write(&path_buf, "") {
         Ok(_) => Ok(FileOperationResult {
             success: true,
@@ -187,15 +191,20 @@ pub async fn cmd_create_folder(
     folder_name: String,
 ) -> Result<FileOperationResult, String> {
     let path_buf = PathBuf::from(&base_path).join(&folder_name);
-
     if path_buf.exists() {
+        if path_buf.is_file() {
+            return Ok(FileOperationResult {
+                success: false,
+                message: format!("A file named '{}' already exists at this path", folder_name),
+                path: None,
+            });
+        }
         return Ok(FileOperationResult {
             success: false,
             message: format!("Folder already exists: {}", folder_name),
             path: None,
         });
     }
-
     match fs::create_dir_all(&path_buf) {
         Ok(_) => Ok(FileOperationResult {
             success: true,
@@ -213,7 +222,6 @@ pub async fn cmd_create_folder(
 #[command]
 pub async fn cmd_rename(old_path: String, new_name: String) -> Result<FileMoveResult, String> {
     let old_path_buf = PathBuf::from(&old_path);
-
     if !old_path_buf.exists() {
         return Ok(FileMoveResult {
             success: false,
@@ -222,7 +230,6 @@ pub async fn cmd_rename(old_path: String, new_name: String) -> Result<FileMoveRe
             new_path: None,
         });
     }
-
     let new_path_buf = if let Some(parent) = old_path_buf.parent() {
         parent.join(&new_name)
     } else {
@@ -233,16 +240,24 @@ pub async fn cmd_rename(old_path: String, new_name: String) -> Result<FileMoveRe
             new_path: None,
         });
     };
-
     if new_path_buf.exists() {
+        if (old_path_buf.is_file() && new_path_buf.is_file())
+            || (old_path_buf.is_dir() && new_path_buf.is_dir())
+        {
+            return Ok(FileMoveResult {
+                success: false,
+                message: format!("Target already exists: {}", new_name),
+                old_path: Some(old_path),
+                new_path: None,
+            });
+        }
         return Ok(FileMoveResult {
             success: false,
-            message: format!("Target already exists: {}", new_name),
+            message: format!("Target already exists with different type: {}", new_name),
             old_path: Some(old_path),
             new_path: None,
         });
     }
-
     match fs::rename(&old_path_buf, &new_path_buf) {
         Ok(_) => Ok(FileMoveResult {
             success: true,
@@ -262,7 +277,6 @@ pub async fn cmd_rename(old_path: String, new_name: String) -> Result<FileMoveRe
 #[command]
 pub async fn cmd_delete(path: String) -> Result<FileOperationResult, String> {
     let path_buf = PathBuf::from(&path);
-
     if !path_buf.exists() {
         return Ok(FileOperationResult {
             success: false,
@@ -270,7 +284,6 @@ pub async fn cmd_delete(path: String) -> Result<FileOperationResult, String> {
             path: None,
         });
     }
-
     if path_buf.is_dir() {
         match fs::remove_dir_all(&path_buf) {
             Ok(_) => Ok(FileOperationResult {
