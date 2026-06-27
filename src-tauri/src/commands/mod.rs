@@ -23,7 +23,9 @@ pub mod urls;
 pub mod windows;
 pub mod workflow;
 pub mod net;
+pub mod code_editor;
 
+pub use code_editor::*;
 pub use net::*;
 pub use basis::*;
 pub use chat::*;
