@@ -411,7 +411,7 @@ const Terminal: React.FC<TerminalProps> = ({ t }) => {
             style={{
               flex: 1,
               overflowY: "auto",
-              padding: "4px",
+              padding: "2px 0px",
             }}
           >
             {terminals.map((term) => {
@@ -427,25 +427,29 @@ const Terminal: React.FC<TerminalProps> = ({ t }) => {
                     alignItems: "center",
                     justifyContent: "space-between",
                     padding: "4px 6px",
-                    borderRadius: "4px",
+                    borderRadius: "0px",
                     cursor: "pointer",
                     background: isActive ? "var(--accent-glow)" : "transparent",
                     border: isActive
+                      ? "1px solid transparent"
+                      : "1px solid transparent",
+                    borderTop: isActive
                       ? "1px solid var(--accent-color)"
                       : "1px solid transparent",
-                    marginBottom: "2px",
+                    borderBottom: isActive
+                      ? "1px solid var(--accent-color)"
+                      : "1px solid transparent",
+                    marginBottom: "0px",
                     transition: "all 0.1s ease",
                   }}
                   onMouseEnter={(e) => {
                     if (!isActive) {
                       e.currentTarget.style.background = "var(--hover-bg)";
-                      e.currentTarget.style.borderColor = "var(--border-color)";
                     }
                   }}
                   onMouseLeave={(e) => {
                     if (!isActive) {
                       e.currentTarget.style.background = "transparent";
-                      e.currentTarget.style.borderColor = "transparent";
                     }
                   }}
                 >
