@@ -6,6 +6,7 @@ import { TimelineSection } from "./components/TimelineSection";
 import { useGit } from "./hooks/useGit";
 import { FileTreePanelProps } from "./types";
 import { getDirectoryName } from "./fileUtils";
+import { FolderIcon, GithubIcon, HistoryChatIcon2 } from "../../../icons";
 
 const FileTreePanel: React.FC<FileTreePanelProps> = ({
   t,
@@ -16,7 +17,7 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(
-    new Set(),
+    new Set(["git", "timeline"]),
   );
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -172,7 +173,7 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({
           >
             {renderSectionHeader(
               "project",
-              <span>📁</span>,
+              <FolderIcon size={14} />,
               directoryName,
               undefined,
             )}
@@ -210,7 +211,7 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({
           >
             {renderSectionHeader(
               "git",
-              <span>📁</span>,
+              <GithubIcon size={14} />,
               "GitHub",
               undefined,
               gitInfo && (
@@ -281,7 +282,7 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({
           >
             {renderSectionHeader(
               "timeline",
-              <span>🕐</span>,
+              <HistoryChatIcon2 size={14} />,
               "时间线",
               gitInfo ? gitInfo.commits.length : 0,
             )}
