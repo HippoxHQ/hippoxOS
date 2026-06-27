@@ -37,4 +37,8 @@ export const codeEditorCommands = {
     delete: async (path: string): Promise<FileOperationResult> => {
         return await invoke("cmd_delete", { path });
     },
+
+    copy: async (sourcePath: string, targetPath: string): Promise<FileOperationResult> => {
+        return await invoke("cmd_copy", { sourcePath, targetPath });
+    },
 };

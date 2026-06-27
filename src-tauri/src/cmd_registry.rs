@@ -294,5 +294,6 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_create_folder,
         commands::cmd_rename,
         commands::cmd_delete,
+        commands::cmd_copy
     ]
 }

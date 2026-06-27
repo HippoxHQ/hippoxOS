@@ -312,3 +312,71 @@ pub async fn cmd_delete(path: String) -> Result<FileOperationResult, String> {
         }
     }
 }
+
+#[command]
+pub async fn cmd_copy(
+    source_path: String,
+    target_path: String,
+) -> Result<FileOperationResult, String> {
+    let source_buf = PathBuf::from(&source_path);
+    let target_buf = PathBuf::from(&target_path);
+    if !source_buf.exists() {
+        return Ok(FileOperationResult {
+            success: false,
+            message: format!("Source path does not exist: {}", source_path),
+            path: None,
+        });
+    }
+    if target_buf.exists() {
+        return Ok(FileOperationResult {
+            success: false,
+            message: format!("Target already exists: {}", target_path),
+            path: None,
+        });
+    }
+    if let Some(parent) = target_buf.parent() {
+        if !parent.exists() {
+            if let Err(e) = fs::create_dir_all(parent) {
+                return Ok(FileOperationResult {
+                    success: false,
+                    message: format!("Failed to create target directory: {}", e),
+                    path: None,
+                });
+            }
+        }
+    }
+    let result = if source_buf.is_dir() {
+        copy_dir_all(&source_buf, &target_buf)
+    } else {
+        fs::copy(&source_buf, &target_buf).map(|_| ())
+    };
+    match result {
+        Ok(_) => Ok(FileOperationResult {
+            success: true,
+            message: format!("Copied to: {}", target_path),
+            path: Some(target_path),
+        }),
+        Err(e) => Ok(FileOperationResult {
+            success: false,
+            message: format!("Copy failed: {}", e),
+            path: None,
+        }),
+    }
+}
+
+fn copy_dir_all(src: &PathBuf, dst: &PathBuf) -> std::io::Result<()> {
+    if !dst.exists() {
+        fs::create_dir_all(dst)?;
+    }
+    for entry in fs::read_dir(src)? {
+        let entry = entry?;
+        let entry_path = entry.path();
+        let target_path = dst.join(entry.file_name());
+        if entry_path.is_dir() {
+            copy_dir_all(&entry_path.to_path_buf(), &target_path)?;
+        } else {
+            fs::copy(&entry_path, &target_path)?;
+        }
+    }
+    Ok(())
+}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { readDir } from "@tauri-apps/plugin-fs";
 import { join } from "@tauri-apps/api/path";
 import { codeEditorCommands } from "../../../../../command/CodeEditor";
@@ -7,6 +7,7 @@ import { getFileIcon } from "../../fileUtils";
 import { FileNode } from "../../types";
 import { ContextMenuItemType, ContextMenu } from "../ContextMenu";
 import { DialogType, showDialog } from "../../../../../components/Dialog";
+import { useFileTreeKeyboard } from "./hooks/useFileTreeKeyboard";
 
 interface FileTreeSectionProps {
   workspacePath: string | null | undefined;
@@ -43,6 +44,254 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({
   const editInputRef = useRef<HTMLInputElement>(null);
   const isConfirmingRef = useRef<boolean>(false);
   const initialEditValueRef = useRef<string>("");
+  const [currentTargetPath, setCurrentTargetPath] = useState<string>("");
+  const [selectedNodes, setSelectedNodes] = useState<Set<string>>(new Set());
+  const [lastClickedPath, setLastClickedPath] = useState<string | null>(null);
+  const isEditing = editingPath !== null;
+  const clearSelection = useCallback(() => {
+    setSelectedNodes(new Set());
+  }, []);
+
+  const handleDelete = useCallback(
+    (nodes: FileNode[]) => {
+      if (nodes.length === 0) return;
+      const isFolder = nodes.some((n) => n.isDirectory);
+      const isFile = nodes.some((n) => !n.isDirectory);
+      let confirmMsg = "";
+      if (nodes.length === 1) {
+        confirmMsg = nodes[0].isDirectory
+          ? t("codeEditor.deleteFolderConfirm", { name: nodes[0].name })
+          : t("codeEditor.deleteFileConfirm", { name: nodes[0].name });
+      } else {
+        if (isFolder && isFile) {
+          confirmMsg = t("codeEditor.deleteMultipleMixedConfirm", {
+            count: nodes.length,
+          });
+        } else if (isFolder) {
+          confirmMsg = t("codeEditor.deleteMultipleFoldersConfirm", {
+            count: nodes.length,
+          });
+        } else {
+          confirmMsg = t("codeEditor.deleteMultipleFilesConfirm", {
+            count: nodes.length,
+          });
+        }
+      }
+      showDialog(
+        DialogType.WARNING,
+        t("codeEditor.delete"),
+        confirmMsg,
+        async () => {
+          let successCount = 0;
+          let failCount = 0;
+          for (const node of nodes) {
+            const result = await codeEditorCommands.delete(node.path);
+            if (result.success) {
+              successCount++;
+              removeNode(node.path);
+            } else {
+              failCount++;
+            }
+          }
+          clearSelection();
+          if (successCount > 0) {
+            showToast(
+              ToastType.SUCCESS,
+              t("codeEditor.deleteSuccessMultiple", { count: successCount }),
+            );
+          }
+          if (failCount > 0) {
+            showToast(
+              ToastType.ERROR,
+              t("codeEditor.deleteFailedMultiple", { count: failCount }),
+            );
+          }
+          closeContextMenu();
+        },
+        () => {
+          closeContextMenu();
+        },
+        t("codeEditor.delete"),
+        t("common.cancel"),
+      );
+    },
+    [t],
+  );
+
+  const handleSelectAll = useCallback(() => {
+    let targetPath = currentTargetPath || workspacePath || "";
+    let targetNode: FileNode | null = null;
+    if (selectedNodes.size === 1) {
+      const selectedPath = selectedNodes.values().next().value;
+      if (selectedPath) {
+        const findNode = (nodes: FileNode[]): FileNode | null => {
+          for (const n of nodes) {
+            if (n.path === selectedPath) return n;
+            if (n.children) {
+              const found = findNode(n.children);
+              if (found) return found;
+            }
+          }
+          return null;
+        };
+        targetNode = findNode(fileTree);
+        if (targetNode && !targetNode.isDirectory) {
+          const lastSlash = Math.max(
+            selectedPath.lastIndexOf("\\"),
+            selectedPath.lastIndexOf("/"),
+          );
+          if (lastSlash > 0) {
+            targetPath = selectedPath.substring(0, lastSlash);
+            const parentNode = findNode(fileTree);
+            if (parentNode && parentNode.isDirectory) {
+              targetNode = parentNode;
+            }
+          }
+        } else if (targetNode && targetNode.isDirectory) {
+          targetPath = selectedPath;
+        }
+      }
+    }
+    const allPaths: string[] = [];
+    if (targetNode && targetNode.isDirectory && targetNode.children) {
+      const collectChildren = (nodes: FileNode[]) => {
+        for (const node of nodes) {
+          allPaths.push(node.path);
+          if (node.isDirectory && node.children) {
+            collectChildren(node.children);
+          }
+        }
+      };
+      collectChildren(targetNode.children);
+    } else {
+      const getChildrenPaths = (
+        nodes: FileNode[],
+        parentPath: string,
+      ): string[] => {
+        let paths: string[] = [];
+        for (const node of nodes) {
+          if (node.path.startsWith(parentPath) && node.path !== parentPath) {
+            paths.push(node.path);
+            if (node.isDirectory && node.children) {
+              paths = paths.concat(getChildrenPaths(node.children, node.path));
+            }
+          }
+        }
+        return paths;
+      };
+      const paths = getChildrenPaths(fileTree, targetPath);
+      allPaths.push(...paths);
+    }
+    setSelectedNodes(new Set(allPaths));
+  }, [fileTree, workspacePath, currentTargetPath, selectedNodes]);
+
+  const handlePasteFromClipboard = useCallback(
+    async (nodes: FileNode[]) => {
+      if (nodes.length === 0) {
+        showToast(ToastType.WARNING, t("codeEditor.clipboardEmpty"));
+        return;
+      }
+      let targetPath: string = currentTargetPath || workspacePath || "";
+      if (selectedNodes.size === 1) {
+        const selectedPath = selectedNodes.values().next().value;
+        if (selectedPath) {
+          const findNode = (nodes: FileNode[]): FileNode | null => {
+            for (const n of nodes) {
+              if (n.path === selectedPath) return n;
+              if (n.children) {
+                const found = findNode(n.children);
+                if (found) return found;
+              }
+            }
+            return null;
+          };
+          const selectedNode = findNode(fileTree);
+          if (selectedNode && selectedNode.isDirectory) {
+            targetPath = selectedPath;
+          }
+        }
+      }
+      if (!targetPath) {
+        targetPath = workspacePath || "";
+      }
+      let successCount = 0;
+      let failCount = 0;
+      for (const node of nodes) {
+        const sourcePath = node.path;
+        let name = node.name;
+        let targetFullPath = await join(targetPath, name);
+        let counter = 1;
+        let baseName = name;
+        let ext = "";
+        const dotIndex = name.lastIndexOf(".");
+        if (dotIndex > 0) {
+          baseName = name.substring(0, dotIndex);
+          ext = name.substring(dotIndex);
+        }
+        let result = await codeEditorCommands.copy(sourcePath, targetFullPath);
+        while (
+          !result.success &&
+          result.message.includes("Target already exists")
+        ) {
+          const newName = `${baseName} Copy${counter > 1 ? ` ${counter}` : ""}${ext}`;
+          targetFullPath = await join(targetPath, newName);
+          counter++;
+          if (counter > 1000) break;
+          result = await codeEditorCommands.copy(sourcePath, targetFullPath);
+        }
+        if (result.success) {
+          successCount++;
+          const finalName = targetFullPath.split(/[\\/]/).pop() || name;
+          await addNodeToParent(targetPath, finalName, node.isDirectory);
+        } else {
+          failCount++;
+        }
+      }
+      if (successCount > 0 && failCount === 0) {
+        showToast(
+          ToastType.SUCCESS,
+          t("codeEditor.pasteSuccessMultiple", { count: successCount }),
+        );
+      } else if (successCount > 0 && failCount > 0) {
+        showToast(
+          ToastType.WARNING,
+          t("codeEditor.pastePartialSuccess", {
+            success: successCount,
+            fail: failCount,
+          }),
+        );
+      } else if (failCount > 0) {
+        showToast(
+          ToastType.ERROR,
+          t("codeEditor.pasteFailedMultiple", { count: failCount }),
+        );
+      }
+    },
+    [workspacePath, fileTree, selectedNodes, currentTargetPath, t],
+  );
+
+  const { clipboardNodes, setClipboardNodes } = useFileTreeKeyboard({
+    selectedFiles: Array.from(selectedNodes)
+      .map((path) => {
+        const findNode = (nodes: FileNode[]): FileNode | null => {
+          for (const node of nodes) {
+            if (node.path === path) return node;
+            if (node.children) {
+              const found = findNode(node.children);
+              if (found) return found;
+            }
+          }
+          return null;
+        };
+        return findNode(fileTree);
+      })
+      .filter((n): n is FileNode => n !== null),
+    onDelete: handleDelete,
+    onPaste: handlePasteFromClipboard,
+    onSelectAll: handleSelectAll,
+    onClearSelection: clearSelection,
+    isEditing,
+  });
 
   const loadDirectoryTree = async (path: string): Promise<FileNode[]> => {
     try {
@@ -232,13 +481,83 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({
     }
   }, []);
 
+  const handleNodeClick = (e: React.MouseEvent, node: FileNode) => {
+    if (e.ctrlKey || e.metaKey) {
+      e.preventDefault();
+      const newSet = new Set(selectedNodes);
+      if (newSet.has(node.path)) {
+        newSet.delete(node.path);
+      } else {
+        newSet.add(node.path);
+      }
+      setSelectedNodes(newSet);
+      setLastClickedPath(node.path);
+    } else if (e.shiftKey && lastClickedPath) {
+      e.preventDefault();
+      const getAllVisiblePaths = (nodes: FileNode[]): string[] => {
+        let paths: string[] = [];
+        for (const node of nodes) {
+          paths.push(node.path);
+          if (
+            node.isDirectory &&
+            expandedPaths.has(node.path) &&
+            node.children
+          ) {
+            paths = paths.concat(getAllVisiblePaths(node.children));
+          }
+        }
+        return paths;
+      };
+      const visiblePaths = getAllVisiblePaths(fileTree);
+      const startIdx = visiblePaths.indexOf(lastClickedPath);
+      const endIdx = visiblePaths.indexOf(node.path);
+      if (startIdx !== -1 && endIdx !== -1) {
+        const minIdx = Math.min(startIdx, endIdx);
+        const maxIdx = Math.max(startIdx, endIdx);
+        const newSet = new Set(selectedNodes);
+        for (let i = minIdx; i <= maxIdx; i++) {
+          newSet.add(visiblePaths[i]);
+        }
+        setSelectedNodes(newSet);
+      }
+    } else {
+      e.preventDefault();
+      const newSet = new Set([node.path]);
+      setSelectedNodes(newSet);
+      setLastClickedPath(node.path);
+      if (node.isDirectory) {
+        setCurrentTargetPath(node.path);
+      }
+      onFileSelect("");
+    }
+  };
+
   const handleContextMenu = (e: React.MouseEvent, node: FileNode) => {
     e.preventDefault();
     e.stopPropagation();
+    if (!selectedNodes.has(node.path)) {
+      setSelectedNodes(new Set([node.path]));
+    }
+    const firstSelectedPath = selectedNodes.values().next().value;
+    const contextNode =
+      selectedNodes.size > 1 && firstSelectedPath
+        ? firstSelectedPath
+        : node.path;
+    const findNode = (nodes: FileNode[], path: string): FileNode | null => {
+      for (const n of nodes) {
+        if (n.path === path) return n;
+        if (n.children) {
+          const found = findNode(n.children, path);
+          if (found) return found;
+        }
+      }
+      return null;
+    };
+    const targetNode = findNode(fileTree, contextNode) || node;
     setContextMenu({
       x: e.clientX,
       y: e.clientY,
-      node,
+      node: targetNode,
     });
   };
 
@@ -250,6 +569,9 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({
       e.preventDefault();
       e.stopPropagation();
       if (!workspacePath) return;
+      setSelectedNodes(new Set([workspacePath]));
+      setCurrentTargetPath(workspacePath);
+      onFileSelect("");
       const rootNode: FileNode = {
         name: workspacePath.split(/[\\/]/).pop() || "Root",
         path: workspacePath,
@@ -310,7 +632,9 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({
     closeContextMenu();
   };
 
-  const handleCopy = (node: FileNode) => {
+  const handleCopyAction = (node: FileNode) => {
+    setClipboardNodes([node]);
+    showToast(ToastType.SUCCESS, t("codeEditor.copied", { name: node.name }));
     closeContextMenu();
   };
 
@@ -449,6 +773,7 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({
       isConfirmingRef.current = false;
     }, 300);
   };
+
   const isCancelActionRef = useRef<boolean>(false);
   const cancelEdit = () => {
     isCancelActionRef.current = true;
@@ -703,23 +1028,57 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({
     }
   };
 
-  const handleDelete = async (node: FileNode) => {
-    const confirmMsg = node.isDirectory
-      ? t("codeEditor.deleteFolderConfirm", { name: node.name })
-      : t("codeEditor.deleteFileConfirm", { name: node.name });
+  const handleDeleteAction = async (nodes: FileNode[]) => {
+    if (nodes.length === 0) return;
+    const isFolder = nodes.some((n) => n.isDirectory);
+    const isFile = nodes.some((n) => !n.isDirectory);
+    let confirmMsg = "";
+    if (nodes.length === 1) {
+      confirmMsg = nodes[0].isDirectory
+        ? t("codeEditor.deleteFolderConfirm", { name: nodes[0].name })
+        : t("codeEditor.deleteFileConfirm", { name: nodes[0].name });
+    } else {
+      if (isFolder && isFile) {
+        confirmMsg = t("codeEditor.deleteMultipleMixedConfirm", {
+          count: nodes.length,
+        });
+      } else if (isFolder) {
+        confirmMsg = t("codeEditor.deleteMultipleFoldersConfirm", {
+          count: nodes.length,
+        });
+      } else {
+        confirmMsg = t("codeEditor.deleteMultipleFilesConfirm", {
+          count: nodes.length,
+        });
+      }
+    }
     showDialog(
       DialogType.WARNING,
       t("codeEditor.delete"),
       confirmMsg,
       async () => {
-        const result = await codeEditorCommands.delete(node.path);
-        if (result.success) {
-          removeNode(node.path);
-          showToast(ToastType.SUCCESS, t("codeEditor.deleteSuccess"));
-        } else {
+        let successCount = 0;
+        let failCount = 0;
+        for (const node of nodes) {
+          const result = await codeEditorCommands.delete(node.path);
+          if (result.success) {
+            successCount++;
+            removeNode(node.path);
+          } else {
+            failCount++;
+          }
+        }
+        clearSelection();
+        if (successCount > 0) {
+          showToast(
+            ToastType.SUCCESS,
+            t("codeEditor.deleteSuccessMultiple", { count: successCount }),
+          );
+        }
+        if (failCount > 0) {
           showToast(
             ToastType.ERROR,
-            result.message || t("codeEditor.deleteFailed"),
+            t("codeEditor.deleteFailedMultiple", { count: failCount }),
           );
         }
         closeContextMenu();
@@ -751,6 +1110,8 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({
     const isFolder = node.isDirectory;
     const fullPath = node.path;
     const isRoot = workspacePath === fullPath;
+    const selectedCount = selectedNodes.size;
+    const isMultiple = selectedCount > 1;
     const items: ContextMenuItemType[] = [];
     if (isFolder) {
       if (isRoot) {
@@ -807,12 +1168,60 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({
             divider: true,
           },
           {
-            label: t("codeEditor.cut"),
-            action: () => handleCut(node),
+            label: isMultiple
+              ? t("codeEditor.copyMultiple", { count: selectedCount })
+              : t("codeEditor.copy"),
+            action: () => {
+              const nodes = Array.from(selectedNodes)
+                .map((path) => {
+                  const findNode = (nodes: FileNode[]): FileNode | null => {
+                    for (const n of nodes) {
+                      if (n.path === path) return n;
+                      if (n.children) {
+                        const found = findNode(n.children);
+                        if (found) return found;
+                      }
+                    }
+                    return null;
+                  };
+                  return findNode(fileTree);
+                })
+                .filter((n): n is FileNode => n !== null);
+              if (nodes.length > 0) {
+                setClipboardNodes(nodes);
+                showToast(
+                  ToastType.SUCCESS,
+                  t("codeEditor.copiedMultiple", { count: nodes.length }),
+                );
+              }
+              closeContextMenu();
+            },
           },
           {
-            label: t("codeEditor.copy"),
-            action: () => handleCopy(node),
+            label: isMultiple
+              ? t("codeEditor.deleteMultiple", { count: selectedCount })
+              : t("codeEditor.delete"),
+            action: () => {
+              const nodes = Array.from(selectedNodes)
+                .map((path) => {
+                  const findNode = (nodes: FileNode[]): FileNode | null => {
+                    for (const n of nodes) {
+                      if (n.path === path) return n;
+                      if (n.children) {
+                        const found = findNode(n.children);
+                        if (found) return found;
+                      }
+                    }
+                    return null;
+                  };
+                  return findNode(fileTree);
+                })
+                .filter((n): n is FileNode => n !== null);
+              if (nodes.length > 0) {
+                handleDeleteAction(nodes);
+              }
+              closeContextMenu();
+            },
           },
           {
             divider: true,
@@ -827,10 +1236,6 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({
           {
             label: t("codeEditor.rename"),
             action: () => startRename(node),
-          },
-          {
-            label: t("codeEditor.delete"),
-            action: () => handleDelete(node),
           },
         );
       }
@@ -848,12 +1253,60 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({
           divider: true,
         },
         {
-          label: t("codeEditor.cut"),
-          action: () => handleCut(node),
+          label: isMultiple
+            ? t("codeEditor.copyMultiple", { count: selectedCount })
+            : t("codeEditor.copy"),
+          action: () => {
+            const nodes = Array.from(selectedNodes)
+              .map((path) => {
+                const findNode = (nodes: FileNode[]): FileNode | null => {
+                  for (const n of nodes) {
+                    if (n.path === path) return n;
+                    if (n.children) {
+                      const found = findNode(n.children);
+                      if (found) return found;
+                    }
+                  }
+                  return null;
+                };
+                return findNode(fileTree);
+              })
+              .filter((n): n is FileNode => n !== null);
+            if (nodes.length > 0) {
+              setClipboardNodes(nodes);
+              showToast(
+                ToastType.SUCCESS,
+                t("codeEditor.copiedMultiple", { count: nodes.length }),
+              );
+            }
+            closeContextMenu();
+          },
         },
         {
-          label: t("codeEditor.copy"),
-          action: () => handleCopy(node),
+          label: isMultiple
+            ? t("codeEditor.deleteMultiple", { count: selectedCount })
+            : t("codeEditor.delete"),
+          action: () => {
+            const nodes = Array.from(selectedNodes)
+              .map((path) => {
+                const findNode = (nodes: FileNode[]): FileNode | null => {
+                  for (const n of nodes) {
+                    if (n.path === path) return n;
+                    if (n.children) {
+                      const found = findNode(n.children);
+                      if (found) return found;
+                    }
+                  }
+                  return null;
+                };
+                return findNode(fileTree);
+              })
+              .filter((n): n is FileNode => n !== null);
+            if (nodes.length > 0) {
+              handleDeleteAction(nodes);
+            }
+            closeContextMenu();
+          },
         },
         {
           divider: true,
@@ -869,10 +1322,6 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({
           label: t("codeEditor.rename"),
           action: () => startRename(node),
         },
-        {
-          label: t("codeEditor.delete"),
-          action: () => handleDelete(node),
-        },
       );
     }
     return items;
@@ -885,11 +1334,16 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({
     );
   };
 
+  const isNodeSelected = (path: string) => {
+    return selectedNodes.has(path);
+  };
+
   const renderFileTreeWithNewItem = (nodes: FileNode[], level: number = 0) => {
     const result: React.ReactNode[] = [];
     for (const node of nodes) {
       const isExpanded = expandedPaths.has(node.path);
       const isSelected = selectedFile === node.path;
+      const isNodeSelectedMulti = isNodeSelected(node.path);
       const isRenaming = editingPath === node.path && editingType === "rename";
       if (node.isDirectory) {
         result.push(
@@ -959,7 +1413,12 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({
               </div>
             ) : (
               <div
-                onClick={() => toggleExpand(node.path, node)}
+                onClick={(e) => {
+                  if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
+                    toggleExpand(node.path, node);
+                  }
+                  handleNodeClick(e, node);
+                }}
                 onContextMenu={(e) => handleContextMenu(e, node)}
                 style={{
                   display: "flex",
@@ -969,15 +1428,24 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({
                   paddingLeft: `${level * 16 + 8}px`,
                   cursor: "pointer",
                   borderRadius: "4px",
-                  color: "var(--text-primary)",
+                  background: isNodeSelectedMulti
+                    ? "var(--accent-glow)"
+                    : "transparent",
+                  color: isNodeSelectedMulti
+                    ? "var(--accent-color)"
+                    : "var(--text-primary)",
                   fontSize: "13px",
                   userSelect: "none",
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.background = "var(--hover-bg)";
+                  if (!isNodeSelectedMulti) {
+                    e.currentTarget.style.background = "var(--hover-bg)";
+                  }
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.background = "transparent";
+                  if (!isNodeSelectedMulti) {
+                    e.currentTarget.style.background = "transparent";
+                  }
                 }}
                 title={node.path}
               >
@@ -993,6 +1461,17 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({
                 >
                   {node.name}
                 </span>
+                {isNodeSelectedMulti && (
+                  <span
+                    style={{
+                      fontSize: "10px",
+                      color: "var(--accent-color)",
+                      marginLeft: "auto",
+                    }}
+                  >
+                    ✓
+                  </span>
+                )}
               </div>
             )}
             {isExpanded && (
@@ -1158,7 +1637,12 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({
               </div>
             ) : (
               <div
-                onClick={() => onFileSelect(node.path)}
+                onClick={(e) => {
+                  if (!node.isDirectory) {
+                    onFileSelect(node.path);
+                  }
+                  handleNodeClick(e, node);
+                }}
                 onContextMenu={(e) => handleContextMenu(e, node)}
                 style={{
                   display: "flex",
@@ -1168,20 +1652,26 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({
                   paddingLeft: `${level * 16 + 8}px`,
                   cursor: "pointer",
                   borderRadius: "4px",
-                  background: isSelected ? "var(--accent-glow)" : "transparent",
-                  color: isSelected
+                  background: isNodeSelectedMulti
+                    ? "var(--accent-glow)"
+                    : isSelected && !isNodeSelectedMulti
+                      ? "var(--accent-glow)"
+                      : "transparent",
+                  color: isNodeSelectedMulti
                     ? "var(--accent-color)"
-                    : "var(--text-primary)",
+                    : isSelected
+                      ? "var(--accent-color)"
+                      : "var(--text-primary)",
                   fontSize: "13px",
                   userSelect: "none",
                 }}
                 onMouseEnter={(e) => {
-                  if (!isSelected) {
+                  if (!isNodeSelectedMulti && !isSelected) {
                     e.currentTarget.style.background = "var(--hover-bg)";
                   }
                 }}
                 onMouseLeave={(e) => {
-                  if (!isSelected) {
+                  if (!isNodeSelectedMulti && !isSelected) {
                     e.currentTarget.style.background = "transparent";
                   }
                 }}
@@ -1199,6 +1689,17 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({
                 >
                   {node.name}
                 </span>
+                {isNodeSelectedMulti && (
+                  <span
+                    style={{
+                      fontSize: "10px",
+                      color: "var(--accent-color)",
+                      marginLeft: "auto",
+                    }}
+                  >
+                    ✓
+                  </span>
+                )}
               </div>
             )}
           </div>,
@@ -1359,6 +1860,19 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({
     <div
       ref={containerRef}
       className="file-tree-root"
+      onClickCapture={(e) => {
+        const target = e.target as HTMLElement;
+        const isContainer = target === containerRef.current;
+        const isFileTreeRoot = target.classList?.contains("file-tree-root");
+        if (isContainer || isFileTreeRoot) {
+          if (workspacePath) {
+            setSelectedNodes(new Set([workspacePath]));
+            setCurrentTargetPath(workspacePath);
+            setLastClickedPath(null);
+            onFileSelect("");
+          }
+        }
+      }}
       onContextMenu={handleRootContextMenu}
       style={{
         width: "100%",
