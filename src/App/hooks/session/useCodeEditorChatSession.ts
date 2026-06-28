@@ -7,6 +7,7 @@ import { TaskInfo, UploadFile, TaskStatusEnum, SessionDomain } from "../../../co
 import { Language, ChatMessage, RoleEnum, MessageStatus } from "../../../types/types";
 import { workspaceCommands } from "../../../command/workspace";
 import { codeEditorSessionCommands } from "../../../command/session/codeeditor";
+import { codeEditorCommands } from "../../../command/CodeEditor";
 
 export function useCodeEditorSession(
     language: Language,
@@ -353,7 +354,8 @@ export function useCodeEditorSession(
         const newSessionId = `codeeditor_session_${Date.now()}`;
         const pathParts = workspacePath.split(/[\\/]/);
         const title = pathParts[pathParts.length - 1] || "Code Editor";
-
+        // Create the ./.hippox directory during the initial phase of session creation.
+        await codeEditorCommands.ensureStatusDir(workspacePath);
         await codeEditorSessionCommands.createCodeEditorSession(
             newSessionId,
             title,

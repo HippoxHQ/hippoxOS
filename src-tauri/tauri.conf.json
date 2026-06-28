@@ -47,7 +47,7 @@
             "autostart:allow-enable",
             "autostart:allow-disable",
             "autostart:allow-is-enabled",
-            "dialog:allow-open", 
+            "dialog:allow-open",
             {
               "identifier": "fs:allow-read-dir",
               "allow": [{ "path": "**" }]
@@ -70,6 +70,210 @@
             },
             {
               "identifier": "fs:allow-read-text-file",
+              "allow": [{ "path": "**" }]
+            },
+            {
+              "identifier": "fs:allow-write-text-file",
+              "allow": [{ "path": "**" }]
+            },
+            {
+              "identifier": "fs:allow-app-write",
+              "allow": [{ "path": "**" }]
+            },
+            {
+              "identifier": "fs:allow-app-write-recursive",
+              "allow": [{ "path": "**" }]
+            },
+            {
+              "identifier": "fs:allow-appcache-write",
+              "allow": [{ "path": "**" }]
+            },
+            {
+              "identifier": "fs:allow-appcache-write-recursive",
+              "allow": [{ "path": "**" }]
+            },
+            {
+              "identifier": "fs:allow-appconfig-write",
+              "allow": [{ "path": "**" }]
+            },
+            {
+              "identifier": "fs:allow-appconfig-write-recursive",
+              "allow": [{ "path": "**" }]
+            },
+            {
+              "identifier": "fs:allow-appdata-write",
+              "allow": [{ "path": "**" }]
+            },
+            {
+              "identifier": "fs:allow-appdata-write-recursive",
+              "allow": [{ "path": "**" }]
+            },
+            {
+              "identifier": "fs:allow-applocaldata-write",
+              "allow": [{ "path": "**" }]
+            },
+            {
+              "identifier": "fs:allow-applocaldata-write-recursive",
+              "allow": [{ "path": "**" }]
+            },
+            {
+              "identifier": "fs:allow-applog-write",
+              "allow": [{ "path": "**" }]
+            },
+            {
+              "identifier": "fs:allow-applog-write-recursive",
+              "allow": [{ "path": "**" }]
+            },
+            {
+              "identifier": "fs:allow-audio-write",
+              "allow": [{ "path": "**" }]
+            },
+            {
+              "identifier": "fs:allow-audio-write-recursive",
+              "allow": [{ "path": "**" }]
+            },
+            {
+              "identifier": "fs:allow-cache-write",
+              "allow": [{ "path": "**" }]
+            },
+            {
+              "identifier": "fs:allow-cache-write-recursive",
+              "allow": [{ "path": "**" }]
+            },
+            {
+              "identifier": "fs:allow-config-write",
+              "allow": [{ "path": "**" }]
+            },
+            {
+              "identifier": "fs:allow-config-write-recursive",
+              "allow": [{ "path": "**" }]
+            },
+            {
+              "identifier": "fs:allow-data-write",
+              "allow": [{ "path": "**" }]
+            },
+            {
+              "identifier": "fs:allow-data-write-recursive",
+              "allow": [{ "path": "**" }]
+            },
+            {
+              "identifier": "fs:allow-desktop-write",
+              "allow": [{ "path": "**" }]
+            },
+            {
+              "identifier": "fs:allow-desktop-write-recursive",
+              "allow": [{ "path": "**" }]
+            },
+            {
+              "identifier": "fs:allow-document-write",
+              "allow": [{ "path": "**" }]
+            },
+            {
+              "identifier": "fs:allow-document-write-recursive",
+              "allow": [{ "path": "**" }]
+            },
+            {
+              "identifier": "fs:allow-download-write",
+              "allow": [{ "path": "**" }]
+            },
+            {
+              "identifier": "fs:allow-download-write-recursive",
+              "allow": [{ "path": "**" }]
+            },
+            {
+              "identifier": "fs:allow-exe-write",
+              "allow": [{ "path": "**" }]
+            },
+            {
+              "identifier": "fs:allow-exe-write-recursive",
+              "allow": [{ "path": "**" }]
+            },
+            {
+              "identifier": "fs:allow-font-write",
+              "allow": [{ "path": "**" }]
+            },
+            {
+              "identifier": "fs:allow-font-write-recursive",
+              "allow": [{ "path": "**" }]
+            },
+            {
+              "identifier": "fs:allow-home-write",
+              "allow": [{ "path": "**" }]
+            },
+            {
+              "identifier": "fs:allow-home-write-recursive",
+              "allow": [{ "path": "**" }]
+            },
+            {
+              "identifier": "fs:allow-localdata-write",
+              "allow": [{ "path": "**" }]
+            },
+            {
+              "identifier": "fs:allow-localdata-write-recursive",
+              "allow": [{ "path": "**" }]
+            },
+            {
+              "identifier": "fs:allow-log-write",
+              "allow": [{ "path": "**" }]
+            },
+            {
+              "identifier": "fs:allow-log-write-recursive",
+              "allow": [{ "path": "**" }]
+            },
+            {
+              "identifier": "fs:allow-picture-write",
+              "allow": [{ "path": "**" }]
+            },
+            {
+              "identifier": "fs:allow-picture-write-recursive",
+              "allow": [{ "path": "**" }]
+            },
+            {
+              "identifier": "fs:allow-public-write",
+              "allow": [{ "path": "**" }]
+            },
+            {
+              "identifier": "fs:allow-public-write-recursive",
+              "allow": [{ "path": "**" }]
+            },
+            {
+              "identifier": "fs:allow-resource-write",
+              "allow": [{ "path": "**" }]
+            },
+            {
+              "identifier": "fs:allow-resource-write-recursive",
+              "allow": [{ "path": "**" }]
+            },
+            {
+              "identifier": "fs:allow-runtime-write",
+              "allow": [{ "path": "**" }]
+            },
+            {
+              "identifier": "fs:allow-runtime-write-recursive",
+              "allow": [{ "path": "**" }]
+            },
+            {
+              "identifier": "fs:allow-temp-write",
+              "allow": [{ "path": "**" }]
+            },
+            {
+              "identifier": "fs:allow-temp-write-recursive",
+              "allow": [{ "path": "**" }]
+            },
+            {
+              "identifier": "fs:allow-template-write",
+              "allow": [{ "path": "**" }]
+            },
+            {
+              "identifier": "fs:allow-template-write-recursive",
+              "allow": [{ "path": "**" }]
+            },
+            {
+              "identifier": "fs:allow-video-write",
+              "allow": [{ "path": "**" }]
+            },
+            {
+              "identifier": "fs:allow-video-write-recursive",
               "allow": [{ "path": "**" }]
             }
           ]
@@ -103,6 +307,26 @@
             },
             {
               "identifier": "fs:allow-exists",
+              "allow": [{ "path": "**" }]
+            },
+            {
+              "identifier": "fs:allow-write-file",
+              "allow": [{ "path": "**" }]
+            },
+            {
+              "identifier": "fs:allow-read-text-file",
+              "allow": [{ "path": "**" }]
+            },
+            {
+              "identifier": "fs:allow-write-text-file",
+              "allow": [{ "path": "**" }]
+            },
+            {
+              "identifier": "fs:allow-app-write",
+              "allow": [{ "path": "**" }]
+            },
+            {
+              "identifier": "fs:allow-app-write-recursive",
               "allow": [{ "path": "**" }]
             }
           ]

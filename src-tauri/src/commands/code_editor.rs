@@ -2,7 +2,7 @@ use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::Arc;
 use tauri::command;
@@ -396,21 +396,38 @@ pub async fn cmd_copy(
     }
 }
 
-fn copy_dir_all(src: &PathBuf, dst: &PathBuf) -> std::io::Result<()> {
-    if !dst.exists() {
-        fs::create_dir_all(dst)?;
+#[command]
+pub async fn cmd_write_file(path: String, content: String) -> Result<FileOperationResult, String> {
+    let path_buf = PathBuf::from(&path);
+
+    if !path_buf.exists() {
+        return Ok(FileOperationResult {
+            success: false,
+            message: format!("Path does not exist: {}", path),
+            path: None,
+        });
     }
-    for entry in fs::read_dir(src)? {
-        let entry = entry?;
-        let entry_path = entry.path();
-        let target_path = dst.join(entry.file_name());
-        if entry_path.is_dir() {
-            copy_dir_all(&entry_path.to_path_buf(), &target_path)?;
-        } else {
-            fs::copy(&entry_path, &target_path)?;
-        }
+
+    if path_buf.is_dir() {
+        return Ok(FileOperationResult {
+            success: false,
+            message: format!("Path is a directory, not a file: {}", path),
+            path: None,
+        });
     }
-    Ok(())
+
+    match fs::write(&path_buf, content) {
+        Ok(_) => Ok(FileOperationResult {
+            success: true,
+            message: "File written successfully".to_string(),
+            path: Some(path),
+        }),
+        Err(e) => Ok(FileOperationResult {
+            success: false,
+            message: format!("Failed to write file: {}", e),
+            path: None,
+        }),
+    }
 }
 
 #[command]
@@ -556,4 +573,243 @@ fn is_ignored_dir(name: &std::ffi::OsStr) -> bool {
         || name == ".DS_Store"
         || name == "Thumbs.db"
         || name.starts_with('.')
+}
+
+fn copy_dir_all(src: &PathBuf, dst: &PathBuf) -> std::io::Result<()> {
+    if !dst.exists() {
+        fs::create_dir_all(dst)?;
+    }
+    for entry in fs::read_dir(src)? {
+        let entry = entry?;
+        let entry_path = entry.path();
+        let target_path = dst.join(entry.file_name());
+        if entry_path.is_dir() {
+            copy_dir_all(&entry_path.to_path_buf(), &target_path)?;
+        } else {
+            fs::copy(&entry_path, &target_path)?;
+        }
+    }
+    Ok(())
+}
+
+fn get_status_dir(workspace_path: &str) -> PathBuf {
+    PathBuf::from(workspace_path).join(".hippox").join("status")
+}
+
+fn encode_file_path(file_path: &str) -> String {
+    let encoded = file_path.replace('\\', "_").replace('/', "_");
+    let encoded = encoded.replace(':', "_");
+    encoded
+}
+
+fn get_status_file_path(workspace_path: &str, file_path: &str) -> PathBuf {
+    let encoded_name = encode_file_path(file_path);
+    get_status_dir(workspace_path).join(encoded_name)
+}
+
+#[command]
+pub async fn cmd_ensure_status_dir(workspace_path: String) -> Result<FileOperationResult, String> {
+    let status_dir = get_status_dir(&workspace_path);
+    match fs::create_dir_all(&status_dir) {
+        Ok(_) => Ok(FileOperationResult {
+            success: true,
+            message: "Status directory ensured".to_string(),
+            path: Some(status_dir.to_string_lossy().to_string()),
+        }),
+        Err(e) => Ok(FileOperationResult {
+            success: false,
+            message: format!("Failed to create status directory: {}", e),
+            path: None,
+        }),
+    }
+}
+
+#[command]
+pub async fn cmd_get_status_file_path(
+    workspace_path: String,
+    file_path: String,
+) -> Result<String, String> {
+    let status_file = get_status_file_path(&workspace_path, &file_path);
+    Ok(status_file.to_string_lossy().to_string())
+}
+
+#[command]
+pub async fn cmd_check_status_exists(
+    workspace_path: String,
+    file_path: String,
+) -> Result<bool, String> {
+    let status_file = get_status_file_path(&workspace_path, &file_path);
+    Ok(status_file.exists())
+}
+
+#[command]
+pub async fn cmd_read_from_status(
+    workspace_path: String,
+    file_path: String,
+) -> Result<Option<String>, String> {
+    let status_file = get_status_file_path(&workspace_path, &file_path);
+    if !status_file.exists() {
+        return Ok(None);
+    }
+    match fs::read_to_string(&status_file) {
+        Ok(content) => Ok(Some(content)),
+        Err(e) => Err(format!("Failed to read status file: {}", e)),
+    }
+}
+
+#[command]
+pub async fn cmd_write_to_status(
+    workspace_path: String,
+    file_path: String,
+    content: String,
+) -> Result<FileOperationResult, String> {
+    let status_dir = get_status_dir(&workspace_path);
+    if let Err(e) = fs::create_dir_all(&status_dir) {
+        return Ok(FileOperationResult {
+            success: false,
+            message: format!("Failed to create status directory: {}", e),
+            path: None,
+        });
+    }
+
+    let status_file = get_status_file_path(&workspace_path, &file_path);
+    match fs::write(&status_file, content) {
+        Ok(_) => Ok(FileOperationResult {
+            success: true,
+            message: "Written to status".to_string(),
+            path: Some(status_file.to_string_lossy().to_string()),
+        }),
+        Err(e) => Ok(FileOperationResult {
+            success: false,
+            message: format!("Failed to write status file: {}", e),
+            path: None,
+        }),
+    }
+}
+
+#[command]
+pub async fn cmd_delete_from_status(
+    workspace_path: String,
+    file_path: String,
+) -> Result<FileOperationResult, String> {
+    let status_file = get_status_file_path(&workspace_path, &file_path);
+    if !status_file.exists() {
+        return Ok(FileOperationResult {
+            success: true,
+            message: "Status file does not exist".to_string(),
+            path: None,
+        });
+    }
+    match fs::remove_file(&status_file) {
+        Ok(_) => Ok(FileOperationResult {
+            success: true,
+            message: "Deleted from status".to_string(),
+            path: Some(status_file.to_string_lossy().to_string()),
+        }),
+        Err(e) => Ok(FileOperationResult {
+            success: false,
+            message: format!("Failed to delete status file: {}", e),
+            path: None,
+        }),
+    }
+}
+
+#[command]
+pub async fn cmd_copy_file_to_status(
+    workspace_path: String,
+    file_path: String,
+) -> Result<FileOperationResult, String> {
+    let source = PathBuf::from(&file_path);
+    if !source.exists() {
+        return Ok(FileOperationResult {
+            success: false,
+            message: format!("Source file does not exist: {}", file_path),
+            path: None,
+        });
+    }
+    if source.is_dir() {
+        return Ok(FileOperationResult {
+            success: false,
+            message: "Cannot copy directory to status".to_string(),
+            path: None,
+        });
+    }
+
+    let status_dir = get_status_dir(&workspace_path);
+    if let Err(e) = fs::create_dir_all(&status_dir) {
+        return Ok(FileOperationResult {
+            success: false,
+            message: format!("Failed to create status directory: {}", e),
+            path: None,
+        });
+    }
+
+    let status_file = get_status_file_path(&workspace_path, &file_path);
+    match fs::copy(&source, &status_file) {
+        Ok(_) => Ok(FileOperationResult {
+            success: true,
+            message: "Copied file to status".to_string(),
+            path: Some(status_file.to_string_lossy().to_string()),
+        }),
+        Err(e) => Ok(FileOperationResult {
+            success: false,
+            message: format!("Failed to copy to status: {}", e),
+            path: None,
+        }),
+    }
+}
+
+#[command]
+pub async fn cmd_compare_status_with_original(
+    workspace_path: String,
+    file_path: String,
+) -> Result<bool, String> {
+    let source = PathBuf::from(&file_path);
+    if !source.exists() {
+        return Ok(false);
+    }
+
+    let status_file = get_status_file_path(&workspace_path, &file_path);
+    if !status_file.exists() {
+        return Ok(false);
+    }
+
+    let source_content = match fs::read_to_string(&source) {
+        Ok(c) => c,
+        Err(_) => return Ok(false),
+    };
+    let status_content = match fs::read_to_string(&status_file) {
+        Ok(c) => c,
+        Err(_) => return Ok(false),
+    };
+
+    Ok(source_content == status_content)
+}
+
+#[command]
+pub async fn cmd_clear_all_status(workspace_path: String) -> Result<FileOperationResult, String> {
+    let status_dir = get_status_dir(&workspace_path);
+    if !status_dir.exists() {
+        return Ok(FileOperationResult {
+            success: true,
+            message: "Status directory does not exist".to_string(),
+            path: None,
+        });
+    }
+
+    match fs::remove_dir_all(&status_dir) {
+        Ok(_) => {
+            let _ = fs::create_dir_all(&status_dir);
+            Ok(FileOperationResult {
+                success: true,
+                message: "Cleared all status files".to_string(),
+                path: Some(status_dir.to_string_lossy().to_string()),
+            })
+        }
+        Err(e) => Ok(FileOperationResult {
+            success: false,
+            message: format!("Failed to clear status directory: {}", e),
+            path: None,
+        }),
+    }
 }

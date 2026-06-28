@@ -10,6 +10,7 @@ interface CodeEditPanelProps {
   isRightDragging: boolean;
   isRightHover: boolean;
   setIsRightHover: (value: boolean) => void;
+  workspacePath?: string | null;
 }
 
 const CodeEditPanel: React.FC<CodeEditPanelProps> = ({
@@ -20,6 +21,7 @@ const CodeEditPanel: React.FC<CodeEditPanelProps> = ({
   isRightDragging,
   isRightHover,
   setIsRightHover,
+  workspacePath,
 }) => {
   const isActive = isRightDragging || isRightHover;
 
@@ -63,7 +65,11 @@ const CodeEditPanel: React.FC<CodeEditPanelProps> = ({
           minWidth: 0,
         }}
       >
-        <CodeEdit t={t} selectedFile={selectedFile} />
+        <CodeEdit
+          t={t}
+          selectedFile={selectedFile}
+          workspacePath={workspacePath}
+        />
       </div>
 
       <div
@@ -76,7 +82,6 @@ const CodeEditPanel: React.FC<CodeEditPanelProps> = ({
           cursor: "row-resize",
           flexShrink: 0,
           position: "relative",
-          // transition: "height 0.15s, background 0.15s",
         }}
         onMouseDown={onRightResizeMouseDown}
         onMouseEnter={() => setIsRightHover(true)}

@@ -1,16 +1,22 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import * as monaco from "monaco-editor";
 import { readTextFile } from "@tauri-apps/plugin-fs";
 import { showToast, ToastType } from "../../../components/Toast";
+import { useCodeEditorKeyboard } from "./hooks/useCodeEditorKeyboard";
+import { TabContextMenu, TabContextMenuItemType } from "./TabContextMenu";
+import { codeEditorCommands } from "../../../command/CodeEditor";
+import { showDialog, DialogType } from "../../../components/Dialog";
 
 interface CodeEditProps {
-  t: (key: string) => string;
+  t: (key: string, params?: Record<string, string | number>) => string;
   selectedFile: string | null;
+  workspacePath?: string | null;
 }
 
 interface TabItem {
   path: string;
   name: string;
+  isDirty: boolean;
 }
 
 const getFileLanguage = (fileName: string): string => {
@@ -85,7 +91,11 @@ const getFileIcon = (fileName: string): string => {
   return icons[ext] || "📄";
 };
 
-const CodeEdit: React.FC<CodeEditProps> = ({ t, selectedFile }) => {
+const CodeEdit: React.FC<CodeEditProps> = ({
+  t,
+  selectedFile,
+  workspacePath,
+}) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const tabsContainerRef = useRef<HTMLDivElement>(null);
   const scrollbarRef = useRef<HTMLDivElement>(null);
@@ -95,37 +105,207 @@ const CodeEdit: React.FC<CodeEditProps> = ({ t, selectedFile }) => {
   const isMountedRef = useRef(true);
   const [scrollPercentage, setScrollPercentage] = useState(0);
   const [thumbWidth, setThumbWidth] = useState(20);
-
   const [tabs, setTabs] = useState<TabItem[]>([]);
   const [activeTab, setActiveTab] = useState<string | null>(null);
   const [loadingContent, setLoadingContent] = useState(false);
+  const [tabContextMenu, setTabContextMenu] = useState<{
+    x: number;
+    y: number;
+    tabPath: string;
+    tabIndex: number;
+  } | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const originalContentRef = useRef<Map<string, string>>(new Map());
+  const savingRef = useRef<Set<string>>(new Set());
+  const ensureStatusDir = useCallback(async () => {
+    if (!workspacePath) return;
+    await codeEditorCommands.ensureStatusDir(workspacePath);
+  }, [workspacePath]);
+  const readFromStatus = useCallback(
+    async (filePath: string): Promise<string | null> => {
+      if (!workspacePath) return null;
+      return await codeEditorCommands.readFromStatus(workspacePath, filePath);
+    },
+    [workspacePath],
+  );
+  const writeToStatus = useCallback(
+    async (filePath: string, content: string) => {
+      if (!workspacePath) return;
+      await codeEditorCommands.writeToStatus(workspacePath, filePath, content);
+    },
+    [workspacePath],
+  );
+  const deleteFromStatus = useCallback(
+    async (filePath: string) => {
+      if (!workspacePath) return;
+      await codeEditorCommands.deleteFromStatus(workspacePath, filePath);
+    },
+    [workspacePath],
+  );
+  const checkStatusExists = useCallback(
+    async (filePath: string): Promise<boolean> => {
+      if (!workspacePath) return false;
+      return await codeEditorCommands.checkStatusExists(
+        workspacePath,
+        filePath,
+      );
+    },
+    [workspacePath],
+  );
+  const copyFileToStatus = useCallback(
+    async (filePath: string) => {
+      if (!workspacePath) return;
+      await codeEditorCommands.copyFileToStatus(workspacePath, filePath);
+    },
+    [workspacePath],
+  );
+  const compareStatusWithOriginal = useCallback(
+    async (filePath: string): Promise<boolean> => {
+      if (!workspacePath) return false;
+      return await codeEditorCommands.compareStatusWithOriginal(
+        workspacePath,
+        filePath,
+      );
+    },
+    [workspacePath],
+  );
 
-  const addTab = (path: string) => {
-    if (!path) return;
+  const handleSave = useCallback(async () => {
+    if (!activeTab || !workspacePath) {
+      showToast(
+        ToastType.WARNING,
+        t("codeEditor.noFileToSave") || "No file to save",
+      );
+      return;
+    }
+    if (savingRef.current.has(activeTab)) {
+      return;
+    }
+    savingRef.current.add(activeTab);
+    try {
+      const content = editorRef.current?.getValue() || "";
+      const result = await codeEditorCommands.writeFile(activeTab, content);
+      if (result.success) {
+        originalContentRef.current.set(activeTab, content);
+        setTabs((prev) =>
+          prev.map((tab) =>
+            tab.path === activeTab ? { ...tab, isDirty: false } : tab,
+          ),
+        );
+        showToast(
+          ToastType.SUCCESS,
+          t("codeEditor.saveSuccess") || "File saved",
+        );
+
+        window.dispatchEvent(
+          new CustomEvent("file-saved", {
+            detail: { path: activeTab, content },
+          }),
+        );
+      } else {
+        showToast(
+          ToastType.ERROR,
+          result.message || t("codeEditor.saveFailed") || "Failed to save",
+        );
+      }
+    } catch (error) {
+      console.error("Save error:", error);
+      showToast(
+        ToastType.ERROR,
+        t("codeEditor.saveFailed") || `Failed to save: ${error}`,
+      );
+    } finally {
+      savingRef.current.delete(activeTab);
+    }
+  }, [activeTab, workspacePath, t]);
+
+  const handleCopy = useCallback(() => {
+    if (editorRef.current) {
+      const selection = editorRef.current.getSelection();
+      if (selection && !selection.isEmpty()) {
+        const text = editorRef.current.getModel()?.getValueInRange(selection);
+        if (text) {
+          navigator.clipboard.writeText(text);
+          showToast(ToastType.SUCCESS, t("codeEditor.copied") || "Copied");
+          return;
+        }
+      }
+      const model = editorRef.current.getModel();
+      if (model) {
+        const fullText = model.getValue();
+        navigator.clipboard.writeText(fullText);
+        showToast(ToastType.SUCCESS, t("codeEditor.copied") || "Copied");
+      }
+    }
+  }, [t]);
+
+  const handlePaste = useCallback(async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (editorRef.current && text) {
+        editorRef.current.trigger("keyboard", "paste", {
+          text: text,
+        });
+        showToast(ToastType.SUCCESS, t("codeEditor.pasted") || "Pasted");
+      }
+    } catch (error) {
+      showToast(
+        ToastType.ERROR,
+        t("codeEditor.pasteFailed") || "Failed to paste",
+      );
+    }
+  }, [t]);
+
+  useCodeEditorKeyboard({
+    onCopy: handleCopy,
+    onPaste: handlePaste,
+    onSave: handleSave,
+    isEditing: isEditing,
+    editorRef: editorRef,
+  });
+
+  const addTab = async (path: string) => {
+    if (!path || !workspacePath) return;
     setTabs((prev) => {
       const exists = prev.some((tab) => tab.path === path);
       if (exists) {
         setActiveTab(path);
         return prev;
       }
-      const name = path.split(/[\\/]/).pop() || path;
-      return [...prev, { path, name }];
+      return [
+        ...prev,
+        { path, name: path.split(/[\\/]/).pop() || path, isDirty: false },
+      ];
     });
+    await loadFileContent(path);
   };
 
-  useEffect(() => {
-    if (selectedFile) {
-      addTab(selectedFile);
-    }
-  }, [selectedFile]);
-
   const loadFileContent = async (filePath: string) => {
-    if (!filePath) return;
-
+    if (!filePath || !workspacePath) return;
     setLoadingContent(true);
+    setIsEditing(true);
     try {
-      const content = await readTextFile(filePath);
+      const statusExists = await checkStatusExists(filePath);
+      let content: string;
+      let isDirty = false;
+      if (statusExists) {
+        const statusContent = await readFromStatus(filePath);
+        if (statusContent !== null) {
+          content = statusContent;
+          const isSame = await compareStatusWithOriginal(filePath);
+          isDirty = !isSame;
+        } else {
+          content = await readTextFile(filePath);
+          await copyFileToStatus(filePath);
+          isDirty = false;
+        }
+      } else {
+        content = await readTextFile(filePath);
+        await copyFileToStatus(filePath);
+        isDirty = false;
+      }
       if (isMountedRef.current) {
+        originalContentRef.current.set(filePath, content);
         setCode(content);
         if (editorRef.current) {
           editorRef.current.setValue(content);
@@ -135,10 +315,15 @@ const CodeEdit: React.FC<CodeEditProps> = ({ t, selectedFile }) => {
             monaco.editor.setModelLanguage(model, lang);
           }
         }
+        setTabs((prev) =>
+          prev.map((tab) =>
+            tab.path === filePath ? { ...tab, isDirty } : tab,
+          ),
+        );
       }
     } catch (error) {
-      console.error("Failed to read file:", error);
-      const errorMsg = `Failed to read file: ${error}`;
+      console.error("Failed to load file:", error);
+      const errorMsg = `Failed to load file: ${error}`;
       if (isMountedRef.current) {
         setCode(errorMsg);
         if (editorRef.current) {
@@ -148,12 +333,47 @@ const CodeEdit: React.FC<CodeEditProps> = ({ t, selectedFile }) => {
       showToast(ToastType.ERROR, t("file.readError") || "Failed to read file");
     } finally {
       setLoadingContent(false);
+      setIsEditing(false);
     }
   };
 
-  const closeTab = (path: string, e?: React.MouseEvent) => {
+  const closeTab = async (path: string, e?: React.MouseEvent) => {
     e?.stopPropagation();
-    if (!path || tabs.length === 0) return;
+    if (!path || tabs.length === 0 || !workspacePath) return;
+    const tab = tabs.find((t) => t.path === path);
+    if (!tab) return;
+    if (tab.isDirty) {
+      const fileName = path.split(/[\\/]/).pop() || path;
+      const result = await new Promise<"save" | "cancel">((resolve) => {
+        showDialog(
+          DialogType.WARNING,
+          t("codeEditor.unsavedChanges") || "Unsaved Changes",
+          t("codeEditor.saveBeforeClose", { name: fileName }) ||
+            `"${fileName}" has unsaved changes. Save before closing?`,
+          () => {
+            resolve("save");
+          },
+          () => {
+            resolve("cancel");
+          },
+          t("codeEditor.save") || "Save",
+          t("common.cancel") || "Cancel",
+        );
+      });
+      if (result === "cancel") {
+        return;
+      }
+      const content =
+        originalContentRef.current.get(path) ||
+        editorRef.current?.getValue() ||
+        "";
+      await codeEditorCommands.writeFile(path, content);
+      await deleteFromStatus(path);
+      originalContentRef.current.delete(path);
+    } else {
+      await deleteFromStatus(path);
+      originalContentRef.current.delete(path);
+    }
     const newTabs = tabs.filter((tab) => tab.path !== path);
     setTabs(newTabs);
     if (activeTab === path) {
@@ -164,23 +384,126 @@ const CodeEdit: React.FC<CodeEditProps> = ({ t, selectedFile }) => {
         const nextPath = newTabs[nextIndex]?.path;
         if (nextPath) {
           setActiveTab(nextPath);
-          loadFileContent(nextPath);
+          await loadFileContent(nextPath);
         } else {
           const fallbackPath = newTabs[0]?.path;
           if (fallbackPath) {
             setActiveTab(fallbackPath);
-            loadFileContent(fallbackPath);
+            await loadFileContent(fallbackPath);
           } else {
             setActiveTab(null);
             setCode("");
+            if (editorRef.current) {
+              editorRef.current.setValue("");
+            }
           }
         }
       } else {
         setActiveTab(null);
         setCode("");
+        if (editorRef.current) {
+          editorRef.current.setValue("");
+        }
       }
     }
   };
+
+  const closeAllTabs = async () => {
+    if (tabs.length === 0) return;
+    const tabPaths = tabs.map((t) => t.path);
+    for (const path of tabPaths) {
+      const stillExists = tabs.some((t) => t.path === path);
+      if (stillExists) {
+        await closeTab(path);
+      }
+    }
+  };
+
+  const closeOtherTabs = async (path: string) => {
+    const tabsToClose = tabs.filter((t) => t.path !== path);
+    for (const tab of tabsToClose) {
+      const stillExists = tabs.some((t) => t.path === tab.path);
+      if (stillExists) {
+        await closeTab(tab.path);
+      }
+    }
+  };
+
+  const closeTabsToRight = async (path: string) => {
+    const index = tabs.findIndex((t) => t.path === path);
+    if (index === -1) return;
+    const tabsToClose = tabs.slice(index + 1);
+    for (const tab of tabsToClose) {
+      const stillExists = tabs.some((t) => t.path === tab.path);
+      if (stillExists) {
+        await closeTab(tab.path);
+      }
+    }
+  };
+
+  const getTabContextMenuItems = (
+    tabPath: string,
+  ): TabContextMenuItemType[] => {
+    const tabIndex = tabs.findIndex((tab) => tab.path === tabPath);
+    const isLastTab = tabIndex === tabs.length - 1;
+    const isOnlyTab = tabs.length === 1;
+    return [
+      {
+        label: t("codeEditor.close") || "关闭",
+        action: () => closeTab(tabPath),
+      },
+      {
+        label: t("codeEditor.closeAll") || "关闭全部",
+        action: closeAllTabs,
+      },
+      ...(isOnlyTab
+        ? []
+        : [
+            {
+              divider: true as const,
+            },
+            {
+              label: t("codeEditor.closeOthers") || "关闭其他",
+              action: () => closeOtherTabs(tabPath),
+            },
+            ...(isLastTab
+              ? []
+              : [
+                  {
+                    label: t("codeEditor.closeToRight") || "关闭右侧",
+                    action: () => closeTabsToRight(tabPath),
+                  },
+                ]),
+          ]),
+    ];
+  };
+
+  const handleTabContextMenu = (
+    e: React.MouseEvent,
+    tabPath: string,
+    tabIndex: number,
+  ) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setTabContextMenu({
+      x: e.clientX,
+      y: e.clientY,
+      tabPath,
+      tabIndex,
+    });
+  };
+
+  const closeTabContextMenu = () => {
+    setTabContextMenu(null);
+  };
+
+
+  useEffect(() => {
+    if (selectedFile && workspacePath) {
+      addTab(selectedFile);
+    }
+  }, [selectedFile, workspacePath]);
+
 
   useEffect(() => {
     if (activeTab) {
@@ -188,11 +511,6 @@ const CodeEdit: React.FC<CodeEditProps> = ({ t, selectedFile }) => {
     }
   }, [activeTab]);
 
-  useEffect(() => {
-    if (selectedFile) {
-      addTab(selectedFile);
-    }
-  }, [selectedFile]);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -225,9 +543,7 @@ const CodeEdit: React.FC<CodeEditProps> = ({ t, selectedFile }) => {
   useEffect(() => {
     if (!containerRef.current) return;
     if (editorRef.current) return;
-
     const content = activeTab ? code || "" : "";
-
     editorRef.current = monaco.editor.create(containerRef.current, {
       value: content,
       language: activeTab ? getFileLanguage(activeTab) : "plaintext",
@@ -253,7 +569,48 @@ const CodeEdit: React.FC<CodeEditProps> = ({ t, selectedFile }) => {
         showSnippets: true,
       },
     });
-
+    const editor = editorRef.current;
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
+      handleSave();
+    });
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyC, () => {
+      const selection = editor.getSelection();
+      if (selection && !selection.isEmpty()) {
+        const text = editor.getModel()?.getValueInRange(selection);
+        if (text) {
+          navigator.clipboard.writeText(text);
+          showToast(ToastType.SUCCESS, t("codeEditor.copied") || "Copied");
+        }
+      }
+    });
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyV, async () => {
+      try {
+        const text = await navigator.clipboard.readText();
+        if (text) {
+          editor.trigger("keyboard", "paste", {
+            text: text,
+          });
+        }
+      } catch (error) {
+        editor.trigger("keyboard", "paste", undefined);
+      }
+    });
+    editor.onDidChangeModelContent(() => {
+      if (isMountedRef.current && activeTab && workspacePath) {
+        const value = editor?.getValue() || "";
+        setCode(value);
+        const original = originalContentRef.current.get(activeTab) || "";
+        const isDirty = value !== original;
+        setTabs((prev) =>
+          prev.map((tab) =>
+            tab.path === activeTab ? { ...tab, isDirty } : tab,
+          ),
+        );
+        if (isDirty) {
+          writeToStatus(activeTab, value);
+        }
+      }
+    });
     const styleElement = document.createElement("style");
     styleElement.id = "minimap-divider-style";
     styleElement.textContent = `
@@ -269,14 +626,6 @@ const CodeEdit: React.FC<CodeEditProps> = ({ t, selectedFile }) => {
       }
     `;
     document.head.appendChild(styleElement);
-
-    editorRef.current.onDidChangeModelContent(() => {
-      if (isMountedRef.current) {
-        const value = editorRef.current?.getValue() || "";
-        setCode(value);
-      }
-    });
-
     return () => {
       const styleEl = document.getElementById("minimap-divider-style");
       if (styleEl) {
@@ -295,6 +644,7 @@ const CodeEdit: React.FC<CodeEditProps> = ({ t, selectedFile }) => {
     };
   }, []);
 
+
   useEffect(() => {
     if (editorRef.current) {
       try {
@@ -302,6 +652,7 @@ const CodeEdit: React.FC<CodeEditProps> = ({ t, selectedFile }) => {
       } catch (e) {}
     }
   }, [theme]);
+
 
   useEffect(() => {
     if (editorRef.current && activeTab) {
@@ -316,6 +667,7 @@ const CodeEdit: React.FC<CodeEditProps> = ({ t, selectedFile }) => {
       }
     }
   }, [code, activeTab]);
+
 
   const updateScrollbar = () => {
     const container = tabsContainerRef.current;
@@ -415,7 +767,6 @@ const CodeEdit: React.FC<CodeEditProps> = ({ t, selectedFile }) => {
     }
     return result;
   };
-
   const breadcrumbs = getCurrentBreadcrumbs();
   const showScrollbar = tabs.length > 0 && thumbWidth < 100;
 
@@ -469,15 +820,12 @@ const CodeEdit: React.FC<CodeEditProps> = ({ t, selectedFile }) => {
               .tabs-container::-webkit-scrollbar {
                 display: none;
               }
-              .scrollbar-thumb {
-                // transition: background 0.15s;
-              }
               .scrollbar-thumb:hover {
                 background: var(--scrollbar-thumb-hover, var(--scrollbar-thumb)) !important;
               }
             `}
           </style>
-          {tabs.map((tab) => {
+          {tabs.map((tab, index) => {
             const isActive = activeTab === tab.path;
             return (
               <div
@@ -485,6 +833,7 @@ const CodeEdit: React.FC<CodeEditProps> = ({ t, selectedFile }) => {
                 onClick={() => {
                   setActiveTab(tab.path);
                 }}
+                onContextMenu={(e) => handleTabContextMenu(e, tab.path, index)}
                 style={{
                   display: "flex",
                   alignItems: "center",
@@ -505,7 +854,6 @@ const CodeEdit: React.FC<CodeEditProps> = ({ t, selectedFile }) => {
                   minWidth: "60px",
                   maxWidth: "160px",
                   position: "relative",
-                  // transition: "background 0.15s",
                 }}
                 onMouseEnter={(e) => {
                   if (!isActive) {
@@ -530,6 +878,17 @@ const CodeEdit: React.FC<CodeEditProps> = ({ t, selectedFile }) => {
                   }}
                 >
                   {tab.name}
+                  {tab.isDirty && (
+                    <span
+                      style={{
+                        marginLeft: "4px",
+                        color: "var(--accent-color)",
+                        fontSize: "10px",
+                      }}
+                    >
+                      ●
+                    </span>
+                  )}
                 </span>
                 <button
                   onClick={(e) => closeTab(tab.path, e)}
@@ -561,7 +920,6 @@ const CodeEdit: React.FC<CodeEditProps> = ({ t, selectedFile }) => {
               </div>
             );
           })}
-          {/* ====== 新增：加载状态指示 ====== */}
           {loadingContent && (
             <div
               style={{
@@ -687,6 +1045,16 @@ const CodeEdit: React.FC<CodeEditProps> = ({ t, selectedFile }) => {
           position: "relative",
         }}
       />
+
+      {tabContextMenu && (
+        <TabContextMenu
+          x={tabContextMenu.x}
+          y={tabContextMenu.y}
+          items={getTabContextMenuItems(tabContextMenu.tabPath)}
+          onClose={closeTabContextMenu}
+        />
+      )}
+
       <style>{`
         @keyframes spin {
           from { transform: rotate(0deg); }

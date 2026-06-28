@@ -301,7 +301,7 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({
       const nodes: FileNode[] = [];
       for (const entry of entries) {
         const name = entry.name;
-        if (name.startsWith(".") && name !== ".git") continue;
+        if (name.startsWith(".")) continue;
         if (
           name === "node_modules" ||
           name === "target" ||
@@ -534,7 +534,9 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({
       if (node.isDirectory) {
         setCurrentTargetPath(node.path);
       }
-      onFileSelect("");
+      if (node.isDirectory) {
+        onFileSelect("");
+      }
     }
   };
 

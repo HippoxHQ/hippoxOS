@@ -295,6 +295,17 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_rename,
         commands::cmd_delete,
         commands::cmd_copy,
-        commands::cmd_search_in_files
+        commands::cmd_search_in_files,
+        commands::cmd_write_file,
+        commands::cmd_ensure_status_dir,
+        commands::cmd_get_status_file_path,
+        commands::cmd_check_status_exists,
+        commands::cmd_read_from_status,
+        commands::cmd_write_to_status,
+        commands::cmd_delete_from_status,
+        commands::cmd_copy_file_to_status,
+        commands::cmd_compare_status_with_original,
+        commands::cmd_clear_all_status,
+        commands::cmd_write_file
     ]
 }

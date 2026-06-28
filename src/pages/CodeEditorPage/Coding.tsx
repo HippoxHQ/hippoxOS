@@ -237,6 +237,7 @@ const CodingPage: React.FC<CodingPageProps> = ({
             isRightDragging={isRightDragging}
             isRightHover={isRightHover}
             setIsRightHover={setIsRightHover}
+            workspacePath={workspacePath}
           />
         </div>
       </div>

@@ -70,4 +70,44 @@ export const codeEditorCommands = {
     searchInFiles: async (workspacePath: string, query: string): Promise<SearchInFilesResult> => {
         return await invoke("cmd_search_in_files", { workspacePath, query });
     },
+
+    writeFile: async (path: string, content: string): Promise<FileOperationResult> => {
+        return await invoke("cmd_write_file", { path, content });
+    },
+
+    ensureStatusDir: async (workspacePath: string): Promise<FileOperationResult> => {
+        return await invoke("cmd_ensure_status_dir", { workspacePath });
+    },
+
+    getStatusFilePath: async (workspacePath: string, filePath: string): Promise<string> => {
+        return await invoke("cmd_get_status_file_path", { workspacePath, filePath });
+    },
+
+    checkStatusExists: async (workspacePath: string, filePath: string): Promise<boolean> => {
+        return await invoke("cmd_check_status_exists", { workspacePath, filePath });
+    },
+
+    readFromStatus: async (workspacePath: string, filePath: string): Promise<string | null> => {
+        return await invoke("cmd_read_from_status", { workspacePath, filePath });
+    },
+
+    writeToStatus: async (workspacePath: string, filePath: string, content: string): Promise<FileOperationResult> => {
+        return await invoke("cmd_write_to_status", { workspacePath, filePath, content });
+    },
+
+    deleteFromStatus: async (workspacePath: string, filePath: string): Promise<FileOperationResult> => {
+        return await invoke("cmd_delete_from_status", { workspacePath, filePath });
+    },
+
+    copyFileToStatus: async (workspacePath: string, filePath: string): Promise<FileOperationResult> => {
+        return await invoke("cmd_copy_file_to_status", { workspacePath, filePath });
+    },
+
+    compareStatusWithOriginal: async (workspacePath: string, filePath: string): Promise<boolean> => {
+        return await invoke("cmd_compare_status_with_original", { workspacePath, filePath });
+    },
+
+    clearAllStatus: async (workspacePath: string): Promise<FileOperationResult> => {
+        return await invoke("cmd_clear_all_status", { workspacePath });
+    },
 };
