@@ -388,6 +388,9 @@ export function AppContent({
             }
             t={t}
             onDragOverInputChange={setIsDraggingOverInput}
+            onNavigateTo={(pageId) => {
+              onMenuClick(pageId);
+            }}
           />
         );
       } else {

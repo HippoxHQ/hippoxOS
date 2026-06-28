@@ -25,6 +25,7 @@ interface WelcomePageProps {
   onDragOverInputChange?: (isDragging: boolean) => void;
   workflowMode?: string;
   onWorkflowModeChange?: (mode: string) => void;
+  onNavigateTo?: (page: string) => void;
 }
 
 const WelcomePage: React.FC<WelcomePageProps> = ({
@@ -33,6 +34,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
   onDragOverInputChange,
   workflowMode: externalWorkflowMode,
   onWorkflowModeChange,
+  onNavigateTo,
 }) => {
   const [inputValue, setInputValue] = useState("");
   const [isFocused, setIsFocused] = useState(false);
@@ -60,6 +62,65 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
   const [workflowDisplayNames, setWorkflowDisplayNames] = useState<
     Map<string, string>
   >(new Map());
+
+  const domains: {
+    id: "general" | "code" | "map" | "chart";
+    label: string;
+    labelEn: string;
+    description: string;
+    descriptionEn: string;
+    bgEmoji: string;
+    pageId: string;
+  }[] = [
+    {
+      id: "general",
+      label: "通用对话",
+      labelEn: "General Chat",
+      description: "日常问答 · 任务执行 · 知识检索",
+      descriptionEn: "Daily Q&A · Task Execution · Knowledge Retrieval",
+      bgEmoji: "💬",
+      pageId: "generalChat",
+    },
+    {
+      id: "code",
+      label: "代码编辑",
+      labelEn: "Code Editor",
+      description: "编写 · 审查 · 重构 · 自动补全",
+      descriptionEn: "Write · Review · Refactor · Auto-complete",
+      bgEmoji: "💻",
+      pageId: "codeEditorChat",
+    },
+    {
+      id: "map",
+      label: "地理分析",
+      labelEn: "Map Analysis",
+      description: "位置标注 · 空间数据 · 路线规划",
+      descriptionEn: "Location Tagging · Spatial Data · Route Planning",
+      bgEmoji: "🗺️",
+      pageId: "mapChat",
+    },
+    {
+      id: "chart",
+      label: "金融图表",
+      labelEn: "Chart Analysis",
+      description: "K线分析 · 技术指标 · 市场研判",
+      descriptionEn: "Candlestick · Technical Indicators · Market Analysis",
+      bgEmoji: "📊",
+      pageId: "chartChat",
+    },
+  ];
+
+  const handleNavigate = (pageId: string) => {
+    if (onNavigateTo) {
+      onNavigateTo(pageId);
+    } else {
+      window.dispatchEvent(
+        new CustomEvent("navigate-to", {
+          detail: { page: pageId },
+        }),
+      );
+    }
+  };
 
   const loadWorkflowDisplayNames = async () => {
     try {
@@ -316,7 +377,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
     width: 80%;
     min-width: 325px;
     margin-bottom: 20px;
-    margin: 0 auto 20px auto;
+    margin: 0 auto 10px auto;
   }
 
   .welcome-input-container {
@@ -581,6 +642,109 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
   .file-uploader-container {
   }
 
+  .domain-cards {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin: 0 auto 10px auto;
+    width: 80%;
+  }
+
+  .domain-card {
+    position: relative;
+    padding: 10px 10px;
+    border-radius: 5px;
+    cursor: pointer;
+    overflow: hidden;
+    border: 1px solid var(--border-color);
+    background: var(--bg-secondary);
+    transition: all 0.2s ease;
+    min-height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .domain-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--accent-color);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  }
+
+  .domain-card .card-bg-emoji {
+  position: absolute;
+  right: -8px;
+  top: 50%;
+  transform: translateY(-50%) rotate(15deg);
+  font-size: 56px;
+  opacity: 0.15;
+  filter: blur(1px);
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+  line-height: 1;
+ }
+
+ .domain-card:hover .card-bg-emoji {
+  opacity: 0.1;
+ }
+
+  .domain-card .card-left {
+    position: relative;
+    z-index: 1;
+    flex: 1;
+    text-align: left;
+  }
+
+  .domain-card .domain-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .domain-card .domain-desc {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    line-height: 1.2;
+    margin-top: 1px;
+  }
+
+  .domain-card .domain-arrow {
+    position: relative;
+    z-index: 1;
+    font-size: 14px;
+    color: var(--text-tertiary);
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+    margin-left: 8px;
+    opacity: 0;
+  }
+
+  .domain-card:hover .domain-arrow {
+    opacity: 1;
+    color: var(--accent-color);
+    transform: translateX(3px);
+  }
+
+  @media (max-width: 640px) {
+    .domain-cards {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+    .domain-card {
+      padding: 12px 14px;
+      min-height: 52px;
+    }
+    .domain-card .card-bg-emoji {
+      font-size: 40px;
+    }
+    .domain-card .domain-name {
+      font-size: 12px;
+    }
+    .domain-card .domain-desc {
+      font-size: 10px;
+    }
+  }
+
   :root {
     --bg-primary: #0f1117;
     --bg-secondary: #1a1d26;
@@ -823,6 +987,34 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
             </div>
           </div>
         </form>
+
+        <div className="domain-cards">
+          {domains.map((domain) => (
+            <div
+              key={domain.id}
+              className="domain-card"
+              onClick={() => {
+                if (domain.id === "general") {
+                  handleNavigate("generalChat");
+                  return;
+                }
+                handleNavigate(domain.pageId);
+              }}
+            >
+              <div className="card-bg-emoji">{domain.bgEmoji}</div>
+              <div className="card-left">
+                <div className="domain-name">
+                  {isZh ? domain.label : domain.labelEn}
+                </div>
+                <div className="domain-desc">
+                  {isZh ? domain.description : domain.descriptionEn}
+                </div>
+              </div>
+              <span className="domain-arrow">→</span>
+            </div>
+          ))}
+        </div>
+
         <div className="examples-section">
           <div className="examples-title">
             {t("welcome.examples") || "Try these"}
