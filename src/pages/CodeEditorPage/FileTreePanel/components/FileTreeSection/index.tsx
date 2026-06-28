@@ -50,9 +50,102 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({
   const [selectedNodes, setSelectedNodes] = useState<Set<string>>(new Set());
   const [lastClickedPath, setLastClickedPath] = useState<string | null>(null);
   const isEditing = editingPath !== null;
+  const prevSelectedFileRef = useRef<string | null>(null);
   const clearSelection = useCallback(() => {
     setSelectedNodes(new Set());
   }, []);
+  const expandToFile = useCallback(
+    (filePath: string) => {
+      if (!filePath || !workspacePath) return;
+      const getDirPath = (path: string): string => {
+        const lastSlash = Math.max(
+          path.lastIndexOf("/"),
+          path.lastIndexOf("\\"),
+        );
+        if (lastSlash > 0) {
+          return path.substring(0, lastSlash);
+        }
+        return path;
+      };
+      const dirPath = getDirPath(filePath);
+      const pathsToExpand: string[] = [];
+      let currentPath = dirPath;
+      const collectPaths = (path: string) => {
+        pathsToExpand.push(path);
+        const parentPath = getDirPath(path);
+        if (
+          parentPath &&
+          parentPath !== path &&
+          parentPath.startsWith(workspacePath)
+        ) {
+          collectPaths(parentPath);
+        }
+      };
+      if (dirPath.startsWith(workspacePath)) {
+        collectPaths(dirPath);
+      }
+      setExpandedPaths((prev) => {
+        const newSet = new Set(prev);
+        pathsToExpand.forEach((p) => newSet.add(p));
+        return newSet;
+      });
+
+      const findAndLoadNode = async (
+        nodes: FileNode[],
+        path: string,
+      ): Promise<boolean> => {
+        for (const node of nodes) {
+          if (node.path === path && node.isDirectory) {
+            if (!node.children || node.children.length === 0) {
+              const children = await loadChildren(node);
+              const updateTree = (nodes: FileNode[]): FileNode[] => {
+                return nodes.map((n) => {
+                  if (n.path === path) {
+                    return { ...n, children };
+                  }
+                  if (n.children) {
+                    return { ...n, children: updateTree(n.children) };
+                  }
+                  return n;
+                });
+              };
+              setFileTree((prev) => updateTree(prev));
+            }
+            return true;
+          }
+          if (node.children) {
+            const found = await findAndLoadNode(node.children, path);
+            if (found) return true;
+          }
+        }
+        return false;
+      };
+
+      findAndLoadNode(fileTree, dirPath);
+    },
+    [workspacePath, fileTree],
+  );
+
+  useEffect(() => {
+    if (selectedFile !== prevSelectedFileRef.current) {
+      prevSelectedFileRef.current = selectedFile;
+      if (selectedFile === null && workspacePath) {
+        setSelectedNodes(new Set([workspacePath]));
+        setCurrentTargetPath(workspacePath);
+        setLastClickedPath(null);
+      } else if (selectedFile) {
+        setSelectedNodes(new Set([selectedFile]));
+        setCurrentTargetPath(selectedFile);
+        setLastClickedPath(selectedFile);
+      }
+    }
+  }, [selectedFile, workspacePath]);
+
+  useEffect(() => {
+    if (selectedFile && workspacePath) {
+      expandToFile(selectedFile);
+    }
+  }, [selectedFile, workspacePath, expandToFile]);
 
   const handleDelete = useCallback(
     (nodes: FileNode[]) => {

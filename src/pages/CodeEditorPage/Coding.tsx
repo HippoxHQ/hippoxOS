@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import CodeEditPanel from "./CodeEditPanel/CodeEditPanel";
 import FileTreePanel from "./FileTreePanel";
 import { configCommands } from "../../command/config";
@@ -7,12 +7,14 @@ interface CodingPageProps {
   t: (key: string) => string;
   onClose?: () => void;
   workspacePath?: string | null;
+  onTabChange?: (filePath: string | null) => void;
 }
 
 const CodingPage: React.FC<CodingPageProps> = ({
   t,
   onClose,
   workspacePath,
+  onTabChange,
 }) => {
   const [leftWidth, setLeftWidth] = useState(240);
   const [rightHeight, setRightHeight] = useState(200);
@@ -31,13 +33,21 @@ const CodingPage: React.FC<CodingPageProps> = ({
   >("terminal-left");
   const [isLayoutLoading, setIsLayoutLoading] = useState(true);
 
-  useEffect(() => {
-    console.log("[CodingPage] workspacePath received:", workspacePath);
-  }, [workspacePath]);
-
   const handleFileSelect = (path: string) => {
     setSelectedFile(path);
   };
+
+  const handleTabChange = useCallback(
+    (filePath: string | null) => {
+      if (filePath !== null) {
+        setSelectedFile(filePath);
+      } else {
+        setSelectedFile(null);
+      }
+      onTabChange?.(filePath);
+    },
+    [onTabChange],
+  );
 
   const handleLeftResizeMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -48,6 +58,10 @@ const CodingPage: React.FC<CodingPageProps> = ({
     document.body.style.cursor = "col-resize";
     document.body.style.userSelect = "none";
   };
+
+  useEffect(() => {
+    console.log("[CodingPage] workspacePath received:", workspacePath);
+  }, [workspacePath]);
 
   useEffect(() => {
     const loadLayoutMode = async () => {
@@ -238,6 +252,7 @@ const CodingPage: React.FC<CodingPageProps> = ({
             isRightHover={isRightHover}
             setIsRightHover={setIsRightHover}
             workspacePath={workspacePath}
+            onTabChange={handleTabChange}
           />
         </div>
       </div>

@@ -1,6 +1,12 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { taskManager } from "../../core/TaskManager";
-import { CollapseAllIcon2, ExpandAllIcon2, FileIcon, FolderIcon, GithubIcon } from "../../icons";
+import {
+  CollapseAllIcon2,
+  ExpandAllIcon2,
+  FileIcon,
+  FolderIcon,
+  GithubIcon,
+} from "../../icons";
 import CodingPage from "./Coding";
 import { configCommands } from "../../command/config";
 import HistoryCodeEditorChatPanel, {
@@ -1510,7 +1516,12 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
         minWidth: 0,
       }}
     >
-      <CodingPage t={t} onClose={() => {}} workspacePath={workspacePath} />
+      <CodingPage
+        t={t}
+        onClose={() => {}}
+        workspacePath={workspacePath}
+        onTabChange={(filePath) => {}}
+      />
     </div>
   );
 

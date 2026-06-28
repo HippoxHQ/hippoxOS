@@ -11,6 +11,7 @@ interface CodeEditPanelProps {
   isRightHover: boolean;
   setIsRightHover: (value: boolean) => void;
   workspacePath?: string | null;
+  onTabChange?: (filePath: string | null) => void;
 }
 
 const CodeEditPanel: React.FC<CodeEditPanelProps> = ({
@@ -22,6 +23,7 @@ const CodeEditPanel: React.FC<CodeEditPanelProps> = ({
   isRightHover,
   setIsRightHover,
   workspacePath,
+  onTabChange,
 }) => {
   const isActive = isRightDragging || isRightHover;
 
@@ -69,6 +71,7 @@ const CodeEditPanel: React.FC<CodeEditPanelProps> = ({
           t={t}
           selectedFile={selectedFile}
           workspacePath={workspacePath}
+          onTabChange={onTabChange}
         />
       </div>
 
