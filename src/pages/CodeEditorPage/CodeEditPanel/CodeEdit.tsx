@@ -112,7 +112,6 @@ const CodeEdit: React.FC<CodeEditProps> = ({
   const [scrollPercentage, setScrollPercentage] = useState(0);
   const [thumbWidth, setThumbWidth] = useState(20);
   const [tabs, setTabs] = useState<TabItem[]>([]);
-  const [activeTab, setActiveTab] = useState<string | null>(null);
   const [loadingContent, setLoadingContent] = useState(false);
   const [tabContextMenu, setTabContextMenu] = useState<{
     x: number;
@@ -122,17 +121,15 @@ const CodeEdit: React.FC<CodeEditProps> = ({
   } | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const savingRef = useRef<Set<string>>(new Set());
-
-  const activeTabRef = useRef<string | null>(null);
-  useEffect(() => {
-    activeTabRef.current = activeTab;
-  }, [activeTab]);
-
   const tabsRef = useRef<TabItem[]>(tabs);
   useEffect(() => {
     tabsRef.current = tabs;
   }, [tabs]);
-
+  const [activeTab, setActiveTab] = useState<string | null>(null);
+  const activeTabRef = useRef<string | null>(null);
+  useEffect(() => {
+    activeTabRef.current = activeTab;
+  }, [activeTab]);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const loadMetadata =
@@ -153,7 +150,6 @@ const CodeEdit: React.FC<CodeEditProps> = ({
     if (!workspacePath) return;
     await codeEditorCommands.ensureTmpDir(workspacePath);
   }, [workspacePath]);
-
 
   const readFromTmp = useCallback(
     async (tmpPath: string): Promise<string | null> => {
@@ -202,7 +198,6 @@ const CodeEdit: React.FC<CodeEditProps> = ({
   const generateTmpName = useCallback(async (): Promise<string> => {
     return await codeEditorCommands.generateTmpName("");
   }, []);
-
 
   const handleSave = useCallback(async () => {
     if (!activeTab || !workspacePath) {
@@ -274,7 +269,6 @@ const CodeEdit: React.FC<CodeEditProps> = ({
     }
   }, [activeTab, workspacePath, tabs, loadMetadata, saveMetadata, t]);
 
-
   const handleCopy = useCallback(() => {
     if (editorRef.current) {
       const selection = editorRef.current.getSelection();
@@ -311,7 +305,6 @@ const CodeEdit: React.FC<CodeEditProps> = ({
       );
     }
   }, [t]);
-
 
   useCodeEditorKeyboard({
     onCopy: handleCopy,
@@ -367,20 +360,15 @@ const CodeEdit: React.FC<CodeEditProps> = ({
     [workspacePath, readFromTmp, writeToTmp, t],
   );
 
-
   const addTab = async (sourcePath: string) => {
     if (!sourcePath || !workspacePath) return;
-
     const existing = tabs.find((t) => t.source_path === sourcePath);
     if (existing) {
       setActiveTab(existing.id);
       return;
     }
-
     const tmpName = await generateTmpName();
-
     let content: string;
-
     try {
       content = await readTextFile(sourcePath);
       await copyToTmp(sourcePath, tmpName);
@@ -389,7 +377,6 @@ const CodeEdit: React.FC<CodeEditProps> = ({
       showToast(ToastType.ERROR, t("file.readError") || "Failed to read file");
       return;
     }
-
     const newTab: TabItem = {
       id: `tab_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
       source_path: sourcePath,
@@ -397,10 +384,8 @@ const CodeEdit: React.FC<CodeEditProps> = ({
       tmp_path: tmpName,
       isDirty: false,
     };
-
     setTabs((prev) => [...prev, newTab]);
     setActiveTab(newTab.id);
-
     const metadata = await loadMetadata();
     if (metadata) {
       const tabMetadata: TabFileMetadata = {
@@ -435,7 +420,6 @@ const CodeEdit: React.FC<CodeEditProps> = ({
       };
       await saveMetadata(newMetadata);
     }
-
     await loadTabContent(newTab.id, newTab.tmp_path, newTab.source_path);
   };
 
@@ -599,7 +583,6 @@ const CodeEdit: React.FC<CodeEditProps> = ({
     setTabContextMenu(null);
   };
 
-
   const restoreTabsFromMetadata = useCallback(async () => {
     if (!workspacePath) return;
 
@@ -646,7 +629,6 @@ const CodeEdit: React.FC<CodeEditProps> = ({
     loadTabContent,
   ]);
 
-
   useEffect(() => {
     if (selectedFile && workspacePath) {
       const exists = tabs.some((t) => t.source_path === selectedFile);
@@ -656,13 +638,11 @@ const CodeEdit: React.FC<CodeEditProps> = ({
     }
   }, [selectedFile, workspacePath]);
 
-
   useEffect(() => {
     if (workspacePath) {
       restoreTabsFromMetadata();
     }
   }, [workspacePath]);
-
 
   useEffect(() => {
     if (activeTab) {
@@ -672,7 +652,6 @@ const CodeEdit: React.FC<CodeEditProps> = ({
       }
     }
   }, [activeTab]);
-
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -701,7 +680,6 @@ const CodeEdit: React.FC<CodeEditProps> = ({
       );
     };
   }, []);
-
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -766,10 +744,6 @@ const CodeEdit: React.FC<CodeEditProps> = ({
     });
 
     editor.onDidChangeModelContent(() => {
-      console.log("[CodeEdit] onDidChangeModelContent 触发了");
-      console.log("[CodeEdit] isMountedRef.current:", isMountedRef.current);
-      console.log("[CodeEdit] activeTab:", activeTab);
-      console.log("[CodeEdit] workspacePath:", workspacePath);
       const currentActiveTab = activeTabRef.current;
       if (isMountedRef.current && currentActiveTab && workspacePath) {
         const value = editor?.getValue() || "";
@@ -814,7 +788,6 @@ const CodeEdit: React.FC<CodeEditProps> = ({
       }
     };
   }, []);
-
 
   useEffect(() => {
     if (editorRef.current) {
@@ -908,7 +881,6 @@ const CodeEdit: React.FC<CodeEditProps> = ({
     };
   }, [tabs]);
 
-
   const getCurrentBreadcrumbs = (): { name: string; path: string }[] => {
     const activeTabData = tabs.find((t) => t.id === activeTab);
     if (!activeTabData) return [];
@@ -924,10 +896,8 @@ const CodeEdit: React.FC<CodeEditProps> = ({
     }
     return result;
   };
-
   const breadcrumbs = getCurrentBreadcrumbs();
   const showScrollbar = tabs.length > 0 && thumbWidth < 100;
-
 
   return (
     <div
