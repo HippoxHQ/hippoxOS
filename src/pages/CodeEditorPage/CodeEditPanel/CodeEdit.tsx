@@ -341,7 +341,9 @@ const CodeEdit: React.FC<CodeEditProps> = ({
       } finally {
         setLoadingContent(false);
         setIsEditing(false);
-        isFirstLoadRef.current = false;
+        setTimeout(() => {
+          isFirstLoadRef.current = false;
+        }, 100);
       }
     },
     [workspacePath, readFromTmp, writeToTmp, t],
@@ -1020,6 +1022,18 @@ const CodeEdit: React.FC<CodeEditProps> = ({
                 t.id === currentActiveTab ? { ...t, isDirty: true } : t,
               ),
             );
+            loadMetadata().then((metadata) => {
+              if (metadata) {
+                for (const file of metadata.tabs.files) {
+                  if (file.id === currentActiveTab) {
+                    file.is_dirty = true;
+                    file.last_modified = new Date().toISOString();
+                    break;
+                  }
+                }
+                saveMetadata(metadata).catch(() => {});
+              }
+            });
           }
         }
       }
