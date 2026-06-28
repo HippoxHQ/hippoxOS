@@ -933,15 +933,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   })();
 
   return (
-    <div
-      className="chat-panel"
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        height: "100%",
-        overflow: "hidden",
-      }}
-    >
+    <div className="chat-panel">
       <div
         className="panel-header"
         style={{ paddingTop: "6px", paddingBottom: "6px" }}

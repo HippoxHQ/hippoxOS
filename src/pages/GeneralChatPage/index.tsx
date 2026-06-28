@@ -667,9 +667,11 @@ const GeneralChatPage: React.FC<GeneralChatPageProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const historyPanelRef = useRef<HistoryChatPanelRef>(null);
   const [historySessions, setHistorySessions] = useState<any[]>([]);
+
   const [layoutSwapMode, setLayoutSwapMode] = useState<
-    "terminal-left" | "chat-left"
-  >("terminal-left");
+    "chat-left" | "terminal-left"
+  >("chat-left");
+
   const [isLayoutLoading, setIsLayoutLoading] = useState(true);
   const isDragging = useRef(false);
   const dragType = useRef<"horizontal" | "history">("horizontal");
@@ -718,7 +720,6 @@ const GeneralChatPage: React.FC<GeneralChatPageProps> = ({
           setLayoutSwapMode(mode);
         }
       } catch (error) {
-        console.error("Failed to load general chat layout mode:", error);
       } finally {
         setIsLayoutLoading(false);
       }
@@ -752,9 +753,7 @@ const GeneralChatPage: React.FC<GeneralChatPageProps> = ({
           await import("../../command/session/general");
         const list = await sessionCommands.listSessions();
         setHistorySessions(list);
-      } catch (error) {
-        console.error("Failed to load history sessions:", error);
-      }
+      } catch (error) {}
     };
     loadSessions();
     const handleSessionCreated = () => {
@@ -1040,7 +1039,7 @@ const GeneralChatPage: React.FC<GeneralChatPageProps> = ({
       );
     }
     const isTerminalLeft = layoutSwapMode === "terminal-left";
-    const panel = isTerminalLeft ? leftPanel : rightPanel;
+    const panel = isTerminalLeft ? rightPanel : leftPanel;
     if (React.isValidElement(panel)) {
       return React.cloneElement(panel, {
         isCollapsed: false,
@@ -1062,7 +1061,7 @@ const GeneralChatPage: React.FC<GeneralChatPageProps> = ({
       );
     }
     const isTerminalLeft = layoutSwapMode === "terminal-left";
-    const panel = isTerminalLeft ? rightPanel : leftPanel;
+    const panel = isTerminalLeft ? leftPanel : rightPanel;
     if (React.isValidElement(panel)) {
       return React.cloneElement(panel, {
         isCollapsed: false,
@@ -1436,8 +1435,16 @@ const GeneralChatPage: React.FC<GeneralChatPageProps> = ({
       <div
         className="panel-left"
         style={{
-          flex: isLeftCollapsed ? "0 0 45px" : "0 0 auto",
-          width: isLeftCollapsed ? "45px" : `${leftWidth}%`,
+          flex: isLeftCollapsed
+            ? "0 0 45px"
+            : isRightCollapsed
+              ? "1"
+              : "0 0 auto",
+          width: isLeftCollapsed
+            ? "45px"
+            : isRightCollapsed
+              ? "auto"
+              : `${leftWidth}%`,
           overflow: "hidden",
           minWidth: isLeftCollapsed ? "45px" : "150px",
           display: "flex",
@@ -1482,10 +1489,9 @@ const GeneralChatPage: React.FC<GeneralChatPageProps> = ({
           )} */}
         </div>
       )}
-
       <div
         style={{
-          flex: isRightCollapsed ? "0 0 45px" : 1,
+          flex: isRightCollapsed ? "0 0 45px" : isLeftCollapsed ? "1" : 1,
           width: isRightCollapsed ? "45px" : "auto",
           overflow: "hidden",
           minWidth: isRightCollapsed ? "45px" : "150px",
