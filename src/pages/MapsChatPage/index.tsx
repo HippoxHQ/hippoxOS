@@ -685,8 +685,11 @@ const MapsPage: React.FC<MapsPageProps> = ({
   const [layoutSwapMode, setLayoutSwapMode] = useState<
     "terminal-left" | "chat-left"
   >("terminal-left");
+  const layoutSwapModeRef = useRef<"terminal-left" | "chat-left">(
+    "terminal-left",
+  );
 
-  const isChatOnLeft = layoutSwapMode === "terminal-left";
+  const isChatOnLeft = layoutSwapMode === "chat-left";
 
   const handleToggleChatPanel = useCallback(() => {
     if (isFunctionPanelMaximized) return;
@@ -832,6 +835,7 @@ const MapsPage: React.FC<MapsPageProps> = ({
         const mode = await configCommands.getSettingsMapChatLayoutSwapMode();
         if (mode === "terminal-left" || mode === "chat-left") {
           setLayoutSwapMode(mode);
+          layoutSwapModeRef.current = mode;
         }
       } catch (error) {
         console.error("Failed to load map chat layout mode:", error);
@@ -845,6 +849,7 @@ const MapsPage: React.FC<MapsPageProps> = ({
       const { pageType, mode } = event.detail;
       if (pageType === "map") {
         setLayoutSwapMode(mode);
+        layoutSwapModeRef.current = mode;
       }
     };
     window.addEventListener(
@@ -987,7 +992,7 @@ const MapsPage: React.FC<MapsPageProps> = ({
     e.preventDefault();
   };
 
-  const handleMouseMove = (e: MouseEvent) => {
+  const handleMouseMove = useCallback((e: MouseEvent) => {
     if (!isDragging.current || !containerRef.current) return;
     const deltaX = e.clientX - dragStartX.current;
     const containerRect =
@@ -999,7 +1004,15 @@ const MapsPage: React.FC<MapsPageProps> = ({
       const mainAreaWidth = containerWidth - historyWidthPx;
       if (mainAreaWidth <= 0) return;
       const startWidthPx = dragStartChatPanelWidth.current;
-      let newWidthPx = startWidthPx + deltaX;
+
+      const currentMode = layoutSwapModeRef.current;
+      let newWidthPx;
+      if (currentMode === "terminal-left") {
+        newWidthPx = startWidthPx - deltaX;
+      } else {
+        newWidthPx = startWidthPx + deltaX;
+      }
+
       const minWidthPx = 200;
       const maxWidthPx = mainAreaWidth * 0.6;
       newWidthPx = Math.max(minWidthPx, Math.min(maxWidthPx, newWidthPx));
@@ -1011,13 +1024,13 @@ const MapsPage: React.FC<MapsPageProps> = ({
       setHistoryWidth(clamped);
       saveHistoryWidth(clamped);
     }
-  };
+  }, []);
 
-  const handleMouseUp = () => {
+  const handleMouseUp = useCallback(() => {
     isDragging.current = false;
     document.body.style.cursor = "";
     document.body.style.userSelect = "";
-  };
+  }, []);
 
   useEffect(() => {
     window.addEventListener("mousemove", handleMouseMove);
@@ -1026,7 +1039,7 @@ const MapsPage: React.FC<MapsPageProps> = ({
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("mouseup", handleMouseUp);
     };
-  }, []);
+  }, [handleMouseMove, handleMouseUp]);
 
   const getHistoryPanelContent = () => {
     if (historyCollapsed || isFunctionPanelMaximized) {

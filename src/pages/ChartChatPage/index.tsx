@@ -683,7 +683,10 @@ const ChartPage: React.FC<ChartPageProps> = ({
   const [layoutSwapMode, setLayoutSwapMode] = useState<
     "terminal-left" | "chat-left"
   >("terminal-left");
-  const isChatOnLeft = layoutSwapMode === "terminal-left";
+  const layoutSwapModeRef = useRef<"terminal-left" | "chat-left">(
+    "terminal-left",
+  );
+  const isChatOnLeft = layoutSwapMode === "chat-left";
 
   const handleToggleChatPanel = useCallback(() => {
     if (isFunctionPanelMaximized) return;
@@ -828,6 +831,7 @@ const ChartPage: React.FC<ChartPageProps> = ({
         const mode = await configCommands.getSettingsChartChatLayoutSwapMode();
         if (mode === "terminal-left" || mode === "chat-left") {
           setLayoutSwapMode(mode);
+          layoutSwapModeRef.current = mode;
         }
       } catch (error) {
         console.error("Failed to load chart chat layout mode:", error);
@@ -841,6 +845,7 @@ const ChartPage: React.FC<ChartPageProps> = ({
       const { pageType, mode } = event.detail;
       if (pageType === "chart") {
         setLayoutSwapMode(mode);
+        layoutSwapModeRef.current = mode;
       }
     };
     window.addEventListener(
@@ -976,7 +981,7 @@ const ChartPage: React.FC<ChartPageProps> = ({
     e.preventDefault();
   };
 
-  const handleMouseMove = (e: MouseEvent) => {
+  const handleMouseMove = useCallback((e: MouseEvent) => {
     if (!isDragging.current || !containerRef.current) return;
     const deltaX = e.clientX - dragStartX.current;
     const containerRect =
@@ -988,7 +993,15 @@ const ChartPage: React.FC<ChartPageProps> = ({
       const mainAreaWidth = containerWidth - historyWidthPx;
       if (mainAreaWidth <= 0) return;
       const startWidthPx = dragStartChatPanelWidth.current;
-      let newWidthPx = startWidthPx + deltaX;
+
+      const currentMode = layoutSwapModeRef.current;
+      let newWidthPx;
+      if (currentMode === "terminal-left") {
+        newWidthPx = startWidthPx - deltaX;
+      } else {
+        newWidthPx = startWidthPx + deltaX;
+      }
+
       const minWidthPx = 200;
       const maxWidthPx = mainAreaWidth * 0.6;
       newWidthPx = Math.max(minWidthPx, Math.min(maxWidthPx, newWidthPx));
@@ -1000,13 +1013,13 @@ const ChartPage: React.FC<ChartPageProps> = ({
       setHistoryWidth(clamped);
       saveHistoryWidth(clamped);
     }
-  };
+  }, []);
 
-  const handleMouseUp = () => {
+  const handleMouseUp = useCallback(() => {
     isDragging.current = false;
     document.body.style.cursor = "";
     document.body.style.userSelect = "";
-  };
+  }, []);
 
   useEffect(() => {
     window.addEventListener("mousemove", handleMouseMove);
@@ -1015,7 +1028,7 @@ const ChartPage: React.FC<ChartPageProps> = ({
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("mouseup", handleMouseUp);
     };
-  }, []);
+  }, [handleMouseMove, handleMouseUp]);
 
   const getHistoryPanelContent = () => {
     if (historyCollapsed || isFunctionPanelMaximized) {
@@ -1381,24 +1394,7 @@ const ChartPage: React.FC<ChartPageProps> = ({
               }}
               onMouseEnter={() => setIsHistoryResizeHover(true)}
               onMouseLeave={() => setIsHistoryResizeHover(false)}
-            >
-              {/* {isHistoryResizeHover && (
-                <div
-                  style={{
-                    position: "absolute",
-                    top: "50%",
-                    left: "50%",
-                    transform: "translate(-50%, -50%)",
-                    width: "2px",
-                    height: "40px",
-                    background: "var(--text-muted)",
-                    borderRadius: "2px",
-                    opacity: 0.5,
-                    zIndex: 11,
-                  }}
-                />
-              )} */}
-            </div>
+            ></div>
           )}
         </>
       )}
@@ -1457,24 +1453,7 @@ const ChartPage: React.FC<ChartPageProps> = ({
           }}
           onMouseEnter={() => setIsResizeHover(true)}
           onMouseLeave={() => setIsResizeHover(false)}
-        >
-          {/* {isResizeHover && (
-            <div
-              style={{
-                position: "absolute",
-                top: "50%",
-                left: "50%",
-                transform: "translate(-50%, -50%)",
-                width: "2px",
-                height: "40px",
-                background: "var(--text-muted)",
-                borderRadius: "2px",
-                opacity: 0.5,
-                zIndex: 11,
-              }}
-            />
-          )} */}
-        </div>
+        ></div>
       )}
       <div
         style={{

@@ -144,7 +144,24 @@ const LayoutSwitch: React.FC<{
   label: string;
   description?: string;
   pageType: "general" | "chart" | "map" | "codeeditor";
-}> = ({ value, onChange, label, description, pageType }) => {
+  t: (key: string, params?: any) => string;
+}> = ({ value, onChange, label, description, pageType, t }) => {
+  const getTerminalLabel = () => {
+    switch (pageType) {
+      case "chart":
+        return t("settings.chartTerminal");
+      case "map":
+        return t("settings.mapTerminal");
+      case "codeeditor":
+        return t("settings.codeEditorTerminal");
+      case "general":
+      default:
+        return t("settings.terminal");
+    }
+  };
+
+  const terminalLabel = getTerminalLabel();
+
   const layoutSwitchGroupStyle: React.CSSProperties = {
     display: "flex",
     alignItems: "center",
@@ -198,23 +215,16 @@ const LayoutSwitch: React.FC<{
     <div
       style={{
         display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
+        flexDirection: "column",
         marginBottom: "16px",
-        gap: "12px",
-        flexWrap: "nowrap",
+        gap: "6px",
       }}
     >
       <div
         style={{
           fontSize: "13px",
           color: "var(--text-primary)",
-          minWidth: "80px",
-          flexShrink: 0,
           userSelect: "none",
-          overflow: "hidden",
-          textOverflow: "ellipsis",
-          whiteSpace: "nowrap",
         }}
       >
         {label}
@@ -237,19 +247,23 @@ const LayoutSwitch: React.FC<{
           type="button"
           style={layoutSwitchBtnStyle(value === "terminal-left")}
           onClick={() => handleChange("terminal-left")}
-          title="终端在左"
+          title={t("settings.terminalLeftTitle", { terminal: terminalLabel })}
         >
           <TerminalLeftIcon />
-          <span style={btnTextStyle}>终端｜对话</span>
+          <span style={btnTextStyle}>
+            {t("settings.terminalLeftLabel", { terminal: terminalLabel })}
+          </span>
         </button>
         <button
           type="button"
           style={layoutSwitchBtnStyle(value === "chat-left")}
           onClick={() => handleChange("chat-left")}
-          title="对话在左"
+          title={t("settings.chatLeftTitle", { terminal: terminalLabel })}
         >
           <ChatLeftIcon />
-          <span style={btnTextStyle}>对话｜终端</span>
+          <span style={btnTextStyle}>
+            {t("settings.chatLeftLabel", { terminal: terminalLabel })}
+          </span>
         </button>
       </div>
     </div>
@@ -482,7 +496,7 @@ const UniversalSettings: React.FC<UniversalSettingsProps> = ({
           fontSize: "13px",
         }}
       >
-        {t("common.loading") || "Loading..."}
+        {t("common.loading")}
       </div>
     );
   }
@@ -513,7 +527,7 @@ const UniversalSettings: React.FC<UniversalSettingsProps> = ({
             paddingLeft: "4px",
           }}
         >
-          🎨 {t("settings.interfaceConfig")}
+          {t("settings.interfaceConfig")}
         </div>
         <div style={rowStyle}>
           <label style={labelStyle}>{t("settings.theme")}</label>
@@ -543,30 +557,26 @@ const UniversalSettings: React.FC<UniversalSettingsProps> = ({
         </div>
         <div style={rowStyle}>
           <label style={labelStyle}>
-            {t("settings.functionPanelPosition") || "功能区位置"}
+            {t("settings.functionPanelPosition")}
           </label>
           <div style={layoutSwitchGroupStyle}>
             <button
               type="button"
               style={layoutSwitchBtnStyle(functionPanelPosition === "left")}
               onClick={() => handleFunctionPanelPositionChange("left")}
-              title={t("settings.functionLeft") || "功能区在左"}
+              title={t("settings.functionLeftTitle")}
             >
               <FunctionLeftIcon />
-              <span style={btnTextStyle}>
-                {t("settings.functionLeft") || "功能区左"}
-              </span>
+              <span style={btnTextStyle}>{t("settings.functionLeft")}</span>
             </button>
             <button
               type="button"
               style={layoutSwitchBtnStyle(functionPanelPosition === "right")}
               onClick={() => handleFunctionPanelPositionChange("right")}
-              title={t("settings.functionRight") || "功能区在右"}
+              title={t("settings.functionRightTitle")}
             >
               <FunctionRightIcon />
-              <span style={btnTextStyle}>
-                {t("settings.functionRight") || "功能区右"}
-              </span>
+              <span style={btnTextStyle}>{t("settings.functionRight")}</span>
             </button>
           </div>
         </div>
@@ -586,35 +596,39 @@ const UniversalSettings: React.FC<UniversalSettingsProps> = ({
             paddingLeft: "4px",
           }}
         >
-          📐 {t("settings.panelLayout") || "面板布局"}
+          {t("settings.panelLayout")}
         </div>
         <LayoutSwitch
           value={generalLayout}
           onChange={handleGeneralLayoutChange}
-          label={t("settings.generalChat") || "通用对话"}
-          description={t("settings.generalChatDesc") || "默认对话页面"}
+          label={t("settings.generalChat")}
+          description={t("settings.generalChatDesc")}
           pageType="general"
+          t={t}
         />
         <LayoutSwitch
           value={chartLayout}
           onChange={handleChartLayoutChange}
-          label={t("settings.chartChat") || "图表对话"}
-          description={t("settings.chartChatDesc") || "K线图分析页面"}
+          label={t("settings.chartChat")}
+          description={t("settings.chartChatDesc")}
           pageType="chart"
+          t={t}
         />
         <LayoutSwitch
           value={mapLayout}
           onChange={handleMapLayoutChange}
-          label={t("settings.mapChat") || "地图对话"}
-          description={t("settings.mapChatDesc") || "地理信息页面"}
+          label={t("settings.mapChat")}
+          description={t("settings.mapChatDesc")}
           pageType="map"
+          t={t}
         />
         <LayoutSwitch
           value={codeEditorLayout}
           onChange={handleCodeEditorLayoutChange}
-          label={t("settings.codeEditorChat") || "代码编辑器"}
-          description={t("settings.codeEditorDesc") || "代码编辑页面"}
+          label={t("settings.codeEditorChat")}
+          description={t("settings.codeEditorDesc")}
           pageType="codeeditor"
+          t={t}
         />
         <div
           style={{
@@ -632,12 +646,10 @@ const UniversalSettings: React.FC<UniversalSettingsProps> = ({
             paddingLeft: "4px",
           }}
         >
-          ⚙️ {t("settings.systemConfig") || "系统配置"}
+          {t("settings.systemConfig")}
         </div>
         <div style={rowStyle}>
-          <label style={labelStyle}>
-            {t("settings.autoStart") || "开机自启动"}
-          </label>
+          <label style={labelStyle}>{t("settings.autoStart")}</label>
           <button
             type="button"
             style={toggleSwitchStyle(autoStartEnabled)}
@@ -645,8 +657,8 @@ const UniversalSettings: React.FC<UniversalSettingsProps> = ({
             disabled={autoStartLoading}
             title={
               autoStartEnabled
-                ? t("settings.disableAutoStart") || "关闭开机自启动"
-                : t("settings.enableAutoStart") || "开启开机自启动"
+                ? t("settings.disableAutoStart")
+                : t("settings.enableAutoStart")
             }
           >
             <span style={toggleKnobStyle(autoStartEnabled)} />

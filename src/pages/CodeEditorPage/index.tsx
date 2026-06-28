@@ -739,7 +739,7 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
   const [layoutSwapMode, setLayoutSwapMode] = useState<
     "terminal-left" | "chat-left"
   >("terminal-left");
-  const isChatOnLeft = layoutSwapMode === "terminal-left";
+  const isChatOnLeft = layoutSwapMode === "chat-left";
   const [isCreatingSession, setIsCreatingSession] = useState(false);
   const [workspacePath, setWorkspacePath] = useState<string | null>(null);
   const hasHistorySessions = historySessions.length > 0;
@@ -747,6 +747,9 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
   const [showGithubDialog, setShowGithubDialog] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
+  const layoutSwapModeRef = useRef<"terminal-left" | "chat-left">(
+    "terminal-left",
+  );
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -975,6 +978,7 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
         const mode = await configCommands.getSettingsCodeEditorLayoutSwapMode();
         if (mode === "terminal-left" || mode === "chat-left") {
           setLayoutSwapMode(mode);
+          layoutSwapModeRef.current = mode;
         }
       } catch (error) {}
     };
@@ -986,6 +990,7 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
       const { pageType, mode } = event.detail;
       if (pageType === "codeeditor") {
         setLayoutSwapMode(mode);
+        layoutSwapModeRef.current = mode;
       }
     };
     window.addEventListener(
@@ -1145,13 +1150,12 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
     dragStartChatPanelWidth.current = chatPanelWidth;
     dragStartContainerRect.current =
       containerRef.current?.getBoundingClientRect() || null;
-
     document.body.style.cursor = "col-resize";
     document.body.style.userSelect = "none";
     e.preventDefault();
   };
 
-  const handleMouseMove = (e: MouseEvent) => {
+  const handleMouseMove = useCallback((e: MouseEvent) => {
     if (!isDragging.current || !containerRef.current) return;
     const deltaX = e.clientX - dragStartX.current;
     const containerRect =
@@ -1163,7 +1167,13 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
       const mainAreaWidth = containerWidth - historyWidthPx;
       if (mainAreaWidth <= 0) return;
       const startWidthPx = dragStartChatPanelWidth.current;
-      let newWidthPx = startWidthPx + deltaX;
+      const currentMode = layoutSwapModeRef.current;
+      let newWidthPx;
+      if (currentMode === "terminal-left") {
+        newWidthPx = startWidthPx - deltaX;
+      } else {
+        newWidthPx = startWidthPx + deltaX;
+      }
       const minWidthPx = 200;
       const maxWidthPx = mainAreaWidth * 0.6;
       newWidthPx = Math.max(minWidthPx, Math.min(maxWidthPx, newWidthPx));
@@ -1175,13 +1185,7 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
       setHistoryWidth(clamped);
       saveHistoryWidth(clamped);
     }
-  };
-
-  const handleMouseUp = () => {
-    isDragging.current = false;
-    document.body.style.cursor = "";
-    document.body.style.userSelect = "";
-  };
+  }, []);
 
   useEffect(() => {
     window.addEventListener("mousemove", handleMouseMove);
@@ -1190,7 +1194,31 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("mouseup", handleMouseUp);
     };
+  }, [handleMouseMove]);
+
+  const handleMouseUp = useCallback(() => {
+    isDragging.current = false;
+    document.body.style.cursor = "";
+    document.body.style.userSelect = "";
   }, []);
+
+  useEffect(() => {
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [handleMouseMove, handleMouseUp]);
+
+  // useEffect(() => {
+  //   window.addEventListener("mousemove", handleMouseMove);
+  //   window.addEventListener("mouseup", handleMouseUp);
+  //   return () => {
+  //     window.removeEventListener("mousemove", handleMouseMove);
+  //     window.removeEventListener("mouseup", handleMouseUp);
+  //   };
+  // }, []);
 
   const getHistoryPanelContent = () => {
     if (historyCollapsed || isFunctionPanelMaximized) {
