@@ -716,7 +716,7 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
     isConfigLoaded,
     onCloseSkillsManager,
   );
-
+  const dropLockRef = useRef<{ path: string; time: number } | null>(null);
   const [chatPanelWidth, setChatPanelWidth] = useState<number>(400);
   const [historyWidth, setHistoryWidth] = useState<number>(280);
   const [chatPanelCollapsed, setChatPanelCollapsed] = useState<boolean>(false);
@@ -874,30 +874,6 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
     }
   }, [currentSessionId, loadWorkspacePath]);
 
-  const handleNewSessionWithWorkspace = useCallback(
-    async (workspacePath: string) => {
-      const sessionId = `codeeditor_session_${Date.now()}`;
-      const pathParts = workspacePath.split(/[\\/]/);
-      const title = pathParts[pathParts.length - 1] || "Code Editor";
-      const description = `Workspace: ${workspacePath}`;
-
-      await codeEditorSessionCommands.createCodeEditorSession(
-        sessionId,
-        title,
-        description,
-        [],
-        [],
-        "ReAct",
-        workspacePath,
-      );
-
-      handleSwitchSession(sessionId);
-      window.dispatchEvent(new CustomEvent("codeeditor-session-created"));
-      localStorage.setItem("codeeditor-last-workspace", workspacePath);
-    },
-    [handleSwitchSession],
-  );
-
   const loadHistorySessions = useCallback(async () => {
     setIsLoadingHistory(true);
     try {
@@ -981,8 +957,6 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
         }),
       );
     } catch (error) {
-      console.log("克隆失败");
-      console.log(error);
       showToast(
         ToastType.ERROR,
         language === "zh" ? "克隆失败" : "Clone Failed",
@@ -1065,9 +1039,20 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
           const paths = event.payload;
           if (!paths || paths.length === 0) return;
           const path = paths[0];
+          const now = Date.now();
+          if (
+            dropLockRef.current &&
+            dropLockRef.current.path === path &&
+            now - dropLockRef.current.time < 1000
+          ) {
+            return;
+          }
+          dropLockRef.current = { path, time: now };
           await createSessionWithLockRef.current(path, "directory");
         });
-      } catch (error) {}
+      } catch (error) {
+        console.error("Failed to setup file drop listener:", error);
+      }
     };
     setupFileDropListener();
     return () => {
