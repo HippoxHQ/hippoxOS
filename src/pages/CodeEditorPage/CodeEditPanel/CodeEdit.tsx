@@ -773,6 +773,13 @@ const CodeEdit: React.FC<CodeEditProps> = ({
         });
       } else {
         if (existingTab.id !== activeTab) {
+          if (activeTab) {
+            const currentTab = tabs.find((t) => t.id === activeTab);
+            if (currentTab && editorRef.current) {
+              const content = editorRef.current.getValue() || "";
+              writeToTmp(currentTab.tmp_path, content).catch(() => {});
+            }
+          }
           setActiveTab(existingTab.id);
           isInternalUpdateRef.current = true;
           lastNotifiedPathRef.current = selectedFile;
@@ -780,23 +787,32 @@ const CodeEdit: React.FC<CodeEditProps> = ({
           setTimeout(() => {
             isInternalUpdateRef.current = false;
           }, 100);
-          loadTabContent(
-            existingTab.id,
-            existingTab.tmp_path,
-            existingTab.source_path,
-          );
+          const loadContent = async () => {
+            isFirstLoadRef.current = true;
+            try {
+              const content = await readFromTmp(existingTab.tmp_path);
+              if (content !== null && content !== undefined) {
+                setCode(content);
+                if (editorRef.current) {
+                  editorRef.current.setValue(content);
+                  const model = editorRef.current.getModel();
+                  if (model) {
+                    const lang = getFileLanguage(existingTab.source_path);
+                    monaco.editor.setModelLanguage(model, lang);
+                  }
+                }
+              }
+            } catch (error) {
+              console.error("Failed to load tab content:", error);
+            } finally {
+              isFirstLoadRef.current = false;
+            }
+          };
+          loadContent();
         }
       }
     }
-  }, [
-    selectedFile,
-    workspacePath,
-    tabs,
-    activeTab,
-    addTab,
-    loadTabContent,
-    onTabChange,
-  ]);
+  }, [selectedFile, workspacePath, tabs, activeTab, addTab, onTabChange]);
 
   const handleTabClick = useCallback(
     (tabId: string) => {
@@ -817,8 +833,30 @@ const CodeEdit: React.FC<CodeEditProps> = ({
       setTimeout(() => {
         isInternalUpdateRef.current = false;
       }, 100);
+      const loadContent = async () => {
+        isFirstLoadRef.current = true;
+        try {
+          const content = await readFromTmp(tab.tmp_path);
+          if (content !== null && content !== undefined) {
+            setCode(content);
+            if (editorRef.current) {
+              editorRef.current.setValue(content);
+              const model = editorRef.current.getModel();
+              if (model) {
+                const lang = getFileLanguage(tab.source_path);
+                monaco.editor.setModelLanguage(model, lang);
+              }
+            }
+          }
+        } catch (error) {
+          console.error("Failed to load tab content:", error);
+        } finally {
+          isFirstLoadRef.current = false;
+        }
+      };
+      loadContent();
     },
-    [activeTab, tabs, onTabChange],
+    [activeTab, tabs, onTabChange, readFromTmp],
   );
 
   useEffect(() => {
@@ -827,14 +865,14 @@ const CodeEdit: React.FC<CodeEditProps> = ({
     }
   }, [workspacePath]);
 
-  useEffect(() => {
-    if (activeTab) {
-      const tab = tabs.find((t) => t.id === activeTab);
-      if (tab) {
-        loadTabContent(tab.id, tab.tmp_path, tab.source_path);
-      }
-    }
-  }, [activeTab]);
+  // useEffect(() => {
+  //   if (activeTab) {
+  //     const tab = tabs.find((t) => t.id === activeTab);
+  //     if (tab) {
+  //       loadTabContent(tab.id, tab.tmp_path, tab.source_path);
+  //     }
+  //   }
+  // }, [activeTab]);
 
   useEffect(() => {
     isMountedRef.current = true;
