@@ -135,6 +135,8 @@ const CodeEdit: React.FC<CodeEditProps> = ({
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isInternalUpdateRef = useRef(false);
   const lastNotifiedPathRef = useRef<string | null>(null);
+  const currentWorkspaceRef = useRef<string | null>(null);
+
   const loadMetadata =
     useCallback(async (): Promise<WorkspaceMetadata | null> => {
       if (!workspacePath) return null;
@@ -653,6 +655,25 @@ const CodeEdit: React.FC<CodeEditProps> = ({
   ]);
 
   useEffect(() => {
+    if (!workspacePath) {
+      setTabs([]);
+      setActiveTab(null);
+      setCode("");
+      if (editorRef.current) {
+        editorRef.current.setValue("");
+      }
+      return;
+    }
+    setTabs([]);
+    setActiveTab(null);
+    setCode("");
+    if (editorRef.current) {
+      editorRef.current.setValue("");
+    }
+    restoreTabsFromMetadata();
+  }, [workspacePath]);
+
+  useEffect(() => {
     if (isInternalUpdateRef.current) {
       return;
     }
@@ -811,18 +832,6 @@ const CodeEdit: React.FC<CodeEditProps> = ({
       }
     });
 
-    editor.onDidChangeModelContent(() => {
-      const currentActiveTab = activeTabRef.current;
-      if (isMountedRef.current && currentActiveTab && workspacePath) {
-        const value = editor?.getValue() || "";
-        const currentTabs = tabsRef.current;
-        const tab = currentTabs.find((t) => t.id === currentActiveTab);
-        if (tab) {
-          writeToTmp(tab.tmp_path, value).catch(console.error);
-        }
-      }
-    });
-
     const styleElement = document.createElement("style");
     styleElement.id = "minimap-divider-style";
     styleElement.textContent = `
@@ -838,7 +847,6 @@ const CodeEdit: React.FC<CodeEditProps> = ({
       }
     `;
     document.head.appendChild(styleElement);
-
     return () => {
       const styleEl = document.getElementById("minimap-divider-style");
       if (styleEl) {
@@ -856,6 +864,26 @@ const CodeEdit: React.FC<CodeEditProps> = ({
       }
     };
   }, []);
+
+  useEffect(() => {
+    const editor = editorRef.current;
+    if (!editor) return;
+    const disposable = editor.onDidChangeModelContent(() => {
+      const currentActiveTab = activeTabRef.current;
+      if (isMountedRef.current && currentActiveTab && workspacePath) {
+        const value = editor.getValue() || "";
+        const currentTabs = tabsRef.current;
+        const tab = currentTabs.find((t) => t.id === currentActiveTab);
+        if (tab && tab.tmp_path) {
+          writeToTmp(tab.tmp_path, value).catch((error) => {
+          });
+        }
+      }
+    });
+    return () => {
+      disposable.dispose();
+    };
+  }, [workspacePath]);
 
   useEffect(() => {
     if (editorRef.current) {

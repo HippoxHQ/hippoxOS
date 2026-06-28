@@ -307,7 +307,7 @@ export function useCodeEditorSession(
             taskManager.switchToSession(sessionId, SessionDomain.CodeEditor);
         }
         setCurrentSessionId(sessionId);
-        window.dispatchEvent(new CustomEvent("codeeditor-session-created"));
+        // window.dispatchEvent(new CustomEvent("codeeditor-session-created"));
         try {
             const config = await codeEditorSessionCommands.loadCodeEditorSessionConfig(sessionId);
             if (config && config.workspace_path) {
