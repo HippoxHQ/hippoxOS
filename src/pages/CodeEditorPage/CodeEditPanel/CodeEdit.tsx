@@ -136,6 +136,7 @@ const CodeEdit: React.FC<CodeEditProps> = ({
   const isInternalUpdateRef = useRef(false);
   const lastNotifiedPathRef = useRef<string | null>(null);
   const currentWorkspaceRef = useRef<string | null>(null);
+  const isAddingRef = useRef(false);
 
   const loadMetadata =
     useCallback(async (): Promise<WorkspaceMetadata | null> => {
@@ -303,10 +304,9 @@ const CodeEdit: React.FC<CodeEditProps> = ({
   const loadTabContent = useCallback(
     async (tabId: string, tmpPath: string, sourcePath: string) => {
       if (!workspacePath) return;
-
       setLoadingContent(true);
       setIsEditing(true);
-
+      isFirstLoadRef.current = true;
       try {
         const content = await readFromTmp(tmpPath);
         if (content !== null && content !== undefined) {
@@ -340,6 +340,7 @@ const CodeEdit: React.FC<CodeEditProps> = ({
       } finally {
         setLoadingContent(false);
         setIsEditing(false);
+        isFirstLoadRef.current = false;
       }
     },
     [workspacePath, readFromTmp, writeToTmp, t],
@@ -437,50 +438,111 @@ const CodeEdit: React.FC<CodeEditProps> = ({
     ],
   );
 
-  const closeTab = async (tabId: string, e?: React.MouseEvent) => {
-    e?.stopPropagation();
-    if (!tabId || tabs.length === 0 || !workspacePath) return;
-    const tab = tabs.find((t) => t.id === tabId);
-    if (!tab) return;
-    if (tab.isDirty) {
-      const fileName = tab.name;
-      const result = await new Promise<"save" | "cancel">((resolve) => {
-        showDialog(
-          DialogType.WARNING,
-          t("codeEditor.unsavedChanges") || "Unsaved Changes",
-          t("codeEditor.saveBeforeClose", { name: fileName }) ||
-            `"${fileName}" has unsaved changes. Save before closing?`,
-          () => {
-            resolve("save");
+  const closeTab = useCallback(
+    async (
+      tabId: string,
+      e?: React.MouseEvent,
+      options?: { skipSwitch?: boolean },
+    ): Promise<"save" | "cancel" | "skip" | undefined> => {
+      e?.stopPropagation();
+      const currentTabs = tabsRef.current;
+      const currentActiveTab = activeTabRef.current;
+      if (!tabId || currentTabs.length === 0 || !workspacePath)
+        return undefined;
+      const tab = currentTabs.find((t) => t.id === tabId);
+      if (!tab) return undefined;
+      if (tab.isDirty) {
+        const fileName = tab.name;
+        const result = await new Promise<"save" | "cancel" | "skip">(
+          (resolve) => {
+            showDialog(
+              DialogType.WARNING,
+              t("codeEditor.unsavedChanges") || "Unsaved Changes",
+              t("codeEditor.saveBeforeClose", { name: fileName }) ||
+                `"${fileName}" has unsaved changes. Save before closing?`,
+              () => {
+                resolve("save");
+              },
+              () => {
+                resolve("cancel");
+              },
+              t("codeEditor.save") || "Save",
+              t("common.cancel") || "Cancel",
+              t("codeEditor.skip") || "Skip",
+              () => {
+                resolve("skip");
+              },
+            );
           },
-          () => {
-            resolve("cancel");
-          },
-          t("codeEditor.save") || "Save",
-          t("common.cancel") || "Cancel",
         );
-      });
-      if (result === "cancel") {
-        return;
+        if (result === "cancel") {
+          return "cancel";
+        }
+        if (result === "save") {
+          const content = await readFromTmp(tab.tmp_path);
+          if (content !== null && content !== undefined) {
+            await codeEditorCommands.writeFile(tab.source_path, content);
+          }
+          const metadata = await loadMetadata();
+          if (metadata) {
+            for (const file of metadata.tabs.files) {
+              if (file.id === tabId) {
+                file.is_dirty = false;
+                file.last_modified = new Date().toISOString();
+                break;
+              }
+            }
+            await saveMetadata(metadata);
+          }
+          setTabs((prev) =>
+            prev.map((t) => (t.id === tabId ? { ...t, isDirty: false } : t)),
+          );
+        }
       }
-      const content = editorRef.current?.getValue() || "";
-      await codeEditorCommands.writeFile(tab.source_path, content);
-    }
-    await deleteFromTmp(tab.tmp_path);
-    const metadata = await loadMetadata();
-    if (metadata) {
-      metadata.tabs.files = metadata.tabs.files.filter((f) => f.id !== tabId);
-      await saveMetadata(metadata);
-    }
-    const newTabs = tabs.filter((t) => t.id !== tabId);
-    setTabs(newTabs);
-    if (activeTab === tabId) {
-      if (newTabs.length > 0) {
-        const currentIndex = tabs.findIndex((t) => t.id === tabId);
-        const safeIndex = currentIndex >= 0 ? currentIndex : 0;
-        const nextIndex = Math.min(safeIndex, newTabs.length - 1);
-        const nextTab = newTabs[nextIndex];
-        if (nextTab) {
+      await deleteFromTmp(tab.tmp_path);
+      const metadata = await loadMetadata();
+      if (metadata) {
+        metadata.tabs.files = metadata.tabs.files.filter((f) => f.id !== tabId);
+        await saveMetadata(metadata);
+      }
+      const newTabs = currentTabs.filter((t) => t.id !== tabId);
+      setTabs(newTabs);
+      if (!options?.skipSwitch && currentActiveTab === tabId) {
+        if (newTabs.length > 0) {
+          const currentIndex = currentTabs.findIndex((t) => t.id === tabId);
+          const safeIndex = currentIndex >= 0 ? currentIndex : 0;
+          const nextIndex = Math.min(safeIndex, newTabs.length - 1);
+          const nextTab = newTabs[nextIndex];
+          if (nextTab) {
+            setActiveTab(nextTab.id);
+            isInternalUpdateRef.current = true;
+            lastNotifiedPathRef.current = nextTab.source_path;
+            onTabChange?.(nextTab.source_path);
+            setTimeout(() => {
+              isInternalUpdateRef.current = false;
+            }, 100);
+            await loadTabContent(
+              nextTab.id,
+              nextTab.tmp_path,
+              nextTab.source_path,
+            );
+          }
+        } else {
+          setActiveTab(null);
+          setCode("");
+          if (editorRef.current) {
+            editorRef.current.setValue("");
+          }
+          isInternalUpdateRef.current = true;
+          lastNotifiedPathRef.current = null;
+          onTabChange?.(null);
+          setTimeout(() => {
+            isInternalUpdateRef.current = false;
+          }, 100);
+        }
+      } else if (options?.skipSwitch && currentActiveTab === tabId) {
+        if (newTabs.length > 0) {
+          const nextTab = newTabs[0];
           setActiveTab(nextTab.id);
           isInternalUpdateRef.current = true;
           lastNotifiedPathRef.current = nextTab.source_path;
@@ -488,60 +550,81 @@ const CodeEdit: React.FC<CodeEditProps> = ({
           setTimeout(() => {
             isInternalUpdateRef.current = false;
           }, 100);
-          await loadTabContent(
-            nextTab.id,
-            nextTab.tmp_path,
-            nextTab.source_path,
-          );
+        } else {
+          setActiveTab(null);
+          setCode("");
+          if (editorRef.current) {
+            editorRef.current.setValue("");
+          }
+          isInternalUpdateRef.current = true;
+          lastNotifiedPathRef.current = null;
+          onTabChange?.(null);
+          setTimeout(() => {
+            isInternalUpdateRef.current = false;
+          }, 100);
         }
-      } else {
-        setActiveTab(null);
-        setCode("");
-        if (editorRef.current) {
-          editorRef.current.setValue("");
-        }
-        isInternalUpdateRef.current = true;
-        lastNotifiedPathRef.current = null;
-        onTabChange?.(null);
-        setTimeout(() => {
-          isInternalUpdateRef.current = false;
-        }, 100);
       }
-    }
-  };
+      return undefined;
+    },
+    [
+      workspacePath,
+      onTabChange,
+      loadMetadata,
+      saveMetadata,
+      deleteFromTmp,
+      readFromTmp,
+      loadTabContent,
+      t,
+    ],
+  );
 
-  const closeAllTabs = async () => {
-    if (tabs.length === 0) return;
-    const tabIds = tabs.map((t) => t.id);
-    for (const id of tabIds) {
-      const stillExists = tabs.some((t) => t.id === id);
-      if (stillExists) {
-        await closeTab(id);
+  const closeOtherTabs = useCallback(
+    async (tabId: string) => {
+      let currentTabs = tabsRef.current;
+      const keepTabId = tabId;
+      while (true) {
+        currentTabs = tabsRef.current;
+        const tabsToClose = currentTabs.filter((t) => t.id !== keepTabId);
+        if (tabsToClose.length === 0) break;
+        const result = await closeTab(tabsToClose[0].id, undefined, {
+          skipSwitch: true,
+        });
+        if (result === "cancel") break;
       }
-    }
-  };
+    },
+    [closeTab],
+  );
 
-  const closeOtherTabs = async (tabId: string) => {
-    const tabsToClose = tabs.filter((t) => t.id !== tabId);
-    for (const tab of tabsToClose) {
-      const stillExists = tabs.some((t) => t.id === tab.id);
-      if (stillExists) {
-        await closeTab(tab.id);
-      }
-    }
-  };
+  const closeTabsToRight = useCallback(
+    async (tabId: string) => {
+      while (true) {
+        const currentTabs = tabsRef.current;
+        const index = currentTabs.findIndex((t) => t.id === tabId);
+        if (index === -1 || index === currentTabs.length - 1) break;
 
-  const closeTabsToRight = async (tabId: string) => {
-    const index = tabs.findIndex((t) => t.id === tabId);
-    if (index === -1) return;
-    const tabsToClose = tabs.slice(index + 1);
-    for (const tab of tabsToClose) {
-      const stillExists = tabs.some((t) => t.id === tab.id);
-      if (stillExists) {
-        await closeTab(tab.id);
+        const tabsToClose = currentTabs.slice(index + 1);
+        if (tabsToClose.length === 0) break;
+
+        const result = await closeTab(tabsToClose[0].id, undefined, {
+          skipSwitch: true,
+        });
+        if (result === "cancel") break;
       }
+    },
+    [closeTab],
+  );
+
+  const closeAllTabs = useCallback(async () => {
+    while (true) {
+      const currentTabs = tabsRef.current;
+      if (currentTabs.length === 0) break;
+
+      const result = await closeTab(currentTabs[0].id, undefined, {
+        skipSwitch: true,
+      });
+      if (result === "cancel") break;
     }
-  };
+  }, [closeTab]);
 
   const getTabContextMenuItems = (tabId: string): TabContextMenuItemType[] => {
     const tabIndex = tabs.findIndex((t) => t.id === tabId);
@@ -683,7 +766,11 @@ const CodeEdit: React.FC<CodeEditProps> = ({
     if (selectedFile && workspacePath) {
       const existingTab = tabs.find((t) => t.source_path === selectedFile);
       if (!existingTab) {
-        addTab(selectedFile);
+        if (isAddingRef.current) return;
+        isAddingRef.current = true;
+        addTab(selectedFile).finally(() => {
+          isAddingRef.current = false;
+        });
       } else {
         if (existingTab.id !== activeTab) {
           setActiveTab(existingTab.id);
@@ -714,6 +801,13 @@ const CodeEdit: React.FC<CodeEditProps> = ({
   const handleTabClick = useCallback(
     (tabId: string) => {
       if (tabId === activeTab) return;
+      if (activeTab) {
+        const currentTab = tabs.find((t) => t.id === activeTab);
+        if (currentTab && editorRef.current) {
+          const content = editorRef.current.getValue() || "";
+          writeToTmp(currentTab.tmp_path, content).catch(() => {});
+        }
+      }
       const tab = tabs.find((t) => t.id === tabId);
       if (!tab) return;
       setActiveTab(tabId);
@@ -865,18 +959,29 @@ const CodeEdit: React.FC<CodeEditProps> = ({
     };
   }, []);
 
+  const isFirstLoadRef = useRef(true);
+
   useEffect(() => {
     const editor = editorRef.current;
     if (!editor) return;
     const disposable = editor.onDidChangeModelContent(() => {
       const currentActiveTab = activeTabRef.current;
       if (isMountedRef.current && currentActiveTab && workspacePath) {
+        if (isFirstLoadRef.current) {
+          return;
+        }
         const value = editor.getValue() || "";
         const currentTabs = tabsRef.current;
         const tab = currentTabs.find((t) => t.id === currentActiveTab);
         if (tab && tab.tmp_path) {
-          writeToTmp(tab.tmp_path, value).catch((error) => {
-          });
+          writeToTmp(tab.tmp_path, value).catch((error) => {});
+          if (!tab.isDirty) {
+            setTabs((prev) =>
+              prev.map((t) =>
+                t.id === currentActiveTab ? { ...t, isDirty: true } : t,
+              ),
+            );
+          }
         }
       }
     });

@@ -32,7 +32,6 @@ export const useCodeEditorKeyboard = ({
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (isEditing) return;
       const target = e.target as HTMLElement;
       const isInMonaco = target.closest?.(".monaco-editor") !== undefined;
       const isInInput = target.tagName === "INPUT" || target.tagName === "TEXTAREA";
@@ -44,6 +43,7 @@ export const useCodeEditorKeyboard = ({
         callbacks.onSave();
         return;
       }
+      if (isEditing) return;
       if (!isInMonaco && !isInInput) {
         if (isCtrlOrCmd && e.key === "c") {
           e.preventDefault();

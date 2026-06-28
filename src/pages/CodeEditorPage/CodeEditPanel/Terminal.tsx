@@ -103,7 +103,6 @@ const Terminal: React.FC<TerminalProps> = ({ t }) => {
         "",
       ];
     }
-
     updateTerminal(activeTerminal.id, { logs: newLogs });
     setInput("");
   };

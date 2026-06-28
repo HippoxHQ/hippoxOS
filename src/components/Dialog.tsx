@@ -14,8 +14,10 @@ interface DialogState {
   message: string;
   confirmText?: string;
   cancelText?: string;
+  skipText?: string;
   onConfirm?: () => void;
   onCancel?: () => void;
+  onSkip?: () => void;
 }
 
 let dialogController: {
@@ -27,10 +29,13 @@ let dialogController: {
     onCancel?: () => void,
     confirmText?: string,
     cancelText?: string,
+    skipText?: string,
+    onSkip?: () => void,
   ) => void;
   hide: () => void;
   confirm: () => void;
   cancel: () => void;
+  skip: () => void;
 } | null = null;
 
 const Dialog: React.FC = () => {
@@ -41,6 +46,7 @@ const Dialog: React.FC = () => {
     message: "",
     confirmText: "确定",
     cancelText: "取消",
+    skipText: "跳过",
   });
 
   useEffect(() => {
@@ -53,6 +59,8 @@ const Dialog: React.FC = () => {
         onCancel?: () => void,
         confirmText: string = "确定",
         cancelText: string = "取消",
+        skipText: string = "跳过",
+        onSkip?: () => void,
       ) => {
         setDialog({
           visible: true,
@@ -61,8 +69,10 @@ const Dialog: React.FC = () => {
           message,
           onConfirm,
           onCancel,
+          onSkip,
           confirmText,
           cancelText,
+          skipText,
         });
       },
       hide: () => {
@@ -80,12 +90,18 @@ const Dialog: React.FC = () => {
         }
         setDialog((prev) => ({ ...prev, visible: false }));
       },
+      skip: () => {
+        if (dialog.onSkip) {
+          dialog.onSkip();
+        }
+        setDialog((prev) => ({ ...prev, visible: false }));
+      },
     };
 
     return () => {
       dialogController = null;
     };
-  }, [dialog.onConfirm, dialog.onCancel]);
+  }, [dialog.onConfirm, dialog.onCancel, dialog.onSkip]);
 
   const handleConfirm = useCallback(() => {
     if (dialog.onConfirm) {
@@ -100,6 +116,13 @@ const Dialog: React.FC = () => {
     }
     setDialog((prev) => ({ ...prev, visible: false }));
   }, [dialog.onCancel]);
+
+  const handleSkip = useCallback(() => {
+    if (dialog.onSkip) {
+      dialog.onSkip();
+    }
+    setDialog((prev) => ({ ...prev, visible: false }));
+  }, [dialog.onSkip]);
 
   const handleOverlayClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) {
@@ -250,6 +273,15 @@ const Dialog: React.FC = () => {
           background: rgba(255, 255, 255, 0.05);
           color: var(--text-primary, #ffffff);
         }
+        .dialog-btn-skip {
+          background: transparent;
+          border: 1px solid var(--border-color, #3a3a4a);
+          color: var(--text-secondary, #c0c0c0);
+        }
+        .dialog-btn-skip:hover {
+          background: rgba(255, 255, 255, 0.05);
+          color: var(--text-primary, #ffffff);
+        }
         .dialog-btn-confirm {
           background: #3b82f6;
           color: white;
@@ -301,6 +333,14 @@ const Dialog: React.FC = () => {
             >
               {dialog.cancelText}
             </button>
+            {dialog.skipText && dialog.onSkip && (
+              <button
+                className="dialog-btn dialog-btn-skip"
+                onClick={handleSkip}
+              >
+                {dialog.skipText}
+              </button>
+            )}
             <button
               className="dialog-btn dialog-btn-confirm"
               onClick={handleConfirm}
@@ -322,6 +362,8 @@ export const showDialog = (
   onCancel?: () => void,
   confirmText: string = "确定",
   cancelText: string = "取消",
+  skipText?: string,
+  onSkip?: () => void,
 ) => {
   if (dialogController) {
     dialogController.show(
@@ -332,6 +374,8 @@ export const showDialog = (
       onCancel,
       confirmText,
       cancelText,
+      skipText,
+      onSkip,
     );
   } else {
     console.warn("Dialog component not mounted yet");

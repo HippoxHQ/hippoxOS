@@ -411,7 +411,7 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({
           }}
         >
           {isZh
-            ? "选择工作区后，Hippox 将自动创建会话并加载内容"
+            ? "选择工作区后,Hippox 将自动创建会话并加载内容"
             : "After selecting a workspace, Hippox will automatically create a session and load the content"}
         </div>
         {isLoading && (
