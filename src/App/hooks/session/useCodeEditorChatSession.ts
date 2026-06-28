@@ -355,7 +355,7 @@ export function useCodeEditorSession(
         const pathParts = workspacePath.split(/[\\/]/);
         const title = pathParts[pathParts.length - 1] || "Code Editor";
         // Create the ./.hippox directory during the initial phase of session creation.
-        await codeEditorCommands.ensureStatusDir(workspacePath);
+        await codeEditorCommands.ensureTmpDir(workspacePath);
         await codeEditorSessionCommands.createCodeEditorSession(
             newSessionId,
             title,

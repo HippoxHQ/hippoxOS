@@ -288,6 +288,7 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_git_pull,
         commands::cmd_git_push,
         commands::cmd_get_file_diff,
+        // ========== CodeEditor File Operations ==========
         commands::cmd_open_in_explorer,
         commands::cmd_open_in_terminal,
         commands::cmd_create_file,
@@ -297,15 +298,21 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_copy,
         commands::cmd_search_in_files,
         commands::cmd_write_file,
-        commands::cmd_ensure_status_dir,
-        commands::cmd_get_status_file_path,
-        commands::cmd_check_status_exists,
-        commands::cmd_read_from_status,
-        commands::cmd_write_to_status,
-        commands::cmd_delete_from_status,
-        commands::cmd_copy_file_to_status,
-        commands::cmd_compare_status_with_original,
-        commands::cmd_clear_all_status,
-        commands::cmd_write_file
+        // ========== Tmp & Metadata Commands ==========
+        commands::cmd_ensure_tmp_dir,
+        commands::cmd_load_metadata,
+        commands::cmd_save_metadata,
+        commands::cmd_get_tmp_file_path,
+        commands::cmd_check_tmp_exists,
+        commands::cmd_read_from_tmp,
+        commands::cmd_write_to_tmp,
+        commands::cmd_delete_from_tmp,
+        commands::cmd_copy_to_tmp,
+        commands::cmd_compare_tmp_with_source,
+        commands::cmd_sync_metadata_on_rename,
+        commands::cmd_sync_metadata_on_delete,
+        commands::cmd_clear_all_tmp,
+        commands::cmd_cleanup_orphaned_tmp,
+        commands::cmd_generate_tmp_name
     ]
 }

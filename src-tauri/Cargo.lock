@@ -18,6 +18,7 @@ dependencies = [
  "memcontext",
  "nix 0.31.3",
  "once_cell",
+ "rand 0.9.4",
  "rayon",
  "regex",
  "reqwest 0.13.3",

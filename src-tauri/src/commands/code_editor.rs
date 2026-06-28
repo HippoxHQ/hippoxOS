@@ -1,6 +1,8 @@
+use chrono::Utc;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
+use std::collections::HashSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -49,6 +51,35 @@ pub struct SearchInFilesResult {
     pub total_files: usize,
     pub total_matches: usize,
     pub results: Vec<FileSearchResult>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct TabFileMetadata {
+    pub id: String,
+    pub source_path: String,
+    pub is_dirty: bool,
+    pub last_modified: String,
+    pub tmp_path: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct WorkspaceMetadata {
+    pub version: String,
+    pub workspace: WorkspaceInfo,
+    pub tabs: TabsInfo,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct WorkspaceInfo {
+    pub path: String,
+    pub name: String,
+    pub created_at: String,
+    pub last_opened: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TabsInfo {
+    pub files: Vec<TabFileMetadata>,
 }
 
 #[command]
@@ -592,185 +623,257 @@ fn copy_dir_all(src: &PathBuf, dst: &PathBuf) -> std::io::Result<()> {
     Ok(())
 }
 
-fn get_status_dir(workspace_path: &str) -> PathBuf {
-    PathBuf::from(workspace_path).join(".hippox").join("status")
+fn get_tmp_dir(workspace_path: &str) -> PathBuf {
+    PathBuf::from(workspace_path).join(".hippox").join("tmp")
 }
 
-fn encode_file_path(file_path: &str) -> String {
-    let encoded = file_path.replace('\\', "_").replace('/', "_");
-    let encoded = encoded.replace(':', "_");
-    encoded
+fn get_metadata_path(workspace_path: &str) -> PathBuf {
+    PathBuf::from(workspace_path)
+        .join(".hippox")
+        .join("metadata.json")
 }
 
-fn get_status_file_path(workspace_path: &str, file_path: &str) -> PathBuf {
-    let encoded_name = encode_file_path(file_path);
-    get_status_dir(workspace_path).join(encoded_name)
+fn generate_tmp_name() -> String {
+    use rand::Rng;
+    const CHARSET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    let mut rng = rand::thread_rng();
+    let name: String = (0..16)
+        .map(|_| {
+            let idx = rng.gen_range(0..CHARSET.len());
+            CHARSET[idx] as char
+        })
+        .collect();
+    format!("{}.tmp", name)
+}
+
+fn get_source_path_from_metadata(metadata: &WorkspaceMetadata, tmp_path: &str) -> Option<String> {
+    for file in &metadata.tabs.files {
+        if file.tmp_path == tmp_path {
+            return Some(file.source_path.clone());
+        }
+    }
+    None
 }
 
 #[command]
-pub async fn cmd_ensure_status_dir(workspace_path: String) -> Result<FileOperationResult, String> {
-    let status_dir = get_status_dir(&workspace_path);
-    match fs::create_dir_all(&status_dir) {
+pub async fn cmd_ensure_tmp_dir(workspace_path: String) -> Result<FileOperationResult, String> {
+    let tmp_dir = get_tmp_dir(&workspace_path);
+    match fs::create_dir_all(&tmp_dir) {
         Ok(_) => Ok(FileOperationResult {
             success: true,
-            message: "Status directory ensured".to_string(),
-            path: Some(status_dir.to_string_lossy().to_string()),
+            message: "Tmp directory ensured".to_string(),
+            path: Some(tmp_dir.to_string_lossy().to_string()),
         }),
         Err(e) => Ok(FileOperationResult {
             success: false,
-            message: format!("Failed to create status directory: {}", e),
+            message: format!("Failed to create tmp directory: {}", e),
             path: None,
         }),
     }
 }
 
 #[command]
-pub async fn cmd_get_status_file_path(
+pub async fn cmd_load_metadata(
     workspace_path: String,
-    file_path: String,
-) -> Result<String, String> {
-    let status_file = get_status_file_path(&workspace_path, &file_path);
-    Ok(status_file.to_string_lossy().to_string())
-}
-
-#[command]
-pub async fn cmd_check_status_exists(
-    workspace_path: String,
-    file_path: String,
-) -> Result<bool, String> {
-    let status_file = get_status_file_path(&workspace_path, &file_path);
-    Ok(status_file.exists())
-}
-
-#[command]
-pub async fn cmd_read_from_status(
-    workspace_path: String,
-    file_path: String,
-) -> Result<Option<String>, String> {
-    let status_file = get_status_file_path(&workspace_path, &file_path);
-    if !status_file.exists() {
+) -> Result<Option<WorkspaceMetadata>, String> {
+    let metadata_path = get_metadata_path(&workspace_path);
+    if !metadata_path.exists() {
         return Ok(None);
     }
-    match fs::read_to_string(&status_file) {
-        Ok(content) => Ok(Some(content)),
-        Err(e) => Err(format!("Failed to read status file: {}", e)),
+    match fs::read_to_string(&metadata_path) {
+        Ok(content) => match serde_json::from_str::<WorkspaceMetadata>(&content) {
+            Ok(metadata) => Ok(Some(metadata)),
+            Err(e) => Err(format!("Failed to parse metadata: {}", e)),
+        },
+        Err(e) => Err(format!("Failed to read metadata: {}", e)),
     }
 }
 
 #[command]
-pub async fn cmd_write_to_status(
+pub async fn cmd_save_metadata(
     workspace_path: String,
-    file_path: String,
+    metadata: WorkspaceMetadata,
+) -> Result<FileOperationResult, String> {
+    let tmp_dir = get_tmp_dir(&workspace_path);
+    if let Err(e) = fs::create_dir_all(&tmp_dir) {
+        return Ok(FileOperationResult {
+            success: false,
+            message: format!("Failed to create tmp directory: {}", e),
+            path: None,
+        });
+    }
+
+    let metadata_path = get_metadata_path(&workspace_path);
+    match serde_json::to_string_pretty(&metadata) {
+        Ok(content) => match fs::write(&metadata_path, content) {
+            Ok(_) => Ok(FileOperationResult {
+                success: true,
+                message: "Metadata saved".to_string(),
+                path: Some(metadata_path.to_string_lossy().to_string()),
+            }),
+            Err(e) => Ok(FileOperationResult {
+                success: false,
+                message: format!("Failed to write metadata: {}", e),
+                path: None,
+            }),
+        },
+        Err(e) => Ok(FileOperationResult {
+            success: false,
+            message: format!("Failed to serialize metadata: {}", e),
+            path: None,
+        }),
+    }
+}
+
+#[command]
+pub async fn cmd_get_tmp_file_path(
+    workspace_path: String,
+    tmp_name: String,
+) -> Result<String, String> {
+    let tmp_dir = get_tmp_dir(&workspace_path);
+    Ok(tmp_dir.join(tmp_name).to_string_lossy().to_string())
+}
+
+#[command]
+pub async fn cmd_check_tmp_exists(
+    workspace_path: String,
+    tmp_name: String,
+) -> Result<bool, String> {
+    let tmp_file = get_tmp_dir(&workspace_path).join(tmp_name);
+    Ok(tmp_file.exists())
+}
+
+#[command]
+pub async fn cmd_read_from_tmp(
+    workspace_path: String,
+    tmp_name: String,
+) -> Result<Option<String>, String> {
+    let tmp_file = get_tmp_dir(&workspace_path).join(&tmp_name);
+    if !tmp_file.exists() {
+        return Ok(None);
+    }
+    match fs::read_to_string(&tmp_file) {
+        Ok(content) => Ok(Some(content)),
+        Err(e) => Err(format!("Failed to read tmp file: {}", e)),
+    }
+}
+
+#[command]
+pub async fn cmd_write_to_tmp(
+    workspace_path: String,
+    tmp_name: String,
     content: String,
 ) -> Result<FileOperationResult, String> {
-    let status_dir = get_status_dir(&workspace_path);
-    if let Err(e) = fs::create_dir_all(&status_dir) {
+    let tmp_dir = get_tmp_dir(&workspace_path);
+    if let Err(e) = fs::create_dir_all(&tmp_dir) {
         return Ok(FileOperationResult {
             success: false,
-            message: format!("Failed to create status directory: {}", e),
+            message: format!("Failed to create tmp directory: {}", e),
             path: None,
         });
     }
 
-    let status_file = get_status_file_path(&workspace_path, &file_path);
-    match fs::write(&status_file, content) {
+    let tmp_file = tmp_dir.join(&tmp_name);
+    match fs::write(&tmp_file, content) {
         Ok(_) => Ok(FileOperationResult {
             success: true,
-            message: "Written to status".to_string(),
-            path: Some(status_file.to_string_lossy().to_string()),
+            message: "Written to tmp".to_string(),
+            path: Some(tmp_file.to_string_lossy().to_string()),
         }),
         Err(e) => Ok(FileOperationResult {
             success: false,
-            message: format!("Failed to write status file: {}", e),
+            message: format!("Failed to write tmp file: {}", e),
             path: None,
         }),
     }
 }
 
 #[command]
-pub async fn cmd_delete_from_status(
+pub async fn cmd_delete_from_tmp(
     workspace_path: String,
-    file_path: String,
+    tmp_name: String,
 ) -> Result<FileOperationResult, String> {
-    let status_file = get_status_file_path(&workspace_path, &file_path);
-    if !status_file.exists() {
+    let tmp_file = get_tmp_dir(&workspace_path).join(&tmp_name);
+    if !tmp_file.exists() {
         return Ok(FileOperationResult {
             success: true,
-            message: "Status file does not exist".to_string(),
+            message: "Tmp file does not exist".to_string(),
             path: None,
         });
     }
-    match fs::remove_file(&status_file) {
+    match fs::remove_file(&tmp_file) {
         Ok(_) => Ok(FileOperationResult {
             success: true,
-            message: "Deleted from status".to_string(),
-            path: Some(status_file.to_string_lossy().to_string()),
+            message: "Deleted from tmp".to_string(),
+            path: Some(tmp_file.to_string_lossy().to_string()),
         }),
         Err(e) => Ok(FileOperationResult {
             success: false,
-            message: format!("Failed to delete status file: {}", e),
+            message: format!("Failed to delete tmp file: {}", e),
             path: None,
         }),
     }
 }
 
 #[command]
-pub async fn cmd_copy_file_to_status(
+pub async fn cmd_copy_to_tmp(
     workspace_path: String,
-    file_path: String,
+    source_path: String,
+    tmp_name: String,
 ) -> Result<FileOperationResult, String> {
-    let source = PathBuf::from(&file_path);
+    let source = PathBuf::from(&source_path);
     if !source.exists() {
         return Ok(FileOperationResult {
             success: false,
-            message: format!("Source file does not exist: {}", file_path),
+            message: format!("Source file does not exist: {}", source_path),
             path: None,
         });
     }
     if source.is_dir() {
         return Ok(FileOperationResult {
             success: false,
-            message: "Cannot copy directory to status".to_string(),
+            message: "Cannot copy directory to tmp".to_string(),
             path: None,
         });
     }
 
-    let status_dir = get_status_dir(&workspace_path);
-    if let Err(e) = fs::create_dir_all(&status_dir) {
+    let tmp_dir = get_tmp_dir(&workspace_path);
+    if let Err(e) = fs::create_dir_all(&tmp_dir) {
         return Ok(FileOperationResult {
             success: false,
-            message: format!("Failed to create status directory: {}", e),
+            message: format!("Failed to create tmp directory: {}", e),
             path: None,
         });
     }
 
-    let status_file = get_status_file_path(&workspace_path, &file_path);
-    match fs::copy(&source, &status_file) {
+    let tmp_file = tmp_dir.join(&tmp_name);
+    match fs::copy(&source, &tmp_file) {
         Ok(_) => Ok(FileOperationResult {
             success: true,
-            message: "Copied file to status".to_string(),
-            path: Some(status_file.to_string_lossy().to_string()),
+            message: "Copied file to tmp".to_string(),
+            path: Some(tmp_file.to_string_lossy().to_string()),
         }),
         Err(e) => Ok(FileOperationResult {
             success: false,
-            message: format!("Failed to copy to status: {}", e),
+            message: format!("Failed to copy to tmp: {}", e),
             path: None,
         }),
     }
 }
 
 #[command]
-pub async fn cmd_compare_status_with_original(
+pub async fn cmd_compare_tmp_with_source(
     workspace_path: String,
-    file_path: String,
+    source_path: String,
+    tmp_name: String,
 ) -> Result<bool, String> {
-    let source = PathBuf::from(&file_path);
+    let source = PathBuf::from(&source_path);
     if !source.exists() {
         return Ok(false);
     }
 
-    let status_file = get_status_file_path(&workspace_path, &file_path);
-    if !status_file.exists() {
+    let tmp_file = get_tmp_dir(&workspace_path).join(&tmp_name);
+    if !tmp_file.exists() {
         return Ok(false);
     }
 
@@ -778,38 +881,242 @@ pub async fn cmd_compare_status_with_original(
         Ok(c) => c,
         Err(_) => return Ok(false),
     };
-    let status_content = match fs::read_to_string(&status_file) {
+    let tmp_content = match fs::read_to_string(&tmp_file) {
         Ok(c) => c,
         Err(_) => return Ok(false),
     };
 
-    Ok(source_content == status_content)
+    Ok(source_content == tmp_content)
 }
 
 #[command]
-pub async fn cmd_clear_all_status(workspace_path: String) -> Result<FileOperationResult, String> {
-    let status_dir = get_status_dir(&workspace_path);
-    if !status_dir.exists() {
+pub async fn cmd_sync_metadata_on_rename(
+    workspace_path: String,
+    old_path: String,
+    new_path: String,
+) -> Result<FileOperationResult, String> {
+    let metadata_path = get_metadata_path(&workspace_path);
+    if !metadata_path.exists() {
         return Ok(FileOperationResult {
             success: true,
-            message: "Status directory does not exist".to_string(),
+            message: "No metadata to sync".to_string(),
             path: None,
         });
     }
 
-    match fs::remove_dir_all(&status_dir) {
+    let content = match fs::read_to_string(&metadata_path) {
+        Ok(c) => c,
+        Err(e) => {
+            return Ok(FileOperationResult {
+                success: false,
+                message: format!("Failed to read metadata: {}", e),
+                path: None,
+            });
+        }
+    };
+
+    let mut metadata: WorkspaceMetadata = match serde_json::from_str(&content) {
+        Ok(m) => m,
+        Err(e) => {
+            return Ok(FileOperationResult {
+                success: false,
+                message: format!("Failed to parse metadata: {}", e),
+                path: None,
+            });
+        }
+    };
+
+    let mut updated = false;
+    for file in &mut metadata.tabs.files {
+        if file.source_path == old_path {
+            file.source_path = new_path.clone();
+            updated = true;
+        }
+    }
+
+    if !updated {
+        return Ok(FileOperationResult {
+            success: true,
+            message: "No matching file found in metadata".to_string(),
+            path: None,
+        });
+    }
+
+    match serde_json::to_string_pretty(&metadata) {
+        Ok(json) => match fs::write(&metadata_path, json) {
+            Ok(_) => Ok(FileOperationResult {
+                success: true,
+                message: "Metadata synced on rename".to_string(),
+                path: Some(metadata_path.to_string_lossy().to_string()),
+            }),
+            Err(e) => Ok(FileOperationResult {
+                success: false,
+                message: format!("Failed to write metadata: {}", e),
+                path: None,
+            }),
+        },
+        Err(e) => Ok(FileOperationResult {
+            success: false,
+            message: format!("Failed to serialize metadata: {}", e),
+            path: None,
+        }),
+    }
+}
+
+#[command]
+pub async fn cmd_sync_metadata_on_delete(
+    workspace_path: String,
+    path: String,
+) -> Result<FileOperationResult, String> {
+    let metadata_path = get_metadata_path(&workspace_path);
+    if !metadata_path.exists() {
+        return Ok(FileOperationResult {
+            success: true,
+            message: "No metadata to sync".to_string(),
+            path: None,
+        });
+    }
+    let content = match fs::read_to_string(&metadata_path) {
+        Ok(c) => c,
+        Err(e) => {
+            return Ok(FileOperationResult {
+                success: false,
+                message: format!("Failed to read metadata: {}", e),
+                path: None,
+            });
+        }
+    };
+    let mut metadata: WorkspaceMetadata = match serde_json::from_str(&content) {
+        Ok(m) => m,
+        Err(e) => {
+            return Ok(FileOperationResult {
+                success: false,
+                message: format!("Failed to parse metadata: {}", e),
+                path: None,
+            });
+        }
+    };
+    let path_buf = PathBuf::from(&path);
+    let is_dir = path_buf.is_dir();
+    let mut to_remove = Vec::new();
+    for (idx, file) in metadata.tabs.files.iter().enumerate() {
+        if is_dir {
+            if file.source_path.starts_with(&path) {
+                to_remove.push(idx);
+            }
+        } else {
+            if file.source_path == path {
+                to_remove.push(idx);
+            }
+        }
+    }
+    for idx in to_remove.into_iter().rev() {
+        let tmp_file = get_tmp_dir(&workspace_path).join(&metadata.tabs.files[idx].tmp_path);
+        let _ = fs::remove_file(tmp_file);
+        metadata.tabs.files.remove(idx);
+    }
+    match serde_json::to_string_pretty(&metadata) {
+        Ok(json) => match fs::write(&metadata_path, json) {
+            Ok(_) => Ok(FileOperationResult {
+                success: true,
+                message: "Metadata synced on delete".to_string(),
+                path: Some(metadata_path.to_string_lossy().to_string()),
+            }),
+            Err(e) => Ok(FileOperationResult {
+                success: false,
+                message: format!("Failed to write metadata: {}", e),
+                path: None,
+            }),
+        },
+        Err(e) => Ok(FileOperationResult {
+            success: false,
+            message: format!("Failed to serialize metadata: {}", e),
+            path: None,
+        }),
+    }
+}
+
+#[command]
+pub async fn cmd_clear_all_tmp(workspace_path: String) -> Result<FileOperationResult, String> {
+    let tmp_dir = get_tmp_dir(&workspace_path);
+    if !tmp_dir.exists() {
+        return Ok(FileOperationResult {
+            success: true,
+            message: "Tmp directory does not exist".to_string(),
+            path: None,
+        });
+    }
+
+    match fs::remove_dir_all(&tmp_dir) {
         Ok(_) => {
-            let _ = fs::create_dir_all(&status_dir);
+            let _ = fs::create_dir_all(&tmp_dir);
             Ok(FileOperationResult {
                 success: true,
-                message: "Cleared all status files".to_string(),
-                path: Some(status_dir.to_string_lossy().to_string()),
+                message: "Cleared all tmp files".to_string(),
+                path: Some(tmp_dir.to_string_lossy().to_string()),
             })
         }
         Err(e) => Ok(FileOperationResult {
             success: false,
-            message: format!("Failed to clear status directory: {}", e),
+            message: format!("Failed to clear tmp directory: {}", e),
             path: None,
         }),
     }
+}
+
+#[command]
+pub async fn cmd_cleanup_orphaned_tmp(
+    workspace_path: String,
+) -> Result<FileOperationResult, String> {
+    let metadata_path = get_metadata_path(&workspace_path);
+    let tmp_dir = get_tmp_dir(&workspace_path);
+    if !tmp_dir.exists() {
+        return Ok(FileOperationResult {
+            success: true,
+            message: "Tmp directory does not exist".to_string(),
+            path: None,
+        });
+    }
+    let metadata: Option<WorkspaceMetadata> = if metadata_path.exists() {
+        match fs::read_to_string(&metadata_path) {
+            Ok(content) => match serde_json::from_str(&content) {
+                Ok(m) => Some(m),
+                Err(_) => None,
+            },
+            Err(_) => None,
+        }
+    } else {
+        None
+    };
+    let valid_tmp_paths: HashSet<String> = match metadata {
+        Some(m) => m.tabs.files.iter().map(|f| f.tmp_path.clone()).collect(),
+        None => HashSet::new(),
+    };
+    let mut deleted_count = 0;
+    if let Ok(entries) = fs::read_dir(&tmp_dir) {
+        for entry in entries {
+            if let Ok(entry) = entry {
+                let path = entry.path();
+                if path.is_file() {
+                    if let Some(file_name) = path.file_name() {
+                        let file_name_str = file_name.to_string_lossy().to_string();
+                        if !valid_tmp_paths.contains(&file_name_str) {
+                            let _ = fs::remove_file(&path);
+                            deleted_count += 1;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    Ok(FileOperationResult {
+        success: true,
+        message: format!("Cleaned up {} orphaned tmp files", deleted_count),
+        path: Some(tmp_dir.to_string_lossy().to_string()),
+    })
+}
+
+#[command]
+pub async fn cmd_generate_tmp_name(source_path: String) -> Result<String, String> {
+    Ok(generate_tmp_name())
 }

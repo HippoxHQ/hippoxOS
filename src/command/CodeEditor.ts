@@ -38,6 +38,27 @@ export interface SearchInFilesResult {
     results: FileSearchResult[];
 }
 
+export interface WorkspaceMetadata {
+    version: string;
+    workspace: {
+        path: string;
+        name: string;
+        created_at: string;
+        last_opened: string;
+    };
+    tabs: {
+        files: TabFileMetadata[];
+    };
+}
+
+export interface TabFileMetadata {
+    id: string;
+    source_path: string;
+    is_dirty: boolean;
+    last_modified: string;
+    tmp_path: string;
+}
+
 export const codeEditorCommands = {
     openInExplorer: async (path: string): Promise<FileOperationResult> => {
         return await invoke("cmd_open_in_explorer", { path });
@@ -75,39 +96,66 @@ export const codeEditorCommands = {
         return await invoke("cmd_write_file", { path, content });
     },
 
-    ensureStatusDir: async (workspacePath: string): Promise<FileOperationResult> => {
-        return await invoke("cmd_ensure_status_dir", { workspacePath });
+
+    ensureTmpDir: async (workspacePath: string): Promise<FileOperationResult> => {
+        return await invoke("cmd_ensure_tmp_dir", { workspacePath });
     },
 
-    getStatusFilePath: async (workspacePath: string, filePath: string): Promise<string> => {
-        return await invoke("cmd_get_status_file_path", { workspacePath, filePath });
+
+    loadMetadata: async (workspacePath: string): Promise<WorkspaceMetadata | null> => {
+        return await invoke("cmd_load_metadata", { workspacePath });
     },
 
-    checkStatusExists: async (workspacePath: string, filePath: string): Promise<boolean> => {
-        return await invoke("cmd_check_status_exists", { workspacePath, filePath });
+    saveMetadata: async (workspacePath: string, metadata: WorkspaceMetadata): Promise<FileOperationResult> => {
+        return await invoke("cmd_save_metadata", { workspacePath, metadata });
     },
 
-    readFromStatus: async (workspacePath: string, filePath: string): Promise<string | null> => {
-        return await invoke("cmd_read_from_status", { workspacePath, filePath });
+
+    getTmpFilePath: async (workspacePath: string, tmpName: string): Promise<string> => {
+        return await invoke("cmd_get_tmp_file_path", { workspacePath, tmpName });
     },
 
-    writeToStatus: async (workspacePath: string, filePath: string, content: string): Promise<FileOperationResult> => {
-        return await invoke("cmd_write_to_status", { workspacePath, filePath, content });
+    checkTmpExists: async (workspacePath: string, tmpName: string): Promise<boolean> => {
+        return await invoke("cmd_check_tmp_exists", { workspacePath, tmpName });
     },
 
-    deleteFromStatus: async (workspacePath: string, filePath: string): Promise<FileOperationResult> => {
-        return await invoke("cmd_delete_from_status", { workspacePath, filePath });
+    readFromTmp: async (workspacePath: string, tmpName: string): Promise<string | null> => {
+        return await invoke("cmd_read_from_tmp", { workspacePath, tmpName });
     },
 
-    copyFileToStatus: async (workspacePath: string, filePath: string): Promise<FileOperationResult> => {
-        return await invoke("cmd_copy_file_to_status", { workspacePath, filePath });
+    writeToTmp: async (workspacePath: string, tmpName: string, content: string): Promise<FileOperationResult> => {
+        return await invoke("cmd_write_to_tmp", { workspacePath, tmpName, content });
     },
 
-    compareStatusWithOriginal: async (workspacePath: string, filePath: string): Promise<boolean> => {
-        return await invoke("cmd_compare_status_with_original", { workspacePath, filePath });
+    deleteFromTmp: async (workspacePath: string, tmpName: string): Promise<FileOperationResult> => {
+        return await invoke("cmd_delete_from_tmp", { workspacePath, tmpName });
     },
 
-    clearAllStatus: async (workspacePath: string): Promise<FileOperationResult> => {
-        return await invoke("cmd_clear_all_status", { workspacePath });
+    copyToTmp: async (workspacePath: string, sourcePath: string, tmpName: string): Promise<FileOperationResult> => {
+        return await invoke("cmd_copy_to_tmp", { workspacePath, sourcePath, tmpName });
+    },
+
+    compareTmpWithSource: async (workspacePath: string, sourcePath: string, tmpName: string): Promise<boolean> => {
+        return await invoke("cmd_compare_tmp_with_source", { workspacePath, sourcePath, tmpName });
+    },
+
+    syncMetadataOnRename: async (workspacePath: string, oldPath: string, newPath: string): Promise<FileOperationResult> => {
+        return await invoke("cmd_sync_metadata_on_rename", { workspacePath, oldPath, newPath });
+    },
+
+    syncMetadataOnDelete: async (workspacePath: string, path: string): Promise<FileOperationResult> => {
+        return await invoke("cmd_sync_metadata_on_delete", { workspacePath, path });
+    },
+
+    clearAllTmp: async (workspacePath: string): Promise<FileOperationResult> => {
+        return await invoke("cmd_clear_all_tmp", { workspacePath });
+    },
+
+    cleanupOrphanedTmp: async (workspacePath: string): Promise<FileOperationResult> => {
+        return await invoke("cmd_cleanup_orphaned_tmp", { workspacePath });
+    },
+
+    generateTmpName: async (sourcePath: string): Promise<string> => {
+        return await invoke("cmd_generate_tmp_name", { sourcePath });
     },
 };
