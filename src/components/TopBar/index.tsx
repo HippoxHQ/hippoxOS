@@ -241,7 +241,7 @@ const topBarStyles = `
    flex: 1;
    display: flex;
    align-items: center;
-   justify-content: flex-end;
+   justify-content: center;
    min-width: 0;
    padding: 0 8px;
   }
@@ -730,14 +730,14 @@ const TopBar: React.FC<TopBarProps> = ({
           >
             <NewSessionIcon2 size={16} />
           </button>
-          <button
+          {/* <button
             ref={historyButtonRef}
             className="sidebar-toggle"
             onClick={onHistoryClick}
             title={t("history.title") || "History Chat"}
           >
             <HistoryChatIcon2 size={16} />
-          </button>
+          </button> */}
         </div>
         <div className="top-bar-center">
           <button className="search-input-wrapper" onClick={openSearch}>
@@ -763,30 +763,32 @@ const TopBar: React.FC<TopBarProps> = ({
           >
             {currentLanguage === "zh" ? "EN" : "中文"}
           </button>
-          {onFunctionPanelPositionChange && (
+          <div className="layout-divider" />
+          {/* {onFunctionPanelPositionChange && (
             <>
               <div className="layout-divider" />
               <div className="layout-switch-group">
                 <button
                   className={`layout-switch-btn ${functionPanelPosition === "left" ? "active" : ""}`}
                   onClick={() => onFunctionPanelPositionChange("left")}
-                  // title={isZh ? "功能区在左" : "Function Panel Left"}
+                   title={isZh ? "功能区在左" : "Function Panel Left"}
                 >
                   <FunctionLeftIcon />
-                  {/* <span>{isZh ? "功能区左" : "Func Left"}</span> */}
+                   <span>{isZh ? "功能区左" : "Func Left"}</span> 
                 </button>
                 <button
                   className={`layout-switch-btn ${functionPanelPosition === "right" ? "active" : ""}`}
-                  onClick={() => onFunctionPanelPositionChange("right")}
-                  // title={isZh ? "功能区在右" : "Function Panel Right"}
+                  onClick={() => {
+                     onFunctionPanelPositionChange("right")
+                  }}
+                  title={isZh ? "功能区在右" : "Function Panel Right"}
                 >
                   <FunctionRightIcon />
-                  {/* <span>{isZh ? "功能区右" : "Func Right"}</span> */}
+                   <span>{isZh ? "功能区右" : "Func Right"}</span> 
                 </button>
               </div>
             </>
-          )}
-
+          )} */}
           <div className="window-controls">
             <button
               className="window-btn"

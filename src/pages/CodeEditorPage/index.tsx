@@ -1181,7 +1181,7 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
       saveChatPanelWidth(newWidthPx);
     } else if (dragType.current === "history") {
       const newWidth = dragStartHistoryWidth.current + deltaX;
-      const clamped = Math.min(400, Math.max(180, newWidth));
+      const clamped = Math.min(400, Math.max(200, newWidth));
       setHistoryWidth(clamped);
       saveHistoryWidth(clamped);
     }
@@ -1310,7 +1310,7 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
           height: "100%",
           overflow: "hidden",
           flex: 1,
-          minWidth: "180px",
+          minWidth: "200px",
           userSelect: "none",
         }}
       >
@@ -1748,7 +1748,7 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
                 flex: historyCollapsed ? "0 0 45px" : "0 0 auto",
                 width: historyCollapsed ? "45px" : `${historyWidth}px`,
                 overflow: "hidden",
-                minWidth: historyCollapsed ? "45px" : "180px",
+                minWidth: historyCollapsed ? "45px" : "200px",
                 display: "flex",
                 flexDirection: "row",
                 borderRight: "1px solid var(--border-color)",
