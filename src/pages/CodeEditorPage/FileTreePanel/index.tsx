@@ -6,7 +6,7 @@ import { TimelineSection } from "./components/TimelineSection";
 import { SearchSection } from "./components/SearchSection";
 import { useGit } from "./hooks/useGit";
 import { FileNode, FileTreePanelProps } from "./types";
-import { getDirectoryName } from "./fileUtils";
+import { getDirectoryName } from "../fileUtils";
 import {
   FolderIcon,
   GithubIcon,

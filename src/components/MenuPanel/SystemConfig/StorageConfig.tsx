@@ -4,6 +4,22 @@ import { showDialog, DialogType } from "../../Dialog";
 import { storageCommands } from "../../../command/config";
 import { filesCommands } from "../../../command/files";
 import { getDataPaths } from "../../../command/paths";
+import {
+  HardDrive,
+  FolderOpen,
+  FileText,
+  MessageSquare,
+  Star,
+  Package,
+  Clock,
+  Settings,
+  Trash2,
+  Folder,
+  Save,
+  LoaderCircle,
+  AlertCircle,
+  CheckCircle,
+} from "lucide-react";
 
 interface StorageConfigProps {
   t: (key: string, params?: any) => string;
@@ -203,7 +219,8 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
       async () => {
         setCleaningDialog(true);
         try {
-          const { sessionCommands } = await import("../../../command/session/general");
+          const { sessionCommands } =
+            await import("../../../command/session/general");
           const sessions = await sessionCommands.listSessions();
           for (const session of sessions) {
             const sessionId = session.session_id;
@@ -364,7 +381,7 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
   };
 
   const StatsCard: React.FC<{
-    icon: string;
+    icon: React.ReactNode;
     title: string;
     currentSize: number;
     maxSize?: number;
@@ -638,7 +655,11 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
               ...ellipsisStyle,
             }}
           >
-            💾 {t("storage.diskStatistics") || "Disk Statistics"}
+            <HardDrive
+              size={16}
+              style={{ display: "inline", marginRight: "6px" }}
+            />
+            {t("storage.diskStatistics") || "Disk Statistics"}
           </div>
           <div
             style={{
@@ -769,7 +790,11 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
               <span
                 style={{ color: "var(--text-secondary)", ...ellipsisStyle }}
               >
-                📊 {t("storage.logsStatistics") || "Logs"}
+                <FileText
+                  size={14}
+                  style={{ display: "inline", marginRight: "4px" }}
+                />
+                {t("storage.logsStatistics") || "Logs"}
               </span>
               <span
                 style={{
@@ -793,7 +818,11 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
               <span
                 style={{ color: "var(--text-secondary)", ...ellipsisStyle }}
               >
-                💬 {t("storage.dialogStatistics") || "Dialog History"}
+                <MessageSquare
+                  size={14}
+                  style={{ display: "inline", marginRight: "4px" }}
+                />
+                {t("storage.dialogStatistics") || "Dialog History"}
               </span>
               <span
                 style={{
@@ -817,7 +846,11 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
               <span
                 style={{ color: "var(--text-secondary)", ...ellipsisStyle }}
               >
-                ⭐ {t("storage.favoritesStatistics") || "Favorites"}
+                <Star
+                  size={14}
+                  style={{ display: "inline", marginRight: "4px" }}
+                />
+                {t("storage.favoritesStatistics") || "Favorites"}
               </span>
               <span
                 style={{
@@ -841,7 +874,11 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
               <span
                 style={{ color: "var(--text-secondary)", ...ellipsisStyle }}
               >
-                📦 {t("storage.skillsMarketDir") || "Skills Market"}
+                <Package
+                  size={14}
+                  style={{ display: "inline", marginRight: "4px" }}
+                />
+                {t("storage.skillsMarketDir") || "Skills Market"}
               </span>
               <span
                 style={{
@@ -865,7 +902,11 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
               <span
                 style={{ color: "var(--text-secondary)", ...ellipsisStyle }}
               >
-                ⏰ {t("storage.scheduledTasksDir") || "Scheduled Tasks"}
+                <Clock
+                  size={14}
+                  style={{ display: "inline", marginRight: "4px" }}
+                />
+                {t("storage.scheduledTasksDir") || "Scheduled Tasks"}
               </span>
               <span
                 style={{
@@ -889,7 +930,11 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
               <span
                 style={{ color: "var(--text-secondary)", ...ellipsisStyle }}
               >
-                ⚙️ {t("storage.settingsDir") || "Settings"}
+                <Settings
+                  size={14}
+                  style={{ display: "inline", marginRight: "4px" }}
+                />
+                {t("storage.settingsDir") || "Settings"}
               </span>
               <span
                 style={{
@@ -905,7 +950,7 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
         </div>
 
         <StatsCard
-          icon="📊"
+          icon={<FileText size={16} />}
           title={t("storage.logsStatistics") || "Logs Statistics"}
           currentSize={logsSize}
           maxSize={maxLogSize}
@@ -921,7 +966,7 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
         />
 
         <StatsCard
-          icon="💬"
+          icon={<MessageSquare size={16} />}
           title={t("storage.dialogStatistics") || "Dialog History Statistics"}
           currentSize={dialogSize}
           maxSize={maxDialogSize}
@@ -937,7 +982,7 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
         />
 
         <StatsCard
-          icon="⭐"
+          icon={<Star size={16} />}
           title={t("storage.favoritesStatistics") || "Favorites Statistics"}
           currentSize={favoritesSize}
           maxSize={maxFavoritesSize}
@@ -962,7 +1007,11 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
               ...ellipsisStyle,
             }}
           >
-            📂 {t("storage.dataDirectories") || "Data Directories"}
+            <FolderOpen
+              size={16}
+              style={{ display: "inline", marginRight: "6px" }}
+            />
+            {t("storage.dataDirectories") || "Data Directories"}
           </div>
 
           <div
@@ -989,7 +1038,11 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
                 style={folderButtonStyle}
                 onClick={() => handleOpenDirectory(logsDir)}
               >
-                📂 {t("settings.open") || "Open"}
+                <Folder
+                  size={14}
+                  style={{ display: "inline", marginRight: "4px" }}
+                />
+                {t("settings.open") || "Open"}
               </button>
             </div>
           </div>
@@ -1018,7 +1071,11 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
                 style={folderButtonStyle}
                 onClick={() => handleOpenDirectory(dialogHistoryDir)}
               >
-                📂 {t("settings.open") || "Open"}
+                <Folder
+                  size={14}
+                  style={{ display: "inline", marginRight: "4px" }}
+                />
+                {t("settings.open") || "Open"}
               </button>
             </div>
           </div>
@@ -1047,7 +1104,11 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
                 style={folderButtonStyle}
                 onClick={() => handleOpenDirectory(favoritesDir)}
               >
-                📂 {t("settings.open") || "Open"}
+                <Folder
+                  size={14}
+                  style={{ display: "inline", marginRight: "4px" }}
+                />
+                {t("settings.open") || "Open"}
               </button>
             </div>
           </div>
@@ -1076,7 +1137,11 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
                 style={folderButtonStyle}
                 onClick={() => handleOpenDirectory(skillsMarketDir)}
               >
-                📂 {t("settings.open") || "Open"}
+                <Folder
+                  size={14}
+                  style={{ display: "inline", marginRight: "4px" }}
+                />
+                {t("settings.open") || "Open"}
               </button>
             </div>
           </div>
@@ -1105,7 +1170,11 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
                 style={folderButtonStyle}
                 onClick={() => handleOpenDirectory(scheduledTasksDir)}
               >
-                📂 {t("settings.open") || "Open"}
+                <Folder
+                  size={14}
+                  style={{ display: "inline", marginRight: "4px" }}
+                />
+                {t("settings.open") || "Open"}
               </button>
             </div>
           </div>
@@ -1134,7 +1203,11 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
                 style={folderButtonStyle}
                 onClick={() => handleOpenDirectory(settingsDir)}
               >
-                📂 {t("settings.open") || "Open"}
+                <Folder
+                  size={14}
+                  style={{ display: "inline", marginRight: "4px" }}
+                />
+                {t("settings.open") || "Open"}
               </button>
             </div>
           </div>

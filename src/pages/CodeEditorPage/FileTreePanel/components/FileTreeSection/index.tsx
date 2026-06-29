@@ -3,11 +3,11 @@ import { readDir } from "@tauri-apps/plugin-fs";
 import { dirname, join } from "@tauri-apps/api/path";
 import { codeEditorCommands } from "../../../../../command/CodeEditor";
 import { showToast, ToastType } from "../../../../../components/Toast";
-import { getFileIcon } from "../../fileUtils";
 import { FileNode } from "../../types";
 import { ContextMenuItemType, ContextMenu } from "../ContextMenu";
 import { DialogType, showDialog } from "../../../../../components/Dialog";
 import { useFileTreeKeyboard } from "./hooks/useFileTreeKeyboard";
+import { getFileIconComponent, getFolderIconComponent } from "../../../fileUtils";
 
 interface FileTreeSectionProps {
   workspacePath: string | null | undefined;
@@ -1534,7 +1534,7 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({
                 title={node.path}
               >
                 <span style={{ fontSize: "14px", flexShrink: 0 }}>
-                  {isExpanded ? "📂" : "📁"}
+                  {getFolderIconComponent(isExpanded)}
                 </span>
                 <span
                   style={{
@@ -1667,7 +1667,7 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({
                 }}
               >
                 <span style={{ fontSize: "14px", flexShrink: 0 }}>
-                  {getFileIcon(node.name)}
+                 {getFileIconComponent(node.name)}
                 </span>
                 <input
                   ref={editInputRef}
@@ -1762,7 +1762,7 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({
                 title={node.path}
               >
                 <span style={{ fontSize: "14px", flexShrink: 0 }}>
-                  {getFileIcon(node.name)}
+                 {getFileIconComponent(node.name)}
                 </span>
                 <span
                   style={{

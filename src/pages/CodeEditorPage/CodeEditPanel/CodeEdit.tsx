@@ -11,6 +11,8 @@ import {
 } from "../../../command/CodeEditor";
 import { showDialog, DialogType } from "../../../components/Dialog";
 import TabsEmpty from "./TabsEmpty";
+import { getFileIconComponent } from "../fileUtils";
+import { Icon } from "@iconify/react";
 
 interface CodeEditProps {
   t: (key: string, params?: Record<string, string | number>) => string;
@@ -62,41 +64,6 @@ const getFileLanguage = (fileName: string): string => {
     zig: "zig",
   };
   return map[ext] || "plaintext";
-};
-
-const getFileIcon = (fileName: string): string => {
-  const ext = fileName.split(".").pop()?.toLowerCase() || "";
-  const icons: Record<string, string> = {
-    ts: "📘",
-    tsx: "📘",
-    js: "📜",
-    jsx: "📜",
-    py: "🐍",
-    rs: "🦀",
-    go: "🐹",
-    java: "☕",
-    cpp: "⚙️",
-    c: "⚙️",
-    html: "🌐",
-    css: "🎨",
-    json: "📋",
-    md: "📝",
-    xml: "📄",
-    yaml: "📄",
-    yml: "📄",
-    toml: "📄",
-    sh: "📟",
-    bash: "📟",
-    sql: "🗄️",
-    php: "🐘",
-    rb: "💎",
-    swift: "🦅",
-    kt: "📱",
-    vue: "🟢",
-    svelte: "🟠",
-    zig: "⚡",
-  };
-  return icons[ext] || "📄";
 };
 
 const CodeEdit: React.FC<CodeEditProps> = ({
@@ -1249,7 +1216,7 @@ const CodeEdit: React.FC<CodeEditProps> = ({
                 }}
               >
                 <span style={{ fontSize: "12px", flexShrink: 0 }}>
-                  {getFileIcon(tab.name)}
+                  {getFileIconComponent(tab.name, 14)}
                 </span>
                 <span
                   style={{
@@ -1378,7 +1345,9 @@ const CodeEdit: React.FC<CodeEditProps> = ({
             flexWrap: "nowrap",
           }}
         >
-          <span style={{ fontSize: "11px", flexShrink: 0 }}>📂</span>
+          <span style={{ fontSize: "11px", flexShrink: 0 }}>
+            <Icon icon="vscode-icons:default-folder" width={12} height={12} />
+          </span>
           {breadcrumbs.map((crumb, index) => (
             <React.Fragment key={crumb.path}>
               <span

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { GitInfo, FileChange } from "../types";
-import { getStatusColor, getStatusLabel } from "../fileUtils";
+import { getStatusColor, getStatusLabel } from "../../fileUtils";
 import { githubCommands } from "../../../../command/net/github";
 
 interface GitHubSectionProps {

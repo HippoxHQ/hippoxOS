@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { FileNode } from "../types";
-import { getFileIcon } from "../fileUtils";
 import { SearchIcon, CloseIcon } from "../../../../icons";
 import {
   FileSearchResult,
   codeEditorCommands,
   SearchMatch,
 } from "../../../../command/CodeEditor";
+import { getFileIconComponent } from "../../fileUtils";
 
 interface SearchSectionProps {
   fileTree: FileNode[];
@@ -460,7 +460,7 @@ export const SearchSection: React.FC<SearchSectionProps> = ({
                     &gt;
                   </span>
                   <span style={{ fontSize: "14px", flexShrink: 0 }}>
-                    {getFileIcon(fileResult.relative_path)}
+                    {getFileIconComponent(fileResult.relative_path)}
                   </span>
                   <span
                     style={{
