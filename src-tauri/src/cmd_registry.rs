@@ -313,6 +313,12 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_sync_metadata_on_delete,
         commands::cmd_clear_all_tmp,
         commands::cmd_cleanup_orphaned_tmp,
-        commands::cmd_generate_tmp_name
+        commands::cmd_generate_tmp_name,
+        // ============ terminal ================
+        commands::cmd_terminal_create,
+        commands::cmd_terminal_input,
+        commands::cmd_terminal_kill,
+        commands::cmd_terminal_list,
+        commands::cmd_terminal_is_alive
     ]
 }

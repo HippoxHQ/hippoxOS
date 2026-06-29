@@ -1,6 +1,6 @@
-import React from "react";
+import React, { useRef, useEffect } from "react";
 import CodeEdit from "./CodeEdit";
-import Terminal from "./Terminal";
+import { Terminal } from "./Terminal";
 
 interface CodeEditPanelProps {
   t: (key: string) => string;
@@ -14,6 +14,9 @@ interface CodeEditPanelProps {
   onTabChange?: (filePath: string | null) => void;
 }
 
+const TERMINAL_MIN_HEIGHT = 80;
+const TERMINAL_MAX_HEIGHT = 433;
+
 const CodeEditPanel: React.FC<CodeEditPanelProps> = ({
   t,
   selectedFile,
@@ -25,8 +28,34 @@ const CodeEditPanel: React.FC<CodeEditPanelProps> = ({
   workspacePath,
   onTabChange,
 }) => {
+  const terminalContainerRef = useRef<HTMLDivElement>(null);
+  const terminalRef = useRef<Terminal | null>(null);
+  const getTerminalHeight = (height: number): number => {
+    const adjustedHeight = height - 10;
+    return Math.min(
+      Math.max(TERMINAL_MIN_HEIGHT, adjustedHeight),
+      TERMINAL_MAX_HEIGHT,
+    );
+  };
+  const terminalHeight = getTerminalHeight(rightHeight);
+  useEffect(() => {
+    if (terminalContainerRef.current && !terminalRef.current) {
+      terminalRef.current = new Terminal(t, workspacePath);
+      terminalRef.current.mount(terminalContainerRef.current);
+    }
+    return () => {
+      if (terminalRef.current) {
+        terminalRef.current.unmount();
+        terminalRef.current = null;
+      }
+    };
+  }, []);
+  useEffect(() => {
+    if (terminalRef.current) {
+      terminalRef.current.updateWorkspacePath(workspacePath || null);
+    }
+  }, [workspacePath]);
   const isActive = isRightDragging || isRightHover;
-
   return (
     <div
       style={{
@@ -58,10 +87,11 @@ const CodeEditPanel: React.FC<CodeEditPanelProps> = ({
           cursor: row-resize;
         }
       `}</style>
+
       <div
         style={{
           flex: 1,
-          minHeight: "50%",
+          minHeight: 0,
           overflow: "hidden",
           position: "relative",
           minWidth: 0,
@@ -107,17 +137,20 @@ const CodeEditPanel: React.FC<CodeEditPanelProps> = ({
           />
         )}
       </div>
-
       <div
         style={{
-          height: Math.max(80, rightHeight),
-          minHeight: 0,
+          height: terminalHeight,
+          minHeight: TERMINAL_MIN_HEIGHT,
+          maxHeight: TERMINAL_MAX_HEIGHT,
           overflow: "hidden",
           flexShrink: 0,
           minWidth: 0,
         }}
       >
-        <Terminal t={t} />
+        <div
+          ref={terminalContainerRef}
+          style={{ width: "100%", height: "100%" }}
+        />
       </div>
     </div>
   );

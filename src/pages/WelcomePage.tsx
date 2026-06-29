@@ -328,6 +328,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
   }
 
   .welcome-page {
+    user-select: none;
     display: flex;
     flex-direction: column;
     align-items: center;
