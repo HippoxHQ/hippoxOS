@@ -12,7 +12,6 @@ export const useScrollBehavior = (
   const [activeNavIndex, setActiveNavIndex] = useState<number>(-1);
   const userScrolledUpRef = useRef(false);
   const prevTaskCountRef = useRef(allTasks.length);
-
   const checkScrollPosition = useCallback(() => {
     if (!terminalRef.current) return;
     const { scrollTop, scrollHeight, clientHeight } = terminalRef.current;
@@ -43,13 +42,11 @@ export const useScrollBehavior = (
     if (!terminalRef.current) return;
     const { scrollTop, scrollHeight, clientHeight } = terminalRef.current;
     const isAtBottom = scrollHeight - scrollTop - clientHeight <= 50;
-
     if (!isAtBottom) {
       userScrolledUpRef.current = true;
     } else {
       userScrolledUpRef.current = false;
     }
-
     setAutoScroll(isAtBottom);
     checkScrollPosition();
     updateActiveNavOnScroll();
@@ -81,7 +78,7 @@ export const useScrollBehavior = (
 
   const scrollToTop = useCallback(() => {
     if (terminalRef.current) {
-      terminalRef.current.scrollTo({ top: 0, behavior: "auto" });
+      terminalRef.current.scrollTo({ top: 0, behavior: "smooth" });
       setAutoScroll(false);
       setTimeout(() => {
         checkScrollPosition();
@@ -102,16 +99,26 @@ export const useScrollBehavior = (
 
   const scrollToTask = useCallback((index: number) => {
     const task = allTasks[index];
-    if (task && taskRefs.current.has(task.task_id)) {
-      const element = taskRefs.current.get(task.task_id)?.scrollIntoView({
-        behavior: "auto",
-        block: "start",
-      });
-      setAutoScroll(false);
-      setTimeout(() => {
-        checkScrollPosition();
-        updateActiveNavOnScroll();
-      }, 100);
+    if (task && taskRefs.current.has(task.task_id) && terminalRef.current) {
+      const element = taskRefs.current.get(task.task_id);
+      const container = terminalRef.current;
+      if (element) {
+        const containerRect = container.getBoundingClientRect();
+        const elementRect = element.getBoundingClientRect();
+        const offset = elementRect.top - containerRect.top - container.clientHeight / 2 + elementRect.height / 2;
+        const targetScrollTop = container.scrollTop + offset;
+        const maxScrollTop = container.scrollHeight - container.clientHeight;
+        const finalScrollTop = Math.max(0, Math.min(targetScrollTop, maxScrollTop));
+        container.scrollTo({
+          top: finalScrollTop,
+          behavior: "smooth",
+        });
+        setAutoScroll(false);
+        setTimeout(() => {
+          checkScrollPosition();
+          updateActiveNavOnScroll();
+        }, 150);
+      }
     }
   }, [allTasks, taskRefs, checkScrollPosition, updateActiveNavOnScroll]);
 

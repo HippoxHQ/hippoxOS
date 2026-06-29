@@ -824,6 +824,8 @@ const GeneralChatPage: React.FC<GeneralChatPageProps> = ({
 
   const handleToggleLeft = () => {
     if (isFunctionPanelMaximized) return;
+    const isTerminalLeft = layoutSwapMode === "terminal-left";
+    const isLeftTerminal = isTerminalLeft;
     if (leftCollapsed) {
       setLeftCollapsed(false);
       saveLeftCollapsed(false);
@@ -839,6 +841,8 @@ const GeneralChatPage: React.FC<GeneralChatPageProps> = ({
 
   const handleToggleRight = () => {
     if (isFunctionPanelMaximized) return;
+    const isTerminalLeft = layoutSwapMode === "terminal-left";
+
     if (rightCollapsed) {
       setRightCollapsed(false);
       saveRightCollapsed(false);
@@ -929,8 +933,10 @@ const GeneralChatPage: React.FC<GeneralChatPageProps> = ({
     title: string,
     icon: React.ReactNode,
     onToggle: () => void,
+    expandIcon?: string,
   ) => {
     const allTasks = taskManager.getAllTasks();
+    const iconChar = expandIcon || (isLeft ? "≫" : "≪");
 
     return (
       <div
@@ -986,7 +992,7 @@ const GeneralChatPage: React.FC<GeneralChatPageProps> = ({
             }}
             title={`Expand ${title}`}
           >
-            {isLeft ? "≫" : "≪"}
+            {iconChar}
           </button>
         </div>
         <div
@@ -1030,21 +1036,22 @@ const GeneralChatPage: React.FC<GeneralChatPageProps> = ({
   };
 
   const getLeftPanelContent = () => {
+    const isTerminalLeft = layoutSwapMode === "terminal-left";
     if (leftCollapsed || isFunctionPanelMaximized) {
       return renderCollapsedSidebar(
         true,
-        leftTitle,
-        leftIcon,
+        isTerminalLeft ? rightTitle : leftTitle,
+        isTerminalLeft ? rightIcon : leftIcon,
         handleToggleLeft,
+        "≫",
       );
     }
-    const isTerminalLeft = layoutSwapMode === "terminal-left";
     const panel = isTerminalLeft ? rightPanel : leftPanel;
     if (React.isValidElement(panel)) {
       return React.cloneElement(panel, {
         isCollapsed: false,
-        togglePanel: isTerminalLeft ? handleToggleLeft : handleToggleRight,
-        collapseIcon: isTerminalLeft ? "≪" : "≫",
+        togglePanel: handleToggleLeft,
+        collapseIcon: "≪",
         isLeftPanel: true,
       } as any);
     }
@@ -1052,21 +1059,22 @@ const GeneralChatPage: React.FC<GeneralChatPageProps> = ({
   };
 
   const getRightPanelContent = () => {
+    const isTerminalLeft = layoutSwapMode === "terminal-left";
     if (rightCollapsed || isFunctionPanelMaximized) {
       return renderCollapsedSidebar(
         false,
-        rightTitle,
-        rightIcon,
+        isTerminalLeft ? leftTitle : rightTitle,
+        isTerminalLeft ? leftIcon : rightIcon,
         handleToggleRight,
+        "≪",
       );
     }
-    const isTerminalLeft = layoutSwapMode === "terminal-left";
     const panel = isTerminalLeft ? leftPanel : rightPanel;
     if (React.isValidElement(panel)) {
       return React.cloneElement(panel, {
         isCollapsed: false,
-        togglePanel: isTerminalLeft ? handleToggleRight : handleToggleLeft,
-        collapseIcon: isTerminalLeft ? "≫" : "≪",
+        togglePanel: handleToggleRight,
+        collapseIcon: "≫",
         isLeftPanel: false,
       } as any);
     }
