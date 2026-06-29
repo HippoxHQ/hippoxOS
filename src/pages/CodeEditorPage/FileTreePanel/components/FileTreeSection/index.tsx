@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { readDir } from "@tauri-apps/plugin-fs";
-import { join } from "@tauri-apps/api/path";
+import { dirname, join } from "@tauri-apps/api/path";
 import { codeEditorCommands } from "../../../../../command/CodeEditor";
 import { showToast, ToastType } from "../../../../../components/Toast";
 import { getFileIcon } from "../../fileUtils";
@@ -718,17 +718,6 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({
     closeContextMenu();
   };
 
-  const handleOpenInTerminal = async (path: string) => {
-    const result = await codeEditorCommands.openInTerminal(path);
-    if (!result.success) {
-      showToast(
-        ToastType.ERROR,
-        result.message || t("codeEditor.openInTerminal"),
-      );
-    }
-    closeContextMenu();
-  };
-
   const handleCut = (node: FileNode) => {
     closeContextMenu();
   };
@@ -1213,32 +1202,49 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({
     const isRoot = workspacePath === fullPath;
     const selectedCount = selectedNodes.size;
     const isMultiple = selectedCount > 1;
+    const handleOpenInTerminalAction = async (node: FileNode) => {
+      let dirPath = node.path;
+      if (!node.isDirectory) {
+        try {
+          dirPath = await dirname(node.path);
+        } catch {
+          const lastSlash = Math.max(
+            node.path.lastIndexOf("/"),
+            node.path.lastIndexOf("\\"),
+          );
+          if (lastSlash > 0) {
+            dirPath = node.path.substring(0, lastSlash);
+          }
+        }
+      }
+      window.dispatchEvent(
+        new CustomEvent("terminal-change-cwd", {
+          detail: { path: dirPath },
+        }),
+      );
+      closeContextMenu();
+    };
+
     const items: ContextMenuItemType[] = [];
+
     if (isFolder) {
       if (isRoot) {
         items.push(
-          {
-            label: t("codeEditor.newFile"),
-            action: () => handleNewFile(node),
-          },
+          { label: t("codeEditor.newFile"), action: () => handleNewFile(node) },
           {
             label: t("codeEditor.newFolder"),
             action: () => handleNewFolder(node),
           },
-          {
-            divider: true,
-          },
+          { divider: true },
           {
             label: t("codeEditor.openInExplorer"),
             action: () => handleOpenInExplorer(fullPath),
           },
           {
             label: t("codeEditor.openInTerminal"),
-            action: () => handleOpenInTerminal(fullPath),
+            action: () => handleOpenInTerminalAction(node),
           },
-          {
-            divider: true,
-          },
+          { divider: true },
           {
             label: t("codeEditor.copyPath"),
             action: () => handleCopyPath(fullPath),
@@ -1246,28 +1252,21 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({
         );
       } else {
         items.push(
-          {
-            label: t("codeEditor.newFile"),
-            action: () => handleNewFile(node),
-          },
+          { label: t("codeEditor.newFile"), action: () => handleNewFile(node) },
           {
             label: t("codeEditor.newFolder"),
             action: () => handleNewFolder(node),
           },
-          {
-            divider: true,
-          },
+          { divider: true },
           {
             label: t("codeEditor.openInExplorer"),
             action: () => handleOpenInExplorer(fullPath),
           },
           {
             label: t("codeEditor.openInTerminal"),
-            action: () => handleOpenInTerminal(fullPath),
+            action: () => handleOpenInTerminalAction(node),
           },
-          {
-            divider: true,
-          },
+          { divider: true },
           {
             label: isMultiple
               ? t("codeEditor.copyMultiple", { count: selectedCount })
@@ -1324,20 +1323,13 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({
               closeContextMenu();
             },
           },
-          {
-            divider: true,
-          },
+          { divider: true },
           {
             label: t("codeEditor.copyPath"),
             action: () => handleCopyPath(fullPath),
           },
-          {
-            divider: true,
-          },
-          {
-            label: t("codeEditor.rename"),
-            action: () => startRename(node),
-          },
+          { divider: true },
+          { label: t("codeEditor.rename"), action: () => startRename(node) },
         );
       }
     } else {
@@ -1348,11 +1340,9 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({
         },
         {
           label: t("codeEditor.openInTerminal"),
-          action: () => handleOpenInTerminal(fullPath),
+          action: () => handleOpenInTerminalAction(node),
         },
-        {
-          divider: true,
-        },
+        { divider: true },
         {
           label: isMultiple
             ? t("codeEditor.copyMultiple", { count: selectedCount })
@@ -1409,20 +1399,13 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({
             closeContextMenu();
           },
         },
-        {
-          divider: true,
-        },
+        { divider: true },
         {
           label: t("codeEditor.copyPath"),
           action: () => handleCopyPath(fullPath),
         },
-        {
-          divider: true,
-        },
-        {
-          label: t("codeEditor.rename"),
-          action: () => startRename(node),
-        },
+        { divider: true },
+        { label: t("codeEditor.rename"), action: () => startRename(node) },
       );
     }
     return items;

@@ -203,36 +203,14 @@ const CodingPage: React.FC<CodingPageProps> = ({
         <div
           className="coding-left-resize-handle"
           style={{
-            width: isLeftActive ? "4px" : "1px",
-            background: isLeftActive
-              ? "var(--scrollbar-thumb)"
-              : "var(--border-color)",
+            width: "1px",
+            background: "var(--border-color)",
             cursor: "col-resize",
             flexShrink: 0,
             position: "relative",
-            transition: "width 0.15s, background 0.15s",
           }}
           onMouseDown={handleLeftResizeMouseDown}
-          onMouseEnter={() => setIsLeftHover(true)}
-          onMouseLeave={() => setIsLeftHover(false)}
-        >
-          {isLeftActive && (
-            <div
-              style={{
-                position: "absolute",
-                top: "50%",
-                left: "50%",
-                transform: "translate(-50%, -50%)",
-                width: "2px",
-                height: "40px",
-                background: "var(--text-muted)",
-                borderRadius: "2px",
-                opacity: 0.5,
-                zIndex: 11,
-              }}
-            />
-          )}
-        </div>
+        />
 
         <div
           style={{

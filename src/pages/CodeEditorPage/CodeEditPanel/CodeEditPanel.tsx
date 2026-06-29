@@ -13,10 +13,8 @@ interface CodeEditPanelProps {
   workspacePath?: string | null;
   onTabChange?: (filePath: string | null) => void;
 }
-
 const TERMINAL_MIN_HEIGHT = 80;
 const TERMINAL_MAX_HEIGHT = 433;
-
 const CodeEditPanel: React.FC<CodeEditPanelProps> = ({
   t,
   selectedFile,
@@ -51,10 +49,39 @@ const CodeEditPanel: React.FC<CodeEditPanelProps> = ({
     };
   }, []);
   useEffect(() => {
+    const handleTerminalCwdChange = (event: CustomEvent) => {
+      const { path } = event.detail;
+      if (terminalRef.current && path) {
+        terminalRef.current.updateWorkspacePath(path);
+      }
+    };
+    window.addEventListener(
+      "terminal-change-cwd",
+      handleTerminalCwdChange as EventListener,
+    );
+    return () => {
+      window.removeEventListener(
+        "terminal-change-cwd",
+        handleTerminalCwdChange as EventListener,
+      );
+    };
+  }, []);
+  useEffect(() => {
     if (terminalRef.current) {
       terminalRef.current.updateWorkspacePath(workspacePath || null);
     }
   }, [workspacePath]);
+  useEffect(() => {
+    if (terminalRef.current && selectedFile) {
+      const lastSlash = Math.max(
+        selectedFile.lastIndexOf("/"),
+        selectedFile.lastIndexOf("\\"),
+      );
+      const dirPath =
+        lastSlash > 0 ? selectedFile.substring(0, lastSlash) : selectedFile;
+      terminalRef.current.updateWorkspacePath(dirPath);
+    }
+  }, [selectedFile]);
   const isActive = isRightDragging || isRightHover;
   return (
     <div
@@ -108,35 +135,14 @@ const CodeEditPanel: React.FC<CodeEditPanelProps> = ({
       <div
         className="coding-right-resize-handle"
         style={{
-          height: isActive ? "4px" : "1px",
-          background: isActive
-            ? "var(--scrollbar-thumb)"
-            : "var(--border-color)",
+          height: "1px",
+          background: "var(--border-color)",
           cursor: "row-resize",
           flexShrink: 0,
           position: "relative",
         }}
         onMouseDown={onRightResizeMouseDown}
-        onMouseEnter={() => setIsRightHover(true)}
-        onMouseLeave={() => setIsRightHover(false)}
-      >
-        {isActive && (
-          <div
-            style={{
-              position: "absolute",
-              top: "50%",
-              left: "50%",
-              transform: "translate(-50%, -50%)",
-              width: "40px",
-              height: "2px",
-              background: "var(--text-muted)",
-              borderRadius: "2px",
-              opacity: 0.5,
-              zIndex: 11,
-            }}
-          />
-        )}
-      </div>
+      ></div>
       <div
         style={{
           height: terminalHeight,

@@ -1762,15 +1762,13 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
                 onMouseDown={(e) => handleMouseDown(e, "history")}
                 style={{
                   width: "0px",
-                  background: isHistoryResizeHover
-                    ? "var(--scrollbar-thumb)"
-                    : "var(--border-color)",
+                  background: "var(--border-color)",
                   cursor: "col-resize",
                   flexShrink: 0,
                   position: "relative",
                 }}
-                onMouseEnter={() => setIsHistoryResizeHover(true)}
-                onMouseLeave={() => setIsHistoryResizeHover(false)}
+                // onMouseEnter={() => setIsHistoryResizeHover(true)}
+                // onMouseLeave={() => setIsHistoryResizeHover(false)}
               />
             )}
           </>
@@ -1819,16 +1817,14 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
             onMouseDown={(e) => handleMouseDown(e, "horizontal")}
             style={{
               width: "0px",
-              background: isResizeHover
-                ? "var(--scrollbar-thumb)"
-                : "var(--border-color)",
+              background: "var(--border-color)",
               cursor: "col-resize",
               flexShrink: 0,
               position: "relative",
               order: isChatOnLeft ? 2 : 2,
             }}
-            onMouseEnter={() => setIsResizeHover(true)}
-            onMouseLeave={() => setIsResizeHover(false)}
+            // onMouseEnter={() => setIsResizeHover(true)}
+            // onMouseLeave={() => setIsResizeHover(false)}
           />
         )}
 
