@@ -1102,12 +1102,19 @@
   resolved "https://registry.npmjs.org/@bcoe/v8-coverage/-/v8-coverage-0.2.3.tgz"
   integrity sha512-0hYQ8SB4Db5zvZB4axdMHGwEaQjkZzFjQiN9LVYvIFB2nSUHW9tYpxWriPrWDASIxiaXax83REcLxuSdnGPZtw==
 
-"@candleview/core@^3.1.0":
+"@candleview/core@^3.0.9", "@candleview/core@^3.1.0":
   version "3.1.0"
   resolved "https://registry.npmjs.org/@candleview/core/-/core-3.1.0.tgz"
   integrity sha512-a9cGSniA0sN1x21ZD0PCcSotHU818QmDwsR87BgBLtTSdJgsReqqSk8LiGteIUerYAOKZcvErlhK0dlEZQqBxw==
   dependencies:
     lightweight-charts "^5.0.9"
+
+"@candleview/cvs-engine@^0.1.2":
+  version "0.1.2"
+  resolved "https://registry.yarnpkg.com/@candleview/cvs-engine/-/cvs-engine-0.1.2.tgz#fa105c1883fc7d1f6d39607ca547d91ecb5901f6"
+  integrity sha512-FJLoCUmQacB4H2I8KCw8KveieuSRoLNHptuDk4kKbsvowbudhzgkmWYIOORBi3METeowv2wy4w0/N/aHU2K4XA==
+  dependencies:
+    "@candleview/core" "^3.0.9"
 
 "@csstools/normalize.css@*":
   version "12.1.1"
