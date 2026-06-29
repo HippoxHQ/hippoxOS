@@ -466,7 +466,7 @@
 .directory-menu {
   position: absolute;
   bottom: 100%;
-  left: 168px;
+  left: 35px;
   margin-bottom: 6px;
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);

@@ -4,6 +4,10 @@ import {
   FolderIcon,
   ChevronRightIcon,
   FolderOpenIcon,
+  FileIcon,
+  ImageIcon,
+  TextFileIcon,
+  VideoIcon,
 } from "../icons";
 import { showToast, ToastType } from "../components/Toast";
 import FileUploader from "../components/FileUploader";
@@ -505,7 +509,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
   .directory-menu {
     position: absolute;
     bottom: 100%;
-    left: 168px;
+    left: 35px;
     margin-bottom: 6px;
     background: var(--bg-secondary);
     border: 1px solid var(--border-color);
@@ -890,28 +894,33 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
                       className="attachment-item"
                       onClick={() => handleAttachment("text")}
                     >
-                      📄 {t("chat.textFile") || "TextFile"}
+                      <TextFileIcon size={14} />
+                      {t("chat.textFile") || "TextFile"}
                     </div>
                     <div
                       className="attachment-item"
                       onClick={() => handleAttachment("image")}
                     >
-                      🖼️ {t("chat.image") || "Image"}
+                      <ImageIcon size={14} />
+                      {t("chat.image") || "Image"}
                     </div>
                     <div
                       className="attachment-item"
                       onClick={() => handleAttachment("video")}
                     >
-                      🎬 {t("chat.video") || "Video"}
+                      <VideoIcon size={14} />
+                      {t("chat.video") || "Video"}
                     </div>
                     <div
                       className="attachment-item"
                       onClick={() => handleAttachment("skill")}
                     >
-                      📁 {t("chat.skillFile") || "Skill File"}
+                      <FileIcon size={14} />
+                      {t("chat.skillFile") || "Skill File"}
                     </div>
                   </div>
                 )}
+
                 {showDirectoryMenu && (
                   <div className="directory-menu" ref={directoryMenuRef}>
                     {workspaces.map((workspace) => (

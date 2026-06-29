@@ -701,13 +701,13 @@ const TopBar: React.FC<TopBarProps> = ({
           >
             {sidebarCollapsed ? <MenuIcon /> : <CollapseIcon />}
           </button>
-          <button
+          {/* <button
             className="sidebar-toggle"
             onClick={handleNewSessionClick}
             title={getNewSessionTitle()}
           >
             <NewSessionIcon2 size={16} />
-          </button>
+          </button> */}
           {/* <button
             ref={historyButtonRef}
             className="sidebar-toggle"

@@ -184,13 +184,13 @@ const Sidebar: React.FC<SidebarProps> = ({
       return t("actions.skillMarket");
     }
     if (item.id === "userProfile") {
-      return t("menu.userProfile") || "User Profile";
+      return t("menu.userProfile");
     }
     if (item.id === "generalChat") {
-      return t("menu.history") || "History";
+      return t("menu.history");
     }
     if (item.id === "codeEditorChat") {
-      return t("menu.codeEditor") || "Code Editor";
+      return t("menu.codeEditor");
     }
     return t(item.label);
   };
@@ -252,7 +252,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                 label: "menu.userProfile",
               }}
               isActive={isIconActive("userProfile")}
-              label={t("menu.userProfile") || "个人资料"}
+              label={t("menu.userProfile")}
               onClick={(e) => handleIconClick("userProfile", e)}
               onMouseEnter={handleMouseEnter}
               onMouseLeave={handleMouseLeave}
