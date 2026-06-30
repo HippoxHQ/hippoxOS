@@ -9,13 +9,13 @@ import {
   ScrollTextIcon,
 } from "../../icons";
 import SandBox3DChatPanel from "./SandBox3DChatPanel";
-import SandBox3DArea from "./SandBox3DArea";
 import HistorySandBox3DChatPanel, {
   HistorySandBox3DChatPanelRef,
 } from "./HistorySandBox3DChatPanel";
 import { configCommands } from "../../command/config";
 import { useSandBox3DSession } from "../../App/hooks/session/useSandBox3DChatSession";
 import { sandbox3dSessionCommands } from "../../command/session/sandbox3d";
+import SandBox3D from "./SandBox3D";
 
 interface SandBox3DPageProps {
   layoutMode?: "horizontal" | "vertical";
@@ -721,7 +721,7 @@ const SandBox3DPage: React.FC<SandBox3DPageProps> = ({
         overflow: "hidden",
       }}
     >
-      <SandBox3DArea
+      <SandBox3D
         theme={theme}
         i18n={i18n}
         t={t}
