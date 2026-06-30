@@ -35,6 +35,16 @@ pub fn get_app_root_dir() -> PathBuf {
     }
 }
 
+/// Video Dialog history directory: HippoX/VideoDialogHistory
+pub fn get_video_dialog_history_dir() -> PathBuf {
+    get_app_root_dir().join("VideoDialogHistory")
+}
+
+/// SandBox3D Dialog history directory: HippoX/SandBox3DDialogHistory
+pub fn get_sandbox3d_dialog_history_dir() -> PathBuf {
+    get_app_root_dir().join("SandBox3DDialogHistory")
+}
+
 /// Dialog history directory: HippoX/DialogHistory
 pub fn get_dialog_history_dir() -> PathBuf {
     get_app_root_dir().join("DialogHistory")

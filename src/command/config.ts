@@ -199,6 +199,22 @@ export const configCommands = {
         return await invoke('cmd_get_settings_auto_start');
     },
 
+    async getSettingsVideoEditorLayoutSwapMode(): Promise<string> {
+        return await invoke('cmd_get_settings_videoeditor_layout_swap_mode');
+    },
+
+    async saveSettingsVideoEditorLayoutSwapMode(mode: string): Promise<void> {
+        return await invoke('cmd_save_settings_videoeditor_layout_swap_mode', { mode });
+    },
+
+    async getSettingsSandBox3DLayoutSwapMode(): Promise<string> {
+        return await invoke('cmd_get_settings_sandbox3d_layout_swap_mode');
+    },
+
+    async saveSettingsSandBox3DLayoutSwapMode(mode: string): Promise<void> {
+        return await invoke('cmd_save_settings_sandbox3d_layout_swap_mode', { mode });
+    },
+
     async saveSettingsAutoStart(enabled: boolean): Promise<void> {
         return await invoke('cmd_save_settings_auto_start', { enabled });
     },
@@ -416,6 +432,7 @@ export const engineCommands = {
     async getNotificationInstances(): Promise<NotificationInstance[]> {
         return await invoke('cmd_get_notification_instances');
     },
+
 };
 
 export type ConfigPath =

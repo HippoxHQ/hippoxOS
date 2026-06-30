@@ -145,5 +145,7 @@ export enum SessionDomain {
     Chart = "chart",
     Map = "map",
     CodeEditor = "codeeditor",
+    Video = "video",
+    SandBox3D = "sandbox3d",
 }
 

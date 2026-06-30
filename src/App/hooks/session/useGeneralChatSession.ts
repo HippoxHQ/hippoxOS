@@ -319,7 +319,9 @@ export function useSession(
         if (sessionId === currentSessionId) return;
         if (sessionId.startsWith("chart_session_") ||
             sessionId.startsWith("map_session_") ||
-            sessionId.startsWith("codeeditor_session_")) {
+            sessionId.startsWith("codeeditor_session_") ||
+            sessionId.startsWith("video_session_") ||
+            sessionId.startsWith("sandbox3d_session_")) {
             return;
         }
         const hasData = taskManager.hasSessionMessages(currentSessionId, SessionDomain.General);
