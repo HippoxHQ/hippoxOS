@@ -640,6 +640,8 @@ export const zh = {
     confirmClearLogsTitle: "确认清空日志",
   },
   menu: {
+    videoEditor: "视频剪辑",
+    sandbox3d: "3D沙盒",
     general: "通用",
     chart: "图表",
     map: "地图",
@@ -2008,6 +2010,8 @@ export const en: typeof zh = {
     }
   },
   menu: {
+    videoEditor: "Video Editor",
+    sandbox3d: "3D Sandbox",
     general: "General",
     chart: "Chart",
     map: "Map",

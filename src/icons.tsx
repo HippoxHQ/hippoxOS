@@ -77,6 +77,8 @@ import {
   Languages,
   MessageCircle,
   ScrollText,
+  Box,
+  Film,
 } from "lucide-react";
 
 interface IconProps {
@@ -535,7 +537,19 @@ export const MessageCircleIcon: React.FC<IconProps> = ({
   size = 18,
 }) => <MessageCircle className={className} size={size} />;
 
+export const VideoEditorIcon: React.FC<IconProps> = ({
+  className,
+  size = 18,
+}) => <Film className={className} size={size} />;
+
+export const Sandbox3dIcon: React.FC<IconProps> = ({
+  className,
+  size = 18,
+}) => <Box className={className} size={size} />;
+
 export const iconMap: Record<string, React.FC<IconProps>> = {
+  videoEditor: VideoEditorIcon,
+  sandbox3d: Sandbox3dIcon,
   dashboard: DashboardIcon,
   workspace: WorkspaceIcon,
   projects: ProjectsIcon,

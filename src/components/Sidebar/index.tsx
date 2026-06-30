@@ -71,6 +71,8 @@ const Sidebar: React.FC<SidebarProps> = ({
       "userProfile",
       "chartChat",
       "mapChat",
+      "videoEditor",
+      "sandbox3d",
     ];
 
     if (directOpenItems.includes(itemId)) {

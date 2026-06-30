@@ -34,6 +34,8 @@ import MapsPage from "../../pages/MapsChatPage";
 import ChatPanel from "../../pages/GeneralChatPage/ChatPanel";
 import TerminalPanel from "../../pages/GeneralChatPage/TerminalPanel";
 import GeneralChatPage from "../../pages/GeneralChatPage";
+import SandBox3DPage from "../../pages/SandBox3DPage";
+import VideoEditorPage from "../../pages/VideoEditorPage";
 
 interface AppContentProps {
   theme: Theme;
@@ -378,6 +380,8 @@ export function AppContent({
     const isMapPage = currentContentPanel === "mapChat";
     const isChartPage = currentContentPanel === "chartChat";
     const isCodeEditorChat = currentContentPanel === "codeEditorChat";
+    const isVideoEditor = currentContentPanel === "videoEditor";
+    const isSandbox3d = currentContentPanel === "sandbox3d";
     let contentElement: React.ReactNode;
     if (isChatPage) {
       if (showWelcome && !currentContentPanel) {
@@ -482,6 +486,22 @@ export function AppContent({
           onDragOverInputChange={setIsDraggingOverInput}
           executionLogs={executionLogs}
           onClearLogs={onClearLogs}
+        />
+      );
+    } else if (isVideoEditor) {
+      contentElement = (
+        <VideoEditorPage
+          t={t}
+          theme={theme === "dark" ? "dark" : "light"}
+          i18n={language === "zh" ? "zh-cn" : "en"}
+        />
+      );
+    } else if (isSandbox3d) {
+      contentElement = (
+        <SandBox3DPage
+          t={t}
+          theme={theme === "dark" ? "dark" : "light"}
+          i18n={language === "zh" ? "zh-cn" : "en"}
         />
       );
     } else {

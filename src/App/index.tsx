@@ -1,24 +1,24 @@
 import React, { useEffect } from "react";
-import { useTheme } from "./hooks/useTheme";
-import { useLanguage } from "./hooks/useLanguage";
-import { useDragAndDrop } from "./hooks/useDragAndDrop";
-import { useMenuPanel } from "./hooks/useMenuPanel";
-import { useFilePreview } from "./hooks/useFilePreview";
-import { useExecutionLogs } from "./hooks/useExecutionLogs";
-import { useConfigLoader } from "./hooks/useConfigLoader";
+import { taskManager } from "../core/TaskManager";
+import { useFunctionPanelController } from "../components/FunctionPanel/hooks/useFunctionPanelController";
+import { sessionCommands } from "../command/session/general";
+import { AppContent } from "./components/AppContent";
 import { useSession } from "./hooks/session/useGeneralChatSession";
+import { useConfigLoader } from "./hooks/useConfigLoader";
+import { useDragAndDrop } from "./hooks/useDragAndDrop";
+import { useDriverEvents } from "./hooks/useDriverEvents";
+import { useExecutionLogs } from "./hooks/useExecutionLogs";
+import { useFilePreview } from "./hooks/useFilePreview";
+import { useFunctionPanelPosition } from "./hooks/useFunctionPanelPosition";
+import { useLanguage } from "./hooks/useLanguage";
+import { useLayoutSwapMode } from "./hooks/useLayoutSwapMode";
+import { useSearchEvents } from "./hooks/useSearchEvents";
+import { useSendSkillMessage } from "./hooks/useSendSkillMessage";
 import { useSidebar } from "./hooks/useSidebar";
 import { useSystemEvents, useDirectoryEvents } from "./hooks/useSystemEvents";
-import { useSearchEvents } from "./hooks/useSearchEvents";
-import { AppContent } from "./components/AppContent";
-import { taskManager } from "../core/TaskManager";
 import { useTaskEvents } from "./hooks/useTaskEvents";
-import { useLayoutSwapMode } from "./hooks/useLayoutSwapMode";
-import { useDriverEvents } from "./hooks/useDriverEvents";
-import { useSendSkillMessage } from "./hooks/useSendSkillMessage";
-import { useFunctionPanelController } from "../components/FunctionPanel/hooks/useFunctionPanelController";
-import { useFunctionPanelPosition } from "./hooks/useFunctionPanelPosition";
-import { sessionCommands } from "../command/session/general";
+import { useTheme } from "./hooks/useTheme";
+import { useMenuPanel } from "./hooks/useMenuPanel";
 
 function App() {
   const { isConfigLoaded, initialEngineConfig, initialTheme, initialLanguage } =
@@ -128,7 +128,9 @@ function App() {
       view === "userProfile" ||
       view === "codeEditorChat" ||
       view === "chartChat" ||
-      view === "mapChat"
+      view === "mapChat" ||
+      view === "videoEditor" ||
+      view === "sandbox3d"
     ) {
       switchContentArea(view);
       return;

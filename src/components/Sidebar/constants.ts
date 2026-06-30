@@ -5,6 +5,8 @@ export const topMenuItems: MenuItemWithSection[] = [
     { id: "codeEditorChat", icon: "codeEditor", label: "menu.codeEditor", section: "main" },
     { id: "chartChat", icon: "chart", label: "menu.chart", section: "main" },
     { id: "mapChat", icon: "map", label: "menu.map", section: "main" },
+    { id: "videoEditor", icon: "videoEditor", label: "menu.videoEditor", section: "main" },
+    { id: "sandbox3d", icon: "sandbox3d", label: "menu.sandbox3d", section: "main" },
     { id: "skillsManager", icon: "skillsManager", label: "menu.skillsManager", section: "ai" },
     { id: "skillMarket", icon: "skillMarket", label: "menu.skillMarket", section: "ai" },
     { id: "favorites", icon: "favorites", label: "menu.favorites", section: "main" },

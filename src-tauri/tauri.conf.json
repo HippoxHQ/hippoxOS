@@ -361,15 +361,6 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "externalBin": [
-      "bin/ffmpeg-x86_64-pc-windows-msvc.exe",
-      "bin/ffmpeg-x86_64-apple-darwin",
-      "bin/ffmpeg-aarch64-apple-darwin",
-      "bin/ffmpeg-x86_64-unknown-linux-gnu",
-      "bin/ffprobe-x86_64-pc-windows-msvc.exe",
-      "bin/ffprobe-x86_64-apple-darwin",
-      "bin/ffprobe-aarch64-apple-darwin",
-      "bin/ffprobe-x86_64-unknown-linux-gnu"
-    ]
+    "externalBin": ["bin/ffmpeg", "bin/ffprobe"]
   }
 }

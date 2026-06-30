@@ -21,6 +21,8 @@ export type ContentPanelView =
   | "codeEditorChat"
   | "chartChat"
   | "mapChat"
+  | "videoEditor"
+  | "sandbox3d"
   | null;
 
 export function useMenuPanel() {
@@ -82,6 +84,8 @@ export function useMenuPanel() {
       "chartChat",
       "mapChat",
       "generalChat",
+      "videoEditor",
+      "sandbox3d"
     ];
     if (contentViews.includes(view)) {
       setCurrentContentPanel(view as ContentPanelView);
