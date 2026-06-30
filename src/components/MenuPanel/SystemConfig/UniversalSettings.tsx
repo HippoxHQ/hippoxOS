@@ -138,14 +138,29 @@ const emitLayoutChangeEvent = (pageType: string, mode: string) => {
   );
 };
 
-const LayoutSwitch: React.FC<{
+interface LayoutSwitchProps {
   value: "terminal-left" | "chat-left";
   onChange: (mode: "terminal-left" | "chat-left") => void;
   label: string;
   description?: string;
-  pageType: "general" | "chart" | "map" | "codeeditor";
+  pageType:
+    | "general"
+    | "chart"
+    | "map"
+    | "codeeditor"
+    | "videoeditor"
+    | "sandbox3d";
   t: (key: string, params?: any) => string;
-}> = ({ value, onChange, label, description, pageType, t }) => {
+}
+
+const LayoutSwitch: React.FC<LayoutSwitchProps> = ({
+  value,
+  onChange,
+  label,
+  description,
+  pageType,
+  t,
+}) => {
   const getTerminalLabel = () => {
     switch (pageType) {
       case "chart":
@@ -154,6 +169,10 @@ const LayoutSwitch: React.FC<{
         return t("settings.mapTerminal");
       case "codeeditor":
         return t("settings.codeEditorTerminal");
+      case "videoeditor":
+        return t("settings.videoEditorTerminal");
+      case "sandbox3d":
+        return t("settings.sandbox3dTerminal");
       case "general":
       default:
         return t("settings.terminal");
@@ -293,22 +312,40 @@ const UniversalSettings: React.FC<UniversalSettingsProps> = ({
   const [codeEditorLayout, setCodeEditorLayout] = useState<
     "terminal-left" | "chat-left"
   >("terminal-left");
+  const [videoEditorLayout, setVideoEditorLayout] = useState<
+    "terminal-left" | "chat-left"
+  >("chat-left");
+  const [sandbox3dLayout, setSandbox3dLayout] = useState<
+    "terminal-left" | "chat-left"
+  >("chat-left");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const loadAllSettings = async () => {
       try {
-        const [general, chart, map, codeEditor, autoStart] = await Promise.all([
+        const [
+          general,
+          chart,
+          map,
+          codeEditor,
+          videoEditor,
+          sandbox3d,
+          autoStart,
+        ] = await Promise.all([
           configCommands.getSettingsGeneralChatLayoutSwapMode(),
           configCommands.getSettingsChartChatLayoutSwapMode(),
           configCommands.getSettingsMapChatLayoutSwapMode(),
           configCommands.getSettingsCodeEditorLayoutSwapMode(),
+          configCommands.getSettingsVideoEditorLayoutSwapMode(),
+          configCommands.getSettingsSandBox3DLayoutSwapMode(),
           configCommands.getSettingsAutoStart(),
         ]);
         setGeneralLayout(general as "terminal-left" | "chat-left");
         setChartLayout(chart as "terminal-left" | "chat-left");
         setMapLayout(map as "terminal-left" | "chat-left");
         setCodeEditorLayout(codeEditor as "terminal-left" | "chat-left");
+        setVideoEditorLayout(videoEditor as "terminal-left" | "chat-left");
+        setSandbox3dLayout(sandbox3d as "terminal-left" | "chat-left");
         setAutoStartEnabled(autoStart);
       } catch (error) {
         console.error("Failed to load settings:", error);
@@ -353,6 +390,20 @@ const UniversalSettings: React.FC<UniversalSettingsProps> = ({
   ) => {
     setCodeEditorLayout(mode);
     await configCommands.saveSettingsCodeEditorLayoutSwapMode(mode);
+  };
+
+  const handleVideoEditorLayoutChange = async (
+    mode: "terminal-left" | "chat-left",
+  ) => {
+    setVideoEditorLayout(mode);
+    await configCommands.saveSettingsVideoEditorLayoutSwapMode(mode);
+  };
+
+  const handleSandbox3dLayoutChange = async (
+    mode: "terminal-left" | "chat-left",
+  ) => {
+    setSandbox3dLayout(mode);
+    await configCommands.saveSettingsSandBox3DLayoutSwapMode(mode);
   };
 
   const handleFunctionPanelPositionChange = (position: "left" | "right") => {
@@ -628,6 +679,22 @@ const UniversalSettings: React.FC<UniversalSettingsProps> = ({
           label={t("settings.codeEditorChat")}
           description={t("settings.codeEditorDesc")}
           pageType="codeeditor"
+          t={t}
+        />
+        <LayoutSwitch
+          value={videoEditorLayout}
+          onChange={handleVideoEditorLayoutChange}
+          label={t("settings.videoEditorChat")}
+          description={t("settings.videoEditorDesc")}
+          pageType="videoeditor"
+          t={t}
+        />
+        <LayoutSwitch
+          value={sandbox3dLayout}
+          onChange={handleSandbox3dLayoutChange}
+          label={t("settings.sandbox3dChat")}
+          description={t("settings.sandbox3dDesc")}
+          pageType="sandbox3d"
           t={t}
         />
         <div

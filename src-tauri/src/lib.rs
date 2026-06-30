@@ -27,8 +27,8 @@ use std::path::PathBuf;
 use std::thread;
 use tauri::{DragDropEvent, WindowEvent};
 use tauri_plugin_autostart::MacosLauncher;
-use tauri_plugin_fs;
 use tauri_plugin_dialog;
+use tauri_plugin_fs;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -79,6 +79,9 @@ pub fn run() {
         let task_pool_for_state = task_pool.clone();
         app_state.set_task_pool(task_pool_for_state).await;
         scheduled_task_persist_task_pool::scheduled_task_persist_task_pool(task_pool.clone()).await;
+        // ========== 🧪 最简单的 FFmpeg 测试 ==========
+        test_ffmpeg_simple().await;
+        // =============================================
     });
     thread::spawn(|| {
         let rt = tokio::runtime::Runtime::new().unwrap();
@@ -97,7 +100,7 @@ pub fn run() {
             None,
         ))
         .plugin(tauri_plugin_fs::init())
-        .plugin(tauri_plugin_dialog::init()) 
+        .plugin(tauri_plugin_dialog::init())
         .manage(app_state)
         .setup(|app| {
             TrayManager::setup(app)?;
@@ -109,4 +112,24 @@ pub fn run() {
         .invoke_handler(register_handler())
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+async fn test_ffmpeg_simple() {
+    use std::process::Command;
+    println!("\nTesting FFmpeg integration...");
+    let output = Command::new("ffmpeg").arg("-version").output();
+    match output {
+        Ok(out) => {
+            if out.status.success() {
+                let version = String::from_utf8_lossy(&out.stdout);
+                let first_line = version.lines().next().unwrap_or("Unknown");
+                println!("FFmpeg OK: {}", first_line);
+            } else {
+                println!("FFmpeg execution failed");
+            }
+        }
+        Err(e) => {
+            println!("FFmpeg not found: {}", e);
+        }
+    }
 }

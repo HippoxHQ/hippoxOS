@@ -27,3 +27,6 @@ yarn-error.log*
 src-tauri/bin/*.exe
 src-tauri/bin/*-apple-darwin
 src-tauri/bin/*-unknown-linux-gnu
+
+# test bideo
+src/test/video/*
