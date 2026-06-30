@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from "react";
 import { taskManager } from "../../core/TaskManager";
 import { TaskStatusEnum } from "../../core/types";
 import { showTooltipOnElement } from "../../components/Tooltip";
-import { CollapseAllIcon2, ExpandAllIcon2 } from "../../icons";
+import { CollapseAllIcon2, ExpandAllIcon2, MessageCircleIcon, ScrollTextIcon } from "../../icons";
 import HistoryMapChatPanel, {
   HistoryMapChatPanelRef,
 } from "./HistoryMapChatPanel";
@@ -804,7 +804,9 @@ const MapsPage: React.FC<MapsPageProps> = ({
           paddingBottom: "8px",
         }}
       >
-        <span style={{ fontSize: "16px" }}>{leftIcon}</span>
+        <span style={{ fontSize: "16px" }}>
+          <MessageCircleIcon size={16} />
+        </span>
       </div>
       <CollapsedTaskList
         tasks={taskManager.getAllTasks()}
@@ -1004,7 +1006,6 @@ const MapsPage: React.FC<MapsPageProps> = ({
       const mainAreaWidth = containerWidth - historyWidthPx;
       if (mainAreaWidth <= 0) return;
       const startWidthPx = dragStartChatPanelWidth.current;
-
       const currentMode = layoutSwapModeRef.current;
       let newWidthPx;
       if (currentMode === "terminal-left") {
@@ -1012,7 +1013,6 @@ const MapsPage: React.FC<MapsPageProps> = ({
       } else {
         newWidthPx = startWidthPx + deltaX;
       }
-
       const minWidthPx = 200;
       const maxWidthPx = mainAreaWidth * 0.6;
       newWidthPx = Math.max(minWidthPx, Math.min(maxWidthPx, newWidthPx));
@@ -1113,7 +1113,9 @@ const MapsPage: React.FC<MapsPageProps> = ({
               paddingBottom: "8px",
             }}
           >
-            <span style={{ fontSize: "16px" }}>📜</span>
+            <span style={{ fontSize: "16px" }}>
+              <ScrollTextIcon size={16} />
+            </span>
           </div>
           <CollapsedHistoryList
             sessions={historySessions}

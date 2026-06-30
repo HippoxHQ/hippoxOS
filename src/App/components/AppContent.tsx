@@ -400,8 +400,6 @@ export function AppContent({
             onLayoutModeChange={() => {}}
             leftTitle={t("chat.title") || "Chat"}
             rightTitle={t("terminal.title") || "Terminal"}
-            leftIcon="💬"
-            rightIcon="🖥️"
             isFunctionPanelMaximized={
               functionPanel.isOpen ? isFunctionPanelMaximized : false
             }
@@ -472,8 +470,6 @@ export function AppContent({
           onLayoutModeChange={() => {}}
           leftTitle={t("chat.title") || "Chat"}
           rightTitle={t("codeEditor.title") || "Code Editor"}
-          leftIcon="💬"
-          rightIcon="💻"
           isFunctionPanelMaximized={
             functionPanel.isOpen ? isFunctionPanelMaximized : false
           }

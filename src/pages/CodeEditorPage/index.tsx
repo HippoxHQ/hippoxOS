@@ -6,6 +6,8 @@ import {
   FileIcon,
   FolderIcon,
   GithubIcon,
+  MessageCircleIcon,
+  ScrollTextIcon,
 } from "../../icons";
 import CodingPage from "./Coding";
 import { configCommands } from "../../command/config";
@@ -1291,7 +1293,9 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
               paddingBottom: "8px",
             }}
           >
-            <span style={{ fontSize: "16px" }}>📜</span>
+            <span style={{ fontSize: "16px" }}>
+              <ScrollTextIcon size={16} />
+            </span>
           </div>
           <CollapsedHistoryList
             sessions={historySessions}
@@ -1608,7 +1612,9 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
           paddingBottom: "8px",
         }}
       >
-        <span style={{ fontSize: "16px" }}>{leftIcon}</span>
+        <span style={{ fontSize: "16px" }}>
+          <MessageCircleIcon size={16} />
+        </span>
       </div>
       <CollapsedTaskList
         tasks={taskManager.getAllTasks()}

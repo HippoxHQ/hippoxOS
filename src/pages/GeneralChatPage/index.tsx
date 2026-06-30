@@ -3,7 +3,13 @@ import { taskManager } from "../../core/TaskManager";
 import { SessionDomain, TaskStatusEnum } from "../../core/types";
 import { showTooltipOnElement } from "../../components/Tooltip";
 import HistoryChatPanel, { HistoryChatPanelRef } from "./HistoryChatPanel";
-import { CollapseAllIcon2, ExpandAllIcon2 } from "../../icons";
+import {
+  CollapseAllIcon2,
+  ExpandAllIcon2,
+  MessageCircleIcon,
+  MonitorIcon,
+  ScrollTextIcon,
+} from "../../icons";
 import { configCommands } from "../../command/config";
 import ChatPanel from "./ChatPanel";
 import TerminalPanel from "./TerminalPanel";
@@ -640,8 +646,8 @@ const GeneralChatPage: React.FC<GeneralChatPageProps> = ({
   onLayoutModeChange,
   leftTitle = "Chat",
   rightTitle = "Terminal",
-  leftIcon = "💬",
-  rightIcon = "🖥️",
+  leftIcon = <MessageCircleIcon size={16} />,
+  rightIcon = <MonitorIcon size={16} />,
   t = (key: string) => key,
   isFunctionPanelMaximized = false,
   currentSessionId,
@@ -1153,7 +1159,9 @@ const GeneralChatPage: React.FC<GeneralChatPageProps> = ({
               paddingBottom: "8px",
             }}
           >
-            <span style={{ fontSize: "16px" }}>📜</span>
+            <span style={{ fontSize: "16px" }}>
+              <ScrollTextIcon size={16} />
+            </span>
           </div>
           <CollapsedHistoryList
             sessions={historySessions}

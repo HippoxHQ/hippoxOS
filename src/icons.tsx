@@ -75,6 +75,8 @@ import {
   Moon,
   Sun,
   Languages,
+  MessageCircle,
+  ScrollText,
 } from "lucide-react";
 
 interface IconProps {
@@ -523,6 +525,16 @@ export const LanguageIcon: React.FC<IconProps> = ({ className, size = 18 }) => (
   <Languages className={className} size={size} />
 );
 
+export const ScrollTextIcon: React.FC<IconProps> = ({
+  className,
+  size = 18,
+}) => <ScrollText className={className} size={size} />;
+
+export const MessageCircleIcon: React.FC<IconProps> = ({
+  className,
+  size = 18,
+}) => <MessageCircle className={className} size={size} />;
+
 export const iconMap: Record<string, React.FC<IconProps>> = {
   dashboard: DashboardIcon,
   workspace: WorkspaceIcon,
@@ -590,4 +602,6 @@ export const iconMap: Record<string, React.FC<IconProps>> = {
   codeEditor: CodeEditorIcon,
   chart: ChartIcon,
   map: MapIcon,
+  scrollText: ScrollTextIcon,
+  messageCircle: MessageCircleIcon,
 };

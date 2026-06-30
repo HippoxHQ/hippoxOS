@@ -67,7 +67,6 @@ function App() {
   const functionPanel = useFunctionPanelController();
   useTaskEvents(language);
   useDriverEvents(language);
-
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const handleNewSessionWithClose = () => {
     resetToChat();
