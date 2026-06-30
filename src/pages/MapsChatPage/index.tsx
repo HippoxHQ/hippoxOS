@@ -9,7 +9,7 @@ import HistoryMapChatPanel, {
 import MapsChatPageEarthView from "./MapsChatPageEarthView";
 import { configCommands } from "../../command/config";
 import MapsChatPage from "./MapsChatPanel";
-import { useMapSession } from "../../app/hooks/session/useMapChatSession";
+import { useMapSession } from "../../App/hooks/session/useMapChatSession";
 
 interface MapsPageProps {
   layoutMode?: "horizontal" | "vertical";

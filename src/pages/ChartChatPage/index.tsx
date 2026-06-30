@@ -9,7 +9,7 @@ import HistoryChartChatPanel, {
 } from "./HistoryChartChatPanel";
 import { configCommands } from "../../command/config";
 import ChartChatPanel from "./ChartChatPanel";
-import { useChartSession } from "../../app/hooks/session/useChartChatSession";
+import { useChartSession } from "../../App/hooks/session/useChartChatSession";
 
 interface ChartPageProps {
   layoutMode?: "horizontal" | "vertical";

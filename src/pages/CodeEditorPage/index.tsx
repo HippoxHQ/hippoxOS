@@ -15,7 +15,7 @@ import HistoryCodeEditorChatPanel, {
   HistoryCodeEditorChatPanelRef,
 } from "./HistoryCodeEditorChatPanel";
 import CodeEditorChatPanel from "./CodeEditorChatPanel";
-import { useCodeEditorSession } from "../../app/hooks/session/useCodeEditorChatSession";
+import { useCodeEditorSession } from "../../App/hooks/session/useCodeEditorChatSession";
 import { codeEditorSessionCommands } from "../../command/session/codeeditor";
 import CodeEditorWelcomePage from "./CodeEditorWelcomePage";
 import { listen } from "@tauri-apps/api/event";
