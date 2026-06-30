@@ -79,6 +79,10 @@ import {
   ScrollText,
   Box,
   Film,
+  ArrowLeft,
+  ArrowRight,
+  Scissors,
+  Split,
 } from "lucide-react";
 
 interface IconProps {
@@ -546,6 +550,117 @@ export const Sandbox3dIcon: React.FC<IconProps> = ({
   className,
   size = 18,
 }) => <Box className={className} size={size} />;
+
+export const AudioIcon: React.FC<IconProps> = ({ className, size = 18 }) => (
+  <FileMusic className={className} size={size} />
+);
+
+export const TextIcon: React.FC<IconProps> = ({ className, size = 18 }) => (
+  <FileText className={className} size={size} />
+);
+
+export const StickerIcon: React.FC<IconProps> = ({ className, size = 18 }) => (
+  <Image className={className} size={size} />
+);
+
+export const TransitionIcon: React.FC<IconProps> = ({
+  className,
+  size = 18,
+}) => <Waypoints className={className} size={size} />;
+
+export const SubtitleIcon: React.FC<IconProps> = ({ className, size = 18 }) => (
+  <ScrollText className={className} size={size} />
+);
+
+export const ImportIcon: React.FC<IconProps> = ({ className, size = 18 }) => (
+  <FolderPlus className={className} size={size} />
+);
+
+export const SubMenuIcon: React.FC<IconProps> = ({ className, size = 18 }) => (
+  <ChevronRight className={className} size={size} />
+);
+
+export const NewFileIcon: React.FC<IconProps> = ({ className, size = 18 }) => (
+  <File className={className} size={size} />
+);
+
+export const SplitIcon: React.FC<IconProps> = ({ className, size = 18 }) => (
+  <svg
+    className={className}
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M12 3v18" strokeDasharray="2 2" />
+    <circle cx="8" cy="8" r="2" />
+    <circle cx="8" cy="16" r="2" />
+    <path d="M10 10l8-6" />
+    <path d="M10 14l8 6" />
+  </svg>
+);
+
+export const SplitLeftIcon: React.FC<IconProps> = ({
+  className,
+  size = 18,
+}) => (
+  <svg
+    className={className}
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <rect
+      x="3"
+      y="4"
+      width="8"
+      height="16"
+      rx="1"
+      fill="currentColor"
+      stroke="none"
+    />
+    <path d="M12 4v16" />
+    <rect x="13" y="4" width="8" height="16" rx="1" />
+  </svg>
+);
+
+export const SplitRightIcon: React.FC<IconProps> = ({
+  className,
+  size = 18,
+}) => (
+  <svg
+    className={className}
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <rect x="3" y="4" width="8" height="16" rx="1" />
+    <path d="M12 4v16" />
+    <rect
+      x="13"
+      y="4"
+      width="8"
+      height="16"
+      rx="1"
+      fill="currentColor"
+      stroke="none"
+    />
+  </svg>
+);
 
 export const iconMap: Record<string, React.FC<IconProps>> = {
   videoEditor: VideoEditorIcon,
