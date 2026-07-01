@@ -2,7 +2,7 @@
 mod callback;
 mod cmd_registry;
 mod commands;
-mod common;
+mod commons;
 mod context;
 mod events;
 mod hippox_core;
@@ -13,7 +13,7 @@ mod windows;
 mod workspace;
 
 use crate::cmd_registry::*;
-use crate::common::init_default_settings;
+use crate::commons::init_default_settings;
 use crate::context::Context;
 use crate::events::handle_window_event;
 use crate::hippox_core::*;
@@ -79,9 +79,6 @@ pub fn run() {
         let task_pool_for_state = task_pool.clone();
         app_state.set_task_pool(task_pool_for_state).await;
         scheduled_task_persist_task_pool::scheduled_task_persist_task_pool(task_pool.clone()).await;
-        // ========== 🧪 最简单的 FFmpeg 测试 ==========
-        test_ffmpeg_simple().await;
-        // =============================================
     });
     thread::spawn(|| {
         let rt = tokio::runtime::Runtime::new().unwrap();
@@ -112,24 +109,4 @@ pub fn run() {
         .invoke_handler(register_handler())
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
-}
-
-async fn test_ffmpeg_simple() {
-    use std::process::Command;
-    println!("\nTesting FFmpeg integration...");
-    let output = Command::new("ffmpeg").arg("-version").output();
-    match output {
-        Ok(out) => {
-            if out.status.success() {
-                let version = String::from_utf8_lossy(&out.stdout);
-                let first_line = version.lines().next().unwrap_or("Unknown");
-                println!("FFmpeg OK: {}", first_line);
-            } else {
-                println!("FFmpeg execution failed");
-            }
-        }
-        Err(e) => {
-            println!("FFmpeg not found: {}", e);
-        }
-    }
 }

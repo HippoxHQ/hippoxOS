@@ -23,6 +23,7 @@ pub mod task_pool;
 pub mod terminal;
 pub mod types;
 pub mod urls;
+pub mod video_editor;
 pub mod windows;
 pub mod workflow;
 
@@ -51,5 +52,6 @@ pub use task_pool::*;
 pub use terminal::*;
 pub use types::*;
 pub use urls::*;
+pub use video_editor::*;
 pub use windows::*;
 pub use workflow::*;

@@ -1144,24 +1144,24 @@ pub async fn cmd_set_default_llm_model(model_name: String) -> Result<bool, Strin
 
 #[tauri::command]
 pub fn cmd_get_settings_language() -> Result<String, String> {
-    let value = crate::common::get_setting_with_default("language", serde_json::json!("en"))?;
+    let value = crate::commons::get_setting_with_default("language", serde_json::json!("en"))?;
     Ok(value.as_str().unwrap_or("en").to_string())
 }
 
 #[tauri::command]
 pub fn cmd_save_settings_language(language: String) -> Result<(), String> {
-    crate::common::set_setting("language", serde_json::json!(language))
+    crate::commons::set_setting("language", serde_json::json!(language))
 }
 
 #[tauri::command]
 pub fn cmd_get_settings_theme() -> Result<String, String> {
-    let value = crate::common::get_setting_with_default("theme", serde_json::json!("dark"))?;
+    let value = crate::commons::get_setting_with_default("theme", serde_json::json!("dark"))?;
     Ok(value.as_str().unwrap_or("dark").to_string())
 }
 
 #[tauri::command]
 pub fn cmd_save_settings_theme(theme: String) -> Result<(), String> {
-    crate::common::set_setting("theme", serde_json::json!(theme))
+    crate::commons::set_setting("theme", serde_json::json!(theme))
 }
 
 #[tauri::command]
@@ -1348,7 +1348,7 @@ pub async fn cmd_set_max_favorites_size(max_size_mb: u64) -> Result<(), String> 
 
 #[tauri::command]
 pub fn cmd_get_settings_videoeditor_layout_swap_mode() -> Result<String, String> {
-    let value = crate::common::get_setting_with_default(
+    let value = crate::commons::get_setting_with_default(
         "videoeditor_layout_swap_mode",
         serde_json::json!("chat-left"),
     )?;
@@ -1357,12 +1357,12 @@ pub fn cmd_get_settings_videoeditor_layout_swap_mode() -> Result<String, String>
 
 #[tauri::command]
 pub fn cmd_save_settings_videoeditor_layout_swap_mode(mode: String) -> Result<(), String> {
-    crate::common::set_setting("videoeditor_layout_swap_mode", serde_json::json!(mode))
+    crate::commons::set_setting("videoeditor_layout_swap_mode", serde_json::json!(mode))
 }
 
 #[tauri::command]
 pub fn cmd_get_settings_sandbox3d_layout_swap_mode() -> Result<String, String> {
-    let value = crate::common::get_setting_with_default(
+    let value = crate::commons::get_setting_with_default(
         "sandbox3d_layout_swap_mode",
         serde_json::json!("chat-left"),
     )?;
@@ -1371,12 +1371,12 @@ pub fn cmd_get_settings_sandbox3d_layout_swap_mode() -> Result<String, String> {
 
 #[tauri::command]
 pub fn cmd_save_settings_sandbox3d_layout_swap_mode(mode: String) -> Result<(), String> {
-    crate::common::set_setting("sandbox3d_layout_swap_mode", serde_json::json!(mode))
+    crate::commons::set_setting("sandbox3d_layout_swap_mode", serde_json::json!(mode))
 }
 
 #[tauri::command]
 pub fn cmd_get_settings_general_chat_layout_swap_mode() -> Result<String, String> {
-    let value = crate::common::get_setting_with_default(
+    let value = crate::commons::get_setting_with_default(
         "layout_swap_mode",
         serde_json::json!("terminal-left"),
     )?;
@@ -1385,12 +1385,12 @@ pub fn cmd_get_settings_general_chat_layout_swap_mode() -> Result<String, String
 
 #[tauri::command]
 pub fn cmd_save_settings_general_chat_layout_swap_mode(mode: String) -> Result<(), String> {
-    crate::common::set_setting("general_chat_layout_swap_mode", serde_json::json!(mode))
+    crate::commons::set_setting("general_chat_layout_swap_mode", serde_json::json!(mode))
 }
 
 #[tauri::command]
 pub fn cmd_get_settings_chart_chat_layout_swap_mode() -> Result<String, String> {
-    let value = crate::common::get_setting_with_default(
+    let value = crate::commons::get_setting_with_default(
         "chart_chat_layout_swap_mode",
         serde_json::json!("terminal-left"),
     )?;
@@ -1399,12 +1399,12 @@ pub fn cmd_get_settings_chart_chat_layout_swap_mode() -> Result<String, String> 
 
 #[tauri::command]
 pub fn cmd_save_settings_chart_chat_layout_swap_mode(mode: String) -> Result<(), String> {
-    crate::common::set_setting("chart_chat_layout_swap_mode", serde_json::json!(mode))
+    crate::commons::set_setting("chart_chat_layout_swap_mode", serde_json::json!(mode))
 }
 
 #[tauri::command]
 pub fn cmd_get_settings_map_chat_layout_swap_mode() -> Result<String, String> {
-    let value = crate::common::get_setting_with_default(
+    let value = crate::commons::get_setting_with_default(
         "map_chat_layout_swap_mode",
         serde_json::json!("terminal-left"),
     )?;
@@ -1413,12 +1413,12 @@ pub fn cmd_get_settings_map_chat_layout_swap_mode() -> Result<String, String> {
 
 #[tauri::command]
 pub fn cmd_save_settings_map_chat_layout_swap_mode(mode: String) -> Result<(), String> {
-    crate::common::set_setting("map_chat_layout_swap_mode", serde_json::json!(mode))
+    crate::commons::set_setting("map_chat_layout_swap_mode", serde_json::json!(mode))
 }
 
 #[tauri::command]
 pub fn cmd_get_settings_codeeditor_chat_layout_swap_mode() -> Result<String, String> {
-    let value = crate::common::get_setting_with_default(
+    let value = crate::commons::get_setting_with_default(
         "codeeditor_chat_layout_swap_mode",
         serde_json::json!("terminal-left"),
     )?;
@@ -1427,12 +1427,12 @@ pub fn cmd_get_settings_codeeditor_chat_layout_swap_mode() -> Result<String, Str
 
 #[tauri::command]
 pub fn cmd_save_settings_codeeditor_chat_layout_swap_mode(mode: String) -> Result<(), String> {
-    crate::common::set_setting("codeeditor_chat_layout_swap_mode", serde_json::json!(mode))
+    crate::commons::set_setting("codeeditor_chat_layout_swap_mode", serde_json::json!(mode))
 }
 
 #[tauri::command]
 pub fn cmd_get_settings_function_panel_position() -> Result<String, String> {
-    let value = crate::common::get_setting_with_default(
+    let value = crate::commons::get_setting_with_default(
         "function_panel_position",
         serde_json::json!("right"),
     )?;
@@ -1441,16 +1441,16 @@ pub fn cmd_get_settings_function_panel_position() -> Result<String, String> {
 
 #[tauri::command]
 pub fn cmd_save_settings_function_panel_position(position: String) -> Result<(), String> {
-    crate::common::set_setting("function_panel_position", serde_json::json!(position))
+    crate::commons::set_setting("function_panel_position", serde_json::json!(position))
 }
 
 #[tauri::command]
 pub fn cmd_get_settings_auto_start() -> Result<bool, String> {
-    let value = crate::common::get_setting_with_default("auto_start", serde_json::json!(false))?;
+    let value = crate::commons::get_setting_with_default("auto_start", serde_json::json!(false))?;
     Ok(value.as_bool().unwrap_or(false))
 }
 
 #[tauri::command]
 pub fn cmd_save_settings_auto_start(enabled: bool) -> Result<(), String> {
-    crate::common::set_setting("auto_start", serde_json::json!(enabled))
+    crate::commons::set_setting("auto_start", serde_json::json!(enabled))
 }

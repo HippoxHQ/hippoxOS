@@ -30,7 +30,7 @@ pub(crate) struct LogMessages {
 
 impl LogMessages {
     pub fn get() -> Self {
-        let lang = crate::common::get_setting_with_default("language", serde_json::json!("en"))
+        let lang = crate::commons::get_setting_with_default("language", serde_json::json!("en"))
             .map(|v| v.as_str().unwrap_or("en").to_string())
             .unwrap_or_else(|_| "en".to_string());
         match lang.as_str() {

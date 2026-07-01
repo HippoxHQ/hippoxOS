@@ -131,14 +131,14 @@ pub fn get_favorites_size() -> Result<u64, String> {
 }
 
 pub fn get_max_favorites_size() -> u64 {
-    match crate::common::get_setting("max_favorites_size_mb") {
+    match crate::commons::get_setting("max_favorites_size_mb") {
         Ok(value) => value.as_u64().unwrap_or(500),
         Err(_) => 500,
     }
 }
 
 pub fn set_max_favorites_size(size_mb: u64) -> Result<(), String> {
-    crate::common::set_setting("max_favorites_size_mb", serde_json::json!(size_mb))
+    crate::commons::set_setting("max_favorites_size_mb", serde_json::json!(size_mb))
 }
 
 /// Get total size of log files (in bytes)

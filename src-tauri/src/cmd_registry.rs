@@ -353,5 +353,31 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_terminal_kill,
         commands::cmd_terminal_list,
         commands::cmd_terminal_is_alive,
+        // ========== Video Editor ==========
+        // Basic Editing 
+        commands::cmd_video_export,
+        commands::cmd_video_metadata,
+        commands::cmd_video_thumbnail,
+        commands::cmd_video_trim,
+        commands::cmd_video_concat,
+        commands::cmd_video_extract_audio,
+        commands::cmd_video_filter,
+        commands::cmd_video_duration,
+        commands::cmd_video_validate,
+        // Multi-Track Composition
+        commands::cmd_video_compose_tracks,
+        commands::cmd_video_overlay,
+        commands::cmd_video_add_text,
+        commands::cmd_video_add_emoji,
+        commands::cmd_video_mix_audio,
+        // Keyframe Animation
+        commands::cmd_video_apply_keyframes,
+        commands::cmd_video_overlay_keyframes,
+        commands::cmd_video_slide_transition,
+        // Advanced Features 
+        commands::cmd_video_create_split_screen,
+        commands::cmd_video_add_background_music,
+        commands::cmd_video_change_speed,
+        commands::cmd_video_add_fade,
     ]
 }

@@ -9,7 +9,7 @@ use walkdir::WalkDir;
 
 use crate::commands::get_skills_market_dir;
 use crate::commands::paths::get_dialog_history_dir;
-use crate::common::{get_logs_dir, get_sessions_dir};
+use crate::commons::{get_logs_dir, get_sessions_dir};
 
 #[derive(Debug, Clone, Serialize)]
 pub struct SearchResult {
