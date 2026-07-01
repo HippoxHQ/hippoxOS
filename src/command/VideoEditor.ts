@@ -310,4 +310,104 @@ export const videoEditorCommands = {
   async addFade(request: FadeRequest): Promise<VideoOperationResult> {
     return await invoke("cmd_video_add_fade", { request });
   },
+
+  async rotateVideo(
+    inputPath: string,
+    outputPath: string,
+    degrees: number
+  ): Promise<VideoOperationResult> {
+    return await invoke("cmd_video_rotate", { inputPath, outputPath, degrees });
+  },
+
+  async flipVideo(
+    inputPath: string,
+    outputPath: string,
+    direction: "horizontal" | "vertical" | "both"
+  ): Promise<VideoOperationResult> {
+    return await invoke("cmd_video_flip", { inputPath, outputPath, direction });
+  },
+
+  async adjustVolume(
+    inputPath: string,
+    outputPath: string,
+    volume: number
+  ): Promise<VideoOperationResult> {
+    return await invoke("cmd_video_adjust_volume", { inputPath, outputPath, volume });
+  },
+
+  async addWatermark(
+    inputPath: string,
+    watermarkPath: string,
+    outputPath: string,
+    position: "topleft" | "topright" | "bottomleft" | "bottomright" | "center",
+    marginX: number,
+    marginY: number,
+    opacity: number,
+    scale?: number
+  ): Promise<VideoOperationResult> {
+    return await invoke("cmd_video_add_watermark", {
+      inputPath,
+      watermarkPath,
+      outputPath,
+      position,
+      marginX,
+      marginY,
+      opacity,
+      scale,
+    });
+  },
+
+  async generateGif(
+    inputPath: string,
+    outputPath: string,
+    fps: number,
+    start: number,
+    duration: number,
+    width?: number,
+    height?: number,
+    quality: number = 50
+  ): Promise<VideoOperationResult> {
+    return await invoke("cmd_video_generate_gif", {
+      inputPath,
+      outputPath,
+      fps,
+      width,
+      height,
+      start,
+      duration,
+      quality,
+    });
+  },
+
+  async compressVideo(
+    inputPath: string,
+    outputPath: string,
+    crf: number = 23,
+    preset: string = "medium",
+    videoBitrate?: string,
+    audioBitrate?: string,
+    scaleWidth?: number,
+    scaleHeight?: number
+  ): Promise<VideoOperationResult> {
+    return await invoke("cmd_video_compress", {
+      inputPath,
+      outputPath,
+      crf,
+      preset,
+      videoBitrate,
+      audioBitrate,
+      scaleWidth,
+      scaleHeight,
+    });
+  },
+
+  async audioFade(
+    inputPath: string,
+    outputPath: string,
+    fadeIn: number,
+    fadeOut: number
+  ): Promise<VideoOperationResult> {
+    return await invoke("cmd_video_audio_fade", { inputPath, outputPath, fadeIn, fadeOut });
+  },
 };
+

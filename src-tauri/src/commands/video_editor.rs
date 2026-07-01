@@ -4,8 +4,7 @@ use std::path::Path;
 use tauri::command;
 
 use crate::commons::{
-    ComposeRequest, ExportOptions, Ffmpeg, KeyframeAnimation, KeyframeTrackRequest,
-    ThumbnailOptions, TrackItem, VideoMetadata,
+    ComposeRequest, CompressOptions, ExportOptions, Ffmpeg, GifOptions, KeyframeAnimation, KeyframeTrackRequest, ThumbnailOptions, TrackItem, VideoMetadata, WatermarkOptions, WatermarkPosition,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -801,6 +800,246 @@ pub async fn cmd_video_add_fade(request: FadeRequest) -> Result<VideoOperationRe
         Err(e) => Ok(VideoOperationResult {
             success: false,
             message: format!("Failed to add fade: {}", e),
+        }),
+    }
+}
+
+#[command]
+pub async fn cmd_video_rotate(
+    input_path: String,
+    output_path: String,
+    degrees: u32,
+) -> Result<VideoOperationResult, String> {
+    let ffmpeg = Ffmpeg::new();
+
+    if !Path::new(&input_path).exists() {
+        return Ok(VideoOperationResult {
+            success: false,
+            message: "Input video file not found".to_string(),
+        });
+    }
+
+    match ffmpeg.rotate_video(&input_path, &output_path, degrees) {
+        Ok(_) => Ok(VideoOperationResult {
+            success: true,
+            message: format!("Video rotated successfully: {}", output_path),
+        }),
+        Err(e) => Ok(VideoOperationResult {
+            success: false,
+            message: format!("Failed to rotate video: {}", e),
+        }),
+    }
+}
+
+#[command]
+pub async fn cmd_video_flip(
+    input_path: String,
+    output_path: String,
+    direction: String,
+) -> Result<VideoOperationResult, String> {
+    let ffmpeg = Ffmpeg::new();
+
+    if !Path::new(&input_path).exists() {
+        return Ok(VideoOperationResult {
+            success: false,
+            message: "Input video file not found".to_string(),
+        });
+    }
+
+    match ffmpeg.flip_video(&input_path, &output_path, &direction) {
+        Ok(_) => Ok(VideoOperationResult {
+            success: true,
+            message: format!("Video flipped successfully: {}", output_path),
+        }),
+        Err(e) => Ok(VideoOperationResult {
+            success: false,
+            message: format!("Failed to flip video: {}", e),
+        }),
+    }
+}
+
+#[command]
+pub async fn cmd_video_adjust_volume(
+    input_path: String,
+    output_path: String,
+    volume: f32,
+) -> Result<VideoOperationResult, String> {
+    let ffmpeg = Ffmpeg::new();
+
+    if !Path::new(&input_path).exists() {
+        return Ok(VideoOperationResult {
+            success: false,
+            message: "Input video file not found".to_string(),
+        });
+    }
+
+    match ffmpeg.adjust_volume(&input_path, &output_path, volume) {
+        Ok(_) => Ok(VideoOperationResult {
+            success: true,
+            message: format!("Volume adjusted successfully: {}", output_path),
+        }),
+        Err(e) => Ok(VideoOperationResult {
+            success: false,
+            message: format!("Failed to adjust volume: {}", e),
+        }),
+    }
+}
+
+#[command]
+pub async fn cmd_video_add_watermark(
+    input_path: String,
+    watermark_path: String,
+    output_path: String,
+    position: String,
+    margin_x: u32,
+    margin_y: u32,
+    opacity: f64,
+    scale: Option<f64>,
+) -> Result<VideoOperationResult, String> {
+    let ffmpeg = Ffmpeg::new();
+
+    if !Path::new(&input_path).exists() {
+        return Ok(VideoOperationResult {
+            success: false,
+            message: "Input video file not found".to_string(),
+        });
+    }
+    if !Path::new(&watermark_path).exists() {
+        return Ok(VideoOperationResult {
+            success: false,
+            message: "Watermark file not found".to_string(),
+        });
+    }
+    let pos = match position.as_str() {
+        "topleft" => WatermarkPosition::TopLeft,
+        "topright" => WatermarkPosition::TopRight,
+        "bottomleft" => WatermarkPosition::BottomLeft,
+        "bottomright" => WatermarkPosition::BottomRight,
+        "center" => WatermarkPosition::Center,
+        _ => WatermarkPosition::TopLeft,
+    };
+    let options = WatermarkOptions {
+        position: pos,
+        margin_x,
+        margin_y,
+        opacity,
+        scale,
+    };
+    match ffmpeg.add_image_watermark(&input_path, &watermark_path, &output_path, &options) {
+        Ok(_) => Ok(VideoOperationResult {
+            success: true,
+            message: format!("Watermark added successfully: {}", output_path),
+        }),
+        Err(e) => Ok(VideoOperationResult {
+            success: false,
+            message: format!("Failed to add watermark: {}", e),
+        }),
+    }
+}
+
+#[command]
+pub async fn cmd_video_generate_gif(
+    input_path: String,
+    output_path: String,
+    fps: f64,
+    width: Option<u32>,
+    height: Option<u32>,
+    start: f64,
+    duration: f64,
+    quality: u32,
+) -> Result<VideoOperationResult, String> {
+    let ffmpeg = Ffmpeg::new();
+    if !Path::new(&input_path).exists() {
+        return Ok(VideoOperationResult {
+            success: false,
+            message: "Input video file not found".to_string(),
+        });
+    }
+    let options = GifOptions {
+        fps,
+        width,
+        height,
+        start,
+        duration,
+        quality,
+    };
+    match ffmpeg.generate_gif(&input_path, &output_path, &options) {
+        Ok(_) => Ok(VideoOperationResult {
+            success: true,
+            message: format!("GIF generated successfully: {}", output_path),
+        }),
+        Err(e) => Ok(VideoOperationResult {
+            success: false,
+            message: format!("Failed to generate GIF: {}", e),
+        }),
+    }
+}
+
+#[command]
+pub async fn cmd_video_compress(
+    input_path: String,
+    output_path: String,
+    crf: u32,
+    preset: String,
+    video_bitrate: Option<String>,
+    audio_bitrate: Option<String>,
+    scale_width: Option<u32>,
+    scale_height: Option<u32>,
+) -> Result<VideoOperationResult, String> {
+    let ffmpeg = Ffmpeg::new();
+    if !Path::new(&input_path).exists() {
+        return Ok(VideoOperationResult {
+            success: false,
+            message: "Input video file not found".to_string(),
+        });
+    }
+    let scale = match (scale_width, scale_height) {
+        (Some(w), Some(h)) => Some((w, h)),
+        _ => None,
+    };
+    let options = CompressOptions {
+        crf,
+        preset,
+        video_bitrate,
+        audio_bitrate,
+        scale,
+    };
+    match ffmpeg.compress_video(&input_path, &output_path, &options) {
+        Ok(_) => Ok(VideoOperationResult {
+            success: true,
+            message: format!("Video compressed successfully: {}", output_path),
+        }),
+        Err(e) => Ok(VideoOperationResult {
+            success: false,
+            message: format!("Failed to compress video: {}", e),
+        }),
+    }
+}
+
+#[command]
+pub async fn cmd_video_audio_fade(
+    input_path: String,
+    output_path: String,
+    fade_in: f64,
+    fade_out: f64,
+) -> Result<VideoOperationResult, String> {
+    let ffmpeg = Ffmpeg::new();
+
+    if !Path::new(&input_path).exists() {
+        return Ok(VideoOperationResult {
+            success: false,
+            message: "Input video file not found".to_string(),
+        });
+    }
+
+    match ffmpeg.audio_fade(&input_path, &output_path, fade_in, fade_out) {
+        Ok(_) => Ok(VideoOperationResult {
+            success: true,
+            message: format!("Audio fade added successfully: {}", output_path),
+        }),
+        Err(e) => Ok(VideoOperationResult {
+            success: false,
+            message: format!("Failed to add audio fade: {}", e),
         }),
     }
 }

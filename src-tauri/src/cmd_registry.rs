@@ -379,5 +379,12 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_video_add_background_music,
         commands::cmd_video_change_speed,
         commands::cmd_video_add_fade,
+        commands::cmd_video_rotate,
+        commands::cmd_video_flip, 
+        commands::cmd_video_adjust_volume,
+        commands::cmd_video_add_watermark,
+        commands::cmd_video_generate_gif,
+        commands::cmd_video_compress,
+        commands::cmd_video_audio_fade,
     ]
 }
