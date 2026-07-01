@@ -27,7 +27,11 @@
       }
     ],
     "security": {
-      "csp": null,
+      "csp": "default-src 'self' asset: http://asset.localhost; media-src 'self' asset: http://asset.localhost blob: data:; img-src 'self' asset: http://asset.localhost data:; style-src 'unsafe-inline' 'self'; script-src 'self' 'unsafe-eval'",
+      "assetProtocol": {
+        "enable": true,
+        "scope": ["**/*"]
+      },
       "capabilities": [
         {
           "identifier": "main-window",
