@@ -7,6 +7,8 @@ import { TaskInfo, UploadFile, TaskStatusEnum, SessionDomain } from "../../../co
 import { Language, ChatMessage, RoleEnum, MessageStatus } from "../../../types/types";
 import { workspaceCommands } from "../../../command/workspace";
 import { videoSessionCommands } from "../../../command/session/videoeditor";
+import { basename } from "@tauri-apps/api/path";
+import { showToast, ToastType } from "../../../components/Toast";
 
 export function useVideoSession(
     language: Language,
@@ -17,8 +19,9 @@ export function useVideoSession(
     const [isLoading, setIsLoading] = useState(true);
     const [taskManagerVersion, setTaskManagerVersion] = useState(0);
     const [pendingNewSession, setPendingNewSession] = useState(false);
-    const [pendingVideoUrl, setPendingVideoUrl] = useState<string>("");
+    const [pendingVideoPath, setPendingVideoPath] = useState<string>("");
     const [pendingVideoTitle, setPendingVideoTitle] = useState<string>("");
+    const [isCreatingSession, setIsCreatingSession] = useState<boolean>(false);
     const { t } = useTranslation(language);
 
     useEffect(() => {
@@ -102,6 +105,92 @@ export function useVideoSession(
         }
     }, [isConfigLoaded]);
 
+    const createVideoSessionWithPath = useCallback(async (
+        sessionId: string,
+        title: string,
+        description: string,
+        videoSourcePath?: string,
+        workflowMode?: string,
+    ) => {
+        return await videoSessionCommands.createVideoSession(
+            sessionId,
+            title,
+            description,
+            [],
+            [],
+            workflowMode || currentWorkflowMode,
+            undefined,
+            undefined,
+            videoSourcePath,
+        );
+    }, [currentWorkflowMode]);
+
+    const handleNewSession = useCallback(async (videoPath?: string, videoType?: "file" | "empty") => {
+        if (videoPath && videoType === "file") {
+            setIsCreatingSession(true);
+            try {
+                const newSessionId = `video_session_${Date.now()}`;
+                const fileName = await basename(videoPath);
+                const title = fileName || "Video Project";
+
+                await createVideoSessionWithPath(
+                    newSessionId,
+                    title,
+                    `Video: ${fileName}`,
+                    videoPath,
+                    currentWorkflowMode,
+                );
+
+                taskManager.loadSessionData(newSessionId, [], [], [], SessionDomain.Video);
+                setCurrentSessionId(newSessionId);
+                setPendingNewSession(false);
+                setPendingVideoPath("");
+                setPendingVideoTitle("");
+                window.dispatchEvent(new CustomEvent("video-session-created"));
+                window.dispatchEvent(new CustomEvent("video-loaded", {
+                    detail: { path: videoPath, title: fileName }
+                }));
+            } catch (error) {
+                console.error("Failed to create video session:", error);
+                showToast(
+                    ToastType.ERROR,
+                    language === "zh" ? "创建视频会话失败" : "Failed to create video session",
+                );
+            } finally {
+                setIsCreatingSession(false);
+            }
+        } else if (videoType === "empty" || !videoPath) {
+            setIsCreatingSession(true);
+            try {
+                const newSessionId = `video_session_${Date.now()}`;
+                const title = "Empty Project";
+
+                await createVideoSessionWithPath(
+                    newSessionId,
+                    title,
+                    "Empty video project",
+                    undefined,
+                    currentWorkflowMode,
+                );
+
+                taskManager.loadSessionData(newSessionId, [], [], [], SessionDomain.Video);
+                setCurrentSessionId(newSessionId);
+                setPendingNewSession(false);
+                setPendingVideoPath("");
+                setPendingVideoTitle("");
+                window.dispatchEvent(new CustomEvent("video-session-created"));
+            } catch (error) {
+                console.error("Failed to create empty project:", error);
+                showToast(
+                    ToastType.ERROR,
+                    language === "zh" ? "创建项目失败" : "Failed to create project",
+                );
+            } finally {
+                setIsCreatingSession(false);
+            }
+        }
+    }, [currentWorkflowMode, createVideoSessionWithPath, language]);
+
     const handleSendMessage = useCallback(async (
         userMessage: string,
         sessionId: string,
@@ -130,15 +219,12 @@ export function useVideoSession(
             const tempTasksMap = taskManager.getTasksBySession(finalSessionId, SessionDomain.Video);
             const tempTasks = tempTasksMap ? Array.from(tempTasksMap.values()) : [];
 
-            await videoSessionCommands.createVideoSession(
+            await createVideoSessionWithPath(
                 newSessionId,
                 sessionTitle,
                 t("app.newSessionDesc"),
-                [],
-                [],
+                pendingVideoPath || undefined,
                 workflowMode || currentWorkflowMode,
-                pendingVideoUrl || undefined,
-                pendingVideoTitle || undefined,
             );
 
             taskManager.loadSessionData(newSessionId, tempTasks, tempUserMessages, tempAssistantMessages, SessionDomain.Video);
@@ -147,12 +233,12 @@ export function useVideoSession(
             setCurrentSessionId(newSessionId);
             window.dispatchEvent(new CustomEvent("video-session-created"));
             setPendingNewSession(false);
-            setPendingVideoUrl("");
+            setPendingVideoPath("");
             setPendingVideoTitle("");
 
-            if (pendingVideoUrl) {
+            if (pendingVideoPath) {
                 window.dispatchEvent(new CustomEvent("video-loaded", {
-                    detail: { url: pendingVideoUrl, title: pendingVideoTitle }
+                    detail: { path: pendingVideoPath, title: pendingVideoTitle }
                 }));
             }
 
@@ -162,27 +248,24 @@ export function useVideoSession(
                 ? userMessage.slice(0, 30) + "..."
                 : userMessage;
 
-            await videoSessionCommands.createVideoSession(
+            await createVideoSessionWithPath(
                 newSessionId,
                 sessionTitle,
                 t("app.newSessionDesc"),
-                [],
-                [],
+                pendingVideoPath || undefined,
                 workflowMode || currentWorkflowMode,
-                pendingVideoUrl || undefined,
-                pendingVideoTitle || undefined,
             );
 
             taskManager.loadSessionData(newSessionId, [], [], [], SessionDomain.Video);
             finalSessionId = newSessionId;
             setCurrentSessionId(newSessionId);
             window.dispatchEvent(new CustomEvent("video-session-created"));
-            setPendingVideoUrl("");
+            setPendingVideoPath("");
             setPendingVideoTitle("");
 
-            if (pendingVideoUrl) {
+            if (pendingVideoPath) {
                 window.dispatchEvent(new CustomEvent("video-loaded", {
-                    detail: { url: pendingVideoUrl, title: pendingVideoTitle }
+                    detail: { path: pendingVideoPath, title: pendingVideoTitle }
                 }));
             }
         }
@@ -244,21 +327,7 @@ export function useVideoSession(
             };
             taskManager.addAssistantMessageToSession(finalSessionId, errorMsg, SessionDomain.Video);
         }
-    }, [currentSessionId, t, language, currentWorkflowMode, pendingVideoUrl, pendingVideoTitle]);
-
-    const handleNewSession = useCallback(async (videoUrl?: string, videoTitle?: string) => {
-        const pendingId = `pending_${Date.now()}`;
-        taskManager.loadSessionData(pendingId, [], [], [], SessionDomain.Video);
-        setCurrentSessionId(pendingId);
-        setPendingNewSession(true);
-        if (videoUrl) {
-            setPendingVideoUrl(videoUrl);
-            setPendingVideoTitle(videoTitle || "");
-        } else {
-            setPendingVideoUrl("");
-            setPendingVideoTitle("");
-        }
-    }, []);
+    }, [currentSessionId, t, language, currentWorkflowMode, pendingVideoPath, pendingVideoTitle, createVideoSessionWithPath]);
 
     const handleSwitchSession = useCallback(async (sessionId: string) => {
         if (sessionId === currentSessionId) return;
@@ -311,9 +380,9 @@ export function useVideoSession(
         setCurrentSessionId(sessionId);
         try {
             const config = await videoSessionCommands.loadVideoSessionConfig(sessionId);
-            if (config && config.video_url) {
+            if (config && config.video_file) {
                 window.dispatchEvent(new CustomEvent("video-loaded", {
-                    detail: { url: config.video_url, title: config.video_title || "" }
+                    detail: { path: config.video_file, title: config.title || "" }
                 }));
             }
         } catch (error) {
@@ -348,34 +417,31 @@ export function useVideoSession(
     }, [currentSessionId]);
 
     const createSessionWithVideo = useCallback(async (
-        videoUrl: string,
+        videoPath: string,
         videoTitle: string
     ) => {
         const newSessionId = `video_session_${Date.now()}`;
         const title = videoTitle || "Video Session";
 
-        await videoSessionCommands.createVideoSession(
+        await createVideoSessionWithPath(
             newSessionId,
             title,
-            `Video: ${videoTitle || videoUrl}`,
-            [],
-            [],
-            "ReAct",
-            videoUrl,
-            videoTitle,
+            `Video: ${videoTitle || videoPath}`,
+            videoPath,
+            currentWorkflowMode,
         );
 
         taskManager.loadSessionData(newSessionId, [], [], [], SessionDomain.Video);
         setCurrentSessionId(newSessionId);
         setPendingNewSession(false);
-        setPendingVideoUrl("");
+        setPendingVideoPath("");
         setPendingVideoTitle("");
         window.dispatchEvent(new CustomEvent("video-session-created"));
         window.dispatchEvent(new CustomEvent("video-loaded", {
-            detail: { url: videoUrl, title: videoTitle }
+            detail: { path: videoPath, title: videoTitle }
         }));
         return newSessionId;
-    }, []);
+    }, [currentWorkflowMode, createVideoSessionWithPath]);
 
     return {
         currentSessionId,
@@ -389,7 +455,9 @@ export function useVideoSession(
         resetSession,
         shouldShowWelcome,
         createSessionWithVideo,
-        pendingVideoUrl,
+        pendingVideoPath,
         pendingVideoTitle,
+        isCreatingSession,
+        setIsCreatingSession,
     };
 }

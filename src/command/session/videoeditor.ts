@@ -12,6 +12,7 @@ export const videoSessionCommands = {
         workflowMode?: string,
         videoUrl?: string,
         videoTitle?: string,
+        videoSourcePath?: string,
     ): Promise<string> {
         return await invoke('cmd_create_video_dialog_session', {
             sessionId,
@@ -22,6 +23,7 @@ export const videoSessionCommands = {
             workflowMode,
             videoUrl,
             videoTitle,
+            videoSourcePath,
         });
     },
 

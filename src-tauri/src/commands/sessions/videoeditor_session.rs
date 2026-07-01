@@ -1,9 +1,11 @@
 use std::fs;
+use std::path::Path;
 
 use chrono::Local;
 
-use crate::commands::{get_settings_dir, get_video_dialog_history_dir};
 use crate::commands::paths::get_app_root_dir;
+use crate::commands::{get_settings_dir, get_video_dialog_history_dir};
+use crate::commons::Ffmpeg;
 
 fn get_config_path() -> std::path::PathBuf {
     get_settings_dir().join("video_session.json")
@@ -52,6 +54,7 @@ pub fn cmd_create_video_dialog_session(
     workflow_mode: Option<String>,
     video_url: Option<String>,
     video_title: Option<String>,
+    video_source_path: Option<String>,
 ) -> Result<String, String> {
     let dir = get_video_dialog_history_dir();
     if !dir.exists() {
@@ -63,6 +66,83 @@ pub fn cmd_create_video_dialog_session(
         fs::create_dir_all(&session_dir)
             .map_err(|e| format!("Failed to create video session directory: {}", e))?;
     }
+    let workspace_dir = session_dir.join("workspace");
+    if !workspace_dir.exists() {
+        fs::create_dir_all(&workspace_dir)
+            .map_err(|e| format!("Failed to create workspace directory: {}", e))?;
+    }
+    let mut video_info = None;
+    let mut video_file_path = None;
+    let mut ffmpeg = Ffmpeg::new();
+    if let Some(source_path) = video_source_path {
+        if !source_path.is_empty() && Path::new(&source_path).exists() {
+            let file_name = Path::new(&source_path)
+                .file_name()
+                .and_then(|n| n.to_str())
+                .unwrap_or("video.mp4");
+            let dest_path = workspace_dir.join(file_name);
+            match fs::copy(&source_path, &dest_path) {
+                Ok(_) => {
+                    video_file_path = Some(dest_path.to_string_lossy().to_string());
+                    match ffmpeg.get_video_info_json(&dest_path.to_string_lossy().to_string()) {
+                        Ok(info) => {
+                            video_info = Some(info);
+                        }
+                        Err(e) => {
+                            eprintln!("Failed to get video info: {}", e);
+                        }
+                    }
+                }
+                Err(e) => {
+                    eprintln!("Failed to copy video file to workspace: {}", e);
+                }
+            }
+        }
+    }
+    if video_file_path.is_none() {
+        let empty_video_path = workspace_dir.join("empty_project.mp4");
+        match ffmpeg.create_empty_video(
+            &empty_video_path.to_string_lossy().to_string(), // output_path
+            5.0,                                             // duration (seconds)
+            1920,                                            // width
+            1080,                                            // height
+            30.0,                                            // fps
+        ) {
+            Ok(empty_path) => {
+                video_file_path = Some(empty_path.clone());
+                match ffmpeg.get_video_info_json(&empty_path) {
+                    Ok(info) => {
+                        video_info = Some(info);
+                    }
+                    Err(e) => {
+                        eprintln!("Failed to get empty video info: {}", e);
+                    }
+                }
+            }
+            Err(e) => {
+                eprintln!("Failed to create empty video: {}", e);
+            }
+        }
+    }
+    let metadata_path = workspace_dir.join("metadata.json");
+    let metadata = serde_json::json!({
+        "session_id": session_id,
+        "title": title,
+        "description": description,
+        "created_at": Local::now().to_rfc3339(),
+        "updated_at": Local::now().to_rfc3339(),
+        "workflow_mode": workflow_mode.clone().unwrap_or_else(|| "ReAct".to_string()),
+        "video_url": video_url.clone().unwrap_or_default(),
+        "video_title": video_title.clone().unwrap_or_default(),
+        "video_file": video_file_path,
+        "video_info": video_info,
+        "files": [],
+        "exported_videos": [],
+    });
+    let metadata_content = serde_json::to_string_pretty(&metadata)
+        .map_err(|e| format!("Failed to serialize metadata: {}", e))?;
+    fs::write(&metadata_path, metadata_content)
+        .map_err(|e| format!("Failed to save metadata.json: {}", e))?;
     let config = serde_json::json!({
         "session_id": session_id,
         "title": title,
@@ -72,6 +152,10 @@ pub fn cmd_create_video_dialog_session(
         "workflow_mode": workflow_mode.unwrap_or_else(|| "ReAct".to_string()),
         "video_url": video_url.unwrap_or_default(),
         "video_title": video_title.unwrap_or_default(),
+        "workspace_path": workspace_dir.to_string_lossy().to_string(),
+        "metadata_path": metadata_path.to_string_lossy().to_string(),
+        "video_file": video_file_path,
+        "video_info": video_info,
     });
     let config_path = session_dir.join("config.json");
     let config_content = serde_json::to_string_pretty(&config)
