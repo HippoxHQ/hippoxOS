@@ -3,6 +3,7 @@ mod callback;
 mod cmd_registry;
 mod commands;
 mod commons;
+mod components;
 mod context;
 mod events;
 mod hippox_core;
@@ -29,6 +30,8 @@ use tauri::{DragDropEvent, WindowEvent};
 use tauri_plugin_autostart::MacosLauncher;
 use tauri_plugin_dialog;
 use tauri_plugin_fs;
+use crate::commands::PlayerManager;
+use std::sync::Arc;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -99,6 +102,7 @@ pub fn run() {
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
         .manage(app_state)
+        .manage(Arc::new(tokio::sync::Mutex::new(PlayerManager::new())))
         .setup(|app| {
             TrayManager::setup(app)?;
             Ok(())
