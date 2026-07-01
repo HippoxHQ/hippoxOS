@@ -1038,11 +1038,17 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
     createSessionWithLockRef.current = createSessionWithLock;
   }, [createSessionWithLock]);
 
+  const isMountedRef = useRef(true);
+
   useEffect(() => {
+    isMountedRef.current = true;
     let unlisten: (() => void) | undefined;
     const setupFileDropListener = async () => {
       try {
         unlisten = await listen<string[]>("file-drop", async (event) => {
+          if (!isMountedRef.current) {
+            return;
+          }
           const paths = event.payload;
           if (!paths || paths.length === 0) return;
           const path = paths[0];
@@ -1063,6 +1069,7 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
     };
     setupFileDropListener();
     return () => {
+      isMountedRef.current = false;
       if (unlisten) {
         unlisten();
         unlisten = undefined;
