@@ -11,7 +11,6 @@ use crate::commons::{get_logs_dir, get_sessions_dir};
 
 #[derive(Debug, Clone, Serialize)]
 pub struct SearchResult {
-    // "skill", "session", "log", "message"
     pub category: String,
     pub id: String,
     pub title: String,
@@ -27,7 +26,6 @@ pub struct SearchRequest {
     pub limit: Option<usize>,
 }
 
-// ============ 对话记录搜索相关类型 ============
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MessageSearchResult {
@@ -52,7 +50,6 @@ pub struct SearchMessagesResponse {
     pub total: usize,
 }
 
-// ============ 字符串工具函数 ============
 
 fn safe_truncate(text: &str, max_len: usize) -> String {
     if text.len() <= max_len {
@@ -127,9 +124,6 @@ fn generate_highlight(text: &str, keyword: &str) -> String {
     }
 }
 
-// ============ 解析 SKILL.md 获取技能名称 ============
-
-/// 从 SKILL.md 内容中解析技能名称
 fn parse_skill_name_from_markdown(content: &str, default_name: &str) -> String {
     if content.starts_with("---") {
         if let Some(end_idx) = content[3..].find("---") {
@@ -148,7 +142,6 @@ fn parse_skill_name_from_markdown(content: &str, default_name: &str) -> String {
     default_name.to_string()
 }
 
-/// 从 SKILL.md 内容中解析技能描述
 fn parse_skill_description_from_markdown(content: &str, default_desc: &str) -> String {
     if content.starts_with("---") {
         if let Some(end_idx) = content[3..].find("---") {
@@ -167,19 +160,14 @@ fn parse_skill_description_from_markdown(content: &str, default_desc: &str) -> S
     default_desc.to_string()
 }
 
-// ============ 解构 LLM 响应内容 ============
 
-/// 从 LLM 响应中提取可读的聊天内容
 fn extract_chat_content(content: &str) -> String {
-    // 尝试解析为 JSON
     if let Ok(json) = serde_json::from_str::<serde_json::Value>(content) {
-        // 检查是否是 HippoxOSResult 格式，优先提取 chatResponse.m
         if let Some(chat_response) = json.get("chatResponse") {
             if let Some(m) = chat_response.get("m").and_then(|v| v.as_str()) {
                 return m.to_string();
             }
         }
-        // 如果是 terminalResponse 格式，提取 m 字段
         if let Some(terminal) = json.get("terminalResponse") {
             if let Some(m) = terminal.get("m").and_then(|v| v.as_str()) {
                 if !m.is_empty() {
@@ -187,7 +175,6 @@ fn extract_chat_content(content: &str) -> String {
                 }
             }
         }
-        // 如果是 metrics 格式，提取 key-value 对
         if let Some(metrics) = json.get("metrics") {
             if let Some(metrics_array) = metrics.as_array() {
                 let mut result = Vec::new();
@@ -218,7 +205,6 @@ fn extract_chat_content(content: &str) -> String {
                 }
             }
         }
-        // 如果是 status + message 格式
         if let Some(status) = json.get("status").and_then(|v| v.as_str()) {
             if let Some(message) = json.get("message").and_then(|v| v.as_str()) {
                 if !message.is_empty() {
@@ -228,7 +214,6 @@ fn extract_chat_content(content: &str) -> String {
         }
     }
 
-    // 如果不是 JSON 或者是简单字符串，直接返回（但截断）
     if content.len() > 200 {
         format!("{}...", &content[..200])
     } else {
@@ -236,7 +221,6 @@ fn extract_chat_content(content: &str) -> String {
     }
 }
 
-/// 生成消息预览（用于搜索结果展示）
 fn get_message_preview(content: &str, max_len: usize) -> String {
     let extracted = extract_chat_content(content);
     if extracted.len() > max_len {
@@ -246,7 +230,6 @@ fn get_message_preview(content: &str, max_len: usize) -> String {
     }
 }
 
-// ============ 原有搜索引擎 ============
 
 pub struct SearchEngine {
     skills_dir: PathBuf,
@@ -282,7 +265,6 @@ impl SearchEngine {
             let path = entry.path();
             let content = fs::read_to_string(path).unwrap_or_default();
 
-            // 从 SKILL.md 解析技能名称和描述
             let skill_name = parse_skill_name_from_markdown(
                 &content,
                 &path
@@ -460,9 +442,7 @@ impl SearchEngine {
     }
 }
 
-// ============ 对话记录搜索实现 ============
 
-/// 读取会话配置文件
 fn read_session_config(session_dir: &PathBuf) -> Result<serde_json::Value, String> {
     let config_path = session_dir.join("config.json");
     if !config_path.exists() {
@@ -475,7 +455,6 @@ fn read_session_config(session_dir: &PathBuf) -> Result<serde_json::Value, Strin
     Ok(config)
 }
 
-/// 读取会话的聊天内容
 fn read_session_chat(session_dir: &PathBuf) -> Result<Vec<serde_json::Value>, String> {
     let chat_path = session_dir.join("chat.json");
     if !chat_path.exists() {
@@ -488,7 +467,6 @@ fn read_session_chat(session_dir: &PathBuf) -> Result<Vec<serde_json::Value>, St
     Ok(messages)
 }
 
-/// 搜索所有会话中的消息（原始格式）
 #[command]
 pub async fn cmd_search_messages(
     request: SearchMessagesRequest,
@@ -552,7 +530,6 @@ pub async fn cmd_search_messages(
 
             let content_lower = content.to_lowercase();
             if content_lower.contains(&keyword_lower) {
-                // 解构 LLM 响应，提取可读内容
                 let display_content = get_message_preview(&content, 150);
                 let highlight = generate_highlight(&display_content, keyword);
 
@@ -598,7 +575,6 @@ pub async fn cmd_search_messages(
     Ok(SearchMessagesResponse { results, total })
 }
 
-/// 搜索消息并返回格式化的结果（兼容原有 SearchResult 格式）
 #[command]
 pub async fn cmd_search_messages_formatted(
     request: SearchMessagesRequest,
@@ -621,7 +597,6 @@ pub async fn cmd_search_messages_formatted(
     Ok(formatted)
 }
 
-// ============ Tauri 指令 ============
 
 #[command]
 pub async fn cmd_search_content(request: SearchRequest) -> Result<Vec<SearchResult>, String> {

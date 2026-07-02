@@ -83,6 +83,7 @@ import {
   ArrowRight,
   Scissors,
   Split,
+  Grid2X2,
 } from "lucide-react";
 
 interface IconProps {
@@ -661,6 +662,16 @@ export const SplitRightIcon: React.FC<IconProps> = ({
     />
   </svg>
 );
+
+export const MaterialFloatingIcon: React.FC<IconProps> = ({
+  className,
+  size = 20,
+}) => <Grid2X2 className={className} size={size} />;
+
+export const ToolFloatingIcon: React.FC<IconProps> = ({
+  className,
+  size = 20,
+}) => <Wrench className={className} size={size} />;
 
 export const iconMap: Record<string, React.FC<IconProps>> = {
   videoEditor: VideoEditorIcon,
