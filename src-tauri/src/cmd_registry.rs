@@ -400,6 +400,14 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_get_video_materials,     
         commands::cmd_get_audio_materials,     
         commands::cmd_get_image_materials,     
-        commands::cmd_get_text_materials,      
+        commands::cmd_get_text_materials, 
+        // ========== Video Materials Upload ==========
+        commands::cmd_upload_video_material,
+        commands::cmd_upload_audio_material,
+        commands::cmd_upload_image_material,
+        commands::cmd_upload_text_material,   
+        // ========== Video Session Tracks ==========
+        commands::cmd_get_video_session_tracks,
+        commands::cmd_update_video_session_tracks,  
     ]
 }

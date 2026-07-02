@@ -1,5 +1,8 @@
 use crate::commands::paths::get_app_root_dir;
-use crate::commands::{AudioInfo, ImageInfo, TextInfo, TrackInfo, VideoInfo, get_settings_dir, get_video_dialog_history_dir};
+use crate::commands::{
+    get_settings_dir, get_video_dialog_history_dir, AudioInfo, ImageInfo, TextInfo, TrackInfo,
+    VideoInfo,
+};
 use crate::commons::Ffmpeg;
 use chrono::Local;
 use std::fs;
@@ -178,6 +181,7 @@ pub fn cmd_create_video_dialog_session(
         "metadata_path": metadata_path.to_string_lossy().to_string(),
         "video_file": video_file_path,
         "video_info": video_info,
+        "tracks": tracks,
     });
     let config_path = session_dir.join("config.json");
     let config_content = serde_json::to_string_pretty(&config)
@@ -256,16 +260,47 @@ pub fn cmd_load_video_session_config(
     session_id: &str,
 ) -> Result<Option<serde_json::Value>, String> {
     let dir = get_video_dialog_history_dir();
-    let config_path = dir.join(session_id).join("config.json");
-    if config_path.exists() {
-        let content = fs::read_to_string(&config_path)
-            .map_err(|e| format!("Failed to read config: {}", e))?;
-        let config: serde_json::Value =
-            serde_json::from_str(&content).map_err(|e| format!("Failed to parse config: {}", e))?;
-        Ok(Some(config))
-    } else {
-        Ok(None)
+    let session_dir = dir.join(session_id);
+    let config_path = session_dir.join("config.json");
+    if !config_path.exists() {
+        return Ok(None);
     }
+    let content =
+        fs::read_to_string(&config_path).map_err(|e| format!("Failed to read config: {}", e))?;
+    let mut config: serde_json::Value =
+        serde_json::from_str(&content).map_err(|e| format!("Failed to parse config: {}", e))?;
+    let metadata_path = session_dir.join("workspace").join("metadata.json");
+    if metadata_path.exists() {
+        let metadata_content = fs::read_to_string(&metadata_path)
+            .map_err(|e| format!("Failed to read metadata: {}", e))?;
+        if let Ok(metadata) = serde_json::from_str::<serde_json::Value>(&metadata_content) {
+            if let Some(tracks) = metadata.get("tracks").cloned() {
+                config["tracks"] = tracks;
+            }
+            if let Some(video_file) = metadata.get("video_file").cloned() {
+                if config.get("video_file").is_none() || config["video_file"].is_null() {
+                    config["video_file"] = video_file;
+                }
+            }
+            if let Some(video_info) = metadata.get("video_info").cloned() {
+                if config.get("video_info").is_none() || config["video_info"].is_null() {
+                    config["video_info"] = video_info;
+                }
+            }
+            if let Some(title) = metadata.get("title").cloned() {
+                if config.get("title").is_none() || config["title"].is_null() {
+                    config["title"] = title;
+                }
+            }
+            if let Some(description) = metadata.get("description").cloned() {
+                if config.get("description").is_none() || config["description"].is_null() {
+                    config["description"] = description;
+                }
+            }
+        }
+    }
+
+    Ok(Some(config))
 }
 
 #[tauri::command]
@@ -291,6 +326,24 @@ pub fn cmd_update_video_session_config(session_id: &str, updates: String) -> Res
     let new_content = serde_json::to_string_pretty(&config)
         .map_err(|e| format!("Failed to serialize config: {}", e))?;
     fs::write(&config_path, new_content).map_err(|e| format!("Failed to save config: {}", e))?;
+    let metadata_path = session_dir.join("workspace").join("metadata.json");
+    if metadata_path.exists() {
+        let metadata_content = fs::read_to_string(&metadata_path)
+            .map_err(|e| format!("Failed to read metadata: {}", e))?;
+        let mut metadata: serde_json::Value = serde_json::from_str(&metadata_content)
+            .map_err(|e| format!("Failed to parse metadata: {}", e))?;
+        if let Some(obj) = updates_json.as_object() {
+            for (key, value) in obj {
+                metadata[key] = value.clone();
+            }
+        }
+        metadata["updated_at"] = serde_json::json!(Local::now().to_rfc3339());
+        let new_metadata_content = serde_json::to_string_pretty(&metadata)
+            .map_err(|e| format!("Failed to serialize metadata: {}", e))?;
+        fs::write(&metadata_path, new_metadata_content)
+            .map_err(|e| format!("Failed to save metadata: {}", e))?;
+    }
+
     Ok(())
 }
 
@@ -623,6 +676,21 @@ pub fn cmd_add_video_track(request: AddTrackRequest) -> Result<serde_json::Value
         .map_err(|e| format!("Failed to serialize metadata: {}", e))?;
     fs::write(&metadata_path, new_content)
         .map_err(|e| format!("Failed to save metadata: {}", e))?;
+    let config_path = session_dir.join("config.json");
+    if config_path.exists() {
+        let config_content = fs::read_to_string(&config_path)
+            .map_err(|e| format!("Failed to read config: {}", e))?;
+        let mut config: serde_json::Value = serde_json::from_str(&config_content)
+            .map_err(|e| format!("Failed to parse config: {}", e))?;
+        config["tracks"] = serde_json::to_value(&tracks)
+            .map_err(|e| format!("Failed to serialize tracks for config: {}", e))?;
+        config["updated_at"] = serde_json::json!(Local::now().to_rfc3339());
+        let new_config_content = serde_json::to_string_pretty(&config)
+            .map_err(|e| format!("Failed to serialize config: {}", e))?;
+        fs::write(&config_path, new_config_content)
+            .map_err(|e| format!("Failed to save config: {}", e))?;
+    }
+
     Ok(metadata)
 }
 
@@ -658,5 +726,80 @@ pub fn cmd_remove_video_track(request: RemoveTrackRequest) -> Result<serde_json:
         .map_err(|e| format!("Failed to serialize metadata: {}", e))?;
     fs::write(&metadata_path, new_content)
         .map_err(|e| format!("Failed to save metadata: {}", e))?;
+    let config_path = session_dir.join("config.json");
+    if config_path.exists() {
+        let config_content = fs::read_to_string(&config_path)
+            .map_err(|e| format!("Failed to read config: {}", e))?;
+        let mut config: serde_json::Value = serde_json::from_str(&config_content)
+            .map_err(|e| format!("Failed to parse config: {}", e))?;
+        config["tracks"] = serde_json::to_value(&tracks)
+            .map_err(|e| format!("Failed to serialize tracks for config: {}", e))?;
+        config["updated_at"] = serde_json::json!(Local::now().to_rfc3339());
+        let new_config_content = serde_json::to_string_pretty(&config)
+            .map_err(|e| format!("Failed to serialize config: {}", e))?;
+        fs::write(&config_path, new_config_content)
+            .map_err(|e| format!("Failed to save config: {}", e))?;
+    }
+    Ok(metadata)
+}
+
+#[tauri::command]
+pub fn cmd_get_video_session_tracks(session_id: &str) -> Result<Vec<serde_json::Value>, String> {
+    let dir = get_video_dialog_history_dir();
+    let session_dir = dir.join(session_id);
+    let metadata_path = session_dir.join("workspace").join("metadata.json");
+    if !metadata_path.exists() {
+        return Ok(Vec::new());
+    }
+    let content = fs::read_to_string(&metadata_path)
+        .map_err(|e| format!("Failed to read metadata: {}", e))?;
+    let metadata: serde_json::Value =
+        serde_json::from_str(&content).map_err(|e| format!("Failed to parse metadata: {}", e))?;
+    let tracks = metadata
+        .get("tracks")
+        .and_then(|t| t.as_array())
+        .map(|arr| arr.clone())
+        .unwrap_or_default();
+    Ok(tracks)
+}
+
+#[tauri::command]
+pub fn cmd_update_video_session_tracks(
+    session_id: &str,
+    tracks: Vec<serde_json::Value>,
+) -> Result<serde_json::Value, String> {
+    let dir = get_video_dialog_history_dir();
+    let session_dir = dir.join(session_id);
+    let workspace_dir = session_dir.join("workspace");
+    let metadata_path = workspace_dir.join("metadata.json");
+
+    if !metadata_path.exists() {
+        return Err(format!("Session metadata not found: {}", session_id));
+    }
+    let content = fs::read_to_string(&metadata_path)
+        .map_err(|e| format!("Failed to read metadata: {}", e))?;
+    let mut metadata: serde_json::Value =
+        serde_json::from_str(&content).map_err(|e| format!("Failed to parse metadata: {}", e))?;
+    metadata["tracks"] =
+        serde_json::to_value(&tracks).map_err(|e| format!("Failed to serialize tracks: {}", e))?;
+    metadata["updated_at"] = serde_json::json!(Local::now().to_rfc3339());
+    let new_content = serde_json::to_string_pretty(&metadata)
+        .map_err(|e| format!("Failed to serialize metadata: {}", e))?;
+    fs::write(&metadata_path, new_content)
+        .map_err(|e| format!("Failed to save metadata: {}", e))?;
+    let config_path = session_dir.join("config.json");
+    if config_path.exists() {
+        let config_content = fs::read_to_string(&config_path)
+            .map_err(|e| format!("Failed to read config: {}", e))?;
+        let mut config: serde_json::Value = serde_json::from_str(&config_content)
+            .map_err(|e| format!("Failed to parse config: {}", e))?;
+        config["tracks"] = serde_json::to_value(&tracks)
+            .map_err(|e| format!("Failed to serialize tracks for config: {}", e))?;
+        config["updated_at"] = serde_json::json!(Local::now().to_rfc3339());
+        let new_config_content = serde_json::to_string_pretty(&config)
+            .map_err(|e| format!("Failed to serialize config: {}", e))?;
+        fs::write(&config_path, new_config_content)
+            .map_err(|e| format!("Failed to save config: {}", e))?;
+    }
     Ok(metadata)
 }

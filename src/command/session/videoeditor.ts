@@ -2,6 +2,46 @@ import { invoke } from '@tauri-apps/api/core';
 import { TaskInfo } from '../../core/types';
 import { ChatMessage } from '../../types/types';
 
+export interface TrackInfo {
+    track_type: "video" | "audio" | "image" | "text";
+    // Video fields
+    width?: number;
+    height?: number;
+    duration?: number;
+    fps?: number;
+    bitrate?: number;
+    codec?: string;
+    path?: string;
+    has_audio?: boolean;
+    aspect_ratio?: string | null;
+    pixel_format?: string | null;
+    color_space?: string | null;
+    bit_depth?: number | null;
+    frame_count?: number | null;
+    keyframe_count?: number | null;
+    audio_codec?: string | null;
+    audio_sample_rate?: number | null;
+    audio_channels?: number | null;
+    audio_bitrate?: number | null;
+    file_size?: number | null;
+    container_format?: string | null;
+    creation_time?: string | null;
+    tags?: any | null;
+    video_stream_index?: number | null;
+    audio_stream_index?: number | null;
+    // Audio fields
+    file_path?: string;
+    file_name?: string;
+    sample_rate?: number;
+    channels?: number;
+    // Image fields
+    // Text fields
+    content?: string;
+    encoding?: string | null;
+    line_count?: number | null;
+    [key: string]: any;
+}
+
 export const videoSessionCommands = {
     async createVideoSession(
         sessionId: string,
@@ -97,5 +137,16 @@ export const videoSessionCommands = {
             return JSON.parse(content);
         }
         return null;
+    },
+
+    async getVideoSessionTracks(sessionId: string): Promise<TrackInfo[]> {
+        return await invoke('cmd_get_video_session_tracks', { sessionId });
+    },
+
+    async updateVideoSessionTracks(sessionId: string, tracks: TrackInfo[]): Promise<any> {
+        return await invoke('cmd_update_video_session_tracks', {
+            sessionId,
+            tracks: JSON.parse(JSON.stringify(tracks)),
+        });
     },
 };
