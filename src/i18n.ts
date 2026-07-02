@@ -1424,6 +1424,7 @@ export const zh = {
     tooltipFit: "⌨️ F: 适应屏幕",
   },
   videoEditor: {
+    allMaterial: "全部素材",
     textMaterial: "文字素材",
     // MaterialPanel
     material: "素材",
@@ -2998,6 +2999,7 @@ export const en: typeof zh = {
     tooltipFit: "⌨️ F: Fit",
   },
   videoEditor: {
+    allMaterial: "All Material",
     textMaterial: "Text Material",
     // MaterialPanel
     material: "Material",
