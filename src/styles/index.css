@@ -51,6 +51,7 @@ body:has(> div:only-child) {
   padding: 0;
   overflow: hidden;
   background: transparent !important;
+  user-select: none;
 }
 
 .material-preview-window-body * {
