@@ -351,6 +351,35 @@
             "core:window:allow-set-focus",
             "shell:allow-open"
           ]
+        },
+        {
+          "identifier": "material-preview-window",
+          "description": "Material Preview Window",
+          "windows": ["material-preview-window"],
+          "permissions": [
+            "core:default",
+            "core:event:allow-listen",
+            "core:event:allow-emit",
+            "core:event:allow-emit-to",
+            "core:window:allow-close",
+            "core:window:allow-show",
+            "core:window:allow-hide",
+            "core:window:allow-set-position",
+            "core:window:allow-set-focus",
+            "shell:allow-open",
+            {
+              "identifier": "fs:allow-read-file",
+              "allow": [{ "path": "**" }]
+            },
+            {
+              "identifier": "fs:allow-stat",
+              "allow": [{ "path": "**" }]
+            },
+            {
+              "identifier": "fs:allow-exists",
+              "allow": [{ "path": "**" }]
+            }
+          ]
         }
       ]
     }

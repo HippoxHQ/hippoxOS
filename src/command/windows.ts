@@ -13,20 +13,56 @@ export const windowsCommands = {
         return await invoke('cmd_exit_app');
     },
 
-    async windowHide(): Promise<void> {
-        return await invoke('cmd_window_hide');
+    async windowHide(windowId?: string): Promise<void> {
+        return await invoke('cmd_window_hide', { windowId });
     },
 
-    async windowMinimize(): Promise<void> {
-        return await invoke('cmd_window_minimize');
+    async windowShow(windowId?: string): Promise<void> {
+        return await invoke('cmd_window_show', { windowId });
     },
 
-    async windowMaximize(): Promise<void> {
-        return await invoke('cmd_window_maximize');
+    async windowMinimize(windowId?: string): Promise<void> {
+        return await invoke('cmd_window_minimize', { windowId });
     },
 
-    async windowIsMaximized(): Promise<boolean> {
-        return await invoke('cmd_window_is_maximized');
+    async windowMaximize(windowId?: string): Promise<void> {
+        return await invoke('cmd_window_maximize', { windowId });
+    },
+
+    async windowUnmaximize(windowId?: string): Promise<void> {
+        return await invoke('cmd_window_unmaximize', { windowId });
+    },
+
+    async windowClose(windowId?: string): Promise<void> {
+        return await invoke('cmd_window_close', { windowId });
+    },
+
+    async windowIsMaximized(windowId?: string): Promise<boolean> {
+        return await invoke('cmd_window_is_maximized', { windowId });
+    },
+
+    async windowIsVisible(windowId?: string): Promise<boolean> {
+        return await invoke('cmd_window_is_visible', { windowId });
+    },
+
+    async windowSetFocus(windowId?: string): Promise<void> {
+        return await invoke('cmd_window_set_focus', { windowId });
+    },
+
+    async windowToggleFullscreen(windowId?: string): Promise<void> {
+        return await invoke('cmd_window_toggle_fullscreen', { windowId });
+    },
+
+    async windowGetState(windowId?: string): Promise<any> {
+        return await invoke('cmd_window_get_state', { windowId });
+    },
+
+    async windowSetSize(width: number, height: number, windowId?: string): Promise<void> {
+        return await invoke('cmd_window_set_size', { windowId, width, height });
+    },
+
+    async windowSetPosition(x: number, y: number, windowId?: string): Promise<void> {
+        return await invoke('cmd_window_set_position', { windowId, x, y });
     },
 
     async getLlmInstances(): Promise<any> {

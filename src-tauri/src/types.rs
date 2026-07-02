@@ -22,6 +22,7 @@ pub enum WindowType {
     Main,
     Tray,
     TraySubmenu,
+    MaterialPreview,
 }
 
 impl std::fmt::Display for WindowType {
@@ -30,6 +31,7 @@ impl std::fmt::Display for WindowType {
             WindowType::Main => write!(f, "main"),
             WindowType::Tray => write!(f, "tray"),
             WindowType::TraySubmenu => write!(f, "tray-submenu"),
+            WindowType::MaterialPreview => write!(f, "material-preview"),
         }
     }
 }
@@ -39,6 +41,7 @@ pub enum WindowIdentifier {
     Main,
     Tray,
     TraySubmenu,
+    MaterialPreview,
 }
 
 impl std::fmt::Display for WindowIdentifier {
@@ -47,6 +50,7 @@ impl std::fmt::Display for WindowIdentifier {
             WindowIdentifier::Main => write!(f, "main-window"),
             WindowIdentifier::Tray => write!(f, "tray-window"),
             WindowIdentifier::TraySubmenu => write!(f, "tray-submenu-window"),
+            WindowIdentifier::MaterialPreview => write!(f, "material-preview-window"),
         }
     }
 }

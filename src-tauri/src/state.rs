@@ -43,6 +43,7 @@ pub struct AppState {
     pub tasks: Arc<Mutex<HashMap<String, StoredTask>>>,
     pub memcontext: Arc<Mutex<Option<Arc<MemContext>>>>,
     pub task_pool: Arc<Mutex<Option<TaskPool>>>,
+    pub material_preview_data: Arc<Mutex<Option<serde_json::Value>>>,
 }
 
 impl AppState {
@@ -53,7 +54,22 @@ impl AppState {
             tasks: Arc::new(Mutex::new(HashMap::new())),
             memcontext: Arc::new(Mutex::new(None)),
             task_pool: Arc::new(Mutex::new(None)),
+            material_preview_data: Arc::new(Mutex::new(None)),
         }
+    }
+
+    pub async fn set_material_preview_data(&self, data: serde_json::Value) {
+        let mut guard = self.material_preview_data.lock().await;
+        *guard = Some(data);
+    }
+
+    pub async fn get_material_preview_data(&self) -> Option<serde_json::Value> {
+        self.material_preview_data.lock().await.clone()
+    }
+
+    pub async fn clear_material_preview_data(&self) {
+        let mut guard = self.material_preview_data.lock().await;
+        *guard = None;
     }
 
     pub async fn set_memcontext(&self, mem: MemContext) {

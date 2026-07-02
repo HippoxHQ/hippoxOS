@@ -239,6 +239,9 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_window_set_size,
         commands::cmd_window_set_position,
         commands::cmd_window_hide,
+        commands::cmd_window_show,           
+        commands::cmd_window_is_visible,     
+        commands::cmd_window_set_focus,      
         commands::cmd_create_submenu_window,
         commands::cmd_emit_to_main_window,
         commands::cmd_exit_app,
@@ -409,5 +412,10 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         // ========== Video Session Tracks ==========
         commands::cmd_get_video_session_tracks,
         commands::cmd_update_video_session_tracks,  
+        // open material preview window
+        commands::cmd_open_material_preview,
+        // close material preview window
+        commands::cmd_close_material_preview,
+        commands::cmd_get_material_preview_data,
     ]
 }

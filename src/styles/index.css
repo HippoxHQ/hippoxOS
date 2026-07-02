@@ -45,3 +45,32 @@ body:has(> div:only-child) {
 .tray-submenu-window-body #root {
   background: transparent !important;
 }
+
+.material-preview-window-body {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background: transparent !important;
+}
+
+.material-preview-window-body * {
+  box-sizing: border-box;
+}
+
+.material-preview-window-body ::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+.material-preview-window-body ::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.material-preview-window-body ::-webkit-scrollbar-thumb {
+  background: #3a3f4a;
+  border-radius: 2px;
+}
+
+.material-preview-window-body ::-webkit-scrollbar-thumb:hover {
+  background: #4a4f5a;
+}

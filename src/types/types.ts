@@ -85,7 +85,8 @@ export enum MessageStatus {
 export enum WindowTypeEnum {
   Main = 'main',
   Tray = 'tray',
-  TraySubmenu = 'tray-submenu'
+  TraySubmenu = 'tray-submenu',
+  MaterialPreview = "material-preview",
 }
 
 export enum WindowIdentifierEnum {

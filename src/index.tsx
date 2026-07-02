@@ -1,15 +1,18 @@
+// src/index.tsx
+
 import React from "react";
 import ReactDOM from "react-dom/client";
 import "./styles/index.css";
 import "./styles/App.css";
 import App from "./App";
-import SystemTrayWindow from "./components/windows/SystemTrayWindow";
-import SubmenuWindow from "./components/windows/SubmenuWindow";
 import reportWebVitals from "./reportWebVitals";
 import { WindowTypeEnum } from "./types/types";
 import "@fontsource/great-vibes";
 import "@fontsource/dancing-script";
 import "@fontsource/pacifico";
+import SubmenuWindow from "./windows/SubmenuWindow";
+import SystemTrayWindow from "./windows/SystemTrayWindow";
+import MaterialPreviewWindow from "./windows/MaterialPreviewWindow";
 
 const root = ReactDOM.createRoot(
   document.getElementById("root") as HTMLElement,
@@ -30,6 +33,13 @@ if (windowType === WindowTypeEnum.Tray) {
   root.render(
     <React.StrictMode>
       <SubmenuWindow />
+    </React.StrictMode>,
+  );
+} else if (windowType === WindowTypeEnum.MaterialPreview) {
+  document.body.classList.add("material-preview-window-body");
+  root.render(
+    <React.StrictMode>
+      <MaterialPreviewWindow />
     </React.StrictMode>,
   );
 } else {
