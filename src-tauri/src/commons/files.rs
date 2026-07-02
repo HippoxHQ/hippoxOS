@@ -56,7 +56,7 @@ impl FileUtils {
     }
 
     pub fn copy_file_with_unique_name(source: &Path, target_dir: &Path) -> FileResult<PathBuf> {
-        if !source.exists() {
+        if !Self::file_exists(source) {
             return Err(FileError::NotFound(source.display().to_string()));
         }
         Self::ensure_dir(target_dir)?;
@@ -145,6 +145,69 @@ impl FileUtils {
             .duration_since(std::time::UNIX_EPOCH)
             .map_err(|e| FileError::Io(e.to_string()))?;
         Ok(duration.as_secs() as i64)
+    }
+
+    pub fn force_delete_file(path: &Path) -> FileResult<()> {
+        let path_str = path.to_string_lossy().to_string();
+        if let Ok(_) = fs::remove_file(path) {
+            return Ok(());
+        }
+        #[cfg(target_os = "windows")]
+        {
+            let _ = std::process::Command::new("cmd")
+                .args(&["/c", "del", "/f", "/q", &path_str])
+                .output();
+            if path.exists() {
+                let _ = std::process::Command::new("powershell")
+                    .args(&[
+                        "-Command",
+                        &format!(
+                            "Remove-Item -Path '{}' -Force -ErrorAction SilentlyContinue",
+                            path_str
+                        ),
+                    ])
+                    .output();
+            }
+        }
+        #[cfg(any(target_os = "macos", target_os = "linux"))]
+        {
+            let _ = std::process::Command::new("rm")
+                .args(&["-f", &path_str])
+                .output();
+            if path.exists() {
+                let _ = std::process::Command::new("chflags")
+                    .args(&["-R", "nouchg", &path_str])
+                    .output();
+                let _ = std::process::Command::new("rm")
+                    .args(&["-f", &path_str])
+                    .output();
+            }
+        }
+
+        if path.exists() {
+            return Err(FileError::Io(
+                "Failed to delete file even with force".to_string(),
+            ));
+        }
+        Ok(())
+    }
+
+    pub fn delete_cache_files(cache_dir: &Path, file_name: &str) -> FileResult<()> {
+        if !cache_dir.exists() {
+            return Ok(());
+        }
+        let _ = fs::read_dir(cache_dir).map(|entries| {
+            for entry in entries {
+                if let Ok(entry) = entry {
+                    let name = entry.file_name();
+                    let name_str = name.to_string_lossy();
+                    if name_str.contains(file_name) {
+                        let _ = fs::remove_file(entry.path());
+                    }
+                }
+            }
+        });
+        Ok(())
     }
 }
 

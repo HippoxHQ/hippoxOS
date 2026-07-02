@@ -417,5 +417,8 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         // close material preview window
         commands::cmd_close_material_preview,
         commands::cmd_get_material_preview_data,
+        // ========== Video Materials Operations ==========
+        commands::cmd_delete_material,
+        commands::cmd_open_material_directory,
     ]
 }

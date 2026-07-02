@@ -8,6 +8,7 @@ import { ContextMenuItemType, ContextMenu } from "../ContextMenu";
 import { DialogType, showDialog } from "../../../../../components/Dialog";
 import { useFileTreeKeyboard } from "./hooks/useFileTreeKeyboard";
 import { getFileIconComponent, getFolderIconComponent } from "../../../fileUtils";
+import { generalCommands } from "../../../../../command/General";
 
 interface FileTreeSectionProps {
   workspacePath: string | null | undefined;
@@ -708,7 +709,7 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({
   };
 
   const handleOpenInExplorer = async (path: string) => {
-    const result = await codeEditorCommands.openInExplorer(path);
+    const result = await generalCommands.openInExplorer(path);
     if (!result.success) {
       showToast(
         ToastType.ERROR,
