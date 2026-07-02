@@ -393,5 +393,6 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_get_ffmpeg_instance_count,
         commands::cmd_cleanup_ffmpeg_instance,
         commands::cmd_cleanup_all_ffmpeg_instances,
+        commands::cmd_reset_ffmpeg_instance
     ]
 }

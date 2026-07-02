@@ -1014,6 +1014,17 @@ impl Ffmpeg {
 
         Ok(keyframes)
     }
+
+    pub fn reset_persistent(&self, video_path: &str) -> Result<(), String> {
+        let mut guard = self.persistent.lock().unwrap();
+        if let Some(mut proc) = guard.take() {
+            let _ = proc.child.kill();
+            println!("[FFmpeg] Killed old persistent process");
+        }
+        drop(guard);
+        self.init_persistent(video_path)?;
+        Ok(())
+    }
 }
 
 fn gcd(a: u64, b: u64) -> u64 {
