@@ -1424,6 +1424,14 @@ export const zh = {
     tooltipFit: "⌨️ F: 适应屏幕",
   },
   videoEditor: {
+    addToTrack: "添加到轨道",
+    preview: "预览",
+    openDirectory: "打开所在目录",
+    showDetails: "查看详情",
+    confirmDeleteMaterial: "确定要删除素材 \"{{name}}\" 吗？此操作不可撤销。",
+    deleteMaterialSuccess: "素材已删除",
+    deleteMaterialFailed: "删除素材失败",
+    materialDetails: "素材详情",
     allMaterial: "全部素材",
     textMaterial: "文字素材",
     // MaterialPanel
@@ -2999,6 +3007,14 @@ export const en: typeof zh = {
     tooltipFit: "⌨️ F: Fit",
   },
   videoEditor: {
+    addToTrack: "Add to Track",
+    preview: "Preview",
+    openDirectory: "Open in Folder",
+    showDetails: "Show Details",
+    confirmDeleteMaterial: 'Are you sure you want to delete material "{{name}}"? This action cannot be undone.',
+    deleteMaterialSuccess: "Material deleted",
+    deleteMaterialFailed: "Failed to delete material",
+    materialDetails: "Material Details",
     allMaterial: "All Material",
     textMaterial: "Text Material",
     // MaterialPanel
