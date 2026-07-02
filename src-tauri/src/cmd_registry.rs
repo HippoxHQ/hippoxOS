@@ -387,20 +387,11 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_video_compress,
         commands::cmd_video_audio_fade,
         // ========== Video Player Commands ==========
-        commands::cmd_player_load,
-        commands::cmd_player_play,
-        commands::cmd_player_pause,
-        commands::cmd_player_toggle,
-        commands::cmd_player_forward,
-        commands::cmd_player_backward,
-        commands::cmd_player_seek,
-        commands::cmd_player_seek_frame,
-        commands::cmd_player_set_speed,
-        commands::cmd_player_stop,
-        commands::cmd_player_get_state,
         commands::cmd_player_extract_frame,
-        commands::cmd_player_unload,
-        commands::cmd_player_set_global,
-        commands::cmd_player_get_global_state,
+        // ========== FFmpeg Instance Management ==========
+        commands::cmd_init_ffmpeg_instance,
+        commands::cmd_get_ffmpeg_instance_count,
+        commands::cmd_cleanup_ffmpeg_instance,
+        commands::cmd_cleanup_all_ffmpeg_instances,
     ]
 }

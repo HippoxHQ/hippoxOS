@@ -1,11 +1,20 @@
 use serde::{Deserialize, Serialize};
 use std::fs;
+use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::process::{Child, ChildStdin, ChildStdout, Command, Stdio};
 
 #[derive(Clone)]
 pub struct Ffmpeg {
     pub bin_path: String,
+    pub persistent: std::sync::Arc<std::sync::Mutex<Option<PersistentProcess>>>,
+}
+
+pub struct PersistentProcess {
+    pub child: Child,
+    pub stdin: ChildStdin,
+    pub stdout: ChildStdout,
+    pub video_path: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -20,7 +29,6 @@ pub struct VideoMetadata {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VideoInfo {
-    // Basic info
     pub width: u32,
     pub height: u32,
     pub duration: f64,
@@ -28,7 +36,6 @@ pub struct VideoInfo {
     pub bitrate: u64,
     pub codec: String,
     pub path: String,
-    // Additional info
     pub aspect_ratio: Option<String>,
     pub pixel_format: Option<String>,
     pub color_space: Option<String>,
@@ -79,12 +86,118 @@ impl Ffmpeg {
     pub fn new() -> Self {
         Self {
             bin_path: "ffmpeg".to_string(),
+            persistent: std::sync::Arc::new(std::sync::Mutex::new(None)),
         }
     }
 
     pub fn with_bin_path(path: &str) -> Self {
         Self {
             bin_path: path.to_string(),
+            persistent: std::sync::Arc::new(std::sync::Mutex::new(None)),
+        }
+    }
+
+    pub fn init_persistent(&self, video_path: &str) -> Result<(), String> {
+        let mut guard = self.persistent.lock().unwrap();
+
+        if let Some(ref mut proc) = *guard {
+            if proc.video_path == video_path {
+                return Ok(());
+            }
+            let _ = proc.child.kill();
+            *guard = None;
+        }
+
+        println!("[FFmpeg] Starting persistent process for: {}", video_path);
+
+        let mut child = Command::new(&self.bin_path)
+            .args([
+                "-i",
+                video_path,
+                "-f",
+                "image2pipe",
+                "-vcodec",
+                "mjpeg",
+                "-q:v",
+                "2",
+                "-",
+            ])
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .map_err(|e| format!("Failed to start persistent ffmpeg: {}", e))?;
+
+        let stdin = child.stdin.take().ok_or("Failed to get stdin")?;
+        let stdout = child.stdout.take().ok_or("Failed to get stdout")?;
+
+        *guard = Some(PersistentProcess {
+            child,
+            stdin,
+            stdout,
+            video_path: video_path.to_string(),
+        });
+
+        println!("[FFmpeg] Persistent process started successfully");
+        Ok(())
+    }
+
+    pub fn extract_frame_persistent(&self, time: f64) -> Result<Vec<u8>, String> {
+        let mut guard = self.persistent.lock().unwrap();
+        let proc = guard
+            .as_mut()
+            .ok_or("Persistent process not initialized. Call init_persistent() first.")?;
+
+        let seek_cmd = format!("seek {} 2\n", time);
+        proc.stdin
+            .write_all(seek_cmd.as_bytes())
+            .map_err(|e| format!("Failed to send seek command: {}", e))?;
+        proc.stdin
+            .flush()
+            .map_err(|e| format!("Failed to flush stdin: {}", e))?;
+
+        let mut buffer = Vec::new();
+        let mut temp = [0u8; 65536];
+        let mut found_jpeg = false;
+
+        loop {
+            let n = proc
+                .stdout
+                .read(&mut temp)
+                .map_err(|e| format!("Failed to read frame data: {}", e))?;
+            if n == 0 {
+                break;
+            }
+            buffer.extend_from_slice(&temp[..n]);
+
+            if buffer.len() > 2 {
+                let last_two = &buffer[buffer.len() - 2..];
+                if last_two == [0xFF, 0xD9] {
+                    found_jpeg = true;
+                    break;
+                }
+            }
+        }
+
+        if !found_jpeg && !buffer.is_empty() {
+            println!(
+                "[FFmpeg] Warning: JPEG end marker not found, returning {} bytes",
+                buffer.len()
+            );
+        }
+
+        if buffer.is_empty() {
+            return Err("No frame data received from persistent process".to_string());
+        }
+
+        Ok(buffer)
+    }
+
+    pub fn cleanup_persistent(&self) {
+        let mut guard = self.persistent.lock().unwrap();
+        if let Some(mut proc) = guard.take() {
+            let _ = proc.child.kill();
+            println!("[FFmpeg] Persistent process cleaned up");
         }
     }
 
@@ -133,6 +246,33 @@ impl Ffmpeg {
             .map_err(|e| format!("Failed to parse ffprobe output: {}", e))?;
 
         Self::parse_metadata_json(&json)
+    }
+
+    pub fn extract_frame(&self, video_path: &str, time: f64) -> Result<Vec<u8>, String> {
+        let output = Command::new(&self.bin_path)
+            .args([
+                "-ss",
+                &time.to_string(),
+                "-i",
+                video_path,
+                "-vframes",
+                "1",
+                "-f",
+                "image2pipe",
+                "-vcodec",
+                "mjpeg",
+                "-",
+            ])
+            .output()
+            .map_err(|e| format!("FFmpeg failed: {}", e))?;
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            return Err(format!("FFmpeg error: {}", stderr));
+        }
+        if output.stdout.is_empty() {
+            return Err("No frame data received".to_string());
+        }
+        Ok(output.stdout)
     }
 
     fn parse_metadata_json(json: &serde_json::Value) -> Result<VideoMetadata, String> {
@@ -208,7 +348,6 @@ impl Ffmpeg {
 
         let mut info = Self::parse_video_info_json(&json, path)?;
 
-        // Get keyframe count using the dedicated method
         if let Ok(count) = self.get_keyframe_count(path) {
             info.keyframe_count = Some(count);
         } else {
@@ -236,13 +375,10 @@ impl Ffmpeg {
             .as_str()
             .unwrap_or("unknown")
             .to_string();
-        // Get frame count
         let frame_count = video_stream["nb_frames"]
             .as_str()
             .and_then(|s| s.parse::<u64>().ok());
-        // Get file size
         let file_size = format["size"].as_str().and_then(|s| s.parse::<u64>().ok());
-        // Calculate duration from frame_count / fps
         let duration_from_frames = frame_count
             .and_then(|fc| {
                 if fps > 0.0 {
@@ -252,7 +388,6 @@ impl Ffmpeg {
                 }
             })
             .unwrap_or(0.0);
-        // Get duration - try format first, then video stream, then calculate from frames
         let duration = format["duration"]
             .as_str()
             .and_then(|s| s.parse::<f64>().ok())
@@ -264,7 +399,6 @@ impl Ffmpeg {
             })
             .or_else(|| video_stream["duration"].as_f64())
             .or_else(|| {
-                // If duration is 0 but we have frame_count and fps, calculate it
                 if duration_from_frames > 0.0 {
                     Some(duration_from_frames)
                 } else {
@@ -272,7 +406,6 @@ impl Ffmpeg {
                 }
             })
             .unwrap_or(0.0);
-        // Get bitrate - try format first, then video stream, then calculate from file_size and duration
         let bitrate = format["bit_rate"]
             .as_str()
             .and_then(|s| s.parse::<u64>().ok())
@@ -284,7 +417,6 @@ impl Ffmpeg {
             })
             .or_else(|| video_stream["bit_rate"].as_u64())
             .unwrap_or(0);
-        // Calculate bitrate from file_size and duration if not found
         let mut final_bitrate = bitrate;
         if final_bitrate == 0 {
             if let Some(size) = file_size {
@@ -294,7 +426,6 @@ impl Ffmpeg {
                     duration_from_frames
                 };
                 if dur > 0.0 {
-                    // bitrate in bits per second = (file_size * 8) / duration
                     final_bitrate = ((size as f64 * 8.0) / dur) as u64;
                 }
             }
