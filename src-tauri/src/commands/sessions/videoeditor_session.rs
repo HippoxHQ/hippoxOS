@@ -1,11 +1,9 @@
+use crate::commands::paths::get_app_root_dir;
+use crate::commands::{AudioInfo, ImageInfo, TextInfo, TrackInfo, VideoInfo, get_settings_dir, get_video_dialog_history_dir};
+use crate::commons::Ffmpeg;
+use chrono::Local;
 use std::fs;
 use std::path::Path;
-
-use chrono::Local;
-
-use crate::commands::paths::get_app_root_dir;
-use crate::commands::{get_settings_dir, get_video_dialog_history_dir};
-use crate::commons::Ffmpeg;
 
 fn get_config_path() -> std::path::PathBuf {
     get_settings_dir().join("video_session.json")
@@ -71,8 +69,21 @@ pub fn cmd_create_video_dialog_session(
         fs::create_dir_all(&workspace_dir)
             .map_err(|e| format!("Failed to create workspace directory: {}", e))?;
     }
+    let material_dir = workspace_dir.join("material");
+    if !material_dir.exists() {
+        fs::create_dir_all(&material_dir)
+            .map_err(|e| format!("Failed to create material directory: {}", e))?;
+    }
+    for sub_dir in ["videos", "audios", "images", "texts"] {
+        let sub_path = material_dir.join(sub_dir);
+        if !sub_path.exists() {
+            fs::create_dir_all(&sub_path)
+                .map_err(|e| format!("Failed to create {} directory: {}", sub_dir, e))?;
+        }
+    }
     let mut video_info = None;
     let mut video_file_path = None;
+    let mut tracks: Vec<TrackInfo> = Vec::new();
     let mut ffmpeg = Ffmpeg::new();
     if let Some(source_path) = video_source_path {
         if !source_path.is_empty() && Path::new(&source_path).exists() {
@@ -80,13 +91,19 @@ pub fn cmd_create_video_dialog_session(
                 .file_name()
                 .and_then(|n| n.to_str())
                 .unwrap_or("video.mp4");
-            let dest_path = workspace_dir.join(file_name);
+            let dest_dir = material_dir.join("videos");
+            let dest_path = dest_dir.join(file_name);
             match fs::copy(&source_path, &dest_path) {
                 Ok(_) => {
-                    video_file_path = Some(dest_path.to_string_lossy().to_string());
-                    match ffmpeg.get_video_info_json(&dest_path.to_string_lossy().to_string()) {
-                        Ok(info) => {
-                            video_info = Some(info);
+                    let dest_path_str = dest_path.to_string_lossy().to_string();
+                    video_file_path = Some(dest_path_str.clone());
+                    match ffmpeg.get_video_info_json(&dest_path_str) {
+                        Ok(info_json) => {
+                            let video_info_struct: VideoInfo =
+                                serde_json::from_value(info_json.clone())
+                                    .map_err(|e| format!("Failed to parse video info: {}", e))?;
+                            video_info = Some(info_json);
+                            tracks.push(TrackInfo::Video(video_info_struct));
                         }
                         Err(e) => {
                             eprintln!("Failed to get video info: {}", e);
@@ -102,17 +119,21 @@ pub fn cmd_create_video_dialog_session(
     if video_file_path.is_none() {
         let empty_video_path = workspace_dir.join("empty_project.mp4");
         match ffmpeg.create_empty_video(
-            &empty_video_path.to_string_lossy().to_string(), // output_path
-            5.0,                                             // duration (seconds)
-            1920,                                            // width
-            1080,                                            // height
-            30.0,                                            // fps
+            &empty_video_path.to_string_lossy().to_string(),
+            5.0,
+            1920,
+            1080,
+            30.0,
         ) {
             Ok(empty_path) => {
                 video_file_path = Some(empty_path.clone());
                 match ffmpeg.get_video_info_json(&empty_path) {
-                    Ok(info) => {
-                        video_info = Some(info);
+                    Ok(info_json) => {
+                        let video_info_struct: VideoInfo =
+                            serde_json::from_value(info_json.clone())
+                                .map_err(|e| format!("Failed to parse video info: {}", e))?;
+                        video_info = Some(info_json);
+                        tracks.push(TrackInfo::Video(video_info_struct));
                     }
                     Err(e) => {
                         eprintln!("Failed to get empty video info: {}", e);
@@ -136,6 +157,7 @@ pub fn cmd_create_video_dialog_session(
         "video_title": video_title.clone().unwrap_or_default(),
         "video_file": video_file_path,
         "video_info": video_info,
+        "tracks": tracks,
         "files": [],
         "exported_videos": [],
     });
@@ -400,4 +422,241 @@ pub fn cmd_update_pinned_video_sessions(
 #[tauri::command]
 pub fn cmd_get_pinned_video_sessions() -> Result<Vec<String>, String> {
     get_pinned_sessions_from_config()
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct AddTrackRequest {
+    pub session_id: String,
+    pub track_type: String,
+    pub file_path: Option<String>,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct RemoveTrackRequest {
+    pub session_id: String,
+    pub track_index: usize,
+}
+
+#[tauri::command]
+pub fn cmd_add_video_track(request: AddTrackRequest) -> Result<serde_json::Value, String> {
+    let dir = get_video_dialog_history_dir();
+    let session_dir = dir.join(&request.session_id);
+    let workspace_dir = session_dir.join("workspace");
+    let metadata_path = workspace_dir.join("metadata.json");
+    if !metadata_path.exists() {
+        return Err(format!(
+            "Session metadata not found: {}",
+            request.session_id
+        ));
+    }
+    let content = fs::read_to_string(&metadata_path)
+        .map_err(|e| format!("Failed to read metadata: {}", e))?;
+    let mut metadata: serde_json::Value =
+        serde_json::from_str(&content).map_err(|e| format!("Failed to parse metadata: {}", e))?;
+    let mut tracks: Vec<TrackInfo> = match metadata.get("tracks") {
+        Some(t) => serde_json::from_value(t.clone())
+            .map_err(|e| format!("Failed to parse tracks: {}", e))?,
+        None => Vec::new(),
+    };
+    let ffmpeg = Ffmpeg::new();
+    let track_type = request.track_type.as_str();
+    match track_type {
+        "video" => {
+            let default_path = workspace_dir
+                .join("material")
+                .join("videos")
+                .join("empty_video.mp4");
+            let video_path = if let Some(ref path) = request.file_path {
+                if Path::new(path).exists() {
+                    path.clone()
+                } else {
+                    default_path.to_string_lossy().to_string()
+                }
+            } else {
+                default_path.to_string_lossy().to_string()
+            };
+            match ffmpeg.get_video_info_json(&video_path) {
+                Ok(info_json) => {
+                    let video_info: VideoInfo = serde_json::from_value(info_json)
+                        .map_err(|e| format!("Failed to parse video info: {}", e))?;
+                    tracks.push(TrackInfo::Video(video_info));
+                }
+                Err(e) => {
+                    eprintln!("Failed to get video info for new track: {}", e);
+                    let video_info = VideoInfo {
+                        width: 1920,
+                        height: 1080,
+                        duration: 5.0,
+                        fps: 30.0,
+                        bitrate: 0,
+                        codec: "unknown".to_string(),
+                        path: video_path.clone(),
+                        aspect_ratio: None,
+                        pixel_format: None,
+                        color_space: None,
+                        bit_depth: None,
+                        frame_count: None,
+                        keyframe_count: None,
+                        has_audio: false,
+                        audio_codec: None,
+                        audio_sample_rate: None,
+                        audio_channels: None,
+                        audio_bitrate: None,
+                        file_size: None,
+                        container_format: None,
+                        creation_time: None,
+                        tags: None,
+                        video_stream_index: None,
+                        audio_stream_index: None,
+                    };
+                    tracks.push(TrackInfo::Video(video_info));
+                }
+            }
+        }
+        "audio" => {
+            let default_path = workspace_dir
+                .join("material")
+                .join("audios")
+                .join("empty_audio.mp3");
+            let audio_path = if let Some(ref path) = request.file_path {
+                if Path::new(path).exists() {
+                    path.clone()
+                } else {
+                    default_path.to_string_lossy().to_string()
+                }
+            } else {
+                default_path.to_string_lossy().to_string()
+            };
+            let file_name = Path::new(&audio_path)
+                .file_name()
+                .and_then(|n| n.to_str())
+                .unwrap_or("empty_audio.mp3")
+                .to_string();
+            let file_size = fs::metadata(&audio_path).map(|m| m.len()).unwrap_or(0);
+            let audio_info = AudioInfo {
+                duration: 0.0,
+                bitrate: 0,
+                codec: "unknown".to_string(),
+                sample_rate: 0,
+                channels: 0,
+                file_path: audio_path,
+                file_name,
+                file_size,
+                container_format: None,
+                creation_time: None,
+                tags: None,
+            };
+            tracks.push(TrackInfo::Audio(audio_info));
+        }
+        "image" => {
+            let default_path = workspace_dir
+                .join("material")
+                .join("images")
+                .join("empty_image.png");
+            let image_path = if let Some(ref path) = request.file_path {
+                if Path::new(path).exists() {
+                    path.clone()
+                } else {
+                    default_path.to_string_lossy().to_string()
+                }
+            } else {
+                default_path.to_string_lossy().to_string()
+            };
+            let file_name = Path::new(&image_path)
+                .file_name()
+                .and_then(|n| n.to_str())
+                .unwrap_or("empty_image.png")
+                .to_string();
+            let file_size = fs::metadata(&image_path).map(|m| m.len()).unwrap_or(0);
+            let image_info = ImageInfo {
+                width: 1920,
+                height: 1080,
+                file_path: image_path,
+                file_name,
+                file_size,
+                pixel_format: None,
+                color_space: None,
+                creation_time: None,
+                tags: None,
+            };
+            tracks.push(TrackInfo::Image(image_info));
+        }
+        "text" => {
+            let default_path = workspace_dir
+                .join("material")
+                .join("texts")
+                .join("empty_text.txt");
+            let text_path = if let Some(ref path) = request.file_path {
+                if Path::new(path).exists() {
+                    path.clone()
+                } else {
+                    default_path.to_string_lossy().to_string()
+                }
+            } else {
+                default_path.to_string_lossy().to_string()
+            };
+            let file_name = Path::new(&text_path)
+                .file_name()
+                .and_then(|n| n.to_str())
+                .unwrap_or("empty_text.txt")
+                .to_string();
+            let file_size = fs::metadata(&text_path).map(|m| m.len()).unwrap_or(0);
+            let text_info = TextInfo {
+                content: String::new(),
+                file_path: text_path,
+                file_name,
+                file_size,
+                encoding: None,
+                line_count: None,
+                creation_time: None,
+            };
+            tracks.push(TrackInfo::Text(text_info));
+        }
+        _ => {
+            return Err(format!("Invalid track type: {}", request.track_type));
+        }
+    }
+    metadata["tracks"] =
+        serde_json::to_value(&tracks).map_err(|e| format!("Failed to serialize tracks: {}", e))?;
+    metadata["updated_at"] = serde_json::json!(Local::now().to_rfc3339());
+    let new_content = serde_json::to_string_pretty(&metadata)
+        .map_err(|e| format!("Failed to serialize metadata: {}", e))?;
+    fs::write(&metadata_path, new_content)
+        .map_err(|e| format!("Failed to save metadata: {}", e))?;
+    Ok(metadata)
+}
+
+#[tauri::command]
+pub fn cmd_remove_video_track(request: RemoveTrackRequest) -> Result<serde_json::Value, String> {
+    let dir = get_video_dialog_history_dir();
+    let session_dir = dir.join(&request.session_id);
+    let workspace_dir = session_dir.join("workspace");
+    let metadata_path = workspace_dir.join("metadata.json");
+    if !metadata_path.exists() {
+        return Err(format!(
+            "Session metadata not found: {}",
+            request.session_id
+        ));
+    }
+    let content = fs::read_to_string(&metadata_path)
+        .map_err(|e| format!("Failed to read metadata: {}", e))?;
+    let mut metadata: serde_json::Value =
+        serde_json::from_str(&content).map_err(|e| format!("Failed to parse metadata: {}", e))?;
+    let mut tracks: Vec<TrackInfo> = match metadata.get("tracks") {
+        Some(t) => serde_json::from_value(t.clone())
+            .map_err(|e| format!("Failed to parse tracks: {}", e))?,
+        None => Vec::new(),
+    };
+    if request.track_index >= tracks.len() {
+        return Err(format!("Track index out of range: {}", request.track_index));
+    }
+    tracks.remove(request.track_index);
+    metadata["tracks"] =
+        serde_json::to_value(&tracks).map_err(|e| format!("Failed to serialize tracks: {}", e))?;
+    metadata["updated_at"] = serde_json::json!(Local::now().to_rfc3339());
+    let new_content = serde_json::to_string_pretty(&metadata)
+        .map_err(|e| format!("Failed to serialize metadata: {}", e))?;
+    fs::write(&metadata_path, new_content)
+        .map_err(|e| format!("Failed to save metadata: {}", e))?;
+    Ok(metadata)
 }

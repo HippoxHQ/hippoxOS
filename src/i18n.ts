@@ -1423,8 +1423,8 @@ export const zh = {
     tooltipRotate: "⌨️ R: 旋转",
     tooltipFit: "⌨️ F: 适应屏幕",
   },
-
   videoEditor: {
+    textMaterial: "文字素材",
     // MaterialPanel
     material: "素材",
     import: "导入",
@@ -2998,6 +2998,7 @@ export const en: typeof zh = {
     tooltipFit: "⌨️ F: Fit",
   },
   videoEditor: {
+    textMaterial: "Text Material",
     // MaterialPanel
     material: "Material",
     import: "Import",
