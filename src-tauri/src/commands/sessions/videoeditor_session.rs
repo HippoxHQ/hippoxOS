@@ -1,4 +1,5 @@
 use crate::commands::paths::get_app_root_dir;
+use crate::commands::video_editor::material::{upload_material, UploadResult};
 use crate::commands::{
     get_settings_dir, get_video_dialog_history_dir, AudioInfo, ImageInfo, TextInfo, TrackInfo,
     VideoInfo,
@@ -77,6 +78,11 @@ pub fn cmd_create_video_dialog_session(
         fs::create_dir_all(&material_dir)
             .map_err(|e| format!("Failed to create material directory: {}", e))?;
     }
+    let cache_dir = material_dir.join(".cache");
+    if !cache_dir.exists() {
+        fs::create_dir_all(&cache_dir)
+            .map_err(|e| format!("Failed to create cache directory: {}", e))?;
+    }
     for sub_dir in ["videos", "audios", "images", "texts"] {
         let sub_path = material_dir.join(sub_dir);
         if !sub_path.exists() {
@@ -84,21 +90,15 @@ pub fn cmd_create_video_dialog_session(
                 .map_err(|e| format!("Failed to create {} directory: {}", sub_dir, e))?;
         }
     }
-    let mut video_info = None;
     let mut video_file_path = None;
+    let mut video_info = None;
     let mut tracks: Vec<TrackInfo> = Vec::new();
     let mut ffmpeg = Ffmpeg::new();
     if let Some(source_path) = video_source_path {
         if !source_path.is_empty() && Path::new(&source_path).exists() {
-            let file_name = Path::new(&source_path)
-                .file_name()
-                .and_then(|n| n.to_str())
-                .unwrap_or("video.mp4");
-            let dest_dir = material_dir.join("videos");
-            let dest_path = dest_dir.join(file_name);
-            match fs::copy(&source_path, &dest_path) {
-                Ok(_) => {
-                    let dest_path_str = dest_path.to_string_lossy().to_string();
+            match upload_material(session_id.to_string(), source_path.clone(), "video") {
+                Ok(upload_result) => {
+                    let dest_path_str = upload_result.file_path.clone();
                     video_file_path = Some(dest_path_str.clone());
                     match ffmpeg.get_video_info_json(&dest_path_str) {
                         Ok(info_json) => {
@@ -114,11 +114,12 @@ pub fn cmd_create_video_dialog_session(
                     }
                 }
                 Err(e) => {
-                    eprintln!("Failed to copy video file to workspace: {}", e);
+                    eprintln!("Failed to upload video material: {}", e);
                 }
             }
         }
     }
+
     if video_file_path.is_none() {
         let empty_video_path = workspace_dir.join("empty_project.mp4");
         match ffmpeg.create_empty_video(
@@ -148,6 +149,7 @@ pub fn cmd_create_video_dialog_session(
             }
         }
     }
+
     let metadata_path = workspace_dir.join("metadata.json");
     let metadata = serde_json::json!({
         "session_id": session_id,
@@ -168,6 +170,7 @@ pub fn cmd_create_video_dialog_session(
         .map_err(|e| format!("Failed to serialize metadata: {}", e))?;
     fs::write(&metadata_path, metadata_content)
         .map_err(|e| format!("Failed to save metadata.json: {}", e))?;
+
     let config = serde_json::json!({
         "session_id": session_id,
         "title": title,
@@ -187,12 +190,14 @@ pub fn cmd_create_video_dialog_session(
     let config_content = serde_json::to_string_pretty(&config)
         .map_err(|e| format!("Failed to serialize config: {}", e))?;
     fs::write(&config_path, config_content).map_err(|e| format!("Failed to save config: {}", e))?;
+
     let chat_path = session_dir.join("chat.json");
     fs::write(&chat_path, initial_chat_content)
         .map_err(|e| format!("Failed to save chat history: {}", e))?;
     let terminal_path = session_dir.join("terminal.json");
     fs::write(&terminal_path, initial_terminal_content)
         .map_err(|e| format!("Failed to save terminal history: {}", e))?;
+
     Ok(session_dir.to_string_lossy().to_string())
 }
 
@@ -299,7 +304,6 @@ pub fn cmd_load_video_session_config(
             }
         }
     }
-
     Ok(Some(config))
 }
 
@@ -343,7 +347,6 @@ pub fn cmd_update_video_session_config(session_id: &str, updates: String) -> Res
         fs::write(&metadata_path, new_metadata_content)
             .map_err(|e| format!("Failed to save metadata: {}", e))?;
     }
-
     Ok(())
 }
 
@@ -690,7 +693,6 @@ pub fn cmd_add_video_track(request: AddTrackRequest) -> Result<serde_json::Value
         fs::write(&config_path, new_config_content)
             .map_err(|e| format!("Failed to save config: {}", e))?;
     }
-
     Ok(metadata)
 }
 
@@ -772,7 +774,6 @@ pub fn cmd_update_video_session_tracks(
     let session_dir = dir.join(session_id);
     let workspace_dir = session_dir.join("workspace");
     let metadata_path = workspace_dir.join("metadata.json");
-
     if !metadata_path.exists() {
         return Err(format!("Session metadata not found: {}", session_id));
     }

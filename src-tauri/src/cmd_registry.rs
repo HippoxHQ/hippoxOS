@@ -403,22 +403,28 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_get_video_materials,     
         commands::cmd_get_audio_materials,     
         commands::cmd_get_image_materials,     
-        commands::cmd_get_text_materials, 
+        commands::cmd_get_text_materials,
+        commands::cmd_get_all_materials,
+        commands::cmd_get_material_by_id,
         // ========== Video Materials Upload ==========
         commands::cmd_upload_video_material,
         commands::cmd_upload_audio_material,
         commands::cmd_upload_image_material,
         commands::cmd_upload_text_material,   
+        // ========== Video Materials Operations ==========
+        commands::cmd_delete_material,
+        commands::cmd_rename_material,
+        commands::cmd_copy_material,
+        commands::cmd_toggle_favorite,
+        commands::cmd_update_material_metadata,
+        commands::cmd_open_material_directory,
+        commands::cmd_open_material_folder,
         // ========== Video Session Tracks ==========
         commands::cmd_get_video_session_tracks,
         commands::cmd_update_video_session_tracks,  
         // open material preview window
         commands::cmd_open_material_preview,
-        // close material preview window
         commands::cmd_close_material_preview,
         commands::cmd_get_material_preview_data,
-        // ========== Video Materials Operations ==========
-        commands::cmd_delete_material,
-        commands::cmd_open_material_directory,
     ]
 }

@@ -35,6 +35,11 @@ pub fn get_app_root_dir() -> PathBuf {
     }
 }
 
+/// Material favorites directory: HippoX/MaterialFavorites  
+pub fn get_material_favorites_dir() -> PathBuf {
+    get_app_root_dir().join("MaterialFavorites")
+}
+
 /// Video Dialog history directory: HippoX/VideoDialogHistory
 pub fn get_video_dialog_history_dir() -> PathBuf {
     get_app_root_dir().join("VideoDialogHistory")

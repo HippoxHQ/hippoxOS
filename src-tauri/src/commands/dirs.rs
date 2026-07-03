@@ -2,11 +2,7 @@ use std::fs;
 use std::path::Path;
 
 use crate::commands::{
-    get_app_root_dir, get_cache_dir, get_chart_dialog_history_dir,
-    get_codeeditor_dialog_history_dir, get_data_dir, get_dialog_history_dir, get_log_dir,
-    get_map_dialog_history_dir, get_notifications_dir, get_sandbox3d_dialog_history_dir,
-    get_scheduled_tasks_dir, get_settings_dir, get_skill_history_dir, get_skills_dir,
-    get_skills_market_dir, get_taskpool_dir, get_video_dialog_history_dir,
+    get_app_root_dir, get_cache_dir, get_chart_dialog_history_dir, get_codeeditor_dialog_history_dir, get_data_dir, get_dialog_history_dir, get_log_dir, get_map_dialog_history_dir, get_material_favorites_dir, get_notifications_dir, get_sandbox3d_dialog_history_dir, get_scheduled_tasks_dir, get_settings_dir, get_skill_history_dir, get_skills_dir, get_skills_market_dir, get_taskpool_dir, get_video_dialog_history_dir,
 };
 
 /// Initialize all directories
@@ -32,6 +28,7 @@ pub fn init_directories() -> Result<(), String> {
         get_skills_dir(),
         get_skill_history_dir(),
         get_taskpool_dir(),
+        get_material_favorites_dir(),
     ];
     for dir in dirs {
         if !dir.exists() {
@@ -135,9 +132,10 @@ pub fn init_default_session_if_empty() -> Result<(), String> {
         .filter_map(|entry| entry.ok())
         .any(|entry| entry.path().is_dir());
     if !has_sessions {
-        let language = crate::commons::get_setting_with_default("language", serde_json::json!("en"))
-            .map(|v| v.as_str().unwrap_or("en").to_string())
-            .unwrap_or_else(|_| "en".to_string());
+        let language =
+            crate::commons::get_setting_with_default("language", serde_json::json!("en"))
+                .map(|v| v.as_str().unwrap_or("en").to_string())
+                .unwrap_or_else(|_| "en".to_string());
         let title = if language == "zh" {
             "默认对话"
         } else {
