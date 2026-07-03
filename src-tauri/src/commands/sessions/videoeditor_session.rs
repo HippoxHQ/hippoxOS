@@ -1,5 +1,5 @@
 use crate::commands::paths::get_app_root_dir;
-use crate::commands::video_editor::material::{upload_material, UploadResult};
+use crate::commands::video_editor::material::{insert_material, UploadResult};
 use crate::commands::{
     get_settings_dir, get_video_dialog_history_dir, AudioInfo, ImageInfo, TextInfo, TrackInfo,
     VideoInfo,
@@ -78,11 +78,6 @@ pub fn cmd_create_video_dialog_session(
         fs::create_dir_all(&material_dir)
             .map_err(|e| format!("Failed to create material directory: {}", e))?;
     }
-    let cache_dir = material_dir.join(".cache");
-    if !cache_dir.exists() {
-        fs::create_dir_all(&cache_dir)
-            .map_err(|e| format!("Failed to create cache directory: {}", e))?;
-    }
     for sub_dir in ["videos", "audios", "images", "texts"] {
         let sub_path = material_dir.join(sub_dir);
         if !sub_path.exists() {
@@ -96,7 +91,7 @@ pub fn cmd_create_video_dialog_session(
     let mut ffmpeg = Ffmpeg::new();
     if let Some(source_path) = video_source_path {
         if !source_path.is_empty() && Path::new(&source_path).exists() {
-            match upload_material(session_id.to_string(), source_path.clone(), "video") {
+            match insert_material(session_id.to_string(), source_path.clone(), "video") {
                 Ok(upload_result) => {
                     let dest_path_str = upload_result.file_path.clone();
                     video_file_path = Some(dest_path_str.clone());
