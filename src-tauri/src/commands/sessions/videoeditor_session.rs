@@ -109,6 +109,7 @@ pub fn cmd_create_video_dialog_session(
                             let track_block_id = Uuid::new_v4().to_string();
                             video_info_struct.track_id = track_id;
                             video_info_struct.track_block_id = track_block_id;
+                            video_info_struct.visible = true;
                             video_info = Some(info_json);
                             tracks.push(vec![TrackInfo::Video(video_info_struct)]);
                         }
@@ -148,6 +149,7 @@ pub fn cmd_create_video_dialog_session(
                         let track_block_id = Uuid::new_v4().to_string();
                         video_info_struct.track_id = track_id;
                         video_info_struct.track_block_id = track_block_id;
+                        video_info_struct.visible = true;
                         video_info = Some(info_json);
                         tracks.push(vec![TrackInfo::Video(video_info_struct)]);
                     }
@@ -600,6 +602,7 @@ pub fn cmd_add_video_track(request: AddTrackRequest) -> Result<serde_json::Value
                         internal_end_time: 5.0,
                         track_id: Uuid::new_v4().to_string(),
                         track_block_id: Uuid::new_v4().to_string(),
+                        visible: true,
                     };
                     new_track = TrackInfo::Video(video_info);
                 }
@@ -653,6 +656,7 @@ pub fn cmd_add_video_track(request: AddTrackRequest) -> Result<serde_json::Value
                 internal_end_time: 0.0,
                 track_id: Uuid::new_v4().to_string(),
                 track_block_id: Uuid::new_v4().to_string(),
+                visible: true,
             };
             if let Ok(meta) = ffmpeg.get_metadata(&audio_info.file_path) {
                 audio_info.duration = meta.duration;
@@ -705,6 +709,7 @@ pub fn cmd_add_video_track(request: AddTrackRequest) -> Result<serde_json::Value
                 track_end_time: 5.0,
                 track_id: Uuid::new_v4().to_string(),
                 track_block_id: Uuid::new_v4().to_string(),
+                visible: true,
             };
             new_track = TrackInfo::Image(image_info);
             row_index = tracks
@@ -750,6 +755,7 @@ pub fn cmd_add_video_track(request: AddTrackRequest) -> Result<serde_json::Value
                 track_end_time: 5.0,
                 track_id: Uuid::new_v4().to_string(),
                 track_block_id: Uuid::new_v4().to_string(),
+                visible: true,
             };
             new_track = TrackInfo::Text(text_info);
             row_index = tracks

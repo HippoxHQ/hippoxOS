@@ -471,6 +471,7 @@ impl Ffmpeg {
             internal_end_time: duration,
             track_id: Uuid::new_v4().to_string(),
             track_block_id: Uuid::new_v4().to_string(),
+            visible: true,
         })
     }
 
@@ -587,6 +588,7 @@ impl Ffmpeg {
             "internal_end_time": info.internal_end_time,
             "track_id": info.track_id,
             "track_block_id": info.track_block_id,
+            "visible": info.visible,
         }))
     }
 

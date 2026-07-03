@@ -427,5 +427,13 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_open_material_preview,
         commands::cmd_close_material_preview,
         commands::cmd_get_material_preview_data,
+        // ========== Video Tracks ==========
+        commands::cmd_add_track,
+        commands::cmd_get_track_stack,
+        commands::cmd_get_tracks,
+        commands::cmd_get_track_rows,
+        commands::cmd_get_track_by_id, 
+        commands::cmd_remove_track,
+        commands::cmd_update_track_stack,
     ]
 }
