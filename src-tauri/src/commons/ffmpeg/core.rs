@@ -1,9 +1,9 @@
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 use std::fs;
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Child, ChildStdin, ChildStdout, Command, Stdio};
+use uuid::Uuid;
 
 use crate::commands::VideoInfo;
 
@@ -585,6 +585,8 @@ impl Ffmpeg {
             "track_end_time": info.track_end_time,
             "internal_start_time": info.internal_start_time,
             "internal_end_time": info.internal_end_time,
+            "track_id": info.track_id,
+            "track_block_id": info.track_block_id,
         }))
     }
 
