@@ -435,5 +435,7 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_get_track_by_id, 
         commands::cmd_remove_track,
         commands::cmd_update_track_stack,
+        commands::cmd_update_track_time,
+        commands::cmd_update_internal_time
     ]
 }

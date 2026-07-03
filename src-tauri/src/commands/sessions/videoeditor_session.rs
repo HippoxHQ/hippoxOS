@@ -86,10 +86,10 @@ pub fn cmd_create_video_dialog_session(
                 .map_err(|e| format!("Failed to create {} directory: {}", sub_dir, e))?;
         }
     }
-    let mut video_file_path = None;
-    let mut video_info = None;
+    let mut video_file_path: Option<String> = None;
+    let mut video_info: Option<serde_json::Value> = None;
     let mut tracks: Vec<Vec<TrackInfo>> = Vec::new();
-    let mut ffmpeg = Ffmpeg::new();
+    let ffmpeg = Ffmpeg::new();
     if let Some(source_path) = video_source_path {
         if !source_path.is_empty() && Path::new(&source_path).exists() {
             match insert_material(session_id.to_string(), source_path.clone(), "video") {
@@ -110,7 +110,7 @@ pub fn cmd_create_video_dialog_session(
                             video_info_struct.track_id = track_id;
                             video_info_struct.track_block_id = track_block_id;
                             video_info_struct.visible = true;
-                            video_info = Some(info_json);
+                            video_info = Some(info_json.clone());
                             tracks.push(vec![TrackInfo::Video(video_info_struct)]);
                         }
                         Err(e) => {
@@ -124,7 +124,6 @@ pub fn cmd_create_video_dialog_session(
             }
         }
     }
-
     if video_file_path.is_none() {
         let empty_video_path = workspace_dir.join("empty_project.mp4");
         match ffmpeg.create_empty_video(
@@ -150,7 +149,7 @@ pub fn cmd_create_video_dialog_session(
                         video_info_struct.track_id = track_id;
                         video_info_struct.track_block_id = track_block_id;
                         video_info_struct.visible = true;
-                        video_info = Some(info_json);
+                        video_info = Some(info_json.clone());
                         tracks.push(vec![TrackInfo::Video(video_info_struct)]);
                     }
                     Err(e) => {
@@ -163,7 +162,6 @@ pub fn cmd_create_video_dialog_session(
             }
         }
     }
-
     let track_stack: Vec<String> = tracks
         .iter()
         .map(|row| {
@@ -183,12 +181,13 @@ pub fn cmd_create_video_dialog_session(
         "video_url": video_url.clone().unwrap_or_default(),
         "video_title": video_title.clone().unwrap_or_default(),
         "video_file": video_file_path,
-        "video_info": video_info,
+        "video_info": video_info,  
         "tracks": tracks,
         "track_stack": track_stack,
-        "files": [],
-        "exported_videos": [],
+        "files": serde_json::json!([]),
+        "exported_videos": serde_json::json!([]),
     });
+
     let metadata_content = serde_json::to_string_pretty(&metadata)
         .map_err(|e| format!("Failed to serialize metadata: {}", e))?;
     fs::write(&metadata_path, metadata_content)
@@ -205,10 +204,8 @@ pub fn cmd_create_video_dialog_session(
         "workspace_path": workspace_dir.to_string_lossy().to_string(),
         "metadata_path": metadata_path.to_string_lossy().to_string(),
         "video_file": video_file_path,
-        "video_info": video_info,
-        "tracks": tracks,
-        "track_stack": track_stack,
     });
+
     let config_path = session_dir.join("config.json");
     let config_content = serde_json::to_string_pretty(&config)
         .map_err(|e| format!("Failed to serialize config: {}", e))?;
@@ -217,6 +214,7 @@ pub fn cmd_create_video_dialog_session(
     let chat_path = session_dir.join("chat.json");
     fs::write(&chat_path, initial_chat_content)
         .map_err(|e| format!("Failed to save chat history: {}", e))?;
+
     let terminal_path = session_dir.join("terminal.json");
     fs::write(&terminal_path, initial_terminal_content)
         .map_err(|e| format!("Failed to save terminal history: {}", e))?;
