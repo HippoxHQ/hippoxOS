@@ -1,8 +1,11 @@
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 use std::fs;
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Child, ChildStdin, ChildStdout, Command, Stdio};
+
+use crate::commands::VideoInfo;
 
 #[derive(Clone)]
 pub struct Ffmpeg {
@@ -25,34 +28,6 @@ pub struct VideoMetadata {
     pub fps: f64,
     pub bitrate: u64,
     pub codec: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct VideoInfo {
-    pub width: u32,
-    pub height: u32,
-    pub duration: f64,
-    pub fps: f64,
-    pub bitrate: u64,
-    pub codec: String,
-    pub path: String,
-    pub aspect_ratio: Option<String>,
-    pub pixel_format: Option<String>,
-    pub color_space: Option<String>,
-    pub bit_depth: Option<u32>,
-    pub frame_count: Option<u64>,
-    pub keyframe_count: Option<u64>,
-    pub has_audio: bool,
-    pub audio_codec: Option<String>,
-    pub audio_sample_rate: Option<u32>,
-    pub audio_channels: Option<u32>,
-    pub audio_bitrate: Option<u64>,
-    pub file_size: Option<u64>,
-    pub container_format: Option<String>,
-    pub creation_time: Option<String>,
-    pub tags: Option<serde_json::Value>,
-    pub video_stream_index: Option<u32>,
-    pub audio_stream_index: Option<u32>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -490,6 +465,12 @@ impl Ffmpeg {
             tags,
             video_stream_index: video_index,
             audio_stream_index: audio_index,
+            track_start_time: 0.0,
+            track_end_time: 0.0,
+            internal_start_time: 0.0,
+            internal_end_time: duration,
+            track_id: Uuid::new_v4().to_string(),
+            track_block_id: Uuid::new_v4().to_string(),
         })
     }
 
@@ -600,6 +581,10 @@ impl Ffmpeg {
             "tags": info.tags,
             "video_stream_index": info.video_stream_index,
             "audio_stream_index": info.audio_stream_index,
+            "track_start_time": info.track_start_time,
+            "track_end_time": info.track_end_time,
+            "internal_start_time": info.internal_start_time,
+            "internal_end_time": info.internal_end_time,
         }))
     }
 
