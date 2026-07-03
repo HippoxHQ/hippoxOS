@@ -391,6 +391,8 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_video_audio_fade,
         // ========== Video Player Commands ==========
         commands::cmd_player_extract_frame,
+        commands::cmd_player_extract_frames_batch,
+        commands::cmd_player_extract_audio_pcm,
         // ========== FFmpeg Instance Management ==========
         commands::cmd_init_ffmpeg_instance,
         commands::cmd_get_ffmpeg_instance_count,
