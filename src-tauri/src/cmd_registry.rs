@@ -442,6 +442,7 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_stop_audio,
         commands::cmd_pause_audio,
         commands::cmd_resume_audio,
-        commands::cmd_recalculate_max_track_time
+        commands::cmd_recalculate_max_track_time,
+        commands::cmd_get_track_thumbnail 
     ]
 }
