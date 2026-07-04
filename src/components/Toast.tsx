@@ -74,29 +74,16 @@ const Toast: React.FC = () => {
     }
   };
 
-  const getGlowColor = (type: ToastType) => {
-    switch (type) {
-      case ToastType.SUCCESS:
-        return "rgba(16, 185, 129, 0.5)";
-      case ToastType.WARNING:
-        return "rgba(245, 158, 11, 0.5)";
-      case ToastType.ERROR:
-        return "rgba(239, 68, 68, 0.5)";
-      default:
-        return "rgba(59, 130, 246, 0.5)";
-    }
-  };
-
   const getIconBgColor = (type: ToastType) => {
     switch (type) {
       case ToastType.SUCCESS:
-        return "rgba(16, 185, 129, 0.15)";
+        return "rgba(16, 185, 129, 0.12)";
       case ToastType.WARNING:
-        return "rgba(245, 158, 11, 0.15)";
+        return "rgba(245, 158, 11, 0.12)";
       case ToastType.ERROR:
-        return "rgba(239, 68, 68, 0.15)";
+        return "rgba(239, 68, 68, 0.12)";
       default:
-        return "rgba(59, 130, 246, 0.15)";
+        return "rgba(59, 130, 246, 0.12)";
     }
   };
 
@@ -112,92 +99,85 @@ const Toast: React.FC = () => {
         return "#3b82f6";
     }
   };
+
   if (toasts.length === 0) return null;
+
   return (
     <>
       <style>{`
         .toast-container {
           position: fixed;
-          top: 70px;
+          top: 50px;
           left: 50%;
           transform: translateX(-50%);
           z-index: 10000;
           display: flex;
           flex-direction: column;
           align-items: center;
-          gap: 10px;
+          gap: 6px;
           pointer-events: none;
         }
         .toast-item {
-          min-width: 300px;
-          max-width: 480px;
-          background: var(--bg-secondary, rgba(30, 30, 46, 0.95));
+          min-width: 200px;
+          max-width: 360px;
+          background: var(--bg-secondary, rgba(30, 30, 46, 0.92));
           backdrop-filter: blur(12px);
-          border-radius: 12px;
-          padding: 10px 15px;
+          border-radius: 8px;
+          padding: 6px 12px 6px 10px;
           display: flex;
           align-items: center;
-          gap: 14px;
-          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.05);
+          gap: 10px;
+          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(255, 255, 255, 0.04);
           pointer-events: auto;
-          animation: toastSlideIn 0.3s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+          animation: toastSlideIn 0.25s cubic-bezier(0.2, 0.9, 0.4, 1.1);
           transition: all 0.2s ease;
         }
         .toast-item:hover {
           transform: translateY(-1px);
-          box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.08);
+          box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(255, 255, 255, 0.06);
         }
         @keyframes toastSlideIn {
           from {
             opacity: 0;
-            transform: translateY(-20px) scale(0.95);
+            transform: translateY(-12px) scale(0.96);
           }
           to {
             opacity: 1;
             transform: translateY(0) scale(1);
           }
         }
-        @keyframes toastGlowPulse {
-          0% {
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.05);
-          }
-          50% {
-            box-shadow: 0 8px 28px rgba(0, 0, 0, 0.25), 0 0 0 2px rgba(59, 130, 246, 0.3);
-          }
-          100% {
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.05);
-          }
-        }
         .toast-icon-wrapper {
-          width: 32px;
-          height: 32px;
+          width: 24px;
+          height: 24px;
           display: flex;
           align-items: center;
           justify-content: center;
-          border-radius: 10px;
+          border-radius: 6px;
           flex-shrink: 0;
           transition: all 0.2s ease;
         }
         .toast-icon {
-          font-size: 18px;
+          font-size: 13px;
           font-weight: 600;
+          line-height: 1;
         }
         .toast-message {
           flex: 1;
-          font-size: 14px;
+          font-size: 12.5px;
           font-weight: 500;
           color: var(--text-primary, #e0e0e0);
-          line-height: 1.5;
+          line-height: 1.4;
           word-break: break-word;
-          letter-spacing: 0.3px;
+          letter-spacing: 0.2px;
+          padding: 2px 0;
         }
         .toast-close {
-          background: rgba(255, 255, 255, 0.05);
+          background: rgba(255, 255, 255, 0.04);
           border: none;
-          width: 24px;
-          height: 24px;
-          border-radius: 8px;
-          font-size: 16px;
+          width: 20px;
+          height: 20px;
+          border-radius: 6px;
+          font-size: 13px;
           cursor: pointer;
           color: var(--text-secondary, #a0a0a0);
           display: flex;
@@ -205,35 +185,36 @@ const Toast: React.FC = () => {
           justify-content: center;
           transition: all 0.2s ease;
           flex-shrink: 0;
+          padding: 0;
         }
         .toast-close:hover {
-          background: rgba(255, 255, 255, 0.12);
+          background: rgba(255, 255, 255, 0.1);
           color: var(--text-primary, #ffffff);
           transform: scale(1.05);
         }
         .toast-success {
-          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(16, 185, 129, 0.3);
+          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(16, 185, 129, 0.2);
         }
         .toast-success:hover {
-          box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25), 0 0 0 2px rgba(16, 185, 129, 0.4);
+          box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18), 0 0 0 2px rgba(16, 185, 129, 0.25);
         }
         .toast-warning {
-          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(245, 158, 11, 0.3);
+          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(245, 158, 11, 0.2);
         }
         .toast-warning:hover {
-          box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25), 0 0 0 2px rgba(245, 158, 11, 0.4);
+          box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18), 0 0 0 2px rgba(245, 158, 11, 0.25);
         }
         .toast-error {
-          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(239, 68, 68, 0.3);
+          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(239, 68, 68, 0.2);
         }
         .toast-error:hover {
-          box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25), 0 0 0 2px rgba(239, 68, 68, 0.4);
+          box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18), 0 0 0 2px rgba(239, 68, 68, 0.25);
         }
         .toast-info {
-          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(59, 130, 246, 0.3);
+          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(59, 130, 246, 0.2);
         }
         .toast-info:hover {
-          box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25), 0 0 0 2px rgba(59, 130, 246, 0.4);
+          box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18), 0 0 0 2px rgba(59, 130, 246, 0.25);
         }
       `}</style>
       <div className="toast-container">
@@ -243,14 +224,14 @@ const Toast: React.FC = () => {
               className="toast-icon-wrapper"
               style={{ background: getIconBgColor(toast.type) }}
             >
-              <div
+              <span
                 className="toast-icon"
                 style={{ color: getIconColor(toast.type) }}
               >
                 {getIcon(toast.type)}
-              </div>
+              </span>
             </div>
-            <div className="toast-message">{toast.message}</div>
+            <span className="toast-message">{toast.message}</span>
             <button
               className="toast-close"
               onClick={() => handleClose(toast.id)}

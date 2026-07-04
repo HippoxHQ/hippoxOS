@@ -103,6 +103,7 @@ pub fn cmd_create_video_dialog_session(
     let mut tracks: TrackTable = HashMap::new();
     let ffmpeg = Ffmpeg::new();
 
+    // Only add video track if video_source_path is provided and file exists
     if let Some(source_path) = video_source_path {
         if !source_path.is_empty() && Path::new(&source_path).exists() {
             match insert_material(session_id.to_string(), source_path.clone(), "video") {
@@ -183,88 +184,7 @@ pub fn cmd_create_video_dialog_session(
         }
     }
 
-    if video_file_path.is_none() {
-        let empty_video_path = workspace_dir.join("empty_project.mp4");
-        match ffmpeg.create_empty_video(
-            &empty_video_path.to_string_lossy().to_string(),
-            5.0,
-            1920,
-            1080,
-            30.0,
-        ) {
-            Ok(empty_path) => {
-                video_file_path = Some(empty_path.clone());
-                match ffmpeg.get_video_info_json(&empty_path) {
-                    Ok(info_json) => {
-                        let duration = info_json["duration"].as_f64().unwrap_or(5.0);
-                        let width = info_json["width"].as_u64().unwrap_or(1920) as u32;
-                        let height = info_json["height"].as_u64().unwrap_or(1080) as u32;
-                        let fps = info_json["fps"].as_f64().unwrap_or(30.0);
-                        let bitrate = info_json["bitrate"].as_u64().unwrap_or(0);
-                        let codec = info_json["codec"].as_str().unwrap_or("unknown").to_string();
-
-                        let track_id = Uuid::new_v4().to_string();
-                        let track_block_id = Uuid::new_v4().to_string();
-
-                        let video_block = VideoTrackBlock {
-                            width,
-                            height,
-                            duration,
-                            fps,
-                            bitrate,
-                            codec: codec.clone(),
-                            resource_path: empty_path.clone(),
-                            aspect_ratio: None,
-                            pixel_format: None,
-                            color_space: None,
-                            bit_depth: None,
-                            frame_count: None,
-                            keyframe_count: None,
-                            has_audio: false,
-                            audio_codec: None,
-                            audio_sample_rate: None,
-                            audio_channels: None,
-                            audio_bitrate: None,
-                            file_size: None,
-                            container_format: None,
-                            creation_time: None,
-                            tags: None,
-                            video_stream_index: None,
-                            audio_stream_index: None,
-                            track_start_time: 0.0,
-                            track_end_time: duration,
-                            internal_start_time: 0.0,
-                            internal_end_time: duration,
-                            track_id: track_id.clone(),
-                            track_block_id: track_block_id.clone(),
-                            visible: true,
-                            resource_frames_path: None,
-                            resource_rgb_frames_path: None,
-                        };
-
-                        video_info = Some(info_json.clone());
-
-                        let mut blocks = HashMap::new();
-                        blocks.insert(track_block_id.clone(), video_block);
-
-                        let video_row = VideoTrackRow {
-                            track_id: track_id.clone(),
-                            track_type: TrackType::Video,
-                            blocks,
-                        };
-
-                        tracks.insert(track_id, TrackRowInfo::Video(video_row));
-                    }
-                    Err(e) => {
-                        eprintln!("Failed to get empty video info: {}", e);
-                    }
-                }
-            }
-            Err(e) => {
-                eprintln!("Failed to create empty video: {}", e);
-            }
-        }
-    }
+    // Remove the empty video creation block that was here
 
     if let Some(audio_paths) = audio_source_paths {
         for audio_path in audio_paths {
@@ -421,7 +341,6 @@ pub fn cmd_create_video_dialog_session(
     }
 
     let track_stack: Vec<String> = tracks.keys().cloned().collect();
-
     let max_track_time = calculate_max_track_time(&tracks);
 
     let metadata_path = workspace_dir.join("metadata.json");
@@ -461,20 +380,16 @@ pub fn cmd_create_video_dialog_session(
         "metadata_path": metadata_path.to_string_lossy().to_string(),
         "video_file": video_file_path,
     });
-
     let config_path = session_dir.join("config.json");
     let config_content = serde_json::to_string_pretty(&config)
         .map_err(|e| format!("Failed to serialize config: {}", e))?;
     fs::write(&config_path, config_content).map_err(|e| format!("Failed to save config: {}", e))?;
-
     let chat_path = session_dir.join("chat.json");
     fs::write(&chat_path, initial_chat_content)
         .map_err(|e| format!("Failed to save chat history: {}", e))?;
-
     let terminal_path = session_dir.join("terminal.json");
     fs::write(&terminal_path, initial_terminal_content)
         .map_err(|e| format!("Failed to save terminal history: {}", e))?;
-
     Ok(session_dir.to_string_lossy().to_string())
 }
 
