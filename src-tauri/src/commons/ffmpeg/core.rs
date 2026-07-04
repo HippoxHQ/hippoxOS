@@ -5,50 +5,12 @@ use std::path::{Path, PathBuf};
 use std::process::{Child, ChildStdin, ChildStdout, Command, Stdio};
 use uuid::Uuid;
 
-use crate::commands::VideoInfo;
+use crate::commons::{FrameExtractOptions, PersistentProcess, ThumbnailOptions, VideoInfo, VideoMetadata};
 
 #[derive(Clone)]
 pub struct Ffmpeg {
     pub bin_path: String,
     pub persistent: std::sync::Arc<std::sync::Mutex<Option<PersistentProcess>>>,
-}
-
-pub struct PersistentProcess {
-    pub child: Child,
-    pub stdin: ChildStdin,
-    pub stdout: ChildStdout,
-    pub video_path: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct VideoMetadata {
-    pub width: u32,
-    pub height: u32,
-    pub duration: f64,
-    pub fps: f64,
-    pub bitrate: u64,
-    pub codec: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ThumbnailOptions {
-    pub time: f64,
-    pub width: Option<u32>,
-    pub height: Option<u32>,
-    pub output_path: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct FrameExtractOptions {
-    pub output_dir: String,
-    pub filename_pattern: Option<String>,
-    pub fps: Option<f64>,
-    pub start: Option<f64>,
-    pub duration: Option<f64>,
-    pub width: Option<u32>,
-    pub height: Option<u32>,
-    pub format: String,
-    pub quality: Option<u32>,
 }
 
 impl Default for Ffmpeg {
@@ -198,7 +160,6 @@ impl Ffmpeg {
         if !path.exists() {
             return Err(format!("File not found: {}", path.display()));
         }
-
         let output = Command::new("ffprobe")
             .args([
                 "-v",
@@ -211,15 +172,12 @@ impl Ffmpeg {
             ])
             .output()
             .map_err(|e| format!("Failed to run ffprobe: {}", e))?;
-
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
             return Err(format!("ffprobe failed: {}", stderr));
         }
-
         let json: serde_json::Value = serde_json::from_slice(&output.stdout)
             .map_err(|e| format!("Failed to parse ffprobe output: {}", e))?;
-
         Self::parse_metadata_json(&json)
     }
 
@@ -293,7 +251,6 @@ impl Ffmpeg {
         if !path_obj.exists() {
             return Err(format!("File not found: {}", path));
         }
-
         let output = Command::new("ffprobe")
             .args([
                 "-v",
@@ -312,23 +269,18 @@ impl Ffmpeg {
             ])
             .output()
             .map_err(|e| format!("Failed to run ffprobe: {}", e))?;
-
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
             return Err(format!("ffprobe failed: {}", stderr));
         }
-
         let json: serde_json::Value = serde_json::from_slice(&output.stdout)
             .map_err(|e| format!("Failed to parse ffprobe output: {}", e))?;
-
         let mut info = Self::parse_video_info_json(&json, path)?;
-
         if let Ok(count) = self.get_keyframe_count(path) {
             info.keyframe_count = Some(count);
         } else {
             info.keyframe_count = None;
         }
-
         Ok(info)
     }
 
@@ -437,7 +389,6 @@ impl Ffmpeg {
         let audio_bitrate = audio_stream
             .and_then(|s| s["bit_rate"].as_str())
             .and_then(|s| s.parse::<u64>().ok());
-
         Ok(VideoInfo {
             width,
             height,
@@ -669,7 +620,6 @@ impl Ffmpeg {
         if !input.exists() {
             return Err(format!("Input file not found: {}", input_path));
         }
-
         let output_path = match &options.output_path {
             Some(p) => PathBuf::from(p),
             None => {
@@ -678,7 +628,6 @@ impl Ffmpeg {
                 parent.join(format!("{}_thumb.png", stem.to_string_lossy()))
             }
         };
-
         let mut args = vec![
             "-i".to_string(),
             input_path.to_string(),
@@ -687,7 +636,6 @@ impl Ffmpeg {
             "-vframes".to_string(),
             "1".to_string(),
         ];
-
         if let Some(width) = options.width {
             if let Some(height) = options.height {
                 args.push(format!("-s={}x{}", width, height));
@@ -697,20 +645,16 @@ impl Ffmpeg {
         } else if let Some(height) = options.height {
             args.push(format!("-vf=scale=-1:{}", height));
         }
-
         args.push("-y".to_string());
         args.push(output_path.to_string_lossy().to_string());
-
         let output = Command::new(&self.bin_path)
             .args(&args)
             .output()
             .map_err(|e| format!("Failed to generate thumbnail: {}", e))?;
-
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
             return Err(format!("FFmpeg failed: {}", stderr));
         }
-
         Ok(output_path.to_string_lossy().to_string())
     }
 
@@ -781,14 +725,12 @@ impl Ffmpeg {
         if !Path::new(input_path).exists() {
             return Err(format!("Input file not found: {}", input_path));
         }
-
         if let Some(parent) = Path::new(output_path).parent() {
             if !parent.exists() {
                 fs::create_dir_all(parent)
                     .map_err(|e| format!("Failed to create output directory: {}", e))?;
             }
         }
-
         let mut args = vec![
             "-sseof".to_string(),
             "-1".to_string(),
@@ -797,7 +739,6 @@ impl Ffmpeg {
             "-vframes".to_string(),
             "1".to_string(),
         ];
-
         if let (Some(w), Some(h)) = (width, height) {
             args.push("-vf".to_string());
             args.push(format!(
@@ -811,20 +752,16 @@ impl Ffmpeg {
             args.push("-vf".to_string());
             args.push(format!("scale=-1:{}", h));
         }
-
         args.push("-y".to_string());
         args.push(output_path.to_string());
-
         let output = Command::new(&self.bin_path)
             .args(&args)
             .output()
             .map_err(|e| format!("Failed to extract last frame: {}", e))?;
-
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
             return Err(format!("FFmpeg failed: {}", stderr));
         }
-
         Ok(())
     }
 
@@ -836,36 +773,28 @@ impl Ffmpeg {
         if !Path::new(input_path).exists() {
             return Err(format!("Input file not found: {}", input_path));
         }
-
         let output_dir = Path::new(&options.output_dir);
         if !output_dir.exists() {
             fs::create_dir_all(output_dir)
                 .map_err(|e| format!("Failed to create output directory: {}", e))?;
         }
-
         let pattern = options
             .filename_pattern
             .as_deref()
             .unwrap_or("frame_%04d.png");
-
         let mut args = vec!["-i".to_string(), input_path.to_string()];
-
         if let Some(start) = options.start {
             args.push("-ss".to_string());
             args.push(start.to_string());
         }
-
         if let Some(duration) = options.duration {
             args.push("-t".to_string());
             args.push(duration.to_string());
         }
-
         let mut vf_parts = Vec::new();
-
         if let Some(fps) = options.fps {
             vf_parts.push(format!("fps={}", fps));
         }
-
         if let (Some(w), Some(h)) = (options.width, options.height) {
             vf_parts.push(format!(
                 "scale={}:{}:force_original_aspect_ratio=decrease",
@@ -876,18 +805,15 @@ impl Ffmpeg {
         } else if let Some(h) = options.height {
             vf_parts.push(format!("scale=-1:{}", h));
         }
-
         if !vf_parts.is_empty() {
             args.push("-vf".to_string());
             args.push(vf_parts.join(","));
         }
-
         if options.format == "jpg" || options.format == "jpeg" {
             let quality = options.quality.unwrap_or(85);
             args.push("-q:v".to_string());
             args.push(quality.to_string());
         }
-
         let output_pattern = output_dir.join(pattern);
         let output_str = output_pattern.to_string_lossy().to_string();
         let final_pattern = if output_str.contains("%") {
@@ -905,20 +831,16 @@ impl Ffmpeg {
                 .to_string_lossy()
                 .to_string()
         };
-
         args.push("-y".to_string());
         args.push(final_pattern.clone());
-
         let output = Command::new(&self.bin_path)
             .args(&args)
             .output()
             .map_err(|e| format!("Failed to extract frames: {}", e))?;
-
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
             return Err(format!("FFmpeg failed: {}", stderr));
         }
-
         let mut extracted_files = Vec::new();
         let pattern_base = if final_pattern.contains("%") {
             let base = final_pattern.split("%04d").next().unwrap_or("");
@@ -926,7 +848,6 @@ impl Ffmpeg {
         } else {
             final_pattern.clone()
         };
-
         if let Ok(entries) = fs::read_dir(output_dir) {
             for entry in entries.flatten() {
                 let path = entry.path();
@@ -938,7 +859,6 @@ impl Ffmpeg {
                 }
             }
         }
-
         extracted_files.sort();
         Ok(extracted_files)
     }
@@ -947,7 +867,6 @@ impl Ffmpeg {
         if !Path::new(input_path).exists() {
             return Err(format!("Input file not found: {}", input_path));
         }
-
         let output = Command::new("ffprobe")
             .args([
                 "-v",
@@ -963,12 +882,10 @@ impl Ffmpeg {
             ])
             .output()
             .map_err(|e| format!("Failed to get frame count: {}", e))?;
-
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
             return Err(format!("ffprobe failed: {}", stderr));
         }
-
         let stdout = String::from_utf8_lossy(&output.stdout);
         stdout
             .trim()
@@ -980,7 +897,6 @@ impl Ffmpeg {
         if !Path::new(input_path).exists() {
             return Err(format!("Input file not found: {}", input_path));
         }
-
         let output = Command::new("ffprobe")
             .args([
                 "-v",
@@ -997,21 +913,17 @@ impl Ffmpeg {
             ])
             .output()
             .map_err(|e| format!("Failed to get keyframes: {}", e))?;
-
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
             return Err(format!("ffprobe failed: {}", stderr));
         }
-
         let stdout = String::from_utf8_lossy(&output.stdout);
         let mut keyframes = Vec::new();
-
         for line in stdout.lines() {
             if let Ok(time) = line.trim().parse::<f64>() {
                 keyframes.push(time);
             }
         }
-
         Ok(keyframes)
     }
 

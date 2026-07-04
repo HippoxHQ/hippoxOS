@@ -1,6 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import { TaskInfo } from '../../core/types';
 import { ChatMessage } from '../../types/types';
+import { TrackRowInfo } from '../VideoEditor/types';
 
 export interface TrackInfo {
     track_type: "video" | "audio" | "image" | "text";
@@ -53,6 +54,9 @@ export const videoSessionCommands = {
         videoUrl?: string,
         videoTitle?: string,
         videoSourcePath?: string,
+        audioSourcePaths?: string[],
+        imageSourcePaths?: string[],
+        textSourcePaths?: string[],
     ): Promise<string> {
         return await invoke('cmd_create_video_dialog_session', {
             sessionId,
@@ -64,6 +68,9 @@ export const videoSessionCommands = {
             videoUrl,
             videoTitle,
             videoSourcePath,
+            audioSourcePaths,
+            imageSourcePaths,
+            textSourcePaths,
         });
     },
 
@@ -139,11 +146,11 @@ export const videoSessionCommands = {
         return null;
     },
 
-    async getVideoSessionTracks(sessionId: string): Promise<TrackInfo[]> {
+    async getVideoSessionTracks(sessionId: string): Promise<Record<string, TrackRowInfo>> {
         return await invoke('cmd_get_video_session_tracks', { sessionId });
     },
 
-    async updateVideoSessionTracks(sessionId: string, tracks: TrackInfo[]): Promise<any> {
+    async updateVideoSessionTracks(sessionId: string, tracks: Record<string, TrackRowInfo>): Promise<any> {
         return await invoke('cmd_update_video_session_tracks', {
             sessionId,
             tracks: JSON.parse(JSON.stringify(tracks)),

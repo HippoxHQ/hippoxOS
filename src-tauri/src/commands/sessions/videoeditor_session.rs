@@ -3,11 +3,13 @@ use crate::commands::paths::get_app_root_dir;
 use crate::commands::video_editor::material::{insert_material, UploadResult};
 use crate::commands::video_editor::track::{calculate_max_track_time, get_session_lock};
 use crate::commands::{
-    get_settings_dir, get_video_dialog_history_dir, AudioInfo, ImageInfo, TextInfo, TrackInfo,
-    TrackType, VideoInfo,
+    get_settings_dir, get_video_dialog_history_dir, AudioTrackBlock, AudioTrackRow,
+    ImageTrackBlock, ImageTrackRow, TextTrackBlock, TextTrackRow, TrackRowInfo, TrackTable,
+    TrackType, VideoTrackBlock, VideoTrackRow,
 };
 use crate::commons::Ffmpeg;
 use chrono::Local;
+use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
 use uuid::Uuid;
@@ -98,7 +100,7 @@ pub fn cmd_create_video_dialog_session(
     }
     let mut video_file_path: Option<String> = None;
     let mut video_info: Option<serde_json::Value> = None;
-    let mut tracks: Vec<Vec<TrackInfo>> = Vec::new();
+    let mut tracks: TrackTable = HashMap::new();
     let ffmpeg = Ffmpeg::new();
 
     if let Some(source_path) = video_source_path {
@@ -125,22 +127,64 @@ pub fn cmd_create_video_dialog_session(
 
                     match ffmpeg.get_video_info_json(&dest_path_str) {
                         Ok(info_json) => {
-                            let mut video_info_struct: VideoInfo =
-                                serde_json::from_value(info_json.clone())
-                                    .map_err(|e| format!("Failed to parse video info: {}", e))?;
-                            video_info_struct.resource_path = dest_path_str;
-                            video_info_struct.track_start_time = 0.0;
-                            video_info_struct.track_end_time = video_info_struct.duration;
-                            video_info_struct.internal_start_time = 0.0;
-                            video_info_struct.internal_end_time = video_info_struct.duration;
+                            let duration = info_json["duration"].as_f64().unwrap_or(5.0);
+                            let width = info_json["width"].as_u64().unwrap_or(1920) as u32;
+                            let height = info_json["height"].as_u64().unwrap_or(1080) as u32;
+                            let fps = info_json["fps"].as_f64().unwrap_or(30.0);
+                            let bitrate = info_json["bitrate"].as_u64().unwrap_or(0);
+                            let codec =
+                                info_json["codec"].as_str().unwrap_or("unknown").to_string();
+
                             let track_id = Uuid::new_v4().to_string();
                             let track_block_id = Uuid::new_v4().to_string();
-                            video_info_struct.track_id = track_id;
-                            video_info_struct.track_block_id = track_block_id;
-                            video_info_struct.visible = true;
-                            video_info_struct.resource_frames = resource_frames;
+
+                            let video_block = VideoTrackBlock {
+                                width,
+                                height,
+                                duration,
+                                fps,
+                                bitrate,
+                                codec: codec.clone(),
+                                resource_path: dest_path_str.clone(),
+                                aspect_ratio: None,
+                                pixel_format: None,
+                                color_space: None,
+                                bit_depth: None,
+                                frame_count: None,
+                                keyframe_count: None,
+                                has_audio: false,
+                                audio_codec: None,
+                                audio_sample_rate: None,
+                                audio_channels: None,
+                                audio_bitrate: None,
+                                file_size: None,
+                                container_format: None,
+                                creation_time: None,
+                                tags: None,
+                                video_stream_index: None,
+                                audio_stream_index: None,
+                                track_start_time: 0.0,
+                                track_end_time: duration,
+                                internal_start_time: 0.0,
+                                internal_end_time: duration,
+                                track_id: track_id.clone(),
+                                track_block_id: track_block_id.clone(),
+                                visible: true,
+                                resource_frames: resource_frames,
+                            };
+
                             video_info = Some(info_json.clone());
-                            tracks.push(vec![TrackInfo::Video(video_info_struct)]);
+
+                            let mut blocks = HashMap::new();
+                            blocks.insert(track_block_id.clone(), video_block);
+
+                            let video_row = VideoTrackRow {
+                                track_id: track_id.clone(),
+                                track_type: TrackType::Video,
+                                blocks,
+                            };
+
+                            tracks.insert(track_id, TrackRowInfo::Video(video_row));
                         }
                         Err(e) => {
                             eprintln!("Failed to get video info: {}", e);
@@ -167,22 +211,63 @@ pub fn cmd_create_video_dialog_session(
                 video_file_path = Some(empty_path.clone());
                 match ffmpeg.get_video_info_json(&empty_path) {
                     Ok(info_json) => {
-                        let mut video_info_struct: VideoInfo =
-                            serde_json::from_value(info_json.clone())
-                                .map_err(|e| format!("Failed to parse video info: {}", e))?;
-                        video_info_struct.resource_path = empty_path;
-                        video_info_struct.track_start_time = 0.0;
-                        video_info_struct.track_end_time = video_info_struct.duration;
-                        video_info_struct.internal_start_time = 0.0;
-                        video_info_struct.internal_end_time = video_info_struct.duration;
+                        let duration = info_json["duration"].as_f64().unwrap_or(5.0);
+                        let width = info_json["width"].as_u64().unwrap_or(1920) as u32;
+                        let height = info_json["height"].as_u64().unwrap_or(1080) as u32;
+                        let fps = info_json["fps"].as_f64().unwrap_or(30.0);
+                        let bitrate = info_json["bitrate"].as_u64().unwrap_or(0);
+                        let codec = info_json["codec"].as_str().unwrap_or("unknown").to_string();
+
                         let track_id = Uuid::new_v4().to_string();
                         let track_block_id = Uuid::new_v4().to_string();
-                        video_info_struct.track_id = track_id;
-                        video_info_struct.track_block_id = track_block_id;
-                        video_info_struct.visible = true;
-                        video_info_struct.resource_frames = None;
+
+                        let video_block = VideoTrackBlock {
+                            width,
+                            height,
+                            duration,
+                            fps,
+                            bitrate,
+                            codec: codec.clone(),
+                            resource_path: empty_path.clone(),
+                            aspect_ratio: None,
+                            pixel_format: None,
+                            color_space: None,
+                            bit_depth: None,
+                            frame_count: None,
+                            keyframe_count: None,
+                            has_audio: false,
+                            audio_codec: None,
+                            audio_sample_rate: None,
+                            audio_channels: None,
+                            audio_bitrate: None,
+                            file_size: None,
+                            container_format: None,
+                            creation_time: None,
+                            tags: None,
+                            video_stream_index: None,
+                            audio_stream_index: None,
+                            track_start_time: 0.0,
+                            track_end_time: duration,
+                            internal_start_time: 0.0,
+                            internal_end_time: duration,
+                            track_id: track_id.clone(),
+                            track_block_id: track_block_id.clone(),
+                            visible: true,
+                            resource_frames: None,
+                        };
+
                         video_info = Some(info_json.clone());
-                        tracks.push(vec![TrackInfo::Video(video_info_struct)]);
+
+                        let mut blocks = HashMap::new();
+                        blocks.insert(track_block_id.clone(), video_block);
+
+                        let video_row = VideoTrackRow {
+                            track_id: track_id.clone(),
+                            track_type: TrackType::Video,
+                            blocks,
+                        };
+
+                        tracks.insert(track_id, TrackRowInfo::Video(video_row));
                     }
                     Err(e) => {
                         eprintln!("Failed to get empty video info: {}", e);
@@ -204,7 +289,10 @@ pub fn cmd_create_video_dialog_session(
                         match ffmpeg.get_metadata(&dest_path_str) {
                             Ok(meta) => {
                                 let duration = meta.duration;
-                                let audio_info = AudioInfo {
+                                let track_id = Uuid::new_v4().to_string();
+                                let track_block_id = Uuid::new_v4().to_string();
+
+                                let audio_block = AudioTrackBlock {
                                     duration,
                                     bitrate: 0,
                                     codec: "unknown".to_string(),
@@ -220,11 +308,21 @@ pub fn cmd_create_video_dialog_session(
                                     track_end_time: duration,
                                     internal_start_time: 0.0,
                                     internal_end_time: duration,
-                                    track_id: Uuid::new_v4().to_string(),
-                                    track_block_id: Uuid::new_v4().to_string(),
+                                    track_id: track_id.clone(),
+                                    track_block_id: track_block_id.clone(),
                                     visible: true,
                                 };
-                                tracks.push(vec![TrackInfo::Audio(audio_info)]);
+
+                                let mut blocks = HashMap::new();
+                                blocks.insert(track_block_id.clone(), audio_block);
+
+                                let audio_row = AudioTrackRow {
+                                    track_id: track_id.clone(),
+                                    track_type: TrackType::Audio,
+                                    blocks,
+                                };
+
+                                tracks.insert(track_id, TrackRowInfo::Audio(audio_row));
                             }
                             Err(e) => {
                                 eprintln!("Failed to get audio info: {}", e);
@@ -249,7 +347,10 @@ pub fn cmd_create_video_dialog_session(
                             Ok(info) => {
                                 let width = info["width"].as_u64().unwrap_or(1920) as u32;
                                 let height = info["height"].as_u64().unwrap_or(1080) as u32;
-                                let image_info = ImageInfo {
+                                let track_id = Uuid::new_v4().to_string();
+                                let track_block_id = Uuid::new_v4().to_string();
+
+                                let image_block = ImageTrackBlock {
                                     width,
                                     height,
                                     resource_path: dest_path_str,
@@ -261,11 +362,21 @@ pub fn cmd_create_video_dialog_session(
                                     tags: None,
                                     track_start_time: 0.0,
                                     track_end_time: 5.0,
-                                    track_id: Uuid::new_v4().to_string(),
-                                    track_block_id: Uuid::new_v4().to_string(),
+                                    track_id: track_id.clone(),
+                                    track_block_id: track_block_id.clone(),
                                     visible: true,
                                 };
-                                tracks.push(vec![TrackInfo::Image(image_info)]);
+
+                                let mut blocks = HashMap::new();
+                                blocks.insert(track_block_id.clone(), image_block);
+
+                                let image_row = ImageTrackRow {
+                                    track_id: track_id.clone(),
+                                    track_type: TrackType::Image,
+                                    blocks,
+                                };
+
+                                tracks.insert(track_id, TrackRowInfo::Image(image_row));
                             }
                             Err(e) => {
                                 eprintln!("Failed to get image info: {}", e);
@@ -286,7 +397,10 @@ pub fn cmd_create_video_dialog_session(
                 match insert_material(session_id.to_string(), text_path.clone(), "text") {
                     Ok(upload_result) => {
                         let dest_path_str = upload_result.file_path.clone();
-                        let text_info = TextInfo {
+                        let track_id = Uuid::new_v4().to_string();
+                        let track_block_id = Uuid::new_v4().to_string();
+
+                        let text_block = TextTrackBlock {
                             content: upload_result.content_preview,
                             resource_path: dest_path_str,
                             file_name: upload_result.file_name,
@@ -296,11 +410,21 @@ pub fn cmd_create_video_dialog_session(
                             creation_time: None,
                             track_start_time: 0.0,
                             track_end_time: 5.0,
-                            track_id: Uuid::new_v4().to_string(),
-                            track_block_id: Uuid::new_v4().to_string(),
+                            track_id: track_id.clone(),
+                            track_block_id: track_block_id.clone(),
                             visible: true,
                         };
-                        tracks.push(vec![TrackInfo::Text(text_info)]);
+
+                        let mut blocks = HashMap::new();
+                        blocks.insert(track_block_id.clone(), text_block);
+
+                        let text_row = TextTrackRow {
+                            track_id: track_id.clone(),
+                            track_type: TrackType::Text,
+                            blocks,
+                        };
+
+                        tracks.insert(track_id, TrackRowInfo::Text(text_row));
                     }
                     Err(e) => {
                         eprintln!("Failed to upload text material: {}", e);
@@ -310,14 +434,7 @@ pub fn cmd_create_video_dialog_session(
         }
     }
 
-    let track_stack: Vec<String> = tracks
-        .iter()
-        .map(|row| {
-            row.first()
-                .map(|t| t.get_track_id().to_string())
-                .unwrap_or_else(|| Uuid::new_v4().to_string())
-        })
-        .collect();
+    let track_stack: Vec<String> = tracks.keys().cloned().collect();
 
     let max_track_time = calculate_max_track_time(&tracks);
 
@@ -685,6 +802,9 @@ pub struct RemoveTrackRequest {
 
 #[tauri::command]
 pub fn cmd_add_video_track(request: AddTrackRequest) -> Result<serde_json::Value, String> {
+    use crate::commands::{extract_material_info_from_path, get_material_cache_dir};
+    use std::collections::HashMap;
+
     let lock = get_session_lock(&request.session_id);
     let _guard = lock.lock().unwrap();
 
@@ -702,15 +822,16 @@ pub fn cmd_add_video_track(request: AddTrackRequest) -> Result<serde_json::Value
         .map_err(|e| format!("Failed to read metadata: {}", e))?;
     let mut metadata: serde_json::Value =
         serde_json::from_str(&content).map_err(|e| format!("Failed to parse metadata: {}", e))?;
-    let mut tracks: Vec<Vec<TrackInfo>> = match metadata.get("tracks") {
+
+    let mut tracks: TrackTable = match metadata.get("tracks") {
         Some(t) => serde_json::from_value(t.clone())
             .map_err(|e| format!("Failed to parse tracks: {}", e))?,
-        None => Vec::new(),
+        None => HashMap::new(),
     };
+
     let ffmpeg = Ffmpeg::new();
     let track_type = request.track_type.as_str();
-    let new_track: TrackInfo;
-    let row_index: usize;
+    let track_id = Uuid::new_v4().to_string();
 
     match track_type {
         "video" => {
@@ -731,9 +852,9 @@ pub fn cmd_add_video_track(request: AddTrackRequest) -> Result<serde_json::Value
             let resource_frames = if let Some(ref path) = request.file_path {
                 if Path::new(path).exists() {
                     if let Some((material_type, material_id)) =
-                        crate::commands::extract_material_info_from_path(path)
+                        extract_material_info_from_path(path)
                     {
-                        let cache_dir = crate::commands::get_material_cache_dir(
+                        let cache_dir = get_material_cache_dir(
                             &request.session_id,
                             &material_type,
                             &material_id,
@@ -756,21 +877,66 @@ pub fn cmd_add_video_track(request: AddTrackRequest) -> Result<serde_json::Value
 
             match ffmpeg.get_video_info_json(&video_path) {
                 Ok(info_json) => {
-                    let mut video_info: VideoInfo = serde_json::from_value(info_json)
-                        .map_err(|e| format!("Failed to parse video info: {}", e))?;
-                    video_info.resource_path = video_path;
-                    video_info.track_start_time = 0.0;
-                    video_info.track_end_time = video_info.duration;
-                    video_info.internal_start_time = 0.0;
-                    video_info.internal_end_time = video_info.duration;
-                    video_info.track_id = Uuid::new_v4().to_string();
-                    video_info.track_block_id = Uuid::new_v4().to_string();
-                    video_info.resource_frames = resource_frames;
-                    new_track = TrackInfo::Video(video_info);
+                    let duration = info_json["duration"].as_f64().unwrap_or(5.0);
+                    let width = info_json["width"].as_u64().unwrap_or(1920) as u32;
+                    let height = info_json["height"].as_u64().unwrap_or(1080) as u32;
+                    let fps = info_json["fps"].as_f64().unwrap_or(30.0);
+                    let bitrate = info_json["bitrate"].as_u64().unwrap_or(0);
+                    let codec = info_json["codec"].as_str().unwrap_or("unknown").to_string();
+
+                    let track_block_id = Uuid::new_v4().to_string();
+
+                    let video_block = VideoTrackBlock {
+                        width,
+                        height,
+                        duration,
+                        fps,
+                        bitrate,
+                        codec: codec.clone(),
+                        resource_path: video_path.clone(),
+                        aspect_ratio: None,
+                        pixel_format: None,
+                        color_space: None,
+                        bit_depth: None,
+                        frame_count: None,
+                        keyframe_count: None,
+                        has_audio: false,
+                        audio_codec: None,
+                        audio_sample_rate: None,
+                        audio_channels: None,
+                        audio_bitrate: None,
+                        file_size: None,
+                        container_format: None,
+                        creation_time: None,
+                        tags: None,
+                        video_stream_index: None,
+                        audio_stream_index: None,
+                        track_start_time: 0.0,
+                        track_end_time: duration,
+                        internal_start_time: 0.0,
+                        internal_end_time: duration,
+                        track_id: track_id.clone(),
+                        track_block_id: track_block_id.clone(),
+                        visible: true,
+                        resource_frames: resource_frames,
+                    };
+
+                    let mut blocks = HashMap::new();
+                    blocks.insert(track_block_id.clone(), video_block);
+
+                    let video_row = VideoTrackRow {
+                        track_id: track_id.clone(),
+                        track_type: TrackType::Video,
+                        blocks,
+                    };
+
+                    tracks.insert(track_id.clone(), TrackRowInfo::Video(video_row));
                 }
                 Err(e) => {
                     eprintln!("Failed to get video info for new track: {}", e);
-                    let video_info = VideoInfo {
+                    let track_block_id = Uuid::new_v4().to_string();
+
+                    let video_block = VideoTrackBlock {
                         width: 1920,
                         height: 1080,
                         duration: 5.0,
@@ -799,24 +965,24 @@ pub fn cmd_add_video_track(request: AddTrackRequest) -> Result<serde_json::Value
                         track_end_time: 5.0,
                         internal_start_time: 0.0,
                         internal_end_time: 5.0,
-                        track_id: Uuid::new_v4().to_string(),
-                        track_block_id: Uuid::new_v4().to_string(),
+                        track_id: track_id.clone(),
+                        track_block_id: track_block_id.clone(),
                         visible: true,
                         resource_frames: resource_frames,
                     };
-                    new_track = TrackInfo::Video(video_info);
+
+                    let mut blocks = HashMap::new();
+                    blocks.insert(track_block_id.clone(), video_block);
+
+                    let video_row = VideoTrackRow {
+                        track_id: track_id.clone(),
+                        track_type: TrackType::Video,
+                        blocks,
+                    };
+
+                    tracks.insert(track_id.clone(), TrackRowInfo::Video(video_row));
                 }
             }
-            row_index = tracks
-                .iter()
-                .position(|row| {
-                    row.first()
-                        .map_or(false, |t| t.get_track_type() == TrackType::Video)
-                })
-                .unwrap_or_else(|| {
-                    tracks.push(Vec::new());
-                    tracks.len() - 1
-                });
         }
         "audio" => {
             let default_path = workspace_dir
@@ -838,7 +1004,9 @@ pub fn cmd_add_video_track(request: AddTrackRequest) -> Result<serde_json::Value
                 .unwrap_or("empty_audio.mp3")
                 .to_string();
             let file_size = fs::metadata(&audio_path).map(|m| m.len()).unwrap_or(0);
-            let mut audio_info = AudioInfo {
+            let track_block_id = Uuid::new_v4().to_string();
+
+            let mut audio_block = AudioTrackBlock {
                 duration: 0.0,
                 bitrate: 0,
                 codec: "unknown".to_string(),
@@ -854,26 +1022,27 @@ pub fn cmd_add_video_track(request: AddTrackRequest) -> Result<serde_json::Value
                 track_end_time: 0.0,
                 internal_start_time: 0.0,
                 internal_end_time: 0.0,
-                track_id: Uuid::new_v4().to_string(),
-                track_block_id: Uuid::new_v4().to_string(),
+                track_id: track_id.clone(),
+                track_block_id: track_block_id.clone(),
                 visible: true,
             };
-            if let Ok(meta) = ffmpeg.get_metadata(&audio_info.resource_path) {
-                audio_info.duration = meta.duration;
-                audio_info.track_end_time = meta.duration;
-                audio_info.internal_end_time = meta.duration;
+
+            if let Ok(meta) = ffmpeg.get_metadata(&audio_block.resource_path) {
+                audio_block.duration = meta.duration;
+                audio_block.track_end_time = meta.duration;
+                audio_block.internal_end_time = meta.duration;
             }
-            new_track = TrackInfo::Audio(audio_info);
-            row_index = tracks
-                .iter()
-                .position(|row| {
-                    row.first()
-                        .map_or(false, |t| t.get_track_type() == TrackType::Audio)
-                })
-                .unwrap_or_else(|| {
-                    tracks.push(Vec::new());
-                    tracks.len() - 1
-                });
+
+            let mut blocks = HashMap::new();
+            blocks.insert(track_block_id.clone(), audio_block);
+
+            let audio_row = AudioTrackRow {
+                track_id: track_id.clone(),
+                track_type: TrackType::Audio,
+                blocks,
+            };
+
+            tracks.insert(track_id.clone(), TrackRowInfo::Audio(audio_row));
         }
         "image" => {
             let default_path = workspace_dir
@@ -895,7 +1064,9 @@ pub fn cmd_add_video_track(request: AddTrackRequest) -> Result<serde_json::Value
                 .unwrap_or("empty_image.png")
                 .to_string();
             let file_size = fs::metadata(&image_path).map(|m| m.len()).unwrap_or(0);
-            let image_info = ImageInfo {
+            let track_block_id = Uuid::new_v4().to_string();
+
+            let image_block = ImageTrackBlock {
                 width: 1920,
                 height: 1080,
                 resource_path: image_path,
@@ -907,21 +1078,21 @@ pub fn cmd_add_video_track(request: AddTrackRequest) -> Result<serde_json::Value
                 tags: None,
                 track_start_time: 0.0,
                 track_end_time: 5.0,
-                track_id: Uuid::new_v4().to_string(),
-                track_block_id: Uuid::new_v4().to_string(),
+                track_id: track_id.clone(),
+                track_block_id: track_block_id.clone(),
                 visible: true,
             };
-            new_track = TrackInfo::Image(image_info);
-            row_index = tracks
-                .iter()
-                .position(|row| {
-                    row.first()
-                        .map_or(false, |t| t.get_track_type() == TrackType::Image)
-                })
-                .unwrap_or_else(|| {
-                    tracks.push(Vec::new());
-                    tracks.len() - 1
-                });
+
+            let mut blocks = HashMap::new();
+            blocks.insert(track_block_id.clone(), image_block);
+
+            let image_row = ImageTrackRow {
+                track_id: track_id.clone(),
+                track_type: TrackType::Image,
+                blocks,
+            };
+
+            tracks.insert(track_id.clone(), TrackRowInfo::Image(image_row));
         }
         "text" => {
             let default_path = workspace_dir
@@ -943,7 +1114,9 @@ pub fn cmd_add_video_track(request: AddTrackRequest) -> Result<serde_json::Value
                 .unwrap_or("empty_text.txt")
                 .to_string();
             let file_size = fs::metadata(&text_path).map(|m| m.len()).unwrap_or(0);
-            let text_info = TextInfo {
+            let track_block_id = Uuid::new_v4().to_string();
+
+            let text_block = TextTrackBlock {
                 content: String::new(),
                 resource_path: text_path,
                 file_name,
@@ -953,29 +1126,25 @@ pub fn cmd_add_video_track(request: AddTrackRequest) -> Result<serde_json::Value
                 creation_time: None,
                 track_start_time: 0.0,
                 track_end_time: 5.0,
-                track_id: Uuid::new_v4().to_string(),
-                track_block_id: Uuid::new_v4().to_string(),
+                track_id: track_id.clone(),
+                track_block_id: track_block_id.clone(),
                 visible: true,
             };
-            new_track = TrackInfo::Text(text_info);
-            row_index = tracks
-                .iter()
-                .position(|row| {
-                    row.first()
-                        .map_or(false, |t| t.get_track_type() == TrackType::Text)
-                })
-                .unwrap_or_else(|| {
-                    tracks.push(Vec::new());
-                    tracks.len() - 1
-                });
+
+            let mut blocks = HashMap::new();
+            blocks.insert(track_block_id.clone(), text_block);
+
+            let text_row = TextTrackRow {
+                track_id: track_id.clone(),
+                track_type: TrackType::Text,
+                blocks,
+            };
+
+            tracks.insert(track_id.clone(), TrackRowInfo::Text(text_row));
         }
         _ => {
             return Err(format!("Invalid track type: {}", request.track_type));
         }
-    }
-
-    if let Some(row) = tracks.get_mut(row_index) {
-        row.push(new_track);
     }
 
     metadata["tracks"] =
@@ -1005,9 +1174,9 @@ pub fn cmd_add_video_track(request: AddTrackRequest) -> Result<serde_json::Value
 
 #[tauri::command]
 pub fn cmd_remove_video_track(request: RemoveTrackRequest) -> Result<serde_json::Value, String> {
+    use std::collections::HashMap;
     let lock = get_session_lock(&request.session_id);
     let _guard = lock.lock().unwrap();
-
     let dir = get_video_dialog_history_dir();
     let session_dir = dir.join(&request.session_id);
     let workspace_dir = session_dir.join("workspace");
@@ -1022,38 +1191,18 @@ pub fn cmd_remove_video_track(request: RemoveTrackRequest) -> Result<serde_json:
         .map_err(|e| format!("Failed to read metadata: {}", e))?;
     let mut metadata: serde_json::Value =
         serde_json::from_str(&content).map_err(|e| format!("Failed to parse metadata: {}", e))?;
-    let mut tracks: Vec<Vec<TrackInfo>> = match metadata.get("tracks") {
+    let mut tracks: TrackTable = match metadata.get("tracks") {
         Some(t) => serde_json::from_value(t.clone())
             .map_err(|e| format!("Failed to parse tracks: {}", e))?,
-        None => Vec::new(),
+        None => HashMap::new(),
     };
-    let mut total_blocks = 0;
-    for row in &tracks {
-        total_blocks += row.len();
-    }
-    if request.track_index >= total_blocks {
+    let track_keys: Vec<String> = tracks.keys().cloned().collect();
+    if request.track_index >= track_keys.len() {
         return Err(format!("Track index out of range: {}", request.track_index));
     }
-    let mut removed = false;
-    let mut block_counter = 0;
-    for row in &mut tracks {
-        for i in 0..row.len() {
-            if block_counter == request.track_index {
-                row.remove(i);
-                removed = true;
-                break;
-            }
-            block_counter += 1;
-        }
-        if removed {
-            break;
-        }
-    }
-    tracks.retain(|row| !row.is_empty());
-    let track_stack: Vec<String> = tracks
-        .iter()
-        .filter_map(|row| row.first().map(|t| t.get_track_id().to_string()))
-        .collect();
+    let track_id_to_remove = &track_keys[request.track_index];
+    tracks.remove(track_id_to_remove);
+    let track_stack: Vec<String> = tracks.keys().cloned().collect();
     metadata["tracks"] =
         serde_json::to_value(&tracks).map_err(|e| format!("Failed to serialize tracks: {}", e))?;
     metadata["track_stack"] = serde_json::to_value(&track_stack)
@@ -1096,8 +1245,8 @@ pub fn cmd_get_video_session_tracks(session_id: &str) -> Result<Vec<serde_json::
         serde_json::from_str(&content).map_err(|e| format!("Failed to parse metadata: {}", e))?;
     let tracks = metadata
         .get("tracks")
-        .and_then(|t| t.as_array())
-        .map(|arr| arr.clone())
+        .and_then(|t| t.as_object())
+        .map(|obj| obj.values().cloned().collect::<Vec<serde_json::Value>>())
         .unwrap_or_default();
     Ok(tracks)
 }
@@ -1105,11 +1254,10 @@ pub fn cmd_get_video_session_tracks(session_id: &str) -> Result<Vec<serde_json::
 #[tauri::command]
 pub fn cmd_update_video_session_tracks(
     session_id: &str,
-    tracks: Vec<serde_json::Value>,
+    tracks: serde_json::Value,
 ) -> Result<serde_json::Value, String> {
     let lock = get_session_lock(session_id);
     let _guard = lock.lock().unwrap();
-
     let dir = get_video_dialog_history_dir();
     let session_dir = dir.join(session_id);
     let workspace_dir = session_dir.join("workspace");
@@ -1121,8 +1269,12 @@ pub fn cmd_update_video_session_tracks(
         .map_err(|e| format!("Failed to read metadata: {}", e))?;
     let mut metadata: serde_json::Value =
         serde_json::from_str(&content).map_err(|e| format!("Failed to parse metadata: {}", e))?;
-    metadata["tracks"] =
-        serde_json::to_value(&tracks).map_err(|e| format!("Failed to serialize tracks: {}", e))?;
+    let track_table: TrackTable = serde_json::from_value(tracks)
+        .map_err(|e| format!("Failed to deserialize tracks: {}", e))?;
+    metadata["tracks"] = serde_json::to_value(&track_table)
+        .map_err(|e| format!("Failed to serialize tracks: {}", e))?;
+    metadata["track_stack"] =
+        serde_json::json!(track_table.keys().cloned().collect::<Vec<String>>());
     metadata["updated_at"] = serde_json::json!(Local::now().to_rfc3339());
     let new_content = serde_json::to_string_pretty(&metadata)
         .map_err(|e| format!("Failed to serialize metadata: {}", e))?;
@@ -1134,8 +1286,10 @@ pub fn cmd_update_video_session_tracks(
             .map_err(|e| format!("Failed to read config: {}", e))?;
         let mut config: serde_json::Value = serde_json::from_str(&config_content)
             .map_err(|e| format!("Failed to parse config: {}", e))?;
-        config["tracks"] = serde_json::to_value(&tracks)
+        config["tracks"] = serde_json::to_value(&track_table)
             .map_err(|e| format!("Failed to serialize tracks for config: {}", e))?;
+        config["track_stack"] =
+            serde_json::json!(track_table.keys().cloned().collect::<Vec<String>>());
         config["updated_at"] = serde_json::json!(Local::now().to_rfc3339());
         let new_config_content = serde_json::to_string_pretty(&config)
             .map_err(|e| format!("Failed to serialize config: {}", e))?;

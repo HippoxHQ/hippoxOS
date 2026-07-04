@@ -5,6 +5,7 @@ pub mod edit;
 pub mod export;
 pub mod filter;
 pub mod keyframe;
+pub mod types;
 
 // Re-export all types
 pub use advanced::*;
@@ -14,3 +15,4 @@ pub use edit::*;
 pub use export::*;
 pub use filter::*;
 pub use keyframe::*;
+pub use types::*;
