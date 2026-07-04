@@ -109,22 +109,6 @@ pub fn cmd_create_video_dialog_session(
                 Ok(upload_result) => {
                     let dest_path_str = upload_result.file_path.clone();
                     video_file_path = Some(dest_path_str.clone());
-
-                    let resource_frames = if let Some((material_type, material_id)) =
-                        extract_material_info_from_path(&dest_path_str)
-                    {
-                        let cache_dir =
-                            get_material_cache_dir(session_id, &material_type, &material_id);
-                        let frames_dir = cache_dir.join("frames");
-                        if frames_dir.exists() {
-                            Some(frames_dir.to_string_lossy().to_string())
-                        } else {
-                            None
-                        }
-                    } else {
-                        None
-                    };
-
                     match ffmpeg.get_video_info_json(&dest_path_str) {
                         Ok(info_json) => {
                             let duration = info_json["duration"].as_f64().unwrap_or(5.0);
@@ -170,7 +154,8 @@ pub fn cmd_create_video_dialog_session(
                                 track_id: track_id.clone(),
                                 track_block_id: track_block_id.clone(),
                                 visible: true,
-                                resource_frames: resource_frames,
+                                resource_frames_path: None,
+                                resource_rgb_frames_path: None,
                             };
 
                             video_info = Some(info_json.clone());
@@ -253,7 +238,8 @@ pub fn cmd_create_video_dialog_session(
                             track_id: track_id.clone(),
                             track_block_id: track_block_id.clone(),
                             visible: true,
-                            resource_frames: None,
+                            resource_frames_path: None,
+                            resource_rgb_frames_path: None,
                         };
 
                         video_info = Some(info_json.clone());
@@ -849,32 +835,6 @@ pub fn cmd_add_video_track(request: AddTrackRequest) -> Result<serde_json::Value
                 default_path.to_string_lossy().to_string()
             };
 
-            let resource_frames = if let Some(ref path) = request.file_path {
-                if Path::new(path).exists() {
-                    if let Some((material_type, material_id)) =
-                        extract_material_info_from_path(path)
-                    {
-                        let cache_dir = get_material_cache_dir(
-                            &request.session_id,
-                            &material_type,
-                            &material_id,
-                        );
-                        let frames_dir = cache_dir.join("frames");
-                        if frames_dir.exists() {
-                            Some(frames_dir.to_string_lossy().to_string())
-                        } else {
-                            None
-                        }
-                    } else {
-                        None
-                    }
-                } else {
-                    None
-                }
-            } else {
-                None
-            };
-
             match ffmpeg.get_video_info_json(&video_path) {
                 Ok(info_json) => {
                     let duration = info_json["duration"].as_f64().unwrap_or(5.0);
@@ -918,7 +878,8 @@ pub fn cmd_add_video_track(request: AddTrackRequest) -> Result<serde_json::Value
                         track_id: track_id.clone(),
                         track_block_id: track_block_id.clone(),
                         visible: true,
-                        resource_frames: resource_frames,
+                        resource_frames_path: None,
+                        resource_rgb_frames_path: None,
                     };
 
                     let mut blocks = HashMap::new();
@@ -968,7 +929,8 @@ pub fn cmd_add_video_track(request: AddTrackRequest) -> Result<serde_json::Value
                         track_id: track_id.clone(),
                         track_block_id: track_block_id.clone(),
                         visible: true,
-                        resource_frames: resource_frames,
+                        resource_frames_path: None,
+                        resource_rgb_frames_path: None,
                     };
 
                     let mut blocks = HashMap::new();
