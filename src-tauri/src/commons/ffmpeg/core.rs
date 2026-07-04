@@ -342,6 +342,7 @@ impl Ffmpeg {
             .iter()
             .find(|s| s["codec_type"].as_str() == Some("audio"));
         let format = &json["format"];
+
         let width = video_stream["width"].as_u64().unwrap_or(0) as u32;
         let height = video_stream["height"].as_u64().unwrap_or(0) as u32;
         let fps_str = video_stream["r_frame_rate"].as_str().unwrap_or("0/0");
@@ -436,6 +437,7 @@ impl Ffmpeg {
         let audio_bitrate = audio_stream
             .and_then(|s| s["bit_rate"].as_str())
             .and_then(|s| s.parse::<u64>().ok());
+
         Ok(VideoInfo {
             width,
             height,
@@ -447,7 +449,7 @@ impl Ffmpeg {
             fps,
             bitrate: final_bitrate,
             codec,
-            path: path.to_string(),
+            resource_path: path.to_string(),
             aspect_ratio,
             pixel_format,
             color_space,
@@ -472,6 +474,7 @@ impl Ffmpeg {
             track_id: Uuid::new_v4().to_string(),
             track_block_id: Uuid::new_v4().to_string(),
             visible: true,
+            resource_frames: None,
         })
     }
 
@@ -479,6 +482,7 @@ impl Ffmpeg {
         if !Path::new(path).exists() {
             return Err(format!("File not found: {}", path));
         }
+
         let output = Command::new("ffprobe")
             .args([
                 "-v",
@@ -493,12 +497,15 @@ impl Ffmpeg {
             ])
             .output()
             .map_err(|e| format!("Failed to get keyframes: {}", e))?;
+
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
             return Err(format!("ffprobe failed: {}", stderr));
         }
+
         let stdout = String::from_utf8_lossy(&output.stdout);
         let count = stdout.lines().filter(|line| line.contains('K')).count();
+
         if count == 0 {
             let output2 = Command::new("ffprobe")
                 .args([
@@ -520,6 +527,7 @@ impl Ffmpeg {
                 return Ok(count2 as u64);
             }
         }
+
         if count == 0 {
             let output3 = Command::new("ffmpeg")
                 .args([
@@ -552,6 +560,7 @@ impl Ffmpeg {
                 }
             }
         }
+
         Ok(count as u64)
     }
 
@@ -564,7 +573,7 @@ impl Ffmpeg {
             "fps": info.fps,
             "bitrate": info.bitrate,
             "codec": info.codec,
-            "path": info.path,
+            "resource_path": info.resource_path,
             "aspect_ratio": info.aspect_ratio,
             "pixel_format": info.pixel_format,
             "color_space": info.color_space,
@@ -589,6 +598,7 @@ impl Ffmpeg {
             "track_id": info.track_id,
             "track_block_id": info.track_block_id,
             "visible": info.visible,
+            "resource_frames": info.resource_frames,
         }))
     }
 
@@ -607,6 +617,7 @@ impl Ffmpeg {
                     .map_err(|e| format!("Failed to create output directory: {}", e))?;
             }
         }
+
         let args = vec![
             "-f".to_string(),
             "lavfi".to_string(),

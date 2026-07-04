@@ -15,6 +15,7 @@ dependencies = [
  "fs_extra",
  "futures",
  "hippox",
+ "image",
  "lazy_static",
  "log",
  "memcontext",

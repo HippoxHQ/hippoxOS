@@ -1,5 +1,7 @@
+// videoeditor_session.rs
 use crate::commands::paths::get_app_root_dir;
 use crate::commands::video_editor::material::{insert_material, UploadResult};
+use crate::commands::video_editor::track::{calculate_max_track_time, get_session_lock};
 use crate::commands::{
     get_settings_dir, get_video_dialog_history_dir, AudioInfo, ImageInfo, TextInfo, TrackInfo,
     TrackType, VideoInfo,
@@ -62,6 +64,11 @@ pub fn cmd_create_video_dialog_session(
     image_source_paths: Option<Vec<String>>,
     text_source_paths: Option<Vec<String>>,
 ) -> Result<String, String> {
+    use crate::commands::{extract_material_info_from_path, get_material_cache_dir};
+
+    let lock = get_session_lock(session_id);
+    let _guard = lock.lock().unwrap();
+
     let dir = get_video_dialog_history_dir();
     if !dir.exists() {
         fs::create_dir_all(&dir)
@@ -93,17 +100,35 @@ pub fn cmd_create_video_dialog_session(
     let mut video_info: Option<serde_json::Value> = None;
     let mut tracks: Vec<Vec<TrackInfo>> = Vec::new();
     let ffmpeg = Ffmpeg::new();
+
     if let Some(source_path) = video_source_path {
         if !source_path.is_empty() && Path::new(&source_path).exists() {
             match insert_material(session_id.to_string(), source_path.clone(), "video") {
                 Ok(upload_result) => {
                     let dest_path_str = upload_result.file_path.clone();
                     video_file_path = Some(dest_path_str.clone());
+
+                    let resource_frames = if let Some((material_type, material_id)) =
+                        extract_material_info_from_path(&dest_path_str)
+                    {
+                        let cache_dir =
+                            get_material_cache_dir(session_id, &material_type, &material_id);
+                        let frames_dir = cache_dir.join("frames");
+                        if frames_dir.exists() {
+                            Some(frames_dir.to_string_lossy().to_string())
+                        } else {
+                            None
+                        }
+                    } else {
+                        None
+                    };
+
                     match ffmpeg.get_video_info_json(&dest_path_str) {
                         Ok(info_json) => {
                             let mut video_info_struct: VideoInfo =
                                 serde_json::from_value(info_json.clone())
                                     .map_err(|e| format!("Failed to parse video info: {}", e))?;
+                            video_info_struct.resource_path = dest_path_str;
                             video_info_struct.track_start_time = 0.0;
                             video_info_struct.track_end_time = video_info_struct.duration;
                             video_info_struct.internal_start_time = 0.0;
@@ -113,6 +138,7 @@ pub fn cmd_create_video_dialog_session(
                             video_info_struct.track_id = track_id;
                             video_info_struct.track_block_id = track_block_id;
                             video_info_struct.visible = true;
+                            video_info_struct.resource_frames = resource_frames;
                             video_info = Some(info_json.clone());
                             tracks.push(vec![TrackInfo::Video(video_info_struct)]);
                         }
@@ -127,6 +153,7 @@ pub fn cmd_create_video_dialog_session(
             }
         }
     }
+
     if video_file_path.is_none() {
         let empty_video_path = workspace_dir.join("empty_project.mp4");
         match ffmpeg.create_empty_video(
@@ -143,6 +170,7 @@ pub fn cmd_create_video_dialog_session(
                         let mut video_info_struct: VideoInfo =
                             serde_json::from_value(info_json.clone())
                                 .map_err(|e| format!("Failed to parse video info: {}", e))?;
+                        video_info_struct.resource_path = empty_path;
                         video_info_struct.track_start_time = 0.0;
                         video_info_struct.track_end_time = video_info_struct.duration;
                         video_info_struct.internal_start_time = 0.0;
@@ -152,6 +180,7 @@ pub fn cmd_create_video_dialog_session(
                         video_info_struct.track_id = track_id;
                         video_info_struct.track_block_id = track_block_id;
                         video_info_struct.visible = true;
+                        video_info_struct.resource_frames = None;
                         video_info = Some(info_json.clone());
                         tracks.push(vec![TrackInfo::Video(video_info_struct)]);
                     }
@@ -165,6 +194,7 @@ pub fn cmd_create_video_dialog_session(
             }
         }
     }
+
     if let Some(audio_paths) = audio_source_paths {
         for audio_path in audio_paths {
             if !audio_path.is_empty() && Path::new(&audio_path).exists() {
@@ -180,7 +210,7 @@ pub fn cmd_create_video_dialog_session(
                                     codec: "unknown".to_string(),
                                     sample_rate: 0,
                                     channels: 0,
-                                    file_path: dest_path_str,
+                                    resource_path: dest_path_str,
                                     file_name: upload_result.file_name,
                                     file_size: upload_result.file_size,
                                     container_format: None,
@@ -208,6 +238,7 @@ pub fn cmd_create_video_dialog_session(
             }
         }
     }
+
     if let Some(image_paths) = image_source_paths {
         for image_path in image_paths {
             if !image_path.is_empty() && Path::new(&image_path).exists() {
@@ -221,7 +252,7 @@ pub fn cmd_create_video_dialog_session(
                                 let image_info = ImageInfo {
                                     width,
                                     height,
-                                    file_path: dest_path_str,
+                                    resource_path: dest_path_str,
                                     file_name: upload_result.file_name,
                                     file_size: upload_result.file_size,
                                     pixel_format: None,
@@ -248,6 +279,7 @@ pub fn cmd_create_video_dialog_session(
             }
         }
     }
+
     if let Some(text_paths) = text_source_paths {
         for text_path in text_paths {
             if !text_path.is_empty() && Path::new(&text_path).exists() {
@@ -256,7 +288,7 @@ pub fn cmd_create_video_dialog_session(
                         let dest_path_str = upload_result.file_path.clone();
                         let text_info = TextInfo {
                             content: upload_result.content_preview,
-                            file_path: dest_path_str,
+                            resource_path: dest_path_str,
                             file_name: upload_result.file_name,
                             file_size: upload_result.file_size,
                             encoding: None,
@@ -277,6 +309,7 @@ pub fn cmd_create_video_dialog_session(
             }
         }
     }
+
     let track_stack: Vec<String> = tracks
         .iter()
         .map(|row| {
@@ -285,7 +318,9 @@ pub fn cmd_create_video_dialog_session(
                 .unwrap_or_else(|| Uuid::new_v4().to_string())
         })
         .collect();
-    let max_track_time = crate::commands::video_editor::track::calculate_max_track_time(&tracks);
+
+    let max_track_time = calculate_max_track_time(&tracks);
+
     let metadata_path = workspace_dir.join("metadata.json");
     let metadata = serde_json::json!({
         "session_id": session_id,
@@ -304,10 +339,12 @@ pub fn cmd_create_video_dialog_session(
         "files": serde_json::json!([]),
         "exported_videos": serde_json::json!([]),
     });
+
     let metadata_content = serde_json::to_string_pretty(&metadata)
         .map_err(|e| format!("Failed to serialize metadata: {}", e))?;
     fs::write(&metadata_path, metadata_content)
         .map_err(|e| format!("Failed to save metadata.json: {}", e))?;
+
     let config = serde_json::json!({
         "session_id": session_id,
         "title": title,
@@ -321,16 +358,20 @@ pub fn cmd_create_video_dialog_session(
         "metadata_path": metadata_path.to_string_lossy().to_string(),
         "video_file": video_file_path,
     });
+
     let config_path = session_dir.join("config.json");
     let config_content = serde_json::to_string_pretty(&config)
         .map_err(|e| format!("Failed to serialize config: {}", e))?;
     fs::write(&config_path, config_content).map_err(|e| format!("Failed to save config: {}", e))?;
+
     let chat_path = session_dir.join("chat.json");
     fs::write(&chat_path, initial_chat_content)
         .map_err(|e| format!("Failed to save chat history: {}", e))?;
+
     let terminal_path = session_dir.join("terminal.json");
     fs::write(&terminal_path, initial_terminal_content)
         .map_err(|e| format!("Failed to save terminal history: {}", e))?;
+
     Ok(session_dir.to_string_lossy().to_string())
 }
 
@@ -442,6 +483,9 @@ pub fn cmd_load_video_session_config(
 
 #[tauri::command]
 pub fn cmd_update_video_session_config(session_id: &str, updates: String) -> Result<(), String> {
+    let lock = get_session_lock(session_id);
+    let _guard = lock.lock().unwrap();
+
     let dir = get_video_dialog_history_dir();
     let session_dir = dir.join(session_id);
     let config_path = session_dir.join("config.json");
@@ -463,6 +507,7 @@ pub fn cmd_update_video_session_config(session_id: &str, updates: String) -> Res
     let new_content = serde_json::to_string_pretty(&config)
         .map_err(|e| format!("Failed to serialize config: {}", e))?;
     fs::write(&config_path, new_content).map_err(|e| format!("Failed to save config: {}", e))?;
+
     let metadata_path = session_dir.join("workspace").join("metadata.json");
     if metadata_path.exists() {
         let metadata_content = fs::read_to_string(&metadata_path)
@@ -485,6 +530,9 @@ pub fn cmd_update_video_session_config(session_id: &str, updates: String) -> Res
 
 #[tauri::command]
 pub fn cmd_delete_video_dialog_session(session_id: &str) -> Result<(), String> {
+    let lock = get_session_lock(session_id);
+    let _guard = lock.lock().unwrap();
+
     let dir = get_video_dialog_history_dir();
     let session_dir = dir.join(session_id);
     if session_dir.exists() {
@@ -500,6 +548,9 @@ pub fn cmd_delete_video_dialog_session(session_id: &str) -> Result<(), String> {
 
 #[tauri::command]
 pub fn cmd_save_video_chat_content(session_id: &str, content: &str) -> Result<(), String> {
+    let lock = get_session_lock(session_id);
+    let _guard = lock.lock().unwrap();
+
     let dir = get_video_dialog_history_dir();
     let session_dir = dir.join(session_id);
     let chat_path = session_dir.join("chat.json");
@@ -526,6 +577,9 @@ pub fn cmd_save_video_chat_content(session_id: &str, content: &str) -> Result<()
 
 #[tauri::command]
 pub fn cmd_save_video_terminal_content(session_id: &str, content: &str) -> Result<(), String> {
+    let lock = get_session_lock(session_id);
+    let _guard = lock.lock().unwrap();
+
     let dir = get_video_dialog_history_dir();
     let session_dir = dir.join(session_id);
     let terminal_path = session_dir.join("terminal.json");
@@ -566,6 +620,9 @@ pub fn cmd_load_video_terminal_content(session_id: &str) -> Result<Option<String
 
 #[tauri::command]
 pub fn cmd_save_video_task_content(session_id: &str, content: &str) -> Result<(), String> {
+    let lock = get_session_lock(session_id);
+    let _guard = lock.lock().unwrap();
+
     let dir = get_video_dialog_history_dir();
     let session_dir = dir.join(session_id);
     let task_path = session_dir.join("task.json");
@@ -628,6 +685,9 @@ pub struct RemoveTrackRequest {
 
 #[tauri::command]
 pub fn cmd_add_video_track(request: AddTrackRequest) -> Result<serde_json::Value, String> {
+    let lock = get_session_lock(&request.session_id);
+    let _guard = lock.lock().unwrap();
+
     let dir = get_video_dialog_history_dir();
     let session_dir = dir.join(&request.session_id);
     let workspace_dir = session_dir.join("workspace");
@@ -667,16 +727,45 @@ pub fn cmd_add_video_track(request: AddTrackRequest) -> Result<serde_json::Value
             } else {
                 default_path.to_string_lossy().to_string()
             };
+
+            let resource_frames = if let Some(ref path) = request.file_path {
+                if Path::new(path).exists() {
+                    if let Some((material_type, material_id)) =
+                        crate::commands::extract_material_info_from_path(path)
+                    {
+                        let cache_dir = crate::commands::get_material_cache_dir(
+                            &request.session_id,
+                            &material_type,
+                            &material_id,
+                        );
+                        let frames_dir = cache_dir.join("frames");
+                        if frames_dir.exists() {
+                            Some(frames_dir.to_string_lossy().to_string())
+                        } else {
+                            None
+                        }
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                }
+            } else {
+                None
+            };
+
             match ffmpeg.get_video_info_json(&video_path) {
                 Ok(info_json) => {
                     let mut video_info: VideoInfo = serde_json::from_value(info_json)
                         .map_err(|e| format!("Failed to parse video info: {}", e))?;
+                    video_info.resource_path = video_path;
                     video_info.track_start_time = 0.0;
                     video_info.track_end_time = video_info.duration;
                     video_info.internal_start_time = 0.0;
                     video_info.internal_end_time = video_info.duration;
                     video_info.track_id = Uuid::new_v4().to_string();
                     video_info.track_block_id = Uuid::new_v4().to_string();
+                    video_info.resource_frames = resource_frames;
                     new_track = TrackInfo::Video(video_info);
                 }
                 Err(e) => {
@@ -688,7 +777,7 @@ pub fn cmd_add_video_track(request: AddTrackRequest) -> Result<serde_json::Value
                         fps: 30.0,
                         bitrate: 0,
                         codec: "unknown".to_string(),
-                        path: video_path.clone(),
+                        resource_path: video_path.clone(),
                         aspect_ratio: None,
                         pixel_format: None,
                         color_space: None,
@@ -713,6 +802,7 @@ pub fn cmd_add_video_track(request: AddTrackRequest) -> Result<serde_json::Value
                         track_id: Uuid::new_v4().to_string(),
                         track_block_id: Uuid::new_v4().to_string(),
                         visible: true,
+                        resource_frames: resource_frames,
                     };
                     new_track = TrackInfo::Video(video_info);
                 }
@@ -754,7 +844,7 @@ pub fn cmd_add_video_track(request: AddTrackRequest) -> Result<serde_json::Value
                 codec: "unknown".to_string(),
                 sample_rate: 0,
                 channels: 0,
-                file_path: audio_path,
+                resource_path: audio_path,
                 file_name,
                 file_size,
                 container_format: None,
@@ -768,7 +858,7 @@ pub fn cmd_add_video_track(request: AddTrackRequest) -> Result<serde_json::Value
                 track_block_id: Uuid::new_v4().to_string(),
                 visible: true,
             };
-            if let Ok(meta) = ffmpeg.get_metadata(&audio_info.file_path) {
+            if let Ok(meta) = ffmpeg.get_metadata(&audio_info.resource_path) {
                 audio_info.duration = meta.duration;
                 audio_info.track_end_time = meta.duration;
                 audio_info.internal_end_time = meta.duration;
@@ -808,7 +898,7 @@ pub fn cmd_add_video_track(request: AddTrackRequest) -> Result<serde_json::Value
             let image_info = ImageInfo {
                 width: 1920,
                 height: 1080,
-                file_path: image_path,
+                resource_path: image_path,
                 file_name,
                 file_size,
                 pixel_format: None,
@@ -855,7 +945,7 @@ pub fn cmd_add_video_track(request: AddTrackRequest) -> Result<serde_json::Value
             let file_size = fs::metadata(&text_path).map(|m| m.len()).unwrap_or(0);
             let text_info = TextInfo {
                 content: String::new(),
-                file_path: text_path,
+                resource_path: text_path,
                 file_name,
                 file_size,
                 encoding: None,
@@ -915,6 +1005,9 @@ pub fn cmd_add_video_track(request: AddTrackRequest) -> Result<serde_json::Value
 
 #[tauri::command]
 pub fn cmd_remove_video_track(request: RemoveTrackRequest) -> Result<serde_json::Value, String> {
+    let lock = get_session_lock(&request.session_id);
+    let _guard = lock.lock().unwrap();
+
     let dir = get_video_dialog_history_dir();
     let session_dir = dir.join(&request.session_id);
     let workspace_dir = session_dir.join("workspace");
@@ -1014,6 +1107,9 @@ pub fn cmd_update_video_session_tracks(
     session_id: &str,
     tracks: Vec<serde_json::Value>,
 ) -> Result<serde_json::Value, String> {
+    let lock = get_session_lock(session_id);
+    let _guard = lock.lock().unwrap();
+
     let dir = get_video_dialog_history_dir();
     let session_dir = dir.join(session_id);
     let workspace_dir = session_dir.join("workspace");
