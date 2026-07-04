@@ -58,6 +58,9 @@ pub fn cmd_create_video_dialog_session(
     video_url: Option<String>,
     video_title: Option<String>,
     video_source_path: Option<String>,
+    audio_source_paths: Option<Vec<String>>,
+    image_source_paths: Option<Vec<String>>,
+    text_source_paths: Option<Vec<String>>,
 ) -> Result<String, String> {
     let dir = get_video_dialog_history_dir();
     if !dir.exists() {
@@ -162,6 +165,118 @@ pub fn cmd_create_video_dialog_session(
             }
         }
     }
+    if let Some(audio_paths) = audio_source_paths {
+        for audio_path in audio_paths {
+            if !audio_path.is_empty() && Path::new(&audio_path).exists() {
+                match insert_material(session_id.to_string(), audio_path.clone(), "audio") {
+                    Ok(upload_result) => {
+                        let dest_path_str = upload_result.file_path.clone();
+                        match ffmpeg.get_metadata(&dest_path_str) {
+                            Ok(meta) => {
+                                let duration = meta.duration;
+                                let audio_info = AudioInfo {
+                                    duration,
+                                    bitrate: 0,
+                                    codec: "unknown".to_string(),
+                                    sample_rate: 0,
+                                    channels: 0,
+                                    file_path: dest_path_str,
+                                    file_name: upload_result.file_name,
+                                    file_size: upload_result.file_size,
+                                    container_format: None,
+                                    creation_time: None,
+                                    tags: None,
+                                    track_start_time: 0.0,
+                                    track_end_time: duration,
+                                    internal_start_time: 0.0,
+                                    internal_end_time: duration,
+                                    track_id: Uuid::new_v4().to_string(),
+                                    track_block_id: Uuid::new_v4().to_string(),
+                                    visible: true,
+                                };
+                                tracks.push(vec![TrackInfo::Audio(audio_info)]);
+                            }
+                            Err(e) => {
+                                eprintln!("Failed to get audio info: {}", e);
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        eprintln!("Failed to upload audio material: {}", e);
+                    }
+                }
+            }
+        }
+    }
+    if let Some(image_paths) = image_source_paths {
+        for image_path in image_paths {
+            if !image_path.is_empty() && Path::new(&image_path).exists() {
+                match insert_material(session_id.to_string(), image_path.clone(), "image") {
+                    Ok(upload_result) => {
+                        let dest_path_str = upload_result.file_path.clone();
+                        match ffmpeg.get_video_info_json(&dest_path_str) {
+                            Ok(info) => {
+                                let width = info["width"].as_u64().unwrap_or(1920) as u32;
+                                let height = info["height"].as_u64().unwrap_or(1080) as u32;
+                                let image_info = ImageInfo {
+                                    width,
+                                    height,
+                                    file_path: dest_path_str,
+                                    file_name: upload_result.file_name,
+                                    file_size: upload_result.file_size,
+                                    pixel_format: None,
+                                    color_space: None,
+                                    creation_time: None,
+                                    tags: None,
+                                    track_start_time: 0.0,
+                                    track_end_time: 5.0,
+                                    track_id: Uuid::new_v4().to_string(),
+                                    track_block_id: Uuid::new_v4().to_string(),
+                                    visible: true,
+                                };
+                                tracks.push(vec![TrackInfo::Image(image_info)]);
+                            }
+                            Err(e) => {
+                                eprintln!("Failed to get image info: {}", e);
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        eprintln!("Failed to upload image material: {}", e);
+                    }
+                }
+            }
+        }
+    }
+    if let Some(text_paths) = text_source_paths {
+        for text_path in text_paths {
+            if !text_path.is_empty() && Path::new(&text_path).exists() {
+                match insert_material(session_id.to_string(), text_path.clone(), "text") {
+                    Ok(upload_result) => {
+                        let dest_path_str = upload_result.file_path.clone();
+                        let text_info = TextInfo {
+                            content: upload_result.content_preview,
+                            file_path: dest_path_str,
+                            file_name: upload_result.file_name,
+                            file_size: upload_result.file_size,
+                            encoding: None,
+                            line_count: Some(upload_result.line_count),
+                            creation_time: None,
+                            track_start_time: 0.0,
+                            track_end_time: 5.0,
+                            track_id: Uuid::new_v4().to_string(),
+                            track_block_id: Uuid::new_v4().to_string(),
+                            visible: true,
+                        };
+                        tracks.push(vec![TrackInfo::Text(text_info)]);
+                    }
+                    Err(e) => {
+                        eprintln!("Failed to upload text material: {}", e);
+                    }
+                }
+            }
+        }
+    }
     let track_stack: Vec<String> = tracks
         .iter()
         .map(|row| {
@@ -170,6 +285,7 @@ pub fn cmd_create_video_dialog_session(
                 .unwrap_or_else(|| Uuid::new_v4().to_string())
         })
         .collect();
+    let max_track_time = crate::commands::video_editor::track::calculate_max_track_time(&tracks);
     let metadata_path = workspace_dir.join("metadata.json");
     let metadata = serde_json::json!({
         "session_id": session_id,
@@ -181,13 +297,13 @@ pub fn cmd_create_video_dialog_session(
         "video_url": video_url.clone().unwrap_or_default(),
         "video_title": video_title.clone().unwrap_or_default(),
         "video_file": video_file_path,
-        "video_info": video_info,  
+        "video_info": video_info,
         "tracks": tracks,
         "track_stack": track_stack,
+        "max_track_time": max_track_time,
         "files": serde_json::json!([]),
         "exported_videos": serde_json::json!([]),
     });
-
     let metadata_content = serde_json::to_string_pretty(&metadata)
         .map_err(|e| format!("Failed to serialize metadata: {}", e))?;
     fs::write(&metadata_path, metadata_content)
@@ -205,20 +321,16 @@ pub fn cmd_create_video_dialog_session(
         "metadata_path": metadata_path.to_string_lossy().to_string(),
         "video_file": video_file_path,
     });
-
     let config_path = session_dir.join("config.json");
     let config_content = serde_json::to_string_pretty(&config)
         .map_err(|e| format!("Failed to serialize config: {}", e))?;
     fs::write(&config_path, config_content).map_err(|e| format!("Failed to save config: {}", e))?;
-
     let chat_path = session_dir.join("chat.json");
     fs::write(&chat_path, initial_chat_content)
         .map_err(|e| format!("Failed to save chat history: {}", e))?;
-
     let terminal_path = session_dir.join("terminal.json");
     fs::write(&terminal_path, initial_terminal_content)
         .map_err(|e| format!("Failed to save terminal history: {}", e))?;
-
     Ok(session_dir.to_string_lossy().to_string())
 }
 

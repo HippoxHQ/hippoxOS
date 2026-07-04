@@ -15,6 +15,7 @@ dependencies = [
  "fs_extra",
  "futures",
  "hippox",
+ "lazy_static",
  "log",
  "memcontext",
  "nix 0.31.3",
