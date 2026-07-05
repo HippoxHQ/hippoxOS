@@ -1,4 +1,3 @@
-// videoeditor_session.rs
 use crate::commands::paths::get_app_root_dir;
 use crate::commands::video_editor::material::{insert_material, UploadResult};
 use crate::commands::video_editor::track::{calculate_max_track_time, get_session_lock};
@@ -51,6 +50,283 @@ fn save_pinned_sessions_to_config(pinned_sessions: &[String]) -> Result<(), Stri
     Ok(())
 }
 
+fn process_video_file(
+    session_id: &str,
+    source_path: String,
+    ffmpeg: &Ffmpeg,
+    tracks: &mut TrackTable,
+    video_file_path: &mut Option<String>,
+    video_info: &mut Option<serde_json::Value>,
+) {
+    if source_path.is_empty() || !Path::new(&source_path).exists() {
+        return;
+    }
+    match insert_material(session_id.to_string(), source_path.clone(), "video") {
+        Ok(upload_result) => {
+            let dest_path_str = upload_result.file_path.clone();
+            *video_file_path = Some(dest_path_str.clone());
+            match ffmpeg.get_video_info_json(&dest_path_str) {
+                Ok(info_json) => {
+                    let duration = info_json["duration"].as_f64().unwrap_or(5.0);
+                    let width = info_json["width"].as_u64().unwrap_or(1920) as u32;
+                    let height = info_json["height"].as_u64().unwrap_or(1080) as u32;
+                    let fps = info_json["fps"].as_f64().unwrap_or(30.0);
+                    let bitrate = info_json["bitrate"].as_u64().unwrap_or(0);
+                    let codec = info_json["codec"].as_str().unwrap_or("unknown").to_string();
+
+                    let track_id = Uuid::new_v4().to_string();
+                    let track_block_id = Uuid::new_v4().to_string();
+
+                    let video_block = VideoTrackBlock {
+                        width,
+                        height,
+                        duration,
+                        fps,
+                        bitrate,
+                        codec: codec.clone(),
+                        resource_path: dest_path_str.clone(),
+                        aspect_ratio: None,
+                        pixel_format: None,
+                        color_space: None,
+                        bit_depth: None,
+                        frame_count: None,
+                        keyframe_count: None,
+                        has_audio: false,
+                        audio_codec: None,
+                        audio_sample_rate: None,
+                        audio_channels: None,
+                        audio_bitrate: None,
+                        file_size: None,
+                        container_format: None,
+                        creation_time: None,
+                        tags: None,
+                        video_stream_index: None,
+                        audio_stream_index: None,
+                        track_start_time: 0.0,
+                        track_end_time: duration,
+                        internal_start_time: 0.0,
+                        internal_end_time: duration,
+                        track_id: track_id.clone(),
+                        track_block_id: track_block_id.clone(),
+                        visible: true,
+                        resource_frames_path: None,
+                        resource_rgb_frames_path: None,
+                    };
+
+                    *video_info = Some(info_json.clone());
+
+                    let mut blocks = HashMap::new();
+                    blocks.insert(track_block_id.clone(), video_block);
+
+                    let video_row = VideoTrackRow {
+                        track_id: track_id.clone(),
+                        track_type: TrackType::Video,
+                        blocks,
+                    };
+
+                    tracks.insert(track_id, TrackRowInfo::Video(video_row));
+                }
+                Err(e) => {
+                    eprintln!("Failed to get video info: {}", e);
+                }
+            }
+        }
+        Err(e) => {
+            eprintln!("Failed to upload video material: {}", e);
+        }
+    }
+}
+
+fn process_audio_files(
+    session_id: &str,
+    audio_paths: Vec<String>,
+    ffmpeg: &Ffmpeg,
+    tracks: &mut TrackTable,
+) {
+    for audio_path in audio_paths {
+        if audio_path.is_empty() || !Path::new(&audio_path).exists() {
+            continue;
+        }
+        match insert_material(session_id.to_string(), audio_path.clone(), "audio") {
+            Ok(upload_result) => {
+                let dest_path_str = upload_result.file_path.clone();
+                match ffmpeg.get_metadata(&dest_path_str) {
+                    Ok(meta) => {
+                        let duration = meta.duration;
+                        let track_id = Uuid::new_v4().to_string();
+                        let track_block_id = Uuid::new_v4().to_string();
+                        let audio_block = AudioTrackBlock {
+                            duration,
+                            bitrate: 0,
+                            codec: "unknown".to_string(),
+                            sample_rate: 0,
+                            channels: 0,
+                            resource_path: dest_path_str,
+                            file_name: upload_result.file_name,
+                            file_size: upload_result.file_size,
+                            container_format: None,
+                            creation_time: None,
+                            tags: None,
+                            track_start_time: 0.0,
+                            track_end_time: duration,
+                            internal_start_time: 0.0,
+                            internal_end_time: duration,
+                            track_id: track_id.clone(),
+                            track_block_id: track_block_id.clone(),
+                            visible: true,
+                        };
+                        let mut blocks = HashMap::new();
+                        blocks.insert(track_block_id.clone(), audio_block);
+                        let audio_row = AudioTrackRow {
+                            track_id: track_id.clone(),
+                            track_type: TrackType::Audio,
+                            blocks,
+                        };
+                        tracks.insert(track_id, TrackRowInfo::Audio(audio_row));
+                    }
+                    Err(e) => {
+                        eprintln!("Failed to get audio info: {}", e);
+                    }
+                }
+            }
+            Err(e) => {
+                eprintln!("Failed to upload audio material: {}", e);
+            }
+        }
+    }
+}
+
+fn process_image_files(
+    session_id: &str,
+    image_paths: Vec<String>,
+    ffmpeg: &Ffmpeg,
+    tracks: &mut TrackTable,
+) {
+    for image_path in image_paths {
+        if image_path.is_empty() || !Path::new(&image_path).exists() {
+            continue;
+        }
+        match insert_material(session_id.to_string(), image_path.clone(), "image") {
+            Ok(upload_result) => {
+                let dest_path_str = upload_result.file_path.clone();
+                match ffmpeg.get_video_info_json(&dest_path_str) {
+                    Ok(info) => {
+                        let duration = info["duration"].as_f64().unwrap_or(5.0);
+                        let width = info["width"].as_u64().unwrap_or(1920) as u32;
+                        let height = info["height"].as_u64().unwrap_or(1080) as u32;
+                        let fps = info["fps"].as_f64().unwrap_or(1.0);
+                        let track_id = Uuid::new_v4().to_string();
+                        let track_block_id = Uuid::new_v4().to_string();
+                        let image_block = ImageTrackBlock {
+                            width,
+                            height,
+                            resource_path: dest_path_str,
+                            file_name: upload_result.file_name,
+                            file_size: upload_result.file_size,
+                            pixel_format: None,
+                            color_space: None,
+                            creation_time: None,
+                            tags: None,
+                            track_start_time: 0.0,
+                            track_end_time: duration,
+                            track_id: track_id.clone(),
+                            track_block_id: track_block_id.clone(),
+                            visible: true,
+                        };
+                        let mut blocks = HashMap::new();
+                        blocks.insert(track_block_id.clone(), image_block);
+                        let image_row = ImageTrackRow {
+                            track_id: track_id.clone(),
+                            track_type: TrackType::Image,
+                            blocks,
+                        };
+                        tracks.insert(track_id, TrackRowInfo::Image(image_row));
+                    }
+                    Err(e) => {
+                        eprintln!("Failed to get image info: {}", e);
+                        let track_id = Uuid::new_v4().to_string();
+                        let track_block_id = Uuid::new_v4().to_string();
+                        let image_block = ImageTrackBlock {
+                            width: 1920,
+                            height: 1080,
+                            resource_path: dest_path_str,
+                            file_name: upload_result.file_name,
+                            file_size: upload_result.file_size,
+                            pixel_format: None,
+                            color_space: None,
+                            creation_time: None,
+                            tags: None,
+                            track_start_time: 0.0,
+                            track_end_time: 5.0,
+                            track_id: track_id.clone(),
+                            track_block_id: track_block_id.clone(),
+                            visible: true,
+                        };
+
+                        let mut blocks = HashMap::new();
+                        blocks.insert(track_block_id.clone(), image_block);
+
+                        let image_row = ImageTrackRow {
+                            track_id: track_id.clone(),
+                            track_type: TrackType::Image,
+                            blocks,
+                        };
+
+                        tracks.insert(track_id, TrackRowInfo::Image(image_row));
+                    }
+                }
+            }
+            Err(e) => {
+                eprintln!("Failed to upload image material: {}", e);
+            }
+        }
+    }
+}
+
+fn process_text_files(session_id: &str, text_paths: Vec<String>, tracks: &mut TrackTable) {
+    for text_path in text_paths {
+        if text_path.is_empty() || !Path::new(&text_path).exists() {
+            continue;
+        }
+        match insert_material(session_id.to_string(), text_path.clone(), "text") {
+            Ok(upload_result) => {
+                let dest_path_str = upload_result.file_path.clone();
+                let content = fs::read_to_string(&dest_path_str).unwrap_or_default();
+                let line_count = content.lines().count();
+                let track_id = Uuid::new_v4().to_string();
+                let track_block_id = Uuid::new_v4().to_string();
+                let text_block = TextTrackBlock {
+                    content: content.chars().take(500).collect(), 
+                    resource_path: dest_path_str,
+                    file_name: upload_result.file_name,
+                    file_size: upload_result.file_size,
+                    encoding: None,
+                    line_count: Some(line_count.try_into().unwrap()),
+                    creation_time: None,
+                    track_start_time: 0.0,
+                    track_end_time: 5.0,
+                    track_id: track_id.clone(),
+                    track_block_id: track_block_id.clone(),
+                    visible: true,
+                };
+                let mut blocks = HashMap::new();
+                blocks.insert(track_block_id.clone(), text_block);
+                let text_row = TextTrackRow {
+                    track_id: track_id.clone(),
+                    track_type: TrackType::Text,
+                    blocks,
+                };
+                tracks.insert(track_id, TrackRowInfo::Text(text_row));
+            }
+            Err(e) => {
+                eprintln!("Failed to upload text material: {}", e);
+            }
+        }
+    }
+}
+
+// ==================== Tauri Commands ====================
+
 #[tauri::command]
 pub fn cmd_create_video_dialog_session(
     session_id: &str,
@@ -67,10 +343,8 @@ pub fn cmd_create_video_dialog_session(
     text_source_paths: Option<Vec<String>>,
 ) -> Result<String, String> {
     use crate::commands::{extract_material_info_from_path, get_material_cache_dir};
-
     let lock = get_session_lock(session_id);
     let _guard = lock.lock().unwrap();
-
     let dir = get_video_dialog_history_dir();
     if !dir.exists() {
         fs::create_dir_all(&dir)
@@ -102,247 +376,27 @@ pub fn cmd_create_video_dialog_session(
     let mut video_info: Option<serde_json::Value> = None;
     let mut tracks: TrackTable = HashMap::new();
     let ffmpeg = Ffmpeg::new();
-
-    // Only add video track if video_source_path is provided and file exists
     if let Some(source_path) = video_source_path {
-        if !source_path.is_empty() && Path::new(&source_path).exists() {
-            match insert_material(session_id.to_string(), source_path.clone(), "video") {
-                Ok(upload_result) => {
-                    let dest_path_str = upload_result.file_path.clone();
-                    video_file_path = Some(dest_path_str.clone());
-                    match ffmpeg.get_video_info_json(&dest_path_str) {
-                        Ok(info_json) => {
-                            let duration = info_json["duration"].as_f64().unwrap_or(5.0);
-                            let width = info_json["width"].as_u64().unwrap_or(1920) as u32;
-                            let height = info_json["height"].as_u64().unwrap_or(1080) as u32;
-                            let fps = info_json["fps"].as_f64().unwrap_or(30.0);
-                            let bitrate = info_json["bitrate"].as_u64().unwrap_or(0);
-                            let codec =
-                                info_json["codec"].as_str().unwrap_or("unknown").to_string();
-
-                            let track_id = Uuid::new_v4().to_string();
-                            let track_block_id = Uuid::new_v4().to_string();
-
-                            let video_block = VideoTrackBlock {
-                                width,
-                                height,
-                                duration,
-                                fps,
-                                bitrate,
-                                codec: codec.clone(),
-                                resource_path: dest_path_str.clone(),
-                                aspect_ratio: None,
-                                pixel_format: None,
-                                color_space: None,
-                                bit_depth: None,
-                                frame_count: None,
-                                keyframe_count: None,
-                                has_audio: false,
-                                audio_codec: None,
-                                audio_sample_rate: None,
-                                audio_channels: None,
-                                audio_bitrate: None,
-                                file_size: None,
-                                container_format: None,
-                                creation_time: None,
-                                tags: None,
-                                video_stream_index: None,
-                                audio_stream_index: None,
-                                track_start_time: 0.0,
-                                track_end_time: duration,
-                                internal_start_time: 0.0,
-                                internal_end_time: duration,
-                                track_id: track_id.clone(),
-                                track_block_id: track_block_id.clone(),
-                                visible: true,
-                                resource_frames_path: None,
-                                resource_rgb_frames_path: None,
-                            };
-
-                            video_info = Some(info_json.clone());
-
-                            let mut blocks = HashMap::new();
-                            blocks.insert(track_block_id.clone(), video_block);
-
-                            let video_row = VideoTrackRow {
-                                track_id: track_id.clone(),
-                                track_type: TrackType::Video,
-                                blocks,
-                            };
-
-                            tracks.insert(track_id, TrackRowInfo::Video(video_row));
-                        }
-                        Err(e) => {
-                            eprintln!("Failed to get video info: {}", e);
-                        }
-                    }
-                }
-                Err(e) => {
-                    eprintln!("Failed to upload video material: {}", e);
-                }
-            }
-        }
+        process_video_file(
+            session_id,
+            source_path,
+            &ffmpeg,
+            &mut tracks,
+            &mut video_file_path,
+            &mut video_info,
+        );
     }
-
-    // Remove the empty video creation block that was here
-
     if let Some(audio_paths) = audio_source_paths {
-        for audio_path in audio_paths {
-            if !audio_path.is_empty() && Path::new(&audio_path).exists() {
-                match insert_material(session_id.to_string(), audio_path.clone(), "audio") {
-                    Ok(upload_result) => {
-                        let dest_path_str = upload_result.file_path.clone();
-                        match ffmpeg.get_metadata(&dest_path_str) {
-                            Ok(meta) => {
-                                let duration = meta.duration;
-                                let track_id = Uuid::new_v4().to_string();
-                                let track_block_id = Uuid::new_v4().to_string();
-
-                                let audio_block = AudioTrackBlock {
-                                    duration,
-                                    bitrate: 0,
-                                    codec: "unknown".to_string(),
-                                    sample_rate: 0,
-                                    channels: 0,
-                                    resource_path: dest_path_str,
-                                    file_name: upload_result.file_name,
-                                    file_size: upload_result.file_size,
-                                    container_format: None,
-                                    creation_time: None,
-                                    tags: None,
-                                    track_start_time: 0.0,
-                                    track_end_time: duration,
-                                    internal_start_time: 0.0,
-                                    internal_end_time: duration,
-                                    track_id: track_id.clone(),
-                                    track_block_id: track_block_id.clone(),
-                                    visible: true,
-                                };
-
-                                let mut blocks = HashMap::new();
-                                blocks.insert(track_block_id.clone(), audio_block);
-
-                                let audio_row = AudioTrackRow {
-                                    track_id: track_id.clone(),
-                                    track_type: TrackType::Audio,
-                                    blocks,
-                                };
-
-                                tracks.insert(track_id, TrackRowInfo::Audio(audio_row));
-                            }
-                            Err(e) => {
-                                eprintln!("Failed to get audio info: {}", e);
-                            }
-                        }
-                    }
-                    Err(e) => {
-                        eprintln!("Failed to upload audio material: {}", e);
-                    }
-                }
-            }
-        }
+        process_audio_files(session_id, audio_paths, &ffmpeg, &mut tracks);
     }
-
     if let Some(image_paths) = image_source_paths {
-        for image_path in image_paths {
-            if !image_path.is_empty() && Path::new(&image_path).exists() {
-                match insert_material(session_id.to_string(), image_path.clone(), "image") {
-                    Ok(upload_result) => {
-                        let dest_path_str = upload_result.file_path.clone();
-                        match ffmpeg.get_video_info_json(&dest_path_str) {
-                            Ok(info) => {
-                                let width = info["width"].as_u64().unwrap_or(1920) as u32;
-                                let height = info["height"].as_u64().unwrap_or(1080) as u32;
-                                let track_id = Uuid::new_v4().to_string();
-                                let track_block_id = Uuid::new_v4().to_string();
-
-                                let image_block = ImageTrackBlock {
-                                    width,
-                                    height,
-                                    resource_path: dest_path_str,
-                                    file_name: upload_result.file_name,
-                                    file_size: upload_result.file_size,
-                                    pixel_format: None,
-                                    color_space: None,
-                                    creation_time: None,
-                                    tags: None,
-                                    track_start_time: 0.0,
-                                    track_end_time: 5.0,
-                                    track_id: track_id.clone(),
-                                    track_block_id: track_block_id.clone(),
-                                    visible: true,
-                                };
-
-                                let mut blocks = HashMap::new();
-                                blocks.insert(track_block_id.clone(), image_block);
-
-                                let image_row = ImageTrackRow {
-                                    track_id: track_id.clone(),
-                                    track_type: TrackType::Image,
-                                    blocks,
-                                };
-
-                                tracks.insert(track_id, TrackRowInfo::Image(image_row));
-                            }
-                            Err(e) => {
-                                eprintln!("Failed to get image info: {}", e);
-                            }
-                        }
-                    }
-                    Err(e) => {
-                        eprintln!("Failed to upload image material: {}", e);
-                    }
-                }
-            }
-        }
+        process_image_files(session_id, image_paths, &ffmpeg, &mut tracks);
     }
-
     if let Some(text_paths) = text_source_paths {
-        for text_path in text_paths {
-            if !text_path.is_empty() && Path::new(&text_path).exists() {
-                match insert_material(session_id.to_string(), text_path.clone(), "text") {
-                    Ok(upload_result) => {
-                        let dest_path_str = upload_result.file_path.clone();
-                        let track_id = Uuid::new_v4().to_string();
-                        let track_block_id = Uuid::new_v4().to_string();
-
-                        let text_block = TextTrackBlock {
-                            content: upload_result.content_preview,
-                            resource_path: dest_path_str,
-                            file_name: upload_result.file_name,
-                            file_size: upload_result.file_size,
-                            encoding: None,
-                            line_count: Some(upload_result.line_count),
-                            creation_time: None,
-                            track_start_time: 0.0,
-                            track_end_time: 5.0,
-                            track_id: track_id.clone(),
-                            track_block_id: track_block_id.clone(),
-                            visible: true,
-                        };
-
-                        let mut blocks = HashMap::new();
-                        blocks.insert(track_block_id.clone(), text_block);
-
-                        let text_row = TextTrackRow {
-                            track_id: track_id.clone(),
-                            track_type: TrackType::Text,
-                            blocks,
-                        };
-
-                        tracks.insert(track_id, TrackRowInfo::Text(text_row));
-                    }
-                    Err(e) => {
-                        eprintln!("Failed to upload text material: {}", e);
-                    }
-                }
-            }
-        }
+        process_text_files(session_id, text_paths, &mut tracks);
     }
-
     let track_stack: Vec<String> = tracks.keys().cloned().collect();
     let max_track_time = calculate_max_track_time(&tracks);
-
     let metadata_path = workspace_dir.join("metadata.json");
     let metadata = serde_json::json!({
         "session_id": session_id,
