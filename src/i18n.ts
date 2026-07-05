@@ -1424,6 +1424,11 @@ export const zh = {
     tooltipFit: "⌨️ F: 适应屏幕",
   },
   videoEditor: {
+    cannotDeleteLastTrack: "不能删除最后一个轨道，至少保留一个轨道",
+    deleteTrackConfirm: "确定要删除轨道 \"{{name}}\" 吗？",
+    deleteTrackConfirmTitle: "确认删除轨道",
+    deleteTrackSuccess: "轨道已删除",
+    deleteTrackFailed: "删除轨道失败",
     addToFavorite: "添加到收藏",
     removeFromFavorite: "取消收藏",
     addToFavoriteSuccess: "已添加到收藏",
@@ -3025,6 +3030,11 @@ export const en: typeof zh = {
     tooltipFit: "⌨️ F: Fit",
   },
   videoEditor: {
+    cannotDeleteLastTrack: "Cannot delete the last track, at least one track must remain",
+    deleteTrackConfirm: 'Are you sure you want to delete track "{{name}}"?',
+    deleteTrackConfirmTitle: "Confirm Delete Track",
+    deleteTrackSuccess: "Track deleted",
+    deleteTrackFailed: "Failed to delete track",
     addToFavorite: "Add to Favorites",
     removeFromFavorite: "Remove from Favorites",
     addToFavoriteSuccess: "Added to favorites",

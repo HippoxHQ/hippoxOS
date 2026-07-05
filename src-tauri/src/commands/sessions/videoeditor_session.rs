@@ -75,10 +75,8 @@ fn process_video_file(
                     let fps = info_json["fps"].as_f64().unwrap_or(30.0);
                     let bitrate = info_json["bitrate"].as_u64().unwrap_or(0);
                     let codec = info_json["codec"].as_str().unwrap_or("unknown").to_string();
-
                     let track_id = Uuid::new_v4().to_string();
                     let track_block_id = Uuid::new_v4().to_string();
-
                     let video_block = VideoTrackBlock {
                         width,
                         height,
@@ -114,18 +112,18 @@ fn process_video_file(
                         resource_frames_path: None,
                         resource_rgb_frames_path: None,
                     };
-
                     *video_info = Some(info_json.clone());
-
                     let mut blocks = HashMap::new();
                     blocks.insert(track_block_id.clone(), video_block);
-
                     let video_row = VideoTrackRow {
                         track_id: track_id.clone(),
                         track_type: TrackType::Video,
                         blocks,
+                        visible: true,
+                        locked: false,
+                        muted: false,
+                        height: None,
                     };
-
                     tracks.insert(track_id, TrackRowInfo::Video(video_row));
                 }
                 Err(e) => {
@@ -183,6 +181,10 @@ fn process_audio_files(
                             track_id: track_id.clone(),
                             track_type: TrackType::Audio,
                             blocks,
+                            visible: true,
+                            locked: false,
+                            muted: false,
+                            height: None,
                         };
                         tracks.insert(track_id, TrackRowInfo::Audio(audio_row));
                     }
@@ -269,6 +271,10 @@ fn process_gif_file(
                 track_id: track_id.clone(),
                 track_type: TrackType::Video,
                 blocks,
+                visible: true,
+                locked: false,
+                muted: false,
+                height: None,
             };
             tracks.insert(track_id, TrackRowInfo::Video(video_row));
         }
@@ -321,6 +327,9 @@ fn process_image_files(
                             track_id: track_id.clone(),
                             track_type: TrackType::Image,
                             blocks,
+                            visible: true,
+                            locked: false,
+                            height: None,
                         };
                         tracks.insert(track_id, TrackRowInfo::Image(image_row));
                     }
@@ -350,6 +359,9 @@ fn process_image_files(
                             track_id: track_id.clone(),
                             track_type: TrackType::Image,
                             blocks,
+                            visible: true,
+                            locked: false,
+                            height: None,
                         };
                         tracks.insert(track_id, TrackRowInfo::Image(image_row));
                     }
@@ -395,6 +407,9 @@ fn process_text_files(session_id: &str, text_paths: Vec<String>, tracks: &mut Tr
                     track_id: track_id.clone(),
                     track_type: TrackType::Text,
                     blocks,
+                    visible: true,
+                    locked: false,
+                    height: None,
                 };
                 tracks.insert(track_id, TrackRowInfo::Text(text_row));
             }
@@ -958,6 +973,10 @@ pub fn cmd_add_video_track(request: AddTrackRequest) -> Result<serde_json::Value
                         track_id: track_id.clone(),
                         track_type: TrackType::Video,
                         blocks,
+                        visible: true,
+                        locked: false,
+                        muted: false,
+                        height: None,
                     };
 
                     tracks.insert(track_id.clone(), TrackRowInfo::Video(video_row));
@@ -1009,6 +1028,10 @@ pub fn cmd_add_video_track(request: AddTrackRequest) -> Result<serde_json::Value
                         track_id: track_id.clone(),
                         track_type: TrackType::Video,
                         blocks,
+                        visible: true,
+                        locked: false,
+                        muted: false,
+                        height: None,
                     };
 
                     tracks.insert(track_id.clone(), TrackRowInfo::Video(video_row));
@@ -1071,6 +1094,10 @@ pub fn cmd_add_video_track(request: AddTrackRequest) -> Result<serde_json::Value
                 track_id: track_id.clone(),
                 track_type: TrackType::Audio,
                 blocks,
+                visible: true,
+                locked: false,
+                muted: false,
+                height: None,
             };
 
             tracks.insert(track_id.clone(), TrackRowInfo::Audio(audio_row));
@@ -1121,6 +1148,9 @@ pub fn cmd_add_video_track(request: AddTrackRequest) -> Result<serde_json::Value
                 track_id: track_id.clone(),
                 track_type: TrackType::Image,
                 blocks,
+                visible: true,
+                locked: false,
+                height: None,
             };
 
             tracks.insert(track_id.clone(), TrackRowInfo::Image(image_row));
@@ -1161,23 +1191,22 @@ pub fn cmd_add_video_track(request: AddTrackRequest) -> Result<serde_json::Value
                 track_block_id: track_block_id.clone(),
                 visible: true,
             };
-
             let mut blocks = HashMap::new();
             blocks.insert(track_block_id.clone(), text_block);
-
             let text_row = TextTrackRow {
                 track_id: track_id.clone(),
                 track_type: TrackType::Text,
                 blocks,
+                visible: true,
+                locked: false,
+                height: None,
             };
-
             tracks.insert(track_id.clone(), TrackRowInfo::Text(text_row));
         }
         _ => {
             return Err(format!("Invalid track type: {}", request.track_type));
         }
     }
-
     metadata["tracks"] =
         serde_json::to_value(&tracks).map_err(|e| format!("Failed to serialize tracks: {}", e))?;
     metadata["updated_at"] = serde_json::json!(Local::now().to_rfc3339());
@@ -1185,7 +1214,6 @@ pub fn cmd_add_video_track(request: AddTrackRequest) -> Result<serde_json::Value
         .map_err(|e| format!("Failed to serialize metadata: {}", e))?;
     fs::write(&metadata_path, new_content)
         .map_err(|e| format!("Failed to save metadata: {}", e))?;
-
     let config_path = session_dir.join("config.json");
     if config_path.exists() {
         let config_content = fs::read_to_string(&config_path)
