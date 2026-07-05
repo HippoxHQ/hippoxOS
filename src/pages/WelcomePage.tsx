@@ -68,7 +68,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
   >(new Map());
 
   const domains: {
-    id: "general" | "code" | "map" | "chart";
+    id: "general" | "code" | "map" | "chart" | "video" | "sandbox";
     label: string;
     labelEn: string;
     description: string;
@@ -111,6 +111,24 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
       descriptionEn: "Candlestick · Technical Indicators · Market Analysis",
       bgEmoji: "📊",
       pageId: "chartChat",
+    },
+    {
+      id: "video",
+      label: "视频剪辑",
+      labelEn: "Video Editor",
+      description: "剪辑 · 特效 · 导出 · 多轨道编辑",
+      descriptionEn: "Edit · Effects · Export · Multi-track Editing",
+      bgEmoji: "🎬",
+      pageId: "videoEditor",
+    },
+    {
+      id: "sandbox",
+      label: "3D沙盒",
+      labelEn: "3D Sandbox",
+      description: "三维建模 · 场景构建 · 实时渲染",
+      descriptionEn: "3D Modeling · Scene Building · Real-time Rendering",
+      bgEmoji: "🧊",
+      pageId: "sandbox3d",
     },
   ];
 
@@ -389,7 +407,6 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
     background: var(--bg-tertiary);
     border: 1px solid var(--border-color);
     border-radius: 5px;
-    // transition: all 0.2s ease;
     min-height: 120px;
     display: flex;
     flex-direction: column;
@@ -450,7 +467,6 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
     cursor: pointer;
     color: var(--text-secondary);
     font-size: 12px;
-    // transition: all 0.2s ease;
   }
 
   .icon-btn:hover {
@@ -472,10 +488,6 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
     font-size: 12px;
   }
 
-  .chevron {
-    // transition: transform 0.2s;
-  }
-
   .attachment-menu {
     position: absolute;
     bottom: 100%;
@@ -495,7 +507,6 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
     cursor: pointer;
     color: var(--text-primary);
     font-size: 12px;
-    // transition: background 0.2s;
     white-space: nowrap;
     display: flex;
     align-items: center;
@@ -527,7 +538,6 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
     cursor: pointer;
     color: var(--text-primary);
     font-size: 12px;
-    // transition: background 0.2s;
     display: flex;
     align-items: center;
     gap: 8px;
@@ -572,7 +582,6 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
     border: none;
     cursor: pointer;
     color: var(--text-tertiary);
-    // transition: all 0.2s ease;
   }
 
   .send-icon-btn.active {
@@ -601,26 +610,25 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
     letter-spacing: 0.5px;
   }
 
- .examples-grid {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 10px;
-  max-width: 800px;
-  margin: 0 auto;
-}
-
-.example-chip {
+  .examples-grid {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+    max-width: 800px;
+    margin: 0 auto;
+  }
+ 
+  .example-chip {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 10px;
+  gap: 4px;
+  padding: 4px 8px;
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
-  border-radius: 20px;
+  border-radius: 14px;
   cursor: pointer;
-  // transition: all 0.2s ease;
-  font-size: 11px;
+  font-size: 10px;
   color: var(--text-secondary);
   width: auto;
   white-space: nowrap;
@@ -630,18 +638,25 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  max-width: 140px;
+  max-width: 100px;
 }
 
-  .example-chip:hover {
-    background: var(--hover-bg);
-    border-color: var(--accent-color);
-    color: var(--text-primary);
-    transform: translateY(-1px);
-  }
+.example-chip:hover {
+  background: var(--hover-bg);
+  border-color: var(--accent-color);
+  color: var(--text-primary);
+  transform: translateY(-1px);
+}
 
-  .example-icon {
-    font-size: 13px;
+.example-icon {
+  font-size: 10px;
+}
+
+  .example-chip span:last-child {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 140px;
   }
 
   .file-uploader-container {
@@ -649,7 +664,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
 
   .domain-cards {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: 8px;
     margin: 0 auto 10px auto;
     width: 80%;
@@ -668,6 +683,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
     display: flex;
     align-items: center;
     justify-content: space-between;
+    white-space: nowrap;
   }
 
   .domain-card:hover {
@@ -677,33 +693,38 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
   }
 
   .domain-card .card-bg-emoji {
-  position: absolute;
-  right: -8px;
-  top: 50%;
-  transform: translateY(-50%) rotate(15deg);
-  font-size: 56px;
-  opacity: 0.15;
-  filter: blur(1px);
-  transition: opacity 0.3s ease;
-  pointer-events: none;
-  line-height: 1;
- }
+    position: absolute;
+    right: -8px;
+    top: 50%;
+    transform: translateY(-50%) rotate(15deg);
+    font-size: 56px;
+    opacity: 0.15;
+    filter: blur(1px);
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+    line-height: 1;
+  }
 
- .domain-card:hover .card-bg-emoji {
-  opacity: 0.1;
- }
+  .domain-card:hover .card-bg-emoji {
+    opacity: 0.1;
+  }
 
   .domain-card .card-left {
     position: relative;
     z-index: 1;
     flex: 1;
     text-align: left;
+    min-width: 0;
+    overflow: hidden;
   }
 
   .domain-card .domain-name {
     font-size: 13px;
     font-weight: 600;
     color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .domain-card .domain-desc {
@@ -711,6 +732,9 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
     color: var(--text-tertiary);
     line-height: 1.2;
     margin-top: 1px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .domain-card .domain-arrow {
@@ -778,6 +802,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
     --hover-bg: rgba(0, 0, 0, 0.04);
   }
 `}</style>
+
       <div className="welcome-container">
         <div className="welcome-logo">
           <img src={banner} alt="HippoxOS Banner" />
@@ -1024,13 +1049,12 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
             </div>
           ))}
         </div>
-
         <div className="examples-section">
           <div className="examples-title">
             {t("welcome.examples") || "Try these"}
           </div>
           <div className="examples-grid">
-            {currentPrompts.slice(0, 15).map((prompt, index) => {
+            {currentPrompts.slice(0, 11).map((prompt, index) => {
               const randomWidths = [
                 150, 170, 190, 210, 160, 180, 200, 220, 155, 175, 195, 215, 165,
                 185, 205, 225,
