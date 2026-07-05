@@ -1,10 +1,8 @@
 use crate::commands::paths::get_app_root_dir;
 use crate::commands::video_editor::material::{insert_material, UploadResult};
-use crate::commands::video_editor::track::{calculate_max_track_time, get_session_lock};
+use crate::commands::video_editor::track::calculate_max_track_time;
 use crate::commands::{
-    get_settings_dir, get_video_dialog_history_dir, AudioTrackBlock, AudioTrackRow,
-    ImageTrackBlock, ImageTrackRow, TextTrackBlock, TextTrackRow, TrackRowInfo, TrackTable,
-    TrackType, VideoTrackBlock, VideoTrackRow,
+    AudioTrackBlock, AudioTrackRow, ImageTrackBlock, ImageTrackRow, TextTrackBlock, TextTrackRow, TrackRowInfo, TrackTable, TrackType, VideoTrackBlock, VideoTrackRow, get_session_lock, get_settings_dir, get_video_dialog_history_dir,
 };
 use crate::commons::Ffmpeg;
 use chrono::{Duration, Local};
