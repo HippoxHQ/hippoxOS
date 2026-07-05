@@ -7,11 +7,13 @@ use crate::commands::{
     TrackType, VideoTrackBlock, VideoTrackRow,
 };
 use crate::commons::Ffmpeg;
-use chrono::Local;
+use chrono::{Duration, Local};
 use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
 use uuid::Uuid;
+
+const DEFAULT_DURATION: f64 = 5.0;
 
 fn get_config_path() -> std::path::PathBuf {
     get_settings_dir().join("video_session.json")
@@ -196,6 +198,86 @@ fn process_audio_files(
     }
 }
 
+fn process_gif_file(
+    session_id: &str,
+    source_path: String,
+    tracks: &mut TrackTable,
+    video_file_path: &mut Option<String>,
+    video_info: &mut Option<serde_json::Value>,
+) {
+    if source_path.is_empty() || !Path::new(&source_path).exists() {
+        return;
+    }
+    match insert_material(session_id.to_string(), source_path.clone(), "video") {
+        Ok(upload_result) => {
+            let dest_path_str = upload_result.file_path.clone();
+            *video_file_path = Some(dest_path_str.clone());
+            let duration = upload_result.duration;
+            let width = upload_result.width;
+            let height = upload_result.height;
+            let fps = upload_result.fps;
+            let codec = upload_result.codec.clone();
+            let track_id = Uuid::new_v4().to_string();
+            let track_block_id = Uuid::new_v4().to_string();
+            let video_block = VideoTrackBlock {
+                width,
+                height,
+                duration,
+                fps,
+                bitrate: 0,
+                codec: codec.clone(),
+                resource_path: dest_path_str.clone(),
+                aspect_ratio: None,
+                pixel_format: None,
+                color_space: None,
+                bit_depth: None,
+                frame_count: None,
+                keyframe_count: None,
+                has_audio: false,
+                audio_codec: None,
+                audio_sample_rate: None,
+                audio_channels: None,
+                audio_bitrate: None,
+                file_size: Some(upload_result.file_size),
+                container_format: Some("gif".to_string()),
+                creation_time: None,
+                tags: None,
+                video_stream_index: None,
+                audio_stream_index: None,
+                track_start_time: 0.0,
+                track_end_time: duration,
+                internal_start_time: 0.0,
+                internal_end_time: duration,
+                track_id: track_id.clone(),
+                track_block_id: track_block_id.clone(),
+                visible: true,
+                resource_frames_path: None,
+                resource_rgb_frames_path: None,
+            };
+            *video_info = Some(serde_json::json!({
+                "duration": duration,
+                "width": width,
+                "height": height,
+                "fps": fps,
+                "codec": codec,
+                "bitrate": 0,
+                "format": "gif",
+            }));
+            let mut blocks = HashMap::new();
+            blocks.insert(track_block_id.clone(), video_block);
+            let video_row = VideoTrackRow {
+                track_id: track_id.clone(),
+                track_type: TrackType::Video,
+                blocks,
+            };
+            tracks.insert(track_id, TrackRowInfo::Video(video_row));
+        }
+        Err(e) => {
+            eprintln!("Failed to upload GIF material: {}", e);
+        }
+    }
+}
+
 fn process_image_files(
     session_id: &str,
     image_paths: Vec<String>,
@@ -211,7 +293,7 @@ fn process_image_files(
                 let dest_path_str = upload_result.file_path.clone();
                 match ffmpeg.get_video_info_json(&dest_path_str) {
                     Ok(info) => {
-                        let duration = info["duration"].as_f64().unwrap_or(5.0);
+                        let duration = DEFAULT_DURATION;
                         let width = info["width"].as_u64().unwrap_or(1920) as u32;
                         let height = info["height"].as_u64().unwrap_or(1080) as u32;
                         let fps = info["fps"].as_f64().unwrap_or(1.0);
@@ -257,21 +339,18 @@ fn process_image_files(
                             creation_time: None,
                             tags: None,
                             track_start_time: 0.0,
-                            track_end_time: 5.0,
+                            track_end_time: DEFAULT_DURATION,
                             track_id: track_id.clone(),
                             track_block_id: track_block_id.clone(),
                             visible: true,
                         };
-
                         let mut blocks = HashMap::new();
                         blocks.insert(track_block_id.clone(), image_block);
-
                         let image_row = ImageTrackRow {
                             track_id: track_id.clone(),
                             track_type: TrackType::Image,
                             blocks,
                         };
-
                         tracks.insert(track_id, TrackRowInfo::Image(image_row));
                     }
                 }
@@ -290,13 +369,14 @@ fn process_text_files(session_id: &str, text_paths: Vec<String>, tracks: &mut Tr
         }
         match insert_material(session_id.to_string(), text_path.clone(), "text") {
             Ok(upload_result) => {
+                let duration = DEFAULT_DURATION;
                 let dest_path_str = upload_result.file_path.clone();
                 let content = fs::read_to_string(&dest_path_str).unwrap_or_default();
                 let line_count = content.lines().count();
                 let track_id = Uuid::new_v4().to_string();
                 let track_block_id = Uuid::new_v4().to_string();
                 let text_block = TextTrackBlock {
-                    content: content.chars().take(500).collect(), 
+                    content: content.chars().take(500).collect(),
                     resource_path: dest_path_str,
                     file_name: upload_result.file_name,
                     file_size: upload_result.file_size,
@@ -304,7 +384,7 @@ fn process_text_files(session_id: &str, text_paths: Vec<String>, tracks: &mut Tr
                     line_count: Some(line_count.try_into().unwrap()),
                     creation_time: None,
                     track_start_time: 0.0,
-                    track_end_time: 5.0,
+                    track_end_time: duration,
                     track_id: track_id.clone(),
                     track_block_id: track_block_id.clone(),
                     visible: true,
@@ -390,7 +470,27 @@ pub fn cmd_create_video_dialog_session(
         process_audio_files(session_id, audio_paths, &ffmpeg, &mut tracks);
     }
     if let Some(image_paths) = image_source_paths {
-        process_image_files(session_id, image_paths, &ffmpeg, &mut tracks);
+        let mut non_gif_paths = Vec::new();
+        let mut gif_paths = Vec::new();
+        for path in image_paths {
+            if path.to_lowercase().ends_with(".gif") {
+                gif_paths.push(path);
+            } else {
+                non_gif_paths.push(path);
+            }
+        }
+        if !non_gif_paths.is_empty() {
+            process_image_files(session_id, non_gif_paths, &ffmpeg, &mut tracks);
+        }
+        for gif_path in gif_paths {
+            process_gif_file(
+                session_id,
+                gif_path,
+                &mut tracks,
+                &mut video_file_path,
+                &mut video_info,
+            );
+        }
     }
     if let Some(text_paths) = text_source_paths {
         process_text_files(session_id, text_paths, &mut tracks);
