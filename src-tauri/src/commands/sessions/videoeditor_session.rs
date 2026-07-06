@@ -68,11 +68,12 @@ fn process_video_file(
     match insert_material(session_id.to_string(), source_path.clone(), "video") {
         Ok(upload_result) => {
             let dest_path_str = upload_result.file_path.clone();
+            let material_id = upload_result.id.clone();
             *video_file_path = Some(dest_path_str.clone());
             if let Ok(info_json) = ffmpeg.get_video_info_json(&dest_path_str) {
                 *video_info = Some(info_json);
             }
-            if let Ok(metadata) = load_metadata(session_id, "video", &upload_result.id) {
+            if let Ok(metadata) = load_metadata(session_id, "video", &material_id) {
                 let track_id = Uuid::new_v4().to_string();
                 let track_block_id = Uuid::new_v4().to_string();
                 let track_type = TrackBlockType::Video;
@@ -82,10 +83,18 @@ fn process_video_file(
                         &metadata,
                         &track_id,
                         &track_block_id,
+                        session_id,
+                        &material_id,
                         ffmpeg,
                     )
                     .unwrap_or_else(|_| {
-                        track_type.create_empty_block(&dest_path_str, &track_id, &track_block_id)
+                        track_type.create_empty_block(
+                            &dest_path_str,
+                            &track_id,
+                            &track_block_id,
+                            session_id,
+                            &material_id,
+                        )
                     });
                 // Set detailed sub_type based on file extension
                 if let Some(video_block) = block.as_any_mut().downcast_mut::<VideoTrackBlock>() {
@@ -101,6 +110,7 @@ fn process_video_file(
                     locked: false,
                     muted: false,
                     height: None,
+                    session_id: session_id.to_string(),
                     blocks,
                 };
                 tracks.insert(track_id, track_row);
@@ -125,7 +135,8 @@ fn process_audio_files(
         match insert_material(session_id.to_string(), audio_path.clone(), "audio") {
             Ok(upload_result) => {
                 let dest_path_str = upload_result.file_path.clone();
-                if let Ok(metadata) = load_metadata(session_id, "audio", &upload_result.id) {
+                let material_id = upload_result.id.clone();
+                if let Ok(metadata) = load_metadata(session_id, "audio", &material_id) {
                     let track_id = Uuid::new_v4().to_string();
                     let track_block_id = Uuid::new_v4().to_string();
                     let track_type = TrackBlockType::Audio;
@@ -135,6 +146,8 @@ fn process_audio_files(
                             &metadata,
                             &track_id,
                             &track_block_id,
+                            session_id,
+                            &material_id,
                             ffmpeg,
                         )
                         .unwrap_or_else(|_| {
@@ -142,6 +155,8 @@ fn process_audio_files(
                                 &dest_path_str,
                                 &track_id,
                                 &track_block_id,
+                                session_id,
+                                &material_id,
                             )
                         });
                     // Set detailed sub_type based on file extension
@@ -159,6 +174,7 @@ fn process_audio_files(
                         locked: false,
                         muted: false,
                         height: None,
+                        session_id: session_id.to_string(),
                         blocks,
                     };
                     tracks.insert(track_id, track_row);
@@ -170,6 +186,8 @@ fn process_audio_files(
         }
     }
 }
+
+// videoeditor_session.rs - process_gif_file 完整函数
 
 fn process_gif_file(
     session_id: &str,
@@ -184,6 +202,7 @@ fn process_gif_file(
     match insert_material(session_id.to_string(), source_path.clone(), "video") {
         Ok(upload_result) => {
             let dest_path_str = upload_result.file_path.clone();
+            let material_id = upload_result.id.clone();
             *video_file_path = Some(dest_path_str.clone());
             let duration = upload_result.duration;
             let width = upload_result.width;
@@ -193,7 +212,13 @@ fn process_gif_file(
             let track_id = Uuid::new_v4().to_string();
             let track_block_id = Uuid::new_v4().to_string();
             let track_type = TrackBlockType::Video;
-            let block = track_type.create_empty_block(&dest_path_str, &track_id, &track_block_id);
+            let block = track_type.create_empty_block(
+                &dest_path_str,
+                &track_id,
+                &track_block_id,
+                session_id,
+                &material_id,
+            );
             if let Some(mut video_block) = block.as_any().downcast_ref::<VideoTrackBlock>().cloned()
             {
                 video_block.width = width;
@@ -213,6 +238,7 @@ fn process_gif_file(
                     locked: false,
                     muted: false,
                     height: None,
+                    session_id: session_id.to_string(),
                     blocks,
                 };
                 tracks.insert(track_id, track_row);
@@ -253,6 +279,8 @@ fn process_gif_file(
                     visible: true,
                     resource_frames_path: None,
                     resource_rgb_frames_path: None,
+                    session_id: session_id.to_string(),
+                    material_id: material_id.clone(),
                 };
                 *video_info = Some(serde_json::json!({
                     "duration": duration,
@@ -263,11 +291,9 @@ fn process_gif_file(
                     "bitrate": 0,
                     "format": "gif",
                 }));
-
                 let mut blocks: HashMap<String, Box<dyn TrackBlock>> = HashMap::new();
                 let boxed_block: Box<dyn TrackBlock> = Box::new(video_block);
                 blocks.insert(track_block_id.clone(), boxed_block);
-
                 let track_row = TrackRow {
                     track_id: track_id.clone(),
                     r#type: TrackRowType::Video,
@@ -275,6 +301,7 @@ fn process_gif_file(
                     locked: false,
                     muted: false,
                     height: None,
+                    session_id: session_id.to_string(),
                     blocks,
                 };
                 tracks.insert(track_id, track_row);
@@ -285,6 +312,8 @@ fn process_gif_file(
         }
     }
 }
+
+// videoeditor_session.rs - process_image_files 完整函数
 
 fn process_image_files(
     session_id: &str,
@@ -299,7 +328,8 @@ fn process_image_files(
         match insert_material(session_id.to_string(), image_path.clone(), "image") {
             Ok(upload_result) => {
                 let dest_path_str = upload_result.file_path.clone();
-                if let Ok(metadata) = load_metadata(session_id, "image", &upload_result.id) {
+                let material_id = upload_result.id.clone();
+                if let Ok(metadata) = load_metadata(session_id, "image", &material_id) {
                     let track_id = Uuid::new_v4().to_string();
                     let track_block_id = Uuid::new_v4().to_string();
                     let block_type = TrackBlockType::Image;
@@ -309,6 +339,8 @@ fn process_image_files(
                             &metadata,
                             &track_id,
                             &track_block_id,
+                            session_id,
+                            &material_id,
                             ffmpeg,
                         )
                         .unwrap_or_else(|_| {
@@ -316,6 +348,8 @@ fn process_image_files(
                                 &dest_path_str,
                                 &track_id,
                                 &track_block_id,
+                                session_id,
+                                &material_id,
                             )
                         });
                     // Set detailed sub_type based on file extension
@@ -333,6 +367,7 @@ fn process_image_files(
                         locked: false,
                         muted: false,
                         height: None,
+                        session_id: session_id.to_string(),
                         blocks,
                     };
                     tracks.insert(track_id, track_row);
@@ -345,6 +380,8 @@ fn process_image_files(
     }
 }
 
+// videoeditor_session.rs - process_text_files 完整函数
+
 fn process_text_files(session_id: &str, text_paths: Vec<String>, tracks: &mut TrackTable) {
     for text_path in text_paths {
         if text_path.is_empty() || !Path::new(&text_path).exists() {
@@ -353,7 +390,8 @@ fn process_text_files(session_id: &str, text_paths: Vec<String>, tracks: &mut Tr
         match insert_material(session_id.to_string(), text_path.clone(), "text") {
             Ok(upload_result) => {
                 let dest_path_str = upload_result.file_path.clone();
-                if let Ok(metadata) = load_metadata(session_id, "text", &upload_result.id) {
+                let material_id = upload_result.id.clone();
+                if let Ok(metadata) = load_metadata(session_id, "text", &material_id) {
                     let track_id = Uuid::new_v4().to_string();
                     let track_block_id = Uuid::new_v4().to_string();
                     let track_type = TrackBlockType::Text;
@@ -363,6 +401,8 @@ fn process_text_files(session_id: &str, text_paths: Vec<String>, tracks: &mut Tr
                             &metadata,
                             &track_id,
                             &track_block_id,
+                            session_id,
+                            &material_id,
                             &Ffmpeg::new(),
                         )
                         .unwrap_or_else(|_| {
@@ -370,6 +410,8 @@ fn process_text_files(session_id: &str, text_paths: Vec<String>, tracks: &mut Tr
                                 &dest_path_str,
                                 &track_id,
                                 &track_block_id,
+                                session_id,
+                                &material_id,
                             )
                         });
                     // Set detailed sub_type based on file extension
@@ -386,6 +428,7 @@ fn process_text_files(session_id: &str, text_paths: Vec<String>, tracks: &mut Tr
                         locked: false,
                         muted: false,
                         height: None,
+                        session_id: session_id.to_string(),
                         blocks,
                     };
                     tracks.insert(track_id, track_row);
