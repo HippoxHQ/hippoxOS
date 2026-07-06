@@ -448,6 +448,9 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_add_track_history,
         commands::cmd_previous_track_history,
         commands::cmd_next_track_history,
-        commands::cmd_add_material_to_track
+        commands::cmd_add_material_to_track,
+        commands::cmd_trim_track_block,           
+        commands::cmd_trim_track_block_start,     
+        commands::cmd_trim_track_block_end,       
     ]
 }
