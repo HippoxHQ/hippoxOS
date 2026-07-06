@@ -393,9 +393,6 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_player_extract_frame_from_local,        
         commands::cmd_player_extract_frames_batch_from_local, 
         commands::cmd_player_extract_audio_pcm_from_local,    
-        // ========== FFmpeg Instance Management ==========
-        commands::cmd_add_video_track,
-        commands::cmd_remove_video_track,
         // ========== Video Materials ==========
         commands::cmd_get_video_materials,     
         commands::cmd_get_audio_materials,     
