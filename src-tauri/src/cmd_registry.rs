@@ -450,6 +450,7 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_update_track_properties,
         commands::cmd_add_track_history,
         commands::cmd_previous_track_history,
-        commands::cmd_next_track_history 
+        commands::cmd_next_track_history,
+        commands::cmd_add_material_to_track
     ]
 }

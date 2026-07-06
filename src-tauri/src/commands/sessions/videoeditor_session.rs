@@ -2,9 +2,13 @@ use crate::commands::paths::get_app_root_dir;
 use crate::commands::video_editor::material::{insert_material, UploadResult};
 use crate::commands::video_editor::track::calculate_max_track_time;
 use crate::commands::{
-    AudioTrackBlock, AudioTrackRow, ImageTrackBlock, ImageTrackRow, TextTrackBlock, TextTrackRow, TrackRowInfo, TrackTable, TrackType, VideoTrackBlock, VideoTrackRow, get_session_lock, get_settings_dir, get_video_dialog_history_dir,
+    get_session_lock, get_settings_dir, get_video_dialog_history_dir, load_metadata,
+    load_session_config, load_session_metadata, load_session_tracks, save_session_config,
+    save_session_metadata, save_session_tracks, update_session_track_stack, AudioTrackBlock,
+    ImageTrackBlock, TextTrackBlock, TrackBlock, TrackBlockType, TrackRow, TrackTable,
+    VideoTrackBlock,
 };
-use crate::commons::Ffmpeg;
+use crate::commons::{Ffmpeg, FileUtils};
 use chrono::{Duration, Local};
 use std::collections::HashMap;
 use std::fs;
@@ -65,68 +69,35 @@ fn process_video_file(
         Ok(upload_result) => {
             let dest_path_str = upload_result.file_path.clone();
             *video_file_path = Some(dest_path_str.clone());
-            match ffmpeg.get_video_info_json(&dest_path_str) {
-                Ok(info_json) => {
-                    let duration = info_json["duration"].as_f64().unwrap_or(5.0);
-                    let width = info_json["width"].as_u64().unwrap_or(1920) as u32;
-                    let height = info_json["height"].as_u64().unwrap_or(1080) as u32;
-                    let fps = info_json["fps"].as_f64().unwrap_or(30.0);
-                    let bitrate = info_json["bitrate"].as_u64().unwrap_or(0);
-                    let codec = info_json["codec"].as_str().unwrap_or("unknown").to_string();
-                    let track_id = Uuid::new_v4().to_string();
-                    let track_block_id = Uuid::new_v4().to_string();
-                    let video_block = VideoTrackBlock {
-                        width,
-                        height,
-                        duration,
-                        fps,
-                        bitrate,
-                        codec: codec.clone(),
-                        resource_path: dest_path_str.clone(),
-                        aspect_ratio: None,
-                        pixel_format: None,
-                        color_space: None,
-                        bit_depth: None,
-                        frame_count: None,
-                        keyframe_count: None,
-                        has_audio: false,
-                        audio_codec: None,
-                        audio_sample_rate: None,
-                        audio_channels: None,
-                        audio_bitrate: None,
-                        file_size: None,
-                        container_format: None,
-                        creation_time: None,
-                        tags: None,
-                        video_stream_index: None,
-                        audio_stream_index: None,
-                        track_start_time: 0.0,
-                        track_end_time: duration,
-                        internal_start_time: 0.0,
-                        internal_end_time: duration,
-                        track_id: track_id.clone(),
-                        track_block_id: track_block_id.clone(),
-                        visible: true,
-                        resource_frames_path: None,
-                        resource_rgb_frames_path: None,
-                    };
-                    *video_info = Some(info_json.clone());
-                    let mut blocks = HashMap::new();
-                    blocks.insert(track_block_id.clone(), video_block);
-                    let video_row = VideoTrackRow {
-                        track_id: track_id.clone(),
-                        track_type: TrackType::Video,
-                        blocks,
-                        visible: true,
-                        locked: false,
-                        muted: false,
-                        height: None,
-                    };
-                    tracks.insert(track_id, TrackRowInfo::Video(video_row));
-                }
-                Err(e) => {
-                    eprintln!("Failed to get video info: {}", e);
-                }
+            if let Ok(info_json) = ffmpeg.get_video_info_json(&dest_path_str) {
+                *video_info = Some(info_json);
+            }
+            if let Ok(metadata) = load_metadata(session_id, "video", &upload_result.id) {
+                let track_id = Uuid::new_v4().to_string();
+                let track_block_id = Uuid::new_v4().to_string();
+                let track_type = TrackBlockType::Video;
+                let block = track_type
+                    .create_block(
+                        &dest_path_str,
+                        &metadata,
+                        &track_id,
+                        &track_block_id,
+                        ffmpeg,
+                    )
+                    .unwrap_or_else(|_| {
+                        track_type.create_empty_block(&dest_path_str, &track_id, &track_block_id)
+                    });
+                let mut blocks: HashMap<String, Box<dyn TrackBlock>> = HashMap::new();
+                blocks.insert(track_block_id.clone(), block);
+                let track_row = TrackRow {
+                    track_id: track_id.clone(),
+                    visible: true,
+                    locked: false,
+                    muted: false,
+                    height: None,
+                    blocks,
+                };
+                tracks.insert(track_id, track_row);
             }
         }
         Err(e) => {
@@ -148,47 +119,36 @@ fn process_audio_files(
         match insert_material(session_id.to_string(), audio_path.clone(), "audio") {
             Ok(upload_result) => {
                 let dest_path_str = upload_result.file_path.clone();
-                match ffmpeg.get_metadata(&dest_path_str) {
-                    Ok(meta) => {
-                        let duration = meta.duration;
-                        let track_id = Uuid::new_v4().to_string();
-                        let track_block_id = Uuid::new_v4().to_string();
-                        let audio_block = AudioTrackBlock {
-                            duration,
-                            bitrate: 0,
-                            codec: "unknown".to_string(),
-                            sample_rate: 0,
-                            channels: 0,
-                            resource_path: dest_path_str,
-                            file_name: upload_result.file_name,
-                            file_size: upload_result.file_size,
-                            container_format: None,
-                            creation_time: None,
-                            tags: None,
-                            track_start_time: 0.0,
-                            track_end_time: duration,
-                            internal_start_time: 0.0,
-                            internal_end_time: duration,
-                            track_id: track_id.clone(),
-                            track_block_id: track_block_id.clone(),
-                            visible: true,
-                        };
-                        let mut blocks = HashMap::new();
-                        blocks.insert(track_block_id.clone(), audio_block);
-                        let audio_row = AudioTrackRow {
-                            track_id: track_id.clone(),
-                            track_type: TrackType::Audio,
-                            blocks,
-                            visible: true,
-                            locked: false,
-                            muted: false,
-                            height: None,
-                        };
-                        tracks.insert(track_id, TrackRowInfo::Audio(audio_row));
-                    }
-                    Err(e) => {
-                        eprintln!("Failed to get audio info: {}", e);
-                    }
+                if let Ok(metadata) = load_metadata(session_id, "audio", &upload_result.id) {
+                    let track_id = Uuid::new_v4().to_string();
+                    let track_block_id = Uuid::new_v4().to_string();
+                    let track_type = TrackBlockType::Audio;
+                    let block = track_type
+                        .create_block(
+                            &dest_path_str,
+                            &metadata,
+                            &track_id,
+                            &track_block_id,
+                            ffmpeg,
+                        )
+                        .unwrap_or_else(|_| {
+                            track_type.create_empty_block(
+                                &dest_path_str,
+                                &track_id,
+                                &track_block_id,
+                            )
+                        });
+                    let mut blocks: HashMap<String, Box<dyn TrackBlock>> = HashMap::new();
+                    blocks.insert(track_block_id.clone(), block);
+                    let track_row = TrackRow {
+                        track_id: track_id.clone(),
+                        visible: true,
+                        locked: false,
+                        muted: false,
+                        height: None,
+                        blocks,
+                    };
+                    tracks.insert(track_id, track_row);
                 }
             }
             Err(e) => {
@@ -219,62 +179,92 @@ fn process_gif_file(
             let codec = upload_result.codec.clone();
             let track_id = Uuid::new_v4().to_string();
             let track_block_id = Uuid::new_v4().to_string();
-            let video_block = VideoTrackBlock {
-                width,
-                height,
-                duration,
-                fps,
-                bitrate: 0,
-                codec: codec.clone(),
-                resource_path: dest_path_str.clone(),
-                aspect_ratio: None,
-                pixel_format: None,
-                color_space: None,
-                bit_depth: None,
-                frame_count: None,
-                keyframe_count: None,
-                has_audio: false,
-                audio_codec: None,
-                audio_sample_rate: None,
-                audio_channels: None,
-                audio_bitrate: None,
-                file_size: Some(upload_result.file_size),
-                container_format: Some("gif".to_string()),
-                creation_time: None,
-                tags: None,
-                video_stream_index: None,
-                audio_stream_index: None,
-                track_start_time: 0.0,
-                track_end_time: duration,
-                internal_start_time: 0.0,
-                internal_end_time: duration,
-                track_id: track_id.clone(),
-                track_block_id: track_block_id.clone(),
-                visible: true,
-                resource_frames_path: None,
-                resource_rgb_frames_path: None,
-            };
-            *video_info = Some(serde_json::json!({
-                "duration": duration,
-                "width": width,
-                "height": height,
-                "fps": fps,
-                "codec": codec,
-                "bitrate": 0,
-                "format": "gif",
-            }));
-            let mut blocks = HashMap::new();
-            blocks.insert(track_block_id.clone(), video_block);
-            let video_row = VideoTrackRow {
-                track_id: track_id.clone(),
-                track_type: TrackType::Video,
-                blocks,
-                visible: true,
-                locked: false,
-                muted: false,
-                height: None,
-            };
-            tracks.insert(track_id, TrackRowInfo::Video(video_row));
+            let track_type = TrackBlockType::Video;
+            let block = track_type.create_empty_block(&dest_path_str, &track_id, &track_block_id);
+            if let Some(mut video_block) = block.as_any().downcast_ref::<VideoTrackBlock>().cloned()
+            {
+                video_block.width = width;
+                video_block.height = height;
+                video_block.duration = duration;
+                video_block.fps = fps;
+                video_block.codec = codec.clone();
+                video_block.file_size = Some(upload_result.file_size);
+                video_block.container_format = Some("gif".to_string());
+
+                let boxed_block: Box<dyn TrackBlock> = Box::new(video_block);
+                let mut blocks: HashMap<String, Box<dyn TrackBlock>> = HashMap::new();
+                blocks.insert(track_block_id.clone(), boxed_block);
+
+                let track_row = TrackRow {
+                    track_id: track_id.clone(),
+                    visible: true,
+                    locked: false,
+                    muted: false,
+                    height: None,
+                    blocks,
+                };
+                tracks.insert(track_id, track_row);
+            } else {
+                let video_block = VideoTrackBlock {
+                    r#type: TrackBlockType::Video,
+                    width,
+                    height,
+                    duration,
+                    fps,
+                    bitrate: 0,
+                    codec: codec.clone(),
+                    resource_path: dest_path_str.clone(),
+                    aspect_ratio: None,
+                    pixel_format: None,
+                    color_space: None,
+                    bit_depth: None,
+                    frame_count: None,
+                    keyframe_count: None,
+                    has_audio: false,
+                    audio_codec: None,
+                    audio_sample_rate: None,
+                    audio_channels: None,
+                    audio_bitrate: None,
+                    file_size: Some(upload_result.file_size),
+                    container_format: Some("gif".to_string()),
+                    creation_time: None,
+                    tags: None,
+                    video_stream_index: None,
+                    audio_stream_index: None,
+                    track_start_time: 0.0,
+                    track_end_time: duration,
+                    internal_start_time: 0.0,
+                    internal_end_time: duration,
+                    track_id: track_id.clone(),
+                    track_block_id: track_block_id.clone(),
+                    visible: true,
+                    resource_frames_path: None,
+                    resource_rgb_frames_path: None,
+                };
+                *video_info = Some(serde_json::json!({
+                    "duration": duration,
+                    "width": width,
+                    "height": height,
+                    "fps": fps,
+                    "codec": codec,
+                    "bitrate": 0,
+                    "format": "gif",
+                }));
+
+                let mut blocks: HashMap<String, Box<dyn TrackBlock>> = HashMap::new();
+                let boxed_block: Box<dyn TrackBlock> = Box::new(video_block);
+                blocks.insert(track_block_id.clone(), boxed_block);
+
+                let track_row = TrackRow {
+                    track_id: track_id.clone(),
+                    visible: true,
+                    locked: false,
+                    muted: false,
+                    height: None,
+                    blocks,
+                };
+                tracks.insert(track_id, track_row);
+            }
         }
         Err(e) => {
             eprintln!("Failed to upload GIF material: {}", e);
@@ -295,74 +285,36 @@ fn process_image_files(
         match insert_material(session_id.to_string(), image_path.clone(), "image") {
             Ok(upload_result) => {
                 let dest_path_str = upload_result.file_path.clone();
-                match ffmpeg.get_video_info_json(&dest_path_str) {
-                    Ok(info) => {
-                        let duration = DEFAULT_DURATION;
-                        let width = info["width"].as_u64().unwrap_or(1920) as u32;
-                        let height = info["height"].as_u64().unwrap_or(1080) as u32;
-                        let fps = info["fps"].as_f64().unwrap_or(1.0);
-                        let track_id = Uuid::new_v4().to_string();
-                        let track_block_id = Uuid::new_v4().to_string();
-                        let image_block = ImageTrackBlock {
-                            width,
-                            height,
-                            resource_path: dest_path_str,
-                            file_name: upload_result.file_name,
-                            file_size: upload_result.file_size,
-                            pixel_format: None,
-                            color_space: None,
-                            creation_time: None,
-                            tags: None,
-                            track_start_time: 0.0,
-                            track_end_time: duration,
-                            track_id: track_id.clone(),
-                            track_block_id: track_block_id.clone(),
-                            visible: true,
-                        };
-                        let mut blocks = HashMap::new();
-                        blocks.insert(track_block_id.clone(), image_block);
-                        let image_row = ImageTrackRow {
-                            track_id: track_id.clone(),
-                            track_type: TrackType::Image,
-                            blocks,
-                            visible: true,
-                            locked: false,
-                            height: None,
-                        };
-                        tracks.insert(track_id, TrackRowInfo::Image(image_row));
-                    }
-                    Err(e) => {
-                        eprintln!("Failed to get image info: {}", e);
-                        let track_id = Uuid::new_v4().to_string();
-                        let track_block_id = Uuid::new_v4().to_string();
-                        let image_block = ImageTrackBlock {
-                            width: 1920,
-                            height: 1080,
-                            resource_path: dest_path_str,
-                            file_name: upload_result.file_name,
-                            file_size: upload_result.file_size,
-                            pixel_format: None,
-                            color_space: None,
-                            creation_time: None,
-                            tags: None,
-                            track_start_time: 0.0,
-                            track_end_time: DEFAULT_DURATION,
-                            track_id: track_id.clone(),
-                            track_block_id: track_block_id.clone(),
-                            visible: true,
-                        };
-                        let mut blocks = HashMap::new();
-                        blocks.insert(track_block_id.clone(), image_block);
-                        let image_row = ImageTrackRow {
-                            track_id: track_id.clone(),
-                            track_type: TrackType::Image,
-                            blocks,
-                            visible: true,
-                            locked: false,
-                            height: None,
-                        };
-                        tracks.insert(track_id, TrackRowInfo::Image(image_row));
-                    }
+                if let Ok(metadata) = load_metadata(session_id, "image", &upload_result.id) {
+                    let track_id = Uuid::new_v4().to_string();
+                    let track_block_id = Uuid::new_v4().to_string();
+                    let block_type = TrackBlockType::Image;
+                    let block = block_type
+                        .create_block(
+                            &dest_path_str,
+                            &metadata,
+                            &track_id,
+                            &track_block_id,
+                            ffmpeg,
+                        )
+                        .unwrap_or_else(|_| {
+                            block_type.create_empty_block(
+                                &dest_path_str,
+                                &track_id,
+                                &track_block_id,
+                            )
+                        });
+                    let mut blocks: HashMap<String, Box<dyn TrackBlock>> = HashMap::new();
+                    blocks.insert(track_block_id.clone(), block);
+                    let track_row = TrackRow {
+                        track_id: track_id.clone(),
+                        visible: true,
+                        locked: false,
+                        muted: false,
+                        height: None,
+                        blocks,
+                    };
+                    tracks.insert(track_id, track_row);
                 }
             }
             Err(e) => {
@@ -379,37 +331,42 @@ fn process_text_files(session_id: &str, text_paths: Vec<String>, tracks: &mut Tr
         }
         match insert_material(session_id.to_string(), text_path.clone(), "text") {
             Ok(upload_result) => {
-                let duration = DEFAULT_DURATION;
                 let dest_path_str = upload_result.file_path.clone();
-                let content = fs::read_to_string(&dest_path_str).unwrap_or_default();
-                let line_count = content.lines().count();
-                let track_id = Uuid::new_v4().to_string();
-                let track_block_id = Uuid::new_v4().to_string();
-                let text_block = TextTrackBlock {
-                    content: content.chars().take(500).collect(),
-                    resource_path: dest_path_str,
-                    file_name: upload_result.file_name,
-                    file_size: upload_result.file_size,
-                    encoding: None,
-                    line_count: Some(line_count.try_into().unwrap()),
-                    creation_time: None,
-                    track_start_time: 0.0,
-                    track_end_time: duration,
-                    track_id: track_id.clone(),
-                    track_block_id: track_block_id.clone(),
-                    visible: true,
-                };
-                let mut blocks = HashMap::new();
-                blocks.insert(track_block_id.clone(), text_block);
-                let text_row = TextTrackRow {
-                    track_id: track_id.clone(),
-                    track_type: TrackType::Text,
-                    blocks,
-                    visible: true,
-                    locked: false,
-                    height: None,
-                };
-                tracks.insert(track_id, TrackRowInfo::Text(text_row));
+
+                if let Ok(metadata) = load_metadata(session_id, "text", &upload_result.id) {
+                    let track_id = Uuid::new_v4().to_string();
+                    let track_block_id = Uuid::new_v4().to_string();
+                    let track_type = TrackBlockType::Text;
+
+                    let block = track_type
+                        .create_block(
+                            &dest_path_str,
+                            &metadata,
+                            &track_id,
+                            &track_block_id,
+                            &Ffmpeg::new(),
+                        )
+                        .unwrap_or_else(|_| {
+                            track_type.create_empty_block(
+                                &dest_path_str,
+                                &track_id,
+                                &track_block_id,
+                            )
+                        });
+
+                    let mut blocks: HashMap<String, Box<dyn TrackBlock>> = HashMap::new();
+                    blocks.insert(track_block_id.clone(), block);
+
+                    let track_row = TrackRow {
+                        track_id: track_id.clone(),
+                        visible: true,
+                        locked: false,
+                        muted: false,
+                        height: None,
+                        blocks,
+                    };
+                    tracks.insert(track_id, track_row);
+                }
             }
             Err(e) => {
                 eprintln!("Failed to upload text material: {}", e);
@@ -469,6 +426,7 @@ pub fn cmd_create_video_dialog_session(
     let mut video_info: Option<serde_json::Value> = None;
     let mut tracks: TrackTable = HashMap::new();
     let ffmpeg = Ffmpeg::new();
+
     if let Some(source_path) = video_source_path {
         process_video_file(
             session_id,
@@ -479,9 +437,11 @@ pub fn cmd_create_video_dialog_session(
             &mut video_info,
         );
     }
+
     if let Some(audio_paths) = audio_source_paths {
         process_audio_files(session_id, audio_paths, &ffmpeg, &mut tracks);
     }
+
     if let Some(image_paths) = image_source_paths {
         let mut non_gif_paths = Vec::new();
         let mut gif_paths = Vec::new();
@@ -505,11 +465,14 @@ pub fn cmd_create_video_dialog_session(
             );
         }
     }
+
     if let Some(text_paths) = text_source_paths {
         process_text_files(session_id, text_paths, &mut tracks);
     }
+
     let track_stack: Vec<String> = tracks.keys().cloned().collect();
     let max_track_time = calculate_max_track_time(&tracks);
+
     let metadata_path = workspace_dir.join("metadata.json");
     let metadata = serde_json::json!({
         "session_id": session_id,
@@ -551,12 +514,15 @@ pub fn cmd_create_video_dialog_session(
     let config_content = serde_json::to_string_pretty(&config)
         .map_err(|e| format!("Failed to serialize config: {}", e))?;
     fs::write(&config_path, config_content).map_err(|e| format!("Failed to save config: {}", e))?;
+
     let chat_path = session_dir.join("chat.json");
     fs::write(&chat_path, initial_chat_content)
         .map_err(|e| format!("Failed to save chat history: {}", e))?;
+
     let terminal_path = session_dir.join("terminal.json");
     fs::write(&terminal_path, initial_terminal_content)
         .map_err(|e| format!("Failed to save terminal history: {}", e))?;
+
     Ok(session_dir.to_string_lossy().to_string())
 }
 
@@ -689,9 +655,7 @@ pub fn cmd_update_video_session_config(session_id: &str, updates: String) -> Res
         }
     }
     config["updated_at"] = serde_json::json!(Local::now().to_rfc3339());
-    let new_content = serde_json::to_string_pretty(&config)
-        .map_err(|e| format!("Failed to serialize config: {}", e))?;
-    fs::write(&config_path, new_content).map_err(|e| format!("Failed to save config: {}", e))?;
+    save_session_config(session_id, &config)?;
 
     let metadata_path = session_dir.join("workspace").join("metadata.json");
     if metadata_path.exists() {
@@ -705,10 +669,7 @@ pub fn cmd_update_video_session_config(session_id: &str, updates: String) -> Res
             }
         }
         metadata["updated_at"] = serde_json::json!(Local::now().to_rfc3339());
-        let new_metadata_content = serde_json::to_string_pretty(&metadata)
-            .map_err(|e| format!("Failed to serialize metadata: {}", e))?;
-        fs::write(&metadata_path, new_metadata_content)
-            .map_err(|e| format!("Failed to save metadata: {}", e))?;
+        save_session_metadata(session_id, &metadata)?;
     }
     Ok(())
 }
@@ -752,10 +713,7 @@ pub fn cmd_save_video_chat_content(session_id: &str, content: &str) -> Result<()
         let mut config: serde_json::Value = serde_json::from_str(&cfg_content)
             .map_err(|e| format!("Failed to parse config: {}", e))?;
         config["updated_at"] = serde_json::json!(Local::now().to_rfc3339());
-        let new_content = serde_json::to_string_pretty(&config)
-            .map_err(|e| format!("Failed to serialize config: {}", e))?;
-        fs::write(&config_path, new_content)
-            .map_err(|e| format!("Failed to save config: {}", e))?;
+        save_session_config(session_id, &config)?;
     }
     Ok(())
 }
@@ -870,12 +828,10 @@ pub struct RemoveTrackRequest {
 
 #[tauri::command]
 pub fn cmd_add_video_track(request: AddTrackRequest) -> Result<serde_json::Value, String> {
-    use crate::commands::{extract_material_info_from_path, get_material_cache_dir};
+    use crate::commands::{extract_material_info_from_path, get_material_cache_dir, load_metadata};
     use std::collections::HashMap;
-
     let lock = get_session_lock(&request.session_id);
     let _guard = lock.lock().unwrap();
-
     let dir = get_video_dialog_history_dir();
     let session_dir = dir.join(&request.session_id);
     let workspace_dir = session_dir.join("workspace");
@@ -890,18 +846,15 @@ pub fn cmd_add_video_track(request: AddTrackRequest) -> Result<serde_json::Value
         .map_err(|e| format!("Failed to read metadata: {}", e))?;
     let mut metadata: serde_json::Value =
         serde_json::from_str(&content).map_err(|e| format!("Failed to parse metadata: {}", e))?;
-
     let mut tracks: TrackTable = match metadata.get("tracks") {
         Some(t) => serde_json::from_value(t.clone())
             .map_err(|e| format!("Failed to parse tracks: {}", e))?,
         None => HashMap::new(),
     };
-
     let ffmpeg = Ffmpeg::new();
-    let track_type = request.track_type.as_str();
+    let track_type_str = request.track_type.as_str();
     let track_id = Uuid::new_v4().to_string();
-
-    match track_type {
+    match track_type_str {
         "video" => {
             let default_path = workspace_dir
                 .join("material")
@@ -916,125 +869,37 @@ pub fn cmd_add_video_track(request: AddTrackRequest) -> Result<serde_json::Value
             } else {
                 default_path.to_string_lossy().to_string()
             };
-
-            match ffmpeg.get_video_info_json(&video_path) {
-                Ok(info_json) => {
-                    let duration = info_json["duration"].as_f64().unwrap_or(5.0);
-                    let width = info_json["width"].as_u64().unwrap_or(1920) as u32;
-                    let height = info_json["height"].as_u64().unwrap_or(1080) as u32;
-                    let fps = info_json["fps"].as_f64().unwrap_or(30.0);
-                    let bitrate = info_json["bitrate"].as_u64().unwrap_or(0);
-                    let codec = info_json["codec"].as_str().unwrap_or("unknown").to_string();
-
-                    let track_block_id = Uuid::new_v4().to_string();
-
-                    let video_block = VideoTrackBlock {
-                        width,
-                        height,
-                        duration,
-                        fps,
-                        bitrate,
-                        codec: codec.clone(),
-                        resource_path: video_path.clone(),
-                        aspect_ratio: None,
-                        pixel_format: None,
-                        color_space: None,
-                        bit_depth: None,
-                        frame_count: None,
-                        keyframe_count: None,
-                        has_audio: false,
-                        audio_codec: None,
-                        audio_sample_rate: None,
-                        audio_channels: None,
-                        audio_bitrate: None,
-                        file_size: None,
-                        container_format: None,
-                        creation_time: None,
-                        tags: None,
-                        video_stream_index: None,
-                        audio_stream_index: None,
-                        track_start_time: 0.0,
-                        track_end_time: duration,
-                        internal_start_time: 0.0,
-                        internal_end_time: duration,
-                        track_id: track_id.clone(),
-                        track_block_id: track_block_id.clone(),
-                        visible: true,
-                        resource_frames_path: None,
-                        resource_rgb_frames_path: None,
-                    };
-
-                    let mut blocks = HashMap::new();
-                    blocks.insert(track_block_id.clone(), video_block);
-
-                    let video_row = VideoTrackRow {
-                        track_id: track_id.clone(),
-                        track_type: TrackType::Video,
-                        blocks,
-                        visible: true,
-                        locked: false,
-                        muted: false,
-                        height: None,
-                    };
-
-                    tracks.insert(track_id.clone(), TrackRowInfo::Video(video_row));
+            let track_type = TrackBlockType::Video;
+            let track_block_id = Uuid::new_v4().to_string();
+            let block = if let Ok(info_json) = ffmpeg.get_video_info_json(&video_path) {
+                let mut block =
+                    track_type.create_empty_block(&video_path, &track_id, &track_block_id);
+                if let Some(video_block) = block.as_any_mut().downcast_mut::<VideoTrackBlock>() {
+                    video_block.width = info_json["width"].as_u64().unwrap_or(1920) as u32;
+                    video_block.height = info_json["height"].as_u64().unwrap_or(1080) as u32;
+                    video_block.duration = info_json["duration"].as_f64().unwrap_or(5.0);
+                    video_block.fps = info_json["fps"].as_f64().unwrap_or(30.0);
+                    video_block.bitrate = info_json["bitrate"].as_u64().unwrap_or(0);
+                    video_block.codec =
+                        info_json["codec"].as_str().unwrap_or("unknown").to_string();
+                    video_block.track_end_time = video_block.duration;
+                    video_block.internal_end_time = video_block.duration;
                 }
-                Err(e) => {
-                    eprintln!("Failed to get video info for new track: {}", e);
-                    let track_block_id = Uuid::new_v4().to_string();
-
-                    let video_block = VideoTrackBlock {
-                        width: 1920,
-                        height: 1080,
-                        duration: 5.0,
-                        fps: 30.0,
-                        bitrate: 0,
-                        codec: "unknown".to_string(),
-                        resource_path: video_path.clone(),
-                        aspect_ratio: None,
-                        pixel_format: None,
-                        color_space: None,
-                        bit_depth: None,
-                        frame_count: None,
-                        keyframe_count: None,
-                        has_audio: false,
-                        audio_codec: None,
-                        audio_sample_rate: None,
-                        audio_channels: None,
-                        audio_bitrate: None,
-                        file_size: None,
-                        container_format: None,
-                        creation_time: None,
-                        tags: None,
-                        video_stream_index: None,
-                        audio_stream_index: None,
-                        track_start_time: 0.0,
-                        track_end_time: 5.0,
-                        internal_start_time: 0.0,
-                        internal_end_time: 5.0,
-                        track_id: track_id.clone(),
-                        track_block_id: track_block_id.clone(),
-                        visible: true,
-                        resource_frames_path: None,
-                        resource_rgb_frames_path: None,
-                    };
-
-                    let mut blocks = HashMap::new();
-                    blocks.insert(track_block_id.clone(), video_block);
-
-                    let video_row = VideoTrackRow {
-                        track_id: track_id.clone(),
-                        track_type: TrackType::Video,
-                        blocks,
-                        visible: true,
-                        locked: false,
-                        muted: false,
-                        height: None,
-                    };
-
-                    tracks.insert(track_id.clone(), TrackRowInfo::Video(video_row));
-                }
-            }
+                block
+            } else {
+                track_type.create_empty_block(&video_path, &track_id, &track_block_id)
+            };
+            let mut blocks: HashMap<String, Box<dyn TrackBlock>> = HashMap::new();
+            blocks.insert(track_block_id.clone(), block);
+            let track_row = TrackRow {
+                track_id: track_id.clone(),
+                visible: true,
+                locked: false,
+                muted: false,
+                height: None,
+                blocks,
+            };
+            tracks.insert(track_id.clone(), track_row);
         }
         "audio" => {
             let default_path = workspace_dir
@@ -1050,55 +915,27 @@ pub fn cmd_add_video_track(request: AddTrackRequest) -> Result<serde_json::Value
             } else {
                 default_path.to_string_lossy().to_string()
             };
-            let file_name = Path::new(&audio_path)
-                .file_name()
-                .and_then(|n| n.to_str())
-                .unwrap_or("empty_audio.mp3")
-                .to_string();
-            let file_size = fs::metadata(&audio_path).map(|m| m.len()).unwrap_or(0);
+            let track_type = TrackBlockType::Audio;
             let track_block_id = Uuid::new_v4().to_string();
-
-            let mut audio_block = AudioTrackBlock {
-                duration: 0.0,
-                bitrate: 0,
-                codec: "unknown".to_string(),
-                sample_rate: 0,
-                channels: 0,
-                resource_path: audio_path,
-                file_name,
-                file_size,
-                container_format: None,
-                creation_time: None,
-                tags: None,
-                track_start_time: 0.0,
-                track_end_time: 0.0,
-                internal_start_time: 0.0,
-                internal_end_time: 0.0,
-                track_id: track_id.clone(),
-                track_block_id: track_block_id.clone(),
-                visible: true,
-            };
-
-            if let Ok(meta) = ffmpeg.get_metadata(&audio_block.resource_path) {
-                audio_block.duration = meta.duration;
-                audio_block.track_end_time = meta.duration;
-                audio_block.internal_end_time = meta.duration;
+            let mut block = track_type.create_empty_block(&audio_path, &track_id, &track_block_id);
+            if let Ok(meta) = ffmpeg.get_metadata(&audio_path) {
+                if let Some(audio_block) = block.as_any_mut().downcast_mut::<AudioTrackBlock>() {
+                    audio_block.duration = meta.duration;
+                    audio_block.track_end_time = meta.duration;
+                    audio_block.internal_end_time = meta.duration;
+                }
             }
-
-            let mut blocks = HashMap::new();
-            blocks.insert(track_block_id.clone(), audio_block);
-
-            let audio_row = AudioTrackRow {
+            let mut blocks: HashMap<String, Box<dyn TrackBlock>> = HashMap::new();
+            blocks.insert(track_block_id.clone(), block);
+            let track_row = TrackRow {
                 track_id: track_id.clone(),
-                track_type: TrackType::Audio,
-                blocks,
                 visible: true,
                 locked: false,
                 muted: false,
                 height: None,
+                blocks,
             };
-
-            tracks.insert(track_id.clone(), TrackRowInfo::Audio(audio_row));
+            tracks.insert(track_id.clone(), track_row);
         }
         "image" => {
             let default_path = workspace_dir
@@ -1114,44 +951,26 @@ pub fn cmd_add_video_track(request: AddTrackRequest) -> Result<serde_json::Value
             } else {
                 default_path.to_string_lossy().to_string()
             };
-            let file_name = Path::new(&image_path)
-                .file_name()
-                .and_then(|n| n.to_str())
-                .unwrap_or("empty_image.png")
-                .to_string();
-            let file_size = fs::metadata(&image_path).map(|m| m.len()).unwrap_or(0);
+            let track_type = TrackBlockType::Image;
             let track_block_id = Uuid::new_v4().to_string();
-
-            let image_block = ImageTrackBlock {
-                width: 1920,
-                height: 1080,
-                resource_path: image_path,
-                file_name,
-                file_size,
-                pixel_format: None,
-                color_space: None,
-                creation_time: None,
-                tags: None,
-                track_start_time: 0.0,
-                track_end_time: 5.0,
+            let mut block = track_type.create_empty_block(&image_path, &track_id, &track_block_id);
+            if let Ok(info_json) = ffmpeg.get_video_info_json(&image_path) {
+                if let Some(image_block) = block.as_any_mut().downcast_mut::<ImageTrackBlock>() {
+                    image_block.width = info_json["width"].as_u64().unwrap_or(1920) as u32;
+                    image_block.height = info_json["height"].as_u64().unwrap_or(1080) as u32;
+                }
+            }
+            let mut blocks: HashMap<String, Box<dyn TrackBlock>> = HashMap::new();
+            blocks.insert(track_block_id.clone(), block);
+            let track_row = TrackRow {
                 track_id: track_id.clone(),
-                track_block_id: track_block_id.clone(),
-                visible: true,
-            };
-
-            let mut blocks = HashMap::new();
-            blocks.insert(track_block_id.clone(), image_block);
-
-            let image_row = ImageTrackRow {
-                track_id: track_id.clone(),
-                track_type: TrackType::Image,
-                blocks,
                 visible: true,
                 locked: false,
+                muted: false,
                 height: None,
+                blocks,
             };
-
-            tracks.insert(track_id.clone(), TrackRowInfo::Image(image_row));
+            tracks.insert(track_id.clone(), track_row);
         }
         "text" => {
             let default_path = workspace_dir
@@ -1167,39 +986,31 @@ pub fn cmd_add_video_track(request: AddTrackRequest) -> Result<serde_json::Value
             } else {
                 default_path.to_string_lossy().to_string()
             };
-            let file_name = Path::new(&text_path)
-                .file_name()
-                .and_then(|n| n.to_str())
-                .unwrap_or("empty_text.txt")
-                .to_string();
-            let file_size = fs::metadata(&text_path).map(|m| m.len()).unwrap_or(0);
+            let track_type = TrackBlockType::Text;
             let track_block_id = Uuid::new_v4().to_string();
-
-            let text_block = TextTrackBlock {
-                content: String::new(),
-                resource_path: text_path,
-                file_name,
-                file_size,
-                encoding: None,
-                line_count: None,
-                creation_time: None,
-                track_start_time: 0.0,
-                track_end_time: 5.0,
+            let mut block = track_type.create_empty_block(&text_path, &track_id, &track_block_id);
+            if let Ok(content) = FileUtils::read_text_file(Path::new(&text_path)) {
+                if let Some(text_block) = block.as_any_mut().downcast_mut::<TextTrackBlock>() {
+                    let line_count = content.lines().count() as u64;
+                    text_block.line_count = Some(line_count);
+                    text_block.content = if content.len() > 200 {
+                        format!("{}...", &content[..200])
+                    } else {
+                        content
+                    };
+                }
+            }
+            let mut blocks: HashMap<String, Box<dyn TrackBlock>> = HashMap::new();
+            blocks.insert(track_block_id.clone(), block);
+            let track_row = TrackRow {
                 track_id: track_id.clone(),
-                track_block_id: track_block_id.clone(),
-                visible: true,
-            };
-            let mut blocks = HashMap::new();
-            blocks.insert(track_block_id.clone(), text_block);
-            let text_row = TextTrackRow {
-                track_id: track_id.clone(),
-                track_type: TrackType::Text,
-                blocks,
                 visible: true,
                 locked: false,
+                muted: false,
                 height: None,
+                blocks,
             };
-            tracks.insert(track_id.clone(), TrackRowInfo::Text(text_row));
+            tracks.insert(track_id.clone(), track_row);
         }
         _ => {
             return Err(format!("Invalid track type: {}", request.track_type));
@@ -1265,26 +1076,7 @@ pub fn cmd_remove_video_track(request: RemoveTrackRequest) -> Result<serde_json:
     metadata["track_stack"] = serde_json::to_value(&track_stack)
         .map_err(|e| format!("Failed to serialize track_stack: {}", e))?;
     metadata["updated_at"] = serde_json::json!(Local::now().to_rfc3339());
-    let new_content = serde_json::to_string_pretty(&metadata)
-        .map_err(|e| format!("Failed to serialize metadata: {}", e))?;
-    fs::write(&metadata_path, new_content)
-        .map_err(|e| format!("Failed to save metadata: {}", e))?;
-    let config_path = session_dir.join("config.json");
-    if config_path.exists() {
-        let config_content = fs::read_to_string(&config_path)
-            .map_err(|e| format!("Failed to read config: {}", e))?;
-        let mut config: serde_json::Value = serde_json::from_str(&config_content)
-            .map_err(|e| format!("Failed to parse config: {}", e))?;
-        config["tracks"] = serde_json::to_value(&tracks)
-            .map_err(|e| format!("Failed to serialize tracks for config: {}", e))?;
-        config["track_stack"] = serde_json::to_value(&track_stack)
-            .map_err(|e| format!("Failed to serialize track_stack for config: {}", e))?;
-        config["updated_at"] = serde_json::json!(Local::now().to_rfc3339());
-        let new_config_content = serde_json::to_string_pretty(&config)
-            .map_err(|e| format!("Failed to serialize config: {}", e))?;
-        fs::write(&config_path, new_config_content)
-            .map_err(|e| format!("Failed to save config: {}", e))?;
-    }
+    save_session_metadata(&request.session_id, &metadata)?;
     Ok(metadata)
 }
 
@@ -1315,43 +1107,9 @@ pub fn cmd_update_video_session_tracks(
 ) -> Result<serde_json::Value, String> {
     let lock = get_session_lock(session_id);
     let _guard = lock.lock().unwrap();
-    let dir = get_video_dialog_history_dir();
-    let session_dir = dir.join(session_id);
-    let workspace_dir = session_dir.join("workspace");
-    let metadata_path = workspace_dir.join("metadata.json");
-    if !metadata_path.exists() {
-        return Err(format!("Session metadata not found: {}", session_id));
-    }
-    let content = fs::read_to_string(&metadata_path)
-        .map_err(|e| format!("Failed to read metadata: {}", e))?;
-    let mut metadata: serde_json::Value =
-        serde_json::from_str(&content).map_err(|e| format!("Failed to parse metadata: {}", e))?;
     let track_table: TrackTable = serde_json::from_value(tracks)
         .map_err(|e| format!("Failed to deserialize tracks: {}", e))?;
-    metadata["tracks"] = serde_json::to_value(&track_table)
-        .map_err(|e| format!("Failed to serialize tracks: {}", e))?;
-    metadata["track_stack"] =
-        serde_json::json!(track_table.keys().cloned().collect::<Vec<String>>());
-    metadata["updated_at"] = serde_json::json!(Local::now().to_rfc3339());
-    let new_content = serde_json::to_string_pretty(&metadata)
-        .map_err(|e| format!("Failed to serialize metadata: {}", e))?;
-    fs::write(&metadata_path, new_content)
-        .map_err(|e| format!("Failed to save metadata: {}", e))?;
-    let config_path = session_dir.join("config.json");
-    if config_path.exists() {
-        let config_content = fs::read_to_string(&config_path)
-            .map_err(|e| format!("Failed to read config: {}", e))?;
-        let mut config: serde_json::Value = serde_json::from_str(&config_content)
-            .map_err(|e| format!("Failed to parse config: {}", e))?;
-        config["tracks"] = serde_json::to_value(&track_table)
-            .map_err(|e| format!("Failed to serialize tracks for config: {}", e))?;
-        config["track_stack"] =
-            serde_json::json!(track_table.keys().cloned().collect::<Vec<String>>());
-        config["updated_at"] = serde_json::json!(Local::now().to_rfc3339());
-        let new_config_content = serde_json::to_string_pretty(&config)
-            .map_err(|e| format!("Failed to serialize config: {}", e))?;
-        fs::write(&config_path, new_config_content)
-            .map_err(|e| format!("Failed to save config: {}", e))?;
-    }
+    save_session_tracks(session_id, &track_table)?;
+    let metadata = load_session_metadata(session_id)?;
     Ok(metadata)
 }
