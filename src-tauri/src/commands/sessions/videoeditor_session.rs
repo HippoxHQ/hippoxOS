@@ -3,9 +3,9 @@ use crate::commands::video_editor::material::{insert_material, UploadResult};
 use crate::commands::video_editor::track::calculate_max_track_time;
 use crate::commands::{
     get_session_lock, get_settings_dir, get_video_dialog_history_dir, load_metadata,
-    load_session_config, load_session_metadata, load_session_tracks, save_session_config,
-    save_session_metadata, save_session_tracks, update_session_track_stack, AudioTrackBlock,
-    ImageTrackBlock, TextTrackBlock, TrackBlock, TrackBlockSubType, TrackBlockType, TrackRow,
+    load_session_config, load_session_metadata, save_session_config, save_session_metadata,
+    save_session_tracks, update_session_track_stack, AudioTrackBlock, ImageTrackBlock,
+    SessionMetadata, TextTrackBlock, TrackBlock, TrackBlockSubType, TrackBlockType, TrackRow,
     TrackRowType, TrackTable, VideoTrackBlock,
 };
 use crate::commons::{Ffmpeg, FileUtils};
@@ -58,9 +58,7 @@ fn process_video_file(
     session_id: &str,
     source_path: String,
     ffmpeg: &Ffmpeg,
-    tracks: &mut TrackTable,
-    video_file_path: &mut Option<String>,
-    video_info: &mut Option<serde_json::Value>,
+    metadata: &mut SessionMetadata,
 ) {
     if source_path.is_empty() || !Path::new(&source_path).exists() {
         return;
@@ -69,18 +67,14 @@ fn process_video_file(
         Ok(upload_result) => {
             let dest_path_str = upload_result.file_path.clone();
             let material_id = upload_result.id.clone();
-            *video_file_path = Some(dest_path_str.clone());
-            if let Ok(info_json) = ffmpeg.get_video_info_json(&dest_path_str) {
-                *video_info = Some(info_json);
-            }
-            if let Ok(metadata) = load_metadata(session_id, "video", &material_id) {
+            if let Ok(metadata_obj) = load_metadata(session_id, "video", &material_id) {
                 let track_id = Uuid::new_v4().to_string();
                 let track_block_id = Uuid::new_v4().to_string();
                 let track_type = TrackBlockType::Video;
                 let mut block = track_type
                     .create_block(
                         &dest_path_str,
-                        &metadata,
+                        &metadata_obj,
                         &track_id,
                         &track_block_id,
                         session_id,
@@ -96,7 +90,6 @@ fn process_video_file(
                             &material_id,
                         )
                     });
-                // Set detailed sub_type based on file extension
                 if let Some(video_block) = block.as_any_mut().downcast_mut::<VideoTrackBlock>() {
                     let sub_type = TrackBlockSubType::from_file_path(&dest_path_str);
                     video_block.sub_type = sub_type;
@@ -112,8 +105,9 @@ fn process_video_file(
                     height: None,
                     session_id: session_id.to_string(),
                     blocks,
+                    transitions: vec![],
                 };
-                tracks.insert(track_id, track_row);
+                metadata.tracks.insert(track_id, track_row);
             }
         }
         Err(e) => {
@@ -136,14 +130,14 @@ fn process_audio_files(
             Ok(upload_result) => {
                 let dest_path_str = upload_result.file_path.clone();
                 let material_id = upload_result.id.clone();
-                if let Ok(metadata) = load_metadata(session_id, "audio", &material_id) {
+                if let Ok(metadata_obj) = load_metadata(session_id, "audio", &material_id) {
                     let track_id = Uuid::new_v4().to_string();
                     let track_block_id = Uuid::new_v4().to_string();
                     let track_type = TrackBlockType::Audio;
                     let mut block = track_type
                         .create_block(
                             &dest_path_str,
-                            &metadata,
+                            &metadata_obj,
                             &track_id,
                             &track_block_id,
                             session_id,
@@ -159,7 +153,6 @@ fn process_audio_files(
                                 &material_id,
                             )
                         });
-                    // Set detailed sub_type based on file extension
                     if let Some(audio_block) = block.as_any_mut().downcast_mut::<AudioTrackBlock>()
                     {
                         let sub_type = TrackBlockSubType::from_file_path(&dest_path_str);
@@ -176,6 +169,7 @@ fn process_audio_files(
                         height: None,
                         session_id: session_id.to_string(),
                         blocks,
+                        transitions: vec![],
                     };
                     tracks.insert(track_id, track_row);
                 }
@@ -187,15 +181,7 @@ fn process_audio_files(
     }
 }
 
-// videoeditor_session.rs - process_gif_file 完整函数
-
-fn process_gif_file(
-    session_id: &str,
-    source_path: String,
-    tracks: &mut TrackTable,
-    video_file_path: &mut Option<String>,
-    video_info: &mut Option<serde_json::Value>,
-) {
+fn process_gif_file(session_id: &str, source_path: String, metadata: &mut SessionMetadata) {
     if source_path.is_empty() || !Path::new(&source_path).exists() {
         return;
     }
@@ -203,7 +189,6 @@ fn process_gif_file(
         Ok(upload_result) => {
             let dest_path_str = upload_result.file_path.clone();
             let material_id = upload_result.id.clone();
-            *video_file_path = Some(dest_path_str.clone());
             let duration = upload_result.duration;
             let width = upload_result.width;
             let height = upload_result.height;
@@ -240,8 +225,9 @@ fn process_gif_file(
                     height: None,
                     session_id: session_id.to_string(),
                     blocks,
+                    transitions: vec![],
                 };
-                tracks.insert(track_id, track_row);
+                metadata.tracks.insert(track_id, track_row);
             } else {
                 let video_block = VideoTrackBlock {
                     r#type: TrackBlockType::Video,
@@ -282,15 +268,6 @@ fn process_gif_file(
                     session_id: session_id.to_string(),
                     material_id: material_id.clone(),
                 };
-                *video_info = Some(serde_json::json!({
-                    "duration": duration,
-                    "width": width,
-                    "height": height,
-                    "fps": fps,
-                    "codec": codec,
-                    "bitrate": 0,
-                    "format": "gif",
-                }));
                 let mut blocks: HashMap<String, Box<dyn TrackBlock>> = HashMap::new();
                 let boxed_block: Box<dyn TrackBlock> = Box::new(video_block);
                 blocks.insert(track_block_id.clone(), boxed_block);
@@ -303,8 +280,9 @@ fn process_gif_file(
                     height: None,
                     session_id: session_id.to_string(),
                     blocks,
+                    transitions: vec![],
                 };
-                tracks.insert(track_id, track_row);
+                metadata.tracks.insert(track_id, track_row);
             }
         }
         Err(e) => {
@@ -312,8 +290,6 @@ fn process_gif_file(
         }
     }
 }
-
-// videoeditor_session.rs - process_image_files 完整函数
 
 fn process_image_files(
     session_id: &str,
@@ -329,14 +305,14 @@ fn process_image_files(
             Ok(upload_result) => {
                 let dest_path_str = upload_result.file_path.clone();
                 let material_id = upload_result.id.clone();
-                if let Ok(metadata) = load_metadata(session_id, "image", &material_id) {
+                if let Ok(metadata_obj) = load_metadata(session_id, "image", &material_id) {
                     let track_id = Uuid::new_v4().to_string();
                     let track_block_id = Uuid::new_v4().to_string();
                     let block_type = TrackBlockType::Image;
                     let mut block = block_type
                         .create_block(
                             &dest_path_str,
-                            &metadata,
+                            &metadata_obj,
                             &track_id,
                             &track_block_id,
                             session_id,
@@ -352,7 +328,6 @@ fn process_image_files(
                                 &material_id,
                             )
                         });
-                    // Set detailed sub_type based on file extension
                     if let Some(image_block) = block.as_any_mut().downcast_mut::<ImageTrackBlock>()
                     {
                         let sub_type = TrackBlockSubType::from_file_path(&dest_path_str);
@@ -369,6 +344,7 @@ fn process_image_files(
                         height: None,
                         session_id: session_id.to_string(),
                         blocks,
+                        transitions: vec![],
                     };
                     tracks.insert(track_id, track_row);
                 }
@@ -380,8 +356,6 @@ fn process_image_files(
     }
 }
 
-// videoeditor_session.rs - process_text_files 完整函数
-
 fn process_text_files(session_id: &str, text_paths: Vec<String>, tracks: &mut TrackTable) {
     for text_path in text_paths {
         if text_path.is_empty() || !Path::new(&text_path).exists() {
@@ -391,14 +365,14 @@ fn process_text_files(session_id: &str, text_paths: Vec<String>, tracks: &mut Tr
             Ok(upload_result) => {
                 let dest_path_str = upload_result.file_path.clone();
                 let material_id = upload_result.id.clone();
-                if let Ok(metadata) = load_metadata(session_id, "text", &material_id) {
+                if let Ok(metadata_obj) = load_metadata(session_id, "text", &material_id) {
                     let track_id = Uuid::new_v4().to_string();
                     let track_block_id = Uuid::new_v4().to_string();
                     let track_type = TrackBlockType::Text;
                     let mut block = track_type
                         .create_block(
                             &dest_path_str,
-                            &metadata,
+                            &metadata_obj,
                             &track_id,
                             &track_block_id,
                             session_id,
@@ -414,7 +388,6 @@ fn process_text_files(session_id: &str, text_paths: Vec<String>, tracks: &mut Tr
                                 &material_id,
                             )
                         });
-                    // Set detailed sub_type based on file extension
                     if let Some(text_block) = block.as_any_mut().downcast_mut::<TextTrackBlock>() {
                         let sub_type = TrackBlockSubType::from_file_path(&dest_path_str);
                         text_block.sub_type = sub_type;
@@ -430,6 +403,7 @@ fn process_text_files(session_id: &str, text_paths: Vec<String>, tracks: &mut Tr
                         height: None,
                         session_id: session_id.to_string(),
                         blocks,
+                        transitions: vec![],
                     };
                     tracks.insert(track_id, track_row);
                 }
@@ -440,8 +414,6 @@ fn process_text_files(session_id: &str, text_paths: Vec<String>, tracks: &mut Tr
         }
     }
 }
-
-// ==================== Tauri Commands ====================
 
 #[tauri::command]
 pub fn cmd_create_video_dialog_session(
@@ -458,7 +430,7 @@ pub fn cmd_create_video_dialog_session(
     image_source_paths: Option<Vec<String>>,
     text_source_paths: Option<Vec<String>>,
 ) -> Result<String, String> {
-    use crate::commands::{extract_material_info_from_path, get_material_cache_dir};
+    use crate::commands::extract_material_info_from_path;
     let lock = get_session_lock(session_id);
     let _guard = lock.lock().unwrap();
     let dir = get_video_dialog_history_dir();
@@ -488,26 +460,22 @@ pub fn cmd_create_video_dialog_session(
                 .map_err(|e| format!("Failed to create {} directory: {}", sub_dir, e))?;
         }
     }
-    let mut video_file_path: Option<String> = None;
-    let mut video_info: Option<serde_json::Value> = None;
-    let mut tracks: TrackTable = HashMap::new();
+    let mut session_metadata = SessionMetadata::new(session_id, title, description);
+    if let Some(mode) = workflow_mode {
+        session_metadata.workflow_mode = mode;
+    }
     let ffmpeg = Ffmpeg::new();
-
     if let Some(source_path) = video_source_path {
-        process_video_file(
+        process_video_file(session_id, source_path, &ffmpeg, &mut session_metadata);
+    }
+    if let Some(audio_paths) = audio_source_paths {
+        process_audio_files(
             session_id,
-            source_path,
+            audio_paths,
             &ffmpeg,
-            &mut tracks,
-            &mut video_file_path,
-            &mut video_info,
+            &mut session_metadata.tracks,
         );
     }
-
-    if let Some(audio_paths) = audio_source_paths {
-        process_audio_files(session_id, audio_paths, &ffmpeg, &mut tracks);
-    }
-
     if let Some(image_paths) = image_source_paths {
         let mut non_gif_paths = Vec::new();
         let mut gif_paths = Vec::new();
@@ -519,49 +487,27 @@ pub fn cmd_create_video_dialog_session(
             }
         }
         if !non_gif_paths.is_empty() {
-            process_image_files(session_id, non_gif_paths, &ffmpeg, &mut tracks);
-        }
-        for gif_path in gif_paths {
-            process_gif_file(
+            process_image_files(
                 session_id,
-                gif_path,
-                &mut tracks,
-                &mut video_file_path,
-                &mut video_info,
+                non_gif_paths,
+                &ffmpeg,
+                &mut session_metadata.tracks,
             );
         }
+        for gif_path in gif_paths {
+            process_gif_file(session_id, gif_path, &mut session_metadata);
+        }
     }
-
     if let Some(text_paths) = text_source_paths {
-        process_text_files(session_id, text_paths, &mut tracks);
+        process_text_files(session_id, text_paths, &mut session_metadata.tracks);
     }
 
-    let track_stack: Vec<String> = tracks.keys().cloned().collect();
-    let max_track_time = calculate_max_track_time(&tracks);
+    session_metadata.track_stack = session_metadata.tracks.keys().cloned().collect();
+    session_metadata.max_track_time = calculate_max_track_time(&session_metadata.tracks);
+    session_metadata.update_timestamp();
 
     let metadata_path = workspace_dir.join("metadata.json");
-    let metadata = serde_json::json!({
-        "session_id": session_id,
-        "title": title,
-        "description": description,
-        "created_at": Local::now().to_rfc3339(),
-        "updated_at": Local::now().to_rfc3339(),
-        "workflow_mode": workflow_mode.clone().unwrap_or_else(|| "ReAct".to_string()),
-        "video_url": video_url.clone().unwrap_or_default(),
-        "video_title": video_title.clone().unwrap_or_default(),
-        "video_file": video_file_path,
-        "video_info": video_info,
-        "tracks": tracks,
-        "track_stack": track_stack,
-        "max_track_time": max_track_time,
-        "files": serde_json::json!([]),
-        "exported_videos": serde_json::json!([]),
-    });
-
-    let metadata_content = serde_json::to_string_pretty(&metadata)
-        .map_err(|e| format!("Failed to serialize metadata: {}", e))?;
-    fs::write(&metadata_path, metadata_content)
-        .map_err(|e| format!("Failed to save metadata.json: {}", e))?;
+    save_session_metadata(session_id, &session_metadata)?;
 
     let config = serde_json::json!({
         "session_id": session_id,
@@ -569,12 +515,9 @@ pub fn cmd_create_video_dialog_session(
         "description": description,
         "created_at": Local::now().to_rfc3339(),
         "updated_at": Local::now().to_rfc3339(),
-        "workflow_mode": workflow_mode.unwrap_or_else(|| "ReAct".to_string()),
-        "video_url": video_url.unwrap_or_default(),
-        "video_title": video_title.unwrap_or_default(),
+        "workflow_mode": session_metadata.workflow_mode,
         "workspace_path": workspace_dir.to_string_lossy().to_string(),
         "metadata_path": metadata_path.to_string_lossy().to_string(),
-        "video_file": video_file_path,
     });
     let config_path = session_dir.join("config.json");
     let config_content = serde_json::to_string_pretty(&config)
@@ -667,31 +610,15 @@ pub fn cmd_load_video_session_config(
         serde_json::from_str(&content).map_err(|e| format!("Failed to parse config: {}", e))?;
     let metadata_path = session_dir.join("workspace").join("metadata.json");
     if metadata_path.exists() {
-        let metadata_content = fs::read_to_string(&metadata_path)
-            .map_err(|e| format!("Failed to read metadata: {}", e))?;
-        if let Ok(metadata) = serde_json::from_str::<serde_json::Value>(&metadata_content) {
-            if let Some(tracks) = metadata.get("tracks").cloned() {
-                config["tracks"] = tracks;
+        if let Ok(metadata) = load_session_metadata(session_id) {
+            if let Ok(tracks_json) = serde_json::to_value(&metadata.tracks) {
+                config["tracks"] = tracks_json;
             }
-            if let Some(video_file) = metadata.get("video_file").cloned() {
-                if config.get("video_file").is_none() || config["video_file"].is_null() {
-                    config["video_file"] = video_file;
-                }
+            if config.get("title").is_none() || config["title"].is_null() {
+                config["title"] = serde_json::json!(metadata.title);
             }
-            if let Some(video_info) = metadata.get("video_info").cloned() {
-                if config.get("video_info").is_none() || config["video_info"].is_null() {
-                    config["video_info"] = video_info;
-                }
-            }
-            if let Some(title) = metadata.get("title").cloned() {
-                if config.get("title").is_none() || config["title"].is_null() {
-                    config["title"] = title;
-                }
-            }
-            if let Some(description) = metadata.get("description").cloned() {
-                if config.get("description").is_none() || config["description"].is_null() {
-                    config["description"] = description;
-                }
+            if config.get("description").is_none() || config["description"].is_null() {
+                config["description"] = serde_json::json!(metadata.description);
             }
         }
     }
@@ -725,16 +652,23 @@ pub fn cmd_update_video_session_config(session_id: &str, updates: String) -> Res
 
     let metadata_path = session_dir.join("workspace").join("metadata.json");
     if metadata_path.exists() {
-        let metadata_content = fs::read_to_string(&metadata_path)
-            .map_err(|e| format!("Failed to read metadata: {}", e))?;
-        let mut metadata: serde_json::Value = serde_json::from_str(&metadata_content)
-            .map_err(|e| format!("Failed to parse metadata: {}", e))?;
+        let mut metadata: SessionMetadata = load_session_metadata(session_id)?;
         if let Some(obj) = updates_json.as_object() {
             for (key, value) in obj {
-                metadata[key] = value.clone();
+                if key == "title" {
+                    metadata.title = value.as_str().unwrap_or(&metadata.title).to_string();
+                } else if key == "description" {
+                    metadata.description =
+                        value.as_str().unwrap_or(&metadata.description).to_string();
+                } else if key == "workflow_mode" {
+                    metadata.workflow_mode = value
+                        .as_str()
+                        .unwrap_or(&metadata.workflow_mode)
+                        .to_string();
+                }
             }
         }
-        metadata["updated_at"] = serde_json::json!(Local::now().to_rfc3339());
+        metadata.update_timestamp();
         save_session_metadata(session_id, &metadata)?;
     }
     Ok(())
@@ -923,5 +857,6 @@ pub fn cmd_update_video_session_tracks(
         .map_err(|e| format!("Failed to deserialize tracks: {}", e))?;
     save_session_tracks(session_id, &track_table)?;
     let metadata = load_session_metadata(session_id)?;
-    Ok(metadata)
+    Ok(serde_json::to_value(&metadata)
+        .map_err(|e| format!("Failed to serialize metadata: {}", e))?)
 }
