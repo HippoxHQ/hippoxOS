@@ -6,7 +6,7 @@ use crate::commands::{
     load_session_config, load_session_metadata, save_session_config, save_session_metadata,
     save_session_tracks, update_session_track_stack, AudioTrackBlock, ImageTrackBlock,
     SessionMetadata, TextTrackBlock, TrackBlock, TrackBlockSubType, TrackBlockType, TrackRow,
-    TrackRowType, TrackTable, VideoTrackBlock,
+    TrackRowType, TrackTableMap, VideoTrackBlock,
 };
 use crate::commons::{Ffmpeg, FileUtils};
 use chrono::{Duration, Local};
@@ -120,7 +120,7 @@ fn process_audio_files(
     session_id: &str,
     audio_paths: Vec<String>,
     ffmpeg: &Ffmpeg,
-    tracks: &mut TrackTable,
+    tracks: &mut TrackTableMap,
 ) {
     for audio_path in audio_paths {
         if audio_path.is_empty() || !Path::new(&audio_path).exists() {
@@ -295,7 +295,7 @@ fn process_image_files(
     session_id: &str,
     image_paths: Vec<String>,
     ffmpeg: &Ffmpeg,
-    tracks: &mut TrackTable,
+    tracks: &mut TrackTableMap,
 ) {
     for image_path in image_paths {
         if image_path.is_empty() || !Path::new(&image_path).exists() {
@@ -356,7 +356,7 @@ fn process_image_files(
     }
 }
 
-fn process_text_files(session_id: &str, text_paths: Vec<String>, tracks: &mut TrackTable) {
+fn process_text_files(session_id: &str, text_paths: Vec<String>, tracks: &mut TrackTableMap) {
     for text_path in text_paths {
         if text_path.is_empty() || !Path::new(&text_path).exists() {
             continue;
@@ -501,14 +501,11 @@ pub fn cmd_create_video_dialog_session(
     if let Some(text_paths) = text_source_paths {
         process_text_files(session_id, text_paths, &mut session_metadata.tracks);
     }
-
     session_metadata.track_stack = session_metadata.tracks.keys().cloned().collect();
     session_metadata.max_track_time = calculate_max_track_time(&session_metadata.tracks);
     session_metadata.update_timestamp();
-
     let metadata_path = workspace_dir.join("metadata.json");
     save_session_metadata(session_id, &session_metadata)?;
-
     let config = serde_json::json!({
         "session_id": session_id,
         "title": title,
@@ -523,15 +520,12 @@ pub fn cmd_create_video_dialog_session(
     let config_content = serde_json::to_string_pretty(&config)
         .map_err(|e| format!("Failed to serialize config: {}", e))?;
     fs::write(&config_path, config_content).map_err(|e| format!("Failed to save config: {}", e))?;
-
     let chat_path = session_dir.join("chat.json");
     fs::write(&chat_path, initial_chat_content)
         .map_err(|e| format!("Failed to save chat history: {}", e))?;
-
     let terminal_path = session_dir.join("terminal.json");
     fs::write(&terminal_path, initial_terminal_content)
         .map_err(|e| format!("Failed to save terminal history: {}", e))?;
-
     Ok(session_dir.to_string_lossy().to_string())
 }
 
@@ -853,7 +847,7 @@ pub fn cmd_update_video_session_tracks(
 ) -> Result<serde_json::Value, String> {
     let lock = get_session_lock(session_id);
     let _guard = lock.lock().unwrap();
-    let track_table: TrackTable = serde_json::from_value(tracks)
+    let track_table: TrackTableMap = serde_json::from_value(tracks)
         .map_err(|e| format!("Failed to deserialize tracks: {}", e))?;
     save_session_tracks(session_id, &track_table)?;
     let metadata = load_session_metadata(session_id)?;
