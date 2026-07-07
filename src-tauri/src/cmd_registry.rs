@@ -392,7 +392,9 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         // ========== Video Player Commands ==========
         commands::cmd_player_extract_frame_from_local,        
         commands::cmd_player_extract_frames_batch_from_local, 
-        commands::cmd_player_extract_audio_pcm_from_local,    
+        // ========== Video Player Commands (New: auto track selection) ==========
+        commands::cmd_player_extract_frame_at_time,
+        commands::cmd_player_extract_frames_batch_at_time,    
         // ========== Video Materials ==========
         commands::cmd_get_video_materials,     
         commands::cmd_get_audio_materials,     
