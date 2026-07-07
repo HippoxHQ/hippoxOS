@@ -461,5 +461,6 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_update_transition,
         commands::cmd_get_track_transitions,
         commands::cmd_get_session_transitions,
+        commands::cmd_get_transition_type_list
     ]
 }
