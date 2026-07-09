@@ -40,9 +40,16 @@ pub fn get_material_favorites_dir() -> PathBuf {
     get_app_root_dir().join("MaterialFavorites")
 }
 
-/// Video Dialog history directory: HippoX/VideoDialogHistory
-pub fn get_video_dialog_history_dir() -> PathBuf {
-    get_app_root_dir().join("VideoDialogHistory")
+/// Video Editing System directory: HippoX/VideoDialogHistory
+pub fn get_video_editing_system_root_dir() -> PathBuf {
+    get_app_root_dir().join("VideoEdit")
+}
+
+/// Video Editing System  Dialog History Directory: HippoX/VideoEdit/VideoDialogHistory
+pub fn get_video_editing_system_dialog_history_dir() -> PathBuf {
+    get_app_root_dir()
+        .join("VideoEdit")
+        .join("VideoDialogHistory")
 }
 
 /// SandBox3D Dialog history directory: HippoX/SandBox3DDialogHistory

@@ -3,7 +3,7 @@ use crate::commands::video_editor::material::{insert_material, UploadResult};
 use crate::commands::video_editor::track::calculate_max_track_time;
 use crate::commands::video_editor::track::table::TrackTable;
 use crate::commands::{
-    get_session_lock, get_settings_dir, get_video_dialog_history_dir, load_metadata,
+    get_session_lock, get_settings_dir, get_video_editing_system_dialog_history_dir, load_metadata,
     load_session_config, load_session_metadata, save_session_config, save_session_metadata,
     save_session_tracks, update_session_track_stack, SessionMetadata, TrackTableMap,
 };
@@ -173,7 +173,7 @@ pub fn cmd_create_video_dialog_session(
 ) -> Result<String, String> {
     let lock = get_session_lock(session_id);
     let _guard = lock.lock().unwrap();
-    let dir = get_video_dialog_history_dir();
+    let dir = get_video_editing_system_dialog_history_dir();
     if !dir.exists() {
         fs::create_dir_all(&dir)
             .map_err(|e| format!("Failed to create video dialog history directory: {}", e))?;
@@ -246,7 +246,7 @@ pub fn cmd_create_video_dialog_session(
 
 #[tauri::command]
 pub fn cmd_list_video_dialog_sessions() -> Result<Vec<serde_json::Value>, String> {
-    let dir = get_video_dialog_history_dir();
+    let dir = get_video_editing_system_dialog_history_dir();
     if !dir.exists() {
         return Ok(vec![]);
     }
@@ -307,7 +307,7 @@ pub fn cmd_list_video_dialog_sessions() -> Result<Vec<serde_json::Value>, String
 pub fn cmd_load_video_session_config(
     session_id: &str,
 ) -> Result<Option<serde_json::Value>, String> {
-    let dir = get_video_dialog_history_dir();
+    let dir = get_video_editing_system_dialog_history_dir();
     let session_dir = dir.join(session_id);
     let config_path = session_dir.join("config.json");
     if !config_path.exists() {
@@ -338,7 +338,7 @@ pub fn cmd_load_video_session_config(
 pub fn cmd_update_video_session_config(session_id: &str, updates: String) -> Result<(), String> {
     let lock = get_session_lock(session_id);
     let _guard = lock.lock().unwrap();
-    let dir = get_video_dialog_history_dir();
+    let dir = get_video_editing_system_dialog_history_dir();
     let session_dir = dir.join(session_id);
     let config_path = session_dir.join("config.json");
     if !config_path.exists() {
@@ -385,7 +385,7 @@ pub fn cmd_update_video_session_config(session_id: &str, updates: String) -> Res
 pub fn cmd_delete_video_dialog_session(session_id: &str) -> Result<(), String> {
     let lock = get_session_lock(session_id);
     let _guard = lock.lock().unwrap();
-    let dir = get_video_dialog_history_dir();
+    let dir = get_video_editing_system_dialog_history_dir();
     let session_dir = dir.join(session_id);
     if session_dir.exists() {
         fs::remove_dir_all(&session_dir)
@@ -402,7 +402,7 @@ pub fn cmd_delete_video_dialog_session(session_id: &str) -> Result<(), String> {
 pub fn cmd_save_video_chat_content(session_id: &str, content: &str) -> Result<(), String> {
     let lock = get_session_lock(session_id);
     let _guard = lock.lock().unwrap();
-    let dir = get_video_dialog_history_dir();
+    let dir = get_video_editing_system_dialog_history_dir();
     let session_dir = dir.join(session_id);
     let chat_path = session_dir.join("chat.json");
     if !session_dir.exists() {
@@ -427,7 +427,7 @@ pub fn cmd_save_video_chat_content(session_id: &str, content: &str) -> Result<()
 pub fn cmd_save_video_terminal_content(session_id: &str, content: &str) -> Result<(), String> {
     let lock = get_session_lock(session_id);
     let _guard = lock.lock().unwrap();
-    let dir = get_video_dialog_history_dir();
+    let dir = get_video_editing_system_dialog_history_dir();
     let session_dir = dir.join(session_id);
     let terminal_path = session_dir.join("terminal.json");
     if !session_dir.exists() {
@@ -441,7 +441,7 @@ pub fn cmd_save_video_terminal_content(session_id: &str, content: &str) -> Resul
 
 #[tauri::command]
 pub fn cmd_load_video_chat_content(session_id: &str) -> Result<Option<String>, String> {
-    let dir = get_video_dialog_history_dir();
+    let dir = get_video_editing_system_dialog_history_dir();
     let chat_path = dir.join(session_id).join("chat.json");
     if chat_path.exists() {
         let content = fs::read_to_string(&chat_path)
@@ -454,7 +454,7 @@ pub fn cmd_load_video_chat_content(session_id: &str) -> Result<Option<String>, S
 
 #[tauri::command]
 pub fn cmd_load_video_terminal_content(session_id: &str) -> Result<Option<String>, String> {
-    let dir = get_video_dialog_history_dir();
+    let dir = get_video_editing_system_dialog_history_dir();
     let terminal_path = dir.join(session_id).join("terminal.json");
     if terminal_path.exists() {
         let content = fs::read_to_string(&terminal_path)
@@ -469,7 +469,7 @@ pub fn cmd_load_video_terminal_content(session_id: &str) -> Result<Option<String
 pub fn cmd_save_video_task_content(session_id: &str, content: &str) -> Result<(), String> {
     let lock = get_session_lock(session_id);
     let _guard = lock.lock().unwrap();
-    let dir = get_video_dialog_history_dir();
+    let dir = get_video_editing_system_dialog_history_dir();
     let session_dir = dir.join(session_id);
     let task_path = session_dir.join("task.json");
     if !session_dir.exists() {
@@ -483,7 +483,7 @@ pub fn cmd_save_video_task_content(session_id: &str, content: &str) -> Result<()
 
 #[tauri::command]
 pub fn cmd_load_video_task_content(session_id: &str) -> Result<Option<String>, String> {
-    let dir = get_video_dialog_history_dir();
+    let dir = get_video_editing_system_dialog_history_dir();
     let task_path = dir.join(session_id).join("task.json");
     if task_path.exists() {
         let content = fs::read_to_string(&task_path)
@@ -531,7 +531,7 @@ pub struct RemoveTrackRequest {
 
 #[tauri::command]
 pub fn cmd_get_video_session_tracks(session_id: &str) -> Result<Vec<serde_json::Value>, String> {
-    let dir = get_video_dialog_history_dir();
+    let dir = get_video_editing_system_dialog_history_dir();
     let session_dir = dir.join(session_id);
     let metadata_path = session_dir.join("workspace").join("metadata.json");
     if !metadata_path.exists() {

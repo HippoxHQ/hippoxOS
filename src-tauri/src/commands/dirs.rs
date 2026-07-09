@@ -7,7 +7,7 @@ use crate::commands::{
     get_map_dialog_history_dir, get_material_favorites_dir, get_notifications_dir,
     get_sandbox3d_dialog_history_dir, get_scheduled_tasks_dir, get_settings_dir,
     get_skill_history_dir, get_skills_dir, get_skills_market_dir, get_taskpool_dir,
-    get_video_dialog_history_dir,
+    get_video_editing_system_dialog_history_dir,
 };
 
 /// Initialize all directories
@@ -18,7 +18,7 @@ pub fn init_directories() -> Result<(), String> {
         get_chart_dialog_history_dir(),
         get_map_dialog_history_dir(),
         get_codeeditor_dialog_history_dir(),
-        get_video_dialog_history_dir(),
+        get_video_editing_system_dialog_history_dir(),
         get_sandbox3d_dialog_history_dir(),
         get_skills_market_dir(),
         get_scheduled_tasks_dir(),

@@ -463,6 +463,17 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_update_transition,
         commands::cmd_get_track_transitions,
         commands::cmd_get_session_transitions,
-        commands::cmd_get_transition_type_list
+        commands::cmd_get_transition_type_list,
+        // ========== Video Overlays ==========
+        commands::cmd_insert_overlay,
+        commands::cmd_list_overlays,
+        commands::cmd_list_image_overlays,
+        commands::cmd_list_text_overlays,
+        commands::cmd_get_overlay_by_id,
+        commands::cmd_delete_overlay,
+        commands::cmd_update_overlay_metadata,
+        commands::cmd_toggle_overlay_favorite,
+        commands::cmd_copy_overlay,
+        commands::cmd_get_overlays_root_dir
     ]
 }
