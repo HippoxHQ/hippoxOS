@@ -450,6 +450,9 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_add_track_history,
         commands::cmd_previous_track_history,
         commands::cmd_next_track_history,
+        commands::cmd_add_overlay_track_history,
+        commands::cmd_previous_overlay_track_history,
+        commands::cmd_next_overlay_track_history,
         commands::cmd_add_material_to_track,
         commands::cmd_trim_track_block,           
         commands::cmd_trim_track_block_start,     
@@ -477,6 +480,7 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_get_overlays_root_dir,
         commands::cmd_add_overlay_track,
         commands::cmd_get_overlay_track_rows,
-        commands::cmd_get_overlay_track_thumbnail
+        commands::cmd_get_overlay_track_thumbnail,
+        commands::cmd_update_overlay_track_time
     ]
 }
