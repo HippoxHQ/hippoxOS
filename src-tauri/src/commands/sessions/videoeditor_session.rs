@@ -3,9 +3,7 @@ use crate::commands::video_editor::material::{insert_material, UploadResult};
 use crate::commands::video_editor::track::calculate_max_track_time;
 use crate::commands::video_editor::track::table::TrackTable;
 use crate::commands::{
-    get_session_lock, get_settings_dir, get_video_editing_system_dialog_history_dir, load_metadata,
-    load_session_config, load_session_metadata, save_session_config, save_session_metadata,
-    save_session_tracks, update_session_track_stack, SessionMetadata, TrackTableMap,
+    MaterialType, SessionMetadata, TrackTableMap, get_session_lock, get_settings_dir, get_video_editing_system_dialog_history_dir, load_metadata, load_session_config, load_session_metadata, save_session_config, save_session_metadata, save_session_tracks, update_session_track_stack,
 };
 use crate::commons::{Ffmpeg, FileUtils};
 use chrono::{Duration, Local};
@@ -57,10 +55,12 @@ fn process_video_file(session_id: &str, source_path: String, metadata: &mut Sess
     if source_path.is_empty() || !Path::new(&source_path).exists() {
         return;
     }
-    match insert_material(session_id.to_string(), source_path, "video") {
+    match insert_material(session_id.to_string(), source_path, &MaterialType::Video) {
         Ok(upload_result) => {
             let material_id = upload_result.id;
-            if let Ok(material_metadata) = load_metadata(session_id, "video", &material_id) {
+            if let Ok(material_metadata) =
+                load_metadata(session_id, &MaterialType::Video, &material_id)
+            {
                 let mut tracks =
                     TrackTable::from_track_table_map(std::mem::take(&mut metadata.tracks));
                 let _ = tracks.add_material_track(
@@ -83,10 +83,12 @@ fn process_audio_files(session_id: &str, audio_paths: Vec<String>, tracks: &mut 
         if audio_path.is_empty() || !Path::new(&audio_path).exists() {
             continue;
         }
-        match insert_material(session_id.to_string(), audio_path, "audio") {
+        match insert_material(session_id.to_string(), audio_path, &MaterialType::Audio) {
             Ok(upload_result) => {
                 let material_id = upload_result.id;
-                if let Ok(material_metadata) = load_metadata(session_id, "audio", &material_id) {
+                if let Ok(material_metadata) =
+                    load_metadata(session_id, &MaterialType::Audio, &material_id)
+                {
                     let mut track_table = TrackTable::from_track_table_map(std::mem::take(tracks));
                     let _ = track_table.add_material_track(
                         session_id,
@@ -109,10 +111,12 @@ fn process_image_files(session_id: &str, image_paths: Vec<String>, tracks: &mut 
         if image_path.is_empty() || !Path::new(&image_path).exists() {
             continue;
         }
-        match insert_material(session_id.to_string(), image_path, "image") {
+        match insert_material(session_id.to_string(), image_path, &MaterialType::Image) {
             Ok(upload_result) => {
                 let material_id = upload_result.id;
-                if let Ok(material_metadata) = load_metadata(session_id, "image", &material_id) {
+                if let Ok(material_metadata) =
+                    load_metadata(session_id, &MaterialType::Image, &material_id)
+                {
                     let mut track_table = TrackTable::from_track_table_map(std::mem::take(tracks));
                     let _ = track_table.add_material_track(
                         session_id,
@@ -135,10 +139,12 @@ fn process_text_files(session_id: &str, text_paths: Vec<String>, tracks: &mut Tr
         if text_path.is_empty() || !Path::new(&text_path).exists() {
             continue;
         }
-        match insert_material(session_id.to_string(), text_path, "text") {
+        match insert_material(session_id.to_string(), text_path, &MaterialType::Text) {
             Ok(upload_result) => {
                 let material_id = upload_result.id;
-                if let Ok(material_metadata) = load_metadata(session_id, "text", &material_id) {
+                if let Ok(material_metadata) =
+                    load_metadata(session_id, &MaterialType::Text, &material_id)
+                {
                     let mut track_table = TrackTable::from_track_table_map(std::mem::take(tracks));
                     let _ = track_table.add_material_track(
                         session_id,
