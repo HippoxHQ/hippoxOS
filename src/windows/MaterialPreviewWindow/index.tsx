@@ -72,12 +72,10 @@ const MaterialPreviewWindow: React.FC = () => {
       try {
         const data = await materialsCommands.getMaterialPreviewData();
         if (data) {
-          console.log("Got material data from backend:", data);
           setMaterial(data);
           if (data.file_path) {
             const converted = convertFileSrc(data.file_path);
             setAssetPath(converted);
-            console.log("Converted asset path:", converted);
           }
           setImageScale(1);
           setImageRotation(0);

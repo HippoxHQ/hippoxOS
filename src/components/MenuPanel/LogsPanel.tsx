@@ -52,7 +52,6 @@ const LogsPanel: React.FC<LogsPanelProps> = ({ t, onClose, onFileClick }) => {
     try {
       const exists = await filesCommands.pathExists(logDir);
       if (!exists) {
-        console.log("Log directory does not exist:", logDir);
         return entries;
       }
       const files = await filesCommands.readDirectory(logDir);

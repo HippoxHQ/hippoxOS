@@ -140,7 +140,6 @@ const Chart = forwardRef<ChartRef, ChartProps>(
             });
             engineRef.current = engine;
             setIsEngineReady(true);
-            console.log("[Chart] CVSEngine loaded successfully");
           })
           .catch((err) => {
             console.warn("[Chart] CVSEngine not available:", err.message);

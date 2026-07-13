@@ -434,6 +434,8 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_update_track_stack,
         commands::cmd_update_track_time,
         commands::cmd_update_internal_time,
+        commands::cmd_update_overlay_stack,
+        commands::cmd_get_overlay_stack,
         // ========== Audio Playback Commands ==========
         commands::cmd_play_audio,
         commands::cmd_stop_audio,
@@ -478,6 +480,7 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_get_overlays_root_dir,
         commands::cmd_add_overlay_track,
         commands::cmd_get_overlay_track_rows,
+        commands::cmd_get_overlay_track_by_id,
         commands::cmd_get_overlay_track_thumbnail,
         commands::cmd_update_overlay_track_time,
         commands::cmd_list_image_overlays_by_category,

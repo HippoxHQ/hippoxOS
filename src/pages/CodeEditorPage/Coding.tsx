@@ -60,7 +60,6 @@ const CodingPage: React.FC<CodingPageProps> = ({
   };
 
   useEffect(() => {
-    console.log("[CodingPage] workspacePath received:", workspacePath);
   }, [workspacePath]);
 
   useEffect(() => {

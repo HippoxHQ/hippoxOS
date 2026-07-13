@@ -40,7 +40,6 @@ const CustomDragCursor: React.FC<CustomDragCursorProps> = ({
       unlistenDragEnter = await listen<{ fileCount: number }>(
         "drag-enter",
         (event) => {
-          console.log("Drag enter with file count:", event.payload.fileCount);
           setFileCount(event.payload.fileCount);
         },
       );
