@@ -487,6 +487,12 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_list_text_overlays_by_category,
         commands::cmd_update_overlay_block_position,
         commands::cmd_update_overlay_block_size,
-        commands::cmd_update_overlay_text_content
+        commands::cmd_update_overlay_text_content,
+        commands::cmd_move_track_block,
+        commands::cmd_move_overlay_block,
+        commands::cmd_is_track_empty,
+        commands::cmd_is_overlay_track_empty,
+        commands::cmd_remove_track_by_id,
+        commands::cmd_remove_overlay_track_by_id
     ]
 }
