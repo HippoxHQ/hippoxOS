@@ -392,8 +392,8 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         // ========== Video Player Commands ==========
         // ========== Video Player Commands (New: auto track selection) ==========
         commands::cmd_player_extract_frame_at_time,
-        commands::cmd_player_extract_frame_at_time_vec,
-        commands::cmd_player_extract_frame_at_time_vec_by_track_id,
+        commands::cmd_player_extract_full_frame_at_time,
+        commands::cmd_player_extract_full_frame_at_time_by_track_id,
         commands::cmd_player_extract_frames_batch_at_time,    
         // ========== Video Materials ==========
         commands::cmd_get_video_materials,     
