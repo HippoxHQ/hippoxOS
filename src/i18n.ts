@@ -1424,6 +1424,7 @@ export const zh = {
     tooltipFit: "⌨️ F: 适应屏幕",
   },
   videoEditor: {
+    trackBlock: '轨道块',
     codec: '编码',
     bitrate: '比特率',
     created: '创建时间',
@@ -3099,6 +3100,7 @@ export const en: typeof zh = {
     tooltipFit: "⌨️ F: Fit",
   },
   videoEditor: {
+    trackBlock: 'trackBlocks',
     codec: 'Codec',
     bitrate: 'Bitrate',
     created: 'Creat Time',
