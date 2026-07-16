@@ -56,6 +56,7 @@ const topBarStyles = `
     app-region: drag;
     min-width: 0;
     gap: 5px;
+    padding-right: 0px;
   }
    .top-bar-left {
     display: flex;

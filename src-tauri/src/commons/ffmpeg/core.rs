@@ -581,39 +581,6 @@ impl Ffmpeg {
         let stdout = String::from_utf8_lossy(&output.stdout);
         stdout.trim().parse::<u64>().map_err(|e| format!("Failed to parse frame count: {}", e))
     }
-    pub fn get_keyframes(&self, input_path: &str) -> Result<Vec<f64>, String> {
-        if !Path::new(input_path).exists() {
-            return Err(format!("Input file not found: {}", input_path));
-        }
-        let output = Command::new("ffprobe")
-            .args([
-                "-v",
-                "error",
-                "-skip_frame",
-                "nokey",
-                "-show_entries",
-                "frame=pkt_pts_time",
-                "-select_streams",
-                "v:0",
-                "-of",
-                "csv=p=0",
-                input_path,
-            ])
-            .output()
-            .map_err(|e| format!("Failed to get keyframes: {}", e))?;
-        if !output.status.success() {
-            let stderr = String::from_utf8_lossy(&output.stderr);
-            return Err(format!("ffprobe failed: {}", stderr));
-        }
-        let stdout = String::from_utf8_lossy(&output.stdout);
-        let mut keyframes = Vec::new();
-        for line in stdout.lines() {
-            if let Ok(time) = line.trim().parse::<f64>() {
-                keyframes.push(time);
-            }
-        }
-        Ok(keyframes)
-    }
     pub fn reset_persistent(&self, video_path: &str) -> Result<(), String> {
         let mut guard = self.persistent.lock().unwrap();
         if let Some(mut proc) = guard.take() {
