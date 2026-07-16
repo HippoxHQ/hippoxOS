@@ -12,15 +12,7 @@ interface MessageActionsProps {
   t: (key: string, params?: any) => string;
 }
 
-export const MessageActions: React.FC<MessageActionsProps> = ({
-  msg,
-  isUser,
-  copyToClipboard,
-  onLocateTask,
-  onEditMessage,
-  onResendMessage,
-  t,
-}) => {
+export const MessageActions: React.FC<MessageActionsProps> = ({ msg, isUser, copyToClipboard, onLocateTask, onEditMessage, onResendMessage, t }) => {
   if (isUser) {
     return (
       <div

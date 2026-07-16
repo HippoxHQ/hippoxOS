@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
 import { sessionCommands } from "../../../../command/session/general";
-
 export const useSessionTitles = () => {
   const [sessionTitlesMap, setSessionTitlesMap] = useState<Map<string, string>>(
     new Map(),

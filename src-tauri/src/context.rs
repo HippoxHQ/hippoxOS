@@ -1,9 +1,6 @@
-use memcontext::MemContext;
-
 use crate::types::Role;
-
+use memcontext::MemContext;
 pub(crate) struct Context;
-
 impl Context {
     pub async fn new() -> Result<MemContext, String> {
         use memcontext::{DatabaseType, MemContext, MemContextConfig, StorageType};
@@ -18,7 +15,6 @@ impl Context {
         MemContext::new(config).await.map_err(|e| e.to_string())
     }
 }
-
 /// Get conversation history for a session (excluding system messages)
 pub async fn get_conversation_history(mem: &MemContext, session_id: &str, limit: usize) -> Result<String, String> {
     match mem.recall_time_series(session_id, limit).await {
@@ -46,12 +42,10 @@ pub async fn get_conversation_history(mem: &MemContext, session_id: &str, limit:
         }
     }
 }
-
 /// Store a user message in conversation history
 pub async fn store_user_message(mem: &MemContext, session_id: &str, content: &str) -> Result<(), String> {
     mem.store_message(session_id.to_string(), Role::User.to_string(), content.to_string()).await.map_err(|e| e.to_string())
 }
-
 /// Store an assistant message in conversation history
 pub async fn store_assistant_message(mem: &MemContext, session_id: &str, content: &str) -> Result<(), String> {
     mem.store_message(session_id.to_string(), Role::LLM.to_string(), content.to_string()).await.map_err(|e| e.to_string())

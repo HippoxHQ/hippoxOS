@@ -7,27 +7,26 @@ import { TaskInfo, UploadFile, TaskStatusEnum, SessionDomain } from "../../../co
 import { Language, ChatMessage, RoleEnum, MessageStatus } from "../../../types/types";
 import { workspaceCommands } from "../../../command/workspace";
 import { sessionCommands } from "../../../command/session/general";
-
 /**
- * Custom hook that manages the current session state and all session-related operations.
- * 
- * This hook is the central piece for session management, handling:
- * - Creating new sessions
- * - Switching between sessions
- * - Sending messages within a session
- * - Auto-saving session data to disk
- * - Determining whether to show the welcome page
- * 
- * The hook works with three key components:
- * 1. `taskManager` - In-memory data store for sessions, messages, and tasks
- * 2. `sessionCommands` - Backend API for reading/writing session data to disk
- * 3. `hippoxCommands` - Backend API for LLM operations
- * 
- * @param language - Current application language ('zh' | 'en')
- * @param isConfigLoaded - Whether the app configuration has been loaded
- * @param onCloseSkillsManager - Optional callback to close the skills manager panel
- * @returns Session management state and handlers
- */
+* Custom hook that manages the current session state and all session-related operations.
+* 
+* This hook is the central piece for session management, handling:
+* - Creating new sessions
+* - Switching between sessions
+* - Sending messages within a session
+* - Auto-saving session data to disk
+* - Determining whether to show the welcome page
+* 
+* The hook works with three key components:
+* 1. `taskManager` - In-memory data store for sessions, messages, and tasks
+* 2. `sessionCommands` - Backend API for reading/writing session data to disk
+* 3. `hippoxCommands` - Backend API for LLM operations
+* 
+* @param language - Current application language ('zh' | 'en')
+* @param isConfigLoaded - Whether the app configuration has been loaded
+* @param onCloseSkillsManager - Optional callback to close the skills manager panel
+* @returns Session management state and handlers
+*/
 export function useSession(
     language: Language,
     isConfigLoaded: boolean,
@@ -63,36 +62,34 @@ export function useSession(
     const [pendingNewSession, setPendingNewSession] = useState(false);
     /** Translation function for i18n support */
     const { t } = useTranslation(language);
-
     /**
-     * Subscribe to taskManager changes.
-     * When any data in taskManager changes, increment the version counter,
-     * which triggers the auto-save effect below.
-     */
+    * Subscribe to taskManager changes.
+    * When any data in taskManager changes, increment the version counter,
+    * which triggers the auto-save effect below.
+    */
     useEffect(() => {
         const unsubscribe = taskManager.subscribe(() => {
             setTaskManagerVersion((prev) => prev + 1);
         });
         return unsubscribe;
     }, []);
-
     /**
-     * Auto-save effect: Periodically persists session data to disk.
-     * 
-     * This is the primary data persistence mechanism. It triggers whenever:
-     * - The current session ID changes
-     * - Loading completes (isLoading becomes false)
-     * - taskManager data changes (via taskManagerVersion)
-     * 
-     * Important safeguards:
-     * - Only runs when not loading, session is valid (not pending/temp)
-     * - Uses 500ms debounce to avoid excessive disk writes
-     * - Saves both chat messages and terminal tasks
-     * 
-     * CRITICAL: Only saves when there is actual data in memory.
-     * This prevents empty data from overwriting valid data on disk
-     * (e.g., after F5 refresh when memory is empty but disk has data).
-     */
+    * Auto-save effect: Periodically persists session data to disk.
+    * 
+    * This is the primary data persistence mechanism. It triggers whenever:
+    * - The current session ID changes
+    * - Loading completes (isLoading becomes false)
+    * - taskManager data changes (via taskManagerVersion)
+    * 
+    * Important safeguards:
+    * - Only runs when not loading, session is valid (not pending/temp)
+    * - Uses 500ms debounce to avoid excessive disk writes
+    * - Saves both chat messages and terminal tasks
+    * 
+    * CRITICAL: Only saves when there is actual data in memory.
+    * This prevents empty data from overwriting valid data on disk
+    * (e.g., after F5 refresh when memory is empty but disk has data).
+    */
     useEffect(() => {
         if (
             !isLoading &&
@@ -125,7 +122,6 @@ export function useSession(
             return () => clearTimeout(saveTimer);
         }
     }, [currentSessionId, isLoading, taskManagerVersion]);
-
     useEffect(() => {
         if (isConfigLoaded) {
             setCurrentSessionId("");
@@ -133,27 +129,26 @@ export function useSession(
             setIsLoading(false);
         }
     }, [isConfigLoaded]);
-
     /**
-     * Send a message in the current session.
-     * 
-     * This handler orchestrates the entire message sending flow:
-     * 1. Resolves the session ID (creates new session if needed)
-     * 2. Adds user message to taskManager
-     * 3. Sends message to backend LLM with workflow mode
-     * 4. Creates a pending assistant message
-     * 5. Creates a task for tracking execution
-     * 
-     * Session creation scenarios:
-     * - pending_* session → Convert to real session, preserve existing data
-     * - No session → Create brand new session
-     * - Existing session → Use as-is
-     * 
-     * @param userMessage - The user's message text
-     * @param sessionId - The session ID to send in (optional, uses current if not provided)
-     * @param files - Optional files attached to the message
-     * @param workflowMode - Optional workflow mode for this message
-     */
+    * Send a message in the current session.
+    * 
+    * This handler orchestrates the entire message sending flow:
+    * 1. Resolves the session ID (creates new session if needed)
+    * 2. Adds user message to taskManager
+    * 3. Sends message to backend LLM with workflow mode
+    * 4. Creates a pending assistant message
+    * 5. Creates a task for tracking execution
+    * 
+    * Session creation scenarios:
+    * - pending_* session → Convert to real session, preserve existing data
+    * - No session → Create brand new session
+    * - Existing session → Use as-is
+    * 
+    * @param userMessage - The user's message text
+    * @param sessionId - The session ID to send in (optional, uses current if not provided)
+    * @param files - Optional files attached to the message
+    * @param workflowMode - Optional workflow mode for this message
+    */
     const handleSendMessage = useCallback(async (
         userMessage: string,
         sessionId: string,
@@ -277,17 +272,16 @@ export function useSession(
             taskManager.addAssistantMessageToSession(finalSessionId, errorMsg, SessionDomain.General);
         }
     }, [currentSessionId, t, language, currentWorkflowMode]);
-
     /**
-     * Create a new session.
-     * 
-     * Creates a temporary session with a "pending_" prefix.
-     * The session will be converted to a real session when the user sends their first message
-     * (see handleSendMessage above).
-     * 
-     * This approach allows the user to start typing immediately without
-     * creating a session directory on disk prematurely.
-     */
+    * Create a new session.
+    * 
+    * Creates a temporary session with a "pending_" prefix.
+    * The session will be converted to a real session when the user sends their first message
+    * (see handleSendMessage above).
+    * 
+    * This approach allows the user to start typing immediately without
+    * creating a session directory on disk prematurely.
+    */
     const handleNewSession = useCallback(async () => {
         const pendingId = `pending_${Date.now()}`;
         taskManager.loadSessionData(pendingId, [], [], [], SessionDomain.General);
@@ -296,24 +290,23 @@ export function useSession(
         setPendingNewSession(true);
         onCloseSkillsManager?.();
     }, [onCloseSkillsManager]);
-
     /**
-     * Switch to a different session.
-     * 
-     * This is the core lazy-loading mechanism:
-     * 1. Check if the current session has data before saving (prevents empty data from corrupting disk)
-     * 2. If current session has data, save it to disk before switching
-     * 3. Check if target session data is already in memory
-     * 4. If not, load it from disk
-     * 5. If yes, just switch to it
-     * 
-     * This lazy-loading strategy is critical for performance and data safety:
-     * - Only loads data that the user actually views
-     * - Handles malformed JSON gracefully (loads as empty, doesn't corrupt disk)
-     * - Prevents empty data from overwriting valid data on disk (e.g., after F5 refresh)
-     * 
-     * @param sessionId - The ID of the session to switch to
-     */
+    * Switch to a different session.
+    * 
+    * This is the core lazy-loading mechanism:
+    * 1. Check if the current session has data before saving (prevents empty data from corrupting disk)
+    * 2. If current session has data, save it to disk before switching
+    * 3. Check if target session data is already in memory
+    * 4. If not, load it from disk
+    * 5. If yes, just switch to it
+    * 
+    * This lazy-loading strategy is critical for performance and data safety:
+    * - Only loads data that the user actually views
+    * - Handles malformed JSON gracefully (loads as empty, doesn't corrupt disk)
+    * - Prevents empty data from overwriting valid data on disk (e.g., after F5 refresh)
+    * 
+    * @param sessionId - The ID of the session to switch to
+    */
     const handleSwitchSession = useCallback(async (sessionId: string) => {
         // No-op if already on this session
         if (sessionId === currentSessionId) return;
@@ -371,19 +364,18 @@ export function useSession(
         localStorage.setItem("hippox-current-session", sessionId);
         window.dispatchEvent(new CustomEvent("session-created"));
     }, [currentSessionId]);
-
     /**
-     * Determine whether the welcome page should be shown.
-     * 
-     * The welcome page is shown when:
-     * - Still loading session data
-     * - No session is active (currentSessionId is empty)
-     * - The current session is empty (no user or assistant messages)
-     * 
-     * Note: Pending sessions are considered empty by default.
-     * 
-     * @returns true if the welcome page should be displayed
-     */
+    * Determine whether the welcome page should be shown.
+    * 
+    * The welcome page is shown when:
+    * - Still loading session data
+    * - No session is active (currentSessionId is empty)
+    * - The current session is empty (no user or assistant messages)
+    * 
+    * Note: Pending sessions are considered empty by default.
+    * 
+    * @returns true if the welcome page should be displayed
+    */
     const shouldShowWelcome = useCallback(() => {
         // Show loading state while session data is being loaded
         if (isLoading) return true;
@@ -400,19 +392,17 @@ export function useSession(
         const assistantMessages = taskManager.getAssistantMessagesBySessionAsArray(currentSessionId, SessionDomain.General);
         return userMessages.length === 0 && assistantMessages.length === 0;
     }, [isLoading, currentSessionId]);
-
     /**
-     * Reset the current session.
-     * 
-     * Clears all data in the current session (messages and tasks).
-     * After reset, the session will be empty and the welcome page will be shown.
-     * 
-     * @note Only works for real sessions (not pending or temp)
-     */
+    * Reset the current session.
+    * 
+    * Clears all data in the current session (messages and tasks).
+    * After reset, the session will be empty and the welcome page will be shown.
+    * 
+    * @note Only works for real sessions (not pending or temp)
+    */
     const resetSession = useCallback(async () => {
         // Cannot reset pending or temp sessions
         if (!currentSessionId || currentSessionId.startsWith("pending_")) return;
-
         try {
             await hippoxCommands.resetSession();
             // Clear all data for this session in taskManager
@@ -421,10 +411,9 @@ export function useSession(
             console.error("reset session error:", error);
         }
     }, [currentSessionId]);
-
     /**
-     * Return session state and handlers for use in components.
-     */
+    * Return session state and handlers for use in components.
+    */
     return {
         /** ID of the currently active session, or empty string if none */
         currentSessionId,

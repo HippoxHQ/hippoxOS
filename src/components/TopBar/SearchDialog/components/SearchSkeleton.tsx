@@ -1,9 +1,7 @@
 import React from "react";
-
 interface SearchSkeletonProps {
   language: "zh" | "en";
 }
-
 export const SearchSkeleton: React.FC<SearchSkeletonProps> = ({ language }) => {
   return (
     <div

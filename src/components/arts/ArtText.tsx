@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-
 interface ArtTextProps {
   text: string;
   className?: string;
@@ -74,14 +73,7 @@ const ArtText: React.FC<ArtTextProps> = ({
             <stop offset="53%" stopColor={lightColor} stopOpacity="1" />
             <stop offset="60%" stopColor={textColor} stopOpacity="1" />
             <stop offset="100%" stopColor={textColor} stopOpacity="1" />
-            <animateTransform
-              attributeName="gradientTransform"
-              type="translate"
-              from="-1 0"
-              to="1 0"
-              dur={`${animationDuration}s`}
-              repeatCount="indefinite"
-            />
+            <animateTransform attributeName="gradientTransform" type="translate" from="-1 0" to="1 0" dur={`${animationDuration}s`} repeatCount="indefinite" />
           </linearGradient>
           <filter id={glowId} x="-20%" y="-20%" width="140%" height="140%">
             <feGaussianBlur stdDeviation={glowSize} result="blur" />
@@ -120,5 +112,4 @@ const ArtText: React.FC<ArtTextProps> = ({
     </div>
   );
 };
-
 export default ArtText;

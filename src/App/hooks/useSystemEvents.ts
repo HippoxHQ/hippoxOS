@@ -3,7 +3,6 @@ import { listen } from "@tauri-apps/api/event";
 import { SystemEvent } from "../../types/types";
 import { filesCommands } from "../../command/files";
 import { getDataPaths } from "../../command/paths";
-
 export function useSystemEvents(
   onNewSession: () => void,
   onOpenSkillsMarket: () => void,
@@ -40,13 +39,12 @@ export function useSystemEvents(
     const unlistenOpenLlmConfig = listen(SystemEvent.OpenLlmConfig, () => {
       onOpenSettings("llmModel");
     });
-    const unlistenCheckUpdates = listen(SystemEvent.CheckUpdates, () => {});
-    const unlistenShowAbout = listen(SystemEvent.ShowAbout, () => {});
+    const unlistenCheckUpdates = listen(SystemEvent.CheckUpdates, () => { });
+    const unlistenShowAbout = listen(SystemEvent.ShowAbout, () => { });
     const unlistenShowNotification = listen(
       SystemEvent.ShowNotification,
-      () => {},
+      () => { },
     );
-    
     return () => {
       unlistenNewSession.then((fn) => fn());
       unlistenOpenSkillsMarket.then((fn) => fn());
@@ -61,7 +59,6 @@ export function useSystemEvents(
     };
   }, [onNewSession, onOpenSkillsMarket, onOpenHistory, onOpenFavorites, onOpenScheduledTasks, onOpenSettings]);
 }
-
 export function useDirectoryEvents() {
   useEffect(() => {
     const unlistenOpenLogsDir = listen("open-logs-dir", async () => {
@@ -93,7 +90,6 @@ export function useDirectoryEvents() {
       const paths = await getDataPaths();
       if (paths.settings_dir) await filesCommands.openPath(paths.settings_dir);
     });
-
     return () => {
       unlistenOpenLogsDir.then((fn) => fn());
       unlistenOpenHistoryDir.then((fn) => fn());

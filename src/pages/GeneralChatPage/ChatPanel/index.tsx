@@ -1,53 +1,23 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useEditMessage } from "./hooks";
-import {
-  NormalMessage,
-  StatusMessage,
-  LoadingSpinner,
-  MessageFileGrid,
-  EditMessageForm,
-  MessageActions,
-} from "./components";
+import { NormalMessage, StatusMessage, LoadingSpinner, MessageFileGrid, EditMessageForm, MessageActions } from "./components";
 import { extractUrls, MessageUrlGrid } from "./components/MessageUrlGrid";
 import logo from "../../../assets/logo.png";
 import { LlmInstance, llmCommands } from "../../../command/llm";
-import {
-  WorkspaceInstance,
-  workspaceCommands,
-} from "../../../command/workspace";
+import { WorkspaceInstance, workspaceCommands } from "../../../command/workspace";
 import { workflowCommands } from "../../../command/workflow";
 import FileUploader from "../../../components/FileUploader";
 import { showToast, ToastType } from "../../../components/Toast";
 import { taskManager } from "../../../core/TaskManager";
 import { SessionDomain, UploadFile } from "../../../core/types";
-import {
-  ChatIcon,
-  TaskQueueIcon,
-  UserIcon,
-  AttachmentIcon,
-  FolderIcon,
-  ChevronRightIcon,
-  TextFileIcon,
-  ImageIcon,
-  VideoIcon,
-  FileIcon,
-  FolderOpenIcon,
-} from "../../../icons";
+import { ChatIcon, TaskQueueIcon, UserIcon, AttachmentIcon, FolderIcon, ChevronRightIcon, TextFileIcon, ImageIcon, VideoIcon, FileIcon, FolderOpenIcon } from "../../../icons";
 import { isStructuredLLMResponse, parseLLMResponse } from "../../../llm/utils";
-import {
-  zhDefaultPrompts,
-  enDefaultPrompts,
-} from "../../../types/DefaultPrompt";
+import { zhDefaultPrompts, enDefaultPrompts } from "../../../types/DefaultPrompt";
 import { ChatMessage, RoleEnum, MessageStatus } from "../../../types/types";
 import { sessionCommands } from "../../../command/session/general";
 
 interface ChatPanelProps {
-  onSendMessage: (
-    message: string,
-    sessionId: string,
-    files?: UploadFile[],
-    workflowMode?: string,
-  ) => void | Promise<void>;
+  onSendMessage: (message: string, sessionId: string, files?: UploadFile[], workflowMode?: string) => void | Promise<void>;
   onFileClick?: (file: UploadFile) => void;
   t: (key: string, params?: any) => string;
   language?: string;
@@ -83,8 +53,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   const [workspaces, setWorkspaces] = useState<WorkspaceInstance[]>([]);
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string>("");
   const [workflowModes, setWorkflowModes] = useState<string[]>([]);
-  const [selectedWorkflowMode, setSelectedWorkflowMode] =
-    useState<string>("ReAct");
+  const [selectedWorkflowMode, setSelectedWorkflowMode] = useState<string>("ReAct");
   const [showScrollButton, setShowScrollButton] = useState(false);
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [userScrolled, setUserScrolled] = useState(false);
@@ -107,23 +76,15 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   const navBubbleTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [isSending, setIsSending] = useState(false);
   const [isResending, setIsResending] = useState(false);
-  const [workflowDisplayNames, setWorkflowDisplayNames] = useState<
-    Map<string, string>
-  >(new Map());
+  const [workflowDisplayNames, setWorkflowDisplayNames] = useState<Map<string, string>>(new Map());
   const [showTopScrollButton, setShowTopScrollButton] = useState(false);
   const [sessionTitle, setSessionTitle] = useState<string>("");
   const [isLoadingTitle, setIsLoadingTitle] = useState(false);
   const hasLoadedTitleRef = useRef<Record<string, boolean>>({});
-  const collapseIcon =
-    collapseIconProp ||
-    (isLeftPanel ? (isCollapsed ? "≫" : "≪") : isCollapsed ? "≪" : "≫");
+  const collapseIcon = collapseIconProp || (isLeftPanel ? (isCollapsed ? "≫" : "≪") : isCollapsed ? "≪" : "≫");
 
   const loadSessionTitle = async (sessionId: string) => {
-    if (
-      !sessionId ||
-      sessionId.startsWith("pending_") ||
-      sessionId.startsWith("temp_")
-    ) {
+    if (!sessionId || sessionId.startsWith("pending_") || sessionId.startsWith("temp_")) {
       setSessionTitle("");
       return;
     }
@@ -163,26 +124,13 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
         localStorage.setItem(`session_title_${sessionId}`, title);
       }
     };
-    window.addEventListener(
-      "session-title-updated",
-      handleSessionTitleUpdated as EventListener,
-    );
+    window.addEventListener("session-title-updated", handleSessionTitleUpdated as EventListener);
     return () => {
-      window.removeEventListener(
-        "session-title-updated",
-        handleSessionTitleUpdated as EventListener,
-      );
+      window.removeEventListener("session-title-updated", handleSessionTitleUpdated as EventListener);
     };
   }, [currentSessionId]);
 
-  const {
-    editingMessageId,
-    editContent,
-    setEditContent,
-    handleEditMessage,
-    handleSaveEdit,
-    handleCancelEdit,
-  } = useEditMessage({ currentSessionId, onSendMessage, t });
+  const { editingMessageId, editContent, setEditContent, handleEditMessage, handleSaveEdit, handleCancelEdit } = useEditMessage({ currentSessionId, onSendMessage, t });
 
   const loadWorkflowDisplayNames = async () => {
     try {
@@ -190,8 +138,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
       const modes = await workflowCommands.getWorkflowModeNames();
       const displayNames = new Map<string, string>();
       for (const mode of modes) {
-        const displayName =
-          await workflowCommands.workflowModeDisplayNameByLang(mode, lang);
+        const displayName = await workflowCommands.workflowModeDisplayNameByLang(mode, lang);
         displayNames.set(mode, displayName);
       }
       setWorkflowDisplayNames(displayNames);
@@ -206,11 +153,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
-    const msgDate = new Date(
-      date.getFullYear(),
-      date.getMonth(),
-      date.getDate(),
-    );
+    const msgDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
     const timeStr = date.toLocaleTimeString([], {
       hour: "2-digit",
       minute: "2-digit",
@@ -280,11 +223,9 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     setIsResending(true);
     const message = msg.content || "";
     const currentFiles = msg.files || [];
-    Promise.resolve(onSendMessage(message, sessionId, currentFiles)).finally(
-      () => {
-        setTimeout(() => setIsResending(false), 300);
-      },
-    );
+    Promise.resolve(onSendMessage(message, sessionId, currentFiles)).finally(() => {
+      setTimeout(() => setIsResending(false), 300);
+    });
   };
 
   const getRandomPrompts = (count: number = 6): string[] => {
@@ -373,14 +314,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   };
 
   const handleLocateTask = (msg: ChatMessage) => {
-    const relatedTask = taskManager
-      .getAllTasks()
-      .find(
-        (task) =>
-          task.user_input === msg.content ||
-          task.final_output === msg.content ||
-          task.task_id === (msg as any).relatedTaskId,
-      );
+    const relatedTask = taskManager.getAllTasks().find((task) => task.user_input === msg.content || task.final_output === msg.content || task.task_id === (msg as any).relatedTaskId);
     if (relatedTask) {
       window.dispatchEvent(
         new CustomEvent("locate-task-in-terminal", {
@@ -399,9 +333,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
       if (defaultId) {
         const instances = await llmCommands.getLlmInstances();
         const instancesList = Object.values(instances) as LlmInstance[];
-        const defaultModel = instancesList.find(
-          (inst) => inst.id === defaultId,
-        );
+        const defaultModel = instancesList.find((inst) => inst.id === defaultId);
         setCurrentModel(defaultModel || null);
       } else {
         setCurrentModel(null);
@@ -427,11 +359,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   };
 
   const loadSessionWorkflowMode = async (sessionId: string) => {
-    if (
-      !sessionId ||
-      sessionId.startsWith("pending_") ||
-      sessionId.startsWith("temp_")
-    ) {
+    if (!sessionId || sessionId.startsWith("pending_") || sessionId.startsWith("temp_")) {
       return;
     }
     try {
@@ -443,10 +371,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
       const config = await sessionCommands.loadSessionConfig(sessionId);
       if (config && config.workflow_mode) {
         setSelectedWorkflowMode(config.workflow_mode);
-        localStorage.setItem(
-          `workflow_mode_${sessionId}`,
-          config.workflow_mode,
-        );
+        localStorage.setItem(`workflow_mode_${sessionId}`, config.workflow_mode);
       } else {
         const defaultMode = "ReAct";
         setSelectedWorkflowMode(defaultMode);
@@ -479,11 +404,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   };
 
   useEffect(() => {
-    if (
-      currentSessionId &&
-      !currentSessionId.startsWith("pending_") &&
-      !currentSessionId.startsWith("temp_")
-    ) {
+    if (currentSessionId && !currentSessionId.startsWith("pending_") && !currentSessionId.startsWith("temp_")) {
       loadSessionWorkflowMode(currentSessionId);
     }
   }, [currentSessionId]);
@@ -503,8 +424,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
 
   const checkScrollPosition = () => {
     if (!messagesContainerRef.current) return;
-    const { scrollTop, scrollHeight, clientHeight } =
-      messagesContainerRef.current;
+    const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
     const atBottom = scrollHeight - scrollTop - clientHeight <= 10;
     setIsAtBottom(atBottom);
     setShowScrollButton(scrollHeight > clientHeight && !atBottom);
@@ -515,8 +435,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
 
   const handleUserScroll = () => {
     if (messagesContainerRef.current) {
-      const { scrollTop, scrollHeight, clientHeight } =
-        messagesContainerRef.current;
+      const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
       const atBottom = scrollHeight - scrollTop - clientHeight <= 10;
       if (!atBottom) setUserScrolled(true);
     }
@@ -544,8 +463,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
 
   const scrollToMessage = (index: number) => {
     if (!messagesContainerRef.current) return;
-    const messageElements =
-      messagesContainerRef.current.querySelectorAll(".message-wrapper");
+    const messageElements = messagesContainerRef.current.querySelectorAll(".message-wrapper");
     if (index >= 0 && index < messageElements.length) {
       messageElements[index].scrollIntoView({
         block: "center",
@@ -558,9 +476,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   const handleFilesAdd = (files: UploadFile[]) => {
     setUploadedFiles((prev) => {
       const existingKeys = new Set(prev.map((f) => `${f.name}_${f.size}`));
-      const newUniqueFiles = files.filter(
-        (f) => !existingKeys.has(`${f.name}_${f.size}`),
-      );
+      const newUniqueFiles = files.filter((f) => !existingKeys.has(`${f.name}_${f.size}`));
       return [...prev, ...newUniqueFiles];
     });
   };
@@ -584,14 +500,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
       if (textareaRef.current) textareaRef.current.style.height = "auto";
       setIsSending(true);
       let backendMessage = message;
-      Promise.resolve(
-        onSendMessage(
-          backendMessage,
-          sessionId,
-          currentFiles,
-          selectedWorkflowMode,
-        ),
-      ).finally(() => {
+      Promise.resolve(onSendMessage(backendMessage, sessionId, currentFiles, selectedWorkflowMode)).finally(() => {
         setTimeout(() => setIsSending(false), 100);
       });
     }
@@ -640,11 +549,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     if (onWorkflowModeChange) {
       onWorkflowModeChange(mode);
     }
-    if (
-      currentSessionId &&
-      !currentSessionId.startsWith("pending_") &&
-      !currentSessionId.startsWith("temp_")
-    ) {
+    if (currentSessionId && !currentSessionId.startsWith("pending_") && !currentSessionId.startsWith("temp_")) {
       try {
         await sessionCommands.updateSessionConfig(currentSessionId, {
           workflow_mode: mode,
@@ -701,15 +606,9 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
                 width: "32px",
                 height: "32px",
                 borderRadius: "6px",
-                border: isActive
-                  ? "1px solid var(--accent-color)"
-                  : "1px solid var(--border-color)",
-                background: isActive
-                  ? "var(--accent-glow)"
-                  : "var(--bg-tertiary)",
-                color: isActive
-                  ? "var(--accent-color)"
-                  : "var(--text-secondary)",
+                border: isActive ? "1px solid var(--accent-color)" : "1px solid var(--border-color)",
+                background: isActive ? "var(--accent-glow)" : "var(--bg-tertiary)",
+                color: isActive ? "var(--accent-color)" : "var(--text-secondary)",
                 cursor: "pointer",
                 fontSize: "10px",
                 display: "flex",
@@ -746,30 +645,17 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
         setMessages([]);
         return;
       }
-      const userMessages = taskManager.getUserMessagesBySession(
-        currentSessionId,
-        SessionDomain.General,
-      );
-      const assistantMessages =
-        taskManager.getAssistantMessagesBySessionAsArray(
-          currentSessionId,
-          SessionDomain.General,
-        );
+      const userMessages = taskManager.getUserMessagesBySession(currentSessionId, SessionDomain.General);
+      const assistantMessages = taskManager.getAssistantMessagesBySessionAsArray(currentSessionId, SessionDomain.General);
       const messageMap = new Map<string, ChatMessage>();
       const allMessages = [...userMessages, ...assistantMessages];
-      allMessages.sort(
-        (a, b) =>
-          new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
-      );
+      allMessages.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
       allMessages.forEach((msg) => {
         if (msg && msg.id) {
           messageMap.set(msg.id, msg);
         }
       });
-      const result = Array.from(messageMap.values()).sort(
-        (a, b) =>
-          new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
-      );
+      const result = Array.from(messageMap.values()).sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
       setMessages(result);
     };
     updateMessages();
@@ -781,15 +667,9 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     const handleLanguageChange = () => {
       loadWorkflowDisplayNames();
     };
-    window.addEventListener(
-      "language-changed",
-      handleLanguageChange as EventListener,
-    );
+    window.addEventListener("language-changed", handleLanguageChange as EventListener);
     return () => {
-      window.removeEventListener(
-        "language-changed",
-        handleLanguageChange as EventListener,
-      );
+      window.removeEventListener("language-changed", handleLanguageChange as EventListener);
     };
   }, []);
 
@@ -823,19 +703,12 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
         if (msg.role === RoleEnum.User) {
           let contentMatch = false;
           if (msg.content && task.user_input) {
-            contentMatch =
-              msg.content === task.user_input ||
-              msg.content.includes(task.user_input) ||
-              task.user_input.includes(msg.content);
+            contentMatch = msg.content === task.user_input || msg.content.includes(task.user_input) || task.user_input.includes(msg.content);
           }
           let filesMatch = false;
           if (msg.files && msg.files.length > 0 && (task as any).files) {
             const taskFiles = (task as any).files || [];
-            filesMatch = msg.files.some((f: any) =>
-              taskFiles.some(
-                (tf: any) => f.name === tf.name || f.path === tf.path,
-              ),
-            );
+            filesMatch = msg.files.some((f: any) => taskFiles.some((tf: any) => f.name === tf.name || f.path === tf.path));
           }
           if (contentMatch || filesMatch) {
             targetIndex = i;
@@ -855,8 +728,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
 
   useEffect(() => {
     if (messagesContainerRef.current && !userScrolled) {
-      messagesContainerRef.current.scrollTop =
-        messagesContainerRef.current.scrollHeight;
+      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
     }
     setTimeout(handleScrollUpdate, 100);
   }, [messages, userScrolled]);
@@ -872,37 +744,16 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (
-        attachmentMenuRef.current &&
-        !attachmentMenuRef.current.contains(event.target as Node) &&
-        attachmentBtnRef.current &&
-        !attachmentBtnRef.current.contains(event.target as Node)
-      ) {
+      if (attachmentMenuRef.current && !attachmentMenuRef.current.contains(event.target as Node) && attachmentBtnRef.current && !attachmentBtnRef.current.contains(event.target as Node)) {
         setShowAttachmentMenu(false);
       }
-      if (
-        directoryMenuRef.current &&
-        !directoryMenuRef.current.contains(event.target as Node) &&
-        directoryBtnRef.current &&
-        !directoryBtnRef.current.contains(event.target as Node)
-      ) {
+      if (directoryMenuRef.current && !directoryMenuRef.current.contains(event.target as Node) && directoryBtnRef.current && !directoryBtnRef.current.contains(event.target as Node)) {
         setShowDirectoryMenu(false);
       }
-      if (
-        workflowMenuRef.current &&
-        !workflowMenuRef.current.contains(event.target as Node) &&
-        workflowBtnRef.current &&
-        !workflowBtnRef.current.contains(event.target as Node)
-      ) {
+      if (workflowMenuRef.current && !workflowMenuRef.current.contains(event.target as Node) && workflowBtnRef.current && !workflowBtnRef.current.contains(event.target as Node)) {
         setShowWorkflowMenu(false);
       }
-      if (
-        navButtonRef.current &&
-        !navButtonRef.current.contains(event.target as Node) &&
-        !document
-          .querySelector(".chat-nav-bubble")
-          ?.contains(event.target as Node)
-      ) {
+      if (navButtonRef.current && !navButtonRef.current.contains(event.target as Node) && !document.querySelector(".chat-nav-bubble")?.contains(event.target as Node)) {
         setShowNavBubble(false);
       }
     };
@@ -911,12 +762,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   }, []);
 
   const getEndingMessage = () => {
-    return (
-      t("chat.endingMessage") ||
-      (language === "zh"
-        ? "✨ 我还能为你做些什么吗？ ✨"
-        : "✨ What else can I do for you? ✨")
-    );
+    return t("chat.endingMessage") || (language === "zh" ? "✨ 我还能为你做些什么吗？ ✨" : "✨ What else can I do for you? ✨");
   };
 
   const navigation = buildNavigationContent();
@@ -934,10 +780,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
 
   return (
     <div className="chat-panel">
-      <div
-        className="panel-header"
-        style={{ paddingTop: "6px", paddingBottom: "6px" }}
-      >
+      <div className="panel-header" style={{ paddingTop: "6px", paddingBottom: "6px" }}>
         <div className="header-title">
           <span className="title-icon">
             <ChatIcon size={14} />
@@ -952,9 +795,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
             }}
             title={sessionTitle || t("chat.title")}
           >
-            {isLoadingTitle
-              ? t("common.loading")
-              : sessionTitle || t("chat.title")}
+            {isLoadingTitle ? t("common.loading") : sessionTitle || t("chat.title")}
           </span>
         </div>
 
@@ -1056,8 +897,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
               background: "var(--bg-tertiary, #252525)",
             }}
           >
-            {t("chat.navigation") || "Navigation"} (
-            {messages.filter((m) => m.role === RoleEnum.User).length})
+            {t("chat.navigation") || "Navigation"} ({messages.filter((m) => m.role === RoleEnum.User).length})
           </div>
           <div
             style={{
@@ -1078,29 +918,21 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
                       padding: "8px 12px",
                       fontSize: "12px",
                       cursor: "pointer",
-                      borderLeft: isActive
-                        ? "2px solid var(--accent-color, #00aaff)"
-                        : "2px solid transparent",
-                      background: isActive
-                        ? "var(--hover-bg, #2a2a2a)"
-                        : "transparent",
+                      borderLeft: isActive ? "2px solid var(--accent-color, #00aaff)" : "2px solid transparent",
+                      background: isActive ? "var(--hover-bg, #2a2a2a)" : "transparent",
                       display: "flex",
                       alignItems: "center",
                       gap: "8px",
                     }}
                     onClick={() => {
-                      const userMessages = messages.filter(
-                        (m) => m.role === RoleEnum.User,
-                      );
+                      const userMessages = messages.filter((m) => m.role === RoleEnum.User);
                       const targetIndex = messages.indexOf(userMessages[idx]);
                       scrollToMessage(targetIndex);
                       setShowNavBubble(false);
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.background =
-                        "var(--hover-bg, #2a2a2a)";
-                      e.currentTarget.style.borderLeftColor =
-                        "var(--accent-color, #00aaff)";
+                      e.currentTarget.style.background = "var(--hover-bg, #2a2a2a)";
+                      e.currentTarget.style.borderLeftColor = "var(--accent-color, #00aaff)";
                     }}
                     onMouseLeave={(e) => {
                       if (!isActive) {
@@ -1139,20 +971,13 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
       )}
 
       <div className="chat-messages-wrapper">
-        <div
-          className="chat-messages"
-          ref={messagesContainerRef}
-          onScroll={handleUserScroll}
-        >
+        <div className="chat-messages" ref={messagesContainerRef} onScroll={handleUserScroll}>
           {messages.map((msg, index) => {
             const isUser = msg.role === RoleEnum.User;
             const isLastMessage = index === messages.length - 1;
             const formattedTime = formatTimestamp(msg.timestamp);
             return (
-              <div
-                key={msg.id}
-                className={`message-wrapper ${isUser ? "user" : ""}`}
-              >
+              <div key={msg.id} className={`message-wrapper ${isUser ? "user" : ""}`}>
                 <div className="message-avatar">
                   {isUser ? (
                     <UserIcon size={16} />
@@ -1171,40 +996,20 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
                 </div>
                 <div className="message-content-area">
                   {msg.status === MessageStatus.Pending ? (
-                    <div
-                      className="message-bubble"
-                      style={{ backgroundColor: "transparent" }}
-                    >
+                    <div className="message-bubble" style={{ backgroundColor: "transparent" }}>
                       <div className="message-content">
                         <LoadingSpinner />
                       </div>
                     </div>
-                  ) : msg.status &&
-                    [
-                      MessageStatus.Paused,
-                      MessageStatus.Cancelled,
-                      MessageStatus.Failed,
-                    ].includes(msg.status) ? (
+                  ) : msg.status && [MessageStatus.Paused, MessageStatus.Cancelled, MessageStatus.Failed].includes(msg.status) ? (
                     <StatusMessage msg={msg} status={msg.status} t={t} />
                   ) : isUser ? (
                     <>
-                      {msg.files && msg.files.length > 0 && (
-                        <MessageFileGrid
-                          files={msg.files}
-                          onFileClick={onFileClick}
-                          formatFileSize={formatFileSize}
-                        />
-                      )}
+                      {msg.files && msg.files.length > 0 && <MessageFileGrid files={msg.files} onFileClick={onFileClick} formatFileSize={formatFileSize} />}
                       {msg.content &&
                         msg.content.trim() &&
                         (editingMessageId === msg.id ? (
-                          <EditMessageForm
-                            editContent={editContent}
-                            setEditContent={setEditContent}
-                            onSave={() => handleSaveEdit(msg)}
-                            onCancel={handleCancelEdit}
-                            t={t}
-                          />
+                          <EditMessageForm editContent={editContent} setEditContent={setEditContent} onSave={() => handleSaveEdit(msg)} onCancel={handleCancelEdit} t={t} />
                         ) : (
                           <div className="message-bubble">
                             <div className="message-content">{msg.content}</div>
@@ -1237,9 +1042,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
                       return (
                         <>
                           <div className="message-bubble">
-                            <div className="message-content">
-                              {displayContent}
-                            </div>
+                            <div className="message-content">{displayContent}</div>
                             {displaySubtitle && (
                               <div
                                 className="message-subtitle"
@@ -1256,45 +1059,20 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
                             )}
                             <div className="message-time">{formattedTime}</div>
                           </div>
-                          <MessageActions
-                            msg={msg}
-                            isUser={false}
-                            copyToClipboard={copyToClipboard}
-                            onLocateTask={handleLocateTask}
-                            onEditMessage={handleEditMessage}
-                            t={t}
-                          />
-                          {isLastMessage &&
-                            shouldShowSuggestions(messages) &&
-                            suggestionPrompts.length > 0 && (
-                              <div className="suggestions-wrapper">
-                                <div className="ending-message">
-                                  {getEndingMessage()}
-                                </div>
-                                <div className="suggestions-title">
-                                  {t("chat.suggestionsTitle") ||
-                                    (language === "zh"
-                                      ? "💡 试试这些："
-                                      : "💡 Try these:")}
-                                </div>
-                                <div className="suggestions-container">
-                                  {suggestionPrompts.map((prompt, idx) => (
-                                    <div
-                                      key={idx}
-                                      className="suggestion-bubble"
-                                      onClick={() =>
-                                        handleSuggestionClick(prompt)
-                                      }
-                                      title={prompt}
-                                    >
-                                      {prompt.length > 25
-                                        ? prompt.slice(0, 25) + "..."
-                                        : prompt}
-                                    </div>
-                                  ))}
-                                </div>
+                          <MessageActions msg={msg} isUser={false} copyToClipboard={copyToClipboard} onLocateTask={handleLocateTask} onEditMessage={handleEditMessage} t={t} />
+                          {isLastMessage && shouldShowSuggestions(messages) && suggestionPrompts.length > 0 && (
+                            <div className="suggestions-wrapper">
+                              <div className="ending-message">{getEndingMessage()}</div>
+                              <div className="suggestions-title">{t("chat.suggestionsTitle") || (language === "zh" ? "💡 试试这些：" : "💡 Try these:")}</div>
+                              <div className="suggestions-container">
+                                {suggestionPrompts.map((prompt, idx) => (
+                                  <div key={idx} className="suggestion-bubble" onClick={() => handleSuggestionClick(prompt)} title={prompt}>
+                                    {prompt.length > 25 ? prompt.slice(0, 25) + "..." : prompt}
+                                  </div>
+                                ))}
                               </div>
-                            )}
+                            </div>
+                          )}
                         </>
                       );
                     })()
@@ -1305,27 +1083,14 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
           })}
         </div>
         {(showScrollButton || showTopScrollButton) && (
-          <div
-            className="scroll-buttons chat-scroll-buttons"
-            style={{ display: "flex", flexDirection: "column", gap: "6px" }}
-          >
+          <div className="scroll-buttons chat-scroll-buttons" style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
             {showTopScrollButton && (
-              <button
-                style={{ height: "32px", width: "32px", borderRadius: "500px" }}
-                className="scroll-btn"
-                onClick={scrollToTop}
-                title={t("chat.scrollToTop") || "Scroll to top"}
-              >
+              <button style={{ height: "32px", width: "32px", borderRadius: "500px" }} className="scroll-btn" onClick={scrollToTop} title={t("chat.scrollToTop") || "Scroll to top"}>
                 ▲
               </button>
             )}
             {showScrollButton && (
-              <button
-                style={{ height: "32px", width: "32px", borderRadius: "500px" }}
-                className="scroll-btn"
-                onClick={scrollToBottom}
-                title={t("chat.scrollToBottom")}
-              >
+              <button style={{ height: "32px", width: "32px", borderRadius: "500px" }} className="scroll-btn" onClick={scrollToBottom} title={t("chat.scrollToBottom")}>
                 ▼
               </button>
             )}
@@ -1334,20 +1099,9 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
       </div>
 
       <div className="chat-input-section">
-        <div
-          className={`chat-input-container ${isFocused ? "focused" : ""}`}
-          onClick={handleContainerClick}
-        >
-          <div
-            className="file-uploader-container"
-            style={{ display: uploadedFiles.length > 0 ? "block" : "none" }}
-          >
-            <FileUploader
-              onFilesAdd={handleFilesAdd}
-              onFileRemove={handleFileRemove}
-              files={uploadedFiles}
-              onDragOverInput={onDragOverInputChange}
-            />
+        <div className={`chat-input-container ${isFocused ? "focused" : ""}`} onClick={handleContainerClick}>
+          <div className="file-uploader-container" style={{ display: uploadedFiles.length > 0 ? "block" : "none" }}>
+            <FileUploader onFilesAdd={handleFilesAdd} onFileRemove={handleFileRemove} files={uploadedFiles} onDragOverInput={onDragOverInputChange} />
           </div>
           <div className="input-textarea-wrapper">
             <textarea
@@ -1364,12 +1118,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
           </div>
           <div className="action-buttons-row">
             <div className="left-actions">
-              <div
-                className="icon-btn"
-                ref={attachmentBtnRef}
-                onClick={() => setShowAttachmentMenu(!showAttachmentMenu)}
-                title={t("chat.attachment")}
-              >
+              <div className="icon-btn" ref={attachmentBtnRef} onClick={() => setShowAttachmentMenu(!showAttachmentMenu)} title={t("chat.attachment")}>
                 <AttachmentIcon size={14} />
               </div>
 
@@ -1384,10 +1133,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
                 style={{ minWidth: 0 }}
               >
                 <FolderIcon size={14} />
-                <span
-                  className="folder-name"
-                  title={getSelectedWorkspaceName()}
-                >
+                <span className="folder-name" title={getSelectedWorkspaceName()}>
                   {getSelectedWorkspaceName()}
                 </span>
                 <ChevronRightIcon size={10} className="chevron" />
@@ -1399,54 +1145,30 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
                 title={t("chat.selectWorkflowMode") || "Workflow Mode"}
                 style={{ minWidth: 0 }}
               >
-                <svg
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <path
-                    d="M4 7h16M4 12h16M4 17h10"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M4 7h16M4 12h16M4 17h10" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
                 <span className="folder-name" title={selectedWorkflowMode}>
-                  {workflowDisplayNames.get(selectedWorkflowMode) ||
-                    selectedWorkflowMode}
+                  {workflowDisplayNames.get(selectedWorkflowMode) || selectedWorkflowMode}
                 </span>
                 <ChevronRightIcon size={10} className="chevron" />
               </div>
 
               {showAttachmentMenu && (
                 <div className="attachment-menu" ref={attachmentMenuRef}>
-                  <div
-                    className="attachment-item"
-                    onClick={() => handleAttachment()}
-                  >
+                  <div className="attachment-item" onClick={() => handleAttachment()}>
                     <TextFileIcon size={14} />
                     {t("chat.textFile")}
                   </div>
-                  <div
-                    className="attachment-item"
-                    onClick={() => handleAttachment()}
-                  >
+                  <div className="attachment-item" onClick={() => handleAttachment()}>
                     <ImageIcon size={14} />
                     {t("chat.image")}
                   </div>
-                  <div
-                    className="attachment-item"
-                    onClick={() => handleAttachment()}
-                  >
+                  <div className="attachment-item" onClick={() => handleAttachment()}>
                     <VideoIcon size={14} />
                     {t("chat.video")}
                   </div>
-                  <div
-                    className="attachment-item"
-                    onClick={() => handleAttachment()}
-                  >
+                  <div className="attachment-item" onClick={() => handleAttachment()}>
                     <FileIcon size={14} />
                     {t("chat.skillFile")}
                   </div>
@@ -1455,22 +1177,11 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
               {showDirectoryMenu && (
                 <div className="directory-menu" ref={directoryMenuRef}>
                   {workspaces.map((workspace) => (
-                    <div
-                      key={workspace.id}
-                      className={`directory-item ${selectedWorkspaceId === workspace.id ? "selected" : ""}`}
-                      onClick={() => handleSelectWorkspace(workspace.id)}
-                    >
-                      {selectedWorkspaceId === workspace.id ? (
-                        <FolderOpenIcon size={16} />
-                      ) : (
-                        <FolderIcon size={16} />
-                      )}
+                    <div key={workspace.id} className={`directory-item ${selectedWorkspaceId === workspace.id ? "selected" : ""}`} onClick={() => handleSelectWorkspace(workspace.id)}>
+                      {selectedWorkspaceId === workspace.id ? <FolderOpenIcon size={16} /> : <FolderIcon size={16} />}
                       <div className="directory-item-content">
                         <div>{workspace.name}</div>
-                        <div
-                          className="workspace-path"
-                          title={workspace.workspace_path}
-                        >
+                        <div className="workspace-path" title={workspace.workspace_path}>
                           {workspace.workspace_path}
                         </div>
                       </div>
@@ -1481,11 +1192,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
               {showWorkflowMenu && (
                 <div className="directory-menu" ref={workflowMenuRef}>
                   {workflowModes.map((mode) => (
-                    <div
-                      key={mode}
-                      className={`directory-item ${selectedWorkflowMode === mode ? "selected" : ""}`}
-                      onClick={() => handleWorkflowModeChange(mode)}
-                    >
+                    <div key={mode} className={`directory-item ${selectedWorkflowMode === mode ? "selected" : ""}`} onClick={() => handleWorkflowModeChange(mode)}>
                       <div className="directory-item-content">
                         <div>{workflowDisplayNames.get(mode) || mode}</div>
                       </div>
@@ -1500,20 +1207,8 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
               disabled={!inputValue.trim() && uploadedFiles.length === 0}
               title={t("chat.send")}
             >
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  d="M12 5L12 19M12 5L5 12M12 5L19 12"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 5L12 19M12 5L5 12M12 5L19 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </button>
           </div>

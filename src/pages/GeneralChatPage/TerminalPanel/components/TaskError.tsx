@@ -9,12 +9,7 @@ interface TaskErrorProps {
   t: (key: string) => string;
 }
 
-export const TaskError: React.FC<TaskErrorProps> = ({
-  error,
-  onCopy,
-  onShowChart,
-  t,
-}) => {
+export const TaskError: React.FC<TaskErrorProps> = ({ error, onCopy, onShowChart, t }) => {
   if (!error || error.trim() === "") {
     return null;
   }
@@ -24,11 +19,7 @@ export const TaskError: React.FC<TaskErrorProps> = ({
       if (parsed && parsed.terminalResponse === null && parsed.chatResponse) {
         return true;
       }
-      if (
-        parsed &&
-        parsed.terminalResponse &&
-        parsed.terminalResponse.m === ""
-      ) {
+      if (parsed && parsed.terminalResponse && parsed.terminalResponse.m === "") {
         return true;
       }
       return false;
@@ -51,10 +42,7 @@ export const TaskError: React.FC<TaskErrorProps> = ({
           justifyContent: "space-between",
         }}
       >
-        <span
-          className="error-label"
-          style={{ color: "#ff6666", fontWeight: 500 }}
-        >
+        <span className="error-label" style={{ color: "#ff6666", fontWeight: 500 }}>
           ❌ Error:
         </span>
         <button

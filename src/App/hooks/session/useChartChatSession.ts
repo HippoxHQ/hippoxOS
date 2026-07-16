@@ -7,7 +7,6 @@ import { TaskInfo, UploadFile, TaskStatusEnum, SessionDomain } from "../../../co
 import { Language, ChatMessage, RoleEnum, MessageStatus } from "../../../types/types";
 import { workspaceCommands } from "../../../command/workspace";
 import { chartSessionCommands } from "../../../command/session/chart";
-
 export function useChartSession(
     language: Language,
     isConfigLoaded: boolean,
@@ -18,14 +17,12 @@ export function useChartSession(
     const [taskManagerVersion, setTaskManagerVersion] = useState(0);
     const [pendingNewSession, setPendingNewSession] = useState(false);
     const { t } = useTranslation(language);
-
     useEffect(() => {
         const unsubscribe = taskManager.subscribe(() => {
             setTaskManagerVersion((prev) => prev + 1);
         });
         return unsubscribe;
     }, []);
-
     useEffect(() => {
         if (
             !isLoading &&
@@ -97,7 +94,6 @@ export function useChartSession(
                 });
         }
     }, [isConfigLoaded]);
-
     const handleSendMessage = useCallback(async (
         userMessage: string,
         sessionId: string,
@@ -136,13 +132,11 @@ export function useChartSession(
             setCurrentSessionId(newSessionId);
             window.dispatchEvent(new CustomEvent("chart-session-created"));
             setPendingNewSession(false);
-
         } else if (!finalSessionId) {
             const newSessionId = `chart_session_${Date.now()}`;
             const sessionTitle = userMessage.length > 30
                 ? userMessage.slice(0, 30) + "..."
                 : userMessage;
-
             await chartSessionCommands.createChartSession(
                 newSessionId,
                 sessionTitle,
@@ -151,14 +145,11 @@ export function useChartSession(
                 [],
                 workflowMode || currentWorkflowMode,
             );
-
             taskManager.loadSessionData(newSessionId, [], [], [], SessionDomain.Chart);
             finalSessionId = newSessionId;
             setCurrentSessionId(newSessionId);
             window.dispatchEvent(new CustomEvent("chart-session-created"));
-
         }
-
         const userMsg: ChatMessage = {
             id: `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
             role: RoleEnum.User,
@@ -167,13 +158,11 @@ export function useChartSession(
             files: files,
         };
         taskManager.addUserMessageToSession(finalSessionId, userMsg, SessionDomain.Chart);
-
         try {
             const workspace = await workspaceCommands.getDefaultWorkspace();
             const workspacePath = workspace?.workspace_path;
             const systemPrompt = getSystemPrompt(language as 'zh' | 'en', workspacePath);
             const fullMessage = `${systemPrompt}\n\n User: ${userMessage}`;
-
             const mode = workflowMode || currentWorkflowMode;
             const taskId = await hippoxCommands.sendMessageAsync(
                 userMessage,
@@ -181,9 +170,7 @@ export function useChartSession(
                 finalSessionId,
                 mode,
             );
-
             const messageId = `llm_${taskId}`;
-
             const assistantMsg: ChatMessage = {
                 id: messageId,
                 role: RoleEnum.LLM,
@@ -192,7 +179,6 @@ export function useChartSession(
                 status: MessageStatus.Pending,
             };
             taskManager.addAssistantMessageToSession(finalSessionId, assistantMsg, SessionDomain.Chart);
-
             const newTask: TaskInfo = {
                 task_id: taskId,
                 session_id: finalSessionId,
@@ -217,14 +203,12 @@ export function useChartSession(
             taskManager.addAssistantMessageToSession(finalSessionId, errorMsg, SessionDomain.Chart);
         }
     }, [currentSessionId, t, language, currentWorkflowMode]);
-
     const handleNewSession = useCallback(async () => {
         const pendingId = `pending_${Date.now()}`;
         taskManager.loadSessionData(pendingId, [], [], [], SessionDomain.Chart);
         setCurrentSessionId(pendingId);
         setPendingNewSession(true);
     }, []);
-
     const handleSwitchSession = useCallback(async (sessionId: string) => {
         if (sessionId === currentSessionId) return;
         if (!sessionId.startsWith("chart_session_") && !sessionId.startsWith("pending_")) {
@@ -249,7 +233,6 @@ export function useChartSession(
                 console.error("Failed to save current session:", error);
             }
         }
-
         const hasTargetData = taskManager.getTasksBySession(sessionId, SessionDomain.Chart) !== undefined;
         if (!hasTargetData) {
             const chatContent = await chartSessionCommands.loadChatContent(sessionId);
@@ -257,7 +240,6 @@ export function useChartSession(
             let userMessages: ChatMessage[] = [];
             let assistantMessages: ChatMessage[] = [];
             let tasks: TaskInfo[] = [];
-
             if (chatContent) {
                 const allMessages = chatContent as ChatMessage[];
                 userMessages = allMessages.filter(msg => msg.role === RoleEnum.User);
@@ -270,29 +252,23 @@ export function useChartSession(
         } else {
             taskManager.switchToSession(sessionId, SessionDomain.Chart);
         }
-
         setCurrentSessionId(sessionId);
         window.dispatchEvent(new CustomEvent("chart-session-created"));
     }, [currentSessionId]);
-
     const shouldShowWelcome = useCallback(() => {
         if (isLoading) return true;
         if (!currentSessionId) return true;
-
         if (currentSessionId.startsWith("pending_")) {
             const userMessages = taskManager.getUserMessagesBySession(currentSessionId, SessionDomain.Chart);
             const assistantMessages = taskManager.getAssistantMessagesBySessionAsArray(currentSessionId, SessionDomain.Chart);
             return userMessages.length === 0 && assistantMessages.length === 0;
         }
-
         const userMessages = taskManager.getUserMessagesBySession(currentSessionId, SessionDomain.Chart);
         const assistantMessages = taskManager.getAssistantMessagesBySessionAsArray(currentSessionId, SessionDomain.Chart);
         return userMessages.length === 0 && assistantMessages.length === 0;
     }, [isLoading, currentSessionId]);
-
     const resetSession = useCallback(async () => {
         if (!currentSessionId || currentSessionId.startsWith("pending_")) return;
-
         try {
             await hippoxCommands.resetSession();
             taskManager.loadSessionData(currentSessionId, [], [], [], SessionDomain.Chart);
@@ -300,7 +276,6 @@ export function useChartSession(
             console.error("reset session error:", error);
         }
     }, [currentSessionId]);
-
     return {
         currentSessionId,
         isLoading,

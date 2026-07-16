@@ -10,14 +10,7 @@ interface SearchBarProps {
   t: (key: string) => string;
 }
 
-export const SearchBar: React.FC<SearchBarProps> = ({
-  searchQuery,
-  setSearchQuery,
-  isSearchFocused,
-  setIsSearchFocused,
-  clearSearch,
-  t,
-}) => {
+export const SearchBar: React.FC<SearchBarProps> = ({ searchQuery, setSearchQuery, isSearchFocused, setIsSearchFocused, clearSearch, t }) => {
   return (
     <div
       style={{
@@ -38,9 +31,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
           height: "29px",
           background: "var(--bg-tertiary)",
           borderRadius: "4px",
-          border: `1px solid ${
-            isSearchFocused ? "var(--accent-color)" : "var(--border-color)"
-          }`,
+          border: `1px solid ${isSearchFocused ? "var(--accent-color)" : "var(--border-color)"}`,
           padding: "0 8px",
           transition: "border-color 0.15s ease",
         }}

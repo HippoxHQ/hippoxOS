@@ -2,12 +2,8 @@ import React, { useState, useEffect } from "react";
 import { showToast, ToastType } from "../../Toast";
 import { showDialog, DialogType } from "../../Dialog";
 import { filesCommands } from "../../../command/files";
-import {
-  WorkspaceInstance,
-  workspaceCommands,
-} from "../../../command/workspace";
+import { WorkspaceInstance, workspaceCommands } from "../../../command/workspace";
 import { SearchIcon } from "../../../icons";
-
 interface WorkspaceConfigProps {
   t: (key: string, params?: any) => string;
   onSaveWorkspace?: (config: any) => void;
@@ -16,29 +12,18 @@ interface WorkspaceConfigProps {
     maxLogSize: number;
   };
 }
-
-const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
-  t,
-  onSaveWorkspace,
-  initialWorkspaceConfig,
-}) => {
-  const [workspaceInstances, setWorkspaceInstances] = useState<
-    WorkspaceInstance[]
-  >([]);
+const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({ t, onSaveWorkspace, initialWorkspaceConfig }) => {
+  const [workspaceInstances, setWorkspaceInstances] = useState<WorkspaceInstance[]>([]);
   const [defaultInstanceId, setDefaultInstanceId] = useState<string>("");
   const [showAddForm, setShowAddForm] = useState(false);
   const [newWorkspaceName, setNewWorkspaceName] = useState("");
   const [newWorkspacePath, setNewWorkspacePath] = useState("");
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-
   useEffect(() => {
     loadWorkspaceInstances();
   }, []);
-
-  const loadWorkspaceInstances = async (
-    retryCount: number = 0,
-  ): Promise<void> => {
+  const loadWorkspaceInstances = async (retryCount: number = 0): Promise<void> => {
     setLoading(true);
     try {
       const config = await workspaceCommands.getWorkspaceConfig();
@@ -49,9 +34,7 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
       setWorkspaceInstances(config.instances);
       setDefaultInstanceId(config.default_instance_id);
       if (onSaveWorkspace && config.default_instance_id) {
-        const defaultWorkspace = config.instances.find(
-          (i) => i.id === config.default_instance_id,
-        );
+        const defaultWorkspace = config.instances.find((i) => i.id === config.default_instance_id);
         if (defaultWorkspace) {
           onSaveWorkspace({
             workspacePath: defaultWorkspace.workspace_path,
@@ -59,10 +42,7 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
         }
       }
     } catch (error) {
-      showToast(
-        ToastType.ERROR,
-        "Failed to load workspace instances: " + error,
-      );
+      showToast(ToastType.ERROR, "Failed to load workspace instances: " + error);
       if (initialWorkspaceConfig) {
         const defaultInstance: WorkspaceInstance = {
           id: `workspace_${Date.now()}`,
@@ -79,7 +59,6 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
       setLoading(false);
     }
   };
-
   const handleSetDefault = async (instanceId: string, instanceName: string) => {
     try {
       await workspaceCommands.setDefaultWorkspace(instanceId);
@@ -89,14 +68,9 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
       }));
       setWorkspaceInstances(updatedInstances);
       setDefaultInstanceId(instanceId);
-      showToast(
-        ToastType.SUCCESS,
-        t("workspace.defaultSuccess", { name: instanceName }),
-      );
+      showToast(ToastType.SUCCESS, t("workspace.defaultSuccess", { name: instanceName }));
       if (onSaveWorkspace) {
-        const defaultWorkspace = updatedInstances.find(
-          (i) => i.id === instanceId,
-        );
+        const defaultWorkspace = updatedInstances.find((i) => i.id === instanceId);
         if (defaultWorkspace) {
           onSaveWorkspace({
             workspacePath: defaultWorkspace.workspace_path,
@@ -107,11 +81,7 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
       showToast(ToastType.ERROR, t("workspace.defaultFailed"));
     }
   };
-
-  const handleDeleteInstance = async (
-    instanceId: string,
-    instanceName: string,
-  ) => {
+  const handleDeleteInstance = async (instanceId: string, instanceName: string) => {
     if (workspaceInstances.length <= 1) {
       showToast(ToastType.WARNING, t("workspace.cannotDeleteLast"));
       return;
@@ -120,7 +90,6 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
       showToast(ToastType.WARNING, t("workspace.cannotDeleteDefault"));
       return;
     }
-
     showDialog(
       DialogType.WARNING,
       t("workspace.deleteConfirmTitle"),
@@ -128,14 +97,9 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
       async () => {
         try {
           await workspaceCommands.deleteWorkspace(instanceId);
-          const updatedInstances = workspaceInstances.filter(
-            (inst) => inst.id !== instanceId,
-          );
+          const updatedInstances = workspaceInstances.filter((inst) => inst.id !== instanceId);
           setWorkspaceInstances(updatedInstances);
-          showToast(
-            ToastType.SUCCESS,
-            t("workspace.deleteSuccess", { name: instanceName }),
-          );
+          showToast(ToastType.SUCCESS, t("workspace.deleteSuccess", { name: instanceName }));
         } catch (error) {
           showToast(ToastType.ERROR, t("workspace.deleteFailed"));
         }
@@ -145,7 +109,6 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
       t("common.cancel"),
     );
   };
-
   const handleOpenDirectory = async (path: string) => {
     try {
       await filesCommands.openPath(path);
@@ -153,7 +116,6 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
       showToast(ToastType.ERROR, "Failed to open directory: " + error);
     }
   };
-
   const handleSelectDirectory = async () => {
     try {
       const selected = await filesCommands.selectDirectory();
@@ -168,14 +130,12 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
       showToast(ToastType.ERROR, "Failed to select directory: " + error);
     }
   };
-
   const getWorkspaceNameFromPath = (path: string): string => {
     if (!path) return "workspace";
     const normalizedPath = path.replace(/\\/g, "/");
     const parts = normalizedPath.split("/");
     return parts[parts.length - 1] || "workspace";
   };
-
   const handleAddInstance = async () => {
     if (!newWorkspacePath.trim()) {
       showToast(ToastType.WARNING, t("workspace.pathRequired"));
@@ -201,32 +161,23 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
       setShowAddForm(false);
       setNewWorkspaceName("");
       setNewWorkspacePath("");
-      showToast(
-        ToastType.SUCCESS,
-        t("workspace.addSuccess", { name: workspaceName }),
-      );
+      showToast(ToastType.SUCCESS, t("workspace.addSuccess", { name: workspaceName }));
     } catch (error) {
       showToast(ToastType.ERROR, t("workspace.addFailed"));
     }
   };
-
   const handleClearSearch = () => {
     setSearchTerm("");
   };
-
   const filteredInstances = workspaceInstances.filter((instance) => {
-    const matchesSearch =
-      instance.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      instance.workspace_path.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = instance.name.toLowerCase().includes(searchTerm.toLowerCase()) || instance.workspace_path.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesSearch;
   });
-
   const ellipsisStyle: React.CSSProperties = {
     whiteSpace: "nowrap",
     overflow: "hidden",
     textOverflow: "ellipsis",
   };
-
   const labelStyle: React.CSSProperties = {
     fontSize: "13px",
     color: "var(--text-primary)",
@@ -235,7 +186,6 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
     userSelect: "none",
     ...ellipsisStyle,
   };
-
   const inputStyle: React.CSSProperties = {
     flex: 1,
     minWidth: 0,
@@ -250,7 +200,6 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
     outline: "none",
     boxSizing: "border-box",
   };
-
   const buttonStyle: React.CSSProperties = {
     padding: "6px 16px",
     background: "var(--bg-secondary)",
@@ -260,20 +209,17 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
     fontSize: "12px",
     cursor: "pointer",
   };
-
   const addButtonStyle: React.CSSProperties = {
     ...buttonStyle,
     background: "var(--accent-color, #0066cc)",
     color: "white",
     border: "none",
   };
-
   const deleteButtonStyle: React.CSSProperties = {
     ...buttonStyle,
     color: "var(--error-color, #dc2626)",
     borderColor: "var(--error-color, #dc2626)",
   };
-
   const workspaceCardStyle: React.CSSProperties = {
     background: "var(--bg-secondary)",
     padding: "12px",
@@ -283,7 +229,6 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
     boxSizing: "border-box",
     overflow: "hidden",
   };
-
   const badgeStyle: React.CSSProperties = {
     background: "var(--accent-color, #0066cc)",
     color: "white",
@@ -292,7 +237,6 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
     borderRadius: "12px",
     marginLeft: "8px",
   };
-
   const folderButtonStyle: React.CSSProperties = {
     ...buttonStyle,
     padding: "8px 10px",
@@ -301,7 +245,6 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
     alignItems: "center",
     gap: "4px",
   };
-
   const pathRowStyle: React.CSSProperties = {
     display: "flex",
     alignItems: "center",
@@ -372,7 +315,6 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
       overflow: "hidden",
     },
   };
-
   const globalStyles = `
   .workspace-search-input-wrapper {
     flex: 1 1 0%;
@@ -426,7 +368,6 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
     background: var(--hover-bg);
   }
 `;
-
   if (typeof document !== "undefined") {
     const styleId = "workspace-config-styles";
     if (!document.getElementById(styleId)) {
@@ -436,7 +377,6 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
       document.head.appendChild(style);
     }
   }
-
   if (loading) {
     return (
       <div
@@ -451,9 +391,7 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
       </div>
     );
   }
-
   const hasInstances = filteredInstances.length > 0;
-
   return (
     <div
       style={{
@@ -467,31 +405,21 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
     >
       <div style={styles.header}>
         <div style={styles.searchRow}>
-          <div
-            className="workspace-search-input-wrapper"
-            style={{ flex: 1, minWidth: "130px" }}
-          >
+          <div className="workspace-search-input-wrapper" style={{ flex: 1, minWidth: "130px" }}>
             <SearchIcon />
             <input
               type="text"
               className="workspace-search-input"
-              placeholder={
-                t("workspace.searchPlaceholder") || "Search workspaces..."
-              }
+              placeholder={t("workspace.searchPlaceholder") || "Search workspaces..."}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
             {searchTerm && (
-              <button
-                className="workspace-search-clear"
-                onClick={handleClearSearch}
-                title={t("workspace.clearSearch") || "Clear search"}
-              >
+              <button className="workspace-search-clear" onClick={handleClearSearch} title={t("workspace.clearSearch") || "Clear search"}>
                 ✕
               </button>
             )}
           </div>
-
           <button
             style={{
               ...addButtonStyle,
@@ -538,12 +466,7 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
               }}
             >
               <label style={labelStyle}>{t("settings.workspaceName")}</label>
-              <input
-                style={inputStyle}
-                value={newWorkspaceName}
-                onChange={(e) => setNewWorkspaceName(e.target.value)}
-                placeholder={t("settings.workspaceNamePlaceholder")}
-              />
+              <input style={inputStyle} value={newWorkspaceName} onChange={(e) => setNewWorkspaceName(e.target.value)} placeholder={t("settings.workspaceNamePlaceholder")} />
             </div>
             <div
               className="settings-row"
@@ -557,18 +480,8 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
             >
               <label style={labelStyle}>{t("settings.workspacePath")}</label>
               <div style={pathRowStyle}>
-                <input
-                  style={{ ...inputStyle, flex: 1 }}
-                  value={newWorkspacePath}
-                  readOnly
-                  placeholder={t("settings.workspacePathPlaceholder")}
-                  onClick={handleSelectDirectory}
-                />
-                <button
-                  style={folderButtonStyle}
-                  onClick={handleSelectDirectory}
-                  title={t("settings.selectDirectory")}
-                >
+                <input style={{ ...inputStyle, flex: 1 }} value={newWorkspacePath} readOnly placeholder={t("settings.workspacePathPlaceholder")} onClick={handleSelectDirectory} />
+                <button style={folderButtonStyle} onClick={handleSelectDirectory} title={t("settings.selectDirectory")}>
                   📂 {t("settings.browse")}
                 </button>
               </div>
@@ -598,9 +511,7 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
               fontSize: "13px",
             }}
           >
-            {searchTerm
-              ? t("workspace.noSearchResults") || "No matching workspaces found"
-              : t("workspace.noWorkspaces") || "No workspaces available"}
+            {searchTerm ? t("workspace.noSearchResults") || "No matching workspaces found" : t("workspace.noWorkspaces") || "No workspaces available"}
           </div>
         ) : (
           filteredInstances.map((instance) => (
@@ -626,11 +537,7 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
                 >
                   📁 {instance.name}
                 </span>
-                {defaultInstanceId === instance.id && (
-                  <span style={{ ...badgeStyle, flexShrink: 0 }}>
-                    {t("settings.defaultBadge")}
-                  </span>
-                )}
+                {defaultInstanceId === instance.id && <span style={{ ...badgeStyle, flexShrink: 0 }}>{t("settings.defaultBadge")}</span>}
               </div>
               <div
                 className="settings-row"
@@ -659,11 +566,7 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
                     disabled
                     placeholder={t("settings.workspacePathPlaceholder")}
                   />
-                  <button
-                    style={{ ...folderButtonStyle, flexShrink: 0 }}
-                    onClick={() => handleOpenDirectory(instance.workspace_path)}
-                    title={t("settings.openDirectory")}
-                  >
+                  <button style={{ ...folderButtonStyle, flexShrink: 0 }} onClick={() => handleOpenDirectory(instance.workspace_path)} title={t("settings.openDirectory")}>
                     📂 {t("settings.open")}
                   </button>
                 </div>
@@ -688,21 +591,18 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
                     {t("settings.setAsDefault")}
                   </button>
                 )}
-                {defaultInstanceId !== instance.id &&
-                  workspaceInstances.length > 1 && (
-                    <button
-                      style={{
-                        ...deleteButtonStyle,
-                        fontSize: "11px",
-                        padding: "8px 10px",
-                      }}
-                      onClick={() =>
-                        handleDeleteInstance(instance.id, instance.name)
-                      }
-                    >
-                      {t("settings.delete")}
-                    </button>
-                  )}
+                {defaultInstanceId !== instance.id && workspaceInstances.length > 1 && (
+                  <button
+                    style={{
+                      ...deleteButtonStyle,
+                      fontSize: "11px",
+                      padding: "8px 10px",
+                    }}
+                    onClick={() => handleDeleteInstance(instance.id, instance.name)}
+                  >
+                    {t("settings.delete")}
+                  </button>
+                )}
               </div>
             </div>
           ))
@@ -711,5 +611,4 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({
     </div>
   );
 };
-
 export default WorkspaceConfig;

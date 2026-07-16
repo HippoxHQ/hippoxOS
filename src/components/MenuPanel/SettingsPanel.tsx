@@ -4,14 +4,7 @@ import WorkspaceConfig from "./SystemConfig/WorkspaceConfig";
 import StorageConfig from "./SystemConfig/StorageConfig";
 import LLMModelConfig from "./LLMModelConfig";
 import UniversalSettings from "./SystemConfig/UniversalSettings";
-
-export type SettingsSubView =
-  | "llmModel"
-  | "drivers"
-  | "universal"
-  | "workspaceConfig"
-  | "storage";
-
+export type SettingsSubView = "llmModel" | "drivers" | "universal" | "workspaceConfig" | "storage";
 interface SettingsPanelProps {
   subView: SettingsSubView;
   t: (key: string, params?: any) => string;
@@ -26,7 +19,6 @@ interface SettingsPanelProps {
   functionPanelPosition?: "left" | "right";
   onFunctionPanelPositionChange?: (position: "left" | "right") => void;
 }
-
 const SettingsPanel: React.FC<SettingsPanelProps> = ({
   subView,
   t,
@@ -43,9 +35,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
 }) => {
   switch (subView) {
     case "llmModel":
-      return (
-        <LLMModelConfig t={t} onSave={onSave} isInitializing={isInitializing} />
-      );
+      return <LLMModelConfig t={t} onSave={onSave} isInitializing={isInitializing} />;
     case "drivers":
       return <AtomicSkillsPanel t={t} onSave={onSave} />;
     case "universal":
@@ -65,10 +55,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
     case "storage":
       return <StorageConfig t={t} onSave={onSave} />;
     default:
-      return (
-        <LLMModelConfig t={t} onSave={onSave} isInitializing={isInitializing} />
-      );
+      return <LLMModelConfig t={t} onSave={onSave} isInitializing={isInitializing} />;
   }
 };
-
 export default SettingsPanel;

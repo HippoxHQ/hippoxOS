@@ -1,66 +1,25 @@
 import React, { useState, useEffect, useRef } from "react";
-import {
-  AreaChart,
-  Area,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip as RechartsTooltip,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-} from "recharts";
+import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { taskPoolCommands } from "../../core/TaskPool";
-
 import { UserProfileProps, UserStats } from "./types";
-import {
-  UserIcon,
-  MessageIcon,
-  FileTextIcon,
-  CrystalIcon,
-  SettingsIcon,
-  FireIcon,
-  TrophyIcon,
-  ChartIcon,
-  BarChart3Icon,
-  ClockIcon,
-  LoadingSpinnerIcon,
-  RefreshCwIcon,
-} from "./icons";
-import {
-  loadAllTasksFromBackups,
-  loadAllSessions,
-  loadSessionChat,
-  formatNumber,
-  formatLocalDate,
-} from "./utils";
+import { UserIcon, MessageIcon, FileTextIcon, CrystalIcon, SettingsIcon, FireIcon, TrophyIcon, ChartIcon, BarChart3Icon, ClockIcon, LoadingSpinnerIcon, RefreshCwIcon } from "./icons";
+import { loadAllTasksFromBackups, loadAllSessions, loadSessionChat, formatNumber, formatLocalDate } from "./utils";
 import { sysCommands } from "../../command/sys";
 import Heatmap from "../../components/Heatmap";
 import { showToast, ToastType } from "../../components/Toast";
 import { showTooltip } from "../../components/Tooltip";
-
-const UserProfile: React.FC<UserProfileProps> = ({
-  t,
-  onClose,
-  currentSessionId,
-}) => {
+const UserProfile: React.FC<UserProfileProps> = ({ t, onClose, currentSessionId }) => {
   const [userData, setUserData] = useState<UserStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [activityData, setActivityData] = useState<any[]>([]);
   const [tokenData, setTokenData] = useState<any[]>([]);
   const [categoryData, setCategoryData] = useState<any[]>([]);
   const [totalTokens, setTotalTokens] = useState(0);
-  const [dateRange, setDateRange] = useState<"week" | "month" | "year">(
-    "month",
-  );
+  const [dateRange, setDateRange] = useState<"week" | "month" | "year">("month");
   const [dialogData, setDialogData] = useState<any[]>([]);
   const [hourlyData, setHourlyData] = useState<any[]>([]);
   const heatmapContainerRef = useRef<HTMLDivElement>(null);
   const [heatmapKey, setHeatmapKey] = useState(0);
-
   useEffect(() => {
     const persistTaskPool = async () => {
       try {
@@ -72,7 +31,6 @@ const UserProfile: React.FC<UserProfileProps> = ({
     persistTaskPool();
     loadRealUserData();
   }, []);
-
   const loadRealUserData = async () => {
     setLoading(true);
     try {
@@ -220,8 +178,7 @@ const UserProfile: React.FC<UserProfileProps> = ({
   useEffect(() => {
     const regenerateTokenData = async () => {
       const allTasks = await loadAllTasksFromBackups();
-      const tasksByDate: Map<string, { input: number; output: number }> =
-        new Map();
+      const tasksByDate: Map<string, { input: number; output: number }> = new Map();
       for (const task of allTasks) {
         if (task.completed_at) {
           const date = new Date(task.completed_at * 1000);
@@ -440,8 +397,7 @@ const UserProfile: React.FC<UserProfileProps> = ({
               width: "56px",
               height: "56px",
               borderRadius: "50%",
-              background:
-                "linear-gradient(135deg, var(--accent-color), #8b5cf6)",
+              background: "linear-gradient(135deg, var(--accent-color), #8b5cf6)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -450,12 +406,7 @@ const UserProfile: React.FC<UserProfileProps> = ({
               color: "white",
               flexShrink: 0,
             }}
-            onMouseEnter={(e) =>
-              showTooltip(
-                stats.username || t("user.defaultUsername") || "用户",
-                e.currentTarget,
-              )
-            }
+            onMouseEnter={(e) => showTooltip(stats.username || t("user.defaultUsername") || "用户", e.currentTarget)}
           >
             {stats.username?.charAt(0) || "U"}
           </div>
@@ -478,9 +429,7 @@ const UserProfile: React.FC<UserProfileProps> = ({
               >
                 {stats.username || t("user.defaultUsername") || "用户"}
               </span>
-              <div
-                style={{ display: "flex", gap: "10px", alignItems: "center" }}
-              >
+              <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
                 {stats.achievements?.map((ach: any, idx: number) => (
                   <span
                     key={idx}
@@ -491,28 +440,18 @@ const UserProfile: React.FC<UserProfileProps> = ({
                       display: "inline-flex",
                       alignItems: "center",
                     }}
-                    onMouseEnter={(e) =>
-                      showTooltip(
-                        ach.unlocked
-                          ? ach.name
-                          : `${ach.name} (${t("user.locked")})`,
-                        e.currentTarget,
-                      )
-                    }
+                    onMouseEnter={(e) => showTooltip(ach.unlocked ? ach.name : `${ach.name} (${t("user.locked")})`, e.currentTarget)}
                   >
                     {ach.icon}
                   </span>
                 ))}
               </div>
             </div>
-            <div style={{ fontSize: "10px", color: "var(--text-secondary)" }}>
-              {stats.email || ""}
-            </div>
+            <div style={{ fontSize: "10px", color: "var(--text-secondary)" }}>{stats.email || ""}</div>
             <div style={{ fontSize: "9px", color: "var(--text-muted)" }}>
               {t("user.joined")} {stats.joinDate?.toLocaleDateString()}
             </div>
           </div>
-
           {/* Stats Grid */}
           <div
             style={{
@@ -530,9 +469,7 @@ const UserProfile: React.FC<UserProfileProps> = ({
                 gap: "6px",
                 minWidth: 0,
               }}
-              onMouseEnter={(e) =>
-                showTooltip(t("user.totalSessionsTooltip"), e.currentTarget)
-              }
+              onMouseEnter={(e) => showTooltip(t("user.totalSessionsTooltip"), e.currentTarget)}
             >
               <span
                 style={{
@@ -573,9 +510,7 @@ const UserProfile: React.FC<UserProfileProps> = ({
                 gap: "6px",
                 minWidth: 0,
               }}
-              onMouseEnter={(e) =>
-                showTooltip(t("user.totalMessagesTooltip"), e.currentTarget)
-              }
+              onMouseEnter={(e) => showTooltip(t("user.totalMessagesTooltip"), e.currentTarget)}
             >
               <span
                 style={{
@@ -616,9 +551,7 @@ const UserProfile: React.FC<UserProfileProps> = ({
                 gap: "6px",
                 minWidth: 0,
               }}
-              onMouseEnter={(e) =>
-                showTooltip(t("user.totalTokensTooltip"), e.currentTarget)
-              }
+              onMouseEnter={(e) => showTooltip(t("user.totalTokensTooltip"), e.currentTarget)}
             >
               <span
                 style={{
@@ -659,9 +592,7 @@ const UserProfile: React.FC<UserProfileProps> = ({
                 gap: "6px",
                 minWidth: 0,
               }}
-              onMouseEnter={(e) =>
-                showTooltip(t("user.totalTasksTooltip"), e.currentTarget)
-              }
+              onMouseEnter={(e) => showTooltip(t("user.totalTasksTooltip"), e.currentTarget)}
             >
               <span
                 style={{
@@ -702,9 +633,7 @@ const UserProfile: React.FC<UserProfileProps> = ({
                 gap: "6px",
                 minWidth: 0,
               }}
-              onMouseEnter={(e) =>
-                showTooltip(t("user.currentStreakTooltip"), e.currentTarget)
-              }
+              onMouseEnter={(e) => showTooltip(t("user.currentStreakTooltip"), e.currentTarget)}
             >
               <span
                 style={{
@@ -726,9 +655,7 @@ const UserProfile: React.FC<UserProfileProps> = ({
                   }}
                 >
                   {stats.streakDays}
-                  <span style={{ fontSize: "9px", color: "var(--text-muted)" }}>
-                    {t("user.days")}
-                  </span>
+                  <span style={{ fontSize: "9px", color: "var(--text-muted)" }}>{t("user.days")}</span>
                 </div>
                 <div
                   style={{
@@ -748,9 +675,7 @@ const UserProfile: React.FC<UserProfileProps> = ({
                 gap: "6px",
                 minWidth: 0,
               }}
-              onMouseEnter={(e) =>
-                showTooltip(t("user.longestStreakTooltip"), e.currentTarget)
-              }
+              onMouseEnter={(e) => showTooltip(t("user.longestStreakTooltip"), e.currentTarget)}
             >
               <span
                 style={{
@@ -772,9 +697,7 @@ const UserProfile: React.FC<UserProfileProps> = ({
                   }}
                 >
                   {stats.longestStreak}
-                  <span style={{ fontSize: "9px", color: "var(--text-muted)" }}>
-                    {t("user.days")}
-                  </span>
+                  <span style={{ fontSize: "9px", color: "var(--text-muted)" }}>{t("user.days")}</span>
                 </div>
                 <div
                   style={{
@@ -800,9 +723,7 @@ const UserProfile: React.FC<UserProfileProps> = ({
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-              <span
-                style={{ fontSize: "12px", color: "var(--text-secondary)" }}
-              >
+              <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>
                 <ChartIcon />
               </span>
               <span
@@ -841,36 +762,20 @@ const UserProfile: React.FC<UserProfileProps> = ({
               paddingLeft: "15px",
             }}
           >
-            <span
-              onMouseEnter={(e) =>
-                showTooltip(t("user.totalActivitiesTooltip"), e.currentTarget)
-              }
-            >
-              {t("user.totalActivities")}:{" "}
-              {activityData.reduce((s, d) => s + d.count, 0)}
+            <span onMouseEnter={(e) => showTooltip(t("user.totalActivitiesTooltip"), e.currentTarget)}>
+              {t("user.totalActivities")}: {activityData.reduce((s, d) => s + d.count, 0)}
               {t("user.times")}
             </span>
-            <span
-              onMouseEnter={(e) =>
-                showTooltip(t("user.avgDailyTooltip"), e.currentTarget)
-              }
-            >
-              {t("user.avgDaily")}:{" "}
-              {(activityData.reduce((s, d) => s + d.count, 0) / 365).toFixed(1)}
+            <span onMouseEnter={(e) => showTooltip(t("user.avgDailyTooltip"), e.currentTarget)}>
+              {t("user.avgDaily")}: {(activityData.reduce((s, d) => s + d.count, 0) / 365).toFixed(1)}
               {t("user.times")}
             </span>
-            <span
-              onMouseEnter={(e) =>
-                showTooltip(t("user.maxDailyTooltip"), e.currentTarget)
-              }
-            >
-              {t("user.maxDaily")}:{" "}
-              {Math.max(...activityData.map((d) => d.count), 0)}
+            <span onMouseEnter={(e) => showTooltip(t("user.maxDailyTooltip"), e.currentTarget)}>
+              {t("user.maxDaily")}: {Math.max(...activityData.map((d) => d.count), 0)}
               {t("user.times")}
             </span>
           </div>
         </div>
-
         {/* Token Stats Section */}
         <div
           style={{
@@ -888,12 +793,8 @@ const UserProfile: React.FC<UserProfileProps> = ({
                 marginBottom: "8px",
               }}
             >
-              <div
-                style={{ display: "flex", alignItems: "center", gap: "6px" }}
-              >
-                <span
-                  style={{ fontSize: "12px", color: "var(--text-secondary)" }}
-                >
+              <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>
                   <CrystalIcon />
                 </span>
                 <span
@@ -912,54 +813,34 @@ const UserProfile: React.FC<UserProfileProps> = ({
                     key={range}
                     onClick={() => {
                       setDateRange(range);
-                      showToast(
-                        ToastType.INFO,
-                        `${t("user.switchTo")} ${range === "week" ? t("user.week") : range === "month" ? t("user.month") : t("user.year")}`,
-                      );
+                      showToast(ToastType.INFO, `${t("user.switchTo")} ${range === "week" ? t("user.week") : range === "month" ? t("user.month") : t("user.year")}`);
                     }}
                     style={{
                       padding: "2px 8px",
                       fontSize: "9px",
-                      background:
-                        dateRange === range
-                          ? "var(--accent-color)"
-                          : "var(--bg-tertiary)",
+                      background: dateRange === range ? "var(--accent-color)" : "var(--bg-tertiary)",
                       border: "none",
                       borderRadius: "10px",
-                      color:
-                        dateRange === range ? "white" : "var(--text-secondary)",
+                      color: dateRange === range ? "white" : "var(--text-secondary)",
                       cursor: "pointer",
                     }}
-                    onMouseEnter={(e) =>
-                      showTooltip(
-                        `${range === "week" ? t("user.week") : range === "month" ? t("user.month") : t("user.year")} ${t("user.timeRange")}`,
-                        e.currentTarget,
-                      )
-                    }
+                    onMouseEnter={(e) => showTooltip(`${range === "week" ? t("user.week") : range === "month" ? t("user.month") : t("user.year")} ${t("user.timeRange")}`, e.currentTarget)}
                   >
-                    {range === "week"
-                      ? t("user.week")
-                      : range === "month"
-                        ? t("user.month")
-                        : t("user.year")}
+                    {range === "week" ? t("user.week") : range === "month" ? t("user.month") : t("user.year")}
                   </button>
                 ))}
               </div>
             </div>
-
             <div
               style={{
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
                 padding: "10px",
-                background:
-                  "linear-gradient(135deg, var(--bg-secondary), var(--bg-tertiary))",
+                background: "linear-gradient(135deg, var(--bg-secondary), var(--bg-tertiary))",
               }}
             >
-              <div
-                style={{ display: "flex", alignItems: "center", gap: "12px" }}
-              >
+              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                 <span
                   style={{
                     fontSize: "28px",
@@ -971,9 +852,7 @@ const UserProfile: React.FC<UserProfileProps> = ({
                   🔮
                 </span>
                 <div>
-                  <div style={{ fontSize: "9px", color: "var(--text-muted)" }}>
-                    {t("user.tokenStats")}
-                  </div>
+                  <div style={{ fontSize: "9px", color: "var(--text-muted)" }}>{t("user.tokenStats")}</div>
                   <div
                     style={{
                       fontSize: "22px",
@@ -983,17 +862,11 @@ const UserProfile: React.FC<UserProfileProps> = ({
                   >
                     {formatNumber(totalTokens)}
                   </div>
-                  <div style={{ fontSize: "7px", color: "var(--text-muted)" }}>
-                    {t("user.totalTokensUsed")}
-                  </div>
+                  <div style={{ fontSize: "7px", color: "var(--text-muted)" }}>{t("user.totalTokensUsed")}</div>
                 </div>
               </div>
               <div style={{ display: "flex", gap: "20px", textAlign: "right" }}>
-                <div
-                  onMouseEnter={(e) =>
-                    showTooltip(t("user.inputTokensTooltip"), e.currentTarget)
-                  }
-                >
+                <div onMouseEnter={(e) => showTooltip(t("user.inputTokensTooltip"), e.currentTarget)}>
                   <div
                     style={{
                       fontSize: "11px",
@@ -1001,19 +874,11 @@ const UserProfile: React.FC<UserProfileProps> = ({
                       color: "#818cf8",
                     }}
                   >
-                    {formatNumber(
-                      tokenData.reduce((s, d) => s + d.inputTokens, 0),
-                    )}
+                    {formatNumber(tokenData.reduce((s, d) => s + d.inputTokens, 0))}
                   </div>
-                  <div style={{ fontSize: "8px", color: "var(--text-muted)" }}>
-                    {t("user.inputTokens")}
-                  </div>
+                  <div style={{ fontSize: "8px", color: "var(--text-muted)" }}>{t("user.inputTokens")}</div>
                 </div>
-                <div
-                  onMouseEnter={(e) =>
-                    showTooltip(t("user.outputTokensTooltip"), e.currentTarget)
-                  }
-                >
+                <div onMouseEnter={(e) => showTooltip(t("user.outputTokensTooltip"), e.currentTarget)}>
                   <div
                     style={{
                       fontSize: "11px",
@@ -1021,22 +886,11 @@ const UserProfile: React.FC<UserProfileProps> = ({
                       color: "#10b981",
                     }}
                   >
-                    {formatNumber(
-                      tokenData.reduce((s, d) => s + d.outputTokens, 0),
-                    )}
+                    {formatNumber(tokenData.reduce((s, d) => s + d.outputTokens, 0))}
                   </div>
-                  <div style={{ fontSize: "8px", color: "var(--text-muted)" }}>
-                    {t("user.outputTokens")}
-                  </div>
+                  <div style={{ fontSize: "8px", color: "var(--text-muted)" }}>{t("user.outputTokens")}</div>
                 </div>
-                <div
-                  onMouseEnter={(e) =>
-                    showTooltip(
-                      t("user.avgDailyTokensTooltip"),
-                      e.currentTarget,
-                    )
-                  }
-                >
+                <div onMouseEnter={(e) => showTooltip(t("user.avgDailyTokensTooltip"), e.currentTarget)}>
                   <div
                     style={{
                       fontSize: "11px",
@@ -1044,19 +898,11 @@ const UserProfile: React.FC<UserProfileProps> = ({
                       color: "var(--text-primary)",
                     }}
                   >
-                    {formatNumber(
-                      Math.floor(totalTokens / Math.max(tokenData.length, 1)),
-                    )}
+                    {formatNumber(Math.floor(totalTokens / Math.max(tokenData.length, 1)))}
                   </div>
-                  <div style={{ fontSize: "8px", color: "var(--text-muted)" }}>
-                    {t("user.avgDailyTokens")}
-                  </div>
+                  <div style={{ fontSize: "8px", color: "var(--text-muted)" }}>{t("user.avgDailyTokens")}</div>
                 </div>
-                <div
-                  onMouseEnter={(e) =>
-                    showTooltip(t("user.peakDayTooltip"), e.currentTarget)
-                  }
-                >
+                <div onMouseEnter={(e) => showTooltip(t("user.peakDayTooltip"), e.currentTarget)}>
                   <div
                     style={{
                       fontSize: "11px",
@@ -1064,22 +910,11 @@ const UserProfile: React.FC<UserProfileProps> = ({
                       color: "var(--text-primary)",
                     }}
                   >
-                    {formatNumber(
-                      Math.max(...tokenData.map((d) => d.total), 0),
-                    )}
+                    {formatNumber(Math.max(...tokenData.map((d) => d.total), 0))}
                   </div>
-                  <div style={{ fontSize: "8px", color: "var(--text-muted)" }}>
-                    {t("user.peakDay")}
-                  </div>
+                  <div style={{ fontSize: "8px", color: "var(--text-muted)" }}>{t("user.peakDay")}</div>
                 </div>
-                <div
-                  onMouseEnter={(e) =>
-                    showTooltip(
-                      t("user.inputOutputRatioTooltip"),
-                      e.currentTarget,
-                    )
-                  }
-                >
+                <div onMouseEnter={(e) => showTooltip(t("user.inputOutputRatioTooltip"), e.currentTarget)}>
                   <div
                     style={{
                       fontSize: "11px",
@@ -1096,13 +931,10 @@ const UserProfile: React.FC<UserProfileProps> = ({
                     ).toFixed(1)}
                     :1
                   </div>
-                  <div style={{ fontSize: "8px", color: "var(--text-muted)" }}>
-                    {t("user.inputOutputRatio")}
-                  </div>
+                  <div style={{ fontSize: "8px", color: "var(--text-muted)" }}>{t("user.inputOutputRatio")}</div>
                 </div>
               </div>
             </div>
-
             <div style={{ display: "flex", gap: "10px" }}>
               <div
                 style={{
@@ -1126,42 +958,16 @@ const UserProfile: React.FC<UserProfileProps> = ({
                   {t("user.tokenTrend")}
                 </div>
                 <ResponsiveContainer width="100%" height={100}>
-                  <AreaChart
-                    data={tokenData}
-                    margin={{ top: 5, right: 5, left: -20, bottom: 0 }}
-                  >
+                  <AreaChart data={tokenData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
                     <defs>
                       <linearGradient id="g" x1="0%" y1="0%" x2="0%" y2="100%">
-                        <stop
-                          offset="0%"
-                          stopColor="#818cf8"
-                          stopOpacity={0.3}
-                        />
-                        <stop
-                          offset="100%"
-                          stopColor="#818cf8"
-                          stopOpacity={0.02}
-                        />
+                        <stop offset="0%" stopColor="#818cf8" stopOpacity={0.3} />
+                        <stop offset="100%" stopColor="#818cf8" stopOpacity={0.02} />
                       </linearGradient>
                     </defs>
-                    <CartesianGrid
-                      strokeDasharray="3 3"
-                      stroke="var(--border-color)"
-                      opacity={0.3}
-                      vertical={false}
-                    />
-                    <XAxis
-                      dataKey="label"
-                      tick={{ fill: "var(--text-muted)", fontSize: 8 }}
-                      axisLine={false}
-                      tickLine={false}
-                    />
-                    <YAxis
-                      tick={{ fill: "var(--text-muted)", fontSize: 8 }}
-                      axisLine={false}
-                      tickLine={false}
-                      tickFormatter={formatNumber}
-                    />
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" opacity={0.3} vertical={false} />
+                    <XAxis dataKey="label" tick={{ fill: "var(--text-muted)", fontSize: 8 }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fill: "var(--text-muted)", fontSize: 8 }} axisLine={false} tickLine={false} tickFormatter={formatNumber} />
                     <RechartsTooltip
                       contentStyle={{
                         background: "var(--bg-secondary)",
@@ -1170,17 +976,10 @@ const UserProfile: React.FC<UserProfileProps> = ({
                         fontSize: "10px",
                       }}
                     />
-                    <Area
-                      type="monotone"
-                      dataKey="total"
-                      stroke="#818cf8"
-                      strokeWidth={1.5}
-                      fill="url(#g)"
-                    />
+                    <Area type="monotone" dataKey="total" stroke="#818cf8" strokeWidth={1.5} fill="url(#g)" />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
-
               <div
                 style={{
                   flex: 1,
@@ -1203,27 +1002,10 @@ const UserProfile: React.FC<UserProfileProps> = ({
                   {t("user.dailyDialogCount")}
                 </div>
                 <ResponsiveContainer width="100%" height={100}>
-                  <BarChart
-                    data={dialogData}
-                    margin={{ top: 5, right: 5, left: -20, bottom: 0 }}
-                  >
-                    <CartesianGrid
-                      strokeDasharray="3 3"
-                      stroke="var(--border-color)"
-                      opacity={0.3}
-                      vertical={false}
-                    />
-                    <XAxis
-                      dataKey="label"
-                      tick={{ fill: "var(--text-muted)", fontSize: 8 }}
-                      axisLine={false}
-                      tickLine={false}
-                    />
-                    <YAxis
-                      tick={{ fill: "var(--text-muted)", fontSize: 8 }}
-                      axisLine={false}
-                      tickLine={false}
-                    />
+                  <BarChart data={dialogData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" opacity={0.3} vertical={false} />
+                    <XAxis dataKey="label" tick={{ fill: "var(--text-muted)", fontSize: 8 }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fill: "var(--text-muted)", fontSize: 8 }} axisLine={false} tickLine={false} />
                     <RechartsTooltip
                       contentStyle={{
                         background: "var(--bg-secondary)",
@@ -1244,42 +1026,20 @@ const UserProfile: React.FC<UserProfileProps> = ({
                     color: "var(--text-muted)",
                   }}
                 >
-                  <span
-                    onMouseEnter={(e) =>
-                      showTooltip(t("user.totalDialogTooltip"), e.currentTarget)
-                    }
-                  >
-                    {t("user.totalDialog")}:{" "}
-                    {dialogData.reduce((s, d) => s + d.count, 0)}
+                  <span onMouseEnter={(e) => showTooltip(t("user.totalDialogTooltip"), e.currentTarget)}>
+                    {t("user.totalDialog")}: {dialogData.reduce((s, d) => s + d.count, 0)}
                     {t("user.times")}
                   </span>
-                  <span
-                    onMouseEnter={(e) =>
-                      showTooltip(
-                        t("user.avgDailyDialogTooltip"),
-                        e.currentTarget,
-                      )
-                    }
-                  >
-                    {t("user.avgDailyDialog")}:{" "}
-                    {(
-                      dialogData.reduce((s, d) => s + d.count, 0) /
-                      Math.max(dialogData.length, 1)
-                    ).toFixed(1)}
+                  <span onMouseEnter={(e) => showTooltip(t("user.avgDailyDialogTooltip"), e.currentTarget)}>
+                    {t("user.avgDailyDialog")}: {(dialogData.reduce((s, d) => s + d.count, 0) / Math.max(dialogData.length, 1)).toFixed(1)}
                     {t("user.times")}
                   </span>
-                  <span
-                    onMouseEnter={(e) =>
-                      showTooltip(t("user.peakDialogTooltip"), e.currentTarget)
-                    }
-                  >
-                    {t("user.peakDialog")}:{" "}
-                    {Math.max(...dialogData.map((d) => d.count), 0)}
+                  <span onMouseEnter={(e) => showTooltip(t("user.peakDialogTooltip"), e.currentTarget)}>
+                    {t("user.peakDialog")}: {Math.max(...dialogData.map((d) => d.count), 0)}
                     {t("user.times")}
                   </span>
                 </div>
               </div>
-
               <div
                 style={{
                   flex: 1,
@@ -1297,20 +1057,10 @@ const UserProfile: React.FC<UserProfileProps> = ({
                 >
                   {t("user.tokenDistribution")}
                 </div>
-                <div
-                  style={{ display: "flex", alignItems: "center", gap: "8px" }}
-                >
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                   <ResponsiveContainer width={70} height={70}>
                     <PieChart>
-                      <Pie
-                        data={categoryData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={18}
-                        outerRadius={30}
-                        dataKey="value"
-                        stroke="none"
-                      >
+                      <Pie data={categoryData} cx="50%" cy="50%" innerRadius={18} outerRadius={30} dataKey="value" stroke="none">
                         {categoryData.map((e, i) => (
                           <Cell key={i} fill={e.color} />
                         ))}
@@ -1328,10 +1078,7 @@ const UserProfile: React.FC<UserProfileProps> = ({
                           marginBottom: "2px",
                         }}
                         onMouseEnter={(e) =>
-                          showTooltip(
-                            `${item.name}: ${formatNumber(item.value)} ${t("user.tokens") || "Token"} (${Math.round((item.value / Math.max(totalTokens, 1)) * 100)}%)`,
-                            e.currentTarget,
-                          )
+                          showTooltip(`${item.name}: ${formatNumber(item.value)} ${t("user.tokens") || "Token"} (${Math.round((item.value / Math.max(totalTokens, 1)) * 100)}%)`, e.currentTarget)
                         }
                       >
                         <div
@@ -1383,12 +1130,8 @@ const UserProfile: React.FC<UserProfileProps> = ({
                 marginBottom: "8px",
               }}
             >
-              <div
-                style={{ display: "flex", alignItems: "center", gap: "6px" }}
-              >
-                <span
-                  style={{ fontSize: "12px", color: "var(--text-secondary)" }}
-                >
+              <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>
                   <ClockIcon />
                 </span>
                 <span
@@ -1403,27 +1146,10 @@ const UserProfile: React.FC<UserProfileProps> = ({
               </div>
             </div>
             <ResponsiveContainer width="100%" height={120}>
-              <BarChart
-                data={hourlyData}
-                margin={{ top: 5, right: 5, left: -20, bottom: 0 }}
-              >
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke="var(--border-color)"
-                  opacity={0.3}
-                  vertical={false}
-                />
-                <XAxis
-                  dataKey="hour"
-                  tick={{ fill: "var(--text-muted)", fontSize: 8 }}
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <YAxis
-                  tick={{ fill: "var(--text-muted)", fontSize: 8 }}
-                  axisLine={false}
-                  tickLine={false}
-                />
+              <BarChart data={hourlyData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" opacity={0.3} vertical={false} />
+                <XAxis dataKey="hour" tick={{ fill: "var(--text-muted)", fontSize: 8 }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fill: "var(--text-muted)", fontSize: 8 }} axisLine={false} tickLine={false} />
                 <RechartsTooltip
                   contentStyle={{
                     background: "var(--bg-secondary)",
@@ -1444,25 +1170,13 @@ const UserProfile: React.FC<UserProfileProps> = ({
                 color: "var(--text-muted)",
               }}
             >
-              <span
-                onMouseEnter={(e) =>
-                  showTooltip(t("user.peakHourTooltip"), e.currentTarget)
-                }
-              >
+              <span onMouseEnter={(e) => showTooltip(t("user.peakHourTooltip"), e.currentTarget)}>
                 {t("user.peakHour")}: {getPeakHour()}
               </span>
-              <span
-                onMouseEnter={(e) =>
-                  showTooltip(t("user.morningPeakTooltip"), e.currentTarget)
-                }
-              >
+              <span onMouseEnter={(e) => showTooltip(t("user.morningPeakTooltip"), e.currentTarget)}>
                 {t("user.morningPeak")}: {getMorningPercent()}%
               </span>
-              <span
-                onMouseEnter={(e) =>
-                  showTooltip(t("user.nightPeakTooltip"), e.currentTarget)
-                }
-              >
+              <span onMouseEnter={(e) => showTooltip(t("user.nightPeakTooltip"), e.currentTarget)}>
                 {t("user.nightPeak")}: {getNightPercent()}%
               </span>
             </div>
@@ -1472,5 +1186,4 @@ const UserProfile: React.FC<UserProfileProps> = ({
     </div>
   );
 };
-
 export default UserProfile;

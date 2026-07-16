@@ -3,7 +3,6 @@ export interface SkillStep {
     description: string;
     materials: string[];
 }
-
 export interface SkillData {
     id: string;
     name: string;
@@ -16,7 +15,6 @@ export interface SkillData {
     installed: boolean;
     path: string;
 }
-
 export interface SkillHistory {
     id: string;
     skill_id: string;
@@ -25,7 +23,6 @@ export interface SkillHistory {
     timestamp: string;
     details?: string | null;
 }
-
 export interface CreateSkillRequest {
     name: string;
     description: string;
@@ -33,7 +30,6 @@ export interface CreateSkillRequest {
     tags: string;
     steps: SkillStep[];
 }
-
 export interface UpdateSkillRequest {
     id: string;
     name: string;

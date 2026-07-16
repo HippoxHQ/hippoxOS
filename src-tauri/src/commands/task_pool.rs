@@ -1,5 +1,4 @@
 //! Task pool management commands for Tauri
-
 use crate::{
     commands::{StepInfo, TaskInfo, TaskPoolStats},
     hippox_core::get_default_hippox,
@@ -12,12 +11,10 @@ use hippox::{
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use tauri::State;
-
 /// Get taskpool backup directory path
 pub fn get_taskpool_backup_dir() -> PathBuf {
     crate::commands::paths::get_app_root_dir().join("taskpool")
 }
-
 /// Ensure taskpool backup directory exists
 fn ensure_taskpool_backup_dir() -> Result<(), String> {
     let dir = get_taskpool_backup_dir();
@@ -26,7 +23,6 @@ fn ensure_taskpool_backup_dir() -> Result<(), String> {
     }
     Ok(())
 }
-
 /// Get all tasks in the pool
 #[tauri::command]
 pub async fn cmd_task_pool_get_all_tasks(limit: Option<usize>) -> Result<Vec<TaskInfo>, String> {
@@ -36,7 +32,6 @@ pub async fn cmd_task_pool_get_all_tasks(limit: Option<usize>) -> Result<Vec<Tas
         _ => Err("Failed to get tasks: unknown error".to_string()),
     }
 }
-
 /// Get a single task by ID
 #[tauri::command]
 pub async fn cmd_task_pool_get_task(task_id: String) -> Result<Option<TaskInfo>, String> {
@@ -46,7 +41,6 @@ pub async fn cmd_task_pool_get_task(task_id: String) -> Result<Option<TaskInfo>,
         _ => Ok(None),
     }
 }
-
 /// Get task status by ID
 #[tauri::command]
 pub async fn cmd_task_pool_get_task_status(task_id: String) -> Result<Option<String>, String> {
@@ -56,7 +50,6 @@ pub async fn cmd_task_pool_get_task_status(task_id: String) -> Result<Option<Str
         _ => Ok(None),
     }
 }
-
 /// Cancel a task
 #[tauri::command]
 pub async fn cmd_task_pool_cancel_task(task_id: String) -> Result<bool, String> {
@@ -66,7 +59,6 @@ pub async fn cmd_task_pool_cancel_task(task_id: String) -> Result<bool, String> 
         _ => Err("Failed to cancel task: unknown error".to_string()),
     }
 }
-
 /// Pause a task
 #[tauri::command]
 pub async fn cmd_task_pool_pause_task(task_id: String) -> Result<bool, String> {
@@ -76,7 +68,6 @@ pub async fn cmd_task_pool_pause_task(task_id: String) -> Result<bool, String> {
         _ => Err("Failed to pause task: unknown error".to_string()),
     }
 }
-
 /// Resume a paused task
 #[tauri::command]
 pub async fn cmd_task_pool_resume_task(task_id: String) -> Result<bool, String> {
@@ -86,7 +77,6 @@ pub async fn cmd_task_pool_resume_task(task_id: String) -> Result<bool, String> 
         _ => Err("Failed to resume task: unknown error".to_string()),
     }
 }
-
 /// Retry a failed task
 #[tauri::command]
 pub async fn cmd_task_pool_retry_task(task_id: String) -> Result<bool, String> {
@@ -96,7 +86,6 @@ pub async fn cmd_task_pool_retry_task(task_id: String) -> Result<bool, String> {
         _ => Err("Failed to retry task: unknown error".to_string()),
     }
 }
-
 /// Get task pool statistics
 #[tauri::command]
 pub async fn cmd_task_pool_get_stats() -> Result<TaskPoolStats, String> {
@@ -117,7 +106,6 @@ pub async fn cmd_task_pool_get_stats() -> Result<TaskPoolStats, String> {
     };
     Ok(TaskPoolStats { running_count: running, pending_count: pending, total_count: all_tasks.len(), max_concurrent: 10 })
 }
-
 /// Set maximum concurrent tasks
 #[tauri::command]
 pub async fn cmd_task_pool_set_max_concurrent(max: usize) -> Result<(), String> {
@@ -127,7 +115,6 @@ pub async fn cmd_task_pool_set_max_concurrent(max: usize) -> Result<(), String> 
         _ => Err("Failed to set max concurrent".to_string()),
     }
 }
-
 /// Get tasks by session (filter)
 #[tauri::command]
 pub async fn cmd_task_pool_get_tasks_by_session(session_id: String, state: State<'_, AppState>) -> Result<Vec<TaskInfo>, String> {
@@ -150,7 +137,6 @@ pub async fn cmd_task_pool_get_tasks_by_session(session_id: String, state: State
         })
         .collect())
 }
-
 /// Persist task pool: backup terminal state tasks to file and remove from memory
 ///
 /// This command calls Hippox core's storage_task_pool function which:
@@ -187,7 +173,6 @@ pub async fn cmd_task_pool_persist() -> Result<serde_json::Value, String> {
         _ => Err("Failed to persist task pool: unknown error".to_string()),
     }
 }
-
 /// List all taskpool backup files
 #[tauri::command]
 pub async fn cmd_task_pool_list_backups() -> Result<Vec<serde_json::Value>, String> {
@@ -220,7 +205,6 @@ pub async fn cmd_task_pool_list_backups() -> Result<Vec<serde_json::Value>, Stri
     });
     Ok(backups)
 }
-
 /// Clean up old backup files (keep only the most recent N)
 #[tauri::command]
 pub async fn cmd_task_pool_cleanup_backups(keep_count: usize) -> Result<serde_json::Value, String> {

@@ -13,7 +13,6 @@ use tokio::process::Child;
 use tokio::sync::Mutex;
 use tokio::task::JoinHandle;
 use tokio::time::{timeout, Duration};
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TerminalSession {
     pub id: String,
@@ -24,7 +23,6 @@ pub struct TerminalSession {
     pub created_at: String,
     pub is_alive: bool,
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TerminalCreateRequest {
     pub cols: u16,
@@ -32,25 +30,21 @@ pub struct TerminalCreateRequest {
     pub cwd: Option<String>,
     pub shell: Option<String>,
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TerminalInputRequest {
     pub session_id: String,
     pub data: String,
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TerminalOutputEvent {
     pub session_id: String,
     pub data: String,
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TerminalExitEvent {
     pub session_id: String,
     pub code: Option<i32>,
 }
-
 struct TerminalProcess {
     child: Child,
     stdin: tokio::process::ChildStdin,
@@ -59,7 +53,6 @@ struct TerminalProcess {
     pid: u32,
     is_alive: bool,
 }
-
 impl TerminalProcess {
     async fn new(shell: &str, cwd: &str, cols: u16, rows: u16) -> Result<Self, String> {
         let mut cmd = tokio::process::Command::new(shell);
@@ -70,7 +63,6 @@ impl TerminalProcess {
             .env("TERM", "xterm-256color")
             .env("COLUMNS", cols.to_string())
             .env("LINES", rows.to_string());
-
         if cfg!(target_os = "windows") {
             cmd.arg("-NoExit");
             cmd.arg("-NoProfile");
@@ -79,16 +71,13 @@ impl TerminalProcess {
         } else {
             cmd.arg("-i");
         }
-
         let mut child = cmd.spawn().map_err(|e| format!("Failed to spawn shell: {}", e))?;
         let pid = child.id().ok_or("Failed to get process ID")?;
         let stdin = child.stdin.take().ok_or("Failed to get stdin")?;
         let stdout = child.stdout.take().ok_or("Failed to get stdout")?;
         let stderr = child.stderr.take().ok_or("Failed to get stderr")?;
-
         Ok(TerminalProcess { child, stdin, stdout, stderr, pid, is_alive: true })
     }
-
     async fn write(&mut self, data: &str) -> Result<(), String> {
         if !self.is_alive {
             return Err("Terminal is already closed".to_string());
@@ -97,7 +86,6 @@ impl TerminalProcess {
         self.stdin.flush().await.map_err(|e| format!("Failed to flush: {}", e))?;
         Ok(())
     }
-
     async fn read_stdout(&mut self) -> Option<Vec<u8>> {
         let mut buf = vec![0u8; 4096];
         match timeout(Duration::from_millis(10), self.stdout.read(&mut buf)).await {
@@ -118,7 +106,6 @@ impl TerminalProcess {
             _ => None,
         }
     }
-
     async fn read_stderr(&mut self) -> Option<Vec<u8>> {
         let mut buf = vec![0u8; 4096];
         match timeout(Duration::from_millis(10), self.stderr.read(&mut buf)).await {
@@ -127,7 +114,6 @@ impl TerminalProcess {
             _ => None,
         }
     }
-
     async fn kill(&mut self) -> Result<(), String> {
         if !self.is_alive {
             return Ok(());
@@ -136,7 +122,6 @@ impl TerminalProcess {
         self.is_alive = false;
         Ok(())
     }
-
     async fn wait(&mut self) -> Option<i32> {
         match self.child.wait().await {
             Ok(status) => {
@@ -147,13 +132,10 @@ impl TerminalProcess {
         }
     }
 }
-
 type TerminalMap = Arc<Mutex<HashMap<String, Arc<Mutex<TerminalProcess>>>>>;
 static TERMINAL_POOL: Lazy<TerminalMap> = Lazy::new(|| Arc::new(Mutex::new(HashMap::new())));
-
 type TaskHandleMap = Arc<Mutex<HashMap<String, JoinHandle<()>>>>;
 static TASK_HANDLES: Lazy<TaskHandleMap> = Lazy::new(|| Arc::new(Mutex::new(HashMap::new())));
-
 fn get_default_shell() -> String {
     #[cfg(target_os = "windows")]
     {
@@ -164,11 +146,9 @@ fn get_default_shell() -> String {
         std::env::var("SHELL").unwrap_or_else(|_| "/bin/bash".to_string())
     }
 }
-
 fn get_home_dir() -> String {
     dirs::home_dir().map(|p| p.to_string_lossy().to_string()).unwrap_or_else(|| ".".to_string())
 }
-
 #[command]
 pub async fn cmd_terminal_kill(session_id: String) -> Result<bool, String> {
     {
@@ -186,7 +166,6 @@ pub async fn cmd_terminal_kill(session_id: String) -> Result<bool, String> {
     }
     Ok(true)
 }
-
 #[command]
 pub async fn cmd_terminal_create(request: TerminalCreateRequest, app_handle: tauri::AppHandle) -> Result<TerminalSession, String> {
     let session_id = format!("term_{}", chrono::Local::now().timestamp_millis());
@@ -234,7 +213,6 @@ pub async fn cmd_terminal_create(request: TerminalCreateRequest, app_handle: tau
                         }
                     }
                 }
-
                 if !process.is_alive {
                     let code = process.wait().await;
                     {
@@ -254,15 +232,12 @@ pub async fn cmd_terminal_create(request: TerminalCreateRequest, app_handle: tau
             tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
         }
     });
-
     {
         let mut handles = TASK_HANDLES.lock().await;
         handles.insert(session_id.clone(), handle);
     }
-
     Ok(TerminalSession { id: session_id, pid, cwd, cols, rows, created_at: chrono::Local::now().to_rfc3339(), is_alive: true })
 }
-
 #[command]
 pub async fn cmd_terminal_input(request: TerminalInputRequest) -> Result<bool, String> {
     let pool = TERMINAL_POOL.lock().await;
@@ -274,7 +249,6 @@ pub async fn cmd_terminal_input(request: TerminalInputRequest) -> Result<bool, S
     process.write(&request.data).await?;
     Ok(true)
 }
-
 #[command]
 pub async fn cmd_terminal_list() -> Result<Vec<TerminalSession>, String> {
     let pool = TERMINAL_POOL.lock().await;
@@ -293,7 +267,6 @@ pub async fn cmd_terminal_list() -> Result<Vec<TerminalSession>, String> {
     }
     Ok(result)
 }
-
 #[command]
 pub async fn cmd_terminal_is_alive(session_id: String) -> Result<bool, String> {
     let pool = TERMINAL_POOL.lock().await;

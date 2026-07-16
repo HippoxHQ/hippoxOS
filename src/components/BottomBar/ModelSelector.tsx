@@ -8,33 +8,13 @@ const filterInstanceName = (name: string): string => {
   return name.replace(/Instance/gi, "").trim() || name;
 };
 const CloseIcon: React.FC<IconProps> = ({ size = 14 }) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.5"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
+  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
     <line x1="18" y1="6" x2="6" y2="18" />
     <line x1="6" y1="6" x2="18" y2="18" />
   </svg>
 );
 const WifiIcon: React.FC<IconProps> = ({ size = 12 }) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.5"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
+  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
     <path d="M5 12.55a11 11 0 0 1 14.08 0" />
     <path d="M1.42 9a16 16 0 0 1 21.16 0" />
     <path d="M8.53 16.11a6 6 0 0 1 6.95 0" />
@@ -42,17 +22,7 @@ const WifiIcon: React.FC<IconProps> = ({ size = 12 }) => (
   </svg>
 );
 const WifiOffIcon: React.FC<IconProps> = ({ size = 12 }) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.5"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
+  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
     <line x1="1" y1="1" x2="23" y2="23" />
     <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55" />
     <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39" />
@@ -63,17 +33,7 @@ const WifiOffIcon: React.FC<IconProps> = ({ size = 12 }) => (
   </svg>
 );
 const LoadingIcon: React.FC<IconProps> = ({ size = 12 }) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.5"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
+  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
     <circle cx="12" cy="12" r="10" />
     <path d="M12 2 L12 6" />
     <path d="M12 18 L12 22" />
@@ -91,30 +51,15 @@ interface ModelSelectorProps {
   anchorRef: React.RefObject<HTMLElement>;
   popupRef: React.RefObject<HTMLDivElement | null>;
 }
-const ModelSelector: React.FC<ModelSelectorProps> = ({
-  isOpen,
-  onClose,
-  llmInstances,
-  defaultInstanceId,
-  onSetDefaultModel,
-  t,
-  anchorRef,
-  popupRef,
-}) => {
-  const [healthStatus, setHealthStatus] = useState<
-    Record<string, "online" | "offline" | "checking">
-  >({});
-  const [currentInstances, setCurrentInstances] =
-    useState<LlmInstance[]>(llmInstances);
-  const [currentDefaultId, setCurrentDefaultId] =
-    useState<string>(defaultInstanceId);
+const ModelSelector: React.FC<ModelSelectorProps> = ({ isOpen, onClose, llmInstances, defaultInstanceId, onSetDefaultModel, t, anchorRef, popupRef }) => {
+  const [healthStatus, setHealthStatus] = useState<Record<string, "online" | "offline" | "checking">>({});
+  const [currentInstances, setCurrentInstances] = useState<LlmInstance[]>(llmInstances);
+  const [currentDefaultId, setCurrentDefaultId] = useState<string>(defaultInstanceId);
   const [isCheckingHealth, setIsCheckingHealth] = useState(false);
   const sortInstances = (instances: LlmInstance[]): LlmInstance[] => {
     return [...instances].sort((a, b) => {
       if (a.created_at && b.created_at) {
-        return (
-          new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-        );
+        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
       }
       return (a.name || "").localeCompare(b.name || "");
     });
@@ -159,13 +104,9 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({
         const newStatus = { ...prev };
         results.forEach((result: HealthCheckResult) => {
           if (result.status !== "online") {
-            console.warn(
-              `Instance ${result.instance_name} is offline:`,
-              result.message,
-            );
+            console.warn(`Instance ${result.instance_name} is offline:`, result.message);
           }
-          newStatus[result.instance_id] =
-            result.status === "online" ? "online" : "offline";
+          newStatus[result.instance_id] = result.status === "online" ? "online" : "offline";
         });
         return newStatus;
       });
@@ -188,9 +129,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({
       await performHealthChecks(currentInstances);
     }
   };
-  const getHealthStatus = (
-    instanceId: string,
-  ): "online" | "offline" | "checking" => {
+  const getHealthStatus = (instanceId: string): "online" | "offline" | "checking" => {
     return healthStatus[instanceId] || "checking";
   };
   if (!isOpen) return null;
@@ -300,7 +239,6 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({
               const healthStatusValue = getHealthStatus(instance.id!);
               const isDefault = instance.id === currentDefaultId;
               const isChecking = healthStatusValue === "checking";
-
               return (
                 <div
                   key={instance.id}
@@ -311,9 +249,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({
                     padding: "12px 16px",
                     borderBottom: "1px solid var(--border-color)",
                     transition: "background 0.2s",
-                    background: isDefault
-                      ? "var(--bg-secondary)"
-                      : "transparent",
+                    background: isDefault ? "var(--bg-secondary)" : "transparent",
                   }}
                 >
                   <div style={{ flex: 1, minWidth: 0 }}>
@@ -376,10 +312,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({
                               animation: "spin 0.8s linear infinite",
                             }}
                           />
-                          <span style={{ color: "#f59e0b" }}>
-                            {t("bottomBar.modelStatus.checking") ||
-                              "Checking..."}
-                          </span>
+                          <span style={{ color: "#f59e0b" }}>{t("bottomBar.modelStatus.checking") || "Checking..."}</span>
                         </div>
                       ) : healthStatusValue === "online" ? (
                         <div
@@ -391,9 +324,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({
                           }}
                         >
                           <WifiIcon size={12} />
-                          <span style={{ color: "#22c55e" }}>
-                            {t("bottomBar.modelStatus.online")}
-                          </span>
+                          <span style={{ color: "#22c55e" }}>{t("bottomBar.modelStatus.online")}</span>
                         </div>
                       ) : (
                         <div
@@ -405,9 +336,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({
                           }}
                         >
                           <WifiOffIcon size={12} />
-                          <span style={{ color: "#ef4444" }}>
-                            {t("bottomBar.modelStatus.offline")}
-                          </span>
+                          <span style={{ color: "#ef4444" }}>{t("bottomBar.modelStatus.offline")}</span>
                         </div>
                       )}
                     </div>
@@ -461,5 +390,4 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({
     </div>
   );
 };
-
 export default ModelSelector;

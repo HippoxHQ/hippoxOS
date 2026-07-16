@@ -8,7 +8,6 @@ import { Language, ChatMessage, RoleEnum, MessageStatus } from "../../../types/t
 import { workspaceCommands } from "../../../command/workspace";
 import { codeEditorSessionCommands } from "../../../command/session/codeeditor";
 import { codeEditorCommands } from "../../../command/CodeEditor";
-
 export function useCodeEditorSession(
     language: Language,
     isConfigLoaded: boolean,
@@ -22,14 +21,12 @@ export function useCodeEditorSession(
     const [pendingWorkspacePath, setPendingWorkspacePath] = useState<string>("");
     const [pendingWorkspaceType, setPendingWorkspaceType] = useState<"directory" | "file">("directory");
     const { t } = useTranslation(language);
-
     useEffect(() => {
         const unsubscribe = taskManager.subscribe(() => {
             setTaskManagerVersion((prev) => prev + 1);
         });
         return unsubscribe;
     }, []);
-
     useEffect(() => {
         if (
             !isLoading &&
@@ -49,7 +46,6 @@ export function useCodeEditorSession(
                 const userMessages = taskManager.getUserMessagesBySession(currentSessionId, SessionDomain.CodeEditor);
                 const assistantMessages = taskManager.getAssistantMessagesBySessionAsArray(currentSessionId, SessionDomain.CodeEditor);
                 const tasksArray: TaskInfo[] = tasksMap ? Array.from(tasksMap.values()) : [];
-
                 if (userMessages.length === 0 && assistantMessages.length === 0) {
                     return;
                 }
@@ -62,7 +58,6 @@ export function useCodeEditorSession(
             return () => clearTimeout(saveTimer);
         }
     }, [currentSessionId, isLoading, taskManagerVersion]);
-
     useEffect(() => {
         if (isConfigLoaded) {
             codeEditorSessionCommands.listCodeEditorSessions()
@@ -103,7 +98,6 @@ export function useCodeEditorSession(
                 });
         }
     }, [isConfigLoaded]);
-
     const handleSendMessage = useCallback(async (
         userMessage: string,
         sessionId: string,
@@ -112,7 +106,6 @@ export function useCodeEditorSession(
     ) => {
         const now = new Date();
         let finalSessionId = sessionId || currentSessionId;
-
         if (finalSessionId && !finalSessionId.startsWith("pending_") &&
             !finalSessionId.startsWith("codeeditor_session_") && !finalSessionId.startsWith("temp_")) {
             console.error(
@@ -120,18 +113,15 @@ export function useCodeEditorSession(
             );
             return;
         }
-
         if (finalSessionId && finalSessionId.startsWith("pending_")) {
             const newSessionId = `codeeditor_session_${Date.now()}`;
             const sessionTitle = userMessage.length > 30
                 ? userMessage.slice(0, 30) + "..."
                 : userMessage;
-
             const tempUserMessages = taskManager.getUserMessagesBySession(finalSessionId, SessionDomain.CodeEditor);
             const tempAssistantMessages = taskManager.getAssistantMessagesBySessionAsArray(finalSessionId, SessionDomain.CodeEditor);
             const tempTasksMap = taskManager.getTasksBySession(finalSessionId, SessionDomain.CodeEditor);
             const tempTasks = tempTasksMap ? Array.from(tempTasksMap.values()) : [];
-
             await codeEditorSessionCommands.createCodeEditorSession(
                 newSessionId,
                 sessionTitle,
@@ -160,7 +150,6 @@ export function useCodeEditorSession(
             const sessionTitle = userMessage.length > 30
                 ? userMessage.slice(0, 30) + "..."
                 : userMessage;
-
             await codeEditorSessionCommands.createCodeEditorSession(
                 newSessionId,
                 sessionTitle,
@@ -171,21 +160,18 @@ export function useCodeEditorSession(
                 pendingWorkspacePath || undefined,
                 pendingWorkspaceType,
             );
-
             taskManager.loadSessionData(newSessionId, [], [], [], SessionDomain.CodeEditor);
             finalSessionId = newSessionId;
             setCurrentSessionId(newSessionId);
             window.dispatchEvent(new CustomEvent("codeeditor-session-created"));
             setPendingWorkspacePath("");
             setPendingWorkspaceType("directory");
-
             if (pendingWorkspacePath) {
                 window.dispatchEvent(new CustomEvent("workspace-loaded", {
                     detail: { path: pendingWorkspacePath, type: pendingWorkspaceType }
                 }));
             }
         }
-
         const userMsg: ChatMessage = {
             id: `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
             role: RoleEnum.User,
@@ -194,13 +180,11 @@ export function useCodeEditorSession(
             files: files,
         };
         taskManager.addUserMessageToSession(finalSessionId, userMsg, SessionDomain.CodeEditor);
-
         try {
             const workspace = await workspaceCommands.getDefaultWorkspace();
             const workspacePath = workspace?.workspace_path;
             const systemPrompt = getSystemPrompt(language as 'zh' | 'en', workspacePath);
             const fullMessage = `${systemPrompt}\n\n User: ${userMessage}`;
-
             const mode = workflowMode || currentWorkflowMode;
             const taskId = await hippoxCommands.sendMessageAsync(
                 userMessage,
@@ -208,9 +192,7 @@ export function useCodeEditorSession(
                 finalSessionId,
                 mode,
             );
-
             const messageId = `llm_${taskId}`;
-
             const assistantMsg: ChatMessage = {
                 id: messageId,
                 role: RoleEnum.LLM,
@@ -219,7 +201,6 @@ export function useCodeEditorSession(
                 status: MessageStatus.Pending,
             };
             taskManager.addAssistantMessageToSession(finalSessionId, assistantMsg, SessionDomain.CodeEditor);
-
             const newTask: TaskInfo = {
                 task_id: taskId,
                 session_id: finalSessionId,
@@ -244,7 +225,6 @@ export function useCodeEditorSession(
             taskManager.addAssistantMessageToSession(finalSessionId, errorMsg, SessionDomain.CodeEditor);
         }
     }, [currentSessionId, t, language, currentWorkflowMode, pendingWorkspacePath, pendingWorkspaceType]);
-
     const handleNewSession = useCallback(async (workspacePath?: string, workspaceType?: "directory" | "file") => {
         const pendingId = `pending_${Date.now()}`;
         taskManager.loadSessionData(pendingId, [], [], [], SessionDomain.CodeEditor);
@@ -258,17 +238,14 @@ export function useCodeEditorSession(
             setPendingWorkspaceType("directory");
         }
     }, []);
-
     const handleSwitchSession = useCallback(async (sessionId: string) => {
         if (sessionId === currentSessionId) return;
-
         if (!sessionId.startsWith("codeeditor_session_") && !sessionId.startsWith("pending_")) {
             console.warn(
                 `[useCodeEditorSession] Cannot switch to session "${sessionId}" - it does not belong to CodeEditor domain`
             );
             return;
         }
-
         const hasData = taskManager.hasSessionMessages(currentSessionId, SessionDomain.CodeEditor);
         if (currentSessionId && !currentSessionId.startsWith("pending_") && !currentSessionId.startsWith("temp_") && hasData) {
             try {
@@ -285,7 +262,6 @@ export function useCodeEditorSession(
                 console.error("Failed to save current session:", error);
             }
         }
-
         const hasTargetData = taskManager.getTasksBySession(sessionId, SessionDomain.CodeEditor) !== undefined;
         if (!hasTargetData) {
             const chatContent = await codeEditorSessionCommands.loadChatContent(sessionId);
@@ -293,7 +269,6 @@ export function useCodeEditorSession(
             let userMessages: ChatMessage[] = [];
             let assistantMessages: ChatMessage[] = [];
             let tasks: TaskInfo[] = [];
-
             if (chatContent) {
                 const allMessages = chatContent as ChatMessage[];
                 userMessages = allMessages.filter(msg => msg.role === RoleEnum.User);
@@ -320,25 +295,20 @@ export function useCodeEditorSession(
             console.error("Failed to load workspace config:", error);
         }
     }, [currentSessionId]);
-
     const shouldShowWelcome = useCallback(() => {
         if (isLoading) return true;
         if (!currentSessionId) return true;
-
         if (currentSessionId.startsWith("pending_")) {
             const userMessages = taskManager.getUserMessagesBySession(currentSessionId, SessionDomain.CodeEditor);
             const assistantMessages = taskManager.getAssistantMessagesBySessionAsArray(currentSessionId, SessionDomain.CodeEditor);
             return userMessages.length === 0 && assistantMessages.length === 0;
         }
-
         const userMessages = taskManager.getUserMessagesBySession(currentSessionId, SessionDomain.CodeEditor);
         const assistantMessages = taskManager.getAssistantMessagesBySessionAsArray(currentSessionId, SessionDomain.CodeEditor);
         return userMessages.length === 0 && assistantMessages.length === 0;
     }, [isLoading, currentSessionId]);
-
     const resetSession = useCallback(async () => {
         if (!currentSessionId || currentSessionId.startsWith("pending_")) return;
-
         try {
             await hippoxCommands.resetSession();
             taskManager.loadSessionData(currentSessionId, [], [], [], SessionDomain.CodeEditor);
@@ -346,7 +316,6 @@ export function useCodeEditorSession(
             console.error("reset session error:", error);
         }
     }, [currentSessionId]);
-
     const createSessionWithWorkspace = useCallback(async (
         workspacePath: string,
         workspaceType: "directory" | "file"
@@ -377,7 +346,6 @@ export function useCodeEditorSession(
         }));
         return newSessionId;
     }, []);
-
     return {
         currentSessionId,
         isLoading,

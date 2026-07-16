@@ -1,6 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
 import { configCommands } from "../../command/config";
-
 export const useFunctionPanelPosition = () => {
     const [functionPanelPosition, setFunctionPanelPosition] = useState<"left" | "right">("right");
     const [isLoading, setIsLoading] = useState(true);

@@ -1,13 +1,11 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { FunctionModule } from "../types";
-
 const getModuleKey = (moduleId: FunctionModule, taskId?: string, fileId?: string): string => {
   if (moduleId === "preview" && fileId) {
     return `preview_${fileId}`;
   }
   return taskId ? `${moduleId}_${taskId}` : moduleId;
 };
-
 const parseModuleKey = (key: string): { moduleId: FunctionModule; taskId?: string; fileId?: string } => {
   const parts = key.split('_');
   if (parts.length === 1) {
@@ -20,14 +18,12 @@ const parseModuleKey = (key: string): { moduleId: FunctionModule; taskId?: strin
   }
   return { moduleId, taskId: rest };
 };
-
 export const useFunctionPanel = () => {
   const [openModulesMap, setOpenModulesMap] = useState<Map<string, Set<string>>>(new Map());
   const [activeModuleKey, setActiveModuleKey] = useState<string | null>(null);
   const [showLeftScroll, setShowLeftScroll] = useState(false);
   const [showRightScroll, setShowRightScroll] = useState(false);
   const tabsContainerRef = useRef<HTMLDivElement>(null);
-
   const getOpenModuleKeys = useCallback((): string[] => {
     const keys: string[] = [];
     openModulesMap.forEach((taskIds, moduleId) => {
@@ -43,7 +39,6 @@ export const useFunctionPanel = () => {
     });
     return keys;
   }, [openModulesMap]);
-
   const openModule = useCallback((
     moduleId: FunctionModule,
     taskId?: string,
@@ -64,11 +59,9 @@ export const useFunctionPanel = () => {
     setActiveModuleKey(key);
     return key;
   }, []);
-
   const switchToModule = useCallback((key: string) => {
     setActiveModuleKey(key);
   }, []);
-
   const handleCloseModule = useCallback((moduleKey: string, e: React.MouseEvent) => {
     e.stopPropagation();
     const { moduleId, taskId, fileId } = parseModuleKey(moduleKey);
@@ -102,7 +95,6 @@ export const useFunctionPanel = () => {
     }
     return hasRemaining;
   }, [activeModuleKey, getOpenModuleKeys]);
-
   const checkScrollPosition = useCallback(() => {
     if (tabsContainerRef.current) {
       const { scrollLeft, scrollWidth, clientWidth } = tabsContainerRef.current;
@@ -110,14 +102,12 @@ export const useFunctionPanel = () => {
       setShowRightScroll(scrollLeft + clientWidth < scrollWidth - 1);
     }
   }, []);
-
   useEffect(() => {
     const timer = setTimeout(() => {
       checkScrollPosition();
     }, 0);
     return () => clearTimeout(timer);
   }, [openModulesMap, checkScrollPosition]);
-
   const handleScroll = useCallback((direction: "left" | "right") => {
     if (tabsContainerRef.current) {
       const scrollAmount = 200;
@@ -127,7 +117,6 @@ export const useFunctionPanel = () => {
       setTimeout(checkScrollPosition, 200);
     }
   }, [checkScrollPosition]);
-
   useEffect(() => {
     const container = tabsContainerRef.current;
     if (container) {
@@ -136,7 +125,6 @@ export const useFunctionPanel = () => {
       return () => container.removeEventListener("scroll", checkScrollPosition);
     }
   }, [checkScrollPosition]);
-
   return {
     openModulesMap,
     setOpenModulesMap,

@@ -1,9 +1,6 @@
-use std::path::PathBuf;
-
-use tauri::command;
-
 use crate::commands::FileOperationResult;
-
+use std::path::PathBuf;
+use tauri::command;
 #[command]
 pub async fn cmd_open_in_explorer(path: String) -> Result<FileOperationResult, String> {
     let path_buf = PathBuf::from(&path);
@@ -16,12 +13,10 @@ pub async fn cmd_open_in_explorer(path: String) -> Result<FileOperationResult, S
         if path_buf.is_file() {
             if let Some(parent) = path_buf.parent() {
                 use std::process::Command;
-
                 let _ = Command::new("explorer").args(["/select,", &path_str]).spawn();
             }
         } else {
             use std::process::Command;
-
             let _ = Command::new("explorer").arg(&path_str).spawn();
         }
     }

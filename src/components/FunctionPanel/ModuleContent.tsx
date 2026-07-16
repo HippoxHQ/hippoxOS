@@ -1,15 +1,10 @@
 import React from "react";
-
 interface ModuleContentProps {
   content: React.ReactNode;
   isEmpty: boolean;
   t: (key: string, params?: any) => string;
 }
-export const ModuleContent: React.FC<ModuleContentProps> = ({
-  content,
-  isEmpty,
-  t,
-}) => {
+export const ModuleContent: React.FC<ModuleContentProps> = ({ content, isEmpty, t }) => {
   if (isEmpty || !content) {
     return (
       <div

@@ -1,7 +1,6 @@
 use super::core::Ffmpeg;
 use std::path::Path;
 use std::process::Command;
-
 impl Ffmpeg {
     /// Apply filter to video
     pub fn apply_filter(&self, input_path: &str, output_path: &str, filter_type: &str, intensity: f32) -> Result<(), String> {
@@ -9,13 +8,11 @@ impl Ffmpeg {
         if !input.exists() {
             return Err(format!("Input file not found: {}", input_path));
         }
-
         if let Some(parent) = Path::new(output_path).parent() {
             if !parent.exists() {
                 std::fs::create_dir_all(parent).map_err(|e| format!("Failed to create output directory: {}", e))?;
             }
         }
-
         let filter = match filter_type {
             "grayscale" | "blackwhite" => "hue=s=0".to_string(),
             "sepia" => "colorchannelmixer=.393:.769:.189:0:.349:.686:.168:0:.272:.534:.131:0,eq=contrast=1.1:brightness=0.05".to_string(),
@@ -41,20 +38,16 @@ impl Ffmpeg {
             }
             _ => return Err(format!("Unknown filter type: {}", filter_type)),
         };
-
         let output = Command::new("ffmpeg")
             .args(["-i", input_path, "-vf", &filter, "-c:a", "copy", "-y", output_path])
             .output()
             .map_err(|e| format!("Failed to apply filter: {}", e))?;
-
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
             return Err(format!("FFmpeg failed: {}", stderr));
         }
-
         Ok(())
     }
-
     /// Add text overlay to video
     pub fn add_text_overlay(
         &self,
@@ -73,13 +66,11 @@ impl Ffmpeg {
         if !Path::new(input_path).exists() {
             return Err(format!("Input file not found: {}", input_path));
         }
-
         if let Some(parent) = Path::new(output_path).parent() {
             if !parent.exists() {
                 std::fs::create_dir_all(parent).map_err(|e| format!("Failed to create output directory: {}", e))?;
             }
         }
-
         let mut drawtext_filter = format!(
             "drawtext=text='{}':fontsize={}:fontcolor={}:fontfile={}:x={}:y={}:enable='between(t,{},{})'",
             text.replace("'", "'\\''"),
@@ -91,24 +82,19 @@ impl Ffmpeg {
             start,
             start + duration
         );
-
         if let Some(bg) = background_color {
             drawtext_filter.push_str(&format!(":box=1:boxcolor={}:boxborderw=5", bg));
         }
-
         let output = Command::new("ffmpeg")
             .args(["-i", input_path, "-vf", &drawtext_filter, "-c:a", "copy", "-y", output_path])
             .output()
             .map_err(|e| format!("Failed to add text overlay: {}", e))?;
-
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
             return Err(format!("FFmpeg failed: {}", stderr));
         }
-
         Ok(())
     }
-
     /// Add emoji overlay (emojis are rendered as text with large font)
     pub fn add_emoji_overlay(
         &self,

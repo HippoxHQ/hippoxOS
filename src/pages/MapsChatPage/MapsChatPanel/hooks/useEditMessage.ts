@@ -3,13 +3,11 @@ import { showToast, ToastType } from "../../../../components/Toast";
 import { taskManager } from "../../../../core/TaskManager";
 import { SessionDomain, UploadFile } from "../../../../core/types";
 import { ChatMessage } from "../../../../types/types";
-
 interface UseEditMessageProps {
   currentSessionId?: string;
   onSendMessage: (message: string, sessionId: string, files?: UploadFile[]) => void | Promise<void>;
   t: (key: string, params?: any) => string;
 }
-
 export const useEditMessage = ({ currentSessionId, onSendMessage, t }: UseEditMessageProps) => {
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editContent, setEditContent] = useState<string>("");

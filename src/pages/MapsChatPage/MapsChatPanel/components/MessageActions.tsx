@@ -1,7 +1,6 @@
 import React from "react";
 import { LocateIcon, CopyIcon, EditIcon2, ResendIcon } from "../../../../icons";
 import { ChatMessage } from "../../../../types/types";
-
 interface MessageActionsProps {
   msg: ChatMessage;
   isUser: boolean;
@@ -11,16 +10,7 @@ interface MessageActionsProps {
   onResendMessage?: (msg: ChatMessage) => void;
   t: (key: string, params?: any) => string;
 }
-
-export const MessageActions: React.FC<MessageActionsProps> = ({
-  msg,
-  isUser,
-  copyToClipboard,
-  onLocateTask,
-  onEditMessage,
-  onResendMessage,
-  t,
-}) => {
+export const MessageActions: React.FC<MessageActionsProps> = ({ msg, isUser, copyToClipboard, onLocateTask, onEditMessage, onResendMessage, t }) => {
   if (isUser) {
     return (
       <div
@@ -140,7 +130,6 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
       </div>
     );
   }
-
   return (
     <div
       className="message-actions"

@@ -1,22 +1,16 @@
 import React, { useState, useEffect } from "react";
 import { SkillData } from "../../types/skill";
 import { PlayIcon, StarFilledIcon, SearchIcon } from "../../icons";
-import {
-  MarketSkill,
-  skillsMarketCommands,
-  skillsLocalCommands,
-} from "../../command/skills";
+import { MarketSkill, skillsMarketCommands, skillsLocalCommands } from "../../command/skills";
 import { runSkill } from "./utils/skillRunner";
 import { UploadFile } from "../../core/types";
 import { filesCommands } from "../../command/files";
 import { showDialog, DialogType } from "../../components/Dialog";
-
 interface FavoritesPanelProps {
   t: (key: string, params?: any) => string;
   onSendSkillMessage: (message: string, files?: UploadFile[]) => void;
   onFileClick?: (file: UploadFile) => void;
 }
-
 const convertLocalToMarket = (skill: SkillData): MarketSkill => {
   return {
     id: `${skill.category}/${skill.id}`,
@@ -34,35 +28,22 @@ const convertLocalToMarket = (skill: SkillData): MarketSkill => {
     parameters: [],
   };
 };
-
-const FavoritesPanel: React.FC<FavoritesPanelProps> = ({
-  t,
-  onSendSkillMessage,
-  onFileClick,
-}) => {
+const FavoritesPanel: React.FC<FavoritesPanelProps> = ({ t, onSendSkillMessage, onFileClick }) => {
   const [skillFavorites, setSkillFavorites] = useState<MarketSkill[]>([]);
   const [loading, setLoading] = useState(true);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-
   useEffect(() => {
     loadFavorites();
   }, []);
-
   const loadFavorites = async () => {
     setLoading(true);
     try {
       const favoritedIds = await skillsMarketCommands.getFavoritedSkills();
       const allMarketSkills = await skillsMarketCommands.getMarketSkills();
-      const marketFavorites = allMarketSkills.filter((s) =>
-        favoritedIds.includes(s.id),
-      );
+      const marketFavorites = allMarketSkills.filter((s) => favoritedIds.includes(s.id));
       const allLocalSkills = await skillsLocalCommands.listLocalSkills();
-      const localFavorites = allLocalSkills
-        .filter((skill) =>
-          favoritedIds.includes(`${skill.category}/${skill.id}`),
-        )
-        .map(convertLocalToMarket);
+      const localFavorites = allLocalSkills.filter((skill) => favoritedIds.includes(`${skill.category}/${skill.id}`)).map(convertLocalToMarket);
       setSkillFavorites([...marketFavorites, ...localFavorites]);
     } catch (error) {
       console.error("Failed to load favorites:", error);
@@ -70,7 +51,6 @@ const FavoritesPanel: React.FC<FavoritesPanelProps> = ({
       setLoading(false);
     }
   };
-
   const handleRun = async (skill: MarketSkill) => {
     if (!onSendSkillMessage) {
       console.error("onSendSkillMessage is undefined!");
@@ -79,24 +59,18 @@ const FavoritesPanel: React.FC<FavoritesPanelProps> = ({
     const pendingId = `pending_${Date.now()}`;
     await runSkill(skill, onSendSkillMessage, t, pendingId);
   };
-
   const handleDelete = (skillId: string, skillName: string) => {
     showDialog(
       DialogType.WARNING,
       t("favorites.confirmDeleteTitle") || "Remove Favorite",
-      t("favorites.confirmDeleteMessage", { name: skillName }) ||
-        `Are you sure you want to remove "${skillName}" from favorites?`,
+      t("favorites.confirmDeleteMessage", { name: skillName }) || `Are you sure you want to remove "${skillName}" from favorites?`,
       async () => {
         try {
           await skillsMarketCommands.unfavoriteSkill(skillId);
           await loadFavorites();
         } catch (error) {
           console.error("Failed to delete favorite:", error);
-          showDialog(
-            DialogType.ERROR,
-            t("favorites.deleteErrorTitle") || "Error",
-            t("favorites.deleteErrorMessage") || "Failed to remove favorite",
-          );
+          showDialog(DialogType.ERROR, t("favorites.deleteErrorTitle") || "Error", t("favorites.deleteErrorMessage") || "Failed to remove favorite");
         }
       },
       undefined,
@@ -104,30 +78,11 @@ const FavoritesPanel: React.FC<FavoritesPanelProps> = ({
       t("favorites.cancelDelete") || "Cancel",
     );
   };
-
   const handleClearSearch = () => {
     setSearchTerm("");
   };
-
   const getAuthorColor = (author: string): string => {
-    const colors = [
-      "#6366f1",
-      "#8b5cf6",
-      "#ec4899",
-      "#f43f5e",
-      "#f59e0b",
-      "#eab308",
-      "#84cc16",
-      "#10b981",
-      "#06b6d4",
-      "#3b82f6",
-      "#ef4444",
-      "#14b8a6",
-      "#a855f7",
-      "#d946ef",
-      "#f97316",
-      "#0ea5e9",
-    ];
+    const colors = ["#6366f1", "#8b5cf6", "#ec4899", "#f43f5e", "#f59e0b", "#eab308", "#84cc16", "#10b981", "#06b6d4", "#3b82f6", "#ef4444", "#14b8a6", "#a855f7", "#d946ef", "#f97316", "#0ea5e9"];
     let hash = 0;
     for (let i = 0; i < author.length; i++) {
       hash = (hash << 5) - hash + author.charCodeAt(i);
@@ -135,7 +90,6 @@ const FavoritesPanel: React.FC<FavoritesPanelProps> = ({
     }
     return colors[Math.abs(hash) % colors.length];
   };
-
   const filteredFavorites = skillFavorites.filter((skill) => {
     const matchesSearch =
       skill.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -144,7 +98,6 @@ const FavoritesPanel: React.FC<FavoritesPanelProps> = ({
       skill.author.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesSearch;
   });
-
   const styles: Record<string, React.CSSProperties> = {
     container: {
       height: "100%",
@@ -308,7 +261,6 @@ const FavoritesPanel: React.FC<FavoritesPanelProps> = ({
       color: "var(--text-muted)",
     },
   };
-
   const globalStyles = `
     .favorites-search-input-wrapper {
       flex: 1;
@@ -357,7 +309,6 @@ const FavoritesPanel: React.FC<FavoritesPanelProps> = ({
       background: var(--hover-bg);
     }
   `;
-
   if (typeof document !== "undefined") {
     const styleId = "favorites-panel-styles";
     if (!document.getElementById(styleId)) {
@@ -367,17 +318,13 @@ const FavoritesPanel: React.FC<FavoritesPanelProps> = ({
       document.head.appendChild(style);
     }
   }
-
   if (loading) {
     return (
       <div style={styles.container}>
-        <div style={styles.loadingState}>
-          {t("atomicSkills.loading") || "Loading..."}
-        </div>
+        <div style={styles.loadingState}>{t("atomicSkills.loading") || "Loading..."}</div>
       </div>
     );
   }
-
   return (
     <div style={styles.container}>
       <div style={styles.header}>
@@ -387,32 +334,21 @@ const FavoritesPanel: React.FC<FavoritesPanelProps> = ({
             <input
               type="text"
               className="favorites-search-input"
-              placeholder={
-                t("favorites.searchPlaceholder") || "Search favorites..."
-              }
+              placeholder={t("favorites.searchPlaceholder") || "Search favorites..."}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
             {searchTerm && (
-              <button
-                className="favorites-search-clear"
-                onClick={handleClearSearch}
-                title={t("favorites.clearSearch") || "Clear search"}
-              >
+              <button className="favorites-search-clear" onClick={handleClearSearch} title={t("favorites.clearSearch") || "Clear search"}>
                 ✕
               </button>
             )}
           </div>
         </div>
       </div>
-
       <div style={styles.skillList}>
         {filteredFavorites.length === 0 ? (
-          <div style={styles.emptyState}>
-            {searchTerm
-              ? t("favorites.noSearchResults") || "No matching favorites found"
-              : t("favorites.empty") || "No favorites yet, add one!"}
-          </div>
+          <div style={styles.emptyState}>{searchTerm ? t("favorites.noSearchResults") || "No matching favorites found" : t("favorites.empty") || "No favorites yet, add one!"}</div>
         ) : (
           filteredFavorites.map((skill) => {
             const isHovered = hoveredId === skill.id;
@@ -428,9 +364,7 @@ const FavoritesPanel: React.FC<FavoritesPanelProps> = ({
                 onClick={async () => {
                   if (onFileClick && skill.local_path) {
                     try {
-                      const content = await filesCommands.readTextFile(
-                        skill.local_path,
-                      );
+                      const content = await filesCommands.readTextFile(skill.local_path);
                       const skillFile: UploadFile = {
                         id: `skill_${skill.id}`,
                         name: `${skill.name}.skill.md`,
@@ -474,8 +408,7 @@ const FavoritesPanel: React.FC<FavoritesPanelProps> = ({
                       }}
                       title={t("market.unfavorite") || "Remove"}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.background =
-                          "rgba(245, 158, 11, 0.15)";
+                        e.currentTarget.style.background = "rgba(245, 158, 11, 0.15)";
                         e.currentTarget.style.borderColor = "#f59e0b";
                       }}
                       onMouseLeave={(e) => {
@@ -495,14 +428,12 @@ const FavoritesPanel: React.FC<FavoritesPanelProps> = ({
                       onMouseEnter={(e) => {
                         e.currentTarget.style.background = "var(--hover-bg)";
                         e.currentTarget.style.color = "var(--text-primary)";
-                        e.currentTarget.style.borderColor =
-                          "var(--accent-color)";
+                        e.currentTarget.style.borderColor = "var(--accent-color)";
                       }}
                       onMouseLeave={(e) => {
                         e.currentTarget.style.background = "transparent";
                         e.currentTarget.style.color = "var(--text-secondary)";
-                        e.currentTarget.style.borderColor =
-                          "var(--border-color)";
+                        e.currentTarget.style.borderColor = "var(--border-color)";
                       }}
                     >
                       <PlayIcon size={12} />
@@ -543,5 +474,4 @@ const FavoritesPanel: React.FC<FavoritesPanelProps> = ({
     </div>
   );
 };
-
 export default FavoritesPanel;

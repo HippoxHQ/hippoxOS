@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
 import { SystemNotification, notificationManager, NotificationType } from "../../core/NotificationManager";
-
 interface NotificationCenterProps {
   isOpen: boolean;
   onClose: () => void;
@@ -8,18 +7,10 @@ interface NotificationCenterProps {
   t: (key: string, params?: Record<string, any>) => string;
   popupRef: React.RefObject<HTMLDivElement | null>;
 }
-
-const NotificationCenter: React.FC<NotificationCenterProps> = ({
-  isOpen,
-  onClose,
-  anchorRef,
-  t,
-  popupRef,
-}) => {
+const NotificationCenter: React.FC<NotificationCenterProps> = ({ isOpen, onClose, anchorRef, t, popupRef }) => {
   const [notifications, setNotifications] = useState<SystemNotification[]>([]);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
-
   // Initialize notification manager and load notifications
   useEffect(() => {
     const init = async () => {
@@ -30,18 +21,14 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({
     };
     init();
   }, []);
-
   // Subscribe to notification changes
   useEffect(() => {
     if (!isInitialized) return;
-    const unsubscribe = notificationManager.subscribe(
-      (updatedNotifications: SystemNotification[]) => {
-        setNotifications(updatedNotifications);
-      },
-    );
+    const unsubscribe = notificationManager.subscribe((updatedNotifications: SystemNotification[]) => {
+      setNotifications(updatedNotifications);
+    });
     return unsubscribe;
   }, [isInitialized]);
-
   const formatTimestamp = (timestamp: string) => {
     const date = new Date(timestamp);
     const now = new Date();
@@ -50,14 +37,11 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
     if (diffMins < 1) return t("notificationCenter.justNow") || "Just now";
-    if (diffMins < 60)
-      return `${diffMins} ${t("common.minutesAgo") || "min ago"}`;
-    if (diffHours < 24)
-      return `${diffHours} ${t("common.hoursAgo") || "hours ago"}`;
+    if (diffMins < 60) return `${diffMins} ${t("common.minutesAgo") || "min ago"}`;
+    if (diffHours < 24) return `${diffHours} ${t("common.hoursAgo") || "hours ago"}`;
     if (diffDays < 7) return `${diffDays} ${t("common.daysAgo") || "days ago"}`;
     return date.toLocaleDateString();
   };
-
   const getNotificationIcon = (type: NotificationType) => {
     switch (type) {
       case NotificationType.Success:
@@ -70,7 +54,6 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({
         return "ℹ";
     }
   };
-
   const getIconBgColor = (type: NotificationType) => {
     switch (type) {
       case NotificationType.Success:
@@ -83,7 +66,6 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({
         return "rgba(59, 130, 246, 0.15)";
     }
   };
-
   const getIconColor = (type: NotificationType) => {
     switch (type) {
       case NotificationType.Success:
@@ -96,26 +78,20 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({
         return "#3b82f6";
     }
   };
-
   const handleMarkAsRead = async (id: string) => {
     await notificationManager.markAsRead(id);
   };
-
   const handleMarkAllAsRead = async () => {
     await notificationManager.markAllAsRead();
   };
-
   const handleDelete = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     await notificationManager.delete(id);
   };
-
   const handleClearAll = async () => {
     await notificationManager.clearAll();
   };
-
   if (!isOpen) return null;
-
   return (
     <>
       <style>{`
@@ -244,24 +220,13 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({
                 e.currentTarget.style.color = "var(--text-secondary)";
               }}
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="18" y1="6" x2="6" y2="18" />
                 <line x1="6" y1="6" x2="18" y2="18" />
               </svg>
             </button>
           </div>
         </div>
-
         <div style={{ maxHeight: "350px", overflowY: "auto" }}>
           {notifications.length === 0 ? (
             <div
@@ -321,7 +286,6 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({
                       {getNotificationIcon(notification.type)}
                     </span>
                   </div>
-
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div
                       style={{
@@ -331,8 +295,7 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({
                         marginBottom: "6px",
                       }}
                     >
-                      {t(notification.title, notification.data) ||
-                        notification.title}
+                      {t(notification.title, notification.data) || notification.title}
                     </div>
                     <div
                       style={{
@@ -354,7 +317,6 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({
                       {formatTimestamp(notification.timestamp)}
                     </div>
                   </div>
-
                   {!notification.read && (
                     <div
                       style={{
@@ -367,7 +329,6 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({
                       }}
                     />
                   )}
-
                   <button
                     style={{
                       display: "flex",
@@ -393,17 +354,7 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({
                     }}
                     onClick={(e) => handleDelete(notification.id, e)}
                   >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="12"
-                      height="12"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <line x1="18" y1="6" x2="6" y2="18" />
                       <line x1="6" y1="6" x2="18" y2="18" />
                     </svg>
@@ -417,5 +368,4 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({
     </>
   );
 };
-
 export default NotificationCenter;

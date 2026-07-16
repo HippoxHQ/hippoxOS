@@ -1,16 +1,6 @@
 import React, { useState, useEffect, useRef, JSX } from "react";
 import { PopupMenuProps, MenuItemWithSection } from "../types";
-
-export const PopupMenu: React.FC<PopupMenuProps> = ({
-  items,
-  activeId,
-  activeSubId,
-  activeSubSubId,
-  onMenuClick,
-  onClose,
-  position,
-  t,
-}) => {
+export const PopupMenu: React.FC<PopupMenuProps> = ({ items, activeId, activeSubId, activeSubSubId, onMenuClick, onClose, position, t }) => {
   const popupRef = useRef<HTMLDivElement>(null);
   const [adjustedPosition, setAdjustedPosition] = useState(position);
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
@@ -33,7 +23,6 @@ export const PopupMenu: React.FC<PopupMenuProps> = ({
     initOpen(items);
     return initial;
   });
-
   useEffect(() => {
     if (popupRef.current) {
       const rect = popupRef.current.getBoundingClientRect();
@@ -56,7 +45,6 @@ export const PopupMenu: React.FC<PopupMenuProps> = ({
       setAdjustedPosition({ top, left });
     }
   }, [position]);
-
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (popupRef.current && !popupRef.current.contains(e.target as Node)) {
@@ -71,16 +59,13 @@ export const PopupMenu: React.FC<PopupMenuProps> = ({
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [onClose]);
-
   const toggleGroup = (groupId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     setOpenGroups((prev) => ({ ...prev, [groupId]: !prev[groupId] }));
   };
-
   const isOnlySettingsGroup = (): boolean => {
     return items.length === 1 && items[0]?.id === "settings_group";
   };
-
   const renderMenuItems = (menuItems: MenuItemWithSection[]) => {
     const result: JSX.Element[] = [];
     const processItem = (item: MenuItemWithSection, isRoot: boolean = true) => {
@@ -116,22 +101,14 @@ export const PopupMenu: React.FC<PopupMenuProps> = ({
               <span className={`popup-chevron ${isOpen ? "open" : ""}`}>▶</span>
             </div>
             {isOpen && (
-              <div
-                className={`${isSystemGroup ? "popup-sub-menu" : "popup-sub-menu"}`}
-              >
+              <div className={`${isSystemGroup ? "popup-sub-menu" : "popup-sub-menu"}`}>
                 {item.children!.map((child) => {
-                  const hasGrandChildren =
-                    child.children && child.children.length > 0;
-
+                  const hasGrandChildren = child.children && child.children.length > 0;
                   if (hasGrandChildren) {
                     const isGrandOpen = openGroups[child.id] || false;
                     return (
                       <div key={child.id}>
-                        <div
-                          className="popup-sub-item"
-                          style={{ justifyContent: "space-between" }}
-                          onClick={(e) => toggleGroup(child.id, e)}
-                        >
+                        <div className="popup-sub-item" style={{ justifyContent: "space-between" }} onClick={(e) => toggleGroup(child.id, e)}>
                           <span
                             style={{
                               display: "flex",
@@ -141,11 +118,7 @@ export const PopupMenu: React.FC<PopupMenuProps> = ({
                           >
                             <span>{t(child.label)}</span>
                           </span>
-                          <span
-                            className={`popup-chevron ${isGrandOpen ? "open" : ""}`}
-                          >
-                            ▶
-                          </span>
+                          <span className={`popup-chevron ${isGrandOpen ? "open" : ""}`}>▶</span>
                         </div>
                         {isGrandOpen && (
                           <div className="popup-sub-sub-menu">
@@ -184,32 +157,16 @@ export const PopupMenu: React.FC<PopupMenuProps> = ({
           </div>,
         );
       } else {
-        const isSettingsChild =
-          item.id === "llmModel" ||
-          item.id === "drivers" ||
-          item.id === "universal" ||
-          item.id === "workspaceConfig" ||
-          item.id === "storage";
+        const isSettingsChild = item.id === "llmModel" || item.id === "drivers" || item.id === "universal" || item.id === "workspaceConfig" || item.id === "storage";
         result.push(
           <div
             key={item.id}
             className={`popup-menu-item ${isActive ? "active" : ""} ${isSettingsChild ? "popup-sub-item" : ""}`}
             style={isSettingsChild ? { paddingLeft: "10px" } : {}}
             onClick={() => {
-              if (
-                item.id === "llmModel" ||
-                item.id === "drivers" ||
-                item.id === "universal" ||
-                item.id === "workspaceConfig" ||
-                item.id === "storage"
-              ) {
+              if (item.id === "llmModel" || item.id === "drivers" || item.id === "universal" || item.id === "workspaceConfig" || item.id === "storage") {
                 onMenuClick("settings", item.id);
-              } else if (
-                item.id === "engine_database" ||
-                item.id === "engine_network" ||
-                item.id === "engine_container" ||
-                item.id === "engine_notification"
-              ) {
+              } else if (item.id === "engine_database" || item.id === "engine_network" || item.id === "engine_container" || item.id === "engine_notification") {
                 onMenuClick("settings", item.id);
               } else if (item.id === "workspace") {
                 onMenuClick(item.id);
@@ -217,10 +174,7 @@ export const PopupMenu: React.FC<PopupMenuProps> = ({
                 onMenuClick(item.id);
               } else if (item.id === "skillMarket" || item.id === "skills") {
                 onMenuClick(item.id);
-              } else if (
-                item.id === "scheduledTasks" ||
-                item.id === "taskQueue"
-              ) {
+              } else if (item.id === "scheduledTasks" || item.id === "taskQueue") {
                 onMenuClick(item.id);
               } else if (item.id === "logs") {
                 onMenuClick(item.id);
@@ -231,9 +185,7 @@ export const PopupMenu: React.FC<PopupMenuProps> = ({
             }}
           >
             <span className="popup-menu-label">{t(item.label)}</span>
-            {item.badge && (
-              <span className="popup-menu-badge">{item.badge}</span>
-            )}
+            {item.badge && <span className="popup-menu-badge">{item.badge}</span>}
           </div>,
         );
       }
@@ -251,11 +203,7 @@ export const PopupMenu: React.FC<PopupMenuProps> = ({
     return result;
   };
   return (
-    <div
-      ref={popupRef}
-      className="menu-popup"
-      style={{ top: adjustedPosition.top, left: adjustedPosition.left }}
-    >
+    <div ref={popupRef} className="menu-popup" style={{ top: adjustedPosition.top, left: adjustedPosition.left }}>
       {renderMenuItems(items)}
     </div>
   );

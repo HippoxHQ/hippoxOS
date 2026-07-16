@@ -1,17 +1,13 @@
+use crate::types::{WindowIdentifier, WindowType};
 use tauri::{
     menu::{Menu, MenuItem, PredefinedMenuItem, Submenu},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
     AppHandle, Emitter, Manager, Runtime, WebviewWindow, WebviewWindowBuilder, WindowEvent,
 };
-
-use crate::types::{WindowIdentifier, WindowType};
-
 pub(crate) struct TrayManager;
-
 use once_cell::sync::Lazy;
 use std::sync::Mutex;
 static LLM_HEALTH_CACHE: Lazy<Mutex<std::collections::HashMap<String, bool>>> = Lazy::new(|| Mutex::new(std::collections::HashMap::new()));
-
 impl TrayManager {
     pub fn setup<R: Runtime>(app: &tauri::App<R>) -> Result<(), Box<dyn std::error::Error>> {
         let app_handle = app.app_handle().clone();
@@ -32,7 +28,6 @@ impl TrayManager {
             .build(app)?;
         Ok(())
     }
-
     fn create_tray_window<R: Runtime>(app_handle: &AppHandle<R>) -> Result<(), Box<dyn std::error::Error>> {
         let (mouse_x, mouse_y) = Self::get_mouse_position();
         let menu_width = 260.0;
@@ -74,7 +69,6 @@ impl TrayManager {
         });
         Ok(())
     }
-
     fn calculate_window_position<R: Runtime>(
         app_handle: &AppHandle<R>,
         mouse_x: f64,
@@ -110,7 +104,6 @@ impl TrayManager {
         }
         Ok((pos_x, pos_y))
     }
-
     fn get_mouse_position() -> (i32, i32) {
         #[cfg(target_os = "windows")]
         {
@@ -137,7 +130,6 @@ impl TrayManager {
             (0, 0)
         }
     }
-
     fn toggle_window<R: Runtime>(app_handle: &AppHandle<R>) {
         if let Some(window) = app_handle.get_webview_window("main") {
             if window.is_visible().unwrap_or(false) {
@@ -148,7 +140,6 @@ impl TrayManager {
             }
         }
     }
-
     fn set_default_llm<R: Runtime>(app_handle: &AppHandle<R>, instance_id: String) {
         use crate::commands::cmd_set_default_llm_instance;
         let lang = crate::commons::get_setting_with_default("language", serde_json::json!("en"))
@@ -167,7 +158,6 @@ impl TrayManager {
             }
         }
     }
-
     fn ensure_window_and_emit<R: Runtime>(app_handle: &AppHandle<R>, event: &str) {
         if let Some(window) = app_handle.get_webview_window("main") {
             if !window.is_visible().unwrap_or(false) {
@@ -177,35 +167,27 @@ impl TrayManager {
         }
         let _ = app_handle.emit(event, ());
     }
-
     fn new_session<R: Runtime>(app_handle: &AppHandle<R>) {
         Self::ensure_window_and_emit(app_handle, "new-session");
     }
-
     fn open_llm_config<R: Runtime>(app_handle: &AppHandle<R>) {
         Self::ensure_window_and_emit(app_handle, "open-llm-config");
     }
-
     fn open_skills_market<R: Runtime>(app_handle: &AppHandle<R>) {
         Self::ensure_window_and_emit(app_handle, "open-skills-market");
     }
-
     fn open_history<R: Runtime>(app_handle: &AppHandle<R>) {
         Self::ensure_window_and_emit(app_handle, "open-history");
     }
-
     fn open_favorites<R: Runtime>(app_handle: &AppHandle<R>) {
         Self::ensure_window_and_emit(app_handle, "open-favorites");
     }
-
     fn open_scheduled_tasks<R: Runtime>(app_handle: &AppHandle<R>) {
         Self::ensure_window_and_emit(app_handle, "open-scheduled-tasks");
     }
-
     fn open_settings<R: Runtime>(app_handle: &AppHandle<R>) {
         Self::ensure_window_and_emit(app_handle, "open-settings");
     }
-
     fn open_history_directory() {
         let history_dir = crate::commands::get_dialog_history_dir();
         if !history_dir.exists() {
@@ -213,7 +195,6 @@ impl TrayManager {
         }
         Self::open_path(&history_dir);
     }
-
     fn open_notification_directory() {
         let notification_dir = crate::commands::get_notifications_dir();
         if !notification_dir.exists() {
@@ -221,7 +202,6 @@ impl TrayManager {
         }
         Self::open_path(&notification_dir);
     }
-
     fn open_workspace_directory() {
         let workspace_path = crate::workspace::get_default_workspace()
             .ok()
@@ -234,25 +214,20 @@ impl TrayManager {
         }
         Self::open_path(&workspace_dir);
     }
-
     fn check_updates<R: Runtime>(app_handle: &AppHandle<R>) {
         Self::ensure_window_and_emit(app_handle, "check-updates");
     }
-
     fn about<R: Runtime>(app_handle: &AppHandle<R>) {
         Self::ensure_window_and_emit(app_handle, "show-about");
     }
-
     #[cfg(target_os = "windows")]
     fn open_path(path: &std::path::Path) {
         let _ = std::process::Command::new("explorer").arg(path).spawn();
     }
-
     #[cfg(target_os = "macos")]
     fn open_path(path: &std::path::Path) {
         let _ = std::process::Command::new("open").arg(path).spawn();
     }
-
     #[cfg(target_os = "linux")]
     fn open_path(path: &std::path::Path) {
         let _ = std::process::Command::new("xdg-open").arg(path).spawn();

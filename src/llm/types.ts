@@ -2,10 +2,9 @@
  * LLM response structure definition
  * Used to constrain the response format returned by LLM to the frontend
  */
-
 /**
- * Resource link (remote or local)
- */
+* Resource link (remote or local)
+*/
 export interface ResourceLink {
   /** Link name */
   n: string;
@@ -16,10 +15,9 @@ export interface ResourceLink {
   /** Resource type, e.g.: image, video, executable, torrent, document, audio, archive, code */
   t: string;
 }
-
 /**
- * Terminal display result - structured, professional output
- */
+* Terminal display result - structured, professional output
+*/
 export interface TerminalResponse {
   /** Plain text message */
   m: string,
@@ -56,28 +54,25 @@ export interface TerminalResponse {
   /** CandleView chart operations */
   candleview?: CandleViewOperation;
 }
-
 /**
- * Dialog response data - read-only human-friendly information, concise, token-efficient
- */
+* Dialog response data - read-only human-friendly information, concise, token-efficient
+*/
 export interface ChatResponse {
   /** Human-friendly response message (main reply content) */
   m: string;
   /** Subtitle/additional info (optional, for extra human-friendly information) */
   s?: string;
 }
-
 /**
- * HippoxOS LLM response main structure
- * LLM must strictly return according to this structure, no extra characters allowed
- */
+* HippoxOS LLM response main structure
+* LLM must strictly return according to this structure, no extra characters allowed
+*/
 export interface HippoxOSResult {
   /** Terminal display result - structured, professional output, can be null */
   terminalResponse: TerminalResponse | null;
   /** Dialog response data - read-only human-friendly info */
   chatResponse: ChatResponse;
 }
-
 export interface EarthViewOperation {
   view?: {
     center?: [number, number];
@@ -182,10 +177,9 @@ export interface CandleViewOperation {
     action?: 'enable' | 'disable' | 'clear';
   };
 }
-
 /**
- * Validate if response is a valid HippoxOSResult
- */
+* Validate if response is a valid HippoxOSResult
+*/
 export function isValidHippoxOSResult(obj: any): obj is HippoxOSResult {
   if (!obj || typeof obj !== 'object') return false;
   // Check if chatResponse exists and has correct format
@@ -212,11 +206,10 @@ export function isValidHippoxOSResult(obj: any): obj is HippoxOSResult {
   }
   return true;
 }
-
 /**
- * Extract HippoxOSResult JSON from arbitrary text
- * Used to handle LLM responses that may contain extra characters
- */
+* Extract HippoxOSResult JSON from arbitrary text
+* Used to handle LLM responses that may contain extra characters
+*/
 export function extractHippoxOSResult(text: string): HippoxOSResult | null {
   try {
     // Try direct parsing

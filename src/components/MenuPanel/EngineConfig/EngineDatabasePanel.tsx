@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from "react";
 import { showToast, ToastType } from "../../Toast";
 import { showDialog, DialogType } from "../../Dialog";
 import { engineCommands } from "../../../command/config";
-
 interface DatabaseInstance {
   id: string;
   name: string;
@@ -19,28 +18,18 @@ interface DatabaseInstance {
   created_at: string;
   updated_at: string;
 }
-
 interface EngineDatabasePanelProps {
   t: (key: string, params?: any) => string;
   initialConfig?: any;
   onSave?: (config: any) => void;
 }
-
-const DB_TYPE_CONFIG: Record<
-  string,
-  { name: string; icon: string; defaultPort: number }
-> = {
+const DB_TYPE_CONFIG: Record<string, { name: string; icon: string; defaultPort: number }> = {
   postgresql: { name: "PostgreSQL", icon: "🐘", defaultPort: 5432 },
   mysql: { name: "MySQL", icon: "🐬", defaultPort: 3306 },
   redis: { name: "Redis", icon: "⚡", defaultPort: 6379 },
   sqlite: { name: "SQLite", icon: "📁", defaultPort: 0 },
 };
-
-const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
-  t,
-  initialConfig,
-  onSave,
-}) => {
+const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({ t, initialConfig, onSave }) => {
   const [instances, setInstances] = useState<DatabaseInstance[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<string>("postgresql");
@@ -58,27 +47,21 @@ const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
   const [formPassword, setFormPassword] = useState("");
   const [formRedisDb, setFormRedisDb] = useState(0);
   const [formSqlitePath, setFormSqlitePath] = useState("");
-
   const dbTypes = Object.keys(DB_TYPE_CONFIG);
-
   useEffect(() => {
     loadInstances();
   }, []);
-
   useEffect(() => {
     checkScrollButtons();
     window.addEventListener("resize", checkScrollButtons);
     return () => window.removeEventListener("resize", checkScrollButtons);
   }, [dbTypes]);
-
   useEffect(() => {
     setTimeout(checkScrollButtons, 0);
   }, [dbTypes]);
-
   useEffect(() => {
     setFormPort(DB_TYPE_CONFIG[activeTab]?.defaultPort || 0);
   }, [activeTab]);
-
   const loadInstances = async () => {
     setLoading(true);
     try {
@@ -89,15 +72,9 @@ const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
     }
     setLoading(false);
   };
-
-  const handleToggleEnabled = async (
-    id: string,
-    name: string,
-    enabled: boolean,
-  ) => {
+  const handleToggleEnabled = async (id: string, name: string, enabled: boolean) => {
     const newEnabled = !enabled;
     const actionText = newEnabled ? "enable" : "disable";
-
     if (!newEnabled) {
       showDialog(
         DialogType.WARNING,
@@ -106,10 +83,7 @@ const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
         async () => {
           await engineCommands.toggleDatabaseInstance(id, newEnabled);
           await loadInstances();
-          showToast(
-            ToastType.SUCCESS,
-            t(`database.${actionText}Success`, { name }),
-          );
+          showToast(ToastType.SUCCESS, t(`database.${actionText}Success`, { name }));
         },
         undefined,
         t("database.disable"),
@@ -118,13 +92,9 @@ const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
     } else {
       await engineCommands.toggleDatabaseInstance(id, newEnabled);
       await loadInstances();
-      showToast(
-        ToastType.SUCCESS,
-        t(`database.${actionText}Success`, { name }),
-      );
+      showToast(ToastType.SUCCESS, t(`database.${actionText}Success`, { name }));
     }
   };
-
   const handleDelete = async (id: string, name: string) => {
     showDialog(
       DialogType.WARNING,
@@ -140,7 +110,6 @@ const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
       t("common.cancel"),
     );
   };
-
   const handleEdit = (instance: DatabaseInstance) => {
     setEditingId(instance.id);
     setFormName(instance.name);
@@ -154,7 +123,6 @@ const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
     setFormSqlitePath(instance.sqlite_path || "");
     setShowAddForm(true);
   };
-
   const resetForm = () => {
     setShowAddForm(false);
     setEditingId(null);
@@ -168,10 +136,8 @@ const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
     setFormRedisDb(0);
     setFormSqlitePath("");
   };
-
   const handleSave = async () => {
     if (!formName.trim()) return;
-
     try {
       await engineCommands.saveDatabaseInstance({
         id: editingId || undefined,
@@ -187,58 +153,40 @@ const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
         sqlite_path: activeTab === "sqlite" ? formSqlitePath : undefined,
         enabled: true,
       });
-
       await loadInstances();
-
       if (editingId) {
-        showToast(
-          ToastType.SUCCESS,
-          t("database.updateSuccess", { name: formName }),
-        );
+        showToast(ToastType.SUCCESS, t("database.updateSuccess", { name: formName }));
       } else {
-        showToast(
-          ToastType.SUCCESS,
-          t("database.addSuccess", { type: getTypeName(activeTab) }),
-        );
+        showToast(ToastType.SUCCESS, t("database.addSuccess", { type: getTypeName(activeTab) }));
       }
       resetForm();
     } catch (error) {
       showToast(ToastType.ERROR, t("common.error"));
     }
   };
-
   const getInstancesByType = (type: string) => {
     return instances.filter((i) => i.type === type);
   };
-
   const getTypeIcon = (type: string) => {
     return DB_TYPE_CONFIG[type]?.icon || "🗄️";
   };
-
   const getTypeName = (type: string) => {
     return DB_TYPE_CONFIG[type]?.name || type;
   };
-
   const scrollTabs = (direction: "left" | "right") => {
     if (tabsRef.current) {
       const scrollAmount = 200;
-      const newScrollLeft =
-        tabsRef.current.scrollLeft +
-        (direction === "left" ? -scrollAmount : scrollAmount);
+      const newScrollLeft = tabsRef.current.scrollLeft + (direction === "left" ? -scrollAmount : scrollAmount);
       tabsRef.current.scrollTo({ left: newScrollLeft, behavior: "smooth" });
     }
   };
-
   const checkScrollButtons = () => {
     if (tabsRef.current) {
       const { scrollLeft, scrollWidth, clientWidth } = tabsRef.current;
       setShowLeftArrow(scrollLeft > 0);
-      setShowRightArrow(
-        scrollWidth > clientWidth && scrollLeft + clientWidth < scrollWidth - 5,
-      );
+      setShowRightArrow(scrollWidth > clientWidth && scrollLeft + clientWidth < scrollWidth - 5);
     }
   };
-
   const labelStyle: React.CSSProperties = {
     fontSize: "13px",
     color: "var(--text-primary)",
@@ -246,7 +194,6 @@ const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
     flexShrink: 0,
     userSelect: "none",
   };
-
   const inputStyle: React.CSSProperties = {
     flex: 1,
     minWidth: 0,
@@ -258,7 +205,6 @@ const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
     fontSize: "13px",
     outline: "none",
   };
-
   const buttonStyle: React.CSSProperties = {
     padding: "6px 16px",
     background: "var(--bg-secondary)",
@@ -269,20 +215,17 @@ const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
     cursor: "pointer",
     // transition: "all 0.2s",
   };
-
   const addButtonStyle: React.CSSProperties = {
     ...buttonStyle,
     background: "var(--accent-color, #0066cc)",
     color: "white",
     border: "none",
   };
-
   const deleteButtonStyle: React.CSSProperties = {
     ...buttonStyle,
     color: "var(--error-color, #dc2626)",
     borderColor: "var(--error-color, #dc2626)",
   };
-
   const cardStyle: React.CSSProperties = {
     background: "var(--bg-secondary)",
     borderRadius: "8px",
@@ -290,7 +233,6 @@ const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
     marginBottom: "12px",
     border: "1px solid var(--border-color)",
   };
-
   const badgeStyle: React.CSSProperties = {
     background: "var(--accent-color, #0066cc)",
     color: "white",
@@ -299,17 +241,14 @@ const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
     borderRadius: "12px",
     marginLeft: "8px",
   };
-
   const enabledBadgeStyle: React.CSSProperties = {
     ...badgeStyle,
     background: "#10b981",
   };
-
   const disabledBadgeStyle: React.CSSProperties = {
     ...badgeStyle,
     background: "#6b7280",
   };
-
   const tabsStyles = `
     .db-tabs-container {
       position: relative;
@@ -379,7 +318,6 @@ const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
       color: var(--text-primary);
     }
   `;
-
   if (typeof document !== "undefined") {
     const styleId = "db-tabs-styles";
     if (!document.getElementById(styleId)) {
@@ -389,7 +327,6 @@ const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
       document.head.appendChild(style);
     }
   }
-
   if (loading) {
     return (
       <div
@@ -404,9 +341,7 @@ const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
       </div>
     );
   }
-
   const currentInstances = getInstancesByType(activeTab);
-
   return (
     <div
       style={{
@@ -418,18 +353,11 @@ const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
     >
       <div className="db-tabs-container" style={{ padding: "0px", margin: 0 }}>
         {showLeftArrow && (
-          <button
-            className="db-tab-scroll-btn"
-            onClick={() => scrollTabs("left")}
-          >
+          <button className="db-tab-scroll-btn" onClick={() => scrollTabs("left")}>
             ◀
           </button>
         )}
-        <div
-          className="db-tabs-scroll"
-          ref={tabsRef}
-          onScroll={checkScrollButtons}
-        >
+        <div className="db-tabs-scroll" ref={tabsRef} onScroll={checkScrollButtons}>
           <div className="db-tabs">
             {dbTypes.map((type) => (
               <button
@@ -446,15 +374,11 @@ const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
           </div>
         </div>
         {showRightArrow && (
-          <button
-            className="db-tab-scroll-btn"
-            onClick={() => scrollTabs("right")}
-          >
+          <button className="db-tab-scroll-btn" onClick={() => scrollTabs("right")}>
             ▶
           </button>
         )}
       </div>
-
       <div
         style={{
           flex: 1,
@@ -498,17 +422,8 @@ const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
                 >
                   {getTypeIcon(instance.type)} {instance.name}
                 </span>
-                <span
-                  style={
-                    instance.enabled ? enabledBadgeStyle : disabledBadgeStyle
-                  }
-                >
-                  {instance.enabled
-                    ? t("database.enabled")
-                    : t("database.disabled")}
-                </span>
+                <span style={instance.enabled ? enabledBadgeStyle : disabledBadgeStyle}>{instance.enabled ? t("database.enabled") : t("database.disabled")}</span>
               </div>
-
               {instance.description && (
                 <div
                   style={{
@@ -520,16 +435,9 @@ const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
                   }}
                 >
                   <label style={labelStyle}>{t("database.description")}</label>
-                  <input
-                    type="text"
-                    style={inputStyle}
-                    value={instance.description}
-                    disabled
-                    readOnly
-                  />
+                  <input type="text" style={inputStyle} value={instance.description} disabled readOnly />
                 </div>
               )}
-
               {instance.type !== "sqlite" ? (
                 <>
                   <div
@@ -542,13 +450,7 @@ const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
                     }}
                   >
                     <label style={labelStyle}>{t("database.host")}</label>
-                    <input
-                      type="text"
-                      style={inputStyle}
-                      value={instance.host}
-                      disabled
-                      readOnly
-                    />
+                    <input type="text" style={inputStyle} value={instance.host} disabled readOnly />
                   </div>
                   <div
                     style={{
@@ -560,13 +462,7 @@ const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
                     }}
                   >
                     <label style={labelStyle}>{t("database.port")}</label>
-                    <input
-                      type="number"
-                      style={inputStyle}
-                      value={instance.port}
-                      disabled
-                      readOnly
-                    />
+                    <input type="number" style={inputStyle} value={instance.port} disabled readOnly />
                   </div>
                 </>
               ) : (
@@ -580,16 +476,9 @@ const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
                   }}
                 >
                   <label style={labelStyle}>{t("database.path")}</label>
-                  <input
-                    type="text"
-                    style={inputStyle}
-                    value={instance.sqlite_path}
-                    disabled
-                    readOnly
-                  />
+                  <input type="text" style={inputStyle} value={instance.sqlite_path} disabled readOnly />
                 </div>
               )}
-
               {instance.type !== "redis" && instance.type !== "sqlite" && (
                 <>
                   <div
@@ -602,13 +491,7 @@ const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
                     }}
                   >
                     <label style={labelStyle}>{t("database.database")}</label>
-                    <input
-                      type="text"
-                      style={inputStyle}
-                      value={instance.database}
-                      disabled
-                      readOnly
-                    />
+                    <input type="text" style={inputStyle} value={instance.database} disabled readOnly />
                   </div>
                   <div
                     style={{
@@ -620,17 +503,10 @@ const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
                     }}
                   >
                     <label style={labelStyle}>{t("database.username")}</label>
-                    <input
-                      type="text"
-                      style={inputStyle}
-                      value={instance.username}
-                      disabled
-                      readOnly
-                    />
+                    <input type="text" style={inputStyle} value={instance.username} disabled readOnly />
                   </div>
                 </>
               )}
-
               {instance.type === "redis" && (
                 <div
                   style={{
@@ -642,16 +518,9 @@ const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
                   }}
                 >
                   <label style={labelStyle}>{t("database.db")}</label>
-                  <input
-                    type="number"
-                    style={inputStyle}
-                    value={instance.redis_db}
-                    disabled
-                    readOnly
-                  />
+                  <input type="number" style={inputStyle} value={instance.redis_db} disabled readOnly />
                 </div>
               )}
-
               <div
                 style={{
                   display: "flex",
@@ -666,17 +535,9 @@ const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
                     fontSize: "11px",
                     padding: "4px 10px",
                   }}
-                  onClick={() =>
-                    handleToggleEnabled(
-                      instance.id,
-                      instance.name,
-                      instance.enabled,
-                    )
-                  }
+                  onClick={() => handleToggleEnabled(instance.id, instance.name, instance.enabled)}
                 >
-                  {instance.enabled
-                    ? t("database.disable")
-                    : t("database.enable")}
+                  {instance.enabled ? t("database.disable") : t("database.enable")}
                 </button>
                 <button
                   style={{
@@ -702,7 +563,6 @@ const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
             </div>
           ))
         )}
-
         {showAddForm ? (
           <div style={cardStyle}>
             <div
@@ -713,11 +573,8 @@ const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
                 marginBottom: "12px",
               }}
             >
-              {editingId
-                ? t("database.editInstance")
-                : t("database.addInstance", { type: getTypeName(activeTab) })}
+              {editingId ? t("database.editInstance") : t("database.addInstance", { type: getTypeName(activeTab) })}
             </div>
-
             <div
               style={{
                 display: "flex",
@@ -728,15 +585,8 @@ const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
               }}
             >
               <label style={labelStyle}>{t("database.name")}</label>
-              <input
-                type="text"
-                style={inputStyle}
-                value={formName}
-                onChange={(e) => setFormName(e.target.value)}
-                placeholder={t("database.namePlaceholder")}
-              />
+              <input type="text" style={inputStyle} value={formName} onChange={(e) => setFormName(e.target.value)} placeholder={t("database.namePlaceholder")} />
             </div>
-
             <div
               style={{
                 display: "flex",
@@ -747,15 +597,8 @@ const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
               }}
             >
               <label style={labelStyle}>{t("database.description")}</label>
-              <input
-                type="text"
-                style={inputStyle}
-                value={formDescription}
-                onChange={(e) => setFormDescription(e.target.value)}
-                placeholder={t("database.descriptionPlaceholder")}
-              />
+              <input type="text" style={inputStyle} value={formDescription} onChange={(e) => setFormDescription(e.target.value)} placeholder={t("database.descriptionPlaceholder")} />
             </div>
-
             {activeTab !== "sqlite" ? (
               <>
                 <div
@@ -768,13 +611,7 @@ const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
                   }}
                 >
                   <label style={labelStyle}>{t("database.host")}</label>
-                  <input
-                    type="text"
-                    style={inputStyle}
-                    value={formHost}
-                    onChange={(e) => setFormHost(e.target.value)}
-                    placeholder="localhost"
-                  />
+                  <input type="text" style={inputStyle} value={formHost} onChange={(e) => setFormHost(e.target.value)} placeholder="localhost" />
                 </div>
                 <div
                   style={{
@@ -786,12 +623,7 @@ const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
                   }}
                 >
                   <label style={labelStyle}>{t("database.port")}</label>
-                  <input
-                    type="number"
-                    style={inputStyle}
-                    value={formPort}
-                    onChange={(e) => setFormPort(parseInt(e.target.value) || 0)}
-                  />
+                  <input type="number" style={inputStyle} value={formPort} onChange={(e) => setFormPort(parseInt(e.target.value) || 0)} />
                 </div>
               </>
             ) : (
@@ -805,13 +637,7 @@ const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
                 }}
               >
                 <label style={labelStyle}>{t("database.path")}</label>
-                <input
-                  type="text"
-                  style={inputStyle}
-                  value={formSqlitePath}
-                  onChange={(e) => setFormSqlitePath(e.target.value)}
-                  placeholder="/path/to/database.db"
-                />
+                <input type="text" style={inputStyle} value={formSqlitePath} onChange={(e) => setFormSqlitePath(e.target.value)} placeholder="/path/to/database.db" />
               </div>
             )}
             {activeTab !== "redis" && activeTab !== "sqlite" && (
@@ -826,12 +652,7 @@ const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
                   }}
                 >
                   <label style={labelStyle}>{t("database.database")}</label>
-                  <input
-                    type="text"
-                    style={inputStyle}
-                    value={formDatabase}
-                    onChange={(e) => setFormDatabase(e.target.value)}
-                  />
+                  <input type="text" style={inputStyle} value={formDatabase} onChange={(e) => setFormDatabase(e.target.value)} />
                 </div>
                 <div
                   style={{
@@ -843,12 +664,7 @@ const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
                   }}
                 >
                   <label style={labelStyle}>{t("database.username")}</label>
-                  <input
-                    type="text"
-                    style={inputStyle}
-                    value={formUsername}
-                    onChange={(e) => setFormUsername(e.target.value)}
-                  />
+                  <input type="text" style={inputStyle} value={formUsername} onChange={(e) => setFormUsername(e.target.value)} />
                 </div>
               </>
             )}
@@ -863,12 +679,7 @@ const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
                 }}
               >
                 <label style={labelStyle}>{t("database.password")}</label>
-                <input
-                  type="password"
-                  style={inputStyle}
-                  value={formPassword}
-                  onChange={(e) => setFormPassword(e.target.value)}
-                />
+                <input type="password" style={inputStyle} value={formPassword} onChange={(e) => setFormPassword(e.target.value)} />
               </div>
             )}
             {activeTab === "redis" && (
@@ -882,17 +693,9 @@ const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
                 }}
               >
                 <label style={labelStyle}>{t("database.db")}</label>
-                <input
-                  type="number"
-                  style={inputStyle}
-                  value={formRedisDb}
-                  onChange={(e) =>
-                    setFormRedisDb(parseInt(e.target.value) || 0)
-                  }
-                />
+                <input type="number" style={inputStyle} value={formRedisDb} onChange={(e) => setFormRedisDb(parseInt(e.target.value) || 0)} />
               </div>
             )}
-
             <div
               style={{
                 display: "flex",
@@ -924,5 +727,4 @@ const EngineDatabasePanel: React.FC<EngineDatabasePanelProps> = ({
     </div>
   );
 };
-
 export default EngineDatabasePanel;

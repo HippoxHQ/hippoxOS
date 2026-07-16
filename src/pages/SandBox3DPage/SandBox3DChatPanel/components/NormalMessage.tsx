@@ -3,7 +3,6 @@ import { MessageFileGrid } from "./MessageFileGrid";
 import { EditMessageForm } from "./EditMessageForm";
 import { MessageActions } from "./MessageActions";
 import { ChatMessage } from "../../../../types/types";
-
 interface NormalMessageProps {
   msg: ChatMessage;
   isUser: boolean;
@@ -20,7 +19,6 @@ interface NormalMessageProps {
   formatFileSize: (bytes: number) => string;
   t: (key: string, params?: any) => string;
 }
-
 export const NormalMessage: React.FC<NormalMessageProps> = ({
   msg,
   isUser,
@@ -39,22 +37,9 @@ export const NormalMessage: React.FC<NormalMessageProps> = ({
 }) => {
   return (
     <>
-      {isUser && msg.files && msg.files.length > 0 && (
-        <MessageFileGrid
-          files={msg.files}
-          onFileClick={onFileClick}
-          formatFileSize={formatFileSize}
-        />
-      )}
-
+      {isUser && msg.files && msg.files.length > 0 && <MessageFileGrid files={msg.files} onFileClick={onFileClick} formatFileSize={formatFileSize} />}
       {editingMessageId === msg.id ? (
-        <EditMessageForm
-          editContent={editContent}
-          setEditContent={setEditContent}
-          onSave={() => onSaveEdit(msg)}
-          onCancel={onCancelEdit}
-          t={t}
-        />
+        <EditMessageForm editContent={editContent} setEditContent={setEditContent} onSave={() => onSaveEdit(msg)} onCancel={onCancelEdit} t={t} />
       ) : (
         <div
           className="message-bubble"
@@ -81,21 +66,10 @@ export const NormalMessage: React.FC<NormalMessageProps> = ({
           >
             {msg.content}
           </div>
-          <div className="message-time">
-            {new Date(msg.timestamp).toLocaleTimeString()}
-          </div>
+          <div className="message-time">{new Date(msg.timestamp).toLocaleTimeString()}</div>
         </div>
       )}
-
-      <MessageActions
-        msg={msg}
-        isUser={isUser}
-        copyToClipboard={copyToClipboard}
-        onLocateTask={onLocateTask}
-        onEditMessage={onEditMessage}
-        onResendMessage={onResendMessage}
-        t={t}
-      />
+      <MessageActions msg={msg} isUser={isUser} copyToClipboard={copyToClipboard} onLocateTask={onLocateTask} onEditMessage={onEditMessage} onResendMessage={onResendMessage} t={t} />
     </>
   );
 };

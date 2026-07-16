@@ -9,15 +9,9 @@ interface MessageFileGridProps {
   formatFileSize: (bytes: number) => string;
 }
 
-export const MessageFileGrid: React.FC<MessageFileGridProps> = ({
-  files,
-  onFileClick,
-  formatFileSize,
-}) => {
+export const MessageFileGrid: React.FC<MessageFileGridProps> = ({ files, onFileClick, formatFileSize }) => {
   const [skillNames, setSkillNames] = useState<Map<string, string>>(new Map());
-  const [imagePreviews, setImagePreviews] = useState<Map<string, string>>(
-    new Map(),
-  );
+  const [imagePreviews, setImagePreviews] = useState<Map<string, string>>(new Map());
   const [fileSizes, setFileSizes] = useState<Map<string, number>>(new Map());
   const isMountedRef = useRef(true);
 
@@ -26,16 +20,7 @@ export const MessageFileGrid: React.FC<MessageFileGridProps> = ({
   };
 
   const isImageFile = (file: UploadFile): boolean => {
-    const imageExtensions = [
-      ".png",
-      ".jpg",
-      ".jpeg",
-      ".gif",
-      ".webp",
-      ".bmp",
-      ".svg",
-      ".ico",
-    ];
+    const imageExtensions = [".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".svg", ".ico"];
     const name = file.name?.toLowerCase() || "";
     return imageExtensions.some((ext) => name.endsWith(ext));
   };
@@ -187,9 +172,7 @@ export const MessageFileGrid: React.FC<MessageFileGridProps> = ({
               gap: "4px",
               padding: "8px",
               background: isSkill ? "var(--accent-glow)" : "var(--bg-tertiary)",
-              border: isSkill
-                ? "1px solid var(--accent-color)"
-                : "1px solid var(--border-color)",
+              border: isSkill ? "1px solid var(--accent-color)" : "1px solid var(--border-color)",
               borderRadius: "8px",
               cursor: "pointer",
               // transition: "all 0.2s ease",
@@ -204,9 +187,7 @@ export const MessageFileGrid: React.FC<MessageFileGridProps> = ({
               e.currentTarget.style.transform = "translateY(-1px)";
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.background = isSkill
-                ? "var(--accent-glow)"
-                : "var(--bg-tertiary)";
+              e.currentTarget.style.background = isSkill ? "var(--accent-glow)" : "var(--bg-tertiary)";
               if (!isSkill) {
                 e.currentTarget.style.borderColor = "var(--border-color)";
               }
@@ -284,9 +265,7 @@ export const MessageFileGrid: React.FC<MessageFileGridProps> = ({
                   whiteSpace: "nowrap",
                 }}
               >
-                {displayName.length > 15
-                  ? displayName.slice(0, 12) + "..."
-                  : displayName}
+                {displayName.length > 15 ? displayName.slice(0, 12) + "..." : displayName}
               </span>
               <span
                 className="file-size"

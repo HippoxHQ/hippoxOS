@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from "react";
 import { showToast, ToastType } from "../../Toast";
 import { showDialog, DialogType } from "../../Dialog";
 import { engineCommands } from "../../../command/config";
-
 interface NetworkInstance {
   id: string;
   name: string;
@@ -19,27 +18,17 @@ interface NetworkInstance {
   created_at: string;
   updated_at: string;
 }
-
 interface EngineNetworkPanelProps {
   t: (key: string, params?: any) => string;
   initialConfig?: any;
   onSave?: (config: any) => void;
 }
-
-const NETWORK_TYPE_CONFIG: Record<
-  string,
-  { name: string; icon: string; defaultPort: number }
-> = {
+const NETWORK_TYPE_CONFIG: Record<string, { name: string; icon: string; defaultPort: number }> = {
   tcp: { name: "TCP", icon: "🔌", defaultPort: 8888 },
   udp: { name: "UDP", icon: "📡", defaultPort: 9999 },
   ftp: { name: "FTP", icon: "📁", defaultPort: 21 },
 };
-
-const EngineNetworkPanel: React.FC<EngineNetworkPanelProps> = ({
-  t,
-  initialConfig,
-  onSave,
-}) => {
+const EngineNetworkPanel: React.FC<EngineNetworkPanelProps> = ({ t, initialConfig, onSave }) => {
   const [instances, setInstances] = useState<NetworkInstance[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<string>("tcp");
@@ -57,23 +46,18 @@ const EngineNetworkPanel: React.FC<EngineNetworkPanelProps> = ({
   const [formUsername, setFormUsername] = useState("");
   const [formPassword, setFormPassword] = useState("");
   const [formRemoteDir, setFormRemoteDir] = useState("/");
-
   const networkTypes = Object.keys(NETWORK_TYPE_CONFIG);
-
   useEffect(() => {
     loadInstances();
   }, []);
-
   useEffect(() => {
     checkScrollButtons();
     window.addEventListener("resize", checkScrollButtons);
     return () => window.removeEventListener("resize", checkScrollButtons);
   }, [networkTypes]);
-
   useEffect(() => {
     setTimeout(checkScrollButtons, 0);
   }, [networkTypes]);
-
   useEffect(() => {
     setFormPort(NETWORK_TYPE_CONFIG[activeTab]?.defaultPort || 8888);
     if (activeTab === "tcp") {
@@ -87,7 +71,6 @@ const EngineNetworkPanel: React.FC<EngineNetworkPanelProps> = ({
       setFormRemoteDir("/");
     }
   }, [activeTab]);
-
   const loadInstances = async () => {
     setLoading(true);
     try {
@@ -98,15 +81,9 @@ const EngineNetworkPanel: React.FC<EngineNetworkPanelProps> = ({
     }
     setLoading(false);
   };
-
-  const handleToggleEnabled = async (
-    id: string,
-    name: string,
-    enabled: boolean,
-  ) => {
+  const handleToggleEnabled = async (id: string, name: string, enabled: boolean) => {
     const newEnabled = !enabled;
     const actionText = newEnabled ? "enable" : "disable";
-
     if (!newEnabled) {
       showDialog(
         DialogType.WARNING,
@@ -115,10 +92,7 @@ const EngineNetworkPanel: React.FC<EngineNetworkPanelProps> = ({
         async () => {
           await engineCommands.toggleNetworkInstance(id, newEnabled);
           await loadInstances();
-          showToast(
-            ToastType.SUCCESS,
-            t(`network.${actionText}Success`, { name }),
-          );
+          showToast(ToastType.SUCCESS, t(`network.${actionText}Success`, { name }));
         },
         undefined,
         t("network.disable"),
@@ -130,7 +104,6 @@ const EngineNetworkPanel: React.FC<EngineNetworkPanelProps> = ({
       showToast(ToastType.SUCCESS, t(`network.${actionText}Success`, { name }));
     }
   };
-
   const handleDelete = async (id: string, name: string) => {
     showDialog(
       DialogType.WARNING,
@@ -146,7 +119,6 @@ const EngineNetworkPanel: React.FC<EngineNetworkPanelProps> = ({
       t("common.cancel"),
     );
   };
-
   const handleEdit = (instance: NetworkInstance) => {
     setEditingId(instance.id);
     setFormName(instance.name);
@@ -160,7 +132,6 @@ const EngineNetworkPanel: React.FC<EngineNetworkPanelProps> = ({
     setFormRemoteDir(instance.remote_dir || "/");
     setShowAddForm(true);
   };
-
   const resetForm = () => {
     setShowAddForm(false);
     setEditingId(null);
@@ -174,10 +145,8 @@ const EngineNetworkPanel: React.FC<EngineNetworkPanelProps> = ({
     setFormPassword("");
     setFormRemoteDir("/");
   };
-
   const handleSave = async () => {
     if (!formName.trim()) return;
-
     try {
       await engineCommands.saveNetworkInstance({
         id: editingId || undefined,
@@ -193,58 +162,40 @@ const EngineNetworkPanel: React.FC<EngineNetworkPanelProps> = ({
         remote_dir: activeTab === "ftp" ? formRemoteDir : undefined,
         enabled: true,
       });
-
       await loadInstances();
-
       if (editingId) {
-        showToast(
-          ToastType.SUCCESS,
-          t("network.updateSuccess", { name: formName }),
-        );
+        showToast(ToastType.SUCCESS, t("network.updateSuccess", { name: formName }));
       } else {
-        showToast(
-          ToastType.SUCCESS,
-          t("network.addSuccess", { type: getTypeName(activeTab) }),
-        );
+        showToast(ToastType.SUCCESS, t("network.addSuccess", { type: getTypeName(activeTab) }));
       }
       resetForm();
     } catch (error) {
       showToast(ToastType.ERROR, t("common.error"));
     }
   };
-
   const getInstancesByType = (type: string) => {
     return instances.filter((i) => i.type === type);
   };
-
   const getTypeIcon = (type: string) => {
     return NETWORK_TYPE_CONFIG[type]?.icon || "🌐";
   };
-
   const getTypeName = (type: string) => {
     return NETWORK_TYPE_CONFIG[type]?.name || type;
   };
-
   const scrollTabs = (direction: "left" | "right") => {
     if (tabsRef.current) {
       const scrollAmount = 200;
-      const newScrollLeft =
-        tabsRef.current.scrollLeft +
-        (direction === "left" ? -scrollAmount : scrollAmount);
+      const newScrollLeft = tabsRef.current.scrollLeft + (direction === "left" ? -scrollAmount : scrollAmount);
       tabsRef.current.scrollTo({ left: newScrollLeft, behavior: "smooth" });
     }
   };
-
   const checkScrollButtons = () => {
     if (tabsRef.current) {
       const { scrollLeft, scrollWidth, clientWidth } = tabsRef.current;
       setShowLeftArrow(scrollLeft > 0);
-      setShowRightArrow(
-        scrollWidth > clientWidth && scrollLeft + clientWidth < scrollWidth - 5,
-      );
+      setShowRightArrow(scrollWidth > clientWidth && scrollLeft + clientWidth < scrollWidth - 5);
     }
   };
-
   const labelStyle: React.CSSProperties = {
     fontSize: "13px",
     color: "var(--text-primary)",
@@ -252,7 +203,6 @@ const EngineNetworkPanel: React.FC<EngineNetworkPanelProps> = ({
     flexShrink: 0,
     userSelect: "none",
   };
-
   const inputStyle: React.CSSProperties = {
     flex: 1,
     minWidth: 0,
@@ -264,7 +214,6 @@ const EngineNetworkPanel: React.FC<EngineNetworkPanelProps> = ({
     fontSize: "13px",
     outline: "none",
   };
-
   const selectStyle: React.CSSProperties = { ...inputStyle, cursor: "pointer" };
   const checkboxStyle: React.CSSProperties = {
     width: "18px",
@@ -272,7 +221,6 @@ const EngineNetworkPanel: React.FC<EngineNetworkPanelProps> = ({
     cursor: "pointer",
     flexShrink: 0,
   };
-
   const buttonStyle: React.CSSProperties = {
     padding: "6px 16px",
     background: "var(--bg-secondary)",
@@ -283,20 +231,17 @@ const EngineNetworkPanel: React.FC<EngineNetworkPanelProps> = ({
     cursor: "pointer",
     // transition: "all 0.2s",
   };
-
   const addButtonStyle: React.CSSProperties = {
     ...buttonStyle,
     background: "var(--accent-color, #0066cc)",
     color: "white",
     border: "none",
   };
-
   const deleteButtonStyle: React.CSSProperties = {
     ...buttonStyle,
     color: "var(--error-color, #dc2626)",
     borderColor: "var(--error-color, #dc2626)",
   };
-
   const cardStyle: React.CSSProperties = {
     background: "var(--bg-secondary)",
     borderRadius: "8px",
@@ -304,7 +249,6 @@ const EngineNetworkPanel: React.FC<EngineNetworkPanelProps> = ({
     marginBottom: "12px",
     border: "1px solid var(--border-color)",
   };
-
   const badgeStyle: React.CSSProperties = {
     background: "var(--accent-color, #0066cc)",
     color: "white",
@@ -313,17 +257,14 @@ const EngineNetworkPanel: React.FC<EngineNetworkPanelProps> = ({
     borderRadius: "12px",
     marginLeft: "8px",
   };
-
   const enabledBadgeStyle: React.CSSProperties = {
     ...badgeStyle,
     background: "#10b981",
   };
-
   const disabledBadgeStyle: React.CSSProperties = {
     ...badgeStyle,
     background: "#6b7280",
   };
-
   const tabsStyles = `
     .network-tabs-container {
       position: relative;
@@ -393,7 +334,6 @@ const EngineNetworkPanel: React.FC<EngineNetworkPanelProps> = ({
       color: var(--text-primary);
     }
   `;
-
   if (typeof document !== "undefined") {
     const styleId = "network-tabs-styles";
     if (!document.getElementById(styleId)) {
@@ -403,7 +343,6 @@ const EngineNetworkPanel: React.FC<EngineNetworkPanelProps> = ({
       document.head.appendChild(style);
     }
   }
-
   if (loading) {
     return (
       <div
@@ -418,9 +357,7 @@ const EngineNetworkPanel: React.FC<EngineNetworkPanelProps> = ({
       </div>
     );
   }
-
   const currentInstances = getInstancesByType(activeTab);
-
   return (
     <div
       style={{
@@ -430,23 +367,13 @@ const EngineNetworkPanel: React.FC<EngineNetworkPanelProps> = ({
         overflow: "hidden",
       }}
     >
-      <div
-        className="network-tabs-container"
-        style={{ padding: "0px", margin: 0 }}
-      >
+      <div className="network-tabs-container" style={{ padding: "0px", margin: 0 }}>
         {showLeftArrow && (
-          <button
-            className="network-tab-scroll-btn"
-            onClick={() => scrollTabs("left")}
-          >
+          <button className="network-tab-scroll-btn" onClick={() => scrollTabs("left")}>
             ◀
           </button>
         )}
-        <div
-          className="network-tabs-scroll"
-          ref={tabsRef}
-          onScroll={checkScrollButtons}
-        >
+        <div className="network-tabs-scroll" ref={tabsRef} onScroll={checkScrollButtons}>
           <div className="network-tabs">
             {networkTypes.map((type) => (
               <button
@@ -463,15 +390,11 @@ const EngineNetworkPanel: React.FC<EngineNetworkPanelProps> = ({
           </div>
         </div>
         {showRightArrow && (
-          <button
-            className="network-tab-scroll-btn"
-            onClick={() => scrollTabs("right")}
-          >
+          <button className="network-tab-scroll-btn" onClick={() => scrollTabs("right")}>
             ▶
           </button>
         )}
       </div>
-
       <div
         style={{
           flex: 1,
@@ -515,17 +438,8 @@ const EngineNetworkPanel: React.FC<EngineNetworkPanelProps> = ({
                 >
                   {getTypeIcon(instance.type)} {instance.name}
                 </span>
-                <span
-                  style={
-                    instance.enabled ? enabledBadgeStyle : disabledBadgeStyle
-                  }
-                >
-                  {instance.enabled
-                    ? t("network.enabled")
-                    : t("network.disabled")}
-                </span>
+                <span style={instance.enabled ? enabledBadgeStyle : disabledBadgeStyle}>{instance.enabled ? t("network.enabled") : t("network.disabled")}</span>
               </div>
-
               {instance.description && (
                 <div
                   style={{
@@ -537,16 +451,9 @@ const EngineNetworkPanel: React.FC<EngineNetworkPanelProps> = ({
                   }}
                 >
                   <label style={labelStyle}>{t("network.description")}</label>
-                  <input
-                    type="text"
-                    style={inputStyle}
-                    value={instance.description}
-                    disabled
-                    readOnly
-                  />
+                  <input type="text" style={inputStyle} value={instance.description} disabled readOnly />
                 </div>
               )}
-
               <div
                 style={{
                   display: "flex",
@@ -557,15 +464,8 @@ const EngineNetworkPanel: React.FC<EngineNetworkPanelProps> = ({
                 }}
               >
                 <label style={labelStyle}>{t("network.host")}</label>
-                <input
-                  type="text"
-                  style={inputStyle}
-                  value={instance.host}
-                  disabled
-                  readOnly
-                />
+                <input type="text" style={inputStyle} value={instance.host} disabled readOnly />
               </div>
-
               <div
                 style={{
                   display: "flex",
@@ -576,15 +476,8 @@ const EngineNetworkPanel: React.FC<EngineNetworkPanelProps> = ({
                 }}
               >
                 <label style={labelStyle}>{t("network.port")}</label>
-                <input
-                  type="number"
-                  style={inputStyle}
-                  value={instance.port}
-                  disabled
-                  readOnly
-                />
+                <input type="number" style={inputStyle} value={instance.port} disabled readOnly />
               </div>
-
               {instance.type !== "ftp" && (
                 <div
                   style={{
@@ -596,16 +489,9 @@ const EngineNetworkPanel: React.FC<EngineNetworkPanelProps> = ({
                   }}
                 >
                   <label style={labelStyle}>{t("network.encoding")}</label>
-                  <input
-                    type="text"
-                    style={inputStyle}
-                    value={instance.encoding}
-                    disabled
-                    readOnly
-                  />
+                  <input type="text" style={inputStyle} value={instance.encoding} disabled readOnly />
                 </div>
               )}
-
               {instance.type === "udp" && (
                 <div
                   style={{
@@ -617,15 +503,9 @@ const EngineNetworkPanel: React.FC<EngineNetworkPanelProps> = ({
                   }}
                 >
                   <label style={labelStyle}>{t("network.broadcast")}</label>
-                  <input
-                    type="checkbox"
-                    style={checkboxStyle}
-                    checked={instance.broadcast}
-                    disabled
-                  />
+                  <input type="checkbox" style={checkboxStyle} checked={instance.broadcast} disabled />
                 </div>
               )}
-
               {instance.type === "ftp" && (
                 <>
                   <div
@@ -638,13 +518,7 @@ const EngineNetworkPanel: React.FC<EngineNetworkPanelProps> = ({
                     }}
                   >
                     <label style={labelStyle}>{t("network.username")}</label>
-                    <input
-                      type="text"
-                      style={inputStyle}
-                      value={instance.username}
-                      disabled
-                      readOnly
-                    />
+                    <input type="text" style={inputStyle} value={instance.username} disabled readOnly />
                   </div>
                   <div
                     style={{
@@ -656,17 +530,10 @@ const EngineNetworkPanel: React.FC<EngineNetworkPanelProps> = ({
                     }}
                   >
                     <label style={labelStyle}>{t("network.remoteDir")}</label>
-                    <input
-                      type="text"
-                      style={inputStyle}
-                      value={instance.remote_dir}
-                      disabled
-                      readOnly
-                    />
+                    <input type="text" style={inputStyle} value={instance.remote_dir} disabled readOnly />
                   </div>
                 </>
               )}
-
               <div
                 style={{
                   display: "flex",
@@ -681,17 +548,9 @@ const EngineNetworkPanel: React.FC<EngineNetworkPanelProps> = ({
                     fontSize: "11px",
                     padding: "4px 10px",
                   }}
-                  onClick={() =>
-                    handleToggleEnabled(
-                      instance.id,
-                      instance.name,
-                      instance.enabled,
-                    )
-                  }
+                  onClick={() => handleToggleEnabled(instance.id, instance.name, instance.enabled)}
                 >
-                  {instance.enabled
-                    ? t("network.disable")
-                    : t("network.enable")}
+                  {instance.enabled ? t("network.disable") : t("network.enable")}
                 </button>
                 <button
                   style={{
@@ -717,7 +576,6 @@ const EngineNetworkPanel: React.FC<EngineNetworkPanelProps> = ({
             </div>
           ))
         )}
-
         {showAddForm ? (
           <div style={cardStyle}>
             <div
@@ -728,11 +586,8 @@ const EngineNetworkPanel: React.FC<EngineNetworkPanelProps> = ({
                 marginBottom: "12px",
               }}
             >
-              {editingId
-                ? t("network.editInstance")
-                : t("network.addInstance", { type: getTypeName(activeTab) })}
+              {editingId ? t("network.editInstance") : t("network.addInstance", { type: getTypeName(activeTab) })}
             </div>
-
             <div
               style={{
                 display: "flex",
@@ -743,15 +598,8 @@ const EngineNetworkPanel: React.FC<EngineNetworkPanelProps> = ({
               }}
             >
               <label style={labelStyle}>{t("network.name")}</label>
-              <input
-                type="text"
-                style={inputStyle}
-                value={formName}
-                onChange={(e) => setFormName(e.target.value)}
-                placeholder={t("network.namePlaceholder")}
-              />
+              <input type="text" style={inputStyle} value={formName} onChange={(e) => setFormName(e.target.value)} placeholder={t("network.namePlaceholder")} />
             </div>
-
             <div
               style={{
                 display: "flex",
@@ -762,15 +610,8 @@ const EngineNetworkPanel: React.FC<EngineNetworkPanelProps> = ({
               }}
             >
               <label style={labelStyle}>{t("network.description")}</label>
-              <input
-                type="text"
-                style={inputStyle}
-                value={formDescription}
-                onChange={(e) => setFormDescription(e.target.value)}
-                placeholder={t("network.descriptionPlaceholder")}
-              />
+              <input type="text" style={inputStyle} value={formDescription} onChange={(e) => setFormDescription(e.target.value)} placeholder={t("network.descriptionPlaceholder")} />
             </div>
-
             <div
               style={{
                 display: "flex",
@@ -781,15 +622,8 @@ const EngineNetworkPanel: React.FC<EngineNetworkPanelProps> = ({
               }}
             >
               <label style={labelStyle}>{t("network.host")}</label>
-              <input
-                type="text"
-                style={inputStyle}
-                value={formHost}
-                onChange={(e) => setFormHost(e.target.value)}
-                placeholder="localhost"
-              />
+              <input type="text" style={inputStyle} value={formHost} onChange={(e) => setFormHost(e.target.value)} placeholder="localhost" />
             </div>
-
             <div
               style={{
                 display: "flex",
@@ -800,14 +634,8 @@ const EngineNetworkPanel: React.FC<EngineNetworkPanelProps> = ({
               }}
             >
               <label style={labelStyle}>{t("network.port")}</label>
-              <input
-                type="number"
-                style={inputStyle}
-                value={formPort}
-                onChange={(e) => setFormPort(parseInt(e.target.value) || 0)}
-              />
+              <input type="number" style={inputStyle} value={formPort} onChange={(e) => setFormPort(parseInt(e.target.value) || 0)} />
             </div>
-
             {activeTab !== "ftp" && (
               <div
                 style={{
@@ -819,18 +647,13 @@ const EngineNetworkPanel: React.FC<EngineNetworkPanelProps> = ({
                 }}
               >
                 <label style={labelStyle}>{t("network.encoding")}</label>
-                <select
-                  style={selectStyle}
-                  value={formEncoding}
-                  onChange={(e) => setFormEncoding(e.target.value)}
-                >
+                <select style={selectStyle} value={formEncoding} onChange={(e) => setFormEncoding(e.target.value)}>
                   <option>utf8</option>
                   <option>gbk</option>
                   <option>ascii</option>
                 </select>
               </div>
             )}
-
             {activeTab === "udp" && (
               <div
                 style={{
@@ -842,15 +665,9 @@ const EngineNetworkPanel: React.FC<EngineNetworkPanelProps> = ({
                 }}
               >
                 <label style={labelStyle}>{t("network.broadcast")}</label>
-                <input
-                  type="checkbox"
-                  style={checkboxStyle}
-                  checked={formBroadcast}
-                  onChange={(e) => setFormBroadcast(e.target.checked)}
-                />
+                <input type="checkbox" style={checkboxStyle} checked={formBroadcast} onChange={(e) => setFormBroadcast(e.target.checked)} />
               </div>
             )}
-
             {activeTab === "ftp" && (
               <>
                 <div
@@ -863,12 +680,7 @@ const EngineNetworkPanel: React.FC<EngineNetworkPanelProps> = ({
                   }}
                 >
                   <label style={labelStyle}>{t("network.username")}</label>
-                  <input
-                    type="text"
-                    style={inputStyle}
-                    value={formUsername}
-                    onChange={(e) => setFormUsername(e.target.value)}
-                  />
+                  <input type="text" style={inputStyle} value={formUsername} onChange={(e) => setFormUsername(e.target.value)} />
                 </div>
                 <div
                   style={{
@@ -880,12 +692,7 @@ const EngineNetworkPanel: React.FC<EngineNetworkPanelProps> = ({
                   }}
                 >
                   <label style={labelStyle}>{t("network.password")}</label>
-                  <input
-                    type="password"
-                    style={inputStyle}
-                    value={formPassword}
-                    onChange={(e) => setFormPassword(e.target.value)}
-                  />
+                  <input type="password" style={inputStyle} value={formPassword} onChange={(e) => setFormPassword(e.target.value)} />
                 </div>
                 <div
                   style={{
@@ -897,16 +704,10 @@ const EngineNetworkPanel: React.FC<EngineNetworkPanelProps> = ({
                   }}
                 >
                   <label style={labelStyle}>{t("network.remoteDir")}</label>
-                  <input
-                    type="text"
-                    style={inputStyle}
-                    value={formRemoteDir}
-                    onChange={(e) => setFormRemoteDir(e.target.value)}
-                  />
+                  <input type="text" style={inputStyle} value={formRemoteDir} onChange={(e) => setFormRemoteDir(e.target.value)} />
                 </div>
               </>
             )}
-
             <div
               style={{
                 display: "flex",
@@ -938,5 +739,4 @@ const EngineNetworkPanel: React.FC<EngineNetworkPanelProps> = ({
     </div>
   );
 };
-
 export default EngineNetworkPanel;

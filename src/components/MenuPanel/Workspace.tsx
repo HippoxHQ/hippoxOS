@@ -1,39 +1,23 @@
 import React, { useState, useEffect, useRef } from "react";
-import {
-  FolderOpenIcon,
-  FolderIcon,
-  FileIcon,
-  ChevronRightIcon,
-} from "../../icons";
+import { FolderOpenIcon, FolderIcon, FileIcon, ChevronRightIcon } from "../../icons";
 import { showToast, ToastType } from "../Toast";
 import { FileInfo, filesCommands } from "../../command/files";
 import { WorkspaceInstance, workspaceCommands } from "../../command/workspace";
-
 interface WorkspacePanelProps {
   t: (key: string, params?: any) => string;
 }
-
 interface TreeNode extends FileInfo {
   children?: TreeNode[];
   expanded?: boolean;
 }
-
 interface WorkspaceNode {
   workspace: WorkspaceInstance;
   treeData: TreeNode[];
   expanded: boolean;
   loading: boolean;
 }
-
 const EmptyFolderIcon: React.FC<{ size?: number }> = ({ size = 48 }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-    style={{ opacity: 0.5 }}
-  >
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ opacity: 0.5 }}>
     <path
       d="M22 19C22 19.5304 21.7893 20.0391 21.4142 20.4142C21.0391 20.7893 20.5304 21 20 21H4C3.46957 21 2.96086 20.7893 2.58579 20.4142C2.21071 20.0391 2 19.5304 2 19V5C2 4.46957 2.21071 3.96086 2.58579 3.58579C2.96086 3.21071 3.46957 3 4 3H9L11 6H20C20.5304 6 21.0391 6.21071 21.4142 6.58579C21.7893 6.96086 22 7.46957 22 8V19Z"
       stroke="currentColor"
@@ -42,16 +26,9 @@ const EmptyFolderIcon: React.FC<{ size?: number }> = ({ size = 48 }) => (
       strokeLinejoin="round"
       fill="none"
     />
-    <path
-      d="M12 14V10M10 12H14"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
+    <path d="M12 14V10M10 12H14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
-
 const WorkspacePanel: React.FC<WorkspacePanelProps> = ({ t }) => {
   const [workspaceNodes, setWorkspaceNodes] = useState<WorkspaceNode[]>([]);
   const [loading, setLoading] = useState(true);
@@ -61,15 +38,12 @@ const WorkspacePanel: React.FC<WorkspacePanelProps> = ({ t }) => {
   const isRefreshingRef = useRef(false);
   const workspaceNodesRef = useRef<WorkspaceNode[]>([]);
   const expandedPathsRef = useRef<Set<string>>(new Set());
-
   useEffect(() => {
     workspaceNodesRef.current = workspaceNodes;
   }, [workspaceNodes]);
-
   useEffect(() => {
     expandedPathsRef.current = expandedPaths;
   }, [expandedPaths]);
-
   useEffect(() => {
     loadAllWorkspaces();
     startWatching();
@@ -79,15 +53,11 @@ const WorkspacePanel: React.FC<WorkspacePanelProps> = ({ t }) => {
       }
     };
   }, []);
-
   const getFileSystemSnapshot = async (path: string): Promise<string> => {
     try {
       const entries = await filesCommands.readDirectory(path);
       const snapshot = entries
-        .map(
-          (e) =>
-            `${e.name}|${e.is_directory ? "dir" : "file"}|${e.size}|${e.modified}`,
-        )
+        .map((e) => `${e.name}|${e.is_directory ? "dir" : "file"}|${e.size}|${e.modified}`)
         .sort()
         .join("\n");
       return snapshot;
@@ -95,14 +65,11 @@ const WorkspacePanel: React.FC<WorkspacePanelProps> = ({ t }) => {
       return "";
     }
   };
-
   const checkForChanges = async (): Promise<boolean> => {
     const currentNodes = workspaceNodesRef.current;
     if (currentNodes.length === 0) return false;
     for (const node of currentNodes) {
-      const currentSnapshot = await getFileSystemSnapshot(
-        node.workspace.workspace_path,
-      );
+      const currentSnapshot = await getFileSystemSnapshot(node.workspace.workspace_path);
       const cachedSnapshot = snapshotCacheRef.current.get(node.workspace.id);
       if (cachedSnapshot !== currentSnapshot) {
         return true;
@@ -127,40 +94,26 @@ const WorkspacePanel: React.FC<WorkspacePanelProps> = ({ t }) => {
       }
     }, 1000);
   };
-
   const refreshAllWorkspacesPreserveState = async () => {
     if (isRefreshingRef.current) return;
     isRefreshingRef.current = true;
     const savedExpandedPaths = new Set(expandedPathsRef.current);
-    const savedWorkspaceExpanded = workspaceNodesRef.current.map(
-      (n) => n.expanded,
-    );
+    const savedWorkspaceExpanded = workspaceNodesRef.current.map((n) => n.expanded);
     try {
       const config = await workspaceCommands.getWorkspaceConfig();
       const newNodes: WorkspaceNode[] = [];
       for (const workspace of config.instances) {
-        const existingIndex = workspaceNodesRef.current.findIndex(
-          (n) => n.workspace.id === workspace.id,
-        );
+        const existingIndex = workspaceNodesRef.current.findIndex((n) => n.workspace.id === workspace.id);
         newNodes.push({
           workspace,
           treeData: [],
-          expanded:
-            existingIndex !== -1
-              ? savedWorkspaceExpanded[existingIndex]
-              : false,
+          expanded: existingIndex !== -1 ? savedWorkspaceExpanded[existingIndex] : false,
           loading: true,
         });
       }
-
       setWorkspaceNodes(newNodes);
-
       for (let i = 0; i < newNodes.length; i++) {
-        await loadWorkspaceRootWithExpandedState(
-          i,
-          newNodes[i].workspace,
-          savedExpandedPaths,
-        );
+        await loadWorkspaceRootWithExpandedState(i, newNodes[i].workspace, savedExpandedPaths);
       }
     } catch (error) {
       showToast(ToastType.ERROR, "Failed to refresh workspaces: " + error);
@@ -168,7 +121,6 @@ const WorkspacePanel: React.FC<WorkspacePanelProps> = ({ t }) => {
       isRefreshingRef.current = false;
     }
   };
-
   const loadAllWorkspaces = async (retryCount: number = 0): Promise<void> => {
     setLoading(true);
     try {
@@ -196,23 +148,11 @@ const WorkspacePanel: React.FC<WorkspacePanelProps> = ({ t }) => {
       setLoading(false);
     }
   };
-
-  const loadWorkspaceRoot = async (
-    index: number,
-    workspace: WorkspaceInstance,
-  ) => {
+  const loadWorkspaceRoot = async (index: number, workspace: WorkspaceInstance) => {
     try {
-      const entries = await filesCommands.readDirectory(
-        workspace.workspace_path,
-      );
-      const tree = await buildTreeWithExpandedState(
-        entries,
-        workspace.workspace_path,
-        expandedPaths,
-      );
-
+      const entries = await filesCommands.readDirectory(workspace.workspace_path);
+      const tree = await buildTreeWithExpandedState(entries, workspace.workspace_path, expandedPaths);
       await updateSnapshotCache(workspace.id, workspace.workspace_path);
-
       setWorkspaceNodes((prev) => {
         const updated = [...prev];
         if (updated[index]) {
@@ -225,10 +165,7 @@ const WorkspacePanel: React.FC<WorkspacePanelProps> = ({ t }) => {
         return updated;
       });
     } catch (error) {
-      showToast(
-        ToastType.ERROR,
-        `Failed to load workspace ${workspace.name}:` + error,
-      );
+      showToast(ToastType.ERROR, `Failed to load workspace ${workspace.name}:` + error);
       setWorkspaceNodes((prev) => {
         const updated = [...prev];
         if (updated[index]) {
@@ -242,24 +179,11 @@ const WorkspacePanel: React.FC<WorkspacePanelProps> = ({ t }) => {
       });
     }
   };
-
-  const loadWorkspaceRootWithExpandedState = async (
-    index: number,
-    workspace: WorkspaceInstance,
-    savedExpandedPaths: Set<string>,
-  ) => {
+  const loadWorkspaceRootWithExpandedState = async (index: number, workspace: WorkspaceInstance, savedExpandedPaths: Set<string>) => {
     try {
-      const entries = await filesCommands.readDirectory(
-        workspace.workspace_path,
-      );
-      const tree = await buildTreeWithExpandedState(
-        entries,
-        workspace.workspace_path,
-        savedExpandedPaths,
-      );
-
+      const entries = await filesCommands.readDirectory(workspace.workspace_path);
+      const tree = await buildTreeWithExpandedState(entries, workspace.workspace_path, savedExpandedPaths);
       await updateSnapshotCache(workspace.id, workspace.workspace_path);
-
       setWorkspaceNodes((prev) => {
         const updated = [...prev];
         if (updated[index]) {
@@ -272,10 +196,7 @@ const WorkspacePanel: React.FC<WorkspacePanelProps> = ({ t }) => {
         return updated;
       });
     } catch (error) {
-      showToast(
-        ToastType.ERROR,
-        `Failed to load workspace ${workspace.name}:` + error,
-      );
+      showToast(ToastType.ERROR, `Failed to load workspace ${workspace.name}:` + error);
       setWorkspaceNodes((prev) => {
         const updated = [...prev];
         if (updated[index]) {
@@ -289,12 +210,7 @@ const WorkspacePanel: React.FC<WorkspacePanelProps> = ({ t }) => {
       });
     }
   };
-
-  const buildTreeWithExpandedState = async (
-    entries: FileInfo[],
-    basePath: string,
-    currentExpandedPaths: Set<string>,
-  ): Promise<TreeNode[]> => {
+  const buildTreeWithExpandedState = async (entries: FileInfo[], basePath: string, currentExpandedPaths: Set<string>): Promise<TreeNode[]> => {
     const tree: TreeNode[] = [];
     for (const entry of entries) {
       const node: TreeNode = {
@@ -305,16 +221,9 @@ const WorkspacePanel: React.FC<WorkspacePanelProps> = ({ t }) => {
       if (entry.is_directory && currentExpandedPaths.has(entry.path)) {
         try {
           const subEntries = await filesCommands.readDirectory(entry.path);
-          node.children = await buildTreeWithExpandedState(
-            subEntries,
-            entry.path,
-            currentExpandedPaths,
-          );
+          node.children = await buildTreeWithExpandedState(subEntries, entry.path, currentExpandedPaths);
         } catch (error) {
-          showToast(
-            ToastType.ERROR,
-            `Failed to read directory ${entry.path}: ` + error,
-          );
+          showToast(ToastType.ERROR, `Failed to read directory ${entry.path}: ` + error);
           node.children = [];
         }
       }
@@ -327,11 +236,7 @@ const WorkspacePanel: React.FC<WorkspacePanelProps> = ({ t }) => {
     });
     return tree;
   };
-
-  const buildTree = async (
-    entries: FileInfo[],
-    basePath: string,
-  ): Promise<TreeNode[]> => {
+  const buildTree = async (entries: FileInfo[], basePath: string): Promise<TreeNode[]> => {
     const tree: TreeNode[] = [];
     for (const entry of entries) {
       const node: TreeNode = {
@@ -344,10 +249,7 @@ const WorkspacePanel: React.FC<WorkspacePanelProps> = ({ t }) => {
           const subEntries = await filesCommands.readDirectory(entry.path);
           node.children = await buildTree(subEntries, entry.path);
         } catch (error) {
-          showToast(
-            ToastType.ERROR,
-            `Failed to read directory ${entry.path}: ` + error,
-          );
+          showToast(ToastType.ERROR, `Failed to read directory ${entry.path}: ` + error);
           node.children = [];
         }
       }
@@ -360,7 +262,6 @@ const WorkspacePanel: React.FC<WorkspacePanelProps> = ({ t }) => {
     });
     return tree;
   };
-
   const collectAllPaths = (nodes: TreeNode[]): string[] => {
     const paths: string[] = [];
     for (const node of nodes) {
@@ -373,13 +274,10 @@ const WorkspacePanel: React.FC<WorkspacePanelProps> = ({ t }) => {
     }
     return paths;
   };
-
   useEffect(() => {
     if (autoExpandedRef.current) return;
     if (workspaceNodes.length === 0) return;
-    const defaultIndex = workspaceNodes.findIndex(
-      (node) => node.workspace.is_default,
-    );
+    const defaultIndex = workspaceNodes.findIndex((node) => node.workspace.is_default);
     if (defaultIndex !== -1) {
       const defaultNode = workspaceNodes[defaultIndex];
       if (!defaultNode.loading && defaultNode.treeData) {
@@ -399,7 +297,6 @@ const WorkspacePanel: React.FC<WorkspacePanelProps> = ({ t }) => {
       }
     }
   }, [workspaceNodes]);
-
   const toggleWorkspace = (index: number) => {
     setWorkspaceNodes((prev) => {
       const updated = [...prev];
@@ -410,7 +307,6 @@ const WorkspacePanel: React.FC<WorkspacePanelProps> = ({ t }) => {
       return updated;
     });
   };
-
   const toggleNode = async (node: TreeNode, path: string) => {
     const newExpanded = new Set(expandedPaths);
     if (newExpanded.has(path)) {
@@ -421,24 +317,16 @@ const WorkspacePanel: React.FC<WorkspacePanelProps> = ({ t }) => {
       if (!node.children || node.children.length === 0) {
         try {
           const subEntries = await filesCommands.readDirectory(node.path);
-          const children = await buildTreeWithExpandedState(
-            subEntries,
-            node.path,
-            newExpanded,
-          );
+          const children = await buildTreeWithExpandedState(subEntries, node.path, newExpanded);
           node.children = children;
           setWorkspaceNodes((prev) => [...prev]);
         } catch (error) {
-          showToast(
-            ToastType.ERROR,
-            `Failed to load directory ${node.path}: ` + error,
-          );
+          showToast(ToastType.ERROR, `Failed to load directory ${node.path}: ` + error);
         }
       }
       setExpandedPaths(newExpanded);
     }
   };
-
   const getWorkspaceDisplayName = (workspace: WorkspaceInstance): string => {
     const path = workspace.workspace_path;
     const normalizedPath = path.replace(/\\/g, "/");
@@ -446,11 +334,7 @@ const WorkspacePanel: React.FC<WorkspacePanelProps> = ({ t }) => {
     const folderName = parts[parts.length - 1] || workspace.name;
     return folderName !== workspace.name ? folderName : workspace.name;
   };
-
-  const renderTreeWithLines = (
-    nodes: TreeNode[],
-    parentIsLast: boolean[] = [],
-  ): React.ReactNode => {
+  const renderTreeWithLines = (nodes: TreeNode[], parentIsLast: boolean[] = []): React.ReactNode => {
     return nodes.map((node, idx) => {
       const isLast = idx === nodes.length - 1;
       const newParentIsLast = [...parentIsLast, isLast];
@@ -463,7 +347,6 @@ const WorkspacePanel: React.FC<WorkspacePanelProps> = ({ t }) => {
         }
       }
       const connector = isLast ? "└── " : "├── ";
-
       const handleNodeClick = async () => {
         if (node.is_directory) {
           toggleNode(node, node.path);
@@ -475,7 +358,6 @@ const WorkspacePanel: React.FC<WorkspacePanelProps> = ({ t }) => {
           }
         }
       };
-
       return (
         <div key={node.path}>
           <div
@@ -518,22 +400,12 @@ const WorkspacePanel: React.FC<WorkspacePanelProps> = ({ t }) => {
                 alignItems: "center",
               }}
             >
-              {node.is_directory ? (
-                expandedPaths.has(node.path) ? (
-                  <FolderOpenIcon size={14} />
-                ) : (
-                  <FolderIcon size={14} />
-                )
-              ) : (
-                <FileIcon size={14} />
-              )}
+              {node.is_directory ? expandedPaths.has(node.path) ? <FolderOpenIcon size={14} /> : <FolderIcon size={14} /> : <FileIcon size={14} />}
             </span>
             <span
               style={{
                 marginLeft: "6px",
-                color: node.is_directory
-                  ? "var(--accent-blue)"
-                  : "var(--text-primary)",
+                color: node.is_directory ? "var(--accent-blue)" : "var(--text-primary)",
                 fontWeight: node.is_directory ? 500 : 400,
                 overflow: "hidden",
                 textOverflow: "ellipsis",
@@ -544,20 +416,14 @@ const WorkspacePanel: React.FC<WorkspacePanelProps> = ({ t }) => {
               {node.name}
             </span>
           </div>
-          {node.is_directory &&
-            expandedPaths.has(node.path) &&
-            node.children && (
-              <div>{renderTreeWithLines(node.children, newParentIsLast)}</div>
-            )}
+          {node.is_directory && expandedPaths.has(node.path) && node.children && <div>{renderTreeWithLines(node.children, newParentIsLast)}</div>}
         </div>
       );
     });
   };
-
   const manualRefresh = async () => {
     await refreshAllWorkspacesPreserveState();
   };
-
   useEffect(() => {
     if (typeof window !== "undefined") {
       (window as any).refreshWorkspace = manualRefresh;
@@ -568,7 +434,6 @@ const WorkspacePanel: React.FC<WorkspacePanelProps> = ({ t }) => {
       }
     };
   }, []);
-
   if (loading) {
     return (
       <div
@@ -589,7 +454,6 @@ const WorkspacePanel: React.FC<WorkspacePanelProps> = ({ t }) => {
       </div>
     );
   }
-
   if (workspaceNodes.length === 0) {
     return (
       <div
@@ -607,15 +471,11 @@ const WorkspacePanel: React.FC<WorkspacePanelProps> = ({ t }) => {
           <div style={{ fontSize: "48px", marginBottom: "16px", opacity: 0.5 }}>
             <EmptyFolderIcon size={48} />
           </div>
-          <div style={{ fontSize: "13px" }}>
-            {t("workspace.empty") ||
-              "No workspace, please add in settings first"}
-          </div>
+          <div style={{ fontSize: "13px" }}>{t("workspace.empty") || "No workspace, please add in settings first"}</div>
         </div>
       </div>
     );
   }
-
   return (
     <div
       style={{
@@ -633,7 +493,6 @@ const WorkspacePanel: React.FC<WorkspacePanelProps> = ({ t }) => {
           50% { opacity: 0.6; transform: scale(1.05); }
         }
       `}</style>
-
       <div
         style={{
           flex: 1,
@@ -668,11 +527,7 @@ const WorkspacePanel: React.FC<WorkspacePanelProps> = ({ t }) => {
                   alignItems: "center",
                 }}
               >
-                {node.expanded ? (
-                  <FolderOpenIcon size={18} />
-                ) : (
-                  <FolderIcon size={18} />
-                )}
+                {node.expanded ? <FolderOpenIcon size={18} /> : <FolderIcon size={18} />}
               </span>
               <div
                 style={{
@@ -754,9 +609,7 @@ const WorkspacePanel: React.FC<WorkspacePanelProps> = ({ t }) => {
                     >
                       <FolderIcon size={16} />
                     </span>
-                    <span style={{ marginLeft: "8px" }}>
-                      {t("atomicSkills.loading") || "Loading..."}
-                    </span>
+                    <span style={{ marginLeft: "8px" }}>{t("atomicSkills.loading") || "Loading..."}</span>
                   </div>
                 ) : node.treeData.length === 0 ? (
                   <div
@@ -781,5 +634,4 @@ const WorkspacePanel: React.FC<WorkspacePanelProps> = ({ t }) => {
     </div>
   );
 };
-
 export default WorkspacePanel;

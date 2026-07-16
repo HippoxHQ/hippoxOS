@@ -1,5 +1,4 @@
 import { MenuItemWithSection } from "./types";
-
 export const topMenuItems: MenuItemWithSection[] = [
     { id: "generalChat", icon: "chat", label: "menu.general", section: "main" },
     { id: "codeEditorChat", icon: "codeEditor", label: "menu.codeEditor", section: "main" },
@@ -23,7 +22,6 @@ export const topMenuItems: MenuItemWithSection[] = [
     { id: "workspace", icon: "workspace", label: "menu.workspace", section: "main" },
     { id: "logs", icon: "logs", label: "menu.logs", section: "config" },
 ];
-
 export const bottomMenuItems: MenuItemWithSection[] = [
     {
         id: "settings_group",
@@ -49,5 +47,4 @@ export const bottomMenuItems: MenuItemWithSection[] = [
         ],
     },
 ];
-
 export const allMenuItems = [...topMenuItems, ...bottomMenuItems];

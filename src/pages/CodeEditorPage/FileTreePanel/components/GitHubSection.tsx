@@ -112,9 +112,7 @@ export const GitHubSection: React.FC<GitHubSectionProps> = ({
           title={gitInfo.remoteUrl}
         >
           <span>🔗</span>
-          <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>
-            {gitInfo.remoteUrl}
-          </span>
+          <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{gitInfo.remoteUrl}</span>
         </div>
       )}
 
@@ -131,9 +129,7 @@ export const GitHubSection: React.FC<GitHubSectionProps> = ({
         }}
       >
         <span>🌿</span>
-        <span style={{ fontWeight: 500, color: "var(--text-primary)" }}>
-          {gitInfo.branch}
-        </span>
+        <span style={{ fontWeight: 500, color: "var(--text-primary)" }}>{gitInfo.branch}</span>
         {gitInfo.remoteStatus && (
           <span
             style={{
@@ -189,14 +185,8 @@ export const GitHubSection: React.FC<GitHubSectionProps> = ({
                   fontSize: "10px",
                   padding: "2px 8px",
                   borderRadius: "10px",
-                  background:
-                    branch === gitInfo.branch
-                      ? "var(--accent-color)"
-                      : "var(--bg-tertiary)",
-                  color:
-                    branch === gitInfo.branch
-                      ? "white"
-                      : "var(--text-secondary)",
+                  background: branch === gitInfo.branch ? "var(--accent-color)" : "var(--bg-tertiary)",
+                  color: branch === gitInfo.branch ? "white" : "var(--text-secondary)",
                   fontWeight: branch === gitInfo.branch ? 500 : 400,
                 }}
               >
@@ -333,11 +323,7 @@ export const GitHubSection: React.FC<GitHubSectionProps> = ({
           }}
         >
           <span>📝 文件改动</span>
-          {fileChanges.length > 0 && (
-            <span style={{ fontSize: "9px", fontWeight: 400 }}>
-              {fileChanges.length} 个文件
-            </span>
-          )}
+          {fileChanges.length > 0 && <span style={{ fontSize: "9px", fontWeight: 400 }}>{fileChanges.length} 个文件</span>}
         </div>
         {loadingChanges ? (
           <div
@@ -365,13 +351,8 @@ export const GitHubSection: React.FC<GitHubSectionProps> = ({
                       borderRadius: "3px",
                       fontSize: "11px",
                       cursor: "pointer",
-                      borderBottom:
-                        index < fileChanges.length - 1
-                          ? "1px solid var(--border-color)"
-                          : "none",
-                      background: isExpanded
-                        ? "var(--hover-bg)"
-                        : "transparent",
+                      borderBottom: index < fileChanges.length - 1 ? "1px solid var(--border-color)" : "none",
+                      background: isExpanded ? "var(--hover-bg)" : "transparent",
                     }}
                     onClick={() => handleFileClick(change.file)}
                     onMouseEnter={(e) => {
@@ -415,26 +396,14 @@ export const GitHubSection: React.FC<GitHubSectionProps> = ({
                         flexShrink: 0,
                       }}
                     >
-                      {change.additions !== undefined && (
-                        <span style={{ color: "#4caf50" }}>
-                          +{change.additions}
-                        </span>
-                      )}
-                      {change.deletions !== undefined && (
-                        <span style={{ color: "#ff4444" }}>
-                          -{change.deletions}
-                        </span>
-                      )}
-                      <span style={{ color: getStatusColor(change.status) }}>
-                        {getStatusLabel(change.statusDesc)}
-                      </span>
+                      {change.additions !== undefined && <span style={{ color: "#4caf50" }}>+{change.additions}</span>}
+                      {change.deletions !== undefined && <span style={{ color: "#ff4444" }}>-{change.deletions}</span>}
+                      <span style={{ color: getStatusColor(change.status) }}>{getStatusLabel(change.statusDesc)}</span>
                       <span
                         style={{
                           fontSize: "10px",
                           transition: "transform 0.15s ease",
-                          transform: isExpanded
-                            ? "rotate(90deg)"
-                            : "rotate(0deg)",
+                          transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)",
                           display: "inline-block",
                         }}
                       >
@@ -480,17 +449,14 @@ export const GitHubSection: React.FC<GitHubSectionProps> = ({
                                   gap: "8px",
                                 }}
                               >
-                                <span style={{ color: "#4caf50" }}>
-                                  + 新文件
-                                </span>
+                                <span style={{ color: "#4caf50" }}>+ 新文件</span>
                                 <span>{change.file}</span>
                               </div>
                               <div
                                 style={{
                                   padding: "4px 8px",
                                   fontSize: "12px",
-                                  fontFamily:
-                                    "'JetBrains Mono', 'Fira Code', monospace",
+                                  fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
                                   whiteSpace: "pre-wrap",
                                   wordBreak: "break-all",
                                   maxHeight: "400px",
@@ -498,25 +464,23 @@ export const GitHubSection: React.FC<GitHubSectionProps> = ({
                                   background: "var(--bg-primary)",
                                 }}
                               >
-                                {diffData.content
-                                  .split("\n")
-                                  .map((line, idx) => (
-                                    <div key={idx} style={{ display: "flex" }}>
-                                      <span
-                                        style={{
-                                          color: "var(--text-muted)",
-                                          width: "30px",
-                                          textAlign: "right",
-                                          paddingRight: "12px",
-                                          userSelect: "none",
-                                          fontSize: "11px",
-                                        }}
-                                      >
-                                        {idx + 1}
-                                      </span>
-                                      <span style={{ flex: 1 }}>{line}</span>
-                                    </div>
-                                  ))}
+                                {diffData.content.split("\n").map((line, idx) => (
+                                  <div key={idx} style={{ display: "flex" }}>
+                                    <span
+                                      style={{
+                                        color: "var(--text-muted)",
+                                        width: "30px",
+                                        textAlign: "right",
+                                        paddingRight: "12px",
+                                        userSelect: "none",
+                                        fontSize: "11px",
+                                      }}
+                                    >
+                                      {idx + 1}
+                                    </span>
+                                    <span style={{ flex: 1 }}>{line}</span>
+                                  </div>
+                                ))}
                               </div>
                             </div>
                           ) : (
@@ -541,47 +505,26 @@ export const GitHubSection: React.FC<GitHubSectionProps> = ({
                                 >
                                   {change.file}
                                 </span>
-                                {diffData.additions !== undefined &&
-                                  diffData.additions > 0 && (
-                                    <span style={{ color: "#4caf50" }}>
-                                      +{diffData.additions}
-                                    </span>
-                                  )}
-                                {diffData.deletions !== undefined &&
-                                  diffData.deletions > 0 && (
-                                    <span style={{ color: "#ff4444" }}>
-                                      -{diffData.deletions}
-                                    </span>
-                                  )}
+                                {diffData.additions !== undefined && diffData.additions > 0 && <span style={{ color: "#4caf50" }}>+{diffData.additions}</span>}
+                                {diffData.deletions !== undefined && diffData.deletions > 0 && <span style={{ color: "#ff4444" }}>-{diffData.deletions}</span>}
                               </div>
 
                               <div
                                 style={{
                                   padding: "4px 0",
                                   fontSize: "12px",
-                                  fontFamily:
-                                    "'JetBrains Mono', 'Fira Code', monospace",
+                                  fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
                                   maxHeight: "400px",
                                   overflow: "auto",
                                   background: "var(--bg-primary)",
                                 }}
                               >
                                 {diffData.diff.split("\n").map((line, idx) => {
-                                  if (
-                                    line.startsWith("diff --git") ||
-                                    line.startsWith("index ") ||
-                                    line.startsWith("--- ") ||
-                                    line.startsWith("+++ ") ||
-                                    line.startsWith("@@")
-                                  ) {
+                                  if (line.startsWith("diff --git") || line.startsWith("index ") || line.startsWith("--- ") || line.startsWith("+++ ") || line.startsWith("@@")) {
                                     return null;
                                   }
-                                  const isAdd =
-                                    line.startsWith("+") &&
-                                    !line.startsWith("+++");
-                                  const isDel =
-                                    line.startsWith("-") &&
-                                    !line.startsWith("---");
+                                  const isAdd = line.startsWith("+") && !line.startsWith("+++");
+                                  const isDel = line.startsWith("-") && !line.startsWith("---");
                                   const isHeader = line.startsWith("@@");
 
                                   const getBgColor = () => {

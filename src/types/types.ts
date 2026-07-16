@@ -1,5 +1,4 @@
 import { UploadFile } from "../core/types";
-
 export interface ExecutionLog {
   id: string;
   timestamp: string;
@@ -8,7 +7,6 @@ export interface ExecutionLog {
   details?: string;
   duration?: number;
 }
-
 export interface ChatMessage {
   id: string;
   role: RoleEnum;
@@ -20,10 +18,8 @@ export interface ChatMessage {
   originalId?: string;
   rawResponse?: string;
 }
-
 export type Theme = 'dark' | 'light';
 export type Language = 'zh' | 'en';
-
 export interface Translations {
   [key: string]: any;
 }
@@ -35,21 +31,18 @@ export interface ExecutionLog {
   details?: string;
   duration?: number;
 }
-
 export interface ChatResponse {
   success: boolean;
   message: string;
   session_id: string;
   error?: string;
 }
-
 export interface InitConfig {
   skills_dir: string;
   provider: string;
   api_key: string;
   workflow_mode?: 'react' | 'batch' | 'chain' | 'plan_and_execute';
 }
-
 export interface DialogSession {
   session_id: string;
   title: string;
@@ -60,20 +53,17 @@ export interface DialogSession {
   path: string;
   workflow_mode?: string;
 }
-
 export interface TerminalEntry {
   id: string;
   type: 'task' | 'step' | 'log';
   data: any;
   timestamp: string;
 }
-
 export enum RoleEnum {
   User = 'User',
   LLM = 'LLM',
   System = 'System'
 }
-
 export enum MessageStatus {
   Pending = "pending",
   Completed = "completed",
@@ -81,20 +71,17 @@ export enum MessageStatus {
   Cancelled = "cancelled",
   Paused = "paused",
 }
-
 export enum WindowTypeEnum {
   Main = 'main',
   Tray = 'tray',
   TraySubmenu = 'tray-submenu',
   MaterialPreview = "material-preview",
 }
-
 export enum WindowIdentifierEnum {
   Main = 'main-window',
   Tray = 'tray-window',
   TraySubmenu = 'tray-submenu-window'
 }
-
 export enum SystemEvent {
   NewSession = 'new-session',
   OpenSkillsMarket = 'open-skills-market',
@@ -110,7 +97,6 @@ export enum SystemEvent {
   OpenNotificationDir = 'open-notification-dir',
   OpenWorkspaceDir = 'open-workspace-dir',
 }
-
 export interface StepInterruptionInfo {
   interrupted: boolean;
   reason: string;

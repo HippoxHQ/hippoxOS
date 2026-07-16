@@ -7,143 +7,39 @@ import SearchDialog from "./SearchDialog";
 import { showToast, ToastType } from "../Toast";
 import { windowsCommands } from "../../command/windows";
 import { UploadFile } from "../../core/types";
-
 const TerminalLeftIcon = () => (
-  <svg
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.75"
-    width="16"
-    height="16"
-  >
-    <rect
-      x="2"
-      y="4"
-      width="20"
-      height="16"
-      rx="2"
-      stroke="currentColor"
-      fill="none"
-    />
-    <path
-      d="M9 8L6 12L9 16"
-      stroke="currentColor"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" width="16" height="16">
+    <rect x="2" y="4" width="20" height="16" rx="2" stroke="currentColor" fill="none" />
+    <path d="M9 8L6 12L9 16" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
     <path d="M12 16h6" stroke="currentColor" strokeLinecap="round" />
   </svg>
 );
-
 const ChatLeftIcon = () => (
-  <svg
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.75"
-    width="16"
-    height="16"
-  >
-    <rect
-      x="2"
-      y="4"
-      width="20"
-      height="16"
-      rx="2"
-      stroke="currentColor"
-      fill="none"
-    />
-    <path
-      d="M15 8L18 12L15 16"
-      stroke="currentColor"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" width="16" height="16">
+    <rect x="2" y="4" width="20" height="16" rx="2" stroke="currentColor" fill="none" />
+    <path d="M15 8L18 12L15 16" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
     <path d="M12 16h-6" stroke="currentColor" strokeLinecap="round" />
   </svg>
 );
-
 const FunctionLeftIcon = () => (
-  <svg
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.75"
-    width="16"
-    height="16"
-  >
-    <rect
-      x="2"
-      y="4"
-      width="8"
-      height="16"
-      rx="1.5"
-      stroke="currentColor"
-      fill="none"
-    />
-    <rect
-      x="12"
-      y="4"
-      width="10"
-      height="16"
-      rx="1.5"
-      stroke="currentColor"
-      fill="none"
-    />
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" width="16" height="16">
+    <rect x="2" y="4" width="8" height="16" rx="1.5" stroke="currentColor" fill="none" />
+    <rect x="12" y="4" width="10" height="16" rx="1.5" stroke="currentColor" fill="none" />
     <path d="M6 8h0" stroke="currentColor" />
   </svg>
 );
-
 const FunctionRightIcon = () => (
-  <svg
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.75"
-    width="16"
-    height="16"
-  >
-    <rect
-      x="2"
-      y="4"
-      width="10"
-      height="16"
-      rx="1.5"
-      stroke="currentColor"
-      fill="none"
-    />
-    <rect
-      x="14"
-      y="4"
-      width="8"
-      height="16"
-      rx="1.5"
-      stroke="currentColor"
-      fill="none"
-    />
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" width="16" height="16">
+    <rect x="2" y="4" width="10" height="16" rx="1.5" stroke="currentColor" fill="none" />
+    <rect x="14" y="4" width="8" height="16" rx="1.5" stroke="currentColor" fill="none" />
     <path d="M18 8h0" stroke="currentColor" />
   </svg>
 );
-
 const HistoryIcon = ({ size = 16 }: { size?: number }) => (
-  <svg
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.75"
-    width={size}
-    height={size}
-  >
-    <path
-      d="M12 8v4l3 3M12 4a8 8 0 1 0 0 16 8 8 0 0 0 0-16z"
-      stroke="currentColor"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" width={size} height={size}>
+    <path d="M12 8v4l3 3M12 4a8 8 0 1 0 0 16 8 8 0 0 0 0-16z" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
-
 const topBarStyles = `
   .top-bar {
     height: 35px;
@@ -161,8 +57,7 @@ const topBarStyles = `
     min-width: 0;
     gap: 5px;
   }
-  
-  .top-bar-left {
+   .top-bar-left {
     display: flex;
     align-items: center;
     gap: 5px;
@@ -171,8 +66,7 @@ const topBarStyles = `
     position: relative;
     z-index: 1000;
   }
-  
-  .sidebar-toggle {
+   .sidebar-toggle {
     -webkit-app-region: no-drag;
     app-region: no-drag;
     display: flex;
@@ -189,21 +83,18 @@ const topBarStyles = `
     // transition: all 0.15s ease;
     flex-shrink: 0;
   }
-  
-  .sidebar-toggle svg {
+   .sidebar-toggle svg {
     width: 16px;
     height: 16px;
     stroke: currentColor;
     stroke-width: 1.75;
     fill: none;
   }
-  
-  .sidebar-toggle:hover {
+   .sidebar-toggle:hover {
     background: var(--hover-bg);
     color: var(--text-primary);
   }
-  
-  .app-brand {
+   .app-brand {
     display: flex;
     align-items: center;
     gap: 6px;
@@ -211,8 +102,7 @@ const topBarStyles = `
     app-region: drag;
     flex-shrink: 0;
   }
-  
-  .app-logo {
+   .app-logo {
     -webkit-app-region: drag;
     app-region: drag;
     display: flex;
@@ -220,14 +110,12 @@ const topBarStyles = `
     justify-content: center;
     flex-shrink: 0;
   }
-  
-  .app-logo img {
+   .app-logo img {
     width: 22px;
     height: 22px;
     border-radius: 5px;
   }
-  
-  .app-name {
+   .app-name {
     font-size: 14px;
     font-weight: 500;
     color: var(--text-primary);
@@ -236,8 +124,7 @@ const topBarStyles = `
     app-region: drag;
     white-space: nowrap;
   }
-  
- .top-bar-center {
+  .top-bar-center {
    flex: 1;
    display: flex;
    align-items: center;
@@ -245,8 +132,7 @@ const topBarStyles = `
    min-width: 0;
    padding: 0 8px;
   }
-  
-  .top-bar-right {
+   .top-bar-right {
     display: flex;
     align-items: center;
     gap: 4px;
@@ -254,8 +140,7 @@ const topBarStyles = `
     app-region: no-drag;
     flex-shrink: 0;
   }
-  
-  .action-btn {
+   .action-btn {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -272,21 +157,18 @@ const topBarStyles = `
     // transition: all 0.15s ease;
     flex-shrink: 0;
   }
-  
-  .action-btn svg {
+   .action-btn svg {
     width: 14px;
     height: 14px;
     stroke: currentColor;
     stroke-width: 1.75;
     fill: none;
   }
-  
-  .action-btn:hover {
+   .action-btn:hover {
     background: var(--hover-bg);
     color: var(--text-primary);
   }
-  
-  .layout-switch-group {
+   .layout-switch-group {
     display: flex;
     align-items: center;
     gap: 2px;
@@ -296,8 +178,7 @@ const topBarStyles = `
     margin-left: 4px;
     flex-shrink: 0;
   }
-  
-  .layout-switch-btn {
+   .layout-switch-btn {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -314,34 +195,29 @@ const topBarStyles = `
     // transition: all 0.15s ease;
     white-space: nowrap;
   }
-  
-  .layout-switch-btn svg {
+   .layout-switch-btn svg {
     width: 14px;
     height: 14px;
     stroke: currentColor;
     stroke-width: 1.75;
     fill: none;
   }
-  
-  .layout-switch-btn:hover {
+   .layout-switch-btn:hover {
     background: var(--hover-bg);
     color: var(--text-primary);
   }
-  
-  .layout-switch-btn.active {
+   .layout-switch-btn.active {
     background: var(--accent-color, #00aaff);
     color: white;
   }
-  
-  .layout-divider {
+   .layout-divider {
     width: 1px;
     height: 20px;
     background: var(--border-color);
     margin: 0 4px;
     flex-shrink: 0;
   }
-  
-  .window-controls {
+   .window-controls {
     display: flex;
     align-items: center;
     gap: 2px;
@@ -351,8 +227,7 @@ const topBarStyles = `
     flex-shrink: 0;
     padding-left: 4px;
   }
-  
-  .window-btn {
+   .window-btn {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -368,26 +243,21 @@ const topBarStyles = `
     border-radius: 0;
     flex-shrink: 0;
   }
-  
-  .window-btn:hover {
+   .window-btn:hover {
     background: var(--hover-bg);
     color: var(--text-primary);
   }
-  
-  .window-btn.close:hover {
+   .window-btn.close:hover {
     background: rgba(220, 38, 38, 0.12);
     color: #ef4444;
   }
-  
-  .theme-toggle {
+   .theme-toggle {
     // transition: transform 0.2s ease;
   }
-  
-  .theme-toggle:active {
+   .theme-toggle:active {
     transform: scale(0.95);
   }
-
- .search-input-wrapper {
+  .search-input-wrapper {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -403,12 +273,10 @@ const topBarStyles = `
   min-width: 40px;
   max-width: 65%;      
   }
-  
-  .search-input-wrapper:hover {
+   .search-input-wrapper:hover {
     background: var(--hover-bg);
   }
-  
-  .search-input-left {
+   .search-input-left {
     display: flex;
     align-items: center;
     gap: 8px;
@@ -416,16 +284,14 @@ const topBarStyles = `
     overflow: hidden;
     color: var(--text-secondary);
   }
-  
-  .search-input-left span {
+   .search-input-left span {
     font-size: 12px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     color: var(--text-secondary);
   }
-  
-  .search-kbd {
+   .search-kbd {
     font-size: 10px;
     background: var(--bg-secondary);
     padding: 2px 6px;
@@ -434,8 +300,7 @@ const topBarStyles = `
     color: var(--text-secondary);
     flex-shrink: 0;
   }
-
-  @media (max-width: 720px) {
+   @media (max-width: 720px) {
     .app-name {
       display: none;
     }
@@ -449,8 +314,7 @@ const topBarStyles = `
       display: none;
     }
   }
-  
-  @media (max-width: 600px) {
+   @media (max-width: 600px) {
   .action-btn.theme-toggle {
     display: none;
     }
@@ -458,8 +322,7 @@ const topBarStyles = `
     display: none;
     }
   }
-
-  @media (max-width: 580px) {
+   @media (max-width: 580px) {
     .search-input-wrapper {
       min-width: 32px;
       padding: 4px 8px;
@@ -482,8 +345,7 @@ const topBarStyles = `
       padding-left: 2px;
     }
   }
-  
-  @media (max-width: 480px) {
+   @media (max-width: 480px) {
     .top-bar-left {
       gap: 4px;
     }
@@ -515,7 +377,6 @@ const topBarStyles = `
     }
   }
 `;
-
 if (typeof document !== "undefined") {
   const styleId = "topbar-styles-v6";
   if (!document.getElementById(styleId)) {
@@ -525,39 +386,21 @@ if (typeof document !== "undefined") {
     document.head.appendChild(style);
   }
 }
-
 const MenuIcon = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-    <path
-      d="M3 12h18M3 6h18M3 18h18"
-      stroke="currentColor"
-      strokeLinecap="round"
-    />
+    <path d="M3 12h18M3 6h18M3 18h18" stroke="currentColor" strokeLinecap="round" />
   </svg>
 );
-
 const CloseIcon = () => (
-  <svg
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    width="23px"
-    height="23px"
-  >
-    <path
-      d="M6 18L18 6M6 6l12 12"
-      stroke="currentColor"
-      strokeLinecap="round"
-    />
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="23px" height="23px">
+    <path d="M6 18L18 6M6 6l12 12" stroke="currentColor" strokeLinecap="round" />
   </svg>
 );
-
 const CollapseIcon = () => (
   <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.75">
     <path d="M13 16l-6-6 6-6" stroke="currentColor" strokeLinecap="round" />
   </svg>
 );
-
 interface TopBarProps {
   sidebarCollapsed: boolean;
   onToggleSidebar: () => void;
@@ -576,7 +419,6 @@ interface TopBarProps {
   isHistoryOpen?: boolean;
   onFileClick?: (file: UploadFile) => void;
 }
-
 const TopBar: React.FC<TopBarProps> = ({
   sidebarCollapsed,
   onToggleSidebar,
@@ -666,19 +508,10 @@ const TopBar: React.FC<TopBarProps> = ({
   const closeSearch = () => {
     setIsSearchOpen(false);
   };
-  const getMinimizeTitle = () =>
-    currentLanguage === "zh" ? "最小化" : "Minimize";
-  const getMaximizeTitle = () =>
-    currentLanguage === "zh"
-      ? isMaximized
-        ? "还原"
-        : "最大化"
-      : isMaximized
-        ? "Restore"
-        : "Maximize";
+  const getMinimizeTitle = () => (currentLanguage === "zh" ? "最小化" : "Minimize");
+  const getMaximizeTitle = () => (currentLanguage === "zh" ? (isMaximized ? "还原" : "最大化") : isMaximized ? "Restore" : "Maximize");
   const getCloseTitle = () => (currentLanguage === "zh" ? "关闭" : "Close");
-  const getNewSessionTitle = () =>
-    currentLanguage === "zh" ? "新建会话 (⌘N)" : "New Session (⌘N)";
+  const getNewSessionTitle = () => (currentLanguage === "zh" ? "新建会话 (⌘N)" : "New Session (⌘N)");
   const isZh = currentLanguage === "zh";
   return (
     <>
@@ -690,15 +523,7 @@ const TopBar: React.FC<TopBarProps> = ({
             </div>
             <div className="app-name">HippoxOS</div>
           </div>
-          <button
-            className="sidebar-toggle"
-            onClick={onToggleSidebar}
-            title={
-              sidebarCollapsed
-                ? t("topbar.expandSidebar")
-                : t("topbar.collapseSidebar")
-            }
-          >
+          <button className="sidebar-toggle" onClick={onToggleSidebar} title={sidebarCollapsed ? t("topbar.expandSidebar") : t("topbar.collapseSidebar")}>
             {sidebarCollapsed ? <MenuIcon /> : <CollapseIcon />}
           </button>
           {/* <button
@@ -727,18 +552,10 @@ const TopBar: React.FC<TopBarProps> = ({
           </button>
         </div>
         <div className="top-bar-right">
-          <button
-            className="action-btn theme-toggle"
-            onClick={onToggleTheme}
-            title={t("topbar.toggleTheme")}
-          >
+          <button className="action-btn theme-toggle" onClick={onToggleTheme} title={t("topbar.toggleTheme")}>
             {currentTheme === "dark" ? <SunIcon /> : <MoonIcon />}
           </button>
-          <button
-            className="action-btn"
-            onClick={onToggleLanguage}
-            title={t("topbar.toggleLanguage")}
-          >
+          <button className="action-btn" onClick={onToggleLanguage} title={t("topbar.toggleLanguage")}>
             {currentLanguage === "zh" ? "EN" : "中文"}
           </button>
           <div className="layout-divider" />
@@ -768,19 +585,10 @@ const TopBar: React.FC<TopBarProps> = ({
             </>
           )} */}
           <div className="window-controls">
-            <button
-              className="window-btn"
-              onClick={handleMinimize}
-              title={getMinimizeTitle()}
-              style={{ fontSize: "20px", lineHeight: 1, fontWeight: 300 }}
-            >
+            <button className="window-btn" onClick={handleMinimize} title={getMinimizeTitle()} style={{ fontSize: "20px", lineHeight: 1, fontWeight: 300 }}>
               ─
             </button>
-            <button
-              className="window-btn"
-              onClick={handleMaximize}
-              title={getMaximizeTitle()}
-            >
+            <button className="window-btn" onClick={handleMaximize} title={getMaximizeTitle()}>
               {isMaximized ? (
                 <span
                   style={{
@@ -807,12 +615,7 @@ const TopBar: React.FC<TopBarProps> = ({
                 </span>
               )}
             </button>
-            <button
-              className="window-btn close"
-              onClick={handleClose}
-              title={getCloseTitle()}
-              style={{ paddingTop: "2px" }}
-            >
+            <button className="window-btn close" onClick={handleClose} title={getCloseTitle()} style={{ paddingTop: "2px" }}>
               <CloseIcon />
             </button>
           </div>
@@ -830,5 +633,4 @@ const TopBar: React.FC<TopBarProps> = ({
     </>
   );
 };
-
 export default TopBar;

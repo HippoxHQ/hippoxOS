@@ -36,9 +36,7 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
   const [taskList, setTaskList] = useState<any[]>([]);
   const terminalAreaRef = useRef<HTMLDivElement>(null);
 
-  const collapseIcon =
-    collapseIconProp ||
-    (isLeftPanel ? (isCollapsed ? "≫" : "≪") : isCollapsed ? "≪" : "≫");
+  const collapseIcon = collapseIconProp || (isLeftPanel ? (isCollapsed ? "≫" : "≪") : isCollapsed ? "≪" : "≫");
 
   useEffect(() => {
     const loadTheme = async () => {
@@ -79,12 +77,7 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
     window.addEventListener("language-changed", handleLanguageChange);
     const updateTasks = () => {
       const allTasks = taskManager.getAllTasks();
-      const activeTasks = allTasks.filter(
-        (task) =>
-          task.status === TaskStatusEnum.Running ||
-          task.status === TaskStatusEnum.Pending ||
-          task.status === TaskStatusEnum.Paused,
-      );
+      const activeTasks = allTasks.filter((task) => task.status === TaskStatusEnum.Running || task.status === TaskStatusEnum.Pending || task.status === TaskStatusEnum.Paused);
       setTaskList(activeTasks);
     };
     updateTasks();
@@ -175,15 +168,9 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
                 width: "32px",
                 height: "32px",
                 borderRadius: "6px",
-                border: isActive
-                  ? "1px solid var(--accent-color)"
-                  : "1px solid var(--border-color)",
-                background: isActive
-                  ? "var(--accent-glow)"
-                  : "var(--bg-tertiary)",
-                color: isActive
-                  ? "var(--accent-color)"
-                  : "var(--text-secondary)",
+                border: isActive ? "1px solid var(--accent-color)" : "1px solid var(--border-color)",
+                background: isActive ? "var(--accent-glow)" : "var(--bg-tertiary)",
+                color: isActive ? "var(--accent-color)" : "var(--text-secondary)",
                 cursor: "pointer",
                 fontSize: "10px",
                 display: "flex",

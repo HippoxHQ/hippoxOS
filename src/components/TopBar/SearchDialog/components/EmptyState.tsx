@@ -1,9 +1,7 @@
 import React from "react";
-
 interface EmptyStateProps {
   language: "zh" | "en";
 }
-
 export const EmptyState: React.FC<EmptyStateProps> = ({ language }) => {
   return (
     <div

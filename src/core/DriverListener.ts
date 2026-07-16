@@ -1,11 +1,9 @@
 import { listen } from "@tauri-apps/api/event";
 import { taskManager } from "./TaskManager";
 import { SessionDomain, StepStatusEnum, TaskStepInfo } from "./types";
-
 export interface DriverEventHandlers {
     onTranslation: (key: string) => string;
 }
-
 export interface DriverProgressEvent {
     task_id: string | null;
     step_index: number | null;
@@ -13,14 +11,12 @@ export interface DriverProgressEvent {
     message: string;
     session_id: string;
 }
-
 export interface DriverStartEvent {
     task_id: string | null;
     step_index: number | null;
     driver_name: string;
     session_id: string;
 }
-
 export interface DriverCompleteEvent {
     task_id: string | null;
     step_index: number | null;
@@ -28,7 +24,6 @@ export interface DriverCompleteEvent {
     output: string;
     session_id: string;
 }
-
 export interface DriverErrorEvent {
     task_id: string | null;
     step_index: number | null;
@@ -36,14 +31,12 @@ export interface DriverErrorEvent {
     error: string;
     session_id: string;
 }
-
 export interface DriverLogEvent {
     task_id: string | null;
     step_index: number | null;
     msg: string;
     session_id: string;
 }
-
 const updateTaskStepByGeneralSession = (
     sessionId: string,
     taskId: string,
@@ -89,7 +82,6 @@ const updateTaskStepByGeneralSession = (
     });
     taskManager.notify();
 };
-
 // Driver start handler
 export const handleDriverStart = (event: any, t: (key: string) => string) => {
     const { task_id, step_index, driver_name, session_id } = event.payload;
@@ -102,7 +94,6 @@ export const handleDriverStart = (event: any, t: (key: string) => string) => {
         started_at: new Date().toISOString(),
     });
 };
-
 // Driver progress handler
 export const handleDriverProgress = (event: any, t: (key: string) => string) => {
     const { task_id, step_index, progress, message, session_id } = event.payload;
@@ -115,7 +106,6 @@ export const handleDriverProgress = (event: any, t: (key: string) => string) => 
         progress_message: message,
     });
 };
-
 // Driver complete handler
 export const handleDriverComplete = (event: any, t: (key: string) => string) => {
     const { task_id, step_index, driver_name, output, session_id } = event.payload;
@@ -129,7 +119,6 @@ export const handleDriverComplete = (event: any, t: (key: string) => string) => 
         completed_at: new Date().toISOString(),
     });
 };
-
 // Driver error handler
 export const handleDriverError = (event: any, t: (key: string) => string) => {
     const { task_id, step_index, driver_name, error, session_id } = event.payload;
@@ -143,7 +132,6 @@ export const handleDriverError = (event: any, t: (key: string) => string) => {
         completed_at: new Date().toISOString(),
     });
 };
-
 // Driver log handler 
 export const handleDriverLog = (event: any, t: (key: string) => string) => {
     const { task_id, step_index, driver_name, session_id, msg } = event.payload;
@@ -167,41 +155,33 @@ export const handleDriverLog = (event: any, t: (key: string) => string) => {
         logs: [msg],
     });
 };
-
 // Setup driver event listeners 
 export const setupDriverEventListeners = async (
     t: (key: string) => string
 ): Promise<Array<() => void>> => {
     const unlistenFunctions: Array<() => void> = [];
-
     const unlistenStart = await listen("driver_callback_start", (event: any) => {
         handleDriverStart(event, t);
     });
     unlistenFunctions.push(unlistenStart);
-
     const unlistenProgress = await listen("driver_callback_progress", (event: any) => {
         handleDriverProgress(event, t);
     });
     unlistenFunctions.push(unlistenProgress);
-
     const unlistenComplete = await listen("driver_callback_complete", (event: any) => {
         handleDriverComplete(event, t);
     });
     unlistenFunctions.push(unlistenComplete);
-
     const unlistenError = await listen("driver_callback_error", (event: any) => {
         handleDriverError(event, t);
     });
     unlistenFunctions.push(unlistenError);
-
     const unlistenLog = await listen("driver_callback_log", (event: any) => {
         handleDriverLog(event, t);
     });
     unlistenFunctions.push(unlistenLog);
-
     return unlistenFunctions;
 };
-
 export const driverEventHandlers = {
     onStart: handleDriverStart,
     onProgress: handleDriverProgress,

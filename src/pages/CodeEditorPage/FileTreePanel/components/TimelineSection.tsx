@@ -6,10 +6,7 @@ interface TimelineSectionProps {
   loadingGit: boolean;
 }
 
-export const TimelineSection: React.FC<TimelineSectionProps> = ({
-  gitInfo,
-  loadingGit,
-}) => {
+export const TimelineSection: React.FC<TimelineSectionProps> = ({ gitInfo, loadingGit }) => {
   if (loadingGit) {
     return (
       <div
@@ -53,10 +50,7 @@ export const TimelineSection: React.FC<TimelineSectionProps> = ({
             key={commit.hash}
             style={{
               padding: "4px 0",
-              borderBottom:
-                index < gitInfo.commits.length - 1
-                  ? "1px solid var(--border-color)"
-                  : "none",
+              borderBottom: index < gitInfo.commits.length - 1 ? "1px solid var(--border-color)" : "none",
               overflow: "hidden",
               maxWidth: "100%",
             }}
@@ -143,21 +137,19 @@ export const TimelineSection: React.FC<TimelineSectionProps> = ({
                   >
                     {new Date(commit.date).toLocaleString()}
                   </span>
-                  {commit.branch &&
-                    commit.branch !== "main" &&
-                    commit.branch !== "master" && (
-                      <>
-                        <span style={{ flexShrink: 0 }}>·</span>
-                        <span
-                          style={{
-                            color: "var(--accent-color)",
-                            flexShrink: 0,
-                          }}
-                        >
-                          {commit.branch}
-                        </span>
-                      </>
-                    )}
+                  {commit.branch && commit.branch !== "main" && commit.branch !== "master" && (
+                    <>
+                      <span style={{ flexShrink: 0 }}>·</span>
+                      <span
+                        style={{
+                          color: "var(--accent-color)",
+                          flexShrink: 0,
+                        }}
+                      >
+                        {commit.branch}
+                      </span>
+                    </>
+                  )}
                 </div>
               </div>
             </div>

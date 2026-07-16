@@ -1,12 +1,10 @@
 import React, { useEffect, useState, useCallback } from "react";
-
 export enum DialogType {
   INFO = "info",
   WARNING = "warning",
   ERROR = "error",
   SUCCESS = "success",
 }
-
 interface DialogState {
   visible: boolean;
   type: DialogType;
@@ -19,25 +17,13 @@ interface DialogState {
   onCancel?: () => void;
   onSkip?: () => void;
 }
-
 let dialogController: {
-  show: (
-    type: DialogType,
-    title: string,
-    message: string,
-    onConfirm?: () => void,
-    onCancel?: () => void,
-    confirmText?: string,
-    cancelText?: string,
-    skipText?: string,
-    onSkip?: () => void,
-  ) => void;
+  show: (type: DialogType, title: string, message: string, onConfirm?: () => void, onCancel?: () => void, confirmText?: string, cancelText?: string, skipText?: string, onSkip?: () => void) => void;
   hide: () => void;
   confirm: () => void;
   cancel: () => void;
   skip: () => void;
 } | null = null;
-
 const Dialog: React.FC = () => {
   const [dialog, setDialog] = useState<DialogState>({
     visible: false,
@@ -48,7 +34,6 @@ const Dialog: React.FC = () => {
     cancelText: "取消",
     skipText: "跳过",
   });
-
   useEffect(() => {
     dialogController = {
       show: (
@@ -97,39 +82,33 @@ const Dialog: React.FC = () => {
         setDialog((prev) => ({ ...prev, visible: false }));
       },
     };
-
     return () => {
       dialogController = null;
     };
   }, [dialog.onConfirm, dialog.onCancel, dialog.onSkip]);
-
   const handleConfirm = useCallback(() => {
     if (dialog.onConfirm) {
       dialog.onConfirm();
     }
     setDialog((prev) => ({ ...prev, visible: false }));
   }, [dialog.onConfirm]);
-
   const handleCancel = useCallback(() => {
     if (dialog.onCancel) {
       dialog.onCancel();
     }
     setDialog((prev) => ({ ...prev, visible: false }));
   }, [dialog.onCancel]);
-
   const handleSkip = useCallback(() => {
     if (dialog.onSkip) {
       dialog.onSkip();
     }
     setDialog((prev) => ({ ...prev, visible: false }));
   }, [dialog.onSkip]);
-
   const handleOverlayClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) {
       return;
     }
   };
-
   const getIcon = (type: DialogType) => {
     switch (type) {
       case DialogType.SUCCESS:
@@ -142,7 +121,6 @@ const Dialog: React.FC = () => {
         return "ℹ";
     }
   };
-
   const getColor = (type: DialogType) => {
     switch (type) {
       case DialogType.SUCCESS:
@@ -155,9 +133,7 @@ const Dialog: React.FC = () => {
         return "#3b82f6";
     }
   };
-
   if (!dialog.visible) return null;
-
   return (
     <>
       <style>{`
@@ -327,24 +303,15 @@ const Dialog: React.FC = () => {
           </div>
           <div className="dialog-message">{dialog.message}</div>
           <div className="dialog-buttons">
-            <button
-              className="dialog-btn dialog-btn-cancel"
-              onClick={handleCancel}
-            >
+            <button className="dialog-btn dialog-btn-cancel" onClick={handleCancel}>
               {dialog.cancelText}
             </button>
             {dialog.skipText && dialog.onSkip && (
-              <button
-                className="dialog-btn dialog-btn-skip"
-                onClick={handleSkip}
-              >
+              <button className="dialog-btn dialog-btn-skip" onClick={handleSkip}>
                 {dialog.skipText}
               </button>
             )}
-            <button
-              className="dialog-btn dialog-btn-confirm"
-              onClick={handleConfirm}
-            >
+            <button className="dialog-btn dialog-btn-confirm" onClick={handleConfirm}>
               {dialog.confirmText}
             </button>
           </div>
@@ -353,7 +320,6 @@ const Dialog: React.FC = () => {
     </>
   );
 };
-
 export const showDialog = (
   type: DialogType,
   title: string,
@@ -366,26 +332,14 @@ export const showDialog = (
   onSkip?: () => void,
 ) => {
   if (dialogController) {
-    dialogController.show(
-      type,
-      title,
-      message,
-      onConfirm,
-      onCancel,
-      confirmText,
-      cancelText,
-      skipText,
-      onSkip,
-    );
+    dialogController.show(type, title, message, onConfirm, onCancel, confirmText, cancelText, skipText, onSkip);
   } else {
     console.warn("Dialog component not mounted yet");
   }
 };
-
 export const hideDialog = () => {
   if (dialogController) {
     dialogController.hide();
   }
 };
-
 export default Dialog;

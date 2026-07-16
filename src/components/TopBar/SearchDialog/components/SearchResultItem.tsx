@@ -1,20 +1,13 @@
 import React from "react";
 import { SearchResult } from "../types";
-
 interface SearchResultItemProps {
   result: SearchResult;
   index: number;
   onClick: (result: SearchResult) => void;
 }
-
-export const SearchResultItem: React.FC<SearchResultItemProps> = ({
-  result,
-  index,
-  onClick,
-}) => {
+export const SearchResultItem: React.FC<SearchResultItemProps> = ({ result, index, onClick }) => {
   const formatTimestamp = (timestamp?: string): string => {
     if (!timestamp) return "";
-
     try {
       const date = new Date(timestamp);
       if (isNaN(date.getTime())) {

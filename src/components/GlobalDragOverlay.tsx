@@ -1,14 +1,9 @@
 import React from "react";
-
 interface GlobalDragOverlayProps {
   isDragging: boolean;
 }
-
-const GlobalDragOverlay: React.FC<GlobalDragOverlayProps> = ({
-  isDragging,
-}) => {
+const GlobalDragOverlay: React.FC<GlobalDragOverlayProps> = ({ isDragging }) => {
   if (!isDragging) return null;
-
   return (
     <>
       <style>{`
@@ -25,8 +20,7 @@ const GlobalDragOverlay: React.FC<GlobalDragOverlayProps> = ({
           transition: all 0.2s ease;
           animation: fadeIn 0.15s ease;
         }
-
-        @keyframes fadeIn {
+         @keyframes fadeIn {
           from {
             opacity: 0;
           }
@@ -34,8 +28,7 @@ const GlobalDragOverlay: React.FC<GlobalDragOverlayProps> = ({
             opacity: 1;
           }
         }
-
-        [data-theme="light"] .global-drag-overlay {
+         [data-theme="light"] .global-drag-overlay {
           background: rgba(0, 0, 0, 0.08);
           backdrop-filter: blur(1px);
         }
@@ -44,5 +37,4 @@ const GlobalDragOverlay: React.FC<GlobalDragOverlayProps> = ({
     </>
   );
 };
-
 export default GlobalDragOverlay;

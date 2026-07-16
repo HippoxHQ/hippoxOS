@@ -16,11 +16,9 @@ export interface Material {
   sample_rate?: number;
   channels?: number;
 }
-
 export interface AudioVisualizerRef {
   seek: (time: number) => void;
 }
-
 export interface AudioVisualizerProps {
   audioUrl: string;
   isDark: boolean;

@@ -14,17 +14,7 @@ interface ChartChatPageCandleViewProps {
   chartData?: any;
 }
 
-export const ChartChatPageCandleView: React.FC<
-  ChartChatPageCandleViewProps
-> = ({
-  theme,
-  i18n,
-  currentSessionId,
-  data,
-  symbol = "BTC/USDT",
-  taskId,
-  chartData,
-}) => {
+export const ChartChatPageCandleView: React.FC<ChartChatPageCandleViewProps> = ({ theme, i18n, currentSessionId, data, symbol = "BTC/USDT", taskId, chartData }) => {
   const [chartHeight, setChartHeight] = useState(55);
   const [editorWidth, setEditorWidth] = useState(60);
   const [isChartResizing, setIsChartResizing] = useState(false);
@@ -39,10 +29,7 @@ export const ChartChatPageCandleView: React.FC<
   const engineRef = useRef<any>(null);
 
   const chartDataFromProps = data || TEST_CANDLEVIEW_DATA8;
-  const isValidData =
-    chartDataFromProps &&
-    Array.isArray(chartDataFromProps) &&
-    chartDataFromProps.length > 0;
+  const isValidData = chartDataFromProps && Array.isArray(chartDataFromProps) && chartDataFromProps.length > 0;
 
   useEffect(() => {
     const checkEngine = () => {
@@ -151,9 +138,7 @@ export const ChartChatPageCandleView: React.FC<
         display: "flex",
         flexDirection: "column",
         position: "relative",
-        background: isDark
-          ? "var(--bg-primary, #1a1a2e)"
-          : "var(--bg-primary, #f5f5f5)",
+        background: isDark ? "var(--bg-primary, #1a1a2e)" : "var(--bg-primary, #f5f5f5)",
         overflow: "hidden",
         userSelect: "none",
       }}
@@ -221,15 +206,7 @@ export const ChartChatPageCandleView: React.FC<
           flexShrink: 0,
         }}
       >
-        <Chart
-          ref={chartRef}
-          theme={theme}
-          i18n={i18n}
-          symbol={symbol}
-          data={chartDataFromProps}
-          chartData={chartData}
-          isValidData={isValidData}
-        />
+        <Chart ref={chartRef} theme={theme} i18n={i18n} symbol={symbol} data={chartDataFromProps} chartData={chartData} isValidData={isValidData} />
       </div>
 
       <div
@@ -255,14 +232,7 @@ export const ChartChatPageCandleView: React.FC<
           flexShrink: 0,
         }}
       >
-        <DSL
-          ref={dslRef}
-          theme={theme}
-          i18n={i18n}
-          editorWidth={editorWidth}
-          onStartEditorResize={startEditorResizing}
-          engineRef={engineRef}
-        />
+        <DSL ref={dslRef} theme={theme} i18n={i18n} editorWidth={editorWidth} onStartEditorResize={startEditorResizing} engineRef={engineRef} />
       </div>
 
       {isChartResizing && (

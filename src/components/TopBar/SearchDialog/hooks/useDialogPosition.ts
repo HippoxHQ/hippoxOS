@@ -1,5 +1,4 @@
 import { useState, useCallback, useRef, useEffect } from "react";
-
 export const useDialogPosition = (isOpen: boolean) => {
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
@@ -33,7 +32,6 @@ export const useDialogPosition = (isOpen: boolean) => {
         const windowHeight = window.innerHeight;
         const dialogWidth = dialogRef.current.offsetWidth;
         const dialogHeight = dialogRef.current.offsetHeight;
-
         setPosition({
           x: Math.min(windowWidth - dialogWidth, Math.max(0, newX)),
           y: Math.min(windowHeight - dialogHeight, Math.max(0, newY)),

@@ -1,19 +1,9 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { taskManager } from "../../core/TaskManager";
-import {
-  CollapseAllIcon2,
-  ExpandAllIcon2,
-  FileIcon,
-  FolderIcon,
-  GithubIcon,
-  MessageCircleIcon,
-  ScrollTextIcon,
-} from "../../icons";
+import { CollapseAllIcon2, ExpandAllIcon2, FileIcon, FolderIcon, GithubIcon, MessageCircleIcon, ScrollTextIcon } from "../../icons";
 import CodingPage from "./Coding";
 import { configCommands } from "../../command/config";
-import HistoryCodeEditorChatPanel, {
-  HistoryCodeEditorChatPanelRef,
-} from "./HistoryCodeEditorChatPanel";
+import HistoryCodeEditorChatPanel, { HistoryCodeEditorChatPanelRef } from "./HistoryCodeEditorChatPanel";
 import CodeEditorChatPanel from "./CodeEditorChatPanel";
 import { useCodeEditorSession } from "../../App/hooks/session/useCodeEditorChatSession";
 import { codeEditorSessionCommands } from "../../command/session/codeeditor";
@@ -101,11 +91,7 @@ interface CollapsedTaskListProps {
   onLocateTask: (idx: number) => void;
 }
 
-const CollapsedTaskList: React.FC<CollapsedTaskListProps> = ({
-  tasks,
-  activeNavIndex,
-  onLocateTask,
-}) => {
+const CollapsedTaskList: React.FC<CollapsedTaskListProps> = ({ tasks, activeNavIndex, onLocateTask }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [showUp, setShowUp] = useState(false);
   const [showDown, setShowDown] = useState(false);
@@ -309,9 +295,7 @@ const CollapsedTaskList: React.FC<CollapsedTaskListProps> = ({
                 width: "30px",
                 height: "30px",
                 borderRadius: "8px",
-                border: isActive
-                  ? "1px solid var(--accent-color)"
-                  : "1px solid transparent",
+                border: isActive ? "1px solid var(--accent-color)" : "1px solid transparent",
                 background: isActive ? "var(--accent-color)" : "transparent",
                 color: isActive ? "white" : "var(--text-secondary)",
                 cursor: "pointer",
@@ -407,11 +391,7 @@ interface CollapsedHistoryListProps {
   onSelectSession: (sessionId: string) => void;
 }
 
-const CollapsedHistoryList: React.FC<CollapsedHistoryListProps> = ({
-  sessions,
-  currentSessionId,
-  onSelectSession,
-}) => {
+const CollapsedHistoryList: React.FC<CollapsedHistoryListProps> = ({ sessions, currentSessionId, onSelectSession }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [showUp, setShowUp] = useState(false);
   const [showDown, setShowDown] = useState(false);
@@ -591,9 +571,7 @@ const CollapsedHistoryList: React.FC<CollapsedHistoryListProps> = ({
                 width: "30px",
                 height: "30px",
                 borderRadius: "8px",
-                border: isActive
-                  ? "1px solid var(--accent-color)"
-                  : "1px solid transparent",
+                border: isActive ? "1px solid var(--accent-color)" : "1px solid transparent",
                 background: isActive ? "var(--accent-color)" : "transparent",
                 color: isActive ? "white" : "var(--text-secondary)",
                 cursor: "pointer",
@@ -632,9 +610,7 @@ const CollapsedHistoryList: React.FC<CollapsedHistoryListProps> = ({
                     top: "1px",
                     right: "1px",
                     fontSize: "6px",
-                    color: isActive
-                      ? "rgba(255,255,255,0.8)"
-                      : "var(--accent-color)",
+                    color: isActive ? "rgba(255,255,255,0.8)" : "var(--accent-color)",
                   }}
                 >
                   📌
@@ -713,11 +689,7 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
     handleNewSession,
     shouldShowWelcome,
     createSessionWithWorkspace,
-  } = useCodeEditorSession(
-    language as "zh" | "en",
-    isConfigLoaded,
-    onCloseSkillsManager,
-  );
+  } = useCodeEditorSession(language as "zh" | "en", isConfigLoaded, onCloseSkillsManager);
   const dropLockRef = useRef<{ path: string; time: number } | null>(null);
   const [chatPanelWidth, setChatPanelWidth] = useState<number>(400);
   const [historyWidth, setHistoryWidth] = useState<number>(280);
@@ -738,9 +710,7 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
   const dragStartHistoryWidth = useRef(0);
   const dragStartChatPanelWidth = useRef(400);
   const dragStartContainerRect = useRef<DOMRect | null>(null);
-  const [layoutSwapMode, setLayoutSwapMode] = useState<
-    "terminal-left" | "chat-left"
-  >("terminal-left");
+  const [layoutSwapMode, setLayoutSwapMode] = useState<"terminal-left" | "chat-left">("terminal-left");
   const isChatOnLeft = layoutSwapMode === "chat-left";
   const [isCreatingSession, setIsCreatingSession] = useState(false);
   const [workspacePath, setWorkspacePath] = useState<string | null>(null);
@@ -749,18 +719,11 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
   const [showGithubDialog, setShowGithubDialog] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
-  const layoutSwapModeRef = useRef<"terminal-left" | "chat-left">(
-    "terminal-left",
-  );
+  const layoutSwapModeRef = useRef<"terminal-left" | "chat-left">("terminal-left");
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (
-        menuRef.current &&
-        !menuRef.current.contains(event.target as Node) &&
-        buttonRef.current &&
-        !buttonRef.current.contains(event.target as Node)
-      ) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node) && buttonRef.current && !buttonRef.current.contains(event.target as Node)) {
         setShowMenuPopup(false);
       }
     };
@@ -771,12 +734,7 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
   }, []);
 
   const handleSendMessage = useCallback(
-    (
-      message: string,
-      sessionId: string,
-      files?: any[],
-      workflowMode?: string,
-    ) => {
+    (message: string, sessionId: string, files?: any[], workflowMode?: string) => {
       handleSendMessageHook(message, sessionId, files, workflowMode);
     },
     [handleSendMessageHook],
@@ -799,17 +757,13 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
       const selected = await open({
         directory: true,
         multiple: false,
-        title:
-          language === "zh" ? "选择工作区目录" : "Select Workspace Directory",
+        title: language === "zh" ? "选择工作区目录" : "Select Workspace Directory",
       });
       if (selected && typeof selected === "string") {
         await handleSelectWorkspace(selected, "directory");
       }
     } catch (error) {
-      showToast(
-        ToastType.ERROR,
-        language === "zh" ? "选择目录失败" : "Failed to select directory",
-      );
+      showToast(ToastType.ERROR, language === "zh" ? "选择目录失败" : "Failed to select directory");
     }
   };
 
@@ -831,10 +785,7 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
         await handleSelectWorkspace(selected, "file");
       }
     } catch (error) {
-      showToast(
-        ToastType.ERROR,
-        language === "zh" ? "选择文件失败" : "Failed to select file",
-      );
+      showToast(ToastType.ERROR, language === "zh" ? "选择文件失败" : "Failed to select file");
     }
   };
 
@@ -850,17 +801,12 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
   };
 
   const loadWorkspacePath = useCallback(async (sessionId: string) => {
-    if (
-      !sessionId ||
-      sessionId.startsWith("pending_") ||
-      sessionId.startsWith("temp_")
-    ) {
+    if (!sessionId || sessionId.startsWith("pending_") || sessionId.startsWith("temp_")) {
       setWorkspacePath(null);
       return;
     }
     try {
-      const config =
-        await codeEditorSessionCommands.loadCodeEditorSessionConfig(sessionId);
+      const config = await codeEditorSessionCommands.loadCodeEditorSessionConfig(sessionId);
       if (config && config.workspace_path) {
         setWorkspacePath(config.workspace_path);
       } else {
@@ -902,13 +848,7 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
     loadWorkspacePathRef.current = loadWorkspacePath;
     currentSessionIdRef.current = currentSessionId;
     languageRef.current = language;
-  }, [
-    createSessionWithWorkspace,
-    loadHistorySessions,
-    loadWorkspacePath,
-    currentSessionId,
-    language,
-  ]);
+  }, [createSessionWithWorkspace, loadHistorySessions, loadWorkspacePath, currentSessionId, language]);
 
   const createSessionWithLock = useCallback(
     async (workspacePath: string, workspaceType: "directory" | "file") => {
@@ -928,12 +868,7 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
         GLOBAL_SESSION_LOCK.unlock(workspacePath);
       }
     },
-    [
-      createSessionWithWorkspace,
-      loadHistorySessions,
-      currentSessionId,
-      loadWorkspacePath,
-    ],
+    [createSessionWithWorkspace, loadHistorySessions, currentSessionId, loadWorkspacePath],
   );
 
   const handleSelectWorkspace = useCallback(
@@ -943,17 +878,9 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
     [createSessionWithLock],
   );
 
-  const handleGithubClone = async (
-    repoUrl: string,
-    targetPath: string,
-    branch: string,
-  ) => {
+  const handleGithubClone = async (repoUrl: string, targetPath: string, branch: string) => {
     try {
-      await githubCommands.cloneRepository(
-        repoUrl,
-        targetPath,
-        branch || "main",
-      );
+      await githubCommands.cloneRepository(repoUrl, targetPath, branch || "main");
       await handleSelectWorkspace(targetPath, "directory");
       setShowGithubDialog(false);
       window.dispatchEvent(
@@ -962,10 +889,7 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
         }),
       );
     } catch (error) {
-      showToast(
-        ToastType.ERROR,
-        language === "zh" ? "克隆失败" : "Clone Failed",
-      );
+      showToast(ToastType.ERROR, language === "zh" ? "克隆失败" : "Clone Failed");
       throw error;
     }
   };
@@ -995,15 +919,9 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
         layoutSwapModeRef.current = mode;
       }
     };
-    window.addEventListener(
-      "layout-swap-mode-changed",
-      handleLayoutChange as EventListener,
-    );
+    window.addEventListener("layout-swap-mode-changed", handleLayoutChange as EventListener);
     return () => {
-      window.removeEventListener(
-        "layout-swap-mode-changed",
-        handleLayoutChange as EventListener,
-      );
+      window.removeEventListener("layout-swap-mode-changed", handleLayoutChange as EventListener);
     };
   }, []);
 
@@ -1014,10 +932,7 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
     };
     window.addEventListener("codeeditor-session-created", handleSessionCreated);
     return () => {
-      window.removeEventListener(
-        "codeeditor-session-created",
-        handleSessionCreated,
-      );
+      window.removeEventListener("codeeditor-session-created", handleSessionCreated);
     };
   }, [loadHistorySessions]);
 
@@ -1053,11 +968,7 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
           if (!paths || paths.length === 0) return;
           const path = paths[0];
           const now = Date.now();
-          if (
-            dropLockRef.current &&
-            dropLockRef.current.path === path &&
-            now - dropLockRef.current.time < 1000
-          ) {
+          if (dropLockRef.current && dropLockRef.current.path === path && now - dropLockRef.current.time < 1000) {
             return;
           }
           dropLockRef.current = { path, time: now };
@@ -1078,23 +989,13 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
   }, []);
 
   useEffect(() => {
-    const savedHistoryWidth = localStorage.getItem(
-      "hippox-codeeditor-history-width",
-    );
-    const savedHistoryCollapsed = localStorage.getItem(
-      "hippox-codeeditor-history-collapsed",
-    );
-    const savedChatPanelCollapsed = localStorage.getItem(
-      "hippox-codeeditor-chat-collapsed",
-    );
-    const savedChatPanelWidth = localStorage.getItem(
-      "hippox-codeeditor-chat-width",
-    );
+    const savedHistoryWidth = localStorage.getItem("hippox-codeeditor-history-width");
+    const savedHistoryCollapsed = localStorage.getItem("hippox-codeeditor-history-collapsed");
+    const savedChatPanelCollapsed = localStorage.getItem("hippox-codeeditor-chat-collapsed");
+    const savedChatPanelWidth = localStorage.getItem("hippox-codeeditor-chat-width");
     if (savedHistoryWidth) setHistoryWidth(parseFloat(savedHistoryWidth));
-    if (savedHistoryCollapsed)
-      setHistoryCollapsed(savedHistoryCollapsed === "true");
-    if (savedChatPanelCollapsed)
-      setChatPanelCollapsed(savedChatPanelCollapsed === "true");
+    if (savedHistoryCollapsed) setHistoryCollapsed(savedHistoryCollapsed === "true");
+    if (savedChatPanelCollapsed) setChatPanelCollapsed(savedChatPanelCollapsed === "true");
     if (savedChatPanelWidth) setChatPanelWidth(parseFloat(savedChatPanelWidth));
   }, []);
 
@@ -1103,17 +1004,11 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
   };
 
   const saveHistoryCollapsed = (collapsed: boolean) => {
-    localStorage.setItem(
-      "hippox-codeeditor-history-collapsed",
-      collapsed.toString(),
-    );
+    localStorage.setItem("hippox-codeeditor-history-collapsed", collapsed.toString());
   };
 
   const saveChatPanelCollapsed = (collapsed: boolean) => {
-    localStorage.setItem(
-      "hippox-codeeditor-chat-collapsed",
-      collapsed.toString(),
-    );
+    localStorage.setItem("hippox-codeeditor-chat-collapsed", collapsed.toString());
   };
 
   const saveChatPanelWidth = (width: number) => {
@@ -1145,10 +1040,7 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
     saveHistoryCollapsed(!historyCollapsed);
   };
 
-  const handleMouseDown = (
-    e: React.MouseEvent,
-    type: "horizontal" | "history",
-  ) => {
+  const handleMouseDown = (e: React.MouseEvent, type: "horizontal" | "history") => {
     if (chatPanelCollapsed || isFunctionPanelMaximized) return;
     if (type === "history" && historyCollapsed) return;
 
@@ -1157,8 +1049,7 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
     dragStartX.current = e.clientX;
     dragStartHistoryWidth.current = historyCollapsed ? 45 : historyWidth;
     dragStartChatPanelWidth.current = chatPanelWidth;
-    dragStartContainerRect.current =
-      containerRef.current?.getBoundingClientRect() || null;
+    dragStartContainerRect.current = containerRef.current?.getBoundingClientRect() || null;
     document.body.style.cursor = "col-resize";
     document.body.style.userSelect = "none";
     e.preventDefault();
@@ -1167,9 +1058,7 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
   const handleMouseMove = useCallback((e: MouseEvent) => {
     if (!isDragging.current || !containerRef.current) return;
     const deltaX = e.clientX - dragStartX.current;
-    const containerRect =
-      dragStartContainerRect.current ||
-      containerRef.current.getBoundingClientRect();
+    const containerRect = dragStartContainerRect.current || containerRef.current.getBoundingClientRect();
     const containerWidth = containerRect.width;
     if (dragType.current === "horizontal") {
       const historyWidthPx = dragStartHistoryWidth.current;
@@ -1304,11 +1193,7 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
               <ScrollTextIcon size={16} />
             </span>
           </div>
-          <CollapsedHistoryList
-            sessions={historySessions}
-            currentSessionId={currentSessionId}
-            onSelectSession={handleSessionSelect}
-          />
+          <CollapsedHistoryList sessions={historySessions} currentSessionId={currentSessionId} onSelectSession={handleSessionSelect} />
         </div>
       );
     }
@@ -1409,17 +1294,9 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
                 e.currentTarget.style.color = "var(--text-secondary)";
                 e.currentTarget.style.background = "none";
               }}
-              title={
-                isHistoryExpanded
-                  ? t("history.collapseAll")
-                  : t("history.expandAll")
-              }
+              title={isHistoryExpanded ? t("history.collapseAll") : t("history.expandAll")}
             >
-              {isHistoryExpanded ? (
-                <CollapseAllIcon2 size={16} />
-              ) : (
-                <ExpandAllIcon2 size={16} />
-              )}
+              {isHistoryExpanded ? <CollapseAllIcon2 size={16} /> : <ExpandAllIcon2 size={16} />}
             </button>
             <button
               style={{
@@ -1446,11 +1323,7 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
                 e.currentTarget.style.color = "var(--text-secondary)";
                 e.currentTarget.style.background = "none";
               }}
-              title={
-                isHistoryAtBottom
-                  ? t("history.scrollToTop")
-                  : t("history.scrollToBottom")
-              }
+              title={isHistoryAtBottom ? t("history.scrollToTop") : t("history.scrollToBottom")}
             >
               {isHistoryAtBottom ? "▲" : "▼"}
             </button>
@@ -1540,12 +1413,7 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
         minWidth: 0,
       }}
     >
-      <CodingPage
-        t={t}
-        onClose={() => {}}
-        workspacePath={workspacePath}
-        onTabChange={(filePath) => {}}
-      />
+      <CodingPage t={t} onClose={() => {}} workspacePath={workspacePath} onTabChange={(filePath) => {}} />
     </div>
   );
 
@@ -1686,23 +1554,14 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
           background: "var(--bg-primary)",
         }}
       >
-        <CodeEditorWelcomePage
-          t={t}
-          language={language}
-          onSelectWorkspace={handleSelectWorkspace}
-          isLoading={isCreatingSession}
-        />
+        <CodeEditorWelcomePage t={t} language={language} onSelectWorkspace={handleSelectWorkspace} isLoading={isCreatingSession} />
       </div>
     );
   }
 
   return (
     <>
-      <div
-        className="panels-container horizontal-layout"
-        ref={containerRef}
-        style={{ display: "flex", flex: 1, overflow: "hidden" }}
-      >
+      <div className="panels-container horizontal-layout" ref={containerRef} style={{ display: "flex", flex: 1, overflow: "hidden" }}>
         <style>{`
           .resize-handle-vertical {
             position: relative;
@@ -1797,12 +1656,8 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
               minWidth: "200px",
               display: "flex",
               flexDirection: "row",
-              borderRight: isChatOnLeft
-                ? "1px solid var(--border-color)"
-                : "none",
-              borderLeft: !isChatOnLeft
-                ? "1px solid var(--border-color)"
-                : "none",
+              borderRight: isChatOnLeft ? "1px solid var(--border-color)" : "none",
+              borderLeft: !isChatOnLeft ? "1px solid var(--border-color)" : "none",
               order: isChatOnLeft ? 1 : 3,
             }}
           >
@@ -1953,14 +1808,7 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
         </div>
       )}
 
-      <GithubClone
-        t={t}
-        language={language}
-        isOpen={showGithubDialog}
-        onClose={() => setShowGithubDialog(false)}
-        onClone={handleGithubClone}
-        isLoading={isCreatingSession}
-      />
+      <GithubClone t={t} language={language} isOpen={showGithubDialog} onClose={() => setShowGithubDialog(false)} onClone={handleGithubClone} isLoading={isCreatingSession} />
 
       <style>{`
         @keyframes fadeIn {

@@ -78,31 +78,25 @@ export const MessageUrlGrid: React.FC<MessageUrlGridProps> = ({ urls, t }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const loadingRef = useRef<boolean>(false);
   const urlsRef = useRef<string[]>([]);
-  const generateInitialPreviews = useCallback(
-    (urlList: string[]): UrlPreview[] => {
-      return urlList.map((url) => {
-        const domain = getDomainFromUrl(url);
-        return {
-          url,
-          title: domain,
-          domain: domain,
-          description: "",
-          themeColor: getDefaultThemeColor(domain),
-          backgroundImage: null,
-          faviconUrl: "",
-          fallbackIcon: getFallbackIcon(domain),
-          isLoading: true,
-        };
-      });
-    },
-    [],
-  );
+  const generateInitialPreviews = useCallback((urlList: string[]): UrlPreview[] => {
+    return urlList.map((url) => {
+      const domain = getDomainFromUrl(url);
+      return {
+        url,
+        title: domain,
+        domain: domain,
+        description: "",
+        themeColor: getDefaultThemeColor(domain),
+        backgroundImage: null,
+        faviconUrl: "",
+        fallbackIcon: getFallbackIcon(domain),
+        isLoading: true,
+      };
+    });
+  }, []);
   useEffect(() => {
     const uniqueUrls = Array.from(new Set(urls));
-    if (
-      JSON.stringify(urlsRef.current) === JSON.stringify(uniqueUrls) &&
-      previews.length > 0
-    ) {
+    if (JSON.stringify(urlsRef.current) === JSON.stringify(uniqueUrls) && previews.length > 0) {
       return;
     }
     urlsRef.current = uniqueUrls;
@@ -149,12 +143,8 @@ export const MessageUrlGrid: React.FC<MessageUrlGridProps> = ({ urls, t }) => {
               ...p,
               title: result.metadata.title || domain,
               description: result.metadata.description || "",
-              themeColor:
-                result.metadata.theme_color || getDefaultThemeColor(domain),
-              backgroundImage:
-                result.metadata.background_image ||
-                result.metadata.image ||
-                null,
+              themeColor: result.metadata.theme_color || getDefaultThemeColor(domain),
+              backgroundImage: result.metadata.background_image || result.metadata.image || null,
               faviconUrl: result.metadata.favicon_url || "",
               isLoading: false,
             };
@@ -234,36 +224,20 @@ export const MessageUrlGrid: React.FC<MessageUrlGridProps> = ({ urls, t }) => {
       <div className="urls-scroll-wrapper">
         <div className="urls-list-wrapper">
           {showLeft && (
-            <button
-              className="urls-scroll-btn urls-scroll-left"
-              onClick={scrollLeft}
-              title={t("chat.fileUpload.scrollLeft") || "Scroll Left"}
-            >
+            <button className="urls-scroll-btn urls-scroll-left" onClick={scrollLeft} title={t("chat.fileUpload.scrollLeft") || "Scroll Left"}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <path
-                  d="M15 18L9 12L15 6"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
+                <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </button>
           )}
           <div className="urls-scroll" ref={scrollRef}>
             {previews.map((preview, idx) => (
-              <div
-                key={`${preview.url}-${idx}`}
-                className="url-card"
-                onClick={() => handleUrlClick(preview.url)}
-              >
+              <div key={`${preview.url}-${idx}`} className="url-card" onClick={() => handleUrlClick(preview.url)}>
                 <div
                   className="url-card-image"
                   style={{
                     backgroundColor: preview.themeColor,
-                    backgroundImage: preview.backgroundImage
-                      ? `url(${preview.backgroundImage})`
-                      : undefined,
+                    backgroundImage: preview.backgroundImage ? `url(${preview.backgroundImage})` : undefined,
                     backgroundSize: "cover",
                     backgroundPosition: "center",
                   }}
@@ -271,21 +245,12 @@ export const MessageUrlGrid: React.FC<MessageUrlGridProps> = ({ urls, t }) => {
                   <div className="url-glass-bg"></div>
                   <div className="url-icon-container">
                     {!preview.isLoading && preview.faviconUrl ? (
-                      <img
-                        src={preview.faviconUrl}
-                        alt={preview.domain}
-                        className="url-favicon"
-                        onError={handleImageError}
-                        onLoad={handleImageLoad}
-                      />
+                      <img src={preview.faviconUrl} alt={preview.domain} className="url-favicon" onError={handleImageError} onLoad={handleImageLoad} />
                     ) : null}
                     <span
                       className="url-fallback-icon"
                       style={{
-                        display:
-                          preview.isLoading || !preview.faviconUrl
-                            ? "flex"
-                            : "none",
+                        display: preview.isLoading || !preview.faviconUrl ? "flex" : "none",
                       }}
                     >
                       {preview.isLoading ? "⏳" : preview.fallbackIcon}
@@ -294,38 +259,22 @@ export const MessageUrlGrid: React.FC<MessageUrlGridProps> = ({ urls, t }) => {
                 </div>
                 <div className="url-card-info">
                   <div className="url-title" title={preview.title}>
-                    {preview.title.length > 35
-                      ? preview.title.slice(0, 32) + "..."
-                      : preview.title}
+                    {preview.title.length > 35 ? preview.title.slice(0, 32) + "..." : preview.title}
                   </div>
                   <div className="url-description" title={preview.description}>
-                    {preview.description.length > 45
-                      ? preview.description.slice(0, 42) + "..."
-                      : preview.description || "Click to Visit the WebSite"}
+                    {preview.description.length > 45 ? preview.description.slice(0, 42) + "..." : preview.description || "Click to Visit the WebSite"}
                   </div>
                   <div className="url-domain" title={preview.url}>
-                    {preview.domain.length > 30
-                      ? preview.domain.slice(0, 27) + "..."
-                      : preview.domain}
+                    {preview.domain.length > 30 ? preview.domain.slice(0, 27) + "..." : preview.domain}
                   </div>
                 </div>
               </div>
             ))}
           </div>
           {showRight && (
-            <button
-              className="urls-scroll-btn urls-scroll-right"
-              onClick={scrollRight}
-              title={t("chat.fileUpload.scrollRight") || "Scroll Right"}
-            >
+            <button className="urls-scroll-btn urls-scroll-right" onClick={scrollRight} title={t("chat.fileUpload.scrollRight") || "Scroll Right"}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <path
-                  d="M9 18L15 12L9 6"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
+                <path d="M9 18L15 12L9 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </button>
           )}

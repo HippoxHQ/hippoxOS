@@ -2,11 +2,9 @@ import { listen } from "@tauri-apps/api/event";
 import { ChatMessage, RoleEnum, MessageStatus } from "../types/types";
 import { taskManager } from "./TaskManager";
 import { SessionDomain, TaskInfo, TaskStatusEnum } from "./types";
-
 export interface TaskEventHandlers {
     onTranslation: (key: string) => string;
 }
-
 // Task step update handler
 export const handleTaskStepUpdate = (
     event: any,
@@ -65,7 +63,6 @@ export const handleTaskStepUpdate = (
         }, domain);
     }
 };
-
 export const handleTaskComplete = (
     event: any,
     t: (key: string) => string
@@ -122,7 +119,6 @@ export const handleTaskComplete = (
         taskManager.addTaskToSession(session_id, newTask, domain);
     }
 };
-
 export const handleTaskFailed = (
     event: any,
     t: (key: string) => string
@@ -177,7 +173,6 @@ export const handleTaskFailed = (
         taskManager.addTaskToSession(session_id, newTask, domain);
     }
 };
-
 export const handleTaskPaused = (
     event: any,
     t: (key: string) => string
@@ -196,7 +191,6 @@ export const handleTaskPaused = (
         content: `⏸️ ${t("terminal.taskPaused")}`,
     }, domain);
 };
-
 export const handleTaskCancelled = (
     event: any,
     t: (key: string) => string
@@ -214,7 +208,6 @@ export const handleTaskCancelled = (
         content: `⏹️ ${t("terminal.cancelled")}`,
     }, domain);
 };
-
 export const handleTaskResumed = (
     event: any,
     t: (key: string) => string
@@ -231,41 +224,33 @@ export const handleTaskResumed = (
         content: `🔄 ${t("terminal.taskResumed")}`,
     }, domain);
 };
-
 export const setupTaskEventListeners = async (
     t: (key: string) => string
 ): Promise<Array<() => void>> => {
     const unlistenFunctions: Array<() => void> = [];
-
     const unlistenStep = await listen("task_step_update", (event: any) => {
         handleTaskStepUpdate(event, t);
     });
     unlistenFunctions.push(unlistenStep);
-
     const unlistenComplete = await listen("task_complete", (event: any) => {
         handleTaskComplete(event, t);
     });
     unlistenFunctions.push(unlistenComplete);
-
     const unlistenFailed = await listen("task_failed", (event: any) => {
         handleTaskFailed(event, t);
     });
     unlistenFunctions.push(unlistenFailed);
-
     const unlistenPaused = await listen("task_paused", (event: any) => {
         handleTaskPaused(event, t);
     });
     unlistenFunctions.push(unlistenPaused);
-
     const unlistenCancelled = await listen("task_cancelled", (event: any) => {
         handleTaskCancelled(event, t);
     });
     unlistenFunctions.push(unlistenCancelled);
-
     const unlistenResumed = await listen("task_resumed", (event: any) => {
         handleTaskResumed(event, t);
     });
     unlistenFunctions.push(unlistenResumed);
-
     return unlistenFunctions;
 };

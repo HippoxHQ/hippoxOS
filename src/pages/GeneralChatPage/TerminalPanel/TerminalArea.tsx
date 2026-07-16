@@ -1,46 +1,16 @@
 import React, { useEffect, useRef } from "react";
 import { TerminalAreaProps } from "./types";
 import { WELCOME_TASK_ID } from "./constants";
-import {
-  useTaskManager,
-  useScrollBehavior,
-  useTaskExpansion,
-  useFilesScroll,
-  useBubbleMenu,
-  useStepParams,
-} from "./hooks";
-import {
-  PanelHeader,
-  WelcomeMessage,
-  TaskRow,
-  ScrollButtons,
-  TaskBubble,
-} from "./components";
+import { useTaskManager, useScrollBehavior, useTaskExpansion, useFilesScroll, useBubbleMenu, useStepParams } from "./hooks";
+import { PanelHeader, WelcomeMessage, TaskRow, ScrollButtons, TaskBubble } from "./components";
 import { TaskStatusEnum } from "../../../core/types";
 import { globalStyles } from "./styles";
 
-const TerminalArea: React.FC<TerminalAreaProps> = ({
-  logs,
-  onClearLogs,
-  t,
-  currentSessionId,
-  onFileClick,
-  theme: _theme,
-  i18n: _i18n,
-  isCollapsed,
-  togglePanel,
-  collapseIcon,
-}) => {
+const TerminalArea: React.FC<TerminalAreaProps> = ({ logs, onClearLogs, t, currentSessionId, onFileClick, theme: _theme, i18n: _i18n, isCollapsed, togglePanel, collapseIcon }) => {
   const { tasks, setTasks, activeTasks } = useTaskManager(currentSessionId);
   const taskRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const { expandedStepParams, toggleStepParams } = useStepParams();
-  const {
-    filesScrollStates,
-    setFilesScrollStates,
-    filesScrollRefs,
-    scrollFilesLeft,
-    scrollFilesRight,
-  } = useFilesScroll(activeTasks);
+  const { filesScrollStates, setFilesScrollStates, filesScrollRefs, scrollFilesLeft, scrollFilesRight } = useFilesScroll(activeTasks);
 
   const allTasks = [
     {
@@ -56,18 +26,8 @@ const TerminalArea: React.FC<TerminalAreaProps> = ({
     ...activeTasks,
   ];
 
-  const { expandedTasks, allExpanded, toggleTaskExpand, toggleAllTasks } =
-    useTaskExpansion(allTasks, activeTasks);
-  const {
-    terminalRef,
-    showScrollTop,
-    showScrollBottom,
-    activeNavIndex,
-    scrollToTop,
-    scrollToBottom,
-    scrollToTask,
-    handleScroll,
-  } = useScrollBehavior(allTasks, taskRefs);
+  const { expandedTasks, allExpanded, toggleTaskExpand, toggleAllTasks } = useTaskExpansion(allTasks, activeTasks);
+  const { terminalRef, showScrollTop, showScrollBottom, activeNavIndex, scrollToTop, scrollToBottom, scrollToTask, handleScroll } = useScrollBehavior(allTasks, taskRefs);
 
   useEffect(() => {
     const handleLocateTask = (event: CustomEvent) => {
@@ -79,27 +39,13 @@ const TerminalArea: React.FC<TerminalAreaProps> = ({
         console.warn(`Task not found: ${taskId}`);
       }
     };
-    window.addEventListener(
-      "locate-task-in-terminal",
-      handleLocateTask as EventListener,
-    );
+    window.addEventListener("locate-task-in-terminal", handleLocateTask as EventListener);
     return () => {
-      window.removeEventListener(
-        "locate-task-in-terminal",
-        handleLocateTask as EventListener,
-      );
+      window.removeEventListener("locate-task-in-terminal", handleLocateTask as EventListener);
     };
   }, [allTasks, scrollToTask]);
 
-  const {
-    showBubble,
-    buttonRef,
-    updateBubblePosition,
-    handleButtonMouseEnter,
-    handleButtonMouseLeave,
-    handleBubbleMouseEnter,
-    handleBubbleMouseLeave,
-  } = useBubbleMenu();
+  const { showBubble, buttonRef, updateBubblePosition, handleButtonMouseEnter, handleButtonMouseLeave, handleBubbleMouseEnter, handleBubbleMouseLeave } = useBubbleMenu();
   const isWelcomeExpanded = expandedTasks.has(WELCOME_TASK_ID);
   const bubblePosition = (() => {
     if (buttonRef.current) {
@@ -113,10 +59,7 @@ const TerminalArea: React.FC<TerminalAreaProps> = ({
   })();
 
   return (
-    <div
-      className="terminal-area-container"
-      style={{ height: "100%", display: "flex", flexDirection: "column" }}
-    >
+    <div className="terminal-area-container" style={{ height: "100%", display: "flex", flexDirection: "column" }}>
       <style>{globalStyles}</style>
       <PanelHeader
         activeTasks={activeTasks}
@@ -148,11 +91,7 @@ const TerminalArea: React.FC<TerminalAreaProps> = ({
             overflowY: "auto",
           }}
         >
-          <WelcomeMessage
-            isExpanded={isWelcomeExpanded}
-            onToggle={() => toggleTaskExpand(WELCOME_TASK_ID)}
-            t={t}
-          />
+          <WelcomeMessage isExpanded={isWelcomeExpanded} onToggle={() => toggleTaskExpand(WELCOME_TASK_ID)} t={t} />
           {activeTasks.map((task, idx) => (
             <TaskRow
               key={task.task_id}
@@ -184,12 +123,7 @@ const TerminalArea: React.FC<TerminalAreaProps> = ({
           ))}
         </div>
 
-        <ScrollButtons
-          showScrollTop={showScrollTop}
-          showScrollBottom={showScrollBottom}
-          onScrollToTop={scrollToTop}
-          onScrollToBottom={scrollToBottom}
-        />
+        <ScrollButtons showScrollTop={showScrollTop} showScrollBottom={showScrollBottom} onScrollToTop={scrollToTop} onScrollToBottom={scrollToBottom} />
       </div>
 
       {showBubble && allTasks.length > 0 && (

@@ -12,8 +12,7 @@ export const scheduledTasksStyles = `
     --hover-bg: rgba(232, 237, 242, 0.08);
     --scrollbar-thumb: #3a3f4a;
   }
-
-  [data-theme="light"] {
+   [data-theme="light"] {
     --bg-primary: #f3f4f6;
     --bg-secondary: #ffffff;
     --bg-tertiary: #e5e7eb;
@@ -26,8 +25,7 @@ export const scheduledTasksStyles = `
     --hover-bg: rgba(0, 0, 0, 0.04);
     --scrollbar-thumb: #cbd5e1;
   }
-
-  .scheduled-tasks-container {
+   .scheduled-tasks-container {
     flex: 1;
     display: flex;
     height: 100%;
@@ -35,16 +33,14 @@ export const scheduledTasksStyles = `
     overflow: hidden;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   }
-
-  .scheduled-left-panel {
+   .scheduled-left-panel {
     flex-shrink: 0;
     background: var(--bg-secondary);
     display: flex;
     flex-direction: column;
     overflow-y: auto;
   }
-
-  .resize-handle-scheduled {
+   .resize-handle-scheduled {
     width: 4px;
     background: var(--border-color);
     cursor: col-resize;
@@ -52,13 +48,11 @@ export const scheduledTasksStyles = `
     position: relative;
     flex-shrink: 0;
   }
-
-  .resize-handle-scheduled:hover {
+   .resize-handle-scheduled:hover {
     background: var(--scrollbar-thumb);
     opacity: 0.6;
   }
-
-  .resize-handle-scheduled .handle-line {
+   .resize-handle-scheduled .handle-line {
     position: absolute;
     top: 50%;
     left: 50%;
@@ -69,12 +63,10 @@ export const scheduledTasksStyles = `
     border-radius: 2px;
     transition: background 0.2s;
   }
-
-  .resize-handle-scheduled:hover .handle-line {
+   .resize-handle-scheduled:hover .handle-line {
     background: var(--text-secondary);
   }
-
-  .scheduled-center-wrapper {
+   .scheduled-center-wrapper {
     flex: 1;
     min-width: 300px;
     display: flex;
@@ -82,16 +74,14 @@ export const scheduledTasksStyles = `
     overflow: hidden;
     background: var(--bg-primary);
   }
-
-  .scheduled-right-panel {
+   .scheduled-right-panel {
     flex-shrink: 0;
     background: var(--bg-secondary);
     display: flex;
     flex-direction: column;
     overflow: hidden;
   }
-
-  .scheduled-tasks-layout {
+   .scheduled-tasks-layout {
     flex: 1;
     display: flex;
     flex-direction: column;
@@ -99,15 +89,13 @@ export const scheduledTasksStyles = `
     overflow: hidden;
     background: var(--bg-primary);
   }
-
-  .scheduled-tasks-main {
+   .scheduled-tasks-main {
     flex: 1;
     display: flex;
     overflow: hidden;
     min-height: 0;
   }
-
-  .bottom-heatmap-panel {
+   .bottom-heatmap-panel {
     flex-shrink: 0;
     height: 188px;
     background: var(--bg-secondary);
@@ -117,34 +105,29 @@ export const scheduledTasksStyles = `
     overflow: hidden;
     padding: 12px 16px;
   }
-
-  .bottom-heatmap-header {
+   .bottom-heatmap-header {
     display: flex;
     align-items: center;
     gap: 8px;
     flex-shrink: 0;
   }
-
-  .bottom-heatmap-icon {
+   .bottom-heatmap-icon {
     font-size: 14px;
   }
-
-  .bottom-heatmap-title {
+   .bottom-heatmap-title {
     font-size: 12px;
     font-weight: 600;
     color: var(--text-secondary);
     letter-spacing: 0.3px;
     text-transform: uppercase;
   }
-
-  .bottom-heatmap-wrapper {
+   .bottom-heatmap-wrapper {
     flex: 1;
     min-height: 120px;
     overflow-x: auto;
     overflow-y: hidden;
   }
-
-  .bottom-heatmap-legend {
+   .bottom-heatmap-legend {
     display: flex;
     align-items: center;
     justify-content: flex-end;
@@ -152,28 +135,23 @@ export const scheduledTasksStyles = `
     margin-top: 8px;
     flex-shrink: 0;
   }
-
-  .bottom-heatmap-legend .legend-label {
+   .bottom-heatmap-legend .legend-label {
     font-size: 9px;
     color: var(--text-muted);
   }
-
-  .bottom-heatmap-wrapper .react-calendar-heatmap rect {
+   .bottom-heatmap-wrapper .react-calendar-heatmap rect {
     rx: 3;
     ry: 3;
   }
-
-  .bottom-heatmap-wrapper .react-calendar-heatmap-weekday-labels text {
+   .bottom-heatmap-wrapper .react-calendar-heatmap-weekday-labels text {
     font-size: 9px;
     fill: var(--text-muted);
   }
-
-  .bottom-heatmap-wrapper .react-calendar-heatmap-month-labels text {
+   .bottom-heatmap-wrapper .react-calendar-heatmap-month-labels text {
     font-size: 9px;
     fill: var(--text-secondary);
   }
-
-  .loading-container {
+   .loading-container {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -182,20 +160,17 @@ export const scheduledTasksStyles = `
     gap: 16px;
     color: var(--text-secondary);
   }
-
-  .loading-spinner {
+   .loading-spinner {
     width: 32px;
     height: 32px;
   }
-
-  .loading-spinner-svg {
+   .loading-spinner-svg {
     width: 32px;
     height: 32px;
     animation: spin 0.8s linear infinite;
     color: var(--accent-color);
   }
-
-  @keyframes spin {
+   @keyframes spin {
     to {
       transform: rotate(360deg);
     }

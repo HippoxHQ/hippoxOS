@@ -4,46 +4,23 @@ import ImageFilePreview from "./ImageFilePreview";
 import SkillFilePreview from "./SkillFilePreview";
 import TextFilePreview from "./TextFilePreview";
 import TableFilePreview from "./TableFilePreview";
-
 interface PreviewContentProps {
   file: UploadFile | null | undefined;
   onClose: () => void;
   onSendSkillMessage?: (message: string, files?: UploadFile[]) => void;
   t: (key: string, params?: any) => string;
 }
-
-export const PreviewContent: React.FC<PreviewContentProps> = ({
-  file,
-  onClose,
-  onSendSkillMessage,
-  t,
-}) => {
-  const isSkillFile =
-    file?.name?.endsWith(".md") || file?.name?.endsWith(".skill.md") || false;
-  const isImageFile =
-    file?.type?.startsWith("image/") ||
-    /\.(png|jpg|jpeg|gif|webp|bmp|svg|ico)$/i.test(file?.name || "") ||
-    false;
-  const isTableFile =
-    /\.(csv|tsv)$/i.test(file?.name || "") ||
-    file?.type === "text/csv" ||
-    file?.type === "text/tab-separated-values" ||
-    false;
+export const PreviewContent: React.FC<PreviewContentProps> = ({ file, onClose, onSendSkillMessage, t }) => {
+  const isSkillFile = file?.name?.endsWith(".md") || file?.name?.endsWith(".skill.md") || false;
+  const isImageFile = file?.type?.startsWith("image/") || /\.(png|jpg|jpeg|gif|webp|bmp|svg|ico)$/i.test(file?.name || "") || false;
+  const isTableFile = /\.(csv|tsv)$/i.test(file?.name || "") || file?.type === "text/csv" || file?.type === "text/tab-separated-values" || false;
   const content = useMemo(() => {
     if (!file) {
       return null;
     }
     const key = file.id || file.path || file.name || "file";
     if (isSkillFile) {
-      return (
-        <SkillFilePreview
-          key={key}
-          file={file}
-          onClose={onClose}
-          onSendSkillMessage={onSendSkillMessage}
-          t={t}
-        />
-      );
+      return <SkillFilePreview key={key} file={file} onClose={onClose} onSendSkillMessage={onSendSkillMessage} t={t} />;
     }
     if (isImageFile) {
       return <ImageFilePreview key={key} file={file} onClose={onClose} t={t} />;
@@ -52,15 +29,7 @@ export const PreviewContent: React.FC<PreviewContentProps> = ({
       return <TableFilePreview key={key} file={file} onClose={onClose} t={t} />;
     }
     return <TextFilePreview key={key} file={file} onClose={onClose} t={t} />;
-  }, [
-    file,
-    isSkillFile,
-    isImageFile,
-    isTableFile,
-    onClose,
-    onSendSkillMessage,
-    t,
-  ]);
+  }, [file, isSkillFile, isImageFile, isTableFile, onClose, onSendSkillMessage, t]);
   if (!file) {
     return (
       <div
@@ -79,5 +48,4 @@ export const PreviewContent: React.FC<PreviewContentProps> = ({
   }
   return content;
 };
-
 export default PreviewContent;

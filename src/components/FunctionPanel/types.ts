@@ -1,16 +1,12 @@
 import { UploadFile } from "../../core/types";
-
 export type FunctionTab = "preview" | "map" | "chart";
-
 export interface FunctionTabConfig {
     id: FunctionTab;
     name: string;
     icon: string;
     closable?: boolean;
 }
-
 export type FunctionModule = "preview" | "candleview" | "earthview";
-
 export interface ModuleConfig {
     id: FunctionModule;
     name: string;
@@ -20,7 +16,6 @@ export interface ModuleConfig {
     taskId?: string;
     fileId?: string;
 }
-
 export interface FunctionPanelProps {
     theme: "light" | "dark";
     i18n: "en" | "zh-cn";

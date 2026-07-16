@@ -5,7 +5,6 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
 use uuid::Uuid;
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SkillParameterInfo {
     pub name: String,
@@ -13,7 +12,6 @@ pub struct SkillParameterInfo {
     pub description: String,
     pub required: bool,
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SkillData {
     pub id: String,
@@ -27,14 +25,12 @@ pub struct SkillData {
     pub installed: bool,
     pub path: String,
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SkillStep {
     pub name: String,
     pub description: String,
     pub materials: Vec<String>,
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SkillHistory {
     pub id: String,
@@ -44,7 +40,6 @@ pub struct SkillHistory {
     pub timestamp: String,
     pub details: Option<String>,
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateSkillRequest {
     pub name: String,
@@ -53,7 +48,6 @@ pub struct CreateSkillRequest {
     pub tags: String,
     pub steps: Vec<SkillStep>,
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UpdateSkillRequest {
     pub id: String,
@@ -64,32 +58,25 @@ pub struct UpdateSkillRequest {
     pub tags: String,
     pub steps: Vec<SkillStep>,
 }
-
 pub fn get_skills_local_dir() -> PathBuf {
     get_app_root_dir().join("skills")
 }
-
 pub fn get_skill_dir(category: &str, skill_id: &str) -> PathBuf {
     let safe_category = category.to_lowercase().replace(|c: char| !c.is_alphanumeric() && c != '_' && c != '-', "_").replace(" ", "_");
     get_skills_local_dir().join(safe_category).join(skill_id)
 }
-
 pub fn get_skill_md_path(category: &str, skill_id: &str) -> PathBuf {
     get_skill_dir(category, skill_id).join("SKILL.md")
 }
-
 pub fn get_skills_dir() -> PathBuf {
     get_app_root_dir().join("skills")
 }
-
 pub fn get_skill_history_dir() -> PathBuf {
     get_app_root_dir().join("skills_history")
 }
-
 fn get_skill_history_file_path(skill_id: &str) -> PathBuf {
     get_skill_history_dir().join(format!("{}.json", skill_id))
 }
-
 fn ensure_skills_dir() -> Result<(), String> {
     let dir = get_skills_local_dir();
     if !dir.exists() {
@@ -97,7 +84,6 @@ fn ensure_skills_dir() -> Result<(), String> {
     }
     Ok(())
 }
-
 fn ensure_history_dir() -> Result<(), String> {
     let dir = get_skill_history_dir();
     if !dir.exists() {
@@ -105,7 +91,6 @@ fn ensure_history_dir() -> Result<(), String> {
     }
     Ok(())
 }
-
 fn skill_to_markdown(skill: &SkillData) -> String {
     let mut content = String::new();
     content.push_str("---\n");
@@ -131,7 +116,6 @@ fn skill_to_markdown(skill: &SkillData) -> String {
     }
     content
 }
-
 fn parse_skill_from_markdown(path: &PathBuf, skill_id: &str) -> Result<SkillData, String> {
     let content = fs::read_to_string(path).map_err(|e| format!("Failed to read SKILL.md: {}", e))?;
     let mut name = String::new();
@@ -144,7 +128,6 @@ fn parse_skill_from_markdown(path: &PathBuf, skill_id: &str) -> Result<SkillData
         if let Some(end_idx) = content[3..].find("---") {
             let frontmatter = &content[3..3 + end_idx];
             let body = &content[3 + end_idx + 3..];
-
             for line in frontmatter.lines() {
                 if let Some(colon_idx) = line.find(':') {
                     let key = line[..colon_idx].trim();
@@ -210,7 +193,6 @@ fn parse_skill_from_markdown(path: &PathBuf, skill_id: &str) -> Result<SkillData
         path: path.to_string_lossy().to_string(),
     })
 }
-
 fn save_skill_history(history: &SkillHistory) -> Result<(), String> {
     ensure_history_dir()?;
     let history_file = get_skill_history_file_path(&history.skill_id);
@@ -228,7 +210,6 @@ fn save_skill_history(history: &SkillHistory) -> Result<(), String> {
     fs::write(&history_file, content).map_err(|e| format!("Failed to save history: {}", e))?;
     Ok(())
 }
-
 fn get_skill_history_by_id(skill_id: &str) -> Result<Vec<SkillHistory>, String> {
     let history_file = get_skill_history_file_path(skill_id);
     if history_file.exists() {
@@ -238,7 +219,6 @@ fn get_skill_history_by_id(skill_id: &str) -> Result<Vec<SkillHistory>, String> 
         Ok(vec![])
     }
 }
-
 fn get_all_skill_history_records() -> Result<Vec<SkillHistory>, String> {
     let history_dir = get_skill_history_dir();
     if !history_dir.exists() {
@@ -258,7 +238,6 @@ fn get_all_skill_history_records() -> Result<Vec<SkillHistory>, String> {
     all_history.sort_by(|a, b| b.timestamp.cmp(&a.timestamp));
     Ok(all_history)
 }
-
 #[tauri::command]
 pub async fn cmd_list_local_skills() -> Result<Vec<SkillData>, String> {
     let skills_dir = get_skills_local_dir();
@@ -293,7 +272,6 @@ pub async fn cmd_list_local_skills() -> Result<Vec<SkillData>, String> {
     }
     Ok(skills)
 }
-
 #[tauri::command]
 pub async fn cmd_create_skill(request: CreateSkillRequest) -> Result<SkillData, String> {
     ensure_skills_dir()?;
@@ -340,7 +318,6 @@ pub async fn cmd_create_skill(request: CreateSkillRequest) -> Result<SkillData, 
     save_skill_history(&history)?;
     Ok(skill)
 }
-
 #[tauri::command]
 pub async fn cmd_update_skill(request: UpdateSkillRequest) -> Result<SkillData, String> {
     let new_category = if request.category.trim().is_empty() { "other".to_string() } else { request.category.trim().to_string() };
@@ -435,7 +412,6 @@ pub async fn cmd_update_skill(request: UpdateSkillRequest) -> Result<SkillData, 
     save_skill_history(&history)?;
     Ok(skill)
 }
-
 #[tauri::command]
 pub async fn cmd_delete_skill(skill_id: String, category: String) -> Result<bool, String> {
     let category = if category.trim().is_empty() { "other".to_string() } else { category.trim().to_string() };
@@ -458,7 +434,6 @@ pub async fn cmd_delete_skill(skill_id: String, category: String) -> Result<bool
     let _ = save_skill_history(&history);
     Ok(true)
 }
-
 #[tauri::command]
 pub async fn cmd_get_skill(skill_id: String, category: String) -> Result<Option<SkillData>, String> {
     let category = if category.trim().is_empty() { "other".to_string() } else { category.trim().to_string() };
@@ -471,35 +446,28 @@ pub async fn cmd_get_skill(skill_id: String, category: String) -> Result<Option<
         Ok(None)
     }
 }
-
 #[tauri::command]
 pub async fn cmd_get_all_skill_history() -> Result<Vec<SkillHistory>, String> {
     get_all_skill_history_records()
 }
-
 #[tauri::command]
 pub async fn cmd_get_skill_history(skill_id: String) -> Result<Vec<SkillHistory>, String> {
     get_skill_history_by_id(&skill_id)
 }
-
 #[tauri::command]
 pub async fn cmd_skill_exists(skill_id: String, category: String) -> Result<bool, String> {
     let category = if category.trim().is_empty() { "other".to_string() } else { category.trim().to_string() };
-
     Ok(get_skill_dir(&category, &skill_id).exists())
 }
-
 #[tauri::command]
 pub async fn cmd_favorite_local_skill(skill_id: String, category: String) -> Result<bool, String> {
     let category = if category.trim().is_empty() { "other".to_string() } else { category.trim().to_string() };
     let source_dir = get_skill_dir(&category, &skill_id);
-
     if !source_dir.exists() {
         return Err(format!("Skill not found: {}/{}", category, skill_id));
     }
     let favorites_skill_dir = get_app_root_dir().join("favorites").join("skill").join(&category);
     let target_dir = favorites_skill_dir.join(&skill_id);
-
     if target_dir.exists() {
         fs::remove_dir_all(&target_dir).map_err(|e| format!("Failed to remove existing: {}", e))?;
     }
@@ -518,7 +486,6 @@ pub async fn cmd_favorite_local_skill(skill_id: String, category: String) -> Res
     }
     Ok(true)
 }
-
 #[tauri::command]
 pub async fn cmd_unfavorite_local_skill(skill_id: String, category: String) -> Result<bool, String> {
     let category = if category.trim().is_empty() { "other".to_string() } else { category.trim().to_string() };

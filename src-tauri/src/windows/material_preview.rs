@@ -1,8 +1,6 @@
 use crate::types::{WindowIdentifier, WindowType};
 use tauri::{AppHandle, Manager, Runtime, WebviewWindowBuilder};
-
 pub struct MaterialPreviewManager;
-
 impl MaterialPreviewManager {
     pub fn create_preview_window<R: Runtime>(app_handle: &AppHandle<R>, material_data: serde_json::Value) -> Result<(), Box<dyn std::error::Error>> {
         let window_label = format!("{}", WindowIdentifier::MaterialPreview);
@@ -29,7 +27,6 @@ impl MaterialPreviewManager {
             .build()?;
         Ok(())
     }
-
     fn calculate_center_position<R: Runtime>(app_handle: &AppHandle<R>, width: f64, height: f64) -> Result<(f64, f64), Box<dyn std::error::Error>> {
         let mut x = 100.0;
         let mut y = 100.0;
@@ -45,7 +42,6 @@ impl MaterialPreviewManager {
         }
         Ok((x, y))
     }
-
     pub fn close_preview_window<R: Runtime>(app_handle: &AppHandle<R>) {
         let window_label = format!("{}", WindowIdentifier::MaterialPreview);
         if let Some(window) = app_handle.get_webview_window(&window_label) {

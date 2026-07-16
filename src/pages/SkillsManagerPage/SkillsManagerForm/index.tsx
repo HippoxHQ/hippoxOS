@@ -1,25 +1,9 @@
 import React, { useState } from "react";
 import { Skill, StepMaterial } from "../types";
 import { formStyles } from "./styles";
-import {
-  useTagList,
-  useCategoryInput,
-  useFocusStates,
-  useStepHandlers,
-  useTagHandlers,
-  useCategoryHandler,
-} from "./hooks";
+import { useTagList, useCategoryInput, useFocusStates, useStepHandlers, useTagHandlers, useCategoryHandler } from "./hooks";
 import { StepCard, SectionHeader, FormLabel, TagList } from "./components";
-import {
-  BasicInfoIcon,
-  DescriptionIcon,
-  StepsIcon,
-  AddIcon,
-  TagsIcon,
-  CategoryIcon2,
-  ExampleIcon,
-} from "../../../icons";
-
+import { BasicInfoIcon, DescriptionIcon, StepsIcon, AddIcon, TagsIcon, CategoryIcon2, ExampleIcon } from "../../../icons";
 interface SkillsManagerFormProps {
   t: (key: string, params?: any) => string;
   skill: Skill;
@@ -27,24 +11,12 @@ interface SkillsManagerFormProps {
   onSave: () => void;
   hasChanges: boolean;
   errors: { name?: string; description?: string };
-  setErrors: React.Dispatch<
-    React.SetStateAction<{ name?: string; description?: string }>
-  >;
+  setErrors: React.Dispatch<React.SetStateAction<{ name?: string; description?: string }>>;
 }
-
-const SkillsManagerForm: React.FC<SkillsManagerFormProps> = ({
-  t,
-  skill,
-  onUpdate,
-  onSave,
-  hasChanges,
-  errors,
-  setErrors,
-}) => {
+const SkillsManagerForm: React.FC<SkillsManagerFormProps> = ({ t, skill, onUpdate, onSave, hasChanges, errors, setErrors }) => {
   const [currentTagInput, setCurrentTagInput] = useState("");
   const { tagList, setTagList } = useTagList(skill);
-  const { currentCategoryInput, setCurrentCategoryInput } =
-    useCategoryInput(skill);
+  const { currentCategoryInput, setCurrentCategoryInput } = useCategoryInput(skill);
   const {
     isNameFocused,
     setIsNameFocused,
@@ -59,79 +31,35 @@ const SkillsManagerForm: React.FC<SkillsManagerFormProps> = ({
     schemaFocusStates,
     setSchemaFocusStates,
   } = useFocusStates();
-
-  const {
-    updateStepDescription,
-    addStep,
-    removeStep,
-    toggleDependency,
-    addMaterial,
-    updateMaterial,
-    removeMaterial,
-    getAvailableDependencies,
-  } = useStepHandlers(skill, onUpdate);
-
-  const { addTag, removeTag } = useTagHandlers(
-    skill,
-    onUpdate,
-    tagList,
-    setTagList,
-  );
-  const { updateCategory } = useCategoryHandler(
-    skill,
-    onUpdate,
-    setCurrentCategoryInput,
-  );
-
-  const updateField = (
-    field: keyof Omit<Skill, "id" | "steps">,
-    value: string,
-  ) => {
+  const { updateStepDescription, addStep, removeStep, toggleDependency, addMaterial, updateMaterial, removeMaterial, getAvailableDependencies } = useStepHandlers(skill, onUpdate);
+  const { addTag, removeTag } = useTagHandlers(skill, onUpdate, tagList, setTagList);
+  const { updateCategory } = useCategoryHandler(skill, onUpdate, setCurrentCategoryInput);
+  const updateField = (field: keyof Omit<Skill, "id" | "steps">, value: string) => {
     onUpdate({ ...skill, [field]: value });
     if (field === "name" || field === "description") {
       setErrors((prev) => ({ ...prev, [field]: undefined }));
     }
   };
-
-  const getStepPlaceholder = (
-    index: number,
-    isFocused: boolean,
-    hasValue: boolean,
-  ) => {
+  const getStepPlaceholder = (index: number, isFocused: boolean, hasValue: boolean) => {
     if (isFocused || hasValue) return "";
     return t("skillsManager.stepPlaceholder", { index: index + 1 });
   };
-
-  const getMaterialPlaceholder = (
-    type: string,
-    isFocused: boolean,
-    hasValue: boolean,
-    materialId: string,
-  ) => {
+  const getMaterialPlaceholder = (type: string, isFocused: boolean, hasValue: boolean, materialId: string) => {
     if (isFocused || hasValue) return "";
     if (type === "link") return "https://...";
     if (type === "path") return "/path/to/file";
     return t("skillsManager.notePlaceholder") || "...";
   };
-
-  const getSchemaPlaceholder = (
-    type: "input" | "output",
-    isFocused: boolean,
-    hasValue: boolean,
-  ) => {
+  const getSchemaPlaceholder = (type: "input" | "output", isFocused: boolean, hasValue: boolean) => {
     if (isFocused || hasValue) return "";
     if (type === "input") return '{"param": "type"}';
     return '{"result": "type"}';
   };
-
   return (
     <div className="skill-editor-form">
       <style>{formStyles}</style>
       <div className="form-section">
-        <SectionHeader
-          icon={<BasicInfoIcon size={14} />}
-          title={t("skillsManager.basicInfo")}
-        />
+        <SectionHeader icon={<BasicInfoIcon size={14} />} title={t("skillsManager.basicInfo")} />
         <FormLabel required>{t("skillsManager.skillName")}</FormLabel>
         <input
           type="text"
@@ -140,20 +68,13 @@ const SkillsManagerForm: React.FC<SkillsManagerFormProps> = ({
           onChange={(e) => updateField("name", e.target.value)}
           onFocus={() => setIsNameFocused(true)}
           onBlur={() => setIsNameFocused(false)}
-          placeholder={
-            isNameFocused || skill.name
-              ? ""
-              : t("skillsManager.skillNamePlaceholder")
-          }
+          placeholder={isNameFocused || skill.name ? "" : t("skillsManager.skillNamePlaceholder")}
         />
         {errors.name && <div className="error-message">{errors.name}</div>}
       </div>
       <div className="form-divider" />
       <div className="form-section">
-        <SectionHeader
-          icon={<DescriptionIcon size={14} />}
-          title={t("skillsManager.skillDesc")}
-        />
+        <SectionHeader icon={<DescriptionIcon size={14} />} title={t("skillsManager.skillDesc")} />
         <FormLabel required>{t("skillsManager.skillDescLabel")}</FormLabel>
         <textarea
           className={`form-textarea ${errors.description ? "error" : ""}`}
@@ -162,22 +83,13 @@ const SkillsManagerForm: React.FC<SkillsManagerFormProps> = ({
           onFocus={() => setIsDescFocused(true)}
           onBlur={() => setIsDescFocused(false)}
           rows={2}
-          placeholder={
-            isDescFocused || skill.description
-              ? ""
-              : t("skillsManager.skillDescPlaceholder")
-          }
+          placeholder={isDescFocused || skill.description ? "" : t("skillsManager.skillDescPlaceholder")}
         />
-        {errors.description && (
-          <div className="error-message">{errors.description}</div>
-        )}
+        {errors.description && <div className="error-message">{errors.description}</div>}
       </div>
       <div className="form-divider" />
       <div className="form-section">
-        <SectionHeader
-          icon={<StepsIcon size={14} />}
-          title={t("skillsManager.executionSteps")}
-        />
+        <SectionHeader icon={<StepsIcon size={14} />} title={t("skillsManager.executionSteps")} />
         <div className="steps-list">
           {skill.steps.map((step, index) => (
             <StepCard
@@ -188,15 +100,9 @@ const SkillsManagerForm: React.FC<SkillsManagerFormProps> = ({
               stepFocusStates={stepFocusStates}
               materialFocusStates={materialFocusStates}
               schemaFocusStates={schemaFocusStates}
-              onStepFocus={(id, focused) =>
-                setStepFocusStates((prev) => ({ ...prev, [id]: focused }))
-              }
-              onMaterialFocus={(key, focused) =>
-                setMaterialFocusStates((prev) => ({ ...prev, [key]: focused }))
-              }
-              onSchemaFocus={(key, focused) =>
-                setSchemaFocusStates((prev) => ({ ...prev, [key]: focused }))
-              }
+              onStepFocus={(id, focused) => setStepFocusStates((prev) => ({ ...prev, [id]: focused }))}
+              onMaterialFocus={(key, focused) => setMaterialFocusStates((prev) => ({ ...prev, [key]: focused }))}
+              onSchemaFocus={(key, focused) => setSchemaFocusStates((prev) => ({ ...prev, [key]: focused }))}
               onUpdateStepDescription={updateStepDescription}
               onRemoveStep={removeStep}
               onAddMaterial={addMaterial}
@@ -219,16 +125,10 @@ const SkillsManagerForm: React.FC<SkillsManagerFormProps> = ({
       <div className="form-section">
         <div className="two-column-labels">
           <div className="column-label">
-            <SectionHeader
-              icon={<TagsIcon size={14} />}
-              title={t("skillsManager.tags")}
-            />
+            <SectionHeader icon={<TagsIcon size={14} />} title={t("skillsManager.tags")} />
           </div>
           <div className="column-label">
-            <SectionHeader
-              icon={<CategoryIcon2 size={14} />}
-              title={t("skillsManager.category")}
-            />
+            <SectionHeader icon={<CategoryIcon2 size={14} />} title={t("skillsManager.category")} />
           </div>
         </div>
         <div className="two-column-row">
@@ -252,17 +152,9 @@ const SkillsManagerForm: React.FC<SkillsManagerFormProps> = ({
             />
           </div>
           <div className="category-container">
-            <span
-              className="tag-bubble"
-              style={{ background: "var(--accent-color)" }}
-            >
-              {skill.category && skill.category !== "other"
-                ? skill.category
-                : "other"}
-              <button
-                className="tag-remove"
-                onClick={() => updateCategory("other")}
-              >
+            <span className="tag-bubble" style={{ background: "var(--accent-color)" }}>
+              {skill.category && skill.category !== "other" ? skill.category : "other"}
+              <button className="tag-remove" onClick={() => updateCategory("other")}>
                 ×
               </button>
             </span>
@@ -288,10 +180,7 @@ const SkillsManagerForm: React.FC<SkillsManagerFormProps> = ({
       </div>
       <div className="form-divider" />
       <div className="form-section">
-        <SectionHeader
-          icon={<ExampleIcon size={14} />}
-          title={t("skillsManager.example")}
-        />
+        <SectionHeader icon={<ExampleIcon size={14} />} title={t("skillsManager.example")} />
         <textarea
           className="form-textarea"
           value={skill.example}
@@ -299,16 +188,11 @@ const SkillsManagerForm: React.FC<SkillsManagerFormProps> = ({
           onFocus={() => setIsExampleFocused(true)}
           onBlur={() => setIsExampleFocused(false)}
           rows={3}
-          placeholder={
-            isExampleFocused || skill.example
-              ? ""
-              : t("skillsManager.examplePlaceholder")
-          }
+          placeholder={isExampleFocused || skill.example ? "" : t("skillsManager.examplePlaceholder")}
         />
       </div>
       <div className="form-divider" />
     </div>
   );
 };
-
 export default SkillsManagerForm;

@@ -6,7 +6,6 @@ import { showTooltipOnElement } from "../Tooltip";
 import { topMenuItems, bottomMenuItems, allMenuItems } from "./constants";
 import { sidebarStyles } from "./sidebarStyles";
 import { usePopupMenu } from "./hooks/usePopupMenu";
-
 if (typeof document !== "undefined") {
   const styleId = "sidebar-styles";
   if (!document.getElementById(styleId)) {
@@ -16,30 +15,11 @@ if (typeof document !== "undefined") {
     document.head.appendChild(style);
   }
 }
-
-const Sidebar: React.FC<SidebarProps> = ({
-  collapsed,
-  onResetSession,
-  onClearLogs,
-  onMenuClick,
-  onNewSession,
-  currentSessionId,
-  onSwitchSession,
-  t,
-}) => {
+const Sidebar: React.FC<SidebarProps> = ({ collapsed, onResetSession, onClearLogs, onMenuClick, onNewSession, currentSessionId, onSwitchSession, t }) => {
   const [activeId, setActiveId] = React.useState("generalChat");
   const [activeSubId, setActiveSubId] = React.useState<string>();
   const [activeSubSubId, setActiveSubSubId] = React.useState<string>();
-  const {
-    popupVisible,
-    popupPosition,
-    activeIconId,
-    iconRefs,
-    handleClosePopup,
-    showPopup,
-    isPopupVisible,
-  } = usePopupMenu();
-
+  const { popupVisible, popupPosition, activeIconId, iconRefs, handleClosePopup, showPopup, isPopupVisible } = usePopupMenu();
   const handleMenuClick = (id: string, subId?: string, subSubId?: string) => {
     setActiveId(id);
     setActiveSubId(subId);
@@ -54,11 +34,7 @@ const Sidebar: React.FC<SidebarProps> = ({
       }
     }
   };
-
-  const handleIconClick = (
-    itemId: string,
-    e: React.MouseEvent<HTMLButtonElement>,
-  ) => {
+  const handleIconClick = (itemId: string, e: React.MouseEvent<HTMLButtonElement>) => {
     const directOpenItems = [
       "skillsManager",
       "tasks_group",
@@ -74,7 +50,6 @@ const Sidebar: React.FC<SidebarProps> = ({
       "videoEditor",
       "sandbox3d",
     ];
-
     if (directOpenItems.includes(itemId)) {
       if (popupVisible) {
         handleClosePopup();
@@ -82,7 +57,6 @@ const Sidebar: React.FC<SidebarProps> = ({
       handleMenuClick(itemId);
       return;
     }
-
     const rect = e.currentTarget.getBoundingClientRect();
     const viewportWidth = window.innerWidth;
     const popupWidth = 280;
@@ -99,7 +73,6 @@ const Sidebar: React.FC<SidebarProps> = ({
       top = gap;
     }
     const position = { top, left };
-
     if (itemId === "skills_group" || itemId === "settings_group") {
       if (isPopupVisible(itemId)) {
         handleClosePopup();
@@ -111,7 +84,6 @@ const Sidebar: React.FC<SidebarProps> = ({
       showPopup(itemId, position);
       return;
     }
-
     if (isPopupVisible(itemId)) {
       handleClosePopup();
     } else {
@@ -121,21 +93,15 @@ const Sidebar: React.FC<SidebarProps> = ({
       showPopup(itemId, position);
     }
   };
-
-  const handleMouseEnter = (
-    e: React.MouseEvent<HTMLButtonElement>,
-    label: string,
-  ) => {
+  const handleMouseEnter = (e: React.MouseEvent<HTMLButtonElement>, label: string) => {
     showTooltipOnElement(e.currentTarget, label);
   };
-
   const handleMouseLeave = () => {
     const container = document.getElementById("global-tooltip-container");
     if (container) {
       container.remove();
     }
   };
-
   const isIconActive = (itemId: string): boolean => {
     if (itemId === "skillsManager") {
       return activeId === "skillsManager";
@@ -153,34 +119,20 @@ const Sidebar: React.FC<SidebarProps> = ({
       return activeId === "skillMarket" || activeId === "skills";
     }
     if (itemId === "skills_group") {
-      return (
-        activeId === "skills_group" ||
-        activeId === "skills" ||
-        activeId === "skillMarket"
-      );
+      return activeId === "skills_group" || activeId === "skills" || activeId === "skillMarket";
     }
     if (itemId === "tasks_group") {
-      return (
-        activeId === "tasks_group" ||
-        activeId === "scheduledTasks" ||
-        activeId === "taskQueue"
-      );
+      return activeId === "tasks_group" || activeId === "scheduledTasks" || activeId === "taskQueue";
     }
     if (itemId === "settings_group") {
-      return (
-        activeId === "settings_group" ||
-        activeSubId !== undefined ||
-        activeSubSubId !== undefined
-      );
+      return activeId === "settings_group" || activeSubId !== undefined || activeSubSubId !== undefined;
     }
     return activeId === itemId;
   };
-
   const handleNewSessionClick = () => {
     if (onNewSession) onNewSession();
     else onResetSession();
   };
-
   const getButtonLabel = (item: { id: string; label: string }) => {
     if (item.id === "skillMarket") {
       return t("actions.skillMarket");
@@ -196,11 +148,9 @@ const Sidebar: React.FC<SidebarProps> = ({
     }
     return t(item.label);
   };
-
   const renderButton = (item: (typeof topMenuItems)[0]) => {
     const isActive = isIconActive(item.id);
     const label = getButtonLabel(item);
-
     return (
       <SidebarButton
         key={item.id}
@@ -217,7 +167,6 @@ const Sidebar: React.FC<SidebarProps> = ({
       />
     );
   };
-
   return (
     <aside
       className="sidebar"
@@ -231,22 +180,12 @@ const Sidebar: React.FC<SidebarProps> = ({
       {!collapsed && (
         <>
           <div className="sidebar-header">
-            <button
-              className="new-session-icon-btn"
-              onClick={handleNewSessionClick}
-              onMouseEnter={(e) => handleMouseEnter(e, t("actions.newSession"))}
-              onMouseLeave={handleMouseLeave}
-            >
+            <button className="new-session-icon-btn" onClick={handleNewSessionClick} onMouseEnter={(e) => handleMouseEnter(e, t("actions.newSession"))} onMouseLeave={handleMouseLeave}>
               <NewSessionIcon size={18} />
             </button>
           </div>
-          <nav className="sidebar-nav-top">
-            {topMenuItems.map((item) => renderButton(item))}
-          </nav>
-          <nav
-            className="sidebar-nav-bottom"
-            style={{ flexDirection: "column-reverse" }}
-          >
+          <nav className="sidebar-nav-top">{topMenuItems.map((item) => renderButton(item))}</nav>
+          <nav className="sidebar-nav-bottom" style={{ flexDirection: "column-reverse" }}>
             <SidebarButton
               item={{
                 id: "userProfile",
@@ -282,5 +221,4 @@ const Sidebar: React.FC<SidebarProps> = ({
     </aside>
   );
 };
-
 export default Sidebar;

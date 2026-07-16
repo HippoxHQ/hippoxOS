@@ -1,36 +1,29 @@
+use crate::commons::{FrameExtractOptions, PersistentProcess, ThumbnailOptions, VideoInfo, VideoMetadata};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Child, ChildStdin, ChildStdout, Command, Stdio};
 use uuid::Uuid;
-
-use crate::commons::{FrameExtractOptions, PersistentProcess, ThumbnailOptions, VideoInfo, VideoMetadata};
-
 #[derive(Clone)]
 pub struct Ffmpeg {
     pub bin_path: String,
     pub persistent: std::sync::Arc<std::sync::Mutex<Option<PersistentProcess>>>,
 }
-
 impl Default for Ffmpeg {
     fn default() -> Self {
         Self::new()
     }
 }
-
 impl Ffmpeg {
     pub fn new() -> Self {
         Self { bin_path: "ffmpeg".to_string(), persistent: std::sync::Arc::new(std::sync::Mutex::new(None)) }
     }
-
     pub fn with_bin_path(path: &str) -> Self {
         Self { bin_path: path.to_string(), persistent: std::sync::Arc::new(std::sync::Mutex::new(None)) }
     }
-
     pub fn init_persistent(&self, video_path: &str) -> Result<(), String> {
         let mut guard = self.persistent.lock().unwrap();
-
         if let Some(ref mut proc) = *guard {
             if proc.video_path == video_path {
                 return Ok(());
@@ -38,9 +31,7 @@ impl Ffmpeg {
             let _ = proc.child.kill();
             *guard = None;
         }
-
         println!("[FFmpeg] Starting persistent process for: {}", video_path);
-
         let mut child = Command::new(&self.bin_path)
             .args(["-i", video_path, "-f", "image2pipe", "-vcodec", "mjpeg", "-q:v", "2", "-"])
             .stdin(Stdio::piped())
@@ -48,35 +39,27 @@ impl Ffmpeg {
             .stderr(Stdio::piped())
             .spawn()
             .map_err(|e| format!("Failed to start persistent ffmpeg: {}", e))?;
-
         let stdin = child.stdin.take().ok_or("Failed to get stdin")?;
         let stdout = child.stdout.take().ok_or("Failed to get stdout")?;
-
         *guard = Some(PersistentProcess { child, stdin, stdout, video_path: video_path.to_string() });
-
         println!("[FFmpeg] Persistent process started successfully");
         Ok(())
     }
-
     pub fn extract_frame_persistent(&self, time: f64) -> Result<Vec<u8>, String> {
         let mut guard = self.persistent.lock().unwrap();
         let proc = guard.as_mut().ok_or("Persistent process not initialized. Call init_persistent() first.")?;
-
         let seek_cmd = format!("seek {} 2\n", time);
         proc.stdin.write_all(seek_cmd.as_bytes()).map_err(|e| format!("Failed to send seek command: {}", e))?;
         proc.stdin.flush().map_err(|e| format!("Failed to flush stdin: {}", e))?;
-
         let mut buffer = Vec::new();
         let mut temp = [0u8; 65536];
         let mut found_jpeg = false;
-
         loop {
             let n = proc.stdout.read(&mut temp).map_err(|e| format!("Failed to read frame data: {}", e))?;
             if n == 0 {
                 break;
             }
             buffer.extend_from_slice(&temp[..n]);
-
             if buffer.len() > 2 {
                 let last_two = &buffer[buffer.len() - 2..];
                 if last_two == [0xFF, 0xD9] {
@@ -85,18 +68,14 @@ impl Ffmpeg {
                 }
             }
         }
-
         if !found_jpeg && !buffer.is_empty() {
             println!("[FFmpeg] Warning: JPEG end marker not found, returning {} bytes", buffer.len());
         }
-
         if buffer.is_empty() {
             return Err("No frame data received from persistent process".to_string());
         }
-
         Ok(buffer)
     }
-
     pub fn cleanup_persistent(&self) {
         let mut guard = self.persistent.lock().unwrap();
         if let Some(mut proc) = guard.take() {
@@ -104,11 +83,9 @@ impl Ffmpeg {
             println!("[FFmpeg] Persistent process cleaned up");
         }
     }
-
     pub fn is_available(&self) -> bool {
         Command::new(&self.bin_path).arg("-version").output().map(|o| o.status.success()).unwrap_or(false)
     }
-
     pub fn get_version(&self) -> Option<String> {
         let output = Command::new(&self.bin_path).arg("-version").output().ok()?;
         if !output.status.success() {
@@ -117,7 +94,6 @@ impl Ffmpeg {
         let version = String::from_utf8_lossy(&output.stdout);
         version.lines().next().map(|s| s.to_string())
     }
-
     pub fn get_metadata(&self, path: &str) -> Result<VideoMetadata, String> {
         let path = Path::new(path);
         if !path.exists() {
@@ -134,7 +110,6 @@ impl Ffmpeg {
         let json: serde_json::Value = serde_json::from_slice(&output.stdout).map_err(|e| format!("Failed to parse ffprobe output: {}", e))?;
         Self::parse_metadata_json(&json)
     }
-
     pub fn extract_frame(&self, video_path: &str, time: f64) -> Result<Vec<u8>, String> {
         let output = Command::new(&self.bin_path)
             .args(["-ss", &time.to_string(), "-i", video_path, "-vframes", "1", "-f", "image2pipe", "-vcodec", "mjpeg", "-"])
@@ -149,24 +124,19 @@ impl Ffmpeg {
         }
         Ok(output.stdout)
     }
-
     fn parse_metadata_json(json: &serde_json::Value) -> Result<VideoMetadata, String> {
         let streams = json["streams"].as_array().ok_or("No streams found")?;
         let video_stream = streams.iter().find(|s| s["codec_type"].as_str() == Some("video")).ok_or("No video stream found")?;
-
         let width = video_stream["width"].as_u64().unwrap_or(0) as u32;
         let height = video_stream["height"].as_u64().unwrap_or(0) as u32;
         let fps_str = video_stream["r_frame_rate"].as_str().unwrap_or("0/0");
         let fps = parse_fraction(fps_str).unwrap_or(0.0);
         let codec = video_stream["codec_name"].as_str().unwrap_or("unknown").to_string();
-
         let format = &json["format"];
         let duration = format["duration"].as_str().unwrap_or("0").parse::<f64>().unwrap_or(0.0);
         let bitrate = format["bit_rate"].as_str().unwrap_or("0").parse::<u64>().unwrap_or(0);
-
         Ok(VideoMetadata { width, height, duration, fps, bitrate, codec })
     }
-
     pub fn get_video_info(&self, path: &str) -> Result<VideoInfo, String> {
         let path_obj = Path::new(path);
         if !path_obj.exists() {
@@ -203,13 +173,11 @@ impl Ffmpeg {
         }
         Ok(info)
     }
-
     fn parse_video_info_json(json: &serde_json::Value, path: &str) -> Result<VideoInfo, String> {
         let streams = json["streams"].as_array().ok_or("No streams found")?;
         let video_stream = streams.iter().find(|s| s["codec_type"].as_str() == Some("video")).ok_or("No video stream found")?;
         let audio_stream = streams.iter().find(|s| s["codec_type"].as_str() == Some("audio"));
         let format = &json["format"];
-
         let width = video_stream["width"].as_u64().unwrap_or(0) as u32;
         let height = video_stream["height"].as_u64().unwrap_or(0) as u32;
         let fps_str = video_stream["r_frame_rate"].as_str().unwrap_or("0/0");
@@ -296,25 +264,20 @@ impl Ffmpeg {
             resource_frames: None,
         })
     }
-
     pub fn get_keyframe_count(&self, path: &str) -> Result<u64, String> {
         if !Path::new(path).exists() {
             return Err(format!("File not found: {}", path));
         }
-
         let output = Command::new("ffprobe")
             .args(["-v", "error", "-select_streams", "v:0", "-show_entries", "packet=flags", "-of", "csv=p=0", path])
             .output()
             .map_err(|e| format!("Failed to get keyframes: {}", e))?;
-
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
             return Err(format!("ffprobe failed: {}", stderr));
         }
-
         let stdout = String::from_utf8_lossy(&output.stdout);
         let count = stdout.lines().filter(|line| line.contains('K')).count();
-
         if count == 0 {
             let output2 = Command::new("ffprobe")
                 .args(["-v", "error", "-select_streams", "v:0", "-show_entries", "frame=key_frame", "-of", "csv=p=0", path])
@@ -326,7 +289,6 @@ impl Ffmpeg {
                 return Ok(count2 as u64);
             }
         }
-
         if count == 0 {
             let output3 = Command::new("ffmpeg")
                 .args(["-i", path, "-vf", "select='eq(pict_type,I)'", "-vsync", "0", "-f", "null", "-"])
@@ -349,10 +311,8 @@ impl Ffmpeg {
                 }
             }
         }
-
         Ok(count as u64)
     }
-
     pub fn get_video_info_json(&self, path: &str) -> Result<serde_json::Value, String> {
         let info = self.get_video_info(path)?;
         Ok(serde_json::json!({
@@ -390,7 +350,6 @@ impl Ffmpeg {
             "resource_frames": info.resource_frames,
         }))
     }
-
     pub fn create_empty_video(&self, output_path: &str, duration: f64, width: u32, height: u32, fps: f64) -> Result<String, String> {
         let path = Path::new(output_path);
         if let Some(parent) = path.parent() {
@@ -398,7 +357,6 @@ impl Ffmpeg {
                 fs::create_dir_all(parent).map_err(|e| format!("Failed to create output directory: {}", e))?;
             }
         }
-
         let args = vec![
             "-f".to_string(),
             "lavfi".to_string(),
@@ -415,26 +373,20 @@ impl Ffmpeg {
             "-y".to_string(),
             output_path.to_string(),
         ];
-
         let output = Command::new(&self.bin_path).args(&args).output().map_err(|e| format!("Failed to create empty video: {}", e))?;
-
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
             return Err(format!("FFmpeg failed: {}", stderr));
         }
-
         Ok(output_path.to_string())
     }
-
     pub fn get_duration(&self, path: &str) -> Result<f64, String> {
         let metadata = self.get_metadata(path)?;
         Ok(metadata.duration)
     }
-
     pub fn validate_video(&self, path: &str) -> bool {
         self.get_metadata(path).is_ok()
     }
-
     pub fn generate_thumbnail(&self, input_path: &str, options: &ThumbnailOptions) -> Result<String, String> {
         let input = Path::new(input_path);
         if !input.exists() {
@@ -468,20 +420,16 @@ impl Ffmpeg {
         }
         Ok(output_path.to_string_lossy().to_string())
     }
-
     pub fn get_first_frame(&self, input_path: &str, output_path: &str, width: Option<u32>, height: Option<u32>) -> Result<(), String> {
         if !Path::new(input_path).exists() {
             return Err(format!("Input file not found: {}", input_path));
         }
-
         if let Some(parent) = Path::new(output_path).parent() {
             if !parent.exists() {
                 fs::create_dir_all(parent).map_err(|e| format!("Failed to create output directory: {}", e))?;
             }
         }
-
         let mut args = vec!["-i".to_string(), input_path.to_string(), "-ss".to_string(), "0".to_string(), "-vframes".to_string(), "1".to_string()];
-
         if let (Some(w), Some(h)) = (width, height) {
             args.push("-vf".to_string());
             args.push(format!("scale={}:{}:force_original_aspect_ratio=decrease,pad={}:{}:(ow-iw)/2:(oh-ih)/2", w, h, w, h));
@@ -492,20 +440,15 @@ impl Ffmpeg {
             args.push("-vf".to_string());
             args.push(format!("scale=-1:{}", h));
         }
-
         args.push("-y".to_string());
         args.push(output_path.to_string());
-
         let output = Command::new(&self.bin_path).args(&args).output().map_err(|e| format!("Failed to extract first frame: {}", e))?;
-
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
             return Err(format!("FFmpeg failed: {}", stderr));
         }
-
         Ok(())
     }
-
     pub fn get_last_frame(&self, input_path: &str, output_path: &str, width: Option<u32>, height: Option<u32>) -> Result<(), String> {
         if !Path::new(input_path).exists() {
             return Err(format!("Input file not found: {}", input_path));
@@ -536,7 +479,6 @@ impl Ffmpeg {
         }
         Ok(())
     }
-
     pub fn extract_frames(&self, input_path: &str, options: &FrameExtractOptions) -> Result<Vec<String>, String> {
         if !Path::new(input_path).exists() {
             return Err(format!("Input file not found: {}", input_path));
@@ -613,7 +555,6 @@ impl Ffmpeg {
         extracted_files.sort();
         Ok(extracted_files)
     }
-
     pub fn get_frame_count(&self, input_path: &str) -> Result<u64, String> {
         if !Path::new(input_path).exists() {
             return Err(format!("Input file not found: {}", input_path));
@@ -640,7 +581,6 @@ impl Ffmpeg {
         let stdout = String::from_utf8_lossy(&output.stdout);
         stdout.trim().parse::<u64>().map_err(|e| format!("Failed to parse frame count: {}", e))
     }
-
     pub fn get_keyframes(&self, input_path: &str) -> Result<Vec<f64>, String> {
         if !Path::new(input_path).exists() {
             return Err(format!("Input file not found: {}", input_path));
@@ -674,7 +614,6 @@ impl Ffmpeg {
         }
         Ok(keyframes)
     }
-
     pub fn reset_persistent(&self, video_path: &str) -> Result<(), String> {
         let mut guard = self.persistent.lock().unwrap();
         if let Some(mut proc) = guard.take() {
@@ -686,7 +625,6 @@ impl Ffmpeg {
         Ok(())
     }
 }
-
 fn gcd(a: u64, b: u64) -> u64 {
     if b == 0 {
         a
@@ -694,7 +632,6 @@ fn gcd(a: u64, b: u64) -> u64 {
         gcd(b, a % b)
     }
 }
-
 pub fn parse_fraction(s: &str) -> Option<f64> {
     if s.contains('/') {
         let parts: Vec<&str> = s.split('/').collect();
@@ -710,18 +647,15 @@ pub fn parse_fraction(s: &str) -> Option<f64> {
         s.parse::<f64>().ok()
     }
 }
-
 #[cfg(test)]
 mod tests {
     use super::*;
-
     #[test]
     fn test_ffmpeg_available() {
         let ffmpeg = Ffmpeg::new();
         assert!(ffmpeg.is_available());
         println!("FFmpeg version: {:?}", ffmpeg.get_version());
     }
-
     #[test]
     fn test_parse_fraction() {
         assert_eq!(parse_fraction("30000/1001"), Some(29.97002997002997));

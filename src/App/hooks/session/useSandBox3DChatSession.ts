@@ -7,7 +7,6 @@ import { TaskInfo, UploadFile, TaskStatusEnum, SessionDomain } from "../../../co
 import { Language, ChatMessage, RoleEnum, MessageStatus } from "../../../types/types";
 import { workspaceCommands } from "../../../command/workspace";
 import { sandbox3dSessionCommands } from "../../../command/session/sandbox3d";
-
 export function useSandBox3DSession(
     language: Language,
     isConfigLoaded: boolean,
@@ -20,14 +19,12 @@ export function useSandBox3DSession(
     const [pendingScenePath, setPendingScenePath] = useState<string>("");
     const [pendingSceneName, setPendingSceneName] = useState<string>("");
     const { t } = useTranslation(language);
-
     useEffect(() => {
         const unsubscribe = taskManager.subscribe(() => {
             setTaskManagerVersion((prev) => prev + 1);
         });
         return unsubscribe;
     }, []);
-
     useEffect(() => {
         if (
             !isLoading &&
@@ -47,7 +44,6 @@ export function useSandBox3DSession(
                 const userMessages = taskManager.getUserMessagesBySession(currentSessionId, SessionDomain.SandBox3D);
                 const assistantMessages = taskManager.getAssistantMessagesBySessionAsArray(currentSessionId, SessionDomain.SandBox3D);
                 const tasksArray: TaskInfo[] = tasksMap ? Array.from(tasksMap.values()) : [];
-
                 if (userMessages.length === 0 && assistantMessages.length === 0) {
                     return;
                 }
@@ -60,7 +56,6 @@ export function useSandBox3DSession(
             return () => clearTimeout(saveTimer);
         }
     }, [currentSessionId, isLoading, taskManagerVersion]);
-
     useEffect(() => {
         if (isConfigLoaded) {
             sandbox3dSessionCommands.listSandBox3DSessions()
@@ -101,7 +96,6 @@ export function useSandBox3DSession(
                 });
         }
     }, [isConfigLoaded]);
-
     const handleSendMessage = useCallback(async (
         userMessage: string,
         sessionId: string,
@@ -110,7 +104,6 @@ export function useSandBox3DSession(
     ) => {
         const now = new Date();
         let finalSessionId = sessionId || currentSessionId;
-
         if (finalSessionId && !finalSessionId.startsWith("pending_") &&
             !finalSessionId.startsWith("sandbox3d_session_") && !finalSessionId.startsWith("temp_")) {
             console.error(
@@ -118,18 +111,15 @@ export function useSandBox3DSession(
             );
             return;
         }
-
         if (finalSessionId && finalSessionId.startsWith("pending_")) {
             const newSessionId = `sandbox3d_session_${Date.now()}`;
             const sessionTitle = userMessage.length > 30
                 ? userMessage.slice(0, 30) + "..."
                 : userMessage;
-
             const tempUserMessages = taskManager.getUserMessagesBySession(finalSessionId, SessionDomain.SandBox3D);
             const tempAssistantMessages = taskManager.getAssistantMessagesBySessionAsArray(finalSessionId, SessionDomain.SandBox3D);
             const tempTasksMap = taskManager.getTasksBySession(finalSessionId, SessionDomain.SandBox3D);
             const tempTasks = tempTasksMap ? Array.from(tempTasksMap.values()) : [];
-
             await sandbox3dSessionCommands.createSandBox3DSession(
                 newSessionId,
                 sessionTitle,
@@ -140,7 +130,6 @@ export function useSandBox3DSession(
                 pendingScenePath || undefined,
                 pendingSceneName || undefined,
             );
-
             taskManager.loadSessionData(newSessionId, tempTasks, tempUserMessages, tempAssistantMessages, SessionDomain.SandBox3D);
             taskManager.deleteSession(finalSessionId, SessionDomain.SandBox3D);
             finalSessionId = newSessionId;
@@ -149,19 +138,16 @@ export function useSandBox3DSession(
             setPendingNewSession(false);
             setPendingScenePath("");
             setPendingSceneName("");
-
             if (pendingScenePath) {
                 window.dispatchEvent(new CustomEvent("scene-loaded", {
                     detail: { path: pendingScenePath, name: pendingSceneName }
                 }));
             }
-
         } else if (!finalSessionId) {
             const newSessionId = `sandbox3d_session_${Date.now()}`;
             const sessionTitle = userMessage.length > 30
                 ? userMessage.slice(0, 30) + "..."
                 : userMessage;
-
             await sandbox3dSessionCommands.createSandBox3DSession(
                 newSessionId,
                 sessionTitle,
@@ -172,21 +158,18 @@ export function useSandBox3DSession(
                 pendingScenePath || undefined,
                 pendingSceneName || undefined,
             );
-
             taskManager.loadSessionData(newSessionId, [], [], [], SessionDomain.SandBox3D);
             finalSessionId = newSessionId;
             setCurrentSessionId(newSessionId);
             window.dispatchEvent(new CustomEvent("sandbox3d-session-created"));
             setPendingScenePath("");
             setPendingSceneName("");
-
             if (pendingScenePath) {
                 window.dispatchEvent(new CustomEvent("scene-loaded", {
                     detail: { path: pendingScenePath, name: pendingSceneName }
                 }));
             }
         }
-
         const userMsg: ChatMessage = {
             id: `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
             role: RoleEnum.User,
@@ -195,13 +178,11 @@ export function useSandBox3DSession(
             files: files,
         };
         taskManager.addUserMessageToSession(finalSessionId, userMsg, SessionDomain.SandBox3D);
-
         try {
             const workspace = await workspaceCommands.getDefaultWorkspace();
             const workspacePath = workspace?.workspace_path;
             const systemPrompt = getSystemPrompt(language as 'zh' | 'en', workspacePath);
             const fullMessage = `${systemPrompt}\n\n User: ${userMessage}`;
-
             const mode = workflowMode || currentWorkflowMode;
             const taskId = await hippoxCommands.sendMessageAsync(
                 userMessage,
@@ -209,9 +190,7 @@ export function useSandBox3DSession(
                 finalSessionId,
                 mode,
             );
-
             const messageId = `llm_${taskId}`;
-
             const assistantMsg: ChatMessage = {
                 id: messageId,
                 role: RoleEnum.LLM,
@@ -220,7 +199,6 @@ export function useSandBox3DSession(
                 status: MessageStatus.Pending,
             };
             taskManager.addAssistantMessageToSession(finalSessionId, assistantMsg, SessionDomain.SandBox3D);
-
             const newTask: TaskInfo = {
                 task_id: taskId,
                 session_id: finalSessionId,
@@ -245,7 +223,6 @@ export function useSandBox3DSession(
             taskManager.addAssistantMessageToSession(finalSessionId, errorMsg, SessionDomain.SandBox3D);
         }
     }, [currentSessionId, t, language, currentWorkflowMode, pendingScenePath, pendingSceneName]);
-
     const handleNewSession = useCallback(async (scenePath?: string, sceneName?: string) => {
         const pendingId = `pending_${Date.now()}`;
         taskManager.loadSessionData(pendingId, [], [], [], SessionDomain.SandBox3D);
@@ -259,17 +236,14 @@ export function useSandBox3DSession(
             setPendingSceneName("");
         }
     }, []);
-
     const handleSwitchSession = useCallback(async (sessionId: string) => {
         if (sessionId === currentSessionId) return;
-
         if (!sessionId.startsWith("sandbox3d_session_") && !sessionId.startsWith("pending_")) {
             console.warn(
                 `[useSandBox3DSession] Cannot switch to session "${sessionId}" - it does not belong to SandBox3D domain`
             );
             return;
         }
-
         const hasData = taskManager.hasSessionMessages(currentSessionId, SessionDomain.SandBox3D);
         if (currentSessionId && !currentSessionId.startsWith("pending_") && !currentSessionId.startsWith("temp_") && hasData) {
             try {
@@ -286,7 +260,6 @@ export function useSandBox3DSession(
                 console.error("Failed to save current session:", error);
             }
         }
-
         const hasTargetData = taskManager.getTasksBySession(sessionId, SessionDomain.SandBox3D) !== undefined;
         if (!hasTargetData) {
             const chatContent = await sandbox3dSessionCommands.loadChatContent(sessionId);
@@ -294,7 +267,6 @@ export function useSandBox3DSession(
             let userMessages: ChatMessage[] = [];
             let assistantMessages: ChatMessage[] = [];
             let tasks: TaskInfo[] = [];
-
             if (chatContent) {
                 const allMessages = chatContent as ChatMessage[];
                 userMessages = allMessages.filter(msg => msg.role === RoleEnum.User);
@@ -307,7 +279,6 @@ export function useSandBox3DSession(
         } else {
             taskManager.switchToSession(sessionId, SessionDomain.SandBox3D);
         }
-
         setCurrentSessionId(sessionId);
         try {
             const config = await sandbox3dSessionCommands.loadSandBox3DSessionConfig(sessionId);
@@ -320,25 +291,20 @@ export function useSandBox3DSession(
             console.error("Failed to load scene config:", error);
         }
     }, [currentSessionId]);
-
     const shouldShowWelcome = useCallback(() => {
         if (isLoading) return true;
         if (!currentSessionId) return true;
-
         if (currentSessionId.startsWith("pending_")) {
             const userMessages = taskManager.getUserMessagesBySession(currentSessionId, SessionDomain.SandBox3D);
             const assistantMessages = taskManager.getAssistantMessagesBySessionAsArray(currentSessionId, SessionDomain.SandBox3D);
             return userMessages.length === 0 && assistantMessages.length === 0;
         }
-
         const userMessages = taskManager.getUserMessagesBySession(currentSessionId, SessionDomain.SandBox3D);
         const assistantMessages = taskManager.getAssistantMessagesBySessionAsArray(currentSessionId, SessionDomain.SandBox3D);
         return userMessages.length === 0 && assistantMessages.length === 0;
     }, [isLoading, currentSessionId]);
-
     const resetSession = useCallback(async () => {
         if (!currentSessionId || currentSessionId.startsWith("pending_")) return;
-
         try {
             await hippoxCommands.resetSession();
             taskManager.loadSessionData(currentSessionId, [], [], [], SessionDomain.SandBox3D);
@@ -346,14 +312,12 @@ export function useSandBox3DSession(
             console.error("reset session error:", error);
         }
     }, [currentSessionId]);
-
     const createSessionWithScene = useCallback(async (
         scenePath: string,
         sceneName: string
     ) => {
         const newSessionId = `sandbox3d_session_${Date.now()}`;
         const title = sceneName || "3D Scene";
-
         await sandbox3dSessionCommands.createSandBox3DSession(
             newSessionId,
             title,
@@ -364,7 +328,6 @@ export function useSandBox3DSession(
             scenePath,
             sceneName,
         );
-
         taskManager.loadSessionData(newSessionId, [], [], [], SessionDomain.SandBox3D);
         setCurrentSessionId(newSessionId);
         setPendingNewSession(false);
@@ -376,7 +339,6 @@ export function useSandBox3DSession(
         }));
         return newSessionId;
     }, []);
-
     return {
         currentSessionId,
         isLoading,

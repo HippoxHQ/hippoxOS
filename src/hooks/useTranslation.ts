@@ -1,6 +1,5 @@
 import { en, zh } from "../i18n";
 import { Language, Translations } from "../types/types";
-
 export function useTranslation(language: Language) {
   const translations: Translations = language === 'zh' ? zh : en;
   const t = (key: string, params?: Record<string, string | number>): string => {
@@ -11,7 +10,6 @@ export function useTranslation(language: Language) {
       value = value[k];
     }
     if (typeof value !== 'string') return key;
-
     if (params) {
       return value.replace(/\{\{\s*(\w+)\s*\}\}/g, (_, name) => {
         return params[name] !== undefined ? String(params[name]) : `{{${name}}}`;

@@ -1,26 +1,14 @@
 import React, { useEffect } from "react";
 import { ContentWithLinks } from "./ContentWithLinks";
-import {
-  isTerminalResponseEmpty,
-  renderTerminalResponse,
-} from "../terminalrenderer";
+import { isTerminalResponseEmpty, renderTerminalResponse } from "../terminalrenderer";
 import { CopyIcon } from "../../../../icons";
-import {
-  isStructuredLLMResponse,
-  parseLLMResponse,
-} from "../../../../llm/utils";
+import { isStructuredLLMResponse, parseLLMResponse } from "../../../../llm/utils";
 import { UploadFile } from "../../../../core/types";
 
 if (!(window as any).__openedTasks) {
-  (window as any).__openedTasks = new Map<
-    string,
-    { map: boolean; chart: boolean }
-  >();
+  (window as any).__openedTasks = new Map<string, { map: boolean; chart: boolean }>();
 }
-const openedTasks = (window as any).__openedTasks as Map<
-  string,
-  { map: boolean; chart: boolean }
->;
+const openedTasks = (window as any).__openedTasks as Map<string, { map: boolean; chart: boolean }>;
 
 export const resetAutoOpenState = (taskId?: string) => {
   if (taskId) {
@@ -41,16 +29,7 @@ interface TaskOutputProps {
   onFileClick?: (file: UploadFile) => void;
 }
 
-export const TaskOutput: React.FC<TaskOutputProps> = ({
-  output,
-  onCopy,
-  onShowChart,
-  onShowMap,
-  t,
-  taskId,
-  autoOpen = true,
-  onFileClick,
-}) => {
+export const TaskOutput: React.FC<TaskOutputProps> = ({ output, onCopy, onShowChart, onShowMap, t, taskId, autoOpen = true, onFileClick }) => {
   let renderedContent: React.ReactNode = null;
   let isStructured: boolean = false;
   let shouldHide: boolean = false;
@@ -66,18 +45,13 @@ export const TaskOutput: React.FC<TaskOutputProps> = ({
         isStructured = true;
         const tr = parsed.terminalResponse as any;
         hasEarthview = !!tr.earthview && Object.keys(tr.earthview).length > 0;
-        hasCandleview =
-          !!tr.candleview && Object.keys(tr.candleview).length > 0;
+        hasCandleview = !!tr.candleview && Object.keys(tr.candleview).length > 0;
         earthviewData = tr.earthview || null;
         candleviewData = tr.candleview || null;
         if (isTerminalResponseEmpty(parsed.terminalResponse)) {
           shouldHide = true;
         } else {
-          renderedContent = renderTerminalResponse(
-            parsed.terminalResponse,
-            t,
-            onFileClick,
-          );
+          renderedContent = renderTerminalResponse(parsed.terminalResponse, t, onFileClick);
         }
       } else if (parsed?.terminalResponse === null) {
         shouldHide = true;
@@ -109,16 +83,7 @@ export const TaskOutput: React.FC<TaskOutputProps> = ({
       openedTasks.set(taskId, { map: taskState?.map || false, chart: true });
       onShowChart(candleviewData);
     }
-  }, [
-    hasEarthview,
-    hasCandleview,
-    earthviewData,
-    candleviewData,
-    autoOpen,
-    taskId,
-    onShowMap,
-    onShowChart,
-  ]);
+  }, [hasEarthview, hasCandleview, earthviewData, candleviewData, autoOpen, taskId, onShowMap, onShowChart]);
 
   if (!output || output.trim() === "") {
     return null;
@@ -147,10 +112,7 @@ export const TaskOutput: React.FC<TaskOutputProps> = ({
             justifyContent: "space-between",
           }}
         >
-          <span
-            className="output-label"
-            style={{ color: "var(--text-primary)", fontWeight: 500 }}
-          >
+          <span className="output-label" style={{ color: "var(--text-primary)", fontWeight: 500 }}>
             📝 {t("terminal.response") || "Response:"}
           </span>
           <button
@@ -291,10 +253,7 @@ export const TaskOutput: React.FC<TaskOutputProps> = ({
           justifyContent: "space-between",
         }}
       >
-        <span
-          className="output-label"
-          style={{ color: "var(--text-primary)", fontWeight: 500 }}
-        >
+        <span className="output-label" style={{ color: "var(--text-primary)", fontWeight: 500 }}>
           📝 {t("terminal.response") || "Response:"}
         </span>
         <button

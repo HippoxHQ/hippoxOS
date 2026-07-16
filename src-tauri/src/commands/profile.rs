@@ -1,13 +1,10 @@
+use crate::commands::paths::get_app_root_dir;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
 use uuid::Uuid;
-
-use crate::commands::paths::get_app_root_dir;
-
 const PROFILE_DIR: &str = "profile";
 const PROFILE_INFO_FILE: &str = "info.json";
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UserProfile {
     pub id: String,
@@ -18,7 +15,6 @@ pub struct UserProfile {
     pub updated_at: String,
     pub settings: ProfileSettings,
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ProfileSettings {
     pub timezone: Option<String>,
@@ -30,13 +26,11 @@ pub struct ProfileSettings {
     #[serde(default)]
     pub extra: std::collections::HashMap<String, serde_json::Value>,
 }
-
 impl Default for UserProfile {
     fn default() -> Self {
         let now = chrono::Local::now().to_rfc3339();
         // Get timezone name - use a helper function
         let timezone_name = get_current_timezone_name();
-
         Self {
             id: Uuid::new_v4().to_string(),
             name: "User".to_string(),
@@ -56,7 +50,6 @@ impl Default for UserProfile {
         }
     }
 }
-
 /// Helper function to get current timezone name
 fn get_current_timezone_name() -> String {
     #[cfg(target_os = "windows")]
@@ -72,7 +65,6 @@ fn get_current_timezone_name() -> String {
             }
         }
     }
-
     #[cfg(not(target_os = "windows"))]
     {
         use std::process::Command;
@@ -85,7 +77,6 @@ fn get_current_timezone_name() -> String {
                 }
             }
         }
-
         // Try reading /etc/timezone on Linux
         if let Ok(content) = std::fs::read_to_string("/etc/timezone") {
             let tz = content.trim().to_string();
@@ -94,11 +85,9 @@ fn get_current_timezone_name() -> String {
             }
         }
     }
-
     // Fallback to UTC
     "UTC".to_string()
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UpdateProfileRequest {
     pub name: Option<String>,
@@ -106,17 +95,14 @@ pub struct UpdateProfileRequest {
     pub avatar: Option<String>,
     pub settings: Option<ProfileSettings>,
 }
-
 /// Get the profile directory path
 pub fn get_profile_dir() -> PathBuf {
     get_app_root_dir().join(PROFILE_DIR)
 }
-
 /// Get the profile info file path
 pub fn get_profile_info_path() -> PathBuf {
     get_profile_dir().join(PROFILE_INFO_FILE)
 }
-
 /// Ensure the profile directory exists
 fn ensure_profile_dir() -> Result<(), String> {
     let dir = get_profile_dir();
@@ -125,7 +111,6 @@ fn ensure_profile_dir() -> Result<(), String> {
     }
     Ok(())
 }
-
 /// Load profile from file
 pub fn load_profile() -> Result<UserProfile, String> {
     let profile_path = get_profile_info_path();
@@ -140,7 +125,6 @@ pub fn load_profile() -> Result<UserProfile, String> {
         Ok(default_profile)
     }
 }
-
 /// Save profile to file
 pub fn save_profile(profile: &UserProfile) -> Result<(), String> {
     ensure_profile_dir()?;
@@ -149,11 +133,9 @@ pub fn save_profile(profile: &UserProfile) -> Result<(), String> {
     fs::write(&profile_path, content).map_err(|e| format!("Failed to save profile: {}", e))?;
     Ok(())
 }
-
 /// Update profile with partial data
 pub fn update_profile(update: UpdateProfileRequest) -> Result<UserProfile, String> {
     let mut profile = load_profile()?;
-
     if let Some(name) = update.name {
         profile.name = name;
     }
@@ -166,12 +148,10 @@ pub fn update_profile(update: UpdateProfileRequest) -> Result<UserProfile, Strin
     if let Some(settings) = update.settings {
         profile.settings = settings;
     }
-
     profile.updated_at = chrono::Local::now().to_rfc3339();
     save_profile(&profile)?;
     Ok(profile)
 }
-
 /// Initialize default profile if not exists
 pub fn init_default_profile() -> Result<UserProfile, String> {
     let profile_path = get_profile_info_path();
@@ -183,12 +163,10 @@ pub fn init_default_profile() -> Result<UserProfile, String> {
         load_profile()
     }
 }
-
 /// Check if profile exists
 pub fn profile_exists() -> bool {
     get_profile_info_path().exists()
 }
-
 /// Delete profile (for reset)
 pub fn delete_profile() -> Result<bool, String> {
     let profile_path = get_profile_info_path();
@@ -199,21 +177,17 @@ pub fn delete_profile() -> Result<bool, String> {
         Ok(false)
     }
 }
-
 // ============= Tauri Commands =============
-
 /// Get the current user profile
 #[tauri::command]
 pub async fn cmd_get_profile() -> Result<UserProfile, String> {
     load_profile()
 }
-
 /// Update the user profile
 #[tauri::command]
 pub async fn cmd_update_profile(update: UpdateProfileRequest) -> Result<UserProfile, String> {
     update_profile(update)
 }
-
 /// Reset profile to default
 #[tauri::command]
 pub async fn cmd_reset_profile() -> Result<UserProfile, String> {
@@ -221,19 +195,16 @@ pub async fn cmd_reset_profile() -> Result<UserProfile, String> {
     save_profile(&default_profile)?;
     Ok(default_profile)
 }
-
 /// Check if profile exists
 #[tauri::command]
 pub async fn cmd_profile_exists() -> Result<bool, String> {
     Ok(profile_exists())
 }
-
 /// Get profile directory path
 #[tauri::command]
 pub async fn cmd_get_profile_dir() -> Result<String, String> {
     Ok(get_profile_dir().to_string_lossy().to_string())
 }
-
 /// Update profile settings only
 #[tauri::command]
 pub async fn cmd_update_profile_settings(settings: ProfileSettings) -> Result<UserProfile, String> {
@@ -243,7 +214,6 @@ pub async fn cmd_update_profile_settings(settings: ProfileSettings) -> Result<Us
     save_profile(&profile)?;
     Ok(profile)
 }
-
 /// Get a specific profile setting
 #[tauri::command]
 pub async fn cmd_get_profile_setting(key: String) -> Result<serde_json::Value, String> {
@@ -264,7 +234,6 @@ pub async fn cmd_get_profile_setting(key: String) -> Result<serde_json::Value, S
         }
     }
 }
-
 /// Update a specific profile setting
 #[tauri::command]
 pub async fn cmd_set_profile_setting(key: String, value: serde_json::Value) -> Result<UserProfile, String> {

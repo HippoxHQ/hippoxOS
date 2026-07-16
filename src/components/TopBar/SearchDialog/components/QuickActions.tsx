@@ -1,17 +1,11 @@
 import React from "react";
 import { SearchSuggestion } from "../types";
-
 interface QuickActionsProps {
   suggestions: SearchSuggestion[];
   onActionClick: (action: () => void) => void;
   language: "zh" | "en";
 }
-
-export const QuickActions: React.FC<QuickActionsProps> = ({
-  suggestions,
-  onActionClick,
-  language,
-}) => {
+export const QuickActions: React.FC<QuickActionsProps> = ({ suggestions, onActionClick, language }) => {
   return (
     <div style={{ padding: "6px 0" }}>
       <div

@@ -1673,7 +1673,6 @@ export const zh = {
     deleteTrack: "删除轨道",
   }
 };
-
 export const en: typeof zh = {
   app: {
     loading: 'Loading...',

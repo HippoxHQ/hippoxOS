@@ -1,16 +1,12 @@
-use std::{fs, path::PathBuf};
-
-use tauri::command;
-
 use crate::commands::{get_skills_market_dir, FavoritesConfig};
+use std::{fs, path::PathBuf};
+use tauri::command;
 const FAVORITES_CONFIG_FILE: &str = "favorites.json";
-
 #[command]
 pub async fn get_favorited_skills() -> Result<Vec<String>, String> {
     let favorites = load_favorites_config();
     Ok(favorites.favorites)
 }
-
 pub fn load_favorites_config() -> FavoritesConfig {
     let config_path = get_favorites_config_path();
     if config_path.exists() {
@@ -22,11 +18,9 @@ pub fn load_favorites_config() -> FavoritesConfig {
     }
     FavoritesConfig::default()
 }
-
 pub fn get_favorites_config_path() -> PathBuf {
     get_skills_market_dir().join(FAVORITES_CONFIG_FILE)
 }
-
 pub fn save_favorites_config(config: &FavoritesConfig) -> Result<(), String> {
     let config_path = get_favorites_config_path();
     if let Some(parent) = config_path.parent() {

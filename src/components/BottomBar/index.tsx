@@ -9,64 +9,29 @@ import { LlmInstance } from "../../command/llm";
 import { systemNotificationService } from "../../core/NotificationManager";
 import { basisCommands } from "../../command/basis";
 import { healthCommands, HealthCheckResult } from "../../command/health";
-
 interface IconProps {
   className?: string;
   size?: number;
 }
-
 const BellIcon: React.FC<IconProps> = ({ size = 18 }) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.5"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
+  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
     <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
     <path d="M13.73 21a2 2 0 0 1-3.46 0" />
   </svg>
 );
-
 const BellDotIcon: React.FC<IconProps> = ({ size = 18 }) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.5"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
+  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
     <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
     <path d="M13.73 21a2 2 0 0 1-3.46 0" />
     <circle cx="19" cy="5" r="2.5" fill="red" stroke="red" />
   </svg>
 );
-
 const ClockIcon: React.FC<IconProps> = ({ size = 14 }) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.5"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
+  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
     <circle cx="12" cy="12" r="10" />
     <polyline points="12 6 12 12 16 14" />
   </svg>
 );
-
 const bottomBarStyles = `
   .bottom-bar {
     height: 30px;
@@ -78,20 +43,17 @@ const bottomBarStyles = `
     padding: 0 16px;
     flex-shrink: 0;
   }
-  
-  .bottom-bar-left {
+   .bottom-bar-left {
     display: flex;
     align-items: center;
     gap: 12px;
   }
-  
-  .bottom-bar-right {
+   .bottom-bar-right {
     display: flex;
     align-items: center;
     gap: 4px;
   }
-  
-  .bottom-bar-btn {
+   .bottom-bar-btn {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -108,26 +70,22 @@ const bottomBarStyles = `
     transition: all 0.15s ease;
     position: relative;
   }
-  
-  .bottom-bar-btn svg {
+   .bottom-bar-btn svg {
     width: 14px;
     height: 14px;
     stroke: currentColor;
     stroke-width: 1.75;
     fill: none;
   }
-  
-  .bottom-bar-btn:hover {
+   .bottom-bar-btn:hover {
     background: var(--hover-bg);
     color: var(--text-primary);
   }
-  
-  .bottom-bar-active {
+   .bottom-bar-active {
     background: var(--hover-bg);
     color: var(--text-primary);
   }
-
-  .status-dot {
+   .status-dot {
   position: absolute;
   bottom: -1px;
   right: -1px;
@@ -137,34 +95,28 @@ const bottomBarStyles = `
   border: 1.5px solid var(--bg-secondary);
   transition: background-color 0.3s ease;
   }
-  
-  .status-dot.online {
+   .status-dot.online {
     background: #22c55e;
     animation: pulse-dot 2s infinite;
   }
-  
-  .status-dot.offline {
+   .status-dot.offline {
     background: #ef4444;
     animation: none;
   }
-  
-  .status-dot.checking {
+   .status-dot.checking {
     background: #f59e0b;
     animation: pulse-dot 0.8s infinite;
   }
-  
-  @keyframes pulse-dot {
+   @keyframes pulse-dot {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.4; }
   }
-  
-  .version-info {
+   .version-info {
     font-size: 11px;
     color: var(--text-tertiary);
     margin-right: 4px;
   }
-  
-  .health-status {
+   .health-status {
     display: flex;
     align-items: center;
     gap: 6px;
@@ -172,16 +124,14 @@ const bottomBarStyles = `
     color: var(--text-tertiary);
     margin-right: 4px;
   }
-  
-  .status-dot-small {
+   .status-dot-small {
     width: 6px;
     height: 6px;
     background: #22c55e;
     border-radius: 50%;
     animation: pulse 2s infinite;
   }
-  
-  .notification-badge {
+   .notification-badge {
     position: absolute;
     top: -2px;
     right: -2px;
@@ -197,13 +147,11 @@ const bottomBarStyles = `
     align-items: center;
     justify-content: center;
   }
-  
-  @keyframes pulse {
+   @keyframes pulse {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.5; }
   }
-  
-  @keyframes slideUp {
+   @keyframes slideUp {
     from {
       opacity: 0;
       transform: translateY(10px);
@@ -214,7 +162,6 @@ const bottomBarStyles = `
     }
   }
 `;
-
 if (typeof document !== "undefined") {
   const styleId = "bottom-bar-styles";
   if (!document.getElementById(styleId)) {
@@ -224,18 +171,14 @@ if (typeof document !== "undefined") {
     document.head.appendChild(style);
   }
 }
-
 interface BottomBarProps {
   t: (key: string, params?: Record<string, any>) => string;
 }
-
 type StatusDotState = "online" | "offline" | "checking";
-
 const BottomBar: React.FC<BottomBarProps> = ({ t }) => {
   const [hippoxVersion, setHippoxVersion] = useState<string>("");
   const [modelPopupVisible, setModelPopupVisible] = useState(false);
-  const [notificationCenterVisible, setNotificationCenterVisible] =
-    useState(false);
+  const [notificationCenterVisible, setNotificationCenterVisible] = useState(false);
   const [scheduledTasksVisible, setScheduledTasksVisible] = useState(false);
   const [llmInstances, setLlmInstances] = useState<LlmInstance[]>([]);
   const [defaultInstanceId, setDefaultInstanceId] = useState<string>("");
@@ -247,7 +190,6 @@ const BottomBar: React.FC<BottomBarProps> = ({ t }) => {
   const modelPopupRef = useRef<HTMLDivElement>(null);
   const notificationPopupRef = useRef<HTMLDivElement>(null);
   const scheduledTasksPopupRef = useRef<HTMLDivElement>(null);
-
   const checkLlmHealth = async (instances: LlmInstance[]) => {
     if (instances.length === 0) {
       setStatusDot("offline");
@@ -258,16 +200,13 @@ const BottomBar: React.FC<BottomBarProps> = ({ t }) => {
       const results = await healthCommands.checkAllLlmHealth();
       const defaultId = await configCommands.getDefaultLlmInstanceId();
       const targetId = defaultId || instances[0]?.id;
-      const targetResult = results.find(
-        (r: HealthCheckResult) => r.instance_id === targetId,
-      );
+      const targetResult = results.find((r: HealthCheckResult) => r.instance_id === targetId);
       setStatusDot(targetResult?.status === "online" ? "online" : "offline");
     } catch (error) {
       console.error("Failed to check LLM health:", error);
       setStatusDot("offline");
     }
   };
-
   useEffect(() => {
     const loadVersion = async () => {
       try {
@@ -282,7 +221,6 @@ const BottomBar: React.FC<BottomBarProps> = ({ t }) => {
     };
     loadVersion();
   }, []);
-
   // Load LLM instances
   useEffect(() => {
     const loadLlmInstances = async () => {
@@ -300,7 +238,6 @@ const BottomBar: React.FC<BottomBarProps> = ({ t }) => {
     };
     loadLlmInstances();
   }, []);
-
   // Load unread count from notification manager
   useEffect(() => {
     const loadUnreadCount = async () => {
@@ -314,41 +251,26 @@ const BottomBar: React.FC<BottomBarProps> = ({ t }) => {
       }
     };
     loadUnreadCount();
-
     const handleCountUpdate = (e: CustomEvent) => {
       setUnreadCount(e.detail.count);
     };
-    window.addEventListener(
-      "system-notification-count-update",
-      handleCountUpdate as EventListener,
-    );
+    window.addEventListener("system-notification-count-update", handleCountUpdate as EventListener);
     return () => {
-      window.removeEventListener(
-        "system-notification-count-update",
-        handleCountUpdate as EventListener,
-      );
+      window.removeEventListener("system-notification-count-update", handleCountUpdate as EventListener);
     };
   }, []);
-
   useEffect(() => {
     const handleGlobalClick = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
       const isModelButton = modelButtonRef.current?.contains(target);
-      const isNotificationButton =
-        notificationButtonRef.current?.contains(target);
-      const isScheduledTasksButton =
-        scheduledTasksButtonRef.current?.contains(target);
-
+      const isNotificationButton = notificationButtonRef.current?.contains(target);
+      const isScheduledTasksButton = scheduledTasksButtonRef.current?.contains(target);
       if (isModelButton || isNotificationButton || isScheduledTasksButton) {
         return;
       }
-
       const isModelPopup = modelPopupRef.current?.contains(target);
-      const isNotificationPopup =
-        notificationPopupRef.current?.contains(target);
-      const isScheduledTasksPopup =
-        scheduledTasksPopupRef.current?.contains(target);
-
+      const isNotificationPopup = notificationPopupRef.current?.contains(target);
+      const isScheduledTasksPopup = scheduledTasksPopupRef.current?.contains(target);
       if (!isModelPopup && modelPopupVisible) {
         setModelPopupVisible(false);
       }
@@ -359,11 +281,9 @@ const BottomBar: React.FC<BottomBarProps> = ({ t }) => {
         setScheduledTasksVisible(false);
       }
     };
-
     document.addEventListener("mousedown", handleGlobalClick);
     return () => document.removeEventListener("mousedown", handleGlobalClick);
   }, [modelPopupVisible, notificationCenterVisible, scheduledTasksVisible]);
-
   const handleSetDefaultModel = async (instanceId: string) => {
     try {
       await configCommands.setDefaultLlmInstance(instanceId);
@@ -379,14 +299,12 @@ const BottomBar: React.FC<BottomBarProps> = ({ t }) => {
       showToast(ToastType.ERROR, "Failed to set default model: " + error);
     }
   };
-
   const handleOpenModelSelector = async () => {
     setModelPopupVisible(!modelPopupVisible);
     if (!modelPopupVisible) {
       await checkLlmHealth(llmInstances);
     }
   };
-
   const getDefaultInstance = () => {
     let instance;
     if (defaultInstanceId) {
@@ -402,19 +320,12 @@ const BottomBar: React.FC<BottomBarProps> = ({ t }) => {
     }
     return instance;
   };
-
   const defaultInstance = getDefaultInstance();
-
   return (
     <>
       <div className="bottom-bar">
         <div className="bottom-bar-left">
-          <button
-            ref={modelButtonRef}
-            className={`bottom-bar-btn ${modelPopupVisible ? "bottom-bar-active" : ""}`}
-            onClick={handleOpenModelSelector}
-            title={t("bottomBar.model")}
-          >
+          <button ref={modelButtonRef} className={`bottom-bar-btn ${modelPopupVisible ? "bottom-bar-active" : ""}`} onClick={handleOpenModelSelector} title={t("bottomBar.model")}>
             <div style={{ position: "relative", display: "inline-flex" }}>
               <BotIcon2 size={19} />
               <span className={`status-dot ${statusDot}`} />
@@ -450,20 +361,11 @@ const BottomBar: React.FC<BottomBarProps> = ({ t }) => {
             }}
             title={t("bottomBar.notifications")}
           >
-            {unreadCount > 0 ? (
-              <BellDotIcon size={14} />
-            ) : (
-              <BellIcon size={14} />
-            )}
-            {unreadCount > 0 && (
-              <span className="notification-badge">
-                {unreadCount > 99 ? "99+" : unreadCount}
-              </span>
-            )}
+            {unreadCount > 0 ? <BellDotIcon size={14} /> : <BellIcon size={14} />}
+            {unreadCount > 0 && <span className="notification-badge">{unreadCount > 99 ? "99+" : unreadCount}</span>}
           </button>
         </div>
       </div>
-
       <ModelSelector
         isOpen={modelPopupVisible}
         onClose={() => setModelPopupVisible(false)}
@@ -474,7 +376,6 @@ const BottomBar: React.FC<BottomBarProps> = ({ t }) => {
         anchorRef={modelButtonRef as React.RefObject<HTMLElement>}
         popupRef={modelPopupRef}
       />
-
       <NotificationCenter
         isOpen={notificationCenterVisible}
         onClose={() => setNotificationCenterVisible(false)}
@@ -482,7 +383,6 @@ const BottomBar: React.FC<BottomBarProps> = ({ t }) => {
         t={t}
         popupRef={notificationPopupRef}
       />
-
       <ScheduledTasksStatus
         isOpen={scheduledTasksVisible}
         onClose={() => setScheduledTasksVisible(false)}
@@ -493,5 +393,4 @@ const BottomBar: React.FC<BottomBarProps> = ({ t }) => {
     </>
   );
 };
-
 export default BottomBar;

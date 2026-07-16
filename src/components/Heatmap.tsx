@@ -1,21 +1,16 @@
 import React from "react";
 import { formatLocalDate } from "../pages/UserProfilePage/utils";
-
 interface HeatmapProps {
   data: any[];
   t: (key: string, params?: any) => string;
 }
-
 const Heatmap: React.FC<HeatmapProps> = ({ data, t }) => {
   const dataMap = new Map(data.map((d) => [d.date, d.count]));
   const year = new Date().getFullYear();
-
   const firstDay = new Date(year, 0, 1);
   let startWeekday = firstDay.getDay();
   startWeekday = startWeekday === 0 ? 6 : startWeekday - 1;
-
   const daysInYear = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0) ? 366 : 365;
-
   const allDays: { date: Date; count: number; month: number; dateStr: string }[] = [];
   for (let i = 0; i < daysInYear; i++) {
     const date = new Date(year, 0, i + 1);
@@ -27,10 +22,8 @@ const Heatmap: React.FC<HeatmapProps> = ({ data, t }) => {
       dateStr,
     });
   }
-
   const weeks: { date: Date; count: number; month: number; dateStr: string }[][] = [];
   let currentWeek: { date: Date; count: number; month: number; dateStr: string }[] = [];
-
   for (let i = 0; i < startWeekday; i++) {
     const emptyDate = new Date(year, 0, -startWeekday + i);
     currentWeek.push({
@@ -40,7 +33,6 @@ const Heatmap: React.FC<HeatmapProps> = ({ data, t }) => {
       dateStr: formatLocalDate(emptyDate),
     });
   }
-
   for (const day of allDays) {
     currentWeek.push(day);
     if (currentWeek.length === 7) {
@@ -48,7 +40,6 @@ const Heatmap: React.FC<HeatmapProps> = ({ data, t }) => {
       currentWeek = [];
     }
   }
-
   if (currentWeek.length > 0) {
     while (currentWeek.length < 7) {
       const emptyDate = new Date(year, 11, 32);
@@ -61,7 +52,6 @@ const Heatmap: React.FC<HeatmapProps> = ({ data, t }) => {
     }
     weeks.push(currentWeek);
   }
-
   const getColor = (count: number) => {
     if (count === 0) return "var(--bg-tertiary)";
     if (count <= 3) return "#0e4429";
@@ -69,7 +59,6 @@ const Heatmap: React.FC<HeatmapProps> = ({ data, t }) => {
     if (count <= 12) return "#26a641";
     return "#39d353";
   };
-
   const weekdays = [
     t("user.monday") || "一",
     t("user.tuesday") || "二",
@@ -79,11 +68,9 @@ const Heatmap: React.FC<HeatmapProps> = ({ data, t }) => {
     t("user.saturday") || "六",
     t("user.sunday") || "日",
   ];
-
   const monthColumns: { name: string; startCol: number; endCol: number }[] = [];
   let currentMonth = -1;
   let monthStartCol = 0;
-
   for (let col = 0; col < weeks.length; col++) {
     const week = weeks[col];
     let weekMonth = -1;
@@ -112,7 +99,6 @@ const Heatmap: React.FC<HeatmapProps> = ({ data, t }) => {
       endCol: weeks.length - 1,
     });
   }
-
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
       <div style={{ display: "flex", marginLeft: "32px", gap: "2px" }}>
@@ -130,7 +116,6 @@ const Heatmap: React.FC<HeatmapProps> = ({ data, t }) => {
           </div>
         ))}
       </div>
-
       <div style={{ display: "flex", gap: "2px" }}>
         <div style={{ display: "flex", flexDirection: "column", gap: "2px", width: "32px" }}>
           {weekdays.map((day, idx) => (
@@ -148,7 +133,6 @@ const Heatmap: React.FC<HeatmapProps> = ({ data, t }) => {
             </div>
           ))}
         </div>
-
         <div style={{ display: "flex", gap: "2px", overflowX: "auto" }}>
           {weeks.map((week, weekIdx) => (
             <div key={weekIdx} style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
@@ -169,7 +153,6 @@ const Heatmap: React.FC<HeatmapProps> = ({ data, t }) => {
           ))}
         </div>
       </div>
-
       <div
         style={{
           display: "flex",
@@ -191,5 +174,4 @@ const Heatmap: React.FC<HeatmapProps> = ({ data, t }) => {
     </div>
   );
 };
-
 export default Heatmap;

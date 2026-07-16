@@ -1,5 +1,4 @@
 import { useEffect } from "react";
-
 export function useSearchEvents(
   onOpenSkill: () => void,
   onSwitchSession: (sessionId: string) => void,
@@ -8,14 +7,11 @@ export function useSearchEvents(
     const handleOpenSkill = (e: CustomEvent) => {
       onOpenSkill();
     };
-
     const handleSwitchSession = (e: CustomEvent) => {
       const { sessionId } = e.detail;
       onSwitchSession(sessionId);
     };
-
     const handleOpenLog = (e: CustomEvent) => { };
-
     window.addEventListener(
       "search-open-skill",
       handleOpenSkill as EventListener,
@@ -25,7 +21,6 @@ export function useSearchEvents(
       handleSwitchSession as EventListener,
     );
     window.addEventListener("search-open-log", handleOpenLog as EventListener);
-
     return () => {
       window.removeEventListener(
         "search-open-skill",

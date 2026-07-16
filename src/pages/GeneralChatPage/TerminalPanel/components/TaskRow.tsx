@@ -1,10 +1,5 @@
 import React, { forwardRef, useCallback, useEffect, useState } from "react";
-import {
-  getTaskStatusIcon,
-  getTaskStatusText,
-  formatTime,
-  formatDuration,
-} from "../utils";
+import { getTaskStatusIcon, getTaskStatusText, formatTime, formatDuration } from "../utils";
 import { TaskSteps } from "./TaskSteps/TaskSteps";
 import { TaskFiles } from "./TaskFiles";
 import { TaskOutput } from "./TaskOutput";
@@ -13,12 +8,7 @@ import { showDialog, DialogType } from "../../../../components/Dialog";
 import { showToast, ToastType } from "../../../../components/Toast";
 import { taskManager } from "../../../../core/TaskManager";
 import { taskPoolCommands } from "../../../../core/TaskPool";
-import {
-  TaskInfo,
-  UploadFile,
-  StepStatusEnum,
-  TaskStatusEnum,
-} from "../../../../core/types";
+import { TaskInfo, UploadFile, StepStatusEnum, TaskStatusEnum } from "../../../../core/types";
 import { PauseIcon, StopIcon, PlayIcon } from "../../../../icons";
 import { workflowCommands } from "../../../../command/workflow";
 
@@ -29,9 +19,7 @@ interface TaskRowProps {
   expandedStepParams: Set<string>;
   filesScrollState: { showLeft: boolean; showRight: boolean };
   filesScrollRefs: React.MutableRefObject<Map<string, HTMLDivElement>>;
-  setFilesScrollStates: React.Dispatch<
-    React.SetStateAction<Map<string, { showLeft: boolean; showRight: boolean }>>
-  >;
+  setFilesScrollStates: React.Dispatch<React.SetStateAction<Map<string, { showLeft: boolean; showRight: boolean }>>>;
   onToggleExpand: (taskId: string) => void;
   onToggleStepParams: (stepKey: string) => void;
   onScrollFilesLeft: (taskId: string) => void;
@@ -65,18 +53,10 @@ export const TaskRow = forwardRef<HTMLDivElement, TaskRowProps>(
     const [workflowDisplayName, setWorkflowDisplayName] = useState<string>("");
     const [isLoadingWorkflowName, setIsLoadingWorkflowName] = useState(true);
 
-    const successCount = task.steps.filter(
-      (s) => s.status === StepStatusEnum.Success,
-    ).length;
-    const failureCount = task.steps.filter(
-      (s) => s.status === StepStatusEnum.Failure,
-    ).length;
-    const runningCount = task.steps.filter(
-      (s) => s.status === StepStatusEnum.Running,
-    ).length;
-    const timeoutCount = task.steps.filter(
-      (s) => s.status === StepStatusEnum.Timeout,
-    ).length;
+    const successCount = task.steps.filter((s) => s.status === StepStatusEnum.Success).length;
+    const failureCount = task.steps.filter((s) => s.status === StepStatusEnum.Failure).length;
+    const runningCount = task.steps.filter((s) => s.status === StepStatusEnum.Running).length;
+    const timeoutCount = task.steps.filter((s) => s.status === StepStatusEnum.Timeout).length;
     let stepSummary = "";
     if (task.steps.length > 0) {
       const parts = [];
@@ -100,11 +80,7 @@ export const TaskRow = forwardRef<HTMLDivElement, TaskRowProps>(
         return;
       }
       try {
-        const displayName =
-          await workflowCommands.workflowModeDisplayNameByLang(
-            task.workflow_mode,
-            lang,
-          );
+        const displayName = await workflowCommands.workflowModeDisplayNameByLang(task.workflow_mode, lang);
         workflowDisplayNameCache.set(cacheKey, displayName);
         setWorkflowDisplayName(displayName);
       } catch (error) {
@@ -124,22 +100,13 @@ export const TaskRow = forwardRef<HTMLDivElement, TaskRowProps>(
         setIsLoadingWorkflowName(true);
         loadWorkflowDisplayName();
       };
-      window.addEventListener(
-        "language-changed",
-        handleLanguageChange as EventListener,
-      );
+      window.addEventListener("language-changed", handleLanguageChange as EventListener);
       return () => {
-        window.removeEventListener(
-          "language-changed",
-          handleLanguageChange as EventListener,
-        );
+        window.removeEventListener("language-changed", handleLanguageChange as EventListener);
       };
     }, [task.workflow_mode]);
 
-    const getRawOutput = (
-      taskId: string,
-      sessionId: string,
-    ): string | undefined => {
+    const getRawOutput = (taskId: string, sessionId: string): string | undefined => {
       const tasksMap = (taskManager as any).tasksBySession?.get(sessionId);
       const task = tasksMap?.get(taskId);
       return task?.rawOutput || task?.final_output;
@@ -158,12 +125,8 @@ export const TaskRow = forwardRef<HTMLDivElement, TaskRowProps>(
         }
       } catch (error) {
         console.error("Failed to pause task:", error);
-        const errorMessage =
-          error instanceof Error ? error.message : String(error);
-        showToast(
-          ToastType.ERROR,
-          `${t("terminal.pauseFailed")}: ${errorMessage}`,
-        );
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        showToast(ToastType.ERROR, `${t("terminal.pauseFailed")}: ${errorMessage}`);
       }
     };
 
@@ -173,13 +136,7 @@ export const TaskRow = forwardRef<HTMLDivElement, TaskRowProps>(
         const result = await taskPoolCommands.resumeTask(taskId);
         if (result === true) {
           showToast(ToastType.SUCCESS, t("terminal.taskResumed"));
-          setTasks((prevTasks) =>
-            prevTasks.map((t) =>
-              t.task_id === taskId
-                ? { ...t, status: TaskStatusEnum.Running }
-                : t,
-            ),
-          );
+          setTasks((prevTasks) => prevTasks.map((t) => (t.task_id === taskId ? { ...t, status: TaskStatusEnum.Running } : t)));
           setTimeout(async () => {
             const newTasks = taskManager.getAllTasks();
             setTasks([...newTasks]);
@@ -215,13 +172,7 @@ export const TaskRow = forwardRef<HTMLDivElement, TaskRowProps>(
         t("terminal.interruptConfirm"),
         async () => {
           try {
-            setTasks((prevTasks) =>
-              prevTasks.map((t) =>
-                t.task_id === taskId
-                  ? { ...t, status: TaskStatusEnum.Cancelled }
-                  : t,
-              ),
-            );
+            setTasks((prevTasks) => prevTasks.map((t) => (t.task_id === taskId ? { ...t, status: TaskStatusEnum.Cancelled } : t)));
             const result = await taskPoolCommands.cancelTask(taskId);
             if (result) {
               showToast(ToastType.SUCCESS, t("terminal.taskInterrupted"));
@@ -260,10 +211,7 @@ export const TaskRow = forwardRef<HTMLDivElement, TaskRowProps>(
       );
     }, [task, task.task_id]);
 
-    const copyToClipboard = async (
-      text: string | undefined,
-      t: (key: string) => string,
-    ) => {
+    const copyToClipboard = async (text: string | undefined, t: (key: string) => string) => {
       try {
         if (!text) {
           showToast(ToastType.ERROR, t("common.copyFailed") || "Copy Failed");
@@ -276,9 +224,7 @@ export const TaskRow = forwardRef<HTMLDivElement, TaskRowProps>(
       }
     };
 
-    const isRunningOrPending =
-      task.status === TaskStatusEnum.Running ||
-      task.status === TaskStatusEnum.Pending;
+    const isRunningOrPending = task.status === TaskStatusEnum.Running || task.status === TaskStatusEnum.Pending;
     const isPaused = task.status === TaskStatusEnum.Paused;
 
     return (
@@ -342,9 +288,7 @@ export const TaskRow = forwardRef<HTMLDivElement, TaskRowProps>(
                 e.currentTarget.style.transform = "scale(1)";
               }}
             >
-              {isLoadingWorkflowName
-                ? "..."
-                : workflowDisplayName || task.workflow_mode}
+              {isLoadingWorkflowName ? "..." : workflowDisplayName || task.workflow_mode}
             </span>
           )}
           <span
@@ -398,12 +342,7 @@ export const TaskRow = forwardRef<HTMLDivElement, TaskRowProps>(
             >
               {getTaskStatusText(t, task.status)}
               {stepSummary}
-              {task.total_duration_ms !== undefined &&
-                task.total_duration_ms > 0 && (
-                  <span className="task-total-duration">
-                    ({formatDuration(task.total_duration_ms)})
-                  </span>
-                )}
+              {task.total_duration_ms !== undefined && task.total_duration_ms > 0 && <span className="task-total-duration">({formatDuration(task.total_duration_ms)})</span>}
             </span>
             <div
               style={{
@@ -470,61 +409,39 @@ export const TaskRow = forwardRef<HTMLDivElement, TaskRowProps>(
             </div>
           </div>
         </div>
-        {isExpanded &&
-          (task as any).files &&
-          (task as any).files.length > 0 && (
-            <TaskFiles
-              files={(task as any).files}
-              taskId={task.task_id}
-              showLeft={filesScrollState.showLeft}
-              showRight={filesScrollState.showRight}
-              onScrollLeft={onScrollFilesLeft}
-              onScrollRight={onScrollFilesRight}
-              onFileClick={onFileClick}
-              filesScrollRefs={filesScrollRefs}
-              setFilesScrollStates={setFilesScrollStates}
-            />
-          )}
-
-        {isExpanded && task.steps.length > 0 && (
-          <TaskSteps
-            steps={task.steps}
+        {isExpanded && (task as any).files && (task as any).files.length > 0 && (
+          <TaskFiles
+            files={(task as any).files}
             taskId={task.task_id}
-            expandedStepParams={expandedStepParams}
-            onToggleStepParams={onToggleStepParams}
-            t={t}
+            showLeft={filesScrollState.showLeft}
+            showRight={filesScrollState.showRight}
+            onScrollLeft={onScrollFilesLeft}
+            onScrollRight={onScrollFilesRight}
+            onFileClick={onFileClick}
+            filesScrollRefs={filesScrollRefs}
+            setFilesScrollStates={setFilesScrollStates}
           />
         )}
 
-        {isExpanded &&
-          task.final_output &&
-          task.status === TaskStatusEnum.Completed && (
-            <>
-              <TaskOutput
-                output={
-                  getRawOutput(task.task_id, task.session_id) ||
-                  task.final_output
-                }
-                onCopy={handleCopyOutput}
-                onShowChart={handleShowChart}
-                onShowMap={handleShowMap}
-                taskId={task.task_id}
-                t={t}
-                onFileClick={onFileClick}
-              />
-            </>
-          )}
+        {isExpanded && task.steps.length > 0 && <TaskSteps steps={task.steps} taskId={task.task_id} expandedStepParams={expandedStepParams} onToggleStepParams={onToggleStepParams} t={t} />}
 
-        {isExpanded &&
-          task.status === TaskStatusEnum.Failed &&
-          task.final_output && (
-            <TaskError
-              error={(task as any).rawOutput || task.final_output}
+        {isExpanded && task.final_output && task.status === TaskStatusEnum.Completed && (
+          <>
+            <TaskOutput
+              output={getRawOutput(task.task_id, task.session_id) || task.final_output}
               onCopy={handleCopyOutput}
               onShowChart={handleShowChart}
+              onShowMap={handleShowMap}
+              taskId={task.task_id}
               t={t}
+              onFileClick={onFileClick}
             />
-          )}
+          </>
+        )}
+
+        {isExpanded && task.status === TaskStatusEnum.Failed && task.final_output && (
+          <TaskError error={(task as any).rawOutput || task.final_output} onCopy={handleCopyOutput} onShowChart={handleShowChart} t={t} />
+        )}
 
         <div className="task-separator"></div>
       </div>

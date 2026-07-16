@@ -1,16 +1,12 @@
+use super::paths::{get_app_root_dir, get_skills_market_dir};
+use crate::commands::{get_favorites_config_path, load_favorites_config, save_favorites_config};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use tauri::command;
-
-use crate::commands::{get_favorites_config_path, load_favorites_config, save_favorites_config};
-
-use super::paths::{get_app_root_dir, get_skills_market_dir};
-
 const SKILLS_MARKET_REPO_URL: &str = "https://github.com/HippoxHQ/skills-market.git";
 const MARKET_CONFIG_FILE: &str = "market_config.json";
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MarketSkill {
     pub id: String,
@@ -27,7 +23,6 @@ pub struct MarketSkill {
     pub readme: Option<String>,
     pub parameters: Vec<SkillParameterInfo>,
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SkillParameterInfo {
     pub name: String,
@@ -35,37 +30,30 @@ pub struct SkillParameterInfo {
     pub description: String,
     pub required: bool,
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MarketConfig {
     pub repo_url: String,
     pub branch: String,
     pub last_update: Option<String>,
 }
-
 impl Default for MarketConfig {
     fn default() -> Self {
         Self { repo_url: SKILLS_MARKET_REPO_URL.to_string(), branch: "main".to_string(), last_update: None }
     }
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct FavoritesConfig {
     pub favorites: Vec<String>,
 }
-
 fn get_favorites_dir() -> PathBuf {
     get_app_root_dir().join("favorites")
 }
-
 fn get_favorites_natural_dir() -> PathBuf {
     get_favorites_dir().join("natural")
 }
-
 fn get_favorites_skill_dir() -> PathBuf {
     get_favorites_dir().join("skill")
 }
-
 fn ensure_favorites_dir() -> Result<(), String> {
     let natural_dir = get_favorites_natural_dir();
     let skill_dir = get_favorites_skill_dir();
@@ -79,11 +67,9 @@ fn ensure_favorites_dir() -> Result<(), String> {
     }
     Ok(())
 }
-
 fn get_market_config_path() -> PathBuf {
     get_skills_market_dir().join(MARKET_CONFIG_FILE)
 }
-
 fn load_market_config() -> MarketConfig {
     let config_path = get_market_config_path();
     if config_path.exists() {
@@ -95,14 +81,12 @@ fn load_market_config() -> MarketConfig {
     }
     MarketConfig::default()
 }
-
 fn save_market_config(config: &MarketConfig) -> Result<(), String> {
     let config_path = get_market_config_path();
     let content = serde_json::to_string_pretty(config).map_err(|e| format!("Failed to serialize market config: {}", e))?;
     fs::write(&config_path, content).map_err(|e| format!("Failed to save market config: {}", e))?;
     Ok(())
 }
-
 /// Parse SKILL.md frontmatter
 fn parse_skill_markdown(content: &str, skill_name: &str, category: &str) -> Option<MarketSkill> {
     let mut name = skill_name.to_string();
@@ -175,7 +159,6 @@ fn parse_skill_markdown(content: &str, skill_name: &str, category: &str) -> Opti
         parameters,
     })
 }
-
 /// Get all categories from market directory (first-level folders)
 fn get_categories_from_dir(dir_path: &Path) -> Vec<String> {
     let mut categories = Vec::new();
@@ -195,7 +178,6 @@ fn get_categories_from_dir(dir_path: &Path) -> Vec<String> {
     }
     categories
 }
-
 /// Scan skills from directory with structure: category/skill_folder/SKILL.md
 fn scan_skills_from_dir(dir_path: &Path, favorites: &FavoritesConfig) -> Vec<MarketSkill> {
     let mut skills = Vec::new();
@@ -237,7 +219,6 @@ fn scan_skills_from_dir(dir_path: &Path, favorites: &FavoritesConfig) -> Vec<Mar
     }
     skills
 }
-
 /// Clone or update skills market repository
 #[command]
 pub async fn update_skills_market() -> Result<Vec<MarketSkill>, String> {
@@ -295,7 +276,6 @@ pub async fn update_skills_market() -> Result<Vec<MarketSkill>, String> {
     }
     Ok(skills)
 }
-
 /// Get all available skills from market (without updating)
 #[command]
 pub async fn get_market_skills() -> Result<Vec<MarketSkill>, String> {
@@ -319,7 +299,6 @@ pub async fn get_market_skills() -> Result<Vec<MarketSkill>, String> {
     }
     Ok(skills)
 }
-
 /// Get all categories from market (first-level folders)
 #[command]
 pub async fn cmd_get_market_categories() -> Result<Vec<String>, String> {
@@ -329,7 +308,6 @@ pub async fn cmd_get_market_categories() -> Result<Vec<String>, String> {
     }
     Ok(get_categories_from_dir(&market_dir))
 }
-
 /// Install a skill from market
 #[command]
 pub async fn install_skill(skill_id: String) -> Result<bool, String> {
@@ -362,7 +340,6 @@ pub async fn install_skill(skill_id: String) -> Result<bool, String> {
     fs_extra::dir::copy(&source_skill_dir, &target_skill_dir, &copy_options).map_err(|e| format!("Failed to copy skill: {}", e))?;
     Ok(true)
 }
-
 /// Uninstall a skill
 #[command]
 pub async fn uninstall_skill(skill_id: String) -> Result<bool, String> {
@@ -372,13 +349,11 @@ pub async fn uninstall_skill(skill_id: String) -> Result<bool, String> {
     }
     Ok(true)
 }
-
 /// Get market config
 #[command]
 pub async fn get_market_config() -> Result<MarketConfig, String> {
     Ok(load_market_config())
 }
-
 /// Update market config (change repo URL)
 #[command]
 pub async fn update_market_config(repo_url: String, branch: String) -> Result<(), String> {
@@ -386,7 +361,6 @@ pub async fn update_market_config(repo_url: String, branch: String) -> Result<()
     save_market_config(&config)?;
     Ok(())
 }
-
 /// Get installed skills list
 #[command]
 pub async fn get_installed_skills() -> Result<Vec<MarketSkill>, String> {
@@ -395,7 +369,6 @@ pub async fn get_installed_skills() -> Result<Vec<MarketSkill>, String> {
     if !local_skills_dir.exists() {
         return Ok(skills);
     }
-
     if let Ok(entries) = fs::read_dir(&local_skills_dir) {
         for entry in entries.flatten() {
             let path = entry.path();
@@ -419,7 +392,6 @@ pub async fn get_installed_skills() -> Result<Vec<MarketSkill>, String> {
     }
     Ok(skills)
 }
-
 #[command]
 pub async fn favorite_skill(skill_id: String) -> Result<bool, String> {
     ensure_favorites_dir()?;
@@ -430,7 +402,6 @@ pub async fn favorite_skill(skill_id: String) -> Result<bool, String> {
     }
     let category = parts[0];
     let skill_folder_name = parts[1];
-
     let source_skill_dir = market_dir.join(category).join(skill_folder_name);
     let source_skill_md = source_skill_dir.join("SKILL.md");
     if !source_skill_md.exists() {
@@ -457,7 +428,6 @@ pub async fn favorite_skill(skill_id: String) -> Result<bool, String> {
     }
     Ok(true)
 }
-
 #[command]
 pub async fn unfavorite_skill(skill_id: String) -> Result<bool, String> {
     let favorites_dir = get_favorites_dir();
@@ -470,7 +440,6 @@ pub async fn unfavorite_skill(skill_id: String) -> Result<bool, String> {
     save_favorites_config(&favorites)?;
     Ok(true)
 }
-
 pub fn init_favorites_directory() -> Result<(), String> {
     ensure_favorites_dir()
 }

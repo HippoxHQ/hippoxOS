@@ -2,17 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
 import { showToast, ToastType } from "../../components/Toast";
 import { githubCommands } from "../../command/net/github";
-import {
-  GithubIcon,
-  FolderTargetIcon,
-  BrowseFolderIcon,
-  RepoIcon,
-  CheckCircleIcon,
-  SpinnerIcon,
-  AlertCircleIcon,
-  CloseIcon,
-  ChevronRightIcon,
-} from "../../icons";
+import { GithubIcon, FolderTargetIcon, BrowseFolderIcon, RepoIcon, CheckCircleIcon, SpinnerIcon, AlertCircleIcon, CloseIcon, ChevronRightIcon } from "../../icons";
 
 interface GithubRepoInfo {
   valid: boolean;
@@ -31,22 +21,11 @@ interface GithubCloneProps {
   language?: "zh" | "en";
   isOpen: boolean;
   onClose: () => void;
-  onClone: (
-    repoUrl: string,
-    targetPath: string,
-    branch: string,
-  ) => Promise<void>;
+  onClone: (repoUrl: string, targetPath: string, branch: string) => Promise<void>;
   isLoading?: boolean;
 }
 
-const GithubClone: React.FC<GithubCloneProps> = ({
-  t,
-  language = "en",
-  isOpen,
-  onClose,
-  onClone,
-  isLoading = false,
-}) => {
+const GithubClone: React.FC<GithubCloneProps> = ({ t, language = "en", isOpen, onClose, onClone, isLoading = false }) => {
   const [githubRepoUrl, setGithubRepoUrl] = useState("");
   const [cloneTargetPath, setCloneTargetPath] = useState<string>("");
   const [selectedBranch, setSelectedBranch] = useState<string>("");
@@ -66,10 +45,7 @@ const GithubClone: React.FC<GithubCloneProps> = ({
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (
-        branchDropdownRef.current &&
-        !branchDropdownRef.current.contains(event.target as Node)
-      ) {
+      if (branchDropdownRef.current && !branchDropdownRef.current.contains(event.target as Node)) {
         setShowBranchDropdown(false);
       }
     };
@@ -99,10 +75,7 @@ const GithubClone: React.FC<GithubCloneProps> = ({
       const result = await githubCommands.getGithubBranches(url.trim());
       if (result.branches && result.branches.length > 0) {
         setBranches(result.branches);
-        if (
-          repoInfo?.default_branch &&
-          result.branches.includes(repoInfo.default_branch)
-        ) {
+        if (repoInfo?.default_branch && result.branches.includes(repoInfo.default_branch)) {
           setSelectedBranch(repoInfo.default_branch);
         } else {
           setSelectedBranch(result.branches[0]);
@@ -123,8 +96,7 @@ const GithubClone: React.FC<GithubCloneProps> = ({
       return;
     }
 
-    const githubPattern =
-      /^(https?:\/\/)?(www\.)?github\.com\/[\w-]+\/[\w-]+(\.git)?$/;
+    const githubPattern = /^(https?:\/\/)?(www\.)?github\.com\/[\w-]+\/[\w-]+(\.git)?$/;
     if (!githubPattern.test(url.trim())) {
       setRepoInfo(null);
       setShowRepoInfo(false);
@@ -179,58 +151,35 @@ const GithubClone: React.FC<GithubCloneProps> = ({
       const selected = await open({
         directory: true,
         multiple: false,
-        title:
-          language === "zh"
-            ? "选择克隆目标目录"
-            : "Select Clone Target Directory",
+        title: language === "zh" ? "选择克隆目标目录" : "Select Clone Target Directory",
       });
       if (selected && typeof selected === "string") {
         setCloneTargetPath(selected);
         setCloneError("");
       }
     } catch (error) {
-      showToast(
-        ToastType.ERROR,
-        language === "zh" ? "选择目录失败" : "Failed to select directory",
-      );
+      showToast(ToastType.ERROR, language === "zh" ? "选择目录失败" : "Failed to select directory");
     }
   };
 
-  const handleCloneTargetPathChange = (
-    e: React.ChangeEvent<HTMLInputElement>,
-  ) => {
+  const handleCloneTargetPathChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setCloneTargetPath(e.target.value);
     setCloneError("");
   };
 
   const handleClone = async () => {
     if (!githubRepoUrl.trim()) {
-      showToast(
-        ToastType.WARNING,
-        language === "zh"
-          ? "请输入 GitHub 仓库地址"
-          : "Please enter GitHub repo URL",
-      );
+      showToast(ToastType.WARNING, language === "zh" ? "请输入 GitHub 仓库地址" : "Please enter GitHub repo URL");
       return;
     }
 
     if (!repoInfo?.valid) {
-      showToast(
-        ToastType.WARNING,
-        language === "zh"
-          ? "请输入有效的 GitHub 仓库地址"
-          : "Please enter a valid GitHub repository URL",
-      );
+      showToast(ToastType.WARNING, language === "zh" ? "请输入有效的 GitHub 仓库地址" : "Please enter a valid GitHub repository URL");
       return;
     }
 
     if (!cloneTargetPath.trim()) {
-      showToast(
-        ToastType.WARNING,
-        language === "zh"
-          ? "请选择克隆目标目录"
-          : "Please select clone target directory",
-      );
+      showToast(ToastType.WARNING, language === "zh" ? "请选择克隆目标目录" : "Please select clone target directory");
       return;
     }
 
@@ -250,43 +199,15 @@ const GithubClone: React.FC<GithubCloneProps> = ({
       setCloneError("");
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
-      if (
-        errorMsg.includes("already exists") ||
-        errorMsg.includes("destination path")
-      ) {
-        setCloneError(
-          language === "zh"
-            ? "目标目录已存在且不为空，请选择其他目录"
-            : "Destination path already exists and is not empty, please choose another directory",
-        );
-        showToast(
-          ToastType.ERROR,
-          language === "zh"
-            ? "目录已存在，请选择其他目录"
-            : "Directory exists, please choose another",
-        );
+      if (errorMsg.includes("already exists") || errorMsg.includes("destination path")) {
+        setCloneError(language === "zh" ? "目标目录已存在且不为空，请选择其他目录" : "Destination path already exists and is not empty, please choose another directory");
+        showToast(ToastType.ERROR, language === "zh" ? "目录已存在，请选择其他目录" : "Directory exists, please choose another");
       } else if (errorMsg.includes("Failed to create directory")) {
-        setCloneError(
-          language === "zh"
-            ? "无法创建目录，请检查路径权限"
-            : "Failed to create directory, please check permissions",
-        );
-        showToast(
-          ToastType.ERROR,
-          language === "zh"
-            ? "无法创建目录，请检查权限"
-            : "Failed to create directory, check permissions",
-        );
+        setCloneError(language === "zh" ? "无法创建目录，请检查路径权限" : "Failed to create directory, please check permissions");
+        showToast(ToastType.ERROR, language === "zh" ? "无法创建目录，请检查权限" : "Failed to create directory, check permissions");
       } else {
-        setCloneError(
-          language === "zh"
-            ? "克隆失败，请检查网络或重试"
-            : "Clone failed, please check network or retry",
-        );
-        showToast(
-          ToastType.ERROR,
-          language === "zh" ? "克隆仓库失败" : "Failed to clone repository",
-        );
+        setCloneError(language === "zh" ? "克隆失败，请检查网络或重试" : "Clone failed, please check network or retry");
+        showToast(ToastType.ERROR, language === "zh" ? "克隆仓库失败" : "Failed to clone repository");
       }
     } finally {
       setIsCloning(false);
@@ -451,9 +372,7 @@ const GithubClone: React.FC<GithubCloneProps> = ({
               />
               {isVerifying && <SpinnerIcon size={13} />}
               {!isVerifying && repoInfo?.valid && <CheckCircleIcon size={13} />}
-              {!isVerifying && repoInfo && !repoInfo.valid && (
-                <AlertCircleIcon size={13} />
-              )}
+              {!isVerifying && repoInfo && !repoInfo.valid && <AlertCircleIcon size={13} />}
               {githubRepoUrl && !isCloning && !isLoading && (
                 <button
                   onClick={() => {
@@ -496,9 +415,7 @@ const GithubClone: React.FC<GithubCloneProps> = ({
                   padding: "6px 10px",
                   borderRadius: "4px",
                   fontSize: "13px",
-                  background: repoInfo.valid
-                    ? "var(--bg-tertiary)"
-                    : "var(--bg-tertiary)",
+                  background: repoInfo.valid ? "var(--bg-tertiary)" : "var(--bg-tertiary)",
                   border: `1px solid ${repoInfo.valid ? "rgba(76, 175, 80, 0.3)" : "rgba(255, 68, 68, 0.3)"}`,
                 }}
               >
@@ -527,9 +444,7 @@ const GithubClone: React.FC<GithubCloneProps> = ({
                           fontSize: "13px",
                         }}
                       >
-                        {repoInfo.description.length > 40
-                          ? repoInfo.description.slice(0, 40) + "..."
-                          : repoInfo.description}
+                        {repoInfo.description.length > 40 ? repoInfo.description.slice(0, 40) + "..." : repoInfo.description}
                       </span>
                     )}
                     <span
@@ -558,8 +473,7 @@ const GithubClone: React.FC<GithubCloneProps> = ({
                       fontSize: "13px",
                     }}
                   >
-                    {repoInfo.error ||
-                      (isZh ? "无效的仓库" : "Invalid repository")}
+                    {repoInfo.error || (isZh ? "无效的仓库" : "Invalid repository")}
                   </span>
                 )}
               </div>
@@ -595,8 +509,7 @@ const GithubClone: React.FC<GithubCloneProps> = ({
                     opacity: isCloning || isLoading ? 0.6 : 1,
                   }}
                   onClick={() => {
-                    if (!isCloning && !isLoading)
-                      setShowBranchDropdown(!showBranchDropdown);
+                    if (!isCloning && !isLoading) setShowBranchDropdown(!showBranchDropdown);
                   }}
                   onMouseEnter={(e) => {
                     if (!isCloning && !isLoading) {
@@ -655,15 +568,9 @@ const GithubClone: React.FC<GithubCloneProps> = ({
                           style={{
                             padding: "6px 12px",
                             fontSize: "12px",
-                            color:
-                              selectedBranch === branch
-                                ? "var(--accent-color)"
-                                : "var(--text-primary)",
+                            color: selectedBranch === branch ? "var(--accent-color)" : "var(--text-primary)",
                             cursor: "pointer",
-                            background:
-                              selectedBranch === branch
-                                ? "var(--accent-glow)"
-                                : "transparent",
+                            background: selectedBranch === branch ? "var(--accent-glow)" : "transparent",
                             display: "flex",
                             alignItems: "center",
                             gap: "6px",
@@ -676,8 +583,7 @@ const GithubClone: React.FC<GithubCloneProps> = ({
                           }}
                           onMouseEnter={(e) => {
                             if (selectedBranch !== branch) {
-                              e.currentTarget.style.background =
-                                "var(--hover-bg)";
+                              e.currentTarget.style.background = "var(--hover-bg)";
                             }
                           }}
                           onMouseLeave={(e) => {
@@ -743,20 +649,14 @@ const GithubClone: React.FC<GithubCloneProps> = ({
                   type="text"
                   value={cloneTargetPath}
                   onChange={handleCloneTargetPathChange}
-                  placeholder={
-                    isZh
-                      ? "输入或选择目标目录..."
-                      : "Enter or select target directory..."
-                  }
+                  placeholder={isZh ? "输入或选择目标目录..." : "Enter or select target directory..."}
                   disabled={isCloning || isLoading}
                   style={{
                     flex: 1,
                     background: "transparent",
                     border: "none",
                     outline: "none",
-                    color: cloneError
-                      ? "var(--error-color)"
-                      : "var(--text-primary)",
+                    color: cloneError ? "var(--error-color)" : "var(--text-primary)",
                     fontSize: "12px",
                     padding: "6px 0",
                     opacity: isCloning || isLoading ? 0.6 : 1,
@@ -807,10 +707,7 @@ const GithubClone: React.FC<GithubCloneProps> = ({
                   border: "1px solid var(--border-color)",
                   borderRadius: "6px",
                   cursor: isCloning || isLoading ? "not-allowed" : "pointer",
-                  color:
-                    isCloning || isLoading
-                      ? "var(--text-muted)"
-                      : "var(--text-secondary)",
+                  color: isCloning || isLoading ? "var(--text-muted)" : "var(--text-secondary)",
                   fontSize: "11px",
                   whiteSpace: "nowrap",
                   flexShrink: 0,
@@ -876,10 +773,7 @@ const GithubClone: React.FC<GithubCloneProps> = ({
                 background: "transparent",
                 border: "1px solid var(--border-color)",
                 borderRadius: "6px",
-                color:
-                  isCloning || isLoading
-                    ? "var(--text-muted)"
-                    : "var(--text-secondary)",
+                color: isCloning || isLoading ? "var(--text-muted)" : "var(--text-secondary)",
                 cursor: isCloning || isLoading ? "not-allowed" : "pointer",
                 transition: "all 0.15s",
                 opacity: isCloning || isLoading ? 0.6 : 1,
@@ -897,81 +791,36 @@ const GithubClone: React.FC<GithubCloneProps> = ({
             </button>
             <button
               onClick={handleClone}
-              disabled={
-                isCloning ||
-                isLoading ||
-                !repoInfo?.valid ||
-                !cloneTargetPath.trim()
-              }
+              disabled={isCloning || isLoading || !repoInfo?.valid || !cloneTargetPath.trim()}
               style={{
                 padding: "4px 16px",
                 height: "28px",
                 fontSize: "11px",
                 fontWeight: 500,
-                background:
-                  isCloning ||
-                  isLoading ||
-                  !repoInfo?.valid ||
-                  !cloneTargetPath.trim()
-                    ? "var(--bg-tertiary)"
-                    : "var(--accent-color)",
+                background: isCloning || isLoading || !repoInfo?.valid || !cloneTargetPath.trim() ? "var(--bg-tertiary)" : "var(--accent-color)",
                 border: "none",
                 borderRadius: "6px",
-                color:
-                  isCloning ||
-                  isLoading ||
-                  !repoInfo?.valid ||
-                  !cloneTargetPath.trim()
-                    ? "var(--text-muted)"
-                    : "#fff",
-                cursor:
-                  isCloning ||
-                  isLoading ||
-                  !repoInfo?.valid ||
-                  !cloneTargetPath.trim()
-                    ? "not-allowed"
-                    : "pointer",
-                opacity:
-                  isCloning ||
-                  isLoading ||
-                  !repoInfo?.valid ||
-                  !cloneTargetPath.trim()
-                    ? 0.6
-                    : 1,
+                color: isCloning || isLoading || !repoInfo?.valid || !cloneTargetPath.trim() ? "var(--text-muted)" : "#fff",
+                cursor: isCloning || isLoading || !repoInfo?.valid || !cloneTargetPath.trim() ? "not-allowed" : "pointer",
+                opacity: isCloning || isLoading || !repoInfo?.valid || !cloneTargetPath.trim() ? 0.6 : 1,
                 transition: "all 0.15s",
                 display: "flex",
                 alignItems: "center",
                 gap: "4px",
               }}
               onMouseEnter={(e) => {
-                if (
-                  !isCloning &&
-                  !isLoading &&
-                  repoInfo?.valid &&
-                  cloneTargetPath.trim()
-                ) {
+                if (!isCloning && !isLoading && repoInfo?.valid && cloneTargetPath.trim()) {
                   e.currentTarget.style.background = "var(--accent-hover)";
                 }
               }}
               onMouseLeave={(e) => {
-                if (
-                  !isCloning &&
-                  !isLoading &&
-                  repoInfo?.valid &&
-                  cloneTargetPath.trim()
-                ) {
+                if (!isCloning && !isLoading && repoInfo?.valid && cloneTargetPath.trim()) {
                   e.currentTarget.style.background = "var(--accent-color)";
                 }
               }}
             >
               {(isCloning || isLoading) && <SpinnerIcon size={12} />}
-              {isCloning || isLoading
-                ? isZh
-                  ? "克隆中..."
-                  : "Cloning..."
-                : isZh
-                  ? "拉取"
-                  : "Clone"}
+              {isCloning || isLoading ? (isZh ? "克隆中..." : "Cloning...") : isZh ? "拉取" : "Clone"}
             </button>
           </div>
         </div>

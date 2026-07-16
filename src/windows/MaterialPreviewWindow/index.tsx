@@ -1,17 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
-import {
-  X,
-  Maximize2,
-  Minimize2,
-  RotateCw,
-  ZoomIn,
-  ZoomOut,
-  RefreshCw,
-} from "lucide-react";
+import { X, Maximize2, Minimize2, RotateCw, ZoomIn, ZoomOut, RefreshCw } from "lucide-react";
 import * as monaco from "monaco-editor";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import logo from "../../assets/logo.png";
-
 import AudioVisualizer from "./AudioVisualizer";
 import { Material } from "./types";
 import { configCommands } from "../../command/config";
@@ -19,11 +10,9 @@ import { materialsCommands } from "../../command/VideoEditor/Materials";
 import { windowsCommands } from "../../command/windows";
 import { zh, en } from "../../i18n";
 import { getStyles } from "./styles";
-
 interface MaterialPreviewWindowProps {
   material?: Material;
 }
-
 const getTranslation = (language: "zh" | "en", key: string): string => {
   const translations = language === "zh" ? zh : en;
   const keys = key.split(".");
@@ -34,7 +23,6 @@ const getTranslation = (language: "zh" | "en", key: string): string => {
   }
   return value || key;
 };
-
 const MaterialPreviewWindow: React.FC = () => {
   const [material, setMaterial] = useState<Material | null>(null);
   const [theme, setTheme] = useState<"dark" | "light">("dark");
@@ -56,14 +44,10 @@ const MaterialPreviewWindow: React.FC = () => {
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [imagePosition, setImagePosition] = useState({ x: 0, y: 0 });
   const [imageLoaded, setImageLoaded] = useState(false);
-
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [savedTheme, savedLanguage] = await Promise.all([
-          configCommands.getSettingsTheme(),
-          configCommands.getSettingsLanguage(),
-        ]);
+        const [savedTheme, savedLanguage] = await Promise.all([configCommands.getSettingsTheme(), configCommands.getSettingsLanguage()]);
         setTheme(savedTheme as "dark" | "light");
         setLanguage(savedLanguage as "zh" | "en");
       } catch (error) {
@@ -88,9 +72,7 @@ const MaterialPreviewWindow: React.FC = () => {
       }
       const checkMaximized = async () => {
         try {
-          const maximized = await windowsCommands.windowIsMaximized(
-            "material-preview-window",
-          );
+          const maximized = await windowsCommands.windowIsMaximized("material-preview-window");
           setIsMaximized(maximized);
         } catch (error) {
           console.error("Failed to check window state:", error);
@@ -108,7 +90,6 @@ const MaterialPreviewWindow: React.FC = () => {
     };
     loadData();
   }, []);
-
   useEffect(() => {
     if (material?.type === "text" && editorContainerRef.current) {
       if (editorRef.current) {
@@ -191,10 +172,8 @@ const MaterialPreviewWindow: React.FC = () => {
       };
     }
   }, [material, theme]);
-
   const isDark = theme === "dark";
   const t = (key: string) => getTranslation(language, key);
-
   const handleMinimize = async () => {
     try {
       await windowsCommands.windowMinimize("material-preview-window");
@@ -202,26 +181,20 @@ const MaterialPreviewWindow: React.FC = () => {
       console.error("Failed to minimize:", error);
     }
   };
-
   const handleMaximize = async () => {
     try {
-      const isMax = await windowsCommands.windowIsMaximized(
-        "material-preview-window",
-      );
+      const isMax = await windowsCommands.windowIsMaximized("material-preview-window");
       if (isMax) {
         await windowsCommands.windowUnmaximize("material-preview-window");
       } else {
         await windowsCommands.windowMaximize("material-preview-window");
       }
-      const maximized = await windowsCommands.windowIsMaximized(
-        "material-preview-window",
-      );
+      const maximized = await windowsCommands.windowIsMaximized("material-preview-window");
       setIsMaximized(maximized);
     } catch (error) {
       console.error("Failed to toggle maximize:", error);
     }
   };
-
   const handleClose = async () => {
     try {
       await windowsCommands.windowClose("material-preview-window");
@@ -230,7 +203,6 @@ const MaterialPreviewWindow: React.FC = () => {
       window.close();
     }
   };
-
   const handleToggleFullscreen = () => {
     if (!document.fullscreenElement) {
       document.documentElement.requestFullscreen().catch(() => {});
@@ -240,7 +212,6 @@ const MaterialPreviewWindow: React.FC = () => {
       setIsFullscreen(false);
     }
   };
-
   const handlePlayPause = () => {
     if (material?.type === "video" && videoRef.current) {
       if (isPlaying) {
@@ -253,51 +224,42 @@ const MaterialPreviewWindow: React.FC = () => {
       setIsPlaying(!isPlaying);
     }
   };
-
   const handleTimeUpdate = () => {
     if (material?.type === "video" && videoRef.current) {
       setCurrentTime(videoRef.current.currentTime);
     }
   };
-
   const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const percent = (e.clientX - rect.left) / rect.width;
     const duration = material?.duration || 0;
     const seekTime = percent * duration;
-
     if (material?.type === "video" && videoRef.current) {
       videoRef.current.currentTime = seekTime;
     } else if (material?.type === "audio" && audioVisualizerRef.current) {
       audioVisualizerRef.current.seek(seekTime);
     }
   };
-
   const formatDuration = (seconds: number): string => {
     if (!seconds || seconds === 0) return "00:00";
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
   };
-
   const handleImageZoomIn = () => {
     setImageScale((prev) => Math.min(prev + 0.25, 5));
   };
-
   const handleImageZoomOut = () => {
     setImageScale((prev) => Math.max(prev - 0.25, 0.25));
   };
-
   const handleImageRotate = () => {
     setImageRotation((prev) => prev + 90);
   };
-
   const handleImageReset = () => {
     setImageScale(1);
     setImageRotation(0);
     setImagePosition({ x: 0, y: 0 });
   };
-
   const handleImageMouseDown = (e: React.MouseEvent) => {
     if (imageScale > 1) {
       setIsDragging(true);
@@ -308,7 +270,6 @@ const MaterialPreviewWindow: React.FC = () => {
       e.preventDefault();
     }
   };
-
   const handleImageMouseMove = (e: React.MouseEvent) => {
     if (isDragging) {
       setImagePosition({
@@ -326,53 +287,22 @@ const MaterialPreviewWindow: React.FC = () => {
     setImageScale((prev) => Math.min(Math.max(prev + delta, 0.25), 5));
   };
   const isZh = language === "zh";
-  const styles = getStyles(
-    isDark,
-    imageScale,
-    isDragging,
-    imageRotation,
-    imagePosition,
-  );
-
+  const styles = getStyles(isDark, imageScale, isDragging, imageRotation, imagePosition);
   if (!material) {
     return (
       <div style={styles.container}>
         <div style={styles.topBar}>
           <div style={styles.topBarLeft}>
-            <img
-              src={logo}
-              alt="logo"
-              style={{ width: 22, height: 22, borderRadius: 5 }}
-            />
+            <img src={logo} alt="logo" style={{ width: 22, height: 22, borderRadius: 5 }} />
           </div>
           <div style={styles.topBarCenter}>
             <span style={styles.topBarTitle}>素材预览</span>
           </div>
           <div style={styles.topBarRight}>
-            <button
-              style={styles.windowBtn}
-              onClick={handleMinimize}
-              title={isZh ? "最小化" : "Minimize"}
-            >
-              <span
-                style={{ fontSize: "20px", lineHeight: 1, fontWeight: 300 }}
-              >
-                ─
-              </span>
+            <button style={styles.windowBtn} onClick={handleMinimize} title={isZh ? "最小化" : "Minimize"}>
+              <span style={{ fontSize: "20px", lineHeight: 1, fontWeight: 300 }}>─</span>
             </button>
-            <button
-              style={styles.windowBtn}
-              onClick={handleMaximize}
-              title={
-                isZh
-                  ? isMaximized
-                    ? "还原"
-                    : "最大化"
-                  : isMaximized
-                    ? "Restore"
-                    : "Maximize"
-              }
-            >
+            <button style={styles.windowBtn} onClick={handleMaximize} title={isZh ? (isMaximized ? "还原" : "最大化") : isMaximized ? "Restore" : "Maximize"}>
               {isMaximized ? (
                 <span
                   style={{
@@ -425,7 +355,6 @@ const MaterialPreviewWindow: React.FC = () => {
       </div>
     );
   }
-
   const renderContent = () => {
     switch (material.type) {
       case "video":
@@ -446,7 +375,6 @@ const MaterialPreviewWindow: React.FC = () => {
             />
           </div>
         );
-
       case "audio":
         return (
           <div style={styles.previewContainer}>
@@ -476,7 +404,6 @@ const MaterialPreviewWindow: React.FC = () => {
             </div>
           </div>
         );
-
       case "image":
         return (
           <div style={styles.previewContainer}>
@@ -512,9 +439,7 @@ const MaterialPreviewWindow: React.FC = () => {
                   onClick={handleImageZoomOut}
                   title={isZh ? "缩小" : "Zoom Out"}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.background = isDark
-                      ? "rgba(255,255,255,0.1)"
-                      : "rgba(0,0,0,0.05)";
+                    e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)";
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.background = "transparent";
@@ -522,17 +447,13 @@ const MaterialPreviewWindow: React.FC = () => {
                 >
                   <ZoomOut size={16} />
                 </button>
-                <span style={styles.imageControlText}>
-                  {Math.round(imageScale * 100)}%
-                </span>
+                <span style={styles.imageControlText}>{Math.round(imageScale * 100)}%</span>
                 <button
                   style={styles.imageControlBtn}
                   onClick={handleImageZoomIn}
                   title={isZh ? "放大" : "Zoom In"}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.background = isDark
-                      ? "rgba(255,255,255,0.1)"
-                      : "rgba(0,0,0,0.05)";
+                    e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)";
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.background = "transparent";
@@ -545,9 +466,7 @@ const MaterialPreviewWindow: React.FC = () => {
                   onClick={handleImageRotate}
                   title={isZh ? "旋转" : "Rotate"}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.background = isDark
-                      ? "rgba(255,255,255,0.1)"
-                      : "rgba(0,0,0,0.05)";
+                    e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)";
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.background = "transparent";
@@ -560,9 +479,7 @@ const MaterialPreviewWindow: React.FC = () => {
                   onClick={handleImageReset}
                   title={isZh ? "重置" : "Reset"}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.background = isDark
-                      ? "rgba(255,255,255,0.1)"
-                      : "rgba(0,0,0,0.05)";
+                    e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)";
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.background = "transparent";
@@ -574,20 +491,14 @@ const MaterialPreviewWindow: React.FC = () => {
             )}
           </div>
         );
-
       case "text":
         return (
           <div style={styles.previewContainer}>
             <div style={styles.textPreview}>
-              <div
-                ref={editorContainerRef}
-                style={styles.editorContainer}
-                className="preview-editor-container"
-              />
+              <div ref={editorContainerRef} style={styles.editorContainer} className="preview-editor-container" />
             </div>
           </div>
         );
-
       default:
         return (
           <div style={styles.emptyState}>
@@ -597,18 +508,12 @@ const MaterialPreviewWindow: React.FC = () => {
         );
     }
   };
-
   const hasPlayback = material.type === "video" || material.type === "audio";
-
   return (
     <div style={styles.container}>
       <div style={styles.topBar}>
         <div style={styles.topBarLeft}>
-          <img
-            src={logo}
-            alt="logo"
-            style={{ width: 22, height: 22, borderRadius: 5 }}
-          />
+          <img src={logo} alt="logo" style={{ width: 22, height: 22, borderRadius: 5 }} />
         </div>
         <div style={styles.topBarCenter}>
           <span style={styles.topBarTitle} title={material.name}>
@@ -629,28 +534,10 @@ const MaterialPreviewWindow: React.FC = () => {
           >
             {isFullscreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
           </button>
-          <button
-            style={styles.windowBtn}
-            onClick={handleMinimize}
-            title={isZh ? "最小化" : "Minimize"}
-          >
-            <span style={{ fontSize: "20px", lineHeight: 1, fontWeight: 300 }}>
-              ─
-            </span>
+          <button style={styles.windowBtn} onClick={handleMinimize} title={isZh ? "最小化" : "Minimize"}>
+            <span style={{ fontSize: "20px", lineHeight: 1, fontWeight: 300 }}>─</span>
           </button>
-          <button
-            style={styles.windowBtn}
-            onClick={handleMaximize}
-            title={
-              isZh
-                ? isMaximized
-                  ? "还原"
-                  : "最大化"
-                : isMaximized
-                  ? "Restore"
-                  : "Maximize"
-            }
-          >
+          <button style={styles.windowBtn} onClick={handleMaximize} title={isZh ? (isMaximized ? "还原" : "最大化") : isMaximized ? "Restore" : "Maximize"}>
             {isMaximized ? (
               <span
                 style={{
@@ -694,9 +581,7 @@ const MaterialPreviewWindow: React.FC = () => {
           </button>
         </div>
       </div>
-
       <div style={styles.content}>{renderContent()}</div>
-
       {hasPlayback && (
         <div style={styles.controls}>
           <button
@@ -720,12 +605,9 @@ const MaterialPreviewWindow: React.FC = () => {
               }}
             />
           </div>
-          <span style={styles.timeDisplay}>
-            {formatDuration(material.duration || 0)}
-          </span>
+          <span style={styles.timeDisplay}>{formatDuration(material.duration || 0)}</span>
         </div>
       )}
-
       <div style={styles.info}>
         <span style={styles.infoLabel}>{t("videoEditor.type") || "类型"}</span>
         <span style={styles.infoValue}>
@@ -736,12 +618,8 @@ const MaterialPreviewWindow: React.FC = () => {
         </span>
         {material.duration !== undefined && material.duration > 0 && (
           <>
-            <span style={styles.infoLabel}>
-              {t("videoEditor.duration") || "时长"}
-            </span>
-            <span style={styles.infoValue}>
-              {formatDuration(material.duration)}
-            </span>
+            <span style={styles.infoLabel}>{t("videoEditor.duration") || "时长"}</span>
+            <span style={styles.infoValue}>{formatDuration(material.duration)}</span>
           </>
         )}
         {material.width && material.height && (
@@ -755,9 +633,7 @@ const MaterialPreviewWindow: React.FC = () => {
         {material.file_size && (
           <>
             <span style={styles.infoLabel}>文件大小</span>
-            <span style={styles.infoValue}>
-              {(material.file_size / 1024 / 1024).toFixed(2)} MB
-            </span>
+            <span style={styles.infoValue}>{(material.file_size / 1024 / 1024).toFixed(2)} MB</span>
           </>
         )}
         {material.line_count && (
@@ -770,5 +646,4 @@ const MaterialPreviewWindow: React.FC = () => {
     </div>
   );
 };
-
 export default MaterialPreviewWindow;

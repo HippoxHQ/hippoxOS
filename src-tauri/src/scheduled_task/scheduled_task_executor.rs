@@ -4,7 +4,6 @@
 //! It supports two types of tasks:
 //! - Natural language tasks: read from natural_language.json
 //! - Skill file tasks: read from SKILL.md
-
 use crate::commands::cmd_get_disabled_drivers;
 use crate::commands::scheduled_tasks::{get_task_dir, load_natural_language_content, load_skill_md_content, load_task_config, ScheduledTask};
 use crate::hippox_core::get_default_hippox;
@@ -12,7 +11,6 @@ use hippox::HippoxResult;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
-
 /// Represents a single scheduled task execution result
 ///
 /// This struct mirrors the Task struct structure for consistency.
@@ -45,7 +43,6 @@ pub struct ScheduledTaskExecutionResult {
     /// Output token count
     pub output_token_count: u64,
 }
-
 impl ScheduledTaskExecutionResult {
     /// Create a new execution result from a task
     pub fn new(task: &ScheduledTask, input: String) -> Self {
@@ -66,7 +63,6 @@ impl ScheduledTaskExecutionResult {
             output_token_count: 0,
         }
     }
-
     /// Mark the execution as completed successfully
     pub fn complete(&mut self, output: String, input_tokens: u64, output_tokens: u64) {
         self.status = "completed".to_string();
@@ -76,7 +72,6 @@ impl ScheduledTaskExecutionResult {
         self.input_token_count = input_tokens;
         self.output_token_count = output_tokens;
     }
-
     /// Mark the execution as failed
     pub fn fail(&mut self, error: String, input_tokens: u64, output_tokens: u64) {
         self.status = "failed".to_string();
@@ -87,7 +82,6 @@ impl ScheduledTaskExecutionResult {
         self.output_token_count = output_tokens;
     }
 }
-
 /// Represents a user-defined scheduled task
 ///
 /// This struct encapsulates all data needed to execute a scheduled task.
@@ -104,7 +98,6 @@ pub struct ScheduledTaskExecutor {
     /// Skill markdown content (if action type is SkillFile)
     pub skill_md_content: Option<String>,
 }
-
 impl ScheduledTaskExecutor {
     /// Create a new task executor from task ID
     ///
@@ -129,7 +122,6 @@ impl ScheduledTaskExecutor {
             if task.action_type == crate::commands::scheduled_tasks::ActionType::SkillFile { load_skill_md_content(task_id)? } else { None };
         Ok(Self { task, task_dir, natural_language_content, skill_md_content })
     }
-
     /// Get the content to be executed
     ///
     /// # Returns
@@ -140,7 +132,6 @@ impl ScheduledTaskExecutor {
             crate::commands::scheduled_tasks::ActionType::SkillFile => self.skill_md_content.clone(),
         }
     }
-
     /// Execute the scheduled task and return the result
     ///
     /// This method sends the task content to the LLM and waits for completion.
@@ -194,7 +185,6 @@ impl ScheduledTaskExecutor {
         self.update_task_after_execution(&result).await?;
         Ok(result)
     }
-
     /// Save execution result to result.json (only keep latest)
     async fn save_execution_result(&self, result: &ScheduledTaskExecutionResult) -> Result<(), String> {
         let result_path = self.task_dir.join("result.json");
@@ -202,7 +192,6 @@ impl ScheduledTaskExecutor {
         fs::write(&result_path, content).map_err(|e| format!("Failed to write result file: {}", e))?;
         Ok(())
     }
-
     /// Update task configuration after execution
     async fn update_task_after_execution(&self, result: &ScheduledTaskExecutionResult) -> Result<(), String> {
         let mut task = self.task.clone();
@@ -213,7 +202,6 @@ impl ScheduledTaskExecutor {
         crate::commands::scheduled_tasks::save_task_config(&task)?;
         Ok(())
     }
-
     /// Get the latest execution result
     pub async fn get_latest_result(&self) -> Result<Option<ScheduledTaskExecutionResult>, String> {
         let result_path = self.task_dir.join("result.json");

@@ -1,18 +1,12 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { filesCommands } from "../../../../command/files";
 import { UploadFile } from "../../../../core/types";
-
 interface TextFilePreviewProps {
   file: UploadFile | null;
   onClose: () => void;
   t?: (key: string) => string;
 }
-
-const TextFilePreview: React.FC<TextFilePreviewProps> = ({
-  file,
-  onClose,
-  t = (key: string) => key,
-}) => {
+const TextFilePreview: React.FC<TextFilePreviewProps> = ({ file, onClose, t = (key: string) => key }) => {
   const [fileContent, setFileContent] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -30,10 +24,7 @@ const TextFilePreview: React.FC<TextFilePreviewProps> = ({
       setIsLoading(true);
       setError(null);
       try {
-        const [content, fileInfo] = await Promise.all([
-          filesCommands.readTextFile(filePath),
-          filesCommands.getFileInfo(filePath).catch(() => null),
-        ]);
+        const [content, fileInfo] = await Promise.all([filesCommands.readTextFile(filePath), filesCommands.getFileInfo(filePath).catch(() => null)]);
         setFileContent(content);
         setFileSize(fileInfo?.size || 0);
         setFileType(fileInfo?.mime_type || file?.type || "Unknown");
@@ -121,11 +112,7 @@ const TextFilePreview: React.FC<TextFilePreviewProps> = ({
             Loading...
           </div>
         )}
-        {error && (
-          <div style={{ color: "#ff6666", textAlign: "center", padding: 40 }}>
-            {error}
-          </div>
-        )}
+        {error && <div style={{ color: "#ff6666", textAlign: "center", padding: 40 }}>{error}</div>}
         {!isLoading && !error && (
           <pre
             style={{
@@ -147,5 +134,4 @@ const TextFilePreview: React.FC<TextFilePreviewProps> = ({
     </div>
   );
 };
-
 export default TextFilePreview;

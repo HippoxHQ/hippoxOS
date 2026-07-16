@@ -1,14 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import {
-  AttachmentIcon,
-  FolderIcon,
-  ChevronRightIcon,
-  FolderOpenIcon,
-  FileIcon,
-  ImageIcon,
-  TextFileIcon,
-  VideoIcon,
-} from "../icons";
+import { AttachmentIcon, FolderIcon, ChevronRightIcon, FolderOpenIcon, FileIcon, ImageIcon, TextFileIcon, VideoIcon } from "../icons";
 import { showToast, ToastType } from "../components/Toast";
 import FileUploader from "../components/FileUploader";
 import { zhDefaultPrompts, enDefaultPrompts } from "../types/DefaultPrompt";
@@ -18,28 +9,15 @@ import { workflowCommands } from "../command/workflow";
 import { UploadFile } from "../core/types";
 import ArtText from "../components/arts/ArtText";
 import banner from "../assets/banner.svg";
-
 interface WelcomePageProps {
-  onSendMessage: (
-    message: string,
-    files?: UploadFile[],
-    workflowMode?: string,
-  ) => void;
+  onSendMessage: (message: string, files?: UploadFile[], workflowMode?: string) => void;
   t: (key: string) => string;
   onDragOverInputChange?: (isDragging: boolean) => void;
   workflowMode?: string;
   onWorkflowModeChange?: (mode: string) => void;
   onNavigateTo?: (page: string) => void;
 }
-
-const WelcomePage: React.FC<WelcomePageProps> = ({
-  onSendMessage,
-  t,
-  onDragOverInputChange,
-  workflowMode: externalWorkflowMode,
-  onWorkflowModeChange,
-  onNavigateTo,
-}) => {
+const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t, onDragOverInputChange, workflowMode: externalWorkflowMode, onWorkflowModeChange, onNavigateTo }) => {
   const [inputValue, setInputValue] = useState("");
   const [isFocused, setIsFocused] = useState(false);
   const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
@@ -48,9 +26,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
   const [workspaces, setWorkspaces] = useState<WorkspaceInstance[]>([]);
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string>("");
   const [workflowModes, setWorkflowModes] = useState<string[]>([]);
-  const [selectedWorkflowMode, setSelectedWorkflowMode] = useState<string>(
-    externalWorkflowMode || "ReAct",
-  );
+  const [selectedWorkflowMode, setSelectedWorkflowMode] = useState<string>(externalWorkflowMode || "ReAct");
   const attachmentBtnRef = useRef<HTMLDivElement>(null);
   const attachmentMenuRef = useRef<HTMLDivElement>(null);
   const directoryBtnRef = useRef<HTMLDivElement>(null);
@@ -60,13 +36,8 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [uploadedFiles, setUploadedFiles] = useState<UploadFile[]>([]);
   const [currentPrompts, setCurrentPrompts] = useState<string[]>([]);
-  const [language, setLanguage] = useState<"zh" | "en">(
-    t("welcome.subtitle") === "原生 LLM 操作系统" ? "zh" : "en",
-  );
-  const [workflowDisplayNames, setWorkflowDisplayNames] = useState<
-    Map<string, string>
-  >(new Map());
-
+  const [language, setLanguage] = useState<"zh" | "en">(t("welcome.subtitle") === "原生 LLM 操作系统" ? "zh" : "en");
+  const [workflowDisplayNames, setWorkflowDisplayNames] = useState<Map<string, string>>(new Map());
   const domains: {
     id: "general" | "code" | "map" | "chart" | "video" | "sandbox";
     label: string;
@@ -131,7 +102,6 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
       pageId: "sandbox3d",
     },
   ];
-
   const handleNavigate = (pageId: string) => {
     if (onNavigateTo) {
       onNavigateTo(pageId);
@@ -143,16 +113,13 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
       );
     }
   };
-
   const loadWorkflowDisplayNames = async () => {
     try {
       const lang = localStorage.getItem("hippox-language") || "en";
       const modes = await workflowCommands.getWorkflowModeNames();
       const displayNames = new Map<string, string>();
-
       for (const mode of modes) {
-        const displayName =
-          await workflowCommands.workflowModeDisplayNameByLang(mode, lang);
+        const displayName = await workflowCommands.workflowModeDisplayNameByLang(mode, lang);
         displayNames.set(mode, displayName);
       }
       setWorkflowDisplayNames(displayNames);
@@ -160,13 +127,11 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
       console.error("Failed to load workflow display names:", error);
     }
   };
-
   useEffect(() => {
     if (externalWorkflowMode) {
       setSelectedWorkflowMode(externalWorkflowMode);
     }
   }, [externalWorkflowMode]);
-
   const getRandomPrompts = (count: number = 20): string[] => {
     const prompts = isZh ? zhDefaultPrompts : enDefaultPrompts;
     const shuffled = [...prompts];
@@ -176,17 +141,14 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
     }
     return shuffled.slice(0, count);
   };
-
   const refreshPrompts = () => {
     setCurrentPrompts(getRandomPrompts(20));
   };
-
   useEffect(() => {
     refreshPrompts();
     const interval = setInterval(refreshPrompts, 5000);
     return () => clearInterval(interval);
   }, [language]);
-
   const loadWorkflowModes = async () => {
     try {
       const modes = await workflowCommands.getWorkflowModeNames();
@@ -198,7 +160,6 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
       console.error("Failed to load workflow modes:", error);
     }
   };
-
   const loadWorkspaces = async (retryCount: number = 0): Promise<void> => {
     try {
       const config = await workspaceCommands.getWorkspaceConfig();
@@ -216,11 +177,9 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
       showToast(ToastType.ERROR, "Failed to load workspaces: " + error);
     }
   };
-
   const handleContainerClick = (e: React.MouseEvent) => {
     textareaRef.current?.focus();
   };
-
   const handleSelectWorkspace = async (workspaceId: string) => {
     const workspace = workspaces.find((w) => w.id === workspaceId);
     if (!workspace) return;
@@ -234,7 +193,6 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
       showToast(ToastType.ERROR, t("workspace.defaultFailed"));
     }
   };
-
   const handleWorkflowModeChange = (mode: string) => {
     setSelectedWorkflowMode(mode);
     setShowWorkflowMenu(false);
@@ -242,7 +200,6 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
       onWorkflowModeChange(mode);
     }
   };
-
   const getSelectedWorkspaceName = (): string => {
     const workspace = workspaces.find((w) => w.id === selectedWorkspaceId);
     if (!workspace) return t("chat.selectWorkspace") || "Workspace";
@@ -251,75 +208,45 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
     const parts = normalizedPath.split("/");
     return parts[parts.length - 1] || workspace.name;
   };
-
   useEffect(() => {
     const handleLanguageChange = (event: CustomEvent) => {
       const newLang = event.detail.language === "zh" ? "zh" : "en";
       setLanguage(newLang);
       loadWorkflowDisplayNames();
     };
-    window.addEventListener(
-      "language-changed",
-      handleLanguageChange as EventListener,
-    );
-    return () =>
-      window.removeEventListener(
-        "language-changed",
-        handleLanguageChange as EventListener,
-      );
+    window.addEventListener("language-changed", handleLanguageChange as EventListener);
+    return () => window.removeEventListener("language-changed", handleLanguageChange as EventListener);
   }, []);
-
   useEffect(() => {
     loadWorkspaces();
     loadWorkflowModes();
     loadWorkflowDisplayNames();
   }, []);
-
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (
-        attachmentMenuRef.current &&
-        !attachmentMenuRef.current.contains(event.target as Node) &&
-        attachmentBtnRef.current &&
-        !attachmentBtnRef.current.contains(event.target as Node)
-      ) {
+      if (attachmentMenuRef.current && !attachmentMenuRef.current.contains(event.target as Node) && attachmentBtnRef.current && !attachmentBtnRef.current.contains(event.target as Node)) {
         setShowAttachmentMenu(false);
       }
-      if (
-        directoryMenuRef.current &&
-        !directoryMenuRef.current.contains(event.target as Node) &&
-        directoryBtnRef.current &&
-        !directoryBtnRef.current.contains(event.target as Node)
-      ) {
+      if (directoryMenuRef.current && !directoryMenuRef.current.contains(event.target as Node) && directoryBtnRef.current && !directoryBtnRef.current.contains(event.target as Node)) {
         setShowDirectoryMenu(false);
       }
-      if (
-        workflowMenuRef.current &&
-        !workflowMenuRef.current.contains(event.target as Node) &&
-        workflowBtnRef.current &&
-        !workflowBtnRef.current.contains(event.target as Node)
-      ) {
+      if (workflowMenuRef.current && !workflowMenuRef.current.contains(event.target as Node) && workflowBtnRef.current && !workflowBtnRef.current.contains(event.target as Node)) {
         setShowWorkflowMenu(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-
   const handleFilesAdd = (files: UploadFile[]) => {
     setUploadedFiles((prev) => {
       const existingKeys = new Set(prev.map((f) => `${f.name}_${f.size}`));
-      const newUniqueFiles = files.filter(
-        (f) => !existingKeys.has(`${f.name}_${f.size}`),
-      );
+      const newUniqueFiles = files.filter((f) => !existingKeys.has(`${f.name}_${f.size}`));
       return [...prev, ...newUniqueFiles];
     });
   };
-
   const handleFileRemove = (fileId: string) => {
     setUploadedFiles((prev) => prev.filter((f) => f.id !== fileId));
   };
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -331,25 +258,20 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
       setUploadedFiles([]);
     }
   };
-
   const handleExampleClick = (prompt: string) => {
     onSendMessage(prompt, [], selectedWorkflowMode);
   };
-
   const handleAttachment = (type: string) => {
     setShowAttachmentMenu(false);
     showToast(ToastType.INFO, t("common.comingSoon") || "TODO");
   };
-
   const isZh = t("welcome.subtitle") === "原生 LLM 操作系统";
-
   return (
     <div className="welcome-page">
       <style>{`
   .my-folder-icon {
   }
-
-  .welcome-page {
+   .welcome-page {
     user-select: none;
     display: flex;
     flex-direction: column;
@@ -358,15 +280,13 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
     width: 100%;
     background: var(--bg-primary);
   }
-
-  .welcome-container {
+   .welcome-container {
     max-width: 830px;
     width: 85%;
     text-align: center;
     padding: 40px 20px;
   }
-
-  .welcome-logo {
+   .welcome-logo {
     margin: 0 auto 20px auto;
     margin-bottom: 20px;
     display: flex;
@@ -374,13 +294,11 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
     height: 170px;
     border-radius: 5px;
   }
-
-  .welcome-logo img {
+   .welcome-logo img {
     height: 170px;
     border-radius: 5px;
   }
-
-  .welcome-title {
+   .welcome-title {
     font-size: 32px;
     font-weight: 600;
     background: linear-gradient(135deg, var(--text-primary) 0%, var(--accent-color, #818cf8) 100%);
@@ -389,21 +307,18 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
     -webkit-text-fill-color: transparent;
     margin-bottom: 5px;
   }
-
-  .welcome-subtitle {
+   .welcome-subtitle {
     font-size: 14px;
     color: var(--text-secondary);
     margin: 20px 0px;
   }
-
-  .welcome-form {
+   .welcome-form {
     width: 80%;
     min-width: 325px;
     margin-bottom: 20px;
     margin: 0 auto 10px auto;
   }
-
-  .welcome-input-container {
+   .welcome-input-container {
     background: var(--bg-tertiary);
     border: 1px solid var(--border-color);
     border-radius: 5px;
@@ -412,18 +327,15 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
     flex-direction: column;
     cursor: text;
   }
-
-  .welcome-input-container.focused {
+   .welcome-input-container.focused {
     border-color: var(--accent-color);
     box-shadow: 0 0 0 2px var(--accent-glow);
   }
-
-  .input-textarea-wrapper {
+   .input-textarea-wrapper {
     padding: 12px 12px 8px 12px;
     flex: 1;
   }
-
-  .welcome-textarea {
+   .welcome-textarea {
     width: 100%;
     background: transparent;
     border: none;
@@ -436,26 +348,22 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
     min-height: 60px;
     padding: 0;
   }
-
-  .welcome-textarea::placeholder {
+   .welcome-textarea::placeholder {
     color: var(--text-tertiary);
   }
-
-  .action-buttons-row {
+   .action-buttons-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 4px 8px 8px 8px;
   }
-
-  .left-actions {
+   .left-actions {
     display: flex;
     align-items: center;
     gap: 4px;
     position: relative;
   }
-
-  .icon-btn {
+   .icon-btn {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -468,27 +376,23 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
     color: var(--text-secondary);
     font-size: 12px;
   }
-
-  .icon-btn:hover {
+   .icon-btn:hover {
     background: var(--hover-bg);
     color: var(--text-primary);
   }
-
-  .folder-btn {
+   .folder-btn {
     display: flex;
     align-items: center;
     gap: 4px;
   }
-
-  .folder-name {
+   .folder-name {
     max-width: 120px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
     font-size: 12px;
   }
-
-  .attachment-menu {
+   .attachment-menu {
     position: absolute;
     bottom: 100%;
     left: 0;
@@ -501,8 +405,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     z-index: 100;
   }
-
-  .attachment-item {
+   .attachment-item {
     padding: 8px 12px;
     cursor: pointer;
     color: var(--text-primary);
@@ -512,12 +415,10 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
     align-items: center;
     gap: 8px;
   }
-
-  .attachment-item:hover {
+   .attachment-item:hover {
     background: var(--hover-bg);
   }
-
-  .directory-menu {
+   .directory-menu {
     position: absolute;
     bottom: 100%;
     left: 35px;
@@ -532,8 +433,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     z-index: 100;
   }
-
-  .directory-item {
+   .directory-item {
     padding: 8px 12px;
     cursor: pointer;
     color: var(--text-primary);
@@ -542,17 +442,14 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
     align-items: center;
     gap: 8px;
   }
-
-  .directory-item:hover {
+   .directory-item:hover {
     background: var(--hover-bg);
   }
-
-  .directory-item.selected {
+   .directory-item.selected {
     background: var(--accent-color);
     color: white;
   }
-
-  .workspace-path {
+   .workspace-path {
     font-size: 10px;
     color: var(--text-tertiary);
     margin-top: 2px;
@@ -561,17 +458,14 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
     white-space: nowrap;
     max-width: 200px;
   }
-
-  .selected .workspace-path {
+   .selected .workspace-path {
     color: rgba(255, 255, 255, 0.7);
   }
-
-  .directory-item-content {
+   .directory-item-content {
     flex: 1;
     min-width: 0;
   }
-
-  .send-icon-btn {
+   .send-icon-btn {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -583,34 +477,28 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
     cursor: pointer;
     color: var(--text-tertiary);
   }
-
-  .send-icon-btn.active {
+   .send-icon-btn.active {
     background: var(--accent-color);
     color: white;
   }
-
-  .send-icon-btn.active:hover {
+   .send-icon-btn.active:hover {
     transform: scale(1.05);
     background: var(--accent-hover);
   }
-
-  .send-icon-btn:disabled {
+   .send-icon-btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
   }
-
-  .examples-section {
+   .examples-section {
     margin-top: 8px;
   }
-
-  .examples-title {
+   .examples-title {
     font-size: 12px;
     color: var(--text-tertiary);
     margin-bottom: 12px;
     letter-spacing: 0.5px;
   }
-
-  .examples-grid {
+   .examples-grid {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
@@ -618,8 +506,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
     max-width: 800px;
     margin: 0 auto;
   }
- 
-  .example-chip {
+   .example-chip {
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -633,44 +520,37 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
   width: auto;
   white-space: nowrap;
 }
-
-.example-chip span:last-child {
+ .example-chip span:last-child {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   max-width: 100px;
 }
-
-.example-chip:hover {
+ .example-chip:hover {
   background: var(--hover-bg);
   border-color: var(--accent-color);
   color: var(--text-primary);
   transform: translateY(-1px);
 }
-
-.example-icon {
+ .example-icon {
   font-size: 10px;
 }
-
-  .example-chip span:last-child {
+   .example-chip span:last-child {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
     max-width: 140px;
   }
-
-  .file-uploader-container {
+   .file-uploader-container {
   }
-
-  .domain-cards {
+   .domain-cards {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 8px;
     margin: 0 auto 10px auto;
     width: 80%;
   }
-
-  .domain-card {
+   .domain-card {
     position: relative;
     padding: 10px 10px;
     border-radius: 5px;
@@ -685,14 +565,12 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
     justify-content: space-between;
     white-space: nowrap;
   }
-
-  .domain-card:hover {
+   .domain-card:hover {
     transform: translateY(-2px);
     border-color: var(--accent-color);
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
   }
-
-  .domain-card .card-bg-emoji {
+   .domain-card .card-bg-emoji {
     position: absolute;
     right: -8px;
     top: 50%;
@@ -704,12 +582,10 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
     pointer-events: none;
     line-height: 1;
   }
-
-  .domain-card:hover .card-bg-emoji {
+   .domain-card:hover .card-bg-emoji {
     opacity: 0.1;
   }
-
-  .domain-card .card-left {
+   .domain-card .card-left {
     position: relative;
     z-index: 1;
     flex: 1;
@@ -717,8 +593,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
     min-width: 0;
     overflow: hidden;
   }
-
-  .domain-card .domain-name {
+   .domain-card .domain-name {
     font-size: 13px;
     font-weight: 600;
     color: var(--text-primary);
@@ -726,8 +601,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
     overflow: hidden;
     text-overflow: ellipsis;
   }
-
-  .domain-card .domain-desc {
+   .domain-card .domain-desc {
     font-size: 11px;
     color: var(--text-tertiary);
     line-height: 1.2;
@@ -736,8 +610,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
     overflow: hidden;
     text-overflow: ellipsis;
   }
-
-  .domain-card .domain-arrow {
+   .domain-card .domain-arrow {
     position: relative;
     z-index: 1;
     font-size: 14px;
@@ -747,14 +620,12 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
     margin-left: 8px;
     opacity: 0;
   }
-
-  .domain-card:hover .domain-arrow {
+   .domain-card:hover .domain-arrow {
     opacity: 1;
     color: var(--accent-color);
     transform: translateX(3px);
   }
-
-  @media (max-width: 640px) {
+   @media (max-width: 640px) {
     .domain-cards {
       grid-template-columns: repeat(2, 1fr);
       gap: 10px;
@@ -773,8 +644,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
       font-size: 10px;
     }
   }
-
-  :root {
+   :root {
     --bg-primary: #0f1117;
     --bg-secondary: #1a1d26;
     --bg-tertiary: #22252f;
@@ -787,8 +657,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
     --accent-glow: rgba(129, 140, 248, 0.2);
     --hover-bg: rgba(232, 237, 242, 0.08);
   }
-
-  [data-theme="light"] {
+   [data-theme="light"] {
     --bg-primary: #f3f4f6;
     --bg-secondary: #ffffff;
     --bg-tertiary: #e5e7eb;
@@ -802,41 +671,17 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
     --hover-bg: rgba(0, 0, 0, 0.04);
   }
 `}</style>
-
       <div className="welcome-container">
         <div className="welcome-logo">
           <img src={banner} alt="HippoxOS Banner" />
         </div>
-        <ArtText
-          text={"HippoxOS"}
-          fontSize={52}
-          fontWeight="300"
-          letterSpacing={4}
-          textColor="#818cf8"
-          lightColor="#ffffff"
-          animationDuration={3}
-          glowSize={2}
-        />
-        <p className="welcome-subtitle">
-          {t("welcome.subtitle") || "A native LLM operating system"}
-        </p>
+        <ArtText text={"HippoxOS"} fontSize={52} fontWeight="300" letterSpacing={4} textColor="#818cf8" lightColor="#ffffff" animationDuration={3} glowSize={2} />
+        <p className="welcome-subtitle">{t("welcome.subtitle") || "A native LLM operating system"}</p>
         <form className="welcome-form" onSubmit={handleSubmit}>
-          <div
-            className={`welcome-input-container ${isFocused ? "focused" : ""}`}
-            onClick={handleContainerClick}
-          >
-            <div
-              className="file-uploader-container"
-              style={{ display: uploadedFiles.length > 0 ? "block" : "none" }}
-            >
-              <FileUploader
-                onFilesAdd={handleFilesAdd}
-                onFileRemove={handleFileRemove}
-                files={uploadedFiles}
-                onDragOverInput={onDragOverInputChange}
-              />
+          <div className={`welcome-input-container ${isFocused ? "focused" : ""}`} onClick={handleContainerClick}>
+            <div className="file-uploader-container" style={{ display: uploadedFiles.length > 0 ? "block" : "none" }}>
+              <FileUploader onFilesAdd={handleFilesAdd} onFileRemove={handleFileRemove} files={uploadedFiles} onDragOverInput={onDragOverInputChange} />
             </div>
-
             <div className="input-textarea-wrapper">
               <textarea
                 ref={textareaRef}
@@ -856,15 +701,9 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
                 style={{ height: "auto" }}
               />
             </div>
-
             <div className="action-buttons-row">
               <div className="left-actions">
-                <div
-                  className="icon-btn"
-                  ref={attachmentBtnRef}
-                  onClick={() => setShowAttachmentMenu(!showAttachmentMenu)}
-                  title={t("chat.attachment")}
-                >
+                <div className="icon-btn" ref={attachmentBtnRef} onClick={() => setShowAttachmentMenu(!showAttachmentMenu)} title={t("chat.attachment")}>
                   <AttachmentIcon size={14} />
                 </div>
                 <div
@@ -877,100 +716,48 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
                   title={t("chat.selectWorkspace")}
                 >
                   <FolderIcon size={14} />
-                  <span
-                    className="folder-name"
-                    title={getSelectedWorkspaceName()}
-                  >
+                  <span className="folder-name" title={getSelectedWorkspaceName()}>
                     {getSelectedWorkspaceName()}
                   </span>
                   <ChevronRightIcon size={10} className="chevron" />
                 </div>
-
-                <div
-                  className="icon-btn folder-btn"
-                  ref={workflowBtnRef}
-                  onClick={() => setShowWorkflowMenu(!showWorkflowMenu)}
-                  title={t("chat.selectWorkflowMode") || "Workflow Mode"}
-                >
-                  <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                  >
-                    <path
-                      d="M4 7h16M4 12h16M4 17h10"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
+                <div className="icon-btn folder-btn" ref={workflowBtnRef} onClick={() => setShowWorkflowMenu(!showWorkflowMenu)} title={t("chat.selectWorkflowMode") || "Workflow Mode"}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M4 7h16M4 12h16M4 17h10" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                   <span className="folder-name" title={selectedWorkflowMode}>
-                    {workflowDisplayNames.get(selectedWorkflowMode) ||
-                      selectedWorkflowMode}
+                    {workflowDisplayNames.get(selectedWorkflowMode) || selectedWorkflowMode}
                   </span>
                   <ChevronRightIcon size={10} className="chevron" />
                 </div>
-
                 {showAttachmentMenu && (
                   <div className="attachment-menu" ref={attachmentMenuRef}>
-                    <div
-                      className="attachment-item"
-                      onClick={() => handleAttachment("text")}
-                    >
+                    <div className="attachment-item" onClick={() => handleAttachment("text")}>
                       <TextFileIcon size={14} />
                       {t("chat.textFile") || "TextFile"}
                     </div>
-                    <div
-                      className="attachment-item"
-                      onClick={() => handleAttachment("image")}
-                    >
+                    <div className="attachment-item" onClick={() => handleAttachment("image")}>
                       <ImageIcon size={14} />
                       {t("chat.image") || "Image"}
                     </div>
-                    <div
-                      className="attachment-item"
-                      onClick={() => handleAttachment("video")}
-                    >
+                    <div className="attachment-item" onClick={() => handleAttachment("video")}>
                       <VideoIcon size={14} />
                       {t("chat.video") || "Video"}
                     </div>
-                    <div
-                      className="attachment-item"
-                      onClick={() => handleAttachment("skill")}
-                    >
+                    <div className="attachment-item" onClick={() => handleAttachment("skill")}>
                       <FileIcon size={14} />
                       {t("chat.skillFile") || "Skill File"}
                     </div>
                   </div>
                 )}
-
                 {showDirectoryMenu && (
                   <div className="directory-menu" ref={directoryMenuRef}>
                     {workspaces.map((workspace) => (
-                      <div
-                        key={workspace.id}
-                        className={`directory-item ${selectedWorkspaceId === workspace.id ? "selected" : ""}`}
-                        onClick={() => handleSelectWorkspace(workspace.id)}
-                      >
-                        {selectedWorkspaceId === workspace.id ? (
-                          <FolderOpenIcon
-                            size={16}
-                            className="my-folder-icon"
-                          />
-                        ) : (
-                          <FolderIcon size={16} className="my-folder-icon" />
-                        )}
+                      <div key={workspace.id} className={`directory-item ${selectedWorkspaceId === workspace.id ? "selected" : ""}`} onClick={() => handleSelectWorkspace(workspace.id)}>
+                        {selectedWorkspaceId === workspace.id ? <FolderOpenIcon size={16} className="my-folder-icon" /> : <FolderIcon size={16} className="my-folder-icon" />}
                         <div className="directory-item-content">
-                          <div style={{ textAlign: "left" }}>
-                            {workspace.name}
-                          </div>
-                          <div
-                            className="workspace-path"
-                            title={workspace.workspace_path}
-                            style={{ textAlign: "left" }}
-                          >
+                          <div style={{ textAlign: "left" }}>{workspace.name}</div>
+                          <div className="workspace-path" title={workspace.workspace_path} style={{ textAlign: "left" }}>
                             {workspace.workspace_path}
                           </div>
                         </div>
@@ -978,19 +765,12 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
                     ))}
                   </div>
                 )}
-
                 {showWorkflowMenu && (
                   <div className="directory-menu" ref={workflowMenuRef}>
                     {workflowModes.map((mode) => (
-                      <div
-                        key={mode}
-                        className={`directory-item ${selectedWorkflowMode === mode ? "selected" : ""}`}
-                        onClick={() => handleWorkflowModeChange(mode)}
-                      >
+                      <div key={mode} className={`directory-item ${selectedWorkflowMode === mode ? "selected" : ""}`} onClick={() => handleWorkflowModeChange(mode)}>
                         <div className="directory-item-content">
-                          <div style={{ textAlign: "left" }}>
-                            {workflowDisplayNames.get(mode) || mode}
-                          </div>
+                          <div style={{ textAlign: "left" }}>{workflowDisplayNames.get(mode) || mode}</div>
                         </div>
                       </div>
                     ))}
@@ -1003,26 +783,13 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
                 disabled={!inputValue.trim() && uploadedFiles.length === 0}
                 title={t("chat.send")}
               >
-                <svg
-                  width="18"
-                  height="18"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    d="M12 5L12 19M12 5L5 12M12 5L19 12"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 5L12 19M12 5L5 12M12 5L19 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </button>
             </div>
           </div>
         </form>
-
         <div className="domain-cards">
           {domains.map((domain) => (
             <div
@@ -1038,27 +805,18 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
             >
               <div className="card-bg-emoji">{domain.bgEmoji}</div>
               <div className="card-left">
-                <div className="domain-name">
-                  {isZh ? domain.label : domain.labelEn}
-                </div>
-                <div className="domain-desc">
-                  {isZh ? domain.description : domain.descriptionEn}
-                </div>
+                <div className="domain-name">{isZh ? domain.label : domain.labelEn}</div>
+                <div className="domain-desc">{isZh ? domain.description : domain.descriptionEn}</div>
               </div>
               <span className="domain-arrow">→</span>
             </div>
           ))}
         </div>
         <div className="examples-section">
-          <div className="examples-title">
-            {t("welcome.examples") || "Try these"}
-          </div>
+          <div className="examples-title">{t("welcome.examples") || "Try these"}</div>
           <div className="examples-grid">
             {currentPrompts.slice(0, 11).map((prompt, index) => {
-              const randomWidths = [
-                150, 170, 190, 210, 160, 180, 200, 220, 155, 175, 195, 215, 165,
-                185, 205, 225,
-              ];
+              const randomWidths = [150, 170, 190, 210, 160, 180, 200, 220, 155, 175, 195, 215, 165, 185, 205, 225];
               const width = randomWidths[index % randomWidths.length];
               return (
                 <div
@@ -1067,23 +825,18 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
                   style={{ width: `${width}px` }}
                   onClick={() => handleExampleClick(prompt)}
                   onMouseEnter={(e) => {
-                    const span =
-                      e.currentTarget.querySelector("span:last-child");
+                    const span = e.currentTarget.querySelector("span:last-child");
                     if (span && span.scrollWidth > span.clientWidth) {
                       showTooltipOnElement(e.currentTarget, prompt);
                     }
                   }}
                   onMouseLeave={() => {
-                    const container = document.getElementById(
-                      "global-tooltip-container",
-                    );
+                    const container = document.getElementById("global-tooltip-container");
                     if (container) container.remove();
                   }}
                 >
                   <span className="example-icon">💡</span>
-                  <span>
-                    {prompt.length > 25 ? prompt.slice(0, 25) + "..." : prompt}
-                  </span>
+                  <span>{prompt.length > 25 ? prompt.slice(0, 25) + "..." : prompt}</span>
                 </div>
               );
             })}
@@ -1093,5 +846,4 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
     </div>
   );
 };
-
 export default WelcomePage;

@@ -1,12 +1,10 @@
 import React, { useState, useEffect, useRef } from "react";
 import { createRoot } from "react-dom/client";
-
 interface TooltipProps {
   message: string;
   targetElement: HTMLElement;
   onClose: () => void;
 }
-
 const calculatePosition = (
   targetRect: DOMRect,
   tooltipWidth: number,
@@ -49,7 +47,6 @@ const calculatePosition = (
     arrowDirection: "bottom",
   };
 };
-
 const tooltipStyles = `
   .global-tooltip {
     position: fixed;
@@ -66,24 +63,21 @@ const tooltipStyles = `
     pointer-events: none;
     animation: tooltipFadeIn 0.15s ease;
   }
-
-  .global-tooltip::before {
+   .global-tooltip::before {
     content: '';
     position: absolute;
     width: 0;
     height: 0;
     border-style: solid;
   }
-
-  .global-tooltip.arrow-top::before {
+   .global-tooltip.arrow-top::before {
     top: -6px;
     left: 50%;
     transform: translateX(-50%);
     border-width: 0 6px 6px 6px;
     border-color: transparent transparent var(--border-color) transparent;
   }
-
-  .global-tooltip.arrow-top::after {
+   .global-tooltip.arrow-top::after {
     content: '';
     position: absolute;
     top: -5px;
@@ -93,16 +87,14 @@ const tooltipStyles = `
     border-style: solid;
     border-color: transparent transparent var(--bg-secondary) transparent;
   }
-
-  .global-tooltip.arrow-bottom::before {
+   .global-tooltip.arrow-bottom::before {
     bottom: -6px;
     left: 50%;
     transform: translateX(-50%);
     border-width: 6px 6px 0 6px;
     border-color: var(--border-color) transparent transparent transparent;
   }
-
-  .global-tooltip.arrow-bottom::after {
+   .global-tooltip.arrow-bottom::after {
     content: '';
     position: absolute;
     bottom: -5px;
@@ -112,16 +104,14 @@ const tooltipStyles = `
     border-style: solid;
     border-color: var(--bg-secondary) transparent transparent transparent;
   }
-
-  .global-tooltip.arrow-left::before {
+   .global-tooltip.arrow-left::before {
     left: -6px;
     top: 50%;
     transform: translateY(-50%);
     border-width: 6px 6px 6px 0;
     border-color: transparent var(--border-color) transparent transparent;
   }
-
-  .global-tooltip.arrow-left::after {
+   .global-tooltip.arrow-left::after {
     content: '';
     position: absolute;
     left: -5px;
@@ -131,16 +121,14 @@ const tooltipStyles = `
     border-style: solid;
     border-color: transparent var(--bg-secondary) transparent transparent;
   }
-
-  .global-tooltip.arrow-right::before {
+   .global-tooltip.arrow-right::before {
     right: -6px;
     top: 50%;
     transform: translateY(-50%);
     border-width: 6px 0 6px 6px;
     border-color: transparent transparent transparent var(--border-color);
   }
-
-  .global-tooltip.arrow-right::after {
+   .global-tooltip.arrow-right::after {
     content: '';
     position: absolute;
     right: -5px;
@@ -150,8 +138,7 @@ const tooltipStyles = `
     border-style: solid;
     border-color: transparent transparent transparent var(--bg-secondary);
   }
-
-  @keyframes tooltipFadeIn {
+   @keyframes tooltipFadeIn {
     from {
       opacity: 0;
       transform: scale(0.95);
@@ -162,7 +149,6 @@ const tooltipStyles = `
     }
   }
 `;
-
 if (typeof document !== "undefined") {
   const styleId = "global-tooltip-styles";
   if (!document.getElementById(styleId)) {
@@ -172,26 +158,15 @@ if (typeof document !== "undefined") {
     document.head.appendChild(style);
   }
 }
-
-const TooltipComponent: React.FC<TooltipProps> = ({
-  message,
-  targetElement,
-  onClose,
-}) => {
+const TooltipComponent: React.FC<TooltipProps> = ({ message, targetElement, onClose }) => {
   const [position, setPosition] = useState({ top: 0, left: 0 });
-  const [arrowDirection, setArrowDirection] = useState<
-    "top" | "bottom" | "left" | "right"
-  >("top");
+  const [arrowDirection, setArrowDirection] = useState<"top" | "bottom" | "left" | "right">("top");
   const tooltipRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!tooltipRef.current || !targetElement) return;
     const rect = targetElement.getBoundingClientRect();
     const tooltipRect = tooltipRef.current.getBoundingClientRect();
-    const {
-      top,
-      left,
-      arrowDirection: dir,
-    } = calculatePosition(rect, tooltipRect.width, tooltipRect.height);
+    const { top, left, arrowDirection: dir } = calculatePosition(rect, tooltipRect.width, tooltipRect.height);
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
     let finalTop = top;
@@ -222,19 +197,13 @@ const TooltipComponent: React.FC<TooltipProps> = ({
     };
   }, [onClose]);
   return (
-    <div
-      ref={tooltipRef}
-      className={`global-tooltip arrow-${arrowDirection}`}
-      style={{ top: position.top, left: position.left }}
-    >
+    <div ref={tooltipRef} className={`global-tooltip arrow-${arrowDirection}`} style={{ top: position.top, left: position.left }}>
       {message}
     </div>
   );
 };
-
 let tooltipRoot: any = null;
 let currentTooltipContainer: HTMLElement | null = null;
-
 export const closeTooltip = () => {
   if (tooltipRoot) {
     tooltipRoot.unmount();
@@ -245,10 +214,8 @@ export const closeTooltip = () => {
     currentTooltipContainer = null;
   }
 };
-
 export const showTooltip = (message: string, targetElement: HTMLElement) => {
   closeTooltip();
-
   const containerId = "global-tooltip-container";
   let container = document.getElementById(containerId);
   if (!container) {
@@ -270,23 +237,12 @@ export const showTooltip = (message: string, targetElement: HTMLElement) => {
   if (!tooltipRoot) {
     tooltipRoot = createRoot(container);
   }
-  tooltipRoot.render(
-    <TooltipComponent
-      message={message}
-      targetElement={targetElement}
-      onClose={onClose}
-    />,
-  );
+  tooltipRoot.render(<TooltipComponent message={message} targetElement={targetElement} onClose={onClose} />);
 };
-
-export const showTooltipOnElement = (
-  element: HTMLElement | null,
-  message: string,
-) => {
+export const showTooltipOnElement = (element: HTMLElement | null, message: string) => {
   if (!element) return;
   showTooltip(message, element);
 };
-
 export const useTooltip = () => {
   return {
     showTooltip: (element: HTMLElement | null, message: string) => {
@@ -296,5 +252,4 @@ export const useTooltip = () => {
     },
   };
 };
-
 export default TooltipComponent;

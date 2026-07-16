@@ -12,8 +12,7 @@ export const sidebarStyles = `
     position: relative;
     justify-content: space-between;
   }
-
- .sidebar-header {
+  .sidebar-header {
   padding: 2px 0;
   border-bottom: 1px solid var(--border-color);
   width: 100%;
@@ -22,8 +21,7 @@ export const sidebarStyles = `
   align-items: center;
   gap: 8px;
 }
-
-  .new-session-icon-btn {
+   .new-session-icon-btn {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -36,13 +34,11 @@ export const sidebarStyles = `
     color: var(--text-secondary);
     // transition: all 0.2s ease;
   }
-
-  .new-session-icon-btn:hover {
+   .new-session-icon-btn:hover {
     background: var(--hover-bg);
     color: var(--text-primary);
   }
-
-  .sidebar-nav-top {
+   .sidebar-nav-top {
     flex: 1;
     display: flex;
     flex-direction: column;
@@ -50,8 +46,7 @@ export const sidebarStyles = `
     gap: 6px;
     padding: 16px 0;
   }
-
-  .sidebar-nav-bottom {
+   .sidebar-nav-bottom {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -59,8 +54,7 @@ export const sidebarStyles = `
     padding: 16px 0;
     border-top: 1px solid var(--border-color);
   }
-
-  .sidebar-icon-btn {
+   .sidebar-icon-btn {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -74,18 +68,15 @@ export const sidebarStyles = `
     // transition: all 0.2s ease;
     position: relative;
   }
-
-  .sidebar-icon-btn:hover {
+   .sidebar-icon-btn:hover {
     background: var(--hover-bg);
     color: var(--text-primary);
   }
-
-  .sidebar-icon-btn.active {
+   .sidebar-icon-btn.active {
     background: var(--accent-color);
     color: white;
   }
-
-  .icon-badge {
+   .icon-badge {
     position: absolute;
     top: 2px;
     right: 2px;
@@ -95,8 +86,7 @@ export const sidebarStyles = `
     border-radius: 50%;
     border: 1px solid var(--bg-secondary);
   }
-
-  .menu-popup {
+   .menu-popup {
     position: fixed;
     background: var(--bg-secondary);
     border: 1px solid var(--border-color);
@@ -107,21 +97,17 @@ export const sidebarStyles = `
     overflow-y: auto;
     z-index: 201;
   }
-
-  .menu-popup::-webkit-scrollbar {
+   .menu-popup::-webkit-scrollbar {
     width: 4px;
   }
-
-  .menu-popup::-webkit-scrollbar-track {
+   .menu-popup::-webkit-scrollbar-track {
     background: transparent;
   }
-
-  .menu-popup::-webkit-scrollbar-thumb {
+   .menu-popup::-webkit-scrollbar-thumb {
     background: var(--border-color);
     border-radius: 4px;
   }
-
-  .popup-section-title {
+   .popup-section-title {
     font-size: 10px;
     font-weight: 600;
     letter-spacing: 0.5px;
@@ -129,8 +115,7 @@ export const sidebarStyles = `
     color: var(--text-secondary);
     padding: 8px 12px 4px 12px;
   }
-
-  .popup-menu-item {
+   .popup-menu-item {
     display: flex;
     align-items: center;
     gap: 12px;
@@ -142,35 +127,29 @@ export const sidebarStyles = `
     padding-left: 10px;
     padding-right: 20px;
   }
-
-  .popup-menu-item:hover {
+   .popup-menu-item:hover {
     background: var(--hover-bg);
     color: var(--text-primary);
   }
-
-  .popup-menu-item.active {
+   .popup-menu-item.active {
     background: var(--accent-color);
     color: white;
   }
-
-  .menu-popup > div > div,
+   .menu-popup > div > div,
   .menu-popup > div > .popup-menu-item,
   .menu-popup > .popup-menu-item {
     border-bottom: 1px solid var(--border-color);
     margin-bottom: 0;
   }
-
-  .menu-popup > div:last-child > div:last-child,
+   .menu-popup > div:last-child > div:last-child,
   .menu-popup > div:last-child > .popup-menu-item:last-child,
   .menu-popup > .popup-menu-item:last-child {
     border-bottom: none;
   }
-
-  .menu-popup > div > div > .popup-menu-item {
+   .menu-popup > div > div > .popup-menu-item {
     border-bottom: none;
   }
-
-  .popup-menu-icon {
+   .popup-menu-icon {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -178,15 +157,13 @@ export const sidebarStyles = `
     height: 20px;
     flex-shrink: 0;
   }
-
-  .popup-menu-label {
+   .popup-menu-label {
     flex: 1;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
-
-  .popup-menu-badge {
+   .popup-menu-badge {
     background: var(--accent-color);
     color: white;
     font-size: 10px;
@@ -196,32 +173,26 @@ export const sidebarStyles = `
     min-width: 18px;
     text-align: center;
   }
-
-  .popup-menu-item.active .popup-menu-badge {
+   .popup-menu-item.active .popup-menu-badge {
     background: rgba(255, 255, 255, 0.2);
     color: white;
   }
-
-  .popup-menu-item.has-children {
+   .popup-menu-item.has-children {
     justify-content: space-between;
   }
-
-  .popup-chevron {
+   .popup-chevron {
     // transition: transform 0.2s ease;
     color: var(--text-secondary);
     font-size: 12px;
   }
-
-  .popup-chevron.open {
+   .popup-chevron.open {
     transform: rotate(90deg);
   }
-
-  .popup-sub-menu {
+   .popup-sub-menu {
     display: flex;
     flex-direction: column;
   }
-
-  .popup-sub-item {
+   .popup-sub-item {
     display: flex;
     align-items: center;
     gap: 10px;
@@ -233,32 +204,27 @@ export const sidebarStyles = `
     padding-left: 20px;
     padding-right: 20px;
   }
-
-  .popup-sub-item:hover {
+   .popup-sub-item:hover {
     background: var(--hover-bg);
     color: var(--text-primary);
   }
-
-  .popup-sub-item.active {
+   .popup-sub-item.active {
     background: var(--accent-color);
     color: white;
   }
-
-  .popup-sub-icon {
+   .popup-sub-icon {
     width: 18px;
     height: 18px;
     display: flex;
     align-items: center;
     justify-content: center;
   }
-
-  .popup-sub-sub-menu {
+   .popup-sub-sub-menu {
     margin-left: 28px;
     display: flex;
     flex-direction: column;
   }
-
-  .popup-sub-sub-item {
+   .popup-sub-sub-item {
     display: flex;
     align-items: center;
     gap: 10px;
@@ -270,18 +236,15 @@ export const sidebarStyles = `
     border-radius: 6px;
     font-size: 11px;
   }
-
-  .popup-sub-sub-item:hover {
+   .popup-sub-sub-item:hover {
     background: var(--hover-bg);
     color: var(--text-primary);
   }
-
-  .popup-sub-sub-item.active {
+   .popup-sub-sub-item.active {
     background: var(--accent-color);
     color: white;
   }
-
-  .popup-divider {
+   .popup-divider {
     height: 1px;
     background: var(--border-color);
     margin: 8px 12px;

@@ -10,21 +10,11 @@ interface StepParametersProps {
   type?: "input" | "output";
 }
 
-export const StepParameters: React.FC<StepParametersProps> = ({
-  parameters,
-  stepKey,
-  isExpanded,
-  onToggle,
-  t,
-  type = "input",
-}) => {
+export const StepParameters: React.FC<StepParametersProps> = ({ parameters, stepKey, isExpanded, onToggle, t, type = "input" }) => {
   if (!parameters || parameters === "{}") return null;
   const fullParams = getFullParams(parameters);
   const shortParams = getShortParams(parameters);
-  const label =
-    type === "output"
-      ? `${t("terminal.stepOutput") || "Output"}`
-      : `${t("terminal.stepInput") || "Input"}`;
+  const label = type === "output" ? `${t("terminal.stepOutput") || "Output"}` : `${t("terminal.stepInput") || "Input"}`;
   const briefContent = type === "output" ? parameters : shortParams;
   return (
     <div className="step-parameters-row">
@@ -68,11 +58,7 @@ export const StepParameters: React.FC<StepParametersProps> = ({
           </>
         )}
       </div>
-      {isExpanded && (
-        <pre className="step-parameters-code">
-          {type === "output" ? parameters : fullParams}
-        </pre>
-      )}
+      {isExpanded && <pre className="step-parameters-code">{type === "output" ? parameters : fullParams}</pre>}
     </div>
   );
 };

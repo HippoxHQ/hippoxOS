@@ -17,199 +17,78 @@ import { showDialog, DialogType } from "../../components/Dialog";
 import { showToast, ToastType } from "../../components/Toast";
 import { workflowCommands } from "../../command/workflow";
 import { showTooltip } from "../../components/Tooltip";
-
 const EditIcon = () => (
-  <svg
-    width="14"
-    height="14"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M17 3l4 4-7 7H10v-4l7-7z" />
     <path d="M4 20h16" />
   </svg>
 );
-
 const XIcon = () => (
-  <svg
-    width="12"
-    height="12"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <line x1="18" y1="6" x2="6" y2="18" />
     <line x1="6" y1="6" x2="18" y2="18" />
   </svg>
 );
-
 const SaveIcon = () => (
-  <svg
-    width="12"
-    height="12"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
     <polyline points="17 21 17 13 7 13 7 21" />
     <polyline points="7 3 7 8 15 8" />
   </svg>
 );
-
 const TrashIcon = () => (
-  <svg
-    width="12"
-    height="12"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <polyline points="3 6 5 6 21 6" />
     <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
   </svg>
 );
-
 const PlayIcon = () => (
-  <svg
-    width="12"
-    height="12"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <polygon points="5 3 19 12 5 21 5 3" />
   </svg>
 );
-
 const PauseIcon = () => (
-  <svg
-    width="12"
-    height="12"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <rect x="6" y="4" width="4" height="16" />
     <rect x="14" y="4" width="4" height="16" />
   </svg>
 );
-
 const FolderOpenIcon = () => (
-  <svg
-    width="14"
-    height="14"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
   </svg>
 );
-
 const FileIcon = () => (
-  <svg
-    width="12"
-    height="12"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" />
     <polyline points="13 2 13 9 20 9" />
   </svg>
 );
-
 const HistoryIcon = () => (
-  <svg
-    width="12"
-    height="12"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <circle cx="12" cy="12" r="10" />
     <polyline points="12 6 12 12 16 14" />
   </svg>
 );
-
 const CheckCircleIcon = () => (
-  <svg
-    width="12"
-    height="12"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
     <polyline points="22 4 12 14.01 9 11.01" />
   </svg>
 );
-
 const XCircleIcon = () => (
-  <svg
-    width="12"
-    height="12"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <circle cx="12" cy="12" r="10" />
     <line x1="18" y1="6" x2="6" y2="18" />
     <line x1="6" y1="6" x2="18" y2="18" />
   </svg>
 );
-
 const EditPenIcon = () => (
-  <svg
-    width="40"
-    height="40"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.5"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
+  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
     <path d="M17 3l4 4-7 7H10v-4l7-7z" />
     <path d="M4 20h16" />
   </svg>
 );
-
 interface TaskEditPanelProps {
   t: (key: string, params?: any) => string;
   task: ScheduledTask | null;
@@ -220,15 +99,7 @@ interface TaskEditPanelProps {
   onClose: () => void;
 }
 const DEFAULT_WEEK_DAYS = ["日", "一", "二", "三", "四", "五", "六"];
-const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
-  t,
-  task,
-  isCreating = false,
-  onTaskCreated,
-  onTaskUpdated,
-  onTaskDeleted,
-  onClose,
-}) => {
+const TaskEditPanel: React.FC<TaskEditPanelProps> = ({ t, task, isCreating = false, onTaskCreated, onTaskUpdated, onTaskDeleted, onClose }) => {
   const [name, setName] = useState("");
   const [scheduleType, setScheduleType] = useState<ScheduleType>("fixed");
   const [actionType, setActionType] = useState<ActionType>("naturallanguage");
@@ -249,27 +120,15 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isToggling, setIsToggling] = useState(false);
-  const [workflowDisplayNames, setWorkflowDisplayNames] = useState<
-    Map<string, string>
-  >(new Map());
-
+  const [workflowDisplayNames, setWorkflowDisplayNames] = useState<Map<string, string>>(new Map());
   const getWeekDayNames = (): string[] => {
     const weekNames = t("scheduled.weekDayNames");
     if (Array.isArray(weekNames) && weekNames.length === 7) {
       return weekNames;
     }
-    return [
-      t("scheduled.sun"),
-      t("scheduled.mon"),
-      t("scheduled.tue"),
-      t("scheduled.wed"),
-      t("scheduled.thu"),
-      t("scheduled.fri"),
-      t("scheduled.sat"),
-    ];
+    return [t("scheduled.sun"), t("scheduled.mon"), t("scheduled.tue"), t("scheduled.wed"), t("scheduled.thu"), t("scheduled.fri"), t("scheduled.sat")];
   };
   const weekDayNames = getWeekDayNames();
-
   const loadWorkflowModes = async () => {
     setIsLoadingWorkflows(true);
     try {
@@ -278,12 +137,10 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
       const lang = localStorage.getItem("hippox-language") || "en";
       const displayNames = new Map<string, string>();
       for (const mode of modes) {
-        const displayName =
-          await workflowCommands.workflowModeDisplayNameByLang(mode, lang);
+        const displayName = await workflowCommands.workflowModeDisplayNameByLang(mode, lang);
         displayNames.set(mode, displayName);
       }
       setWorkflowDisplayNames(displayNames);
-
       if (modes.length > 0 && !workflowMode) {
         setWorkflowMode(modes[0]);
       }
@@ -292,27 +149,18 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
       setIsLoadingWorkflows(false);
     }
   };
-
   useEffect(() => {
     const handleLanguageChange = () => {
       loadWorkflowModes();
     };
-    window.addEventListener(
-      "language-changed",
-      handleLanguageChange as EventListener,
-    );
+    window.addEventListener("language-changed", handleLanguageChange as EventListener);
     return () => {
-      window.removeEventListener(
-        "language-changed",
-        handleLanguageChange as EventListener,
-      );
+      window.removeEventListener("language-changed", handleLanguageChange as EventListener);
     };
   }, []);
-
   useEffect(() => {
     loadWorkflowModes();
   }, []);
-
   const loadTaskData = async () => {
     if (!task) return;
     setName(task.name);
@@ -334,9 +182,7 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
       setSkillFileName("SKILL.md");
       setNaturalLanguage("");
     }
-    const { scheduleType: st, config } = fromScheduleConfig(
-      task.schedule_config,
-    );
+    const { scheduleType: st, config } = fromScheduleConfig(task.schedule_config);
     if (st === "fixed") {
       const fixedConfig = config as FixedScheduleConfig;
       setFixedFrequency(fixedConfig.frequency);
@@ -350,7 +196,6 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
       setIntervalValue(intervalConfig.value);
     }
   };
-
   useEffect(() => {
     if (task) {
       loadTaskData();
@@ -361,7 +206,6 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
       }
     }
   }, [task, isCreating, workflowModes]);
-
   const resetForm = () => {
     setName("");
     setScheduleType("fixed");
@@ -383,7 +227,6 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
       fileInputRef.current.value = "";
     }
   };
-
   const getCurrentScheduleConfig = () => {
     if (scheduleType === "fixed") {
       return {
@@ -400,13 +243,11 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
       };
     }
   };
-
   const validateForm = (): boolean => {
     if (!name.trim()) {
       showToast(ToastType.WARNING, t("scheduled.taskNameRequired"));
       return false;
     }
-
     if (actionType === "naturallanguage") {
       if (!naturalLanguage.trim()) {
         showToast(ToastType.WARNING, t("scheduled.taskDescriptionRequired"));
@@ -418,7 +259,6 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
         return false;
       }
     }
-
     if (scheduleType === "fixed") {
       if (!fixedTime) {
         showToast(ToastType.WARNING, t("scheduled.timeRequired"));
@@ -434,10 +274,8 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
         return false;
       }
     }
-
     return true;
   };
-
   const handleSave = async () => {
     if (!validateForm()) return;
     const scheduleConfigRaw = getCurrentScheduleConfig();
@@ -452,10 +290,8 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
           schedule_config: scheduleConfig,
           enabled: task.enabled,
           action_type: actionType,
-          natural_language_content:
-            actionType === "naturallanguage" ? naturalLanguage : undefined,
-          skill_md_content:
-            actionType === "skillfile" ? skillContent : undefined,
+          natural_language_content: actionType === "naturallanguage" ? naturalLanguage : undefined,
+          skill_md_content: actionType === "skillfile" ? skillContent : undefined,
           workflow_mode: workflowMode,
         };
         const response = await scheduledTasksCommands.update(request);
@@ -467,10 +303,8 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
           schedule_config: scheduleConfig,
           enabled: true,
           action_type: actionType,
-          natural_language_content:
-            actionType === "naturallanguage" ? naturalLanguage : undefined,
-          skill_md_content:
-            actionType === "skillfile" ? skillContent : undefined,
+          natural_language_content: actionType === "naturallanguage" ? naturalLanguage : undefined,
+          skill_md_content: actionType === "skillfile" ? skillContent : undefined,
           workflow_mode: workflowMode,
         };
         const response = await scheduledTasksCommands.create(request);
@@ -483,7 +317,6 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
       setIsSaving(false);
     }
   };
-
   const handleDelete = async () => {
     if (!task) return;
     showDialog(
@@ -506,15 +339,11 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
       t("settings.cancel"),
     );
   };
-
   const handleToggle = async () => {
     if (!task) return;
     setIsToggling(true);
     try {
-      const updatedTask = await scheduledTasksCommands.toggle(
-        task.id,
-        !task.enabled,
-      );
+      const updatedTask = await scheduledTasksCommands.toggle(task.id, !task.enabled);
       onTaskUpdated(updatedTask);
     } catch (error) {
       showToast(ToastType.ERROR, t("scheduled.toggleFailed"));
@@ -522,7 +351,6 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
       setIsToggling(false);
     }
   };
-
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -539,7 +367,6 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
     };
     reader.readAsText(file);
   };
-
   const handleRemoveSkillFile = () => {
     setSkillContent("");
     setSkillFileName("");
@@ -548,7 +375,6 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
     }
     showToast(ToastType.INFO, t("scheduled.fileRemoved"));
   };
-
   const toggleWeekDay = (day: number) => {
     if (fixedWeekDays.includes(day)) {
       setFixedWeekDays(fixedWeekDays.filter((d) => d !== day));
@@ -556,7 +382,6 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
       setFixedWeekDays([...fixedWeekDays, day].sort());
     }
   };
-
   const toggleMonthDay = (day: number) => {
     if (fixedMonthDays.includes(day)) {
       setFixedMonthDays(fixedMonthDays.filter((d) => d !== day));
@@ -564,7 +389,6 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
       setFixedMonthDays([...fixedMonthDays, day].sort());
     }
   };
-
   const labelStyle: React.CSSProperties = {
     display: "block",
     fontSize: "11px",
@@ -572,7 +396,6 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
     color: "var(--text-secondary)",
     marginBottom: "4px",
   };
-
   const inputStyle: React.CSSProperties = {
     width: "100%",
     padding: "6px 10px",
@@ -585,19 +408,16 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
     boxSizing: "border-box" as const,
     transition: "border-color 0.2s",
   };
-
   const textareaStyle: React.CSSProperties = {
     ...inputStyle,
     minHeight: "70px",
     resize: "vertical" as const,
     fontFamily: "inherit",
   };
-
   const selectStyle: React.CSSProperties = {
     ...inputStyle,
     cursor: "pointer",
   };
-
   const radioLabelStyle: React.CSSProperties = {
     display: "flex",
     alignItems: "center",
@@ -606,7 +426,6 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
     fontSize: "12px",
     color: "var(--text-primary)",
   };
-
   const radioInputStyle: React.CSSProperties = {
     appearance: "none",
     width: "14px",
@@ -619,7 +438,6 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
     position: "relative",
     transition: "all 0.2s",
   };
-
   const buttonStyle: React.CSSProperties = {
     padding: "5px 14px",
     background: "var(--bg-tertiary)",
@@ -634,28 +452,24 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
     alignItems: "center",
     gap: "6px",
   };
-
   const primaryButtonStyle: React.CSSProperties = {
     ...buttonStyle,
     background: "var(--accent-color)",
     color: "white",
     border: "none",
   };
-
   const deleteButtonStyle: React.CSSProperties = {
     ...buttonStyle,
     color: "#ef4444",
     borderColor: "#ef4444",
     background: "transparent",
   };
-
   const toggleButtonStyle: React.CSSProperties = {
     ...buttonStyle,
     background: "rgba(16, 185, 129, 0.1)",
     color: "#10b981",
     border: "1px solid #10b981",
   };
-
   if (!task && !isCreating && !isSaving) {
     return (
       <div
@@ -698,16 +512,12 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
           >
             {t("scheduled.selectTaskToEdit")}
           </div>
-          <div style={{ fontSize: "10px", color: "var(--text-muted)" }}>
-            {t("scheduled.clickTaskHint")}
-          </div>
+          <div style={{ fontSize: "10px", color: "var(--text-muted)" }}>{t("scheduled.clickTaskHint")}</div>
         </div>
       </div>
     );
   }
-
   const isEditMode = !!task;
-
   return (
     <div
       className="task-edit-panel-no-select"
@@ -771,7 +581,6 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
           ✕
         </button>
       </div>
-
       <div
         style={{
           flex: 1,
@@ -783,8 +592,7 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
       >
         <div style={{ marginBottom: "12px" }}>
           <label style={labelStyle}>
-            {t("scheduled.taskName")}{" "}
-            <span style={{ color: "#ef4444" }}>*</span>
+            {t("scheduled.taskName")} <span style={{ color: "#ef4444" }}>*</span>
           </label>
           <input
             type="text"
@@ -798,7 +606,6 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
             }}
           />
         </div>
-
         <div style={{ marginBottom: "12px" }}>
           <label style={labelStyle}>{t("scheduled.taskType")}</label>
           <div style={{ display: "flex", gap: "20px" }}>
@@ -830,25 +637,17 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
             </label>
           </div>
         </div>
-
         {scheduleType === "fixed" && (
           <>
             <div style={{ marginBottom: "12px" }}>
               <label style={labelStyle}>{t("scheduled.frequency")}</label>
-              <select
-                style={selectStyle}
-                value={fixedFrequency}
-                onChange={(e) => setFixedFrequency(e.target.value as Frequency)}
-              >
+              <select style={selectStyle} value={fixedFrequency} onChange={(e) => setFixedFrequency(e.target.value as Frequency)}>
                 <option value="daily">{t("scheduled.frequencyDaily")}</option>
                 <option value="weekly">{t("scheduled.frequencyWeekly")}</option>
-                <option value="monthly">
-                  {t("scheduled.frequencyMonthly")}
-                </option>
+                <option value="monthly">{t("scheduled.frequencyMonthly")}</option>
                 <option value="once">{t("scheduled.frequencyOnce")}</option>
               </select>
             </div>
-
             {fixedFrequency === "weekly" && (
               <div style={{ marginBottom: "12px" }}>
                 <label style={labelStyle}>{t("scheduled.weekDays")}</label>
@@ -860,14 +659,10 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
                       style={{
                         width: "32px",
                         height: "28px",
-                        background: fixedWeekDays.includes(idx)
-                          ? "var(--accent-color)"
-                          : "var(--bg-tertiary)",
+                        background: fixedWeekDays.includes(idx) ? "var(--accent-color)" : "var(--bg-tertiary)",
                         border: "1px solid var(--border-color)",
                         borderRadius: "5px",
-                        color: fixedWeekDays.includes(idx)
-                          ? "white"
-                          : "var(--text-secondary)",
+                        color: fixedWeekDays.includes(idx) ? "white" : "var(--text-secondary)",
                         cursor: "pointer",
                         fontSize: "11px",
                         transition: "all 0.2s",
@@ -875,10 +670,7 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
                       onClick={() => toggleWeekDay(idx)}
                       onMouseEnter={(e) => {
                         const target = e.currentTarget;
-                        showTooltip(
-                          t("scheduled.weekDayToolTip", { day: day }),
-                          target,
-                        );
+                        showTooltip(t("scheduled.weekDayToolTip", { day: day }), target);
                       }}
                     >
                       {day}
@@ -887,7 +679,6 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
                 </div>
               </div>
             )}
-
             {fixedFrequency === "monthly" && (
               <div style={{ marginBottom: "12px" }}>
                 <label style={labelStyle}>{t("scheduled.monthDays")}</label>
@@ -907,14 +698,10 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
                       style={{
                         width: "32px",
                         height: "28px",
-                        background: fixedMonthDays.includes(day)
-                          ? "var(--accent-color)"
-                          : "var(--bg-tertiary)",
+                        background: fixedMonthDays.includes(day) ? "var(--accent-color)" : "var(--bg-tertiary)",
                         border: "1px solid var(--border-color)",
                         borderRadius: "5px",
-                        color: fixedMonthDays.includes(day)
-                          ? "white"
-                          : "var(--text-secondary)",
+                        color: fixedMonthDays.includes(day) ? "white" : "var(--text-secondary)",
                         cursor: "pointer",
                         fontSize: "11px",
                         transition: "all 0.2s",
@@ -922,10 +709,7 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
                       onClick={() => toggleMonthDay(day)}
                       onMouseEnter={(e) => {
                         const target = e.currentTarget;
-                        showTooltip(
-                          t("scheduled.monthDayToolTip", { day: day }),
-                          target,
-                        );
+                        showTooltip(t("scheduled.monthDayToolTip", { day: day }), target);
                       }}
                     >
                       {day}
@@ -934,54 +718,27 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
                 </div>
               </div>
             )}
-
             {fixedFrequency === "once" && (
               <div style={{ marginBottom: "12px" }}>
                 <label style={labelStyle}>{t("scheduled.date")}</label>
-                <input
-                  type="date"
-                  style={inputStyle}
-                  value={fixedDate}
-                  onChange={(e) => setFixedDate(e.target.value)}
-                />
+                <input type="date" style={inputStyle} value={fixedDate} onChange={(e) => setFixedDate(e.target.value)} />
               </div>
             )}
-
             <div style={{ marginBottom: "12px" }}>
               <label style={labelStyle}>{t("scheduled.time")}</label>
-              <input
-                type="time"
-                style={{ ...inputStyle, maxWidth: "120px" }}
-                value={fixedTime}
-                onChange={(e) => setFixedTime(e.target.value)}
-              />
+              <input type="time" style={{ ...inputStyle, maxWidth: "120px" }} value={fixedTime} onChange={(e) => setFixedTime(e.target.value)} />
             </div>
           </>
         )}
-
         {scheduleType === "interval" && (
           <div style={{ display: "flex", gap: "10px", marginBottom: "12px" }}>
             <div style={{ flex: 1 }}>
               <label style={labelStyle}>{t("scheduled.intervalValue")}</label>
-              <input
-                type="number"
-                style={inputStyle}
-                value={intervalValue}
-                onChange={(e) =>
-                  setIntervalValue(Math.max(1, parseInt(e.target.value) || 1))
-                }
-                min={1}
-              />
+              <input type="number" style={inputStyle} value={intervalValue} onChange={(e) => setIntervalValue(Math.max(1, parseInt(e.target.value) || 1))} min={1} />
             </div>
             <div style={{ flex: 1 }}>
               <label style={labelStyle}>{t("scheduled.intervalUnit")}</label>
-              <select
-                style={selectStyle}
-                value={intervalUnit}
-                onChange={(e) =>
-                  setIntervalUnit(e.target.value as IntervalUnit)
-                }
-              >
+              <select style={selectStyle} value={intervalUnit} onChange={(e) => setIntervalUnit(e.target.value as IntervalUnit)}>
                 <option value="second">{t("scheduled.unitSecond")}</option>
                 <option value="minute">{t("scheduled.unitMinute")}</option>
                 <option value="hour">{t("scheduled.unitHour")}</option>
@@ -990,40 +747,23 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
             </div>
           </div>
         )}
-
         <div style={{ marginBottom: "12px" }}>
           <label style={labelStyle}>{t("scheduled.actionType")}</label>
           <div style={{ display: "flex", gap: "20px" }}>
             <label style={radioLabelStyle}>
-              <input
-                type="radio"
-                checked={actionType === "naturallanguage"}
-                onChange={() => setActionType("naturallanguage")}
-                style={radioInputStyle}
-              />
+              <input type="radio" checked={actionType === "naturallanguage"} onChange={() => setActionType("naturallanguage")} style={radioInputStyle} />
               <span>{t("scheduled.typeNatural")}</span>
             </label>
             <label style={radioLabelStyle}>
-              <input
-                type="radio"
-                checked={actionType === "skillfile"}
-                onChange={() => setActionType("skillfile")}
-                style={radioInputStyle}
-              />
+              <input type="radio" checked={actionType === "skillfile"} onChange={() => setActionType("skillfile")} style={radioInputStyle} />
               <span>{t("scheduled.typeSkillFile")}</span>
             </label>
           </div>
         </div>
-
         {/* Workflow Mode Selection */}
         <div style={{ marginBottom: "12px" }}>
           <label style={labelStyle}>{t("scheduled.workflowMode")}</label>
-          <select
-            style={selectStyle}
-            value={workflowMode}
-            onChange={(e) => setWorkflowMode(e.target.value)}
-            disabled={isLoadingWorkflows || workflowModes.length === 0}
-          >
+          <select style={selectStyle} value={workflowMode} onChange={(e) => setWorkflowMode(e.target.value)} disabled={isLoadingWorkflows || workflowModes.length === 0}>
             {workflowModes.map((mode) => (
               <option key={mode} value={mode}>
                 {workflowDisplayNames.get(mode) || mode}
@@ -1043,30 +783,16 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
             </div>
           )}
         </div>
-
         {actionType === "naturallanguage" && (
           <div style={{ marginBottom: "12px" }}>
             <label style={labelStyle}>{t("scheduled.taskDescription")}</label>
-            <textarea
-              style={textareaStyle}
-              value={naturalLanguage}
-              onChange={(e) => setNaturalLanguage(e.target.value)}
-              placeholder={t("scheduled.naturalLanguagePlaceholder")}
-              rows={3}
-            />
+            <textarea style={textareaStyle} value={naturalLanguage} onChange={(e) => setNaturalLanguage(e.target.value)} placeholder={t("scheduled.naturalLanguagePlaceholder")} rows={3} />
           </div>
         )}
-
         {actionType === "skillfile" && (
           <div style={{ marginBottom: "12px" }}>
             <label style={labelStyle}>{t("scheduled.skillFile")}</label>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".md,.skill.md"
-              style={{ display: "none" }}
-              onChange={handleFileSelect}
-            />
+            <input ref={fileInputRef} type="file" accept=".md,.skill.md" style={{ display: "none" }} onChange={handleFileSelect} />
             {!skillContent ? (
               <button
                 type="button"
@@ -1104,18 +830,10 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
                   <FileIcon />
                   {skillFileName}
                 </span>
-                <button
-                  type="button"
-                  style={buttonStyle}
-                  onClick={() => fileInputRef.current?.click()}
-                >
+                <button type="button" style={buttonStyle} onClick={() => fileInputRef.current?.click()}>
                   {t("scheduled.replaceFile")}
                 </button>
-                <button
-                  type="button"
-                  style={deleteButtonStyle}
-                  onClick={handleRemoveSkillFile}
-                >
+                <button type="button" style={deleteButtonStyle} onClick={handleRemoveSkillFile}>
                   <TrashIcon />
                   {t("scheduled.remove")}
                 </button>
@@ -1123,7 +841,6 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
             )}
           </div>
         )}
-
         {isEditMode && task && task.last_executed_at && (
           <div
             style={{
@@ -1157,9 +874,7 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
                 fontSize: "10px",
               }}
             >
-              <span style={{ color: "var(--text-muted)" }}>
-                {new Date(task.last_executed_at).toLocaleString()}
-              </span>
+              <span style={{ color: "var(--text-muted)" }}>{new Date(task.last_executed_at).toLocaleString()}</span>
               <span
                 style={{
                   color: task.last_status === "failed" ? "#ef4444" : "#10b981",
@@ -1168,11 +883,7 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
                   gap: "3px",
                 }}
               >
-                {task.last_status === "failed" ? (
-                  <XCircleIcon />
-                ) : (
-                  <CheckCircleIcon />
-                )}
+                {task.last_status === "failed" ? <XCircleIcon /> : <CheckCircleIcon />}
                 {task.last_status || "success"}
               </span>
             </div>
@@ -1190,7 +901,6 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
             </div>
           </div>
         )}
-
         {isEditMode && task && (
           <div
             style={{
@@ -1222,25 +932,11 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
                 }}
               >
                 {task.enabled ? (
-                  <svg
-                    width="12"
-                    height="12"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                  >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <polygon points="5 3 19 12 5 21 5 3" />
                   </svg>
                 ) : (
-                  <svg
-                    width="12"
-                    height="12"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                  >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <rect x="6" y="4" width="4" height="16" />
                     <rect x="14" y="4" width="4" height="16" />
                   </svg>
@@ -1250,11 +946,7 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
               <span
                 style={{
                   flex: 1,
-                  color: task.enabled
-                    ? "#10b981"
-                    : task.completed
-                      ? "#8b5cf6"
-                      : "var(--text-muted)",
+                  color: task.enabled ? "#10b981" : task.completed ? "#8b5cf6" : "var(--text-muted)",
                   overflow: "hidden",
                   textOverflow: "ellipsis",
                   whiteSpace: "nowrap",
@@ -1262,22 +954,13 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
                   cursor: "pointer",
                 }}
                 onMouseEnter={(e) => {
-                  const statusText = task.completed
-                    ? t("scheduled.completed")
-                    : task.enabled
-                      ? t("scheduled.enabled")
-                      : t("scheduled.disabled");
+                  const statusText = task.completed ? t("scheduled.completed") : task.enabled ? t("scheduled.enabled") : t("scheduled.disabled");
                   showTooltip(statusText, e.currentTarget);
                 }}
               >
-                {task.completed
-                  ? t("scheduled.completed")
-                  : task.enabled
-                    ? t("scheduled.enabled")
-                    : t("scheduled.disabled")}
+                {task.completed ? t("scheduled.completed") : task.enabled ? t("scheduled.enabled") : t("scheduled.disabled")}
               </span>
             </div>
-
             <div
               style={{
                 display: "flex",
@@ -1339,20 +1022,12 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
                   e.currentTarget.style.background = "none";
                 }}
               >
-                <svg
-                  width="12"
-                  height="12"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
                   <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
                 </svg>
               </button>
             </div>
-
             <div
               style={{
                 display: "flex",
@@ -1413,20 +1088,12 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
                   e.currentTarget.style.background = "none";
                 }}
               >
-                <svg
-                  width="12"
-                  height="12"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
                   <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
                 </svg>
               </button>
             </div>
-
             <div
               style={{
                 display: "flex",
@@ -1458,19 +1125,14 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
                   cursor: "pointer",
                 }}
                 onMouseEnter={(e) => {
-                  showTooltip(
-                    new Date(task.created_at).toLocaleString(),
-                    e.currentTarget,
-                  );
+                  showTooltip(new Date(task.created_at).toLocaleString(), e.currentTarget);
                 }}
               >
                 {new Date(task.created_at).toLocaleString()}
               </span>
               <button
                 onClick={() => {
-                  navigator.clipboard.writeText(
-                    new Date(task.created_at).toLocaleString(),
-                  );
+                  navigator.clipboard.writeText(new Date(task.created_at).toLocaleString());
                   showToast(ToastType.SUCCESS, t("common.copied"));
                 }}
                 style={{
@@ -1492,20 +1154,12 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
                   e.currentTarget.style.background = "none";
                 }}
               >
-                <svg
-                  width="12"
-                  height="12"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
                   <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
                 </svg>
               </button>
             </div>
-
             <div
               style={{
                 display: "flex",
@@ -1523,14 +1177,7 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
                   gap: "4px",
                 }}
               >
-                <svg
-                  width="12"
-                  height="12"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <circle cx="12" cy="12" r="10" />
                   <polyline points="12 6 12 12 16 14" />
                 </svg>
@@ -1547,19 +1194,14 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
                   cursor: "pointer",
                 }}
                 onMouseEnter={(e) => {
-                  showTooltip(
-                    new Date(task.updated_at).toLocaleString(),
-                    e.currentTarget,
-                  );
+                  showTooltip(new Date(task.updated_at).toLocaleString(), e.currentTarget);
                 }}
               >
                 {new Date(task.updated_at).toLocaleString()}
               </span>
               <button
                 onClick={() => {
-                  navigator.clipboard.writeText(
-                    new Date(task.updated_at).toLocaleString(),
-                  );
+                  navigator.clipboard.writeText(new Date(task.updated_at).toLocaleString());
                   showToast(ToastType.SUCCESS, t("common.copied"));
                 }}
                 style={{
@@ -1581,20 +1223,12 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
                   e.currentTarget.style.background = "none";
                 }}
               >
-                <svg
-                  width="12"
-                  height="12"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
                   <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
                 </svg>
               </button>
             </div>
-
             <div
               style={{
                 display: "flex",
@@ -1612,14 +1246,7 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
                   gap: "4px",
                 }}
               >
-                <svg
-                  width="12"
-                  height="12"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
                   <circle cx="12" cy="12" r="3" />
                 </svg>
@@ -1636,16 +1263,12 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
                   cursor: "pointer",
                 }}
                 onMouseEnter={(e) => {
-                  showTooltip(
-                    `${t("scheduled.executeCount")}: ${task.execution_count || 0} ${t("scheduled.times")}`,
-                    e.currentTarget,
-                  );
+                  showTooltip(`${t("scheduled.executeCount")}: ${task.execution_count || 0} ${t("scheduled.times")}`, e.currentTarget);
                 }}
               >
                 {task.execution_count || 0} {t("scheduled.times")}
               </span>
             </div>
-
             {/* Display workflow mode in info section */}
             <div
               style={{
@@ -1664,19 +1287,8 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
                   gap: "4px",
                 }}
               >
-                <svg
-                  width="12"
-                  height="12"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <path
-                    d="M4 7h16M4 12h16M4 17h10"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M4 7h16M4 12h16M4 17h10" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
                 {t("scheduled.workflowMode")}:
               </span>
@@ -1694,9 +1306,7 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
                   showTooltip(task.workflow_mode || "ReAct", e.currentTarget);
                 }}
               >
-                {workflowDisplayNames.get(task.workflow_mode || "ReAct") ||
-                  task.workflow_mode ||
-                  "ReAct"}
+                {workflowDisplayNames.get(task.workflow_mode || "ReAct") || task.workflow_mode || "ReAct"}
               </span>
             </div>
           </div>
@@ -1719,9 +1329,7 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
               disabled={isToggling}
               style={{
                 padding: "5px 14px",
-                background: task?.enabled
-                  ? "rgba(245, 158, 11, 0.15)"
-                  : "rgba(16, 185, 129, 0.15)",
+                background: task?.enabled ? "rgba(245, 158, 11, 0.15)" : "rgba(16, 185, 129, 0.15)",
                 border: `1px solid ${task?.enabled ? "#f59e0b" : "#10b981"}`,
                 borderRadius: "6px",
                 color: task?.enabled ? "#f59e0b" : "#10b981",
@@ -1734,20 +1342,11 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
                 gap: "6px",
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = task?.enabled
-                  ? "rgba(245, 158, 11, 0.25)"
-                  : "rgba(16, 185, 129, 0.25)";
-                showTooltip(
-                  task?.enabled
-                    ? t("scheduled.disableToolTip")
-                    : t("scheduled.enableToolTip"),
-                  e.currentTarget,
-                );
+                e.currentTarget.style.background = task?.enabled ? "rgba(245, 158, 11, 0.25)" : "rgba(16, 185, 129, 0.25)";
+                showTooltip(task?.enabled ? t("scheduled.disableToolTip") : t("scheduled.enableToolTip"), e.currentTarget);
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.background = task?.enabled
-                  ? "rgba(245, 158, 11, 0.15)"
-                  : "rgba(16, 185, 129, 0.15)";
+                e.currentTarget.style.background = task?.enabled ? "rgba(245, 158, 11, 0.15)" : "rgba(16, 185, 129, 0.15)";
               }}
             >
               {task?.enabled ? <PauseIcon /> : <PlayIcon />}
@@ -1783,7 +1382,6 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({
     </div>
   );
 };
-
 const radioCheckedStyle = `
 input[type="radio"]:checked {
   background: #a0a0a0 !important;
@@ -1797,7 +1395,6 @@ input[type="radio"]:checked {
     outline: none;
   }
 `;
-
 const noSelectStyle = `
 .task-edit-panel-no-select {
   user-select: none;
@@ -1805,8 +1402,7 @@ const noSelectStyle = `
   -moz-user-select: none;
   -ms-user-select: none;
 }
-
-.task-edit-panel-no-select input,
+ .task-edit-panel-no-select input,
 .task-edit-panel-no-select textarea,
 .task-edit-panel-no-select [contenteditable="true"] {
   user-select: text;
@@ -1815,7 +1411,6 @@ const noSelectStyle = `
   -ms-user-select: text;
 }
 `;
-
 if (typeof document !== "undefined") {
   const noSelectStyleId = "task-edit-panel-no-select-styles";
   if (!document.getElementById(noSelectStyleId)) {
@@ -1825,7 +1420,6 @@ if (typeof document !== "undefined") {
     document.head.appendChild(style);
   }
 }
-
 if (typeof document !== "undefined") {
   const styleId = "task-edit-radio-styles";
   if (!document.getElementById(styleId)) {
@@ -1835,5 +1429,4 @@ if (typeof document !== "undefined") {
     document.head.appendChild(style);
   }
 }
-
 export default TaskEditPanel;

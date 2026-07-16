@@ -1,13 +1,11 @@
 import { useState, useEffect } from "react";
 import { hippoxCommands } from "../../command/chat";
 import { configCommands } from "../../command/config";
-
 export function useConfigLoader() {
   const [isConfigLoaded, setIsConfigLoaded] = useState(false);
   const [initialEngineConfig, setInitialEngineConfig] = useState<any>(null);
   const [initialTheme, setInitialTheme] = useState<string>("dark");
   const [initialLanguage, setInitialLanguage] = useState<string>("en");
-
   useEffect(() => {
     const loadConfig = async () => {
       try {
@@ -28,7 +26,6 @@ export function useConfigLoader() {
     };
     loadConfig();
   }, []);
-
   return {
     isConfigLoaded,
     initialEngineConfig,

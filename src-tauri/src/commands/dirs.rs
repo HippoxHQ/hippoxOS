@@ -1,13 +1,11 @@
-use std::fs;
-use std::path::Path;
-
 use crate::commands::{
     get_app_root_dir, get_cache_dir, get_chart_dialog_history_dir, get_codeeditor_dialog_history_dir, get_data_dir, get_dialog_history_dir,
     get_log_dir, get_map_dialog_history_dir, get_material_favorites_dir, get_notifications_dir, get_sandbox3d_dialog_history_dir,
     get_scheduled_tasks_dir, get_settings_dir, get_skill_history_dir, get_skills_dir, get_skills_market_dir, get_taskpool_dir,
     get_video_editing_system_dialog_history_dir,
 };
-
+use std::fs;
+use std::path::Path;
 /// Initialize all directories
 pub fn init_directories() -> Result<(), String> {
     let dirs = vec![
@@ -40,7 +38,6 @@ pub fn init_directories() -> Result<(), String> {
     }
     Ok(())
 }
-
 /// Save dialog session to file
 pub fn save_dialog_session(session_id: &str, data: &str) -> Result<String, String> {
     let dir = get_dialog_history_dir();
@@ -53,7 +50,6 @@ pub fn save_dialog_session(session_id: &str, data: &str) -> Result<String, Strin
     fs::write(&file_path, data).map_err(|e| format!("Failed to save dialog session: {}", e))?;
     Ok(file_path.to_string_lossy().to_string())
 }
-
 /// Save scheduled task configuration to file
 pub fn save_scheduled_task(task_id: &str, data: &str) -> Result<String, String> {
     let dir = get_scheduled_tasks_dir();
@@ -65,7 +61,6 @@ pub fn save_scheduled_task(task_id: &str, data: &str) -> Result<String, String> 
     fs::write(&file_path, data).map_err(|e| format!("Failed to save scheduled task: {}", e))?;
     Ok(file_path.to_string_lossy().to_string())
 }
-
 /// Delete scheduled task configuration
 pub fn delete_scheduled_task(task_id: &str) -> Result<(), String> {
     let dir = get_scheduled_tasks_dir();
@@ -75,7 +70,6 @@ pub fn delete_scheduled_task(task_id: &str) -> Result<(), String> {
     }
     Ok(())
 }
-
 /// List all scheduled task IDs
 pub fn list_scheduled_task_ids() -> Result<Vec<String>, String> {
     let dir = get_scheduled_tasks_dir();
@@ -94,7 +88,6 @@ pub fn list_scheduled_task_ids() -> Result<Vec<String>, String> {
     }
     Ok(tasks)
 }
-
 /// Save internal setting to config directory
 pub fn save_internal_setting(setting_dir: &Path, key: &str, data: &str) -> Result<String, String> {
     if !setting_dir.exists() {
@@ -104,7 +97,6 @@ pub fn save_internal_setting(setting_dir: &Path, key: &str, data: &str) -> Resul
     fs::write(&file_path, data).map_err(|e| format!("Failed to save setting: {}", e))?;
     Ok(file_path.to_string_lossy().to_string())
 }
-
 /// Load internal setting from config directory
 pub fn load_internal_setting(setting_dir: &Path, key: &str) -> Result<Option<String>, String> {
     let file_path = setting_dir.join(format!("{}.json", key));
@@ -115,7 +107,6 @@ pub fn load_internal_setting(setting_dir: &Path, key: &str) -> Result<Option<Str
         Ok(None)
     }
 }
-
 pub fn init_default_session_if_empty() -> Result<(), String> {
     let dir = get_dialog_history_dir();
     if !dir.exists() {

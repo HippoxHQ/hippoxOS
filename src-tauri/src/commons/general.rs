@@ -1,9 +1,7 @@
+use crate::commands::get_settings_dir;
 use serde_json::Value;
 use std::fs;
 use std::path::PathBuf;
-
-use crate::commands::get_settings_dir;
-
 pub fn get_setting(key: &str) -> Result<Value, String> {
     let config_path = get_settings_config_path()?;
     if config_path.exists() {
@@ -15,7 +13,6 @@ pub fn get_setting(key: &str) -> Result<Value, String> {
     }
     Ok(Value::Null)
 }
-
 pub fn set_setting(key: &str, value: Value) -> Result<(), String> {
     let config_path = get_settings_config_path()?;
     let settings_dir = get_settings_dir();
@@ -33,7 +30,6 @@ pub fn set_setting(key: &str, value: Value) -> Result<(), String> {
     fs::write(&config_path, content).map_err(|e| format!("Failed to save settings config: {}", e))?;
     Ok(())
 }
-
 pub fn get_setting_with_default(key: &str, default: Value) -> Result<Value, String> {
     let value = get_setting(key)?;
     if value.is_null() {
@@ -42,12 +38,10 @@ pub fn get_setting_with_default(key: &str, default: Value) -> Result<Value, Stri
         Ok(value)
     }
 }
-
 fn get_settings_config_path() -> Result<PathBuf, String> {
     let settings_dir = get_settings_dir();
     Ok(settings_dir.join("config.json"))
 }
-
 pub fn init_default_settings() -> Result<(), String> {
     let config_path = get_settings_config_path()?;
     if !config_path.exists() {
@@ -67,17 +61,14 @@ pub fn init_default_settings() -> Result<(), String> {
     }
     Ok(())
 }
-
 pub fn get_app_data_dir() -> PathBuf {
     let settings_dir = get_settings_dir();
     settings_dir.parent().unwrap_or(&settings_dir).to_path_buf()
 }
-
 pub fn get_sessions_dir() -> PathBuf {
     let app_data_dir = get_app_data_dir();
     app_data_dir.join("dialog_sessions")
 }
-
 pub fn get_logs_dir() -> PathBuf {
     let app_data_dir = get_app_data_dir();
     app_data_dir.join("logs")

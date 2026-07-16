@@ -1,14 +1,12 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { SearchResult } from "../types";
 import { searchService } from "../../../../command/search";
-
 interface UseSearchProps {
   searchQuery: string;
   sessionTitlesMap?: Map<string, string>;
   onResultsChange: (results: SearchResult[]) => void;
   onLoadingChange: (loading: boolean) => void;
 }
-
 export const useSearch = ({
   searchQuery,
   sessionTitlesMap,
@@ -66,7 +64,6 @@ export const useSearch = ({
       }
     };
   }, []);
-
   useEffect(() => {
     if (!searchQuery.trim()) {
       previousQueryRef.current = "";

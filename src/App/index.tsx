@@ -19,51 +19,19 @@ import { useSystemEvents, useDirectoryEvents } from "./hooks/useSystemEvents";
 import { useTaskEvents } from "./hooks/useTaskEvents";
 import { useTheme } from "./hooks/useTheme";
 import { useMenuPanel } from "./hooks/useMenuPanel";
-
 function App() {
-  const { isConfigLoaded, initialEngineConfig, initialTheme, initialLanguage } =
-    useConfigLoader();
+  const { isConfigLoaded, initialEngineConfig, initialTheme, initialLanguage } = useConfigLoader();
   const { theme, handleToggleTheme } = useTheme(initialTheme);
   const { language, handleToggleLanguage, t } = useLanguage(initialLanguage);
-  const {
-    menuPanelView,
-    settingsSubView,
-    engineSubView,
-    menuPanelWidth,
-    setMenuPanelWidth,
-    currentContentPanel,
-    closeContentPanel,
-    resetToChat,
-    switchMenuPanel,
-    closeMenuPanel,
-    switchContentArea,
-  } = useMenuPanel();
-  const {
-    currentSessionId,
-    isLoading,
-    handleNewSession,
-    handleSwitchSession,
-    handleSendMessage,
-    resetSession,
-    shouldShowWelcome,
-  } = useSession(language, isConfigLoaded);
+  const { menuPanelView, settingsSubView, engineSubView, menuPanelWidth, setMenuPanelWidth, currentContentPanel, closeContentPanel, resetToChat, switchMenuPanel, closeMenuPanel, switchContentArea } =
+    useMenuPanel();
+  const { currentSessionId, isLoading, handleNewSession, handleSwitchSession, handleSendMessage, resetSession, shouldShowWelcome } = useSession(language, isConfigLoaded);
   const { sidebarCollapsed, toggleSidebar } = useSidebar();
   const { layoutSwapMode, handleLayoutSwapModeChange } = useLayoutSwapMode();
-  const { functionPanelPosition, handleFunctionPanelPositionChange } =
-    useFunctionPanelPosition();
-  const {
-    isFilePreviewOpen,
-    previewFile,
-    handleFilePreview,
-    handleCloseFilePreview,
-  } = useFilePreview();
+  const { functionPanelPosition, handleFunctionPanelPositionChange } = useFunctionPanelPosition();
+  const { isFilePreviewOpen, previewFile, handleFilePreview, handleCloseFilePreview } = useFilePreview();
   const { executionLogs, clearLogs } = useExecutionLogs();
-  const {
-    isGlobalDragging,
-    isDraggingOverInput,
-    setIsDraggingOverInput,
-    showDragCursor,
-  } = useDragAndDrop();
+  const { isGlobalDragging, isDraggingOverInput, setIsDraggingOverInput, showDragCursor } = useDragAndDrop();
   const functionPanel = useFunctionPanelController();
   useTaskEvents(language);
   useDriverEvents(language);
@@ -72,7 +40,6 @@ function App() {
     resetToChat();
     handleNewSession();
   };
-
   useSystemEvents(
     handleNewSessionWithClose,
     () => switchMenuPanel("skillMarket"),
@@ -82,7 +49,6 @@ function App() {
     (subView) => switchMenuPanel("settings", subView),
   );
   useDirectoryEvents();
-
   useEffect(() => {
     const handleSearchNewSession = () => {
       handleNewSessionWithClose();
@@ -92,9 +58,7 @@ function App() {
       window.removeEventListener("search-new-session", handleSearchNewSession);
     };
   }, [handleNewSessionWithClose]);
-
   useSearchEvents(() => switchMenuPanel("skillMarket"), handleSwitchSession);
-
   useEffect(() => {
     const onSwitchEvent = (e: CustomEvent) => {
       const sessionId = e.detail?.sessionId;
@@ -104,19 +68,13 @@ function App() {
     };
     window.addEventListener("switch-session", onSwitchEvent as EventListener);
     return () => {
-      window.removeEventListener(
-        "switch-session",
-        onSwitchEvent as EventListener,
-      );
+      window.removeEventListener("switch-session", onSwitchEvent as EventListener);
     };
   }, [handleSwitchSession]);
-
   useEffect(() => {
     taskManager.setupTaskEventListeners();
   }, []);
-
   const handleSaveConfig = async (config: any) => {};
-
   const handleSidebarClick = async (view: string, subView?: string) => {
     if (view === "tasks_group") {
       switchContentArea("scheduledTasks");
@@ -168,7 +126,6 @@ function App() {
     }
     switchMenuPanel(view, subView);
   };
-
   const { onSendSkillMessage } = useSendSkillMessage({
     currentSessionId,
     currentContentPanel,
@@ -177,7 +134,6 @@ function App() {
     handleSendMessage,
     shouldShowWelcome,
   });
-
   if (!isConfigLoaded) {
     return (
       <div
@@ -193,7 +149,6 @@ function App() {
       </div>
     );
   }
-
   return (
     <AppContent
       theme={theme}
@@ -240,5 +195,4 @@ function App() {
     />
   );
 }
-
 export default App;

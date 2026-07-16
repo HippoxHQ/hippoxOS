@@ -1,5 +1,4 @@
 import React from "react";
-
 interface EditMessageFormProps {
   editContent: string;
   setEditContent: (content: string) => void;
@@ -7,14 +6,7 @@ interface EditMessageFormProps {
   onCancel: () => void;
   t: (key: string) => string;
 }
-
-export const EditMessageForm: React.FC<EditMessageFormProps> = ({
-  editContent,
-  setEditContent,
-  onSave,
-  onCancel,
-  t,
-}) => {
+export const EditMessageForm: React.FC<EditMessageFormProps> = ({ editContent, setEditContent, onSave, onCancel, t }) => {
   return (
     <div className="message-bubble" style={{ padding: "8px", background: "var(--bg-tertiary)" }}>
       <textarea

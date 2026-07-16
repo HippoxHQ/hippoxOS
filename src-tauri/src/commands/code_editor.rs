@@ -9,14 +9,12 @@ use std::process::Command;
 use std::sync::Arc;
 use tauri::command;
 use walkdir::WalkDir;
-
 #[derive(Debug, Serialize, Deserialize)]
 pub struct FileOperationResult {
     pub success: bool,
     pub message: String,
     pub path: Option<String>,
 }
-
 #[derive(Debug, Serialize, Deserialize)]
 pub struct FileMoveResult {
     pub success: bool,
@@ -24,7 +22,6 @@ pub struct FileMoveResult {
     pub old_path: Option<String>,
     pub new_path: Option<String>,
 }
-
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SearchMatch {
     pub line: String,
@@ -35,7 +32,6 @@ pub struct SearchMatch {
     pub context_after: String,
     pub matched_text: String,
 }
-
 #[derive(Debug, Serialize, Deserialize)]
 pub struct FileSearchResult {
     pub file_path: String,
@@ -43,7 +39,6 @@ pub struct FileSearchResult {
     pub match_count: usize,
     pub matches: Vec<SearchMatch>,
 }
-
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SearchInFilesResult {
     pub success: bool,
@@ -52,7 +47,6 @@ pub struct SearchInFilesResult {
     pub total_matches: usize,
     pub results: Vec<FileSearchResult>,
 }
-
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct TabFileMetadata {
     pub id: String,
@@ -61,14 +55,12 @@ pub struct TabFileMetadata {
     pub last_modified: String,
     pub tmp_path: String,
 }
-
 #[derive(Debug, Serialize, Deserialize)]
 pub struct WorkspaceMetadata {
     pub version: String,
     pub workspace: WorkspaceInfo,
     pub tabs: TabsInfo,
 }
-
 #[derive(Debug, Serialize, Deserialize)]
 pub struct WorkspaceInfo {
     pub path: String,
@@ -76,35 +68,27 @@ pub struct WorkspaceInfo {
     pub created_at: String,
     pub last_opened: String,
 }
-
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TabsInfo {
     pub files: Vec<TabFileMetadata>,
 }
-
 #[command]
 pub async fn cmd_open_in_terminal(path: String) -> Result<FileOperationResult, String> {
     let path_buf = PathBuf::from(&path);
-
     if !path_buf.exists() {
         return Ok(FileOperationResult { success: false, message: format!("Path does not exist: {}", path), path: None });
     }
-
     let target_path = if path_buf.is_file() { path_buf.parent().unwrap_or(&path_buf).to_path_buf() } else { path_buf };
-
     let path_str = target_path.to_string_lossy().to_string();
-
     #[cfg(target_os = "windows")]
     {
         let _ = Command::new("cmd").args(["/c", "start", "cmd", "/k", &format!("cd /d {}", path_str)]).spawn();
     }
-
     #[cfg(target_os = "macos")]
     {
         let script = format!(r#"tell application "Terminal" to do script "cd '{}'" "#, path_str.replace("'", "'\\''"));
         let _ = Command::new("osascript").args(["-e", &script]).spawn();
     }
-
     #[cfg(target_os = "linux")]
     {
         let _ = Command::new("gnome-terminal")
@@ -114,10 +98,8 @@ pub async fn cmd_open_in_terminal(path: String) -> Result<FileOperationResult, S
             .or_else(|_| Command::new("kitty").args(["--directory", &path_str]).spawn())
             .or_else(|_| Command::new("alacritty").args(["--working-directory", &path_str]).spawn());
     }
-
     Ok(FileOperationResult { success: true, message: "Opened in terminal".to_string(), path: Some(path_str) })
 }
-
 #[command]
 pub async fn cmd_create_file(base_path: String, file_name: String) -> Result<FileOperationResult, String> {
     let path_buf = PathBuf::from(&base_path).join(&file_name);
@@ -147,7 +129,6 @@ pub async fn cmd_create_file(base_path: String, file_name: String) -> Result<Fil
         Err(e) => Ok(FileOperationResult { success: false, message: format!("Failed to create file: {}", e), path: None }),
     }
 }
-
 #[command]
 pub async fn cmd_create_folder(base_path: String, folder_name: String) -> Result<FileOperationResult, String> {
     let path_buf = PathBuf::from(&base_path).join(&folder_name);
@@ -170,7 +151,6 @@ pub async fn cmd_create_folder(base_path: String, folder_name: String) -> Result
         Err(e) => Ok(FileOperationResult { success: false, message: format!("Failed to create folder: {}", e), path: None }),
     }
 }
-
 #[command]
 pub async fn cmd_rename(old_path: String, new_name: String) -> Result<FileMoveResult, String> {
     let old_path_buf = PathBuf::from(&old_path);
@@ -213,7 +193,6 @@ pub async fn cmd_rename(old_path: String, new_name: String) -> Result<FileMoveRe
         Err(e) => Ok(FileMoveResult { success: false, message: format!("Rename failed: {}", e), old_path: Some(old_path), new_path: None }),
     }
 }
-
 #[command]
 pub async fn cmd_delete(path: String) -> Result<FileOperationResult, String> {
     let path_buf = PathBuf::from(&path);
@@ -232,7 +211,6 @@ pub async fn cmd_delete(path: String) -> Result<FileOperationResult, String> {
         }
     }
 }
-
 #[command]
 pub async fn cmd_copy(source_path: String, target_path: String) -> Result<FileOperationResult, String> {
     let source_buf = PathBuf::from(&source_path);
@@ -256,25 +234,20 @@ pub async fn cmd_copy(source_path: String, target_path: String) -> Result<FileOp
         Err(e) => Ok(FileOperationResult { success: false, message: format!("Copy failed: {}", e), path: None }),
     }
 }
-
 #[command]
 pub async fn cmd_write_file(path: String, content: String) -> Result<FileOperationResult, String> {
     let path_buf = PathBuf::from(&path);
-
     if !path_buf.exists() {
         return Ok(FileOperationResult { success: false, message: format!("Path does not exist: {}", path), path: None });
     }
-
     if path_buf.is_dir() {
         return Ok(FileOperationResult { success: false, message: format!("Path is a directory, not a file: {}", path), path: None });
     }
-
     match fs::write(&path_buf, content) {
         Ok(_) => Ok(FileOperationResult { success: true, message: "File written successfully".to_string(), path: Some(path) }),
         Err(e) => Ok(FileOperationResult { success: false, message: format!("Failed to write file: {}", e), path: None }),
     }
 }
-
 #[command]
 pub async fn cmd_search_in_files(workspace_path: String, query: String) -> Result<SearchInFilesResult, String> {
     let workspace_buf = PathBuf::from(&workspace_path);
@@ -287,7 +260,6 @@ pub async fn cmd_search_in_files(workspace_path: String, query: String) -> Resul
             results: Vec::new(),
         });
     }
-
     let query_lower = query.to_lowercase();
     let query_regex = match Regex::new(&regex::escape(&query)) {
         Ok(re) => Arc::new(re),
@@ -348,7 +320,6 @@ pub async fn cmd_search_in_files(workspace_path: String, query: String) -> Resul
                     start = matched.end();
                 }
             }
-
             if match_count == 0 {
                 return None;
             }
@@ -365,7 +336,6 @@ pub async fn cmd_search_in_files(workspace_path: String, query: String) -> Resul
         results,
     })
 }
-
 fn is_binary_file(path: &std::path::Path) -> bool {
     if let Some(ext) = path.extension() {
         let ext = ext.to_string_lossy().to_lowercase();
@@ -377,7 +347,6 @@ fn is_binary_file(path: &std::path::Path) -> bool {
     }
     false
 }
-
 fn is_ignored_dir(name: &std::ffi::OsStr) -> bool {
     let name = name.to_string_lossy();
     name == "node_modules"
@@ -400,7 +369,6 @@ fn is_ignored_dir(name: &std::ffi::OsStr) -> bool {
         || name == "Thumbs.db"
         || name.starts_with('.')
 }
-
 fn copy_dir_all(src: &PathBuf, dst: &PathBuf) -> std::io::Result<()> {
     if !dst.exists() {
         fs::create_dir_all(dst)?;
@@ -417,15 +385,12 @@ fn copy_dir_all(src: &PathBuf, dst: &PathBuf) -> std::io::Result<()> {
     }
     Ok(())
 }
-
 fn get_tmp_dir(workspace_path: &str) -> PathBuf {
     PathBuf::from(workspace_path).join(".hippox").join("tmp")
 }
-
 fn get_metadata_path(workspace_path: &str) -> PathBuf {
     PathBuf::from(workspace_path).join(".hippox").join("metadata.json")
 }
-
 fn generate_tmp_name() -> String {
     use rand::Rng;
     const CHARSET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -438,7 +403,6 @@ fn generate_tmp_name() -> String {
         .collect();
     format!("{}.tmp", name)
 }
-
 fn get_source_path_from_metadata(metadata: &WorkspaceMetadata, tmp_path: &str) -> Option<String> {
     for file in &metadata.tabs.files {
         if file.tmp_path == tmp_path {
@@ -447,7 +411,6 @@ fn get_source_path_from_metadata(metadata: &WorkspaceMetadata, tmp_path: &str) -
     }
     None
 }
-
 #[command]
 pub async fn cmd_ensure_tmp_dir(workspace_path: String) -> Result<FileOperationResult, String> {
     let tmp_dir = get_tmp_dir(&workspace_path);
@@ -458,7 +421,6 @@ pub async fn cmd_ensure_tmp_dir(workspace_path: String) -> Result<FileOperationR
         Err(e) => Ok(FileOperationResult { success: false, message: format!("Failed to create tmp directory: {}", e), path: None }),
     }
 }
-
 #[command]
 pub async fn cmd_load_metadata(workspace_path: String) -> Result<Option<WorkspaceMetadata>, String> {
     let metadata_path = get_metadata_path(&workspace_path);
@@ -473,14 +435,12 @@ pub async fn cmd_load_metadata(workspace_path: String) -> Result<Option<Workspac
         Err(e) => Err(format!("Failed to read metadata: {}", e)),
     }
 }
-
 #[command]
 pub async fn cmd_save_metadata(workspace_path: String, metadata: WorkspaceMetadata) -> Result<FileOperationResult, String> {
     let tmp_dir = get_tmp_dir(&workspace_path);
     if let Err(e) = fs::create_dir_all(&tmp_dir) {
         return Ok(FileOperationResult { success: false, message: format!("Failed to create tmp directory: {}", e), path: None });
     }
-
     let metadata_path = get_metadata_path(&workspace_path);
     match serde_json::to_string_pretty(&metadata) {
         Ok(content) => match fs::write(&metadata_path, content) {
@@ -494,19 +454,16 @@ pub async fn cmd_save_metadata(workspace_path: String, metadata: WorkspaceMetada
         Err(e) => Ok(FileOperationResult { success: false, message: format!("Failed to serialize metadata: {}", e), path: None }),
     }
 }
-
 #[command]
 pub async fn cmd_get_tmp_file_path(workspace_path: String, tmp_name: String) -> Result<String, String> {
     let tmp_dir = get_tmp_dir(&workspace_path);
     Ok(tmp_dir.join(tmp_name).to_string_lossy().to_string())
 }
-
 #[command]
 pub async fn cmd_check_tmp_exists(workspace_path: String, tmp_name: String) -> Result<bool, String> {
     let tmp_file = get_tmp_dir(&workspace_path).join(tmp_name);
     Ok(tmp_file.exists())
 }
-
 #[command]
 pub async fn cmd_read_from_tmp(workspace_path: String, tmp_name: String) -> Result<Option<String>, String> {
     let tmp_file = get_tmp_dir(&workspace_path).join(&tmp_name);
@@ -518,21 +475,18 @@ pub async fn cmd_read_from_tmp(workspace_path: String, tmp_name: String) -> Resu
         Err(e) => Err(format!("Failed to read tmp file: {}", e)),
     }
 }
-
 #[command]
 pub async fn cmd_write_to_tmp(workspace_path: String, tmp_name: String, content: String) -> Result<FileOperationResult, String> {
     let tmp_dir = get_tmp_dir(&workspace_path);
     if let Err(e) = fs::create_dir_all(&tmp_dir) {
         return Ok(FileOperationResult { success: false, message: format!("Failed to create tmp directory: {}", e), path: None });
     }
-
     let tmp_file = tmp_dir.join(&tmp_name);
     match fs::write(&tmp_file, content) {
         Ok(_) => Ok(FileOperationResult { success: true, message: "Written to tmp".to_string(), path: Some(tmp_file.to_string_lossy().to_string()) }),
         Err(e) => Ok(FileOperationResult { success: false, message: format!("Failed to write tmp file: {}", e), path: None }),
     }
 }
-
 #[command]
 pub async fn cmd_delete_from_tmp(workspace_path: String, tmp_name: String) -> Result<FileOperationResult, String> {
     let tmp_file = get_tmp_dir(&workspace_path).join(&tmp_name);
@@ -546,7 +500,6 @@ pub async fn cmd_delete_from_tmp(workspace_path: String, tmp_name: String) -> Re
         Err(e) => Ok(FileOperationResult { success: false, message: format!("Failed to delete tmp file: {}", e), path: None }),
     }
 }
-
 #[command]
 pub async fn cmd_copy_to_tmp(workspace_path: String, source_path: String, tmp_name: String) -> Result<FileOperationResult, String> {
     let source = PathBuf::from(&source_path);
@@ -556,12 +509,10 @@ pub async fn cmd_copy_to_tmp(workspace_path: String, source_path: String, tmp_na
     if source.is_dir() {
         return Ok(FileOperationResult { success: false, message: "Cannot copy directory to tmp".to_string(), path: None });
     }
-
     let tmp_dir = get_tmp_dir(&workspace_path);
     if let Err(e) = fs::create_dir_all(&tmp_dir) {
         return Ok(FileOperationResult { success: false, message: format!("Failed to create tmp directory: {}", e), path: None });
     }
-
     let tmp_file = tmp_dir.join(&tmp_name);
     match fs::copy(&source, &tmp_file) {
         Ok(_) => {
@@ -570,19 +521,16 @@ pub async fn cmd_copy_to_tmp(workspace_path: String, source_path: String, tmp_na
         Err(e) => Ok(FileOperationResult { success: false, message: format!("Failed to copy to tmp: {}", e), path: None }),
     }
 }
-
 #[command]
 pub async fn cmd_compare_tmp_with_source(workspace_path: String, source_path: String, tmp_name: String) -> Result<bool, String> {
     let source = PathBuf::from(&source_path);
     if !source.exists() {
         return Ok(false);
     }
-
     let tmp_file = get_tmp_dir(&workspace_path).join(&tmp_name);
     if !tmp_file.exists() {
         return Ok(false);
     }
-
     let source_content = match fs::read_to_string(&source) {
         Ok(c) => c,
         Err(_) => return Ok(false),
@@ -591,31 +539,26 @@ pub async fn cmd_compare_tmp_with_source(workspace_path: String, source_path: St
         Ok(c) => c,
         Err(_) => return Ok(false),
     };
-
     Ok(source_content == tmp_content)
 }
-
 #[command]
 pub async fn cmd_sync_metadata_on_rename(workspace_path: String, old_path: String, new_path: String) -> Result<FileOperationResult, String> {
     let metadata_path = get_metadata_path(&workspace_path);
     if !metadata_path.exists() {
         return Ok(FileOperationResult { success: true, message: "No metadata to sync".to_string(), path: None });
     }
-
     let content = match fs::read_to_string(&metadata_path) {
         Ok(c) => c,
         Err(e) => {
             return Ok(FileOperationResult { success: false, message: format!("Failed to read metadata: {}", e), path: None });
         }
     };
-
     let mut metadata: WorkspaceMetadata = match serde_json::from_str(&content) {
         Ok(m) => m,
         Err(e) => {
             return Ok(FileOperationResult { success: false, message: format!("Failed to parse metadata: {}", e), path: None });
         }
     };
-
     let mut updated = false;
     for file in &mut metadata.tabs.files {
         if file.source_path == old_path {
@@ -623,11 +566,9 @@ pub async fn cmd_sync_metadata_on_rename(workspace_path: String, old_path: Strin
             updated = true;
         }
     }
-
     if !updated {
         return Ok(FileOperationResult { success: true, message: "No matching file found in metadata".to_string(), path: None });
     }
-
     match serde_json::to_string_pretty(&metadata) {
         Ok(json) => match fs::write(&metadata_path, json) {
             Ok(_) => Ok(FileOperationResult {
@@ -640,7 +581,6 @@ pub async fn cmd_sync_metadata_on_rename(workspace_path: String, old_path: Strin
         Err(e) => Ok(FileOperationResult { success: false, message: format!("Failed to serialize metadata: {}", e), path: None }),
     }
 }
-
 #[command]
 pub async fn cmd_sync_metadata_on_delete(workspace_path: String, path: String) -> Result<FileOperationResult, String> {
     let metadata_path = get_metadata_path(&workspace_path);
@@ -690,14 +630,12 @@ pub async fn cmd_sync_metadata_on_delete(workspace_path: String, path: String) -
         Err(e) => Ok(FileOperationResult { success: false, message: format!("Failed to serialize metadata: {}", e), path: None }),
     }
 }
-
 #[command]
 pub async fn cmd_clear_all_tmp(workspace_path: String) -> Result<FileOperationResult, String> {
     let tmp_dir = get_tmp_dir(&workspace_path);
     if !tmp_dir.exists() {
         return Ok(FileOperationResult { success: true, message: "Tmp directory does not exist".to_string(), path: None });
     }
-
     match fs::remove_dir_all(&tmp_dir) {
         Ok(_) => {
             let _ = fs::create_dir_all(&tmp_dir);
@@ -706,7 +644,6 @@ pub async fn cmd_clear_all_tmp(workspace_path: String) -> Result<FileOperationRe
         Err(e) => Ok(FileOperationResult { success: false, message: format!("Failed to clear tmp directory: {}", e), path: None }),
     }
 }
-
 #[command]
 pub async fn cmd_cleanup_orphaned_tmp(workspace_path: String) -> Result<FileOperationResult, String> {
     let metadata_path = get_metadata_path(&workspace_path);
@@ -752,7 +689,6 @@ pub async fn cmd_cleanup_orphaned_tmp(workspace_path: String) -> Result<FileOper
         path: Some(tmp_dir.to_string_lossy().to_string()),
     })
 }
-
 #[command]
 pub async fn cmd_generate_tmp_name(source_path: String) -> Result<String, String> {
     Ok(generate_tmp_name())

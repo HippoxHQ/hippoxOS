@@ -1,23 +1,9 @@
-import React, {
-  useEffect,
-  useState,
-  useRef,
-  useCallback,
-  forwardRef,
-  useImperativeHandle,
-} from "react";
+import React, { useEffect, useState, useRef, useCallback, forwardRef, useImperativeHandle } from "react";
 import { DialogSession } from "../../types/types";
 import { showDialog, DialogType } from "../../components/Dialog";
 import { showToast, ToastType } from "../../components/Toast";
 import { codeEditorSessionCommands } from "../../command/session/codeeditor";
-import {
-  DeleteIcon,
-  MoreVerticalIcon,
-  PinFilledIcon,
-  PinIcon,
-  RenameIcon,
-  UnPinIcon,
-} from "../../icons";
+import { DeleteIcon, MoreVerticalIcon, PinFilledIcon, PinIcon, RenameIcon, UnPinIcon } from "../../icons";
 import { taskManager } from "../../core/TaskManager";
 
 export interface HistoryCodeEditorChatPanelRef {
@@ -36,13 +22,7 @@ interface HistoryCodeEditorChatPanelProps {
   onAllSessionsDeleted?: () => void;
 }
 
-type CategoryType =
-  | "pinned"
-  | "today"
-  | "yesterday"
-  | "last7days"
-  | "last30days"
-  | "older";
+type CategoryType = "pinned" | "today" | "yesterday" | "last7days" | "last30days" | "older";
 
 interface CategoryConfig {
   labelKey: string;
@@ -58,20 +38,8 @@ const categories: CategoryConfig[] = [
   { labelKey: "history.category.older", type: "older" },
 ];
 
-const HistoryCodeEditorChatPanel = forwardRef<
-  HistoryCodeEditorChatPanelRef,
-  HistoryCodeEditorChatPanelProps
->(
-  (
-    {
-      t,
-      onSessionSelect,
-      currentSessionId,
-      onNewSession,
-      onAllSessionsDeleted,
-    }: HistoryCodeEditorChatPanelProps,
-    ref,
-  ) => {
+const HistoryCodeEditorChatPanel = forwardRef<HistoryCodeEditorChatPanelRef, HistoryCodeEditorChatPanelProps>(
+  ({ t, onSessionSelect, currentSessionId, onNewSession, onAllSessionsDeleted }: HistoryCodeEditorChatPanelProps, ref) => {
     const [sessions, setSessions] = useState<DialogSession[]>([]);
     const [loading, setLoading] = useState(false);
     const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
@@ -80,9 +48,7 @@ const HistoryCodeEditorChatPanel = forwardRef<
     const [editValue, setEditValue] = useState<string>("");
     const editInputRef = useRef<HTMLInputElement>(null);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
-    const [expandedCategories, setExpandedCategories] = useState<
-      Record<CategoryType, boolean>
-    >({
+    const [expandedCategories, setExpandedCategories] = useState<Record<CategoryType, boolean>>({
       pinned: true,
       today: true,
       yesterday: true,
@@ -170,15 +136,9 @@ const HistoryCodeEditorChatPanel = forwardRef<
       const handleSessionCreated = () => {
         loadSessions(true);
       };
-      window.addEventListener(
-        "codeeditor-session-created",
-        handleSessionCreated,
-      );
+      window.addEventListener("codeeditor-session-created", handleSessionCreated);
       return () => {
-        window.removeEventListener(
-          "codeeditor-session-created",
-          handleSessionCreated,
-        );
+        window.removeEventListener("codeeditor-session-created", handleSessionCreated);
       };
     }, []);
 
@@ -194,17 +154,10 @@ const HistoryCodeEditorChatPanel = forwardRef<
 
     useEffect(() => {
       const handleClickOutside = (event: MouseEvent) => {
-        if (
-          menuRef.current &&
-          !menuRef.current.contains(event.target as Node)
-        ) {
+        if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
           setActiveMenuId(null);
         }
-        if (
-          editingId &&
-          editInputRef.current &&
-          !editInputRef.current.contains(event.target as Node)
-        ) {
+        if (editingId && editInputRef.current && !editInputRef.current.contains(event.target as Node)) {
           const target = event.target as HTMLElement;
           if (target.closest(".menu-panel-close")) return;
         }
@@ -222,32 +175,17 @@ const HistoryCodeEditorChatPanel = forwardRef<
       }
     }, [editingId]);
 
-    const handleTogglePin = async (
-      session: DialogSession,
-      e: React.MouseEvent,
-    ) => {
+    const handleTogglePin = async (session: DialogSession, e: React.MouseEvent) => {
       e.stopPropagation();
       try {
         const newPinned = !session.is_pinned;
-        await codeEditorSessionCommands.updatePinnedCodeEditorSessions(
-          session.session_id,
-          newPinned,
-        );
-        setSessions((prev) =>
-          prev.map((s) =>
-            s.session_id === session.session_id
-              ? { ...s, is_pinned: newPinned }
-              : s,
-          ),
-        );
+        await codeEditorSessionCommands.updatePinnedCodeEditorSessions(session.session_id, newPinned);
+        setSessions((prev) => prev.map((s) => (s.session_id === session.session_id ? { ...s, is_pinned: newPinned } : s)));
         setActiveMenuId(null);
       } catch (error) {}
     };
 
-    const handleDelete = async (
-      session: DialogSession,
-      e: React.MouseEvent,
-    ) => {
+    const handleDelete = async (session: DialogSession, e: React.MouseEvent) => {
       e.stopPropagation();
 
       showDialog(
@@ -256,17 +194,11 @@ const HistoryCodeEditorChatPanel = forwardRef<
         t("history.dialog.confirmDeleteMessage"),
         async () => {
           try {
-            await codeEditorSessionCommands.deleteCodeEditorSession(
-              session.session_id,
-            );
-            const domain = taskManager.getDomainFromSessionId(
-              session.session_id,
-            );
+            await codeEditorSessionCommands.deleteCodeEditorSession(session.session_id);
+            const domain = taskManager.getDomainFromSessionId(session.session_id);
             taskManager.deleteSession(session.session_id, domain);
 
-            const newSessions = sessions.filter(
-              (s) => s.session_id !== session.session_id,
-            );
+            const newSessions = sessions.filter((s) => s.session_id !== session.session_id);
             setSessions(newSessions);
             setActiveMenuId(null);
             if (currentSessionId === session.session_id) {
@@ -319,12 +251,9 @@ const HistoryCodeEditorChatPanel = forwardRef<
         return;
       }
       try {
-        await codeEditorSessionCommands.updateCodeEditorSessionConfig(
-          session.session_id,
-          {
-            title: trimmed,
-          },
-        );
+        await codeEditorSessionCommands.updateCodeEditorSessionConfig(session.session_id, {
+          title: trimmed,
+        });
         await loadSessions(true);
         setEditingId(null);
         setEditValue("");
@@ -402,10 +331,7 @@ const HistoryCodeEditorChatPanel = forwardRef<
       return grouped;
     };
 
-    const getCardStyle = (
-      isActive: boolean,
-      isHovered: boolean,
-    ): React.CSSProperties => {
+    const getCardStyle = (isActive: boolean, isHovered: boolean): React.CSSProperties => {
       if (isActive) {
         return {
           background: "rgba(0, 102, 204, 0.1)",
@@ -583,9 +509,7 @@ const HistoryCodeEditorChatPanel = forwardRef<
                   <span
                     style={{
                       fontSize: "12px",
-                      transform: expandedCategories[category.type]
-                        ? "rotate(0deg)"
-                        : "rotate(-90deg)",
+                      transform: expandedCategories[category.type] ? "rotate(0deg)" : "rotate(-90deg)",
                     }}
                   >
                     ▼
@@ -609,9 +533,7 @@ const HistoryCodeEditorChatPanel = forwardRef<
                         }}
                       >
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div
-                            style={{ display: "flex", alignItems: "center" }}
-                          >
+                          <div style={{ display: "flex", alignItems: "center" }}>
                             {session.is_pinned && (
                               <span style={pinIconStyle}>
                                 <PinFilledIcon size={16} />
@@ -634,95 +556,72 @@ const HistoryCodeEditorChatPanel = forwardRef<
                               </span>
                             )}
                           </div>
-                          <div style={timeStyle}>
-                            {formatDate(session.created_at)}
-                          </div>
+                          <div style={timeStyle}>{formatDate(session.created_at)}</div>
                         </div>
-                        {!isEditing &&
-                          (activeMenuId === session.session_id ||
-                            isHovered) && (
-                            <div>
-                              <button
-                                style={menuButtonStyle}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setActiveMenuId(
-                                    activeMenuId === session.session_id
-                                      ? null
-                                      : session.session_id,
-                                  );
-                                }}
-                                onMouseEnter={(e) => {
-                                  e.currentTarget.style.background =
-                                    "var(--hover-bg)";
-                                  e.currentTarget.style.color =
-                                    "var(--text-primary)";
-                                }}
-                                onMouseLeave={(e) => {
-                                  e.currentTarget.style.background = "none";
-                                  e.currentTarget.style.color =
-                                    "var(--text-secondary)";
-                                }}
-                              >
-                                <MoreVerticalIcon size={18} />
-                              </button>
-                              {activeMenuId === session.session_id && (
-                                <div style={dropdownStyle} ref={menuRef}>
-                                  <div
-                                    style={dropdownItemStyle}
-                                    onClick={(e) => startEdit(session, e)}
-                                    onMouseEnter={(e) => {
-                                      e.currentTarget.style.background =
-                                        "var(--hover-bg)";
-                                    }}
-                                    onMouseLeave={(e) => {
-                                      e.currentTarget.style.background = "";
-                                    }}
-                                  >
-                                    <RenameIcon size={16} />{" "}
-                                    {t("history.rename")}
-                                  </div>
-                                  <div
-                                    style={dropdownItemStyle}
-                                    onClick={(e) => handleTogglePin(session, e)}
-                                    onMouseEnter={(e) => {
-                                      e.currentTarget.style.background =
-                                        "var(--hover-bg)";
-                                    }}
-                                    onMouseLeave={(e) => {
-                                      e.currentTarget.style.background = "";
-                                    }}
-                                  >
-                                    {session.is_pinned ? (
-                                      <UnPinIcon size={16} />
-                                    ) : (
-                                      <PinIcon size={16} />
-                                    )}{" "}
-                                    {session.is_pinned
-                                      ? t("history.unpin")
-                                      : t("history.pin")}
-                                  </div>
-                                  <div
-                                    style={{
-                                      ...dropdownItemStyle,
-                                      color: "var(--error-color, #dc2626)",
-                                    }}
-                                    onClick={(e) => handleDelete(session, e)}
-                                    onMouseEnter={(e) => {
-                                      e.currentTarget.style.background =
-                                        "var(--error-bg, rgba(220,38,38,0.1))";
-                                    }}
-                                    onMouseLeave={(e) => {
-                                      e.currentTarget.style.background = "";
-                                    }}
-                                  >
-                                    <DeleteIcon size={16} />{" "}
-                                    {t("history.delete")}
-                                  </div>
+                        {!isEditing && (activeMenuId === session.session_id || isHovered) && (
+                          <div>
+                            <button
+                              style={menuButtonStyle}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setActiveMenuId(activeMenuId === session.session_id ? null : session.session_id);
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.background = "var(--hover-bg)";
+                                e.currentTarget.style.color = "var(--text-primary)";
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.background = "none";
+                                e.currentTarget.style.color = "var(--text-secondary)";
+                              }}
+                            >
+                              <MoreVerticalIcon size={18} />
+                            </button>
+                            {activeMenuId === session.session_id && (
+                              <div style={dropdownStyle} ref={menuRef}>
+                                <div
+                                  style={dropdownItemStyle}
+                                  onClick={(e) => startEdit(session, e)}
+                                  onMouseEnter={(e) => {
+                                    e.currentTarget.style.background = "var(--hover-bg)";
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    e.currentTarget.style.background = "";
+                                  }}
+                                >
+                                  <RenameIcon size={16} /> {t("history.rename")}
                                 </div>
-                              )}
-                            </div>
-                          )}
+                                <div
+                                  style={dropdownItemStyle}
+                                  onClick={(e) => handleTogglePin(session, e)}
+                                  onMouseEnter={(e) => {
+                                    e.currentTarget.style.background = "var(--hover-bg)";
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    e.currentTarget.style.background = "";
+                                  }}
+                                >
+                                  {session.is_pinned ? <UnPinIcon size={16} /> : <PinIcon size={16} />} {session.is_pinned ? t("history.unpin") : t("history.pin")}
+                                </div>
+                                <div
+                                  style={{
+                                    ...dropdownItemStyle,
+                                    color: "var(--error-color, #dc2626)",
+                                  }}
+                                  onClick={(e) => handleDelete(session, e)}
+                                  onMouseEnter={(e) => {
+                                    e.currentTarget.style.background = "var(--error-bg, rgba(220,38,38,0.1))";
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    e.currentTarget.style.background = "";
+                                  }}
+                                >
+                                  <DeleteIcon size={16} /> {t("history.delete")}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     );
                   })}

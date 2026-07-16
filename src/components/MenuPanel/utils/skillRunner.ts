@@ -1,7 +1,6 @@
 import { UploadFile } from "../../../core/types";
 import { filesCommands } from "../../../command/files";
 import { skillsLocalCommands } from "../../../command/skills";
-
 export const runSkill = async (
   skill: { id: string; name: string; category?: string; local_path?: string },
   onSendMessage: (message: string, files?: UploadFile[], sessionId?: string) => void,

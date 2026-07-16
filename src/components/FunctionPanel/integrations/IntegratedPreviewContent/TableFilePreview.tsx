@@ -1,27 +1,15 @@
-import React, {
-  useState,
-  useEffect,
-  useCallback,
-  useMemo,
-  useRef,
-} from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { filesCommands } from "../../../../command/files";
 import { UploadFile } from "../../../../core/types";
 import Papa from "papaparse";
 import { showTooltip } from "../../../../components/Tooltip";
 import { showToast, ToastType } from "../../../Toast";
-
 interface TableFilePreviewProps {
   file: UploadFile | null;
   onClose: () => void;
   t?: (key: string, params?: any) => string;
 }
-
-const TableFilePreview: React.FC<TableFilePreviewProps> = ({
-  file,
-  onClose,
-  t = (key: string) => key,
-}) => {
+const TableFilePreview: React.FC<TableFilePreviewProps> = ({ file, onClose, t = (key: string) => key }) => {
   const [headers, setHeaders] = useState<string[]>([]);
   const [rows, setRows] = useState<string[][]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -43,7 +31,6 @@ const TableFilePreview: React.FC<TableFilePreviewProps> = ({
   const tableRef = useRef<HTMLTableElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const MIN_ROWS = 20;
-
   const formatFileSize = useCallback((bytes: number): string => {
     if (bytes === 0) return "Unknown size";
     const k = 1024;
@@ -51,7 +38,6 @@ const TableFilePreview: React.FC<TableFilePreviewProps> = ({
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
   }, []);
-
   const parseTableData = useCallback(async () => {
     setIsLoading(true);
     setError(null);
@@ -66,9 +52,7 @@ const TableFilePreview: React.FC<TableFilePreviewProps> = ({
         setIsLoading(false);
         return;
       }
-      const fileInfo = file?.path
-        ? await filesCommands.getFileInfo(file.path).catch(() => null)
-        : null;
+      const fileInfo = file?.path ? await filesCommands.getFileInfo(file.path).catch(() => null) : null;
       setFileSize(fileInfo?.size || file?.size || 0);
       const delimiter = detectDelimiter(content);
       // @ts-ignore
@@ -89,9 +73,7 @@ const TableFilePreview: React.FC<TableFilePreviewProps> = ({
       const parsedData = result.data;
       const headerRow = parsedData[0] || [];
       const dataRows = parsedData.slice(1);
-      const filteredDataRows = dataRows.filter((row: string[]) =>
-        row.some((cell: string) => cell && cell.trim() !== ""),
-      );
+      const filteredDataRows = dataRows.filter((row: string[]) => row.some((cell: string) => cell && cell.trim() !== ""));
       setHeaders(headerRow);
       const paddedRows = [...filteredDataRows];
       const emptyRow = new Array(headerRow.length).fill("");
@@ -112,7 +94,6 @@ const TableFilePreview: React.FC<TableFilePreviewProps> = ({
       setIsLoading(false);
     }
   }, [file]);
-
   const detectDelimiter = (content: string): string => {
     const firstLine = content.split("\n").find((line) => line.trim());
     if (!firstLine) return ",";
@@ -123,7 +104,6 @@ const TableFilePreview: React.FC<TableFilePreviewProps> = ({
     if (semicolons > commas && semicolons > tabs) return ";";
     return ",";
   };
-
   useEffect(() => {
     if (file?.path || file?.file) {
       setHeaders([]);
@@ -135,14 +115,11 @@ const TableFilePreview: React.FC<TableFilePreviewProps> = ({
       parseTableData();
     }
   }, [file]);
-
   const processedData = useMemo(() => {
     let filteredRows = rows;
     if (searchTerm.trim()) {
       const term = searchTerm.toLowerCase().trim();
-      filteredRows = rows.filter((row) =>
-        row.some((cell) => cell?.toLowerCase().includes(term)),
-      );
+      filteredRows = rows.filter((row) => row.some((cell) => cell?.toLowerCase().includes(term)));
     }
     if (sortColumn !== null) {
       const sorted = [...filteredRows];
@@ -162,7 +139,6 @@ const TableFilePreview: React.FC<TableFilePreviewProps> = ({
     }
     return filteredRows;
   }, [rows, searchTerm, sortColumn, sortDirection]);
-
   const handleSort = (colIndex: number) => {
     if (sortColumn === colIndex) {
       setSortDirection(sortDirection === "asc" ? "desc" : "asc");
@@ -171,7 +147,6 @@ const TableFilePreview: React.FC<TableFilePreviewProps> = ({
       setSortDirection("asc");
     }
   };
-
   const handleDownload = useCallback(async () => {
     const headerRow = headers.join(",");
     const dataRows = rows
@@ -179,8 +154,7 @@ const TableFilePreview: React.FC<TableFilePreviewProps> = ({
       .map((row) => row.join(","))
       .join("\n");
     const csvContent = `${headerRow}\n${dataRows}`;
-    const defaultName =
-      file?.name?.replace(/\.[^/.]+$/, "") + ".csv" || "table.csv";
+    const defaultName = file?.name?.replace(/\.[^/.]+$/, "") + ".csv" || "table.csv";
     try {
       await filesCommands.saveFile(csvContent, defaultName);
       showToast(ToastType.SUCCESS, t("table.downloadSuccess"));
@@ -189,11 +163,7 @@ const TableFilePreview: React.FC<TableFilePreviewProps> = ({
       showToast(ToastType.ERROR, t("table.downloadFailed"));
     }
   }, [headers, rows, file?.name, t]);
-
-  const handleColumnResizeMouseDown = (
-    e: React.MouseEvent,
-    colIndex: number,
-  ) => {
+  const handleColumnResizeMouseDown = (e: React.MouseEvent, colIndex: number) => {
     e.preventDefault();
     e.stopPropagation();
     setIsDraggingColumn(true);
@@ -203,7 +173,6 @@ const TableFilePreview: React.FC<TableFilePreviewProps> = ({
     document.body.style.cursor = "col-resize";
     document.body.style.userSelect = "none";
   };
-
   const handleRowResizeMouseDown = (e: React.MouseEvent, rowIndex: number) => {
     e.preventDefault();
     e.stopPropagation();
@@ -214,7 +183,6 @@ const TableFilePreview: React.FC<TableFilePreviewProps> = ({
     document.body.style.cursor = "row-resize";
     document.body.style.userSelect = "none";
   };
-
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (isDraggingColumn && dragColumnIndex !== null) {
@@ -246,7 +214,6 @@ const TableFilePreview: React.FC<TableFilePreviewProps> = ({
       document.body.style.cursor = "";
       document.body.style.userSelect = "";
     };
-
     if (isDraggingColumn || isDraggingRow) {
       window.addEventListener("mousemove", handleMouseMove);
       window.addEventListener("mouseup", handleMouseUp);
@@ -255,40 +222,21 @@ const TableFilePreview: React.FC<TableFilePreviewProps> = ({
         window.removeEventListener("mouseup", handleMouseUp);
       };
     }
-  }, [
-    isDraggingColumn,
-    isDraggingRow,
-    dragColumnIndex,
-    dragRowIndex,
-    dragStartX,
-    dragStartY,
-    dragStartWidth,
-    dragStartHeight,
-  ]);
-
+  }, [isDraggingColumn, isDraggingRow, dragColumnIndex, dragRowIndex, dragStartX, dragStartY, dragStartWidth, dragStartHeight]);
   const getColumnWidth = (colIndex: number): number => {
     return columnWidths[colIndex] || 150;
   };
-
   const getRowHeight = (rowIndex: number): number => {
     return rowHeights[rowIndex] || 36;
   };
-
   const hasActualData = (row: string[]): boolean => {
     return row.some((cell) => cell && cell.trim() !== "");
   };
-
-  const handleTooltip = (
-    e: React.MouseEvent<HTMLElement>,
-    key: string,
-    params?: any,
-  ) => {
+  const handleTooltip = (e: React.MouseEvent<HTMLElement>, key: string, params?: any) => {
     const message = t(key, params);
     showTooltip(message, e.currentTarget);
   };
-
   if (!file) return null;
-
   return (
     <div
       style={{
@@ -348,8 +296,7 @@ const TableFilePreview: React.FC<TableFilePreviewProps> = ({
               fontWeight: 400,
             }}
           >
-            {rows.filter((r) => hasActualData(r)).length} {t("table.rows")} ×{" "}
-            {headers.length} {t("table.cols")}
+            {rows.filter((r) => hasActualData(r)).length} {t("table.rows")} × {headers.length} {t("table.cols")}
           </span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
@@ -375,14 +322,7 @@ const TableFilePreview: React.FC<TableFilePreviewProps> = ({
               e.currentTarget.style.color = "var(--text-secondary)";
             }}
           >
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
               <polyline points="7 10 12 15 17 10" />
               <line x1="12" y1="15" x2="12" y2="3" />
@@ -390,7 +330,6 @@ const TableFilePreview: React.FC<TableFilePreviewProps> = ({
           </button>
         </div>
       </div>
-
       <div
         style={{
           padding: "8px 16px",
@@ -422,8 +361,7 @@ const TableFilePreview: React.FC<TableFilePreviewProps> = ({
           />
         </div>
         <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
-          {processedData.filter((r) => hasActualData(r)).length} /{" "}
-          {rows.filter((r) => hasActualData(r)).length} {t("table.rows")}
+          {processedData.filter((r) => hasActualData(r)).length} / {rows.filter((r) => hasActualData(r)).length} {t("table.rows")}
         </div>
         {searchTerm && (
           <button
@@ -452,7 +390,6 @@ const TableFilePreview: React.FC<TableFilePreviewProps> = ({
           )}
         </div>
       </div>
-
       <div
         ref={containerRef}
         style={{
@@ -475,7 +412,6 @@ const TableFilePreview: React.FC<TableFilePreviewProps> = ({
             {t("table.loading")}
           </div>
         )}
-
         {error && (
           <div
             style={{
@@ -493,7 +429,6 @@ const TableFilePreview: React.FC<TableFilePreviewProps> = ({
             {error}
           </div>
         )}
-
         {!isLoading && !error && headers.length === 0 && (
           <div
             style={{
@@ -508,7 +443,6 @@ const TableFilePreview: React.FC<TableFilePreviewProps> = ({
             {t("table.noData")}
           </div>
         )}
-
         {!isLoading && !error && headers.length > 0 && (
           <table
             ref={tableRef}
@@ -554,13 +488,7 @@ const TableFilePreview: React.FC<TableFilePreviewProps> = ({
                       }}
                     >
                       <span>{header || `Column ${index + 1}`}</span>
-                      {sortColumn === index && (
-                        <span
-                          style={{ fontSize: 10, color: "var(--accent-color)" }}
-                        >
-                          {sortDirection === "asc" ? "↑" : "↓"}
-                        </span>
-                      )}
+                      {sortColumn === index && <span style={{ fontSize: 10, color: "var(--accent-color)" }}>{sortDirection === "asc" ? "↑" : "↓"}</span>}
                     </div>
                     <div
                       style={{
@@ -575,8 +503,7 @@ const TableFilePreview: React.FC<TableFilePreviewProps> = ({
                       }}
                       onMouseDown={(e) => handleColumnResizeMouseDown(e, index)}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.background =
-                          "var(--accent-color)";
+                        e.currentTarget.style.background = "var(--accent-color)";
                         e.currentTarget.style.opacity = "0.5";
                       }}
                       onMouseLeave={(e) => {
@@ -601,9 +528,7 @@ const TableFilePreview: React.FC<TableFilePreviewProps> = ({
                       border: "1px solid var(--border-color)",
                     }}
                   >
-                    {searchTerm
-                      ? t("table.noMatchingRows")
-                      : t("table.noDataRows")}
+                    {searchTerm ? t("table.noMatchingRows") : t("table.noDataRows")}
                   </td>
                 </tr>
               ) : (
@@ -614,10 +539,7 @@ const TableFilePreview: React.FC<TableFilePreviewProps> = ({
                     <tr
                       key={rowIndex}
                       style={{
-                        background:
-                          rowIndex % 2 === 0
-                            ? "var(--bg-primary)"
-                            : "var(--bg-tertiary)",
+                        background: rowIndex % 2 === 0 ? "var(--bg-primary)" : "var(--bg-tertiary)",
                         // transition: "background 0.15s ease",
                         height: getRowHeight(rowIndex),
                         opacity: isEmptyRow ? 0.4 : 1,
@@ -629,10 +551,7 @@ const TableFilePreview: React.FC<TableFilePreviewProps> = ({
                       }}
                       onMouseLeave={(e) => {
                         if (!isEmptyRow) {
-                          e.currentTarget.style.background =
-                            rowIndex % 2 === 0
-                              ? "var(--bg-primary)"
-                              : "var(--bg-tertiary)";
+                          e.currentTarget.style.background = rowIndex % 2 === 0 ? "var(--bg-primary)" : "var(--bg-tertiary)";
                         }
                       }}
                     >
@@ -642,12 +561,8 @@ const TableFilePreview: React.FC<TableFilePreviewProps> = ({
                           style={{
                             padding: "6px 12px",
                             border: "1px solid var(--border-color)",
-                            borderBottom: isLastRow
-                              ? "1px solid var(--border-color)"
-                              : "none",
-                            color: isEmptyRow
-                              ? "var(--text-tertiary)"
-                              : "var(--text-primary)",
+                            borderBottom: isLastRow ? "1px solid var(--border-color)" : "none",
+                            color: isEmptyRow ? "var(--text-tertiary)" : "var(--text-primary)",
                             whiteSpace: "nowrap",
                             overflow: "hidden",
                             textOverflow: "ellipsis",
@@ -660,8 +575,7 @@ const TableFilePreview: React.FC<TableFilePreviewProps> = ({
                           }}
                           title={row[colIndex] || ""}
                           onMouseDown={(e) => {
-                            const rect =
-                              e.currentTarget.getBoundingClientRect();
+                            const rect = e.currentTarget.getBoundingClientRect();
                             const offsetY = e.clientY - rect.top;
                             const isBottomEdge = offsetY > rect.height - 6;
                             if (isBottomEdge && !isLastRow) {
@@ -669,8 +583,7 @@ const TableFilePreview: React.FC<TableFilePreviewProps> = ({
                             }
                           }}
                           onMouseMove={(e) => {
-                            const rect =
-                              e.currentTarget.getBoundingClientRect();
+                            const rect = e.currentTarget.getBoundingClientRect();
                             const offsetY = e.clientY - rect.top;
                             const isBottomEdge = offsetY > rect.height - 6;
                             if (isBottomEdge && !isLastRow) {
@@ -697,13 +610,11 @@ const TableFilePreview: React.FC<TableFilePreviewProps> = ({
                                 pointerEvents: "none",
                               }}
                               onMouseEnter={(e) => {
-                                e.currentTarget.style.background =
-                                  "var(--accent-color)";
+                                e.currentTarget.style.background = "var(--accent-color)";
                                 e.currentTarget.style.opacity = "0.3";
                               }}
                               onMouseLeave={(e) => {
-                                e.currentTarget.style.background =
-                                  "transparent";
+                                e.currentTarget.style.background = "transparent";
                                 e.currentTarget.style.opacity = "1";
                               }}
                             />
@@ -721,5 +632,4 @@ const TableFilePreview: React.FC<TableFilePreviewProps> = ({
     </div>
   );
 };
-
 export default TableFilePreview;

@@ -1,11 +1,5 @@
 import { Code2, FileText } from "lucide-react";
-import React, {
-  useState,
-  useEffect,
-  useRef,
-  forwardRef,
-  useImperativeHandle,
-} from "react";
+import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle } from "react";
 
 interface DSLProps {
   theme: "light" | "dark";
@@ -175,227 +169,220 @@ return { message: "cleared" };`,
   ];
 };
 
-const DSL = forwardRef<DSLRef, DSLProps>(
-  ({ theme, i18n, editorWidth, onStartEditorResize, engineRef }, ref) => {
-    const isDark = theme === "dark";
-    const isZh = i18n === "zh-cn";
+const DSL = forwardRef<DSLRef, DSLProps>(({ theme, i18n, editorWidth, onStartEditorResize, engineRef }, ref) => {
+  const isDark = theme === "dark";
+  const isZh = i18n === "zh-cn";
 
-    const [script, setScript] = useState(getDefaultScript(i18n));
-    const [logs, setLogs] = useState<string[]>([]);
-    const [isEngineReady, setIsEngineReady] = useState(false);
-    const [isEngineRunning, setIsEngineRunning] = useState(false);
-    const [executionResult, setExecutionResult] = useState<{
-      success: boolean;
-      message?: string;
-    } | null>(null);
-    const [showLeftArrow, setShowLeftArrow] = useState(false);
-    const [showRightArrow, setShowRightArrow] = useState(false);
-    const tabsRef = useRef<HTMLDivElement>(null);
-    const logsContainerRef = useRef<HTMLDivElement>(null);
+  const [script, setScript] = useState(getDefaultScript(i18n));
+  const [logs, setLogs] = useState<string[]>([]);
+  const [isEngineReady, setIsEngineReady] = useState(false);
+  const [isEngineRunning, setIsEngineRunning] = useState(false);
+  const [executionResult, setExecutionResult] = useState<{
+    success: boolean;
+    message?: string;
+  } | null>(null);
+  const [showLeftArrow, setShowLeftArrow] = useState(false);
+  const [showRightArrow, setShowRightArrow] = useState(false);
+  const tabsRef = useRef<HTMLDivElement>(null);
+  const logsContainerRef = useRef<HTMLDivElement>(null);
 
-    const exampleScripts = getExampleScripts(i18n);
+  const exampleScripts = getExampleScripts(i18n);
 
-    useEffect(() => {
-      const checkEngine = () => {
-        if (engineRef?.current) {
-          setIsEngineReady(true);
+  useEffect(() => {
+    const checkEngine = () => {
+      if (engineRef?.current) {
+        setIsEngineReady(true);
+      }
+    };
+    checkEngine();
+    const interval = setInterval(checkEngine, 500);
+    return () => clearInterval(interval);
+  }, [engineRef]);
+
+  useEffect(() => {
+    const originalLog = console.log;
+    const originalWarn = console.warn;
+    const originalError = console.error;
+
+    const scrollToBottom = () => {
+      setTimeout(() => {
+        if (logsContainerRef.current) {
+          logsContainerRef.current.scrollTop = logsContainerRef.current.scrollHeight;
         }
-      };
-      checkEngine();
-      const interval = setInterval(checkEngine, 500);
-      return () => clearInterval(interval);
-    }, [engineRef]);
+      }, 50);
+    };
 
-    useEffect(() => {
-      const originalLog = console.log;
-      const originalWarn = console.warn;
-      const originalError = console.error;
-
-      const scrollToBottom = () => {
-        setTimeout(() => {
-          if (logsContainerRef.current) {
-            logsContainerRef.current.scrollTop =
-              logsContainerRef.current.scrollHeight;
-          }
-        }, 50);
-      };
-
-      console.log = (...args: any[]) => {
-        originalLog(...args);
-        const message = args
-          .map((arg) => {
-            if (typeof arg === "object") {
-              try {
-                return JSON.stringify(arg);
-              } catch {
-                return String(arg);
-              }
+    console.log = (...args: any[]) => {
+      originalLog(...args);
+      const message = args
+        .map((arg) => {
+          if (typeof arg === "object") {
+            try {
+              return JSON.stringify(arg);
+            } catch {
+              return String(arg);
             }
-            return String(arg);
-          })
-          .join(" ");
-        setLogs((prev) => [...prev, `[LOG] ${message}`]);
-        scrollToBottom();
-      };
+          }
+          return String(arg);
+        })
+        .join(" ");
+      setLogs((prev) => [...prev, `[LOG] ${message}`]);
+      scrollToBottom();
+    };
 
-      console.warn = (...args: any[]) => {
-        originalWarn(...args);
-        const message = args.map((arg) => String(arg)).join(" ");
-        setLogs((prev) => [...prev, `[WARN] ${message}`]);
-        scrollToBottom();
-      };
+    console.warn = (...args: any[]) => {
+      originalWarn(...args);
+      const message = args.map((arg) => String(arg)).join(" ");
+      setLogs((prev) => [...prev, `[WARN] ${message}`]);
+      scrollToBottom();
+    };
 
-      console.error = (...args: any[]) => {
-        originalError(...args);
-        const message = args.map((arg) => String(arg)).join(" ");
-        setLogs((prev) => [...prev, `[ERROR] ${message}`]);
-        scrollToBottom();
-      };
+    console.error = (...args: any[]) => {
+      originalError(...args);
+      const message = args.map((arg) => String(arg)).join(" ");
+      setLogs((prev) => [...prev, `[ERROR] ${message}`]);
+      scrollToBottom();
+    };
 
+    return () => {
+      console.log = originalLog;
+      console.warn = originalWarn;
+      console.error = originalError;
+    };
+  }, []);
+
+  useEffect(() => {
+    setScript(getDefaultScript(i18n));
+  }, [i18n]);
+
+  const checkScrollButtons = () => {
+    if (tabsRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = tabsRef.current;
+      setShowLeftArrow(scrollLeft > 0);
+      setShowRightArrow(scrollWidth > clientWidth && scrollLeft + clientWidth < scrollWidth - 5);
+    }
+  };
+
+  const scrollTabs = (direction: "left" | "right") => {
+    if (tabsRef.current) {
+      const scrollAmount = 200;
+      const newScrollLeft = tabsRef.current.scrollLeft + (direction === "left" ? -scrollAmount : scrollAmount);
+      tabsRef.current.scrollTo({ left: newScrollLeft, behavior: "smooth" });
+    }
+  };
+
+  const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+    if (tabsRef.current) {
+      const delta = e.deltaY > 0 ? 1 : -1;
+      const scrollAmount = 50;
+      const newScrollLeft = tabsRef.current.scrollLeft + delta * scrollAmount;
+      tabsRef.current.scrollTo({ left: newScrollLeft, behavior: "auto" });
+      e.preventDefault();
+    }
+  };
+
+  useEffect(() => {
+    const currentTabs = tabsRef.current;
+    if (currentTabs) {
+      currentTabs.addEventListener("scroll", checkScrollButtons);
+      window.addEventListener("resize", checkScrollButtons);
+      setTimeout(checkScrollButtons, 50);
       return () => {
-        console.log = originalLog;
-        console.warn = originalWarn;
-        console.error = originalError;
+        currentTabs.removeEventListener("scroll", checkScrollButtons);
+        window.removeEventListener("resize", checkScrollButtons);
       };
-    }, []);
+    }
+  }, [exampleScripts]);
 
-    useEffect(() => {
-      setScript(getDefaultScript(i18n));
-    }, [i18n]);
-
-    const checkScrollButtons = () => {
-      if (tabsRef.current) {
-        const { scrollLeft, scrollWidth, clientWidth } = tabsRef.current;
-        setShowLeftArrow(scrollLeft > 0);
-        setShowRightArrow(
-          scrollWidth > clientWidth &&
-            scrollLeft + clientWidth < scrollWidth - 5,
-        );
-      }
-    };
-
-    const scrollTabs = (direction: "left" | "right") => {
-      if (tabsRef.current) {
-        const scrollAmount = 200;
-        const newScrollLeft =
-          tabsRef.current.scrollLeft +
-          (direction === "left" ? -scrollAmount : scrollAmount);
-        tabsRef.current.scrollTo({ left: newScrollLeft, behavior: "smooth" });
-      }
-    };
-
-    const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
-      if (tabsRef.current) {
-        const delta = e.deltaY > 0 ? 1 : -1;
-        const scrollAmount = 50;
-        const newScrollLeft = tabsRef.current.scrollLeft + delta * scrollAmount;
-        tabsRef.current.scrollTo({ left: newScrollLeft, behavior: "auto" });
-        e.preventDefault();
-      }
-    };
-
-    useEffect(() => {
-      const currentTabs = tabsRef.current;
-      if (currentTabs) {
-        currentTabs.addEventListener("scroll", checkScrollButtons);
-        window.addEventListener("resize", checkScrollButtons);
-        setTimeout(checkScrollButtons, 50);
-        return () => {
-          currentTabs.removeEventListener("scroll", checkScrollButtons);
-          window.removeEventListener("resize", checkScrollButtons);
-        };
-      }
-    }, [exampleScripts]);
-
-    const executeScript = () => {
-      if (!engineRef?.current) {
-        setExecutionResult({
-          success: false,
-          message: "Engine not available",
-        });
-        return;
-      }
-      try {
-        engineRef.current.loadScript(script);
-        const result = engineRef.current.execute();
-        if (result.success) {
-          setExecutionResult({
-            success: true,
-            message: `Executed in ${result.duration?.toFixed(2) || 0}ms`,
-          });
-        } else {
-          setExecutionResult({
-            success: false,
-            message: result.error || "Execution failed",
-          });
-        }
-      } catch (error) {
-        setExecutionResult({
-          success: false,
-          message: error instanceof Error ? error.message : String(error),
-        });
-      }
-    };
-
-    const handleExecute = () => {
-      if (!isEngineReady || !engineRef?.current) {
-        setExecutionResult({
-          success: false,
-          message: "CVSEngine not available",
-        });
-        return;
-      }
-      executeScript();
-    };
-
-    const handleStart = () => {
-      if (!engineRef?.current) return;
-      setIsEngineRunning(true);
-      engineRef.current.start();
+  const executeScript = () => {
+    if (!engineRef?.current) {
       setExecutionResult({
-        success: true,
-        message: "Engine started, will execute on each new candle",
+        success: false,
+        message: "Engine not available",
       });
-    };
-
-    const handleStop = () => {
-      if (!engineRef?.current) return;
-      setIsEngineRunning(false);
-      engineRef.current.stop();
-      setExecutionResult({ success: true, message: "Engine stopped" });
-    };
-
-    const handleReset = () => {
-      if (!engineRef?.current) return;
-      engineRef.current.clearAllCustomIndicators();
+      return;
+    }
+    try {
+      engineRef.current.loadScript(script);
+      const result = engineRef.current.execute();
+      if (result.success) {
+        setExecutionResult({
+          success: true,
+          message: `Executed in ${result.duration?.toFixed(2) || 0}ms`,
+        });
+      } else {
+        setExecutionResult({
+          success: false,
+          message: result.error || "Execution failed",
+        });
+      }
+    } catch (error) {
       setExecutionResult({
-        success: true,
-        message: "All custom indicators cleared",
+        success: false,
+        message: error instanceof Error ? error.message : String(error),
       });
-    };
+    }
+  };
 
-    const handleClearLogs = () => {
-      setLogs([]);
-    };
+  const handleExecute = () => {
+    if (!isEngineReady || !engineRef?.current) {
+      setExecutionResult({
+        success: false,
+        message: "CVSEngine not available",
+      });
+      return;
+    }
+    executeScript();
+  };
 
-    const handleLoadExample = (exampleScript: string) => {
-      setScript(exampleScript);
-      setExecutionResult({ success: true, message: "Example script loaded" });
-    };
+  const handleStart = () => {
+    if (!engineRef?.current) return;
+    setIsEngineRunning(true);
+    engineRef.current.start();
+    setExecutionResult({
+      success: true,
+      message: "Engine started, will execute on each new candle",
+    });
+  };
 
-    useImperativeHandle(ref, () => ({
-      getScript: () => script,
-      setScript: (newScript: string) => setScript(newScript),
-      execute: handleExecute,
-      start: handleStart,
-      stop: handleStop,
-      reset: handleReset,
-      clearLogs: handleClearLogs,
-    }));
+  const handleStop = () => {
+    if (!engineRef?.current) return;
+    setIsEngineRunning(false);
+    engineRef.current.stop();
+    setExecutionResult({ success: true, message: "Engine stopped" });
+  };
 
-    const rightWidth = 100 - editorWidth;
+  const handleReset = () => {
+    if (!engineRef?.current) return;
+    engineRef.current.clearAllCustomIndicators();
+    setExecutionResult({
+      success: true,
+      message: "All custom indicators cleared",
+    });
+  };
 
-    const globalStyles = `
+  const handleClearLogs = () => {
+    setLogs([]);
+  };
+
+  const handleLoadExample = (exampleScript: string) => {
+    setScript(exampleScript);
+    setExecutionResult({ success: true, message: "Example script loaded" });
+  };
+
+  useImperativeHandle(ref, () => ({
+    getScript: () => script,
+    setScript: (newScript: string) => setScript(newScript),
+    execute: handleExecute,
+    start: handleStart,
+    stop: handleStop,
+    reset: handleReset,
+    clearLogs: handleClearLogs,
+  }));
+
+  const rightWidth = 100 - editorWidth;
+
+  const globalStyles = `
       .dsl-example-tabs-container {
         position: relative;
         display: flex;
@@ -477,309 +464,255 @@ const DSL = forwardRef<DSLRef, DSLProps>(
       }
     `;
 
-    if (typeof document !== "undefined") {
-      const styleId = "dsl-example-styles";
-      if (!document.getElementById(styleId)) {
-        const style = document.createElement("style");
-        style.id = styleId;
-        style.textContent = globalStyles;
-        document.head.appendChild(style);
-      }
+  if (typeof document !== "undefined") {
+    const styleId = "dsl-example-styles";
+    if (!document.getElementById(styleId)) {
+      const style = document.createElement("style");
+      style.id = styleId;
+      style.textContent = globalStyles;
+      document.head.appendChild(style);
     }
+  }
 
-    return (
-      <>
+  return (
+    <>
+      <div
+        style={{
+          width: `${editorWidth}%`,
+          minWidth: "30%",
+          maxWidth: "80%",
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
+          borderRight: "1px solid var(--border-color)",
+        }}
+      >
         <div
           style={{
-            width: `${editorWidth}%`,
-            minWidth: "30%",
-            maxWidth: "80%",
             display: "flex",
-            flexDirection: "column",
-            overflow: "hidden",
-            borderRight: "1px solid var(--border-color)",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              padding: "4px 12px",
-              borderBottom: "1px solid var(--border-color)",
-              background: isDark
-                ? "var(--bg-secondary, #2d2d3d)"
-                : "var(--bg-secondary, #e8e8e8)",
-              flexShrink: 0,
-              minHeight: "32px",
-            }}
-          >
-            <span
-              style={{
-                fontSize: "12px",
-                fontWeight: 500,
-                color: isDark
-                  ? "var(--text-primary, #eee)"
-                  : "var(--text-primary, #222)",
-              }}
-            >
-              <span
-                style={{
-                  display: "inline-flex",
-                  transform: "translateY(2px)",
-                  marginRight: "5px",
-                }}
-              >
-                <Code2 size={14} />
-              </span>
-              DSL Script Editor
-              {!isEngineReady && (
-                <span
-                  style={{
-                    marginLeft: "8px",
-                    fontSize: "10px",
-                    color: "#eab308",
-                  }}
-                >
-                  (Engine loading...)
-                </span>
-              )}
-            </span>
-            <div style={{ display: "flex", gap: "6px" }}>
-              <button
-                onClick={handleExecute}
-                disabled={!isEngineReady}
-                style={{
-                  padding: "2px 10px",
-                  fontSize: "11px",
-                  borderRadius: "5px",
-                  background: isEngineReady
-                    ? isDark
-                      ? "var(--accent-color, #3b82f6)"
-                      : "var(--accent-color, #2563eb)"
-                    : isDark
-                      ? "var(--bg-tertiary, #3d3d4d)"
-                      : "var(--bg-tertiary, #d0d0d0)",
-                  color: isEngineReady
-                    ? "#fff"
-                    : isDark
-                      ? "var(--text-muted, #666)"
-                      : "var(--text-muted, #999)",
-                  border: "none",
-                  cursor: isEngineReady ? "pointer" : "not-allowed",
-                  opacity: isEngineReady ? 1 : 0.5,
-                }}
-              >
-                Execute
-              </button>
-              <button
-                onClick={handleReset}
-                style={{
-                  padding: "2px 10px",
-                  fontSize: "11px",
-                  borderRadius: "5px",
-                  background: isDark
-                    ? "var(--bg-tertiary, #3d3d4d)"
-                    : "var(--bg-tertiary, #d0d0d0)",
-                  color: isDark
-                    ? "var(--text-secondary, #aaa)"
-                    : "var(--text-secondary, #555)",
-                  border: "1px solid var(--border-color)",
-                  cursor: "pointer",
-                }}
-              >
-                Reset
-              </button>
-            </div>
-          </div>
-          <div className="dsl-example-tabs-container">
-            <span className="dsl-example-label">
-              {isZh ? "快速示例:" : "Quick Examples:"}
-            </span>
-            {showLeftArrow && (
-              <button
-                className="dsl-example-scroll-btn"
-                onClick={() => scrollTabs("left")}
-              >
-                ◀
-              </button>
-            )}
-            <div
-              className="dsl-example-tabs-scroll"
-              ref={tabsRef}
-              onScroll={checkScrollButtons}
-              onWheel={handleWheel}
-            >
-              <div className="dsl-example-tabs">
-                {exampleScripts.map((example, idx) => (
-                  <button
-                    key={idx}
-                    className="dsl-example-btn"
-                    onClick={() => handleLoadExample(example.script)}
-                  >
-                    {example.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-            {showRightArrow && (
-              <button
-                className="dsl-example-scroll-btn"
-                onClick={() => scrollTabs("right")}
-              >
-                ▶
-              </button>
-            )}
-          </div>
-
-          <textarea
-            value={script}
-            onChange={(e) => setScript(e.target.value)}
-            style={{
-              flex: 1,
-              padding: "12px 16px",
-              fontSize: "13px",
-              fontFamily: 'Menlo, Monaco, "Courier New", monospace',
-              background: isDark
-                ? "var(--bg-primary, #1a1a2e)"
-                : "var(--bg-primary, #f5f5f5)",
-              color: isDark
-                ? "var(--text-primary, #eee)"
-                : "var(--text-primary, #222)",
-              border: "none",
-              resize: "none",
-              outline: "none",
-              minHeight: "80px",
-              lineHeight: 1.6,
-            }}
-            spellCheck={false}
-          />
-        </div>
-
-        <div
-          className="editor-resize-handle"
-          style={{
-            width: "1px",
-            height: "100%",
-            background: "var(--border-color)",
-            cursor: "col-resize",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "4px 12px",
+            borderBottom: "1px solid var(--border-color)",
+            background: isDark ? "var(--bg-secondary, #2d2d3d)" : "var(--bg-secondary, #e8e8e8)",
             flexShrink: 0,
-            position: "relative",
-          }}
-          onMouseDown={onStartEditorResize}
-        />
-
-        <div
-          style={{
-            width: `${rightWidth}%`,
-            minWidth: "20%",
-            maxWidth: "70%",
-            display: "flex",
-            flexDirection: "column",
-            overflow: "hidden",
+            minHeight: "32px",
           }}
         >
-          <div
+          <span
             style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              padding: "4px 12px",
-              borderBottom: "1px solid var(--border-color)",
-              background: isDark
-                ? "var(--bg-secondary, #2d2d3d)"
-                : "var(--bg-secondary, #e8e8e8)",
-              flexShrink: 0,
-              minHeight: "32px",
+              fontSize: "12px",
+              fontWeight: 500,
+              color: isDark ? "var(--text-primary, #eee)" : "var(--text-primary, #222)",
             }}
           >
             <span
               style={{
-                fontSize: "12px",
-                fontWeight: 500,
-                color: isDark
-                  ? "var(--text-primary, #eee)"
-                  : "var(--text-primary, #222)",
+                display: "inline-flex",
+                transform: "translateY(2px)",
+                marginRight: "5px",
               }}
             >
+              <Code2 size={14} />
+            </span>
+            DSL Script Editor
+            {!isEngineReady && (
               <span
                 style={{
-                  display: "inline-flex",
-                  transform: "translateY(2px)",
-                  marginRight: "5px",
+                  marginLeft: "8px",
+                  fontSize: "10px",
+                  color: "#eab308",
                 }}
               >
-                <FileText size={14} />
+                (Engine loading...)
               </span>
-              {isZh ? "输出日志" : "Output Logs"}
-            </span>
+            )}
+          </span>
+          <div style={{ display: "flex", gap: "6px" }}>
             <button
-              onClick={handleClearLogs}
+              onClick={handleExecute}
+              disabled={!isEngineReady}
               style={{
                 padding: "2px 10px",
                 fontSize: "11px",
                 borderRadius: "5px",
-                background: isDark
-                  ? "var(--bg-tertiary, #3d3d4d)"
-                  : "var(--bg-tertiary, #d0d0d0)",
-                color: isDark
-                  ? "var(--text-secondary, #aaa)"
-                  : "var(--text-secondary, #555)",
+                background: isEngineReady ? (isDark ? "var(--accent-color, #3b82f6)" : "var(--accent-color, #2563eb)") : isDark ? "var(--bg-tertiary, #3d3d4d)" : "var(--bg-tertiary, #d0d0d0)",
+                color: isEngineReady ? "#fff" : isDark ? "var(--text-muted, #666)" : "var(--text-muted, #999)",
+                border: "none",
+                cursor: isEngineReady ? "pointer" : "not-allowed",
+                opacity: isEngineReady ? 1 : 0.5,
+              }}
+            >
+              Execute
+            </button>
+            <button
+              onClick={handleReset}
+              style={{
+                padding: "2px 10px",
+                fontSize: "11px",
+                borderRadius: "5px",
+                background: isDark ? "var(--bg-tertiary, #3d3d4d)" : "var(--bg-tertiary, #d0d0d0)",
+                color: isDark ? "var(--text-secondary, #aaa)" : "var(--text-secondary, #555)",
                 border: "1px solid var(--border-color)",
                 cursor: "pointer",
               }}
             >
-              {isZh ? "清空" : "Clear"}
+              Reset
             </button>
           </div>
-          <div
-            ref={logsContainerRef}
+        </div>
+        <div className="dsl-example-tabs-container">
+          <span className="dsl-example-label">{isZh ? "快速示例:" : "Quick Examples:"}</span>
+          {showLeftArrow && (
+            <button className="dsl-example-scroll-btn" onClick={() => scrollTabs("left")}>
+              ◀
+            </button>
+          )}
+          <div className="dsl-example-tabs-scroll" ref={tabsRef} onScroll={checkScrollButtons} onWheel={handleWheel}>
+            <div className="dsl-example-tabs">
+              {exampleScripts.map((example, idx) => (
+                <button key={idx} className="dsl-example-btn" onClick={() => handleLoadExample(example.script)}>
+                  {example.name}
+                </button>
+              ))}
+            </div>
+          </div>
+          {showRightArrow && (
+            <button className="dsl-example-scroll-btn" onClick={() => scrollTabs("right")}>
+              ▶
+            </button>
+          )}
+        </div>
+
+        <textarea
+          value={script}
+          onChange={(e) => setScript(e.target.value)}
+          style={{
+            flex: 1,
+            padding: "12px 16px",
+            fontSize: "13px",
+            fontFamily: 'Menlo, Monaco, "Courier New", monospace',
+            background: isDark ? "var(--bg-primary, #1a1a2e)" : "var(--bg-primary, #f5f5f5)",
+            color: isDark ? "var(--text-primary, #eee)" : "var(--text-primary, #222)",
+            border: "none",
+            resize: "none",
+            outline: "none",
+            minHeight: "80px",
+            lineHeight: 1.6,
+          }}
+          spellCheck={false}
+        />
+      </div>
+
+      <div
+        className="editor-resize-handle"
+        style={{
+          width: "1px",
+          height: "100%",
+          background: "var(--border-color)",
+          cursor: "col-resize",
+          flexShrink: 0,
+          position: "relative",
+        }}
+        onMouseDown={onStartEditorResize}
+      />
+
+      <div
+        style={{
+          width: `${rightWidth}%`,
+          minWidth: "20%",
+          maxWidth: "70%",
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "4px 12px",
+            borderBottom: "1px solid var(--border-color)",
+            background: isDark ? "var(--bg-secondary, #2d2d3d)" : "var(--bg-secondary, #e8e8e8)",
+            flexShrink: 0,
+            minHeight: "32px",
+          }}
+        >
+          <span
             style={{
-              flex: 1,
-              overflow: "auto",
-              padding: "8px 12px",
               fontSize: "12px",
-              fontFamily: 'Menlo, Monaco, "Courier New", monospace',
-              background: isDark ? "rgba(0, 0, 0, 0.3)" : "rgba(0, 0, 0, 0.05)",
-              color: isDark
-                ? "var(--text-secondary, #aaa)"
-                : "var(--text-secondary, #555)",
-              lineHeight: 1.8,
+              fontWeight: 500,
+              color: isDark ? "var(--text-primary, #eee)" : "var(--text-primary, #222)",
             }}
           >
-            {logs.length === 0 ? (
-              <span
+            <span
+              style={{
+                display: "inline-flex",
+                transform: "translateY(2px)",
+                marginRight: "5px",
+              }}
+            >
+              <FileText size={14} />
+            </span>
+            {isZh ? "输出日志" : "Output Logs"}
+          </span>
+          <button
+            onClick={handleClearLogs}
+            style={{
+              padding: "2px 10px",
+              fontSize: "11px",
+              borderRadius: "5px",
+              background: isDark ? "var(--bg-tertiary, #3d3d4d)" : "var(--bg-tertiary, #d0d0d0)",
+              color: isDark ? "var(--text-secondary, #aaa)" : "var(--text-secondary, #555)",
+              border: "1px solid var(--border-color)",
+              cursor: "pointer",
+            }}
+          >
+            {isZh ? "清空" : "Clear"}
+          </button>
+        </div>
+        <div
+          ref={logsContainerRef}
+          style={{
+            flex: 1,
+            overflow: "auto",
+            padding: "8px 12px",
+            fontSize: "12px",
+            fontFamily: 'Menlo, Monaco, "Courier New", monospace',
+            background: isDark ? "rgba(0, 0, 0, 0.3)" : "rgba(0, 0, 0, 0.05)",
+            color: isDark ? "var(--text-secondary, #aaa)" : "var(--text-secondary, #555)",
+            lineHeight: 1.8,
+          }}
+        >
+          {logs.length === 0 ? (
+            <span
+              style={{
+                color: isDark ? "var(--text-muted, #666)" : "var(--text-muted, #999)",
+              }}
+            >
+              {isZh ? "等待脚本执行..." : "Waiting for script execution..."}
+            </span>
+          ) : (
+            logs.map((log, idx) => (
+              <div
+                key={idx}
                 style={{
-                  color: isDark
-                    ? "var(--text-muted, #666)"
-                    : "var(--text-muted, #999)",
+                  padding: "2px 0",
+                  borderBottom: "1px solid var(--border-color)",
+                  color: isDark ? "var(--text-primary, #ddd)" : "var(--text-primary, #333)",
+                  fontSize: "11px",
                 }}
               >
-                {isZh ? "等待脚本执行..." : "Waiting for script execution..."}
-              </span>
-            ) : (
-              logs.map((log, idx) => (
-                <div
-                  key={idx}
-                  style={{
-                    padding: "2px 0",
-                    borderBottom: "1px solid var(--border-color)",
-                    color: isDark
-                      ? "var(--text-primary, #ddd)"
-                      : "var(--text-primary, #333)",
-                    fontSize: "11px",
-                  }}
-                >
-                  {log}
-                </div>
-              ))
-            )}
-          </div>
+                {log}
+              </div>
+            ))
+          )}
         </div>
-      </>
-    );
-  },
-);
+      </div>
+    </>
+  );
+});
 
 DSL.displayName = "DSL";
 

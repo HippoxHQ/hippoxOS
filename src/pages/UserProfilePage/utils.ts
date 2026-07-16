@@ -1,7 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { taskPoolCommands } from "../../core/TaskPool";
 import { sessionCommands } from "../../command/session/general";
-
 export const loadAllTasksFromBackups = async (): Promise<any[]> => {
   try {
     const backups = await taskPoolCommands.listBackups();
@@ -25,7 +24,6 @@ export const loadAllTasksFromBackups = async (): Promise<any[]> => {
     return [];
   }
 };
-
 export const loadAllSessions = async (): Promise<any[]> => {
   try {
     const sessions = await sessionCommands.listSessions();
@@ -35,7 +33,6 @@ export const loadAllSessions = async (): Promise<any[]> => {
     return [];
   }
 };
-
 export const loadSessionChat = async (sessionId: string): Promise<any[]> => {
   try {
     const content = await sessionCommands.loadChatContent(sessionId);
@@ -51,13 +48,11 @@ export const loadSessionChat = async (sessionId: string): Promise<any[]> => {
     return [];
   }
 };
-
 export const formatNumber = (num: number): string => {
   if (num >= 1000000) return (num / 1000000).toFixed(1) + "M";
   if (num >= 1000) return (num / 1000).toFixed(1) + "K";
   return num.toString();
 };
-
 export const formatLocalDate = (date: Date): string => {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");

@@ -3,14 +3,11 @@ import { taskManager } from "../../core/TaskManager";
 import { TaskStatusEnum } from "../../core/types";
 import { showTooltipOnElement } from "../../components/Tooltip";
 import { CollapseAllIcon2, ExpandAllIcon2, MessageCircleIcon, ScrollTextIcon } from "../../icons";
-import HistoryMapChatPanel, {
-  HistoryMapChatPanelRef,
-} from "./HistoryMapChatPanel";
+import HistoryMapChatPanel, { HistoryMapChatPanelRef } from "./HistoryMapChatPanel";
 import MapsChatPageEarthView from "./MapsChatPageEarthView";
 import { configCommands } from "../../command/config";
 import MapsChatPage from "./MapsChatPanel";
 import { useMapSession } from "../../App/hooks/session/useMapChatSession";
-
 interface MapsPageProps {
   layoutMode?: "horizontal" | "vertical";
   onLayoutModeChange?: (mode: "horizontal" | "vertical") => void;
@@ -33,22 +30,15 @@ interface MapsPageProps {
   executionLogs?: any[];
   onClearLogs?: () => void;
 }
-
 interface CollapsedTaskListProps {
   tasks: any[];
   activeNavIndex: number;
   onLocateTask: (idx: number) => void;
 }
-
-const CollapsedTaskList: React.FC<CollapsedTaskListProps> = ({
-  tasks,
-  activeNavIndex,
-  onLocateTask,
-}) => {
+const CollapsedTaskList: React.FC<CollapsedTaskListProps> = ({ tasks, activeNavIndex, onLocateTask }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [showUp, setShowUp] = useState(false);
   const [showDown, setShowDown] = useState(false);
-
   const checkScroll = useCallback(() => {
     if (!containerRef.current) return;
     const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
@@ -57,7 +47,6 @@ const CollapsedTaskList: React.FC<CollapsedTaskListProps> = ({
     setShowUp(canScrollUp);
     setShowDown(canScrollDown);
   }, []);
-
   const updateScrollButtons = useCallback(() => {
     if (!containerRef.current) return;
     const { scrollHeight, clientHeight } = containerRef.current;
@@ -71,7 +60,6 @@ const CollapsedTaskList: React.FC<CollapsedTaskListProps> = ({
       setShowDown(false);
     }
   }, []);
-
   useEffect(() => {
     const el = containerRef.current;
     if (el) {
@@ -87,23 +75,19 @@ const CollapsedTaskList: React.FC<CollapsedTaskListProps> = ({
       };
     }
   }, [checkScroll, updateScrollButtons]);
-
   useEffect(() => {
     setTimeout(updateScrollButtons, 100);
   }, [tasks]);
-
   const scrollUp = () => {
     if (containerRef.current) {
       containerRef.current.scrollBy({ top: -200, behavior: "smooth" });
     }
   };
-
   const scrollDown = () => {
     if (containerRef.current) {
       containerRef.current.scrollBy({ top: 200, behavior: "smooth" });
     }
   };
-
   const getStatusColor = (status: string) => {
     switch (status) {
       case TaskStatusEnum.Running:
@@ -120,7 +104,6 @@ const CollapsedTaskList: React.FC<CollapsedTaskListProps> = ({
         return "var(--text-tertiary)";
     }
   };
-
   const getStatusEmoji = (status: string) => {
     switch (status) {
       case TaskStatusEnum.Running:
@@ -137,14 +120,12 @@ const CollapsedTaskList: React.FC<CollapsedTaskListProps> = ({
         return "📌";
     }
   };
-
   const getDisplayText = (text: string): string => {
     if (!text) return "...";
     const clean = text.trim();
     if (clean.length <= 2) return clean;
     return clean.slice(0, 2);
   };
-
   if (tasks.length === 0) {
     return (
       <div
@@ -173,7 +154,6 @@ const CollapsedTaskList: React.FC<CollapsedTaskListProps> = ({
       </div>
     );
   }
-
   return (
     <div
       style={{
@@ -248,9 +228,7 @@ const CollapsedTaskList: React.FC<CollapsedTaskListProps> = ({
                 width: "30px",
                 height: "30px",
                 borderRadius: "8px",
-                border: isActive
-                  ? "1px solid var(--accent-color)"
-                  : "1px solid transparent",
+                border: isActive ? "1px solid var(--accent-color)" : "1px solid transparent",
                 background: isActive ? "var(--accent-color)" : "transparent",
                 color: isActive ? "white" : "var(--text-secondary)",
                 cursor: "pointer",
@@ -273,10 +251,7 @@ const CollapsedTaskList: React.FC<CollapsedTaskListProps> = ({
                   e.currentTarget.style.color = "var(--text-primary)";
                   e.currentTarget.style.borderColor = "var(--border-color)";
                 }
-                showTooltipOnElement(
-                  e.currentTarget,
-                  task.user_input || "Task",
-                );
+                showTooltipOnElement(e.currentTarget, task.user_input || "Task");
               }}
               onMouseLeave={(e) => {
                 if (!isActive) {
@@ -343,22 +318,15 @@ const CollapsedTaskList: React.FC<CollapsedTaskListProps> = ({
     </div>
   );
 };
-
 interface CollapsedHistoryListProps {
   sessions: any[];
   currentSessionId?: string;
   onSelectSession: (sessionId: string) => void;
 }
-
-const CollapsedHistoryList: React.FC<CollapsedHistoryListProps> = ({
-  sessions,
-  currentSessionId,
-  onSelectSession,
-}) => {
+const CollapsedHistoryList: React.FC<CollapsedHistoryListProps> = ({ sessions, currentSessionId, onSelectSession }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [showUp, setShowUp] = useState(false);
   const [showDown, setShowDown] = useState(false);
-
   const sortedSessions = React.useMemo(() => {
     return [...sessions].sort((a, b) => {
       if (a.is_pinned && !b.is_pinned) return -1;
@@ -368,7 +336,6 @@ const CollapsedHistoryList: React.FC<CollapsedHistoryListProps> = ({
       return bTs - aTs;
     });
   }, [sessions]);
-
   const checkScroll = useCallback(() => {
     if (!containerRef.current) return;
     const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
@@ -377,7 +344,6 @@ const CollapsedHistoryList: React.FC<CollapsedHistoryListProps> = ({
     setShowUp(canScrollUp);
     setShowDown(canScrollDown);
   }, []);
-
   const updateScrollButtons = useCallback(() => {
     if (!containerRef.current) return;
     const { scrollHeight, clientHeight } = containerRef.current;
@@ -391,7 +357,6 @@ const CollapsedHistoryList: React.FC<CollapsedHistoryListProps> = ({
       setShowDown(false);
     }
   }, []);
-
   useEffect(() => {
     const el = containerRef.current;
     if (el) {
@@ -407,30 +372,25 @@ const CollapsedHistoryList: React.FC<CollapsedHistoryListProps> = ({
       };
     }
   }, [checkScroll, updateScrollButtons]);
-
   useEffect(() => {
     setTimeout(updateScrollButtons, 100);
   }, [sessions]);
-
   const scrollUp = () => {
     if (containerRef.current) {
       containerRef.current.scrollBy({ top: -200, behavior: "smooth" });
     }
   };
-
   const scrollDown = () => {
     if (containerRef.current) {
       containerRef.current.scrollBy({ top: 200, behavior: "smooth" });
     }
   };
-
   const getDisplayText = (text: string): string => {
     if (!text) return "...";
     const clean = text.trim();
     if (clean.length <= 2) return clean;
     return clean.slice(0, 2);
   };
-
   if (sessions.length === 0) {
     return (
       <div
@@ -459,7 +419,6 @@ const CollapsedHistoryList: React.FC<CollapsedHistoryListProps> = ({
       </div>
     );
   }
-
   return (
     <div
       style={{
@@ -534,9 +493,7 @@ const CollapsedHistoryList: React.FC<CollapsedHistoryListProps> = ({
                 width: "30px",
                 height: "30px",
                 borderRadius: "8px",
-                border: isActive
-                  ? "1px solid var(--accent-color)"
-                  : "1px solid transparent",
+                border: isActive ? "1px solid var(--accent-color)" : "1px solid transparent",
                 background: isActive ? "var(--accent-color)" : "transparent",
                 color: isActive ? "white" : "var(--text-secondary)",
                 cursor: "pointer",
@@ -559,10 +516,7 @@ const CollapsedHistoryList: React.FC<CollapsedHistoryListProps> = ({
                   e.currentTarget.style.color = "var(--text-primary)";
                   e.currentTarget.style.borderColor = "var(--border-color)";
                 }
-                showTooltipOnElement(
-                  e.currentTarget,
-                  session.title || "Untitled",
-                );
+                showTooltipOnElement(e.currentTarget, session.title || "Untitled");
               }}
               onMouseLeave={(e) => {
                 if (!isActive) {
@@ -579,9 +533,7 @@ const CollapsedHistoryList: React.FC<CollapsedHistoryListProps> = ({
                     top: "1px",
                     right: "1px",
                     fontSize: "6px",
-                    color: isActive
-                      ? "rgba(255,255,255,0.8)"
-                      : "var(--accent-color)",
+                    color: isActive ? "rgba(255,255,255,0.8)" : "var(--accent-color)",
                   }}
                 >
                   📌
@@ -633,7 +585,6 @@ const CollapsedHistoryList: React.FC<CollapsedHistoryListProps> = ({
     </div>
   );
 };
-
 const MapsPage: React.FC<MapsPageProps> = ({
   layoutMode = "vertical",
   onLayoutModeChange,
@@ -663,7 +614,6 @@ const MapsPage: React.FC<MapsPageProps> = ({
     handleNewSession: mapHandleNewSession,
     shouldShowWelcome: mapShouldShowWelcome,
   } = useMapSession(language as "zh" | "en", true);
-
   const [chatPanelWidth, setChatPanelWidth] = useState<number>(400);
   const [historyWidth, setHistoryWidth] = useState<number>(280);
   const [chatPanelCollapsed, setChatPanelCollapsed] = useState<boolean>(false);
@@ -682,15 +632,9 @@ const MapsPage: React.FC<MapsPageProps> = ({
   const dragStartHistoryWidth = useRef(0);
   const dragStartChatPanelWidth = useRef(400);
   const dragStartContainerRect = useRef<DOMRect | null>(null);
-  const [layoutSwapMode, setLayoutSwapMode] = useState<
-    "terminal-left" | "chat-left"
-  >("terminal-left");
-  const layoutSwapModeRef = useRef<"terminal-left" | "chat-left">(
-    "terminal-left",
-  );
-
+  const [layoutSwapMode, setLayoutSwapMode] = useState<"terminal-left" | "chat-left">("terminal-left");
+  const layoutSwapModeRef = useRef<"terminal-left" | "chat-left">("terminal-left");
   const isChatOnLeft = layoutSwapMode === "chat-left";
-
   const handleToggleChatPanel = useCallback(() => {
     if (isFunctionPanelMaximized) return;
     setChatPanelCollapsed((prev) => {
@@ -699,7 +643,6 @@ const MapsPage: React.FC<MapsPageProps> = ({
       return newState;
     });
   }, [isFunctionPanelMaximized]);
-
   const chatPanel = (
     <MapsChatPage
       onSendMessage={mapHandleSendMessage}
@@ -711,7 +654,6 @@ const MapsPage: React.FC<MapsPageProps> = ({
       isLeftPanel={isChatOnLeft}
     />
   );
-
   const mapPanel = (
     <div
       style={{
@@ -723,17 +665,9 @@ const MapsPage: React.FC<MapsPageProps> = ({
         overflow: "hidden",
       }}
     >
-      <MapsChatPageEarthView
-        theme={theme}
-        i18n={i18n}
-        onLoad={onMapLoad}
-        onMapClick={onMapClick}
-        onMoveEnd={onMapMoveEnd}
-        mapData={mapData}
-      />
+      <MapsChatPageEarthView theme={theme} i18n={i18n} onLoad={onMapLoad} onMapClick={onMapClick} onMoveEnd={onMapMoveEnd} mapData={mapData} />
     </div>
   );
-
   const collapsedChatSidebar = (
     <div
       className="collapsed-sidebar"
@@ -830,7 +764,6 @@ const MapsPage: React.FC<MapsPageProps> = ({
       />
     </div>
   );
-
   useEffect(() => {
     const loadLayoutMode = async () => {
       try {
@@ -845,7 +778,6 @@ const MapsPage: React.FC<MapsPageProps> = ({
     };
     loadLayoutMode();
   }, []);
-
   useEffect(() => {
     const handleLayoutChange = (event: CustomEvent) => {
       const { pageType, mode } = event.detail;
@@ -854,23 +786,15 @@ const MapsPage: React.FC<MapsPageProps> = ({
         layoutSwapModeRef.current = mode;
       }
     };
-    window.addEventListener(
-      "layout-swap-mode-changed",
-      handleLayoutChange as EventListener,
-    );
+    window.addEventListener("layout-swap-mode-changed", handleLayoutChange as EventListener);
     return () => {
-      window.removeEventListener(
-        "layout-swap-mode-changed",
-        handleLayoutChange as EventListener,
-      );
+      window.removeEventListener("layout-swap-mode-changed", handleLayoutChange as EventListener);
     };
   }, []);
-
   useEffect(() => {
     const loadSessions = async () => {
       try {
-        const { mapSessionCommands } =
-          await import("../../command/session/map");
+        const { mapSessionCommands } = await import("../../command/session/map");
         const list = await mapSessionCommands.listMapSessions();
         setHistorySessions(list);
       } catch (error) {
@@ -886,7 +810,6 @@ const MapsPage: React.FC<MapsPageProps> = ({
       window.removeEventListener("map-session-created", handleSessionCreated);
     };
   }, []);
-
   useEffect(() => {
     const handleSessionCreated = () => {
       historyPanelRef.current?.refreshSessions();
@@ -896,7 +819,6 @@ const MapsPage: React.FC<MapsPageProps> = ({
       window.removeEventListener("map-session-created", handleSessionCreated);
     };
   }, []);
-
   useEffect(() => {
     const handleTitleUpdated = () => {
       historyPanelRef.current?.refreshSessions();
@@ -906,40 +828,28 @@ const MapsPage: React.FC<MapsPageProps> = ({
       window.removeEventListener("session-title-updated", handleTitleUpdated);
     };
   }, []);
-
   useEffect(() => {
     const savedHistoryWidth = localStorage.getItem("hippox-map-history-width");
-    const savedHistoryCollapsed = localStorage.getItem(
-      "hippox-map-history-collapsed",
-    );
-    const savedChatPanelCollapsed = localStorage.getItem(
-      "hippox-map-chat-collapsed",
-    );
+    const savedHistoryCollapsed = localStorage.getItem("hippox-map-history-collapsed");
+    const savedChatPanelCollapsed = localStorage.getItem("hippox-map-chat-collapsed");
     const savedChatPanelWidth = localStorage.getItem("hippox-map-chat-width");
     if (savedHistoryWidth) setHistoryWidth(parseFloat(savedHistoryWidth));
-    if (savedHistoryCollapsed)
-      setHistoryCollapsed(savedHistoryCollapsed === "true");
-    if (savedChatPanelCollapsed)
-      setChatPanelCollapsed(savedChatPanelCollapsed === "true");
+    if (savedHistoryCollapsed) setHistoryCollapsed(savedHistoryCollapsed === "true");
+    if (savedChatPanelCollapsed) setChatPanelCollapsed(savedChatPanelCollapsed === "true");
     if (savedChatPanelWidth) setChatPanelWidth(parseFloat(savedChatPanelWidth));
   }, []);
-
   const saveHistoryWidth = (width: number) => {
     localStorage.setItem("hippox-map-history-width", width.toString());
   };
-
   const saveHistoryCollapsed = (collapsed: boolean) => {
     localStorage.setItem("hippox-map-history-collapsed", collapsed.toString());
   };
-
   const saveChatPanelCollapsed = (collapsed: boolean) => {
     localStorage.setItem("hippox-map-chat-collapsed", collapsed.toString());
   };
-
   const saveChatPanelWidth = (width: number) => {
     localStorage.setItem("hippox-map-chat-width", width.toString());
   };
-
   const handleExpandToggle = () => {
     const newExpanded = !isHistoryExpanded;
     setIsHistoryExpanded(newExpanded);
@@ -949,7 +859,6 @@ const MapsPage: React.FC<MapsPageProps> = ({
       historyPanelRef.current?.collapseAll();
     }
   };
-
   const handleScrollToggle = () => {
     const newAtBottom = !isHistoryAtBottom;
     setIsHistoryAtBottom(newAtBottom);
@@ -959,27 +868,20 @@ const MapsPage: React.FC<MapsPageProps> = ({
       historyPanelRef.current?.scrollToTop();
     }
   };
-
   const handleToggleHistory = () => {
     setHistoryCollapsed(!historyCollapsed);
     saveHistoryCollapsed(!historyCollapsed);
   };
-
   const handleSessionSelect = useCallback(
     (sessionId: string) => {
       mapHandleSwitchSession(sessionId);
     },
     [mapHandleSwitchSession],
   );
-
   const handleNewSession = useCallback(() => {
     mapHandleNewSession();
   }, [mapHandleNewSession]);
-
-  const handleMouseDown = (
-    e: React.MouseEvent,
-    type: "horizontal" | "history",
-  ) => {
+  const handleMouseDown = (e: React.MouseEvent, type: "horizontal" | "history") => {
     if (chatPanelCollapsed || isFunctionPanelMaximized) return;
     if (type === "history" && historyCollapsed) return;
     isDragging.current = true;
@@ -987,19 +889,15 @@ const MapsPage: React.FC<MapsPageProps> = ({
     dragStartX.current = e.clientX;
     dragStartHistoryWidth.current = historyCollapsed ? 45 : historyWidth;
     dragStartChatPanelWidth.current = chatPanelWidth;
-    dragStartContainerRect.current =
-      containerRef.current?.getBoundingClientRect() || null;
+    dragStartContainerRect.current = containerRef.current?.getBoundingClientRect() || null;
     document.body.style.cursor = "col-resize";
     document.body.style.userSelect = "none";
     e.preventDefault();
   };
-
   const handleMouseMove = useCallback((e: MouseEvent) => {
     if (!isDragging.current || !containerRef.current) return;
     const deltaX = e.clientX - dragStartX.current;
-    const containerRect =
-      dragStartContainerRect.current ||
-      containerRef.current.getBoundingClientRect();
+    const containerRect = dragStartContainerRect.current || containerRef.current.getBoundingClientRect();
     const containerWidth = containerRect.width;
     if (dragType.current === "horizontal") {
       const historyWidthPx = dragStartHistoryWidth.current;
@@ -1025,13 +923,11 @@ const MapsPage: React.FC<MapsPageProps> = ({
       saveHistoryWidth(clamped);
     }
   }, []);
-
   const handleMouseUp = useCallback(() => {
     isDragging.current = false;
     document.body.style.cursor = "";
     document.body.style.userSelect = "";
   }, []);
-
   useEffect(() => {
     window.addEventListener("mousemove", handleMouseMove);
     window.addEventListener("mouseup", handleMouseUp);
@@ -1040,7 +936,6 @@ const MapsPage: React.FC<MapsPageProps> = ({
       window.removeEventListener("mouseup", handleMouseUp);
     };
   }, [handleMouseMove, handleMouseUp]);
-
   const getHistoryPanelContent = () => {
     if (historyCollapsed || isFunctionPanelMaximized) {
       return (
@@ -1117,15 +1012,10 @@ const MapsPage: React.FC<MapsPageProps> = ({
               <ScrollTextIcon size={16} />
             </span>
           </div>
-          <CollapsedHistoryList
-            sessions={historySessions}
-            currentSessionId={mapSessionId}
-            onSelectSession={handleSessionSelect}
-          />
+          <CollapsedHistoryList sessions={historySessions} currentSessionId={mapSessionId} onSelectSession={handleSessionSelect} />
         </div>
       );
     }
-
     return (
       <div
         style={{
@@ -1221,17 +1111,9 @@ const MapsPage: React.FC<MapsPageProps> = ({
                 e.currentTarget.style.color = "var(--text-secondary)";
                 e.currentTarget.style.background = "none";
               }}
-              title={
-                isHistoryExpanded
-                  ? t("history.collapseAll")
-                  : t("history.expandAll")
-              }
+              title={isHistoryExpanded ? t("history.collapseAll") : t("history.expandAll")}
             >
-              {isHistoryExpanded ? (
-                <CollapseAllIcon2 size={16} />
-              ) : (
-                <ExpandAllIcon2 size={16} />
-              )}
+              {isHistoryExpanded ? <CollapseAllIcon2 size={16} /> : <ExpandAllIcon2 size={16} />}
             </button>
             <button
               style={{
@@ -1258,11 +1140,7 @@ const MapsPage: React.FC<MapsPageProps> = ({
                 e.currentTarget.style.color = "var(--text-secondary)";
                 e.currentTarget.style.background = "none";
               }}
-              title={
-                isHistoryAtBottom
-                  ? t("history.scrollToTop")
-                  : t("history.scrollToBottom")
-              }
+              title={isHistoryAtBottom ? t("history.scrollToTop") : t("history.scrollToBottom")}
             >
               {isHistoryAtBottom ? "▲" : "▼"}
             </button>
@@ -1307,27 +1185,15 @@ const MapsPage: React.FC<MapsPageProps> = ({
           </div>
         </div>
         <div style={{ flex: 1, overflow: "hidden" }}>
-          <HistoryMapChatPanel
-            ref={historyPanelRef}
-            t={t}
-            onSessionSelect={handleSessionSelect}
-            currentSessionId={mapSessionId}
-          />
+          <HistoryMapChatPanel ref={historyPanelRef} t={t} onSessionSelect={handleSessionSelect} currentSessionId={mapSessionId} />
         </div>
       </div>
     );
   };
-
   const historyPanelContent = getHistoryPanelContent();
-  const historyWidthPx =
-    historyCollapsed || isFunctionPanelMaximized ? 45 : historyWidth;
-
+  const historyWidthPx = historyCollapsed || isFunctionPanelMaximized ? 45 : historyWidth;
   return (
-    <div
-      className="panels-container horizontal-layout"
-      ref={containerRef}
-      style={{ display: "flex", flex: 1, overflow: "hidden" }}
-    >
+    <div className="panels-container horizontal-layout" ref={containerRef} style={{ display: "flex", flex: 1, overflow: "hidden" }}>
       <style>{`
         .resize-handle-vertical {
           position: relative;
@@ -1395,9 +1261,7 @@ const MapsPage: React.FC<MapsPageProps> = ({
               onMouseDown={(e) => handleMouseDown(e, "history")}
               style={{
                 width: "0px",
-                background: isHistoryResizeHover
-                  ? "var(--scrollbar-thumb)"
-                  : "var(--border-color)",
+                background: isHistoryResizeHover ? "var(--scrollbar-thumb)" : "var(--border-color)",
                 cursor: "col-resize",
                 flexShrink: 0,
                 position: "relative",
@@ -1426,7 +1290,6 @@ const MapsPage: React.FC<MapsPageProps> = ({
           )}
         </>
       )}
-
       {!chatPanelCollapsed && !isFunctionPanelMaximized ? (
         <div
           className="panel-chat"
@@ -1437,12 +1300,8 @@ const MapsPage: React.FC<MapsPageProps> = ({
             minWidth: "200px",
             display: "flex",
             flexDirection: "row",
-            borderRight: isChatOnLeft
-              ? "1px solid var(--border-color)"
-              : "none",
-            borderLeft: !isChatOnLeft
-              ? "1px solid var(--border-color)"
-              : "none",
+            borderRight: isChatOnLeft ? "1px solid var(--border-color)" : "none",
+            borderLeft: !isChatOnLeft ? "1px solid var(--border-color)" : "none",
             order: isChatOnLeft ? 1 : 3,
           }}
         >
@@ -1463,16 +1322,13 @@ const MapsPage: React.FC<MapsPageProps> = ({
           {collapsedChatSidebar}
         </div>
       ) : null}
-
       {!chatPanelCollapsed && !isFunctionPanelMaximized && (
         <div
           className="resize-handle resize-handle-vertical"
           onMouseDown={(e) => handleMouseDown(e, "horizontal")}
           style={{
             width: "0px",
-            background: isResizeHover
-              ? "var(--scrollbar-thumb)"
-              : "var(--border-color)",
+            background: isResizeHover ? "var(--scrollbar-thumb)" : "var(--border-color)",
             cursor: "col-resize",
             flexShrink: 0,
             position: "relative",
@@ -1500,7 +1356,6 @@ const MapsPage: React.FC<MapsPageProps> = ({
           )} */}
         </div>
       )}
-
       <div
         style={{
           flex: 1,
@@ -1516,5 +1371,4 @@ const MapsPage: React.FC<MapsPageProps> = ({
     </div>
   );
 };
-
 export default MapsPage;

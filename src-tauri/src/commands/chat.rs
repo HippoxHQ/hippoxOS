@@ -15,7 +15,6 @@ use std::sync::Arc;
 use tauri::{Emitter, State};
 use tokio::sync::Mutex;
 use uuid::Uuid;
-
 pub(crate) struct LogMessages {
     init_start: String,
     init_success: String,
@@ -25,7 +24,6 @@ pub(crate) struct LogMessages {
     session_cleared: String,
     engine_not_initialized: String,
 }
-
 impl LogMessages {
     pub fn get() -> Self {
         let lang = crate::commons::get_setting_with_default("language", serde_json::json!("en"))
@@ -53,7 +51,6 @@ impl LogMessages {
         }
     }
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ChatResponse {
     pub success: bool,
@@ -61,7 +58,6 @@ pub struct ChatResponse {
     pub session_id: String,
     pub error: Option<String>,
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ExecutionLog {
     pub id: String,
@@ -71,7 +67,6 @@ pub struct ExecutionLog {
     pub details: Option<String>,
     pub duration: Option<u64>,
 }
-
 /// Helper function to build enhanced message with history and system prompt
 async fn build_enhanced_message(mem: Option<&MemContext>, session_id: &str, message: &str) -> String {
     let history_context =
@@ -82,25 +77,21 @@ async fn build_enhanced_message(mem: Option<&MemContext>, session_id: &str, mess
         format!("{}", message)
     }
 }
-
 #[tauri::command]
 pub async fn cmd_set_hippox_language(state: State<'_, AppState>, language: String) -> Result<(), String> {
     state.set_language(language).await;
     Ok(())
 }
-
 #[tauri::command]
 pub async fn cmd_get_hippox_language(state: State<'_, AppState>) -> Result<String, String> {
     Ok(state.get_language().await)
 }
-
 #[tauri::command]
 pub async fn reinitialize_hippox() -> Result<(), String> {
     load_config_from_file().await?;
     init_all_hippox_instances().await?;
     Ok(())
 }
-
 #[tauri::command]
 pub async fn cmd_send_chat_message_async(
     state: State<'_, AppState>,
@@ -144,29 +135,24 @@ pub async fn cmd_send_chat_message_async(
     state.update_task_status(&core_task_id, "pending").await;
     Ok(core_task_id)
 }
-
 #[tauri::command]
 pub async fn cmd_get_task_status(state: State<'_, AppState>, task_id: String) -> Result<Option<TaskInfo>, String> {
     Ok(state.get_task(&task_id).await)
 }
-
 #[tauri::command]
 pub async fn cmd_get_session_tasks(state: State<'_, AppState>, session_id: Option<String>) -> Result<Vec<TaskInfo>, String> {
     let session = session_id.unwrap_or_else(|| "default".to_string());
     Ok(state.get_session_tasks(&session).await)
 }
-
 #[tauri::command]
 pub async fn cmd_get_execution_logs(state: State<'_, AppState>) -> Result<Vec<ExecutionLog>, String> {
     Ok(state.get_logs().await)
 }
-
 #[tauri::command]
 pub async fn cmd_clear_execution_logs(state: State<'_, AppState>) -> Result<(), String> {
     state.clear_logs().await;
     Ok(())
 }
-
 #[tauri::command]
 pub async fn cmd_reset_conversation(state: State<'_, AppState>, session_id: Option<String>) -> Result<(), String> {
     let messages = LogMessages::get();
@@ -174,12 +160,10 @@ pub async fn cmd_reset_conversation(state: State<'_, AppState>, session_id: Opti
     state.add_log("process".to_string(), messages.session_cleared.replace("{}", &session), None, None).await;
     Ok(())
 }
-
 #[tauri::command]
 pub async fn cmd_is_hippox_initialized() -> Result<bool, String> {
     Ok(get_default_hippox().await.is_ok())
 }
-
 #[tauri::command]
 pub async fn cmd_get_atomic_skills_list() -> Result<Vec<String>, String> {
     match get_default_hippox().await {

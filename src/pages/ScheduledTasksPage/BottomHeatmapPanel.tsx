@@ -2,79 +2,34 @@ import React, { useState, useEffect } from "react";
 import { scheduledTasksCommands } from "../../command/scheduledtasks";
 import Heatmap from "../../components/Heatmap";
 import { showToast, ToastType } from "../../components/Toast";
-
 const FireIcon = () => (
-  <svg
-    width="14"
-    height="14"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" />
   </svg>
 );
-
 const RefreshCwIcon = () => (
-  <svg
-    width="12"
-    height="12"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M23 4v6h-6" />
     <path d="M1 20v-6h6" />
     <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10" />
     <path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14" />
   </svg>
 );
-
 const ChevronUpIcon = () => (
-  <svg
-    width="12"
-    height="12"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <polyline points="18 15 12 9 6 15" />
   </svg>
 );
-
 const ChevronDownIcon = () => (
-  <svg
-    width="12"
-    height="12"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <polyline points="6 9 12 15 18 9" />
   </svg>
 );
-
 interface BottomHeatmapPanelProps {
   t: (key: string, params?: any) => string;
   tasks?: any[];
 }
-
-const BottomHeatmapPanel: React.FC<BottomHeatmapPanelProps> = ({
-  t,
-  tasks = [],
-}) => {
+const BottomHeatmapPanel: React.FC<BottomHeatmapPanelProps> = ({ t, tasks = [] }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [heatmapData, setHeatmapData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -123,24 +78,20 @@ const BottomHeatmapPanel: React.FC<BottomHeatmapPanelProps> = ({
       setLoading(false);
     }
   };
-
   useEffect(() => {
     if (isExpanded && heatmapData.length === 0) {
       loadRealData();
     }
   }, [isExpanded]);
-
   useEffect(() => {
     if (tasks.length > 0) {
       const data = generateHeatmapData(tasks);
       setHeatmapData(data);
     }
   }, [tasks]);
-
   const handleRefresh = () => {
     loadRealData();
   };
-
   return (
     <div
       className="bottom-heatmap-panel"
@@ -161,16 +112,10 @@ const BottomHeatmapPanel: React.FC<BottomHeatmapPanelProps> = ({
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          <span
-            className="bottom-heatmap-icon"
-            style={{ color: "var(--text-secondary)" }}
-          >
+          <span className="bottom-heatmap-icon" style={{ color: "var(--text-secondary)" }}>
             <FireIcon />
           </span>
-          <span
-            className="bottom-heatmap-title"
-            style={{ fontSize: "12px", color: "var(--text-secondary)" }}
-          >
+          <span className="bottom-heatmap-title" style={{ fontSize: "12px", color: "var(--text-secondary)" }}>
             {t("scheduled.executionHeatmap")}
           </span>
         </div>
@@ -187,9 +132,7 @@ const BottomHeatmapPanel: React.FC<BottomHeatmapPanelProps> = ({
               display: "flex",
               alignItems: "center",
             }}
-            onMouseEnter={(e) =>
-              (e.currentTarget.style.background = "var(--bg-tertiary)")
-            }
+            onMouseEnter={(e) => (e.currentTarget.style.background = "var(--bg-tertiary)")}
             onMouseLeave={(e) => (e.currentTarget.style.background = "none")}
             title={t("user.refreshTooltip")}
           >
@@ -209,19 +152,14 @@ const BottomHeatmapPanel: React.FC<BottomHeatmapPanelProps> = ({
               alignItems: "center",
               gap: "4px",
             }}
-            onMouseEnter={(e) =>
-              (e.currentTarget.style.background = "var(--bg-tertiary)")
-            }
+            onMouseEnter={(e) => (e.currentTarget.style.background = "var(--bg-tertiary)")}
             onMouseLeave={(e) => (e.currentTarget.style.background = "none")}
           >
             {isExpanded ? <ChevronDownIcon /> : <ChevronUpIcon />}
-            <span style={{ fontSize: "11px" }}>
-              {isExpanded ? t("scheduled.collapse") : t("scheduled.expand")}
-            </span>
+            <span style={{ fontSize: "11px" }}>{isExpanded ? t("scheduled.collapse") : t("scheduled.expand")}</span>
           </button>
         </div>
       </div>
-
       {isExpanded && (
         <div
           style={{
@@ -256,5 +194,4 @@ const BottomHeatmapPanel: React.FC<BottomHeatmapPanelProps> = ({
     </div>
   );
 };
-
 export default BottomHeatmapPanel;

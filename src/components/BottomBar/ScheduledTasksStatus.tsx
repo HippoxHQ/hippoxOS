@@ -1,12 +1,8 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import {
-  ScheduledTask,
-  scheduledTasksCommands,
-} from "../../command/scheduledtasks";
+import { ScheduledTask, scheduledTasksCommands } from "../../command/scheduledtasks";
 import { showDialog, DialogType } from "../../components/Dialog";
 import { showToast, ToastType } from "../../components/Toast";
 import { workflowCommands } from "../../command/workflow";
-
 interface ScheduledTasksStatusProps {
   isOpen: boolean;
   onClose: () => void;
@@ -14,127 +10,47 @@ interface ScheduledTasksStatusProps {
   t: (key: string, params?: Record<string, any>) => string;
   popupRef: React.RefObject<HTMLDivElement | null>;
 }
-
 const SearchIcon = () => (
-  <svg
-    width="12"
-    height="12"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <circle cx="11" cy="11" r="8" />
     <line x1="21" y1="21" x2="16.65" y2="16.65" />
   </svg>
 );
-
 const XIcon = () => (
-  <svg
-    width="10"
-    height="10"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
+  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <line x1="18" y1="6" x2="6" y2="18" />
     <line x1="6" y1="6" x2="18" y2="18" />
   </svg>
 );
-
 const ChevronDownIcon = () => (
-  <svg
-    width="10"
-    height="10"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
+  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <polyline points="6 9 12 15 18 9" />
   </svg>
 );
-
 const PlayIcon = () => (
-  <svg
-    width="12"
-    height="12"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <polygon points="5 3 19 12 5 21 5 3" />
   </svg>
 );
-
 const PauseIcon = () => (
-  <svg
-    width="12"
-    height="12"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <rect x="6" y="4" width="4" height="16" />
     <rect x="14" y="4" width="4" height="16" />
   </svg>
 );
-
 const CheckIcon = () => (
-  <svg
-    width="12"
-    height="12"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <polyline points="20 6 9 17 4 12" />
   </svg>
 );
-
 const TrashIcon = () => (
-  <svg
-    width="12"
-    height="12"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <polyline points="3 6 5 6 21 6" />
     <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
   </svg>
 );
-
 const ListIcon = () => (
-  <svg
-    width="12"
-    height="12"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <line x1="8" y1="6" x2="21" y2="6" />
     <line x1="8" y1="12" x2="21" y2="12" />
     <line x1="8" y1="18" x2="21" y2="18" />
@@ -143,55 +59,32 @@ const ListIcon = () => (
     <line x1="3" y1="18" x2="3.01" y2="18" />
   </svg>
 );
-
-const ScheduledTasksStatus: React.FC<ScheduledTasksStatusProps> = ({
-  isOpen,
-  onClose,
-  anchorRef,
-  t,
-  popupRef,
-}) => {
+const ScheduledTasksStatus: React.FC<ScheduledTasksStatusProps> = ({ isOpen, onClose, anchorRef, t, popupRef }) => {
   const [tasks, setTasks] = useState<ScheduledTask[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<
-    "all" | "enabled" | "disabled" | "completed"
-  >("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "enabled" | "disabled" | "completed">("all");
   const [showFilterPopup, setShowFilterPopup] = useState(false);
   const filterButtonRef = useRef<HTMLButtonElement>(null);
   const filterPopupRef = useRef<HTMLDivElement>(null);
   const workflowDisplayNameCache = new Map<string, string>();
-  const [workflowDisplayNames, setWorkflowDisplayNames] = useState<
-    Map<string, string>
-  >(new Map());
-  const [loadingWorkflowNames, setLoadingWorkflowNames] = useState<Set<string>>(
-    new Set(),
-  );
-
+  const [workflowDisplayNames, setWorkflowDisplayNames] = useState<Map<string, string>>(new Map());
+  const [loadingWorkflowNames, setLoadingWorkflowNames] = useState<Set<string>>(new Set());
   const loadTasks = async () => {
     setLoading(true);
     try {
       const taskList = await scheduledTasksCommands.list();
-      const sorted = [...taskList].sort(
-        (a, b) =>
-          new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
-      );
+      const sorted = [...taskList].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
       setTasks(sorted);
     } catch (error) {
     } finally {
       setLoading(false);
     }
   };
-
   useEffect(() => {
     const loadWorkflowNames = async () => {
       const lang = localStorage.getItem("hippox-language") || "en";
-      const tasksWithWorkflow = tasks.filter(
-        (t) =>
-          t.workflow_mode &&
-          !workflowDisplayNames.has(t.workflow_mode) &&
-          !loadingWorkflowNames.has(t.workflow_mode),
-      );
+      const tasksWithWorkflow = tasks.filter((t) => t.workflow_mode && !workflowDisplayNames.has(t.workflow_mode) && !loadingWorkflowNames.has(t.workflow_mode));
       for (const task of tasksWithWorkflow) {
         const mode = task.workflow_mode!;
         setLoadingWorkflowNames((prev) => new Set(prev).add(mode));
@@ -199,15 +92,10 @@ const ScheduledTasksStatus: React.FC<ScheduledTasksStatusProps> = ({
           const cacheKey = `${mode}_${lang}`;
           let displayName = workflowDisplayNameCache.get(cacheKey);
           if (!displayName) {
-            displayName = await workflowCommands.workflowModeDisplayNameByLang(
-              mode,
-              lang,
-            );
+            displayName = await workflowCommands.workflowModeDisplayNameByLang(mode, lang);
             workflowDisplayNameCache.set(cacheKey, displayName || mode);
           }
-          setWorkflowDisplayNames((prev) =>
-            new Map(prev).set(mode, displayName || mode),
-          );
+          setWorkflowDisplayNames((prev) => new Map(prev).set(mode, displayName || mode));
         } catch (error) {
           setWorkflowDisplayNames((prev) => new Map(prev).set(mode, mode));
         } finally {
@@ -223,7 +111,6 @@ const ScheduledTasksStatus: React.FC<ScheduledTasksStatusProps> = ({
       loadWorkflowNames();
     }
   }, [tasks]);
-
   useEffect(() => {
     const handleLanguageChange = () => {
       workflowDisplayNameCache.clear();
@@ -236,57 +123,30 @@ const ScheduledTasksStatus: React.FC<ScheduledTasksStatusProps> = ({
               const cacheKey = `${task.workflow_mode}_${lang}`;
               let displayName = workflowDisplayNameCache.get(cacheKey);
               if (!displayName) {
-                displayName =
-                  await workflowCommands.workflowModeDisplayNameByLang(
-                    task.workflow_mode,
-                    lang,
-                  );
-                workflowDisplayNameCache.set(
-                  cacheKey,
-                  displayName || task.workflow_mode,
-                );
+                displayName = await workflowCommands.workflowModeDisplayNameByLang(task.workflow_mode, lang);
+                workflowDisplayNameCache.set(cacheKey, displayName || task.workflow_mode);
               }
-              setWorkflowDisplayNames((prev) =>
-                new Map(prev).set(
-                  task.workflow_mode!,
-                  displayName || task.workflow_mode!,
-                ),
-              );
-            } catch (error) {
-            }
+              setWorkflowDisplayNames((prev) => new Map(prev).set(task.workflow_mode!, displayName || task.workflow_mode!));
+            } catch (error) {}
           }
         }
       };
       loadNames();
     };
-    window.addEventListener(
-      "language-changed",
-      handleLanguageChange as EventListener,
-    );
+    window.addEventListener("language-changed", handleLanguageChange as EventListener);
     return () => {
-      window.removeEventListener(
-        "language-changed",
-        handleLanguageChange as EventListener,
-      );
+      window.removeEventListener("language-changed", handleLanguageChange as EventListener);
     };
   }, [tasks]);
-
   useEffect(() => {
     if (isOpen) {
       loadTasks();
     }
   }, [isOpen]);
-
   // Click outside for filter popup
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (
-        showFilterPopup &&
-        filterPopupRef.current &&
-        !filterPopupRef.current.contains(event.target as Node) &&
-        filterButtonRef.current &&
-        !filterButtonRef.current.contains(event.target as Node)
-      ) {
+      if (showFilterPopup && filterPopupRef.current && !filterPopupRef.current.contains(event.target as Node) && filterButtonRef.current && !filterButtonRef.current.contains(event.target as Node)) {
         setShowFilterPopup(false);
       }
     };
@@ -295,13 +155,10 @@ const ScheduledTasksStatus: React.FC<ScheduledTasksStatusProps> = ({
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [showFilterPopup]);
-
   const filteredTasks = useMemo(() => {
     return tasks.filter((task) => {
-      if (statusFilter === "enabled" && (!task.enabled || task.completed))
-        return false;
-      if (statusFilter === "disabled" && (task.enabled || task.completed))
-        return false;
+      if (statusFilter === "enabled" && (!task.enabled || task.completed)) return false;
+      if (statusFilter === "disabled" && (task.enabled || task.completed)) return false;
       if (statusFilter === "completed" && !task.completed) return false;
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
@@ -311,7 +168,6 @@ const ScheduledTasksStatus: React.FC<ScheduledTasksStatusProps> = ({
       return true;
     });
   }, [tasks, searchQuery, statusFilter]);
-
   const getStatusStats = () => {
     const total = tasks.length;
     const enabled = tasks.filter((t) => t.enabled && !t.completed).length;
@@ -320,7 +176,6 @@ const ScheduledTasksStatus: React.FC<ScheduledTasksStatusProps> = ({
     const failed = tasks.filter((t) => t.last_status === "failed").length;
     return { total, enabled, disabled, completed, failed };
   };
-
   const getScheduleDisplay = (task: ScheduledTask): string => {
     const config = task.schedule_config;
     if (config.type === "interval") {
@@ -340,10 +195,7 @@ const ScheduledTasksStatus: React.FC<ScheduledTasksStatusProps> = ({
         once: t("scheduled.frequencyOnce"),
       };
       let text = freqText[config.config.frequency] || config.config.frequency;
-      if (
-        config.config.frequency === "weekly" &&
-        config.config.day_of_week?.length
-      ) {
+      if (config.config.frequency === "weekly" && config.config.day_of_week?.length) {
         const dayNames = config.config.day_of_week.map((d: number) => {
           const weekDays = [
             t("scheduled.sunShort"),
@@ -358,10 +210,7 @@ const ScheduledTasksStatus: React.FC<ScheduledTasksStatusProps> = ({
         });
         text += ` ${dayNames.join(",")}`;
       }
-      if (
-        config.config.frequency === "monthly" &&
-        config.config.day_of_month?.length
-      ) {
+      if (config.config.frequency === "monthly" && config.config.day_of_month?.length) {
         text += ` ${config.config.day_of_month.join(",")}${t("scheduled.dayUnit")}`;
       }
       if (config.config.time) {
@@ -370,7 +219,6 @@ const ScheduledTasksStatus: React.FC<ScheduledTasksStatusProps> = ({
       return text;
     }
   };
-
   const formatTimestamp = (timestamp: string | null) => {
     if (!timestamp) return t("scheduled.never");
     const date = new Date(timestamp);
@@ -385,36 +233,24 @@ const ScheduledTasksStatus: React.FC<ScheduledTasksStatusProps> = ({
     if (diffDays < 7) return `${diffDays} ${t("common.daysAgo")}`;
     return date.toLocaleDateString();
   };
-
   const handleToggleTask = async (taskId: string, enabled: boolean) => {
     try {
       const updatedTask = await scheduledTasksCommands.toggle(taskId, enabled);
-      setTasks((prevTasks) =>
-        prevTasks.map((task) => (task.id === taskId ? updatedTask : task)),
-      );
-      showToast(
-        ToastType.SUCCESS,
-        enabled
-          ? t("scheduled.enabledSuccess")
-          : t("scheduled.disabledSuccess"),
-      );
+      setTasks((prevTasks) => prevTasks.map((task) => (task.id === taskId ? updatedTask : task)));
+      showToast(ToastType.SUCCESS, enabled ? t("scheduled.enabledSuccess") : t("scheduled.disabledSuccess"));
     } catch (error) {
       showToast(ToastType.ERROR, t("scheduled.toggleFailed"));
     }
   };
-
   const handleCompleteTask = async (taskId: string) => {
     try {
       const completedTask = await scheduledTasksCommands.complete(taskId);
-      setTasks((prevTasks) =>
-        prevTasks.map((task) => (task.id === taskId ? completedTask : task)),
-      );
+      setTasks((prevTasks) => prevTasks.map((task) => (task.id === taskId ? completedTask : task)));
       showToast(ToastType.SUCCESS, t("scheduled.completeSuccess"));
     } catch (error) {
       showToast(ToastType.ERROR, t("scheduled.completeFailed"));
     }
   };
-
   const handleDeleteTask = async (taskId: string, taskName: string) => {
     showDialog(
       DialogType.WARNING,
@@ -423,9 +259,7 @@ const ScheduledTasksStatus: React.FC<ScheduledTasksStatusProps> = ({
       async () => {
         try {
           await scheduledTasksCommands.delete(taskId);
-          setTasks((prevTasks) =>
-            prevTasks.filter((task) => task.id !== taskId),
-          );
+          setTasks((prevTasks) => prevTasks.filter((task) => task.id !== taskId));
           showToast(ToastType.SUCCESS, t("scheduled.deleteSuccess"));
         } catch (error) {
           showToast(ToastType.ERROR, t("scheduled.deleteFailed"));
@@ -436,9 +270,7 @@ const ScheduledTasksStatus: React.FC<ScheduledTasksStatusProps> = ({
       t("settings.cancel"),
     );
   };
-
   const stats = getStatusStats();
-
   const filterOptions = [
     {
       key: "all" as const,
@@ -461,19 +293,15 @@ const ScheduledTasksStatus: React.FC<ScheduledTasksStatusProps> = ({
       icon: <CheckIcon />,
     },
   ];
-
   const getCurrentFilterLabel = () => {
     const current = filterOptions.find((opt) => opt.key === statusFilter);
     return current ? current.label : t("scheduled.all");
   };
-
   const getCurrentFilterIcon = () => {
     const current = filterOptions.find((opt) => opt.key === statusFilter);
     return current ? current.icon : <ListIcon />;
   };
-
   if (!isOpen) return null;
-
   return (
     <>
       <style>{`
@@ -533,16 +361,7 @@ const ScheduledTasksStatus: React.FC<ScheduledTasksStatusProps> = ({
               gap: "8px",
             }}
           >
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="10" />
               <polyline points="12 6 12 12 16 14" />
             </svg>
@@ -617,24 +436,13 @@ const ScheduledTasksStatus: React.FC<ScheduledTasksStatusProps> = ({
                 e.currentTarget.style.color = "var(--text-secondary)";
               }}
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="18" y1="6" x2="6" y2="18" />
                 <line x1="6" y1="6" x2="18" y2="18" />
               </svg>
             </button>
           </div>
         </div>
-
         <div
           style={{
             display: "grid",
@@ -655,29 +463,15 @@ const ScheduledTasksStatus: React.FC<ScheduledTasksStatusProps> = ({
             >
               {stats.total}
             </div>
-            <div style={{ fontSize: "9px", color: "var(--text-muted)" }}>
-              {t("scheduled.total")}
-            </div>
+            <div style={{ fontSize: "9px", color: "var(--text-muted)" }}>{t("scheduled.total")}</div>
           </div>
           <div style={{ textAlign: "center" }}>
-            <div
-              style={{ fontSize: "15px", fontWeight: 600, color: "#10b981" }}
-            >
-              {stats.enabled}
-            </div>
-            <div style={{ fontSize: "9px", color: "var(--text-muted)" }}>
-              {t("scheduled.enabled")}
-            </div>
+            <div style={{ fontSize: "15px", fontWeight: 600, color: "#10b981" }}>{stats.enabled}</div>
+            <div style={{ fontSize: "9px", color: "var(--text-muted)" }}>{t("scheduled.enabled")}</div>
           </div>
           <div style={{ textAlign: "center" }}>
-            <div
-              style={{ fontSize: "15px", fontWeight: 600, color: "#8b5cf6" }}
-            >
-              {stats.completed}
-            </div>
-            <div style={{ fontSize: "9px", color: "var(--text-muted)" }}>
-              {t("scheduled.completed")}
-            </div>
+            <div style={{ fontSize: "15px", fontWeight: 600, color: "#8b5cf6" }}>{stats.completed}</div>
+            <div style={{ fontSize: "9px", color: "var(--text-muted)" }}>{t("scheduled.completed")}</div>
           </div>
           <div style={{ textAlign: "center" }}>
             <div
@@ -689,12 +483,9 @@ const ScheduledTasksStatus: React.FC<ScheduledTasksStatusProps> = ({
             >
               {stats.failed}
             </div>
-            <div style={{ fontSize: "9px", color: "var(--text-muted)" }}>
-              {t("scheduled.failed")}
-            </div>
+            <div style={{ fontSize: "9px", color: "var(--text-muted)" }}>{t("scheduled.failed")}</div>
           </div>
         </div>
-
         <div
           style={{
             padding: "8px 14px",
@@ -757,7 +548,6 @@ const ScheduledTasksStatus: React.FC<ScheduledTasksStatusProps> = ({
               </button>
             )}
           </div>
-
           <div style={{ position: "relative" }}>
             <button
               ref={filterButtonRef}
@@ -795,7 +585,6 @@ const ScheduledTasksStatus: React.FC<ScheduledTasksStatusProps> = ({
               <span>{getCurrentFilterLabel()}</span>
               <ChevronDownIcon />
             </button>
-
             {showFilterPopup && (
               <div
                 ref={filterPopupRef}
@@ -821,10 +610,7 @@ const ScheduledTasksStatus: React.FC<ScheduledTasksStatusProps> = ({
                       gap: "8px",
                       width: "100%",
                       padding: "6px 12px",
-                      background:
-                        statusFilter === option.key
-                          ? "var(--accent-glow)"
-                          : "transparent",
+                      background: statusFilter === option.key ? "var(--accent-glow)" : "transparent",
                       border: "none",
                       color: "var(--text-primary)",
                       fontSize: "11px",
@@ -836,15 +622,8 @@ const ScheduledTasksStatus: React.FC<ScheduledTasksStatusProps> = ({
                       setStatusFilter(option.key);
                       setShowFilterPopup(false);
                     }}
-                    onMouseEnter={(e) =>
-                      (e.currentTarget.style.background = "var(--bg-tertiary)")
-                    }
-                    onMouseLeave={(e) =>
-                      (e.currentTarget.style.background =
-                        statusFilter === option.key
-                          ? "var(--accent-glow)"
-                          : "transparent")
-                    }
+                    onMouseEnter={(e) => (e.currentTarget.style.background = "var(--bg-tertiary)")}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = statusFilter === option.key ? "var(--accent-glow)" : "transparent")}
                   >
                     <span
                       style={{
@@ -874,7 +653,6 @@ const ScheduledTasksStatus: React.FC<ScheduledTasksStatusProps> = ({
             )}
           </div>
         </div>
-
         <div style={{ maxHeight: "280px", overflowY: "auto" }}>
           {loading ? (
             <div
@@ -896,9 +674,7 @@ const ScheduledTasksStatus: React.FC<ScheduledTasksStatusProps> = ({
                 fontSize: "13px",
               }}
             >
-              {searchQuery || statusFilter !== "all"
-                ? t("scheduled.noMatch")
-                : t("scheduled.noTasks")}
+              {searchQuery || statusFilter !== "all" ? t("scheduled.noMatch") : t("scheduled.noTasks")}
             </div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column" }}>
@@ -930,11 +706,7 @@ const ScheduledTasksStatus: React.FC<ScheduledTasksStatusProps> = ({
                       justifyContent: "center",
                       borderRadius: "8px",
                       flexShrink: 0,
-                      background: task.completed
-                        ? "rgba(139, 92, 246, 0.15)"
-                        : task.enabled
-                          ? "rgba(16, 185, 129, 0.15)"
-                          : "rgba(107, 114, 128, 0.15)",
+                      background: task.completed ? "rgba(139, 92, 246, 0.15)" : task.enabled ? "rgba(16, 185, 129, 0.15)" : "rgba(107, 114, 128, 0.15)",
                       cursor: task.completed ? "default" : "pointer",
                     }}
                     onClick={() => {
@@ -942,29 +714,16 @@ const ScheduledTasksStatus: React.FC<ScheduledTasksStatusProps> = ({
                         handleToggleTask(task.id, !task.enabled);
                       }
                     }}
-                    title={
-                      task.completed
-                        ? t("scheduled.completed")
-                        : task.enabled
-                          ? t("scheduled.disableTooltip")
-                          : t("scheduled.enableTooltip")
-                    }
+                    title={task.completed ? t("scheduled.completed") : task.enabled ? t("scheduled.disableTooltip") : t("scheduled.enableTooltip")}
                   >
                     {task.completed ? (
-                      <span style={{ fontSize: "14px", color: "#8b5cf6" }}>
-                        ✓
-                      </span>
+                      <span style={{ fontSize: "14px", color: "#8b5cf6" }}>✓</span>
                     ) : task.enabled ? (
-                      <span style={{ fontSize: "14px", color: "#10b981" }}>
-                        ▶
-                      </span>
+                      <span style={{ fontSize: "14px", color: "#10b981" }}>▶</span>
                     ) : (
-                      <span style={{ fontSize: "14px", color: "#6b7280" }}>
-                        ⏸
-                      </span>
+                      <span style={{ fontSize: "14px", color: "#6b7280" }}>⏸</span>
                     )}
                   </div>
-
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div
                       style={{
@@ -1001,23 +760,11 @@ const ScheduledTasksStatus: React.FC<ScheduledTasksStatusProps> = ({
                             fontSize: "9px",
                             padding: "1px 8px",
                             borderRadius: "10px",
-                            background: task.completed
-                              ? "rgba(139, 92, 246, 0.2)"
-                              : task.enabled
-                                ? "rgba(16, 185, 129, 0.2)"
-                                : "rgba(107, 114, 128, 0.2)",
-                            color: task.completed
-                              ? "#8b5cf6"
-                              : task.enabled
-                                ? "#10b981"
-                                : "var(--text-muted)",
+                            background: task.completed ? "rgba(139, 92, 246, 0.2)" : task.enabled ? "rgba(16, 185, 129, 0.2)" : "rgba(107, 114, 128, 0.2)",
+                            color: task.completed ? "#8b5cf6" : task.enabled ? "#10b981" : "var(--text-muted)",
                           }}
                         >
-                          {task.completed
-                            ? t("scheduled.completed")
-                            : task.enabled
-                              ? t("scheduled.enabled")
-                              : t("scheduled.disabled")}
+                          {task.completed ? t("scheduled.completed") : task.enabled ? t("scheduled.enabled") : t("scheduled.disabled")}
                         </span>
                       </div>
                     </div>
@@ -1033,7 +780,6 @@ const ScheduledTasksStatus: React.FC<ScheduledTasksStatusProps> = ({
                     >
                       {getScheduleDisplay(task)}
                     </div>
-
                     <div
                       style={{
                         fontSize: "10px",
@@ -1047,26 +793,11 @@ const ScheduledTasksStatus: React.FC<ScheduledTasksStatusProps> = ({
                         gap: "4px",
                       }}
                     >
-                      <svg
-                        width="10"
-                        height="10"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        style={{ flexShrink: 0 }}
-                      >
-                        <path
-                          d="M4 7h16M4 12h16M4 17h10"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0 }}>
+                        <path d="M4 7h16M4 12h16M4 17h10" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
                       <span>
-                        {t("scheduled.workflowMode")}:{" "}
-                        {workflowDisplayNames.get(
-                          task.workflow_mode || "ReAct",
-                        ) || task.workflow_mode}
+                        {t("scheduled.workflowMode")}: {workflowDisplayNames.get(task.workflow_mode || "ReAct") || task.workflow_mode}
                       </span>
                     </div>
                     <div
@@ -1083,12 +814,10 @@ const ScheduledTasksStatus: React.FC<ScheduledTasksStatusProps> = ({
                         {t("scheduled.times")}
                       </span>
                       <span>
-                        {t("scheduled.lastExecute")}:{" "}
-                        {formatTimestamp(task.last_executed_at)}
+                        {t("scheduled.lastExecute")}: {formatTimestamp(task.last_executed_at)}
                       </span>
                     </div>
                   </div>
-
                   <div
                     style={{
                       display: "flex",
@@ -1102,11 +831,7 @@ const ScheduledTasksStatus: React.FC<ScheduledTasksStatusProps> = ({
                     {!task.completed && (
                       <button
                         onClick={() => handleToggleTask(task.id, !task.enabled)}
-                        title={
-                          task.enabled
-                            ? t("scheduled.disable")
-                            : t("scheduled.enable")
-                        }
+                        title={task.enabled ? t("scheduled.disable") : t("scheduled.enable")}
                         style={{
                           background: "none",
                           border: "none",
@@ -1119,9 +844,7 @@ const ScheduledTasksStatus: React.FC<ScheduledTasksStatusProps> = ({
                           alignItems: "center",
                         }}
                         onMouseEnter={(e) => {
-                          e.currentTarget.style.background = task.enabled
-                            ? "rgba(245, 158, 11, 0.15)"
-                            : "rgba(16, 185, 129, 0.15)";
+                          e.currentTarget.style.background = task.enabled ? "rgba(245, 158, 11, 0.15)" : "rgba(16, 185, 129, 0.15)";
                         }}
                         onMouseLeave={(e) => {
                           e.currentTarget.style.background = "none";
@@ -1130,7 +853,6 @@ const ScheduledTasksStatus: React.FC<ScheduledTasksStatusProps> = ({
                         {task.enabled ? <PauseIcon /> : <PlayIcon />}
                       </button>
                     )}
-
                     {!task.completed && (
                       <button
                         onClick={() => handleCompleteTask(task.id)}
@@ -1147,8 +869,7 @@ const ScheduledTasksStatus: React.FC<ScheduledTasksStatusProps> = ({
                           alignItems: "center",
                         }}
                         onMouseEnter={(e) => {
-                          e.currentTarget.style.background =
-                            "rgba(139, 92, 246, 0.15)";
+                          e.currentTarget.style.background = "rgba(139, 92, 246, 0.15)";
                         }}
                         onMouseLeave={(e) => {
                           e.currentTarget.style.background = "none";
@@ -1157,7 +878,6 @@ const ScheduledTasksStatus: React.FC<ScheduledTasksStatusProps> = ({
                         <CheckIcon />
                       </button>
                     )}
-
                     <button
                       onClick={() => handleDeleteTask(task.id, task.name)}
                       title={t("scheduled.delete")}
@@ -1173,8 +893,7 @@ const ScheduledTasksStatus: React.FC<ScheduledTasksStatusProps> = ({
                         alignItems: "center",
                       }}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.background =
-                          "rgba(239, 68, 68, 0.15)";
+                        e.currentTarget.style.background = "rgba(239, 68, 68, 0.15)";
                       }}
                       onMouseLeave={(e) => {
                         e.currentTarget.style.background = "none";
@@ -1188,7 +907,6 @@ const ScheduledTasksStatus: React.FC<ScheduledTasksStatusProps> = ({
             </div>
           )}
         </div>
-
         <div
           style={{
             padding: "6px 14px",
@@ -1203,8 +921,7 @@ const ScheduledTasksStatus: React.FC<ScheduledTasksStatusProps> = ({
         >
           <span>
             {t("scheduled.total")}: {filteredTasks.length}
-            {filteredTasks.length !== tasks.length &&
-              ` (${t("scheduled.filtered")})`}
+            {filteredTasks.length !== tasks.length && ` (${t("scheduled.filtered")})`}
           </span>
           <span>{t("scheduled.clickStatusToToggle")}</span>
         </div>
@@ -1212,5 +929,4 @@ const ScheduledTasksStatus: React.FC<ScheduledTasksStatusProps> = ({
     </>
   );
 };
-
 export default ScheduledTasksStatus;

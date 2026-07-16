@@ -1,28 +1,15 @@
 import React, { useState, useEffect } from "react";
 import { showToast, ToastType } from "../Toast";
 import { showDialog, DialogType } from "../Dialog";
-import {
-  ProviderInfo,
-  ModelInfo,
-  llmCommands,
-  AddLlmInstanceRequest,
-  ExtraConfigField,
-} from "../../command/llm";
+import { ProviderInfo, ModelInfo, llmCommands, AddLlmInstanceRequest, ExtraConfigField } from "../../command/llm";
 import { SearchIcon } from "../../icons";
-
 interface LLMModelConfigProps {
   t: (key: string, params?: any) => string;
   onSave?: (config: any) => void;
   isInitializing?: boolean;
   language?: string;
 }
-
-const LLMModelConfig: React.FC<LLMModelConfigProps> = ({
-  t,
-  onSave,
-  isInitializing = false,
-  language = "en",
-}) => {
+const LLMModelConfig: React.FC<LLMModelConfigProps> = ({ t, onSave, isInitializing = false, language = "en" }) => {
   const [instances, setInstances] = useState<Record<string, any>>({});
   const [defaultInstanceId, setDefaultInstanceId] = useState<string>("");
   const [providers, setProviders] = useState<ProviderInfo[]>([]);
@@ -31,57 +18,37 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({
   const [showAddForm, setShowAddForm] = useState(false);
   const [newProvider, setNewProvider] = useState("openai");
   const [newApiKey, setNewApiKey] = useState("");
-  const [extraConfigValues, setExtraConfigValues] = useState<
-    Record<string, string>
-  >({});
-  const [currentProviderInfo, setCurrentProviderInfo] =
-    useState<ProviderInfo | null>(null);
+  const [extraConfigValues, setExtraConfigValues] = useState<Record<string, string>>({});
+  const [currentProviderInfo, setCurrentProviderInfo] = useState<ProviderInfo | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-
   useEffect(() => {
     loadData();
   }, [language]);
-
   const loadData = async () => {
     setLoading(true);
-    const instancesPromise = llmCommands
-      .getLlmInstances()
-      .catch((err: Error) => {
-        console.error("Failed to load instances:", err);
-        return {};
-      });
-    const defaultIdPromise = llmCommands
-      .getDefaultLlmInstanceId()
-      .catch((err: Error) => {
-        console.error("Failed to load default instance id:", err);
-        return "";
-      });
-    const providersPromise = llmCommands
-      .getAllProviders()
-      .catch((err: Error) => {
-        console.error("Failed to load providers:", err);
-        return [];
-      });
+    const instancesPromise = llmCommands.getLlmInstances().catch((err: Error) => {
+      console.error("Failed to load instances:", err);
+      return {};
+    });
+    const defaultIdPromise = llmCommands.getDefaultLlmInstanceId().catch((err: Error) => {
+      console.error("Failed to load default instance id:", err);
+      return "";
+    });
+    const providersPromise = llmCommands.getAllProviders().catch((err: Error) => {
+      console.error("Failed to load providers:", err);
+      return [];
+    });
     const modelsPromise = llmCommands.getAllModels().catch((err: Error) => {
       console.error("Failed to load models:", err);
       return [];
     });
-
-    const [instancesData, defaultId, providersData, modelsData] =
-      await Promise.all([
-        instancesPromise,
-        defaultIdPromise,
-        providersPromise,
-        modelsPromise,
-      ]);
-
+    const [instancesData, defaultId, providersData, modelsData] = await Promise.all([instancesPromise, defaultIdPromise, providersPromise, modelsPromise]);
     setProviders(providersData);
     setAvailableModels(modelsData);
     setInstances(instancesData);
     setDefaultInstanceId(defaultId);
     setLoading(false);
   };
-
   const handleSetDefault = async (instanceId: string, instanceName: string) => {
     try {
       await llmCommands.setDefaultLlmInstance(instanceId);
@@ -96,10 +63,7 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({
         });
         return newInstances;
       });
-      showToast(
-        ToastType.SUCCESS,
-        t("llmModel.defaultSuccess", { name: instanceName }),
-      );
+      showToast(ToastType.SUCCESS, t("llmModel.defaultSuccess", { name: instanceName }));
       if (onSave) {
         onSave({ action: "set_default", instanceId });
       }
@@ -108,11 +72,7 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({
       showToast(ToastType.ERROR, t("llmModel.defaultFailed"));
     }
   };
-
-  const handleDeleteInstance = async (
-    instanceId: string,
-    instanceName: string,
-  ) => {
+  const handleDeleteInstance = async (instanceId: string, instanceName: string) => {
     if (Object.keys(instances).length <= 1) {
       showToast(ToastType.WARNING, t("llmModel.cannotDeleteLast"));
       return;
@@ -121,7 +81,6 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({
       showToast(ToastType.WARNING, t("llmModel.cannotDeleteDefault"));
       return;
     }
-
     showDialog(
       DialogType.WARNING,
       t("llmModel.deleteConfirmTitle"),
@@ -130,10 +89,7 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({
         try {
           await llmCommands.deleteLlmInstance(instanceId);
           await loadData();
-          showToast(
-            ToastType.SUCCESS,
-            t("llmModel.deleteSuccess", { name: instanceName }),
-          );
+          showToast(ToastType.SUCCESS, t("llmModel.deleteSuccess", { name: instanceName }));
           if (onSave) {
             onSave({ action: "delete", instanceId });
           }
@@ -147,28 +103,22 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({
       t("common.cancel"),
     );
   };
-
   const handleProviderChange = (providerId: string) => {
     setNewProvider(providerId);
     setExtraConfigValues({});
     const provider = providers.find((p) => p.id === providerId);
     setCurrentProviderInfo(provider || null);
   };
-
   const handleExtraConfigChange = (key: string, value: string) => {
     setExtraConfigValues((prev) => ({ ...prev, [key]: value }));
   };
-
   const handleAddInstance = async () => {
     if (!newApiKey.trim()) {
       showToast(ToastType.WARNING, t("llmModel.apiKeyRequired"));
       return;
     }
-    const providerModels = availableModels.filter(
-      (m) => m.provider === newProvider,
-    );
-    const defaultModel =
-      providerModels.find((m) => m.recommended) || providerModels[0];
+    const providerModels = availableModels.filter((m) => m.provider === newProvider);
+    const defaultModel = providerModels.find((m) => m.recommended) || providerModels[0];
     const defaultModelName = defaultModel?.id || "";
     const providerInfo = providers.find((p) => p.id === newProvider);
     const extra: Record<string, string> = {};
@@ -206,10 +156,7 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({
       // setNewWorkflowMode("react");
       setExtraConfigValues({});
       await loadData();
-      showToast(
-        ToastType.SUCCESS,
-        t("llmModel.addSuccess", { name: providerInfo?.name || newProvider }),
-      );
+      showToast(ToastType.SUCCESS, t("llmModel.addSuccess", { name: providerInfo?.name || newProvider }));
       if (onSave) {
         onSave({ action: "add", instance: instanceToAdd });
       }
@@ -218,37 +165,26 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({
       showToast(ToastType.ERROR, t("llmModel.addFailed"));
     }
   };
-
   const getProviderIcon = (providerId: string) => {
     const provider = providers.find((p) => p.id === providerId);
     return provider?.icon || "🤖";
   };
-
   const getProviderName = (providerId: string) => {
     const provider = providers.find((p) => p.id === providerId);
     return provider?.name || providerId;
   };
-
   const getProviderExtraFields = (providerId: string) => {
     const provider = providers.find((p) => p.id === providerId);
     return provider?.extra_config_fields || [];
   };
-
   const handleClearSearch = () => {
     setSearchTerm("");
   };
-
-  const filteredInstances = Object.entries(instances).filter(
-    ([id, instance]) => {
-      const providerName = getProviderName(instance.provider).toLowerCase();
-      const search = searchTerm.toLowerCase();
-      return (
-        providerName.includes(search) ||
-        instance.provider.toLowerCase().includes(search)
-      );
-    },
-  );
-
+  const filteredInstances = Object.entries(instances).filter(([id, instance]) => {
+    const providerName = getProviderName(instance.provider).toLowerCase();
+    const search = searchTerm.toLowerCase();
+    return providerName.includes(search) || instance.provider.toLowerCase().includes(search);
+  });
   const labelStyle: React.CSSProperties = {
     fontSize: "13px",
     color: "var(--text-primary)",
@@ -259,7 +195,6 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({
     overflow: "hidden",
     textOverflow: "ellipsis",
   };
-
   const inputStyle: React.CSSProperties = {
     flex: 1,
     minWidth: 0,
@@ -271,12 +206,10 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({
     fontSize: "13px",
     outline: "none",
   };
-
   const selectStyle: React.CSSProperties = {
     ...inputStyle,
     cursor: "pointer",
   };
-
   const buttonStyle: React.CSSProperties = {
     padding: "6px 16px",
     background: "var(--bg-secondary)",
@@ -286,20 +219,17 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({
     fontSize: "12px",
     cursor: "pointer",
   };
-
   const addButtonStyle: React.CSSProperties = {
     ...buttonStyle,
     background: "var(--accent-color, #0066cc)",
     color: "white",
     border: "none",
   };
-
   const deleteButtonStyle: React.CSSProperties = {
     ...buttonStyle,
     color: "var(--error-color, #dc2626)",
     borderColor: "var(--error-color, #dc2626)",
   };
-
   const modelCardStyle: React.CSSProperties = {
     background: "var(--bg-secondary)",
     // borderRadius: "8px",
@@ -307,14 +237,12 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({
     borderBottom: "1px solid var(--border-color)",
     overflow: "hidden",
   };
-
   const textEllipsisStyle: React.CSSProperties = {
     whiteSpace: "nowrap",
     overflow: "hidden",
     textOverflow: "ellipsis",
     maxWidth: "100%",
   };
-
   const badgeStyle: React.CSSProperties = {
     background: "var(--accent-color, #0066cc)",
     color: "white",
@@ -323,7 +251,6 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({
     borderRadius: "12px",
     marginLeft: "8px",
   };
-
   const extraConfigRowStyle: React.CSSProperties = {
     display: "flex",
     alignItems: "center",
@@ -331,7 +258,6 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({
     gap: "12px",
     flexWrap: "wrap",
   };
-
   const styles: Record<string, React.CSSProperties> = {
     searchInputWrapper: {
       flex: 1,
@@ -388,7 +314,6 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({
       width: "100%",
     },
   };
-
   const globalStyles = `
     .llm-search-input-wrapper {
       flex: 1;
@@ -438,7 +363,6 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({
       background: var(--hover-bg);
     }
   `;
-
   if (typeof document !== "undefined") {
     const styleId = "llm-config-styles";
     if (!document.getElementById(styleId)) {
@@ -448,7 +372,6 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({
       document.head.appendChild(style);
     }
   }
-
   if (loading || isInitializing) {
     return (
       <div
@@ -485,21 +408,9 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({
         <div style={styles.searchRow}>
           <div className="llm-search-input-wrapper">
             <SearchIcon />
-            <input
-              type="text"
-              className="llm-search-input"
-              placeholder={
-                t("llmModel.searchPlaceholder") || "Search providers..."
-              }
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+            <input type="text" className="llm-search-input" placeholder={t("llmModel.searchPlaceholder") || "Search providers..."} value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
             {searchTerm && (
-              <button
-                className="llm-search-clear"
-                onClick={handleClearSearch}
-                title={t("llmModel.clearSearch") || "Clear search"}
-              >
+              <button className="llm-search-clear" onClick={handleClearSearch} title={t("llmModel.clearSearch") || "Clear search"}>
                 ✕
               </button>
             )}
@@ -549,11 +460,7 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({
               }}
             >
               <label style={labelStyle}>{t("llmModel.provider")}</label>
-              <select
-                style={selectStyle}
-                value={newProvider}
-                onChange={(e) => handleProviderChange(e.target.value)}
-              >
+              <select style={selectStyle} value={newProvider} onChange={(e) => handleProviderChange(e.target.value)}>
                 {providers.map((provider) => (
                   <option key={provider.id} value={provider.id}>
                     {provider.icon} {provider.name}
@@ -574,15 +481,7 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({
                 }}
               >
                 <label style={labelStyle}>{field.name}</label>
-                <input
-                  type="text"
-                  style={inputStyle}
-                  value={extraConfigValues[field.key] || ""}
-                  onChange={(e) =>
-                    handleExtraConfigChange(field.key, e.target.value)
-                  }
-                  placeholder={field.placeholder}
-                />
+                <input type="text" style={inputStyle} value={extraConfigValues[field.key] || ""} onChange={(e) => handleExtraConfigChange(field.key, e.target.value)} placeholder={field.placeholder} />
               </div>
             ))}
             <div
@@ -596,15 +495,8 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({
               }}
             >
               <label style={labelStyle}>{t("llmModel.apiKey")}</label>
-              <input
-                type="password"
-                style={inputStyle}
-                value={newApiKey}
-                onChange={(e) => setNewApiKey(e.target.value)}
-                placeholder={t("llmModel.apiKeyPlaceholder")}
-              />
+              <input type="password" style={inputStyle} value={newApiKey} onChange={(e) => setNewApiKey(e.target.value)} placeholder={t("llmModel.apiKeyPlaceholder")} />
             </div>
-
             <div
               style={{
                 display: "flex",
@@ -630,9 +522,7 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({
               fontSize: "13px",
             }}
           >
-            {searchTerm
-              ? t("llmModel.noSearchResults") || "No matching providers found"
-              : t("llmModel.noProviders") || "No providers available"}
+            {searchTerm ? t("llmModel.noSearchResults") || "No matching providers found" : t("llmModel.noProviders") || "No providers available"}
           </div>
         ) : (
           instanceEntries.map(([id, instance]) => {
@@ -660,14 +550,10 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({
                       minWidth: 0,
                     }}
                   >
-                    {getProviderIcon(instance.provider)}{" "}
-                    {getProviderName(instance.provider)}
+                    {getProviderIcon(instance.provider)} {getProviderName(instance.provider)}
                   </span>
-                  {instance.is_default && (
-                    <span style={badgeStyle}>{t("llmModel.default")}</span>
-                  )}
+                  {instance.is_default && <span style={badgeStyle}>{t("llmModel.default")}</span>}
                 </div>
-
                 <div
                   className="settings-row"
                   style={{
@@ -678,9 +564,7 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({
                     flexWrap: "wrap",
                   }}
                 >
-                  <label style={labelStyle}>
-                    {t("llmModel.workflowMode") || "Workflow Mode"}
-                  </label>
+                  <label style={labelStyle}>{t("llmModel.workflowMode") || "Workflow Mode"}</label>
                 </div>
                 <div
                   className="settings-row"
@@ -693,32 +577,16 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({
                   }}
                 >
                   <label style={labelStyle}>{t("llmModel.apiKey")}</label>
-                  <input
-                    type="password"
-                    style={inputStyle}
-                    value={instance.api_key}
-                    placeholder="••••••••"
-                    disabled
-                  />
+                  <input type="password" style={inputStyle} value={instance.api_key} placeholder="••••••••" disabled />
                 </div>
                 {Object.entries(extraConfig).map(([key, value]) => {
                   if (!value) return null;
                   const fieldInfo = extraFields.find((f) => f.key === key);
                   const fieldName = fieldInfo?.name || key;
                   return (
-                    <div
-                      key={key}
-                      className="settings-row"
-                      style={extraConfigRowStyle}
-                    >
+                    <div key={key} className="settings-row" style={extraConfigRowStyle}>
                       <label style={labelStyle}>{fieldName}</label>
-                      <input
-                        type="password"
-                        style={inputStyle}
-                        value={String(value)}
-                        disabled
-                        placeholder="••••••••"
-                      />
+                      <input type="password" style={inputStyle} value={String(value)} disabled placeholder="••••••••" />
                     </div>
                   );
                 })}
@@ -742,19 +610,18 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({
                       {t("llmModel.setAsDefault")}
                     </button>
                   )}
-                  {defaultInstanceId !== id &&
-                    Object.keys(instances).length > 1 && (
-                      <button
-                        style={{
-                          ...deleteButtonStyle,
-                          fontSize: "11px",
-                          padding: "4px 10px",
-                        }}
-                        onClick={() => handleDeleteInstance(id, instanceName)}
-                      >
-                        {t("llmModel.delete")}
-                      </button>
-                    )}
+                  {defaultInstanceId !== id && Object.keys(instances).length > 1 && (
+                    <button
+                      style={{
+                        ...deleteButtonStyle,
+                        fontSize: "11px",
+                        padding: "4px 10px",
+                      }}
+                      onClick={() => handleDeleteInstance(id, instanceName)}
+                    >
+                      {t("llmModel.delete")}
+                    </button>
+                  )}
                 </div>
               </div>
             );
@@ -764,5 +631,4 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({
     </div>
   );
 };
-
 export default LLMModelConfig;

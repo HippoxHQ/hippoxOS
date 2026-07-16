@@ -58,8 +58,7 @@ export interface TaskInfo {
     files?: UploadFile[];
     workflow_mode?: string;
 }
-
-/**
+ /**
  * Task step information - represents a single execution step within a task
  * 
  * A TaskStepInfo represents one atomic operation/action executed as part of a larger task.
@@ -105,8 +104,7 @@ export interface TaskStepInfo {
      */
     logs?: string[];
 }
-
-export enum TaskStatusEnum {
+ export enum TaskStatusEnum {
     Pending = "pending",
     Running = "running",
     Paused = "paused",
@@ -115,8 +113,7 @@ export enum TaskStatusEnum {
     Failed = "failed",
     Timeout = "timeout",
 }
-
-export enum StepStatusEnum {
+ export enum StepStatusEnum {
     Waiting = "WAITING",
     Running = "RUNNING",
     Success = "SUCCESS",
@@ -126,8 +123,7 @@ export enum StepStatusEnum {
     Paused = "paused",
     Cancelled = "cancelled",
 }
-
-export interface UploadFile {
+ export interface UploadFile {
     id: string;
     file: File;
     name: string;
@@ -139,8 +135,7 @@ export interface UploadFile {
     progress?: number;
     path?: string;
 }
-
-export enum SessionDomain {
+ export enum SessionDomain {
     General = "general",
     Chart = "chart",
     Map = "map",
@@ -148,4 +143,4 @@ export enum SessionDomain {
     Video = "video",
     SandBox3D = "sandbox3d",
 }
-
+ 

@@ -1,16 +1,10 @@
 use std::{fs, path::Path};
-
 use tauri::command;
-
 #[command]
 pub async fn cmd_verify_github_repo(repo_url: String) -> Result<serde_json::Value, String> {
     use reqwest::header::{ACCEPT, USER_AGENT};
     let clean_url = repo_url.trim();
-    let repo_path = if clean_url.ends_with(".git") {
-        &clean_url[..clean_url.len() - 4]
-    } else {
-        clean_url
-    };
+    let repo_path = if clean_url.ends_with(".git") { &clean_url[..clean_url.len() - 4] } else { clean_url };
     let parts: Vec<&str> = repo_path.split("github.com/").collect();
     if parts.len() < 2 {
         return Err("Invalid GitHub URL format".to_string());
@@ -28,12 +22,7 @@ pub async fn cmd_verify_github_repo(repo_url: String) -> Result<serde_json::Valu
         .timeout(std::time::Duration::from_secs(10))
         .build()
         .map_err(|e| format!("Failed to build client: {}", e))?;
-    match client
-        .get(&api_url)
-        .header(ACCEPT, "application/vnd.github.v3+json")
-        .send()
-        .await
-    {
+    match client.get(&api_url).header(ACCEPT, "application/vnd.github.v3+json").send().await {
         Ok(response) => {
             let status = response.status();
             if status.is_success() {
@@ -41,45 +30,24 @@ pub async fn cmd_verify_github_repo(repo_url: String) -> Result<serde_json::Valu
                     Ok(data) => {
                         let mut result = serde_json::Map::new();
                         result.insert("valid".to_string(), serde_json::Value::Bool(true));
-                        result.insert(
-                            "owner".to_string(),
-                            serde_json::Value::String(owner.to_string()),
-                        );
-                        result.insert(
-                            "name".to_string(),
-                            serde_json::Value::String(repo_name.to_string()),
-                        );
+                        result.insert("owner".to_string(), serde_json::Value::String(owner.to_string()));
+                        result.insert("name".to_string(), serde_json::Value::String(repo_name.to_string()));
                         if let Some(description) = data["description"].as_str() {
-                            result.insert(
-                                "description".to_string(),
-                                serde_json::Value::String(description.to_string()),
-                            );
+                            result.insert("description".to_string(), serde_json::Value::String(description.to_string()));
                         } else {
-                            result.insert(
-                                "description".to_string(),
-                                serde_json::Value::String("".to_string()),
-                            );
+                            result.insert("description".to_string(), serde_json::Value::String("".to_string()));
                         }
                         if let Some(stars) = data["stargazers_count"].as_u64() {
-                            result.insert(
-                                "stars".to_string(),
-                                serde_json::Value::Number(stars.into()),
-                            );
+                            result.insert("stars".to_string(), serde_json::Value::Number(stars.into()));
                         }
                         if let Some(forks) = data["forks_count"].as_u64() {
-                            result.insert(
-                                "forks".to_string(),
-                                serde_json::Value::Number(forks.into()),
-                            );
+                            result.insert("forks".to_string(), serde_json::Value::Number(forks.into()));
                         }
                         if let Some(private) = data["private"].as_bool() {
                             result.insert("private".to_string(), serde_json::Value::Bool(private));
                         }
                         if let Some(default_branch) = data["default_branch"].as_str() {
-                            result.insert(
-                                "default_branch".to_string(),
-                                serde_json::Value::String(default_branch.to_string()),
-                            );
+                            result.insert("default_branch".to_string(), serde_json::Value::String(default_branch.to_string()));
                         }
                         Ok(serde_json::Value::Object(result))
                     }
@@ -88,43 +56,28 @@ pub async fn cmd_verify_github_repo(repo_url: String) -> Result<serde_json::Valu
             } else if status == 404 {
                 let mut result = serde_json::Map::new();
                 result.insert("valid".to_string(), serde_json::Value::Bool(false));
-                result.insert(
-                    "error".to_string(),
-                    serde_json::Value::String("Repository not found".to_string()),
-                );
+                result.insert("error".to_string(), serde_json::Value::String("Repository not found".to_string()));
                 Ok(serde_json::Value::Object(result))
             } else {
                 let mut result = serde_json::Map::new();
                 result.insert("valid".to_string(), serde_json::Value::Bool(false));
-                result.insert(
-                    "error".to_string(),
-                    serde_json::Value::String(format!("GitHub API error: {}", status)),
-                );
+                result.insert("error".to_string(), serde_json::Value::String(format!("GitHub API error: {}", status)));
                 Ok(serde_json::Value::Object(result))
             }
         }
         Err(e) => {
             let mut result = serde_json::Map::new();
             result.insert("valid".to_string(), serde_json::Value::Bool(false));
-            result.insert(
-                "error".to_string(),
-                serde_json::Value::String(format!("Failed to connect: {}", e)),
-            );
+            result.insert("error".to_string(), serde_json::Value::String(format!("Failed to connect: {}", e)));
             Ok(serde_json::Value::Object(result))
         }
     }
 }
-
 #[command]
 pub async fn cmd_get_github_branches(repo_url: String) -> Result<serde_json::Value, String> {
     use reqwest::header::{ACCEPT, USER_AGENT};
-
     let clean_url = repo_url.trim();
-    let repo_path = if clean_url.ends_with(".git") {
-        &clean_url[..clean_url.len() - 4]
-    } else {
-        clean_url
-    };
+    let repo_path = if clean_url.ends_with(".git") { &clean_url[..clean_url.len() - 4] } else { clean_url };
     let parts: Vec<&str> = repo_path.split("github.com/").collect();
     if parts.len() < 2 {
         return Err("Invalid GitHub URL format".to_string());
@@ -136,23 +89,13 @@ pub async fn cmd_get_github_branches(repo_url: String) -> Result<serde_json::Val
     }
     let owner = repo_parts[0];
     let repo_name = repo_parts[1];
-
-    let api_url = format!(
-        "https://api.github.com/repos/{}/{}/branches",
-        owner, repo_name
-    );
+    let api_url = format!("https://api.github.com/repos/{}/{}/branches", owner, repo_name);
     let client = reqwest::Client::builder()
         .user_agent("hippox-app/0.1.0 (https://github.com/your-org/hippox)")
         .timeout(std::time::Duration::from_secs(10))
         .build()
         .map_err(|e| format!("Failed to build client: {}", e))?;
-
-    match client
-        .get(&api_url)
-        .header(ACCEPT, "application/vnd.github.v3+json")
-        .send()
-        .await
-    {
+    match client.get(&api_url).header(ACCEPT, "application/vnd.github.v3+json").send().await {
         Ok(response) => {
             let status = response.status();
             if status.is_success() {
@@ -174,37 +117,23 @@ pub async fn cmd_get_github_branches(repo_url: String) -> Result<serde_json::Val
                 }
             } else if status == 404 {
                 let mut result = serde_json::Map::new();
-                result.insert(
-                    "error".to_string(),
-                    serde_json::Value::String("Repository not found".to_string()),
-                );
+                result.insert("error".to_string(), serde_json::Value::String("Repository not found".to_string()));
                 Ok(serde_json::Value::Object(result))
             } else {
                 let mut result = serde_json::Map::new();
-                result.insert(
-                    "error".to_string(),
-                    serde_json::Value::String(format!("GitHub API error: {}", status)),
-                );
+                result.insert("error".to_string(), serde_json::Value::String(format!("GitHub API error: {}", status)));
                 Ok(serde_json::Value::Object(result))
             }
         }
         Err(e) => {
             let mut result = serde_json::Map::new();
-            result.insert(
-                "error".to_string(),
-                serde_json::Value::String(format!("Failed to connect: {}", e)),
-            );
+            result.insert("error".to_string(), serde_json::Value::String(format!("Failed to connect: {}", e)));
             Ok(serde_json::Value::Object(result))
         }
     }
 }
-
 #[command]
-pub async fn cmd_clone_github_repo(
-    repo_url: String,
-    target_path: String,
-    branch: Option<String>,
-) -> Result<String, String> {
+pub async fn cmd_clone_github_repo(repo_url: String, target_path: String, branch: Option<String>) -> Result<String, String> {
     use tokio::process::Command as TokioCommand;
     use tokio::time::{timeout, Duration};
     let target = Path::new(&target_path);
@@ -232,17 +161,14 @@ pub async fn cmd_clone_github_repo(
         Err(_) => Err("Clone timeout (5 minutes)".to_string()),
     }
 }
-
 #[command]
 pub async fn cmd_is_git_repo(path: String) -> Result<bool, String> {
     let git_dir = Path::new(&path).join(".git");
     Ok(git_dir.exists() && git_dir.is_dir())
 }
-
 #[command]
 pub async fn cmd_get_current_branch(path: String) -> Result<String, String> {
     use tokio::process::Command as TokioCommand;
-
     let output = TokioCommand::new("git")
         .arg("-C")
         .arg(&path)
@@ -252,7 +178,6 @@ pub async fn cmd_get_current_branch(path: String) -> Result<String, String> {
         .output()
         .await
         .map_err(|e| format!("Failed to execute git: {}", e))?;
-
     if output.status.success() {
         let branch = String::from_utf8_lossy(&output.stdout).trim().to_string();
         Ok(branch)
@@ -261,11 +186,9 @@ pub async fn cmd_get_current_branch(path: String) -> Result<String, String> {
         Err(format!("Failed to get current branch: {}", stderr))
     }
 }
-
 #[command]
 pub async fn cmd_get_local_branches(path: String) -> Result<Vec<String>, String> {
     use tokio::process::Command as TokioCommand;
-
     let output = TokioCommand::new("git")
         .arg("-C")
         .arg(&path)
@@ -274,24 +197,17 @@ pub async fn cmd_get_local_branches(path: String) -> Result<Vec<String>, String>
         .output()
         .await
         .map_err(|e| format!("Failed to execute git: {}", e))?;
-
     if output.status.success() {
-        let branches = String::from_utf8_lossy(&output.stdout)
-            .lines()
-            .filter(|line| !line.is_empty())
-            .map(|s| s.trim().to_string())
-            .collect();
+        let branches = String::from_utf8_lossy(&output.stdout).lines().filter(|line| !line.is_empty()).map(|s| s.trim().to_string()).collect();
         Ok(branches)
     } else {
         let stderr = String::from_utf8_lossy(&output.stderr);
         Err(format!("Failed to get branches: {}", stderr))
     }
 }
-
 #[command]
 pub async fn cmd_get_commit_history(path: String) -> Result<serde_json::Value, String> {
     use tokio::process::Command as TokioCommand;
-
     let output = TokioCommand::new("git")
         .arg("-C")
         .arg(&path)
@@ -302,15 +218,12 @@ pub async fn cmd_get_commit_history(path: String) -> Result<serde_json::Value, S
         .output()
         .await
         .map_err(|e| format!("Failed to execute git: {}", e))?;
-
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
         return Err(format!("Failed to get commit history: {}", stderr));
     }
-
     let output_str = String::from_utf8_lossy(&output.stdout);
     let mut commits = Vec::new();
-
     for line in output_str.lines() {
         if line.is_empty() {
             continue;
@@ -324,14 +237,10 @@ pub async fn cmd_get_commit_history(path: String) -> Result<serde_json::Value, S
             let date = parts[4].to_string();
             let refs = parts[5].to_string();
             let parents = if parts.len() > 6 && !parts[6].is_empty() {
-                parts[6]
-                    .split_whitespace()
-                    .map(|s| s.to_string())
-                    .collect::<Vec<String>>()
+                parts[6].split_whitespace().map(|s| s.to_string()).collect::<Vec<String>>()
             } else {
                 Vec::new()
             };
-
             let mut branch = None;
             let mut is_head = false;
             if refs.contains("HEAD ->") {
@@ -357,7 +266,6 @@ pub async fn cmd_get_commit_history(path: String) -> Result<serde_json::Value, S
                     }
                 }
             }
-
             commits.push(serde_json::json!({
                 "hash": full_hash,
                 "shortHash": short_hash,
@@ -370,14 +278,11 @@ pub async fn cmd_get_commit_history(path: String) -> Result<serde_json::Value, S
             }));
         }
     }
-
     Ok(serde_json::json!({ "commits": commits }))
 }
-
 #[command]
 pub async fn cmd_get_git_status(path: String) -> Result<serde_json::Value, String> {
     use tokio::process::Command as TokioCommand;
-
     let output = TokioCommand::new("git")
         .arg("-C")
         .arg(&path)
@@ -387,23 +292,19 @@ pub async fn cmd_get_git_status(path: String) -> Result<serde_json::Value, Strin
         .output()
         .await
         .map_err(|e| format!("Failed to execute git: {}", e))?;
-
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
         return Err(format!("Failed to get git status: {}", stderr));
     }
-
     let output_str = String::from_utf8_lossy(&output.stdout);
     let mut changes = Vec::new();
     let has_changes = !output_str.trim().is_empty();
-
     for line in output_str.lines() {
         if line.is_empty() {
             continue;
         }
         let status = line.get(0..2).unwrap_or("??").to_string();
         let file = line.get(3..).unwrap_or("").trim().to_string();
-
         let status_desc = match status.as_str() {
             "M " => "modified",
             " M" => "modified",
@@ -417,24 +318,20 @@ pub async fn cmd_get_git_status(path: String) -> Result<serde_json::Value, Strin
             "!!" => "ignored",
             _ => "unknown",
         };
-
         changes.push(serde_json::json!({
             "file": file,
             "status": status,
             "statusDesc": status_desc,
         }));
     }
-
     Ok(serde_json::json!({
         "hasChanges": has_changes,
         "changes": changes,
     }))
 }
-
 #[command]
 pub async fn cmd_get_remote_url(path: String) -> Result<String, String> {
     use tokio::process::Command as TokioCommand;
-
     let output = TokioCommand::new("git")
         .arg("-C")
         .arg(&path)
@@ -444,7 +341,6 @@ pub async fn cmd_get_remote_url(path: String) -> Result<String, String> {
         .output()
         .await
         .map_err(|e| format!("Failed to execute git: {}", e))?;
-
     if output.status.success() {
         let url = String::from_utf8_lossy(&output.stdout).trim().to_string();
         if url.is_empty() {
@@ -461,12 +357,8 @@ pub async fn cmd_get_remote_url(path: String) -> Result<String, String> {
         }
     }
 }
-
 #[command]
-pub async fn cmd_get_remote_status(
-    path: String,
-    branch: String,
-) -> Result<serde_json::Value, String> {
+pub async fn cmd_get_remote_status(path: String, branch: String) -> Result<serde_json::Value, String> {
     use tokio::process::Command as TokioCommand;
     let _fetch_output = TokioCommand::new("git")
         .arg("-C")
@@ -490,16 +382,8 @@ pub async fn cmd_get_remote_status(
     if output.status.success() {
         let result = String::from_utf8_lossy(&output.stdout).trim().to_string();
         let parts: Vec<&str> = result.split_whitespace().collect();
-        let behind = if parts.len() > 0 {
-            parts[0].parse::<i32>().unwrap_or(0)
-        } else {
-            0
-        };
-        let ahead = if parts.len() > 1 {
-            parts[1].parse::<i32>().unwrap_or(0)
-        } else {
-            0
-        };
+        let behind = if parts.len() > 0 { parts[0].parse::<i32>().unwrap_or(0) } else { 0 };
+        let ahead = if parts.len() > 1 { parts[1].parse::<i32>().unwrap_or(0) } else { 0 };
         Ok(serde_json::json!({
             "ahead": ahead,
             "behind": behind,
@@ -519,11 +403,9 @@ pub async fn cmd_get_remote_status(
         }))
     }
 }
-
 #[command]
 pub async fn cmd_get_remote_branches(path: String) -> Result<Vec<String>, String> {
     use tokio::process::Command as TokioCommand;
-
     let output = TokioCommand::new("git")
         .arg("-C")
         .arg(&path)
@@ -533,39 +415,22 @@ pub async fn cmd_get_remote_branches(path: String) -> Result<Vec<String>, String
         .output()
         .await
         .map_err(|e| format!("Failed to execute git: {}", e))?;
-
     if output.status.success() {
-        let branches = String::from_utf8_lossy(&output.stdout)
-            .lines()
-            .filter(|line| !line.is_empty())
-            .map(|s| s.trim().to_string())
-            .collect();
+        let branches = String::from_utf8_lossy(&output.stdout).lines().filter(|line| !line.is_empty()).map(|s| s.trim().to_string()).collect();
         Ok(branches)
     } else {
         let stderr = String::from_utf8_lossy(&output.stderr);
         Err(format!("Failed to get remote branches: {}", stderr))
     }
 }
-
 #[command]
 pub async fn cmd_git_pull(path: String, branch: String) -> Result<String, String> {
     use tokio::process::Command as TokioCommand;
     use tokio::time::{timeout, Duration};
-
-    let output = timeout(
-        Duration::from_secs(120),
-        TokioCommand::new("git")
-            .arg("-C")
-            .arg(&path)
-            .arg("pull")
-            .arg("origin")
-            .arg(&branch)
-            .output(),
-    )
-    .await
-    .map_err(|_| "Pull timeout (2 minutes)".to_string())?
-    .map_err(|e| format!("Failed to execute git: {}", e))?;
-
+    let output = timeout(Duration::from_secs(120), TokioCommand::new("git").arg("-C").arg(&path).arg("pull").arg("origin").arg(&branch).output())
+        .await
+        .map_err(|_| "Pull timeout (2 minutes)".to_string())?
+        .map_err(|e| format!("Failed to execute git: {}", e))?;
     if output.status.success() {
         let stdout = String::from_utf8_lossy(&output.stdout);
         Ok(format!("Pull successful: {}", stdout))
@@ -574,26 +439,14 @@ pub async fn cmd_git_pull(path: String, branch: String) -> Result<String, String
         Err(format!("Pull failed: {}", stderr))
     }
 }
-
 #[command]
 pub async fn cmd_git_push(path: String, branch: String) -> Result<String, String> {
     use tokio::process::Command as TokioCommand;
     use tokio::time::{timeout, Duration};
-
-    let output = timeout(
-        Duration::from_secs(120),
-        TokioCommand::new("git")
-            .arg("-C")
-            .arg(&path)
-            .arg("push")
-            .arg("origin")
-            .arg(&branch)
-            .output(),
-    )
-    .await
-    .map_err(|_| "Push timeout (2 minutes)".to_string())?
-    .map_err(|e| format!("Failed to execute git: {}", e))?;
-
+    let output = timeout(Duration::from_secs(120), TokioCommand::new("git").arg("-C").arg(&path).arg("push").arg("origin").arg(&branch).output())
+        .await
+        .map_err(|_| "Push timeout (2 minutes)".to_string())?
+        .map_err(|e| format!("Failed to execute git: {}", e))?;
     if output.status.success() {
         let stdout = String::from_utf8_lossy(&output.stdout);
         Ok(format!("Push successful: {}", stdout))
@@ -602,7 +455,6 @@ pub async fn cmd_git_push(path: String, branch: String) -> Result<String, String
         Err(format!("Push failed: {}", stderr))
     }
 }
-
 #[command]
 pub async fn cmd_get_file_diff(path: String, file: String) -> Result<serde_json::Value, String> {
     use tokio::process::Command as TokioCommand;
@@ -632,14 +484,11 @@ pub async fn cmd_get_file_diff(path: String, file: String) -> Result<serde_json:
                 .output()
                 .await
                 .map_err(|e| format!("Failed to execute git: {}", e))?;
-            let is_untracked = !String::from_utf8_lossy(&check_output.stdout)
-                .trim()
-                .is_empty();
+            let is_untracked = !String::from_utf8_lossy(&check_output.stdout).trim().is_empty();
             if is_untracked {
                 let file_path = Path::new(&path).join(&file);
                 if file_path.exists() {
-                    let content = std::fs::read_to_string(&file_path)
-                        .map_err(|e| format!("Failed to read file: {}", e))?;
+                    let content = std::fs::read_to_string(&file_path).map_err(|e| format!("Failed to read file: {}", e))?;
                     return Ok(serde_json::json!({
                         "type": "new_file",
                         "content": content,

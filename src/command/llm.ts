@@ -1,5 +1,4 @@
 import { invoke } from '@tauri-apps/api/core';
-
 export interface ModelInfo {
   id: string;
   name: string;
@@ -10,14 +9,12 @@ export interface ModelInfo {
   context_length: number | null;
   recommended: boolean;
 }
-
 export interface ExtraConfigField {
   key: string;
   name: string;
   placeholder: string;
   required: boolean;
 }
-
 export interface ProviderInfo {
   id: string;
   name: string;
@@ -26,7 +23,6 @@ export interface ProviderInfo {
   requires_extra_config: boolean;
   extra_config_fields: ExtraConfigField[];
 }
-
 export interface LlmInstance {
   id: string;
   name: string;
@@ -41,7 +37,6 @@ export interface LlmInstance {
   extra?: Record<string, string>;
   is_default?: boolean;
 }
-
 export interface AddLlmInstanceRequest {
   name: string;
   provider: string;
@@ -52,67 +47,52 @@ export interface AddLlmInstanceRequest {
   is_default?: boolean;
   extra?: Record<string, string>;
 }
-
 export interface ModelConfig {
   name: string;
   api_key: string;
   is_default: boolean;
   provider: string;
 }
-
 export const llmCommands = {
   async getAllModels(): Promise<ModelInfo[]> {
     return await invoke('cmd_get_all_models');
   },
-
   async getAllProviders(): Promise<ProviderInfo[]> {
     return await invoke('cmd_get_all_providers');
   },
-
   async getModelsByProvider(provider: string): Promise<ModelInfo[]> {
     return await invoke('cmd_get_models_by_provider', { provider });
   },
-
   async getRecommendedModels(): Promise<ModelInfo[]> {
     return await invoke('cmd_get_recommended_models');
   },
-
   async getLlmInstances(): Promise<Record<string, LlmInstance>> {
     return await invoke('cmd_get_llm_instances');
   },
-
   async getDefaultLlmInstanceId(): Promise<string> {
     return await invoke('cmd_get_default_llm_instance_id');
   },
-
   async addLlmInstance(request: AddLlmInstanceRequest): Promise<string> {
     return await invoke('cmd_add_llm_instance', { request });
   },
-
   async updateLlmInstance(instanceId: string, instance: LlmInstance): Promise<boolean> {
     return await invoke('cmd_update_llm_instance', { instanceId, instance });
   },
-
   async deleteLlmInstance(instanceId: string): Promise<boolean> {
     return await invoke('cmd_delete_llm_instance', { instanceId });
   },
-
   async setDefaultLlmInstance(instanceId: string): Promise<boolean> {
     return await invoke('cmd_set_default_llm_instance', { instanceId });
   },
-
   async getLlmInstance(instanceId: string): Promise<LlmInstance | null> {
     return await invoke('cmd_get_llm_instance', { instanceId });
   },
-
   async addLlmModel(model: ModelConfig): Promise<boolean> {
     return await invoke('cmd_add_llm_model', { model });
   },
-
   async removeLlmModel(modelName: string): Promise<boolean> {
     return await invoke('cmd_remove_llm_model', { modelName });
   },
-
   async setDefaultLlmModel(modelName: string): Promise<boolean> {
     return await invoke('cmd_set_default_llm_model', { modelName });
   }

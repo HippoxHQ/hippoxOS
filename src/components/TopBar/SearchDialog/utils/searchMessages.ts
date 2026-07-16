@@ -3,7 +3,6 @@ import { taskManager } from "../../../../core/TaskManager";
 import { SessionDomain } from "../../../../core/types";
 import { ChatMessage } from "../../../../types/types";
 import { MessageSearchResult } from "../types";
-
 export const generateHighlight = (text: string, keyword: string): string => {
   if (!text || !keyword) return text;
   const keywordLower = keyword.toLowerCase();
@@ -19,7 +18,6 @@ export const generateHighlight = (text: string, keyword: string): string => {
   if (end < text.length) snippet = snippet + "...";
   return snippet;
 };
-
 export const getSessionTitle = (
   sessionId: string,
   titlesMap?: Map<string, string>,
@@ -29,27 +27,22 @@ export const getSessionTitle = (
   }
   return `会话 ${sessionId.slice(-6)}`;
 };
-
 const getMessagesForSession = (sessionId: string): ChatMessage[] => {
   const userMessages = taskManager.getUserMessagesBySession?.(sessionId, SessionDomain.General) || [];
   const assistantMessages =
     taskManager.getAssistantMessagesBySessionAsArray?.(sessionId, SessionDomain.General) || [];
-
   return [...userMessages, ...assistantMessages].sort(
     (a, b) =>
       new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
   );
 };
-
 export const searchMessagesInAllSessions = async (
   keyword: string,
   sessionTitlesMap: Map<string, string>,
 ): Promise<MessageSearchResult[]> => {
   if (!keyword.trim()) return [];
-
   const results: MessageSearchResult[] = [];
   const keywordLower = keyword.toLowerCase().trim();
-
   try {
     const sessions = await sessionCommands.listSessions();
     if (!sessions || sessions.length === 0) {
@@ -84,7 +77,6 @@ export const searchMessagesInAllSessions = async (
     return results;
   }
 };
-
 export const getMessagePreview = (
   message: ChatMessage,
   maxLength: number = 80,
@@ -93,7 +85,6 @@ export const getMessagePreview = (
   const text = message.content.replace(/\n/g, " ");
   return text.length > maxLength ? text.substring(0, maxLength) + "..." : text;
 };
-
 export const getMessageRoleLabel = (
   role: string,
   language: "zh" | "en",

@@ -1,11 +1,9 @@
 import { useEffect, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
-
 export function useDragAndDrop() {
   const [isGlobalDragging, setIsGlobalDragging] = useState(false);
   const [isDraggingOverInput, setIsDraggingOverInput] = useState(false);
   const [showDragCursor, setShowDragCursor] = useState(false);
-
   useEffect(() => {
     let unlistenDragEnter: (() => void) | undefined;
     let unlistenDragLeave: (() => void) | undefined;
@@ -26,7 +24,6 @@ export function useDragAndDrop() {
       if (unlistenDragLeave) unlistenDragLeave();
     };
   }, []);
-
   useEffect(() => {
     let unlistenFileDrop: (() => void) | undefined;
     const setupFileDropListener = async () => {
@@ -47,7 +44,6 @@ export function useDragAndDrop() {
       if (unlistenFileDrop) unlistenFileDrop();
     };
   }, []);
-
   useEffect(() => {
     let dragCounter = 0;
     const handleDragEnter = (e: DragEvent) => {
@@ -100,7 +96,6 @@ export function useDragAndDrop() {
       document.removeEventListener("drop", handleDrop);
     };
   }, []);
-
   return {
     isGlobalDragging,
     isDraggingOverInput,

@@ -14,9 +14,7 @@ import WorkspacePanel from "../../components/MenuPanel/Workspace";
 import WorkspaceConfig from "../../components/MenuPanel/SystemConfig/WorkspaceConfig";
 import LogsPanel from "../../components/MenuPanel/LogsPanel";
 import StorageConfig from "../../components/MenuPanel/SystemConfig/StorageConfig";
-import SettingsPanel, {
-  SettingsSubView,
-} from "../../components/MenuPanel/SettingsPanel";
+import SettingsPanel, { SettingsSubView } from "../../components/MenuPanel/SettingsPanel";
 import EngineContainerPanel from "../../components/MenuPanel/EngineConfig/EngineContainerPanel";
 import EngineDatabasePanel from "../../components/MenuPanel/EngineConfig/EngineDatabasePanel";
 import EngineNetworkPanel from "../../components/MenuPanel/EngineConfig/EngineNetworkPanel";
@@ -36,7 +34,6 @@ import TerminalPanel from "../../pages/GeneralChatPage/TerminalPanel";
 import GeneralChatPage from "../../pages/GeneralChatPage";
 import SandBox3DPage from "../../pages/SandBox3DPage";
 import VideoEditorPage from "../../pages/VideoEditorPage";
-
 interface AppContentProps {
   theme: Theme;
   onToggleTheme: () => void;
@@ -47,12 +44,7 @@ interface AppContentProps {
   isLoading: boolean;
   onNewSession: () => void;
   onSwitchSession: (sessionId: string) => void;
-  onSendMessage: (
-    message: string,
-    sessionId: string,
-    files?: UploadFile[],
-    workflowMode?: string,
-  ) => void;
+  onSendMessage: (message: string, sessionId: string, files?: UploadFile[], workflowMode?: string) => void;
   onResetSession: () => void;
   shouldShowWelcome: () => boolean;
   sidebarCollapsed: boolean;
@@ -85,7 +77,6 @@ interface AppContentProps {
   onSendSkillMessage: (message: string, files?: UploadFile[]) => void;
   functionPanel: FunctionPanelController;
 }
-
 export function AppContent({
   theme,
   onToggleTheme,
@@ -131,68 +122,48 @@ export function AppContent({
 }: AppContentProps) {
   const showWelcome = shouldShowWelcome();
   const [functionPanelWidth, setFunctionPanelWidth] = useState<number>(480);
-  const [functionPanelCollapsed, setFunctionPanelCollapsed] =
-    useState<boolean>(false);
-  const [isFunctionPanelMaximized, setIsFunctionPanelMaximized] =
-    useState(false);
+  const [functionPanelCollapsed, setFunctionPanelCollapsed] = useState<boolean>(false);
+  const [isFunctionPanelMaximized, setIsFunctionPanelMaximized] = useState(false);
   const [prevMaximizedState, setPrevMaximizedState] = useState<boolean>(false);
   const [isFuncPanelResizeHover, setIsFuncPanelResizeHover] = useState(false);
   const [isMenuResizeHover, setIsMenuResizeHover] = useState(false);
   const isDraggingFunctionPanel = useRef(false);
   const dragStartX = useRef(0);
   const dragStartWidth = useRef(0);
-
   useEffect(() => {
     const handleToggleMaximize = () => {
       setIsFunctionPanelMaximized((prev) => !prev);
     };
-    window.addEventListener(
-      "toggle-function-panel-maximize",
-      handleToggleMaximize,
-    );
+    window.addEventListener("toggle-function-panel-maximize", handleToggleMaximize);
     return () => {
-      window.removeEventListener(
-        "toggle-function-panel-maximize",
-        handleToggleMaximize,
-      );
+      window.removeEventListener("toggle-function-panel-maximize", handleToggleMaximize);
     };
   }, []);
-
   useEffect(() => {
     const saved = localStorage.getItem("hippox-function-panel-width");
     if (saved) {
       const w = parseFloat(saved);
       if (!isNaN(w) && w > 0) setFunctionPanelWidth(w);
     }
-    const savedCollapsed = localStorage.getItem(
-      "hippox-function-panel-collapsed",
-    );
+    const savedCollapsed = localStorage.getItem("hippox-function-panel-collapsed");
     if (savedCollapsed) {
       setFunctionPanelCollapsed(savedCollapsed === "true");
     }
   }, []);
-
   useEffect(() => {
     if (currentContentPanel === "generalChat") {
       onCloseContentPanel();
     }
   }, [currentContentPanel, onCloseContentPanel]);
-
   const handleToggleFunctionPanelMaximize = useCallback(() => {
     setIsFunctionPanelMaximized((prev) => !prev);
   }, []);
-
   const saveFunctionPanelWidth = useCallback((w: number) => {
     localStorage.setItem("hippox-function-panel-width", w.toString());
   }, []);
-
   const saveFunctionPanelCollapsed = useCallback((collapsed: boolean) => {
-    localStorage.setItem(
-      "hippox-function-panel-collapsed",
-      collapsed.toString(),
-    );
+    localStorage.setItem("hippox-function-panel-collapsed", collapsed.toString());
   }, []);
-
   const handleToggleFunctionPanelCollapse = useCallback(() => {
     setFunctionPanelCollapsed((prev) => {
       const newState = !prev;
@@ -209,12 +180,7 @@ export function AppContent({
       }
       return newState;
     });
-  }, [
-    saveFunctionPanelCollapsed,
-    isFunctionPanelMaximized,
-    prevMaximizedState,
-  ]);
-
+  }, [saveFunctionPanelCollapsed, isFunctionPanelMaximized, prevMaximizedState]);
   const handleFunctionPanelResizeMouseDown = useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault();
@@ -227,16 +193,12 @@ export function AppContent({
     },
     [functionPanelWidth],
   );
-
   useEffect(() => {
     const onMouseMove = (e: MouseEvent) => {
       if (!isDraggingFunctionPanel.current) return;
       const delta = e.clientX - dragStartX.current;
       const adjustedDelta = functionPanelPosition === "right" ? -delta : delta;
-      const newWidth = Math.min(
-        800,
-        Math.max(320, dragStartWidth.current + adjustedDelta),
-      );
+      const newWidth = Math.min(800, Math.max(320, dragStartWidth.current + adjustedDelta));
       if (newWidth !== functionPanelWidth) {
         setFunctionPanelWidth(newWidth);
         saveFunctionPanelWidth(newWidth);
@@ -256,7 +218,6 @@ export function AppContent({
       window.removeEventListener("mouseup", onMouseUp);
     };
   }, [functionPanelWidth, saveFunctionPanelWidth, functionPanelPosition]);
-
   useEffect(() => {
     const handleSessionSwitch = () => {
       if (isFunctionPanelMaximized) {
@@ -269,57 +230,29 @@ export function AppContent({
       window.removeEventListener("session-created", handleSessionSwitch);
     };
   }, [isFunctionPanelMaximized]);
-
   useEffect(() => {
     if (isFunctionPanelMaximized) {
       setIsFunctionPanelMaximized(false);
     }
   }, [currentContentPanel]);
-
   const handleFileClick = (file: UploadFile) => {
     onFilePreview(file);
     functionPanel.openPreview(file);
   };
-
   const renderEngineConfig = () => {
     switch (engineSubView) {
       case "engine_database":
-        return (
-          <EngineDatabasePanel
-            t={t}
-            initialConfig={initialEngineConfig}
-            onSave={onSaveConfig}
-          />
-        );
+        return <EngineDatabasePanel t={t} initialConfig={initialEngineConfig} onSave={onSaveConfig} />;
       case "engine_network":
-        return (
-          <EngineNetworkPanel
-            t={t}
-            initialConfig={initialEngineConfig}
-            onSave={onSaveConfig}
-          />
-        );
+        return <EngineNetworkPanel t={t} initialConfig={initialEngineConfig} onSave={onSaveConfig} />;
       case "engine_container":
-        return (
-          <EngineContainerPanel
-            t={t}
-            initialConfig={initialEngineConfig}
-            onSave={onSaveConfig}
-          />
-        );
+        return <EngineContainerPanel t={t} initialConfig={initialEngineConfig} onSave={onSaveConfig} />;
       case "engine_notification":
-        return (
-          <EngineNotificationPanel
-            t={t}
-            initialConfig={initialEngineConfig}
-            onSave={onSaveConfig}
-          />
-        );
+        return <EngineNotificationPanel t={t} initialConfig={initialEngineConfig} onSave={onSaveConfig} />;
       default:
         return null;
     }
   };
-
   const styles = {
     mainLayout: {
       display: "flex" as const,
@@ -373,10 +306,8 @@ export function AppContent({
       zIndex: 11,
     },
   };
-
   const renderMainLayout = () => {
-    const isChatPage =
-      !currentContentPanel || currentContentPanel === "generalChat";
+    const isChatPage = !currentContentPanel || currentContentPanel === "generalChat";
     const isMapPage = currentContentPanel === "mapChat";
     const isChartPage = currentContentPanel === "chartChat";
     const isCodeEditorChat = currentContentPanel === "codeEditorChat";
@@ -387,9 +318,7 @@ export function AppContent({
       if (showWelcome && !currentContentPanel) {
         contentElement = (
           <WelcomePage
-            onSendMessage={(msg, files, workflowMode) =>
-              onSendMessage(msg, currentSessionId, files, workflowMode)
-            }
+            onSendMessage={(msg, files, workflowMode) => onSendMessage(msg, currentSessionId, files, workflowMode)}
             t={t}
             onDragOverInputChange={setIsDraggingOverInput}
             onNavigateTo={(pageId) => {
@@ -404,9 +333,7 @@ export function AppContent({
             onLayoutModeChange={() => {}}
             leftTitle={t("chat.title") || "Chat"}
             rightTitle={t("terminal.title") || "Terminal"}
-            isFunctionPanelMaximized={
-              functionPanel.isOpen ? isFunctionPanelMaximized : false
-            }
+            isFunctionPanelMaximized={functionPanel.isOpen ? isFunctionPanelMaximized : false}
             currentSessionId={currentSessionId}
             onSwitchSession={(sessionId) => {
               onSwitchSession(sessionId);
@@ -431,9 +358,7 @@ export function AppContent({
           rightTitle="Map"
           leftIcon="💬"
           rightIcon="🗺️"
-          isFunctionPanelMaximized={
-            functionPanel.isOpen ? isFunctionPanelMaximized : false
-          }
+          isFunctionPanelMaximized={functionPanel.isOpen ? isFunctionPanelMaximized : false}
           onCloseSkillsManager={onCloseContentPanel}
           t={t}
           theme={theme === "dark" ? "dark" : "light"}
@@ -454,9 +379,7 @@ export function AppContent({
           rightTitle="Chart"
           leftIcon="💬"
           rightIcon="📊"
-          isFunctionPanelMaximized={
-            functionPanel.isOpen ? isFunctionPanelMaximized : false
-          }
+          isFunctionPanelMaximized={functionPanel.isOpen ? isFunctionPanelMaximized : false}
           t={t}
           theme={theme === "dark" ? "dark" : "light"}
           i18n={language === "zh" ? "zh-cn" : "en"}
@@ -474,9 +397,7 @@ export function AppContent({
           onLayoutModeChange={() => {}}
           leftTitle={t("chat.title") || "Chat"}
           rightTitle={t("codeEditor.title") || "Code Editor"}
-          isFunctionPanelMaximized={
-            functionPanel.isOpen ? isFunctionPanelMaximized : false
-          }
+          isFunctionPanelMaximized={functionPanel.isOpen ? isFunctionPanelMaximized : false}
           onCloseSkillsManager={onCloseContentPanel}
           t={t}
           theme={theme === "dark" ? "dark" : "light"}
@@ -489,21 +410,9 @@ export function AppContent({
         />
       );
     } else if (isVideoEditor) {
-      contentElement = (
-        <VideoEditorPage
-          t={t}
-          theme={theme === "dark" ? "dark" : "light"}
-          i18n={language === "zh" ? "zh-cn" : "en"}
-        />
-      );
+      contentElement = <VideoEditorPage t={t} theme={theme === "dark" ? "dark" : "light"} i18n={language === "zh" ? "zh-cn" : "en"} />;
     } else if (isSandbox3d) {
-      contentElement = (
-        <SandBox3DPage
-          t={t}
-          theme={theme === "dark" ? "dark" : "light"}
-          i18n={language === "zh" ? "zh-cn" : "en"}
-        />
-      );
+      contentElement = <SandBox3DPage t={t} theme={theme === "dark" ? "dark" : "light"} i18n={language === "zh" ? "zh-cn" : "en"} />;
     } else {
       switch (currentContentPanel) {
         case "taskQueue":
@@ -513,9 +422,7 @@ export function AppContent({
           contentElement = <WorkspacePanel t={t} />;
           break;
         case "workspaceConfig":
-          contentElement = (
-            <WorkspaceConfig t={t} onSaveWorkspace={onSaveConfig} />
-          );
+          contentElement = <WorkspaceConfig t={t} onSaveWorkspace={onSaveConfig} />;
           break;
         case "logs":
           contentElement = <LogsPanel t={t} onClose={onCloseContentPanel} />;
@@ -541,32 +448,13 @@ export function AppContent({
           contentElement = renderEngineConfig();
           break;
         case "skillsManager":
-          contentElement = (
-            <SkillsManager
-              t={t}
-              onClose={onCloseContentPanel}
-              currentSessionId={currentSessionId}
-              onSendSkillMessage={onSendSkillMessage}
-            />
-          );
+          contentElement = <SkillsManager t={t} onClose={onCloseContentPanel} currentSessionId={currentSessionId} onSendSkillMessage={onSendSkillMessage} />;
           break;
         case "scheduledTasks":
-          contentElement = (
-            <ScheduledTasksManager
-              t={t}
-              onClose={onCloseContentPanel}
-              currentSessionId={currentSessionId}
-            />
-          );
+          contentElement = <ScheduledTasksManager t={t} onClose={onCloseContentPanel} currentSessionId={currentSessionId} />;
           break;
         case "userProfile":
-          contentElement = (
-            <UserProfile
-              t={t}
-              onClose={onCloseContentPanel}
-              currentSessionId={currentSessionId}
-            />
-          );
+          contentElement = <UserProfile t={t} onClose={onCloseContentPanel} currentSessionId={currentSessionId} />;
           break;
         default:
           contentElement = null;
@@ -579,19 +467,12 @@ export function AppContent({
         style={{
           ...styles.functionPanelResizeHandle,
           width: "3px",
-          background: isFuncPanelResizeHover
-            ? "var(--scrollbar-thumb)"
-            : "var(--border-color)",
+          background: isFuncPanelResizeHover ? "var(--scrollbar-thumb)" : "var(--border-color)",
         }}
         onMouseEnter={() => setIsFuncPanelResizeHover(true)}
         onMouseLeave={() => setIsFuncPanelResizeHover(false)}
       >
-        {isFuncPanelResizeHover && (
-          <div
-            style={styles.functionPanelResizeHandleLine}
-            className="function-panel-handle-line"
-          />
-        )}
+        {isFuncPanelResizeHover && <div style={styles.functionPanelResizeHandleLine} className="function-panel-handle-line" />}
       </div>
     );
     const renderFunctionPanelComponent = (collapsed: boolean) => (
@@ -617,15 +498,9 @@ export function AppContent({
       return <div style={styles.contentArea}>{contentElement}</div>;
     }
     if (isFunctionPanelMaximized) {
-      return (
-        <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
-          {renderFunctionPanelComponent(functionPanelCollapsed)}
-        </div>
-      );
+      return <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>{renderFunctionPanelComponent(functionPanelCollapsed)}</div>;
     }
-    const functionPanelElement = renderFunctionPanelComponent(
-      functionPanelCollapsed,
-    );
+    const functionPanelElement = renderFunctionPanelComponent(functionPanelCollapsed);
     const resizeHandle = functionPanelCollapsed ? null : renderResizeHandle();
     if (functionPanelPosition === "left") {
       return (
@@ -645,7 +520,6 @@ export function AppContent({
       );
     }
   };
-
   return (
     <div className="App">
       <style>{`
@@ -679,9 +553,7 @@ export function AppContent({
         }
       `}</style>
       <CustomDragCursor isDragging={showDragCursor} />
-      <GlobalDragOverlay
-        isDragging={isGlobalDragging && !isDraggingOverInput}
-      />
+      <GlobalDragOverlay isDragging={isGlobalDragging && !isDraggingOverInput} />
       <Toast />
       <Dialog />
       <TopBar
@@ -744,9 +616,7 @@ export function AppContent({
               className="menu-panel-resize-handle"
               style={{
                 width: "3px",
-                background: isMenuResizeHover
-                  ? "var(--scrollbar-thumb)"
-                  : "var(--border-color)",
+                background: isMenuResizeHover ? "var(--scrollbar-thumb)" : "var(--border-color)",
                 cursor: "col-resize",
                 flexShrink: 0,
                 position: "relative",
@@ -776,9 +646,7 @@ export function AppContent({
               onMouseEnter={() => setIsMenuResizeHover(true)}
               onMouseLeave={() => setIsMenuResizeHover(false)}
             >
-              {isMenuResizeHover && (
-                <div style={styles.handleLine} className="handle-line" />
-              )}
+              {isMenuResizeHover && <div style={styles.handleLine} className="handle-line" />}
             </div>
           </>
         )}

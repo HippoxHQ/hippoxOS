@@ -12,7 +12,6 @@ import { QuickActions } from "./components/QuickActions";
 import { filesCommands } from "../../../command/files";
 import { UploadFile } from "../../../core/types";
 import { sessionCommands } from "../../../command/session/general";
-
 export interface SearchDialogProps {
   isOpen: boolean;
   onClose: () => void;
@@ -22,16 +21,7 @@ export interface SearchDialogProps {
   onToggleLanguage: () => void;
   onFileClick?: (file: UploadFile) => void;
 }
-
-const SearchDialog: React.FC<SearchDialogProps> = ({
-  isOpen,
-  onClose,
-  currentLanguage,
-  currentTheme,
-  onToggleTheme,
-  onToggleLanguage,
-  onFileClick,
-}) => {
+const SearchDialog: React.FC<SearchDialogProps> = ({ isOpen, onClose, currentLanguage, currentTheme, onToggleTheme, onToggleLanguage, onFileClick }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(-1);
@@ -41,15 +31,11 @@ const SearchDialog: React.FC<SearchDialogProps> = ({
   const [isLoadingRecent, setIsLoadingRecent] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const isOpenRef = useRef(isOpen);
-
   useEffect(() => {
     isOpenRef.current = isOpen;
   }, [isOpen]);
-
   const { sessionTitlesMap, loading: titlesLoading } = useSessionTitles();
-  const { position, isDragging, dialogRef, handleDragStart } =
-    useDialogPosition(isOpen);
-
+  const { position, isDragging, dialogRef, handleDragStart } = useDialogPosition(isOpen);
   const { isLoading: searchLoading } = useSearch({
     searchQuery,
     sessionTitlesMap,
@@ -61,10 +47,7 @@ const SearchDialog: React.FC<SearchDialogProps> = ({
       setIsLoading(loading);
     }, []),
   });
-
-  const readSessionChatFromFile = async (
-    sessionDir: string,
-  ): Promise<any[]> => {
+  const readSessionChatFromFile = async (sessionDir: string): Promise<any[]> => {
     try {
       const chatPath = `${sessionDir}/chat.json`;
       const exists = await filesCommands.pathExists(chatPath);
@@ -75,7 +58,6 @@ const SearchDialog: React.FC<SearchDialogProps> = ({
       return [];
     }
   };
-
   const loadRecentMessages = useCallback(async () => {
     if (!isOpen) return;
     setIsLoadingRecent(true);
@@ -108,10 +90,7 @@ const SearchDialog: React.FC<SearchDialogProps> = ({
             category: "message",
             id: msg.id || `msg_${Date.now()}`,
             title: sessionTitle,
-            description:
-              displayContent.length > 100
-                ? displayContent.substring(0, 100) + "..."
-                : displayContent,
+            description: displayContent.length > 100 ? displayContent.substring(0, 100) + "..." : displayContent,
             path: sessionId,
             timestamp: msg.timestamp,
             highlight: null,
@@ -124,9 +103,7 @@ const SearchDialog: React.FC<SearchDialogProps> = ({
       allMessages.sort((a, b) => {
         if (!a.timestamp) return 1;
         if (!b.timestamp) return -1;
-        return (
-          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-        );
+        return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
       });
       setRecentMessages(allMessages.slice(0, 5));
     } catch (error) {
@@ -136,7 +113,6 @@ const SearchDialog: React.FC<SearchDialogProps> = ({
       setIsLoadingRecent(false);
     }
   }, [isOpen]);
-
   useEffect(() => {
     if (isOpen) {
       setSearchQuery("");
@@ -149,7 +125,6 @@ const SearchDialog: React.FC<SearchDialogProps> = ({
       }, 50);
     }
   }, [isOpen, loadRecentMessages]);
-
   const handleResultClick = useCallback(
     async (result: SearchResult) => {
       switch (result.category) {
@@ -235,7 +210,6 @@ const SearchDialog: React.FC<SearchDialogProps> = ({
     },
     [onClose],
   );
-
   useKeyboardNavigation({
     isOpen,
     searchQuery,
@@ -259,9 +233,7 @@ const SearchDialog: React.FC<SearchDialogProps> = ({
       {
         id: "new-session",
         title: isZh ? "新建会话" : "New Session",
-        description: isZh
-          ? "创建一个新的对话会话"
-          : "Create a new chat session",
+        description: isZh ? "创建一个新的对话会话" : "Create a new chat session",
         icon: "💬",
         action: () => {
           window.dispatchEvent(new CustomEvent("search-new-session"));
@@ -270,18 +242,14 @@ const SearchDialog: React.FC<SearchDialogProps> = ({
       {
         id: "toggle-theme",
         title: isZh ? "切换主题" : "Toggle Theme",
-        description: isZh
-          ? "切换深色/浅色模式"
-          : "Switch between dark and light mode",
+        description: isZh ? "切换深色/浅色模式" : "Switch between dark and light mode",
         icon: currentTheme === "dark" ? "☀️" : "🌙",
         action: () => onToggleTheme(),
       },
       {
         id: "toggle-language",
         title: isZh ? "切换语言" : "Toggle Language",
-        description: isZh
-          ? "切换中文/英文界面"
-          : "Switch between Chinese and English",
+        description: isZh ? "切换中文/英文界面" : "Switch between Chinese and English",
         icon: "🌐",
         action: () => onToggleLanguage(),
       },
@@ -342,11 +310,7 @@ const SearchDialog: React.FC<SearchDialogProps> = ({
           onClose={onClose}
           onFocus={() => setIsInputFocused(true)}
           onBlur={() => setIsInputFocused(false)}
-          placeholder={
-            currentLanguage === "zh"
-              ? "搜索技能、会话、对话记录或日志..."
-              : "Search skills, sessions, messages or logs..."
-          }
+          placeholder={currentLanguage === "zh" ? "搜索技能、会话、对话记录或日志..." : "Search skills, sessions, messages or logs..."}
           isFocused={isInputFocused}
           isDragging={isDragging}
           onDragStart={handleDragStart}
@@ -364,12 +328,7 @@ const SearchDialog: React.FC<SearchDialogProps> = ({
               {isLoadingState ? (
                 <SearchSkeleton language={currentLanguage} />
               ) : hasResults ? (
-                <SearchResults
-                  results={searchResults}
-                  selectedIndex={selectedIndex}
-                  onResultClick={handleResultClick}
-                  currentLanguage={currentLanguage}
-                />
+                <SearchResults results={searchResults} selectedIndex={selectedIndex} onResultClick={handleResultClick} currentLanguage={currentLanguage} />
               ) : (
                 <EmptyState language={currentLanguage} />
               )}
@@ -454,11 +413,7 @@ const SearchDialog: React.FC<SearchDialogProps> = ({
                   ))}
                 </>
               ) : null}
-              <QuickActions
-                suggestions={getSearchSuggestions()}
-                onActionClick={handleQuickAction}
-                language={currentLanguage}
-              />
+              <QuickActions suggestions={getSearchSuggestions()} onActionClick={handleQuickAction} language={currentLanguage} />
             </>
           )}
         </div>
@@ -466,5 +421,4 @@ const SearchDialog: React.FC<SearchDialogProps> = ({
     </div>
   );
 };
-
 export default SearchDialog;

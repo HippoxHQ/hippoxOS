@@ -1,24 +1,18 @@
 body {
   margin: 0;
-  font-family:
-    -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu",
-    "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
-
 code {
-  font-family:
-    source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace;
+  font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace;
 }
-
 body:has(> div:only-child) {
   margin: 0;
   padding: 0;
   background: transparent !important;
   overflow: hidden;
 }
-
 .tray-window-body {
   margin: 0;
   padding: 0;
@@ -27,25 +21,21 @@ body:has(> div:only-child) {
   height: auto;
   min-height: auto;
 }
-
 .tray-window-body #root {
   background: transparent !important;
   height: auto;
   min-height: auto;
   display: inline-block;
 }
-
 .tray-submenu-window-body {
   margin: 0;
   padding: 0;
   background: transparent !important;
   overflow: hidden;
 }
-
 .tray-submenu-window-body #root {
   background: transparent !important;
 }
-
 .material-preview-window-body {
   margin: 0;
   padding: 0;
@@ -53,25 +43,20 @@ body:has(> div:only-child) {
   background: transparent !important;
   user-select: none;
 }
-
 .material-preview-window-body * {
   box-sizing: border-box;
 }
-
 .material-preview-window-body ::-webkit-scrollbar {
   width: 4px;
   height: 4px;
 }
-
 .material-preview-window-body ::-webkit-scrollbar-track {
   background: transparent;
 }
-
 .material-preview-window-body ::-webkit-scrollbar-thumb {
   background: #3a3f4a;
   border-radius: 2px;
 }
-
 .material-preview-window-body ::-webkit-scrollbar-thumb:hover {
   background: #4a4f5a;
 }

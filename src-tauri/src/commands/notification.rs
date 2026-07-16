@@ -1,12 +1,9 @@
+use crate::commands::paths::{get_app_root_dir, get_settings_dir};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
 use uuid::Uuid;
-
-use crate::commands::paths::{get_app_root_dir, get_settings_dir};
-
 const MAX_NOTIFICATIONS: usize = 100;
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SystemNotification {
     pub id: String,
@@ -18,7 +15,6 @@ pub struct SystemNotification {
     pub read: bool,
     pub data: Option<serde_json::Value>,
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AddNotificationParams {
     pub title: String,
@@ -27,11 +23,9 @@ pub struct AddNotificationParams {
     pub notification_type: Option<String>,
     pub data: Option<serde_json::Value>,
 }
-
 pub fn get_notifications_dir() -> PathBuf {
     get_app_root_dir().join("notifications")
 }
-
 fn ensure_notifications_dir() -> Result<(), String> {
     let dir = get_notifications_dir();
     if !dir.exists() {
@@ -39,11 +33,9 @@ fn ensure_notifications_dir() -> Result<(), String> {
     }
     Ok(())
 }
-
 fn get_notification_file_path(notification_id: &str) -> PathBuf {
     get_notifications_dir().join(format!("{}.json", notification_id))
 }
-
 fn save_notification_to_file(notification: &SystemNotification) -> Result<(), String> {
     ensure_notifications_dir()?;
     let file_path = get_notification_file_path(&notification.id);
@@ -51,7 +43,6 @@ fn save_notification_to_file(notification: &SystemNotification) -> Result<(), St
     fs::write(&file_path, content).map_err(|e| format!("Failed to save notification: {}", e))?;
     Ok(())
 }
-
 fn delete_notification_file(notification_id: &str) -> Result<(), String> {
     let file_path = get_notification_file_path(notification_id);
     if file_path.exists() {
@@ -59,7 +50,6 @@ fn delete_notification_file(notification_id: &str) -> Result<(), String> {
     }
     Ok(())
 }
-
 fn load_notification_from_file(notification_id: &str) -> Result<Option<SystemNotification>, String> {
     let file_path = get_notification_file_path(notification_id);
     if file_path.exists() {
@@ -70,13 +60,11 @@ fn load_notification_from_file(notification_id: &str) -> Result<Option<SystemNot
         Ok(None)
     }
 }
-
 fn load_all_notifications() -> Result<Vec<SystemNotification>, String> {
     let dir = get_notifications_dir();
     if !dir.exists() {
         return Ok(vec![]);
     }
-
     let mut notifications = Vec::new();
     for entry in fs::read_dir(&dir).map_err(|e| format!("Failed to read notifications directory: {}", e))? {
         let entry = entry.map_err(|e| format!("Failed to read entry: {}", e))?;
@@ -88,11 +76,9 @@ fn load_all_notifications() -> Result<Vec<SystemNotification>, String> {
             }
         }
     }
-
     notifications.sort_by(|a, b| b.timestamp.cmp(&a.timestamp));
     Ok(notifications)
 }
-
 #[tauri::command]
 pub async fn cmd_notification_add(params: AddNotificationParams) -> Result<SystemNotification, String> {
     let notification = SystemNotification {
@@ -104,9 +90,7 @@ pub async fn cmd_notification_add(params: AddNotificationParams) -> Result<Syste
         read: false,
         data: params.data,
     };
-
     save_notification_to_file(&notification)?;
-
     let all_notifications = load_all_notifications()?;
     if all_notifications.len() > MAX_NOTIFICATIONS {
         let to_delete = &all_notifications[MAX_NOTIFICATIONS..];
@@ -114,32 +98,26 @@ pub async fn cmd_notification_add(params: AddNotificationParams) -> Result<Syste
             let _ = delete_notification_file(&notification.id);
         }
     }
-
     Ok(notification)
 }
-
 #[tauri::command]
 pub async fn cmd_notification_get_all() -> Result<Vec<SystemNotification>, String> {
     load_all_notifications()
 }
-
 #[tauri::command]
 pub async fn cmd_notification_get_by_id(id: String) -> Result<Option<SystemNotification>, String> {
     load_notification_from_file(&id)
 }
-
 #[tauri::command]
 pub async fn cmd_notification_get_unread() -> Result<Vec<SystemNotification>, String> {
     let notifications = load_all_notifications()?;
     Ok(notifications.into_iter().filter(|n| !n.read).collect())
 }
-
 #[tauri::command]
 pub async fn cmd_notification_get_unread_count() -> Result<usize, String> {
     let notifications = load_all_notifications()?;
     Ok(notifications.into_iter().filter(|n| !n.read).count())
 }
-
 #[tauri::command]
 pub async fn cmd_notification_mark_as_read(id: String) -> Result<bool, String> {
     if let Some(mut notification) = load_notification_from_file(&id)? {
@@ -154,7 +132,6 @@ pub async fn cmd_notification_mark_as_read(id: String) -> Result<bool, String> {
         Ok(false)
     }
 }
-
 #[tauri::command]
 pub async fn cmd_notification_mark_all_as_read() -> Result<usize, String> {
     let notifications = load_all_notifications()?;
@@ -168,13 +145,11 @@ pub async fn cmd_notification_mark_all_as_read() -> Result<usize, String> {
     }
     Ok(count)
 }
-
 #[tauri::command]
 pub async fn cmd_notification_delete(id: String) -> Result<bool, String> {
     delete_notification_file(&id)?;
     Ok(true)
 }
-
 #[tauri::command]
 pub async fn cmd_notification_delete_read() -> Result<usize, String> {
     let notifications = load_all_notifications()?;
@@ -187,7 +162,6 @@ pub async fn cmd_notification_delete_read() -> Result<usize, String> {
     }
     Ok(count)
 }
-
 #[tauri::command]
 pub async fn cmd_notification_delete_by_type(notification_type: String) -> Result<usize, String> {
     let notifications = load_all_notifications()?;
@@ -200,14 +174,12 @@ pub async fn cmd_notification_delete_by_type(notification_type: String) -> Resul
     }
     Ok(count)
 }
-
 #[tauri::command]
 pub async fn cmd_notification_clear_all() -> Result<usize, String> {
     let dir = get_notifications_dir();
     if !dir.exists() {
         return Ok(0);
     }
-
     let mut count = 0;
     for entry in fs::read_dir(&dir).map_err(|e| format!("Failed to read directory: {}", e))? {
         let entry = entry.map_err(|e| format!("Failed to read entry: {}", e))?;
@@ -219,41 +191,34 @@ pub async fn cmd_notification_clear_all() -> Result<usize, String> {
     }
     Ok(count)
 }
-
 #[tauri::command]
 pub async fn cmd_notification_get_latest(limit: Option<usize>) -> Result<Vec<SystemNotification>, String> {
     let notifications = load_all_notifications()?;
     let limit = limit.unwrap_or(10);
     Ok(notifications.into_iter().take(limit).collect())
 }
-
 #[tauri::command]
 pub async fn cmd_notification_get_by_date_range(start_date: String, end_date: String) -> Result<Vec<SystemNotification>, String> {
     let notifications = load_all_notifications()?;
     let start = chrono::DateTime::parse_from_rfc3339(&start_date).map_err(|e| format!("Invalid start date: {}", e))?;
     let end = chrono::DateTime::parse_from_rfc3339(&end_date).map_err(|e| format!("Invalid end date: {}", e))?;
-
     Ok(notifications
         .into_iter()
         .filter(|n| if let Ok(ts) = chrono::DateTime::parse_from_rfc3339(&n.timestamp) { ts >= start && ts <= end } else { false })
         .collect())
 }
-
 #[tauri::command]
 pub async fn cmd_notification_info(title: String, message: String, data: Option<serde_json::Value>) -> Result<SystemNotification, String> {
     cmd_notification_add(AddNotificationParams { title, message, notification_type: Some("info".to_string()), data }).await
 }
-
 #[tauri::command]
 pub async fn cmd_notification_success(title: String, message: String, data: Option<serde_json::Value>) -> Result<SystemNotification, String> {
     cmd_notification_add(AddNotificationParams { title, message, notification_type: Some("success".to_string()), data }).await
 }
-
 #[tauri::command]
 pub async fn cmd_notification_warning(title: String, message: String, data: Option<serde_json::Value>) -> Result<SystemNotification, String> {
     cmd_notification_add(AddNotificationParams { title, message, notification_type: Some("warning".to_string()), data }).await
 }
-
 #[tauri::command]
 pub async fn cmd_notification_error(title: String, message: String, data: Option<serde_json::Value>) -> Result<SystemNotification, String> {
     cmd_notification_add(AddNotificationParams { title, message, notification_type: Some("error".to_string()), data }).await

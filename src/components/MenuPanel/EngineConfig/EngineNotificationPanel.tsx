@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from "react";
 import { showToast, ToastType } from "../../Toast";
 import { showDialog, DialogType } from "../../Dialog";
 import { engineCommands } from "../../../command/config";
-
 interface NotificationInstance {
   id: string;
   name: string;
@@ -23,17 +22,12 @@ interface NotificationInstance {
   created_at: string;
   updated_at: string;
 }
-
 interface EngineNotificationPanelProps {
   t: (key: string, params?: any) => string;
   initialConfig?: any;
   onSave?: (config: any) => void;
 }
-
-const NOTIFICATION_TYPE_CONFIG: Record<
-  string,
-  { name: string; icon: string; description: string }
-> = {
+const NOTIFICATION_TYPE_CONFIG: Record<string, { name: string; icon: string; description: string }> = {
   smtp: {
     name: "SMTP Email",
     icon: "📧",
@@ -53,12 +47,7 @@ const NOTIFICATION_TYPE_CONFIG: Record<
   wecom: { name: "WeCom", icon: "💼", description: "WeChat Work webhook" },
   github: { name: "GitHub", icon: "🐙", description: "GitHub API integration" },
 };
-
-const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
-  t,
-  initialConfig,
-  onSave,
-}) => {
+const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({ t, initialConfig, onSave }) => {
   const [instances, setInstances] = useState<NotificationInstance[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<string>("smtp");
@@ -79,24 +68,18 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
   const [formFeishuWebhook, setFormFeishuWebhook] = useState("");
   const [formWecomWebhook, setFormWecomWebhook] = useState("");
   const [formGithubToken, setFormGithubToken] = useState("");
-  const [formGithubApiUrl, setFormGithubApiUrl] = useState(
-    "https://api.github.com",
-  );
-
+  const [formGithubApiUrl, setFormGithubApiUrl] = useState("https://api.github.com");
   useEffect(() => {
     loadInstances();
   }, []);
-
   useEffect(() => {
     checkScrollButtons();
     window.addEventListener("resize", checkScrollButtons);
     return () => window.removeEventListener("resize", checkScrollButtons);
   }, []);
-
   useEffect(() => {
     setTimeout(checkScrollButtons, 0);
   }, []);
-
   const loadInstances = async () => {
     setLoading(true);
     try {
@@ -107,15 +90,9 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
     }
     setLoading(false);
   };
-
-  const handleToggleEnabled = async (
-    id: string,
-    name: string,
-    enabled: boolean,
-  ) => {
+  const handleToggleEnabled = async (id: string, name: string, enabled: boolean) => {
     const newEnabled = !enabled;
     const actionText = newEnabled ? "enable" : "disable";
-
     if (!newEnabled) {
       showDialog(
         DialogType.WARNING,
@@ -124,10 +101,7 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
         async () => {
           await engineCommands.toggleNotificationInstance(id, newEnabled);
           await loadInstances();
-          showToast(
-            ToastType.SUCCESS,
-            t(`notification.${actionText}Success`, { name }),
-          );
+          showToast(ToastType.SUCCESS, t(`notification.${actionText}Success`, { name }));
         },
         undefined,
         t("notification.disable"),
@@ -136,13 +110,9 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
     } else {
       await engineCommands.toggleNotificationInstance(id, newEnabled);
       await loadInstances();
-      showToast(
-        ToastType.SUCCESS,
-        t(`notification.${actionText}Success`, { name }),
-      );
+      showToast(ToastType.SUCCESS, t(`notification.${actionText}Success`, { name }));
     }
   };
-
   const handleDelete = async (id: string, name: string) => {
     showDialog(
       DialogType.WARNING,
@@ -158,7 +128,6 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
       t("common.cancel"),
     );
   };
-
   const handleEdit = (instance: NotificationInstance) => {
     setEditingId(instance.id);
     setFormName(instance.name);
@@ -176,7 +145,6 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
     setFormGithubApiUrl(instance.github_api_url || "https://api.github.com");
     setShowAddForm(true);
   };
-
   const resetForm = () => {
     setShowAddForm(false);
     setEditingId(null);
@@ -194,10 +162,8 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
     setFormGithubToken("");
     setFormGithubApiUrl("https://api.github.com");
   };
-
   const handleSave = async () => {
     if (!formName.trim()) return;
-
     try {
       const request: any = {
         id: editingId || undefined,
@@ -206,7 +172,6 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
         instance_type: activeTab,
         enabled: true,
       };
-
       if (activeTab === "smtp") {
         request.smtp_host = formSmtpHost;
         request.smtp_port = formSmtpPort;
@@ -225,59 +190,41 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
         request.github_token = formGithubToken;
         request.github_api_url = formGithubApiUrl;
       }
-
       await engineCommands.saveNotificationInstance(request);
       await loadInstances();
-
       if (editingId) {
-        showToast(
-          ToastType.SUCCESS,
-          t("notification.updateSuccess", { name: formName }),
-        );
+        showToast(ToastType.SUCCESS, t("notification.updateSuccess", { name: formName }));
       } else {
-        showToast(
-          ToastType.SUCCESS,
-          t("notification.addSuccess", { type: getTypeName(activeTab) }),
-        );
+        showToast(ToastType.SUCCESS, t("notification.addSuccess", { type: getTypeName(activeTab) }));
       }
       resetForm();
     } catch (error) {
       showToast(ToastType.ERROR, t("common.error"));
     }
   };
-
   const getInstancesByType = (type: string) => {
     return instances.filter((i) => i.type === type);
   };
-
   const getTypeIcon = (type: string) => {
     return NOTIFICATION_TYPE_CONFIG[type]?.icon || "🔔";
   };
-
   const getTypeName = (type: string) => {
     return NOTIFICATION_TYPE_CONFIG[type]?.name || type;
   };
-
   const scrollTabs = (direction: "left" | "right") => {
     if (tabsRef.current) {
       const scrollAmount = 200;
-      const newScrollLeft =
-        tabsRef.current.scrollLeft +
-        (direction === "left" ? -scrollAmount : scrollAmount);
+      const newScrollLeft = tabsRef.current.scrollLeft + (direction === "left" ? -scrollAmount : scrollAmount);
       tabsRef.current.scrollTo({ left: newScrollLeft, behavior: "smooth" });
     }
   };
-
   const checkScrollButtons = () => {
     if (tabsRef.current) {
       const { scrollLeft, scrollWidth, clientWidth } = tabsRef.current;
       setShowLeftArrow(scrollLeft > 0);
-      setShowRightArrow(
-        scrollWidth > clientWidth && scrollLeft + clientWidth < scrollWidth - 5,
-      );
+      setShowRightArrow(scrollWidth > clientWidth && scrollLeft + clientWidth < scrollWidth - 5);
     }
   };
-
   const labelStyle: React.CSSProperties = {
     fontSize: "13px",
     color: "var(--text-primary)",
@@ -285,7 +232,6 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
     flexShrink: 0,
     userSelect: "none",
   };
-
   const inputStyle: React.CSSProperties = {
     flex: 1,
     minWidth: 0,
@@ -297,7 +243,6 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
     fontSize: "13px",
     outline: "none",
   };
-
   const buttonStyle: React.CSSProperties = {
     padding: "6px 16px",
     background: "var(--bg-secondary)",
@@ -308,20 +253,17 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
     cursor: "pointer",
     // transition: "all 0.2s",
   };
-
   const addButtonStyle: React.CSSProperties = {
     ...buttonStyle,
     background: "var(--accent-color, #0066cc)",
     color: "white",
     border: "none",
   };
-
   const deleteButtonStyle: React.CSSProperties = {
     ...buttonStyle,
     color: "var(--error-color, #dc2626)",
     borderColor: "var(--error-color, #dc2626)",
   };
-
   const cardStyle: React.CSSProperties = {
     background: "var(--bg-secondary)",
     borderRadius: "8px",
@@ -329,7 +271,6 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
     marginBottom: "12px",
     border: "1px solid var(--border-color)",
   };
-
   const badgeStyle: React.CSSProperties = {
     background: "var(--accent-color, #0066cc)",
     color: "white",
@@ -338,17 +279,14 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
     borderRadius: "12px",
     marginLeft: "8px",
   };
-
   const enabledBadgeStyle: React.CSSProperties = {
     ...badgeStyle,
     background: "#10b981",
   };
-
   const disabledBadgeStyle: React.CSSProperties = {
     ...badgeStyle,
     background: "#6b7280",
   };
-
   const tabsStyles = `
     .atomic-tabs-container {
       position: relative;
@@ -426,7 +364,6 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
       color: var(--text-secondary);
     }
   `;
-
   if (typeof document !== "undefined") {
     const styleId = "atomic-tabs-styles";
     if (!document.getElementById(styleId)) {
@@ -436,7 +373,6 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
       document.head.appendChild(style);
     }
   }
-
   if (loading) {
     return (
       <div
@@ -451,17 +387,8 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
       </div>
     );
   }
-
   const currentInstances = getInstancesByType(activeTab);
-  const notificationTypes = [
-    "smtp",
-    "telegram",
-    "dingtalk",
-    "feishu",
-    "wecom",
-    "github",
-  ];
-
+  const notificationTypes = ["smtp", "telegram", "dingtalk", "feishu", "wecom", "github"];
   const renderFormFields = () => {
     switch (activeTab) {
       case "smtp":
@@ -477,13 +404,7 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
               }}
             >
               <label style={labelStyle}>{t("notification.smtpHost")}</label>
-              <input
-                type="text"
-                style={inputStyle}
-                value={formSmtpHost}
-                onChange={(e) => setFormSmtpHost(e.target.value)}
-                placeholder="smtp.gmail.com"
-              />
+              <input type="text" style={inputStyle} value={formSmtpHost} onChange={(e) => setFormSmtpHost(e.target.value)} placeholder="smtp.gmail.com" />
             </div>
             <div
               style={{
@@ -495,14 +416,7 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
               }}
             >
               <label style={labelStyle}>{t("notification.smtpPort")}</label>
-              <input
-                type="number"
-                style={inputStyle}
-                value={formSmtpPort}
-                onChange={(e) =>
-                  setFormSmtpPort(parseInt(e.target.value) || 587)
-                }
-              />
+              <input type="number" style={inputStyle} value={formSmtpPort} onChange={(e) => setFormSmtpPort(parseInt(e.target.value) || 587)} />
             </div>
             <div
               style={{
@@ -514,12 +428,7 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
               }}
             >
               <label style={labelStyle}>{t("notification.username")}</label>
-              <input
-                type="text"
-                style={inputStyle}
-                value={formSmtpUsername}
-                onChange={(e) => setFormSmtpUsername(e.target.value)}
-              />
+              <input type="text" style={inputStyle} value={formSmtpUsername} onChange={(e) => setFormSmtpUsername(e.target.value)} />
             </div>
             <div
               style={{
@@ -531,12 +440,7 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
               }}
             >
               <label style={labelStyle}>{t("notification.password")}</label>
-              <input
-                type="password"
-                style={inputStyle}
-                value={formSmtpPassword}
-                onChange={(e) => setFormSmtpPassword(e.target.value)}
-              />
+              <input type="password" style={inputStyle} value={formSmtpPassword} onChange={(e) => setFormSmtpPassword(e.target.value)} />
             </div>
             <div
               style={{
@@ -548,13 +452,7 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
               }}
             >
               <label style={labelStyle}>{t("notification.fromEmail")}</label>
-              <input
-                type="email"
-                style={inputStyle}
-                value={formSmtpFrom}
-                onChange={(e) => setFormSmtpFrom(e.target.value)}
-                placeholder="sender@example.com"
-              />
+              <input type="email" style={inputStyle} value={formSmtpFrom} onChange={(e) => setFormSmtpFrom(e.target.value)} placeholder="sender@example.com" />
             </div>
           </>
         );
@@ -570,13 +468,7 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
             }}
           >
             <label style={labelStyle}>{t("notification.botToken")}</label>
-            <input
-              type="password"
-              style={inputStyle}
-              value={formTelegramBotToken}
-              onChange={(e) => setFormTelegramBotToken(e.target.value)}
-              placeholder="1234567890:ABCdefGHIjklMNOpqrsTUVwxyz"
-            />
+            <input type="password" style={inputStyle} value={formTelegramBotToken} onChange={(e) => setFormTelegramBotToken(e.target.value)} placeholder="1234567890:ABCdefGHIjklMNOpqrsTUVwxyz" />
           </div>
         );
       case "dingtalk":
@@ -591,12 +483,7 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
             }}
           >
             <label style={labelStyle}>{t("notification.accessToken")}</label>
-            <input
-              type="password"
-              style={inputStyle}
-              value={formDingtalkAccessToken}
-              onChange={(e) => setFormDingtalkAccessToken(e.target.value)}
-            />
+            <input type="password" style={inputStyle} value={formDingtalkAccessToken} onChange={(e) => setFormDingtalkAccessToken(e.target.value)} />
           </div>
         );
       case "feishu":
@@ -611,13 +498,7 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
             }}
           >
             <label style={labelStyle}>{t("notification.webhook")}</label>
-            <input
-              type="text"
-              style={inputStyle}
-              value={formFeishuWebhook}
-              onChange={(e) => setFormFeishuWebhook(e.target.value)}
-              placeholder="https://open.feishu.cn/open-apis/bot/v2/hook/xxx"
-            />
+            <input type="text" style={inputStyle} value={formFeishuWebhook} onChange={(e) => setFormFeishuWebhook(e.target.value)} placeholder="https://open.feishu.cn/open-apis/bot/v2/hook/xxx" />
           </div>
         );
       case "wecom":
@@ -654,12 +535,7 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
               }}
             >
               <label style={labelStyle}>{t("notification.accessToken")}</label>
-              <input
-                type="password"
-                style={inputStyle}
-                value={formGithubToken}
-                onChange={(e) => setFormGithubToken(e.target.value)}
-              />
+              <input type="password" style={inputStyle} value={formGithubToken} onChange={(e) => setFormGithubToken(e.target.value)} />
             </div>
             <div
               style={{
@@ -671,13 +547,7 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
               }}
             >
               <label style={labelStyle}>{t("notification.apiUrl")}</label>
-              <input
-                type="text"
-                style={inputStyle}
-                value={formGithubApiUrl}
-                onChange={(e) => setFormGithubApiUrl(e.target.value)}
-                placeholder="https://api.github.com"
-              />
+              <input type="text" style={inputStyle} value={formGithubApiUrl} onChange={(e) => setFormGithubApiUrl(e.target.value)} placeholder="https://api.github.com" />
             </div>
           </>
         );
@@ -685,7 +555,6 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
         return null;
     }
   };
-
   const renderReadonlyFields = (instance: NotificationInstance) => {
     switch (instance.type) {
       case "smtp":
@@ -701,13 +570,7 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
               }}
             >
               <label style={labelStyle}>{t("notification.smtpHost")}</label>
-              <input
-                type="text"
-                style={inputStyle}
-                value={instance.smtp_host || ""}
-                disabled
-                readOnly
-              />
+              <input type="text" style={inputStyle} value={instance.smtp_host || ""} disabled readOnly />
             </div>
             <div
               style={{
@@ -719,13 +582,7 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
               }}
             >
               <label style={labelStyle}>{t("notification.smtpPort")}</label>
-              <input
-                type="number"
-                style={inputStyle}
-                value={instance.smtp_port || ""}
-                disabled
-                readOnly
-              />
+              <input type="number" style={inputStyle} value={instance.smtp_port || ""} disabled readOnly />
             </div>
             <div
               style={{
@@ -737,13 +594,7 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
               }}
             >
               <label style={labelStyle}>{t("notification.username")}</label>
-              <input
-                type="text"
-                style={inputStyle}
-                value={instance.smtp_username || ""}
-                disabled
-                readOnly
-              />
+              <input type="text" style={inputStyle} value={instance.smtp_username || ""} disabled readOnly />
             </div>
             <div
               style={{
@@ -755,13 +606,7 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
               }}
             >
               <label style={labelStyle}>{t("notification.fromEmail")}</label>
-              <input
-                type="text"
-                style={inputStyle}
-                value={instance.smtp_from || ""}
-                disabled
-                readOnly
-              />
+              <input type="text" style={inputStyle} value={instance.smtp_from || ""} disabled readOnly />
             </div>
           </>
         );
@@ -777,13 +622,7 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
             }}
           >
             <label style={labelStyle}>{t("notification.botToken")}</label>
-            <input
-              type="password"
-              style={inputStyle}
-              value={instance.telegram_bot_token ? "••••••••" : ""}
-              disabled
-              readOnly
-            />
+            <input type="password" style={inputStyle} value={instance.telegram_bot_token ? "••••••••" : ""} disabled readOnly />
           </div>
         );
       case "dingtalk":
@@ -798,13 +637,7 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
             }}
           >
             <label style={labelStyle}>{t("notification.accessToken")}</label>
-            <input
-              type="password"
-              style={inputStyle}
-              value={instance.dingtalk_access_token ? "••••••••" : ""}
-              disabled
-              readOnly
-            />
+            <input type="password" style={inputStyle} value={instance.dingtalk_access_token ? "••••••••" : ""} disabled readOnly />
           </div>
         );
       case "feishu":
@@ -819,13 +652,7 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
             }}
           >
             <label style={labelStyle}>{t("notification.webhook")}</label>
-            <input
-              type="text"
-              style={inputStyle}
-              value={instance.feishu_webhook || ""}
-              disabled
-              readOnly
-            />
+            <input type="text" style={inputStyle} value={instance.feishu_webhook || ""} disabled readOnly />
           </div>
         );
       case "wecom":
@@ -840,13 +667,7 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
             }}
           >
             <label style={labelStyle}>{t("notification.webhook")}</label>
-            <input
-              type="text"
-              style={inputStyle}
-              value={instance.wecom_webhook || ""}
-              disabled
-              readOnly
-            />
+            <input type="text" style={inputStyle} value={instance.wecom_webhook || ""} disabled readOnly />
           </div>
         );
       case "github":
@@ -862,13 +683,7 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
               }}
             >
               <label style={labelStyle}>{t("notification.accessToken")}</label>
-              <input
-                type="password"
-                style={inputStyle}
-                value={instance.github_token ? "••••••••" : ""}
-                disabled
-                readOnly
-              />
+              <input type="password" style={inputStyle} value={instance.github_token ? "••••••••" : ""} disabled readOnly />
             </div>
             <div
               style={{
@@ -880,13 +695,7 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
               }}
             >
               <label style={labelStyle}>{t("notification.apiUrl")}</label>
-              <input
-                type="text"
-                style={inputStyle}
-                value={instance.github_api_url || ""}
-                disabled
-                readOnly
-              />
+              <input type="text" style={inputStyle} value={instance.github_api_url || ""} disabled readOnly />
             </div>
           </>
         );
@@ -894,7 +703,6 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
         return null;
     }
   };
-
   return (
     <div
       style={{
@@ -904,23 +712,13 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
         overflow: "hidden",
       }}
     >
-      <div
-        className="atomic-tabs-container"
-        style={{ padding: "0px", margin: 0 }}
-      >
+      <div className="atomic-tabs-container" style={{ padding: "0px", margin: 0 }}>
         {showLeftArrow && (
-          <button
-            className="atomic-tab-scroll-btn"
-            onClick={() => scrollTabs("left")}
-          >
+          <button className="atomic-tab-scroll-btn" onClick={() => scrollTabs("left")}>
             ◀
           </button>
         )}
-        <div
-          className="atomic-tabs-scroll"
-          ref={tabsRef}
-          onScroll={checkScrollButtons}
-        >
+        <div className="atomic-tabs-scroll" ref={tabsRef} onScroll={checkScrollButtons}>
           <div className="atomic-tabs">
             {notificationTypes.map((type) => (
               <button
@@ -937,15 +735,11 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
           </div>
         </div>
         {showRightArrow && (
-          <button
-            className="atomic-tab-scroll-btn"
-            onClick={() => scrollTabs("right")}
-          >
+          <button className="atomic-tab-scroll-btn" onClick={() => scrollTabs("right")}>
             ▶
           </button>
         )}
       </div>
-
       <div
         style={{
           flex: 1,
@@ -989,17 +783,8 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
                 >
                   {getTypeIcon(instance.type)} {instance.name}
                 </span>
-                <span
-                  style={
-                    instance.enabled ? enabledBadgeStyle : disabledBadgeStyle
-                  }
-                >
-                  {instance.enabled
-                    ? t("notification.enabled")
-                    : t("notification.disabled")}
-                </span>
+                <span style={instance.enabled ? enabledBadgeStyle : disabledBadgeStyle}>{instance.enabled ? t("notification.enabled") : t("notification.disabled")}</span>
               </div>
-
               {instance.description && (
                 <div
                   style={{
@@ -1010,21 +795,11 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
                     flexWrap: "wrap",
                   }}
                 >
-                  <label style={labelStyle}>
-                    {t("notification.description")}
-                  </label>
-                  <input
-                    type="text"
-                    style={inputStyle}
-                    value={instance.description}
-                    disabled
-                    readOnly
-                  />
+                  <label style={labelStyle}>{t("notification.description")}</label>
+                  <input type="text" style={inputStyle} value={instance.description} disabled readOnly />
                 </div>
               )}
-
               {renderReadonlyFields(instance)}
-
               <div
                 style={{
                   display: "flex",
@@ -1039,17 +814,9 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
                     fontSize: "11px",
                     padding: "4px 10px",
                   }}
-                  onClick={() =>
-                    handleToggleEnabled(
-                      instance.id,
-                      instance.name,
-                      instance.enabled,
-                    )
-                  }
+                  onClick={() => handleToggleEnabled(instance.id, instance.name, instance.enabled)}
                 >
-                  {instance.enabled
-                    ? t("notification.disable")
-                    : t("notification.enable")}
+                  {instance.enabled ? t("notification.disable") : t("notification.enable")}
                 </button>
                 <button
                   style={{
@@ -1075,7 +842,6 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
             </div>
           ))
         )}
-
         {showAddForm ? (
           <div style={cardStyle}>
             <div
@@ -1092,7 +858,6 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
                     type: getTypeName(activeTab),
                   })}
             </div>
-
             <div
               style={{
                 display: "flex",
@@ -1103,15 +868,8 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
               }}
             >
               <label style={labelStyle}>{t("notification.name")}</label>
-              <input
-                type="text"
-                style={inputStyle}
-                value={formName}
-                onChange={(e) => setFormName(e.target.value)}
-                placeholder={t("notification.namePlaceholder")}
-              />
+              <input type="text" style={inputStyle} value={formName} onChange={(e) => setFormName(e.target.value)} placeholder={t("notification.namePlaceholder")} />
             </div>
-
             <div
               style={{
                 display: "flex",
@@ -1122,17 +880,9 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
               }}
             >
               <label style={labelStyle}>{t("notification.description")}</label>
-              <input
-                type="text"
-                style={inputStyle}
-                value={formDescription}
-                onChange={(e) => setFormDescription(e.target.value)}
-                placeholder={t("notification.descriptionPlaceholder")}
-              />
+              <input type="text" style={inputStyle} value={formDescription} onChange={(e) => setFormDescription(e.target.value)} placeholder={t("notification.descriptionPlaceholder")} />
             </div>
-
             {renderFormFields()}
-
             <div
               style={{
                 display: "flex",
@@ -1164,5 +914,4 @@ const EngineNotificationPanel: React.FC<EngineNotificationPanelProps> = ({
     </div>
   );
 };
-
 export default EngineNotificationPanel;

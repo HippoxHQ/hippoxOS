@@ -1,11 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { FileNode } from "../types";
 import { SearchIcon, CloseIcon } from "../../../../icons";
-import {
-  FileSearchResult,
-  codeEditorCommands,
-  SearchMatch,
-} from "../../../../command/CodeEditor";
+import { FileSearchResult, codeEditorCommands, SearchMatch } from "../../../../command/CodeEditor";
 import { getFileIconComponent } from "../../fileUtils";
 
 interface SearchSectionProps {
@@ -15,12 +11,7 @@ interface SearchSectionProps {
   workspacePath?: string | null;
 }
 
-export const SearchSection: React.FC<SearchSectionProps> = ({
-  fileTree,
-  onFileSelect,
-  t,
-  workspacePath,
-}) => {
+export const SearchSection: React.FC<SearchSectionProps> = ({ fileTree, onFileSelect, t, workspacePath }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
@@ -43,10 +34,7 @@ export const SearchSection: React.FC<SearchSectionProps> = ({
       }
       setIsSearching(true);
       try {
-        const result = await codeEditorCommands.searchInFiles(
-          workspacePath,
-          query.trim(),
-        );
+        const result = await codeEditorCommands.searchInFiles(workspacePath, query.trim());
         if (result.success) {
           setSearchResults(result.results);
           setTotalMatches(result.total_matches);
@@ -100,11 +88,7 @@ export const SearchSection: React.FC<SearchSectionProps> = ({
       if (allMatches.length === 0) return;
       let currentIdx = -1;
       if (selectedMatchIndex) {
-        currentIdx = allMatches.findIndex(
-          (m) =>
-            m.fileIdx === selectedMatchIndex.fileIdx &&
-            m.matchIdx === selectedMatchIndex.matchIdx,
-        );
+        currentIdx = allMatches.findIndex((m) => m.fileIdx === selectedMatchIndex.fileIdx && m.matchIdx === selectedMatchIndex.matchIdx);
       }
       if (e.key === "ArrowDown") {
         e.preventDefault();
@@ -114,8 +98,7 @@ export const SearchSection: React.FC<SearchSectionProps> = ({
         setExpandedFiles((prev) => new Set(prev).add(file.file_path));
       } else if (e.key === "ArrowUp") {
         e.preventDefault();
-        const prevIdx =
-          currentIdx <= 0 ? allMatches.length - 1 : currentIdx - 1;
+        const prevIdx = currentIdx <= 0 ? allMatches.length - 1 : currentIdx - 1;
         setSelectedMatchIndex(allMatches[prevIdx]);
         const file = searchResults[allMatches[prevIdx].fileIdx];
         setExpandedFiles((prev) => new Set(prev).add(file.file_path));
@@ -204,10 +187,7 @@ export const SearchSection: React.FC<SearchSectionProps> = ({
         parts.push(text.substring(lastEnd, match.start));
       }
       parts.push(
-        <span
-          key={match.start}
-          style={{ color: "var(--accent-color)", fontWeight: "bold" }}
-        >
+        <span key={match.start} style={{ color: "var(--accent-color)", fontWeight: "bold" }}>
           {text.substring(match.start, match.end)}
         </span>,
       );
@@ -219,11 +199,7 @@ export const SearchSection: React.FC<SearchSectionProps> = ({
     return <>{parts}</>;
   };
 
-  const renderMatchContext = (
-    match: SearchMatch,
-    query: string,
-    fullLine: string,
-  ) => {
+  const renderMatchContext = (match: SearchMatch, query: string, fullLine: string) => {
     const contextSize = 15;
     let start = Math.max(0, match.start_index - contextSize);
     let end = Math.min(fullLine.length, match.end_index + contextSize);
@@ -238,9 +214,7 @@ export const SearchSection: React.FC<SearchSectionProps> = ({
     return (
       <>
         {displayText.substring(0, matchStartInDisplay)}
-        <span style={{ color: "var(--accent-color)", fontWeight: "bold" }}>
-          {displayText.substring(matchStartInDisplay, matchEndInDisplay)}
-        </span>
+        <span style={{ color: "var(--accent-color)", fontWeight: "bold" }}>{displayText.substring(matchStartInDisplay, matchEndInDisplay)}</span>
         {displayText.substring(matchEndInDisplay)}
       </>
     );
@@ -273,9 +247,7 @@ export const SearchSection: React.FC<SearchSectionProps> = ({
             alignItems: "center",
             background: "var(--bg-tertiary)",
             borderRadius: "4px",
-            border: `1px solid ${
-              isSearchFocused ? "var(--accent-color)" : "var(--border-color)"
-            }`,
+            border: `1px solid ${isSearchFocused ? "var(--accent-color)" : "var(--border-color)"}`,
             padding: "0 8px",
             transition: "border-color 0.15s ease",
             height: "28px",
@@ -288,9 +260,7 @@ export const SearchSection: React.FC<SearchSectionProps> = ({
             onChange={(e) => setSearchQuery(e.target.value)}
             onFocus={() => setIsSearchFocused(true)}
             onBlur={() => setIsSearchFocused(false)}
-            placeholder={
-              t("codeEditor.searchFilesContent") || "搜索文件内容..."
-            }
+            placeholder={t("codeEditor.searchFilesContent") || "搜索文件内容..."}
             style={{
               flex: 1,
               background: "transparent",
@@ -350,8 +320,7 @@ export const SearchSection: React.FC<SearchSectionProps> = ({
                       total: totalMatches,
                       files: searchResults.length,
                     })
-                  : t("codeEditor.noSearchContentResults") ||
-                    "未找到匹配的内容"}
+                  : t("codeEditor.noSearchContentResults") || "未找到匹配的内容"}
             </span>
           </div>
         )}
@@ -379,14 +348,8 @@ export const SearchSection: React.FC<SearchSectionProps> = ({
             }}
           >
             <SearchIcon />
-            <span>
-              {t("codeEditor.searchContentPlaceholder") ||
-                "输入关键词搜索文件内容"}
-            </span>
-            <span style={{ fontSize: "10px", opacity: 0.6 }}>
-              {t("codeEditor.searchContentHint") ||
-                "支持内容搜索，按 ↑ ↓ 选择，Enter 打开文件"}
-            </span>
+            <span>{t("codeEditor.searchContentPlaceholder") || "输入关键词搜索文件内容"}</span>
+            <span style={{ fontSize: "10px", opacity: 0.6 }}>{t("codeEditor.searchContentHint") || "支持内容搜索，按 ↑ ↓ 选择，Enter 打开文件"}</span>
           </div>
         ) : isSearching ? (
           <div
@@ -427,12 +390,8 @@ export const SearchSection: React.FC<SearchSectionProps> = ({
                     padding: "4px 8px",
                     borderRadius: "4px",
                     cursor: "pointer",
-                    background: isFileSelected
-                      ? "var(--accent-glow)"
-                      : "transparent",
-                    color: isFileSelected
-                      ? "var(--accent-color)"
-                      : "var(--text-primary)",
+                    background: isFileSelected ? "var(--accent-glow)" : "transparent",
+                    color: isFileSelected ? "var(--accent-color)" : "var(--text-primary)",
                     fontSize: "12px",
                     transition: "background 0.1s ease",
                   }}
@@ -459,9 +418,7 @@ export const SearchSection: React.FC<SearchSectionProps> = ({
                   >
                     &gt;
                   </span>
-                  <span style={{ fontSize: "14px", flexShrink: 0 }}>
-                    {getFileIconComponent(fileResult.relative_path)}
-                  </span>
+                  <span style={{ fontSize: "14px", flexShrink: 0 }}>{getFileIconComponent(fileResult.relative_path)}</span>
                   <span
                     style={{
                       flex: 1,
@@ -494,9 +451,7 @@ export const SearchSection: React.FC<SearchSectionProps> = ({
                 {isExpanded && (
                   <div style={{ paddingLeft: "20px" }}>
                     {fileResult.matches.map((match, matchIdx) => {
-                      const isSelected =
-                        selectedMatchIndex?.fileIdx === fileIdx &&
-                        selectedMatchIndex?.matchIdx === matchIdx;
+                      const isSelected = selectedMatchIndex?.fileIdx === fileIdx && selectedMatchIndex?.matchIdx === matchIdx;
                       const key = `${fileIdx}-${matchIdx}`;
 
                       return (
@@ -515,23 +470,16 @@ export const SearchSection: React.FC<SearchSectionProps> = ({
                             padding: "3px 8px",
                             borderRadius: "3px",
                             cursor: "pointer",
-                            background: isSelected
-                              ? "var(--accent-glow)"
-                              : "transparent",
-                            color: isSelected
-                              ? "var(--accent-color)"
-                              : "var(--text-secondary)",
+                            background: isSelected ? "var(--accent-glow)" : "transparent",
+                            color: isSelected ? "var(--accent-color)" : "var(--text-secondary)",
                             fontSize: "11px",
                             transition: "background 0.1s ease",
-                            borderLeft: isSelected
-                              ? "2px solid var(--accent-color)"
-                              : "2px solid transparent",
+                            borderLeft: isSelected ? "2px solid var(--accent-color)" : "2px solid transparent",
                             marginBottom: "1px",
                           }}
                           onMouseEnter={(e) => {
                             if (!isSelected) {
-                              e.currentTarget.style.background =
-                                "var(--hover-bg)";
+                              e.currentTarget.style.background = "var(--hover-bg)";
                             }
                           }}
                           onMouseLeave={(e) => {

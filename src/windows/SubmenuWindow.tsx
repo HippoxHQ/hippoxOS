@@ -4,14 +4,12 @@ import { healthCommands, HealthCheckResult } from "../command/health";
 import { llmCommands } from "../command/llm";
 import { windowsCommands } from "../command/windows";
 import { zh, en } from "../i18n";
-
 interface LLMInstance {
   id: string;
   name: string;
   isDefault: boolean;
   status?: "online" | "offline" | "checking";
 }
-
 const getTranslation = (language: "zh" | "en", key: string): string => {
   const translations = language === "zh" ? zh : en;
   const keys = key.split(".");
@@ -22,34 +20,27 @@ const getTranslation = (language: "zh" | "en", key: string): string => {
   }
   return value || key;
 };
-
 const SubmenuWindow: React.FC = () => {
   const [instances, setInstances] = useState<LLMInstance[]>([]);
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
   const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [language, setLanguage] = useState<"zh" | "en">("en");
   const [isLoading, setIsLoading] = useState(true);
-
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [savedTheme, savedLanguage] = await Promise.all([
-          configCommands.getSettingsTheme(),
-          configCommands.getSettingsLanguage(),
-        ]);
+        const [savedTheme, savedLanguage] = await Promise.all([configCommands.getSettingsTheme(), configCommands.getSettingsLanguage()]);
         setTheme(savedTheme as "dark" | "light");
         setLanguage(savedLanguage as "zh" | "en");
         setIsLoading(false);
         const instancesData = await llmCommands.getLlmInstances();
         const defaultId = await llmCommands.getDefaultLlmInstanceId();
-        const instancesList = Object.values(instancesData || {}).map(
-          (instance: any) => ({
-            id: instance.id,
-            name: instance.name,
-            isDefault: instance.id === defaultId,
-            status: "checking" as const,
-          }),
-        );
+        const instancesList = Object.values(instancesData || {}).map((instance: any) => ({
+          id: instance.id,
+          name: instance.name,
+          isDefault: instance.id === defaultId,
+          status: "checking" as const,
+        }));
         if (instancesList.length > 0) {
           const mergedInstances = [...instancesList];
           setInstances(mergedInstances);
@@ -62,15 +53,12 @@ const SubmenuWindow: React.FC = () => {
     };
     loadData();
   }, []);
-
   const performHealthChecks = async (instancesList: LLMInstance[]) => {
     try {
       const results = await healthCommands.checkAllLlmHealth();
       setInstances((prev) =>
         prev.map((inst) => {
-          const result = results.find(
-            (r: HealthCheckResult) => r.instance_id === inst.id,
-          );
+          const result = results.find((r: HealthCheckResult) => r.instance_id === inst.id);
           return {
             ...inst,
             status: result?.status === "online" ? "online" : "offline",
@@ -78,12 +66,9 @@ const SubmenuWindow: React.FC = () => {
         }),
       );
     } catch (error) {
-      setInstances((prev) =>
-        prev.map((inst) => ({ ...inst, status: "offline" })),
-      );
+      setInstances((prev) => prev.map((inst) => ({ ...inst, status: "offline" })));
     }
   };
-
   const setDefaultLLM = async (instanceId: string) => {
     try {
       await windowsCommands.setDefaultLlmInstance(instanceId);
@@ -94,41 +79,31 @@ const SubmenuWindow: React.FC = () => {
         })),
       );
       await windowsCommands.emitToMainWindow("show-notification", {
-        message:
-          getTranslation(language, "llmModel.defaultSuccess") ||
-          "Default LLM updated",
+        message: getTranslation(language, "llmModel.defaultSuccess") || "Default LLM updated",
       });
     } catch (error) {
       console.error("Failed to set default LLM:", error);
     }
   };
-
   const getStatusText = (status?: string) => {
     const t = (key: string) => getTranslation(language, key);
-    if (status === "checking")
-      return t("bottomBar.modelStatus.checking") || "Checking...";
-    if (status === "online")
-      return t("bottomBar.modelStatus.online") || "Online";
+    if (status === "checking") return t("bottomBar.modelStatus.checking") || "Checking...";
+    if (status === "online") return t("bottomBar.modelStatus.online") || "Online";
     return t("bottomBar.modelStatus.offline") || "Offline";
   };
-
   const getStatusColor = (status?: string) => {
     if (status === "online") return "#4ec9b0";
     if (status === "checking") return "#dcdcaa";
     return "#f48771";
   };
-
   const isDark = theme === "dark";
   const t = (key: string) => getTranslation(language, key);
-
   const styles = {
     container: {
       backgroundColor: isDark ? "#1a1d26" : "#ffffff",
       borderRadius: "6px",
       border: `1px solid ${isDark ? "#2d303a" : "#e5e7eb"}`,
-      boxShadow: isDark
-        ? "0 2px 8px rgba(0,0,0,0.3)"
-        : "0 2px 8px rgba(0,0,0,0.1)",
+      boxShadow: isDark ? "0 2px 8px rgba(0,0,0,0.3)" : "0 2px 8px rgba(0,0,0,0.1)",
       overflow: "hidden" as const,
     },
     header: {
@@ -192,28 +167,20 @@ const SubmenuWindow: React.FC = () => {
       fontSize: "12px",
     },
   };
-
   if (isLoading) {
     return (
       <div style={styles.loadingContainer}>
-        <div style={styles.loadingText}>
-          {t("common.loading") || "Loading..."}
-        </div>
+        <div style={styles.loadingText}>{t("common.loading") || "Loading..."}</div>
       </div>
     );
   }
-
   return (
     <div style={styles.container}>
-      <div style={styles.header}>
-        {t("settings.tab.llmModel") || "LLM Models"}
-      </div>
+      <div style={styles.header}>{t("settings.tab.llmModel") || "LLM Models"}</div>
       <div style={styles.menuContainer}>
         {instances.length === 0 ? (
           <div style={styles.loadingContainer}>
-            <div style={styles.loadingText}>
-              {t("bottomBar.noInstances") || "No LLM configured"}
-            </div>
+            <div style={styles.loadingText}>{t("bottomBar.noInstances") || "No LLM configured"}</div>
           </div>
         ) : (
           instances.map((instance) => (
@@ -221,16 +188,7 @@ const SubmenuWindow: React.FC = () => {
               key={instance.id}
               style={{
                 ...styles.menuItem,
-                backgroundColor:
-                  hoveredItem === instance.id
-                    ? isDark
-                      ? "rgba(232,237,242,0.08)"
-                      : "rgba(0,0,0,0.04)"
-                    : instance.isDefault
-                      ? isDark
-                        ? "#22252f"
-                        : "#f3f4f6"
-                      : "transparent",
+                backgroundColor: hoveredItem === instance.id ? (isDark ? "rgba(232,237,242,0.08)" : "rgba(0,0,0,0.04)") : instance.isDefault ? (isDark ? "#22252f" : "#f3f4f6") : "transparent",
               }}
               onClick={() => setDefaultLLM(instance.id)}
               onMouseEnter={() => setHoveredItem(instance.id)}
@@ -239,15 +197,9 @@ const SubmenuWindow: React.FC = () => {
               <div style={styles.itemLeft}>
                 <span style={styles.statusDot(instance.status)} />
                 <span style={styles.itemName}>{instance.name}</span>
-                <span style={styles.statusText}>
-                  {getStatusText(instance.status)}
-                </span>
+                <span style={styles.statusText}>{getStatusText(instance.status)}</span>
               </div>
-              {instance.isDefault && (
-                <span style={styles.defaultBadge}>
-                  {t("llmModel.default") || "Default"}
-                </span>
-              )}
+              {instance.isDefault && <span style={styles.defaultBadge}>{t("llmModel.default") || "Default"}</span>}
             </div>
           ))
         )}
@@ -255,5 +207,4 @@ const SubmenuWindow: React.FC = () => {
     </div>
   );
 };
-
 export default SubmenuWindow;

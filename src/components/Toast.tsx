@@ -1,31 +1,25 @@
 import React, { useEffect, useState } from "react";
-
 export enum ToastType {
   INFO = "info",
   WARNING = "warning",
   ERROR = "error",
   SUCCESS = "success",
 }
-
 interface ToastItem {
   id: string;
   type: ToastType;
   message: string;
   timeoutId?: NodeJS.Timeout;
 }
-
 let toastContainer: {
   addToast: (type: ToastType, message: string) => void;
 } | null = null;
-
 const Toast: React.FC = () => {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
-
   useEffect(() => {
     toastContainer = {
       addToast: (type: ToastType, message: string) => {
         const id = `toast_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
         setToasts((prev) => {
           const newToasts = [...prev, { id, type, message }];
           if (newToasts.length > 10) {
@@ -34,17 +28,12 @@ const Toast: React.FC = () => {
           }
           return newToasts;
         });
-
         const timeoutId = setTimeout(() => {
           setToasts((prev) => prev.filter((t) => t.id !== id));
         }, 3000);
-
-        setToasts((prev) =>
-          prev.map((t) => (t.id === id ? { ...t, timeoutId } : t)),
-        );
+        setToasts((prev) => prev.map((t) => (t.id === id ? { ...t, timeoutId } : t)));
       },
     };
-
     return () => {
       toastContainer = null;
       toasts.forEach((toast) => {
@@ -52,7 +41,6 @@ const Toast: React.FC = () => {
       });
     };
   }, []);
-
   const handleClose = (id: string) => {
     setToasts((prev) => {
       const toast = prev.find((t) => t.id === id);
@@ -60,7 +48,6 @@ const Toast: React.FC = () => {
       return prev.filter((t) => t.id !== id);
     });
   };
-
   const getIcon = (type: ToastType) => {
     switch (type) {
       case ToastType.SUCCESS:
@@ -73,7 +60,6 @@ const Toast: React.FC = () => {
         return "ℹ";
     }
   };
-
   const getIconBgColor = (type: ToastType) => {
     switch (type) {
       case ToastType.SUCCESS:
@@ -86,7 +72,6 @@ const Toast: React.FC = () => {
         return "rgba(59, 130, 246, 0.12)";
     }
   };
-
   const getIconColor = (type: ToastType) => {
     switch (type) {
       case ToastType.SUCCESS:
@@ -99,9 +84,7 @@ const Toast: React.FC = () => {
         return "#3b82f6";
     }
   };
-
   if (toasts.length === 0) return null;
-
   return (
     <>
       <style>{`
@@ -220,22 +203,13 @@ const Toast: React.FC = () => {
       <div className="toast-container">
         {toasts.map((toast) => (
           <div key={toast.id} className={`toast-item toast-${toast.type}`}>
-            <div
-              className="toast-icon-wrapper"
-              style={{ background: getIconBgColor(toast.type) }}
-            >
-              <span
-                className="toast-icon"
-                style={{ color: getIconColor(toast.type) }}
-              >
+            <div className="toast-icon-wrapper" style={{ background: getIconBgColor(toast.type) }}>
+              <span className="toast-icon" style={{ color: getIconColor(toast.type) }}>
                 {getIcon(toast.type)}
               </span>
             </div>
             <span className="toast-message">{toast.message}</span>
-            <button
-              className="toast-close"
-              onClick={() => handleClose(toast.id)}
-            >
+            <button className="toast-close" onClick={() => handleClose(toast.id)}>
               ×
             </button>
           </div>
@@ -244,7 +218,6 @@ const Toast: React.FC = () => {
     </>
   );
 };
-
 export const showToast = (type: ToastType, message: string) => {
   if (toastContainer) {
     toastContainer.addToast(type, message);
@@ -252,5 +225,4 @@ export const showToast = (type: ToastType, message: string) => {
     console.warn("Toast component not mounted yet");
   }
 };
-
 export default Toast;

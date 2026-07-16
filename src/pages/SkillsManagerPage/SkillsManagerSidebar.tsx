@@ -1,13 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
 import { SkillData } from "../../types/skill";
 import { PlayIcon, DeleteIcon, StarIcon, StarFilledIcon } from "../../icons";
-import {
-  skillsMarketCommands,
-  skillsLocalCommands,
-} from "../../command/skills";
+import { skillsMarketCommands, skillsLocalCommands } from "../../command/skills";
 import { UploadFile } from "../../core/types";
 import { runSkill } from "../../components/MenuPanel/utils/skillRunner";
-
 interface SkillsManagerSidebarProps {
   t: (key: string, params?: any) => string;
   skills: SkillData[];
@@ -16,18 +12,8 @@ interface SkillsManagerSidebarProps {
   onRefresh?: () => void;
   onSendSkillMessage?: (message: string, files?: UploadFile[]) => void;
 }
-
-const SkillsManagerSidebar: React.FC<SkillsManagerSidebarProps> = ({
-  t,
-  skills,
-  onSelectSkill,
-  selectedSkillId,
-  onRefresh,
-  onSendSkillMessage,
-}) => {
-  const [expandedCategories, setExpandedCategories] = useState<
-    Record<string, boolean>
-  >(() => {
+const SkillsManagerSidebar: React.FC<SkillsManagerSidebarProps> = ({ t, skills, onSelectSkill, selectedSkillId, onRefresh, onSendSkillMessage }) => {
+  const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>(() => {
     const initial: Record<string, boolean> = {};
     const grouped = skills.reduce<Record<string, SkillData[]>>((acc, skill) => {
       const category = skill.category || "other";
@@ -43,13 +29,10 @@ const SkillsManagerSidebar: React.FC<SkillsManagerSidebarProps> = ({
     return initial;
   });
   const [hoveredId, setHoveredId] = useState<string | null>(null);
-  const [favoritedSkills, setFavoritedSkills] = useState<Set<string>>(
-    new Set(),
-  );
+  const [favoritedSkills, setFavoritedSkills] = useState<Set<string>>(new Set());
   const [favoritingId, setFavoritingId] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [showStats, setShowStats] = useState(true);
-
   useEffect(() => {
     const observer = new ResizeObserver((entries) => {
       for (const entry of entries) {
@@ -62,7 +45,6 @@ const SkillsManagerSidebar: React.FC<SkillsManagerSidebarProps> = ({
     }
     return () => observer.disconnect();
   }, []);
-
   const loadFavorites = async () => {
     try {
       const favoritedIds = await skillsMarketCommands.getFavoritedSkills();
@@ -71,15 +53,12 @@ const SkillsManagerSidebar: React.FC<SkillsManagerSidebarProps> = ({
       console.error("Failed to load favorites:", error);
     }
   };
-
   React.useEffect(() => {
     loadFavorites();
   }, []);
-
   const isFavorited = (skill: SkillData): boolean => {
     return favoritedSkills.has(`${skill.category}/${skill.id}`);
   };
-
   const handleFavorite = async (skill: SkillData, e: React.MouseEvent) => {
     e.stopPropagation();
     setFavoritingId(skill.id);
@@ -87,20 +66,14 @@ const SkillsManagerSidebar: React.FC<SkillsManagerSidebarProps> = ({
       const favoriteId = `${skill.category}/${skill.id}`;
       const isFav = favoritedSkills.has(favoriteId);
       if (isFav) {
-        await skillsLocalCommands.unfavoriteLocalSkill(
-          skill.id,
-          skill.category || "other",
-        );
+        await skillsLocalCommands.unfavoriteLocalSkill(skill.id, skill.category || "other");
         setFavoritedSkills((prev) => {
           const newSet = new Set(prev);
           newSet.delete(favoriteId);
           return newSet;
         });
       } else {
-        await skillsLocalCommands.favoriteLocalSkill(
-          skill.id,
-          skill.category || "other",
-        );
+        await skillsLocalCommands.favoriteLocalSkill(skill.id, skill.category || "other");
         setFavoritedSkills((prev) => {
           const newSet = new Set(prev);
           newSet.add(favoriteId);
@@ -113,23 +86,18 @@ const SkillsManagerSidebar: React.FC<SkillsManagerSidebarProps> = ({
       setFavoritingId(null);
     }
   };
-
   const handleDelete = async (skill: SkillData, e: React.MouseEvent) => {
     e.stopPropagation();
     // eslint-disable-next-line no-restricted-globals
     if (confirm(t("skillsManager.confirmDelete"))) {
       try {
-        await skillsLocalCommands.deleteSkill(
-          skill.id,
-          skill.category || "other",
-        );
+        await skillsLocalCommands.deleteSkill(skill.id, skill.category || "other");
         onRefresh?.();
       } catch (error) {
         console.error("Failed to delete skill:", error);
       }
     }
   };
-
   const handleRun = async (skill: SkillData, e: React.MouseEvent) => {
     e.stopPropagation();
     if (!onSendSkillMessage) {
@@ -154,59 +122,31 @@ const SkillsManagerSidebar: React.FC<SkillsManagerSidebarProps> = ({
     };
     await runSkill(marketSkill as any, onSendSkillMessage, t, sessionId);
   };
-
   const toggleCategory = (category: string) => {
     setExpandedCategories((prev) => ({
       ...prev,
       [category]: !prev[category],
     }));
   };
-
-  const groupedSkills = skills.reduce<Record<string, SkillData[]>>(
-    (acc, skill) => {
-      const category = skill.category || "other";
-      if (!acc[category]) {
-        acc[category] = [];
-      }
-      acc[category].push(skill);
-      return acc;
-    },
-    {},
-  );
-
+  const groupedSkills = skills.reduce<Record<string, SkillData[]>>((acc, skill) => {
+    const category = skill.category || "other";
+    if (!acc[category]) {
+      acc[category] = [];
+    }
+    acc[category].push(skill);
+    return acc;
+  }, {});
   const categoryKeys = Object.keys(groupedSkills);
   const defaultExpanded: Record<string, boolean> = {};
   if (categoryKeys.length > 0) {
     defaultExpanded[categoryKeys[0]] = true;
   }
   const initialExpanded = { ...defaultExpanded, ...expandedCategories };
-
   const sortSkillsByDate = (skillsList: SkillData[]) => {
-    return [...skillsList].sort(
-      (a, b) =>
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
-    );
+    return [...skillsList].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
   };
-
   const getCategoryColor = (category: string): string => {
-    const colors = [
-      "#6366f1",
-      "#8b5cf6",
-      "#ec4899",
-      "#f43f5e",
-      "#f59e0b",
-      "#eab308",
-      "#84cc16",
-      "#10b981",
-      "#06b6d4",
-      "#3b82f6",
-      "#ef4444",
-      "#14b8a6",
-      "#a855f7",
-      "#d946ef",
-      "#f97316",
-      "#0ea5e9",
-    ];
+    const colors = ["#6366f1", "#8b5cf6", "#ec4899", "#f43f5e", "#f59e0b", "#eab308", "#84cc16", "#10b981", "#06b6d4", "#3b82f6", "#ef4444", "#14b8a6", "#a855f7", "#d946ef", "#f97316", "#0ea5e9"];
     let hash = 0;
     for (let i = 0; i < category.length; i++) {
       hash = (hash << 5) - hash + category.charCodeAt(i);
@@ -214,25 +154,14 @@ const SkillsManagerSidebar: React.FC<SkillsManagerSidebarProps> = ({
     }
     return colors[Math.abs(hash) % colors.length];
   };
-
   const totalSteps = skills.reduce((acc, skill) => acc + skill.steps.length, 0);
-  const totalMaterials = skills.reduce(
-    (acc, skill) =>
-      acc + skill.steps.reduce((a, s) => a + s.materials.length, 0),
-    0,
-  );
+  const totalMaterials = skills.reduce((acc, skill) => acc + skill.steps.reduce((a, s) => a + s.materials.length, 0), 0);
   const incompleteSkills = skills.filter((s) => {
     if (!s.description || s.description.trim() === "") return true;
     if (s.steps.length === 0) return true;
-    if (
-      s.steps.some(
-        (step) => !step.description || step.description.trim() === "",
-      )
-    )
-      return true;
+    if (s.steps.some((step) => !step.description || step.description.trim() === "")) return true;
     return false;
   }).length;
-
   const styles: Record<string, React.CSSProperties> = {
     container: {
       width: "280px",
@@ -416,7 +345,6 @@ const SkillsManagerSidebar: React.FC<SkillsManagerSidebarProps> = ({
       fontSize: "12px",
     },
   };
-
   return (
     <div ref={containerRef} style={styles.container}>
       {showStats && (
@@ -425,21 +353,15 @@ const SkillsManagerSidebar: React.FC<SkillsManagerSidebarProps> = ({
           <div style={styles.statsGrid}>
             <div style={styles.statCard}>
               <div style={styles.statNumber}>{skills.length}</div>
-              <div style={styles.statLabel}>
-                {t("skillsManager.totalSkills")}
-              </div>
+              <div style={styles.statLabel}>{t("skillsManager.totalSkills")}</div>
             </div>
             <div style={styles.statCard}>
               <div style={styles.statNumber}>{totalSteps}</div>
-              <div style={styles.statLabel}>
-                {t("skillsManager.totalSteps")}
-              </div>
+              <div style={styles.statLabel}>{t("skillsManager.totalSteps")}</div>
             </div>
             <div style={styles.statCard}>
               <div style={styles.statNumber}>{totalMaterials}</div>
-              <div style={styles.statLabel}>
-                {t("skillsManager.totalMaterials")}
-              </div>
+              <div style={styles.statLabel}>{t("skillsManager.totalMaterials")}</div>
             </div>
             <div
               style={{
@@ -455,9 +377,7 @@ const SkillsManagerSidebar: React.FC<SkillsManagerSidebarProps> = ({
               >
                 {incompleteSkills}
               </div>
-              <div style={styles.statLabel}>
-                {t("skillsManager.incomplete")}
-              </div>
+              <div style={styles.statLabel}>{t("skillsManager.incomplete")}</div>
             </div>
           </div>
         </div>
@@ -553,61 +473,41 @@ const SkillsManagerSidebar: React.FC<SkillsManagerSidebarProps> = ({
                               className={`icon-btn ${favorited ? "active" : ""}`}
                               onClick={(e) => handleFavorite(skill, e)}
                               disabled={favoritingId === skill.id}
-                              title={
-                                favorited
-                                  ? t("skillsManager.unfavorite")
-                                  : t("skillsManager.favorite")
-                              }
+                              title={favorited ? t("skillsManager.unfavorite") : t("skillsManager.favorite")}
                               style={{
                                 ...styles.iconButton,
                                 ...(favorited ? styles.iconButtonActive : {}),
                               }}
                               onMouseEnter={(e) => {
                                 if (!favorited) {
-                                  e.currentTarget.style.background =
-                                    "var(--hover-bg)";
-                                  e.currentTarget.style.color =
-                                    "var(--text-primary)";
-                                  e.currentTarget.style.borderColor =
-                                    "var(--accent-color)";
+                                  e.currentTarget.style.background = "var(--hover-bg)";
+                                  e.currentTarget.style.color = "var(--text-primary)";
+                                  e.currentTarget.style.borderColor = "var(--accent-color)";
                                 }
                               }}
                               onMouseLeave={(e) => {
                                 if (!favorited) {
-                                  e.currentTarget.style.background =
-                                    "transparent";
-                                  e.currentTarget.style.color =
-                                    "var(--text-secondary)";
-                                  e.currentTarget.style.borderColor =
-                                    "var(--border-color)";
+                                  e.currentTarget.style.background = "transparent";
+                                  e.currentTarget.style.color = "var(--text-secondary)";
+                                  e.currentTarget.style.borderColor = "var(--border-color)";
                                 }
                               }}
                             >
-                              {favorited ? (
-                                <StarFilledIcon size={11} />
-                              ) : (
-                                <StarIcon size={11} />
-                              )}
+                              {favorited ? <StarFilledIcon size={11} /> : <StarIcon size={11} />}
                             </button>
                             <button
                               style={styles.iconButton}
                               onClick={(e) => handleRun(skill, e)}
                               title={t("skillsManager.run")}
                               onMouseEnter={(e) => {
-                                e.currentTarget.style.background =
-                                  "var(--hover-bg)";
-                                e.currentTarget.style.color =
-                                  "var(--text-primary)";
-                                e.currentTarget.style.borderColor =
-                                  "var(--accent-color)";
+                                e.currentTarget.style.background = "var(--hover-bg)";
+                                e.currentTarget.style.color = "var(--text-primary)";
+                                e.currentTarget.style.borderColor = "var(--accent-color)";
                               }}
                               onMouseLeave={(e) => {
-                                e.currentTarget.style.background =
-                                  "transparent";
-                                e.currentTarget.style.color =
-                                  "var(--text-secondary)";
-                                e.currentTarget.style.borderColor =
-                                  "var(--border-color)";
+                                e.currentTarget.style.background = "transparent";
+                                e.currentTarget.style.color = "var(--text-secondary)";
+                                e.currentTarget.style.borderColor = "var(--border-color)";
                               }}
                             >
                               <PlayIcon size={11} />
@@ -617,18 +517,14 @@ const SkillsManagerSidebar: React.FC<SkillsManagerSidebarProps> = ({
                               onClick={(e) => handleDelete(skill, e)}
                               title={t("skillsManager.delete")}
                               onMouseEnter={(e) => {
-                                e.currentTarget.style.background =
-                                  "rgba(239, 68, 68, 0.1)";
+                                e.currentTarget.style.background = "rgba(239, 68, 68, 0.1)";
                                 e.currentTarget.style.color = "#ef4444";
                                 e.currentTarget.style.borderColor = "#ef4444";
                               }}
                               onMouseLeave={(e) => {
-                                e.currentTarget.style.background =
-                                  "transparent";
-                                e.currentTarget.style.color =
-                                  "var(--text-secondary)";
-                                e.currentTarget.style.borderColor =
-                                  "var(--border-color)";
+                                e.currentTarget.style.background = "transparent";
+                                e.currentTarget.style.color = "var(--text-secondary)";
+                                e.currentTarget.style.borderColor = "var(--border-color)";
                               }}
                             >
                               <DeleteIcon size={13} />
@@ -637,16 +533,9 @@ const SkillsManagerSidebar: React.FC<SkillsManagerSidebarProps> = ({
                         </div>
                         <div style={styles.skillMeta}>
                           <span>{skill.steps?.length || 0} steps</span>
-                          {skill.tags && (
-                            <span style={styles.skillCategoryTag}>
-                              {skill.tags.split(",").slice(0, 2).join(", ")}
-                            </span>
-                          )}
+                          {skill.tags && <span style={styles.skillCategoryTag}>{skill.tags.split(",").slice(0, 2).join(", ")}</span>}
                         </div>
-                        <div style={styles.skillDescription}>
-                          {skill.description ||
-                            t("skillsManager.noDescription")}
-                        </div>
+                        <div style={styles.skillDescription}>{skill.description || t("skillsManager.noDescription")}</div>
                       </div>
                     );
                   })}
@@ -658,5 +547,4 @@ const SkillsManagerSidebar: React.FC<SkillsManagerSidebarProps> = ({
     </div>
   );
 };
-
 export default SkillsManagerSidebar;

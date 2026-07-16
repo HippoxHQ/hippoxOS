@@ -1,3 +1,4 @@
+use crate::commands::{get_notifications_dir, get_skill_history_dir, get_skills_dir};
 use chrono::Local;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -6,9 +7,6 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 use sysinfo::Disks;
 use walkdir::WalkDir;
-
-use crate::commands::{get_notifications_dir, get_skill_history_dir, get_skills_dir};
-
 /// Get application root directory
 ///
 /// Windows: C:\Users\<username>\AppData\Roaming\HippoX\
@@ -26,94 +24,75 @@ pub fn get_app_root_dir() -> PathBuf {
         dirs::data_dir().unwrap_or_else(|| PathBuf::from(".")).join("HippoX")
     }
 }
-
 /// Material favorites directory: HippoX/MaterialFavorites  
 pub fn get_material_favorites_dir() -> PathBuf {
     get_app_root_dir().join("MaterialFavorites")
 }
-
 /// Video Editing System directory: HippoX/VideoDialogHistory
 pub fn get_video_editing_system_root_dir() -> PathBuf {
     get_app_root_dir().join("VideoEdit")
 }
-
 /// Video Editing System  Dialog History Directory: HippoX/VideoEdit/VideoDialogHistory
 pub fn get_video_editing_system_dialog_history_dir() -> PathBuf {
     get_app_root_dir().join("VideoEdit").join("VideoDialogHistory")
 }
-
 /// SandBox3D Dialog history directory: HippoX/SandBox3DDialogHistory
 pub fn get_sandbox3d_dialog_history_dir() -> PathBuf {
     get_app_root_dir().join("SandBox3DDialogHistory")
 }
-
 /// Dialog history directory: HippoX/DialogHistory
 pub fn get_dialog_history_dir() -> PathBuf {
     get_app_root_dir().join("DialogHistory")
 }
-
 /// Chart Dialog history directory: HippoX/ChartDialogHistory
 pub fn get_chart_dialog_history_dir() -> PathBuf {
     get_app_root_dir().join("ChartDialogHistory")
 }
-
 /// Map Dialog history directory: HippoX/MapDialogHistory
 pub fn get_map_dialog_history_dir() -> PathBuf {
     get_app_root_dir().join("MapDialogHistory")
 }
-
 /// Map Dialog history directory: HippoX/CodeEditorDialogHistory
 pub fn get_codeeditor_dialog_history_dir() -> PathBuf {
     get_app_root_dir().join("CodeEditorDialogHistory")
 }
-
 /// Skill market directory: HippoX/SkillsMarket
 pub fn get_skills_market_dir() -> PathBuf {
     get_app_root_dir().join("SkillsMarket")
 }
-
 /// Scheduled tasks directory: HippoX/ScheduledTasks
 pub fn get_scheduled_tasks_dir() -> PathBuf {
     get_app_root_dir().join("ScheduledTasks")
 }
-
 /// Log directory: HippoX/logs
 pub fn get_log_dir() -> PathBuf {
     get_app_root_dir().join("logs")
 }
-
 /// Cache directory: HippoX/cache
 pub fn get_cache_dir() -> PathBuf {
     get_app_root_dir().join("cache")
 }
-
 /// Settings directory: HippoX/settings
 pub fn get_settings_dir() -> PathBuf {
     get_app_root_dir().join("settings")
 }
-
 /// data directory: HippoX/data
 pub fn get_data_dir() -> PathBuf {
     get_app_root_dir().join("data")
 }
-
 /// Get taskpool backup directory: HippoX/taskpool
 pub fn get_taskpool_dir() -> PathBuf {
     get_app_root_dir().join("taskpool")
 }
-
 pub fn get_favorites_dir() -> PathBuf {
     get_app_root_dir().join("favorites")
 }
-
 pub fn get_favorites_skill_dir() -> PathBuf {
     get_favorites_dir().join("skill")
 }
-
 pub fn get_favorites_natural_dir() -> PathBuf {
     get_favorites_dir().join("natural")
 }
-
 pub fn get_favorites_size() -> Result<u64, String> {
     let favorites_dir = get_favorites_dir();
     if !favorites_dir.exists() {
@@ -127,18 +106,15 @@ pub fn get_favorites_size() -> Result<u64, String> {
     }
     Ok(total_size)
 }
-
 pub fn get_max_favorites_size() -> u64 {
     match crate::commons::get_setting("max_favorites_size_mb") {
         Ok(value) => value.as_u64().unwrap_or(500),
         Err(_) => 500,
     }
 }
-
 pub fn set_max_favorites_size(size_mb: u64) -> Result<(), String> {
     crate::commons::set_setting("max_favorites_size_mb", serde_json::json!(size_mb))
 }
-
 /// Get total size of log files (in bytes)
 pub fn get_logs_size() -> Result<u64, String> {
     let log_dir = get_log_dir();
@@ -157,7 +133,6 @@ pub fn get_logs_size() -> Result<u64, String> {
     }
     Ok(total_size)
 }
-
 /// Clean up old log files when exceeding max size
 pub fn cleanup_old_logs(max_size_mb: u64) -> Result<u64, String> {
     let log_dir = get_log_dir();
@@ -194,7 +169,6 @@ pub fn cleanup_old_logs(max_size_mb: u64) -> Result<u64, String> {
     }
     Ok(deleted_count)
 }
-
 /// Write log to file (daily rotation with size limit, auto split when exceeding 10MB)
 pub fn write_log(level: &str, message: &str, details: Option<&str>) -> Result<(), String> {
     let log_dir = get_log_dir();
@@ -224,7 +198,6 @@ pub fn write_log(level: &str, message: &str, details: Option<&str>) -> Result<()
     file.write_all(full_content.as_bytes()).map_err(|e| format!("Failed to write log: {}", e))?;
     Ok(())
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DataPaths {
     pub app_root_dir: String,
@@ -237,7 +210,6 @@ pub struct DataPaths {
     pub cache_dir: String,
     pub settings_dir: String,
 }
-
 #[tauri::command]
 pub fn cmd_get_data_paths() -> DataPaths {
     DataPaths {
@@ -252,12 +224,10 @@ pub fn cmd_get_data_paths() -> DataPaths {
         settings_dir: get_settings_dir().to_string_lossy().to_string(),
     }
 }
-
 #[tauri::command]
 pub fn cmd_get_favorites_dir() -> String {
     get_app_root_dir().join("favorites").to_string_lossy().to_string()
 }
-
 #[tauri::command]
 pub fn cmd_get_directory_size(path: String) -> Result<u64, String> {
     let dir = Path::new(&path);
@@ -278,7 +248,6 @@ pub fn cmd_get_directory_size(path: String) -> Result<u64, String> {
     }
     Ok(total_size)
 }
-
 #[tauri::command]
 pub fn cmd_get_disk_info(path: String) -> Result<serde_json::Value, String> {
     use std::path::Path;
@@ -298,12 +267,10 @@ pub fn cmd_get_disk_info(path: String) -> Result<serde_json::Value, String> {
         Err(format!("No disk found for path: {:?}", path))
     }
 }
-
 #[tauri::command]
 pub fn cmd_get_logs_size_command() -> Result<u64, String> {
     get_logs_size()
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DialogHistoryConfig {
     #[serde(default)]
@@ -319,19 +286,15 @@ pub struct DialogHistoryConfig {
     #[serde(flatten)]
     pub extra: HashMap<String, serde_json::Value>,
 }
-
 fn default_sort_by() -> String {
     "updated_at".to_string()
 }
-
 fn default_sort_order() -> String {
     "desc".to_string()
 }
-
 fn default_page_size() -> usize {
     50
 }
-
 impl Default for DialogHistoryConfig {
     fn default() -> Self {
         Self {
@@ -344,16 +307,13 @@ impl Default for DialogHistoryConfig {
         }
     }
 }
-
 #[tauri::command]
 pub fn cmd_get_dialog_history_config() -> Result<DialogHistoryConfig, String> {
     let settings_dir = get_settings_dir();
     let config_path = settings_dir.join("config.json");
-
     if config_path.exists() {
         let content = fs::read_to_string(&config_path).map_err(|e| format!("Failed to read settings config: {}", e))?;
         let full_config: serde_json::Value = serde_json::from_str(&content).unwrap_or_else(|_| serde_json::json!({}));
-
         if let Some(dh) = full_config.get("dialog_history") {
             Ok(serde_json::from_value(dh.clone()).unwrap_or_else(|_| DialogHistoryConfig::default()))
         } else {
@@ -363,7 +323,6 @@ pub fn cmd_get_dialog_history_config() -> Result<DialogHistoryConfig, String> {
         Ok(DialogHistoryConfig::default())
     }
 }
-
 #[tauri::command]
 pub fn cmd_save_dialog_history_config(config: DialogHistoryConfig) -> Result<(), String> {
     let settings_dir = get_settings_dir();

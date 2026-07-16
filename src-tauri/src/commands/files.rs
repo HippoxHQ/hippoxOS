@@ -5,7 +5,6 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::Path;
 use std::process::Command;
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FileInfo {
     pub name: String,
@@ -14,7 +13,6 @@ pub struct FileInfo {
     pub size: Option<u64>,
     pub modified: Option<String>,
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FileInfoDetail {
     pub name: String,
@@ -23,7 +21,6 @@ pub struct FileInfoDetail {
     pub mime_type: String,
     pub modified: Option<String>,
 }
-
 #[tauri::command]
 pub async fn cmd_open_path(path: String) -> Result<(), String> {
     let path = Path::new(&path);
@@ -44,13 +41,11 @@ pub async fn cmd_open_path(path: String) -> Result<(), String> {
     }
     Ok(())
 }
-
 #[tauri::command]
 pub async fn cmd_select_directory() -> Result<Option<String>, String> {
     let folder = AsyncFileDialog::new().set_title("Select Workspace Directory").pick_folder().await;
     Ok(folder.map(|f| f.path().to_string_lossy().to_string()))
 }
-
 #[tauri::command]
 pub async fn cmd_select_file(options: Option<serde_json::Value>) -> Result<serde_json::Value, String> {
     let mut dialog = AsyncFileDialog::new();
@@ -73,7 +68,6 @@ pub async fn cmd_select_file(options: Option<serde_json::Value>) -> Result<serde
     let file = dialog.pick_file().await;
     Ok(serde_json::json!(file.map(|f| f.path().to_string_lossy().to_string())))
 }
-
 #[tauri::command]
 pub async fn cmd_read_directory(path: String) -> Result<Vec<FileInfo>, String> {
     let dir = Path::new(&path);
@@ -108,15 +102,12 @@ pub async fn cmd_read_directory(path: String) -> Result<Vec<FileInfo>, String> {
             a.name.to_lowercase().cmp(&b.name.to_lowercase())
         }
     });
-
     Ok(entries)
 }
-
 #[tauri::command]
 pub async fn cmd_path_exists(path: String) -> Result<bool, String> {
     Ok(Path::new(&path).exists())
 }
-
 #[tauri::command]
 pub async fn cmd_read_text_file(path: String) -> Result<String, String> {
     let path = std::path::Path::new(&path);
@@ -125,7 +116,6 @@ pub async fn cmd_read_text_file(path: String) -> Result<String, String> {
     }
     std::fs::read_to_string(path).map_err(|e| e.to_string())
 }
-
 #[tauri::command]
 pub async fn cmd_read_image_base64(path: String) -> Result<String, String> {
     let path = std::path::Path::new(&path);
@@ -145,7 +135,6 @@ pub async fn cmd_read_image_base64(path: String) -> Result<String, String> {
     };
     Ok(format!("data:{};base64,{}", mime, encoded))
 }
-
 #[tauri::command]
 pub async fn cmd_read_file_base64(path: String) -> Result<String, String> {
     let path = std::path::Path::new(&path);
@@ -155,7 +144,6 @@ pub async fn cmd_read_file_base64(path: String) -> Result<String, String> {
     let data = std::fs::read(path).map_err(|e| e.to_string())?;
     Ok(STANDARD.encode(&data))
 }
-
 #[tauri::command]
 pub async fn cmd_get_file_info(path: String) -> Result<FileInfoDetail, String> {
     let path = std::path::Path::new(&path);
@@ -181,7 +169,6 @@ pub async fn cmd_get_file_info(path: String) -> Result<FileInfoDetail, String> {
         _ => "application/octet-stream",
     }
     .to_string();
-
     Ok(FileInfoDetail {
         name: path.file_name().unwrap_or_default().to_string_lossy().to_string(),
         path: path.to_string_lossy().to_string(),
@@ -194,7 +181,6 @@ pub async fn cmd_get_file_info(path: String) -> Result<FileInfoDetail, String> {
         }),
     })
 }
-
 #[tauri::command]
 pub async fn cmd_save_csv_file(content: String, default_name: String) -> Result<(), String> {
     use rfd::AsyncFileDialog;

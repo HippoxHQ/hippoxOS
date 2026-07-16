@@ -1,15 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
-
 interface CustomDragCursorProps {
   isDragging: boolean;
   t?: (key: string, params?: any) => string;
 }
-
-const CustomDragCursor: React.FC<CustomDragCursorProps> = ({
-  isDragging,
-  t,
-}) => {
+const CustomDragCursor: React.FC<CustomDragCursorProps> = ({ isDragging, t }) => {
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [fileCount, setFileCount] = useState(0);
   const getText = (key: string, params?: any): string => {
@@ -37,19 +32,15 @@ const CustomDragCursor: React.FC<CustomDragCursorProps> = ({
   useEffect(() => {
     let unlistenDragEnter: (() => void) | undefined;
     const setupListener = async () => {
-      unlistenDragEnter = await listen<{ fileCount: number }>(
-        "drag-enter",
-        (event) => {
-          setFileCount(event.payload.fileCount);
-        },
-      );
+      unlistenDragEnter = await listen<{ fileCount: number }>("drag-enter", (event) => {
+        setFileCount(event.payload.fileCount);
+      });
     };
     setupListener();
     return () => {
       if (unlistenDragEnter) unlistenDragEnter();
     };
   }, []);
-
   useEffect(() => {
     let unlistenDragLeave: (() => void) | undefined;
     const setupListener = async () => {
@@ -62,9 +53,7 @@ const CustomDragCursor: React.FC<CustomDragCursorProps> = ({
       if (unlistenDragLeave) unlistenDragLeave();
     };
   }, []);
-
   if (!isDragging) return null;
-
   return (
     <div
       style={{
@@ -105,25 +94,9 @@ const CustomDragCursor: React.FC<CustomDragCursorProps> = ({
           backdropFilter: "blur(8px)",
         }}
       >
-        <svg
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path
-            d="M13 3H4V21H20V8H13V3Z"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            fill="none"
-          />
-          <path
-            d="M13 3V8H18"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            fill="none"
-          />
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M13 3H4V21H20V8H13V3Z" stroke="currentColor" strokeWidth="1.5" fill="none" />
+          <path d="M13 3V8H18" stroke="currentColor" strokeWidth="1.5" fill="none" />
         </svg>
         <span>
           {fileCount} {getText("chat.fileUpload.files", { count: fileCount })}
@@ -132,5 +105,4 @@ const CustomDragCursor: React.FC<CustomDragCursorProps> = ({
     </div>
   );
 };
-
 export default CustomDragCursor;

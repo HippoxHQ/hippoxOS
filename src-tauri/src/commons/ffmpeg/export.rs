@@ -1,9 +1,7 @@
+use super::core::Ffmpeg;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 use std::process::Command;
-
-use super::core::Ffmpeg;
-
 /// Export options
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ExportOptions {
@@ -14,7 +12,6 @@ pub struct ExportOptions {
     pub fps: Option<f64>,
     pub format: Option<String>,
 }
-
 impl Ffmpeg {
     /// Export video with custom options
     pub fn export_video(&self, input_path: &str, options: &ExportOptions) -> Result<(), String> {
@@ -22,15 +19,12 @@ impl Ffmpeg {
         if !input.exists() {
             return Err(format!("Input file not found: {}", input_path));
         }
-
         if let Some(parent) = Path::new(&options.output_path).parent() {
             if !parent.exists() {
                 std::fs::create_dir_all(parent).map_err(|e| format!("Failed to create output directory: {}", e))?;
             }
         }
-
         let mut args = vec!["-i".to_string(), input_path.to_string()];
-
         match options.format.as_deref() {
             Some("webm") => {
                 args.push("-c:v".to_string());
@@ -69,7 +63,6 @@ impl Ffmpeg {
                 args.push("medium".to_string());
             }
         }
-
         args.push("-c:a".to_string());
         match options.format.as_deref() {
             Some("webm") => {
@@ -83,62 +76,49 @@ impl Ffmpeg {
                 args.push("128k".to_string());
             }
         }
-
         if let (Some(width), Some(height)) = (options.width, options.height) {
             args.push("-vf".to_string());
             args.push(format!("scale={}:{}", width, height));
         }
-
         if let Some(fps) = options.fps {
             args.push("-r".to_string());
             args.push(format!("{}", fps));
         }
-
         args.push("-y".to_string());
         args.push(options.output_path.clone());
-
         let output = Command::new("ffmpeg").args(&args).output().map_err(|e| format!("Failed to export video: {}", e))?;
-
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
             return Err(format!("FFmpeg failed: {}", stderr));
         }
-
         Ok(())
     }
-
     /// Create split screen (multiple videos side by side)
     pub fn create_split_screen(&self, inputs: &[String], output_path: &str, layout: &str) -> Result<(), String> {
         if inputs.is_empty() {
             return Err("No inputs provided".to_string());
         }
-
         for input in inputs {
             if !Path::new(input).exists() {
                 return Err(format!("Input file not found: {}", input));
             }
         }
-
         if let Some(parent) = Path::new(output_path).parent() {
             if !parent.exists() {
                 std::fs::create_dir_all(parent).map_err(|e| format!("Failed to create output directory: {}", e))?;
             }
         }
-
         let mut args = Vec::new();
         for input in inputs {
             args.push("-i".to_string());
             args.push(input.to_string());
         }
-
         let mut filter_parts = Vec::new();
         for idx in 0..inputs.len() {
             let label = format!("v{}", idx);
             filter_parts.push(format!("[{}:v]setpts=PTS-STARTPTS,scale=iw/2:ih/2[{}]", idx, label));
         }
-
         let video_labels: Vec<String> = (0..inputs.len()).map(|i| format!("[v{}]", i)).collect();
-
         let final_label = match layout {
             "2x2" => {
                 filter_parts.push(format!(
@@ -172,13 +152,10 @@ impl Ffmpeg {
                 format!("{}hstack=inputs={}[out]", video_labels.join(""), inputs.len())
             }
         };
-
         if !final_label.is_empty() {
             filter_parts.push(final_label);
         }
-
         let filter = filter_parts.join(";");
-
         args.push("-filter_complex".to_string());
         args.push(filter);
         args.push("-map".to_string());
@@ -191,29 +168,23 @@ impl Ffmpeg {
         args.push("23".to_string());
         args.push("-y".to_string());
         args.push(output_path.to_string());
-
         let output = Command::new("ffmpeg").args(&args).output().map_err(|e| format!("Failed to create split screen: {}", e))?;
-
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
             return Err(format!("FFmpeg failed: {}", stderr));
         }
-
         Ok(())
     }
-
     /// Mix multiple audio tracks
     pub fn mix_audio(&self, inputs: &[String], output_path: &str, volumes: Option<Vec<f32>>) -> Result<(), String> {
         if inputs.is_empty() {
             return Err("No audio inputs provided".to_string());
         }
-
         if let Some(parent) = Path::new(output_path).parent() {
             if !parent.exists() {
                 std::fs::create_dir_all(parent).map_err(|e| format!("Failed to create output directory: {}", e))?;
             }
         }
-
         let mut args = Vec::new();
         for input in inputs {
             if !Path::new(input).exists() {
@@ -222,19 +193,15 @@ impl Ffmpeg {
             args.push("-i".to_string());
             args.push(input.to_string());
         }
-
         let mut filter_parts = Vec::new();
         let mut audio_labels = Vec::new();
-
         for (idx, input) in inputs.iter().enumerate() {
             let volume = volumes.as_ref().and_then(|v| v.get(idx)).unwrap_or(&1.0);
             let label = format!("a{}", idx);
             filter_parts.push(format!("[{}:a]volume={}[{}_adj]", idx, volume, label));
             audio_labels.push(format!("[{}_adj]", label));
         }
-
         let filter = format!("{};{}amix=inputs={}:duration=longest[aout]", filter_parts.join(";"), audio_labels.join(""), inputs.len());
-
         args.push("-filter_complex".to_string());
         args.push(filter);
         args.push("-map".to_string());
@@ -245,14 +212,11 @@ impl Ffmpeg {
         args.push("192k".to_string());
         args.push("-y".to_string());
         args.push(output_path.to_string());
-
         let output = Command::new("ffmpeg").args(&args).output().map_err(|e| format!("Failed to mix audio: {}", e))?;
-
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
             return Err(format!("FFmpeg failed: {}", stderr));
         }
-
         Ok(())
     }
 }

@@ -4,7 +4,6 @@ import { healthCommands, HealthCheckResult } from "../command/health";
 import { windowsCommands } from "../command/windows";
 import { zh, en } from "../i18n";
 import { SystemEvent } from "../types/types";
-
 const getTranslation = (language: "zh" | "en", key: string): string => {
   const translations = language === "zh" ? zh : en;
   const keys = key.split(".");
@@ -15,27 +14,22 @@ const getTranslation = (language: "zh" | "en", key: string): string => {
   }
   return value || key;
 };
-
 interface LLMInstance {
   id: string;
   name: string;
   isDefault: boolean;
   status?: "online" | "offline" | "checking";
 }
-
 const openLLMSubmenu = async () => {
   const instancesData = await windowsCommands.getLlmInstances();
   const defaultId = await windowsCommands.getDefaultLlmInstanceId();
-  const items = Object.entries(instancesData || {}).map(
-    ([id, instance]: [string, any]) => ({
-      id,
-      name: instance.name,
-      isDefault: id === defaultId,
-    }),
-  );
+  const items = Object.entries(instancesData || {}).map(([id, instance]: [string, any]) => ({
+    id,
+    name: instance.name,
+    isDefault: id === defaultId,
+  }));
   await windowsCommands.createSubmenuWindow(items, defaultId);
 };
-
 const SystemTrayWindow: React.FC = () => {
   const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [language, setLanguage] = useState<"zh" | "en">("en");
@@ -44,14 +38,10 @@ const SystemTrayWindow: React.FC = () => {
   const [llmInstances, setLlmInstances] = useState<LLMInstance[]>([]);
   const [isLoadingLLM, setIsLoadingLLM] = useState(true);
   const [isCheckingHealth, setIsCheckingHealth] = useState(false);
-
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [savedTheme, savedLanguage] = await Promise.all([
-          configCommands.getSettingsTheme(),
-          configCommands.getSettingsLanguage(),
-        ]);
+        const [savedTheme, savedLanguage] = await Promise.all([configCommands.getSettingsTheme(), configCommands.getSettingsLanguage()]);
         setTheme(savedTheme as "dark" | "light");
         setLanguage(savedLanguage as "zh" | "en");
       } catch (error) {
@@ -61,24 +51,18 @@ const SystemTrayWindow: React.FC = () => {
     loadData();
     loadLLMInstances();
   }, []);
-
   const loadLLMInstances = async () => {
     try {
       setIsLoadingLLM(true);
       const instancesData = await windowsCommands.getLlmInstances();
       const defaultId = await windowsCommands.getDefaultLlmInstanceId();
-
-      const instancesList = Object.entries(instancesData || {}).map(
-        ([id, instance]: [string, any]) => ({
-          id,
-          name: instance.name,
-          isDefault: id === defaultId,
-          status: "checking" as const,
-        }),
-      );
-
+      const instancesList = Object.entries(instancesData || {}).map(([id, instance]: [string, any]) => ({
+        id,
+        name: instance.name,
+        isDefault: id === defaultId,
+        status: "checking" as const,
+      }));
       setLlmInstances(instancesList);
-
       if (instancesList.length > 0) {
         await performHealthChecks(instancesList);
       }
@@ -88,22 +72,15 @@ const SystemTrayWindow: React.FC = () => {
       setIsLoadingLLM(false);
     }
   };
-
   const performHealthChecks = async (instances: LLMInstance[]) => {
     if (instances.length === 0) return;
     setIsCheckingHealth(true);
-
-    setLlmInstances((prev) =>
-      prev.map((inst) => ({ ...inst, status: "checking" })),
-    );
-
+    setLlmInstances((prev) => prev.map((inst) => ({ ...inst, status: "checking" })));
     try {
       const results = await healthCommands.checkAllLlmHealth();
       setLlmInstances((prev) =>
         prev.map((inst) => {
-          const result = results.find(
-            (r: HealthCheckResult) => r.instance_id === inst.id,
-          );
+          const result = results.find((r: HealthCheckResult) => r.instance_id === inst.id);
           return {
             ...inst,
             status: result?.status === "online" ? "online" : "offline",
@@ -111,9 +88,7 @@ const SystemTrayWindow: React.FC = () => {
         }),
       );
     } catch (error) {
-      setLlmInstances((prev) =>
-        prev.map((inst) => ({ ...inst, status: "offline" })),
-      );
+      setLlmInstances((prev) => prev.map((inst) => ({ ...inst, status: "offline" })));
     } finally {
       setIsCheckingHealth(false);
     }
@@ -221,15 +196,12 @@ const SystemTrayWindow: React.FC = () => {
     { divider: true },
     { id: "quit", label: t("common.close") || "Quit", icon: "🚪" },
   ];
-
   const styles = {
     container: {
       backgroundColor: isDark ? "#1a1d26" : "#ffffff",
       borderRadius: "8px",
       border: `1px solid ${isDark ? "#2d303a" : "#e5e7eb"}`,
-      boxShadow: isDark
-        ? "0 4px 12px rgba(0,0,0,0.4)"
-        : "0 4px 12px rgba(0,0,0,0.15)",
+      boxShadow: isDark ? "0 4px 12px rgba(0,0,0,0.4)" : "0 4px 12px rgba(0,0,0,0.15)",
       overflow: "hidden" as const,
     },
     header: {
@@ -298,9 +270,7 @@ const SystemTrayWindow: React.FC = () => {
       backgroundColor: isDark ? "#1a1d26" : "#ffffff",
       border: `1px solid ${isDark ? "#2d303a" : "#e5e7eb"}`,
       borderRadius: "6px",
-      boxShadow: isDark
-        ? "0 2px 8px rgba(0,0,0,0.3)"
-        : "0 2px 8px rgba(0,0,0,0.1)",
+      boxShadow: isDark ? "0 2px 8px rgba(0,0,0,0.3)" : "0 2px 8px rgba(0,0,0,0.1)",
       zIndex: 10001,
       maxHeight: "400px",
       overflowY: "auto" as const,
@@ -321,7 +291,6 @@ const SystemTrayWindow: React.FC = () => {
       color: isDark ? "#9ca3af" : "#6b7280",
     },
   };
-
   return (
     <div style={styles.container}>
       <div style={styles.menuContainer}>
@@ -329,19 +298,13 @@ const SystemTrayWindow: React.FC = () => {
           if (item.divider) {
             return <div key={`divider-${index}`} style={styles.divider} />;
           }
-
           if (item.id === "llm_status") {
             return (
               <div
                 key={item.id}
                 style={{
                   ...styles.menuItem,
-                  backgroundColor:
-                    hoveredItem === item.id
-                      ? isDark
-                        ? "rgba(232,237,242,0.08)"
-                        : "rgba(0,0,0,0.04)"
-                      : "transparent",
+                  backgroundColor: hoveredItem === item.id ? (isDark ? "rgba(232,237,242,0.08)" : "rgba(0,0,0,0.04)") : "transparent",
                 }}
                 onClick={async (e) => {
                   await openLLMSubmenu();
@@ -360,12 +323,7 @@ const SystemTrayWindow: React.FC = () => {
               key={item.id}
               style={{
                 ...styles.menuItem,
-                backgroundColor:
-                  hoveredItem === item.id
-                    ? isDark
-                      ? "rgba(232,237,242,0.08)"
-                      : "rgba(0,0,0,0.04)"
-                    : "transparent",
+                backgroundColor: hoveredItem === item.id ? (isDark ? "rgba(232,237,242,0.08)" : "rgba(0,0,0,0.04)") : "transparent",
               }}
               onClick={() => handleMenuItemClick(item.id!)}
               onMouseEnter={() => setHoveredItem(item.id!)}
@@ -380,5 +338,4 @@ const SystemTrayWindow: React.FC = () => {
     </div>
   );
 };
-
 export default SystemTrayWindow;

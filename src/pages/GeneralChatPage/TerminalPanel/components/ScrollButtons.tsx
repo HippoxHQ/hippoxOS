@@ -8,12 +8,7 @@ interface ScrollButtonsProps {
   onScrollToBottom: () => void;
 }
 
-export const ScrollButtons: React.FC<ScrollButtonsProps> = ({
-  showScrollTop,
-  showScrollBottom,
-  onScrollToTop,
-  onScrollToBottom,
-}) => {
+export const ScrollButtons: React.FC<ScrollButtonsProps> = ({ showScrollTop, showScrollBottom, onScrollToTop, onScrollToBottom }) => {
   return (
     <div style={styles.scrollButtonsContainer}>
       {showScrollTop && (

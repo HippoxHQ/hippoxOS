@@ -1,5 +1,4 @@
 use serde::{Deserialize, Serialize};
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ModelInfo {
     pub id: String,
@@ -11,7 +10,6 @@ pub struct ModelInfo {
     pub context_length: Option<usize>,
     pub recommended: bool,
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProviderInfo {
     pub id: String,
@@ -21,7 +19,6 @@ pub struct ProviderInfo {
     pub requires_extra_config: bool,
     pub extra_config_fields: Vec<ExtraConfigField>,
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ExtraConfigField {
     pub key: String,
@@ -29,18 +26,15 @@ pub struct ExtraConfigField {
     pub placeholder: String,
     pub required: bool,
 }
-
 fn get_language() -> String {
     crate::commons::get_setting_with_default("language", serde_json::json!("en"))
         .map(|v| v.as_str().unwrap_or("en").to_string())
         .unwrap_or_else(|_| "en".to_string())
 }
-
 #[tauri::command]
 pub fn cmd_get_all_models() -> Vec<ModelInfo> {
     let lang = get_language();
     let is_zh = lang == "zh";
-
     vec![
         ModelInfo {
             id: "gpt-4".to_string(),
@@ -218,7 +212,6 @@ pub fn cmd_get_all_models() -> Vec<ModelInfo> {
         },
     ]
 }
-
 #[tauri::command]
 pub fn cmd_get_all_providers() -> Vec<ProviderInfo> {
     vec![
@@ -409,12 +402,10 @@ pub fn cmd_get_all_providers() -> Vec<ProviderInfo> {
         },
     ]
 }
-
 #[tauri::command]
 pub fn cmd_get_models_by_provider(provider: String) -> Vec<ModelInfo> {
     cmd_get_all_models().into_iter().filter(|m| m.provider == provider).collect()
 }
-
 #[tauri::command]
 pub fn cmd_get_recommended_models() -> Vec<ModelInfo> {
     cmd_get_all_models().into_iter().filter(|m| m.recommended).collect()

@@ -1,9 +1,7 @@
+use super::core::Ffmpeg;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 use std::process::Command;
-
-use super::core::Ffmpeg;
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TrackItem {
     pub source: String,
@@ -23,7 +21,6 @@ pub struct TrackItem {
     pub background_color: Option<String>,
     pub volume: Option<f32>,
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ComposeRequest {
     pub width: u32,
@@ -35,7 +32,6 @@ pub struct ComposeRequest {
     pub audio_bitrate: Option<String>,
     pub video_bitrate: Option<String>,
 }
-
 impl Ffmpeg {
     pub fn compose_tracks(&self, request: &ComposeRequest) -> Result<(), String> {
         if request.tracks.is_empty() {
@@ -237,7 +233,6 @@ impl Ffmpeg {
         }
         Ok(())
     }
-
     pub fn overlay_media(
         &self,
         background: &str,
@@ -257,13 +252,11 @@ impl Ffmpeg {
         if !Path::new(overlay).exists() {
             return Err(format!("Overlay file not found: {}", overlay));
         }
-
         if let Some(parent) = Path::new(output_path).parent() {
             if !parent.exists() {
                 std::fs::create_dir_all(parent).map_err(|e| format!("Failed to create output directory: {}", e))?;
             }
         }
-
         let scale_filter = if let (Some(w), Some(h)) = (width, height) {
             format!("scale={}:{},format=rgba,colorchannelmixer=aa={}", w, h, opacity)
         } else if let Some(w) = width {
@@ -273,7 +266,6 @@ impl Ffmpeg {
         } else {
             format!("format=rgba,colorchannelmixer=aa={}", opacity)
         };
-
         let args = vec![
             "-i".to_string(),
             background.to_string(),
@@ -286,14 +278,11 @@ impl Ffmpeg {
             "-y".to_string(),
             output_path.to_string(),
         ];
-
         let output = Command::new("ffmpeg").args(&args).output().map_err(|e| format!("Failed to overlay media: {}", e))?;
-
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
             return Err(format!("FFmpeg failed: {}", stderr));
         }
-
         Ok(())
     }
 }

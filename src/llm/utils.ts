@@ -1,5 +1,4 @@
 import { HippoxOSResult, isValidHippoxOSResult } from "../llm/types";
-
 export function parseLLMResponse(content: string): HippoxOSResult | null {
     try {
         const parsed = JSON.parse(content);
@@ -22,7 +21,6 @@ export function parseLLMResponse(content: string): HippoxOSResult | null {
         return null;
     }
 }
-
 export function isStructuredLLMResponse(content: string): boolean {
     if (!content) return false;
     try {

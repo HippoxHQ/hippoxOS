@@ -1,6 +1,5 @@
 use serde_json::json;
 use tauri::command;
-
 #[command]
 pub async fn cmd_get_crate_version(crate_name: String) -> Result<String, String> {
     let url = format!("https://crates.io/api/v1/crates/{}", crate_name);
@@ -22,7 +21,6 @@ pub async fn cmd_get_crate_version(crate_name: String) -> Result<String, String>
         Err(e) => Err(format!("Failed to fetch from crates.io: {}", e)),
     }
 }
-
 #[command]
 pub async fn cmd_get_hippox_versions() -> Result<serde_json::Value, String> {
     let crates = vec!["hippox", "hippox-atomic-skills"];
@@ -39,30 +37,25 @@ pub async fn cmd_get_hippox_versions() -> Result<serde_json::Value, String> {
     }
     Ok(serde_json::Value::Object(results))
 }
-
 #[cfg(test)]
 mod tests {
     use super::*;
-
     #[tokio::test]
     async fn test_cmd_get_crate_version() {
         let result = cmd_get_hippox_versions().await;
         println!("{:?}", result);
     }
-
     #[tokio::test]
     async fn test_cmd_get_crate_version_not_found() {
         let result = cmd_get_crate_version("non-existent-crate-xyz".to_string()).await;
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), "unknown");
     }
-
     #[tokio::test]
     async fn test_cmd_get_hippox_versions() {
         let result = cmd_get_hippox_versions().await;
         println!("{:?}", result);
     }
-
     #[tokio::test]
     async fn test_cmd_get_crate_version_err() {
         let result = cmd_get_crate_version("serde".to_string()).await;

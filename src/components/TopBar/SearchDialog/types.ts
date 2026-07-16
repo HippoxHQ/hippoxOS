@@ -1,6 +1,5 @@
 import { UploadFile } from "../../../core/types";
 import { ChatMessage } from "../../../types/types";
-
 export interface SearchResult {
   category: "skill" | "session" | "log" | "message";
   id: string;
@@ -13,7 +12,6 @@ export interface SearchResult {
   sessionTitle?: string;
   messageContent?: string;
 }
-
 export interface SearchSuggestion {
   id: string;
   title: string;
@@ -21,14 +19,12 @@ export interface SearchSuggestion {
   action: () => void;
   icon: string;
 }
-
 export interface MessageSearchResult {
   message: ChatMessage;
   sessionId: string;
   sessionTitle: string;
   matchHighlight: string;
 }
-
 export const CATEGORY_CONFIG: Record<
   string,
   { zh: string; en: string; icon: string }

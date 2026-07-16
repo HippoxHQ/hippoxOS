@@ -52,8 +52,7 @@ const DataTable: React.FC<DataTableProps> = ({ table, t, onFileClick }) => {
           }}
         >
           <span>
-            📊 {table.title} ({t("terminal.tableRows") || "rows"}:{" "}
-            {table.rows.length})
+            📊 {table.title} ({t("terminal.tableRows") || "rows"}: {table.rows.length})
           </span>
           {onFileClick && (
             <span
@@ -103,10 +102,7 @@ const DataTable: React.FC<DataTableProps> = ({ table, t, onFileClick }) => {
                       fontWeight: 600,
                       color: "var(--text-primary)",
                       borderBottom: "2px solid var(--border-color)",
-                      borderRight:
-                        idx !== table.headers.length - 1
-                          ? "1px solid var(--border-color)"
-                          : "none",
+                      borderRight: idx !== table.headers.length - 1 ? "1px solid var(--border-color)" : "none",
                       whiteSpace: "nowrap",
                       fontSize: "11px",
                       textTransform: "uppercase",
@@ -143,24 +139,15 @@ const DataTable: React.FC<DataTableProps> = ({ table, t, onFileClick }) => {
                 <tr
                   key={rowIdx}
                   style={{
-                    background:
-                      rowIdx % 2 === 0
-                        ? "var(--bg-secondary)"
-                        : "var(--bg-tertiary)",
-                    borderBottom:
-                      rowIdx === table.rows.length - 1
-                        ? "none"
-                        : "1px solid var(--border-color)",
+                    background: rowIdx % 2 === 0 ? "var(--bg-secondary)" : "var(--bg-tertiary)",
+                    borderBottom: rowIdx === table.rows.length - 1 ? "none" : "1px solid var(--border-color)",
                     // transition: "background 0.15s ease",
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.background = "var(--hover-bg)";
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.background =
-                      rowIdx % 2 === 0
-                        ? "var(--bg-secondary)"
-                        : "var(--bg-tertiary)";
+                    e.currentTarget.style.background = rowIdx % 2 === 0 ? "var(--bg-secondary)" : "var(--bg-tertiary)";
                   }}
                 >
                   {row.map((cell, cellIdx) => (
@@ -169,16 +156,11 @@ const DataTable: React.FC<DataTableProps> = ({ table, t, onFileClick }) => {
                       style={{
                         padding: "8px 12px",
                         color: "var(--text-secondary)",
-                        borderRight:
-                          cellIdx !== row.length - 1
-                            ? "1px solid var(--border-color)"
-                            : "none",
+                        borderRight: cellIdx !== row.length - 1 ? "1px solid var(--border-color)" : "none",
                         whiteSpace: "nowrap",
                         textAlign: typeof cell === "number" ? "right" : "left",
-                        fontVariantNumeric:
-                          typeof cell === "number" ? "tabular-nums" : "normal",
-                        fontFamily:
-                          typeof cell === "number" ? "monospace" : "inherit",
+                        fontVariantNumeric: typeof cell === "number" ? "tabular-nums" : "normal",
+                        fontFamily: typeof cell === "number" ? "monospace" : "inherit",
                         overflow: "hidden",
                         textOverflow: "ellipsis",
                       }}

@@ -9,21 +9,18 @@ import { workspaceCommands } from "../../../command/workspace";
 import { videoSessionCommands } from "../../../command/session/videoeditor";
 import { basename } from "@tauri-apps/api/path";
 import { showToast, ToastType } from "../../../components/Toast";
-
 const getFileType = (filePath: string): "video" | "audio" | "image" | "text" | null => {
     const ext = filePath.split(".").pop()?.toLowerCase() || "";
     const videoExts = ["mp4", "mov", "mkv", "avi", "webm", "flv", "wmv", "m4v"];
     const audioExts = ["mp3", "wav", "flac", "aac", "ogg", "m4a", "wma"];
     const imageExts = ["jpg", "jpeg", "png", "gif", "bmp", "webp", "svg", "tiff", "ico"];
     const textExts = ["txt", "md", "json", "xml", "csv", "log", "ini", "cfg", "conf"];
-
     if (videoExts.includes(ext)) return "video";
     if (audioExts.includes(ext)) return "audio";
     if (imageExts.includes(ext)) return "image";
     if (textExts.includes(ext)) return "text";
     return null;
 };
-
 export function useVideoSession(
     language: Language,
     isConfigLoaded: boolean,
@@ -37,14 +34,12 @@ export function useVideoSession(
     const [pendingVideoTitle, setPendingVideoTitle] = useState<string>("");
     const [isCreatingSession, setIsCreatingSession] = useState<boolean>(false);
     const { t } = useTranslation(language);
-
     useEffect(() => {
         const unsubscribe = taskManager.subscribe(() => {
             setTaskManagerVersion((prev) => prev + 1);
         });
         return unsubscribe;
     }, []);
-
     useEffect(() => {
         if (
             !isLoading &&
@@ -64,7 +59,6 @@ export function useVideoSession(
                 const userMessages = taskManager.getUserMessagesBySession(currentSessionId, SessionDomain.Video);
                 const assistantMessages = taskManager.getAssistantMessagesBySessionAsArray(currentSessionId, SessionDomain.Video);
                 const tasksArray: TaskInfo[] = tasksMap ? Array.from(tasksMap.values()) : [];
-
                 if (userMessages.length === 0 && assistantMessages.length === 0) {
                     return;
                 }
@@ -77,7 +71,6 @@ export function useVideoSession(
             return () => clearTimeout(saveTimer);
         }
     }, [currentSessionId, isLoading, taskManagerVersion]);
-
     useEffect(() => {
         if (isConfigLoaded) {
             videoSessionCommands.listVideoSessions()
@@ -118,7 +111,6 @@ export function useVideoSession(
                 });
         }
     }, [isConfigLoaded]);
-
     const createVideoSessionWithPath = useCallback(async (
         sessionId: string,
         title: string,
@@ -144,7 +136,6 @@ export function useVideoSession(
             textSourcePaths,
         );
     }, [currentWorkflowMode]);
-
     const handleNewSession = useCallback(async (filePath?: string, fileType?: "file" | "empty") => {
         if (filePath && fileType === "file") {
             setIsCreatingSession(true);
@@ -152,14 +143,12 @@ export function useVideoSession(
                 const newSessionId = `video_session_${Date.now()}`;
                 const fileName = await basename(filePath);
                 const title = fileName || "Video Project";
-
                 // 判断文件类型，往对应的数组里塞
                 const fileTypeStr = getFileType(filePath);
                 let videoSourcePath: string | undefined = undefined;
                 let audioSourcePaths: string[] | undefined = undefined;
                 let imageSourcePaths: string[] | undefined = undefined;
                 let textSourcePaths: string[] | undefined = undefined;
-
                 if (fileTypeStr === "video") {
                     videoSourcePath = filePath;
                 } else if (fileTypeStr === "audio") {
@@ -172,7 +161,6 @@ export function useVideoSession(
                     // 未知类型，默认当作视频处理
                     videoSourcePath = filePath;
                 }
-
                 await createVideoSessionWithPath(
                     newSessionId,
                     title,
@@ -183,7 +171,6 @@ export function useVideoSession(
                     textSourcePaths,
                     currentWorkflowMode,
                 );
-
                 taskManager.loadSessionData(newSessionId, [], [], [], SessionDomain.Video);
                 setCurrentSessionId(newSessionId);
                 setPendingNewSession(false);
@@ -207,7 +194,6 @@ export function useVideoSession(
             try {
                 const newSessionId = `video_session_${Date.now()}`;
                 const title = "Empty Project";
-
                 await createVideoSessionWithPath(
                     newSessionId,
                     title,
@@ -218,7 +204,6 @@ export function useVideoSession(
                     undefined,
                     currentWorkflowMode,
                 );
-
                 taskManager.loadSessionData(newSessionId, [], [], [], SessionDomain.Video);
                 setCurrentSessionId(newSessionId);
                 setPendingNewSession(false);
@@ -236,7 +221,6 @@ export function useVideoSession(
             }
         }
     }, [currentWorkflowMode, createVideoSessionWithPath, language]);
-
     const handleSendMessage = useCallback(async (
         userMessage: string,
         sessionId: string,
@@ -245,7 +229,6 @@ export function useVideoSession(
     ) => {
         const now = new Date();
         let finalSessionId = sessionId || currentSessionId;
-
         if (finalSessionId && !finalSessionId.startsWith("pending_") &&
             !finalSessionId.startsWith("video_session_") && !finalSessionId.startsWith("temp_")) {
             console.error(
@@ -253,25 +236,21 @@ export function useVideoSession(
             );
             return;
         }
-
         if (finalSessionId && finalSessionId.startsWith("pending_")) {
             const newSessionId = `video_session_${Date.now()}`;
             const sessionTitle = userMessage.length > 30
                 ? userMessage.slice(0, 30) + "..."
                 : userMessage;
-
             const tempUserMessages = taskManager.getUserMessagesBySession(finalSessionId, SessionDomain.Video);
             const tempAssistantMessages = taskManager.getAssistantMessagesBySessionAsArray(finalSessionId, SessionDomain.Video);
             const tempTasksMap = taskManager.getTasksBySession(finalSessionId, SessionDomain.Video);
             const tempTasks = tempTasksMap ? Array.from(tempTasksMap.values()) : [];
-
             // 判断 pending 时是否有文件
             const fileTypeStr = pendingVideoPath ? getFileType(pendingVideoPath) : null;
             let videoSourcePath: string | undefined = undefined;
             let audioSourcePaths: string[] | undefined = undefined;
             let imageSourcePaths: string[] | undefined = undefined;
             let textSourcePaths: string[] | undefined = undefined;
-
             if (pendingVideoPath && fileTypeStr === "video") {
                 videoSourcePath = pendingVideoPath;
             } else if (pendingVideoPath && fileTypeStr === "audio") {
@@ -283,7 +262,6 @@ export function useVideoSession(
             } else if (pendingVideoPath) {
                 videoSourcePath = pendingVideoPath;
             }
-
             await createVideoSessionWithPath(
                 newSessionId,
                 sessionTitle,
@@ -294,7 +272,6 @@ export function useVideoSession(
                 textSourcePaths,
                 workflowMode || currentWorkflowMode,
             );
-
             taskManager.loadSessionData(newSessionId, tempTasks, tempUserMessages, tempAssistantMessages, SessionDomain.Video);
             taskManager.deleteSession(finalSessionId, SessionDomain.Video);
             finalSessionId = newSessionId;
@@ -404,7 +381,6 @@ export function useVideoSession(
             taskManager.addAssistantMessageToSession(finalSessionId, errorMsg, SessionDomain.Video);
         }
     }, [currentSessionId, t, language, currentWorkflowMode, pendingVideoPath, pendingVideoTitle, createVideoSessionWithPath]);
-
     const handleSwitchSession = useCallback(async (sessionId: string) => {
         if (sessionId === currentSessionId) return;
         if (!sessionId.startsWith("video_session_") && !sessionId.startsWith("pending_")) {
@@ -460,25 +436,20 @@ export function useVideoSession(
             console.error("Failed to load video config:", error);
         }
     }, [currentSessionId]);
-
     const shouldShowWelcome = useCallback(() => {
         if (isLoading) return true;
         if (!currentSessionId) return true;
-
         if (currentSessionId.startsWith("pending_")) {
             const userMessages = taskManager.getUserMessagesBySession(currentSessionId, SessionDomain.Video);
             const assistantMessages = taskManager.getAssistantMessagesBySessionAsArray(currentSessionId, SessionDomain.Video);
             return userMessages.length === 0 && assistantMessages.length === 0;
         }
-
         const userMessages = taskManager.getUserMessagesBySession(currentSessionId, SessionDomain.Video);
         const assistantMessages = taskManager.getAssistantMessagesBySessionAsArray(currentSessionId, SessionDomain.Video);
         return userMessages.length === 0 && assistantMessages.length === 0;
     }, [isLoading, currentSessionId]);
-
     const resetSession = useCallback(async () => {
         if (!currentSessionId || currentSessionId.startsWith("pending_")) return;
-
         try {
             await hippoxCommands.resetSession();
             taskManager.loadSessionData(currentSessionId, [], [], [], SessionDomain.Video);
@@ -486,20 +457,17 @@ export function useVideoSession(
             console.error("reset session error:", error);
         }
     }, [currentSessionId]);
-
     const createSessionWithVideo = useCallback(async (
         filePath: string,
         fileTitle: string
     ) => {
         const newSessionId = `video_session_${Date.now()}`;
         const title = fileTitle || "Video Session";
-
         const fileTypeStr = getFileType(filePath);
         let videoSourcePath: string | undefined = undefined;
         let audioSourcePaths: string[] | undefined = undefined;
         let imageSourcePaths: string[] | undefined = undefined;
         let textSourcePaths: string[] | undefined = undefined;
-
         if (fileTypeStr === "video") {
             videoSourcePath = filePath;
         } else if (fileTypeStr === "audio") {
@@ -511,7 +479,6 @@ export function useVideoSession(
         } else {
             videoSourcePath = filePath;
         }
-
         await createVideoSessionWithPath(
             newSessionId,
             title,
@@ -522,7 +489,6 @@ export function useVideoSession(
             textSourcePaths,
             currentWorkflowMode,
         );
-
         taskManager.loadSessionData(newSessionId, [], [], [], SessionDomain.Video);
         setCurrentSessionId(newSessionId);
         setPendingNewSession(false);
@@ -534,7 +500,6 @@ export function useVideoSession(
         }));
         return newSessionId;
     }, [currentWorkflowMode, createVideoSessionWithPath]);
-
     return {
         currentSessionId,
         isLoading,

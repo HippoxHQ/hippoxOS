@@ -13,33 +13,16 @@ interface TaskBubbleProps {
   style?: React.CSSProperties;
 }
 
-export const TaskBubble: React.FC<TaskBubbleProps> = ({
-  allTasks,
-  activeNavIndex,
-  onScrollToTask,
-  t,
-  onMouseEnter,
-  onMouseLeave,
-  style,
-}) => {
+export const TaskBubble: React.FC<TaskBubbleProps> = ({ allTasks, activeNavIndex, onScrollToTask, t, onMouseEnter, onMouseLeave, style }) => {
   return (
-    <div
-      style={{ ...styles.bubbleContainer, ...style }}
-      onMouseEnter={onMouseEnter}
-      onMouseLeave={onMouseLeave}
-    >
+    <div style={{ ...styles.bubbleContainer, ...style }} onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>
       <div style={styles.bubbleHeader}>
         {t("terminal.taskList") || "Task List"} ({allTasks.length})
       </div>
       <div style={styles.bubbleContent}>
         {allTasks.map((task, idx) => {
           const isActive = activeNavIndex === idx;
-          const preview =
-            task.task_id === WELCOME_TASK_ID
-              ? "🎉 " + t("terminal.welcome.title")
-              : task.user_input.length > 45
-                ? task.user_input.substring(0, 45) + "..."
-                : task.user_input;
+          const preview = task.task_id === WELCOME_TASK_ID ? "🎉 " + t("terminal.welcome.title") : task.user_input.length > 45 ? task.user_input.substring(0, 45) + "..." : task.user_input;
           return (
             <div
               key={task.task_id}
@@ -49,8 +32,7 @@ export const TaskBubble: React.FC<TaskBubbleProps> = ({
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.background = "var(--hover-bg, #2a2a2a)";
-                e.currentTarget.style.borderLeftColor =
-                  "var(--accent-color, #00aaff)";
+                e.currentTarget.style.borderLeftColor = "var(--accent-color, #00aaff)";
               }}
               onMouseLeave={(e) => {
                 if (!isActive) {
@@ -60,15 +42,11 @@ export const TaskBubble: React.FC<TaskBubbleProps> = ({
               }}
               onClick={() => onScrollToTask(idx)}
             >
-              <span style={styles.bubbleItemIcon}>
-                {getTaskStatusIcon(task.status)}
-              </span>
+              <span style={styles.bubbleItemIcon}>{getTaskStatusIcon(task.status)}</span>
               <span style={styles.bubbleItemText} title={preview}>
                 {preview}
               </span>
-              <span style={styles.bubbleItemStatus}>
-                {getTaskStatusText(t, task.status)}
-              </span>
+              <span style={styles.bubbleItemStatus}>{getTaskStatusText(t, task.status)}</span>
             </div>
           );
         })}

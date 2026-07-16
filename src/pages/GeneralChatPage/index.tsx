@@ -3,13 +3,7 @@ import { taskManager } from "../../core/TaskManager";
 import { SessionDomain, TaskStatusEnum } from "../../core/types";
 import { showTooltipOnElement } from "../../components/Tooltip";
 import HistoryChatPanel, { HistoryChatPanelRef } from "./HistoryChatPanel";
-import {
-  CollapseAllIcon2,
-  ExpandAllIcon2,
-  MessageCircleIcon,
-  MonitorIcon,
-  ScrollTextIcon,
-} from "../../icons";
+import { CollapseAllIcon2, ExpandAllIcon2, MessageCircleIcon, MonitorIcon, ScrollTextIcon } from "../../icons";
 import { configCommands } from "../../command/config";
 import ChatPanel from "./ChatPanel";
 import TerminalPanel from "./TerminalPanel";
@@ -26,12 +20,7 @@ interface GeneralChatPageProps {
   currentSessionId?: string;
   onSwitchSession?: (sessionId: string, domain: SessionDomain) => void;
   onCloseSkillsManager?: () => void;
-  onSendMessage?: (
-    message: string,
-    sessionId: string,
-    files?: any[],
-    workflowMode?: string,
-  ) => void;
+  onSendMessage?: (message: string, sessionId: string, files?: any[], workflowMode?: string) => void;
   onFileClick?: (file: any) => void;
   language?: "zh" | "en";
   onDragOverInputChange?: (isDragging: boolean) => void;
@@ -46,11 +35,7 @@ interface CollapsedTaskListProps {
   isLeft: boolean;
 }
 
-const CollapsedTaskList: React.FC<CollapsedTaskListProps> = ({
-  tasks,
-  activeNavIndex,
-  onLocateTask,
-}) => {
+const CollapsedTaskList: React.FC<CollapsedTaskListProps> = ({ tasks, activeNavIndex, onLocateTask }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [showUp, setShowUp] = useState(false);
   const [showDown, setShowDown] = useState(false);
@@ -254,9 +239,7 @@ const CollapsedTaskList: React.FC<CollapsedTaskListProps> = ({
                 width: "30px",
                 height: "30px",
                 borderRadius: "8px",
-                border: isActive
-                  ? "1px solid var(--accent-color)"
-                  : "1px solid transparent",
+                border: isActive ? "1px solid var(--accent-color)" : "1px solid transparent",
                 background: isActive ? "var(--accent-color)" : "transparent",
                 color: isActive ? "white" : "var(--text-secondary)",
                 cursor: "pointer",
@@ -279,10 +262,7 @@ const CollapsedTaskList: React.FC<CollapsedTaskListProps> = ({
                   e.currentTarget.style.color = "var(--text-primary)";
                   e.currentTarget.style.borderColor = "var(--border-color)";
                 }
-                showTooltipOnElement(
-                  e.currentTarget,
-                  task.user_input || "Task",
-                );
+                showTooltipOnElement(e.currentTarget, task.user_input || "Task");
               }}
               onMouseLeave={(e) => {
                 if (!isActive) {
@@ -356,11 +336,7 @@ interface CollapsedHistoryListProps {
   onSelectSession: (sessionId: string) => void;
 }
 
-const CollapsedHistoryList: React.FC<CollapsedHistoryListProps> = ({
-  sessions,
-  currentSessionId,
-  onSelectSession,
-}) => {
+const CollapsedHistoryList: React.FC<CollapsedHistoryListProps> = ({ sessions, currentSessionId, onSelectSession }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [showUp, setShowUp] = useState(false);
   const [showDown, setShowDown] = useState(false);
@@ -541,9 +517,7 @@ const CollapsedHistoryList: React.FC<CollapsedHistoryListProps> = ({
                 width: "30px",
                 height: "30px",
                 borderRadius: "8px",
-                border: isActive
-                  ? "1px solid var(--accent-color)"
-                  : "1px solid transparent",
+                border: isActive ? "1px solid var(--accent-color)" : "1px solid transparent",
                 background: isActive ? "var(--accent-color)" : "transparent",
                 color: isActive ? "white" : "var(--text-secondary)",
                 cursor: "pointer",
@@ -566,10 +540,7 @@ const CollapsedHistoryList: React.FC<CollapsedHistoryListProps> = ({
                   e.currentTarget.style.color = "var(--text-primary)";
                   e.currentTarget.style.borderColor = "var(--border-color)";
                 }
-                showTooltipOnElement(
-                  e.currentTarget,
-                  session.title || "Untitled",
-                );
+                showTooltipOnElement(e.currentTarget, session.title || "Untitled");
               }}
               onMouseLeave={(e) => {
                 if (!isActive) {
@@ -586,9 +557,7 @@ const CollapsedHistoryList: React.FC<CollapsedHistoryListProps> = ({
                     top: "1px",
                     right: "1px",
                     fontSize: "6px",
-                    color: isActive
-                      ? "rgba(255,255,255,0.8)"
-                      : "var(--accent-color)",
+                    color: isActive ? "rgba(255,255,255,0.8)" : "var(--accent-color)",
                   }}
                 >
                   📌
@@ -674,9 +643,7 @@ const GeneralChatPage: React.FC<GeneralChatPageProps> = ({
   const historyPanelRef = useRef<HistoryChatPanelRef>(null);
   const [historySessions, setHistorySessions] = useState<any[]>([]);
 
-  const [layoutSwapMode, setLayoutSwapMode] = useState<
-    "chat-left" | "terminal-left"
-  >("chat-left");
+  const [layoutSwapMode, setLayoutSwapMode] = useState<"chat-left" | "terminal-left">("chat-left");
 
   const [isLayoutLoading, setIsLayoutLoading] = useState(true);
   const isDragging = useRef(false);
@@ -698,16 +665,7 @@ const GeneralChatPage: React.FC<GeneralChatPageProps> = ({
     />
   );
 
-  const rightPanel = (
-    <TerminalPanel
-      logs={executionLogs || []}
-      onClearLogs={onClearLogs || (() => {})}
-      t={t}
-      currentSessionId={currentSessionId}
-      onFileClick={onFileClick}
-      isLeftPanel={false}
-    />
-  );
+  const rightPanel = <TerminalPanel logs={executionLogs || []} onClearLogs={onClearLogs || (() => {})} t={t} currentSessionId={currentSessionId} onFileClick={onFileClick} isLeftPanel={false} />;
 
   useEffect(() => {
     if (currentSessionId) {
@@ -720,8 +678,7 @@ const GeneralChatPage: React.FC<GeneralChatPageProps> = ({
   useEffect(() => {
     const loadLayoutMode = async () => {
       try {
-        const mode =
-          await configCommands.getSettingsGeneralChatLayoutSwapMode();
+        const mode = await configCommands.getSettingsGeneralChatLayoutSwapMode();
         if (mode === "terminal-left" || mode === "chat-left") {
           setLayoutSwapMode(mode);
         }
@@ -740,23 +697,16 @@ const GeneralChatPage: React.FC<GeneralChatPageProps> = ({
         setLayoutSwapMode(mode);
       }
     };
-    window.addEventListener(
-      "layout-swap-mode-changed",
-      handleLayoutChange as EventListener,
-    );
+    window.addEventListener("layout-swap-mode-changed", handleLayoutChange as EventListener);
     return () => {
-      window.removeEventListener(
-        "layout-swap-mode-changed",
-        handleLayoutChange as EventListener,
-      );
+      window.removeEventListener("layout-swap-mode-changed", handleLayoutChange as EventListener);
     };
   }, []);
 
   useEffect(() => {
     const loadSessions = async () => {
       try {
-        const { sessionCommands } =
-          await import("../../command/session/general");
+        const { sessionCommands } = await import("../../command/session/general");
         const list = await sessionCommands.listSessions();
         setHistorySessions(list);
       } catch (error) {}
@@ -773,15 +723,12 @@ const GeneralChatPage: React.FC<GeneralChatPageProps> = ({
 
   useEffect(() => {
     const savedHistoryWidth = localStorage.getItem("hippox-history-width");
-    const savedHistoryCollapsed = localStorage.getItem(
-      "hippox-history-collapsed",
-    );
+    const savedHistoryCollapsed = localStorage.getItem("hippox-history-collapsed");
     const savedLeftCollapsed = localStorage.getItem("hippox-left-collapsed");
     const savedRightCollapsed = localStorage.getItem("hippox-right-collapsed");
     const savedLeftWidth = localStorage.getItem("hippox-left-width");
     if (savedHistoryWidth) setHistoryWidth(parseFloat(savedHistoryWidth));
-    if (savedHistoryCollapsed)
-      setHistoryCollapsed(savedHistoryCollapsed === "true");
+    if (savedHistoryCollapsed) setHistoryCollapsed(savedHistoryCollapsed === "true");
     if (savedLeftCollapsed) setLeftCollapsed(savedLeftCollapsed === "true");
     if (savedRightCollapsed) setRightCollapsed(savedRightCollapsed === "true");
     if (savedLeftWidth) setLeftWidth(parseFloat(savedLeftWidth));
@@ -871,10 +818,7 @@ const GeneralChatPage: React.FC<GeneralChatPageProps> = ({
     [onSwitchSession],
   );
 
-  const handleMouseDown = (
-    e: React.MouseEvent,
-    type: "horizontal" | "history",
-  ) => {
+  const handleMouseDown = (e: React.MouseEvent, type: "horizontal" | "history") => {
     if (leftCollapsed || rightCollapsed || isFunctionPanelMaximized) return;
     if (type === "history" && historyCollapsed) return;
 
@@ -883,8 +827,7 @@ const GeneralChatPage: React.FC<GeneralChatPageProps> = ({
     dragStartX.current = e.clientX;
     dragStartHistoryWidth.current = historyCollapsed ? 45 : historyWidth;
     dragStartLeftWidth.current = leftWidth;
-    dragStartContainerRect.current =
-      containerRef.current?.getBoundingClientRect() || null;
+    dragStartContainerRect.current = containerRef.current?.getBoundingClientRect() || null;
 
     document.body.style.cursor = "col-resize";
     document.body.style.userSelect = "none";
@@ -894,16 +837,13 @@ const GeneralChatPage: React.FC<GeneralChatPageProps> = ({
   const handleMouseMove = (e: MouseEvent) => {
     if (!isDragging.current || !containerRef.current) return;
     const deltaX = e.clientX - dragStartX.current;
-    const containerRect =
-      dragStartContainerRect.current ||
-      containerRef.current.getBoundingClientRect();
+    const containerRect = dragStartContainerRect.current || containerRef.current.getBoundingClientRect();
     const containerWidth = containerRect.width;
     if (dragType.current === "horizontal") {
       const historyWidthPx = dragStartHistoryWidth.current;
       const mainAreaWidth = containerWidth - historyWidthPx;
       if (mainAreaWidth <= 0) return;
-      const startLeftWidthPx =
-        (dragStartLeftWidth.current / 100) * mainAreaWidth;
+      const startLeftWidthPx = (dragStartLeftWidth.current / 100) * mainAreaWidth;
       let newWidthPx = startLeftWidthPx + deltaX;
       const minWidthPx = mainAreaWidth * 0.25;
       const maxWidthPx = mainAreaWidth * 0.75;
@@ -934,13 +874,7 @@ const GeneralChatPage: React.FC<GeneralChatPageProps> = ({
     };
   }, []);
 
-  const renderCollapsedSidebar = (
-    isLeft: boolean,
-    title: string,
-    icon: React.ReactNode,
-    onToggle: () => void,
-    expandIcon?: string,
-  ) => {
+  const renderCollapsedSidebar = (isLeft: boolean, title: string, icon: React.ReactNode, onToggle: () => void, expandIcon?: string) => {
     const allTasks = taskManager.getAllTasks();
     const iconChar = expandIcon || (isLeft ? "≫" : "≪");
 
@@ -1044,13 +978,7 @@ const GeneralChatPage: React.FC<GeneralChatPageProps> = ({
   const getLeftPanelContent = () => {
     const isTerminalLeft = layoutSwapMode === "terminal-left";
     if (leftCollapsed || isFunctionPanelMaximized) {
-      return renderCollapsedSidebar(
-        true,
-        isTerminalLeft ? rightTitle : leftTitle,
-        isTerminalLeft ? rightIcon : leftIcon,
-        handleToggleLeft,
-        "≫",
-      );
+      return renderCollapsedSidebar(true, isTerminalLeft ? rightTitle : leftTitle, isTerminalLeft ? rightIcon : leftIcon, handleToggleLeft, "≫");
     }
     const panel = isTerminalLeft ? rightPanel : leftPanel;
     if (React.isValidElement(panel)) {
@@ -1067,13 +995,7 @@ const GeneralChatPage: React.FC<GeneralChatPageProps> = ({
   const getRightPanelContent = () => {
     const isTerminalLeft = layoutSwapMode === "terminal-left";
     if (rightCollapsed || isFunctionPanelMaximized) {
-      return renderCollapsedSidebar(
-        false,
-        isTerminalLeft ? leftTitle : rightTitle,
-        isTerminalLeft ? leftIcon : rightIcon,
-        handleToggleRight,
-        "≪",
-      );
+      return renderCollapsedSidebar(false, isTerminalLeft ? leftTitle : rightTitle, isTerminalLeft ? leftIcon : rightIcon, handleToggleRight, "≪");
     }
     const panel = isTerminalLeft ? leftPanel : rightPanel;
     if (React.isValidElement(panel)) {
@@ -1163,11 +1085,7 @@ const GeneralChatPage: React.FC<GeneralChatPageProps> = ({
               <ScrollTextIcon size={16} />
             </span>
           </div>
-          <CollapsedHistoryList
-            sessions={historySessions}
-            currentSessionId={currentSessionId}
-            onSelectSession={handleSessionSelect}
-          />
+          <CollapsedHistoryList sessions={historySessions} currentSessionId={currentSessionId} onSelectSession={handleSessionSelect} />
         </div>
       );
     }
@@ -1237,17 +1155,9 @@ const GeneralChatPage: React.FC<GeneralChatPageProps> = ({
                 e.currentTarget.style.color = "var(--text-secondary)";
                 e.currentTarget.style.background = "none";
               }}
-              title={
-                isHistoryExpanded
-                  ? t("history.collapseAll") || "收起全部"
-                  : t("history.expandAll") || "展开全部"
-              }
+              title={isHistoryExpanded ? t("history.collapseAll") || "收起全部" : t("history.expandAll") || "展开全部"}
             >
-              {isHistoryExpanded ? (
-                <CollapseAllIcon2 size={16} />
-              ) : (
-                <ExpandAllIcon2 size={16} />
-              )}
+              {isHistoryExpanded ? <CollapseAllIcon2 size={16} /> : <ExpandAllIcon2 size={16} />}
             </button>
             <button
               style={{
@@ -1274,11 +1184,7 @@ const GeneralChatPage: React.FC<GeneralChatPageProps> = ({
                 e.currentTarget.style.color = "var(--text-secondary)";
                 e.currentTarget.style.background = "none";
               }}
-              title={
-                isHistoryAtBottom
-                  ? t("history.scrollToTop") || "滚动到顶部"
-                  : t("history.scrollToBottom") || "滚动到底部"
-              }
+              title={isHistoryAtBottom ? t("history.scrollToTop") || "滚动到顶部" : t("history.scrollToBottom") || "滚动到底部"}
             >
               {isHistoryAtBottom ? "▲" : "▼"}
             </button>
@@ -1323,13 +1229,7 @@ const GeneralChatPage: React.FC<GeneralChatPageProps> = ({
           </div>
         </div>
         <div style={{ flex: 1, overflow: "hidden" }}>
-          <HistoryChatPanel
-            ref={historyPanelRef}
-            t={t}
-            onSessionSelect={handleSessionSelect}
-            currentSessionId={currentSessionId}
-            onCloseSkillsManager={onCloseSkillsManager}
-          />
+          <HistoryChatPanel ref={historyPanelRef} t={t} onSessionSelect={handleSessionSelect} currentSessionId={currentSessionId} onCloseSkillsManager={onCloseSkillsManager} />
         </div>
       </div>
     );
@@ -1338,17 +1238,12 @@ const GeneralChatPage: React.FC<GeneralChatPageProps> = ({
   const leftPanelContent = getLeftPanelContent();
   const rightPanelContent = getRightPanelContent();
   const historyPanelContent = getHistoryPanelContent();
-  const historyWidthPx =
-    historyCollapsed || isFunctionPanelMaximized ? 45 : historyWidth;
+  const historyWidthPx = historyCollapsed || isFunctionPanelMaximized ? 45 : historyWidth;
   const isLeftCollapsed = leftCollapsed || isFunctionPanelMaximized;
   const isRightCollapsed = rightCollapsed || isFunctionPanelMaximized;
 
   return (
-    <div
-      className="panels-container horizontal-layout"
-      ref={containerRef}
-      style={{ display: "flex", flex: 1, overflow: "hidden" }}
-    >
+    <div className="panels-container horizontal-layout" ref={containerRef} style={{ display: "flex", flex: 1, overflow: "hidden" }}>
       <style>{`
         .resize-handle-vertical {
           position: relative;
@@ -1417,9 +1312,7 @@ const GeneralChatPage: React.FC<GeneralChatPageProps> = ({
               onMouseDown={(e) => handleMouseDown(e, "history")}
               style={{
                 width: "0px",
-                background: isHistoryResizeHover
-                  ? "var(--scrollbar-thumb)"
-                  : "var(--border-color)",
+                background: isHistoryResizeHover ? "var(--scrollbar-thumb)" : "var(--border-color)",
                 cursor: "col-resize",
                 flexShrink: 0,
                 position: "relative",
@@ -1451,16 +1344,8 @@ const GeneralChatPage: React.FC<GeneralChatPageProps> = ({
       <div
         className="panel-left"
         style={{
-          flex: isLeftCollapsed
-            ? "0 0 45px"
-            : isRightCollapsed
-              ? "1"
-              : "0 0 auto",
-          width: isLeftCollapsed
-            ? "45px"
-            : isRightCollapsed
-              ? "auto"
-              : `${leftWidth}%`,
+          flex: isLeftCollapsed ? "0 0 45px" : isRightCollapsed ? "1" : "0 0 auto",
+          width: isLeftCollapsed ? "45px" : isRightCollapsed ? "auto" : `${leftWidth}%`,
           overflow: "hidden",
           minWidth: isLeftCollapsed ? "45px" : "150px",
           display: "flex",
@@ -1476,9 +1361,7 @@ const GeneralChatPage: React.FC<GeneralChatPageProps> = ({
           onMouseDown={(e) => handleMouseDown(e, "horizontal")}
           style={{
             width: "1px",
-            background: isResizeHover
-              ? "var(--scrollbar-thumb)"
-              : "var(--border-color)",
+            background: isResizeHover ? "var(--scrollbar-thumb)" : "var(--border-color)",
             cursor: "col-resize",
             flexShrink: 0,
             position: "relative",

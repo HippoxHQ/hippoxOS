@@ -1,6 +1,5 @@
 import { configCommands } from "../command/config";
 import { LlmInstance } from "../command/llm";
-
 export interface ModelStatus {
     instanceId: string;
     name: string;
@@ -13,16 +12,13 @@ export interface ModelStatus {
     lastCheck: string;
     error?: string;
 }
-
 class ModelService {
     private modelStatuses: Map<string, ModelStatus> = new Map();
     private listeners: Set<(statuses: Map<string, ModelStatus>) => void> = new Set();
     private checkInterval: NodeJS.Timeout | null = null;
-
     constructor() {
         this.startHealthCheck();
     }
-
     async startHealthCheck(intervalMs: number = 60000) {
         if (this.checkInterval) {
             clearInterval(this.checkInterval);
@@ -30,29 +26,24 @@ class ModelService {
         await this.checkAllModels();
         this.checkInterval = setInterval(() => this.checkAllModels(), intervalMs);
     }
-
     stopHealthCheck() {
         if (this.checkInterval) {
             clearInterval(this.checkInterval);
             this.checkInterval = null;
         }
     }
-
     async checkAllModels() {
         try {
             const instances = await configCommands.getLlmInstances();
             const instancesList = Object.values(instances);
-
             for (const instance of instancesList) {
                 await this.checkModelStatus(instance);
             }
-
             this.notifyListeners();
         } catch (error) {
             console.error('Failed to check models:', error);
         }
     }
-
     private async checkModelStatus(instance: LlmInstance) {
         const status: ModelStatus = {
             instanceId: instance.id,
@@ -61,11 +52,9 @@ class ModelService {
             tokenUsage: { used: 0, limit: 100000, percentage: 0 },
             lastCheck: new Date().toISOString(),
         };
-
         try {
             const isOnline = await this.pingModel(instance);
             status.status = isOnline ? 'online' : 'offline';
-
             const tokenUsage = await this.getTokenUsage(instance);
             if (tokenUsage) {
                 status.tokenUsage = tokenUsage;
@@ -74,15 +63,12 @@ class ModelService {
             status.status = 'offline';
             status.error = error instanceof Error ? error.message : 'Unknown error';
         }
-
         this.modelStatuses.set(instance.id, status);
     }
-
     private async pingModel(instance: LlmInstance): Promise<boolean> {
         try {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 5000);
-
             const response = await fetch(`${instance.api_base}/models`, {
                 method: 'GET',
                 headers: {
@@ -91,7 +77,6 @@ class ModelService {
                 },
                 signal: controller.signal,
             });
-
             clearTimeout(timeoutId);
             return response.ok;
         } catch (error) {
@@ -99,11 +84,9 @@ class ModelService {
             return false;
         }
     }
-
     private async getTokenUsage(instance: LlmInstance): Promise<{ used: number; limit: number; percentage: number } | null> {
         const key = `token_usage_${instance.id}`;
         const stored = localStorage.getItem(key);
-
         if (stored) {
             try {
                 return JSON.parse(stored);
@@ -118,7 +101,6 @@ class ModelService {
             percentage: (used / limit) * 100,
         };
     }
-
     async updateTokenUsage(instanceId: string, used: number, limit: number) {
         const status = this.modelStatuses.get(instanceId);
         if (status) {
@@ -128,29 +110,23 @@ class ModelService {
                 percentage: (used / limit) * 100,
             };
             status.lastCheck = new Date().toISOString();
-
             localStorage.setItem(`token_usage_${instanceId}`, JSON.stringify(status.tokenUsage));
             this.notifyListeners();
         }
     }
-
     getModelStatus(instanceId: string): ModelStatus | undefined {
         return this.modelStatuses.get(instanceId);
     }
-
     getAllModelStatuses(): Map<string, ModelStatus> {
         return new Map(this.modelStatuses);
     }
-
     subscribe(listener: (statuses: Map<string, ModelStatus>) => void): () => void {
         this.listeners.add(listener);
         listener(this.modelStatuses);
         return () => this.listeners.delete(listener);
     }
-
     private notifyListeners() {
         this.listeners.forEach(listener => listener(this.modelStatuses));
     }
 }
-
 export const modelService = new ModelService();

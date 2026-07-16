@@ -4,7 +4,6 @@ use crate::state::AppState;
 use crate::types::Role;
 use memcontext::MemContext;
 use tauri::State;
-
 fn compress_history_to_natural_language(messages: &Vec<memcontext::Message>, session_name: &str) -> String {
     if messages.is_empty() {
         return format!("[Session '{}' has no conversation history]", session_name);
@@ -30,7 +29,6 @@ fn compress_history_to_natural_language(messages: &Vec<memcontext::Message>, ses
     result.push_str("\nPlease remember the above conversation content and continue answering the user's questions based on this historical context.");
     result
 }
-
 pub async fn recall_and_compress_history(mem: &MemContext, session_id: &str, limit: Option<usize>) -> Result<String, String> {
     let limit = limit.unwrap_or(50);
     let all_msgs = mem.recall_time_series(session_id, 10000).await.map_err(|e| e.to_string())?;
@@ -45,7 +43,6 @@ pub async fn recall_and_compress_history(mem: &MemContext, session_id: &str, lim
     let compressed = compress_history_to_natural_language(&recall_result.messages, session_id);
     Ok(compressed)
 }
-
 // pub async fn recall_session_context(
 //     mem: &MemContext,
 //     session_id: &str,

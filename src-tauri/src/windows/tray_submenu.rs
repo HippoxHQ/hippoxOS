@@ -1,8 +1,6 @@
 use crate::types::{WindowIdentifier, WindowType};
 use tauri::{AppHandle, Emitter, Manager, Runtime, WebviewWindowBuilder, WindowEvent};
-
 pub struct SubmenuManager;
-
 impl SubmenuManager {
     pub fn create_submenu_window<R: Runtime>(
         app_handle: &AppHandle<R>,
@@ -16,7 +14,6 @@ impl SubmenuManager {
         }
         let tray_window_label = format!("{}", WindowIdentifier::Tray);
         let tray_window = app_handle.get_webview_window(&tray_window_label);
-
         let (x, y) = if let Some(window) = tray_window {
             let position = window.outer_position()?;
             (position.x as f64, position.y as f64)
@@ -82,7 +79,6 @@ impl SubmenuManager {
         });
         Ok(())
     }
-
     fn get_mouse_position() -> (i32, i32) {
         #[cfg(target_os = "windows")]
         {

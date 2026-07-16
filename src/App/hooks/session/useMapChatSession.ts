@@ -7,7 +7,6 @@ import { TaskInfo, UploadFile, TaskStatusEnum, SessionDomain } from "../../../co
 import { Language, ChatMessage, RoleEnum, MessageStatus } from "../../../types/types";
 import { workspaceCommands } from "../../../command/workspace";
 import { mapSessionCommands } from "../../../command/session/map";
-
 export function useMapSession(
     language: Language,
     isConfigLoaded: boolean,
@@ -18,14 +17,12 @@ export function useMapSession(
     const [taskManagerVersion, setTaskManagerVersion] = useState(0);
     const [pendingNewSession, setPendingNewSession] = useState(false);
     const { t } = useTranslation(language);
-
     useEffect(() => {
         const unsubscribe = taskManager.subscribe(() => {
             setTaskManagerVersion((prev) => prev + 1);
         });
         return unsubscribe;
     }, []);
-
     useEffect(() => {
         if (
             !isLoading &&
@@ -45,7 +42,6 @@ export function useMapSession(
                 const userMessages = taskManager.getUserMessagesBySession(currentSessionId, SessionDomain.Map);
                 const assistantMessages = taskManager.getAssistantMessagesBySessionAsArray(currentSessionId, SessionDomain.Map);
                 const tasksArray: TaskInfo[] = tasksMap ? Array.from(tasksMap.values()) : [];
-
                 if (userMessages.length === 0 && assistantMessages.length === 0) {
                     return;
                 }
@@ -58,7 +54,6 @@ export function useMapSession(
             return () => clearTimeout(saveTimer);
         }
     }, [currentSessionId, isLoading, taskManagerVersion]);
-
     useEffect(() => {
         if (isConfigLoaded) {
             mapSessionCommands.listMapSessions()
@@ -99,7 +94,6 @@ export function useMapSession(
                 });
         }
     }, [isConfigLoaded]);
-
     const handleSendMessage = useCallback(async (
         userMessage: string,
         sessionId: string,
@@ -108,7 +102,6 @@ export function useMapSession(
     ) => {
         const now = new Date();
         let finalSessionId = sessionId || currentSessionId;
-
         if (finalSessionId && !finalSessionId.startsWith("pending_") &&
             !finalSessionId.startsWith("map_session_") && !finalSessionId.startsWith("temp_")) {
             console.error(
@@ -116,18 +109,15 @@ export function useMapSession(
             );
             return;
         }
-
         if (finalSessionId && finalSessionId.startsWith("pending_")) {
             const newSessionId = `map_session_${Date.now()}`;
             const sessionTitle = userMessage.length > 30
                 ? userMessage.slice(0, 30) + "..."
                 : userMessage;
-
             const tempUserMessages = taskManager.getUserMessagesBySession(finalSessionId, SessionDomain.Map);
             const tempAssistantMessages = taskManager.getAssistantMessagesBySessionAsArray(finalSessionId, SessionDomain.Map);
             const tempTasksMap = taskManager.getTasksBySession(finalSessionId, SessionDomain.Map);
             const tempTasks = tempTasksMap ? Array.from(tempTasksMap.values()) : [];
-
             await mapSessionCommands.createMapSession(
                 newSessionId,
                 sessionTitle,
@@ -136,20 +126,17 @@ export function useMapSession(
                 [],
                 workflowMode || currentWorkflowMode,
             );
-
             taskManager.loadSessionData(newSessionId, tempTasks, tempUserMessages, tempAssistantMessages, SessionDomain.Map);
             taskManager.deleteSession(finalSessionId, SessionDomain.Map);
             finalSessionId = newSessionId;
             setCurrentSessionId(newSessionId);
             window.dispatchEvent(new CustomEvent("map-session-created"));
             setPendingNewSession(false);
-
         } else if (!finalSessionId) {
             const newSessionId = `map_session_${Date.now()}`;
             const sessionTitle = userMessage.length > 30
                 ? userMessage.slice(0, 30) + "..."
                 : userMessage;
-
             await mapSessionCommands.createMapSession(
                 newSessionId,
                 sessionTitle,
@@ -158,13 +145,11 @@ export function useMapSession(
                 [],
                 workflowMode || currentWorkflowMode,
             );
-
             taskManager.loadSessionData(newSessionId, [], [], [], SessionDomain.Map);
             finalSessionId = newSessionId;
             setCurrentSessionId(newSessionId);
             window.dispatchEvent(new CustomEvent("map-session-created"));
         }
-
         const userMsg: ChatMessage = {
             id: `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
             role: RoleEnum.User,
@@ -173,13 +158,11 @@ export function useMapSession(
             files: files,
         };
         taskManager.addUserMessageToSession(finalSessionId, userMsg, SessionDomain.Map);
-
         try {
             const workspace = await workspaceCommands.getDefaultWorkspace();
             const workspacePath = workspace?.workspace_path;
             const systemPrompt = getSystemPrompt(language as 'zh' | 'en', workspacePath);
             const fullMessage = `${systemPrompt}\n\n User: ${userMessage}`;
-
             const mode = workflowMode || currentWorkflowMode;
             const taskId = await hippoxCommands.sendMessageAsync(
                 userMessage,
@@ -187,9 +170,7 @@ export function useMapSession(
                 finalSessionId,
                 mode,
             );
-
             const messageId = `llm_${taskId}`;
-
             const assistantMsg: ChatMessage = {
                 id: messageId,
                 role: RoleEnum.LLM,
@@ -198,7 +179,6 @@ export function useMapSession(
                 status: MessageStatus.Pending,
             };
             taskManager.addAssistantMessageToSession(finalSessionId, assistantMsg, SessionDomain.Map);
-
             const newTask: TaskInfo = {
                 task_id: taskId,
                 session_id: finalSessionId,
@@ -223,24 +203,20 @@ export function useMapSession(
             taskManager.addAssistantMessageToSession(finalSessionId, errorMsg, SessionDomain.Map);
         }
     }, [currentSessionId, t, language, currentWorkflowMode]);
-
     const handleNewSession = useCallback(async () => {
         const pendingId = `pending_${Date.now()}`;
         taskManager.loadSessionData(pendingId, [], [], [], SessionDomain.Map);
         setCurrentSessionId(pendingId);
         setPendingNewSession(true);
     }, []);
-
     const handleSwitchSession = useCallback(async (sessionId: string) => {
         if (sessionId === currentSessionId) return;
-
         if (!sessionId.startsWith("map_session_") && !sessionId.startsWith("pending_")) {
             console.warn(
                 `[useMapSession] Cannot switch to session "${sessionId}" - it does not belong to Map domain`
             );
             return;
         }
-
         const hasData = taskManager.hasSessionMessages(currentSessionId, SessionDomain.Map);
         if (currentSessionId && !currentSessionId.startsWith("pending_") && !currentSessionId.startsWith("temp_") && hasData) {
             try {
@@ -257,7 +233,6 @@ export function useMapSession(
                 console.error("Failed to save current session:", error);
             }
         }
-
         const hasTargetData = taskManager.getTasksBySession(sessionId, SessionDomain.Map) !== undefined;
         if (!hasTargetData) {
             const chatContent = await mapSessionCommands.loadChatContent(sessionId);
@@ -265,7 +240,6 @@ export function useMapSession(
             let userMessages: ChatMessage[] = [];
             let assistantMessages: ChatMessage[] = [];
             let tasks: TaskInfo[] = [];
-
             if (chatContent) {
                 const allMessages = chatContent as ChatMessage[];
                 userMessages = allMessages.filter(msg => msg.role === RoleEnum.User);
@@ -278,29 +252,23 @@ export function useMapSession(
         } else {
             taskManager.switchToSession(sessionId, SessionDomain.Map);
         }
-
         setCurrentSessionId(sessionId);
         window.dispatchEvent(new CustomEvent("map-session-created"));
     }, [currentSessionId]);
-
     const shouldShowWelcome = useCallback(() => {
         if (isLoading) return true;
         if (!currentSessionId) return true;
-
         if (currentSessionId.startsWith("pending_")) {
             const userMessages = taskManager.getUserMessagesBySession(currentSessionId, SessionDomain.Map);
             const assistantMessages = taskManager.getAssistantMessagesBySessionAsArray(currentSessionId, SessionDomain.Map);
             return userMessages.length === 0 && assistantMessages.length === 0;
         }
-
         const userMessages = taskManager.getUserMessagesBySession(currentSessionId, SessionDomain.Map);
         const assistantMessages = taskManager.getAssistantMessagesBySessionAsArray(currentSessionId, SessionDomain.Map);
         return userMessages.length === 0 && assistantMessages.length === 0;
     }, [isLoading, currentSessionId]);
-
     const resetSession = useCallback(async () => {
         if (!currentSessionId || currentSessionId.startsWith("pending_")) return;
-
         try {
             await hippoxCommands.resetSession();
             taskManager.loadSessionData(currentSessionId, [], [], [], SessionDomain.Map);
@@ -308,7 +276,6 @@ export function useMapSession(
             console.error("reset session error:", error);
         }
     }, [currentSessionId]);
-
     return {
         currentSessionId,
         isLoading,

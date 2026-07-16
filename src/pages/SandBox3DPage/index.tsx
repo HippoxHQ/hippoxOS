@@ -2,21 +2,13 @@ import React, { useState, useRef, useEffect, useCallback } from "react";
 import { taskManager } from "../../core/TaskManager";
 import { TaskStatusEnum } from "../../core/types";
 import { showTooltipOnElement } from "../../components/Tooltip";
-import {
-  CollapseAllIcon2,
-  ExpandAllIcon2,
-  MessageCircleIcon,
-  ScrollTextIcon,
-} from "../../icons";
+import { CollapseAllIcon2, ExpandAllIcon2, MessageCircleIcon, ScrollTextIcon } from "../../icons";
 import SandBox3DChatPanel from "./SandBox3DChatPanel";
-import HistorySandBox3DChatPanel, {
-  HistorySandBox3DChatPanelRef,
-} from "./HistorySandBox3DChatPanel";
+import HistorySandBox3DChatPanel, { HistorySandBox3DChatPanelRef } from "./HistorySandBox3DChatPanel";
 import { configCommands } from "../../command/config";
 import { useSandBox3DSession } from "../../App/hooks/session/useSandBox3DChatSession";
 import { sandbox3dSessionCommands } from "../../command/session/sandbox3d";
 import SandBox3D from "./SandBox3D";
-
 interface SandBox3DPageProps {
   layoutMode?: "horizontal" | "vertical";
   onLayoutModeChange?: (mode: "horizontal" | "vertical") => void;
@@ -35,22 +27,15 @@ interface SandBox3DPageProps {
   executionLogs?: any[];
   onClearLogs?: () => void;
 }
-
 interface CollapsedTaskListProps {
   tasks: any[];
   activeNavIndex: number;
   onLocateTask: (idx: number) => void;
 }
-
-const CollapsedTaskList: React.FC<CollapsedTaskListProps> = ({
-  tasks,
-  activeNavIndex,
-  onLocateTask,
-}) => {
+const CollapsedTaskList: React.FC<CollapsedTaskListProps> = ({ tasks, activeNavIndex, onLocateTask }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [showUp, setShowUp] = useState(false);
   const [showDown, setShowDown] = useState(false);
-
   const checkScroll = useCallback(() => {
     if (!containerRef.current) return;
     const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
@@ -59,7 +44,6 @@ const CollapsedTaskList: React.FC<CollapsedTaskListProps> = ({
     setShowUp(canScrollUp);
     setShowDown(canScrollDown);
   }, []);
-
   const updateScrollButtons = useCallback(() => {
     if (!containerRef.current) return;
     const { scrollHeight, clientHeight } = containerRef.current;
@@ -73,7 +57,6 @@ const CollapsedTaskList: React.FC<CollapsedTaskListProps> = ({
       setShowDown(false);
     }
   }, []);
-
   useEffect(() => {
     const el = containerRef.current;
     if (el) {
@@ -89,23 +72,19 @@ const CollapsedTaskList: React.FC<CollapsedTaskListProps> = ({
       };
     }
   }, [checkScroll, updateScrollButtons]);
-
   useEffect(() => {
     setTimeout(updateScrollButtons, 100);
   }, [tasks]);
-
   const scrollUp = () => {
     if (containerRef.current) {
       containerRef.current.scrollBy({ top: -200, behavior: "smooth" });
     }
   };
-
   const scrollDown = () => {
     if (containerRef.current) {
       containerRef.current.scrollBy({ top: 200, behavior: "smooth" });
     }
   };
-
   const getStatusColor = (status: string) => {
     switch (status) {
       case TaskStatusEnum.Running:
@@ -122,7 +101,6 @@ const CollapsedTaskList: React.FC<CollapsedTaskListProps> = ({
         return "var(--text-tertiary)";
     }
   };
-
   const getStatusEmoji = (status: string) => {
     switch (status) {
       case TaskStatusEnum.Running:
@@ -139,14 +117,12 @@ const CollapsedTaskList: React.FC<CollapsedTaskListProps> = ({
         return "📌";
     }
   };
-
   const getDisplayText = (text: string): string => {
     if (!text) return "...";
     const clean = text.trim();
     if (clean.length <= 2) return clean;
     return clean.slice(0, 2);
   };
-
   if (tasks.length === 0) {
     return (
       <div
@@ -175,7 +151,6 @@ const CollapsedTaskList: React.FC<CollapsedTaskListProps> = ({
       </div>
     );
   }
-
   return (
     <div
       style={{
@@ -250,9 +225,7 @@ const CollapsedTaskList: React.FC<CollapsedTaskListProps> = ({
                 width: "30px",
                 height: "30px",
                 borderRadius: "8px",
-                border: isActive
-                  ? "1px solid var(--accent-color)"
-                  : "1px solid transparent",
+                border: isActive ? "1px solid var(--accent-color)" : "1px solid transparent",
                 background: isActive ? "var(--accent-color)" : "transparent",
                 color: isActive ? "white" : "var(--text-secondary)",
                 cursor: "pointer",
@@ -275,10 +248,7 @@ const CollapsedTaskList: React.FC<CollapsedTaskListProps> = ({
                   e.currentTarget.style.color = "var(--text-primary)";
                   e.currentTarget.style.borderColor = "var(--border-color)";
                 }
-                showTooltipOnElement(
-                  e.currentTarget,
-                  task.user_input || "Task",
-                );
+                showTooltipOnElement(e.currentTarget, task.user_input || "Task");
               }}
               onMouseLeave={(e) => {
                 if (!isActive) {
@@ -345,22 +315,15 @@ const CollapsedTaskList: React.FC<CollapsedTaskListProps> = ({
     </div>
   );
 };
-
 interface CollapsedHistoryListProps {
   sessions: any[];
   currentSessionId?: string;
   onSelectSession: (sessionId: string) => void;
 }
-
-const CollapsedHistoryList: React.FC<CollapsedHistoryListProps> = ({
-  sessions,
-  currentSessionId,
-  onSelectSession,
-}) => {
+const CollapsedHistoryList: React.FC<CollapsedHistoryListProps> = ({ sessions, currentSessionId, onSelectSession }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [showUp, setShowUp] = useState(false);
   const [showDown, setShowDown] = useState(false);
-
   const sortedSessions = React.useMemo(() => {
     return [...sessions].sort((a, b) => {
       if (a.is_pinned && !b.is_pinned) return -1;
@@ -370,7 +333,6 @@ const CollapsedHistoryList: React.FC<CollapsedHistoryListProps> = ({
       return bTs - aTs;
     });
   }, [sessions]);
-
   const checkScroll = useCallback(() => {
     if (!containerRef.current) return;
     const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
@@ -379,7 +341,6 @@ const CollapsedHistoryList: React.FC<CollapsedHistoryListProps> = ({
     setShowUp(canScrollUp);
     setShowDown(canScrollDown);
   }, []);
-
   const updateScrollButtons = useCallback(() => {
     if (!containerRef.current) return;
     const { scrollHeight, clientHeight } = containerRef.current;
@@ -393,7 +354,6 @@ const CollapsedHistoryList: React.FC<CollapsedHistoryListProps> = ({
       setShowDown(false);
     }
   }, []);
-
   useEffect(() => {
     const el = containerRef.current;
     if (el) {
@@ -409,30 +369,25 @@ const CollapsedHistoryList: React.FC<CollapsedHistoryListProps> = ({
       };
     }
   }, [checkScroll, updateScrollButtons]);
-
   useEffect(() => {
     setTimeout(updateScrollButtons, 100);
   }, [sessions]);
-
   const scrollUp = () => {
     if (containerRef.current) {
       containerRef.current.scrollBy({ top: -200, behavior: "smooth" });
     }
   };
-
   const scrollDown = () => {
     if (containerRef.current) {
       containerRef.current.scrollBy({ top: 200, behavior: "smooth" });
     }
   };
-
   const getDisplayText = (text: string): string => {
     if (!text) return "...";
     const clean = text.trim();
     if (clean.length <= 2) return clean;
     return clean.slice(0, 2);
   };
-
   if (sessions.length === 0) {
     return (
       <div
@@ -461,7 +416,6 @@ const CollapsedHistoryList: React.FC<CollapsedHistoryListProps> = ({
       </div>
     );
   }
-
   return (
     <div
       style={{
@@ -536,9 +490,7 @@ const CollapsedHistoryList: React.FC<CollapsedHistoryListProps> = ({
                 width: "30px",
                 height: "30px",
                 borderRadius: "8px",
-                border: isActive
-                  ? "1px solid var(--accent-color)"
-                  : "1px solid transparent",
+                border: isActive ? "1px solid var(--accent-color)" : "1px solid transparent",
                 background: isActive ? "var(--accent-color)" : "transparent",
                 color: isActive ? "white" : "var(--text-secondary)",
                 cursor: "pointer",
@@ -561,10 +513,7 @@ const CollapsedHistoryList: React.FC<CollapsedHistoryListProps> = ({
                   e.currentTarget.style.color = "var(--text-primary)";
                   e.currentTarget.style.borderColor = "var(--border-color)";
                 }
-                showTooltipOnElement(
-                  e.currentTarget,
-                  session.title || "Untitled",
-                );
+                showTooltipOnElement(e.currentTarget, session.title || "Untitled");
               }}
               onMouseLeave={(e) => {
                 if (!isActive) {
@@ -581,9 +530,7 @@ const CollapsedHistoryList: React.FC<CollapsedHistoryListProps> = ({
                     top: "1px",
                     right: "1px",
                     fontSize: "6px",
-                    color: isActive
-                      ? "rgba(255,255,255,0.8)"
-                      : "var(--accent-color)",
+                    color: isActive ? "rgba(255,255,255,0.8)" : "var(--accent-color)",
                   }}
                 >
                   📌
@@ -635,7 +582,6 @@ const CollapsedHistoryList: React.FC<CollapsedHistoryListProps> = ({
     </div>
   );
 };
-
 const SandBox3DPage: React.FC<SandBox3DPageProps> = ({
   layoutMode = "vertical",
   onLayoutModeChange,
@@ -661,7 +607,6 @@ const SandBox3DPage: React.FC<SandBox3DPageProps> = ({
     handleNewSession: sandbox3dHandleNewSession,
     shouldShowWelcome: sandbox3dShouldShowWelcome,
   } = useSandBox3DSession(language as "zh" | "en", true);
-
   const [chatPanelWidth, setChatPanelWidth] = useState<number>(400);
   const [historyWidth, setHistoryWidth] = useState<number>(280);
   const [chatPanelCollapsed, setChatPanelCollapsed] = useState<boolean>(false);
@@ -680,15 +625,9 @@ const SandBox3DPage: React.FC<SandBox3DPageProps> = ({
   const dragStartHistoryWidth = useRef(0);
   const dragStartChatPanelWidth = useRef(400);
   const dragStartContainerRect = useRef<DOMRect | null>(null);
-  const [layoutSwapMode, setLayoutSwapMode] = useState<
-    "terminal-left" | "chat-left"
-  >("terminal-left");
-  const layoutSwapModeRef = useRef<"terminal-left" | "chat-left">(
-    "terminal-left",
-  );
-
+  const [layoutSwapMode, setLayoutSwapMode] = useState<"terminal-left" | "chat-left">("terminal-left");
+  const layoutSwapModeRef = useRef<"terminal-left" | "chat-left">("terminal-left");
   const isChatOnLeft = layoutSwapMode === "chat-left";
-
   const handleToggleChatPanel = useCallback(() => {
     if (isFunctionPanelMaximized) return;
     setChatPanelCollapsed((prev) => {
@@ -697,7 +636,6 @@ const SandBox3DPage: React.FC<SandBox3DPageProps> = ({
       return newState;
     });
   }, [isFunctionPanelMaximized]);
-
   const chatPanel = (
     <SandBox3DChatPanel
       onSendMessage={sandbox3dHandleSendMessage}
@@ -709,7 +647,6 @@ const SandBox3DPage: React.FC<SandBox3DPageProps> = ({
       currentSessionId={sandbox3dSessionId}
     />
   );
-
   const sandbox3dPanel = (
     <div
       style={{
@@ -721,15 +658,9 @@ const SandBox3DPage: React.FC<SandBox3DPageProps> = ({
         overflow: "hidden",
       }}
     >
-      <SandBox3D
-        theme={theme}
-        i18n={i18n}
-        t={t}
-        currentSessionId={sandbox3dSessionId}
-      />
+      <SandBox3D theme={theme} i18n={i18n} t={t} currentSessionId={sandbox3dSessionId} />
     </div>
   );
-
   const collapsedChatSidebar = (
     <div
       className="collapsed-sidebar"
@@ -826,7 +757,6 @@ const SandBox3DPage: React.FC<SandBox3DPageProps> = ({
       />
     </div>
   );
-
   useEffect(() => {
     const loadLayoutMode = async () => {
       try {
@@ -841,7 +771,6 @@ const SandBox3DPage: React.FC<SandBox3DPageProps> = ({
     };
     loadLayoutMode();
   }, []);
-
   useEffect(() => {
     const handleLayoutChange = (event: CustomEvent) => {
       const { pageType, mode } = event.detail;
@@ -850,18 +779,11 @@ const SandBox3DPage: React.FC<SandBox3DPageProps> = ({
         layoutSwapModeRef.current = mode;
       }
     };
-    window.addEventListener(
-      "layout-swap-mode-changed",
-      handleLayoutChange as EventListener,
-    );
+    window.addEventListener("layout-swap-mode-changed", handleLayoutChange as EventListener);
     return () => {
-      window.removeEventListener(
-        "layout-swap-mode-changed",
-        handleLayoutChange as EventListener,
-      );
+      window.removeEventListener("layout-swap-mode-changed", handleLayoutChange as EventListener);
     };
   }, []);
-
   useEffect(() => {
     const loadSessions = async () => {
       try {
@@ -877,13 +799,9 @@ const SandBox3DPage: React.FC<SandBox3DPageProps> = ({
     };
     window.addEventListener("sandbox3d-session-created", handleSessionCreated);
     return () => {
-      window.removeEventListener(
-        "sandbox3d-session-created",
-        handleSessionCreated,
-      );
+      window.removeEventListener("sandbox3d-session-created", handleSessionCreated);
     };
   }, []);
-
   useEffect(() => {
     const handleTitleUpdated = () => {
       historyPanelRef.current?.refreshSessions();
@@ -893,50 +811,28 @@ const SandBox3DPage: React.FC<SandBox3DPageProps> = ({
       window.removeEventListener("session-title-updated", handleTitleUpdated);
     };
   }, []);
-
   useEffect(() => {
-    const savedHistoryWidth = localStorage.getItem(
-      "hippox-sandbox3d-history-width",
-    );
-    const savedHistoryCollapsed = localStorage.getItem(
-      "hippox-sandbox3d-history-collapsed",
-    );
-    const savedChatPanelCollapsed = localStorage.getItem(
-      "hippox-sandbox3d-chat-collapsed",
-    );
-    const savedChatPanelWidth = localStorage.getItem(
-      "hippox-sandbox3d-chat-width",
-    );
+    const savedHistoryWidth = localStorage.getItem("hippox-sandbox3d-history-width");
+    const savedHistoryCollapsed = localStorage.getItem("hippox-sandbox3d-history-collapsed");
+    const savedChatPanelCollapsed = localStorage.getItem("hippox-sandbox3d-chat-collapsed");
+    const savedChatPanelWidth = localStorage.getItem("hippox-sandbox3d-chat-width");
     if (savedHistoryWidth) setHistoryWidth(parseFloat(savedHistoryWidth));
-    if (savedHistoryCollapsed)
-      setHistoryCollapsed(savedHistoryCollapsed === "true");
-    if (savedChatPanelCollapsed)
-      setChatPanelCollapsed(savedChatPanelCollapsed === "true");
+    if (savedHistoryCollapsed) setHistoryCollapsed(savedHistoryCollapsed === "true");
+    if (savedChatPanelCollapsed) setChatPanelCollapsed(savedChatPanelCollapsed === "true");
     if (savedChatPanelWidth) setChatPanelWidth(parseFloat(savedChatPanelWidth));
   }, []);
-
   const saveHistoryWidth = (width: number) => {
     localStorage.setItem("hippox-sandbox3d-history-width", width.toString());
   };
-
   const saveHistoryCollapsed = (collapsed: boolean) => {
-    localStorage.setItem(
-      "hippox-sandbox3d-history-collapsed",
-      collapsed.toString(),
-    );
+    localStorage.setItem("hippox-sandbox3d-history-collapsed", collapsed.toString());
   };
-
   const saveChatPanelCollapsed = (collapsed: boolean) => {
-    localStorage.setItem(
-      "hippox-sandbox3d-chat-collapsed",
-      collapsed.toString(),
-    );
+    localStorage.setItem("hippox-sandbox3d-chat-collapsed", collapsed.toString());
   };
-
   const saveChatPanelWidth = (width: number) => {
     localStorage.setItem("hippox-sandbox3d-chat-width", width.toString());
   };
-
   const handleExpandToggle = () => {
     const newExpanded = !isHistoryExpanded;
     setIsHistoryExpanded(newExpanded);
@@ -946,7 +842,6 @@ const SandBox3DPage: React.FC<SandBox3DPageProps> = ({
       historyPanelRef.current?.collapseAll();
     }
   };
-
   const handleScrollToggle = () => {
     const newAtBottom = !isHistoryAtBottom;
     setIsHistoryAtBottom(newAtBottom);
@@ -956,27 +851,20 @@ const SandBox3DPage: React.FC<SandBox3DPageProps> = ({
       historyPanelRef.current?.scrollToTop();
     }
   };
-
   const handleToggleHistory = () => {
     setHistoryCollapsed(!historyCollapsed);
     saveHistoryCollapsed(!historyCollapsed);
   };
-
   const handleSessionSelect = useCallback(
     (sessionId: string) => {
       sandbox3dHandleSwitchSession(sessionId);
     },
     [sandbox3dHandleSwitchSession],
   );
-
   const handleNewSession = useCallback(() => {
     sandbox3dHandleNewSession();
   }, [sandbox3dHandleNewSession]);
-
-  const handleMouseDown = (
-    e: React.MouseEvent,
-    type: "horizontal" | "history",
-  ) => {
+  const handleMouseDown = (e: React.MouseEvent, type: "horizontal" | "history") => {
     if (chatPanelCollapsed || isFunctionPanelMaximized) return;
     if (type === "history" && historyCollapsed) return;
     isDragging.current = true;
@@ -984,19 +872,15 @@ const SandBox3DPage: React.FC<SandBox3DPageProps> = ({
     dragStartX.current = e.clientX;
     dragStartHistoryWidth.current = historyCollapsed ? 45 : historyWidth;
     dragStartChatPanelWidth.current = chatPanelWidth;
-    dragStartContainerRect.current =
-      containerRef.current?.getBoundingClientRect() || null;
+    dragStartContainerRect.current = containerRef.current?.getBoundingClientRect() || null;
     document.body.style.cursor = "col-resize";
     document.body.style.userSelect = "none";
     e.preventDefault();
   };
-
   const handleMouseMove = useCallback((e: MouseEvent) => {
     if (!isDragging.current || !containerRef.current) return;
     const deltaX = e.clientX - dragStartX.current;
-    const containerRect =
-      dragStartContainerRect.current ||
-      containerRef.current.getBoundingClientRect();
+    const containerRect = dragStartContainerRect.current || containerRef.current.getBoundingClientRect();
     const containerWidth = containerRect.width;
     if (dragType.current === "horizontal") {
       const historyWidthPx = dragStartHistoryWidth.current;
@@ -1022,13 +906,11 @@ const SandBox3DPage: React.FC<SandBox3DPageProps> = ({
       saveHistoryWidth(clamped);
     }
   }, []);
-
   const handleMouseUp = useCallback(() => {
     isDragging.current = false;
     document.body.style.cursor = "";
     document.body.style.userSelect = "";
   }, []);
-
   useEffect(() => {
     window.addEventListener("mousemove", handleMouseMove);
     window.addEventListener("mouseup", handleMouseUp);
@@ -1037,7 +919,6 @@ const SandBox3DPage: React.FC<SandBox3DPageProps> = ({
       window.removeEventListener("mouseup", handleMouseUp);
     };
   }, [handleMouseMove, handleMouseUp]);
-
   const getHistoryPanelContent = () => {
     if (historyCollapsed || isFunctionPanelMaximized) {
       return (
@@ -1114,15 +995,10 @@ const SandBox3DPage: React.FC<SandBox3DPageProps> = ({
               <ScrollTextIcon size={16} />
             </span>
           </div>
-          <CollapsedHistoryList
-            sessions={historySessions}
-            currentSessionId={sandbox3dSessionId}
-            onSelectSession={handleSessionSelect}
-          />
+          <CollapsedHistoryList sessions={historySessions} currentSessionId={sandbox3dSessionId} onSelectSession={handleSessionSelect} />
         </div>
       );
     }
-
     return (
       <div
         style={{
@@ -1218,17 +1094,9 @@ const SandBox3DPage: React.FC<SandBox3DPageProps> = ({
                 e.currentTarget.style.color = "var(--text-secondary)";
                 e.currentTarget.style.background = "none";
               }}
-              title={
-                isHistoryExpanded
-                  ? t("history.collapseAll")
-                  : t("history.expandAll")
-              }
+              title={isHistoryExpanded ? t("history.collapseAll") : t("history.expandAll")}
             >
-              {isHistoryExpanded ? (
-                <CollapseAllIcon2 size={16} />
-              ) : (
-                <ExpandAllIcon2 size={16} />
-              )}
+              {isHistoryExpanded ? <CollapseAllIcon2 size={16} /> : <ExpandAllIcon2 size={16} />}
             </button>
             <button
               style={{
@@ -1255,11 +1123,7 @@ const SandBox3DPage: React.FC<SandBox3DPageProps> = ({
                 e.currentTarget.style.color = "var(--text-secondary)";
                 e.currentTarget.style.background = "none";
               }}
-              title={
-                isHistoryAtBottom
-                  ? t("history.scrollToTop")
-                  : t("history.scrollToBottom")
-              }
+              title={isHistoryAtBottom ? t("history.scrollToTop") : t("history.scrollToBottom")}
             >
               {isHistoryAtBottom ? "▲" : "▼"}
             </button>
@@ -1304,28 +1168,15 @@ const SandBox3DPage: React.FC<SandBox3DPageProps> = ({
           </div>
         </div>
         <div style={{ flex: 1, overflow: "hidden" }}>
-          <HistorySandBox3DChatPanel
-            ref={historyPanelRef}
-            t={t}
-            onSessionSelect={handleSessionSelect}
-            currentSessionId={sandbox3dSessionId}
-            onNewSession={handleNewSession}
-          />
+          <HistorySandBox3DChatPanel ref={historyPanelRef} t={t} onSessionSelect={handleSessionSelect} currentSessionId={sandbox3dSessionId} onNewSession={handleNewSession} />
         </div>
       </div>
     );
   };
-
   const historyPanelContent = getHistoryPanelContent();
-  const historyWidthPx =
-    historyCollapsed || isFunctionPanelMaximized ? 45 : historyWidth;
-
+  const historyWidthPx = historyCollapsed || isFunctionPanelMaximized ? 45 : historyWidth;
   return (
-    <div
-      className="panels-container horizontal-layout"
-      ref={containerRef}
-      style={{ display: "flex", flex: 1, overflow: "hidden" }}
-    >
+    <div className="panels-container horizontal-layout" ref={containerRef} style={{ display: "flex", flex: 1, overflow: "hidden" }}>
       <style>{`
         .resize-handle-vertical {
           position: relative;
@@ -1397,9 +1248,7 @@ const SandBox3DPage: React.FC<SandBox3DPageProps> = ({
               onMouseDown={(e) => handleMouseDown(e, "history")}
               style={{
                 width: "0px",
-                background: isHistoryResizeHover
-                  ? "var(--scrollbar-thumb)"
-                  : "var(--border-color)",
+                background: isHistoryResizeHover ? "var(--scrollbar-thumb)" : "var(--border-color)",
                 cursor: "col-resize",
                 flexShrink: 0,
                 position: "relative",
@@ -1411,7 +1260,6 @@ const SandBox3DPage: React.FC<SandBox3DPageProps> = ({
           )}
         </>
       )}
-
       {!chatPanelCollapsed && !isFunctionPanelMaximized ? (
         <div
           className="panel-chat"
@@ -1422,12 +1270,8 @@ const SandBox3DPage: React.FC<SandBox3DPageProps> = ({
             minWidth: "200px",
             display: "flex",
             flexDirection: "row",
-            borderRight: isChatOnLeft
-              ? "1px solid var(--border-color)"
-              : "none",
-            borderLeft: !isChatOnLeft
-              ? "1px solid var(--border-color)"
-              : "none",
+            borderRight: isChatOnLeft ? "1px solid var(--border-color)" : "none",
+            borderLeft: !isChatOnLeft ? "1px solid var(--border-color)" : "none",
             order: isChatOnLeft ? 1 : 3,
           }}
         >
@@ -1448,16 +1292,13 @@ const SandBox3DPage: React.FC<SandBox3DPageProps> = ({
           {collapsedChatSidebar}
         </div>
       ) : null}
-
       {!chatPanelCollapsed && !isFunctionPanelMaximized && (
         <div
           className="resize-handle resize-handle-vertical"
           onMouseDown={(e) => handleMouseDown(e, "horizontal")}
           style={{
             width: "0px",
-            background: isResizeHover
-              ? "var(--scrollbar-thumb)"
-              : "var(--border-color)",
+            background: isResizeHover ? "var(--scrollbar-thumb)" : "var(--border-color)",
             cursor: "col-resize",
             flexShrink: 0,
             position: "relative",
@@ -1468,7 +1309,6 @@ const SandBox3DPage: React.FC<SandBox3DPageProps> = ({
           onMouseLeave={() => setIsResizeHover(false)}
         />
       )}
-
       <div
         style={{
           flex: 1,
@@ -1484,5 +1324,4 @@ const SandBox3DPage: React.FC<SandBox3DPageProps> = ({
     </div>
   );
 };
-
 export default SandBox3DPage;

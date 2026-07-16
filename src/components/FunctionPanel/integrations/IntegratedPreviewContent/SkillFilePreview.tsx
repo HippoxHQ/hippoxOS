@@ -1,20 +1,13 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { filesCommands } from "../../../../command/files";
 import { UploadFile } from "../../../../core/types";
-
 interface SkillFilePreviewProps {
   file: UploadFile | null;
   onClose: () => void;
   onSendSkillMessage?: (message: string, files?: UploadFile[]) => void;
   t?: (key: string) => string;
 }
-
-const SkillFilePreview: React.FC<SkillFilePreviewProps> = ({
-  file,
-  onClose,
-  onSendSkillMessage,
-  t = (key: string) => key,
-}) => {
+const SkillFilePreview: React.FC<SkillFilePreviewProps> = ({ file, onClose, onSendSkillMessage, t = (key: string) => key }) => {
   const [fileContent, setFileContent] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -34,10 +27,7 @@ const SkillFilePreview: React.FC<SkillFilePreviewProps> = ({
     setIsLoading(true);
     setError(null);
     try {
-      const [content, fileInfo] = await Promise.all([
-        filesCommands.readTextFile(filePath),
-        filesCommands.getFileInfo(filePath).catch(() => null),
-      ]);
+      const [content, fileInfo] = await Promise.all([filesCommands.readTextFile(filePath), filesCommands.getFileInfo(filePath).catch(() => null)]);
       setFileContent(content);
       setFileSize(fileInfo?.size || 0);
       parseSkillMetadata(content);
@@ -96,8 +86,7 @@ const SkillFilePreview: React.FC<SkillFilePreviewProps> = ({
     }
   };
   if (!file) return null;
-  const isSkillFile =
-    file.name?.endsWith(".md") || file.name?.endsWith(".skill.md");
+  const isSkillFile = file.name?.endsWith(".md") || file.name?.endsWith(".skill.md");
   return (
     <div
       style={{
@@ -199,11 +188,7 @@ const SkillFilePreview: React.FC<SkillFilePreviewProps> = ({
             Loading skill...
           </div>
         )}
-        {error && (
-          <div style={{ color: "#ff6666", textAlign: "center", padding: 40 }}>
-            {error}
-          </div>
-        )}
+        {error && <div style={{ color: "#ff6666", textAlign: "center", padding: 40 }}>{error}</div>}
         {!isLoading && !error && (
           <>
             {skillDescription && (
@@ -265,5 +250,4 @@ const SkillFilePreview: React.FC<SkillFilePreviewProps> = ({
     </div>
   );
 };
-
 export default SkillFilePreview;

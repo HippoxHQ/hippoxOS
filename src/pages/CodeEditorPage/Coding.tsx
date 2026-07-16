@@ -10,12 +10,7 @@ interface CodingPageProps {
   onTabChange?: (filePath: string | null) => void;
 }
 
-const CodingPage: React.FC<CodingPageProps> = ({
-  t,
-  onClose,
-  workspacePath,
-  onTabChange,
-}) => {
+const CodingPage: React.FC<CodingPageProps> = ({ t, onClose, workspacePath, onTabChange }) => {
   const [leftWidth, setLeftWidth] = useState(240);
   const [rightHeight, setRightHeight] = useState(200);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
@@ -28,9 +23,7 @@ const CodingPage: React.FC<CodingPageProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const [isLeftHover, setIsLeftHover] = useState(false);
   const [isRightHover, setIsRightHover] = useState(false);
-  const [layoutSwapMode, setLayoutSwapMode] = useState<
-    "terminal-left" | "chat-left"
-  >("terminal-left");
+  const [layoutSwapMode, setLayoutSwapMode] = useState<"terminal-left" | "chat-left">("terminal-left");
   const [isLayoutLoading, setIsLayoutLoading] = useState(true);
 
   const handleFileSelect = (path: string) => {
@@ -59,8 +52,7 @@ const CodingPage: React.FC<CodingPageProps> = ({
     document.body.style.userSelect = "none";
   };
 
-  useEffect(() => {
-  }, [workspacePath]);
+  useEffect(() => {}, [workspacePath]);
 
   useEffect(() => {
     const loadLayoutMode = async () => {
@@ -85,15 +77,9 @@ const CodingPage: React.FC<CodingPageProps> = ({
         setLayoutSwapMode(mode);
       }
     };
-    window.addEventListener(
-      "layout-swap-mode-changed",
-      handleLayoutChange as EventListener,
-    );
+    window.addEventListener("layout-swap-mode-changed", handleLayoutChange as EventListener);
     return () => {
-      window.removeEventListener(
-        "layout-swap-mode-changed",
-        handleLayoutChange as EventListener,
-      );
+      window.removeEventListener("layout-swap-mode-changed", handleLayoutChange as EventListener);
     };
   }, []);
 
@@ -101,19 +87,13 @@ const CodingPage: React.FC<CodingPageProps> = ({
     const onMouseMove = (e: MouseEvent) => {
       if (isDraggingLeft.current) {
         const delta = e.clientX - dragStartX.current;
-        const newWidth = Math.min(
-          500,
-          Math.max(120, dragStartWidth.current + delta),
-        );
+        const newWidth = Math.min(500, Math.max(120, dragStartWidth.current + delta));
         setLeftWidth(newWidth);
       }
       if (isDraggingRight.current) {
         const containerHeight = containerRef.current?.clientHeight || 600;
         const delta = -(e.clientY - dragStartY.current);
-        const newHeight = Math.min(
-          containerHeight * 0.8,
-          Math.max(80, dragStartHeight.current + delta),
-        );
+        const newHeight = Math.min(containerHeight * 0.8, Math.max(80, dragStartHeight.current + delta));
         setRightHeight(newHeight);
       }
     };
@@ -192,12 +172,7 @@ const CodingPage: React.FC<CodingPageProps> = ({
         }}
       >
         <div style={{ width: leftWidth, minWidth: 0, flexShrink: 0 }}>
-          <FileTreePanel
-            t={t}
-            onFileSelect={handleFileSelect}
-            selectedFile={selectedFile}
-            workspacePath={workspacePath}
-          />
+          <FileTreePanel t={t} onFileSelect={handleFileSelect} selectedFile={selectedFile} workspacePath={workspacePath} />
         </div>
         <div
           className="coding-left-resize-handle"

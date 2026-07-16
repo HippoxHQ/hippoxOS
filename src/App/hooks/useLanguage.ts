@@ -5,7 +5,6 @@ import { Language } from "../../types/types";
 import { hippoxCommands } from "../../command/chat";
 import { configCommands } from "../../command/config";
 import { taskManager } from "../../core/TaskManager";
-
 export function useLanguage(initialLanguage?: string) {
   const [language, setLanguage] = useState<Language>(() => {
     if (initialLanguage) {
@@ -14,15 +13,12 @@ export function useLanguage(initialLanguage?: string) {
     const saved = localStorage.getItem("hippox-language");
     return (saved === "zh" || saved === "en") ? saved as Language : "en";
   });
-
   useEffect(() => {
     if (initialLanguage) {
       setLanguage(initialLanguage as Language);
     }
   }, [initialLanguage]);
-
   const { t } = useTranslation(language);
-
   const handleToggleLanguage = async () => {
     const newLang = language === "zh" ? "en" : "zh";
     setLanguage(newLang);
@@ -44,7 +40,6 @@ export function useLanguage(initialLanguage?: string) {
     //   });
     // }
   };
-
   return {
     language,
     setLanguage,

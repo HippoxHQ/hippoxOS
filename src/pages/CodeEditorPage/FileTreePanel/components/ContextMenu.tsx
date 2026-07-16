@@ -19,12 +19,7 @@ interface ContextMenuProps {
   onClose: () => void;
 }
 
-export const ContextMenu: React.FC<ContextMenuProps> = ({
-  x,
-  y,
-  items,
-  onClose,
-}) => {
+export const ContextMenu: React.FC<ContextMenuProps> = ({ x, y, items, onClose }) => {
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -65,7 +60,7 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
   };
 
   const isDivider = (item: ContextMenuItemType): item is ContextMenuDivider => {
-    return 'divider' in item && item.divider === true;
+    return "divider" in item && item.divider === true;
   };
 
   const position = getMenuPosition();

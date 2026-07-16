@@ -1,17 +1,5 @@
-import {
-  BasemapTypeEnum,
-  CoordinateSystemTypeEnum,
-  EarthView,
-  MarkerLayer,
-  CircleLayer,
-  PolygonLayer,
-  PolylineLayer,
-  HeatmapLayer,
-  ClusterLayer,
-  BarChartLayer,
-} from "@earthview/core";
+import { BasemapTypeEnum, CoordinateSystemTypeEnum, EarthView, MarkerLayer, CircleLayer, PolygonLayer, PolylineLayer, HeatmapLayer, ClusterLayer, BarChartLayer } from "@earthview/core";
 import React, { useEffect, useRef, useState, useCallback } from "react";
-
 interface IntegratedEarthViewProps {
   theme: "light" | "dark";
   i18n: "en" | "zh-cn";
@@ -21,10 +9,8 @@ interface IntegratedEarthViewProps {
   mapData?: any;
   taskId?: string;
 }
-
 const DEFAULT_CENTER: [number, number] = [-74.006, 40.7128];
 const DEFAULT_ZOOM: number = 12;
-
 const normalizeColor = (color: any): number[] => {
   if (!color) return [255, 87, 34, 1];
   if (Array.isArray(color) && color.length >= 3) {
@@ -63,11 +49,8 @@ const normalizeColor = (color: any): number[] => {
     }
     return [r, g, b, a];
   }
-
   if (typeof color === "string" && color.startsWith("rgba")) {
-    const match = color.match(
-      /rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/,
-    );
+    const match = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
     if (match) {
       const r = parseInt(match[1], 10);
       const g = parseInt(match[2], 10);
@@ -76,49 +59,27 @@ const normalizeColor = (color: any): number[] => {
       return [r, g, b, a];
     }
   }
-
   if (typeof color === "string" && color.startsWith("rgb")) {
     const match = color.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
     if (match) {
-      return [
-        parseInt(match[1], 10),
-        parseInt(match[2], 10),
-        parseInt(match[3], 10),
-        1,
-      ];
+      return [parseInt(match[1], 10), parseInt(match[2], 10), parseInt(match[3], 10), 1];
     }
   }
-
   return [255, 87, 34, 1];
 };
-
-export const IntegratedEarthView: React.FC<IntegratedEarthViewProps> = ({
-  theme,
-  i18n,
-  onLoad,
-  onMapClick,
-  onMoveEnd,
-  mapData,
-  taskId,
-}) => {
+export const IntegratedEarthView: React.FC<IntegratedEarthViewProps> = ({ theme, i18n, onLoad, onMapClick, onMoveEnd, mapData, taskId }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const earthViewRef = useRef<EarthView | null>(null);
   const [isReady, setIsReady] = useState(false);
   const pendingMapDataRef = useRef<any>(null);
   const hasLocatedRef = useRef<boolean>(false);
-
   const locateToCoordinate = useCallback(
     (center: [number, number], source: string = "unknown") => {
       if (!earthViewRef.current || !isReady) {
         return false;
       }
       const [lng, lat] = center;
-      if (
-        typeof lng === "number" &&
-        typeof lat === "number" &&
-        !isNaN(lng) &&
-        !isNaN(lat)
-      ) {
+      if (typeof lng === "number" && typeof lat === "number" && !isNaN(lng) && !isNaN(lat)) {
         earthViewRef.current.setCenter([lng, lat]);
         earthViewRef.current.setZoom(DEFAULT_ZOOM);
         hasLocatedRef.current = true;
@@ -128,139 +89,77 @@ export const IntegratedEarthView: React.FC<IntegratedEarthViewProps> = ({
     },
     [isReady],
   );
-
-  const getFirstMarkerCoordinate = useCallback(
-    (markers: any[]): [number, number] | null => {
-      if (!markers || markers.length === 0) return null;
-      for (const marker of markers) {
-        const lng = marker.longitude;
-        const lat = marker.latitude;
-        if (
-          typeof lng === "number" &&
-          typeof lat === "number" &&
-          !isNaN(lng) &&
-          !isNaN(lat)
-        ) {
-          return [lng, lat];
-        }
+  const getFirstMarkerCoordinate = useCallback((markers: any[]): [number, number] | null => {
+    if (!markers || markers.length === 0) return null;
+    for (const marker of markers) {
+      const lng = marker.longitude;
+      const lat = marker.latitude;
+      if (typeof lng === "number" && typeof lat === "number" && !isNaN(lng) && !isNaN(lat)) {
+        return [lng, lat];
       }
-      return null;
-    },
-    [],
-  );
-
-  const getFirstPolylineCoordinate = useCallback(
-    (polylines: any[]): [number, number] | null => {
-      if (!polylines || polylines.length === 0) return null;
-      for (const polyline of polylines) {
-        if (
-          polyline.points &&
-          Array.isArray(polyline.points) &&
-          polyline.points.length > 0
-        ) {
-          const firstPoint = polyline.points[0];
-          if (Array.isArray(firstPoint) && firstPoint.length === 2) {
-            const [lng, lat] = firstPoint;
-            if (
-              typeof lng === "number" &&
-              typeof lat === "number" &&
-              !isNaN(lng) &&
-              !isNaN(lat)
-            ) {
-              return [lng, lat];
-            }
-          }
-        }
-      }
-      return null;
-    },
-    [],
-  );
-
-  const getFirstCircleCoordinate = useCallback(
-    (circles: any[]): [number, number] | null => {
-      if (!circles || circles.length === 0) return null;
-      for (const circle of circles) {
-        if (
-          circle.center &&
-          Array.isArray(circle.center) &&
-          circle.center.length === 2
-        ) {
-          const [lng, lat] = circle.center;
-          if (
-            typeof lng === "number" &&
-            typeof lat === "number" &&
-            !isNaN(lng) &&
-            !isNaN(lat)
-          ) {
+    }
+    return null;
+  }, []);
+  const getFirstPolylineCoordinate = useCallback((polylines: any[]): [number, number] | null => {
+    if (!polylines || polylines.length === 0) return null;
+    for (const polyline of polylines) {
+      if (polyline.points && Array.isArray(polyline.points) && polyline.points.length > 0) {
+        const firstPoint = polyline.points[0];
+        if (Array.isArray(firstPoint) && firstPoint.length === 2) {
+          const [lng, lat] = firstPoint;
+          if (typeof lng === "number" && typeof lat === "number" && !isNaN(lng) && !isNaN(lat)) {
             return [lng, lat];
           }
         }
       }
-      return null;
-    },
-    [],
-  );
-
-  const getFirstPolygonCoordinate = useCallback(
-    (polygons: any[]): [number, number] | null => {
-      if (!polygons || polygons.length === 0) return null;
-      for (const polygon of polygons) {
-        if (
-          polygon.points &&
-          Array.isArray(polygon.points) &&
-          polygon.points.length > 0
-        ) {
-          const firstPoint = polygon.points[0];
-          if (Array.isArray(firstPoint) && firstPoint.length === 2) {
-            const [lng, lat] = firstPoint;
-            if (
-              typeof lng === "number" &&
-              typeof lat === "number" &&
-              !isNaN(lng) &&
-              !isNaN(lat)
-            ) {
-              return [lng, lat];
-            }
+    }
+    return null;
+  }, []);
+  const getFirstCircleCoordinate = useCallback((circles: any[]): [number, number] | null => {
+    if (!circles || circles.length === 0) return null;
+    for (const circle of circles) {
+      if (circle.center && Array.isArray(circle.center) && circle.center.length === 2) {
+        const [lng, lat] = circle.center;
+        if (typeof lng === "number" && typeof lat === "number" && !isNaN(lng) && !isNaN(lat)) {
+          return [lng, lat];
+        }
+      }
+    }
+    return null;
+  }, []);
+  const getFirstPolygonCoordinate = useCallback((polygons: any[]): [number, number] | null => {
+    if (!polygons || polygons.length === 0) return null;
+    for (const polygon of polygons) {
+      if (polygon.points && Array.isArray(polygon.points) && polygon.points.length > 0) {
+        const firstPoint = polygon.points[0];
+        if (Array.isArray(firstPoint) && firstPoint.length === 2) {
+          const [lng, lat] = firstPoint;
+          if (typeof lng === "number" && typeof lat === "number" && !isNaN(lng) && !isNaN(lat)) {
+            return [lng, lat];
           }
         }
       }
-      return null;
-    },
-    [],
-  );
-
+    }
+    return null;
+  }, []);
   const getFirstCoordinateFromConfig = useCallback(
     (config: any): [number, number] | null => {
       if (!config) {
         return null;
       }
-      if (
-        config.markers &&
-        Array.isArray(config.markers) &&
-        config.markers.length > 0
-      ) {
+      if (config.markers && Array.isArray(config.markers) && config.markers.length > 0) {
         const coord = getFirstMarkerCoordinate(config.markers);
         if (coord) return coord;
       }
-      if (
-        config.earthview?.markers &&
-        Array.isArray(config.earthview.markers)
-      ) {
+      if (config.earthview?.markers && Array.isArray(config.earthview.markers)) {
         const coord = getFirstMarkerCoordinate(config.earthview.markers);
         if (coord) return coord;
       }
       if (config.terminalResponse?.earthview?.markers) {
-        const coord = getFirstMarkerCoordinate(
-          config.terminalResponse.earthview.markers,
-        );
+        const coord = getFirstMarkerCoordinate(config.terminalResponse.earthview.markers);
         if (coord) return coord;
       }
-      if (
-        Array.isArray(config) &&
-        config.length > 0 &&
-        config[0].longitude !== undefined
-      ) {
+      if (Array.isArray(config) && config.length > 0 && config[0].longitude !== undefined) {
         const coord = getFirstMarkerCoordinate(config);
         if (coord) return coord;
       }
@@ -278,14 +177,8 @@ export const IntegratedEarthView: React.FC<IntegratedEarthViewProps> = ({
       }
       return null;
     },
-    [
-      getFirstMarkerCoordinate,
-      getFirstPolylineCoordinate,
-      getFirstCircleCoordinate,
-      getFirstPolygonCoordinate,
-    ],
+    [getFirstMarkerCoordinate, getFirstPolylineCoordinate, getFirstCircleCoordinate, getFirstPolygonCoordinate],
   );
-
   const addMarkersLayer = useCallback(async (markers: any[]) => {
     if (!earthViewRef.current || !markers.length) return;
     const layerManager = earthViewRef.current.getLayerManager();
@@ -316,7 +209,6 @@ export const IntegratedEarthView: React.FC<IntegratedEarthViewProps> = ({
       });
     }
   }, []);
-
   const addCirclesLayer = useCallback((circles: any[]) => {
     if (!earthViewRef.current || !circles.length) return;
     const layerManager = earthViewRef.current.getLayerManager();
@@ -340,7 +232,6 @@ export const IntegratedEarthView: React.FC<IntegratedEarthViewProps> = ({
       });
     }
   }, []);
-
   const addPolygonsLayer = useCallback((polygons: any[]) => {
     if (!earthViewRef.current || !polygons.length) return;
     const layerManager = earthViewRef.current.getLayerManager();
@@ -363,7 +254,6 @@ export const IntegratedEarthView: React.FC<IntegratedEarthViewProps> = ({
       });
     }
   }, []);
-
   const addPolylinesLayer = useCallback((polylines: any[]) => {
     if (!earthViewRef.current || !polylines.length) return;
     const layerManager = earthViewRef.current.getLayerManager();
@@ -385,7 +275,6 @@ export const IntegratedEarthView: React.FC<IntegratedEarthViewProps> = ({
       });
     }
   }, []);
-
   const addHeatmapLayer = useCallback((heatmapData: any[]) => {
     if (!earthViewRef.current || !heatmapData.length) return;
     const layerManager = earthViewRef.current.getLayerManager();
@@ -401,7 +290,6 @@ export const IntegratedEarthView: React.FC<IntegratedEarthViewProps> = ({
     }
     heatmapLayer.setData(heatmapData);
   }, []);
-
   const addClusterLayer = useCallback((clusterData: any[]) => {
     if (!earthViewRef.current || !clusterData.length) return;
     const layerManager = earthViewRef.current.getLayerManager();
@@ -416,7 +304,6 @@ export const IntegratedEarthView: React.FC<IntegratedEarthViewProps> = ({
     }
     clusterLayer.setData(clusterData);
   }, []);
-
   const addBarChartLayer = useCallback((barData: any[]) => {
     if (!earthViewRef.current || !barData.length) return;
     const layerManager = earthViewRef.current.getLayerManager();
@@ -429,10 +316,8 @@ export const IntegratedEarthView: React.FC<IntegratedEarthViewProps> = ({
       });
       layerManager.addLayer(barLayer);
     }
-
     barLayer.setData(barData);
   }, []);
-
   const forceLocateToFirstMarker = useCallback(
     (config: any) => {
       const firstCoord = getFirstCoordinateFromConfig(config);
@@ -444,7 +329,6 @@ export const IntegratedEarthView: React.FC<IntegratedEarthViewProps> = ({
     },
     [getFirstCoordinateFromConfig, locateToCoordinate],
   );
-
   const applyEarthViewConfig = useCallback(
     async (config: any) => {
       if (!earthViewRef.current || !isReady) {
@@ -452,21 +336,11 @@ export const IntegratedEarthView: React.FC<IntegratedEarthViewProps> = ({
         return;
       }
       const ev = earthViewRef.current;
-      if (
-        config?.markers &&
-        Array.isArray(config.markers) &&
-        config.markers.length > 0
-      ) {
+      if (config?.markers && Array.isArray(config.markers) && config.markers.length > 0) {
         await addMarkersLayer(config.markers);
-      } else if (
-        config?.earthview?.markers &&
-        Array.isArray(config.earthview.markers)
-      ) {
+      } else if (config?.earthview?.markers && Array.isArray(config.earthview.markers)) {
         await addMarkersLayer(config.earthview.markers);
-      } else if (
-        config?.terminalResponse?.earthview?.markers &&
-        Array.isArray(config.terminalResponse.earthview.markers)
-      ) {
+      } else if (config?.terminalResponse?.earthview?.markers && Array.isArray(config.terminalResponse.earthview.markers)) {
         await addMarkersLayer(config.terminalResponse.earthview.markers);
       }
       if (config?.circles && Array.isArray(config.circles)) {
@@ -492,28 +366,14 @@ export const IntegratedEarthView: React.FC<IntegratedEarthViewProps> = ({
         const located = forceLocateToFirstMarker(config);
         if (!located) {
           let centerCoord: [number, number] | null = null;
-          if (
-            config?.view?.center &&
-            Array.isArray(config.view.center) &&
-            config.view.center.length === 2
-          ) {
+          if (config?.view?.center && Array.isArray(config.view.center) && config.view.center.length === 2) {
             const [lng, lat] = config.view.center;
-            if (
-              typeof lng === "number" &&
-              typeof lat === "number" &&
-              !isNaN(lng) &&
-              !isNaN(lat)
-            ) {
+            if (typeof lng === "number" && typeof lat === "number" && !isNaN(lng) && !isNaN(lat)) {
               centerCoord = [lng, lat];
             }
           } else if (config?.earthview?.view?.center) {
             const [lng, lat] = config.earthview.view.center;
-            if (
-              typeof lng === "number" &&
-              typeof lat === "number" &&
-              !isNaN(lng) &&
-              !isNaN(lat)
-            ) {
+            if (typeof lng === "number" && typeof lat === "number" && !isNaN(lng) && !isNaN(lat)) {
               centerCoord = [lng, lat];
             }
           }
@@ -523,59 +383,27 @@ export const IntegratedEarthView: React.FC<IntegratedEarthViewProps> = ({
         }
       }
     },
-    [
-      isReady,
-      addMarkersLayer,
-      addCirclesLayer,
-      addPolygonsLayer,
-      addPolylinesLayer,
-      addHeatmapLayer,
-      addClusterLayer,
-      addBarChartLayer,
-      forceLocateToFirstMarker,
-      locateToCoordinate,
-    ],
+    [isReady, addMarkersLayer, addCirclesLayer, addPolygonsLayer, addPolylinesLayer, addHeatmapLayer, addClusterLayer, addBarChartLayer, forceLocateToFirstMarker, locateToCoordinate],
   );
-
   useEffect(() => {
     const handleLocate = (event: CustomEvent) => {
       const { center, mapData: eventMapData } = event.detail;
       if (eventMapData && earthViewRef.current && isReady) {
         applyEarthViewConfig(eventMapData);
-      } else if (
-        earthViewRef.current &&
-        isReady &&
-        center &&
-        Array.isArray(center) &&
-        center.length === 2
-      ) {
+      } else if (earthViewRef.current && isReady && center && Array.isArray(center) && center.length === 2) {
         const [lng, lat] = center;
-        if (
-          typeof lng === "number" &&
-          typeof lat === "number" &&
-          !isNaN(lng) &&
-          !isNaN(lat)
-        ) {
+        if (typeof lng === "number" && typeof lat === "number" && !isNaN(lng) && !isNaN(lat)) {
           locateToCoordinate([lng, lat], "locate-event");
         }
       }
     };
-
     window.addEventListener("earthview-locate", handleLocate as EventListener);
     window.addEventListener("EarthView-locate", handleLocate as EventListener);
-
     return () => {
-      window.removeEventListener(
-        "earthview-locate",
-        handleLocate as EventListener,
-      );
-      window.removeEventListener(
-        "EarthView-locate",
-        handleLocate as EventListener,
-      );
+      window.removeEventListener("earthview-locate", handleLocate as EventListener);
+      window.removeEventListener("EarthView-locate", handleLocate as EventListener);
     };
   }, [isReady, applyEarthViewConfig, locateToCoordinate]);
-
   useEffect(() => {
     if (isReady && earthViewRef.current && mapData) {
       applyEarthViewConfig(mapData);
@@ -583,7 +411,6 @@ export const IntegratedEarthView: React.FC<IntegratedEarthViewProps> = ({
       pendingMapDataRef.current = mapData;
     }
   }, [mapData, isReady, applyEarthViewConfig]);
-
   useEffect(() => {
     if (!containerRef.current) return;
     if (earthViewRef.current) {
@@ -592,37 +419,21 @@ export const IntegratedEarthView: React.FC<IntegratedEarthViewProps> = ({
       setIsReady(false);
       hasLocatedRef.current = false;
     }
-
     let initialCenter: [number, number] = DEFAULT_CENTER;
     const firstCoord = getFirstCoordinateFromConfig(mapData);
     if (firstCoord) {
       initialCenter = firstCoord;
-    } else if (
-      mapData?.view?.center &&
-      Array.isArray(mapData.view.center) &&
-      mapData.view.center.length === 2
-    ) {
+    } else if (mapData?.view?.center && Array.isArray(mapData.view.center) && mapData.view.center.length === 2) {
       const [lng, lat] = mapData.view.center;
-      if (
-        typeof lng === "number" &&
-        typeof lat === "number" &&
-        !isNaN(lng) &&
-        !isNaN(lat)
-      ) {
+      if (typeof lng === "number" && typeof lat === "number" && !isNaN(lng) && !isNaN(lat)) {
         initialCenter = [lng, lat];
       }
     } else if (mapData?.earthview?.view?.center) {
       const [lng, lat] = mapData.earthview.view.center;
-      if (
-        typeof lng === "number" &&
-        typeof lat === "number" &&
-        !isNaN(lng) &&
-        !isNaN(lat)
-      ) {
+      if (typeof lng === "number" && typeof lat === "number" && !isNaN(lng) && !isNaN(lat)) {
         initialCenter = [lng, lat];
       }
     }
-
     const earthView = new EarthView({
       container: containerRef.current,
       basemap: BasemapTypeEnum.SATELLITE,
@@ -644,7 +455,6 @@ export const IntegratedEarthView: React.FC<IntegratedEarthViewProps> = ({
             applyEarthViewConfig(mapData);
           }, 100);
         }
-
         onLoad?.(earthView);
       },
       onMapClick: (event: any) => {
@@ -655,7 +465,6 @@ export const IntegratedEarthView: React.FC<IntegratedEarthViewProps> = ({
       },
     });
     earthViewRef.current = earthView;
-
     return () => {
       if (earthViewRef.current) {
         earthViewRef.current.destroy();
@@ -665,7 +474,6 @@ export const IntegratedEarthView: React.FC<IntegratedEarthViewProps> = ({
       }
     };
   }, [theme, i18n]);
-
   return (
     <div
       ref={containerRef}
@@ -677,5 +485,4 @@ export const IntegratedEarthView: React.FC<IntegratedEarthViewProps> = ({
     />
   );
 };
-
 export default IntegratedEarthView;

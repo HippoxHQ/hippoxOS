@@ -1,37 +1,21 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import {
-  ScheduledTask,
-  scheduledTasksCommands,
-} from "../../command/scheduledtasks";
+import { ScheduledTask, scheduledTasksCommands } from "../../command/scheduledtasks";
 import { scheduledTasksStyles } from "./ScheduledTasksStyles";
 import LeftStatsPanel from "./LeftStatsPanel";
 import TaskCardList from "./TaskCardList";
 import TaskEditPanel from "./TaskEditPanel";
 import BottomHeatmapPanel from "./BottomHeatmapPanel";
 import { showToast, ToastType } from "../../components/Toast";
-
 const LoadingSpinnerIcon = () => (
-  <svg
-    width="32"
-    height="32"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className="loading-spinner-svg"
-  >
+  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="loading-spinner-svg">
     <path d="M21 12a9 9 0 1 1-6.219-8.56" />
   </svg>
 );
-
 interface ScheduledTasksManagerProps {
   t: (key: string, params?: any) => string;
   onClose?: () => void;
   currentSessionId?: string;
 }
-
 if (typeof document !== "undefined") {
   const styleId = "scheduled-tasks-styles";
   if (!document.getElementById(styleId)) {
@@ -41,36 +25,24 @@ if (typeof document !== "undefined") {
     document.head.appendChild(style);
   }
 }
-
-const ScheduledTasksManager: React.FC<ScheduledTasksManagerProps> = ({
-  t,
-  onClose,
-  currentSessionId,
-}) => {
+const ScheduledTasksManager: React.FC<ScheduledTasksManagerProps> = ({ t, onClose, currentSessionId }) => {
   const [tasks, setTasks] = useState<ScheduledTask[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedTask, setSelectedTask] = useState<ScheduledTask | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<
-    "all" | "enabled" | "disabled" | "completed"
-  >("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "enabled" | "disabled" | "completed">("all");
   const [showRightPanel, setShowRightPanel] = useState(false);
   const [leftPanelWidth, setLeftPanelWidth] = useState(320);
   const [rightPanelWidth, setRightPanelWidth] = useState(380);
   const containerRef = useRef<HTMLDivElement>(null);
-
   useEffect(() => {
     loadTasks();
   }, []);
-
   const loadTasks = async () => {
     setLoading(true);
     try {
       const taskList = await scheduledTasksCommands.list();
-      const sorted = [...taskList].sort(
-        (a, b) =>
-          new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
-      );
+      const sorted = [...taskList].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
       setTasks(sorted);
       setSelectedTask(null);
       setShowRightPanel(false);
@@ -81,33 +53,26 @@ const ScheduledTasksManager: React.FC<ScheduledTasksManagerProps> = ({
       setLoading(false);
     }
   };
-
   const filteredTasks = useMemo(() => {
     return tasks.filter((task) => {
-      if (statusFilter === "enabled" && (!task.enabled || task.completed))
-        return false;
-      if (statusFilter === "disabled" && (task.enabled || task.completed))
-        return false;
+      if (statusFilter === "enabled" && (!task.enabled || task.completed)) return false;
+      if (statusFilter === "disabled" && (task.enabled || task.completed)) return false;
       if (statusFilter === "completed" && !task.completed) return false;
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
         const nameMatch = task.name.toLowerCase().includes(query);
-        const descMatch =
-          task.action_type === "naturallanguage" &&
-          (task as any).natural_language_content?.toLowerCase().includes(query);
+        const descMatch = task.action_type === "naturallanguage" && (task as any).natural_language_content?.toLowerCase().includes(query);
         return nameMatch || descMatch;
       }
       return true;
     });
   }, [tasks, searchQuery, statusFilter]);
-
   const stats = {
     total: tasks.length,
     enabled: tasks.filter((t) => t.enabled && !t.completed).length,
     disabled: tasks.filter((t) => !t.enabled && !t.completed).length,
     completed: tasks.filter((t) => t.completed).length,
   };
-
   const getExecutionTrend = () => {
     const last7Days = Array.from({ length: 7 }, (_, i) => {
       const d = new Date();
@@ -122,44 +87,31 @@ const ScheduledTasksManager: React.FC<ScheduledTasksManagerProps> = ({
     });
     return { labels: last7Days.map((d) => d.slice(5)), values: trend };
   };
-
   const handleTaskCreated = async (task: ScheduledTask) => {
     setTasks((prevTasks) => [task, ...prevTasks]);
     setSelectedTask(null);
     setShowRightPanel(false);
     showToast(ToastType.SUCCESS, t("scheduled.addSuccess"));
   };
-
   const handleTaskUpdated = async (task: ScheduledTask) => {
-    setTasks((prevTasks) =>
-      prevTasks.map((t) => (t.id === task.id ? task : t)),
-    );
+    setTasks((prevTasks) => prevTasks.map((t) => (t.id === task.id ? task : t)));
     setSelectedTask(task);
     setShowRightPanel(true);
     showToast(ToastType.SUCCESS, t("scheduled.updateSuccess"));
   };
-
   const handleTaskToggled = async (taskId: string, enabled: boolean) => {
     try {
       const updatedTask = await scheduledTasksCommands.toggle(taskId, enabled);
-      setTasks((prevTasks) =>
-        prevTasks.map((task) => (task.id === taskId ? updatedTask : task)),
-      );
+      setTasks((prevTasks) => prevTasks.map((task) => (task.id === taskId ? updatedTask : task)));
       if (selectedTask?.id === taskId) {
         setSelectedTask(updatedTask);
       }
-      showToast(
-        ToastType.SUCCESS,
-        enabled
-          ? t("scheduled.enabledSuccess")
-          : t("scheduled.disabledSuccess"),
-      );
+      showToast(ToastType.SUCCESS, enabled ? t("scheduled.enabledSuccess") : t("scheduled.disabledSuccess"));
     } catch (error) {
       console.error("Failed to toggle task:", error);
       showToast(ToastType.ERROR, t("scheduled.toggleFailed"));
     }
   };
-
   const handleTaskDeleted = async (taskId: string) => {
     try {
       await scheduledTasksCommands.delete(taskId);
@@ -182,13 +134,10 @@ const ScheduledTasksManager: React.FC<ScheduledTasksManagerProps> = ({
       showToast(ToastType.ERROR, t("scheduled.deleteFailed"));
     }
   };
-
   const handleCompleteTask = async (taskId: string) => {
     try {
       const completedTask = await scheduledTasksCommands.complete(taskId);
-      setTasks((prevTasks) =>
-        prevTasks.map((task) => (task.id === taskId ? completedTask : task)),
-      );
+      setTasks((prevTasks) => prevTasks.map((task) => (task.id === taskId ? completedTask : task)));
       if (selectedTask?.id === taskId) {
         setSelectedTask(completedTask);
       }
@@ -198,73 +147,61 @@ const ScheduledTasksManager: React.FC<ScheduledTasksManagerProps> = ({
       showToast(ToastType.ERROR, t("scheduled.completeFailed"));
     }
   };
-
   const handleSelectTask = (task: ScheduledTask) => {
     setSelectedTask(task);
     setShowRightPanel(true);
   };
-
   const handleCreateNew = () => {
     setSelectedTask(null);
     setShowRightPanel(true);
   };
-
   const handleCloseRightPanel = () => {
     setShowRightPanel(false);
     setSelectedTask(null);
   };
-
   const handleLeftResizeMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
     const startX = e.clientX;
     const startWidth = leftPanelWidth;
-
     const onMouseMove = (moveEvent: MouseEvent) => {
       const newWidth = startWidth + (moveEvent.clientX - startX);
       if (newWidth >= 280 && newWidth <= 500) {
         setLeftPanelWidth(newWidth);
       }
     };
-
     const onMouseUp = () => {
       document.removeEventListener("mousemove", onMouseMove);
       document.removeEventListener("mouseup", onMouseUp);
       document.body.style.cursor = "";
       document.body.style.userSelect = "";
     };
-
     document.body.style.cursor = "col-resize";
     document.body.style.userSelect = "none";
     document.addEventListener("mousemove", onMouseMove);
     document.addEventListener("mouseup", onMouseUp);
   };
-
   const handleRightResizeMouseDown = (e: React.MouseEvent) => {
     if (!showRightPanel) return;
     e.preventDefault();
     const startX = e.clientX;
     const startWidth = rightPanelWidth;
-
     const onMouseMove = (moveEvent: MouseEvent) => {
       const newWidth = startWidth - (moveEvent.clientX - startX);
       if (newWidth >= 300 && newWidth <= 550) {
         setRightPanelWidth(newWidth);
       }
     };
-
     const onMouseUp = () => {
       document.removeEventListener("mousemove", onMouseMove);
       document.removeEventListener("mouseup", onMouseUp);
       document.body.style.cursor = "";
       document.body.style.userSelect = "";
     };
-
     document.body.style.cursor = "col-resize";
     document.body.style.userSelect = "none";
     document.addEventListener("mousemove", onMouseMove);
     document.addEventListener("mouseup", onMouseUp);
   };
-
   if (loading) {
     return (
       <div className="scheduled-tasks-container">
@@ -277,24 +214,14 @@ const ScheduledTasksManager: React.FC<ScheduledTasksManagerProps> = ({
       </div>
     );
   }
-
   const executionTrend = getExecutionTrend();
-
   return (
     <div className="scheduled-tasks-layout">
       <div className="scheduled-tasks-main" ref={containerRef}>
         <div className="scheduled-left-panel" style={{ width: leftPanelWidth }}>
-          <LeftStatsPanel
-            t={t}
-            stats={stats}
-            executionTrend={executionTrend}
-            tasks={tasks}
-          />
+          <LeftStatsPanel t={t} stats={stats} executionTrend={executionTrend} tasks={tasks} />
         </div>
-        <div
-          className="resize-handle-scheduled"
-          onMouseDown={handleLeftResizeMouseDown}
-        >
+        <div className="resize-handle-scheduled" onMouseDown={handleLeftResizeMouseDown}>
           <div className="handle-line"></div>
         </div>
         <div className="scheduled-center-wrapper">
@@ -314,18 +241,12 @@ const ScheduledTasksManager: React.FC<ScheduledTasksManagerProps> = ({
           />
         </div>
         {showRightPanel && (
-          <div
-            className="resize-handle-scheduled"
-            onMouseDown={handleRightResizeMouseDown}
-          >
+          <div className="resize-handle-scheduled" onMouseDown={handleRightResizeMouseDown}>
             <div className="handle-line"></div>
           </div>
         )}
         {showRightPanel && (
-          <div
-            className="scheduled-right-panel"
-            style={{ width: rightPanelWidth }}
-          >
+          <div className="scheduled-right-panel" style={{ width: rightPanelWidth }}>
             <TaskEditPanel
               t={t}
               task={selectedTask}
@@ -342,5 +263,4 @@ const ScheduledTasksManager: React.FC<ScheduledTasksManagerProps> = ({
     </div>
   );
 };
-
 export default ScheduledTasksManager;

@@ -256,9 +256,7 @@ const LinkItem: React.FC<{
             {link.u}
           </div>
         </div>
-        <span style={{ fontSize: "11px", color: "var(--text-tertiary)" }}>
-          ↗
-        </span>
+        <span style={{ fontSize: "11px", color: "var(--text-tertiary)" }}>↗</span>
       </div>
     );
   }
@@ -298,9 +296,7 @@ const LinkItem: React.FC<{
           alignItems: "center",
           justifyContent: "center",
           backgroundColor: metadata.themeColor || getDefaultThemeColor(domain),
-          backgroundImage: metadata.image
-            ? `url(${metadata.image})`
-            : undefined,
+          backgroundImage: metadata.image ? `url(${metadata.image})` : undefined,
           backgroundSize: "cover",
           backgroundPosition: "center",
         }}
@@ -354,8 +350,7 @@ const LinkItem: React.FC<{
               fontSize: "18px",
               fontWeight: 500,
               lineHeight: 1,
-              display:
-                metadata.isLoading || !metadata.faviconUrl ? "flex" : "none",
+              display: metadata.isLoading || !metadata.faviconUrl ? "flex" : "none",
               alignItems: "center",
               justifyContent: "center",
             }}
@@ -392,10 +387,7 @@ const LinkItem: React.FC<{
             minWidth: 0,
           }}
         >
-          {metadata.description ||
-            link.d ||
-            t("terminal.clickToVisit") ||
-            "Click to visit"}
+          {metadata.description || link.d || t("terminal.clickToVisit") || "Click to visit"}
         </div>
         <div
           style={{
@@ -513,10 +505,7 @@ const CodeBlock: React.FC<{
 
   const lines = block.code.split("\n");
   const shouldCollapse = lines.length > 15;
-  const displayCode =
-    expanded || !shouldCollapse
-      ? block.code
-      : lines.slice(0, 15).join("\n") + "\n...";
+  const displayCode = expanded || !shouldCollapse ? block.code : lines.slice(0, 15).join("\n") + "\n...";
 
   return (
     <div className="terminal-code-block" style={{ margin: "8px 0" }}>
@@ -559,9 +548,7 @@ const CodeBlock: React.FC<{
                   fontSize: "10px",
                 }}
               >
-                {expanded
-                  ? `▲ ${t("terminal.collapse") || "Collapse"}`
-                  : `▼ ${t("terminal.expand") || "Expand"}`}
+                {expanded ? `▲ ${t("terminal.collapse") || "Collapse"}` : `▼ ${t("terminal.expand") || "Expand"}`}
               </button>
             )}
             <button
@@ -574,9 +561,7 @@ const CodeBlock: React.FC<{
                 fontSize: "10px",
               }}
             >
-              {copied
-                ? t("common.copied") || "✓ Copied"
-                : t("common.copy") || "📋 Copy"}
+              {copied ? t("common.copied") || "✓ Copied" : t("common.copy") || "📋 Copy"}
             </button>
           </div>
         </div>
@@ -719,53 +704,27 @@ const TextMessage: React.FC<{ text: string }> = ({ text }) => {
   );
 };
 
-export function renderTerminalResponse(
-  terminalResponse: TerminalResponse | null,
-  t: (key: string) => string,
-  onFileClick?: (file: UploadFile) => void,
-): React.ReactNode {
+export function renderTerminalResponse(terminalResponse: TerminalResponse | null, t: (key: string) => string, onFileClick?: (file: UploadFile) => void): React.ReactNode {
   if (!terminalResponse) return null;
   const elements: React.ReactNode[] = [];
 
   if (terminalResponse.status && terminalResponse.m) {
-    elements.push(
-      <StatusBanner
-        key="status"
-        status={terminalResponse.status}
-        message={terminalResponse.m}
-        t={t}
-      />,
-    );
+    elements.push(<StatusBanner key="status" status={terminalResponse.status} message={terminalResponse.m} t={t} />);
   } else if (terminalResponse.m && terminalResponse.m.trim()) {
     elements.push(<TextMessage key="message" text={terminalResponse.m} />);
   }
 
   if (terminalResponse.warnings?.length) {
-    elements.push(
-      <WarningsList
-        key="warnings"
-        warnings={terminalResponse.warnings}
-        t={t}
-      />,
-    );
+    elements.push(<WarningsList key="warnings" warnings={terminalResponse.warnings} t={t} />);
   }
 
   if (terminalResponse.metrics?.length) {
-    elements.push(
-      <MetricsGrid key="metrics" metrics={terminalResponse.metrics} t={t} />,
-    );
+    elements.push(<MetricsGrid key="metrics" metrics={terminalResponse.metrics} t={t} />);
   }
 
   if (terminalResponse.tables && terminalResponse.tables.length > 0) {
     terminalResponse.tables.forEach((table, idx) => {
-      elements.push(
-        <DataTable
-          key={`table-${idx}`}
-          table={table}
-          t={t}
-          onFileClick={onFileClick}
-        />,
-      );
+      elements.push(<DataTable key={`table-${idx}`} table={table} t={t} onFileClick={onFileClick} />);
     });
   }
 
@@ -776,13 +735,7 @@ export function renderTerminalResponse(
   }
 
   if (terminalResponse.commands && terminalResponse.commands.length > 0) {
-    elements.push(
-      <CommandsList
-        key="commands"
-        commands={terminalResponse.commands}
-        t={t}
-      />,
-    );
+    elements.push(<CommandsList key="commands" commands={terminalResponse.commands} t={t} />);
   }
 
   if (terminalResponse.links && terminalResponse.links.length > 0) {
@@ -800,9 +753,7 @@ export function renderTerminalResponse(
       </div>,
     );
     terminalResponse.links.forEach((link, idx) => {
-      elements.push(
-        <LinkItem key={`link-${idx}`} link={link} type="remote" t={t} />,
-      );
+      elements.push(<LinkItem key={`link-${idx}`} link={link} type="remote" t={t} />);
     });
   }
 
@@ -821,18 +772,14 @@ export function renderTerminalResponse(
       </div>,
     );
     terminalResponse.local.forEach((link, idx) => {
-      elements.push(
-        <LinkItem key={`local-${idx}`} link={link} type="local" t={t} />,
-      );
+      elements.push(<LinkItem key={`local-${idx}`} link={link} type="local" t={t} />);
     });
   }
 
   return <>{elements}</>;
 }
 
-export function isTerminalResponseEmpty(
-  terminalResponse: TerminalResponse | null,
-): boolean {
+export function isTerminalResponseEmpty(terminalResponse: TerminalResponse | null): boolean {
   if (terminalResponse === null) return true;
 
   const tr = terminalResponse;

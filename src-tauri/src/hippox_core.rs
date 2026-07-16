@@ -1,10 +1,7 @@
-use std::{collections::HashMap, sync::Arc};
-
+use crate::commands::{get_hippox_instance, ModelConfig, HIPPOX_APP_CONFIG, HIPPOX_INSTANCES};
 use hippox::{Hippox, HippoxConfig, IdentityInformation};
 use serde::{Deserialize, Serialize};
-
-use crate::commands::{get_hippox_instance, ModelConfig, HIPPOX_APP_CONFIG, HIPPOX_INSTANCES};
-
+use std::{collections::HashMap, sync::Arc};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ContainerInstance {
     pub id: String,
@@ -22,7 +19,6 @@ pub struct ContainerInstance {
     pub created_at: String,
     pub updated_at: String,
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DatabaseInstance {
     pub id: String,
@@ -41,7 +37,6 @@ pub struct DatabaseInstance {
     pub created_at: String,
     pub updated_at: String,
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NetworkInstance {
     pub id: String,
@@ -60,7 +55,6 @@ pub struct NetworkInstance {
     pub created_at: String,
     pub updated_at: String,
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NotificationInstance {
     pub id: String,
@@ -83,7 +77,6 @@ pub struct NotificationInstance {
     pub created_at: String,
     pub updated_at: String,
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LlmInstance {
     pub id: Option<String>,
@@ -99,7 +92,6 @@ pub struct LlmInstance {
     pub extra: HashMap<String, String>,
     pub is_default: Option<bool>,
 }
-
 pub(crate) async fn init_all_hippox_instances() -> Result<(), String> {
     if let Err(e) = sync_all_to_hippox_core().await {
         eprintln!("Failed to sync config to Hippox core: {}", e);
@@ -121,7 +113,6 @@ pub(crate) async fn init_all_hippox_instances() -> Result<(), String> {
     }
     Ok(())
 }
-
 pub(crate) async fn init_single_hippox(instance: &LlmInstance, skills_dir: &str) -> Result<Hippox, String> {
     use hippox::{ModelProvider, WorkflowMode};
     let model_provider = match instance.provider.to_lowercase().as_str() {
@@ -181,7 +172,6 @@ pub(crate) async fn init_single_hippox(instance: &LlmInstance, skills_dir: &str)
         Err(e) => return Err(format!("Failed to initialize Hippox for {}: {}", instance.name, e)),
     }
 }
-
 pub(crate) async fn get_default_hippox() -> Result<Arc<Hippox>, String> {
     let default_instance_id = {
         let config = HIPPOX_APP_CONFIG.read().await;
@@ -198,7 +188,6 @@ pub(crate) async fn get_default_hippox() -> Result<Arc<Hippox>, String> {
     };
     get_hippox_instance(&default_instance_id).await
 }
-
 pub(crate) async fn sync_all_to_hippox_core() -> Result<(), String> {
     let config = HIPPOX_APP_CONFIG.read().await;
     for instance in &config.engine.database_instances {
@@ -215,27 +204,19 @@ pub(crate) async fn sync_all_to_hippox_core() -> Result<(), String> {
     }
     Ok(())
 }
-
 pub(crate) async fn sync_database_instance_to_core(instance: &DatabaseInstance) -> Result<(), String> {
     Ok(())
 }
-
 pub(crate) async fn sync_container_instance_to_core(instance: &ContainerInstance) -> Result<(), String> {
     Ok(())
 }
-
 pub(crate) async fn sync_network_instance_to_core(instance: &NetworkInstance) -> Result<(), String> {
     Ok(())
 }
-
 pub(crate) async fn sync_notification_instance_to_core(instance: &NotificationInstance) -> Result<(), String> {
     Ok(())
 }
-
 pub(crate) async fn remove_database_instance_from_core(instance_type: &str, instance_id: &str) {}
-
 pub(crate) async fn remove_container_instance_from_core(instance_type: &str, instance_id: &str) {}
-
 pub(crate) async fn remove_network_instance_from_core(instance_type: &str, instance_id: &str) {}
-
 pub(crate) async fn remove_notification_instance_from_core(instance_type: &str, instance_id: &str) {}

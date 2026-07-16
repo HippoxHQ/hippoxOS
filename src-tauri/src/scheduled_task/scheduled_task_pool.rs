@@ -11,21 +11,17 @@ use std::time::Duration;
 use tokio::sync::Mutex;
 use tokio::task::JoinHandle;
 use tokio::time;
-
 pub type TaskPool = Arc<Mutex<HashMap<String, TaskScheduler>>>;
-
 #[derive(Debug)]
 pub struct TaskScheduler {
     pub task_id: String,
     pub task: ScheduledTask,
     handle: Arc<Mutex<Option<JoinHandle<()>>>>,
 }
-
 impl TaskScheduler {
     pub fn new(task: ScheduledTask) -> Self {
         Self { task_id: task.id.clone(), task, handle: Arc::new(Mutex::new(None)) }
     }
-
     pub async fn start(&mut self, pool: TaskPool) -> Result<(), String> {
         let mut handle_lock = self.handle.lock().await;
         if handle_lock.is_some() {
@@ -109,26 +105,22 @@ impl TaskScheduler {
         *handle_lock = Some(handle);
         Ok(())
     }
-
     pub async fn stop(&mut self) {
         let mut handle_lock = self.handle.lock().await;
         if let Some(handle) = handle_lock.take() {
             handle.abort();
         }
     }
-
     pub async fn update_task(&mut self, new_task: ScheduledTask) {
         self.stop().await;
         self.task = new_task;
     }
 }
-
 pub enum ScheduleOrInterval {
     Cron(Schedule),
     Interval { duration: Duration, value: u32, unit: IntervalUnit },
     Fixed { hour: u32, minute: u32 },
 }
-
 fn parse_schedule(task: &ScheduledTask) -> Result<ScheduleOrInterval, String> {
     match &task.schedule_config {
         ScheduleConfig::Fixed(fixed) => {
@@ -148,7 +140,6 @@ fn parse_schedule(task: &ScheduledTask) -> Result<ScheduleOrInterval, String> {
         }
     }
 }
-
 async fn update_task_execution_time(task_id: &str) -> Result<(), String> {
     if let Ok(Some(mut task)) = load_task_config(task_id) {
         task.last_executed_at = Some(chrono::Local::now().to_rfc3339());
@@ -157,13 +148,11 @@ async fn update_task_execution_time(task_id: &str) -> Result<(), String> {
     }
     Ok(())
 }
-
 pub async fn init_task_pool() -> TaskPool {
     let pool = Arc::new(Mutex::new(HashMap::new()));
     load_all_tasks_to_pool(pool.clone()).await;
     pool
 }
-
 async fn load_all_tasks_to_pool(pool: TaskPool) {
     let tasks_dir = crate::commands::scheduled_tasks::get_scheduled_tasks_root_dir();
     if !tasks_dir.exists() {
@@ -186,7 +175,6 @@ async fn load_all_tasks_to_pool(pool: TaskPool) {
         }
     }
 }
-
 pub async fn add_task_to_pool(pool: TaskPool, task: ScheduledTask) -> Result<(), String> {
     let mut pool_guard = pool.lock().await;
     if let Some(existing) = pool_guard.get_mut(&task.id) {
@@ -204,14 +192,12 @@ pub async fn add_task_to_pool(pool: TaskPool, task: ScheduledTask) -> Result<(),
     }
     Ok(())
 }
-
 pub async fn remove_task_from_pool(pool: TaskPool, task_id: &str) {
     let mut pool_guard = pool.lock().await;
     if let Some(mut scheduler) = pool_guard.remove(task_id) {
         scheduler.stop().await;
     }
 }
-
 pub async fn toggle_task_in_pool(pool: TaskPool, task_id: &str, enabled: bool) -> Result<(), String> {
     let mut pool_guard = pool.lock().await;
     if let Some(scheduler) = pool_guard.get_mut(task_id) {
@@ -239,11 +225,9 @@ pub async fn toggle_task_in_pool(pool: TaskPool, task_id: &str, enabled: bool) -
     }
     Ok(())
 }
-
 pub async fn update_task_in_pool(pool: TaskPool, task: ScheduledTask) -> Result<(), String> {
     add_task_to_pool(pool, task).await
 }
-
 #[derive(Clone)]
 pub struct CronJob {
     pub id: String,
@@ -251,24 +235,20 @@ pub struct CronJob {
     pub cron_expr: String,
     pub callback: Arc<dyn Fn() + Send + Sync>,
 }
-
 impl CronJob {
     pub fn new(id: &str, name: &str, cron_expr: &str, callback: Arc<dyn Fn() + Send + Sync>) -> Self {
         Self { id: id.to_string(), name: name.to_string(), cron_expr: cron_expr.to_string(), callback }
     }
 }
-
 pub struct CronScheduler {
     pub job_id: String,
     pub job: CronJob,
     handle: Arc<Mutex<Option<JoinHandle<()>>>>,
 }
-
 impl CronScheduler {
     pub fn new(job: CronJob) -> Self {
         Self { job_id: job.id.clone(), job, handle: Arc::new(Mutex::new(None)) }
     }
-
     pub async fn start(&mut self, pool: TaskPool) -> Result<(), String> {
         self.stop().await;
         let mut handle_lock = self.handle.lock().await;
@@ -305,7 +285,6 @@ impl CronScheduler {
         *handle_lock = Some(handle);
         Ok(())
     }
-
     pub async fn stop(&mut self) {
         let mut handle_lock = self.handle.lock().await;
         if let Some(handle) = handle_lock.take() {
@@ -313,7 +292,6 @@ impl CronScheduler {
         }
     }
 }
-
 pub async fn add_cron_job_to_pool(pool: TaskPool, job: CronJob) -> Result<(), String> {
     let mut pool_guard = pool.lock().await;
     if let Some(existing) = pool_guard.get_mut(&job.id) {
@@ -349,11 +327,9 @@ pub async fn add_cron_job_to_pool(pool: TaskPool, job: CronJob) -> Result<(), St
     pool_guard.insert(scheduler.job_id.clone(), task_scheduler);
     Ok(())
 }
-
 pub async fn remove_cron_job_from_pool(pool: TaskPool, job_id: &str) {
     remove_task_from_pool(pool, job_id).await;
 }
-
 // Modify the execute_scheduled_task function to use the new executor
 async fn execute_scheduled_task(task: &ScheduledTask) -> Result<(), String> {
     let executor = ScheduledTaskExecutor::from_task_id(&task.id).await?;

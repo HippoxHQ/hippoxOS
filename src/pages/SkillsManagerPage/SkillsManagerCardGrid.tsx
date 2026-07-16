@@ -1,19 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { SkillData } from "../../types/skill";
-import {
-  StarIcon,
-  StarFilledIcon,
-  PlayIcon,
-  DeleteIcon,
-  SearchIcon,
-} from "../../icons";
-import {
-  skillsMarketCommands,
-  skillsLocalCommands,
-} from "../../command/skills";
+import { StarIcon, StarFilledIcon, PlayIcon, DeleteIcon, SearchIcon } from "../../icons";
+import { skillsMarketCommands, skillsLocalCommands } from "../../command/skills";
 import { UploadFile } from "../../core/types";
 import { runSkill } from "../../components/MenuPanel/utils/skillRunner";
-
 interface SkillsManagerCardGridProps {
   t: (key: string, params?: any) => string;
   skills: SkillData[];
@@ -26,7 +16,6 @@ interface SkillsManagerCardGridProps {
   onRefresh?: () => void;
   onSendSkillMessage?: (message: string, files?: UploadFile[]) => void;
 }
-
 const SkillsManagerCardGrid: React.FC<SkillsManagerCardGridProps> = ({
   t,
   skills: externalSkills,
@@ -40,16 +29,12 @@ const SkillsManagerCardGrid: React.FC<SkillsManagerCardGridProps> = ({
   onSendSkillMessage,
 }) => {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
-  const [favoritedSkills, setFavoritedSkills] = useState<Set<string>>(
-    new Set(),
-  );
+  const [favoritedSkills, setFavoritedSkills] = useState<Set<string>>(new Set());
   const [favoritingId, setFavoritingId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-
   useEffect(() => {
     loadFavorites();
   }, []);
-
   const loadFavorites = async () => {
     try {
       const favoritedIds = await skillsMarketCommands.getFavoritedSkills();
@@ -58,7 +43,6 @@ const SkillsManagerCardGrid: React.FC<SkillsManagerCardGridProps> = ({
       console.error("Failed to load favorites:", error);
     }
   };
-
   const handleFavorite = async (skill: SkillData, e: React.MouseEvent) => {
     e.stopPropagation();
     setFavoritingId(skill.id);
@@ -66,20 +50,14 @@ const SkillsManagerCardGrid: React.FC<SkillsManagerCardGridProps> = ({
       const favoriteId = `${skill.category}/${skill.id}`;
       const isFavorited = favoritedSkills.has(favoriteId);
       if (isFavorited) {
-        await skillsLocalCommands.unfavoriteLocalSkill(
-          skill.id,
-          skill.category || "other",
-        );
+        await skillsLocalCommands.unfavoriteLocalSkill(skill.id, skill.category || "other");
         setFavoritedSkills((prev) => {
           const newSet = new Set(prev);
           newSet.delete(favoriteId);
           return newSet;
         });
       } else {
-        await skillsLocalCommands.favoriteLocalSkill(
-          skill.id,
-          skill.category || "other",
-        );
+        await skillsLocalCommands.favoriteLocalSkill(skill.id, skill.category || "other");
         setFavoritedSkills((prev) => {
           const newSet = new Set(prev);
           newSet.add(favoriteId);
@@ -93,23 +71,18 @@ const SkillsManagerCardGrid: React.FC<SkillsManagerCardGridProps> = ({
       setFavoritingId(null);
     }
   };
-
   const handleDelete = async (skill: SkillData, e: React.MouseEvent) => {
     e.stopPropagation();
     // eslint-disable-next-line no-restricted-globals
     if (confirm(t("skillsManager.confirmDelete"))) {
       try {
-        await skillsLocalCommands.deleteSkill(
-          skill.id,
-          skill.category || "other",
-        );
+        await skillsLocalCommands.deleteSkill(skill.id, skill.category || "other");
         onRefresh?.();
       } catch (error) {
         console.error("Failed to delete skill:", error);
       }
     }
   };
-
   const handleRun = async (skill: SkillData, e: React.MouseEvent) => {
     e.stopPropagation();
     if (!onSendSkillMessage) {
@@ -135,52 +108,24 @@ const SkillsManagerCardGrid: React.FC<SkillsManagerCardGridProps> = ({
     await runSkill(marketSkill as any, onSendSkillMessage, t, sessionId);
     onRun?.(skill);
   };
-
   const isFavorited = (skill: SkillData): boolean => {
     return favoritedSkills.has(`${skill.category}/${skill.id}`);
   };
-
   const filteredSkills = externalSkills.filter((skill) => {
     if (!searchTerm.trim()) return true;
     const term = searchTerm.toLowerCase().trim();
-    return (
-      skill.name.toLowerCase().includes(term) ||
-      skill.description.toLowerCase().includes(term) ||
-      (skill.tags && skill.tags.toLowerCase().includes(term))
-    );
+    return skill.name.toLowerCase().includes(term) || skill.description.toLowerCase().includes(term) || (skill.tags && skill.tags.toLowerCase().includes(term));
   });
-
-  const groupedSkills = filteredSkills.reduce<Record<string, SkillData[]>>(
-    (acc, skill) => {
-      const category = skill.category || "other";
-      if (!acc[category]) {
-        acc[category] = [];
-      }
-      acc[category].push(skill);
-      return acc;
-    },
-    {},
-  );
-
+  const groupedSkills = filteredSkills.reduce<Record<string, SkillData[]>>((acc, skill) => {
+    const category = skill.category || "other";
+    if (!acc[category]) {
+      acc[category] = [];
+    }
+    acc[category].push(skill);
+    return acc;
+  }, {});
   const getCategoryColor = (category: string): string => {
-    const colors = [
-      "#6366f1",
-      "#8b5cf6",
-      "#ec4899",
-      "#f43f5e",
-      "#f59e0b",
-      "#eab308",
-      "#84cc16",
-      "#10b981",
-      "#06b6d4",
-      "#3b82f6",
-      "#ef4444",
-      "#14b8a6",
-      "#a855f7",
-      "#d946ef",
-      "#f97316",
-      "#0ea5e9",
-    ];
+    const colors = ["#6366f1", "#8b5cf6", "#ec4899", "#f43f5e", "#f59e0b", "#eab308", "#84cc16", "#10b981", "#06b6d4", "#3b82f6", "#ef4444", "#14b8a6", "#a855f7", "#d946ef", "#f97316", "#0ea5e9"];
     let hash = 0;
     for (let i = 0; i < category.length; i++) {
       hash = (hash << 5) - hash + category.charCodeAt(i);
@@ -188,7 +133,6 @@ const SkillsManagerCardGrid: React.FC<SkillsManagerCardGridProps> = ({
     }
     return colors[Math.abs(hash) % colors.length];
   };
-
   const handleCreateWithCategory = (category: string) => {
     if (onCreateNewWithCategory) {
       onCreateNewWithCategory(category);
@@ -196,7 +140,6 @@ const SkillsManagerCardGrid: React.FC<SkillsManagerCardGridProps> = ({
       onCreateNew();
     }
   };
-
   return (
     <div className="skill-cards-grid">
       <style>{`
@@ -537,17 +480,10 @@ const SkillsManagerCardGrid: React.FC<SkillsManagerCardGridProps> = ({
           --hover-bg: rgba(0, 0, 0, 0.04);
         }
       `}</style>
-
       <div className="search-bar-wrapper">
         <div className="skill-manager-search-input-wrapper">
           <SearchIcon />
-          <input
-            type="text"
-            className="search-input"
-            placeholder={t("skillsManager.searchPlaceholder") || "搜索技能..."}
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+          <input type="text" className="search-input" placeholder={t("skillsManager.searchPlaceholder") || "搜索技能..."} value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
           {searchTerm && (
             <button className="search-clear" onClick={() => setSearchTerm("")}>
               ✕
@@ -561,56 +497,35 @@ const SkillsManagerCardGrid: React.FC<SkillsManagerCardGridProps> = ({
           + {t("skillsManager.createNew")}
         </button>
       </div>
-
       <div className="scrollable-content">
         {externalSkills.length === 0 ? (
           <div className="empty-state">
             <div className="empty-state-icon">📦</div>
-            <div className="empty-state-text">
-              {t("skillsManager.noSkills")}
-            </div>
+            <div className="empty-state-text">{t("skillsManager.noSkills")}</div>
           </div>
         ) : filteredSkills.length === 0 ? (
           <div className="no-results">
             <div className="no-results-icon">🔍</div>
-            <div className="no-results-text">
-              {t("skillsManager.noSearchResults") || "没有找到匹配的技能"}
-            </div>
+            <div className="no-results-text">{t("skillsManager.noSearchResults") || "没有找到匹配的技能"}</div>
           </div>
         ) : (
           Object.keys(groupedSkills).map((category) => {
             const skillsInCategory = groupedSkills[category];
             const categoryColor = getCategoryColor(category);
-
             return (
               <div key={category} className="category-section">
                 <div className="category-header">
-                  <span
-                    className="category-dot"
-                    style={{ background: categoryColor }}
-                  />
+                  <span className="category-dot" style={{ background: categoryColor }} />
                   <span className="category-name">{category}</span>
-                  <span className="category-count">
-                    ({skillsInCategory.length})
-                  </span>
+                  <span className="category-count">({skillsInCategory.length})</span>
                 </div>
-
                 <div className="cards-container">
                   {skillsInCategory.map((skill) => {
                     const favorited = isFavorited(skill);
-                    const tags = skill.tags
-                      ? skill.tags.split(",").filter((tag) => tag.trim())
-                      : [];
+                    const tags = skill.tags ? skill.tags.split(",").filter((tag) => tag.trim()) : [];
                     const displayTags = tags.slice(0, 3);
-
                     return (
-                      <div
-                        key={skill.id}
-                        className="skill-card"
-                        onMouseEnter={() => setHoveredId(skill.id)}
-                        onMouseLeave={() => setHoveredId(null)}
-                        onClick={() => onSelectSkill(skill)}
-                      >
+                      <div key={skill.id} className="skill-card" onMouseEnter={() => setHoveredId(skill.id)} onMouseLeave={() => setHoveredId(null)} onClick={() => onSelectSkill(skill)}>
                         <div className="card-header">
                           <div className="card-name" title={skill.name}>
                             {skill.name || t("skillsManager.unnamed")}
@@ -620,68 +535,33 @@ const SkillsManagerCardGrid: React.FC<SkillsManagerCardGridProps> = ({
                               className={`icon-btn ${favorited ? "active" : ""}`}
                               onClick={(e) => handleFavorite(skill, e)}
                               disabled={favoritingId === skill.id}
-                              title={
-                                favorited
-                                  ? t("skillsManager.unfavorite")
-                                  : t("skillsManager.favorite")
-                              }
+                              title={favorited ? t("skillsManager.unfavorite") : t("skillsManager.favorite")}
                             >
-                              {favorited ? (
-                                <StarFilledIcon size={11} />
-                              ) : (
-                                <StarIcon size={11} />
-                              )}
+                              {favorited ? <StarFilledIcon size={11} /> : <StarIcon size={11} />}
                             </button>
-                            <button
-                              className="icon-btn"
-                              onClick={(e) => handleRun(skill, e)}
-                              title={t("skillsManager.run")}
-                            >
+                            <button className="icon-btn" onClick={(e) => handleRun(skill, e)} title={t("skillsManager.run")}>
                               <PlayIcon size={11} />
                             </button>
-                            <button
-                              className="icon-btn danger"
-                              onClick={(e) =>
-                                onDeleteSkill
-                                  ? onDeleteSkill(skill, e)
-                                  : handleDelete(skill, e)
-                              }
-                              title={t("skillsManager.delete")}
-                            >
+                            <button className="icon-btn danger" onClick={(e) => (onDeleteSkill ? onDeleteSkill(skill, e) : handleDelete(skill, e))} title={t("skillsManager.delete")}>
                               <DeleteIcon size={13} />
                             </button>
                           </div>
                         </div>
-
                         <div className="card-meta">
-                          <span className="card-meta-item fixed">
-                            {skill.steps.length}s
-                          </span>
+                          <span className="card-meta-item fixed">{skill.steps.length}s</span>
                           {displayTags.map((tag, idx) => (
-                            <span
-                              key={idx}
-                              className="card-meta-item fixed"
-                              title={tag.trim()}
-                            >
+                            <span key={idx} className="card-meta-item fixed" title={tag.trim()}>
                               #{tag.trim()}
                             </span>
                           ))}
                         </div>
-                        <div className="card-description">
-                          {skill.description ||
-                            t("skillsManager.noDescription")}
-                        </div>
+                        <div className="card-description">{skill.description || t("skillsManager.noDescription")}</div>
                       </div>
                     );
                   })}
-                  <div
-                    className="skill-card add-card"
-                    onClick={() => handleCreateWithCategory(category)}
-                  >
+                  <div className="skill-card add-card" onClick={() => handleCreateWithCategory(category)}>
                     <div className="add-icon">➕</div>
-                    <div className="add-text">
-                      {t("skillsManager.createNew")}
-                    </div>
+                    <div className="add-text">{t("skillsManager.createNew")}</div>
                   </div>
                 </div>
               </div>
@@ -692,5 +572,4 @@ const SkillsManagerCardGrid: React.FC<SkillsManagerCardGridProps> = ({
     </div>
   );
 };
-
 export default SkillsManagerCardGrid;

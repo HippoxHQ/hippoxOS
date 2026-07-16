@@ -1,6 +1,5 @@
 import { useCallback } from "react";
 import { UploadFile } from "../../core/types";
-
 interface UseSendSkillMessageParams {
     currentSessionId: string;
     currentContentPanel: any;
@@ -9,7 +8,6 @@ interface UseSendSkillMessageParams {
     handleSendMessage: (message: string, sessionId: string, files?: UploadFile[]) => void;
     shouldShowWelcome: () => boolean;
 }
-
 export const useSendSkillMessage = ({
     currentSessionId,
     currentContentPanel,

@@ -3,12 +3,10 @@ import { showToast, ToastType } from "../Toast";
 import { DriverInfo, driversCommands } from "../../command/drivers";
 import { configCommands } from "../../command/config";
 import { CategoryIcon, SearchIcon } from "../../icons";
-
 interface DriversPanelPanelProps {
   t: (key: string, params?: any) => string;
   onSave?: (config: any) => void;
 }
-
 const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
   const [drivers, setDrivers] = useState<DriverInfo[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
@@ -17,74 +15,51 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
   const tabsRef = useRef<HTMLDivElement>(null);
   const [showLeftArrow, setShowLeftArrow] = useState(false);
   const [showRightArrow, setShowRightArrow] = useState(false);
-  const [disabledDrivers, setDisabledDrivers] = useState<Set<string>>(
-    new Set(),
-  );
+  const [disabledDrivers, setDisabledDrivers] = useState<Set<string>>(new Set());
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [showCategoryBubble, setShowCategoryBubble] = useState(false);
   const categoryButtonRef = useRef<HTMLButtonElement>(null);
   const bubbleTimerRef = useRef<NodeJS.Timeout | null>(null);
   const bubbleRef = useRef<HTMLDivElement>(null);
-
   useEffect(() => {
     loadDrivers();
   }, []);
-
   const filteredDrivers = drivers.filter((driver) => {
-    const matchesSearch =
-      driver.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      driver.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory =
-      selectedCategory === "all" || driver.category === selectedCategory;
+    const matchesSearch = driver.name.toLowerCase().includes(searchTerm.toLowerCase()) || driver.description.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = selectedCategory === "all" || driver.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
-
-  const filteredCategories = Array.from(
-    new Set(filteredDrivers.map((s) => s.category)),
-  );
-
+  const filteredCategories = Array.from(new Set(filteredDrivers.map((s) => s.category)));
   useEffect(() => {
     checkScrollButtons();
     window.addEventListener("resize", checkScrollButtons);
     return () => window.removeEventListener("resize", checkScrollButtons);
   }, [categories, filteredCategories]);
-
   useEffect(() => {
     setTimeout(checkScrollButtons, 100);
   }, [categories, filteredCategories]);
-
   useEffect(() => {
     setTimeout(checkScrollButtons, 50);
   }, [activeTab]);
-
   useEffect(() => {
     if (filteredCategories.length > 0) {
-      const currentCategoryHasDrivers = filteredDrivers.some(
-        (s) => s.category === activeTab,
-      );
+      const currentCategoryHasDrivers = filteredDrivers.some((s) => s.category === activeTab);
       if (!currentCategoryHasDrivers || !activeTab) {
         setActiveTab(filteredCategories[0]);
       }
     }
   }, [filteredDrivers, filteredCategories, activeTab]);
-
   const loadDisabledDriversConfig = async (): Promise<Set<string>> => {
     try {
       const disabled = await configCommands.getDisabledDrivers();
       return new Set(disabled);
     } catch (error) {
-      console.warn(
-        "Failed to load disabled drivers config, using empty set:",
-        error,
-      );
+      console.warn("Failed to load disabled drivers config, using empty set:", error);
       return new Set();
     }
   };
-
-  const saveDisabledDriversConfig = async (
-    disabled: Set<string>,
-  ): Promise<void> => {
+  const saveDisabledDriversConfig = async (disabled: Set<string>): Promise<void> => {
     try {
       await configCommands.setDisabledDrivers(Array.from(disabled));
     } catch (error) {
@@ -92,7 +67,6 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
       throw error;
     }
   };
-
   const loadDrivers = async () => {
     try {
       setLoading(true);
@@ -116,13 +90,8 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
       setLoading(false);
     }
   };
-
   const handleToggleDriver = async (driverName: string, enabled: boolean) => {
-    setDrivers((prev) =>
-      prev.map((driver) =>
-        driver.name === driverName ? { ...driver, enabled } : driver,
-      ),
-    );
+    setDrivers((prev) => prev.map((driver) => (driver.name === driverName ? { ...driver, enabled } : driver)));
     const newDisabled = new Set(disabledDrivers);
     if (enabled) {
       newDisabled.delete(driverName);
@@ -141,26 +110,15 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
         }),
       );
     } catch (error) {
-      setDrivers((prev) =>
-        prev.map((driver) =>
-          driver.name === driverName
-            ? { ...driver, enabled: !enabled }
-            : driver,
-        ),
-      );
+      setDrivers((prev) => prev.map((driver) => (driver.name === driverName ? { ...driver, enabled: !enabled } : driver)));
       setDisabledDrivers(disabledDrivers);
       showToast(ToastType.ERROR, t("drivers.saveFailed"));
     }
   };
-
   const handleToggleAllInTab = async (category: string, enabled: boolean) => {
     const categoryDrivers = drivers.filter((s) => s.category === category);
     const driverNames = categoryDrivers.map((s) => s.name);
-    setDrivers((prev) =>
-      prev.map((driver) =>
-        driver.category === category ? { ...driver, enabled } : driver,
-      ),
-    );
+    setDrivers((prev) => prev.map((driver) => (driver.category === category ? { ...driver, enabled } : driver)));
     const newDisabled = new Set(disabledDrivers);
     if (enabled) {
       driverNames.forEach((name) => newDisabled.delete(name));
@@ -182,18 +140,11 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
         }),
       );
     } catch (error) {
-      setDrivers((prev) =>
-        prev.map((driver) =>
-          driver.category === category
-            ? { ...driver, enabled: !enabled }
-            : driver,
-        ),
-      );
+      setDrivers((prev) => prev.map((driver) => (driver.category === category ? { ...driver, enabled: !enabled } : driver)));
       setDisabledDrivers(disabledDrivers);
       showToast(ToastType.ERROR, t("drivers.saveFailed"));
     }
   };
-
   const getCategoryName = (category: string) => {
     const categoryKeyMap: Record<string, string> = {
       file: "drivers.category.fileSystem",
@@ -211,42 +162,32 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
     const key = categoryKeyMap[category];
     return key ? t(key) : category;
   };
-
   const getCategoryDrivers = (category: string) => {
     return drivers.filter((s) => s.category === category);
   };
-
   const getCategoryEnabledCount = (category: string) => {
     const categoryDrivers = drivers.filter((s) => s.category === category);
     const enabledCount = categoryDrivers.filter((s) => s.enabled).length;
     return { enabledCount, totalCount: categoryDrivers.length };
   };
-
   const isCategoryFullyEnabled = (category: string) => {
     const { enabledCount, totalCount } = getCategoryEnabledCount(category);
     return enabledCount === totalCount && totalCount > 0;
   };
-
   const scrollTabs = (direction: "left" | "right") => {
     if (tabsRef.current) {
       const scrollAmount = 200;
-      const newScrollLeft =
-        tabsRef.current.scrollLeft +
-        (direction === "left" ? -scrollAmount : scrollAmount);
+      const newScrollLeft = tabsRef.current.scrollLeft + (direction === "left" ? -scrollAmount : scrollAmount);
       tabsRef.current.scrollTo({ left: newScrollLeft, behavior: "smooth" });
     }
   };
-
   const checkScrollButtons = () => {
     if (tabsRef.current) {
       const { scrollLeft, scrollWidth, clientWidth } = tabsRef.current;
       setShowLeftArrow(scrollLeft > 0);
-      setShowRightArrow(
-        scrollWidth > clientWidth && scrollLeft + clientWidth < scrollWidth - 5,
-      );
+      setShowRightArrow(scrollWidth > clientWidth && scrollLeft + clientWidth < scrollWidth - 5);
     }
   };
-
   const handleCategorySelect = (category: string) => {
     setSelectedCategory(category);
     setShowCategoryBubble(false);
@@ -259,40 +200,33 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
     }
     setTimeout(checkScrollButtons, 100);
   };
-
   const handleCategoryButtonMouseEnter = () => {
     if (bubbleTimerRef.current) {
       clearTimeout(bubbleTimerRef.current);
     }
     setShowCategoryBubble(true);
   };
-
   const handleCategoryButtonMouseLeave = () => {
     bubbleTimerRef.current = setTimeout(() => {
       setShowCategoryBubble(false);
     }, 200);
   };
-
   const handleBubbleMouseEnter = () => {
     if (bubbleTimerRef.current) {
       clearTimeout(bubbleTimerRef.current);
     }
   };
-
   const handleBubbleMouseLeave = () => {
     setShowCategoryBubble(false);
   };
-
   const handleClearSearch = () => {
     setSearchTerm("");
   };
-
   const ellipsisStyle: React.CSSProperties = {
     whiteSpace: "nowrap",
     overflow: "hidden",
     textOverflow: "ellipsis",
   };
-
   const buttonStyle: React.CSSProperties = {
     padding: "5px 10px",
     background: "var(--bg-secondary)",
@@ -303,7 +237,6 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
     cursor: "pointer",
     flexShrink: 0,
   };
-
   const driverCardStyle: React.CSSProperties = {
     background: "var(--bg-secondary)",
     borderRadius: "0px",
@@ -312,7 +245,6 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
     borderBottom: "1px solid var(--border-color)",
     overflow: "hidden",
   };
-
   const toggleSwitchStyle: React.CSSProperties = {
     position: "relative",
     display: "inline-block",
@@ -320,7 +252,6 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
     height: "20px",
     flexShrink: 0,
   };
-
   const toggleSliderStyle: React.CSSProperties = {
     position: "absolute",
     cursor: "pointer",
@@ -332,12 +263,10 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
     borderRadius: "24px",
     border: "1px solid var(--border-color)",
   };
-
   const toggleSliderCheckedStyle: React.CSSProperties = {
     backgroundColor: "var(--accent-color, #0066cc)",
     borderColor: "var(--accent-color, #0066cc)",
   };
-
   const toggleKnobStyle: React.CSSProperties = {
     position: "absolute",
     content: '""',
@@ -348,11 +277,9 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
     backgroundColor: "white",
     borderRadius: "50%",
   };
-
   const toggleKnobCheckedStyle: React.CSSProperties = {
     transform: "translateX(18px)",
   };
-
   const styles: Record<string, React.CSSProperties> = {
     searchInputWrapper: {
       flex: 1,
@@ -481,7 +408,6 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
       flexShrink: 0,
     },
   };
-
   const globalStyles = `
     .driver-tabs-container {
       position: relative;
@@ -619,7 +545,6 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
       min-height: 0;
     }
   `;
-
   if (typeof document !== "undefined") {
     const styleId = "driver-panel-styles";
     if (!document.getElementById(styleId)) {
@@ -629,7 +554,6 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
       document.head.appendChild(style);
     }
   }
-
   if (loading) {
     return (
       <div
@@ -658,13 +582,9 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
       </div>
     );
   }
-
-  const currentCategoryDrivers = filteredDrivers.filter(
-    (s) => s.category === activeTab,
-  );
+  const currentCategoryDrivers = filteredDrivers.filter((s) => s.category === activeTab);
   const { enabledCount, totalCount } = getCategoryEnabledCount(activeTab);
   const isFullyEnabled = isCategoryFullyEnabled(activeTab);
-
   return (
     <div
       className="settings-container"
@@ -693,21 +613,9 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
           </button>
           <div className="driver-search-input-wrapper">
             <SearchIcon />
-            <input
-              type="text"
-              className="driver-search-input"
-              placeholder={
-                t("drivers.searchPlaceholder") || "Search drivers..."
-              }
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+            <input type="text" className="driver-search-input" placeholder={t("drivers.searchPlaceholder") || "Search drivers..."} value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
             {searchTerm && (
-              <button
-                className="driver-search-clear"
-                onClick={handleClearSearch}
-                title={t("drivers.clearSearch") || "Clear search"}
-              >
+              <button className="driver-search-clear" onClick={handleClearSearch} title={t("drivers.clearSearch") || "Clear search"}>
                 ✕
               </button>
             )}
@@ -715,15 +623,8 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
         </div>
       </div>
       {showCategoryBubble && categories.length > 0 && (
-        <div
-          ref={bubbleRef}
-          style={styles.bubbleContainer}
-          onMouseEnter={handleBubbleMouseEnter}
-          onMouseLeave={handleBubbleMouseLeave}
-        >
-          <div style={styles.bubbleHeader}>
-            {t("drivers.selectCategory") || "Select category"}
-          </div>
+        <div ref={bubbleRef} style={styles.bubbleContainer} onMouseEnter={handleBubbleMouseEnter} onMouseLeave={handleBubbleMouseLeave}>
+          <div style={styles.bubbleHeader}>{t("drivers.selectCategory") || "Select category"}</div>
           <div style={styles.bubbleContent}>
             <div
               style={{
@@ -732,9 +633,7 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
               }}
               onClick={() => handleCategorySelect("all")}
             >
-              <span style={styles.bubbleItemText}>
-                {t("drivers.all") || "All"}
-              </span>
+              <span style={styles.bubbleItemText}>{t("drivers.all") || "All"}</span>
               <span style={styles.bubbleItemCount}>({drivers.length})</span>
             </div>
             {categories.map((cat) => {
@@ -744,9 +643,7 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
                   key={cat}
                   style={{
                     ...styles.bubbleItem,
-                    ...(selectedCategory === cat
-                      ? styles.bubbleItemActive
-                      : {}),
+                    ...(selectedCategory === cat ? styles.bubbleItemActive : {}),
                   }}
                   onClick={() => handleCategorySelect(cat)}
                 >
@@ -758,45 +655,27 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
           </div>
         </div>
       )}
-      <div
-        className="driver-tabs-container"
-        style={{ padding: "0px", margin: 0 }}
-      >
+      <div className="driver-tabs-container" style={{ padding: "0px", margin: 0 }}>
         {showLeftArrow && (
-          <button
-            className="driver-tab-scroll-btn"
-            onClick={() => scrollTabs("left")}
-          >
+          <button className="driver-tab-scroll-btn" onClick={() => scrollTabs("left")}>
             ◀
           </button>
         )}
-        <div
-          className="driver-tabs-scroll"
-          ref={tabsRef}
-          onScroll={checkScrollButtons}
-        >
+        <div className="driver-tabs-scroll" ref={tabsRef} onScroll={checkScrollButtons}>
           <div className="driver-tabs">
             {filteredCategories.map((category) => (
-              <button
-                key={category}
-                className={`driver-tab ${activeTab === category ? "active" : ""}`}
-                onClick={() => setActiveTab(category)}
-              >
+              <button key={category} className={`driver-tab ${activeTab === category ? "active" : ""}`} onClick={() => setActiveTab(category)}>
                 {getCategoryName(category)}
               </button>
             ))}
           </div>
         </div>
         {showRightArrow && (
-          <button
-            className="driver-tab-scroll-btn"
-            onClick={() => scrollTabs("right")}
-          >
+          <button className="driver-tab-scroll-btn" onClick={() => scrollTabs("right")}>
             ▶
           </button>
         )}
       </div>
-
       <div
         style={{
           display: "flex",
@@ -823,14 +702,10 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
             enabled: enabledCount,
           })}
         </div>
-        <button
-          style={buttonStyle}
-          onClick={() => handleToggleAllInTab(activeTab, !isFullyEnabled)}
-        >
+        <button style={buttonStyle} onClick={() => handleToggleAllInTab(activeTab, !isFullyEnabled)}>
           {isFullyEnabled ? t("drivers.disableAll") : t("drivers.enableAll")}
         </button>
       </div>
-
       <div className="driver-list-container">
         {currentCategoryDrivers.length === 0 ? (
           <div
@@ -841,9 +716,7 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
               ...ellipsisStyle,
             }}
           >
-            {searchTerm
-              ? t("drivers.noSearchResults") || "No matching drivers found"
-              : t("drivers.empty")}
+            {searchTerm ? t("drivers.noSearchResults") || "No matching drivers found" : t("drivers.empty")}
           </div>
         ) : (
           currentCategoryDrivers.map((driver) => (
@@ -870,14 +743,7 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
                   </span>
                 </div>
                 <label style={toggleSwitchStyle}>
-                  <input
-                    type="checkbox"
-                    style={{ opacity: 0, width: 0, height: 0 }}
-                    checked={driver.enabled}
-                    onChange={(e) =>
-                      handleToggleDriver(driver.name, e.target.checked)
-                    }
-                  />
+                  <input type="checkbox" style={{ opacity: 0, width: 0, height: 0 }} checked={driver.enabled} onChange={(e) => handleToggleDriver(driver.name, e.target.checked)} />
                   <span
                     style={{
                       ...toggleSliderStyle,
@@ -910,5 +776,4 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
     </div>
   );
 };
-
 export default DriversPanelPanel;

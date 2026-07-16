@@ -3,7 +3,6 @@ import { filesCommands } from "../../command/files";
 import { getDataPaths } from "../../command/paths";
 import { UploadFile } from "../../core/types";
 import { SearchIcon } from "../../icons";
-
 interface LogEntry {
   id: string;
   name: string;
@@ -11,34 +10,27 @@ interface LogEntry {
   modified: string;
   path: string;
 }
-
 interface LogsPanelProps {
   t: (key: string, params?: any) => string;
   onClose?: () => void;
   onFileClick?: (file: UploadFile) => void;
 }
-
 const LogsPanel: React.FC<LogsPanelProps> = ({ t, onClose, onFileClick }) => {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const logsContainerRef = useRef<HTMLDivElement>(null);
-
   useEffect(() => {
     loadLogs();
     const interval = setInterval(loadLogs, 5000);
     return () => clearInterval(interval);
   }, []);
-
   const loadLogs = async () => {
     try {
       const paths = await getDataPaths();
       const logsData = await readLogFiles(paths.log_dir);
-      const sortedLogs = logsData.sort(
-        (a, b) =>
-          new Date(b.modified).getTime() - new Date(a.modified).getTime(),
-      );
+      const sortedLogs = logsData.sort((a, b) => new Date(b.modified).getTime() - new Date(a.modified).getTime());
       setLogs(sortedLogs);
     } catch (error) {
       console.error("Failed to load logs:", error);
@@ -46,7 +38,6 @@ const LogsPanel: React.FC<LogsPanelProps> = ({ t, onClose, onFileClick }) => {
       setLoading(false);
     }
   };
-
   const readLogFiles = async (logDir: string): Promise<LogEntry[]> => {
     const entries: LogEntry[] = [];
     try {
@@ -55,9 +46,7 @@ const LogsPanel: React.FC<LogsPanelProps> = ({ t, onClose, onFileClick }) => {
         return entries;
       }
       const files = await filesCommands.readDirectory(logDir);
-      const logFiles = files.filter(
-        (f) => f.is_directory === false && f.name.endsWith(".log"),
-      );
+      const logFiles = files.filter((f) => f.is_directory === false && f.name.endsWith(".log"));
       for (const file of logFiles) {
         entries.push({
           id: file.path,
@@ -72,7 +61,6 @@ const LogsPanel: React.FC<LogsPanelProps> = ({ t, onClose, onFileClick }) => {
     }
     return entries;
   };
-
   const handleOpenLogFile = async (log: LogEntry) => {
     if (onFileClick) {
       try {
@@ -95,11 +83,9 @@ const LogsPanel: React.FC<LogsPanelProps> = ({ t, onClose, onFileClick }) => {
       await filesCommands.openPath(log.path);
     }
   };
-
   const handleClearSearch = () => {
     setSearchTerm("");
   };
-
   const formatSize = (bytes: number): string => {
     if (bytes === 0) return "0 B";
     const k = 1024;
@@ -107,16 +93,11 @@ const LogsPanel: React.FC<LogsPanelProps> = ({ t, onClose, onFileClick }) => {
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
-
   const formatDate = (dateStr: string): string => {
     const date = new Date(dateStr);
     return date.toLocaleString();
   };
-
-  const filteredLogs = logs.filter((log) =>
-    log.name.toLowerCase().includes(searchTerm.toLowerCase()),
-  );
-
+  const filteredLogs = logs.filter((log) => log.name.toLowerCase().includes(searchTerm.toLowerCase()));
   const styles: Record<string, React.CSSProperties> = {
     container: {
       height: "100%",
@@ -226,7 +207,6 @@ const LogsPanel: React.FC<LogsPanelProps> = ({ t, onClose, onFileClick }) => {
       color: "var(--text-muted)",
     },
   };
-
   // CSS 注入 - 包含搜索框样式
   const globalStyles = `
     .logs-search-input-wrapper {
@@ -276,7 +256,6 @@ const LogsPanel: React.FC<LogsPanelProps> = ({ t, onClose, onFileClick }) => {
       background: var(--hover-bg);
     }
   `;
-
   if (typeof document !== "undefined") {
     const styleId = "logs-panel-styles";
     if (!document.getElementById(styleId)) {
@@ -286,36 +265,22 @@ const LogsPanel: React.FC<LogsPanelProps> = ({ t, onClose, onFileClick }) => {
       document.head.appendChild(style);
     }
   }
-
   if (loading) {
     return (
       <div style={styles.container}>
-        <div style={styles.loadingState}>
-          {t("atomicSkills.loading") || "Loading logs..."}
-        </div>
+        <div style={styles.loadingState}>{t("atomicSkills.loading") || "Loading logs..."}</div>
       </div>
     );
   }
-
   return (
     <div style={styles.container}>
       <div style={styles.header}>
         <div style={styles.searchRow}>
           <div className="logs-search-input-wrapper">
             <SearchIcon />
-            <input
-              type="text"
-              className="logs-search-input"
-              placeholder={t("logs.searchPlaceholder") || "Search log files..."}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+            <input type="text" className="logs-search-input" placeholder={t("logs.searchPlaceholder") || "Search log files..."} value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
             {searchTerm && (
-              <button
-                className="logs-search-clear"
-                onClick={handleClearSearch}
-                title={t("logs.clearSearch") || "Clear search"}
-              >
+              <button className="logs-search-clear" onClick={handleClearSearch} title={t("logs.clearSearch") || "Clear search"}>
                 ✕
               </button>
             )}
@@ -327,14 +292,9 @@ const LogsPanel: React.FC<LogsPanelProps> = ({ t, onClose, onFileClick }) => {
           </div>
         </div>
       </div>
-
       <div style={styles.logsContainer} ref={logsContainerRef}>
         {filteredLogs.length === 0 ? (
-          <div style={styles.emptyState}>
-            {searchTerm
-              ? "No matching log files"
-              : t("logs.empty") || "No log files available"}
-          </div>
+          <div style={styles.emptyState}>{searchTerm ? "No matching log files" : t("logs.empty") || "No log files available"}</div>
         ) : (
           filteredLogs.map((log) => {
             const isHovered = hoveredId === log.id;
@@ -362,5 +322,4 @@ const LogsPanel: React.FC<LogsPanelProps> = ({ t, onClose, onFileClick }) => {
     </div>
   );
 };
-
 export default LogsPanel;

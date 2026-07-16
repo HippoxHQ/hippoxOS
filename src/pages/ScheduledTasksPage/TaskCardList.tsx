@@ -1,232 +1,88 @@
 import React, { useState, useEffect, useRef } from "react";
-import {
-  ScheduledTask,
-  fromScheduleConfig,
-  scheduledTasksCommands,
-} from "../../command/scheduledtasks";
+import { ScheduledTask, fromScheduleConfig, scheduledTasksCommands } from "../../command/scheduledtasks";
 import { showDialog, DialogType } from "../../components/Dialog";
 import { showTooltip } from "../../components/Tooltip";
 import { workflowCommands } from "../../command/workflow";
-
 const SearchIcon = () => (
-  <svg
-    width="12"
-    height="12"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <circle cx="11" cy="11" r="8" />
     <line x1="21" y1="21" x2="16.65" y2="16.65" />
   </svg>
 );
-
 const XIcon = () => (
-  <svg
-    width="10"
-    height="10"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
+  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <line x1="18" y1="6" x2="6" y2="18" />
     <line x1="6" y1="6" x2="18" y2="18" />
   </svg>
 );
-
 const ChevronDownIcon = () => (
-  <svg
-    width="10"
-    height="10"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
+  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <polyline points="6 9 12 15 18 9" />
   </svg>
 );
-
 const CheckIcon = () => (
-  <svg
-    width="12"
-    height="12"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <polyline points="20 6 9 17 4 12" />
   </svg>
 );
-
 const PlusIcon = () => (
-  <svg
-    width="12"
-    height="12"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <line x1="12" y1="5" x2="12" y2="19" />
     <line x1="5" y1="12" x2="19" y2="12" />
   </svg>
 );
-
 const ClockIcon = () => (
-  <svg
-    width="14"
-    height="14"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <circle cx="12" cy="12" r="10" />
     <polyline points="12 6 12 12 16 14" />
   </svg>
 );
-
 const CalendarIcon = () => (
-  <svg
-    width="12"
-    height="12"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
     <line x1="16" y1="2" x2="16" y2="6" />
     <line x1="8" y1="2" x2="8" y2="6" />
     <line x1="3" y1="10" x2="21" y2="10" />
   </svg>
 );
-
 const PlayIcon = () => (
-  <svg
-    width="12"
-    height="12"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <polygon points="5 3 19 12 5 21 5 3" />
   </svg>
 );
-
 const PauseIcon = () => (
-  <svg
-    width="12"
-    height="12"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <rect x="6" y="4" width="4" height="16" />
     <rect x="14" y="4" width="4" height="16" />
   </svg>
 );
-
 const TrashIcon = () => (
-  <svg
-    width="12"
-    height="12"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <polyline points="3 6 5 6 21 6" />
     <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
   </svg>
 );
-
 const MessageSquareIcon = () => (
-  <svg
-    width="12"
-    height="12"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
   </svg>
 );
-
 const FileIcon = () => (
-  <svg
-    width="12"
-    height="12"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" />
     <polyline points="13 2 13 9 20 9" />
   </svg>
 );
-
 const EmptyListIcon = () => (
-  <svg
-    width="48"
-    height="48"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.5"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
+  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
     <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
     <line x1="16" y1="2" x2="16" y2="6" />
     <line x1="8" y1="2" x2="8" y2="6" />
     <line x1="3" y1="10" x2="21" y2="10" />
   </svg>
 );
-
 const ListIcon = () => (
-  <svg
-    width="14"
-    height="14"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <line x1="8" y1="6" x2="21" y2="6" />
     <line x1="8" y1="12" x2="21" y2="12" />
     <line x1="8" y1="18" x2="21" y2="18" />
@@ -235,7 +91,6 @@ const ListIcon = () => (
     <line x1="3" y1="18" x2="3.01" y2="18" />
   </svg>
 );
-
 interface TaskCardListProps {
   t: (key: string, params?: any) => string;
   tasks: ScheduledTask[];
@@ -247,17 +102,10 @@ interface TaskCardListProps {
   searchQuery: string;
   onSearchChange: (query: string) => void;
   statusFilter: "all" | "enabled" | "disabled" | "completed";
-  onStatusFilterChange: (
-    filter: "all" | "enabled" | "disabled" | "completed",
-  ) => void;
+  onStatusFilterChange: (filter: "all" | "enabled" | "disabled" | "completed") => void;
   onCreateNew: () => void;
 }
-
-const getScheduleDisplay = (
-  scheduleType: "fixed" | "interval",
-  config: any,
-  t: (key: string, params?: any) => string,
-): string => {
+const getScheduleDisplay = (scheduleType: "fixed" | "interval", config: any, t: (key: string, params?: any) => string): string => {
   if (scheduleType === "interval") {
     const unitText: Record<string, string> = {
       second: t("scheduled.unitSecond"),
@@ -281,15 +129,7 @@ const getScheduleDisplay = (
         const dayKey = `scheduled.day${d}`;
         const translated = t(dayKey);
         return translated === dayKey
-          ? [
-              t("scheduled.sunShort"),
-              t("scheduled.monShort"),
-              t("scheduled.tueShort"),
-              t("scheduled.wedShort"),
-              t("scheduled.thuShort"),
-              t("scheduled.friShort"),
-              t("scheduled.satShort"),
-            ][d]
+          ? [t("scheduled.sunShort"), t("scheduled.monShort"), t("scheduled.tueShort"), t("scheduled.wedShort"), t("scheduled.thuShort"), t("scheduled.friShort"), t("scheduled.satShort")][d]
           : translated;
       });
       result += ` ${dayNames.join(",")}`;
@@ -303,16 +143,9 @@ const getScheduleDisplay = (
     return result;
   }
 };
-
-const getActionPreview = (
-  task: ScheduledTask,
-  content: string,
-  t: (key: string, params?: any) => string,
-): string => {
+const getActionPreview = (task: ScheduledTask, content: string, t: (key: string, params?: any) => string): string => {
   if (task.action_type === "naturallanguage") {
-    return content.length > 60
-      ? content.substring(0, 60) + "..."
-      : content || t("scheduled.noContent");
+    return content.length > 60 ? content.substring(0, 60) + "..." : content || t("scheduled.noContent");
   } else {
     if (content) {
       const lines = content.split("\n");
@@ -326,7 +159,6 @@ const getActionPreview = (
     return t("scheduled.skillFile");
   }
 };
-
 const TaskCardList: React.FC<TaskCardListProps> = ({
   t,
   tasks,
@@ -346,30 +178,15 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
   const [showFilterPopup, setShowFilterPopup] = useState(false);
   const filterButtonRef = useRef<HTMLButtonElement>(null);
   const popupRef = useRef<HTMLDivElement>(null);
-  const [taskContents, setTaskContents] = useState<Map<string, string>>(
-    new Map(),
-  );
-  const [loadingContents, setLoadingContents] = useState<Set<string>>(
-    new Set(),
-  );
+  const [taskContents, setTaskContents] = useState<Map<string, string>>(new Map());
+  const [loadingContents, setLoadingContents] = useState<Set<string>>(new Set());
   const workflowDisplayNameCache = new Map<string, string>();
-  const [workflowDisplayNames, setWorkflowDisplayNames] = useState<
-    Map<string, string>
-  >(new Map());
-  const [loadingWorkflowNames, setLoadingWorkflowNames] = useState<Set<string>>(
-    new Set(),
-  );
-
+  const [workflowDisplayNames, setWorkflowDisplayNames] = useState<Map<string, string>>(new Map());
+  const [loadingWorkflowNames, setLoadingWorkflowNames] = useState<Set<string>>(new Set());
   useEffect(() => {
     const loadWorkflowNames = async () => {
       const lang = localStorage.getItem("hippox-language") || "en";
-      const tasksWithWorkflow = tasks.filter(
-        (t) =>
-          t.workflow_mode &&
-          !workflowDisplayNames.has(t.workflow_mode) &&
-          !loadingWorkflowNames.has(t.workflow_mode),
-      );
-
+      const tasksWithWorkflow = tasks.filter((t) => t.workflow_mode && !workflowDisplayNames.has(t.workflow_mode) && !loadingWorkflowNames.has(t.workflow_mode));
       for (const task of tasksWithWorkflow) {
         const mode = task.workflow_mode!;
         setLoadingWorkflowNames((prev) => new Set(prev).add(mode));
@@ -377,15 +194,10 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
           const cacheKey = `${mode}_${lang}`;
           let displayName = workflowDisplayNameCache.get(cacheKey);
           if (!displayName) {
-            displayName = await workflowCommands.workflowModeDisplayNameByLang(
-              mode,
-              lang,
-            );
+            displayName = await workflowCommands.workflowModeDisplayNameByLang(mode, lang);
             workflowDisplayNameCache.set(cacheKey, displayName || mode);
           }
-          setWorkflowDisplayNames((prev) =>
-            new Map(prev).set(mode, displayName || mode),
-          );
+          setWorkflowDisplayNames((prev) => new Map(prev).set(mode, displayName || mode));
         } catch (error) {
           setWorkflowDisplayNames((prev) => new Map(prev).set(mode, mode));
         } finally {
@@ -401,7 +213,6 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
       loadWorkflowNames();
     }
   }, [tasks]);
-
   useEffect(() => {
     const handleLanguageChange = () => {
       workflowDisplayNameCache.clear();
@@ -414,41 +225,21 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
               const cacheKey = `${task.workflow_mode}_${lang}`;
               let displayName = workflowDisplayNameCache.get(cacheKey);
               if (!displayName) {
-                displayName =
-                  await workflowCommands.workflowModeDisplayNameByLang(
-                    task.workflow_mode,
-                    lang,
-                  );
-                workflowDisplayNameCache.set(
-                  cacheKey,
-                  displayName || task.workflow_mode,
-                );
+                displayName = await workflowCommands.workflowModeDisplayNameByLang(task.workflow_mode, lang);
+                workflowDisplayNameCache.set(cacheKey, displayName || task.workflow_mode);
               }
-              setWorkflowDisplayNames((prev) =>
-                new Map(prev).set(
-                  task.workflow_mode!,
-                  displayName || task.workflow_mode!,
-                ),
-              );
+              setWorkflowDisplayNames((prev) => new Map(prev).set(task.workflow_mode!, displayName || task.workflow_mode!));
             } catch (error) {}
           }
         }
       };
       loadNames();
     };
-
-    window.addEventListener(
-      "language-changed",
-      handleLanguageChange as EventListener,
-    );
+    window.addEventListener("language-changed", handleLanguageChange as EventListener);
     return () => {
-      window.removeEventListener(
-        "language-changed",
-        handleLanguageChange as EventListener,
-      );
+      window.removeEventListener("language-changed", handleLanguageChange as EventListener);
     };
   }, [tasks]);
-
   useEffect(() => {
     const loadContents = async () => {
       for (const task of tasks) {
@@ -457,9 +248,7 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
           try {
             let content = "";
             if (task.action_type === "naturallanguage") {
-              const result = await scheduledTasksCommands.getNaturalLanguage(
-                task.id,
-              );
+              const result = await scheduledTasksCommands.getNaturalLanguage(task.id);
               content = result || "";
             } else {
               const result = await scheduledTasksCommands.getSkillMd(task.id);
@@ -481,7 +270,6 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
       loadContents();
     }
   }, [tasks]);
-
   useEffect(() => {
     const calculateColumns = () => {
       if (containerRef.current) {
@@ -502,16 +290,9 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
       resizeObserver.disconnect();
     };
   }, []);
-
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (
-        showFilterPopup &&
-        popupRef.current &&
-        !popupRef.current.contains(event.target as Node) &&
-        filterButtonRef.current &&
-        !filterButtonRef.current.contains(event.target as Node)
-      ) {
+      if (showFilterPopup && popupRef.current && !popupRef.current.contains(event.target as Node) && filterButtonRef.current && !filterButtonRef.current.contains(event.target as Node)) {
         setShowFilterPopup(false);
       }
     };
@@ -520,7 +301,6 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [showFilterPopup]);
-
   const handleDeleteWithDialog = (taskId: string, taskName: string) => {
     showDialog(
       DialogType.WARNING,
@@ -532,11 +312,9 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
       t("settings.cancel"),
     );
   };
-
   const handleCompleteWithToast = (taskId: string) => {
     onCompleteTask(taskId);
   };
-
   const filterOptions = [
     {
       key: "all" as const,
@@ -563,26 +341,18 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
       color: "#8b5cf6",
     },
   ];
-
   const getCurrentFilterLabel = () => {
     const current = filterOptions.find((opt) => opt.key === statusFilter);
     return current ? current.label : t("scheduled.all");
   };
-
   const getCurrentFilterIcon = () => {
     const current = filterOptions.find((opt) => opt.key === statusFilter);
     return current ? current.icon : <ListIcon />;
   };
-
-  const handleToggleWithTooltip = (
-    e: React.MouseEvent,
-    taskId: string,
-    enabled: boolean,
-  ) => {
+  const handleToggleWithTooltip = (e: React.MouseEvent, taskId: string, enabled: boolean) => {
     e.stopPropagation();
     onToggleTask(taskId, !enabled);
   };
-
   return (
     <div
       style={{
@@ -661,7 +431,6 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
             </button>
           )}
         </div>
-
         <div style={{ position: "relative" }}>
           <button
             ref={filterButtonRef}
@@ -679,12 +448,8 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
               transition: "all 0.2s",
             }}
             onClick={() => setShowFilterPopup(!showFilterPopup)}
-            onMouseEnter={(e) =>
-              (e.currentTarget.style.background = "var(--bg-secondary)")
-            }
-            onMouseLeave={(e) =>
-              (e.currentTarget.style.background = "var(--bg-tertiary)")
-            }
+            onMouseEnter={(e) => (e.currentTarget.style.background = "var(--bg-secondary)")}
+            onMouseLeave={(e) => (e.currentTarget.style.background = "var(--bg-tertiary)")}
           >
             <span
               style={{
@@ -698,7 +463,6 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
             <span>{getCurrentFilterLabel()}</span>
             <ChevronDownIcon />
           </button>
-
           {showFilterPopup && (
             <div
               ref={popupRef}
@@ -724,10 +488,7 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
                     gap: "2px",
                     width: "100%",
                     padding: "8px 12px",
-                    background:
-                      statusFilter === option.key
-                        ? "var(--accent-glow)"
-                        : "transparent",
+                    background: statusFilter === option.key ? "var(--accent-glow)" : "transparent",
                     border: "none",
                     color: "var(--text-primary)",
                     fontSize: "12px",
@@ -739,15 +500,8 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
                     onStatusFilterChange(option.key);
                     setShowFilterPopup(false);
                   }}
-                  onMouseEnter={(e) =>
-                    (e.currentTarget.style.background = "var(--bg-tertiary)")
-                  }
-                  onMouseLeave={(e) =>
-                    (e.currentTarget.style.background =
-                      statusFilter === option.key
-                        ? "var(--accent-glow)"
-                        : "transparent")
-                  }
+                  onMouseEnter={(e) => (e.currentTarget.style.background = "var(--bg-tertiary)")}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = statusFilter === option.key ? "var(--accent-glow)" : "transparent")}
                 >
                   <span
                     style={{
@@ -776,7 +530,6 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
             </div>
           )}
         </div>
-
         <button
           style={{
             display: "flex",
@@ -839,9 +592,7 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
             >
               {t("scheduled.noTasks")}
             </div>
-            <div style={{ fontSize: "12px", color: "var(--text-muted)" }}>
-              {t("scheduled.clickCreateHint")}
-            </div>
+            <div style={{ fontSize: "12px", color: "var(--text-muted)" }}>{t("scheduled.clickCreateHint")}</div>
           </div>
         ) : (
           <div
@@ -853,18 +604,11 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
             }}
           >
             {tasks.map((task) => {
-              const { scheduleType, config } = fromScheduleConfig(
-                task.schedule_config,
-              );
-              const scheduleDisplay = getScheduleDisplay(
-                scheduleType,
-                config,
-                t,
-              );
+              const { scheduleType, config } = fromScheduleConfig(task.schedule_config);
+              const scheduleDisplay = getScheduleDisplay(scheduleType, config, t);
               const content = taskContents.get(task.id) || "";
               const isLoading = loadingContents.has(task.id);
               const actionPreview = getActionPreview(task, content, t);
-
               return (
                 <div
                   key={task.id}
@@ -874,21 +618,13 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
                     padding: "12px",
                     cursor: "pointer",
                     transition: "all 0.2s ease",
-                    border:
-                      selectedTaskId === task.id
-                        ? "1px solid var(--accent-color)"
-                        : "1px solid var(--border-color)",
+                    border: selectedTaskId === task.id ? "1px solid var(--accent-color)" : "1px solid var(--border-color)",
                     opacity: task.completed ? 0.7 : 1,
                   }}
                   onClick={() => onSelectTask(task)}
                   onMouseEnter={(e) => {
                     const target = e.currentTarget;
-                    showTooltip(
-                      task.completed
-                        ? t("scheduled.taskCompleted")
-                        : t("scheduled.clickToEdit"),
-                      target,
-                    );
+                    showTooltip(task.completed ? t("scheduled.taskCompleted") : t("scheduled.clickToEdit"), target);
                   }}
                   onMouseLeave={() => {}}
                 >
@@ -961,20 +697,14 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
                           fontSize: "10px",
                           padding: "2px 8px",
                           borderRadius: "12px",
-                          background:
-                            task.enabled && !task.completed
-                              ? "#10b981"
-                              : "#6b7280",
+                          background: task.enabled && !task.completed ? "#10b981" : "#6b7280",
                           color: "white",
                         }}
                       >
-                        {task.enabled && !task.completed
-                          ? t("scheduled.enabled")
-                          : t("scheduled.disabled")}
+                        {task.enabled && !task.completed ? t("scheduled.enabled") : t("scheduled.disabled")}
                       </span>
                     </div>
                   </div>
-
                   <div
                     style={{
                       display: "flex",
@@ -1006,7 +736,6 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
                       {scheduleDisplay}
                     </span>
                   </div>
-
                   <div
                     style={{
                       display: "flex",
@@ -1024,11 +753,7 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
                         alignItems: "center",
                       }}
                     >
-                      {task.action_type === "naturallanguage" ? (
-                        <MessageSquareIcon />
-                      ) : (
-                        <FileIcon />
-                      )}
+                      {task.action_type === "naturallanguage" ? <MessageSquareIcon /> : <FileIcon />}
                     </span>
                     <span
                       title={actionPreview}
@@ -1043,7 +768,6 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
                       {actionPreview}
                     </span>
                   </div>
-
                   <div
                     style={{
                       display: "flex",
@@ -1061,19 +785,8 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
                         alignItems: "center",
                       }}
                     >
-                      <svg
-                        width="12"
-                        height="12"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                      >
-                        <path
-                          d="M4 7h16M4 12h16M4 17h10"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M4 7h16M4 12h16M4 17h10" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
                     </span>
                     <span
@@ -1085,15 +798,9 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
                         whiteSpace: "nowrap",
                       }}
                     >
-                      {t("scheduled.workflowMode")}:{" "}
-                      {workflowDisplayNames.get(
-                        task.workflow_mode || "ReAct",
-                      ) ||
-                        task.workflow_mode ||
-                        "ReAct"}
+                      {t("scheduled.workflowMode")}: {workflowDisplayNames.get(task.workflow_mode || "ReAct") || task.workflow_mode || "ReAct"}
                     </span>
                   </div>
-
                   <div
                     style={{
                       display: "flex",
@@ -1126,9 +833,7 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
                         }}
                       >
                         <CalendarIcon />
-                        <span>
-                          {new Date(task.last_executed_at).toLocaleDateString()}
-                        </span>
+                        <span>{new Date(task.last_executed_at).toLocaleDateString()}</span>
                       </span>
                     )}
                   </div>
@@ -1149,11 +854,7 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
                             e.stopPropagation();
                             onToggleTask(task.id, !task.enabled);
                           }}
-                          title={
-                            task.enabled
-                              ? t("scheduled.disable")
-                              : t("scheduled.enable")
-                          }
+                          title={task.enabled ? t("scheduled.disable") : t("scheduled.enable")}
                           style={{
                             background: "none",
                             border: "none",
@@ -1167,16 +868,9 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
                             alignItems: "center",
                           }}
                           onMouseEnter={(e) => {
-                            e.currentTarget.style.background = task.enabled
-                              ? "rgba(245, 158, 11, 0.15)"
-                              : "rgba(16, 185, 129, 0.15)";
+                            e.currentTarget.style.background = task.enabled ? "rgba(245, 158, 11, 0.15)" : "rgba(16, 185, 129, 0.15)";
                             const target = e.currentTarget;
-                            showTooltip(
-                              task.enabled
-                                ? t("scheduled.disableTooltip")
-                                : t("scheduled.enableTooltip"),
-                              target,
-                            );
+                            showTooltip(task.enabled ? t("scheduled.disableTooltip") : t("scheduled.enableTooltip"), target);
                           }}
                           onMouseLeave={(e) => {
                             e.currentTarget.style.background = "none";
@@ -1203,8 +897,7 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
                             alignItems: "center",
                           }}
                           onMouseEnter={(e) => {
-                            e.currentTarget.style.background =
-                              "rgba(139, 92, 246, 0.15)";
+                            e.currentTarget.style.background = "rgba(139, 92, 246, 0.15)";
                             const target = e.currentTarget;
                             showTooltip(t("scheduled.completeTooltip"), target);
                           }}
@@ -1235,8 +928,7 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
                         alignItems: "center",
                       }}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.background =
-                          "rgba(239, 68, 68, 0.15)";
+                        e.currentTarget.style.background = "rgba(239, 68, 68, 0.15)";
                         const target = e.currentTarget;
                         showTooltip(t("scheduled.deleteTooltip"), target);
                       }}
@@ -1256,5 +948,4 @@ const TaskCardList: React.FC<TaskCardListProps> = ({
     </div>
   );
 };
-
 export default TaskCardList;

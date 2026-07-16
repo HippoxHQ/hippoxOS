@@ -42,28 +42,13 @@ const HippoxAsciiLogo: React.FC = () => {
       <defs>
         <linearGradient id="ascii-glow" x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stopColor="#818cf8">
-            <animate
-              attributeName="stop-color"
-              values="#818cf8;#a78bfa;#6366f1;#8b5cf6;#818cf8"
-              dur="10s"
-              repeatCount="indefinite"
-            />
+            <animate attributeName="stop-color" values="#818cf8;#a78bfa;#6366f1;#8b5cf6;#818cf8" dur="10s" repeatCount="indefinite" />
           </stop>
           <stop offset="50%" stopColor="#a78bfa">
-            <animate
-              attributeName="stop-color"
-              values="#a78bfa;#8b5cf6;#818cf8;#6366f1;#a78bfa"
-              dur="10s"
-              repeatCount="indefinite"
-            />
+            <animate attributeName="stop-color" values="#a78bfa;#8b5cf6;#818cf8;#6366f1;#a78bfa" dur="10s" repeatCount="indefinite" />
           </stop>
           <stop offset="100%" stopColor="#6366f1">
-            <animate
-              attributeName="stop-color"
-              values="#6366f1;#818cf8;#a78bfa;#8b5cf6;#6366f1"
-              dur="10s"
-              repeatCount="indefinite"
-            />
+            <animate attributeName="stop-color" values="#6366f1;#818cf8;#a78bfa;#8b5cf6;#6366f1" dur="10s" repeatCount="indefinite" />
           </stop>
         </linearGradient>
         <filter id="ascii-glow-filter">
@@ -99,13 +84,7 @@ const HippoxAsciiLogo: React.FC = () => {
                     shapeRendering: "crispEdges",
                   }}
                 >
-                  <animate
-                    attributeName="opacity"
-                    values="0.65;1;0.65"
-                    dur="3.5s"
-                    begin={`${delay}s`}
-                    repeatCount="indefinite"
-                  />
+                  <animate attributeName="opacity" values="0.65;1;0.65" dur="3.5s" begin={`${delay}s`} repeatCount="indefinite" />
                   {char}
                 </text>
               );
@@ -117,11 +96,7 @@ const HippoxAsciiLogo: React.FC = () => {
   );
 };
 
-export const WelcomeMessage: React.FC<WelcomeMessageProps> = ({
-  isExpanded,
-  onToggle,
-  t,
-}) => {
+export const WelcomeMessage: React.FC<WelcomeMessageProps> = ({ isExpanded, onToggle, t }) => {
   const welcomeTime = new Date().toLocaleTimeString();
   const [hippoxVersion, setHippoxVersion] = useState<string>("");
   const [atomicVersion, setAtomicVersion] = useState<string>("");
@@ -171,10 +146,7 @@ export const WelcomeMessage: React.FC<WelcomeMessageProps> = ({
         <span className="task-status-text">{t("terminal.welcome.status")}</span>
       </div>
       {isExpanded && (
-        <div
-          className="task-steps welcome-steps"
-          style={{ marginLeft: "5px", overflow: "visible" }}
-        >
+        <div className="task-steps welcome-steps" style={{ marginLeft: "5px", overflow: "visible" }}>
           <div
             className="step-output ascii-art"
             style={{

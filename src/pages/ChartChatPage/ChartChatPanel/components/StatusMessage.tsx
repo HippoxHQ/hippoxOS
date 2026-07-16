@@ -7,11 +7,7 @@ interface StatusMessageProps {
   t: (key: string, params?: any) => string;
 }
 
-export const StatusMessage: React.FC<StatusMessageProps> = ({
-  msg,
-  status,
-  t,
-}) => {
+export const StatusMessage: React.FC<StatusMessageProps> = ({ msg, status, t }) => {
   const getContent = () => {
     switch (status) {
       case MessageStatus.Paused:
@@ -28,9 +24,7 @@ export const StatusMessage: React.FC<StatusMessageProps> = ({
   return (
     <div className="message-bubble">
       <div className="message-content">{getContent()}</div>
-      <div className="message-time">
-        {new Date(msg.timestamp).toLocaleTimeString()}
-      </div>
+      <div className="message-time">{new Date(msg.timestamp).toLocaleTimeString()}</div>
     </div>
   );
 };

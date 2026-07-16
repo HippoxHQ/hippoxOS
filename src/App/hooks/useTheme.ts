@@ -1,7 +1,6 @@
 import { Theme } from "@tauri-apps/api/window";
 import { useState, useEffect } from "react";
 import { configCommands } from "../../command/config";
-
 export function useTheme(initialTheme?: string) {
   const [theme, setTheme] = useState<Theme>(() => {
     if (initialTheme) {

@@ -13,13 +13,7 @@ interface TaskStepsProps {
   t: (key: string) => string;
 }
 
-export const TaskSteps: React.FC<TaskStepsProps> = ({
-  steps,
-  taskId,
-  expandedStepParams,
-  onToggleStepParams,
-  t,
-}) => {
+export const TaskSteps: React.FC<TaskStepsProps> = ({ steps, taskId, expandedStepParams, onToggleStepParams, t }) => {
   const [expandedLogs, setExpandedLogs] = useState<Set<number>>(new Set());
   const logContainerRefs = useRef<Map<number, HTMLDivElement>>(new Map());
 
@@ -95,10 +89,7 @@ export const TaskSteps: React.FC<TaskStepsProps> = ({
         const colors = getProgressColor(step.status);
         const logs = step.logs || [];
         const isLogExpanded = expandedLogs.has(index);
-        const hasProgress =
-          step.progress !== undefined &&
-          step.progress !== null &&
-          step.progress > 0;
+        const hasProgress = step.progress !== undefined && step.progress !== null && step.progress > 0;
         const isLast = index === steps.length - 1;
         const statusColor = getStatusColor(step.status);
         return (
@@ -149,25 +140,14 @@ export const TaskSteps: React.FC<TaskStepsProps> = ({
                 zIndex: 0,
               }}
             />
-            <div
-              className="task-step"
-              style={{ paddingBottom: isLast ? "0" : "8px" }}
-            >
+            <div className="task-step" style={{ paddingBottom: isLast ? "0" : "8px" }}>
               <div className="step-main-row" style={{ paddingLeft: "10px" }}>
                 <span className="step-name">
                   {getStepEmoji(step.step_name)} {step.step_name}
                 </span>
-                {step.duration_ms !== undefined && (
-                  <span className="step-duration">
-                    ({formatDuration(step.duration_ms)})
-                  </span>
-                )}
+                {step.duration_ms !== undefined && <span className="step-duration">({formatDuration(step.duration_ms)})</span>}
                 <span className="step-status-spacer"></span>
-                <span
-                  className={`step-status step-status-${step.status.toLowerCase()}`}
-                >
-                  {t(getStepStatusText(step.status))}
-                </span>
+                <span className={`step-status step-status-${step.status.toLowerCase()}`}>{t(getStepStatusText(step.status))}</span>
               </div>
               {hasProgress && (
                 <div
@@ -210,8 +190,7 @@ export const TaskSteps: React.FC<TaskStepsProps> = ({
                           left: 0,
                           right: 0,
                           bottom: 0,
-                          background:
-                            "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.15) 45%, rgba(255,255,255,0.25) 50%, rgba(255,255,255,0.15) 55%, transparent 100%)",
+                          background: "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.15) 45%, rgba(255,255,255,0.25) 50%, rgba(255,255,255,0.15) 55%, transparent 100%)",
                           transform: "translateX(-100%)",
                           animation: "shimmer 3s ease-in-out infinite",
                           borderRadius: "4px",
@@ -234,22 +213,12 @@ export const TaskSteps: React.FC<TaskStepsProps> = ({
                   </span>
                 </div>
               )}
-              {logs.length > 0 && (
-                <StepLogs
-                  logs={logs}
-                  stepIndex={index}
-                  isExpanded={isLogExpanded}
-                  onToggle={() => toggleLogs(index)}
-                  t={t}
-                />
-              )}
+              {logs.length > 0 && <StepLogs logs={logs} stepIndex={index} isExpanded={isLogExpanded} onToggle={() => toggleLogs(index)} t={t} />}
               {step.input && step.input !== "{}" && (
                 <StepParameters
                   parameters={step.input}
                   stepKey={`${taskId}-step-${step.step_index}-input-params`}
-                  isExpanded={expandedStepParams.has(
-                    `${taskId}-step-${step.step_index}-input-params`,
-                  )}
+                  isExpanded={expandedStepParams.has(`${taskId}-step-${step.step_index}-input-params`)}
                   onToggle={onToggleStepParams}
                   t={t}
                   type="input"
@@ -259,9 +228,7 @@ export const TaskSteps: React.FC<TaskStepsProps> = ({
                 <StepParameters
                   parameters={step.output}
                   stepKey={`${taskId}-step-${step.step_index}-output-params`}
-                  isExpanded={expandedStepParams.has(
-                    `${taskId}-step-${step.step_index}-output-params`,
-                  )}
+                  isExpanded={expandedStepParams.has(`${taskId}-step-${step.step_index}-output-params`)}
                   onToggle={onToggleStepParams}
                   t={t}
                   type="output"

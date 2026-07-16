@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
-
 interface ScheduledTask {
   id: string;
   name: string;
@@ -15,7 +14,6 @@ interface ScheduledTask {
   lastExecutedAt?: string;
   completed?: boolean;
 }
-
 interface FixedScheduleConfig {
   frequency: "daily" | "weekly" | "monthly" | "once";
   time: string;
@@ -23,26 +21,21 @@ interface FixedScheduleConfig {
   dayOfMonth?: number[];
   date?: string;
 }
-
 interface IntervalScheduleConfig {
   unit: "second" | "minute" | "hour" | "day";
   value: number;
 }
-
 interface TaskQueuePanelProps {
   t: (key: string, params?: any) => string;
 }
-
 const TaskQueuePanel: React.FC<TaskQueuePanelProps> = ({ t }) => {
   const [tasks, setTasks] = useState<ScheduledTask[]>([]);
   const [loading, setLoading] = useState(true);
-
   useEffect(() => {
     loadTasks();
     const interval = setInterval(loadTasks, 5000);
     return () => clearInterval(interval);
   }, []);
-
   const loadTasks = async () => {
     try {
       const tasksListJson = await invoke<string>("scheduled_list");
@@ -68,7 +61,6 @@ const TaskQueuePanel: React.FC<TaskQueuePanelProps> = ({ t }) => {
       setLoading(false);
     }
   };
-
   const getScheduleDisplay = (task: ScheduledTask): string => {
     if (task.scheduleType === "interval") {
       const config = task.scheduleConfig as IntervalScheduleConfig;
@@ -95,19 +87,14 @@ const TaskQueuePanel: React.FC<TaskQueuePanelProps> = ({ t }) => {
       return result;
     }
   };
-
   const getActionDisplay = (task: ScheduledTask): string => {
     if (task.actionType === "naturalLanguage") {
-      const preview =
-        task.actionContent.length > 40
-          ? task.actionContent.substring(0, 40) + "..."
-          : task.actionContent;
+      const preview = task.actionContent.length > 40 ? task.actionContent.substring(0, 40) + "..." : task.actionContent;
       return `💬 ${preview}`;
     } else {
       return `📄 ${task.actionFileName || "SKILL.md"}`;
     }
   };
-
   const getStatusText = (task: ScheduledTask): string => {
     if (task.completed) {
       return t("taskQueue.completed") || "已完成";
@@ -117,7 +104,6 @@ const TaskQueuePanel: React.FC<TaskQueuePanelProps> = ({ t }) => {
     }
     return t("taskQueue.disabled") || "已禁用";
   };
-
   const getStatusColor = (task: ScheduledTask): string => {
     if (task.completed) {
       return "#10b981";
@@ -127,7 +113,6 @@ const TaskQueuePanel: React.FC<TaskQueuePanelProps> = ({ t }) => {
     }
     return "#6b7280";
   };
-
   const styles: Record<string, React.CSSProperties> = {
     container: {
       height: "100%",
@@ -203,24 +188,18 @@ const TaskQueuePanel: React.FC<TaskQueuePanelProps> = ({ t }) => {
       color: "var(--text-muted)",
     },
   };
-
   if (loading) {
     return (
       <div style={styles.container}>
-        <div style={styles.loadingState}>
-          {t("atomicSkills.loading") || "加载中..."}
-        </div>
+        <div style={styles.loadingState}>{t("atomicSkills.loading") || "加载中..."}</div>
       </div>
     );
   }
-
   return (
     <div style={styles.container}>
       <div style={styles.scrollContainer}>
         {tasks.length === 0 ? (
-          <div style={styles.emptyState}>
-            {t("taskQueue.noTasks") || "暂无任务"}
-          </div>
+          <div style={styles.emptyState}>{t("taskQueue.noTasks") || "暂无任务"}</div>
         ) : (
           tasks.map((task) => (
             <div key={task.id} style={styles.taskCard}>
@@ -234,16 +213,8 @@ const TaskQueuePanel: React.FC<TaskQueuePanelProps> = ({ t }) => {
                 >
                   {getStatusText(task)}
                 </span>
-                <span style={styles.tag}>
-                  {task.scheduleType === "fixed"
-                    ? t("scheduled.typeFixed") || "定时"
-                    : t("scheduled.typeInterval") || "间隔"}
-                </span>
-                <span style={styles.tag}>
-                  {task.actionType === "naturalLanguage"
-                    ? t("scheduled.typeNatural") || "自然语言"
-                    : t("scheduled.typeSkillFile") || "SKILL文件"}
-                </span>
+                <span style={styles.tag}>{task.scheduleType === "fixed" ? t("scheduled.typeFixed") || "定时" : t("scheduled.typeInterval") || "间隔"}</span>
+                <span style={styles.tag}>{task.actionType === "naturalLanguage" ? t("scheduled.typeNatural") || "自然语言" : t("scheduled.typeSkillFile") || "SKILL文件"}</span>
               </div>
               <div style={styles.taskMeta}>
                 <span>⏰ {getScheduleDisplay(task)}</span>
@@ -256,5 +227,4 @@ const TaskQueuePanel: React.FC<TaskQueuePanelProps> = ({ t }) => {
     </div>
   );
 };
-
 export default TaskQueuePanel;

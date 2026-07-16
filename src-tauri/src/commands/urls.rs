@@ -1,7 +1,6 @@
 use reqwest;
 use scraper::{Html, Selector};
 use std::time::Duration;
-
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct UrlMetadata {
     pub favicon_url: Option<String>,
@@ -11,7 +10,6 @@ pub struct UrlMetadata {
     pub theme_color: Option<String>,
     pub background_image: Option<String>,
 }
-
 #[tauri::command]
 pub async fn cmd_get_url_metadata(url: String) -> Result<UrlMetadata, String> {
     let client = reqwest::Client::builder()
@@ -43,10 +41,8 @@ pub async fn cmd_get_url_metadata(url: String) -> Result<UrlMetadata, String> {
     let favicon_url = get_favicon_from_html(&fragment, &url).or_else(|| get_favicon_from_root(&url));
     Ok(UrlMetadata { favicon_url, title, description, image, theme_color, background_image })
 }
-
 fn get_favicon_from_html(fragment: &Html, base_url: &str) -> Option<String> {
     let icon_selector = Selector::parse("link[rel='icon'], link[rel='shortcut icon'], link[rel='apple-touch-icon']").unwrap();
-
     for element in fragment.select(&icon_selector) {
         if let Some(href) = element.value().attr("href") {
             let absolute_url = if href.starts_with("http") {
@@ -63,12 +59,10 @@ fn get_favicon_from_html(fragment: &Html, base_url: &str) -> Option<String> {
     }
     None
 }
-
 fn get_favicon_from_root(base_url: &str) -> Option<String> {
     let base = get_base_url(base_url);
     Some(format!("{}/favicon.ico", base))
 }
-
 fn get_base_url(url: &str) -> String {
     if let Ok(parsed) = url::Url::parse(url) {
         format!("{}://{}", parsed.scheme(), parsed.host_str().unwrap_or(""))

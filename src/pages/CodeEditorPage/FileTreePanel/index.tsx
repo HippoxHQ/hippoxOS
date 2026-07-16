@@ -7,38 +7,15 @@ import { SearchSection } from "./components/SearchSection";
 import { useGit } from "./hooks/useGit";
 import { FileNode, FileTreePanelProps } from "./types";
 import { getDirectoryName } from "../fileUtils";
-import {
-  FolderIcon,
-  GithubIcon,
-  HistoryChatIcon2,
-  SearchIcon,
-} from "../../../icons";
+import { FolderIcon, GithubIcon, HistoryChatIcon2, SearchIcon } from "../../../icons";
 
-const FileTreePanel: React.FC<FileTreePanelProps> = ({
-  t,
-  onFileSelect,
-  selectedFile,
-  workspacePath,
-}) => {
+const FileTreePanel: React.FC<FileTreePanelProps> = ({ t, onFileSelect, selectedFile, workspacePath }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchFocused, setIsSearchFocused] = useState(false);
-  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(
-    new Set(["git", "timeline", "search"]),
-  );
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set(["git", "timeline", "search"]));
   const containerRef = useRef<HTMLDivElement>(null);
   const [fileTree, setFileTree] = useState<FileNode[]>([]);
-  const {
-    gitInfo,
-    loadingGit,
-    fileChanges,
-    loadingChanges,
-    isPulling,
-    isPushing,
-    handlePull,
-    handlePush,
-    getRemoteStatusText,
-    checkGitRepo,
-  } = useGit(workspacePath);
+  const { gitInfo, loadingGit, fileChanges, loadingChanges, isPulling, isPushing, handlePull, handlePush, getRemoteStatusText, checkGitRepo } = useGit(workspacePath);
   const directoryName = getDirectoryName(workspacePath);
   const clearSearch = () => {
     setSearchQuery("");
@@ -52,13 +29,7 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({
     }
     setCollapsedSections(newSet);
   };
-  const renderSectionHeader = (
-    key: string,
-    icon: React.ReactNode,
-    title: string,
-    count?: number,
-    rightContent?: React.ReactNode,
-  ) => {
+  const renderSectionHeader = (key: string, icon: React.ReactNode, title: string, count?: number, rightContent?: React.ReactNode) => {
     const isCollapsed = collapsedSections.has(key);
     return (
       <div
@@ -140,14 +111,7 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({
         userSelect: "none",
       }}
     >
-      <SearchBar
-        searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
-        isSearchFocused={isSearchFocused}
-        setIsSearchFocused={setIsSearchFocused}
-        clearSearch={clearSearch}
-        t={t}
-      />
+      <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} isSearchFocused={isSearchFocused} setIsSearchFocused={setIsSearchFocused} clearSearch={clearSearch} t={t} />
 
       <div
         style={{
@@ -174,12 +138,7 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({
               overflow: "hidden",
             }}
           >
-            {renderSectionHeader(
-              "project",
-              <FolderIcon size={14} />,
-              directoryName,
-              undefined,
-            )}
+            {renderSectionHeader("project", <FolderIcon size={14} />, directoryName, undefined)}
             {!isProjectCollapsed && (
               <div
                 style={{
@@ -220,9 +179,7 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({
                 <span
                   style={{
                     fontSize: "10px",
-                    color: gitInfo.hasChanges
-                      ? "var(--accent-color)"
-                      : "#4caf50",
+                    color: gitInfo.hasChanges ? "var(--accent-color)" : "#4caf50",
                     fontWeight: 400,
                     display: "flex",
                     alignItems: "center",
@@ -235,9 +192,7 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({
                       width: "8px",
                       height: "8px",
                       borderRadius: "50%",
-                      background: gitInfo.hasChanges
-                        ? "var(--accent-color)"
-                        : "#4caf50",
+                      background: gitInfo.hasChanges ? "var(--accent-color)" : "#4caf50",
                     }}
                   />
                   {gitInfo.branch}
@@ -282,12 +237,7 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({
               overflow: "hidden",
             }}
           >
-            {renderSectionHeader(
-              "timeline",
-              <HistoryChatIcon2 size={14} />,
-              "时间线",
-              gitInfo ? gitInfo.commits.length : 0,
-            )}
+            {renderSectionHeader("timeline", <HistoryChatIcon2 size={14} />, "时间线", gitInfo ? gitInfo.commits.length : 0)}
             {!isTimelineCollapsed && (
               <div
                 style={{
@@ -313,12 +263,7 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({
               overflow: "hidden",
             }}
           >
-            {renderSectionHeader(
-              "search",
-              <SearchIcon />,
-              "搜索",
-              fileTree.length > 0 ? undefined : 0,
-            )}
+            {renderSectionHeader("search", <SearchIcon />, "搜索", fileTree.length > 0 ? undefined : 0)}
             {!isSearchCollapsed && (
               <div
                 style={{
@@ -328,12 +273,7 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({
                   minHeight: 0,
                 }}
               >
-                <SearchSection
-                  fileTree={fileTree}
-                  onFileSelect={onFileSelect}
-                  t={t}
-                  workspacePath={workspacePath}
-                />
+                <SearchSection fileTree={fileTree} onFileSelect={onFileSelect} t={t} workspacePath={workspacePath} />
               </div>
             )}
           </div>

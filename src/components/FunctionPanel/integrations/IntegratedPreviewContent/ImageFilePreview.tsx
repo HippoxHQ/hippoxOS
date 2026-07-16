@@ -1,13 +1,11 @@
 import React, { useState, useEffect, useCallback, useRef, memo } from "react";
 import { filesCommands } from "../../../../command/files";
 import { UploadFile } from "../../../../core/types";
-
 interface ImageFilePreviewProps {
   file: UploadFile | null;
   onClose: () => void;
   t?: (key: string, params?: any) => string;
 }
-
 const ImageFilePreview: React.FC<ImageFilePreviewProps> = memo(
   ({ file, onClose, t = (key: string) => key }) => {
     const [imageBase64, setImageBase64] = useState<string>("");
@@ -32,9 +30,7 @@ const ImageFilePreview: React.FC<ImageFilePreviewProps> = memo(
       y: 0,
     });
     const [rotation, setRotation] = useState<number>(0);
-    const [fitMode, setFitMode] = useState<"contain" | "cover" | "fill">(
-      "contain",
-    );
+    const [fitMode, setFitMode] = useState<"contain" | "cover" | "fill">("contain");
     const containerRef = useRef<HTMLDivElement>(null);
     const imageRef = useRef<HTMLImageElement>(null);
     const scaleRef = useRef(1);
@@ -60,7 +56,6 @@ const ImageFilePreview: React.FC<ImageFilePreviewProps> = memo(
     useEffect(() => {
       isDraggingRef.current = isDragging;
     }, [isDragging]);
-
     const readImageFile = useCallback(
       async (filePath: string) => {
         setIsLoading(true);
@@ -71,7 +66,6 @@ const ImageFilePreview: React.FC<ImageFilePreviewProps> = memo(
         scaleRef.current = 1;
         positionRef.current = { x: 0, y: 0 };
         rotationRef.current = 0;
-
         try {
           const result = await filesCommands.readFileBase64AndSize(filePath);
           setImageBase64(result.base64);
@@ -118,7 +112,6 @@ const ImageFilePreview: React.FC<ImageFilePreviewProps> = memo(
       scaleRef.current = 1;
       positionRef.current = { x: 0, y: 0 };
     }, []);
-
     const handleMouseDown = useCallback(
       (e: React.MouseEvent) => {
         if (scale > 1 || e.button === 0) {
@@ -131,7 +124,6 @@ const ImageFilePreview: React.FC<ImageFilePreviewProps> = memo(
       },
       [scale, position],
     );
-
     const handleMouseMove = useCallback(
       (e: React.MouseEvent) => {
         if (isDragging) {
@@ -145,33 +137,25 @@ const ImageFilePreview: React.FC<ImageFilePreviewProps> = memo(
       },
       [isDragging, dragStart, positionStart],
     );
-
     const handleMouseUp = useCallback(() => {
       setIsDragging(false);
       isDraggingRef.current = false;
     }, []);
-
     const handleWheel = useCallback((e: React.WheelEvent) => {
       e.preventDefault();
       e.stopPropagation();
-
       if (isDraggingRef.current) {
         return;
       }
-
       const delta = e.deltaY > 0 ? -0.1 : 0.1;
       setScale((prev) => {
         const newScale = Math.min(Math.max(prev + delta, 0.25), 5);
         return newScale;
       });
     }, []);
-
     const handleKeyDown = useCallback(
       (e: KeyboardEvent) => {
-        if (
-          e.target instanceof HTMLInputElement ||
-          e.target instanceof HTMLTextAreaElement
-        ) {
+        if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
           return;
         }
         switch (e.key) {
@@ -204,23 +188,14 @@ const ImageFilePreview: React.FC<ImageFilePreviewProps> = memo(
             break;
         }
       },
-      [
-        handleZoomIn,
-        handleZoomOut,
-        handleReset,
-        handleRotate,
-        handleFitToScreen,
-        onClose,
-      ],
+      [handleZoomIn, handleZoomOut, handleReset, handleRotate, handleFitToScreen, onClose],
     );
-
     useEffect(() => {
       document.addEventListener("keydown", handleKeyDown);
       return () => {
         document.removeEventListener("keydown", handleKeyDown);
       };
     }, [handleKeyDown]);
-
     const imageTransformStyle = React.useMemo(
       () =>
         ({
@@ -289,19 +264,8 @@ const ImageFilePreview: React.FC<ImageFilePreviewProps> = memo(
             </span>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-            <button
-              onClick={handleZoomOut}
-              style={iconButtonStyle}
-              title={t("imagePreview.zoomOut") || "Zoom Out (-)"}
-            >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
+            <button onClick={handleZoomOut} style={iconButtonStyle} title={t("imagePreview.zoomOut") || "Zoom Out (-)"}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <circle cx="11" cy="11" r="8" />
                 <path d="M21 21l-4.35-4.35" />
                 <path d="M8 11h6" />
@@ -317,19 +281,8 @@ const ImageFilePreview: React.FC<ImageFilePreviewProps> = memo(
             >
               {Math.round(scale * 100)}%
             </span>
-            <button
-              onClick={handleZoomIn}
-              style={iconButtonStyle}
-              title={t("imagePreview.zoomIn") || "Zoom In (+)"}
-            >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
+            <button onClick={handleZoomIn} style={iconButtonStyle} title={t("imagePreview.zoomIn") || "Zoom In (+)"}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <circle cx="11" cy="11" r="8" />
                 <path d="M21 21l-4.35-4.35" />
                 <path d="M11 8v6" />
@@ -344,55 +297,22 @@ const ImageFilePreview: React.FC<ImageFilePreviewProps> = memo(
                 margin: "0 4px",
               }}
             />
-            <button
-              onClick={handleRotate}
-              style={iconButtonStyle}
-              title={t("imagePreview.rotate") || "Rotate (R)"}
-            >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
+            <button onClick={handleRotate} style={iconButtonStyle} title={t("imagePreview.rotate") || "Rotate (R)"}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M21 12v4a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2h7" />
                 <path d="M15 6h6v6" />
               </svg>
             </button>
-            <button
-              onClick={handleFitToScreen}
-              style={iconButtonStyle}
-              title={t("imagePreview.fitToScreen") || "Fit to Screen (F)"}
-            >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
+            <button onClick={handleFitToScreen} style={iconButtonStyle} title={t("imagePreview.fitToScreen") || "Fit to Screen (F)"}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M8 3H5a2 2 0 00-2 2v3" />
                 <path d="M16 3h3a2 2 0 012 2v3" />
                 <path d="M21 16v3a2 2 0 01-2 2h-3" />
                 <path d="M8 21H5a2 2 0 01-2-2v-3" />
               </svg>
             </button>
-            <button
-              onClick={handleReset}
-              style={iconButtonStyle}
-              title={t("imagePreview.reset") || "Reset (0)"}
-            >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
+            <button onClick={handleReset} style={iconButtonStyle} title={t("imagePreview.reset") || "Reset (0)"}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M3 12a9 9 0 109-9 9.75 9.75 0 00-6.25 2.25L3 8" />
                 <path d="M3 3v5h5" />
               </svg>
@@ -465,11 +385,7 @@ const ImageFilePreview: React.FC<ImageFilePreviewProps> = memo(
                 maxHeight: "100%",
                 objectFit: fitMode,
                 ...imageTransformStyle,
-                cursor: isDragging
-                  ? "grabbing"
-                  : scale > 1
-                    ? "grab"
-                    : "default",
+                cursor: isDragging ? "grabbing" : scale > 1 ? "grab" : "default",
                 userSelect: "none",
                 WebkitUserSelect: "none",
                 pointerEvents: "auto",
@@ -488,7 +404,6 @@ const ImageFilePreview: React.FC<ImageFilePreviewProps> = memo(
     return prevFileId === nextFileId;
   },
 );
-
 const iconButtonStyle: React.CSSProperties = {
   background: "transparent",
   border: "none",
@@ -501,7 +416,5 @@ const iconButtonStyle: React.CSSProperties = {
   justifyContent: "center",
   // transition: "all 0.2s",
 };
-
 ImageFilePreview.displayName = "ImageFilePreview";
-
 export default ImageFilePreview;

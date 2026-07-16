@@ -1,13 +1,11 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-
 export enum NotificationType {
     Info = "info",
     Success = "success",
     Warning = "warning",
     Error = "error",
 }
-
 export interface SystemNotification {
     id: string;
     title: string;
@@ -17,37 +15,30 @@ export interface SystemNotification {
     read: boolean;
     data?: any;
 }
-
 export interface AddNotificationParams {
     title: string;
     message: string;
     type?: NotificationType;
     data?: any;
 }
-
 type NotificationListener = (notifications: SystemNotification[]) => void;
-
 class NotificationManager {
     private notifications: SystemNotification[] = [];
     private listeners: Set<NotificationListener> = new Set();
     private unreadCount: number = 0;
     private initialized: boolean = false;
-
     constructor() {
         this.init();
     }
-
     private async init() {
         await this.initialize();
     }
-
     async initialize(): Promise<void> {
         if (this.initialized) return;
         await this.loadNotifications();
         this.setupEventListeners();
         this.initialized = true;
     }
-
     private async loadNotifications(): Promise<void> {
         try {
             this.notifications = await invoke<SystemNotification[]>("cmd_notification_get_all");
@@ -57,24 +48,20 @@ class NotificationManager {
             console.error("[NotificationManager] Failed to load notifications:", error);
         }
     }
-
     private updateUnreadCount(): void {
         this.unreadCount = this.notifications.filter(n => !n.read).length;
         window.dispatchEvent(new CustomEvent("system-notification-count-update", {
             detail: { count: this.unreadCount }
         }));
     }
-
     private notifyListeners(): void {
         this.listeners.forEach(listener => listener([...this.notifications]));
     }
-
     private showToast(message: string, type: NotificationType): void {
         window.dispatchEvent(new CustomEvent("show-toast", {
             detail: { message, type }
         }));
     }
-
     private setupEventListeners(): void {
         listen("task_complete", (event: any) => {
             this.add({
@@ -84,7 +71,6 @@ class NotificationManager {
                 data: event.payload,
             });
         });
-
         listen("task_failed", (event: any) => {
             this.add({
                 title: "notification.taskFailed",
@@ -93,7 +79,6 @@ class NotificationManager {
                 data: event.payload,
             });
         });
-
         listen("task_step_update", (event: any) => {
             const { step_name, status, output, error } = event.payload;
             if (status === "FAILURE") {
@@ -112,7 +97,6 @@ class NotificationManager {
                 }).catch(e => console.warn("Failed to add failure notification:", e));
             }
         });
-
         listen("skill_installed", (event: any) => {
             this.add({
                 title: "notification.skillInstalled",
@@ -154,7 +138,6 @@ class NotificationManager {
             });
         });
     }
-
     async add(params: AddNotificationParams): Promise<SystemNotification> {
         try {
             const notification = await invoke<SystemNotification>("cmd_notification_add", {
@@ -173,7 +156,6 @@ class NotificationManager {
             throw error;
         }
     }
-
     async addInfo(title: string, message: string, data?: any): Promise<SystemNotification> {
         return this.add({ title, message, type: NotificationType.Info, data });
     }
@@ -203,7 +185,6 @@ class NotificationManager {
     getUnreadCountSync(): number {
         return this.unreadCount;
     }
-
     async getUnreadCount(): Promise<number> {
         try {
             return await invoke<number>("cmd_notification_get_unread_count");
@@ -309,9 +290,7 @@ class NotificationManager {
         return () => this.listeners.delete(listener);
     }
 }
-
 export const notificationManager = new NotificationManager();
-
 export const systemNotificationService = {
     initialize: () => notificationManager.initialize(),
     add: (params: AddNotificationParams) => notificationManager.add(params),
@@ -328,15 +307,12 @@ export const systemNotificationService = {
     clearAll: () => notificationManager.clearAll(),
     subscribe: (listener: (notifications: SystemNotification[]) => void) => notificationManager.subscribe(listener),
 };
-
 export const notificationService = systemNotificationService;
-
 export const notifySystem = {
     info: (title: string, message: string, data?: any) => notificationManager.addInfo(title, message, data),
     success: (title: string, message: string, data?: any) => notificationManager.addSuccess(title, message, data),
     warning: (title: string, message: string, data?: any) => notificationManager.addWarning(title, message, data),
     error: (title: string, message: string, data?: any) => notificationManager.addError(title, message, data),
 };
-
 export const notify = notifySystem;
 export const showNotification = notifySystem;

@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from "react";
 import { showToast, ToastType } from "../../Toast";
 import { showDialog, DialogType } from "../../Dialog";
 import { engineCommands } from "../../../command/config";
-
 interface ContainerInstance {
   id: string;
   name: string;
@@ -18,17 +17,12 @@ interface ContainerInstance {
   created_at: string;
   updated_at: string;
 }
-
 interface EngineContainerPanelProps {
   t: (key: string, params?: any) => string;
   initialConfig?: any;
   onSave?: (config: any) => void;
 }
-
-const CONTAINER_TYPE_CONFIG: Record<
-  string,
-  { name: string; icon: string; defaultHost: string }
-> = {
+const CONTAINER_TYPE_CONFIG: Record<string, { name: string; icon: string; defaultHost: string }> = {
   docker: {
     name: "Docker",
     icon: "🐳",
@@ -36,12 +30,7 @@ const CONTAINER_TYPE_CONFIG: Record<
   },
   k8s: { name: "Kubernetes", icon: "☸️", defaultHost: "" },
 };
-
-const EngineContainerPanel: React.FC<EngineContainerPanelProps> = ({
-  t,
-  initialConfig,
-  onSave,
-}) => {
+const EngineContainerPanel: React.FC<EngineContainerPanelProps> = ({ t, initialConfig, onSave }) => {
   const [instances, setInstances] = useState<ContainerInstance[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<string>("docker");
@@ -58,17 +47,14 @@ const EngineContainerPanel: React.FC<EngineContainerPanelProps> = ({
   const [formKubeconfig, setFormKubeconfig] = useState("");
   const [formContext, setFormContext] = useState("");
   const [formNamespace, setFormNamespace] = useState("default");
-
   useEffect(() => {
     loadInstances();
   }, []);
-
   useEffect(() => {
     checkScrollButtons();
     window.addEventListener("resize", checkScrollButtons);
     return () => window.removeEventListener("resize", checkScrollButtons);
   }, []);
-
   useEffect(() => {
     if (activeTab === "docker") {
       setFormHost(CONTAINER_TYPE_CONFIG.docker.defaultHost);
@@ -77,7 +63,6 @@ const EngineContainerPanel: React.FC<EngineContainerPanelProps> = ({
       setFormNamespace("default");
     }
   }, [activeTab]);
-
   const loadInstances = async () => {
     setLoading(true);
     try {
@@ -88,15 +73,9 @@ const EngineContainerPanel: React.FC<EngineContainerPanelProps> = ({
     }
     setLoading(false);
   };
-
-  const handleToggleEnabled = async (
-    id: string,
-    name: string,
-    enabled: boolean,
-  ) => {
+  const handleToggleEnabled = async (id: string, name: string, enabled: boolean) => {
     const newEnabled = !enabled;
     const actionText = newEnabled ? "enable" : "disable";
-
     if (!newEnabled) {
       showDialog(
         DialogType.WARNING,
@@ -105,10 +84,7 @@ const EngineContainerPanel: React.FC<EngineContainerPanelProps> = ({
         async () => {
           await engineCommands.toggleContainerInstance(id, newEnabled);
           await loadInstances();
-          showToast(
-            ToastType.SUCCESS,
-            t(`container.${actionText}Success`, { name }),
-          );
+          showToast(ToastType.SUCCESS, t(`container.${actionText}Success`, { name }));
         },
         undefined,
         t("container.disable"),
@@ -117,13 +93,9 @@ const EngineContainerPanel: React.FC<EngineContainerPanelProps> = ({
     } else {
       await engineCommands.toggleContainerInstance(id, newEnabled);
       await loadInstances();
-      showToast(
-        ToastType.SUCCESS,
-        t(`container.${actionText}Success`, { name }),
-      );
+      showToast(ToastType.SUCCESS, t(`container.${actionText}Success`, { name }));
     }
   };
-
   const handleDelete = async (id: string, name: string) => {
     showDialog(
       DialogType.WARNING,
@@ -139,7 +111,6 @@ const EngineContainerPanel: React.FC<EngineContainerPanelProps> = ({
       t("common.cancel"),
     );
   };
-
   const handleEdit = (instance: ContainerInstance) => {
     setEditingId(instance.id);
     setFormName(instance.name);
@@ -152,7 +123,6 @@ const EngineContainerPanel: React.FC<EngineContainerPanelProps> = ({
     setFormNamespace(instance.namespace || "default");
     setShowAddForm(true);
   };
-
   const resetForm = () => {
     setShowAddForm(false);
     setEditingId(null);
@@ -169,10 +139,8 @@ const EngineContainerPanel: React.FC<EngineContainerPanelProps> = ({
       setFormNamespace("default");
     }
   };
-
   const handleSave = async () => {
     if (!formName.trim()) return;
-
     try {
       await engineCommands.saveContainerInstance({
         id: editingId || undefined,
@@ -187,58 +155,40 @@ const EngineContainerPanel: React.FC<EngineContainerPanelProps> = ({
         namespace: formNamespace,
         enabled: true,
       });
-
       await loadInstances();
-
       if (editingId) {
-        showToast(
-          ToastType.SUCCESS,
-          t("container.updateSuccess", { name: formName }),
-        );
+        showToast(ToastType.SUCCESS, t("container.updateSuccess", { name: formName }));
       } else {
-        showToast(
-          ToastType.SUCCESS,
-          t("container.addSuccess", { type: getTypeName(activeTab) }),
-        );
+        showToast(ToastType.SUCCESS, t("container.addSuccess", { type: getTypeName(activeTab) }));
       }
       resetForm();
     } catch (error) {
       showToast(ToastType.ERROR, t("common.error"));
     }
   };
-
   const getInstancesByType = (type: string) => {
     return instances.filter((i) => i.type === type);
   };
-
   const getTypeIcon = (type: string) => {
     return CONTAINER_TYPE_CONFIG[type]?.icon || "📦";
   };
-
   const getTypeName = (type: string) => {
     return CONTAINER_TYPE_CONFIG[type]?.name || type;
   };
-
   const scrollTabs = (direction: "left" | "right") => {
     if (tabsRef.current) {
       const scrollAmount = 200;
-      const newScrollLeft =
-        tabsRef.current.scrollLeft +
-        (direction === "left" ? -scrollAmount : scrollAmount);
+      const newScrollLeft = tabsRef.current.scrollLeft + (direction === "left" ? -scrollAmount : scrollAmount);
       tabsRef.current.scrollTo({ left: newScrollLeft, behavior: "smooth" });
     }
   };
-
   const checkScrollButtons = () => {
     if (tabsRef.current) {
       const { scrollLeft, scrollWidth, clientWidth } = tabsRef.current;
       setShowLeftArrow(scrollLeft > 0);
-      setShowRightArrow(
-        scrollWidth > clientWidth && scrollLeft + clientWidth < scrollWidth - 5,
-      );
+      setShowRightArrow(scrollWidth > clientWidth && scrollLeft + clientWidth < scrollWidth - 5);
     }
   };
-
   const labelStyle: React.CSSProperties = {
     fontSize: "13px",
     color: "var(--text-primary)",
@@ -246,7 +196,6 @@ const EngineContainerPanel: React.FC<EngineContainerPanelProps> = ({
     flexShrink: 0,
     userSelect: "none",
   };
-
   const inputStyle: React.CSSProperties = {
     flex: 1,
     minWidth: 0,
@@ -258,14 +207,12 @@ const EngineContainerPanel: React.FC<EngineContainerPanelProps> = ({
     fontSize: "13px",
     outline: "none",
   };
-
   const checkboxStyle: React.CSSProperties = {
     width: "18px",
     height: "18px",
     cursor: "pointer",
     flexShrink: 0,
   };
-
   const buttonStyle: React.CSSProperties = {
     padding: "6px 16px",
     background: "var(--bg-secondary)",
@@ -276,20 +223,17 @@ const EngineContainerPanel: React.FC<EngineContainerPanelProps> = ({
     cursor: "pointer",
     // transition: "all 0.2s",
   };
-
   const addButtonStyle: React.CSSProperties = {
     ...buttonStyle,
     background: "var(--accent-color, #0066cc)",
     color: "white",
     border: "none",
   };
-
   const deleteButtonStyle: React.CSSProperties = {
     ...buttonStyle,
     color: "var(--error-color, #dc2626)",
     borderColor: "var(--error-color, #dc2626)",
   };
-
   const cardStyle: React.CSSProperties = {
     background: "var(--bg-secondary)",
     borderRadius: "8px",
@@ -297,7 +241,6 @@ const EngineContainerPanel: React.FC<EngineContainerPanelProps> = ({
     marginBottom: "12px",
     border: "1px solid var(--border-color)",
   };
-
   const badgeStyle: React.CSSProperties = {
     background: "var(--accent-color, #0066cc)",
     color: "white",
@@ -306,17 +249,14 @@ const EngineContainerPanel: React.FC<EngineContainerPanelProps> = ({
     borderRadius: "12px",
     marginLeft: "8px",
   };
-
   const enabledBadgeStyle: React.CSSProperties = {
     ...badgeStyle,
     background: "#10b981",
   };
-
   const disabledBadgeStyle: React.CSSProperties = {
     ...badgeStyle,
     background: "#6b7280",
   };
-
   const tabsStyles = `
     .engine-tabs-container {
       position: relative;
@@ -386,7 +326,6 @@ const EngineContainerPanel: React.FC<EngineContainerPanelProps> = ({
       color: var(--text-primary);
     }
   `;
-
   if (typeof document !== "undefined") {
     const styleId = "engine-tabs-styles";
     if (!document.getElementById(styleId)) {
@@ -396,7 +335,6 @@ const EngineContainerPanel: React.FC<EngineContainerPanelProps> = ({
       document.head.appendChild(style);
     }
   }
-
   if (loading) {
     return (
       <div
@@ -411,10 +349,8 @@ const EngineContainerPanel: React.FC<EngineContainerPanelProps> = ({
       </div>
     );
   }
-
   const currentInstances = getInstancesByType(activeTab);
   const containerTypes = ["docker", "k8s"];
-
   return (
     <div
       style={{
@@ -424,23 +360,13 @@ const EngineContainerPanel: React.FC<EngineContainerPanelProps> = ({
         overflow: "hidden",
       }}
     >
-      <div
-        className="engine-tabs-container"
-        style={{ padding: "0px", margin: 0 }}
-      >
+      <div className="engine-tabs-container" style={{ padding: "0px", margin: 0 }}>
         {showLeftArrow && (
-          <button
-            className="engine-tab-scroll-btn"
-            onClick={() => scrollTabs("left")}
-          >
+          <button className="engine-tab-scroll-btn" onClick={() => scrollTabs("left")}>
             ◀
           </button>
         )}
-        <div
-          className="engine-tabs-scroll"
-          ref={tabsRef}
-          onScroll={checkScrollButtons}
-        >
+        <div className="engine-tabs-scroll" ref={tabsRef} onScroll={checkScrollButtons}>
           <div className="engine-tabs">
             {containerTypes.map((type) => (
               <button
@@ -457,15 +383,11 @@ const EngineContainerPanel: React.FC<EngineContainerPanelProps> = ({
           </div>
         </div>
         {showRightArrow && (
-          <button
-            className="engine-tab-scroll-btn"
-            onClick={() => scrollTabs("right")}
-          >
+          <button className="engine-tab-scroll-btn" onClick={() => scrollTabs("right")}>
             ▶
           </button>
         )}
       </div>
-
       <div
         style={{
           flex: 1,
@@ -509,17 +431,8 @@ const EngineContainerPanel: React.FC<EngineContainerPanelProps> = ({
                 >
                   {getTypeIcon(instance.type)} {instance.name}
                 </span>
-                <span
-                  style={
-                    instance.enabled ? enabledBadgeStyle : disabledBadgeStyle
-                  }
-                >
-                  {instance.enabled
-                    ? t("container.enabled")
-                    : t("container.disabled")}
-                </span>
+                <span style={instance.enabled ? enabledBadgeStyle : disabledBadgeStyle}>{instance.enabled ? t("container.enabled") : t("container.disabled")}</span>
               </div>
-
               {instance.description && (
                 <div
                   style={{
@@ -531,16 +444,9 @@ const EngineContainerPanel: React.FC<EngineContainerPanelProps> = ({
                   }}
                 >
                   <label style={labelStyle}>{t("container.description")}</label>
-                  <input
-                    type="text"
-                    style={inputStyle}
-                    value={instance.description}
-                    disabled
-                    readOnly
-                  />
+                  <input type="text" style={inputStyle} value={instance.description} disabled readOnly />
                 </div>
               )}
-
               {instance.type === "docker" ? (
                 <>
                   <div
@@ -553,13 +459,7 @@ const EngineContainerPanel: React.FC<EngineContainerPanelProps> = ({
                     }}
                   >
                     <label style={labelStyle}>{t("container.host")}</label>
-                    <input
-                      type="text"
-                      style={inputStyle}
-                      value={instance.host}
-                      disabled
-                      readOnly
-                    />
+                    <input type="text" style={inputStyle} value={instance.host} disabled readOnly />
                   </div>
                   <div
                     style={{
@@ -570,16 +470,8 @@ const EngineContainerPanel: React.FC<EngineContainerPanelProps> = ({
                       flexWrap: "wrap",
                     }}
                   >
-                    <label style={labelStyle}>
-                      {t("container.apiVersion")}
-                    </label>
-                    <input
-                      type="text"
-                      style={inputStyle}
-                      value={instance.api_version || ""}
-                      disabled
-                      readOnly
-                    />
+                    <label style={labelStyle}>{t("container.apiVersion")}</label>
+                    <input type="text" style={inputStyle} value={instance.api_version || ""} disabled readOnly />
                   </div>
                   <div
                     style={{
@@ -591,12 +483,7 @@ const EngineContainerPanel: React.FC<EngineContainerPanelProps> = ({
                     }}
                   >
                     <label style={labelStyle}>{t("container.tlsVerify")}</label>
-                    <input
-                      type="checkbox"
-                      style={checkboxStyle}
-                      checked={instance.tls_verify || false}
-                      disabled
-                    />
+                    <input type="checkbox" style={checkboxStyle} checked={instance.tls_verify || false} disabled />
                   </div>
                 </>
               ) : (
@@ -610,16 +497,8 @@ const EngineContainerPanel: React.FC<EngineContainerPanelProps> = ({
                       flexWrap: "wrap",
                     }}
                   >
-                    <label style={labelStyle}>
-                      {t("container.kubeconfig")}
-                    </label>
-                    <input
-                      type="text"
-                      style={inputStyle}
-                      value={instance.kubeconfig}
-                      disabled
-                      readOnly
-                    />
+                    <label style={labelStyle}>{t("container.kubeconfig")}</label>
+                    <input type="text" style={inputStyle} value={instance.kubeconfig} disabled readOnly />
                   </div>
                   <div
                     style={{
@@ -631,13 +510,7 @@ const EngineContainerPanel: React.FC<EngineContainerPanelProps> = ({
                     }}
                   >
                     <label style={labelStyle}>{t("container.context")}</label>
-                    <input
-                      type="text"
-                      style={inputStyle}
-                      value={instance.context}
-                      disabled
-                      readOnly
-                    />
+                    <input type="text" style={inputStyle} value={instance.context} disabled readOnly />
                   </div>
                   <div
                     style={{
@@ -649,17 +522,10 @@ const EngineContainerPanel: React.FC<EngineContainerPanelProps> = ({
                     }}
                   >
                     <label style={labelStyle}>{t("container.namespace")}</label>
-                    <input
-                      type="text"
-                      style={inputStyle}
-                      value={instance.namespace}
-                      disabled
-                      readOnly
-                    />
+                    <input type="text" style={inputStyle} value={instance.namespace} disabled readOnly />
                   </div>
                 </>
               )}
-
               <div
                 style={{
                   display: "flex",
@@ -674,17 +540,9 @@ const EngineContainerPanel: React.FC<EngineContainerPanelProps> = ({
                     fontSize: "11px",
                     padding: "4px 10px",
                   }}
-                  onClick={() =>
-                    handleToggleEnabled(
-                      instance.id,
-                      instance.name,
-                      instance.enabled,
-                    )
-                  }
+                  onClick={() => handleToggleEnabled(instance.id, instance.name, instance.enabled)}
                 >
-                  {instance.enabled
-                    ? t("container.disable")
-                    : t("container.enable")}
+                  {instance.enabled ? t("container.disable") : t("container.enable")}
                 </button>
                 <button
                   style={{
@@ -710,7 +568,6 @@ const EngineContainerPanel: React.FC<EngineContainerPanelProps> = ({
             </div>
           ))
         )}
-
         {showAddForm ? (
           <div style={cardStyle}>
             <div
@@ -727,7 +584,6 @@ const EngineContainerPanel: React.FC<EngineContainerPanelProps> = ({
                     type: getTypeName(activeTab),
                   })}
             </div>
-
             <div
               style={{
                 display: "flex",
@@ -738,15 +594,8 @@ const EngineContainerPanel: React.FC<EngineContainerPanelProps> = ({
               }}
             >
               <label style={labelStyle}>{t("container.name")}</label>
-              <input
-                type="text"
-                style={inputStyle}
-                value={formName}
-                onChange={(e) => setFormName(e.target.value)}
-                placeholder={t("container.namePlaceholder")}
-              />
+              <input type="text" style={inputStyle} value={formName} onChange={(e) => setFormName(e.target.value)} placeholder={t("container.namePlaceholder")} />
             </div>
-
             <div
               style={{
                 display: "flex",
@@ -757,15 +606,8 @@ const EngineContainerPanel: React.FC<EngineContainerPanelProps> = ({
               }}
             >
               <label style={labelStyle}>{t("container.description")}</label>
-              <input
-                type="text"
-                style={inputStyle}
-                value={formDescription}
-                onChange={(e) => setFormDescription(e.target.value)}
-                placeholder={t("container.descriptionPlaceholder")}
-              />
+              <input type="text" style={inputStyle} value={formDescription} onChange={(e) => setFormDescription(e.target.value)} placeholder={t("container.descriptionPlaceholder")} />
             </div>
-
             {activeTab === "docker" ? (
               <>
                 <div
@@ -778,13 +620,7 @@ const EngineContainerPanel: React.FC<EngineContainerPanelProps> = ({
                   }}
                 >
                   <label style={labelStyle}>{t("container.host")}</label>
-                  <input
-                    type="text"
-                    style={inputStyle}
-                    value={formHost}
-                    onChange={(e) => setFormHost(e.target.value)}
-                    placeholder="unix:///var/run/docker.sock"
-                  />
+                  <input type="text" style={inputStyle} value={formHost} onChange={(e) => setFormHost(e.target.value)} placeholder="unix:///var/run/docker.sock" />
                 </div>
                 <div
                   style={{
@@ -796,13 +632,7 @@ const EngineContainerPanel: React.FC<EngineContainerPanelProps> = ({
                   }}
                 >
                   <label style={labelStyle}>{t("container.apiVersion")}</label>
-                  <input
-                    type="text"
-                    style={inputStyle}
-                    value={formApiVersion}
-                    onChange={(e) => setFormApiVersion(e.target.value)}
-                    placeholder="v1.41"
-                  />
+                  <input type="text" style={inputStyle} value={formApiVersion} onChange={(e) => setFormApiVersion(e.target.value)} placeholder="v1.41" />
                 </div>
                 <div
                   style={{
@@ -814,12 +644,7 @@ const EngineContainerPanel: React.FC<EngineContainerPanelProps> = ({
                   }}
                 >
                   <label style={labelStyle}>{t("container.tlsVerify")}</label>
-                  <input
-                    type="checkbox"
-                    style={checkboxStyle}
-                    checked={formTlsVerify}
-                    onChange={(e) => setFormTlsVerify(e.target.checked)}
-                  />
+                  <input type="checkbox" style={checkboxStyle} checked={formTlsVerify} onChange={(e) => setFormTlsVerify(e.target.checked)} />
                 </div>
               </>
             ) : (
@@ -834,13 +659,7 @@ const EngineContainerPanel: React.FC<EngineContainerPanelProps> = ({
                   }}
                 >
                   <label style={labelStyle}>{t("container.kubeconfig")}</label>
-                  <input
-                    type="text"
-                    style={inputStyle}
-                    value={formKubeconfig}
-                    onChange={(e) => setFormKubeconfig(e.target.value)}
-                    placeholder="~/.kube/config"
-                  />
+                  <input type="text" style={inputStyle} value={formKubeconfig} onChange={(e) => setFormKubeconfig(e.target.value)} placeholder="~/.kube/config" />
                 </div>
                 <div
                   style={{
@@ -852,12 +671,7 @@ const EngineContainerPanel: React.FC<EngineContainerPanelProps> = ({
                   }}
                 >
                   <label style={labelStyle}>{t("container.context")}</label>
-                  <input
-                    type="text"
-                    style={inputStyle}
-                    value={formContext}
-                    onChange={(e) => setFormContext(e.target.value)}
-                  />
+                  <input type="text" style={inputStyle} value={formContext} onChange={(e) => setFormContext(e.target.value)} />
                 </div>
                 <div
                   style={{
@@ -869,16 +683,10 @@ const EngineContainerPanel: React.FC<EngineContainerPanelProps> = ({
                   }}
                 >
                   <label style={labelStyle}>{t("container.namespace")}</label>
-                  <input
-                    type="text"
-                    style={inputStyle}
-                    value={formNamespace}
-                    onChange={(e) => setFormNamespace(e.target.value)}
-                  />
+                  <input type="text" style={inputStyle} value={formNamespace} onChange={(e) => setFormNamespace(e.target.value)} />
                 </div>
               </>
             )}
-
             <div
               style={{
                 display: "flex",
@@ -910,5 +718,4 @@ const EngineContainerPanel: React.FC<EngineContainerPanelProps> = ({
     </div>
   );
 };
-
 export default EngineContainerPanel;

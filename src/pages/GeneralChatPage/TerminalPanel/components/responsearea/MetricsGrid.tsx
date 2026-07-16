@@ -1,13 +1,5 @@
 import React from "react";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  Cell,
-} from "recharts";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 
 const MetricsGrid: React.FC<{
   metrics: { key: string; value: string | number; unit?: string }[];
@@ -15,10 +7,7 @@ const MetricsGrid: React.FC<{
 }> = ({ metrics, t }) => {
   const chartData = metrics
     .map((m) => {
-      const numValue =
-        typeof m.value === "number"
-          ? m.value
-          : parseFloat(String(m.value).replace(/[^0-9.-]/g, ""));
+      const numValue = typeof m.value === "number" ? m.value : parseFloat(String(m.value).replace(/[^0-9.-]/g, ""));
       return {
         name: m.key,
         value: isNaN(numValue) ? 0 : numValue,
@@ -168,10 +157,7 @@ const MetricsGrid: React.FC<{
           }}
         >
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart
-              data={coloredData}
-              margin={{ top: 8, right: 4, bottom: 4, left: 0 }}
-            >
+            <BarChart data={coloredData} margin={{ top: 8, right: 4, bottom: 4, left: 0 }}>
               <XAxis
                 dataKey="name"
                 tick={{
@@ -199,16 +185,8 @@ const MetricsGrid: React.FC<{
                   return value;
                 }}
               />
-              <Tooltip
-                content={<CustomTooltip />}
-                cursor={{ fill: "var(--border-color)", opacity: 0.1 }}
-              />
-              <Bar
-                dataKey="value"
-                radius={[3, 3, 0, 0]}
-                maxBarSize={40}
-                minPointSize={4}
-              >
+              <Tooltip content={<CustomTooltip />} cursor={{ fill: "var(--border-color)", opacity: 0.1 }} />
+              <Bar dataKey="value" radius={[3, 3, 0, 0]} maxBarSize={40} minPointSize={4}>
                 {coloredData.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={entry.color} />
                 ))}

@@ -1,12 +1,6 @@
 import React from "react";
 import { TaskStatusEnum } from "../../../../core/types";
-import {
-  TaskQueueIcon,
-  ExpandArrowsIcon,
-  CollapseIcon,
-  ExpandAllIcon2,
-  CollapseAllIcon2,
-} from "../../../../icons";
+import { TaskQueueIcon, ExpandArrowsIcon, CollapseIcon, ExpandAllIcon2, CollapseAllIcon2 } from "../../../../icons";
 
 interface PanelHeaderProps {
   activeTasks: any[];
@@ -22,38 +16,10 @@ interface PanelHeaderProps {
 }
 
 const TerminalIcon: React.FC<{ size?: number }> = ({ size = 19 }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-  >
-    <rect
-      x="3"
-      y="4"
-      width="18"
-      height="16"
-      rx="2"
-      stroke="currentColor"
-      strokeWidth="1.75"
-      fill="none"
-    />
-    <path
-      d="M8 10L10 12L8 14"
-      stroke="currentColor"
-      strokeWidth="1.75"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      fill="none"
-    />
-    <path
-      d="M13 14H16"
-      stroke="currentColor"
-      strokeWidth="1.75"
-      strokeLinecap="round"
-      fill="none"
-    />
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="3" y="4" width="18" height="16" rx="2" stroke="currentColor" strokeWidth="1.75" fill="none" />
+    <path d="M8 10L10 12L8 14" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+    <path d="M13 14H16" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" fill="none" />
   </svg>
 );
 
@@ -69,9 +35,7 @@ export const PanelHeader: React.FC<PanelHeaderProps> = ({
   togglePanel,
   collapseIcon,
 }) => {
-  const runningCount = activeTasks.filter(
-    (t) => t.status === TaskStatusEnum.Running,
-  ).length;
+  const runningCount = activeTasks.filter((t) => t.status === TaskStatusEnum.Running).length;
   return (
     <div
       className="panel-header"
@@ -169,9 +133,7 @@ export const PanelHeader: React.FC<PanelHeaderProps> = ({
         </div>
         <button
           onClick={onToggleAllTasks}
-          title={
-            allExpanded ? t("terminal.collapseAll") : t("terminal.expandAll")
-          }
+          title={allExpanded ? t("terminal.collapseAll") : t("terminal.expandAll")}
           style={{
             width: "28px",
             height: "28px",
@@ -195,11 +157,7 @@ export const PanelHeader: React.FC<PanelHeaderProps> = ({
             e.currentTarget.style.color = "var(--text-secondary)";
           }}
         >
-          {allExpanded ? (
-            <CollapseAllIcon2 size={18} />
-          ) : (
-            <ExpandAllIcon2 size={18} />
-          )}
+          {allExpanded ? <CollapseAllIcon2 size={18} /> : <ExpandAllIcon2 size={18} />}
         </button>
         {togglePanel && (
           <button

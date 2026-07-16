@@ -13,26 +13,12 @@ interface TaskFilesProps {
   onScrollRight: (taskId: string) => void;
   onFileClick?: (file: UploadFile) => void;
   filesScrollRefs: React.MutableRefObject<Map<string, HTMLDivElement>>;
-  setFilesScrollStates: React.Dispatch<
-    React.SetStateAction<Map<string, { showLeft: boolean; showRight: boolean }>>
-  >;
+  setFilesScrollStates: React.Dispatch<React.SetStateAction<Map<string, { showLeft: boolean; showRight: boolean }>>>;
 }
 
-export const TaskFiles: React.FC<TaskFilesProps> = ({
-  files,
-  taskId,
-  showLeft,
-  showRight,
-  onScrollLeft,
-  onScrollRight,
-  onFileClick,
-  filesScrollRefs,
-  setFilesScrollStates,
-}) => {
+export const TaskFiles: React.FC<TaskFilesProps> = ({ files, taskId, showLeft, showRight, onScrollLeft, onScrollRight, onFileClick, filesScrollRefs, setFilesScrollStates }) => {
   const [skillNames, setSkillNames] = useState<Map<string, string>>(new Map());
-  const [imagePreviews, setImagePreviews] = useState<Map<string, string>>(
-    new Map(),
-  );
+  const [imagePreviews, setImagePreviews] = useState<Map<string, string>>(new Map());
   const [fileSizes, setFileSizes] = useState<Map<string, number>>(new Map());
   const isMountedRef = useRef(true);
   const scrollCheckTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -42,16 +28,7 @@ export const TaskFiles: React.FC<TaskFilesProps> = ({
   };
 
   const isImageFile = (file: UploadFile): boolean => {
-    const imageExtensions = [
-      ".png",
-      ".jpg",
-      ".jpeg",
-      ".gif",
-      ".webp",
-      ".bmp",
-      ".svg",
-      ".ico",
-    ];
+    const imageExtensions = [".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".svg", ".ico"];
     const name = file.name?.toLowerCase() || "";
     return imageExtensions.some((ext) => name.endsWith(ext));
   };
@@ -187,24 +164,9 @@ export const TaskFiles: React.FC<TaskFilesProps> = ({
       <div className="task-files-scroll-wrapper">
         <div className="task-files-list-wrapper">
           {showLeft && (
-            <button
-              className="task-files-scroll-btn task-files-scroll-left"
-              onClick={() => onScrollLeft(taskId)}
-            >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  d="M15 18L9 12L15 6"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
+            <button className="task-files-scroll-btn task-files-scroll-left" onClick={() => onScrollLeft(taskId)}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </button>
           )}
@@ -222,15 +184,10 @@ export const TaskFiles: React.FC<TaskFilesProps> = ({
                     scrollCheckTimeoutRef.current = setTimeout(() => {
                       const { scrollLeft, scrollWidth, clientWidth } = el;
                       const showLeft = scrollLeft > 0;
-                      const showRight =
-                        scrollLeft + clientWidth < scrollWidth - 1;
+                      const showRight = scrollLeft + clientWidth < scrollWidth - 1;
                       setFilesScrollStates((prev) => {
                         const currentState = prev.get(taskId);
-                        if (
-                          currentState &&
-                          currentState.showLeft === showLeft &&
-                          currentState.showRight === showRight
-                        ) {
+                        if (currentState && currentState.showLeft === showLeft && currentState.showRight === showRight) {
                           return prev;
                         }
                         const newMap = new Map(prev);
@@ -245,15 +202,10 @@ export const TaskFiles: React.FC<TaskFilesProps> = ({
                   const handleScroll = () => {
                     const { scrollLeft, scrollWidth, clientWidth } = el;
                     const showLeft = scrollLeft > 0;
-                    const showRight =
-                      scrollLeft + clientWidth < scrollWidth - 1;
+                    const showRight = scrollLeft + clientWidth < scrollWidth - 1;
                     setFilesScrollStates((prev) => {
                       const currentState = prev.get(taskId);
-                      if (
-                        currentState &&
-                        currentState.showLeft === showLeft &&
-                        currentState.showRight === showRight
-                      ) {
+                      if (currentState && currentState.showLeft === showLeft && currentState.showRight === showRight) {
                         return prev;
                       }
                       const newMap = new Map(prev);
@@ -268,10 +220,7 @@ export const TaskFiles: React.FC<TaskFilesProps> = ({
               } else {
                 const existingEl = filesScrollRefs.current.get(taskId);
                 if (existingEl && (existingEl as any).__scrollHandler) {
-                  existingEl.removeEventListener(
-                    "scroll",
-                    (existingEl as any).__scrollHandler,
-                  );
+                  existingEl.removeEventListener("scroll", (existingEl as any).__scrollHandler);
                 }
                 filesScrollRefs.current.delete(taskId);
               }
@@ -298,12 +247,8 @@ export const TaskFiles: React.FC<TaskFilesProps> = ({
                     padding: "6px 10px",
                     minWidth: "140px",
                     maxWidth: "180px",
-                    background: isSkill
-                      ? "var(--accent-glow)"
-                      : "var(--bg-tertiary)",
-                    border: isSkill
-                      ? "1px solid var(--accent-color)"
-                      : "1px solid var(--border-color)",
+                    background: isSkill ? "var(--accent-glow)" : "var(--bg-tertiary)",
+                    border: isSkill ? "1px solid var(--accent-color)" : "1px solid var(--border-color)",
                     borderRadius: "8px",
                     cursor: "pointer",
                     // transition: "all 0.2s ease",
@@ -317,9 +262,7 @@ export const TaskFiles: React.FC<TaskFilesProps> = ({
                     e.currentTarget.style.transform = "translateY(-1px)";
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.background = isSkill
-                      ? "var(--accent-glow)"
-                      : "var(--bg-tertiary)";
+                    e.currentTarget.style.background = isSkill ? "var(--accent-glow)" : "var(--bg-tertiary)";
                     if (!isSkill) {
                       e.currentTarget.style.borderColor = "var(--border-color)";
                     }
@@ -352,19 +295,13 @@ export const TaskFiles: React.FC<TaskFilesProps> = ({
                       <span style={{ fontSize: "18px" }}>{getSkillIcon()}</span>
                     </div>
                   ) : (
-                    <div className="task-file-icon">
-                      {getFileIcon(file, 18)}
-                    </div>
+                    <div className="task-file-icon">{getFileIcon(file, 18)}</div>
                   )}
                   <div className="task-file-info">
                     <span className="task-file-name" title={displayName}>
-                      {displayName.length > 25
-                        ? displayName.slice(0, 22) + "..."
-                        : displayName}
+                      {displayName.length > 25 ? displayName.slice(0, 22) + "..." : displayName}
                     </span>
-                    <span className="task-file-size">
-                      {formatFileSize(fileSize)}
-                    </span>
+                    <span className="task-file-size">{formatFileSize(fileSize)}</span>
                     {isSkill && (
                       <span
                         style={{
@@ -382,24 +319,9 @@ export const TaskFiles: React.FC<TaskFilesProps> = ({
             })}
           </div>
           {showRight && (
-            <button
-              className="task-files-scroll-btn task-files-scroll-right"
-              onClick={() => onScrollRight(taskId)}
-            >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  d="M9 18L15 12L9 6"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
+            <button className="task-files-scroll-btn task-files-scroll-right" onClick={() => onScrollRight(taskId)}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M9 18L15 12L9 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </button>
           )}

@@ -1,6 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { UploadFile } from "../../../core/types";
-
 export interface FunctionPanelItem {
     id: string;
     type: "preview" | "map" | "chart";
@@ -8,7 +7,6 @@ export interface FunctionPanelItem {
     title: string;
     icon: string;
 }
-
 export interface FunctionPanelController {
     isOpen: boolean;
     items: FunctionPanelItem[];
@@ -22,19 +20,15 @@ export interface FunctionPanelController {
     clearAll: () => void;
     getActiveItem: () => FunctionPanelItem | undefined;
 }
-
 export function useFunctionPanelController(): FunctionPanelController {
     const [isOpen, setIsOpen] = useState(false);
     const [items, setItems] = useState<FunctionPanelItem[]>([]);
     const [activeItemId, setActiveItemId] = useState<string | null>(null);
     const itemCounter = useRef(0);
-
     const generateId = () => `fp_${++itemCounter.current}_${Date.now()}`;
-
     const getActiveItem = useCallback(() => {
         return items.find(item => item.id === activeItemId);
     }, [items, activeItemId]);
-
     const addItem = useCallback((item: Omit<FunctionPanelItem, "id">) => {
         const id = generateId();
         setItems(prev => {
@@ -61,7 +55,6 @@ export function useFunctionPanelController(): FunctionPanelController {
         setIsOpen(true);
         return id;
     }, []);
-
     const openPreview = useCallback((file: UploadFile) => {
         if (!file) return;
         const fileId = file.id || file.path || file.name;
@@ -80,7 +73,6 @@ export function useFunctionPanelController(): FunctionPanelController {
             icon: "📄",
         });
     }, [items, addItem]);
-
     const openMap = useCallback((mapData: any, taskId?: string) => {
         if (!mapData && !taskId) return;
         const id = taskId || "default";
@@ -102,7 +94,6 @@ export function useFunctionPanelController(): FunctionPanelController {
             icon: "🗺️",
         });
     }, [items, addItem]);
-
     const openChart = useCallback((chartData: any, taskId?: string) => {
         if (!chartData && !taskId) return;
         const id = taskId || "default";
@@ -124,7 +115,6 @@ export function useFunctionPanelController(): FunctionPanelController {
             icon: "📊",
         });
     }, [items, addItem]);
-
     const closeItem = useCallback((itemId: string) => {
         setItems(prev => {
             const newItems = prev.filter(item => item.id !== itemId);
@@ -137,26 +127,22 @@ export function useFunctionPanelController(): FunctionPanelController {
             return newItems;
         });
     }, [activeItemId]);
-
     const closePanel = useCallback(() => {
         setIsOpen(false);
         setItems([]);
         setActiveItemId(null);
     }, []);
-
     const switchTo = useCallback((itemId: string) => {
         if (items.some(item => item.id === itemId)) {
             setActiveItemId(itemId);
             setIsOpen(true);
         }
     }, [items]);
-
     const clearAll = useCallback(() => {
         setItems([]);
         setActiveItemId(null);
         setIsOpen(false);
     }, []);
-
     useEffect(() => {
         const handlers: Record<string, (e: CustomEvent) => void> = {
             "open-preview-in-panel": (e: CustomEvent) => {
@@ -184,18 +170,15 @@ export function useFunctionPanelController(): FunctionPanelController {
                 openChart(chartData, taskId);
             },
         };
-
         Object.entries(handlers).forEach(([event, handler]) => {
             window.addEventListener(event, handler as EventListener);
         });
-
         return () => {
             Object.entries(handlers).forEach(([event, handler]) => {
                 window.removeEventListener(event, handler as EventListener);
             });
         };
     }, [openPreview, openMap, openChart]);
-
     return {
         isOpen,
         items,

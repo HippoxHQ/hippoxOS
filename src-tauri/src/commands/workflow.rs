@@ -1,31 +1,26 @@
 use serde::{Deserialize, Serialize};
 use tauri::command;
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WorkflowModeInfo {
     pub name: String,
     pub display_name: String,
     pub description: String,
 }
-
 /// Get all workflow mode names
 #[command]
 pub fn cmd_get_workflow_mode_names() -> Vec<String> {
     vec!["ReAct".to_string(), "Batch".to_string(), "Chain".to_string(), "PlanAndExecute".to_string()]
 }
-
 /// Get workflow mode names in Chinese
 #[command]
 pub fn cmd_get_workflow_mode_names_zh() -> Vec<String> {
     vec!["反应式".to_string(), "批量式".to_string(), "链式".to_string(), "计划执行式".to_string()]
 }
-
 /// Get workflow mode names in English
 #[command]
 pub fn cmd_get_workflow_mode_names_en() -> Vec<String> {
     vec!["ReAct".to_string(), "Batch".to_string(), "Chain".to_string(), "PlanAndExecute".to_string()]
 }
-
 /// Get workflow mode names by language
 #[command]
 pub fn cmd_get_workflow_mode_names_by_lang(lang: String) -> Vec<String> {
@@ -34,7 +29,6 @@ pub fn cmd_get_workflow_mode_names_by_lang(lang: String) -> Vec<String> {
         _ => cmd_get_workflow_mode_names_en(),
     }
 }
-
 /// Convert string to workflow mode
 #[command]
 pub fn cmd_string_to_workflow_mode(s: String) -> Option<String> {
@@ -46,7 +40,6 @@ pub fn cmd_string_to_workflow_mode(s: String) -> Option<String> {
         _ => None,
     }
 }
-
 /// Convert workflow mode to string (lowercase)
 #[command]
 pub fn cmd_workflow_mode_to_string(mode: String) -> String {
@@ -58,7 +51,6 @@ pub fn cmd_workflow_mode_to_string(mode: String) -> String {
         _ => mode.to_lowercase(),
     }
 }
-
 /// Get workflow mode display name
 #[command]
 pub fn cmd_workflow_mode_display_name(mode: String) -> String {
@@ -70,7 +62,6 @@ pub fn cmd_workflow_mode_display_name(mode: String) -> String {
         _ => mode.clone(),
     }
 }
-
 /// Get workflow mode display name in Chinese
 #[command]
 pub fn cmd_workflow_mode_display_name_zh(mode: String) -> String {
@@ -82,7 +73,6 @@ pub fn cmd_workflow_mode_display_name_zh(mode: String) -> String {
         _ => mode.clone(),
     }
 }
-
 /// Get workflow mode display name by language
 #[command]
 pub fn cmd_workflow_mode_display_name_by_lang(mode: String, lang: String) -> String {
@@ -91,7 +81,6 @@ pub fn cmd_workflow_mode_display_name_by_lang(mode: String, lang: String) -> Str
         _ => cmd_workflow_mode_display_name(mode),
     }
 }
-
 /// Get workflow mode description in Chinese
 #[command]
 pub fn cmd_workflow_mode_description_zh(mode: String) -> String {
@@ -103,7 +92,6 @@ pub fn cmd_workflow_mode_description_zh(mode: String) -> String {
         _ => mode,
     }
 }
-
 /// Get workflow mode description in English
 #[command]
 pub fn cmd_workflow_mode_description_en(mode: String) -> String {
@@ -115,7 +103,6 @@ pub fn cmd_workflow_mode_description_en(mode: String) -> String {
         _ => mode,
     }
 }
-
 /// Get workflow mode description by language
 #[command]
 pub fn cmd_workflow_mode_description(mode: String, lang: String) -> String {
@@ -124,13 +111,11 @@ pub fn cmd_workflow_mode_description(mode: String, lang: String) -> String {
         _ => cmd_workflow_mode_description_en(mode),
     }
 }
-
 /// Get all workflow mode info by language
 #[command]
 pub fn cmd_get_all_workflow_mode_info(lang: String) -> Vec<WorkflowModeInfo> {
     let modes = vec!["ReAct", "Batch", "Chain", "PlanAndExecute"];
     let is_zh = lang == "zh" || lang == "zh-CN" || lang == "zh-TW";
-
     modes
         .into_iter()
         .map(|mode| {

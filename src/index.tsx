@@ -1,6 +1,4 @@
-// src/index.tsx
-
-import React from "react";
+ import React from "react";
 import ReactDOM from "react-dom/client";
 import "./styles/index.css";
 import "./styles/App.css";
@@ -13,15 +11,12 @@ import "@fontsource/pacifico";
 import SubmenuWindow from "./windows/SubmenuWindow";
 import SystemTrayWindow from "./windows/SystemTrayWindow";
 import MaterialPreviewWindow from "./windows/MaterialPreviewWindow";
-
-const root = ReactDOM.createRoot(
+ const root = ReactDOM.createRoot(
   document.getElementById("root") as HTMLElement,
 );
-
-const urlParams = new URLSearchParams(window.location.search);
+ const urlParams = new URLSearchParams(window.location.search);
 const windowType = urlParams.get("type");
-
-if (windowType === WindowTypeEnum.Tray) {
+ if (windowType === WindowTypeEnum.Tray) {
   document.body.classList.add("tray-window-body");
   root.render(
     <React.StrictMode>
@@ -49,5 +44,5 @@ if (windowType === WindowTypeEnum.Tray) {
     </React.StrictMode>,
   );
 }
-
-reportWebVitals();
+ reportWebVitals();
+ 

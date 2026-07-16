@@ -3,7 +3,6 @@ import { DialogSession } from "../types/types";
 import { showToast, ToastType } from "./Toast";
 import { PinFilledIcon } from "../icons";
 import { sessionCommands } from "../command/session/general";
-
 interface HistoryChatDropdownProps {
   t: (key: string, params?: any) => string;
   onSessionSelect?: (sessionId: string) => void;
@@ -12,20 +11,11 @@ interface HistoryChatDropdownProps {
   isOpen: boolean;
   anchorElement?: HTMLElement | null;
 }
-
-type CategoryType =
-  | "pinned"
-  | "today"
-  | "yesterday"
-  | "last7days"
-  | "last30days"
-  | "older";
-
+type CategoryType = "pinned" | "today" | "yesterday" | "last7days" | "last30days" | "older";
 interface CategoryConfig {
   labelKey: string;
   type: CategoryType;
 }
-
 const categories: CategoryConfig[] = [
   { labelKey: "history.category.pinned", type: "pinned" },
   { labelKey: "history.category.today", type: "today" },
@@ -34,21 +24,11 @@ const categories: CategoryConfig[] = [
   { labelKey: "history.category.last30days", type: "last30days" },
   { labelKey: "history.category.older", type: "older" },
 ];
-
-const HistoryChatDropdown: React.FC<HistoryChatDropdownProps> = ({
-  t,
-  onSessionSelect,
-  currentSessionId,
-  onClose,
-  isOpen,
-  anchorElement,
-}) => {
+const HistoryChatDropdown: React.FC<HistoryChatDropdownProps> = ({ t, onSessionSelect, currentSessionId, onClose, isOpen, anchorElement }) => {
   const [sessions, setSessions] = useState<DialogSession[]>([]);
   const [loading, setLoading] = useState(false);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
-  const [expandedCategories, setExpandedCategories] = useState<
-    Record<CategoryType, boolean>
-  >({
+  const [expandedCategories, setExpandedCategories] = useState<Record<CategoryType, boolean>>({
     pinned: true,
     today: true,
     yesterday: true,
@@ -58,16 +38,13 @@ const HistoryChatDropdown: React.FC<HistoryChatDropdownProps> = ({
   });
   const [position, setPosition] = useState({ top: 0, left: 0 });
   const [isVisible, setIsVisible] = useState(false);
-
   const dropdownRef = useRef<HTMLDivElement>(null);
-
   const toggleCategory = (categoryType: CategoryType) => {
     setExpandedCategories((prev) => ({
       ...prev,
       [categoryType]: !prev[categoryType],
     }));
   };
-
   const loadSessions = async () => {
     setLoading(true);
     try {
@@ -91,7 +68,6 @@ const HistoryChatDropdown: React.FC<HistoryChatDropdownProps> = ({
       setLoading(false);
     }
   };
-
   const updatePosition = useCallback(() => {
     if (!anchorElement) return;
     const rect = anchorElement.getBoundingClientRect();
@@ -109,15 +85,9 @@ const HistoryChatDropdown: React.FC<HistoryChatDropdownProps> = ({
       left: left,
     });
   }, [anchorElement]);
-
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node) &&
-        anchorElement &&
-        !anchorElement.contains(event.target as Node)
-      ) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node) && anchorElement && !anchorElement.contains(event.target as Node)) {
         onClose?.();
       }
     };
@@ -128,7 +98,6 @@ const HistoryChatDropdown: React.FC<HistoryChatDropdownProps> = ({
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [isOpen, onClose, anchorElement]);
-
   useEffect(() => {
     if (isOpen) {
       setIsVisible(false);
@@ -143,7 +112,6 @@ const HistoryChatDropdown: React.FC<HistoryChatDropdownProps> = ({
       setIsVisible(false);
     }
   }, [isOpen, updatePosition]);
-
   useEffect(() => {
     if (isOpen) {
       const handleUpdate = () => {
@@ -157,7 +125,6 @@ const HistoryChatDropdown: React.FC<HistoryChatDropdownProps> = ({
       };
     }
   }, [isOpen, updatePosition]);
-
   useEffect(() => {
     const handleSessionCreated = () => {
       loadSessions();
@@ -167,7 +134,6 @@ const HistoryChatDropdown: React.FC<HistoryChatDropdownProps> = ({
       window.removeEventListener("session-created", handleSessionCreated);
     };
   }, []);
-
   const handleSelectSession = useCallback(
     async (sessionId: string) => {
       if (currentSessionId === sessionId) {
@@ -188,12 +154,10 @@ const HistoryChatDropdown: React.FC<HistoryChatDropdownProps> = ({
     },
     [currentSessionId, onSessionSelect, onClose],
   );
-
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
     return date.toLocaleDateString();
   };
-
   const getSessionCategory = (session: DialogSession): CategoryType => {
     if (session.is_pinned) return "pinned";
     const now = new Date();
@@ -208,7 +172,6 @@ const HistoryChatDropdown: React.FC<HistoryChatDropdownProps> = ({
     if (updatedDate >= monthAgo) return "last30days";
     return "older";
   };
-
   const getGroupedSessions = () => {
     const grouped: Record<CategoryType, DialogSession[]> = {
       pinned: [],
@@ -224,12 +187,9 @@ const HistoryChatDropdown: React.FC<HistoryChatDropdownProps> = ({
     });
     return grouped;
   };
-
   if (!isOpen) return null;
-
   const groupedSessions = getGroupedSessions();
   const hasSessions = sessions.length > 0;
-
   return (
     <div
       ref={dropdownRef}
@@ -351,9 +311,7 @@ const HistoryChatDropdown: React.FC<HistoryChatDropdownProps> = ({
                     style={{
                       fontSize: "10px",
                       transition: "transform 0.15s",
-                      transform: expandedCategories[category.type]
-                        ? "rotate(0deg)"
-                        : "rotate(-90deg)",
+                      transform: expandedCategories[category.type] ? "rotate(0deg)" : "rotate(-90deg)",
                     }}
                   >
                     ▼
@@ -370,14 +328,8 @@ const HistoryChatDropdown: React.FC<HistoryChatDropdownProps> = ({
                           padding: "8px 15px",
                           borderRadius: "0px",
                           cursor: "pointer",
-                          background: isActive
-                            ? "rgba(129, 140, 248, 0.12)"
-                            : isHovered
-                              ? "var(--hover-bg)"
-                              : "transparent",
-                          border: isActive
-                            ? "1px solid rgba(129, 140, 248, 0.25)"
-                            : "1px solid transparent",
+                          background: isActive ? "rgba(129, 140, 248, 0.12)" : isHovered ? "var(--hover-bg)" : "transparent",
+                          border: isActive ? "1px solid rgba(129, 140, 248, 0.25)" : "1px solid transparent",
                           transition: "all 0.15s ease",
                         }}
                         onMouseEnter={() => setHoveredId(session.session_id)}
@@ -406,9 +358,7 @@ const HistoryChatDropdown: React.FC<HistoryChatDropdownProps> = ({
                             style={{
                               fontSize: "13px",
                               fontWeight: isActive ? 500 : 400,
-                              color: isActive
-                                ? "var(--accent-color, #818cf8)"
-                                : "var(--text-primary)",
+                              color: isActive ? "var(--accent-color, #818cf8)" : "var(--text-primary)",
                               overflow: "hidden",
                               textOverflow: "ellipsis",
                               whiteSpace: "nowrap",
@@ -450,5 +400,4 @@ const HistoryChatDropdown: React.FC<HistoryChatDropdownProps> = ({
     </div>
   );
 };
-
 export default HistoryChatDropdown;

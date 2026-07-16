@@ -11,7 +11,6 @@ mod state;
 mod types;
 mod windows;
 mod workspace;
-
 use crate::cmd_registry::*;
 use crate::commons::init_default_settings;
 use crate::context::Context;
@@ -30,7 +29,6 @@ use tauri::{DragDropEvent, WindowEvent};
 use tauri_plugin_autostart::MacosLauncher;
 use tauri_plugin_dialog;
 use tauri_plugin_fs;
-
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let rt = tokio::runtime::Runtime::new().unwrap();
@@ -93,10 +91,7 @@ pub fn run() {
     let _guard = rt.enter();
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
-        .plugin(tauri_plugin_autostart::init(
-            MacosLauncher::LaunchAgent,
-            None,
-        ))
+        .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, None))
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
         .manage(app_state)

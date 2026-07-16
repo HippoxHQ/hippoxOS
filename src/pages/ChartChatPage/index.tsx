@@ -4,9 +4,7 @@ import { TaskStatusEnum } from "../../core/types";
 import { showTooltipOnElement } from "../../components/Tooltip";
 import { CollapseAllIcon2, ExpandAllIcon2, MessageCircleIcon, ScrollTextIcon } from "../../icons";
 import ChartChatPageCandleView from "./ChartChatPageCandleView";
-import HistoryChartChatPanel, {
-  HistoryChartChatPanelRef,
-} from "./HistoryChartChatPanel";
+import HistoryChartChatPanel, { HistoryChartChatPanelRef } from "./HistoryChartChatPanel";
 import { configCommands } from "../../command/config";
 import ChartChatPanel from "./ChartChatPanel";
 import { useChartSession } from "../../App/hooks/session/useChartChatSession";
@@ -37,11 +35,7 @@ interface CollapsedTaskListProps {
   onLocateTask: (idx: number) => void;
 }
 
-const CollapsedTaskList: React.FC<CollapsedTaskListProps> = ({
-  tasks,
-  activeNavIndex,
-  onLocateTask,
-}) => {
+const CollapsedTaskList: React.FC<CollapsedTaskListProps> = ({ tasks, activeNavIndex, onLocateTask }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [showUp, setShowUp] = useState(false);
   const [showDown, setShowDown] = useState(false);
@@ -245,9 +239,7 @@ const CollapsedTaskList: React.FC<CollapsedTaskListProps> = ({
                 width: "30px",
                 height: "30px",
                 borderRadius: "8px",
-                border: isActive
-                  ? "1px solid var(--accent-color)"
-                  : "1px solid transparent",
+                border: isActive ? "1px solid var(--accent-color)" : "1px solid transparent",
                 background: isActive ? "var(--accent-color)" : "transparent",
                 color: isActive ? "white" : "var(--text-secondary)",
                 cursor: "pointer",
@@ -270,10 +262,7 @@ const CollapsedTaskList: React.FC<CollapsedTaskListProps> = ({
                   e.currentTarget.style.color = "var(--text-primary)";
                   e.currentTarget.style.borderColor = "var(--border-color)";
                 }
-                showTooltipOnElement(
-                  e.currentTarget,
-                  task.user_input || "Task",
-                );
+                showTooltipOnElement(e.currentTarget, task.user_input || "Task");
               }}
               onMouseLeave={(e) => {
                 if (!isActive) {
@@ -347,11 +336,7 @@ interface CollapsedHistoryListProps {
   onSelectSession: (sessionId: string) => void;
 }
 
-const CollapsedHistoryList: React.FC<CollapsedHistoryListProps> = ({
-  sessions,
-  currentSessionId,
-  onSelectSession,
-}) => {
+const CollapsedHistoryList: React.FC<CollapsedHistoryListProps> = ({ sessions, currentSessionId, onSelectSession }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [showUp, setShowUp] = useState(false);
   const [showDown, setShowDown] = useState(false);
@@ -536,9 +521,7 @@ const CollapsedHistoryList: React.FC<CollapsedHistoryListProps> = ({
                 width: "30px",
                 height: "30px",
                 borderRadius: "8px",
-                border: isActive
-                  ? "1px solid var(--accent-color)"
-                  : "1px solid transparent",
+                border: isActive ? "1px solid var(--accent-color)" : "1px solid transparent",
                 background: isActive ? "var(--accent-color)" : "transparent",
                 color: isActive ? "white" : "var(--text-secondary)",
                 cursor: "pointer",
@@ -561,10 +544,7 @@ const CollapsedHistoryList: React.FC<CollapsedHistoryListProps> = ({
                   e.currentTarget.style.color = "var(--text-primary)";
                   e.currentTarget.style.borderColor = "var(--border-color)";
                 }
-                showTooltipOnElement(
-                  e.currentTarget,
-                  session.title || "Untitled",
-                );
+                showTooltipOnElement(e.currentTarget, session.title || "Untitled");
               }}
               onMouseLeave={(e) => {
                 if (!isActive) {
@@ -581,9 +561,7 @@ const CollapsedHistoryList: React.FC<CollapsedHistoryListProps> = ({
                     top: "1px",
                     right: "1px",
                     fontSize: "6px",
-                    color: isActive
-                      ? "rgba(255,255,255,0.8)"
-                      : "var(--accent-color)",
+                    color: isActive ? "rgba(255,255,255,0.8)" : "var(--accent-color)",
                   }}
                 >
                   📌
@@ -680,12 +658,8 @@ const ChartPage: React.FC<ChartPageProps> = ({
   const dragStartHistoryWidth = useRef(0);
   const dragStartChatPanelWidth = useRef(400);
   const dragStartContainerRect = useRef<DOMRect | null>(null);
-  const [layoutSwapMode, setLayoutSwapMode] = useState<
-    "terminal-left" | "chat-left"
-  >("terminal-left");
-  const layoutSwapModeRef = useRef<"terminal-left" | "chat-left">(
-    "terminal-left",
-  );
+  const [layoutSwapMode, setLayoutSwapMode] = useState<"terminal-left" | "chat-left">("terminal-left");
+  const layoutSwapModeRef = useRef<"terminal-left" | "chat-left">("terminal-left");
   const isChatOnLeft = layoutSwapMode === "chat-left";
 
   const handleToggleChatPanel = useCallback(() => {
@@ -720,13 +694,7 @@ const ChartPage: React.FC<ChartPageProps> = ({
         overflow: "hidden",
       }}
     >
-      <ChartChatPageCandleView
-        theme={theme}
-        i18n={i18n}
-        currentSessionId={chartSessionId}
-        chartData={chartData}
-        symbol={symbol}
-      />
+      <ChartChatPageCandleView theme={theme} i18n={i18n} currentSessionId={chartSessionId} chartData={chartData} symbol={symbol} />
     </div>
   );
 
@@ -850,23 +818,16 @@ const ChartPage: React.FC<ChartPageProps> = ({
         layoutSwapModeRef.current = mode;
       }
     };
-    window.addEventListener(
-      "layout-swap-mode-changed",
-      handleLayoutChange as EventListener,
-    );
+    window.addEventListener("layout-swap-mode-changed", handleLayoutChange as EventListener);
     return () => {
-      window.removeEventListener(
-        "layout-swap-mode-changed",
-        handleLayoutChange as EventListener,
-      );
+      window.removeEventListener("layout-swap-mode-changed", handleLayoutChange as EventListener);
     };
   }, []);
 
   useEffect(() => {
     const loadSessions = async () => {
       try {
-        const { chartSessionCommands } =
-          await import("../../command/session/chart");
+        const { chartSessionCommands } = await import("../../command/session/chart");
         const list = await chartSessionCommands.listChartSessions();
         setHistorySessions(list);
       } catch (error) {
@@ -894,21 +855,13 @@ const ChartPage: React.FC<ChartPageProps> = ({
   }, []);
 
   useEffect(() => {
-    const savedHistoryWidth = localStorage.getItem(
-      "hippox-chart-history-width",
-    );
-    const savedHistoryCollapsed = localStorage.getItem(
-      "hippox-chart-history-collapsed",
-    );
-    const savedChatPanelCollapsed = localStorage.getItem(
-      "hippox-chart-chat-collapsed",
-    );
+    const savedHistoryWidth = localStorage.getItem("hippox-chart-history-width");
+    const savedHistoryCollapsed = localStorage.getItem("hippox-chart-history-collapsed");
+    const savedChatPanelCollapsed = localStorage.getItem("hippox-chart-chat-collapsed");
     const savedChatPanelWidth = localStorage.getItem("hippox-chart-chat-width");
     if (savedHistoryWidth) setHistoryWidth(parseFloat(savedHistoryWidth));
-    if (savedHistoryCollapsed)
-      setHistoryCollapsed(savedHistoryCollapsed === "true");
-    if (savedChatPanelCollapsed)
-      setChatPanelCollapsed(savedChatPanelCollapsed === "true");
+    if (savedHistoryCollapsed) setHistoryCollapsed(savedHistoryCollapsed === "true");
+    if (savedChatPanelCollapsed) setChatPanelCollapsed(savedChatPanelCollapsed === "true");
     if (savedChatPanelWidth) setChatPanelWidth(parseFloat(savedChatPanelWidth));
   }, []);
 
@@ -917,10 +870,7 @@ const ChartPage: React.FC<ChartPageProps> = ({
   };
 
   const saveHistoryCollapsed = (collapsed: boolean) => {
-    localStorage.setItem(
-      "hippox-chart-history-collapsed",
-      collapsed.toString(),
-    );
+    localStorage.setItem("hippox-chart-history-collapsed", collapsed.toString());
   };
   const saveChatPanelCollapsed = (collapsed: boolean) => {
     localStorage.setItem("hippox-chart-chat-collapsed", collapsed.toString());
@@ -965,10 +915,7 @@ const ChartPage: React.FC<ChartPageProps> = ({
     chartHandleNewSession();
   }, [chartHandleNewSession]);
 
-  const handleMouseDown = (
-    e: React.MouseEvent,
-    type: "horizontal" | "history",
-  ) => {
+  const handleMouseDown = (e: React.MouseEvent, type: "horizontal" | "history") => {
     if (chatPanelCollapsed || isFunctionPanelMaximized) return;
     if (type === "history" && historyCollapsed) return;
     isDragging.current = true;
@@ -976,8 +923,7 @@ const ChartPage: React.FC<ChartPageProps> = ({
     dragStartX.current = e.clientX;
     dragStartHistoryWidth.current = historyCollapsed ? 45 : historyWidth;
     dragStartChatPanelWidth.current = chatPanelWidth;
-    dragStartContainerRect.current =
-      containerRef.current?.getBoundingClientRect() || null;
+    dragStartContainerRect.current = containerRef.current?.getBoundingClientRect() || null;
     document.body.style.cursor = "col-resize";
     document.body.style.userSelect = "none";
     e.preventDefault();
@@ -986,9 +932,7 @@ const ChartPage: React.FC<ChartPageProps> = ({
   const handleMouseMove = useCallback((e: MouseEvent) => {
     if (!isDragging.current || !containerRef.current) return;
     const deltaX = e.clientX - dragStartX.current;
-    const containerRect =
-      dragStartContainerRect.current ||
-      containerRef.current.getBoundingClientRect();
+    const containerRect = dragStartContainerRect.current || containerRef.current.getBoundingClientRect();
     const containerWidth = containerRect.width;
     if (dragType.current === "horizontal") {
       const historyWidthPx = dragStartHistoryWidth.current;
@@ -1108,11 +1052,7 @@ const ChartPage: React.FC<ChartPageProps> = ({
               <ScrollTextIcon size={16} />
             </span>
           </div>
-          <CollapsedHistoryList
-            sessions={historySessions}
-            currentSessionId={chartSessionId}
-            onSelectSession={handleSessionSelect}
-          />
+          <CollapsedHistoryList sessions={historySessions} currentSessionId={chartSessionId} onSelectSession={handleSessionSelect} />
         </div>
       );
     }
@@ -1212,17 +1152,9 @@ const ChartPage: React.FC<ChartPageProps> = ({
                 e.currentTarget.style.color = "var(--text-secondary)";
                 e.currentTarget.style.background = "none";
               }}
-              title={
-                isHistoryExpanded
-                  ? t("history.collapseAll")
-                  : t("history.expandAll")
-              }
+              title={isHistoryExpanded ? t("history.collapseAll") : t("history.expandAll")}
             >
-              {isHistoryExpanded ? (
-                <CollapseAllIcon2 size={16} />
-              ) : (
-                <ExpandAllIcon2 size={16} />
-              )}
+              {isHistoryExpanded ? <CollapseAllIcon2 size={16} /> : <ExpandAllIcon2 size={16} />}
             </button>
             <button
               style={{
@@ -1249,11 +1181,7 @@ const ChartPage: React.FC<ChartPageProps> = ({
                 e.currentTarget.style.color = "var(--text-secondary)";
                 e.currentTarget.style.background = "none";
               }}
-              title={
-                isHistoryAtBottom
-                  ? t("history.scrollToTop")
-                  : t("history.scrollToBottom")
-              }
+              title={isHistoryAtBottom ? t("history.scrollToTop") : t("history.scrollToBottom")}
             >
               {isHistoryAtBottom ? "▲" : "▼"}
             </button>
@@ -1298,28 +1226,17 @@ const ChartPage: React.FC<ChartPageProps> = ({
           </div>
         </div>
         <div style={{ flex: 1, overflow: "hidden" }}>
-          <HistoryChartChatPanel
-            ref={historyPanelRef}
-            t={t}
-            onSessionSelect={handleSessionSelect}
-            currentSessionId={chartSessionId}
-            onNewSession={handleNewSession}
-          />
+          <HistoryChartChatPanel ref={historyPanelRef} t={t} onSessionSelect={handleSessionSelect} currentSessionId={chartSessionId} onNewSession={handleNewSession} />
         </div>
       </div>
     );
   };
 
   const historyPanelContent = getHistoryPanelContent();
-  const historyWidthPx =
-    historyCollapsed || isFunctionPanelMaximized ? 45 : historyWidth;
+  const historyWidthPx = historyCollapsed || isFunctionPanelMaximized ? 45 : historyWidth;
 
   return (
-    <div
-      className="panels-container horizontal-layout"
-      ref={containerRef}
-      style={{ display: "flex", flex: 1, overflow: "hidden" }}
-    >
+    <div className="panels-container horizontal-layout" ref={containerRef} style={{ display: "flex", flex: 1, overflow: "hidden" }}>
       <style>{`
         .resize-handle-vertical {
           position: relative;
@@ -1388,9 +1305,7 @@ const ChartPage: React.FC<ChartPageProps> = ({
               onMouseDown={(e) => handleMouseDown(e, "history")}
               style={{
                 width: "0px",
-                background: isHistoryResizeHover
-                  ? "var(--scrollbar-thumb)"
-                  : "var(--border-color)",
+                background: isHistoryResizeHover ? "var(--scrollbar-thumb)" : "var(--border-color)",
                 cursor: "col-resize",
                 flexShrink: 0,
                 position: "relative",
@@ -1413,12 +1328,8 @@ const ChartPage: React.FC<ChartPageProps> = ({
             minWidth: "200px",
             display: "flex",
             flexDirection: "row",
-            borderRight: isChatOnLeft
-              ? "1px solid var(--border-color)"
-              : "none",
-            borderLeft: !isChatOnLeft
-              ? "1px solid var(--border-color)"
-              : "none",
+            borderRight: isChatOnLeft ? "1px solid var(--border-color)" : "none",
+            borderLeft: !isChatOnLeft ? "1px solid var(--border-color)" : "none",
             order: isChatOnLeft ? 1 : 3,
           }}
         >
@@ -1446,9 +1357,7 @@ const ChartPage: React.FC<ChartPageProps> = ({
           onMouseDown={(e) => handleMouseDown(e, "horizontal")}
           style={{
             width: "0px",
-            background: isResizeHover
-              ? "var(--scrollbar-thumb)"
-              : "var(--border-color)",
+            background: isResizeHover ? "var(--scrollbar-thumb)" : "var(--border-color)",
             cursor: "col-resize",
             flexShrink: 0,
             position: "relative",

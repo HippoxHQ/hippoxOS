@@ -1,6 +1,5 @@
 use hippox::{get_driver, list_drivers};
 use serde::{Deserialize, Serialize};
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DriverInfo {
     pub name: String,
@@ -8,7 +7,6 @@ pub struct DriverInfo {
     pub category: String,
     pub parameters: Vec<DriverParameterInfo>,
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DriverParameterInfo {
     pub name: String,
@@ -16,7 +14,6 @@ pub struct DriverParameterInfo {
     pub description: String,
     pub required: bool,
 }
-
 #[tauri::command]
 pub fn cmd_get_driver_categories() -> Vec<String> {
     let drivers = cmd_get_drivers();
@@ -24,18 +21,15 @@ pub fn cmd_get_driver_categories() -> Vec<String> {
     categories.sort();
     categories
 }
-
 #[tauri::command]
 pub async fn cmd_execute_driver(driver_name: String, parameters: std::collections::HashMap<String, serde_json::Value>) -> Result<String, String> {
     let driver = get_driver(&driver_name).ok_or_else(|| format!("Skill not found: {}", driver_name))?;
     driver.execute(&parameters, None, None).await.map_err(|e| e.to_string())
 }
-
 #[tauri::command]
 pub fn cmd_get_drivers_by_category(category: String) -> Vec<DriverInfo> {
     cmd_get_drivers().into_iter().filter(|s| s.category == category).collect()
 }
-
 #[tauri::command]
 pub fn cmd_get_drivers() -> Vec<DriverInfo> {
     let driver_names = list_drivers();

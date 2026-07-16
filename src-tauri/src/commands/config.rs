@@ -1,12 +1,3 @@
-use hippox::Hippox;
-use once_cell::sync::Lazy;
-use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::fs;
-use std::sync::Arc;
-use tokio::sync::RwLock;
-use uuid::Uuid;
-
 use crate::{
     commands::get_settings_dir,
     hippox_core::{
@@ -20,11 +11,16 @@ use crate::{
         WorkspaceConfigData, WorkspaceInstance,
     },
 };
-
+use hippox::Hippox;
+use once_cell::sync::Lazy;
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::fs;
+use std::sync::Arc;
+use tokio::sync::RwLock;
+use uuid::Uuid;
 pub static HIPPOX_APP_CONFIG: Lazy<Arc<RwLock<HippoxAppConfig>>> = Lazy::new(|| Arc::new(RwLock::new(HippoxAppConfig::default())));
-
 pub static HIPPOX_INSTANCES: Lazy<Arc<RwLock<HashMap<String, Arc<Hippox>>>>> = Lazy::new(|| Arc::new(RwLock::new(HashMap::new())));
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HippoxAppConfig {
     pub language: String,
@@ -38,7 +34,6 @@ pub struct HippoxAppConfig {
     #[serde(default)]
     pub disabled_drivers: Vec<String>,
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct EngineConfig {
     pub container_instances: Vec<ContainerInstance>,
@@ -46,7 +41,6 @@ pub struct EngineConfig {
     pub network_instances: Vec<NetworkInstance>,
     pub notification_instances: Vec<NotificationInstance>,
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ModelConfig {
     pub name: String,
@@ -54,7 +48,6 @@ pub struct ModelConfig {
     pub is_default: bool,
     pub provider: String,
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LlmInstanceForFrontend {
     pub id: String,
@@ -70,7 +63,6 @@ pub struct LlmInstanceForFrontend {
     pub extra: HashMap<String, String>,
     pub is_default: Option<bool>,
 }
-
 impl From<&LlmInstance> for LlmInstanceForFrontend {
     fn from(instance: &LlmInstance) -> Self {
         Self {
@@ -88,7 +80,6 @@ impl From<&LlmInstance> for LlmInstanceForFrontend {
         }
     }
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AddLlmInstanceRequest {
     pub name: String,
@@ -101,7 +92,6 @@ pub struct AddLlmInstanceRequest {
     #[serde(default)]
     pub extra: HashMap<String, String>,
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WorkspaceConfig {
     pub skills_dir: String,
@@ -112,7 +102,6 @@ pub struct WorkspaceConfig {
     pub max_log_size: u32,
     pub max_backup_count: u32,
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SystemConfig {
     pub auto_update: bool,
@@ -121,7 +110,6 @@ pub struct SystemConfig {
     pub max_concurrent_tasks: u32,
     pub request_timeout: u32,
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DatabaseConfig {
     pub host: String,
@@ -130,7 +118,6 @@ pub struct DatabaseConfig {
     pub username: String,
     pub password: String,
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RedisConfig {
     pub host: String,
@@ -138,19 +125,16 @@ pub struct RedisConfig {
     pub password: String,
     pub db: i32,
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SqliteConfig {
     pub path: String,
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TcpConfig {
     pub host: String,
     pub port: u16,
     pub encoding: String,
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UdpConfig {
     pub host: String,
@@ -158,7 +142,6 @@ pub struct UdpConfig {
     pub encoding: String,
     pub broadcast: bool,
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FtpConfig {
     pub host: String,
@@ -167,21 +150,18 @@ pub struct FtpConfig {
     pub password: String,
     pub remote_dir: String,
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DockerConfig {
     pub host: String,
     pub api_version: String,
     pub tls_verify: bool,
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct K8sConfig {
     pub kubeconfig: String,
     pub context: String,
     pub namespace: String,
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SmtpConfig {
     pub host: String,
@@ -190,33 +170,27 @@ pub struct SmtpConfig {
     pub password: String,
     pub from: String,
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TelegramConfig {
     pub bot_token: String,
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DingtalkConfig {
     pub access_token: String,
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FeishuConfig {
     pub webhook: String,
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WecomConfig {
     pub webhook: String,
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GithubConfig {
     pub token: String,
     pub api_url: String,
 }
-
 impl Default for HippoxAppConfig {
     fn default() -> Self {
         let instances = HashMap::new();
@@ -248,11 +222,9 @@ impl Default for HippoxAppConfig {
         }
     }
 }
-
 fn get_hippox_core_config() -> hippox::HippoxConfig {
     hippox::get_hippox_core_config()
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SaveContainerInstanceRequest {
     pub id: Option<String>,
@@ -267,7 +239,6 @@ pub struct SaveContainerInstanceRequest {
     pub namespace: Option<String>,
     pub enabled: bool,
 }
-
 #[tauri::command]
 pub async fn cmd_save_container_instance(request: SaveContainerInstanceRequest) -> Result<ContainerInstance, String> {
     let mut config = HIPPOX_APP_CONFIG.write().await;
@@ -303,7 +274,6 @@ pub async fn cmd_save_container_instance(request: SaveContainerInstanceRequest) 
     sync_container_instance_to_core(&instance).await?;
     Ok(instance)
 }
-
 #[tauri::command]
 pub async fn cmd_delete_container_instance(instance_id: String) -> Result<bool, String> {
     let instance_type = {
@@ -319,7 +289,6 @@ pub async fn cmd_delete_container_instance(instance_id: String) -> Result<bool, 
     }
     Ok(true)
 }
-
 #[tauri::command]
 pub async fn cmd_toggle_container_instance(instance_id: String, enabled: bool) -> Result<bool, String> {
     let mut config = HIPPOX_APP_CONFIG.write().await;
@@ -335,13 +304,11 @@ pub async fn cmd_toggle_container_instance(instance_id: String, enabled: bool) -
         Err("Instance not found".to_string())
     }
 }
-
 #[tauri::command]
 pub async fn cmd_get_container_instances() -> Result<Vec<ContainerInstance>, String> {
     let config = HIPPOX_APP_CONFIG.read().await;
     Ok(config.engine.container_instances.clone())
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SaveDatabaseInstanceRequest {
     pub id: Option<String>,
@@ -357,7 +324,6 @@ pub struct SaveDatabaseInstanceRequest {
     pub sqlite_path: Option<String>,
     pub enabled: bool,
 }
-
 #[tauri::command]
 pub async fn cmd_save_database_instance(request: SaveDatabaseInstanceRequest) -> Result<DatabaseInstance, String> {
     let mut config = HIPPOX_APP_CONFIG.write().await;
@@ -394,7 +360,6 @@ pub async fn cmd_save_database_instance(request: SaveDatabaseInstanceRequest) ->
     sync_database_instance_to_core(&instance).await?;
     Ok(instance)
 }
-
 #[tauri::command]
 pub async fn cmd_delete_database_instance(instance_id: String) -> Result<bool, String> {
     let instance_type = {
@@ -410,7 +375,6 @@ pub async fn cmd_delete_database_instance(instance_id: String) -> Result<bool, S
     }
     Ok(true)
 }
-
 #[tauri::command]
 pub async fn cmd_toggle_database_instance(instance_id: String, enabled: bool) -> Result<bool, String> {
     let mut config = HIPPOX_APP_CONFIG.write().await;
@@ -426,13 +390,11 @@ pub async fn cmd_toggle_database_instance(instance_id: String, enabled: bool) ->
         Err("Instance not found".to_string())
     }
 }
-
 #[tauri::command]
 pub async fn cmd_get_database_instances() -> Result<Vec<DatabaseInstance>, String> {
     let config = HIPPOX_APP_CONFIG.read().await;
     Ok(config.engine.database_instances.clone())
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SaveNetworkInstanceRequest {
     pub id: Option<String>,
@@ -448,7 +410,6 @@ pub struct SaveNetworkInstanceRequest {
     pub remote_dir: Option<String>,
     pub enabled: bool,
 }
-
 #[tauri::command]
 pub async fn cmd_save_network_instance(request: SaveNetworkInstanceRequest) -> Result<NetworkInstance, String> {
     let mut config = HIPPOX_APP_CONFIG.write().await;
@@ -485,7 +446,6 @@ pub async fn cmd_save_network_instance(request: SaveNetworkInstanceRequest) -> R
     sync_network_instance_to_core(&instance).await?;
     Ok(instance)
 }
-
 #[tauri::command]
 pub async fn cmd_delete_network_instance(instance_id: String) -> Result<bool, String> {
     let instance_type = {
@@ -501,7 +461,6 @@ pub async fn cmd_delete_network_instance(instance_id: String) -> Result<bool, St
     }
     Ok(true)
 }
-
 #[tauri::command]
 pub async fn cmd_toggle_network_instance(instance_id: String, enabled: bool) -> Result<bool, String> {
     let mut config = HIPPOX_APP_CONFIG.write().await;
@@ -517,13 +476,11 @@ pub async fn cmd_toggle_network_instance(instance_id: String, enabled: bool) -> 
         Err("Instance not found".to_string())
     }
 }
-
 #[tauri::command]
 pub async fn cmd_get_network_instances() -> Result<Vec<NetworkInstance>, String> {
     let config = HIPPOX_APP_CONFIG.read().await;
     Ok(config.engine.network_instances.clone())
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SaveNotificationInstanceRequest {
     pub id: Option<String>,
@@ -543,7 +500,6 @@ pub struct SaveNotificationInstanceRequest {
     pub github_token: Option<String>,
     pub github_api_url: Option<String>,
 }
-
 #[tauri::command]
 pub async fn cmd_save_notification_instance(request: SaveNotificationInstanceRequest) -> Result<NotificationInstance, String> {
     let mut config = HIPPOX_APP_CONFIG.write().await;
@@ -570,7 +526,6 @@ pub async fn cmd_save_notification_instance(request: SaveNotificationInstanceReq
         created_at: if is_new { now.clone() } else { now.clone() },
         updated_at: now,
     };
-
     if let Some(existing_id) = &request.id {
         if let Some(existing) = config.engine.notification_instances.iter_mut().find(|i| i.id == *existing_id) {
             *existing = instance.clone();
@@ -585,7 +540,6 @@ pub async fn cmd_save_notification_instance(request: SaveNotificationInstanceReq
     sync_notification_instance_to_core(&instance).await?;
     Ok(instance)
 }
-
 #[tauri::command]
 pub async fn cmd_delete_notification_instance(instance_id: String) -> Result<bool, String> {
     let instance_type = {
@@ -601,7 +555,6 @@ pub async fn cmd_delete_notification_instance(instance_id: String) -> Result<boo
     }
     Ok(true)
 }
-
 #[tauri::command]
 pub async fn cmd_toggle_notification_instance(instance_id: String, enabled: bool) -> Result<bool, String> {
     let mut config = HIPPOX_APP_CONFIG.write().await;
@@ -617,13 +570,11 @@ pub async fn cmd_toggle_notification_instance(instance_id: String, enabled: bool
         Err("Instance not found".to_string())
     }
 }
-
 #[tauri::command]
 pub async fn cmd_get_notification_instances() -> Result<Vec<NotificationInstance>, String> {
     let config = HIPPOX_APP_CONFIG.read().await;
     Ok(config.engine.notification_instances.clone())
 }
-
 #[tauri::command]
 pub async fn cmd_get_llm_instances() -> Result<HashMap<String, LlmInstanceForFrontend>, String> {
     let config = HIPPOX_APP_CONFIG.read().await;
@@ -636,13 +587,11 @@ pub async fn cmd_get_llm_instances() -> Result<HashMap<String, LlmInstanceForFro
     }
     Ok(result)
 }
-
 #[tauri::command]
 pub async fn cmd_get_default_llm_instance_id() -> Result<String, String> {
     let config = HIPPOX_APP_CONFIG.read().await;
     Ok(config.default_llm_instance_id.clone())
 }
-
 #[tauri::command]
 pub async fn cmd_add_llm_instance(request: AddLlmInstanceRequest) -> Result<String, String> {
     let mut config = HIPPOX_APP_CONFIG.write().await;
@@ -675,7 +624,6 @@ pub async fn cmd_add_llm_instance(request: AddLlmInstanceRequest) -> Result<Stri
     save_config_to_file().await?;
     Ok(id)
 }
-
 #[tauri::command]
 pub async fn cmd_update_llm_instance(instance_id: String, instance: LlmInstanceForFrontend) -> Result<bool, String> {
     let mut config = HIPPOX_APP_CONFIG.write().await;
@@ -694,7 +642,6 @@ pub async fn cmd_update_llm_instance(instance_id: String, instance: LlmInstanceF
         Err("Instance not found".to_string())
     }
 }
-
 #[tauri::command]
 pub async fn cmd_delete_llm_instance(instance_id: String) -> Result<bool, String> {
     let mut config = HIPPOX_APP_CONFIG.write().await;
@@ -717,7 +664,6 @@ pub async fn cmd_delete_llm_instance(instance_id: String) -> Result<bool, String
         Err("Instance not found".to_string())
     }
 }
-
 #[tauri::command]
 pub async fn cmd_set_default_llm_instance(instance_id: String) -> Result<bool, String> {
     let mut config = HIPPOX_APP_CONFIG.write().await;
@@ -736,18 +682,15 @@ pub async fn cmd_set_default_llm_instance(instance_id: String) -> Result<bool, S
         Err("Instance not found".to_string())
     }
 }
-
 #[tauri::command]
 pub async fn cmd_get_llm_instance(instance_id: String) -> Result<Option<LlmInstanceForFrontend>, String> {
     let config = HIPPOX_APP_CONFIG.read().await;
     Ok(config.llm_instances.get(&instance_id).map(|instance| instance.into()))
 }
-
 #[tauri::command]
 pub async fn cmd_sync_all_to_hippox_core() -> Result<(), String> {
     sync_all_to_hippox_core().await
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ConfigPath {
     Language,
@@ -756,13 +699,11 @@ pub enum ConfigPath {
     Engine(String),
     System(String),
 }
-
 #[tauri::command]
 pub async fn cmd_get_config() -> Result<HippoxAppConfig, String> {
     let config = HIPPOX_APP_CONFIG.read().await;
     Ok(config.clone())
 }
-
 #[tauri::command]
 pub async fn cmd_set_config(config: HippoxAppConfig) -> Result<bool, String> {
     let mut global_config = HIPPOX_APP_CONFIG.write().await;
@@ -772,11 +713,9 @@ pub async fn cmd_set_config(config: HippoxAppConfig) -> Result<bool, String> {
     }
     Ok(true)
 }
-
 #[tauri::command]
 pub async fn cmd_update_config(path: ConfigPath, value: serde_json::Value) -> Result<bool, String> {
     let mut config = HIPPOX_APP_CONFIG.write().await;
-
     match path {
         ConfigPath::Language => {
             if let Some(lang) = value.as_str() {
@@ -861,11 +800,9 @@ pub async fn cmd_update_config(path: ConfigPath, value: serde_json::Value) -> Re
     }
     Ok(true)
 }
-
 #[tauri::command]
 pub async fn cmd_get_config_value(path: ConfigPath) -> Result<serde_json::Value, String> {
     let config = HIPPOX_APP_CONFIG.read().await;
-
     let value = match path {
         ConfigPath::Language => serde_json::json!(config.language),
         ConfigPath::Theme => serde_json::json!(config.theme),
@@ -891,7 +828,6 @@ pub async fn cmd_get_config_value(path: ConfigPath) -> Result<serde_json::Value,
     };
     Ok(value)
 }
-
 pub async fn load_config_from_file() -> Result<(), String> {
     let config_path = get_config_file_path();
     if let Ok(content) = std::fs::read_to_string(&config_path) {
@@ -921,7 +857,6 @@ pub async fn load_config_from_file() -> Result<(), String> {
     }
     Ok(())
 }
-
 #[tauri::command]
 pub async fn cmd_get_disabled_drivers() -> Result<Vec<String>, String> {
     let config_path = get_config_file_path();
@@ -930,7 +865,6 @@ pub async fn cmd_get_disabled_drivers() -> Result<Vec<String>, String> {
     let disabled = full_config.get("disabled_drivers").and_then(|v| serde_json::from_value::<Vec<String>>(v.clone()).ok()).unwrap_or_default();
     Ok(disabled)
 }
-
 #[tauri::command]
 pub async fn cmd_set_disabled_drivers(disabled: Vec<String>) -> Result<(), String> {
     let mut config = HIPPOX_APP_CONFIG.write().await;
@@ -939,7 +873,6 @@ pub async fn cmd_set_disabled_drivers(disabled: Vec<String>) -> Result<(), Strin
     save_config_to_file().await?;
     Ok(())
 }
-
 pub async fn save_config_to_file() -> Result<(), String> {
     let config_path = get_config_file_path();
     if let Some(parent) = config_path.parent() {
@@ -967,11 +900,9 @@ pub async fn save_config_to_file() -> Result<(), String> {
     std::fs::write(config_path, content).map_err(|e| e.to_string())?;
     Ok(())
 }
-
 fn get_config_file_path() -> std::path::PathBuf {
     super::paths::get_settings_dir().join("config.json")
 }
-
 #[tauri::command]
 pub async fn cmd_add_llm_model(model: ModelConfig) -> Result<bool, String> {
     let mut config = HIPPOX_APP_CONFIG.write().await;
@@ -984,7 +915,6 @@ pub async fn cmd_add_llm_model(model: ModelConfig) -> Result<bool, String> {
         Err("No default instance found".to_string())
     }
 }
-
 #[tauri::command]
 pub async fn cmd_remove_llm_model(model_name: String) -> Result<bool, String> {
     let mut config = HIPPOX_APP_CONFIG.write().await;
@@ -997,7 +927,6 @@ pub async fn cmd_remove_llm_model(model_name: String) -> Result<bool, String> {
         Err("No default instance found".to_string())
     }
 }
-
 #[tauri::command]
 pub async fn cmd_set_default_llm_model(model_name: String) -> Result<bool, String> {
     let mut config = HIPPOX_APP_CONFIG.write().await;
@@ -1014,64 +943,52 @@ pub async fn cmd_set_default_llm_model(model_name: String) -> Result<bool, Strin
         Err("No default instance found".to_string())
     }
 }
-
 #[tauri::command]
 pub fn cmd_get_settings_language() -> Result<String, String> {
     let value = crate::commons::get_setting_with_default("language", serde_json::json!("en"))?;
     Ok(value.as_str().unwrap_or("en").to_string())
 }
-
 #[tauri::command]
 pub fn cmd_save_settings_language(language: String) -> Result<(), String> {
     crate::commons::set_setting("language", serde_json::json!(language))
 }
-
 #[tauri::command]
 pub fn cmd_get_settings_theme() -> Result<String, String> {
     let value = crate::commons::get_setting_with_default("theme", serde_json::json!("dark"))?;
     Ok(value.as_str().unwrap_or("dark").to_string())
 }
-
 #[tauri::command]
 pub fn cmd_save_settings_theme(theme: String) -> Result<(), String> {
     crate::commons::set_setting("theme", serde_json::json!(theme))
 }
-
 #[tauri::command]
 pub async fn cmd_get_workspace_config() -> Result<WorkspaceConfigData, String> {
     load_workspace_config()
 }
-
 #[tauri::command]
 pub async fn cmd_get_all_workspaces() -> Result<Vec<WorkspaceInstance>, String> {
     get_all_workspaces()
 }
-
 #[tauri::command]
 pub async fn cmd_get_default_workspace() -> Result<Option<WorkspaceInstance>, String> {
     get_default_workspace()
 }
-
 #[tauri::command]
 pub async fn cmd_add_workspace(instance: WorkspaceInstance) -> Result<(), String> {
     add_workspace(instance)
 }
-
 #[tauri::command]
 pub async fn cmd_update_workspace(instance: WorkspaceInstance) -> Result<(), String> {
     update_workspace(instance)
 }
-
 #[tauri::command]
 pub async fn cmd_delete_workspace(instance_id: String) -> Result<(), String> {
     delete_workspace(&instance_id)
 }
-
 #[tauri::command]
 pub async fn cmd_set_default_workspace(instance_id: String) -> Result<(), String> {
     set_default_workspace(&instance_id)
 }
-
 #[tauri::command]
 pub async fn cmd_get_max_log_size() -> Result<u64, String> {
     let settings_dir = crate::commands::paths::get_settings_dir();
@@ -1085,7 +1002,6 @@ pub async fn cmd_get_max_log_size() -> Result<u64, String> {
     }
     Ok(500)
 }
-
 #[tauri::command]
 pub async fn cmd_set_max_log_size(max_size_mb: u64) -> Result<(), String> {
     let settings_dir = crate::commands::paths::get_settings_dir();
@@ -1105,7 +1021,6 @@ pub async fn cmd_set_max_log_size(max_size_mb: u64) -> Result<(), String> {
     let _ = crate::commands::paths::cleanup_old_logs(max_size_mb);
     Ok(())
 }
-
 #[tauri::command]
 pub async fn cmd_get_max_dialog_size() -> Result<u64, String> {
     let settings_dir = crate::commands::paths::get_settings_dir();
@@ -1119,7 +1034,6 @@ pub async fn cmd_get_max_dialog_size() -> Result<u64, String> {
     }
     Ok(500)
 }
-
 #[tauri::command]
 pub async fn cmd_set_max_dialog_size(max_size_mb: u64) -> Result<(), String> {
     let settings_dir = crate::commands::paths::get_settings_dir();
@@ -1138,7 +1052,6 @@ pub async fn cmd_set_max_dialog_size(max_size_mb: u64) -> Result<(), String> {
     std::fs::write(&config_path, content).map_err(|e| format!("Failed to save settings config: {}", e))?;
     Ok(())
 }
-
 pub async fn reinit_single_hippox(instance_id: &str) -> Result<(), String> {
     let (instance, skills_dir) = {
         let config = HIPPOX_APP_CONFIG.read().await;
@@ -1151,21 +1064,17 @@ pub async fn reinit_single_hippox(instance_id: &str) -> Result<(), String> {
     instances.insert(instance_id.to_string(), Arc::new(hippox));
     Ok(())
 }
-
 pub async fn sync_hippox_instance_on_update(instance_id: &str) -> Result<(), String> {
     reinit_single_hippox(instance_id).await
 }
-
 pub async fn remove_hippox_instance(instance_id: &str) -> Result<(), String> {
     let mut instances = HIPPOX_INSTANCES.write().await;
     instances.remove(instance_id);
     Ok(())
 }
-
 pub async fn add_hippox_instance(instance_id: &str) -> Result<(), String> {
     reinit_single_hippox(instance_id).await
 }
-
 pub async fn get_hippox_instance(instance_id: &str) -> Result<Arc<Hippox>, String> {
     {
         let instances = HIPPOX_INSTANCES.read().await;
@@ -1185,100 +1094,82 @@ pub async fn get_hippox_instance(instance_id: &str) -> Result<Arc<Hippox>, Strin
     instances.insert(instance_id.to_string(), hippox_arc.clone());
     Ok(hippox_arc)
 }
-
 #[tauri::command]
 pub async fn cmd_get_max_favorites_size() -> Result<u64, String> {
     Ok(crate::commands::paths::get_max_favorites_size())
 }
-
 #[tauri::command]
 pub async fn cmd_set_max_favorites_size(max_size_mb: u64) -> Result<(), String> {
     crate::commands::paths::set_max_favorites_size(max_size_mb)
 }
-
 #[tauri::command]
 pub fn cmd_get_settings_videoeditor_layout_swap_mode() -> Result<String, String> {
     let value = crate::commons::get_setting_with_default("videoeditor_layout_swap_mode", serde_json::json!("chat-left"))?;
     Ok(value.as_str().unwrap_or("chat-left").to_string())
 }
-
 #[tauri::command]
 pub fn cmd_save_settings_videoeditor_layout_swap_mode(mode: String) -> Result<(), String> {
     crate::commons::set_setting("videoeditor_layout_swap_mode", serde_json::json!(mode))
 }
-
 #[tauri::command]
 pub fn cmd_get_settings_sandbox3d_layout_swap_mode() -> Result<String, String> {
     let value = crate::commons::get_setting_with_default("sandbox3d_layout_swap_mode", serde_json::json!("chat-left"))?;
     Ok(value.as_str().unwrap_or("chat-left").to_string())
 }
-
 #[tauri::command]
 pub fn cmd_save_settings_sandbox3d_layout_swap_mode(mode: String) -> Result<(), String> {
     crate::commons::set_setting("sandbox3d_layout_swap_mode", serde_json::json!(mode))
 }
-
 #[tauri::command]
 pub fn cmd_get_settings_general_chat_layout_swap_mode() -> Result<String, String> {
     let value = crate::commons::get_setting_with_default("layout_swap_mode", serde_json::json!("terminal-left"))?;
     Ok(value.as_str().unwrap_or("terminal-left").to_string())
 }
-
 #[tauri::command]
 pub fn cmd_save_settings_general_chat_layout_swap_mode(mode: String) -> Result<(), String> {
     crate::commons::set_setting("general_chat_layout_swap_mode", serde_json::json!(mode))
 }
-
 #[tauri::command]
 pub fn cmd_get_settings_chart_chat_layout_swap_mode() -> Result<String, String> {
     let value = crate::commons::get_setting_with_default("chart_chat_layout_swap_mode", serde_json::json!("terminal-left"))?;
     Ok(value.as_str().unwrap_or("terminal-left").to_string())
 }
-
 #[tauri::command]
 pub fn cmd_save_settings_chart_chat_layout_swap_mode(mode: String) -> Result<(), String> {
     crate::commons::set_setting("chart_chat_layout_swap_mode", serde_json::json!(mode))
 }
-
 #[tauri::command]
 pub fn cmd_get_settings_map_chat_layout_swap_mode() -> Result<String, String> {
     let value = crate::commons::get_setting_with_default("map_chat_layout_swap_mode", serde_json::json!("terminal-left"))?;
     Ok(value.as_str().unwrap_or("terminal-left").to_string())
 }
-
 #[tauri::command]
 pub fn cmd_save_settings_map_chat_layout_swap_mode(mode: String) -> Result<(), String> {
     crate::commons::set_setting("map_chat_layout_swap_mode", serde_json::json!(mode))
 }
-
 #[tauri::command]
 pub fn cmd_get_settings_codeeditor_chat_layout_swap_mode() -> Result<String, String> {
     let value = crate::commons::get_setting_with_default("codeeditor_chat_layout_swap_mode", serde_json::json!("terminal-left"))?;
     Ok(value.as_str().unwrap_or("terminal-left").to_string())
 }
-
 #[tauri::command]
 pub fn cmd_save_settings_codeeditor_chat_layout_swap_mode(mode: String) -> Result<(), String> {
     crate::commons::set_setting("codeeditor_chat_layout_swap_mode", serde_json::json!(mode))
 }
-
 #[tauri::command]
 pub fn cmd_get_settings_function_panel_position() -> Result<String, String> {
     let value = crate::commons::get_setting_with_default("function_panel_position", serde_json::json!("right"))?;
     Ok(value.as_str().unwrap_or("right").to_string())
 }
-
 #[tauri::command]
 pub fn cmd_save_settings_function_panel_position(position: String) -> Result<(), String> {
     crate::commons::set_setting("function_panel_position", serde_json::json!(position))
 }
-
 #[tauri::command]
 pub fn cmd_get_settings_auto_start() -> Result<bool, String> {
     let value = crate::commons::get_setting_with_default("auto_start", serde_json::json!(false))?;
     Ok(value.as_bool().unwrap_or(false))
 }
-
 #[tauri::command]
 pub fn cmd_save_settings_auto_start(enabled: bool) -> Result<(), String> {
     crate::commons::set_setting("auto_start", serde_json::json!(enabled))

@@ -95,17 +95,7 @@ export const getFileIconComponent = (fileName: string, size: number = 16) => {
   return <Icon icon={getFileIcon(fileName)} width={size} height={size} />;
 };
 
-export const getFolderIconComponent = (isExpanded: boolean, size = 16) => (
-  <Icon
-    icon={
-      isExpanded
-        ? "vscode-icons:default-folder-opened"
-        : "vscode-icons:default-folder"
-    }
-    width={size}
-    height={size}
-  />
-);
+export const getFolderIconComponent = (isExpanded: boolean, size = 16) => <Icon icon={isExpanded ? "vscode-icons:default-folder-opened" : "vscode-icons:default-folder"} width={size} height={size} />;
 
 export const getDirectoryName = (path: string | null | undefined): string => {
   if (!path) return "No Workspace";

@@ -2,46 +2,25 @@ import React, { useState, useEffect, useRef } from "react";
 import { filesCommands } from "../../../../command/files";
 import { getFileIcon } from "../../../../common";
 import { UploadFile } from "../../../../core/types";
-
 interface MessageFileGridProps {
   files: UploadFile[];
   onFileClick?: (file: UploadFile) => void;
   formatFileSize: (bytes: number) => string;
 }
-
-export const MessageFileGrid: React.FC<MessageFileGridProps> = ({
-  files,
-  onFileClick,
-  formatFileSize,
-}) => {
+export const MessageFileGrid: React.FC<MessageFileGridProps> = ({ files, onFileClick, formatFileSize }) => {
   const [skillNames, setSkillNames] = useState<Map<string, string>>(new Map());
-  const [imagePreviews, setImagePreviews] = useState<Map<string, string>>(
-    new Map(),
-  );
+  const [imagePreviews, setImagePreviews] = useState<Map<string, string>>(new Map());
   const [fileSizes, setFileSizes] = useState<Map<string, number>>(new Map());
   const isMountedRef = useRef(true);
-
   const isSkillFile = (file: UploadFile): boolean => {
     return file.name?.endsWith(".md") || file.name?.endsWith(".skill.md");
   };
-
   const isImageFile = (file: UploadFile): boolean => {
-    const imageExtensions = [
-      ".png",
-      ".jpg",
-      ".jpeg",
-      ".gif",
-      ".webp",
-      ".bmp",
-      ".svg",
-      ".ico",
-    ];
+    const imageExtensions = [".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".svg", ".ico"];
     const name = file.name?.toLowerCase() || "";
     return imageExtensions.some((ext) => name.endsWith(ext));
   };
-
   const getSkillIcon = () => "⚡";
-
   const extractSkillName = (content: string): string => {
     const lines = content.split("\n");
     for (const line of lines) {
@@ -52,7 +31,6 @@ export const MessageFileGrid: React.FC<MessageFileGridProps> = ({
     }
     return "";
   };
-
   const getSkillDisplayName = async (file: UploadFile): Promise<string> => {
     if (!file.path) {
       return file.name || "skill.md";
@@ -70,7 +48,6 @@ export const MessageFileGrid: React.FC<MessageFileGridProps> = ({
       return file.name || "skill.md";
     }
   };
-
   const loadImagePreview = async (file: UploadFile): Promise<string> => {
     if (!file.path) return "";
     try {
@@ -85,7 +62,6 @@ export const MessageFileGrid: React.FC<MessageFileGridProps> = ({
       return "";
     }
   };
-
   const getFileSize = async (file: UploadFile): Promise<number> => {
     if (!file.path) return 0;
     try {
@@ -96,7 +72,6 @@ export const MessageFileGrid: React.FC<MessageFileGridProps> = ({
       return 0;
     }
   };
-
   useEffect(() => {
     isMountedRef.current = true;
     const loadData = async () => {
@@ -134,7 +109,6 @@ export const MessageFileGrid: React.FC<MessageFileGridProps> = ({
       isMountedRef.current = false;
     };
   }, [files]);
-
   const getDisplayName = (file: UploadFile): string => {
     if (!isSkillFile(file)) {
       return file.name;
@@ -146,18 +120,15 @@ export const MessageFileGrid: React.FC<MessageFileGridProps> = ({
     }
     return file.name || "skill.md";
   };
-
   const getImagePreview = (file: UploadFile): string | undefined => {
     const key = file.id || file.path || file.name;
     return imagePreviews.get(key);
   };
-
   const getFileSizeDisplay = (file: UploadFile): number => {
     const key = file.id || file.path || file.name;
     const size = fileSizes.get(key);
     return size || file.size || 0;
   };
-
   return (
     <div
       className="message-files-grid"
@@ -187,9 +158,7 @@ export const MessageFileGrid: React.FC<MessageFileGridProps> = ({
               gap: "4px",
               padding: "8px",
               background: isSkill ? "var(--accent-glow)" : "var(--bg-tertiary)",
-              border: isSkill
-                ? "1px solid var(--accent-color)"
-                : "1px solid var(--border-color)",
+              border: isSkill ? "1px solid var(--accent-color)" : "1px solid var(--border-color)",
               borderRadius: "8px",
               cursor: "pointer",
               // transition: "all 0.2s ease",
@@ -204,9 +173,7 @@ export const MessageFileGrid: React.FC<MessageFileGridProps> = ({
               e.currentTarget.style.transform = "translateY(-1px)";
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.background = isSkill
-                ? "var(--accent-glow)"
-                : "var(--bg-tertiary)";
+              e.currentTarget.style.background = isSkill ? "var(--accent-glow)" : "var(--bg-tertiary)";
               if (!isSkill) {
                 e.currentTarget.style.borderColor = "var(--border-color)";
               }
@@ -284,9 +251,7 @@ export const MessageFileGrid: React.FC<MessageFileGridProps> = ({
                   whiteSpace: "nowrap",
                 }}
               >
-                {displayName.length > 15
-                  ? displayName.slice(0, 12) + "..."
-                  : displayName}
+                {displayName.length > 15 ? displayName.slice(0, 12) + "..." : displayName}
               </span>
               <span
                 className="file-size"

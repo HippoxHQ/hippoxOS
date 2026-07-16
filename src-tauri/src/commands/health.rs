@@ -1,3 +1,4 @@
+use crate::state::AppState;
 use crate::{
     commands::config::{get_hippox_instance, HIPPOX_APP_CONFIG, HIPPOX_INSTANCES},
     hippox_core::LlmInstance,
@@ -6,9 +7,6 @@ use hippox::Hippox;
 use serde::{Deserialize, Serialize};
 use tauri::State;
 use tokio::time::{timeout, Duration};
-
-use crate::state::AppState;
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HealthCheckResult {
     pub instance_id: String,
@@ -17,7 +15,6 @@ pub struct HealthCheckResult {
     pub message: Option<String>,
     pub latency_ms: Option<u64>,
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum HealthStatus {
@@ -25,13 +22,9 @@ pub enum HealthStatus {
     Offline,
     Error,
 }
-
 const HEALTH_CHECK_TIMEOUT_SECS: u64 = 10;
-
 #[tauri::command]
-pub async fn cmd_check_all_llm_health(
-    state: State<'_, AppState>,
-) -> Result<Vec<HealthCheckResult>, String> {
+pub async fn cmd_check_all_llm_health(state: State<'_, AppState>) -> Result<Vec<HealthCheckResult>, String> {
     let instances = {
         let config = HIPPOX_APP_CONFIG.read().await;
         config.llm_instances.clone()
@@ -45,9 +38,7 @@ pub async fn cmd_check_all_llm_health(
         let instance_id_clone = instance_id.clone();
         let instance_clone = instance.clone();
         let language_clone = language.clone();
-        let task = tokio::spawn(async move {
-            check_single_llm_health(&instance_id_clone, &instance_clone, &language_clone).await
-        });
+        let task = tokio::spawn(async move { check_single_llm_health(&instance_id_clone, &instance_clone, &language_clone).await });
         tasks.push(task);
     }
     let results = futures::future::join_all(tasks).await;
@@ -62,12 +53,7 @@ pub async fn cmd_check_all_llm_health(
     }
     Ok(health_results)
 }
-
-async fn check_single_llm_health(
-    instance_id: &str,
-    instance: &LlmInstance,
-    language: &str,
-) -> HealthCheckResult {
+async fn check_single_llm_health(instance_id: &str, instance: &LlmInstance, language: &str) -> HealthCheckResult {
     let start_time = std::time::Instant::now();
     let instance_id_clone = instance_id.to_string();
     let instance_name = instance.name.clone();
@@ -84,11 +70,7 @@ async fn check_single_llm_health(
             };
         }
     };
-    let check_result = timeout(
-        Duration::from_secs(HEALTH_CHECK_TIMEOUT_SECS),
-        send_health_check_message(&hippox, language),
-    )
-    .await;
+    let check_result = timeout(Duration::from_secs(HEALTH_CHECK_TIMEOUT_SECS), send_health_check_message(&hippox, language)).await;
     let latency_ms = start_time.elapsed().as_millis() as u64;
     match check_result {
         Ok(Ok(response)) => {
@@ -104,11 +86,7 @@ async fn check_single_llm_health(
                 || response.to_lowercase().contains("authentication")
                 || response.to_lowercase().contains("invalid");
             if is_error {
-                let error_msg = if response.len() > 200 {
-                    format!("{}...", &response[..200])
-                } else {
-                    response
-                };
+                let error_msg = if response.len() > 200 { format!("{}...", &response[..200]) } else { response };
                 HealthCheckResult {
                     instance_id: instance_id_clone,
                     instance_name,
@@ -142,11 +120,6 @@ async fn check_single_llm_health(
         },
     }
 }
-
 async fn send_health_check_message(hippox: &Hippox, language: &str) -> Result<String, String> {
-    hippox
-        .heartbeat()
-        .await
-        .into_result()
-        .map_err(|err| err.to_string())
+    hippox.heartbeat().await.into_result().map_err(|err| err.to_string())
 }

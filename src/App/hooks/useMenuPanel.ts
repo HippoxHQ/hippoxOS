@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { MenuPanelView, EngineSubView } from "../../components/MenuPanel";
 import { SettingsSubView } from "../../components/MenuPanel/SettingsPanel";
-
 export type ContentPanelView =
   | "generalChat"
   | "favorites"
@@ -24,14 +23,12 @@ export type ContentPanelView =
   | "videoEditor"
   | "sandbox3d"
   | null;
-
 export function useMenuPanel() {
   const [menuPanelView, setMenuPanelView] = useState<MenuPanelView | null>(null);
   const [settingsSubView, setSettingsSubView] = useState<SettingsSubView>("llmModel");
   const [engineSubView, setEngineSubView] = useState<EngineSubView>("engine_database");
   const [menuPanelWidth, setMenuPanelWidth] = useState<number>(320);
   const [currentContentPanel, setCurrentContentPanel] = useState<ContentPanelView>(null);
-
   const switchMenuPanel = (view: string, subView?: string) => {
     if (view === "settings") {
       setMenuPanelView("settings");
@@ -70,11 +67,9 @@ export function useMenuPanel() {
       setMenuPanelView(null);
     }
   };
-
   const closeMenuPanel = () => {
     setMenuPanelView(null);
   };
-
   const switchContentArea = (view: string) => {
     const contentViews: string[] = [
       "skillsManager",
@@ -91,15 +86,12 @@ export function useMenuPanel() {
       setCurrentContentPanel(view as ContentPanelView);
     }
   };
-
   const closeContentPanel = () => {
     setCurrentContentPanel(null);
   };
-
   const resetToChat = () => {
     setCurrentContentPanel(null);
   };
-
   return {
     menuPanelView,
     settingsSubView,

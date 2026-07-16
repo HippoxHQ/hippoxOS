@@ -7,9 +7,7 @@ import { videoSessionCommands } from "../command/session/videoeditor";
 import { ChatMessage } from "../types/types";
 import { notificationManager, NotificationType } from "./NotificationManager";
 import { StepStatusEnum, TaskInfo, TaskStatusEnum, TaskStepInfo, SessionDomain } from "./types";
-
 type TaskListener = () => void;
-
 class TaskManager {
     private tasksBySession: Map<string, Map<string, TaskInfo>> = new Map();
     private userMessagesBySession: Map<string, Map<string, ChatMessage>> = new Map();
@@ -18,7 +16,6 @@ class TaskManager {
     private currentSessionId: string = "";
     private currentDomain: SessionDomain = SessionDomain.General;
     private version: number = 0;
-
     public getDomainFromSessionId(sessionId: string): SessionDomain {
         if (sessionId.startsWith("chart_session_")) return SessionDomain.Chart;
         if (sessionId.startsWith("map_session_")) return SessionDomain.Map;
@@ -27,11 +24,9 @@ class TaskManager {
         if (sessionId.startsWith("sandbox3d_session_")) return SessionDomain.SandBox3D;
         return SessionDomain.General;
     }
-
     private getSessionKey(domain: SessionDomain, sessionId: string): string {
         return `${domain}:${sessionId}`;
     }
-
     private ensureSessionExists(domain: SessionDomain, sessionId: string): void {
         const key = this.getSessionKey(domain, sessionId);
         if (!this.tasksBySession.has(key)) {
@@ -44,40 +39,33 @@ class TaskManager {
             this.assistantMessagesBySession.set(key, new Map());
         }
     }
-
     private getTasksSessionData(domain: SessionDomain, sessionId: string): Map<string, TaskInfo> | undefined {
         const key = this.getSessionKey(domain, sessionId);
         return this.tasksBySession.get(key);
     }
-
     private getOrCreateTasksSessionData(domain: SessionDomain, sessionId: string): Map<string, TaskInfo> {
         const key = this.getSessionKey(domain, sessionId);
         this.ensureSessionExists(domain, sessionId);
         return this.tasksBySession.get(key)!;
     }
-
     private getUserMessagesSessionData(domain: SessionDomain, sessionId: string): Map<string, ChatMessage> | undefined {
         const key = this.getSessionKey(domain, sessionId);
         return this.userMessagesBySession.get(key);
     }
-
     private getOrCreateUserMessagesSessionData(domain: SessionDomain, sessionId: string): Map<string, ChatMessage> {
         const key = this.getSessionKey(domain, sessionId);
         this.ensureSessionExists(domain, sessionId);
         return this.userMessagesBySession.get(key)!;
     }
-
     private getAssistantMessagesSessionData(domain: SessionDomain, sessionId: string): Map<string, ChatMessage> | undefined {
         const key = this.getSessionKey(domain, sessionId);
         return this.assistantMessagesBySession.get(key);
     }
-
     private getOrCreateAssistantMessagesSessionData(domain: SessionDomain, sessionId: string): Map<string, ChatMessage> {
         const key = this.getSessionKey(domain, sessionId);
         this.ensureSessionExists(domain, sessionId);
         return this.assistantMessagesBySession.get(key)!;
     }
-
     private validateDomainMatch(domain: SessionDomain, sessionId: string, operation: string): boolean {
         if (sessionId.startsWith("pending_")) {
             return true;
@@ -93,25 +81,20 @@ class TaskManager {
         }
         return true;
     }
-
     setCurrentDomain(domain: SessionDomain) {
         this.currentDomain = domain;
     }
-
     getCurrentDomain(): SessionDomain {
         return this.currentDomain;
     }
-
     subscribe(listener: TaskListener): () => void {
         this.listeners.add(listener);
         return () => this.listeners.delete(listener);
     }
-
     public notify() {
         this.version++;
         this.listeners.forEach(listener => listener());
     }
-
     private async sendTaskNotification(
         type: NotificationType,
         titleKey: string,
@@ -135,7 +118,6 @@ class TaskManager {
             console.error("[TaskManager] Failed to send notification:", error);
         }
     }
-
     setCurrentSession(sessionId: string, domain: SessionDomain) {
         if (!this.validateDomainMatch(domain, sessionId, "setCurrentSession")) {
             return;
@@ -145,11 +127,9 @@ class TaskManager {
         this.ensureSessionExists(domain, sessionId);
         this.notify();
     }
-
     getCurrentSessionId(): string {
         return this.currentSessionId;
     }
-
     getTaskBySession(sessionId: string, taskId: string, domain: SessionDomain): TaskInfo | undefined {
         if (!this.validateDomainMatch(domain, sessionId, "getTaskBySession")) {
             return undefined;
@@ -157,14 +137,12 @@ class TaskManager {
         const sessionData = this.getTasksSessionData(domain, sessionId);
         return sessionData?.get(taskId);
     }
-
     getTasksBySession(sessionId: string, domain: SessionDomain): Map<string, TaskInfo> | undefined {
         if (!this.validateDomainMatch(domain, sessionId, "getTasksBySession")) {
             return undefined;
         }
         return this.getTasksSessionData(domain, sessionId);
     }
-
     getAllTasksBySession(sessionId: string, domain: SessionDomain): TaskInfo[] {
         if (!this.validateDomainMatch(domain, sessionId, "getAllTasksBySession")) {
             return [];
@@ -179,7 +157,6 @@ class TaskManager {
             (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
         );
     }
-
     addTaskToSession(sessionId: string, task: TaskInfo, domain: SessionDomain) {
         if (!this.validateDomainMatch(domain, sessionId, "addTaskToSession")) {
             return;
@@ -190,7 +167,6 @@ class TaskManager {
             this.notify();
         }
     }
-
     updateTaskBySession(sessionId: string, taskId: string, updates: Partial<TaskInfo>, domain: SessionDomain) {
         if (!this.validateDomainMatch(domain, sessionId, "updateTaskBySession")) {
             return;
@@ -226,7 +202,6 @@ class TaskManager {
             }
         }
     }
-
     removeTaskBySession(sessionId: string, taskId: string, domain: SessionDomain) {
         if (!this.validateDomainMatch(domain, sessionId, "removeTaskBySession")) {
             return;
@@ -239,7 +214,6 @@ class TaskManager {
             }
         }
     }
-
     clearTasksBySession(sessionId: string, domain: SessionDomain) {
         if (!this.validateDomainMatch(domain, sessionId, "clearTasksBySession")) {
             return;
@@ -250,7 +224,6 @@ class TaskManager {
             this.notify();
         }
     }
-
     setTasksBySession(sessionId: string, tasks: TaskInfo[], domain: SessionDomain) {
         if (!this.validateDomainMatch(domain, sessionId, "setTasksBySession")) {
             return;
@@ -266,7 +239,6 @@ class TaskManager {
             this.notify();
         }
     }
-
     getUserMessagesBySession(sessionId: string, domain: SessionDomain): ChatMessage[] {
         if (!this.validateDomainMatch(domain, sessionId, "getUserMessagesBySession")) {
             return [];
@@ -281,14 +253,12 @@ class TaskManager {
             new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
         );
     }
-
     getUserMessagesMapBySession(sessionId: string, domain: SessionDomain): Map<string, ChatMessage> | undefined {
         if (!this.validateDomainMatch(domain, sessionId, "getUserMessagesMapBySession")) {
             return undefined;
         }
         return this.getUserMessagesSessionData(domain, sessionId);
     }
-
     addUserMessageToSession(sessionId: string, message: ChatMessage, domain: SessionDomain) {
         if (!this.validateDomainMatch(domain, sessionId, "addUserMessageToSession")) {
             return;
@@ -299,7 +269,6 @@ class TaskManager {
             this.notify();
         }
     }
-
     clearUserMessagesBySession(sessionId: string, domain: SessionDomain) {
         if (!this.validateDomainMatch(domain, sessionId, "clearUserMessagesBySession")) {
             return;
@@ -310,7 +279,6 @@ class TaskManager {
             this.notify();
         }
     }
-
     getAssistantMessagesBySessionAsArray(sessionId: string, domain: SessionDomain): ChatMessage[] {
         if (!this.validateDomainMatch(domain, sessionId, "getAssistantMessagesBySessionAsArray")) {
             return [];
@@ -325,14 +293,12 @@ class TaskManager {
             new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
         );
     }
-
     getAssistantMessagesMapBySession(sessionId: string, domain: SessionDomain): Map<string, ChatMessage> | undefined {
         if (!this.validateDomainMatch(domain, sessionId, "getAssistantMessagesMapBySession")) {
             return undefined;
         }
         return this.getAssistantMessagesSessionData(domain, sessionId);
     }
-
     addAssistantMessageToSession(sessionId: string, message: ChatMessage, domain: SessionDomain) {
         if (!this.validateDomainMatch(domain, sessionId, "addAssistantMessageToSession")) {
             return;
@@ -343,7 +309,6 @@ class TaskManager {
             this.notify();
         }
     }
-
     updateAssistantMessageBySession(sessionId: string, messageId: string, updates: Partial<ChatMessage>, domain: SessionDomain) {
         if (!this.validateDomainMatch(domain, sessionId, "updateAssistantMessageBySession")) {
             return;
@@ -357,7 +322,6 @@ class TaskManager {
             }
         }
     }
-
     removeAssistantMessageBySession(sessionId: string, messageId: string, domain: SessionDomain) {
         if (!this.validateDomainMatch(domain, sessionId, "removeAssistantMessageBySession")) {
             return;
@@ -370,7 +334,6 @@ class TaskManager {
             }
         }
     }
-
     clearAssistantMessagesBySession(sessionId: string, domain: SessionDomain) {
         if (!this.validateDomainMatch(domain, sessionId, "clearAssistantMessagesBySession")) {
             return;
@@ -381,7 +344,6 @@ class TaskManager {
             this.notify();
         }
     }
-
     getTask(taskId: string): TaskInfo | undefined {
         const domain = this.currentDomain;
         let result: TaskInfo | undefined = undefined;
@@ -397,7 +359,6 @@ class TaskManager {
         });
         return result;
     }
-
     getAllTasks(): TaskInfo[] {
         const domain = this.currentDomain;
         const allTasks: TaskInfo[] = [];
@@ -413,7 +374,6 @@ class TaskManager {
             (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
         );
     }
-
     addTask(task: TaskInfo) {
         const domain = this.currentDomain;
         const sessionId = this.currentSessionId;
@@ -428,7 +388,6 @@ class TaskManager {
         sessionData.set(task.task_id, task);
         this.notify();
     }
-
     updateTask(taskId: string, updates: Partial<TaskInfo>) {
         const domain = this.currentDomain;
         let found = false;
@@ -481,7 +440,6 @@ class TaskManager {
             console.warn("[TaskManager] Task not found for update:", taskId);
         }
     }
-
     removeTask(taskId: string) {
         const domain = this.currentDomain;
         let removed = false;
@@ -496,7 +454,6 @@ class TaskManager {
             }
         });
     }
-
     clearTasks() {
         const domain = this.currentDomain;
         const keysToDelete: string[] = [];
@@ -509,7 +466,6 @@ class TaskManager {
         keysToDelete.forEach(key => this.tasksBySession.delete(key));
         this.notify();
     }
-
     setTasks(tasks: TaskInfo[]) {
         const domain = this.currentDomain;
         const keysToDelete: string[] = [];
@@ -531,7 +487,6 @@ class TaskManager {
         });
         this.notify();
     }
-
     getTaskCount(): number {
         const domain = this.currentDomain;
         let count = 0;
@@ -543,7 +498,6 @@ class TaskManager {
         });
         return count;
     }
-
     addUserMessage(message: ChatMessage) {
         const domain = this.currentDomain;
         const sessionId = this.currentSessionId;
@@ -558,7 +512,6 @@ class TaskManager {
         sessionData.set(message.id, message);
         this.notify();
     }
-
     getUserMessages(): ChatMessage[] {
         const domain = this.currentDomain;
         const allMessages: ChatMessage[] = [];
@@ -574,7 +527,6 @@ class TaskManager {
             (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
         );
     }
-
     clearUserMessages() {
         const domain = this.currentDomain;
         const keysToDelete: string[] = [];
@@ -587,7 +539,6 @@ class TaskManager {
         keysToDelete.forEach(key => this.userMessagesBySession.delete(key));
         this.notify();
     }
-
     addAssistantMessage(message: ChatMessage) {
         const domain = this.currentDomain;
         const sessionId = this.currentSessionId;
@@ -602,7 +553,6 @@ class TaskManager {
         sessionData.set(message.id, message);
         this.notify();
     }
-
     getAssistantMessages(): ChatMessage[] {
         const domain = this.currentDomain;
         const allMessages: ChatMessage[] = [];
@@ -618,7 +568,6 @@ class TaskManager {
             (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
         );
     }
-
     clearAssistantMessages() {
         const domain = this.currentDomain;
         const keysToDelete: string[] = [];
@@ -631,7 +580,6 @@ class TaskManager {
         keysToDelete.forEach(key => this.assistantMessagesBySession.delete(key));
         this.notify();
     }
-
     hasWelcomeMessage(): boolean {
         const domain = this.currentDomain;
         const sessionId = this.currentSessionId;
@@ -640,7 +588,6 @@ class TaskManager {
         const sessionData = this.assistantMessagesBySession.get(key);
         return sessionData?.has("welcome") || false;
     }
-
     getAllData(): { tasks: TaskInfo[]; userMessages: ChatMessage[]; assistantMessages: ChatMessage[] } {
         return {
             tasks: this.getAllTasks(),
@@ -648,12 +595,10 @@ class TaskManager {
             assistantMessages: this.getAssistantMessages(),
         };
     }
-
     getAllMessages(): ChatMessage[] {
         const all = [...this.getUserMessages(), ...this.getAssistantMessages()];
         return all.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
     }
-
     updateAssistantMessage(messageId: string, updates: Partial<ChatMessage>) {
         const domain = this.currentDomain;
         const sessionId = this.currentSessionId;
@@ -672,7 +617,6 @@ class TaskManager {
             this.notify();
         }
     }
-
     removeAssistantMessage(messageId: string) {
         const domain = this.currentDomain;
         const sessionId = this.currentSessionId;
@@ -690,14 +634,12 @@ class TaskManager {
             this.notify();
         }
     }
-
     clearAll() {
         const domain = this.currentDomain;
         const taskKeys: string[] = [];
         const userKeys: string[] = [];
         const assistantKeys: string[] = [];
         const prefix = `${domain}:`;
-
         this.tasksBySession.forEach((_, key) => {
             if (key.startsWith(prefix)) taskKeys.push(key);
         });
@@ -707,14 +649,11 @@ class TaskManager {
         this.assistantMessagesBySession.forEach((_, key) => {
             if (key.startsWith(prefix)) assistantKeys.push(key);
         });
-
         taskKeys.forEach(key => this.tasksBySession.delete(key));
         userKeys.forEach(key => this.userMessagesBySession.delete(key));
         assistantKeys.forEach(key => this.assistantMessagesBySession.delete(key));
-
         this.notify();
     }
-
     clearAllBySession(sessionId: string, domain: SessionDomain) {
         if (!this.validateDomainMatch(domain, sessionId, "clearAllBySession")) {
             return;
@@ -728,7 +667,6 @@ class TaskManager {
         }
         this.notify();
     }
-
     loadSessionData(
         sessionId: string,
         tasks: TaskInfo[],
@@ -765,7 +703,6 @@ class TaskManager {
         this.currentDomain = domain;
         this.notify();
     }
-
     switchToSession(sessionId: string, domain: SessionDomain) {
         if (this.currentSessionId === sessionId && this.currentDomain === domain) return;
         if (!this.validateDomainMatch(domain, sessionId, "switchToSession")) {
@@ -776,7 +713,6 @@ class TaskManager {
         this.currentDomain = domain;
         this.notify();
     }
-
     getSessionIdsInCurrentDomain(): string[] {
         const domain = this.currentDomain;
         const ids: string[] = [];
@@ -791,7 +727,6 @@ class TaskManager {
         });
         return ids;
     }
-
     hasSessionData(sessionId: string, domain: SessionDomain): boolean {
         if (!this.validateDomainMatch(domain, sessionId, "hasSessionData")) {
             return false;
@@ -801,7 +736,6 @@ class TaskManager {
             this.userMessagesBySession.has(key) ||
             this.assistantMessagesBySession.has(key);
     }
-
     hasSessionMessages(sessionId: string, domain: SessionDomain): boolean {
         if (!this.validateDomainMatch(domain, sessionId, "hasSessionMessages")) {
             return false;
@@ -811,7 +745,6 @@ class TaskManager {
         const assistantCount = this.assistantMessagesBySession.get(key)?.size || 0;
         return userCount > 0 || assistantCount > 0;
     }
-
     setupTaskEventListeners() {
         window.addEventListener("task_step_interrupted", ((event: CustomEvent) => {
             const { task_id, step_index, step_name, reason, checkpoint, session_id } = event.detail;
@@ -828,7 +761,6 @@ class TaskManager {
                 }, domain);
             }
         }) as EventListener);
-
         window.addEventListener("task_cancelled", ((event: CustomEvent) => {
             const { task_id, total_duration_ms, total_steps, session_id } = event.detail;
             const domain = this.getDomainFromSessionId(session_id);
@@ -844,7 +776,6 @@ class TaskManager {
                 session_id
             );
         }) as EventListener);
-
         window.addEventListener("task_paused", ((event: CustomEvent) => {
             const { task_id, checkpoint, total_duration_ms, total_steps, session_id } = event.detail;
             const domain = this.getDomainFromSessionId(session_id);
@@ -863,7 +794,6 @@ class TaskManager {
             );
         }) as EventListener);
     }
-
     async saveTasksToFile(sessionId: string, domain: SessionDomain): Promise<void> {
         if (!this.validateDomainMatch(domain, sessionId, "saveTasksToFile")) {
             return;
@@ -893,7 +823,6 @@ class TaskManager {
             console.error("[TaskManager] Failed to save tasks:", error);
         }
     }
-
     async loadTasksFromFile(sessionId: string, domain: SessionDomain): Promise<void> {
         if (!this.validateDomainMatch(domain, sessionId, "loadTasksFromFile")) {
             return;
@@ -923,13 +852,11 @@ class TaskManager {
             if (task && task.task_id) sessionData.set(task.task_id, task);
         });
     }
-
     async saveCurrentSessionToFile(): Promise<void> {
         if (this.currentSessionId) {
             await this.saveTasksToFile(this.currentSessionId, this.currentDomain);
         }
     }
-
     deleteSession(sessionId: string, domain: SessionDomain): void {
         if (!this.validateDomainMatch(domain, sessionId, "deleteSession")) {
             return;
@@ -944,5 +871,4 @@ class TaskManager {
         this.notify();
     }
 }
-
 export const taskManager = new TaskManager();

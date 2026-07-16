@@ -1,10 +1,8 @@
+use crate::commands::{get_app_root_dir, get_settings_dir};
 use chrono::Local;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
-
-use crate::commands::{get_app_root_dir, get_settings_dir};
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WorkspaceInstance {
     pub id: String,
@@ -14,23 +12,19 @@ pub struct WorkspaceInstance {
     pub created_at: String,
     pub updated_at: String,
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WorkspaceConfigData {
     pub instances: Vec<WorkspaceInstance>,
     pub default_instance_id: String,
 }
-
 impl Default for WorkspaceConfigData {
     fn default() -> Self {
         Self { instances: vec![], default_instance_id: String::new() }
     }
 }
-
 fn get_main_config_path() -> PathBuf {
     get_settings_dir().join("config.json")
 }
-
 pub fn load_workspace_config() -> Result<WorkspaceConfigData, String> {
     let config_path = get_main_config_path();
     if config_path.exists() {
@@ -46,7 +40,6 @@ pub fn load_workspace_config() -> Result<WorkspaceConfigData, String> {
         Ok(WorkspaceConfigData::default())
     }
 }
-
 pub fn save_workspace_config(config: &WorkspaceConfigData) -> Result<(), String> {
     let settings_dir = get_settings_dir();
     if !settings_dir.exists() {
@@ -64,7 +57,6 @@ pub fn save_workspace_config(config: &WorkspaceConfigData) -> Result<(), String>
     fs::write(&config_path, content).map_err(|e| format!("Failed to save config: {}", e))?;
     Ok(())
 }
-
 pub fn ensure_workspace_directory() -> Result<PathBuf, String> {
     let app_root = get_app_root_dir();
     let workspace_dir = app_root.join("workspace");
@@ -74,7 +66,6 @@ pub fn ensure_workspace_directory() -> Result<PathBuf, String> {
     }
     Ok(workspace_dir)
 }
-
 pub fn init_default_workspace() -> Result<WorkspaceInstance, String> {
     let workspace_dir = ensure_workspace_directory()?;
     let now = Local::now().to_rfc3339();
@@ -88,7 +79,6 @@ pub fn init_default_workspace() -> Result<WorkspaceInstance, String> {
     };
     Ok(instance)
 }
-
 pub fn ensure_workspace_config() -> Result<(), String> {
     ensure_workspace_directory()?;
     let mut config = load_workspace_config()?;
@@ -100,7 +90,6 @@ pub fn ensure_workspace_config() -> Result<(), String> {
     }
     Ok(())
 }
-
 pub fn get_default_workspace() -> Result<Option<WorkspaceInstance>, String> {
     let config = load_workspace_config()?;
     if config.default_instance_id.is_empty() {
@@ -108,19 +97,16 @@ pub fn get_default_workspace() -> Result<Option<WorkspaceInstance>, String> {
     }
     Ok(config.instances.into_iter().find(|i| i.id == config.default_instance_id))
 }
-
 pub fn get_all_workspaces() -> Result<Vec<WorkspaceInstance>, String> {
     let config = load_workspace_config()?;
     Ok(config.instances)
 }
-
 pub fn add_workspace(instance: WorkspaceInstance) -> Result<(), String> {
     let mut config = load_workspace_config()?;
     config.instances.push(instance);
     save_workspace_config(&config)?;
     Ok(())
 }
-
 pub fn update_workspace(instance: WorkspaceInstance) -> Result<(), String> {
     let mut config = load_workspace_config()?;
     if let Some(existing) = config.instances.iter_mut().find(|i| i.id == instance.id) {
@@ -133,7 +119,6 @@ pub fn update_workspace(instance: WorkspaceInstance) -> Result<(), String> {
         Err("Workspace not found".to_string())
     }
 }
-
 pub fn delete_workspace(instance_id: &str) -> Result<(), String> {
     let mut config = load_workspace_config()?;
     if config.instances.len() <= 1 {
@@ -146,7 +131,6 @@ pub fn delete_workspace(instance_id: &str) -> Result<(), String> {
     save_workspace_config(&config)?;
     Ok(())
 }
-
 pub fn set_default_workspace(instance_id: &str) -> Result<(), String> {
     let mut config = load_workspace_config()?;
     if config.instances.iter().any(|i| i.id == instance_id) {

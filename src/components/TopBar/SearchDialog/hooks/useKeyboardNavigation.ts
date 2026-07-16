@@ -1,6 +1,5 @@
 import { useEffect } from "react";
 import { SearchResult } from "../types";
-
 interface UseKeyboardNavigationProps {
   isOpen: boolean;
   searchQuery: string;
@@ -10,7 +9,6 @@ interface UseKeyboardNavigationProps {
   onResultClick: (result: SearchResult) => void;
   onClose: () => void;
 }
-
 export const useKeyboardNavigation = ({
   isOpen,
   searchQuery,

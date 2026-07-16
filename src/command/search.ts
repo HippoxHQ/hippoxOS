@@ -1,5 +1,4 @@
 import { invoke } from "@tauri-apps/api/core";
-
 export interface SearchResult {
   category: "skill" | "session" | "log" | "message";
   id: string;
@@ -13,12 +12,10 @@ export interface SearchResult {
   messageContent?: string;
   messageRole?: string;
 }
-
 export interface SearchRequest {
   keyword: string;
   limit?: number;
 }
-
 export interface SearchState {
   keyword: string;
   results: SearchResult[];
@@ -26,7 +23,6 @@ export interface SearchState {
   error: string | null;
   selectedIndex: number;
 }
-
 export interface MessageSearchResult {
   session_id: string;
   session_title: string;
@@ -36,17 +32,14 @@ export interface MessageSearchResult {
   timestamp: string;
   highlight: string;
 }
-
 export interface SearchMessagesRequest {
   keyword: string;
   limit?: number;
 }
-
 export interface SearchMessagesResponse {
   results: MessageSearchResult[];
   total: number;
 }
-
 export const searchCommands = {
   async searchContent(keyword: string, limit: number = 30): Promise<SearchResult[]> {
     if (!keyword.trim()) {
@@ -59,7 +52,6 @@ export const searchCommands = {
       },
     });
   },
-
   async searchMessages(keyword: string, limit: number = 50): Promise<SearchMessagesResponse> {
     if (!keyword.trim()) {
       return { results: [], total: 0 };
@@ -71,7 +63,6 @@ export const searchCommands = {
       },
     });
   },
-
   async searchMessagesFormatted(keyword: string, limit: number = 50): Promise<SearchResult[]> {
     if (!keyword.trim()) {
       return [];
@@ -83,7 +74,6 @@ export const searchCommands = {
       },
     });
   },
-
   async searchAll(keyword: string, limit: number = 30): Promise<SearchResult[]> {
     if (!keyword.trim()) {
       return [];
@@ -96,18 +86,15 @@ export const searchCommands = {
     });
   },
 };
-
 export class SearchService {
   private static instance: SearchService;
   private searchAbortController: AbortController | null = null;
-
   static getInstance(): SearchService {
     if (!SearchService.instance) {
       SearchService.instance = new SearchService();
     }
     return SearchService.instance;
   }
-
   async search(keyword: string, limit: number = 30): Promise<SearchResult[]> {
     if (!keyword.trim()) {
       return [];
@@ -129,11 +116,9 @@ export class SearchService {
       }
     }
   }
-
   async searchMessagesOnly(keyword: string, limit: number = 50): Promise<SearchResult[]> {
     return await searchCommands.searchMessagesFormatted(keyword, limit);
   }
-
   // Anti-shake search
   debouncedSearch(
     keyword: string,
@@ -165,7 +150,6 @@ export class SearchService {
     }
     return grouped;
   }
-
   getCategoryIcon(category: string): string {
     switch (category) {
       case "skill":
@@ -180,7 +164,6 @@ export class SearchService {
         return "🔍";
     }
   }
-
   getCategoryName(category: string, language: "zh" | "en"): string {
     const names: Record<string, Record<"zh" | "en", string>> = {
       skill: { zh: "技能市场", en: "Skills" },
@@ -190,7 +173,6 @@ export class SearchService {
     };
     return names[category]?.[language] || category;
   }
-
   async openResult(result: SearchResult): Promise<void> {
     switch (result.category) {
       case "message":
@@ -231,5 +213,4 @@ export class SearchService {
     }
   }
 }
-
 export const searchService = SearchService.getInstance();

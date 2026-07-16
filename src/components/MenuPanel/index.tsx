@@ -3,9 +3,7 @@ import SettingsPanel, { SettingsSubView } from "./SettingsPanel";
 import SkillMarketPanel from "./SkillMarketPanel";
 import TaskQueuePanel from "./TaskQueuePanel";
 import FavoritesPanel from "./FavoritesPanel";
-import HistoryPanel, {
-  HistoryChatPanelRef,
-} from "../../pages/GeneralChatPage/HistoryChatPanel";
+import HistoryPanel, { HistoryChatPanelRef } from "../../pages/GeneralChatPage/HistoryChatPanel";
 import AtomicSkillsPanel from "./DriversPanel";
 import WorkspacePanel from "./Workspace";
 import WorkspaceConfig from "./SystemConfig/WorkspaceConfig";
@@ -17,7 +15,6 @@ import LogsPanel from "./LogsPanel";
 import StorageConfig from "./SystemConfig/StorageConfig";
 import { UploadFile } from "../../core/types";
 import { CloseIcon, CollapseAllIcon2, ExpandAllIcon2 } from "../../icons";
-
 export type MenuPanelView =
   | "terminal"
   | "history"
@@ -35,13 +32,7 @@ export type MenuPanelView =
   | "storage"
   | "engine_group"
   | "codeEditor";
-
-export type EngineSubView =
-  | "engine_database"
-  | "engine_network"
-  | "engine_container"
-  | "engine_notification";
-
+export type EngineSubView = "engine_database" | "engine_network" | "engine_container" | "engine_notification";
 interface MenuPanelProps {
   currentView: MenuPanelView;
   settingsSubView?: SettingsSubView;
@@ -67,7 +58,6 @@ interface MenuPanelProps {
   onFunctionPanelPositionChange?: (position: "left" | "right") => void;
   onFileClick?: (file: UploadFile) => void;
 }
-
 const viewTitles: Record<MenuPanelView, string> = {
   terminal: "terminal.title",
   history: "menu.history",
@@ -86,14 +76,12 @@ const viewTitles: Record<MenuPanelView, string> = {
   storage: "menu.storage",
   codeEditor: "menu.codeEditor",
 };
-
 const engineSubViewTitles: Record<EngineSubView, string> = {
   engine_database: "settings.tab.database",
   engine_network: "settings.tab.network",
   engine_container: "settings.tab.container",
   engine_notification: "settings.tab.notification",
 };
-
 const menuPanelStyles = `
   .menu-panel {
     height: 100%;
@@ -102,8 +90,7 @@ const menuPanelStyles = `
     background: var(--bg-primary);
     overflow: hidden;
   }
-
-  .menu-panel-header {
+   .menu-panel-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -114,8 +101,7 @@ const menuPanelStyles = `
     min-height: 40px;
     overflow: hidden;
   }
-
-  .menu-panel-title {
+   .menu-panel-title {
     font-size: 14px;
     font-weight: 600;
     color: var(--text-primary);
@@ -125,8 +111,7 @@ const menuPanelStyles = `
     min-width: 0;
     flex: 1;
   }
-
-  .menu-panel-close {
+   .menu-panel-close {
     background: none;
     border: none;
     font-size: 18px;
@@ -139,19 +124,16 @@ const menuPanelStyles = `
     justify-content: center;
     flex-shrink: 0;
   }
-
-  .menu-panel-close:hover {
+   .menu-panel-close:hover {
     background: var(--hover-bg);
     color: var(--text-primary);
   }
-
-  .menu-panel-body {
+   .menu-panel-body {
     flex: 1;
     overflow-y: auto;
     padding: 0px;
   }
 `;
-
 if (typeof document !== "undefined") {
   const styleId = "menu-panel-styles";
   if (!document.getElementById(styleId)) {
@@ -161,7 +143,6 @@ if (typeof document !== "undefined") {
     document.head.appendChild(style);
   }
 }
-
 const MenuPanel: React.FC<MenuPanelProps> = ({
   currentView,
   settingsSubView,
@@ -190,42 +171,17 @@ const MenuPanel: React.FC<MenuPanelProps> = ({
   const historyPanelRef = useRef<HistoryChatPanelRef>(null);
   const [isExpanded, setIsExpanded] = useState(true);
   const [isAtBottom, setIsAtBottom] = useState(false);
-
   const renderContent = () => {
     if (currentView === "engine_group" && engineSubView) {
       switch (engineSubView) {
         case "engine_database":
-          return (
-            <EngineDatabasePanel
-              t={t}
-              initialConfig={initialEngineConfig}
-              onSave={onSaveConfig}
-            />
-          );
+          return <EngineDatabasePanel t={t} initialConfig={initialEngineConfig} onSave={onSaveConfig} />;
         case "engine_network":
-          return (
-            <EngineNetworkPanel
-              t={t}
-              initialConfig={initialEngineConfig}
-              onSave={onSaveConfig}
-            />
-          );
+          return <EngineNetworkPanel t={t} initialConfig={initialEngineConfig} onSave={onSaveConfig} />;
         case "engine_container":
-          return (
-            <EngineContainerPanel
-              t={t}
-              initialConfig={initialEngineConfig}
-              onSave={onSaveConfig}
-            />
-          );
+          return <EngineContainerPanel t={t} initialConfig={initialEngineConfig} onSave={onSaveConfig} />;
         case "engine_notification":
-          return (
-            <EngineNotificationPanel
-              t={t}
-              initialConfig={initialEngineConfig}
-              onSave={onSaveConfig}
-            />
-          );
+          return <EngineNotificationPanel t={t} initialConfig={initialEngineConfig} onSave={onSaveConfig} />;
         default:
           return null;
       }
@@ -250,21 +206,9 @@ const MenuPanel: React.FC<MenuPanelProps> = ({
     }
     switch (currentView) {
       case "favorites":
-        return (
-          <FavoritesPanel
-            t={t}
-            onSendSkillMessage={onSendSkillMessage}
-            onFileClick={onFileClick}
-          />
-        );
+        return <FavoritesPanel t={t} onSendSkillMessage={onSendSkillMessage} onFileClick={onFileClick} />;
       case "skillMarket":
-        return (
-          <SkillMarketPanel
-            t={t}
-            onSendSkillMessage={onSendSkillMessage}
-            onFileClick={onFileClick}
-          />
-        );
+        return <SkillMarketPanel t={t} onSendSkillMessage={onSendSkillMessage} onFileClick={onFileClick} />;
       case "taskQueue":
         return <TaskQueuePanel t={t} />;
       case "drivers":
@@ -281,7 +225,6 @@ const MenuPanel: React.FC<MenuPanelProps> = ({
         return null;
     }
   };
-
   const getDisplayTitle = () => {
     if (currentView === "engine_group" && engineSubView) {
       return t(engineSubViewTitles[engineSubView]);
@@ -299,7 +242,6 @@ const MenuPanel: React.FC<MenuPanelProps> = ({
     const titleKey = viewTitles[currentView];
     return titleKey ? t(titleKey) : "Unknown";
   };
-
   const controlButtonStyle: React.CSSProperties = {
     background: "none",
     border: "none",
@@ -316,7 +258,6 @@ const MenuPanel: React.FC<MenuPanelProps> = ({
     height: "32px",
     flexShrink: 0,
   };
-
   const handleExpandToggle = () => {
     const newExpanded = !isExpanded;
     setIsExpanded(newExpanded);
@@ -326,7 +267,6 @@ const MenuPanel: React.FC<MenuPanelProps> = ({
       historyPanelRef.current?.collapseAll();
     }
   };
-
   const handleScrollToggle = () => {
     const newAtBottom = !isAtBottom;
     setIsAtBottom(newAtBottom);
@@ -336,7 +276,6 @@ const MenuPanel: React.FC<MenuPanelProps> = ({
       historyPanelRef.current?.scrollToTop();
     }
   };
-
   return (
     <div className="menu-panel" style={{ userSelect: "none" }}>
       <div className="menu-panel-header">
@@ -362,17 +301,9 @@ const MenuPanel: React.FC<MenuPanelProps> = ({
                   e.currentTarget.style.color = "var(--text-secondary)";
                   e.currentTarget.style.background = "none";
                 }}
-                title={
-                  isExpanded
-                    ? t("history.collapseAll") || "收起全部"
-                    : t("history.expandAll") || "展开全部"
-                }
+                title={isExpanded ? t("history.collapseAll") || "收起全部" : t("history.expandAll") || "展开全部"}
               >
-                {isExpanded ? (
-                  <CollapseAllIcon2 size={16} />
-                ) : (
-                  <ExpandAllIcon2 size={16} />
-                )}
+                {isExpanded ? <CollapseAllIcon2 size={16} /> : <ExpandAllIcon2 size={16} />}
               </button>
               <button
                 style={controlButtonStyle}
@@ -385,11 +316,7 @@ const MenuPanel: React.FC<MenuPanelProps> = ({
                   e.currentTarget.style.color = "var(--text-secondary)";
                   e.currentTarget.style.background = "none";
                 }}
-                title={
-                  isAtBottom
-                    ? t("history.scrollToTop") || "滚动到顶部"
-                    : t("history.scrollToBottom") || "滚动到底部"
-                }
+                title={isAtBottom ? t("history.scrollToTop") || "滚动到顶部" : t("history.scrollToBottom") || "滚动到底部"}
               >
                 {isAtBottom ? "▲" : "▼"}
               </button>
@@ -404,11 +331,7 @@ const MenuPanel: React.FC<MenuPanelProps> = ({
               />
             </>
           )}
-          <button
-            className="menu-panel-close"
-            onClick={onClose}
-            title={t("common.close")}
-          >
+          <button className="menu-panel-close" onClick={onClose} title={t("common.close")}>
             ✕
           </button>
         </div>
@@ -417,5 +340,4 @@ const MenuPanel: React.FC<MenuPanelProps> = ({
     </div>
   );
 };
-
 export default MenuPanel;

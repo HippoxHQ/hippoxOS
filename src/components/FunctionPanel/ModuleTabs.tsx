@@ -1,6 +1,5 @@
 import React, { useRef, useEffect, useState } from "react";
 import { FunctionPanelItem } from "./hooks/useFunctionPanelController";
-
 interface ModuleTabsProps {
   items: FunctionPanelItem[];
   activeItemId: string | null;
@@ -13,7 +12,6 @@ interface ModuleTabsProps {
   isMaximized?: boolean;
   onToggleMaximize?: () => void;
 }
-
 export const ModuleTabs: React.FC<ModuleTabsProps> = ({
   items,
   activeItemId,
@@ -31,14 +29,12 @@ export const ModuleTabs: React.FC<ModuleTabsProps> = ({
   const [showRight, setShowRight] = useState(false);
   const collapseIcon = functionPanelPosition === "left" ? "≪" : "≫";
   const expandIcon = functionPanelPosition === "left" ? "≫" : "≪";
-
   const checkScroll = () => {
     if (!containerRef.current) return;
     const { scrollLeft, scrollWidth, clientWidth } = containerRef.current;
     setShowLeft(scrollLeft > 0);
     setShowRight(scrollLeft + clientWidth < scrollWidth - 1);
   };
-
   useEffect(() => {
     const el = containerRef.current;
     if (el) {
@@ -47,11 +43,9 @@ export const ModuleTabs: React.FC<ModuleTabsProps> = ({
       return () => el.removeEventListener("scroll", checkScroll);
     }
   }, [items]);
-
   useEffect(() => {
     setTimeout(checkScroll, 50);
   }, [items]);
-
   const scroll = (dir: "left" | "right") => {
     if (!containerRef.current) return;
     const amount = 200;
@@ -61,7 +55,6 @@ export const ModuleTabs: React.FC<ModuleTabsProps> = ({
     });
     setTimeout(checkScroll, 200);
   };
-
   const scrollButtonStyle: React.CSSProperties = {
     flexShrink: 0,
     width: 24,
@@ -76,7 +69,6 @@ export const ModuleTabs: React.FC<ModuleTabsProps> = ({
     justifyContent: "center",
     fontSize: 12,
   };
-
   return (
     <div
       style={{
@@ -124,15 +116,11 @@ export const ModuleTabs: React.FC<ModuleTabsProps> = ({
                 padding: "0 8px 0 14px",
                 background: isActive ? "var(--bg-tertiary)" : "transparent",
                 borderRadius: "8px 8px 0 0",
-                color: isActive
-                  ? "var(--text-primary)"
-                  : "var(--text-secondary)",
+                color: isActive ? "var(--text-primary)" : "var(--text-secondary)",
                 cursor: "pointer",
                 fontSize: 13,
                 fontWeight: isActive ? 500 : 400,
-                borderBottom: isActive
-                  ? "2px solid var(--accent-color)"
-                  : "2px solid transparent",
+                borderBottom: isActive ? "2px solid var(--accent-color)" : "2px solid transparent",
                 marginBottom: -1,
                 whiteSpace: "nowrap",
                 flexShrink: 0,
@@ -227,9 +215,7 @@ export const ModuleTabs: React.FC<ModuleTabsProps> = ({
       </button>
       <button
         onClick={() => {
-          window.dispatchEvent(
-            new CustomEvent("toggle-function-panel-maximize", {}),
-          );
+          window.dispatchEvent(new CustomEvent("toggle-function-panel-maximize", {}));
         }}
         style={{
           width: 28,

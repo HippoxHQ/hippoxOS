@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
 import { Skill, StepMaterial } from '../types';
-
 export const useTagList = (skill: Skill) => {
   const [tagList, setTagList] = useState<string[]>([]);
   useEffect(() => {
@@ -14,7 +13,6 @@ export const useTagList = (skill: Skill) => {
   }, [skill.id]);
   return { tagList, setTagList };
 };
-
 export const useCategoryInput = (skill: Skill) => {
   const [currentCategoryInput, setCurrentCategoryInput] = useState('');
   const skipNextEffectRef = useRef(false);
@@ -30,7 +28,6 @@ export const useCategoryInput = (skill: Skill) => {
   };
   return { currentCategoryInput, setCurrentCategoryInput: setCategoryInput };
 };
-
 export const useFocusStates = () => {
   const [isNameFocused, setIsNameFocused] = useState(false);
   const [isDescFocused, setIsDescFocused] = useState(false);
@@ -47,7 +44,6 @@ export const useFocusStates = () => {
     schemaFocusStates, setSchemaFocusStates,
   };
 };
-
 export const useStepHandlers = (skill: Skill, onUpdate: (skill: Skill) => void) => {
   const updateStepDescription = (stepId: string, value: string) => {
     const newSteps = skill.steps.map((step) =>
@@ -144,7 +140,6 @@ export const useStepHandlers = (skill: Skill, onUpdate: (skill: Skill) => void) 
     getAvailableDependencies,
   };
 };
-
 export const useTagHandlers = (skill: Skill, onUpdate: (skill: Skill) => void, tagList: string[], setTagList: (tags: string[]) => void) => {
   const addTag = (tag: string) => {
     if (tag && !tagList.includes(tag)) {
@@ -160,7 +155,6 @@ export const useTagHandlers = (skill: Skill, onUpdate: (skill: Skill) => void, t
   };
   return { addTag, removeTag };
 };
-
 export const useCategoryHandler = (skill: Skill, onUpdate: (skill: Skill) => void, setCurrentCategoryInput: (val: string) => void) => {
   const updateCategory = (category: string) => {
     const trimmed = category.trim();

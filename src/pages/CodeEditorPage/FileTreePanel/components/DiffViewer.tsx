@@ -10,15 +10,7 @@ interface DiffViewerProps {
   onClose: () => void;
 }
 
-export const DiffViewer: React.FC<DiffViewerProps> = ({
-  diff,
-  fileName,
-  additions,
-  deletions,
-  type,
-  content,
-  onClose,
-}) => {
+export const DiffViewer: React.FC<DiffViewerProps> = ({ diff, fileName, additions, deletions, type, content, onClose }) => {
   const [isExpanded, setIsExpanded] = useState(true);
 
   if (type === "no_diff") {
@@ -105,12 +97,7 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
       } | null = null;
 
       for (const line of lines) {
-        if (
-          line.startsWith("diff --git") ||
-          line.startsWith("index ") ||
-          line.startsWith("---") ||
-          line.startsWith("+++")
-        ) {
+        if (line.startsWith("diff --git") || line.startsWith("index ") || line.startsWith("---") || line.startsWith("+++")) {
           if (currentChunk) {
             chunks.push(currentChunk);
             currentChunk = null;
@@ -169,15 +156,9 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
               flexWrap: "wrap",
             }}
           >
-            <span style={{ color: "var(--text-primary)", fontWeight: 500 }}>
-              {fileName}
-            </span>
-            {additions !== undefined && additions > 0 && (
-              <span style={{ color: "#4caf50" }}>+{additions}</span>
-            )}
-            {deletions !== undefined && deletions > 0 && (
-              <span style={{ color: "#ff4444" }}>-{deletions}</span>
-            )}
+            <span style={{ color: "var(--text-primary)", fontWeight: 500 }}>{fileName}</span>
+            {additions !== undefined && additions > 0 && <span style={{ color: "#4caf50" }}>+{additions}</span>}
+            {deletions !== undefined && deletions > 0 && <span style={{ color: "#ff4444" }}>-{deletions}</span>}
           </div>
 
           <div

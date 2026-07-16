@@ -12,7 +12,6 @@ use std::sync::Arc;
 use tauri::{Emitter, State};
 use tokio::sync::Mutex;
 use uuid::Uuid;
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct StoredTask {
     pub id: String,
@@ -24,7 +23,6 @@ struct StoredTask {
     pub created_at: String,
     pub updated_at: String,
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct StoredStep {
     pub step_index: usize,
@@ -33,7 +31,6 @@ struct StoredStep {
     pub output: Option<String>,
     pub error: Option<String>,
 }
-
 #[derive(Clone)]
 pub struct AppState {
     pub logs: Arc<Mutex<Vec<ExecutionLog>>>,
@@ -43,7 +40,6 @@ pub struct AppState {
     pub task_pool: Arc<Mutex<Option<TaskPool>>>,
     pub material_preview_data: Arc<Mutex<Option<serde_json::Value>>>,
 }
-
 impl AppState {
     pub fn new() -> Self {
         Self {
@@ -55,49 +51,39 @@ impl AppState {
             material_preview_data: Arc::new(Mutex::new(None)),
         }
     }
-
     pub async fn set_material_preview_data(&self, data: serde_json::Value) {
         let mut guard = self.material_preview_data.lock().await;
         *guard = Some(data);
     }
-
     pub async fn get_material_preview_data(&self) -> Option<serde_json::Value> {
         self.material_preview_data.lock().await.clone()
     }
-
     pub async fn clear_material_preview_data(&self) {
         let mut guard = self.material_preview_data.lock().await;
         *guard = None;
     }
-
     pub async fn set_memcontext(&self, mem: MemContext) {
         let mut guard = self.memcontext.lock().await;
         *guard = Some(Arc::new(mem));
     }
-
     pub async fn get_memcontext(&self) -> Option<Arc<MemContext>> {
         self.memcontext.lock().await.clone()
     }
-
     pub async fn set_language(&self, lang: String) {
         let mut language = self.language.lock().await;
         *language = lang;
     }
-
     pub async fn get_language(&self) -> String {
         self.language.lock().await.clone()
     }
-
     pub async fn set_task_pool(&self, pool: TaskPool) {
         let mut guard = self.task_pool.lock().await;
         *guard = Some(pool);
     }
-
     pub async fn get_task_pool(&self) -> Option<TaskPool> {
         let guard = self.task_pool.lock().await;
         guard.clone()
     }
-
     pub async fn add_log(&self, level: String, message: String, details: Option<String>, duration: Option<u64>) {
         let mut logs = self.logs.lock().await;
         logs.push(ExecutionLog {
@@ -113,21 +99,17 @@ impl AppState {
         }
         let _ = write_log(&level, &message, details.as_deref());
     }
-
     pub async fn get_logs(&self) -> Vec<ExecutionLog> {
         self.logs.lock().await.clone()
     }
-
     pub async fn clear_logs(&self) {
         let mut logs = self.logs.lock().await;
         logs.clear();
     }
-
     pub async fn get_log_messages(&self) -> LogMessages {
         let lang = self.get_language().await;
         LogMessages::get()
     }
-
     pub async fn create_task(&self, task_id: String, session_id: String, user_input: String) {
         let now = chrono::Local::now().to_rfc3339();
         let task = StoredTask {
@@ -143,7 +125,6 @@ impl AppState {
         let mut tasks = self.tasks.lock().await;
         tasks.insert(task_id, task);
     }
-
     pub async fn update_task_status(&self, task_id: &str, status: &str) {
         let mut tasks = self.tasks.lock().await;
         if let Some(task) = tasks.get_mut(task_id) {
@@ -151,7 +132,6 @@ impl AppState {
             task.updated_at = chrono::Local::now().to_rfc3339();
         }
     }
-
     pub async fn add_task_step(
         &self,
         task_id: &str,

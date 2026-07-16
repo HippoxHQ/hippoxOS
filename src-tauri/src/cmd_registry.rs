@@ -1,5 +1,4 @@
 use crate::commands;
-
 #[rustfmt::skip]
 pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send + Sync + 'static {
     tauri::generate_handler![

@@ -1,10 +1,4 @@
-import React, {
-  useRef,
-  useMemo,
-  useCallback,
-  useState,
-  useEffect,
-} from "react";
+import React, { useRef, useMemo, useCallback, useState, useEffect } from "react";
 import PreviewContent from "./integrations/IntegratedPreviewContent/IntegratedPreviewContent";
 import IntegratedCandleView from "./integrations/IntegratedCandleView";
 import IntegratedEarthView from "./integrations/IntegratedEarthView";
@@ -12,7 +6,6 @@ import { ModuleTabs } from "./ModuleTabs";
 import { ModuleContent } from "./ModuleContent";
 import { FunctionPanelController } from "./hooks/useFunctionPanelController";
 import TableFilePreview from "./integrations/IntegratedPreviewContent/TableFilePreview";
-
 interface FunctionPanelProps {
   controller: FunctionPanelController;
   theme: "light" | "dark";
@@ -27,7 +20,6 @@ interface FunctionPanelProps {
   isMaximized?: boolean;
   onToggleMaximize?: () => void;
 }
-
 const FunctionPanel: React.FC<FunctionPanelProps> = ({
   controller,
   theme,
@@ -47,80 +39,40 @@ const FunctionPanel: React.FC<FunctionPanelProps> = ({
   const controllerRef = useRef(controller);
   const itemsRef = useRef(controller.items);
   const activeItemIdRef = useRef(controller.activeItemId);
-
   useEffect(() => {
     controllerRef.current = controller;
     itemsRef.current = controller.items;
     activeItemIdRef.current = controller.activeItemId;
   }, [controller, controller.items, controller.activeItemId]);
-
   const renderItemContent = useCallback(
     (item: any) => {
       if (!item) return null;
       switch (item.type) {
         case "table":
-          return (
-            <TableFilePreview
-              key={item.id}
-              file={item.data}
-              onClose={() => controller.closeItem(item.id)}
-              t={t}
-            />
-          );
+          return <TableFilePreview key={item.id} file={item.data} onClose={() => controller.closeItem(item.id)} t={t} />;
         case "preview":
-          return (
-            <PreviewContent
-              key={item.id}
-              file={item.data}
-              onClose={() => controller.closeItem(item.id)}
-              onSendSkillMessage={onSendSkillMessage}
-              t={t}
-            />
-          );
+          return <PreviewContent key={item.id} file={item.data} onClose={() => controller.closeItem(item.id)} onSendSkillMessage={onSendSkillMessage} t={t} />;
         case "map":
-          return (
-            <IntegratedEarthView
-              key={item.id}
-              theme={theme}
-              i18n={i18n}
-              taskId={item.data?.taskId}
-              mapData={item.data?.mapData}
-            />
-          );
+          return <IntegratedEarthView key={item.id} theme={theme} i18n={i18n} taskId={item.data?.taskId} mapData={item.data?.mapData} />;
         case "chart":
-          return (
-            <IntegratedCandleView
-              key={item.id}
-              theme={theme}
-              i18n={i18n}
-              currentSessionId={currentSessionId}
-              taskId={item.data?.taskId}
-              chartData={item.data?.chartData}
-            />
-          );
+          return <IntegratedCandleView key={item.id} theme={theme} i18n={i18n} currentSessionId={currentSessionId} taskId={item.data?.taskId} chartData={item.data?.chartData} />;
         default:
           return null;
       }
     },
     [theme, i18n, currentSessionId, onSendSkillMessage, t, controller],
   );
-
   const renderItemContentRef = useRef(renderItemContent);
-
   useEffect(() => {
     renderItemContentRef.current = renderItemContent;
   }, [renderItemContent]);
-
   const activeItem = useMemo(() => {
     return controller.getActiveItem?.() || null;
   }, [controller.getActiveItem, controller.items, controller.activeItemId]);
-
   const activeContent = useMemo(() => {
     return activeItem ? renderItemContentRef.current(activeItem) : null;
   }, [activeItem]);
-
   const isMaximizedMode = typeof width === "string" && width === "100%";
-
   if (!controller.isOpen || controller.items.length === 0) {
     return (
       <div
@@ -142,9 +94,7 @@ const FunctionPanel: React.FC<FunctionPanelProps> = ({
       >
         <div style={{ textAlign: "center", padding: 20 }}>
           <div style={{ fontSize: 32, marginBottom: 12 }}>📂</div>
-          <div style={{ fontSize: 14 }}>
-            {t("functionArea.noModule") || "No module open"}
-          </div>
+          <div style={{ fontSize: 14 }}>{t("functionArea.noModule") || "No module open"}</div>
         </div>
       </div>
     );
@@ -159,14 +109,8 @@ const FunctionPanel: React.FC<FunctionPanelProps> = ({
           flexShrink: 0,
           overflow: "hidden",
           background: "var(--bg-secondary)",
-          borderRight:
-            functionPanelPosition === "left"
-              ? "1px solid var(--border-color)"
-              : "none",
-          borderLeft:
-            functionPanelPosition === "left"
-              ? "none"
-              : "1px solid var(--border-color)",
+          borderRight: functionPanelPosition === "left" ? "1px solid var(--border-color)" : "none",
+          borderLeft: functionPanelPosition === "left" ? "none" : "1px solid var(--border-color)",
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
@@ -239,7 +183,6 @@ const FunctionPanel: React.FC<FunctionPanelProps> = ({
       </div>
     );
   }
-
   return (
     <div
       ref={containerRef}
@@ -287,25 +230,17 @@ const FunctionPanel: React.FC<FunctionPanelProps> = ({
     </div>
   );
 };
-
 interface CollapsedTabListProps {
   items: any[];
   activeItemId: string | null;
   onSwitch: (id: string) => void;
   functionPanelPosition?: "left" | "right";
 }
-
-const CollapsedTabList: React.FC<CollapsedTabListProps> = ({
-  items,
-  activeItemId,
-  onSwitch,
-  functionPanelPosition = "right",
-}) => {
+const CollapsedTabList: React.FC<CollapsedTabListProps> = ({ items, activeItemId, onSwitch, functionPanelPosition = "right" }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [showUp, setShowUp] = useState(false);
   const [showDown, setShowDown] = useState(false);
   const expandIcon = functionPanelPosition === "left" ? "≫" : "≪";
-
   const checkScroll = useCallback(() => {
     if (!containerRef.current) return;
     const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
@@ -314,7 +249,6 @@ const CollapsedTabList: React.FC<CollapsedTabListProps> = ({
     setShowUp(canScrollUp);
     setShowDown(canScrollDown);
   }, []);
-
   const updateScrollButtons = useCallback(() => {
     if (!containerRef.current) return;
     const { scrollHeight, clientHeight } = containerRef.current;
@@ -328,7 +262,6 @@ const CollapsedTabList: React.FC<CollapsedTabListProps> = ({
       setShowDown(false);
     }
   }, [checkScroll]);
-
   useEffect(() => {
     const el = containerRef.current;
     if (el) {
@@ -344,23 +277,19 @@ const CollapsedTabList: React.FC<CollapsedTabListProps> = ({
       };
     }
   }, [checkScroll, updateScrollButtons]);
-
   useEffect(() => {
     setTimeout(updateScrollButtons, 100);
   }, [items, updateScrollButtons]);
-
   const scrollUp = () => {
     if (containerRef.current) {
       containerRef.current.scrollBy({ top: -200, behavior: "smooth" });
     }
   };
-
   const scrollDown = () => {
     if (containerRef.current) {
       containerRef.current.scrollBy({ top: 200, behavior: "smooth" });
     }
   };
-
   const scrollButtonStyle: React.CSSProperties = {
     width: "32px",
     height: "24px",
@@ -376,7 +305,6 @@ const CollapsedTabList: React.FC<CollapsedTabListProps> = ({
     flexShrink: 0,
     // transition: "all 0.2s",
   };
-
   return (
     <div
       style={{
@@ -434,15 +362,9 @@ const CollapsedTabList: React.FC<CollapsedTabListProps> = ({
                 width: "32px",
                 height: "32px",
                 borderRadius: "6px",
-                border: isActive
-                  ? "1px solid var(--accent-color)"
-                  : "1px solid var(--border-color)",
-                background: isActive
-                  ? "var(--accent-glow)"
-                  : "var(--bg-tertiary)",
-                color: isActive
-                  ? "var(--accent-color)"
-                  : "var(--text-secondary)",
+                border: isActive ? "1px solid var(--accent-color)" : "1px solid var(--border-color)",
+                background: isActive ? "var(--accent-glow)" : "var(--bg-tertiary)",
+                color: isActive ? "var(--accent-color)" : "var(--text-secondary)",
                 cursor: "pointer",
                 fontSize: "14px",
                 display: "flex",
@@ -493,5 +415,4 @@ const CollapsedTabList: React.FC<CollapsedTabListProps> = ({
     </div>
   );
 };
-
 export default React.memo(FunctionPanel);

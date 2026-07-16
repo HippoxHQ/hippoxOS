@@ -9,29 +9,14 @@ import GithubClone from "./GithubClone";
 interface CodeEditorWelcomePageProps {
   t: (key: string, params?: any) => string;
   language?: "zh" | "en";
-  onSelectWorkspace: (
-    workspacePath: string,
-    workspaceType: "directory" | "file",
-  ) => Promise<void>;
-  onCloneFromGithub?: (
-    repoUrl: string,
-    targetPath?: string,
-    branch?: string,
-  ) => Promise<void>;
+  onSelectWorkspace: (workspacePath: string, workspaceType: "directory" | "file") => Promise<void>;
+  onCloneFromGithub?: (repoUrl: string, targetPath?: string, branch?: string) => Promise<void>;
   isLoading?: boolean;
 }
 
-const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({
-  t,
-  language = "en",
-  onSelectWorkspace,
-  onCloneFromGithub,
-  isLoading = false,
-}) => {
+const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({ t, language = "en", onSelectWorkspace, onCloneFromGithub, isLoading = false }) => {
   const [selectedPath, setSelectedPath] = useState<string>("");
-  const [selectedType, setSelectedType] = useState<"directory" | "file">(
-    "directory",
-  );
+  const [selectedType, setSelectedType] = useState<"directory" | "file">("directory");
   const [isDragOver, setIsDragOver] = useState(false);
   const [showGithubDialog, setShowGithubDialog] = useState(false);
 
@@ -60,8 +45,7 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({
       const selected = await open({
         directory: true,
         multiple: false,
-        title:
-          language === "zh" ? "选择工作区目录" : "Select Workspace Directory",
+        title: language === "zh" ? "选择工作区目录" : "Select Workspace Directory",
       });
       if (selected && typeof selected === "string") {
         setSelectedPath(selected);
@@ -69,10 +53,7 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({
         await onSelectWorkspace(selected, "directory");
       }
     } catch (error) {
-      showToast(
-        ToastType.ERROR,
-        language === "zh" ? "选择目录失败" : "Failed to select directory",
-      );
+      showToast(ToastType.ERROR, language === "zh" ? "选择目录失败" : "Failed to select directory");
     }
   };
 
@@ -95,10 +76,7 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({
         await onSelectWorkspace(selected, "file");
       }
     } catch (error) {
-      showToast(
-        ToastType.ERROR,
-        language === "zh" ? "选择文件失败" : "Failed to select file",
-      );
+      showToast(ToastType.ERROR, language === "zh" ? "选择文件失败" : "Failed to select file");
     }
   };
 
@@ -106,11 +84,7 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({
     setShowGithubDialog(true);
   };
 
-  const handleGithubClone = async (
-    repoUrl: string,
-    targetPath: string,
-    branch: string,
-  ) => {
+  const handleGithubClone = async (repoUrl: string, targetPath: string, branch: string) => {
     if (onCloneFromGithub) {
       await onCloneFromGithub(repoUrl, targetPath, branch);
     } else {
@@ -127,10 +101,7 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({
 
         const handler = (event: Event) => {
           const customEvent = event as CustomEvent;
-          if (
-            customEvent.detail?.repoUrl === repoUrl &&
-            customEvent.detail?.targetPath === targetPath
-          ) {
+          if (customEvent.detail?.repoUrl === repoUrl && customEvent.detail?.targetPath === targetPath) {
             clearTimeout(timeout);
             window.removeEventListener("github-clone-complete", handler);
             if (customEvent.detail?.error) {
@@ -260,9 +231,7 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({
             lineHeight: 1.6,
           }}
         >
-          {isZh
-            ? "选择一个工作区目录或文件开始编码，LLM 将协助你完成所有开发任务"
-            : "Select a workspace directory or file to start coding, LLM assistant will help you with all development tasks"}
+          {isZh ? "选择一个工作区目录或文件开始编码，LLM 将协助你完成所有开发任务" : "Select a workspace directory or file to start coding, LLM assistant will help you with all development tasks"}
         </p>
         <div
           style={{
@@ -293,9 +262,7 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({
             <div style={{ fontSize: "32px", marginBottom: "8px" }}>
               <FolderIcon size={32} />
             </div>
-            <div style={{ fontSize: "13px", color: "var(--text-primary)" }}>
-              {isZh ? "选择目录" : "Select Folder"}
-            </div>
+            <div style={{ fontSize: "13px", color: "var(--text-primary)" }}>{isZh ? "选择目录" : "Select Folder"}</div>
           </div>
 
           <div
@@ -320,9 +287,7 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({
             <div style={{ fontSize: "32px", marginBottom: "8px" }}>
               <FileIcon size={32} />
             </div>
-            <div style={{ fontSize: "13px", color: "var(--text-primary)" }}>
-              {isZh ? "选择文件" : "Select File"}
-            </div>
+            <div style={{ fontSize: "13px", color: "var(--text-primary)" }}>{isZh ? "选择文件" : "Select File"}</div>
           </div>
 
           <div
@@ -347,9 +312,7 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({
             <div style={{ fontSize: "32px", marginBottom: "8px" }}>
               <GithubIcon size={32} />
             </div>
-            <div style={{ fontSize: "13px", color: "var(--text-primary)" }}>
-              {isZh ? "GitHub 拉取" : "GitHub Clone"}
-            </div>
+            <div style={{ fontSize: "13px", color: "var(--text-primary)" }}>{isZh ? "GitHub 拉取" : "GitHub Clone"}</div>
           </div>
         </div>
 
@@ -358,9 +321,7 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({
             border: `2px dashed ${isDragOver ? "var(--accent-color)" : "var(--border-color)"}`,
             borderRadius: "12px",
             padding: "24px 16px",
-            background: isDragOver
-              ? "var(--accent-glow)"
-              : "var(--bg-secondary)",
+            background: isDragOver ? "var(--accent-glow)" : "var(--bg-secondary)",
             marginBottom: "24px",
           }}
         >
@@ -370,13 +331,7 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({
               color: isDragOver ? "var(--accent-color)" : "var(--text-muted)",
             }}
           >
-            {isDragOver
-              ? isZh
-                ? "释放以打开文件/文件夹"
-                : "Release to open file/folder"
-              : isZh
-                ? "或将文件夹/文件拖拽到窗口"
-                : "Or drag a folder/file to the window"}
+            {isDragOver ? (isZh ? "释放以打开文件/文件夹" : "Release to open file/folder") : isZh ? "或将文件夹/文件拖拽到窗口" : "Or drag a folder/file to the window"}
           </div>
           {selectedPath && (
             <div
@@ -393,11 +348,7 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({
                 gap: "8px",
               }}
             >
-              {selectedType === "directory" ? (
-                <FolderIcon size={16} />
-              ) : (
-                <FileIcon size={16} />
-              )}
+              {selectedType === "directory" ? <FolderIcon size={16} /> : <FileIcon size={16} />}
               {selectedPath}
             </div>
           )}
@@ -410,9 +361,7 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({
             marginTop: "8px",
           }}
         >
-          {isZh
-            ? "选择工作区后,Hippox 将自动创建会话并加载内容"
-            : "After selecting a workspace, Hippox will automatically create a session and load the content"}
+          {isZh ? "选择工作区后,Hippox 将自动创建会话并加载内容" : "After selecting a workspace, Hippox will automatically create a session and load the content"}
         </div>
         {isLoading && (
           <div
@@ -431,14 +380,7 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({
           </div>
         )}
       </div>
-      <GithubClone
-        t={t}
-        language={language}
-        isOpen={showGithubDialog}
-        onClose={() => setShowGithubDialog(false)}
-        onClone={handleGithubClone}
-        isLoading={isLoading}
-      />
+      <GithubClone t={t} language={language} isOpen={showGithubDialog} onClose={() => setShowGithubDialog(false)} onClone={handleGithubClone} isLoading={isLoading} />
       <style>{`
         @keyframes spin {
           from { transform: rotate(0deg); }

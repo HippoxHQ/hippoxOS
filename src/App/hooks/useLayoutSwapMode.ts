@@ -1,12 +1,9 @@
 import { useState, useCallback, useEffect } from "react";
 import { configCommands } from "../../command/config";
-
 export type PageType = 'general' | 'chart' | 'map' | 'codeeditor';
-
 export const useLayoutSwapMode = (pageType: PageType = 'general') => {
     const [layoutSwapMode, setLayoutSwapMode] = useState<"terminal-left" | "chat-left">("terminal-left");
     const [isLoading, setIsLoading] = useState(true);
-
     const getSettingsFunction = useCallback(() => {
         switch (pageType) {
             case 'chart':
@@ -20,7 +17,6 @@ export const useLayoutSwapMode = (pageType: PageType = 'general') => {
                 return configCommands.getSettingsGeneralChatLayoutSwapMode;
         }
     }, [pageType]);
-
     const saveSettingsFunction = useCallback(() => {
         switch (pageType) {
             case 'chart':
@@ -34,7 +30,6 @@ export const useLayoutSwapMode = (pageType: PageType = 'general') => {
                 return configCommands.saveSettingsGeneralChatLayoutSwapMode;
         }
     }, [pageType]);
-
     useEffect(() => {
         const loadMode = async () => {
             try {
@@ -62,7 +57,6 @@ export const useLayoutSwapMode = (pageType: PageType = 'general') => {
         };
         loadMode();
     }, [getSettingsFunction, saveSettingsFunction]);
-
     const handleLayoutSwapModeChange = useCallback((mode: "terminal-left" | "chat-left") => {
         setLayoutSwapMode(mode);
         const saveFn = saveSettingsFunction();
@@ -70,7 +64,6 @@ export const useLayoutSwapMode = (pageType: PageType = 'general') => {
             console.error("Failed to save layout swap mode:", error);
         });
     }, [saveSettingsFunction]);
-
     return {
         layoutSwapMode,
         handleLayoutSwapModeChange,

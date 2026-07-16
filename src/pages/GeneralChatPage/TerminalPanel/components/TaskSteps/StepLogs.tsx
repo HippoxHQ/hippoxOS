@@ -8,12 +8,7 @@ interface StepLogsProps {
   t: (key: string) => string;
 }
 
-export const StepLogs: React.FC<StepLogsProps> = ({
-  logs,
-  isExpanded,
-  onToggle,
-  t,
-}) => {
+export const StepLogs: React.FC<StepLogsProps> = ({ logs, isExpanded, onToggle, t }) => {
   if (!logs || logs.length === 0) return null;
 
   const briefContent = logs[logs.length - 1];
@@ -134,8 +129,7 @@ export const StepLogs: React.FC<StepLogsProps> = ({
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.background = "transparent";
-                  e.currentTarget.style.borderColor =
-                    "var(--border-color, #444)";
+                  e.currentTarget.style.borderColor = "var(--border-color, #444)";
                 }}
               >
                 ▼ {t("terminal.expand")}
@@ -166,9 +160,7 @@ export const StepLogs: React.FC<StepLogsProps> = ({
           {logs.map((log, idx) => (
             <React.Fragment key={idx}>
               <div style={{ padding: "0 8px" }}>{log}</div>
-              {idx < logs.length - 1 && (
-                <div className="task-separator" style={{ margin: "3px 0px" }} />
-              )}
+              {idx < logs.length - 1 && <div className="task-separator" style={{ margin: "3px 0px" }} />}
             </React.Fragment>
           ))}
         </pre>

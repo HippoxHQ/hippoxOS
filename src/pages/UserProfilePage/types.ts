@@ -11,8 +11,7 @@ export interface UserStats {
   longestStreak: number;
   achievements: any[];
 }
-
-export interface UserProfileProps {
+ export interface UserProfileProps {
   t: (key: string, params?: any) => string;
   onClose?: () => void;
   currentSessionId?: string;

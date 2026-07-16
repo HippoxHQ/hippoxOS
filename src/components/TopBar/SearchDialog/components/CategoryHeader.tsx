@@ -1,16 +1,10 @@
 import React from "react";
-
 interface CategoryHeaderProps {
   icon: string;
   label: string;
   count: number;
 }
-
-export const CategoryHeader: React.FC<CategoryHeaderProps> = ({
-  icon,
-  label,
-  count,
-}) => {
+export const CategoryHeader: React.FC<CategoryHeaderProps> = ({ icon, label, count }) => {
   return (
     <div
       style={{

@@ -1,10 +1,8 @@
 import { useState, useEffect } from "react";
 import { ExecutionLog } from "../../types/types";
 import { hippoxCommands } from "../../command/chat";
-
 export function useExecutionLogs() {
   const [executionLogs, setExecutionLogs] = useState<ExecutionLog[]>([]);
-
   const clearLogs = async () => {
     try {
       await hippoxCommands.clearLogs();
@@ -13,7 +11,6 @@ export function useExecutionLogs() {
       console.error("clear logs error:", error);
     }
   };
-
   useEffect(() => {
     const loadLogs = async () => {
       try {
@@ -35,7 +32,6 @@ export function useExecutionLogs() {
     const interval = setInterval(loadLogs, 3000);
     return () => clearInterval(interval);
   }, []);
-
   return {
     executionLogs,
     clearLogs,

@@ -1,6 +1,5 @@
 use hippox::Task;
 use serde::{Deserialize, Serialize};
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TaskInfo {
     pub id: String,
@@ -16,7 +15,6 @@ pub struct TaskInfo {
     pub duration_ms: Option<u64>,
     pub progress: u8,
 }
-
 impl From<Task> for TaskInfo {
     fn from(task: Task) -> Self {
         let progress = task.progress();
@@ -48,7 +46,6 @@ impl From<Task> for TaskInfo {
         }
     }
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StepInfo {
     pub step_index: usize,
@@ -58,7 +55,6 @@ pub struct StepInfo {
     pub error: Option<String>,
     pub duration_ms: Option<u64>,
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TaskPoolStats {
     pub running_count: usize,
