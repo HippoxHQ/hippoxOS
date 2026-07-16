@@ -62,12 +62,7 @@ fn get_current_timezone_name() -> String {
     #[cfg(target_os = "windows")]
     {
         use std::process::Command;
-        let output = Command::new("powershell")
-            .args([
-                "-Command",
-                "Get-TimeZone | Select-Object -ExpandProperty Id",
-            ])
-            .output();
+        let output = Command::new("powershell").args(["-Command", "Get-TimeZone | Select-Object -ExpandProperty Id"]).output();
         if let Ok(output) = output {
             if output.status.success() {
                 let tz = String::from_utf8_lossy(&output.stdout).trim().to_string();
@@ -126,8 +121,7 @@ pub fn get_profile_info_path() -> PathBuf {
 fn ensure_profile_dir() -> Result<(), String> {
     let dir = get_profile_dir();
     if !dir.exists() {
-        fs::create_dir_all(&dir)
-            .map_err(|e| format!("Failed to create profile directory: {}", e))?;
+        fs::create_dir_all(&dir).map_err(|e| format!("Failed to create profile directory: {}", e))?;
     }
     Ok(())
 }
@@ -136,10 +130,8 @@ fn ensure_profile_dir() -> Result<(), String> {
 pub fn load_profile() -> Result<UserProfile, String> {
     let profile_path = get_profile_info_path();
     if profile_path.exists() {
-        let content = fs::read_to_string(&profile_path)
-            .map_err(|e| format!("Failed to read profile file: {}", e))?;
-        let profile: UserProfile = serde_json::from_str(&content)
-            .map_err(|e| format!("Failed to parse profile: {}", e))?;
+        let content = fs::read_to_string(&profile_path).map_err(|e| format!("Failed to read profile file: {}", e))?;
+        let profile: UserProfile = serde_json::from_str(&content).map_err(|e| format!("Failed to parse profile: {}", e))?;
         Ok(profile)
     } else {
         // Create default profile if not exists
@@ -153,8 +145,7 @@ pub fn load_profile() -> Result<UserProfile, String> {
 pub fn save_profile(profile: &UserProfile) -> Result<(), String> {
     ensure_profile_dir()?;
     let profile_path = get_profile_info_path();
-    let content = serde_json::to_string_pretty(profile)
-        .map_err(|e| format!("Failed to serialize profile: {}", e))?;
+    let content = serde_json::to_string_pretty(profile).map_err(|e| format!("Failed to serialize profile: {}", e))?;
     fs::write(&profile_path, content).map_err(|e| format!("Failed to save profile: {}", e))?;
     Ok(())
 }
@@ -276,10 +267,7 @@ pub async fn cmd_get_profile_setting(key: String) -> Result<serde_json::Value, S
 
 /// Update a specific profile setting
 #[tauri::command]
-pub async fn cmd_set_profile_setting(
-    key: String,
-    value: serde_json::Value,
-) -> Result<UserProfile, String> {
+pub async fn cmd_set_profile_setting(key: String, value: serde_json::Value) -> Result<UserProfile, String> {
     let mut profile = load_profile()?;
     match key.as_str() {
         "timezone" => {

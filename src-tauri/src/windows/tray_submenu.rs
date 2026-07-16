@@ -41,22 +41,18 @@ impl SubmenuManager {
                 pos_x = screen_right - menu_width - 5.0;
             }
         }
-        let window = WebviewWindowBuilder::new(
-            app_handle,
-            &window_label,
-            tauri::WebviewUrl::App(format!("index.html?type={}", url_type).into()),
-        )
-        .title("")
-        .inner_size(menu_width, menu_height)
-        .position(pos_x, pos_y)
-        .decorations(false)
-        .always_on_top(true)
-        .skip_taskbar(true)
-        .focused(true)
-        .resizable(false)
-        .transparent(true)
-        .shadow(false)
-        .build()?;
+        let window = WebviewWindowBuilder::new(app_handle, &window_label, tauri::WebviewUrl::App(format!("index.html?type={}", url_type).into()))
+            .title("")
+            .inner_size(menu_width, menu_height)
+            .position(pos_x, pos_y)
+            .decorations(false)
+            .always_on_top(true)
+            .skip_taskbar(true)
+            .focused(true)
+            .resizable(false)
+            .transparent(true)
+            .shadow(false)
+            .build()?;
         let data = serde_json::json!({
             "x": pos_x,
             "y": pos_y,
@@ -103,8 +99,7 @@ impl SubmenuManager {
         #[cfg(target_os = "macos")]
         {
             use objc::{class, msg_send, sel, sel_impl};
-            let ns_event: *mut objc::runtime::Object =
-                unsafe { msg_send![class!(NSEvent), mouseLocation] };
+            let ns_event: *mut objc::runtime::Object = unsafe { msg_send![class!(NSEvent), mouseLocation] };
             let x: f64 = unsafe { msg_send![ns_event, x] };
             let y: f64 = unsafe { msg_send![ns_event, y] };
             (x as i32, y as i32)

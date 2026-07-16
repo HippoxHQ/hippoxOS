@@ -42,20 +42,14 @@ pub struct CompressOptions {
 }
 
 impl Ffmpeg {
-    pub fn rotate_video(
-        &self,
-        input_path: &str,
-        output_path: &str,
-        degrees: u32,
-    ) -> Result<(), String> {
+    pub fn rotate_video(&self, input_path: &str, output_path: &str, degrees: u32) -> Result<(), String> {
         if !Path::new(input_path).exists() {
             return Err(format!("Input file not found: {}", input_path));
         }
 
         if let Some(parent) = Path::new(output_path).parent() {
             if !parent.exists() {
-                fs::create_dir_all(parent)
-                    .map_err(|e| format!("Failed to create output directory: {}", e))?;
+                fs::create_dir_all(parent).map_err(|e| format!("Failed to create output directory: {}", e))?;
             }
         }
 
@@ -72,16 +66,7 @@ impl Ffmpeg {
         }
 
         let output = Command::new("ffmpeg")
-            .args([
-                "-i",
-                input_path,
-                "-vf",
-                rotate_filter,
-                "-c:a",
-                "copy",
-                "-y",
-                output_path,
-            ])
+            .args(["-i", input_path, "-vf", rotate_filter, "-c:a", "copy", "-y", output_path])
             .output()
             .map_err(|e| format!("Failed to rotate video: {}", e))?;
 
@@ -93,20 +78,14 @@ impl Ffmpeg {
         Ok(())
     }
 
-    pub fn flip_video(
-        &self,
-        input_path: &str,
-        output_path: &str,
-        direction: &str,
-    ) -> Result<(), String> {
+    pub fn flip_video(&self, input_path: &str, output_path: &str, direction: &str) -> Result<(), String> {
         if !Path::new(input_path).exists() {
             return Err(format!("Input file not found: {}", input_path));
         }
 
         if let Some(parent) = Path::new(output_path).parent() {
             if !parent.exists() {
-                fs::create_dir_all(parent)
-                    .map_err(|e| format!("Failed to create output directory: {}", e))?;
+                fs::create_dir_all(parent).map_err(|e| format!("Failed to create output directory: {}", e))?;
             }
         }
 
@@ -118,16 +97,7 @@ impl Ffmpeg {
         };
 
         let output = Command::new("ffmpeg")
-            .args([
-                "-i",
-                input_path,
-                "-vf",
-                flip_filter,
-                "-c:a",
-                "copy",
-                "-y",
-                output_path,
-            ])
+            .args(["-i", input_path, "-vf", flip_filter, "-c:a", "copy", "-y", output_path])
             .output()
             .map_err(|e| format!("Failed to flip video: {}", e))?;
 
@@ -139,20 +109,14 @@ impl Ffmpeg {
         Ok(())
     }
 
-    pub fn adjust_volume(
-        &self,
-        input_path: &str,
-        output_path: &str,
-        volume: f32,
-    ) -> Result<(), String> {
+    pub fn adjust_volume(&self, input_path: &str, output_path: &str, volume: f32) -> Result<(), String> {
         if !Path::new(input_path).exists() {
             return Err(format!("Input file not found: {}", input_path));
         }
 
         if let Some(parent) = Path::new(output_path).parent() {
             if !parent.exists() {
-                fs::create_dir_all(parent)
-                    .map_err(|e| format!("Failed to create output directory: {}", e))?;
+                fs::create_dir_all(parent).map_err(|e| format!("Failed to create output directory: {}", e))?;
             }
         }
 
@@ -161,16 +125,7 @@ impl Ffmpeg {
         }
 
         let output = Command::new("ffmpeg")
-            .args([
-                "-i",
-                input_path,
-                "-filter:a",
-                &format!("volume={}", volume),
-                "-c:v",
-                "copy",
-                "-y",
-                output_path,
-            ])
+            .args(["-i", input_path, "-filter:a", &format!("volume={}", volume), "-c:v", "copy", "-y", output_path])
             .output()
             .map_err(|e| format!("Failed to adjust volume: {}", e))?;
 
@@ -182,13 +137,7 @@ impl Ffmpeg {
         Ok(())
     }
 
-    pub fn add_image_watermark(
-        &self,
-        input_path: &str,
-        watermark_path: &str,
-        output_path: &str,
-        options: &WatermarkOptions,
-    ) -> Result<(), String> {
+    pub fn add_image_watermark(&self, input_path: &str, watermark_path: &str, output_path: &str, options: &WatermarkOptions) -> Result<(), String> {
         if !Path::new(input_path).exists() {
             return Err(format!("Input file not found: {}", input_path));
         }
@@ -198,8 +147,7 @@ impl Ffmpeg {
 
         if let Some(parent) = Path::new(output_path).parent() {
             if !parent.exists() {
-                fs::create_dir_all(parent)
-                    .map_err(|e| format!("Failed to create output directory: {}", e))?;
+                fs::create_dir_all(parent).map_err(|e| format!("Failed to create output directory: {}", e))?;
             }
         }
 
@@ -215,11 +163,7 @@ impl Ffmpeg {
             WatermarkPosition::Custom(x, y) => (x as u32, y as u32),
         };
 
-        let scale_filter = if let Some(scale) = options.scale {
-            format!("scale=iw*{}:ih*{}", scale, scale)
-        } else {
-            "".to_string()
-        };
+        let scale_filter = if let Some(scale) = options.scale { format!("scale=iw*{}:ih*{}", scale, scale) } else { "".to_string() };
 
         let pos_x = match options.position {
             WatermarkPosition::TopRight | WatermarkPosition::BottomRight => {
@@ -238,30 +182,13 @@ impl Ffmpeg {
         };
 
         let overlay_filter = if !scale_filter.is_empty() {
-            format!(
-                "[1:v]{}[wm];[0:v][wm]overlay={}:{}:format=auto,colorchannelmixer=aa={}",
-                scale_filter, pos_x, pos_y, options.opacity
-            )
+            format!("[1:v]{}[wm];[0:v][wm]overlay={}:{}:format=auto,colorchannelmixer=aa={}", scale_filter, pos_x, pos_y, options.opacity)
         } else {
-            format!(
-                "[0:v][1:v]overlay={}:{}:format=auto,colorchannelmixer=aa={}",
-                pos_x, pos_y, options.opacity
-            )
+            format!("[0:v][1:v]overlay={}:{}:format=auto,colorchannelmixer=aa={}", pos_x, pos_y, options.opacity)
         };
 
         let output = Command::new("ffmpeg")
-            .args([
-                "-i",
-                input_path,
-                "-i",
-                watermark_path,
-                "-filter_complex",
-                &overlay_filter,
-                "-c:a",
-                "copy",
-                "-y",
-                output_path,
-            ])
+            .args(["-i", input_path, "-i", watermark_path, "-filter_complex", &overlay_filter, "-c:a", "copy", "-y", output_path])
             .output()
             .map_err(|e| format!("Failed to add watermark: {}", e))?;
 
@@ -273,20 +200,14 @@ impl Ffmpeg {
         Ok(())
     }
 
-    pub fn generate_gif(
-        &self,
-        input_path: &str,
-        output_path: &str,
-        options: &GifOptions,
-    ) -> Result<(), String> {
+    pub fn generate_gif(&self, input_path: &str, output_path: &str, options: &GifOptions) -> Result<(), String> {
         if !Path::new(input_path).exists() {
             return Err(format!("Input file not found: {}", input_path));
         }
 
         if let Some(parent) = Path::new(output_path).parent() {
             if !parent.exists() {
-                fs::create_dir_all(parent)
-                    .map_err(|e| format!("Failed to create output directory: {}", e))?;
+                fs::create_dir_all(parent).map_err(|e| format!("Failed to create output directory: {}", e))?;
             }
         }
 
@@ -301,10 +222,7 @@ impl Ffmpeg {
 
         if let (Some(w), Some(h)) = (options.width, options.height) {
             args.push("-vf".to_string());
-            args.push(format!(
-                "fps={},scale={}:{}:flags=lanczos",
-                options.fps, w, h
-            ));
+            args.push(format!("fps={},scale={}:{}:flags=lanczos", options.fps, w, h));
         } else {
             args.push("-vf".to_string());
             args.push(format!("fps={}", options.fps));
@@ -321,10 +239,7 @@ impl Ffmpeg {
         args.push("-y".to_string());
         args.push(output_path.to_string());
 
-        let output = Command::new("ffmpeg")
-            .args(&args)
-            .output()
-            .map_err(|e| format!("Failed to generate GIF: {}", e))?;
+        let output = Command::new("ffmpeg").args(&args).output().map_err(|e| format!("Failed to generate GIF: {}", e))?;
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
@@ -334,20 +249,14 @@ impl Ffmpeg {
         Ok(())
     }
 
-    pub fn compress_video(
-        &self,
-        input_path: &str,
-        output_path: &str,
-        options: &CompressOptions,
-    ) -> Result<(), String> {
+    pub fn compress_video(&self, input_path: &str, output_path: &str, options: &CompressOptions) -> Result<(), String> {
         if !Path::new(input_path).exists() {
             return Err(format!("Input file not found: {}", input_path));
         }
 
         if let Some(parent) = Path::new(output_path).parent() {
             if !parent.exists() {
-                fs::create_dir_all(parent)
-                    .map_err(|e| format!("Failed to create output directory: {}", e))?;
+                fs::create_dir_all(parent).map_err(|e| format!("Failed to create output directory: {}", e))?;
             }
         }
 
@@ -382,10 +291,7 @@ impl Ffmpeg {
         args.push("-y".to_string());
         args.push(output_path.to_string());
 
-        let output = Command::new("ffmpeg")
-            .args(&args)
-            .output()
-            .map_err(|e| format!("Failed to compress video: {}", e))?;
+        let output = Command::new("ffmpeg").args(&args).output().map_err(|e| format!("Failed to compress video: {}", e))?;
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
@@ -395,21 +301,14 @@ impl Ffmpeg {
         Ok(())
     }
 
-    pub fn audio_fade(
-        &self,
-        input_path: &str,
-        output_path: &str,
-        fade_in: f64,
-        fade_out: f64,
-    ) -> Result<(), String> {
+    pub fn audio_fade(&self, input_path: &str, output_path: &str, fade_in: f64, fade_out: f64) -> Result<(), String> {
         if !Path::new(input_path).exists() {
             return Err(format!("Input file not found: {}", input_path));
         }
 
         if let Some(parent) = Path::new(output_path).parent() {
             if !parent.exists() {
-                fs::create_dir_all(parent)
-                    .map_err(|e| format!("Failed to create output directory: {}", e))?;
+                fs::create_dir_all(parent).map_err(|e| format!("Failed to create output directory: {}", e))?;
             }
         }
 
@@ -434,16 +333,7 @@ impl Ffmpeg {
         };
 
         let output = Command::new("ffmpeg")
-            .args([
-                "-i",
-                input_path,
-                "-af",
-                &filter,
-                "-c:v",
-                "copy",
-                "-y",
-                output_path,
-            ])
+            .args(["-i", input_path, "-af", &filter, "-c:v", "copy", "-y", output_path])
             .output()
             .map_err(|e| format!("Failed to add audio fade: {}", e))?;
 

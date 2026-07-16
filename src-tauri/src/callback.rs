@@ -18,11 +18,7 @@ pub struct HippoXWorkflowCallback {
 
 impl HippoXWorkflowCallback {
     pub fn new(app_handle: AppHandle, session_id: String) -> Self {
-        Self {
-            app_handle,
-            session_id,
-            completed: Arc::new(AtomicBool::new(false)),
-        }
+        Self { app_handle, session_id, completed: Arc::new(AtomicBool::new(false)) }
     }
 }
 
@@ -35,8 +31,7 @@ impl WorkflowCallback for HippoXWorkflowCallback {
         step_index: usize,
         input: Option<&std::collections::HashMap<String, serde_json::Value>>,
     ) {
-        let params_json =
-            input.map(|p| serde_json::to_string(p).unwrap_or_else(|_| "{}".to_string()));
+        let params_json = input.map(|p| serde_json::to_string(p).unwrap_or_else(|_| "{}".to_string()));
 
         let _ = self.app_handle.emit(
             "task_step_update",
@@ -51,14 +46,7 @@ impl WorkflowCallback for HippoXWorkflowCallback {
         );
     }
 
-    async fn on_step_success(
-        &self,
-        task_id: &str,
-        step_name: &str,
-        step_index: usize,
-        output: &str,
-        duration_ms: u64,
-    ) {
+    async fn on_step_success(&self, task_id: &str, step_name: &str, step_index: usize, output: &str, duration_ms: u64) {
         let _ = self.app_handle.emit(
             "task_step_update",
             &json!({
@@ -73,14 +61,7 @@ impl WorkflowCallback for HippoXWorkflowCallback {
         );
     }
 
-    async fn on_step_failure(
-        &self,
-        task_id: &str,
-        step_name: &str,
-        step_index: usize,
-        error: &str,
-        duration_ms: u64,
-    ) {
+    async fn on_step_failure(&self, task_id: &str, step_name: &str, step_index: usize, error: &str, duration_ms: u64) {
         let _ = self.app_handle.emit(
             "task_step_update",
             &json!({
@@ -95,14 +76,7 @@ impl WorkflowCallback for HippoXWorkflowCallback {
         );
     }
 
-    async fn on_step_timeout(
-        &self,
-        task_id: &str,
-        step_name: &str,
-        step_index: usize,
-        error: &str,
-        duration_ms: u64,
-    ) {
+    async fn on_step_timeout(&self, task_id: &str, step_name: &str, step_index: usize, error: &str, duration_ms: u64) {
         let _ = self.app_handle.emit(
             "task_step_update",
             &json!({
@@ -131,13 +105,7 @@ impl WorkflowCallback for HippoXWorkflowCallback {
         );
     }
 
-    async fn on_workflow_complete(
-        &self,
-        task_id: &str,
-        final_output: &str,
-        total_duration_ms: u64,
-        total_steps: usize,
-    ) {
+    async fn on_workflow_complete(&self, task_id: &str, final_output: &str, total_duration_ms: u64, total_steps: usize) {
         if !self.completed.swap(true, Ordering::SeqCst) {
             let app_handle = self.app_handle.clone();
             let _ = self.app_handle.emit(
@@ -153,22 +121,14 @@ impl WorkflowCallback for HippoXWorkflowCallback {
         }
     }
 
-    async fn on_workflow_failed(
-        &self,
-        task_id: &str,
-        error: &str,
-        total_duration_ms: u64,
-        total_steps: usize,
-    ) {
+    async fn on_workflow_failed(&self, task_id: &str, error: &str, total_duration_ms: u64, total_steps: usize) {
         if !self.completed.swap(true, Ordering::SeqCst) {
             let app_handle = self.app_handle.clone();
             let session_id = self.session_id.clone();
             let err_msg = format!("Error: {}", error);
             tokio::spawn(async move {
                 if let Some(mem) = app_handle.state::<AppState>().get_memcontext().await {
-                    let _ = mem
-                        .store_message(session_id, Role::LLM.to_string(), err_msg)
-                        .await;
+                    let _ = mem.store_message(session_id, Role::LLM.to_string(), err_msg).await;
                 }
             });
             let _ = self.app_handle.emit(
@@ -184,12 +144,7 @@ impl WorkflowCallback for HippoXWorkflowCallback {
         }
     }
 
-    async fn on_workflow_cancelled(
-        &self,
-        task_id: &str,
-        total_duration_ms: u64,
-        total_steps: usize,
-    ) {
+    async fn on_workflow_cancelled(&self, task_id: &str, total_duration_ms: u64, total_steps: usize) {
         let _ = self.app_handle.emit(
             "task_cancelled",
             &json!({
@@ -201,13 +156,7 @@ impl WorkflowCallback for HippoXWorkflowCallback {
         );
     }
 
-    async fn on_workflow_paused(
-        &self,
-        task_id: &str,
-        checkpoint: Option<&str>,
-        total_duration_ms: u64,
-        total_steps: usize,
-    ) {
+    async fn on_workflow_paused(&self, task_id: &str, checkpoint: Option<&str>, total_duration_ms: u64, total_steps: usize) {
         let _ = self.app_handle.emit(
             "task_paused",
             &json!({
@@ -245,11 +194,7 @@ pub struct HippoxDriverCallback {
 
 impl HippoxDriverCallback {
     pub fn new(app_handle: AppHandle, session_id: String) -> Self {
-        Self {
-            app_handle,
-            session_id,
-            task_id: None,
-        }
+        Self { app_handle, session_id, task_id: None }
     }
 
     pub fn with_task_id(mut self, task_id: impl Into<String>) -> Self {
@@ -259,13 +204,7 @@ impl HippoxDriverCallback {
 }
 
 impl DriverCallback for HippoxDriverCallback {
-    fn on_progress(
-        &self,
-        task_id: Option<String>,
-        driver_index: Option<usize>,
-        progress: Option<u32>,
-        message: Option<String>,
-    ) {
+    fn on_progress(&self, task_id: Option<String>, driver_index: Option<usize>, progress: Option<u32>, message: Option<String>) {
         let _ = self.app_handle.emit(
             "driver_callback_progress",
             &json!({
@@ -278,12 +217,7 @@ impl DriverCallback for HippoxDriverCallback {
         );
     }
 
-    fn on_start(
-        &self,
-        task_id: Option<String>,
-        driver_index: Option<usize>,
-        driver_name: Option<String>,
-    ) {
+    fn on_start(&self, task_id: Option<String>, driver_index: Option<usize>, driver_name: Option<String>) {
         let _ = self.app_handle.emit(
             "driver_callback_start",
             &json!({
@@ -295,13 +229,7 @@ impl DriverCallback for HippoxDriverCallback {
         );
     }
 
-    fn on_complete(
-        &self,
-        task_id: Option<String>,
-        driver_index: Option<usize>,
-        driver_name: Option<String>,
-        output: Option<String>,
-    ) {
+    fn on_complete(&self, task_id: Option<String>, driver_index: Option<usize>, driver_name: Option<String>, output: Option<String>) {
         let _ = self.app_handle.emit(
             "driver_callback_complete",
             &json!({
@@ -314,13 +242,7 @@ impl DriverCallback for HippoxDriverCallback {
         );
     }
 
-    fn on_error(
-        &self,
-        task_id: Option<String>,
-        driver_index: Option<usize>,
-        driver_name: Option<String>,
-        error: Option<String>,
-    ) {
+    fn on_error(&self, task_id: Option<String>, driver_index: Option<usize>, driver_name: Option<String>, error: Option<String>) {
         let _ = self.app_handle.emit(
             "driver_callback_error",
             &json!({
@@ -333,12 +255,7 @@ impl DriverCallback for HippoxDriverCallback {
         );
     }
 
-    fn on_log(
-        &self,
-        task_id: Option<String>,
-        driver_index: Option<usize>,
-        message: Option<String>,
-    ) {
+    fn on_log(&self, task_id: Option<String>, driver_index: Option<usize>, message: Option<String>) {
         let _ = self.app_handle.emit(
             "driver_callback_log",
             &json!({

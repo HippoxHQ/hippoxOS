@@ -33,10 +33,7 @@ pub async fn cmd_get_hippox_versions() -> Result<serde_json::Value, String> {
                 results.insert(name.to_string(), serde_json::Value::String(version));
             }
             Err(_) => {
-                results.insert(
-                    name.to_string(),
-                    serde_json::Value::String("unknown".to_string()),
-                );
+                results.insert(name.to_string(), serde_json::Value::String("unknown".to_string()));
             }
         }
     }

@@ -5,27 +5,15 @@ use crate::types::Role;
 use memcontext::MemContext;
 use tauri::State;
 
-fn compress_history_to_natural_language(
-    messages: &Vec<memcontext::Message>,
-    session_name: &str,
-) -> String {
+fn compress_history_to_natural_language(messages: &Vec<memcontext::Message>, session_name: &str) -> String {
     if messages.is_empty() {
         return format!("[Session '{}' has no conversation history]", session_name);
     }
-    let user_messages: Vec<&memcontext::Message> = messages
-        .iter()
-        .filter(|msg| msg.role != Role::System.to_string())
-        .collect();
+    let user_messages: Vec<&memcontext::Message> = messages.iter().filter(|msg| msg.role != Role::System.to_string()).collect();
     if user_messages.is_empty() {
-        return format!(
-            "[Session '{}' has no user conversation history]",
-            session_name
-        );
+        return format!("[Session '{}' has no user conversation history]", session_name);
     }
-    let mut result = format!(
-        "Complete conversation history for session '{}':\n\n",
-        session_name
-    );
+    let mut result = format!("Complete conversation history for session '{}':\n\n", session_name);
     result.push_str("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
     for (idx, msg) in user_messages.iter().enumerate() {
         let role = if msg.role == Role::User.to_string() {
@@ -43,27 +31,14 @@ fn compress_history_to_natural_language(
     result
 }
 
-pub async fn recall_and_compress_history(
-    mem: &MemContext,
-    session_id: &str,
-    limit: Option<usize>,
-) -> Result<String, String> {
+pub async fn recall_and_compress_history(mem: &MemContext, session_id: &str, limit: Option<usize>) -> Result<String, String> {
     let limit = limit.unwrap_or(50);
-    let all_msgs = mem
-        .recall_time_series(session_id, 10000)
-        .await
-        .map_err(|e| e.to_string())?;
-    let size = mem
-        .session_size(session_id)
-        .await
-        .map_err(|e| format!("Failed to get session size: {}", e))?;
+    let all_msgs = mem.recall_time_series(session_id, 10000).await.map_err(|e| e.to_string())?;
+    let size = mem.session_size(session_id).await.map_err(|e| format!("Failed to get session size: {}", e))?;
     if size == 0 {
         return Ok(format!("Session '{}' has no history", session_id));
     }
-    let recall_result = mem
-        .recall_time_series(session_id, limit)
-        .await
-        .map_err(|e| format!("Failed to recall session history: {}", e))?;
+    let recall_result = mem.recall_time_series(session_id, limit).await.map_err(|e| format!("Failed to recall session history: {}", e))?;
     if recall_result.messages.is_empty() {
         return Ok(format!("Session '{}' has no messages", session_id));
     }

@@ -4,13 +4,7 @@ use std::process::Command;
 
 impl Ffmpeg {
     /// Apply filter to video
-    pub fn apply_filter(
-        &self,
-        input_path: &str,
-        output_path: &str,
-        filter_type: &str,
-        intensity: f32,
-    ) -> Result<(), String> {
+    pub fn apply_filter(&self, input_path: &str, output_path: &str, filter_type: &str, intensity: f32) -> Result<(), String> {
         let input = Path::new(input_path);
         if !input.exists() {
             return Err(format!("Input file not found: {}", input_path));
@@ -18,8 +12,7 @@ impl Ffmpeg {
 
         if let Some(parent) = Path::new(output_path).parent() {
             if !parent.exists() {
-                std::fs::create_dir_all(parent)
-                    .map_err(|e| format!("Failed to create output directory: {}", e))?;
+                std::fs::create_dir_all(parent).map_err(|e| format!("Failed to create output directory: {}", e))?;
             }
         }
 
@@ -31,7 +24,9 @@ impl Ffmpeg {
             "cool" => "colorchannelmixer=0:0:1.1:0:0:1.1:.1:0:1.1:.1:0:0".to_string(),
             "blur" => "boxblur=1.5:1".to_string(),
             "sharpen" => "unsharp=5:5:1.0:5:5:0.0".to_string(),
-            "nostalgic" => "colorchannelmixer=.393:.769:.189:0:.349:.686:.168:0:.272:.534:.131:0,eq=contrast=1.1:brightness=-0.02,saturation=0.8".to_string(),
+            "nostalgic" => {
+                "colorchannelmixer=.393:.769:.189:0:.349:.686:.168:0:.272:.534:.131:0,eq=contrast=1.1:brightness=-0.02,saturation=0.8".to_string()
+            }
             "brightness" => {
                 let val = intensity * 2.0 - 0.5;
                 format!("eq=brightness={:.2}", val)
@@ -48,12 +43,7 @@ impl Ffmpeg {
         };
 
         let output = Command::new("ffmpeg")
-            .args([
-                "-i", input_path,
-                "-vf", &filter,
-                "-c:a", "copy",
-                "-y", output_path,
-            ])
+            .args(["-i", input_path, "-vf", &filter, "-c:a", "copy", "-y", output_path])
             .output()
             .map_err(|e| format!("Failed to apply filter: {}", e))?;
 
@@ -86,8 +76,7 @@ impl Ffmpeg {
 
         if let Some(parent) = Path::new(output_path).parent() {
             if !parent.exists() {
-                std::fs::create_dir_all(parent)
-                    .map_err(|e| format!("Failed to create output directory: {}", e))?;
+                std::fs::create_dir_all(parent).map_err(|e| format!("Failed to create output directory: {}", e))?;
             }
         }
 
@@ -97,8 +86,10 @@ impl Ffmpeg {
             font_size,
             font_color,
             font_family,
-            x, y,
-            start, start + duration
+            x,
+            y,
+            start,
+            start + duration
         );
 
         if let Some(bg) = background_color {
@@ -106,12 +97,7 @@ impl Ffmpeg {
         }
 
         let output = Command::new("ffmpeg")
-            .args([
-                "-i", input_path,
-                "-vf", &drawtext_filter,
-                "-c:a", "copy",
-                "-y", output_path,
-            ])
+            .args(["-i", input_path, "-vf", &drawtext_filter, "-c:a", "copy", "-y", output_path])
             .output()
             .map_err(|e| format!("Failed to add text overlay: {}", e))?;
 
@@ -135,17 +121,6 @@ impl Ffmpeg {
         start: f64,
         duration: f64,
     ) -> Result<(), String> {
-        self.add_text_overlay(
-            input_path,
-            output_path,
-            emoji,
-            x, y,
-            size,
-            "#FFFFFF",
-            "Apple Color Emoji",
-            start,
-            duration,
-            None,
-        )
+        self.add_text_overlay(input_path, output_path, emoji, x, y, size, "#FFFFFF", "Apple Color Emoji", start, duration, None)
     }
 }

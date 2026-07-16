@@ -11,34 +11,19 @@ pub struct WorkflowModeInfo {
 /// Get all workflow mode names
 #[command]
 pub fn cmd_get_workflow_mode_names() -> Vec<String> {
-    vec![
-        "ReAct".to_string(),
-        "Batch".to_string(),
-        "Chain".to_string(),
-        "PlanAndExecute".to_string(),
-    ]
+    vec!["ReAct".to_string(), "Batch".to_string(), "Chain".to_string(), "PlanAndExecute".to_string()]
 }
 
 /// Get workflow mode names in Chinese
 #[command]
 pub fn cmd_get_workflow_mode_names_zh() -> Vec<String> {
-    vec![
-        "反应式".to_string(),
-        "批量式".to_string(),
-        "链式".to_string(),
-        "计划执行式".to_string(),
-    ]
+    vec!["反应式".to_string(), "批量式".to_string(), "链式".to_string(), "计划执行式".to_string()]
 }
 
 /// Get workflow mode names in English
 #[command]
 pub fn cmd_get_workflow_mode_names_en() -> Vec<String> {
-    vec![
-        "ReAct".to_string(),
-        "Batch".to_string(),
-        "Chain".to_string(),
-        "PlanAndExecute".to_string(),
-    ]
+    vec!["ReAct".to_string(), "Batch".to_string(), "Chain".to_string(), "PlanAndExecute".to_string()]
 }
 
 /// Get workflow mode names by language
@@ -57,9 +42,7 @@ pub fn cmd_string_to_workflow_mode(s: String) -> Option<String> {
         "ReAct" | "react" | "反应式" => Some("ReAct".to_string()),
         "Batch" | "batch" | "批量式" => Some("Batch".to_string()),
         "Chain" | "chain" | "链式" => Some("Chain".to_string()),
-        "PlanAndExecute" | "plan_and_execute" | "plan" | "计划执行式" => {
-            Some("PlanAndExecute".to_string())
-        }
+        "PlanAndExecute" | "plan_and_execute" | "plan" | "计划执行式" => Some("PlanAndExecute".to_string()),
         _ => None,
     }
 }
@@ -152,21 +135,11 @@ pub fn cmd_get_all_workflow_mode_info(lang: String) -> Vec<WorkflowModeInfo> {
         .into_iter()
         .map(|mode| {
             let mode_str = mode.to_string();
-            let display_name = if is_zh {
-                cmd_workflow_mode_display_name_zh(mode_str.clone())
-            } else {
-                cmd_workflow_mode_display_name(mode_str.clone())
-            };
-            let description = if is_zh {
-                cmd_workflow_mode_description_zh(mode_str.clone())
-            } else {
-                cmd_workflow_mode_description_en(mode_str.clone())
-            };
-            WorkflowModeInfo {
-                name: mode_str,
-                display_name,
-                description,
-            }
+            let display_name =
+                if is_zh { cmd_workflow_mode_display_name_zh(mode_str.clone()) } else { cmd_workflow_mode_display_name(mode_str.clone()) };
+            let description =
+                if is_zh { cmd_workflow_mode_description_zh(mode_str.clone()) } else { cmd_workflow_mode_description_en(mode_str.clone()) };
+            WorkflowModeInfo { name: mode_str, display_name, description }
         })
         .collect()
 }

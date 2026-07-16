@@ -6,7 +6,8 @@ use crate::{
     state::AppState,
 };
 use hippox::{
-    HippoxResult, Task, cancel_task, get_all_tasks, get_all_tasks_detailed, get_task, get_task_status, pause_task, pending_count, resume_task, retry_task, running_count, set_max_concurrent,
+    cancel_task, get_all_tasks, get_all_tasks_detailed, get_task, get_task_status, pause_task, pending_count, resume_task, retry_task, running_count,
+    set_max_concurrent, HippoxResult, Task,
 };
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
@@ -21,8 +22,7 @@ pub fn get_taskpool_backup_dir() -> PathBuf {
 fn ensure_taskpool_backup_dir() -> Result<(), String> {
     let dir = get_taskpool_backup_dir();
     if !dir.exists() {
-        std::fs::create_dir_all(&dir)
-            .map_err(|e| format!("Failed to create taskpool directory: {}", e))?;
+        std::fs::create_dir_all(&dir).map_err(|e| format!("Failed to create taskpool directory: {}", e))?;
     }
     Ok(())
 }
@@ -31,9 +31,7 @@ fn ensure_taskpool_backup_dir() -> Result<(), String> {
 #[tauri::command]
 pub async fn cmd_task_pool_get_all_tasks(limit: Option<usize>) -> Result<Vec<TaskInfo>, String> {
     match get_all_tasks_detailed(limit).await {
-        HippoxResult {
-            data: Some(tasks), ..
-        } => Ok(tasks.into_iter().map(TaskInfo::from).collect()),
+        HippoxResult { data: Some(tasks), .. } => Ok(tasks.into_iter().map(TaskInfo::from).collect()),
         HippoxResult { error: Some(e), .. } => Err(e),
         _ => Err("Failed to get tasks: unknown error".to_string()),
     }
@@ -43,9 +41,7 @@ pub async fn cmd_task_pool_get_all_tasks(limit: Option<usize>) -> Result<Vec<Tas
 #[tauri::command]
 pub async fn cmd_task_pool_get_task(task_id: String) -> Result<Option<TaskInfo>, String> {
     match get_task(&task_id).await {
-        HippoxResult {
-            data: Some(task), ..
-        } => Ok(Some(TaskInfo::from(task))),
+        HippoxResult { data: Some(task), .. } => Ok(Some(TaskInfo::from(task))),
         HippoxResult { error: Some(e), .. } => Err(e),
         _ => Ok(None),
     }
@@ -55,9 +51,7 @@ pub async fn cmd_task_pool_get_task(task_id: String) -> Result<Option<TaskInfo>,
 #[tauri::command]
 pub async fn cmd_task_pool_get_task_status(task_id: String) -> Result<Option<String>, String> {
     match get_task_status(&task_id).await {
-        HippoxResult {
-            data: Some(status), ..
-        } => Ok(Some(format!("{:?}", status).to_lowercase())),
+        HippoxResult { data: Some(status), .. } => Ok(Some(format!("{:?}", status).to_lowercase())),
         HippoxResult { error: Some(e), .. } => Err(e),
         _ => Ok(None),
     }
@@ -67,10 +61,7 @@ pub async fn cmd_task_pool_get_task_status(task_id: String) -> Result<Option<Str
 #[tauri::command]
 pub async fn cmd_task_pool_cancel_task(task_id: String) -> Result<bool, String> {
     match cancel_task(&task_id).await {
-        HippoxResult {
-            data: Some(success),
-            ..
-        } => Ok(success),
+        HippoxResult { data: Some(success), .. } => Ok(success),
         HippoxResult { error: Some(e), .. } => Err(e),
         _ => Err("Failed to cancel task: unknown error".to_string()),
     }
@@ -80,10 +71,7 @@ pub async fn cmd_task_pool_cancel_task(task_id: String) -> Result<bool, String> 
 #[tauri::command]
 pub async fn cmd_task_pool_pause_task(task_id: String) -> Result<bool, String> {
     match pause_task(&task_id).await {
-        HippoxResult {
-            data: Some(success),
-            ..
-        } => Ok(success),
+        HippoxResult { data: Some(success), .. } => Ok(success),
         HippoxResult { error: Some(e), .. } => Err(e),
         _ => Err("Failed to pause task: unknown error".to_string()),
     }
@@ -93,10 +81,7 @@ pub async fn cmd_task_pool_pause_task(task_id: String) -> Result<bool, String> {
 #[tauri::command]
 pub async fn cmd_task_pool_resume_task(task_id: String) -> Result<bool, String> {
     match resume_task(&task_id).await {
-        HippoxResult {
-            data: Some(success),
-            ..
-        } => Ok(success),
+        HippoxResult { data: Some(success), .. } => Ok(success),
         HippoxResult { error: Some(e), .. } => Err(e),
         _ => Err("Failed to resume task: unknown error".to_string()),
     }
@@ -106,10 +91,7 @@ pub async fn cmd_task_pool_resume_task(task_id: String) -> Result<bool, String> 
 #[tauri::command]
 pub async fn cmd_task_pool_retry_task(task_id: String) -> Result<bool, String> {
     match retry_task(&task_id).await {
-        HippoxResult {
-            data: Some(success),
-            ..
-        } => Ok(success),
+        HippoxResult { data: Some(success), .. } => Ok(success),
         HippoxResult { error: Some(e), .. } => Err(e),
         _ => Err("Failed to retry task: unknown error".to_string()),
     }
@@ -119,32 +101,21 @@ pub async fn cmd_task_pool_retry_task(task_id: String) -> Result<bool, String> {
 #[tauri::command]
 pub async fn cmd_task_pool_get_stats() -> Result<TaskPoolStats, String> {
     let running = match running_count().await {
-        HippoxResult {
-            data: Some(count), ..
-        } => count,
+        HippoxResult { data: Some(count), .. } => count,
         HippoxResult { error: Some(e), .. } => return Err(e),
         _ => return Err("Failed to get running count".to_string()),
     };
     let pending = match pending_count().await {
-        HippoxResult {
-            data: Some(count), ..
-        } => count,
+        HippoxResult { data: Some(count), .. } => count,
         HippoxResult { error: Some(e), .. } => return Err(e),
         _ => return Err("Failed to get pending count".to_string()),
     };
     let all_tasks = match get_all_tasks_detailed(None).await {
-        HippoxResult {
-            data: Some(tasks), ..
-        } => tasks,
+        HippoxResult { data: Some(tasks), .. } => tasks,
         HippoxResult { error: Some(e), .. } => return Err(e),
         _ => return Err("Failed to get all tasks".to_string()),
     };
-    Ok(TaskPoolStats {
-        running_count: running,
-        pending_count: pending,
-        total_count: all_tasks.len(),
-        max_concurrent: 10,
-    })
+    Ok(TaskPoolStats { running_count: running, pending_count: pending, total_count: all_tasks.len(), max_concurrent: 10 })
 }
 
 /// Set maximum concurrent tasks
@@ -159,10 +130,7 @@ pub async fn cmd_task_pool_set_max_concurrent(max: usize) -> Result<(), String> 
 
 /// Get tasks by session (filter)
 #[tauri::command]
-pub async fn cmd_task_pool_get_tasks_by_session(
-    session_id: String,
-    state: State<'_, AppState>,
-) -> Result<Vec<TaskInfo>, String> {
+pub async fn cmd_task_pool_get_tasks_by_session(session_id: String, state: State<'_, AppState>) -> Result<Vec<TaskInfo>, String> {
     let session_tasks = state.get_session_tasks(&session_id).await;
     Ok(session_tasks
         .into_iter()
@@ -209,19 +177,13 @@ pub async fn cmd_task_pool_persist() -> Result<serde_json::Value, String> {
     let hippox = get_default_hippox().await?;
     // Call core storage_task_pool (backup + delete terminal tasks)
     match hippox.storage_task_pool(file_path.to_string_lossy().to_string()) {
-        HippoxResult {
-            data: Some(()),
-            error: None,
-            ..
-        } => Ok(serde_json::json!({
+        HippoxResult { data: Some(()), error: None, .. } => Ok(serde_json::json!({
             "success": true,
             "message": "Task pool persisted successfully",
             "backup_file": file_path.to_string_lossy(),
             "timestamp": chrono::Local::now().to_rfc3339()
         })),
-        HippoxResult {
-            error: Some(err), ..
-        } => Err(format!("Failed to persist task pool: {}", err)),
+        HippoxResult { error: Some(err), .. } => Err(format!("Failed to persist task pool: {}", err)),
         _ => Err("Failed to persist task pool: unknown error".to_string()),
     }
 }
@@ -234,14 +196,11 @@ pub async fn cmd_task_pool_list_backups() -> Result<Vec<serde_json::Value>, Stri
         return Ok(vec![]);
     }
     let mut backups = Vec::new();
-    for entry in std::fs::read_dir(&backup_dir)
-        .map_err(|e| format!("Failed to read backup directory: {}", e))?
-    {
+    for entry in std::fs::read_dir(&backup_dir).map_err(|e| format!("Failed to read backup directory: {}", e))? {
         let entry = entry.map_err(|e| format!("Failed to read entry: {}", e))?;
         let path = entry.path();
         if path.is_file() && path.extension().and_then(|e| e.to_str()) == Some("json") {
-            let metadata =
-                std::fs::metadata(&path).map_err(|e| format!("Failed to read metadata: {}", e))?;
+            let metadata = std::fs::metadata(&path).map_err(|e| format!("Failed to read metadata: {}", e))?;
             backups.push(serde_json::json!({
                 "filename": path.file_name().unwrap_or_default().to_string_lossy(),
                 "path": path.to_string_lossy(),

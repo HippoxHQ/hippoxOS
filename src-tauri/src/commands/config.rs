@@ -10,25 +10,20 @@ use uuid::Uuid;
 use crate::{
     commands::get_settings_dir,
     hippox_core::{
-        init_single_hippox, remove_container_instance_from_core,
-        remove_database_instance_from_core, remove_network_instance_from_core,
-        remove_notification_instance_from_core, sync_all_to_hippox_core,
-        sync_container_instance_to_core, sync_database_instance_to_core,
-        sync_network_instance_to_core, sync_notification_instance_to_core, ContainerInstance,
-        DatabaseInstance, LlmInstance, NetworkInstance, NotificationInstance,
+        init_single_hippox, remove_container_instance_from_core, remove_database_instance_from_core, remove_network_instance_from_core,
+        remove_notification_instance_from_core, sync_all_to_hippox_core, sync_container_instance_to_core, sync_database_instance_to_core,
+        sync_network_instance_to_core, sync_notification_instance_to_core, ContainerInstance, DatabaseInstance, LlmInstance, NetworkInstance,
+        NotificationInstance,
     },
     workspace::{
-        add_workspace, delete_workspace, get_all_workspaces, get_default_workspace,
-        load_workspace_config, set_default_workspace, update_workspace, WorkspaceConfigData,
-        WorkspaceInstance,
+        add_workspace, delete_workspace, get_all_workspaces, get_default_workspace, load_workspace_config, set_default_workspace, update_workspace,
+        WorkspaceConfigData, WorkspaceInstance,
     },
 };
 
-pub static HIPPOX_APP_CONFIG: Lazy<Arc<RwLock<HippoxAppConfig>>> =
-    Lazy::new(|| Arc::new(RwLock::new(HippoxAppConfig::default())));
+pub static HIPPOX_APP_CONFIG: Lazy<Arc<RwLock<HippoxAppConfig>>> = Lazy::new(|| Arc::new(RwLock::new(HippoxAppConfig::default())));
 
-pub static HIPPOX_INSTANCES: Lazy<Arc<RwLock<HashMap<String, Arc<Hippox>>>>> =
-    Lazy::new(|| Arc::new(RwLock::new(HashMap::new())));
+pub static HIPPOX_INSTANCES: Lazy<Arc<RwLock<HashMap<String, Arc<Hippox>>>>> = Lazy::new(|| Arc::new(RwLock::new(HashMap::new())));
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HippoxAppConfig {
@@ -274,16 +269,11 @@ pub struct SaveContainerInstanceRequest {
 }
 
 #[tauri::command]
-pub async fn cmd_save_container_instance(
-    request: SaveContainerInstanceRequest,
-) -> Result<ContainerInstance, String> {
+pub async fn cmd_save_container_instance(request: SaveContainerInstanceRequest) -> Result<ContainerInstance, String> {
     let mut config = HIPPOX_APP_CONFIG.write().await;
     let now = chrono::Local::now().to_rfc3339();
     let is_new = request.id.is_none();
-    let instance_id = request
-        .id
-        .clone()
-        .unwrap_or_else(|| Uuid::new_v4().to_string());
+    let instance_id = request.id.clone().unwrap_or_else(|| Uuid::new_v4().to_string());
     let instance = ContainerInstance {
         id: instance_id.clone(),
         name: request.name.clone(),
@@ -300,12 +290,7 @@ pub async fn cmd_save_container_instance(
         updated_at: now,
     };
     if let Some(existing_id) = &request.id {
-        if let Some(existing) = config
-            .engine
-            .container_instances
-            .iter_mut()
-            .find(|i| i.id == *existing_id)
-        {
+        if let Some(existing) = config.engine.container_instances.iter_mut().find(|i| i.id == *existing_id) {
             *existing = instance.clone();
         } else {
             config.engine.container_instances.push(instance.clone());
@@ -323,18 +308,10 @@ pub async fn cmd_save_container_instance(
 pub async fn cmd_delete_container_instance(instance_id: String) -> Result<bool, String> {
     let instance_type = {
         let config = HIPPOX_APP_CONFIG.read().await;
-        config
-            .engine
-            .container_instances
-            .iter()
-            .find(|i| i.id == instance_id)
-            .map(|i| i.instance_type.clone())
+        config.engine.container_instances.iter().find(|i| i.id == instance_id).map(|i| i.instance_type.clone())
     };
     let mut config = HIPPOX_APP_CONFIG.write().await;
-    config
-        .engine
-        .container_instances
-        .retain(|i| i.id != instance_id);
+    config.engine.container_instances.retain(|i| i.id != instance_id);
     drop(config);
     save_config_to_file().await?;
     if let Some(inst_type) = instance_type {
@@ -344,17 +321,9 @@ pub async fn cmd_delete_container_instance(instance_id: String) -> Result<bool, 
 }
 
 #[tauri::command]
-pub async fn cmd_toggle_container_instance(
-    instance_id: String,
-    enabled: bool,
-) -> Result<bool, String> {
+pub async fn cmd_toggle_container_instance(instance_id: String, enabled: bool) -> Result<bool, String> {
     let mut config = HIPPOX_APP_CONFIG.write().await;
-    if let Some(instance) = config
-        .engine
-        .container_instances
-        .iter_mut()
-        .find(|i| i.id == instance_id)
-    {
+    if let Some(instance) = config.engine.container_instances.iter_mut().find(|i| i.id == instance_id) {
         instance.enabled = enabled;
         instance.updated_at = chrono::Local::now().to_rfc3339();
         let instance_clone = instance.clone();
@@ -390,16 +359,11 @@ pub struct SaveDatabaseInstanceRequest {
 }
 
 #[tauri::command]
-pub async fn cmd_save_database_instance(
-    request: SaveDatabaseInstanceRequest,
-) -> Result<DatabaseInstance, String> {
+pub async fn cmd_save_database_instance(request: SaveDatabaseInstanceRequest) -> Result<DatabaseInstance, String> {
     let mut config = HIPPOX_APP_CONFIG.write().await;
     let now = chrono::Local::now().to_rfc3339();
     let is_new = request.id.is_none();
-    let instance_id = request
-        .id
-        .clone()
-        .unwrap_or_else(|| Uuid::new_v4().to_string());
+    let instance_id = request.id.clone().unwrap_or_else(|| Uuid::new_v4().to_string());
     let instance = DatabaseInstance {
         id: instance_id.clone(),
         name: request.name.clone(),
@@ -417,12 +381,7 @@ pub async fn cmd_save_database_instance(
         updated_at: now,
     };
     if let Some(existing_id) = &request.id {
-        if let Some(existing) = config
-            .engine
-            .database_instances
-            .iter_mut()
-            .find(|i| i.id == *existing_id)
-        {
+        if let Some(existing) = config.engine.database_instances.iter_mut().find(|i| i.id == *existing_id) {
             *existing = instance.clone();
         } else {
             config.engine.database_instances.push(instance.clone());
@@ -440,18 +399,10 @@ pub async fn cmd_save_database_instance(
 pub async fn cmd_delete_database_instance(instance_id: String) -> Result<bool, String> {
     let instance_type = {
         let config = HIPPOX_APP_CONFIG.read().await;
-        config
-            .engine
-            .database_instances
-            .iter()
-            .find(|i| i.id == instance_id)
-            .map(|i| i.instance_type.clone())
+        config.engine.database_instances.iter().find(|i| i.id == instance_id).map(|i| i.instance_type.clone())
     };
     let mut config = HIPPOX_APP_CONFIG.write().await;
-    config
-        .engine
-        .database_instances
-        .retain(|i| i.id != instance_id);
+    config.engine.database_instances.retain(|i| i.id != instance_id);
     drop(config);
     save_config_to_file().await?;
     if let Some(inst_type) = instance_type {
@@ -461,17 +412,9 @@ pub async fn cmd_delete_database_instance(instance_id: String) -> Result<bool, S
 }
 
 #[tauri::command]
-pub async fn cmd_toggle_database_instance(
-    instance_id: String,
-    enabled: bool,
-) -> Result<bool, String> {
+pub async fn cmd_toggle_database_instance(instance_id: String, enabled: bool) -> Result<bool, String> {
     let mut config = HIPPOX_APP_CONFIG.write().await;
-    if let Some(instance) = config
-        .engine
-        .database_instances
-        .iter_mut()
-        .find(|i| i.id == instance_id)
-    {
+    if let Some(instance) = config.engine.database_instances.iter_mut().find(|i| i.id == instance_id) {
         instance.enabled = enabled;
         instance.updated_at = chrono::Local::now().to_rfc3339();
         let instance_clone = instance.clone();
@@ -507,16 +450,11 @@ pub struct SaveNetworkInstanceRequest {
 }
 
 #[tauri::command]
-pub async fn cmd_save_network_instance(
-    request: SaveNetworkInstanceRequest,
-) -> Result<NetworkInstance, String> {
+pub async fn cmd_save_network_instance(request: SaveNetworkInstanceRequest) -> Result<NetworkInstance, String> {
     let mut config = HIPPOX_APP_CONFIG.write().await;
     let now = chrono::Local::now().to_rfc3339();
     let is_new = request.id.is_none();
-    let instance_id = request
-        .id
-        .clone()
-        .unwrap_or_else(|| Uuid::new_v4().to_string());
+    let instance_id = request.id.clone().unwrap_or_else(|| Uuid::new_v4().to_string());
     let instance = NetworkInstance {
         id: instance_id.clone(),
         name: request.name.clone(),
@@ -534,12 +472,7 @@ pub async fn cmd_save_network_instance(
         updated_at: now,
     };
     if let Some(existing_id) = &request.id {
-        if let Some(existing) = config
-            .engine
-            .network_instances
-            .iter_mut()
-            .find(|i| i.id == *existing_id)
-        {
+        if let Some(existing) = config.engine.network_instances.iter_mut().find(|i| i.id == *existing_id) {
             *existing = instance.clone();
         } else {
             config.engine.network_instances.push(instance.clone());
@@ -557,18 +490,10 @@ pub async fn cmd_save_network_instance(
 pub async fn cmd_delete_network_instance(instance_id: String) -> Result<bool, String> {
     let instance_type = {
         let config = HIPPOX_APP_CONFIG.read().await;
-        config
-            .engine
-            .network_instances
-            .iter()
-            .find(|i| i.id == instance_id)
-            .map(|i| i.instance_type.clone())
+        config.engine.network_instances.iter().find(|i| i.id == instance_id).map(|i| i.instance_type.clone())
     };
     let mut config = HIPPOX_APP_CONFIG.write().await;
-    config
-        .engine
-        .network_instances
-        .retain(|i| i.id != instance_id);
+    config.engine.network_instances.retain(|i| i.id != instance_id);
     drop(config);
     save_config_to_file().await?;
     if let Some(inst_type) = instance_type {
@@ -578,17 +503,9 @@ pub async fn cmd_delete_network_instance(instance_id: String) -> Result<bool, St
 }
 
 #[tauri::command]
-pub async fn cmd_toggle_network_instance(
-    instance_id: String,
-    enabled: bool,
-) -> Result<bool, String> {
+pub async fn cmd_toggle_network_instance(instance_id: String, enabled: bool) -> Result<bool, String> {
     let mut config = HIPPOX_APP_CONFIG.write().await;
-    if let Some(instance) = config
-        .engine
-        .network_instances
-        .iter_mut()
-        .find(|i| i.id == instance_id)
-    {
+    if let Some(instance) = config.engine.network_instances.iter_mut().find(|i| i.id == instance_id) {
         instance.enabled = enabled;
         instance.updated_at = chrono::Local::now().to_rfc3339();
         let instance_clone = instance.clone();
@@ -628,16 +545,11 @@ pub struct SaveNotificationInstanceRequest {
 }
 
 #[tauri::command]
-pub async fn cmd_save_notification_instance(
-    request: SaveNotificationInstanceRequest,
-) -> Result<NotificationInstance, String> {
+pub async fn cmd_save_notification_instance(request: SaveNotificationInstanceRequest) -> Result<NotificationInstance, String> {
     let mut config = HIPPOX_APP_CONFIG.write().await;
     let now = chrono::Local::now().to_rfc3339();
     let is_new = request.id.is_none();
-    let instance_id = request
-        .id
-        .clone()
-        .unwrap_or_else(|| Uuid::new_v4().to_string());
+    let instance_id = request.id.clone().unwrap_or_else(|| Uuid::new_v4().to_string());
     let instance = NotificationInstance {
         id: instance_id.clone(),
         name: request.name.clone(),
@@ -660,12 +572,7 @@ pub async fn cmd_save_notification_instance(
     };
 
     if let Some(existing_id) = &request.id {
-        if let Some(existing) = config
-            .engine
-            .notification_instances
-            .iter_mut()
-            .find(|i| i.id == *existing_id)
-        {
+        if let Some(existing) = config.engine.notification_instances.iter_mut().find(|i| i.id == *existing_id) {
             *existing = instance.clone();
         } else {
             config.engine.notification_instances.push(instance.clone());
@@ -683,18 +590,10 @@ pub async fn cmd_save_notification_instance(
 pub async fn cmd_delete_notification_instance(instance_id: String) -> Result<bool, String> {
     let instance_type = {
         let config = HIPPOX_APP_CONFIG.read().await;
-        config
-            .engine
-            .notification_instances
-            .iter()
-            .find(|i| i.id == instance_id)
-            .map(|i| i.instance_type.clone())
+        config.engine.notification_instances.iter().find(|i| i.id == instance_id).map(|i| i.instance_type.clone())
     };
     let mut config = HIPPOX_APP_CONFIG.write().await;
-    config
-        .engine
-        .notification_instances
-        .retain(|i| i.id != instance_id);
+    config.engine.notification_instances.retain(|i| i.id != instance_id);
     drop(config);
     save_config_to_file().await?;
     if let Some(inst_type) = instance_type {
@@ -704,17 +603,9 @@ pub async fn cmd_delete_notification_instance(instance_id: String) -> Result<boo
 }
 
 #[tauri::command]
-pub async fn cmd_toggle_notification_instance(
-    instance_id: String,
-    enabled: bool,
-) -> Result<bool, String> {
+pub async fn cmd_toggle_notification_instance(instance_id: String, enabled: bool) -> Result<bool, String> {
     let mut config = HIPPOX_APP_CONFIG.write().await;
-    if let Some(instance) = config
-        .engine
-        .notification_instances
-        .iter_mut()
-        .find(|i| i.id == instance_id)
-    {
+    if let Some(instance) = config.engine.notification_instances.iter_mut().find(|i| i.id == instance_id) {
         instance.enabled = enabled;
         instance.updated_at = chrono::Local::now().to_rfc3339();
         let instance_clone = instance.clone();
@@ -758,11 +649,7 @@ pub async fn cmd_add_llm_instance(request: AddLlmInstanceRequest) -> Result<Stri
     let id = Uuid::new_v4().to_string();
     let now = chrono::Local::now().to_rfc3339();
     let is_first_instance = config.llm_instances.is_empty();
-    let should_be_default = if is_first_instance {
-        true
-    } else {
-        request.is_default.unwrap_or(false)
-    };
+    let should_be_default = if is_first_instance { true } else { request.is_default.unwrap_or(false) };
     let new_instance = LlmInstance {
         id: Some(id.clone()),
         name: request.name,
@@ -790,10 +677,7 @@ pub async fn cmd_add_llm_instance(request: AddLlmInstanceRequest) -> Result<Stri
 }
 
 #[tauri::command]
-pub async fn cmd_update_llm_instance(
-    instance_id: String,
-    instance: LlmInstanceForFrontend,
-) -> Result<bool, String> {
+pub async fn cmd_update_llm_instance(instance_id: String, instance: LlmInstanceForFrontend) -> Result<bool, String> {
     let mut config = HIPPOX_APP_CONFIG.write().await;
     if let Some(existing) = config.llm_instances.get_mut(&instance_id) {
         existing.name = instance.name;
@@ -854,14 +738,9 @@ pub async fn cmd_set_default_llm_instance(instance_id: String) -> Result<bool, S
 }
 
 #[tauri::command]
-pub async fn cmd_get_llm_instance(
-    instance_id: String,
-) -> Result<Option<LlmInstanceForFrontend>, String> {
+pub async fn cmd_get_llm_instance(instance_id: String) -> Result<Option<LlmInstanceForFrontend>, String> {
     let config = HIPPOX_APP_CONFIG.read().await;
-    Ok(config
-        .llm_instances
-        .get(&instance_id)
-        .map(|instance| instance.into()))
+    Ok(config.llm_instances.get(&instance_id).map(|instance| instance.into()))
 }
 
 #[tauri::command]
@@ -1016,8 +895,7 @@ pub async fn cmd_get_config_value(path: ConfigPath) -> Result<serde_json::Value,
 pub async fn load_config_from_file() -> Result<(), String> {
     let config_path = get_config_file_path();
     if let Ok(content) = std::fs::read_to_string(&config_path) {
-        let full_config: serde_json::Value =
-            serde_json::from_str(&content).unwrap_or_else(|_| serde_json::json!({}));
+        let full_config: serde_json::Value = serde_json::from_str(&content).unwrap_or_else(|_| serde_json::json!({}));
         if let Ok(mut config) = serde_json::from_str::<HippoxAppConfig>(&content) {
             if let Some(ws_config) = full_config.get("workspace_config") {
                 if let Ok(ws) = serde_json::from_value(ws_config.clone()) {
@@ -1047,14 +925,9 @@ pub async fn load_config_from_file() -> Result<(), String> {
 #[tauri::command]
 pub async fn cmd_get_disabled_drivers() -> Result<Vec<String>, String> {
     let config_path = get_config_file_path();
-    let content = std::fs::read_to_string(&config_path)
-        .map_err(|e| format!("Failed to read config file: {}", e))?;
-    let full_config: serde_json::Value = serde_json::from_str(&content)
-        .map_err(|e| format!("Failed to parse config file: {}", e))?;
-    let disabled = full_config
-        .get("disabled_drivers")
-        .and_then(|v| serde_json::from_value::<Vec<String>>(v.clone()).ok())
-        .unwrap_or_default();
+    let content = std::fs::read_to_string(&config_path).map_err(|e| format!("Failed to read config file: {}", e))?;
+    let full_config: serde_json::Value = serde_json::from_str(&content).map_err(|e| format!("Failed to parse config file: {}", e))?;
+    let disabled = full_config.get("disabled_drivers").and_then(|v| serde_json::from_value::<Vec<String>>(v.clone()).ok()).unwrap_or_default();
     Ok(disabled)
 }
 
@@ -1204,10 +1077,8 @@ pub async fn cmd_get_max_log_size() -> Result<u64, String> {
     let settings_dir = crate::commands::paths::get_settings_dir();
     let config_path = settings_dir.join("config.json");
     if config_path.exists() {
-        let content = std::fs::read_to_string(&config_path)
-            .map_err(|e| format!("Failed to read settings config: {}", e))?;
-        let full_config: serde_json::Value =
-            serde_json::from_str(&content).unwrap_or_else(|_| serde_json::json!({}));
+        let content = std::fs::read_to_string(&config_path).map_err(|e| format!("Failed to read settings config: {}", e))?;
+        let full_config: serde_json::Value = serde_json::from_str(&content).unwrap_or_else(|_| serde_json::json!({}));
         if let Some(size) = full_config.get("max_log_size_mb").and_then(|v| v.as_u64()) {
             return Ok(size);
         }
@@ -1219,22 +1090,18 @@ pub async fn cmd_get_max_log_size() -> Result<u64, String> {
 pub async fn cmd_set_max_log_size(max_size_mb: u64) -> Result<(), String> {
     let settings_dir = crate::commands::paths::get_settings_dir();
     if !settings_dir.exists() {
-        std::fs::create_dir_all(&settings_dir)
-            .map_err(|e| format!("Failed to create settings directory: {}", e))?;
+        std::fs::create_dir_all(&settings_dir).map_err(|e| format!("Failed to create settings directory: {}", e))?;
     }
     let config_path = settings_dir.join("config.json");
     let mut full_config: serde_json::Value = if config_path.exists() {
-        let content = std::fs::read_to_string(&config_path)
-            .map_err(|e| format!("Failed to read settings config: {}", e))?;
+        let content = std::fs::read_to_string(&config_path).map_err(|e| format!("Failed to read settings config: {}", e))?;
         serde_json::from_str(&content).unwrap_or_else(|_| serde_json::json!({}))
     } else {
         serde_json::json!({})
     };
     full_config["max_log_size_mb"] = serde_json::json!(max_size_mb);
-    let content = serde_json::to_string_pretty(&full_config)
-        .map_err(|e| format!("Failed to serialize settings config: {}", e))?;
-    std::fs::write(&config_path, content)
-        .map_err(|e| format!("Failed to save settings config: {}", e))?;
+    let content = serde_json::to_string_pretty(&full_config).map_err(|e| format!("Failed to serialize settings config: {}", e))?;
+    std::fs::write(&config_path, content).map_err(|e| format!("Failed to save settings config: {}", e))?;
     let _ = crate::commands::paths::cleanup_old_logs(max_size_mb);
     Ok(())
 }
@@ -1244,14 +1111,9 @@ pub async fn cmd_get_max_dialog_size() -> Result<u64, String> {
     let settings_dir = crate::commands::paths::get_settings_dir();
     let config_path = settings_dir.join("config.json");
     if config_path.exists() {
-        let content = std::fs::read_to_string(&config_path)
-            .map_err(|e| format!("Failed to read settings config: {}", e))?;
-        let full_config: serde_json::Value =
-            serde_json::from_str(&content).unwrap_or_else(|_| serde_json::json!({}));
-        if let Some(size) = full_config
-            .get("max_dialog_size_mb")
-            .and_then(|v| v.as_u64())
-        {
+        let content = std::fs::read_to_string(&config_path).map_err(|e| format!("Failed to read settings config: {}", e))?;
+        let full_config: serde_json::Value = serde_json::from_str(&content).unwrap_or_else(|_| serde_json::json!({}));
+        if let Some(size) = full_config.get("max_dialog_size_mb").and_then(|v| v.as_u64()) {
             return Ok(size);
         }
     }
@@ -1262,33 +1124,25 @@ pub async fn cmd_get_max_dialog_size() -> Result<u64, String> {
 pub async fn cmd_set_max_dialog_size(max_size_mb: u64) -> Result<(), String> {
     let settings_dir = crate::commands::paths::get_settings_dir();
     if !settings_dir.exists() {
-        std::fs::create_dir_all(&settings_dir)
-            .map_err(|e| format!("Failed to create settings directory: {}", e))?;
+        std::fs::create_dir_all(&settings_dir).map_err(|e| format!("Failed to create settings directory: {}", e))?;
     }
     let config_path = settings_dir.join("config.json");
     let mut full_config: serde_json::Value = if config_path.exists() {
-        let content = std::fs::read_to_string(&config_path)
-            .map_err(|e| format!("Failed to read settings config: {}", e))?;
+        let content = std::fs::read_to_string(&config_path).map_err(|e| format!("Failed to read settings config: {}", e))?;
         serde_json::from_str(&content).unwrap_or_else(|_| serde_json::json!({}))
     } else {
         serde_json::json!({})
     };
     full_config["max_dialog_size_mb"] = serde_json::json!(max_size_mb);
-    let content = serde_json::to_string_pretty(&full_config)
-        .map_err(|e| format!("Failed to serialize settings config: {}", e))?;
-    std::fs::write(&config_path, content)
-        .map_err(|e| format!("Failed to save settings config: {}", e))?;
+    let content = serde_json::to_string_pretty(&full_config).map_err(|e| format!("Failed to serialize settings config: {}", e))?;
+    std::fs::write(&config_path, content).map_err(|e| format!("Failed to save settings config: {}", e))?;
     Ok(())
 }
 
 pub async fn reinit_single_hippox(instance_id: &str) -> Result<(), String> {
     let (instance, skills_dir) = {
         let config = HIPPOX_APP_CONFIG.read().await;
-        let instance = config
-            .llm_instances
-            .get(instance_id)
-            .ok_or_else(|| format!("Instance not found: {}", instance_id))?
-            .clone();
+        let instance = config.llm_instances.get(instance_id).ok_or_else(|| format!("Instance not found: {}", instance_id))?.clone();
         let skills_dir = config.workspace.skills_dir.clone();
         (instance, skills_dir)
     };
@@ -1321,11 +1175,7 @@ pub async fn get_hippox_instance(instance_id: &str) -> Result<Arc<Hippox>, Strin
     }
     let (instance_config, skills_dir) = {
         let config = HIPPOX_APP_CONFIG.read().await;
-        let instance = config
-            .llm_instances
-            .get(instance_id)
-            .ok_or_else(|| format!("LLM instance not found in config: {}", instance_id))?
-            .clone();
+        let instance = config.llm_instances.get(instance_id).ok_or_else(|| format!("LLM instance not found in config: {}", instance_id))?.clone();
         let skills_dir = config.workspace.skills_dir.clone();
         (instance, skills_dir)
     };
@@ -1348,10 +1198,7 @@ pub async fn cmd_set_max_favorites_size(max_size_mb: u64) -> Result<(), String> 
 
 #[tauri::command]
 pub fn cmd_get_settings_videoeditor_layout_swap_mode() -> Result<String, String> {
-    let value = crate::commons::get_setting_with_default(
-        "videoeditor_layout_swap_mode",
-        serde_json::json!("chat-left"),
-    )?;
+    let value = crate::commons::get_setting_with_default("videoeditor_layout_swap_mode", serde_json::json!("chat-left"))?;
     Ok(value.as_str().unwrap_or("chat-left").to_string())
 }
 
@@ -1362,10 +1209,7 @@ pub fn cmd_save_settings_videoeditor_layout_swap_mode(mode: String) -> Result<()
 
 #[tauri::command]
 pub fn cmd_get_settings_sandbox3d_layout_swap_mode() -> Result<String, String> {
-    let value = crate::commons::get_setting_with_default(
-        "sandbox3d_layout_swap_mode",
-        serde_json::json!("chat-left"),
-    )?;
+    let value = crate::commons::get_setting_with_default("sandbox3d_layout_swap_mode", serde_json::json!("chat-left"))?;
     Ok(value.as_str().unwrap_or("chat-left").to_string())
 }
 
@@ -1376,10 +1220,7 @@ pub fn cmd_save_settings_sandbox3d_layout_swap_mode(mode: String) -> Result<(), 
 
 #[tauri::command]
 pub fn cmd_get_settings_general_chat_layout_swap_mode() -> Result<String, String> {
-    let value = crate::commons::get_setting_with_default(
-        "layout_swap_mode",
-        serde_json::json!("terminal-left"),
-    )?;
+    let value = crate::commons::get_setting_with_default("layout_swap_mode", serde_json::json!("terminal-left"))?;
     Ok(value.as_str().unwrap_or("terminal-left").to_string())
 }
 
@@ -1390,10 +1231,7 @@ pub fn cmd_save_settings_general_chat_layout_swap_mode(mode: String) -> Result<(
 
 #[tauri::command]
 pub fn cmd_get_settings_chart_chat_layout_swap_mode() -> Result<String, String> {
-    let value = crate::commons::get_setting_with_default(
-        "chart_chat_layout_swap_mode",
-        serde_json::json!("terminal-left"),
-    )?;
+    let value = crate::commons::get_setting_with_default("chart_chat_layout_swap_mode", serde_json::json!("terminal-left"))?;
     Ok(value.as_str().unwrap_or("terminal-left").to_string())
 }
 
@@ -1404,10 +1242,7 @@ pub fn cmd_save_settings_chart_chat_layout_swap_mode(mode: String) -> Result<(),
 
 #[tauri::command]
 pub fn cmd_get_settings_map_chat_layout_swap_mode() -> Result<String, String> {
-    let value = crate::commons::get_setting_with_default(
-        "map_chat_layout_swap_mode",
-        serde_json::json!("terminal-left"),
-    )?;
+    let value = crate::commons::get_setting_with_default("map_chat_layout_swap_mode", serde_json::json!("terminal-left"))?;
     Ok(value.as_str().unwrap_or("terminal-left").to_string())
 }
 
@@ -1418,10 +1253,7 @@ pub fn cmd_save_settings_map_chat_layout_swap_mode(mode: String) -> Result<(), S
 
 #[tauri::command]
 pub fn cmd_get_settings_codeeditor_chat_layout_swap_mode() -> Result<String, String> {
-    let value = crate::commons::get_setting_with_default(
-        "codeeditor_chat_layout_swap_mode",
-        serde_json::json!("terminal-left"),
-    )?;
+    let value = crate::commons::get_setting_with_default("codeeditor_chat_layout_swap_mode", serde_json::json!("terminal-left"))?;
     Ok(value.as_str().unwrap_or("terminal-left").to_string())
 }
 
@@ -1432,10 +1264,7 @@ pub fn cmd_save_settings_codeeditor_chat_layout_swap_mode(mode: String) -> Resul
 
 #[tauri::command]
 pub fn cmd_get_settings_function_panel_position() -> Result<String, String> {
-    let value = crate::commons::get_setting_with_default(
-        "function_panel_position",
-        serde_json::json!("right"),
-    )?;
+    let value = crate::commons::get_setting_with_default("function_panel_position", serde_json::json!("right"))?;
     Ok(value.as_str().unwrap_or("right").to_string())
 }
 

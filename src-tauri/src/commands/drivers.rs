@@ -20,35 +20,20 @@ pub struct DriverParameterInfo {
 #[tauri::command]
 pub fn cmd_get_driver_categories() -> Vec<String> {
     let drivers = cmd_get_drivers();
-    let mut categories: Vec<String> = drivers
-        .into_iter()
-        .map(|s| s.category)
-        .collect::<std::collections::HashSet<_>>()
-        .into_iter()
-        .collect();
+    let mut categories: Vec<String> = drivers.into_iter().map(|s| s.category).collect::<std::collections::HashSet<_>>().into_iter().collect();
     categories.sort();
     categories
 }
 
 #[tauri::command]
-pub async fn cmd_execute_driver(
-    driver_name: String,
-    parameters: std::collections::HashMap<String, serde_json::Value>,
-) -> Result<String, String> {
-    let driver =
-        get_driver(&driver_name).ok_or_else(|| format!("Skill not found: {}", driver_name))?;
-    driver
-        .execute(&parameters, None, None)
-        .await
-        .map_err(|e| e.to_string())
+pub async fn cmd_execute_driver(driver_name: String, parameters: std::collections::HashMap<String, serde_json::Value>) -> Result<String, String> {
+    let driver = get_driver(&driver_name).ok_or_else(|| format!("Skill not found: {}", driver_name))?;
+    driver.execute(&parameters, None, None).await.map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 pub fn cmd_get_drivers_by_category(category: String) -> Vec<DriverInfo> {
-    cmd_get_drivers()
-        .into_iter()
-        .filter(|s| s.category == category)
-        .collect()
+    cmd_get_drivers().into_iter().filter(|s| s.category == category).collect()
 }
 
 #[tauri::command]
@@ -61,12 +46,7 @@ pub fn cmd_get_drivers() -> Vec<DriverInfo> {
                 let params: Vec<DriverParameterInfo> = skill
                     .parameters()
                     .into_iter()
-                    .map(|p| DriverParameterInfo {
-                        name: p.name,
-                        param_type: p.param_type,
-                        description: p.description,
-                        required: p.required,
-                    })
+                    .map(|p| DriverParameterInfo { name: p.name, param_type: p.param_type, description: p.description, required: p.required })
                     .collect();
                 DriverInfo {
                     name: name.clone(),

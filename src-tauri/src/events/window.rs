@@ -22,11 +22,7 @@ fn handle_drag_drop_event(window: &Window, event: &DragDropEvent) {
             let _ = window.emit("drag-leave", ());
         }
         DragDropEvent::Drop { paths, position: _ } => {
-            let paths_json: Vec<String> = paths
-                .iter()
-                .filter(|p| !p.as_os_str().is_empty())
-                .map(|p| p.to_string_lossy().to_string())
-                .collect();
+            let paths_json: Vec<String> = paths.iter().filter(|p| !p.as_os_str().is_empty()).map(|p| p.to_string_lossy().to_string()).collect();
 
             if !paths_json.is_empty() {
                 let _ = window.emit("file-drop", paths_json.clone());

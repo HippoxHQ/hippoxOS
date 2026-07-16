@@ -23,11 +23,7 @@ pub struct TaskScheduler {
 
 impl TaskScheduler {
     pub fn new(task: ScheduledTask) -> Self {
-        Self {
-            task_id: task.id.clone(),
-            task,
-            handle: Arc::new(Mutex::new(None)),
-        }
+        Self { task_id: task.id.clone(), task, handle: Arc::new(Mutex::new(None)) }
     }
 
     pub async fn start(&mut self, pool: TaskPool) -> Result<(), String> {
@@ -59,21 +55,14 @@ impl TaskScheduler {
                         }
                         let should_stop = {
                             let pool_guard = pool_clone.lock().await;
-                            pool_guard
-                                .get(&task.id)
-                                .map(|s| !s.task.enabled || s.task.completed)
-                                .unwrap_or(true)
+                            pool_guard.get(&task.id).map(|s| !s.task.enabled || s.task.completed).unwrap_or(true)
                         };
                         if should_stop {
                             break;
                         }
                     }
                 }
-                Ok(ScheduleOrInterval::Interval {
-                    duration,
-                    value,
-                    unit,
-                }) => {
+                Ok(ScheduleOrInterval::Interval { duration, value, unit }) => {
                     let mut interval_timer = time::interval(duration);
                     interval_timer.tick().await;
                     if let Err(e) = execute_scheduled_task(&task).await {}
@@ -100,15 +89,7 @@ impl TaskScheduler {
                 }
                 Ok(ScheduleOrInterval::Fixed { hour, minute }) => {
                     let now = chrono::Local::now();
-                    let mut next = now
-                        .with_hour(hour)
-                        .unwrap()
-                        .with_minute(minute)
-                        .unwrap()
-                        .with_second(0)
-                        .unwrap()
-                        .with_nanosecond(0)
-                        .unwrap();
+                    let mut next = now.with_hour(hour).unwrap().with_minute(minute).unwrap().with_second(0).unwrap().with_nanosecond(0).unwrap();
                     if next <= now {
                         next = next + chrono::Duration::days(1);
                     }
@@ -144,15 +125,8 @@ impl TaskScheduler {
 
 pub enum ScheduleOrInterval {
     Cron(Schedule),
-    Interval {
-        duration: Duration,
-        value: u32,
-        unit: IntervalUnit,
-    },
-    Fixed {
-        hour: u32,
-        minute: u32,
-    },
+    Interval { duration: Duration, value: u32, unit: IntervalUnit },
+    Fixed { hour: u32, minute: u32 },
 }
 
 fn parse_schedule(task: &ScheduledTask) -> Result<ScheduleOrInterval, String> {
@@ -170,11 +144,7 @@ fn parse_schedule(task: &ScheduledTask) -> Result<ScheduleOrInterval, String> {
                 IntervalUnit::Hour => Duration::from_secs(interval.value as u64 * 3600),
                 IntervalUnit::Day => Duration::from_secs(interval.value as u64 * 86400),
             };
-            Ok(ScheduleOrInterval::Interval {
-                duration,
-                value: interval.value,
-                unit: interval.unit.clone(),
-            })
+            Ok(ScheduleOrInterval::Interval { duration, value: interval.value, unit: interval.unit.clone() })
         }
     }
 }
@@ -204,11 +174,7 @@ async fn load_all_tasks_to_pool(pool: TaskPool) {
         for entry in entries.flatten() {
             let path = entry.path();
             if path.is_dir() {
-                let task_id = path
-                    .file_name()
-                    .unwrap_or_default()
-                    .to_string_lossy()
-                    .to_string();
+                let task_id = path.file_name().unwrap_or_default().to_string_lossy().to_string();
                 if let Ok(Some(task)) = load_task_config(&task_id) {
                     if task.enabled && !task.completed {
                         let mut scheduler = TaskScheduler::new(task);
@@ -246,11 +212,7 @@ pub async fn remove_task_from_pool(pool: TaskPool, task_id: &str) {
     }
 }
 
-pub async fn toggle_task_in_pool(
-    pool: TaskPool,
-    task_id: &str,
-    enabled: bool,
-) -> Result<(), String> {
+pub async fn toggle_task_in_pool(pool: TaskPool, task_id: &str, enabled: bool) -> Result<(), String> {
     let mut pool_guard = pool.lock().await;
     if let Some(scheduler) = pool_guard.get_mut(task_id) {
         if enabled && !scheduler.task.completed {
@@ -291,18 +253,8 @@ pub struct CronJob {
 }
 
 impl CronJob {
-    pub fn new(
-        id: &str,
-        name: &str,
-        cron_expr: &str,
-        callback: Arc<dyn Fn() + Send + Sync>,
-    ) -> Self {
-        Self {
-            id: id.to_string(),
-            name: name.to_string(),
-            cron_expr: cron_expr.to_string(),
-            callback,
-        }
+    pub fn new(id: &str, name: &str, cron_expr: &str, callback: Arc<dyn Fn() + Send + Sync>) -> Self {
+        Self { id: id.to_string(), name: name.to_string(), cron_expr: cron_expr.to_string(), callback }
     }
 }
 
@@ -314,11 +266,7 @@ pub struct CronScheduler {
 
 impl CronScheduler {
     pub fn new(job: CronJob) -> Self {
-        Self {
-            job_id: job.id.clone(),
-            job,
-            handle: Arc::new(Mutex::new(None)),
-        }
+        Self { job_id: job.id.clone(), job, handle: Arc::new(Mutex::new(None)) }
     }
 
     pub async fn start(&mut self, pool: TaskPool) -> Result<(), String> {
@@ -376,15 +324,13 @@ pub async fn add_cron_job_to_pool(pool: TaskPool, job: CronJob) -> Result<(), St
         id: scheduler.job_id.clone(),
         name: scheduler.job.name.clone(),
         schedule_type: crate::commands::scheduled_tasks::ScheduleType::Fixed,
-        schedule_config: crate::commands::scheduled_tasks::ScheduleConfig::Fixed(
-            crate::commands::scheduled_tasks::FixedScheduleConfig {
-                frequency: crate::commands::scheduled_tasks::Frequency::Daily,
-                time: "00:00".to_string(),
-                day_of_week: None,
-                day_of_month: None,
-                date: None,
-            },
-        ),
+        schedule_config: crate::commands::scheduled_tasks::ScheduleConfig::Fixed(crate::commands::scheduled_tasks::FixedScheduleConfig {
+            frequency: crate::commands::scheduled_tasks::Frequency::Daily,
+            time: "00:00".to_string(),
+            day_of_week: None,
+            day_of_month: None,
+            date: None,
+        }),
         enabled: true,
         action_type: crate::commands::scheduled_tasks::ActionType::NaturalLanguage,
         created_at: chrono::Local::now().to_rfc3339(),

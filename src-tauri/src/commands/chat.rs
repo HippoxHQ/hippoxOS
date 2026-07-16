@@ -1,13 +1,11 @@
 use crate::callback::{HippoXWorkflowCallback, HippoxDriverCallback};
-use crate::commands::{
-    cmd_get_disabled_drivers, load_config_from_file, TaskInfo, HIPPOX_APP_CONFIG,
-};
+use crate::commands::{cmd_get_disabled_drivers, load_config_from_file, TaskInfo, HIPPOX_APP_CONFIG};
 use crate::context::{get_conversation_history, store_user_message, Context};
 use crate::hippox_core::{get_default_hippox, init_all_hippox_instances};
 use crate::state::AppState;
 use crate::types::Role;
 use crate::workspace::get_default_workspace;
-use hippox::{ModelProvider, string_to_workflow_mode};
+use hippox::{string_to_workflow_mode, ModelProvider};
 use hippox::{Hippox, HippoxResult, WorkflowMode};
 use memcontext::MemContext;
 use serde::{Deserialize, Serialize};
@@ -75,18 +73,9 @@ pub struct ExecutionLog {
 }
 
 /// Helper function to build enhanced message with history and system prompt
-async fn build_enhanced_message(
-    mem: Option<&MemContext>,
-    session_id: &str,
-    message: &str,
-) -> String {
-    let history_context = if let Some(mem_ref) = mem {
-        get_conversation_history(mem_ref, session_id, 20)
-            .await
-            .unwrap_or_default()
-    } else {
-        String::new()
-    };
+async fn build_enhanced_message(mem: Option<&MemContext>, session_id: &str, message: &str) -> String {
+    let history_context =
+        if let Some(mem_ref) = mem { get_conversation_history(mem_ref, session_id, 20).await.unwrap_or_default() } else { String::new() };
     if !history_context.is_empty() {
         format!("{}\n\n## User\n{}", history_context, message)
     } else {
@@ -95,10 +84,7 @@ async fn build_enhanced_message(
 }
 
 #[tauri::command]
-pub async fn cmd_set_hippox_language(
-    state: State<'_, AppState>,
-    language: String,
-) -> Result<(), String> {
+pub async fn cmd_set_hippox_language(state: State<'_, AppState>, language: String) -> Result<(), String> {
     state.set_language(language).await;
     Ok(())
 }
@@ -133,81 +119,45 @@ pub async fn cmd_send_chat_message_async(
     }
     // Build enhanced message with history
     let enhanced_message = build_enhanced_message(mem.as_deref(), &session, &message).await;
-    let workflow_callback = Arc::new(HippoXWorkflowCallback::new(
-        app_handle.clone(),
-        session.clone(),
-    ));
+    let workflow_callback = Arc::new(HippoXWorkflowCallback::new(app_handle.clone(), session.clone()));
     // atom skill callback
-    let skill_callback = Arc::new(HippoxDriverCallback::new(
-        app_handle.clone(),
-        session.clone(),
-    ));
+    let skill_callback = Arc::new(HippoxDriverCallback::new(app_handle.clone(), session.clone()));
     // disabled drivers
     let disabled_drivers = cmd_get_disabled_drivers().await.ok();
-    let disable_drivers_refs = disabled_drivers
-        .as_ref()
-        .map(|v| v.iter().map(|s| s.as_str()).collect::<Vec<_>>());
+    let disable_drivers_refs = disabled_drivers.as_ref().map(|v| v.iter().map(|s| s.as_str()).collect::<Vec<_>>());
     // default workflow
     let workflow_mode_enum = if let Some(mode_str) = workflow_mode {
-        string_to_workflow_mode(&mode_str)
-            .ok_or_else(|| format!("Invalid workflow mode: {}", mode_str))?
+        string_to_workflow_mode(&mode_str).ok_or_else(|| format!("Invalid workflow mode: {}", mode_str))?
     } else {
         WorkflowMode::ReAct
     };
     // Handle HippoxResult from submit
-    let core_task_id = match hippox.submit(
-        &enhanced_message,
-        workflow_mode_enum,
-        Some(workflow_callback),
-        Some(skill_callback),
-        disable_drivers_refs,
-    ) {
-        HippoxResult {
-            data: Some(task_id),
-            ..
-        } => task_id,
-        HippoxResult {
-            error: Some(err), ..
-        } => return Err(err),
+    let core_task_id = match hippox.submit(&enhanced_message, workflow_mode_enum, Some(workflow_callback), Some(skill_callback), disable_drivers_refs)
+    {
+        HippoxResult { data: Some(task_id), .. } => task_id,
+        HippoxResult { error: Some(err), .. } => return Err(err),
         _ => return Err("Failed to submit task".to_string()),
     };
     let messages = LogMessages::get();
-    state
-        .add_log(
-            "process".to_string(),
-            messages.send_start.replace("{}", &message),
-            Some(format!("task_id: {}", core_task_id)),
-            None,
-        )
-        .await;
-    state
-        .create_task(core_task_id.clone(), session.clone(), message.clone())
-        .await;
+    state.add_log("process".to_string(), messages.send_start.replace("{}", &message), Some(format!("task_id: {}", core_task_id)), None).await;
+    state.create_task(core_task_id.clone(), session.clone(), message.clone()).await;
     state.update_task_status(&core_task_id, "pending").await;
     Ok(core_task_id)
 }
 
 #[tauri::command]
-pub async fn cmd_get_task_status(
-    state: State<'_, AppState>,
-    task_id: String,
-) -> Result<Option<TaskInfo>, String> {
+pub async fn cmd_get_task_status(state: State<'_, AppState>, task_id: String) -> Result<Option<TaskInfo>, String> {
     Ok(state.get_task(&task_id).await)
 }
 
 #[tauri::command]
-pub async fn cmd_get_session_tasks(
-    state: State<'_, AppState>,
-    session_id: Option<String>,
-) -> Result<Vec<TaskInfo>, String> {
+pub async fn cmd_get_session_tasks(state: State<'_, AppState>, session_id: Option<String>) -> Result<Vec<TaskInfo>, String> {
     let session = session_id.unwrap_or_else(|| "default".to_string());
     Ok(state.get_session_tasks(&session).await)
 }
 
 #[tauri::command]
-pub async fn cmd_get_execution_logs(
-    state: State<'_, AppState>,
-) -> Result<Vec<ExecutionLog>, String> {
+pub async fn cmd_get_execution_logs(state: State<'_, AppState>) -> Result<Vec<ExecutionLog>, String> {
     Ok(state.get_logs().await)
 }
 
@@ -218,20 +168,10 @@ pub async fn cmd_clear_execution_logs(state: State<'_, AppState>) -> Result<(), 
 }
 
 #[tauri::command]
-pub async fn cmd_reset_conversation(
-    state: State<'_, AppState>,
-    session_id: Option<String>,
-) -> Result<(), String> {
+pub async fn cmd_reset_conversation(state: State<'_, AppState>, session_id: Option<String>) -> Result<(), String> {
     let messages = LogMessages::get();
     let session = session_id.unwrap_or_else(|| "default".to_string());
-    state
-        .add_log(
-            "process".to_string(),
-            messages.session_cleared.replace("{}", &session),
-            None,
-            None,
-        )
-        .await;
+    state.add_log("process".to_string(), messages.session_cleared.replace("{}", &session), None, None).await;
     Ok(())
 }
 
@@ -246,12 +186,8 @@ pub async fn cmd_get_atomic_skills_list() -> Result<Vec<String>, String> {
         Ok(hippox) => {
             // Handle HippoxResult from get_atomic_skill_names
             match hippox.get_driver_names() {
-                HippoxResult {
-                    data: Some(skills), ..
-                } => Ok(skills),
-                HippoxResult {
-                    error: Some(err), ..
-                } => Err(err),
+                HippoxResult { data: Some(skills), .. } => Ok(skills),
+                HippoxResult { error: Some(err), .. } => Err(err),
                 _ => Ok(vec![]),
             }
         }

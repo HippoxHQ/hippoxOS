@@ -41,12 +41,7 @@ pub struct KeyframeTrackRequest {
 impl Ffmpeg {
     /// Generate FFmpeg filter expression for keyframe animations
     /// Returns a tuple of (filter_expression, needs_zoompan)
-    pub fn generate_keyframe_filter(
-        &self,
-        animations: &[KeyframeAnimation],
-        width: u32,
-        height: u32,
-    ) -> String {
+    pub fn generate_keyframe_filter(&self, animations: &[KeyframeAnimation], width: u32, height: u32) -> String {
         let mut filter_parts = Vec::new();
 
         for anim in animations {
@@ -60,34 +55,21 @@ impl Ffmpeg {
     }
 
     /// Generate single keyframe filter expression
-    fn generate_single_keyframe_filter(
-        &self,
-        anim: &KeyframeAnimation,
-        width: u32,
-        height: u32,
-    ) -> String {
+    fn generate_single_keyframe_filter(&self, anim: &KeyframeAnimation, width: u32, height: u32) -> String {
         if anim.keyframes.len() < 2 {
             return String::new();
         }
 
         let mut sorted_kf = anim.keyframes.clone();
-        sorted_kf.sort_by(|a, b| {
-            a.time
-                .partial_cmp(&b.time)
-                .unwrap_or(std::cmp::Ordering::Equal)
-        });
+        sorted_kf.sort_by(|a, b| a.time.partial_cmp(&b.time).unwrap_or(std::cmp::Ordering::Equal));
 
         // Build interpolation expression using FFmpeg's expression syntax
         // Using: val = lerp(val1, val2, t) where t = (time - t1) / (t2 - t1)
         let property = anim.property.as_str();
 
         match property {
-            "scale" | "opacity" | "brightness" | "contrast" | "saturation" => {
-                self.build_numeric_keyframe(&sorted_kf, property)
-            }
-            "x" | "y" | "rotation" => {
-                self.build_position_keyframe(&sorted_kf, property, width, height)
-            }
+            "scale" | "opacity" | "brightness" | "contrast" | "saturation" => self.build_numeric_keyframe(&sorted_kf, property),
+            "x" | "y" | "rotation" => self.build_position_keyframe(&sorted_kf, property, width, height),
             _ => String::new(),
         }
     }
@@ -106,10 +88,7 @@ impl Ffmpeg {
             let v2 = kf2.value;
 
             // Use FFmpeg expression: if(t >= t1 && t < t2, lerp(v1, v2, (t - t1)/(t2 - t1)), ...)
-            let lerp_expr = format!(
-                "lerp({}, {}, (t - {}) / ({:.10} - {:.10}))",
-                v1, v2, t1, t2, t1
-            );
+            let lerp_expr = format!("lerp({}, {}, (t - {}) / ({:.10} - {:.10}))", v1, v2, t1, t2, t1);
 
             let condition = if i == 0 {
                 format!("if(t < {}, {})", t2, lerp_expr)
@@ -146,13 +125,7 @@ impl Ffmpeg {
     }
 
     /// Build keyframe expression for position (x, y)
-    fn build_position_keyframe(
-        &self,
-        keyframes: &[KeyframePoint],
-        property: &str,
-        _width: u32,
-        _height: u32,
-    ) -> String {
+    fn build_position_keyframe(&self, keyframes: &[KeyframePoint], property: &str, _width: u32, _height: u32) -> String {
         let mut expr_parts = Vec::new();
 
         for i in 0..keyframes.len() - 1 {
@@ -164,10 +137,7 @@ impl Ffmpeg {
             let v1 = kf1.value;
             let v2 = kf2.value;
 
-            let lerp_expr = format!(
-                "lerp({}, {}, (t - {}) / ({:.10} - {:.10}))",
-                v1, v2, t1, t2, t1
-            );
+            let lerp_expr = format!("lerp({}, {}, (t - {}) / ({:.10} - {:.10}))", v1, v2, t1, t2, t1);
 
             let condition = if i == 0 {
                 format!("if(t < {}, {})", t2, lerp_expr)
@@ -185,14 +155,7 @@ impl Ffmpeg {
         let first_time = keyframes.first().unwrap().time;
         let last_time = keyframes.last().unwrap().time;
 
-        format!(
-            "if(t < {}, {}, if(t < {}, {}, {}))",
-            first_time,
-            first_val,
-            last_time,
-            expr_parts.join(" "),
-            last_val
-        )
+        format!("if(t < {}, {}, if(t < {}, {}, {}))", first_time, first_val, last_time, expr_parts.join(" "), last_val)
     }
 
     /// Apply keyframe animation to a video or overlay
@@ -210,8 +173,7 @@ impl Ffmpeg {
 
         if let Some(parent) = Path::new(output_path).parent() {
             if !parent.exists() {
-                std::fs::create_dir_all(parent)
-                    .map_err(|e| format!("Failed to create output directory: {}", e))?;
+                std::fs::create_dir_all(parent).map_err(|e| format!("Failed to create output directory: {}", e))?;
             }
         }
 
@@ -222,16 +184,7 @@ impl Ffmpeg {
         }
 
         let output = Command::new("ffmpeg")
-            .args([
-                "-i",
-                input_path,
-                "-vf",
-                &filter_expr,
-                "-c:a",
-                "copy",
-                "-y",
-                output_path,
-            ])
+            .args(["-i", input_path, "-vf", &filter_expr, "-c:a", "copy", "-y", output_path])
             .output()
             .map_err(|e| format!("Failed to apply keyframe animation: {}", e))?;
 
@@ -264,8 +217,7 @@ impl Ffmpeg {
         }
         if let Some(parent) = Path::new(output_path).parent() {
             if !parent.exists() {
-                std::fs::create_dir_all(parent)
-                    .map_err(|e| format!("Failed to create output directory: {}", e))?;
+                std::fs::create_dir_all(parent).map_err(|e| format!("Failed to create output directory: {}", e))?;
             }
         }
         // Extract x and y animations
@@ -278,67 +230,34 @@ impl Ffmpeg {
         let mut overlay_filter = String::new();
         // Scale
         if let Some(anim) = scale_anim {
-            let scale_expr = self.generate_position_keyframe_expr(
-                &anim.keyframes,
-                "scale",
-                start,
-                duration,
-                1.0,
-            );
+            let scale_expr = self.generate_position_keyframe_expr(&anim.keyframes, "scale", start, duration, 1.0);
             if !scale_expr.is_empty() {
                 overlay_filter.push_str(&format!("scale=iw*{}:ih*{}:", scale_expr, scale_expr));
             }
         }
         // Opacity
         if let Some(anim) = opacity_anim {
-            let opacity_expr = self.generate_position_keyframe_expr(
-                &anim.keyframes,
-                "opacity",
-                start,
-                duration,
-                1.0,
-            );
+            let opacity_expr = self.generate_position_keyframe_expr(&anim.keyframes, "opacity", start, duration, 1.0);
             if !opacity_expr.is_empty() {
-                overlay_filter.push_str(&format!(
-                    "format=rgba,colorchannelmixer=aa={},",
-                    opacity_expr
-                ));
+                overlay_filter.push_str(&format!("format=rgba,colorchannelmixer=aa={},", opacity_expr));
             }
         }
         // Rotation
         if let Some(anim) = rotation_anim {
-            let rot_expr = self.generate_position_keyframe_expr(
-                &anim.keyframes,
-                "rotation",
-                start,
-                duration,
-                0.0,
-            );
+            let rot_expr = self.generate_position_keyframe_expr(&anim.keyframes, "rotation", start, duration, 0.0);
             if !rot_expr.is_empty() {
                 overlay_filter.push_str(&format!("rotate={}*PI/180:", rot_expr));
             }
         }
         // X position
-        let x_expr = if let Some(anim) = x_anim {
-            self.generate_position_keyframe_expr(&anim.keyframes, "x", start, duration, 0.0)
-        } else {
-            "0".to_string()
-        };
+        let x_expr =
+            if let Some(anim) = x_anim { self.generate_position_keyframe_expr(&anim.keyframes, "x", start, duration, 0.0) } else { "0".to_string() };
         // Y position
-        let y_expr = if let Some(anim) = y_anim {
-            self.generate_position_keyframe_expr(&anim.keyframes, "y", start, duration, 0.0)
-        } else {
-            "0".to_string()
-        };
+        let y_expr =
+            if let Some(anim) = y_anim { self.generate_position_keyframe_expr(&anim.keyframes, "y", start, duration, 0.0) } else { "0".to_string() };
         // Build the final command
         let filter_cmd = if overlay_filter.is_empty() {
-            format!(
-                "[0:v][1:v]overlay={}:{}:enable='between(t,{},{})'[out]",
-                x_expr,
-                y_expr,
-                start,
-                start + duration
-            )
+            format!("[0:v][1:v]overlay={}:{}:enable='between(t,{},{})'[out]", x_expr, y_expr, start, start + duration)
         } else {
             // Remove trailing comma from overlay_filter
             let overlay_filter_trimmed = overlay_filter.trim_end_matches(',');
@@ -352,20 +271,7 @@ impl Ffmpeg {
             )
         };
         let output = Command::new("ffmpeg")
-            .args([
-                "-i",
-                background_path,
-                "-i",
-                overlay_path,
-                "-filter_complex",
-                &filter_cmd,
-                "-map",
-                "[out]",
-                "-c:a",
-                "copy",
-                "-y",
-                output_path,
-            ])
+            .args(["-i", background_path, "-i", overlay_path, "-filter_complex", &filter_cmd, "-map", "[out]", "-c:a", "copy", "-y", output_path])
             .output()
             .map_err(|e| format!("Failed to apply overlay keyframe animation: {}", e))?;
         if !output.status.success() {
@@ -376,24 +282,13 @@ impl Ffmpeg {
     }
 
     /// Generate position keyframe expression with time offset
-    fn generate_position_keyframe_expr(
-        &self,
-        keyframes: &[KeyframePoint],
-        _property: &str,
-        start: f64,
-        duration: f64,
-        default_val: f64,
-    ) -> String {
+    fn generate_position_keyframe_expr(&self, keyframes: &[KeyframePoint], _property: &str, start: f64, duration: f64, default_val: f64) -> String {
         if keyframes.len() < 2 {
             return default_val.to_string();
         }
 
         let mut sorted_kf: Vec<KeyframePoint> = keyframes.to_vec();
-        sorted_kf.sort_by(|a, b| {
-            a.time
-                .partial_cmp(&b.time)
-                .unwrap_or(std::cmp::Ordering::Equal)
-        });
+        sorted_kf.sort_by(|a, b| a.time.partial_cmp(&b.time).unwrap_or(std::cmp::Ordering::Equal));
 
         // Offset time by start
         let mut expr_parts = Vec::new();
@@ -407,10 +302,7 @@ impl Ffmpeg {
             let v1 = kf1.value;
             let v2 = kf2.value;
 
-            let lerp_expr = format!(
-                "lerp({}, {}, (t - {}) / ({:.10} - {:.10}))",
-                v1, v2, t1, t2, t1
-            );
+            let lerp_expr = format!("lerp({}, {}, (t - {}) / ({:.10} - {:.10}))", v1, v2, t1, t2, t1);
 
             let condition = if i == 0 {
                 format!("if(t < {}, {})", t2, lerp_expr)
@@ -432,14 +324,7 @@ impl Ffmpeg {
         let first_time = sorted_kf.first().unwrap().time;
         let last_time = sorted_kf.last().unwrap().time;
 
-        format!(
-            "if(t < {}, {}, if(t < {}, {}, {}))",
-            first_time,
-            first_val,
-            last_time,
-            expr_parts.join(" "),
-            last_val
-        )
+        format!("if(t < {}, {}, if(t < {}, {}, {}))", first_time, first_val, last_time, expr_parts.join(" "), last_val)
     }
 
     /// Create a slide transition between two clips using keyframes
@@ -459,8 +344,7 @@ impl Ffmpeg {
         }
         if let Some(parent) = Path::new(output_path).parent() {
             if !parent.exists() {
-                std::fs::create_dir_all(parent)
-                    .map_err(|e| format!("Failed to create output directory: {}", e))?;
+                std::fs::create_dir_all(parent).map_err(|e| format!("Failed to create output directory: {}", e))?;
             }
         }
         let (start_x, end_x, start_y, end_y) = match direction {
@@ -518,31 +402,15 @@ mod tests {
             KeyframeAnimation {
                 property: "x".to_string(),
                 keyframes: vec![
-                    KeyframePoint {
-                        time: 0.0,
-                        value: 0.0,
-                        interpolation: "linear".to_string(),
-                    },
-                    KeyframePoint {
-                        time: 2.0,
-                        value: 100.0,
-                        interpolation: "linear".to_string(),
-                    },
+                    KeyframePoint { time: 0.0, value: 0.0, interpolation: "linear".to_string() },
+                    KeyframePoint { time: 2.0, value: 100.0, interpolation: "linear".to_string() },
                 ],
             },
             KeyframeAnimation {
                 property: "y".to_string(),
                 keyframes: vec![
-                    KeyframePoint {
-                        time: 0.0,
-                        value: 0.0,
-                        interpolation: "linear".to_string(),
-                    },
-                    KeyframePoint {
-                        time: 2.0,
-                        value: 50.0,
-                        interpolation: "linear".to_string(),
-                    },
+                    KeyframePoint { time: 0.0, value: 0.0, interpolation: "linear".to_string() },
+                    KeyframePoint { time: 2.0, value: 50.0, interpolation: "linear".to_string() },
                 ],
             },
         ];

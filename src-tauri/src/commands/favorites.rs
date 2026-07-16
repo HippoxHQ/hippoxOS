@@ -34,9 +34,7 @@ pub fn save_favorites_config(config: &FavoritesConfig) -> Result<(), String> {
             fs::create_dir_all(parent).map_err(|e| format!("Failed to create directory: {}", e))?;
         }
     }
-    let content = serde_json::to_string_pretty(config)
-        .map_err(|e| format!("Failed to serialize favorites config: {}", e))?;
-    fs::write(&config_path, content)
-        .map_err(|e| format!("Failed to save favorites config: {}", e))?;
+    let content = serde_json::to_string_pretty(config).map_err(|e| format!("Failed to serialize favorites config: {}", e))?;
+    fs::write(&config_path, content).map_err(|e| format!("Failed to save favorites config: {}", e))?;
     Ok(())
 }

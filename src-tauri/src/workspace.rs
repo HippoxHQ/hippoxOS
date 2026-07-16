@@ -23,10 +23,7 @@ pub struct WorkspaceConfigData {
 
 impl Default for WorkspaceConfigData {
     fn default() -> Self {
-        Self {
-            instances: vec![],
-            default_instance_id: String::new(),
-        }
+        Self { instances: vec![], default_instance_id: String::new() }
     }
 }
 
@@ -37,14 +34,10 @@ fn get_main_config_path() -> PathBuf {
 pub fn load_workspace_config() -> Result<WorkspaceConfigData, String> {
     let config_path = get_main_config_path();
     if config_path.exists() {
-        let content = fs::read_to_string(&config_path)
-            .map_err(|e| format!("Failed to read config: {}", e))?;
-        let full_config: serde_json::Value =
-            serde_json::from_str(&content).unwrap_or_else(|_| serde_json::json!({}));
-
+        let content = fs::read_to_string(&config_path).map_err(|e| format!("Failed to read config: {}", e))?;
+        let full_config: serde_json::Value = serde_json::from_str(&content).unwrap_or_else(|_| serde_json::json!({}));
         if let Some(workspace_config) = full_config.get("workspace_config") {
-            let config: WorkspaceConfigData = serde_json::from_value(workspace_config.clone())
-                .unwrap_or_else(|_| WorkspaceConfigData::default());
+            let config: WorkspaceConfigData = serde_json::from_value(workspace_config.clone()).unwrap_or_else(|_| WorkspaceConfigData::default());
             Ok(config)
         } else {
             Ok(WorkspaceConfigData::default())
@@ -57,21 +50,17 @@ pub fn load_workspace_config() -> Result<WorkspaceConfigData, String> {
 pub fn save_workspace_config(config: &WorkspaceConfigData) -> Result<(), String> {
     let settings_dir = get_settings_dir();
     if !settings_dir.exists() {
-        fs::create_dir_all(&settings_dir)
-            .map_err(|e| format!("Failed to create settings directory: {}", e))?;
+        fs::create_dir_all(&settings_dir).map_err(|e| format!("Failed to create settings directory: {}", e))?;
     }
     let config_path = get_main_config_path();
     let mut full_config: serde_json::Value = if config_path.exists() {
-        let content = fs::read_to_string(&config_path)
-            .map_err(|e| format!("Failed to read config: {}", e))?;
+        let content = fs::read_to_string(&config_path).map_err(|e| format!("Failed to read config: {}", e))?;
         serde_json::from_str(&content).unwrap_or_else(|_| serde_json::json!({}))
     } else {
         serde_json::json!({})
     };
-    full_config["workspace_config"] = serde_json::to_value(config)
-        .map_err(|e| format!("Failed to serialize workspace config: {}", e))?;
-    let content = serde_json::to_string_pretty(&full_config)
-        .map_err(|e| format!("Failed to serialize config: {}", e))?;
+    full_config["workspace_config"] = serde_json::to_value(config).map_err(|e| format!("Failed to serialize workspace config: {}", e))?;
+    let content = serde_json::to_string_pretty(&full_config).map_err(|e| format!("Failed to serialize config: {}", e))?;
     fs::write(&config_path, content).map_err(|e| format!("Failed to save config: {}", e))?;
     Ok(())
 }
@@ -80,8 +69,7 @@ pub fn ensure_workspace_directory() -> Result<PathBuf, String> {
     let app_root = get_app_root_dir();
     let workspace_dir = app_root.join("workspace");
     if !workspace_dir.exists() {
-        fs::create_dir_all(&workspace_dir)
-            .map_err(|e| format!("Failed to create workspace directory: {}", e))?;
+        fs::create_dir_all(&workspace_dir).map_err(|e| format!("Failed to create workspace directory: {}", e))?;
         println!("Created workspace directory: {:?}", workspace_dir);
     }
     Ok(workspace_dir)
@@ -118,10 +106,7 @@ pub fn get_default_workspace() -> Result<Option<WorkspaceInstance>, String> {
     if config.default_instance_id.is_empty() {
         return Ok(None);
     }
-    Ok(config
-        .instances
-        .into_iter()
-        .find(|i| i.id == config.default_instance_id))
+    Ok(config.instances.into_iter().find(|i| i.id == config.default_instance_id))
 }
 
 pub fn get_all_workspaces() -> Result<Vec<WorkspaceInstance>, String> {

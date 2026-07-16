@@ -35,8 +35,7 @@ pub fn get_notifications_dir() -> PathBuf {
 fn ensure_notifications_dir() -> Result<(), String> {
     let dir = get_notifications_dir();
     if !dir.exists() {
-        fs::create_dir_all(&dir)
-            .map_err(|e| format!("Failed to create notifications directory: {}", e))?;
+        fs::create_dir_all(&dir).map_err(|e| format!("Failed to create notifications directory: {}", e))?;
     }
     Ok(())
 }
@@ -48,8 +47,7 @@ fn get_notification_file_path(notification_id: &str) -> PathBuf {
 fn save_notification_to_file(notification: &SystemNotification) -> Result<(), String> {
     ensure_notifications_dir()?;
     let file_path = get_notification_file_path(&notification.id);
-    let content = serde_json::to_string_pretty(notification)
-        .map_err(|e| format!("Failed to serialize notification: {}", e))?;
+    let content = serde_json::to_string_pretty(notification).map_err(|e| format!("Failed to serialize notification: {}", e))?;
     fs::write(&file_path, content).map_err(|e| format!("Failed to save notification: {}", e))?;
     Ok(())
 }
@@ -57,21 +55,16 @@ fn save_notification_to_file(notification: &SystemNotification) -> Result<(), St
 fn delete_notification_file(notification_id: &str) -> Result<(), String> {
     let file_path = get_notification_file_path(notification_id);
     if file_path.exists() {
-        fs::remove_file(&file_path)
-            .map_err(|e| format!("Failed to delete notification file: {}", e))?;
+        fs::remove_file(&file_path).map_err(|e| format!("Failed to delete notification file: {}", e))?;
     }
     Ok(())
 }
 
-fn load_notification_from_file(
-    notification_id: &str,
-) -> Result<Option<SystemNotification>, String> {
+fn load_notification_from_file(notification_id: &str) -> Result<Option<SystemNotification>, String> {
     let file_path = get_notification_file_path(notification_id);
     if file_path.exists() {
-        let content = fs::read_to_string(&file_path)
-            .map_err(|e| format!("Failed to read notification file: {}", e))?;
-        let notification: SystemNotification = serde_json::from_str(&content)
-            .map_err(|e| format!("Failed to parse notification: {}", e))?;
+        let content = fs::read_to_string(&file_path).map_err(|e| format!("Failed to read notification file: {}", e))?;
+        let notification: SystemNotification = serde_json::from_str(&content).map_err(|e| format!("Failed to parse notification: {}", e))?;
         Ok(Some(notification))
     } else {
         Ok(None)
@@ -85,14 +78,11 @@ fn load_all_notifications() -> Result<Vec<SystemNotification>, String> {
     }
 
     let mut notifications = Vec::new();
-    for entry in
-        fs::read_dir(&dir).map_err(|e| format!("Failed to read notifications directory: {}", e))?
-    {
+    for entry in fs::read_dir(&dir).map_err(|e| format!("Failed to read notifications directory: {}", e))? {
         let entry = entry.map_err(|e| format!("Failed to read entry: {}", e))?;
         let path = entry.path();
         if path.is_file() && path.extension().and_then(|e| e.to_str()) == Some("json") {
-            let content =
-                fs::read_to_string(&path).map_err(|e| format!("Failed to read file: {}", e))?;
+            let content = fs::read_to_string(&path).map_err(|e| format!("Failed to read file: {}", e))?;
             if let Ok(notification) = serde_json::from_str::<SystemNotification>(&content) {
                 notifications.push(notification);
             }
@@ -104,16 +94,12 @@ fn load_all_notifications() -> Result<Vec<SystemNotification>, String> {
 }
 
 #[tauri::command]
-pub async fn cmd_notification_add(
-    params: AddNotificationParams,
-) -> Result<SystemNotification, String> {
+pub async fn cmd_notification_add(params: AddNotificationParams) -> Result<SystemNotification, String> {
     let notification = SystemNotification {
         id: Uuid::new_v4().to_string(),
         title: params.title,
         message: params.message,
-        notification_type: params
-            .notification_type
-            .unwrap_or_else(|| "info".to_string()),
+        notification_type: params.notification_type.unwrap_or_else(|| "info".to_string()),
         timestamp: chrono::Local::now().to_rfc3339(),
         read: false,
         data: params.data,
@@ -235,93 +221,40 @@ pub async fn cmd_notification_clear_all() -> Result<usize, String> {
 }
 
 #[tauri::command]
-pub async fn cmd_notification_get_latest(
-    limit: Option<usize>,
-) -> Result<Vec<SystemNotification>, String> {
+pub async fn cmd_notification_get_latest(limit: Option<usize>) -> Result<Vec<SystemNotification>, String> {
     let notifications = load_all_notifications()?;
     let limit = limit.unwrap_or(10);
     Ok(notifications.into_iter().take(limit).collect())
 }
 
 #[tauri::command]
-pub async fn cmd_notification_get_by_date_range(
-    start_date: String,
-    end_date: String,
-) -> Result<Vec<SystemNotification>, String> {
+pub async fn cmd_notification_get_by_date_range(start_date: String, end_date: String) -> Result<Vec<SystemNotification>, String> {
     let notifications = load_all_notifications()?;
-    let start = chrono::DateTime::parse_from_rfc3339(&start_date)
-        .map_err(|e| format!("Invalid start date: {}", e))?;
-    let end = chrono::DateTime::parse_from_rfc3339(&end_date)
-        .map_err(|e| format!("Invalid end date: {}", e))?;
+    let start = chrono::DateTime::parse_from_rfc3339(&start_date).map_err(|e| format!("Invalid start date: {}", e))?;
+    let end = chrono::DateTime::parse_from_rfc3339(&end_date).map_err(|e| format!("Invalid end date: {}", e))?;
 
     Ok(notifications
         .into_iter()
-        .filter(|n| {
-            if let Ok(ts) = chrono::DateTime::parse_from_rfc3339(&n.timestamp) {
-                ts >= start && ts <= end
-            } else {
-                false
-            }
-        })
+        .filter(|n| if let Ok(ts) = chrono::DateTime::parse_from_rfc3339(&n.timestamp) { ts >= start && ts <= end } else { false })
         .collect())
 }
 
 #[tauri::command]
-pub async fn cmd_notification_info(
-    title: String,
-    message: String,
-    data: Option<serde_json::Value>,
-) -> Result<SystemNotification, String> {
-    cmd_notification_add(AddNotificationParams {
-        title,
-        message,
-        notification_type: Some("info".to_string()),
-        data,
-    })
-    .await
+pub async fn cmd_notification_info(title: String, message: String, data: Option<serde_json::Value>) -> Result<SystemNotification, String> {
+    cmd_notification_add(AddNotificationParams { title, message, notification_type: Some("info".to_string()), data }).await
 }
 
 #[tauri::command]
-pub async fn cmd_notification_success(
-    title: String,
-    message: String,
-    data: Option<serde_json::Value>,
-) -> Result<SystemNotification, String> {
-    cmd_notification_add(AddNotificationParams {
-        title,
-        message,
-        notification_type: Some("success".to_string()),
-        data,
-    })
-    .await
+pub async fn cmd_notification_success(title: String, message: String, data: Option<serde_json::Value>) -> Result<SystemNotification, String> {
+    cmd_notification_add(AddNotificationParams { title, message, notification_type: Some("success".to_string()), data }).await
 }
 
 #[tauri::command]
-pub async fn cmd_notification_warning(
-    title: String,
-    message: String,
-    data: Option<serde_json::Value>,
-) -> Result<SystemNotification, String> {
-    cmd_notification_add(AddNotificationParams {
-        title,
-        message,
-        notification_type: Some("warning".to_string()),
-        data,
-    })
-    .await
+pub async fn cmd_notification_warning(title: String, message: String, data: Option<serde_json::Value>) -> Result<SystemNotification, String> {
+    cmd_notification_add(AddNotificationParams { title, message, notification_type: Some("warning".to_string()), data }).await
 }
 
 #[tauri::command]
-pub async fn cmd_notification_error(
-    title: String,
-    message: String,
-    data: Option<serde_json::Value>,
-) -> Result<SystemNotification, String> {
-    cmd_notification_add(AddNotificationParams {
-        title,
-        message,
-        notification_type: Some("error".to_string()),
-        data,
-    })
-    .await
+pub async fn cmd_notification_error(title: String, message: String, data: Option<serde_json::Value>) -> Result<SystemNotification, String> {
+    cmd_notification_add(AddNotificationParams { title, message, notification_type: Some("error".to_string()), data }).await
 }

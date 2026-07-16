@@ -106,10 +106,7 @@ pub(crate) async fn init_all_hippox_instances() -> Result<(), String> {
     }
     let (skills_dir, llm_instances) = {
         let config = HIPPOX_APP_CONFIG.read().await;
-        (
-            config.workspace.skills_dir.clone(),
-            config.llm_instances.clone(),
-        )
+        (config.workspace.skills_dir.clone(), config.llm_instances.clone())
     };
     let mut instances = HIPPOX_INSTANCES.write().await;
     for (id, instance) in llm_instances {
@@ -125,10 +122,7 @@ pub(crate) async fn init_all_hippox_instances() -> Result<(), String> {
     Ok(())
 }
 
-pub(crate) async fn init_single_hippox(
-    instance: &LlmInstance,
-    skills_dir: &str,
-) -> Result<Hippox, String> {
+pub(crate) async fn init_single_hippox(instance: &LlmInstance, skills_dir: &str) -> Result<Hippox, String> {
     use hippox::{ModelProvider, WorkflowMode};
     let model_provider = match instance.provider.to_lowercase().as_str() {
         "openai" => ModelProvider::OpenAI,
@@ -160,19 +154,11 @@ pub(crate) async fn init_single_hippox(
             extra_keys.insert("api_base".to_string(), instance.api_base.clone());
         }
     }
-    let api_key_to_use = if instance.api_key.is_empty() {
-        None
-    } else {
-        Some(instance.api_key.clone())
-    };
+    let api_key_to_use = if instance.api_key.is_empty() { None } else { Some(instance.api_key.clone()) };
     let hippox = Hippox::with_workflow_mode(
         model_provider,
         api_key_to_use,
-        if extra_keys.is_empty() {
-            None
-        } else {
-            Some(extra_keys)
-        },
+        if extra_keys.is_empty() { None } else { Some(extra_keys) },
         Some(HippoxConfig::default()),
     )
     .await
@@ -186,26 +172,13 @@ pub(crate) async fn init_single_hippox(
                 id.sex = Some("woman".to_string());
                 id.role = Some("Omniscient and omnipotent AI Hippo".to_string());
                 id.personality = Some("warm, patient, and endlessly caring".to_string());
-                id.tone_style = Some(
-                    "inspirational, gentle and encouraging, always using warm words".to_string(),
-                );
-                id.knowledge_scope = Some(
-                    "computer science, omniscient across all domains, from science to arts"
-                        .to_string(),
-                );
-                id.catchphrase = Some(
-                    "Don't worry, I'll wholeheartedly help you better control your computer~ 🦛"
-                        .to_string(),
-                );
+                id.tone_style = Some("inspirational, gentle and encouraging, always using warm words".to_string());
+                id.knowledge_scope = Some("computer science, omniscient across all domains, from science to arts".to_string());
+                id.catchphrase = Some("Don't worry, I'll wholeheartedly help you better control your computer~ 🦛".to_string());
             });
             Ok(hippox)
         }
-        Err(e) => {
-            return Err(format!(
-                "Failed to initialize Hippox for {}: {}",
-                instance.name, e
-            ))
-        }
+        Err(e) => return Err(format!("Failed to initialize Hippox for {}: {}", instance.name, e)),
     }
 }
 
@@ -213,10 +186,7 @@ pub(crate) async fn get_default_hippox() -> Result<Arc<Hippox>, String> {
     let default_instance_id = {
         let config = HIPPOX_APP_CONFIG.read().await;
         if config.llm_instances.is_empty() {
-            return Err(
-                "No LLM instance configured. Please add an LLM configuration in settings."
-                    .to_string(),
-            );
+            return Err("No LLM instance configured. Please add an LLM configuration in settings.".to_string());
         }
         config
             .llm_instances
@@ -246,27 +216,19 @@ pub(crate) async fn sync_all_to_hippox_core() -> Result<(), String> {
     Ok(())
 }
 
-pub(crate) async fn sync_database_instance_to_core(
-    instance: &DatabaseInstance,
-) -> Result<(), String> {
+pub(crate) async fn sync_database_instance_to_core(instance: &DatabaseInstance) -> Result<(), String> {
     Ok(())
 }
 
-pub(crate) async fn sync_container_instance_to_core(
-    instance: &ContainerInstance,
-) -> Result<(), String> {
+pub(crate) async fn sync_container_instance_to_core(instance: &ContainerInstance) -> Result<(), String> {
     Ok(())
 }
 
-pub(crate) async fn sync_network_instance_to_core(
-    instance: &NetworkInstance,
-) -> Result<(), String> {
+pub(crate) async fn sync_network_instance_to_core(instance: &NetworkInstance) -> Result<(), String> {
     Ok(())
 }
 
-pub(crate) async fn sync_notification_instance_to_core(
-    instance: &NotificationInstance,
-) -> Result<(), String> {
+pub(crate) async fn sync_notification_instance_to_core(instance: &NotificationInstance) -> Result<(), String> {
     Ok(())
 }
 
@@ -276,5 +238,4 @@ pub(crate) async fn remove_container_instance_from_core(instance_type: &str, ins
 
 pub(crate) async fn remove_network_instance_from_core(instance_type: &str, instance_id: &str) {}
 
-pub(crate) async fn remove_notification_instance_from_core(instance_type: &str, instance_id: &str) {
-}
+pub(crate) async fn remove_notification_instance_from_core(instance_type: &str, instance_id: &str) {}

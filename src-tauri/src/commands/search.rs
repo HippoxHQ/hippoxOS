@@ -26,7 +26,6 @@ pub struct SearchRequest {
     pub limit: Option<usize>,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MessageSearchResult {
     pub session_id: String,
@@ -49,7 +48,6 @@ pub struct SearchMessagesResponse {
     pub results: Vec<MessageSearchResult>,
     pub total: usize,
 }
-
 
 fn safe_truncate(text: &str, max_len: usize) -> String {
     if text.len() <= max_len {
@@ -105,12 +103,7 @@ fn generate_highlight(text: &str, keyword: &str) -> String {
             snippet.push_str("...");
         }
 
-        for (i, (_, ch)) in char_indices
-            .iter()
-            .enumerate()
-            .take(snippet_end)
-            .skip(snippet_start)
-        {
+        for (i, (_, ch)) in char_indices.iter().enumerate().take(snippet_end).skip(snippet_start) {
             snippet.push(*ch);
         }
 
@@ -159,7 +152,6 @@ fn parse_skill_description_from_markdown(content: &str, default_desc: &str) -> S
     }
     default_desc.to_string()
 }
-
 
 fn extract_chat_content(content: &str) -> String {
     if let Ok(json) = serde_json::from_str::<serde_json::Value>(content) {
@@ -230,7 +222,6 @@ fn get_message_preview(content: &str, max_len: usize) -> String {
     }
 }
 
-
 pub struct SearchEngine {
     skills_dir: PathBuf,
     sessions_dir: PathBuf,
@@ -239,11 +230,7 @@ pub struct SearchEngine {
 
 impl SearchEngine {
     pub fn new(skills_dir: PathBuf, sessions_dir: PathBuf, logs_dir: PathBuf) -> Self {
-        Self {
-            skills_dir,
-            sessions_dir,
-            logs_dir,
-        }
+        Self { skills_dir, sessions_dir, logs_dir }
     }
 
     async fn search_skills(&self, keyword: &str, limit: usize) -> Vec<SearchResult> {
@@ -267,25 +254,16 @@ impl SearchEngine {
 
             let skill_name = parse_skill_name_from_markdown(
                 &content,
-                &path
-                    .parent()
-                    .and_then(|p| p.file_name())
-                    .map(|n| n.to_string_lossy().to_string())
-                    .unwrap_or_else(|| "unknown".to_string()),
+                &path.parent().and_then(|p| p.file_name()).map(|n| n.to_string_lossy().to_string()).unwrap_or_else(|| "unknown".to_string()),
             );
 
-            let skill_description =
-                parse_skill_description_from_markdown(&content, "No description available");
+            let skill_description = parse_skill_description_from_markdown(&content, "No description available");
 
             let name_lower = skill_name.to_lowercase();
             let desc_lower = skill_description.to_lowercase();
 
             if name_lower.contains(&keyword_lower) || desc_lower.contains(&keyword_lower) {
-                let highlight = if desc_lower.contains(&keyword_lower) {
-                    Some(generate_highlight(&skill_description, keyword))
-                } else {
-                    None
-                };
+                let highlight = if desc_lower.contains(&keyword_lower) { Some(generate_highlight(&skill_description, keyword)) } else { None };
 
                 results.push(SearchResult {
                     category: "skill".to_string(),
@@ -314,36 +292,21 @@ impl SearchEngine {
             .max_depth(2)
             .into_iter()
             .filter_map(|e| e.ok())
-            .filter(|e| {
-                e.path().is_file() && e.path().extension().map_or(false, |ext| ext == "json")
-            })
+            .filter(|e| e.path().is_file() && e.path().extension().map_or(false, |ext| ext == "json"))
             .take(limit * 2)
         {
             let path = entry.path();
             let metadata = fs::metadata(path).ok();
-            let timestamp = metadata.and_then(|m| m.modified().ok()).map(|t| {
-                t.duration_since(std::time::UNIX_EPOCH)
-                    .unwrap_or_default()
-                    .as_secs()
-                    .to_string()
-            });
+            let timestamp =
+                metadata.and_then(|m| m.modified().ok()).map(|t| t.duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_secs().to_string());
             let content = fs::read_to_string(path).unwrap_or_default();
-            let session_name = path
-                .file_stem()
-                .unwrap_or_default()
-                .to_string_lossy()
-                .to_string();
-            if session_name.to_lowercase().contains(&keyword_lower)
-                || content.to_lowercase().contains(&keyword_lower)
-            {
+            let session_name = path.file_stem().unwrap_or_default().to_string_lossy().to_string();
+            if session_name.to_lowercase().contains(&keyword_lower) || content.to_lowercase().contains(&keyword_lower) {
                 let highlight = if content.to_lowercase().contains(&keyword_lower) {
-                    content
-                        .lines()
-                        .find(|line| line.to_lowercase().contains(&keyword_lower))
-                        .map(|line| {
-                            let trimmed = line.trim();
-                            safe_truncate(trimmed, 80)
-                        })
+                    content.lines().find(|line| line.to_lowercase().contains(&keyword_lower)).map(|line| {
+                        let trimmed = line.trim();
+                        safe_truncate(trimmed, 80)
+                    })
                 } else {
                     None
                 };
@@ -351,10 +314,7 @@ impl SearchEngine {
                     category: "session".to_string(),
                     id: format!("session_{}", session_name),
                     title: session_name,
-                    description: format!(
-                        "session file - {}",
-                        path.file_name().unwrap_or_default().to_string_lossy()
-                    ),
+                    description: format!("session file - {}", path.file_name().unwrap_or_default().to_string_lossy()),
                     path: path.display().to_string(),
                     timestamp,
                     highlight,
@@ -378,33 +338,20 @@ impl SearchEngine {
             .max_depth(2)
             .into_iter()
             .filter_map(|e| e.ok())
-            .filter(|e| {
-                e.path().is_file() && e.path().extension().map_or(false, |ext| ext == "log")
-            })
+            .filter(|e| e.path().is_file() && e.path().extension().map_or(false, |ext| ext == "log"))
             .take(limit * 2)
         {
             let path = entry.path();
             let metadata = fs::metadata(path).ok();
-            let timestamp = metadata.and_then(|m| m.modified().ok()).map(|t| {
-                t.duration_since(std::time::UNIX_EPOCH)
-                    .unwrap_or_default()
-                    .as_secs()
-                    .to_string()
-            });
+            let timestamp =
+                metadata.and_then(|m| m.modified().ok()).map(|t| t.duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_secs().to_string());
             let content = fs::read_to_string(path).unwrap_or_default();
-            let log_name = path
-                .file_name()
-                .unwrap_or_default()
-                .to_string_lossy()
-                .to_string();
+            let log_name = path.file_name().unwrap_or_default().to_string_lossy().to_string();
             if content.to_lowercase().contains(&keyword_lower) {
-                let highlight = content
-                    .lines()
-                    .find(|line| line.to_lowercase().contains(&keyword_lower))
-                    .map(|line| {
-                        let trimmed = line.trim();
-                        safe_truncate(trimmed, 100)
-                    });
+                let highlight = content.lines().find(|line| line.to_lowercase().contains(&keyword_lower)).map(|line| {
+                    let trimmed = line.trim();
+                    safe_truncate(trimmed, 100)
+                });
                 results.push(SearchResult {
                     category: "log".to_string(),
                     id: format!("log_{}", Uuid::new_v4()),
@@ -442,16 +389,13 @@ impl SearchEngine {
     }
 }
 
-
 fn read_session_config(session_dir: &PathBuf) -> Result<serde_json::Value, String> {
     let config_path = session_dir.join("config.json");
     if !config_path.exists() {
         return Ok(serde_json::json!({}));
     }
-    let content =
-        fs::read_to_string(&config_path).map_err(|e| format!("Failed to read config: {}", e))?;
-    let config: serde_json::Value =
-        serde_json::from_str(&content).map_err(|e| format!("Failed to parse config: {}", e))?;
+    let content = fs::read_to_string(&config_path).map_err(|e| format!("Failed to read config: {}", e))?;
+    let config: serde_json::Value = serde_json::from_str(&content).map_err(|e| format!("Failed to parse config: {}", e))?;
     Ok(config)
 }
 
@@ -460,41 +404,29 @@ fn read_session_chat(session_dir: &PathBuf) -> Result<Vec<serde_json::Value>, St
     if !chat_path.exists() {
         return Ok(vec![]);
     }
-    let content =
-        fs::read_to_string(&chat_path).map_err(|e| format!("Failed to read chat: {}", e))?;
-    let messages: Vec<serde_json::Value> =
-        serde_json::from_str(&content).unwrap_or_else(|_| vec![]);
+    let content = fs::read_to_string(&chat_path).map_err(|e| format!("Failed to read chat: {}", e))?;
+    let messages: Vec<serde_json::Value> = serde_json::from_str(&content).unwrap_or_else(|_| vec![]);
     Ok(messages)
 }
 
 #[command]
-pub async fn cmd_search_messages(
-    request: SearchMessagesRequest,
-) -> Result<SearchMessagesResponse, String> {
+pub async fn cmd_search_messages(request: SearchMessagesRequest) -> Result<SearchMessagesResponse, String> {
     let keyword = request.keyword.trim();
     if keyword.is_empty() {
-        return Ok(SearchMessagesResponse {
-            results: vec![],
-            total: 0,
-        });
+        return Ok(SearchMessagesResponse { results: vec![], total: 0 });
     }
 
     let limit = request.limit.unwrap_or(50);
     let dialog_dir = get_dialog_history_dir();
 
     if !dialog_dir.exists() {
-        return Ok(SearchMessagesResponse {
-            results: vec![],
-            total: 0,
-        });
+        return Ok(SearchMessagesResponse { results: vec![], total: 0 });
     }
 
     let mut all_results = Vec::new();
     let keyword_lower = keyword.to_lowercase();
 
-    for entry in fs::read_dir(&dialog_dir)
-        .map_err(|e| format!("Failed to read dialog history dir: {}", e))?
-    {
+    for entry in fs::read_dir(&dialog_dir).map_err(|e| format!("Failed to read dialog history dir: {}", e))? {
         let entry = entry.map_err(|e| format!("Failed to read entry: {}", e))?;
         let session_dir = entry.path();
 
@@ -502,27 +434,15 @@ pub async fn cmd_search_messages(
             continue;
         }
 
-        let session_id = session_dir
-            .file_name()
-            .unwrap_or_default()
-            .to_string_lossy()
-            .to_string();
+        let session_id = session_dir.file_name().unwrap_or_default().to_string_lossy().to_string();
 
         let config = read_session_config(&session_dir)?;
-        let session_title = config
-            .get("title")
-            .and_then(|v| v.as_str())
-            .unwrap_or(&session_id)
-            .to_string();
+        let session_title = config.get("title").and_then(|v| v.as_str()).unwrap_or(&session_id).to_string();
 
         let messages = read_session_chat(&session_dir)?;
 
         for msg in messages {
-            let content = msg
-                .get("content")
-                .and_then(|v| v.as_str())
-                .unwrap_or("")
-                .to_string();
+            let content = msg.get("content").and_then(|v| v.as_str()).unwrap_or("").to_string();
 
             if content.is_empty() {
                 continue;
@@ -533,21 +453,9 @@ pub async fn cmd_search_messages(
                 let display_content = get_message_preview(&content, 150);
                 let highlight = generate_highlight(&display_content, keyword);
 
-                let message_id = msg
-                    .get("id")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or("")
-                    .to_string();
-                let message_role = msg
-                    .get("role")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or("unknown")
-                    .to_string();
-                let timestamp = msg
-                    .get("timestamp")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or("")
-                    .to_string();
+                let message_id = msg.get("id").and_then(|v| v.as_str()).unwrap_or("").to_string();
+                let message_role = msg.get("role").and_then(|v| v.as_str()).unwrap_or("unknown").to_string();
+                let timestamp = msg.get("timestamp").and_then(|v| v.as_str()).unwrap_or("").to_string();
 
                 all_results.push(MessageSearchResult {
                     session_id: session_id.clone(),
@@ -576,9 +484,7 @@ pub async fn cmd_search_messages(
 }
 
 #[command]
-pub async fn cmd_search_messages_formatted(
-    request: SearchMessagesRequest,
-) -> Result<Vec<SearchResult>, String> {
+pub async fn cmd_search_messages_formatted(request: SearchMessagesRequest) -> Result<Vec<SearchResult>, String> {
     let response = cmd_search_messages(request).await?;
     let mut formatted = Vec::new();
 
@@ -597,16 +503,13 @@ pub async fn cmd_search_messages_formatted(
     Ok(formatted)
 }
 
-
 #[command]
 pub async fn cmd_search_content(request: SearchRequest) -> Result<Vec<SearchResult>, String> {
     let skills_dir = get_skills_market_dir();
     let sessions_dir = get_sessions_dir();
     let logs_dir = get_logs_dir();
     let engine = SearchEngine::new(skills_dir, sessions_dir, logs_dir);
-    let results = engine
-        .search_all(&request.keyword, request.limit.unwrap_or(30))
-        .await;
+    let results = engine.search_all(&request.keyword, request.limit.unwrap_or(30)).await;
     Ok(results)
 }
 
@@ -628,13 +531,8 @@ pub async fn cmd_search_all(request: SearchRequest) -> Result<Vec<SearchResult>,
             engine.search_all(keyword, limit).await
         },
         async {
-            let msg_request = SearchMessagesRequest {
-                keyword: keyword.to_string(),
-                limit: Some(limit),
-            };
-            cmd_search_messages_formatted(msg_request)
-                .await
-                .unwrap_or_else(|_| vec![])
+            let msg_request = SearchMessagesRequest { keyword: keyword.to_string(), limit: Some(limit) };
+            cmd_search_messages_formatted(msg_request).await.unwrap_or_else(|_| vec![])
         }
     );
 

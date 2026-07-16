@@ -1,7 +1,5 @@
 use crate::commands::types::{StepInfo, TaskInfo};
-use crate::commands::{
-    load_config_from_file, write_log, ExecutionLog, LogMessages, HIPPOX_APP_CONFIG,
-};
+use crate::commands::{load_config_from_file, write_log, ExecutionLog, LogMessages, HIPPOX_APP_CONFIG};
 use crate::scheduled_task_pool::TaskPool;
 use crate::workspace::get_default_workspace;
 use hippox::ModelProvider;
@@ -100,13 +98,7 @@ impl AppState {
         guard.clone()
     }
 
-    pub async fn add_log(
-        &self,
-        level: String,
-        message: String,
-        details: Option<String>,
-        duration: Option<u64>,
-    ) {
+    pub async fn add_log(&self, level: String, message: String, details: Option<String>, duration: Option<u64>) {
         let mut logs = self.logs.lock().await;
         logs.push(ExecutionLog {
             id: Uuid::new_v4().to_string(),
@@ -171,13 +163,7 @@ impl AppState {
     ) {
         let mut tasks = self.tasks.lock().await;
         if let Some(task) = tasks.get_mut(task_id) {
-            task.steps.push(StoredStep {
-                step_index,
-                step_name: step_name.to_string(),
-                status: status.to_string(),
-                output,
-                error,
-            });
+            task.steps.push(StoredStep { step_index, step_name: step_name.to_string(), status: status.to_string(), output, error });
             task.updated_at = chrono::Local::now().to_rfc3339();
         }
     }
@@ -218,9 +204,7 @@ impl AppState {
                 .collect(),
             final_output: t.final_output.clone(),
             error: None,
-            created_at: chrono::DateTime::parse_from_rfc3339(&t.created_at)
-                .map(|dt| dt.timestamp() as u64)
-                .unwrap_or(0),
+            created_at: chrono::DateTime::parse_from_rfc3339(&t.created_at).map(|dt| dt.timestamp() as u64).unwrap_or(0),
             started_at: None,
             completed_at: None,
             duration_ms: None,
@@ -251,9 +235,7 @@ impl AppState {
                     .collect(),
                 final_output: t.final_output.clone(),
                 error: None,
-                created_at: chrono::DateTime::parse_from_rfc3339(&t.created_at)
-                    .map(|dt| dt.timestamp() as u64)
-                    .unwrap_or(0),
+                created_at: chrono::DateTime::parse_from_rfc3339(&t.created_at).map(|dt| dt.timestamp() as u64).unwrap_or(0),
                 started_at: None,
                 completed_at: None,
                 duration_ms: None,

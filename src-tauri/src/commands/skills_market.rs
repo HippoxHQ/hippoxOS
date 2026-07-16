@@ -45,11 +45,7 @@ pub struct MarketConfig {
 
 impl Default for MarketConfig {
     fn default() -> Self {
-        Self {
-            repo_url: SKILLS_MARKET_REPO_URL.to_string(),
-            branch: "main".to_string(),
-            last_update: None,
-        }
+        Self { repo_url: SKILLS_MARKET_REPO_URL.to_string(), branch: "main".to_string(), last_update: None }
     }
 }
 
@@ -74,13 +70,11 @@ fn ensure_favorites_dir() -> Result<(), String> {
     let natural_dir = get_favorites_natural_dir();
     let skill_dir = get_favorites_skill_dir();
     if !natural_dir.exists() {
-        fs::create_dir_all(&natural_dir)
-            .map_err(|e| format!("Failed to create natural directory: {}", e))?;
+        fs::create_dir_all(&natural_dir).map_err(|e| format!("Failed to create natural directory: {}", e))?;
         println!("Created natural directory: {:?}", natural_dir);
     }
     if !skill_dir.exists() {
-        fs::create_dir_all(&skill_dir)
-            .map_err(|e| format!("Failed to create skill directory: {}", e))?;
+        fs::create_dir_all(&skill_dir).map_err(|e| format!("Failed to create skill directory: {}", e))?;
         println!("Created skill directory: {:?}", skill_dir);
     }
     Ok(())
@@ -104,8 +98,7 @@ fn load_market_config() -> MarketConfig {
 
 fn save_market_config(config: &MarketConfig) -> Result<(), String> {
     let config_path = get_market_config_path();
-    let content = serde_json::to_string_pretty(config)
-        .map_err(|e| format!("Failed to serialize market config: {}", e))?;
+    let content = serde_json::to_string_pretty(config).map_err(|e| format!("Failed to serialize market config: {}", e))?;
     fs::write(&config_path, content).map_err(|e| format!("Failed to save market config: {}", e))?;
     Ok(())
 }
@@ -193,15 +186,8 @@ fn get_categories_from_dir(dir_path: &Path) -> Vec<String> {
         for entry in entries.flatten() {
             let path = entry.path();
             if path.is_dir() {
-                let category_name = path
-                    .file_name()
-                    .unwrap_or_default()
-                    .to_string_lossy()
-                    .to_string();
-                if !category_name.starts_with('.')
-                    && category_name != "assets"
-                    && category_name != "images"
-                {
+                let category_name = path.file_name().unwrap_or_default().to_string_lossy().to_string();
+                if !category_name.starts_with('.') && category_name != "assets" && category_name != "images" {
                     categories.push(category_name);
                 }
             }
@@ -223,15 +209,8 @@ fn scan_skills_from_dir(dir_path: &Path, favorites: &FavoritesConfig) -> Vec<Mar
             if !category_path.is_dir() {
                 continue;
             }
-            let category_name = category_path
-                .file_name()
-                .unwrap_or_default()
-                .to_string_lossy()
-                .to_string();
-            if category_name.starts_with('.')
-                || category_name == "assets"
-                || category_name == "images"
-            {
+            let category_name = category_path.file_name().unwrap_or_default().to_string_lossy().to_string();
+            if category_name.starts_with('.') || category_name == "assets" || category_name == "images" {
                 continue;
             }
             if let Ok(skill_entries) = fs::read_dir(&category_path) {
@@ -240,19 +219,13 @@ fn scan_skills_from_dir(dir_path: &Path, favorites: &FavoritesConfig) -> Vec<Mar
                     if !skill_path.is_dir() {
                         continue;
                     }
-                    let skill_folder_name = skill_path
-                        .file_name()
-                        .unwrap_or_default()
-                        .to_string_lossy()
-                        .to_string();
+                    let skill_folder_name = skill_path.file_name().unwrap_or_default().to_string_lossy().to_string();
                     let skill_md_path = skill_path.join("SKILL.md");
                     if !skill_md_path.exists() {
                         continue;
                     }
                     if let Ok(content) = fs::read_to_string(&skill_md_path) {
-                        if let Some(mut skill) =
-                            parse_skill_markdown(&content, &skill_folder_name, &category_name)
-                        {
+                        if let Some(mut skill) = parse_skill_markdown(&content, &skill_folder_name, &category_name) {
                             skill.local_path = Some(skill_md_path.to_string_lossy().to_string());
                             skill.favorited = favorites.favorites.contains(&skill.id);
                             skills.push(skill);
@@ -274,19 +247,12 @@ pub async fn update_skills_market() -> Result<Vec<MarketSkill>, String> {
     let repo_url = &config.repo_url;
     let branch = &config.branch;
     if !market_dir.exists() {
-        fs::create_dir_all(&market_dir)
-            .map_err(|e| format!("Failed to create skills market directory: {}", e))?;
+        fs::create_dir_all(&market_dir).map_err(|e| format!("Failed to create skills market directory: {}", e))?;
     }
     if !git_dir.exists() {
         println!("Cloning skills market repository from {}...", repo_url);
         let output = Command::new("git")
-            .args([
-                "clone",
-                "--branch",
-                branch,
-                repo_url,
-                market_dir.to_str().unwrap(),
-            ])
+            .args(["clone", "--branch", branch, repo_url, market_dir.to_str().unwrap()])
             .output()
             .map_err(|e| format!("Git clone failed: {}. Is git installed?", e))?;
         if !output.status.success() {
@@ -296,11 +262,8 @@ pub async fn update_skills_market() -> Result<Vec<MarketSkill>, String> {
         println!("Skills market cloned successfully");
     } else {
         println!("Pulling latest skills market updates...");
-        let output = Command::new("git")
-            .current_dir(&market_dir)
-            .args(["pull", "origin", branch])
-            .output()
-            .map_err(|e| format!("Git pull failed: {}", e))?;
+        let output =
+            Command::new("git").current_dir(&market_dir).args(["pull", "origin", branch]).output().map_err(|e| format!("Git pull failed: {}", e))?;
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
             eprintln!("Git pull warning: {}", stderr);
@@ -324,11 +287,7 @@ pub async fn update_skills_market() -> Result<Vec<MarketSkill>, String> {
         if skill_dir.exists() && skill_dir.join("SKILL.md").exists() {
             skill.installed = true;
             if let Ok(content) = fs::read_to_string(skill_dir.join("SKILL.md")) {
-                if let Some(installed_skill) = parse_skill_markdown(
-                    &content,
-                    &skill.id.split('/').last().unwrap_or(&skill.id),
-                    &skill.category,
-                ) {
+                if let Some(installed_skill) = parse_skill_markdown(&content, &skill.id.split('/').last().unwrap_or(&skill.id), &skill.category) {
                     skill.installed_version = Some(installed_skill.version);
                 }
             }
@@ -352,11 +311,7 @@ pub async fn get_market_skills() -> Result<Vec<MarketSkill>, String> {
         if skill_dir.exists() && skill_dir.join("SKILL.md").exists() {
             skill.installed = true;
             if let Ok(content) = fs::read_to_string(skill_dir.join("SKILL.md")) {
-                if let Some(installed_skill) = parse_skill_markdown(
-                    &content,
-                    &skill.id.split('/').last().unwrap_or(&skill.id),
-                    &skill.category,
-                ) {
+                if let Some(installed_skill) = parse_skill_markdown(&content, &skill.id.split('/').last().unwrap_or(&skill.id), &skill.category) {
                     skill.installed_version = Some(installed_skill.version);
                 }
             }
@@ -392,25 +347,19 @@ pub async fn install_skill(skill_id: String) -> Result<bool, String> {
     }
     let local_skills_dir = get_app_root_dir().join("skills");
     if !local_skills_dir.exists() {
-        fs::create_dir_all(&local_skills_dir)
-            .map_err(|e| format!("Failed to create skills directory: {}", e))?;
+        fs::create_dir_all(&local_skills_dir).map_err(|e| format!("Failed to create skills directory: {}", e))?;
     }
     let target_skill_dir = local_skills_dir.join(&skill_id);
     if target_skill_dir.exists() {
-        fs::remove_dir_all(&target_skill_dir)
-            .map_err(|e| format!("Failed to remove existing skill: {}", e))?;
+        fs::remove_dir_all(&target_skill_dir).map_err(|e| format!("Failed to remove existing skill: {}", e))?;
     }
     if let Some(parent) = target_skill_dir.parent() {
         if !parent.exists() {
-            fs::create_dir_all(parent)
-                .map_err(|e| format!("Failed to create parent directory: {}", e))?;
+            fs::create_dir_all(parent).map_err(|e| format!("Failed to create parent directory: {}", e))?;
         }
     }
-    let copy_options = fs_extra::dir::CopyOptions::new()
-        .overwrite(true)
-        .copy_inside(true);
-    fs_extra::dir::copy(&source_skill_dir, &target_skill_dir, &copy_options)
-        .map_err(|e| format!("Failed to copy skill: {}", e))?;
+    let copy_options = fs_extra::dir::CopyOptions::new().overwrite(true).copy_inside(true);
+    fs_extra::dir::copy(&source_skill_dir, &target_skill_dir, &copy_options).map_err(|e| format!("Failed to copy skill: {}", e))?;
     Ok(true)
 }
 
@@ -419,8 +368,7 @@ pub async fn install_skill(skill_id: String) -> Result<bool, String> {
 pub async fn uninstall_skill(skill_id: String) -> Result<bool, String> {
     let local_skills_dir = get_app_root_dir().join("skills").join(&skill_id);
     if local_skills_dir.exists() {
-        fs::remove_dir_all(&local_skills_dir)
-            .map_err(|e| format!("Failed to uninstall skill: {}", e))?;
+        fs::remove_dir_all(&local_skills_dir).map_err(|e| format!("Failed to uninstall skill: {}", e))?;
     }
     Ok(true)
 }
@@ -434,11 +382,7 @@ pub async fn get_market_config() -> Result<MarketConfig, String> {
 /// Update market config (change repo URL)
 #[command]
 pub async fn update_market_config(repo_url: String, branch: String) -> Result<(), String> {
-    let config = MarketConfig {
-        repo_url,
-        branch,
-        last_update: None,
-    };
+    let config = MarketConfig { repo_url, branch, last_update: None };
     save_market_config(&config)?;
     Ok(())
 }
@@ -456,19 +400,13 @@ pub async fn get_installed_skills() -> Result<Vec<MarketSkill>, String> {
         for entry in entries.flatten() {
             let path = entry.path();
             if path.is_dir() {
-                let skill_id = path
-                    .file_name()
-                    .unwrap_or_default()
-                    .to_string_lossy()
-                    .to_string();
+                let skill_id = path.file_name().unwrap_or_default().to_string_lossy().to_string();
                 let skill_md_path = path.join("SKILL.md");
                 if skill_md_path.exists() {
                     if let Ok(content) = fs::read_to_string(&skill_md_path) {
                         let category = skill_id.split('/').next().unwrap_or("general").to_string();
                         let skill_name = skill_id.split('/').last().unwrap_or(&skill_id);
-                        if let Some(mut skill) =
-                            parse_skill_markdown(&content, skill_name, &category)
-                        {
+                        if let Some(mut skill) = parse_skill_markdown(&content, skill_name, &category) {
                             skill.installed = true;
                             skill.id = skill_id;
                             skill.local_path = Some(skill_md_path.to_string_lossy().to_string());
@@ -498,31 +436,20 @@ pub async fn favorite_skill(skill_id: String) -> Result<bool, String> {
     if !source_skill_md.exists() {
         return Err(format!("Skill '{}' not found in market", skill_id));
     }
-    let content = fs::read_to_string(&source_skill_md)
-        .map_err(|e| format!("Failed to read SKILL.md: {}", e))?;
-    let is_natural =
-        content.contains("type: natural") || content.contains("type: natural_language");
-    let target_dir = if is_natural {
-        get_favorites_natural_dir()
-    } else {
-        get_favorites_skill_dir()
-    };
+    let content = fs::read_to_string(&source_skill_md).map_err(|e| format!("Failed to read SKILL.md: {}", e))?;
+    let is_natural = content.contains("type: natural") || content.contains("type: natural_language");
+    let target_dir = if is_natural { get_favorites_natural_dir() } else { get_favorites_skill_dir() };
     let target_skill_dir = target_dir.join(&skill_id);
     if target_skill_dir.exists() {
-        fs::remove_dir_all(&target_skill_dir)
-            .map_err(|e| format!("Failed to remove existing favorite: {}", e))?;
+        fs::remove_dir_all(&target_skill_dir).map_err(|e| format!("Failed to remove existing favorite: {}", e))?;
     }
     if let Some(parent) = target_skill_dir.parent() {
         if !parent.exists() {
-            fs::create_dir_all(parent)
-                .map_err(|e| format!("Failed to create parent directory: {}", e))?;
+            fs::create_dir_all(parent).map_err(|e| format!("Failed to create parent directory: {}", e))?;
         }
     }
-    let copy_options = fs_extra::dir::CopyOptions::new()
-        .overwrite(true)
-        .copy_inside(true);
-    fs_extra::dir::copy(&source_skill_dir, &target_skill_dir, &copy_options)
-        .map_err(|e| format!("Failed to copy skill to favorites: {}", e))?;
+    let copy_options = fs_extra::dir::CopyOptions::new().overwrite(true).copy_inside(true);
+    fs_extra::dir::copy(&source_skill_dir, &target_skill_dir, &copy_options).map_err(|e| format!("Failed to copy skill to favorites: {}", e))?;
     let mut favorites = load_favorites_config();
     if !favorites.favorites.contains(&skill_id) {
         favorites.favorites.push(skill_id);
@@ -536,8 +463,7 @@ pub async fn unfavorite_skill(skill_id: String) -> Result<bool, String> {
     let favorites_dir = get_favorites_dir();
     let target_skill_dir = favorites_dir.join(&skill_id);
     if target_skill_dir.exists() {
-        fs::remove_dir_all(&target_skill_dir)
-            .map_err(|e| format!("Failed to remove favorite: {}", e))?;
+        fs::remove_dir_all(&target_skill_dir).map_err(|e| format!("Failed to remove favorite: {}", e))?;
     }
     let mut favorites = load_favorites_config();
     favorites.favorites.retain(|id| id != &skill_id);

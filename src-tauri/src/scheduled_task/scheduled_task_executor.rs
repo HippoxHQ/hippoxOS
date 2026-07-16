@@ -6,10 +6,7 @@
 //! - Skill file tasks: read from SKILL.md
 
 use crate::commands::cmd_get_disabled_drivers;
-use crate::commands::scheduled_tasks::{
-    get_task_dir, load_natural_language_content, load_skill_md_content, load_task_config,
-    ScheduledTask,
-};
+use crate::commands::scheduled_tasks::{get_task_dir, load_natural_language_content, load_skill_md_content, load_task_config, ScheduledTask};
 use crate::hippox_core::get_default_hippox;
 use hippox::HippoxResult;
 use serde::{Deserialize, Serialize};
@@ -122,26 +119,15 @@ impl ScheduledTaskExecutor {
         if !task_dir.exists() {
             return Err(format!("Task directory not found: {}", task_id));
         }
-        let task = load_task_config(task_id)?
-            .ok_or_else(|| format!("Task config not found: {}", task_id))?;
-        let natural_language_content =
-            if task.action_type == crate::commands::scheduled_tasks::ActionType::NaturalLanguage {
-                load_natural_language_content(task_id)?.map(|n| n.content)
-            } else {
-                None
-            };
+        let task = load_task_config(task_id)?.ok_or_else(|| format!("Task config not found: {}", task_id))?;
+        let natural_language_content = if task.action_type == crate::commands::scheduled_tasks::ActionType::NaturalLanguage {
+            load_natural_language_content(task_id)?.map(|n| n.content)
+        } else {
+            None
+        };
         let skill_md_content =
-            if task.action_type == crate::commands::scheduled_tasks::ActionType::SkillFile {
-                load_skill_md_content(task_id)?
-            } else {
-                None
-            };
-        Ok(Self {
-            task,
-            task_dir,
-            natural_language_content,
-            skill_md_content,
-        })
+            if task.action_type == crate::commands::scheduled_tasks::ActionType::SkillFile { load_skill_md_content(task_id)? } else { None };
+        Ok(Self { task, task_dir, natural_language_content, skill_md_content })
     }
 
     /// Get the content to be executed
@@ -150,12 +136,8 @@ impl ScheduledTaskExecutor {
     /// * The natural language content or skill markdown content
     pub fn get_content(&self) -> Option<String> {
         match self.task.action_type {
-            crate::commands::scheduled_tasks::ActionType::NaturalLanguage => {
-                self.natural_language_content.clone()
-            }
-            crate::commands::scheduled_tasks::ActionType::SkillFile => {
-                self.skill_md_content.clone()
-            }
+            crate::commands::scheduled_tasks::ActionType::NaturalLanguage => self.natural_language_content.clone(),
+            crate::commands::scheduled_tasks::ActionType::SkillFile => self.skill_md_content.clone(),
         }
     }
 
@@ -169,29 +151,21 @@ impl ScheduledTaskExecutor {
     /// * `Err(String)` if task cannot be executed (no content, no hippox instance)
     pub async fn execute(&self) -> Result<ScheduledTaskExecutionResult, String> {
         let start_time = std::time::Instant::now();
-        let content = self.get_content().ok_or_else(|| {
-            format!(
-                "No content found for task: {} (action_type: {:?})",
-                self.task.id, self.task.action_type
-            )
-        })?;
+        let content =
+            self.get_content().ok_or_else(|| format!("No content found for task: {} (action_type: {:?})", self.task.id, self.task.action_type))?;
         let hippox = get_default_hippox().await?;
         let prompt = format!(
             "[Scheduled Task]\nTask Name: {}\nTask ID: {}\n\nContent:\n{}\n\nPlease execute this task and provide the result.",
-            self.task.name, self.task.id, content.clone()
+            self.task.name,
+            self.task.id,
+            content.clone()
         );
         // Create result object
         let mut result = ScheduledTaskExecutionResult::new(&self.task, content.clone());
         // disabled drivers
         let disabled_drivers = cmd_get_disabled_drivers().await.ok();
-        let disable_drivers_refs = disabled_drivers
-            .as_ref()
-            .map(|v| v.iter().map(|s| s.as_str()).collect::<Vec<_>>());
-        let workflow_mode = self
-            .task
-            .workflow_mode
-            .clone()
-            .unwrap_or_else(|| "ReAct".to_string());
+        let disable_drivers_refs = disabled_drivers.as_ref().map(|v| v.iter().map(|s| s.as_str()).collect::<Vec<_>>());
+        let workflow_mode = self.task.workflow_mode.clone().unwrap_or_else(|| "ReAct".to_string());
         let mode = match workflow_mode.as_str() {
             "ReAct" => hippox::WorkflowMode::ReAct,
             "Batch" => hippox::WorkflowMode::Batch,
@@ -200,24 +174,12 @@ impl ScheduledTaskExecutor {
             _ => hippox::WorkflowMode::ReAct,
         };
         // Execute the task and wait for completion
-        let exec_result = hippox
-            .execute(&prompt, mode, None, None, disable_drivers_refs)
-            .await;
+        let exec_result = hippox.execute(&prompt, mode, None, None, disable_drivers_refs).await;
         match exec_result {
-            HippoxResult {
-                data: Some(output),
-                input_tokens,
-                output_tokens,
-                ..
-            } => {
+            HippoxResult { data: Some(output), input_tokens, output_tokens, .. } => {
                 result.complete(output, input_tokens, output_tokens);
             }
-            HippoxResult {
-                error: Some(err),
-                input_tokens,
-                output_tokens,
-                ..
-            } => {
+            HippoxResult { error: Some(err), input_tokens, output_tokens, .. } => {
                 result.fail(err, input_tokens, output_tokens);
             }
             _ => {
@@ -226,10 +188,7 @@ impl ScheduledTaskExecutor {
         }
         // Save result to result.json (overwrite, only keep latest)
         if let Err(e) = self.save_execution_result(&result).await {
-            eprintln!(
-                "Failed to save execution result for task {}: {}",
-                self.task.id, e
-            );
+            eprintln!("Failed to save execution result for task {}: {}", self.task.id, e);
         }
         // Update task config with last execution info
         self.update_task_after_execution(&result).await?;
@@ -237,31 +196,19 @@ impl ScheduledTaskExecutor {
     }
 
     /// Save execution result to result.json (only keep latest)
-    async fn save_execution_result(
-        &self,
-        result: &ScheduledTaskExecutionResult,
-    ) -> Result<(), String> {
+    async fn save_execution_result(&self, result: &ScheduledTaskExecutionResult) -> Result<(), String> {
         let result_path = self.task_dir.join("result.json");
-        let content = serde_json::to_string_pretty(result)
-            .map_err(|e| format!("Failed to serialize result: {}", e))?;
-        fs::write(&result_path, content)
-            .map_err(|e| format!("Failed to write result file: {}", e))?;
+        let content = serde_json::to_string_pretty(result).map_err(|e| format!("Failed to serialize result: {}", e))?;
+        fs::write(&result_path, content).map_err(|e| format!("Failed to write result file: {}", e))?;
         Ok(())
     }
 
     /// Update task configuration after execution
-    async fn update_task_after_execution(
-        &self,
-        result: &ScheduledTaskExecutionResult,
-    ) -> Result<(), String> {
+    async fn update_task_after_execution(&self, result: &ScheduledTaskExecutionResult) -> Result<(), String> {
         let mut task = self.task.clone();
         task.last_executed_at = Some(chrono::Local::now().to_rfc3339());
         task.execution_count += 1;
-        task.last_status = if result.status == "completed" {
-            Some("success".to_string())
-        } else {
-            Some("failed".to_string())
-        };
+        task.last_status = if result.status == "completed" { Some("success".to_string()) } else { Some("failed".to_string()) };
         task.updated_at = chrono::Local::now().to_rfc3339();
         crate::commands::scheduled_tasks::save_task_config(&task)?;
         Ok(())
@@ -273,10 +220,8 @@ impl ScheduledTaskExecutor {
         if !result_path.exists() {
             return Ok(None);
         }
-        let content = fs::read_to_string(&result_path)
-            .map_err(|e| format!("Failed to read result file: {}", e))?;
-        let result: ScheduledTaskExecutionResult = serde_json::from_str(&content)
-            .map_err(|e| format!("Failed to parse result file: {}", e))?;
+        let content = fs::read_to_string(&result_path).map_err(|e| format!("Failed to read result file: {}", e))?;
+        let result: ScheduledTaskExecutionResult = serde_json::from_str(&content).map_err(|e| format!("Failed to parse result file: {}", e))?;
         Ok(Some(result))
     }
 }

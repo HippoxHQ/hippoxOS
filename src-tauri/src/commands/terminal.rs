@@ -80,36 +80,21 @@ impl TerminalProcess {
             cmd.arg("-i");
         }
 
-        let mut child = cmd
-            .spawn()
-            .map_err(|e| format!("Failed to spawn shell: {}", e))?;
+        let mut child = cmd.spawn().map_err(|e| format!("Failed to spawn shell: {}", e))?;
         let pid = child.id().ok_or("Failed to get process ID")?;
         let stdin = child.stdin.take().ok_or("Failed to get stdin")?;
         let stdout = child.stdout.take().ok_or("Failed to get stdout")?;
         let stderr = child.stderr.take().ok_or("Failed to get stderr")?;
 
-        Ok(TerminalProcess {
-            child,
-            stdin,
-            stdout,
-            stderr,
-            pid,
-            is_alive: true,
-        })
+        Ok(TerminalProcess { child, stdin, stdout, stderr, pid, is_alive: true })
     }
 
     async fn write(&mut self, data: &str) -> Result<(), String> {
         if !self.is_alive {
             return Err("Terminal is already closed".to_string());
         }
-        self.stdin
-            .write_all(data.as_bytes())
-            .await
-            .map_err(|e| format!("Failed to write: {}", e))?;
-        self.stdin
-            .flush()
-            .await
-            .map_err(|e| format!("Failed to flush: {}", e))?;
+        self.stdin.write_all(data.as_bytes()).await.map_err(|e| format!("Failed to write: {}", e))?;
+        self.stdin.flush().await.map_err(|e| format!("Failed to flush: {}", e))?;
         Ok(())
     }
 
@@ -181,9 +166,7 @@ fn get_default_shell() -> String {
 }
 
 fn get_home_dir() -> String {
-    dirs::home_dir()
-        .map(|p| p.to_string_lossy().to_string())
-        .unwrap_or_else(|| ".".to_string())
+    dirs::home_dir().map(|p| p.to_string_lossy().to_string()).unwrap_or_else(|| ".".to_string())
 }
 
 #[command]
@@ -205,10 +188,7 @@ pub async fn cmd_terminal_kill(session_id: String) -> Result<bool, String> {
 }
 
 #[command]
-pub async fn cmd_terminal_create(
-    request: TerminalCreateRequest,
-    app_handle: tauri::AppHandle,
-) -> Result<TerminalSession, String> {
+pub async fn cmd_terminal_create(request: TerminalCreateRequest, app_handle: tauri::AppHandle) -> Result<TerminalSession, String> {
     let session_id = format!("term_{}", chrono::Local::now().timestamp_millis());
     let shell = request.shell.unwrap_or_else(get_default_shell);
     let cwd = request.cwd.unwrap_or_else(get_home_dir);
@@ -246,23 +226,11 @@ pub async fn cmd_terminal_create(
                 if !output_buffer.is_empty() {
                     match String::from_utf8(output_buffer) {
                         Ok(data) => {
-                            let _ = app_handle_clone.emit(
-                                "terminal-output",
-                                TerminalOutputEvent {
-                                    session_id: session_id_clone.clone(),
-                                    data,
-                                },
-                            );
+                            let _ = app_handle_clone.emit("terminal-output", TerminalOutputEvent { session_id: session_id_clone.clone(), data });
                         }
                         Err(e) => {
                             let data = String::from_utf8_lossy(e.as_bytes()).to_string();
-                            let _ = app_handle_clone.emit(
-                                "terminal-output",
-                                TerminalOutputEvent {
-                                    session_id: session_id_clone.clone(),
-                                    data,
-                                },
-                            );
+                            let _ = app_handle_clone.emit("terminal-output", TerminalOutputEvent { session_id: session_id_clone.clone(), data });
                         }
                     }
                 }
@@ -277,13 +245,7 @@ pub async fn cmd_terminal_create(
                         let mut handles = TASK_HANDLES.lock().await;
                         handles.remove(&session_id_clone);
                     }
-                    let _ = app_handle_clone.emit(
-                        "terminal-exit",
-                        TerminalExitEvent {
-                            session_id: session_id_clone.clone(),
-                            code,
-                        },
-                    );
+                    let _ = app_handle_clone.emit("terminal-exit", TerminalExitEvent { session_id: session_id_clone.clone(), code });
                     break;
                 }
             } else {
@@ -298,23 +260,13 @@ pub async fn cmd_terminal_create(
         handles.insert(session_id.clone(), handle);
     }
 
-    Ok(TerminalSession {
-        id: session_id,
-        pid,
-        cwd,
-        cols,
-        rows,
-        created_at: chrono::Local::now().to_rfc3339(),
-        is_alive: true,
-    })
+    Ok(TerminalSession { id: session_id, pid, cwd, cols, rows, created_at: chrono::Local::now().to_rfc3339(), is_alive: true })
 }
 
 #[command]
 pub async fn cmd_terminal_input(request: TerminalInputRequest) -> Result<bool, String> {
     let pool = TERMINAL_POOL.lock().await;
-    let process_arc = pool
-        .get(&request.session_id)
-        .ok_or_else(|| format!("Session not found: {}", request.session_id))?;
+    let process_arc = pool.get(&request.session_id).ok_or_else(|| format!("Session not found: {}", request.session_id))?;
     let mut process = process_arc.lock().await;
     if !process.is_alive {
         return Err("Terminal is already closed".to_string());

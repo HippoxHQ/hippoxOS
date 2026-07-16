@@ -32,41 +32,27 @@ pub async fn cmd_open_path(path: String) -> Result<(), String> {
     }
     #[cfg(target_os = "windows")]
     {
-        Command::new("explorer")
-            .arg(path)
-            .spawn()
-            .map_err(|e| format!("Failed to open path: {}", e))?;
+        Command::new("explorer").arg(path).spawn().map_err(|e| format!("Failed to open path: {}", e))?;
     }
     #[cfg(target_os = "macos")]
     {
-        Command::new("open")
-            .arg(path)
-            .spawn()
-            .map_err(|e| format!("Failed to open path: {}", e))?;
+        Command::new("open").arg(path).spawn().map_err(|e| format!("Failed to open path: {}", e))?;
     }
     #[cfg(target_os = "linux")]
     {
-        Command::new("xdg-open")
-            .arg(path)
-            .spawn()
-            .map_err(|e| format!("Failed to open path: {}", e))?;
+        Command::new("xdg-open").arg(path).spawn().map_err(|e| format!("Failed to open path: {}", e))?;
     }
     Ok(())
 }
 
 #[tauri::command]
 pub async fn cmd_select_directory() -> Result<Option<String>, String> {
-    let folder = AsyncFileDialog::new()
-        .set_title("Select Workspace Directory")
-        .pick_folder()
-        .await;
+    let folder = AsyncFileDialog::new().set_title("Select Workspace Directory").pick_folder().await;
     Ok(folder.map(|f| f.path().to_string_lossy().to_string()))
 }
 
 #[tauri::command]
-pub async fn cmd_select_file(
-    options: Option<serde_json::Value>,
-) -> Result<serde_json::Value, String> {
+pub async fn cmd_select_file(options: Option<serde_json::Value>) -> Result<serde_json::Value, String> {
     let mut dialog = AsyncFileDialog::new();
     if let Some(opts) = options {
         if let Some(title) = opts.get("title").and_then(|v| v.as_str()) {
@@ -76,10 +62,7 @@ pub async fn cmd_select_file(
             if multiple {
                 match dialog.pick_files().await {
                     Some(files) => {
-                        let paths: Vec<String> = files
-                            .into_iter()
-                            .map(|f| f.path().to_string_lossy().to_string())
-                            .collect();
+                        let paths: Vec<String> = files.into_iter().map(|f| f.path().to_string_lossy().to_string()).collect();
                         return Ok(serde_json::json!(paths));
                     }
                     None => return Ok(serde_json::json!(Vec::<String>::new())),
@@ -88,9 +71,7 @@ pub async fn cmd_select_file(
         }
     }
     let file = dialog.pick_file().await;
-    Ok(serde_json::json!(
-        file.map(|f| f.path().to_string_lossy().to_string())
-    ))
+    Ok(serde_json::json!(file.map(|f| f.path().to_string_lossy().to_string())))
 }
 
 #[tauri::command]
@@ -105,23 +86,16 @@ pub async fn cmd_read_directory(path: String) -> Result<Vec<FileInfo>, String> {
     let mut entries = Vec::new();
     for entry in fs::read_dir(dir).map_err(|e| format!("Failed to read directory: {}", e))? {
         let entry = entry.map_err(|e| format!("Failed to read entry: {}", e))?;
-        let metadata = entry
-            .metadata()
-            .map_err(|e| format!("Failed to read metadata: {}", e))?;
+        let metadata = entry.metadata().map_err(|e| format!("Failed to read metadata: {}", e))?;
         entries.push(FileInfo {
             name: entry.file_name().to_string_lossy().to_string(),
             path: entry.path().to_string_lossy().to_string(),
             is_directory: metadata.is_dir(),
-            size: if metadata.is_file() {
-                Some(metadata.len())
-            } else {
-                None
-            },
+            size: if metadata.is_file() { Some(metadata.len()) } else { None },
             modified: metadata.modified().ok().and_then(|t| {
-                t.duration_since(std::time::UNIX_EPOCH).ok().and_then(|d| {
-                    chrono::DateTime::from_timestamp(d.as_secs() as i64, 0)
-                        .map(|dt| dt.to_rfc3339())
-                })
+                t.duration_since(std::time::UNIX_EPOCH)
+                    .ok()
+                    .and_then(|d| chrono::DateTime::from_timestamp(d.as_secs() as i64, 0).map(|dt| dt.to_rfc3339()))
             }),
         });
     }
@@ -209,18 +183,14 @@ pub async fn cmd_get_file_info(path: String) -> Result<FileInfoDetail, String> {
     .to_string();
 
     Ok(FileInfoDetail {
-        name: path
-            .file_name()
-            .unwrap_or_default()
-            .to_string_lossy()
-            .to_string(),
+        name: path.file_name().unwrap_or_default().to_string_lossy().to_string(),
         path: path.to_string_lossy().to_string(),
         size: metadata.len(),
         mime_type,
         modified: metadata.modified().ok().and_then(|t| {
-            t.duration_since(std::time::UNIX_EPOCH).ok().and_then(|d| {
-                chrono::DateTime::from_timestamp(d.as_secs() as i64, 0).map(|dt| dt.to_rfc3339())
-            })
+            t.duration_since(std::time::UNIX_EPOCH)
+                .ok()
+                .and_then(|d| chrono::DateTime::from_timestamp(d.as_secs() as i64, 0).map(|dt| dt.to_rfc3339()))
         }),
     })
 }
@@ -230,12 +200,7 @@ pub async fn cmd_save_csv_file(content: String, default_name: String) -> Result<
     use rfd::AsyncFileDialog;
     use std::fs;
     use std::path::Path;
-    let file_path = AsyncFileDialog::new()
-        .set_title("Save CSV File")
-        .add_filter("CSV File", &["csv"])
-        .set_file_name(&default_name)
-        .save_file()
-        .await;
+    let file_path = AsyncFileDialog::new().set_title("Save CSV File").add_filter("CSV File", &["csv"]).set_file_name(&default_name).save_file().await;
     match file_path {
         Some(path) => {
             let path_str = path.path().to_string_lossy().to_string();

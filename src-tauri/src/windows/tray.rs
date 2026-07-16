@@ -10,8 +10,7 @@ pub(crate) struct TrayManager;
 
 use once_cell::sync::Lazy;
 use std::sync::Mutex;
-static LLM_HEALTH_CACHE: Lazy<Mutex<std::collections::HashMap<String, bool>>> =
-    Lazy::new(|| Mutex::new(std::collections::HashMap::new()));
+static LLM_HEALTH_CACHE: Lazy<Mutex<std::collections::HashMap<String, bool>>> = Lazy::new(|| Mutex::new(std::collections::HashMap::new()));
 
 impl TrayManager {
     pub fn setup<R: Runtime>(app: &tauri::App<R>) -> Result<(), Box<dyn std::error::Error>> {
@@ -22,18 +21,10 @@ impl TrayManager {
             .menu(&empty_menu)
             .menu_on_left_click(false)
             .on_tray_icon_event(move |_tray, event| match event {
-                TrayIconEvent::Click {
-                    button: MouseButton::Left,
-                    button_state: MouseButtonState::Up,
-                    ..
-                } => {
+                TrayIconEvent::Click { button: MouseButton::Left, button_state: MouseButtonState::Up, .. } => {
                     Self::toggle_window(&app_handle);
                 }
-                TrayIconEvent::Click {
-                    button: MouseButton::Right,
-                    button_state: MouseButtonState::Up,
-                    ..
-                } => {
+                TrayIconEvent::Click { button: MouseButton::Right, button_state: MouseButtonState::Up, .. } => {
                     let _ = Self::create_tray_window(&app_handle);
                 }
                 _ => {}
@@ -42,40 +33,28 @@ impl TrayManager {
         Ok(())
     }
 
-    fn create_tray_window<R: Runtime>(
-        app_handle: &AppHandle<R>,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    fn create_tray_window<R: Runtime>(app_handle: &AppHandle<R>) -> Result<(), Box<dyn std::error::Error>> {
         let (mouse_x, mouse_y) = Self::get_mouse_position();
         let menu_width = 260.0;
         let menu_height = 350.0;
-        let (pos_x, pos_y) = Self::calculate_window_position(
-            app_handle,
-            (mouse_x - 100) as f64,
-            (mouse_y - 15) as f64,
-            menu_width,
-            menu_height,
-        )?;
+        let (pos_x, pos_y) = Self::calculate_window_position(app_handle, (mouse_x - 100) as f64, (mouse_y - 15) as f64, menu_width, menu_height)?;
         let window_label = format!("{}", WindowIdentifier::Tray);
         let url_type = format!("{}", WindowType::Tray);
         if let Some(window) = app_handle.get_webview_window(&window_label) {
             let _ = window.close();
         }
-        let window = WebviewWindowBuilder::new(
-            app_handle,
-            &window_label,
-            tauri::WebviewUrl::App(format!("index.html?type={}", url_type).into()),
-        )
-        .title("")
-        .inner_size(menu_width, menu_height)
-        .position(pos_x, pos_y)
-        .decorations(false)
-        .always_on_top(true)
-        .skip_taskbar(true)
-        .focused(true)
-        .resizable(false)
-        .transparent(true)
-        .shadow(false)
-        .build()?;
+        let window = WebviewWindowBuilder::new(app_handle, &window_label, tauri::WebviewUrl::App(format!("index.html?type={}", url_type).into()))
+            .title("")
+            .inner_size(menu_width, menu_height)
+            .position(pos_x, pos_y)
+            .decorations(false)
+            .always_on_top(true)
+            .skip_taskbar(true)
+            .focused(true)
+            .resizable(false)
+            .transparent(true)
+            .shadow(false)
+            .build()?;
         let window_clone = window.clone();
         let app_handle_clone = app_handle.clone();
         window.on_window_event(move |event| {
@@ -148,8 +127,7 @@ impl TrayManager {
         #[cfg(target_os = "macos")]
         {
             use objc::{class, msg_send, sel, sel_impl};
-            let ns_event: *mut objc::runtime::Object =
-                unsafe { msg_send![class!(NSEvent), mouseLocation] };
+            let ns_event: *mut objc::runtime::Object = unsafe { msg_send![class!(NSEvent), mouseLocation] };
             let x: f64 = unsafe { msg_send![ns_event, x] };
             let y: f64 = unsafe { msg_send![ns_event, y] };
             (x as i32, y as i32)
@@ -177,29 +155,15 @@ impl TrayManager {
             .map(|v| v.as_str().unwrap_or("en").to_string())
             .unwrap_or_else(|_| "en".to_string());
         let rt = tokio::runtime::Runtime::new().unwrap();
-        match rt.block_on( cmd_set_default_llm_instance(instance_id.clone())) {
+        match rt.block_on(cmd_set_default_llm_instance(instance_id.clone())) {
             Ok(_) => {
-                let message = if lang == "zh" {
-                    "默认 LLM 已更新"
-                } else {
-                    "Default LLM updated"
-                };
-                let _ = app_handle.emit(
-                    "show-notification",
-                    serde_json::json!({ "message": message }),
-                );
+                let message = if lang == "zh" { "默认 LLM 已更新" } else { "Default LLM updated" };
+                let _ = app_handle.emit("show-notification", serde_json::json!({ "message": message }));
             }
             Err(e) => {
                 eprintln!("Failed to set default LLM: {}", e);
-                let error_msg = if lang == "zh" {
-                    format!("设置默认 LLM 失败: {}", e)
-                } else {
-                    format!("Failed to set default LLM: {}", e)
-                };
-                let _ = app_handle.emit(
-                    "show-notification",
-                    serde_json::json!({ "message": error_msg, "type": "error" }),
-                );
+                let error_msg = if lang == "zh" { format!("设置默认 LLM 失败: {}", e) } else { format!("Failed to set default LLM: {}", e) };
+                let _ = app_handle.emit("show-notification", serde_json::json!({ "message": error_msg, "type": "error" }));
             }
         }
     }
@@ -263,12 +227,7 @@ impl TrayManager {
             .ok()
             .flatten()
             .map(|ws| ws.workspace_path)
-            .unwrap_or_else(|| {
-                crate::commands::get_app_root_dir()
-                    .join("workspace")
-                    .to_string_lossy()
-                    .to_string()
-            });
+            .unwrap_or_else(|| crate::commands::get_app_root_dir().join("workspace").to_string_lossy().to_string());
         let workspace_dir = std::path::PathBuf::from(&workspace_path);
         if !workspace_dir.exists() {
             let _ = std::fs::create_dir_all(&workspace_dir);

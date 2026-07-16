@@ -8,11 +8,7 @@ use crate::commands::FileOperationResult;
 pub async fn cmd_open_in_explorer(path: String) -> Result<FileOperationResult, String> {
     let path_buf = PathBuf::from(&path);
     if !path_buf.exists() {
-        return Ok(FileOperationResult {
-            success: false,
-            message: format!("Path does not exist: {}", path),
-            path: None,
-        });
+        return Ok(FileOperationResult { success: false, message: format!("Path does not exist: {}", path), path: None });
     }
     #[cfg(target_os = "windows")]
     {
@@ -21,9 +17,7 @@ pub async fn cmd_open_in_explorer(path: String) -> Result<FileOperationResult, S
             if let Some(parent) = path_buf.parent() {
                 use std::process::Command;
 
-                let _ = Command::new("explorer")
-                    .args(["/select,", &path_str])
-                    .spawn();
+                let _ = Command::new("explorer").args(["/select,", &path_str]).spawn();
             }
         } else {
             use std::process::Command;
@@ -44,17 +38,11 @@ pub async fn cmd_open_in_explorer(path: String) -> Result<FileOperationResult, S
         let path_str = path_buf.to_string_lossy().to_string();
         if path_buf.is_file() {
             if let Some(parent) = path_buf.parent() {
-                let _ = Command::new("xdg-open")
-                    .arg(parent.to_string_lossy().to_string())
-                    .spawn();
+                let _ = Command::new("xdg-open").arg(parent.to_string_lossy().to_string()).spawn();
             }
         } else {
             let _ = Command::new("xdg-open").arg(&path_str).spawn();
         }
     }
-    Ok(FileOperationResult {
-        success: true,
-        message: "Opened in explorer".to_string(),
-        path: Some(path),
-    })
+    Ok(FileOperationResult { success: true, message: "Opened in explorer".to_string(), path: Some(path) })
 }
