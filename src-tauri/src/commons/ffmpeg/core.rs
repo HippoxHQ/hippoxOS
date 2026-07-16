@@ -31,7 +31,6 @@ impl Ffmpeg {
             let _ = proc.child.kill();
             *guard = None;
         }
-        println!("[FFmpeg] Starting persistent process for: {}", video_path);
         let mut child = Command::new(&self.bin_path)
             .args(["-i", video_path, "-f", "image2pipe", "-vcodec", "mjpeg", "-q:v", "2", "-"])
             .stdin(Stdio::piped())
@@ -42,7 +41,6 @@ impl Ffmpeg {
         let stdin = child.stdin.take().ok_or("Failed to get stdin")?;
         let stdout = child.stdout.take().ok_or("Failed to get stdout")?;
         *guard = Some(PersistentProcess { child, stdin, stdout, video_path: video_path.to_string() });
-        println!("[FFmpeg] Persistent process started successfully");
         Ok(())
     }
     pub fn extract_frame_persistent(&self, time: f64) -> Result<Vec<u8>, String> {
@@ -68,9 +66,7 @@ impl Ffmpeg {
                 }
             }
         }
-        if !found_jpeg && !buffer.is_empty() {
-            println!("[FFmpeg] Warning: JPEG end marker not found, returning {} bytes", buffer.len());
-        }
+        if !found_jpeg && !buffer.is_empty() {}
         if buffer.is_empty() {
             return Err("No frame data received from persistent process".to_string());
         }
@@ -80,7 +76,6 @@ impl Ffmpeg {
         let mut guard = self.persistent.lock().unwrap();
         if let Some(mut proc) = guard.take() {
             let _ = proc.child.kill();
-            println!("[FFmpeg] Persistent process cleaned up");
         }
     }
     pub fn is_available(&self) -> bool {
@@ -585,7 +580,6 @@ impl Ffmpeg {
         let mut guard = self.persistent.lock().unwrap();
         if let Some(mut proc) = guard.take() {
             let _ = proc.child.kill();
-            println!("[FFmpeg] Killed old persistent process");
         }
         drop(guard);
         self.init_persistent(video_path)?;
@@ -621,7 +615,6 @@ mod tests {
     fn test_ffmpeg_available() {
         let ffmpeg = Ffmpeg::new();
         assert!(ffmpeg.is_available());
-        println!("FFmpeg version: {:?}", ffmpeg.get_version());
     }
     #[test]
     fn test_parse_fraction() {

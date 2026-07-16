@@ -1,11 +1,13 @@
 use serde::{Deserialize, Serialize};
 use std::process::{Child, ChildStdin, ChildStdout};
+
 pub struct PersistentProcess {
     pub child: Child,
     pub stdin: ChildStdin,
     pub stdout: ChildStdout,
     pub video_path: String,
 }
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VideoMetadata {
     pub width: u32,
@@ -15,6 +17,7 @@ pub struct VideoMetadata {
     pub bitrate: u64,
     pub codec: String,
 }
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ThumbnailOptions {
     pub time: f64,
@@ -22,6 +25,7 @@ pub struct ThumbnailOptions {
     pub height: Option<u32>,
     pub output_path: Option<String>,
 }
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FrameExtractOptions {
     pub output_dir: String,
@@ -34,6 +38,7 @@ pub struct FrameExtractOptions {
     pub format: String,
     pub quality: Option<u32>,
 }
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VideoInfo {
     pub width: u32,
@@ -69,3 +74,26 @@ pub struct VideoInfo {
     pub visible: bool,
     pub resource_frames: Option<String>,
 }
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum PreviewQuality {
+    Excellent,
+    High,
+    Medium,
+    Low,
+    VeryLow,
+}
+
+impl PreviewQuality {
+    pub fn as_q_value(&self) -> u32 {
+        match self {
+            PreviewQuality::Excellent => 2,
+            PreviewQuality::High => 6,
+            PreviewQuality::Medium => 10,
+            PreviewQuality::Low => 15,
+            PreviewQuality::VeryLow => 20,
+        }
+    }
+}
+
+pub const PREVIEW_FRAME_QUALITY: PreviewQuality = PreviewQuality::Medium;
