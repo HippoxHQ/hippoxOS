@@ -585,6 +585,64 @@ impl Ffmpeg {
         self.init_persistent(video_path)?;
         Ok(())
     }
+    /// Extract a single frame at the specified timestamp from a video file.
+    ///
+    /// # Arguments
+    /// * `source_path` - Path to the source video file
+    /// * `timestamp` - Timestamp in seconds to extract the frame from
+    /// * `output_path` - Path where the extracted frame will be saved (JPEG format)
+    /// * `width` - Optional output width (maintains aspect ratio if height not specified)
+    /// * `height` - Optional output height (maintains aspect ratio if width not specified)
+    /// * `quality` - JPEG quality (1-31, lower is better, default 2)
+    ///
+    /// # Returns
+    /// * `Ok(())` on success
+    /// * `Err(String)` with error message on failure
+    pub fn extract_frame_at(
+        &self,
+        source_path: &str,
+        timestamp: f64,
+        output_path: &Path,
+        width: Option<f64>,
+        height: Option<f64>,
+        quality: Option<u32>,
+    ) -> Result<(), String> {
+        if !Path::new(source_path).exists() {
+            return Err(format!("Source file not found: {}", source_path));
+        }
+        // Ensure output directory exists
+        if let Some(parent) = output_path.parent() {
+            if !parent.exists() {
+                std::fs::create_dir_all(parent).map_err(|e| format!("Failed to create output directory: {}", e))?;
+            }
+        }
+        let mut args =
+            vec!["-ss".to_string(), timestamp.to_string(), "-i".to_string(), source_path.to_string(), "-vframes".to_string(), "1".to_string()];
+        // Add scale filter if dimensions specified
+        if let (Some(w), Some(h)) = (width, height) {
+            args.push("-vf".to_string());
+            args.push(format!("scale={}:{}:force_original_aspect_ratio=decrease,pad={}:{}:(ow-iw)/2:(oh-ih)/2", w, h, w, h));
+        } else if let Some(w) = width {
+            args.push("-vf".to_string());
+            args.push(format!("scale={}:-1", w));
+        } else if let Some(h) = height {
+            args.push("-vf".to_string());
+            args.push(format!("scale=-1:{}", h));
+        }
+        // JPEG quality
+        let q = quality.unwrap_or(2);
+        args.push("-q:v".to_string());
+        args.push(q.to_string());
+        // Force overwrite
+        args.push("-y".to_string());
+        args.push(output_path.to_string_lossy().to_string());
+        let output = Command::new(&self.bin_path).args(&args).output().map_err(|e| format!("FFmpeg failed: {}", e))?;
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            return Err(format!("FFmpeg error: {}", stderr));
+        }
+        Ok(())
+    }
 }
 fn gcd(a: u64, b: u64) -> u64 {
     if b == 0 {
