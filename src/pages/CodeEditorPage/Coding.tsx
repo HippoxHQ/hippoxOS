@@ -2,14 +2,12 @@ import React, { useState, useRef, useEffect, useCallback } from "react";
 import CodeEditPanel from "./CodeEditPanel/CodeEditPanel";
 import FileTreePanel from "./FileTreePanel";
 import { configCommands } from "../../command/config";
-
 interface CodingPageProps {
   t: (key: string) => string;
   onClose?: () => void;
   workspacePath?: string | null;
   onTabChange?: (filePath: string | null) => void;
 }
-
 const CodingPage: React.FC<CodingPageProps> = ({ t, onClose, workspacePath, onTabChange }) => {
   const [leftWidth, setLeftWidth] = useState(240);
   const [rightHeight, setRightHeight] = useState(200);
@@ -25,11 +23,9 @@ const CodingPage: React.FC<CodingPageProps> = ({ t, onClose, workspacePath, onTa
   const [isRightHover, setIsRightHover] = useState(false);
   const [layoutSwapMode, setLayoutSwapMode] = useState<"terminal-left" | "chat-left">("terminal-left");
   const [isLayoutLoading, setIsLayoutLoading] = useState(true);
-
   const handleFileSelect = (path: string) => {
     setSelectedFile(path);
   };
-
   const handleTabChange = useCallback(
     (filePath: string | null) => {
       if (filePath !== null) {
@@ -41,7 +37,6 @@ const CodingPage: React.FC<CodingPageProps> = ({ t, onClose, workspacePath, onTa
     },
     [onTabChange],
   );
-
   const handleLeftResizeMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -51,9 +46,7 @@ const CodingPage: React.FC<CodingPageProps> = ({ t, onClose, workspacePath, onTa
     document.body.style.cursor = "col-resize";
     document.body.style.userSelect = "none";
   };
-
   useEffect(() => {}, [workspacePath]);
-
   useEffect(() => {
     const loadLayoutMode = async () => {
       try {
@@ -69,7 +62,6 @@ const CodingPage: React.FC<CodingPageProps> = ({ t, onClose, workspacePath, onTa
     };
     loadLayoutMode();
   }, []);
-
   useEffect(() => {
     const handleLayoutChange = (event: CustomEvent) => {
       const { pageType, mode } = event.detail;
@@ -82,7 +74,6 @@ const CodingPage: React.FC<CodingPageProps> = ({ t, onClose, workspacePath, onTa
       window.removeEventListener("layout-swap-mode-changed", handleLayoutChange as EventListener);
     };
   }, []);
-
   useEffect(() => {
     const onMouseMove = (e: MouseEvent) => {
       if (isDraggingLeft.current) {
@@ -116,7 +107,6 @@ const CodingPage: React.FC<CodingPageProps> = ({ t, onClose, workspacePath, onTa
       window.removeEventListener("mouseup", onMouseUp);
     };
   }, [leftWidth]);
-
   const handleRightResizeMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -126,11 +116,9 @@ const CodingPage: React.FC<CodingPageProps> = ({ t, onClose, workspacePath, onTa
     document.body.style.cursor = "row-resize";
     document.body.style.userSelect = "none";
   };
-
   const isLeftDragging = isDraggingLeft.current;
   const isRightDragging = isDraggingRight.current;
   const isLeftActive = isLeftDragging || isLeftHover;
-
   return (
     <div
       ref={containerRef}
@@ -185,7 +173,6 @@ const CodingPage: React.FC<CodingPageProps> = ({ t, onClose, workspacePath, onTa
           }}
           onMouseDown={handleLeftResizeMouseDown}
         />
-
         <div
           style={{
             flex: 1,
@@ -211,5 +198,4 @@ const CodingPage: React.FC<CodingPageProps> = ({ t, onClose, workspacePath, onTa
     </div>
   );
 };
-
 export default CodingPage;

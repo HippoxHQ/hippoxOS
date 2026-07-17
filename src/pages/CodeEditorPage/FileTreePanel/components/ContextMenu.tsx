@@ -1,49 +1,39 @@
 import React, { useEffect, useRef } from "react";
-
 export interface ContextMenuItem {
   label: string;
   action: () => void;
   disabled?: boolean;
 }
-
 export interface ContextMenuDivider {
   divider: true;
 }
-
 export type ContextMenuItemType = ContextMenuItem | ContextMenuDivider;
-
 interface ContextMenuProps {
   x: number;
   y: number;
   items: ContextMenuItemType[];
   onClose: () => void;
 }
-
 export const ContextMenu: React.FC<ContextMenuProps> = ({ x, y, items, onClose }) => {
   const menuRef = useRef<HTMLDivElement>(null);
-
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
         onClose();
       }
     };
-
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         onClose();
       }
     };
-
     document.addEventListener("mousedown", handleClickOutside);
     document.addEventListener("keydown", handleEscape);
-
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
       document.removeEventListener("keydown", handleEscape);
     };
   }, [onClose]);
-
   const getMenuPosition = () => {
     const menuWidth = 260;
     const menuHeight = Math.min(items.length * 32 + 20, 400);
@@ -58,13 +48,10 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({ x, y, items, onClose }
     }
     return { left, top };
   };
-
   const isDivider = (item: ContextMenuItemType): item is ContextMenuDivider => {
     return "divider" in item && item.divider === true;
   };
-
   const position = getMenuPosition();
-
   return (
     <div
       ref={menuRef}
@@ -98,7 +85,6 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({ x, y, items, onClose }
             />
           );
         }
-
         return (
           <div
             key={index}

@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import { FileNode } from "../../../types";
-
 interface UseFileTreeKeyboardProps {
   selectedFiles: FileNode[];
   onDelete: (nodes: FileNode[]) => void;
@@ -9,7 +8,6 @@ interface UseFileTreeKeyboardProps {
   onClearSelection: () => void;
   isEditing: boolean;
 }
-
 export const useFileTreeKeyboard = ({
   selectedFiles,
   onDelete,

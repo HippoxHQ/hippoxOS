@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { GitInfo, FileChange } from "../types";
 import { getStatusColor, getStatusLabel } from "../../fileUtils";
 import { githubCommands } from "../../../../command/net/github";
-
 interface GitHubSectionProps {
   gitInfo: GitInfo | null;
   loadingGit: boolean;
@@ -17,7 +16,6 @@ interface GitHubSectionProps {
   getRemoteStatusText: () => { text: string; color: string } | null;
   workspacePath: string | null | undefined;
 }
-
 export const GitHubSection: React.FC<GitHubSectionProps> = ({
   gitInfo,
   loadingGit,
@@ -41,14 +39,12 @@ export const GitHubSection: React.FC<GitHubSectionProps> = ({
     content?: string;
   } | null>(null);
   const [loadingDiff, setLoadingDiff] = useState(false);
-
   const handleFileClick = async (file: string) => {
     if (expandedDiff === file) {
       setExpandedDiff(null);
       setDiffData(null);
       return;
     }
-
     setExpandedDiff(file);
     setLoadingDiff(true);
     try {
@@ -64,7 +60,6 @@ export const GitHubSection: React.FC<GitHubSectionProps> = ({
       setLoadingDiff(false);
     }
   };
-
   if (loadingGit) {
     return (
       <div
@@ -78,7 +73,6 @@ export const GitHubSection: React.FC<GitHubSectionProps> = ({
       </div>
     );
   }
-
   if (!gitInfo) {
     return (
       <div
@@ -92,7 +86,6 @@ export const GitHubSection: React.FC<GitHubSectionProps> = ({
       </div>
     );
   }
-
   return (
     <div>
       {gitInfo.remoteUrl && (
@@ -115,7 +108,6 @@ export const GitHubSection: React.FC<GitHubSectionProps> = ({
           <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{gitInfo.remoteUrl}</span>
         </div>
       )}
-
       <div
         style={{
           display: "flex",
@@ -151,7 +143,6 @@ export const GitHubSection: React.FC<GitHubSectionProps> = ({
           {gitInfo.hasChanges ? "🔵 有未提交更改" : "✅ 干净工作区"}
         </span>
       </div>
-
       <div
         style={{
           marginBottom: "6px",
@@ -206,7 +197,6 @@ export const GitHubSection: React.FC<GitHubSectionProps> = ({
           )}
         </div>
       </div>
-
       {gitInfo.remoteUrl && (
         <div
           style={{
@@ -307,7 +297,6 @@ export const GitHubSection: React.FC<GitHubSectionProps> = ({
           </button>
         </div>
       )}
-
       <div>
         <div
           style={{
@@ -411,7 +400,6 @@ export const GitHubSection: React.FC<GitHubSectionProps> = ({
                       </span>
                     </span>
                   </div>
-
                   {isExpanded && (
                     <div style={{ padding: "4px 0 4px 14px" }}>
                       {loadingDiff ? (
@@ -508,7 +496,6 @@ export const GitHubSection: React.FC<GitHubSectionProps> = ({
                                 {diffData.additions !== undefined && diffData.additions > 0 && <span style={{ color: "#4caf50" }}>+{diffData.additions}</span>}
                                 {diffData.deletions !== undefined && diffData.deletions > 0 && <span style={{ color: "#ff4444" }}>-{diffData.deletions}</span>}
                               </div>
-
                               <div
                                 style={{
                                   padding: "4px 0",
@@ -526,27 +513,23 @@ export const GitHubSection: React.FC<GitHubSectionProps> = ({
                                   const isAdd = line.startsWith("+") && !line.startsWith("+++");
                                   const isDel = line.startsWith("-") && !line.startsWith("---");
                                   const isHeader = line.startsWith("@@");
-
                                   const getBgColor = () => {
                                     if (isAdd) return "rgba(76, 175, 80, 0.15)";
                                     if (isDel) return "rgba(255, 68, 68, 0.15)";
                                     if (isHeader) return "transparent";
                                     return "transparent";
                                   };
-
                                   const getTextColor = () => {
                                     if (isAdd) return "#4caf50";
                                     if (isDel) return "#ff4444";
                                     if (isHeader) return "var(--text-muted)";
                                     return "var(--text-secondary)";
                                   };
-
                                   const getPrefix = () => {
                                     if (isAdd) return "+";
                                     if (isDel) return "-";
                                     return " ";
                                   };
-
                                   if (isHeader) {
                                     return (
                                       <div
@@ -563,7 +546,6 @@ export const GitHubSection: React.FC<GitHubSectionProps> = ({
                                       </div>
                                     );
                                   }
-
                                   return (
                                     <div
                                       key={idx}

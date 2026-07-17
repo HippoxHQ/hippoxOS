@@ -1,6 +1,5 @@
 import { useEffect, useRef } from "react";
 import * as monaco from "monaco-editor";
-
 interface UseCodeEditorKeyboardProps {
   onCopy: () => void;
   onPaste: () => void;
@@ -8,7 +7,6 @@ interface UseCodeEditorKeyboardProps {
   isEditing: boolean;
   editorRef?: React.RefObject<monaco.editor.IStandaloneCodeEditor | null>;
 }
-
 export const useCodeEditorKeyboard = ({
   onCopy,
   onPaste,
@@ -21,7 +19,6 @@ export const useCodeEditorKeyboard = ({
     onPaste,
     onSave,
   });
-
   useEffect(() => {
     callbacksRef.current = {
       onCopy,
@@ -29,7 +26,6 @@ export const useCodeEditorKeyboard = ({
       onSave,
     };
   }, [onCopy, onPaste, onSave]);
-
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement;

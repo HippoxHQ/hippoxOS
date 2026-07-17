@@ -4,7 +4,6 @@ import { Terminal as XTerm } from "xterm";
 import { FitAddon } from "@xterm/addon-fit";
 // @ts-ignore
 import "xterm/css/xterm.css";
-
 export interface TerminalInstance {
   id: string;
   name: string;
@@ -15,7 +14,6 @@ export interface TerminalInstance {
   fitAddon: FitAddon;
   container: HTMLDivElement;
 }
-
 export class Terminal {
   private container: HTMLElement | null = null;
   private terminals: Map<string, TerminalInstance> = new Map();
@@ -31,12 +29,10 @@ export class Terminal {
   private xtermWrapper: HTMLElement | null = null;
   private _themeChangeHandler: ((e: CustomEvent) => void) | null = null;
   private _isMounted = false;
-
   constructor(t: (key: string) => string, workspacePath?: string | null) {
     this.t = t;
     this.workspacePath = workspacePath || null;
   }
-
   mount(container: HTMLElement) {
     this.container = container;
     this.container.style.width = "100%";
@@ -53,14 +49,12 @@ export class Terminal {
         this.initTerminal();
       });
     }
-
     this.bindEvents();
     this._themeChangeHandler = (e: CustomEvent) => {
       this.updateTheme();
     };
     window.addEventListener("theme-changed", this._themeChangeHandler as EventListener);
   }
-
   unmount() {
     this._isMounted = false;
     this.cleanup();
@@ -78,7 +72,6 @@ export class Terminal {
       this._themeChangeHandler = null;
     }
   }
-
   private cleanup() {
     if (this.outputUnlisten) {
       this.outputUnlisten();
@@ -92,7 +85,6 @@ export class Terminal {
       terminalCommands.kill(id, true).catch(() => { });
     }
   }
-
   private updateTheme() {
     const getCSSVar = (name: string) => {
       return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || undefined;
@@ -101,7 +93,6 @@ export class Terminal {
     const textPrimary = getCSSVar("--text-primary") || "#d4d4d4";
     const accentColor = getCSSVar("--accent-color") || "#0078d4";
     const accentGlow = getCSSVar("--accent-glow") || "rgba(0, 120, 212, 0.3)";
-
     for (const [id, term] of Array.from(this.terminals)) {
       try {
         term.xterm.options.theme = {
@@ -112,16 +103,13 @@ export class Terminal {
         };
       } catch (e) { }
     }
-
     if (this.terminalListRef) {
       this.terminalListRef.style.background = bgPrimary;
     }
     this.renderSidebar();
   }
-
   private async setupGlobalListeners() {
     if (this.outputUnlisten) return;
-
     this.outputUnlisten = await listen<any>("terminal-output", (event) => {
       const payload = event.payload;
       if (payload && payload.session_id && payload.data) {
@@ -131,7 +119,6 @@ export class Terminal {
         }
       }
     });
-
     this.exitUnlisten = await listen<any>("terminal-exit", (event) => {
       const payload = event.payload;
       if (payload && payload.session_id) {
@@ -145,13 +132,10 @@ export class Terminal {
       }
     });
   }
-
   private handleXTermData(data: string, sessionId: string) {
     if (this.activeTerminalId !== sessionId) return;
-
     const term = this.terminals.get(sessionId);
     if (!term) return;
-
     if (data === "\r") {
       const cmd = this.inputBuffer.trim();
       if (cmd) {
@@ -179,7 +163,6 @@ export class Terminal {
     this.inputBuffer += data;
     term.xterm.write(data);
   }
-
   private async handleCommand(cmd: string, sessionId: string) {
     const trimmed = cmd.trim();
     if (!trimmed) return;
@@ -199,7 +182,6 @@ export class Terminal {
       term.xterm.writeln(`\x1b[31mError: ${errorMsg}\x1b[0m`);
     }
   }
-
   private async createXTermInstance(sessionId: string): Promise<TerminalInstance> {
     const getCSSVar = (name: string) => {
       return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || undefined;
@@ -278,7 +260,6 @@ export class Terminal {
       }
     });
     resizeObserver.observe(container);
-
     return {
       id: sessionId,
       name: `Terminal ${this.terminalCounter}`,
@@ -290,7 +271,6 @@ export class Terminal {
       container,
     };
   }
-
   private async createTerminal() {
     this.isConnecting = true;
     try {
@@ -316,16 +296,13 @@ export class Terminal {
       }
     }
   }
-
   private async initTerminal() {
     if (this.terminals.size > 0) return;
     await this.createTerminal();
   }
-
   async createNewTerminal() {
     await this.createTerminal();
   }
-
   updateWorkspacePath(path: string | null) {
     if (this.workspacePath === path) return;
     this.workspacePath = path;
@@ -344,16 +321,12 @@ export class Terminal {
       this.initTerminal();
     }
   }
-
-
   private switchTerminal(terminalId: string) {
     if (terminalId === this.activeTerminalId) return;
-
     for (const [id, term] of Array.from(this.terminals)) {
       term.container.style.opacity = "0";
       term.container.style.pointerEvents = "none";
     }
-
     const target = this.terminals.get(terminalId);
     if (target) {
       target.container.style.opacity = "1";
@@ -363,12 +336,10 @@ export class Terminal {
         target.fitAddon.fit();
       } catch (e) { }
     }
-
     this.activeTerminalId = terminalId;
     this.updateUI();
     this.renderSidebar();
   }
-
   private render() {
     if (!this.container) return;
     this.container.innerHTML = `
@@ -394,10 +365,8 @@ export class Terminal {
   </div>
 </div>
 `;
-
     this.xtermWrapper = document.getElementById("xterm-wrapper");
     this.terminalListRef = document.getElementById("terminal-sidebar");
-
     const addBtn = document.getElementById("terminal-add-btn");
     if (addBtn) {
       addBtn.addEventListener("click", () => {
@@ -405,18 +374,15 @@ export class Terminal {
       });
     }
   }
-
   private bindEvents() {
     document.addEventListener("keydown", this.handleKeyDown.bind(this));
   }
-
   private handleKeyDown(e: KeyboardEvent) {
     if (!this.activeTerminalId) return;
     if (e.key === "c" && (e.ctrlKey || e.metaKey)) {
       return;
     }
   }
-
   private updateUI() {
     const nameEl = document.getElementById("terminal-name");
     const statusEl = document.getElementById("terminal-status");
@@ -445,18 +411,15 @@ export class Terminal {
       }
     }
   }
-
   private renderSidebar() {
     if (!this.terminalListRef) return;
     const container = this.terminalListRef.querySelector("div");
     if (!container) return;
-
     if (this.terminals.size === 0) {
       container.innerHTML =
         '<div style="padding:10px 6px;font-size:10px;color:var(--text-muted);text-align:center;">No terminals</div>';
       return;
     }
-
     let html = "";
     for (const [id, term] of Array.from(this.terminals)) {
       const isActive = id === this.activeTerminalId;
@@ -495,14 +458,12 @@ export class Terminal {
     `;
     }
     container.innerHTML = html;
-
     container.querySelectorAll(".terminal-item").forEach((el) => {
       const id = el.getAttribute("data-id");
       if (id) {
         el.addEventListener("click", () => this.switchTerminal(id));
       }
     });
-
     container.querySelectorAll(".terminal-close-btn").forEach((el) => {
       const id = el.getAttribute("data-id");
       if (id) {
@@ -513,7 +474,6 @@ export class Terminal {
       }
     });
   }
-
   private async closeTerminal(terminalId: string) {
     if (this.terminals.size <= 1) {
       return;

@@ -3,7 +3,6 @@ import { open } from "@tauri-apps/plugin-dialog";
 import { showToast, ToastType } from "../../components/Toast";
 import { githubCommands } from "../../command/net/github";
 import { GithubIcon, FolderTargetIcon, BrowseFolderIcon, RepoIcon, CheckCircleIcon, SpinnerIcon, AlertCircleIcon, CloseIcon, ChevronRightIcon } from "../../icons";
-
 interface GithubRepoInfo {
   valid: boolean;
   owner?: string;
@@ -15,7 +14,6 @@ interface GithubRepoInfo {
   default_branch?: string;
   error?: string;
 }
-
 interface GithubCloneProps {
   t: (key: string, params?: any) => string;
   language?: "zh" | "en";
@@ -24,7 +22,6 @@ interface GithubCloneProps {
   onClone: (repoUrl: string, targetPath: string, branch: string) => Promise<void>;
   isLoading?: boolean;
 }
-
 const GithubClone: React.FC<GithubCloneProps> = ({ t, language = "en", isOpen, onClose, onClone, isLoading = false }) => {
   const [githubRepoUrl, setGithubRepoUrl] = useState("");
   const [cloneTargetPath, setCloneTargetPath] = useState<string>("");
@@ -40,9 +37,7 @@ const GithubClone: React.FC<GithubCloneProps> = ({ t, language = "en", isOpen, o
   const [isCloning, setIsCloning] = useState(false);
   const verifyTimerRef = useRef<NodeJS.Timeout | null>(null);
   const branchDropdownRef = useRef<HTMLDivElement>(null);
-
   const isZh = language === "zh";
-
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (branchDropdownRef.current && !branchDropdownRef.current.contains(event.target as Node)) {
@@ -54,7 +49,6 @@ const GithubClone: React.FC<GithubCloneProps> = ({ t, language = "en", isOpen, o
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
-
   useEffect(() => {
     if (isOpen) {
       setGithubRepoUrl("");
@@ -67,7 +61,6 @@ const GithubClone: React.FC<GithubCloneProps> = ({ t, language = "en", isOpen, o
       setIsCloning(false);
     }
   }, [isOpen]);
-
   const loadBranches = async (url: string) => {
     if (!url.trim()) return;
     setIsLoadingBranches(true);
@@ -86,7 +79,6 @@ const GithubClone: React.FC<GithubCloneProps> = ({ t, language = "en", isOpen, o
       setIsLoadingBranches(false);
     }
   };
-
   const verifyGithubRepo = async (url: string) => {
     if (!url.trim()) {
       setRepoInfo(null);
@@ -95,7 +87,6 @@ const GithubClone: React.FC<GithubCloneProps> = ({ t, language = "en", isOpen, o
       setSelectedBranch("");
       return;
     }
-
     const githubPattern = /^(https?:\/\/)?(www\.)?github\.com\/[\w-]+\/[\w-]+(\.git)?$/;
     if (!githubPattern.test(url.trim())) {
       setRepoInfo(null);
@@ -124,7 +115,6 @@ const GithubClone: React.FC<GithubCloneProps> = ({ t, language = "en", isOpen, o
       setIsVerifying(false);
     }
   };
-
   useEffect(() => {
     if (verifyTimerRef.current) {
       clearTimeout(verifyTimerRef.current);
@@ -145,7 +135,6 @@ const GithubClone: React.FC<GithubCloneProps> = ({ t, language = "en", isOpen, o
       }
     };
   }, [githubRepoUrl]);
-
   const handleSelectCloneTarget = async () => {
     try {
       const selected = await open({
@@ -161,31 +150,25 @@ const GithubClone: React.FC<GithubCloneProps> = ({ t, language = "en", isOpen, o
       showToast(ToastType.ERROR, language === "zh" ? "选择目录失败" : "Failed to select directory");
     }
   };
-
   const handleCloneTargetPathChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setCloneTargetPath(e.target.value);
     setCloneError("");
   };
-
   const handleClone = async () => {
     if (!githubRepoUrl.trim()) {
       showToast(ToastType.WARNING, language === "zh" ? "请输入 GitHub 仓库地址" : "Please enter GitHub repo URL");
       return;
     }
-
     if (!repoInfo?.valid) {
       showToast(ToastType.WARNING, language === "zh" ? "请输入有效的 GitHub 仓库地址" : "Please enter a valid GitHub repository URL");
       return;
     }
-
     if (!cloneTargetPath.trim()) {
       showToast(ToastType.WARNING, language === "zh" ? "请选择克隆目标目录" : "Please select clone target directory");
       return;
     }
-
     setIsCloning(true);
     setCloneError("");
-
     try {
       const branch = selectedBranch || repoInfo.default_branch || "main";
       await onClone(githubRepoUrl.trim(), cloneTargetPath, branch);
@@ -213,9 +196,7 @@ const GithubClone: React.FC<GithubCloneProps> = ({ t, language = "en", isOpen, o
       setIsCloning(false);
     }
   };
-
   if (!isOpen) return null;
-
   return (
     <div
       style={{
@@ -308,7 +289,6 @@ const GithubClone: React.FC<GithubCloneProps> = ({ t, language = "en", isOpen, o
             <CloseIcon size={14} />
           </button>
         </div>
-
         <div
           style={{
             padding: "10px 14px 14px 14px",
@@ -479,7 +459,6 @@ const GithubClone: React.FC<GithubCloneProps> = ({ t, language = "en", isOpen, o
               </div>
             )}
           </div>
-
           {repoInfo?.valid && branches.length > 0 && (
             <div style={{ marginBottom: "8px" }}>
               <label
@@ -612,7 +591,6 @@ const GithubClone: React.FC<GithubCloneProps> = ({ t, language = "en", isOpen, o
               </div>
             </div>
           )}
-
           <div style={{ marginBottom: "12px" }}>
             <label
               style={{
@@ -751,7 +729,6 @@ const GithubClone: React.FC<GithubCloneProps> = ({ t, language = "en", isOpen, o
               </div>
             )}
           </div>
-
           <div
             style={{
               display: "flex",
@@ -825,7 +802,6 @@ const GithubClone: React.FC<GithubCloneProps> = ({ t, language = "en", isOpen, o
           </div>
         </div>
       </div>
-
       <style>{`
         @keyframes fadeIn {
           from { opacity: 0; }
@@ -839,5 +815,4 @@ const GithubClone: React.FC<GithubCloneProps> = ({ t, language = "en", isOpen, o
     </div>
   );
 };
-
 export default GithubClone;

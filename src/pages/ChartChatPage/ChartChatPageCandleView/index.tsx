@@ -3,7 +3,6 @@ import { ICandleViewDataPoint } from "@candleview/core";
 import { TEST_CANDLEVIEW_DATA8 } from "../../../test/TestData_3";
 import Chart, { ChartRef } from "./Chart";
 import DSL, { DSLRef } from "./DSL";
-
 interface ChartChatPageCandleViewProps {
   theme: "light" | "dark";
   i18n: "en" | "zh-cn";
@@ -13,7 +12,6 @@ interface ChartChatPageCandleViewProps {
   taskId?: string;
   chartData?: any;
 }
-
 export const ChartChatPageCandleView: React.FC<ChartChatPageCandleViewProps> = ({ theme, i18n, currentSessionId, data, symbol = "BTC/USDT", taskId, chartData }) => {
   const [chartHeight, setChartHeight] = useState(55);
   const [editorWidth, setEditorWidth] = useState(60);
@@ -27,10 +25,8 @@ export const ChartChatPageCandleView: React.FC<ChartChatPageCandleViewProps> = (
   const chartRef = useRef<ChartRef>(null);
   const dslRef = useRef<DSLRef>(null);
   const engineRef = useRef<any>(null);
-
   const chartDataFromProps = data || TEST_CANDLEVIEW_DATA8;
   const isValidData = chartDataFromProps && Array.isArray(chartDataFromProps) && chartDataFromProps.length > 0;
-
   useEffect(() => {
     const checkEngine = () => {
       if (chartRef.current) {
@@ -43,7 +39,6 @@ export const ChartChatPageCandleView: React.FC<ChartChatPageCandleViewProps> = (
     const interval = setInterval(checkEngine, 300);
     return () => clearInterval(interval);
   }, []);
-
   const startChartResizing = useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault();
@@ -53,7 +48,6 @@ export const ChartChatPageCandleView: React.FC<ChartChatPageCandleViewProps> = (
     },
     [chartHeight],
   );
-
   const handleChartMouseMove = useCallback(
     (e: MouseEvent) => {
       if (!isChartResizing) return;
@@ -69,11 +63,9 @@ export const ChartChatPageCandleView: React.FC<ChartChatPageCandleViewProps> = (
     },
     [isChartResizing],
   );
-
   const stopChartResizing = useCallback(() => {
     setIsChartResizing(false);
   }, []);
-
   const startEditorResizing = useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault();
@@ -83,7 +75,6 @@ export const ChartChatPageCandleView: React.FC<ChartChatPageCandleViewProps> = (
     },
     [editorWidth],
   );
-
   const handleEditorMouseMove = useCallback(
     (e: MouseEvent) => {
       if (!isEditorResizing) return;
@@ -99,11 +90,9 @@ export const ChartChatPageCandleView: React.FC<ChartChatPageCandleViewProps> = (
     },
     [isEditorResizing],
   );
-
   const stopEditorResizing = useCallback(() => {
     setIsEditorResizing(false);
   }, []);
-
   useEffect(() => {
     if (isChartResizing) {
       document.addEventListener("mousemove", handleChartMouseMove);
@@ -114,7 +103,6 @@ export const ChartChatPageCandleView: React.FC<ChartChatPageCandleViewProps> = (
       document.removeEventListener("mouseup", stopChartResizing);
     };
   }, [isChartResizing, handleChartMouseMove, stopChartResizing]);
-
   useEffect(() => {
     if (isEditorResizing) {
       document.addEventListener("mousemove", handleEditorMouseMove);
@@ -125,10 +113,8 @@ export const ChartChatPageCandleView: React.FC<ChartChatPageCandleViewProps> = (
       document.removeEventListener("mouseup", stopEditorResizing);
     };
   }, [isEditorResizing, handleEditorMouseMove, stopEditorResizing]);
-
   const isDark = theme === "dark";
   const editorHeight = 100 - chartHeight;
-
   return (
     <div
       ref={containerRef}
@@ -195,7 +181,6 @@ export const ChartChatPageCandleView: React.FC<ChartChatPageCandleViewProps> = (
           background: transparent;
         }
       `}</style>
-
       <div
         style={{
           height: `${chartHeight}%`,
@@ -208,7 +193,6 @@ export const ChartChatPageCandleView: React.FC<ChartChatPageCandleViewProps> = (
       >
         <Chart ref={chartRef} theme={theme} i18n={i18n} symbol={symbol} data={chartDataFromProps} chartData={chartData} isValidData={isValidData} />
       </div>
-
       <div
         className="chart-resize-handle"
         style={{
@@ -220,7 +204,6 @@ export const ChartChatPageCandleView: React.FC<ChartChatPageCandleViewProps> = (
         }}
         onMouseDown={startChartResizing}
       />
-
       <div
         style={{
           height: `${editorHeight}%`,
@@ -234,7 +217,6 @@ export const ChartChatPageCandleView: React.FC<ChartChatPageCandleViewProps> = (
       >
         <DSL ref={dslRef} theme={theme} i18n={i18n} editorWidth={editorWidth} onStartEditorResize={startEditorResizing} engineRef={engineRef} />
       </div>
-
       {isChartResizing && (
         <div
           style={{
@@ -258,5 +240,4 @@ export const ChartChatPageCandleView: React.FC<ChartChatPageCandleViewProps> = (
     </div>
   );
 };
-
 export default ChartChatPageCandleView;

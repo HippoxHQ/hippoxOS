@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { urlCommands } from "../../../../command/url";
 import { openUrl } from "../../../../utils";
-
 interface UrlPreview {
   url: string;
   title: string;
@@ -13,14 +12,11 @@ interface UrlPreview {
   fallbackIcon: string;
   isLoading: boolean;
 }
-
 interface MessageUrlGridProps {
   urls: string[];
   t: (key: string, params?: any) => string;
 }
-
 const URL_REGEX = /(https?:\/\/[^\s<>"']+)/gi;
-
 const getDomainFromUrl = (url: string): string => {
   try {
     const urlObj = new URL(url);
@@ -29,7 +25,6 @@ const getDomainFromUrl = (url: string): string => {
     return url;
   }
 };
-
 const getDefaultThemeColor = (domain: string): string => {
   let hash = 0;
   for (let i = 0; i < domain.length; i++) {
@@ -39,7 +34,6 @@ const getDefaultThemeColor = (domain: string): string => {
   const hue = Math.abs(hash % 360);
   return `hsl(${hue}, 70%, 55%)`;
 };
-
 const getFallbackIcon = (domain: string): string => {
   const iconMap: Record<string, string> = {
     "google.com": "🔍",
@@ -63,14 +57,12 @@ const getFallbackIcon = (domain: string): string => {
     "qq.com": "🐧",
     "163.com": "📧",
   };
-
   if (iconMap[domain]) return iconMap[domain];
   for (const [key, icon] of Object.entries(iconMap)) {
     if (domain.endsWith(key)) return icon;
   }
   return "🌐";
 };
-
 export const MessageUrlGrid: React.FC<MessageUrlGridProps> = ({ urls, t }) => {
   const [previews, setPreviews] = useState<UrlPreview[]>([]);
   const [showLeft, setShowLeft] = useState(false);
@@ -100,7 +92,6 @@ export const MessageUrlGrid: React.FC<MessageUrlGridProps> = ({ urls, t }) => {
       return;
     }
     urlsRef.current = uniqueUrls;
-
     if (uniqueUrls.length === 0) {
       setPreviews([]);
       return;
@@ -156,7 +147,6 @@ export const MessageUrlGrid: React.FC<MessageUrlGridProps> = ({ urls, t }) => {
     };
     fetchAllMetadata();
   }, [urls, generateInitialPreviews]);
-
   const checkScroll = () => {
     if (scrollRef.current) {
       const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
@@ -164,7 +154,6 @@ export const MessageUrlGrid: React.FC<MessageUrlGridProps> = ({ urls, t }) => {
       setShowRight(scrollLeft + clientWidth < scrollWidth - 1);
     }
   };
-
   useEffect(() => {
     const element = scrollRef.current;
     if (element) {
@@ -173,19 +162,16 @@ export const MessageUrlGrid: React.FC<MessageUrlGridProps> = ({ urls, t }) => {
       return () => element.removeEventListener("scroll", checkScroll);
     }
   }, [previews]);
-
   const scrollLeft = () => {
     if (scrollRef.current) {
       scrollRef.current.scrollBy({ left: -300, behavior: "smooth" });
     }
   };
-
   const scrollRight = () => {
     if (scrollRef.current) {
       scrollRef.current.scrollBy({ left: 300, behavior: "smooth" });
     }
   };
-
   const handleUrlClick = async (url: string) => {
     try {
       await openUrl(url, t);
@@ -194,7 +180,6 @@ export const MessageUrlGrid: React.FC<MessageUrlGridProps> = ({ urls, t }) => {
       window.open(url, "_blank");
     }
   };
-
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
     e.currentTarget.style.display = "none";
     const parent = e.currentTarget.parentElement;
@@ -205,7 +190,6 @@ export const MessageUrlGrid: React.FC<MessageUrlGridProps> = ({ urls, t }) => {
       }
     }
   };
-
   const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
     e.currentTarget.style.display = "block";
     const parent = e.currentTarget.parentElement;
@@ -216,9 +200,7 @@ export const MessageUrlGrid: React.FC<MessageUrlGridProps> = ({ urls, t }) => {
       }
     }
   };
-
   if (previews.length === 0) return null;
-
   return (
     <div className="message-urls-container">
       <div className="urls-scroll-wrapper">
@@ -280,7 +262,6 @@ export const MessageUrlGrid: React.FC<MessageUrlGridProps> = ({ urls, t }) => {
           )}
         </div>
       </div>
-
       <style>{`
         .message-urls-container {
   margin-top: 8px;
@@ -290,14 +271,11 @@ export const MessageUrlGrid: React.FC<MessageUrlGridProps> = ({ urls, t }) => {
   overflow: visible;
   flex-shrink: 0;
 }
-        
       .urls-scroll-wrapper {
   border-radius: 12px;
   width: 100%;
   overflow: visible;
 }
-
-        
        .urls-list-wrapper {
   display: flex;
   align-items: center;
@@ -308,7 +286,6 @@ export const MessageUrlGrid: React.FC<MessageUrlGridProps> = ({ urls, t }) => {
   width: 100%;
   min-width: 0;   
 }
-        
         .urls-scroll-btn {
           flex-shrink: 0;
           width: 28px;
@@ -324,14 +301,12 @@ export const MessageUrlGrid: React.FC<MessageUrlGridProps> = ({ urls, t }) => {
           // transition: all 0.2s ease;
           opacity: 0.8;
         }
-        
         .urls-scroll-btn:hover {
           background: var(--accent-color);
           color: white;
           border-color: var(--accent-color);
           opacity: 1;
         }
-        
    .urls-scroll {
   flex: 1;
   display: flex;
@@ -345,25 +320,20 @@ export const MessageUrlGrid: React.FC<MessageUrlGridProps> = ({ urls, t }) => {
   scroll-behavior: smooth;
   min-width: 0;  
 }
-        
         .urls-scroll::-webkit-scrollbar {
           height: 4px;
         }
-        
         .urls-scroll::-webkit-scrollbar-track {
           background: var(--bg-tertiary);
           border-radius: 2px;
         }
-        
         .urls-scroll::-webkit-scrollbar-thumb {
           background: var(--border-color);
           border-radius: 2px;
         }
-        
         .urls-scroll::-webkit-scrollbar-thumb:hover {
           background: var(--text-tertiary);
         }
-        
         .url-card {
           width: 200px;
           min-width: 200px;
@@ -377,13 +347,11 @@ export const MessageUrlGrid: React.FC<MessageUrlGridProps> = ({ urls, t }) => {
           display: flex;
           flex-direction: column;
         }
-        
         .url-card:hover {
           transform: translateY(-2px);
           box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
           border-color: var(--accent-color);
         }
-        
         .url-card-image {
           width: 100%;
           aspect-ratio: 16 / 9;
@@ -394,7 +362,6 @@ export const MessageUrlGrid: React.FC<MessageUrlGridProps> = ({ urls, t }) => {
           overflow: hidden;
           // transition: background-color 0.3s ease;
         }
-        
         .url-glass-bg {
           position: absolute;
           top: 0;
@@ -405,11 +372,9 @@ export const MessageUrlGrid: React.FC<MessageUrlGridProps> = ({ urls, t }) => {
           background: rgba(255, 255, 255, 0.15);
           z-index: 1;
         }
-        
         [data-theme="dark"] .url-glass-bg {
           background: rgba(0, 0, 0, 0.2);
         }
-        
         .url-icon-container {
           position: relative;
           z-index: 2;
@@ -422,18 +387,15 @@ export const MessageUrlGrid: React.FC<MessageUrlGridProps> = ({ urls, t }) => {
           border-radius: 12px;
           box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
         }
-        
         [data-theme="dark"] .url-icon-container {
           background: rgba(30, 30, 40, 0.9);
         }
-        
         .url-favicon {
           width: 32px;
           height: 32px;
           object-fit: contain;
           display: none;
         }
-        
         .url-fallback-icon {
           font-size: 28px;
           font-weight: 500;
@@ -442,14 +404,12 @@ export const MessageUrlGrid: React.FC<MessageUrlGridProps> = ({ urls, t }) => {
           align-items: center;
           justify-content: center;
         }
-        
         .url-card-info {
           padding: 10px 12px;
           display: flex;
           flex-direction: column;
           gap: 6px;
         }
-        
         .url-title {
           font-size: 13px;
           font-weight: 600;
@@ -459,7 +419,6 @@ export const MessageUrlGrid: React.FC<MessageUrlGridProps> = ({ urls, t }) => {
           white-space: nowrap;
           line-height: 1.4;
         }
-        
         .url-description {
           font-size: 11px;
           color: var(--text-secondary);
@@ -472,7 +431,6 @@ export const MessageUrlGrid: React.FC<MessageUrlGridProps> = ({ urls, t }) => {
           line-height: 1.35;
           min-height: 30px;
         }
-        
         .url-domain {
           font-size: 10px;
           color: var(--text-tertiary);
@@ -481,11 +439,9 @@ export const MessageUrlGrid: React.FC<MessageUrlGridProps> = ({ urls, t }) => {
           white-space: nowrap;
           margin-top: 2px;
         }
-        
         .message-wrapper.user .url-card {
           direction: ltr;
         }
-        
         .message-wrapper.user .urls-list-wrapper {
           direction: ltr;
         }
@@ -493,7 +449,6 @@ export const MessageUrlGrid: React.FC<MessageUrlGridProps> = ({ urls, t }) => {
     </div>
   );
 };
-
 export const extractUrls = (text: string): string[] => {
   if (!text) return [];
   const matches = text.match(URL_REGEX);

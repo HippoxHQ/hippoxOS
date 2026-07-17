@@ -1,14 +1,12 @@
 import React, { useRef, useEffect } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
-
 interface SandBox3DProps {
   theme: "light" | "dark";
   i18n: "en" | "zh-cn";
   t: (key: string, params?: any) => string;
   currentSessionId?: string;
 }
-
 const ATOM_COLORS: Record<string, string> = {
   H: "#ffffff",
   C: "#404040",
@@ -34,7 +32,6 @@ const ATOM_COLORS: Record<string, string> = {
   Ag: "#c0c0c0",
   default: "#ff66cc",
 };
-
 const MOLECULES = {
   water: {
     atoms: [
@@ -104,9 +101,7 @@ const MOLECULES = {
     ],
   },
 };
-
 type MoleculeKey = keyof typeof MOLECULES;
-
 interface PhysicsSphere {
   mesh: THREE.Mesh;
   velocity: THREE.Vector3;
@@ -115,16 +110,9 @@ interface PhysicsSphere {
   life?: number;
   isExplosion?: boolean;
 }
-
-const SandBox3D: React.FC<SandBox3DProps> = ({
-  theme,
-  i18n,
-  t,
-  currentSessionId,
-}) => {
+const SandBox3D: React.FC<SandBox3DProps> = ({ theme, i18n, t, currentSessionId }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const isZh = i18n === "zh-cn";
-
   const physicsSpheresRef = useRef<PhysicsSphere[]>([]);
   const explosionParticlesRef = useRef<
     {
@@ -134,7 +122,6 @@ const SandBox3D: React.FC<SandBox3DProps> = ({
       maxLife: number;
     }[]
   >([]);
-
   const getAtomRadius = (element: string): number => {
     const radii: Record<string, number> = {
       H: 0.25,
@@ -151,13 +138,7 @@ const SandBox3D: React.FC<SandBox3DProps> = ({
     };
     return radii[element] || radii.default;
   };
-
-  const createExplosion = (
-    scene: THREE.Scene,
-    position: THREE.Vector3,
-    color: THREE.Color,
-    count: number = 80,
-  ) => {
+  const createExplosion = (scene: THREE.Scene, position: THREE.Vector3, color: THREE.Color, count: number = 80) => {
     const colors = [0xff4444, 0xff8844, 0xffcc44, 0x44ff88, 0x4488ff, 0xcc44ff];
     for (let i = 0; i < count; i++) {
       const size = 0.05 + Math.random() * 0.15;
@@ -172,14 +153,8 @@ const SandBox3D: React.FC<SandBox3DProps> = ({
       mesh.position.x += (Math.random() - 0.5) * 0.2;
       mesh.position.y += (Math.random() - 0.5) * 0.2;
       mesh.position.z += (Math.random() - 0.5) * 0.2;
-
       const speed = 2 + Math.random() * 4;
-      const dir = new THREE.Vector3(
-        (Math.random() - 0.5) * 2,
-        (Math.random() - 0.5) * 2,
-        (Math.random() - 0.5) * 2,
-      ).normalize();
-
+      const dir = new THREE.Vector3((Math.random() - 0.5) * 2, (Math.random() - 0.5) * 2, (Math.random() - 0.5) * 2).normalize();
       scene.add(mesh);
       explosionParticlesRef.current.push({
         mesh,
@@ -189,14 +164,7 @@ const SandBox3D: React.FC<SandBox3DProps> = ({
       });
     }
   };
-
-  const fireSphere = (
-    scene: THREE.Scene,
-    position: THREE.Vector3,
-    color: number | string,
-    radius: number = 0.2,
-    velocity: THREE.Vector3 = new THREE.Vector3(0, 5, 0),
-  ) => {
+  const fireSphere = (scene: THREE.Scene, position: THREE.Vector3, color: number | string, radius: number = 0.2, velocity: THREE.Vector3 = new THREE.Vector3(0, 5, 0)) => {
     const geo = new THREE.SphereGeometry(radius, 16, 16);
     const mat = new THREE.MeshPhysicalMaterial({
       color: color,
@@ -209,7 +177,6 @@ const SandBox3D: React.FC<SandBox3DProps> = ({
     mesh.position.copy(position);
     mesh.castShadow = true;
     scene.add(mesh);
-
     physicsSpheresRef.current.push({
       mesh,
       velocity: velocity.clone(),
@@ -217,7 +184,6 @@ const SandBox3D: React.FC<SandBox3DProps> = ({
       grounded: false,
     });
   };
-
   const fireBurst = (scene: THREE.Scene, position: THREE.Vector3) => {
     const colors = [0xff4444, 0xff8844, 0x44ff88, 0x4488ff, 0xcc44ff, 0xff44cc];
     for (let i = 0; i < 30; i++) {
@@ -225,31 +191,22 @@ const SandBox3D: React.FC<SandBox3DProps> = ({
       const angle1 = Math.random() * Math.PI * 2;
       const angle2 = Math.random() * Math.PI * 2;
       const speed = 2 + Math.random() * 4;
-      const vel = new THREE.Vector3(
-        Math.cos(angle1) * Math.sin(angle2) * speed,
-        Math.sin(angle1) * speed * 0.8 + 2,
-        Math.cos(angle2) * Math.sin(angle1) * speed,
-      );
+      const vel = new THREE.Vector3(Math.cos(angle1) * Math.sin(angle2) * speed, Math.sin(angle1) * speed * 0.8 + 2, Math.cos(angle2) * Math.sin(angle1) * speed);
       const color = colors[Math.floor(Math.random() * colors.length)];
       fireSphere(scene, position, color, radius, vel);
     }
   };
-
   useEffect(() => {
     if (!containerRef.current) return;
-
     const container = containerRef.current;
     const width = container.clientWidth;
     const height = container.clientHeight;
-
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(theme === "dark" ? 0x0a0a1a : 0xf0f0f8);
     scene.fog = new THREE.Fog(theme === "dark" ? 0x0a0a1a : 0xf0f0f8, 15, 30);
-
     const camera = new THREE.PerspectiveCamera(50, width / height, 0.1, 1000);
     camera.position.set(8, 6, 10);
     camera.lookAt(0, 0, 0);
-
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -258,7 +215,6 @@ const SandBox3D: React.FC<SandBox3DProps> = ({
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.2;
     container.appendChild(renderer.domElement);
-
     const resizeObserver = new ResizeObserver((entries) => {
       for (const entry of entries) {
         const { width, height } = entry.contentRect;
@@ -270,7 +226,6 @@ const SandBox3D: React.FC<SandBox3DProps> = ({
       }
     });
     resizeObserver.observe(container);
-
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.08;
@@ -278,25 +233,20 @@ const SandBox3D: React.FC<SandBox3DProps> = ({
     controls.minDistance = 3;
     controls.maxDistance = 25;
     controls.target.set(0, 0.5, 0);
-
     const ambientLight = new THREE.AmbientLight(0x404060, 0.5);
     scene.add(ambientLight);
-
     const mainLight = new THREE.DirectionalLight(0xffffff, 1.5);
     mainLight.position.set(5, 10, 7);
     mainLight.castShadow = true;
     mainLight.shadow.mapSize.width = 1024;
     mainLight.shadow.mapSize.height = 1024;
     scene.add(mainLight);
-
     const fillLight = new THREE.DirectionalLight(0x4488ff, 0.5);
     fillLight.position.set(-5, 0, 5);
     scene.add(fillLight);
-
     const rimLight = new THREE.DirectionalLight(0xff8844, 0.3);
     rimLight.position.set(0, -3, -8);
     scene.add(rimLight);
-
     const groundGeo = new THREE.PlaneGeometry(20, 20);
     const groundMat = new THREE.MeshPhysicalMaterial({
       color: theme === "dark" ? 0x1a1a3a : 0xddddee,
@@ -311,39 +261,31 @@ const SandBox3D: React.FC<SandBox3DProps> = ({
     ground.position.y = -2;
     ground.receiveShadow = true;
     scene.add(ground);
-
     const gridHelper = new THREE.GridHelper(16, 20, 0x6666aa, 0x333366);
     gridHelper.position.y = -1.98;
     gridHelper.material.transparent = true;
     gridHelper.material.opacity = 0.3;
     scene.add(gridHelper);
-
     const dnaGroup = new THREE.Group();
     scene.add(dnaGroup);
-
     const dnaRadius = 1.8;
     const dnaHeight = 5;
     const dnaTurns = 2.5;
     const dnaSteps = 50;
-
     const chain1Positions: THREE.Vector3[] = [];
     const chain2Positions: THREE.Vector3[] = [];
-
     for (let i = 0; i <= dnaSteps; i++) {
       const t = i / dnaSteps;
       const y = -dnaHeight / 2 + t * dnaHeight;
       const angle = t * dnaTurns * Math.PI * 2;
-
       const x1 = dnaRadius * Math.cos(angle);
       const z1 = dnaRadius * Math.sin(angle);
       const x2 = dnaRadius * Math.cos(angle + Math.PI);
       const z2 = dnaRadius * Math.sin(angle + Math.PI);
-
       const pos1 = new THREE.Vector3(x1, y, z1);
       const pos2 = new THREE.Vector3(x2, y, z2);
       chain1Positions.push(pos1);
       chain2Positions.push(pos2);
-
       const sphere1 = new THREE.Mesh(
         new THREE.SphereGeometry(0.12, 16, 16),
         new THREE.MeshPhysicalMaterial({
@@ -356,7 +298,6 @@ const SandBox3D: React.FC<SandBox3DProps> = ({
       );
       sphere1.position.copy(pos1);
       dnaGroup.add(sphere1);
-
       const sphere2 = new THREE.Mesh(
         new THREE.SphereGeometry(0.12, 16, 16),
         new THREE.MeshPhysicalMaterial({
@@ -369,14 +310,10 @@ const SandBox3D: React.FC<SandBox3DProps> = ({
       );
       sphere2.position.copy(pos2);
       dnaGroup.add(sphere2);
-
       if (i % 2 === 0 && i < dnaSteps) {
-        const midPoint = new THREE.Vector3()
-          .addVectors(pos1, pos2)
-          .multiplyScalar(0.5);
+        const midPoint = new THREE.Vector3().addVectors(pos1, pos2).multiplyScalar(0.5);
         const dist = pos1.distanceTo(pos2);
         const isAT = i % 4 === 0;
-
         const bondGeo = new THREE.CylinderGeometry(0.035, 0.035, dist, 6);
         const bondMat = new THREE.MeshPhysicalMaterial({
           color: isAT ? 0x66dd88 : 0xffaa44,
@@ -390,7 +327,6 @@ const SandBox3D: React.FC<SandBox3DProps> = ({
         bond.lookAt(pos2);
         bond.rotateX(Math.PI / 2);
         dnaGroup.add(bond);
-
         const dot = new THREE.Mesh(
           new THREE.SphereGeometry(0.05, 8, 8),
           new THREE.MeshBasicMaterial({
@@ -401,7 +337,6 @@ const SandBox3D: React.FC<SandBox3DProps> = ({
         dnaGroup.add(dot);
       }
     }
-
     const createChainTube = (points: THREE.Vector3[], color: number) => {
       const curve = new THREE.CatmullRomCurve3(points);
       const tubeGeo = new THREE.TubeGeometry(curve, 50, 0.04, 8, false);
@@ -417,16 +352,13 @@ const SandBox3D: React.FC<SandBox3DProps> = ({
       const tube = new THREE.Mesh(tubeGeo, tubeMat);
       dnaGroup.add(tube);
     };
-
     createChainTube(chain1Positions, 0x4488ff);
     createChainTube(chain2Positions, 0xff4488);
-
     for (let i = 0; i < 30; i++) {
       const t = i / 30;
       const y = -dnaHeight / 2 + t * dnaHeight;
       const angle = t * dnaTurns * Math.PI * 2 + Math.PI / 2;
       const r = dnaRadius + 0.5;
-
       const glow = new THREE.Mesh(
         new THREE.SphereGeometry(0.03, 6, 6),
         new THREE.MeshBasicMaterial({
@@ -438,10 +370,8 @@ const SandBox3D: React.FC<SandBox3DProps> = ({
       glow.position.set(r * Math.cos(angle), y, r * Math.sin(angle));
       dnaGroup.add(glow);
     }
-
     const moleculeGroup = new THREE.Group();
     scene.add(moleculeGroup);
-
     const moleculeNames: MoleculeKey[] = ["water", "methane", "co2", "benzene"];
     const moleculePositions = [
       { x: -4.5, y: 2.5, z: 3 },
@@ -449,19 +379,12 @@ const SandBox3D: React.FC<SandBox3DProps> = ({
       { x: -4.5, y: -0.5, z: 3 },
       { x: 4.5, y: -0.5, z: 3 },
     ];
-
     moleculeNames.forEach((name, idx) => {
       const mol = MOLECULES[name];
       const pos = moleculePositions[idx];
       const group = new THREE.Group();
       group.position.set(pos.x, pos.y, pos.z);
-
-      const labelColor = new THREE.Color().setHSL(
-        idx / moleculeNames.length,
-        0.8,
-        0.6,
-      );
-
+      const labelColor = new THREE.Color().setHSL(idx / moleculeNames.length, 0.8, 0.6);
       mol.atoms.forEach((atom) => {
         const color = ATOM_COLORS[atom.element] || ATOM_COLORS.default;
         const radius = getAtomRadius(atom.element);
@@ -480,21 +403,11 @@ const SandBox3D: React.FC<SandBox3DProps> = ({
         sphere.castShadow = true;
         group.add(sphere);
       });
-
       mol.bonds.forEach(([i, j]) => {
-        const p1 = new THREE.Vector3(
-          mol.atoms[i].x,
-          mol.atoms[i].y,
-          mol.atoms[i].z,
-        );
-        const p2 = new THREE.Vector3(
-          mol.atoms[j].x,
-          mol.atoms[j].y,
-          mol.atoms[j].z,
-        );
+        const p1 = new THREE.Vector3(mol.atoms[i].x, mol.atoms[i].y, mol.atoms[i].z);
+        const p2 = new THREE.Vector3(mol.atoms[j].x, mol.atoms[j].y, mol.atoms[j].z);
         const mid = new THREE.Vector3().addVectors(p1, p2).multiplyScalar(0.5);
         const dist = p1.distanceTo(p2);
-
         const bond = new THREE.Mesh(
           new THREE.CylinderGeometry(0.04, 0.04, dist, 8),
           new THREE.MeshPhysicalMaterial({
@@ -510,7 +423,6 @@ const SandBox3D: React.FC<SandBox3DProps> = ({
         bond.rotateX(Math.PI / 2);
         group.add(bond);
       });
-
       const glowRing = new THREE.Mesh(
         new THREE.TorusGeometry(0.8, 0.02, 16, 32),
         new THREE.MeshBasicMaterial({
@@ -522,10 +434,8 @@ const SandBox3D: React.FC<SandBox3DProps> = ({
       glowRing.rotation.x = Math.PI / 2;
       glowRing.position.y = -0.9;
       group.add(glowRing);
-
       moleculeGroup.add(group);
     });
-
     const starCount = 1500;
     const starGeo = new THREE.BufferGeometry();
     const starPos = new Float32Array(starCount * 3);
@@ -548,51 +458,39 @@ const SandBox3D: React.FC<SandBox3DProps> = ({
     });
     const stars = new THREE.Points(starGeo, starMat);
     scene.add(stars);
-
     const gravity = -9.8;
     const bounceFactor = 0.6;
     const friction = 0.98;
     const groundY = -2 + 0.1;
-
     const raycaster = new THREE.Raycaster();
     const pointer = new THREE.Vector2();
     let isPointerDown = false;
     let pointerDownPos = { x: 0, y: 0 };
-
     const onPointerDown = (e: MouseEvent | TouchEvent) => {
       const clientX = "clientX" in e ? e.clientX : e.touches[0].clientX;
       const clientY = "clientY" in e ? e.clientY : e.touches[0].clientY;
       pointerDownPos = { x: clientX, y: clientY };
       isPointerDown = true;
     };
-
     const onPointerUp = (e: MouseEvent | TouchEvent) => {
       if (!isPointerDown) return;
       isPointerDown = false;
-
       const clientX = "clientX" in e ? e.clientX : e.changedTouches[0].clientX;
       const clientY = "clientY" in e ? e.clientY : e.changedTouches[0].clientY;
-
       const dx = clientX - pointerDownPos.x;
       const dy = clientY - pointerDownPos.y;
       const dist = Math.sqrt(dx * dx + dy * dy);
-
       if (dist < 10) {
         const rect = renderer.domElement.getBoundingClientRect();
         pointer.x = ((clientX - rect.left) / rect.width) * 2 - 1;
         pointer.y = -((clientY - rect.top) / rect.height) * 2 + 1;
-
         raycaster.setFromCamera(pointer, camera);
         const intersects = raycaster.intersectObject(ground);
-
         if (intersects.length > 0) {
           const hitPoint = intersects[0].point;
           hitPoint.y += 0.5;
-
           createExplosion(scene, hitPoint, new THREE.Color(0x4488ff), 60);
-
           fireBurst(scene, hitPoint);
-
           dnaGroup.scale.set(1.05, 1.05, 1.05);
           setTimeout(() => {
             dnaGroup.scale.set(1, 1, 1);
@@ -600,12 +498,10 @@ const SandBox3D: React.FC<SandBox3DProps> = ({
         }
       }
     };
-
     renderer.domElement.addEventListener("mousedown", onPointerDown);
     renderer.domElement.addEventListener("mouseup", onPointerUp);
     renderer.domElement.addEventListener("touchstart", onPointerDown);
     renderer.domElement.addEventListener("touchend", onPointerUp);
-
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === " " || e.key === "Space") {
         e.preventDefault();
@@ -628,52 +524,37 @@ const SandBox3D: React.FC<SandBox3DProps> = ({
         explosionParticlesRef.current = [];
       }
     };
-
     window.addEventListener("keydown", onKeyDown);
-
     let animationId: number;
     const clock = new THREE.Clock();
-
     const animate = () => {
       animationId = requestAnimationFrame(animate);
       const time = clock.getElapsedTime();
       const delta = Math.min(clock.getDelta(), 0.05);
-
       const breathe = 1 + Math.sin(time * 0.3) * 0.02;
       dnaGroup.scale.set(breathe, 1, breathe);
-
       moleculeGroup.rotation.y = time * 0.05;
-
       stars.rotation.y = time * 0.005;
-
       const spheres = physicsSpheresRef.current;
       for (let i = spheres.length - 1; i >= 0; i--) {
         const s = spheres[i];
-
         s.velocity.y += gravity * delta;
-
         s.velocity.multiplyScalar(1 - (1 - friction) * delta * 10);
-
         s.mesh.position.x += s.velocity.x * delta;
         s.mesh.position.y += s.velocity.y * delta;
         s.mesh.position.z += s.velocity.z * delta;
-
         s.mesh.rotation.x += s.velocity.z * delta * 2;
         s.mesh.rotation.z -= s.velocity.x * delta * 2;
-
         if (s.mesh.position.y - s.radius < groundY) {
           s.mesh.position.y = groundY + s.radius;
           s.velocity.y = -s.velocity.y * bounceFactor;
-
           s.velocity.x *= 0.9;
           s.velocity.z *= 0.9;
-
           if (Math.abs(s.velocity.y) < 0.3) {
             s.velocity.y = 0;
             s.grounded = true;
           }
         }
-
         const wallSize = 8;
         if (Math.abs(s.mesh.position.x) > wallSize) {
           s.mesh.position.x = Math.sign(s.mesh.position.x) * wallSize;
@@ -683,28 +564,21 @@ const SandBox3D: React.FC<SandBox3DProps> = ({
           s.mesh.position.z = Math.sign(s.mesh.position.z) * wallSize;
           s.velocity.z *= -bounceFactor * 0.8;
         }
-
         for (let j = i + 1; j < spheres.length; j++) {
           const other = spheres[j];
-          const diff = new THREE.Vector3()
-            .copy(s.mesh.position)
-            .sub(other.mesh.position);
+          const diff = new THREE.Vector3().copy(s.mesh.position).sub(other.mesh.position);
           const dist = diff.length();
           const minDist = s.radius + other.radius;
-
           if (dist < minDist && dist > 0.001) {
             const overlap = (minDist - dist) / 2;
             const dir = diff.clone().normalize();
-
             s.mesh.position.add(dir.clone().multiplyScalar(overlap));
             other.mesh.position.sub(dir.clone().multiplyScalar(overlap));
-
             const v1 = s.velocity.clone();
             const v2 = other.velocity.clone();
             const mass1 = s.radius * s.radius * s.radius;
             const mass2 = other.radius * other.radius * other.radius;
             const totalMass = mass1 + mass2;
-
             const v1New = v1.clone().add(
               v2
                 .clone()
@@ -717,19 +591,12 @@ const SandBox3D: React.FC<SandBox3DProps> = ({
                 .sub(v2)
                 .multiplyScalar((2 * mass1) / totalMass),
             );
-
             s.velocity.copy(v1New.multiplyScalar(0.8));
             other.velocity.copy(v2New.multiplyScalar(0.8));
           }
         }
-
-        if (
-          s.grounded &&
-          Math.abs(s.velocity.x) < 0.01 &&
-          Math.abs(s.velocity.z) < 0.01
-        ) {
+        if (s.grounded && Math.abs(s.velocity.x) < 0.01 && Math.abs(s.velocity.z) < 0.01) {
         }
-
         if (s.mesh.position.y < -10) {
           scene.remove(s.mesh);
           s.mesh.geometry.dispose();
@@ -737,31 +604,22 @@ const SandBox3D: React.FC<SandBox3DProps> = ({
           spheres.splice(i, 1);
         }
       }
-
       const particles = explosionParticlesRef.current;
       for (let i = particles.length - 1; i >= 0; i--) {
         const p = particles[i];
         p.mesh.position.x += p.velocity.x * delta;
         p.mesh.position.y += p.velocity.y * delta;
         p.mesh.position.z += p.velocity.z * delta;
-
         p.velocity.y += gravity * delta * 0.5;
-
         p.velocity.multiplyScalar(1 - delta * 2);
-
         if (p.mesh.position.y < groundY + 0.05) {
           p.mesh.position.y = groundY + 0.05;
           p.velocity.y *= -0.3;
           p.velocity.x *= 0.8;
           p.velocity.z *= 0.8;
         }
-
         p.life -= delta / p.maxLife;
-        (p.mesh.material as THREE.MeshBasicMaterial).opacity = Math.max(
-          0,
-          p.life,
-        );
-
+        (p.mesh.material as THREE.MeshBasicMaterial).opacity = Math.max(0, p.life);
         if (p.life <= 0 || p.mesh.position.y < -5) {
           scene.remove(p.mesh);
           p.mesh.geometry.dispose();
@@ -769,7 +627,6 @@ const SandBox3D: React.FC<SandBox3DProps> = ({
           particles.splice(i, 1);
         }
       }
-
       controls.update();
       renderer.render(scene, camera);
     };
@@ -800,7 +657,6 @@ const SandBox3D: React.FC<SandBox3DProps> = ({
       explosionParticlesRef.current = [];
     };
   }, [theme, i18n]);
-
   return (
     <div
       ref={containerRef}
@@ -832,14 +688,10 @@ const SandBox3D: React.FC<SandBox3DProps> = ({
           lineHeight: 1.8,
         }}
       >
-        <div>
-          💥{" "}
-          {isZh ? "点击地面 → 爆炸 + 散弹" : "Click ground → Explosion + Burst"}
-        </div>
+        <div>💥 {isZh ? "点击地面 → 爆炸 + 散弹" : "Click ground → Explosion + Burst"}</div>
         <div>⌨️ {isZh ? "空格键 → 发射球体" : "Space → Fire spheres"}</div>
         <div>⌨️ {isZh ? "R 键 → 重置所有球体" : "R → Reset all spheres"}</div>
       </div>
-
       <div
         style={{
           position: "absolute",
@@ -889,5 +741,4 @@ const SandBox3D: React.FC<SandBox3DProps> = ({
     </div>
   );
 };
-
 export default SandBox3D;

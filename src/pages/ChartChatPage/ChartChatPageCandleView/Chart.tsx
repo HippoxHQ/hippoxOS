@@ -1,6 +1,5 @@
 import React, { useRef, useEffect, useState, useCallback, forwardRef, useImperativeHandle } from "react";
 import { CandleView, ICandleViewDataPoint, MainChartType, TimeframeEnum } from "@candleview/core";
-
 interface ChartProps {
   theme: "light" | "dark";
   i18n: "en" | "zh-cn";
@@ -9,25 +8,21 @@ interface ChartProps {
   chartData?: any;
   isValidData: boolean;
 }
-
 export interface ChartRef {
   getEngine: () => any;
   getCandleView: () => CandleView | null;
   applyConfig: (config: any) => void;
 }
-
 const Chart = forwardRef<ChartRef, ChartProps>(({ theme, i18n, symbol, data, chartData, isValidData }, ref) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const candleViewRef = useRef<CandleView | null>(null);
   const [isReady, setIsReady] = useState(false);
   const engineRef = useRef<any>(null);
   const [isEngineReady, setIsEngineReady] = useState(false);
-
   const applyCandleViewConfig = useCallback(
     (config: any) => {
       if (!candleViewRef.current || !isReady) return;
       const cv = candleViewRef.current;
-
       if (config?.chartType) {
         try {
           cv.setChartType(config.chartType as MainChartType);
@@ -85,13 +80,11 @@ const Chart = forwardRef<ChartRef, ChartProps>(({ theme, i18n, symbol, data, cha
     },
     [isReady],
   );
-
   useImperativeHandle(ref, () => ({
     getEngine: () => engineRef.current,
     getCandleView: () => candleViewRef.current,
     applyConfig: applyCandleViewConfig,
   }));
-
   useEffect(() => {
     if (!containerRef.current) return;
     if (candleViewRef.current) return;
@@ -99,7 +92,6 @@ const Chart = forwardRef<ChartRef, ChartProps>(({ theme, i18n, symbol, data, cha
       console.error("No valid data for chart initialization", { data });
       return;
     }
-
     try {
       const candleView = new CandleView({
         container: containerRef.current,
@@ -111,10 +103,8 @@ const Chart = forwardRef<ChartRef, ChartProps>(({ theme, i18n, symbol, data, cha
         data: data,
         timeframe: TimeframeEnum.ONE_SECOND,
       });
-
       candleViewRef.current = candleView;
       setIsReady(true);
-
       import("@candleview/cvs-engine")
         .then((module) => {
           const { CVSEngine } = module;
@@ -129,7 +119,6 @@ const Chart = forwardRef<ChartRef, ChartProps>(({ theme, i18n, symbol, data, cha
           console.warn("[Chart] CVSEngine not available:", err.message);
           setIsEngineReady(false);
         });
-
       setTimeout(() => {
         if (chartData) {
           applyCandleViewConfig(chartData);
@@ -138,7 +127,6 @@ const Chart = forwardRef<ChartRef, ChartProps>(({ theme, i18n, symbol, data, cha
     } catch (error) {
       console.error("Failed to initialize CandleView:", error);
     }
-
     return () => {
       if (engineRef.current) {
         engineRef.current.stop();
@@ -152,13 +140,11 @@ const Chart = forwardRef<ChartRef, ChartProps>(({ theme, i18n, symbol, data, cha
       }
     };
   }, []);
-
   useEffect(() => {
     if (isReady && candleViewRef.current && chartData) {
       applyCandleViewConfig(chartData);
     }
   }, [chartData, isReady, applyCandleViewConfig]);
-
   useEffect(() => {
     if (!candleViewRef.current || !isValidData) return;
     candleViewRef.current.setData(data);
@@ -217,7 +203,5 @@ const Chart = forwardRef<ChartRef, ChartProps>(({ theme, i18n, symbol, data, cha
   }, [applyCandleViewConfig, isReady]);
   return <div ref={containerRef} style={{ width: "100%", height: "100%" }} />;
 });
-
 Chart.displayName = "Chart";
-
 export default Chart;

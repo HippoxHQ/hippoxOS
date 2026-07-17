@@ -9,7 +9,6 @@ import { DialogType, showDialog } from "../../../../../components/Dialog";
 import { useFileTreeKeyboard } from "./hooks/useFileTreeKeyboard";
 import { getFileIconComponent, getFolderIconComponent } from "../../../fileUtils";
 import { generalCommands } from "../../../../../command/General";
-
 interface FileTreeSectionProps {
   workspacePath: string | null | undefined;
   selectedFile: string | null;
@@ -19,7 +18,6 @@ interface FileTreeSectionProps {
   t: (key: string, params?: Record<string, string | number>) => string;
   onFileTreeChange?: (tree: FileNode[]) => void;
 }
-
 export const FileTreeSection: React.FC<FileTreeSectionProps> = ({ workspacePath, selectedFile, onFileSelect, searchQuery, isCollapsed, t, onFileTreeChange }) => {
   const [fileTree, setFileTree] = useState<FileNode[]>([]);
   const [expandedPaths, setExpandedPaths] = useState<Set<string>>(new Set());
@@ -73,7 +71,6 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({ workspacePath,
         pathsToExpand.forEach((p) => newSet.add(p));
         return newSet;
       });
-
       const findAndLoadNode = async (nodes: FileNode[], path: string): Promise<boolean> => {
         for (const node of nodes) {
           if (node.path === path && node.isDirectory) {
@@ -101,12 +98,10 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({ workspacePath,
         }
         return false;
       };
-
       findAndLoadNode(fileTree, dirPath);
     },
     [workspacePath, fileTree],
   );
-
   useEffect(() => {
     if (selectedFile !== prevSelectedFileRef.current) {
       prevSelectedFileRef.current = selectedFile;
@@ -121,13 +116,11 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({ workspacePath,
       }
     }
   }, [selectedFile, workspacePath]);
-
   useEffect(() => {
     if (selectedFile && workspacePath) {
       expandToFile(selectedFile);
     }
   }, [selectedFile, workspacePath, expandToFile]);
-
   const handleDelete = useCallback(
     (nodes: FileNode[]) => {
       if (nodes.length === 0) return;
@@ -185,7 +178,6 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({ workspacePath,
     },
     [t],
   );
-
   const handleSelectAll = useCallback(() => {
     let targetPath = currentTargetPath || workspacePath || "";
     let targetNode: FileNode | null = null;
@@ -246,7 +238,6 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({ workspacePath,
     }
     setSelectedNodes(new Set(allPaths));
   }, [fileTree, workspacePath, currentTargetPath, selectedNodes]);
-
   const handlePasteFromClipboard = useCallback(
     async (nodes: FileNode[]) => {
       if (nodes.length === 0) {
@@ -322,7 +313,6 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({ workspacePath,
     },
     [workspacePath, fileTree, selectedNodes, currentTargetPath, t],
   );
-
   const { clipboardNodes, setClipboardNodes } = useFileTreeKeyboard({
     selectedFiles: Array.from(selectedNodes)
       .map((path) => {
@@ -345,7 +335,6 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({ workspacePath,
     onClearSelection: clearSelection,
     isEditing,
   });
-
   const loadDirectoryTree = async (path: string): Promise<FileNode[]> => {
     try {
       const entries = await readDir(path);
@@ -373,7 +362,6 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({ workspacePath,
       return [];
     }
   };
-
   const loadChildren = async (node: FileNode): Promise<FileNode[]> => {
     if (!node.isDirectory) return [];
     try {
@@ -401,11 +389,9 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({ workspacePath,
       return [];
     }
   };
-
   useEffect(() => {
     onFileTreeChange?.(fileTree);
   }, [fileTree, onFileTreeChange]);
-
   useEffect(() => {
     const initFileTree = async () => {
       if (!workspacePath) {
@@ -424,7 +410,6 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({ workspacePath,
     };
     initFileTree();
   }, [workspacePath]);
-
   const toggleExpand = async (path: string, node?: FileNode) => {
     const newSet = new Set(expandedPaths);
     if (newSet.has(path)) {
@@ -450,17 +435,13 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({ workspacePath,
       setFileTree((prev) => updateTree(prev));
     }
   };
-
   const filterTree = (nodes: FileNode[], query: string): FileNode[] => {
     if (!query.trim()) return nodes;
-
     const lowerQuery = query.toLowerCase();
     const filterNode = (node: FileNode): FileNode | null => {
       const nameMatch = node.name.toLowerCase().includes(lowerQuery);
-
       if (node.isDirectory && node.children) {
         const filteredChildren = node.children.map((child) => filterNode(child)).filter((child): child is FileNode => child !== null);
-
         if (filteredChildren.length > 0 || nameMatch) {
           return {
             ...node,
@@ -469,13 +450,10 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({ workspacePath,
         }
         return null;
       }
-
       return nameMatch ? node : null;
     };
-
     return nodes.map((node) => filterNode(node)).filter((node): node is FileNode => node !== null);
   };
-
   useEffect(() => {
     if (searchQuery.trim()) {
       const expandMatchingPaths = (nodes: FileNode[], pathSet: Set<string>) => {
@@ -504,7 +482,6 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({ workspacePath,
       setExpandedPaths(newExpanded);
     }
   }, [searchQuery, fileTree]);
-
   useEffect(() => {
     const handleContextMenu = (e: Event) => {
       e.preventDefault();
@@ -517,7 +494,6 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({ workspacePath,
       };
     }
   }, []);
-
   const handleNodeClick = (e: React.MouseEvent, node: FileNode) => {
     if (e.ctrlKey || e.metaKey) {
       e.preventDefault();
@@ -566,7 +542,6 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({ workspacePath,
       }
     }
   };
-
   const handleContextMenu = (e: React.MouseEvent, node: FileNode) => {
     e.preventDefault();
     e.stopPropagation();
@@ -592,7 +567,6 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({ workspacePath,
       node: targetNode,
     });
   };
-
   const handleRootContextMenu = (e: React.MouseEvent) => {
     const target = e.target as HTMLElement;
     const isContainer = target === containerRef.current;
@@ -617,11 +591,9 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({ workspacePath,
       });
     }
   };
-
   const closeContextMenu = () => {
     setContextMenu(null);
   };
-
   const handleNewFile = (node: FileNode) => {
     if (!expandedPaths.has(node.path)) {
       toggleExpand(node.path, node);
@@ -629,7 +601,6 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({ workspacePath,
     startEditing("newfile", node.path, t("codeEditor.defaultFileName"));
     closeContextMenu();
   };
-
   const handleNewFolder = (node: FileNode) => {
     if (!expandedPaths.has(node.path)) {
       toggleExpand(node.path, node);
@@ -637,7 +608,6 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({ workspacePath,
     startEditing("newfolder", node.path, t("codeEditor.defaultFolderName"));
     closeContextMenu();
   };
-
   const handleOpenInExplorer = async (path: string) => {
     const result = await generalCommands.openInExplorer(path);
     if (!result.success) {
@@ -645,31 +615,25 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({ workspacePath,
     }
     closeContextMenu();
   };
-
   const handleCut = (node: FileNode) => {
     closeContextMenu();
   };
-
   const handleCopyAction = (node: FileNode) => {
     setClipboardNodes([node]);
     showToast(ToastType.SUCCESS, t("codeEditor.copied", { name: node.name }));
     closeContextMenu();
   };
-
   const handleCopyPath = (path: string) => {
     navigator.clipboard.writeText(path);
     closeContextMenu();
   };
-
   const startRename = (node: FileNode) => {
     startEditing("rename", node.path, node.name);
     closeContextMenu();
   };
-
   const confirmEdit = async () => {
     if (isConfirmingRef.current) return;
     isConfirmingRef.current = true;
-
     if (!editingPath) {
       cancelEdit();
       isConfirmingRef.current = false;
@@ -761,7 +725,6 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({ workspacePath,
       isConfirmingRef.current = false;
     }, 300);
   };
-
   const isCancelActionRef = useRef<boolean>(false);
   const cancelEdit = () => {
     isCancelActionRef.current = true;
@@ -772,7 +735,6 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({ workspacePath,
       isCancelActionRef.current = false;
     }, 300);
   };
-
   const autoSaveEdit = async () => {
     if (isConfirmingRef.current || isCancelActionRef.current) {
       return;
@@ -859,7 +821,6 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({ workspacePath,
       }
     }
   };
-
   const handleEditBlur = () => {
     setTimeout(() => {
       if (isConfirmingRef.current || isCancelActionRef.current) {
@@ -870,7 +831,6 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({ workspacePath,
       }
     }, 200);
   };
-
   const startEditing = (type: "rename" | "newfile" | "newfolder", path: string, initialValue: string) => {
     isConfirmingRef.current = false;
     isCancelActionRef.current = false;
@@ -899,7 +859,6 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({ workspacePath,
       }
     }, 50);
   };
-
   const updateNodeName = (path: string, newName: string) => {
     const updateName = (nodes: FileNode[]): FileNode[] => {
       return nodes.map((node) => {
@@ -914,7 +873,6 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({ workspacePath,
     };
     setFileTree((prev) => updateName(prev));
   };
-
   const addNodeToParent = async (parentPath: string, name: string, isDirectory: boolean) => {
     const fullPath = await join(parentPath, name);
     const newNode: FileNode = {
@@ -939,7 +897,6 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({ workspacePath,
       }
       return;
     }
-
     const addNode = (nodes: FileNode[]): FileNode[] => {
       return nodes.map((node) => {
         if (node.path === parentPath) {
@@ -963,7 +920,6 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({ workspacePath,
     };
     setFileTree((prev) => addNode(prev));
   };
-
   const handleEditKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
       e.preventDefault();
@@ -973,7 +929,6 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({ workspacePath,
       cancelEdit();
     }
   };
-
   const handleDeleteAction = async (nodes: FileNode[]) => {
     if (nodes.length === 0) return;
     const isFolder = nodes.some((n) => n.isDirectory);
@@ -1028,7 +983,6 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({ workspacePath,
       t("common.cancel"),
     );
   };
-
   const removeNode = (path: string) => {
     const removeNodeFn = (nodes: FileNode[]): FileNode[] => {
       return nodes
@@ -1042,7 +996,6 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({ workspacePath,
     };
     setFileTree((prev) => removeNodeFn(prev));
   };
-
   const getContextMenuItems = (node: FileNode): ContextMenuItemType[] => {
     const isFile = !node.isDirectory;
     const isFolder = node.isDirectory;
@@ -1069,9 +1022,7 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({ workspacePath,
       );
       closeContextMenu();
     };
-
     const items: ContextMenuItemType[] = [];
-
     if (isFolder) {
       if (isRoot) {
         items.push(
@@ -1241,15 +1192,12 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({ workspacePath,
     }
     return items;
   };
-
   const isEditingNewInParent = (parentPath: string) => {
     return (editingType === "newfile" || editingType === "newfolder") && editParentPath === parentPath;
   };
-
   const isNodeSelected = (path: string) => {
     return selectedNodes.has(path);
   };
-
   const renderFileTreeWithNewItem = (nodes: FileNode[], level: number = 0) => {
     const result: React.ReactNode[] = [];
     for (const node of nodes) {
@@ -1591,10 +1539,8 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({ workspacePath,
         );
       }
     }
-
     return result;
   };
-
   const renderEmptyStateWithNewItem = () => {
     const isEditingRoot = isEditingNewInParent(workspacePath || "");
     return (
@@ -1613,7 +1559,6 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({ workspacePath,
         }}
       >
         {searchQuery.trim() ? t("codeEditor.noSearchResults") : t("codeEditor.emptyDirectory")}
-
         {isEditingRoot && (
           <div
             style={{
@@ -1679,18 +1624,14 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({ workspacePath,
             </button>
           </div>
         )}
-
         {contextMenu && <ContextMenu x={contextMenu.x} y={contextMenu.y} items={getContextMenuItems(contextMenu.node)} onClose={closeContextMenu} />}
       </div>
     );
   };
-
   const isEditingRootNewItem = () => {
     return isEditingNewInParent(workspacePath || "");
   };
-
   const filteredTree = filterTree(fileTree, searchQuery);
-
   if (loading) {
     return (
       <div
@@ -1707,7 +1648,6 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({ workspacePath,
       </div>
     );
   }
-
   if (!workspacePath) {
     return (
       <div
@@ -1725,11 +1665,9 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({ workspacePath,
       </div>
     );
   }
-
   if (filteredTree.length === 0) {
     return renderEmptyStateWithNewItem();
   }
-
   return (
     <div
       ref={containerRef}
@@ -1755,7 +1693,6 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({ workspacePath,
       }}
     >
       {renderFileTreeWithNewItem(filteredTree)}
-
       {isEditingRootNewItem() && (
         <div
           style={{
@@ -1821,7 +1758,6 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({ workspacePath,
           </button>
         </div>
       )}
-
       {contextMenu && <ContextMenu x={contextMenu.x} y={contextMenu.y} items={getContextMenuItems(contextMenu.node)} onClose={closeContextMenu} />}
     </div>
   );

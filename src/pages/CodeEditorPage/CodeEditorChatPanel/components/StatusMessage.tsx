@@ -1,12 +1,10 @@
 import React from "react";
 import { ChatMessage, MessageStatus } from "../../../../types/types";
-
 interface StatusMessageProps {
   msg: ChatMessage;
   status: MessageStatus;
   t: (key: string, params?: any) => string;
 }
-
 export const StatusMessage: React.FC<StatusMessageProps> = ({ msg, status, t }) => {
   const getContent = () => {
     switch (status) {
@@ -20,7 +18,6 @@ export const StatusMessage: React.FC<StatusMessageProps> = ({ msg, status, t }) 
         return msg.content;
     }
   };
-
   return (
     <div className="message-bubble">
       <div className="message-content">{getContent()}</div>

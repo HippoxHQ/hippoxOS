@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-
 interface DiffViewerProps {
   diff: string;
   fileName: string;
@@ -9,10 +8,8 @@ interface DiffViewerProps {
   content?: string;
   onClose: () => void;
 }
-
 export const DiffViewer: React.FC<DiffViewerProps> = ({ diff, fileName, additions, deletions, type, content, onClose }) => {
   const [isExpanded, setIsExpanded] = useState(true);
-
   if (type === "no_diff") {
     return (
       <div
@@ -30,7 +27,6 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({ diff, fileName, addition
       </div>
     );
   }
-
   const renderDiffLines = () => {
     if (type === "new_file" && content) {
       return (
@@ -83,19 +79,16 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({ diff, fileName, addition
         </div>
       );
     }
-
     if (diff) {
       const lines = diff.split("\n");
       const chunks: {
         type: "header" | "context" | "add" | "del";
         content: string;
       }[] = [];
-
       let currentChunk: {
         type: "header" | "context" | "add" | "del";
         content: string;
       } | null = null;
-
       for (const line of lines) {
         if (line.startsWith("diff --git") || line.startsWith("index ") || line.startsWith("---") || line.startsWith("+++")) {
           if (currentChunk) {
@@ -105,7 +98,6 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({ diff, fileName, addition
           chunks.push({ type: "header", content: line });
           continue;
         }
-
         if (line.startsWith("@@")) {
           if (currentChunk) {
             chunks.push(currentChunk);
@@ -114,7 +106,6 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({ diff, fileName, addition
           chunks.push({ type: "header", content: line });
           continue;
         }
-
         if (line.startsWith("+") && !line.startsWith("+++")) {
           if (!currentChunk || currentChunk.type !== "add") {
             if (currentChunk) chunks.push(currentChunk);
@@ -140,7 +131,6 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({ diff, fileName, addition
       if (currentChunk) {
         chunks.push(currentChunk);
       }
-
       return (
         <div>
           {/* 统计信息 */}
@@ -160,7 +150,6 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({ diff, fileName, addition
             {additions !== undefined && additions > 0 && <span style={{ color: "#4caf50" }}>+{additions}</span>}
             {deletions !== undefined && deletions > 0 && <span style={{ color: "#ff4444" }}>-{deletions}</span>}
           </div>
-
           <div
             style={{
               padding: "4px 0",
@@ -178,20 +167,17 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({ diff, fileName, addition
                 if (chunk.type === "header") return "transparent";
                 return "transparent";
               };
-
               const getTextColor = () => {
                 if (chunk.type === "add") return "#4caf50";
                 if (chunk.type === "del") return "#ff4444";
                 if (chunk.type === "header") return "var(--text-muted)";
                 return "var(--text-secondary)";
               };
-
               const getPrefix = () => {
                 if (chunk.type === "add") return "+";
                 if (chunk.type === "del") return "-";
                 return " ";
               };
-
               if (chunk.type === "header") {
                 return (
                   <div
@@ -208,7 +194,6 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({ diff, fileName, addition
                   </div>
                 );
               }
-
               return (
                 <div
                   key={idx}
@@ -237,7 +222,6 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({ diff, fileName, addition
         </div>
       );
     }
-
     return (
       <div
         style={{
@@ -251,7 +235,6 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({ diff, fileName, addition
       </div>
     );
   };
-
   return (
     <div
       style={{

@@ -5,7 +5,6 @@ import { showToast, ToastType } from "../../components/Toast";
 import { codeEditorSessionCommands } from "../../command/session/codeeditor";
 import { DeleteIcon, MoreVerticalIcon, PinFilledIcon, PinIcon, RenameIcon, UnPinIcon } from "../../icons";
 import { taskManager } from "../../core/TaskManager";
-
 export interface HistoryCodeEditorChatPanelRef {
   scrollToTop: () => void;
   scrollToBottom: () => void;
@@ -13,7 +12,6 @@ export interface HistoryCodeEditorChatPanelRef {
   collapseAll: () => void;
   refreshSessions: () => Promise<void>;
 }
-
 interface HistoryCodeEditorChatPanelProps {
   t: (key: string, params?: any) => string;
   onSessionSelect?: (sessionId: string) => void;
@@ -21,14 +19,11 @@ interface HistoryCodeEditorChatPanelProps {
   onNewSession?: () => void;
   onAllSessionsDeleted?: () => void;
 }
-
 type CategoryType = "pinned" | "today" | "yesterday" | "last7days" | "last30days" | "older";
-
 interface CategoryConfig {
   labelKey: string;
   type: CategoryType;
 }
-
 const categories: CategoryConfig[] = [
   { labelKey: "history.category.pinned", type: "pinned" },
   { labelKey: "history.category.today", type: "today" },
@@ -37,7 +32,6 @@ const categories: CategoryConfig[] = [
   { labelKey: "history.category.last30days", type: "last30days" },
   { labelKey: "history.category.older", type: "older" },
 ];
-
 const HistoryCodeEditorChatPanel = forwardRef<HistoryCodeEditorChatPanelRef, HistoryCodeEditorChatPanelProps>(
   ({ t, onSessionSelect, currentSessionId, onNewSession, onAllSessionsDeleted }: HistoryCodeEditorChatPanelProps, ref) => {
     const [sessions, setSessions] = useState<DialogSession[]>([]);
@@ -56,7 +50,6 @@ const HistoryCodeEditorChatPanel = forwardRef<HistoryCodeEditorChatPanelRef, His
       last30days: true,
       older: true,
     });
-
     useImperativeHandle(ref, () => ({
       scrollToTop: () => {
         if (scrollContainerRef.current) {
@@ -95,16 +88,13 @@ const HistoryCodeEditorChatPanel = forwardRef<HistoryCodeEditorChatPanelRef, His
         await loadSessions(true);
       },
     }));
-
     const toggleCategory = (categoryType: CategoryType) => {
       setExpandedCategories((prev) => ({
         ...prev,
         [categoryType]: !prev[categoryType],
       }));
     };
-
     const menuRef = useRef<HTMLDivElement>(null);
-
     const loadSessions = async (forceRefresh: boolean = false) => {
       setLoading(true);
       try {
@@ -127,11 +117,9 @@ const HistoryCodeEditorChatPanel = forwardRef<HistoryCodeEditorChatPanelRef, His
         setLoading(false);
       }
     };
-
     useEffect(() => {
       loadSessions();
     }, []);
-
     useEffect(() => {
       const handleSessionCreated = () => {
         loadSessions(true);
@@ -141,7 +129,6 @@ const HistoryCodeEditorChatPanel = forwardRef<HistoryCodeEditorChatPanelRef, His
         window.removeEventListener("codeeditor-session-created", handleSessionCreated);
       };
     }, []);
-
     useEffect(() => {
       const handleTitleUpdated = () => {
         loadSessions(true);
@@ -151,7 +138,6 @@ const HistoryCodeEditorChatPanel = forwardRef<HistoryCodeEditorChatPanelRef, His
         window.removeEventListener("session-title-updated", handleTitleUpdated);
       };
     }, []);
-
     useEffect(() => {
       const handleClickOutside = (event: MouseEvent) => {
         if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
@@ -167,14 +153,12 @@ const HistoryCodeEditorChatPanel = forwardRef<HistoryCodeEditorChatPanelRef, His
         document.removeEventListener("mousedown", handleClickOutside);
       };
     }, [editingId]);
-
     useEffect(() => {
       if (editingId && editInputRef.current) {
         editInputRef.current.focus();
         editInputRef.current.select();
       }
     }, [editingId]);
-
     const handleTogglePin = async (session: DialogSession, e: React.MouseEvent) => {
       e.stopPropagation();
       try {
@@ -184,10 +168,8 @@ const HistoryCodeEditorChatPanel = forwardRef<HistoryCodeEditorChatPanelRef, His
         setActiveMenuId(null);
       } catch (error) {}
     };
-
     const handleDelete = async (session: DialogSession, e: React.MouseEvent) => {
       e.stopPropagation();
-
       showDialog(
         DialogType.WARNING,
         t("history.dialog.confirmDeleteTitle"),
@@ -197,7 +179,6 @@ const HistoryCodeEditorChatPanel = forwardRef<HistoryCodeEditorChatPanelRef, His
             await codeEditorSessionCommands.deleteCodeEditorSession(session.session_id);
             const domain = taskManager.getDomainFromSessionId(session.session_id);
             taskManager.deleteSession(session.session_id, domain);
-
             const newSessions = sessions.filter((s) => s.session_id !== session.session_id);
             setSessions(newSessions);
             setActiveMenuId(null);
@@ -226,22 +207,18 @@ const HistoryCodeEditorChatPanel = forwardRef<HistoryCodeEditorChatPanelRef, His
         t("history.dialog.cancel"),
       );
     };
-
     const startEdit = (session: DialogSession, e: React.MouseEvent) => {
       e.stopPropagation();
       setEditingId(session.session_id);
       setEditValue(session.title || "");
       setActiveMenuId(null);
     };
-
     const isSavingRef = useRef(false);
-
     const cancelEdit = () => {
       if (isSavingRef.current) return;
       setEditingId(null);
       setEditValue("");
     };
-
     const saveEdit = async (session: DialogSession) => {
       isSavingRef.current = true;
       const trimmed = editValue.trim();
@@ -265,7 +242,6 @@ const HistoryCodeEditorChatPanel = forwardRef<HistoryCodeEditorChatPanelRef, His
       } catch (error) {}
       isSavingRef.current = false;
     };
-
     const handleKeyDown = (e: React.KeyboardEvent, session: DialogSession) => {
       if (e.key === "Enter") {
         e.preventDefault();
@@ -275,7 +251,6 @@ const HistoryCodeEditorChatPanel = forwardRef<HistoryCodeEditorChatPanelRef, His
         cancelEdit();
       }
     };
-
     const handleSelectSession = useCallback(
       async (sessionId: string) => {
         setActiveMenuId(null);
@@ -294,12 +269,10 @@ const HistoryCodeEditorChatPanel = forwardRef<HistoryCodeEditorChatPanelRef, His
       },
       [currentSessionId, onSessionSelect],
     );
-
     const formatDate = (dateStr: string) => {
       const date = new Date(dateStr);
       return date.toLocaleDateString();
     };
-
     const getSessionCategory = (session: DialogSession): CategoryType => {
       if (session.is_pinned) return "pinned";
       const now = new Date();
@@ -314,7 +287,6 @@ const HistoryCodeEditorChatPanel = forwardRef<HistoryCodeEditorChatPanelRef, His
       if (createdDate >= monthAgo) return "last30days";
       return "older";
     };
-
     const getGroupedSessions = () => {
       const grouped: Record<CategoryType, DialogSession[]> = {
         pinned: [],
@@ -330,7 +302,6 @@ const HistoryCodeEditorChatPanel = forwardRef<HistoryCodeEditorChatPanelRef, His
       });
       return grouped;
     };
-
     const getCardStyle = (isActive: boolean, isHovered: boolean): React.CSSProperties => {
       if (isActive) {
         return {
@@ -359,7 +330,6 @@ const HistoryCodeEditorChatPanel = forwardRef<HistoryCodeEditorChatPanelRef, His
         position: "relative",
       };
     };
-
     const titleStyle: React.CSSProperties = {
       fontSize: "14px",
       fontWeight: 500,
@@ -370,7 +340,6 @@ const HistoryCodeEditorChatPanel = forwardRef<HistoryCodeEditorChatPanelRef, His
       whiteSpace: "nowrap",
       flex: 1,
     };
-
     const titleInputStyle: React.CSSProperties = {
       fontSize: "14px",
       fontWeight: 500,
@@ -383,18 +352,15 @@ const HistoryCodeEditorChatPanel = forwardRef<HistoryCodeEditorChatPanelRef, His
       flex: 1,
       minWidth: 0,
     };
-
     const timeStyle: React.CSSProperties = {
       fontSize: "11px",
       color: "var(--text-muted)",
     };
-
     const pinIconStyle: React.CSSProperties = {
       fontSize: "12px",
       marginRight: "8px",
       color: "var(--accent-color, #0066cc)",
     };
-
     const menuButtonStyle: React.CSSProperties = {
       background: "none",
       border: "none",
@@ -407,7 +373,6 @@ const HistoryCodeEditorChatPanel = forwardRef<HistoryCodeEditorChatPanelRef, His
       alignItems: "center",
       justifyContent: "center",
     };
-
     const dropdownStyle: React.CSSProperties = {
       position: "absolute",
       right: "0px",
@@ -420,7 +385,6 @@ const HistoryCodeEditorChatPanel = forwardRef<HistoryCodeEditorChatPanelRef, His
       minWidth: "110px",
       overflow: "hidden",
     };
-
     const dropdownItemStyle: React.CSSProperties = {
       padding: "8px 12px",
       fontSize: "13px",
@@ -431,7 +395,6 @@ const HistoryCodeEditorChatPanel = forwardRef<HistoryCodeEditorChatPanelRef, His
       gap: "8px",
       zIndex: "10",
     };
-
     const categoryHeaderStyle: React.CSSProperties = {
       fontSize: "14px",
       fontWeight: 600,
@@ -444,7 +407,6 @@ const HistoryCodeEditorChatPanel = forwardRef<HistoryCodeEditorChatPanelRef, His
       cursor: "pointer",
       paddingBottom: "5px",
     };
-
     if (loading && sessions.length === 0) {
       return (
         <div
@@ -458,9 +420,7 @@ const HistoryCodeEditorChatPanel = forwardRef<HistoryCodeEditorChatPanelRef, His
         </div>
       );
     }
-
     const groupedSessions = getGroupedSessions();
-
     return (
       <div
         ref={scrollContainerRef}
@@ -633,7 +593,5 @@ const HistoryCodeEditorChatPanel = forwardRef<HistoryCodeEditorChatPanelRef, His
     );
   },
 );
-
 HistoryCodeEditorChatPanel.displayName = "HistoryCodeEditorChatPanel";
-
 export default HistoryCodeEditorChatPanel;

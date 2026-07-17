@@ -1,7 +1,6 @@
 import React, { useRef, useEffect } from "react";
 import CodeEdit from "./CodeEdit";
 import { Terminal } from "./Terminal";
-
 interface CodeEditPanelProps {
   t: (key: string) => string;
   selectedFile: string | null;
@@ -15,25 +14,12 @@ interface CodeEditPanelProps {
 }
 const TERMINAL_MIN_HEIGHT = 80;
 const TERMINAL_MAX_HEIGHT = 433;
-const CodeEditPanel: React.FC<CodeEditPanelProps> = ({
-  t,
-  selectedFile,
-  rightHeight,
-  onRightResizeMouseDown,
-  isRightDragging,
-  isRightHover,
-  setIsRightHover,
-  workspacePath,
-  onTabChange,
-}) => {
+const CodeEditPanel: React.FC<CodeEditPanelProps> = ({ t, selectedFile, rightHeight, onRightResizeMouseDown, isRightDragging, isRightHover, setIsRightHover, workspacePath, onTabChange }) => {
   const terminalContainerRef = useRef<HTMLDivElement>(null);
   const terminalRef = useRef<Terminal | null>(null);
   const getTerminalHeight = (height: number): number => {
     const adjustedHeight = height - 10;
-    return Math.min(
-      Math.max(TERMINAL_MIN_HEIGHT, adjustedHeight),
-      TERMINAL_MAX_HEIGHT,
-    );
+    return Math.min(Math.max(TERMINAL_MIN_HEIGHT, adjustedHeight), TERMINAL_MAX_HEIGHT);
   };
   const terminalHeight = getTerminalHeight(rightHeight);
   useEffect(() => {
@@ -55,15 +41,9 @@ const CodeEditPanel: React.FC<CodeEditPanelProps> = ({
         terminalRef.current.updateWorkspacePath(path);
       }
     };
-    window.addEventListener(
-      "terminal-change-cwd",
-      handleTerminalCwdChange as EventListener,
-    );
+    window.addEventListener("terminal-change-cwd", handleTerminalCwdChange as EventListener);
     return () => {
-      window.removeEventListener(
-        "terminal-change-cwd",
-        handleTerminalCwdChange as EventListener,
-      );
+      window.removeEventListener("terminal-change-cwd", handleTerminalCwdChange as EventListener);
     };
   }, []);
   useEffect(() => {
@@ -73,12 +53,8 @@ const CodeEditPanel: React.FC<CodeEditPanelProps> = ({
   }, [workspacePath]);
   useEffect(() => {
     if (terminalRef.current && selectedFile) {
-      const lastSlash = Math.max(
-        selectedFile.lastIndexOf("/"),
-        selectedFile.lastIndexOf("\\"),
-      );
-      const dirPath =
-        lastSlash > 0 ? selectedFile.substring(0, lastSlash) : selectedFile;
+      const lastSlash = Math.max(selectedFile.lastIndexOf("/"), selectedFile.lastIndexOf("\\"));
+      const dirPath = lastSlash > 0 ? selectedFile.substring(0, lastSlash) : selectedFile;
       terminalRef.current.updateWorkspacePath(dirPath);
     }
   }, [selectedFile]);
@@ -114,7 +90,6 @@ const CodeEditPanel: React.FC<CodeEditPanelProps> = ({
           cursor: row-resize;
         }
       `}</style>
-
       <div
         style={{
           flex: 1,
@@ -124,14 +99,8 @@ const CodeEditPanel: React.FC<CodeEditPanelProps> = ({
           minWidth: 0,
         }}
       >
-        <CodeEdit
-          t={t}
-          selectedFile={selectedFile}
-          workspacePath={workspacePath}
-          onTabChange={onTabChange}
-        />
+        <CodeEdit t={t} selectedFile={selectedFile} workspacePath={workspacePath} onTabChange={onTabChange} />
       </div>
-
       <div
         className="coding-right-resize-handle"
         style={{
@@ -153,13 +122,9 @@ const CodeEditPanel: React.FC<CodeEditPanelProps> = ({
           minWidth: 0,
         }}
       >
-        <div
-          ref={terminalContainerRef}
-          style={{ width: "100%", height: "100%" }}
-        />
+        <div ref={terminalContainerRef} style={{ width: "100%", height: "100%" }} />
       </div>
     </div>
   );
 };
-
 export default CodeEditPanel;

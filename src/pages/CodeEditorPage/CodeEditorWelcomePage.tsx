@@ -5,7 +5,6 @@ import { showToast, ToastType } from "../../components/Toast";
 import { stat } from "@tauri-apps/plugin-fs";
 import { FolderIcon, FileIcon, GithubIcon, SpinnerIcon } from "../../icons";
 import GithubClone from "./GithubClone";
-
 interface CodeEditorWelcomePageProps {
   t: (key: string, params?: any) => string;
   language?: "zh" | "en";
@@ -13,17 +12,14 @@ interface CodeEditorWelcomePageProps {
   onCloneFromGithub?: (repoUrl: string, targetPath?: string, branch?: string) => Promise<void>;
   isLoading?: boolean;
 }
-
 const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({ t, language = "en", onSelectWorkspace, onCloneFromGithub, isLoading = false }) => {
   const [selectedPath, setSelectedPath] = useState<string>("");
   const [selectedType, setSelectedType] = useState<"directory" | "file">("directory");
   const [isDragOver, setIsDragOver] = useState(false);
   const [showGithubDialog, setShowGithubDialog] = useState(false);
-
   useEffect(() => {
     let unlistenDragEnter: (() => void) | undefined;
     let unlistenDragLeave: (() => void) | undefined;
-
     const setupListeners = async () => {
       unlistenDragEnter = await listen<any>("drag-enter", () => {
         setIsDragOver(true);
@@ -33,13 +29,11 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({ t, langua
       });
     };
     setupListeners();
-
     return () => {
       if (unlistenDragEnter) unlistenDragEnter();
       if (unlistenDragLeave) unlistenDragLeave();
     };
   }, []);
-
   const handleSelectFolder = async () => {
     try {
       const selected = await open({
@@ -56,7 +50,6 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({ t, langua
       showToast(ToastType.ERROR, language === "zh" ? "选择目录失败" : "Failed to select directory");
     }
   };
-
   const handleSelectFile = async () => {
     try {
       const selected = await open({
@@ -79,11 +72,9 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({ t, langua
       showToast(ToastType.ERROR, language === "zh" ? "选择文件失败" : "Failed to select file");
     }
   };
-
   const handleGithubClick = () => {
     setShowGithubDialog(true);
   };
-
   const handleGithubClone = async (repoUrl: string, targetPath: string, branch: string) => {
     if (onCloneFromGithub) {
       await onCloneFromGithub(repoUrl, targetPath, branch);
@@ -98,7 +89,6 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({ t, langua
           window.removeEventListener("github-clone-complete", handler);
           reject(new Error("Clone timeout"));
         }, 300000);
-
         const handler = (event: Event) => {
           const customEvent = event as CustomEvent;
           if (customEvent.detail?.repoUrl === repoUrl && customEvent.detail?.targetPath === targetPath) {
@@ -116,9 +106,7 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({ t, langua
       await onSelectWorkspace(targetPath, "directory");
     }
   };
-
   const isZh = language === "zh";
-
   return (
     <div
       style={{
@@ -163,7 +151,6 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({ t, langua
           }}
         />
       )}
-
       <div
         style={{
           maxWidth: "520px",
@@ -264,7 +251,6 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({ t, langua
             </div>
             <div style={{ fontSize: "13px", color: "var(--text-primary)" }}>{isZh ? "选择目录" : "Select Folder"}</div>
           </div>
-
           <div
             onClick={handleSelectFile}
             style={{
@@ -289,7 +275,6 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({ t, langua
             </div>
             <div style={{ fontSize: "13px", color: "var(--text-primary)" }}>{isZh ? "选择文件" : "Select File"}</div>
           </div>
-
           <div
             onClick={handleGithubClick}
             style={{
@@ -315,7 +300,6 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({ t, langua
             <div style={{ fontSize: "13px", color: "var(--text-primary)" }}>{isZh ? "GitHub 拉取" : "GitHub Clone"}</div>
           </div>
         </div>
-
         <div
           style={{
             border: `2px dashed ${isDragOver ? "var(--accent-color)" : "var(--border-color)"}`,
@@ -353,7 +337,6 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({ t, langua
             </div>
           )}
         </div>
-
         <div
           style={{
             fontSize: "12px",
@@ -398,5 +381,4 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({ t, langua
     </div>
   );
 };
-
 export default CodeEditorWelcomePage;

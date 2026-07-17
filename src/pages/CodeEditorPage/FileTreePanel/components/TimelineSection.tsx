@@ -1,11 +1,9 @@
 import React from "react";
 import { GitInfo } from "../types";
-
 interface TimelineSectionProps {
   gitInfo: GitInfo | null;
   loadingGit: boolean;
 }
-
 export const TimelineSection: React.FC<TimelineSectionProps> = ({ gitInfo, loadingGit }) => {
   if (loadingGit) {
     return (
@@ -20,7 +18,6 @@ export const TimelineSection: React.FC<TimelineSectionProps> = ({ gitInfo, loadi
       </div>
     );
   }
-
   if (!gitInfo || gitInfo.commits.length === 0) {
     return (
       <div
@@ -34,7 +31,6 @@ export const TimelineSection: React.FC<TimelineSectionProps> = ({ gitInfo, loadi
       </div>
     );
   }
-
   return (
     <div
       style={{

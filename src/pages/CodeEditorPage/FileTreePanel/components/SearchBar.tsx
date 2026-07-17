@@ -1,6 +1,5 @@
 import React from "react";
 import { CloseIcon, SearchIcon } from "../../../../icons";
-
 interface SearchBarProps {
   searchQuery: string;
   setSearchQuery: (value: string) => void;
@@ -9,7 +8,6 @@ interface SearchBarProps {
   clearSearch: () => void;
   t: (key: string) => string;
 }
-
 export const SearchBar: React.FC<SearchBarProps> = ({ searchQuery, setSearchQuery, isSearchFocused, setIsSearchFocused, clearSearch, t }) => {
   return (
     <div

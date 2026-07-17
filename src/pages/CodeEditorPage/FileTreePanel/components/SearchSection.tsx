@@ -3,14 +3,12 @@ import { FileNode } from "../types";
 import { SearchIcon, CloseIcon } from "../../../../icons";
 import { FileSearchResult, codeEditorCommands, SearchMatch } from "../../../../command/CodeEditor";
 import { getFileIconComponent } from "../../fileUtils";
-
 interface SearchSectionProps {
   fileTree: FileNode[];
   onFileSelect: (path: string) => void;
   t: (key: string) => string;
   workspacePath?: string | null;
 }
-
 export const SearchSection: React.FC<SearchSectionProps> = ({ fileTree, onFileSelect, t, workspacePath }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchFocused, setIsSearchFocused] = useState(false);
@@ -55,7 +53,6 @@ export const SearchSection: React.FC<SearchSectionProps> = ({ fileTree, onFileSe
     },
     [workspacePath],
   );
-
   useEffect(() => {
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
@@ -75,7 +72,6 @@ export const SearchSection: React.FC<SearchSectionProps> = ({ fileTree, onFileSe
       }
     };
   }, [searchQuery, performSearch]);
-
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (searchResults.length === 0) return;
@@ -126,7 +122,6 @@ export const SearchSection: React.FC<SearchSectionProps> = ({ fileTree, onFileSe
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, [searchResults, selectedMatchIndex, onFileSelect]);
-
   useEffect(() => {
     if (selectedMatchIndex) {
       const key = `${selectedMatchIndex.fileIdx}-${selectedMatchIndex.matchIdx}`;
@@ -136,7 +131,6 @@ export const SearchSection: React.FC<SearchSectionProps> = ({ fileTree, onFileSe
       }
     }
   }, [selectedMatchIndex]);
-
   const clearSearch = () => {
     setSearchQuery("");
     setSearchResults([]);
@@ -145,7 +139,6 @@ export const SearchSection: React.FC<SearchSectionProps> = ({ fileTree, onFileSe
     setSelectedMatchIndex(null);
     setIsSearchFocused(false);
   };
-
   const toggleFileExpand = (filePath: string) => {
     setExpandedFiles((prev) => {
       const newSet = new Set(prev);
@@ -157,7 +150,6 @@ export const SearchSection: React.FC<SearchSectionProps> = ({ fileTree, onFileSe
       return newSet;
     });
   };
-
   const handleMatchClick = (filePath: string) => {
     onFileSelect(filePath);
     setSearchQuery("");
@@ -166,7 +158,6 @@ export const SearchSection: React.FC<SearchSectionProps> = ({ fileTree, onFileSe
     setExpandedFiles(new Set());
     setSelectedMatchIndex(null);
   };
-
   const highlightAllMatches = (text: string, query: string) => {
     if (!query.trim()) return text;
     const lowerText = text.toLowerCase();
@@ -198,7 +189,6 @@ export const SearchSection: React.FC<SearchSectionProps> = ({ fileTree, onFileSe
     }
     return <>{parts}</>;
   };
-
   const renderMatchContext = (match: SearchMatch, query: string, fullLine: string) => {
     const contextSize = 15;
     let start = Math.max(0, match.start_index - contextSize);
@@ -219,12 +209,10 @@ export const SearchSection: React.FC<SearchSectionProps> = ({ fileTree, onFileSe
       </>
     );
   };
-
   const formatMatchCount = (count: number): string => {
     if (count > 99) return "99+";
     return count.toString();
   };
-
   return (
     <div
       style={{
@@ -325,7 +313,6 @@ export const SearchSection: React.FC<SearchSectionProps> = ({ fileTree, onFileSe
           </div>
         )}
       </div>
-
       {/* 搜索结果列表 */}
       <div
         style={{
@@ -377,7 +364,6 @@ export const SearchSection: React.FC<SearchSectionProps> = ({ fileTree, onFileSe
           searchResults.map((fileResult, fileIdx) => {
             const isExpanded = expandedFiles.has(fileResult.file_path);
             const isFileSelected = selectedMatchIndex?.fileIdx === fileIdx;
-
             return (
               <div key={fileResult.file_path} style={{ marginBottom: "2px" }}>
                 {/* 文件行 */}
@@ -446,14 +432,12 @@ export const SearchSection: React.FC<SearchSectionProps> = ({ fileTree, onFileSe
                     {formatMatchCount(fileResult.match_count)}
                   </span>
                 </div>
-
                 {/* 匹配列表 */}
                 {isExpanded && (
                   <div style={{ paddingLeft: "20px" }}>
                     {fileResult.matches.map((match, matchIdx) => {
                       const isSelected = selectedMatchIndex?.fileIdx === fileIdx && selectedMatchIndex?.matchIdx === matchIdx;
                       const key = `${fileIdx}-${matchIdx}`;
-
                       return (
                         <div
                           key={key}

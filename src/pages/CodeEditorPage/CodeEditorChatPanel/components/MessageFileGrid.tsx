@@ -2,31 +2,25 @@ import React, { useState, useEffect, useRef } from "react";
 import { filesCommands } from "../../../../command/files";
 import { getFileIcon } from "../../../../common";
 import { UploadFile } from "../../../../core/types";
-
 interface MessageFileGridProps {
   files: UploadFile[];
   onFileClick?: (file: UploadFile) => void;
   formatFileSize: (bytes: number) => string;
 }
-
 export const MessageFileGrid: React.FC<MessageFileGridProps> = ({ files, onFileClick, formatFileSize }) => {
   const [skillNames, setSkillNames] = useState<Map<string, string>>(new Map());
   const [imagePreviews, setImagePreviews] = useState<Map<string, string>>(new Map());
   const [fileSizes, setFileSizes] = useState<Map<string, number>>(new Map());
   const isMountedRef = useRef(true);
-
   const isSkillFile = (file: UploadFile): boolean => {
     return file.name?.endsWith(".md") || file.name?.endsWith(".skill.md");
   };
-
   const isImageFile = (file: UploadFile): boolean => {
     const imageExtensions = [".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".svg", ".ico"];
     const name = file.name?.toLowerCase() || "";
     return imageExtensions.some((ext) => name.endsWith(ext));
   };
-
   const getSkillIcon = () => "⚡";
-
   const extractSkillName = (content: string): string => {
     const lines = content.split("\n");
     for (const line of lines) {
@@ -37,7 +31,6 @@ export const MessageFileGrid: React.FC<MessageFileGridProps> = ({ files, onFileC
     }
     return "";
   };
-
   const getSkillDisplayName = async (file: UploadFile): Promise<string> => {
     if (!file.path) {
       return file.name || "skill.md";
@@ -55,7 +48,6 @@ export const MessageFileGrid: React.FC<MessageFileGridProps> = ({ files, onFileC
       return file.name || "skill.md";
     }
   };
-
   const loadImagePreview = async (file: UploadFile): Promise<string> => {
     if (!file.path) return "";
     try {
@@ -70,7 +62,6 @@ export const MessageFileGrid: React.FC<MessageFileGridProps> = ({ files, onFileC
       return "";
     }
   };
-
   const getFileSize = async (file: UploadFile): Promise<number> => {
     if (!file.path) return 0;
     try {
@@ -81,7 +72,6 @@ export const MessageFileGrid: React.FC<MessageFileGridProps> = ({ files, onFileC
       return 0;
     }
   };
-
   useEffect(() => {
     isMountedRef.current = true;
     const loadData = async () => {
@@ -119,7 +109,6 @@ export const MessageFileGrid: React.FC<MessageFileGridProps> = ({ files, onFileC
       isMountedRef.current = false;
     };
   }, [files]);
-
   const getDisplayName = (file: UploadFile): string => {
     if (!isSkillFile(file)) {
       return file.name;
@@ -131,18 +120,15 @@ export const MessageFileGrid: React.FC<MessageFileGridProps> = ({ files, onFileC
     }
     return file.name || "skill.md";
   };
-
   const getImagePreview = (file: UploadFile): string | undefined => {
     const key = file.id || file.path || file.name;
     return imagePreviews.get(key);
   };
-
   const getFileSizeDisplay = (file: UploadFile): number => {
     const key = file.id || file.path || file.name;
     const size = fileSizes.get(key);
     return size || file.size || 0;
   };
-
   return (
     <div
       className="message-files-grid"

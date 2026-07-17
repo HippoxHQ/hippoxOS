@@ -1,54 +1,39 @@
 import React, { useEffect, useRef } from "react";
-
 export interface TabContextMenuItem {
   label: string;
   action: () => void;
   disabled?: boolean;
 }
-
 export interface TabContextMenuDivider {
   divider: true;
 }
-
 export type TabContextMenuItemType = TabContextMenuItem | TabContextMenuDivider;
-
 interface TabContextMenuProps {
   x: number;
   y: number;
   items: TabContextMenuItemType[];
   onClose: () => void;
 }
-
-export const TabContextMenu: React.FC<TabContextMenuProps> = ({
-  x,
-  y,
-  items,
-  onClose,
-}) => {
+export const TabContextMenu: React.FC<TabContextMenuProps> = ({ x, y, items, onClose }) => {
   const menuRef = useRef<HTMLDivElement>(null);
-
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
         onClose();
       }
     };
-
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         onClose();
       }
     };
-
     document.addEventListener("mousedown", handleClickOutside);
     document.addEventListener("keydown", handleEscape);
-
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
       document.removeEventListener("keydown", handleEscape);
     };
   }, [onClose]);
-
   const getMenuPosition = () => {
     const menuWidth = 180;
     const menuHeight = Math.min(items.length * 32 + 20, 300);
@@ -63,15 +48,10 @@ export const TabContextMenu: React.FC<TabContextMenuProps> = ({
     }
     return { left, top };
   };
-
-  const isDivider = (
-    item: TabContextMenuItemType,
-  ): item is TabContextMenuDivider => {
+  const isDivider = (item: TabContextMenuItemType): item is TabContextMenuDivider => {
     return "divider" in item && item.divider === true;
   };
-
   const position = getMenuPosition();
-
   return (
     <div
       ref={menuRef}
@@ -105,7 +85,6 @@ export const TabContextMenu: React.FC<TabContextMenuProps> = ({
             />
           );
         }
-
         return (
           <div
             key={index}
@@ -118,9 +97,7 @@ export const TabContextMenu: React.FC<TabContextMenuProps> = ({
             style={{
               padding: "6px 16px",
               cursor: item.disabled ? "default" : "pointer",
-              color: item.disabled
-                ? "var(--text-muted)"
-                : "var(--text-primary)",
+              color: item.disabled ? "var(--text-muted)" : "var(--text-primary)",
               opacity: item.disabled ? 0.5 : 1,
               display: "flex",
               alignItems: "center",
@@ -143,4 +120,3 @@ export const TabContextMenu: React.FC<TabContextMenuProps> = ({
     </div>
   );
 };
-

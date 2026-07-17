@@ -1,9 +1,7 @@
 import React from "react";
-
 interface TabsEmptyProps {
   t?: (key: string) => string;
 }
-
 const TabsEmpty: React.FC<TabsEmptyProps> = ({ t }) => {
   return (
     <div
@@ -25,72 +23,16 @@ const TabsEmpty: React.FC<TabsEmptyProps> = ({ t }) => {
         zIndex: 10,
       }}
     >
-      <svg
-        width="72"
-        height="72"
-        viewBox="0 0 72 72"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        style={{ opacity: 0.15 }}
-      >
-        <rect
-          x="12"
-          y="8"
-          width="48"
-          height="56"
-          rx="4"
-          stroke="currentColor"
-          strokeWidth="2.5"
-        />
-        <rect
-          x="12"
-          y="8"
-          width="36"
-          height="20"
-          rx="4"
-          stroke="currentColor"
-          strokeWidth="2.5"
-        />
-        <path
-          d="M48 28H60V64H12V28H48Z"
-          stroke="currentColor"
-          strokeWidth="2.5"
-        />
-        <path
-          d="M20 20H28"
-          stroke="currentColor"
-          strokeWidth="2.5"
-          strokeLinecap="round"
-        />
-        <path
-          d="M20 40H52"
-          stroke="currentColor"
-          strokeWidth="2.5"
-          strokeLinecap="round"
-        />
-        <path
-          d="M20 50H52"
-          stroke="currentColor"
-          strokeWidth="2.5"
-          strokeLinecap="round"
-        />
-        <path
-          d="M36 14V4"
-          stroke="currentColor"
-          strokeWidth="2.5"
-          strokeLinecap="round"
-        />
-        <circle
-          cx="36"
-          cy="36"
-          r="14"
-          stroke="currentColor"
-          strokeWidth="1.5"
-          strokeDasharray="2 4"
-          opacity="0.4"
-        />
+      <svg width="72" height="72" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ opacity: 0.15 }}>
+        <rect x="12" y="8" width="48" height="56" rx="4" stroke="currentColor" strokeWidth="2.5" />
+        <rect x="12" y="8" width="36" height="20" rx="4" stroke="currentColor" strokeWidth="2.5" />
+        <path d="M48 28H60V64H12V28H48Z" stroke="currentColor" strokeWidth="2.5" />
+        <path d="M20 20H28" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+        <path d="M20 40H52" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+        <path d="M20 50H52" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+        <path d="M36 14V4" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+        <circle cx="36" cy="36" r="14" stroke="currentColor" strokeWidth="1.5" strokeDasharray="2 4" opacity="0.4" />
       </svg>
-
       <div
         style={{
           fontSize: "18px",
@@ -101,7 +43,6 @@ const TabsEmpty: React.FC<TabsEmptyProps> = ({ t }) => {
       >
         {t ? t("codeEditor.noTabs") : "No files open"}
       </div>
-
       <div
         style={{
           fontSize: "13px",
@@ -111,11 +52,8 @@ const TabsEmpty: React.FC<TabsEmptyProps> = ({ t }) => {
           lineHeight: 1.6,
         }}
       >
-        {t
-          ? t("codeEditor.openFileHint")
-          : "Open a file from the file tree to start editing"}
+        {t ? t("codeEditor.openFileHint") : "Open a file from the file tree to start editing"}
       </div>
-
       <div
         style={{
           width: "40px",
@@ -129,5 +67,4 @@ const TabsEmpty: React.FC<TabsEmptyProps> = ({ t }) => {
     </div>
   );
 };
-
 export default TabsEmpty;

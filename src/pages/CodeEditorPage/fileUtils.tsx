@@ -1,5 +1,4 @@
 import { Icon } from "@iconify/react";
-
 const iconMap: Record<string, string> = {
   // TypeScript / JavaScript
   ts: "vscode-icons:file-type-typescript",
@@ -85,24 +84,19 @@ const iconMap: Record<string, string> = {
   avi: "vscode-icons:file-type-video",
   default: "vscode-icons:file-type-text",
 };
-
 export const getFileIcon = (fileName: string): string => {
   const ext = fileName.split(".").pop()?.toLowerCase() || "";
   return iconMap[ext] || iconMap.default;
 };
-
 export const getFileIconComponent = (fileName: string, size: number = 16) => {
   return <Icon icon={getFileIcon(fileName)} width={size} height={size} />;
 };
-
 export const getFolderIconComponent = (isExpanded: boolean, size = 16) => <Icon icon={isExpanded ? "vscode-icons:default-folder-opened" : "vscode-icons:default-folder"} width={size} height={size} />;
-
 export const getDirectoryName = (path: string | null | undefined): string => {
   if (!path) return "No Workspace";
   const parts = path.split(/[\\/]/);
   return parts[parts.length - 1] || path;
 };
-
 export const getStatusColor = (status: string): string => {
   switch (status) {
     case "M ":
@@ -122,7 +116,6 @@ export const getStatusColor = (status: string): string => {
       return "var(--text-muted)";
   }
 };
-
 export const getStatusLabel = (statusDesc: string): string => {
   switch (statusDesc) {
     case "modified":
