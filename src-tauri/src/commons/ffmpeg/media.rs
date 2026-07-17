@@ -1,20 +1,16 @@
 use crate::commons::Ffmpeg;
 use serde_json::Value;
+use std::fs;
 use std::path::Path;
+use std::process::Command;
 /// Get video metadata as JSON from file path
 pub fn get_video_metadata_json(ffmpeg: &Ffmpeg, path: &str) -> Result<Value, String> {
     ffmpeg.get_video_info_json(path)
 }
 /// Get audio metadata (duration, sample_rate, channels, codec) from file path
 pub fn get_audio_metadata(ffmpeg: &Ffmpeg, path: &str) -> Result<AudioMetadata, String> {
-    let info = ffmpeg.get_video_info(path)?;
-    Ok(AudioMetadata {
-        duration: info.duration,
-        sample_rate: info.audio_sample_rate.unwrap_or(0),
-        channels: info.audio_channels.unwrap_or(0),
-        codec: info.audio_codec.unwrap_or_else(|| "unknown".to_string()),
-        file_size: info.file_size.unwrap_or(0),
-    })
+    let info = ffmpeg.get_metadata(path)?;
+    Ok(AudioMetadata { duration: info.duration, sample_rate: 0, channels: 0, codec: info.codec, file_size: 0 })
 }
 /// Get basic metadata (duration only) from file path
 pub fn get_basic_metadata(ffmpeg: &Ffmpeg, path: &str) -> Result<BasicMetadata, String> {
@@ -30,11 +26,11 @@ pub fn get_basic_metadata(ffmpeg: &Ffmpeg, path: &str) -> Result<BasicMetadata, 
 }
 /// Get image metadata (width, height, fps, duration) from file path
 pub fn get_image_metadata(ffmpeg: &Ffmpeg, path: &str, is_gif: bool) -> Result<ImageMetadata, String> {
-    let info = ffmpeg.get_video_info_json(path)?;
-    let width = info["width"].as_u64().unwrap_or(0) as u32;
-    let height = info["height"].as_u64().unwrap_or(0) as u32;
-    let fps = if is_gif { info["fps"].as_f64().unwrap_or(1.0) } else { 1.0 };
-    let duration = if is_gif { info["duration"].as_f64().unwrap_or(5.0).max(0.1) } else { 5.0 };
+    let info = ffmpeg.get_metadata(path)?;
+    let width = info.width;
+    let height = info.height;
+    let fps = if is_gif { info.fps } else { 1.0 };
+    let duration = if is_gif { info.duration.max(0.1) } else { 5.0 };
     Ok(ImageMetadata { width, height, fps, duration })
 }
 /// Extract frame from video at given time
@@ -42,8 +38,7 @@ pub fn extract_frame_data(ffmpeg: &Ffmpeg, source_path: &str, time: f64) -> Resu
     ffmpeg.extract_frame(source_path, time)
 }
 /// Generate waveform image from audio file
-pub fn generate_waveform_image(ffmpeg: &Ffmpeg, source_path: &str, output_path: &Path, width: u32, height: u32, color: &str) -> Result<(), String> {
-    use std::process::Command;
+pub fn generate_waveform_image(_ffmpeg: &Ffmpeg, source_path: &str, output_path: &Path, width: u32, height: u32, color: &str) -> Result<(), String> {
     let output = Command::new("ffmpeg")
         .args([
             "-i",
@@ -65,7 +60,7 @@ pub fn generate_waveform_image(ffmpeg: &Ffmpeg, source_path: &str, output_path: 
 }
 /// Generate text thumbnail image
 pub fn generate_text_thumbnail(
-    ffmpeg: &Ffmpeg,
+    _ffmpeg: &Ffmpeg,
     content: &str,
     output_path: &Path,
     width: u32,
@@ -74,7 +69,6 @@ pub fn generate_text_thumbnail(
     font_color: &str,
     font_path: Option<&str>,
 ) -> Result<(), String> {
-    use std::process::Command;
     let display_text = if content.len() > 100 { format!("{}...", &content[..100]) } else { content.to_string() };
     let escaped_text = display_text.replace("'", "'\\\\\\''").replace(":", "\\:").replace("[", "\\[").replace("]", "\\]").replace("=", "\\=");
     let default_font = if cfg!(target_os = "macos") {
@@ -111,7 +105,6 @@ pub fn generate_text_thumbnail(
 }
 /// Read cached thumbnail from file system
 pub fn read_cached_thumbnail(cache_path: &Path) -> Option<String> {
-    use std::fs;
     if !cache_path.exists() {
         return None;
     }
@@ -125,7 +118,6 @@ pub fn read_cached_thumbnail(cache_path: &Path) -> Option<String> {
 }
 /// Save thumbnail data to cache
 pub fn save_thumbnail_to_cache(cache_path: &Path, data: &[u8]) -> Result<(), String> {
-    use std::fs;
     if let Some(parent) = cache_path.parent() {
         if !parent.exists() {
             std::fs::create_dir_all(parent).map_err(|e| format!("Failed to create cache directory: {}", e))?;
