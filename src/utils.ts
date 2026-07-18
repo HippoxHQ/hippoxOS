@@ -1,7 +1,6 @@
 import { open } from "@tauri-apps/plugin-shell";
 import { showToast, ToastType } from "./components/Toast";
 import { filesCommands } from "./command/files";
-
 export const openUrl = async (
     url: string,
     t: (key: string, params?: any) => string,
@@ -16,7 +15,6 @@ export const openUrl = async (
         );
     }
 };
-
 export const handleOpenPath = async (
     path: string,
     t: (key: string, params?: any) => string,
