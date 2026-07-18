@@ -476,6 +476,8 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_remove_track_by_id,
         commands::cmd_remove_overlay_track_by_id,
         commands::cmd_preview_canvas_size,
+        commands::cmd_get_playback_speeds,
+        commands::cmd_update_session_playback_speed,
         commands::cmd_update_track_block_position,
         commands::cmd_update_track_block_size,
         commands::stats_project_info
