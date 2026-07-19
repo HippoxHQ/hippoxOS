@@ -7,6 +7,44 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 use sysinfo::Disks;
 use walkdir::WalkDir;
+/// Application root directory name
+const APP_DIR_NAME: &str = "HippoX";
+/// Video Editing System directory name
+const VIDEO_EDIT_DIR_NAME: &str = "VideoEdit";
+/// Video Dialog History directory name
+const VIDEO_DIALOG_HISTORY_DIR_NAME: &str = "VideoDialogHistory";
+/// SandBox3D Dialog History directory name
+const SANDBOX3D_DIALOG_HISTORY_DIR_NAME: &str = "SandBox3DDialogHistory";
+/// Dialog History directory name
+const DIALOG_HISTORY_DIR_NAME: &str = "DialogHistory";
+/// Chart Dialog History directory name
+const CHART_DIALOG_HISTORY_DIR_NAME: &str = "ChartDialogHistory";
+/// Map Dialog History directory name
+const MAP_DIALOG_HISTORY_DIR_NAME: &str = "MapDialogHistory";
+/// Code Editor Dialog History directory name
+const CODE_EDITOR_DIALOG_HISTORY_DIR_NAME: &str = "CodeEditorDialogHistory";
+/// Material Favorites directory name
+const MATERIAL_FAVORITES_DIR_NAME: &str = "MaterialFavorites";
+/// Skills Market directory name
+const SKILLS_MARKET_DIR_NAME: &str = "SkillsMarket";
+/// Scheduled Tasks directory name
+const SCHEDULED_TASKS_DIR_NAME: &str = "ScheduledTasks";
+/// Log directory name
+const LOG_DIR_NAME: &str = "logs";
+/// Cache directory name
+const CACHE_DIR_NAME: &str = "cache";
+/// Settings directory name
+const SETTINGS_DIR_NAME: &str = "settings";
+/// Data directory name
+const DATA_DIR_NAME: &str = "data";
+/// Taskpool directory name
+const TASKPOOL_DIR_NAME: &str = "taskpool";
+/// Favorites directory name
+const FAVORITES_DIR_NAME: &str = "favorites";
+/// Favorites skill subdirectory name
+const FAVORITES_SKILL_DIR_NAME: &str = "skill";
+/// Favorites natural subdirectory name
+const FAVORITES_NATURAL_DIR_NAME: &str = "natural";
 /// Get application root directory
 ///
 /// Windows: C:\Users\<username>\AppData\Roaming\HippoX\
@@ -15,84 +53,88 @@ use walkdir::WalkDir;
 pub fn get_app_root_dir() -> PathBuf {
     if cfg!(target_os = "windows") {
         // Windows: %APPDATA%\HippoX
-        dirs::data_dir().unwrap_or_else(|| PathBuf::from(".")).join("HippoX")
+        dirs::data_dir().unwrap_or_else(|| PathBuf::from(".")).join(APP_DIR_NAME)
     } else if cfg!(target_os = "macos") {
         // macOS: ~/Library/Application Support/HippoX
-        dirs::home_dir().unwrap_or_else(|| PathBuf::from(".")).join("Library").join("Application Support").join("HippoX")
+        dirs::home_dir().unwrap_or_else(|| PathBuf::from(".")).join("Library").join("Application Support").join(APP_DIR_NAME)
     } else {
         // Linux: ~/.local/share/HippoX
-        dirs::data_dir().unwrap_or_else(|| PathBuf::from(".")).join("HippoX")
+        dirs::data_dir().unwrap_or_else(|| PathBuf::from(".")).join(APP_DIR_NAME)
     }
 }
-/// Material favorites directory: HippoX/MaterialFavorites  
+/// Material favorites directory: HippoX/MaterialFavorites
 pub fn get_material_favorites_dir() -> PathBuf {
-    get_app_root_dir().join("MaterialFavorites")
+    get_app_root_dir().join(MATERIAL_FAVORITES_DIR_NAME)
 }
-/// Video Editing System directory: HippoX/VideoDialogHistory
+/// Video Editing System directory: HippoX/VideoEdit
 pub fn get_video_editing_system_root_dir() -> PathBuf {
-    get_app_root_dir().join("VideoEdit")
+    get_app_root_dir().join(VIDEO_EDIT_DIR_NAME)
 }
-/// Video Editing System  Dialog History Directory: HippoX/VideoEdit/VideoDialogHistory
+/// Video Editing System Dialog History Directory: HippoX/VideoEdit/VideoDialogHistory
 pub fn get_video_editing_system_dialog_history_dir() -> PathBuf {
-    get_app_root_dir().join("VideoEdit").join("VideoDialogHistory")
+    get_app_root_dir().join(VIDEO_EDIT_DIR_NAME).join(VIDEO_DIALOG_HISTORY_DIR_NAME)
 }
 /// SandBox3D Dialog history directory: HippoX/SandBox3DDialogHistory
 pub fn get_sandbox3d_dialog_history_dir() -> PathBuf {
-    get_app_root_dir().join("SandBox3DDialogHistory")
+    get_app_root_dir().join(SANDBOX3D_DIALOG_HISTORY_DIR_NAME)
 }
 /// Dialog history directory: HippoX/DialogHistory
 pub fn get_dialog_history_dir() -> PathBuf {
-    get_app_root_dir().join("DialogHistory")
+    get_app_root_dir().join(DIALOG_HISTORY_DIR_NAME)
 }
 /// Chart Dialog history directory: HippoX/ChartDialogHistory
 pub fn get_chart_dialog_history_dir() -> PathBuf {
-    get_app_root_dir().join("ChartDialogHistory")
+    get_app_root_dir().join(CHART_DIALOG_HISTORY_DIR_NAME)
 }
 /// Map Dialog history directory: HippoX/MapDialogHistory
 pub fn get_map_dialog_history_dir() -> PathBuf {
-    get_app_root_dir().join("MapDialogHistory")
+    get_app_root_dir().join(MAP_DIALOG_HISTORY_DIR_NAME)
 }
-/// Map Dialog history directory: HippoX/CodeEditorDialogHistory
+/// Code Editor Dialog history directory: HippoX/CodeEditorDialogHistory
 pub fn get_codeeditor_dialog_history_dir() -> PathBuf {
-    get_app_root_dir().join("CodeEditorDialogHistory")
+    get_app_root_dir().join(CODE_EDITOR_DIALOG_HISTORY_DIR_NAME)
 }
 /// Skill market directory: HippoX/SkillsMarket
 pub fn get_skills_market_dir() -> PathBuf {
-    get_app_root_dir().join("SkillsMarket")
+    get_app_root_dir().join(SKILLS_MARKET_DIR_NAME)
 }
 /// Scheduled tasks directory: HippoX/ScheduledTasks
 pub fn get_scheduled_tasks_dir() -> PathBuf {
-    get_app_root_dir().join("ScheduledTasks")
+    get_app_root_dir().join(SCHEDULED_TASKS_DIR_NAME)
 }
 /// Log directory: HippoX/logs
 pub fn get_log_dir() -> PathBuf {
-    get_app_root_dir().join("logs")
+    get_app_root_dir().join(LOG_DIR_NAME)
 }
 /// Cache directory: HippoX/cache
 pub fn get_cache_dir() -> PathBuf {
-    get_app_root_dir().join("cache")
+    get_app_root_dir().join(CACHE_DIR_NAME)
 }
 /// Settings directory: HippoX/settings
 pub fn get_settings_dir() -> PathBuf {
-    get_app_root_dir().join("settings")
+    get_app_root_dir().join(SETTINGS_DIR_NAME)
 }
-/// data directory: HippoX/data
+/// Data directory: HippoX/data
 pub fn get_data_dir() -> PathBuf {
-    get_app_root_dir().join("data")
+    get_app_root_dir().join(DATA_DIR_NAME)
 }
 /// Get taskpool backup directory: HippoX/taskpool
 pub fn get_taskpool_dir() -> PathBuf {
-    get_app_root_dir().join("taskpool")
+    get_app_root_dir().join(TASKPOOL_DIR_NAME)
 }
+/// Favorites directory: HippoX/favorites
 pub fn get_favorites_dir() -> PathBuf {
-    get_app_root_dir().join("favorites")
+    get_app_root_dir().join(FAVORITES_DIR_NAME)
 }
+/// Favorites skill directory: HippoX/favorites/skill
 pub fn get_favorites_skill_dir() -> PathBuf {
-    get_favorites_dir().join("skill")
+    get_favorites_dir().join(FAVORITES_SKILL_DIR_NAME)
 }
+/// Favorites natural directory: HippoX/favorites/natural
 pub fn get_favorites_natural_dir() -> PathBuf {
-    get_favorites_dir().join("natural")
+    get_favorites_dir().join(FAVORITES_NATURAL_DIR_NAME)
 }
+/// Get total size of favorites directory
 pub fn get_favorites_size() -> Result<u64, String> {
     let favorites_dir = get_favorites_dir();
     if !favorites_dir.exists() {
@@ -106,12 +148,14 @@ pub fn get_favorites_size() -> Result<u64, String> {
     }
     Ok(total_size)
 }
+/// Get max favorites size in MB from settings
 pub fn get_max_favorites_size() -> u64 {
     match crate::commons::get_setting("max_favorites_size_mb") {
         Ok(value) => value.as_u64().unwrap_or(500),
         Err(_) => 500,
     }
 }
+/// Set max favorites size in MB
 pub fn set_max_favorites_size(size_mb: u64) -> Result<(), String> {
     crate::commons::set_setting("max_favorites_size_mb", serde_json::json!(size_mb))
 }
@@ -210,6 +254,9 @@ pub struct DataPaths {
     pub cache_dir: String,
     pub settings_dir: String,
 }
+// ============================================================
+// Tauri Commands
+// ============================================================
 #[tauri::command]
 pub fn cmd_get_data_paths() -> DataPaths {
     DataPaths {
@@ -226,7 +273,7 @@ pub fn cmd_get_data_paths() -> DataPaths {
 }
 #[tauri::command]
 pub fn cmd_get_favorites_dir() -> String {
-    get_app_root_dir().join("favorites").to_string_lossy().to_string()
+    get_app_root_dir().join(FAVORITES_DIR_NAME).to_string_lossy().to_string()
 }
 #[tauri::command]
 pub fn cmd_get_directory_size(path: String) -> Result<u64, String> {
@@ -271,6 +318,9 @@ pub fn cmd_get_disk_info(path: String) -> Result<serde_json::Value, String> {
 pub fn cmd_get_logs_size_command() -> Result<u64, String> {
     get_logs_size()
 }
+// ============================================================
+// Dialog History Config
+// ============================================================
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DialogHistoryConfig {
     #[serde(default)]
