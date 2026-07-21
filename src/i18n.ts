@@ -1430,7 +1430,6 @@ export const zh = {
     projects: '项目文件',
     cloud_all: '我的云盘',
     cloud_shared: '共享空间',
-
     import_audio: '导入',
     audio_file: '本地音频',
     audio_record: '录音',
@@ -1441,11 +1440,11 @@ export const zh = {
     music_electronic: '电子音乐',
     music_acoustic: '原声带',
     sound_effects: '音效库',
+    transition: '转场',
     sfx_ambient: '环境音效',
     sfx_transition: '转场音效',
     sfx_impact: '冲击音效',
     audioFiles: '音频文件',
-
     subtitle_import: '导入字幕',
     sub_srt: 'SRT 文件',
     sub_ass: 'ASS 文件',
@@ -1459,7 +1458,6 @@ export const zh = {
     sub_temp_vlog: 'Vlog 字幕',
     sub_temp_movie: '电影字幕',
     selectSubtitle: '请选择字幕选项',
-
     text_templates: '文字模板',
     template_title: '标题样式',
     template_subtitle: '字幕样式',
@@ -1470,13 +1468,11 @@ export const zh = {
     textItems: '个文本',
     addTextToTrackFailed: '添加文本到轨道失败',
     defaultText: '双击编辑文字',
-
     basic: '基础',
     shape: '形状',
     loadOverlaysFailed: '加载贴纸失败',
     addOverlayFailed: '添加贴纸到轨道失败',
     stickerPlaceholder: '贴纸内容即将推出...',
-
     selectMaterial: '选择素材',
     allFiles: '所有文件',
     imageFiles: '图片文件',
@@ -1566,7 +1562,6 @@ export const zh = {
     exportInfo: '导出信息',
     estimatedSize: '预估大小',
     fileName: '文件名',
-
     allTransitions: '全部转场',
     myFavorites: '我的收藏',
     searchTransitions: '搜索转场...',
@@ -1574,19 +1569,16 @@ export const zh = {
     transitions: '个转场',
     noSearchResults: '没有匹配的转场效果',
     noTransitions: '暂无转场效果',
-
     cannotDeleteLastTrack: '不能删除最后一个轨道，至少保留一个轨道',
     deleteTrackConfirm: '确定要删除轨道 "{{name}}" 吗？',
     deleteTrackConfirmTitle: '确认删除轨道',
     deleteTrackSuccess: '轨道已删除',
     deleteTrackFailed: '删除轨道失败',
-
     addToFavorite: '添加到收藏',
     removeFromFavorite: '取消收藏',
     addToFavoriteSuccess: '已添加到收藏',
     removeFromFavoriteSuccess: '已取消收藏',
     addToFavoriteFailed: '收藏操作失败',
-
     copyPath: '复制路径',
     copyPathSuccess: '路径已复制',
     copyPathFailed: '复制路径失败',
@@ -1608,7 +1600,6 @@ export const zh = {
     openDirectoryFailed: '打开目录失败',
     allMaterial: '全部素材',
     textMaterial: '文字素材',
-
     material: '素材',
     import: '导入',
     videoMaterial: '视频素材',
@@ -1622,7 +1613,6 @@ export const zh = {
     cloudMaterial: '云素材',
     myCloud: '我的云盘',
     sharedSpace: '共享空间',
-
     audio: '音频',
     localAudio: '本地音频',
     record: '录音',
@@ -1636,7 +1626,6 @@ export const zh = {
     ambient: '环境音效',
     transitionSfx: '转场音效',
     impactSfx: '冲击音效',
-
     text: '文本',
     newText: '新建文本',
     textTemplates: '文字模板',
@@ -1646,7 +1635,6 @@ export const zh = {
     textStyle: '文字样式',
     fontLibrary: '字体库',
     animationEffect: '动画效果',
-
     emoji: 'Emoji',
     emojiCategory_all: '全部',
     emojiCategory_smile: '笑脸',
@@ -1661,14 +1649,12 @@ export const zh = {
     emojiCategory_symbol: '符号',
     emojiCategory_sound: '声音',
     emojiCategory_office: '办公',
-
     sticker: '贴纸',
     custom: '自定义',
     all: '全部',
     cartoon: '卡通',
     festival: '节日',
     trending: '热门',
-
     subtitle: '字幕',
     importSubtitle: '导入字幕',
     srtFile: 'SRT 文件',
@@ -1681,7 +1667,6 @@ export const zh = {
     newsSubtitle: '新闻字幕',
     vlogSubtitle: 'Vlog 字幕',
     movieSubtitle: '电影字幕',
-
     addMaterial: '添加素材',
     notSelected: '未选择',
     pleaseSelect: '请选择',
@@ -1691,7 +1676,6 @@ export const zh = {
     addedToCanvas: '已添加到画布',
     deleteSuccess: '删除成功',
     deleteFailed: '删除失败',
-
     clip: '剪辑',
     filter: '滤镜',
     export: '导出',
@@ -1733,10 +1717,8 @@ export const zh = {
     exportVideo: '导出视频',
     clickToEdit: '点击时间线片段进行编辑',
     noClipSelected: '未选择片段',
-
     noVideo: '未加载视频',
     resetTransform: '复位 (双击画面也可复位)',
-
     undo: '撤销',
     redo: '重做',
     split: '分割',
@@ -3185,14 +3167,12 @@ export const en: typeof zh = {
     tooltipFit: "⌨️ F: Fit",
   },
   videoEditor: {
-
     local: 'Local',
     cloud: 'Cloud',
     recent: 'Recent',
     projects: 'Projects',
     cloud_all: 'My Cloud',
     cloud_shared: 'Shared',
-
     import_audio: 'Import',
     audio_file: 'Local Audio',
     audio_record: 'Record',
@@ -3204,10 +3184,10 @@ export const en: typeof zh = {
     music_acoustic: 'Acoustic',
     sound_effects: 'Sound Effects',
     sfx_ambient: 'Ambient',
+    transition: 'Transition',
     sfx_transition: 'Transition SFX',
     sfx_impact: 'Impact SFX',
     audioFiles: 'Audio Files',
-
     subtitle_import: 'Import Subtitle',
     sub_srt: 'SRT File',
     sub_ass: 'ASS File',
@@ -3221,7 +3201,6 @@ export const en: typeof zh = {
     sub_temp_vlog: 'Vlog Subtitle',
     sub_temp_movie: 'Movie Subtitle',
     selectSubtitle: 'Please select subtitle option',
-
     text_templates: 'Text Templates',
     template_title: 'Title Style',
     template_subtitle: 'Subtitle Style',
@@ -3232,13 +3211,11 @@ export const en: typeof zh = {
     textItems: 'text items',
     addTextToTrackFailed: 'Failed to add text to track',
     defaultText: 'Double-click to edit text',
-
     basic: 'Basic',
     shape: 'Shape',
     loadOverlaysFailed: 'Failed to load stickers',
     addOverlayFailed: 'Failed to add sticker to track',
     stickerPlaceholder: 'Sticker content coming soon...',
-
     selectMaterial: 'Select Material',
     allFiles: 'All Files',
     imageFiles: 'Image Files',
@@ -3328,7 +3305,6 @@ export const en: typeof zh = {
     exportInfo: 'Export Info',
     estimatedSize: 'Estimated Size',
     fileName: 'File Name',
-
     allTransitions: 'All Transitions',
     myFavorites: 'My Favorites',
     searchTransitions: 'Search transitions...',
@@ -3336,19 +3312,16 @@ export const en: typeof zh = {
     transitions: 'Transitions',
     noSearchResults: 'No matching transitions found',
     noTransitions: 'No transitions available',
-
     cannotDeleteLastTrack: 'Cannot delete the last track, at least one track must remain',
     deleteTrackConfirm: 'Are you sure you want to delete track "{{name}}"?',
     deleteTrackConfirmTitle: 'Confirm Delete Track',
     deleteTrackSuccess: 'Track deleted',
     deleteTrackFailed: 'Failed to delete track',
-
     addToFavorite: 'Add to Favorites',
     removeFromFavorite: 'Remove from Favorites',
     addToFavoriteSuccess: 'Added to favorites',
     removeFromFavoriteSuccess: 'Removed from favorites',
     addToFavoriteFailed: 'Failed to toggle favorite',
-
     copyPath: 'Copy Path',
     copyPathSuccess: 'Path copied',
     copyPathFailed: 'Failed to copy path',
@@ -3370,7 +3343,6 @@ export const en: typeof zh = {
     openDirectoryFailed: 'Failed to open directory',
     allMaterial: 'All Material',
     textMaterial: 'Text Material',
-
     material: 'Material',
     import: 'Import',
     videoMaterial: 'Video',
@@ -3384,7 +3356,6 @@ export const en: typeof zh = {
     cloudMaterial: 'Cloud',
     myCloud: 'My Cloud',
     sharedSpace: 'Shared',
-
     audio: 'Audio',
     localAudio: 'Local Audio',
     record: 'Record',
@@ -3398,7 +3369,6 @@ export const en: typeof zh = {
     ambient: 'Ambient',
     transitionSfx: 'Transition SFX',
     impactSfx: 'Impact SFX',
-
     text: 'Text',
     newText: 'New Text',
     textTemplates: 'Text Templates',
@@ -3408,7 +3378,6 @@ export const en: typeof zh = {
     textStyle: 'Text Style',
     fontLibrary: 'Font Library',
     animationEffect: 'Animation Effect',
-
     emoji: 'Emoji',
     emojiCategory_all: 'All',
     emojiCategory_smile: 'Smile',
@@ -3423,14 +3392,12 @@ export const en: typeof zh = {
     emojiCategory_symbol: 'Symbol',
     emojiCategory_sound: 'Sound',
     emojiCategory_office: 'Office',
-
     sticker: 'Sticker',
     custom: 'Custom',
     all: 'All',
     cartoon: 'Cartoon',
     festival: 'Festival',
     trending: 'Trending',
-
     subtitle: 'Subtitle',
     importSubtitle: 'Import Subtitle',
     srtFile: 'SRT File',
@@ -3443,7 +3410,6 @@ export const en: typeof zh = {
     newsSubtitle: 'News Subtitle',
     vlogSubtitle: 'Vlog Subtitle',
     movieSubtitle: 'Movie Subtitle',
-
     addMaterial: 'Add Material',
     notSelected: 'Not Selected',
     pleaseSelect: 'Please Select',
@@ -3453,7 +3419,6 @@ export const en: typeof zh = {
     addedToCanvas: 'Added to canvas',
     deleteSuccess: 'Deleted successfully',
     deleteFailed: 'Delete failed',
-
     clip: 'Clip',
     filter: 'Filter',
     export: 'Export',
@@ -3495,10 +3460,8 @@ export const en: typeof zh = {
     exportVideo: 'Export Video',
     clickToEdit: 'Click a clip to edit',
     noClipSelected: 'No clip selected',
-
     noVideo: 'No video loaded',
     resetTransform: 'Reset (Double-click to reset)',
-
     undo: 'Undo',
     redo: 'Redo',
     split: 'Split',
