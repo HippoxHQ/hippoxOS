@@ -43,7 +43,6 @@ mod tests {
     #[tokio::test]
     async fn test_cmd_get_crate_version() {
         let result = cmd_get_hippox_versions().await;
-        println!("{:?}", result);
     }
     #[tokio::test]
     async fn test_cmd_get_crate_version_not_found() {
@@ -54,14 +53,13 @@ mod tests {
     #[tokio::test]
     async fn test_cmd_get_hippox_versions() {
         let result = cmd_get_hippox_versions().await;
-        println!("{:?}", result);
     }
     #[tokio::test]
     async fn test_cmd_get_crate_version_err() {
         let result = cmd_get_crate_version("serde".to_string()).await;
         match result {
-            Ok(v) => println!("Success: {}", v),
-            Err(e) => println!("Error: {}", e),
+            Ok(v) => {}
+            Err(e) => {}
         }
     }
 }
