@@ -485,6 +485,7 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_get_session_volume,
         commands::cmd_update_track_block_position,
         commands::cmd_update_track_block_size,
+        commands::cmd_update_track_block_transform,
         commands::cmd_update_track_block_volume,
         commands::cmd_update_track_block_speed,
         commands::stats_project_info,
