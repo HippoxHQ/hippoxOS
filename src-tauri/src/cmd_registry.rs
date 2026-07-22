@@ -494,6 +494,9 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_effects_get_vfx_type_list,
         commands::cmd_effects_apply_filter,
         commands::cmd_effects_apply_vfx,
-        commands::cmd_effects_apply_camera_motion
+        commands::cmd_effects_apply_camera_motion,
+        commands::cmd_effects_delete_filter,
+        commands::cmd_effects_delete_vfx,
+        commands::cmd_effects_delete_camera_motion,
     ]
 }
