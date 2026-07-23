@@ -462,6 +462,7 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_get_overlays_root_dir,
         commands::cmd_get_overlay_track_block_by_id,
         commands::cmd_add_overlay_track,
+        commands::cmd_copy_track_blocks,
         commands::cmd_get_overlay_track_rows,
         commands::cmd_get_overlay_track_by_id,
         commands::cmd_get_overlay_track_thumbnail,
