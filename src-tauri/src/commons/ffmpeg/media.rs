@@ -1,9 +1,6 @@
-use std::{fs, path::Path, process::Command};
-
-use serde_json::Value;
-
 use crate::commons::{AudioMetadata, BasicMetadata, Ffmpeg, ImageMetadata};
-
+use serde_json::Value;
+use std::{fs, path::Path, process::Command};
 /// Get video metadata as JSON from file path
 ///
 /// Convenience wrapper around Ffmpeg::get_video_info_json that returns
@@ -19,7 +16,6 @@ use crate::commons::{AudioMetadata, BasicMetadata, Ffmpeg, ImageMetadata};
 pub fn get_video_metadata_json(ffmpeg: &Ffmpeg, path: &str) -> Result<Value, String> {
     ffmpeg.get_video_info_json(path)
 }
-
 /// Get audio metadata from file path
 ///
 /// Extracts comprehensive audio metadata including core information,
@@ -44,7 +40,6 @@ pub fn get_audio_metadata(_ffmpeg: &Ffmpeg, path: &str) -> Result<AudioMetadata,
     let json: serde_json::Value = serde_json::from_slice(&output.stdout).map_err(|e| format!("Failed to parse ffprobe output: {}", e))?;
     AudioMetadata::from_json(&json, path)
 }
-
 /// Get basic metadata from file path
 ///
 /// Extracts basic video metadata including duration, dimensions,
@@ -68,7 +63,6 @@ pub fn get_basic_metadata(ffmpeg: &Ffmpeg, path: &str) -> Result<BasicMetadata, 
         bitrate: metadata.bitrate,
     })
 }
-
 /// Get image metadata from file path
 ///
 /// Extracts image metadata including dimensions, frame rate,
@@ -90,7 +84,6 @@ pub fn get_image_metadata(ffmpeg: &Ffmpeg, path: &str, is_gif: bool) -> Result<I
     let duration = if is_gif { info.duration.max(0.1) } else { 5.0 };
     Ok(ImageMetadata { width, height, fps, duration })
 }
-
 /// Extract frame from video at given time
 ///
 /// Convenience wrapper around Ffmpeg::extract_frame that returns
@@ -128,9 +121,30 @@ pub fn generate_waveform_image(_ffmpeg: &Ffmpeg, source_path: &str, output_path:
     if !Path::new(source_path).exists() {
         return Err(format!("Source file not found: {}", source_path));
     }
-    let is_wav = source_path.to_lowercase().ends_with(".wav");
-    let filter = if is_wav {
-        format!("showwavespic=s={}x{}:colors={}:rate=44100", width, height, color)
+    if let Some(parent) = output_path.parent() {
+        if !parent.exists() {
+            std::fs::create_dir_all(parent).map_err(|e| format!("Failed to create output directory: {}", e))?;
+        }
+    }
+    let probe_output = Command::new("ffprobe")
+        .args([
+            "-v",
+            "error",
+            "-select_streams",
+            "a:0",
+            "-show_entries",
+            "stream=sample_rate,channels",
+            "-of",
+            "default=noprint_wrappers=1:nokey=1",
+            source_path,
+        ])
+        .output()
+        .map_err(|e| format!("Failed to probe audio: {}", e))?;
+    let info = String::from_utf8_lossy(&probe_output.stdout);
+    let lines: Vec<&str> = info.lines().collect();
+    let sample_rate = if lines.len() >= 1 { lines[0].parse::<u32>().unwrap_or(44100) } else { 44100 };
+    let filter = if sample_rate != 44100 {
+        format!("aresample=44100,showwavespic=s={}x{}:colors={}", width, height, color)
     } else {
         format!("showwavespic=s={}x{}:colors={}", width, height, color)
     };
@@ -142,9 +156,11 @@ pub fn generate_waveform_image(_ffmpeg: &Ffmpeg, source_path: &str, output_path:
         let stderr = String::from_utf8_lossy(&output.stderr);
         return Err(format!("FFmpeg waveform generation failed: {}", stderr));
     }
+    if !output_path.exists() || output_path.metadata().map(|m| m.len() == 0).unwrap_or(true) {
+        return Err(format!("Waveform file not created or empty: {:?}", output_path));
+    }
     Ok(())
 }
-
 /// Generate text thumbnail image
 ///
 /// Creates a visual representation of text content by rendering it
@@ -230,7 +246,6 @@ pub fn read_cached_thumbnail(cache_path: &Path) -> Option<String> {
         Err(_) => None,
     }
 }
-
 /// Save thumbnail data to cache
 ///
 /// Writes thumbnail image data to the filesystem cache, creating
@@ -251,7 +266,6 @@ pub fn save_thumbnail_to_cache(cache_path: &Path, data: &[u8]) -> Result<(), Str
     }
     fs::write(cache_path, data).map_err(|e| format!("Failed to write thumbnail: {}", e))
 }
-
 /// Detect if file is GIF based on extension
 ///
 /// Checks whether a file name ends with the .gif extension
@@ -266,7 +280,6 @@ pub fn save_thumbnail_to_cache(cache_path: &Path, data: &[u8]) -> Result<(), Str
 pub fn is_gif_file(file_name: &str) -> bool {
     file_name.to_lowercase().ends_with(".gif")
 }
-
 /// Determine codec from file extension
 ///
 /// Maps common image file extensions to their corresponding
