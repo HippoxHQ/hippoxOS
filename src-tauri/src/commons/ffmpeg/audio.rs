@@ -1,7 +1,19 @@
-use std::fs;
-use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::{fs, path::Path, process::Command};
+
 /// Extract PCM audio data from an audio file at specified time range
+///
+/// This function uses ffmpeg to extract PCM audio data from the given audio file
+/// within the specified time range. The audio is decoded to 32-bit float PCM format
+/// at 44.1kHz with 2 channels, suitable for waveform rendering and audio analysis.
+///
+/// # Arguments
+/// * `audio_path` - Path to the source audio file
+/// * `start_time` - Start time in seconds
+/// * `duration` - Duration in seconds to extract
+///
+/// # Returns
+/// * `Ok(Vec<f32>)` - Vector of PCM samples (f32, -1.0 to 1.0)
+/// * `Err(String)` - Error message if extraction fails
 pub fn extract_audio_pcm_data_from_path(audio_path: &Path, start_time: f64, duration: f64) -> Result<Vec<f32>, String> {
     if !audio_path.exists() {
         return Ok(Vec::new());
@@ -37,18 +49,29 @@ pub fn extract_audio_pcm_data_from_path(audio_path: &Path, start_time: f64, dura
     let samples: Vec<f32> = output.stdout.chunks_exact(4).map(|chunk| f32::from_le_bytes([chunk[0], chunk[1], chunk[2], chunk[3]])).collect();
     Ok(samples)
 }
+
 /// Decode entire audio file to PCM and save to cache
+///
+/// This function decodes the entire audio file to 32-bit float PCM format
+/// and saves it to the specified cache path. The output is suitable for
+/// fast subsequent reads without re-decoding.
+///
+/// # Arguments
+/// * `source_path` - Path to the source audio file
+/// * `output_path` - Path where the PCM cache file will be written
+///
+/// # Returns
+/// * `Ok(())` on success
+/// * `Err(String)` - Error message if decoding fails
 pub fn decode_audio_to_pcm(source_path: &Path, output_path: &Path) -> Result<(), String> {
     if !source_path.exists() {
         return Err(format!("Source file not found: {:?}", source_path));
     }
-    // Ensure output directory exists
     if let Some(parent) = output_path.parent() {
         if !parent.exists() {
             fs::create_dir_all(parent).map_err(|e| format!("Failed to create directory: {}", e))?;
         }
     }
-    // Decode entire audio to PCM f32le
     let output = Command::new("ffmpeg")
         .args([
             "-i",
@@ -73,7 +96,18 @@ pub fn decode_audio_to_pcm(source_path: &Path, output_path: &Path) -> Result<(),
     }
     Ok(())
 }
+
 /// Read PCM data from cached file
+///
+/// Reads previously cached PCM data from the filesystem and converts it
+/// to a vector of 32-bit float samples.
+///
+/// # Arguments
+/// * `pcm_path` - Path to the PCM cache file
+///
+/// # Returns
+/// * `Ok(Vec<f32>)` - Vector of PCM samples
+/// * `Err(String)` - Error message if reading fails
 pub fn read_pcm_from_cache(pcm_path: &Path) -> Result<Vec<f32>, String> {
     if !pcm_path.exists() {
         return Err(format!("PCM cache not found: {:?}", pcm_path));
@@ -82,7 +116,20 @@ pub fn read_pcm_from_cache(pcm_path: &Path) -> Result<Vec<f32>, String> {
     let samples: Vec<f32> = data.chunks_exact(4).map(|chunk| f32::from_le_bytes([chunk[0], chunk[1], chunk[2], chunk[3]])).collect();
     Ok(samples)
 }
+
 /// Extract PCM data from cached file with time range
+///
+/// Reads a subset of PCM data from the cache file within the specified
+/// time range. The sample rate and channel count are assumed to be 44.1kHz stereo.
+///
+/// # Arguments
+/// * `pcm_path` - Path to the PCM cache file
+/// * `start_time` - Start time in seconds
+/// * `duration` - Duration in seconds to extract
+///
+/// # Returns
+/// * `Ok(Vec<f32>)` - Vector of PCM samples in the time range
+/// * `Err(String)` - Error message if extraction fails
 pub fn extract_pcm_from_cache(pcm_path: &Path, start_time: f64, duration: f64) -> Result<Vec<f32>, String> {
     let samples = read_pcm_from_cache(pcm_path)?;
     if samples.is_empty() {
@@ -100,8 +147,18 @@ pub fn extract_pcm_from_cache(pcm_path: &Path, start_time: f64, duration: f64) -
     }
     Ok(samples[start..end].to_vec())
 }
-/// Mix multiple audio sample vectors into a single mixed audio buffer
-/// Applies peak normalization to prevent clipping
+
+/// Mix multiple audio sample vectors into a single mixed audio buffer with peak normalization
+///
+/// This function mixes multiple audio tracks by summing samples and then
+/// applying peak normalization to prevent clipping. All input vectors must
+/// have the same sample rate and channel count.
+///
+/// # Arguments
+/// * `samples_list` - Vector of sample vectors to mix
+///
+/// # Returns
+/// * `Vec<f32>` - Mixed audio buffer with peak normalization applied
 pub fn mix_audio_samples(samples_list: Vec<Vec<f32>>) -> Vec<f32> {
     if samples_list.is_empty() {
         return Vec::new();
@@ -118,7 +175,6 @@ pub fn mix_audio_samples(samples_list: Vec<Vec<f32>>) -> Vec<f32> {
             }
         }
     }
-    // Peak normalization to prevent clipping
     let max_peak = mixed.iter().map(|&s| s.abs()).fold(0.0_f32, |a, b| a.max(b));
     if max_peak > 1.0 {
         let scale = 1.0 / max_peak;

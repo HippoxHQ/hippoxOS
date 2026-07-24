@@ -2,7 +2,20 @@ use super::core::Ffmpeg;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 use std::process::Command;
+
 impl Ffmpeg {
+    /// Get keyframe timestamps from a video file
+    ///
+    /// Extracts the timestamps of all keyframes (I-frames) from the video
+    /// using ffprobe. Falls back to packet-based analysis if frame-based
+    /// analysis fails.
+    ///
+    /// # Arguments
+    /// * `file_path` - Path to the video file
+    ///
+    /// # Returns
+    /// * `Ok(Vec<f64>)` - List of keyframe timestamps in seconds
+    /// * `Err(String)` - Error message if extraction fails
     pub fn get_keyframes(&self, file_path: &str) -> Result<Vec<f64>, String> {
         if !std::path::Path::new(file_path).exists() {
             return Err(format!("File not found: {}", file_path));
@@ -35,6 +48,18 @@ impl Ffmpeg {
         if timestamps.len() > 0 {}
         Ok(timestamps)
     }
+    /// Get keyframe timestamps from packet analysis
+    ///
+    /// Alternative method to extract keyframe timestamps by analyzing
+    /// packet flags instead of frame data. Used as fallback when
+    /// the primary frame-based method fails.
+    ///
+    /// # Arguments
+    /// * `file_path` - Path to the video file
+    ///
+    /// # Returns
+    /// * `Ok(Vec<f64>)` - List of keyframe timestamps in seconds
+    /// * `Err(String)` - Error message if extraction fails
     fn get_keyframe_timestamps_from_packets(&self, file_path: &str) -> Result<Vec<f64>, String> {
         let output = std::process::Command::new("ffprobe")
             .args(["-v", "error", "-select_streams", "v:0", "-show_entries", "packet=flags,pts_time", "-of", "csv=p=0", file_path])
