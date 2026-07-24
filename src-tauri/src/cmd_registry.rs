@@ -405,8 +405,10 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         // ========== Video Tracks ==========
         commands::cmd_add_track,
         commands::cmd_get_track_stack,
+        commands::cmd_get_track_stack_reversed,
         commands::cmd_get_tracks,
         commands::cmd_get_track_rows,
+        commands::cmd_get_track_rows_reversed,
         commands::cmd_get_track_by_id, 
         commands::cmd_get_track_block_by_id,
         commands::cmd_remove_track_block,
@@ -416,6 +418,7 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_update_internal_time,
         commands::cmd_update_overlay_stack,
         commands::cmd_get_overlay_stack,
+        commands::cmd_get_overlay_stack_reversed,
         // ========== Audio Playback Commands ==========
         commands::cmd_play_audio,
         commands::cmd_stop_audio,
@@ -466,6 +469,9 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_add_overlay_track,
         commands::cmd_copy_track_blocks,
         commands::cmd_get_overlay_track_rows,
+        commands::cmd_get_overlay_track_rows_reversed,
+        commands::cmd_get_track_rows_all,
+        commands::cmd_get_track_rows_all_reversed,
         commands::cmd_get_overlay_track_by_id,
         commands::cmd_get_overlay_track_thumbnail,
         commands::cmd_update_overlay_track_time,
