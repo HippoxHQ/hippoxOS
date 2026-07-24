@@ -8,9 +8,25 @@ pub fn get_video_metadata_json(ffmpeg: &Ffmpeg, path: &str) -> Result<Value, Str
     ffmpeg.get_video_info_json(path)
 }
 /// Get audio metadata (duration, sample_rate, channels, codec) from file path
-pub fn get_audio_metadata(ffmpeg: &Ffmpeg, path: &str) -> Result<AudioMetadata, String> {
-    let info = ffmpeg.get_metadata(path)?;
-    Ok(AudioMetadata { duration: info.duration, sample_rate: 0, channels: 0, codec: info.codec, file_size: 0 })
+pub fn get_audio_metadata(_ffmpeg: &Ffmpeg, path: &str) -> Result<AudioMetadata, String> {
+    let output = Command::new("ffprobe")
+        .args(["-v", "quiet", "-print_format", "json", "-show_streams", "-show_format", path])
+        .output()
+        .map_err(|e| format!("ffprobe failed: {}", e))?;
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(format!("ffprobe failed: {}", stderr));
+    }
+    let json: serde_json::Value = serde_json::from_slice(&output.stdout).map_err(|e| format!("Failed to parse ffprobe output: {}", e))?;
+    let streams = json["streams"].as_array().ok_or("No streams found")?;
+    let audio_stream = streams.iter().find(|s| s["codec_type"].as_str() == Some("audio")).ok_or("No audio stream found")?;
+    let duration =
+        json["format"]["duration"].as_str().and_then(|s| s.parse::<f64>().ok()).or_else(|| json["format"]["duration"].as_f64()).unwrap_or(0.0);
+    let sample_rate = audio_stream["sample_rate"].as_str().and_then(|s| s.parse::<u32>().ok()).unwrap_or(0);
+    let channels = audio_stream["channels"].as_u64().map(|v| v as u32).unwrap_or(0);
+    let codec = audio_stream["codec_name"].as_str().unwrap_or("unknown").to_string();
+    let file_size = json["format"]["size"].as_str().and_then(|s| s.parse::<u64>().ok()).unwrap_or(0);
+    Ok(AudioMetadata { duration, sample_rate, channels, codec, file_size })
 }
 /// Get basic metadata (duration only) from file path
 pub fn get_basic_metadata(ffmpeg: &Ffmpeg, path: &str) -> Result<BasicMetadata, String> {

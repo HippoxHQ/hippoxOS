@@ -419,6 +419,7 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_update_overlay_stack,
         commands::cmd_get_overlay_stack,
         commands::cmd_get_overlay_stack_reversed,
+        commands::cmd_split_video_to_audio,
         // ========== Audio Playback Commands ==========
         commands::cmd_play_audio,
         commands::cmd_stop_audio,
@@ -484,6 +485,7 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_move_overlay_block,
         commands::cmd_is_track_empty,
         commands::cmd_is_overlay_track_empty,
+        commands::cmd_video_block_is_exist_audio,
         commands::cmd_remove_track_by_id,
         commands::cmd_remove_overlay_track_by_id,
         commands::cmd_preview_canvas_size,
