@@ -392,6 +392,7 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_remove_from_favorites,
         commands::cmd_get_favorites_list,
         commands::cmd_open_material_in_terminal,
+        commands::cmd_get_material_decode_status,
         commands::cmd_update_material_metadata,
         commands::cmd_open_material_directory,
         commands::cmd_open_material_folder,
