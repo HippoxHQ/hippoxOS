@@ -177,7 +177,6 @@ pub fn delete_profile() -> Result<bool, String> {
         Ok(false)
     }
 }
-// ============= Tauri Commands =============
 /// Get the current user profile
 #[tauri::command]
 pub async fn cmd_get_profile() -> Result<UserProfile, String> {

@@ -633,13 +633,7 @@ const ChartPage: React.FC<ChartPageProps> = ({
   executionLogs,
   onClearLogs,
 }) => {
-  const {
-    currentSessionId: chartSessionId,
-    handleSendMessage: chartHandleSendMessage,
-    handleSwitchSession: chartHandleSwitchSession,
-    handleNewSession: chartHandleNewSession,
-    shouldShowWelcome: chartShouldShowWelcome,
-  } = useChartSession(language as "zh" | "en", true);
+  const { currentSessionId: chartSessionId, handleSendMessage: chartHandleSendMessage, handleSwitchSession: chartHandleSwitchSession, handleNewSession: chartHandleNewSession, shouldShowWelcome: chartShouldShowWelcome } = useChartSession(language as "zh" | "en", true);
   const [chatPanelWidth, setChatPanelWidth] = useState<number>(400);
   const [historyWidth, setHistoryWidth] = useState<number>(280);
   const [chatPanelCollapsed, setChatPanelCollapsed] = useState<boolean>(false);
@@ -671,17 +665,7 @@ const ChartPage: React.FC<ChartPageProps> = ({
     });
   }, [isFunctionPanelMaximized]);
 
-  const chatPanel = (
-    <ChartChatPanel
-      onSendMessage={chartHandleSendMessage}
-      onFileClick={onFileClick}
-      t={t}
-      onDragOverInputChange={onDragOverInputChange}
-      language={language}
-      isLeftPanel={isChatOnLeft}
-      currentSessionId={chartSessionId}
-    />
-  );
+  const chatPanel = <ChartChatPanel onSendMessage={chartHandleSendMessage} onFileClick={onFileClick} t={t} onDragOverInputChange={onDragOverInputChange} language={language} isLeftPanel={isChatOnLeft} currentSessionId={chartSessionId} />;
 
   const chartPanel = (
     <div

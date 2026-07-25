@@ -1,13 +1,13 @@
-pub mod chart_session;
-pub mod codeeditor_session;
-pub mod general_session;
-pub mod map_session;
-pub mod sandbox3d_session;
-pub mod videoeditor_session;
+pub mod chart;
+pub mod codeeditor;
+pub mod general;
+pub mod map;
+pub mod sandbox3d;
+pub mod videoeditor;
 
-pub use chart_session::*;
-pub use codeeditor_session::*;
-pub use general_session::*;
-pub use map_session::*;
-pub use sandbox3d_session::*;
-pub use videoeditor_session::*;
+pub use chart::*;
+pub use codeeditor::*;
+pub use general::*;
+pub use map::*;
+pub use sandbox3d::*;
+pub use videoeditor::*;

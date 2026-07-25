@@ -108,9 +108,9 @@ pub struct BasicMetadata {
     /// Duration in seconds
     pub duration: f64,
     /// Video width in pixels
-    pub width: u32,
+    pub width: f64,
     /// Video height in pixels
-    pub height: u32,
+    pub height: f64,
     /// Frames per second
     pub fps: f64,
     /// Codec name
@@ -126,9 +126,9 @@ pub struct BasicMetadata {
 #[derive(Debug, Clone)]
 pub struct ImageMetadata {
     /// Image width in pixels
-    pub width: u32,
+    pub width: f64,
     /// Image height in pixels
-    pub height: u32,
+    pub height: f64,
     /// Frames per second (1.0 for static images)
     pub fps: f64,
     /// Duration in seconds (5.0 default for static images)
@@ -252,8 +252,8 @@ impl AudioMetadata {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VideoMetadata {
     // ===== Core Video Information =====
-    pub width: u32,            // Video width in pixels
-    pub height: u32,           // Video height in pixels
+    pub width: f64,            // Video width in pixels
+    pub height: f64,           // Video height in pixels
     pub duration: f64,         // Duration in seconds
     pub fps: f64,              // Frames per second
     pub bitrate: u64,          // Bitrate in bps
@@ -311,8 +311,8 @@ impl VideoMetadata {
         let video_stream = streams.iter().find(|s| s["codec_type"].as_str() == Some("video")).ok_or("No video stream found")?;
         let audio_stream = streams.iter().find(|s| s["codec_type"].as_str() == Some("audio"));
         let format = &json["format"];
-        let width = video_stream["width"].as_u64().unwrap_or(0) as u32;
-        let height = video_stream["height"].as_u64().unwrap_or(0) as u32;
+        let width = video_stream["width"].as_f64().unwrap_or(0.0) as f64;
+        let height = video_stream["height"].as_f64().unwrap_or(0.0) as f64;
         let fps_str = video_stream["r_frame_rate"].as_str().unwrap_or("0/0");
         let fps = parse_fraction(fps_str).unwrap_or(0.0);
         let codec = video_stream["codec_name"].as_str().unwrap_or("unknown").to_string();
@@ -343,9 +343,9 @@ impl VideoMetadata {
                 }
             }
         }
-        let aspect_ratio = if width > 0 && height > 0 {
+        let aspect_ratio = if width > 0.0 && height > 0.0 {
             let gcd = gcd(width as u64, height as u64);
-            Some(format!("{}:{}", width / gcd as u32, height / gcd as u32))
+            Some(format!("{}:{}", width / gcd as f64, height / gcd as f64))
         } else {
             None
         };

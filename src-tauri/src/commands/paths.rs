@@ -254,9 +254,7 @@ pub struct DataPaths {
     pub cache_dir: String,
     pub settings_dir: String,
 }
-// ============================================================
 // Tauri Commands
-// ============================================================
 #[tauri::command]
 pub fn cmd_get_data_paths() -> DataPaths {
     DataPaths {
@@ -318,9 +316,7 @@ pub fn cmd_get_disk_info(path: String) -> Result<serde_json::Value, String> {
 pub fn cmd_get_logs_size_command() -> Result<u64, String> {
     get_logs_size()
 }
-// ============================================================
 // Dialog History Config
-// ============================================================
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DialogHistoryConfig {
     #[serde(default)]

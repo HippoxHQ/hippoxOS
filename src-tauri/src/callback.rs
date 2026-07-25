@@ -168,7 +168,6 @@ impl WorkflowCallback for HippoXWorkflowCallback {
         );
     }
 }
-// ======================= Driver Call Back =======================
 #[derive(Debug, Clone)]
 pub struct HippoxDriverCallback {
     app_handle: AppHandle,

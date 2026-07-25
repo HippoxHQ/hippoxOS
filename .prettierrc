@@ -1,17 +1,3 @@
 {
-  "printWidth": 200,
-  "overrides": [
-    {
-      "files": "*.ts",
-      "options": {
-        "printWidth": 200
-      }
-    },
-    {
-      "files": "*.tsx",
-      "options": {
-        "printWidth": 200
-      }
-    }
-  ]
+  "printWidth": 300
 }
