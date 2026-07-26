@@ -27,7 +27,7 @@ export const sidebarStyles = `
     justify-content: center;
     width: 36px;
     height: 36px;
-    border-radius: 8px;
+    border-radius: 5px;
     background: transparent;
     border: none;
     cursor: pointer;
@@ -60,7 +60,7 @@ export const sidebarStyles = `
     justify-content: center;
     width: 30px;
     height: 30px;
-    border-radius: 8px;
+    border-radius: 5px;
     background: transparent;
     border: none;
     cursor: pointer;
@@ -83,7 +83,7 @@ export const sidebarStyles = `
     width: 8px;
     height: 8px;
     background: var(--accent-color);
-    border-radius: 50%;
+    border-radius: 5px;
     border: 1px solid var(--bg-secondary);
   }
    .menu-popup {
@@ -105,7 +105,7 @@ export const sidebarStyles = `
   }
    .menu-popup::-webkit-scrollbar-thumb {
     background: var(--border-color);
-    border-radius: 4px;
+    border-radius: 5px;
   }
    .popup-section-title {
     font-size: 10px;
@@ -169,7 +169,7 @@ export const sidebarStyles = `
     font-size: 10px;
     font-weight: 500;
     padding: 2px 6px;
-    border-radius: 12px;
+    border-radius: 5px;
     min-width: 18px;
     text-align: center;
   }
@@ -233,7 +233,7 @@ export const sidebarStyles = `
     cursor: pointer;
     // transition: all 0.15s ease;
     color: var(--text-primary);
-    border-radius: 6px;
+    border-radius: 5px;
     font-size: 11px;
   }
    .popup-sub-sub-item:hover {

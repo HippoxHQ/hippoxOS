@@ -34,6 +34,179 @@ import TerminalPanel from "../../pages/GeneralChatPage/TerminalPanel";
 import GeneralChatPage from "../../pages/GeneralChatPage";
 import SandBox3DPage from "../../pages/SandBox3DPage";
 import VideoEditorPage from "../../pages/VideoEditorPage";
+declare global {
+  interface Window {
+    __pageResources: {
+      [pageKey: string]: {
+        wsConnections: WebSocket[];
+        timers: (number | NodeJS.Timeout)[];
+        eventListeners: Array<{
+          target: EventTarget;
+          event: string;
+          handler: EventListenerOrEventListenerObject;
+        }>;
+        destroyableInstances: Array<{ destroy: () => void; name?: string }>;
+        cleanupCallbacks: Array<() => void>;
+        isDestroying: boolean;
+        destroyStartTime: number;
+      };
+    };
+    __pageCleanupInProgress: Record<string, boolean>;
+    __pendingPageSwitch: string | null;
+    __pageSwitchLock: boolean;
+  }
+}
+if (typeof window !== "undefined") {
+  if (!window.__pageResources) {
+    window.__pageResources = {};
+  }
+  if (!window.__pageCleanupInProgress) {
+    window.__pageCleanupInProgress = {};
+  }
+  if (window.__pendingPageSwitch === undefined) {
+    window.__pendingPageSwitch = null;
+  }
+  if (window.__pageSwitchLock === undefined) {
+    window.__pageSwitchLock = false;
+  }
+}
+export const forceDestroyPage = (pageKey: string): void => {
+  if (window.__pageCleanupInProgress?.[pageKey]) {
+    return;
+  }
+  if (window.__pageCleanupInProgress) {
+    window.__pageCleanupInProgress[pageKey] = true;
+  }
+  const resources = window.__pageResources?.[pageKey];
+  if (!resources) {
+    if (window.__pageCleanupInProgress) {
+      delete window.__pageCleanupInProgress[pageKey];
+    }
+    return;
+  }
+  resources.destroyStartTime = Date.now();
+  resources.isDestroying = true;
+  try {
+    if (resources.wsConnections && resources.wsConnections.length > 0) {
+      resources.wsConnections.forEach((ws, index) => {
+        try {
+          if (ws && ws.readyState !== WebSocket.CLOSED && ws.readyState !== WebSocket.CLOSING) {
+            ws.close(1000, "Page destroyed");
+            ws.onmessage = null;
+            ws.onopen = null;
+            ws.onclose = null;
+            ws.onerror = null;
+          }
+        } catch (e) {
+          console.warn(`[DESTROY] Failed to close WebSocket ${index}:`, e);
+        }
+      });
+      resources.wsConnections = [];
+    }
+    if (resources.timers && resources.timers.length > 0) {
+      resources.timers.forEach((timer) => {
+        try {
+          if (typeof timer === "number") {
+            clearInterval(timer);
+            clearTimeout(timer);
+          } else {
+            clearInterval(timer as NodeJS.Timeout);
+            clearTimeout(timer as NodeJS.Timeout);
+          }
+        } catch (e) {}
+      });
+      resources.timers = [];
+    }
+    if (resources.eventListeners && resources.eventListeners.length > 0) {
+      resources.eventListeners.forEach(({ target, event, handler }) => {
+        try {
+          target.removeEventListener(event, handler);
+        } catch (e) {}
+      });
+      resources.eventListeners = [];
+    }
+    if (resources.destroyableInstances && resources.destroyableInstances.length > 0) {
+      resources.destroyableInstances.forEach((instance) => {
+        try {
+          if (instance && instance.destroy) {
+            instance.destroy();
+          }
+        } catch (e) {
+          console.warn(`[DESTROY] Failed to destroy instance ${instance.name || "unnamed"}:`, e);
+        }
+      });
+      resources.destroyableInstances = [];
+    }
+    if (resources.cleanupCallbacks && resources.cleanupCallbacks.length > 0) {
+      resources.cleanupCallbacks.forEach((callback) => {
+        try {
+          callback();
+        } catch (e) {
+          console.warn(`[DESTROY] Cleanup callback error:`, e);
+        }
+      });
+      resources.cleanupCallbacks = [];
+    }
+    try {
+      window.dispatchEvent(new CustomEvent(`__page_destroy_${pageKey}`));
+      window.dispatchEvent(new CustomEvent("__page_destroy", { detail: { pageKey } }));
+    } catch (e) {}
+    delete window.__pageResources[pageKey];
+  } catch (error) {
+    console.error(`[DESTROY] Error during destruction of ${pageKey}:`, error);
+  } finally {
+    if (window.__pageCleanupInProgress) {
+      delete window.__pageCleanupInProgress[pageKey];
+    }
+    window.__pageSwitchLock = false;
+  }
+};
+export const registerPageResources = (
+  pageKey: string,
+  resources: {
+    wsConnections?: WebSocket[];
+    timers?: (number | NodeJS.Timeout)[];
+    eventListeners?: Array<{ target: EventTarget; event: string; handler: EventListenerOrEventListenerObject }>;
+    destroyableInstances?: Array<{ destroy: () => void; name?: string }>;
+    cleanupCallbacks?: Array<() => void>;
+  },
+): (() => void) => {
+  if (window.__pageCleanupInProgress?.[pageKey]) {
+    console.warn(`[REGISTER] Page ${pageKey} is being destroyed, rejecting registration`);
+    return () => {};
+  }
+  if (!window.__pageResources) {
+    window.__pageResources = {};
+  }
+  if (!window.__pageResources[pageKey]) {
+    window.__pageResources[pageKey] = {
+      wsConnections: [],
+      timers: [],
+      eventListeners: [],
+      destroyableInstances: [],
+      cleanupCallbacks: [],
+      isDestroying: false,
+      destroyStartTime: 0,
+    };
+  }
+  const target = window.__pageResources[pageKey];
+  if (resources.wsConnections) {
+    target.wsConnections.push(...resources.wsConnections);
+  }
+  if (resources.timers) {
+    target.timers.push(...resources.timers);
+  }
+  if (resources.eventListeners) {
+    target.eventListeners.push(...resources.eventListeners);
+  }
+  if (resources.destroyableInstances) {
+    target.destroyableInstances.push(...resources.destroyableInstances);
+  }
+  if (resources.cleanupCallbacks) {
+    target.cleanupCallbacks.push(...resources.cleanupCallbacks);
+  }
+  return () => {};
+};
 interface AppContentProps {
   theme: Theme;
   onToggleTheme: () => void;
@@ -77,6 +250,24 @@ interface AppContentProps {
   onSendSkillMessage: (message: string, files?: UploadFile[]) => void;
   functionPanel: FunctionPanelController;
 }
+const PAGE_TYPES = {
+  GENERAL_CHAT: "generalChat",
+  CHART_CHAT: "chartChat",
+  MAP_CHAT: "mapChat",
+  CODE_EDITOR: "codeEditorChat",
+  VIDEO_EDITOR: "videoEditor",
+  SANDBOX_3D: "sandbox3d",
+  SKILLS_MANAGER: "skillsManager",
+  SCHEDULED_TASKS: "scheduledTasks",
+  USER_PROFILE: "userProfile",
+  TASK_QUEUE: "taskQueue",
+  WORKSPACE: "workspace",
+  WORKSPACE_CONFIG: "workspaceConfig",
+  LOGS: "logs",
+  STORAGE: "storage",
+  SETTINGS: "settings",
+  ENGINE_GROUP: "engine_group",
+};
 export function AppContent({
   theme,
   onToggleTheme,
@@ -127,35 +318,57 @@ export function AppContent({
   const [prevMaximizedState, setPrevMaximizedState] = useState<boolean>(false);
   const [isFuncPanelResizeHover, setIsFuncPanelResizeHover] = useState(false);
   const [isMenuResizeHover, setIsMenuResizeHover] = useState(false);
+  const prevContentPanelRef = useRef<ContentPanelView>(currentContentPanel);
+  const isFirstRenderRef = useRef<boolean>(true);
+  const pendingCleanupRef = useRef<Set<string>>(new Set());
   const isDraggingFunctionPanel = useRef(false);
   const dragStartX = useRef(0);
   const dragStartWidth = useRef(0);
   useEffect(() => {
-    const handleToggleMaximize = () => {
-      setIsFunctionPanelMaximized((prev) => !prev);
+    if (isFirstRenderRef.current) {
+      isFirstRenderRef.current = false;
+      prevContentPanelRef.current = currentContentPanel;
+      return;
+    }
+    const prevPage = prevContentPanelRef.current;
+    const currentPage = currentContentPanel;
+    if (prevPage === currentPage) {
+      return;
+    }
+    const waitForCleanup = async () => {
+      let attempts = 0;
+      while (window.__pageSwitchLock && attempts < 30) {
+        await new Promise((resolve) => setTimeout(resolve, 10));
+        attempts++;
+      }
+      performPageSwitch(prevPage, currentPage);
     };
-    window.addEventListener("toggle-function-panel-maximize", handleToggleMaximize);
-    return () => {
-      window.removeEventListener("toggle-function-panel-maximize", handleToggleMaximize);
-    };
-  }, []);
-  useEffect(() => {
-    const saved = localStorage.getItem("hippox-function-panel-width");
-    if (saved) {
-      const w = parseFloat(saved);
-      if (!isNaN(w) && w > 0) setFunctionPanelWidth(w);
+    waitForCleanup();
+    prevContentPanelRef.current = currentPage;
+  }, [currentContentPanel]);
+  const performPageSwitch = (prevPage: ContentPanelView | null, currentPage: ContentPanelView | null) => {
+    window.__pageSwitchLock = true;
+    const allPageKeys = Object.keys(window.__pageResources || {});
+    const currentPageKey = currentPage || PAGE_TYPES.GENERAL_CHAT;
+    allPageKeys.forEach((pageKey) => {
+      if (pageKey !== currentPageKey && !pendingCleanupRef.current.has(pageKey)) {
+        pendingCleanupRef.current.add(pageKey);
+        setTimeout(() => {
+          forceDestroyPage(pageKey);
+          pendingCleanupRef.current.delete(pageKey);
+        }, 0);
+      }
+    });
+    if (prevPage) {
+      const prevPageKey = prevPage;
+      forceDestroyPage(prevPageKey);
     }
-    const savedCollapsed = localStorage.getItem("hippox-function-panel-collapsed");
-    if (savedCollapsed) {
-      setFunctionPanelCollapsed(savedCollapsed === "true");
+    if (!prevPage || prevPage === PAGE_TYPES.GENERAL_CHAT) {
+      forceDestroyPage(PAGE_TYPES.GENERAL_CHAT);
     }
-  }, []);
-  useEffect(() => {
-    if (currentContentPanel === "generalChat") {
-      onCloseContentPanel();
-    }
-  }, [currentContentPanel, onCloseContentPanel]);
-  const handleToggleFunctionPanelMaximize = useCallback(() => {
+    window.__pageSwitchLock = false;
+  };
+  const toggleFunctionPanelMaximize = useCallback(() => {
     setIsFunctionPanelMaximized((prev) => !prev);
   }, []);
   const saveFunctionPanelWidth = useCallback((w: number) => {
@@ -164,7 +377,7 @@ export function AppContent({
   const saveFunctionPanelCollapsed = useCallback((collapsed: boolean) => {
     localStorage.setItem("hippox-function-panel-collapsed", collapsed.toString());
   }, []);
-  const handleToggleFunctionPanelCollapse = useCallback(() => {
+  const toggleFunctionPanelCollapse = useCallback(() => {
     setFunctionPanelCollapsed((prev) => {
       const newState = !prev;
       saveFunctionPanelCollapsed(newState);
@@ -218,6 +431,31 @@ export function AppContent({
       window.removeEventListener("mouseup", onMouseUp);
     };
   }, [functionPanelWidth, saveFunctionPanelWidth, functionPanelPosition]);
+  useEffect(() => {
+    const handleToggleMaximize = () => {
+      setIsFunctionPanelMaximized((prev) => !prev);
+    };
+    window.addEventListener("toggle-function-panel-maximize", handleToggleMaximize);
+    return () => {
+      window.removeEventListener("toggle-function-panel-maximize", handleToggleMaximize);
+    };
+  }, []);
+  useEffect(() => {
+    const saved = localStorage.getItem("hippox-function-panel-width");
+    if (saved) {
+      const w = parseFloat(saved);
+      if (!isNaN(w) && w > 0) setFunctionPanelWidth(w);
+    }
+    const savedCollapsed = localStorage.getItem("hippox-function-panel-collapsed");
+    if (savedCollapsed) {
+      setFunctionPanelCollapsed(savedCollapsed === "true");
+    }
+  }, []);
+  useEffect(() => {
+    if (currentContentPanel === "generalChat") {
+      onCloseContentPanel();
+    }
+  }, [currentContentPanel, onCloseContentPanel]);
   useEffect(() => {
     const handleSessionSwitch = () => {
       if (isFunctionPanelMaximized) {
@@ -431,18 +669,7 @@ export function AppContent({
           contentElement = <StorageConfig t={t} onSave={onSaveConfig} />;
           break;
         case "settings":
-          contentElement = (
-            <SettingsPanel
-              subView={settingsSubView || "llmModel"}
-              t={t}
-              onSave={onSaveConfig}
-              theme={theme}
-              language={language}
-              onThemeChange={onToggleTheme}
-              onLanguageChange={onToggleLanguage}
-              isInitializing={false}
-            />
-          );
+          contentElement = <SettingsPanel subView={settingsSubView || "llmModel"} t={t} onSave={onSaveConfig} theme={theme} language={language} onThemeChange={onToggleTheme} onLanguageChange={onToggleLanguage} isInitializing={false} />;
           break;
         case "engine_group":
           contentElement = renderEngineConfig();
@@ -485,10 +712,10 @@ export function AppContent({
         onSendSkillMessage={onSendSkillMessage}
         width={isFunctionPanelMaximized ? "100%" : functionPanelWidth}
         isCollapsed={collapsed}
-        onToggleCollapse={handleToggleFunctionPanelCollapse}
+        onToggleCollapse={toggleFunctionPanelCollapse}
         functionPanelPosition={functionPanelPosition}
         isMaximized={isFunctionPanelMaximized}
-        onToggleMaximize={handleToggleFunctionPanelMaximize}
+        onToggleMaximize={toggleFunctionPanelMaximize}
       />
     );
     if (!functionPanel.isOpen) {
@@ -520,6 +747,14 @@ export function AppContent({
       );
     }
   };
+  useEffect(() => {
+    return () => {
+      const allPageKeys = Object.keys(window.__pageResources || {});
+      allPageKeys.forEach((pageKey) => {
+        forceDestroyPage(pageKey);
+      });
+    };
+  }, []);
   return (
     <div className="App">
       <style>{`
@@ -573,18 +808,7 @@ export function AppContent({
         onFileClick={handleFileClick}
       />
       <div style={styles.mainLayout}>
-        {!sidebarCollapsed && (
-          <Sidebar
-            collapsed={sidebarCollapsed}
-            onResetSession={onResetSession}
-            onClearLogs={onClearLogs}
-            onMenuClick={onMenuClick}
-            onNewSession={onNewSession}
-            currentSessionId={currentSessionId}
-            onSwitchSession={onSwitchSession}
-            t={t}
-          />
-        )}
+        {!sidebarCollapsed && <Sidebar collapsed={sidebarCollapsed} onResetSession={onResetSession} onClearLogs={onClearLogs} onMenuClick={onMenuClick} onNewSession={onNewSession} currentSessionId={currentSessionId} onSwitchSession={onSwitchSession} t={t} />}
         {menuPanelView && (
           <>
             <div className="menu-panel-left" style={{ width: menuPanelWidth }}>
