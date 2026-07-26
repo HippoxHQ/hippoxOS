@@ -12,6 +12,7 @@ mod types;
 mod windows;
 mod workspace;
 use crate::cmd_registry::*;
+use crate::commands::register_video_editor_hippox_drivers;
 use crate::commons::init_default_settings;
 use crate::context::Context;
 use crate::events::handle_window_event;
@@ -33,6 +34,10 @@ use tauri_plugin_fs;
 pub fn run() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     let app_state = AppState::new();
+    // =========== Hippox Drivers Register ===========
+    // register video editor hippox drivers
+    register_video_editor_hippox_drivers();
+    // ===============================================
     // init dir
     if let Err(e) = commands::init_directories() {
         eprintln!("Failed to initialize directories: {}", e);

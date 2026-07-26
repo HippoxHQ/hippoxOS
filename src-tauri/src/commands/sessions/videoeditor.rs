@@ -66,7 +66,7 @@ async fn process_video_file_background(app_handle: tauri::AppHandle, session_id:
     let result = tokio::task::spawn_blocking(move || {
         debug!("process_video_file_background - Spawned blocking task for video processing");
         // Insert the material into the session
-        let upload_result = match insert_material(&app, sid.clone(), path, &MaterialType::Video) {
+        let upload_result = match insert_material(&app, sid.clone(), path) {
             Ok(r) => {
                 debug!("process_video_file_background - Video material inserted successfully: id={}", r.id);
                 r
@@ -174,7 +174,7 @@ async fn process_audio_files_background(app_handle: tauri::AppHandle, session_id
                 warn!("process_audio_files_background - Skipping invalid audio path: {}", audio_path);
                 continue;
             }
-            match insert_material(&app, sid.clone(), audio_path.clone(), &MaterialType::Audio) {
+            match insert_material(&app, sid.clone(), audio_path.clone()) {
                 Ok(upload_result) => {
                     let material_id = upload_result.id;
                     debug!("process_audio_files_background - Audio material inserted: {}", material_id);
@@ -258,7 +258,7 @@ async fn process_image_files_background(app_handle: tauri::AppHandle, session_id
                 warn!("process_image_files_background - Skipping invalid image path: {}", image_path);
                 continue;
             }
-            match insert_material(&app, sid.clone(), image_path.clone(), &MaterialType::Image) {
+            match insert_material(&app, sid.clone(), image_path.clone()) {
                 Ok(upload_result) => {
                     let material_id = upload_result.id;
                     debug!("process_image_files_background - Image material inserted: {}", material_id);
@@ -342,7 +342,7 @@ async fn process_text_files_background(app_handle: tauri::AppHandle, session_id:
                 warn!("process_text_files_background - Skipping invalid text path: {}", text_path);
                 continue;
             }
-            match insert_material(&app, sid.clone(), text_path.clone(), &MaterialType::Text) {
+            match insert_material(&app, sid.clone(), text_path.clone()) {
                 Ok(upload_result) => {
                     let material_id = upload_result.id;
                     debug!("process_text_files_background - Text material inserted: {}", material_id);
@@ -412,7 +412,7 @@ fn process_video_file(app_handle: tauri::AppHandle, session_id: &str, source_pat
         warn!("process_video_file - Source path is empty or does not exist");
         return;
     }
-    match insert_material(&app_handle, session_id.to_string(), source_path, &MaterialType::Video) {
+    match insert_material(&app_handle, session_id.to_string(), source_path) {
         Ok(upload_result) => {
             let material_id = upload_result.id;
             debug!("process_video_file - Video material inserted: {}", material_id);
@@ -436,7 +436,7 @@ fn process_audio_files(app_handle: tauri::AppHandle, session_id: &str, audio_pat
             warn!("process_audio_files - Skipping invalid audio path: {}", audio_path);
             continue;
         }
-        match insert_material(&app_handle, session_id.to_string(), audio_path, &MaterialType::Audio) {
+        match insert_material(&app_handle, session_id.to_string(), audio_path) {
             Ok(upload_result) => {
                 let material_id = upload_result.id;
                 debug!("process_audio_files - Audio material inserted: {}", material_id);
@@ -461,7 +461,7 @@ fn process_image_files(app_handle: tauri::AppHandle, session_id: &str, image_pat
             warn!("process_image_files - Skipping invalid image path: {}", image_path);
             continue;
         }
-        match insert_material(&app_handle, session_id.to_string(), image_path, &MaterialType::Image) {
+        match insert_material(&app_handle, session_id.to_string(), image_path) {
             Ok(upload_result) => {
                 let material_id = upload_result.id;
                 debug!("process_image_files - Image material inserted: {}", material_id);
@@ -486,7 +486,7 @@ fn process_text_files(app_handle: tauri::AppHandle, session_id: &str, text_paths
             warn!("process_text_files - Skipping invalid text path: {}", text_path);
             continue;
         }
-        match insert_material(&app_handle, session_id.to_string(), text_path, &MaterialType::Text) {
+        match insert_material(&app_handle, session_id.to_string(), text_path) {
             Ok(upload_result) => {
                 let material_id = upload_result.id;
                 debug!("process_text_files - Text material inserted: {}", material_id);

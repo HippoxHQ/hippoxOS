@@ -4230,7 +4230,7 @@ checksum = "dfa686283ad6dd069f105e5ab091b04c62850d3e4cf5d67debad1933f55023df"
 
 [[package]]
 name = "hippox"
-version = "0.6.1"
+version = "0.6.2"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -4251,11 +4251,10 @@ dependencies = [
 
 [[package]]
 name = "hippox-drivers"
-version = "0.3.3"
+version = "0.3.4"
 dependencies = [
  "aes 0.9.1",
  "aes-gcm",
- "anyhow",
  "argon2",
  "async-trait",
  "axum",
