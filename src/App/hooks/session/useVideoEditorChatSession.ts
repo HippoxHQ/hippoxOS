@@ -136,90 +136,115 @@ export function useVideoSession(
             textSourcePaths,
         );
     }, [currentWorkflowMode]);
-    const handleNewSession = useCallback(async (filePath?: string, fileType?: "file" | "empty" | "download") => {
-        if (filePath && fileType === "file") {
-            setIsCreatingSession(true);
-            try {
-                const newSessionId = `video_session_${Date.now()}`;
-                const fileName = await basename(filePath);
-                const title = fileName || "Video Project";
-                const fileTypeStr = getFileType(filePath);
-                let videoSourcePath: string | undefined = undefined;
-                let audioSourcePaths: string[] | undefined = undefined;
-                let imageSourcePaths: string[] | undefined = undefined;
-                let textSourcePaths: string[] | undefined = undefined;
-                if (fileTypeStr === "video") {
-                    videoSourcePath = filePath;
-                } else if (fileTypeStr === "audio") {
-                    audioSourcePaths = [filePath];
-                } else if (fileTypeStr === "image") {
-                    imageSourcePaths = [filePath];
-                } else if (fileTypeStr === "text") {
-                    textSourcePaths = [filePath];
-                } else {
-                    // 未知类型，默认当作视频处理
-                    videoSourcePath = filePath;
+    /**
+     * Create a new video session
+     *
+     * Supports three creation methods:
+     * 1. file - Import from local file
+     * 2. download - Import from downloaded file (same logic as file)
+     * 3. empty - Create an empty project
+     *
+     * For file and download types, automatically detects the file type
+     * (video/audio/image/text) and creates the corresponding session,
+     * loading the file onto the timeline.
+     *
+     * For empty type, creates an empty project without loading any files.
+     *
+     * @param filePath - File path (optional)
+     * @param fileType - File type: "file" | "empty" | "download"
+     */
+    const handleNewSession = useCallback(
+        async (filePath?: string, fileType?: "file" | "empty" | "download") => {
+            // Handle file or download types - both use the same logic
+            if (filePath && (fileType === "file" || fileType === "download")) {
+                setIsCreatingSession(true);
+                try {
+                    const newSessionId = `video_session_${Date.now()}`;
+                    const fileName = await basename(filePath);
+                    const title = fileName || "Video Project";
+                    // Detect file type and assign to the appropriate material array
+                    const fileTypeStr = getFileType(filePath);
+                    let videoSourcePath: string | undefined = undefined;
+                    let audioSourcePaths: string[] | undefined = undefined;
+                    let imageSourcePaths: string[] | undefined = undefined;
+                    let textSourcePaths: string[] | undefined = undefined;
+                    if (fileTypeStr === "video") {
+                        videoSourcePath = filePath;
+                    } else if (fileTypeStr === "audio") {
+                        audioSourcePaths = [filePath];
+                    } else if (fileTypeStr === "image") {
+                        imageSourcePaths = [filePath];
+                    } else if (fileTypeStr === "text") {
+                        textSourcePaths = [filePath];
+                    } else {
+                        // Unknown type, treat as video
+                        videoSourcePath = filePath;
+                    }
+                    await createVideoSessionWithPath(
+                        newSessionId,
+                        title,
+                        `File: ${fileName}`,
+                        videoSourcePath,
+                        audioSourcePaths,
+                        imageSourcePaths,
+                        textSourcePaths,
+                        currentWorkflowMode,
+                    );
+                    taskManager.loadSessionData(newSessionId, [], [], [], SessionDomain.Video);
+                    setCurrentSessionId(newSessionId);
+                    setPendingNewSession(false);
+                    setPendingVideoPath("");
+                    setPendingVideoTitle("");
+                    window.dispatchEvent(new CustomEvent("video-session-created"));
+                    window.dispatchEvent(
+                        new CustomEvent("video-loaded", {
+                            detail: { path: filePath, title: fileName },
+                        })
+                    );
+                } catch (error) {
+                    console.error("Failed to create video session:", error);
+                    showToast(
+                        ToastType.ERROR,
+                        language === "zh" ? "创建视频会话失败" : "Failed to create video session"
+                    );
+                } finally {
+                    setIsCreatingSession(false);
                 }
-                await createVideoSessionWithPath(
-                    newSessionId,
-                    title,
-                    `File: ${fileName}`,
-                    videoSourcePath,
-                    audioSourcePaths,
-                    imageSourcePaths,
-                    textSourcePaths,
-                    currentWorkflowMode,
-                );
-                taskManager.loadSessionData(newSessionId, [], [], [], SessionDomain.Video);
-                setCurrentSessionId(newSessionId);
-                setPendingNewSession(false);
-                setPendingVideoPath("");
-                setPendingVideoTitle("");
-                window.dispatchEvent(new CustomEvent("video-session-created"));
-                window.dispatchEvent(new CustomEvent("video-loaded", {
-                    detail: { path: filePath, title: fileName }
-                }));
-            } catch (error) {
-                console.error("Failed to create video session:", error);
-                showToast(
-                    ToastType.ERROR,
-                    language === "zh" ? "创建视频会话失败" : "Failed to create video session",
-                );
-            } finally {
-                setIsCreatingSession(false);
+            } else if (fileType === "empty" || !filePath) {
+                // Create an empty project
+                setIsCreatingSession(true);
+                try {
+                    const newSessionId = `video_session_${Date.now()}`;
+                    const title = "Empty Project";
+                    await createVideoSessionWithPath(
+                        newSessionId,
+                        title,
+                        "Empty video project",
+                        undefined,
+                        undefined,
+                        undefined,
+                        undefined,
+                        currentWorkflowMode,
+                    );
+                    taskManager.loadSessionData(newSessionId, [], [], [], SessionDomain.Video);
+                    setCurrentSessionId(newSessionId);
+                    setPendingNewSession(false);
+                    setPendingVideoPath("");
+                    setPendingVideoTitle("");
+                    window.dispatchEvent(new CustomEvent("video-session-created"));
+                } catch (error) {
+                    console.error("Failed to create empty project:", error);
+                    showToast(
+                        ToastType.ERROR,
+                        language === "zh" ? "创建项目失败" : "Failed to create project"
+                    );
+                } finally {
+                    setIsCreatingSession(false);
+                }
             }
-        } else if (fileType === "empty" || !filePath) {
-            setIsCreatingSession(true);
-            try {
-                const newSessionId = `video_session_${Date.now()}`;
-                const title = "Empty Project";
-                await createVideoSessionWithPath(
-                    newSessionId,
-                    title,
-                    "Empty video project",
-                    undefined,
-                    undefined,
-                    undefined,
-                    undefined,
-                    currentWorkflowMode,
-                );
-                taskManager.loadSessionData(newSessionId, [], [], [], SessionDomain.Video);
-                setCurrentSessionId(newSessionId);
-                setPendingNewSession(false);
-                setPendingVideoPath("");
-                setPendingVideoTitle("");
-                window.dispatchEvent(new CustomEvent("video-session-created"));
-            } catch (error) {
-                console.error("Failed to create empty project:", error);
-                showToast(
-                    ToastType.ERROR,
-                    language === "zh" ? "创建项目失败" : "Failed to create project",
-                );
-            } finally {
-                setIsCreatingSession(false);
-            }
-        }
-    }, [currentWorkflowMode, createVideoSessionWithPath, language]);
+        },
+        [currentWorkflowMode, createVideoSessionWithPath, language]
+    );
     const handleSendMessage = useCallback(async (
         userMessage: string,
         sessionId: string,
