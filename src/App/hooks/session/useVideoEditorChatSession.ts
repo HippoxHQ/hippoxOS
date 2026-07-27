@@ -136,14 +136,13 @@ export function useVideoSession(
             textSourcePaths,
         );
     }, [currentWorkflowMode]);
-    const handleNewSession = useCallback(async (filePath?: string, fileType?: "file" | "empty") => {
+    const handleNewSession = useCallback(async (filePath?: string, fileType?: "file" | "empty" | "download") => {
         if (filePath && fileType === "file") {
             setIsCreatingSession(true);
             try {
                 const newSessionId = `video_session_${Date.now()}`;
                 const fileName = await basename(filePath);
                 const title = fileName || "Video Project";
-                // 判断文件类型，往对应的数组里塞
                 const fileTypeStr = getFileType(filePath);
                 let videoSourcePath: string | undefined = undefined;
                 let audioSourcePaths: string[] | undefined = undefined;

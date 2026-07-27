@@ -378,6 +378,15 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_get_text_materials,
         commands::cmd_get_all_materials,
         commands::cmd_get_material_by_id,
+        // ========== Materials Download Commands ========== 
+        commands::cmd_download_file,
+        commands::cmd_get_download_file_path,
+        commands::cmd_cancel_download,
+        commands::cmd_get_download_status,
+        commands::cmd_get_all_downloads,
+        commands::cmd_cleanup_downloads,
+        commands::cmd_get_local_downloads,
+        commands::cmd_delete_download,
         // ========== Video Materials Upload ==========
         commands::cmd_upload_video_material,
         commands::cmd_upload_audio_material,
