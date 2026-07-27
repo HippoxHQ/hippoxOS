@@ -339,18 +339,7 @@
           "identifier": "submenu-window",
           "description": "Submenu Window",
           "windows": ["tray-submenu-window"],
-          "permissions": [
-            "core:default",
-            "core:event:allow-listen",
-            "core:event:allow-emit",
-            "core:event:allow-emit-to",
-            "core:window:allow-close",
-            "core:window:allow-show",
-            "core:window:allow-hide",
-            "core:window:allow-set-position",
-            "core:window:allow-set-focus",
-            "shell:allow-open"
-          ]
+          "permissions": ["core:default", "core:event:allow-listen", "core:event:allow-emit", "core:event:allow-emit-to", "core:window:allow-close", "core:window:allow-show", "core:window:allow-hide", "core:window:allow-set-position", "core:window:allow-set-focus", "shell:allow-open"]
         },
         {
           "identifier": "material-preview-window",
@@ -387,13 +376,7 @@
   "bundle": {
     "active": true,
     "targets": "all",
-    "icon": [
-      "icons/32x32.png",
-      "icons/128x128.png",
-      "icons/128x128@2x.png",
-      "icons/icon.icns",
-      "icons/icon.ico"
-    ],
-    "externalBin": ["bin/ffmpeg", "bin/ffprobe"]
+    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.icns", "icons/icon.ico"],
+    "externalBin": ["bin/ffmpeg/ffmpeg", "bin/ffprobe/ffprobe", "bin/yt-dlp/yt-dlp"]
   }
 }

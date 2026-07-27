@@ -110,4 +110,5 @@ pub fn run() {
         .invoke_handler(register_handler())
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+
 }

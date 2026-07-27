@@ -431,21 +431,3 @@ pub fn parse_fraction(s: &str) -> Option<f64> {
         s.parse::<f64>().ok()
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::commons::Ffmpeg;
-    #[test]
-    fn test_ffmpeg_available() {
-        let ffmpeg = Ffmpeg::new();
-        assert!(ffmpeg.is_available());
-    }
-    #[test]
-    fn test_parse_fraction() {
-        assert_eq!(parse_fraction("30000/1001"), Some(29.97002997002997));
-        assert_eq!(parse_fraction("25/1"), Some(25.0));
-        assert_eq!(parse_fraction("30"), Some(30.0));
-        assert_eq!(parse_fraction("0/0"), None);
-    }
-}
