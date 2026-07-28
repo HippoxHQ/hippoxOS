@@ -421,6 +421,8 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_get_track_rows_reversed,
         commands::cmd_get_track_by_id, 
         commands::cmd_get_track_block_by_id,
+        commands::cmd_get_track_block_track_locked,
+        commands::cmd_get_overlay_block_track_locked,
         commands::cmd_remove_track_block,
         commands::cmd_remove_overlay_track_block,
         commands::cmd_update_track_stack,
