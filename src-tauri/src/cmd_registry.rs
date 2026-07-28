@@ -468,6 +468,12 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_get_track_transitions,
         commands::cmd_get_session_transitions,
         commands::cmd_get_transition_type_list,
+        // ========== TTS ==========
+        commands::cmd_generate_tts,
+        commands::cmd_get_tts_task,
+        commands::cmd_list_tts_tasks,
+        commands::cmd_delete_tts_task,
+        commands::cmd_get_available_voices,
         // ========== Video Overlays ==========
         commands::cmd_insert_overlay,
         commands::cmd_list_overlays,
