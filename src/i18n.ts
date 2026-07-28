@@ -1424,6 +1424,8 @@ export const zh = {
     tooltipFit: "⌨️ F: 适应屏幕",
   },
   videoEditor: {
+    width: "宽度",
+    height: "高度",
     clickToExpand: '点击展开',
     materialInfo: '素材信息',
     fps: '帧率',
@@ -3182,6 +3184,8 @@ export const en: typeof zh = {
     tooltipFit: "⌨️ F: Fit",
   },
   videoEditor: {
+    width: "Width",
+    height: "Height",
     clickToExpand: 'Click to expand',
     materialInfo: 'Material Info',
     fps: 'FPS',
