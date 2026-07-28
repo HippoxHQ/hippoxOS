@@ -1424,6 +1424,10 @@ export const zh = {
     tooltipFit: "⌨️ F: 适应屏幕",
   },
   videoEditor: {
+    appliedEffects: '已应用特效',
+    noAppliedEffects: '暂无已应用特效',
+    loadingEffects: '加载中...',
+    removeEffect: '移除特效',
     width: "宽度",
     height: "高度",
     clickToExpand: '点击展开',
@@ -3184,6 +3188,10 @@ export const en: typeof zh = {
     tooltipFit: "⌨️ F: Fit",
   },
   videoEditor: {
+    appliedEffects: 'Applied Effects',
+    noAppliedEffects: 'No applied effects',
+    loadingEffects: 'Loading...',
+    removeEffect: 'Remove Effect',
     width: "Width",
     height: "Height",
     clickToExpand: 'Click to expand',
