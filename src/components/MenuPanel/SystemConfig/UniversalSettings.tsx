@@ -445,14 +445,14 @@ const UniversalSettings: React.FC<UniversalSettingsProps> = ({ t, theme, languag
         <LayoutSwitch value={chartLayout} onChange={handleChartLayoutChange} label={t("settings.chartChat")} description={t("settings.chartChatDesc")} pageType="chart" t={t} />
         <LayoutSwitch value={mapLayout} onChange={handleMapLayoutChange} label={t("settings.mapChat")} description={t("settings.mapChatDesc")} pageType="map" t={t} />
         <LayoutSwitch value={codeEditorLayout} onChange={handleCodeEditorLayoutChange} label={t("settings.codeEditorChat")} description={t("settings.codeEditorDesc")} pageType="codeeditor" t={t} />
-        <LayoutSwitch
+        {/* <LayoutSwitch
           value={videoEditorLayout}
           onChange={handleVideoEditorLayoutChange}
           label={t("settings.videoEditorChat")}
           description={t("settings.videoEditorDesc")}
           pageType="videoeditor"
           t={t}
-        />
+        /> */}
         <LayoutSwitch value={sandbox3dLayout} onChange={handleSandbox3dLayoutChange} label={t("settings.sandbox3dChat")} description={t("settings.sandbox3dDesc")} pageType="sandbox3d" t={t} />
         <div
           style={{
