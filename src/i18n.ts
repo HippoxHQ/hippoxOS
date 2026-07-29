@@ -1424,6 +1424,8 @@ export const zh = {
     tooltipFit: "⌨️ F: 适应屏幕",
   },
   videoEditor: {
+    importToMaterials: "导入素材",
+    alreadyImported: "已导入素材",
     audioFile: "语音音频",
     clear: "清空",
     ready: "准备就绪",
@@ -3252,6 +3254,8 @@ export const en: typeof zh = {
     tooltipFit: "⌨️ F: Fit",
   },
   videoEditor: {
+    importToMaterials: "Import to Materials",
+    alreadyImported: "Already Imported",
     audioFile: "Voice Audio",
     clear: "Clear",
     ready: "Ready",

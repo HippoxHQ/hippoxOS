@@ -474,6 +474,9 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_list_tts_tasks,
         commands::cmd_delete_tts_task,
         commands::cmd_get_available_voices,
+        commands::cmd_is_tts_registered_as_material,
+        commands::cmd_get_tts_material_id,
+        commands::cmd_import_tts_as_material,
         // ========== Video Overlays ==========
         commands::cmd_insert_overlay,
         commands::cmd_list_overlays,
