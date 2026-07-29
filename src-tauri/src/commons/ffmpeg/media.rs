@@ -18,27 +18,17 @@ pub fn get_video_metadata_json(ffmpeg: &Ffmpeg, path: &str) -> Result<Value, Str
 }
 /// Get audio metadata from file path
 ///
-/// Extracts comprehensive audio metadata including core information,
-/// quality parameters, and ID3 tags using ffprobe.
+/// Convenience wrapper around Ffmpeg::get_audio_metadata.
 ///
 /// # Arguments
-/// * `_ffmpeg` - Reference to the Ffmpeg instance (unused)
+/// * `ffmpeg` - Reference to the Ffmpeg instance
 /// * `path` - Path to the audio file
 ///
 /// # Returns
 /// * `Ok(AudioMetadata)` - Complete audio metadata
 /// * `Err(String)` - Error message if metadata extraction fails
-pub fn get_audio_metadata(_ffmpeg: &Ffmpeg, path: &str) -> Result<AudioMetadata, String> {
-    let output = Command::new("ffprobe")
-        .args(["-v", "quiet", "-print_format", "json", "-show_streams", "-show_format", path])
-        .output()
-        .map_err(|e| format!("ffprobe failed: {}", e))?;
-    if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        return Err(format!("ffprobe failed: {}", stderr));
-    }
-    let json: serde_json::Value = serde_json::from_slice(&output.stdout).map_err(|e| format!("Failed to parse ffprobe output: {}", e))?;
-    AudioMetadata::from_json(&json, path)
+pub fn get_audio_metadata(ffmpeg: &Ffmpeg, path: &str) -> Result<AudioMetadata, String> {
+    ffmpeg.get_audio_metadata(path)
 }
 /// Get basic metadata from file path
 ///
@@ -53,7 +43,7 @@ pub fn get_audio_metadata(_ffmpeg: &Ffmpeg, path: &str) -> Result<AudioMetadata,
 /// * `Ok(BasicMetadata)` - Basic video metadata
 /// * `Err(String)` - Error message if metadata extraction fails
 pub fn get_basic_metadata(ffmpeg: &Ffmpeg, path: &str) -> Result<BasicMetadata, String> {
-    let metadata = ffmpeg.get_metadata(path)?;
+    let metadata = ffmpeg.get_video_metadata(path)?;
     Ok(BasicMetadata {
         duration: metadata.duration,
         width: metadata.width,
@@ -65,8 +55,7 @@ pub fn get_basic_metadata(ffmpeg: &Ffmpeg, path: &str) -> Result<BasicMetadata, 
 }
 /// Get image metadata from file path
 ///
-/// Extracts image metadata including dimensions, frame rate,
-/// and duration. GIF files get special handling for duration and fps.
+/// Convenience wrapper around Ffmpeg::get_image_metadata.
 ///
 /// # Arguments
 /// * `ffmpeg` - Reference to the Ffmpeg instance
@@ -77,12 +66,7 @@ pub fn get_basic_metadata(ffmpeg: &Ffmpeg, path: &str) -> Result<BasicMetadata, 
 /// * `Ok(ImageMetadata)` - Image metadata
 /// * `Err(String)` - Error message if metadata extraction fails
 pub fn get_image_metadata(ffmpeg: &Ffmpeg, path: &str, is_gif: bool) -> Result<ImageMetadata, String> {
-    let info = ffmpeg.get_metadata(path)?;
-    let width = info.width;
-    let height = info.height;
-    let fps = if is_gif { info.fps } else { 1.0 };
-    let duration = if is_gif { info.duration.max(0.1) } else { 5.0 };
-    Ok(ImageMetadata { width, height, fps, duration })
+    ffmpeg.get_image_metadata(path, is_gif)
 }
 /// Extract frame from video at given time
 ///

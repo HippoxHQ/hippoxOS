@@ -1,7 +1,10 @@
-use std::{fs, io::{Read, Write}, path::{Path, PathBuf}, process::{Command, Stdio}};
-
-use crate::commons::{FrameExtractOptions, PersistentProcess, ThumbnailOptions, VideoMetadata};
-
+use crate::commons::{AudioMetadata, FrameExtractOptions, ImageMetadata, PersistentProcess, ThumbnailOptions, VideoMetadata};
+use std::{
+    fs,
+    io::{Read, Write},
+    path::{Path, PathBuf},
+    process::{Command, Stdio},
+};
 /// FFmpeg wrapper for video/audio processing operations
 ///
 /// This struct provides a high-level interface to ffmpeg and ffprobe commands,
@@ -14,13 +17,11 @@ pub struct Ffmpeg {
     /// Persistent ffmpeg process for fast frame extraction
     pub persistent: std::sync::Arc<std::sync::Mutex<Option<PersistentProcess>>>,
 }
-
 impl Default for Ffmpeg {
     fn default() -> Self {
         Self::new()
     }
 }
-
 impl Ffmpeg {
     /// Create a new Ffmpeg instance with default binary path
     ///
@@ -28,7 +29,6 @@ impl Ffmpeg {
     pub fn new() -> Self {
         Self { bin_path: "ffmpeg".to_string(), persistent: std::sync::Arc::new(std::sync::Mutex::new(None)) }
     }
-
     /// Create a new Ffmpeg instance with custom binary path
     ///
     /// # Arguments
@@ -36,7 +36,6 @@ impl Ffmpeg {
     pub fn with_bin_path(path: &str) -> Self {
         Self { bin_path: path.to_string(), persistent: std::sync::Arc::new(std::sync::Mutex::new(None)) }
     }
-
     /// Initialize persistent ffmpeg process for fast frame extraction
     ///
     /// Starts a persistent ffmpeg process in image2pipe mode, which allows
@@ -69,7 +68,6 @@ impl Ffmpeg {
         *guard = Some(PersistentProcess { child, stdin, stdout, video_path: video_path.to_string() });
         Ok(())
     }
-
     /// Extract a frame from the persistent ffmpeg process at the given time
     ///
     /// Uses the persistent ffmpeg process to extract a frame at the specified
@@ -110,7 +108,6 @@ impl Ffmpeg {
         }
         Ok(buffer)
     }
-
     /// Clean up the persistent ffmpeg process
     ///
     /// Terminates the persistent ffmpeg process if it is currently running.
@@ -120,7 +117,6 @@ impl Ffmpeg {
             let _ = proc.child.kill();
         }
     }
-
     /// Check if ffmpeg is available on the system
     ///
     /// # Returns
@@ -129,7 +125,6 @@ impl Ffmpeg {
     pub fn is_available(&self) -> bool {
         Command::new(&self.bin_path).arg("-version").output().map(|o| o.status.success()).unwrap_or(false)
     }
-
     /// Get ffmpeg version string
     ///
     /// # Returns
@@ -143,7 +138,6 @@ impl Ffmpeg {
         let version = String::from_utf8_lossy(&output.stdout);
         version.lines().next().map(|s| s.to_string())
     }
-
     /// Get complete video metadata from file path
     ///
     /// Uses ffprobe to extract comprehensive metadata including video properties,
@@ -155,7 +149,7 @@ impl Ffmpeg {
     /// # Returns
     /// * `Ok(VideoMetadata)` - Complete video metadata
     /// * `Err(String)` - Error message if metadata extraction fails
-    pub fn get_metadata(&self, path: &str) -> Result<VideoMetadata, String> {
+    pub fn get_video_metadata(&self, path: &str) -> Result<VideoMetadata, String> {
         let path_obj = Path::new(path);
         if !path_obj.exists() {
             return Err(format!("File not found: {}", path_obj.display()));
@@ -189,7 +183,49 @@ impl Ffmpeg {
         }
         Ok(metadata)
     }
-
+    /// Get audio metadata from file path
+    ///
+    /// Extracts comprehensive audio metadata including core information,
+    /// quality parameters, and ID3 tags using ffprobe.
+    ///
+    /// # Arguments
+    /// * `path` - Path to the audio file
+    ///
+    /// # Returns
+    /// * `Ok(AudioMetadata)` - Complete audio metadata
+    /// * `Err(String)` - Error message if metadata extraction fails
+    pub fn get_audio_metadata(&self, path: &str) -> Result<AudioMetadata, String> {
+        let output = Command::new("ffprobe")
+            .args(["-v", "quiet", "-print_format", "json", "-show_streams", "-show_format", path])
+            .output()
+            .map_err(|e| format!("ffprobe failed: {}", e))?;
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            return Err(format!("ffprobe failed: {}", stderr));
+        }
+        let json: serde_json::Value = serde_json::from_slice(&output.stdout).map_err(|e| format!("Failed to parse ffprobe output: {}", e))?;
+        AudioMetadata::from_json(&json, path)
+    }
+    /// Get image metadata from file path
+    ///
+    /// Extracts image metadata including dimensions, frame rate,
+    /// and duration. GIF files get special handling for duration and fps.
+    ///
+    /// # Arguments
+    /// * `path` - Path to the image file
+    /// * `is_gif` - Whether the file is a GIF animation
+    ///
+    /// # Returns
+    /// * `Ok(ImageMetadata)` - Image metadata
+    /// * `Err(String)` - Error message if metadata extraction fails
+    pub fn get_image_metadata(&self, path: &str, is_gif: bool) -> Result<ImageMetadata, String> {
+        let info = self.get_video_metadata(path)?;
+        let width = info.width;
+        let height = info.height;
+        let fps = if is_gif { info.fps } else { 1.0 };
+        let duration = if is_gif { info.duration.max(0.1) } else { 5.0 };
+        Ok(ImageMetadata { width, height, fps, duration })
+    }
     /// Extract a single frame from video at given time as JPEG bytes
     ///
     /// This function starts a new ffmpeg process for each extraction.
@@ -216,7 +252,6 @@ impl Ffmpeg {
         }
         Ok(output.stdout)
     }
-    
     /// Get the number of keyframes in a video file
     ///
     /// Uses multiple methods to count keyframes, falling back to alternative
@@ -277,7 +312,6 @@ impl Ffmpeg {
         }
         Ok(count as u64)
     }
-
     /// Get video metadata as JSON value
     ///
     /// # Arguments
@@ -287,10 +321,9 @@ impl Ffmpeg {
     /// * `Ok(serde_json::Value)` - Video metadata as JSON
     /// * `Err(String)` - Error message if serialization fails
     pub fn get_video_info_json(&self, path: &str) -> Result<serde_json::Value, String> {
-        let metadata = self.get_metadata(path)?;
+        let metadata = self.get_video_metadata(path)?;
         serde_json::to_value(&metadata).map_err(|e| format!("Failed to serialize video metadata: {}", e))
     }
-
     /// Create an empty video with black screen
     ///
     /// Generates a synthetic video file with a black screen using the lavfi filter.
@@ -336,7 +369,6 @@ impl Ffmpeg {
         }
         Ok(output_path.to_string())
     }
-
     /// Get duration of a media file in seconds
     ///
     /// # Arguments
@@ -346,10 +378,9 @@ impl Ffmpeg {
     /// * `Ok(f64)` - Duration in seconds
     /// * `Err(String)` - Error message if duration cannot be determined
     pub fn get_duration(&self, path: &str) -> Result<f64, String> {
-        let metadata = self.get_metadata(path)?;
+        let metadata = self.get_video_metadata(path)?;
         Ok(metadata.duration)
     }
-
     /// Validate if the given file is a valid video file
     ///
     /// # Arguments
@@ -359,9 +390,8 @@ impl Ffmpeg {
     /// * `true` if the file is a valid video file
     /// * `false` otherwise
     pub fn validate_video(&self, path: &str) -> bool {
-        self.get_metadata(path).is_ok()
+        self.get_video_metadata(path).is_ok()
     }
-
     /// Generate a thumbnail from video at specified time
     ///
     /// Extracts a single frame from the video at the specified time and saves
@@ -407,7 +437,6 @@ impl Ffmpeg {
         }
         Ok(output_path.to_string_lossy().to_string())
     }
-
     /// Extract the first frame of a video
     ///
     /// Saves the first frame of the video as an image file. Useful for
@@ -495,7 +524,6 @@ impl Ffmpeg {
         }
         Ok(())
     }
-
     /// Extract frames from video with custom options
     ///
     /// Extracts multiple frames from a video file using the specified options.
@@ -694,5 +722,32 @@ impl Ffmpeg {
             return Err(format!("FFmpeg error: {}", stderr));
         }
         Ok(())
+    }
+}
+
+impl Drop for Ffmpeg {
+    fn drop(&mut self) {
+        let mut guard = self.persistent.lock().unwrap();
+        if let Some(mut proc) = guard.take() {
+            // Send quit command to gracefully terminate ffmpeg
+            let _ = proc.stdin.write_all(b"q\n");
+            let _ = proc.stdin.flush();
+            // Wait up to 1 second for graceful exit
+            let start = std::time::Instant::now();
+            while start.elapsed() < std::time::Duration::from_secs(1) {
+                if let Ok(Some(_)) = proc.child.try_wait() {
+                    break;
+                }
+                std::thread::sleep(std::time::Duration::from_millis(50));
+            }
+            // Force kill the process and wait for cleanup
+            let _ = proc.child.kill();
+            let _ = proc.child.wait();
+            // stdin/stdout will be closed when proc is dropped
+            // Explicitly drop stdin/stdout to release resources early
+            drop(proc.stdin);
+            drop(proc.stdout);
+        }
+        drop(guard);
     }
 }
