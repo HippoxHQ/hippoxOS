@@ -2,7 +2,6 @@ use super::core::Ffmpeg;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 use std::process::Command;
-
 impl Ffmpeg {
     /// Get keyframe timestamps from a video file
     ///
