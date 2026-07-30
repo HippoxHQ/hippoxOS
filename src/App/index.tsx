@@ -23,8 +23,7 @@ function App() {
   const { isConfigLoaded, initialEngineConfig, initialTheme, initialLanguage } = useConfigLoader();
   const { theme, handleToggleTheme } = useTheme(initialTheme);
   const { language, handleToggleLanguage, t } = useLanguage(initialLanguage);
-  const { menuPanelView, settingsSubView, engineSubView, menuPanelWidth, setMenuPanelWidth, currentContentPanel, closeContentPanel, resetToChat, switchMenuPanel, closeMenuPanel, switchContentArea } =
-    useMenuPanel();
+  const { menuPanelView, settingsSubView, engineSubView, menuPanelWidth, setMenuPanelWidth, currentContentPanel, closeContentPanel, resetToChat, switchMenuPanel, closeMenuPanel, switchContentArea } = useMenuPanel();
   const { currentSessionId, isLoading, handleNewSession, handleSwitchSession, handleSendMessage, resetSession, shouldShowWelcome } = useSession(language, isConfigLoaded);
   const { sidebarCollapsed, toggleSidebar } = useSidebar();
   const { layoutSwapMode, handleLayoutSwapModeChange } = useLayoutSwapMode();
@@ -49,6 +48,17 @@ function App() {
     (subView) => switchMenuPanel("settings", subView),
   );
   useDirectoryEvents();
+  useEffect(() => {
+    const preventContextMenu = (e: Event) => {
+      e.preventDefault();
+    };
+    window.addEventListener("contextmenu", preventContextMenu);
+    document.addEventListener("contextmenu", preventContextMenu);
+    return () => {
+      window.removeEventListener("contextmenu", preventContextMenu);
+      document.removeEventListener("contextmenu", preventContextMenu);
+    };
+  }, []);
   useEffect(() => {
     const handleSearchNewSession = () => {
       handleNewSessionWithClose();
@@ -80,16 +90,7 @@ function App() {
       switchContentArea("scheduledTasks");
       return;
     }
-    if (
-      view === "skillsManager" ||
-      view === "scheduledTasks" ||
-      view === "userProfile" ||
-      view === "codeEditorChat" ||
-      view === "chartChat" ||
-      view === "mapChat" ||
-      view === "videoEditor" ||
-      view === "sandbox3d"
-    ) {
+    if (view === "skillsManager" || view === "scheduledTasks" || view === "userProfile" || view === "codeEditorChat" || view === "chartChat" || view === "mapChat" || view === "videoEditor" || view === "sandbox3d") {
       switchContentArea(view);
       return;
     }
