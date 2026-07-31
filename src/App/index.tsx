@@ -48,17 +48,17 @@ function App() {
     (subView) => switchMenuPanel("settings", subView),
   );
   useDirectoryEvents();
-  useEffect(() => {
-    const preventContextMenu = (e: Event) => {
-      e.preventDefault();
-    };
-    window.addEventListener("contextmenu", preventContextMenu);
-    document.addEventListener("contextmenu", preventContextMenu);
-    return () => {
-      window.removeEventListener("contextmenu", preventContextMenu);
-      document.removeEventListener("contextmenu", preventContextMenu);
-    };
-  }, []);
+  // useEffect(() => {
+  //   const preventContextMenu = (e: Event) => {
+  //     e.preventDefault();
+  //   };
+  //   window.addEventListener("contextmenu", preventContextMenu);
+  //   document.addEventListener("contextmenu", preventContextMenu);
+  //   return () => {
+  //     window.removeEventListener("contextmenu", preventContextMenu);
+  //     document.removeEventListener("contextmenu", preventContextMenu);
+  //   };
+  // }, []);
   useEffect(() => {
     const handleSearchNewSession = () => {
       handleNewSessionWithClose();

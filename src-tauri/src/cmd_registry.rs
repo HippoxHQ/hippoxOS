@@ -539,5 +539,9 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_effects_delete_filter,
         commands::cmd_effects_delete_vfx,
         commands::cmd_effects_delete_camera_motion,
+        // =================== animation ====================
+        commands::cmd_get_animation_properties,
+        commands::cmd_add_time_animation,
+        commands::cmd_add_keyframe_animation
     ]
 }
