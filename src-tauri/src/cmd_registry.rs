@@ -542,6 +542,8 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         // =================== animation ====================
         commands::cmd_get_animation_properties,
         commands::cmd_add_time_animation,
-        commands::cmd_add_keyframe_animation
+        commands::cmd_add_keyframe_animation,
+        commands::cmd_get_time_animation,
+        commands::cmd_get_keyframe_animation
     ]
 }
