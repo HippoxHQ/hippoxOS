@@ -1,6 +1,12 @@
-use std::{path::{Path, PathBuf}, thread, time::Duration};
+use std::{
+    path::{Path, PathBuf},
+    thread,
+    time::Duration,
+};
 
-use crate::{commands::{PREVIEW_HEIGHT, PREVIEW_WIDTH}, commons::{Ffmpeg, FileUtils}};
+use crate::{
+    commands::{PREVIEW_HEIGHT, PREVIEW_WIDTH}, commons::{Ffmpeg, FileUtils, OUTPUT_FRAME_PROFUCT_FORMAT},
+};
 
 /// Video decoding options for frame extraction
 ///
@@ -124,7 +130,7 @@ impl Ffmpeg {
                         "image2",
                         "-q:v",
                         &quality_clone,
-                        &format!("{}/%06d.jpg", frames_dir_clone),
+                        &format!("{}/%06d.{}", frames_dir_clone, OUTPUT_FRAME_PROFUCT_FORMAT),
                     ])
                     .output();
                 let result = match output {
@@ -179,7 +185,7 @@ impl Ffmpeg {
         }
         Ok(())
     }
-    
+
     /// Decode GIF: generate frame sequence
     ///
     /// Decodes a GIF file into a sequence of JPEG frames. Handles frame
@@ -226,7 +232,7 @@ impl Ffmpeg {
                 "image2",
                 "-q:v",
                 &quality,
-                &format!("{}/%06d.jpg", frames_dir_str),
+                &format!("{}/%06d.{}", frames_dir_str, OUTPUT_FRAME_PROFUCT_FORMAT),
             ])
             .output()
             .map_err(|e| format!("FFmpeg failed: {}", e))?;
@@ -240,7 +246,7 @@ impl Ffmpeg {
         }
         Ok(())
     }
-    
+
     /// Decode image: generate frame sequence (single frame or multiple frames)
     ///
     /// Decodes an image file into one or more frames. For static images,
@@ -262,7 +268,7 @@ impl Ffmpeg {
         if frames_dir.exists() {
             let existing_count = self.count_frames(frames_dir);
             if existing_count > 0 {
-                let first_frame = frames_dir.join("000001.jpg");
+                let first_frame = frames_dir.join(format!("000001.{}", OUTPUT_FRAME_PROFUCT_FORMAT));
                 if first_frame.exists() {
                     if let Ok(reader) = image::ImageReader::open(&first_frame) {
                         if reader.into_dimensions().is_ok() {
@@ -295,13 +301,13 @@ impl Ffmpeg {
                 "image2",
                 "-q:v",
                 &quality,
-                &format!("{}/%06d.jpg", frames_dir_str),
+                &format!("{}/%06d.{}", frames_dir_str, OUTPUT_FRAME_PROFUCT_FORMAT),
             ])
             .output();
         let mut success = false;
         if let Ok(output) = output {
             if output.status.success() {
-                let first_frame = frames_dir.join("000001.jpg");
+                let first_frame = frames_dir.join(format!("000001.{}", OUTPUT_FRAME_PROFUCT_FORMAT));
                 if first_frame.exists() {
                     if let Ok(reader) = image::ImageReader::open(&first_frame) {
                         if reader.into_dimensions().is_ok() {
@@ -316,14 +322,14 @@ impl Ffmpeg {
                 Ok(reader) => match reader.decode() {
                     Ok(dynamic_img) => {
                         let rgb_img = dynamic_img.to_rgb8();
-                        let frame_path = frames_dir.join("000001.jpg");
+                        let frame_path = frames_dir.join(format!("000001.{}", OUTPUT_FRAME_PROFUCT_FORMAT));
                         let _ = rgb_img.save(&frame_path);
                         if frame_path.exists() {
                             if let Ok(reader) = image::ImageReader::open(&frame_path) {
                                 if reader.into_dimensions().is_ok() {
                                     for i in 2..=frame_count {
-                                        let frame_path = frames_dir.join(format!("{:06}.jpg", i));
-                                        let _ = std::fs::copy(&frames_dir.join("000001.jpg"), &frame_path);
+                                        let frame_path = frames_dir.join(format!("{:06}.{}", i, OUTPUT_FRAME_PROFUCT_FORMAT));
+                                        let _ = std::fs::copy(&frames_dir.join(format!("000001.{}", OUTPUT_FRAME_PROFUCT_FORMAT)), &frame_path);
                                     }
                                     success = true;
                                 }
@@ -336,10 +342,10 @@ impl Ffmpeg {
             }
         }
         if !success {
-            let frame_path = frames_dir.join("000001.jpg");
+            let frame_path = frames_dir.join(format!("000001.{}", OUTPUT_FRAME_PROFUCT_FORMAT));
             let _ = std::fs::copy(source_path, &frame_path);
             for i in 2..=frame_count {
-                let frame_path = frames_dir.join(format!("{:06}.jpg", i));
+                let frame_path = frames_dir.join(format!("{:06}.{}", i, OUTPUT_FRAME_PROFUCT_FORMAT));
                 let _ = std::fs::copy(source_path, &frame_path);
             }
             if frame_path.exists() && frame_path.metadata().map(|m| m.len() > 0).unwrap_or(false) {

@@ -1,7 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::process::{Child, ChildStdin, ChildStdout};
 use uuid::Uuid;
-
 /// Persistent ffmpeg process for fast frame extraction
 ///
 /// Holds the child process handles and state for a persistent ffmpeg
@@ -16,7 +15,6 @@ pub struct PersistentProcess {
     /// Path of the video file currently loaded in the process
     pub video_path: String,
 }
-
 /// Thumbnail generation options
 ///
 /// Controls the parameters for extracting a single frame as a thumbnail
@@ -32,7 +30,6 @@ pub struct ThumbnailOptions {
     /// Optional custom output path
     pub output_path: Option<String>,
 }
-
 /// Frame extraction options for batch processing
 ///
 /// Controls the parameters for extracting multiple frames from a video,
@@ -58,7 +55,6 @@ pub struct FrameExtractOptions {
     /// Optional quality setting for JPEG (1-100)
     pub quality: Option<u32>,
 }
-
 /// Preview quality levels for frame extraction
 ///
 /// Controls the trade-off between image quality and file size
@@ -76,7 +72,6 @@ pub enum PreviewQuality {
     /// Lowest quality, smallest file size (q=20)
     VeryLow,
 }
-
 impl PreviewQuality {
     /// Convert quality level to ffmpeg q:v value
     ///
@@ -95,10 +90,6 @@ impl PreviewQuality {
         }
     }
 }
-
-/// Default preview quality for frame extraction
-pub const PREVIEW_FRAME_QUALITY: PreviewQuality = PreviewQuality::Medium;
-
 /// Basic metadata structure for video files
 ///
 /// Contains essential video information including dimensions,
@@ -118,7 +109,6 @@ pub struct BasicMetadata {
     /// Bitrate in bits per second
     pub bitrate: u64,
 }
-
 /// Image metadata structure
 ///
 /// Contains information about image files including dimensions,
@@ -134,7 +124,6 @@ pub struct ImageMetadata {
     /// Duration in seconds (5.0 default for static images)
     pub duration: f64,
 }
-
 // Audio Metadata
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AudioMetadata {
@@ -157,7 +146,6 @@ pub struct AudioMetadata {
     pub year: Option<u32>,         // Release year
     pub track_number: Option<u32>, // Track number
 }
-
 impl AudioMetadata {
     /// Parse audio metadata from ffprobe JSON output
     ///
@@ -247,7 +235,6 @@ impl AudioMetadata {
         serde_json::to_value(self).map_err(|e| format!("Failed to serialize audio metadata: {}", e))
     }
 }
-
 // Video Metadata
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VideoMetadata {
@@ -291,7 +278,6 @@ pub struct VideoMetadata {
     pub visible: bool,                   // Whether the track is visible
     pub resource_frames: Option<String>, // Path to extracted frames
 }
-
 impl VideoMetadata {
     /// Parse video metadata from ffprobe JSON output
     ///
@@ -397,7 +383,6 @@ impl VideoMetadata {
             resource_frames: None,
         })
     }
-
     /// Serialize video metadata to JSON
     ///
     /// # Returns
@@ -407,7 +392,6 @@ impl VideoMetadata {
         serde_json::to_value(self).map_err(|e| format!("Failed to serialize video metadata: {}", e))
     }
 }
-
 fn gcd(a: u64, b: u64) -> u64 {
     if b == 0 {
         a
@@ -415,7 +399,6 @@ fn gcd(a: u64, b: u64) -> u64 {
         gcd(b, a % b)
     }
 }
-
 pub fn parse_fraction(s: &str) -> Option<f64> {
     if s.contains('/') {
         let parts: Vec<&str> = s.split('/').collect();
