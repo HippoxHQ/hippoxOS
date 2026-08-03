@@ -4,8 +4,8 @@ use crate::commands::video_editor::track::calculate_max_track_time;
 use crate::commands::video_editor::track::table::TrackTable;
 use crate::commands::{
     emit_refresh_timeline_and_player, get_settings_dir, get_video_editing_system_dialog_history_dir, load_metadata, load_session_config,
-    load_session_metadata, save_session_config, save_session_metadata, save_session_tracks, update_session_track_stack, MaterialType,
-    SessionMetadata, TrackTableMap,
+    load_session_metadata, save_session_config, save_session_metadata, save_session_tracks, update_download_material_mapping,
+    update_session_track_stack, MaterialType, SessionMetadata, TrackTableMap,
 };
 use crate::commons::{Ffmpeg, FileUtils};
 use chrono::{Duration, Local};
@@ -66,7 +66,7 @@ async fn process_video_file_background(app_handle: tauri::AppHandle, session_id:
     let result = tokio::task::spawn_blocking(move || {
         debug!("process_video_file_background - Spawned blocking task for video processing");
         // Insert the material into the session
-        let upload_result = match register_material(&app, sid.clone(), path) {
+        let upload_result = match register_material(&app, sid.clone(), path.clone()) {
             Ok(r) => {
                 debug!("process_video_file_background - Video material inserted successfully: id={}", r.id);
                 r
@@ -78,6 +78,16 @@ async fn process_video_file_background(app_handle: tauri::AppHandle, session_id:
         };
         let material_id = upload_result.id;
         info!("process_video_file_background - Video material processed: material_id={}", material_id);
+        let downloads_dir = crate::commands::get_downloads_root_dir();
+        let downloads_dir_str = downloads_dir.to_string_lossy().to_string();
+        if path.starts_with(&downloads_dir_str) {
+            if let Some(task_id) =
+                path.strip_prefix(&downloads_dir_str).and_then(|p| p.split(std::path::MAIN_SEPARATOR).nth(1)).map(|s| s.to_string())
+            {
+                let _ = update_download_material_mapping(&task_id, &sid, &material_id);
+                debug!("process_video_file_background - Updated download material mapping: task_id={}, material_id={}", task_id, material_id);
+            }
+        }
         // Load the material metadata
         let material_metadata = match load_metadata(&sid, &MaterialType::Video, &material_id) {
             Ok(m) => {
@@ -178,6 +188,19 @@ async fn process_audio_files_background(app_handle: tauri::AppHandle, session_id
                 Ok(upload_result) => {
                     let material_id = upload_result.id;
                     debug!("process_audio_files_background - Audio material inserted: {}", material_id);
+                    let downloads_dir = crate::commands::get_downloads_root_dir();
+                    let downloads_dir_str = downloads_dir.to_string_lossy().to_string();
+                    if audio_path.starts_with(&downloads_dir_str) {
+                        if let Some(task_id) =
+                            audio_path.strip_prefix(&downloads_dir_str).and_then(|p| p.split(std::path::MAIN_SEPARATOR).nth(1)).map(|s| s.to_string())
+                        {
+                            let _ = update_download_material_mapping(&task_id, &sid, &material_id);
+                            debug!(
+                                "process_audio_files_background - Updated download material mapping: task_id={}, material_id={}",
+                                task_id, material_id
+                            );
+                        }
+                    }
                     if let Ok(material_metadata) = load_metadata(&sid, &MaterialType::Audio, &material_id) {
                         if let Ok(mut metadata) = load_session_metadata(&sid) {
                             let mut tracks = TrackTable::from_track_table_map(std::mem::take(&mut metadata.tracks));
@@ -262,6 +285,19 @@ async fn process_image_files_background(app_handle: tauri::AppHandle, session_id
                 Ok(upload_result) => {
                     let material_id = upload_result.id;
                     debug!("process_image_files_background - Image material inserted: {}", material_id);
+                    let downloads_dir = crate::commands::get_downloads_root_dir();
+                    let downloads_dir_str = downloads_dir.to_string_lossy().to_string();
+                    if image_path.starts_with(&downloads_dir_str) {
+                        if let Some(task_id) =
+                            image_path.strip_prefix(&downloads_dir_str).and_then(|p| p.split(std::path::MAIN_SEPARATOR).nth(1)).map(|s| s.to_string())
+                        {
+                            let _ = update_download_material_mapping(&task_id, &sid, &material_id);
+                            debug!(
+                                "process_image_files_background - Updated download material mapping: task_id={}, material_id={}",
+                                task_id, material_id
+                            );
+                        }
+                    }
                     if let Ok(material_metadata) = load_metadata(&sid, &MaterialType::Image, &material_id) {
                         if let Ok(mut metadata) = load_session_metadata(&sid) {
                             let mut tracks = TrackTable::from_track_table_map(std::mem::take(&mut metadata.tracks));
@@ -346,6 +382,19 @@ async fn process_text_files_background(app_handle: tauri::AppHandle, session_id:
                 Ok(upload_result) => {
                     let material_id = upload_result.id;
                     debug!("process_text_files_background - Text material inserted: {}", material_id);
+                    let downloads_dir = crate::commands::get_downloads_root_dir();
+                    let downloads_dir_str = downloads_dir.to_string_lossy().to_string();
+                    if text_path.starts_with(&downloads_dir_str) {
+                        if let Some(task_id) =
+                            text_path.strip_prefix(&downloads_dir_str).and_then(|p| p.split(std::path::MAIN_SEPARATOR).nth(1)).map(|s| s.to_string())
+                        {
+                            let _ = update_download_material_mapping(&task_id, &sid, &material_id);
+                            debug!(
+                                "process_text_files_background - Updated download material mapping: task_id={}, material_id={}",
+                                task_id, material_id
+                            );
+                        }
+                    }
                     if let Ok(material_metadata) = load_metadata(&sid, &MaterialType::Text, &material_id) {
                         if let Ok(mut metadata) = load_session_metadata(&sid) {
                             let mut tracks = TrackTable::from_track_table_map(std::mem::take(&mut metadata.tracks));
