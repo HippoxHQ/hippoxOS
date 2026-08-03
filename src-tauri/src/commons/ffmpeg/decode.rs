@@ -1,17 +1,22 @@
+//! # Video Decoding Module
+//!
+//! This module provides video decoding capabilities including frame extraction,
+//! GIF decoding, image decoding, and text rendering. It supports sharded
+//! (parallel chunk-based) decoding for large video files.
+use crate::{
+    commands::{PREVIEW_HEIGHT, PREVIEW_WIDTH},
+    commons::{Ffmpeg, FileUtils, OUTPUT_FRAME_PROFUCT_FORMAT},
+};
 use std::{
     path::{Path, PathBuf},
     thread,
     time::Duration,
 };
-
-use crate::{
-    commands::{PREVIEW_HEIGHT, PREVIEW_WIDTH}, commons::{Ffmpeg, FileUtils, OUTPUT_FRAME_PROFUCT_FORMAT},
-};
-
 /// Video decoding options for frame extraction
 ///
 /// Controls the parameters for decoding video files into frame sequences,
-/// including frame rate, output dimensions, quality, and audio extraction.
+/// including frame rate, output dimensions, quality, audio extraction,
+/// and optional start time for chunk-based decoding.
 pub struct DecodeVideoOptions {
     /// Target frames per second for the output sequence
     pub fps: f64,
@@ -25,14 +30,15 @@ pub struct DecodeVideoOptions {
     pub quality: u32,
     /// Whether to extract audio track alongside video frames
     pub extract_audio: bool,
+    /// Optional start time in seconds for chunk-based decoding
+    /// When specified, FFmpeg will seek to this position before decoding
+    pub start_time: Option<f64>,
 }
-
 impl Default for DecodeVideoOptions {
     fn default() -> Self {
-        Self { fps: 30.0, duration: 0.0, width: PREVIEW_WIDTH, height: PREVIEW_HEIGHT, quality: 10, extract_audio: true }
+        Self { fps: 30.0, duration: 0.0, width: PREVIEW_WIDTH, height: PREVIEW_HEIGHT, quality: 10, extract_audio: true, start_time: None }
     }
 }
-
 /// Image decoding options
 ///
 /// Controls the parameters for decoding image files into frame sequences,
@@ -49,13 +55,11 @@ pub struct DecodeImageOptions {
     /// JPEG quality (1-31, lower = better quality)
     pub quality: u32,
 }
-
 impl Default for DecodeImageOptions {
     fn default() -> Self {
         Self { fps: 1.0, duration: 5.0, width: PREVIEW_WIDTH, height: PREVIEW_HEIGHT, quality: 10 }
     }
 }
-
 /// GIF decoding options
 ///
 /// Controls the parameters for decoding GIF files into frame sequences,
@@ -74,13 +78,11 @@ pub struct DecodeGifOptions {
     /// Maximum number of frames to extract
     pub max_frames: u64,
 }
-
 impl Default for DecodeGifOptions {
     fn default() -> Self {
         Self { fps: 1.0, duration: 5.0, width: PREVIEW_WIDTH, height: PREVIEW_HEIGHT, quality: 10, max_frames: 300 }
     }
 }
-
 impl Ffmpeg {
     /// Decode video: generate frame sequence + optionally extract audio
     ///
@@ -88,11 +90,14 @@ impl Ffmpeg {
     /// extracts the audio track as PCM. Frames are saved with sequential
     /// numbering in the specified output directory.
     ///
+    /// Supports chunk-based decoding via the `start_time` option, which allows
+    /// parallel decoding of video segments without frame duplication.
+    ///
     /// # Arguments
     /// * `source_path` - Path to the source video file
     /// * `frames_dir` - Directory where frame images will be saved
     /// * `audio_path` - Path where the extracted audio will be saved
-    /// * `options` - Decoding options (fps, dimensions, quality, etc.)
+    /// * `options` - Decoding options (fps, dimensions, quality, start_time, etc.)
     ///
     /// # Returns
     /// * `Ok(())` on success
@@ -109,30 +114,47 @@ impl Ffmpeg {
         let width = options.width;
         let height = options.height;
         let quality = options.quality.to_string();
+        let duration = options.duration;
+        let start_time = options.start_time;
         let source_path_clone = source_path_str.clone();
         let frames_dir_clone = frames_dir_str.clone();
         let fps_clone = fps;
         let width_clone = width;
         let height_clone = height;
         let quality_clone = quality.clone();
+        let duration_clone = duration;
+        let start_time_clone = start_time;
+        // Spawn thread for JPEG frame extraction
         let jpg_handle = thread::spawn(move || {
             let max_retries = 2;
             let mut attempt = 0;
             loop {
                 attempt += 1;
-                let output = std::process::Command::new("ffmpeg")
-                    .args([
-                        "-i",
-                        &source_path_clone,
-                        "-vf",
-                        &format!("fps={},scale={}:{}", fps_clone, width_clone, height_clone),
-                        "-f",
-                        "image2",
-                        "-q:v",
-                        &quality_clone,
-                        &format!("{}/%06d.{}", frames_dir_clone, OUTPUT_FRAME_PROFUCT_FORMAT),
-                    ])
-                    .output();
+                // Build FFmpeg command arguments
+                let mut args = Vec::new();
+                // If start_time is specified, use -ss before -i for fast seeking
+                // This enables chunk-based decoding where each chunk starts at a specific time
+                if let Some(start) = start_time_clone {
+                    args.push("-ss".to_string());
+                    args.push(start.to_string());
+                }
+                args.push("-i".to_string());
+                args.push(source_path_clone.clone());
+                // Add -t to limit duration for this chunk
+                args.push("-t".to_string());
+                args.push(duration_clone.to_string());
+                // Video filter: set fps and scale
+                args.push("-vf".to_string());
+                args.push(format!("fps={},scale={}:{}", fps_clone, width_clone, height_clone));
+                // Output format: image2 (JPEG sequence)
+                args.push("-f".to_string());
+                args.push("image2".to_string());
+                // JPEG quality
+                args.push("-q:v".to_string());
+                args.push(quality_clone.clone());
+                // Output pattern
+                args.push(format!("{}/%06d.{}", frames_dir_clone, OUTPUT_FRAME_PROFUCT_FORMAT));
+                let output = std::process::Command::new("ffmpeg").args(&args).output();
                 let result = match output {
                     Ok(output) if output.status.success() => Ok(()),
                     Ok(output) => {
@@ -147,6 +169,7 @@ impl Ffmpeg {
                 thread::sleep(Duration::from_millis(500));
             }
         });
+        // Extract audio if requested
         if options.extract_audio {
             let audio_path_str = audio_path.to_string_lossy().to_string();
             let source_path_clone2 = source_path_str.clone();
@@ -179,13 +202,13 @@ impl Ffmpeg {
             let _ = audio_handle.join();
         }
         let _ = jpg_handle.join();
+        // Verify frames were extracted
         let frame_count = self.count_frames(frames_dir);
         if frame_count == 0 {
             return Err("No frames extracted".to_string());
         }
         Ok(())
     }
-
     /// Decode GIF: generate frame sequence
     ///
     /// Decodes a GIF file into a sequence of JPEG frames. Handles frame
@@ -204,6 +227,7 @@ impl Ffmpeg {
         if !source_path.exists() {
             return Err(format!("Source file not found: {}", source_path.display()));
         }
+        // Skip if frames already exist
         if frames_dir.exists() {
             let existing_count = self.count_frames(frames_dir);
             if existing_count > 0 {
@@ -219,6 +243,7 @@ impl Ffmpeg {
         let height = options.height;
         let quality = options.quality.to_string();
         let max_frames = options.max_frames;
+        // Calculate frame count with limit
         let raw_frame_count = (duration * fps) as u64;
         let frame_count = if raw_frame_count > max_frames { max_frames } else { raw_frame_count };
         let frame_count = if frame_count == 0 { 1 } else { frame_count };
@@ -246,7 +271,6 @@ impl Ffmpeg {
         }
         Ok(())
     }
-
     /// Decode image: generate frame sequence (single frame or multiple frames)
     ///
     /// Decodes an image file into one or more frames. For static images,
@@ -265,6 +289,7 @@ impl Ffmpeg {
         if !source_path.exists() {
             return Err(format!("Source file not found: {}", source_path.display()));
         }
+        // Check if frames already exist and are valid
         if frames_dir.exists() {
             let existing_count = self.count_frames(frames_dir);
             if existing_count > 0 {
@@ -289,6 +314,7 @@ impl Ffmpeg {
         let quality = options.quality.to_string();
         let frame_count = (duration * fps).ceil() as u64;
         let frame_count = if frame_count == 0 { 1 } else { frame_count };
+        // Try FFmpeg first
         let output = std::process::Command::new("ffmpeg")
             .args([
                 "-i",
@@ -317,6 +343,7 @@ impl Ffmpeg {
                 }
             }
         }
+        // Fallback: use image crate directly
         if !success {
             match image::ImageReader::open(source_path) {
                 Ok(reader) => match reader.decode() {
@@ -341,6 +368,7 @@ impl Ffmpeg {
                 Err(_) => {}
             }
         }
+        // Final fallback: just copy the source file
         if !success {
             let frame_path = frames_dir.join(format!("000001.{}", OUTPUT_FRAME_PROFUCT_FORMAT));
             let _ = std::fs::copy(source_path, &frame_path);
@@ -361,7 +389,6 @@ impl Ffmpeg {
         }
         Ok(())
     }
-
     /// Decode text: generate a single preview frame
     ///
     /// Renders text content as a single JPEG frame for preview purposes.
@@ -388,7 +415,6 @@ impl Ffmpeg {
         std::fs::write(output_path, &frame_data).map_err(|e| format!("Failed to write frame: {}", e))?;
         Ok(())
     }
-
     /// Count the number of frames in a directory
     ///
     /// Counts JPEG/JPG files in the given directory. Used to verify

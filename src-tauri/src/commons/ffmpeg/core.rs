@@ -1,3 +1,9 @@
+//! FFmpeg wrapper for video/audio processing operations
+//!
+//! This module provides a high-level interface to ffmpeg and ffprobe commands,
+//! supporting video metadata extraction, frame extraction, thumbnail generation,
+//! and independent process management. Each Ffmpeg instance owns its own
+//! process resources, ensuring no state conflicts between parallel operations.
 use crate::commons::{AudioMetadata, FrameExtractOptions, ImageMetadata, PersistentProcess, ThumbnailOptions, VideoMetadata};
 use std::{
     fs,
@@ -7,14 +13,20 @@ use std::{
 };
 /// FFmpeg wrapper for video/audio processing operations
 ///
-/// This struct provides a high-level interface to ffmpeg and ffprobe commands,
-/// supporting video metadata extraction, frame extraction, thumbnail generation,
-/// and persistent process management for fast frame extraction.
+/// This struct provides a high-level interface to ffmpeg and ffprobe commands.
+/// Each instance is independent and owns its own resources, making it safe
+/// for parallel use in multi-threaded environments like sharded decoding.
+///
+/// # Important
+/// - Each instance manages its own persistent process (if any)
+/// - Instances are NOT shared between threads by default
+/// - Use `Ffmpeg::new()` to create independent instances for each task
 #[derive(Clone)]
 pub struct Ffmpeg {
     /// Path to the ffmpeg binary
     pub bin_path: String,
     /// Persistent ffmpeg process for fast frame extraction
+    /// Each instance owns its own persistent process, preventing state conflicts
     pub persistent: std::sync::Arc<std::sync::Mutex<Option<PersistentProcess>>>,
 }
 impl Default for Ffmpeg {
@@ -26,6 +38,10 @@ impl Ffmpeg {
     /// Create a new Ffmpeg instance with default binary path
     ///
     /// The default binary path is "ffmpeg", which assumes ffmpeg is in the system PATH.
+    /// Each instance is independent and can be used safely in parallel operations.
+    ///
+    /// # Returns
+    /// A new independent Ffmpeg instance
     pub fn new() -> Self {
         Self { bin_path: "ffmpeg".to_string(), persistent: std::sync::Arc::new(std::sync::Mutex::new(None)) }
     }
@@ -33,6 +49,9 @@ impl Ffmpeg {
     ///
     /// # Arguments
     /// * `path` - Custom path to the ffmpeg binary
+    ///
+    /// # Returns
+    /// A new independent Ffmpeg instance with custom binary path
     pub fn with_bin_path(path: &str) -> Self {
         Self { bin_path: path.to_string(), persistent: std::sync::Arc::new(std::sync::Mutex::new(None)) }
     }
@@ -40,6 +59,11 @@ impl Ffmpeg {
     ///
     /// Starts a persistent ffmpeg process in image2pipe mode, which allows
     /// fast frame extraction without restarting ffmpeg for each frame.
+    ///
+    /// # Important
+    /// - This process is owned by this instance only
+    /// - Not shared with other instances
+    /// - Will be automatically cleaned up when the instance is dropped
     ///
     /// # Arguments
     /// * `video_path` - Path to the video file to process
@@ -49,13 +73,16 @@ impl Ffmpeg {
     /// * `Err(String)` - Error message if initialization fails
     pub fn init_persistent(&self, video_path: &str) -> Result<(), String> {
         let mut guard = self.persistent.lock().unwrap();
+        // Check if we already have a persistent process for this video
         if let Some(ref mut proc) = *guard {
             if proc.video_path == video_path {
                 return Ok(());
             }
+            // Different video, kill old process
             let _ = proc.child.kill();
             *guard = None;
         }
+        // Start new persistent ffmpeg process
         let mut child = Command::new(&self.bin_path)
             .args(["-i", video_path, "-f", "image2pipe", "-vcodec", "mjpeg", "-q:v", "2", "-"])
             .stdin(Stdio::piped())
@@ -82,9 +109,11 @@ impl Ffmpeg {
     pub fn extract_frame_persistent(&self, time: f64) -> Result<Vec<u8>, String> {
         let mut guard = self.persistent.lock().unwrap();
         let proc = guard.as_mut().ok_or("Persistent process not initialized. Call init_persistent() first.")?;
+        // Send seek command to ffmpeg
         let seek_cmd = format!("seek {} 2\n", time);
         proc.stdin.write_all(seek_cmd.as_bytes()).map_err(|e| format!("Failed to send seek command: {}", e))?;
         proc.stdin.flush().map_err(|e| format!("Failed to flush stdin: {}", e))?;
+        // Read JPEG data from stdout
         let mut buffer = Vec::new();
         let mut temp = [0u8; 65536];
         let mut found_jpeg = false;
@@ -94,6 +123,7 @@ impl Ffmpeg {
                 break;
             }
             buffer.extend_from_slice(&temp[..n]);
+            // Check for JPEG end marker
             if buffer.len() > 2 {
                 let last_two = &buffer[buffer.len() - 2..];
                 if last_two == [0xFF, 0xD9] {
@@ -102,7 +132,6 @@ impl Ffmpeg {
                 }
             }
         }
-        if !found_jpeg && !buffer.is_empty() {}
         if buffer.is_empty() {
             return Err("No frame data received from persistent process".to_string());
         }
@@ -111,6 +140,8 @@ impl Ffmpeg {
     /// Clean up the persistent ffmpeg process
     ///
     /// Terminates the persistent ffmpeg process if it is currently running.
+    /// This is automatically called when the instance is dropped, but can be
+    /// called manually to release resources earlier.
     pub fn cleanup_persistent(&self) {
         let mut guard = self.persistent.lock().unwrap();
         if let Some(mut proc) = guard.take() {
@@ -267,6 +298,7 @@ impl Ffmpeg {
         if !Path::new(path).exists() {
             return Err(format!("File not found: {}", path));
         }
+        // Method 1: Count keyframes from packet flags
         let output = Command::new("ffprobe")
             .args(["-v", "error", "-select_streams", "v:0", "-show_entries", "packet=flags", "-of", "csv=p=0", path])
             .output()
@@ -277,6 +309,7 @@ impl Ffmpeg {
         }
         let stdout = String::from_utf8_lossy(&output.stdout);
         let count = stdout.lines().filter(|line| line.contains('K')).count();
+        // Method 2: Fallback to frame analysis
         if count == 0 {
             let output2 = Command::new("ffprobe")
                 .args(["-v", "error", "-select_streams", "v:0", "-show_entries", "frame=key_frame", "-of", "csv=p=0", path])
@@ -288,6 +321,7 @@ impl Ffmpeg {
                 return Ok(count2 as u64);
             }
         }
+        // Method 3: Use ffmpeg filter
         if count == 0 {
             let output3 = Command::new("ffmpeg")
                 .args(["-i", path, "-vf", "select='eq(pict_type,I)'", "-vsync", "0", "-f", "null", "-"])
@@ -296,14 +330,12 @@ impl Ffmpeg {
                 .map_err(|e| format!("Failed to get keyframes (method 3): {}", e))?;
             if !output3.status.success() {
                 let stderr = String::from_utf8_lossy(&output3.stderr);
-                if let Some(caps) = stderr.lines().find(|line| line.contains("frame=")) {
-                    for line in stderr.lines() {
-                        if let Some(idx) = line.find("frame=") {
-                            let rest = &line[idx + 6..];
-                            if let Some(end) = rest.find(' ') {
-                                if let Ok(num) = rest[..end].trim().parse::<u64>() {
-                                    return Ok(num);
-                                }
+                for line in stderr.lines() {
+                    if let Some(idx) = line.find("frame=") {
+                        let rest = &line[idx + 6..];
+                        if let Some(end) = rest.find(' ') {
+                            if let Ok(num) = rest[..end].trim().parse::<u64>() {
+                                return Ok(num);
                             }
                         }
                     }
@@ -658,11 +690,13 @@ impl Ffmpeg {
     /// * `Ok(())` on success
     /// * `Err(String)` - Error message if reset fails
     pub fn reset_persistent(&self, video_path: &str) -> Result<(), String> {
+        // Clean up existing persistent process
         let mut guard = self.persistent.lock().unwrap();
         if let Some(mut proc) = guard.take() {
             let _ = proc.child.kill();
         }
         drop(guard);
+        // Initialize new persistent process
         self.init_persistent(video_path)?;
         Ok(())
     }
@@ -724,7 +758,11 @@ impl Ffmpeg {
         Ok(())
     }
 }
-
+/// Automatic cleanup of persistent ffmpeg process when Ffmpeg instance is dropped
+///
+/// This ensures that no orphaned ffmpeg processes remain, even if the instance
+/// is dropped abruptly. The cleanup is graceful (sends 'q' command) but also
+/// forcefully kills the process if it doesn't exit within 1 second.
 impl Drop for Ffmpeg {
     fn drop(&mut self) {
         let mut guard = self.persistent.lock().unwrap();
@@ -740,10 +778,9 @@ impl Drop for Ffmpeg {
                 }
                 std::thread::sleep(std::time::Duration::from_millis(50));
             }
-            // Force kill the process and wait for cleanup
+            // Force kill the process if it's still running
             let _ = proc.child.kill();
             let _ = proc.child.wait();
-            // stdin/stdout will be closed when proc is dropped
             // Explicitly drop stdin/stdout to release resources early
             drop(proc.stdin);
             drop(proc.stdout);
