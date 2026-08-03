@@ -6,6 +6,7 @@ import { showTooltipOnElement } from "../Tooltip";
 import { topMenuItems, bottomMenuItems, allMenuItems } from "./constants";
 import { sidebarStyles } from "./sidebarStyles";
 import { usePopupMenu } from "./hooks/usePopupMenu";
+import { clearVideoEditorAllMemory } from "../../pages/VideoEditorPage/MenoryManager";
 if (typeof document !== "undefined") {
   const styleId = "sidebar-styles";
   if (!document.getElementById(styleId)) {
@@ -35,21 +36,11 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onResetSession, onClearLog
     }
   };
   const handleIconClick = (itemId: string, e: React.MouseEvent<HTMLButtonElement>) => {
-    const directOpenItems = [
-      "skillsManager",
-      "tasks_group",
-      "generalChat",
-      "codeEditorChat",
-      "favorites",
-      "workspace",
-      "logs",
-      "skillMarket",
-      "userProfile",
-      "chartChat",
-      "mapChat",
-      "videoEditor",
-      "sandbox3d",
-    ];
+    const directOpenItems = ["skillsManager", "tasks_group", "generalChat", "codeEditorChat", "favorites", "workspace", "logs", "skillMarket", "userProfile", "chartChat", "mapChat", "videoEditor", "sandbox3d"];
+    if (itemId != "videoEditor") {
+      // clear video editor all memory
+      clearVideoEditorAllMemory();
+    }
     if (directOpenItems.includes(itemId)) {
       if (popupVisible) {
         handleClosePopup();
@@ -204,18 +195,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onResetSession, onClearLog
             />
             {bottomMenuItems.map((item) => renderButton(item))}
           </nav>
-          {popupVisible && activeIconId && (
-            <PopupMenu
-              items={allMenuItems.filter((item) => item.id === activeIconId)}
-              activeId={activeId}
-              activeSubId={activeSubId}
-              activeSubSubId={activeSubSubId}
-              onMenuClick={handleMenuClick}
-              onClose={handleClosePopup}
-              position={popupPosition}
-              t={t}
-            />
-          )}
+          {popupVisible && activeIconId && <PopupMenu items={allMenuItems.filter((item) => item.id === activeIconId)} activeId={activeId} activeSubId={activeSubId} activeSubSubId={activeSubSubId} onMenuClick={handleMenuClick} onClose={handleClosePopup} position={popupPosition} t={t} />}
         </>
       )}
     </aside>
