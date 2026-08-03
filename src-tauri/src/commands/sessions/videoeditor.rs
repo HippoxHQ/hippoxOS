@@ -65,8 +65,17 @@ async fn process_video_file_background(app_handle: tauri::AppHandle, session_id:
     // Use spawn_blocking for CPU-intensive operations (file copy, metadata extraction, etc.)
     let result = tokio::task::spawn_blocking(move || {
         debug!("process_video_file_background - Spawned blocking task for video processing");
+        // Extract download_content_id if the file is from the downloads directory
+        let downloads_dir = crate::commands::get_downloads_root_dir();
+        let downloads_dir_str = downloads_dir.to_string_lossy().to_string();
+        let download_content_id = if path.starts_with(&downloads_dir_str) {
+            path.strip_prefix(&downloads_dir_str).and_then(|p| p.split(std::path::MAIN_SEPARATOR).nth(1)).map(|s| s.to_string())
+        } else {
+            None
+        };
+        debug!("process_video_file_background - download_content_id: {:?}", download_content_id);
         // Insert the material into the session
-        let upload_result = match register_material(&app, sid.clone(), path.clone()) {
+        let upload_result = match register_material(&app, sid.clone(), path.clone(), download_content_id.clone()) {
             Ok(r) => {
                 debug!("process_video_file_background - Video material inserted successfully: id={}", r.id);
                 r
@@ -78,15 +87,10 @@ async fn process_video_file_background(app_handle: tauri::AppHandle, session_id:
         };
         let material_id = upload_result.id;
         info!("process_video_file_background - Video material processed: material_id={}", material_id);
-        let downloads_dir = crate::commands::get_downloads_root_dir();
-        let downloads_dir_str = downloads_dir.to_string_lossy().to_string();
-        if path.starts_with(&downloads_dir_str) {
-            if let Some(task_id) =
-                path.strip_prefix(&downloads_dir_str).and_then(|p| p.split(std::path::MAIN_SEPARATOR).nth(1)).map(|s| s.to_string())
-            {
-                let _ = update_download_material_mapping(&task_id, &sid, &material_id);
-                debug!("process_video_file_background - Updated download material mapping: task_id={}, material_id={}", task_id, material_id);
-            }
+        // Update download material mapping if applicable
+        if let Some(task_id) = download_content_id {
+            let _ = update_download_material_mapping(&task_id, &sid, &material_id);
+            debug!("process_video_file_background - Updated download material mapping: task_id={}, material_id={}", task_id, material_id);
         }
         // Load the material metadata
         let material_metadata = match load_metadata(&sid, &MaterialType::Video, &material_id) {
@@ -178,28 +182,31 @@ async fn process_audio_files_background(app_handle: tauri::AppHandle, session_id
     let app = app_handle.clone();
     let result = tokio::task::spawn_blocking(move || {
         debug!("process_audio_files_background - Spawned blocking task for audio processing");
+        let downloads_dir = crate::commands::get_downloads_root_dir();
+        let downloads_dir_str = downloads_dir.to_string_lossy().to_string();
         for (idx, audio_path) in paths.iter().enumerate() {
             debug!("process_audio_files_background - Processing audio {}/{}: {}", idx + 1, paths.len(), audio_path);
             if audio_path.is_empty() || !FileUtils::path_exists(Path::new(audio_path)) {
                 warn!("process_audio_files_background - Skipping invalid audio path: {}", audio_path);
                 continue;
             }
-            match register_material(&app, sid.clone(), audio_path.clone()) {
+            // Extract download_content_id if the file is from the downloads directory
+            let download_content_id = if audio_path.starts_with(&downloads_dir_str) {
+                audio_path.strip_prefix(&downloads_dir_str).and_then(|p| p.split(std::path::MAIN_SEPARATOR).nth(1)).map(|s| s.to_string())
+            } else {
+                None
+            };
+            match register_material(&app, sid.clone(), audio_path.clone(), download_content_id.clone()) {
                 Ok(upload_result) => {
                     let material_id = upload_result.id;
                     debug!("process_audio_files_background - Audio material inserted: {}", material_id);
-                    let downloads_dir = crate::commands::get_downloads_root_dir();
-                    let downloads_dir_str = downloads_dir.to_string_lossy().to_string();
-                    if audio_path.starts_with(&downloads_dir_str) {
-                        if let Some(task_id) =
-                            audio_path.strip_prefix(&downloads_dir_str).and_then(|p| p.split(std::path::MAIN_SEPARATOR).nth(1)).map(|s| s.to_string())
-                        {
-                            let _ = update_download_material_mapping(&task_id, &sid, &material_id);
-                            debug!(
-                                "process_audio_files_background - Updated download material mapping: task_id={}, material_id={}",
-                                task_id, material_id
-                            );
-                        }
+                    // Update download material mapping if applicable
+                    if let Some(task_id) = download_content_id {
+                        let _ = update_download_material_mapping(&task_id, &sid, &material_id);
+                        debug!(
+                            "process_audio_files_background - Updated download material mapping: task_id={}, material_id={}",
+                            task_id, material_id
+                        );
                     }
                     if let Ok(material_metadata) = load_metadata(&sid, &MaterialType::Audio, &material_id) {
                         if let Ok(mut metadata) = load_session_metadata(&sid) {
@@ -275,28 +282,31 @@ async fn process_image_files_background(app_handle: tauri::AppHandle, session_id
     let app = app_handle.clone();
     let result = tokio::task::spawn_blocking(move || {
         debug!("process_image_files_background - Spawned blocking task for image processing");
+        let downloads_dir = crate::commands::get_downloads_root_dir();
+        let downloads_dir_str = downloads_dir.to_string_lossy().to_string();
         for (idx, image_path) in paths.iter().enumerate() {
             debug!("process_image_files_background - Processing image {}/{}: {}", idx + 1, paths.len(), image_path);
             if image_path.is_empty() || !FileUtils::path_exists(Path::new(image_path)) {
                 warn!("process_image_files_background - Skipping invalid image path: {}", image_path);
                 continue;
             }
-            match register_material(&app, sid.clone(), image_path.clone()) {
+            // Extract download_content_id if the file is from the downloads directory
+            let download_content_id = if image_path.starts_with(&downloads_dir_str) {
+                image_path.strip_prefix(&downloads_dir_str).and_then(|p| p.split(std::path::MAIN_SEPARATOR).nth(1)).map(|s| s.to_string())
+            } else {
+                None
+            };
+            match register_material(&app, sid.clone(), image_path.clone(), download_content_id.clone()) {
                 Ok(upload_result) => {
                     let material_id = upload_result.id;
                     debug!("process_image_files_background - Image material inserted: {}", material_id);
-                    let downloads_dir = crate::commands::get_downloads_root_dir();
-                    let downloads_dir_str = downloads_dir.to_string_lossy().to_string();
-                    if image_path.starts_with(&downloads_dir_str) {
-                        if let Some(task_id) =
-                            image_path.strip_prefix(&downloads_dir_str).and_then(|p| p.split(std::path::MAIN_SEPARATOR).nth(1)).map(|s| s.to_string())
-                        {
-                            let _ = update_download_material_mapping(&task_id, &sid, &material_id);
-                            debug!(
-                                "process_image_files_background - Updated download material mapping: task_id={}, material_id={}",
-                                task_id, material_id
-                            );
-                        }
+                    // Update download material mapping if applicable
+                    if let Some(task_id) = download_content_id {
+                        let _ = update_download_material_mapping(&task_id, &sid, &material_id);
+                        debug!(
+                            "process_image_files_background - Updated download material mapping: task_id={}, material_id={}",
+                            task_id, material_id
+                        );
                     }
                     if let Ok(material_metadata) = load_metadata(&sid, &MaterialType::Image, &material_id) {
                         if let Ok(mut metadata) = load_session_metadata(&sid) {
@@ -372,28 +382,28 @@ async fn process_text_files_background(app_handle: tauri::AppHandle, session_id:
     let app = app_handle.clone();
     let result = tokio::task::spawn_blocking(move || {
         debug!("process_text_files_background - Spawned blocking task for text processing");
+        let downloads_dir = crate::commands::get_downloads_root_dir();
+        let downloads_dir_str = downloads_dir.to_string_lossy().to_string();
         for (idx, text_path) in paths.iter().enumerate() {
             debug!("process_text_files_background - Processing text {}/{}: {}", idx + 1, paths.len(), text_path);
             if text_path.is_empty() || !FileUtils::path_exists(Path::new(text_path)) {
                 warn!("process_text_files_background - Skipping invalid text path: {}", text_path);
                 continue;
             }
-            match register_material(&app, sid.clone(), text_path.clone()) {
+            // Extract download_content_id if the file is from the downloads directory
+            let download_content_id = if text_path.starts_with(&downloads_dir_str) {
+                text_path.strip_prefix(&downloads_dir_str).and_then(|p| p.split(std::path::MAIN_SEPARATOR).nth(1)).map(|s| s.to_string())
+            } else {
+                None
+            };
+            match register_material(&app, sid.clone(), text_path.clone(), download_content_id.clone()) {
                 Ok(upload_result) => {
                     let material_id = upload_result.id;
                     debug!("process_text_files_background - Text material inserted: {}", material_id);
-                    let downloads_dir = crate::commands::get_downloads_root_dir();
-                    let downloads_dir_str = downloads_dir.to_string_lossy().to_string();
-                    if text_path.starts_with(&downloads_dir_str) {
-                        if let Some(task_id) =
-                            text_path.strip_prefix(&downloads_dir_str).and_then(|p| p.split(std::path::MAIN_SEPARATOR).nth(1)).map(|s| s.to_string())
-                        {
-                            let _ = update_download_material_mapping(&task_id, &sid, &material_id);
-                            debug!(
-                                "process_text_files_background - Updated download material mapping: task_id={}, material_id={}",
-                                task_id, material_id
-                            );
-                        }
+                    // Update download material mapping if applicable
+                    if let Some(task_id) = download_content_id {
+                        let _ = update_download_material_mapping(&task_id, &sid, &material_id);
+                        debug!("process_text_files_background - Updated download material mapping: task_id={}, material_id={}", task_id, material_id);
                     }
                     if let Ok(material_metadata) = load_metadata(&sid, &MaterialType::Text, &material_id) {
                         if let Ok(mut metadata) = load_session_metadata(&sid) {
@@ -461,7 +471,8 @@ fn process_video_file(app_handle: tauri::AppHandle, session_id: &str, source_pat
         warn!("process_video_file - Source path is empty or does not exist");
         return;
     }
-    match register_material(&app_handle, session_id.to_string(), source_path) {
+    // For synchronous version, we don't have download_context_id, so pass None
+    match register_material(&app_handle, session_id.to_string(), source_path, None) {
         Ok(upload_result) => {
             let material_id = upload_result.id;
             debug!("process_video_file - Video material inserted: {}", material_id);
@@ -485,7 +496,8 @@ fn process_audio_files(app_handle: tauri::AppHandle, session_id: &str, audio_pat
             warn!("process_audio_files - Skipping invalid audio path: {}", audio_path);
             continue;
         }
-        match register_material(&app_handle, session_id.to_string(), audio_path) {
+        // For synchronous version, we don't have download_context_id, so pass None
+        match register_material(&app_handle, session_id.to_string(), audio_path, None) {
             Ok(upload_result) => {
                 let material_id = upload_result.id;
                 debug!("process_audio_files - Audio material inserted: {}", material_id);
@@ -510,7 +522,8 @@ fn process_image_files(app_handle: tauri::AppHandle, session_id: &str, image_pat
             warn!("process_image_files - Skipping invalid image path: {}", image_path);
             continue;
         }
-        match register_material(&app_handle, session_id.to_string(), image_path) {
+        // For synchronous version, we don't have download_context_id, so pass None
+        match register_material(&app_handle, session_id.to_string(), image_path, None) {
             Ok(upload_result) => {
                 let material_id = upload_result.id;
                 debug!("process_image_files - Image material inserted: {}", material_id);
@@ -535,7 +548,8 @@ fn process_text_files(app_handle: tauri::AppHandle, session_id: &str, text_paths
             warn!("process_text_files - Skipping invalid text path: {}", text_path);
             continue;
         }
-        match register_material(&app_handle, session_id.to_string(), text_path) {
+        // For synchronous version, we don't have download_context_id, so pass None
+        match register_material(&app_handle, session_id.to_string(), text_path, None) {
             Ok(upload_result) => {
                 let material_id = upload_result.id;
                 debug!("process_text_files - Text material inserted: {}", material_id);
