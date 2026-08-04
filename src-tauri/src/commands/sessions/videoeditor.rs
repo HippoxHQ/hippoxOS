@@ -7,7 +7,7 @@ use crate::commands::{
     load_session_metadata, save_session_config, save_session_metadata, save_session_tracks, update_download_material_mapping,
     update_session_track_stack, MaterialType, SessionMetadata, TrackTableMap,
 };
-use crate::commons::{Ffmpeg, FileUtils};
+use crate::commons::FileUtils;
 use chrono::{Duration, Local};
 use log::{debug, error, info, warn};
 use std::collections::HashMap;
