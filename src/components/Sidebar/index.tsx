@@ -7,6 +7,7 @@ import { topMenuItems, bottomMenuItems, allMenuItems } from "./constants";
 import { sidebarStyles } from "./sidebarStyles";
 import { usePopupMenu } from "./hooks/usePopupMenu";
 import { clearVideoEditorAllMemory } from "../../pages/VideoEditorPage/MenoryManager";
+import { videoEditorStateManager } from "../../pages/VideoEditorPage/global";
 if (typeof document !== "undefined") {
   const styleId = "sidebar-styles";
   if (!document.getElementById(styleId)) {
@@ -38,6 +39,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onResetSession, onClearLog
   const handleIconClick = (itemId: string, e: React.MouseEvent<HTMLButtonElement>) => {
     const directOpenItems = ["skillsManager", "tasks_group", "generalChat", "codeEditorChat", "favorites", "workspace", "logs", "skillMarket", "userProfile", "chartChat", "mapChat", "videoEditor", "sandbox3d"];
     if (itemId != "videoEditor") {
+      videoEditorStateManager.clear();
       // clear video editor all memory
       clearVideoEditorAllMemory();
     }
