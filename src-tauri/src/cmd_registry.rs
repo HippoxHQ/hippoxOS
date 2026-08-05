@@ -533,6 +533,21 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_set_overlay_block_locked,
         commands::cmd_update_track_block_volume,
         commands::cmd_update_track_block_speed,
+        // ====== Overlay Update Style ======
+        commands::cmd_update_text_block_all_style,
+        commands::cmd_update_overlay_transform,
+        commands::cmd_update_overlay_text_style,
+        commands::cmd_update_overlay_background,
+        commands::cmd_update_overlay_border,
+        commands::cmd_update_overlay_stroke,
+        commands::cmd_update_overlay_shadow,
+        // ===== Overlay Reset Commands =====
+        commands::cmd_reset_overlay_transform,
+        commands::cmd_reset_overlay_text_style,
+        commands::cmd_reset_overlay_background,
+        commands::cmd_reset_overlay_border,
+        commands::cmd_reset_overlay_stroke,
+        commands::cmd_reset_overlay_shadow,
         commands::stats_project_info,
         // ================ effects ================
         commands::cmd_effects_get_filter_type_list,
