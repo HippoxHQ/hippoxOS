@@ -571,5 +571,8 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_get_keyframe_animation,
         commands::cmd_add_overlay_time_animation,
         commands::cmd_get_overlay_time_animation,
+        // =================== video editor export ====================
+        commands::get_encoding_formats,
+        commands::get_crf_qualities,
     ]
 }
