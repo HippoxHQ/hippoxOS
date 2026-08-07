@@ -588,5 +588,9 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         // =================== video editor export ====================
         commands::get_encoding_formats,
         commands::get_crf_qualities,
+        commands::get_encoder_presets,
+        commands::get_resolution_options,
+        commands::get_framerate_options,
+        commands::get_bitrate_options,
     ]
 }
