@@ -473,6 +473,10 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_batch_trim_overlay_track_blocks,
         commands::cmd_batch_trim_overlay_track_blocks_start,
         commands::cmd_batch_trim_overlay_track_blocks_end,
+        commands::cmd_batch_trim_all_blocks,
+        commands::cmd_batch_trim_all_blocks_start,
+        commands::cmd_batch_trim_all_blocks_end,
+        commands::cmd_remove_all_blocks_batch,
         // ========== Video Transitions ==========
         commands::cmd_get_track_transition_candidates,
         commands::cmd_get_session_transition_candidates,
