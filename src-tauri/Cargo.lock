@@ -3244,7 +3244,7 @@ dependencies = [
 
 [[package]]
 name = "ffmpegx"
-version = "0.1.1"
+version = "0.1.5"
 dependencies = [
  "base64 0.23.0",
  "chrono",
