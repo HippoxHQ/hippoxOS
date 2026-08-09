@@ -546,6 +546,7 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         // commands::cmd_update_track_block_size,
         commands::cmd_update_track_block_transform,
         commands::cmd_get_track_block_locked,
+        commands::cmd_get_session_text_overlays,
         commands::cmd_set_track_block_locked,
         commands::cmd_get_overlay_block_locked,
         commands::cmd_set_overlay_block_locked,
@@ -592,8 +593,11 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_get_resolution_options,
         commands::cmd_get_framerate_options,
         commands::cmd_get_bitrate_options,
+        commands::cmd_create_export_task,
         commands::cmd_submit_export_task,
         commands::cmd_get_export_task_status,
         commands::cmd_cancel_export_task,
+        commands::cmd_upload_export_text_image,
+        commands::cmd_get_export_text_image_path,
     ]
 }
