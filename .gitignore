@@ -30,3 +30,7 @@ src-tauri/bin/*-unknown-linux-gnu
 
 # test bideo
 src/test/video/*
+
+# nle module
+src/command/VideoEditor/
+src-tauri/src/commands/video_editor/
