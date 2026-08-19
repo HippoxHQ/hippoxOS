@@ -1,13 +1,14 @@
-use crate::commands::paths::get_app_root_dir;
-use crate::commands::video_editor::material::{register_material, UploadResult};
-use crate::commands::video_editor::track::calculate_max_track_time;
-use crate::commands::video_editor::track::table::TrackTable;
-use crate::commands::{
-    emit_refresh_timeline_and_player, get_settings_dir, get_video_editing_system_dialog_history_dir, load_metadata, load_session_config,
-    load_session_metadata, save_session_config, save_session_metadata, save_session_tracks, update_download_material_mapping,
-    update_session_track_stack, MaterialType, SessionMetadata, TrackTableMap,
-};
+use crate::commands::get_settings_dir;
+use crate::commands::get_video_editing_system_dialog_history_dir;
 use crate::commons::FileUtils;
+use crate::subsystem::videoeditor::get_downloads_root_dir;
+use crate::subsystem::videoeditor::material::{register_material, UploadResult};
+use crate::subsystem::videoeditor::track::calculate_max_track_time;
+use crate::subsystem::videoeditor::track::table::TrackTable;
+use crate::subsystem::videoeditor::{
+    emit_refresh_timeline_and_player, load_metadata, load_session_config, load_session_metadata, save_session_config, save_session_metadata,
+    save_session_tracks, update_download_material_mapping, update_session_track_stack, MaterialType, SessionMetadata, TrackTableMap,
+};
 use chrono::{Duration, Local};
 use log::{debug, error, info, warn};
 use std::collections::HashMap;
@@ -66,7 +67,7 @@ async fn process_video_file_background(app_handle: tauri::AppHandle, session_id:
     let result = tokio::task::spawn_blocking(move || {
         debug!("process_video_file_background - Spawned blocking task for video processing");
         // Extract download_content_id if the file is from the downloads directory
-        let downloads_dir = crate::commands::get_downloads_root_dir();
+        let downloads_dir = get_downloads_root_dir();
         let downloads_dir_str = downloads_dir.to_string_lossy().to_string();
         let download_content_id = if path.starts_with(&downloads_dir_str) {
             path.strip_prefix(&downloads_dir_str).and_then(|p| p.split(std::path::MAIN_SEPARATOR).nth(1)).map(|s| s.to_string())
@@ -182,7 +183,7 @@ async fn process_audio_files_background(app_handle: tauri::AppHandle, session_id
     let app = app_handle.clone();
     let result = tokio::task::spawn_blocking(move || {
         debug!("process_audio_files_background - Spawned blocking task for audio processing");
-        let downloads_dir = crate::commands::get_downloads_root_dir();
+        let downloads_dir = get_downloads_root_dir();
         let downloads_dir_str = downloads_dir.to_string_lossy().to_string();
         for (idx, audio_path) in paths.iter().enumerate() {
             debug!("process_audio_files_background - Processing audio {}/{}: {}", idx + 1, paths.len(), audio_path);
@@ -282,7 +283,7 @@ async fn process_image_files_background(app_handle: tauri::AppHandle, session_id
     let app = app_handle.clone();
     let result = tokio::task::spawn_blocking(move || {
         debug!("process_image_files_background - Spawned blocking task for image processing");
-        let downloads_dir = crate::commands::get_downloads_root_dir();
+        let downloads_dir = get_downloads_root_dir();
         let downloads_dir_str = downloads_dir.to_string_lossy().to_string();
         for (idx, image_path) in paths.iter().enumerate() {
             debug!("process_image_files_background - Processing image {}/{}: {}", idx + 1, paths.len(), image_path);
@@ -382,7 +383,7 @@ async fn process_text_files_background(app_handle: tauri::AppHandle, session_id:
     let app = app_handle.clone();
     let result = tokio::task::spawn_blocking(move || {
         debug!("process_text_files_background - Spawned blocking task for text processing");
-        let downloads_dir = crate::commands::get_downloads_root_dir();
+        let downloads_dir = get_downloads_root_dir();
         let downloads_dir_str = downloads_dir.to_string_lossy().to_string();
         for (idx, text_path) in paths.iter().enumerate() {
             debug!("process_text_files_background - Processing text {}/{}: {}", idx + 1, paths.len(), text_path);

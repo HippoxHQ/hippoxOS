@@ -1,6 +1,12 @@
-use crate::commands::FileOperationResult;
+use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use tauri::command;
+#[derive(Debug, Serialize, Deserialize)]
+pub struct FileOperationResult {
+    pub success: bool,
+    pub message: String,
+    pub path: Option<String>,
+}
 #[command]
 pub async fn cmd_open_in_explorer(path: String) -> Result<FileOperationResult, String> {
     let path_buf = PathBuf::from(&path);
@@ -13,12 +19,10 @@ pub async fn cmd_open_in_explorer(path: String) -> Result<FileOperationResult, S
         if path_buf.is_file() {
             if let Some(parent) = path_buf.parent() {
                 use crate::commons::hidden_cmd;
-                use std::process::Command;
                 let _ = hidden_cmd("explorer").args(["/select,", &path_str]).spawn();
             }
         } else {
             use crate::commons::hidden_cmd;
-            use std::process::Command;
             let _ = hidden_cmd("explorer").arg(&path_str).spawn();
         }
     }

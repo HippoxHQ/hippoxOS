@@ -1,3 +1,5 @@
+use crate::commands::FileOperationResult;
+use crate::commons::FileUtils;
 use chrono::Utc;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use regex::Regex;
@@ -9,14 +11,6 @@ use std::process::Command;
 use std::sync::Arc;
 use tauri::command;
 use walkdir::WalkDir;
-
-use crate::commons::FileUtils;
-#[derive(Debug, Serialize, Deserialize)]
-pub struct FileOperationResult {
-    pub success: bool,
-    pub message: String,
-    pub path: Option<String>,
-}
 #[derive(Debug, Serialize, Deserialize)]
 pub struct FileMoveResult {
     pub success: bool,
@@ -85,7 +79,6 @@ pub async fn cmd_open_in_terminal(path: String) -> Result<FileOperationResult, S
     #[cfg(target_os = "windows")]
     {
         use crate::commons::hidden_cmd;
-
         let _ = hidden_cmd("cmd").args(["/c", "start", "cmd", "/k", &format!("cd /d {}", path_str)]).spawn();
     }
     #[cfg(target_os = "macos")]
