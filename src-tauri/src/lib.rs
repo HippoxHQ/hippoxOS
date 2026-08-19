@@ -1,4 +1,5 @@
 #![allow(warnings)]
+#![windows_subsystem = "windows"]
 mod callback;
 mod cmd_registry;
 mod commands;
@@ -11,6 +12,7 @@ mod state;
 mod types;
 mod windows;
 mod workspace;
+mod subsystem;
 use crate::cmd_registry::*;
 use crate::commands::register_video_editor_hippox_drivers;
 use crate::commons::init_default_settings;
@@ -40,25 +42,25 @@ pub fn run() {
     // ===============================================
     // init dir
     if let Err(e) = commands::init_directories() {
-        eprintln!("Failed to initialize directories: {}", e);
+        log::error!("Failed to initialize directories: {}", e);
     }
     // init settings/config.json using unified settings module
     if let Err(e) = init_default_settings() {
-        eprintln!("Failed to initialize settings config: {}", e);
+        log::error!("Failed to initialize settings config: {}", e);
     }
     // init workspace
     if let Err(e) = ensure_workspace_config() {
-        eprintln!("Failed to initialize workspace config: {}", e);
+        log::error!("Failed to initialize workspace config: {}", e);
     }
     // init favorites directory
     if let Err(e) = commands::init_favorites_directory() {
-        eprintln!("Failed to initialize favorites directory: {}", e);
+        log::error!("Failed to initialize favorites directory: {}", e);
     }
     // Initialize profile
     match commands::init_default_profile() {
         Ok(profile) => {}
         Err(e) => {
-            eprintln!("Failed to initialize profile: {}", e);
+            log::error!("Failed to initialize profile: {}", e);
         }
     }
     let skills_dir = commands::get_skills_market_dir();
@@ -68,16 +70,16 @@ pub fn run() {
     rt.block_on(async {
         let _ = commands::load_config_from_file().await;
         if let Err(e) = sync_all_to_hippox_core().await {
-            eprintln!("Failed to sync config to Hippox core: {}", e);
+            log::error!("Failed to sync config to Hippox core: {}", e);
         }
         if let Err(e) = init_all_hippox_instances().await {
-            eprintln!("Failed to initialize Hippox instances: {}", e);
+            log::error!("Failed to initialize Hippox instances: {}", e);
         }
         match Context::new().await {
             Ok(mem) => {
                 app_state.set_memcontext(mem).await;
             }
-            Err(e) => eprintln!("Failed to initialize MemContext: {}", e),
+            Err(e) => log::error!("Failed to initialize MemContext: {}", e),
         }
         let task_pool = scheduled_task_pool::init_task_pool().await;
         let task_pool_for_state = task_pool.clone();
@@ -89,7 +91,7 @@ pub fn run() {
         rt.block_on(async {
             match commands::update_skills_market().await {
                 Ok(skills) => {}
-                Err(e) => eprintln!("Failed to initialize skills market: {}", e),
+                Err(e) => log::error!("Failed to initialize skills market: {}", e),
             }
         });
     });
@@ -110,5 +112,4 @@ pub fn run() {
         .invoke_handler(register_handler())
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
-
 }

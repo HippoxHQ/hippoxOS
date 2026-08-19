@@ -6,8 +6,8 @@ import { showTooltipOnElement } from "../Tooltip";
 import { topMenuItems, bottomMenuItems, allMenuItems } from "./constants";
 import { sidebarStyles } from "./sidebarStyles";
 import { usePopupMenu } from "./hooks/usePopupMenu";
-import { clearVideoEditorAllMemory } from "../../pages/VideoEditorPage/MenoryManager";
-import { videoEditorStateManager } from "../../pages/VideoEditorPage/global";
+import { videoEditorStateManager } from "../../subsystem/VideoEditor/global";
+import { clearVideoEditorAllMemory } from "../../subsystem/VideoEditor/MenoryManager";
 if (typeof document !== "undefined") {
   const styleId = "sidebar-styles";
   if (!document.getElementById(styleId)) {

@@ -3,7 +3,6 @@ import SettingsPanel, { SettingsSubView } from "./SettingsPanel";
 import SkillMarketPanel from "./SkillMarketPanel";
 import TaskQueuePanel from "./TaskQueuePanel";
 import FavoritesPanel from "./FavoritesPanel";
-import HistoryPanel, { HistoryChatPanelRef } from "../../pages/GeneralChatPage/HistoryChatPanel";
 import AtomicSkillsPanel from "./DriversPanel";
 import WorkspacePanel from "./Workspace";
 import WorkspaceConfig from "./SystemConfig/WorkspaceConfig";
@@ -14,24 +13,9 @@ import EngineNotificationPanel from "./EngineConfig/EngineNotificationPanel";
 import LogsPanel from "./LogsPanel";
 import StorageConfig from "./SystemConfig/StorageConfig";
 import { UploadFile } from "../../core/types";
-import { CloseIcon, CollapseAllIcon2, ExpandAllIcon2 } from "../../icons";
-export type MenuPanelView =
-  | "terminal"
-  | "history"
-  | "favorites"
-  | "skills"
-  | "knowledge"
-  | "skillMarket"
-  | "taskQueue"
-  | "executionHistory"
-  | "drivers"
-  | "settings"
-  | "workspace"
-  | "workspaceConfig"
-  | "logs"
-  | "storage"
-  | "engine_group"
-  | "codeEditor";
+import { CollapseAllIcon2, ExpandAllIcon2 } from "../../icons";
+import { HistoryChatPanelRef } from "../../subsystem/GeneralChat/HistoryChatPanel";
+export type MenuPanelView = "terminal" | "history" | "favorites" | "skills" | "knowledge" | "skillMarket" | "taskQueue" | "executionHistory" | "drivers" | "settings" | "workspace" | "workspaceConfig" | "logs" | "storage" | "engine_group" | "codeEditor";
 export type EngineSubView = "engine_database" | "engine_network" | "engine_container" | "engine_notification";
 interface MenuPanelProps {
   currentView: MenuPanelView;

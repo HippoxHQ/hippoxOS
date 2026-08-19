@@ -1,4 +1,5 @@
 use crate::commands::paths::get_app_root_dir;
+use crate::commons::FileUtils;
 use crate::scheduled_task::scheduled_task_executor;
 use crate::scheduled_task_pool;
 use crate::state::AppState;
@@ -134,7 +135,7 @@ fn get_next_task_id() -> Result<String, String> {
 fn create_task_directory(task_id: &str) -> Result<(), String> {
     let task_dir = get_task_dir(task_id);
     if task_dir.exists() {
-        fs::remove_dir_all(&task_dir).map_err(|e| format!("Failed to remove existing task directory: {}", e))?;
+       FileUtils::remove_dir_all_force(&task_dir).map_err(|e| format!("Failed to remove existing task directory: {:?}", e))?;
     }
     fs::create_dir_all(&task_dir).map_err(|e| format!("Failed to create task directory: {}", e))?;
     Ok(())
@@ -372,7 +373,7 @@ pub async fn cmd_scheduled_task_delete(state: State<'_, AppState>, task_id: Stri
     }
     let task_dir = get_task_dir(&task_id);
     if task_dir.exists() {
-        fs::remove_dir_all(&task_dir).map_err(|e| format!("Failed to delete task directory: {}", e))?;
+       FileUtils::remove_dir_all_force(&task_dir).map_err(|e| format!("Failed to delete task directory: {:?}", e))?;
     }
     Ok(true)
 }

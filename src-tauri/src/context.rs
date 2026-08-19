@@ -37,7 +37,7 @@ pub async fn get_conversation_history(mem: &MemContext, session_id: &str, limit:
             Ok(history)
         }
         Err(e) => {
-            eprintln!("Failed to recall history: {}", e);
+            log::error!("Failed to recall history: {}", e);
             Ok(String::new())
         }
     }

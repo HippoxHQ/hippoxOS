@@ -709,7 +709,7 @@ pub async fn cmd_set_config(config: HippoxAppConfig) -> Result<bool, String> {
     let mut global_config = HIPPOX_APP_CONFIG.write().await;
     *global_config = config;
     if let Err(e) = save_config_to_file().await {
-        eprintln!("Failed to save config to file: {}", e);
+        log::error!("Failed to save config to file: {}", e);
     }
     Ok(true)
 }
@@ -796,7 +796,7 @@ pub async fn cmd_update_config(path: ConfigPath, value: serde_json::Value) -> Re
         ConfigPath::Engine(_key) => {}
     }
     if let Err(e) = save_config_to_file().await {
-        eprintln!("Failed to save config to file: {}", e);
+        log::error!("Failed to save config to file: {}", e);
     }
     Ok(true)
 }

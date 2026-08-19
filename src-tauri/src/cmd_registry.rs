@@ -92,7 +92,7 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_load_codeeditor_task_content,
         commands::cmd_update_pinned_codeeditor_sessions,
         commands::cmd_get_pinned_codeeditor_sessions,
-        // ========== Video Session ==========
+        //  Video Session 
         commands::cmd_create_video_dialog_session,
         commands::cmd_list_video_dialog_sessions,
         commands::cmd_load_video_session_config,
@@ -106,7 +106,7 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_load_video_task_content,
         commands::cmd_update_pinned_video_sessions,
         commands::cmd_get_pinned_video_sessions,
-        // ========== SandBox3D Session ==========
+        //  SandBox3D Session 
         commands::cmd_create_sandbox3d_dialog_session,
         commands::cmd_list_sandbox3d_dialog_sessions,
         commands::cmd_load_sandbox3d_session_config,
@@ -192,7 +192,7 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_delete_notification_instance,
         commands::cmd_toggle_notification_instance,
         commands::cmd_get_notification_instances,
-        // ========== VideoEditor & SandBox3D Layout Swap Mode ==========
+        //  VideoEditor & SandBox3D Layout Swap Mode 
         commands::cmd_get_settings_videoeditor_layout_swap_mode,
         commands::cmd_save_settings_videoeditor_layout_swap_mode,
         commands::cmd_get_settings_sandbox3d_layout_swap_mode,
@@ -323,7 +323,7 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_git_pull,
         commands::cmd_git_push,
         commands::cmd_get_file_diff,
-        // ========== CodeEditor File Operations ==========
+        //  CodeEditor File Operations 
         commands::cmd_open_in_explorer,
         commands::cmd_open_in_terminal,
         commands::cmd_create_file,
@@ -333,7 +333,7 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_copy,
         commands::cmd_search_in_files,
         commands::cmd_write_file,
-        // ========== Tmp & Metadata Commands ==========
+        //  Tmp & Metadata Commands 
         commands::cmd_ensure_tmp_dir,
         commands::cmd_load_metadata,
         commands::cmd_save_metadata,
@@ -349,13 +349,13 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_clear_all_tmp,
         commands::cmd_cleanup_orphaned_tmp,
         commands::cmd_generate_tmp_name,
-        // ============ terminal ================
+        // terminal
         commands::cmd_terminal_create,
         commands::cmd_terminal_input,
         commands::cmd_terminal_kill,
         commands::cmd_terminal_list,
         commands::cmd_terminal_is_alive,
-        // ========== Video Editor ==========
+        //  Video Editor 
         // Basic Editing 
         commands::cmd_video_metadata,
         commands::cmd_video_thumbnail,
@@ -365,21 +365,22 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         // Multi-Track Composition
         // Keyframe Animation
         // Advanced Features 
-        // ========== Video Player Commands ==========
+        //  Video Player Commands 
         commands::cmd_player_extract_frame_at_time,
         commands::cmd_player_extract_full_frame_at_time,
         commands::cmd_player_extract_full_frame_at_time_by_track_id,
         commands::cmd_player_extract_frames_batch_at_time,   
         commands::cmd_prefetch_frame_cache, 
         commands::cmd_clear_non_session_frame_cache,
-        // ========== Video Materials ==========
+        commands::cmd_get_transition_frames_by_id,
+        //  Video Materials 
         commands::cmd_get_video_materials,     
         commands::cmd_get_audio_materials,     
         commands::cmd_get_image_materials,     
         commands::cmd_get_text_materials,
         commands::cmd_get_all_materials,
         commands::cmd_get_material_by_id,
-        // ========== Materials Download Commands ========== 
+        //  Materials Download Commands  
         commands::cmd_download_file,
         commands::cmd_get_download_file_path,
         commands::cmd_cancel_download,
@@ -391,12 +392,12 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_is_download_registered_as_material,
         commands::cmd_get_download_material_id,
         commands::cmd_register_download_as_material,
-        // ========== Video Materials Upload ==========
+        //  Video Materials Upload 
         commands::cmd_upload_video_material,
         commands::cmd_upload_audio_material,
         commands::cmd_upload_image_material,
         commands::cmd_upload_text_material,   
-        // ========== Video Materials Operations ==========
+        //  Video Materials Operations 
         commands::cmd_delete_material,
         commands::cmd_rename_material,
         commands::cmd_copy_material,
@@ -409,14 +410,14 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_update_material_metadata,
         commands::cmd_open_material_directory,
         commands::cmd_open_material_folder,
-        // ========== Video Session Tracks ==========
+        //  Video Session Tracks 
         commands::cmd_get_video_session_tracks,
         commands::cmd_update_video_session_tracks,  
         // open material preview window
         commands::cmd_open_material_preview,
         commands::cmd_close_material_preview,
         commands::cmd_get_material_preview_data,
-        // ========== Video Tracks ==========
+        //  Video Tracks 
         commands::cmd_add_track,
         commands::cmd_get_track_stack,
         commands::cmd_get_track_stack_reversed,
@@ -439,7 +440,7 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_get_overlay_stack,
         commands::cmd_get_overlay_stack_reversed,
         commands::cmd_split_video_to_audio,
-        // ========== Audio Playback Commands ==========
+        //  Audio Playback Commands 
         commands::cmd_play_audio,
         commands::cmd_stop_audio,
         commands::cmd_pause_audio,
@@ -459,14 +460,14 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_previous_overlay_track_history,
         commands::cmd_next_overlay_track_history,
         commands::cmd_add_material_to_track,
-        // =========== Trim Track Block ============
+        // Trim Track Block 
         commands::cmd_trim_track_block,           
         commands::cmd_trim_track_block_start,     
         commands::cmd_trim_track_block_end,       
         commands::cmd_trim_overlay_track_block,           
         commands::cmd_trim_overlay_track_block_start,     
         commands::cmd_trim_overlay_track_block_end,   
-        // ========== Batch Trim Track Block  ==========
+        //  Batch Trim Track Block  
         commands::cmd_batch_trim_track_blocks,
         commands::cmd_batch_trim_track_blocks_start,
         commands::cmd_batch_trim_track_blocks_end,
@@ -477,7 +478,7 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_batch_trim_all_blocks_start,
         commands::cmd_batch_trim_all_blocks_end,
         commands::cmd_remove_all_blocks_batch,
-        // ========== Video Transitions ==========
+        //  Video Transitions 
         commands::cmd_get_track_transition_candidates,
         commands::cmd_get_session_transition_candidates,
         commands::cmd_get_block_gap,
@@ -487,7 +488,7 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_get_track_transitions,
         commands::cmd_get_session_transitions,
         commands::cmd_get_transition_type_list,
-        // ========== TTS ==========
+        //  TTS 
         commands::cmd_generate_tts,
         commands::cmd_get_tts_task,
         commands::cmd_list_tts_tasks,
@@ -497,7 +498,7 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_get_tts_material_id,
         commands::cmd_import_tts_as_material,
         commands::cmd_force_cleanup_audio,
-        // ========== Video Overlays ==========
+        //  Video Overlays 
         commands::cmd_insert_overlay,
         commands::cmd_list_overlays,
         commands::cmd_list_image_overlays,
@@ -552,7 +553,7 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_set_overlay_block_locked,
         commands::cmd_update_track_block_volume,
         commands::cmd_update_track_block_speed,
-        // ====== Overlay Update Style ======
+        //  Overlay Update Style 
         commands::cmd_update_text_block_all_style,
         commands::cmd_update_overlay_transform,
         commands::cmd_update_overlay_text_style,
@@ -560,7 +561,7 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_update_overlay_border,
         commands::cmd_update_overlay_stroke,
         commands::cmd_update_overlay_shadow,
-        // ===== Overlay Reset Commands =====
+        //  Overlay Reset Commands 
         commands::cmd_reset_overlay_transform,
         commands::cmd_reset_overlay_text_style,
         commands::cmd_reset_overlay_background,
@@ -568,17 +569,21 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_reset_overlay_stroke,
         commands::cmd_reset_overlay_shadow,
         commands::stats_project_info,
-        // ================ effects ================
+        //  effects 
         commands::cmd_effects_get_filter_type_list,
         commands::cmd_effects_get_camera_motion_type_list,
         commands::cmd_effects_get_vfx_type_list,
+        commands::cmd_effects_query_progress,
+        commands::cmd_effects_get_task_progress,
+        commands::cmd_effects_get_task_status,
+        commands::cmd_effects_cancel_task,
         commands::cmd_effects_apply_filter,
         commands::cmd_effects_apply_vfx,
         commands::cmd_effects_apply_camera_motion,
         commands::cmd_effects_delete_filter,
         commands::cmd_effects_delete_vfx,
         commands::cmd_effects_delete_camera_motion,
-        // =================== animation ====================
+        // animation 
         commands::cmd_get_animation_properties,
         commands::cmd_add_time_animation,
         commands::cmd_add_keyframe_animation,
@@ -586,7 +591,7 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_get_keyframe_animation,
         commands::cmd_add_overlay_time_animation,
         commands::cmd_get_overlay_time_animation,
-        // =================== video editor export ====================
+        // video editor export 
         commands::cmd_get_encoding_formats,
         commands::cmd_get_crf_qualities,
         commands::cmd_get_encoder_presets,
@@ -599,5 +604,10 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_cancel_export_task,
         commands::cmd_upload_export_text_image,
         commands::cmd_get_export_text_image_path,
+        commands::cmd_get_export_task_progress,
+        commands::cmd_get_export_task_status_with_progress,
+        commands::cmd_get_session_export_progress,
+        commands::cmd_get_session_export_status,
+        commands::cmd_get_audio_formats,
     ]
 }

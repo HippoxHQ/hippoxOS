@@ -62,7 +62,7 @@ pub fn ensure_workspace_directory() -> Result<PathBuf, String> {
     let workspace_dir = app_root.join("workspace");
     if !workspace_dir.exists() {
         fs::create_dir_all(&workspace_dir).map_err(|e| format!("Failed to create workspace directory: {}", e))?;
-        println!("Created workspace directory: {:?}", workspace_dir);
+        log::debug!("Created workspace directory: {:?}", workspace_dir);
     }
     Ok(workspace_dir)
 }

@@ -47,7 +47,7 @@ pub async fn cmd_check_all_llm_health(state: State<'_, AppState>) -> Result<Vec<
         match result {
             Ok(health_result) => health_results.push(health_result),
             Err(e) => {
-                eprintln!("Health check task failed: {}", e);
+                log::error!("Health check task failed: {}", e);
             }
         }
     }

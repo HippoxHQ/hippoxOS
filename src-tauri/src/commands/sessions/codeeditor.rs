@@ -1,5 +1,6 @@
 use crate::commands::get_codeeditor_dialog_history_dir;
 use crate::commands::get_settings_dir;
+use crate::commons::FileUtils;
 use chrono::Local;
 use std::fs;
 fn get_config_path() -> std::path::PathBuf {
@@ -143,7 +144,7 @@ pub fn cmd_delete_codeeditor_dialog_session(session_id: &str) -> Result<(), Stri
     let dir = get_codeeditor_dialog_history_dir();
     let session_dir = dir.join(session_id);
     if session_dir.exists() {
-        fs::remove_dir_all(&session_dir).map_err(|e| format!("Failed to delete codeeditor session: {}", e))?;
+        FileUtils::remove_dir_all_force(&session_dir).map_err(|e| format!("Failed to delete codeeditor session: {:?}", e))?;
     }
     let pinned = get_pinned_sessions_from_config()?;
     if pinned.contains(&session_id.to_string()) {

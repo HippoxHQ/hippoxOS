@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "../../../hooks/useTranslation";
-import { getSystemPrompt } from "../../../llm/prompts/basis";
 import { hippoxCommands } from "../../../command/chat";
 import { taskManager } from "../../../core/TaskManager";
 import { TaskInfo, UploadFile, TaskStatusEnum, SessionDomain } from "../../../core/types";
@@ -8,6 +7,7 @@ import { Language, ChatMessage, RoleEnum, MessageStatus } from "../../../types/t
 import { workspaceCommands } from "../../../command/workspace";
 import { codeEditorSessionCommands } from "../../../command/session/codeeditor";
 import { codeEditorCommands } from "../../../command/CodeEditor";
+import { getCodeEditorSystemPrompt } from "../../../subsystem/CodeEditor/llm/prompts/basis";
 export function useCodeEditorSession(
     language: Language,
     isConfigLoaded: boolean,
@@ -183,7 +183,7 @@ export function useCodeEditorSession(
         try {
             const workspace = await workspaceCommands.getDefaultWorkspace();
             const workspacePath = workspace?.workspace_path;
-            const systemPrompt = getSystemPrompt(language as 'zh' | 'en', workspacePath);
+            const systemPrompt = getCodeEditorSystemPrompt(language as 'zh' | 'en', workspacePath);
             const fullMessage = `${systemPrompt}\n\n User: ${userMessage}`;
             const mode = workflowMode || currentWorkflowMode;
             const taskId = await hippoxCommands.sendMessageAsync(

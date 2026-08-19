@@ -9,6 +9,8 @@ use std::process::Command;
 use std::sync::Arc;
 use tauri::command;
 use walkdir::WalkDir;
+
+use crate::commons::FileUtils;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct FileOperationResult {
     pub success: bool,
@@ -82,21 +84,23 @@ pub async fn cmd_open_in_terminal(path: String) -> Result<FileOperationResult, S
     let path_str = target_path.to_string_lossy().to_string();
     #[cfg(target_os = "windows")]
     {
-        let _ = Command::new("cmd").args(["/c", "start", "cmd", "/k", &format!("cd /d {}", path_str)]).spawn();
+        use crate::commons::hidden_cmd;
+
+        let _ = hidden_cmd("cmd").args(["/c", "start", "cmd", "/k", &format!("cd /d {}", path_str)]).spawn();
     }
     #[cfg(target_os = "macos")]
     {
         let script = format!(r#"tell application "Terminal" to do script "cd '{}'" "#, path_str.replace("'", "'\\''"));
-        let _ = Command::new("osascript").args(["-e", &script]).spawn();
+        let _ = hidden_cmd("osascript").args(["-e", &script]).spawn();
     }
     #[cfg(target_os = "linux")]
     {
-        let _ = Command::new("gnome-terminal")
+        let _ = hidden_cmd("gnome-terminal")
             .args(["--working-directory", &path_str])
             .spawn()
-            .or_else(|_| Command::new("xfce4-terminal").args(["--working-directory", &path_str]).spawn())
-            .or_else(|_| Command::new("kitty").args(["--directory", &path_str]).spawn())
-            .or_else(|_| Command::new("alacritty").args(["--working-directory", &path_str]).spawn());
+            .or_else(|_| hidden_cmd("xfce4-terminal").args(["--working-directory", &path_str]).spawn())
+            .or_else(|_| hidden_cmd("kitty").args(["--directory", &path_str]).spawn())
+            .or_else(|_| hidden_cmd("alacritty").args(["--working-directory", &path_str]).spawn());
     }
     Ok(FileOperationResult { success: true, message: "Opened in terminal".to_string(), path: Some(path_str) })
 }
@@ -200,9 +204,9 @@ pub async fn cmd_delete(path: String) -> Result<FileOperationResult, String> {
         return Ok(FileOperationResult { success: false, message: format!("Path does not exist: {}", path), path: None });
     }
     if path_buf.is_dir() {
-        match fs::remove_dir_all(&path_buf) {
+        match FileUtils::remove_dir_all_force(&path_buf) {
             Ok(_) => Ok(FileOperationResult { success: true, message: "Folder deleted".to_string(), path: Some(path) }),
-            Err(e) => Ok(FileOperationResult { success: false, message: format!("Failed to delete folder: {}", e), path: None }),
+            Err(e) => Ok(FileOperationResult { success: false, message: format!("Failed to delete folder: {:?}", e), path: None }),
         }
     } else {
         match fs::remove_file(&path_buf) {
@@ -636,12 +640,12 @@ pub async fn cmd_clear_all_tmp(workspace_path: String) -> Result<FileOperationRe
     if !tmp_dir.exists() {
         return Ok(FileOperationResult { success: true, message: "Tmp directory does not exist".to_string(), path: None });
     }
-    match fs::remove_dir_all(&tmp_dir) {
+    match FileUtils::remove_dir_all_force(&tmp_dir) {
         Ok(_) => {
             let _ = fs::create_dir_all(&tmp_dir);
             Ok(FileOperationResult { success: true, message: "Cleared all tmp files".to_string(), path: Some(tmp_dir.to_string_lossy().to_string()) })
         }
-        Err(e) => Ok(FileOperationResult { success: false, message: format!("Failed to clear tmp directory: {}", e), path: None }),
+        Err(e) => Ok(FileOperationResult { success: false, message: format!("Failed to clear tmp directory: {:?}", e), path: None }),
     }
 }
 #[command]

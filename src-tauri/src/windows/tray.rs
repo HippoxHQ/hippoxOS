@@ -152,7 +152,7 @@ impl TrayManager {
                 let _ = app_handle.emit("show-notification", serde_json::json!({ "message": message }));
             }
             Err(e) => {
-                eprintln!("Failed to set default LLM: {}", e);
+                log::error!("Failed to set default LLM: {}", e);
                 let error_msg = if lang == "zh" { format!("设置默认 LLM 失败: {}", e) } else { format!("Failed to set default LLM: {}", e) };
                 let _ = app_handle.emit("show-notification", serde_json::json!({ "message": error_msg, "type": "error" }));
             }
@@ -222,14 +222,15 @@ impl TrayManager {
     }
     #[cfg(target_os = "windows")]
     fn open_path(path: &std::path::Path) {
-        let _ = std::process::Command::new("explorer").arg(path).spawn();
+        use crate::commons::hidden_cmd;
+        let _ = hidden_cmd("explorer").arg(path).spawn();
     }
     #[cfg(target_os = "macos")]
     fn open_path(path: &std::path::Path) {
-        let _ = std::process::Command::new("open").arg(path).spawn();
+        let _ = hidden_cmd("open").arg(path).spawn();
     }
     #[cfg(target_os = "linux")]
     fn open_path(path: &std::path::Path) {
-        let _ = std::process::Command::new("xdg-open").arg(path).spawn();
+        let _ = hidden_cmd("xdg-open").arg(path).spawn();
     }
 }

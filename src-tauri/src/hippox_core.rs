@@ -94,7 +94,7 @@ pub struct LlmInstance {
 }
 pub(crate) async fn init_all_hippox_instances() -> Result<(), String> {
     if let Err(e) = sync_all_to_hippox_core().await {
-        eprintln!("Failed to sync config to Hippox core: {}", e);
+        log::error!("Failed to sync config to Hippox core: {}", e);
     }
     let (skills_dir, llm_instances) = {
         let config = HIPPOX_APP_CONFIG.read().await;
@@ -107,7 +107,7 @@ pub(crate) async fn init_all_hippox_instances() -> Result<(), String> {
                 instances.insert(id.clone(), Arc::new(hippox));
             }
             Err(e) => {
-                eprintln!("Failed to initialize {} ({}): {}", instance.name, id, e);
+                log::error!("Failed to initialize {} ({}): {}", instance.name, id, e);
             }
         }
     }

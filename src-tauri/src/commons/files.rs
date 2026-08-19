@@ -138,19 +138,20 @@ impl FileUtils {
         }
         #[cfg(target_os = "windows")]
         {
-            let _ = std::process::Command::new("cmd").args(&["/c", "rmdir", "/s", "/q", &path_str]).output();
+            use crate::commons::hidden_cmd;
+            let _ = hidden_cmd("cmd").args(&["/c", "rmdir", "/s", "/q", &path_str]).output();
             if path.exists() {
-                let _ = std::process::Command::new("powershell")
+                let _ = hidden_cmd("powershell")
                     .args(&["-Command", &format!("Remove-Item -Path '{}' -Recurse -Force -ErrorAction SilentlyContinue", path_str)])
                     .output();
             }
         }
         #[cfg(any(target_os = "macos", target_os = "linux"))]
         {
-            let _ = std::process::Command::new("rm").args(&["-rf", &path_str]).output();
+            let _ = hidden_cmd("rm").args(&["-rf", &path_str]).output();
             if path.exists() {
-                let _ = std::process::Command::new("chflags").args(&["-R", "nouchg", &path_str]).output();
-                let _ = std::process::Command::new("rm").args(&["-rf", &path_str]).output();
+                let _ = hidden_cmd("chflags").args(&["-R", "nouchg", &path_str]).output();
+                let _ = hidden_cmd("rm").args(&["-rf", &path_str]).output();
             }
         }
         if path.exists() {
@@ -239,19 +240,20 @@ impl FileUtils {
         }
         #[cfg(target_os = "windows")]
         {
-            let _ = std::process::Command::new("cmd").args(&["/c", "del", "/f", "/q", &path_str]).output();
+            use crate::commons::hidden_cmd;
+            let _ = hidden_cmd("cmd").args(&["/c", "del", "/f", "/q", &path_str]).output();
             if path.exists() {
-                let _ = std::process::Command::new("powershell")
+                let _ = hidden_cmd("powershell")
                     .args(&["-Command", &format!("Remove-Item -Path '{}' -Force -ErrorAction SilentlyContinue", path_str)])
                     .output();
             }
         }
         #[cfg(any(target_os = "macos", target_os = "linux"))]
         {
-            let _ = std::process::Command::new("rm").args(&["-f", &path_str]).output();
+            let _ = hidden_cmd("rm").args(&["-f", &path_str]).output();
             if path.exists() {
-                let _ = std::process::Command::new("chflags").args(&["-R", "nouchg", &path_str]).output();
-                let _ = std::process::Command::new("rm").args(&["-f", &path_str]).output();
+                let _ = hidden_cmd("chflags").args(&["-R", "nouchg", &path_str]).output();
+                let _ = hidden_cmd("rm").args(&["-f", &path_str]).output();
             }
         }
         if path.exists() {

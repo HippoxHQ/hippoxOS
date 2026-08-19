@@ -179,7 +179,7 @@ impl ScheduledTaskExecutor {
         }
         // Save result to result.json (overwrite, only keep latest)
         if let Err(e) = self.save_execution_result(&result).await {
-            eprintln!("Failed to save execution result for task {}: {}", self.task.id, e);
+            log::error!("Failed to save execution result for task {}: {}", self.task.id, e);
         }
         // Update task config with last execution info
         self.update_task_after_execution(&result).await?;

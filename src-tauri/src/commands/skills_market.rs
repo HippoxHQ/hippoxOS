@@ -1,5 +1,6 @@
 use super::paths::{get_app_root_dir, get_skills_market_dir};
 use crate::commands::{get_favorites_config_path, load_favorites_config, save_favorites_config};
+use crate::commons::{hidden_cmd, FileUtils};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -59,11 +60,11 @@ fn ensure_favorites_dir() -> Result<(), String> {
     let skill_dir = get_favorites_skill_dir();
     if !natural_dir.exists() {
         fs::create_dir_all(&natural_dir).map_err(|e| format!("Failed to create natural directory: {}", e))?;
-        println!("Created natural directory: {:?}", natural_dir);
+        log::debug!("Created natural directory: {:?}", natural_dir);
     }
     if !skill_dir.exists() {
         fs::create_dir_all(&skill_dir).map_err(|e| format!("Failed to create skill directory: {}", e))?;
-        println!("Created skill directory: {:?}", skill_dir);
+        log::debug!("Created skill directory: {:?}", skill_dir);
     }
     Ok(())
 }
@@ -231,8 +232,8 @@ pub async fn update_skills_market() -> Result<Vec<MarketSkill>, String> {
         fs::create_dir_all(&market_dir).map_err(|e| format!("Failed to create skills market directory: {}", e))?;
     }
     if !git_dir.exists() {
-        println!("Cloning skills market repository from {}...", repo_url);
-        let output = Command::new("git")
+        log::debug!("Cloning skills market repository from {}...", repo_url);
+        let output = hidden_cmd("git")
             .args(["clone", "--branch", branch, repo_url, market_dir.to_str().unwrap()])
             .output()
             .map_err(|e| format!("Git clone failed: {}. Is git installed?", e))?;
@@ -240,20 +241,20 @@ pub async fn update_skills_market() -> Result<Vec<MarketSkill>, String> {
             let stderr = String::from_utf8_lossy(&output.stderr);
             return Err(format!("Failed to clone repository: {}", stderr));
         }
-        println!("Skills market cloned successfully");
+        log::debug!("Skills market cloned successfully");
     } else {
-        println!("Pulling latest skills market updates...");
+        log::debug!("Pulling latest skills market updates...");
         let output =
-            Command::new("git").current_dir(&market_dir).args(["pull", "origin", branch]).output().map_err(|e| format!("Git pull failed: {}", e))?;
+            hidden_cmd("git").current_dir(&market_dir).args(["pull", "origin", branch]).output().map_err(|e| format!("Git pull failed: {}", e))?;
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
-            eprintln!("Git pull warning: {}", stderr);
+            log::error!("Git pull warning: {}", stderr);
         } else {
             let stdout = String::from_utf8_lossy(&output.stdout);
             if stdout.contains("Already up to date") {
-                println!("Skills market already up to date");
+                log::debug!("Skills market already up to date");
             } else {
-                println!("Skills market updated successfully");
+                log::debug!("Skills market updated successfully");
             }
         }
     }
@@ -329,7 +330,7 @@ pub async fn install_skill(skill_id: String) -> Result<bool, String> {
     }
     let target_skill_dir = local_skills_dir.join(&skill_id);
     if target_skill_dir.exists() {
-        fs::remove_dir_all(&target_skill_dir).map_err(|e| format!("Failed to remove existing skill: {}", e))?;
+        FileUtils::remove_dir_all_force(&target_skill_dir).map_err(|e| format!("Failed to remove existing skill: {:?}", e))?;
     }
     if let Some(parent) = target_skill_dir.parent() {
         if !parent.exists() {
@@ -345,7 +346,7 @@ pub async fn install_skill(skill_id: String) -> Result<bool, String> {
 pub async fn uninstall_skill(skill_id: String) -> Result<bool, String> {
     let local_skills_dir = get_app_root_dir().join("skills").join(&skill_id);
     if local_skills_dir.exists() {
-        fs::remove_dir_all(&local_skills_dir).map_err(|e| format!("Failed to uninstall skill: {}", e))?;
+        FileUtils::remove_dir_all_force(&local_skills_dir).map_err(|e| format!("Failed to uninstall skill: {:?}", e))?;
     }
     Ok(true)
 }
@@ -412,7 +413,7 @@ pub async fn favorite_skill(skill_id: String) -> Result<bool, String> {
     let target_dir = if is_natural { get_favorites_natural_dir() } else { get_favorites_skill_dir() };
     let target_skill_dir = target_dir.join(&skill_id);
     if target_skill_dir.exists() {
-        fs::remove_dir_all(&target_skill_dir).map_err(|e| format!("Failed to remove existing favorite: {}", e))?;
+        FileUtils::remove_dir_all_force(&target_skill_dir).map_err(|e| format!("Failed to remove existing favorite: {:?}", e))?;
     }
     if let Some(parent) = target_skill_dir.parent() {
         if !parent.exists() {
@@ -433,7 +434,7 @@ pub async fn unfavorite_skill(skill_id: String) -> Result<bool, String> {
     let favorites_dir = get_favorites_dir();
     let target_skill_dir = favorites_dir.join(&skill_id);
     if target_skill_dir.exists() {
-        fs::remove_dir_all(&target_skill_dir).map_err(|e| format!("Failed to remove favorite: {}", e))?;
+        FileUtils::remove_dir_all_force(&target_skill_dir).map_err(|e| format!("Failed to remove favorite: {:?}", e))?;
     }
     let mut favorites = load_favorites_config();
     favorites.favorites.retain(|id| id != &skill_id);

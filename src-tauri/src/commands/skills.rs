@@ -1,5 +1,6 @@
 use crate::commands::paths::get_app_root_dir;
 use crate::commands::{load_favorites_config, save_favorites_config};
+use crate::commons::FileUtils;
 use hippox::{get_driver, list_drivers};
 use serde::{Deserialize, Serialize};
 use std::fs;
@@ -263,7 +264,7 @@ pub async fn cmd_list_local_skills() -> Result<Vec<SkillData>, String> {
                                 skill.path = skill_md_path.to_string_lossy().to_string();
                                 skills.push(skill);
                             }
-                            Err(e) => eprintln!("Failed to parse skill {}: {}", skill_id, e),
+                            Err(e) => log::error!("Failed to parse skill {}: {}", skill_id, e),
                         }
                     }
                 }
@@ -421,7 +422,7 @@ pub async fn cmd_delete_skill(skill_id: String, category: String) -> Result<bool
     }
     let skill_name =
         if let Ok(skill) = parse_skill_from_markdown(&get_skill_md_path(&category, &skill_id), &skill_id) { skill.name } else { skill_id.clone() };
-    fs::remove_dir_all(&skill_dir).map_err(|e| format!("Failed to delete skill: {}", e))?;
+    FileUtils::remove_dir_all_force(&skill_dir).map_err(|e| format!("Failed to delete skill: {:?}", e))?;
     let now = chrono::Local::now().to_rfc3339();
     let history = SkillHistory {
         id: Uuid::new_v4().to_string(),
@@ -469,7 +470,7 @@ pub async fn cmd_favorite_local_skill(skill_id: String, category: String) -> Res
     let favorites_skill_dir = get_app_root_dir().join("favorites").join("skill").join(&category);
     let target_dir = favorites_skill_dir.join(&skill_id);
     if target_dir.exists() {
-        fs::remove_dir_all(&target_dir).map_err(|e| format!("Failed to remove existing: {}", e))?;
+        FileUtils::remove_dir_all_force(&target_dir).map_err(|e| format!("Failed to remove existing: {:?}", e))?;
     }
     if let Some(parent) = target_dir.parent() {
         if !parent.exists() {
@@ -492,7 +493,7 @@ pub async fn cmd_unfavorite_local_skill(skill_id: String, category: String) -> R
     let favorite_id = format!("{}/{}", category, skill_id);
     let target_dir = get_app_root_dir().join("favorites").join("skill").join(&category).join(&skill_id);
     if target_dir.exists() {
-        fs::remove_dir_all(&target_dir).map_err(|e| format!("Failed to remove favorite: {}", e))?;
+        FileUtils::remove_dir_all_force(&target_dir).map_err(|e| format!("Failed to remove favorite: {:?}", e))?;
     }
     let mut favorites = crate::commands::favorites::load_favorites_config();
     favorites.favorites.retain(|id| id != &favorite_id);

@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "../../../hooks/useTranslation";
-import { getSystemPrompt } from "../../../llm/prompts/basis";
 import { hippoxCommands } from "../../../command/chat";
 import { taskManager } from "../../../core/TaskManager";
 import { TaskInfo, UploadFile, TaskStatusEnum, SessionDomain } from "../../../core/types";
@@ -9,6 +8,7 @@ import { workspaceCommands } from "../../../command/workspace";
 import { videoSessionCommands } from "../../../command/session/videoeditor";
 import { basename } from "@tauri-apps/api/path";
 import { showToast, ToastType } from "../../../components/Toast";
+import { getVideoEditorSystemPrompt } from "../../../subsystem/VideoEditor/llm/prompts/basis";
 const getFileType = (filePath: string): "video" | "audio" | "image" | "text" | null => {
     const ext = filePath.split(".").pop()?.toLowerCase() || "";
     const videoExts = ["mp4", "mov", "mkv", "avi", "webm", "flv", "wmv", "m4v"];
@@ -363,7 +363,7 @@ export function useVideoSession(
         try {
             const workspace = await workspaceCommands.getDefaultWorkspace();
             const workspacePath = workspace?.workspace_path;
-            const systemPrompt = getSystemPrompt(language as 'zh' | 'en', workspacePath);
+            const systemPrompt = getVideoEditorSystemPrompt(language as 'zh' | 'en', workspacePath);
             const fullMessage = `${systemPrompt}\n\n User: ${userMessage}`;
             const mode = workflowMode || currentWorkflowMode;
             const taskId = await hippoxCommands.sendMessageAsync(

@@ -55,7 +55,8 @@ fn get_current_timezone_name() -> String {
     #[cfg(target_os = "windows")]
     {
         use std::process::Command;
-        let output = Command::new("powershell").args(["-Command", "Get-TimeZone | Select-Object -ExpandProperty Id"]).output();
+        use crate::commons::hidden_cmd;
+        let output = hidden_cmd("powershell").args(["-Command", "Get-TimeZone | Select-Object -ExpandProperty Id"]).output();
         if let Ok(output) = output {
             if output.status.success() {
                 let tz = String::from_utf8_lossy(&output.stdout).trim().to_string();
@@ -68,7 +69,7 @@ fn get_current_timezone_name() -> String {
     #[cfg(not(target_os = "windows"))]
     {
         use std::process::Command;
-        let output = Command::new("date").arg("+%Z").output();
+        let output = hidden_cmd("date").arg("+%Z").output();
         if let Ok(output) = output {
             if output.status.success() {
                 let tz = String::from_utf8_lossy(&output.stdout).trim().to_string();

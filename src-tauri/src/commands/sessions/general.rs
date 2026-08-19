@@ -1,4 +1,5 @@
 use crate::commands::{get_dialog_history_dir, get_settings_dir};
+use crate::commons::FileUtils;
 use chrono::Local;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -195,7 +196,7 @@ pub fn cmd_delete_dialog_session(session_id: &str) -> Result<(), String> {
     let dir = get_dialog_history_dir();
     let session_dir = dir.join(session_id);
     if session_dir.exists() {
-        fs::remove_dir_all(&session_dir).map_err(|e| format!("Failed to delete session: {}", e))?;
+        FileUtils::remove_dir_all_force(&session_dir).map_err(|e| format!("Failed to delete session: {:?}", e))?;
     }
     let _ = cmd_update_pinned_sessions(session_id.to_string(), false);
     Ok(())

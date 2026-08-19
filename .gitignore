@@ -33,4 +33,5 @@ src/test/video/*
 
 # nle module
 src/command/VideoEditor/
+src/subsystem/VideoEditor/
 src-tauri/src/commands/video_editor/

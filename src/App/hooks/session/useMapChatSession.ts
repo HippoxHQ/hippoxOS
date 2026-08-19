@@ -1,12 +1,12 @@
 import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "../../../hooks/useTranslation";
-import { getSystemPrompt } from "../../../llm/prompts/basis";
 import { hippoxCommands } from "../../../command/chat";
 import { taskManager } from "../../../core/TaskManager";
 import { TaskInfo, UploadFile, TaskStatusEnum, SessionDomain } from "../../../core/types";
 import { Language, ChatMessage, RoleEnum, MessageStatus } from "../../../types/types";
 import { workspaceCommands } from "../../../command/workspace";
 import { mapSessionCommands } from "../../../command/session/map";
+import { getMapsSystemPrompt } from "../../../subsystem/Maps/llm/prompts/basis";
 export function useMapSession(
     language: Language,
     isConfigLoaded: boolean,
@@ -161,7 +161,7 @@ export function useMapSession(
         try {
             const workspace = await workspaceCommands.getDefaultWorkspace();
             const workspacePath = workspace?.workspace_path;
-            const systemPrompt = getSystemPrompt(language as 'zh' | 'en', workspacePath);
+            const systemPrompt = getMapsSystemPrompt(language as 'zh' | 'en', workspacePath);
             const fullMessage = `${systemPrompt}\n\n User: ${userMessage}`;
             const mode = workflowMode || currentWorkflowMode;
             const taskId = await hippoxCommands.sendMessageAsync(

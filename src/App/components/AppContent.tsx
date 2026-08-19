@@ -26,14 +26,12 @@ import SkillsManager from "../../pages/SkillsManagerPage";
 import UserProfile from "../../pages/UserProfilePage";
 import FunctionPanel from "../../components/FunctionPanel/FunctionPanel";
 import { FunctionPanelController } from "../../components/FunctionPanel/hooks/useFunctionPanelController";
-import CodeEditorPage from "../../pages/CodeEditorPage";
-import ChartPage from "../../pages/ChartChatPage";
-import MapsPage from "../../pages/MapsChatPage";
-import ChatPanel from "../../pages/GeneralChatPage/ChatPanel";
-import TerminalPanel from "../../pages/GeneralChatPage/TerminalPanel";
-import GeneralChatPage from "../../pages/GeneralChatPage";
-import SandBox3DPage from "../../pages/SandBox3DPage";
-import VideoEditorPage from "../../pages/VideoEditorPage";
+import ChartPage from "../../subsystem/Charts";
+import CodeEditorPage from "../../subsystem/CodeEditor";
+import GeneralChatPage from "../../subsystem/GeneralChat";
+import MapsPage from "../../subsystem/Maps";
+import SandBox3DPage from "../../subsystem/SandBox3D";
+import VideoEditorPage from "../../subsystem/VideoEditor";
 declare global {
   interface Window {
     __pageResources: {

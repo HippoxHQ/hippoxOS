@@ -3,6 +3,8 @@ use encoding_rs::GBK;
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+#[cfg(target_os = "windows")]
+use std::os::windows::process::CommandExt;
 use std::path::PathBuf;
 use std::process::Stdio;
 use std::sync::Arc;
@@ -13,6 +15,8 @@ use tokio::process::Child;
 use tokio::sync::Mutex;
 use tokio::task::JoinHandle;
 use tokio::time::{timeout, Duration};
+#[cfg(target_os = "windows")]
+const CREATE_NO_WINDOW: u32 = 0x08000000;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TerminalSession {
     pub id: String,
@@ -55,6 +59,13 @@ struct TerminalProcess {
 }
 impl TerminalProcess {
     async fn new(shell: &str, cwd: &str, cols: u16, rows: u16) -> Result<Self, String> {
+        #[cfg(target_os = "windows")]
+        let mut cmd = {
+            let mut std_cmd = std::process::Command::new(shell);
+            std_cmd.creation_flags(CREATE_NO_WINDOW);
+            tokio::process::Command::from(std_cmd)
+        };
+        #[cfg(not(target_os = "windows"))]
         let mut cmd = tokio::process::Command::new(shell);
         cmd.current_dir(cwd)
             .stdin(Stdio::piped())

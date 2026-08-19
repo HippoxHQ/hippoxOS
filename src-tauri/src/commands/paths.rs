@@ -205,7 +205,7 @@ pub fn cleanup_old_logs(max_size_mb: u64) -> Result<u64, String> {
             break;
         }
         if let Err(e) = fs::remove_file(&path) {
-            eprintln!("Failed to remove old log file {:?}: {}", path, e);
+            log::error!("Failed to remove old log file {:?}: {}", path, e);
         } else {
             current_total -= size;
             deleted_count += 1;

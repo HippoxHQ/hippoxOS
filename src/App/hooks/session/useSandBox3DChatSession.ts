@@ -1,12 +1,12 @@
 import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "../../../hooks/useTranslation";
-import { getSystemPrompt } from "../../../llm/prompts/basis";
 import { hippoxCommands } from "../../../command/chat";
 import { taskManager } from "../../../core/TaskManager";
 import { TaskInfo, UploadFile, TaskStatusEnum, SessionDomain } from "../../../core/types";
 import { Language, ChatMessage, RoleEnum, MessageStatus } from "../../../types/types";
 import { workspaceCommands } from "../../../command/workspace";
 import { sandbox3dSessionCommands } from "../../../command/session/sandbox3d";
+import { getSandBox3DSystemPrompt } from "../../../subsystem/SandBox3D/llm/prompts/basis";
 export function useSandBox3DSession(
     language: Language,
     isConfigLoaded: boolean,
@@ -181,7 +181,7 @@ export function useSandBox3DSession(
         try {
             const workspace = await workspaceCommands.getDefaultWorkspace();
             const workspacePath = workspace?.workspace_path;
-            const systemPrompt = getSystemPrompt(language as 'zh' | 'en', workspacePath);
+            const systemPrompt = getSandBox3DSystemPrompt(language as 'zh' | 'en', workspacePath);
             const fullMessage = `${systemPrompt}\n\n User: ${userMessage}`;
             const mode = workflowMode || currentWorkflowMode;
             const taskId = await hippoxCommands.sendMessageAsync(
