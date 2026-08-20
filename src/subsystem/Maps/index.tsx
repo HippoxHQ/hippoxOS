@@ -6,8 +6,9 @@ import { CollapseAllIcon2, ExpandAllIcon2, MessageCircleIcon, ScrollTextIcon } f
 import HistoryMapChatPanel, { HistoryMapChatPanelRef } from "./HistoryMapChatPanel";
 import MapsChatPageEarthView from "./MapsChatPageEarthView";
 import { configCommands } from "../../command/config";
-import MapsChatPage from "./MapsChatPanel";
 import { useMapSession } from "../../App/hooks/session/useMapChatSession";
+import { EarthViewRef } from "./MapsChatPanel/types";
+import MapsChatPage from "./MapsChatPanel";
 interface MapsPageProps {
   layoutMode?: "horizontal" | "vertical";
   onLayoutModeChange?: (mode: "horizontal" | "vertical") => void;
@@ -35,6 +36,9 @@ interface CollapsedTaskListProps {
   activeNavIndex: number;
   onLocateTask: (idx: number) => void;
 }
+/**
+ * Collapsed task list component for sidebar navigation
+ */
 const CollapsedTaskList: React.FC<CollapsedTaskListProps> = ({ tasks, activeNavIndex, onLocateTask }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [showUp, setShowUp] = useState(false);
@@ -323,6 +327,9 @@ interface CollapsedHistoryListProps {
   currentSessionId?: string;
   onSelectSession: (sessionId: string) => void;
 }
+/**
+ * Collapsed history list component for sidebar navigation
+ */
 const CollapsedHistoryList: React.FC<CollapsedHistoryListProps> = ({ sessions, currentSessionId, onSelectSession }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [showUp, setShowUp] = useState(false);
@@ -585,6 +592,17 @@ const CollapsedHistoryList: React.FC<CollapsedHistoryListProps> = ({ sessions, c
     </div>
   );
 };
+/**
+ * Main Maps Page Component
+ * Integrates chat panel and EarthView map with data flow between them
+ *
+ * Data Flow (same pattern as 3D Sandbox):
+ * 1. User sends message → MapsChatPage
+ * 2. LLM responds with JSON containing earthview data
+ * 3. MapsChatPage parses and extracts earthview via mapRef.applyEarthViewConfig()
+ * 4. MapsChatPageEarthView renders the data on the map (accumulates layers)
+ * 5. All tasks in the same session are overlaid on the map
+ */
 const MapsPage: React.FC<MapsPageProps> = ({
   layoutMode = "vertical",
   onLayoutModeChange,
@@ -607,13 +625,9 @@ const MapsPage: React.FC<MapsPageProps> = ({
   executionLogs,
   onClearLogs,
 }) => {
-  const {
-    currentSessionId: mapSessionId,
-    handleSendMessage: mapHandleSendMessage,
-    handleSwitchSession: mapHandleSwitchSession,
-    handleNewSession: mapHandleNewSession,
-    shouldShowWelcome: mapShouldShowWelcome,
-  } = useMapSession(language as "zh" | "en", true);
+  // Session management
+  const { currentSessionId: mapSessionId, handleSendMessage: mapHandleSendMessage, handleSwitchSession: mapHandleSwitchSession, handleNewSession: mapHandleNewSession, shouldShowWelcome: mapShouldShowWelcome } = useMapSession(language as "zh" | "en", true);
+  // Panel state
   const [chatPanelWidth, setChatPanelWidth] = useState<number>(400);
   const [historyWidth, setHistoryWidth] = useState<number>(280);
   const [chatPanelCollapsed, setChatPanelCollapsed] = useState<boolean>(false);
@@ -623,8 +637,15 @@ const MapsPage: React.FC<MapsPageProps> = ({
   const [isHistoryResizeHover, setIsHistoryResizeHover] = useState(false);
   const [isHistoryExpanded, setIsHistoryExpanded] = useState(true);
   const [isHistoryAtBottom, setIsHistoryAtBottom] = useState(false);
+  // Refs
   const containerRef = useRef<HTMLDivElement>(null);
   const historyPanelRef = useRef<HistoryMapChatPanelRef>(null);
+  /**
+   * Reference to EarthView map component for rendering
+   * This is passed to MapsChatPage so it can call applyEarthViewConfig()
+   * Same pattern as sandboxRef in 3D Sandbox
+   */
+  const mapRef = useRef<EarthViewRef | null>(null);
   const [historySessions, setHistorySessions] = useState<any[]>([]);
   const isDragging = useRef(false);
   const dragType = useRef<"horizontal" | "history">("horizontal");
@@ -635,6 +656,7 @@ const MapsPage: React.FC<MapsPageProps> = ({
   const [layoutSwapMode, setLayoutSwapMode] = useState<"terminal-left" | "chat-left">("terminal-left");
   const layoutSwapModeRef = useRef<"terminal-left" | "chat-left">("terminal-left");
   const isChatOnLeft = layoutSwapMode === "chat-left";
+  // Panel toggle handlers
   const handleToggleChatPanel = useCallback(() => {
     if (isFunctionPanelMaximized) return;
     setChatPanelCollapsed((prev) => {
@@ -643,17 +665,15 @@ const MapsPage: React.FC<MapsPageProps> = ({
       return newState;
     });
   }, [isFunctionPanelMaximized]);
-  const chatPanel = (
-    <MapsChatPage
-      onSendMessage={mapHandleSendMessage}
-      onFileClick={onFileClick}
-      t={t}
-      currentSessionId={mapSessionId}
-      onDragOverInputChange={onDragOverInputChange}
-      language={language}
-      isLeftPanel={isChatOnLeft}
-    />
-  );
+  /**
+   * Create chat panel with mapRef passed down for earthview rendering
+   * Similar to how 3D sandbox passes sandboxRef to its chat panel
+   */
+  const chatPanel = <MapsChatPage onSendMessage={mapHandleSendMessage} onFileClick={onFileClick} t={t} currentSessionId={mapSessionId} onDragOverInputChange={onDragOverInputChange} language={language} isLeftPanel={isChatOnLeft} mapRef={mapRef} />;
+  /**
+   * Create map panel with ref attached for chat panel to call
+   * Similar to how 3D sandbox attaches sandboxRef to SandBox3D component
+   */
   const mapPanel = (
     <div
       style={{
@@ -665,9 +685,12 @@ const MapsPage: React.FC<MapsPageProps> = ({
         overflow: "hidden",
       }}
     >
-      <MapsChatPageEarthView theme={theme} i18n={i18n} onLoad={onMapLoad} onMapClick={onMapClick} onMoveEnd={onMapMoveEnd} mapData={mapData} />
+      <MapsChatPageEarthView ref={mapRef} theme={theme} i18n={i18n} onLoad={onMapLoad} onMapClick={onMapClick} onMoveEnd={onMapMoveEnd} mapData={mapData} />
     </div>
   );
+  /**
+   * Collapsed chat sidebar
+   */
   const collapsedChatSidebar = (
     <div
       className="collapsed-sidebar"
@@ -764,6 +787,7 @@ const MapsPage: React.FC<MapsPageProps> = ({
       />
     </div>
   );
+  // Layout mode loading
   useEffect(() => {
     const loadLayoutMode = async () => {
       try {
@@ -778,6 +802,7 @@ const MapsPage: React.FC<MapsPageProps> = ({
     };
     loadLayoutMode();
   }, []);
+  // Layout change listener
   useEffect(() => {
     const handleLayoutChange = (event: CustomEvent) => {
       const { pageType, mode } = event.detail;
@@ -791,6 +816,7 @@ const MapsPage: React.FC<MapsPageProps> = ({
       window.removeEventListener("layout-swap-mode-changed", handleLayoutChange as EventListener);
     };
   }, []);
+  // Load history sessions
   useEffect(() => {
     const loadSessions = async () => {
       try {
@@ -810,6 +836,7 @@ const MapsPage: React.FC<MapsPageProps> = ({
       window.removeEventListener("map-session-created", handleSessionCreated);
     };
   }, []);
+  // Refresh history on session created
   useEffect(() => {
     const handleSessionCreated = () => {
       historyPanelRef.current?.refreshSessions();
@@ -819,6 +846,7 @@ const MapsPage: React.FC<MapsPageProps> = ({
       window.removeEventListener("map-session-created", handleSessionCreated);
     };
   }, []);
+  // Refresh history on title update
   useEffect(() => {
     const handleTitleUpdated = () => {
       historyPanelRef.current?.refreshSessions();
@@ -828,6 +856,7 @@ const MapsPage: React.FC<MapsPageProps> = ({
       window.removeEventListener("session-title-updated", handleTitleUpdated);
     };
   }, []);
+  // Load persisted state from localStorage
   useEffect(() => {
     const savedHistoryWidth = localStorage.getItem("hippox-map-history-width");
     const savedHistoryCollapsed = localStorage.getItem("hippox-map-history-collapsed");
@@ -838,6 +867,7 @@ const MapsPage: React.FC<MapsPageProps> = ({
     if (savedChatPanelCollapsed) setChatPanelCollapsed(savedChatPanelCollapsed === "true");
     if (savedChatPanelWidth) setChatPanelWidth(parseFloat(savedChatPanelWidth));
   }, []);
+  // Persistence helpers
   const saveHistoryWidth = (width: number) => {
     localStorage.setItem("hippox-map-history-width", width.toString());
   };
@@ -850,6 +880,7 @@ const MapsPage: React.FC<MapsPageProps> = ({
   const saveChatPanelWidth = (width: number) => {
     localStorage.setItem("hippox-map-chat-width", width.toString());
   };
+  // History panel controls
   const handleExpandToggle = () => {
     const newExpanded = !isHistoryExpanded;
     setIsHistoryExpanded(newExpanded);
@@ -881,6 +912,7 @@ const MapsPage: React.FC<MapsPageProps> = ({
   const handleNewSession = useCallback(() => {
     mapHandleNewSession();
   }, [mapHandleNewSession]);
+  // Resize drag handlers
   const handleMouseDown = (e: React.MouseEvent, type: "horizontal" | "history") => {
     if (chatPanelCollapsed || isFunctionPanelMaximized) return;
     if (type === "history" && historyCollapsed) return;
@@ -936,6 +968,9 @@ const MapsPage: React.FC<MapsPageProps> = ({
       window.removeEventListener("mouseup", handleMouseUp);
     };
   }, [handleMouseMove, handleMouseUp]);
+  /**
+   * Get history panel content
+   */
   const getHistoryPanelContent = () => {
     if (historyCollapsed || isFunctionPanelMaximized) {
       return (
@@ -1191,7 +1226,7 @@ const MapsPage: React.FC<MapsPageProps> = ({
     );
   };
   const historyPanelContent = getHistoryPanelContent();
-  const historyWidthPx = historyCollapsed || isFunctionPanelMaximized ? 45 : historyWidth;
+  // === RENDER ===
   return (
     <div className="panels-container horizontal-layout" ref={containerRef} style={{ display: "flex", flex: 1, overflow: "hidden" }}>
       <style>{`
@@ -1239,6 +1274,7 @@ const MapsPage: React.FC<MapsPageProps> = ({
           display: none;
         }
       `}</style>
+      {/* History Panel */}
       {!isFunctionPanelMaximized && (
         <>
           <div
@@ -1269,27 +1305,11 @@ const MapsPage: React.FC<MapsPageProps> = ({
               }}
               onMouseEnter={() => setIsHistoryResizeHover(true)}
               onMouseLeave={() => setIsHistoryResizeHover(false)}
-            >
-              {/* {isHistoryResizeHover && (
-                <div
-                  style={{
-                    position: "absolute",
-                    top: "50%",
-                    left: "50%",
-                    transform: "translate(-50%, -50%)",
-                    width: "2px",
-                    height: "40px",
-                    background: "var(--text-muted)",
-                    borderRadius: "2px",
-                    opacity: 0.5,
-                    zIndex: 11,
-                  }}
-                />
-              )} */}
-            </div>
+            />
           )}
         </>
       )}
+      {/* Chat Panel */}
       {!chatPanelCollapsed && !isFunctionPanelMaximized ? (
         <div
           className="panel-chat"
@@ -1322,6 +1342,7 @@ const MapsPage: React.FC<MapsPageProps> = ({
           {collapsedChatSidebar}
         </div>
       ) : null}
+      {/* Resize Handle */}
       {!chatPanelCollapsed && !isFunctionPanelMaximized && (
         <div
           className="resize-handle resize-handle-vertical"
@@ -1337,25 +1358,9 @@ const MapsPage: React.FC<MapsPageProps> = ({
           }}
           onMouseEnter={() => setIsResizeHover(true)}
           onMouseLeave={() => setIsResizeHover(false)}
-        >
-          {/* {isResizeHover && (
-            <div
-              style={{
-                position: "absolute",
-                top: "50%",
-                left: "50%",
-                transform: "translate(-50%, -50%)",
-                width: "2px",
-                height: "40px",
-                background: "var(--text-muted)",
-                borderRadius: "2px",
-                opacity: 0.5,
-                zIndex: 11,
-              }}
-            />
-          )} */}
-        </div>
+        />
       )}
+      {/* Map Panel - This is where earthview data gets rendered */}
       <div
         style={{
           flex: 1,

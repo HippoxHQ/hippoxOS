@@ -3,8 +3,8 @@
  * Used to constrain the response format returned by LLM to the frontend
  */
 /**
-* Resource link (remote or local)
-*/
+ * Resource link (remote or local)
+ */
 export interface ResourceLink {
   /** Link name */
   n: string;
@@ -16,11 +16,11 @@ export interface ResourceLink {
   t: string;
 }
 /**
-* Terminal display result - structured, professional output
-*/
+ * Terminal display result - structured, professional output
+ */
 export interface TerminalResponse {
   /** Plain text message */
-  m: string,
+  m: string;
   /** Remote resource links array */
   links?: ResourceLink[];
   /** Local resource links array */
@@ -49,14 +49,12 @@ export interface TerminalResponse {
   warnings?: string[];
   /** Success/failure status */
   status?: 'success' | 'error' | 'warning' | 'info';
-  /** EarthView map operations */
+  /** EarthView map operations - this is the PRIMARY output for map-related requests */
   earthview?: EarthViewOperation;
-  /** CandleView chart operations */
-  candleview?: CandleViewOperation;
 }
 /**
-* Dialog response data - read-only human-friendly information, concise, token-efficient
-*/
+ * Dialog response data - read-only human-friendly information, concise, token-efficient
+ */
 export interface ChatResponse {
   /** Human-friendly response message (main reply content) */
   m: string;
@@ -64,57 +62,67 @@ export interface ChatResponse {
   s?: string;
 }
 /**
-* HippoxOS LLM response main structure
-* LLM must strictly return according to this structure, no extra characters allowed
-*/
+ * HippoxOS LLM response main structure
+ * LLM must strictly return according to this structure, no extra characters allowed
+ */
 export interface HippoxOSResult {
   /** Terminal display result - structured, professional output, can be null */
   terminalResponse: TerminalResponse | null;
   /** Dialog response data - read-only human-friendly info */
   chatResponse: ChatResponse;
 }
+/**
+ * EarthView map operations - supports all map rendering capabilities
+ */
 export interface EarthViewOperation {
+  /** Map view control - center the map at specific coordinates */
   view?: {
-    center?: [number, number];
+    center?: [number, number];  // [longitude, latitude]
+    zoom?: number;              // Optional zoom level
   };
+  /** Point markers on the map */
   markers?: Array<{
     id?: string;
     longitude: number;
     latitude: number;
     title?: string;
     name?: string;
-    color?: string;
-    size?: number;
+    color?: string;              // Supports #RRGGBB, rgba(), or [r,g,b,a] array
+    size?: number;               // 5-20
     pointType?: 'circle' | 'square' | 'triangle' | 'pin' | 'star' | 'heart' | 'flag';
     pointText?: string;
-    bubbleBoxTitle?: string;
-    bubbleBoxDescription?: string;
+    bubbleBoxTitle?: string;     // REQUIRED - concise title for popup, max 30 chars
+    bubbleBoxDescription?: string; // REQUIRED - brief description for popup, max 100 chars
     bubbleBoxCoverImage?: string;
   }>;
+  /** Circles drawn on the map */
   circles?: Array<{
     id?: string;
-    center: [number, number];
-    radius: number;
+    center: [number, number];    // [longitude, latitude]
+    radius: number;              // Radius in meters
     title?: string;
-    fillColor?: string;
+    fillColor?: string;          // Supports #RRGGBB, rgba(), or [r,g,b,a] array
     outlineColor?: string;
     outlineWidth?: number;
   }>;
+  /** Polygons drawn on the map */
   polygons?: Array<{
     id?: string;
-    points: [number, number][];
+    points: [number, number][];  // Array of [longitude, latitude] points
     title?: string;
-    fillColor?: string;
+    fillColor?: string;          // Supports #RRGGBB, rgba(), or [r,g,b,a] array
     outlineColor?: string;
     outlineWidth?: number;
   }>;
+  /** Polylines (paths) drawn on the map */
   polylines?: Array<{
     id?: string;
-    points: [number, number][];
+    points: [number, number][];  // Array of [longitude, latitude] points
     title?: string;
-    color?: string;
+    color?: string;              // Supports #RRGGBB, rgba(), or [r,g,b,a] array
     width?: number;
   }>;
+  /** Heatmap data for density visualization */
   heatmap?: Array<{
     id?: string;
     longitude: number;
@@ -122,6 +130,7 @@ export interface EarthViewOperation {
     value?: number;
     title?: string;
   }>;
+  /** Cluster markers for grouped locations */
   clusters?: Array<{
     id?: string;
     longitude: number;
@@ -129,57 +138,39 @@ export interface EarthViewOperation {
     title?: string;
     popupContent?: string;
   }>;
+  /** Bar charts displayed on the map */
   barcharts?: Array<{
     id?: string;
     longitude: number;
     latitude: number;
     value: number;
     title?: string;
-    color?: string;
+    color?: string;              // Supports #RRGGBB or [r,g,b,a] array
   }>;
-}
-export interface CandleViewOperation {
-  timeframe?: '1m' | '5m' | '15m' | '30m' | '1h' | '4h' | '1d' | '1w' | '1M';
-  timezone?: 'NewYork' | 'London' | 'Tokyo' | 'Shanghai' | 'UTC';
-  chartType?: 'candle' | 'bar' | 'line' | 'area' | 'heikinashi' | 'hollow';
-  title?: string;
-  mainIndicators?: Array<{
-    type: 'MA' | 'EMA' | 'BOLLINGER' | 'ICHIMOKU' | 'DONCHIAN' | 'ENVELOPE' | 'VWAP' | 'HEATMAP' | 'MARKETPROFILE';
-    enabled: boolean;
-    parameters?: Record<string, any>;
-  }>;
-  subIndicators?: Array<{
-    type: 'RSI' | 'MACD' | 'VOLUME' | 'SAR' | 'KDJ' | 'ATR' | 'STOCHASTIC' | 'CCI' | 'BBWIDTH' | 'ADX' | 'OBV';
-    enabled: boolean;
-  }>;
-  staticMarks?: Array<{
-    time: number;
-    type: 'text' | 'arrow';
-    text?: string;
-    direction: 'up' | 'down';
-    color?: string;
-    backgroundColor?: string;
-    fontSize?: number;
-    label?: string;
-  }>;
-  priceEvents?: Array<{
-    price: number;
+  /** GeoJSON data for rendering complex geographic features */
+  geojson?: {
+    id?: string;
+    data: any;                   // GeoJSON object
+    style?: {
+      fillColor?: string;
+      outlineColor?: string;
+      outlineWidth?: number;
+      fillOpacity?: number;
+    };
     title?: string;
-    color?: string;
-    showPrice?: boolean;
-  }>;
-  screenshot?: {
-    watermark?: string;
+  }[];
+  /** Layer control for managing multiple data layers */
+  layers?: Array<{
+    id: string;
+    name: string;
+    type: 'marker' | 'circle' | 'polygon' | 'polyline' | 'heatmap' | 'cluster' | 'geojson';
+    visible: boolean;
     opacity?: number;
-  };
-  drawingTools?: {
-    tool?: 'cursor' | 'crosshair' | 'brush';
-    action?: 'enable' | 'disable' | 'clear';
-  };
+  }>;
 }
 /**
-* Validate if response is a valid HippoxOSResult
-*/
+ * Validate if response is a valid HippoxOSResult
+ */
 export function isValidHippoxOSResult(obj: any): obj is HippoxOSResult {
   if (!obj || typeof obj !== 'object') return false;
   // Check if chatResponse exists and has correct format
@@ -200,16 +191,15 @@ export function isValidHippoxOSResult(obj: any): obj is HippoxOSResult {
     if (tr.metrics !== undefined && !Array.isArray(tr.metrics)) return false;
     if (tr.warnings !== undefined && !Array.isArray(tr.warnings)) return false;
     if (tr.status !== undefined && !['success', 'error', 'warning', 'info'].includes(tr.status)) return false;
-    // earthview and candleview are optional, just check they are objects if present
+    // Validate earthview field
     if (tr.earthview !== undefined && typeof tr.earthview !== 'object') return false;
-    if (tr.candleview !== undefined && typeof tr.candleview !== 'object') return false;
   }
   return true;
 }
 /**
-* Extract HippoxOSResult JSON from arbitrary text
-* Used to handle LLM responses that may contain extra characters
-*/
+ * Extract HippoxOSResult JSON from arbitrary text
+ * Used to handle LLM responses that may contain extra characters
+ */
 export function extractHippoxOSResult(text: string): HippoxOSResult | null {
   try {
     // Try direct parsing

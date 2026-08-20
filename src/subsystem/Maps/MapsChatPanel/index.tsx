@@ -13,7 +13,8 @@ import { ChatIcon, TaskQueueIcon, UserIcon, AttachmentIcon, FolderIcon, ChevronR
 import { zhDefaultPrompts, enDefaultPrompts } from "../../../types/DefaultPrompt";
 import { ChatMessage, RoleEnum, MessageStatus } from "../../../types/types";
 import { mapSessionCommands } from "../../../command/session/map";
-import { isStructuredLLMResponse, parseLLMResponse } from "../llm/utils";
+import { isStructuredLLMResponse, parseLLMResponse, extractEarthView } from "../llm/utils";
+import { EarthViewRef } from "./types";
 interface MapsChatPageProps {
   onSendMessage: (message: string, sessionId: string, files?: UploadFile[], workflowMode?: string) => void | Promise<void>;
   onFileClick?: (file: UploadFile) => void;
@@ -27,8 +28,10 @@ interface MapsChatPageProps {
   isCollapsed?: boolean;
   togglePanel?: () => void;
   collapseIcon?: string;
+  /** Reference to the EarthView map component for rendering */
+  mapRef?: React.RefObject<EarthViewRef | null>;
 }
-const MapsChatPage: React.FC<MapsChatPageProps> = ({ onSendMessage, onFileClick, t, language = "zh", currentSessionId, onDragOverInputChange, navigationContent, isLeftPanel = true, onWorkflowModeChange, isCollapsed = false, togglePanel, collapseIcon: collapseIconProp }) => {
+const MapsChatPage: React.FC<MapsChatPageProps> = ({ onSendMessage, onFileClick, t, language = "zh", currentSessionId, onDragOverInputChange, navigationContent, isLeftPanel = true, onWorkflowModeChange, isCollapsed = false, togglePanel, collapseIcon: collapseIconProp, mapRef }) => {
   const [inputValue, setInputValue] = useState("");
   const [isFocused, setIsFocused] = useState(false);
   const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
@@ -66,6 +69,8 @@ const MapsChatPage: React.FC<MapsChatPageProps> = ({ onSendMessage, onFileClick,
   const [isLoadingTitle, setIsLoadingTitle] = useState(false);
   const hasLoadedTitleRef = useRef<Record<string, boolean>>({});
   const collapseIcon = collapseIconProp || (isLeftPanel ? (isCollapsed ? "≫" : "≪") : isCollapsed ? "≪" : "≫");
+  /** Track which messages have been processed for map rendering */
+  const processedMessageIdsRef = useRef<Set<string>>(new Set());
   const welcomeMsg: ChatMessage = {
     id: "welcome",
     role: RoleEnum.LLM,
@@ -275,7 +280,6 @@ const MapsChatPage: React.FC<MapsChatPageProps> = ({ onSendMessage, onFileClick,
     } else {
       prevMessageCountRef.current = 0;
       isFirstLoadRef.current = true;
-      // setSuggestionPrompts([]);
     }
     return () => {
       if (suggestionTimerRef.current) {
@@ -758,6 +762,59 @@ const MapsChatPage: React.FC<MapsChatPageProps> = ({ onSendMessage, onFileClick,
     }
     return { right: 0, top: 0 };
   })();
+  /**
+   * Process LLM response and render earthview data on the map
+   * This is the key integration point between chat and map rendering
+   * It runs whenever messages change and checks the latest LLM message
+   *
+   * Same pattern as 3D sandbox: extract data from LLM response and render it
+   */
+  useEffect(() => {
+    // Check if there's a new LLM message with earthview data to render
+    const lastMsg = messages.length > 0 ? messages[messages.length - 1] : null;
+    if (!lastMsg || lastMsg.role !== RoleEnum.LLM) return;
+    if (lastMsg.status === MessageStatus.Pending) return;
+    if (lastMsg.status === MessageStatus.Failed) return;
+    if (lastMsg.status === MessageStatus.Cancelled) return;
+    // Skip if already processed
+    if (processedMessageIdsRef.current.has(lastMsg.id)) {
+      return;
+    }
+    // Check if the message contains structured LLM response with earthview data
+    if (isStructuredLLMResponse(lastMsg.content)) {
+      const parsed = parseLLMResponse(lastMsg.content);
+      if (parsed?.terminalResponse?.earthview) {
+        const earthviewData = parsed.terminalResponse.earthview;
+        // Apply earthview data to the map
+        if (mapRef?.current && mapRef.current.isReady()) {
+          mapRef.current.applyEarthViewConfig(earthviewData);
+          processedMessageIdsRef.current.add(lastMsg.id);
+          // Also dispatch event for any other listeners
+          window.dispatchEvent(
+            new CustomEvent("earthview-data-updated", {
+              detail: {
+                earthview: earthviewData,
+                messageId: lastMsg.id,
+                sessionId: currentSessionId,
+              },
+            }),
+          );
+        } else {
+          // Map not ready yet, try again after a short delay
+          const retryTimer = setTimeout(() => {
+            if (mapRef?.current && mapRef.current.isReady()) {
+              mapRef.current.applyEarthViewConfig(earthviewData);
+              processedMessageIdsRef.current.add(lastMsg.id);
+            } else {
+              console.warn("[MapsChatPage] Map ref not ready for earthview rendering");
+            }
+          }, 500);
+          return () => clearTimeout(retryTimer);
+        }
+      }
+    }
+  }, [messages, mapRef, currentSessionId]);
+  // RENDER
   return (
     <div
       className="codeeditor-chat-panel"

@@ -6,7 +6,7 @@ import { TaskInfo, UploadFile, TaskStatusEnum, SessionDomain } from "../../../co
 import { Language, ChatMessage, RoleEnum, MessageStatus } from "../../../types/types";
 import { workspaceCommands } from "../../../command/workspace";
 import { mapSessionCommands } from "../../../command/session/map";
-import { getMapsSystemPrompt } from "../../../subsystem/Maps/llm/prompts/basis";
+import { getMapsSystemPrompt } from "../../../subsystem/Maps/llm/prompts";
 export function useMapSession(
     language: Language,
     isConfigLoaded: boolean,
