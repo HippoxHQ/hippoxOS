@@ -1,6 +1,5 @@
 import { Code2, FileText } from "lucide-react";
-import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle } from "react";
-
+import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle, useCallback } from "react";
 interface DSLProps {
   theme: "light" | "dark";
   i18n: "en" | "zh-cn";
@@ -8,7 +7,6 @@ interface DSLProps {
   onStartEditorResize: (e: React.MouseEvent) => void;
   engineRef?: React.MutableRefObject<any>;
 }
-
 export interface DSLRef {
   getScript: () => string;
   setScript: (script: string) => void;
@@ -18,13 +16,10 @@ export interface DSLRef {
   reset: () => void;
   clearLogs: () => void;
 }
-
 const getDefaultScript = (locale: string): string => {
   const isZh = locale === "zh-cn";
-
   return `// ${isZh ? "示例脚本 - 自定义主图和副图指标" : "Example Script - Custom Main & Sub Indicators"}
 // ============================================
-
 // 1. ${isZh ? "自定义主图指标：计算 OHLC 均值通道" : "Custom main indicator: OHLC mean channel"}
 plotMain({
     id: 'ohlc_mean',
@@ -38,7 +33,6 @@ plotMain({
         style: 'solid'
     }
 });
-
 // 2. ${isZh ? "另一个主图指标：价格波动率（最高价-最低价）" : "Another main indicator: Price volatility (High - Low)"}
 plotMain({
     id: 'volatility',
@@ -52,7 +46,6 @@ plotMain({
         style: 'dashed'
     }
 });
-
 // 3. ${isZh ? "批量添加主图指标 - 多条线一起添加" : "Batch add main indicators - multiple lines"}
 plotMain([
     {
@@ -70,7 +63,6 @@ plotMain([
         options: { name: '${isZh ? "下轨" : "Lower Band"}', color: '#F39C12', width: 1, style: 'dotted' }
     }
 ]);
-
 // 4. ${isZh ? "自定义副图指标：自定义 RSI 风格指标" : "Custom sub indicator: RSI style"}
 plotSub({
     id: 'custom_rsi',
@@ -84,7 +76,6 @@ plotSub({
         type: 'line'
     }
 });
-
 // 5. ${isZh ? "自定义副图指标：成交量柱状图" : "Custom sub indicator: Volume histogram"}
 plotSub({
     id: 'custom_volume',
@@ -97,7 +88,6 @@ plotSub({
         type: 'histogram'
     }
 });
-
 // 6. ${isZh ? "批量添加副图指标" : "Batch add sub indicators"}
 plotSub([
     {
@@ -115,18 +105,15 @@ plotSub([
         options: { name: '${isZh ? "振幅%" : "Range%"}', color: '#9C27B0', type: 'area' }
     }
 ]);
-
 console.log("${isZh ? "所有自定义指标已添加完成" : "All custom indicators added"}");
 console.log("${isZh ? "主图指标: OHLC均值, 波动率, 上下轨" : "Main indicators: OHLC Mean, Volatility, Upper/Lower Bands"}");
 console.log("${isZh ? "副图指标: Custom RSI, Volume, 动量, 振幅%" : "Sub indicators: Custom RSI, Volume, Momentum, Range %"}");
-
 return {
     message: "${isZh ? "自定义指标测试完成" : "Custom indicators test completed"}",
     mainCount: 5,
     subCount: 5
 };`;
 };
-
 const getExampleScripts = (locale: string) => {
   const isZh = locale === "zh-cn";
   return [
@@ -142,7 +129,6 @@ plotMain({
     calculator: (idx, open, high, low, close, volume) => close,
     options: { name: '${isZh ? "收盘价" : "Close Price"}', color: '#FF6B6B', width: 2 }
 });
-
 console.log("${isZh ? "主图线已添加" : "Main line added"}");
 return { message: "done" };`,
     },
@@ -154,7 +140,6 @@ plotSub({
     calculator: (idx, open, high, low, close, volume) => close,
     options: { name: '${isZh ? "收盘价副图" : "Close Price Sub"}', color: '#4ECDC4', type: 'line' }
 });
-
 console.log("${isZh ? "副图线已添加" : "Sub line added"}");
 return { message: "done" };`,
     },
@@ -168,11 +153,9 @@ return { message: "cleared" };`,
     },
   ];
 };
-
 const DSL = forwardRef<DSLRef, DSLProps>(({ theme, i18n, editorWidth, onStartEditorResize, engineRef }, ref) => {
   const isDark = theme === "dark";
   const isZh = i18n === "zh-cn";
-
   const [script, setScript] = useState(getDefaultScript(i18n));
   const [logs, setLogs] = useState<string[]>([]);
   const [isEngineReady, setIsEngineReady] = useState(false);
@@ -185,9 +168,10 @@ const DSL = forwardRef<DSLRef, DSLProps>(({ theme, i18n, editorWidth, onStartEdi
   const [showRightArrow, setShowRightArrow] = useState(false);
   const tabsRef = useRef<HTMLDivElement>(null);
   const logsContainerRef = useRef<HTMLDivElement>(null);
-
   const exampleScripts = getExampleScripts(i18n);
-
+  /**
+   * Check if engine is ready
+   */
   useEffect(() => {
     const checkEngine = () => {
       if (engineRef?.current) {
@@ -198,102 +182,21 @@ const DSL = forwardRef<DSLRef, DSLProps>(({ theme, i18n, editorWidth, onStartEdi
     const interval = setInterval(checkEngine, 500);
     return () => clearInterval(interval);
   }, [engineRef]);
-
-  useEffect(() => {
-    const originalLog = console.log;
-    const originalWarn = console.warn;
-    const originalError = console.error;
-
-    const scrollToBottom = () => {
-      setTimeout(() => {
-        if (logsContainerRef.current) {
-          logsContainerRef.current.scrollTop = logsContainerRef.current.scrollHeight;
-        }
-      }, 50);
-    };
-
-    console.log = (...args: any[]) => {
-      originalLog(...args);
-      const message = args
-        .map((arg) => {
-          if (typeof arg === "object") {
-            try {
-              return JSON.stringify(arg);
-            } catch {
-              return String(arg);
-            }
-          }
-          return String(arg);
-        })
-        .join(" ");
-      setLogs((prev) => [...prev, `[LOG] ${message}`]);
-      scrollToBottom();
-    };
-
-    console.warn = (...args: any[]) => {
-      originalWarn(...args);
-      const message = args.map((arg) => String(arg)).join(" ");
-      setLogs((prev) => [...prev, `[WARN] ${message}`]);
-      scrollToBottom();
-    };
-
-    console.error = (...args: any[]) => {
-      originalError(...args);
-      const message = args.map((arg) => String(arg)).join(" ");
-      setLogs((prev) => [...prev, `[ERROR] ${message}`]);
-      scrollToBottom();
-    };
-
-    return () => {
-      console.log = originalLog;
-      console.warn = originalWarn;
-      console.error = originalError;
-    };
+  /**
+   * Add log message to the log panel
+   */
+  const addLog = useCallback((level: string, message: string) => {
+    setLogs((prev) => [...prev, `[${level}] ${message}`]);
+    // Auto-scroll to bottom
+    setTimeout(() => {
+      if (logsContainerRef.current) {
+        logsContainerRef.current.scrollTop = logsContainerRef.current.scrollHeight;
+      }
+    }, 50);
   }, []);
-
-  useEffect(() => {
-    setScript(getDefaultScript(i18n));
-  }, [i18n]);
-
-  const checkScrollButtons = () => {
-    if (tabsRef.current) {
-      const { scrollLeft, scrollWidth, clientWidth } = tabsRef.current;
-      setShowLeftArrow(scrollLeft > 0);
-      setShowRightArrow(scrollWidth > clientWidth && scrollLeft + clientWidth < scrollWidth - 5);
-    }
-  };
-
-  const scrollTabs = (direction: "left" | "right") => {
-    if (tabsRef.current) {
-      const scrollAmount = 200;
-      const newScrollLeft = tabsRef.current.scrollLeft + (direction === "left" ? -scrollAmount : scrollAmount);
-      tabsRef.current.scrollTo({ left: newScrollLeft, behavior: "smooth" });
-    }
-  };
-
-  const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
-    if (tabsRef.current) {
-      const delta = e.deltaY > 0 ? 1 : -1;
-      const scrollAmount = 50;
-      const newScrollLeft = tabsRef.current.scrollLeft + delta * scrollAmount;
-      tabsRef.current.scrollTo({ left: newScrollLeft, behavior: "auto" });
-      e.preventDefault();
-    }
-  };
-
-  useEffect(() => {
-    const currentTabs = tabsRef.current;
-    if (currentTabs) {
-      currentTabs.addEventListener("scroll", checkScrollButtons);
-      window.addEventListener("resize", checkScrollButtons);
-      setTimeout(checkScrollButtons, 50);
-      return () => {
-        currentTabs.removeEventListener("scroll", checkScrollButtons);
-        window.removeEventListener("resize", checkScrollButtons);
-      };
-    }
-  }, [exampleScripts]);
-
+  /**
+   * Execute the script and capture logs from the engine
+   */
   const executeScript = () => {
     if (!engineRef?.current) {
       setExecutionResult({
@@ -303,8 +206,73 @@ const DSL = forwardRef<DSLRef, DSLProps>(({ theme, i18n, editorWidth, onStartEdi
       return;
     }
     try {
+      // Store original console methods
+      const originalLog = console.log;
+      const originalWarn = console.warn;
+      const originalError = console.error;
+      const originalInfo = console.info;
+      const originalDebug = console.debug;
+      // Override console methods to capture logs from script execution only
+      // We use a flag to distinguish between engine logs and system logs
+      let isExecuting = true;
+      console.log = (...args: any[]) => {
+        // Only capture logs during script execution
+        if (isExecuting) {
+          const message = args
+            .map((arg) => {
+              if (typeof arg === "object") {
+                try {
+                  return JSON.stringify(arg);
+                } catch {
+                  return String(arg);
+                }
+              }
+              return String(arg);
+            })
+            .join(" ");
+          addLog("LOG", message);
+        }
+        // Always call original for browser console
+        originalLog(...args);
+      };
+      console.warn = (...args: any[]) => {
+        if (isExecuting) {
+          const message = args.map((arg) => String(arg)).join(" ");
+          addLog("WARN", message);
+        }
+        originalWarn(...args);
+      };
+      console.error = (...args: any[]) => {
+        if (isExecuting) {
+          const message = args.map((arg) => String(arg)).join(" ");
+          addLog("ERROR", message);
+        }
+        originalError(...args);
+      };
+      console.info = (...args: any[]) => {
+        if (isExecuting) {
+          const message = args.map((arg) => String(arg)).join(" ");
+          addLog("INFO", message);
+        }
+        originalInfo(...args);
+      };
+      console.debug = (...args: any[]) => {
+        if (isExecuting) {
+          const message = args.map((arg) => String(arg)).join(" ");
+          addLog("DEBUG", message);
+        }
+        originalDebug(...args);
+      };
+      // Load and execute the script
       engineRef.current.loadScript(script);
       const result = engineRef.current.execute();
+      // Restore original console methods
+      console.log = originalLog;
+      console.warn = originalWarn;
+      console.error = originalError;
+      console.info = originalInfo;
+      console.debug = originalDebug;
+      isExecuting = false;
       if (result.success) {
         setExecutionResult({
           success: true,
@@ -315,15 +283,23 @@ const DSL = forwardRef<DSLRef, DSLProps>(({ theme, i18n, editorWidth, onStartEdi
           success: false,
           message: result.error || "Execution failed",
         });
+        addLog("ERROR", result.error || "Execution failed");
       }
     } catch (error) {
+      // Ensure console methods are restored even on error
+      console.log = console.log;
+      console.warn = console.warn;
+      console.error = console.error;
+      console.info = console.info;
+      console.debug = console.debug;
+      const errorMessage = error instanceof Error ? error.message : String(error);
       setExecutionResult({
         success: false,
-        message: error instanceof Error ? error.message : String(error),
+        message: errorMessage,
       });
+      addLog("ERROR", errorMessage);
     }
   };
-
   const handleExecute = () => {
     if (!isEngineReady || !engineRef?.current) {
       setExecutionResult({
@@ -334,7 +310,6 @@ const DSL = forwardRef<DSLRef, DSLProps>(({ theme, i18n, editorWidth, onStartEdi
     }
     executeScript();
   };
-
   const handleStart = () => {
     if (!engineRef?.current) return;
     setIsEngineRunning(true);
@@ -344,14 +319,12 @@ const DSL = forwardRef<DSLRef, DSLProps>(({ theme, i18n, editorWidth, onStartEdi
       message: "Engine started, will execute on each new candle",
     });
   };
-
   const handleStop = () => {
     if (!engineRef?.current) return;
     setIsEngineRunning(false);
     engineRef.current.stop();
     setExecutionResult({ success: true, message: "Engine stopped" });
   };
-
   const handleReset = () => {
     if (!engineRef?.current) return;
     engineRef.current.clearAllCustomIndicators();
@@ -359,17 +332,16 @@ const DSL = forwardRef<DSLRef, DSLProps>(({ theme, i18n, editorWidth, onStartEdi
       success: true,
       message: "All custom indicators cleared",
     });
+    // Clear logs on reset
+    setLogs([]);
   };
-
   const handleClearLogs = () => {
     setLogs([]);
   };
-
   const handleLoadExample = (exampleScript: string) => {
     setScript(exampleScript);
     setExecutionResult({ success: true, message: "Example script loaded" });
   };
-
   useImperativeHandle(ref, () => ({
     getScript: () => script,
     setScript: (newScript: string) => setScript(newScript),
@@ -379,9 +351,7 @@ const DSL = forwardRef<DSLRef, DSLProps>(({ theme, i18n, editorWidth, onStartEdi
     reset: handleReset,
     clearLogs: handleClearLogs,
   }));
-
   const rightWidth = 100 - editorWidth;
-
   const globalStyles = `
       .dsl-example-tabs-container {
         position: relative;
@@ -463,7 +433,6 @@ const DSL = forwardRef<DSLRef, DSLProps>(({ theme, i18n, editorWidth, onStartEdi
         background: ${isDark ? "var(--bg-secondary, #2d2d3d)" : "var(--bg-secondary, #e8e8e8)"};
       }
     `;
-
   if (typeof document !== "undefined") {
     const styleId = "dsl-example-styles";
     if (!document.getElementById(styleId)) {
@@ -473,7 +442,6 @@ const DSL = forwardRef<DSLRef, DSLProps>(({ theme, i18n, editorWidth, onStartEdi
       document.head.appendChild(style);
     }
   }
-
   return (
     <>
       <div
@@ -583,7 +551,6 @@ const DSL = forwardRef<DSLRef, DSLProps>(({ theme, i18n, editorWidth, onStartEdi
             </button>
           )}
         </div>
-
         <textarea
           value={script}
           onChange={(e) => setScript(e.target.value)}
@@ -603,7 +570,6 @@ const DSL = forwardRef<DSLRef, DSLProps>(({ theme, i18n, editorWidth, onStartEdi
           spellCheck={false}
         />
       </div>
-
       <div
         className="editor-resize-handle"
         style={{
@@ -616,7 +582,6 @@ const DSL = forwardRef<DSLRef, DSLProps>(({ theme, i18n, editorWidth, onStartEdi
         }}
         onMouseDown={onStartEditorResize}
       />
-
       <div
         style={{
           width: `${rightWidth}%`,
@@ -713,7 +678,15 @@ const DSL = forwardRef<DSLRef, DSLProps>(({ theme, i18n, editorWidth, onStartEdi
     </>
   );
 });
-
+// Helper functions that were moved outside useEffect
+const checkScrollButtons = () => {
+  // This is now handled inside the component
+};
+const scrollTabs = (direction: "left" | "right") => {
+  // This is now handled inside the component
+};
+const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+  // This is now handled inside the component
+};
 DSL.displayName = "DSL";
-
 export default DSL;

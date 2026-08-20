@@ -5,6 +5,7 @@ import Chart, { ChartRef } from "./Chart";
 import DSL, { DSLRef } from "./DSL";
 import MarketPanel from "./MarketPanel";
 import { PanelRightOpen } from "lucide-react";
+import { fetchStockOHLCV } from "../../../command/Finance/AStock";
 interface ChartChatPageCandleViewProps {
   theme: "light" | "dark";
   i18n: "en" | "zh-cn";
@@ -14,6 +15,20 @@ interface ChartChatPageCandleViewProps {
   taskId?: string;
   chartData?: any;
 }
+/**
+ * Map CandleView timeframe to backend period parameter
+ * 1m -> 1 minute, 5m -> 5 minutes, 1H -> 1 hour, 1D -> daily, 1W -> weekly, 1M -> monthly
+ */
+const TIMEFRAME_MAP: Record<string, string> = {
+  "1m": "1",
+  "5m": "5",
+  "15m": "15",
+  "30m": "30",
+  "1H": "60",
+  "1D": "101",
+  "1W": "102",
+  "1M": "103",
+};
 export const ChartChatPageCandleView: React.FC<ChartChatPageCandleViewProps> = ({ theme, i18n, currentSessionId, data, symbol = "BTC/USDT", taskId, chartData }) => {
   const [chartHeight, setChartHeight] = useState(55);
   const [editorWidth, setEditorWidth] = useState(60);
@@ -22,6 +37,14 @@ export const ChartChatPageCandleView: React.FC<ChartChatPageCandleViewProps> = (
   const [isMarketResizing, setIsMarketResizing] = useState(false);
   const [isMarketCollapsed, setIsMarketCollapsed] = useState(false);
   const [marketPanelWidth, setMarketPanelWidth] = useState(240);
+  const [chartSymbol, setChartSymbol] = useState(symbol);
+  const [chartDataState, setChartDataState] = useState<any>(chartData);
+  const [candleData, setCandleData] = useState<ICandleViewDataPoint[]>(data || TEST_CANDLEVIEW_DATA8);
+  // Use refs to avoid closure issues in callbacks
+  const currentSymbolRef = useRef<string>("");
+  const currentNameRef = useRef<string>("");
+  const currentPeriodRef = useRef<string>("101");
+  const chartRef = useRef<ChartRef>(null);
   const startYRef = useRef(0);
   const startChartHeightRef = useRef(0);
   const startXRef = useRef(0);
@@ -29,20 +52,257 @@ export const ChartChatPageCandleView: React.FC<ChartChatPageCandleViewProps> = (
   const startMarketXRef = useRef(0);
   const startMarketWidthRef = useRef(0);
   const containerRef = useRef<HTMLDivElement>(null);
-  const chartRef = useRef<ChartRef>(null);
   const dslRef = useRef<DSLRef>(null);
   const engineRef = useRef<any>(null);
-  const chartDataFromProps = data || TEST_CANDLEVIEW_DATA8;
+  const chartDataFromProps = candleData;
   const isValidData = chartDataFromProps && Array.isArray(chartDataFromProps) && chartDataFromProps.length > 0;
-  const handleCryptoClick = useCallback((pair: string) => {
-    console.log("[MarketPanel] Crypto clicked:", pair);
+  /**
+   * Fetch OHLCV data for a symbol with specific timeframe
+   * @param symbol - Symbol identifier (stock code or trading pair)
+   * @param name - Display name for the asset
+   * @param period - Time period: "101"=daily, "102"=weekly, "103"=monthly, "1"/"5"/"30"/"60"=minutes
+   * @param count - Number of records to fetch
+   * @param dataType - Type of data source: "astock", "crypto", "stock", "perpetual"
+   * @returns boolean indicating success
+   */
+  const fetchDataForSymbol = useCallback(async (symbol: string, name: string, period: string = "101", count: number = 300, dataType: string = "astock") => {
+    try {
+      console.log("[Chart] Fetching data:", { symbol, name, period, count, dataType });
+      let klines = null;
+      // For A-shares, use the backend API
+      if (dataType === "astock") {
+        klines = await fetchStockOHLCV(symbol, period, count, true);
+      } else {
+        // For crypto and other asset types, fetch from Binance or other sources
+        // This uses the existing Binance API infrastructure
+        const binanceSymbol = symbol.replace("/", "").toUpperCase();
+        const binanceInterval = getBinanceInterval(period);
+        const response = await fetch(`https://api.binance.com/api/v3/klines?symbol=${binanceSymbol}&interval=${binanceInterval}&limit=${count}`);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const rawData = await response.json();
+        klines = rawData.map((k: any) => ({
+          date: new Date(k[0]).toISOString().split("T")[0],
+          open: parseFloat(k[1]),
+          high: parseFloat(k[2]),
+          low: parseFloat(k[3]),
+          close: parseFloat(k[4]),
+          volume: parseFloat(k[5]),
+          amount: parseFloat(k[7]),
+        }));
+      }
+      if (klines && klines.length > 0) {
+        // Convert to CandleView format - time must be timestamp in seconds
+        const chartDataPoints: ICandleViewDataPoint[] = klines.map((k: any) => ({
+          time: Math.floor(new Date(k.date).getTime() / 1000),
+          open: k.open,
+          high: k.high,
+          low: k.low,
+          close: k.close,
+          volume: k.volume,
+        }));
+        console.log("[Chart] Converted data points:", chartDataPoints.length);
+        // Update React state
+        setCandleData(chartDataPoints);
+        currentSymbolRef.current = symbol;
+        currentNameRef.current = name;
+        currentPeriodRef.current = period;
+        // Format title
+        const displaySymbol = symbol.replace(/^sh|^sz/, "").toUpperCase();
+        const title = `${name} · ${displaySymbol}`;
+        setChartSymbol(title);
+        // Directly update chart via ref
+        if (chartRef.current) {
+          const cv = chartRef.current.getCandleView();
+          if (cv) {
+            console.log("[Chart] Updating chart with", chartDataPoints.length, "points");
+            cv.setData(chartDataPoints, true);
+            cv.setTitle(title);
+            // Force refresh
+            try {
+              const chart = cv.getChart();
+              if (chart?.chart) {
+                const currentType = (chart as any).chartType || "Candle";
+                chart.updateChartType(currentType);
+              }
+            } catch (e) {
+              console.warn("Force refresh error:", e);
+            }
+            // Fit content after data update
+            setTimeout(() => {
+              try {
+                const chart = cv.getChart();
+                if (chart?.chart) {
+                  chart.chart.timeScale().fitContent();
+                  console.log("[Chart] fitContent called");
+                }
+              } catch (e) {
+                console.warn("Fit content error:", e);
+              }
+            }, 200);
+          }
+        }
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.error("[Chart] Failed to fetch OHLCV data:", err);
+      return false;
+    }
   }, []);
-  const handleStockClick = useCallback((symbol: string) => {
+  /**
+   * Get Binance interval string from period parameter
+   */
+  const getBinanceInterval = (period: string): string => {
+    const map: Record<string, string> = {
+      "1": "1m",
+      "5": "5m",
+      "15": "15m",
+      "30": "30m",
+      "60": "1h",
+      "101": "1d",
+      "102": "1w",
+      "103": "1M",
+    };
+    return map[period] || "1d";
+  };
+  /**
+   * Handle A-share stock click from MarketPanel
+   */
+  const handleAStockClick = useCallback(
+    async (symbol: string, name?: string) => {
+      console.log("[MarketPanel] A-Share clicked:", symbol, name);
+      const stockName = name || symbol.replace(/^sh|^sz/, "").toUpperCase();
+      await fetchDataForSymbol(symbol, stockName, "101", 300, "astock");
+    },
+    [fetchDataForSymbol],
+  );
+  /**
+   * Handle crypto click from MarketPanel
+   */
+  const handleCryptoClick = useCallback(
+    async (pair: string) => {
+      console.log("[MarketPanel] Crypto clicked:", pair);
+      // Fetch OHLCV data for crypto from Binance
+      await fetchDataForSymbol(pair, pair, "101", 300, "crypto");
+    },
+    [fetchDataForSymbol],
+  );
+  /**
+   * Handle stock click from MarketPanel (US stocks via Yahoo Finance)
+   */
+  const handleStockClick = useCallback(async (symbol: string) => {
     console.log("[MarketPanel] Stock clicked:", symbol);
+    try {
+      // Fetch data from Yahoo Finance via the existing fetchStockFromYahoo function
+      // Since we don't have a direct OHLCV API for Yahoo in the backend,
+      // we use the existing frontend fetch method
+      const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?range=1mo&interval=1d`;
+      const response = await fetch(url, {
+        headers: {
+          Accept: "application/json",
+          "User-Agent": "Mozilla/5.0",
+        },
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      if (data.chart.error || !data.chart.result || data.chart.result.length === 0) {
+        throw new Error("No data returned from Yahoo Finance");
+      }
+      const result = data.chart.result[0];
+      const quote = result.indicators.quote[0];
+      const timestamps = result.timestamp;
+      const meta = result.meta;
+      const chartDataPoints: ICandleViewDataPoint[] = [];
+      for (let i = 0; i < timestamps.length; i++) {
+        if (quote.open[i] !== null && quote.high[i] !== null && quote.low[i] !== null && quote.close[i] !== null && quote.volume[i] !== null) {
+          chartDataPoints.push({
+            time: timestamps[i],
+            open: quote.open[i] as number,
+            high: quote.high[i] as number,
+            low: quote.low[i] as number,
+            close: quote.close[i] as number,
+            volume: quote.volume[i] as number,
+          });
+        }
+      }
+      if (chartDataPoints.length === 0) {
+        throw new Error("No valid OHLCV data found");
+      }
+      setCandleData(chartDataPoints);
+      currentSymbolRef.current = symbol;
+      currentNameRef.current = meta.longName || meta.shortName || symbol;
+      currentPeriodRef.current = "101";
+      const title = `${meta.longName || meta.shortName || symbol} · ${symbol}`;
+      setChartSymbol(title);
+      if (chartRef.current) {
+        const cv = chartRef.current.getCandleView();
+        if (cv) {
+          cv.setData(chartDataPoints, true);
+          cv.setTitle(title);
+          setTimeout(() => {
+            try {
+              const chart = cv.getChart();
+              if (chart?.chart) {
+                chart.chart.timeScale().fitContent();
+              }
+            } catch (e) {
+              console.warn("Fit content error:", e);
+            }
+          }, 200);
+        }
+      }
+    } catch (err) {
+      console.error("[Chart] Failed to fetch stock OHLCV data:", err);
+    }
   }, []);
+  /**
+   * Handle perpetual click from MarketPanel
+   */
+  const handlePerpetualClick = useCallback(
+    async (pair: string) => {
+      console.log("[MarketPanel] Perpetual clicked:", pair);
+      // For perpetuals, fetch from Binance as well (they use the same symbol format)
+      await fetchDataForSymbol(pair, pair, "101", 300, "crypto");
+    },
+    [fetchDataForSymbol],
+  );
+  /**
+   * Handle timeframe change from CandleView top panel
+   */
+  const handleTimeframeChange = useCallback(
+    async (timeframe: string) => {
+      console.log("[Chart] Timeframe changed to:", timeframe);
+      let period = TIMEFRAME_MAP[timeframe];
+      if (!period) {
+        console.warn("[Chart] Unknown timeframe:", timeframe, "falling back to daily");
+        period = "101";
+      }
+      console.log("[Chart] Backend period:", period);
+      const symbol = currentSymbolRef.current;
+      const name = currentNameRef.current;
+      const dataType = currentSymbolRef.current?.startsWith("sh") || currentSymbolRef.current?.startsWith("sz") ? "astock" : "crypto";
+      console.log("[Chart] Current symbol from ref:", symbol, "name:", name);
+      if (symbol && name) {
+        await fetchDataForSymbol(symbol, name, period, 300, dataType);
+      } else {
+        console.warn("[Chart] No symbol set, cannot fetch data for timeframe change");
+      }
+    },
+    [fetchDataForSymbol],
+  );
+  /**
+   * Toggle market panel collapse state
+   */
   const toggleMarketPanel = useCallback(() => {
     setIsMarketCollapsed((prev) => !prev);
   }, []);
+  // ============================================
+  // Engine check for DSL
+  // ============================================
   useEffect(() => {
     const checkEngine = () => {
       if (chartRef.current) {
@@ -55,6 +315,9 @@ export const ChartChatPageCandleView: React.FC<ChartChatPageCandleViewProps> = (
     const interval = setInterval(checkEngine, 300);
     return () => clearInterval(interval);
   }, []);
+  // ============================================
+  // Chart resizing handlers
+  // ============================================
   const startChartResizing = useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault();
@@ -135,7 +398,9 @@ export const ChartChatPageCandleView: React.FC<ChartChatPageCandleViewProps> = (
   const stopMarketResizing = useCallback(() => {
     setIsMarketResizing(false);
   }, []);
-  // Chart resize events
+  // ============================================
+  // Event listeners for resizing
+  // ============================================
   useEffect(() => {
     if (isChartResizing) {
       document.addEventListener("mousemove", handleChartMouseMove);
@@ -146,7 +411,6 @@ export const ChartChatPageCandleView: React.FC<ChartChatPageCandleViewProps> = (
       document.removeEventListener("mouseup", stopChartResizing);
     };
   }, [isChartResizing, handleChartMouseMove, stopChartResizing]);
-  // Editor resize events
   useEffect(() => {
     if (isEditorResizing) {
       document.addEventListener("mousemove", handleEditorMouseMove);
@@ -157,7 +421,6 @@ export const ChartChatPageCandleView: React.FC<ChartChatPageCandleViewProps> = (
       document.removeEventListener("mouseup", stopEditorResizing);
     };
   }, [isEditorResizing, handleEditorMouseMove, stopEditorResizing]);
-  // Market resize events
   useEffect(() => {
     if (isMarketResizing) {
       document.addEventListener("mousemove", handleMarketMouseMove);
@@ -186,6 +449,7 @@ export const ChartChatPageCandleView: React.FC<ChartChatPageCandleViewProps> = (
         userSelect: "none",
       }}
     >
+      {/* Global styles for scrollbars and resize handles */}
       <style>{`
         .chart-resize-handle {
           position: relative;
@@ -268,6 +532,7 @@ export const ChartChatPageCandleView: React.FC<ChartChatPageCandleViewProps> = (
           background: transparent;
         }
       `}</style>
+      {/* Left panel: Chart + DSL */}
       <div
         style={{
           width: leftWidth,
@@ -278,6 +543,7 @@ export const ChartChatPageCandleView: React.FC<ChartChatPageCandleViewProps> = (
           flexShrink: 0,
         }}
       >
+        {/* Chart area */}
         <div
           style={{
             height: `${chartHeight}%`,
@@ -288,7 +554,8 @@ export const ChartChatPageCandleView: React.FC<ChartChatPageCandleViewProps> = (
             flexShrink: 0,
           }}
         >
-          <Chart ref={chartRef} theme={theme} i18n={i18n} symbol={symbol} data={chartDataFromProps} chartData={chartData} isValidData={isValidData} />
+          <Chart ref={chartRef} theme={theme} i18n={i18n} symbol={chartSymbol} data={chartDataFromProps} chartData={chartDataState} isValidData={isValidData} onTimeframeChange={handleTimeframeChange} />
+          {/* Collapsed market panel toggle button */}
           {isMarketCollapsed && (
             <button
               onClick={toggleMarketPanel}
@@ -326,6 +593,7 @@ export const ChartChatPageCandleView: React.FC<ChartChatPageCandleViewProps> = (
             </button>
           )}
         </div>
+        {/* Chart resize handle */}
         <div
           className="chart-resize-handle"
           style={{
@@ -337,6 +605,7 @@ export const ChartChatPageCandleView: React.FC<ChartChatPageCandleViewProps> = (
           }}
           onMouseDown={startChartResizing}
         />
+        {/* DSL editor area */}
         <div
           style={{
             height: `${editorHeight}%`,
@@ -351,6 +620,7 @@ export const ChartChatPageCandleView: React.FC<ChartChatPageCandleViewProps> = (
           <DSL ref={dslRef} theme={theme} i18n={i18n} editorWidth={editorWidth} onStartEditorResize={startEditorResizing} engineRef={engineRef} />
         </div>
       </div>
+      {/* Market panel resize handle */}
       {!isMarketCollapsed && (
         <div
           className="market-resize-handle"
@@ -371,6 +641,7 @@ export const ChartChatPageCandleView: React.FC<ChartChatPageCandleViewProps> = (
           }}
         />
       )}
+      {/* Market panel */}
       {!isMarketCollapsed && (
         <div
           style={{
@@ -382,9 +653,10 @@ export const ChartChatPageCandleView: React.FC<ChartChatPageCandleViewProps> = (
             flexShrink: 0,
           }}
         >
-          <MarketPanel theme={theme} i18n={i18n} onCryptoClick={handleCryptoClick} onStockClick={handleStockClick} isCollapsed={isMarketCollapsed} onToggleCollapse={toggleMarketPanel} />
+          <MarketPanel theme={theme} i18n={i18n} onCryptoClick={handleCryptoClick} onStockClick={handleStockClick} onAStockClick={handleAStockClick} onPerpetualClick={handlePerpetualClick} isCollapsed={isMarketCollapsed} onToggleCollapse={toggleMarketPanel} />
         </div>
       )}
+      {/* Overlays for resizing */}
       {isChartResizing && (
         <div
           style={{

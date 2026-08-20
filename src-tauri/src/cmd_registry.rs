@@ -331,6 +331,10 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         //  Video Session Tracks 
         sessions::cmd_get_video_session_tracks,
         sessions::cmd_update_video_session_tracks,  
+        // ================================================ Finance ================================================
+        subsystem::cmd_fetch_a_stocks,
+        subsystem::cmd_get_popular_a_stocks,
+        subsystem::cmd_fetch_a_stock_ohlcv,
         // ================================================ Code Editor ================================================
         //  CodeEditor File Operations 
         subsystem::cmd_open_in_terminal,

@@ -1,7 +1,7 @@
 use crate::{
     commands::get_settings_dir,
     hippox_core::{
-        init_single_hippox, remove_container_instance_from_core, remove_database_instance_from_core, remove_network_instance_from_core,
+        create_hippox_instance, remove_container_instance_from_core, remove_database_instance_from_core, remove_network_instance_from_core,
         remove_notification_instance_from_core, sync_all_to_hippox_core, sync_container_instance_to_core, sync_database_instance_to_core,
         sync_network_instance_to_core, sync_notification_instance_to_core, ContainerInstance, DatabaseInstance, LlmInstance, NetworkInstance,
         NotificationInstance,
@@ -1059,7 +1059,7 @@ pub async fn reinit_single_hippox(instance_id: &str) -> Result<(), String> {
         let skills_dir = config.workspace.skills_dir.clone();
         (instance, skills_dir)
     };
-    let hippox = init_single_hippox(&instance, &skills_dir).await?;
+    let hippox = create_hippox_instance(&instance, &skills_dir).await?;
     let mut instances = HIPPOX_INSTANCES.write().await;
     instances.insert(instance_id.to_string(), Arc::new(hippox));
     Ok(())
@@ -1088,7 +1088,7 @@ pub async fn get_hippox_instance(instance_id: &str) -> Result<Arc<Hippox>, Strin
         let skills_dir = config.workspace.skills_dir.clone();
         (instance, skills_dir)
     };
-    let hippox = init_single_hippox(&instance_config, &skills_dir).await?;
+    let hippox = create_hippox_instance(&instance_config, &skills_dir).await?;
     let hippox_arc = Arc::new(hippox);
     let mut instances = HIPPOX_INSTANCES.write().await;
     instances.insert(instance_id.to_string(), hippox_arc.clone());

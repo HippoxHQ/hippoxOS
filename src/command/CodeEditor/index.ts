@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import { FileOperationResult } from "./General";
+import { FileOperationResult } from "../General";
 export interface FileMoveResult {
     success: boolean;
     message: string;

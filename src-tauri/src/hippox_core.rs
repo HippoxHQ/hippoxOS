@@ -102,7 +102,7 @@ pub(crate) async fn init_all_hippox_instances() -> Result<(), String> {
     };
     let mut instances = HIPPOX_INSTANCES.write().await;
     for (id, instance) in llm_instances {
-        match init_single_hippox(&instance, &skills_dir).await {
+        match create_hippox_instance(&instance, &skills_dir).await {
             Ok(hippox) => {
                 instances.insert(id.clone(), Arc::new(hippox));
             }
@@ -113,7 +113,7 @@ pub(crate) async fn init_all_hippox_instances() -> Result<(), String> {
     }
     Ok(())
 }
-pub(crate) async fn init_single_hippox(instance: &LlmInstance, skills_dir: &str) -> Result<Hippox, String> {
+pub(crate) async fn create_hippox_instance(instance: &LlmInstance, skills_dir: &str) -> Result<Hippox, String> {
     use hippox::{ModelProvider, WorkflowMode};
     let model_provider = match instance.provider.to_lowercase().as_str() {
         "openai" => ModelProvider::OpenAI,

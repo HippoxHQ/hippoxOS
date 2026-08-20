@@ -7,18 +7,31 @@ interface ChartProps {
   data: ICandleViewDataPoint[];
   chartData?: any;
   isValidData: boolean;
+  onTimeframeChange?: (timeframe: string) => void;
 }
 export interface ChartRef {
   getEngine: () => any;
   getCandleView: () => CandleView | null;
   applyConfig: (config: any) => void;
 }
-const Chart = forwardRef<ChartRef, ChartProps>(({ theme, i18n, symbol, data, chartData, isValidData }, ref) => {
+const Chart = forwardRef<ChartRef, ChartProps>(({ theme, i18n, symbol, data, chartData, isValidData, onTimeframeChange }, ref) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const candleViewRef = useRef<CandleView | null>(null);
   const [isReady, setIsReady] = useState(false);
   const engineRef = useRef<any>(null);
   const [isEngineReady, setIsEngineReady] = useState(false);
+  /**
+   * Handle timeframe change from CandleView
+   * This is called when user clicks on a timeframe button in the top panel
+   */
+  const handleTimeframeChange = useCallback(
+    (timeframe: TimeframeEnum) => {
+      console.log("[Chart] CandleView timeframe changed:", timeframe);
+      // Convert TimeframeEnum to string and pass to parent
+      onTimeframeChange?.(String(timeframe));
+    },
+    [onTimeframeChange],
+  );
   const applyCandleViewConfig = useCallback(
     (config: any) => {
       if (!candleViewRef.current || !isReady) return;
@@ -103,6 +116,10 @@ const Chart = forwardRef<ChartRef, ChartProps>(({ theme, i18n, symbol, data, cha
         data: data,
         timeframe: TimeframeEnum.ONE_SECOND,
       });
+      // Set timeframe change callback
+      candleView.setOnTimeframeChangeCallback((cv, timeframe) => {
+        handleTimeframeChange(timeframe);
+      });
       candleViewRef.current = candleView;
       setIsReady(true);
       import("@candleview/cvs-engine")
@@ -145,18 +162,34 @@ const Chart = forwardRef<ChartRef, ChartProps>(({ theme, i18n, symbol, data, cha
       applyCandleViewConfig(chartData);
     }
   }, [chartData, isReady, applyCandleViewConfig]);
+  /**
+   * Update chart when data changes
+   * This is the critical effect that updates the chart when new data arrives
+   */
   useEffect(() => {
-    if (!candleViewRef.current || !isValidData) return;
-    candleViewRef.current.setData(data);
-    setTimeout(() => {
-      try {
-        const chart = candleViewRef.current?.getChart();
-        if (chart?.chart) {
-          chart.chart.timeScale().fitContent();
+    if (!candleViewRef.current || !isValidData) {
+      console.log("[Chart] Skipping update - no ref or invalid data");
+      return;
+    }
+    console.log("[Chart] Updating chart with data length:", data?.length);
+    if (data && data.length > 0) {
+      // Set data on the CandleView instance
+      candleViewRef.current.setData(data);
+      candleViewRef.current.setTitle(symbol);
+      // Force fit content after data update
+      setTimeout(() => {
+        try {
+          const chart = candleViewRef.current?.getChart();
+          if (chart?.chart) {
+            chart.chart.timeScale().fitContent();
+            console.log("[Chart] fitContent called successfully");
+          }
+        } catch (e) {
+          console.warn("Fit content after data update error:", e);
         }
-      } catch (e) {}
-    }, 100);
-  }, [data, isValidData]);
+      }, 150);
+    }
+  }, [data, isValidData, symbol]);
   useEffect(() => {
     if (candleViewRef.current) {
       candleViewRef.current.setTheme(theme);
