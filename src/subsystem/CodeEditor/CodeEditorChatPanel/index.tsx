@@ -13,7 +13,8 @@ import { ChatIcon, TaskQueueIcon, UserIcon, AttachmentIcon, FolderIcon, ChevronR
 import { zhDefaultPrompts, enDefaultPrompts } from "../../../types/DefaultPrompt";
 import { ChatMessage, RoleEnum, MessageStatus } from "../../../types/types";
 import { codeEditorSessionCommands } from "../../../command/session/codeeditor";
-import { isStructuredLLMResponse, parseLLMResponse } from "../llm/utils";
+import { isStructuredLLMResponse, parseLLMResponse, extractEditorData, hasEditorData } from "../llm/utils";
+import { CodingRef } from "../Coding";
 interface CodeEditorChatPanelProps {
   onSendMessage: (message: string, sessionId: string, files?: UploadFile[], workflowMode?: string) => void | Promise<void>;
   onFileClick?: (file: UploadFile) => void;
@@ -27,7 +28,12 @@ interface CodeEditorChatPanelProps {
   isCollapsed?: boolean;
   togglePanel?: () => void;
   collapseIcon?: string;
+  /** Reference to the Coding component for displaying diffs */
+  codingRef?: React.RefObject<CodingRef | null>;
 }
+/**
+ * CodeEditorChatPanel - Chat interface for code editor
+ */
 const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
   onSendMessage: onSendMessageProp,
   onFileClick,
@@ -41,6 +47,7 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
   togglePanel,
   collapseIcon: collapseIconProp,
   currentSessionId,
+  codingRef,
 }) => {
   const [inputValue, setInputValue] = useState("");
   const [isFocused, setIsFocused] = useState(false);
@@ -79,6 +86,8 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
   const [isLoadingTitle, setIsLoadingTitle] = useState(false);
   const hasLoadedTitleRef = useRef<Record<string, boolean>>({});
   const collapseIcon = collapseIconProp || (isLeftPanel ? (isCollapsed ? "≫" : "≪") : isCollapsed ? "≪" : "≫");
+  /** Track which messages have been processed for editor operations */
+  const processedMessageIdsRef = useRef<Set<string>>(new Set());
   const welcomeMsg: ChatMessage = {
     id: "welcome",
     role: RoleEnum.LLM,
@@ -276,7 +285,6 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
     } else {
       prevMessageCountRef.current = 0;
       isFirstLoadRef.current = true;
-      // setSuggestionPrompts([]);
     }
     return () => {
       if (suggestionTimerRef.current) {
@@ -470,7 +478,16 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
         showToast(ToastType.SUCCESS, "Session ID cannot be empty.");
         return;
       }
-      const message = inputValue.trim() || "";
+      // Get current file content from the editor
+      let currentFileContent = "";
+      if (codingRef?.current) {
+        currentFileContent = codingRef.current.getCurrentFileContent();
+      }
+      // Build the message with file context
+      let message = inputValue.trim() || "";
+      if (currentFileContent) {
+        message = `${message}\n\nCurrent file content:\n\`\`\`\n${currentFileContent}\n\`\`\``;
+      }
       const currentFiles = [...uploadedFiles];
       setInputValue("");
       setUploadedFiles([]);
@@ -733,7 +750,6 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
     if (messagesContainerRef.current && !userScrolled) {
       messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
     }
-    // setTimeout(handleScrollUpdate, 100);
   }, [messages, userScrolled]);
   useEffect(() => {
     const element = messagesContainerRef.current;
@@ -775,6 +791,40 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
     }
     return { right: 0, top: 0 };
   })();
+  /**
+   * Process LLM response and render editor diff data on the coding panel
+   * This is the key integration point between chat and code editor
+   * It runs whenever messages change and checks the latest LLM message
+   *
+   * Same pattern as 3D sandbox: extract data from LLM response and render it
+   */
+  useEffect(() => {
+    // Check if there's a new LLM message with editor data to render
+    const lastMsg = messages.length > 0 ? messages[messages.length - 1] : null;
+    if (!lastMsg || lastMsg.role !== RoleEnum.LLM) return;
+    if (lastMsg.status === MessageStatus.Pending) return;
+    if (lastMsg.status === MessageStatus.Failed) return;
+    if (lastMsg.status === MessageStatus.Cancelled) return;
+    // Skip if already processed
+    if (processedMessageIdsRef.current.has(lastMsg.id)) {
+      return;
+    }
+    // Check if the message contains structured LLM response with editor data
+    if (isStructuredLLMResponse(lastMsg.content)) {
+      const parsed = parseLLMResponse(lastMsg.content);
+      if (parsed?.terminalResponse?.editor) {
+        const editorData = parsed.terminalResponse.editor;
+        // Show diff in the coding panel
+        if (codingRef?.current) {
+          codingRef.current.showDiff(editorData.filePath, editorData.originalContent, editorData.newContent);
+          processedMessageIdsRef.current.add(lastMsg.id);
+        } else {
+          console.warn("[CodeEditorChatPanel] Coding ref not available for diff display");
+        }
+      }
+    }
+  }, [messages, codingRef, currentSessionId]);
+  // RENDER
   return (
     <div
       className="codeeditor-chat-panel"

@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { taskManager } from "../../core/TaskManager";
 import { CollapseAllIcon2, ExpandAllIcon2, FileIcon, FolderIcon, GithubIcon, MessageCircleIcon, ScrollTextIcon } from "../../icons";
-import CodingPage from "./Coding";
+import CodingPage, { CodingRef } from "./Coding";
 import { configCommands } from "../../command/config";
 import HistoryCodeEditorChatPanel, { HistoryCodeEditorChatPanelRef } from "./HistoryCodeEditorChatPanel";
 import CodeEditorChatPanel from "./CodeEditorChatPanel";
@@ -12,9 +12,7 @@ import { listen } from "@tauri-apps/api/event";
 import { githubCommands } from "../../command/net/github";
 import { showToast, ToastType } from "../../components/Toast";
 import { open } from "@tauri-apps/plugin-dialog";
-import { CloseIcon } from "../../icons";
 import GithubClone from "./GithubClone";
-
 const GLOBAL_SESSION_LOCK = {
   isCreating: false,
   lastPath: "",
@@ -64,7 +62,6 @@ const GLOBAL_SESSION_LOCK = {
     }, 3000);
   },
 };
-
 interface CodeEditorPageProps {
   layoutMode?: "horizontal" | "vertical";
   onLayoutModeChange?: (mode: "horizontal" | "vertical") => void;
@@ -84,18 +81,15 @@ interface CodeEditorPageProps {
   onClearLogs?: () => void;
   isConfigLoaded?: boolean;
 }
-
 interface CollapsedTaskListProps {
   tasks: any[];
   activeNavIndex: number;
   onLocateTask: (idx: number) => void;
 }
-
 const CollapsedTaskList: React.FC<CollapsedTaskListProps> = ({ tasks, activeNavIndex, onLocateTask }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [showUp, setShowUp] = useState(false);
   const [showDown, setShowDown] = useState(false);
-
   const checkScroll = useCallback(() => {
     if (!containerRef.current) return;
     const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
@@ -104,7 +98,6 @@ const CollapsedTaskList: React.FC<CollapsedTaskListProps> = ({ tasks, activeNavI
     setShowUp(canScrollUp);
     setShowDown(canScrollDown);
   }, []);
-
   const updateScrollButtons = useCallback(() => {
     if (!containerRef.current) return;
     const { scrollHeight, clientHeight } = containerRef.current;
@@ -118,7 +111,6 @@ const CollapsedTaskList: React.FC<CollapsedTaskListProps> = ({ tasks, activeNavI
       setShowDown(false);
     }
   }, []);
-
   useEffect(() => {
     const el = containerRef.current;
     if (el) {
@@ -134,23 +126,19 @@ const CollapsedTaskList: React.FC<CollapsedTaskListProps> = ({ tasks, activeNavI
       };
     }
   }, [checkScroll, updateScrollButtons]);
-
   useEffect(() => {
     setTimeout(updateScrollButtons, 100);
   }, [tasks]);
-
   const scrollUp = () => {
     if (containerRef.current) {
       containerRef.current.scrollBy({ top: -200, behavior: "smooth" });
     }
   };
-
   const scrollDown = () => {
     if (containerRef.current) {
       containerRef.current.scrollBy({ top: 200, behavior: "smooth" });
     }
   };
-
   const getStatusColor = (status: string) => {
     switch (status) {
       case "running":
@@ -167,7 +155,6 @@ const CollapsedTaskList: React.FC<CollapsedTaskListProps> = ({ tasks, activeNavI
         return "var(--text-tertiary)";
     }
   };
-
   const getStatusEmoji = (status: string) => {
     switch (status) {
       case "running":
@@ -184,14 +171,12 @@ const CollapsedTaskList: React.FC<CollapsedTaskListProps> = ({ tasks, activeNavI
         return "📌";
     }
   };
-
   const getDisplayText = (text: string): string => {
     if (!text) return "...";
     const clean = text.trim();
     if (clean.length <= 2) return clean;
     return clean.slice(0, 2);
   };
-
   if (tasks.length === 0) {
     return (
       <div
@@ -220,7 +205,6 @@ const CollapsedTaskList: React.FC<CollapsedTaskListProps> = ({ tasks, activeNavI
       </div>
     );
   }
-
   return (
     <div
       style={{
@@ -384,18 +368,15 @@ const CollapsedTaskList: React.FC<CollapsedTaskListProps> = ({ tasks, activeNavI
     </div>
   );
 };
-
 interface CollapsedHistoryListProps {
   sessions: any[];
   currentSessionId?: string;
   onSelectSession: (sessionId: string) => void;
 }
-
 const CollapsedHistoryList: React.FC<CollapsedHistoryListProps> = ({ sessions, currentSessionId, onSelectSession }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [showUp, setShowUp] = useState(false);
   const [showDown, setShowDown] = useState(false);
-
   const sortedSessions = React.useMemo(() => {
     return [...sessions].sort((a, b) => {
       if (a.is_pinned && !b.is_pinned) return -1;
@@ -405,7 +386,6 @@ const CollapsedHistoryList: React.FC<CollapsedHistoryListProps> = ({ sessions, c
       return bTs - aTs;
     });
   }, [sessions]);
-
   const checkScroll = useCallback(() => {
     if (!containerRef.current) return;
     const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
@@ -414,7 +394,6 @@ const CollapsedHistoryList: React.FC<CollapsedHistoryListProps> = ({ sessions, c
     setShowUp(canScrollUp);
     setShowDown(canScrollDown);
   }, []);
-
   const updateScrollButtons = useCallback(() => {
     if (!containerRef.current) return;
     const { scrollHeight, clientHeight } = containerRef.current;
@@ -428,7 +407,6 @@ const CollapsedHistoryList: React.FC<CollapsedHistoryListProps> = ({ sessions, c
       setShowDown(false);
     }
   }, [checkScroll]);
-
   useEffect(() => {
     const el = containerRef.current;
     if (el) {
@@ -444,30 +422,25 @@ const CollapsedHistoryList: React.FC<CollapsedHistoryListProps> = ({ sessions, c
       };
     }
   }, [checkScroll, updateScrollButtons]);
-
   useEffect(() => {
     setTimeout(updateScrollButtons, 100);
   }, [sessions, updateScrollButtons]);
-
   const scrollUp = () => {
     if (containerRef.current) {
       containerRef.current.scrollBy({ top: -200, behavior: "smooth" });
     }
   };
-
   const scrollDown = () => {
     if (containerRef.current) {
       containerRef.current.scrollBy({ top: 200, behavior: "smooth" });
     }
   };
-
   const getDisplayText = (text: string): string => {
     if (!text) return "...";
     const clean = text.trim();
     if (clean.length <= 2) return clean;
     return clean.slice(0, 2);
   };
-
   if (sessions.length === 0) {
     return (
       <div
@@ -496,7 +469,6 @@ const CollapsedHistoryList: React.FC<CollapsedHistoryListProps> = ({ sessions, c
       </div>
     );
   }
-
   return (
     <div
       style={{
@@ -662,7 +634,6 @@ const CollapsedHistoryList: React.FC<CollapsedHistoryListProps> = ({ sessions, c
     </div>
   );
 };
-
 const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
   layoutMode = "vertical",
   onLayoutModeChange,
@@ -682,14 +653,7 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
   onClearLogs,
   isConfigLoaded = true,
 }) => {
-  const {
-    currentSessionId,
-    handleSendMessage: handleSendMessageHook,
-    handleSwitchSession,
-    handleNewSession,
-    shouldShowWelcome,
-    createSessionWithWorkspace,
-  } = useCodeEditorSession(language as "zh" | "en", isConfigLoaded, onCloseSkillsManager);
+  const { currentSessionId, handleSendMessage: handleSendMessageHook, handleSwitchSession, handleNewSession, shouldShowWelcome, createSessionWithWorkspace } = useCodeEditorSession(language as "zh" | "en", isConfigLoaded, onCloseSkillsManager);
   const dropLockRef = useRef<{ path: string; time: number } | null>(null);
   const [chatPanelWidth, setChatPanelWidth] = useState<number>(400);
   const [historyWidth, setHistoryWidth] = useState<number>(280);
@@ -720,7 +684,7 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
   const menuRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const layoutSwapModeRef = useRef<"terminal-left" | "chat-left">("terminal-left");
-
+  const codingRef = useRef<CodingRef | null>(null);
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node) && buttonRef.current && !buttonRef.current.contains(event.target as Node)) {
@@ -732,25 +696,21 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
-
   const handleSendMessage = useCallback(
     (message: string, sessionId: string, files?: any[], workflowMode?: string) => {
       handleSendMessageHook(message, sessionId, files, workflowMode);
     },
     [handleSendMessageHook],
   );
-
   const handleSessionSelect = useCallback(
     (sessionId: string) => {
       handleSwitchSession(sessionId);
     },
     [handleSwitchSession],
   );
-
   const handleNewSessionClick = useCallback(() => {
     setShowMenuPopup(!showMenuPopup);
   }, [showMenuPopup]);
-
   const handleSelectFolder = async () => {
     setShowMenuPopup(false);
     try {
@@ -766,7 +726,6 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
       showToast(ToastType.ERROR, language === "zh" ? "选择目录失败" : "Failed to select directory");
     }
   };
-
   const handleSelectFile = async () => {
     setShowMenuPopup(false);
     try {
@@ -788,18 +747,15 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
       showToast(ToastType.ERROR, language === "zh" ? "选择文件失败" : "Failed to select file");
     }
   };
-
   const handleSelectGithub = () => {
     setShowMenuPopup(false);
     setShowGithubDialog(true);
   };
-
   const handleToggleChatPanel = () => {
     if (isFunctionPanelMaximized) return;
     setChatPanelCollapsed(!chatPanelCollapsed);
     saveChatPanelCollapsed(!chatPanelCollapsed);
   };
-
   const loadWorkspacePath = useCallback(async (sessionId: string) => {
     if (!sessionId || sessionId.startsWith("pending_") || sessionId.startsWith("temp_")) {
       setWorkspacePath(null);
@@ -816,7 +772,6 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
       setWorkspacePath(null);
     }
   }, []);
-
   useEffect(() => {
     if (currentSessionId) {
       loadWorkspacePath(currentSessionId);
@@ -824,7 +779,6 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
       setWorkspacePath(null);
     }
   }, [currentSessionId, loadWorkspacePath]);
-
   const loadHistorySessions = useCallback(async () => {
     setIsLoadingHistory(true);
     try {
@@ -835,13 +789,11 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
       setIsLoadingHistory(false);
     }
   }, []);
-
   const createSessionWithWorkspaceRef = useRef(createSessionWithWorkspace);
   const loadHistorySessionsRef = useRef(loadHistorySessions);
   const loadWorkspacePathRef = useRef(loadWorkspacePath);
   const currentSessionIdRef = useRef(currentSessionId);
   const languageRef = useRef(language);
-
   useEffect(() => {
     createSessionWithWorkspaceRef.current = createSessionWithWorkspace;
     loadHistorySessionsRef.current = loadHistorySessions;
@@ -849,7 +801,6 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
     currentSessionIdRef.current = currentSessionId;
     languageRef.current = language;
   }, [createSessionWithWorkspace, loadHistorySessions, loadWorkspacePath, currentSessionId, language]);
-
   const createSessionWithLock = useCallback(
     async (workspacePath: string, workspaceType: "directory" | "file") => {
       if (!GLOBAL_SESSION_LOCK.tryLock(workspacePath)) {
@@ -870,14 +821,12 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
     },
     [createSessionWithWorkspace, loadHistorySessions, currentSessionId, loadWorkspacePath],
   );
-
   const handleSelectWorkspace = useCallback(
     async (workspacePath: string, workspaceType: "directory" | "file") => {
       await createSessionWithLock(workspacePath, workspaceType);
     },
     [createSessionWithLock],
   );
-
   const handleGithubClone = async (repoUrl: string, targetPath: string, branch: string) => {
     try {
       await githubCommands.cloneRepository(repoUrl, targetPath, branch || "main");
@@ -893,11 +842,9 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
       throw error;
     }
   };
-
   useEffect(() => {
     loadHistorySessions();
   }, [loadHistorySessions]);
-
   useEffect(() => {
     const loadLayoutMode = async () => {
       try {
@@ -910,7 +857,6 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
     };
     loadLayoutMode();
   }, []);
-
   useEffect(() => {
     const handleLayoutChange = (event: CustomEvent) => {
       const { pageType, mode } = event.detail;
@@ -924,7 +870,6 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
       window.removeEventListener("layout-swap-mode-changed", handleLayoutChange as EventListener);
     };
   }, []);
-
   useEffect(() => {
     const handleSessionCreated = () => {
       historyPanelRef.current?.refreshSessions();
@@ -935,7 +880,6 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
       window.removeEventListener("codeeditor-session-created", handleSessionCreated);
     };
   }, [loadHistorySessions]);
-
   useEffect(() => {
     const handleTitleUpdated = () => {
       historyPanelRef.current?.refreshSessions();
@@ -946,15 +890,11 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
       window.removeEventListener("session-title-updated", handleTitleUpdated);
     };
   }, [loadHistorySessions]);
-
   const createSessionWithLockRef = useRef(createSessionWithLock);
-
   useEffect(() => {
     createSessionWithLockRef.current = createSessionWithLock;
   }, [createSessionWithLock]);
-
   const isMountedRef = useRef(true);
-
   useEffect(() => {
     isMountedRef.current = true;
     let unlisten: (() => void) | undefined;
@@ -987,7 +927,6 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
       }
     };
   }, []);
-
   useEffect(() => {
     const savedHistoryWidth = localStorage.getItem("hippox-codeeditor-history-width");
     const savedHistoryCollapsed = localStorage.getItem("hippox-codeeditor-history-collapsed");
@@ -998,23 +937,18 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
     if (savedChatPanelCollapsed) setChatPanelCollapsed(savedChatPanelCollapsed === "true");
     if (savedChatPanelWidth) setChatPanelWidth(parseFloat(savedChatPanelWidth));
   }, []);
-
   const saveHistoryWidth = (width: number) => {
     localStorage.setItem("hippox-codeeditor-history-width", width.toString());
   };
-
   const saveHistoryCollapsed = (collapsed: boolean) => {
     localStorage.setItem("hippox-codeeditor-history-collapsed", collapsed.toString());
   };
-
   const saveChatPanelCollapsed = (collapsed: boolean) => {
     localStorage.setItem("hippox-codeeditor-chat-collapsed", collapsed.toString());
   };
-
   const saveChatPanelWidth = (width: number) => {
     localStorage.setItem("hippox-codeeditor-chat-width", width.toString());
   };
-
   const handleExpandToggle = () => {
     const newExpanded = !isHistoryExpanded;
     setIsHistoryExpanded(newExpanded);
@@ -1024,7 +958,6 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
       historyPanelRef.current?.collapseAll();
     }
   };
-
   const handleScrollToggle = () => {
     const newAtBottom = !isHistoryAtBottom;
     setIsHistoryAtBottom(newAtBottom);
@@ -1034,16 +967,13 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
       historyPanelRef.current?.scrollToTop();
     }
   };
-
   const handleToggleHistory = () => {
     setHistoryCollapsed(!historyCollapsed);
     saveHistoryCollapsed(!historyCollapsed);
   };
-
   const handleMouseDown = (e: React.MouseEvent, type: "horizontal" | "history") => {
     if (chatPanelCollapsed || isFunctionPanelMaximized) return;
     if (type === "history" && historyCollapsed) return;
-
     isDragging.current = true;
     dragType.current = type;
     dragStartX.current = e.clientX;
@@ -1054,7 +984,6 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
     document.body.style.userSelect = "none";
     e.preventDefault();
   };
-
   const handleMouseMove = useCallback((e: MouseEvent) => {
     if (!isDragging.current || !containerRef.current) return;
     const deltaX = e.clientX - dragStartX.current;
@@ -1084,7 +1013,6 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
       saveHistoryWidth(clamped);
     }
   }, []);
-
   useEffect(() => {
     window.addEventListener("mousemove", handleMouseMove);
     window.addEventListener("mouseup", handleMouseUp);
@@ -1093,13 +1021,11 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
       window.removeEventListener("mouseup", handleMouseUp);
     };
   }, [handleMouseMove]);
-
   const handleMouseUp = useCallback(() => {
     isDragging.current = false;
     document.body.style.cursor = "";
     document.body.style.userSelect = "";
   }, []);
-
   useEffect(() => {
     window.addEventListener("mousemove", handleMouseMove);
     window.addEventListener("mouseup", handleMouseUp);
@@ -1108,7 +1034,6 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
       window.removeEventListener("mouseup", handleMouseUp);
     };
   }, [handleMouseMove, handleMouseUp]);
-
   // useEffect(() => {
   //   window.addEventListener("mousemove", handleMouseMove);
   //   window.addEventListener("mouseup", handleMouseUp);
@@ -1117,7 +1042,6 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
   //     window.removeEventListener("mouseup", handleMouseUp);
   //   };
   // }, []);
-
   const getHistoryPanelContent = () => {
     if (historyCollapsed || isFunctionPanelMaximized) {
       return (
@@ -1197,7 +1121,6 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
         </div>
       );
     }
-
     return (
       <div
         style={{
@@ -1386,21 +1309,8 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
       </div>
     );
   };
-
   const historyPanelContent = getHistoryPanelContent();
-
-  const chatPanel = (
-    <CodeEditorChatPanel
-      onSendMessage={handleSendMessage}
-      onFileClick={onFileClick}
-      t={t}
-      currentSessionId={currentSessionId}
-      onDragOverInputChange={onDragOverInputChange}
-      language={language}
-      isLeftPanel={isChatOnLeft}
-    />
-  );
-
+  const chatPanel = <CodeEditorChatPanel onSendMessage={handleSendMessage} onFileClick={onFileClick} t={t} currentSessionId={currentSessionId} onDragOverInputChange={onDragOverInputChange} language={language} isLeftPanel={isChatOnLeft} codingRef={codingRef} />;
   const codeEditorPanel = (
     <div
       style={{
@@ -1413,10 +1323,9 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
         minWidth: 0,
       }}
     >
-      <CodingPage t={t} onClose={() => {}} workspacePath={workspacePath} onTabChange={(filePath) => {}} />
+      <CodingPage ref={codingRef} t={t} onClose={() => {}} workspacePath={workspacePath} onTabChange={(filePath) => {}} />
     </div>
   );
-
   const collapsedChatSidebar = (
     <div
       className="collapsed-sidebar"
@@ -1513,7 +1422,6 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
       />
     </div>
   );
-
   if (isLoadingHistory) {
     return (
       <div
@@ -1544,7 +1452,6 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
       </div>
     );
   }
-
   if (!hasHistorySessions) {
     return (
       <div
@@ -1558,7 +1465,6 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
       </div>
     );
   }
-
   return (
     <>
       <div className="panels-container horizontal-layout" ref={containerRef} style={{ display: "flex", flex: 1, overflow: "hidden" }}>
@@ -1611,7 +1517,6 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
             to { transform: rotate(360deg); }
           }
         `}</style>
-
         {!isFunctionPanelMaximized && (
           <>
             <div
@@ -1645,7 +1550,6 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
             )}
           </>
         )}
-
         {!chatPanelCollapsed && !isFunctionPanelMaximized ? (
           <div
             className="panel-chat"
@@ -1678,7 +1582,6 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
             {collapsedChatSidebar}
           </div>
         ) : null}
-
         {!chatPanelCollapsed && !isFunctionPanelMaximized && (
           <div
             className="resize-handle resize-handle-vertical"
@@ -1695,7 +1598,6 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
             // onMouseLeave={() => setIsResizeHover(false)}
           />
         )}
-
         <div
           style={{
             flex: 1,
@@ -1709,7 +1611,6 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
           {codeEditorPanel}
         </div>
       </div>
-
       {showMenuPopup && (
         <div
           ref={menuRef}
@@ -1756,7 +1657,6 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
               <FolderIcon size={14} />
               <span>{language === "zh" ? "选择目录" : "Select Folder"}</span>
             </div>
-
             <div
               onClick={handleSelectFile}
               style={{
@@ -1780,7 +1680,6 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
               <FileIcon size={14} />
               <span>{language === "zh" ? "选择文件" : "Select File"}</span>
             </div>
-
             <div
               onClick={handleSelectGithub}
               style={{
@@ -1807,9 +1706,7 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
           </div>
         </div>
       )}
-
       <GithubClone t={t} language={language} isOpen={showGithubDialog} onClose={() => setShowGithubDialog(false)} onClone={handleGithubClone} isLoading={isCreatingSession} />
-
       <style>{`
         @keyframes fadeIn {
           from { opacity: 0; }
@@ -1819,5 +1716,4 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
     </>
   );
 };
-
 export default CodeEditorPage;

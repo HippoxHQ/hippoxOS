@@ -14,6 +14,8 @@ interface CodeEditProps {
   selectedFile: string | null;
   workspacePath?: string | null;
   onTabChange?: (filePath: string | null) => void;
+  /** Callback to expose getValue/setValue methods to parent */
+  onRef?: (ref: { getValue: () => string; setValue: (content: string) => void } | null) => void;
 }
 interface TabItem {
   id: string;
@@ -58,7 +60,7 @@ const getFileLanguage = (fileName: string): string => {
   };
   return map[ext] || "plaintext";
 };
-const CodeEdit: React.FC<CodeEditProps> = ({ t, selectedFile, workspacePath, onTabChange }) => {
+const CodeEdit: React.FC<CodeEditProps> = ({ t, selectedFile, workspacePath, onTabChange, onRef }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const tabsContainerRef = useRef<HTMLDivElement>(null);
   const scrollbarRef = useRef<HTMLDivElement>(null);
@@ -92,6 +94,37 @@ const CodeEdit: React.FC<CodeEditProps> = ({ t, selectedFile, workspacePath, onT
   const lastNotifiedPathRef = useRef<string | null>(null);
   const currentWorkspaceRef = useRef<string | null>(null);
   const isAddingRef = useRef(false);
+  /**
+   * Expose getValue and setValue methods to parent via onRef callback
+   * This allows CodingPage to get/set file content for LLM context and diff application
+   */
+  useEffect(() => {
+    if (onRef) {
+      onRef({
+        getValue: () => {
+          if (editorRef.current) {
+            return editorRef.current.getValue() || "";
+          }
+          return "";
+        },
+        setValue: (content: string) => {
+          if (editorRef.current) {
+            editorRef.current.setValue(content);
+            // Mark current tab as dirty so user can save
+            const currentActiveTab = activeTabRef.current;
+            if (currentActiveTab) {
+              setTabs((prev) => prev.map((t) => (t.id === currentActiveTab ? { ...t, isDirty: true } : t)));
+            }
+          }
+        },
+      });
+    }
+    return () => {
+      if (onRef) {
+        onRef(null);
+      }
+    };
+  }, [onRef]);
   const loadMetadata = useCallback(async (): Promise<WorkspaceMetadata | null> => {
     if (!workspacePath) return null;
     return await codeEditorCommands.loadMetadata(workspacePath);
@@ -984,179 +1017,244 @@ const CodeEdit: React.FC<CodeEditProps> = ({ t, selectedFile, workspacePath, onT
         }}
       >
         <div
-          ref={tabsContainerRef}
-          className="tabs-container"
           style={{
             display: "flex",
-            alignItems: "center",
-            overflowX: "auto",
-            overflowY: "hidden",
-            minWidth: 0,
-            scrollbarWidth: "none",
-            msOverflowStyle: "none",
+            flexDirection: "column",
             flex: 1,
-            height: "40px",
-          }}
-          onWheel={(e) => {
-            if (tabsContainerRef.current) {
-              tabsContainerRef.current.scrollLeft += e.deltaY;
-              e.preventDefault();
-            }
+            minWidth: 0,
+            position: "relative",
           }}
         >
-          <style>
-            {`
-            .tabs-container::-webkit-scrollbar {
-              display: none;
-            }
-            .scrollbar-thumb:hover {
-              background: var(--scrollbar-thumb-hover, var(--scrollbar-thumb)) !important;
-            }
-          `}
-          </style>
-          {tabs.map((tab, index) => {
-            const isActive = activeTab === tab.id;
-            return (
-              <div
-                key={tab.id}
-                onClick={() => handleTabClick(tab.id)}
-                onContextMenu={(e) => handleTabContextMenu(e, tab.id, index)}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "8px",
-                  padding: "0px 10px",
-                  height: "40px",
-                  cursor: "pointer",
-                  background: isActive ? "var(--bg-primary)" : "transparent",
-                  color: isActive ? "var(--text-primary)" : "var(--text-secondary)",
-                  borderBottom: isActive ? "2px solid var(--accent-color)" : "2px solid transparent",
-                  fontSize: "12px",
-                  whiteSpace: "nowrap",
-                  flexShrink: 0,
-                  minWidth: "60px",
-                  maxWidth: "160px",
-                  position: "relative",
-                }}
-                onMouseEnter={(e) => {
-                  if (!isActive) {
-                    e.currentTarget.style.background = "var(--hover-bg)";
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!isActive) {
-                    e.currentTarget.style.background = "transparent";
-                  }
-                }}
-              >
-                <span style={{ fontSize: "12px", flexShrink: 0 }}>{getFileIconComponent(tab.name, 14)}</span>
-                <span
+          <div
+            ref={tabsContainerRef}
+            className="tabs-container"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              overflowX: "auto",
+              overflowY: "hidden",
+              minWidth: 0,
+              scrollbarWidth: "none",
+              msOverflowStyle: "none",
+              flex: 1,
+              height: "40px",
+            }}
+            onWheel={(e) => {
+              if (tabsContainerRef.current) {
+                tabsContainerRef.current.scrollLeft += e.deltaY;
+                e.preventDefault();
+              }
+            }}
+            onScroll={updateScrollbar}
+          >
+            <style>
+              {`
+        .tabs-container::-webkit-scrollbar {
+          display: none;
+        }
+        .scrollbar-thumb:hover {
+          background: var(--scrollbar-thumb-hover, var(--scrollbar-thumb)) !important;
+        }
+      `}
+            </style>
+            {tabs.map((tab, index) => {
+              const isActive = activeTab === tab.id;
+              return (
+                <div
+                  key={tab.id}
+                  onClick={() => handleTabClick(tab.id)}
+                  onContextMenu={(e) => handleTabContextMenu(e, tab.id, index)}
                   style={{
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                    maxWidth: "100px",
-                  }}
-                >
-                  {tab.name}
-                  {tab.isDirty && (
-                    <span
-                      style={{
-                        marginLeft: "4px",
-                        color: "var(--accent-color)",
-                        fontSize: "10px",
-                      }}
-                    >
-                      ●
-                    </span>
-                  )}
-                </span>
-                <button
-                  onClick={(e) => closeTab(tab.id, e)}
-                  style={{
-                    padding: "0 2px",
-                    background: "transparent",
-                    border: "none",
-                    color: "var(--text-muted)",
-                    cursor: "pointer",
-                    fontSize: "11px",
-                    borderRadius: "2px",
                     display: "flex",
                     alignItems: "center",
-                    justifyContent: "center",
-                    lineHeight: 1,
+                    gap: "8px",
+                    padding: "0px 10px",
+                    height: "40px",
+                    cursor: "pointer",
+                    background: isActive ? "var(--bg-primary)" : "transparent",
+                    color: isActive ? "var(--text-primary)" : "var(--text-secondary)",
+                    borderBottom: isActive ? "2px solid var(--accent-color)" : "2px solid transparent",
+                    fontSize: "12px",
+                    whiteSpace: "nowrap",
                     flexShrink: 0,
+                    minWidth: "60px",
+                    maxWidth: "160px",
+                    position: "relative",
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.color = "var(--text-primary)";
-                    e.currentTarget.style.background = "var(--hover-bg)";
+                    if (!isActive) {
+                      e.currentTarget.style.background = "var(--hover-bg)";
+                    }
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.color = "var(--text-muted)";
-                    e.currentTarget.style.background = "transparent";
+                    if (!isActive) {
+                      e.currentTarget.style.background = "transparent";
+                    }
                   }}
                 >
-                  ✕
-                </button>
+                  <span style={{ fontSize: "12px", flexShrink: 0 }}>{getFileIconComponent(tab.name, 14)}</span>
+                  <span
+                    style={{
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                      maxWidth: "100px",
+                    }}
+                  >
+                    {tab.name}
+                    {tab.isDirty && (
+                      <span
+                        style={{
+                          marginLeft: "4px",
+                          color: "var(--accent-color)",
+                          fontSize: "10px",
+                        }}
+                      >
+                        ●
+                      </span>
+                    )}
+                  </span>
+                  <button
+                    onClick={(e) => closeTab(tab.id, e)}
+                    style={{
+                      padding: "0 2px",
+                      background: "transparent",
+                      border: "none",
+                      color: "var(--text-muted)",
+                      cursor: "pointer",
+                      fontSize: "11px",
+                      borderRadius: "2px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      lineHeight: 1,
+                      flexShrink: 0,
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.color = "var(--text-primary)";
+                      e.currentTarget.style.background = "var(--hover-bg)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.color = "var(--text-muted)";
+                      e.currentTarget.style.background = "transparent";
+                    }}
+                  >
+                    ✕
+                  </button>
+                </div>
+              );
+            })}
+            {loadingContent && (
+              <div
+                style={{
+                  padding: "0 12px",
+                  fontSize: "12px",
+                  color: "var(--text-muted)",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  flexShrink: 0,
+                }}
+              >
+                <span
+                  style={{
+                    display: "inline-block",
+                    width: "12px",
+                    height: "12px",
+                    border: "2px solid var(--border-color)",
+                    borderTop: "2px solid var(--accent-color)",
+                    borderRadius: "50%",
+                    animation: "spin 0.8s linear infinite",
+                  }}
+                />
+                {t("common.loading") || "Loading..."}
               </div>
-            );
-          })}
-          {loadingContent && (
+            )}
+          </div>
+          {showScrollbar && (
             <div
+              ref={scrollbarRef}
               style={{
-                padding: "0 12px",
-                fontSize: "12px",
-                color: "var(--text-muted)",
-                display: "flex",
-                alignItems: "center",
-                gap: "6px",
-                flexShrink: 0,
+                height: "4px",
+                width: "100%",
+                position: "absolute",
+                bottom: 0,
+                left: 0,
+                background: "transparent",
+                cursor: "pointer",
+                zIndex: 10,
               }}
             >
-              <span
+              <div
+                className="scrollbar-thumb"
                 style={{
-                  display: "inline-block",
-                  width: "12px",
-                  height: "12px",
-                  border: "2px solid var(--border-color)",
-                  borderTop: "2px solid var(--accent-color)",
-                  borderRadius: "50%",
-                  animation: "spin 0.8s linear infinite",
+                  height: "4px",
+                  width: `${thumbWidth}%`,
+                  minWidth: "10px",
+                  background: "var(--scrollbar-thumb)",
+                  position: "absolute",
+                  left: `${scrollPercentage * (100 - thumbWidth)}%`,
+                  top: 0,
+                  borderRadius: 0,
                 }}
               />
-              {t("common.loading") || "Loading..."}
             </div>
           )}
         </div>
-        {showScrollbar && (
-          <div
-            ref={scrollbarRef}
-            style={{
-              height: "4px",
-              width: "100%",
-              position: "absolute",
-              bottom: 0,
-              left: 0,
-              background: "transparent",
-              cursor: "pointer",
-              zIndex: 10,
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            padding: "0 6px",
+            flexShrink: 0,
+            background: "var(--bg-secondary)",
+            borderLeft: "1px solid var(--border-color)",
+            height: "40px",
+          }}
+        >
+          <button
+            onClick={() => {
+              window.dispatchEvent(
+                new CustomEvent("toggle-diff-panel", {
+                  detail: { visible: true },
+                }),
+              );
             }}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: "26px",
+              height: "26px",
+              background: "transparent",
+              border: "1px solid var(--border-color)",
+              borderRadius: "4px",
+              cursor: "pointer",
+              color: "var(--text-secondary)",
+              fontSize: "12px",
+              transition: "all 0.15s ease",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "var(--hover-bg)";
+              e.currentTarget.style.color = "var(--text-primary)";
+              e.currentTarget.style.borderColor = "var(--accent-color)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "transparent";
+              e.currentTarget.style.color = "var(--text-secondary)";
+              e.currentTarget.style.borderColor = "var(--border-color)";
+            }}
+            title="Show Diff Preview"
           >
-            <div
-              className="scrollbar-thumb"
-              style={{
-                height: "4px",
-                width: `${thumbWidth}%`,
-                minWidth: "10px",
-                background: "var(--scrollbar-thumb)",
-                position: "absolute",
-                left: `${scrollPercentage * (100 - thumbWidth)}%`,
-                top: 0,
-                borderRadius: 0,
-              }}
-            />
-          </div>
-        )}
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+              <rect x="1" y="1" width="5" height="5" rx="1" />
+              <rect x="10" y="1" width="5" height="5" rx="1" />
+              <rect x="1" y="10" width="5" height="5" rx="1" />
+              <rect x="10" y="10" width="5" height="5" rx="1" />
+              <path d="M3.5 3.5L7.5 3.5M3.5 7.5L7.5 7.5M3.5 11.5L7.5 11.5" stroke="currentColor" />
+            </svg>
+          </button>
+        </div>
       </div>
       {activeTab && breadcrumbs.length > 0 && (
         <div
@@ -1218,9 +1316,7 @@ const CodeEdit: React.FC<CodeEditProps> = ({ t, selectedFile, workspacePath, onT
           position: "relative",
         }}
       />
-      {tabContextMenu && (
-        <TabContextMenu x={tabContextMenu.x} y={tabContextMenu.y} items={getTabContextMenuItems(tabs.find((t) => t.source_path === tabContextMenu.tabPath)?.id || "")} onClose={closeTabContextMenu} />
-      )}
+      {tabContextMenu && <TabContextMenu x={tabContextMenu.x} y={tabContextMenu.y} items={getTabContextMenuItems(tabs.find((t) => t.source_path === tabContextMenu.tabPath)?.id || "")} onClose={closeTabContextMenu} />}
       <style>{`
       @keyframes spin {
         from { transform: rotate(0deg); }

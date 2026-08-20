@@ -11,12 +11,16 @@ interface CodeEditPanelProps {
   setIsRightHover: (value: boolean) => void;
   workspacePath?: string | null;
   onTabChange?: (filePath: string | null) => void;
+  /** Callback to get ref to CodeEdit component for getting/setting file content */
+  onCodeEditRef?: (ref: { getValue: () => string; setValue: (content: string) => void } | null) => void;
 }
 const TERMINAL_MIN_HEIGHT = 80;
 const TERMINAL_MAX_HEIGHT = 433;
-const CodeEditPanel: React.FC<CodeEditPanelProps> = ({ t, selectedFile, rightHeight, onRightResizeMouseDown, isRightDragging, isRightHover, setIsRightHover, workspacePath, onTabChange }) => {
+const CodeEditPanel: React.FC<CodeEditPanelProps> = ({ t, selectedFile, rightHeight, onRightResizeMouseDown, isRightDragging, isRightHover, setIsRightHover, workspacePath, onTabChange, onCodeEditRef }) => {
   const terminalContainerRef = useRef<HTMLDivElement>(null);
   const terminalRef = useRef<Terminal | null>(null);
+  // Ref to CodeEdit component - used to expose getValue/setValue to parent
+  const codeEditRef = useRef<{ getValue: () => string; setValue: (content: string) => void } | null>(null);
   const getTerminalHeight = (height: number): number => {
     const adjustedHeight = height - 10;
     return Math.min(Math.max(TERMINAL_MIN_HEIGHT, adjustedHeight), TERMINAL_MAX_HEIGHT);
@@ -58,6 +62,17 @@ const CodeEditPanel: React.FC<CodeEditPanelProps> = ({ t, selectedFile, rightHei
       terminalRef.current.updateWorkspacePath(dirPath);
     }
   }, [selectedFile]);
+  // Expose CodeEdit ref to parent via callback
+  useEffect(() => {
+    if (onCodeEditRef) {
+      onCodeEditRef(codeEditRef.current);
+    }
+    return () => {
+      if (onCodeEditRef) {
+        onCodeEditRef(null);
+      }
+    };
+  }, [onCodeEditRef]);
   const isActive = isRightDragging || isRightHover;
   return (
     <div
@@ -99,7 +114,15 @@ const CodeEditPanel: React.FC<CodeEditPanelProps> = ({ t, selectedFile, rightHei
           minWidth: 0,
         }}
       >
-        <CodeEdit t={t} selectedFile={selectedFile} workspacePath={workspacePath} onTabChange={onTabChange} />
+        <CodeEdit
+          t={t}
+          selectedFile={selectedFile}
+          workspacePath={workspacePath}
+          onTabChange={onTabChange}
+          onRef={(ref) => {
+            codeEditRef.current = ref;
+          }}
+        />
       </div>
       <div
         className="coding-right-resize-handle"

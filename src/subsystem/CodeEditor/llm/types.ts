@@ -3,8 +3,8 @@
  * Used to constrain the response format returned by LLM to the frontend
  */
 /**
-* Resource link (remote or local)
-*/
+ * Resource link (remote or local)
+ */
 export interface ResourceLink {
   /** Link name */
   n: string;
@@ -16,11 +16,26 @@ export interface ResourceLink {
   t: string;
 }
 /**
-* Terminal display result - structured, professional output
-*/
+ * Code editor operation - file changes from LLM
+ */
+export interface EditorOperation {
+  /** File path being modified */
+  filePath: string;
+  /** Original content (for diff display) */
+  originalContent: string;
+  /** Modified content from LLM */
+  newContent: string;
+  /** Description of what was changed */
+  description?: string;
+  /** Action type: replace, create, delete */
+  action?: 'replace' | 'create' | 'delete';
+}
+/**
+ * Terminal display result - structured, professional output
+ */
 export interface TerminalResponse {
   /** Plain text message */
-  m: string,
+  m: string;
   /** Remote resource links array */
   links?: ResourceLink[];
   /** Local resource links array */
@@ -49,14 +64,12 @@ export interface TerminalResponse {
   warnings?: string[];
   /** Success/failure status */
   status?: 'success' | 'error' | 'warning' | 'info';
-  /** EarthView map operations */
-  earthview?: EarthViewOperation;
-  /** CandleView chart operations */
-  candleview?: CandleViewOperation;
+  /** Code editor operations - file changes from LLM */
+  editor?: EditorOperation;
 }
 /**
-* Dialog response data - read-only human-friendly information, concise, token-efficient
-*/
+ * Dialog response data - read-only human-friendly information, concise, token-efficient
+ */
 export interface ChatResponse {
   /** Human-friendly response message (main reply content) */
   m: string;
@@ -64,122 +77,18 @@ export interface ChatResponse {
   s?: string;
 }
 /**
-* HippoxOS LLM response main structure
-* LLM must strictly return according to this structure, no extra characters allowed
-*/
+ * HippoxOS LLM response main structure
+ * LLM must strictly return according to this structure, no extra characters allowed
+ */
 export interface HippoxOSResult {
   /** Terminal display result - structured, professional output, can be null */
   terminalResponse: TerminalResponse | null;
   /** Dialog response data - read-only human-friendly info */
   chatResponse: ChatResponse;
 }
-export interface EarthViewOperation {
-  view?: {
-    center?: [number, number];
-  };
-  markers?: Array<{
-    id?: string;
-    longitude: number;
-    latitude: number;
-    title?: string;
-    name?: string;
-    color?: string;
-    size?: number;
-    pointType?: 'circle' | 'square' | 'triangle' | 'pin' | 'star' | 'heart' | 'flag';
-    pointText?: string;
-    bubbleBoxTitle?: string;
-    bubbleBoxDescription?: string;
-    bubbleBoxCoverImage?: string;
-  }>;
-  circles?: Array<{
-    id?: string;
-    center: [number, number];
-    radius: number;
-    title?: string;
-    fillColor?: string;
-    outlineColor?: string;
-    outlineWidth?: number;
-  }>;
-  polygons?: Array<{
-    id?: string;
-    points: [number, number][];
-    title?: string;
-    fillColor?: string;
-    outlineColor?: string;
-    outlineWidth?: number;
-  }>;
-  polylines?: Array<{
-    id?: string;
-    points: [number, number][];
-    title?: string;
-    color?: string;
-    width?: number;
-  }>;
-  heatmap?: Array<{
-    id?: string;
-    longitude: number;
-    latitude: number;
-    value?: number;
-    title?: string;
-  }>;
-  clusters?: Array<{
-    id?: string;
-    longitude: number;
-    latitude: number;
-    title?: string;
-    popupContent?: string;
-  }>;
-  barcharts?: Array<{
-    id?: string;
-    longitude: number;
-    latitude: number;
-    value: number;
-    title?: string;
-    color?: string;
-  }>;
-}
-export interface CandleViewOperation {
-  timeframe?: '1m' | '5m' | '15m' | '30m' | '1h' | '4h' | '1d' | '1w' | '1M';
-  timezone?: 'NewYork' | 'London' | 'Tokyo' | 'Shanghai' | 'UTC';
-  chartType?: 'candle' | 'bar' | 'line' | 'area' | 'heikinashi' | 'hollow';
-  title?: string;
-  mainIndicators?: Array<{
-    type: 'MA' | 'EMA' | 'BOLLINGER' | 'ICHIMOKU' | 'DONCHIAN' | 'ENVELOPE' | 'VWAP' | 'HEATMAP' | 'MARKETPROFILE';
-    enabled: boolean;
-    parameters?: Record<string, any>;
-  }>;
-  subIndicators?: Array<{
-    type: 'RSI' | 'MACD' | 'VOLUME' | 'SAR' | 'KDJ' | 'ATR' | 'STOCHASTIC' | 'CCI' | 'BBWIDTH' | 'ADX' | 'OBV';
-    enabled: boolean;
-  }>;
-  staticMarks?: Array<{
-    time: number;
-    type: 'text' | 'arrow';
-    text?: string;
-    direction: 'up' | 'down';
-    color?: string;
-    backgroundColor?: string;
-    fontSize?: number;
-    label?: string;
-  }>;
-  priceEvents?: Array<{
-    price: number;
-    title?: string;
-    color?: string;
-    showPrice?: boolean;
-  }>;
-  screenshot?: {
-    watermark?: string;
-    opacity?: number;
-  };
-  drawingTools?: {
-    tool?: 'cursor' | 'crosshair' | 'brush';
-    action?: 'enable' | 'disable' | 'clear';
-  };
-}
 /**
-* Validate if response is a valid HippoxOSResult
-*/
+ * Validate if response is a valid HippoxOSResult
+ */
 export function isValidHippoxOSResult(obj: any): obj is HippoxOSResult {
   if (!obj || typeof obj !== 'object') return false;
   // Check if chatResponse exists and has correct format
@@ -200,16 +109,22 @@ export function isValidHippoxOSResult(obj: any): obj is HippoxOSResult {
     if (tr.metrics !== undefined && !Array.isArray(tr.metrics)) return false;
     if (tr.warnings !== undefined && !Array.isArray(tr.warnings)) return false;
     if (tr.status !== undefined && !['success', 'error', 'warning', 'info'].includes(tr.status)) return false;
-    // earthview and candleview are optional, just check they are objects if present
-    if (tr.earthview !== undefined && typeof tr.earthview !== 'object') return false;
-    if (tr.candleview !== undefined && typeof tr.candleview !== 'object') return false;
+    // Validate editor field
+    if (tr.editor !== undefined) {
+      if (typeof tr.editor !== 'object') return false;
+      if (typeof tr.editor.filePath !== 'string') return false;
+      if (typeof tr.editor.originalContent !== 'string') return false;
+      if (typeof tr.editor.newContent !== 'string') return false;
+      if (tr.editor.description !== undefined && typeof tr.editor.description !== 'string') return false;
+      if (tr.editor.action !== undefined && !['replace', 'create', 'delete'].includes(tr.editor.action)) return false;
+    }
   }
   return true;
 }
 /**
-* Extract HippoxOSResult JSON from arbitrary text
-* Used to handle LLM responses that may contain extra characters
-*/
+ * Extract HippoxOSResult JSON from arbitrary text
+ * Used to handle LLM responses that may contain extra characters
+ */
 export function extractHippoxOSResult(text: string): HippoxOSResult | null {
   try {
     // Try direct parsing
