@@ -363,6 +363,13 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         subsystem::cmd_terminal_kill,
         subsystem::cmd_terminal_list,
         subsystem::cmd_terminal_is_alive,
+        // ======================= SandBox  =======================
+        subsystem::cmd_upload_sandbox3d_gif,
+        subsystem::cmd_get_sandbox3d_gif,
+        subsystem::cmd_check_sandbox3d_gif_exists,
+        subsystem::cmd_delete_sandbox3d_gif,
+        subsystem::cmd_get_sandbox3d_gif_path,
+        subsystem::cmd_register_3d_material,
         // ======================= Video Editor  =======================
         // Basic Editing 
         subsystem::cmd_video_metadata,
@@ -504,7 +511,7 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         subsystem::cmd_import_tts_as_material,
         subsystem::cmd_force_cleanup_audio,
         //  Video Overlays 
-        subsystem::cmd_insert_overlay,
+        subsystem::cmd_register_overlay,
         subsystem::cmd_list_overlays,
         subsystem::cmd_list_image_overlays,
         subsystem::cmd_list_text_overlays,

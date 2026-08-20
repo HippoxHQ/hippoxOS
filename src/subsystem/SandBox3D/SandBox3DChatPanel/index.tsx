@@ -1,53 +1,24 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { useEditMessage } from "./hooks";
-import {
-  NormalMessage,
-  StatusMessage,
-  LoadingSpinner,
-  MessageFileGrid,
-  EditMessageForm,
-  MessageActions,
-} from "./components";
+import { NormalMessage, StatusMessage, LoadingSpinner, MessageFileGrid, EditMessageForm, MessageActions } from "./components";
 import { extractUrls, MessageUrlGrid } from "./components/MessageUrlGrid";
 import logo from "../../../assets/logo.png";
 import { LlmInstance, llmCommands } from "../../../command/llm";
-import {
-  WorkspaceInstance,
-  workspaceCommands,
-} from "../../../command/workspace";
+import { WorkspaceInstance, workspaceCommands } from "../../../command/workspace";
 import { workflowCommands } from "../../../command/workflow";
 import FileUploader from "../../../components/FileUploader";
 import { showToast, ToastType } from "../../../components/Toast";
 import { taskManager } from "../../../core/TaskManager";
 import { UploadFile, SessionDomain } from "../../../core/types";
-import {
-  ChatIcon,
-  TaskQueueIcon,
-  UserIcon,
-  AttachmentIcon,
-  FolderIcon,
-  ChevronRightIcon,
-  TextFileIcon,
-  ImageIcon,
-  VideoIcon,
-  FileIcon,
-  FolderOpenIcon,
-} from "../../../icons";
-import {
-  zhDefaultPrompts,
-  enDefaultPrompts,
-} from "../../../types/DefaultPrompt";
+import { ChatIcon, TaskQueueIcon, UserIcon, AttachmentIcon, FolderIcon, ChevronRightIcon, TextFileIcon, ImageIcon, VideoIcon, FileIcon, FolderOpenIcon } from "../../../icons";
+import { zhDefaultPrompts, enDefaultPrompts } from "../../../types/DefaultPrompt";
 import { ChatMessage, RoleEnum, MessageStatus } from "../../../types/types";
 import { sandbox3dSessionCommands } from "../../../command/session/sandbox3d";
 import { isStructuredLLMResponse, parseLLMResponse } from "../llm/utils";
-
+import { SandBox3DRef } from "../SandBox3D";
+import { dispatchRefresh3DHistory, REFRESH_3D_HISTORY } from "../SandBox3DWindowsEventsManager";
 interface SandBox3DChatPanelProps {
-  onSendMessage: (
-    message: string,
-    sessionId: string,
-    files?: UploadFile[],
-    workflowMode?: string,
-  ) => void | Promise<void>;
+  onSendMessage: (message: string, sessionId: string, files?: UploadFile[], workflowMode?: string) => void | Promise<void>;
   onFileClick?: (file: UploadFile) => void;
   t: (key: string, params?: any) => string;
   language?: string;
@@ -59,22 +30,10 @@ interface SandBox3DChatPanelProps {
   isCollapsed?: boolean;
   togglePanel?: () => void;
   collapseIcon?: string;
+  /** Reference to the 3D sandbox for executing code */
+  sandboxRef?: React.RefObject<SandBox3DRef | null>;
 }
-
-const SandBox3DChatPanel: React.FC<SandBox3DChatPanelProps> = ({
-  onSendMessage,
-  onFileClick,
-  t,
-  language = "zh",
-  currentSessionId,
-  onDragOverInputChange,
-  navigationContent,
-  isLeftPanel = true,
-  onWorkflowModeChange,
-  isCollapsed = false,
-  togglePanel,
-  collapseIcon: collapseIconProp,
-}) => {
+const SandBox3DChatPanel: React.FC<SandBox3DChatPanelProps> = ({ onSendMessage, onFileClick, t, language = "zh", currentSessionId, onDragOverInputChange, navigationContent, isLeftPanel = true, onWorkflowModeChange, isCollapsed = false, togglePanel, collapseIcon: collapseIconProp, sandboxRef }) => {
   const [inputValue, setInputValue] = useState("");
   const [isFocused, setIsFocused] = useState(false);
   const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
@@ -83,8 +42,7 @@ const SandBox3DChatPanel: React.FC<SandBox3DChatPanelProps> = ({
   const [workspaces, setWorkspaces] = useState<WorkspaceInstance[]>([]);
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string>("");
   const [workflowModes, setWorkflowModes] = useState<string[]>([]);
-  const [selectedWorkflowMode, setSelectedWorkflowMode] =
-    useState<string>("ReAct");
+  const [selectedWorkflowMode, setSelectedWorkflowMode] = useState<string>("ReAct");
   const [showScrollButton, setShowScrollButton] = useState(false);
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [userScrolled, setUserScrolled] = useState(false);
@@ -107,62 +65,52 @@ const SandBox3DChatPanel: React.FC<SandBox3DChatPanelProps> = ({
   const navBubbleTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [isSending, setIsSending] = useState(false);
   const [isResending, setIsResending] = useState(false);
-  const [workflowDisplayNames, setWorkflowDisplayNames] = useState<
-    Map<string, string>
-  >(new Map());
+  const [workflowDisplayNames, setWorkflowDisplayNames] = useState<Map<string, string>>(new Map());
   const [showTopScrollButton, setShowTopScrollButton] = useState(false);
   const [sessionTitle, setSessionTitle] = useState<string>("");
   const [isLoadingTitle, setIsLoadingTitle] = useState(false);
   const hasLoadedTitleRef = useRef<Record<string, boolean>>({});
-  const collapseIcon =
-    collapseIconProp ||
-    (isLeftPanel ? (isCollapsed ? "≫" : "≪") : isCollapsed ? "≪" : "≫");
-
+  const { editingMessageId, editContent, setEditContent, handleEditMessage, handleSaveEdit, handleCancelEdit } = useEditMessage({ currentSessionId, onSendMessage, t });
+  const collapseIcon = collapseIconProp || (isLeftPanel ? (isCollapsed ? "≫" : "≪") : isCollapsed ? "≪" : "≫");
+  const processedMessageIdsRef = useRef<Set<string>>(new Set());
+  /**
+   * Welcome message displayed when no messages exist
+   */
   const welcomeMsg: ChatMessage = {
     id: "welcome",
     role: RoleEnum.LLM,
-    content:
-      language === "zh"
-        ? "嘿～ 我是 Hippox 3D 沙盒引擎！🧊 构建三维场景、导入模型、探索虚拟空间～"
-        : "Hey～ I'm Hippox 3D Sandbox Engine! 🧊 Build 3D scenes, import models, explore virtual spaces～",
+    content: language === "zh" ? "嘿～ 我是 Hippox 3D 沙盒引擎！🧊 构建三维场景、导入模型、探索虚拟空间～" : "Hey～ I'm Hippox 3D Sandbox Engine! 🧊 Build 3D scenes, import models, explore virtual spaces～",
     timestamp: new Date().toISOString(),
   };
-
+  /**
+   * Subscribe to taskManager updates for real-time message refresh
+   */
   useEffect(() => {
     const unsubscribe = taskManager.subscribe(() => {
       setUpdateTrigger((prev) => prev + 1);
     });
     return unsubscribe;
   }, []);
-
+  /**
+   * Get all messages for the current session from taskManager
+   * Sorted by timestamp, includes both user and assistant messages
+   */
   const getMessages = useCallback((): ChatMessage[] => {
     if (!currentSessionId) return [welcomeMsg];
-    const userMessages = taskManager.getUserMessagesBySession(
-      currentSessionId,
-      SessionDomain.SandBox3D,
-    );
-    const assistantMessages = taskManager.getAssistantMessagesBySessionAsArray(
-      currentSessionId,
-      SessionDomain.SandBox3D,
-    );
-    const allMessages = [...userMessages, ...assistantMessages].sort(
-      (a, b) =>
-        new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
-    );
+    const userMessages = taskManager.getUserMessagesBySession(currentSessionId, SessionDomain.SandBox3D);
+    const assistantMessages = taskManager.getAssistantMessagesBySessionAsArray(currentSessionId, SessionDomain.SandBox3D);
+    const allMessages = [...userMessages, ...assistantMessages].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
     if (allMessages.length === 0) {
       return [welcomeMsg];
     }
     return allMessages;
   }, [currentSessionId, updateTrigger]);
-
   const messages = getMessages();
-
+  /**
+   * Load session title from backend
+   */
   const loadSessionTitle = async (sessionId: string) => {
-    if (
-      !sessionId ||
-      sessionId.startsWith("pending_") ||
-      sessionId.startsWith("temp_")
-    ) {
+    if (!sessionId || sessionId.startsWith("pending_") || sessionId.startsWith("temp_")) {
       setSessionTitle("");
       return;
     }
@@ -186,13 +134,17 @@ const SandBox3DChatPanel: React.FC<SandBox3DChatPanelProps> = ({
       setIsLoadingTitle(false);
     }
   };
-
+  /**
+   * Load session title when session changes
+   */
   useEffect(() => {
     if (currentSessionId) {
       loadSessionTitle(currentSessionId);
     }
   }, [currentSessionId]);
-
+  /**
+   * Listen for session title updates from other components
+   */
   useEffect(() => {
     const handleSessionTitleUpdated = (event: Event) => {
       const customEvent = event as CustomEvent;
@@ -202,18 +154,14 @@ const SandBox3DChatPanel: React.FC<SandBox3DChatPanelProps> = ({
         localStorage.setItem(`video_session_title_${sessionId}`, title);
       }
     };
-    window.addEventListener(
-      "session-title-updated",
-      handleSessionTitleUpdated as EventListener,
-    );
+    window.addEventListener("session-title-updated", handleSessionTitleUpdated as EventListener);
     return () => {
-      window.removeEventListener(
-        "session-title-updated",
-        handleSessionTitleUpdated as EventListener,
-      );
+      window.removeEventListener("session-title-updated", handleSessionTitleUpdated as EventListener);
     };
   }, [currentSessionId]);
-
+  /**
+   * Listen for session created events to reload title
+   */
   useEffect(() => {
     const handleSessionCreated = () => {
       if (currentSessionId) {
@@ -226,24 +174,16 @@ const SandBox3DChatPanel: React.FC<SandBox3DChatPanelProps> = ({
       window.removeEventListener("video-session-created", handleSessionCreated);
     };
   }, [currentSessionId]);
-
-  const {
-    editingMessageId,
-    editContent,
-    setEditContent,
-    handleEditMessage,
-    handleSaveEdit,
-    handleCancelEdit,
-  } = useEditMessage({ currentSessionId, onSendMessage, t });
-
+  /**
+   * Load workflow display names for the workflow mode dropdown
+   */
   const loadWorkflowDisplayNames = async () => {
     try {
       const lang = localStorage.getItem("hippox-language") || "en";
       const modes = await workflowCommands.getWorkflowModeNames();
       const displayNames = new Map<string, string>();
       for (const mode of modes) {
-        const displayName =
-          await workflowCommands.workflowModeDisplayNameByLang(mode, lang);
+        const displayName = await workflowCommands.workflowModeDisplayNameByLang(mode, lang);
         displayNames.set(mode, displayName);
       }
       setWorkflowDisplayNames(displayNames);
@@ -251,18 +191,16 @@ const SandBox3DChatPanel: React.FC<SandBox3DChatPanelProps> = ({
       console.error("Failed to load workflow display names:", error);
     }
   };
-
+  /**
+   * Format timestamp for display
+   */
   const formatTimestamp = (timestamp: string): string => {
     const date = new Date(timestamp);
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
-    const msgDate = new Date(
-      date.getFullYear(),
-      date.getMonth(),
-      date.getDate(),
-    );
+    const msgDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
     const timeStr = date.toLocaleTimeString([], {
       hour: "2-digit",
       minute: "2-digit",
@@ -275,7 +213,9 @@ const SandBox3DChatPanel: React.FC<SandBox3DChatPanelProps> = ({
       return `${date.toLocaleDateString()} ${timeStr}`;
     }
   };
-
+  /**
+   * Update active navigation index based on scroll position
+   */
   const handleScrollUpdate = () => {
     if (!messagesContainerRef.current) return;
     const container = messagesContainerRef.current;
@@ -293,7 +233,9 @@ const SandBox3DChatPanel: React.FC<SandBox3DChatPanelProps> = ({
     });
     setActiveNavIndex(closestIndex);
   };
-
+  /**
+   * Navigation bubble mouse enter handler
+   */
   const handleNavButtonMouseEnter = () => {
     if (navBubbleTimerRef.current) {
       clearTimeout(navBubbleTimerRef.current);
@@ -301,13 +243,17 @@ const SandBox3DChatPanel: React.FC<SandBox3DChatPanelProps> = ({
     }
     setShowNavBubble(true);
   };
-
+  /**
+   * Navigation bubble mouse leave handler
+   */
   const handleNavButtonMouseLeave = () => {
     navBubbleTimerRef.current = setTimeout(() => {
       setShowNavBubble(false);
     }, 200);
   };
-
+  /**
+   * Navigation bubble mouse enter handler
+   */
   const handleNavBubbleMouseEnter = () => {
     if (navBubbleTimerRef.current) {
       clearTimeout(navBubbleTimerRef.current);
@@ -315,13 +261,17 @@ const SandBox3DChatPanel: React.FC<SandBox3DChatPanelProps> = ({
     }
     setShowNavBubble(true);
   };
-
+  /**
+   * Navigation bubble mouse leave handler
+   */
   const handleNavBubbleMouseLeave = () => {
     navBubbleTimerRef.current = setTimeout(() => {
       setShowNavBubble(false);
     }, 200);
   };
-
+  /**
+   * Resend a message
+   */
   const handleResendMessage = (msg: ChatMessage) => {
     if (isResending || isSending) return;
     const sessionId = currentSessionId || "";
@@ -332,13 +282,13 @@ const SandBox3DChatPanel: React.FC<SandBox3DChatPanelProps> = ({
     setIsResending(true);
     const message = msg.content || "";
     const currentFiles = msg.files || [];
-    Promise.resolve(onSendMessage?.(message, sessionId, currentFiles)).finally(
-      () => {
-        setTimeout(() => setIsResending(false), 300);
-      },
-    );
+    Promise.resolve(onSendMessage?.(message, sessionId, currentFiles)).finally(() => {
+      setTimeout(() => setIsResending(false), 300);
+    });
   };
-
+  /**
+   * Get random suggestion prompts
+   */
   const getRandomPrompts = (count: number = 6): string[] => {
     const prompts = language === "zh" ? zhDefaultPrompts : enDefaultPrompts;
     const shuffled = [...prompts];
@@ -348,7 +298,9 @@ const SandBox3DChatPanel: React.FC<SandBox3DChatPanelProps> = ({
     }
     return shuffled.slice(0, count);
   };
-
+  /**
+   * Check if suggestions should be shown
+   */
   const shouldShowSuggestions = (msgs: ChatMessage[]) => {
     if (msgs.length === 0) return false;
     const lastMsg = msgs[msgs.length - 1];
@@ -359,11 +311,12 @@ const SandBox3DChatPanel: React.FC<SandBox3DChatPanelProps> = ({
     }
     return true;
   };
-
   const prevMessageCountRef = useRef(0);
   const suggestionTimerRef = useRef<NodeJS.Timeout | null>(null);
   const isFirstLoadRef = useRef(true);
-
+  /**
+   * Update suggestion prompts periodically
+   */
   useEffect(() => {
     if (suggestionTimerRef.current) {
       clearInterval(suggestionTimerRef.current);
@@ -391,7 +344,9 @@ const SandBox3DChatPanel: React.FC<SandBox3DChatPanelProps> = ({
       }
     };
   }, [messages, language]);
-
+  /**
+   * Handle suggestion click
+   */
   const handleSuggestionClick = (prompt: string) => {
     const sessionId = currentSessionId || "";
     if (!sessionId) {
@@ -400,9 +355,13 @@ const SandBox3DChatPanel: React.FC<SandBox3DChatPanelProps> = ({
     }
     onSendMessage?.(prompt, sessionId, undefined, selectedWorkflowMode);
   };
-
+  /**
+   * Focus textarea on container click
+   */
   const handleContainerClick = () => textareaRef.current?.focus();
-
+  /**
+   * Format file size for display
+   */
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return "0 B";
     const k = 1024;
@@ -410,7 +369,9 @@ const SandBox3DChatPanel: React.FC<SandBox3DChatPanelProps> = ({
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
   };
-
+  /**
+   * Copy text to clipboard
+   */
   const copyToClipboard = async (text: string | undefined) => {
     try {
       if (!text) {
@@ -423,7 +384,9 @@ const SandBox3DChatPanel: React.FC<SandBox3DChatPanelProps> = ({
       showToast(ToastType.ERROR, t("common.copyFailed") || "Copy Failed");
     }
   };
-
+  /**
+   * Load current default LLM model
+   */
   const loadCurrentDefaultModel = async () => {
     try {
       setLoadingModel(true);
@@ -431,9 +394,7 @@ const SandBox3DChatPanel: React.FC<SandBox3DChatPanelProps> = ({
       if (defaultId) {
         const instances = await llmCommands.getLlmInstances();
         const instancesList = Object.values(instances) as LlmInstance[];
-        const defaultModel = instancesList.find(
-          (inst) => inst.id === defaultId,
-        );
+        const defaultModel = instancesList.find((inst) => inst.id === defaultId);
         setCurrentModel(defaultModel || null);
       } else {
         setCurrentModel(null);
@@ -445,7 +406,9 @@ const SandBox3DChatPanel: React.FC<SandBox3DChatPanelProps> = ({
       setLoadingModel(false);
     }
   };
-
+  /**
+   * Load available workflow modes
+   */
   const loadWorkflowModes = async () => {
     try {
       const modes = await workflowCommands.getWorkflowModeNames();
@@ -457,13 +420,11 @@ const SandBox3DChatPanel: React.FC<SandBox3DChatPanelProps> = ({
       console.error("Failed to load workflow modes:", error);
     }
   };
-
+  /**
+   * Load workflow mode for the current session
+   */
   const loadSessionWorkflowMode = async (sessionId: string) => {
-    if (
-      !sessionId ||
-      sessionId.startsWith("pending_") ||
-      sessionId.startsWith("temp_")
-    ) {
+    if (!sessionId || sessionId.startsWith("pending_") || sessionId.startsWith("temp_")) {
       return;
     }
     try {
@@ -472,14 +433,10 @@ const SandBox3DChatPanel: React.FC<SandBox3DChatPanelProps> = ({
         setSelectedWorkflowMode(cached);
         return;
       }
-      const config =
-        await sandbox3dSessionCommands.loadSandBox3DSessionConfig(sessionId);
+      const config = await sandbox3dSessionCommands.loadSandBox3DSessionConfig(sessionId);
       if (config && config.workflow_mode) {
         setSelectedWorkflowMode(config.workflow_mode);
-        localStorage.setItem(
-          `video_workflow_mode_${sessionId}`,
-          config.workflow_mode,
-        );
+        localStorage.setItem(`video_workflow_mode_${sessionId}`, config.workflow_mode);
       } else {
         const defaultMode = "ReAct";
         setSelectedWorkflowMode(defaultMode);
@@ -492,7 +449,9 @@ const SandBox3DChatPanel: React.FC<SandBox3DChatPanelProps> = ({
       console.error("Failed to load session workflow mode:", error);
     }
   };
-
+  /**
+   * Load workspaces
+   */
   const loadWorkspaces = async (retryCount: number = 0): Promise<void> => {
     try {
       const config = await workspaceCommands.getWorkspaceConfig();
@@ -510,21 +469,20 @@ const SandBox3DChatPanel: React.FC<SandBox3DChatPanelProps> = ({
       showToast(ToastType.ERROR, "Failed to load workspaces: " + error);
     }
   };
-
+  /**
+   * Load session workflow mode when session changes
+   */
   useEffect(() => {
-    if (
-      currentSessionId &&
-      !currentSessionId.startsWith("pending_") &&
-      !currentSessionId.startsWith("temp_")
-    ) {
+    if (currentSessionId && !currentSessionId.startsWith("pending_") && !currentSessionId.startsWith("temp_")) {
       loadSessionWorkflowMode(currentSessionId);
     }
   }, [currentSessionId]);
-
+  /**
+   * Check scroll position for showing scroll buttons
+   */
   const checkScrollPosition = () => {
     if (!messagesContainerRef.current) return;
-    const { scrollTop, scrollHeight, clientHeight } =
-      messagesContainerRef.current;
+    const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
     const atBottom = scrollHeight - scrollTop - clientHeight <= 10;
     setIsAtBottom(atBottom);
     setShowScrollButton(scrollHeight > clientHeight && !atBottom);
@@ -532,17 +490,20 @@ const SandBox3DChatPanel: React.FC<SandBox3DChatPanelProps> = ({
     if (atBottom) setUserScrolled(false);
     handleScrollUpdate();
   };
-
+  /**
+   * Handle user scroll event
+   */
   const handleUserScroll = () => {
     if (messagesContainerRef.current) {
-      const { scrollTop, scrollHeight, clientHeight } =
-        messagesContainerRef.current;
+      const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
       const atBottom = scrollHeight - scrollTop - clientHeight <= 10;
       if (!atBottom) setUserScrolled(true);
     }
     checkScrollPosition();
   };
-
+  /**
+   * Scroll to top of messages
+   */
   const scrollToTop = () => {
     if (messagesContainerRef.current) {
       messagesContainerRef.current.scrollTo({
@@ -551,7 +512,9 @@ const SandBox3DChatPanel: React.FC<SandBox3DChatPanelProps> = ({
       });
     }
   };
-
+  /**
+   * Scroll to bottom of messages
+   */
   const scrollToBottom = () => {
     if (messagesContainerRef.current) {
       messagesContainerRef.current.scrollTo({
@@ -561,11 +524,12 @@ const SandBox3DChatPanel: React.FC<SandBox3DChatPanelProps> = ({
       setUserScrolled(false);
     }
   };
-
+  /**
+   * Scroll to a specific message by index
+   */
   const scrollToMessage = (index: number) => {
     if (!messagesContainerRef.current) return;
-    const messageElements =
-      messagesContainerRef.current.querySelectorAll(".message-wrapper");
+    const messageElements = messagesContainerRef.current.querySelectorAll(".message-wrapper");
     if (index >= 0 && index < messageElements.length) {
       messageElements[index].scrollIntoView({
         block: "center",
@@ -574,21 +538,25 @@ const SandBox3DChatPanel: React.FC<SandBox3DChatPanelProps> = ({
       setActiveNavIndex(index);
     }
   };
-
+  /**
+   * Handle file addition
+   */
   const handleFilesAdd = (files: UploadFile[]) => {
     setUploadedFiles((prev) => {
       const existingKeys = new Set(prev.map((f) => `${f.name}_${f.size}`));
-      const newUniqueFiles = files.filter(
-        (f) => !existingKeys.has(`${f.name}_${f.size}`),
-      );
+      const newUniqueFiles = files.filter((f) => !existingKeys.has(`${f.name}_${f.size}`));
       return [...prev, ...newUniqueFiles];
     });
   };
-
+  /**
+   * Handle file removal
+   */
   const handleFileRemove = (fileId: string) => {
     setUploadedFiles((prev) => prev.filter((f) => f.id !== fileId));
   };
-
+  /**
+   * Handle sending a message
+   */
   const handleSend = () => {
     if (isSending) return;
     if (inputValue.trim() || uploadedFiles.length > 0) {
@@ -603,29 +571,35 @@ const SandBox3DChatPanel: React.FC<SandBox3DChatPanelProps> = ({
       setUploadedFiles([]);
       if (textareaRef.current) textareaRef.current.style.height = "auto";
       setIsSending(true);
-      Promise.resolve(
-        onSendMessage?.(message, sessionId, currentFiles, selectedWorkflowMode),
-      ).finally(() => {
+      Promise.resolve(onSendMessage?.(message, sessionId, currentFiles, selectedWorkflowMode)).finally(() => {
         setTimeout(() => setIsSending(false), 100);
       });
     }
   };
-
+  /**
+   * Handle keyboard events for the textarea
+   */
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
     }
   };
-
+  /**
+   * Adjust textarea height based on content
+   */
   const adjustTextareaHeight = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInputValue(e.target.value);
     e.target.style.height = "auto";
     e.target.style.height = Math.min(e.target.scrollHeight, 100) + "px";
   };
-
+  /**
+   * Handle attachment menu close
+   */
   const handleAttachment = () => setShowAttachmentMenu(false);
-
+  /**
+   * Get selected workspace name for display
+   */
   const getSelectedWorkspaceName = (): string => {
     const workspace = workspaces.find((w) => w.id === selectedWorkspaceId);
     if (!workspace) return language === "zh" ? "工作目录" : "Workspace";
@@ -634,7 +608,9 @@ const SandBox3DChatPanel: React.FC<SandBox3DChatPanelProps> = ({
     const parts = normalizedPath.split("/");
     return parts[parts.length - 1] || workspace.name;
   };
-
+  /**
+   * Handle workspace selection
+   */
   const handleSelectWorkspace = async (workspaceId: string) => {
     const workspace = workspaces.find((w) => w.id === workspaceId);
     if (!workspace) return;
@@ -647,25 +623,20 @@ const SandBox3DChatPanel: React.FC<SandBox3DChatPanelProps> = ({
       showToast(ToastType.ERROR, "Failed to set default workspace: " + error);
     }
   };
-
+  /**
+   * Handle workflow mode change
+   */
   const handleWorkflowModeChange = async (mode: string) => {
     setSelectedWorkflowMode(mode);
     setShowWorkflowMenu(false);
     if (onWorkflowModeChange) {
       onWorkflowModeChange(mode);
     }
-    if (
-      currentSessionId &&
-      !currentSessionId.startsWith("pending_") &&
-      !currentSessionId.startsWith("temp_")
-    ) {
+    if (currentSessionId && !currentSessionId.startsWith("pending_") && !currentSessionId.startsWith("temp_")) {
       try {
-        await sandbox3dSessionCommands.updateSandBox3DSessionConfig(
-          currentSessionId,
-          {
-            workflow_mode: mode,
-          },
-        );
+        await sandbox3dSessionCommands.updateSandBox3DSessionConfig(currentSessionId, {
+          workflow_mode: mode,
+        });
         localStorage.setItem(`video_workflow_mode_${currentSessionId}`, mode);
       } catch (error) {
         console.error("Failed to save workflow mode:", error);
@@ -676,7 +647,9 @@ const SandBox3DChatPanel: React.FC<SandBox3DChatPanelProps> = ({
       localStorage.setItem(`video_workflow_mode_${key}`, mode);
     }
   };
-
+  /**
+   * Build navigation content for the navigation bubble
+   */
   const buildNavigationContent = (): React.ReactNode => {
     const userMessages = messages.filter((m) => m.role === RoleEnum.User);
     if (userMessages.length === 0) {
@@ -718,15 +691,9 @@ const SandBox3DChatPanel: React.FC<SandBox3DChatPanelProps> = ({
                 width: "32px",
                 height: "32px",
                 borderRadius: "6px",
-                border: isActive
-                  ? "1px solid var(--accent-color)"
-                  : "1px solid var(--border-color)",
-                background: isActive
-                  ? "var(--accent-glow)"
-                  : "var(--bg-tertiary)",
-                color: isActive
-                  ? "var(--accent-color)"
-                  : "var(--text-secondary)",
+                border: isActive ? "1px solid var(--accent-color)" : "1px solid var(--border-color)",
+                background: isActive ? "var(--accent-glow)" : "var(--bg-tertiary)",
+                color: isActive ? "var(--accent-color)" : "var(--text-secondary)",
                 cursor: "pointer",
                 fontSize: "10px",
                 display: "flex",
@@ -754,26 +721,20 @@ const SandBox3DChatPanel: React.FC<SandBox3DChatPanelProps> = ({
       </div>
     );
   };
-
+  /**
+   * Handle locating a task from a message
+   */
   const handleLocateTask = (msg: ChatMessage) => {
     if (!currentSessionId) {
       showToast(ToastType.INFO, t("chat.noRelatedTask") || "No Related Task");
       return;
     }
-    const tasks = taskManager.getTasksBySession(
-      currentSessionId,
-      SessionDomain.SandBox3D,
-    );
+    const tasks = taskManager.getTasksBySession(currentSessionId, SessionDomain.SandBox3D);
     if (!tasks) {
       showToast(ToastType.INFO, t("chat.noRelatedTask") || "No Related Task");
       return;
     }
-    const relatedTask = Array.from(tasks.values()).find(
-      (task) =>
-        task.user_input === msg.content ||
-        task.final_output === msg.content ||
-        task.task_id === (msg as any).relatedTaskId,
-    );
+    const relatedTask = Array.from(tasks.values()).find((task) => task.user_input === msg.content || task.final_output === msg.content || task.task_id === (msg as any).relatedTaskId);
     if (relatedTask) {
       window.dispatchEvent(
         new CustomEvent("locate-task-in-terminal", {
@@ -784,7 +745,9 @@ const SandBox3DChatPanel: React.FC<SandBox3DChatPanelProps> = ({
       showToast(ToastType.INFO, t("chat.noRelatedTask") || "No Related Task");
     }
   };
-
+  /**
+   * Listen for locate task events
+   */
   useEffect(() => {
     const handleLocateTaskInChat = (event: Event) => {
       const customEvent = event as CustomEvent;
@@ -794,10 +757,7 @@ const SandBox3DChatPanel: React.FC<SandBox3DChatPanelProps> = ({
         showToast(ToastType.INFO, t("chat.noRelatedTask") || "No Related Task");
         return;
       }
-      const tasks = taskManager.getTasksBySession(
-        currentSessionId,
-        SessionDomain.SandBox3D,
-      );
+      const tasks = taskManager.getTasksBySession(currentSessionId, SessionDomain.SandBox3D);
       if (!tasks) return;
       const task = Array.from(tasks.values()).find((t) => t.task_id === taskId);
       if (!task) {
@@ -811,19 +771,12 @@ const SandBox3DChatPanel: React.FC<SandBox3DChatPanelProps> = ({
         if (msg.role === RoleEnum.User) {
           let contentMatch = false;
           if (msg.content && task.user_input) {
-            contentMatch =
-              msg.content === task.user_input ||
-              msg.content.includes(task.user_input) ||
-              task.user_input.includes(msg.content);
+            contentMatch = msg.content === task.user_input || msg.content.includes(task.user_input) || task.user_input.includes(msg.content);
           }
           let filesMatch = false;
           if (msg.files && msg.files.length > 0 && (task as any).files) {
             const taskFiles = (task as any).files || [];
-            filesMatch = msg.files.some((f: any) =>
-              taskFiles.some(
-                (tf: any) => f.name === tf.name || f.path === tf.path,
-              ),
-            );
+            filesMatch = msg.files.some((f: any) => taskFiles.some((tf: any) => f.name === tf.name || f.path === tf.path));
           }
           if (contentMatch || filesMatch) {
             targetIndex = i;
@@ -840,36 +793,37 @@ const SandBox3DChatPanel: React.FC<SandBox3DChatPanelProps> = ({
       window.removeEventListener("locate-task-in-chat", handleLocateTaskInChat);
     };
   }, [t, currentSessionId]);
-
+  /**
+   * Listen for language change events
+   */
   useEffect(() => {
     const handleLanguageChange = () => {
       loadWorkflowDisplayNames();
     };
-    window.addEventListener(
-      "language-changed",
-      handleLanguageChange as EventListener,
-    );
+    window.addEventListener("language-changed", handleLanguageChange as EventListener);
     return () => {
-      window.removeEventListener(
-        "language-changed",
-        handleLanguageChange as EventListener,
-      );
+      window.removeEventListener("language-changed", handleLanguageChange as EventListener);
     };
   }, []);
-
+  /**
+   * Initial load of models, workspaces, and workflow modes
+   */
   useEffect(() => {
     loadCurrentDefaultModel();
     loadWorkspaces();
     loadWorkflowModes();
     loadWorkflowDisplayNames();
   }, []);
-
+  /**
+   * Store messages in ref for event handlers
+   */
   const messagesRef = useRef<ChatMessage[]>(messages);
-
   useEffect(() => {
     messagesRef.current = messages;
   }, [messages]);
-
+  /**
+   * Handle locate task event from terminal
+   */
   useEffect(() => {
     const handleLocateTaskInChat = (event: Event) => {
       const customEvent = event as CustomEvent;
@@ -887,19 +841,12 @@ const SandBox3DChatPanel: React.FC<SandBox3DChatPanelProps> = ({
         if (msg.role === RoleEnum.User) {
           let contentMatch = false;
           if (msg.content && task.user_input) {
-            contentMatch =
-              msg.content === task.user_input ||
-              msg.content.includes(task.user_input) ||
-              task.user_input.includes(msg.content);
+            contentMatch = msg.content === task.user_input || msg.content.includes(task.user_input) || task.user_input.includes(msg.content);
           }
           let filesMatch = false;
           if (msg.files && msg.files.length > 0 && (task as any).files) {
             const taskFiles = (task as any).files || [];
-            filesMatch = msg.files.some((f: any) =>
-              taskFiles.some(
-                (tf: any) => f.name === tf.name || f.path === tf.path,
-              ),
-            );
+            filesMatch = msg.files.some((f: any) => taskFiles.some((tf: any) => f.name === tf.name || f.path === tf.path));
           }
           if (contentMatch || filesMatch) {
             targetIndex = i;
@@ -916,14 +863,17 @@ const SandBox3DChatPanel: React.FC<SandBox3DChatPanelProps> = ({
       window.removeEventListener("locate-task-in-chat", handleLocateTaskInChat);
     };
   }, [t]);
-
+  /**
+   * Auto-scroll to bottom when messages change
+   */
   useEffect(() => {
     if (messagesContainerRef.current && !userScrolled) {
-      messagesContainerRef.current.scrollTop =
-        messagesContainerRef.current.scrollHeight;
+      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
     }
   }, [messages]);
-
+  /**
+   * Attach scroll event listener
+   */
   useEffect(() => {
     const element = messagesContainerRef.current;
     if (element) {
@@ -932,58 +882,34 @@ const SandBox3DChatPanel: React.FC<SandBox3DChatPanelProps> = ({
       return () => element.removeEventListener("scroll", checkScrollPosition);
     }
   }, [messages]);
-
+  /**
+   * Click outside handler for menus
+   */
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (
-        attachmentMenuRef.current &&
-        !attachmentMenuRef.current.contains(event.target as Node) &&
-        attachmentBtnRef.current &&
-        !attachmentBtnRef.current.contains(event.target as Node)
-      ) {
+      if (attachmentMenuRef.current && !attachmentMenuRef.current.contains(event.target as Node) && attachmentBtnRef.current && !attachmentBtnRef.current.contains(event.target as Node)) {
         setShowAttachmentMenu(false);
       }
-      if (
-        directoryMenuRef.current &&
-        !directoryMenuRef.current.contains(event.target as Node) &&
-        directoryBtnRef.current &&
-        !directoryBtnRef.current.contains(event.target as Node)
-      ) {
+      if (directoryMenuRef.current && !directoryMenuRef.current.contains(event.target as Node) && directoryBtnRef.current && !directoryBtnRef.current.contains(event.target as Node)) {
         setShowDirectoryMenu(false);
       }
-      if (
-        workflowMenuRef.current &&
-        !workflowMenuRef.current.contains(event.target as Node) &&
-        workflowBtnRef.current &&
-        !workflowBtnRef.current.contains(event.target as Node)
-      ) {
+      if (workflowMenuRef.current && !workflowMenuRef.current.contains(event.target as Node) && workflowBtnRef.current && !workflowBtnRef.current.contains(event.target as Node)) {
         setShowWorkflowMenu(false);
       }
-      if (
-        navButtonRef.current &&
-        !navButtonRef.current.contains(event.target as Node) &&
-        !document
-          .querySelector(".chat-nav-bubble")
-          ?.contains(event.target as Node)
-      ) {
+      if (navButtonRef.current && !navButtonRef.current.contains(event.target as Node) && !document.querySelector(".chat-nav-bubble")?.contains(event.target as Node)) {
         setShowNavBubble(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-
+  /**
+   * Get ending message for suggestions
+   */
   const getEndingMessage = () => {
-    return (
-      t("chat.endingMessage") ||
-      (language === "zh"
-        ? "✨ 我还能为你做些什么吗？ ✨"
-        : "✨ What else can I do for you? ✨")
-    );
+    return t("chat.endingMessage") || (language === "zh" ? "✨ 我还能为你做些什么吗？ ✨" : "✨ What else can I do for you? ✨");
   };
-
   const navigation = buildNavigationContent();
-
   const navBubblePosition = (() => {
     if (navButtonRef.current) {
       const rect = navButtonRef.current.getBoundingClientRect();
@@ -994,7 +920,57 @@ const SandBox3DChatPanel: React.FC<SandBox3DChatPanelProps> = ({
     }
     return { right: 0, top: 0 };
   })();
-
+  /**
+   * Process LLM response and execute 3D code if present
+   * This is the key integration point between chat and 3D sandbox
+   * It runs whenever messages change and checks the latest LLM message
+   */
+  useEffect(() => {
+    // Check if there's a new LLM message with 3D code to execute
+    const lastMsg = messages.length > 0 ? messages[messages.length - 1] : null;
+    if (!lastMsg || lastMsg.role !== RoleEnum.LLM) return;
+    if (lastMsg.status === MessageStatus.Pending) return;
+    if (lastMsg.status === MessageStatus.Failed) return;
+    if (lastMsg.status === MessageStatus.Cancelled) return;
+    if (processedMessageIdsRef.current.has(lastMsg.id)) {
+      return;
+    }
+    // Check if the message contains structured LLM response
+    if (isStructuredLLMResponse(lastMsg.content)) {
+      const parsed = parseLLMResponse(lastMsg.content);
+      if (parsed?.terminalResponse?.threeScene?.code) {
+        const threeScene = parsed.terminalResponse.threeScene;
+        // Execute the 3D code in the sandbox
+        if (sandboxRef?.current) {
+          sandboxRef.current.executeThreeCode(threeScene.code, threeScene.clearBeforeExecute !== false);
+          dispatchRefresh3DHistory({ sessionId: currentSessionId });
+          processedMessageIdsRef.current.add(lastMsg.id);
+        } else {
+          console.warn("[SandBox3DChatPanel] Sandbox ref not available for 3D code execution");
+        }
+      }
+    }
+  }, [messages, sandboxRef]);
+  /**
+   * Listen for 3D code execution events from the sandbox
+   * Shows toast notifications for success/error
+   */
+  useEffect(() => {
+    const handleExecutionSuccess = () => {
+      // Toast is already shown by the sandbox
+    };
+    const handleExecutionError = (event: CustomEvent) => {
+      const { error } = event.detail;
+      showToast(ToastType.ERROR, `3D Code Error: ${error}`);
+    };
+    window.addEventListener("sandbox3d-execution-success", handleExecutionSuccess as EventListener);
+    window.addEventListener("sandbox3d-execution-error", handleExecutionError as EventListener);
+    return () => {
+      window.removeEventListener("sandbox3d-execution-success", handleExecutionSuccess as EventListener);
+      window.removeEventListener("sandbox3d-execution-error", handleExecutionError as EventListener);
+    };
+  }, []);
+  // RENDER
   return (
     <div
       className="videoeditor-chat-panel"
@@ -1005,10 +981,7 @@ const SandBox3DChatPanel: React.FC<SandBox3DChatPanelProps> = ({
         overflow: "hidden",
       }}
     >
-      <div
-        className="panel-header"
-        style={{ paddingTop: "6px", paddingBottom: "6px" }}
-      >
+      <div className="panel-header" style={{ paddingTop: "6px", paddingBottom: "6px" }}>
         <div className="header-title">
           <span className="title-icon">
             <ChatIcon size={14} />
@@ -1023,23 +996,11 @@ const SandBox3DChatPanel: React.FC<SandBox3DChatPanelProps> = ({
             }}
             title={sessionTitle || t("chat.title")}
           >
-            {isLoadingTitle
-              ? t("common.loading")
-              : sessionTitle || t("chat.title")}
+            {isLoadingTitle ? t("common.loading") : sessionTitle || t("chat.title")}
           </span>
         </div>
-
         <div className="header-right">
-          <div className="header-subtitle">
-            {loadingModel ? (
-              <span className="loading-text">{t("chat.loadingModel")}</span>
-            ) : currentModel ? (
-              <span title={currentModel.name}>{currentModel.name}</span>
-            ) : (
-              <span className="no-model">{t("chat.noModelConfigured")}</span>
-            )}
-          </div>
-
+          <div className="header-subtitle">{loadingModel ? <span className="loading-text">{t("chat.loadingModel")}</span> : currentModel ? <span title={currentModel.name}>{currentModel.name}</span> : <span className="no-model">{t("chat.noModelConfigured")}</span>}</div>
           <div
             ref={navButtonRef}
             style={{
@@ -1056,12 +1017,8 @@ const SandBox3DChatPanel: React.FC<SandBox3DChatPanelProps> = ({
               fontSize: "16px",
               flexShrink: 0,
             }}
-            onMouseEnter={(e) => {
-              handleNavButtonMouseEnter();
-            }}
-            onMouseLeave={(e) => {
-              handleNavButtonMouseLeave();
-            }}
+            onMouseEnter={() => handleNavButtonMouseEnter()}
+            onMouseLeave={() => handleNavButtonMouseLeave()}
             title={t("chat.navigation") || "Navigation"}
           >
             <TaskQueueIcon size={16} />
@@ -1096,7 +1053,6 @@ const SandBox3DChatPanel: React.FC<SandBox3DChatPanelProps> = ({
           </button>
         </div>
       </div>
-
       {showNavBubble && (
         <div
           className="chat-nav-bubble"
@@ -1128,8 +1084,7 @@ const SandBox3DChatPanel: React.FC<SandBox3DChatPanelProps> = ({
               background: "var(--bg-tertiary, #252525)",
             }}
           >
-            {t("chat.navigation") || "Navigation"} (
-            {messages.filter((m) => m.role === RoleEnum.User).length})
+            {t("chat.navigation") || "Navigation"} ({messages.filter((m) => m.role === RoleEnum.User).length})
           </div>
           <div
             style={{
@@ -1150,29 +1105,21 @@ const SandBox3DChatPanel: React.FC<SandBox3DChatPanelProps> = ({
                       padding: "8px 12px",
                       fontSize: "12px",
                       cursor: "pointer",
-                      borderLeft: isActive
-                        ? "2px solid var(--accent-color, #00aaff)"
-                        : "2px solid transparent",
-                      background: isActive
-                        ? "var(--hover-bg, #2a2a2a)"
-                        : "transparent",
+                      borderLeft: isActive ? "2px solid var(--accent-color, #00aaff)" : "2px solid transparent",
+                      background: isActive ? "var(--hover-bg, #2a2a2a)" : "transparent",
                       display: "flex",
                       alignItems: "center",
                       gap: "8px",
                     }}
                     onClick={() => {
-                      const userMessages = messages.filter(
-                        (m) => m.role === RoleEnum.User,
-                      );
+                      const userMessages = messages.filter((m) => m.role === RoleEnum.User);
                       const targetIndex = messages.indexOf(userMessages[idx]);
                       scrollToMessage(targetIndex);
                       setShowNavBubble(false);
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.background =
-                        "var(--hover-bg, #2a2a2a)";
-                      e.currentTarget.style.borderLeftColor =
-                        "var(--accent-color, #00aaff)";
+                      e.currentTarget.style.background = "var(--hover-bg, #2a2a2a)";
+                      e.currentTarget.style.borderLeftColor = "var(--accent-color, #00aaff)";
                     }}
                     onMouseLeave={(e) => {
                       if (!isActive) {
@@ -1209,22 +1156,14 @@ const SandBox3DChatPanel: React.FC<SandBox3DChatPanelProps> = ({
           </div>
         </div>
       )}
-
       <div className="chat-messages-wrapper">
-        <div
-          className="chat-messages"
-          ref={messagesContainerRef}
-          onScroll={handleUserScroll}
-        >
+        <div className="chat-messages" ref={messagesContainerRef} onScroll={handleUserScroll}>
           {messages.map((msg, index) => {
             const isUser = msg.role === RoleEnum.User;
             const isLastMessage = index === messages.length - 1;
             const formattedTime = formatTimestamp(msg.timestamp);
             return (
-              <div
-                key={msg.id}
-                className={`message-wrapper ${isUser ? "user" : ""}`}
-              >
+              <div key={msg.id} className={`message-wrapper ${isUser ? "user" : ""}`}>
                 <div className="message-avatar">
                   {isUser ? (
                     <UserIcon size={16} />
@@ -1243,60 +1182,35 @@ const SandBox3DChatPanel: React.FC<SandBox3DChatPanelProps> = ({
                 </div>
                 <div className="message-content-area">
                   {msg.status === MessageStatus.Pending ? (
-                    <div
-                      className="message-bubble"
-                      style={{ backgroundColor: "transparent" }}
-                    >
+                    <div className="message-bubble" style={{ backgroundColor: "transparent" }}>
                       <div className="message-content">
                         <LoadingSpinner />
                       </div>
                     </div>
-                  ) : msg.status &&
-                    [
-                      MessageStatus.Paused,
-                      MessageStatus.Cancelled,
-                      MessageStatus.Failed,
-                    ].includes(msg.status) ? (
+                  ) : msg.status && [MessageStatus.Paused, MessageStatus.Cancelled, MessageStatus.Failed].includes(msg.status) ? (
                     <StatusMessage msg={msg} status={msg.status} t={t} />
                   ) : isUser ? (
+                    // User message rendering
                     <>
-                      {msg.files && msg.files.length > 0 && (
-                        <MessageFileGrid
-                          files={msg.files}
-                          onFileClick={onFileClick}
-                          formatFileSize={formatFileSize}
-                        />
-                      )}
+                      {msg.files && msg.files.length > 0 && <MessageFileGrid files={msg.files} onFileClick={onFileClick} formatFileSize={formatFileSize} />}
                       {msg.content &&
                         msg.content.trim() &&
                         (editingMessageId === msg.id ? (
-                          <EditMessageForm
-                            editContent={editContent}
-                            setEditContent={setEditContent}
-                            onSave={() => handleSaveEdit(msg)}
-                            onCancel={handleCancelEdit}
-                            t={t}
-                          />
+                          <EditMessageForm editContent={editContent} setEditContent={setEditContent} onSave={() => handleSaveEdit(msg)} onCancel={handleCancelEdit} t={t} />
                         ) : (
                           <div className="message-bubble">
                             <div className="message-content">{msg.content}</div>
                             <div className="message-time">{formattedTime}</div>
                           </div>
                         ))}
-                      <MessageActions
-                        msg={msg}
-                        isUser={true}
-                        copyToClipboard={copyToClipboard}
-                        onLocateTask={handleLocateTask}
-                        onEditMessage={handleEditMessage}
-                        onResendMessage={handleResendMessage}
-                        t={t}
-                      />
+                      <MessageActions msg={msg} isUser={true} copyToClipboard={copyToClipboard} onLocateTask={handleLocateTask} onEditMessage={handleEditMessage} onResendMessage={handleResendMessage} t={t} />
                     </>
                   ) : (
+                    // LLM message rendering with 3D code detection
                     (() => {
                       let displayContent = msg.content;
                       let displaySubtitle = null;
+                      // Check if this is a structured LLM response
                       if (isStructuredLLMResponse(msg.content)) {
                         const parsed = parseLLMResponse(msg.content);
                         if (parsed?.chatResponse) {
@@ -1305,13 +1219,12 @@ const SandBox3DChatPanel: React.FC<SandBox3DChatPanelProps> = ({
                             displaySubtitle = parsed.chatResponse.s;
                           }
                         }
+                        // Note: 3D code execution is handled in the useEffect above
                       }
                       return (
                         <>
                           <div className="message-bubble">
-                            <div className="message-content">
-                              {displayContent}
-                            </div>
+                            <div className="message-content">{displayContent}</div>
                             {displaySubtitle && (
                               <div
                                 className="message-subtitle"
@@ -1328,45 +1241,20 @@ const SandBox3DChatPanel: React.FC<SandBox3DChatPanelProps> = ({
                             )}
                             <div className="message-time">{formattedTime}</div>
                           </div>
-                          <MessageActions
-                            msg={msg}
-                            isUser={false}
-                            copyToClipboard={copyToClipboard}
-                            onLocateTask={handleLocateTask}
-                            onEditMessage={handleEditMessage}
-                            t={t}
-                          />
-                          {isLastMessage &&
-                            shouldShowSuggestions(messages) &&
-                            suggestionPrompts.length > 0 && (
-                              <div className="suggestions-wrapper">
-                                <div className="ending-message">
-                                  {getEndingMessage()}
-                                </div>
-                                <div className="suggestions-title">
-                                  {t("chat.suggestionsTitle") ||
-                                    (language === "zh"
-                                      ? "💡 试试这些："
-                                      : "💡 Try these:")}
-                                </div>
-                                <div className="suggestions-container">
-                                  {suggestionPrompts.map((prompt, idx) => (
-                                    <div
-                                      key={idx}
-                                      className="suggestion-bubble"
-                                      onClick={() =>
-                                        handleSuggestionClick(prompt)
-                                      }
-                                      title={prompt}
-                                    >
-                                      {prompt.length > 25
-                                        ? prompt.slice(0, 25) + "..."
-                                        : prompt}
-                                    </div>
-                                  ))}
-                                </div>
+                          <MessageActions msg={msg} isUser={false} copyToClipboard={copyToClipboard} onLocateTask={handleLocateTask} onEditMessage={handleEditMessage} t={t} />
+                          {isLastMessage && shouldShowSuggestions(messages) && suggestionPrompts.length > 0 && (
+                            <div className="suggestions-wrapper">
+                              <div className="ending-message">{getEndingMessage()}</div>
+                              <div className="suggestions-title">{t("chat.suggestionsTitle") || (language === "zh" ? "💡 试试这些：" : "💡 Try these:")}</div>
+                              <div className="suggestions-container">
+                                {suggestionPrompts.map((prompt, idx) => (
+                                  <div key={idx} className="suggestion-bubble" onClick={() => handleSuggestionClick(prompt)} title={prompt}>
+                                    {prompt.length > 25 ? prompt.slice(0, 25) + "..." : prompt}
+                                  </div>
+                                ))}
                               </div>
-                            )}
+                            </div>
+                          )}
                         </>
                       );
                     })()
@@ -1377,74 +1265,33 @@ const SandBox3DChatPanel: React.FC<SandBox3DChatPanelProps> = ({
           })}
         </div>
         {(showScrollButton || showTopScrollButton) && (
-          <div
-            className="scroll-buttons chat-scroll-buttons"
-            style={{ display: "flex", flexDirection: "column", gap: "6px" }}
-          >
+          <div className="scroll-buttons chat-scroll-buttons" style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
             {showTopScrollButton && (
-              <button
-                style={{ height: "32px", width: "32px", borderRadius: "500px" }}
-                className="scroll-btn"
-                onClick={scrollToTop}
-                title={t("chat.scrollToTop") || "Scroll to top"}
-              >
+              <button style={{ height: "32px", width: "32px", borderRadius: "500px" }} className="scroll-btn" onClick={scrollToTop} title={t("chat.scrollToTop") || "Scroll to top"}>
                 ▲
               </button>
             )}
             {showScrollButton && (
-              <button
-                style={{ height: "32px", width: "32px", borderRadius: "500px" }}
-                className="scroll-btn"
-                onClick={scrollToBottom}
-                title={t("chat.scrollToBottom")}
-              >
+              <button style={{ height: "32px", width: "32px", borderRadius: "500px" }} className="scroll-btn" onClick={scrollToBottom} title={t("chat.scrollToBottom")}>
                 ▼
               </button>
             )}
           </div>
         )}
       </div>
-
       <div className="chat-input-section">
-        <div
-          className={`chat-input-container ${isFocused ? "focused" : ""}`}
-          onClick={handleContainerClick}
-        >
-          <div
-            className="file-uploader-container"
-            style={{ display: uploadedFiles.length > 0 ? "block" : "none" }}
-          >
-            <FileUploader
-              onFilesAdd={handleFilesAdd}
-              onFileRemove={handleFileRemove}
-              files={uploadedFiles}
-              onDragOverInput={onDragOverInputChange}
-            />
+        <div className={`chat-input-container ${isFocused ? "focused" : ""}`} onClick={handleContainerClick}>
+          <div className="file-uploader-container" style={{ display: uploadedFiles.length > 0 ? "block" : "none" }}>
+            <FileUploader onFilesAdd={handleFilesAdd} onFileRemove={handleFileRemove} files={uploadedFiles} onDragOverInput={onDragOverInputChange} />
           </div>
           <div className="input-textarea-wrapper">
-            <textarea
-              ref={textareaRef}
-              className="chat-textarea-hermes"
-              placeholder={t("chat.placeholder")}
-              value={inputValue}
-              onChange={adjustTextareaHeight}
-              onKeyDown={handleKeyDown}
-              onFocus={() => setIsFocused(true)}
-              onBlur={() => setIsFocused(false)}
-              rows={1}
-            />
+            <textarea ref={textareaRef} className="chat-textarea-hermes" placeholder={t("chat.placeholder")} value={inputValue} onChange={adjustTextareaHeight} onKeyDown={handleKeyDown} onFocus={() => setIsFocused(true)} onBlur={() => setIsFocused(false)} rows={1} />
           </div>
           <div className="action-buttons-row">
             <div className="left-actions">
-              <div
-                className="icon-btn"
-                ref={attachmentBtnRef}
-                onClick={() => setShowAttachmentMenu(!showAttachmentMenu)}
-                title={t("chat.attachment")}
-              >
+              <div className="icon-btn" ref={attachmentBtnRef} onClick={() => setShowAttachmentMenu(!showAttachmentMenu)} title={t("chat.attachment")}>
                 <AttachmentIcon size={14} />
               </div>
-
               <div
                 className="icon-btn folder-btn"
                 ref={directoryBtnRef}
@@ -1456,93 +1303,44 @@ const SandBox3DChatPanel: React.FC<SandBox3DChatPanelProps> = ({
                 style={{ minWidth: 0 }}
               >
                 <FolderIcon size={14} />
-                <span
-                  className="folder-name"
-                  title={getSelectedWorkspaceName()}
-                >
+                <span className="folder-name" title={getSelectedWorkspaceName()}>
                   {getSelectedWorkspaceName()}
                 </span>
                 <ChevronRightIcon size={10} className="chevron" />
               </div>
-              <div
-                className="icon-btn folder-btn"
-                ref={workflowBtnRef}
-                onClick={() => setShowWorkflowMenu(!showWorkflowMenu)}
-                title={t("chat.selectWorkflowMode") || "Workflow Mode"}
-                style={{ minWidth: 0 }}
-              >
-                <svg
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <path
-                    d="M4 7h16M4 12h16M4 17h10"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
+              <div className="icon-btn folder-btn" ref={workflowBtnRef} onClick={() => setShowWorkflowMenu(!showWorkflowMenu)} title={t("chat.selectWorkflowMode") || "Workflow Mode"} style={{ minWidth: 0 }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M4 7h16M4 12h16M4 17h10" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
                 <span className="folder-name" title={selectedWorkflowMode}>
-                  {workflowDisplayNames.get(selectedWorkflowMode) ||
-                    selectedWorkflowMode}
+                  {workflowDisplayNames.get(selectedWorkflowMode) || selectedWorkflowMode}
                 </span>
                 <ChevronRightIcon size={10} className="chevron" />
               </div>
-
               {showAttachmentMenu && (
                 <div className="attachment-menu" ref={attachmentMenuRef}>
-                  <div
-                    className="attachment-item"
-                    onClick={() => handleAttachment()}
-                  >
-                    <TextFileIcon size={14} />
-                    {t("chat.textFile")}
+                  <div className="attachment-item" onClick={() => handleAttachment()}>
+                    <TextFileIcon size={14} /> {t("chat.textFile")}
                   </div>
-                  <div
-                    className="attachment-item"
-                    onClick={() => handleAttachment()}
-                  >
-                    <ImageIcon size={14} />
-                    {t("chat.image")}
+                  <div className="attachment-item" onClick={() => handleAttachment()}>
+                    <ImageIcon size={14} /> {t("chat.image")}
                   </div>
-                  <div
-                    className="attachment-item"
-                    onClick={() => handleAttachment()}
-                  >
-                    <VideoIcon size={14} />
-                    {t("chat.video")}
+                  <div className="attachment-item" onClick={() => handleAttachment()}>
+                    <VideoIcon size={14} /> {t("chat.video")}
                   </div>
-                  <div
-                    className="attachment-item"
-                    onClick={() => handleAttachment()}
-                  >
-                    <FileIcon size={14} />
-                    {t("chat.skillFile")}
+                  <div className="attachment-item" onClick={() => handleAttachment()}>
+                    <FileIcon size={14} /> {t("chat.skillFile")}
                   </div>
                 </div>
               )}
               {showDirectoryMenu && (
                 <div className="directory-menu" ref={directoryMenuRef}>
                   {workspaces.map((workspace) => (
-                    <div
-                      key={workspace.id}
-                      className={`directory-item ${selectedWorkspaceId === workspace.id ? "selected" : ""}`}
-                      onClick={() => handleSelectWorkspace(workspace.id)}
-                    >
-                      {selectedWorkspaceId === workspace.id ? (
-                        <FolderOpenIcon size={16} />
-                      ) : (
-                        <FolderIcon size={16} />
-                      )}
+                    <div key={workspace.id} className={`directory-item ${selectedWorkspaceId === workspace.id ? "selected" : ""}`} onClick={() => handleSelectWorkspace(workspace.id)}>
+                      {selectedWorkspaceId === workspace.id ? <FolderOpenIcon size={16} /> : <FolderIcon size={16} />}
                       <div className="directory-item-content">
                         <div>{workspace.name}</div>
-                        <div
-                          className="workspace-path"
-                          title={workspace.workspace_path}
-                        >
+                        <div className="workspace-path" title={workspace.workspace_path}>
                           {workspace.workspace_path}
                         </div>
                       </div>
@@ -1553,11 +1351,7 @@ const SandBox3DChatPanel: React.FC<SandBox3DChatPanelProps> = ({
               {showWorkflowMenu && (
                 <div className="directory-menu" ref={workflowMenuRef}>
                   {workflowModes.map((mode) => (
-                    <div
-                      key={mode}
-                      className={`directory-item ${selectedWorkflowMode === mode ? "selected" : ""}`}
-                      onClick={() => handleWorkflowModeChange(mode)}
-                    >
+                    <div key={mode} className={`directory-item ${selectedWorkflowMode === mode ? "selected" : ""}`} onClick={() => handleWorkflowModeChange(mode)}>
                       <div className="directory-item-content">
                         <div>{workflowDisplayNames.get(mode) || mode}</div>
                       </div>
@@ -1566,26 +1360,9 @@ const SandBox3DChatPanel: React.FC<SandBox3DChatPanelProps> = ({
                 </div>
               )}
             </div>
-            <button
-              className={`send-icon-btn ${inputValue.trim() || uploadedFiles.length > 0 ? "active" : ""}`}
-              onClick={handleSend}
-              disabled={!inputValue.trim() && uploadedFiles.length === 0}
-              title={t("chat.send")}
-            >
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  d="M12 5L12 19M12 5L5 12M12 5L19 12"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
+            <button className={`send-icon-btn ${inputValue.trim() || uploadedFiles.length > 0 ? "active" : ""}`} onClick={handleSend} disabled={!inputValue.trim() && uploadedFiles.length === 0} title={t("chat.send")}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 5L12 19M12 5L5 12M12 5L19 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </button>
           </div>
@@ -1597,5 +1374,4 @@ const SandBox3DChatPanel: React.FC<SandBox3DChatPanelProps> = ({
     </div>
   );
 };
-
 export default SandBox3DChatPanel;

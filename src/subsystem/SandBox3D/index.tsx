@@ -8,7 +8,11 @@ import HistorySandBox3DChatPanel, { HistorySandBox3DChatPanelRef } from "./Histo
 import { configCommands } from "../../command/config";
 import { useSandBox3DSession } from "../../App/hooks/session/useSandBox3DChatSession";
 import { sandbox3dSessionCommands } from "../../command/session/sandbox3d";
-import SandBox3D from "./SandBox3D";
+import { listenRefresh3DHistory } from "./SandBox3DWindowsEventsManager";
+import SandBox3D, { SandBox3DRef, ThreeSceneSnapshot } from "./SandBox3D";
+import { SandBox3DHistoryPanel } from "./SandBox3D/SandBox3DHistoryPanel";
+import { ToolMenu } from "./SandBox3D/ToolMenu";
+import { sandbox3dExportCommands } from "../../command/SandBox3D";
 interface SandBox3DPageProps {
   layoutMode?: "horizontal" | "vertical";
   onLayoutModeChange?: (mode: "horizontal" | "vertical") => void;
@@ -32,6 +36,9 @@ interface CollapsedTaskListProps {
   activeNavIndex: number;
   onLocateTask: (idx: number) => void;
 }
+/**
+ * Collapsed task list component for sidebar navigation
+ */
 const CollapsedTaskList: React.FC<CollapsedTaskListProps> = ({ tasks, activeNavIndex, onLocateTask }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [showUp, setShowUp] = useState(false);
@@ -320,6 +327,9 @@ interface CollapsedHistoryListProps {
   currentSessionId?: string;
   onSelectSession: (sessionId: string) => void;
 }
+/**
+ * Collapsed history list component for sidebar navigation
+ */
 const CollapsedHistoryList: React.FC<CollapsedHistoryListProps> = ({ sessions, currentSessionId, onSelectSession }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [showUp, setShowUp] = useState(false);
@@ -582,6 +592,9 @@ const CollapsedHistoryList: React.FC<CollapsedHistoryListProps> = ({ sessions, c
     </div>
   );
 };
+/**
+ * Main 3D Sandbox Page Component
+ */
 const SandBox3DPage: React.FC<SandBox3DPageProps> = ({
   layoutMode = "vertical",
   onLayoutModeChange,
@@ -600,13 +613,9 @@ const SandBox3DPage: React.FC<SandBox3DPageProps> = ({
   executionLogs,
   onClearLogs,
 }) => {
-  const {
-    currentSessionId: sandbox3dSessionId,
-    handleSendMessage: sandbox3dHandleSendMessage,
-    handleSwitchSession: sandbox3dHandleSwitchSession,
-    handleNewSession: sandbox3dHandleNewSession,
-    shouldShowWelcome: sandbox3dShouldShowWelcome,
-  } = useSandBox3DSession(language as "zh" | "en", true);
+  // Session management
+  const { currentSessionId: sandbox3dSessionId, handleSendMessage: sandbox3dHandleSendMessage, handleSwitchSession: sandbox3dHandleSwitchSession, handleNewSession: sandbox3dHandleNewSession, shouldShowWelcome: sandbox3dShouldShowWelcome } = useSandBox3DSession(language as "zh" | "en", true);
+  // Panel state
   const [chatPanelWidth, setChatPanelWidth] = useState<number>(400);
   const [historyWidth, setHistoryWidth] = useState<number>(280);
   const [chatPanelCollapsed, setChatPanelCollapsed] = useState<boolean>(false);
@@ -616,8 +625,15 @@ const SandBox3DPage: React.FC<SandBox3DPageProps> = ({
   const [isHistoryResizeHover, setIsHistoryResizeHover] = useState(false);
   const [isHistoryExpanded, setIsHistoryExpanded] = useState(true);
   const [isHistoryAtBottom, setIsHistoryAtBottom] = useState(false);
+  // Refs
   const containerRef = useRef<HTMLDivElement>(null);
   const historyPanelRef = useRef<HistorySandBox3DChatPanelRef>(null);
+  const sandboxRef = useRef<SandBox3DRef | null>(null);
+  // Independent history panel state
+  const [historySnapshots, setHistorySnapshots] = useState<ThreeSceneSnapshot[]>([]);
+  const [activeSnapshotId, setActiveSnapshotId] = useState<string | null>(null);
+  const [isHistoryPanelExpanded, setIsHistoryPanelExpanded] = useState(false);
+  const historyLoadedRef = useRef(false);
   const [historySessions, setHistorySessions] = useState<any[]>([]);
   const isDragging = useRef(false);
   const dragType = useRef<"horizontal" | "history">("horizontal");
@@ -628,6 +644,9 @@ const SandBox3DPage: React.FC<SandBox3DPageProps> = ({
   const [layoutSwapMode, setLayoutSwapMode] = useState<"terminal-left" | "chat-left">("terminal-left");
   const layoutSwapModeRef = useRef<"terminal-left" | "chat-left">("terminal-left");
   const isChatOnLeft = layoutSwapMode === "chat-left";
+  const [historyPanelKey, setHistoryPanelKey] = useState(0);
+  const [gifPath, setGifPath] = useState<string | null>(null);
+  // Panel toggle handlers
   const handleToggleChatPanel = useCallback(() => {
     if (isFunctionPanelMaximized) return;
     setChatPanelCollapsed((prev) => {
@@ -636,17 +655,167 @@ const SandBox3DPage: React.FC<SandBox3DPageProps> = ({
       return newState;
     });
   }, [isFunctionPanelMaximized]);
-  const chatPanel = (
-    <SandBox3DChatPanel
-      onSendMessage={sandbox3dHandleSendMessage}
-      onFileClick={onFileClick}
-      t={t}
-      onDragOverInputChange={onDragOverInputChange}
-      language={language}
-      isLeftPanel={isChatOnLeft}
-      currentSessionId={sandbox3dSessionId}
-    />
+  useEffect(() => {
+    if (sandboxRef.current) {
+      sandboxRef.current.refreshScene();
+    }
+  }, [theme]);
+  /**
+   * Refresh history panel from backend - ONLY updates history panel data
+   */
+  const refreshHistoryPanel = useCallback(async (sessionId: string) => {
+    if (!sessionId || sessionId.startsWith("pending_") || sessionId.startsWith("temp_")) {
+      return;
+    }
+    try {
+      const chatContent = await sandbox3dSessionCommands.loadChatContent(sessionId);
+      if (!chatContent || !Array.isArray(chatContent) || chatContent.length === 0) {
+        if (sandboxRef.current) {
+          sandboxRef.current.updateHistorySnapshots([]);
+        }
+        setHistorySnapshots([]);
+        setActiveSnapshotId(null);
+        return;
+      }
+      // Extract all 3D scene data from messages
+      const scenesData: Array<{ taskId: string; code: string; title: string; createdAt: string }> = [];
+      for (const msg of chatContent) {
+        if (msg.role !== "LLM") continue;
+        try {
+          const content = typeof msg.content === "string" ? msg.content : JSON.stringify(msg.content);
+          const parsed = JSON.parse(content);
+          if (parsed?.terminalResponse?.threeScene) {
+            const threeScene = parsed.terminalResponse.threeScene;
+            const chatResponse = parsed.chatResponse;
+            scenesData.push({
+              taskId: msg.id || `msg_${Date.now()}`,
+              code: threeScene.code || "",
+              title: chatResponse?.s || threeScene.description || "3D Scene",
+              createdAt: msg.timestamp || new Date().toISOString(),
+            });
+          }
+        } catch (e) {
+          // skip non-JSON responses
+        }
+      }
+      if (scenesData.length === 0) {
+        if (sandboxRef.current) {
+          sandboxRef.current.updateHistorySnapshots([]);
+        }
+        setHistorySnapshots([]);
+        setActiveSnapshotId(null);
+        return;
+      }
+      if (sandboxRef.current) {
+        sandboxRef.current.updateHistorySnapshots(scenesData);
+      }
+      const snapshotsWithThumbnails: ThreeSceneSnapshot[] = [];
+      for (let i = 0; i < scenesData.length; i++) {
+        const scene = scenesData[i];
+        const snapshotId = `snapshot_${scene.taskId}`;
+        // Generate thumbnail using shared offscreen renderer - main canvas is untouched!
+        let thumbnail: string | null = null;
+        if (sandboxRef.current && scene.code) {
+          // This prevents overloading the WebGL context
+          if (i > 0) {
+            await new Promise((resolve) => setTimeout(resolve, 50));
+          }
+          thumbnail = sandboxRef.current.generateThumbnailOffscreen(scene.code);
+        }
+        // Update the thumbnail in the sandbox ref data
+        if (sandboxRef.current) {
+          sandboxRef.current.updateSnapshotThumbnail(snapshotId, thumbnail);
+        }
+        snapshotsWithThumbnails.push({
+          id: snapshotId,
+          taskId: scene.taskId,
+          code: scene.code,
+          title: scene.title,
+          thumbnail: thumbnail,
+          createdAt: scene.createdAt,
+          isActive: i === scenesData.length - 1, // Last one is active
+        });
+      }
+      const lastScene = scenesData[scenesData.length - 1];
+      const lastSnapshotId = `snapshot_${lastScene.taskId}`;
+      if (sandboxRef.current && lastScene.code) {
+        sandboxRef.current.executeThreeCode(lastScene.code, true);
+      }
+      if (sandboxRef.current) {
+        sandboxRef.current.setActiveSnapshot(lastSnapshotId);
+      }
+      // Update local state to trigger re-render of history panel
+      setHistorySnapshots(snapshotsWithThumbnails);
+      setActiveSnapshotId(lastSnapshotId);
+      historyLoadedRef.current = true;
+    } catch (error) {
+      console.error("[SandBox3DPage] Failed to refresh history:", error);
+    }
+  }, []);
+  /**
+   * Handle switching to a snapshot - renders on main canvas
+   */
+  const handleSwitchToSnapshot = useCallback(
+    (snapshotId: string) => {
+      const snapshot = historySnapshots.find((s) => s.id === snapshotId);
+      if (!snapshot || !sandboxRef.current) return;
+      // Switch to snapshot - this will render on the main canvas
+      sandboxRef.current.switchToSnapshot(snapshotId);
+      // Update local state to reflect the change
+      setActiveSnapshotId(snapshotId);
+      const updatedSnapshots = sandboxRef.current?.getSnapshots() || [];
+      setHistorySnapshots(updatedSnapshots);
+    },
+    [historySnapshots],
   );
+  useEffect(() => {
+    const checkGif = async () => {
+      const taskId = historySnapshots.find((s) => s.isActive)?.taskId;
+      if (!sandbox3dSessionId || !taskId) {
+        setGifPath(null);
+        return;
+      }
+      try {
+        const path = await sandbox3dExportCommands.getSandbox3dGifPath(sandbox3dSessionId, taskId);
+        setGifPath(path || null);
+      } catch (error) {
+        setGifPath(null);
+      }
+    };
+    checkGif();
+  }, [sandbox3dSessionId, historySnapshots]);
+  useEffect(() => {
+    const cleanup = listenRefresh3DHistory((event) => {
+      const sessionId = event.detail?.sessionId || sandbox3dSessionId;
+      if (sessionId) {
+        setTimeout(() => {
+          refreshHistoryPanel(sessionId);
+          setHistoryPanelKey((prev) => prev + 1);
+        }, 500);
+      }
+    });
+    return cleanup;
+  }, [sandbox3dSessionId, refreshHistoryPanel]);
+  // Initial load of history
+  useEffect(() => {
+    if (sandbox3dSessionId && !historyLoadedRef.current) {
+      const timer = setTimeout(() => {
+        refreshHistoryPanel(sandbox3dSessionId);
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [sandbox3dSessionId, refreshHistoryPanel]);
+  // Reset loaded flag when session changes
+  useEffect(() => {
+    historyLoadedRef.current = false;
+  }, [sandbox3dSessionId]);
+  /**
+   * Create chat panel
+   */
+  const chatPanel = <SandBox3DChatPanel onSendMessage={sandbox3dHandleSendMessage} onFileClick={onFileClick} t={t} onDragOverInputChange={onDragOverInputChange} language={language} isLeftPanel={isChatOnLeft} currentSessionId={sandbox3dSessionId} sandboxRef={sandboxRef} />;
+  /**
+   * Create 3D sandbox panel with ref attached and independent history panel
+   */
   const sandbox3dPanel = (
     <div
       style={{
@@ -658,9 +827,58 @@ const SandBox3DPage: React.FC<SandBox3DPageProps> = ({
         overflow: "hidden",
       }}
     >
-      <SandBox3D theme={theme} i18n={i18n} t={t} currentSessionId={sandbox3dSessionId} />
+      <SandBox3D ref={sandboxRef} theme={theme} i18n={i18n} t={t} currentSessionId={sandbox3dSessionId} />
+      <SandBox3DHistoryPanel key={historyPanelKey} snapshots={historySnapshots} activeSnapshotId={activeSnapshotId} onSnapshotClick={handleSwitchToSnapshot} isExpanded={isHistoryPanelExpanded} onToggle={() => setIsHistoryPanelExpanded(!isHistoryPanelExpanded)} t={t} isZh={i18n === "zh-cn"} />
+      <ToolMenu
+        onRefresh={() => {
+          if (sandboxRef.current) {
+            sandboxRef.current.refreshScene();
+          }
+        }}
+        onExportGif={async (duration, fps, quality) => {
+          if (sandboxRef.current) {
+            return await sandboxRef.current.exportGif(duration, fps, quality);
+          }
+          return null;
+        }}
+        onClearScene={() => {
+          if (sandboxRef.current) {
+            sandboxRef.current.clearScene();
+          }
+        }}
+        onResetCamera={() => {}}
+        onToggleFullscreen={() => {
+          if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen();
+          } else {
+            document.exitFullscreen();
+          }
+        }}
+        isZh={i18n === "zh-cn"}
+        theme={theme}
+        currentSessionId={sandbox3dSessionId}
+        currentTaskId={historySnapshots.find((s) => s.isActive)?.taskId || null}
+        gifPath={gifPath}
+        onGifUploaded={(path) => {
+          setGifPath(path);
+          const taskId = historySnapshots.find((s) => s.isActive)?.taskId;
+          if (taskId && sandbox3dSessionId) {
+            localStorage.setItem(`sandbox3d_gif_${sandbox3dSessionId}_${taskId}`, path);
+          }
+        }}
+        onDeleteGif={() => {
+          setGifPath(null);
+          const taskId = historySnapshots.find((s) => s.isActive)?.taskId;
+          if (taskId && sandbox3dSessionId) {
+            localStorage.removeItem(`sandbox3d_gif_${sandbox3dSessionId}_${taskId}`);
+          }
+        }}
+      />
     </div>
   );
+  /**
+   * Collapsed chat sidebar
+   */
   const collapsedChatSidebar = (
     <div
       className="collapsed-sidebar"
@@ -757,6 +975,7 @@ const SandBox3DPage: React.FC<SandBox3DPageProps> = ({
       />
     </div>
   );
+  // Layout mode loading
   useEffect(() => {
     const loadLayoutMode = async () => {
       try {
@@ -771,6 +990,7 @@ const SandBox3DPage: React.FC<SandBox3DPageProps> = ({
     };
     loadLayoutMode();
   }, []);
+  // Layout change listener
   useEffect(() => {
     const handleLayoutChange = (event: CustomEvent) => {
       const { pageType, mode } = event.detail;
@@ -784,6 +1004,7 @@ const SandBox3DPage: React.FC<SandBox3DPageProps> = ({
       window.removeEventListener("layout-swap-mode-changed", handleLayoutChange as EventListener);
     };
   }, []);
+  // Load history sessions
   useEffect(() => {
     const loadSessions = async () => {
       try {
@@ -802,6 +1023,7 @@ const SandBox3DPage: React.FC<SandBox3DPageProps> = ({
       window.removeEventListener("sandbox3d-session-created", handleSessionCreated);
     };
   }, []);
+  // Refresh history on title update
   useEffect(() => {
     const handleTitleUpdated = () => {
       historyPanelRef.current?.refreshSessions();
@@ -811,6 +1033,7 @@ const SandBox3DPage: React.FC<SandBox3DPageProps> = ({
       window.removeEventListener("session-title-updated", handleTitleUpdated);
     };
   }, []);
+  // Load persisted state from localStorage
   useEffect(() => {
     const savedHistoryWidth = localStorage.getItem("hippox-sandbox3d-history-width");
     const savedHistoryCollapsed = localStorage.getItem("hippox-sandbox3d-history-collapsed");
@@ -821,6 +1044,7 @@ const SandBox3DPage: React.FC<SandBox3DPageProps> = ({
     if (savedChatPanelCollapsed) setChatPanelCollapsed(savedChatPanelCollapsed === "true");
     if (savedChatPanelWidth) setChatPanelWidth(parseFloat(savedChatPanelWidth));
   }, []);
+  // Persistence helpers
   const saveHistoryWidth = (width: number) => {
     localStorage.setItem("hippox-sandbox3d-history-width", width.toString());
   };
@@ -833,6 +1057,7 @@ const SandBox3DPage: React.FC<SandBox3DPageProps> = ({
   const saveChatPanelWidth = (width: number) => {
     localStorage.setItem("hippox-sandbox3d-chat-width", width.toString());
   };
+  // History panel controls
   const handleExpandToggle = () => {
     const newExpanded = !isHistoryExpanded;
     setIsHistoryExpanded(newExpanded);
@@ -864,6 +1089,7 @@ const SandBox3DPage: React.FC<SandBox3DPageProps> = ({
   const handleNewSession = useCallback(() => {
     sandbox3dHandleNewSession();
   }, [sandbox3dHandleNewSession]);
+  // Resize drag handlers
   const handleMouseDown = (e: React.MouseEvent, type: "horizontal" | "history") => {
     if (chatPanelCollapsed || isFunctionPanelMaximized) return;
     if (type === "history" && historyCollapsed) return;
@@ -919,6 +1145,9 @@ const SandBox3DPage: React.FC<SandBox3DPageProps> = ({
       window.removeEventListener("mouseup", handleMouseUp);
     };
   }, [handleMouseMove, handleMouseUp]);
+  /**
+   * Get history panel content
+   */
   const getHistoryPanelContent = () => {
     if (historyCollapsed || isFunctionPanelMaximized) {
       return (
@@ -1175,6 +1404,7 @@ const SandBox3DPage: React.FC<SandBox3DPageProps> = ({
   };
   const historyPanelContent = getHistoryPanelContent();
   const historyWidthPx = historyCollapsed || isFunctionPanelMaximized ? 45 : historyWidth;
+  // === RENDER ===
   return (
     <div className="panels-container horizontal-layout" ref={containerRef} style={{ display: "flex", flex: 1, overflow: "hidden" }}>
       <style>{`

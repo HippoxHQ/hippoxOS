@@ -6,7 +6,7 @@ import { TaskInfo, UploadFile, TaskStatusEnum, SessionDomain } from "../../../co
 import { Language, ChatMessage, RoleEnum, MessageStatus } from "../../../types/types";
 import { workspaceCommands } from "../../../command/workspace";
 import { sandbox3dSessionCommands } from "../../../command/session/sandbox3d";
-import { getSandBox3DSystemPrompt } from "../../../subsystem/SandBox3D/llm/prompts/basis";
+import { getSandBox3DSystemPrompt } from "../../../subsystem/SandBox3D/llm/prompts";
 export function useSandBox3DSession(
     language: Language,
     isConfigLoaded: boolean,
