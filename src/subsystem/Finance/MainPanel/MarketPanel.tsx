@@ -16,12 +16,6 @@ interface MarketPanelProps {
 }
 // Define the data source types
 type DataSourceType = "binance" | "yahoo" | "hyperliquid";
-// Define data source display names
-const DATA_SOURCE_NAMES = {
-  binance: "Binance",
-  yahoo: "Yahoo Finance",
-  hyperliquid: "Hyperliquid",
-};
 const MarketPanel: React.FC<MarketPanelProps> = ({ theme, i18n, onCryptoClick, onStockClick, onAStockClick, isCollapsed, onToggleCollapse, onPerpetualClick }) => {
   const isDark = theme === "dark";
   const isZh = i18n === "zh-cn";

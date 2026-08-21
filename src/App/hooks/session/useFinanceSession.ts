@@ -5,9 +5,9 @@ import { taskManager } from "../../../core/TaskManager";
 import { TaskInfo, UploadFile, TaskStatusEnum, SessionDomain } from "../../../core/types";
 import { Language, ChatMessage, RoleEnum, MessageStatus } from "../../../types/types";
 import { workspaceCommands } from "../../../command/workspace";
-import { chartSessionCommands } from "../../../command/session/chart";
-import { getChartsSystemPrompt } from "../../../subsystem/Charts/llm/prompts/basis";
-export function useChartSession(
+import { chartSessionCommands } from "../../../command/session/finance";
+import { getFinanceSystemPrompt } from "../../../subsystem/Finance/llm/prompts/basis";
+export function useFinanceSession(
     language: Language,
     isConfigLoaded: boolean,
 ) {
@@ -33,7 +33,7 @@ export function useChartSession(
             const currentDomain = taskManager.getCurrentDomain();
             if (currentDomain !== SessionDomain.Chart) {
                 console.debug(
-                    `[useChartSession] Skipping save - current domain is "${currentDomain}", not "Chart"`
+                    `[useFinanceSession] Skipping save - current domain is "${currentDomain}", not "Chart"`
                 );
                 return;
             }
@@ -105,7 +105,7 @@ export function useChartSession(
         if (finalSessionId && !finalSessionId.startsWith("pending_") &&
             !finalSessionId.startsWith("chart_session_") && !finalSessionId.startsWith("temp_")) {
             console.error(
-                `[useChartSession] Invalid session ID "${finalSessionId}" - does not belong to Chart domain`
+                `[useFinanceSession] Invalid session ID "${finalSessionId}" - does not belong to Chart domain`
             );
             return;
         }
@@ -161,7 +161,7 @@ export function useChartSession(
         try {
             const workspace = await workspaceCommands.getDefaultWorkspace();
             const workspacePath = workspace?.workspace_path;
-            const systemPrompt = getChartsSystemPrompt(language as 'zh' | 'en', workspacePath);
+            const systemPrompt = getFinanceSystemPrompt(language as 'zh' | 'en', workspacePath);
             const fullMessage = `${systemPrompt}\n\n User: ${userMessage}`;
             const mode = workflowMode || currentWorkflowMode;
             const taskId = await hippoxCommands.sendMessageAsync(
@@ -213,7 +213,7 @@ export function useChartSession(
         if (sessionId === currentSessionId) return;
         if (!sessionId.startsWith("chart_session_") && !sessionId.startsWith("pending_")) {
             console.warn(
-                `[useChartSession] Cannot switch to session "${sessionId}" - it does not belong to Chart domain`
+                `[useFinanceSession] Cannot switch to session "${sessionId}" - it does not belong to Chart domain`
             );
             return;
         }

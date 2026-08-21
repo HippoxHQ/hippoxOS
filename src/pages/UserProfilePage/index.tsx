@@ -4,7 +4,7 @@ import { taskPoolCommands } from "../../core/TaskPool";
 import { UserProfileProps, UserStats } from "./types";
 import { UserIcon, MessageIcon, FileTextIcon, CrystalIcon, SettingsIcon, FireIcon, TrophyIcon, ChartIcon, BarChart3Icon, ClockIcon, LoadingSpinnerIcon, RefreshCwIcon } from "./icons";
 import { loadAllTasksFromBackups, loadAllSessions, loadSessionChat, formatNumber, formatLocalDate } from "./utils";
-import { sysCommands } from "../../command/sys";
+import { osCommands } from "../../command/os";
 import Heatmap from "../../components/Heatmap";
 import { showToast, ToastType } from "../../components/Toast";
 import { showTooltip } from "../../components/Tooltip";
@@ -126,7 +126,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ t, onClose, currentSessionId 
       let username = t("user.defaultUsername") || "用户";
       let email = `${username}@hippox.local`;
       try {
-        const systemUsername = await sysCommands.getSystemUsername();
+        const systemUsername = await osCommands.getSystemUsername();
         if (systemUsername && systemUsername !== "用户") {
           username = systemUsername;
           email = `${systemUsername}@hippox.local`;
@@ -1077,9 +1077,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ t, onClose, currentSessionId 
                           gap: "4px",
                           marginBottom: "2px",
                         }}
-                        onMouseEnter={(e) =>
-                          showTooltip(`${item.name}: ${formatNumber(item.value)} ${t("user.tokens") || "Token"} (${Math.round((item.value / Math.max(totalTokens, 1)) * 100)}%)`, e.currentTarget)
-                        }
+                        onMouseEnter={(e) => showTooltip(`${item.name}: ${formatNumber(item.value)} ${t("user.tokens") || "Token"} (${Math.round((item.value / Math.max(totalTokens, 1)) * 100)}%)`, e.currentTarget)}
                       >
                         <div
                           style={{

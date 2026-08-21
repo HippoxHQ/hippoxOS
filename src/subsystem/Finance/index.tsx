@@ -3,12 +3,12 @@ import { taskManager } from "../../core/TaskManager";
 import { TaskStatusEnum } from "../../core/types";
 import { showTooltipOnElement } from "../../components/Tooltip";
 import { CollapseAllIcon2, ExpandAllIcon2, MessageCircleIcon, ScrollTextIcon } from "../../icons";
-import ChartChatPageCandleView from "./ChartChatPageCandleView";
+import MainPanel from "./MainPanel";
 import HistoryChartChatPanel, { HistoryChartChatPanelRef } from "./HistoryChartChatPanel";
 import { configCommands } from "../../command/config";
 import ChartChatPanel from "./ChartChatPanel";
-import { useChartSession } from "../../App/hooks/session/useChartChatSession";
-
+import { useFinanceSession } from "../../App/hooks/session/useFinanceSession";
+import MarqueeBar from "./MarqueeBar";
 interface ChartPageProps {
   layoutMode?: "horizontal" | "vertical";
   onLayoutModeChange?: (mode: "horizontal" | "vertical") => void;
@@ -28,18 +28,15 @@ interface ChartPageProps {
   executionLogs?: any[];
   onClearLogs?: () => void;
 }
-
 interface CollapsedTaskListProps {
   tasks: any[];
   activeNavIndex: number;
   onLocateTask: (idx: number) => void;
 }
-
 const CollapsedTaskList: React.FC<CollapsedTaskListProps> = ({ tasks, activeNavIndex, onLocateTask }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [showUp, setShowUp] = useState(false);
   const [showDown, setShowDown] = useState(false);
-
   const checkScroll = useCallback(() => {
     if (!containerRef.current) return;
     const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
@@ -48,7 +45,6 @@ const CollapsedTaskList: React.FC<CollapsedTaskListProps> = ({ tasks, activeNavI
     setShowUp(canScrollUp);
     setShowDown(canScrollDown);
   }, []);
-
   const updateScrollButtons = useCallback(() => {
     if (!containerRef.current) return;
     const { scrollHeight, clientHeight } = containerRef.current;
@@ -62,7 +58,6 @@ const CollapsedTaskList: React.FC<CollapsedTaskListProps> = ({ tasks, activeNavI
       setShowDown(false);
     }
   }, []);
-
   useEffect(() => {
     const el = containerRef.current;
     if (el) {
@@ -78,23 +73,19 @@ const CollapsedTaskList: React.FC<CollapsedTaskListProps> = ({ tasks, activeNavI
       };
     }
   }, [checkScroll, updateScrollButtons]);
-
   useEffect(() => {
     setTimeout(updateScrollButtons, 100);
   }, [tasks]);
-
   const scrollUp = () => {
     if (containerRef.current) {
       containerRef.current.scrollBy({ top: -200, behavior: "smooth" });
     }
   };
-
   const scrollDown = () => {
     if (containerRef.current) {
       containerRef.current.scrollBy({ top: 200, behavior: "smooth" });
     }
   };
-
   const getStatusColor = (status: string) => {
     switch (status) {
       case TaskStatusEnum.Running:
@@ -111,7 +102,6 @@ const CollapsedTaskList: React.FC<CollapsedTaskListProps> = ({ tasks, activeNavI
         return "var(--text-tertiary)";
     }
   };
-
   const getStatusEmoji = (status: string) => {
     switch (status) {
       case TaskStatusEnum.Running:
@@ -128,14 +118,12 @@ const CollapsedTaskList: React.FC<CollapsedTaskListProps> = ({ tasks, activeNavI
         return "📌";
     }
   };
-
   const getDisplayText = (text: string): string => {
     if (!text) return "...";
     const clean = text.trim();
     if (clean.length <= 2) return clean;
     return clean.slice(0, 2);
   };
-
   if (tasks.length === 0) {
     return (
       <div
@@ -164,7 +152,6 @@ const CollapsedTaskList: React.FC<CollapsedTaskListProps> = ({ tasks, activeNavI
       </div>
     );
   }
-
   return (
     <div
       style={{
@@ -329,18 +316,15 @@ const CollapsedTaskList: React.FC<CollapsedTaskListProps> = ({ tasks, activeNavI
     </div>
   );
 };
-
 interface CollapsedHistoryListProps {
   sessions: any[];
   currentSessionId?: string;
   onSelectSession: (sessionId: string) => void;
 }
-
 const CollapsedHistoryList: React.FC<CollapsedHistoryListProps> = ({ sessions, currentSessionId, onSelectSession }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [showUp, setShowUp] = useState(false);
   const [showDown, setShowDown] = useState(false);
-
   const sortedSessions = React.useMemo(() => {
     if (!sessions || sessions.length === 0) return [];
     return [...sessions].sort((a, b) => {
@@ -355,7 +339,6 @@ const CollapsedHistoryList: React.FC<CollapsedHistoryListProps> = ({ sessions, c
       return bTs - aTs;
     });
   }, [sessions]);
-
   const checkScroll = useCallback(() => {
     if (!containerRef.current) return;
     const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
@@ -364,7 +347,6 @@ const CollapsedHistoryList: React.FC<CollapsedHistoryListProps> = ({ sessions, c
     setShowUp(canScrollUp);
     setShowDown(canScrollDown);
   }, []);
-
   const updateScrollButtons = useCallback(() => {
     if (!containerRef.current) return;
     const { scrollHeight, clientHeight } = containerRef.current;
@@ -378,7 +360,6 @@ const CollapsedHistoryList: React.FC<CollapsedHistoryListProps> = ({ sessions, c
       setShowDown(false);
     }
   }, []);
-
   useEffect(() => {
     const el = containerRef.current;
     if (el) {
@@ -394,30 +375,25 @@ const CollapsedHistoryList: React.FC<CollapsedHistoryListProps> = ({ sessions, c
       };
     }
   }, [checkScroll, updateScrollButtons]);
-
   useEffect(() => {
     setTimeout(updateScrollButtons, 100);
   }, [sessions, updateScrollButtons]);
-
   const scrollUp = () => {
     if (containerRef.current) {
       containerRef.current.scrollBy({ top: -200, behavior: "smooth" });
     }
   };
-
   const scrollDown = () => {
     if (containerRef.current) {
       containerRef.current.scrollBy({ top: 200, behavior: "smooth" });
     }
   };
-
   const getDisplayText = (text: string): string => {
     if (!text) return "...";
     const clean = text.trim();
     if (clean.length <= 2) return clean;
     return clean.slice(0, 2);
   };
-
   if (!sessions || sessions.length === 0) {
     return (
       <div
@@ -446,7 +422,6 @@ const CollapsedHistoryList: React.FC<CollapsedHistoryListProps> = ({ sessions, c
       </div>
     );
   }
-
   return (
     <div
       style={{
@@ -613,7 +588,6 @@ const CollapsedHistoryList: React.FC<CollapsedHistoryListProps> = ({ sessions, c
     </div>
   );
 };
-
 const ChartPage: React.FC<ChartPageProps> = ({
   layoutMode = "vertical",
   onLayoutModeChange,
@@ -633,7 +607,7 @@ const ChartPage: React.FC<ChartPageProps> = ({
   executionLogs,
   onClearLogs,
 }) => {
-  const { currentSessionId: chartSessionId, handleSendMessage: chartHandleSendMessage, handleSwitchSession: chartHandleSwitchSession, handleNewSession: chartHandleNewSession, shouldShowWelcome: chartShouldShowWelcome } = useChartSession(language as "zh" | "en", true);
+  const { currentSessionId: chartSessionId, handleSendMessage: chartHandleSendMessage, handleSwitchSession: chartHandleSwitchSession, handleNewSession: chartHandleNewSession, shouldShowWelcome: chartShouldShowWelcome } = useFinanceSession(language as "zh" | "en", true);
   const [chatPanelWidth, setChatPanelWidth] = useState<number>(400);
   const [historyWidth, setHistoryWidth] = useState<number>(280);
   const [chatPanelCollapsed, setChatPanelCollapsed] = useState<boolean>(false);
@@ -655,7 +629,34 @@ const ChartPage: React.FC<ChartPageProps> = ({
   const [layoutSwapMode, setLayoutSwapMode] = useState<"terminal-left" | "chat-left">("terminal-left");
   const layoutSwapModeRef = useRef<"terminal-left" | "chat-left">("terminal-left");
   const isChatOnLeft = layoutSwapMode === "chat-left";
-
+  // Default ticker data for the marquee
+  const defaultTickerItems = [
+    { symbol: "BTC/USDT", price: 67423.5, change: 1240.2, changePercent: 1.87 },
+    { symbol: "ETH/USDT", price: 3520.8, change: 85.6, changePercent: 2.49 },
+    { symbol: "SOL/USDT", price: 178.45, change: -3.2, changePercent: -1.76 },
+    { symbol: "BNB/USDT", price: 598.2, change: 12.3, changePercent: 2.1 },
+    { symbol: "XRP/USDT", price: 0.6245, change: 0.0182, changePercent: 3.0 },
+    { symbol: "ADA/USDT", price: 0.462, change: -0.0085, changePercent: -1.81 },
+    { symbol: "DOGE/USDT", price: 0.1542, change: 0.0063, changePercent: 4.26 },
+    { symbol: "DOT/USDT", price: 7.82, change: 0.28, changePercent: 3.71 },
+    { symbol: "LINK/USDT", price: 14.52, change: 0.65, changePercent: 4.69 },
+    { symbol: "MATIC/USDT", price: 0.728, change: -0.012, changePercent: -1.62 },
+    { symbol: "AVAX/USDT", price: 38.45, change: 1.85, changePercent: 5.05 },
+    { symbol: "UNI/USDT", price: 7.95, change: 0.32, changePercent: 4.19 },
+  ];
+  // Default news data for the marquee
+  const defaultNewsItems = [
+    { id: "1", title: "Federal Reserve holds rates steady, signals possible rate cut this year", source: "Reuters", time: "10:32" },
+    { id: "2", title: "Bitcoin breaks above $67,000 as institutional inflows continue", source: "CoinDesk", time: "10:15" },
+    { id: "3", title: "NVIDIA Q2 earnings beat estimates, AI chip demand remains strong", source: "Bloomberg", time: "09:58" },
+    { id: "4", title: "PBOC announces 25bps RRR cut to release long-term liquidity", source: "财联社", time: "09:30" },
+    { id: "5", title: "Tesla Cybertruck deliveries surpass 10,000 units", source: "TechCrunch", time: "08:45" },
+    { id: "6", title: "Gold hits all-time high as safe-haven demand surges", source: "FT", time: "08:20" },
+    { id: "7", title: "EU passes landmark AI regulation act, world's first comprehensive AI law", source: "Politico", time: "07:50" },
+    { id: "8", title: "OPEC+ maintains output levels, oil prices edge higher", source: "Reuters", time: "07:30" },
+    { id: "9", title: "Apple unveils new M4 chip with 50% performance boost", source: "The Verge", time: "06:55" },
+    { id: "10", title: "BoJ rate hike expectations rise, Yen strengthens", source: "Nikkei", time: "06:20" },
+  ];
   const handleToggleChatPanel = useCallback(() => {
     if (isFunctionPanelMaximized) return;
     setChatPanelCollapsed((prev) => {
@@ -664,9 +665,7 @@ const ChartPage: React.FC<ChartPageProps> = ({
       return newState;
     });
   }, [isFunctionPanelMaximized]);
-
   const chatPanel = <ChartChatPanel onSendMessage={chartHandleSendMessage} onFileClick={onFileClick} t={t} onDragOverInputChange={onDragOverInputChange} language={language} isLeftPanel={isChatOnLeft} currentSessionId={chartSessionId} />;
-
   const chartPanel = (
     <div
       style={{
@@ -678,10 +677,9 @@ const ChartPage: React.FC<ChartPageProps> = ({
         overflow: "hidden",
       }}
     >
-      <ChartChatPageCandleView theme={theme} i18n={i18n} currentSessionId={chartSessionId} chartData={chartData} symbol={symbol} />
+      <MainPanel theme={theme} i18n={i18n} currentSessionId={chartSessionId} chartData={chartData} symbol={symbol} />
     </div>
   );
-
   const collapsedChatSidebar = (
     <div
       className="collapsed-sidebar"
@@ -734,7 +732,7 @@ const ChartPage: React.FC<ChartPageProps> = ({
             e.currentTarget.style.background = "transparent";
             e.currentTarget.style.color = "var(--text-secondary)";
           }}
-          title={isChatOnLeft ? "向右展开" : "向左展开"}
+          title={isChatOnLeft ? "Expand Right" : "Expand Left"}
         >
           {isChatOnLeft ? "≫" : "≪"}
         </button>
@@ -778,7 +776,6 @@ const ChartPage: React.FC<ChartPageProps> = ({
       />
     </div>
   );
-
   useEffect(() => {
     const loadLayoutMode = async () => {
       try {
@@ -793,7 +790,6 @@ const ChartPage: React.FC<ChartPageProps> = ({
     };
     loadLayoutMode();
   }, []);
-
   useEffect(() => {
     const handleLayoutChange = (event: CustomEvent) => {
       const { pageType, mode } = event.detail;
@@ -807,11 +803,10 @@ const ChartPage: React.FC<ChartPageProps> = ({
       window.removeEventListener("layout-swap-mode-changed", handleLayoutChange as EventListener);
     };
   }, []);
-
   useEffect(() => {
     const loadSessions = async () => {
       try {
-        const { chartSessionCommands } = await import("../../command/session/chart");
+        const { chartSessionCommands } = await import("../../command/session/finance");
         const list = await chartSessionCommands.listChartSessions();
         setHistorySessions(list);
       } catch (error) {
@@ -827,7 +822,6 @@ const ChartPage: React.FC<ChartPageProps> = ({
       window.removeEventListener("chart-session-created", handleSessionCreated);
     };
   }, []);
-
   useEffect(() => {
     const handleTitleUpdated = () => {
       historyPanelRef.current?.refreshSessions();
@@ -837,7 +831,6 @@ const ChartPage: React.FC<ChartPageProps> = ({
       window.removeEventListener("session-title-updated", handleTitleUpdated);
     };
   }, []);
-
   useEffect(() => {
     const savedHistoryWidth = localStorage.getItem("hippox-chart-history-width");
     const savedHistoryCollapsed = localStorage.getItem("hippox-chart-history-collapsed");
@@ -848,11 +841,9 @@ const ChartPage: React.FC<ChartPageProps> = ({
     if (savedChatPanelCollapsed) setChatPanelCollapsed(savedChatPanelCollapsed === "true");
     if (savedChatPanelWidth) setChatPanelWidth(parseFloat(savedChatPanelWidth));
   }, []);
-
   const saveHistoryWidth = (width: number) => {
     localStorage.setItem("hippox-chart-history-width", width.toString());
   };
-
   const saveHistoryCollapsed = (collapsed: boolean) => {
     localStorage.setItem("hippox-chart-history-collapsed", collapsed.toString());
   };
@@ -862,7 +853,6 @@ const ChartPage: React.FC<ChartPageProps> = ({
   const saveChatPanelWidth = (width: number) => {
     localStorage.setItem("hippox-chart-chat-width", width.toString());
   };
-
   const handleExpandToggle = () => {
     const newExpanded = !isHistoryExpanded;
     setIsHistoryExpanded(newExpanded);
@@ -872,7 +862,6 @@ const ChartPage: React.FC<ChartPageProps> = ({
       historyPanelRef.current?.collapseAll();
     }
   };
-
   const handleScrollToggle = () => {
     const newAtBottom = !isHistoryAtBottom;
     setIsHistoryAtBottom(newAtBottom);
@@ -882,23 +871,19 @@ const ChartPage: React.FC<ChartPageProps> = ({
       historyPanelRef.current?.scrollToTop();
     }
   };
-
   const handleToggleHistory = () => {
     setHistoryCollapsed(!historyCollapsed);
     saveHistoryCollapsed(!historyCollapsed);
   };
-
   const handleSessionSelect = useCallback(
     (sessionId: string) => {
       chartHandleSwitchSession(sessionId);
     },
     [chartHandleSwitchSession],
   );
-
   const handleNewSession = useCallback(() => {
     chartHandleNewSession();
   }, [chartHandleNewSession]);
-
   const handleMouseDown = (e: React.MouseEvent, type: "horizontal" | "history") => {
     if (chatPanelCollapsed || isFunctionPanelMaximized) return;
     if (type === "history" && historyCollapsed) return;
@@ -912,7 +897,6 @@ const ChartPage: React.FC<ChartPageProps> = ({
     document.body.style.userSelect = "none";
     e.preventDefault();
   };
-
   const handleMouseMove = useCallback((e: MouseEvent) => {
     if (!isDragging.current || !containerRef.current) return;
     const deltaX = e.clientX - dragStartX.current;
@@ -923,7 +907,6 @@ const ChartPage: React.FC<ChartPageProps> = ({
       const mainAreaWidth = containerWidth - historyWidthPx;
       if (mainAreaWidth <= 0) return;
       const startWidthPx = dragStartChatPanelWidth.current;
-
       const currentMode = layoutSwapModeRef.current;
       let newWidthPx;
       if (currentMode === "terminal-left") {
@@ -931,7 +914,6 @@ const ChartPage: React.FC<ChartPageProps> = ({
       } else {
         newWidthPx = startWidthPx + deltaX;
       }
-
       const minWidthPx = 200;
       const maxWidthPx = mainAreaWidth * 0.6;
       newWidthPx = Math.max(minWidthPx, Math.min(maxWidthPx, newWidthPx));
@@ -944,13 +926,11 @@ const ChartPage: React.FC<ChartPageProps> = ({
       saveHistoryWidth(clamped);
     }
   }, []);
-
   const handleMouseUp = useCallback(() => {
     isDragging.current = false;
     document.body.style.cursor = "";
     document.body.style.userSelect = "";
   }, []);
-
   useEffect(() => {
     window.addEventListener("mousemove", handleMouseMove);
     window.addEventListener("mouseup", handleMouseUp);
@@ -959,7 +939,6 @@ const ChartPage: React.FC<ChartPageProps> = ({
       window.removeEventListener("mouseup", handleMouseUp);
     };
   }, [handleMouseMove, handleMouseUp]);
-
   const getHistoryPanelContent = () => {
     if (historyCollapsed || isFunctionPanelMaximized) {
       return (
@@ -1040,7 +1019,6 @@ const ChartPage: React.FC<ChartPageProps> = ({
         </div>
       );
     }
-
     return (
       <div
         style={{
@@ -1215,12 +1193,10 @@ const ChartPage: React.FC<ChartPageProps> = ({
       </div>
     );
   };
-
   const historyPanelContent = getHistoryPanelContent();
   const historyWidthPx = historyCollapsed || isFunctionPanelMaximized ? 45 : historyWidth;
-
   return (
-    <div className="panels-container horizontal-layout" ref={containerRef} style={{ display: "flex", flex: 1, overflow: "hidden" }}>
+    <div className="panels-container horizontal-layout" ref={containerRef} style={{ display: "flex", flex: 1, overflow: "hidden", flexDirection: "column" }}>
       <style>{`
         .resize-handle-vertical {
           position: relative;
@@ -1266,106 +1242,107 @@ const ChartPage: React.FC<ChartPageProps> = ({
           display: none;
         }
       `}</style>
-
-      {!isFunctionPanelMaximized && (
-        <>
+      {/* Main content area - flex: 1 */}
+      <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
+        {!isFunctionPanelMaximized && (
+          <>
+            <div
+              className="panel-history"
+              style={{
+                flex: historyCollapsed ? "0 0 45px" : "0 0 auto",
+                width: historyCollapsed ? "45px" : `${historyWidth}px`,
+                overflow: "hidden",
+                minWidth: historyCollapsed ? "45px" : "200px",
+                display: "flex",
+                flexDirection: "row",
+                borderRight: "1px solid var(--border-color)",
+              }}
+            >
+              {historyPanelContent}
+            </div>
+            {!historyCollapsed && (
+              <div
+                className="resize-handle resize-handle-history"
+                onMouseDown={(e) => handleMouseDown(e, "history")}
+                style={{
+                  width: "0px",
+                  background: isHistoryResizeHover ? "var(--scrollbar-thumb)" : "var(--border-color)",
+                  cursor: "col-resize",
+                  flexShrink: 0,
+                  position: "relative",
+                  transition: "width 0.15s, background 0.15s",
+                }}
+                onMouseEnter={() => setIsHistoryResizeHover(true)}
+                onMouseLeave={() => setIsHistoryResizeHover(false)}
+              ></div>
+            )}
+          </>
+        )}
+        {!chatPanelCollapsed && !isFunctionPanelMaximized ? (
           <div
-            className="panel-history"
+            className="panel-chat"
             style={{
-              flex: historyCollapsed ? "0 0 45px" : "0 0 auto",
-              width: historyCollapsed ? "45px" : `${historyWidth}px`,
+              flex: "0 0 auto",
+              width: `${chatPanelWidth}px`,
               overflow: "hidden",
-              minWidth: historyCollapsed ? "45px" : "200px",
+              minWidth: "200px",
               display: "flex",
               flexDirection: "row",
-              borderRight: "1px solid var(--border-color)",
+              borderRight: isChatOnLeft ? "1px solid var(--border-color)" : "none",
+              borderLeft: !isChatOnLeft ? "1px solid var(--border-color)" : "none",
+              order: isChatOnLeft ? 1 : 3,
             }}
           >
-            {historyPanelContent}
+            {React.cloneElement(chatPanel as React.ReactElement<any>, {
+              isCollapsed: false,
+              togglePanel: handleToggleChatPanel,
+              collapseIcon: isChatOnLeft ? "≪" : "≫",
+              isLeftPanel: isChatOnLeft,
+            })}
           </div>
-          {!historyCollapsed && (
-            <div
-              className="resize-handle resize-handle-history"
-              onMouseDown={(e) => handleMouseDown(e, "history")}
-              style={{
-                width: "0px",
-                background: isHistoryResizeHover ? "var(--scrollbar-thumb)" : "var(--border-color)",
-                cursor: "col-resize",
-                flexShrink: 0,
-                position: "relative",
-                transition: "width 0.15s, background 0.15s",
-              }}
-              onMouseEnter={() => setIsHistoryResizeHover(true)}
-              onMouseLeave={() => setIsHistoryResizeHover(false)}
-            ></div>
-          )}
-        </>
-      )}
-
-      {!chatPanelCollapsed && !isFunctionPanelMaximized ? (
+        ) : !isFunctionPanelMaximized ? (
+          <div
+            style={{
+              flex: "0 0 45px",
+              order: isChatOnLeft ? 1 : 3,
+            }}
+          >
+            {collapsedChatSidebar}
+          </div>
+        ) : null}
+        {!chatPanelCollapsed && !isFunctionPanelMaximized && (
+          <div
+            className="resize-handle resize-handle-vertical"
+            onMouseDown={(e) => handleMouseDown(e, "horizontal")}
+            style={{
+              width: "0px",
+              background: isResizeHover ? "var(--scrollbar-thumb)" : "var(--border-color)",
+              cursor: "col-resize",
+              flexShrink: 0,
+              position: "relative",
+              transition: "width 0.15s, background 0.15s",
+              order: 2,
+            }}
+            onMouseEnter={() => setIsResizeHover(true)}
+            onMouseLeave={() => setIsResizeHover(false)}
+          ></div>
+        )}
         <div
-          className="panel-chat"
           style={{
-            flex: "0 0 auto",
-            width: `${chatPanelWidth}px`,
+            flex: 1,
             overflow: "hidden",
-            minWidth: "200px",
+            minWidth: "150px",
             display: "flex",
             flexDirection: "row",
-            borderRight: isChatOnLeft ? "1px solid var(--border-color)" : "none",
-            borderLeft: !isChatOnLeft ? "1px solid var(--border-color)" : "none",
-            order: isChatOnLeft ? 1 : 3,
+            order: isChatOnLeft ? 3 : 1,
           }}
         >
-          {React.cloneElement(chatPanel as React.ReactElement<any>, {
-            isCollapsed: false,
-            togglePanel: handleToggleChatPanel,
-            collapseIcon: isChatOnLeft ? "≪" : "≫",
-            isLeftPanel: isChatOnLeft,
-          })}
+          {chartPanel}
         </div>
-      ) : !isFunctionPanelMaximized ? (
-        <div
-          style={{
-            flex: "0 0 45px",
-            order: isChatOnLeft ? 1 : 3,
-          }}
-        >
-          {collapsedChatSidebar}
-        </div>
-      ) : null}
-
-      {!chatPanelCollapsed && !isFunctionPanelMaximized && (
-        <div
-          className="resize-handle resize-handle-vertical"
-          onMouseDown={(e) => handleMouseDown(e, "horizontal")}
-          style={{
-            width: "0px",
-            background: isResizeHover ? "var(--scrollbar-thumb)" : "var(--border-color)",
-            cursor: "col-resize",
-            flexShrink: 0,
-            position: "relative",
-            transition: "width 0.15s, background 0.15s",
-            order: 2,
-          }}
-          onMouseEnter={() => setIsResizeHover(true)}
-          onMouseLeave={() => setIsResizeHover(false)}
-        ></div>
-      )}
-      <div
-        style={{
-          flex: 1,
-          overflow: "hidden",
-          minWidth: "150px",
-          display: "flex",
-          flexDirection: "row",
-          order: isChatOnLeft ? 3 : 1,
-        }}
-      >
-        {chartPanel}
       </div>
+      {/* Marquee bar - 30px fixed height at the bottom */}
+      <MarqueeBar theme={theme} language={language as "zh" | "en"} tickerSpeed={60} newsSpeed={50} />
     </div>
   );
 };
-
 export default ChartPage;

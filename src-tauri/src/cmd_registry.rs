@@ -176,6 +176,7 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_scheduled_task_get_natural_language,
         commands::cmd_scheduled_task_get_skill_md,
         commands::cmd_get_system_username,
+        commands::cmd_open_browser,
         commands::cmd_get_profile,
         commands::cmd_update_profile,
         commands::cmd_reset_profile,
@@ -335,6 +336,8 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         subsystem::cmd_fetch_a_stocks,
         subsystem::cmd_get_popular_a_stocks,
         subsystem::cmd_fetch_a_stock_ohlcv,
+        subsystem::cmd_fetch_financial_news,
+        subsystem::cmd_fetch_news_by_category,
         // ================================================ Code Editor ================================================
         //  CodeEditor File Operations 
         subsystem::cmd_open_in_terminal,

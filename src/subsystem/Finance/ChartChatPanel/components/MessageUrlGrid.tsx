@@ -226,9 +226,7 @@ export const MessageUrlGrid: React.FC<MessageUrlGridProps> = ({ urls, t }) => {
                 >
                   <div className="url-glass-bg"></div>
                   <div className="url-icon-container">
-                    {!preview.isLoading && preview.faviconUrl ? (
-                      <img src={preview.faviconUrl} alt={preview.domain} className="url-favicon" onError={handleImageError} onLoad={handleImageLoad} />
-                    ) : null}
+                    {!preview.isLoading && preview.faviconUrl ? <img src={preview.faviconUrl} alt={preview.domain} className="url-favicon" onError={handleImageError} onLoad={handleImageLoad} /> : null}
                     <span
                       className="url-fallback-icon"
                       style={{

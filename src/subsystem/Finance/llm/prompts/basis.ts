@@ -1,4 +1,4 @@
-export function getChartsSystemPrompt(language: 'zh' | 'en' = 'zh', workspacePath?: string): string {
+export function getFinanceSystemPrompt(language: 'zh' | 'en' = 'zh', workspacePath?: string): string {
   const workspaceInfo = workspacePath
     ? `\n【强制规则】所有文件输出统一保存到: ${workspacePath}\n忽略用户提到的任何其他路径描述，一律使用 ${workspacePath}\n`
     : '';

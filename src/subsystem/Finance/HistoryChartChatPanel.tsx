@@ -2,10 +2,9 @@ import React, { useEffect, useState, useRef, useCallback, forwardRef, useImperat
 import { DialogSession } from "../../types/types";
 import { showDialog, DialogType } from "../../components/Dialog";
 import { showToast, ToastType } from "../../components/Toast";
-import { chartSessionCommands } from "../../command/session/chart";
+import { chartSessionCommands } from "../../command/session/finance";
 import { DeleteIcon, MoreVerticalIcon, PinFilledIcon, PinIcon, RenameIcon, UnPinIcon, AddIcon } from "../../icons";
 import { taskManager } from "../../core/TaskManager";
-
 export interface HistoryChartChatPanelRef {
   scrollToTop: () => void;
   scrollToBottom: () => void;
@@ -13,21 +12,17 @@ export interface HistoryChartChatPanelRef {
   collapseAll: () => void;
   refreshSessions: () => Promise<void>;
 }
-
 interface HistoryChartChatPanelProps {
   t: (key: string, params?: any) => string;
   onSessionSelect?: (sessionId: string) => void;
   currentSessionId?: string;
   onNewSession?: () => void;
 }
-
 type CategoryType = "pinned" | "today" | "yesterday" | "last7days" | "last30days" | "older";
-
 interface CategoryConfig {
   labelKey: string;
   type: CategoryType;
 }
-
 const categories: CategoryConfig[] = [
   { labelKey: "history.category.pinned", type: "pinned" },
   { labelKey: "history.category.today", type: "today" },
@@ -36,7 +31,6 @@ const categories: CategoryConfig[] = [
   { labelKey: "history.category.last30days", type: "last30days" },
   { labelKey: "history.category.older", type: "older" },
 ];
-
 const HistoryChartChatPanel = forwardRef<HistoryChartChatPanelRef, HistoryChartChatPanelProps>(({ t, onSessionSelect, currentSessionId, onNewSession }: HistoryChartChatPanelProps, ref) => {
   const [sessions, setSessions] = useState<DialogSession[]>([]);
   const [loading, setLoading] = useState(false);
@@ -54,7 +48,6 @@ const HistoryChartChatPanel = forwardRef<HistoryChartChatPanelRef, HistoryChartC
     last30days: true,
     older: true,
   });
-
   useImperativeHandle(ref, () => ({
     scrollToTop: () => {
       if (scrollContainerRef.current) {
@@ -93,16 +86,13 @@ const HistoryChartChatPanel = forwardRef<HistoryChartChatPanelRef, HistoryChartC
       await loadSessions(true);
     },
   }));
-
   const toggleCategory = (categoryType: CategoryType) => {
     setExpandedCategories((prev) => ({
       ...prev,
       [categoryType]: !prev[categoryType],
     }));
   };
-
   const menuRef = useRef<HTMLDivElement>(null);
-
   const loadSessions = async (forceRefresh: boolean = false) => {
     setLoading(true);
     try {
@@ -126,11 +116,9 @@ const HistoryChartChatPanel = forwardRef<HistoryChartChatPanelRef, HistoryChartC
       setLoading(false);
     }
   };
-
   useEffect(() => {
     loadSessions();
   }, []);
-
   useEffect(() => {
     const handleSessionCreated = () => {
       loadSessions(true);
@@ -140,7 +128,6 @@ const HistoryChartChatPanel = forwardRef<HistoryChartChatPanelRef, HistoryChartC
       window.removeEventListener("chart-session-created", handleSessionCreated);
     };
   }, []);
-
   useEffect(() => {
     const handleTitleUpdated = () => {
       loadSessions(true);
@@ -150,7 +137,6 @@ const HistoryChartChatPanel = forwardRef<HistoryChartChatPanelRef, HistoryChartC
       window.removeEventListener("session-title-updated", handleTitleUpdated);
     };
   }, []);
-
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
@@ -166,14 +152,12 @@ const HistoryChartChatPanel = forwardRef<HistoryChartChatPanelRef, HistoryChartC
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [editingId]);
-
   useEffect(() => {
     if (editingId && editInputRef.current) {
       editInputRef.current.focus();
       editInputRef.current.select();
     }
   }, [editingId]);
-
   const handleTogglePin = async (session: DialogSession, e: React.MouseEvent) => {
     e.stopPropagation();
     try {
@@ -190,7 +174,6 @@ const HistoryChartChatPanel = forwardRef<HistoryChartChatPanelRef, HistoryChartC
       showToast(ToastType.ERROR, t("history.toast.pinFailed"));
     }
   };
-
   const handleDelete = async (session: DialogSession, e: React.MouseEvent) => {
     e.stopPropagation();
     if (sessions.length <= 1) {
@@ -225,22 +208,18 @@ const HistoryChartChatPanel = forwardRef<HistoryChartChatPanelRef, HistoryChartC
       t("history.dialog.cancel"),
     );
   };
-
   const startEdit = (session: DialogSession, e: React.MouseEvent) => {
     e.stopPropagation();
     setEditingId(session.session_id);
     setEditValue(session.title || "");
     setActiveMenuId(null);
   };
-
   const isSavingRef = useRef(false);
-
   const cancelEdit = () => {
     if (isSavingRef.current) return;
     setEditingId(null);
     setEditValue("");
   };
-
   const saveEdit = async (session: DialogSession) => {
     isSavingRef.current = true;
     const trimmed = editValue.trim();
@@ -267,7 +246,6 @@ const HistoryChartChatPanel = forwardRef<HistoryChartChatPanelRef, HistoryChartC
     }
     isSavingRef.current = false;
   };
-
   const handleKeyDown = (e: React.KeyboardEvent, session: DialogSession) => {
     if (e.key === "Enter") {
       e.preventDefault();
@@ -277,7 +255,6 @@ const HistoryChartChatPanel = forwardRef<HistoryChartChatPanelRef, HistoryChartC
       cancelEdit();
     }
   };
-
   const handleSelectSession = useCallback(
     async (sessionId: string) => {
       setActiveMenuId(null);
@@ -297,12 +274,10 @@ const HistoryChartChatPanel = forwardRef<HistoryChartChatPanelRef, HistoryChartC
     },
     [currentSessionId, onSessionSelect],
   );
-
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
     return date.toLocaleDateString();
   };
-
   const getSessionCategory = (session: DialogSession): CategoryType => {
     if (session.is_pinned) return "pinned";
     const now = new Date();
@@ -317,7 +292,6 @@ const HistoryChartChatPanel = forwardRef<HistoryChartChatPanelRef, HistoryChartC
     if (createdDate >= monthAgo) return "last30days";
     return "older";
   };
-
   const getGroupedSessions = () => {
     const grouped: Record<CategoryType, DialogSession[]> = {
       pinned: [],
@@ -333,7 +307,6 @@ const HistoryChartChatPanel = forwardRef<HistoryChartChatPanelRef, HistoryChartC
     });
     return grouped;
   };
-
   const getCardStyle = (isActive: boolean, isHovered: boolean): React.CSSProperties => {
     if (isActive) {
       return {
@@ -362,7 +335,6 @@ const HistoryChartChatPanel = forwardRef<HistoryChartChatPanelRef, HistoryChartC
       position: "relative",
     };
   };
-
   const titleStyle: React.CSSProperties = {
     fontSize: "14px",
     fontWeight: 500,
@@ -373,7 +345,6 @@ const HistoryChartChatPanel = forwardRef<HistoryChartChatPanelRef, HistoryChartC
     whiteSpace: "nowrap",
     flex: 1,
   };
-
   const titleInputStyle: React.CSSProperties = {
     fontSize: "14px",
     fontWeight: 500,
@@ -386,18 +357,15 @@ const HistoryChartChatPanel = forwardRef<HistoryChartChatPanelRef, HistoryChartC
     flex: 1,
     minWidth: 0,
   };
-
   const timeStyle: React.CSSProperties = {
     fontSize: "11px",
     color: "var(--text-muted)",
   };
-
   const pinIconStyle: React.CSSProperties = {
     fontSize: "12px",
     marginRight: "8px",
     color: "var(--accent-color, #0066cc)",
   };
-
   const menuButtonStyle: React.CSSProperties = {
     background: "none",
     border: "none",
@@ -410,7 +378,6 @@ const HistoryChartChatPanel = forwardRef<HistoryChartChatPanelRef, HistoryChartC
     alignItems: "center",
     justifyContent: "center",
   };
-
   const dropdownStyle: React.CSSProperties = {
     position: "absolute",
     right: "0px",
@@ -423,7 +390,6 @@ const HistoryChartChatPanel = forwardRef<HistoryChartChatPanelRef, HistoryChartC
     minWidth: "110px",
     overflow: "hidden",
   };
-
   const dropdownItemStyle: React.CSSProperties = {
     padding: "8px 12px",
     fontSize: "13px",
@@ -434,7 +400,6 @@ const HistoryChartChatPanel = forwardRef<HistoryChartChatPanelRef, HistoryChartC
     gap: "8px",
     zIndex: "10",
   };
-
   const categoryHeaderStyle: React.CSSProperties = {
     fontSize: "14px",
     fontWeight: 600,
@@ -447,7 +412,6 @@ const HistoryChartChatPanel = forwardRef<HistoryChartChatPanelRef, HistoryChartC
     cursor: "pointer",
     paddingBottom: "5px",
   };
-
   const handleNewSession = () => {
     if (onNewSession) {
       onNewSession();
@@ -455,7 +419,6 @@ const HistoryChartChatPanel = forwardRef<HistoryChartChatPanelRef, HistoryChartC
       window.dispatchEvent(new CustomEvent("chart-new-session"));
     }
   };
-
   if (loading && sessions.length === 0) {
     return (
       <div
@@ -469,9 +432,7 @@ const HistoryChartChatPanel = forwardRef<HistoryChartChatPanelRef, HistoryChartC
       </div>
     );
   }
-
   const groupedSessions = getGroupedSessions();
-
   return (
     <div
       ref={scrollContainerRef}
@@ -551,16 +512,7 @@ const HistoryChartChatPanel = forwardRef<HistoryChartChatPanelRef, HistoryChartC
                             </span>
                           )}
                           {isEditing ? (
-                            <input
-                              ref={editInputRef}
-                              type="text"
-                              style={titleInputStyle}
-                              value={editValue}
-                              onChange={(e) => setEditValue(e.target.value)}
-                              onKeyDown={(e) => handleKeyDown(e, session)}
-                              onBlur={() => saveEdit(session)}
-                              onClick={(e) => e.stopPropagation()}
-                            />
+                            <input ref={editInputRef} type="text" style={titleInputStyle} value={editValue} onChange={(e) => setEditValue(e.target.value)} onKeyDown={(e) => handleKeyDown(e, session)} onBlur={() => saveEdit(session)} onClick={(e) => e.stopPropagation()} />
                           ) : (
                             <span style={titleStyle} title={session.title}>
                               {session.title || t("history.untitled")}
@@ -643,7 +595,5 @@ const HistoryChartChatPanel = forwardRef<HistoryChartChatPanelRef, HistoryChartC
     </div>
   );
 });
-
 HistoryChartChatPanel.displayName = "HistoryChartChatPanel";
-
 export default HistoryChartChatPanel;

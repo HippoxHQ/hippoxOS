@@ -26,12 +26,12 @@ import SkillsManager from "../../pages/SkillsManagerPage";
 import UserProfile from "../../pages/UserProfilePage";
 import FunctionPanel from "../../components/FunctionPanel/FunctionPanel";
 import { FunctionPanelController } from "../../components/FunctionPanel/hooks/useFunctionPanelController";
-import ChartPage from "../../subsystem/Charts";
 import CodeEditorPage from "../../subsystem/CodeEditor";
 import GeneralChatPage from "../../subsystem/GeneralChat";
 import MapsPage from "../../subsystem/Maps";
 import SandBox3DPage from "../../subsystem/SandBox3D";
 import VideoEditorPage from "../../subsystem/VideoEditor";
+import ChartPage from "../../subsystem/Finance";
 declare global {
   interface Window {
     __pageResources: {

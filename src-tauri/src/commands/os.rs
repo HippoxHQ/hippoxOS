@@ -20,3 +20,18 @@ pub fn cmd_get_system_username() -> Result<String, String> {
         }
     }
 }
+/// Open a URL in the system default browser
+#[tauri::command]
+pub async fn cmd_open_browser(url: String) -> Result<(), String> {
+    if url.is_empty() {
+        return Err("URL cannot be empty".to_string());
+    }
+    // Validate URL format
+    if !url.starts_with("http://") && !url.starts_with("https://") {
+        return Err("Invalid URL format. Must start with http:// or https://".to_string());
+    }
+    match webbrowser::open(&url) {
+        Ok(_) => Ok(()),
+        Err(e) => Err(format!("Failed to open browser: {}", e)),
+    }
+}

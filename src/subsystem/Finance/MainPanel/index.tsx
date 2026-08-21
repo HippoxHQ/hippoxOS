@@ -4,9 +4,10 @@ import { TEST_CANDLEVIEW_DATA8 } from "../../../test/TestData_3";
 import Chart, { ChartRef } from "./Chart";
 import DSL, { DSLRef } from "./DSL";
 import MarketPanel from "./MarketPanel";
-import { PanelRightOpen } from "lucide-react";
+import { PanelRightOpen, Newspaper, Code2, TrendingUp, Calendar, BarChart3, Minimize2, Maximize2 } from "lucide-react";
 import { fetchStockOHLCV } from "../../../command/Finance/AStock";
-interface ChartChatPageCandleViewProps {
+import { listenSetChartData } from "../FinanceWindowsEventsManager";
+interface MainPanelProps {
   theme: "light" | "dark";
   i18n: "en" | "zh-cn";
   currentSessionId?: string;
@@ -15,10 +16,6 @@ interface ChartChatPageCandleViewProps {
   taskId?: string;
   chartData?: any;
 }
-/**
- * Map CandleView timeframe to backend period parameter
- * 1m -> 1 minute, 5m -> 5 minutes, 1H -> 1 hour, 1D -> daily, 1W -> weekly, 1M -> monthly
- */
 const TIMEFRAME_MAP: Record<string, string> = {
   "1m": "1",
   "5m": "5",
@@ -29,10 +26,16 @@ const TIMEFRAME_MAP: Record<string, string> = {
   "1W": "102",
   "1M": "103",
 };
-export const ChartChatPageCandleView: React.FC<ChartChatPageCandleViewProps> = ({ theme, i18n, currentSessionId, data, symbol = "BTC/USDT", taskId, chartData }) => {
-  const [chartHeight, setChartHeight] = useState(55);
+interface FunctionButton {
+  id: string;
+  label: string;
+  icon: React.ReactNode;
+}
+export const MainPanel: React.FC<MainPanelProps> = ({ theme, i18n, currentSessionId, data, symbol = "BTC/USDT", taskId, chartData }) => {
+  // 功能区高度百分比 (相对于左侧面板)
+  const [functionHeight, setFunctionHeight] = useState(40);
   const [editorWidth, setEditorWidth] = useState(60);
-  const [isChartResizing, setIsChartResizing] = useState(false);
+  const [isFunctionResizing, setIsFunctionResizing] = useState(false);
   const [isEditorResizing, setIsEditorResizing] = useState(false);
   const [isMarketResizing, setIsMarketResizing] = useState(false);
   const [isMarketCollapsed, setIsMarketCollapsed] = useState(false);
@@ -40,13 +43,14 @@ export const ChartChatPageCandleView: React.FC<ChartChatPageCandleViewProps> = (
   const [chartSymbol, setChartSymbol] = useState(symbol);
   const [chartDataState, setChartDataState] = useState<any>(chartData);
   const [candleData, setCandleData] = useState<ICandleViewDataPoint[]>(data || TEST_CANDLEVIEW_DATA8);
-  // Use refs to avoid closure issues in callbacks
+  // DSL 折叠状态: true = 折叠（功能区隐藏，只显示功能条）, false = 展开
+  const [isDslCollapsed, setIsDslCollapsed] = useState(false);
   const currentSymbolRef = useRef<string>("");
   const currentNameRef = useRef<string>("");
   const currentPeriodRef = useRef<string>("101");
   const chartRef = useRef<ChartRef>(null);
   const startYRef = useRef(0);
-  const startChartHeightRef = useRef(0);
+  const startFunctionHeightRef = useRef(0);
   const startXRef = useRef(0);
   const startEditorWidthRef = useRef(0);
   const startMarketXRef = useRef(0);
@@ -56,25 +60,56 @@ export const ChartChatPageCandleView: React.FC<ChartChatPageCandleViewProps> = (
   const engineRef = useRef<any>(null);
   const chartDataFromProps = candleData;
   const isValidData = chartDataFromProps && Array.isArray(chartDataFromProps) && chartDataFromProps.length > 0;
-  /**
-   * Fetch OHLCV data for a symbol with specific timeframe
-   * @param symbol - Symbol identifier (stock code or trading pair)
-   * @param name - Display name for the asset
-   * @param period - Time period: "101"=daily, "102"=weekly, "103"=monthly, "1"/"5"/"30"/"60"=minutes
-   * @param count - Number of records to fetch
-   * @param dataType - Type of data source: "astock", "crypto", "stock", "perpetual"
-   * @returns boolean indicating success
-   */
+  const isZh = i18n === "zh-cn";
+  const isDark = theme === "dark";
+  // 功能按钮配置
+  const functionButtons: FunctionButton[] = [
+    {
+      id: "news",
+      label: isZh ? "新闻" : "News",
+      icon: <Newspaper size={14} />,
+    },
+    {
+      id: "dsl",
+      label: "DSL",
+      icon: <Code2 size={14} />,
+    },
+    {
+      id: "trending",
+      label: isZh ? "热榜" : "Trending",
+      icon: <TrendingUp size={14} />,
+    },
+    {
+      id: "calendar",
+      label: isZh ? "日历" : "Calendar",
+      icon: <Calendar size={14} />,
+    },
+    {
+      id: "indicators",
+      label: isZh ? "指标" : "Indicators",
+      icon: <BarChart3 size={14} />,
+    },
+  ];
+  const toggleDslCollapse = useCallback(() => {
+    setIsDslCollapsed((prev) => !prev);
+  }, []);
+  const handleFunctionClick = useCallback(
+    (buttonId: string) => {
+      if (buttonId === "dsl") {
+        toggleDslCollapse();
+        return;
+      }
+      console.log(`[FunctionBar] Clicked: ${buttonId}`);
+    },
+    [toggleDslCollapse],
+  );
   const fetchDataForSymbol = useCallback(async (symbol: string, name: string, period: string = "101", count: number = 300, dataType: string = "astock") => {
     try {
       console.log("[Chart] Fetching data:", { symbol, name, period, count, dataType });
       let klines = null;
-      // For A-shares, use the backend API
       if (dataType === "astock") {
         klines = await fetchStockOHLCV(symbol, period, count, true);
       } else {
-        // For crypto and other asset types, fetch from Binance or other sources
-        // This uses the existing Binance API infrastructure
         const binanceSymbol = symbol.replace("/", "").toUpperCase();
         const binanceInterval = getBinanceInterval(period);
         const response = await fetch(`https://api.binance.com/api/v3/klines?symbol=${binanceSymbol}&interval=${binanceInterval}&limit=${count}`);
@@ -93,7 +128,6 @@ export const ChartChatPageCandleView: React.FC<ChartChatPageCandleViewProps> = (
         }));
       }
       if (klines && klines.length > 0) {
-        // Convert to CandleView format - time must be timestamp in seconds
         const chartDataPoints: ICandleViewDataPoint[] = klines.map((k: any) => ({
           time: Math.floor(new Date(k.date).getTime() / 1000),
           open: k.open,
@@ -102,40 +136,23 @@ export const ChartChatPageCandleView: React.FC<ChartChatPageCandleViewProps> = (
           close: k.close,
           volume: k.volume,
         }));
-        console.log("[Chart] Converted data points:", chartDataPoints.length);
-        // Update React state
         setCandleData(chartDataPoints);
         currentSymbolRef.current = symbol;
         currentNameRef.current = name;
         currentPeriodRef.current = period;
-        // Format title
         const displaySymbol = symbol.replace(/^sh|^sz/, "").toUpperCase();
         const title = `${name} · ${displaySymbol}`;
         setChartSymbol(title);
-        // Directly update chart via ref
         if (chartRef.current) {
           const cv = chartRef.current.getCandleView();
           if (cv) {
-            console.log("[Chart] Updating chart with", chartDataPoints.length, "points");
             cv.setData(chartDataPoints, true);
             cv.setTitle(title);
-            // Force refresh
-            try {
-              const chart = cv.getChart();
-              if (chart?.chart) {
-                const currentType = (chart as any).chartType || "Candle";
-                chart.updateChartType(currentType);
-              }
-            } catch (e) {
-              console.warn("Force refresh error:", e);
-            }
-            // Fit content after data update
             setTimeout(() => {
               try {
                 const chart = cv.getChart();
                 if (chart?.chart) {
                   chart.chart.timeScale().fitContent();
-                  console.log("[Chart] fitContent called");
                 }
               } catch (e) {
                 console.warn("Fit content error:", e);
@@ -151,9 +168,6 @@ export const ChartChatPageCandleView: React.FC<ChartChatPageCandleViewProps> = (
       return false;
     }
   }, []);
-  /**
-   * Get Binance interval string from period parameter
-   */
   const getBinanceInterval = (period: string): string => {
     const map: Record<string, string> = {
       "1": "1m",
@@ -167,47 +181,26 @@ export const ChartChatPageCandleView: React.FC<ChartChatPageCandleViewProps> = (
     };
     return map[period] || "1d";
   };
-  /**
-   * Handle A-share stock click from MarketPanel
-   */
   const handleAStockClick = useCallback(
     async (symbol: string, name?: string) => {
-      console.log("[MarketPanel] A-Share clicked:", symbol, name);
       const stockName = name || symbol.replace(/^sh|^sz/, "").toUpperCase();
       await fetchDataForSymbol(symbol, stockName, "101", 300, "astock");
     },
     [fetchDataForSymbol],
   );
-  /**
-   * Handle crypto click from MarketPanel
-   */
   const handleCryptoClick = useCallback(
     async (pair: string) => {
-      console.log("[MarketPanel] Crypto clicked:", pair);
-      // Fetch OHLCV data for crypto from Binance
       await fetchDataForSymbol(pair, pair, "101", 300, "crypto");
     },
     [fetchDataForSymbol],
   );
-  /**
-   * Handle stock click from MarketPanel (US stocks via Yahoo Finance)
-   */
   const handleStockClick = useCallback(async (symbol: string) => {
-    console.log("[MarketPanel] Stock clicked:", symbol);
     try {
-      // Fetch data from Yahoo Finance via the existing fetchStockFromYahoo function
-      // Since we don't have a direct OHLCV API for Yahoo in the backend,
-      // we use the existing frontend fetch method
       const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?range=1mo&interval=1d`;
       const response = await fetch(url, {
-        headers: {
-          Accept: "application/json",
-          "User-Agent": "Mozilla/5.0",
-        },
+        headers: { Accept: "application/json", "User-Agent": "Mozilla/5.0" },
       });
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       const data = await response.json();
       if (data.chart.error || !data.chart.result || data.chart.result.length === 0) {
         throw new Error("No data returned from Yahoo Finance");
@@ -229,9 +222,7 @@ export const ChartChatPageCandleView: React.FC<ChartChatPageCandleViewProps> = (
           });
         }
       }
-      if (chartDataPoints.length === 0) {
-        throw new Error("No valid OHLCV data found");
-      }
+      if (chartDataPoints.length === 0) throw new Error("No valid OHLCV data found");
       setCandleData(chartDataPoints);
       currentSymbolRef.current = symbol;
       currentNameRef.current = meta.longName || meta.shortName || symbol;
@@ -259,50 +250,47 @@ export const ChartChatPageCandleView: React.FC<ChartChatPageCandleViewProps> = (
       console.error("[Chart] Failed to fetch stock OHLCV data:", err);
     }
   }, []);
-  /**
-   * Handle perpetual click from MarketPanel
-   */
   const handlePerpetualClick = useCallback(
     async (pair: string) => {
-      console.log("[MarketPanel] Perpetual clicked:", pair);
-      // For perpetuals, fetch from Binance as well (they use the same symbol format)
       await fetchDataForSymbol(pair, pair, "101", 300, "crypto");
     },
     [fetchDataForSymbol],
   );
-  /**
-   * Handle timeframe change from CandleView top panel
-   */
   const handleTimeframeChange = useCallback(
     async (timeframe: string) => {
-      console.log("[Chart] Timeframe changed to:", timeframe);
-      let period = TIMEFRAME_MAP[timeframe];
-      if (!period) {
-        console.warn("[Chart] Unknown timeframe:", timeframe, "falling back to daily");
-        period = "101";
-      }
-      console.log("[Chart] Backend period:", period);
+      let period = TIMEFRAME_MAP[timeframe] || "101";
       const symbol = currentSymbolRef.current;
       const name = currentNameRef.current;
       const dataType = currentSymbolRef.current?.startsWith("sh") || currentSymbolRef.current?.startsWith("sz") ? "astock" : "crypto";
-      console.log("[Chart] Current symbol from ref:", symbol, "name:", name);
       if (symbol && name) {
         await fetchDataForSymbol(symbol, name, period, 300, dataType);
-      } else {
-        console.warn("[Chart] No symbol set, cannot fetch data for timeframe change");
       }
     },
     [fetchDataForSymbol],
   );
-  /**
-   * Toggle market panel collapse state
-   */
   const toggleMarketPanel = useCallback(() => {
     setIsMarketCollapsed((prev) => !prev);
   }, []);
-  // ============================================
+  useEffect(() => {
+    // Listen for chart data update events from ticker bar
+    const unsubscribe = listenSetChartData((event: CustomEvent) => {
+      const detail = event.detail;
+      if (!detail) return;
+      // Handle ticker click event
+      if (detail.symbol) {
+        const symbol = detail.symbol;
+        console.log("[MainPanel] Received ticker click:", symbol);
+        // Extract the base symbol (remove /USDT or convert format)
+        const cleanSymbol = symbol.replace("/", "").toUpperCase();
+        const pair = symbol.includes("/") ? symbol : cleanSymbol.replace("USDT", "/USDT");
+        const name = cleanSymbol.replace("USDT", "");
+        // Fetch data for the clicked symbol
+        fetchDataForSymbol(pair, name, "101", 300, "crypto");
+      }
+    });
+    return unsubscribe;
+  }, [fetchDataForSymbol]);
   // Engine check for DSL
-  // ============================================
   useEffect(() => {
     const checkEngine = () => {
       if (chartRef.current) {
@@ -315,36 +303,35 @@ export const ChartChatPageCandleView: React.FC<ChartChatPageCandleViewProps> = (
     const interval = setInterval(checkEngine, 300);
     return () => clearInterval(interval);
   }, []);
-  // ============================================
-  // Chart resizing handlers
-  // ============================================
-  const startChartResizing = useCallback(
+  // Function area resizing handlers
+  const startFunctionResizing = useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault();
       startYRef.current = e.clientY;
-      startChartHeightRef.current = chartHeight;
-      setIsChartResizing(true);
+      startFunctionHeightRef.current = functionHeight;
+      setIsFunctionResizing(true);
     },
-    [chartHeight],
+    [functionHeight],
   );
-  const handleChartMouseMove = useCallback(
+  const handleFunctionMouseMove = useCallback(
     (e: MouseEvent) => {
-      if (!isChartResizing) return;
+      if (!isFunctionResizing) return;
       const container = containerRef.current;
       if (!container) return;
       const rect = container.getBoundingClientRect();
-      const deltaY = e.clientY - startYRef.current;
+      const deltaY = startYRef.current - e.clientY;
       const deltaPercent = (deltaY / rect.height) * 100;
-      let newHeight = startChartHeightRef.current + deltaPercent;
-      newHeight = Math.max(30, newHeight);
-      newHeight = Math.min(80, newHeight);
-      setChartHeight(newHeight);
+      let newHeight = startFunctionHeightRef.current + deltaPercent;
+      // 最大 77% (预留功能条 3% + 最小 Chart 20%)
+      newHeight = Math.max(15, Math.min(77, newHeight));
+      setFunctionHeight(newHeight);
     },
-    [isChartResizing],
+    [isFunctionResizing],
   );
-  const stopChartResizing = useCallback(() => {
-    setIsChartResizing(false);
+  const stopFunctionResizing = useCallback(() => {
+    setIsFunctionResizing(false);
   }, []);
+  // Editor resizing handlers
   const startEditorResizing = useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault();
@@ -363,8 +350,7 @@ export const ChartChatPageCandleView: React.FC<ChartChatPageCandleViewProps> = (
       const deltaX = e.clientX - startXRef.current;
       const deltaPercent = (deltaX / rect.width) * 100;
       let newWidth = startEditorWidthRef.current + deltaPercent;
-      newWidth = Math.max(30, newWidth);
-      newWidth = Math.min(80, newWidth);
+      newWidth = Math.max(30, Math.min(80, newWidth));
       setEditorWidth(newWidth);
     },
     [isEditorResizing],
@@ -372,6 +358,7 @@ export const ChartChatPageCandleView: React.FC<ChartChatPageCandleViewProps> = (
   const stopEditorResizing = useCallback(() => {
     setIsEditorResizing(false);
   }, []);
+  // Market resizing handlers
   const startMarketResizing = useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault();
@@ -389,8 +376,7 @@ export const ChartChatPageCandleView: React.FC<ChartChatPageCandleViewProps> = (
       const rect = container.getBoundingClientRect();
       const deltaX = startMarketXRef.current - e.clientX;
       let newWidth = startMarketWidthRef.current + deltaX;
-      newWidth = Math.max(150, newWidth);
-      newWidth = Math.min(280, newWidth);
+      newWidth = Math.max(150, Math.min(280, newWidth));
       setMarketPanelWidth(newWidth);
     },
     [isMarketResizing],
@@ -398,19 +384,17 @@ export const ChartChatPageCandleView: React.FC<ChartChatPageCandleViewProps> = (
   const stopMarketResizing = useCallback(() => {
     setIsMarketResizing(false);
   }, []);
-  // ============================================
-  // Event listeners for resizing
-  // ============================================
+  // Event listeners
   useEffect(() => {
-    if (isChartResizing) {
-      document.addEventListener("mousemove", handleChartMouseMove);
-      document.addEventListener("mouseup", stopChartResizing);
+    if (isFunctionResizing) {
+      document.addEventListener("mousemove", handleFunctionMouseMove);
+      document.addEventListener("mouseup", stopFunctionResizing);
     }
     return () => {
-      document.removeEventListener("mousemove", handleChartMouseMove);
-      document.removeEventListener("mouseup", stopChartResizing);
+      document.removeEventListener("mousemove", handleFunctionMouseMove);
+      document.removeEventListener("mouseup", stopFunctionResizing);
     };
-  }, [isChartResizing, handleChartMouseMove, stopChartResizing]);
+  }, [isFunctionResizing, handleFunctionMouseMove, stopFunctionResizing]);
   useEffect(() => {
     if (isEditorResizing) {
       document.addEventListener("mousemove", handleEditorMouseMove);
@@ -431,10 +415,10 @@ export const ChartChatPageCandleView: React.FC<ChartChatPageCandleViewProps> = (
       document.removeEventListener("mouseup", stopMarketResizing);
     };
   }, [isMarketResizing, handleMarketMouseMove, stopMarketResizing]);
-  const isDark = theme === "dark";
-  const editorHeight = 100 - chartHeight;
   const rightWidth = isMarketCollapsed ? 0 : marketPanelWidth;
   const leftWidth = `calc(100% - ${rightWidth}px)`;
+  // 功能区高度：展开时固定百分比，折叠时为 0
+  const actualFunctionHeight = isDslCollapsed ? 0 : functionHeight;
   return (
     <div
       ref={containerRef}
@@ -449,13 +433,16 @@ export const ChartChatPageCandleView: React.FC<ChartChatPageCandleViewProps> = (
         userSelect: "none",
       }}
     >
-      {/* Global styles for scrollbars and resize handles */}
       <style>{`
-        .chart-resize-handle {
+        .function-resize-handle {
           position: relative;
           z-index: 1;
+          flex-shrink: 0;
+          height: 1px;
+          background: var(--border-color);
+          cursor: row-resize;
         }
-        .chart-resize-handle::after {
+        .function-resize-handle::after {
           content: '';
           position: absolute;
           top: -10px;
@@ -531,8 +518,121 @@ export const ChartChatPageCandleView: React.FC<ChartChatPageCandleViewProps> = (
         div::-webkit-scrollbar-corner {
           background: transparent;
         }
+        .function-area {
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+          flex-shrink: 0;
+          width: 100%;
+          transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .function-area.collapsed {
+          height: 0 !important;
+          min-height: 0 !important;
+        }
+        .dsl-content-wrapper {
+          flex: 1;
+          overflow: hidden;
+          min-height: 0;
+          display: flex;
+          flex-direction: row;
+          width: 100%;
+        }
+        .function-bar {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 0 8px;
+          border-top: 1px solid var(--border-color);
+          background: ${isDark ? "var(--bg-secondary, #1e1e2e)" : "var(--bg-secondary, #f0f0f0)"};
+          flex-shrink: 0;
+          height: 30px;
+          min-height: 30px;
+          max-height: 30px;
+          gap: 2px;
+          overflow: hidden;
+          position: relative;
+          z-index: 5;
+        }
+        .function-button {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          padding: 3px 10px;
+          border-radius: 4px;
+          border: 1px solid transparent;
+          background: transparent;
+          color: var(--text-secondary);
+          cursor: pointer;
+          font-size: 11px;
+          transition: all 0.15s ease;
+          white-space: nowrap;
+          height: 22px;
+        }
+        .function-button:hover {
+          background: var(--hover-bg);
+          color: var(--text-primary);
+          border-color: var(--border-color);
+        }
+        .function-button.active {
+          background: var(--bg-tertiary);
+          color: var(--text-primary);
+          border-color: var(--accent-color);
+        }
+        .function-button .indicator {
+          font-size: 8px;
+          margin-left: 2px;
+          opacity: 0.6;
+        }
+        .function-divider {
+          width: 1px;
+          height: 16px;
+          background: var(--border-color);
+          flex-shrink: 0;
+        }
+        .close-btn {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 3px;
+          border-radius: 4px;
+          border: none;
+          background: transparent;
+          color: var(--text-muted);
+          cursor: pointer;
+          transition: all 0.15s ease;
+          width: 22px;
+          height: 22px;
+        }
+        .close-btn:hover {
+          background: var(--hover-bg);
+          color: var(--text-primary);
+        }
+        .close-btn.danger:hover {
+          background: rgba(239, 68, 68, 0.12);
+          color: #ef4444;
+        }
+        .chart-container {
+          flex: 1;
+          min-height: 0;
+          position: relative;
+          overflow: hidden;
+          transition: flex 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        @media (max-width: 600px) {
+          .function-button {
+            padding: 3px 6px;
+            font-size: 10px;
+          }
+          .function-button .label-text {
+            display: none;
+          }
+          .function-divider {
+            display: none;
+          }
+        }
       `}</style>
-      {/* Left panel: Chart + DSL */}
+      {/* Left panel: Chart + Function Area + Function Bar */}
       <div
         style={{
           width: leftWidth,
@@ -543,19 +643,9 @@ export const ChartChatPageCandleView: React.FC<ChartChatPageCandleViewProps> = (
           flexShrink: 0,
         }}
       >
-        {/* Chart area */}
-        <div
-          style={{
-            height: `${chartHeight}%`,
-            minHeight: "30%",
-            maxHeight: "80%",
-            position: "relative",
-            overflow: "hidden",
-            flexShrink: 0,
-          }}
-        >
+        {/* Chart area - flex:1 自动占满剩余空间 */}
+        <div className="chart-container">
           <Chart ref={chartRef} theme={theme} i18n={i18n} symbol={chartSymbol} data={chartDataFromProps} chartData={chartDataState} isValidData={isValidData} onTimeframeChange={handleTimeframeChange} />
-          {/* Collapsed market panel toggle button */}
           {isMarketCollapsed && (
             <button
               onClick={toggleMarketPanel}
@@ -578,7 +668,7 @@ export const ChartChatPageCandleView: React.FC<ChartChatPageCandleViewProps> = (
                 gap: "4px",
                 height: "32px",
               }}
-              title={i18n === "zh-cn" ? "展开市场面板" : "Expand market panel"}
+              title={isZh ? "展开市场面板" : "Expand market panel"}
               onMouseEnter={(e) => {
                 e.currentTarget.style.background = isDark ? "#4b5563" : "#f3f4f6";
                 e.currentTarget.style.transform = "scale(1.05)";
@@ -589,35 +679,63 @@ export const ChartChatPageCandleView: React.FC<ChartChatPageCandleViewProps> = (
               }}
             >
               <PanelRightOpen size={16} />
-              <span style={{ fontSize: "12px", whiteSpace: "nowrap" }}>{i18n === "zh-cn" ? "市场" : "Market"}</span>
+              <span style={{ fontSize: "12px", whiteSpace: "nowrap" }}>{isZh ? "市场" : "Market"}</span>
             </button>
           )}
         </div>
-        {/* Chart resize handle */}
+        {/* 功能区拖拽分割线 - 仅在 DSL 展开时显示 */}
+        {!isDslCollapsed && <div className="function-resize-handle" onMouseDown={startFunctionResizing} />}
+        {/* 功能区 - 可折叠，固定高度，在功能条上方 */}
         <div
-          className="chart-resize-handle"
+          className={`function-area ${isDslCollapsed ? "collapsed" : ""}`}
           style={{
-            height: "1px",
-            background: "var(--border-color)",
-            cursor: "row-resize",
-            flexShrink: 0,
-            position: "relative",
-          }}
-          onMouseDown={startChartResizing}
-        />
-        {/* DSL editor area */}
-        <div
-          style={{
-            height: `${editorHeight}%`,
-            minHeight: "20%",
-            maxHeight: "70%",
-            display: "flex",
-            flexDirection: "row",
-            overflow: "hidden",
-            flexShrink: 0,
+            height: isDslCollapsed ? 0 : `${functionHeight}%`,
+            minHeight: isDslCollapsed ? 0 : "15%",
+            maxHeight: isDslCollapsed ? 0 : "77%",
           }}
         >
-          <DSL ref={dslRef} theme={theme} i18n={i18n} editorWidth={editorWidth} onStartEditorResize={startEditorResizing} engineRef={engineRef} />
+          {/* DSL 内容 - 占满功能区空间 */}
+          <div className="dsl-content-wrapper">
+            <DSL ref={dslRef} theme={theme} i18n={i18n} editorWidth={editorWidth} onStartEditorResize={startEditorResizing} engineRef={engineRef} />
+          </div>
+        </div>
+        {/* 功能按钮条 - 独立占位，始终在最底部 */}
+        <div className="function-bar">
+          {/* 左侧：功能按钮 */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "2px",
+              overflow: "hidden",
+              flex: 1,
+            }}
+          >
+            {functionButtons.map((btn, index) => (
+              <React.Fragment key={btn.id}>
+                {index > 0 && <div className="function-divider" />}
+                <button className={`function-button ${btn.id === "dsl" && isDslCollapsed ? "active" : ""}`} onClick={() => handleFunctionClick(btn.id)} title={btn.label}>
+                  {btn.icon}
+                  <span className="label-text">{btn.label}</span>
+                  {btn.id === "dsl" && <span className="indicator">{isDslCollapsed ? "▼" : "▲"}</span>}
+                </button>
+              </React.Fragment>
+            ))}
+          </div>
+          {/* 右侧：折叠/展开按钮 */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "2px",
+              flexShrink: 0,
+            }}
+          >
+            <div className="function-divider" />
+            <button className="close-btn danger" onClick={toggleDslCollapse} title={isDslCollapsed ? (isZh ? "展开 DSL" : "Expand DSL") : isZh ? "收起 DSL" : "Collapse DSL"}>
+              {isDslCollapsed ? <Maximize2 size={14} /> : <Minimize2 size={14} />}
+            </button>
+          </div>
         </div>
       </div>
       {/* Market panel resize handle */}
@@ -657,7 +775,7 @@ export const ChartChatPageCandleView: React.FC<ChartChatPageCandleViewProps> = (
         </div>
       )}
       {/* Overlays for resizing */}
-      {isChartResizing && (
+      {isFunctionResizing && (
         <div
           style={{
             position: "fixed",
@@ -690,4 +808,4 @@ export const ChartChatPageCandleView: React.FC<ChartChatPageCandleViewProps> = (
     </div>
   );
 };
-export default ChartChatPageCandleView;
+export default MainPanel;

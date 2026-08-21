@@ -19,22 +19,7 @@ interface NormalMessageProps {
   formatFileSize: (bytes: number) => string;
   t: (key: string, params?: any) => string;
 }
-export const NormalMessage: React.FC<NormalMessageProps> = ({
-  msg,
-  isUser,
-  editingMessageId,
-  editContent,
-  setEditContent,
-  onSaveEdit,
-  onCancelEdit,
-  copyToClipboard,
-  onLocateTask,
-  onEditMessage,
-  onResendMessage,
-  onFileClick,
-  formatFileSize,
-  t,
-}) => {
+export const NormalMessage: React.FC<NormalMessageProps> = ({ msg, isUser, editingMessageId, editContent, setEditContent, onSaveEdit, onCancelEdit, copyToClipboard, onLocateTask, onEditMessage, onResendMessage, onFileClick, formatFileSize, t }) => {
   return (
     <>
       {isUser && msg.files && msg.files.length > 0 && <MessageFileGrid files={msg.files} onFileClick={onFileClick} formatFileSize={formatFileSize} />}

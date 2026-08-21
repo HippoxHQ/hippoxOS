@@ -1,4 +1,4 @@
-import { chartSessionCommands } from "../command/session/chart";
+import { chartSessionCommands } from "../command/session/finance";
 import { codeEditorSessionCommands } from "../command/session/codeeditor";
 import { sessionCommands } from "../command/session/general";
 import { mapSessionCommands } from "../command/session/map";

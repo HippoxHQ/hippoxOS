@@ -12,9 +12,8 @@ import { SessionDomain, UploadFile } from "../../../core/types";
 import { ChatIcon, TaskQueueIcon, UserIcon, AttachmentIcon, FolderIcon, ChevronRightIcon, TextFileIcon, ImageIcon, VideoIcon, FileIcon, FolderOpenIcon } from "../../../icons";
 import { zhDefaultPrompts, enDefaultPrompts } from "../../../types/DefaultPrompt";
 import { ChatMessage, RoleEnum, MessageStatus } from "../../../types/types";
-import { chartSessionCommands } from "../../../command/session/chart";
+import { chartSessionCommands } from "../../../command/session/finance";
 import { isStructuredLLMResponse, parseLLMResponse } from "../llm/utils";
-
 interface ChartChatPanelProps {
   onSendMessage: (message: string, sessionId: string, files?: UploadFile[], workflowMode?: string) => void | Promise<void>;
   onFileClick?: (file: UploadFile) => void;
@@ -30,7 +29,6 @@ interface ChartChatPanelProps {
   collapseIcon?: string;
   onCloseSkillsManager?: () => void;
 }
-
 const ChartChatPanel: React.FC<ChartChatPanelProps> = ({
   onSendMessage: onSendMessageProp,
   onFileClick,
@@ -83,21 +81,18 @@ const ChartChatPanel: React.FC<ChartChatPanelProps> = ({
   const [isLoadingTitle, setIsLoadingTitle] = useState(false);
   const hasLoadedTitleRef = useRef<Record<string, boolean>>({});
   const collapseIcon = collapseIconProp || (isLeftPanel ? (isCollapsed ? "≫" : "≪") : isCollapsed ? "≪" : "≫");
-
   const welcomeMsg: ChatMessage = {
     id: "welcome",
     role: RoleEnum.LLM,
     content: language === "zh" ? "嗨～ 我是 Hippox 金融分析引擎！📊 我可以帮你画K线、分析趋势、分析数据，有什么想看的图表尽管说～" : "Hi～ I'm Hippox Financial Analysis Engine! 📊 I can help you draw candlesticks, analyze trends, and analyze data. Just tell me what charts you want to see～",
     timestamp: new Date().toISOString(),
   };
-
   useEffect(() => {
     const unsubscribe = taskManager.subscribe(() => {
       setUpdateTrigger((prev) => prev + 1);
     });
     return unsubscribe;
   }, []);
-
   const getMessages = useCallback((): ChatMessage[] => {
     if (!currentSessionId) return [welcomeMsg];
     const userMessages = taskManager.getUserMessagesBySession(currentSessionId, SessionDomain.Chart);
@@ -108,9 +103,7 @@ const ChartChatPanel: React.FC<ChartChatPanelProps> = ({
     }
     return allMessages;
   }, [currentSessionId, updateTrigger]);
-
   const messages = getMessages();
-
   const loadSessionTitle = async (sessionId: string) => {
     if (!sessionId || sessionId.startsWith("pending_") || sessionId.startsWith("temp_")) {
       setSessionTitle("");
@@ -136,13 +129,11 @@ const ChartChatPanel: React.FC<ChartChatPanelProps> = ({
       setIsLoadingTitle(false);
     }
   };
-
   useEffect(() => {
     if (currentSessionId) {
       loadSessionTitle(currentSessionId);
     }
   }, [currentSessionId]);
-
   useEffect(() => {
     const handleSessionTitleUpdated = (event: Event) => {
       const customEvent = event as CustomEvent;
@@ -157,9 +148,7 @@ const ChartChatPanel: React.FC<ChartChatPanelProps> = ({
       window.removeEventListener("session-title-updated", handleSessionTitleUpdated as EventListener);
     };
   }, [currentSessionId]);
-
   const { editingMessageId, editContent, setEditContent, handleEditMessage, handleSaveEdit, handleCancelEdit } = useEditMessage({ currentSessionId, onSendMessage: onSendMessageProp, t });
-
   const loadWorkflowDisplayNames = async () => {
     try {
       const lang = localStorage.getItem("hippox-language") || "en";
@@ -174,7 +163,6 @@ const ChartChatPanel: React.FC<ChartChatPanelProps> = ({
       console.error("Failed to load workflow display names:", error);
     }
   };
-
   const formatTimestamp = (timestamp: string): string => {
     const date = new Date(timestamp);
     const now = new Date();
@@ -194,7 +182,6 @@ const ChartChatPanel: React.FC<ChartChatPanelProps> = ({
       return `${date.toLocaleDateString()} ${timeStr}`;
     }
   };
-
   const handleScrollUpdate = () => {
     if (!messagesContainerRef.current) return;
     const container = messagesContainerRef.current;
@@ -212,7 +199,6 @@ const ChartChatPanel: React.FC<ChartChatPanelProps> = ({
     });
     setActiveNavIndex(closestIndex);
   };
-
   const handleNavButtonMouseEnter = () => {
     if (navBubbleTimerRef.current) {
       clearTimeout(navBubbleTimerRef.current);
@@ -220,13 +206,11 @@ const ChartChatPanel: React.FC<ChartChatPanelProps> = ({
     }
     setShowNavBubble(true);
   };
-
   const handleNavButtonMouseLeave = () => {
     navBubbleTimerRef.current = setTimeout(() => {
       setShowNavBubble(false);
     }, 200);
   };
-
   const handleNavBubbleMouseEnter = () => {
     if (navBubbleTimerRef.current) {
       clearTimeout(navBubbleTimerRef.current);
@@ -234,13 +218,11 @@ const ChartChatPanel: React.FC<ChartChatPanelProps> = ({
     }
     setShowNavBubble(true);
   };
-
   const handleNavBubbleMouseLeave = () => {
     navBubbleTimerRef.current = setTimeout(() => {
       setShowNavBubble(false);
     }, 200);
   };
-
   const handleResendMessage = (msg: ChatMessage) => {
     if (isResending || isSending) return;
     const sessionId = currentSessionId || "";
@@ -255,7 +237,6 @@ const ChartChatPanel: React.FC<ChartChatPanelProps> = ({
       setTimeout(() => setIsResending(false), 300);
     });
   };
-
   const getRandomPrompts = (count: number = 6): string[] => {
     const prompts = language === "zh" ? zhDefaultPrompts : enDefaultPrompts;
     const shuffled = [...prompts];
@@ -265,7 +246,6 @@ const ChartChatPanel: React.FC<ChartChatPanelProps> = ({
     }
     return shuffled.slice(0, count);
   };
-
   const shouldShowSuggestions = (msgs: ChatMessage[]) => {
     if (msgs.length === 0) return false;
     const lastMsg = msgs[msgs.length - 1];
@@ -276,7 +256,6 @@ const ChartChatPanel: React.FC<ChartChatPanelProps> = ({
     }
     return true;
   };
-
   const prevMessageCountRef = useRef(0);
   const suggestionTimerRef = useRef<NodeJS.Timeout | null>(null);
   const isFirstLoadRef = useRef(true);
@@ -308,7 +287,6 @@ const ChartChatPanel: React.FC<ChartChatPanelProps> = ({
       }
     };
   }, [messages, language]);
-
   const handleSuggestionClick = (prompt: string) => {
     const sessionId = currentSessionId || "";
     if (!sessionId) {
@@ -317,9 +295,7 @@ const ChartChatPanel: React.FC<ChartChatPanelProps> = ({
     }
     onSendMessageProp?.(prompt, sessionId, undefined, selectedWorkflowMode);
   };
-
   const handleContainerClick = () => textareaRef.current?.focus();
-
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return "0 B";
     const k = 1024;
@@ -327,7 +303,6 @@ const ChartChatPanel: React.FC<ChartChatPanelProps> = ({
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
   };
-
   const copyToClipboard = async (text: string | undefined) => {
     try {
       if (!text) {
@@ -340,7 +315,6 @@ const ChartChatPanel: React.FC<ChartChatPanelProps> = ({
       showToast(ToastType.ERROR, t("common.copyFailed") || "Copy Failed");
     }
   };
-
   const loadCurrentDefaultModel = async () => {
     try {
       setLoadingModel(true);
@@ -360,7 +334,6 @@ const ChartChatPanel: React.FC<ChartChatPanelProps> = ({
       setLoadingModel(false);
     }
   };
-
   const loadWorkflowModes = async () => {
     try {
       const modes = await workflowCommands.getWorkflowModeNames();
@@ -372,7 +345,6 @@ const ChartChatPanel: React.FC<ChartChatPanelProps> = ({
       console.error("Failed to load workflow modes:", error);
     }
   };
-
   const loadSessionWorkflowMode = async (sessionId: string) => {
     if (!sessionId || sessionId.startsWith("pending_") || sessionId.startsWith("temp_")) {
       return;
@@ -399,7 +371,6 @@ const ChartChatPanel: React.FC<ChartChatPanelProps> = ({
       console.error("Failed to load session workflow mode:", error);
     }
   };
-
   const loadWorkspaces = async (retryCount: number = 0): Promise<void> => {
     try {
       const config = await workspaceCommands.getWorkspaceConfig();
@@ -417,13 +388,11 @@ const ChartChatPanel: React.FC<ChartChatPanelProps> = ({
       showToast(ToastType.ERROR, "Failed to load workspaces: " + error);
     }
   };
-
   useEffect(() => {
     if (currentSessionId && !currentSessionId.startsWith("pending_") && !currentSessionId.startsWith("temp_")) {
       loadSessionWorkflowMode(currentSessionId);
     }
   }, [currentSessionId]);
-
   useEffect(() => {
     const handleSessionCreated = () => {
       if (currentSessionId) {
@@ -436,7 +405,6 @@ const ChartChatPanel: React.FC<ChartChatPanelProps> = ({
       window.removeEventListener("chart-session-created", handleSessionCreated);
     };
   }, [currentSessionId]);
-
   const checkScrollPosition = () => {
     if (!messagesContainerRef.current) return;
     const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
@@ -447,7 +415,6 @@ const ChartChatPanel: React.FC<ChartChatPanelProps> = ({
     if (atBottom) setUserScrolled(false);
     handleScrollUpdate();
   };
-
   const handleUserScroll = () => {
     if (messagesContainerRef.current) {
       const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
@@ -456,7 +423,6 @@ const ChartChatPanel: React.FC<ChartChatPanelProps> = ({
     }
     checkScrollPosition();
   };
-
   const scrollToTop = () => {
     if (messagesContainerRef.current) {
       messagesContainerRef.current.scrollTo({
@@ -465,7 +431,6 @@ const ChartChatPanel: React.FC<ChartChatPanelProps> = ({
       });
     }
   };
-
   const scrollToBottom = () => {
     if (messagesContainerRef.current) {
       messagesContainerRef.current.scrollTo({
@@ -475,7 +440,6 @@ const ChartChatPanel: React.FC<ChartChatPanelProps> = ({
       setUserScrolled(false);
     }
   };
-
   const scrollToMessage = (index: number) => {
     if (!messagesContainerRef.current) return;
     const messageElements = messagesContainerRef.current.querySelectorAll(".message-wrapper");
@@ -487,7 +451,6 @@ const ChartChatPanel: React.FC<ChartChatPanelProps> = ({
       setActiveNavIndex(index);
     }
   };
-
   const handleFilesAdd = (files: UploadFile[]) => {
     setUploadedFiles((prev) => {
       const existingKeys = new Set(prev.map((f) => `${f.name}_${f.size}`));
@@ -495,11 +458,9 @@ const ChartChatPanel: React.FC<ChartChatPanelProps> = ({
       return [...prev, ...newUniqueFiles];
     });
   };
-
   const handleFileRemove = (fileId: string) => {
     setUploadedFiles((prev) => prev.filter((f) => f.id !== fileId));
   };
-
   const handleSend = () => {
     if (isSending) return;
     if (inputValue.trim() || uploadedFiles.length > 0) {
@@ -515,22 +476,18 @@ const ChartChatPanel: React.FC<ChartChatPanelProps> = ({
       });
     }
   };
-
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
     }
   };
-
   const adjustTextareaHeight = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInputValue(e.target.value);
     e.target.style.height = "auto";
     e.target.style.height = Math.min(e.target.scrollHeight, 100) + "px";
   };
-
   const handleAttachment = () => setShowAttachmentMenu(false);
-
   const getSelectedWorkspaceName = (): string => {
     const workspace = workspaces.find((w) => w.id === selectedWorkspaceId);
     if (!workspace) return language === "zh" ? "工作目录" : "Workspace";
@@ -539,7 +496,6 @@ const ChartChatPanel: React.FC<ChartChatPanelProps> = ({
     const parts = normalizedPath.split("/");
     return parts[parts.length - 1] || workspace.name;
   };
-
   const handleSelectWorkspace = async (workspaceId: string) => {
     const workspace = workspaces.find((w) => w.id === workspaceId);
     if (!workspace) return;
@@ -552,7 +508,6 @@ const ChartChatPanel: React.FC<ChartChatPanelProps> = ({
       showToast(ToastType.ERROR, "Failed to set default workspace: " + error);
     }
   };
-
   const handleWorkflowModeChange = async (mode: string) => {
     setSelectedWorkflowMode(mode);
     setShowWorkflowMenu(false);
@@ -574,7 +529,6 @@ const ChartChatPanel: React.FC<ChartChatPanelProps> = ({
       localStorage.setItem(`workflow_mode_${key}`, mode);
     }
   };
-
   const buildNavigationContent = (): React.ReactNode => {
     const userMessages = messages.filter((m) => m.role === RoleEnum.User);
     if (userMessages.length === 0) {
@@ -646,7 +600,6 @@ const ChartChatPanel: React.FC<ChartChatPanelProps> = ({
       </div>
     );
   };
-
   const handleLocateTask = (msg: ChatMessage) => {
     if (!currentSessionId) {
       showToast(ToastType.INFO, t("chat.noRelatedTask") || "No Related Task");
@@ -668,7 +621,6 @@ const ChartChatPanel: React.FC<ChartChatPanelProps> = ({
       showToast(ToastType.INFO, t("chat.noRelatedTask") || "No Related Task");
     }
   };
-
   useEffect(() => {
     const handleLocateTaskInChat = (event: Event) => {
       const customEvent = event as CustomEvent;
@@ -714,7 +666,6 @@ const ChartChatPanel: React.FC<ChartChatPanelProps> = ({
       window.removeEventListener("locate-task-in-chat", handleLocateTaskInChat);
     };
   }, [t, currentSessionId]);
-
   useEffect(() => {
     const handleLanguageChange = () => {
       loadWorkflowDisplayNames();
@@ -724,20 +675,16 @@ const ChartChatPanel: React.FC<ChartChatPanelProps> = ({
       window.removeEventListener("language-changed", handleLanguageChange as EventListener);
     };
   }, []);
-
   useEffect(() => {
     loadCurrentDefaultModel();
     loadWorkspaces();
     loadWorkflowModes();
     loadWorkflowDisplayNames();
   }, []);
-
   const messagesRef = useRef<ChatMessage[]>(messages);
-
   useEffect(() => {
     messagesRef.current = messages;
   }, [messages]);
-
   useEffect(() => {
     const handleLocateTaskInChat = (event: Event) => {
       const customEvent = event as CustomEvent;
@@ -777,14 +724,12 @@ const ChartChatPanel: React.FC<ChartChatPanelProps> = ({
       window.removeEventListener("locate-task-in-chat", handleLocateTaskInChat);
     };
   }, [t]);
-
   useEffect(() => {
     if (messagesContainerRef.current && !userScrolled) {
       messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
     }
     setTimeout(handleScrollUpdate, 100);
   }, [messages, userScrolled]);
-
   useEffect(() => {
     const element = messagesContainerRef.current;
     if (element) {
@@ -793,7 +738,6 @@ const ChartChatPanel: React.FC<ChartChatPanelProps> = ({
       return () => element.removeEventListener("scroll", checkScrollPosition);
     }
   }, [messages]);
-
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (attachmentMenuRef.current && !attachmentMenuRef.current.contains(event.target as Node) && attachmentBtnRef.current && !attachmentBtnRef.current.contains(event.target as Node)) {
@@ -812,13 +756,10 @@ const ChartChatPanel: React.FC<ChartChatPanelProps> = ({
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-
   const getEndingMessage = () => {
     return t("chat.endingMessage") || (language === "zh" ? "✨ 我还能为你做些什么吗？ ✨" : "✨ What else can I do for you? ✨");
   };
-
   const navigation = buildNavigationContent();
-
   const navBubblePosition = (() => {
     if (navButtonRef.current) {
       const rect = navButtonRef.current.getBoundingClientRect();
@@ -829,7 +770,6 @@ const ChartChatPanel: React.FC<ChartChatPanelProps> = ({
     }
     return { right: 0, top: 0 };
   })();
-
   return (
     <div
       className="codeeditor-chat-panel"
@@ -858,10 +798,8 @@ const ChartChatPanel: React.FC<ChartChatPanelProps> = ({
             {isLoadingTitle ? t("common.loading") : sessionTitle || t("chat.title")}
           </span>
         </div>
-
         <div className="header-right">
           <div className="header-subtitle">{loadingModel ? <span className="loading-text">{t("chat.loadingModel")}</span> : currentModel ? <span title={currentModel.name}>{currentModel.name}</span> : <span className="no-model">{t("chat.noModelConfigured")}</span>}</div>
-
           <div
             ref={navButtonRef}
             style={{
@@ -1021,7 +959,6 @@ const ChartChatPanel: React.FC<ChartChatPanelProps> = ({
           </div>
         </div>
       )}
-
       <div className="chat-messages-wrapper">
         <div className="chat-messages" ref={messagesContainerRef} onScroll={handleUserScroll}>
           {messages.map((msg, index) => {
@@ -1141,7 +1078,6 @@ const ChartChatPanel: React.FC<ChartChatPanelProps> = ({
           </div>
         )}
       </div>
-
       <div className="chat-input-section">
         <div className={`chat-input-container ${isFocused ? "focused" : ""}`} onClick={handleContainerClick}>
           <div className="file-uploader-container" style={{ display: uploadedFiles.length > 0 ? "block" : "none" }}>
@@ -1155,7 +1091,6 @@ const ChartChatPanel: React.FC<ChartChatPanelProps> = ({
               <div className="icon-btn" ref={attachmentBtnRef} onClick={() => setShowAttachmentMenu(!showAttachmentMenu)} title={t("chat.attachment")}>
                 <AttachmentIcon size={14} />
               </div>
-
               <div
                 className="icon-btn folder-btn"
                 ref={directoryBtnRef}
@@ -1181,7 +1116,6 @@ const ChartChatPanel: React.FC<ChartChatPanelProps> = ({
                 </span>
                 <ChevronRightIcon size={10} className="chevron" />
               </div>
-
               {showAttachmentMenu && (
                 <div className="attachment-menu" ref={attachmentMenuRef}>
                   <div className="attachment-item" onClick={() => handleAttachment()}>
