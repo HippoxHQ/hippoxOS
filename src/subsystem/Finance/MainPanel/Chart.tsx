@@ -20,6 +20,8 @@ const Chart = forwardRef<ChartRef, ChartProps>(({ theme, i18n, symbol, data, cha
   const [isReady, setIsReady] = useState(false);
   const engineRef = useRef<any>(null);
   const [isEngineReady, setIsEngineReady] = useState(false);
+  const initializationCompleteRef = useRef(false);
+  const chartReadyRef = useRef(false);
   /**
    * Handle timeframe change from CandleView
    * This is called when user clicks on a timeframe button in the top panel
@@ -27,15 +29,28 @@ const Chart = forwardRef<ChartRef, ChartProps>(({ theme, i18n, symbol, data, cha
   const handleTimeframeChange = useCallback(
     (timeframe: TimeframeEnum) => {
       console.log("[Chart] CandleView timeframe changed:", timeframe);
-      // Convert TimeframeEnum to string and pass to parent
       onTimeframeChange?.(String(timeframe));
     },
     [onTimeframeChange],
   );
+  /**
+   * Check if chart is fully ready for operations
+   */
+  const isChartReady = useCallback((): boolean => {
+    return candleViewRef.current !== null && chartReadyRef.current === true;
+  }, []);
+  /**
+   * Apply configuration to the CandleView instance
+   * This includes chart type, indicators, static marks, etc.
+   */
   const applyCandleViewConfig = useCallback(
     (config: any) => {
-      if (!candleViewRef.current || !isReady) return;
+      if (!isChartReady()) {
+        console.log("[Chart] Skipping config apply - chart not ready");
+        return;
+      }
       const cv = candleViewRef.current;
+      if (!cv) return;
       if (config?.chartType) {
         try {
           cv.setChartType(config.chartType as MainChartType);
@@ -91,21 +106,39 @@ const Chart = forwardRef<ChartRef, ChartProps>(({ theme, i18n, symbol, data, cha
         }
       }
     },
-    [isReady],
+    [isChartReady],
   );
+  /**
+   * Expose methods to parent component via ref
+   */
   useImperativeHandle(ref, () => ({
     getEngine: () => engineRef.current,
     getCandleView: () => candleViewRef.current,
     applyConfig: applyCandleViewConfig,
   }));
+  /**
+   * Initialize CandleView and CVSEngine
+   * This effect runs once on component mount
+   */
   useEffect(() => {
-    if (!containerRef.current) return;
-    if (candleViewRef.current) return;
+    // Guard against multiple initializations
+    if (initializationCompleteRef.current) {
+      return;
+    }
+    if (!containerRef.current) {
+      console.error("[Chart] Container ref is null");
+      return;
+    }
+    if (candleViewRef.current) {
+      console.log("[Chart] CandleView already exists, skipping initialization");
+      return;
+    }
     if (!isValidData) {
-      console.error("No valid data for chart initialization", { data });
+      console.error("[Chart] No valid data for chart initialization", { data });
       return;
     }
     try {
+      console.log("[Chart] Initializing CandleView with data length:", data?.length);
       const candleView = new CandleView({
         container: containerRef.current,
         title: symbol,
@@ -121,7 +154,19 @@ const Chart = forwardRef<ChartRef, ChartProps>(({ theme, i18n, symbol, data, cha
         handleTimeframeChange(timeframe);
       });
       candleViewRef.current = candleView;
-      setIsReady(true);
+      initializationCompleteRef.current = true;
+      // Mark chart as ready after a short delay to ensure internal engine is ready
+      setTimeout(() => {
+        chartReadyRef.current = true;
+        setIsReady(true);
+        console.log("[Chart] Chart is now ready for operations");
+        // Apply initial chart data if available
+        if (chartData) {
+          applyCandleViewConfig(chartData);
+        }
+      }, 300);
+      console.log("[Chart] CandleView instance created");
+      // Load CVSEngine asynchronously
       import("@candleview/cvs-engine")
         .then((module) => {
           const { CVSEngine } = module;
@@ -131,101 +176,152 @@ const Chart = forwardRef<ChartRef, ChartProps>(({ theme, i18n, symbol, data, cha
           });
           engineRef.current = engine;
           setIsEngineReady(true);
+          console.log("[Chart] CVSEngine initialized successfully");
         })
         .catch((err) => {
           console.warn("[Chart] CVSEngine not available:", err.message);
           setIsEngineReady(false);
         });
-      setTimeout(() => {
-        if (chartData) {
-          applyCandleViewConfig(chartData);
-        }
-      }, 500);
     } catch (error) {
-      console.error("Failed to initialize CandleView:", error);
+      console.error("[Chart] Failed to initialize CandleView:", error);
     }
+    // Cleanup function
     return () => {
+      console.log("[Chart] Cleaning up chart resources");
+      chartReadyRef.current = false;
       if (engineRef.current) {
-        engineRef.current.stop();
+        try {
+          engineRef.current.stop();
+        } catch (e) {
+          console.warn("[Chart] Error stopping engine:", e);
+        }
         engineRef.current = null;
       }
       if (candleViewRef.current) {
-        candleViewRef.current.destroy();
+        try {
+          candleViewRef.current.destroy();
+        } catch (e) {
+          console.warn("[Chart] Error destroying CandleView:", e);
+        }
         candleViewRef.current = null;
         setIsReady(false);
         setIsEngineReady(false);
+        initializationCompleteRef.current = false;
       }
     };
-  }, []);
+  }, []); // Empty dependency array - run once on mount
+  /**
+   * Apply chart config when chartData prop changes
+   */
   useEffect(() => {
-    if (isReady && candleViewRef.current && chartData) {
+    if (isChartReady() && chartData) {
+      console.log("[Chart] Applying config from chartData prop");
       applyCandleViewConfig(chartData);
     }
-  }, [chartData, isReady, applyCandleViewConfig]);
+  }, [chartData, isChartReady, applyCandleViewConfig]);
   /**
    * Update chart when data changes
    * This is the critical effect that updates the chart when new data arrives
    */
   useEffect(() => {
-    if (!candleViewRef.current || !isValidData) {
-      console.log("[Chart] Skipping update - no ref or invalid data");
+    // Strict validation: ensure chart is fully ready
+    if (!isChartReady()) {
+      console.log("[Chart] Skipping data update - chart not ready");
       return;
     }
-    console.log("[Chart] Updating chart with data length:", data?.length);
-    if (data && data.length > 0) {
+    if (!isValidData) {
+      console.log("[Chart] Skipping data update - invalid data");
+      return;
+    }
+    if (!data || data.length === 0) {
+      console.log("[Chart] Skipping data update - empty data array");
+      return;
+    }
+    const cv = candleViewRef.current;
+    if (!cv) {
+      console.log("[Chart] Skipping data update - candleView is null");
+      return;
+    }
+    console.log("[Chart] Updating chart with data length:", data.length);
+    try {
       // Set data on the CandleView instance
-      candleViewRef.current.setData(data);
-      candleViewRef.current.setTitle(symbol);
+      cv.setData(data);
+      cv.setTitle(symbol);
       // Force fit content after data update
       setTimeout(() => {
         try {
-          const chart = candleViewRef.current?.getChart();
+          const chart = cv.getChart();
           if (chart?.chart) {
             chart.chart.timeScale().fitContent();
             console.log("[Chart] fitContent called successfully");
           }
         } catch (e) {
-          console.warn("Fit content after data update error:", e);
+          console.warn("[Chart] Fit content after data update error:", e);
         }
       }, 150);
+    } catch (error) {
+      console.error("[Chart] Error updating chart data:", error);
     }
-  }, [data, isValidData, symbol]);
+  }, [data, isValidData, symbol, isChartReady]);
+  /**
+   * Update theme when it changes
+   */
   useEffect(() => {
-    if (candleViewRef.current) {
-      candleViewRef.current.setTheme(theme);
+    if (isChartReady()) {
+      const cv = candleViewRef.current;
+      if (cv) {
+        cv.setTheme(theme);
+      }
     }
-  }, [theme]);
+  }, [theme, isChartReady]);
+  /**
+   * Update locale when it changes
+   */
   useEffect(() => {
-    if (candleViewRef.current) {
-      candleViewRef.current.setLocale(i18n === "zh-cn" ? "zh-cn" : "en");
+    if (isChartReady()) {
+      const cv = candleViewRef.current;
+      if (cv) {
+        cv.setLocale(i18n === "zh-cn" ? "zh-cn" : "en");
+      }
     }
-  }, [i18n]);
+  }, [i18n, isChartReady]);
+  /**
+   * Listen for external chart data events
+   * This allows other components to send data to the chart
+   */
   useEffect(() => {
     const handleChartData = (event: CustomEvent) => {
       const { taskData, chartData: eventChartData } = event.detail;
-      if (eventChartData && candleViewRef.current && isReady) {
+      // Guard: ensure chart is ready before processing
+      if (!isChartReady()) {
+        console.log("[Chart] Skipping chart data event - chart not ready");
+        return;
+      }
+      const cv = candleViewRef.current;
+      if (!cv) return;
+      if (eventChartData) {
+        console.log("[Chart] Applying config from event chartData");
         applyCandleViewConfig(eventChartData);
       }
       if (taskData?.final_output) {
         try {
           const parsedData = JSON.parse(taskData.final_output);
           if (Array.isArray(parsedData) && parsedData.length > 0) {
-            if (candleViewRef.current) {
-              candleViewRef.current.setData(parsedData);
-              setTimeout(() => {
-                try {
-                  const chart = candleViewRef.current?.getChart();
-                  if (chart?.chart) {
-                    chart.chart.timeScale().fitContent();
-                  }
-                } catch (e) {
-                  console.warn("Fit content after data update error:", e);
+            console.log("[Chart] Updating data from taskData.final_output, length:", parsedData.length);
+            cv.setData(parsedData);
+            setTimeout(() => {
+              try {
+                const chart = cv.getChart();
+                if (chart?.chart) {
+                  chart.chart.timeScale().fitContent();
                 }
-              }, 100);
-            }
+              } catch (e) {
+                console.warn("[Chart] Fit content after data update error:", e);
+              }
+            }, 100);
           }
         } catch (e) {
-          console.error("Failed to parse chart data:", e);
+          console.error("[Chart] Failed to parse chart data:", e);
         }
       }
     };
@@ -233,7 +329,7 @@ const Chart = forwardRef<ChartRef, ChartProps>(({ theme, i18n, symbol, data, cha
     return () => {
       window.removeEventListener("open-chart-with-data", handleChartData as EventListener);
     };
-  }, [applyCandleViewConfig, isReady]);
+  }, [applyCandleViewConfig, isChartReady]);
   return <div ref={containerRef} style={{ width: "100%", height: "100%" }} />;
 });
 Chart.displayName = "Chart";

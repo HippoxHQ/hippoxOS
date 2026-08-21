@@ -1,12 +1,34 @@
 import React, { useRef, useEffect, useState, useCallback } from "react";
-import { ICandleViewDataPoint } from "@candleview/core";
+import { ICandleViewDataPoint, MainChartType, StaticMarkDirection, StaticMarkType } from "@candleview/core";
 import { TEST_CANDLEVIEW_DATA8 } from "../../../test/TestData_3";
 import Chart, { ChartRef } from "./Chart";
 import DSL, { DSLRef } from "./DSL";
 import MarketPanel from "./MarketPanel";
-import { PanelRightOpen, Newspaper, Code2, TrendingUp, Calendar, BarChart3, Minimize2, Maximize2 } from "lucide-react";
+import NewsPanel from "./News";
+import { PanelRightOpen, Newspaper, Code2, ChevronUp, ChevronDown } from "lucide-react";
 import { fetchStockOHLCV } from "../../../command/Finance/AStock";
-import { listenSetChartData } from "../FinanceWindowsEventsManager";
+import { hasChartData, extractChartData } from "../llm/utils";
+import { listenSetChartData, SET_CHART_DATA } from "../FinanceWindowsEventsManager";
+/**
+ * IStaticMarkItem - Local type definition matching CandleViewMark.ts
+ * This type is NOT exported from @candleview/core, so we define it here.
+ * Matches the interface used by CandleView.addStaticMarks()
+ * At runtime, this is just a plain JSON object.
+ */
+interface IStaticMarkItem {
+  time: number;
+  text: string;
+  direction: StaticMarkDirection;
+  type: StaticMarkType;
+  options?: {
+    textColor?: string;
+    backgroundColor?: string;
+    isCircular?: boolean;
+    fontSize?: number;
+    padding?: number;
+    label?: string;
+  };
+}
 interface MainPanelProps {
   theme: "light" | "dark";
   i18n: "en" | "zh-cn";
@@ -32,7 +54,7 @@ interface FunctionButton {
   icon: React.ReactNode;
 }
 export const MainPanel: React.FC<MainPanelProps> = ({ theme, i18n, currentSessionId, data, symbol = "BTC/USDT", taskId, chartData }) => {
-  // 功能区高度百分比 (相对于左侧面板)
+  // Function area height percentage
   const [functionHeight, setFunctionHeight] = useState(40);
   const [editorWidth, setEditorWidth] = useState(60);
   const [isFunctionResizing, setIsFunctionResizing] = useState(false);
@@ -43,12 +65,16 @@ export const MainPanel: React.FC<MainPanelProps> = ({ theme, i18n, currentSessio
   const [chartSymbol, setChartSymbol] = useState(symbol);
   const [chartDataState, setChartDataState] = useState<any>(chartData);
   const [candleData, setCandleData] = useState<ICandleViewDataPoint[]>(data || TEST_CANDLEVIEW_DATA8);
-  // DSL 折叠状态: true = 折叠（功能区隐藏，只显示功能条）, false = 展开
-  const [isDslCollapsed, setIsDslCollapsed] = useState(false);
+  // Function tab: "dsl" or "news"
+  const [activeFunctionTab, setActiveFunctionTab] = useState<"dsl" | "news">("news");
+  // Function area collapsed state
+  const [isFunctionCollapsed, setIsFunctionCollapsed] = useState(false);
   const currentSymbolRef = useRef<string>("");
   const currentNameRef = useRef<string>("");
   const currentPeriodRef = useRef<string>("101");
   const chartRef = useRef<ChartRef>(null);
+  const dslRef = useRef<DSLRef>(null);
+  const engineRef = useRef<any>(null);
   const startYRef = useRef(0);
   const startFunctionHeightRef = useRef(0);
   const startXRef = useRef(0);
@@ -56,13 +82,16 @@ export const MainPanel: React.FC<MainPanelProps> = ({ theme, i18n, currentSessio
   const startMarketXRef = useRef(0);
   const startMarketWidthRef = useRef(0);
   const containerRef = useRef<HTMLDivElement>(null);
-  const dslRef = useRef<DSLRef>(null);
-  const engineRef = useRef<any>(null);
   const chartDataFromProps = candleData;
   const isValidData = chartDataFromProps && Array.isArray(chartDataFromProps) && chartDataFromProps.length > 0;
   const isZh = i18n === "zh-cn";
   const isDark = theme === "dark";
-  // 功能按钮配置
+  /**
+   * Track processed message IDs to prevent infinite loop
+   * When a message with chart data is processed, we mark it here
+   */
+  const processedMessageIdsRef = useRef<Set<string>>(new Set());
+  // Function buttons - only News and DSL
   const functionButtons: FunctionButton[] = [
     {
       id: "news",
@@ -74,35 +103,29 @@ export const MainPanel: React.FC<MainPanelProps> = ({ theme, i18n, currentSessio
       label: "DSL",
       icon: <Code2 size={14} />,
     },
-    {
-      id: "trending",
-      label: isZh ? "热榜" : "Trending",
-      icon: <TrendingUp size={14} />,
-    },
-    {
-      id: "calendar",
-      label: isZh ? "日历" : "Calendar",
-      icon: <Calendar size={14} />,
-    },
-    {
-      id: "indicators",
-      label: isZh ? "指标" : "Indicators",
-      icon: <BarChart3 size={14} />,
-    },
   ];
-  const toggleDslCollapse = useCallback(() => {
-    setIsDslCollapsed((prev) => !prev);
+  // Toggle between DSL and News tabs
+  const toggleFunctionTab = useCallback((tabId: string) => {
+    setActiveFunctionTab(tabId as "dsl" | "news");
   }, []);
   const handleFunctionClick = useCallback(
     (buttonId: string) => {
-      if (buttonId === "dsl") {
-        toggleDslCollapse();
-        return;
-      }
+      toggleFunctionTab(buttonId);
       console.log(`[FunctionBar] Clicked: ${buttonId}`);
     },
-    [toggleDslCollapse],
+    [toggleFunctionTab],
   );
+  /**
+   * Toggle function area collapse/expand
+   */
+  const handleToggleFunctionCollapse = useCallback(() => {
+    setIsFunctionCollapsed((prev) => !prev);
+  }, []);
+  /**
+   * Fetch OHLCV data for a given symbol
+   * This is the main data loading function
+   * It updates both the state and the chart directly if available
+   */
   const fetchDataForSymbol = useCallback(async (symbol: string, name: string, period: string = "101", count: number = 300, dataType: string = "astock") => {
     try {
       console.log("[Chart] Fetching data:", { symbol, name, period, count, dataType });
@@ -136,6 +159,7 @@ export const MainPanel: React.FC<MainPanelProps> = ({ theme, i18n, currentSessio
           close: k.close,
           volume: k.volume,
         }));
+        // Update state - Chart component will update via useEffect when data prop changes
         setCandleData(chartDataPoints);
         currentSymbolRef.current = symbol;
         currentNameRef.current = name;
@@ -143,23 +167,8 @@ export const MainPanel: React.FC<MainPanelProps> = ({ theme, i18n, currentSessio
         const displaySymbol = symbol.replace(/^sh|^sz/, "").toUpperCase();
         const title = `${name} · ${displaySymbol}`;
         setChartSymbol(title);
-        if (chartRef.current) {
-          const cv = chartRef.current.getCandleView();
-          if (cv) {
-            cv.setData(chartDataPoints, true);
-            cv.setTitle(title);
-            setTimeout(() => {
-              try {
-                const chart = cv.getChart();
-                if (chart?.chart) {
-                  chart.chart.timeScale().fitContent();
-                }
-              } catch (e) {
-                console.warn("Fit content error:", e);
-              }
-            }, 200);
-          }
-        }
+        // DO NOT call cv.setData() here - let React props handle it
+        // The Chart component's useEffect will handle the data update
         return true;
       }
       return false;
@@ -223,29 +232,14 @@ export const MainPanel: React.FC<MainPanelProps> = ({ theme, i18n, currentSessio
         }
       }
       if (chartDataPoints.length === 0) throw new Error("No valid OHLCV data found");
+      // Update state only - let Chart component handle rendering
       setCandleData(chartDataPoints);
       currentSymbolRef.current = symbol;
       currentNameRef.current = meta.longName || meta.shortName || symbol;
       currentPeriodRef.current = "101";
       const title = `${meta.longName || meta.shortName || symbol} · ${symbol}`;
       setChartSymbol(title);
-      if (chartRef.current) {
-        const cv = chartRef.current.getCandleView();
-        if (cv) {
-          cv.setData(chartDataPoints, true);
-          cv.setTitle(title);
-          setTimeout(() => {
-            try {
-              const chart = cv.getChart();
-              if (chart?.chart) {
-                chart.chart.timeScale().fitContent();
-              }
-            } catch (e) {
-              console.warn("Fit content error:", e);
-            }
-          }, 200);
-        }
-      }
+      // DO NOT call cv.setData() here - let React props handle it
     } catch (err) {
       console.error("[Chart] Failed to fetch stock OHLCV data:", err);
     }
@@ -271,25 +265,197 @@ export const MainPanel: React.FC<MainPanelProps> = ({ theme, i18n, currentSessio
   const toggleMarketPanel = useCallback(() => {
     setIsMarketCollapsed((prev) => !prev);
   }, []);
+  /**
+   * Listen for chart data update events from ticker bar (MarketPanel clicks)
+   * This is the single source of truth for data loading
+   */
   useEffect(() => {
-    // Listen for chart data update events from ticker bar
     const unsubscribe = listenSetChartData((event: CustomEvent) => {
       const detail = event.detail;
       if (!detail) return;
-      // Handle ticker click event
       if (detail.symbol) {
         const symbol = detail.symbol;
         console.log("[MainPanel] Received ticker click:", symbol);
-        // Extract the base symbol (remove /USDT or convert format)
         const cleanSymbol = symbol.replace("/", "").toUpperCase();
         const pair = symbol.includes("/") ? symbol : cleanSymbol.replace("USDT", "/USDT");
         const name = cleanSymbol.replace("USDT", "");
-        // Fetch data for the clicked symbol
         fetchDataForSymbol(pair, name, "101", 300, "crypto");
       }
     });
     return unsubscribe;
   }, [fetchDataForSymbol]);
+  /**
+   * Convert timestamp from seconds to milliseconds if needed
+   * CandleView expects milliseconds timestamp
+   * If timestamp is less than 10000000000 (year 2286), it's in seconds
+   */
+  const convertToMilliseconds = useCallback((timestamp: number): number => {
+    if (timestamp < 10000000000) {
+      return timestamp * 1000;
+    }
+    return timestamp;
+  }, []);
+  /**
+   * Convert ChartOperation staticMarks to IStaticMarkItem format
+   * Handles both seconds and milliseconds timestamps
+   */
+  const convertStaticMarks = useCallback(
+    (marks: any[]): IStaticMarkItem[] => {
+      return marks.map((mark) => ({
+        time: convertToMilliseconds(mark.time),
+        text: mark.text || "",
+        direction: mark.direction === "up" ? StaticMarkDirection.Bottom : StaticMarkDirection.Top,
+        type: mark.type === "text" ? StaticMarkType.Text : StaticMarkType.Arrow,
+        options: {
+          textColor: mark.color,
+          backgroundColor: mark.backgroundColor,
+          fontSize: mark.fontSize,
+          label: mark.label,
+        },
+      }));
+    },
+    [convertToMilliseconds],
+  );
+  /**
+   * Listen for chart data updates from LLM responses
+   * This is the primary integration point between LLM and chart rendering
+   * All visual markers are handled through staticMarks
+   */
+  useEffect(() => {
+    const handleChartDataUpdated = (event: CustomEvent) => {
+      const { content, messageId } = event.detail;
+      if (!content) return;
+      // Skip if already processed - prevents infinite loop
+      if (messageId && processedMessageIdsRef.current.has(messageId)) {
+        console.log("[MainPanel] Skipping already processed chart data:", messageId);
+        return;
+      }
+      if (hasChartData(content)) {
+        // Mark as processed immediately to prevent re-entry
+        if (messageId) {
+          processedMessageIdsRef.current.add(messageId);
+        }
+        const chartData = extractChartData(content);
+        if (!chartData) return;
+        console.log("[MainPanel] Processing chart operation from LLM:", chartData);
+        // 1. Handle symbol change - dispatch event ONLY
+        if (chartData.symbol) {
+          console.log("[MainPanel] Dispatching symbol load request:", chartData.symbol);
+          const symbol = chartData.symbol;
+          let cleanSymbol = symbol;
+          let dataType = "crypto";
+          if (symbol.includes("/")) {
+            cleanSymbol = symbol;
+            dataType = "crypto";
+          } else if (symbol.match(/^[A-Z]+$/)) {
+            cleanSymbol = symbol;
+            dataType = "stock";
+          } else {
+            cleanSymbol = symbol;
+            dataType = "astock";
+          }
+          window.dispatchEvent(
+            new CustomEvent(SET_CHART_DATA, {
+              detail: { symbol: cleanSymbol, dataType },
+            }),
+          );
+        }
+        // 2. Handle DSL script execution
+        if (chartData.dslScript) {
+          console.log("[MainPanel] Processing DSL script from LLM");
+          if (dslRef.current) {
+            dslRef.current.setScript(chartData.dslScript);
+            if (chartData.autoExecuteDSL !== false) {
+              console.log("[MainPanel] Auto-executing DSL script");
+              setTimeout(() => {
+                dslRef.current?.execute();
+              }, 300);
+            } else {
+              console.log("[MainPanel] DSL script loaded but auto-execution disabled");
+            }
+          }
+        }
+        // 3. Apply chart config via ChartRef - handles all chart operations safely
+        // This includes chartType, title, indicators, and staticMarks
+        if (chartRef.current) {
+          const config: any = {};
+          if (chartData.chartType) config.chartType = chartData.chartType;
+          if (chartData.title) config.title = chartData.title;
+          if (chartData.mainIndicators) config.mainIndicators = chartData.mainIndicators;
+          if (chartData.subIndicators) config.subIndicators = chartData.subIndicators;
+          // Convert staticMarks with proper timestamp handling
+          // CandleView expects milliseconds timestamp
+          // If timestamp is less than 10000000000 (year 2286), it's in seconds, convert to milliseconds
+          if (chartData.staticMarks && chartData.staticMarks.length > 0) {
+            config.staticMarks = convertStaticMarks(chartData.staticMarks);
+          }
+          // applyConfig has internal safety check: !candleViewRef.current || !isReady
+          if (Object.keys(config).length > 0) {
+            chartRef.current.applyConfig(config);
+          }
+        }
+      }
+    };
+    window.addEventListener("chart-data-updated", handleChartDataUpdated as EventListener);
+    return () => {
+      window.removeEventListener("chart-data-updated", handleChartDataUpdated as EventListener);
+    };
+  }, [convertStaticMarks]);
+  /**
+   * Listen for the existing 'open-chart-with-data' event from Chart.tsx
+   */
+  useEffect(() => {
+    const handleOpenChartWithData = (event: CustomEvent) => {
+      const { taskData } = event.detail;
+      if (taskData?.final_output) {
+        try {
+          const parsedData = JSON.parse(taskData.final_output);
+          if (parsedData.terminalResponse?.chart) {
+            const chartData = parsedData.terminalResponse.chart;
+            // 1. Handle symbol loading - dispatch event only
+            if (chartData.symbol) {
+              window.dispatchEvent(
+                new CustomEvent(SET_CHART_DATA, {
+                  detail: { symbol: chartData.symbol },
+                }),
+              );
+            }
+            // 2. Handle DSL script
+            if (chartData.dslScript) {
+              if (dslRef.current) {
+                dslRef.current.setScript(chartData.dslScript);
+                if (chartData.autoExecuteDSL !== false) {
+                  setTimeout(() => {
+                    dslRef.current?.execute();
+                  }, 300);
+                }
+              }
+            }
+            // 3. Apply config with timestamp conversion for static marks
+            if (chartRef.current) {
+              const config: any = {};
+              if (chartData.chartType) config.chartType = chartData.chartType;
+              if (chartData.title) config.title = chartData.title;
+              if (chartData.mainIndicators) config.mainIndicators = chartData.mainIndicators;
+              if (chartData.subIndicators) config.subIndicators = chartData.subIndicators;
+              if (chartData.staticMarks && chartData.staticMarks.length > 0) {
+                config.staticMarks = convertStaticMarks(chartData.staticMarks);
+              }
+              if (Object.keys(config).length > 0) {
+                chartRef.current.applyConfig(config);
+              }
+            }
+          }
+        } catch (e) {
+          // Not JSON or no chart data
+        }
+      }
+    };
+    window.addEventListener("open-chart-with-data", handleOpenChartWithData as EventListener);
+    return () => {
+      window.removeEventListener("open-chart-with-data", handleOpenChartWithData as EventListener);
+    };
+  }, [convertStaticMarks]);
   // Engine check for DSL
   useEffect(() => {
     const checkEngine = () => {
@@ -303,6 +469,18 @@ export const MainPanel: React.FC<MainPanelProps> = ({ theme, i18n, currentSessio
     const interval = setInterval(checkEngine, 300);
     return () => clearInterval(interval);
   }, []);
+  /**
+   * Load default Bitcoin data on component mount
+   * This ensures the chart shows data immediately when the page loads
+   */
+  useEffect(() => {
+    // Load Bitcoin data by default if no data is provided via props
+    if (!data || data.length === 0) {
+      const defaultSymbol = "BTC/USDT";
+      const defaultName = "BTC";
+      fetchDataForSymbol(defaultSymbol, defaultName, "101", 300, "crypto");
+    }
+  }, [data, fetchDataForSymbol]);
   // Function area resizing handlers
   const startFunctionResizing = useCallback(
     (e: React.MouseEvent) => {
@@ -322,7 +500,6 @@ export const MainPanel: React.FC<MainPanelProps> = ({ theme, i18n, currentSessio
       const deltaY = startYRef.current - e.clientY;
       const deltaPercent = (deltaY / rect.height) * 100;
       let newHeight = startFunctionHeightRef.current + deltaPercent;
-      // 最大 77% (预留功能条 3% + 最小 Chart 20%)
       newHeight = Math.max(15, Math.min(77, newHeight));
       setFunctionHeight(newHeight);
     },
@@ -417,8 +594,19 @@ export const MainPanel: React.FC<MainPanelProps> = ({ theme, i18n, currentSessio
   }, [isMarketResizing, handleMarketMouseMove, stopMarketResizing]);
   const rightWidth = isMarketCollapsed ? 0 : marketPanelWidth;
   const leftWidth = `calc(100% - ${rightWidth}px)`;
-  // 功能区高度：展开时固定百分比，折叠时为 0
-  const actualFunctionHeight = isDslCollapsed ? 0 : functionHeight;
+  const renderFunctionContent = () => {
+    switch (activeFunctionTab) {
+      case "news":
+        return <NewsPanel theme={theme} i18n={i18n} language={isZh ? "zh" : "en"} />;
+      case "dsl":
+      default:
+        return (
+          <div className="dsl-content-wrapper">
+            <DSL ref={dslRef} theme={theme} i18n={i18n} editorWidth={editorWidth} onStartEditorResize={startEditorResizing} engineRef={engineRef} />
+          </div>
+        );
+    }
+  };
   return (
     <div
       ref={containerRef}
@@ -529,6 +717,11 @@ export const MainPanel: React.FC<MainPanelProps> = ({ theme, i18n, currentSessio
         .function-area.collapsed {
           height: 0 !important;
           min-height: 0 !important;
+          max-height: 0 !important;
+          overflow: hidden;
+          padding: 0;
+          margin: 0;
+          border: none;
         }
         .dsl-content-wrapper {
           flex: 1;
@@ -553,6 +746,20 @@ export const MainPanel: React.FC<MainPanelProps> = ({ theme, i18n, currentSessio
           overflow: hidden;
           position: relative;
           z-index: 5;
+        }
+        .function-bar-left {
+          display: flex;
+          align-items: center;
+          gap: 2px;
+          overflow: hidden;
+          flex: 1;
+        }
+        .function-bar-right {
+          display: flex;
+          align-items: center;
+          gap: 2px;
+          flex-shrink: 0;
+          min-width: 22px;
         }
         .function-button {
           display: flex;
@@ -579,38 +786,31 @@ export const MainPanel: React.FC<MainPanelProps> = ({ theme, i18n, currentSessio
           color: var(--text-primary);
           border-color: var(--accent-color);
         }
-        .function-button .indicator {
-          font-size: 8px;
-          margin-left: 2px;
-          opacity: 0.6;
-        }
         .function-divider {
           width: 1px;
           height: 16px;
           background: var(--border-color);
           flex-shrink: 0;
         }
-        .close-btn {
+        .function-collapse-btn {
           display: flex;
           align-items: center;
           justify-content: center;
-          padding: 3px;
-          border-radius: 4px;
-          border: none;
-          background: transparent;
-          color: var(--text-muted);
-          cursor: pointer;
-          transition: all 0.15s ease;
           width: 22px;
           height: 22px;
+          border-radius: 4px;
+          border: 1px solid transparent;
+          background: transparent;
+          color: var(--text-secondary);
+          cursor: pointer;
+          transition: all 0.15s ease;
+          padding: 0;
+          flex-shrink: 0;
         }
-        .close-btn:hover {
+        .function-collapse-btn:hover {
           background: var(--hover-bg);
           color: var(--text-primary);
-        }
-        .close-btn.danger:hover {
-          background: rgba(239, 68, 68, 0.12);
-          color: #ef4444;
+          border-color: var(--border-color);
         }
         .chart-container {
           flex: 1;
@@ -632,7 +832,6 @@ export const MainPanel: React.FC<MainPanelProps> = ({ theme, i18n, currentSessio
           }
         }
       `}</style>
-      {/* Left panel: Chart + Function Area + Function Bar */}
       <div
         style={{
           width: leftWidth,
@@ -643,7 +842,6 @@ export const MainPanel: React.FC<MainPanelProps> = ({ theme, i18n, currentSessio
           flexShrink: 0,
         }}
       >
-        {/* Chart area - flex:1 自动占满剩余空间 */}
         <div className="chart-container">
           <Chart ref={chartRef} theme={theme} i18n={i18n} symbol={chartSymbol} data={chartDataFromProps} chartData={chartDataState} isValidData={isValidData} onTimeframeChange={handleTimeframeChange} />
           {isMarketCollapsed && (
@@ -683,62 +881,40 @@ export const MainPanel: React.FC<MainPanelProps> = ({ theme, i18n, currentSessio
             </button>
           )}
         </div>
-        {/* 功能区拖拽分割线 - 仅在 DSL 展开时显示 */}
-        {!isDslCollapsed && <div className="function-resize-handle" onMouseDown={startFunctionResizing} />}
-        {/* 功能区 - 可折叠，固定高度，在功能条上方 */}
-        <div
-          className={`function-area ${isDslCollapsed ? "collapsed" : ""}`}
-          style={{
-            height: isDslCollapsed ? 0 : `${functionHeight}%`,
-            minHeight: isDslCollapsed ? 0 : "15%",
-            maxHeight: isDslCollapsed ? 0 : "77%",
-          }}
-        >
-          {/* DSL 内容 - 占满功能区空间 */}
-          <div className="dsl-content-wrapper">
-            <DSL ref={dslRef} theme={theme} i18n={i18n} editorWidth={editorWidth} onStartEditorResize={startEditorResizing} engineRef={engineRef} />
-          </div>
-        </div>
-        {/* 功能按钮条 - 独立占位，始终在最底部 */}
+        {!isFunctionCollapsed && (
+          <>
+            <div className="function-resize-handle" onMouseDown={startFunctionResizing} />
+            <div
+              className="function-area"
+              style={{
+                height: `${functionHeight}%`,
+                minHeight: "15%",
+                maxHeight: "77%",
+              }}
+            >
+              {renderFunctionContent()}
+            </div>
+          </>
+        )}
         <div className="function-bar">
-          {/* 左侧：功能按钮 */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "2px",
-              overflow: "hidden",
-              flex: 1,
-            }}
-          >
+          <div className="function-bar-left">
             {functionButtons.map((btn, index) => (
               <React.Fragment key={btn.id}>
                 {index > 0 && <div className="function-divider" />}
-                <button className={`function-button ${btn.id === "dsl" && isDslCollapsed ? "active" : ""}`} onClick={() => handleFunctionClick(btn.id)} title={btn.label}>
+                <button className={`function-button ${btn.id === activeFunctionTab ? "active" : ""}`} onClick={() => handleFunctionClick(btn.id)} title={btn.label}>
                   {btn.icon}
                   <span className="label-text">{btn.label}</span>
-                  {btn.id === "dsl" && <span className="indicator">{isDslCollapsed ? "▼" : "▲"}</span>}
                 </button>
               </React.Fragment>
             ))}
           </div>
-          {/* 右侧：折叠/展开按钮 */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "2px",
-              flexShrink: 0,
-            }}
-          >
-            <div className="function-divider" />
-            <button className="close-btn danger" onClick={toggleDslCollapse} title={isDslCollapsed ? (isZh ? "展开 DSL" : "Expand DSL") : isZh ? "收起 DSL" : "Collapse DSL"}>
-              {isDslCollapsed ? <Maximize2 size={14} /> : <Minimize2 size={14} />}
+          <div className="function-bar-right">
+            <button className="function-collapse-btn" onClick={handleToggleFunctionCollapse} title={isFunctionCollapsed ? (isZh ? "展开功能区域" : "Expand function area") : isZh ? "收起功能区域" : "Collapse function area"}>
+              {isFunctionCollapsed ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
             </button>
           </div>
         </div>
       </div>
-      {/* Market panel resize handle */}
       {!isMarketCollapsed && (
         <div
           className="market-resize-handle"
@@ -759,7 +935,6 @@ export const MainPanel: React.FC<MainPanelProps> = ({ theme, i18n, currentSessio
           }}
         />
       )}
-      {/* Market panel */}
       {!isMarketCollapsed && (
         <div
           style={{
@@ -774,7 +949,6 @@ export const MainPanel: React.FC<MainPanelProps> = ({ theme, i18n, currentSessio
           <MarketPanel theme={theme} i18n={i18n} onCryptoClick={handleCryptoClick} onStockClick={handleStockClick} onAStockClick={handleAStockClick} onPerpetualClick={handlePerpetualClick} isCollapsed={isMarketCollapsed} onToggleCollapse={toggleMarketPanel} />
         </div>
       )}
-      {/* Overlays for resizing */}
       {isFunctionResizing && (
         <div
           style={{

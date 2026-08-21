@@ -13,7 +13,8 @@ import { ChatIcon, TaskQueueIcon, UserIcon, AttachmentIcon, FolderIcon, ChevronR
 import { zhDefaultPrompts, enDefaultPrompts } from "../../../types/DefaultPrompt";
 import { ChatMessage, RoleEnum, MessageStatus } from "../../../types/types";
 import { chartSessionCommands } from "../../../command/session/finance";
-import { isStructuredLLMResponse, parseLLMResponse } from "../llm/utils";
+import { isStructuredLLMResponse, parseLLMResponse, hasChartData } from "../llm/utils";
+import { dispatchChartDataUpdated } from "../FinanceWindowsEventsManager";
 interface ChartChatPanelProps {
   onSendMessage: (message: string, sessionId: string, files?: UploadFile[], workflowMode?: string) => void | Promise<void>;
   onFileClick?: (file: UploadFile) => void;
@@ -278,7 +279,6 @@ const ChartChatPanel: React.FC<ChartChatPanelProps> = ({
     } else {
       prevMessageCountRef.current = 0;
       isFirstLoadRef.current = true;
-      // setSuggestionPrompts([]);
     }
     return () => {
       if (suggestionTimerRef.current) {
@@ -770,6 +770,33 @@ const ChartChatPanel: React.FC<ChartChatPanelProps> = ({
     }
     return { right: 0, top: 0 };
   })();
+  /**
+   * Process LLM responses and dispatch chart data events
+   * This is the primary integration point between LLM responses and chart rendering
+   * When a new LLM message arrives with chart data, we dispatch an event for MainPanel to handle
+   */
+  const processedChartMessageIdsRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    const lastMsg = messages.length > 0 ? messages[messages.length - 1] : null;
+    if (!lastMsg || lastMsg.role !== RoleEnum.LLM) return;
+    if (lastMsg.status === MessageStatus.Pending) return;
+    if (lastMsg.status === MessageStatus.Failed) return;
+    if (lastMsg.status === MessageStatus.Cancelled) return;
+    // Skip if already processed - prevents infinite loop
+    if (processedChartMessageIdsRef.current.has(lastMsg.id)) {
+      return;
+    }
+    if (hasChartData(lastMsg.content)) {
+      console.log("[ChartChatPanel] Detected chart data in LLM response, dispatching event");
+      // Mark as processed BEFORE dispatching to prevent re-entry
+      processedChartMessageIdsRef.current.add(lastMsg.id);
+      dispatchChartDataUpdated({
+        content: lastMsg.content,
+        messageId: lastMsg.id,
+        sessionId: currentSessionId,
+      });
+    }
+  }, [messages, currentSessionId]);
   return (
     <div
       className="codeeditor-chat-panel"
@@ -780,6 +807,7 @@ const ChartChatPanel: React.FC<ChartChatPanelProps> = ({
         overflow: "hidden",
       }}
     >
+      {/* Panel Header */}
       <div className="panel-header" style={{ paddingTop: "6px", paddingBottom: "6px" }}>
         <div className="header-title">
           <span className="title-icon">
@@ -816,12 +844,8 @@ const ChartChatPanel: React.FC<ChartChatPanelProps> = ({
               fontSize: "16px",
               flexShrink: 0,
             }}
-            onMouseEnter={(e) => {
-              handleNavButtonMouseEnter();
-            }}
-            onMouseLeave={(e) => {
-              handleNavButtonMouseLeave();
-            }}
+            onMouseEnter={() => handleNavButtonMouseEnter()}
+            onMouseLeave={() => handleNavButtonMouseLeave()}
             title={t("chat.navigation") || "Navigation"}
           >
             <TaskQueueIcon size={16} />
@@ -856,6 +880,7 @@ const ChartChatPanel: React.FC<ChartChatPanelProps> = ({
           </button>
         </div>
       </div>
+      {/* Navigation Bubble */}
       {showNavBubble && (
         <div
           className="chat-nav-bubble"
@@ -959,6 +984,7 @@ const ChartChatPanel: React.FC<ChartChatPanelProps> = ({
           </div>
         </div>
       )}
+      {/* Messages */}
       <div className="chat-messages-wrapper">
         <div className="chat-messages" ref={messagesContainerRef} onScroll={handleUserScroll}>
           {messages.map((msg, index) => {
@@ -1078,6 +1104,7 @@ const ChartChatPanel: React.FC<ChartChatPanelProps> = ({
           </div>
         )}
       </div>
+      {/* Input */}
       <div className="chat-input-section">
         <div className={`chat-input-container ${isFocused ? "focused" : ""}`} onClick={handleContainerClick}>
           <div className="file-uploader-container" style={{ display: uploadedFiles.length > 0 ? "block" : "none" }}>
@@ -1177,4 +1204,5 @@ const ChartChatPanel: React.FC<ChartChatPanelProps> = ({
     </div>
   );
 };
+ChartChatPanel.displayName = "ChartChatPanel";
 export default ChartChatPanel;

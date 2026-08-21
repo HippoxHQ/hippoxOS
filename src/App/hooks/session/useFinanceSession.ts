@@ -6,7 +6,7 @@ import { TaskInfo, UploadFile, TaskStatusEnum, SessionDomain } from "../../../co
 import { Language, ChatMessage, RoleEnum, MessageStatus } from "../../../types/types";
 import { workspaceCommands } from "../../../command/workspace";
 import { chartSessionCommands } from "../../../command/session/finance";
-import { getFinanceSystemPrompt } from "../../../subsystem/Finance/llm/prompts/basis";
+import { getFinanceSystemPrompt } from "../../../subsystem/Finance/llm/prompts";
 export function useFinanceSession(
     language: Language,
     isConfigLoaded: boolean,
