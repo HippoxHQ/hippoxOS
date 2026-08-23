@@ -57,24 +57,29 @@ export interface TaskInfo {
     /** Files uploaded as part of this task */
     files?: UploadFile[];
     workflow_mode?: string;
+    /**
+    * Whether the LLM function commands from this task have been executed.
+    * Used to prevent duplicate execution of the same task.
+    */
+    executed?: boolean;
 }
- /**
- * Task step information - represents a single execution step within a task
- * 
- * A TaskStepInfo represents one atomic operation/action executed as part of a larger task.
- * Steps are executed sequentially and each step's output serves as context for subsequent steps.
- * 
- * Relationships:
- * - Many TaskStepInfo belong to one TaskInfo (many-to-one relationship)
- * - Steps are ordered by step_index
- * - Each step belongs to the parent task via the containing TaskInfo
- * 
- * Execution Flow:
- * 1. Step starts → status: RUNNING, started_at set, log added
- * 2. Step progresses → progress updates (0-100), progress_message updates, log added
- * 3. Step completes → status: SUCCESS, output set, completed_at set, log added
- * 4. Step fails → status: FAILURE, error set, completed_at set, log added
- */
+/**
+* Task step information - represents a single execution step within a task
+* 
+* A TaskStepInfo represents one atomic operation/action executed as part of a larger task.
+* Steps are executed sequentially and each step's output serves as context for subsequent steps.
+* 
+* Relationships:
+* - Many TaskStepInfo belong to one TaskInfo (many-to-one relationship)
+* - Steps are ordered by step_index
+* - Each step belongs to the parent task via the containing TaskInfo
+* 
+* Execution Flow:
+* 1. Step starts → status: RUNNING, started_at set, log added
+* 2. Step progresses → progress updates (0-100), progress_message updates, log added
+* 3. Step completes → status: SUCCESS, output set, completed_at set, log added
+* 4. Step fails → status: FAILURE, error set, completed_at set, log added
+*/
 export interface TaskStepInfo {
     /** Step order/index within the parent task (0-based) */
     step_index: number;
@@ -104,7 +109,7 @@ export interface TaskStepInfo {
      */
     logs?: string[];
 }
- export enum TaskStatusEnum {
+export enum TaskStatusEnum {
     Pending = "pending",
     Running = "running",
     Paused = "paused",
@@ -113,7 +118,7 @@ export interface TaskStepInfo {
     Failed = "failed",
     Timeout = "timeout",
 }
- export enum StepStatusEnum {
+export enum StepStatusEnum {
     Waiting = "WAITING",
     Running = "RUNNING",
     Success = "SUCCESS",
@@ -123,7 +128,7 @@ export interface TaskStepInfo {
     Paused = "paused",
     Cancelled = "cancelled",
 }
- export interface UploadFile {
+export interface UploadFile {
     id: string;
     file: File;
     name: string;
@@ -135,7 +140,7 @@ export interface TaskStepInfo {
     progress?: number;
     path?: string;
 }
- export enum SessionDomain {
+export enum SessionDomain {
     General = "general",
     Chart = "chart",
     Map = "map",
@@ -143,4 +148,3 @@ export interface TaskStepInfo {
     Video = "video",
     SandBox3D = "sandbox3d",
 }
- 

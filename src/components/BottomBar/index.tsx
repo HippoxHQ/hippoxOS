@@ -9,6 +9,7 @@ import { LlmInstance } from "../../command/llm";
 import { systemNotificationService } from "../../core/NotificationManager";
 import { basisCommands } from "../../command/basis";
 import { healthCommands, HealthCheckResult } from "../../command/health";
+import SystemResourceMonitor from "./SystemResourceMonitor";
 interface IconProps {
   className?: string;
   size?: number;
@@ -334,6 +335,8 @@ const BottomBar: React.FC<BottomBarProps> = ({ t }) => {
           </button>
         </div>
         <div className="bottom-bar-right">
+          {/* System resource monitoring */}
+          <SystemResourceMonitor t={t} />
           {!hippoxVersion ? (
             <span className="version-info">{t("common.loading")}</span>
           ) : (
@@ -366,30 +369,9 @@ const BottomBar: React.FC<BottomBarProps> = ({ t }) => {
           </button>
         </div>
       </div>
-      <ModelSelector
-        isOpen={modelPopupVisible}
-        onClose={() => setModelPopupVisible(false)}
-        llmInstances={llmInstances}
-        defaultInstanceId={defaultInstanceId}
-        onSetDefaultModel={handleSetDefaultModel}
-        t={t}
-        anchorRef={modelButtonRef as React.RefObject<HTMLElement>}
-        popupRef={modelPopupRef}
-      />
-      <NotificationCenter
-        isOpen={notificationCenterVisible}
-        onClose={() => setNotificationCenterVisible(false)}
-        anchorRef={notificationButtonRef as React.RefObject<HTMLElement>}
-        t={t}
-        popupRef={notificationPopupRef}
-      />
-      <ScheduledTasksStatus
-        isOpen={scheduledTasksVisible}
-        onClose={() => setScheduledTasksVisible(false)}
-        anchorRef={scheduledTasksButtonRef as React.RefObject<HTMLElement>}
-        t={t}
-        popupRef={scheduledTasksPopupRef}
-      />
+      <ModelSelector isOpen={modelPopupVisible} onClose={() => setModelPopupVisible(false)} llmInstances={llmInstances} defaultInstanceId={defaultInstanceId} onSetDefaultModel={handleSetDefaultModel} t={t} anchorRef={modelButtonRef as React.RefObject<HTMLElement>} popupRef={modelPopupRef} />
+      <NotificationCenter isOpen={notificationCenterVisible} onClose={() => setNotificationCenterVisible(false)} anchorRef={notificationButtonRef as React.RefObject<HTMLElement>} t={t} popupRef={notificationPopupRef} />
+      <ScheduledTasksStatus isOpen={scheduledTasksVisible} onClose={() => setScheduledTasksVisible(false)} anchorRef={scheduledTasksButtonRef as React.RefObject<HTMLElement>} t={t} popupRef={scheduledTasksPopupRef} />
     </>
   );
 };

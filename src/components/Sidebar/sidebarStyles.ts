@@ -8,7 +8,7 @@ export const sidebarStyles = `
     align-items: center;
     flex-shrink: 0;
     user-select: none;
-    z-index: 100;
+    z-index: 300;
     position: relative;
     justify-content: space-between;
   }
@@ -95,7 +95,7 @@ export const sidebarStyles = `
     width: 280px;
     max-height: 500px;
     overflow-y: auto;
-    z-index: 201;
+    z-index: 300;
   }
    .menu-popup::-webkit-scrollbar {
     width: 4px;

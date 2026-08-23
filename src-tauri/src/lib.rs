@@ -21,7 +21,6 @@ use crate::events::handle_window_event;
 use crate::hippox_core::*;
 use crate::scheduled_task::*;
 use crate::state::AppState;
-use crate::subsystem::videoeditor::register_video_editor_hippox_drivers;
 use crate::windows::TrayManager;
 use crate::workspace::ensure_workspace_config;
 use hippox::get_hippox_core_config;
@@ -37,10 +36,6 @@ use tauri_plugin_fs;
 pub fn run() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     let app_state = AppState::new();
-    // =========== Hippox Drivers Register ===========
-    // register video editor hippox drivers
-    register_video_editor_hippox_drivers();
-    // ===============================================
     // init dir
     if let Err(e) = commands::init_directories() {
         log::error!("Failed to initialize directories: {}", e);

@@ -247,7 +247,7 @@ pub async fn cmd_terminal_create(request: TerminalCreateRequest, app_handle: tau
         let mut handles = TASK_HANDLES.lock().await;
         handles.insert(session_id.clone(), handle);
     }
-    Ok(TerminalSession { id: session_id, pid, cwd, cols, rows, created_at: chrono::Local::now().to_rfc3339(), is_alive: true })
+    Ok(TerminalSession { id: session_id, pid, cwd, cols, rows, created_at: chrono::Local::now().timestamp_millis().to_string(), is_alive: true })
 }
 #[command]
 pub async fn cmd_terminal_input(request: TerminalInputRequest) -> Result<bool, String> {
