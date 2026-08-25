@@ -1,12 +1,18 @@
 import React, { useState, useEffect } from "react";
 import MetricsGrid from "./components/responsearea/MetricsGrid";
 import DataTable from "./components/responsearea/DataTable";
+import MindMapRenderer from "./components/responsearea/MindMapRenderer";
+import ChartRenderer from "./components/responsearea/ChartRenderer";
+import TimelineRenderer from "./components/responsearea/TimelineRenderer";
+import ComparisonRenderer from "./components/responsearea/ComparisonRenderer";
+import AudioPlayer from "./components/responsearea/AudioPlayer";
+import VideoPlayer from "./components/responsearea/VideoPlayer";
+import WebViewRenderer from "./components/responsearea/WebViewRenderer";
 import { urlCommands } from "../../../command/url";
 import { openUrl } from "../../../utils";
 import { UploadFile } from "../../../core/types";
 import { filesCommands } from "../../../command/files";
 import { ResourceLink, TerminalResponse } from "../llm/types";
-
 interface LinkMetadata {
   title: string;
   description: string;
@@ -15,7 +21,6 @@ interface LinkMetadata {
   themeColor: string;
   isLoading: boolean;
 }
-
 const getDomainFromUrl = (url: string): string => {
   try {
     const urlObj = new URL(url);
@@ -24,7 +29,6 @@ const getDomainFromUrl = (url: string): string => {
     return url;
   }
 };
-
 const getDefaultThemeColor = (domain: string): string => {
   let hash = 0;
   for (let i = 0; i < domain.length; i++) {
@@ -34,7 +38,6 @@ const getDefaultThemeColor = (domain: string): string => {
   const hue = Math.abs(hash % 360);
   return `hsl(${hue}, 70%, 55%)`;
 };
-
 const getFallbackIcon = (domain: string): string => {
   const iconMap: Record<string, string> = {
     "google.com": "🔍",
@@ -58,14 +61,12 @@ const getFallbackIcon = (domain: string): string => {
     "qq.com": "🐧",
     "163.com": "📧",
   };
-
   if (iconMap[domain]) return iconMap[domain];
   for (const [key, icon] of Object.entries(iconMap)) {
     if (domain.endsWith(key)) return icon;
   }
   return "🌐";
 };
-
 const LinkItem: React.FC<{
   link: ResourceLink;
   type: "remote" | "local";
@@ -79,16 +80,13 @@ const LinkItem: React.FC<{
     themeColor: "",
     isLoading: true,
   });
-
   const domain = getDomainFromUrl(link.u);
-
   useEffect(() => {
     const fetchMetadata = async () => {
       if (type === "local" || !link.u.startsWith("http")) {
         setMetadata((prev) => ({ ...prev, isLoading: false }));
         return;
       }
-
       try {
         const result = await urlCommands.getUrlMetadata(link.u);
         setMetadata({
@@ -109,10 +107,8 @@ const LinkItem: React.FC<{
         }));
       }
     };
-
     fetchMetadata();
   }, [link.u, link.n, link.d, domain, type]);
-
   const handleClick = async () => {
     if (link.u.startsWith("http://") || link.u.startsWith("https://")) {
       try {
@@ -154,7 +150,6 @@ const LinkItem: React.FC<{
       console.error("Failed to open:", error);
     }
   };
-
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
     e.currentTarget.style.display = "none";
     const parent = e.currentTarget.parentElement;
@@ -165,7 +160,6 @@ const LinkItem: React.FC<{
       }
     }
   };
-
   const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
     e.currentTarget.style.display = "block";
     const parent = e.currentTarget.parentElement;
@@ -359,7 +353,6 @@ const LinkItem: React.FC<{
           </span>
         </div>
       </div>
-
       <div style={{ flex: 1, minWidth: 0, padding: "8px 10px 8px 0" }}>
         <div
           style={{
@@ -403,7 +396,6 @@ const LinkItem: React.FC<{
           {domain}
         </div>
       </div>
-
       <span
         style={{
           fontSize: "11px",
@@ -417,7 +409,6 @@ const LinkItem: React.FC<{
     </div>
   );
 };
-
 const CommandsList: React.FC<{
   commands: string[];
   t: (key: string) => string;
@@ -489,24 +480,20 @@ const CommandsList: React.FC<{
     </div>
   );
 };
-
 const CodeBlock: React.FC<{
   block: { language: string; code: string; description?: string };
   t: (key: string) => string;
 }> = ({ block, t }) => {
   const [copied, setCopied] = React.useState(false);
   const [expanded, setExpanded] = React.useState(false);
-
   const copyCode = async () => {
     await navigator.clipboard.writeText(block.code);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
-
   const lines = block.code.split("\n");
   const shouldCollapse = lines.length > 15;
   const displayCode = expanded || !shouldCollapse ? block.code : lines.slice(0, 15).join("\n") + "\n...";
-
   return (
     <div className="terminal-code-block" style={{ margin: "8px 0" }}>
       {block.description && (
@@ -586,7 +573,6 @@ const CodeBlock: React.FC<{
     </div>
   );
 };
-
 const WarningsList: React.FC<{
   warnings: string[];
   t: (key: string) => string;
@@ -627,7 +613,6 @@ const WarningsList: React.FC<{
     </div>
   );
 };
-
 const StatusBanner: React.FC<{
   status: string;
   message: string;
@@ -640,7 +625,6 @@ const StatusBanner: React.FC<{
       warning: t("terminal.warning") || "Warning",
       info: t("terminal.info") || "Info",
     }[status] || status;
-
   const config = {
     success: { icon: "✅", color: "#4caf50", bg: "rgba(76, 175, 80, 0.1)" },
     error: { icon: "❌", color: "#ff4444", bg: "rgba(255, 68, 68, 0.1)" },
@@ -684,7 +668,6 @@ const StatusBanner: React.FC<{
     </div>
   );
 };
-
 const TextMessage: React.FC<{ text: string }> = ({ text }) => {
   if (!text || !text.trim()) return null;
   return (
@@ -703,41 +686,62 @@ const TextMessage: React.FC<{ text: string }> = ({ text }) => {
     </div>
   );
 };
-
-export function renderTerminalResponse(terminalResponse: TerminalResponse | null, t: (key: string) => string, onFileClick?: (file: UploadFile) => void): React.ReactNode {
+export function renderTerminalResponse(terminalResponse: TerminalResponse | null, t: (key: string) => string, onFileClick?: (file: UploadFile) => void, isZh?: boolean): React.ReactNode {
   if (!terminalResponse) return null;
   const elements: React.ReactNode[] = [];
-
+  // Status banner (shows status and message)
   if (terminalResponse.status && terminalResponse.m) {
     elements.push(<StatusBanner key="status" status={terminalResponse.status} message={terminalResponse.m} t={t} />);
   } else if (terminalResponse.m && terminalResponse.m.trim()) {
     elements.push(<TextMessage key="message" text={terminalResponse.m} />);
   }
-
+  // Warnings
   if (terminalResponse.warnings?.length) {
     elements.push(<WarningsList key="warnings" warnings={terminalResponse.warnings} t={t} />);
   }
-
+  // Metrics grid (shows key metrics with bar chart)
   if (terminalResponse.metrics?.length) {
     elements.push(<MetricsGrid key="metrics" metrics={terminalResponse.metrics} t={t} />);
   }
-
+  // Tables
   if (terminalResponse.tables && terminalResponse.tables.length > 0) {
     terminalResponse.tables.forEach((table, idx) => {
       elements.push(<DataTable key={`table-${idx}`} table={table} t={t} onFileClick={onFileClick} />);
     });
   }
-
+  if (terminalResponse.chart) {
+    elements.push(<ChartRenderer key="chart" data={terminalResponse.chart} t={t} isZh={isZh} />);
+  }
+  if (terminalResponse.timeline) {
+    elements.push(<TimelineRenderer key="timeline" data={terminalResponse.timeline} t={t} isZh={isZh} />);
+  }
+  if (terminalResponse.comparison) {
+    elements.push(<ComparisonRenderer key="comparison" data={terminalResponse.comparison} t={t} isZh={isZh} />);
+  }
+  // Mind map - render using Mermaid
+  if (terminalResponse.mindmap) {
+    elements.push(<MindMapRenderer key="mindmap" data={terminalResponse.mindmap} t={t} isZh={isZh} />);
+  }
+  if (terminalResponse.audio && terminalResponse.audio.length > 0) {
+    elements.push(<AudioPlayer key="audio" audios={terminalResponse.audio} t={t} isZh={isZh} />);
+  }
+  if (terminalResponse.video && terminalResponse.video.length > 0) {
+    elements.push(<VideoPlayer key="video" videos={terminalResponse.video} t={t} isZh={isZh} />);
+  }
+  if (terminalResponse.webview && terminalResponse.webview.length > 0) {
+    elements.push(<WebViewRenderer key="webview" data={terminalResponse.webview} t={t} isZh={isZh} />);
+  }
+  // Code blocks
   if (terminalResponse.codeBlocks && terminalResponse.codeBlocks.length > 0) {
     terminalResponse.codeBlocks.forEach((block, idx) => {
       elements.push(<CodeBlock key={`code-${idx}`} block={block} t={t} />);
     });
   }
-
+  // Commands
   if (terminalResponse.commands && terminalResponse.commands.length > 0) {
     elements.push(<CommandsList key="commands" commands={terminalResponse.commands} t={t} />);
   }
-
+  // Remote links
   if (terminalResponse.links && terminalResponse.links.length > 0) {
     elements.push(
       <div
@@ -756,7 +760,7 @@ export function renderTerminalResponse(terminalResponse: TerminalResponse | null
       elements.push(<LinkItem key={`link-${idx}`} link={link} type="remote" t={t} />);
     });
   }
-
+  // Local links
   if (terminalResponse.local && terminalResponse.local.length > 0) {
     elements.push(
       <div
@@ -775,13 +779,10 @@ export function renderTerminalResponse(terminalResponse: TerminalResponse | null
       elements.push(<LinkItem key={`local-${idx}`} link={link} type="local" t={t} />);
     });
   }
-
   return <>{elements}</>;
 }
-
 export function isTerminalResponseEmpty(terminalResponse: TerminalResponse | null): boolean {
   if (terminalResponse === null) return true;
-
   const tr = terminalResponse;
   const hasContent =
     (tr.m && tr.m.trim()) ||
@@ -791,7 +792,13 @@ export function isTerminalResponseEmpty(terminalResponse: TerminalResponse | nul
     (tr.codeBlocks && tr.codeBlocks.length > 0) ||
     (tr.tables && tr.tables.length > 0) ||
     (tr.metrics && tr.metrics.length > 0) ||
-    (tr.warnings && tr.warnings.length > 0);
-
+    (tr.warnings && tr.warnings.length > 0) ||
+    (tr.mindmap !== undefined && tr.mindmap !== null) ||
+    (tr.chart !== undefined && tr.chart !== null) ||
+    (tr.timeline !== undefined && tr.timeline !== null) ||
+    (tr.comparison !== undefined && tr.comparison !== null) ||
+    (tr.audio !== undefined && tr.audio !== null && tr.audio.length > 0) ||
+    (tr.video !== undefined && tr.video !== null && tr.video.length > 0) ||
+    (tr.webview !== undefined && tr.webview !== null && tr.webview.length > 0);
   return !hasContent;
 }

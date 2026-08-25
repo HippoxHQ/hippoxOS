@@ -6,7 +6,7 @@ import { TaskInfo, UploadFile, TaskStatusEnum, SessionDomain } from "../../../co
 import { Language, ChatMessage, RoleEnum, MessageStatus } from "../../../types/types";
 import { workspaceCommands } from "../../../command/workspace";
 import { sessionCommands } from "../../../command/session/general";
-import { getGeneralChatSystemPrompt } from "../../../subsystem/GeneralChat/llm/prompts/basis";
+import { getGeneralChatSystemPrompt } from "../../../subsystem/GeneralChat/llm/prompts";
 /**
 * Custom hook that manages the current session state and all session-related operations.
 * 

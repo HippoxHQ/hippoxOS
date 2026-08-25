@@ -16,6 +16,173 @@ export interface ResourceLink {
   t: string;
 }
 /**
+ * Mind map node structure for tree/flowchart visualization
+ */
+export interface MindMapNode {
+  /** Unique node identifier */
+  id: string;
+  /** Display label text */
+  label: string;
+  /** Child nodes */
+  children?: MindMapNode[];
+  /** Node color (hex, rgba, or hsl) */
+  color?: string;
+  /** Node style variant: circle, square, rounded */
+  style?: 'circle' | 'square' | 'rounded';
+  /** Icon emoji or text to display before label */
+  icon?: string;
+  /** Additional description or tooltip */
+  description?: string;
+}
+/**
+ * Mind map data structure for rendering tree diagrams
+ * Supports both tree format (root) and Mermaid format (definition)
+ */
+export interface MindMapData {
+  /** Root node of the tree (for tree format) */
+  root?: MindMapNode;
+  /** Mermaid diagram definition string (for Mermaid format) */
+  definition?: string;
+  /** Diagram type for Mermaid format: flowchart, mindmap, sequence, etc. */
+  type?: 'mindmap' | 'flowchart' | 'sequence' | 'class' | 'state' | 'er' | 'gantt' | 'pie' | 'git' | 'timeline' | 'journey' | 'quadrantchart' | 'sankey' | 'xychart-beta';
+  /** Title of the mind map */
+  title?: string;
+  /** Layout direction: vertical, horizontal, radial (for tree format) */
+  direction?: 'vertical' | 'horizontal' | 'radial';
+}
+/**
+ * Chart data for line/bar/area/scatter/pie charts
+ */
+export interface ChartData {
+  /** Chart type */
+  type: 'line' | 'bar' | 'area' | 'scatter' | 'pie';
+  /** Chart title */
+  title?: string;
+  /** X-axis label */
+  xAxisLabel?: string;
+  /** Y-axis label */
+  yAxisLabel?: string;
+  /** X-axis data (categories or labels) */
+  xAxisData: string[];
+  /** Series data */
+  series: ChartSeries[];
+  /** Colors for pie chart or series */
+  colors?: string[];
+}
+export interface ChartSeries {
+  /** Series name */
+  name: string;
+  /** Data values */
+  data: number[];
+  /** Color for this series (optional) */
+  color?: string;
+  /** Stack id for stacked bar charts (optional) */
+  stack?: string;
+}
+/**
+ * Timeline data for displaying event sequences
+ */
+export interface TimelineData {
+  /** Timeline title */
+  title?: string;
+  /** Events in chronological order */
+  events: TimelineEvent[];
+}
+export interface TimelineEvent {
+  /** Event date (ISO string or display string) */
+  date: string;
+  /** Event title */
+  title: string;
+  /** Event description (optional) */
+  description?: string;
+  /** Event icon emoji (optional) */
+  icon?: string;
+  /** Event color (optional) */
+  color?: string;
+  /** Event status (optional) */
+  status?: 'completed' | 'in-progress' | 'planned' | 'cancelled';
+}
+/**
+ * Comparison data for feature/option comparison tables
+ */
+export interface ComparisonData {
+  /** Comparison title */
+  title?: string;
+  /** Column headers (first column is the feature name) */
+  headers: string[];
+  /** Rows of comparison data */
+  rows: ComparisonRow[];
+  /** Highlight best values (default: true) */
+  highlightBest?: boolean;
+  /** Best value direction: 'higher' or 'lower' (default: 'higher') */
+  bestDirection?: 'higher' | 'lower';
+}
+export interface ComparisonRow {
+  /** Feature name */
+  feature: string;
+  /** Values for each option (match headers length - 1) */
+  values: (string | number)[];
+  /** Unit for this row (optional) */
+  unit?: string;
+  /** Whether this is a highlight row (optional) */
+  highlight?: boolean;
+}
+/**
+ * Audio resource for playback
+ */
+export interface AudioResource {
+  /** Audio title */
+  title: string;
+  /** Audio URL (local file path or remote URL) */
+  url: string;
+  /** Audio format: mp3, wav, ogg, flac, etc. */
+  format?: string;
+  /** Duration in seconds */
+  duration?: number;
+  /** Cover image URL */
+  cover?: string;
+  /** Artist name */
+  artist?: string;
+  /** Album name */
+  album?: string;
+}
+/**
+ * Video resource for playback
+ */
+export interface VideoResource {
+  /** Video title */
+  title: string;
+  /** Video URL */
+  url: string;
+  /** Thumbnail image URL */
+  thumbnail?: string;
+  /** Video format: mp4, webm, etc. */
+  format?: string;
+  /** Duration in seconds */
+  duration?: number;
+  /** Width */
+  width?: number;
+  /** Height */
+  height?: number;
+}
+/**
+ * WebView/IFrame resource for embedded browsing
+ */
+export interface WebViewResource {
+  /** URL to display */
+  url: string;
+  /** Title */
+  title?: string;
+  /** Width (default: 100%) */
+  width?: number | string;
+  /** Height (default: 400px) */
+  height?: number | string;
+  /** Allow fullscreen */
+  allowFullscreen?: boolean;
+  /** Sandbox attributes */
+  sandbox?: string;
+}
+/**
 * Terminal display result - structured, professional output
 */
 export interface TerminalResponse {
@@ -53,6 +220,20 @@ export interface TerminalResponse {
   earthview?: EarthViewOperation;
   /** CandleView chart operations */
   candleview?: CandleViewOperation;
+  /** Mind map data for tree/flowchart visualization */
+  mindmap?: MindMapData;
+  /** Chart data for line/bar/area/scatter/pie charts */
+  chart?: ChartData;
+  /** Timeline data for event sequences */
+  timeline?: TimelineData;
+  /** Comparison table data */
+  comparison?: ComparisonData;
+  /** Audio resources for playback */
+  audio?: AudioResource[];
+  /** Video resources for playback */
+  video?: VideoResource[];
+  /** WebView/IFrame resources for embedded browsing */
+  webview?: WebViewResource[];
 }
 /**
 * Dialog response data - read-only human-friendly information, concise, token-efficient
@@ -203,6 +384,20 @@ export function isValidHippoxOSResult(obj: any): obj is HippoxOSResult {
     // earthview and candleview are optional, just check they are objects if present
     if (tr.earthview !== undefined && typeof tr.earthview !== 'object') return false;
     if (tr.candleview !== undefined && typeof tr.candleview !== 'object') return false;
+    // mindmap is optional, check it's an object if present
+    if (tr.mindmap !== undefined && typeof tr.mindmap !== 'object') return false;
+    // chart is optional, check it's an object if present
+    if (tr.chart !== undefined && typeof tr.chart !== 'object') return false;
+    // timeline is optional, check it's an object if present
+    if (tr.timeline !== undefined && typeof tr.timeline !== 'object') return false;
+    // comparison is optional, check it's an object if present
+    if (tr.comparison !== undefined && typeof tr.comparison !== 'object') return false;
+    // audio is optional, check it's an object if present
+    if (tr.audio !== undefined && !Array.isArray(tr.audio)) return false;
+    // video is optional, check it's an object if present
+    if (tr.video !== undefined && !Array.isArray(tr.video)) return false;
+    // webview is optional, check it's an object if present
+    if (tr.webview !== undefined && !Array.isArray(tr.webview)) return false;
   }
   return true;
 }
