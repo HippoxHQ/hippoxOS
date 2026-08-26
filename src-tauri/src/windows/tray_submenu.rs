@@ -1,5 +1,7 @@
 use crate::types::{WindowIdentifier, WindowType};
 use tauri::{AppHandle, Emitter, Manager, Runtime, WebviewWindowBuilder, WindowEvent};
+const TRAY_SUB_MENU_WIDTH: f64 = 200.0;
+const TRAY_SUB_MENU_HEIGHT: f64 = 160.0;
 pub struct SubmenuManager;
 impl SubmenuManager {
     pub fn create_submenu_window<R: Runtime>(
@@ -22,9 +24,9 @@ impl SubmenuManager {
             (mouse_x as f64, mouse_y as f64)
         };
         let url_type = format!("{}", WindowType::TraySubmenu);
-        let menu_width = 200.0;
-        let menu_height = 300.0;
-        let mut pos_x = x - menu_width - 5.0;
+        // let menu_width = 200.0;
+        // let menu_height = 300.0;
+        let mut pos_x = x - TRAY_SUB_MENU_WIDTH - 5.0;
         let mut pos_y = y;
         if let Some(monitor) = app_handle.primary_monitor()? {
             let screen_width = monitor.size().width as f64;
@@ -34,13 +36,13 @@ impl SubmenuManager {
             if pos_x < screen_left {
                 pos_x = x + 260.0 + 5.0;
             }
-            if pos_x + menu_width > screen_right {
-                pos_x = screen_right - menu_width - 5.0;
+            if pos_x + TRAY_SUB_MENU_WIDTH > screen_right {
+                pos_x = screen_right - TRAY_SUB_MENU_WIDTH - 5.0;
             }
         }
         let window = WebviewWindowBuilder::new(app_handle, &window_label, tauri::WebviewUrl::App(format!("index.html?type={}", url_type).into()))
             .title("")
-            .inner_size(menu_width, menu_height)
+            .inner_size(TRAY_SUB_MENU_WIDTH, TRAY_SUB_MENU_HEIGHT)
             .position(pos_x, pos_y)
             .decorations(false)
             .always_on_top(true)

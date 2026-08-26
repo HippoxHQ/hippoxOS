@@ -20,14 +20,36 @@ export interface TaskFilter {
     task_type?: string[];
     limit?: number;
 }
+export interface TaskPoolPersistResult {
+    success: boolean;
+    message: string;
+    backup_file: string | null;
+    timestamp?: string;
+}
+export interface BackupFileInfo {
+    filename: string;
+    path: string;
+    size: number;
+    modified: number | null;
+}
+export interface CleanupResult {
+    success: boolean;
+    deleted_count: number;
+    message: string;
+}
 class TaskPoolManager {
     private tasks: Map<string, TaskInfo> = new Map();
     private listeners: Set<(tasks: TaskInfo[]) => void> = new Set();
     private statsListeners: Set<(stats: TaskPoolStats) => void> = new Set();
     private refreshInterval: NodeJS.Timeout | null = null;
     private autoRefresh: boolean = false;
+    private persistInterval: NodeJS.Timeout | null = null;
+    private autoPersistEnabled: boolean = false;
+    private lastTasksHash: string = '';
+    private isPersisting: boolean = false;
     constructor() {
         this.setupAutoRefresh();
+        this.setupAutoPersist();
     }
     private setupAutoRefresh() {
         if (this.autoRefresh) {
@@ -51,6 +73,100 @@ class TaskPoolManager {
             this.refreshInterval = null;
         }
         this.autoRefresh = false;
+    }
+    private setupAutoPersist() {
+        if (this.persistInterval) {
+            clearInterval(this.persistInterval);
+        }
+        this.autoPersistEnabled = true;
+        this.persistInterval = setInterval(() => {
+            this.autoPersist();
+        }, 60000); // 60 seconds
+    }
+    startAutoPersist(intervalMs: number = 60000) {
+        if (this.persistInterval) {
+            clearInterval(this.persistInterval);
+        }
+        this.autoPersistEnabled = true;
+        this.persistInterval = setInterval(() => {
+            this.autoPersist();
+        }, intervalMs);
+    }
+    stopAutoPersist() {
+        if (this.persistInterval) {
+            clearInterval(this.persistInterval);
+            this.persistInterval = null;
+        }
+        this.autoPersistEnabled = false;
+    }
+    /**
+     * Auto persist task pool data when there are changes
+     * Only persists if:
+     * 1. There are terminal tasks (completed/failed/cancelled/timeout)
+     * 2. Task data has changed since last persist
+     */
+    private async autoPersist() {
+        console.log('[TaskPool] autoPersist triggered');
+        if (this.isPersisting) return;
+        if (!this.autoPersistEnabled) return;
+        try {
+            await this.refresh();
+            const currentTasks = this.getAllTasksSync();
+            console.log('[TaskPool] Current tasks count:', currentTasks.length);
+            if (currentTasks.length === 0) {
+                console.log('[TaskPool] No tasks, skip persist');
+                return;
+            }
+            const currentHash = JSON.stringify(
+                currentTasks.map(t => ({
+                    task_id: t.task_id,
+                    status: t.status,
+                    updated_at: t.updated_at,
+                }))
+            );
+            if (currentHash === this.lastTasksHash) {
+                console.log('[TaskPool] No changes, skip persist');
+                return;
+            }
+            // Check if there are any terminal tasks
+            const hasTerminalTasks = currentTasks.some(t =>
+                t.status === TaskStatusEnum.Completed ||
+                t.status === TaskStatusEnum.Failed ||
+                t.status === TaskStatusEnum.Cancelled ||
+                t.status === TaskStatusEnum.Timeout
+            );
+            if (!hasTerminalTasks) {
+                console.log('[TaskPool] No terminal tasks, skip persist');
+                return;
+            }
+            this.isPersisting = true;
+            console.log('[TaskPool] Auto persisting task pool data...');
+            await this.persist();
+            this.lastTasksHash = currentHash;
+            this.isPersisting = false;
+        } catch (error) {
+            console.error('[TaskPool] Auto persist failed:', error);
+            this.isPersisting = false;
+        }
+    }
+    /**
+     * Force a persist operation (manual trigger)
+     * Updates the hash after successful persist
+     */
+    async forcePersist(): Promise<TaskPoolPersistResult> {
+        const result = await this.persist();
+        if (result.success) {
+            // Update hash after successful persist
+            const currentTasks = this.getAllTasksSync();
+            this.lastTasksHash = JSON.stringify(
+                currentTasks.map(t => ({
+                    task_id: t.task_id,
+                    status: t.status,
+                    updated_at: t.updated_at,
+                }))
+            );
+        }
+        return result;
     }
     async refresh(): Promise<void> {
         const tasks = await this.getAllTasks();
@@ -145,51 +261,53 @@ class TaskPoolManager {
         this.tasks.clear();
         this.notifyListeners();
     }
+    async persist(): Promise<TaskPoolPersistResult> {
+        return await invoke('cmd_task_pool_persist');
+    }
+    async listBackups(): Promise<BackupFileInfo[]> {
+        return await invoke('cmd_task_pool_list_backups');
+    }
+    async cleanupBackups(keepCount: number): Promise<CleanupResult> {
+        return await invoke('cmd_task_pool_cleanup_backups', { keepCount });
+    }
 }
 export const taskPoolManager = new TaskPoolManager();
-export interface TaskPoolPersistResult {
-    success: boolean;
-    message: string;
-    backup_file: string | null;
-    timestamp?: string;
-}
-export interface BackupFileInfo {
-    filename: string;
-    path: string;
-    size: number;
-    modified: number | null;
-}
-export interface CleanupResult {
-    success: boolean;
-    deleted_count: number;
-    message: string;
-}
-// Helper functions for easy access
 export const taskPoolCommands = {
+    // Query operations
     getAllTasks: (limit?: number) => taskPoolManager.getAllTasks(limit),
     getTask: (taskId: string) => taskPoolManager.getTask(taskId),
     getTaskStatus: (taskId: string) => taskPoolManager.getTaskStatus(taskId),
+    getStats: () => taskPoolManager.getStats(),
+    getTasksBySession: (sessionId: string) => taskPoolManager.getTasksBySession(sessionId),
+    // Control operations
     cancelTask: (taskId: string) => taskPoolManager.cancelTask(taskId),
     pauseTask: (taskId: string) => taskPoolManager.pauseTask(taskId),
     resumeTask: (taskId: string) => taskPoolManager.resumeTask(taskId),
     retryTask: (taskId: string) => taskPoolManager.retryTask(taskId),
-    getStats: () => taskPoolManager.getStats(),
     setMaxConcurrent: (max: number) => taskPoolManager.setMaxConcurrent(max),
-    getTasksBySession: (sessionId: string) => taskPoolManager.getTasksBySession(sessionId),
+    // Refresh & Cache
     refresh: () => taskPoolManager.refresh(),
+    clearCache: () => taskPoolManager.clearCache(),
     startAutoRefresh: (intervalMs?: number) => taskPoolManager.startAutoRefresh(intervalMs),
     stopAutoRefresh: () => taskPoolManager.stopAutoRefresh(),
-    async persist(): Promise<TaskPoolPersistResult> {
-        return await invoke('cmd_task_pool_persist');
-    },
-    async listBackups(): Promise<BackupFileInfo[]> {
-        return await invoke('cmd_task_pool_list_backups');
-    },
-    async cleanupBackups(keepCount: number): Promise<CleanupResult> {
-        return await invoke('cmd_task_pool_cleanup_backups', { keepCount });
-    },
+    startAutoPersist: (intervalMs?: number) => taskPoolManager.startAutoPersist(intervalMs),
+    stopAutoPersist: () => taskPoolManager.stopAutoPersist(),
+    // Sync operations
+    getAllTasksSync: () => taskPoolManager.getAllTasksSync(),
+    getTaskSync: (taskId: string) => taskPoolManager.getTaskSync(taskId),
+    getRunningTasks: () => taskPoolManager.getRunningTasks(),
+    getPendingTasks: () => taskPoolManager.getPendingTasks(),
+    getCompletedTasks: () => taskPoolManager.getCompletedTasks(),
+    getFailedTasks: () => taskPoolManager.getFailedTasks(),
+    // Persistence operations
+    persist: () => taskPoolManager.persist(),
+    forcePersist: () => taskPoolManager.forcePersist(),
+    listBackups: () => taskPoolManager.listBackups(),
+    cleanupBackups: (keepCount: number) => taskPoolManager.cleanupBackups(keepCount),
+    // Subscription
+    subscribe: (listener: (tasks: TaskInfo[]) => void) => taskPoolManager.subscribe(listener),
+    subscribeStats: (listener: (stats: TaskPoolStats) => void) => taskPoolManager.subscribeStats(listener),
 };
-// React hook for using task pool
 export function useTaskPool() {
     const [tasks, setTasks] = React.useState<TaskInfo[]>([]);
     const [stats, setStats] = React.useState<TaskPoolStats | null>(null);
@@ -199,10 +317,12 @@ export function useTaskPool() {
         const unsubscribeStats = taskPoolManager.subscribeStats(setStats);
         taskPoolManager.refresh().finally(() => setLoading(false));
         taskPoolManager.startAutoRefresh(3000);
+        taskPoolManager.startAutoPersist(60000);
         return () => {
             unsubscribeTasks();
             unsubscribeStats();
             taskPoolManager.stopAutoRefresh();
+            taskPoolManager.stopAutoPersist();
         };
     }, []);
     return {
@@ -214,6 +334,7 @@ export function useTaskPool() {
         resumeTask: taskPoolManager.resumeTask.bind(taskPoolManager),
         retryTask: taskPoolManager.retryTask.bind(taskPoolManager),
         refresh: taskPoolManager.refresh.bind(taskPoolManager),
+        forcePersist: taskPoolManager.forcePersist.bind(taskPoolManager),
         getTask: taskPoolManager.getTask.bind(taskPoolManager),
         getRunningTasks: () => tasks.filter(t => t.status === TaskStatusEnum.Running),
         getPendingTasks: () => tasks.filter(t => t.status === TaskStatusEnum.Pending),

@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { configCommands } from "../command/config";
-import { healthCommands, HealthCheckResult } from "../command/health";
 import { windowsCommands } from "../command/windows";
 import { zh, en } from "../i18n";
 import { SystemEvent } from "../types/types";
+import { Bot, RotateCw, Info, LogOut, LucideIcon } from "lucide-react";
 const getTranslation = (language: "zh" | "en", key: string): string => {
   const translations = language === "zh" ? zh : en;
   const keys = key.split(".");
@@ -14,12 +14,6 @@ const getTranslation = (language: "zh" | "en", key: string): string => {
   }
   return value || key;
 };
-interface LLMInstance {
-  id: string;
-  name: string;
-  isDefault: boolean;
-  status?: "online" | "offline" | "checking";
-}
 const openLLMSubmenu = async () => {
   const instancesData = await windowsCommands.getLlmInstances();
   const defaultId = await windowsCommands.getDefaultLlmInstanceId();
@@ -34,10 +28,6 @@ const SystemTrayWindow: React.FC = () => {
   const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [language, setLanguage] = useState<"zh" | "en">("en");
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
-  const [openSubmenu, setOpenSubmenu] = useState<string | null>(null);
-  const [llmInstances, setLlmInstances] = useState<LLMInstance[]>([]);
-  const [isLoadingLLM, setIsLoadingLLM] = useState(true);
-  const [isCheckingHealth, setIsCheckingHealth] = useState(false);
   useEffect(() => {
     const loadData = async () => {
       try {
@@ -49,173 +39,47 @@ const SystemTrayWindow: React.FC = () => {
       }
     };
     loadData();
-    loadLLMInstances();
   }, []);
-  const loadLLMInstances = async () => {
-    try {
-      setIsLoadingLLM(true);
-      const instancesData = await windowsCommands.getLlmInstances();
-      const defaultId = await windowsCommands.getDefaultLlmInstanceId();
-      const instancesList = Object.entries(instancesData || {}).map(([id, instance]: [string, any]) => ({
-        id,
-        name: instance.name,
-        isDefault: id === defaultId,
-        status: "checking" as const,
-      }));
-      setLlmInstances(instancesList);
-      if (instancesList.length > 0) {
-        await performHealthChecks(instancesList);
-      }
-    } catch (error) {
-      console.error("Failed to load LLM instances:", error);
-    } finally {
-      setIsLoadingLLM(false);
-    }
-  };
-  const performHealthChecks = async (instances: LLMInstance[]) => {
-    if (instances.length === 0) return;
-    setIsCheckingHealth(true);
-    setLlmInstances((prev) => prev.map((inst) => ({ ...inst, status: "checking" })));
-    try {
-      const results = await healthCommands.checkAllLlmHealth();
-      setLlmInstances((prev) =>
-        prev.map((inst) => {
-          const result = results.find((r: HealthCheckResult) => r.instance_id === inst.id);
-          return {
-            ...inst,
-            status: result?.status === "online" ? "online" : "offline",
-          };
-        }),
-      );
-    } catch (error) {
-      setLlmInstances((prev) => prev.map((inst) => ({ ...inst, status: "offline" })));
-    } finally {
-      setIsCheckingHealth(false);
-    }
-  };
   const handleMenuItemClick = (action: string) => {
     if (action === "quit") {
       windowsCommands.exitApp();
-    } else if (action === "open_logs_dir") {
-      windowsCommands.openLogsDir();
-    } else if (action === "open_history_dir") {
-      windowsCommands.openHistoryDir();
-    } else if (action === "open_skills_market_dir") {
-      windowsCommands.openSkillsMarketDir();
-    } else if (action === "open_scheduled_tasks_dir") {
-      windowsCommands.openScheduledTasksDir();
-    } else if (action === "open_settings_dir") {
-      windowsCommands.openSettingsDir();
     } else {
       windowsCommands.sendEvent(action);
     }
   };
-  const recheckHealth = async () => {
-    if (!isCheckingHealth && llmInstances.length > 0) {
-      await performHealthChecks(llmInstances);
-    }
-  };
   const isDark = theme === "dark";
   const t = (key: string) => getTranslation(language, key);
-  const menuItems = [
-    {
-      id: SystemEvent.NewSession,
-      label: t("actions.newSession") || "New Session",
-      icon: "💬",
-    },
-    { divider: true },
+  // ===== Menu items with lucide-react icons =====
+  interface MenuItem {
+    id: string;
+    label: string;
+    icon: LucideIcon;
+    hasSubmenu?: boolean;
+  }
+  const menuItems: MenuItem[] = [
     {
       id: "llm_status",
-      label: t("bottomBar.model") || "LLM Status",
-      icon: "🤖",
-    },
-    {
-      id: SystemEvent.OpenLlmConfig,
-      label: t("settings.tab.llm") || "LLM Config",
-      icon: "⚙️",
-    },
-    { divider: true },
-    {
-      id: SystemEvent.OpenSkillsMarket,
-      label: t("actions.skillMarket") || "Skill Market",
-      icon: "🛒",
-    },
-    {
-      id: SystemEvent.OpenHistory,
-      label: t("menu.history") || "History",
-      icon: "📜",
-    },
-    {
-      id: SystemEvent.OpenFavorites,
-      label: t("menu.favorites") || "Favorites",
-      icon: "⭐",
-    },
-    {
-      id: SystemEvent.OpenScheduledTasks,
-      label: t("menu.scheduledTasks") || "Scheduled Tasks",
-      icon: "⏰",
-    },
-    { divider: true },
-    {
-      id: "open_logs_dir",
-      label: t("storage.logsDir") || "Logs Directory",
-      icon: "📊",
-    },
-    {
-      id: "open_history_dir",
-      label: t("storage.dialogHistoryDir") || "Dialog History Directory",
-      icon: "💬",
-    },
-    {
-      id: "open_skills_market_dir",
-      label: t("storage.skillsMarketDir") || "Skills Market Directory",
-      icon: "📦",
-    },
-    {
-      id: "open_scheduled_tasks_dir",
-      label: t("storage.scheduledTasksDir") || "Scheduled Tasks Directory",
-      icon: "⏰",
-    },
-    {
-      id: "open_settings_dir",
-      label: t("storage.settingsDir") || "Settings Directory",
-      icon: "⚙️",
-    },
-    { divider: true },
-    {
-      id: SystemEvent.OpenSettings,
-      label: t("menu.settings") || "Settings",
-      icon: "⚙️",
+      label: t("bottomBar.model") || "AI Model",
+      icon: Bot,
+      hasSubmenu: true,
     },
     {
       id: SystemEvent.CheckUpdates,
       label: t("settings.update") || "Check for Updates",
-      icon: "🔄",
+      icon: RotateCw,
     },
-    { id: SystemEvent.ShowAbout, label: "About", icon: "ℹ️" },
-    { divider: true },
-    { id: "quit", label: t("common.close") || "Quit", icon: "🚪" },
+    { id: SystemEvent.ShowAbout, label: "About", icon: Info },
+    { id: "quit", label: t("common.close") || "Quit", icon: LogOut },
   ];
+  // ===== Build menu items with dividers =====
+  const renderedMenuItems: (MenuItem | { divider: boolean })[] = [menuItems[0], { divider: true }, menuItems[1], menuItems[2], { divider: true }, menuItems[3]];
   const styles = {
     container: {
       backgroundColor: isDark ? "#1a1d26" : "#ffffff",
       borderRadius: "8px",
       border: `1px solid ${isDark ? "#2d303a" : "#e5e7eb"}`,
-      boxShadow: isDark ? "0 4px 12px rgba(0,0,0,0.4)" : "0 4px 12px rgba(0,0,0,0.15)",
+      boxShadow: isDark ? "0 2px 8px rgba(0,0,0,0.25)" : "0 2px 8px rgba(0,0,0,0.08)",
       overflow: "hidden" as const,
-    },
-    header: {
-      padding: "10px 14px",
-      borderBottom: `1px solid ${isDark ? "#2d303a" : "#e5e7eb"}`,
-      backgroundColor: isDark ? "#22252f" : "#f9fafb",
-      display: "flex" as const,
-      justifyContent: "space-between" as const,
-      alignItems: "center" as const,
-    },
-    title: {
-      fontWeight: 600,
-      fontSize: "13px",
-      color: isDark ? "#e8edf2" : "#111827",
     },
     menuContainer: {
       padding: "6px 0",
@@ -228,109 +92,60 @@ const SystemTrayWindow: React.FC = () => {
       alignItems: "center" as const,
       gap: "10px",
       padding: "8px 14px",
-      cursor: "pointer",
+      cursor: "pointer" as const,
       color: isDark ? "#e8edf2" : "#111827",
       fontSize: "13px",
       backgroundColor: "transparent",
+      transition: "background-color 0.15s",
     },
     menuIcon: {
-      width: "20px",
-      fontSize: "14px",
+      width: "18px",
+      height: "18px",
+      flexShrink: 0 as const,
     },
     menuLabel: {
       flex: 1,
-    },
-    divider: {
-      height: "1px",
-      backgroundColor: isDark ? "#2d303a" : "#e5e7eb",
-      margin: "6px 0",
-    },
-    submenuWrapper: {
-      position: "relative" as const,
-    },
-    submenuHeader: {
-      display: "flex" as const,
-      alignItems: "center" as const,
-      gap: "10px",
-      padding: "8px 14px",
-      cursor: "pointer",
-      color: isDark ? "#e8edf2" : "#111827",
-      fontSize: "13px",
     },
     submenuArrow: {
       marginLeft: "auto",
       fontSize: "10px",
       color: isDark ? "#6b7280" : "#9ca3af",
     },
-    submenuContent: {
-      position: "absolute" as const,
-      left: "100%",
-      top: 0,
-      width: "240px",
-      backgroundColor: isDark ? "#1a1d26" : "#ffffff",
-      border: `1px solid ${isDark ? "#2d303a" : "#e5e7eb"}`,
-      borderRadius: "6px",
-      boxShadow: isDark ? "0 2px 8px rgba(0,0,0,0.3)" : "0 2px 8px rgba(0,0,0,0.1)",
-      zIndex: 10001,
-      maxHeight: "400px",
-      overflowY: "auto" as const,
-    },
-    loadingText: {
-      padding: "12px",
-      textAlign: "center" as const,
-      color: isDark ? "#6b7280" : "#9ca3af",
-      fontSize: "12px",
-    },
-    refreshBtn: {
-      background: "none",
-      border: "none",
-      cursor: "pointer",
-      fontSize: "12px",
-      padding: "4px",
-      borderRadius: "4px",
-      color: isDark ? "#9ca3af" : "#6b7280",
+    divider: {
+      height: "1px",
+      backgroundColor: isDark ? "#2d303a" : "#e5e7eb",
+      margin: "6px 0",
     },
   };
   return (
     <div style={styles.container}>
       <div style={styles.menuContainer}>
-        {menuItems.map((item, index) => {
-          if (item.divider) {
+        {renderedMenuItems.map((item, index) => {
+          if ("divider" in item) {
             return <div key={`divider-${index}`} style={styles.divider} />;
           }
-          if (item.id === "llm_status") {
-            return (
-              <div
-                key={item.id}
-                style={{
-                  ...styles.menuItem,
-                  backgroundColor: hoveredItem === item.id ? (isDark ? "rgba(232,237,242,0.08)" : "rgba(0,0,0,0.04)") : "transparent",
-                }}
-                onClick={async (e) => {
-                  await openLLMSubmenu();
-                }}
-                onMouseEnter={() => setHoveredItem(item.id!)}
-                onMouseLeave={() => setHoveredItem(null)}
-              >
-                <span style={styles.menuIcon}>{item.icon}</span>
-                <span style={styles.menuLabel}>{item.label}</span>
-                <span style={styles.submenuArrow}>▶</span>
-              </div>
-            );
-          }
+          const isHovered = hoveredItem === item.id;
+          const IconComponent = item.icon;
           return (
             <div
               key={item.id}
               style={{
                 ...styles.menuItem,
-                backgroundColor: hoveredItem === item.id ? (isDark ? "rgba(232,237,242,0.08)" : "rgba(0,0,0,0.04)") : "transparent",
+                backgroundColor: isHovered ? (isDark ? "rgba(232,237,242,0.08)" : "rgba(0,0,0,0.04)") : "transparent",
               }}
-              onClick={() => handleMenuItemClick(item.id!)}
-              onMouseEnter={() => setHoveredItem(item.id!)}
+              onClick={() => {
+                if (item.id === "llm_status") {
+                  openLLMSubmenu();
+                } else {
+                  handleMenuItemClick(item.id);
+                }
+              }}
+              onMouseEnter={() => setHoveredItem(item.id)}
               onMouseLeave={() => setHoveredItem(null)}
             >
-              <span style={styles.menuIcon}>{item.icon}</span>
+              <IconComponent style={styles.menuIcon} />
               <span style={styles.menuLabel}>{item.label}</span>
+              {item.hasSubmenu && <span style={styles.submenuArrow}>▶</span>}
             </div>
           );
         })}

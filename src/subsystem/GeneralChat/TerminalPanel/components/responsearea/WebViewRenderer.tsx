@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef } from "react";
 import { WebViewResource } from "../../../llm/types";
 interface WebViewRendererProps {
   data: WebViewResource[];
@@ -10,7 +10,7 @@ const WebViewRenderer: React.FC<WebViewRendererProps> = ({ data, t, isZh = true 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
+  // No data state
   if (!data || data.length === 0) {
     return (
       <div
@@ -26,7 +26,7 @@ const WebViewRenderer: React.FC<WebViewRendererProps> = ({ data, t, isZh = true 
     );
   }
   const currentWebview = data[currentIndex];
-  // Sanitize URL - prevent javascript: and other dangerous protocols
+  // Sanitize URL - prevent dangerous protocols
   const sanitizeUrl = (url: string): string => {
     const lower = url.toLowerCase().trim();
     const dangerous = ["javascript:", "data:", "vbscript:", "file:"];
@@ -38,69 +38,29 @@ const WebViewRenderer: React.FC<WebViewRendererProps> = ({ data, t, isZh = true 
     return url;
   };
   const safeUrl = sanitizeUrl(currentWebview.url);
-  // Generate a unique ID for this iframe to handle link interception
-  const iframeId = `webview-iframe-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
-  // Handle iframe load - inject script to intercept link clicks
+  // Handle iframe load complete
   const handleIframeLoad = () => {
     setIsLoading(false);
     setError(null);
-    // Attempt to intercept link clicks inside the iframe
-    try {
-      const iframe = iframeRef.current;
-      if (iframe && iframe.contentWindow) {
-        // Inject a script to intercept all link clicks and force them to open in the iframe
-        try {
-          const script = `
-            (function() {
-              // Intercept all anchor clicks
-              document.addEventListener('click', function(e) {
-                var target = e.target;
-                // Find the nearest anchor element
-                while (target && target.tagName !== 'A') {
-                  target = target.parentElement;
-                }
-                if (target && target.tagName === 'A') {
-                  var href = target.getAttribute('href');
-                  if (href && !href.startsWith('javascript:') && !href.startsWith('#')) {
-                    // Remove target="_blank" or target="_new" to force same frame
-                    target.removeAttribute('target');
-                    // Prevent default and navigate in the same frame
-                    e.preventDefault();
-                    window.location.href = href;
-                  }
-                }
-              }, true);
-            })();
-          `;
-          // Try to inject via document write (works for same-origin)
-          // For cross-origin, this will fail silently
-          const scriptElement = iframe.contentWindow.document.createElement("script");
-          scriptElement.textContent = script;
-          iframe.contentWindow.document.head.appendChild(scriptElement);
-        } catch (e) {
-          // Cross-origin restrictions - silently fail
-          console.debug("[WebView] Cannot inject script due to cross-origin");
-        }
-      }
-    } catch (e) {
-      // Cross-origin restrictions
-      console.debug("[WebView] Cannot access iframe content due to cross-origin");
-    }
   };
+  // Handle iframe load error
   const handleIframeError = () => {
     setIsLoading(false);
     setError(isZh ? "加载页面失败" : "Failed to load page");
   };
+  // Open current URL in new tab
   const openInNewTab = () => {
     if (safeUrl && safeUrl !== "about:blank") {
       window.open(safeUrl, "_blank");
     }
   };
+  // Navigate to next webview
   const goToNext = () => {
     setCurrentIndex((prev) => (prev + 1) % data.length);
     setIsLoading(true);
     setError(null);
   };
+  // Navigate to previous webview
   const goToPrev = () => {
     setCurrentIndex((prev) => (prev - 1 + data.length) % data.length);
     setIsLoading(true);
@@ -114,64 +74,7 @@ const WebViewRenderer: React.FC<WebViewRendererProps> = ({ data, t, isZh = true 
       setError(null);
     }
   };
-  // Use srcdoc with a meta refresh for pages that need to be forced inside iframe
-  const getSrcDoc = (url: string): string | undefined => {
-    // For some sites, we can use a simple HTML page with a redirect
-    // This helps with sites that try to break out of iframes
-    if (url.startsWith("http")) {
-      return `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <meta http-equiv="refresh" content="0; url=${url}">
-  <base target="_self">
-  <style>
-    body { 
-      margin: 0; 
-      padding: 0; 
-      display: flex; 
-      align-items: center; 
-      justify-content: center; 
-      height: 100vh; 
-      font-family: sans-serif;
-      color: #666;
-      background: #f5f5f5;
-    }
-    .loading {
-      text-align: center;
-    }
-    .spinner {
-      display: inline-block;
-      width: 30px;
-      height: 30px;
-      border: 3px solid #e0e0e0;
-      border-top: 3px solid #6366f1;
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-      margin-bottom: 12px;
-    }
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-  </style>
-</head>
-<body>
-  <div class="loading">
-    <div class="spinner"></div>
-    <div>${isZh ? "加载中..." : "Loading..."}</div>
-  </div>
-</body>
-</html>`;
-    }
-    return undefined;
-  };
-  // Determine if we should use srcdoc for this URL
-  const useSrcDoc = safeUrl.startsWith("http") && !safeUrl.includes("github.com");
   // Sandbox attributes - allow necessary permissions
-  // allow-top-navigation-by-user-activation allows user-initiated navigation
-  // allow-same-origin for script access
-  // allow-scripts for JavaScript
-  // allow-popups for popups (but we try to prevent them)
   const sandbox = "allow-scripts allow-same-origin allow-forms allow-popups allow-top-navigation-by-user-activation";
   return (
     <div
@@ -185,6 +88,7 @@ const WebViewRenderer: React.FC<WebViewRendererProps> = ({ data, t, isZh = true 
         width: "100%",
       }}
     >
+      {/* Header bar */}
       <div
         style={{
           padding: "6px 12px",
@@ -214,6 +118,7 @@ const WebViewRenderer: React.FC<WebViewRendererProps> = ({ data, t, isZh = true 
           {currentWebview.title || currentWebview.url}
         </span>
         <div style={{ display: "flex", gap: "2px" }}>
+          {/* Navigation buttons for multiple webviews */}
           {data.length > 1 && (
             <>
               <button
@@ -270,6 +175,7 @@ const WebViewRenderer: React.FC<WebViewRendererProps> = ({ data, t, isZh = true 
               </button>
             </>
           )}
+          {/* Open in new tab button */}
           <button
             onClick={openInNewTab}
             style={{
@@ -296,6 +202,7 @@ const WebViewRenderer: React.FC<WebViewRendererProps> = ({ data, t, isZh = true 
           >
             ↗
           </button>
+          {/* Reload button */}
           <button
             onClick={reloadIframe}
             style={{
@@ -324,8 +231,8 @@ const WebViewRenderer: React.FC<WebViewRendererProps> = ({ data, t, isZh = true 
           </button>
         </div>
       </div>
+      {/* Iframe container */}
       <div
-        ref={containerRef}
         style={{
           position: "relative",
           width: "100%",
@@ -333,6 +240,7 @@ const WebViewRenderer: React.FC<WebViewRendererProps> = ({ data, t, isZh = true 
           background: "var(--bg-primary)",
         }}
       >
+        {/* Loading overlay */}
         {isLoading && (
           <div
             style={{
@@ -377,6 +285,7 @@ const WebViewRenderer: React.FC<WebViewRendererProps> = ({ data, t, isZh = true 
             </div>
           </div>
         )}
+        {/* Error overlay */}
         {error && (
           <div
             style={{
@@ -421,6 +330,7 @@ const WebViewRenderer: React.FC<WebViewRendererProps> = ({ data, t, isZh = true 
             </button>
           </div>
         )}
+        {/* Iframe */}
         <iframe
           ref={iframeRef}
           key={`iframe-${currentIndex}`}
@@ -438,6 +348,7 @@ const WebViewRenderer: React.FC<WebViewRendererProps> = ({ data, t, isZh = true 
           }}
         />
       </div>
+      {/* Footer with URL info */}
       <div
         style={{
           padding: "4px 12px",

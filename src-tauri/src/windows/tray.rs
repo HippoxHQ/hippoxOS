@@ -8,6 +8,8 @@ pub(crate) struct TrayManager;
 use once_cell::sync::Lazy;
 use std::sync::Mutex;
 static LLM_HEALTH_CACHE: Lazy<Mutex<std::collections::HashMap<String, bool>>> = Lazy::new(|| Mutex::new(std::collections::HashMap::new()));
+const TRAY_MENU_WIDTH: f64 = 260.0;
+const TRAY_MENU_HEIGHT: f64 = 190.0;
 impl TrayManager {
     pub fn setup<R: Runtime>(app: &tauri::App<R>) -> Result<(), Box<dyn std::error::Error>> {
         let app_handle = app.app_handle().clone();
@@ -30,9 +32,8 @@ impl TrayManager {
     }
     fn create_tray_window<R: Runtime>(app_handle: &AppHandle<R>) -> Result<(), Box<dyn std::error::Error>> {
         let (mouse_x, mouse_y) = Self::get_mouse_position();
-        let menu_width = 260.0;
-        let menu_height = 350.0;
-        let (pos_x, pos_y) = Self::calculate_window_position(app_handle, (mouse_x - 100) as f64, (mouse_y - 15) as f64, menu_width, menu_height)?;
+        let (pos_x, pos_y) =
+            Self::calculate_window_position(app_handle, (mouse_x - 100) as f64, (mouse_y - 15) as f64, TRAY_MENU_WIDTH, TRAY_MENU_HEIGHT)?;
         let window_label = format!("{}", WindowIdentifier::Tray);
         let url_type = format!("{}", WindowType::Tray);
         if let Some(window) = app_handle.get_webview_window(&window_label) {
@@ -40,7 +41,7 @@ impl TrayManager {
         }
         let window = WebviewWindowBuilder::new(app_handle, &window_label, tauri::WebviewUrl::App(format!("index.html?type={}", url_type).into()))
             .title("")
-            .inner_size(menu_width, menu_height)
+            .inner_size(TRAY_MENU_WIDTH, TRAY_MENU_HEIGHT)
             .position(pos_x, pos_y)
             .decorations(false)
             .always_on_top(true)
