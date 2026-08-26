@@ -145,7 +145,7 @@ const SandBox3D = forwardRef<SandBox3DRef, SandBox3DProps>(({ theme, i18n, t, cu
       try {
         const tempScene = new THREE.Scene();
         tempScene.background = new THREE.Color(theme === "dark" ? 0x0a0a1a : 0xf0f0f8);
-        tempScene.fog = new THREE.Fog(theme === "dark" ? 0x0a0a1a : 0xf0f0f8, 15, 30);
+        // tempScene.fog = new THREE.Fog(theme === "dark" ? 0x0a0a1a : 0xf0f0f8, 15, 30);
         const ambientLight = new THREE.AmbientLight(0x404060, 0.5);
         tempScene.add(ambientLight);
         const mainLight = new THREE.DirectionalLight(0xffffff, 1.5);
@@ -489,7 +489,7 @@ const SandBox3D = forwardRef<SandBox3DRef, SandBox3DProps>(({ theme, i18n, t, cu
     const height = container.clientHeight;
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(theme === "dark" ? 0x0a0a1a : 0xf0f0f8);
-    scene.fog = new THREE.Fog(theme === "dark" ? 0x0a0a1a : 0xf0f0f8, 15, 30);
+    // scene.fog = new THREE.Fog(theme === "dark" ? 0x0a0a1a : 0xf0f0f8, 15, 30);
     sceneRef.current = scene;
     const camera = new THREE.PerspectiveCamera(50, width / height, 0.1, 1000);
     camera.position.set(8, 6, 10);

@@ -248,13 +248,15 @@ pub struct DataPaths {
     pub dialog_history_dir: String,
     pub chart_dialog_history_dir: String,
     pub map_dialog_history_dir: String,
+    pub codeeditor_dialog_history_dir: String,
+    pub video_editing_system_dialog_history_dir: String,
+    pub sandbox3d_dialog_history_dir: String,
     pub skills_market_dir: String,
     pub scheduled_tasks_dir: String,
     pub log_dir: String,
     pub cache_dir: String,
     pub settings_dir: String,
 }
-// Tauri Commands
 #[tauri::command]
 pub fn cmd_get_data_paths() -> DataPaths {
     DataPaths {
@@ -262,6 +264,9 @@ pub fn cmd_get_data_paths() -> DataPaths {
         dialog_history_dir: get_dialog_history_dir().to_string_lossy().to_string(),
         chart_dialog_history_dir: get_chart_dialog_history_dir().to_string_lossy().to_string(),
         map_dialog_history_dir: get_map_dialog_history_dir().to_string_lossy().to_string(),
+        codeeditor_dialog_history_dir: get_codeeditor_dialog_history_dir().to_string_lossy().to_string(),
+        video_editing_system_dialog_history_dir: get_video_editing_system_dialog_history_dir().to_string_lossy().to_string(),
+        sandbox3d_dialog_history_dir: get_sandbox3d_dialog_history_dir().to_string_lossy().to_string(),
         skills_market_dir: get_skills_market_dir().to_string_lossy().to_string(),
         scheduled_tasks_dir: get_scheduled_tasks_dir().to_string_lossy().to_string(),
         log_dir: get_log_dir().to_string_lossy().to_string(),

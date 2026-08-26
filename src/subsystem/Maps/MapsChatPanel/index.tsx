@@ -13,8 +13,9 @@ import { ChatIcon, TaskQueueIcon, UserIcon, AttachmentIcon, FolderIcon, ChevronR
 import { zhDefaultPrompts, enDefaultPrompts } from "../../../types/DefaultPrompt";
 import { ChatMessage, RoleEnum, MessageStatus } from "../../../types/types";
 import { mapSessionCommands } from "../../../command/session/map";
-import { isStructuredLLMResponse, parseLLMResponse, extractEarthView } from "../llm/utils";
+import { isStructuredLLMResponse, parseLLMResponse } from "../llm/utils";
 import { EarthViewRef } from "./types";
+import { filesCommands } from "../../../command/files";
 interface MapsChatPageProps {
   onSendMessage: (message: string, sessionId: string, files?: UploadFile[], workflowMode?: string) => void | Promise<void>;
   onFileClick?: (file: UploadFile) => void;
@@ -31,6 +32,10 @@ interface MapsChatPageProps {
   /** Reference to the EarthView map component for rendering */
   mapRef?: React.RefObject<EarthViewRef | null>;
 }
+/**
+ * MapsChatPage - Chat interface for map/geographic analysis
+ * Supports file upload with filtering for text and skill files
+ */
 const MapsChatPage: React.FC<MapsChatPageProps> = ({ onSendMessage, onFileClick, t, language = "zh", currentSessionId, onDragOverInputChange, navigationContent, isLeftPanel = true, onWorkflowModeChange, isCollapsed = false, togglePanel, collapseIcon: collapseIconProp, mapRef }) => {
   const [inputValue, setInputValue] = useState("");
   const [isFocused, setIsFocused] = useState(false);
@@ -77,12 +82,14 @@ const MapsChatPage: React.FC<MapsChatPageProps> = ({ onSendMessage, onFileClick,
     content: language === "zh" ? "嘿～ 我是 Hippox 地理信息分析引擎！🗺️ 带你看世界、标地点、分析空间数据，想去哪儿尽管说～" : "Hey～ I'm Hippox Geographic Information Analysis Engine! 🗺️ Let me show you the world, mark locations, and analyze spatial data. Just tell me where to go～",
     timestamp: new Date().toISOString(),
   };
+  // Subscribe to task manager updates
   useEffect(() => {
     const unsubscribe = taskManager.subscribe(() => {
       setUpdateTrigger((prev) => prev + 1);
     });
     return unsubscribe;
   }, []);
+  // Get messages from task manager
   const getMessages = useCallback((): ChatMessage[] => {
     if (!currentSessionId) return [welcomeMsg];
     const userMessages = taskManager.getUserMessagesBySession(currentSessionId, SessionDomain.Map);
@@ -94,6 +101,7 @@ const MapsChatPage: React.FC<MapsChatPageProps> = ({ onSendMessage, onFileClick,
     return allMessages;
   }, [currentSessionId, updateTrigger]);
   const messages = getMessages();
+  // Load session title from backend
   const loadSessionTitle = async (sessionId: string) => {
     if (!sessionId || sessionId.startsWith("pending_") || sessionId.startsWith("temp_")) {
       setSessionTitle("");
@@ -151,6 +159,7 @@ const MapsChatPage: React.FC<MapsChatPageProps> = ({ onSendMessage, onFileClick,
     };
   }, [currentSessionId]);
   const { editingMessageId, editContent, setEditContent, handleEditMessage, handleSaveEdit, handleCancelEdit } = useEditMessage({ currentSessionId, onSendMessage, t });
+  // Load workflow display names
   const loadWorkflowDisplayNames = async () => {
     try {
       const lang = localStorage.getItem("hippox-language") || "en";
@@ -165,6 +174,7 @@ const MapsChatPage: React.FC<MapsChatPageProps> = ({ onSendMessage, onFileClick,
       console.error("Failed to load workflow display names:", error);
     }
   };
+  // Format timestamp
   const formatTimestamp = (timestamp: string): string => {
     const date = new Date(timestamp);
     const now = new Date();
@@ -184,6 +194,7 @@ const MapsChatPage: React.FC<MapsChatPageProps> = ({ onSendMessage, onFileClick,
       return `${date.toLocaleDateString()} ${timeStr}`;
     }
   };
+  // Scroll update handler
   const handleScrollUpdate = () => {
     if (!messagesContainerRef.current) return;
     const container = messagesContainerRef.current;
@@ -201,6 +212,7 @@ const MapsChatPage: React.FC<MapsChatPageProps> = ({ onSendMessage, onFileClick,
     });
     setActiveNavIndex(closestIndex);
   };
+  // Navigation bubble handlers
   const handleNavButtonMouseEnter = () => {
     if (navBubbleTimerRef.current) {
       clearTimeout(navBubbleTimerRef.current);
@@ -225,6 +237,7 @@ const MapsChatPage: React.FC<MapsChatPageProps> = ({ onSendMessage, onFileClick,
       setShowNavBubble(false);
     }, 200);
   };
+  // Resend message handler
   const handleResendMessage = (msg: ChatMessage) => {
     if (isResending || isSending) return;
     const sessionId = currentSessionId || "";
@@ -239,6 +252,7 @@ const MapsChatPage: React.FC<MapsChatPageProps> = ({ onSendMessage, onFileClick,
       setTimeout(() => setIsResending(false), 300);
     });
   };
+  // Get random suggestion prompts
   const getRandomPrompts = (count: number = 6): string[] => {
     const prompts = language === "zh" ? zhDefaultPrompts : enDefaultPrompts;
     const shuffled = [...prompts];
@@ -248,6 +262,7 @@ const MapsChatPage: React.FC<MapsChatPageProps> = ({ onSendMessage, onFileClick,
     }
     return shuffled.slice(0, count);
   };
+  // Check if suggestions should be shown
   const shouldShowSuggestions = (msgs: ChatMessage[]) => {
     if (msgs.length === 0) return false;
     const lastMsg = msgs[msgs.length - 1];
@@ -261,6 +276,7 @@ const MapsChatPage: React.FC<MapsChatPageProps> = ({ onSendMessage, onFileClick,
   const prevMessageCountRef = useRef(0);
   const suggestionTimerRef = useRef<NodeJS.Timeout | null>(null);
   const isFirstLoadRef = useRef(true);
+  // Update suggestions periodically
   useEffect(() => {
     if (suggestionTimerRef.current) {
       clearInterval(suggestionTimerRef.current);
@@ -288,6 +304,7 @@ const MapsChatPage: React.FC<MapsChatPageProps> = ({ onSendMessage, onFileClick,
       }
     };
   }, [messages, language]);
+  // Handle suggestion click
   const handleSuggestionClick = (prompt: string) => {
     const sessionId = currentSessionId || "";
     if (!sessionId) {
@@ -297,6 +314,7 @@ const MapsChatPage: React.FC<MapsChatPageProps> = ({ onSendMessage, onFileClick,
     onSendMessage?.(prompt, sessionId, undefined, selectedWorkflowMode);
   };
   const handleContainerClick = () => textareaRef.current?.focus();
+  // Format file size
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return "0 B";
     const k = 1024;
@@ -304,6 +322,7 @@ const MapsChatPage: React.FC<MapsChatPageProps> = ({ onSendMessage, onFileClick,
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
   };
+  // Copy to clipboard
   const copyToClipboard = async (text: string | undefined) => {
     try {
       if (!text) {
@@ -316,6 +335,7 @@ const MapsChatPage: React.FC<MapsChatPageProps> = ({ onSendMessage, onFileClick,
       showToast(ToastType.ERROR, t("common.copyFailed") || "Copy Failed");
     }
   };
+  // Load current default model
   const loadCurrentDefaultModel = async () => {
     try {
       setLoadingModel(true);
@@ -335,6 +355,7 @@ const MapsChatPage: React.FC<MapsChatPageProps> = ({ onSendMessage, onFileClick,
       setLoadingModel(false);
     }
   };
+  // Load workflow modes
   const loadWorkflowModes = async () => {
     try {
       const modes = await workflowCommands.getWorkflowModeNames();
@@ -346,6 +367,7 @@ const MapsChatPage: React.FC<MapsChatPageProps> = ({ onSendMessage, onFileClick,
       console.error("Failed to load workflow modes:", error);
     }
   };
+  // Load session workflow mode
   const loadSessionWorkflowMode = async (sessionId: string) => {
     if (!sessionId || sessionId.startsWith("pending_") || sessionId.startsWith("temp_")) {
       return;
@@ -372,6 +394,7 @@ const MapsChatPage: React.FC<MapsChatPageProps> = ({ onSendMessage, onFileClick,
       console.error("Failed to load session workflow mode:", error);
     }
   };
+  // Load workspaces
   const loadWorkspaces = async (retryCount: number = 0): Promise<void> => {
     try {
       const config = await workspaceCommands.getWorkspaceConfig();
@@ -394,6 +417,7 @@ const MapsChatPage: React.FC<MapsChatPageProps> = ({ onSendMessage, onFileClick,
       loadSessionWorkflowMode(currentSessionId);
     }
   }, [currentSessionId]);
+  // Check scroll position
   const checkScrollPosition = () => {
     if (!messagesContainerRef.current) return;
     const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
@@ -440,6 +464,7 @@ const MapsChatPage: React.FC<MapsChatPageProps> = ({ onSendMessage, onFileClick,
       setActiveNavIndex(index);
     }
   };
+  // File upload handlers
   const handleFilesAdd = (files: UploadFile[]) => {
     setUploadedFiles((prev) => {
       const existingKeys = new Set(prev.map((f) => `${f.name}_${f.size}`));
@@ -450,6 +475,125 @@ const MapsChatPage: React.FC<MapsChatPageProps> = ({ onSendMessage, onFileClick,
   const handleFileRemove = (fileId: string) => {
     setUploadedFiles((prev) => prev.filter((f) => f.id !== fileId));
   };
+  /**
+   * Open file selector with specific file type filters
+   * Supports text files and skill files
+   * @param filterType - Type of files to filter: 'text' | 'skill'
+   */
+  const openFileSelector = async (filterType: "text" | "skill" = "text") => {
+    try {
+      // Define allowed extensions for each type
+      const allowedExtensions: Record<string, string[]> = {
+        text: ["txt", "md", "json", "js", "ts", "py", "rs", "html", "css", "xml", "yaml", "yml", "toml", "sh", "bash"],
+        skill: ["md", "skill"],
+      };
+      const validExtensions = allowedExtensions[filterType] || [];
+      // Define filters for the file dialog
+      let filters: { name: string; extensions: string[] }[] = [];
+      switch (filterType) {
+        case "text":
+          filters = [{ name: "Text Files", extensions: validExtensions }];
+          break;
+        case "skill":
+          filters = [{ name: "Skill Files", extensions: validExtensions }];
+          break;
+        default:
+          filters = [{ name: "All Files", extensions: ["*"] }];
+      }
+      // Open system file selector
+      const result = await filesCommands.selectFile({
+        multiple: true,
+        filters: filters,
+      });
+      if (!result) return;
+      const selectedFiles = Array.isArray(result) ? result : [result];
+      const newFiles: UploadFile[] = [];
+      let skippedCount = 0;
+      // Process each selected file - filter by extension
+      for (const path of selectedFiles) {
+        const ext = path.split(".").pop()?.toLowerCase() || "";
+        // Skip files with invalid extensions
+        if (!validExtensions.includes(ext)) {
+          skippedCount++;
+          continue;
+        }
+        const fileInfo = await filesCommands.getFileInfo(path);
+        const isSkill = path.toLowerCase().endsWith(".md") || path.toLowerCase().endsWith(".skill.md") || path.toLowerCase().endsWith(".skill");
+        // Read file content for text files
+        let content = "";
+        try {
+          content = await filesCommands.readTextFile(path);
+        } catch (e) {
+          console.debug("Cannot read file content:", path);
+        }
+        // Determine file type based on extension
+        let fileType = "application/octet-stream";
+        if (isSkill) {
+          fileType = "text/markdown";
+        } else if (path.endsWith(".txt")) {
+          fileType = "text/plain";
+        } else if (path.endsWith(".json")) {
+          fileType = "application/json";
+        } else if (path.endsWith(".js") || path.endsWith(".ts")) {
+          fileType = "text/javascript";
+        } else if (path.endsWith(".py")) {
+          fileType = "text/x-python";
+        } else if (path.endsWith(".rs")) {
+          fileType = "text/x-rust";
+        } else if (path.endsWith(".html") || path.endsWith(".htm")) {
+          fileType = "text/html";
+        } else if (path.endsWith(".css")) {
+          fileType = "text/css";
+        } else if (path.endsWith(".xml")) {
+          fileType = "text/xml";
+        } else if (path.endsWith(".yaml") || path.endsWith(".yml")) {
+          fileType = "text/yaml";
+        } else if (path.endsWith(".toml")) {
+          fileType = "text/toml";
+        } else if (path.endsWith(".sh") || path.endsWith(".bash")) {
+          fileType = "text/x-shellscript";
+        }
+        // Create File object required by UploadFile type
+        const fileName = fileInfo.name;
+        const fileBlob = new Blob([content], { type: fileType });
+        const fileObj = new File([fileBlob], fileName, { type: fileType });
+        newFiles.push({
+          id: `file_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          file: fileObj,
+          name: fileName,
+          size: fileInfo.size,
+          path: path,
+          content: content,
+          type: fileType,
+          status: "success" as const,
+        });
+      }
+      // Show warning if some files were skipped
+      if (skippedCount > 0) {
+        showToast(ToastType.WARNING, `${skippedCount} file(s) skipped. Only ${filterType} files are allowed.`);
+      }
+      if (newFiles.length === 0) {
+        showToast(ToastType.INFO, `No valid ${filterType} files selected`);
+        return;
+      }
+      // Add all files to upload list - user clicks send to send them
+      setUploadedFiles((prev) => [...prev, ...newFiles]);
+      showToast(ToastType.SUCCESS, `Added ${newFiles.length} file(s)`);
+    } catch (error) {
+      console.error("Failed to select files:", error);
+      showToast(ToastType.ERROR, "Failed to select files: " + error);
+    }
+  };
+  /**
+   * Handle attachment button click - closes menu
+   */
+  const handleAttachment = () => {
+    setShowAttachmentMenu(false);
+  };
+  /**
+   * Handle send message - includes file content in the message
+   * Both text files and skill files content are included
+   */
   const handleSend = () => {
     if (isSending) return;
     if (inputValue.trim() || uploadedFiles.length > 0) {
@@ -458,7 +602,28 @@ const MapsChatPage: React.FC<MapsChatPageProps> = ({ onSendMessage, onFileClick,
         showToast(ToastType.SUCCESS, "Session ID cannot be empty.");
         return;
       }
-      const message = inputValue.trim() || "";
+      // Build message with file contents
+      let message = inputValue.trim() || "";
+      for (const file of uploadedFiles) {
+        if (file.content) {
+          const isSkill = file.name?.toLowerCase().endsWith(".md") || file.name?.toLowerCase().endsWith(".skill.md");
+          if (isSkill) {
+            // Extract skill name from content (first # heading)
+            let skillName = file.name;
+            const lines = file.content.split("\n");
+            for (const line of lines) {
+              const trimmed = line.trim();
+              if (trimmed.startsWith("# ")) {
+                skillName = trimmed.replace("# ", "").trim();
+                break;
+              }
+            }
+            message += `\n\n📎 **Skill: ${skillName}**\n\`\`\`markdown\n${file.content}\n\`\`\``;
+          } else {
+            message += `\n\n📎 **${file.name}**\n\`\`\`\n${file.content}\n\`\`\``;
+          }
+        }
+      }
       const currentFiles = [...uploadedFiles];
       setInputValue("");
       setUploadedFiles([]);
@@ -480,7 +645,6 @@ const MapsChatPage: React.FC<MapsChatPageProps> = ({ onSendMessage, onFileClick,
     e.target.style.height = "auto";
     e.target.style.height = Math.min(e.target.scrollHeight, 100) + "px";
   };
-  const handleAttachment = () => setShowAttachmentMenu(false);
   const getSelectedWorkspaceName = (): string => {
     const workspace = workspaces.find((w) => w.id === selectedWorkspaceId);
     if (!workspace) return language === "zh" ? "工作目录" : "Workspace";
@@ -522,6 +686,7 @@ const MapsChatPage: React.FC<MapsChatPageProps> = ({ onSendMessage, onFileClick,
       localStorage.setItem(`map_workflow_mode_${key}`, mode);
     }
   };
+  // Build navigation content
   const buildNavigationContent = (): React.ReactNode => {
     const userMessages = messages.filter((m) => m.role === RoleEnum.User);
     if (userMessages.length === 0) {
@@ -593,6 +758,7 @@ const MapsChatPage: React.FC<MapsChatPageProps> = ({ onSendMessage, onFileClick,
       </div>
     );
   };
+  // Locate task handler
   const handleLocateTask = (msg: ChatMessage) => {
     if (!currentSessionId) {
       showToast(ToastType.INFO, t("chat.noRelatedTask") || "No Related Task");
@@ -614,6 +780,7 @@ const MapsChatPage: React.FC<MapsChatPageProps> = ({ onSendMessage, onFileClick,
       showToast(ToastType.INFO, t("chat.noRelatedTask") || "No Related Task");
     }
   };
+  // Handle locate task in chat
   useEffect(() => {
     const handleLocateTaskInChat = (event: Event) => {
       const customEvent = event as CustomEvent;
@@ -659,6 +826,7 @@ const MapsChatPage: React.FC<MapsChatPageProps> = ({ onSendMessage, onFileClick,
       window.removeEventListener("locate-task-in-chat", handleLocateTaskInChat);
     };
   }, [t, currentSessionId]);
+  // Language change handler
   useEffect(() => {
     const handleLanguageChange = () => {
       loadWorkflowDisplayNames();
@@ -668,6 +836,7 @@ const MapsChatPage: React.FC<MapsChatPageProps> = ({ onSendMessage, onFileClick,
       window.removeEventListener("language-changed", handleLanguageChange as EventListener);
     };
   }, []);
+  // Initialize
   useEffect(() => {
     loadCurrentDefaultModel();
     loadWorkspaces();
@@ -678,6 +847,7 @@ const MapsChatPage: React.FC<MapsChatPageProps> = ({ onSendMessage, onFileClick,
   useEffect(() => {
     messagesRef.current = messages;
   }, [messages]);
+  // Locate task in chat - duplicate handler for general tasks
   useEffect(() => {
     const handleLocateTaskInChat = (event: Event) => {
       const customEvent = event as CustomEvent;
@@ -717,11 +887,13 @@ const MapsChatPage: React.FC<MapsChatPageProps> = ({ onSendMessage, onFileClick,
       window.removeEventListener("locate-task-in-chat", handleLocateTaskInChat);
     };
   }, [t]);
+  // Auto scroll to bottom
   useEffect(() => {
     if (messagesContainerRef.current && !userScrolled) {
       messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
     }
   }, [messages]);
+  // Scroll event listener
   useEffect(() => {
     const element = messagesContainerRef.current;
     if (element) {
@@ -730,6 +902,7 @@ const MapsChatPage: React.FC<MapsChatPageProps> = ({ onSendMessage, onFileClick,
       return () => element.removeEventListener("scroll", checkScrollPosition);
     }
   }, [messages]);
+  // Click outside handlers
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (attachmentMenuRef.current && !attachmentMenuRef.current.contains(event.target as Node) && attachmentBtnRef.current && !attachmentBtnRef.current.contains(event.target as Node)) {
@@ -817,12 +990,17 @@ const MapsChatPage: React.FC<MapsChatPageProps> = ({ onSendMessage, onFileClick,
   // RENDER
   return (
     <div
-      className="codeeditor-chat-panel"
+      className="map-chat-panel"
       style={{
         display: "flex",
         flexDirection: "column",
         height: "100%",
+        width: "100%",
+        minWidth: "100%",
+        maxWidth: "100%",
         overflow: "hidden",
+        flexShrink: 0,
+        flexGrow: 0,
       }}
     >
       <div className="panel-header" style={{ paddingTop: "6px", paddingBottom: "6px" }}>
@@ -1163,19 +1341,11 @@ const MapsChatPage: React.FC<MapsChatPageProps> = ({ onSendMessage, onFileClick,
               </div>
               {showAttachmentMenu && (
                 <div className="attachment-menu" ref={attachmentMenuRef}>
-                  <div className="attachment-item" onClick={() => handleAttachment()}>
+                  <div className="attachment-item" onClick={() => openFileSelector("text")}>
                     <TextFileIcon size={14} />
                     {t("chat.textFile")}
                   </div>
-                  <div className="attachment-item" onClick={() => handleAttachment()}>
-                    <ImageIcon size={14} />
-                    {t("chat.image")}
-                  </div>
-                  <div className="attachment-item" onClick={() => handleAttachment()}>
-                    <VideoIcon size={14} />
-                    {t("chat.video")}
-                  </div>
-                  <div className="attachment-item" onClick={() => handleAttachment()}>
+                  <div className="attachment-item" onClick={() => openFileSelector("skill")}>
                     <FileIcon size={14} />
                     {t("chat.skillFile")}
                   </div>

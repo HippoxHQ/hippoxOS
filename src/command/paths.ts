@@ -2,6 +2,11 @@ import { invoke } from '@tauri-apps/api/core';
 export interface DataPaths {
   app_root_dir: string;
   dialog_history_dir: string;
+  chart_dialog_history_dir: string;
+  map_dialog_history_dir: string;
+  codeeditor_dialog_history_dir: string;
+  video_editing_system_dialog_history_dir: string;
+  sandbox3d_dialog_history_dir: string;
   skills_market_dir: string;
   scheduled_tasks_dir: string;
   scheduled_tasks_history_dir: string;

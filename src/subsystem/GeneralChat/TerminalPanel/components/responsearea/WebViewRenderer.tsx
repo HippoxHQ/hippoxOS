@@ -1,15 +1,36 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { WebViewResource } from "../../../llm/types";
+import { osCommands } from "../../../../../command/os";
 interface WebViewRendererProps {
   data: WebViewResource[];
   t: (key: string) => string;
   isZh?: boolean;
 }
+/**
+ * WebViewRenderer component for displaying web content in an iframe
+ * - Allows vertical scrolling within the iframe
+ * - Opens all links using system default browser via osCommands.openBrowser
+ */
 const WebViewRenderer: React.FC<WebViewRendererProps> = ({ data, t, isZh = true }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [scale, setScale] = useState(1);
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  // Calculate scale to fit width
+  useEffect(() => {
+    const calculateScale = () => {
+      if (!containerRef.current) return;
+      const containerWidth = containerRef.current.clientWidth;
+      // Scale to fit typical 1200px webpage width
+      const newScale = Math.min(1, containerWidth / 1200);
+      setScale(newScale);
+    };
+    calculateScale();
+    window.addEventListener("resize", calculateScale);
+    return () => window.removeEventListener("resize", calculateScale);
+  }, []);
   // No data state
   if (!data || data.length === 0) {
     return (
@@ -26,7 +47,6 @@ const WebViewRenderer: React.FC<WebViewRendererProps> = ({ data, t, isZh = true 
     );
   }
   const currentWebview = data[currentIndex];
-  // Sanitize URL - prevent dangerous protocols
   const sanitizeUrl = (url: string): string => {
     const lower = url.toLowerCase().trim();
     const dangerous = ["javascript:", "data:", "vbscript:", "file:"];
@@ -38,35 +58,26 @@ const WebViewRenderer: React.FC<WebViewRendererProps> = ({ data, t, isZh = true 
     return url;
   };
   const safeUrl = sanitizeUrl(currentWebview.url);
-  // Handle iframe load complete
+  // Handle iframe load
   const handleIframeLoad = () => {
     setIsLoading(false);
     setError(null);
   };
-  // Handle iframe load error
   const handleIframeError = () => {
     setIsLoading(false);
     setError(isZh ? "加载页面失败" : "Failed to load page");
   };
-  // Open current URL in new tab
-  const openInNewTab = () => {
-    if (safeUrl && safeUrl !== "about:blank") {
-      window.open(safeUrl, "_blank");
-    }
-  };
-  // Navigate to next webview
+  // Navigate to next/previous webview
   const goToNext = () => {
     setCurrentIndex((prev) => (prev + 1) % data.length);
     setIsLoading(true);
     setError(null);
   };
-  // Navigate to previous webview
   const goToPrev = () => {
     setCurrentIndex((prev) => (prev - 1 + data.length) % data.length);
     setIsLoading(true);
     setError(null);
   };
-  // Reload iframe
   const reloadIframe = () => {
     if (iframeRef.current) {
       iframeRef.current.src = safeUrl;
@@ -74,10 +85,17 @@ const WebViewRenderer: React.FC<WebViewRendererProps> = ({ data, t, isZh = true 
       setError(null);
     }
   };
+  // Open URL using system browser via osCommands
+  const openInSystemBrowser = () => {
+    if (safeUrl && safeUrl !== "about:blank") {
+      osCommands.openBrowser(safeUrl);
+    }
+  };
   // Sandbox attributes - allow necessary permissions
   const sandbox = "allow-scripts allow-same-origin allow-forms allow-popups allow-top-navigation-by-user-activation";
   return (
     <div
+      ref={containerRef}
       className="terminal-webview"
       style={{
         margin: "8px 0",
@@ -86,6 +104,11 @@ const WebViewRenderer: React.FC<WebViewRendererProps> = ({ data, t, isZh = true 
         border: "1px solid var(--border-color)",
         overflow: "hidden",
         width: "100%",
+        maxWidth: "100%",
+        boxSizing: "border-box",
+        position: "relative",
+        contain: "layout style paint",
+        isolation: "isolate",
       }}
     >
       {/* Header bar */}
@@ -101,9 +124,14 @@ const WebViewRenderer: React.FC<WebViewRendererProps> = ({ data, t, isZh = true 
           alignItems: "center",
           gap: "6px",
           minHeight: "32px",
+          overflow: "hidden",
+          flexShrink: 0,
+          width: "100%",
+          maxWidth: "100%",
+          boxSizing: "border-box",
         }}
       >
-        <span style={{ fontSize: "13px", lineHeight: 1 }}>🌐</span>
+        <span style={{ fontSize: "13px", lineHeight: 1, flexShrink: 0 }}>🌐</span>
         <span
           style={{
             flex: 1,
@@ -113,12 +141,12 @@ const WebViewRenderer: React.FC<WebViewRendererProps> = ({ data, t, isZh = true 
             overflow: "hidden",
             textOverflow: "ellipsis",
             whiteSpace: "nowrap",
+            minWidth: 0,
           }}
         >
           {currentWebview.title || currentWebview.url}
         </span>
-        <div style={{ display: "flex", gap: "2px" }}>
-          {/* Navigation buttons for multiple webviews */}
+        <div style={{ display: "flex", gap: "2px", flexShrink: 0 }}>
           {data.length > 1 && (
             <>
               <button
@@ -175,9 +203,9 @@ const WebViewRenderer: React.FC<WebViewRendererProps> = ({ data, t, isZh = true 
               </button>
             </>
           )}
-          {/* Open in new tab button */}
+          {/* Open in system browser button */}
           <button
-            onClick={openInNewTab}
+            onClick={openInSystemBrowser}
             style={{
               background: "transparent",
               border: "1px solid var(--border-color)",
@@ -198,11 +226,10 @@ const WebViewRenderer: React.FC<WebViewRendererProps> = ({ data, t, isZh = true 
               e.currentTarget.style.background = "transparent";
               e.currentTarget.style.color = "var(--text-tertiary)";
             }}
-            title={isZh ? "在新窗口打开" : "Open in new tab"}
+            title={isZh ? "在系统浏览器打开" : "Open in system browser"}
           >
             ↗
           </button>
-          {/* Reload button */}
           <button
             onClick={reloadIframe}
             style={{
@@ -231,13 +258,19 @@ const WebViewRenderer: React.FC<WebViewRendererProps> = ({ data, t, isZh = true 
           </button>
         </div>
       </div>
-      {/* Iframe container */}
+      {/* Iframe container - allows vertical scroll */}
       <div
         style={{
           position: "relative",
           width: "100%",
+          maxWidth: "100%",
           height: currentWebview.height || "400px",
           background: "var(--bg-primary)",
+          // overflow: "auto",
+          boxSizing: "border-box",
+          // Allow vertical scroll, hide horizontal
+          // overflowX: "hidden",
+          // overflowY: "auto",
         }}
       >
         {/* Loading overlay */}
@@ -254,6 +287,7 @@ const WebViewRenderer: React.FC<WebViewRendererProps> = ({ data, t, isZh = true 
               justifyContent: "center",
               background: "var(--bg-tertiary)",
               zIndex: 10,
+              pointerEvents: "none",
             }}
           >
             <div
@@ -303,6 +337,7 @@ const WebViewRenderer: React.FC<WebViewRendererProps> = ({ data, t, isZh = true 
               fontSize: "13px",
               zIndex: 10,
               gap: "8px",
+              pointerEvents: "none",
             }}
           >
             <span style={{ fontSize: "28px" }}>⚠️</span>
@@ -317,6 +352,7 @@ const WebViewRenderer: React.FC<WebViewRendererProps> = ({ data, t, isZh = true 
                 borderRadius: "4px",
                 cursor: "pointer",
                 fontSize: "12px",
+                pointerEvents: "auto",
                 transition: "all 0.2s ease",
               }}
               onMouseEnter={(e) => {
@@ -330,23 +366,34 @@ const WebViewRenderer: React.FC<WebViewRendererProps> = ({ data, t, isZh = true 
             </button>
           </div>
         )}
-        {/* Iframe */}
-        <iframe
-          ref={iframeRef}
-          key={`iframe-${currentIndex}`}
-          src={safeUrl}
-          title={currentWebview.title || "WebView"}
-          sandbox={sandbox}
-          allow={currentWebview.allowFullscreen ? "fullscreen" : ""}
-          onLoad={handleIframeLoad}
-          onError={handleIframeError}
+        {/* Iframe with scale to fit width */}
+        <div
           style={{
-            width: currentWebview.width || "100%",
-            height: "100%",
-            border: "none",
-            background: "#ffffff",
+            width: `${100 / scale}%`,
+            height: `${100 / scale}%`,
+            transform: `scale(${scale})`,
+            transformOrigin: "top left",
           }}
-        />
+        >
+          <iframe
+            ref={iframeRef}
+            key={`iframe-${currentIndex}`}
+            src={safeUrl}
+            title={currentWebview.title || "WebView"}
+            sandbox={sandbox}
+            allow={currentWebview.allowFullscreen ? "fullscreen" : ""}
+            onLoad={handleIframeLoad}
+            onError={handleIframeError}
+            style={{
+              width: "100%",
+              height: "100%",
+              border: "none",
+              background: "#ffffff",
+              display: "block",
+              boxSizing: "border-box",
+            }}
+          />
+        </div>
       </div>
       {/* Footer with URL info */}
       <div
@@ -362,9 +409,13 @@ const WebViewRenderer: React.FC<WebViewRendererProps> = ({ data, t, isZh = true 
           display: "flex",
           alignItems: "center",
           gap: "8px",
+          maxWidth: "100%",
+          width: "100%",
+          boxSizing: "border-box",
+          flexShrink: 0,
         }}
       >
-        <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis" }}>{safeUrl}</span>
+        <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", minWidth: 0 }}>{safeUrl}</span>
         {data.length > 1 && (
           <span style={{ opacity: 0.5, flexShrink: 0 }}>
             ({currentIndex + 1}/{data.length})
@@ -378,7 +429,7 @@ const WebViewRenderer: React.FC<WebViewRendererProps> = ({ data, t, isZh = true 
             flexShrink: 0,
           }}
         >
-          {isZh ? "点击链接在内部打开" : "Links open in-frame"}
+          {isZh ? `缩放 ${Math.round(scale * 100)}%` : `Zoom ${Math.round(scale * 100)}%`}
         </span>
       </div>
     </div>

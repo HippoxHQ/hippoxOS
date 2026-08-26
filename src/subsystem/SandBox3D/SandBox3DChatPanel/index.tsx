@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { useEditMessage } from "./hooks";
-import { NormalMessage, StatusMessage, LoadingSpinner, MessageFileGrid, EditMessageForm, MessageActions } from "./components";
-import { extractUrls, MessageUrlGrid } from "./components/MessageUrlGrid";
+import { StatusMessage, LoadingSpinner, MessageFileGrid, EditMessageForm, MessageActions } from "./components";
 import logo from "../../../assets/logo.png";
 import { LlmInstance, llmCommands } from "../../../command/llm";
 import { WorkspaceInstance, workspaceCommands } from "../../../command/workspace";
@@ -16,7 +15,8 @@ import { ChatMessage, RoleEnum, MessageStatus } from "../../../types/types";
 import { sandbox3dSessionCommands } from "../../../command/session/sandbox3d";
 import { isStructuredLLMResponse, parseLLMResponse } from "../llm/utils";
 import { SandBox3DRef } from "../SandBox3D";
-import { dispatchRefresh3DHistory, REFRESH_3D_HISTORY } from "../SandBox3DWindowsEventsManager";
+import { dispatchRefresh3DHistory } from "../SandBox3DWindowsEventsManager";
+import { filesCommands } from "../../../command/files";
 interface SandBox3DChatPanelProps {
   onSendMessage: (message: string, sessionId: string, files?: UploadFile[], workflowMode?: string) => void | Promise<void>;
   onFileClick?: (file: UploadFile) => void;
@@ -33,6 +33,10 @@ interface SandBox3DChatPanelProps {
   /** Reference to the 3D sandbox for executing code */
   sandboxRef?: React.RefObject<SandBox3DRef | null>;
 }
+/**
+ * SandBox3DChatPanel - Chat interface for 3D sandbox
+ * Supports file upload with filtering for text and skill files
+ */
 const SandBox3DChatPanel: React.FC<SandBox3DChatPanelProps> = ({ onSendMessage, onFileClick, t, language = "zh", currentSessionId, onDragOverInputChange, navigationContent, isLeftPanel = true, onWorkflowModeChange, isCollapsed = false, togglePanel, collapseIcon: collapseIconProp, sandboxRef }) => {
   const [inputValue, setInputValue] = useState("");
   const [isFocused, setIsFocused] = useState(false);
@@ -555,7 +559,121 @@ const SandBox3DChatPanel: React.FC<SandBox3DChatPanelProps> = ({ onSendMessage, 
     setUploadedFiles((prev) => prev.filter((f) => f.id !== fileId));
   };
   /**
-   * Handle sending a message
+   * Open file selector with specific file type filters
+   * Supports text files and skill files
+   * @param filterType - Type of files to filter: 'text' | 'skill'
+   */
+  const openFileSelector = async (filterType: "text" | "skill" = "text") => {
+    try {
+      // Define allowed extensions for each type
+      const allowedExtensions: Record<string, string[]> = {
+        text: ["txt", "md", "json", "js", "ts", "py", "rs", "html", "css", "xml", "yaml", "yml", "toml", "sh", "bash"],
+        skill: ["md", "skill"],
+      };
+      const validExtensions = allowedExtensions[filterType] || [];
+      // Define filters for the file dialog
+      let filters: { name: string; extensions: string[] }[] = [];
+      switch (filterType) {
+        case "text":
+          filters = [{ name: "Text Files", extensions: validExtensions }];
+          break;
+        case "skill":
+          filters = [{ name: "Skill Files", extensions: validExtensions }];
+          break;
+        default:
+          filters = [{ name: "All Files", extensions: ["*"] }];
+      }
+      // Open system file selector
+      const result = await filesCommands.selectFile({
+        multiple: true,
+        filters: filters,
+      });
+      if (!result) return;
+      const selectedFiles = Array.isArray(result) ? result : [result];
+      const newFiles: UploadFile[] = [];
+      let skippedCount = 0;
+      // Process each selected file - filter by extension
+      for (const path of selectedFiles) {
+        const ext = path.split(".").pop()?.toLowerCase() || "";
+        // Skip files with invalid extensions
+        if (!validExtensions.includes(ext)) {
+          skippedCount++;
+          continue;
+        }
+        const fileInfo = await filesCommands.getFileInfo(path);
+        const isSkill = path.toLowerCase().endsWith(".md") || path.toLowerCase().endsWith(".skill.md") || path.toLowerCase().endsWith(".skill");
+        // Read file content for text files
+        let content = "";
+        try {
+          content = await filesCommands.readTextFile(path);
+        } catch (e) {
+          console.debug("Cannot read file content:", path);
+        }
+        // Determine file type based on extension
+        let fileType = "application/octet-stream";
+        if (isSkill) {
+          fileType = "text/markdown";
+        } else if (path.endsWith(".txt")) {
+          fileType = "text/plain";
+        } else if (path.endsWith(".json")) {
+          fileType = "application/json";
+        } else if (path.endsWith(".js") || path.endsWith(".ts")) {
+          fileType = "text/javascript";
+        } else if (path.endsWith(".py")) {
+          fileType = "text/x-python";
+        } else if (path.endsWith(".rs")) {
+          fileType = "text/x-rust";
+        } else if (path.endsWith(".html") || path.endsWith(".htm")) {
+          fileType = "text/html";
+        } else if (path.endsWith(".css")) {
+          fileType = "text/css";
+        } else if (path.endsWith(".xml")) {
+          fileType = "text/xml";
+        } else if (path.endsWith(".yaml") || path.endsWith(".yml")) {
+          fileType = "text/yaml";
+        } else if (path.endsWith(".toml")) {
+          fileType = "text/toml";
+        } else if (path.endsWith(".sh") || path.endsWith(".bash")) {
+          fileType = "text/x-shellscript";
+        }
+        // Create File object required by UploadFile type
+        const fileName = fileInfo.name;
+        const fileBlob = new Blob([content], { type: fileType });
+        const fileObj = new File([fileBlob], fileName, { type: fileType });
+        newFiles.push({
+          id: `file_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          file: fileObj,
+          name: fileName,
+          size: fileInfo.size,
+          path: path,
+          content: content,
+          type: fileType,
+          status: "success" as const,
+        });
+      }
+      // Show warning if some files were skipped
+      if (skippedCount > 0) {
+        showToast(ToastType.WARNING, `${skippedCount} file(s) skipped. Only ${filterType} files are allowed.`);
+      }
+      if (newFiles.length === 0) {
+        showToast(ToastType.INFO, `No valid ${filterType} files selected`);
+        return;
+      }
+      // Add all files to upload list - user clicks send to send them
+      setUploadedFiles((prev) => [...prev, ...newFiles]);
+      showToast(ToastType.SUCCESS, `Added ${newFiles.length} file(s)`);
+    } catch (error) {
+      console.error("Failed to select files:", error);
+      showToast(ToastType.ERROR, "Failed to select files: " + error);
+    }
+  };
+  /**
+   * Handle attachment menu close
+   */
+  const handleAttachment = () => setShowAttachmentMenu(false);
+  /**
+   * Handle sending a message - includes file content in the message
+   * Both text files and skill files content are included
    */
   const handleSend = () => {
     if (isSending) return;
@@ -565,7 +683,28 @@ const SandBox3DChatPanel: React.FC<SandBox3DChatPanelProps> = ({ onSendMessage, 
         showToast(ToastType.SUCCESS, "Session ID cannot be empty.");
         return;
       }
-      const message = inputValue.trim() || "";
+      // Build message with file contents
+      let message = inputValue.trim() || "";
+      for (const file of uploadedFiles) {
+        if (file.content) {
+          const isSkill = file.name?.toLowerCase().endsWith(".md") || file.name?.toLowerCase().endsWith(".skill.md");
+          if (isSkill) {
+            // Extract skill name from content (first # heading)
+            let skillName = file.name;
+            const lines = file.content.split("\n");
+            for (const line of lines) {
+              const trimmed = line.trim();
+              if (trimmed.startsWith("# ")) {
+                skillName = trimmed.replace("# ", "").trim();
+                break;
+              }
+            }
+            message += `\n\n📎 **Skill: ${skillName}**\n\`\`\`markdown\n${file.content}\n\`\`\``;
+          } else {
+            message += `\n\n📎 **${file.name}**\n\`\`\`\n${file.content}\n\`\`\``;
+          }
+        }
+      }
       const currentFiles = [...uploadedFiles];
       setInputValue("");
       setUploadedFiles([]);
@@ -593,10 +732,6 @@ const SandBox3DChatPanel: React.FC<SandBox3DChatPanelProps> = ({ onSendMessage, 
     e.target.style.height = "auto";
     e.target.style.height = Math.min(e.target.scrollHeight, 100) + "px";
   };
-  /**
-   * Handle attachment menu close
-   */
-  const handleAttachment = () => setShowAttachmentMenu(false);
   /**
    * Get selected workspace name for display
    */
@@ -973,12 +1108,17 @@ const SandBox3DChatPanel: React.FC<SandBox3DChatPanelProps> = ({ onSendMessage, 
   // RENDER
   return (
     <div
-      className="videoeditor-chat-panel"
+      className="sandbox3d-chat-panel"
       style={{
         display: "flex",
         flexDirection: "column",
         height: "100%",
+        width: "100%",
+        minWidth: "100%",
+        maxWidth: "100%",
         overflow: "hidden",
+        flexShrink: 0,
+        flexGrow: 0,
       }}
     >
       <div className="panel-header" style={{ paddingTop: "6px", paddingBottom: "6px" }}>
@@ -1319,17 +1459,13 @@ const SandBox3DChatPanel: React.FC<SandBox3DChatPanelProps> = ({ onSendMessage, 
               </div>
               {showAttachmentMenu && (
                 <div className="attachment-menu" ref={attachmentMenuRef}>
-                  <div className="attachment-item" onClick={() => handleAttachment()}>
-                    <TextFileIcon size={14} /> {t("chat.textFile")}
+                  <div className="attachment-item" onClick={() => openFileSelector("text")}>
+                    <TextFileIcon size={14} />
+                    {t("chat.textFile")}
                   </div>
-                  <div className="attachment-item" onClick={() => handleAttachment()}>
-                    <ImageIcon size={14} /> {t("chat.image")}
-                  </div>
-                  <div className="attachment-item" onClick={() => handleAttachment()}>
-                    <VideoIcon size={14} /> {t("chat.video")}
-                  </div>
-                  <div className="attachment-item" onClick={() => handleAttachment()}>
-                    <FileIcon size={14} /> {t("chat.skillFile")}
+                  <div className="attachment-item" onClick={() => openFileSelector("skill")}>
+                    <FileIcon size={14} />
+                    {t("chat.skillFile")}
                   </div>
                 </div>
               )}

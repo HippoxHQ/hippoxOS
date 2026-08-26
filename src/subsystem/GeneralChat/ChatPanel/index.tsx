@@ -14,7 +14,7 @@ import { zhDefaultPrompts, enDefaultPrompts } from "../../../types/DefaultPrompt
 import { ChatMessage, RoleEnum, MessageStatus } from "../../../types/types";
 import { sessionCommands } from "../../../command/session/general";
 import { isStructuredLLMResponse, parseLLMResponse } from "../llm/utils";
-
+import { filesCommands } from "../../../command/files";
 interface ChatPanelProps {
   onSendMessage: (message: string, sessionId: string, files?: UploadFile[], workflowMode?: string) => void | Promise<void>;
   onFileClick?: (file: UploadFile) => void;
@@ -29,7 +29,6 @@ interface ChatPanelProps {
   togglePanel?: () => void;
   collapseIcon?: string;
 }
-
 const ChatPanel: React.FC<ChatPanelProps> = ({ onSendMessage, onFileClick, t, language = "zh", currentSessionId, onDragOverInputChange, navigationContent, isLeftPanel = true, onWorkflowModeChange, isCollapsed = false, togglePanel, collapseIcon: collapseIconProp }) => {
   const [inputValue, setInputValue] = useState("");
   const [isFocused, setIsFocused] = useState(false);
@@ -68,7 +67,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSendMessage, onFileClick, t, la
   const [isLoadingTitle, setIsLoadingTitle] = useState(false);
   const hasLoadedTitleRef = useRef<Record<string, boolean>>({});
   const collapseIcon = collapseIconProp || (isLeftPanel ? (isCollapsed ? "≫" : "≪") : isCollapsed ? "≪" : "≫");
-
+  // Load session title from backend
   const loadSessionTitle = async (sessionId: string) => {
     if (!sessionId || sessionId.startsWith("pending_") || sessionId.startsWith("temp_")) {
       setSessionTitle("");
@@ -94,13 +93,11 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSendMessage, onFileClick, t, la
       setIsLoadingTitle(false);
     }
   };
-
   useEffect(() => {
     if (currentSessionId) {
       loadSessionTitle(currentSessionId);
     }
   }, [currentSessionId]);
-
   useEffect(() => {
     const handleSessionTitleUpdated = (event: Event) => {
       const customEvent = event as CustomEvent;
@@ -115,9 +112,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSendMessage, onFileClick, t, la
       window.removeEventListener("session-title-updated", handleSessionTitleUpdated as EventListener);
     };
   }, [currentSessionId]);
-
   const { editingMessageId, editContent, setEditContent, handleEditMessage, handleSaveEdit, handleCancelEdit } = useEditMessage({ currentSessionId, onSendMessage, t });
-
   const loadWorkflowDisplayNames = async () => {
     try {
       const lang = localStorage.getItem("hippox-language") || "en";
@@ -132,7 +127,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSendMessage, onFileClick, t, la
       console.error("Failed to load workflow display names:", error);
     }
   };
-
   const formatTimestamp = (timestamp: string): string => {
     const date = new Date(timestamp);
     const now = new Date();
@@ -152,7 +146,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSendMessage, onFileClick, t, la
       return `${date.toLocaleDateString()} ${timeStr}`;
     }
   };
-
   const handleScrollUpdate = () => {
     if (!messagesContainerRef.current) return;
     const container = messagesContainerRef.current;
@@ -170,7 +163,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSendMessage, onFileClick, t, la
     });
     setActiveNavIndex(closestIndex);
   };
-
   const handleNavButtonMouseEnter = () => {
     if (navBubbleTimerRef.current) {
       clearTimeout(navBubbleTimerRef.current);
@@ -178,13 +170,11 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSendMessage, onFileClick, t, la
     }
     setShowNavBubble(true);
   };
-
   const handleNavButtonMouseLeave = () => {
     navBubbleTimerRef.current = setTimeout(() => {
       setShowNavBubble(false);
     }, 200);
   };
-
   const handleNavBubbleMouseEnter = () => {
     if (navBubbleTimerRef.current) {
       clearTimeout(navBubbleTimerRef.current);
@@ -192,13 +182,11 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSendMessage, onFileClick, t, la
     }
     setShowNavBubble(true);
   };
-
   const handleNavBubbleMouseLeave = () => {
     navBubbleTimerRef.current = setTimeout(() => {
       setShowNavBubble(false);
     }, 200);
   };
-
   const handleResendMessage = (msg: ChatMessage) => {
     if (isResending || isSending) return;
     const sessionId = currentSessionId || "";
@@ -213,7 +201,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSendMessage, onFileClick, t, la
       setTimeout(() => setIsResending(false), 300);
     });
   };
-
   const getRandomPrompts = (count: number = 6): string[] => {
     const prompts = language === "zh" ? zhDefaultPrompts : enDefaultPrompts;
     const shuffled = [...prompts];
@@ -223,7 +210,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSendMessage, onFileClick, t, la
     }
     return shuffled.slice(0, count);
   };
-
   const shouldShowSuggestions = (msgs: ChatMessage[]) => {
     if (msgs.length === 0) return false;
     const lastMsg = msgs[msgs.length - 1];
@@ -234,11 +220,9 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSendMessage, onFileClick, t, la
     }
     return true;
   };
-
   const prevMessageCountRef = useRef(0);
   const suggestionTimerRef = useRef<NodeJS.Timeout | null>(null);
   const isFirstLoadRef = useRef(true);
-
   useEffect(() => {
     if (suggestionTimerRef.current) {
       clearInterval(suggestionTimerRef.current);
@@ -266,7 +250,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSendMessage, onFileClick, t, la
       }
     };
   }, [messages, language]);
-
   const handleSuggestionClick = (prompt: string) => {
     const sessionId = currentSessionId || "";
     if (!sessionId) {
@@ -275,9 +258,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSendMessage, onFileClick, t, la
     }
     onSendMessage(prompt, sessionId, undefined, selectedWorkflowMode);
   };
-
   const handleContainerClick = () => textareaRef.current?.focus();
-
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return "0 B";
     const k = 1024;
@@ -285,7 +266,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSendMessage, onFileClick, t, la
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
   };
-
   const copyToClipboard = async (text: string | undefined) => {
     try {
       if (!text) {
@@ -298,7 +278,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSendMessage, onFileClick, t, la
       showToast(ToastType.ERROR, t("common.copyFailed") || "Copy Failed");
     }
   };
-
   const handleLocateTask = (msg: ChatMessage) => {
     const relatedTask = taskManager.getAllTasks().find((task) => task.user_input === msg.content || task.final_output === msg.content || task.task_id === (msg as any).relatedTaskId);
     if (relatedTask) {
@@ -311,7 +290,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSendMessage, onFileClick, t, la
       showToast(ToastType.INFO, t("chat.noRelatedTask") || "No Related Task");
     }
   };
-
   const loadCurrentDefaultModel = async () => {
     try {
       setLoadingModel(true);
@@ -331,7 +309,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSendMessage, onFileClick, t, la
       setLoadingModel(false);
     }
   };
-
   const loadWorkflowModes = async () => {
     try {
       const modes = await workflowCommands.getWorkflowModeNames();
@@ -343,7 +320,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSendMessage, onFileClick, t, la
       console.error("Failed to load workflow modes:", error);
     }
   };
-
   const loadSessionWorkflowMode = async (sessionId: string) => {
     if (!sessionId || sessionId.startsWith("pending_") || sessionId.startsWith("temp_")) {
       return;
@@ -370,7 +346,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSendMessage, onFileClick, t, la
       console.error("Failed to load session workflow mode:", error);
     }
   };
-
   const loadWorkspaces = async (retryCount: number = 0): Promise<void> => {
     try {
       const config = await workspaceCommands.getWorkspaceConfig();
@@ -388,13 +363,11 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSendMessage, onFileClick, t, la
       showToast(ToastType.ERROR, "Failed to load workspaces: " + error);
     }
   };
-
   useEffect(() => {
     if (currentSessionId && !currentSessionId.startsWith("pending_") && !currentSessionId.startsWith("temp_")) {
       loadSessionWorkflowMode(currentSessionId);
     }
   }, [currentSessionId]);
-
   useEffect(() => {
     const handleSessionCreated = () => {
       if (currentSessionId) {
@@ -407,7 +380,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSendMessage, onFileClick, t, la
       window.removeEventListener("session-created", handleSessionCreated);
     };
   }, [currentSessionId]);
-
   const checkScrollPosition = () => {
     if (!messagesContainerRef.current) return;
     const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
@@ -418,7 +390,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSendMessage, onFileClick, t, la
     if (atBottom) setUserScrolled(false);
     handleScrollUpdate();
   };
-
   const handleUserScroll = () => {
     if (messagesContainerRef.current) {
       const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
@@ -427,7 +398,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSendMessage, onFileClick, t, la
     }
     checkScrollPosition();
   };
-
   const scrollToTop = () => {
     if (messagesContainerRef.current) {
       messagesContainerRef.current.scrollTo({
@@ -436,7 +406,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSendMessage, onFileClick, t, la
       });
     }
   };
-
   const scrollToBottom = () => {
     if (messagesContainerRef.current) {
       messagesContainerRef.current.scrollTo({
@@ -446,7 +415,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSendMessage, onFileClick, t, la
       setUserScrolled(false);
     }
   };
-
   const scrollToMessage = (index: number) => {
     if (!messagesContainerRef.current) return;
     const messageElements = messagesContainerRef.current.querySelectorAll(".message-wrapper");
@@ -458,7 +426,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSendMessage, onFileClick, t, la
       setActiveNavIndex(index);
     }
   };
-
   const handleFilesAdd = (files: UploadFile[]) => {
     setUploadedFiles((prev) => {
       const existingKeys = new Set(prev.map((f) => `${f.name}_${f.size}`));
@@ -466,11 +433,115 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSendMessage, onFileClick, t, la
       return [...prev, ...newUniqueFiles];
     });
   };
-
   const handleFileRemove = (fileId: string) => {
     setUploadedFiles((prev) => prev.filter((f) => f.id !== fileId));
   };
-
+  /**
+   * Open file selector with specific file type filters
+   * @param filterType - Type of files to filter: 'text' | 'image' | 'video' | 'skill'
+   */
+  const openFileSelector = async (filterType: "text" | "skill" = "text") => {
+    try {
+      const allowedExtensions: Record<string, string[]> = {
+        text: ["txt", "md", "json", "js", "ts", "py", "rs", "html", "css", "xml", "yaml", "yml", "toml", "sh", "bash"],
+        skill: ["md", "skill"],
+      };
+      const validExtensions = allowedExtensions[filterType] || [];
+      let filters: { name: string; extensions: string[] }[] = [];
+      switch (filterType) {
+        case "text":
+          filters = [{ name: "Text Files", extensions: validExtensions }];
+          break;
+        case "skill":
+          filters = [{ name: "Skill Files", extensions: validExtensions }];
+          break;
+        default:
+          filters = [{ name: "All Files", extensions: ["*"] }];
+      }
+      const result = await filesCommands.selectFile({
+        multiple: true,
+        filters: filters,
+      });
+      if (!result) return;
+      const selectedFiles = Array.isArray(result) ? result : [result];
+      const newFiles: UploadFile[] = [];
+      let skippedCount = 0;
+      for (const path of selectedFiles) {
+        const ext = path.split(".").pop()?.toLowerCase() || "";
+        if (!validExtensions.includes(ext)) {
+          skippedCount++;
+          continue;
+        }
+        const fileInfo = await filesCommands.getFileInfo(path);
+        const isSkill = path.toLowerCase().endsWith(".md") || path.toLowerCase().endsWith(".skill.md") || path.toLowerCase().endsWith(".skill");
+        let content = "";
+        try {
+          content = await filesCommands.readTextFile(path);
+        } catch (e) {
+          console.debug("Cannot read file content:", path);
+        }
+        let fileType = "application/octet-stream";
+        if (isSkill) {
+          fileType = "text/markdown";
+        } else if (path.endsWith(".txt")) {
+          fileType = "text/plain";
+        } else if (path.endsWith(".json")) {
+          fileType = "application/json";
+        } else if (path.endsWith(".js") || path.endsWith(".ts")) {
+          fileType = "text/javascript";
+        } else if (path.endsWith(".py")) {
+          fileType = "text/x-python";
+        } else if (path.endsWith(".rs")) {
+          fileType = "text/x-rust";
+        } else if (path.endsWith(".html") || path.endsWith(".htm")) {
+          fileType = "text/html";
+        } else if (path.endsWith(".css")) {
+          fileType = "text/css";
+        } else if (path.endsWith(".xml")) {
+          fileType = "text/xml";
+        } else if (path.endsWith(".yaml") || path.endsWith(".yml")) {
+          fileType = "text/yaml";
+        } else if (path.endsWith(".toml")) {
+          fileType = "text/toml";
+        } else if (path.endsWith(".sh") || path.endsWith(".bash")) {
+          fileType = "text/x-shellscript";
+        }
+        const fileName = fileInfo.name;
+        const fileBlob = new Blob([content], { type: fileType });
+        const fileObj = new File([fileBlob], fileName, { type: fileType });
+        newFiles.push({
+          id: `file_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          file: fileObj,
+          name: fileName,
+          size: fileInfo.size,
+          path: path,
+          content: content,
+          type: fileType,
+          status: "success" as const,
+        });
+      }
+      if (skippedCount > 0) {
+        showToast(ToastType.WARNING, `${skippedCount} file(s) skipped. Only ${filterType} files are allowed.`);
+      }
+      if (newFiles.length === 0) {
+        showToast(ToastType.INFO, `No valid ${filterType} files selected`);
+        return;
+      }
+      // Add all files to upload list - user clicks send to send them
+      setUploadedFiles((prev) => [...prev, ...newFiles]);
+      showToast(ToastType.SUCCESS, `Added ${newFiles.length} file(s)`);
+    } catch (error) {
+      console.error("Failed to select files:", error);
+      showToast(ToastType.ERROR, "Failed to select files: " + error);
+    }
+  };
+  /**
+   * Handle attachment button click - closes menu and opens file selector
+   * This function is called when user clicks any attachment menu item
+   */
+  const handleAttachment = () => {
+    setShowAttachmentMenu(false);
+  };
   const handleSend = () => {
     if (isSending) return;
     if (inputValue.trim() || uploadedFiles.length > 0) {
@@ -479,34 +550,48 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSendMessage, onFileClick, t, la
         showToast(ToastType.SUCCESS, "Session ID cannot be empty.");
         return;
       }
-      const message = inputValue.trim() || "";
+      // Build message with file contents
+      let message = inputValue.trim() || "";
+      for (const file of uploadedFiles) {
+        if (file.content) {
+          const isSkill = file.name?.toLowerCase().endsWith(".md") || file.name?.toLowerCase().endsWith(".skill.md");
+          if (isSkill) {
+            let skillName = file.name;
+            const lines = file.content.split("\n");
+            for (const line of lines) {
+              const trimmed = line.trim();
+              if (trimmed.startsWith("# ")) {
+                skillName = trimmed.replace("# ", "").trim();
+                break;
+              }
+            }
+            message += `\n\n📎 **Skill: ${skillName}**\n\`\`\`markdown\n${file.content}\n\`\`\``;
+          } else {
+            message += `\n\n📎 **${file.name}**\n\`\`\`\n${file.content}\n\`\`\``;
+          }
+        }
+      }
       const currentFiles = [...uploadedFiles];
       setInputValue("");
       setUploadedFiles([]);
       if (textareaRef.current) textareaRef.current.style.height = "auto";
       setIsSending(true);
-      let backendMessage = message;
-      Promise.resolve(onSendMessage(backendMessage, sessionId, currentFiles, selectedWorkflowMode)).finally(() => {
+      Promise.resolve(onSendMessage(message, sessionId, currentFiles, selectedWorkflowMode)).finally(() => {
         setTimeout(() => setIsSending(false), 100);
       });
     }
   };
-
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
     }
   };
-
   const adjustTextareaHeight = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInputValue(e.target.value);
     e.target.style.height = "auto";
     e.target.style.height = Math.min(e.target.scrollHeight, 100) + "px";
   };
-
-  const handleAttachment = () => setShowAttachmentMenu(false);
-
   const getSelectedWorkspaceName = (): string => {
     const workspace = workspaces.find((w) => w.id === selectedWorkspaceId);
     if (!workspace) return language === "zh" ? "工作目录" : "Workspace";
@@ -515,7 +600,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSendMessage, onFileClick, t, la
     const parts = normalizedPath.split("/");
     return parts[parts.length - 1] || workspace.name;
   };
-
   const handleSelectWorkspace = async (workspaceId: string) => {
     const workspace = workspaces.find((w) => w.id === workspaceId);
     if (!workspace) return;
@@ -528,7 +612,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSendMessage, onFileClick, t, la
       showToast(ToastType.ERROR, "Failed to set default workspace: " + error);
     }
   };
-
   const handleWorkflowModeChange = async (mode: string) => {
     setSelectedWorkflowMode(mode);
     setShowWorkflowMenu(false);
@@ -550,7 +633,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSendMessage, onFileClick, t, la
       localStorage.setItem(`workflow_mode_${key}`, mode);
     }
   };
-
   const buildNavigationContent = (): React.ReactNode => {
     const userMessages = messages.filter((m) => m.role === RoleEnum.User);
     if (userMessages.length === 0) {
@@ -622,11 +704,9 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSendMessage, onFileClick, t, la
       </div>
     );
   };
-
   useEffect(() => {
     const updateMessages = () => {
       setMessages([]);
-
       if (!currentSessionId) {
         setMessages([]);
         return;
@@ -648,7 +728,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSendMessage, onFileClick, t, la
     const unsubscribe = taskManager.subscribe(() => updateMessages());
     return unsubscribe;
   }, [language, currentSessionId, t]);
-
   useEffect(() => {
     const handleLanguageChange = () => {
       loadWorkflowDisplayNames();
@@ -658,20 +737,16 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSendMessage, onFileClick, t, la
       window.removeEventListener("language-changed", handleLanguageChange as EventListener);
     };
   }, []);
-
   useEffect(() => {
     loadCurrentDefaultModel();
     loadWorkspaces();
     loadWorkflowModes();
     loadWorkflowDisplayNames();
   }, []);
-
   const messagesRef = useRef<ChatMessage[]>(messages);
-
   useEffect(() => {
     messagesRef.current = messages;
   }, [messages]);
-
   useEffect(() => {
     const handleLocateTaskInChat = (event: Event) => {
       const customEvent = event as CustomEvent;
@@ -711,14 +786,12 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSendMessage, onFileClick, t, la
       window.removeEventListener("locate-task-in-chat", handleLocateTaskInChat);
     };
   }, [t]);
-
   useEffect(() => {
     if (messagesContainerRef.current && !userScrolled) {
       messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
     }
     setTimeout(handleScrollUpdate, 100);
   }, [messages, userScrolled]);
-
   useEffect(() => {
     const element = messagesContainerRef.current;
     if (element) {
@@ -727,7 +800,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSendMessage, onFileClick, t, la
       return () => element.removeEventListener("scroll", checkScrollPosition);
     }
   }, [messages]);
-
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (attachmentMenuRef.current && !attachmentMenuRef.current.contains(event.target as Node) && attachmentBtnRef.current && !attachmentBtnRef.current.contains(event.target as Node)) {
@@ -746,13 +818,10 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSendMessage, onFileClick, t, la
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-
   const getEndingMessage = () => {
     return t("chat.endingMessage") || (language === "zh" ? "✨ 我还能为你做些什么吗？ ✨" : "✨ What else can I do for you? ✨");
   };
-
   const navigation = buildNavigationContent();
-
   const navBubblePosition = (() => {
     if (navButtonRef.current) {
       const rect = navButtonRef.current.getBoundingClientRect();
@@ -763,7 +832,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSendMessage, onFileClick, t, la
     }
     return { right: 0, top: 0 };
   })();
-
   return (
     <div className="chat-panel">
       <div className="panel-header" style={{ paddingTop: "6px", paddingBottom: "6px" }}>
@@ -784,10 +852,8 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSendMessage, onFileClick, t, la
             {isLoadingTitle ? t("common.loading") : sessionTitle || t("chat.title")}
           </span>
         </div>
-
         <div className="header-right">
           <div className="header-subtitle">{loadingModel ? <span className="loading-text">{t("chat.loadingModel")}</span> : currentModel ? <span title={currentModel.name}>{currentModel.name}</span> : <span className="no-model">{t("chat.noModelConfigured")}</span>}</div>
-
           <div
             ref={navButtonRef}
             style={{
@@ -947,7 +1013,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSendMessage, onFileClick, t, la
           </div>
         </div>
       )}
-
       <div className="chat-messages-wrapper">
         <div className="chat-messages" ref={messagesContainerRef} onScroll={handleUserScroll}>
           {messages.map((msg, index) => {
@@ -1067,7 +1132,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSendMessage, onFileClick, t, la
           </div>
         )}
       </div>
-
       <div className="chat-input-section">
         <div className={`chat-input-container ${isFocused ? "focused" : ""}`} onClick={handleContainerClick}>
           <div className="file-uploader-container" style={{ display: uploadedFiles.length > 0 ? "block" : "none" }}>
@@ -1081,7 +1145,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSendMessage, onFileClick, t, la
               <div className="icon-btn" ref={attachmentBtnRef} onClick={() => setShowAttachmentMenu(!showAttachmentMenu)} title={t("chat.attachment")}>
                 <AttachmentIcon size={14} />
               </div>
-
               <div
                 className="icon-btn folder-btn"
                 ref={directoryBtnRef}
@@ -1107,22 +1170,21 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSendMessage, onFileClick, t, la
                 </span>
                 <ChevronRightIcon size={10} className="chevron" />
               </div>
-
               {showAttachmentMenu && (
                 <div className="attachment-menu" ref={attachmentMenuRef}>
-                  <div className="attachment-item" onClick={() => handleAttachment()}>
+                  <div className="attachment-item" onClick={() => openFileSelector("text")}>
                     <TextFileIcon size={14} />
                     {t("chat.textFile")}
                   </div>
-                  <div className="attachment-item" onClick={() => handleAttachment()}>
+                  {/* <div className="attachment-item" onClick={() => openFileSelector("image")}>
                     <ImageIcon size={14} />
                     {t("chat.image")}
                   </div>
-                  <div className="attachment-item" onClick={() => handleAttachment()}>
+                  <div className="attachment-item" onClick={() => openFileSelector("video")}>
                     <VideoIcon size={14} />
                     {t("chat.video")}
-                  </div>
-                  <div className="attachment-item" onClick={() => handleAttachment()}>
+                  </div> */}
+                  <div className="attachment-item" onClick={() => openFileSelector("skill")}>
                     <FileIcon size={14} />
                     {t("chat.skillFile")}
                   </div>

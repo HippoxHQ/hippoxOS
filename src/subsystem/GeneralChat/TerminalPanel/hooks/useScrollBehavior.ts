@@ -1,6 +1,5 @@
 import { useRef, useState, useCallback, useEffect } from "react";
 import { TaskInfo } from "../../../../core/types";
-
 export const useScrollBehavior = (
   allTasks: TaskInfo[],
   taskRefs: React.MutableRefObject<Map<string, HTMLDivElement>>
@@ -11,14 +10,14 @@ export const useScrollBehavior = (
   const [showScrollBottom, setShowScrollBottom] = useState(false);
   const [activeNavIndex, setActiveNavIndex] = useState<number>(-1);
   const userScrolledUpRef = useRef(false);
-  const prevTaskCountRef = useRef(allTasks.length);
+  const hasInitializedRef = useRef(false);
+  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const checkScrollPosition = useCallback(() => {
     if (!terminalRef.current) return;
     const { scrollTop, scrollHeight, clientHeight } = terminalRef.current;
     setShowScrollTop(scrollTop > 100);
     setShowScrollBottom(scrollHeight - scrollTop - clientHeight > 50);
   }, []);
-
   const updateActiveNavOnScroll = useCallback(() => {
     if (!terminalRef.current || allTasks.length === 0) return;
     const containerRect = terminalRef.current.getBoundingClientRect();
@@ -37,32 +36,54 @@ export const useScrollBehavior = (
     });
     setActiveNavIndex(closestIndex);
   }, [allTasks, taskRefs]);
-
   const handleScroll = useCallback(() => {
     if (!terminalRef.current) return;
     const { scrollTop, scrollHeight, clientHeight } = terminalRef.current;
     const isAtBottom = scrollHeight - scrollTop - clientHeight <= 50;
     if (!isAtBottom) {
       userScrolledUpRef.current = true;
+      setAutoScroll(false);
     } else {
       userScrolledUpRef.current = false;
+      setAutoScroll(true);
     }
-    setAutoScroll(isAtBottom);
     checkScrollPosition();
     updateActiveNavOnScroll();
   }, [checkScrollPosition, updateActiveNavOnScroll]);
-
+  // 滚动到底部 - 只用于初始化
+  const scrollToBottomOnce = useCallback(() => {
+    if (!terminalRef.current) return;
+    const el = terminalRef.current;
+    let attempts = 0;
+    const doScroll = () => {
+      if (!el) return;
+      el.scrollTop = el.scrollHeight;
+      const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+      if (distanceFromBottom > 10 && attempts < 8) {
+        attempts++;
+        setTimeout(doScroll, 150);
+      }
+    };
+    setTimeout(doScroll, 100);
+  }, []);
+  // 只在首次加载时滚动到底部
   useEffect(() => {
-    if (terminalRef.current && allTasks.length > prevTaskCountRef.current) {
-      setTimeout(() => {
-        if (terminalRef.current) {
-          terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
-        }
-      }, 50);
-    }
-    prevTaskCountRef.current = allTasks.length;
-  }, [allTasks]);
-
+    if (!terminalRef.current || hasInitializedRef.current) return;
+    // 延迟等待所有组件渲染
+    const timer = setTimeout(() => {
+      scrollToBottomOnce();
+      hasInitializedRef.current = true;
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [allTasks, scrollToBottomOnce]);
+  useEffect(() => {
+    return () => {
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+    };
+  }, []);
+  // Scroll event listener
   useEffect(() => {
     const element = terminalRef.current;
     if (element) {
@@ -71,32 +92,29 @@ export const useScrollBehavior = (
       return () => element.removeEventListener("scroll", handleScroll);
     }
   }, [handleScroll, checkScrollPosition]);
-
   useEffect(() => {
     updateActiveNavOnScroll();
   }, [allTasks, updateActiveNavOnScroll]);
-
   const scrollToTop = useCallback(() => {
     if (terminalRef.current) {
       terminalRef.current.scrollTo({ top: 0, behavior: "smooth" });
       setAutoScroll(false);
+      userScrolledUpRef.current = true;
       setTimeout(() => {
         checkScrollPosition();
       }, 100);
     }
   }, [checkScrollPosition]);
-
   const scrollToBottom = useCallback(() => {
     if (terminalRef.current) {
+      userScrolledUpRef.current = false;
+      setAutoScroll(true);
       terminalRef.current.scrollTo({
         top: terminalRef.current.scrollHeight,
         behavior: "smooth",
       });
-      userScrolledUpRef.current = false;
-      setAutoScroll(true);
     }
   }, []);
-
   const scrollToTask = useCallback((index: number) => {
     const task = allTasks[index];
     if (task && taskRefs.current.has(task.task_id) && terminalRef.current) {
@@ -114,6 +132,7 @@ export const useScrollBehavior = (
           behavior: "smooth",
         });
         setAutoScroll(false);
+        userScrolledUpRef.current = true;
         setTimeout(() => {
           checkScrollPosition();
           updateActiveNavOnScroll();
@@ -121,7 +140,6 @@ export const useScrollBehavior = (
       }
     }
   }, [allTasks, taskRefs, checkScrollPosition, updateActiveNavOnScroll]);
-
   return {
     terminalRef,
     autoScroll,

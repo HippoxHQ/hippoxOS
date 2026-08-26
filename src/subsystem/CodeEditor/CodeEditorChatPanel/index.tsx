@@ -13,8 +13,9 @@ import { ChatIcon, TaskQueueIcon, UserIcon, AttachmentIcon, FolderIcon, ChevronR
 import { zhDefaultPrompts, enDefaultPrompts } from "../../../types/DefaultPrompt";
 import { ChatMessage, RoleEnum, MessageStatus } from "../../../types/types";
 import { codeEditorSessionCommands } from "../../../command/session/codeeditor";
-import { isStructuredLLMResponse, parseLLMResponse, extractEditorData, hasEditorData } from "../llm/utils";
+import { isStructuredLLMResponse, parseLLMResponse } from "../llm/utils";
 import { CodingRef } from "../Coding";
+import { filesCommands } from "../../../command/files";
 interface CodeEditorChatPanelProps {
   onSendMessage: (message: string, sessionId: string, files?: UploadFile[], workflowMode?: string) => void | Promise<void>;
   onFileClick?: (file: UploadFile) => void;
@@ -33,6 +34,7 @@ interface CodeEditorChatPanelProps {
 }
 /**
  * CodeEditorChatPanel - Chat interface for code editor
+ * Supports file upload with filtering for text and skill files
  */
 const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
   onSendMessage: onSendMessageProp,
@@ -94,12 +96,14 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
     content: language === "zh" ? "哟～ 我是 Hippox 代码编辑助手！💻 写代码、审代码、改文件我都在行，想让我帮你干点啥～" : "Yo～ I'm Hippox Code Editor Assistant! 💻 I'm good at writing code, reviewing code, and editing files. What can I help you with～",
     timestamp: new Date().toISOString(),
   };
+  // Subscribe to task manager updates
   useEffect(() => {
     const unsubscribe = taskManager.subscribe(() => {
       setUpdateTrigger((prev) => prev + 1);
     });
     return unsubscribe;
   }, []);
+  // Get messages from task manager
   const getMessages = useCallback((): ChatMessage[] => {
     if (!currentSessionId) return [welcomeMsg];
     const userMessages = taskManager.getUserMessagesBySession(currentSessionId, SessionDomain.CodeEditor);
@@ -111,6 +115,7 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
     return allMessages;
   }, [currentSessionId, updateTrigger]);
   const messages = getMessages();
+  // Load session title from backend
   const loadSessionTitle = async (sessionId: string) => {
     if (!sessionId || sessionId.startsWith("pending_") || sessionId.startsWith("temp_")) {
       setSessionTitle("");
@@ -156,6 +161,7 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
     };
   }, [currentSessionId]);
   const { editingMessageId, editContent, setEditContent, handleEditMessage, handleSaveEdit, handleCancelEdit } = useEditMessage({ currentSessionId, onSendMessage: onSendMessageProp, t });
+  // Load workflow display names
   const loadWorkflowDisplayNames = async () => {
     try {
       const lang = localStorage.getItem("hippox-language") || "en";
@@ -170,6 +176,7 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
       console.error("Failed to load workflow display names:", error);
     }
   };
+  // Format timestamp
   const formatTimestamp = (timestamp: string): string => {
     const date = new Date(timestamp);
     const now = new Date();
@@ -189,6 +196,7 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
       return `${date.toLocaleDateString()} ${timeStr}`;
     }
   };
+  // Scroll update handler
   const handleScrollUpdate = () => {
     if (!messagesContainerRef.current) return;
     const container = messagesContainerRef.current;
@@ -206,6 +214,7 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
     });
     setActiveNavIndex(closestIndex);
   };
+  // Navigation bubble handlers
   const handleNavButtonMouseEnter = () => {
     if (navBubbleTimerRef.current) {
       clearTimeout(navBubbleTimerRef.current);
@@ -230,6 +239,7 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
       setShowNavBubble(false);
     }, 200);
   };
+  // Resend message handler
   const handleResendMessage = (msg: ChatMessage) => {
     if (isResending || isSending) return;
     const sessionId = currentSessionId || "";
@@ -244,6 +254,7 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
       setTimeout(() => setIsResending(false), 300);
     });
   };
+  // Get random suggestion prompts
   const getRandomPrompts = (count: number = 6): string[] => {
     const prompts = language === "zh" ? zhDefaultPrompts : enDefaultPrompts;
     const shuffled = [...prompts];
@@ -253,6 +264,7 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
     }
     return shuffled.slice(0, count);
   };
+  // Check if suggestions should be shown
   const shouldShowSuggestions = (msgs: ChatMessage[]) => {
     if (msgs.length === 0) return false;
     const lastMsg = msgs[msgs.length - 1];
@@ -266,6 +278,7 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
   const prevMessageCountRef = useRef(0);
   const suggestionTimerRef = useRef<NodeJS.Timeout | null>(null);
   const isFirstLoadRef = useRef(true);
+  // Update suggestions periodically
   useEffect(() => {
     if (suggestionTimerRef.current) {
       clearInterval(suggestionTimerRef.current);
@@ -293,6 +306,7 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
       }
     };
   }, [messages, language]);
+  // Handle suggestion click
   const handleSuggestionClick = (prompt: string) => {
     const sessionId = currentSessionId || "";
     if (!sessionId) {
@@ -302,6 +316,7 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
     onSendMessageProp?.(prompt, sessionId, undefined, selectedWorkflowMode);
   };
   const handleContainerClick = () => textareaRef.current?.focus();
+  // Format file size
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return "0 B";
     const k = 1024;
@@ -309,6 +324,7 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
   };
+  // Copy to clipboard
   const copyToClipboard = async (text: string | undefined) => {
     try {
       if (!text) {
@@ -321,6 +337,7 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
       showToast(ToastType.ERROR, t("common.copyFailed") || "Copy Failed");
     }
   };
+  // Load current default model
   const loadCurrentDefaultModel = async () => {
     try {
       setLoadingModel(true);
@@ -340,6 +357,7 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
       setLoadingModel(false);
     }
   };
+  // Load workflow modes
   const loadWorkflowModes = async () => {
     try {
       const modes = await workflowCommands.getWorkflowModeNames();
@@ -351,6 +369,7 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
       console.error("Failed to load workflow modes:", error);
     }
   };
+  // Load session workflow mode
   const loadSessionWorkflowMode = async (sessionId: string) => {
     if (!sessionId || sessionId.startsWith("pending_") || sessionId.startsWith("temp_")) {
       return;
@@ -377,6 +396,7 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
       console.error("Failed to load session workflow mode:", error);
     }
   };
+  // Load workspaces
   const loadWorkspaces = async (retryCount: number = 0): Promise<void> => {
     try {
       const config = await workspaceCommands.getWorkspaceConfig();
@@ -411,6 +431,7 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
       window.removeEventListener("codeeditor-session-created", handleSessionCreated);
     };
   }, [currentSessionId]);
+  // Check scroll position
   const checkScrollPosition = () => {
     if (!messagesContainerRef.current) return;
     const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
@@ -460,6 +481,7 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
       setActiveNavIndex(index);
     }
   };
+  // File upload handlers
   const handleFilesAdd = (files: UploadFile[]) => {
     setUploadedFiles((prev) => {
       const existingKeys = new Set(prev.map((f) => `${f.name}_${f.size}`));
@@ -470,6 +492,126 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
   const handleFileRemove = (fileId: string) => {
     setUploadedFiles((prev) => prev.filter((f) => f.id !== fileId));
   };
+  /**
+   * Open file selector with specific file type filters
+   * Supports text files and skill files
+   * @param filterType - Type of files to filter: 'text' | 'skill'
+   */
+  const openFileSelector = async (filterType: "text" | "skill" = "text") => {
+    try {
+      // Define allowed extensions for each type
+      const allowedExtensions: Record<string, string[]> = {
+        text: ["txt", "md", "json", "js", "ts", "py", "rs", "html", "css", "xml", "yaml", "yml", "toml", "sh", "bash"],
+        skill: ["md", "skill"],
+      };
+      const validExtensions = allowedExtensions[filterType] || [];
+      // Define filters for the file dialog
+      let filters: { name: string; extensions: string[] }[] = [];
+      switch (filterType) {
+        case "text":
+          filters = [{ name: "Text Files", extensions: validExtensions }];
+          break;
+        case "skill":
+          filters = [{ name: "Skill Files", extensions: validExtensions }];
+          break;
+        default:
+          filters = [{ name: "All Files", extensions: ["*"] }];
+      }
+      // Open system file selector
+      const result = await filesCommands.selectFile({
+        multiple: true,
+        filters: filters,
+      });
+      if (!result) return;
+      const selectedFiles = Array.isArray(result) ? result : [result];
+      const newFiles: UploadFile[] = [];
+      let skippedCount = 0;
+      // Process each selected file - filter by extension
+      for (const path of selectedFiles) {
+        const ext = path.split(".").pop()?.toLowerCase() || "";
+        // Skip files with invalid extensions
+        if (!validExtensions.includes(ext)) {
+          skippedCount++;
+          continue;
+        }
+        const fileInfo = await filesCommands.getFileInfo(path);
+        const isSkill = path.toLowerCase().endsWith(".md") || path.toLowerCase().endsWith(".skill.md") || path.toLowerCase().endsWith(".skill");
+        // Read file content for text files
+        let content = "";
+        try {
+          content = await filesCommands.readTextFile(path);
+        } catch (e) {
+          console.debug("Cannot read file content:", path);
+        }
+        // Determine file type based on extension
+        let fileType = "application/octet-stream";
+        if (isSkill) {
+          fileType = "text/markdown";
+        } else if (path.endsWith(".txt")) {
+          fileType = "text/plain";
+        } else if (path.endsWith(".json")) {
+          fileType = "application/json";
+        } else if (path.endsWith(".js") || path.endsWith(".ts")) {
+          fileType = "text/javascript";
+        } else if (path.endsWith(".py")) {
+          fileType = "text/x-python";
+        } else if (path.endsWith(".rs")) {
+          fileType = "text/x-rust";
+        } else if (path.endsWith(".html") || path.endsWith(".htm")) {
+          fileType = "text/html";
+        } else if (path.endsWith(".css")) {
+          fileType = "text/css";
+        } else if (path.endsWith(".xml")) {
+          fileType = "text/xml";
+        } else if (path.endsWith(".yaml") || path.endsWith(".yml")) {
+          fileType = "text/yaml";
+        } else if (path.endsWith(".toml")) {
+          fileType = "text/toml";
+        } else if (path.endsWith(".sh") || path.endsWith(".bash")) {
+          fileType = "text/x-shellscript";
+        }
+        // Create File object required by UploadFile type
+        const fileName = fileInfo.name;
+        const fileBlob = new Blob([content], { type: fileType });
+        const fileObj = new File([fileBlob], fileName, { type: fileType });
+        newFiles.push({
+          id: `file_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          file: fileObj,
+          name: fileName,
+          size: fileInfo.size,
+          path: path,
+          content: content,
+          type: fileType,
+          status: "success" as const,
+        });
+      }
+      // Show warning if some files were skipped
+      if (skippedCount > 0) {
+        showToast(ToastType.WARNING, `${skippedCount} file(s) skipped. Only ${filterType} files are allowed.`);
+      }
+      if (newFiles.length === 0) {
+        showToast(ToastType.INFO, `No valid ${filterType} files selected`);
+        return;
+      }
+      // Add all files to upload list - user clicks send to send them
+      setUploadedFiles((prev) => [...prev, ...newFiles]);
+      showToast(ToastType.SUCCESS, `Added ${newFiles.length} file(s)`);
+    } catch (error) {
+      console.error("Failed to select files:", error);
+      showToast(ToastType.ERROR, "Failed to select files: " + error);
+    }
+  };
+  /**
+   * Handle attachment button click - closes menu
+   */
+  const handleAttachment = () => {
+    setShowAttachmentMenu(false);
+  };
+  /**
+   * Handle send message - includes file content in the message
+   * Both text files and skill files content are included
+   * Also includes current file content from the editor
+   */
   const handleSend = () => {
     if (isSending) return;
     if (inputValue.trim() || uploadedFiles.length > 0) {
@@ -483,10 +625,32 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
       if (codingRef?.current) {
         currentFileContent = codingRef.current.getCurrentFileContent();
       }
-      // Build the message with file context
+      // Build message with file contents from uploaded files
       let message = inputValue.trim() || "";
+      // Add uploaded file contents
+      for (const file of uploadedFiles) {
+        if (file.content) {
+          const isSkill = file.name?.toLowerCase().endsWith(".md") || file.name?.toLowerCase().endsWith(".skill.md");
+          if (isSkill) {
+            // Extract skill name from content (first # heading)
+            let skillName = file.name;
+            const lines = file.content.split("\n");
+            for (const line of lines) {
+              const trimmed = line.trim();
+              if (trimmed.startsWith("# ")) {
+                skillName = trimmed.replace("# ", "").trim();
+                break;
+              }
+            }
+            message += `\n\n📎 **Skill: ${skillName}**\n\`\`\`markdown\n${file.content}\n\`\`\``;
+          } else {
+            message += `\n\n📎 **${file.name}**\n\`\`\`\n${file.content}\n\`\`\``;
+          }
+        }
+      }
+      // Add current file content from editor
       if (currentFileContent) {
-        message = `${message}\n\nCurrent file content:\n\`\`\`\n${currentFileContent}\n\`\`\``;
+        message += `\n\nCurrent file content:\n\`\`\`\n${currentFileContent}\n\`\`\``;
       }
       const currentFiles = [...uploadedFiles];
       setInputValue("");
@@ -509,7 +673,6 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
     e.target.style.height = "auto";
     e.target.style.height = Math.min(e.target.scrollHeight, 100) + "px";
   };
-  const handleAttachment = () => setShowAttachmentMenu(false);
   const getSelectedWorkspaceName = (): string => {
     const workspace = workspaces.find((w) => w.id === selectedWorkspaceId);
     if (!workspace) return language === "zh" ? "工作目录" : "Workspace";
@@ -551,6 +714,7 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
       localStorage.setItem(`workflow_mode_${key}`, mode);
     }
   };
+  // Build navigation content
   const buildNavigationContent = (): React.ReactNode => {
     const userMessages = messages.filter((m) => m.role === RoleEnum.User);
     if (userMessages.length === 0) {
@@ -622,6 +786,7 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
       </div>
     );
   };
+  // Locate task handler
   const handleLocateTask = (msg: ChatMessage) => {
     if (!currentSessionId) {
       showToast(ToastType.INFO, t("chat.noRelatedTask") || "No Related Task");
@@ -643,6 +808,7 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
       showToast(ToastType.INFO, t("chat.noRelatedTask") || "No Related Task");
     }
   };
+  // Handle locate task in chat
   useEffect(() => {
     const handleLocateTaskInChat = (event: Event) => {
       const customEvent = event as CustomEvent;
@@ -688,6 +854,7 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
       window.removeEventListener("locate-task-in-chat", handleLocateTaskInChat);
     };
   }, [t, currentSessionId]);
+  // Language change handler
   useEffect(() => {
     const handleLanguageChange = () => {
       loadWorkflowDisplayNames();
@@ -697,6 +864,7 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
       window.removeEventListener("language-changed", handleLanguageChange as EventListener);
     };
   }, []);
+  // Initialize
   useEffect(() => {
     loadCurrentDefaultModel();
     loadWorkspaces();
@@ -707,6 +875,7 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
   useEffect(() => {
     messagesRef.current = messages;
   }, [messages]);
+  // Locate task in chat - duplicate handler for general tasks
   useEffect(() => {
     const handleLocateTaskInChat = (event: Event) => {
       const customEvent = event as CustomEvent;
@@ -746,11 +915,13 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
       window.removeEventListener("locate-task-in-chat", handleLocateTaskInChat);
     };
   }, [t]);
+  // Auto scroll to bottom
   useEffect(() => {
     if (messagesContainerRef.current && !userScrolled) {
       messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
     }
   }, [messages, userScrolled]);
+  // Scroll event listener
   useEffect(() => {
     const element = messagesContainerRef.current;
     if (element) {
@@ -759,6 +930,7 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
       return () => element.removeEventListener("scroll", checkScrollPosition);
     }
   }, [messages]);
+  // Click outside handlers
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (attachmentMenuRef.current && !attachmentMenuRef.current.contains(event.target as Node) && attachmentBtnRef.current && !attachmentBtnRef.current.contains(event.target as Node)) {
@@ -832,7 +1004,12 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
         display: "flex",
         flexDirection: "column",
         height: "100%",
+        width: "100%",
+        minWidth: "100%",
+        maxWidth: "100%",
         overflow: "hidden",
+        flexShrink: 0,
+        flexGrow: 0,
       }}
       onDragOver={(e) => e.preventDefault()}
       onDrop={(e) => e.preventDefault()}
@@ -1175,19 +1352,11 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
               </div>
               {showAttachmentMenu && (
                 <div className="attachment-menu" ref={attachmentMenuRef}>
-                  <div className="attachment-item" onClick={() => handleAttachment()}>
+                  <div className="attachment-item" onClick={() => openFileSelector("text")}>
                     <TextFileIcon size={14} />
                     {t("chat.textFile")}
                   </div>
-                  <div className="attachment-item" onClick={() => handleAttachment()}>
-                    <ImageIcon size={14} />
-                    {t("chat.image")}
-                  </div>
-                  <div className="attachment-item" onClick={() => handleAttachment()}>
-                    <VideoIcon size={14} />
-                    {t("chat.video")}
-                  </div>
-                  <div className="attachment-item" onClick={() => handleAttachment()}>
+                  <div className="attachment-item" onClick={() => openFileSelector("skill")}>
                     <FileIcon size={14} />
                     {t("chat.skillFile")}
                   </div>

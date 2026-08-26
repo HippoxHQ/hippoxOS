@@ -9,6 +9,8 @@ import { workflowCommands } from "../command/workflow";
 import { UploadFile } from "../core/types";
 import ArtText from "../components/arts/ArtText";
 import banner from "../assets/banner.svg";
+import { Music } from "lucide-react";
+import { open as dialogOpen } from "@tauri-apps/plugin-dialog";
 interface WelcomePageProps {
   onSendMessage: (message: string, files?: UploadFile[], workflowMode?: string) => void;
   t: (key: string) => string;
@@ -16,8 +18,50 @@ interface WelcomePageProps {
   workflowMode?: string;
   onWorkflowModeChange?: (mode: string) => void;
   onNavigateTo?: (page: string) => void;
+  /**
+   * Callback for navigating to the video editor with a file path.
+   * When provided, video/audio/image file uploads will use this to navigate
+   * directly to the video editor subsystem.
+   */
+  onNavigateToVideoEditor?: (filePath: string, fileType: "file" | "download") => void;
 }
-const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t, onDragOverInputChange, workflowMode: externalWorkflowMode, onWorkflowModeChange, onNavigateTo }) => {
+/**
+ * Check if a file is a media file (video, audio, or image) that should
+ * be handled by the video editor subsystem.
+ */
+const isMediaFile = (file: UploadFile): boolean => {
+  const ext = file.name.split(".").pop()?.toLowerCase() || "";
+  const videoExts = ["mp4", "mov", "mkv", "avi", "webm", "flv", "wmv", "m4v"];
+  const audioExts = ["mp3", "wav", "flac", "aac", "ogg", "m4a", "wma", "opus"];
+  const imageExts = ["jpg", "jpeg", "png", "gif", "bmp", "webp", "svg", "tiff", "ico"];
+  return videoExts.includes(ext) || audioExts.includes(ext) || imageExts.includes(ext);
+};
+/**
+ * Check if a file is a text-based file (text or skill file).
+ * These files can be used as context for general chat.
+ */
+const isTextFile = (file: UploadFile): boolean => {
+  const ext = file.name.split(".").pop()?.toLowerCase() || "";
+  const textExts = ["txt", "md", "json", "xml", "csv", "log", "ini", "cfg", "conf", "yaml", "yml", "toml"];
+  const skillExts = ["skill", "py", "js", "ts", "rs", "go", "rs", "c", "cpp", "h", "hpp"];
+  return textExts.includes(ext) || skillExts.includes(ext);
+};
+/**
+ * Helper function to create an UploadFile object from a File object.
+ * This is used for text and skill files that are added to the upload list.
+ */
+const createUploadFileFromFile = (file: File, path?: string): UploadFile => {
+  return {
+    id: `file_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    name: file.name,
+    size: file.size,
+    type: file.type,
+    file: file,
+    path: path || file.name,
+    status: "uploading" as const,
+  } as UploadFile;
+};
+const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t, onDragOverInputChange, workflowMode: externalWorkflowMode, onWorkflowModeChange, onNavigateTo, onNavigateToVideoEditor }) => {
   const [inputValue, setInputValue] = useState("");
   const [isFocused, setIsFocused] = useState(false);
   const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
@@ -237,22 +281,56 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t, onDragOverI
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+  /**
+   * Handle file addition from FileUploader component.
+   *
+   * Implementation 3: If the uploaded files contain any media files (video, audio, image),
+   * navigate to the video editor subsystem with the file.
+   *
+   * Implementation 2: Text and SKILL files are handled normally and will be sent
+   * with the chat message when the user submits the form.
+   */
   const handleFilesAdd = (files: UploadFile[]) => {
+    const mediaFiles = files.filter((f) => isMediaFile(f));
+    if (mediaFiles.length > 0 && onNavigateToVideoEditor) {
+      const firstMediaFile = mediaFiles[0];
+      const filePath = firstMediaFile.path;
+      if (!filePath) {
+        const isZh = language === "zh";
+        showToast(ToastType.WARNING, isZh ? "无法获取文件完整路径" : "Cannot get full file path");
+        return;
+      }
+      setShowAttachmentMenu(false);
+      onNavigateToVideoEditor(filePath, "file");
+      return;
+    }
+    const textFiles = files.filter((f) => !isMediaFile(f));
+    if (textFiles.length === 0) return;
     setUploadedFiles((prev) => {
       const existingKeys = new Set(prev.map((f) => `${f.name}_${f.size}`));
-      const newUniqueFiles = files.filter((f) => !existingKeys.has(`${f.name}_${f.size}`));
+      const newUniqueFiles = textFiles.filter((f) => !existingKeys.has(`${f.name}_${f.size}`));
       return [...prev, ...newUniqueFiles];
     });
   };
   const handleFileRemove = (fileId: string) => {
     setUploadedFiles((prev) => prev.filter((f) => f.id !== fileId));
   };
+  /**
+   * Handle form submission.
+   *
+   * Implementation 2: If there are text/skill files in the upload list,
+   * send them along with the message to start a general chat session.
+   *
+   * Implementation 3: Media files are handled in handleFilesAdd and navigate
+   * directly to the video editor, so they won't be present in uploadedFiles.
+   */
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     e.stopPropagation();
     if (inputValue.trim() || uploadedFiles.length > 0) {
       const message = inputValue.trim();
       const currentFiles = [...uploadedFiles];
+      // Implementation 2: Send text/skill files with the message to start general chat
       onSendMessage(message, currentFiles, selectedWorkflowMode);
       setInputValue("");
       setUploadedFiles([]);
@@ -261,9 +339,89 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t, onDragOverI
   const handleExampleClick = (prompt: string) => {
     onSendMessage(prompt, [], selectedWorkflowMode);
   };
-  const handleAttachment = (type: string) => {
+  /**
+   * Handle attachment menu item clicks.
+   *
+   * Implementation 1: Added audio button.
+   * When a user clicks "Audio", it opens a file picker filtered for audio files.
+   *
+   * Implementation 2: Text and SKILL files are added to the upload list
+   * and sent with the chat message.
+   *
+   * Implementation 3: Image and Video files trigger navigation to the video editor.
+   * Audio files also trigger navigation to the video editor (Implementation 1).
+   */
+  const handleAttachment = async (type: string) => {
     setShowAttachmentMenu(false);
-    showToast(ToastType.INFO, t("common.comingSoon") || "TODO");
+    const isZh = language === "zh";
+    let filters: { name: string; extensions: string[] }[] = [];
+    let title = "";
+    if (type === "audio") {
+      title = isZh ? "选择音频文件" : "Select Audio File";
+      filters = [
+        { name: isZh ? "音频文件" : "Audio Files", extensions: ["mp3", "wav", "flac", "aac", "ogg", "m4a", "wma", "opus"] },
+        { name: isZh ? "所有文件" : "All Files", extensions: ["*"] },
+      ];
+    } else if (type === "text") {
+      title = isZh ? "选择文本文件" : "Select Text File";
+      filters = [
+        { name: isZh ? "文本文件" : "Text Files", extensions: ["txt", "md", "json", "xml", "csv", "log", "ini", "cfg", "conf", "yaml", "yml", "toml"] },
+        { name: isZh ? "所有文件" : "All Files", extensions: ["*"] },
+      ];
+    } else if (type === "image") {
+      title = isZh ? "选择图片文件" : "Select Image File";
+      filters = [
+        { name: isZh ? "图片文件" : "Image Files", extensions: ["jpg", "jpeg", "png", "gif", "bmp", "webp", "svg", "tiff", "ico"] },
+        { name: isZh ? "所有文件" : "All Files", extensions: ["*"] },
+      ];
+    } else if (type === "video") {
+      title = isZh ? "选择视频文件" : "Select Video File";
+      filters = [
+        { name: isZh ? "视频文件" : "Video Files", extensions: ["mp4", "mov", "mkv", "avi", "webm", "flv", "wmv", "m4v"] },
+        { name: isZh ? "所有文件" : "All Files", extensions: ["*"] },
+      ];
+    } else if (type === "skill") {
+      title = isZh ? "选择技能文件" : "Select Skill File";
+      filters = [
+        { name: isZh ? "技能文件" : "Skill Files", extensions: ["skill", "py", "js", "ts", "rs", "go", "c", "cpp", "h", "hpp"] },
+        { name: isZh ? "所有文件" : "All Files", extensions: ["*"] },
+      ];
+    } else {
+      showToast(ToastType.INFO, t("common.comingSoon") || "TODO");
+      return;
+    }
+    try {
+      const selected = await dialogOpen({
+        directory: false,
+        multiple: false,
+        title: title,
+        filters: filters,
+      });
+      if (selected && typeof selected === "string") {
+        const filePath = selected;
+        const fileName = filePath.split(/[\\/]/).pop() || "unknown";
+        if (type === "audio" || type === "image" || type === "video") {
+          if (onNavigateToVideoEditor) {
+            onNavigateToVideoEditor(filePath, "file");
+            showToast(ToastType.INFO, isZh ? `正在打开视频编辑器: ${fileName}` : `Opening video editor: ${fileName}`);
+          }
+        } else {
+          const uploadFile: UploadFile = {
+            id: `file_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            name: fileName,
+            size: 0,
+            type: "text/plain",
+            file: new File([""], fileName, { type: "text/plain" }),
+            path: filePath,
+            status: "uploading",
+          };
+          setUploadedFiles((prev) => [...prev, uploadFile]);
+          showToast(ToastType.SUCCESS, isZh ? `已添加: ${fileName}` : `Added: ${fileName}`);
+        }
+      }
+    } catch (error) {
+      console.error("File selection error:", error);
+    }
   };
   const isZh = t("welcome.subtitle") === "原生 LLM 操作系统";
   return (
@@ -732,18 +890,27 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t, onDragOverI
                 </div>
                 {showAttachmentMenu && (
                   <div className="attachment-menu" ref={attachmentMenuRef}>
+                    {/* Implementation 2: Text file - add to upload list */}
                     <div className="attachment-item" onClick={() => handleAttachment("text")}>
                       <TextFileIcon size={14} />
-                      {t("chat.textFile") || "TextFile"}
+                      {t("chat.textFile") || "Text File"}
                     </div>
-                    <div className="attachment-item" onClick={() => handleAttachment("image")}>
-                      <ImageIcon size={14} />
-                      {t("chat.image") || "Image"}
-                    </div>
-                    <div className="attachment-item" onClick={() => handleAttachment("video")}>
-                      <VideoIcon size={14} />
-                      {t("chat.video") || "Video"}
-                    </div>
+                    {/* Implementation 3: Image file - opens video editor */}
+                    {/* <div className="attachment-item" onClick={() => handleAttachment("image")}>
+                    <ImageIcon size={14} />
+                    {t("chat.image") || "Image"}
+                    </div> */}
+                    {/* Implementation 3: Video file - opens video editor */}
+                    {/* <div className="attachment-item" onClick={() => handleAttachment("video")}>
+                    <VideoIcon size={14} />
+                    {t("chat.video") || "Video"}
+                    </div> */}
+                    {/* Implementation 1: Audio button - opens video editor with audio file */}
+                    {/* <div className="attachment-item" onClick={() => handleAttachment("audio")}>
+                    <Music size={14} />
+                    {t("chat.audioFile") || "Audio"}
+                    </div> */}
+                    {/* Implementation 2: SKILL file - add to upload list */}
                     <div className="attachment-item" onClick={() => handleAttachment("skill")}>
                       <FileIcon size={14} />
                       {t("chat.skillFile") || "Skill File"}
@@ -777,12 +944,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t, onDragOverI
                   </div>
                 )}
               </div>
-              <button
-                className={`send-icon-btn ${inputValue.trim() || uploadedFiles.length > 0 ? "active" : ""}`}
-                type="submit"
-                disabled={!inputValue.trim() && uploadedFiles.length === 0}
-                title={t("chat.send")}
-              >
+              <button className={`send-icon-btn ${inputValue.trim() || uploadedFiles.length > 0 ? "active" : ""}`} type="submit" disabled={!inputValue.trim() && uploadedFiles.length === 0} title={t("chat.send")}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M12 5L12 19M12 5L5 12M12 5L19 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
