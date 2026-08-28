@@ -1,4 +1,4 @@
-use crate::windows::SubmenuManager;
+use crate::windows::{AboutWindowManager, SubmenuManager};
 use tauri::{AppHandle, Emitter, Manager};
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct WindowState {
@@ -151,6 +151,10 @@ pub async fn cmd_create_submenu_window(
     current_default_id: String,
 ) -> Result<(), String> {
     SubmenuManager::create_submenu_window(&app_handle, items, current_default_id).map_err(|e| e.to_string())
+}
+#[tauri::command]
+pub async fn cmd_create_about_window(app_handle: tauri::AppHandle) -> Result<(), String> {
+    AboutWindowManager::create_about_window(&app_handle).map_err(|e| e.to_string())
 }
 #[tauri::command]
 pub async fn cmd_emit_to_main_window(app_handle: tauri::AppHandle, event: String, payload: Option<serde_json::Value>) -> Result<(), String> {

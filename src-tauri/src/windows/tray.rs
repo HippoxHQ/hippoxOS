@@ -1,10 +1,10 @@
-use crate::types::{WindowIdentifier, WindowType};
 use tauri::{
     menu::{Menu, MenuItem, PredefinedMenuItem, Submenu},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
     AppHandle, Emitter, Manager, Runtime, WebviewWindow, WebviewWindowBuilder, WindowEvent,
 };
 pub(crate) struct TrayManager;
+use crate::windows::{WindowIdentifier, WindowType};
 use once_cell::sync::Lazy;
 use std::sync::Mutex;
 static LLM_HEALTH_CACHE: Lazy<Mutex<std::collections::HashMap<String, bool>>> = Lazy::new(|| Mutex::new(std::collections::HashMap::new()));

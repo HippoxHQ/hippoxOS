@@ -72,17 +72,6 @@ export enum MessageStatus {
   Cancelled = "cancelled",
   Paused = "paused",
 }
-export enum WindowTypeEnum {
-  Main = 'main',
-  Tray = 'tray',
-  TraySubmenu = 'tray-submenu',
-  MaterialPreview = "material-preview",
-}
-export enum WindowIdentifierEnum {
-  Main = 'main-window',
-  Tray = 'tray-window',
-  TraySubmenu = 'tray-submenu-window'
-}
 export enum SystemEvent {
   NewSession = 'new-session',
   OpenSkillsMarket = 'open-skills-market',

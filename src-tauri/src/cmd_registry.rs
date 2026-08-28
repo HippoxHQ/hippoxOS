@@ -149,6 +149,7 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_window_is_visible,     
         commands::cmd_window_set_focus,      
         commands::cmd_create_submenu_window,
+        commands::cmd_create_about_window,
         commands::cmd_emit_to_main_window,
         commands::cmd_exit_app,
         commands::cmd_task_pool_get_all_tasks,

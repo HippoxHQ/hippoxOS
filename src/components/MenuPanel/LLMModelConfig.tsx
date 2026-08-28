@@ -11,6 +11,9 @@ interface LLMModelConfigProps {
   language?: string;
 }
 const LLMModelConfig: React.FC<LLMModelConfigProps> = ({ t, onSave, isInitializing = false, language = "en" }) => {
+  // Determine if current language is Chinese
+  const isZh = t("i18n") === "zh";
+  // State management
   const [instances, setInstances] = useState<Record<string, any>>({});
   const [defaultInstanceId, setDefaultInstanceId] = useState<string>("");
   const [providers, setProviders] = useState<ProviderInfo[]>([]);
@@ -22,9 +25,13 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({ t, onSave, isInitializi
   const [extraConfigValues, setExtraConfigValues] = useState<Record<string, string>>({});
   const [currentProviderInfo, setCurrentProviderInfo] = useState<ProviderInfo | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  // Multi-select state
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  // Load data on mount and language change
   useEffect(() => {
     loadData();
   }, [language]);
+  // Fetch all required data from backend
   const loadData = async () => {
     setLoading(true);
     const instancesPromise = llmCommands.getLlmInstances().catch((err: Error) => {
@@ -48,8 +55,71 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({ t, onSave, isInitializi
     setAvailableModels(modelsData);
     setInstances(instancesData);
     setDefaultInstanceId(defaultId);
+    setSelectedIds(new Set());
     setLoading(false);
   };
+  // Toggle selection for a single instance
+  const toggleSelection = (instanceId: string) => {
+    setSelectedIds((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(instanceId)) {
+        newSet.delete(instanceId);
+      } else {
+        newSet.add(instanceId);
+      }
+      return newSet;
+    });
+  };
+  // Select all instances (excluding default)
+  const handleSelectAll = () => {
+    const allIds = Object.keys(instances).filter((id) => id !== defaultInstanceId);
+    setSelectedIds(new Set(allIds));
+    showToast(ToastType.INFO, isZh ? "已选择所有实例" : "Selected all instances");
+  };
+  // Deselect all instances
+  const handleDeselectAll = () => {
+    setSelectedIds(new Set());
+    showToast(ToastType.INFO, isZh ? "已取消所有选择" : "Deselected all instances");
+  };
+  // Batch delete selected instances
+  const handleBatchDelete = async () => {
+    if (selectedIds.size === 0) {
+      showToast(ToastType.WARNING, isZh ? "请先选择要删除的实例" : "Please select instances to delete");
+      return;
+    }
+    if (selectedIds.has(defaultInstanceId)) {
+      showToast(ToastType.WARNING, isZh ? "不能删除默认实例" : "Cannot delete default instance");
+      return;
+    }
+    if (selectedIds.size >= Object.keys(instances).length) {
+      showToast(ToastType.WARNING, isZh ? "不能删除所有实例" : "Cannot delete all instances");
+      return;
+    }
+    const confirmMessage = isZh ? `确定要删除选中的 ${selectedIds.size} 个实例吗？` : `Are you sure you want to delete ${selectedIds.size} selected instance(s)?`;
+    showDialog(
+      DialogType.WARNING,
+      isZh ? "批量删除确认" : "Batch Delete Confirmation",
+      confirmMessage,
+      async () => {
+        try {
+          const deletePromises = Array.from(selectedIds).map((id) => llmCommands.deleteLlmInstance(id));
+          await Promise.all(deletePromises);
+          await loadData();
+          showToast(ToastType.SUCCESS, isZh ? `成功删除 ${selectedIds.size} 个实例` : `Successfully deleted ${selectedIds.size} instance(s)`);
+          if (onSave) {
+            onSave({ action: "batch_delete", instanceIds: Array.from(selectedIds) });
+          }
+        } catch (error) {
+          console.error("Failed to batch delete instances:", error);
+          showToast(ToastType.ERROR, isZh ? "批量删除失败" : "Batch delete failed");
+        }
+      },
+      undefined,
+      isZh ? "确认删除" : "Confirm Delete",
+      t("common.cancel"),
+    );
+  };
+  // Set a provider instance as default
   const handleSetDefault = async (instanceId: string, instanceName: string) => {
     try {
       await llmCommands.setDefaultLlmInstance(instanceId);
@@ -73,6 +143,7 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({ t, onSave, isInitializi
       showToast(ToastType.ERROR, t("llmModel.defaultFailed"));
     }
   };
+  // Delete a single provider instance with confirmation
   const handleDeleteInstance = async (instanceId: string, instanceName: string) => {
     if (Object.keys(instances).length <= 1) {
       showToast(ToastType.WARNING, t("llmModel.cannotDeleteLast"));
@@ -104,15 +175,18 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({ t, onSave, isInitializi
       t("common.cancel"),
     );
   };
+  // Handle provider selection change
   const handleProviderChange = (providerId: string) => {
     setNewProvider(providerId);
     setExtraConfigValues({});
     const provider = providers.find((p) => p.id === providerId);
     setCurrentProviderInfo(provider || null);
   };
+  // Handle extra config field changes
   const handleExtraConfigChange = (key: string, value: string) => {
     setExtraConfigValues((prev) => ({ ...prev, [key]: value }));
   };
+  // Add a new LLM instance
   const handleAddInstance = async () => {
     if (!newApiKey.trim()) {
       showToast(ToastType.WARNING, t("llmModel.apiKeyRequired"));
@@ -154,7 +228,6 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({ t, onSave, isInitializi
       setShowAddForm(false);
       setNewProvider("openai");
       setNewApiKey("");
-      // setNewWorkflowMode("react");
       setExtraConfigValues({});
       await loadData();
       showToast(ToastType.SUCCESS, t("llmModel.addSuccess", { name: providerInfo?.name || newProvider }));
@@ -166,26 +239,32 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({ t, onSave, isInitializi
       showToast(ToastType.ERROR, t("llmModel.addFailed"));
     }
   };
+  // Helper: Get provider icon
   const getProviderIcon = (providerId: string) => {
     const provider = providers.find((p) => p.id === providerId);
     return provider?.icon || <Bot size={16} />;
   };
+  // Helper: Get provider display name
   const getProviderName = (providerId: string) => {
     const provider = providers.find((p) => p.id === providerId);
     return provider?.name || providerId;
   };
+  // Helper: Get extra config fields for a provider
   const getProviderExtraFields = (providerId: string) => {
     const provider = providers.find((p) => p.id === providerId);
     return provider?.extra_config_fields || [];
   };
+  // Clear search input
   const handleClearSearch = () => {
     setSearchTerm("");
   };
+  // Filter instances based on search term
   const filteredInstances = Object.entries(instances).filter(([id, instance]) => {
     const providerName = getProviderName(instance.provider).toLowerCase();
     const search = searchTerm.toLowerCase();
     return providerName.includes(search) || instance.provider.toLowerCase().includes(search);
   });
+  // Base styles - KEEP ORIGINAL
   const labelStyle: React.CSSProperties = {
     fontSize: "13px",
     color: "var(--text-primary)",
@@ -233,7 +312,6 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({ t, onSave, isInitializi
   };
   const modelCardStyle: React.CSSProperties = {
     background: "var(--bg-secondary)",
-    // borderRadius: "8px",
     padding: "10px",
     borderBottom: "1px solid var(--border-color)",
     overflow: "hidden",
@@ -259,6 +337,7 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({ t, onSave, isInitializi
     gap: "12px",
     flexWrap: "wrap",
   };
+  // Header styles - KEEP ORIGINAL
   const styles: Record<string, React.CSSProperties> = {
     searchInputWrapper: {
       flex: 1,
@@ -315,6 +394,7 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({ t, onSave, isInitializi
       width: "100%",
     },
   };
+  // Global styles - KEEP ORIGINAL + add checkbox styles
   const globalStyles = `
     .llm-search-input-wrapper {
       flex: 1;
@@ -363,7 +443,16 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({ t, onSave, isInitializi
       color: var(--text-primary);
       background: var(--hover-bg);
     }
+    .llm-checkbox {
+      width: 16px;
+      height: 16px;
+      cursor: pointer;
+      accent-color: var(--accent-color, #0066cc);
+      flex-shrink: 0;
+      margin-right: 8px;
+    }
   `;
+  // Inject global styles
   if (typeof document !== "undefined") {
     const styleId = "llm-config-styles";
     if (!document.getElementById(styleId)) {
@@ -373,6 +462,7 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({ t, onSave, isInitializi
       document.head.appendChild(style);
     }
   }
+  // Loading state
   if (loading || isInitializing) {
     return (
       <div
@@ -428,7 +518,76 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({ t, onSave, isInitializi
             +
           </button>
         </div>
+        {/* Batch actions area */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "10px",
+            marginTop: "10px",
+            paddingTop: "10px",
+            borderTop: "1px solid var(--border-color)",
+            flexWrap: "wrap",
+          }}
+        >
+          <button
+            style={{
+              ...buttonStyle,
+              fontSize: "11px",
+              padding: "3px 12px",
+              background: selectedIds.size === Object.keys(instances).length && Object.keys(instances).length > 0 ? "var(--accent-color)" : "var(--bg-tertiary)",
+              color: selectedIds.size === Object.keys(instances).length && Object.keys(instances).length > 0 ? "white" : "var(--text-secondary)",
+              borderColor: selectedIds.size === Object.keys(instances).length && Object.keys(instances).length > 0 ? "var(--accent-color)" : "var(--border-color)",
+            }}
+            onClick={handleSelectAll}
+          >
+            {isZh ? "全选" : "Select All"}
+          </button>
+          <button
+            style={{
+              ...buttonStyle,
+              fontSize: "11px",
+              padding: "3px 12px",
+              background: "var(--bg-tertiary)",
+            }}
+            onClick={handleDeselectAll}
+          >
+            {isZh ? "取消全选" : "Deselect All"}
+          </button>
+          <div
+            style={{
+              width: "1px",
+              height: "20px",
+              background: "var(--border-color)",
+            }}
+          />
+          <button
+            style={{
+              ...deleteButtonStyle,
+              fontSize: "11px",
+              padding: "3px 12px",
+              opacity: selectedIds.size === 0 ? 0.5 : 1,
+              cursor: selectedIds.size === 0 ? "not-allowed" : "pointer",
+              marginLeft: "auto",
+            }}
+            onClick={handleBatchDelete}
+            disabled={selectedIds.size === 0}
+          >
+            {isZh ? "批量删除" : "Delete"}
+            {selectedIds.size > 0 && <span style={{ marginLeft: "4px", fontWeight: 600 }}>({selectedIds.size})</span>}
+          </button>
+          <span
+            style={{
+              fontSize: "11px",
+              color: "var(--text-tertiary)",
+              marginLeft: "auto",
+            }}
+          >
+            {isZh ? `共 ${Object.keys(instances).length} 个实例${selectedIds.size > 0 ? `，已选 ${selectedIds.size} 个` : ""}` : `Total: ${Object.keys(instances).length} instances${selectedIds.size > 0 ? `, ${selectedIds.size} selected` : ""}`}
+          </span>
+        </div>
       </div>
+      {/* Content Area */}
       <div
         style={{
           flex: 1,
@@ -438,6 +597,7 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({ t, onSave, isInitializi
           margin: 0,
         }}
       >
+        {/* Add Form - ORIGINAL STYLE */}
         {showAddForm && (
           <div style={modelCardStyle}>
             <div
@@ -514,6 +674,7 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({ t, onSave, isInitializi
             </div>
           </div>
         )}
+        {/* Empty State */}
         {!hasInstances && !showAddForm ? (
           <div
             style={{
@@ -526,21 +687,25 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({ t, onSave, isInitializi
             {searchTerm ? t("llmModel.noSearchResults") || "No matching providers found" : t("llmModel.noProviders") || "No providers available"}
           </div>
         ) : (
+          /* Provider Instance Cards - ORIGINAL STYLE with checkbox added */
           instanceEntries.map(([id, instance]) => {
             const extraConfig = instance.extra || {};
             const extraFields = getProviderExtraFields(instance.provider);
             const instanceName = getProviderName(instance.provider);
+            const isSelected = selectedIds.has(id);
+            const isDefault = defaultInstanceId === id;
             return (
-              <div key={id} style={modelCardStyle}>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    marginBottom: "12px",
-                    flexWrap: "wrap",
-                    gap: "8px",
-                  }}
-                >
+              <div
+                key={id}
+                style={{
+                  ...modelCardStyle,
+                  background: isSelected ? "var(--bg-hover, var(--bg-tertiary))" : "var(--bg-secondary)",
+                }}
+              >
+                {/* Checkbox */}
+                {/* Checkbox and provider name in one row */}
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
+                  <input type="checkbox" className="llm-checkbox" checked={isSelected} onChange={() => toggleSelection(id)} disabled={isDefault} />
                   <span
                     style={{
                       fontSize: "14px",
@@ -553,76 +718,71 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({ t, onSave, isInitializi
                   >
                     {getProviderIcon(instance.provider)} {getProviderName(instance.provider)}
                   </span>
-                  {instance.is_default && <span style={badgeStyle}>{t("llmModel.default")}</span>}
+                  {isDefault && <span style={badgeStyle}>{t("llmModel.default")}</span>}
                 </div>
-                <div
-                  className="settings-row"
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    marginBottom: "12px",
-                    gap: "12px",
-                    flexWrap: "wrap",
-                  }}
-                >
-                  <label style={labelStyle}>{t("llmModel.workflowMode") || "Workflow Mode"}</label>
-                </div>
-                <div
-                  className="settings-row"
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    marginBottom: "12px",
-                    gap: "12px",
-                    flexWrap: "wrap",
-                  }}
-                >
-                  <label style={labelStyle}>{t("llmModel.apiKey")}</label>
-                  <input type="password" style={inputStyle} value={instance.api_key} placeholder="••••••••" disabled />
-                </div>
-                {Object.entries(extraConfig).map(([key, value]) => {
-                  if (!value) return null;
-                  const fieldInfo = extraFields.find((f) => f.key === key);
-                  const fieldName = fieldInfo?.name || key;
-                  return (
-                    <div key={key} className="settings-row" style={extraConfigRowStyle}>
-                      <label style={labelStyle}>{fieldName}</label>
-                      <input type="password" style={inputStyle} value={String(value)} disabled placeholder="••••••••" />
+                {/* Row with checkbox */}
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", width: "100%" }}>
+                  {/* Original card content */}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    {/* REMOVED: Workflow Mode section */}
+                    <div
+                      className="settings-row"
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        marginBottom: "12px",
+                        gap: "12px",
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      <label style={labelStyle}>{t("llmModel.apiKey")}</label>
+                      <input type="password" style={inputStyle} value={instance.api_key} placeholder="••••••••" disabled />
                     </div>
-                  );
-                })}
-                <div
-                  style={{
-                    display: "flex",
-                    gap: "8px",
-                    justifyContent: "flex-end",
-                    marginTop: "8px",
-                  }}
-                >
-                  {defaultInstanceId !== id && (
-                    <button
+                    {Object.entries(extraConfig).map(([key, value]) => {
+                      if (!value) return null;
+                      const fieldInfo = extraFields.find((f) => f.key === key);
+                      const fieldName = fieldInfo?.name || key;
+                      return (
+                        <div key={key} className="settings-row" style={extraConfigRowStyle}>
+                          <label style={labelStyle}>{fieldName}</label>
+                          <input type="password" style={inputStyle} value={String(value)} disabled placeholder="••••••••" />
+                        </div>
+                      );
+                    })}
+                    <div
                       style={{
-                        ...buttonStyle,
-                        fontSize: "11px",
-                        padding: "4px 10px",
+                        display: "flex",
+                        gap: "8px",
+                        justifyContent: "flex-end",
+                        marginTop: "8px",
                       }}
-                      onClick={() => handleSetDefault(id, instanceName)}
                     >
-                      {t("llmModel.setAsDefault")}
-                    </button>
-                  )}
-                  {defaultInstanceId !== id && Object.keys(instances).length > 1 && (
-                    <button
-                      style={{
-                        ...deleteButtonStyle,
-                        fontSize: "11px",
-                        padding: "4px 10px",
-                      }}
-                      onClick={() => handleDeleteInstance(id, instanceName)}
-                    >
-                      {t("llmModel.delete")}
-                    </button>
-                  )}
+                      {!isDefault && (
+                        <button
+                          style={{
+                            ...buttonStyle,
+                            fontSize: "11px",
+                            padding: "4px 10px",
+                          }}
+                          onClick={() => handleSetDefault(id, instanceName)}
+                        >
+                          {t("llmModel.setAsDefault")}
+                        </button>
+                      )}
+                      {!isDefault && Object.keys(instances).length > 1 && (
+                        <button
+                          style={{
+                            ...deleteButtonStyle,
+                            fontSize: "11px",
+                            padding: "4px 10px",
+                          }}
+                          onClick={() => handleDeleteInstance(id, instanceName)}
+                        >
+                          {t("llmModel.delete")}
+                        </button>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
             );

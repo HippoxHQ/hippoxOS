@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from "react";
-import { MessageSquare, MapPin, BarChart3, Code2, Video, Box, Hash } from "lucide-react";
+import { MessageSquare, MapPin, BarChart3 } from "lucide-react";
 import CustomDragCursor from "../../components/CustomDragCursor";
 import GlobalDragOverlay from "../../components/GlobalDragOverlay";
 import BottomBar from "../../components/BottomBar";
@@ -21,7 +21,7 @@ import EngineDatabasePanel from "../../components/MenuPanel/EngineConfig/EngineD
 import EngineNetworkPanel from "../../components/MenuPanel/EngineConfig/EngineNetworkPanel";
 import EngineNotificationPanel from "../../components/MenuPanel/EngineConfig/EngineNotificationPanel";
 import { Language, Theme } from "../../types/types";
-import { SessionDomain, UploadFile } from "../../core/types";
+import { UploadFile } from "../../core/types";
 import ScheduledTasksManager from "../../pages/ScheduledTasksPage";
 import SkillsManager from "../../pages/SkillsManagerPage";
 import UserProfile from "../../pages/UserProfilePage";
@@ -325,6 +325,8 @@ export function AppContent({
   onSendSkillMessage,
   functionPanel,
 }: AppContentProps) {
+  // Minimum width for menu panel
+  const MENU_PANEL_MIN_WIDTH = 240;
   const showWelcome = shouldShowWelcome();
   // Function panel state
   const [functionPanelWidth, setFunctionPanelWidth] = useState<number>(480);
@@ -932,7 +934,7 @@ export function AppContent({
                 const startWidth = menuPanelWidth;
                 const onMouseMove = (moveEvent: MouseEvent) => {
                   const newWidth = startWidth + (moveEvent.clientX - startX);
-                  if (newWidth >= 0 && newWidth <= 300) {
+                  if (newWidth >= MENU_PANEL_MIN_WIDTH && newWidth <= 300) {
                     setMenuPanelWidth(newWidth);
                   }
                 };

@@ -74,5 +74,8 @@ export const windowsCommands = {
     },
     async sendEvent(event: string): Promise<void> {
         return await invoke('cmd_emit_to_main_window', { event });
+    },
+    async createAboutWindow(): Promise<void> {
+        return await invoke('cmd_create_about_window');
     }
 };

@@ -13,6 +13,7 @@
     "windows": [
       {
         "title": "HippoxOS",
+        "label": "main",
         "width": 1350,
         "height": 800,
         "minWidth": 1000,
@@ -24,6 +25,20 @@
         "center": true,
         "visible": true,
         "dragDropEnabled": true
+      },
+      {
+        "title": "HippoxOS About",
+        "label": "about-window",
+        "width": 480,
+        "height": 360,
+        "minWidth": 400,
+        "minHeight": 300,
+        "decorations": false,
+        "transparent": false,
+        "resizable": true,
+        "fullscreen": false,
+        "center": true,
+        "visible": false
       }
     ],
     "security": {
@@ -369,6 +384,12 @@
               "allow": [{ "path": "**" }]
             }
           ]
+        },
+        {
+          "identifier": "about-window",
+          "description": "About Window",
+          "windows": ["about-window"],
+          "permissions": ["core:default", "core:event:allow-listen", "core:event:allow-emit", "core:event:allow-emit-to", "core:window:allow-close", "core:window:allow-show", "core:window:allow-hide", "core:window:allow-set-position", "core:window:allow-set-focus", "shell:allow-open"]
         }
       ]
     }

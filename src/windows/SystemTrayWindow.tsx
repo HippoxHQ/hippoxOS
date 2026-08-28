@@ -24,6 +24,9 @@ const openLLMSubmenu = async () => {
   }));
   await windowsCommands.createSubmenuWindow(items, defaultId);
 };
+const openAboutWindow = async () => {
+  await windowsCommands.createAboutWindow();
+};
 const SystemTrayWindow: React.FC = () => {
   const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [language, setLanguage] = useState<"zh" | "en">("en");
@@ -43,6 +46,8 @@ const SystemTrayWindow: React.FC = () => {
   const handleMenuItemClick = (action: string) => {
     if (action === "quit") {
       windowsCommands.exitApp();
+    } else if (action === SystemEvent.ShowAbout) {
+      openAboutWindow();
     } else {
       windowsCommands.sendEvent(action);
     }

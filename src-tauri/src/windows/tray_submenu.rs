@@ -1,4 +1,4 @@
-use crate::types::{WindowIdentifier, WindowType};
+use crate::windows::{WindowIdentifier, WindowType};
 use tauri::{AppHandle, Emitter, Manager, Runtime, WebviewWindowBuilder, WindowEvent};
 const TRAY_SUB_MENU_WIDTH: f64 = 200.0;
 const TRAY_SUB_MENU_HEIGHT: f64 = 160.0;
