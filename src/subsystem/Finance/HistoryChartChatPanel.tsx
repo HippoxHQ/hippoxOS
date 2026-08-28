@@ -5,6 +5,7 @@ import { showToast, ToastType } from "../../components/Toast";
 import { chartSessionCommands } from "../../command/session/finance";
 import { DeleteIcon, MoreVerticalIcon, PinFilledIcon, PinIcon, RenameIcon, UnPinIcon, AddIcon } from "../../icons";
 import { taskManager } from "../../core/TaskManager";
+import { CheckSquare, Square } from "lucide-react";
 export interface HistoryChartChatPanelRef {
   scrollToTop: () => void;
   scrollToBottom: () => void;
@@ -17,6 +18,10 @@ interface HistoryChartChatPanelProps {
   onSessionSelect?: (sessionId: string) => void;
   currentSessionId?: string;
   onNewSession?: () => void;
+  // Batch selection props
+  isBatchMode?: boolean;
+  selectedIds?: Set<string>;
+  onToggleSelection?: (sessionId: string, e: React.MouseEvent) => void;
 }
 type CategoryType = "pinned" | "today" | "yesterday" | "last7days" | "last30days" | "older";
 interface CategoryConfig {
@@ -31,7 +36,7 @@ const categories: CategoryConfig[] = [
   { labelKey: "history.category.last30days", type: "last30days" },
   { labelKey: "history.category.older", type: "older" },
 ];
-const HistoryChartChatPanel = forwardRef<HistoryChartChatPanelRef, HistoryChartChatPanelProps>(({ t, onSessionSelect, currentSessionId, onNewSession }: HistoryChartChatPanelProps, ref) => {
+const HistoryChartChatPanel = forwardRef<HistoryChartChatPanelRef, HistoryChartChatPanelProps>(({ t, onSessionSelect, currentSessionId, onNewSession, isBatchMode = false, selectedIds = new Set(), onToggleSelection }: HistoryChartChatPanelProps, ref) => {
   const [sessions, setSessions] = useState<DialogSession[]>([]);
   const [loading, setLoading] = useState(false);
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
@@ -257,6 +262,7 @@ const HistoryChartChatPanel = forwardRef<HistoryChartChatPanelRef, HistoryChartC
   };
   const handleSelectSession = useCallback(
     async (sessionId: string) => {
+      if (isBatchMode) return; // Block session selection in batch mode
       setActiveMenuId(null);
       if (currentSessionId === sessionId) {
         return;
@@ -272,7 +278,7 @@ const HistoryChartChatPanel = forwardRef<HistoryChartChatPanelRef, HistoryChartC
         }
       }
     },
-    [currentSessionId, onSessionSelect],
+    [currentSessionId, onSessionSelect, isBatchMode],
   );
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -307,32 +313,35 @@ const HistoryChartChatPanel = forwardRef<HistoryChartChatPanelRef, HistoryChartC
     });
     return grouped;
   };
-  const getCardStyle = (isActive: boolean, isHovered: boolean): React.CSSProperties => {
-    if (isActive) {
-      return {
-        background: "rgba(0, 102, 204, 0.1)",
-        borderRadius: "5px",
-        padding: "12px 14px",
-        marginBottom: "5px",
-        border: "1px solid rgba(0, 102, 204, 0.3)",
-        cursor: "pointer",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        position: "relative",
-      };
-    }
-    return {
-      background: isHovered ? "var(--hover-bg)" : "var(--bg-secondary)",
+  const getCardStyle = (isActive: boolean, isHovered: boolean, isSelected: boolean): React.CSSProperties => {
+    const baseStyle = {
       borderRadius: "5px",
       padding: "12px 14px",
       marginBottom: "5px",
-      border: "1px solid var(--border-color)",
-      cursor: "pointer",
+      cursor: isBatchMode ? "default" : "pointer",
       display: "flex",
       alignItems: "center",
       justifyContent: "space-between",
-      position: "relative",
+      position: "relative" as const,
+    };
+    if (isSelected) {
+      return {
+        ...baseStyle,
+        background: "rgba(0, 102, 204, 0.15)",
+        border: "1px solid rgba(0, 102, 204, 0.5)",
+      };
+    }
+    if (isActive) {
+      return {
+        ...baseStyle,
+        background: "rgba(0, 102, 204, 0.1)",
+        border: "1px solid rgba(0, 102, 204, 0.3)",
+      };
+    }
+    return {
+      ...baseStyle,
+      background: isHovered ? "var(--hover-bg)" : "var(--bg-secondary)",
+      border: "1px solid var(--border-color)",
     };
   };
   const titleStyle: React.CSSProperties = {
@@ -412,12 +421,14 @@ const HistoryChartChatPanel = forwardRef<HistoryChartChatPanelRef, HistoryChartC
     cursor: "pointer",
     paddingBottom: "5px",
   };
-  const handleNewSession = () => {
-    if (onNewSession) {
-      onNewSession();
-    } else {
-      window.dispatchEvent(new CustomEvent("chart-new-session"));
-    }
+  const checkboxStyle: React.CSSProperties = {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: "10px",
+    flexShrink: 0,
+    cursor: "pointer",
+    color: "var(--text-secondary)",
   };
   if (loading && sessions.length === 0) {
     return (
@@ -492,18 +503,27 @@ const HistoryChartChatPanel = forwardRef<HistoryChartChatPanelRef, HistoryChartC
                   const isActive = currentSessionId === session.session_id;
                   const isHovered = hoveredId === session.session_id;
                   const isEditing = editingId === session.session_id;
+                  const isSelected = selectedIds.has(session.session_id);
                   return (
                     <div
                       key={session.session_id}
-                      style={getCardStyle(isActive, isHovered)}
+                      style={getCardStyle(isActive, isHovered, isSelected)}
                       onMouseEnter={() => setHoveredId(session.session_id)}
                       onMouseLeave={() => setHoveredId(null)}
                       onClick={() => {
-                        if (!isEditing) {
+                        if (isBatchMode && onToggleSelection) {
+                          onToggleSelection(session.session_id, new MouseEvent("click") as any);
+                        } else if (!isEditing) {
                           handleSelectSession(session.session_id);
                         }
                       }}
                     >
+                      {/* Checkbox for batch mode */}
+                      {isBatchMode && (
+                        <div style={checkboxStyle} onClick={(e) => onToggleSelection && onToggleSelection(session.session_id, e)}>
+                          {isSelected ? <CheckSquare size={18} /> : <Square size={18} />}
+                        </div>
+                      )}
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: "flex", alignItems: "center" }}>
                           {session.is_pinned && (
@@ -521,7 +541,8 @@ const HistoryChartChatPanel = forwardRef<HistoryChartChatPanelRef, HistoryChartC
                         </div>
                         <div style={timeStyle}>{formatDate(session.created_at)}</div>
                       </div>
-                      {!isEditing && (activeMenuId === session.session_id || isHovered) && (
+                      {/* Menu button - hidden in batch mode */}
+                      {!isBatchMode && !isEditing && (activeMenuId === session.session_id || isHovered) && (
                         <div>
                           <button
                             style={menuButtonStyle}

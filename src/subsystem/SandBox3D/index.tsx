@@ -14,6 +14,18 @@ import { SandBox3DHistoryPanel } from "./SandBox3D/SandBox3DHistoryPanel";
 import { ToolMenu } from "./SandBox3D/ToolMenu";
 import { sandbox3dExportCommands } from "../../command/SandBox3D";
 import { APP_WINDOW_EVENTS } from "../../App/AppWindowEventManager";
+import { showDialog, DialogType } from "../../components/Dialog";
+import { showToast, ToastType } from "../../components/Toast";
+import { CheckSquare, Layers, Pin, PinOff, Square, Trash2 } from "lucide-react";
+// Panel Size Constants - aligned with GeneralChatPage
+// History panel (leftmost panel) size limits
+const HISTORY_PANEL_MIN_WIDTH = 285;
+const HISTORY_PANEL_MAX_WIDTH = 400;
+const HISTORY_PANEL_DEFAULT_WIDTH = 280;
+const HISTORY_PANEL_COLLAPSED_WIDTH = 45;
+// Chat panel min width
+const CHAT_PANEL_MIN_WIDTH = 200;
+const CHAT_PANEL_MAX_WIDTH_RATIO = 0.6; // 60% of main area
 interface SandBox3DPageProps {
   layoutMode?: "horizontal" | "vertical";
   onLayoutModeChange?: (mode: "horizontal" | "vertical") => void;
@@ -616,9 +628,9 @@ const SandBox3DPage: React.FC<SandBox3DPageProps> = ({
 }) => {
   // Session management
   const { currentSessionId: sandbox3dSessionId, handleSendMessage: sandbox3dHandleSendMessage, handleSwitchSession: sandbox3dHandleSwitchSession, handleNewSession: sandbox3dHandleNewSession, shouldShowWelcome: sandbox3dShouldShowWelcome } = useSandBox3DSession(language as "zh" | "en", true);
-  // Panel state
+  // Panel state - using constants for initial values
   const [chatPanelWidth, setChatPanelWidth] = useState<number>(400);
-  const [historyWidth, setHistoryWidth] = useState<number>(280);
+  const [historyWidth, setHistoryWidth] = useState<number>(HISTORY_PANEL_DEFAULT_WIDTH);
   const [chatPanelCollapsed, setChatPanelCollapsed] = useState<boolean>(false);
   const [historyCollapsed, setHistoryCollapsed] = useState<boolean>(false);
   const [activeNavIndex, setActiveNavIndex] = useState<number>(-1);
@@ -626,6 +638,9 @@ const SandBox3DPage: React.FC<SandBox3DPageProps> = ({
   const [isHistoryResizeHover, setIsHistoryResizeHover] = useState(false);
   const [isHistoryExpanded, setIsHistoryExpanded] = useState(true);
   const [isHistoryAtBottom, setIsHistoryAtBottom] = useState(false);
+  // Batch selection state - aligned with GeneralChatPage
+  const [isBatchMode, setIsBatchMode] = useState<boolean>(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   // Refs
   const containerRef = useRef<HTMLDivElement>(null);
   const historyPanelRef = useRef<HistorySandBox3DChatPanelRef>(null);
@@ -647,6 +662,123 @@ const SandBox3DPage: React.FC<SandBox3DPageProps> = ({
   const isChatOnLeft = layoutSwapMode === "chat-left";
   const [historyPanelKey, setHistoryPanelKey] = useState(0);
   const [gifPath, setGifPath] = useState<string | null>(null);
+  // Language helper
+  const isZh = i18n === "zh-cn";
+  // Clear selection when batch mode is turned off - aligned with GeneralChatPage
+  useEffect(() => {
+    if (!isBatchMode) {
+      setSelectedIds(new Set());
+    }
+  }, [isBatchMode]);
+  // Toggle select all sessions - aligned with GeneralChatPage
+  const toggleSelectAll = () => {
+    const allIds = historySessions.map((s) => s.session_id);
+    if (selectedIds.size === allIds.length && allIds.length > 0) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(allIds));
+    }
+  };
+  /**
+   * Batch pin selected sessions - aligned with GeneralChatPage
+   * Pins all sessions that are currently selected in batch mode
+   */
+  const handleBatchPin = async () => {
+    if (selectedIds.size === 0) {
+      showToast(ToastType.WARNING, isZh ? "请选择要置顶的会话" : "Please select sessions to pin");
+      return;
+    }
+    try {
+      const ids = Array.from(selectedIds);
+      for (const id of ids) {
+        await sandbox3dSessionCommands.updatePinnedSandBox3DSessions(id, true);
+      }
+      // Refresh HistorySandBox3DChatPanel component
+      await historyPanelRef.current?.refreshSessions();
+      // Refresh parent component's session list
+      const list = await sandbox3dSessionCommands.listSandBox3DSessions();
+      setHistorySessions(list);
+      setSelectedIds(new Set());
+      showToast(ToastType.SUCCESS, isZh ? `已置顶 ${ids.length} 个会话` : `${ids.length} session(s) pinned`);
+    } catch (error) {
+      showToast(ToastType.ERROR, isZh ? "批量置顶失败" : "Batch pin failed");
+    }
+  };
+  /**
+   * Batch unpin selected sessions - aligned with GeneralChatPage
+   * Unpins all sessions that are currently selected in batch mode
+   */
+  const handleBatchUnpin = async () => {
+    if (selectedIds.size === 0) {
+      showToast(ToastType.WARNING, isZh ? "请选择要取消置顶的会话" : "Please select sessions to unpin");
+      return;
+    }
+    try {
+      const ids = Array.from(selectedIds);
+      for (const id of ids) {
+        await sandbox3dSessionCommands.updatePinnedSandBox3DSessions(id, false);
+      }
+      // Refresh HistorySandBox3DChatPanel component
+      await historyPanelRef.current?.refreshSessions();
+      // Refresh parent component's session list
+      const list = await sandbox3dSessionCommands.listSandBox3DSessions();
+      setHistorySessions(list);
+      setSelectedIds(new Set());
+      showToast(ToastType.SUCCESS, isZh ? `已取消置顶 ${ids.length} 个会话` : `${ids.length} session(s) unpinned`);
+    } catch (error) {
+      showToast(ToastType.ERROR, isZh ? "批量取消置顶失败" : "Batch unpin failed");
+    }
+  };
+  /**
+   * Batch delete selected sessions - aligned with GeneralChatPage
+   * Deletes all sessions that are currently selected in batch mode
+   */
+  const handleBatchDelete = async () => {
+    if (selectedIds.size === 0) {
+      showToast(ToastType.WARNING, isZh ? "请选择要删除的会话" : "Please select sessions to delete");
+      return;
+    }
+    // Check if trying to delete all sessions - prevent deleting the last one
+    if (selectedIds.size >= historySessions.length) {
+      showDialog(DialogType.WARNING, t("history.dialog.cannotDeleteTitle"), t("history.dialog.cannotDeleteMessage"), undefined, undefined, t("history.dialog.gotIt"), undefined);
+      return;
+    }
+    showDialog(
+      DialogType.WARNING,
+      isZh ? "批量删除会话" : "Batch Delete Sessions",
+      isZh ? `确定要删除选中的 ${selectedIds.size} 个会话吗？此操作不可恢复。` : `Are you sure you want to delete ${selectedIds.size} selected session(s)? This action cannot be undone.`,
+      async () => {
+        try {
+          const ids = Array.from(selectedIds);
+          for (const id of ids) {
+            await sandbox3dSessionCommands.deleteSandBox3DSession(id);
+            const domain = taskManager.getDomainFromSessionId(id);
+            taskManager.deleteSession(id, domain);
+          }
+          // If current session was deleted, switch to another session
+          if (sandbox3dSessionId && selectedIds.has(sandbox3dSessionId)) {
+            const remainingSessions = historySessions.filter((s) => !selectedIds.has(s.session_id));
+            if (remainingSessions.length > 0) {
+              sandbox3dHandleSwitchSession(remainingSessions[0].session_id);
+            }
+          }
+          // Refresh HistorySandBox3DChatPanel component
+          await historyPanelRef.current?.refreshSessions();
+          // Refresh parent component's session list
+          const list = await sandbox3dSessionCommands.listSandBox3DSessions();
+          setHistorySessions(list);
+          setSelectedIds(new Set());
+          setIsBatchMode(false);
+          showToast(ToastType.SUCCESS, isZh ? `已删除 ${ids.length} 个会话` : `${ids.length} session(s) deleted`);
+        } catch (error) {
+          showToast(ToastType.ERROR, isZh ? "批量删除失败" : "Batch delete failed");
+        }
+      },
+      undefined,
+      isZh ? "删除" : "Delete",
+      isZh ? "取消" : "Cancel",
+    );
+  };
   // Panel toggle handlers
   const handleToggleChatPanel = useCallback(() => {
     if (isFunctionPanelMaximized) return;
@@ -887,8 +1019,8 @@ const SandBox3DPage: React.FC<SandBox3DPageProps> = ({
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-        width: "45px",
-        minWidth: "45px",
+        width: HISTORY_PANEL_COLLAPSED_WIDTH,
+        minWidth: HISTORY_PANEL_COLLAPSED_WIDTH,
         background: "var(--bg-secondary)",
         borderRight: isChatOnLeft ? "1px solid var(--border-color)" : "none",
         borderLeft: !isChatOnLeft ? "1px solid var(--border-color)" : "none",
@@ -1106,14 +1238,14 @@ const SandBox3DPage: React.FC<SandBox3DPageProps> = ({
   const handleNewSession = useCallback(() => {
     sandbox3dHandleNewSession();
   }, [sandbox3dHandleNewSession]);
-  // Resize drag handlers
+  // Resize drag handlers with constants for clamping
   const handleMouseDown = (e: React.MouseEvent, type: "horizontal" | "history") => {
     if (chatPanelCollapsed || isFunctionPanelMaximized) return;
     if (type === "history" && historyCollapsed) return;
     isDragging.current = true;
     dragType.current = type;
     dragStartX.current = e.clientX;
-    dragStartHistoryWidth.current = historyCollapsed ? 45 : historyWidth;
+    dragStartHistoryWidth.current = historyCollapsed ? HISTORY_PANEL_COLLAPSED_WIDTH : historyWidth;
     dragStartChatPanelWidth.current = chatPanelWidth;
     dragStartContainerRect.current = containerRef.current?.getBoundingClientRect() || null;
     document.body.style.cursor = "col-resize";
@@ -1137,14 +1269,16 @@ const SandBox3DPage: React.FC<SandBox3DPageProps> = ({
       } else {
         newWidthPx = startWidthPx + deltaX;
       }
-      const minWidthPx = 200;
-      const maxWidthPx = mainAreaWidth * 0.6;
+      // Use constants for min width
+      const minWidthPx = CHAT_PANEL_MIN_WIDTH;
+      const maxWidthPx = mainAreaWidth * CHAT_PANEL_MAX_WIDTH_RATIO;
       newWidthPx = Math.max(minWidthPx, Math.min(maxWidthPx, newWidthPx));
       setChatPanelWidth(newWidthPx);
       saveChatPanelWidth(newWidthPx);
     } else if (dragType.current === "history") {
       const newWidth = dragStartHistoryWidth.current + deltaX;
-      const clamped = Math.min(400, Math.max(200, newWidth));
+      // Use HISTORY_PANEL constants for clamping
+      const clamped = Math.min(HISTORY_PANEL_MAX_WIDTH, Math.max(HISTORY_PANEL_MIN_WIDTH, newWidth));
       setHistoryWidth(clamped);
       saveHistoryWidth(clamped);
     }
@@ -1162,8 +1296,23 @@ const SandBox3DPage: React.FC<SandBox3DPageProps> = ({
       window.removeEventListener("mouseup", handleMouseUp);
     };
   }, [handleMouseMove, handleMouseUp]);
+  // Common button style for header actions - aligned with GeneralChatPage
+  const headerButtonStyle: React.CSSProperties = {
+    background: "none",
+    border: "none",
+    cursor: "pointer",
+    color: "var(--text-secondary)",
+    padding: "2px 6px",
+    borderRadius: "4px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    lineHeight: 1,
+    width: "28px",
+    height: "28px",
+  };
   /**
-   * Get history panel content
+   * Get history panel content - aligned with GeneralChatPage
    */
   const getHistoryPanelContent = () => {
     if (historyCollapsed || isFunctionPanelMaximized) {
@@ -1174,8 +1323,8 @@ const SandBox3DPage: React.FC<SandBox3DPageProps> = ({
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
-            width: "45px",
-            minWidth: "45px",
+            width: HISTORY_PANEL_COLLAPSED_WIDTH,
+            minWidth: HISTORY_PANEL_COLLAPSED_WIDTH,
             background: "var(--bg-secondary)",
             borderRight: "1px solid var(--border-color)",
             overflow: "hidden",
@@ -1253,8 +1402,7 @@ const SandBox3DPage: React.FC<SandBox3DPageProps> = ({
           height: "100%",
           overflow: "hidden",
           flex: 1,
-          minWidth: "200px",
-          userSelect: "none",
+          minWidth: `${HISTORY_PANEL_MIN_WIDTH}px`,
         }}
       >
         <div
@@ -1262,75 +1410,150 @@ const SandBox3DPage: React.FC<SandBox3DPageProps> = ({
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
-            padding: "6px 12px",
+            padding: "6px 6px",
             borderBottom: "1px solid var(--border-color)",
             background: "var(--bg-secondary)",
             flexShrink: 0,
             minHeight: "40px",
           }}
         >
-          <span
-            style={{
-              fontSize: "14px",
-              fontWeight: 600,
-              color: "var(--text-primary)",
-            }}
-          >
-            {t("menu.history") || "History"}
-          </span>
+          {/* Left side: Title and action buttons - always visible - aligned with GeneralChatPage */}
           <div
             style={{
               display: "flex",
               alignItems: "center",
-              gap: "2px",
-              flexShrink: 0,
+              gap: "4px",
+              flex: 1,
+              minWidth: 0,
             }}
           >
+            {/* Batch selection toggle button */}
             <button
               style={{
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                fontSize: "25px",
-                color: "var(--text-secondary)",
-                padding: "2px 6px",
-                borderRadius: "4px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                lineHeight: 1,
-                width: "28px",
-                height: "28px",
+                ...headerButtonStyle,
+                color: isBatchMode ? "var(--accent-color, #0066cc)" : "var(--text-secondary)",
               }}
-              onClick={handleNewSession}
+              onClick={() => setIsBatchMode(!isBatchMode)}
               onMouseEnter={(e) => {
                 e.currentTarget.style.color = "var(--text-primary)";
                 e.currentTarget.style.background = "var(--hover-bg)";
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.color = "var(--text-secondary)";
+                e.currentTarget.style.color = isBatchMode ? "var(--accent-color, #0066cc)" : "var(--text-secondary)";
                 e.currentTarget.style.background = "none";
               }}
-              title={t("history.newSession") || "New Session"}
+              title={isBatchMode ? (isZh ? "退出批量模式" : "Exit batch mode") : isZh ? "批量选择" : "Batch select"}
             >
-              +
+              <Layers size={16} />
             </button>
+            {/* Batch action buttons - only show in batch mode */}
+            {isBatchMode && (
+              <>
+                {/* Select all button */}
+                <button
+                  style={headerButtonStyle}
+                  onClick={toggleSelectAll}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.color = "var(--text-primary)";
+                    e.currentTarget.style.background = "var(--hover-bg)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.color = "var(--text-secondary)";
+                    e.currentTarget.style.background = "none";
+                  }}
+                  title={isZh ? "全选" : "Select all"}
+                >
+                  {selectedIds.size === historySessions.length && historySessions.length > 0 ? <CheckSquare size={16} /> : <Square size={16} />}
+                </button>
+                {/* Selected count */}
+                <span
+                  style={{
+                    fontSize: "10px",
+                    color: "var(--text-muted)",
+                    minWidth: "20px",
+                    textAlign: "center",
+                  }}
+                >
+                  {selectedIds.size}
+                </span>
+                {/* Batch pin button */}
+                <button
+                  style={{
+                    ...headerButtonStyle,
+                    color: selectedIds.size > 0 ? "var(--accent-color, #0066cc)" : "var(--text-muted)",
+                    opacity: selectedIds.size > 0 ? 1 : 0.5,
+                  }}
+                  onClick={handleBatchPin}
+                  disabled={selectedIds.size === 0}
+                  onMouseEnter={(e) => {
+                    if (selectedIds.size > 0) {
+                      e.currentTarget.style.color = "var(--text-primary)";
+                      e.currentTarget.style.background = "var(--hover-bg)";
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (selectedIds.size > 0) {
+                      e.currentTarget.style.color = "var(--accent-color, #0066cc)";
+                      e.currentTarget.style.background = "none";
+                    }
+                  }}
+                  title={isZh ? "批量置顶" : "Batch pin"}
+                >
+                  <Pin size={16} />
+                </button>
+                {/* Batch unpin button */}
+                <button
+                  style={{
+                    ...headerButtonStyle,
+                    color: selectedIds.size > 0 ? "var(--accent-color, #0066cc)" : "var(--text-muted)",
+                    opacity: selectedIds.size > 0 ? 1 : 0.5,
+                  }}
+                  onClick={handleBatchUnpin}
+                  disabled={selectedIds.size === 0}
+                  onMouseEnter={(e) => {
+                    if (selectedIds.size > 0) {
+                      e.currentTarget.style.color = "var(--text-primary)";
+                      e.currentTarget.style.background = "var(--hover-bg)";
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (selectedIds.size > 0) {
+                      e.currentTarget.style.color = "var(--accent-color, #0066cc)";
+                      e.currentTarget.style.background = "none";
+                    }
+                  }}
+                  title={isZh ? "批量取消置顶" : "Batch unpin"}
+                >
+                  <PinOff size={16} />
+                </button>
+                {/* Batch delete button */}
+                <button
+                  style={{
+                    ...headerButtonStyle,
+                    color: selectedIds.size > 0 ? "#ef4444" : "var(--text-muted)",
+                    opacity: selectedIds.size > 0 ? 1 : 0.5,
+                  }}
+                  onClick={handleBatchDelete}
+                  disabled={selectedIds.size === 0}
+                  onMouseEnter={(e) => {
+                    if (selectedIds.size > 0) {
+                      e.currentTarget.style.background = "rgba(239, 68, 68, 0.1)";
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (selectedIds.size > 0) {
+                      e.currentTarget.style.background = "none";
+                    }
+                  }}
+                  title={isZh ? "批量删除" : "Batch delete"}
+                >
+                  <Trash2 size={16} />
+                </button>
+              </>
+            )}
+            {/* Expand/Collapse all categories button */}
             <button
-              style={{
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                fontSize: "14px",
-                color: "var(--text-secondary)",
-                padding: "2px 6px",
-                borderRadius: "4px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                lineHeight: 1,
-                width: "28px",
-                height: "28px",
-              }}
+              style={headerButtonStyle}
               onClick={handleExpandToggle}
               onMouseEnter={(e) => {
                 e.currentTarget.style.color = "var(--text-primary)";
@@ -1340,26 +1563,13 @@ const SandBox3DPage: React.FC<SandBox3DPageProps> = ({
                 e.currentTarget.style.color = "var(--text-secondary)";
                 e.currentTarget.style.background = "none";
               }}
-              title={isHistoryExpanded ? t("history.collapseAll") : t("history.expandAll")}
+              title={isHistoryExpanded ? (isZh ? "收起全部" : "Collapse all") : isZh ? "展开全部" : "Expand all"}
             >
               {isHistoryExpanded ? <CollapseAllIcon2 size={16} /> : <ExpandAllIcon2 size={16} />}
             </button>
+            {/* Scroll to top/bottom button */}
             <button
-              style={{
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                fontSize: "14px",
-                color: "var(--text-secondary)",
-                padding: "2px 6px",
-                borderRadius: "4px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                lineHeight: 1,
-                width: "28px",
-                height: "28px",
-              }}
+              style={headerButtonStyle}
               onClick={handleScrollToggle}
               onMouseEnter={(e) => {
                 e.currentTarget.style.color = "var(--text-primary)";
@@ -1369,35 +1579,39 @@ const SandBox3DPage: React.FC<SandBox3DPageProps> = ({
                 e.currentTarget.style.color = "var(--text-secondary)";
                 e.currentTarget.style.background = "none";
               }}
-              title={isHistoryAtBottom ? t("history.scrollToTop") : t("history.scrollToBottom")}
+              title={isHistoryAtBottom ? (isZh ? "滚动到顶部" : "Scroll to top") : isZh ? "滚动到底部" : "Scroll to bottom"}
             >
               {isHistoryAtBottom ? "▲" : "▼"}
             </button>
-            <div
-              style={{
-                width: "1px",
-                height: "16px",
-                background: "var(--border-color)",
-                margin: "0 2px",
-                flexShrink: 0,
-              }}
-            />
+            {/* New session button - only when not in batch mode */}
+            {!isBatchMode && (
+              <button
+                style={headerButtonStyle}
+                onClick={handleNewSession}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = "var(--text-primary)";
+                  e.currentTarget.style.background = "var(--hover-bg)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = "var(--text-secondary)";
+                  e.currentTarget.style.background = "none";
+                }}
+                title={isZh ? "新建会话" : "New Session"}
+              >
+                +
+              </button>
+            )}
+          </div>
+          {/* Right side: Collapse panel button only */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              flexShrink: 0,
+            }}
+          >
             <button
-              style={{
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                fontSize: "14px",
-                color: "var(--text-secondary)",
-                padding: "2px 6px",
-                borderRadius: "4px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                lineHeight: 1,
-                width: "28px",
-                height: "28px",
-              }}
+              style={headerButtonStyle}
               onClick={handleToggleHistory}
               onMouseEnter={(e) => {
                 e.currentTarget.style.color = "var(--text-primary)";
@@ -1407,20 +1621,40 @@ const SandBox3DPage: React.FC<SandBox3DPageProps> = ({
                 e.currentTarget.style.color = "var(--text-secondary)";
                 e.currentTarget.style.background = "none";
               }}
-              title={t("history.collapse")}
+              title={isZh ? "收起面板" : "Collapse panel"}
             >
               ◀
             </button>
           </div>
         </div>
         <div style={{ flex: 1, overflow: "hidden" }}>
-          <HistorySandBox3DChatPanel ref={historyPanelRef} t={t} onSessionSelect={handleSessionSelect} currentSessionId={sandbox3dSessionId} onNewSession={handleNewSession} />
+          <HistorySandBox3DChatPanel
+            ref={historyPanelRef}
+            t={t}
+            onSessionSelect={handleSessionSelect}
+            currentSessionId={sandbox3dSessionId}
+            onNewSession={handleNewSession}
+            isBatchMode={isBatchMode}
+            selectedIds={selectedIds}
+            onToggleSelection={(sessionId, e) => {
+              e.stopPropagation();
+              setSelectedIds((prev) => {
+                const newSet = new Set(prev);
+                if (newSet.has(sessionId)) {
+                  newSet.delete(sessionId);
+                } else {
+                  newSet.add(sessionId);
+                }
+                return newSet;
+              });
+            }}
+          />
         </div>
       </div>
     );
   };
   const historyPanelContent = getHistoryPanelContent();
-  const historyWidthPx = historyCollapsed || isFunctionPanelMaximized ? 45 : historyWidth;
+  const historyWidthPx = historyCollapsed || isFunctionPanelMaximized ? HISTORY_PANEL_COLLAPSED_WIDTH : historyWidth;
   // === RENDER ===
   return (
     <div className="panels-container horizontal-layout" ref={containerRef} style={{ display: "flex", flex: 1, overflow: "hidden" }}>
@@ -1457,8 +1691,8 @@ const SandBox3DPage: React.FC<SandBox3DPageProps> = ({
           display: flex;
           flex-direction: column;
           align-items: center;
-          width: 45px;
-          min-width: 45px;
+          width: ${HISTORY_PANEL_COLLAPSED_WIDTH}px;
+          min-width: ${HISTORY_PANEL_COLLAPSED_WIDTH}px;
           background: var(--bg-secondary);
           overflow: hidden;
           flex-shrink: 0;
@@ -1478,10 +1712,10 @@ const SandBox3DPage: React.FC<SandBox3DPageProps> = ({
           <div
             className="panel-history"
             style={{
-              flex: historyCollapsed ? "0 0 45px" : "0 0 auto",
-              width: historyCollapsed ? "45px" : `${historyWidth}px`,
+              flex: historyCollapsed ? `0 0 ${HISTORY_PANEL_COLLAPSED_WIDTH}px` : "0 0 auto",
+              width: historyCollapsed ? `${HISTORY_PANEL_COLLAPSED_WIDTH}px` : `${historyWidth}px`,
               overflow: "hidden",
-              minWidth: historyCollapsed ? "45px" : "200px",
+              minWidth: historyCollapsed ? `${HISTORY_PANEL_COLLAPSED_WIDTH}px` : `${HISTORY_PANEL_MIN_WIDTH}px`,
               display: "flex",
               flexDirection: "row",
               borderRight: "1px solid var(--border-color)",
@@ -1514,7 +1748,7 @@ const SandBox3DPage: React.FC<SandBox3DPageProps> = ({
             flex: "0 0 auto",
             width: `${chatPanelWidth}px`,
             overflow: "hidden",
-            minWidth: "200px",
+            minWidth: `${CHAT_PANEL_MIN_WIDTH}px`,
             display: "flex",
             flexDirection: "row",
             borderRight: isChatOnLeft ? "1px solid var(--border-color)" : "none",
@@ -1532,7 +1766,7 @@ const SandBox3DPage: React.FC<SandBox3DPageProps> = ({
       ) : !isFunctionPanelMaximized ? (
         <div
           style={{
-            flex: "0 0 45px",
+            flex: `0 0 ${HISTORY_PANEL_COLLAPSED_WIDTH}px`,
             order: isChatOnLeft ? 1 : 3,
           }}
         >

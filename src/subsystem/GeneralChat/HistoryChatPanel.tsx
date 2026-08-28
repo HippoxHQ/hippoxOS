@@ -5,28 +5,29 @@ import { showToast, ToastType } from "../../components/Toast";
 import { DeleteIcon, MoreVerticalIcon, PinFilledIcon, PinIcon, RenameIcon, UnPinIcon } from "../../icons";
 import { sessionCommands } from "../../command/session/general";
 import { taskManager } from "../../core/TaskManager";
-
+import { CheckSquare, Square } from "lucide-react";
 export interface HistoryChatPanelRef {
   scrollToTop: () => void;
   scrollToBottom: () => void;
   expandAll: () => void;
   collapseAll: () => void;
+  refresh: () => Promise<void>;
 }
-
 interface HistoryChatPanelProps {
   t: (key: string, params?: any) => string;
   onSessionSelect?: (sessionId: string) => void;
   currentSessionId?: string;
   onCloseSkillsManager?: () => void;
+  // Batch selection props
+  isBatchMode?: boolean;
+  selectedIds?: Set<string>;
+  onToggleSelection?: (sessionId: string, e: React.MouseEvent) => void;
 }
-
 type CategoryType = "pinned" | "today" | "yesterday" | "last7days" | "last30days" | "older";
-
 interface CategoryConfig {
   labelKey: string;
   type: CategoryType;
 }
-
 const categories: CategoryConfig[] = [
   { labelKey: "history.category.pinned", type: "pinned" },
   { labelKey: "history.category.today", type: "today" },
@@ -35,8 +36,7 @@ const categories: CategoryConfig[] = [
   { labelKey: "history.category.last30days", type: "last30days" },
   { labelKey: "history.category.older", type: "older" },
 ];
-
-const HistoryChatPanel = forwardRef<HistoryChatPanelRef, HistoryChatPanelProps>(({ t, onSessionSelect, currentSessionId, onCloseSkillsManager }: HistoryChatPanelProps, ref) => {
+const HistoryChatPanel = forwardRef<HistoryChatPanelRef, HistoryChatPanelProps>(({ t, onSessionSelect, currentSessionId, onCloseSkillsManager, isBatchMode = false, selectedIds = new Set(), onToggleSelection }: HistoryChatPanelProps, ref) => {
   const [sessions, setSessions] = useState<DialogSession[]>([]);
   const hasLoadedRef = useRef(false);
   const [loading, setLoading] = useState(false);
@@ -88,23 +88,22 @@ const HistoryChatPanel = forwardRef<HistoryChatPanelRef, HistoryChatPanelProps>(
         older: false,
       });
     },
+    refresh: async () => {
+      await loadSessions(true);
+    },
   }));
-
   const toggleCategory = (categoryType: CategoryType) => {
     setExpandedCategories((prev) => ({
       ...prev,
       [categoryType]: !prev[categoryType],
     }));
   };
-
   const menuRef = useRef<HTMLDivElement>(null);
-
   useEffect(() => {
     if (!hasLoadedRef.current) {
       hasLoadedRef.current = true;
       loadSessions();
     }
-
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         setActiveMenuId(null);
@@ -115,7 +114,6 @@ const HistoryChatPanel = forwardRef<HistoryChatPanelRef, HistoryChatPanelProps>(
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
-
     const handleSessionCreated = () => {
       loadSessions(true);
     };
@@ -125,14 +123,12 @@ const HistoryChatPanel = forwardRef<HistoryChatPanelRef, HistoryChatPanelProps>(
       window.removeEventListener("session-created", handleSessionCreated);
     };
   }, [editingId]);
-
   useEffect(() => {
     if (editingId && editInputRef.current) {
       editInputRef.current.focus();
       editInputRef.current.select();
     }
   }, [editingId]);
-
   const loadSessions = async (forceRefresh: boolean = false) => {
     if (!forceRefresh && hasLoadedRef.current && sessions.length > 0) {
       return;
@@ -159,7 +155,6 @@ const HistoryChatPanel = forwardRef<HistoryChatPanelRef, HistoryChatPanelProps>(
       setLoading(false);
     }
   };
-
   const handleTogglePin = async (session: DialogSession, e: React.MouseEvent) => {
     e.stopPropagation();
     try {
@@ -176,7 +171,6 @@ const HistoryChatPanel = forwardRef<HistoryChatPanelRef, HistoryChatPanelProps>(
       showToast(ToastType.ERROR, t("history.toast.pinFailed"));
     }
   };
-
   const handleDelete = async (session: DialogSession, e: React.MouseEvent) => {
     e.stopPropagation();
     if (sessions.length <= 1) {
@@ -211,22 +205,18 @@ const HistoryChatPanel = forwardRef<HistoryChatPanelRef, HistoryChatPanelProps>(
       t("history.dialog.cancel"),
     );
   };
-
   const startEdit = (session: DialogSession, e: React.MouseEvent) => {
     e.stopPropagation();
     setEditingId(session.session_id);
     setEditValue(session.title || "");
     setActiveMenuId(null);
   };
-
   const isSavingRef = useRef(false);
-
   const cancelEdit = () => {
     if (isSavingRef.current) return;
     setEditingId(null);
     setEditValue("");
   };
-
   const saveEdit = async (session: DialogSession) => {
     isSavingRef.current = true;
     const trimmed = editValue.trim();
@@ -253,7 +243,6 @@ const HistoryChatPanel = forwardRef<HistoryChatPanelRef, HistoryChatPanelProps>(
     }
     isSavingRef.current = false;
   };
-
   const handleKeyDown = (e: React.KeyboardEvent, session: DialogSession) => {
     if (e.key === "Enter") {
       e.preventDefault();
@@ -263,9 +252,9 @@ const HistoryChatPanel = forwardRef<HistoryChatPanelRef, HistoryChatPanelProps>(
       cancelEdit();
     }
   };
-
   const handleSelectSession = useCallback(
     async (sessionId: string) => {
+      if (isBatchMode) return; // Block session selection in batch mode
       setActiveMenuId(null);
       if (currentSessionId === sessionId) {
         return;
@@ -284,14 +273,12 @@ const HistoryChatPanel = forwardRef<HistoryChatPanelRef, HistoryChatPanelProps>(
         }
       }
     },
-    [currentSessionId, onSessionSelect],
+    [currentSessionId, onSessionSelect, isBatchMode],
   );
-
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
     return date.toLocaleDateString();
   };
-
   const getSessionCategory = (session: DialogSession): CategoryType => {
     if (session.is_pinned) return "pinned";
     const now = new Date();
@@ -306,7 +293,6 @@ const HistoryChatPanel = forwardRef<HistoryChatPanelRef, HistoryChatPanelProps>(
     if (createdDate >= monthAgo) return "last30days";
     return "older";
   };
-
   const getGroupedSessions = () => {
     const grouped: Record<CategoryType, DialogSession[]> = {
       pinned: [],
@@ -322,36 +308,37 @@ const HistoryChatPanel = forwardRef<HistoryChatPanelRef, HistoryChatPanelProps>(
     });
     return grouped;
   };
-
-  const getCardStyle = (isActive: boolean, isHovered: boolean): React.CSSProperties => {
-    if (isActive) {
-      return {
-        background: "rgba(0, 102, 204, 0.1)",
-        borderRadius: "5px",
-        padding: "12px 14px",
-        marginBottom: "5px",
-        border: "1px solid rgba(0, 102, 204, 0.3)",
-        cursor: "pointer",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        position: "relative",
-      };
-    }
-    return {
-      background: isHovered ? "var(--hover-bg)" : "var(--bg-secondary)",
+  const getCardStyle = (isActive: boolean, isHovered: boolean, isSelected: boolean): React.CSSProperties => {
+    const baseStyle = {
       borderRadius: "5px",
       padding: "12px 14px",
       marginBottom: "5px",
-      border: "1px solid var(--border-color)",
-      cursor: "pointer",
+      cursor: isBatchMode ? "default" : "pointer",
       display: "flex",
       alignItems: "center",
       justifyContent: "space-between",
-      position: "relative",
+      position: "relative" as const,
+    };
+    if (isSelected) {
+      return {
+        ...baseStyle,
+        background: "rgba(0, 102, 204, 0.15)",
+        border: "1px solid rgba(0, 102, 204, 0.5)",
+      };
+    }
+    if (isActive) {
+      return {
+        ...baseStyle,
+        background: "rgba(0, 102, 204, 0.1)",
+        border: "1px solid rgba(0, 102, 204, 0.3)",
+      };
+    }
+    return {
+      ...baseStyle,
+      background: isHovered ? "var(--hover-bg)" : "var(--bg-secondary)",
+      border: "1px solid var(--border-color)",
     };
   };
-
   const titleStyle: React.CSSProperties = {
     fontSize: "14px",
     fontWeight: 500,
@@ -362,7 +349,6 @@ const HistoryChatPanel = forwardRef<HistoryChatPanelRef, HistoryChatPanelProps>(
     whiteSpace: "nowrap",
     flex: 1,
   };
-
   const titleInputStyle: React.CSSProperties = {
     fontSize: "14px",
     fontWeight: 500,
@@ -375,18 +361,15 @@ const HistoryChatPanel = forwardRef<HistoryChatPanelRef, HistoryChatPanelProps>(
     flex: 1,
     minWidth: 0,
   };
-
   const timeStyle: React.CSSProperties = {
     fontSize: "11px",
     color: "var(--text-muted)",
   };
-
   const pinIconStyle: React.CSSProperties = {
     fontSize: "12px",
     marginRight: "8px",
     color: "var(--accent-color, #0066cc)",
   };
-
   const menuButtonStyle: React.CSSProperties = {
     background: "none",
     border: "none",
@@ -399,7 +382,6 @@ const HistoryChatPanel = forwardRef<HistoryChatPanelRef, HistoryChatPanelProps>(
     alignItems: "center",
     justifyContent: "center",
   };
-
   const dropdownStyle: React.CSSProperties = {
     position: "absolute",
     right: "0px",
@@ -412,7 +394,6 @@ const HistoryChatPanel = forwardRef<HistoryChatPanelRef, HistoryChatPanelProps>(
     minWidth: "110px",
     overflow: "hidden",
   };
-
   const dropdownItemStyle: React.CSSProperties = {
     padding: "8px 12px",
     fontSize: "13px",
@@ -423,7 +404,6 @@ const HistoryChatPanel = forwardRef<HistoryChatPanelRef, HistoryChatPanelProps>(
     gap: "8px",
     zIndex: "10",
   };
-
   const categoryHeaderStyle: React.CSSProperties = {
     fontSize: "14px",
     fontWeight: 600,
@@ -435,6 +415,15 @@ const HistoryChatPanel = forwardRef<HistoryChatPanelRef, HistoryChatPanelProps>(
     alignItems: "center",
     cursor: "pointer",
     paddingBottom: "5px",
+  };
+  const checkboxStyle: React.CSSProperties = {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: "10px",
+    flexShrink: 0,
+    cursor: "pointer",
+    color: "var(--text-secondary)",
   };
   if (loading && sessions.length === 0) {
     return (
@@ -501,7 +490,6 @@ const HistoryChatPanel = forwardRef<HistoryChatPanelRef, HistoryChatPanelProps>(
                 style={{
                   fontSize: "12px",
                   transform: expandedCategories[category.type] ? "rotate(0deg)" : "rotate(-90deg)",
-                  // transition: "transform 0.15s",
                 }}
               >
                 ▼
@@ -512,18 +500,27 @@ const HistoryChatPanel = forwardRef<HistoryChatPanelRef, HistoryChatPanelProps>(
                 const isActive = currentSessionId === session.session_id;
                 const isHovered = hoveredId === session.session_id;
                 const isEditing = editingId === session.session_id;
+                const isSelected = selectedIds.has(session.session_id);
                 return (
                   <div
                     key={session.session_id}
-                    style={getCardStyle(isActive, isHovered)}
+                    style={getCardStyle(isActive, isHovered, isSelected)}
                     onMouseEnter={() => setHoveredId(session.session_id)}
                     onMouseLeave={() => setHoveredId(null)}
                     onClick={() => {
-                      if (!isEditing) {
+                      if (isBatchMode && onToggleSelection) {
+                        onToggleSelection(session.session_id, new MouseEvent("click") as any);
+                      } else if (!isEditing) {
                         handleSelectSession(session.session_id);
                       }
                     }}
                   >
+                    {/* Checkbox for batch mode */}
+                    {isBatchMode && (
+                      <div style={checkboxStyle} onClick={(e) => onToggleSelection && onToggleSelection(session.session_id, e)}>
+                        {isSelected ? <CheckSquare size={18} /> : <Square size={18} />}
+                      </div>
+                    )}
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: "flex", alignItems: "center" }}>
                         {session.is_pinned && (
@@ -532,16 +529,7 @@ const HistoryChatPanel = forwardRef<HistoryChatPanelRef, HistoryChatPanelProps>(
                           </span>
                         )}
                         {isEditing ? (
-                          <input
-                            ref={editInputRef}
-                            type="text"
-                            style={titleInputStyle}
-                            value={editValue}
-                            onChange={(e) => setEditValue(e.target.value)}
-                            onKeyDown={(e) => handleKeyDown(e, session)}
-                            onBlur={() => saveEdit(session)}
-                            onClick={(e) => e.stopPropagation()}
-                          />
+                          <input ref={editInputRef} type="text" style={titleInputStyle} value={editValue} onChange={(e) => setEditValue(e.target.value)} onKeyDown={(e) => handleKeyDown(e, session)} onBlur={() => saveEdit(session)} onClick={(e) => e.stopPropagation()} />
                         ) : (
                           <span style={titleStyle} title={session.title}>
                             {session.title || t("history.untitled")}
@@ -550,7 +538,8 @@ const HistoryChatPanel = forwardRef<HistoryChatPanelRef, HistoryChatPanelProps>(
                       </div>
                       <div style={timeStyle}>{formatDate(session.created_at)}</div>
                     </div>
-                    {!isEditing && (activeMenuId === session.session_id || isHovered) && (
+                    {/* Menu button - hidden in batch mode */}
+                    {!isBatchMode && !isEditing && (activeMenuId === session.session_id || isHovered) && (
                       <div>
                         <button
                           style={menuButtonStyle}
@@ -623,7 +612,5 @@ const HistoryChatPanel = forwardRef<HistoryChatPanelRef, HistoryChatPanelProps>(
     </div>
   );
 });
-
 HistoryChatPanel.displayName = "HistoryChatPanel";
-
 export default HistoryChatPanel;

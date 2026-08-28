@@ -10,6 +10,21 @@ import ChartChatPanel from "./ChartChatPanel";
 import { useFinanceSession } from "../../App/hooks/session/useFinanceSession";
 import MarqueeBar from "./MarqueeBar";
 import { APP_WINDOW_EVENTS } from "../../App/AppWindowEventManager";
+import { CheckSquare, Square, Layers, Pin, PinOff, Trash2 } from "lucide-react";
+import { chartSessionCommands } from "../../command/session/finance";
+import { showDialog, DialogType } from "../../components/Dialog";
+import { showToast, ToastType } from "../../components/Toast";
+// Panel Size Constants
+// History panel (leftmost panel) size limits
+const HISTORY_PANEL_MIN_WIDTH = 285;
+const HISTORY_PANEL_MAX_WIDTH = 400;
+const HISTORY_PANEL_DEFAULT_WIDTH = 280;
+const HISTORY_PANEL_COLLAPSED_WIDTH = 45;
+// Chat panel (middle panel) size limits
+const CHAT_PANEL_MIN_WIDTH = 200;
+const CHAT_PANEL_MAX_PERCENT = 0.6; // 60% of main area
+// Right panel (chart) min width
+const RIGHT_PANEL_MIN_WIDTH = 150;
 interface ChartPageProps {
   layoutMode?: "horizontal" | "vertical";
   onLayoutModeChange?: (mode: "horizontal" | "vertical") => void;
@@ -610,7 +625,7 @@ const ChartPage: React.FC<ChartPageProps> = ({
 }) => {
   const { currentSessionId: chartSessionId, handleSendMessage: chartHandleSendMessage, handleSwitchSession: chartHandleSwitchSession, handleNewSession: chartHandleNewSession, shouldShowWelcome: chartShouldShowWelcome } = useFinanceSession(language as "zh" | "en", true);
   const [chatPanelWidth, setChatPanelWidth] = useState<number>(400);
-  const [historyWidth, setHistoryWidth] = useState<number>(280);
+  const [historyWidth, setHistoryWidth] = useState<number>(HISTORY_PANEL_DEFAULT_WIDTH);
   const [chatPanelCollapsed, setChatPanelCollapsed] = useState<boolean>(false);
   const [historyCollapsed, setHistoryCollapsed] = useState<boolean>(false);
   const [activeNavIndex, setActiveNavIndex] = useState<number>(-1);
@@ -630,6 +645,9 @@ const ChartPage: React.FC<ChartPageProps> = ({
   const [layoutSwapMode, setLayoutSwapMode] = useState<"terminal-left" | "chat-left">("terminal-left");
   const layoutSwapModeRef = useRef<"terminal-left" | "chat-left">("terminal-left");
   const isChatOnLeft = layoutSwapMode === "chat-left";
+  // Batch selection state
+  const [isBatchMode, setIsBatchMode] = useState<boolean>(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   // Default ticker data for the marquee
   const defaultTickerItems = [
     { symbol: "BTC/USDT", price: 67423.5, change: 1240.2, changePercent: 1.87 },
@@ -688,8 +706,8 @@ const ChartPage: React.FC<ChartPageProps> = ({
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-        width: "45px",
-        minWidth: "45px",
+        width: HISTORY_PANEL_COLLAPSED_WIDTH,
+        minWidth: HISTORY_PANEL_COLLAPSED_WIDTH,
         background: "var(--bg-secondary)",
         borderRight: isChatOnLeft ? "1px solid var(--border-color)" : "none",
         borderLeft: !isChatOnLeft ? "1px solid var(--border-color)" : "none",
@@ -837,11 +855,142 @@ const ChartPage: React.FC<ChartPageProps> = ({
     const savedHistoryCollapsed = localStorage.getItem("hippox-chart-history-collapsed");
     const savedChatPanelCollapsed = localStorage.getItem("hippox-chart-chat-collapsed");
     const savedChatPanelWidth = localStorage.getItem("hippox-chart-chat-width");
-    if (savedHistoryWidth) setHistoryWidth(parseFloat(savedHistoryWidth));
+    if (savedHistoryWidth) {
+      const parsed = parseFloat(savedHistoryWidth);
+      // Clamp the loaded value to the valid range
+      setHistoryWidth(Math.min(HISTORY_PANEL_MAX_WIDTH, Math.max(HISTORY_PANEL_MIN_WIDTH, parsed)));
+    }
     if (savedHistoryCollapsed) setHistoryCollapsed(savedHistoryCollapsed === "true");
     if (savedChatPanelCollapsed) setChatPanelCollapsed(savedChatPanelCollapsed === "true");
-    if (savedChatPanelWidth) setChatPanelWidth(parseFloat(savedChatPanelWidth));
+    if (savedChatPanelWidth) {
+      const parsed = parseFloat(savedChatPanelWidth);
+      setChatPanelWidth(Math.max(CHAT_PANEL_MIN_WIDTH, parsed));
+    }
   }, []);
+  // Clear selection when batch mode is turned off
+  useEffect(() => {
+    if (!isBatchMode) {
+      setSelectedIds(new Set());
+    }
+  }, [isBatchMode]);
+  // Toggle select all sessions
+  const toggleSelectAll = () => {
+    const allIds = historySessions.map((s) => s.session_id);
+    if (selectedIds.size === allIds.length && allIds.length > 0) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(allIds));
+    }
+  };
+  // Batch operations
+  /**
+   * Batch pin selected sessions
+   * Pins all sessions that are currently selected in batch mode
+   * After successful operation, refreshes both the parent and child components
+   */
+  const handleBatchPin = async () => {
+    const isZh = language === "zh";
+    if (selectedIds.size === 0) {
+      showToast(ToastType.WARNING, isZh ? "请选择要置顶的会话" : "Please select sessions to pin");
+      return;
+    }
+    try {
+      const ids = Array.from(selectedIds);
+      for (const id of ids) {
+        await chartSessionCommands.updatePinnedChartSessions(id, true);
+      }
+      // Refresh HistoryChartChatPanel component
+      await historyPanelRef.current?.refreshSessions();
+      // Refresh parent component's session list
+      const list = await chartSessionCommands.listChartSessions();
+      setHistorySessions(list);
+      setSelectedIds(new Set());
+      showToast(ToastType.SUCCESS, isZh ? `已置顶 ${ids.length} 个会话` : `${ids.length} session(s) pinned`);
+    } catch (error) {
+      showToast(ToastType.ERROR, isZh ? "批量置顶失败" : "Batch pin failed");
+    }
+  };
+  /**
+   * Batch unpin selected sessions
+   * Unpins all sessions that are currently selected in batch mode
+   * After successful operation, refreshes both the parent and child components
+   */
+  const handleBatchUnpin = async () => {
+    const isZh = language === "zh";
+    if (selectedIds.size === 0) {
+      showToast(ToastType.WARNING, isZh ? "请选择要取消置顶的会话" : "Please select sessions to unpin");
+      return;
+    }
+    try {
+      const ids = Array.from(selectedIds);
+      for (const id of ids) {
+        await chartSessionCommands.updatePinnedChartSessions(id, false);
+      }
+      // Refresh HistoryChartChatPanel component
+      await historyPanelRef.current?.refreshSessions();
+      // Refresh parent component's session list
+      const list = await chartSessionCommands.listChartSessions();
+      setHistorySessions(list);
+      setSelectedIds(new Set());
+      showToast(ToastType.SUCCESS, isZh ? `已取消置顶 ${ids.length} 个会话` : `${ids.length} session(s) unpinned`);
+    } catch (error) {
+      showToast(ToastType.ERROR, isZh ? "批量取消置顶失败" : "Batch unpin failed");
+    }
+  };
+  /**
+   * Batch delete selected sessions
+   * Deletes all sessions that are currently selected in batch mode
+   * Prevents deleting the last session and shows a confirmation dialog
+   * After successful operation, refreshes both the parent and child components
+   * If the current session is deleted, switches to the first remaining session
+   */
+  const handleBatchDelete = async () => {
+    const isZh = language === "zh";
+    if (selectedIds.size === 0) {
+      showToast(ToastType.WARNING, isZh ? "请选择要删除的会话" : "Please select sessions to delete");
+      return;
+    }
+    // Check if trying to delete all sessions - prevent deleting the last one
+    if (selectedIds.size >= historySessions.length) {
+      showDialog(DialogType.WARNING, t("history.dialog.cannotDeleteTitle"), t("history.dialog.cannotDeleteMessage"), undefined, undefined, t("history.dialog.gotIt"), undefined);
+      return;
+    }
+    showDialog(
+      DialogType.WARNING,
+      isZh ? "批量删除会话" : "Batch Delete Sessions",
+      isZh ? `确定要删除选中的 ${selectedIds.size} 个会话吗？此操作不可恢复。` : `Are you sure you want to delete ${selectedIds.size} selected session(s)? This action cannot be undone.`,
+      async () => {
+        try {
+          const ids = Array.from(selectedIds);
+          for (const id of ids) {
+            await chartSessionCommands.deleteChartSession(id);
+            const domain = taskManager.getDomainFromSessionId(id);
+            taskManager.deleteSession(id, domain);
+          }
+          // If current session was deleted, switch to another session
+          if (chartSessionId && selectedIds.has(chartSessionId)) {
+            const remainingSessions = historySessions.filter((s) => !selectedIds.has(s.session_id));
+            if (remainingSessions.length > 0) {
+              chartHandleSwitchSession(remainingSessions[0].session_id);
+            }
+          }
+          // Refresh HistoryChartChatPanel component
+          await historyPanelRef.current?.refreshSessions();
+          // Refresh parent component's session list
+          const list = await chartSessionCommands.listChartSessions();
+          setHistorySessions(list);
+          setSelectedIds(new Set());
+          setIsBatchMode(false);
+          showToast(ToastType.SUCCESS, isZh ? `已删除 ${ids.length} 个会话` : `${ids.length} session(s) deleted`);
+        } catch (error) {
+          showToast(ToastType.ERROR, isZh ? "批量删除失败" : "Batch delete failed");
+        }
+      },
+      undefined,
+      isZh ? "删除" : "Delete",
+      isZh ? "取消" : "Cancel",
+    );
+  };
   const saveHistoryWidth = (width: number) => {
     localStorage.setItem("hippox-chart-history-width", width.toString());
   };
@@ -907,7 +1056,7 @@ const ChartPage: React.FC<ChartPageProps> = ({
     isDragging.current = true;
     dragType.current = type;
     dragStartX.current = e.clientX;
-    dragStartHistoryWidth.current = historyCollapsed ? 45 : historyWidth;
+    dragStartHistoryWidth.current = historyCollapsed ? HISTORY_PANEL_COLLAPSED_WIDTH : historyWidth;
     dragStartChatPanelWidth.current = chatPanelWidth;
     dragStartContainerRect.current = containerRef.current?.getBoundingClientRect() || null;
     document.body.style.cursor = "col-resize";
@@ -931,14 +1080,14 @@ const ChartPage: React.FC<ChartPageProps> = ({
       } else {
         newWidthPx = startWidthPx + deltaX;
       }
-      const minWidthPx = 200;
-      const maxWidthPx = mainAreaWidth * 0.6;
+      const minWidthPx = CHAT_PANEL_MIN_WIDTH;
+      const maxWidthPx = mainAreaWidth * CHAT_PANEL_MAX_PERCENT;
       newWidthPx = Math.max(minWidthPx, Math.min(maxWidthPx, newWidthPx));
       setChatPanelWidth(newWidthPx);
       saveChatPanelWidth(newWidthPx);
     } else if (dragType.current === "history") {
       const newWidth = dragStartHistoryWidth.current + deltaX;
-      const clamped = Math.min(400, Math.max(200, newWidth));
+      const clamped = Math.min(HISTORY_PANEL_MAX_WIDTH, Math.max(HISTORY_PANEL_MIN_WIDTH, newWidth));
       setHistoryWidth(clamped);
       saveHistoryWidth(clamped);
     }
@@ -956,7 +1105,23 @@ const ChartPage: React.FC<ChartPageProps> = ({
       window.removeEventListener("mouseup", handleMouseUp);
     };
   }, [handleMouseMove, handleMouseUp]);
+  // Common button style for header actions
+  const headerButtonStyle: React.CSSProperties = {
+    background: "none",
+    border: "none",
+    cursor: "pointer",
+    color: "var(--text-secondary)",
+    padding: "2px 6px",
+    borderRadius: "4px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    lineHeight: 1,
+    width: "28px",
+    height: "28px",
+  };
   const getHistoryPanelContent = () => {
+    const isZh = language === "zh";
     if (historyCollapsed || isFunctionPanelMaximized) {
       return (
         <div
@@ -965,8 +1130,8 @@ const ChartPage: React.FC<ChartPageProps> = ({
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
-            width: "45px",
-            minWidth: "45px",
+            width: HISTORY_PANEL_COLLAPSED_WIDTH,
+            minWidth: HISTORY_PANEL_COLLAPSED_WIDTH,
             background: "var(--bg-secondary)",
             borderRight: "1px solid var(--border-color)",
             overflow: "hidden",
@@ -1044,8 +1209,7 @@ const ChartPage: React.FC<ChartPageProps> = ({
           height: "100%",
           overflow: "hidden",
           flex: 1,
-          minWidth: "200px",
-          userSelect: "none",
+          minWidth: `${HISTORY_PANEL_MIN_WIDTH}px`,
         }}
       >
         <div
@@ -1053,75 +1217,150 @@ const ChartPage: React.FC<ChartPageProps> = ({
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
-            padding: "6px 12px",
+            padding: "6px 6px",
             borderBottom: "1px solid var(--border-color)",
             background: "var(--bg-secondary)",
             flexShrink: 0,
             minHeight: "40px",
           }}
         >
-          <span
-            style={{
-              fontSize: "14px",
-              fontWeight: 600,
-              color: "var(--text-primary)",
-            }}
-          >
-            {t("menu.history") || "History"}
-          </span>
+          {/* Left side: Title and action buttons - always visible */}
           <div
             style={{
               display: "flex",
               alignItems: "center",
-              gap: "2px",
-              flexShrink: 0,
+              gap: "4px",
+              flex: 1,
+              minWidth: 0,
             }}
           >
+            {/* Batch selection toggle button */}
             <button
               style={{
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                fontSize: "25px",
-                color: "var(--text-secondary)",
-                padding: "2px 6px",
-                borderRadius: "4px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                lineHeight: 1,
-                width: "28px",
-                height: "28px",
+                ...headerButtonStyle,
+                color: isBatchMode ? "var(--accent-color, #0066cc)" : "var(--text-secondary)",
               }}
-              onClick={handleNewSession}
+              onClick={() => setIsBatchMode(!isBatchMode)}
               onMouseEnter={(e) => {
                 e.currentTarget.style.color = "var(--text-primary)";
                 e.currentTarget.style.background = "var(--hover-bg)";
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.color = "var(--text-secondary)";
+                e.currentTarget.style.color = isBatchMode ? "var(--accent-color, #0066cc)" : "var(--text-secondary)";
                 e.currentTarget.style.background = "none";
               }}
-              title={t("history.newSession") || "New Session"}
+              title={isBatchMode ? (isZh ? "退出批量模式" : "Exit batch mode") : isZh ? "批量选择" : "Batch select"}
             >
-              +
+              <Layers size={16} />
             </button>
+            {/* Batch action buttons - only show in batch mode */}
+            {isBatchMode && (
+              <>
+                {/* Select all button */}
+                <button
+                  style={headerButtonStyle}
+                  onClick={toggleSelectAll}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.color = "var(--text-primary)";
+                    e.currentTarget.style.background = "var(--hover-bg)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.color = "var(--text-secondary)";
+                    e.currentTarget.style.background = "none";
+                  }}
+                  title={isZh ? "全选" : "Select all"}
+                >
+                  {selectedIds.size === historySessions.length && historySessions.length > 0 ? <CheckSquare size={16} /> : <Square size={16} />}
+                </button>
+                {/* Selected count */}
+                <span
+                  style={{
+                    fontSize: "10px",
+                    color: "var(--text-muted)",
+                    minWidth: "20px",
+                    textAlign: "center",
+                  }}
+                >
+                  {selectedIds.size}
+                </span>
+                {/* Batch pin button */}
+                <button
+                  style={{
+                    ...headerButtonStyle,
+                    color: selectedIds.size > 0 ? "var(--accent-color, #0066cc)" : "var(--text-muted)",
+                    opacity: selectedIds.size > 0 ? 1 : 0.5,
+                  }}
+                  onClick={handleBatchPin}
+                  disabled={selectedIds.size === 0}
+                  onMouseEnter={(e) => {
+                    if (selectedIds.size > 0) {
+                      e.currentTarget.style.color = "var(--text-primary)";
+                      e.currentTarget.style.background = "var(--hover-bg)";
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (selectedIds.size > 0) {
+                      e.currentTarget.style.color = "var(--accent-color, #0066cc)";
+                      e.currentTarget.style.background = "none";
+                    }
+                  }}
+                  title={isZh ? "批量置顶" : "Batch pin"}
+                >
+                  <Pin size={16} />
+                </button>
+                {/* Batch unpin button */}
+                <button
+                  style={{
+                    ...headerButtonStyle,
+                    color: selectedIds.size > 0 ? "var(--accent-color, #0066cc)" : "var(--text-muted)",
+                    opacity: selectedIds.size > 0 ? 1 : 0.5,
+                  }}
+                  onClick={handleBatchUnpin}
+                  disabled={selectedIds.size === 0}
+                  onMouseEnter={(e) => {
+                    if (selectedIds.size > 0) {
+                      e.currentTarget.style.color = "var(--text-primary)";
+                      e.currentTarget.style.background = "var(--hover-bg)";
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (selectedIds.size > 0) {
+                      e.currentTarget.style.color = "var(--accent-color, #0066cc)";
+                      e.currentTarget.style.background = "none";
+                    }
+                  }}
+                  title={isZh ? "批量取消置顶" : "Batch unpin"}
+                >
+                  <PinOff size={16} />
+                </button>
+                {/* Batch delete button */}
+                <button
+                  style={{
+                    ...headerButtonStyle,
+                    color: selectedIds.size > 0 ? "#ef4444" : "var(--text-muted)",
+                    opacity: selectedIds.size > 0 ? 1 : 0.5,
+                  }}
+                  onClick={handleBatchDelete}
+                  disabled={selectedIds.size === 0}
+                  onMouseEnter={(e) => {
+                    if (selectedIds.size > 0) {
+                      e.currentTarget.style.background = "rgba(239, 68, 68, 0.1)";
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (selectedIds.size > 0) {
+                      e.currentTarget.style.background = "none";
+                    }
+                  }}
+                  title={isZh ? "批量删除" : "Batch delete"}
+                >
+                  <Trash2 size={16} />
+                </button>
+              </>
+            )}
+            {/* Expand/Collapse all categories button */}
             <button
-              style={{
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                fontSize: "14px",
-                color: "var(--text-secondary)",
-                padding: "2px 6px",
-                borderRadius: "4px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                lineHeight: 1,
-                width: "28px",
-                height: "28px",
-              }}
+              style={headerButtonStyle}
               onClick={handleExpandToggle}
               onMouseEnter={(e) => {
                 e.currentTarget.style.color = "var(--text-primary)";
@@ -1131,26 +1370,13 @@ const ChartPage: React.FC<ChartPageProps> = ({
                 e.currentTarget.style.color = "var(--text-secondary)";
                 e.currentTarget.style.background = "none";
               }}
-              title={isHistoryExpanded ? t("history.collapseAll") : t("history.expandAll")}
+              title={isHistoryExpanded ? (isZh ? "收起全部" : "Collapse all") : isZh ? "展开全部" : "Expand all"}
             >
               {isHistoryExpanded ? <CollapseAllIcon2 size={16} /> : <ExpandAllIcon2 size={16} />}
             </button>
+            {/* Scroll to top/bottom button */}
             <button
-              style={{
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                fontSize: "14px",
-                color: "var(--text-secondary)",
-                padding: "2px 6px",
-                borderRadius: "4px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                lineHeight: 1,
-                width: "28px",
-                height: "28px",
-              }}
+              style={headerButtonStyle}
               onClick={handleScrollToggle}
               onMouseEnter={(e) => {
                 e.currentTarget.style.color = "var(--text-primary)";
@@ -1160,35 +1386,21 @@ const ChartPage: React.FC<ChartPageProps> = ({
                 e.currentTarget.style.color = "var(--text-secondary)";
                 e.currentTarget.style.background = "none";
               }}
-              title={isHistoryAtBottom ? t("history.scrollToTop") : t("history.scrollToBottom")}
+              title={isHistoryAtBottom ? (isZh ? "滚动到顶部" : "Scroll to top") : isZh ? "滚动到底部" : "Scroll to bottom"}
             >
               {isHistoryAtBottom ? "▲" : "▼"}
             </button>
-            <div
-              style={{
-                width: "1px",
-                height: "16px",
-                background: "var(--border-color)",
-                margin: "0 2px",
-                flexShrink: 0,
-              }}
-            />
+          </div>
+          {/* Right side: Collapse panel button only */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              flexShrink: 0,
+            }}
+          >
             <button
-              style={{
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                fontSize: "14px",
-                color: "var(--text-secondary)",
-                padding: "2px 6px",
-                borderRadius: "4px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                lineHeight: 1,
-                width: "28px",
-                height: "28px",
-              }}
+              style={headerButtonStyle}
               onClick={handleToggleHistory}
               onMouseEnter={(e) => {
                 e.currentTarget.style.color = "var(--text-primary)";
@@ -1198,20 +1410,40 @@ const ChartPage: React.FC<ChartPageProps> = ({
                 e.currentTarget.style.color = "var(--text-secondary)";
                 e.currentTarget.style.background = "none";
               }}
-              title={t("history.collapse")}
+              title={isZh ? "收起面板" : "Collapse panel"}
             >
               ◀
             </button>
           </div>
         </div>
         <div style={{ flex: 1, overflow: "hidden" }}>
-          <HistoryChartChatPanel ref={historyPanelRef} t={t} onSessionSelect={handleSessionSelect} currentSessionId={chartSessionId} onNewSession={handleNewSession} />
+          <HistoryChartChatPanel
+            ref={historyPanelRef}
+            t={t}
+            onSessionSelect={handleSessionSelect}
+            currentSessionId={chartSessionId}
+            onNewSession={handleNewSession}
+            isBatchMode={isBatchMode}
+            selectedIds={selectedIds}
+            onToggleSelection={(sessionId, e) => {
+              e.stopPropagation();
+              setSelectedIds((prev) => {
+                const newSet = new Set(prev);
+                if (newSet.has(sessionId)) {
+                  newSet.delete(sessionId);
+                } else {
+                  newSet.add(sessionId);
+                }
+                return newSet;
+              });
+            }}
+          />
         </div>
       </div>
     );
   };
   const historyPanelContent = getHistoryPanelContent();
-  const historyWidthPx = historyCollapsed || isFunctionPanelMaximized ? 45 : historyWidth;
+  const historyWidthPx = historyCollapsed || isFunctionPanelMaximized ? HISTORY_PANEL_COLLAPSED_WIDTH : historyWidth;
   return (
     <div className="panels-container horizontal-layout" ref={containerRef} style={{ display: "flex", flex: 1, overflow: "hidden", flexDirection: "column" }}>
       <style>{`
@@ -1247,8 +1479,8 @@ const ChartPage: React.FC<ChartPageProps> = ({
           display: flex;
           flex-direction: column;
           align-items: center;
-          width: 45px;
-          min-width: 45px;
+          width: ${HISTORY_PANEL_COLLAPSED_WIDTH}px;
+          min-width: ${HISTORY_PANEL_COLLAPSED_WIDTH}px;
           background: var(--bg-secondary);
           overflow: hidden;
           flex-shrink: 0;
@@ -1266,10 +1498,10 @@ const ChartPage: React.FC<ChartPageProps> = ({
             <div
               className="panel-history"
               style={{
-                flex: historyCollapsed ? "0 0 45px" : "0 0 auto",
-                width: historyCollapsed ? "45px" : `${historyWidth}px`,
+                flex: historyCollapsed ? `0 0 ${HISTORY_PANEL_COLLAPSED_WIDTH}px` : "0 0 auto",
+                width: historyCollapsed ? `${HISTORY_PANEL_COLLAPSED_WIDTH}px` : `${historyWidth}px`,
                 overflow: "hidden",
-                minWidth: historyCollapsed ? "45px" : "200px",
+                minWidth: historyCollapsed ? `${HISTORY_PANEL_COLLAPSED_WIDTH}px` : `${HISTORY_PANEL_MIN_WIDTH}px`,
                 display: "flex",
                 flexDirection: "row",
                 borderRight: "1px solid var(--border-color)",
@@ -1291,7 +1523,7 @@ const ChartPage: React.FC<ChartPageProps> = ({
                 }}
                 onMouseEnter={() => setIsHistoryResizeHover(true)}
                 onMouseLeave={() => setIsHistoryResizeHover(false)}
-              ></div>
+              />
             )}
           </>
         )}
@@ -1302,7 +1534,7 @@ const ChartPage: React.FC<ChartPageProps> = ({
               flex: "0 0 auto",
               width: `${chatPanelWidth}px`,
               overflow: "hidden",
-              minWidth: "200px",
+              minWidth: `${CHAT_PANEL_MIN_WIDTH}px`,
               display: "flex",
               flexDirection: "row",
               borderRight: isChatOnLeft ? "1px solid var(--border-color)" : "none",
@@ -1320,7 +1552,7 @@ const ChartPage: React.FC<ChartPageProps> = ({
         ) : !isFunctionPanelMaximized ? (
           <div
             style={{
-              flex: "0 0 45px",
+              flex: `0 0 ${HISTORY_PANEL_COLLAPSED_WIDTH}px`,
               order: isChatOnLeft ? 1 : 3,
             }}
           >
@@ -1342,13 +1574,13 @@ const ChartPage: React.FC<ChartPageProps> = ({
             }}
             onMouseEnter={() => setIsResizeHover(true)}
             onMouseLeave={() => setIsResizeHover(false)}
-          ></div>
+          />
         )}
         <div
           style={{
             flex: 1,
             overflow: "hidden",
-            minWidth: "150px",
+            minWidth: `${RIGHT_PANEL_MIN_WIDTH}px`,
             display: "flex",
             flexDirection: "row",
             order: isChatOnLeft ? 3 : 1,

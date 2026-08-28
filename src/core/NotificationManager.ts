@@ -22,6 +22,9 @@ export interface AddNotificationParams {
     data?: any;
 }
 type NotificationListener = (notifications: SystemNotification[]) => void;
+/**
+ * NotificationManager - Manages system notifications with backend persistence and local fallback
+ */
 class NotificationManager {
     private notifications: SystemNotification[] = [];
     private listeners: Set<NotificationListener> = new Set();
@@ -29,7 +32,6 @@ class NotificationManager {
     private initialized: boolean = false;
     private isInitializing: boolean = false;
     constructor() {
-        // Auto-init on construction
         this.init();
     }
     private async init(): Promise<void> {
@@ -41,7 +43,6 @@ class NotificationManager {
     private async ensureInitialized(): Promise<void> {
         if (this.initialized) return;
         if (this.isInitializing) {
-            // Wait for ongoing initialization
             await new Promise<void>((resolve) => {
                 const check = () => {
                     if (this.initialized) {
@@ -69,7 +70,6 @@ class NotificationManager {
             this.initialized = true;
         } catch (error) {
             console.warn("[NotificationManager] Init failed, using empty state:", error);
-            // Use empty state as fallback
             this.notifications = [];
             this.updateUnreadCount();
             this.initialized = true;
@@ -139,12 +139,16 @@ class NotificationManager {
      */
     private setupEventListeners(): void {
         try {
+            // Task events
             listen("task_complete", (event: any) => {
                 this.add({
                     title: "notification.taskCompleted",
                     message: event.payload.final_output?.slice(0, 100) || "Task completed",
                     type: NotificationType.Success,
-                    data: event.payload,
+                    data: {
+                        ...event.payload,
+                        sessionId: event.payload.session_id,
+                    },
                 }).catch(() => { });
             });
             listen("task_failed", (event: any) => {
@@ -152,11 +156,14 @@ class NotificationManager {
                     title: "notification.taskFailed",
                     message: event.payload.error || "Task failed",
                     type: NotificationType.Error,
-                    data: event.payload,
+                    data: {
+                        ...event.payload,
+                        sessionId: event.payload.session_id,
+                    },
                 }).catch(() => { });
             });
             listen("task_step_update", (event: any) => {
-                const { step_name, status, output, error } = event.payload;
+                const { step_name, status, output, error, session_id } = event.payload;
                 if (status === "FAILURE") {
                     let errorMsg = error || output || "Unknown error";
                     errorMsg = errorMsg
@@ -169,7 +176,10 @@ class NotificationManager {
                         title: "notification.taskStepUpdate",
                         message: `Step "${step_name}" failed: ${errorMsg}`,
                         type: NotificationType.Warning,
-                        data: event.payload,
+                        data: {
+                            ...event.payload,
+                            sessionId: session_id,
+                        },
                     }).catch(() => { });
                 }
             });
@@ -194,7 +204,10 @@ class NotificationManager {
                     title: "notification.taskCreated",
                     message: event.payload.task_name || "New task created",
                     type: NotificationType.Info,
-                    data: event.payload,
+                    data: {
+                        ...event.payload,
+                        sessionId: event.payload.session_id,
+                    },
                 }).catch(() => { });
             });
             listen("system_ready", (event: any) => {
@@ -211,6 +224,72 @@ class NotificationManager {
                     message: event.payload.engine_name || "Engine initialized successfully",
                     type: NotificationType.Success,
                     data: event.payload,
+                }).catch(() => { });
+            });
+            // Subsystem session creation events
+            listen("chart-session-created", (event: any) => {
+                const detail = event.payload || event.detail || {};
+                this.add({
+                    title: "notification.chartSessionCreated",
+                    message: detail.title ? `Chart session "${detail.title}" created` : "Chart session created",
+                    type: NotificationType.Info,
+                    data: {
+                        sessionId: detail.sessionId,
+                        subsystem: "chart",
+                        title: detail.title,
+                    },
+                }).catch(() => { });
+            });
+            listen("map-session-created", (event: any) => {
+                const detail = event.payload || event.detail || {};
+                this.add({
+                    title: "notification.mapSessionCreated",
+                    message: detail.title ? `Map session "${detail.title}" created` : "Map session created",
+                    type: NotificationType.Info,
+                    data: {
+                        sessionId: detail.sessionId,
+                        subsystem: "map",
+                        title: detail.title,
+                    },
+                }).catch(() => { });
+            });
+            listen("codeeditor-session-created", (event: any) => {
+                const detail = event.payload || event.detail || {};
+                this.add({
+                    title: "notification.codeEditorSessionCreated",
+                    message: detail.title ? `Code editor session "${detail.title}" created` : "Code editor session created",
+                    type: NotificationType.Info,
+                    data: {
+                        sessionId: detail.sessionId,
+                        subsystem: "codeeditor",
+                        title: detail.title,
+                    },
+                }).catch(() => { });
+            });
+            listen("video-session-created", (event: any) => {
+                const detail = event.payload || event.detail || {};
+                this.add({
+                    title: "notification.videoSessionCreated",
+                    message: detail.title ? `Video session "${detail.title}" created` : "Video session created",
+                    type: NotificationType.Info,
+                    data: {
+                        sessionId: detail.sessionId,
+                        subsystem: "video",
+                        title: detail.title,
+                    },
+                }).catch(() => { });
+            });
+            listen("sandbox3d-session-created", (event: any) => {
+                const detail = event.payload || event.detail || {};
+                this.add({
+                    title: "notification.sandbox3dSessionCreated",
+                    message: detail.title ? `3D Sandbox session "${detail.title}" created` : "3D Sandbox session created",
+                    type: NotificationType.Info,
+                    data: {
+                        sessionId: detail.sessionId,
+                        subsystem: "sandbox3d",
+                        title: detail.title,
+                    },
                 }).catch(() => { });
             });
         } catch (error) {
@@ -231,14 +310,11 @@ class NotificationManager {
                     data: params.data,
                 }
             });
-            // Reload to get updated list
             await this.loadNotifications();
-            // Show toast
             this.showToast(params.message, params.type || NotificationType.Info);
             return notification;
         } catch (error) {
             console.warn("[NotificationManager] Backend add failed, using local fallback:", error);
-            // ===== LOCAL FALLBACK: Create notification in memory =====
             const fallbackNotification: SystemNotification = {
                 id: `local-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`,
                 title: params.title,
@@ -248,11 +324,9 @@ class NotificationManager {
                 read: false,
                 data: params.data,
             };
-            // Add to local list
             this.notifications = [fallbackNotification, ...this.notifications];
             this.updateUnreadCount();
             this.notifyListeners();
-            // Show toast
             this.showToast(params.message, params.type || NotificationType.Info);
             return fallbackNotification;
         }
@@ -289,7 +363,7 @@ class NotificationManager {
         return [...this.notifications];
     }
     /**
-     * Get unread notifications - try backend first, fallback to local
+     * Get unread notifications
      */
     async getUnread(): Promise<SystemNotification[]> {
         await this.ensureInitialized();
@@ -307,7 +381,7 @@ class NotificationManager {
         return this.unreadCount;
     }
     /**
-     * Get unread count - try backend first, fallback to local
+     * Get unread count
      */
     async getUnreadCount(): Promise<number> {
         await this.ensureInitialized();
@@ -319,7 +393,7 @@ class NotificationManager {
         }
     }
     /**
-     * Get notification by ID - try backend first, fallback to local
+     * Get notification by ID
      */
     async getById(id: string): Promise<SystemNotification | null> {
         await this.ensureInitialized();
@@ -331,7 +405,7 @@ class NotificationManager {
         }
     }
     /**
-     * Get latest notifications - try backend first, fallback to local
+     * Get latest notifications
      */
     async getLatest(limit: number = 10): Promise<SystemNotification[]> {
         await this.ensureInitialized();
@@ -343,7 +417,7 @@ class NotificationManager {
         }
     }
     /**
-     * Get notifications by date range - try backend first, fallback to local
+     * Get notifications by date range
      */
     async getByDateRange(startDate: string, endDate: string): Promise<SystemNotification[]> {
         await this.ensureInitialized();
@@ -355,10 +429,17 @@ class NotificationManager {
         }
     }
     /**
-     * Mark a notification as read - fallback to local on error
+     * Mark a notification as read - uses local cache for immediate feedback
      */
     async markAsRead(id: string): Promise<boolean> {
         await this.ensureInitialized();
+        // Immediate local update for UI feedback
+        const localNotification = this.notifications.find(n => n.id === id);
+        if (localNotification && !localNotification.read) {
+            localNotification.read = true;
+            this.updateUnreadCount();
+            this.notifyListeners();
+        }
         try {
             const result = await invoke<boolean>("cmd_notification_mark_as_read", { id });
             if (result) {
@@ -366,47 +447,48 @@ class NotificationManager {
             }
             return result;
         } catch (error) {
-            console.warn("[NotificationManager] Failed to mark as read, using local:", error);
-            // Local fallback
-            const notification = this.notifications.find(n => n.id === id);
-            if (notification && !notification.read) {
-                notification.read = true;
-                this.updateUnreadCount();
-                this.notifyListeners();
-                return true;
-            }
-            return false;
+            console.warn("[NotificationManager] Failed to mark as read, using local state:", error);
+            return localNotification !== undefined;
         }
     }
     /**
-     * Mark all notifications as read - fallback to local on error
+     * Mark all notifications as read - uses local cache for immediate feedback
      */
     async markAllAsRead(): Promise<number> {
         await this.ensureInitialized();
-        try {
-            const count = await invoke<number>("cmd_notification_mark_all_as_read");
-            await this.loadNotifications();
-            return count;
-        } catch (error) {
-            console.warn("[NotificationManager] Failed to mark all as read, using local:", error);
-            // Local fallback
-            let count = 0;
-            this.notifications.forEach(n => {
-                if (!n.read) {
-                    n.read = true;
-                    count++;
-                }
-            });
+        // Immediate local update for UI feedback
+        let count = 0;
+        this.notifications.forEach(n => {
+            if (!n.read) {
+                n.read = true;
+                count++;
+            }
+        });
+        if (count > 0) {
             this.updateUnreadCount();
             this.notifyListeners();
+        }
+        try {
+            const result = await invoke<number>("cmd_notification_mark_all_as_read");
+            await this.loadNotifications();
+            return result;
+        } catch (error) {
+            console.warn("[NotificationManager] Failed to mark all as read, using local state:", error);
             return count;
         }
     }
     /**
-     * Delete a notification - fallback to local on error
+     * Delete a notification - uses local cache for immediate feedback
      */
     async delete(id: string): Promise<boolean> {
         await this.ensureInitialized();
+        // Immediate local update for UI feedback
+        const initialLength = this.notifications.length;
+        this.notifications = this.notifications.filter(n => n.id !== id);
+        if (this.notifications.length < initialLength) {
+            this.updateUnreadCount();
+            this.notifyListeners();
+        }
         try {
             const result = await invoke<boolean>("cmd_notification_delete", { id });
             if (result) {
@@ -414,74 +496,70 @@ class NotificationManager {
             }
             return result;
         } catch (error) {
-            console.warn("[NotificationManager] Failed to delete, using local:", error);
-            // Local fallback
-            const index = this.notifications.findIndex(n => n.id === id);
-            if (index !== -1) {
-                this.notifications.splice(index, 1);
-                this.updateUnreadCount();
-                this.notifyListeners();
-                return true;
-            }
-            return false;
+            console.warn("[NotificationManager] Failed to delete, using local state:", error);
+            return this.notifications.length < initialLength;
         }
     }
     /**
-     * Delete all read notifications - fallback to local on error
+     * Delete all read notifications - uses local cache for immediate feedback
      */
     async deleteRead(): Promise<number> {
         await this.ensureInitialized();
-        try {
-            const count = await invoke<number>("cmd_notification_delete_read");
-            await this.loadNotifications();
-            return count;
-        } catch (error) {
-            console.warn("[NotificationManager] Failed to delete read, using local:", error);
-            // Local fallback
-            const initialLength = this.notifications.length;
-            this.notifications = this.notifications.filter(n => !n.read);
-            const count = initialLength - this.notifications.length;
+        // Immediate local update for UI feedback
+        const initialLength = this.notifications.length;
+        this.notifications = this.notifications.filter(n => !n.read);
+        const count = initialLength - this.notifications.length;
+        if (count > 0) {
             this.updateUnreadCount();
             this.notifyListeners();
+        }
+        try {
+            const result = await invoke<number>("cmd_notification_delete_read");
+            await this.loadNotifications();
+            return result;
+        } catch (error) {
+            console.warn("[NotificationManager] Failed to delete read, using local state:", error);
             return count;
         }
     }
     /**
-     * Delete notifications by type - fallback to local on error
+     * Delete notifications by type - uses local cache for immediate feedback
      */
     async deleteByType(type: NotificationType): Promise<number> {
         await this.ensureInitialized();
-        try {
-            const count = await invoke<number>("cmd_notification_delete_by_type", { notificationType: type });
-            await this.loadNotifications();
-            return count;
-        } catch (error) {
-            console.warn("[NotificationManager] Failed to delete by type, using local:", error);
-            // Local fallback
-            const initialLength = this.notifications.length;
-            this.notifications = this.notifications.filter(n => n.type !== type);
-            const count = initialLength - this.notifications.length;
+        // Immediate local update for UI feedback
+        const initialLength = this.notifications.length;
+        this.notifications = this.notifications.filter(n => n.type !== type);
+        const count = initialLength - this.notifications.length;
+        if (count > 0) {
             this.updateUnreadCount();
             this.notifyListeners();
+        }
+        try {
+            const result = await invoke<number>("cmd_notification_delete_by_type", { notificationType: type });
+            await this.loadNotifications();
+            return result;
+        } catch (error) {
+            console.warn("[NotificationManager] Failed to delete by type, using local state:", error);
             return count;
         }
     }
     /**
-     * Clear all notifications - fallback to local on error
+     * Clear all notifications - uses local cache for immediate feedback
      */
     async clearAll(): Promise<number> {
         await this.ensureInitialized();
+        // Immediate local update for UI feedback
+        const count = this.notifications.length;
+        this.notifications = [];
+        this.updateUnreadCount();
+        this.notifyListeners();
         try {
-            const count = await invoke<number>("cmd_notification_clear_all");
+            const result = await invoke<number>("cmd_notification_clear_all");
             await this.loadNotifications();
-            return count;
+            return result;
         } catch (error) {
-            console.warn("[NotificationManager] Failed to clear all, using local:", error);
-            // Local fallback
-            const count = this.notifications.length;
-            this.notifications = [];
-            this.updateUnreadCount();
-            this.notifyListeners();
+            console.warn("[NotificationManager] Failed to clear all, using local state:", error);
             return count;
         }
     }
@@ -497,7 +575,6 @@ class NotificationManager {
      */
     subscribe(listener: NotificationListener): () => void {
         this.listeners.add(listener);
-        // Send current state immediately
         try {
             listener([...this.notifications]);
         } catch (e) {

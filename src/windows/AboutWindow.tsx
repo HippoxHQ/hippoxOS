@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { configCommands } from "../command/config";
 import { windowsCommands } from "../command/windows";
+import { osCommands } from "../command/os";
 import { zh, en } from "../i18n";
 import { Info, BookOpen, Maximize2, Minimize2 } from "lucide-react";
 import logo from "../assets/logo.png";
@@ -152,6 +153,12 @@ Follow our official channels for the latest updates and to join the discussion:
 - **Bilibili**: [HippoxOS Space](https://space.bilibili.com/9667583)
 - **YouTube**: [HippoxOS Channel](https://www.youtube.com/@HippoxOS)`;
     }
+  };
+  /**
+   * Open URL in system default browser using osCommands
+   */
+  const openInBrowser = async (url: string) => {
+    await osCommands.openBrowser(url);
   };
   /**
    * Check window maximized state periodically
@@ -579,11 +586,16 @@ Follow our official channels for the latest updates and to join the discussion:
                     a: ({ href, children }) => (
                       <a
                         href={href}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          if (href) {
+                            openInBrowser(href);
+                          }
+                        }}
                         style={{
                           color: isDark ? "#4ec9b0" : "#0066cc",
                           textDecoration: "none",
+                          cursor: "pointer",
                         }}
                         onMouseEnter={(e) => {
                           e.currentTarget.style.textDecoration = "underline";
@@ -615,10 +627,35 @@ Follow our official channels for the latest updates and to join the discussion:
                 </ReactMarkdown>
               </div>
               <div style={styles.links}>
-                <a style={styles.link} href="https://github.com/HippoxHQ/About" target="_blank" rel="noopener noreferrer">
+                <a
+                  style={styles.link}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    openInBrowser("https://github.com/HippoxHQ/About");
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.textDecoration = "underline";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.textDecoration = "none";
+                  }}
+                >
                   <BookOpen size={16} /> GitHub
                 </a>
-                <a style={styles.link} href={isZh ? "https://github.com/HippoxHQ/About/blob/main/About_CN.md" : "https://github.com/HippoxHQ/About/blob/main/About_EN.md"} target="_blank" rel="noopener noreferrer">
+                <a
+                  style={styles.link}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    const url = isZh ? "https://github.com/HippoxHQ/About/blob/main/About_CN.md" : "https://github.com/HippoxHQ/About/blob/main/About_EN.md";
+                    openInBrowser(url);
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.textDecoration = "underline";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.textDecoration = "none";
+                  }}
+                >
                   <Info size={16} /> {isZh ? "查看原文" : "View Original"}
                 </a>
               </div>

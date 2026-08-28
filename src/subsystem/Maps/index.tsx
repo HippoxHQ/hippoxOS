@@ -10,6 +10,22 @@ import { useMapSession } from "../../App/hooks/session/useMapChatSession";
 import { EarthViewRef } from "./MapsChatPanel/types";
 import MapsChatPage from "./MapsChatPanel";
 import { APP_WINDOW_EVENTS } from "../../App/AppWindowEventManager";
+import { CheckSquare, Square, Layers, Pin, PinOff, Trash2 } from "lucide-react";
+import { mapSessionCommands } from "../../command/session/map";
+import { showDialog, DialogType } from "../../components/Dialog";
+import { showToast, ToastType } from "../../components/Toast";
+// Panel Size Constants - Matching GeneralChatPage
+// History panel (leftmost panel) size limits
+const HISTORY_PANEL_MIN_WIDTH = 285;
+const HISTORY_PANEL_MAX_WIDTH = 400;
+const HISTORY_PANEL_DEFAULT_WIDTH = 280;
+const HISTORY_PANEL_COLLAPSED_WIDTH = 45;
+// Left panel (chat/terminal main panel) percentage limits
+const LEFT_PANEL_MIN_PERCENT = 25;
+const LEFT_PANEL_MAX_PERCENT = 75;
+const LEFT_PANEL_DEFAULT_PERCENT = 50;
+// Right panel min width
+const RIGHT_PANEL_MIN_WIDTH = 150;
 interface MapsPageProps {
   layoutMode?: "horizontal" | "vertical";
   onLayoutModeChange?: (mode: "horizontal" | "vertical") => void;
@@ -628,9 +644,9 @@ const MapsPage: React.FC<MapsPageProps> = ({
 }) => {
   // Session management
   const { currentSessionId: mapSessionId, handleSendMessage: mapHandleSendMessage, handleSwitchSession: mapHandleSwitchSession, handleNewSession: mapHandleNewSession, shouldShowWelcome: mapShouldShowWelcome } = useMapSession(language as "zh" | "en", true);
-  // Panel state
+  // Panel state - using constants from GeneralChatPage
   const [chatPanelWidth, setChatPanelWidth] = useState<number>(400);
-  const [historyWidth, setHistoryWidth] = useState<number>(280);
+  const [historyWidth, setHistoryWidth] = useState<number>(HISTORY_PANEL_DEFAULT_WIDTH);
   const [chatPanelCollapsed, setChatPanelCollapsed] = useState<boolean>(false);
   const [historyCollapsed, setHistoryCollapsed] = useState<boolean>(false);
   const [activeNavIndex, setActiveNavIndex] = useState<number>(-1);
@@ -638,6 +654,9 @@ const MapsPage: React.FC<MapsPageProps> = ({
   const [isHistoryResizeHover, setIsHistoryResizeHover] = useState(false);
   const [isHistoryExpanded, setIsHistoryExpanded] = useState(true);
   const [isHistoryAtBottom, setIsHistoryAtBottom] = useState(false);
+  // Batch selection state
+  const [isBatchMode, setIsBatchMode] = useState<boolean>(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   // Refs
   const containerRef = useRef<HTMLDivElement>(null);
   const historyPanelRef = useRef<HistoryMapChatPanelRef>(null);
@@ -657,6 +676,126 @@ const MapsPage: React.FC<MapsPageProps> = ({
   const [layoutSwapMode, setLayoutSwapMode] = useState<"terminal-left" | "chat-left">("terminal-left");
   const layoutSwapModeRef = useRef<"terminal-left" | "chat-left">("terminal-left");
   const isChatOnLeft = layoutSwapMode === "chat-left";
+  // Clear selection when batch mode is turned off
+  useEffect(() => {
+    if (!isBatchMode) {
+      setSelectedIds(new Set());
+    }
+  }, [isBatchMode]);
+  // Toggle select all sessions
+  const toggleSelectAll = () => {
+    const allIds = historySessions.map((s) => s.session_id);
+    if (selectedIds.size === allIds.length && allIds.length > 0) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(allIds));
+    }
+  };
+  /**
+   * Batch pin selected sessions
+   * Pins all sessions that are currently selected in batch mode
+   * After successful operation, refreshes both the parent and child components
+   */
+  const handleBatchPin = async () => {
+    if (selectedIds.size === 0) {
+      showToast(ToastType.WARNING, t("history.batch.selectSessions") || "Please select sessions to pin");
+      return;
+    }
+    try {
+      const ids = Array.from(selectedIds);
+      for (const id of ids) {
+        await mapSessionCommands.updatePinnedMapSessions(id, true);
+      }
+      // Refresh HistoryMapChatPanel component
+      await historyPanelRef.current?.refreshSessions();
+      // Refresh parent component's session list
+      const list = await mapSessionCommands.listMapSessions();
+      setHistorySessions(list);
+      setSelectedIds(new Set());
+      showToast(ToastType.SUCCESS, `${ids.length} session(s) pinned`);
+    } catch (error) {
+      showToast(ToastType.ERROR, "Batch pin failed");
+    }
+  };
+  /**
+   * Batch unpin selected sessions
+   * Unpins all sessions that are currently selected in batch mode
+   * After successful operation, refreshes both the parent and child components
+   */
+  const handleBatchUnpin = async () => {
+    if (selectedIds.size === 0) {
+      showToast(ToastType.WARNING, t("history.batch.selectSessions") || "Please select sessions to unpin");
+      return;
+    }
+    try {
+      const ids = Array.from(selectedIds);
+      for (const id of ids) {
+        await mapSessionCommands.updatePinnedMapSessions(id, false);
+      }
+      // Refresh HistoryMapChatPanel component
+      await historyPanelRef.current?.refreshSessions();
+      // Refresh parent component's session list
+      const list = await mapSessionCommands.listMapSessions();
+      setHistorySessions(list);
+      setSelectedIds(new Set());
+      showToast(ToastType.SUCCESS, `${ids.length} session(s) unpinned`);
+    } catch (error) {
+      showToast(ToastType.ERROR, "Batch unpin failed");
+    }
+  };
+  /**
+   * Batch delete selected sessions
+   * Deletes all sessions that are currently selected in batch mode
+   * Prevents deleting the last session and shows a confirmation dialog
+   * After successful operation, refreshes both the parent and child components
+   * If the current session is deleted, switches to the first remaining session
+   */
+  const handleBatchDelete = async () => {
+    if (selectedIds.size === 0) {
+      showToast(ToastType.WARNING, t("history.batch.selectSessions") || "Please select sessions to delete");
+      return;
+    }
+    // Check if trying to delete all sessions - prevent deleting the last one
+    if (selectedIds.size >= historySessions.length) {
+      showDialog(DialogType.WARNING, t("history.dialog.cannotDeleteTitle"), t("history.dialog.cannotDeleteMessage"), undefined, undefined, t("history.dialog.gotIt"), undefined);
+      return;
+    }
+    showDialog(
+      DialogType.WARNING,
+      "Batch Delete Sessions",
+      `Are you sure you want to delete ${selectedIds.size} selected session(s)? This action cannot be undone.`,
+      async () => {
+        try {
+          const ids = Array.from(selectedIds);
+          for (const id of ids) {
+            await mapSessionCommands.deleteMapSession(id);
+            const domain = taskManager.getDomainFromSessionId(id);
+            taskManager.deleteSession(id, domain);
+          }
+          // If current session was deleted, switch to another session
+          if (mapSessionId && selectedIds.has(mapSessionId) && mapHandleSwitchSession) {
+            const remainingSessions = historySessions.filter((s) => !selectedIds.has(s.session_id));
+            if (remainingSessions.length > 0) {
+              mapHandleSwitchSession(remainingSessions[0].session_id);
+            }
+          }
+          // Refresh HistoryMapChatPanel component
+          await historyPanelRef.current?.refreshSessions();
+          // Refresh parent component's session list
+          const list = await mapSessionCommands.listMapSessions();
+          setHistorySessions(list);
+          setSelectedIds(new Set());
+          setIsBatchMode(false);
+          showToast(ToastType.SUCCESS, `${ids.length} session(s) deleted`);
+        } catch (error) {
+          showToast(ToastType.ERROR, "Batch delete failed");
+        }
+      },
+      undefined,
+      "Delete",
+      "Cancel",
+    );
+  };
   // Panel toggle handlers
   const handleToggleChatPanel = useCallback(() => {
     if (isFunctionPanelMaximized) return;
@@ -699,8 +838,8 @@ const MapsPage: React.FC<MapsPageProps> = ({
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-        width: "45px",
-        minWidth: "45px",
+        width: HISTORY_PANEL_COLLAPSED_WIDTH,
+        minWidth: HISTORY_PANEL_COLLAPSED_WIDTH,
         background: "var(--bg-secondary)",
         borderRight: isChatOnLeft ? "1px solid var(--border-color)" : "none",
         borderLeft: !isChatOnLeft ? "1px solid var(--border-color)" : "none",
@@ -744,7 +883,7 @@ const MapsPage: React.FC<MapsPageProps> = ({
             e.currentTarget.style.background = "transparent";
             e.currentTarget.style.color = "var(--text-secondary)";
           }}
-          title={isChatOnLeft ? "向右展开" : "向左展开"}
+          title={isChatOnLeft ? "Expand Right" : "Expand Left"}
         >
           {isChatOnLeft ? "≫" : "≪"}
         </button>
@@ -821,7 +960,6 @@ const MapsPage: React.FC<MapsPageProps> = ({
   useEffect(() => {
     const loadSessions = async () => {
       try {
-        const { mapSessionCommands } = await import("../../command/session/map");
         const list = await mapSessionCommands.listMapSessions();
         setHistorySessions(list);
       } catch (error) {
@@ -936,7 +1074,7 @@ const MapsPage: React.FC<MapsPageProps> = ({
     isDragging.current = true;
     dragType.current = type;
     dragStartX.current = e.clientX;
-    dragStartHistoryWidth.current = historyCollapsed ? 45 : historyWidth;
+    dragStartHistoryWidth.current = historyCollapsed ? HISTORY_PANEL_COLLAPSED_WIDTH : historyWidth;
     dragStartChatPanelWidth.current = chatPanelWidth;
     dragStartContainerRect.current = containerRef.current?.getBoundingClientRect() || null;
     document.body.style.cursor = "col-resize";
@@ -967,7 +1105,7 @@ const MapsPage: React.FC<MapsPageProps> = ({
       saveChatPanelWidth(newWidthPx);
     } else if (dragType.current === "history") {
       const newWidth = dragStartHistoryWidth.current + deltaX;
-      const clamped = Math.min(400, Math.max(200, newWidth));
+      const clamped = Math.min(HISTORY_PANEL_MAX_WIDTH, Math.max(HISTORY_PANEL_MIN_WIDTH, newWidth));
       setHistoryWidth(clamped);
       saveHistoryWidth(clamped);
     }
@@ -989,6 +1127,21 @@ const MapsPage: React.FC<MapsPageProps> = ({
    * Get history panel content
    */
   const getHistoryPanelContent = () => {
+    // Common button style for header actions
+    const headerButtonStyle: React.CSSProperties = {
+      background: "none",
+      border: "none",
+      cursor: "pointer",
+      color: "var(--text-secondary)",
+      padding: "2px 6px",
+      borderRadius: "4px",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      lineHeight: 1,
+      width: "28px",
+      height: "28px",
+    };
     if (historyCollapsed || isFunctionPanelMaximized) {
       return (
         <div
@@ -997,8 +1150,8 @@ const MapsPage: React.FC<MapsPageProps> = ({
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
-            width: "45px",
-            minWidth: "45px",
+            width: HISTORY_PANEL_COLLAPSED_WIDTH,
+            minWidth: HISTORY_PANEL_COLLAPSED_WIDTH,
             background: "var(--bg-secondary)",
             borderRight: "1px solid var(--border-color)",
             overflow: "hidden",
@@ -1076,7 +1229,7 @@ const MapsPage: React.FC<MapsPageProps> = ({
           height: "100%",
           overflow: "hidden",
           flex: 1,
-          minWidth: "200px",
+          minWidth: `${HISTORY_PANEL_MIN_WIDTH}px`,
           userSelect: "none",
         }}
       >
@@ -1085,75 +1238,150 @@ const MapsPage: React.FC<MapsPageProps> = ({
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
-            padding: "6px 12px",
+            padding: "6px 6px",
             borderBottom: "1px solid var(--border-color)",
             background: "var(--bg-secondary)",
             flexShrink: 0,
             minHeight: "40px",
           }}
         >
-          <span
-            style={{
-              fontSize: "14px",
-              fontWeight: 600,
-              color: "var(--text-primary)",
-            }}
-          >
-            {t("menu.history") || "History"}
-          </span>
+          {/* Left side: Title and action buttons - always visible */}
           <div
             style={{
               display: "flex",
               alignItems: "center",
-              gap: "2px",
-              flexShrink: 0,
+              gap: "4px",
+              flex: 1,
+              minWidth: 0,
             }}
           >
+            {/* Batch selection toggle button */}
             <button
               style={{
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                fontSize: "25px",
-                color: "var(--text-secondary)",
-                padding: "2px 6px",
-                borderRadius: "4px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                lineHeight: 1,
-                width: "28px",
-                height: "28px",
+                ...headerButtonStyle,
+                color: isBatchMode ? "var(--accent-color, #0066cc)" : "var(--text-secondary)",
               }}
-              onClick={handleNewSession}
+              onClick={() => setIsBatchMode(!isBatchMode)}
               onMouseEnter={(e) => {
                 e.currentTarget.style.color = "var(--text-primary)";
                 e.currentTarget.style.background = "var(--hover-bg)";
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.color = "var(--text-secondary)";
+                e.currentTarget.style.color = isBatchMode ? "var(--accent-color, #0066cc)" : "var(--text-secondary)";
                 e.currentTarget.style.background = "none";
               }}
-              title={t("history.newSession") || "New Session"}
+              title={isBatchMode ? "Exit batch mode" : "Batch select"}
             >
-              +
+              <Layers size={16} />
             </button>
+            {/* Batch action buttons - only show in batch mode */}
+            {isBatchMode && (
+              <>
+                {/* Select all button */}
+                <button
+                  style={headerButtonStyle}
+                  onClick={toggleSelectAll}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.color = "var(--text-primary)";
+                    e.currentTarget.style.background = "var(--hover-bg)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.color = "var(--text-secondary)";
+                    e.currentTarget.style.background = "none";
+                  }}
+                  title="Select all"
+                >
+                  {selectedIds.size === historySessions.length && historySessions.length > 0 ? <CheckSquare size={16} /> : <Square size={16} />}
+                </button>
+                {/* Selected count */}
+                <span
+                  style={{
+                    fontSize: "10px",
+                    color: "var(--text-muted)",
+                    minWidth: "20px",
+                    textAlign: "center",
+                  }}
+                >
+                  {selectedIds.size}
+                </span>
+                {/* Batch pin button */}
+                <button
+                  style={{
+                    ...headerButtonStyle,
+                    color: selectedIds.size > 0 ? "var(--accent-color, #0066cc)" : "var(--text-muted)",
+                    opacity: selectedIds.size > 0 ? 1 : 0.5,
+                  }}
+                  onClick={handleBatchPin}
+                  disabled={selectedIds.size === 0}
+                  onMouseEnter={(e) => {
+                    if (selectedIds.size > 0) {
+                      e.currentTarget.style.color = "var(--text-primary)";
+                      e.currentTarget.style.background = "var(--hover-bg)";
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (selectedIds.size > 0) {
+                      e.currentTarget.style.color = "var(--accent-color, #0066cc)";
+                      e.currentTarget.style.background = "none";
+                    }
+                  }}
+                  title="Batch pin"
+                >
+                  <Pin size={16} />
+                </button>
+                {/* Batch unpin button */}
+                <button
+                  style={{
+                    ...headerButtonStyle,
+                    color: selectedIds.size > 0 ? "var(--accent-color, #0066cc)" : "var(--text-muted)",
+                    opacity: selectedIds.size > 0 ? 1 : 0.5,
+                  }}
+                  onClick={handleBatchUnpin}
+                  disabled={selectedIds.size === 0}
+                  onMouseEnter={(e) => {
+                    if (selectedIds.size > 0) {
+                      e.currentTarget.style.color = "var(--text-primary)";
+                      e.currentTarget.style.background = "var(--hover-bg)";
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (selectedIds.size > 0) {
+                      e.currentTarget.style.color = "var(--accent-color, #0066cc)";
+                      e.currentTarget.style.background = "none";
+                    }
+                  }}
+                  title="Batch unpin"
+                >
+                  <PinOff size={16} />
+                </button>
+                {/* Batch delete button */}
+                <button
+                  style={{
+                    ...headerButtonStyle,
+                    color: selectedIds.size > 0 ? "#ef4444" : "var(--text-muted)",
+                    opacity: selectedIds.size > 0 ? 1 : 0.5,
+                  }}
+                  onClick={handleBatchDelete}
+                  disabled={selectedIds.size === 0}
+                  onMouseEnter={(e) => {
+                    if (selectedIds.size > 0) {
+                      e.currentTarget.style.background = "rgba(239, 68, 68, 0.1)";
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (selectedIds.size > 0) {
+                      e.currentTarget.style.background = "none";
+                    }
+                  }}
+                  title="Batch delete"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </>
+            )}
+            {/* Expand/Collapse all categories button */}
             <button
-              style={{
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                fontSize: "14px",
-                color: "var(--text-secondary)",
-                padding: "2px 6px",
-                borderRadius: "4px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                lineHeight: 1,
-                width: "28px",
-                height: "28px",
-              }}
+              style={headerButtonStyle}
               onClick={handleExpandToggle}
               onMouseEnter={(e) => {
                 e.currentTarget.style.color = "var(--text-primary)";
@@ -1163,26 +1391,13 @@ const MapsPage: React.FC<MapsPageProps> = ({
                 e.currentTarget.style.color = "var(--text-secondary)";
                 e.currentTarget.style.background = "none";
               }}
-              title={isHistoryExpanded ? t("history.collapseAll") : t("history.expandAll")}
+              title={isHistoryExpanded ? "Collapse all" : "Expand all"}
             >
               {isHistoryExpanded ? <CollapseAllIcon2 size={16} /> : <ExpandAllIcon2 size={16} />}
             </button>
+            {/* Scroll to top/bottom button */}
             <button
-              style={{
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                fontSize: "14px",
-                color: "var(--text-secondary)",
-                padding: "2px 6px",
-                borderRadius: "4px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                lineHeight: 1,
-                width: "28px",
-                height: "28px",
-              }}
+              style={headerButtonStyle}
               onClick={handleScrollToggle}
               onMouseEnter={(e) => {
                 e.currentTarget.style.color = "var(--text-primary)";
@@ -1192,35 +1407,21 @@ const MapsPage: React.FC<MapsPageProps> = ({
                 e.currentTarget.style.color = "var(--text-secondary)";
                 e.currentTarget.style.background = "none";
               }}
-              title={isHistoryAtBottom ? t("history.scrollToTop") : t("history.scrollToBottom")}
+              title={isHistoryAtBottom ? "Scroll to top" : "Scroll to bottom"}
             >
               {isHistoryAtBottom ? "▲" : "▼"}
             </button>
-            <div
-              style={{
-                width: "1px",
-                height: "16px",
-                background: "var(--border-color)",
-                margin: "0 2px",
-                flexShrink: 0,
-              }}
-            />
+          </div>
+          {/* Right side: Collapse panel button only */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              flexShrink: 0,
+            }}
+          >
             <button
-              style={{
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                fontSize: "14px",
-                color: "var(--text-secondary)",
-                padding: "2px 6px",
-                borderRadius: "4px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                lineHeight: 1,
-                width: "28px",
-                height: "28px",
-              }}
+              style={headerButtonStyle}
               onClick={handleToggleHistory}
               onMouseEnter={(e) => {
                 e.currentTarget.style.color = "var(--text-primary)";
@@ -1230,14 +1431,33 @@ const MapsPage: React.FC<MapsPageProps> = ({
                 e.currentTarget.style.color = "var(--text-secondary)";
                 e.currentTarget.style.background = "none";
               }}
-              title={t("history.collapse")}
+              title="Collapse panel"
             >
               ◀
             </button>
           </div>
         </div>
         <div style={{ flex: 1, overflow: "hidden" }}>
-          <HistoryMapChatPanel ref={historyPanelRef} t={t} onSessionSelect={handleSessionSelect} currentSessionId={mapSessionId} />
+          <HistoryMapChatPanel
+            ref={historyPanelRef}
+            t={t}
+            onSessionSelect={handleSessionSelect}
+            currentSessionId={mapSessionId}
+            isBatchMode={isBatchMode}
+            selectedIds={selectedIds}
+            onToggleSelection={(sessionId, e) => {
+              e.stopPropagation();
+              setSelectedIds((prev) => {
+                const newSet = new Set(prev);
+                if (newSet.has(sessionId)) {
+                  newSet.delete(sessionId);
+                } else {
+                  newSet.add(sessionId);
+                }
+                return newSet;
+              });
+            }}
+          />
         </div>
       </div>
     );
@@ -1279,8 +1499,8 @@ const MapsPage: React.FC<MapsPageProps> = ({
           display: flex;
           flex-direction: column;
           align-items: center;
-          width: 45px;
-          min-width: 45px;
+          width: ${HISTORY_PANEL_COLLAPSED_WIDTH}px;
+          min-width: ${HISTORY_PANEL_COLLAPSED_WIDTH}px;
           background: var(--bg-secondary);
           overflow: hidden;
           flex-shrink: 0;
@@ -1297,10 +1517,10 @@ const MapsPage: React.FC<MapsPageProps> = ({
           <div
             className="panel-history"
             style={{
-              flex: historyCollapsed ? "0 0 45px" : "0 0 auto",
-              width: historyCollapsed ? "45px" : `${historyWidth}px`,
+              flex: historyCollapsed ? `0 0 ${HISTORY_PANEL_COLLAPSED_WIDTH}px` : "0 0 auto",
+              width: historyCollapsed ? `${HISTORY_PANEL_COLLAPSED_WIDTH}px` : `${historyWidth}px`,
               overflow: "hidden",
-              minWidth: historyCollapsed ? "45px" : "200px",
+              minWidth: historyCollapsed ? `${HISTORY_PANEL_COLLAPSED_WIDTH}px` : `${HISTORY_PANEL_MIN_WIDTH}px`,
               display: "flex",
               flexDirection: "row",
               borderRight: "1px solid var(--border-color)",
@@ -1352,7 +1572,7 @@ const MapsPage: React.FC<MapsPageProps> = ({
       ) : !isFunctionPanelMaximized ? (
         <div
           style={{
-            flex: "0 0 45px",
+            flex: `0 0 ${HISTORY_PANEL_COLLAPSED_WIDTH}px`,
             order: isChatOnLeft ? 1 : 3,
           }}
         >
@@ -1382,7 +1602,7 @@ const MapsPage: React.FC<MapsPageProps> = ({
         style={{
           flex: 1,
           overflow: "hidden",
-          minWidth: "150px",
+          minWidth: `${RIGHT_PANEL_MIN_WIDTH}px`,
           display: "flex",
           flexDirection: "row",
           order: isChatOnLeft ? 3 : 1,

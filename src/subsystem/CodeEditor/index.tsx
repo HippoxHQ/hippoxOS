@@ -14,6 +14,17 @@ import { showToast, ToastType } from "../../components/Toast";
 import { open } from "@tauri-apps/plugin-dialog";
 import GithubClone from "./GithubClone";
 import { APP_WINDOW_EVENTS } from "../../App/AppWindowEventManager";
+import { CheckSquare, Square, Layers, Pin, PinOff, Trash2 } from "lucide-react";
+import { showDialog, DialogType } from "../../components/Dialog";
+// Panel Size Constants - Aligned with GeneralChatPage
+// History panel (leftmost panel) size limits
+const HISTORY_PANEL_MIN_WIDTH = 285;
+const HISTORY_PANEL_MAX_WIDTH = 400;
+const HISTORY_PANEL_DEFAULT_WIDTH = 280;
+const HISTORY_PANEL_COLLAPSED_WIDTH = 45;
+// Chat panel width limits (right panel in code editor)
+const CHAT_PANEL_MIN_WIDTH = 200;
+const CHAT_PANEL_MAX_WIDTH_RATIO = 0.6; // Max 60% of main area
 const GLOBAL_SESSION_LOCK = {
   isCreating: false,
   lastPath: "",
@@ -657,7 +668,8 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
   const { currentSessionId, handleSendMessage: handleSendMessageHook, handleSwitchSession, handleNewSession, shouldShowWelcome, createSessionWithWorkspace } = useCodeEditorSession(language as "zh" | "en", isConfigLoaded, onCloseSkillsManager);
   const dropLockRef = useRef<{ path: string; time: number } | null>(null);
   const [chatPanelWidth, setChatPanelWidth] = useState<number>(400);
-  const [historyWidth, setHistoryWidth] = useState<number>(280);
+  // Use the same history panel width constants as GeneralChatPage
+  const [historyWidth, setHistoryWidth] = useState<number>(HISTORY_PANEL_DEFAULT_WIDTH);
   const [chatPanelCollapsed, setChatPanelCollapsed] = useState<boolean>(false);
   const [historyCollapsed, setHistoryCollapsed] = useState<boolean>(false);
   const [activeNavIndex, setActiveNavIndex] = useState<number>(-1);
@@ -686,6 +698,130 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
   const buttonRef = useRef<HTMLButtonElement>(null);
   const layoutSwapModeRef = useRef<"terminal-left" | "chat-left">("terminal-left");
   const codingRef = useRef<CodingRef | null>(null);
+  // Batch selection state
+  const [isBatchMode, setIsBatchMode] = useState<boolean>(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const isZh = language === "zh";
+  // Clear selection when batch mode is turned off
+  useEffect(() => {
+    if (!isBatchMode) {
+      setSelectedIds(new Set());
+    }
+  }, [isBatchMode]);
+  // Toggle select all sessions
+  const toggleSelectAll = () => {
+    const allIds = historySessions.map((s) => s.session_id);
+    if (selectedIds.size === allIds.length && allIds.length > 0) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(allIds));
+    }
+  };
+  /**
+   * Batch pin selected sessions
+   * Pins all sessions that are currently selected in batch mode
+   * After successful operation, refreshes both the parent and child components
+   */
+  const handleBatchPin = async () => {
+    if (selectedIds.size === 0) {
+      showToast(ToastType.WARNING, isZh ? "请选择要置顶的会话" : "Please select sessions to pin");
+      return;
+    }
+    try {
+      const ids = Array.from(selectedIds);
+      for (const id of ids) {
+        await codeEditorSessionCommands.updatePinnedCodeEditorSessions(id, true);
+      }
+      // Refresh HistoryCodeEditorChatPanel component
+      await historyPanelRef.current?.refreshSessions();
+      // Refresh parent component's session list
+      const list = await codeEditorSessionCommands.listCodeEditorSessions();
+      setHistorySessions(list);
+      setSelectedIds(new Set());
+      showToast(ToastType.SUCCESS, isZh ? `已置顶 ${ids.length} 个会话` : `${ids.length} session(s) pinned`);
+    } catch (error) {
+      showToast(ToastType.ERROR, isZh ? "批量置顶失败" : "Batch pin failed");
+    }
+  };
+  /**
+   * Batch unpin selected sessions
+   * Unpins all sessions that are currently selected in batch mode
+   * After successful operation, refreshes both the parent and child components
+   */
+  const handleBatchUnpin = async () => {
+    if (selectedIds.size === 0) {
+      showToast(ToastType.WARNING, isZh ? "请选择要取消置顶的会话" : "Please select sessions to unpin");
+      return;
+    }
+    try {
+      const ids = Array.from(selectedIds);
+      for (const id of ids) {
+        await codeEditorSessionCommands.updatePinnedCodeEditorSessions(id, false);
+      }
+      // Refresh HistoryCodeEditorChatPanel component
+      await historyPanelRef.current?.refreshSessions();
+      // Refresh parent component's session list
+      const list = await codeEditorSessionCommands.listCodeEditorSessions();
+      setHistorySessions(list);
+      setSelectedIds(new Set());
+      showToast(ToastType.SUCCESS, isZh ? `已取消置顶 ${ids.length} 个会话` : `${ids.length} session(s) unpinned`);
+    } catch (error) {
+      showToast(ToastType.ERROR, isZh ? "批量取消置顶失败" : "Batch unpin failed");
+    }
+  };
+  /**
+   * Batch delete selected sessions
+   * Deletes all sessions that are currently selected in batch mode
+   * Prevents deleting the last session and shows a confirmation dialog
+   * After successful operation, refreshes both the parent and child components
+   * If the current session is deleted, switches to the first remaining session
+   */
+  const handleBatchDelete = async () => {
+    if (selectedIds.size === 0) {
+      showToast(ToastType.WARNING, isZh ? "请选择要删除的会话" : "Please select sessions to delete");
+      return;
+    }
+    // Check if trying to delete all sessions - prevent deleting the last one
+    if (selectedIds.size >= historySessions.length) {
+      showDialog(DialogType.WARNING, t("history.dialog.cannotDeleteTitle"), t("history.dialog.cannotDeleteMessage"), undefined, undefined, t("history.dialog.gotIt"), undefined);
+      return;
+    }
+    showDialog(
+      DialogType.WARNING,
+      isZh ? "批量删除会话" : "Batch Delete Sessions",
+      isZh ? `确定要删除选中的 ${selectedIds.size} 个会话吗？此操作不可恢复。` : `Are you sure you want to delete ${selectedIds.size} selected session(s)? This action cannot be undone.`,
+      async () => {
+        try {
+          const ids = Array.from(selectedIds);
+          for (const id of ids) {
+            await codeEditorSessionCommands.deleteCodeEditorSession(id);
+            const domain = taskManager.getDomainFromSessionId(id);
+            taskManager.deleteSession(id, domain);
+          }
+          // If current session was deleted, switch to another session
+          if (currentSessionId && selectedIds.has(currentSessionId) && handleSwitchSession) {
+            const remainingSessions = historySessions.filter((s) => !selectedIds.has(s.session_id));
+            if (remainingSessions.length > 0) {
+              handleSwitchSession(remainingSessions[0].session_id);
+            }
+          }
+          // Refresh HistoryCodeEditorChatPanel component
+          await historyPanelRef.current?.refreshSessions();
+          // Refresh parent component's session list
+          const list = await codeEditorSessionCommands.listCodeEditorSessions();
+          setHistorySessions(list);
+          setSelectedIds(new Set());
+          setIsBatchMode(false);
+          showToast(ToastType.SUCCESS, isZh ? `已删除 ${ids.length} 个会话` : `${ids.length} session(s) deleted`);
+        } catch (error) {
+          showToast(ToastType.ERROR, isZh ? "批量删除失败" : "Batch delete failed");
+        }
+      },
+      undefined,
+      isZh ? "删除" : "Delete",
+      isZh ? "取消" : "Cancel",
+    );
+  };
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node) && buttonRef.current && !buttonRef.current.contains(event.target as Node)) {
@@ -949,7 +1085,11 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
     const savedHistoryCollapsed = localStorage.getItem("hippox-codeeditor-history-collapsed");
     const savedChatPanelCollapsed = localStorage.getItem("hippox-codeeditor-chat-collapsed");
     const savedChatPanelWidth = localStorage.getItem("hippox-codeeditor-chat-width");
-    if (savedHistoryWidth) setHistoryWidth(parseFloat(savedHistoryWidth));
+    if (savedHistoryWidth) {
+      const parsed = parseFloat(savedHistoryWidth);
+      // Clamp the loaded value within the valid range
+      setHistoryWidth(Math.max(HISTORY_PANEL_MIN_WIDTH, Math.min(HISTORY_PANEL_MAX_WIDTH, parsed)));
+    }
     if (savedHistoryCollapsed) setHistoryCollapsed(savedHistoryCollapsed === "true");
     if (savedChatPanelCollapsed) setChatPanelCollapsed(savedChatPanelCollapsed === "true");
     if (savedChatPanelWidth) setChatPanelWidth(parseFloat(savedChatPanelWidth));
@@ -994,7 +1134,7 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
     isDragging.current = true;
     dragType.current = type;
     dragStartX.current = e.clientX;
-    dragStartHistoryWidth.current = historyCollapsed ? 45 : historyWidth;
+    dragStartHistoryWidth.current = historyCollapsed ? HISTORY_PANEL_COLLAPSED_WIDTH : historyWidth;
     dragStartChatPanelWidth.current = chatPanelWidth;
     dragStartContainerRect.current = containerRef.current?.getBoundingClientRect() || null;
     document.body.style.cursor = "col-resize";
@@ -1018,14 +1158,15 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
       } else {
         newWidthPx = startWidthPx + deltaX;
       }
-      const minWidthPx = 200;
-      const maxWidthPx = mainAreaWidth * 0.6;
+      const minWidthPx = CHAT_PANEL_MIN_WIDTH;
+      const maxWidthPx = mainAreaWidth * CHAT_PANEL_MAX_WIDTH_RATIO;
       newWidthPx = Math.max(minWidthPx, Math.min(maxWidthPx, newWidthPx));
       setChatPanelWidth(newWidthPx);
       saveChatPanelWidth(newWidthPx);
     } else if (dragType.current === "history") {
       const newWidth = dragStartHistoryWidth.current + deltaX;
-      const clamped = Math.min(400, Math.max(200, newWidth));
+      // Use the same constants as GeneralChatPage
+      const clamped = Math.min(HISTORY_PANEL_MAX_WIDTH, Math.max(HISTORY_PANEL_MIN_WIDTH, newWidth));
       setHistoryWidth(clamped);
       saveHistoryWidth(clamped);
     }
@@ -1051,14 +1192,21 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
       window.removeEventListener("mouseup", handleMouseUp);
     };
   }, [handleMouseMove, handleMouseUp]);
-  // useEffect(() => {
-  //   window.addEventListener("mousemove", handleMouseMove);
-  //   window.addEventListener("mouseup", handleMouseUp);
-  //   return () => {
-  //     window.removeEventListener("mousemove", handleMouseMove);
-  //     window.removeEventListener("mouseup", handleMouseUp);
-  //   };
-  // }, []);
+  // Header button style
+  const headerButtonStyle: React.CSSProperties = {
+    background: "none",
+    border: "none",
+    cursor: "pointer",
+    color: "var(--text-secondary)",
+    padding: "2px 6px",
+    borderRadius: "4px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    lineHeight: 1,
+    width: "28px",
+    height: "28px",
+  };
   const getHistoryPanelContent = () => {
     if (historyCollapsed || isFunctionPanelMaximized) {
       return (
@@ -1068,8 +1216,8 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
-            width: "45px",
-            minWidth: "45px",
+            width: `${HISTORY_PANEL_COLLAPSED_WIDTH}px`,
+            minWidth: `${HISTORY_PANEL_COLLAPSED_WIDTH}px`,
             background: "var(--bg-secondary)",
             borderRight: "1px solid var(--border-color)",
             overflow: "hidden",
@@ -1146,7 +1294,7 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
           height: "100%",
           overflow: "hidden",
           flex: 1,
-          minWidth: "200px",
+          minWidth: `${HISTORY_PANEL_MIN_WIDTH}px`,
           userSelect: "none",
         }}
       >
@@ -1155,47 +1303,193 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
-            padding: "6px 12px",
+            padding: "6px 6px",
             borderBottom: "1px solid var(--border-color)",
             background: "var(--bg-secondary)",
             flexShrink: 0,
             minHeight: "40px",
           }}
         >
-          <span
-            style={{
-              fontSize: "14px",
-              fontWeight: 600,
-              color: "var(--text-primary)",
-            }}
-          >
-            {t("menu.history") || "History"}
-          </span>
+          {/* Left side: Title and action buttons - always visible */}
           <div
             style={{
               display: "flex",
               alignItems: "center",
-              gap: "2px",
-              flexShrink: 0,
+              gap: "4px",
+              flex: 1,
+              minWidth: 0,
             }}
           >
+            {/* Batch selection toggle button */}
+            <button
+              style={{
+                ...headerButtonStyle,
+                color: isBatchMode ? "var(--accent-color, #0066cc)" : "var(--text-secondary)",
+              }}
+              onClick={() => setIsBatchMode(!isBatchMode)}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = "var(--text-primary)";
+                e.currentTarget.style.background = "var(--hover-bg)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = isBatchMode ? "var(--accent-color, #0066cc)" : "var(--text-secondary)";
+                e.currentTarget.style.background = "none";
+              }}
+              title={isBatchMode ? (isZh ? "退出批量模式" : "Exit batch mode") : isZh ? "批量选择" : "Batch select"}
+            >
+              <Layers size={16} />
+            </button>
+            {/* Batch action buttons - only show in batch mode */}
+            {isBatchMode && (
+              <>
+                {/* Select all button */}
+                <button
+                  style={headerButtonStyle}
+                  onClick={toggleSelectAll}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.color = "var(--text-primary)";
+                    e.currentTarget.style.background = "var(--hover-bg)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.color = "var(--text-secondary)";
+                    e.currentTarget.style.background = "none";
+                  }}
+                  title={isZh ? "全选" : "Select all"}
+                >
+                  {selectedIds.size === historySessions.length && historySessions.length > 0 ? <CheckSquare size={16} /> : <Square size={16} />}
+                </button>
+                {/* Selected count */}
+                {/* <span
+                  style={{
+                    fontSize: "10px",
+                    color: "var(--text-muted)",
+                    minWidth: "20px",
+                    textAlign: "center",
+                  }}
+                >
+                  {selectedIds.size}
+                </span> */}
+                {/* Batch pin button */}
+                <button
+                  style={{
+                    ...headerButtonStyle,
+                    color: selectedIds.size > 0 ? "var(--accent-color, #0066cc)" : "var(--text-muted)",
+                    opacity: selectedIds.size > 0 ? 1 : 0.5,
+                  }}
+                  onClick={handleBatchPin}
+                  disabled={selectedIds.size === 0}
+                  onMouseEnter={(e) => {
+                    if (selectedIds.size > 0) {
+                      e.currentTarget.style.color = "var(--text-primary)";
+                      e.currentTarget.style.background = "var(--hover-bg)";
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (selectedIds.size > 0) {
+                      e.currentTarget.style.color = "var(--accent-color, #0066cc)";
+                      e.currentTarget.style.background = "none";
+                    }
+                  }}
+                  title={isZh ? "批量置顶" : "Batch pin"}
+                >
+                  <Pin size={16} />
+                </button>
+                {/* Batch unpin button */}
+                <button
+                  style={{
+                    ...headerButtonStyle,
+                    color: selectedIds.size > 0 ? "var(--accent-color, #0066cc)" : "var(--text-muted)",
+                    opacity: selectedIds.size > 0 ? 1 : 0.5,
+                  }}
+                  onClick={handleBatchUnpin}
+                  disabled={selectedIds.size === 0}
+                  onMouseEnter={(e) => {
+                    if (selectedIds.size > 0) {
+                      e.currentTarget.style.color = "var(--text-primary)";
+                      e.currentTarget.style.background = "var(--hover-bg)";
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (selectedIds.size > 0) {
+                      e.currentTarget.style.color = "var(--accent-color, #0066cc)";
+                      e.currentTarget.style.background = "none";
+                    }
+                  }}
+                  title={isZh ? "批量取消置顶" : "Batch unpin"}
+                >
+                  <PinOff size={16} />
+                </button>
+                {/* Batch delete button */}
+                <button
+                  style={{
+                    ...headerButtonStyle,
+                    color: selectedIds.size > 0 ? "#ef4444" : "var(--text-muted)",
+                    opacity: selectedIds.size > 0 ? 1 : 0.5,
+                  }}
+                  onClick={handleBatchDelete}
+                  disabled={selectedIds.size === 0}
+                  onMouseEnter={(e) => {
+                    if (selectedIds.size > 0) {
+                      e.currentTarget.style.background = "rgba(239, 68, 68, 0.1)";
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (selectedIds.size > 0) {
+                      e.currentTarget.style.background = "none";
+                    }
+                  }}
+                  title={isZh ? "批量删除" : "Batch delete"}
+                >
+                  <Trash2 size={16} />
+                </button>
+              </>
+            )}
+            {/* Expand/Collapse all categories button */}
+            <button
+              style={headerButtonStyle}
+              onClick={handleExpandToggle}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = "var(--text-primary)";
+                e.currentTarget.style.background = "var(--hover-bg)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = "var(--text-secondary)";
+                e.currentTarget.style.background = "none";
+              }}
+              title={isHistoryExpanded ? (isZh ? "收起全部" : "Collapse all") : isZh ? "展开全部" : "Expand all"}
+            >
+              {isHistoryExpanded ? <CollapseAllIcon2 size={16} /> : <ExpandAllIcon2 size={16} />}
+            </button>
+            {/* Scroll to top/bottom button */}
+            <button
+              style={headerButtonStyle}
+              onClick={handleScrollToggle}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = "var(--text-primary)";
+                e.currentTarget.style.background = "var(--hover-bg)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = "var(--text-secondary)";
+                e.currentTarget.style.background = "none";
+              }}
+              title={isHistoryAtBottom ? (isZh ? "滚动到顶部" : "Scroll to top") : isZh ? "滚动到底部" : "Scroll to bottom"}
+            >
+              {isHistoryAtBottom ? "▲" : "▼"}
+            </button>
+          </div>
+          {/* Right side: Collapse panel button and New Session button */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              flexShrink: 0,
+              gap: "2px",
+            }}
+          >
+            {/* New Session button */}
             <button
               ref={buttonRef}
-              style={{
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                fontSize: "25px",
-                color: "var(--text-secondary)",
-                padding: "2px 6px",
-                borderRadius: "4px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                lineHeight: 1,
-                width: "28px",
-                height: "28px",
-              }}
+              style={headerButtonStyle}
               onClick={handleNewSessionClick}
               onMouseEnter={(e) => {
                 e.currentTarget.style.color = "var(--text-primary)";
@@ -1207,91 +1501,10 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
               }}
               title={t("history.newSession") || "New Session"}
             >
-              +
+              <span style={{ fontSize: "18px", fontWeight: 600 }}>+</span>
             </button>
             <button
-              style={{
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                fontSize: "14px",
-                color: "var(--text-secondary)",
-                padding: "2px 6px",
-                borderRadius: "4px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                lineHeight: 1,
-                width: "28px",
-                height: "28px",
-              }}
-              onClick={handleExpandToggle}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.color = "var(--text-primary)";
-                e.currentTarget.style.background = "var(--hover-bg)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.color = "var(--text-secondary)";
-                e.currentTarget.style.background = "none";
-              }}
-              title={isHistoryExpanded ? t("history.collapseAll") : t("history.expandAll")}
-            >
-              {isHistoryExpanded ? <CollapseAllIcon2 size={16} /> : <ExpandAllIcon2 size={16} />}
-            </button>
-            <button
-              style={{
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                fontSize: "14px",
-                color: "var(--text-secondary)",
-                padding: "2px 6px",
-                borderRadius: "4px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                lineHeight: 1,
-                width: "28px",
-                height: "28px",
-              }}
-              onClick={handleScrollToggle}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.color = "var(--text-primary)";
-                e.currentTarget.style.background = "var(--hover-bg)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.color = "var(--text-secondary)";
-                e.currentTarget.style.background = "none";
-              }}
-              title={isHistoryAtBottom ? t("history.scrollToTop") : t("history.scrollToBottom")}
-            >
-              {isHistoryAtBottom ? "▲" : "▼"}
-            </button>
-            <div
-              style={{
-                width: "1px",
-                height: "16px",
-                background: "var(--border-color)",
-                margin: "0 2px",
-                flexShrink: 0,
-              }}
-            />
-            <button
-              style={{
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                fontSize: "14px",
-                color: "var(--text-secondary)",
-                padding: "2px 6px",
-                borderRadius: "4px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                lineHeight: 1,
-                width: "28px",
-                height: "28px",
-              }}
+              style={headerButtonStyle}
               onClick={handleToggleHistory}
               onMouseEnter={(e) => {
                 e.currentTarget.style.color = "var(--text-primary)";
@@ -1301,7 +1514,7 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
                 e.currentTarget.style.color = "var(--text-secondary)";
                 e.currentTarget.style.background = "none";
               }}
-              title={t("history.collapse")}
+              title={isZh ? "收起面板" : "Collapse panel"}
             >
               ◀
             </button>
@@ -1320,6 +1533,20 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
               setTimeout(() => {
                 handleNewSession();
               }, 100);
+            }}
+            isBatchMode={isBatchMode}
+            selectedIds={selectedIds}
+            onToggleSelection={(sessionId, e) => {
+              e.stopPropagation();
+              setSelectedIds((prev) => {
+                const newSet = new Set(prev);
+                if (newSet.has(sessionId)) {
+                  newSet.delete(sessionId);
+                } else {
+                  newSet.add(sessionId);
+                }
+                return newSet;
+              });
             }}
           />
         </div>
@@ -1350,8 +1577,8 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-        width: "45px",
-        minWidth: "45px",
+        width: `${HISTORY_PANEL_COLLAPSED_WIDTH}px`,
+        minWidth: `${HISTORY_PANEL_COLLAPSED_WIDTH}px`,
         background: "var(--bg-secondary)",
         borderRight: isChatOnLeft ? "1px solid var(--border-color)" : "none",
         borderLeft: !isChatOnLeft ? "1px solid var(--border-color)" : "none",
@@ -1518,8 +1745,8 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
             display: flex;
             flex-direction: column;
             align-items: center;
-            width: 45px;
-            min-width: 45px;
+            width: ${HISTORY_PANEL_COLLAPSED_WIDTH}px;
+            min-width: ${HISTORY_PANEL_COLLAPSED_WIDTH}px;
             background: var(--bg-secondary);
             overflow: hidden;
             flex-shrink: 0;
@@ -1539,10 +1766,10 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
             <div
               className="panel-history"
               style={{
-                flex: historyCollapsed ? "0 0 45px" : "0 0 auto",
-                width: historyCollapsed ? "45px" : `${historyWidth}px`,
+                flex: historyCollapsed ? `0 0 ${HISTORY_PANEL_COLLAPSED_WIDTH}px` : "0 0 auto",
+                width: historyCollapsed ? `${HISTORY_PANEL_COLLAPSED_WIDTH}px` : `${historyWidth}px`,
                 overflow: "hidden",
-                minWidth: historyCollapsed ? "45px" : "200px",
+                minWidth: historyCollapsed ? `${HISTORY_PANEL_COLLAPSED_WIDTH}px` : `${HISTORY_PANEL_MIN_WIDTH}px`,
                 display: "flex",
                 flexDirection: "row",
                 borderRight: "1px solid var(--border-color)",
@@ -1556,13 +1783,13 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
                 onMouseDown={(e) => handleMouseDown(e, "history")}
                 style={{
                   width: "0px",
-                  background: "var(--border-color)",
+                  background: isHistoryResizeHover ? "var(--scrollbar-thumb)" : "var(--border-color)",
                   cursor: "col-resize",
                   flexShrink: 0,
                   position: "relative",
                 }}
-                // onMouseEnter={() => setIsHistoryResizeHover(true)}
-                // onMouseLeave={() => setIsHistoryResizeHover(false)}
+                onMouseEnter={() => setIsHistoryResizeHover(true)}
+                onMouseLeave={() => setIsHistoryResizeHover(false)}
               />
             )}
           </>
@@ -1574,7 +1801,7 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
               flex: "0 0 auto",
               width: `${chatPanelWidth}px`,
               overflow: "hidden",
-              minWidth: "200px",
+              minWidth: `${CHAT_PANEL_MIN_WIDTH}px`,
               display: "flex",
               flexDirection: "row",
               borderRight: isChatOnLeft ? "1px solid var(--border-color)" : "none",
@@ -1592,7 +1819,7 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
         ) : !isFunctionPanelMaximized ? (
           <div
             style={{
-              flex: "0 0 45px",
+              flex: `0 0 ${HISTORY_PANEL_COLLAPSED_WIDTH}px`,
               order: isChatOnLeft ? 1 : 3,
             }}
           >
@@ -1605,14 +1832,14 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
             onMouseDown={(e) => handleMouseDown(e, "horizontal")}
             style={{
               width: "0px",
-              background: "var(--border-color)",
+              background: isResizeHover ? "var(--scrollbar-thumb)" : "var(--border-color)",
               cursor: "col-resize",
               flexShrink: 0,
               position: "relative",
               order: isChatOnLeft ? 2 : 2,
             }}
-            // onMouseEnter={() => setIsResizeHover(true)}
-            // onMouseLeave={() => setIsResizeHover(false)}
+            onMouseEnter={() => setIsResizeHover(true)}
+            onMouseLeave={() => setIsResizeHover(false)}
           />
         )}
         <div
@@ -1641,7 +1868,7 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
             padding: "4px",
             minWidth: "120px",
             top: "68px",
-            left: "100px",
+            left: "225px",
           }}
         >
           <div

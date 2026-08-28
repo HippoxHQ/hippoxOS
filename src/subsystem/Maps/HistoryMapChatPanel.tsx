@@ -5,6 +5,7 @@ import { showToast, ToastType } from "../../components/Toast";
 import { mapSessionCommands } from "../../command/session/map";
 import { DeleteIcon, MoreVerticalIcon, PinFilledIcon, PinIcon, RenameIcon, UnPinIcon } from "../../icons";
 import { taskManager } from "../../core/TaskManager";
+import { CheckSquare, Square } from "lucide-react";
 export interface HistoryMapChatPanelRef {
   scrollToTop: () => void;
   scrollToBottom: () => void;
@@ -16,6 +17,10 @@ interface HistoryMapChatPanelProps {
   t: (key: string, params?: any) => string;
   onSessionSelect?: (sessionId: string) => void;
   currentSessionId?: string;
+  // Batch selection props
+  isBatchMode?: boolean;
+  selectedIds?: Set<string>;
+  onToggleSelection?: (sessionId: string, e: React.MouseEvent) => void;
 }
 type CategoryType = "pinned" | "today" | "yesterday" | "last7days" | "last30days" | "older";
 interface CategoryConfig {
@@ -30,8 +35,9 @@ const categories: CategoryConfig[] = [
   { labelKey: "history.category.last30days", type: "last30days" },
   { labelKey: "history.category.older", type: "older" },
 ];
-const HistoryMapChatPanel = forwardRef<HistoryMapChatPanelRef, HistoryMapChatPanelProps>(({ t, onSessionSelect, currentSessionId }: HistoryMapChatPanelProps, ref) => {
+const HistoryMapChatPanel = forwardRef<HistoryMapChatPanelRef, HistoryMapChatPanelProps>(({ t, onSessionSelect, currentSessionId, isBatchMode = false, selectedIds = new Set(), onToggleSelection }: HistoryMapChatPanelProps, ref) => {
   const [sessions, setSessions] = useState<DialogSession[]>([]);
+  const hasLoadedRef = useRef(false);
   const [loading, setLoading] = useState(false);
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
@@ -93,6 +99,9 @@ const HistoryMapChatPanel = forwardRef<HistoryMapChatPanelRef, HistoryMapChatPan
   };
   const menuRef = useRef<HTMLDivElement>(null);
   const loadSessions = async (forceRefresh: boolean = false) => {
+    if (!forceRefresh && hasLoadedRef.current && sessions.length > 0) {
+      return;
+    }
     setLoading(true);
     try {
       const list = await mapSessionCommands.listMapSessions();
@@ -109,6 +118,7 @@ const HistoryMapChatPanel = forwardRef<HistoryMapChatPanelRef, HistoryMapChatPan
         return bTs - aTs;
       });
       setSessions(sorted);
+      hasLoadedRef.current = true;
     } catch (error) {
       showToast(ToastType.ERROR, "Failed to load sessions:" + error);
     } finally {
@@ -116,27 +126,9 @@ const HistoryMapChatPanel = forwardRef<HistoryMapChatPanelRef, HistoryMapChatPan
     }
   };
   useEffect(() => {
-    loadSessions();
-  }, []);
-  useEffect(() => {
-    const handleSessionCreated = () => {
-      loadSessions(true);
-    };
-    window.addEventListener("map-session-created", handleSessionCreated);
-    return () => {
-      window.removeEventListener("map-session-created", handleSessionCreated);
-    };
-  }, []);
-  useEffect(() => {
-    const handleTitleUpdated = () => {
-      loadSessions(true);
-    };
-    window.addEventListener("session-title-updated", handleTitleUpdated);
-    return () => {
-      window.removeEventListener("session-title-updated", handleTitleUpdated);
-    };
-  }, []);
-  useEffect(() => {
+    if (!hasLoadedRef.current) {
+      loadSessions();
+    }
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         setActiveMenuId(null);
@@ -147,10 +139,24 @@ const HistoryMapChatPanel = forwardRef<HistoryMapChatPanelRef, HistoryMapChatPan
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
+    const handleSessionCreated = () => {
+      loadSessions(true);
+    };
+    window.addEventListener("map-session-created", handleSessionCreated);
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
+      window.removeEventListener("map-session-created", handleSessionCreated);
     };
   }, [editingId]);
+  useEffect(() => {
+    const handleTitleUpdated = () => {
+      loadSessions(true);
+    };
+    window.addEventListener("session-title-updated", handleTitleUpdated);
+    return () => {
+      window.removeEventListener("session-title-updated", handleTitleUpdated);
+    };
+  }, []);
   useEffect(() => {
     if (editingId && editInputRef.current) {
       editInputRef.current.focus();
@@ -256,6 +262,7 @@ const HistoryMapChatPanel = forwardRef<HistoryMapChatPanelRef, HistoryMapChatPan
   };
   const handleSelectSession = useCallback(
     async (sessionId: string) => {
+      if (isBatchMode) return; // Block session selection in batch mode
       setActiveMenuId(null);
       if (currentSessionId === sessionId) {
         return;
@@ -271,7 +278,7 @@ const HistoryMapChatPanel = forwardRef<HistoryMapChatPanelRef, HistoryMapChatPan
         }
       }
     },
-    [currentSessionId, onSessionSelect],
+    [currentSessionId, onSessionSelect, isBatchMode],
   );
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -306,32 +313,35 @@ const HistoryMapChatPanel = forwardRef<HistoryMapChatPanelRef, HistoryMapChatPan
     });
     return grouped;
   };
-  const getCardStyle = (isActive: boolean, isHovered: boolean): React.CSSProperties => {
-    if (isActive) {
-      return {
-        background: "rgba(0, 102, 204, 0.1)",
-        borderRadius: "5px",
-        padding: "12px 14px",
-        marginBottom: "5px",
-        border: "1px solid rgba(0, 102, 204, 0.3)",
-        cursor: "pointer",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        position: "relative",
-      };
-    }
-    return {
-      background: isHovered ? "var(--hover-bg)" : "var(--bg-secondary)",
+  const getCardStyle = (isActive: boolean, isHovered: boolean, isSelected: boolean): React.CSSProperties => {
+    const baseStyle = {
       borderRadius: "5px",
       padding: "12px 14px",
       marginBottom: "5px",
-      border: "1px solid var(--border-color)",
-      cursor: "pointer",
+      cursor: isBatchMode ? "default" : "pointer",
       display: "flex",
       alignItems: "center",
       justifyContent: "space-between",
-      position: "relative",
+      position: "relative" as const,
+    };
+    if (isSelected) {
+      return {
+        ...baseStyle,
+        background: "rgba(0, 102, 204, 0.15)",
+        border: "1px solid rgba(0, 102, 204, 0.5)",
+      };
+    }
+    if (isActive) {
+      return {
+        ...baseStyle,
+        background: "rgba(0, 102, 204, 0.1)",
+        border: "1px solid rgba(0, 102, 204, 0.3)",
+      };
+    }
+    return {
+      ...baseStyle,
+      background: isHovered ? "var(--hover-bg)" : "var(--bg-secondary)",
+      border: "1px solid var(--border-color)",
     };
   };
   const titleStyle: React.CSSProperties = {
@@ -411,6 +421,15 @@ const HistoryMapChatPanel = forwardRef<HistoryMapChatPanelRef, HistoryMapChatPan
     cursor: "pointer",
     paddingBottom: "5px",
   };
+  const checkboxStyle: React.CSSProperties = {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: "10px",
+    flexShrink: 0,
+    cursor: "pointer",
+    color: "var(--text-secondary)",
+  };
   if (loading && sessions.length === 0) {
     return (
       <div
@@ -421,6 +440,19 @@ const HistoryMapChatPanel = forwardRef<HistoryMapChatPanelRef, HistoryMapChatPan
         }}
       >
         {t("history.loading") || "Loading..."}
+      </div>
+    );
+  }
+  if (sessions.length === 0) {
+    return (
+      <div
+        style={{
+          textAlign: "center",
+          padding: "40px",
+          color: "var(--text-muted)",
+        }}
+      >
+        {t("history.empty") || "No History Chat"}
       </div>
     );
   }
@@ -435,164 +467,153 @@ const HistoryMapChatPanel = forwardRef<HistoryMapChatPanelRef, HistoryMapChatPan
         overflowY: "auto",
       }}
     >
-      {sessions.length === 0 ? (
-        <div
-          style={{
-            textAlign: "center",
-            padding: "40px",
-            color: "var(--text-muted)",
-          }}
-        >
-          {t("history.empty") || "No History Chat"}
-        </div>
-      ) : (
-        categories.map((category) => {
-          const categorySessions = groupedSessions[category.type];
-          if (categorySessions.length === 0) return null;
-          return (
-            <div key={category.type}>
-              <div
+      {categories.map((category) => {
+        const categorySessions = groupedSessions[category.type];
+        if (categorySessions.length === 0) return null;
+        return (
+          <div key={category.type}>
+            <div
+              style={{
+                ...categoryHeaderStyle,
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                cursor: "pointer",
+              }}
+              onClick={() => toggleCategory(category.type)}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = "var(--text-primary)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = "var(--text-secondary)";
+              }}
+            >
+              <span>
+                {t(category.labelKey)} ({categorySessions.length})
+              </span>
+              <span
                 style={{
-                  ...categoryHeaderStyle,
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  cursor: "pointer",
-                }}
-                onClick={() => toggleCategory(category.type)}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.color = "var(--text-primary)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.color = "var(--text-secondary)";
+                  fontSize: "12px",
+                  transform: expandedCategories[category.type] ? "rotate(0deg)" : "rotate(-90deg)",
                 }}
               >
-                <span>
-                  {t(category.labelKey)} ({categorySessions.length})
-                </span>
-                <span
-                  style={{
-                    fontSize: "12px",
-                    transform: expandedCategories[category.type] ? "rotate(0deg)" : "rotate(-90deg)",
-                  }}
-                >
-                  ▼
-                </span>
-              </div>
-              {expandedCategories[category.type] &&
-                categorySessions.map((session) => {
-                  const isActive = currentSessionId === session.session_id;
-                  const isHovered = hoveredId === session.session_id;
-                  const isEditing = editingId === session.session_id;
-                  return (
-                    <div
-                      key={session.session_id}
-                      style={getCardStyle(isActive, isHovered)}
-                      onMouseEnter={() => setHoveredId(session.session_id)}
-                      onMouseLeave={() => setHoveredId(null)}
-                      onClick={() => {
-                        if (!isEditing) {
-                          handleSelectSession(session.session_id);
-                        }
-                      }}
-                    >
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ display: "flex", alignItems: "center" }}>
-                          {session.is_pinned && (
-                            <span style={pinIconStyle}>
-                              <PinFilledIcon size={16} />
-                            </span>
-                          )}
-                          {isEditing ? (
-                            <input
-                              ref={editInputRef}
-                              type="text"
-                              style={titleInputStyle}
-                              value={editValue}
-                              onChange={(e) => setEditValue(e.target.value)}
-                              onKeyDown={(e) => handleKeyDown(e, session)}
-                              onBlur={() => saveEdit(session)}
-                              onClick={(e) => e.stopPropagation()}
-                            />
-                          ) : (
-                            <span style={titleStyle} title={session.title}>
-                              {session.title || t("history.untitled")}
-                            </span>
-                          )}
-                        </div>
-                        <div style={timeStyle}>{formatDate(session.created_at)}</div>
-                      </div>
-                      {!isEditing && (activeMenuId === session.session_id || isHovered) && (
-                        <div>
-                          <button
-                            style={menuButtonStyle}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setActiveMenuId(activeMenuId === session.session_id ? null : session.session_id);
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.background = "var(--hover-bg)";
-                              e.currentTarget.style.color = "var(--text-primary)";
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.background = "none";
-                              e.currentTarget.style.color = "var(--text-secondary)";
-                            }}
-                          >
-                            <MoreVerticalIcon size={18} />
-                          </button>
-                          {activeMenuId === session.session_id && (
-                            <div style={dropdownStyle} ref={menuRef}>
-                              <div
-                                style={dropdownItemStyle}
-                                onClick={(e) => startEdit(session, e)}
-                                onMouseEnter={(e) => {
-                                  e.currentTarget.style.background = "var(--hover-bg)";
-                                }}
-                                onMouseLeave={(e) => {
-                                  e.currentTarget.style.background = "";
-                                }}
-                              >
-                                <RenameIcon size={16} /> {t("history.rename")}
-                              </div>
-                              <div
-                                style={dropdownItemStyle}
-                                onClick={(e) => handleTogglePin(session, e)}
-                                onMouseEnter={(e) => {
-                                  e.currentTarget.style.background = "var(--hover-bg)";
-                                }}
-                                onMouseLeave={(e) => {
-                                  e.currentTarget.style.background = "";
-                                }}
-                              >
-                                {session.is_pinned ? <UnPinIcon size={16} /> : <PinIcon size={16} />} {session.is_pinned ? t("history.unpin") : t("history.pin")}
-                              </div>
-                              <div
-                                style={{
-                                  ...dropdownItemStyle,
-                                  color: "var(--error-color, #dc2626)",
-                                }}
-                                onClick={(e) => handleDelete(session, e)}
-                                onMouseEnter={(e) => {
-                                  e.currentTarget.style.background = "var(--error-bg, rgba(220,38,38,0.1))";
-                                }}
-                                onMouseLeave={(e) => {
-                                  e.currentTarget.style.background = "";
-                                }}
-                              >
-                                <DeleteIcon size={16} /> {t("history.delete")}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+                ▼
+              </span>
             </div>
-          );
-        })
-      )}
+            {expandedCategories[category.type] &&
+              categorySessions.map((session) => {
+                const isActive = currentSessionId === session.session_id;
+                const isHovered = hoveredId === session.session_id;
+                const isEditing = editingId === session.session_id;
+                const isSelected = selectedIds.has(session.session_id);
+                return (
+                  <div
+                    key={session.session_id}
+                    style={getCardStyle(isActive, isHovered, isSelected)}
+                    onMouseEnter={() => setHoveredId(session.session_id)}
+                    onMouseLeave={() => setHoveredId(null)}
+                    onClick={() => {
+                      if (isBatchMode && onToggleSelection) {
+                        onToggleSelection(session.session_id, new MouseEvent("click") as any);
+                      } else if (!isEditing) {
+                        handleSelectSession(session.session_id);
+                      }
+                    }}
+                  >
+                    {/* Checkbox for batch mode */}
+                    {isBatchMode && (
+                      <div style={checkboxStyle} onClick={(e) => onToggleSelection && onToggleSelection(session.session_id, e)}>
+                        {isSelected ? <CheckSquare size={18} /> : <Square size={18} />}
+                      </div>
+                    )}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: "flex", alignItems: "center" }}>
+                        {session.is_pinned && (
+                          <span style={pinIconStyle}>
+                            <PinFilledIcon size={16} />
+                          </span>
+                        )}
+                        {isEditing ? (
+                          <input ref={editInputRef} type="text" style={titleInputStyle} value={editValue} onChange={(e) => setEditValue(e.target.value)} onKeyDown={(e) => handleKeyDown(e, session)} onBlur={() => saveEdit(session)} onClick={(e) => e.stopPropagation()} />
+                        ) : (
+                          <span style={titleStyle} title={session.title}>
+                            {session.title || t("history.untitled")}
+                          </span>
+                        )}
+                      </div>
+                      <div style={timeStyle}>{formatDate(session.created_at)}</div>
+                    </div>
+                    {/* Menu button - hidden in batch mode */}
+                    {!isBatchMode && !isEditing && (activeMenuId === session.session_id || isHovered) && (
+                      <div>
+                        <button
+                          style={menuButtonStyle}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setActiveMenuId(activeMenuId === session.session_id ? null : session.session_id);
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = "var(--hover-bg)";
+                            e.currentTarget.style.color = "var(--text-primary)";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = "none";
+                            e.currentTarget.style.color = "var(--text-secondary)";
+                          }}
+                        >
+                          <MoreVerticalIcon size={18} />
+                        </button>
+                        {activeMenuId === session.session_id && (
+                          <div style={dropdownStyle} ref={menuRef}>
+                            <div
+                              style={dropdownItemStyle}
+                              onClick={(e) => startEdit(session, e)}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.background = "var(--hover-bg)";
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.background = "";
+                              }}
+                            >
+                              <RenameIcon size={16} /> {t("history.rename")}
+                            </div>
+                            <div
+                              style={dropdownItemStyle}
+                              onClick={(e) => handleTogglePin(session, e)}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.background = "var(--hover-bg)";
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.background = "";
+                              }}
+                            >
+                              {session.is_pinned ? <UnPinIcon size={16} /> : <PinIcon size={16} />} {session.is_pinned ? t("history.unpin") : t("history.pin")}
+                            </div>
+                            <div
+                              style={{
+                                ...dropdownItemStyle,
+                                color: "var(--error-color, #dc2626)",
+                              }}
+                              onClick={(e) => handleDelete(session, e)}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.background = "var(--error-bg, rgba(220,38,38,0.1))";
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.background = "";
+                              }}
+                            >
+                              <DeleteIcon size={16} /> {t("history.delete")}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+          </div>
+        );
+      })}
     </div>
   );
 });
