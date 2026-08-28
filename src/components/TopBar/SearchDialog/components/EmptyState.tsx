@@ -2,6 +2,9 @@ import React from "react";
 interface EmptyStateProps {
   language: "zh" | "en";
 }
+/**
+ * Empty state component for search results
+ */
 export const EmptyState: React.FC<EmptyStateProps> = ({ language }) => {
   return (
     <div

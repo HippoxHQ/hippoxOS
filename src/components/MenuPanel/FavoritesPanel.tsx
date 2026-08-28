@@ -6,6 +6,7 @@ import { runSkill } from "./utils/skillRunner";
 import { UploadFile } from "../../core/types";
 import { filesCommands } from "../../command/files";
 import { showDialog, DialogType } from "../../components/Dialog";
+import { Folder } from "lucide-react";
 interface FavoritesPanelProps {
   t: (key: string, params?: any) => string;
   onSendSkillMessage: (message: string, files?: UploadFile[]) => void;
@@ -91,11 +92,7 @@ const FavoritesPanel: React.FC<FavoritesPanelProps> = ({ t, onSendSkillMessage, 
     return colors[Math.abs(hash) % colors.length];
   };
   const filteredFavorites = skillFavorites.filter((skill) => {
-    const matchesSearch =
-      skill.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      skill.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      skill.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      skill.author.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = skill.name.toLowerCase().includes(searchTerm.toLowerCase()) || skill.description.toLowerCase().includes(searchTerm.toLowerCase()) || skill.category.toLowerCase().includes(searchTerm.toLowerCase()) || skill.author.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesSearch;
   });
   const styles: Record<string, React.CSSProperties> = {
@@ -331,13 +328,7 @@ const FavoritesPanel: React.FC<FavoritesPanelProps> = ({ t, onSendSkillMessage, 
         <div style={styles.searchRow}>
           <div className="favorites-search-input-wrapper">
             <SearchIcon />
-            <input
-              type="text"
-              className="favorites-search-input"
-              placeholder={t("favorites.searchPlaceholder") || "Search favorites..."}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+            <input type="text" className="favorites-search-input" placeholder={t("favorites.searchPlaceholder") || "Search favorites..."} value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
             {searchTerm && (
               <button className="favorites-search-clear" onClick={handleClearSearch} title={t("favorites.clearSearch") || "Clear search"}>
                 ✕
@@ -463,7 +454,9 @@ const FavoritesPanel: React.FC<FavoritesPanelProps> = ({ t, onSendSkillMessage, 
                     )}
                     <span>{skill.author}</span>
                   </div>
-                  <span>📁 {skill.category}</span>
+                  <span>
+                    <Folder size={16} /> {skill.category}
+                  </span>
                 </div>
                 <div style={styles.skillDescription}>{skill.description}</div>
               </div>

@@ -30,7 +30,6 @@ pub async fn cmd_open_path(path: String) -> Result<(), String> {
     #[cfg(target_os = "windows")]
     {
         use crate::commons::hidden_cmd;
-
         hidden_cmd("explorer").arg(path).spawn().map_err(|e| format!("Failed to open path: {}", e))?;
     }
     #[cfg(target_os = "macos")]

@@ -4,6 +4,7 @@ import { MarketSkill, skillsMarketCommands } from "../../command/skills";
 import { UploadFile } from "../../core/types";
 import { runSkill } from "./utils/skillRunner";
 import { filesCommands } from "../../command/files";
+import { Folder } from "lucide-react";
 interface SkillMarketPanelProps {
   t: (key: string, params?: any) => string;
   onSendSkillMessage: (message: string, files?: UploadFile[]) => void;
@@ -522,13 +523,7 @@ const SkillMarketPanel: React.FC<SkillMarketPanelProps> = ({ t, onSendSkillMessa
     <div style={{ ...styles.container, position: "relative" }}>
       <div style={styles.header}>
         <div style={styles.searchRow}>
-          <button
-            ref={categoryButtonRef}
-            style={styles.categoryBtn}
-            onMouseEnter={handleCategoryButtonMouseEnter}
-            onMouseLeave={handleCategoryButtonMouseLeave}
-            title={t("market.filterByCategory") || "Filter by category"}
-          >
+          <button ref={categoryButtonRef} style={styles.categoryBtn} onMouseEnter={handleCategoryButtonMouseEnter} onMouseLeave={handleCategoryButtonMouseLeave} title={t("market.filterByCategory") || "Filter by category"}>
             <CategoryIcon size={16} />
           </button>
           <div className="market-search-input-wrapper" style={{ flex: "1 1 0%", minWidth: 0, width: "100%" }}>
@@ -706,7 +701,10 @@ const SkillMarketPanel: React.FC<SkillMarketPanelProps> = ({ t, onSendSkillMessa
                   )}
                   <span>{skill.author}</span>
                 </div>
-                <span>📁 {skill.category}</span>
+                <span style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                  <Folder size={16} />
+                  {skill.category}
+                </span>
               </div>
               <div style={styles.skillDescription}>{skill.description}</div>
             </div>

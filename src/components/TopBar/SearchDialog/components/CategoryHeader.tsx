@@ -1,9 +1,12 @@
 import React from "react";
 interface CategoryHeaderProps {
-  icon: string;
+  icon: React.ReactNode;
   label: string;
   count: number;
 }
+/**
+ * Category header component for search results
+ */
 export const CategoryHeader: React.FC<CategoryHeaderProps> = ({ icon, label, count }) => {
   return (
     <div
@@ -21,9 +24,9 @@ export const CategoryHeader: React.FC<CategoryHeaderProps> = ({ icon, label, cou
         justifyContent: "space-between",
       }}
     >
-      <span>
-        <span>{icon}</span>
-        <span style={{ marginLeft: "8px" }}>{label}</span>
+      <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+        <span style={{ display: "flex", alignItems: "center", width: "16px", height: "16px" }}>{icon}</span>
+        <span>{label}</span>
       </span>
       <span
         style={{

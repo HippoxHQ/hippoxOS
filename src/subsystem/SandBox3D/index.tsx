@@ -13,6 +13,7 @@ import SandBox3D, { SandBox3DRef, ThreeSceneSnapshot } from "./SandBox3D";
 import { SandBox3DHistoryPanel } from "./SandBox3D/SandBox3DHistoryPanel";
 import { ToolMenu } from "./SandBox3D/ToolMenu";
 import { sandbox3dExportCommands } from "../../command/SandBox3D";
+import { APP_WINDOW_EVENTS } from "../../App/AppWindowEventManager";
 interface SandBox3DPageProps {
   layoutMode?: "horizontal" | "vertical";
   onLayoutModeChange?: (mode: "horizontal" | "vertical") => void;
@@ -1080,6 +1081,22 @@ const SandBox3DPage: React.FC<SandBox3DPageProps> = ({
     setHistoryCollapsed(!historyCollapsed);
     saveHistoryCollapsed(!historyCollapsed);
   };
+  /**
+   * Listen for sandbox3d-switch-session event from search results
+   * This allows the search dialog to switch to a specific 3D sandbox session
+   */
+  useEffect(() => {
+    const handleSandbox3dSwitchSession = (e: CustomEvent) => {
+      const { sessionId, title, highlightMessageId } = e.detail;
+      if (sessionId) {
+        sandbox3dHandleSwitchSession(sessionId);
+      }
+    };
+    window.addEventListener(APP_WINDOW_EVENTS.SANDBOX3D_SWITCH_SESSION, handleSandbox3dSwitchSession as EventListener);
+    return () => {
+      window.removeEventListener(APP_WINDOW_EVENTS.SANDBOX3D_SWITCH_SESSION, handleSandbox3dSwitchSession as EventListener);
+    };
+  }, [sandbox3dHandleSwitchSession]);
   const handleSessionSelect = useCallback(
     (sessionId: string) => {
       sandbox3dHandleSwitchSession(sessionId);

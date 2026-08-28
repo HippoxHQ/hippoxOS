@@ -1,16 +1,28 @@
 import React, { useState, useRef, useEffect } from "react";
-import { AttachmentIcon, FolderIcon, ChevronRightIcon, FolderOpenIcon, FileIcon, ImageIcon, TextFileIcon, VideoIcon } from "../icons";
-import { showToast, ToastType } from "../components/Toast";
-import FileUploader from "../components/FileUploader";
-import { zhDefaultPrompts, enDefaultPrompts } from "../types/DefaultPrompt";
-import { showTooltipOnElement } from "../components/Tooltip";
-import { WorkspaceInstance, workspaceCommands } from "../command/workspace";
-import { workflowCommands } from "../command/workflow";
-import { UploadFile } from "../core/types";
-import ArtText from "../components/arts/ArtText";
-import banner from "../assets/banner.svg";
-import { Music } from "lucide-react";
+import banner from "../../assets/banner.svg";
 import { open as dialogOpen } from "@tauri-apps/plugin-dialog";
+import { FolderIcon, ChevronRightIcon, FileIcon, FolderOpenIcon } from "lucide-react";
+import { APP_WINDOW_EVENTS } from "../../App/AppWindowEventManager";
+import { workflowCommands } from "../../command/workflow";
+import { WorkspaceInstance, workspaceCommands } from "../../command/workspace";
+import ArtText from "../../components/arts/ArtText";
+import FileUploader from "../../components/FileUploader";
+import { showToast, ToastType } from "../../components/Toast";
+import { showTooltipOnElement } from "../../components/Tooltip";
+import { UploadFile } from "../../core/types";
+import { AttachmentIcon, TextFileIcon } from "../../icons";
+import { zhDefaultPrompts, enDefaultPrompts } from "../../types/DefaultPrompt";
+import { welcomepageStyles } from "./welcomepage.style";
+// Inject welcome page styles into the document
+if (typeof document !== "undefined") {
+  const styleId = "welcomepage-styles";
+  if (!document.getElementById(styleId)) {
+    const style = document.createElement("style");
+    style.id = styleId;
+    style.textContent = welcomepageStyles;
+    document.head.appendChild(style);
+  }
+}
 interface WelcomePageProps {
   onSendMessage: (message: string, files?: UploadFile[], workflowMode?: string) => void;
   t: (key: string) => string;
@@ -80,8 +92,13 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t, onDragOverI
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [uploadedFiles, setUploadedFiles] = useState<UploadFile[]>([]);
   const [currentPrompts, setCurrentPrompts] = useState<string[]>([]);
-  const [language, setLanguage] = useState<"zh" | "en">(t("welcome.subtitle") === "原生 LLM 操作系统" ? "zh" : "en");
+  const [language, setLanguage] = useState<"zh" | "en">(t("i18n") === "zh" ? "zh" : "en");
+  const isZh = t("i18n") === "zh";
   const [workflowDisplayNames, setWorkflowDisplayNames] = useState<Map<string, string>>(new Map());
+  /**
+   * Domain cards configuration for the welcome page
+   * Each card represents a subsystem that users can navigate to
+   */
   const domains: {
     id: "general" | "code" | "map" | "chart" | "video" | "sandbox";
     label: string;
@@ -146,7 +163,33 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t, onDragOverI
       pageId: "sandbox3d",
     },
   ];
+  /**
+   * Handle navigation to a page with APP_WINDOW_EVENTS
+   * This ensures sidebar icon is highlighted and proper event is dispatched
+   */
   const handleNavigate = (pageId: string) => {
+    // Map pageId to subsystem
+    const pageToSubsystem: Record<string, string> = {
+      generalChat: "general",
+      chartChat: "chart",
+      mapChat: "map",
+      codeEditorChat: "codeeditor",
+      videoEditor: "video",
+      sandbox3d: "sandbox3d",
+    };
+    const subsystem = pageToSubsystem[pageId] || "general";
+    // Dispatch session selected event to update sidebar
+    // This will trigger sidebar icon highlight via the Sidebar component's listener
+    window.dispatchEvent(
+      new CustomEvent(APP_WINDOW_EVENTS.SESSION_SELECTED, {
+        detail: {
+          sessionId: "",
+          title: "",
+          subsystem: subsystem,
+        },
+      }),
+    );
+    // Also dispatch navigate event if callback provided
     if (onNavigateTo) {
       onNavigateTo(pageId);
     } else {
@@ -157,6 +200,10 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t, onDragOverI
       );
     }
   };
+  /**
+   * Load workflow display names from backend
+   * These are used to show user-friendly names in the workflow dropdown
+   */
   const loadWorkflowDisplayNames = async () => {
     try {
       const lang = localStorage.getItem("hippox-language") || "en";
@@ -176,6 +223,10 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t, onDragOverI
       setSelectedWorkflowMode(externalWorkflowMode);
     }
   }, [externalWorkflowMode]);
+  /**
+   * Get random prompts from the default prompts list
+   * These are displayed as example chips on the welcome page
+   */
   const getRandomPrompts = (count: number = 20): string[] => {
     const prompts = isZh ? zhDefaultPrompts : enDefaultPrompts;
     const shuffled = [...prompts];
@@ -188,11 +239,15 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t, onDragOverI
   const refreshPrompts = () => {
     setCurrentPrompts(getRandomPrompts(20));
   };
+  // Refresh prompts every 5 seconds for dynamic examples
   useEffect(() => {
     refreshPrompts();
     const interval = setInterval(refreshPrompts, 5000);
     return () => clearInterval(interval);
   }, [language]);
+  /**
+   * Load workflow modes from backend
+   */
   const loadWorkflowModes = async () => {
     try {
       const modes = await workflowCommands.getWorkflowModeNames();
@@ -204,6 +259,9 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t, onDragOverI
       console.error("Failed to load workflow modes:", error);
     }
   };
+  /**
+   * Load workspaces from backend with retry logic
+   */
   const loadWorkspaces = async (retryCount: number = 0): Promise<void> => {
     try {
       const config = await workspaceCommands.getWorkspaceConfig();
@@ -221,9 +279,15 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t, onDragOverI
       showToast(ToastType.ERROR, "Failed to load workspaces: " + error);
     }
   };
+  /**
+   * Focus the textarea when container is clicked
+   */
   const handleContainerClick = (e: React.MouseEvent) => {
     textareaRef.current?.focus();
   };
+  /**
+   * Handle workspace selection from dropdown
+   */
   const handleSelectWorkspace = async (workspaceId: string) => {
     const workspace = workspaces.find((w) => w.id === workspaceId);
     if (!workspace) return;
@@ -237,6 +301,9 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t, onDragOverI
       showToast(ToastType.ERROR, t("workspace.defaultFailed"));
     }
   };
+  /**
+   * Handle workflow mode change from dropdown
+   */
   const handleWorkflowModeChange = (mode: string) => {
     setSelectedWorkflowMode(mode);
     setShowWorkflowMenu(false);
@@ -244,6 +311,9 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t, onDragOverI
       onWorkflowModeChange(mode);
     }
   };
+  /**
+   * Get the name of the selected workspace for display
+   */
   const getSelectedWorkspaceName = (): string => {
     const workspace = workspaces.find((w) => w.id === selectedWorkspaceId);
     if (!workspace) return t("chat.selectWorkspace") || "Workspace";
@@ -252,6 +322,9 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t, onDragOverI
     const parts = normalizedPath.split("/");
     return parts[parts.length - 1] || workspace.name;
   };
+  /**
+   * Listen for language change events
+   */
   useEffect(() => {
     const handleLanguageChange = (event: CustomEvent) => {
       const newLang = event.detail.language === "zh" ? "zh" : "en";
@@ -261,11 +334,15 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t, onDragOverI
     window.addEventListener("language-changed", handleLanguageChange as EventListener);
     return () => window.removeEventListener("language-changed", handleLanguageChange as EventListener);
   }, []);
+  // Initialize data on component mount
   useEffect(() => {
     loadWorkspaces();
     loadWorkflowModes();
     loadWorkflowDisplayNames();
   }, []);
+  /**
+   * Handle click outside to close dropdown menus
+   */
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (attachmentMenuRef.current && !attachmentMenuRef.current.contains(event.target as Node) && attachmentBtnRef.current && !attachmentBtnRef.current.contains(event.target as Node)) {
@@ -284,10 +361,10 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t, onDragOverI
   /**
    * Handle file addition from FileUploader component.
    *
-   * Implementation 3: If the uploaded files contain any media files (video, audio, image),
+   * If the uploaded files contain any media files (video, audio, image),
    * navigate to the video editor subsystem with the file.
    *
-   * Implementation 2: Text and SKILL files are handled normally and will be sent
+   * Text and SKILL files are handled normally and will be sent
    * with the chat message when the user submits the form.
    */
   const handleFilesAdd = (files: UploadFile[]) => {
@@ -312,16 +389,19 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t, onDragOverI
       return [...prev, ...newUniqueFiles];
     });
   };
+  /**
+   * Remove a file from the uploaded files list
+   */
   const handleFileRemove = (fileId: string) => {
     setUploadedFiles((prev) => prev.filter((f) => f.id !== fileId));
   };
   /**
    * Handle form submission.
    *
-   * Implementation 2: If there are text/skill files in the upload list,
+   * If there are text/skill files in the upload list,
    * send them along with the message to start a general chat session.
    *
-   * Implementation 3: Media files are handled in handleFilesAdd and navigate
+   * Media files are handled in handleFilesAdd and navigate
    * directly to the video editor, so they won't be present in uploadedFiles.
    */
   const handleSubmit = (e: React.FormEvent) => {
@@ -330,26 +410,24 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t, onDragOverI
     if (inputValue.trim() || uploadedFiles.length > 0) {
       const message = inputValue.trim();
       const currentFiles = [...uploadedFiles];
-      // Implementation 2: Send text/skill files with the message to start general chat
       onSendMessage(message, currentFiles, selectedWorkflowMode);
       setInputValue("");
       setUploadedFiles([]);
     }
   };
+  /**
+   * Handle example prompt click - send the prompt as a message
+   */
   const handleExampleClick = (prompt: string) => {
     onSendMessage(prompt, [], selectedWorkflowMode);
   };
   /**
    * Handle attachment menu item clicks.
    *
-   * Implementation 1: Added audio button.
-   * When a user clicks "Audio", it opens a file picker filtered for audio files.
-   *
-   * Implementation 2: Text and SKILL files are added to the upload list
+   * Text and SKILL files are added to the upload list
    * and sent with the chat message.
    *
-   * Implementation 3: Image and Video files trigger navigation to the video editor.
-   * Audio files also trigger navigation to the video editor (Implementation 1).
+   * Image, Video, and Audio files trigger navigation to the video editor.
    */
   const handleAttachment = async (type: string) => {
     setShowAttachmentMenu(false);
@@ -423,423 +501,24 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t, onDragOverI
       console.error("File selection error:", error);
     }
   };
-  const isZh = t("welcome.subtitle") === "原生 LLM 操作系统";
   return (
     <div className="welcome-page">
-      <style>{`
-  .my-folder-icon {
-  }
-   .welcome-page {
-    user-select: none;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    height: 100%;
-    width: 100%;
-    background: var(--bg-primary);
-  }
-   .welcome-container {
-    max-width: 830px;
-    width: 85%;
-    text-align: center;
-    padding: 40px 20px;
-  }
-   .welcome-logo {
-    margin: 0 auto 20px auto;
-    margin-bottom: 20px;
-    display: flex;
-    justify-content: center;
-    height: 170px;
-    border-radius: 5px;
-  }
-   .welcome-logo img {
-    height: 170px;
-    border-radius: 5px;
-  }
-   .welcome-title {
-    font-size: 32px;
-    font-weight: 600;
-    background: linear-gradient(135deg, var(--text-primary) 0%, var(--accent-color, #818cf8) 100%);
-    background-clip: text;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    margin-bottom: 5px;
-  }
-   .welcome-subtitle {
-    font-size: 14px;
-    color: var(--text-secondary);
-    margin: 20px 0px;
-  }
-   .welcome-form {
-    width: 80%;
-    min-width: 325px;
-    margin-bottom: 20px;
-    margin: 0 auto 10px auto;
-  }
-   .welcome-input-container {
-    background: var(--bg-tertiary);
-    border: 1px solid var(--border-color);
-    border-radius: 5px;
-    min-height: 120px;
-    display: flex;
-    flex-direction: column;
-    cursor: text;
-  }
-   .welcome-input-container.focused {
-    border-color: var(--accent-color);
-    box-shadow: 0 0 0 2px var(--accent-glow);
-  }
-   .input-textarea-wrapper {
-    padding: 12px 12px 8px 12px;
-    flex: 1;
-  }
-   .welcome-textarea {
-    width: 100%;
-    background: transparent;
-    border: none;
-    color: var(--text-primary);
-    font-size: 14px;
-    line-height: 1.5;
-    resize: none;
-    outline: none;
-    font-family: inherit;
-    min-height: 60px;
-    padding: 0;
-  }
-   .welcome-textarea::placeholder {
-    color: var(--text-tertiary);
-  }
-   .action-buttons-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 4px 8px 8px 8px;
-  }
-   .left-actions {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    position: relative;
-  }
-   .icon-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 4px;
-    padding: 4px 8px;
-    background: transparent;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    color: var(--text-secondary);
-    font-size: 12px;
-  }
-   .icon-btn:hover {
-    background: var(--hover-bg);
-    color: var(--text-primary);
-  }
-   .folder-btn {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-  }
-   .folder-name {
-    max-width: 120px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font-size: 12px;
-  }
-   .attachment-menu {
-    position: absolute;
-    bottom: 100%;
-    left: 0;
-    margin-bottom: 6px;
-    background: var(--bg-secondary);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    padding: 4px 0;
-    min-width: 120px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    z-index: 100;
-  }
-   .attachment-item {
-    padding: 8px 12px;
-    cursor: pointer;
-    color: var(--text-primary);
-    font-size: 12px;
-    white-space: nowrap;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-   .attachment-item:hover {
-    background: var(--hover-bg);
-  }
-   .directory-menu {
-    position: absolute;
-    bottom: 100%;
-    left: 35px;
-    margin-bottom: 6px;
-    background: var(--bg-secondary);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    padding: 4px 0;
-    min-width: 160px;
-    max-height: 300px;
-    overflow-y: auto;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    z-index: 100;
-  }
-   .directory-item {
-    padding: 8px 12px;
-    cursor: pointer;
-    color: var(--text-primary);
-    font-size: 12px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-   .directory-item:hover {
-    background: var(--hover-bg);
-  }
-   .directory-item.selected {
-    background: var(--accent-color);
-    color: white;
-  }
-   .workspace-path {
-    font-size: 10px;
-    color: var(--text-tertiary);
-    margin-top: 2px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    max-width: 200px;
-  }
-   .selected .workspace-path {
-    color: rgba(255, 255, 255, 0.7);
-  }
-   .directory-item-content {
-    flex: 1;
-    min-width: 0;
-  }
-   .send-icon-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 28px;
-    height: 28px;
-    border-radius: 8px;
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    color: var(--text-tertiary);
-  }
-   .send-icon-btn.active {
-    background: var(--accent-color);
-    color: white;
-  }
-   .send-icon-btn.active:hover {
-    transform: scale(1.05);
-    background: var(--accent-hover);
-  }
-   .send-icon-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-   .examples-section {
-    margin-top: 8px;
-  }
-   .examples-title {
-    font-size: 12px;
-    color: var(--text-tertiary);
-    margin-bottom: 12px;
-    letter-spacing: 0.5px;
-  }
-   .examples-grid {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 10px;
-    max-width: 800px;
-    margin: 0 auto;
-  }
-   .example-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 8px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  border-radius: 14px;
-  cursor: pointer;
-  font-size: 10px;
-  color: var(--text-secondary);
-  width: auto;
-  white-space: nowrap;
-}
- .example-chip span:last-child {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 100px;
-}
- .example-chip:hover {
-  background: var(--hover-bg);
-  border-color: var(--accent-color);
-  color: var(--text-primary);
-  transform: translateY(-1px);
-}
- .example-icon {
-  font-size: 10px;
-}
-   .example-chip span:last-child {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    max-width: 140px;
-  }
-   .file-uploader-container {
-  }
-   .domain-cards {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
-    margin: 0 auto 10px auto;
-    width: 80%;
-  }
-   .domain-card {
-    position: relative;
-    padding: 10px 10px;
-    border-radius: 5px;
-    cursor: pointer;
-    overflow: hidden;
-    border: 1px solid var(--border-color);
-    background: var(--bg-secondary);
-    transition: all 0.2s ease;
-    min-height: 60px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    white-space: nowrap;
-  }
-   .domain-card:hover {
-    transform: translateY(-2px);
-    border-color: var(--accent-color);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-  }
-   .domain-card .card-bg-emoji {
-    position: absolute;
-    right: -8px;
-    top: 50%;
-    transform: translateY(-50%) rotate(15deg);
-    font-size: 56px;
-    opacity: 0.15;
-    filter: blur(1px);
-    transition: opacity 0.3s ease;
-    pointer-events: none;
-    line-height: 1;
-  }
-   .domain-card:hover .card-bg-emoji {
-    opacity: 0.1;
-  }
-   .domain-card .card-left {
-    position: relative;
-    z-index: 1;
-    flex: 1;
-    text-align: left;
-    min-width: 0;
-    overflow: hidden;
-  }
-   .domain-card .domain-name {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--text-primary);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-   .domain-card .domain-desc {
-    font-size: 11px;
-    color: var(--text-tertiary);
-    line-height: 1.2;
-    margin-top: 1px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-   .domain-card .domain-arrow {
-    position: relative;
-    z-index: 1;
-    font-size: 14px;
-    color: var(--text-tertiary);
-    transition: all 0.2s ease;
-    flex-shrink: 0;
-    margin-left: 8px;
-    opacity: 0;
-  }
-   .domain-card:hover .domain-arrow {
-    opacity: 1;
-    color: var(--accent-color);
-    transform: translateX(3px);
-  }
-   @media (max-width: 640px) {
-    .domain-cards {
-      grid-template-columns: repeat(2, 1fr);
-      gap: 10px;
-    }
-    .domain-card {
-      padding: 12px 14px;
-      min-height: 52px;
-    }
-    .domain-card .card-bg-emoji {
-      font-size: 40px;
-    }
-    .domain-card .domain-name {
-      font-size: 12px;
-    }
-    .domain-card .domain-desc {
-      font-size: 10px;
-    }
-  }
-   :root {
-    --bg-primary: #0f1117;
-    --bg-secondary: #1a1d26;
-    --bg-tertiary: #22252f;
-    --border-color: #2d303a;
-    --text-primary: #e8edf2;
-    --text-secondary: #9ca3af;
-    --text-tertiary: #6b7280;
-    --accent-color: #818cf8;
-    --accent-hover: #6366f1;
-    --accent-glow: rgba(129, 140, 248, 0.2);
-    --hover-bg: rgba(232, 237, 242, 0.08);
-  }
-   [data-theme="light"] {
-    --bg-primary: #f3f4f6;
-    --bg-secondary: #ffffff;
-    --bg-tertiary: #e5e7eb;
-    --border-color: #d1d5db;
-    --text-primary: #111827;
-    --text-secondary: #4b5563;
-    --text-tertiary: #9ca3af;
-    --accent-color: #6366f1;
-    --accent-hover: #4f46e5;
-    --accent-glow: rgba(99, 102, 241, 0.2);
-    --hover-bg: rgba(0, 0, 0, 0.04);
-  }
-`}</style>
       <div className="welcome-container">
+        {/* Logo Section */}
         <div className="welcome-logo">
           <img src={banner} alt="HippoxOS Banner" />
         </div>
+        {/* Title Section */}
         <ArtText text={"HippoxOS"} fontSize={52} fontWeight="300" letterSpacing={4} textColor="#818cf8" lightColor="#ffffff" animationDuration={3} glowSize={2} />
         <p className="welcome-subtitle">{t("welcome.subtitle") || "A native LLM operating system"}</p>
+        {/* Input Form */}
         <form className="welcome-form" onSubmit={handleSubmit}>
           <div className={`welcome-input-container ${isFocused ? "focused" : ""}`} onClick={handleContainerClick}>
+            {/* File Uploader - shows when files are uploaded */}
             <div className="file-uploader-container" style={{ display: uploadedFiles.length > 0 ? "block" : "none" }}>
               <FileUploader onFilesAdd={handleFilesAdd} onFileRemove={handleFileRemove} files={uploadedFiles} onDragOverInput={onDragOverInputChange} />
             </div>
+            {/* Text Input Area */}
             <div className="input-textarea-wrapper">
               <textarea
                 ref={textareaRef}
@@ -859,11 +538,14 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t, onDragOverI
                 style={{ height: "auto" }}
               />
             </div>
+            {/* Action Buttons Row */}
             <div className="action-buttons-row">
               <div className="left-actions">
+                {/* Attachment Button */}
                 <div className="icon-btn" ref={attachmentBtnRef} onClick={() => setShowAttachmentMenu(!showAttachmentMenu)} title={t("chat.attachment")}>
                   <AttachmentIcon size={14} />
                 </div>
+                {/* Workspace Selector */}
                 <div
                   className="icon-btn folder-btn"
                   ref={directoryBtnRef}
@@ -879,6 +561,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t, onDragOverI
                   </span>
                   <ChevronRightIcon size={10} className="chevron" />
                 </div>
+                {/* Workflow Mode Selector */}
                 <div className="icon-btn folder-btn" ref={workflowBtnRef} onClick={() => setShowWorkflowMenu(!showWorkflowMenu)} title={t("chat.selectWorkflowMode") || "Workflow Mode"}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M4 7h16M4 12h16M4 17h10" strokeLinecap="round" strokeLinejoin="round" />
@@ -888,35 +571,20 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t, onDragOverI
                   </span>
                   <ChevronRightIcon size={10} className="chevron" />
                 </div>
+                {/* Attachment Menu Dropdown */}
                 {showAttachmentMenu && (
                   <div className="attachment-menu" ref={attachmentMenuRef}>
-                    {/* Implementation 2: Text file - add to upload list */}
                     <div className="attachment-item" onClick={() => handleAttachment("text")}>
                       <TextFileIcon size={14} />
                       {t("chat.textFile") || "Text File"}
                     </div>
-                    {/* Implementation 3: Image file - opens video editor */}
-                    {/* <div className="attachment-item" onClick={() => handleAttachment("image")}>
-                    <ImageIcon size={14} />
-                    {t("chat.image") || "Image"}
-                    </div> */}
-                    {/* Implementation 3: Video file - opens video editor */}
-                    {/* <div className="attachment-item" onClick={() => handleAttachment("video")}>
-                    <VideoIcon size={14} />
-                    {t("chat.video") || "Video"}
-                    </div> */}
-                    {/* Implementation 1: Audio button - opens video editor with audio file */}
-                    {/* <div className="attachment-item" onClick={() => handleAttachment("audio")}>
-                    <Music size={14} />
-                    {t("chat.audioFile") || "Audio"}
-                    </div> */}
-                    {/* Implementation 2: SKILL file - add to upload list */}
                     <div className="attachment-item" onClick={() => handleAttachment("skill")}>
                       <FileIcon size={14} />
                       {t("chat.skillFile") || "Skill File"}
                     </div>
                   </div>
                 )}
+                {/* Workspace Dropdown Menu */}
                 {showDirectoryMenu && (
                   <div className="directory-menu" ref={directoryMenuRef}>
                     {workspaces.map((workspace) => (
@@ -932,6 +600,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t, onDragOverI
                     ))}
                   </div>
                 )}
+                {/* Workflow Dropdown Menu */}
                 {showWorkflowMenu && (
                   <div className="directory-menu" ref={workflowMenuRef}>
                     {workflowModes.map((mode) => (
@@ -944,6 +613,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t, onDragOverI
                   </div>
                 )}
               </div>
+              {/* Send Button */}
               <button className={`send-icon-btn ${inputValue.trim() || uploadedFiles.length > 0 ? "active" : ""}`} type="submit" disabled={!inputValue.trim() && uploadedFiles.length === 0} title={t("chat.send")}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M12 5L12 19M12 5L5 12M12 5L19 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -952,17 +622,37 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t, onDragOverI
             </div>
           </div>
         </form>
+        {/* Domain Cards - Each card dispatches SESSION_SELECTED event for sidebar highlight */}
         <div className="domain-cards">
           {domains.map((domain) => (
             <div
               key={domain.id}
               className="domain-card"
               onClick={() => {
-                if (domain.id === "general") {
-                  handleNavigate("generalChat");
-                  return;
-                }
-                handleNavigate(domain.pageId);
+                // Map domain to subsystem for SESSION_SELECTED event
+                const domainToSubsystem: Record<string, string> = {
+                  general: "general",
+                  code: "codeeditor",
+                  map: "map",
+                  chart: "chart",
+                  video: "video",
+                  sandbox: "sandbox3d",
+                };
+                const subsystem = domainToSubsystem[domain.id] || "general";
+                const pageId = domain.pageId;
+                // Dispatch SESSION_SELECTED event to update sidebar highlight
+                // This ensures the sidebar icon is highlighted when navigating via welcome page cards
+                window.dispatchEvent(
+                  new CustomEvent(APP_WINDOW_EVENTS.SESSION_SELECTED, {
+                    detail: {
+                      sessionId: "",
+                      title: "",
+                      subsystem: subsystem,
+                    },
+                  }),
+                );
+                // Navigate to the target page
+                handleNavigate(pageId);
               }}
             >
               <div className="card-bg-emoji">{domain.bgEmoji}</div>
@@ -974,6 +664,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t, onDragOverI
             </div>
           ))}
         </div>
+        {/* Example Prompts Section */}
         <div className="examples-section">
           <div className="examples-title">{t("welcome.examples") || "Try these"}</div>
           <div className="examples-grid">

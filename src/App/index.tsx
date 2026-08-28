@@ -18,7 +18,8 @@ import { useSidebar } from "./hooks/useSidebar";
 import { useSystemEvents, useDirectoryEvents } from "./hooks/useSystemEvents";
 import { useTaskEvents } from "./hooks/useTaskEvents";
 import { useTheme } from "./hooks/useTheme";
-import { useMenuPanel } from "./hooks/useMenuPanel";
+import { useMenuPanel, ContentPanelView } from "./hooks/useMenuPanel";
+import { APP_WINDOW_EVENTS, getSubsystemEventInfo } from "./AppWindowEventManager";
 function App() {
   const { isConfigLoaded, initialEngineConfig, initialTheme, initialLanguage } = useConfigLoader();
   const { theme, handleToggleTheme } = useTheme(initialTheme);
@@ -48,27 +49,58 @@ function App() {
     (subView) => switchMenuPanel("settings", subView),
   );
   useDirectoryEvents();
-  // useEffect(() => {
-  //   const preventContextMenu = (e: Event) => {
-  //     e.preventDefault();
-  //   };
-  //   window.addEventListener("contextmenu", preventContextMenu);
-  //   document.addEventListener("contextmenu", preventContextMenu);
-  //   return () => {
-  //     window.removeEventListener("contextmenu", preventContextMenu);
-  //     document.removeEventListener("contextmenu", preventContextMenu);
-  //   };
-  // }, []);
+  /**
+   * Listen for search new session event using APP_WINDOW_EVENTS
+   */
   useEffect(() => {
     const handleSearchNewSession = () => {
       handleNewSessionWithClose();
     };
-    window.addEventListener("search-new-session", handleSearchNewSession);
+    window.addEventListener(APP_WINDOW_EVENTS.SEARCH_NEW_SESSION, handleSearchNewSession);
     return () => {
-      window.removeEventListener("search-new-session", handleSearchNewSession);
+      window.removeEventListener(APP_WINDOW_EVENTS.SEARCH_NEW_SESSION, handleSearchNewSession);
     };
   }, [handleNewSessionWithClose]);
   useSearchEvents(() => switchMenuPanel("skillMarket"), handleSwitchSession);
+  /**
+   * Handle search result click navigation to different subsystems
+   * Uses APP_WINDOW_EVENTS constants and getSubsystemEventInfo helper
+   * All subsystems including general chat handle session selection via their own event listeners
+   */
+  useEffect(() => {
+    const handleSearchSwitchSession = (e: CustomEvent) => {
+      const { sessionId, title, highlightMessageId, subsystem } = e.detail;
+      if (!sessionId) return;
+      // Use the subsystem map from AppWindowEventManager
+      const target = getSubsystemEventInfo(subsystem || "general");
+      if (!target) {
+        // Fallback: use general session switch
+        handleSwitchSession(sessionId);
+        return;
+      }
+      // Close any open menu panel
+      closeMenuPanel();
+      // Switch to the subsystem content panel
+      // target.panel is guaranteed to be non-null here
+      switchContentArea(target.panel as any);
+      // After a short delay to allow the panel to render, dispatch the subsystem-specific event
+      // The subsystem page will handle the session selection via its own event listener
+      setTimeout(() => {
+        window.dispatchEvent(
+          new CustomEvent(target.event, {
+            detail: { sessionId, title, highlightMessageId },
+          }),
+        );
+      }, 150);
+    };
+    window.addEventListener(APP_WINDOW_EVENTS.SEARCH_SWITCH_SESSION, handleSearchSwitchSession as EventListener);
+    return () => {
+      window.removeEventListener(APP_WINDOW_EVENTS.SEARCH_SWITCH_SESSION, handleSearchSwitchSession as EventListener);
+    };
+  }, [closeMenuPanel, switchContentArea]);
+  /**
+   * Listen for session switch events using APP_WINDOW_EVENTS
+   */
   useEffect(() => {
     const onSwitchEvent = (e: CustomEvent) => {
       const sessionId = e.detail?.sessionId;
@@ -76,9 +108,9 @@ function App() {
         handleSwitchSession(sessionId);
       }
     };
-    window.addEventListener("switch-session", onSwitchEvent as EventListener);
+    window.addEventListener(APP_WINDOW_EVENTS.SESSION_SWITCH, onSwitchEvent as EventListener);
     return () => {
-      window.removeEventListener("switch-session", onSwitchEvent as EventListener);
+      window.removeEventListener(APP_WINDOW_EVENTS.SESSION_SWITCH, onSwitchEvent as EventListener);
     };
   }, [handleSwitchSession]);
   useEffect(() => {

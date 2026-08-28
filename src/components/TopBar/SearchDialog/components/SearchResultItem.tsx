@@ -1,11 +1,17 @@
 import React from "react";
-import { SearchResult } from "../types";
+import { SearchResult, SUBSYSTEM_CONFIG } from "../types";
 interface SearchResultItemProps {
   result: SearchResult;
   index: number;
   onClick: (result: SearchResult) => void;
 }
+/**
+ * Individual search result item with subsystem icon
+ */
 export const SearchResultItem: React.FC<SearchResultItemProps> = ({ result, index, onClick }) => {
+  /**
+   * Format timestamp to localized string
+   */
   const formatTimestamp = (timestamp?: string): string => {
     if (!timestamp) return "";
     try {
@@ -18,6 +24,18 @@ export const SearchResultItem: React.FC<SearchResultItemProps> = ({ result, inde
       return "";
     }
   };
+  /**
+   * Get subsystem icon for message results
+   */
+  const getSubsystemIcon = (): React.ReactNode => {
+    // Only show icon for message category
+    if (result.category !== "message" || !result.subsystem) {
+      return null;
+    }
+    const config = SUBSYSTEM_CONFIG[result.subsystem];
+    return config?.icon || null;
+  };
+  const subsystemIcon = getSubsystemIcon();
   return (
     <div
       data-result-idx={index}
@@ -26,7 +44,6 @@ export const SearchResultItem: React.FC<SearchResultItemProps> = ({ result, inde
         cursor: "pointer",
         borderBottom: "1px solid var(--border-color)",
         background: "transparent",
-        // transition: "background 0.15s ease",
       }}
       onClick={() => onClick(result)}
       onMouseEnter={(e) => {
@@ -42,9 +59,24 @@ export const SearchResultItem: React.FC<SearchResultItemProps> = ({ result, inde
           fontWeight: 500,
           color: "var(--text-primary)",
           marginBottom: "2px",
+          display: "flex",
+          alignItems: "center",
+          gap: "6px",
         }}
       >
-        {result.title}
+        {subsystemIcon && (
+          <span
+            style={{
+              display: "flex",
+              alignItems: "center",
+              flexShrink: 0,
+              color: "var(--text-muted)",
+            }}
+          >
+            {subsystemIcon}
+          </span>
+        )}
+        <span>{result.title}</span>
       </div>
       <div
         style={{

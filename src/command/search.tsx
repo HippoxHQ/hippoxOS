@@ -1,6 +1,8 @@
 import { invoke } from "@tauri-apps/api/core";
+import { Brain, MessageSquare, FileText, Search, FolderOpen, Logs, PieChart, Map, Code, Box, Video } from "lucide-react";
 export interface SearchResult {
   category: "skill" | "session" | "log" | "message";
+  subsystem?: "general" | "chart" | "map" | "codeeditor" | "sandbox3d" | "video";
   id: string;
   title: string;
   description: string;
@@ -31,6 +33,7 @@ export interface MessageSearchResult {
   message_role: string;
   timestamp: string;
   highlight: string;
+  subsystem?: string;
 }
 export interface SearchMessagesRequest {
   keyword: string;
@@ -41,6 +44,9 @@ export interface SearchMessagesResponse {
   total: number;
 }
 export const searchCommands = {
+  /**
+   * Search content across the system
+   */
   async searchContent(keyword: string, limit: number = 30): Promise<SearchResult[]> {
     if (!keyword.trim()) {
       return [];
@@ -52,6 +58,9 @@ export const searchCommands = {
       },
     });
   },
+  /**
+   * Search messages only (returns raw message results with subsystem info)
+   */
   async searchMessages(keyword: string, limit: number = 50): Promise<SearchMessagesResponse> {
     if (!keyword.trim()) {
       return { results: [], total: 0 };
@@ -63,6 +72,9 @@ export const searchCommands = {
       },
     });
   },
+  /**
+   * Search messages and return formatted results with subsystem support
+   */
   async searchMessagesFormatted(keyword: string, limit: number = 50): Promise<SearchResult[]> {
     if (!keyword.trim()) {
       return [];
@@ -74,6 +86,9 @@ export const searchCommands = {
       },
     });
   },
+  /**
+   * Search all content types including messages from all subsystems
+   */
   async searchAll(keyword: string, limit: number = 30): Promise<SearchResult[]> {
     if (!keyword.trim()) {
       return [];
@@ -86,6 +101,9 @@ export const searchCommands = {
     });
   },
 };
+/**
+ * Search service singleton for managing search operations
+ */
 export class SearchService {
   private static instance: SearchService;
   private searchAbortController: AbortController | null = null;
@@ -95,6 +113,9 @@ export class SearchService {
     }
     return SearchService.instance;
   }
+  /**
+   * Perform a search across all content types including all subsystems
+   */
   async search(keyword: string, limit: number = 30): Promise<SearchResult[]> {
     if (!keyword.trim()) {
       return [];
@@ -104,11 +125,9 @@ export class SearchService {
       return results;
     } catch (error) {
       console.error("Search failed:", error);
+      // Fallback to separate searches if unified search fails
       try {
-        const [existing, messages] = await Promise.all([
-          searchCommands.searchContent(keyword, limit),
-          searchCommands.searchMessagesFormatted(keyword, limit),
-        ]);
+        const [existing, messages] = await Promise.all([searchCommands.searchContent(keyword, limit), searchCommands.searchMessagesFormatted(keyword, limit)]);
         return [...messages, ...existing];
       } catch (fallbackError) {
         console.error("Fallback search failed:", fallbackError);
@@ -116,15 +135,16 @@ export class SearchService {
       }
     }
   }
+  /**
+   * Search messages only across all subsystems
+   */
   async searchMessagesOnly(keyword: string, limit: number = 50): Promise<SearchResult[]> {
     return await searchCommands.searchMessagesFormatted(keyword, limit);
   }
-  // Anti-shake search
-  debouncedSearch(
-    keyword: string,
-    callback: (results: SearchResult[]) => void,
-    delay: number = 300
-  ): () => void {
+  /**
+   * Debounced search with anti-shake
+   */
+  debouncedSearch(keyword: string, callback: (results: SearchResult[]) => void, delay: number = 300): () => void {
     let timeoutId: NodeJS.Timeout;
     const handler = () => {
       clearTimeout(timeoutId);
@@ -140,39 +160,76 @@ export class SearchService {
     handler();
     return () => clearTimeout(timeoutId);
   }
-  groupResultsByCategory(results: SearchResult[]): Map<string, SearchResult[]> {
-    const grouped = new Map<string, SearchResult[]>();
+  /**
+   * Group search results by category, with subsystem grouping for messages
+   */
+  groupResultsByCategory(results: SearchResult[]): Record<string, SearchResult[]> {
+    const grouped: Record<string, SearchResult[]> = {};
     for (const result of results) {
-      if (!grouped.has(result.category)) {
-        grouped.set(result.category, []);
+      // Use string type to allow custom group keys like "message_general"
+      let groupKey: string = result.category;
+      // For messages, group by subsystem if available
+      if (result.category === "message" && result.subsystem) {
+        groupKey = `message_${result.subsystem}`;
       }
-      grouped.get(result.category)!.push(result);
+      if (!grouped[groupKey]) {
+        grouped[groupKey] = [];
+      }
+      grouped[groupKey].push(result);
     }
     return grouped;
   }
-  getCategoryIcon(category: string): string {
+  /**
+   * Get the icon component for a category or subsystem
+   */
+  getCategoryIcon(category: string): React.ReactNode {
     switch (category) {
       case "skill":
-        return "🧩";
+        return <Brain size={16} />;
       case "session":
-        return "💬";
+        return <MessageSquare size={16} />;
       case "log":
-        return "📋";
+        return <Logs size={16} />;
       case "message":
-        return "💭";
+        return <FileText size={16} />;
+      case "message_general":
+        return <FileText size={16} />;
+      case "message_chart":
+        return <PieChart size={16} />;
+      case "message_map":
+        return <Map size={16} />;
+      case "message_codeeditor":
+        return <Code size={16} />;
+      case "message_sandbox3d":
+        return <Box size={16} />;
+      case "message_video":
+        return <Video size={16} />;
       default:
-        return "🔍";
+        return <Search size={16} />;
     }
   }
+  /**
+   * Get the display name for a category or subsystem
+   */
   getCategoryName(category: string, language: "zh" | "en"): string {
+    // Use Record<string, ...> to allow dynamic keys like "message_general"
     const names: Record<string, Record<"zh" | "en", string>> = {
       skill: { zh: "技能市场", en: "Skills" },
       session: { zh: "历史会话", en: "Sessions" },
       log: { zh: "日志记录", en: "Logs" },
       message: { zh: "对话记录", en: "Messages" },
+      message_general: { zh: "通用对话", en: "General Messages" },
+      message_chart: { zh: "图表对话", en: "Chart Messages" },
+      message_map: { zh: "地图对话", en: "Map Messages" },
+      message_codeeditor: { zh: "代码编辑", en: "Code Editor Messages" },
+      message_sandbox3d: { zh: "3D 沙盒", en: "Sandbox 3D Messages" },
+      message_video: { zh: "视频编辑", en: "Video Editor Messages" },
     };
     return names[category]?.[language] || category;
   }
+  /**
+   * Open a search result
+   */
   async openResult(result: SearchResult): Promise<void> {
     switch (result.category) {
       case "message":
@@ -181,10 +238,10 @@ export class SearchService {
             new CustomEvent("search-switch-session", {
               detail: {
                 sessionId: result.sessionId,
-                title: result.sessionTitle || "会话",
+                title: result.sessionTitle || "Session",
                 highlightMessageId: result.id,
               },
-            })
+            }),
           );
         }
         break;
@@ -192,7 +249,7 @@ export class SearchService {
         window.dispatchEvent(
           new CustomEvent("search-open-skill", {
             detail: { path: result.path, title: result.title },
-          })
+          }),
         );
         break;
       case "session":
@@ -200,17 +257,28 @@ export class SearchService {
         window.dispatchEvent(
           new CustomEvent("search-switch-session", {
             detail: { sessionId, title: result.title },
-          })
+          }),
         );
         break;
       case "log":
         window.dispatchEvent(
           new CustomEvent("search-open-log", {
             detail: { path: result.path, highlight: result.highlight },
-          })
+          }),
         );
         break;
     }
+  }
+  /**
+   * Parse subsystem from path string with proper type
+   */
+  parseSubsystemFromPath(path: string): "general" | "chart" | "map" | "codeeditor" | "sandbox3d" | "video" {
+    if (path.includes("ChartDialogHistory")) return "chart";
+    if (path.includes("MapDialogHistory")) return "map";
+    if (path.includes("CodeEditorDialogHistory")) return "codeeditor";
+    if (path.includes("SandBox3DDialogHistory")) return "sandbox3d";
+    if (path.includes("VideoDialogHistory")) return "video";
+    return "general";
   }
 }
 export const searchService = SearchService.getInstance();

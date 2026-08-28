@@ -9,6 +9,7 @@ import { configCommands } from "../../command/config";
 import ChartChatPanel from "./ChartChatPanel";
 import { useFinanceSession } from "../../App/hooks/session/useFinanceSession";
 import MarqueeBar from "./MarqueeBar";
+import { APP_WINDOW_EVENTS } from "../../App/AppWindowEventManager";
 interface ChartPageProps {
   layoutMode?: "horizontal" | "vertical";
   onLayoutModeChange?: (mode: "horizontal" | "vertical") => void;
@@ -875,6 +876,22 @@ const ChartPage: React.FC<ChartPageProps> = ({
     setHistoryCollapsed(!historyCollapsed);
     saveHistoryCollapsed(!historyCollapsed);
   };
+  /**
+   * Listen for chart-switch-session event from search results
+   * This allows the search dialog to switch to a specific chart session
+   */
+  useEffect(() => {
+    const handleChartSwitchSession = (e: CustomEvent) => {
+      const { sessionId, title, highlightMessageId } = e.detail;
+      if (sessionId) {
+        chartHandleSwitchSession(sessionId);
+      }
+    };
+    window.addEventListener(APP_WINDOW_EVENTS.CHART_SWITCH_SESSION, handleChartSwitchSession as EventListener);
+    return () => {
+      window.removeEventListener(APP_WINDOW_EVENTS.CHART_SWITCH_SESSION, handleChartSwitchSession as EventListener);
+    };
+  }, [chartHandleSwitchSession]);
   const handleSessionSelect = useCallback(
     (sessionId: string) => {
       chartHandleSwitchSession(sessionId);

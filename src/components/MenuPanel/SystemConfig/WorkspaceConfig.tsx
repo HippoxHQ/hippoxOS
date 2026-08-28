@@ -4,6 +4,7 @@ import { showDialog, DialogType } from "../../Dialog";
 import { filesCommands } from "../../../command/files";
 import { WorkspaceInstance, workspaceCommands } from "../../../command/workspace";
 import { SearchIcon } from "../../../icons";
+import { Folder } from "lucide-react";
 interface WorkspaceConfigProps {
   t: (key: string, params?: any) => string;
   onSaveWorkspace?: (config: any) => void;
@@ -407,13 +408,7 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({ t, onSaveWorkspace, i
         <div style={styles.searchRow}>
           <div className="workspace-search-input-wrapper" style={{ flex: 1, minWidth: "130px" }}>
             <SearchIcon />
-            <input
-              type="text"
-              className="workspace-search-input"
-              placeholder={t("workspace.searchPlaceholder") || "Search workspaces..."}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+            <input type="text" className="workspace-search-input" placeholder={t("workspace.searchPlaceholder") || "Search workspaces..."} value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
             {searchTerm && (
               <button className="workspace-search-clear" onClick={handleClearSearch} title={t("workspace.clearSearch") || "Clear search"}>
                 ✕
@@ -482,7 +477,7 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({ t, onSaveWorkspace, i
               <div style={pathRowStyle}>
                 <input style={{ ...inputStyle, flex: 1 }} value={newWorkspacePath} readOnly placeholder={t("settings.workspacePathPlaceholder")} onClick={handleSelectDirectory} />
                 <button style={folderButtonStyle} onClick={handleSelectDirectory} title={t("settings.selectDirectory")}>
-                  📂 {t("settings.browse")}
+                  <Folder size={16} /> {t("settings.browse")}
                 </button>
               </div>
             </div>
@@ -535,7 +530,7 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({ t, onSaveWorkspace, i
                     minWidth: 0,
                   }}
                 >
-                  📁 {instance.name}
+                  <Folder size={16} /> {instance.name}
                 </span>
                 {defaultInstanceId === instance.id && <span style={{ ...badgeStyle, flexShrink: 0 }}>{t("settings.defaultBadge")}</span>}
               </div>
@@ -567,7 +562,7 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({ t, onSaveWorkspace, i
                     placeholder={t("settings.workspacePathPlaceholder")}
                   />
                   <button style={{ ...folderButtonStyle, flexShrink: 0 }} onClick={() => handleOpenDirectory(instance.workspace_path)} title={t("settings.openDirectory")}>
-                    📂 {t("settings.open")}
+                    <Folder size={16} /> {t("settings.open")}
                   </button>
                 </div>
               </div>

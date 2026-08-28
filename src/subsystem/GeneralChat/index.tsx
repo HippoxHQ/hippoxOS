@@ -7,7 +7,7 @@ import { CollapseAllIcon2, ExpandAllIcon2, MessageCircleIcon, MonitorIcon, Scrol
 import { configCommands } from "../../command/config";
 import ChatPanel from "./ChatPanel";
 import TerminalPanel from "./TerminalPanel";
-
+import { APP_WINDOW_EVENTS } from "../../App/AppWindowEventManager";
 interface GeneralChatPageProps {
   layoutMode?: "horizontal" | "vertical";
   onLayoutModeChange?: (mode: "horizontal" | "vertical") => void;
@@ -27,19 +27,16 @@ interface GeneralChatPageProps {
   executionLogs?: any[];
   onClearLogs?: () => void;
 }
-
 interface CollapsedTaskListProps {
   tasks: any[];
   activeNavIndex: number;
   onLocateTask: (idx: number) => void;
   isLeft: boolean;
 }
-
 const CollapsedTaskList: React.FC<CollapsedTaskListProps> = ({ tasks, activeNavIndex, onLocateTask }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [showUp, setShowUp] = useState(false);
   const [showDown, setShowDown] = useState(false);
-
   const checkScroll = useCallback(() => {
     if (!containerRef.current) return;
     const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
@@ -48,7 +45,6 @@ const CollapsedTaskList: React.FC<CollapsedTaskListProps> = ({ tasks, activeNavI
     setShowUp(canScrollUp);
     setShowDown(canScrollDown);
   }, []);
-
   const updateScrollButtons = useCallback(() => {
     if (!containerRef.current) return;
     const { scrollHeight, clientHeight } = containerRef.current;
@@ -62,7 +58,6 @@ const CollapsedTaskList: React.FC<CollapsedTaskListProps> = ({ tasks, activeNavI
       setShowDown(false);
     }
   }, []);
-
   useEffect(() => {
     const el = containerRef.current;
     if (el) {
@@ -78,23 +73,19 @@ const CollapsedTaskList: React.FC<CollapsedTaskListProps> = ({ tasks, activeNavI
       };
     }
   }, [checkScroll, updateScrollButtons]);
-
   useEffect(() => {
     setTimeout(updateScrollButtons, 100);
   }, [tasks]);
-
   const scrollUp = () => {
     if (containerRef.current) {
       containerRef.current.scrollBy({ top: -200, behavior: "smooth" });
     }
   };
-
   const scrollDown = () => {
     if (containerRef.current) {
       containerRef.current.scrollBy({ top: 200, behavior: "smooth" });
     }
   };
-
   const getStatusColor = (status: string) => {
     switch (status) {
       case TaskStatusEnum.Running:
@@ -111,7 +102,6 @@ const CollapsedTaskList: React.FC<CollapsedTaskListProps> = ({ tasks, activeNavI
         return "var(--text-tertiary)";
     }
   };
-
   const getStatusEmoji = (status: string) => {
     switch (status) {
       case TaskStatusEnum.Running:
@@ -128,14 +118,12 @@ const CollapsedTaskList: React.FC<CollapsedTaskListProps> = ({ tasks, activeNavI
         return "📌";
     }
   };
-
   const getDisplayText = (text: string): string => {
     if (!text) return "...";
     const clean = text.trim();
     if (clean.length <= 2) return clean;
     return clean.slice(0, 2);
   };
-
   if (tasks.length === 0) {
     return (
       <div
@@ -164,7 +152,6 @@ const CollapsedTaskList: React.FC<CollapsedTaskListProps> = ({ tasks, activeNavI
       </div>
     );
   }
-
   return (
     <div
       style={{
@@ -329,13 +316,11 @@ const CollapsedTaskList: React.FC<CollapsedTaskListProps> = ({ tasks, activeNavI
     </div>
   );
 };
-
 interface CollapsedHistoryListProps {
   sessions: any[];
   currentSessionId?: string;
   onSelectSession: (sessionId: string) => void;
 }
-
 const CollapsedHistoryList: React.FC<CollapsedHistoryListProps> = ({ sessions, currentSessionId, onSelectSession }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [showUp, setShowUp] = useState(false);
@@ -348,7 +333,6 @@ const CollapsedHistoryList: React.FC<CollapsedHistoryListProps> = ({ sessions, c
     setShowUp(canScrollUp);
     setShowDown(canScrollDown);
   }, []);
-
   const updateScrollButtons = useCallback(() => {
     if (!containerRef.current) return;
     const { scrollHeight, clientHeight } = containerRef.current;
@@ -362,7 +346,6 @@ const CollapsedHistoryList: React.FC<CollapsedHistoryListProps> = ({ sessions, c
       setShowDown(false);
     }
   }, []);
-
   useEffect(() => {
     const el = containerRef.current;
     if (el) {
@@ -378,30 +361,25 @@ const CollapsedHistoryList: React.FC<CollapsedHistoryListProps> = ({ sessions, c
       };
     }
   }, [checkScroll, updateScrollButtons]);
-
   useEffect(() => {
     setTimeout(updateScrollButtons, 100);
   }, [sessions]);
-
   const scrollUp = () => {
     if (containerRef.current) {
       containerRef.current.scrollBy({ top: -200, behavior: "smooth" });
     }
   };
-
   const scrollDown = () => {
     if (containerRef.current) {
       containerRef.current.scrollBy({ top: 200, behavior: "smooth" });
     }
   };
-
   const getDisplayText = (text: string): string => {
     if (!text) return "...";
     const clean = text.trim();
     if (clean.length <= 2) return clean;
     return clean.slice(0, 2);
   };
-
   const sortedSessions = [...sessions].sort((a, b) => {
     if (a.is_pinned && !b.is_pinned) return -1;
     if (!a.is_pinned && b.is_pinned) return 1;
@@ -413,7 +391,6 @@ const CollapsedHistoryList: React.FC<CollapsedHistoryListProps> = ({ sessions, c
     const bTs = getTimestamp(b.session_id);
     return bTs - aTs;
   });
-
   if (sessions.length === 0) {
     return (
       <div
@@ -442,7 +419,6 @@ const CollapsedHistoryList: React.FC<CollapsedHistoryListProps> = ({ sessions, c
       </div>
     );
   }
-
   return (
     <div
       style={{
@@ -609,7 +585,6 @@ const CollapsedHistoryList: React.FC<CollapsedHistoryListProps> = ({ sessions, c
     </div>
   );
 };
-
 const GeneralChatPage: React.FC<GeneralChatPageProps> = ({
   layoutMode = "vertical",
   onLayoutModeChange,
@@ -642,9 +617,7 @@ const GeneralChatPage: React.FC<GeneralChatPageProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const historyPanelRef = useRef<HistoryChatPanelRef>(null);
   const [historySessions, setHistorySessions] = useState<any[]>([]);
-
   const [layoutSwapMode, setLayoutSwapMode] = useState<"chat-left" | "terminal-left">("chat-left");
-
   const [isLayoutLoading, setIsLayoutLoading] = useState(true);
   const isDragging = useRef(false);
   const dragType = useRef<"horizontal" | "history">("horizontal");
@@ -652,21 +625,8 @@ const GeneralChatPage: React.FC<GeneralChatPageProps> = ({
   const dragStartHistoryWidth = useRef(0);
   const dragStartLeftWidth = useRef(50);
   const dragStartContainerRect = useRef<DOMRect | null>(null);
-
-  const leftPanel = (
-    <ChatPanel
-      onSendMessage={onSendMessage || (() => {})}
-      onFileClick={onFileClick}
-      t={t}
-      currentSessionId={currentSessionId}
-      onDragOverInputChange={onDragOverInputChange}
-      language={language}
-      isLeftPanel={true}
-    />
-  );
-
+  const leftPanel = <ChatPanel onSendMessage={onSendMessage || (() => {})} onFileClick={onFileClick} t={t} currentSessionId={currentSessionId} onDragOverInputChange={onDragOverInputChange} language={language} isLeftPanel={true} />;
   const rightPanel = <TerminalPanel logs={executionLogs || []} onClearLogs={onClearLogs || (() => {})} t={t} currentSessionId={currentSessionId} onFileClick={onFileClick} isLeftPanel={false} />;
-
   useEffect(() => {
     if (currentSessionId) {
       taskManager.setCurrentSession(currentSessionId, SessionDomain.General);
@@ -674,7 +634,6 @@ const GeneralChatPage: React.FC<GeneralChatPageProps> = ({
       taskManager.setCurrentDomain(SessionDomain.General);
     }
   }, [currentSessionId]);
-
   useEffect(() => {
     const loadLayoutMode = async () => {
       try {
@@ -689,7 +648,6 @@ const GeneralChatPage: React.FC<GeneralChatPageProps> = ({
     };
     loadLayoutMode();
   }, []);
-
   useEffect(() => {
     const handleLayoutChange = (event: CustomEvent) => {
       const { pageType, mode } = event.detail;
@@ -702,7 +660,6 @@ const GeneralChatPage: React.FC<GeneralChatPageProps> = ({
       window.removeEventListener("layout-swap-mode-changed", handleLayoutChange as EventListener);
     };
   }, []);
-
   useEffect(() => {
     const loadSessions = async () => {
       try {
@@ -720,7 +677,6 @@ const GeneralChatPage: React.FC<GeneralChatPageProps> = ({
       window.removeEventListener("session-created", handleSessionCreated);
     };
   }, []);
-
   useEffect(() => {
     const savedHistoryWidth = localStorage.getItem("hippox-history-width");
     const savedHistoryCollapsed = localStorage.getItem("hippox-history-collapsed");
@@ -733,23 +689,18 @@ const GeneralChatPage: React.FC<GeneralChatPageProps> = ({
     if (savedRightCollapsed) setRightCollapsed(savedRightCollapsed === "true");
     if (savedLeftWidth) setLeftWidth(parseFloat(savedLeftWidth));
   }, []);
-
   const saveHistoryWidth = (width: number) => {
     localStorage.setItem("hippox-history-width", width.toString());
   };
-
   const saveHistoryCollapsed = (collapsed: boolean) => {
     localStorage.setItem("hippox-history-collapsed", collapsed.toString());
   };
-
   const saveLeftCollapsed = (collapsed: boolean) => {
     localStorage.setItem("hippox-left-collapsed", collapsed.toString());
   };
-
   const saveRightCollapsed = (collapsed: boolean) => {
     localStorage.setItem("hippox-right-collapsed", collapsed.toString());
   };
-
   const handleExpandToggle = () => {
     const newExpanded = !isHistoryExpanded;
     setIsHistoryExpanded(newExpanded);
@@ -759,7 +710,6 @@ const GeneralChatPage: React.FC<GeneralChatPageProps> = ({
       historyPanelRef.current?.collapseAll();
     }
   };
-
   const handleScrollToggle = () => {
     const newAtBottom = !isHistoryAtBottom;
     setIsHistoryAtBottom(newAtBottom);
@@ -769,12 +719,10 @@ const GeneralChatPage: React.FC<GeneralChatPageProps> = ({
       historyPanelRef.current?.scrollToTop();
     }
   };
-
   const handleToggleHistory = () => {
     setHistoryCollapsed(!historyCollapsed);
     saveHistoryCollapsed(!historyCollapsed);
   };
-
   const handleToggleLeft = () => {
     if (isFunctionPanelMaximized) return;
     const isTerminalLeft = layoutSwapMode === "terminal-left";
@@ -791,11 +739,9 @@ const GeneralChatPage: React.FC<GeneralChatPageProps> = ({
     setLeftCollapsed(true);
     saveLeftCollapsed(true);
   };
-
   const handleToggleRight = () => {
     if (isFunctionPanelMaximized) return;
     const isTerminalLeft = layoutSwapMode === "terminal-left";
-
     if (rightCollapsed) {
       setRightCollapsed(false);
       saveRightCollapsed(false);
@@ -808,7 +754,22 @@ const GeneralChatPage: React.FC<GeneralChatPageProps> = ({
     setRightCollapsed(true);
     saveRightCollapsed(true);
   };
-
+  /**
+   * Listen for session-selected event from search results
+   * This allows the search dialog to switch to a specific general chat session
+   */
+  useEffect(() => {
+    const handleSessionSelected = (e: CustomEvent) => {
+      const { sessionId, title, highlightMessageId } = e.detail;
+      if (sessionId && onSwitchSession) {
+        onSwitchSession(sessionId, SessionDomain.General);
+      }
+    };
+    window.addEventListener(APP_WINDOW_EVENTS.SESSION_SELECTED, handleSessionSelected as EventListener);
+    return () => {
+      window.removeEventListener(APP_WINDOW_EVENTS.SESSION_SELECTED, handleSessionSelected as EventListener);
+    };
+  }, [onSwitchSession]);
   const handleSessionSelect = useCallback(
     (sessionId: string) => {
       if (onSwitchSession) {
@@ -817,23 +778,19 @@ const GeneralChatPage: React.FC<GeneralChatPageProps> = ({
     },
     [onSwitchSession],
   );
-
   const handleMouseDown = (e: React.MouseEvent, type: "horizontal" | "history") => {
     if (leftCollapsed || rightCollapsed || isFunctionPanelMaximized) return;
     if (type === "history" && historyCollapsed) return;
-
     isDragging.current = true;
     dragType.current = type;
     dragStartX.current = e.clientX;
     dragStartHistoryWidth.current = historyCollapsed ? 45 : historyWidth;
     dragStartLeftWidth.current = leftWidth;
     dragStartContainerRect.current = containerRef.current?.getBoundingClientRect() || null;
-
     document.body.style.cursor = "col-resize";
     document.body.style.userSelect = "none";
     e.preventDefault();
   };
-
   const handleMouseMove = (e: MouseEvent) => {
     if (!isDragging.current || !containerRef.current) return;
     const deltaX = e.clientX - dragStartX.current;
@@ -858,13 +815,11 @@ const GeneralChatPage: React.FC<GeneralChatPageProps> = ({
       saveHistoryWidth(clamped);
     }
   };
-
   const handleMouseUp = () => {
     isDragging.current = false;
     document.body.style.cursor = "";
     document.body.style.userSelect = "";
   };
-
   useEffect(() => {
     window.addEventListener("mousemove", handleMouseMove);
     window.addEventListener("mouseup", handleMouseUp);
@@ -873,11 +828,9 @@ const GeneralChatPage: React.FC<GeneralChatPageProps> = ({
       window.removeEventListener("mouseup", handleMouseUp);
     };
   }, []);
-
   const renderCollapsedSidebar = (isLeft: boolean, title: string, icon: React.ReactNode, onToggle: () => void, expandIcon?: string) => {
     const allTasks = taskManager.getAllTasks();
     const iconChar = expandIcon || (isLeft ? "≫" : "≪");
-
     return (
       <div
         className="collapsed-sidebar"
@@ -974,7 +927,6 @@ const GeneralChatPage: React.FC<GeneralChatPageProps> = ({
       </div>
     );
   };
-
   const getLeftPanelContent = () => {
     const isTerminalLeft = layoutSwapMode === "terminal-left";
     if (leftCollapsed || isFunctionPanelMaximized) {
@@ -991,7 +943,6 @@ const GeneralChatPage: React.FC<GeneralChatPageProps> = ({
     }
     return panel;
   };
-
   const getRightPanelContent = () => {
     const isTerminalLeft = layoutSwapMode === "terminal-left";
     if (rightCollapsed || isFunctionPanelMaximized) {
@@ -1008,7 +959,6 @@ const GeneralChatPage: React.FC<GeneralChatPageProps> = ({
     }
     return panel;
   };
-
   const getHistoryPanelContent = () => {
     if (historyCollapsed || isFunctionPanelMaximized) {
       return (
@@ -1089,7 +1039,6 @@ const GeneralChatPage: React.FC<GeneralChatPageProps> = ({
         </div>
       );
     }
-
     return (
       <div
         style={{
@@ -1234,14 +1183,12 @@ const GeneralChatPage: React.FC<GeneralChatPageProps> = ({
       </div>
     );
   };
-
   const leftPanelContent = getLeftPanelContent();
   const rightPanelContent = getRightPanelContent();
   const historyPanelContent = getHistoryPanelContent();
   const historyWidthPx = historyCollapsed || isFunctionPanelMaximized ? 45 : historyWidth;
   const isLeftCollapsed = leftCollapsed || isFunctionPanelMaximized;
   const isRightCollapsed = rightCollapsed || isFunctionPanelMaximized;
-
   return (
     <div className="panels-container horizontal-layout" ref={containerRef} style={{ display: "flex", flex: 1, overflow: "hidden" }}>
       <style>{`
@@ -1340,7 +1287,6 @@ const GeneralChatPage: React.FC<GeneralChatPageProps> = ({
           )}
         </>
       )}
-
       <div
         className="panel-left"
         style={{
@@ -1354,7 +1300,6 @@ const GeneralChatPage: React.FC<GeneralChatPageProps> = ({
       >
         {leftPanelContent}
       </div>
-
       {!isLeftCollapsed && !isRightCollapsed && !isFunctionPanelMaximized && (
         <div
           className="resize-handle resize-handle-vertical"
@@ -1405,5 +1350,4 @@ const GeneralChatPage: React.FC<GeneralChatPageProps> = ({
     </div>
   );
 };
-
 export default GeneralChatPage;

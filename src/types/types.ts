@@ -52,6 +52,7 @@ export interface DialogSession {
   is_pinned: boolean;
   path: string;
   workflow_mode?: string;
+  thumbnail?: string | null;
 }
 export interface TerminalEntry {
   id: string;

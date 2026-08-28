@@ -1,5 +1,6 @@
 import React, { forwardRef } from "react";
 import { SearchIcon, ClearIcon } from "../../../../icons";
+import { X } from "lucide-react";
 interface SearchInputProps {
   value: string;
   onChange: (value: string) => void;
@@ -35,7 +36,6 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(({ val
         height: "35px",
         marginBottom: "5px",
         borderRadius: "5px",
-        // transition: "border-color 0.2s ease",
         cursor: isDragging ? "grabbing" : "grab",
       }}
       onMouseDown={onDragStart}
@@ -126,7 +126,7 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(({ val
             e.currentTarget.style.background = "transparent";
           }}
         >
-          ✕
+          <X size={16} />
         </button>
       </div>
     </div>

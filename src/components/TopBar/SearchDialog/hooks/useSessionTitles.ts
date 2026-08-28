@@ -1,17 +1,26 @@
 import { useState, useEffect, useCallback } from "react";
 import { sessionCommands } from "../../../../command/session/general";
+/**
+ * Hook for loading and managing session titles
+ */
 export const useSessionTitles = () => {
   const [sessionTitlesMap, setSessionTitlesMap] = useState<Map<string, string>>(
     new Map(),
   );
   const [loading, setLoading] = useState(false);
+  /**
+   * Load session titles
+   */
   const loadSessionTitles = useCallback(async () => {
     setLoading(true);
     try {
       const sessions = await sessionCommands.listSessions();
       const map = new Map<string, string>();
       sessions.forEach((session) => {
-        map.set(session.session_id, session.title || `session ${session.session_id.slice(-6)}`);
+        map.set(
+          session.session_id,
+          session.title || `session ${session.session_id.slice(-6)}`
+        );
       });
       setSessionTitlesMap(map);
     } catch (error) {

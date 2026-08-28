@@ -5,6 +5,9 @@ interface QuickActionsProps {
   onActionClick: (action: () => void) => void;
   language: "zh" | "en";
 }
+/**
+ * Quick actions component for common actions
+ */
 export const QuickActions: React.FC<QuickActionsProps> = ({ suggestions, onActionClick, language }) => {
   return (
     <div style={{ padding: "6px 0" }}>
@@ -44,6 +47,9 @@ export const QuickActions: React.FC<QuickActionsProps> = ({ suggestions, onActio
               width: "20px",
               textAlign: "center",
               flexShrink: 0,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
             }}
           >
             {suggestion.icon}

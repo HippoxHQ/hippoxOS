@@ -3,6 +3,7 @@ import { showToast, ToastType } from "../Toast";
 import { showDialog, DialogType } from "../Dialog";
 import { ProviderInfo, ModelInfo, llmCommands, AddLlmInstanceRequest, ExtraConfigField } from "../../command/llm";
 import { SearchIcon } from "../../icons";
+import { Bot } from "lucide-react";
 interface LLMModelConfigProps {
   t: (key: string, params?: any) => string;
   onSave?: (config: any) => void;
@@ -167,7 +168,7 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({ t, onSave, isInitializi
   };
   const getProviderIcon = (providerId: string) => {
     const provider = providers.find((p) => p.id === providerId);
-    return provider?.icon || "🤖";
+    return provider?.icon || <Bot size={16} />;
   };
   const getProviderName = (providerId: string) => {
     const provider = providers.find((p) => p.id === providerId);

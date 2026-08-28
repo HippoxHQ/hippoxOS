@@ -1,7 +1,8 @@
-import React, { useState } from "react";
-import { SearchResult, CATEGORY_CONFIG } from "../types";
+import React, { useState, useMemo } from "react";
+import { SearchResult, CATEGORY_CONFIG, SUBSYSTEM_CONFIG } from "../types";
 import { CategoryHeader } from "./CategoryHeader";
 import { SearchResultItem } from "./SearchResultItem";
+import { MessagesSquare, Search } from "lucide-react";
 interface SearchResultsProps {
   results: SearchResult[];
   selectedIndex: number;
@@ -9,16 +10,67 @@ interface SearchResultsProps {
   currentLanguage: "zh" | "en";
 }
 const MESSAGE_DISPLAY_LIMIT = 5;
+/**
+ * Search results component with category and subsystem grouping
+ */
 export const SearchResults: React.FC<SearchResultsProps> = ({ results, selectedIndex, onResultClick, currentLanguage }) => {
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
-  const groupedResults = new Map<string, SearchResult[]>();
-  for (const result of results) {
-    if (!groupedResults.has(result.category)) {
-      groupedResults.set(result.category, []);
+  // Group results by category first, then by subsystem for messages
+  const groupedResults = useMemo(() => {
+    const groups = new Map<string, SearchResult[]>();
+    for (const result of results) {
+      let groupKey: string = result.category;
+      // For messages, group by subsystem if available
+      if (result.category === "message" && result.subsystem) {
+        groupKey = `message_${result.subsystem}`;
+      }
+      if (!groups.has(groupKey)) {
+        groups.set(groupKey, []);
+      }
+      groups.get(groupKey)!.push(result);
     }
-    groupedResults.get(result.category)!.push(result);
-  }
-  const allResults = results;
+    return groups;
+  }, [results]);
+  /**
+   * Get display label for a group
+   */
+  const getGroupLabel = (groupKey: string): string => {
+    if (groupKey.startsWith("message_")) {
+      const subsystem = groupKey.replace("message_", "");
+      const config = SUBSYSTEM_CONFIG[subsystem];
+      if (config) {
+        return currentLanguage === "zh" ? config.zh : config.en;
+      }
+      return currentLanguage === "zh" ? "对话记录" : "Messages";
+    }
+    const config = CATEGORY_CONFIG[groupKey];
+    if (config) {
+      return currentLanguage === "zh" ? config.zh : config.en;
+    }
+    return groupKey;
+  };
+  /**
+   * Get icon for a group
+   */
+  const getGroupIcon = (groupKey: string): React.ReactNode => {
+    if (groupKey.startsWith("message_")) {
+      const subsystem = groupKey.replace("message_", "");
+      const config = SUBSYSTEM_CONFIG[subsystem];
+      // Return the icon directly, don't use || operator that might cause issues
+      if (config && config.icon) {
+        return config.icon;
+      }
+      return <MessagesSquare size={14} />;
+    }
+    const config = CATEGORY_CONFIG[groupKey];
+    if (config && config.icon) {
+      return config.icon;
+    }
+    return <Search size={16} />;
+  };
+  /**
+   * Toggle category expansion
+   */
   const toggleExpand = (category: string) => {
     setExpandedCategories((prev) => {
       const newSet = new Set(prev);
@@ -30,6 +82,38 @@ export const SearchResults: React.FC<SearchResultsProps> = ({ results, selectedI
       return newSet;
     });
   };
+  /**
+   * Check if a group should be expanded
+   */
+  const isGroupExpanded = (groupKey: string): boolean => {
+    if (groupKey.startsWith("message_")) {
+      return expandedCategories.has("message") || expandedCategories.has(groupKey);
+    }
+    return expandedCategories.has(groupKey);
+  };
+  /**
+   * Get display results for a group (with limit for message groups)
+   */
+  const getDisplayResults = (groupKey: string, allResults: SearchResult[]): { display: SearchResult[]; hiddenCount: number; showMore: boolean } => {
+    if (!groupKey.startsWith("message_")) {
+      return { display: allResults, hiddenCount: 0, showMore: false };
+    }
+    const isExpanded = isGroupExpanded(groupKey);
+    if (isExpanded) {
+      return { display: allResults, hiddenCount: 0, showMore: false };
+    }
+    if (allResults.length > MESSAGE_DISPLAY_LIMIT) {
+      return {
+        display: allResults.slice(0, MESSAGE_DISPLAY_LIMIT),
+        hiddenCount: allResults.length - MESSAGE_DISPLAY_LIMIT,
+        showMore: true,
+      };
+    }
+    return { display: allResults, hiddenCount: 0, showMore: false };
+  };
+  const allResults = results;
+  // Debug: log the SUBSYSTEM_CONFIG to verify it's loaded
+  console.log("SUBSYSTEM_CONFIG:", SUBSYSTEM_CONFIG);
   return (
     <div
       style={{
@@ -39,27 +123,16 @@ export const SearchResults: React.FC<SearchResultsProps> = ({ results, selectedI
         borderRadius: "5px",
       }}
     >
-      {Array.from(groupedResults.entries()).map(([category, categoryResults]) => {
-        const config = CATEGORY_CONFIG[category];
-        const label = config ? (currentLanguage === "zh" ? config.zh : config.en) : category;
-        const icon = config?.icon || "🔍";
-        let displayResults = categoryResults;
-        let showMore = false;
-        let hiddenCount = 0;
-        if (category === "message" && categoryResults.length > MESSAGE_DISPLAY_LIMIT) {
-          const isExpanded = expandedCategories.has(category);
-          if (isExpanded) {
-            displayResults = categoryResults;
-          } else {
-            displayResults = categoryResults.slice(0, MESSAGE_DISPLAY_LIMIT);
-            hiddenCount = categoryResults.length - MESSAGE_DISPLAY_LIMIT;
-            showMore = true;
-          }
-        }
+      {Array.from(groupedResults.entries()).map(([groupKey, groupResults]) => {
+        const { display, hiddenCount, showMore } = getDisplayResults(groupKey, groupResults);
+        const label = getGroupLabel(groupKey);
+        const icon = getGroupIcon(groupKey);
+        // Debug: log the icon for each group
+        console.log(`Group: ${groupKey}, Icon:`, icon);
         return (
-          <div key={category}>
-            <CategoryHeader icon={icon} label={label} count={categoryResults.length} />
-            {displayResults.map((result) => {
+          <div key={groupKey}>
+            <CategoryHeader icon={icon} label={label} count={groupResults.length} />
+            {display.map((result) => {
               const globalIdx = allResults.findIndex((r) => r.id === result.id);
               return <SearchResultItem key={result.id} result={result} index={globalIdx} onClick={onResultClick} />;
             })}
@@ -73,9 +146,8 @@ export const SearchResults: React.FC<SearchResultsProps> = ({ results, selectedI
                   cursor: "pointer",
                   borderBottom: "1px solid var(--border-color)",
                   background: "var(--bg-secondary)",
-                  // transition: "background 0.15s ease",
                 }}
-                onClick={() => toggleExpand(category)}
+                onClick={() => toggleExpand(groupKey)}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.background = "var(--hover-bg)";
                 }}
@@ -86,7 +158,7 @@ export const SearchResults: React.FC<SearchResultsProps> = ({ results, selectedI
                 {currentLanguage === "zh" ? `还有 ${hiddenCount} 条对话记录，点击展开` : `${hiddenCount} more messages, click to expand`}
               </div>
             )}
-            {category === "message" && expandedCategories.has(category) && categoryResults.length > MESSAGE_DISPLAY_LIMIT && (
+            {groupKey.startsWith("message_") && isGroupExpanded(groupKey) && groupResults.length > MESSAGE_DISPLAY_LIMIT && (
               <div
                 style={{
                   padding: "6px 12px",
@@ -96,9 +168,8 @@ export const SearchResults: React.FC<SearchResultsProps> = ({ results, selectedI
                   cursor: "pointer",
                   borderBottom: "1px solid var(--border-color)",
                   background: "var(--bg-secondary)",
-                  // transition: "background 0.15s ease",
                 }}
-                onClick={() => toggleExpand(category)}
+                onClick={() => toggleExpand(groupKey)}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.background = "var(--hover-bg)";
                 }}

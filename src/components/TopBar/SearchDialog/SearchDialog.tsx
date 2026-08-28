@@ -12,6 +12,8 @@ import { QuickActions } from "./components/QuickActions";
 import { filesCommands } from "../../../command/files";
 import { UploadFile } from "../../../core/types";
 import { sessionCommands } from "../../../command/session/general";
+import { MessageSquare, Sun, Moon, Globe } from "lucide-react";
+import { APP_WINDOW_EVENTS } from "../../../App/AppWindowEventManager";
 export interface SearchDialogProps {
   isOpen: boolean;
   onClose: () => void;
@@ -21,6 +23,22 @@ export interface SearchDialogProps {
   onToggleLanguage: () => void;
   onFileClick?: (file: UploadFile) => void;
 }
+// Define the subsystem type to match SearchResult
+type SubsystemType = "general" | "chart" | "map" | "codeeditor" | "sandbox3d" | "video";
+/**
+ * Extract subsystem from path with proper type
+ */
+const extractSubsystemFromPath = (path: string): SubsystemType => {
+  if (path.includes("ChartDialogHistory")) return "chart";
+  if (path.includes("MapDialogHistory")) return "map";
+  if (path.includes("CodeEditorDialogHistory")) return "codeeditor";
+  if (path.includes("SandBox3DDialogHistory")) return "sandbox3d";
+  if (path.includes("VideoDialogHistory")) return "video";
+  return "general";
+};
+/**
+ * Main search dialog component with subsystem support
+ */
 const SearchDialog: React.FC<SearchDialogProps> = ({ isOpen, onClose, currentLanguage, currentTheme, onToggleTheme, onToggleLanguage, onFileClick }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
@@ -47,6 +65,9 @@ const SearchDialog: React.FC<SearchDialogProps> = ({ isOpen, onClose, currentLan
       setIsLoading(loading);
     }, []),
   });
+  /**
+   * Read session chat from file
+   */
   const readSessionChatFromFile = async (sessionDir: string): Promise<any[]> => {
     try {
       const chatPath = `${sessionDir}/chat.json`;
@@ -58,6 +79,9 @@ const SearchDialog: React.FC<SearchDialogProps> = ({ isOpen, onClose, currentLan
       return [];
     }
   };
+  /**
+   * Load recent messages from all sessions across all subsystems
+   */
   const loadRecentMessages = useCallback(async () => {
     if (!isOpen) return;
     setIsLoadingRecent(true);
@@ -71,9 +95,11 @@ const SearchDialog: React.FC<SearchDialogProps> = ({ isOpen, onClose, currentLan
       const allMessages: SearchResult[] = [];
       for (const session of sessions) {
         const sessionId = session.session_id;
-        const sessionTitle = session.title || `会话 ${sessionId.slice(-6)}`;
+        const sessionTitle = session.title || `Session ${sessionId.slice(-6)}`;
         const sessionPath = (session as any).path;
         if (!sessionPath) continue;
+        // Extract subsystem from session path with proper type
+        const subsystem: SubsystemType = extractSubsystemFromPath(sessionPath);
         const messages = await readSessionChatFromFile(sessionPath);
         for (const msg of messages) {
           if (!msg.content) continue;
@@ -85,13 +111,16 @@ const SearchDialog: React.FC<SearchDialogProps> = ({ isOpen, onClose, currentLan
             } else if (parsed?.terminalResponse?.m) {
               displayContent = parsed.terminalResponse.m;
             }
-          } catch {}
+          } catch {
+            // Ignore parse errors, use original content
+          }
           allMessages.push({
             category: "message",
+            subsystem: subsystem,
             id: msg.id || `msg_${Date.now()}`,
             title: sessionTitle,
             description: displayContent.length > 100 ? displayContent.substring(0, 100) + "..." : displayContent,
-            path: sessionId,
+            path: sessionPath,
             timestamp: msg.timestamp,
             highlight: null,
             sessionId: sessionId,
@@ -100,6 +129,7 @@ const SearchDialog: React.FC<SearchDialogProps> = ({ isOpen, onClose, currentLan
           });
         }
       }
+      // Sort by timestamp descending (newest first)
       allMessages.sort((a, b) => {
         if (!a.timestamp) return 1;
         if (!b.timestamp) return -1;
@@ -125,29 +155,40 @@ const SearchDialog: React.FC<SearchDialogProps> = ({ isOpen, onClose, currentLan
       }, 50);
     }
   }, [isOpen, loadRecentMessages]);
+  /**
+   * Handle click on a search result
+   * Navigates to the appropriate subsystem and selects the specified session
+   */
   const handleResultClick = useCallback(
     async (result: SearchResult) => {
       switch (result.category) {
         case "message": {
           const sessionId = result.sessionId || result.path;
           if (sessionId) {
+            // Extract subsystem from result, default to "general"
+            const subsystem = result.subsystem || "general";
+            // Dispatch event to switch session with subsystem info using APP_WINDOW_EVENTS
             window.dispatchEvent(
-              new CustomEvent("search-switch-session", {
+              new CustomEvent(APP_WINDOW_EVENTS.SEARCH_SWITCH_SESSION, {
                 detail: {
                   sessionId: sessionId,
-                  title: result.sessionTitle || result.title || "会话",
+                  title: result.sessionTitle || result.title || "Session",
                   highlightMessageId: result.id,
+                  subsystem: subsystem,
                 },
               }),
             );
+            // Dispatch session selected event
             window.dispatchEvent(
-              new CustomEvent("session-selected", {
+              new CustomEvent(APP_WINDOW_EVENTS.SESSION_SELECTED, {
                 detail: {
                   sessionId: sessionId,
-                  title: result.sessionTitle || result.title || "会话",
+                  title: result.sessionTitle || result.title || "Session",
+                  subsystem: subsystem,
                 },
               }),
             );
+            // Close search dialog after a short delay
             setTimeout(() => {
               onClose();
             }, 100);
@@ -155,8 +196,9 @@ const SearchDialog: React.FC<SearchDialogProps> = ({ isOpen, onClose, currentLan
           break;
         }
         case "skill":
+          // Navigate to skills market and open the skill
           window.dispatchEvent(
-            new CustomEvent("search-open-skill", {
+            new CustomEvent(APP_WINDOW_EVENTS.SEARCH_OPEN_SKILL, {
               detail: { path: result.path, title: result.title },
             }),
           );
@@ -165,15 +207,24 @@ const SearchDialog: React.FC<SearchDialogProps> = ({ isOpen, onClose, currentLan
           }, 100);
           break;
         case "session": {
+          // Extract session ID from result ID (format: "session_xxx")
           const sessionId = result.id.replace("session_", "");
           window.dispatchEvent(
-            new CustomEvent("search-switch-session", {
-              detail: { sessionId, title: result.title },
+            new CustomEvent(APP_WINDOW_EVENTS.SEARCH_SWITCH_SESSION, {
+              detail: {
+                sessionId: sessionId,
+                title: result.title,
+                subsystem: "general",
+              },
             }),
           );
           window.dispatchEvent(
-            new CustomEvent("session-selected", {
-              detail: { sessionId, title: result.title },
+            new CustomEvent(APP_WINDOW_EVENTS.SESSION_SELECTED, {
+              detail: {
+                sessionId: sessionId,
+                title: result.title,
+                subsystem: "general",
+              },
             }),
           );
           setTimeout(() => {
@@ -182,6 +233,7 @@ const SearchDialog: React.FC<SearchDialogProps> = ({ isOpen, onClose, currentLan
           break;
         }
         case "log": {
+          // Read log file content and create a file object
           try {
             const content = await filesCommands.readTextFile(result.path);
             const file: UploadFile = {
@@ -206,9 +258,11 @@ const SearchDialog: React.FC<SearchDialogProps> = ({ isOpen, onClose, currentLan
           }, 100);
           break;
         }
+        default:
+          break;
       }
     },
-    [onClose],
+    [onClose, onFileClick],
   );
   useKeyboardNavigation({
     isOpen,
@@ -221,12 +275,18 @@ const SearchDialog: React.FC<SearchDialogProps> = ({ isOpen, onClose, currentLan
     onResultClick: handleResultClick,
     onClose,
   });
+  /**
+   * Clear search input
+   */
   const clearSearch = useCallback(() => {
     setSearchQuery("");
     setSearchResults([]);
     setSelectedIndex(-1);
     searchInputRef.current?.focus();
   }, []);
+  /**
+   * Get search suggestions for quick actions
+   */
   const getSearchSuggestions = useCallback((): SearchSuggestion[] => {
     const isZh = currentLanguage === "zh";
     return [
@@ -234,27 +294,30 @@ const SearchDialog: React.FC<SearchDialogProps> = ({ isOpen, onClose, currentLan
         id: "new-session",
         title: isZh ? "新建会话" : "New Session",
         description: isZh ? "创建一个新的对话会话" : "Create a new chat session",
-        icon: "💬",
+        icon: <MessageSquare size={16} />,
         action: () => {
-          window.dispatchEvent(new CustomEvent("search-new-session"));
+          window.dispatchEvent(new CustomEvent(APP_WINDOW_EVENTS.SEARCH_NEW_SESSION));
         },
       },
       {
         id: "toggle-theme",
         title: isZh ? "切换主题" : "Toggle Theme",
         description: isZh ? "切换深色/浅色模式" : "Switch between dark and light mode",
-        icon: currentTheme === "dark" ? "☀️" : "🌙",
+        icon: currentTheme === "dark" ? <Sun size={16} /> : <Moon size={16} />,
         action: () => onToggleTheme(),
       },
       {
         id: "toggle-language",
         title: isZh ? "切换语言" : "Toggle Language",
         description: isZh ? "切换中文/英文界面" : "Switch between Chinese and English",
-        icon: "🌐",
+        icon: <Globe size={16} />,
         action: () => onToggleLanguage(),
       },
     ];
   }, [currentLanguage, currentTheme, onToggleTheme, onToggleLanguage]);
+  /**
+   * Handle quick action click
+   */
   const handleQuickAction = useCallback(
     (action: () => void) => {
       action();
@@ -324,15 +387,7 @@ const SearchDialog: React.FC<SearchDialogProps> = ({ isOpen, onClose, currentLan
           }}
         >
           {hasQuery ? (
-            <>
-              {isLoadingState ? (
-                <SearchSkeleton language={currentLanguage} />
-              ) : hasResults ? (
-                <SearchResults results={searchResults} selectedIndex={selectedIndex} onResultClick={handleResultClick} currentLanguage={currentLanguage} />
-              ) : (
-                <EmptyState language={currentLanguage} />
-              )}
-            </>
+            <>{isLoadingState ? <SearchSkeleton language={currentLanguage} /> : hasResults ? <SearchResults results={searchResults} selectedIndex={selectedIndex} onResultClick={handleResultClick} currentLanguage={currentLanguage} /> : <EmptyState language={currentLanguage} />}</>
           ) : (
             <>
               {isLoadingRecent ? (
@@ -368,7 +423,6 @@ const SearchDialog: React.FC<SearchDialogProps> = ({ isOpen, onClose, currentLan
                         padding: "8px 12px",
                         cursor: "pointer",
                         borderBottom: "1px solid var(--border-color)",
-                        // transition: "background 0.15s ease",
                       }}
                       onClick={() => handleResultClick(result)}
                       onMouseEnter={(e) => {

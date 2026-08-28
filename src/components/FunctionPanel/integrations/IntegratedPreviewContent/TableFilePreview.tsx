@@ -4,6 +4,7 @@ import { UploadFile } from "../../../../core/types";
 import Papa from "papaparse";
 import { showTooltip } from "../../../../components/Tooltip";
 import { showToast, ToastType } from "../../../Toast";
+import { BarChart3 } from "lucide-react";
 interface TableFilePreviewProps {
   file: UploadFile | null;
   onClose: () => void;
@@ -269,7 +270,9 @@ const TableFilePreview: React.FC<TableFilePreviewProps> = ({ file, onClose, t = 
             overflow: "hidden",
           }}
         >
-          <span>📊</span>
+          <span>
+            <BarChart3 size={16} />
+          </span>
           <span
             style={{
               overflow: "hidden",

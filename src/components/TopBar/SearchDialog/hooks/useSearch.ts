@@ -7,6 +7,9 @@ interface UseSearchProps {
   onResultsChange: (results: SearchResult[]) => void;
   onLoadingChange: (loading: boolean) => void;
 }
+/**
+ * Hook for handling search with debounce
+ */
 export const useSearch = ({
   searchQuery,
   sessionTitlesMap,
@@ -17,6 +20,9 @@ export const useSearch = ({
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const previousQueryRef = useRef<string>("");
   const isMountedRef = useRef<boolean>(true);
+  /**
+   * Perform search
+   */
   const performSearch = useCallback(
     async (keyword: string) => {
       if (!isMountedRef.current) return;

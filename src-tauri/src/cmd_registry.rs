@@ -509,6 +509,7 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         subsystem::cmd_add_transition,
         subsystem::cmd_remove_transition,
         subsystem::cmd_update_transition,
+        subsystem::cmd_recalculate_transition,
         subsystem::cmd_get_track_transitions,
         subsystem::cmd_get_session_transitions,
         subsystem::cmd_get_transition_type_list,

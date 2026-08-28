@@ -1,4 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from "react";
+import { MessageSquare, MapPin, BarChart3, Code2, Video, Box, Hash } from "lucide-react";
 import CustomDragCursor from "../../components/CustomDragCursor";
 import GlobalDragOverlay from "../../components/GlobalDragOverlay";
 import BottomBar from "../../components/BottomBar";
@@ -68,6 +69,9 @@ if (typeof window !== "undefined") {
     window.__pageSwitchLock = false;
   }
 }
+/**
+ * Force destroy a page and clean up all its resources
+ */
 export const forceDestroyPage = (pageKey: string): void => {
   if (window.__pageCleanupInProgress?.[pageKey]) {
     return;
@@ -85,6 +89,7 @@ export const forceDestroyPage = (pageKey: string): void => {
   resources.destroyStartTime = Date.now();
   resources.isDestroying = true;
   try {
+    // Close all WebSocket connections
     if (resources.wsConnections && resources.wsConnections.length > 0) {
       resources.wsConnections.forEach((ws, index) => {
         try {
@@ -101,6 +106,7 @@ export const forceDestroyPage = (pageKey: string): void => {
       });
       resources.wsConnections = [];
     }
+    // Clear all timers
     if (resources.timers && resources.timers.length > 0) {
       resources.timers.forEach((timer) => {
         try {
@@ -115,6 +121,7 @@ export const forceDestroyPage = (pageKey: string): void => {
       });
       resources.timers = [];
     }
+    // Remove all event listeners
     if (resources.eventListeners && resources.eventListeners.length > 0) {
       resources.eventListeners.forEach(({ target, event, handler }) => {
         try {
@@ -123,6 +130,7 @@ export const forceDestroyPage = (pageKey: string): void => {
       });
       resources.eventListeners = [];
     }
+    // Destroy all destroyable instances
     if (resources.destroyableInstances && resources.destroyableInstances.length > 0) {
       resources.destroyableInstances.forEach((instance) => {
         try {
@@ -135,6 +143,7 @@ export const forceDestroyPage = (pageKey: string): void => {
       });
       resources.destroyableInstances = [];
     }
+    // Execute all cleanup callbacks
     if (resources.cleanupCallbacks && resources.cleanupCallbacks.length > 0) {
       resources.cleanupCallbacks.forEach((callback) => {
         try {
@@ -145,6 +154,7 @@ export const forceDestroyPage = (pageKey: string): void => {
       });
       resources.cleanupCallbacks = [];
     }
+    // Dispatch destroy events
     try {
       window.dispatchEvent(new CustomEvent(`__page_destroy_${pageKey}`));
       window.dispatchEvent(new CustomEvent("__page_destroy", { detail: { pageKey } }));
@@ -159,6 +169,9 @@ export const forceDestroyPage = (pageKey: string): void => {
     window.__pageSwitchLock = false;
   }
 };
+/**
+ * Register page resources for cleanup tracking
+ */
 export const registerPageResources = (
   pageKey: string,
   resources: {
@@ -248,6 +261,9 @@ interface AppContentProps {
   onSendSkillMessage: (message: string, files?: UploadFile[]) => void;
   functionPanel: FunctionPanelController;
 }
+/**
+ * Page type constants
+ */
 const PAGE_TYPES = {
   GENERAL_CHAT: "generalChat",
   CHART_CHAT: "chartChat",
@@ -310,18 +326,23 @@ export function AppContent({
   functionPanel,
 }: AppContentProps) {
   const showWelcome = shouldShowWelcome();
+  // Function panel state
   const [functionPanelWidth, setFunctionPanelWidth] = useState<number>(480);
   const [functionPanelCollapsed, setFunctionPanelCollapsed] = useState<boolean>(false);
   const [isFunctionPanelMaximized, setIsFunctionPanelMaximized] = useState(false);
   const [prevMaximizedState, setPrevMaximizedState] = useState<boolean>(false);
   const [isFuncPanelResizeHover, setIsFuncPanelResizeHover] = useState(false);
   const [isMenuResizeHover, setIsMenuResizeHover] = useState(false);
+  // Refs for page switching and resize
   const prevContentPanelRef = useRef<ContentPanelView>(currentContentPanel);
   const isFirstRenderRef = useRef<boolean>(true);
   const pendingCleanupRef = useRef<Set<string>>(new Set());
   const isDraggingFunctionPanel = useRef(false);
   const dragStartX = useRef(0);
   const dragStartWidth = useRef(0);
+  /**
+   * Handle page switching with cleanup
+   */
   useEffect(() => {
     if (isFirstRenderRef.current) {
       isFirstRenderRef.current = false;
@@ -344,10 +365,14 @@ export function AppContent({
     waitForCleanup();
     prevContentPanelRef.current = currentPage;
   }, [currentContentPanel]);
+  /**
+   * Perform page switch and cleanup
+   */
   const performPageSwitch = (prevPage: ContentPanelView | null, currentPage: ContentPanelView | null) => {
     window.__pageSwitchLock = true;
     const allPageKeys = Object.keys(window.__pageResources || {});
     const currentPageKey = currentPage || PAGE_TYPES.GENERAL_CHAT;
+    // Destroy all pages except the current one
     allPageKeys.forEach((pageKey) => {
       if (pageKey !== currentPageKey && !pendingCleanupRef.current.has(pageKey)) {
         pendingCleanupRef.current.add(pageKey);
@@ -357,24 +382,38 @@ export function AppContent({
         }, 0);
       }
     });
+    // Destroy the previous page specifically
     if (prevPage) {
       const prevPageKey = prevPage;
       forceDestroyPage(prevPageKey);
     }
+    // Clean up general chat if it was the previous page
     if (!prevPage || prevPage === PAGE_TYPES.GENERAL_CHAT) {
       forceDestroyPage(PAGE_TYPES.GENERAL_CHAT);
     }
     window.__pageSwitchLock = false;
   };
+  /**
+   * Toggle function panel maximize state
+   */
   const toggleFunctionPanelMaximize = useCallback(() => {
     setIsFunctionPanelMaximized((prev) => !prev);
   }, []);
+  /**
+   * Save function panel width to localStorage
+   */
   const saveFunctionPanelWidth = useCallback((w: number) => {
     localStorage.setItem("hippox-function-panel-width", w.toString());
   }, []);
+  /**
+   * Save function panel collapsed state to localStorage
+   */
   const saveFunctionPanelCollapsed = useCallback((collapsed: boolean) => {
     localStorage.setItem("hippox-function-panel-collapsed", collapsed.toString());
   }, []);
+  /**
+   * Toggle function panel collapse state
+   */
   const toggleFunctionPanelCollapse = useCallback(() => {
     setFunctionPanelCollapsed((prev) => {
       const newState = !prev;
@@ -392,6 +431,9 @@ export function AppContent({
       return newState;
     });
   }, [saveFunctionPanelCollapsed, isFunctionPanelMaximized, prevMaximizedState]);
+  /**
+   * Handle function panel resize mouse down
+   */
   const handleFunctionPanelResizeMouseDown = useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault();
@@ -404,6 +446,9 @@ export function AppContent({
     },
     [functionPanelWidth],
   );
+  /**
+   * Function panel resize mouse move and up handlers
+   */
   useEffect(() => {
     const onMouseMove = (e: MouseEvent) => {
       if (!isDraggingFunctionPanel.current) return;
@@ -429,6 +474,9 @@ export function AppContent({
       window.removeEventListener("mouseup", onMouseUp);
     };
   }, [functionPanelWidth, saveFunctionPanelWidth, functionPanelPosition]);
+  /**
+   * Handle maximize toggle from window event
+   */
   useEffect(() => {
     const handleToggleMaximize = () => {
       setIsFunctionPanelMaximized((prev) => !prev);
@@ -438,6 +486,9 @@ export function AppContent({
       window.removeEventListener("toggle-function-panel-maximize", handleToggleMaximize);
     };
   }, []);
+  /**
+   * Restore function panel state from localStorage
+   */
   useEffect(() => {
     const saved = localStorage.getItem("hippox-function-panel-width");
     if (saved) {
@@ -449,11 +500,17 @@ export function AppContent({
       setFunctionPanelCollapsed(savedCollapsed === "true");
     }
   }, []);
-  useEffect(() => {
-    if (currentContentPanel === "generalChat") {
-      onCloseContentPanel();
-    }
-  }, [currentContentPanel, onCloseContentPanel]);
+  /**
+   * Close content panel when switching to general chat
+   */
+  // useEffect(() => {
+  //   if (currentContentPanel === "generalChat") {
+  //     onCloseContentPanel();
+  //   }
+  // }, [currentContentPanel, onCloseContentPanel]);
+  /**
+   * Handle session switch - minimize function panel
+   */
   useEffect(() => {
     const handleSessionSwitch = () => {
       if (isFunctionPanelMaximized) {
@@ -466,15 +523,24 @@ export function AppContent({
       window.removeEventListener("session-created", handleSessionSwitch);
     };
   }, [isFunctionPanelMaximized]);
+  /**
+   * Minimize function panel when content panel changes
+   */
   useEffect(() => {
     if (isFunctionPanelMaximized) {
       setIsFunctionPanelMaximized(false);
     }
   }, [currentContentPanel]);
+  /**
+   * Handle file click - preview file and open function panel
+   */
   const handleFileClick = (file: UploadFile) => {
     onFilePreview(file);
     functionPanel.openPreview(file);
   };
+  /**
+   * Render engine configuration panel based on subview
+   */
   const renderEngineConfig = () => {
     switch (engineSubView) {
       case "engine_database":
@@ -489,6 +555,7 @@ export function AppContent({
         return null;
     }
   };
+  // Styles
   const styles = {
     mainLayout: {
       display: "flex" as const,
@@ -542,6 +609,9 @@ export function AppContent({
       zIndex: 11,
     },
   };
+  /**
+   * Render the main layout content
+   */
   const renderMainLayout = () => {
     const isChatPage = !currentContentPanel || currentContentPanel === "generalChat";
     const isMapPage = currentContentPanel === "mapChat";
@@ -592,8 +662,8 @@ export function AppContent({
           onLayoutModeChange={() => {}}
           leftTitle={t("chat.title") || "Chat"}
           rightTitle="Map"
-          leftIcon="💬"
-          rightIcon="🗺️"
+          leftIcon={<MessageSquare size={18} />}
+          rightIcon={<MapPin size={18} />}
           isFunctionPanelMaximized={functionPanel.isOpen ? isFunctionPanelMaximized : false}
           onCloseSkillsManager={onCloseContentPanel}
           t={t}
@@ -613,8 +683,8 @@ export function AppContent({
           onLayoutModeChange={() => {}}
           leftTitle={t("chat.title") || "Chat"}
           rightTitle="Chart"
-          leftIcon="💬"
-          rightIcon="📊"
+          leftIcon={<MessageSquare size={18} />}
+          rightIcon={<BarChart3 size={18} />}
           isFunctionPanelMaximized={functionPanel.isOpen ? isFunctionPanelMaximized : false}
           t={t}
           theme={theme === "dark" ? "dark" : "light"}
@@ -685,6 +755,9 @@ export function AppContent({
           contentElement = null;
       }
     }
+    /**
+     * Render the resize handle between content and function panel
+     */
     const renderResizeHandle = () => (
       <div
         className="resize-handle resize-handle-vertical"
@@ -700,6 +773,9 @@ export function AppContent({
         {isFuncPanelResizeHover && <div style={styles.functionPanelResizeHandleLine} className="function-panel-handle-line" />}
       </div>
     );
+    /**
+     * Render the function panel component
+     */
     const renderFunctionPanelComponent = (collapsed: boolean) => (
       <FunctionPanel
         controller={functionPanel}
@@ -716,17 +792,20 @@ export function AppContent({
         onToggleMaximize={toggleFunctionPanelMaximize}
       />
     );
+    // If function panel is not open, render only content
     if (!functionPanel.isOpen) {
       if (isFunctionPanelMaximized) {
         setIsFunctionPanelMaximized(false);
       }
       return <div style={styles.contentArea}>{contentElement}</div>;
     }
+    // If function panel is maximized, render only function panel
     if (isFunctionPanelMaximized) {
       return <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>{renderFunctionPanelComponent(functionPanelCollapsed)}</div>;
     }
     const functionPanelElement = renderFunctionPanelComponent(functionPanelCollapsed);
     const resizeHandle = functionPanelCollapsed ? null : renderResizeHandle();
+    // Render based on function panel position
     if (functionPanelPosition === "left") {
       return (
         <>
@@ -745,6 +824,9 @@ export function AppContent({
       );
     }
   };
+  /**
+   * Cleanup all page resources on unmount
+   */
   useEffect(() => {
     return () => {
       const allPageKeys = Object.keys(window.__pageResources || {});

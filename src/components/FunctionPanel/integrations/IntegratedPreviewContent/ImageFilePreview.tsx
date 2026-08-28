@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef, memo } from "react";
 import { filesCommands } from "../../../../command/files";
 import { UploadFile } from "../../../../core/types";
+import { Image as ImageIcon } from "lucide-react";
 interface ImageFilePreviewProps {
   file: UploadFile | null;
   onClose: () => void;
@@ -242,7 +243,9 @@ const ImageFilePreview: React.FC<ImageFilePreviewProps> = memo(
               overflow: "hidden",
             }}
           >
-            <span>🖼️</span>
+            <span>
+              <ImageIcon size={16} />️
+            </span>
             <span
               style={{
                 overflow: "hidden",

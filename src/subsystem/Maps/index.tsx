@@ -9,6 +9,7 @@ import { configCommands } from "../../command/config";
 import { useMapSession } from "../../App/hooks/session/useMapChatSession";
 import { EarthViewRef } from "./MapsChatPanel/types";
 import MapsChatPage from "./MapsChatPanel";
+import { APP_WINDOW_EVENTS } from "../../App/AppWindowEventManager";
 interface MapsPageProps {
   layoutMode?: "horizontal" | "vertical";
   onLayoutModeChange?: (mode: "horizontal" | "vertical") => void;
@@ -903,6 +904,22 @@ const MapsPage: React.FC<MapsPageProps> = ({
     setHistoryCollapsed(!historyCollapsed);
     saveHistoryCollapsed(!historyCollapsed);
   };
+  /**
+   * Listen for map-switch-session event from search results
+   * This allows the search dialog to switch to a specific map session
+   */
+  useEffect(() => {
+    const handleMapSwitchSession = (e: CustomEvent) => {
+      const { sessionId, title, highlightMessageId } = e.detail;
+      if (sessionId) {
+        mapHandleSwitchSession(sessionId);
+      }
+    };
+    window.addEventListener(APP_WINDOW_EVENTS.MAP_SWITCH_SESSION, handleMapSwitchSession as EventListener);
+    return () => {
+      window.removeEventListener(APP_WINDOW_EVENTS.MAP_SWITCH_SESSION, handleMapSwitchSession as EventListener);
+    };
+  }, [mapHandleSwitchSession]);
   const handleSessionSelect = useCallback(
     (sessionId: string) => {
       mapHandleSwitchSession(sessionId);

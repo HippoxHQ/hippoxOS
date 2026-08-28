@@ -214,14 +214,14 @@
   flex-direction: column;
   max-width: 80%;
   min-width: 0;
-  overflow: hidden;
+  /* overflow: hidden; */
   flex: 1;
 }
 .message-wrapper.user .message-content-area {
   align-items: flex-end;
   max-width: 80%;
   min-width: 0;
-  overflow: hidden;
+  /* overflow: hidden; */
   flex: 1;
 }
 .message-bubble {

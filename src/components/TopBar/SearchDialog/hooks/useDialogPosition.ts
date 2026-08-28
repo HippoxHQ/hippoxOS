@@ -1,9 +1,15 @@
 import { useState, useCallback, useRef, useEffect } from "react";
+/**
+ * Hook for managing dialog position with drag support
+ */
 export const useDialogPosition = (isOpen: boolean) => {
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const dialogRef = useRef<HTMLDivElement>(null);
+  /**
+   * Open dialog at center position
+   */
   const openDialog = useCallback(() => {
     const dialogWidth = 540;
     const x = (window.innerWidth - dialogWidth) / 2;
@@ -15,6 +21,9 @@ export const useDialogPosition = (isOpen: boolean) => {
       openDialog();
     }
   }, [isOpen, openDialog]);
+  /**
+   * Start drag
+   */
   const handleDragStart = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     setIsDragging(true);
@@ -23,6 +32,9 @@ export const useDialogPosition = (isOpen: boolean) => {
       y: e.clientY - position.y,
     });
   }, [position]);
+  /**
+   * Handle drag move
+   */
   const handleDragMove = useCallback(
     (e: MouseEvent) => {
       if (isDragging && dialogRef.current) {
@@ -38,8 +50,11 @@ export const useDialogPosition = (isOpen: boolean) => {
         });
       }
     },
-    [isDragging, dragStart],
+    [isDragging, dragStart]
   );
+  /**
+   * End drag
+   */
   const handleDragEnd = useCallback(() => {
     setIsDragging(false);
   }, []);

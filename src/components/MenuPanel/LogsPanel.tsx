@@ -3,6 +3,7 @@ import { filesCommands } from "../../command/files";
 import { getDataPaths } from "../../command/paths";
 import { UploadFile } from "../../core/types";
 import { SearchIcon } from "../../icons";
+import { Calendar, FileText, HardDrive, X } from "lucide-react";
 interface LogEntry {
   id: string;
   name: string;
@@ -15,17 +16,26 @@ interface LogsPanelProps {
   onClose?: () => void;
   onFileClick?: (file: UploadFile) => void;
 }
+/**
+ * Logs panel component for displaying and managing log files
+ */
 const LogsPanel: React.FC<LogsPanelProps> = ({ t, onClose, onFileClick }) => {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const logsContainerRef = useRef<HTMLDivElement>(null);
+  /**
+   * Load logs on mount and set up auto-refresh interval
+   */
   useEffect(() => {
     loadLogs();
     const interval = setInterval(loadLogs, 5000);
     return () => clearInterval(interval);
   }, []);
+  /**
+   * Load log files from the log directory
+   */
   const loadLogs = async () => {
     try {
       const paths = await getDataPaths();
@@ -38,6 +48,9 @@ const LogsPanel: React.FC<LogsPanelProps> = ({ t, onClose, onFileClick }) => {
       setLoading(false);
     }
   };
+  /**
+   * Read log files from a directory
+   */
   const readLogFiles = async (logDir: string): Promise<LogEntry[]> => {
     const entries: LogEntry[] = [];
     try {
@@ -61,6 +74,9 @@ const LogsPanel: React.FC<LogsPanelProps> = ({ t, onClose, onFileClick }) => {
     }
     return entries;
   };
+  /**
+   * Handle opening a log file - either preview or open directly
+   */
   const handleOpenLogFile = async (log: LogEntry) => {
     if (onFileClick) {
       try {
@@ -83,9 +99,15 @@ const LogsPanel: React.FC<LogsPanelProps> = ({ t, onClose, onFileClick }) => {
       await filesCommands.openPath(log.path);
     }
   };
+  /**
+   * Clear the search input
+   */
   const handleClearSearch = () => {
     setSearchTerm("");
   };
+  /**
+   * Format file size in human-readable format
+   */
   const formatSize = (bytes: number): string => {
     if (bytes === 0) return "0 B";
     const k = 1024;
@@ -93,11 +115,16 @@ const LogsPanel: React.FC<LogsPanelProps> = ({ t, onClose, onFileClick }) => {
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
+  /**
+   * Format date string to localized string
+   */
   const formatDate = (dateStr: string): string => {
     const date = new Date(dateStr);
     return date.toLocaleString();
   };
+  // Filter logs by search term
   const filteredLogs = logs.filter((log) => log.name.toLowerCase().includes(searchTerm.toLowerCase()));
+  // Styles
   const styles: Record<string, React.CSSProperties> = {
     container: {
       height: "100%",
@@ -207,7 +234,7 @@ const LogsPanel: React.FC<LogsPanelProps> = ({ t, onClose, onFileClick }) => {
       color: "var(--text-muted)",
     },
   };
-  // CSS 注入 - 包含搜索框样式
+  // CSS injection for search input styles
   const globalStyles = `
     .logs-search-input-wrapper {
       flex: 1;
@@ -256,6 +283,7 @@ const LogsPanel: React.FC<LogsPanelProps> = ({ t, onClose, onFileClick }) => {
       background: var(--hover-bg);
     }
   `;
+  // Inject global styles
   if (typeof document !== "undefined") {
     const styleId = "logs-panel-styles";
     if (!document.getElementById(styleId)) {
@@ -265,6 +293,7 @@ const LogsPanel: React.FC<LogsPanelProps> = ({ t, onClose, onFileClick }) => {
       document.head.appendChild(style);
     }
   }
+  // Loading state
   if (loading) {
     return (
       <div style={styles.container}>
@@ -274,6 +303,7 @@ const LogsPanel: React.FC<LogsPanelProps> = ({ t, onClose, onFileClick }) => {
   }
   return (
     <div style={styles.container}>
+      {/* Header with search */}
       <div style={styles.header}>
         <div style={styles.searchRow}>
           <div className="logs-search-input-wrapper">
@@ -281,7 +311,7 @@ const LogsPanel: React.FC<LogsPanelProps> = ({ t, onClose, onFileClick }) => {
             <input type="text" className="logs-search-input" placeholder={t("logs.searchPlaceholder") || "Search log files..."} value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
             {searchTerm && (
               <button className="logs-search-clear" onClick={handleClearSearch} title={t("logs.clearSearch") || "Clear search"}>
-                ✕
+                <X size={14} />
               </button>
             )}
           </div>
@@ -292,6 +322,7 @@ const LogsPanel: React.FC<LogsPanelProps> = ({ t, onClose, onFileClick }) => {
           </div>
         </div>
       </div>
+      {/* Log list */}
       <div style={styles.logsContainer} ref={logsContainerRef}>
         {filteredLogs.length === 0 ? (
           <div style={styles.emptyState}>{searchTerm ? "No matching log files" : t("logs.empty") || "No log files available"}</div>
@@ -309,10 +340,19 @@ const LogsPanel: React.FC<LogsPanelProps> = ({ t, onClose, onFileClick }) => {
                 onMouseLeave={() => setHoveredId(null)}
                 onClick={() => handleOpenLogFile(log)}
               >
-                <div style={styles.logName}>📄 {log.name}</div>
+                <div style={styles.logName}>
+                  <FileText size={14} style={{ marginRight: "4px" }} />
+                  {log.name}
+                </div>
                 <div style={styles.logMeta}>
-                  <span>📅 {formatDate(log.modified)}</span>
-                  <span>💾 {formatSize(log.size)}</span>
+                  <span>
+                    <Calendar size={12} style={{ marginRight: "4px" }} />
+                    {formatDate(log.modified)}
+                  </span>
+                  <span>
+                    <HardDrive size={12} style={{ marginRight: "4px" }} />
+                    {formatSize(log.size)}
+                  </span>
                 </div>
               </div>
             );

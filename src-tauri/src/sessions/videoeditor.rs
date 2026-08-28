@@ -1,6 +1,7 @@
 use crate::commands::get_settings_dir;
 use crate::commands::get_video_editing_system_dialog_history_dir;
 use crate::commons::FileUtils;
+use crate::subsystem::get_session_cover_path;
 use crate::subsystem::videoeditor::get_downloads_root_dir;
 use crate::subsystem::videoeditor::material::{register_material, UploadResult};
 use crate::subsystem::videoeditor::track::calculate_max_track_time;
@@ -790,6 +791,10 @@ pub fn cmd_list_video_dialog_sessions() -> Result<Vec<serde_json::Value>, String
                         obj.insert("path".to_string(), serde_json::json!(path.to_string_lossy()));
                         obj.insert("session_id".to_string(), serde_json::json!(session_id));
                         obj.insert("is_pinned".to_string(), serde_json::json!(pinned_sessions.contains(&session_id)));
+                        // Get session cover thumbnail
+                        let cover_path = get_session_cover_path(&session_id);
+                        let thumbnail_path = if cover_path.exists() { Some(cover_path.to_string_lossy().to_string()) } else { None };
+                        obj.insert("thumbnail".to_string(), serde_json::json!(thumbnail_path));
                     }
                     sessions.push(config);
                 }

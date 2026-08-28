@@ -8,6 +8,9 @@ import { sidebarStyles } from "./sidebarStyles";
 import { usePopupMenu } from "./hooks/usePopupMenu";
 import { videoEditorStateManager } from "../../subsystem/VideoEditor/global";
 import { clearVideoEditorAllMemory } from "../../subsystem/VideoEditor/MenoryManager";
+import { APP_WINDOW_EVENTS } from "../../App/AppWindowEventManager";
+import { SUBSYSTEM_TO_SIDEBAR_ID } from "../../App/SubSystemConstants";
+
 if (typeof document !== "undefined") {
   const styleId = "sidebar-styles";
   if (!document.getElementById(styleId)) {
@@ -17,11 +20,74 @@ if (typeof document !== "undefined") {
     document.head.appendChild(style);
   }
 }
-const Sidebar: React.FC<SidebarProps> = ({ collapsed, onResetSession, onClearLogs, onMenuClick, onNewSession, currentSessionId, onSwitchSession, t }) => {
+
+const Sidebar: React.FC<SidebarProps> = ({
+  collapsed,
+  onResetSession,
+  onClearLogs,
+  onMenuClick,
+  onNewSession,
+  currentSessionId,
+  onSwitchSession,
+  t,
+}) => {
   const [activeId, setActiveId] = React.useState("generalChat");
   const [activeSubId, setActiveSubId] = React.useState<string>();
   const [activeSubSubId, setActiveSubSubId] = React.useState<string>();
   const { popupVisible, popupPosition, activeIconId, iconRefs, handleClosePopup, showPopup, isPopupVisible } = usePopupMenu();
+
+  /**
+   * Listen for session selected events from search or other sources
+   * This ensures sidebar icon is highlighted when switching subsystems
+   */
+  useEffect(() => {
+    const handleSessionSelected = (e: CustomEvent) => {
+      const { sessionId, title, subsystem } = e.detail;
+      if (subsystem) {
+        const sidebarId = SUBSYSTEM_TO_SIDEBAR_ID[subsystem as keyof typeof SUBSYSTEM_TO_SIDEBAR_ID];
+        if (sidebarId) {
+          setActiveId(sidebarId);
+          if (popupVisible) {
+            handleClosePopup();
+          }
+        }
+      }
+    };
+
+    const handleSearchSwitchSession = (e: CustomEvent) => {
+      const { sessionId, title, highlightMessageId, subsystem } = e.detail;
+      if (subsystem) {
+        const sidebarId = SUBSYSTEM_TO_SIDEBAR_ID[subsystem as keyof typeof SUBSYSTEM_TO_SIDEBAR_ID];
+        if (sidebarId) {
+          setActiveId(sidebarId);
+          if (popupVisible) {
+            handleClosePopup();
+          }
+        }
+      }
+    };
+
+    window.addEventListener(
+      APP_WINDOW_EVENTS.SESSION_SELECTED,
+      handleSessionSelected as EventListener
+    );
+    window.addEventListener(
+      APP_WINDOW_EVENTS.SEARCH_SWITCH_SESSION,
+      handleSearchSwitchSession as EventListener
+    );
+
+    return () => {
+      window.removeEventListener(
+        APP_WINDOW_EVENTS.SESSION_SELECTED,
+        handleSessionSelected as EventListener
+      );
+      window.removeEventListener(
+        APP_WINDOW_EVENTS.SEARCH_SWITCH_SESSION,
+        handleSearchSwitchSession as EventListener
+      );
+    };
+  }, [popupVisible, handleClosePopup]);
+
   const handleMenuClick = (id: string, subId?: string, subSubId?: string) => {
     setActiveId(id);
     setActiveSubId(subId);
@@ -36,13 +102,29 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onResetSession, onClearLog
       }
     }
   };
+
   const handleIconClick = (itemId: string, e: React.MouseEvent<HTMLButtonElement>) => {
-    const directOpenItems = ["skillsManager", "tasks_group", "generalChat", "codeEditorChat", "favorites", "workspace", "logs", "skillMarket", "userProfile", "chartChat", "mapChat", "videoEditor", "sandbox3d"];
+    const directOpenItems = [
+      "skillsManager",
+      "tasks_group",
+      "generalChat",
+      "codeEditorChat",
+      "favorites",
+      "workspace",
+      "logs",
+      "skillMarket",
+      "userProfile",
+      "chartChat",
+      "mapChat",
+      "videoEditor",
+      "sandbox3d",
+    ];
+
     if (itemId != "videoEditor") {
       videoEditorStateManager.clear();
-      // clear video editor all memory
       clearVideoEditorAllMemory();
     }
+
     if (directOpenItems.includes(itemId)) {
       if (popupVisible) {
         handleClosePopup();
@@ -50,10 +132,12 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onResetSession, onClearLog
       handleMenuClick(itemId);
       return;
     }
+
     const rect = e.currentTarget.getBoundingClientRect();
     const viewportWidth = window.innerWidth;
     const popupWidth = 280;
     const gap = 8;
+
     let left = rect.right + gap;
     if (left + popupWidth > viewportWidth - gap) {
       left = rect.left - popupWidth - gap;
@@ -61,11 +145,14 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onResetSession, onClearLog
     if (left < gap) {
       left = gap;
     }
+
     let top = rect.top;
     if (top < gap) {
       top = gap;
     }
+
     const position = { top, left };
+
     if (itemId === "skills_group" || itemId === "settings_group") {
       if (isPopupVisible(itemId)) {
         handleClosePopup();
@@ -77,6 +164,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onResetSession, onClearLog
       showPopup(itemId, position);
       return;
     }
+
     if (isPopupVisible(itemId)) {
       handleClosePopup();
     } else {
@@ -86,15 +174,18 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onResetSession, onClearLog
       showPopup(itemId, position);
     }
   };
+
   const handleMouseEnter = (e: React.MouseEvent<HTMLButtonElement>, label: string) => {
     showTooltipOnElement(e.currentTarget, label);
   };
+
   const handleMouseLeave = () => {
     const container = document.getElementById("global-tooltip-container");
     if (container) {
       container.remove();
     }
   };
+
   const isIconActive = (itemId: string): boolean => {
     if (itemId === "skillsManager") {
       return activeId === "skillsManager";
@@ -122,10 +213,12 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onResetSession, onClearLog
     }
     return activeId === itemId;
   };
+
   const handleNewSessionClick = () => {
     if (onNewSession) onNewSession();
     else onResetSession();
   };
+
   const getButtonLabel = (item: { id: string; label: string }) => {
     if (item.id === "skillMarket") {
       return t("actions.skillMarket");
@@ -141,9 +234,11 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onResetSession, onClearLog
     }
     return t(item.label);
   };
+
   const renderButton = (item: (typeof topMenuItems)[0]) => {
     const isActive = isIconActive(item.id);
     const label = getButtonLabel(item);
+
     return (
       <SidebarButton
         key={item.id}
@@ -160,6 +255,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onResetSession, onClearLog
       />
     );
   };
+
   return (
     <aside
       className="sidebar"
@@ -173,11 +269,18 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onResetSession, onClearLog
       {!collapsed && (
         <>
           <div className="sidebar-header">
-            <button className="new-session-icon-btn" onClick={handleNewSessionClick} onMouseEnter={(e) => handleMouseEnter(e, t("actions.newSession"))} onMouseLeave={handleMouseLeave}>
+            <button
+              className="new-session-icon-btn"
+              onClick={handleNewSessionClick}
+              onMouseEnter={(e) => handleMouseEnter(e, t("actions.newSession"))}
+              onMouseLeave={handleMouseLeave}
+            >
               <NewSessionIcon size={18} />
             </button>
           </div>
-          <nav className="sidebar-nav-top">{topMenuItems.map((item) => renderButton(item))}</nav>
+          <nav className="sidebar-nav-top">
+            {topMenuItems.map((item) => renderButton(item))}
+          </nav>
           <nav className="sidebar-nav-bottom" style={{ flexDirection: "column-reverse" }}>
             <SidebarButton
               item={{
@@ -197,10 +300,22 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onResetSession, onClearLog
             />
             {bottomMenuItems.map((item) => renderButton(item))}
           </nav>
-          {popupVisible && activeIconId && <PopupMenu items={allMenuItems.filter((item) => item.id === activeIconId)} activeId={activeId} activeSubId={activeSubId} activeSubSubId={activeSubSubId} onMenuClick={handleMenuClick} onClose={handleClosePopup} position={popupPosition} t={t} />}
+          {popupVisible && activeIconId && (
+            <PopupMenu
+              items={allMenuItems.filter((item) => item.id === activeIconId)}
+              activeId={activeId}
+              activeSubId={activeSubId}
+              activeSubSubId={activeSubSubId}
+              onMenuClick={handleMenuClick}
+              onClose={handleClosePopup}
+              position={popupPosition}
+              t={t}
+            />
+          )}
         </>
       )}
     </aside>
   );
 };
+
 export default Sidebar;

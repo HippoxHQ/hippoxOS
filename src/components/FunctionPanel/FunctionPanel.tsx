@@ -6,6 +6,7 @@ import { ModuleTabs } from "./ModuleTabs";
 import { ModuleContent } from "./ModuleContent";
 import { FunctionPanelController } from "./hooks/useFunctionPanelController";
 import TableFilePreview from "./integrations/IntegratedPreviewContent/TableFilePreview";
+import { Folder } from "lucide-react";
 interface FunctionPanelProps {
   controller: FunctionPanelController;
   theme: "light" | "dark";
@@ -20,20 +21,7 @@ interface FunctionPanelProps {
   isMaximized?: boolean;
   onToggleMaximize?: () => void;
 }
-const FunctionPanel: React.FC<FunctionPanelProps> = ({
-  controller,
-  theme,
-  i18n,
-  t,
-  currentSessionId,
-  onSendSkillMessage,
-  width = 480,
-  isCollapsed = false,
-  onToggleCollapse,
-  functionPanelPosition = "right",
-  isMaximized,
-  onToggleMaximize,
-}) => {
+const FunctionPanel: React.FC<FunctionPanelProps> = ({ controller, theme, i18n, t, currentSessionId, onSendSkillMessage, width = 480, isCollapsed = false, onToggleCollapse, functionPanelPosition = "right", isMaximized, onToggleMaximize }) => {
   const panelWidth = typeof width === "string" ? width : width;
   const containerRef = useRef<HTMLDivElement>(null);
   const controllerRef = useRef(controller);
@@ -93,7 +81,9 @@ const FunctionPanel: React.FC<FunctionPanelProps> = ({
         }}
       >
         <div style={{ textAlign: "center", padding: 20 }}>
-          <div style={{ fontSize: 32, marginBottom: 12 }}>📂</div>
+          <div style={{ fontSize: 32, marginBottom: 12 }}>
+            <Folder size={16} />
+          </div>
           <div style={{ fontSize: 14 }}>{t("functionArea.noModule") || "No module open"}</div>
         </div>
       </div>
@@ -170,7 +160,9 @@ const FunctionPanel: React.FC<FunctionPanelProps> = ({
             flexShrink: 0,
           }}
         >
-          <span style={{ fontSize: "16px" }}>📂</span>
+          <span style={{ fontSize: "16px" }}>
+            <Folder size={16} />
+          </span>
         </div>
         <CollapsedTabList
           items={controller.items}

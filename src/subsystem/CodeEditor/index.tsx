@@ -13,6 +13,7 @@ import { githubCommands } from "../../command/net/github";
 import { showToast, ToastType } from "../../components/Toast";
 import { open } from "@tauri-apps/plugin-dialog";
 import GithubClone from "./GithubClone";
+import { APP_WINDOW_EVENTS } from "../../App/AppWindowEventManager";
 const GLOBAL_SESSION_LOCK = {
   isCreating: false,
   lastPath: "",
@@ -702,6 +703,22 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
     },
     [handleSendMessageHook],
   );
+  /**
+   * Listen for codeeditor-switch-session event from search results
+   * This allows the search dialog to switch to a specific code editor session
+   */
+  useEffect(() => {
+    const handleCodeEditorSwitchSession = (e: CustomEvent) => {
+      const { sessionId, title, highlightMessageId } = e.detail;
+      if (sessionId) {
+        handleSwitchSession(sessionId);
+      }
+    };
+    window.addEventListener(APP_WINDOW_EVENTS.CODEEDITOR_SWITCH_SESSION, handleCodeEditorSwitchSession as EventListener);
+    return () => {
+      window.removeEventListener(APP_WINDOW_EVENTS.CODEEDITOR_SWITCH_SESSION, handleCodeEditorSwitchSession as EventListener);
+    };
+  }, [handleSwitchSession]);
   const handleSessionSelect = useCallback(
     (sessionId: string) => {
       handleSwitchSession(sessionId);
