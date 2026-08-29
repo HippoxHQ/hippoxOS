@@ -15,6 +15,7 @@ import StorageConfig from "./SystemConfig/StorageConfig";
 import { UploadFile } from "../../core/types";
 import { CollapseAllIcon2, ExpandAllIcon2 } from "../../icons";
 import { HistoryChatPanelRef } from "../../subsystem/GeneralChat/HistoryChatPanel";
+import { ChevronDown, ChevronUp } from "lucide-react";
 export type MenuPanelView = "terminal" | "history" | "favorites" | "skills" | "knowledge" | "skillMarket" | "taskQueue" | "executionHistory" | "drivers" | "settings" | "workspace" | "workspaceConfig" | "logs" | "storage" | "engine_group" | "codeEditor";
 export type EngineSubView = "engine_database" | "engine_network" | "engine_container" | "engine_notification";
 interface MenuPanelProps {
@@ -302,7 +303,7 @@ const MenuPanel: React.FC<MenuPanelProps> = ({
                 }}
                 title={isAtBottom ? t("history.scrollToTop") || "滚动到顶部" : t("history.scrollToBottom") || "滚动到底部"}
               >
-                {isAtBottom ? "▲" : "▼"}
+                {isAtBottom ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
               </button>
               <div
                 style={{

@@ -1,6 +1,6 @@
 import React from "react";
 import { getFullParams, getShortParams } from "../../utils";
-
+import { ChevronDown, ChevronUp } from "lucide-react";
 interface StepParametersProps {
   parameters: string;
   stepKey: string;
@@ -9,7 +9,6 @@ interface StepParametersProps {
   t: (key: string) => string;
   type?: "input" | "output";
 }
-
 export const StepParameters: React.FC<StepParametersProps> = ({ parameters, stepKey, isExpanded, onToggle, t, type = "input" }) => {
   if (!parameters || parameters === "{}") return null;
   const fullParams = getFullParams(parameters);
@@ -29,7 +28,7 @@ export const StepParameters: React.FC<StepParametersProps> = ({ parameters, step
             }}
             title={t("terminal.collapse")}
           >
-            ▲ {t("terminal.collapse")}
+            <ChevronUp size={18} /> {t("terminal.collapse")}
           </button>
         ) : (
           <>
@@ -53,7 +52,7 @@ export const StepParameters: React.FC<StepParametersProps> = ({ parameters, step
               }}
               title={t("terminal.expand")}
             >
-              ▼ {t("terminal.expand")}
+              <ChevronDown size={18} /> {t("terminal.expand")}
             </button>
           </>
         )}

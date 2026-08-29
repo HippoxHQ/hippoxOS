@@ -5,7 +5,7 @@ import { showToast, ToastType } from "../../components/Toast";
 import { DeleteIcon, MoreVerticalIcon, PinFilledIcon, PinIcon, RenameIcon, UnPinIcon } from "../../icons";
 import { sandbox3dSessionCommands } from "../../command/session/sandbox3d";
 import { taskManager } from "../../core/TaskManager";
-import { CheckSquare, Square } from "lucide-react";
+import { CheckSquare, ChevronDown, Square } from "lucide-react";
 export interface HistorySandBox3DChatPanelRef {
   scrollToTop: () => void;
   scrollToBottom: () => void;
@@ -505,7 +505,7 @@ const HistorySandBox3DChatPanel = forwardRef<HistorySandBox3DChatPanelRef, Histo
                   transform: expandedCategories[category.type] ? "rotate(0deg)" : "rotate(-90deg)",
                 }}
               >
-                ▼
+                <ChevronDown size={18} />
               </span>
             </div>
             {expandedCategories[category.type] &&

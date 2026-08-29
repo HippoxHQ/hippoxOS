@@ -1,4 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
+import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
+import { ChevronUp, ChevronDown } from "lucide-react";
 import { useEditMessage } from "./hooks";
 import { StatusMessage, LoadingSpinner, MessageFileGrid, EditMessageForm, MessageActions } from "./components";
 import logo from "../../../assets/logo.png";
@@ -66,6 +68,7 @@ const ChartChatPanel: React.FC<ChartChatPanelProps> = ({
   const [activeNavIndex, setActiveNavIndex] = useState<number>(-1);
   const [showNavBubble, setShowNavBubble] = useState(false);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const virtuosoRef = useRef<VirtuosoHandle>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const attachmentBtnRef = useRef<HTMLDivElement>(null);
   const attachmentMenuRef = useRef<HTMLDivElement>(null);
@@ -190,8 +193,8 @@ const ChartChatPanel: React.FC<ChartChatPanelProps> = ({
       return `${date.toLocaleDateString()} ${timeStr}`;
     }
   };
-  // Scroll update handler
-  const handleScrollUpdate = () => {
+  // Update active nav index based on scroll position
+  const handleScrollUpdate = useCallback(() => {
     if (!messagesContainerRef.current) return;
     const container = messagesContainerRef.current;
     const messageElements = container.querySelectorAll(".message-wrapper");
@@ -207,7 +210,7 @@ const ChartChatPanel: React.FC<ChartChatPanelProps> = ({
       }
     });
     setActiveNavIndex(closestIndex);
-  };
+  }, []);
   // Navigation bubble handlers
   const handleNavButtonMouseEnter = () => {
     if (navBubbleTimerRef.current) {
@@ -426,7 +429,7 @@ const ChartChatPanel: React.FC<ChartChatPanelProps> = ({
     };
   }, [currentSessionId]);
   // Check scroll position
-  const checkScrollPosition = () => {
+  const checkScrollPosition = useCallback(() => {
     if (!messagesContainerRef.current) return;
     const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
     const atBottom = scrollHeight - scrollTop - clientHeight <= 10;
@@ -435,38 +438,37 @@ const ChartChatPanel: React.FC<ChartChatPanelProps> = ({
     setShowTopScrollButton(scrollTop > 50);
     if (atBottom) setUserScrolled(false);
     handleScrollUpdate();
-  };
-  const handleUserScroll = () => {
+  }, [handleScrollUpdate]);
+  const handleUserScroll = useCallback(() => {
     if (messagesContainerRef.current) {
       const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
       const atBottom = scrollHeight - scrollTop - clientHeight <= 10;
       if (!atBottom) setUserScrolled(true);
     }
     checkScrollPosition();
-  };
+  }, [checkScrollPosition]);
+  // Scroll to top using Virtuoso
   const scrollToTop = () => {
-    if (messagesContainerRef.current) {
-      messagesContainerRef.current.scrollTo({
-        top: 0,
-        behavior: "smooth",
-      });
-    }
+    virtuosoRef.current?.scrollToIndex({
+      index: 0,
+      align: "start",
+      behavior: "smooth",
+    });
   };
+  // Scroll to bottom using Virtuoso
   const scrollToBottom = () => {
-    if (messagesContainerRef.current) {
-      messagesContainerRef.current.scrollTo({
-        top: messagesContainerRef.current.scrollHeight,
-        behavior: "smooth",
-      });
-      setUserScrolled(false);
-    }
+    virtuosoRef.current?.scrollToIndex({
+      index: messages.length - 1,
+      align: "end",
+      behavior: "smooth",
+    });
+    setUserScrolled(false);
   };
   const scrollToMessage = (index: number) => {
-    if (!messagesContainerRef.current) return;
-    const messageElements = messagesContainerRef.current.querySelectorAll(".message-wrapper");
-    if (index >= 0 && index < messageElements.length) {
-      messageElements[index].scrollIntoView({
-        block: "center",
+    if (index >= 0 && index < messages.length) {
+      virtuosoRef.current?.scrollToIndex({
+        index,
+        align: "center",
         behavior: "smooth",
       });
       setActiveNavIndex(index);
@@ -895,22 +897,16 @@ const ChartChatPanel: React.FC<ChartChatPanelProps> = ({
       window.removeEventListener("locate-task-in-chat", handleLocateTaskInChat);
     };
   }, [t]);
-  // Auto scroll to bottom
+  // Scroll to bottom when new messages arrive and user hasn't scrolled up
   useEffect(() => {
-    if (messagesContainerRef.current && !userScrolled) {
-      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+    if (messages.length > 0 && !userScrolled) {
+      virtuosoRef.current?.scrollToIndex({
+        index: messages.length - 1,
+        align: "end",
+        behavior: "auto",
+      });
     }
-    setTimeout(handleScrollUpdate, 100);
   }, [messages, userScrolled]);
-  // Scroll event listener
-  useEffect(() => {
-    const element = messagesContainerRef.current;
-    if (element) {
-      element.addEventListener("scroll", checkScrollPosition);
-      checkScrollPosition();
-      return () => element.removeEventListener("scroll", checkScrollPosition);
-    }
-  }, [messages]);
   // Click outside handlers
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -934,6 +930,111 @@ const ChartChatPanel: React.FC<ChartChatPanelProps> = ({
     return t("chat.endingMessage") || (language === "zh" ? "✨ 我还能为你做些什么吗？ ✨" : "✨ What else can I do for you? ✨");
   };
   const navigation = buildNavigationContent();
+  // Render a single message item for Virtuoso
+  const renderMessageItem = useCallback(
+    (index: number, msg: ChatMessage) => {
+      const isUser = msg.role === RoleEnum.User;
+      const isLastMessage = index === messages.length - 1;
+      const formattedTime = formatTimestamp(msg.timestamp);
+      return (
+        <div key={msg.id} className={`message-wrapper ${isUser ? "user" : ""}`}>
+          <div className="message-avatar">
+            {isUser ? (
+              <UserIcon size={16} />
+            ) : (
+              <img
+                src={logo}
+                alt="Hippox LLM"
+                style={{
+                  width: "32px",
+                  height: "32px",
+                  borderRadius: "50%",
+                  objectFit: "cover",
+                }}
+              />
+            )}
+          </div>
+          <div className="message-content-area">
+            {msg.status === MessageStatus.Pending ? (
+              <div className="message-bubble" style={{ backgroundColor: "transparent" }}>
+                <div className="message-content">
+                  <LoadingSpinner />
+                </div>
+              </div>
+            ) : msg.status && [MessageStatus.Paused, MessageStatus.Cancelled, MessageStatus.Failed].includes(msg.status) ? (
+              <StatusMessage msg={msg} status={msg.status} t={t} />
+            ) : isUser ? (
+              <>
+                {msg.files && msg.files.length > 0 && <MessageFileGrid files={msg.files} onFileClick={onFileClick} formatFileSize={formatFileSize} />}
+                {msg.content &&
+                  msg.content.trim() &&
+                  (editingMessageId === msg.id ? (
+                    <EditMessageForm editContent={editContent} setEditContent={setEditContent} onSave={() => handleSaveEdit(msg)} onCancel={handleCancelEdit} t={t} />
+                  ) : (
+                    <div className="message-bubble">
+                      <div className="message-content">{msg.content}</div>
+                      <div className="message-time">{formattedTime}</div>
+                    </div>
+                  ))}
+                <MessageActions msg={msg} isUser={true} copyToClipboard={copyToClipboard} onLocateTask={handleLocateTask} onEditMessage={handleEditMessage} onResendMessage={handleResendMessage} t={t} />
+              </>
+            ) : (
+              (() => {
+                let displayContent = msg.content;
+                let displaySubtitle = null;
+                if (isStructuredLLMResponse(msg.content)) {
+                  const parsed = parseLLMResponse(msg.content);
+                  if (parsed?.chatResponse) {
+                    displayContent = parsed.chatResponse.m;
+                    if (parsed.chatResponse.s) {
+                      displaySubtitle = parsed.chatResponse.s;
+                    }
+                  }
+                }
+                return (
+                  <>
+                    <div className="message-bubble">
+                      <div className="message-content">{displayContent}</div>
+                      {displaySubtitle && (
+                        <div
+                          className="message-subtitle"
+                          style={{
+                            fontSize: "11px",
+                            color: "var(--text-tertiary)",
+                            marginTop: "6px",
+                            paddingTop: "4px",
+                            borderTop: "1px solid var(--border-color)",
+                          }}
+                        >
+                          {displaySubtitle}
+                        </div>
+                      )}
+                      <div className="message-time">{formattedTime}</div>
+                    </div>
+                    <MessageActions msg={msg} isUser={false} copyToClipboard={copyToClipboard} onLocateTask={handleLocateTask} onEditMessage={handleEditMessage} t={t} />
+                    {isLastMessage && shouldShowSuggestions(messages) && suggestionPrompts.length > 0 && (
+                      <div className="suggestions-wrapper">
+                        <div className="ending-message">{getEndingMessage()}</div>
+                        <div className="suggestions-title">{t("chat.suggestionsTitle") || (language === "zh" ? "💡 试试这些：" : "💡 Try these:")}</div>
+                        <div className="suggestions-container">
+                          {suggestionPrompts.map((prompt, idx) => (
+                            <div key={idx} className="suggestion-bubble" onClick={() => handleSuggestionClick(prompt)} title={prompt}>
+                              {prompt.length > 25 ? prompt.slice(0, 25) + "..." : prompt}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                );
+              })()
+            )}
+          </div>
+        </div>
+      );
+    },
+    [messages, editingMessageId, editContent, suggestionPrompts, t, language, onFileClick, onSendMessageProp],
+  );
   const navBubblePosition = (() => {
     if (navButtonRef.current) {
       const rect = navButtonRef.current.getBoundingClientRect();
@@ -1165,119 +1266,93 @@ const ChartChatPanel: React.FC<ChartChatPanelProps> = ({
       )}
       {/* Messages */}
       <div className="chat-messages-wrapper">
-        <div className="chat-messages" ref={messagesContainerRef} onScroll={handleUserScroll}>
-          {messages.map((msg, index) => {
-            const isUser = msg.role === RoleEnum.User;
-            const isLastMessage = index === messages.length - 1;
-            const formattedTime = formatTimestamp(msg.timestamp);
-            return (
-              <div key={msg.id} className={`message-wrapper ${isUser ? "user" : ""}`}>
-                <div className="message-avatar">
-                  {isUser ? (
-                    <UserIcon size={16} />
-                  ) : (
-                    <img
-                      src={logo}
-                      alt="Hippox LLM"
-                      style={{
-                        width: "32px",
-                        height: "32px",
-                        borderRadius: "50%",
-                        objectFit: "cover",
-                      }}
-                    />
-                  )}
-                </div>
-                <div className="message-content-area">
-                  {msg.status === MessageStatus.Pending ? (
-                    <div className="message-bubble" style={{ backgroundColor: "transparent" }}>
-                      <div className="message-content">
-                        <LoadingSpinner />
-                      </div>
-                    </div>
-                  ) : msg.status && [MessageStatus.Paused, MessageStatus.Cancelled, MessageStatus.Failed].includes(msg.status) ? (
-                    <StatusMessage msg={msg} status={msg.status} t={t} />
-                  ) : isUser ? (
-                    <>
-                      {msg.files && msg.files.length > 0 && <MessageFileGrid files={msg.files} onFileClick={onFileClick} formatFileSize={formatFileSize} />}
-                      {msg.content &&
-                        msg.content.trim() &&
-                        (editingMessageId === msg.id ? (
-                          <EditMessageForm editContent={editContent} setEditContent={setEditContent} onSave={() => handleSaveEdit(msg)} onCancel={handleCancelEdit} t={t} />
-                        ) : (
-                          <div className="message-bubble">
-                            <div className="message-content">{msg.content}</div>
-                            <div className="message-time">{formattedTime}</div>
-                          </div>
-                        ))}
-                      <MessageActions msg={msg} isUser={true} copyToClipboard={copyToClipboard} onLocateTask={handleLocateTask} onEditMessage={handleEditMessage} onResendMessage={handleResendMessage} t={t} />
-                    </>
-                  ) : (
-                    (() => {
-                      let displayContent = msg.content;
-                      let displaySubtitle = null;
-                      if (isStructuredLLMResponse(msg.content)) {
-                        const parsed = parseLLMResponse(msg.content);
-                        if (parsed?.chatResponse) {
-                          displayContent = parsed.chatResponse.m;
-                          if (parsed.chatResponse.s) {
-                            displaySubtitle = parsed.chatResponse.s;
-                          }
-                        }
-                      }
-                      return (
-                        <>
-                          <div className="message-bubble">
-                            <div className="message-content">{displayContent}</div>
-                            {displaySubtitle && (
-                              <div
-                                className="message-subtitle"
-                                style={{
-                                  fontSize: "11px",
-                                  color: "var(--text-tertiary)",
-                                  marginTop: "6px",
-                                  paddingTop: "4px",
-                                  borderTop: "1px solid var(--border-color)",
-                                }}
-                              >
-                                {displaySubtitle}
-                              </div>
-                            )}
-                            <div className="message-time">{formattedTime}</div>
-                          </div>
-                          <MessageActions msg={msg} isUser={false} copyToClipboard={copyToClipboard} onLocateTask={handleLocateTask} onEditMessage={handleEditMessage} t={t} />
-                          {isLastMessage && shouldShowSuggestions(messages) && suggestionPrompts.length > 0 && (
-                            <div className="suggestions-wrapper">
-                              <div className="ending-message">{getEndingMessage()}</div>
-                              <div className="suggestions-title">{t("chat.suggestionsTitle") || (language === "zh" ? "💡 试试这些：" : "💡 Try these:")}</div>
-                              <div className="suggestions-container">
-                                {suggestionPrompts.map((prompt, idx) => (
-                                  <div key={idx} className="suggestion-bubble" onClick={() => handleSuggestionClick(prompt)} title={prompt}>
-                                    {prompt.length > 25 ? prompt.slice(0, 25) + "..." : prompt}
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                        </>
-                      );
-                    })()
-                  )}
-                </div>
-              </div>
-            );
-          })}
+        <div className="chat-messages" ref={messagesContainerRef} style={{ height: "100%", width: "100%", position: "relative" }}>
+          {messages.length > 0 ? (
+            <Virtuoso
+              ref={virtuosoRef}
+              data={messages}
+              style={{ height: "100%", width: "100%" }}
+              itemContent={renderMessageItem}
+              // Track scroll position to update scroll buttons
+              atBottomStateChange={(atBottom) => {
+                setIsAtBottom(atBottom);
+                if (atBottom) {
+                  setUserScrolled(false);
+                  setShowScrollButton(false);
+                } else {
+                  setShowScrollButton(true);
+                }
+              }}
+              // Track user scroll for auto-scroll behavior
+              onScroll={(e) => {
+                const target = e.target as HTMLElement;
+                if (target) {
+                  const { scrollTop, scrollHeight, clientHeight } = target;
+                  const atBottom = scrollHeight - scrollTop - clientHeight <= 10;
+                  if (!atBottom) {
+                    setUserScrolled(true);
+                  }
+                  setShowTopScrollButton(scrollTop > 50);
+                  // Update active nav index
+                  requestAnimationFrame(() => {
+                    handleScrollUpdate();
+                  });
+                }
+              }}
+            />
+          ) : (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                height: "100%",
+                color: "var(--text-muted)",
+              }}
+            >
+              {t("chat.empty") || "No messages yet"}
+            </div>
+          )}
         </div>
+        {/* Scroll buttons - using same className as ChatPanel for consistent touch/hover effects */}
         {(showScrollButton || showTopScrollButton) && (
-          <div className="scroll-buttons chat-scroll-buttons" style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+          <div
+            style={{
+              position: "absolute",
+              right: "12px",
+              bottom: "12px",
+              display: "flex",
+              flexDirection: "column",
+              gap: "6px",
+              zIndex: 10,
+            }}
+          >
             {showTopScrollButton && (
-              <button style={{ height: "32px", width: "32px", borderRadius: "500px" }} className="scroll-btn" onClick={scrollToTop} title={t("chat.scrollToTop") || "Scroll to top"}>
-                ▲
+              <button
+                style={{
+                  height: "32px",
+                  width: "32px",
+                  borderRadius: "500px",
+                }}
+                className="scroll-btn"
+                onClick={scrollToTop}
+                title={t("chat.scrollToTop") || "Scroll to top"}
+              >
+                <ChevronUp size={18} />
               </button>
             )}
             {showScrollButton && (
-              <button style={{ height: "32px", width: "32px", borderRadius: "500px" }} className="scroll-btn" onClick={scrollToBottom} title={t("chat.scrollToBottom")}>
-                ▼
+              <button
+                style={{
+                  height: "32px",
+                  width: "32px",
+                  borderRadius: "500px",
+                }}
+                className="scroll-btn"
+                onClick={scrollToBottom}
+                title={t("chat.scrollToBottom") || "Scroll to bottom"}
+              >
+                <ChevronDown size={18} />
               </button>
             )}
           </div>

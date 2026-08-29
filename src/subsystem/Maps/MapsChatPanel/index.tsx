@@ -1,4 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
+import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
+import { ChevronUp, ChevronDown } from "lucide-react";
 import { useEditMessage } from "./hooks";
 import { StatusMessage, LoadingSpinner, MessageFileGrid, EditMessageForm, MessageActions } from "./components";
 import logo from "../../../assets/logo.png";
@@ -49,7 +51,7 @@ const MapsChatPage: React.FC<MapsChatPageProps> = ({ onSendMessage, onFileClick,
   const [showScrollButton, setShowScrollButton] = useState(false);
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [userScrolled, setUserScrolled] = useState(false);
-  const [updateTrigger, setUpdateTrigger] = useState(0);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [uploadedFiles, setUploadedFiles] = useState<UploadFile[]>([]);
   const [currentModel, setCurrentModel] = useState<LlmInstance | null>(null);
   const [loadingModel, setLoadingModel] = useState(true);
@@ -57,6 +59,7 @@ const MapsChatPage: React.FC<MapsChatPageProps> = ({ onSendMessage, onFileClick,
   const [activeNavIndex, setActiveNavIndex] = useState<number>(-1);
   const [showNavBubble, setShowNavBubble] = useState(false);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const virtuosoRef = useRef<VirtuosoHandle>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const attachmentBtnRef = useRef<HTMLDivElement>(null);
   const attachmentMenuRef = useRef<HTMLDivElement>(null);
@@ -74,33 +77,12 @@ const MapsChatPage: React.FC<MapsChatPageProps> = ({ onSendMessage, onFileClick,
   const [isLoadingTitle, setIsLoadingTitle] = useState(false);
   const hasLoadedTitleRef = useRef<Record<string, boolean>>({});
   const collapseIcon = collapseIconProp || (isLeftPanel ? (isCollapsed ? "≫" : "≪") : isCollapsed ? "≪" : "≫");
-  /** Track which messages have been processed for map rendering */
-  const processedMessageIdsRef = useRef<Set<string>>(new Set());
   const welcomeMsg: ChatMessage = {
     id: "welcome",
     role: RoleEnum.LLM,
-    content: language === "zh" ? "嘿～ 我是 Hippox 地理信息分析引擎！🗺️ 带你看世界、标地点、分析空间数据，想去哪儿尽管说～" : "Hey～ I'm Hippox Geographic Information Analysis Engine! 🗺️ Let me show you the world, mark locations, and analyze spatial data. Just tell me where to go～",
+    content: language === "zh" ? "🌍 欢迎来到 Hippox 地图分析引擎！我可以帮你在地图上标注位置、绘制路线、分析地理数据。告诉我你想看什么～" : "🌍 Welcome to Hippox Map Analysis Engine! I can help you mark locations, draw routes, and analyze geographic data. Tell me what you'd like to see～",
     timestamp: new Date().toISOString(),
   };
-  // Subscribe to task manager updates
-  useEffect(() => {
-    const unsubscribe = taskManager.subscribe(() => {
-      setUpdateTrigger((prev) => prev + 1);
-    });
-    return unsubscribe;
-  }, []);
-  // Get messages from task manager
-  const getMessages = useCallback((): ChatMessage[] => {
-    if (!currentSessionId) return [welcomeMsg];
-    const userMessages = taskManager.getUserMessagesBySession(currentSessionId, SessionDomain.Map);
-    const assistantMessages = taskManager.getAssistantMessagesBySessionAsArray(currentSessionId, SessionDomain.Map);
-    const allMessages = [...userMessages, ...assistantMessages].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
-    if (allMessages.length === 0) {
-      return [welcomeMsg];
-    }
-    return allMessages;
-  }, [currentSessionId, updateTrigger]);
-  const messages = getMessages();
   // Load session title from backend
   const loadSessionTitle = async (sessionId: string) => {
     if (!sessionId || sessionId.startsWith("pending_") || sessionId.startsWith("temp_")) {
@@ -146,20 +128,7 @@ const MapsChatPage: React.FC<MapsChatPageProps> = ({ onSendMessage, onFileClick,
       window.removeEventListener("session-title-updated", handleSessionTitleUpdated as EventListener);
     };
   }, [currentSessionId]);
-  useEffect(() => {
-    const handleSessionCreated = () => {
-      if (currentSessionId) {
-        hasLoadedTitleRef.current = {};
-        loadSessionTitle(currentSessionId);
-      }
-    };
-    window.addEventListener("map-session-created", handleSessionCreated);
-    return () => {
-      window.removeEventListener("map-session-created", handleSessionCreated);
-    };
-  }, [currentSessionId]);
   const { editingMessageId, editContent, setEditContent, handleEditMessage, handleSaveEdit, handleCancelEdit } = useEditMessage({ currentSessionId, onSendMessage, t });
-  // Load workflow display names
   const loadWorkflowDisplayNames = async () => {
     try {
       const lang = localStorage.getItem("hippox-language") || "en";
@@ -174,7 +143,6 @@ const MapsChatPage: React.FC<MapsChatPageProps> = ({ onSendMessage, onFileClick,
       console.error("Failed to load workflow display names:", error);
     }
   };
-  // Format timestamp
   const formatTimestamp = (timestamp: string): string => {
     const date = new Date(timestamp);
     const now = new Date();
@@ -194,8 +162,8 @@ const MapsChatPage: React.FC<MapsChatPageProps> = ({ onSendMessage, onFileClick,
       return `${date.toLocaleDateString()} ${timeStr}`;
     }
   };
-  // Scroll update handler
-  const handleScrollUpdate = () => {
+  // Update active nav index based on scroll position
+  const handleScrollUpdate = useCallback(() => {
     if (!messagesContainerRef.current) return;
     const container = messagesContainerRef.current;
     const messageElements = container.querySelectorAll(".message-wrapper");
@@ -211,8 +179,7 @@ const MapsChatPage: React.FC<MapsChatPageProps> = ({ onSendMessage, onFileClick,
       }
     });
     setActiveNavIndex(closestIndex);
-  };
-  // Navigation bubble handlers
+  }, []);
   const handleNavButtonMouseEnter = () => {
     if (navBubbleTimerRef.current) {
       clearTimeout(navBubbleTimerRef.current);
@@ -237,7 +204,6 @@ const MapsChatPage: React.FC<MapsChatPageProps> = ({ onSendMessage, onFileClick,
       setShowNavBubble(false);
     }, 200);
   };
-  // Resend message handler
   const handleResendMessage = (msg: ChatMessage) => {
     if (isResending || isSending) return;
     const sessionId = currentSessionId || "";
@@ -248,11 +214,10 @@ const MapsChatPage: React.FC<MapsChatPageProps> = ({ onSendMessage, onFileClick,
     setIsResending(true);
     const message = msg.content || "";
     const currentFiles = msg.files || [];
-    Promise.resolve(onSendMessage?.(message, sessionId, currentFiles)).finally(() => {
+    Promise.resolve(onSendMessage(message, sessionId, currentFiles)).finally(() => {
       setTimeout(() => setIsResending(false), 300);
     });
   };
-  // Get random suggestion prompts
   const getRandomPrompts = (count: number = 6): string[] => {
     const prompts = language === "zh" ? zhDefaultPrompts : enDefaultPrompts;
     const shuffled = [...prompts];
@@ -262,7 +227,6 @@ const MapsChatPage: React.FC<MapsChatPageProps> = ({ onSendMessage, onFileClick,
     }
     return shuffled.slice(0, count);
   };
-  // Check if suggestions should be shown
   const shouldShowSuggestions = (msgs: ChatMessage[]) => {
     if (msgs.length === 0) return false;
     const lastMsg = msgs[msgs.length - 1];
@@ -276,7 +240,6 @@ const MapsChatPage: React.FC<MapsChatPageProps> = ({ onSendMessage, onFileClick,
   const prevMessageCountRef = useRef(0);
   const suggestionTimerRef = useRef<NodeJS.Timeout | null>(null);
   const isFirstLoadRef = useRef(true);
-  // Update suggestions periodically
   useEffect(() => {
     if (suggestionTimerRef.current) {
       clearInterval(suggestionTimerRef.current);
@@ -304,17 +267,15 @@ const MapsChatPage: React.FC<MapsChatPageProps> = ({ onSendMessage, onFileClick,
       }
     };
   }, [messages, language]);
-  // Handle suggestion click
   const handleSuggestionClick = (prompt: string) => {
     const sessionId = currentSessionId || "";
     if (!sessionId) {
       showToast(ToastType.SUCCESS, "Session ID cannot be empty.");
       return;
     }
-    onSendMessage?.(prompt, sessionId, undefined, selectedWorkflowMode);
+    onSendMessage(prompt, sessionId, undefined, selectedWorkflowMode);
   };
   const handleContainerClick = () => textareaRef.current?.focus();
-  // Format file size
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return "0 B";
     const k = 1024;
@@ -322,7 +283,6 @@ const MapsChatPage: React.FC<MapsChatPageProps> = ({ onSendMessage, onFileClick,
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
   };
-  // Copy to clipboard
   const copyToClipboard = async (text: string | undefined) => {
     try {
       if (!text) {
@@ -335,7 +295,18 @@ const MapsChatPage: React.FC<MapsChatPageProps> = ({ onSendMessage, onFileClick,
       showToast(ToastType.ERROR, t("common.copyFailed") || "Copy Failed");
     }
   };
-  // Load current default model
+  const handleLocateTask = (msg: ChatMessage) => {
+    const relatedTask = taskManager.getAllTasks().find((task) => task.user_input === msg.content || task.final_output === msg.content || task.task_id === (msg as any).relatedTaskId);
+    if (relatedTask) {
+      window.dispatchEvent(
+        new CustomEvent("locate-task-in-terminal", {
+          detail: { taskId: relatedTask.task_id },
+        }),
+      );
+    } else {
+      showToast(ToastType.INFO, t("chat.noRelatedTask") || "No Related Task");
+    }
+  };
   const loadCurrentDefaultModel = async () => {
     try {
       setLoadingModel(true);
@@ -355,7 +326,6 @@ const MapsChatPage: React.FC<MapsChatPageProps> = ({ onSendMessage, onFileClick,
       setLoadingModel(false);
     }
   };
-  // Load workflow modes
   const loadWorkflowModes = async () => {
     try {
       const modes = await workflowCommands.getWorkflowModeNames();
@@ -367,7 +337,6 @@ const MapsChatPage: React.FC<MapsChatPageProps> = ({ onSendMessage, onFileClick,
       console.error("Failed to load workflow modes:", error);
     }
   };
-  // Load session workflow mode
   const loadSessionWorkflowMode = async (sessionId: string) => {
     if (!sessionId || sessionId.startsWith("pending_") || sessionId.startsWith("temp_")) {
       return;
@@ -394,7 +363,6 @@ const MapsChatPage: React.FC<MapsChatPageProps> = ({ onSendMessage, onFileClick,
       console.error("Failed to load session workflow mode:", error);
     }
   };
-  // Load workspaces
   const loadWorkspaces = async (retryCount: number = 0): Promise<void> => {
     try {
       const config = await workspaceCommands.getWorkspaceConfig();
@@ -417,8 +385,19 @@ const MapsChatPage: React.FC<MapsChatPageProps> = ({ onSendMessage, onFileClick,
       loadSessionWorkflowMode(currentSessionId);
     }
   }, [currentSessionId]);
-  // Check scroll position
-  const checkScrollPosition = () => {
+  useEffect(() => {
+    const handleSessionCreated = () => {
+      if (currentSessionId) {
+        hasLoadedTitleRef.current = {};
+        loadSessionTitle(currentSessionId);
+      }
+    };
+    window.addEventListener("map-session-created", handleSessionCreated);
+    return () => {
+      window.removeEventListener("map-session-created", handleSessionCreated);
+    };
+  }, [currentSessionId]);
+  const checkScrollPosition = useCallback(() => {
     if (!messagesContainerRef.current) return;
     const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
     const atBottom = scrollHeight - scrollTop - clientHeight <= 10;
@@ -427,44 +406,40 @@ const MapsChatPage: React.FC<MapsChatPageProps> = ({ onSendMessage, onFileClick,
     setShowTopScrollButton(scrollTop > 50);
     if (atBottom) setUserScrolled(false);
     handleScrollUpdate();
-  };
-  const handleUserScroll = () => {
+  }, [handleScrollUpdate]);
+  const handleUserScroll = useCallback(() => {
     if (messagesContainerRef.current) {
       const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
       const atBottom = scrollHeight - scrollTop - clientHeight <= 10;
       if (!atBottom) setUserScrolled(true);
     }
     checkScrollPosition();
-  };
+  }, [checkScrollPosition]);
   const scrollToTop = () => {
-    if (messagesContainerRef.current) {
-      messagesContainerRef.current.scrollTo({
-        top: 0,
-        behavior: "smooth",
-      });
-    }
+    virtuosoRef.current?.scrollToIndex({
+      index: 0,
+      align: "start",
+      behavior: "smooth",
+    });
   };
   const scrollToBottom = () => {
-    if (messagesContainerRef.current) {
-      messagesContainerRef.current.scrollTo({
-        top: messagesContainerRef.current.scrollHeight,
-        behavior: "smooth",
-      });
-      setUserScrolled(false);
-    }
+    virtuosoRef.current?.scrollToIndex({
+      index: messages.length - 1,
+      align: "end",
+      behavior: "smooth",
+    });
+    setUserScrolled(false);
   };
   const scrollToMessage = (index: number) => {
-    if (!messagesContainerRef.current) return;
-    const messageElements = messagesContainerRef.current.querySelectorAll(".message-wrapper");
-    if (index >= 0 && index < messageElements.length) {
-      messageElements[index].scrollIntoView({
-        block: "center",
+    if (index >= 0 && index < messages.length) {
+      virtuosoRef.current?.scrollToIndex({
+        index,
+        align: "center",
         behavior: "smooth",
       });
       setActiveNavIndex(index);
     }
   };
-  // File upload handlers
   const handleFilesAdd = (files: UploadFile[]) => {
     setUploadedFiles((prev) => {
       const existingKeys = new Set(prev.map((f) => `${f.name}_${f.size}`));
@@ -477,18 +452,15 @@ const MapsChatPage: React.FC<MapsChatPageProps> = ({ onSendMessage, onFileClick,
   };
   /**
    * Open file selector with specific file type filters
-   * Supports text files and skill files
-   * @param filterType - Type of files to filter: 'text' | 'skill'
+   * @param filterType - Type of files to filter: 'text' | 'image' | 'video' | 'skill'
    */
   const openFileSelector = async (filterType: "text" | "skill" = "text") => {
     try {
-      // Define allowed extensions for each type
       const allowedExtensions: Record<string, string[]> = {
         text: ["txt", "md", "json", "js", "ts", "py", "rs", "html", "css", "xml", "yaml", "yml", "toml", "sh", "bash"],
         skill: ["md", "skill"],
       };
       const validExtensions = allowedExtensions[filterType] || [];
-      // Define filters for the file dialog
       let filters: { name: string; extensions: string[] }[] = [];
       switch (filterType) {
         case "text":
@@ -500,7 +472,6 @@ const MapsChatPage: React.FC<MapsChatPageProps> = ({ onSendMessage, onFileClick,
         default:
           filters = [{ name: "All Files", extensions: ["*"] }];
       }
-      // Open system file selector
       const result = await filesCommands.selectFile({
         multiple: true,
         filters: filters,
@@ -509,24 +480,20 @@ const MapsChatPage: React.FC<MapsChatPageProps> = ({ onSendMessage, onFileClick,
       const selectedFiles = Array.isArray(result) ? result : [result];
       const newFiles: UploadFile[] = [];
       let skippedCount = 0;
-      // Process each selected file - filter by extension
       for (const path of selectedFiles) {
         const ext = path.split(".").pop()?.toLowerCase() || "";
-        // Skip files with invalid extensions
         if (!validExtensions.includes(ext)) {
           skippedCount++;
           continue;
         }
         const fileInfo = await filesCommands.getFileInfo(path);
         const isSkill = path.toLowerCase().endsWith(".md") || path.toLowerCase().endsWith(".skill.md") || path.toLowerCase().endsWith(".skill");
-        // Read file content for text files
         let content = "";
         try {
           content = await filesCommands.readTextFile(path);
         } catch (e) {
           console.debug("Cannot read file content:", path);
         }
-        // Determine file type based on extension
         let fileType = "application/octet-stream";
         if (isSkill) {
           fileType = "text/markdown";
@@ -553,7 +520,6 @@ const MapsChatPage: React.FC<MapsChatPageProps> = ({ onSendMessage, onFileClick,
         } else if (path.endsWith(".sh") || path.endsWith(".bash")) {
           fileType = "text/x-shellscript";
         }
-        // Create File object required by UploadFile type
         const fileName = fileInfo.name;
         const fileBlob = new Blob([content], { type: fileType });
         const fileObj = new File([fileBlob], fileName, { type: fileType });
@@ -568,7 +534,6 @@ const MapsChatPage: React.FC<MapsChatPageProps> = ({ onSendMessage, onFileClick,
           status: "success" as const,
         });
       }
-      // Show warning if some files were skipped
       if (skippedCount > 0) {
         showToast(ToastType.WARNING, `${skippedCount} file(s) skipped. Only ${filterType} files are allowed.`);
       }
@@ -576,7 +541,6 @@ const MapsChatPage: React.FC<MapsChatPageProps> = ({ onSendMessage, onFileClick,
         showToast(ToastType.INFO, `No valid ${filterType} files selected`);
         return;
       }
-      // Add all files to upload list - user clicks send to send them
       setUploadedFiles((prev) => [...prev, ...newFiles]);
       showToast(ToastType.SUCCESS, `Added ${newFiles.length} file(s)`);
     } catch (error) {
@@ -584,16 +548,6 @@ const MapsChatPage: React.FC<MapsChatPageProps> = ({ onSendMessage, onFileClick,
       showToast(ToastType.ERROR, "Failed to select files: " + error);
     }
   };
-  /**
-   * Handle attachment button click - closes menu
-   */
-  const handleAttachment = () => {
-    setShowAttachmentMenu(false);
-  };
-  /**
-   * Handle send message - includes file content in the message
-   * Both text files and skill files content are included
-   */
   const handleSend = () => {
     if (isSending) return;
     if (inputValue.trim() || uploadedFiles.length > 0) {
@@ -602,13 +556,11 @@ const MapsChatPage: React.FC<MapsChatPageProps> = ({ onSendMessage, onFileClick,
         showToast(ToastType.SUCCESS, "Session ID cannot be empty.");
         return;
       }
-      // Build message with file contents
       let message = inputValue.trim() || "";
       for (const file of uploadedFiles) {
         if (file.content) {
           const isSkill = file.name?.toLowerCase().endsWith(".md") || file.name?.toLowerCase().endsWith(".skill.md");
           if (isSkill) {
-            // Extract skill name from content (first # heading)
             let skillName = file.name;
             const lines = file.content.split("\n");
             for (const line of lines) {
@@ -629,7 +581,7 @@ const MapsChatPage: React.FC<MapsChatPageProps> = ({ onSendMessage, onFileClick,
       setUploadedFiles([]);
       if (textareaRef.current) textareaRef.current.style.height = "auto";
       setIsSending(true);
-      Promise.resolve(onSendMessage?.(message, sessionId, currentFiles, selectedWorkflowMode)).finally(() => {
+      Promise.resolve(onSendMessage(message, sessionId, currentFiles, selectedWorkflowMode)).finally(() => {
         setTimeout(() => setIsSending(false), 100);
       });
     }
@@ -686,7 +638,6 @@ const MapsChatPage: React.FC<MapsChatPageProps> = ({ onSendMessage, onFileClick,
       localStorage.setItem(`map_workflow_mode_${key}`, mode);
     }
   };
-  // Build navigation content
   const buildNavigationContent = (): React.ReactNode => {
     const userMessages = messages.filter((m) => m.role === RoleEnum.User);
     if (userMessages.length === 0) {
@@ -758,75 +709,33 @@ const MapsChatPage: React.FC<MapsChatPageProps> = ({ onSendMessage, onFileClick,
       </div>
     );
   };
-  // Locate task handler
-  const handleLocateTask = (msg: ChatMessage) => {
-    if (!currentSessionId) {
-      showToast(ToastType.INFO, t("chat.noRelatedTask") || "No Related Task");
-      return;
-    }
-    const tasks = taskManager.getTasksBySession(currentSessionId, SessionDomain.Map);
-    if (!tasks) {
-      showToast(ToastType.INFO, t("chat.noRelatedTask") || "No Related Task");
-      return;
-    }
-    const relatedTask = Array.from(tasks.values()).find((task) => task.user_input === msg.content || task.final_output === msg.content || task.task_id === (msg as any).relatedTaskId);
-    if (relatedTask) {
-      window.dispatchEvent(
-        new CustomEvent("locate-task-in-terminal", {
-          detail: { taskId: relatedTask.task_id },
-        }),
-      );
-    } else {
-      showToast(ToastType.INFO, t("chat.noRelatedTask") || "No Related Task");
-    }
-  };
-  // Handle locate task in chat
   useEffect(() => {
-    const handleLocateTaskInChat = (event: Event) => {
-      const customEvent = event as CustomEvent;
-      const { taskId } = customEvent.detail;
-      if (!taskId) return;
+    const updateMessages = () => {
       if (!currentSessionId) {
-        showToast(ToastType.INFO, t("chat.noRelatedTask") || "No Related Task");
+        setMessages([welcomeMsg]);
         return;
       }
-      const tasks = taskManager.getTasksBySession(currentSessionId, SessionDomain.Map);
-      if (!tasks) return;
-      const task = Array.from(tasks.values()).find((t) => t.task_id === taskId);
-      if (!task) {
-        showToast(ToastType.INFO, t("chat.noRelatedTask") || "No Related Task");
-        return;
-      }
-      const currentMessages = messagesRef.current;
-      let targetIndex = -1;
-      for (let i = 0; i < currentMessages.length; i++) {
-        const msg = currentMessages[i];
-        if (msg.role === RoleEnum.User) {
-          let contentMatch = false;
-          if (msg.content && task.user_input) {
-            contentMatch = msg.content === task.user_input || msg.content.includes(task.user_input) || task.user_input.includes(msg.content);
-          }
-          let filesMatch = false;
-          if (msg.files && msg.files.length > 0 && (task as any).files) {
-            const taskFiles = (task as any).files || [];
-            filesMatch = msg.files.some((f: any) => taskFiles.some((tf: any) => f.name === tf.name || f.path === tf.path));
-          }
-          if (contentMatch || filesMatch) {
-            targetIndex = i;
-            break;
-          }
+      const userMessages = taskManager.getUserMessagesBySession(currentSessionId, SessionDomain.Map);
+      const assistantMessages = taskManager.getAssistantMessagesBySessionAsArray(currentSessionId, SessionDomain.Map);
+      const messageMap = new Map<string, ChatMessage>();
+      const allMessages = [...userMessages, ...assistantMessages];
+      allMessages.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+      allMessages.forEach((msg) => {
+        if (msg && msg.id) {
+          messageMap.set(msg.id, msg);
         }
-      }
-      if (targetIndex !== -1) {
-        scrollToMessage(targetIndex);
+      });
+      const result = Array.from(messageMap.values()).sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+      if (result.length === 0) {
+        setMessages([welcomeMsg]);
+      } else {
+        setMessages(result);
       }
     };
-    window.addEventListener("locate-task-in-chat", handleLocateTaskInChat);
-    return () => {
-      window.removeEventListener("locate-task-in-chat", handleLocateTaskInChat);
-    };
-  }, [t, currentSessionId]);
-  // Language change handler
+    updateMessages();
+    const unsubscribe = taskManager.subscribe(() => updateMessages());
+    return unsubscribe;
+  }, [language, currentSessionId, t]);
   useEffect(() => {
     const handleLanguageChange = () => {
       loadWorkflowDisplayNames();
@@ -836,7 +745,6 @@ const MapsChatPage: React.FC<MapsChatPageProps> = ({ onSendMessage, onFileClick,
       window.removeEventListener("language-changed", handleLanguageChange as EventListener);
     };
   }, []);
-  // Initialize
   useEffect(() => {
     loadCurrentDefaultModel();
     loadWorkspaces();
@@ -847,7 +755,6 @@ const MapsChatPage: React.FC<MapsChatPageProps> = ({ onSendMessage, onFileClick,
   useEffect(() => {
     messagesRef.current = messages;
   }, [messages]);
-  // Locate task in chat - duplicate handler for general tasks
   useEffect(() => {
     const handleLocateTaskInChat = (event: Event) => {
       const customEvent = event as CustomEvent;
@@ -887,22 +794,16 @@ const MapsChatPage: React.FC<MapsChatPageProps> = ({ onSendMessage, onFileClick,
       window.removeEventListener("locate-task-in-chat", handleLocateTaskInChat);
     };
   }, [t]);
-  // Auto scroll to bottom
+  // Scroll to bottom when new messages arrive and user hasn't scrolled up
   useEffect(() => {
-    if (messagesContainerRef.current && !userScrolled) {
-      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+    if (messages.length > 0 && !userScrolled) {
+      virtuosoRef.current?.scrollToIndex({
+        index: messages.length - 1,
+        align: "end",
+        behavior: "auto",
+      });
     }
-  }, [messages]);
-  // Scroll event listener
-  useEffect(() => {
-    const element = messagesContainerRef.current;
-    if (element) {
-      element.addEventListener("scroll", checkScrollPosition);
-      checkScrollPosition();
-      return () => element.removeEventListener("scroll", checkScrollPosition);
-    }
-  }, [messages]);
-  // Click outside handlers
+  }, [messages, userScrolled]);
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (attachmentMenuRef.current && !attachmentMenuRef.current.contains(event.target as Node) && attachmentBtnRef.current && !attachmentBtnRef.current.contains(event.target as Node)) {
@@ -925,6 +826,111 @@ const MapsChatPage: React.FC<MapsChatPageProps> = ({ onSendMessage, onFileClick,
     return t("chat.endingMessage") || (language === "zh" ? "✨ 我还能为你做些什么吗？ ✨" : "✨ What else can I do for you? ✨");
   };
   const navigation = buildNavigationContent();
+  // Render a single message item for Virtuoso
+  const renderMessageItem = useCallback(
+    (index: number, msg: ChatMessage) => {
+      const isUser = msg.role === RoleEnum.User;
+      const isLastMessage = index === messages.length - 1;
+      const formattedTime = formatTimestamp(msg.timestamp);
+      return (
+        <div key={msg.id} className={`message-wrapper ${isUser ? "user" : ""}`}>
+          <div className="message-avatar">
+            {isUser ? (
+              <UserIcon size={16} />
+            ) : (
+              <img
+                src={logo}
+                alt="Hippox LLM"
+                style={{
+                  width: "32px",
+                  height: "32px",
+                  borderRadius: "50%",
+                  objectFit: "cover",
+                }}
+              />
+            )}
+          </div>
+          <div className="message-content-area">
+            {msg.status === MessageStatus.Pending ? (
+              <div className="message-bubble" style={{ backgroundColor: "transparent" }}>
+                <div className="message-content">
+                  <LoadingSpinner />
+                </div>
+              </div>
+            ) : msg.status && [MessageStatus.Paused, MessageStatus.Cancelled, MessageStatus.Failed].includes(msg.status) ? (
+              <StatusMessage msg={msg} status={msg.status} t={t} />
+            ) : isUser ? (
+              <>
+                {msg.files && msg.files.length > 0 && <MessageFileGrid files={msg.files} onFileClick={onFileClick} formatFileSize={formatFileSize} />}
+                {msg.content &&
+                  msg.content.trim() &&
+                  (editingMessageId === msg.id ? (
+                    <EditMessageForm editContent={editContent} setEditContent={setEditContent} onSave={() => handleSaveEdit(msg)} onCancel={handleCancelEdit} t={t} />
+                  ) : (
+                    <div className="message-bubble">
+                      <div className="message-content">{msg.content}</div>
+                      <div className="message-time">{formattedTime}</div>
+                    </div>
+                  ))}
+                <MessageActions msg={msg} isUser={true} copyToClipboard={copyToClipboard} onLocateTask={handleLocateTask} onEditMessage={handleEditMessage} onResendMessage={handleResendMessage} t={t} />
+              </>
+            ) : (
+              (() => {
+                let displayContent = msg.content;
+                let displaySubtitle = null;
+                if (isStructuredLLMResponse(msg.content)) {
+                  const parsed = parseLLMResponse(msg.content);
+                  if (parsed?.chatResponse) {
+                    displayContent = parsed.chatResponse.m;
+                    if (parsed.chatResponse.s) {
+                      displaySubtitle = parsed.chatResponse.s;
+                    }
+                  }
+                }
+                return (
+                  <>
+                    <div className="message-bubble">
+                      <div className="message-content">{displayContent}</div>
+                      {displaySubtitle && (
+                        <div
+                          className="message-subtitle"
+                          style={{
+                            fontSize: "11px",
+                            color: "var(--text-tertiary)",
+                            marginTop: "6px",
+                            paddingTop: "4px",
+                            borderTop: "1px solid var(--border-color)",
+                          }}
+                        >
+                          {displaySubtitle}
+                        </div>
+                      )}
+                      <div className="message-time">{formattedTime}</div>
+                    </div>
+                    <MessageActions msg={msg} isUser={false} copyToClipboard={copyToClipboard} onLocateTask={handleLocateTask} onEditMessage={handleEditMessage} t={t} />
+                    {isLastMessage && shouldShowSuggestions(messages) && suggestionPrompts.length > 0 && (
+                      <div className="suggestions-wrapper">
+                        <div className="ending-message">{getEndingMessage()}</div>
+                        <div className="suggestions-title">{t("chat.suggestionsTitle") || (language === "zh" ? "💡 试试这些：" : "💡 Try these:")}</div>
+                        <div className="suggestions-container">
+                          {suggestionPrompts.map((prompt, idx) => (
+                            <div key={idx} className="suggestion-bubble" onClick={() => handleSuggestionClick(prompt)} title={prompt}>
+                              {prompt.length > 25 ? prompt.slice(0, 25) + "..." : prompt}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                );
+              })()
+            )}
+          </div>
+        </div>
+      );
+    },
+    [messages, editingMessageId, editContent, suggestionPrompts, t, language, onFileClick, onSendMessage],
+  );
   const navBubblePosition = (() => {
     if (navButtonRef.current) {
       const rect = navButtonRef.current.getBoundingClientRect();
@@ -942,6 +948,7 @@ const MapsChatPage: React.FC<MapsChatPageProps> = ({ onSendMessage, onFileClick,
    *
    * Same pattern as 3D sandbox: extract data from LLM response and render it
    */
+  const processedMessageIdsRef = useRef<Set<string>>(new Set());
   useEffect(() => {
     // Check if there's a new LLM message with earthview data to render
     const lastMsg = messages.length > 0 ? messages[messages.length - 1] : null;
@@ -1183,119 +1190,64 @@ const MapsChatPage: React.FC<MapsChatPageProps> = ({ onSendMessage, onFileClick,
         </div>
       )}
       <div className="chat-messages-wrapper">
-        <div className="chat-messages" ref={messagesContainerRef} onScroll={handleUserScroll}>
-          {messages.map((msg, index) => {
-            const isUser = msg.role === RoleEnum.User;
-            const isLastMessage = index === messages.length - 1;
-            const formattedTime = formatTimestamp(msg.timestamp);
-            return (
-              <div key={msg.id} className={`message-wrapper ${isUser ? "user" : ""}`}>
-                <div className="message-avatar">
-                  {isUser ? (
-                    <UserIcon size={16} />
-                  ) : (
-                    <img
-                      src={logo}
-                      alt="Hippox LLM"
-                      style={{
-                        width: "32px",
-                        height: "32px",
-                        borderRadius: "50%",
-                        objectFit: "cover",
-                      }}
-                    />
-                  )}
-                </div>
-                <div className="message-content-area">
-                  {msg.status === MessageStatus.Pending ? (
-                    <div className="message-bubble" style={{ backgroundColor: "transparent" }}>
-                      <div className="message-content">
-                        <LoadingSpinner />
-                      </div>
-                    </div>
-                  ) : msg.status && [MessageStatus.Paused, MessageStatus.Cancelled, MessageStatus.Failed].includes(msg.status) ? (
-                    <StatusMessage msg={msg} status={msg.status} t={t} />
-                  ) : isUser ? (
-                    <>
-                      {msg.files && msg.files.length > 0 && <MessageFileGrid files={msg.files} onFileClick={onFileClick} formatFileSize={formatFileSize} />}
-                      {msg.content &&
-                        msg.content.trim() &&
-                        (editingMessageId === msg.id ? (
-                          <EditMessageForm editContent={editContent} setEditContent={setEditContent} onSave={() => handleSaveEdit(msg)} onCancel={handleCancelEdit} t={t} />
-                        ) : (
-                          <div className="message-bubble">
-                            <div className="message-content">{msg.content}</div>
-                            <div className="message-time">{formattedTime}</div>
-                          </div>
-                        ))}
-                      <MessageActions msg={msg} isUser={true} copyToClipboard={copyToClipboard} onLocateTask={handleLocateTask} onEditMessage={handleEditMessage} onResendMessage={handleResendMessage} t={t} />
-                    </>
-                  ) : (
-                    (() => {
-                      let displayContent = msg.content;
-                      let displaySubtitle = null;
-                      if (isStructuredLLMResponse(msg.content)) {
-                        const parsed = parseLLMResponse(msg.content);
-                        if (parsed?.chatResponse) {
-                          displayContent = parsed.chatResponse.m;
-                          if (parsed.chatResponse.s) {
-                            displaySubtitle = parsed.chatResponse.s;
-                          }
-                        }
-                      }
-                      return (
-                        <>
-                          <div className="message-bubble">
-                            <div className="message-content">{displayContent}</div>
-                            {displaySubtitle && (
-                              <div
-                                className="message-subtitle"
-                                style={{
-                                  fontSize: "11px",
-                                  color: "var(--text-tertiary)",
-                                  marginTop: "6px",
-                                  paddingTop: "4px",
-                                  borderTop: "1px solid var(--border-color)",
-                                }}
-                              >
-                                {displaySubtitle}
-                              </div>
-                            )}
-                            <div className="message-time">{formattedTime}</div>
-                          </div>
-                          <MessageActions msg={msg} isUser={false} copyToClipboard={copyToClipboard} onLocateTask={handleLocateTask} onEditMessage={handleEditMessage} t={t} />
-                          {isLastMessage && shouldShowSuggestions(messages) && suggestionPrompts.length > 0 && (
-                            <div className="suggestions-wrapper">
-                              <div className="ending-message">{getEndingMessage()}</div>
-                              <div className="suggestions-title">{t("chat.suggestionsTitle") || (language === "zh" ? "💡 试试这些：" : "💡 Try these:")}</div>
-                              <div className="suggestions-container">
-                                {suggestionPrompts.map((prompt, idx) => (
-                                  <div key={idx} className="suggestion-bubble" onClick={() => handleSuggestionClick(prompt)} title={prompt}>
-                                    {prompt.length > 25 ? prompt.slice(0, 25) + "..." : prompt}
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                        </>
-                      );
-                    })()
-                  )}
-                </div>
-              </div>
-            );
-          })}
+        <div className="chat-messages" ref={messagesContainerRef} style={{ height: "100%", width: "100%", position: "relative" }}>
+          {messages.length > 0 ? (
+            <Virtuoso
+              ref={virtuosoRef}
+              data={messages}
+              style={{ height: "100%", width: "100%" }}
+              itemContent={renderMessageItem}
+              // Track scroll position to update scroll buttons
+              atBottomStateChange={(atBottom) => {
+                setIsAtBottom(atBottom);
+                if (atBottom) {
+                  setUserScrolled(false);
+                  setShowScrollButton(false);
+                } else {
+                  setShowScrollButton(true);
+                }
+              }}
+              // Track user scroll for auto-scroll behavior
+              onScroll={(e) => {
+                const target = e.target as HTMLElement;
+                if (target) {
+                  const { scrollTop, scrollHeight, clientHeight } = target;
+                  const atBottom = scrollHeight - scrollTop - clientHeight <= 10;
+                  if (!atBottom) {
+                    setUserScrolled(true);
+                  }
+                  setShowTopScrollButton(scrollTop > 50);
+                  // Update active nav index
+                  requestAnimationFrame(() => {
+                    handleScrollUpdate();
+                  });
+                }
+              }}
+            />
+          ) : (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                height: "100%",
+                color: "var(--text-muted)",
+              }}
+            >
+              {t("chat.empty") || "No messages yet"}
+            </div>
+          )}
         </div>
         {(showScrollButton || showTopScrollButton) && (
           <div className="scroll-buttons chat-scroll-buttons" style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
             {showTopScrollButton && (
               <button style={{ height: "32px", width: "32px", borderRadius: "500px" }} className="scroll-btn" onClick={scrollToTop} title={t("chat.scrollToTop") || "Scroll to top"}>
-                ▲
+                <ChevronUp size={18} />
               </button>
             )}
             {showScrollButton && (
               <button style={{ height: "32px", width: "32px", borderRadius: "500px" }} className="scroll-btn" onClick={scrollToBottom} title={t("chat.scrollToBottom")}>
-                ▼
+                <ChevronDown size={18} />
               </button>
             )}
           </div>

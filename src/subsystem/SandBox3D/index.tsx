@@ -16,7 +16,7 @@ import { sandbox3dExportCommands } from "../../command/SandBox3D";
 import { APP_WINDOW_EVENTS } from "../../App/AppWindowEventManager";
 import { showDialog, DialogType } from "../../components/Dialog";
 import { showToast, ToastType } from "../../components/Toast";
-import { CheckSquare, Layers, Pin, PinOff, Square, Trash2 } from "lucide-react";
+import { CheckSquare, ChevronDown, ChevronUp, Layers, Pin, PinOff, Plus, Square, Trash2 } from "lucide-react";
 // Panel Size Constants - aligned with GeneralChatPage
 // History panel (leftmost panel) size limits
 const HISTORY_PANEL_MIN_WIDTH = 285;
@@ -213,7 +213,7 @@ const CollapsedTaskList: React.FC<CollapsedTaskListProps> = ({ tasks, activeNavI
           }}
           title="Scroll Up"
         >
-          ▲
+          <ChevronUp size={18} />
         </button>
       )}
       <div
@@ -324,7 +324,7 @@ const CollapsedTaskList: React.FC<CollapsedTaskListProps> = ({ tasks, activeNavI
           }}
           title="Scroll Down"
         >
-          ▼
+          <ChevronDown size={18} />
         </button>
       )}
       <style>{`
@@ -481,7 +481,7 @@ const CollapsedHistoryList: React.FC<CollapsedHistoryListProps> = ({ sessions, c
           }}
           title="Scroll Up"
         >
-          ▲
+          <ChevronUp size={18} />
         </button>
       )}
       <div
@@ -594,7 +594,7 @@ const CollapsedHistoryList: React.FC<CollapsedHistoryListProps> = ({ sessions, c
           }}
           title="Scroll Down"
         >
-          ▼
+          <ChevronDown size={18} />
         </button>
       )}
       <style>{`
@@ -1581,8 +1581,18 @@ const SandBox3DPage: React.FC<SandBox3DPageProps> = ({
               }}
               title={isHistoryAtBottom ? (isZh ? "滚动到顶部" : "Scroll to top") : isZh ? "滚动到底部" : "Scroll to bottom"}
             >
-              {isHistoryAtBottom ? "▲" : "▼"}
+              {isHistoryAtBottom ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
             </button>
+          </div>
+          {/* Right side: New session + Collapse panel button */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              flexShrink: 0,
+              gap: "4px",
+            }}
+          >
             {/* New session button - only when not in batch mode */}
             {!isBatchMode && (
               <button
@@ -1598,18 +1608,10 @@ const SandBox3DPage: React.FC<SandBox3DPageProps> = ({
                 }}
                 title={isZh ? "新建会话" : "New Session"}
               >
-                +
+                <Plus size={16} />
               </button>
             )}
-          </div>
-          {/* Right side: Collapse panel button only */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              flexShrink: 0,
-            }}
-          >
+            {/* Collapse panel button */}
             <button
               style={headerButtonStyle}
               onClick={handleToggleHistory}

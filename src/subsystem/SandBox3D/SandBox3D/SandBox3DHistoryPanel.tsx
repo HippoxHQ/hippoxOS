@@ -1,5 +1,6 @@
 import React from "react";
 import { ThreeSceneSnapshot } from ".";
+import { ChevronDown, ChevronUp } from "lucide-react";
 interface SandBox3DHistoryPanelProps {
   /** List of scene snapshots to display */
   snapshots: ThreeSceneSnapshot[];
@@ -133,7 +134,7 @@ export const SandBox3DHistoryPanel: React.FC<SandBox3DHistoryPanelProps> = ({ sn
               padding: "2px 6px",
             }}
           >
-            ▲
+            <ChevronUp size={18} />
           </div>
         </div>
       )}
@@ -196,7 +197,7 @@ export const SandBox3DHistoryPanel: React.FC<SandBox3DHistoryPanelProps> = ({ sn
               }}
               title={isZh ? "收起" : "Collapse"}
             >
-              ▼
+              <ChevronDown size={18} />
             </button>
           </div>
           <div

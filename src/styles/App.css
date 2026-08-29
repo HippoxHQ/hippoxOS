@@ -359,9 +359,10 @@ body {
   white-space: pre-wrap;
 }
 .task-separator {
+  padding: 8px 0px;
   color: var(--border-color);
   font-size: 11px;
-  margin: 8px 0;
+  /* margin: 8px 0; */
   letter-spacing: 1px;
 }
 .empty-terminal {

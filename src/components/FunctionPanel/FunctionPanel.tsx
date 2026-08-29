@@ -6,7 +6,7 @@ import { ModuleTabs } from "./ModuleTabs";
 import { ModuleContent } from "./ModuleContent";
 import { FunctionPanelController } from "./hooks/useFunctionPanelController";
 import TableFilePreview from "./integrations/IntegratedPreviewContent/TableFilePreview";
-import { Folder } from "lucide-react";
+import { ChevronDown, ChevronUp, Folder } from "lucide-react";
 interface FunctionPanelProps {
   controller: FunctionPanelController;
   theme: "light" | "dark";
@@ -323,7 +323,7 @@ const CollapsedTabList: React.FC<CollapsedTabListProps> = ({ items, activeItemId
           }}
           title="Scroll Up"
         >
-          ▲
+          <ChevronUp size={18} />
         </button>
       )}
       <div
@@ -396,7 +396,7 @@ const CollapsedTabList: React.FC<CollapsedTabListProps> = ({ items, activeItemId
           }}
           title="Scroll Down"
         >
-          ▼
+          <ChevronDown size={18} />
         </button>
       )}
       <style>{`

@@ -3,9 +3,9 @@ import { DialogSession } from "../../types/types";
 import { showDialog, DialogType } from "../../components/Dialog";
 import { showToast, ToastType } from "../../components/Toast";
 import { chartSessionCommands } from "../../command/session/finance";
-import { DeleteIcon, MoreVerticalIcon, PinFilledIcon, PinIcon, RenameIcon, UnPinIcon, AddIcon } from "../../icons";
+import { DeleteIcon, MoreVerticalIcon, PinFilledIcon, PinIcon, RenameIcon, UnPinIcon } from "../../icons";
 import { taskManager } from "../../core/TaskManager";
-import { CheckSquare, Square } from "lucide-react";
+import { CheckSquare, ChevronDown, Square } from "lucide-react";
 export interface HistoryChartChatPanelRef {
   scrollToTop: () => void;
   scrollToBottom: () => void;
@@ -495,7 +495,7 @@ const HistoryChartChatPanel = forwardRef<HistoryChartChatPanelRef, HistoryChartC
                     transform: expandedCategories[category.type] ? "rotate(0deg)" : "rotate(-90deg)",
                   }}
                 >
-                  ▼
+                  <ChevronDown size={18} />
                 </span>
               </div>
               {expandedCategories[category.type] &&

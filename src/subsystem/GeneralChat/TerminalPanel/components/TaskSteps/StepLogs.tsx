@@ -1,5 +1,5 @@
+import { ChevronDown, ChevronUp } from "lucide-react";
 import React from "react";
-
 interface StepLogsProps {
   logs: string[];
   stepIndex: number;
@@ -7,12 +7,9 @@ interface StepLogsProps {
   onToggle: () => void;
   t: (key: string) => string;
 }
-
 export const StepLogs: React.FC<StepLogsProps> = ({ logs, isExpanded, onToggle, t }) => {
   if (!logs || logs.length === 0) return null;
-
   const briefContent = logs[logs.length - 1];
-
   return (
     <div
       className="step-parameters-row"
@@ -65,7 +62,7 @@ export const StepLogs: React.FC<StepLogsProps> = ({ logs, isExpanded, onToggle, 
               e.currentTarget.style.borderColor = "var(--border-color, #444)";
             }}
           >
-            ▲ {t("terminal.collapse")}
+            <ChevronUp size={18} /> {t("terminal.collapse")}
           </button>
         ) : (
           <>
@@ -132,7 +129,7 @@ export const StepLogs: React.FC<StepLogsProps> = ({ logs, isExpanded, onToggle, 
                   e.currentTarget.style.borderColor = "var(--border-color, #444)";
                 }}
               >
-                ▼ {t("terminal.expand")}
+                <ChevronDown size={18} /> {t("terminal.expand")}
               </button>
             </div>
           </>

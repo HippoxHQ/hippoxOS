@@ -5,7 +5,7 @@ import { showToast, ToastType } from "../../components/Toast";
 import { DeleteIcon, MoreVerticalIcon, PinFilledIcon, PinIcon, RenameIcon, UnPinIcon } from "../../icons";
 import { sessionCommands } from "../../command/session/general";
 import { taskManager } from "../../core/TaskManager";
-import { CheckSquare, Square } from "lucide-react";
+import { CheckSquare, ChevronDown, Square } from "lucide-react";
 export interface HistoryChatPanelRef {
   scrollToTop: () => void;
   scrollToBottom: () => void;
@@ -492,7 +492,7 @@ const HistoryChatPanel = forwardRef<HistoryChatPanelRef, HistoryChatPanelProps>(
                   transform: expandedCategories[category.type] ? "rotate(0deg)" : "rotate(-90deg)",
                 }}
               >
-                ▼
+                <ChevronDown size={18} />
               </span>
             </div>
             {expandedCategories[category.type] &&

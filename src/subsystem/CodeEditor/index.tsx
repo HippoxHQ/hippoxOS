@@ -14,7 +14,7 @@ import { showToast, ToastType } from "../../components/Toast";
 import { open } from "@tauri-apps/plugin-dialog";
 import GithubClone from "./GithubClone";
 import { APP_WINDOW_EVENTS } from "../../App/AppWindowEventManager";
-import { CheckSquare, Square, Layers, Pin, PinOff, Trash2 } from "lucide-react";
+import { CheckSquare, Square, Layers, Pin, PinOff, Trash2, ChevronUp, ChevronDown } from "lucide-react";
 import { showDialog, DialogType } from "../../components/Dialog";
 // Panel Size Constants - Aligned with GeneralChatPage
 // History panel (leftmost panel) size limits
@@ -259,7 +259,7 @@ const CollapsedTaskList: React.FC<CollapsedTaskListProps> = ({ tasks, activeNavI
           }}
           title="Scroll Up"
         >
-          ▲
+          <ChevronUp size={18} />
         </button>
       )}
       <div
@@ -369,7 +369,7 @@ const CollapsedTaskList: React.FC<CollapsedTaskListProps> = ({ tasks, activeNavI
           }}
           title="Scroll Down"
         >
-          ▼
+          <ChevronDown size={18} />
         </button>
       )}
       <style>{`
@@ -523,7 +523,7 @@ const CollapsedHistoryList: React.FC<CollapsedHistoryListProps> = ({ sessions, c
           }}
           title="Scroll Up"
         >
-          ▲
+          <ChevronUp size={18} />
         </button>
       )}
       <div
@@ -635,7 +635,7 @@ const CollapsedHistoryList: React.FC<CollapsedHistoryListProps> = ({ sessions, c
           }}
           title="Scroll Down"
         >
-          ▼
+          <ChevronDown size={18} />
         </button>
       )}
       <style>{`
@@ -1474,7 +1474,7 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
               }}
               title={isHistoryAtBottom ? (isZh ? "滚动到顶部" : "Scroll to top") : isZh ? "滚动到底部" : "Scroll to bottom"}
             >
-              {isHistoryAtBottom ? "▲" : "▼"}
+              {isHistoryAtBottom ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
             </button>
           </div>
           {/* Right side: Collapse panel button and New Session button */}

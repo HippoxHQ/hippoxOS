@@ -1,13 +1,12 @@
 import React from "react";
 import { styles } from "../constants";
-
+import { ChevronDown, ChevronUp } from "lucide-react";
 interface ScrollButtonsProps {
   showScrollTop: boolean;
   showScrollBottom: boolean;
   onScrollToTop: () => void;
   onScrollToBottom: () => void;
 }
-
 export const ScrollButtons: React.FC<ScrollButtonsProps> = ({ showScrollTop, showScrollBottom, onScrollToTop, onScrollToBottom }) => {
   return (
     <div style={styles.scrollButtonsContainer}>
@@ -24,7 +23,7 @@ export const ScrollButtons: React.FC<ScrollButtonsProps> = ({ showScrollTop, sho
             e.currentTarget.style.color = "var(--text-secondary, #aaa)";
           }}
         >
-          ▲
+          <ChevronUp size={18} />
         </button>
       )}
       {showScrollBottom && (
@@ -40,7 +39,7 @@ export const ScrollButtons: React.FC<ScrollButtonsProps> = ({ showScrollTop, sho
             e.currentTarget.style.color = "var(--text-secondary, #aaa)";
           }}
         >
-          ▼
+          <ChevronDown size={18} />
         </button>
       )}
     </div>

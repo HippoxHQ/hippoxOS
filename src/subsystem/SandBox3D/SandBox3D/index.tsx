@@ -1,9 +1,9 @@
 import React, { useRef, useEffect, useImperativeHandle, forwardRef, useState, useCallback } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
-import { showDialog, DialogType } from "../../../components/Dialog";
 import { ToolMenu } from "./ToolMenu";
 import { sandbox3dExportCommands } from "../../../command/SandBox3D";
+import { ChevronDown, ChevronUp } from "lucide-react";
 const gifshot = require("gifshot");
 export interface ThreeSceneSnapshot {
   id: string;
@@ -775,7 +775,7 @@ const SandBox3D = forwardRef<SandBox3DRef, SandBox3DProps>(({ theme, i18n, t, cu
                   padding: "2px 6px",
                 }}
               >
-                ▲
+                <ChevronUp size={18} />
               </div>
             </div>
           )}
@@ -838,7 +838,7 @@ const SandBox3D = forwardRef<SandBox3DRef, SandBox3DProps>(({ theme, i18n, t, cu
                   }}
                   title={isZh ? "收起" : "Collapse"}
                 >
-                  ▼
+                  <ChevronDown size={18} />
                 </button>
               </div>
               <div

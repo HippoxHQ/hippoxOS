@@ -10,7 +10,7 @@ import { useMapSession } from "../../App/hooks/session/useMapChatSession";
 import { EarthViewRef } from "./MapsChatPanel/types";
 import MapsChatPage from "./MapsChatPanel";
 import { APP_WINDOW_EVENTS } from "../../App/AppWindowEventManager";
-import { CheckSquare, Square, Layers, Pin, PinOff, Trash2 } from "lucide-react";
+import { CheckSquare, Square, Layers, Pin, PinOff, Trash2, ChevronUp, ChevronDown, Plus } from "lucide-react";
 import { mapSessionCommands } from "../../command/session/map";
 import { showDialog, DialogType } from "../../components/Dialog";
 import { showToast, ToastType } from "../../components/Toast";
@@ -217,7 +217,7 @@ const CollapsedTaskList: React.FC<CollapsedTaskListProps> = ({ tasks, activeNavI
           }}
           title="Scroll Up"
         >
-          ▲
+          <ChevronUp size={18} />
         </button>
       )}
       <div
@@ -328,7 +328,7 @@ const CollapsedTaskList: React.FC<CollapsedTaskListProps> = ({ tasks, activeNavI
           }}
           title="Scroll Down"
         >
-          ▼
+          <ChevronDown size={18} />
         </button>
       )}
       <style>{`
@@ -485,7 +485,7 @@ const CollapsedHistoryList: React.FC<CollapsedHistoryListProps> = ({ sessions, c
           }}
           title="Scroll Up"
         >
-          ▲
+          <ChevronUp size={18} />
         </button>
       )}
       <div
@@ -598,7 +598,7 @@ const CollapsedHistoryList: React.FC<CollapsedHistoryListProps> = ({ sessions, c
           }}
           title="Scroll Down"
         >
-          ▼
+          <ChevronDown size={18} />
         </button>
       )}
       <style>{`
@@ -1409,7 +1409,7 @@ const MapsPage: React.FC<MapsPageProps> = ({
               }}
               title={isHistoryAtBottom ? "Scroll to top" : "Scroll to bottom"}
             >
-              {isHistoryAtBottom ? "▲" : "▼"}
+              {isHistoryAtBottom ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
             </button>
           </div>
           {/* Right side: Collapse panel button only */}
@@ -1420,6 +1420,21 @@ const MapsPage: React.FC<MapsPageProps> = ({
               flexShrink: 0,
             }}
           >
+            <button
+              style={headerButtonStyle}
+              onClick={handleNewSession}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = "var(--text-primary)";
+                e.currentTarget.style.background = "var(--hover-bg)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = "var(--text-secondary)";
+                e.currentTarget.style.background = "none";
+              }}
+              title="New Session"
+            >
+              <Plus size={16} />
+            </button>
             <button
               style={headerButtonStyle}
               onClick={handleToggleHistory}

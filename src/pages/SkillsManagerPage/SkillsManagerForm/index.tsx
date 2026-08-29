@@ -4,6 +4,7 @@ import { formStyles } from "./styles";
 import { useTagList, useCategoryInput, useFocusStates, useStepHandlers, useTagHandlers, useCategoryHandler } from "./hooks";
 import { StepCard, SectionHeader, FormLabel, TagList } from "./components";
 import { BasicInfoIcon, DescriptionIcon, StepsIcon, AddIcon, TagsIcon, CategoryIcon2, ExampleIcon } from "../../../icons";
+import { Plus } from "lucide-react";
 interface SkillsManagerFormProps {
   t: (key: string, params?: any) => string;
   skill: Skill;
@@ -17,20 +18,7 @@ const SkillsManagerForm: React.FC<SkillsManagerFormProps> = ({ t, skill, onUpdat
   const [currentTagInput, setCurrentTagInput] = useState("");
   const { tagList, setTagList } = useTagList(skill);
   const { currentCategoryInput, setCurrentCategoryInput } = useCategoryInput(skill);
-  const {
-    isNameFocused,
-    setIsNameFocused,
-    isDescFocused,
-    setIsDescFocused,
-    isExampleFocused,
-    setIsExampleFocused,
-    stepFocusStates,
-    setStepFocusStates,
-    materialFocusStates,
-    setMaterialFocusStates,
-    schemaFocusStates,
-    setSchemaFocusStates,
-  } = useFocusStates();
+  const { isNameFocused, setIsNameFocused, isDescFocused, setIsDescFocused, isExampleFocused, setIsExampleFocused, stepFocusStates, setStepFocusStates, materialFocusStates, setMaterialFocusStates, schemaFocusStates, setSchemaFocusStates } = useFocusStates();
   const { updateStepDescription, addStep, removeStep, toggleDependency, addMaterial, updateMaterial, removeMaterial, getAvailableDependencies } = useStepHandlers(skill, onUpdate);
   const { addTag, removeTag } = useTagHandlers(skill, onUpdate, tagList, setTagList);
   const { updateCategory } = useCategoryHandler(skill, onUpdate, setCurrentCategoryInput);
@@ -118,7 +106,7 @@ const SkillsManagerForm: React.FC<SkillsManagerFormProps> = ({ t, skill, onUpdat
           ))}
         </div>
         <button className="add-step-btn" onClick={addStep}>
-          <AddIcon size={14} /> {t("skillsManager.addStep")}
+          <Plus size={16} /> {t("skillsManager.addStep")}
         </button>
       </div>
       <div className="form-divider" />

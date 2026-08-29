@@ -4,6 +4,7 @@ import { PlayIcon, DeleteIcon, StarIcon, StarFilledIcon } from "../../icons";
 import { skillsMarketCommands, skillsLocalCommands } from "../../command/skills";
 import { UploadFile } from "../../core/types";
 import { runSkill } from "../../components/MenuPanel/utils/skillRunner";
+import { ChevronDown } from "lucide-react";
 interface SkillsManagerSidebarProps {
   t: (key: string, params?: any) => string;
   skills: SkillData[];
@@ -447,7 +448,7 @@ const SkillsManagerSidebar: React.FC<SkillsManagerSidebarProps> = ({ t, skills, 
                       transform: isExpanded ? "rotate(0deg)" : "rotate(-90deg)",
                     }}
                   >
-                    ▼
+                    <ChevronDown size={18} />
                   </span>
                 </div>
                 {isExpanded &&

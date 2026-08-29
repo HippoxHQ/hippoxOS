@@ -10,7 +10,7 @@ import ChartChatPanel from "./ChartChatPanel";
 import { useFinanceSession } from "../../App/hooks/session/useFinanceSession";
 import MarqueeBar from "./MarqueeBar";
 import { APP_WINDOW_EVENTS } from "../../App/AppWindowEventManager";
-import { CheckSquare, Square, Layers, Pin, PinOff, Trash2 } from "lucide-react";
+import { CheckSquare, Square, Layers, Pin, PinOff, Trash2, ChevronUp, ChevronDown, Plus } from "lucide-react";
 import { chartSessionCommands } from "../../command/session/finance";
 import { showDialog, DialogType } from "../../components/Dialog";
 import { showToast, ToastType } from "../../components/Toast";
@@ -210,7 +210,7 @@ const CollapsedTaskList: React.FC<CollapsedTaskListProps> = ({ tasks, activeNavI
           }}
           title="Scroll Up"
         >
-          ▲
+          <ChevronUp size={18} />
         </button>
       )}
       <div
@@ -321,7 +321,7 @@ const CollapsedTaskList: React.FC<CollapsedTaskListProps> = ({ tasks, activeNavI
           }}
           title="Scroll Down"
         >
-          ▼
+          <ChevronDown size={18} />
         </button>
       )}
       <style>{`
@@ -480,7 +480,7 @@ const CollapsedHistoryList: React.FC<CollapsedHistoryListProps> = ({ sessions, c
           }}
           title="Scroll Up"
         >
-          ▲
+          <ChevronUp size={18} />
         </button>
       )}
       <div
@@ -593,7 +593,7 @@ const CollapsedHistoryList: React.FC<CollapsedHistoryListProps> = ({ sessions, c
           }}
           title="Scroll Down"
         >
-          ▼
+          <ChevronDown size={18} />
         </button>
       )}
       <style>{`
@@ -1388,7 +1388,7 @@ const ChartPage: React.FC<ChartPageProps> = ({
               }}
               title={isHistoryAtBottom ? (isZh ? "滚动到顶部" : "Scroll to top") : isZh ? "滚动到底部" : "Scroll to bottom"}
             >
-              {isHistoryAtBottom ? "▲" : "▼"}
+              {isHistoryAtBottom ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
             </button>
           </div>
           {/* Right side: Collapse panel button only */}
@@ -1399,6 +1399,21 @@ const ChartPage: React.FC<ChartPageProps> = ({
               flexShrink: 0,
             }}
           >
+            <button
+              style={headerButtonStyle}
+              onClick={handleNewSession}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = "var(--text-primary)";
+                e.currentTarget.style.background = "var(--hover-bg)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = "var(--text-secondary)";
+                e.currentTarget.style.background = "none";
+              }}
+              title={isZh ? "新建会话" : "New Session"}
+            >
+              <Plus size={16} />
+            </button>
             <button
               style={headerButtonStyle}
               onClick={handleToggleHistory}

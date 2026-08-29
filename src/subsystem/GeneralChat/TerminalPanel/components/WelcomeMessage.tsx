@@ -1,13 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { WELCOME_TASK_ID, styles } from "../constants";
 import { basisCommands } from "../../../../command/basis";
-
 interface WelcomeMessageProps {
   isExpanded: boolean;
   onToggle: () => void;
   t: (key: string) => string;
 }
-
 const HippoxAsciiLogo: React.FC = () => {
   const asciiArt = [
     "██╗  ██╗██╗██████╗ ██████╗  ██████╗ ██╗  ██╗      ██████╗  ███████╗",
@@ -95,7 +93,6 @@ const HippoxAsciiLogo: React.FC = () => {
     </svg>
   );
 };
-
 export const WelcomeMessage: React.FC<WelcomeMessageProps> = ({ isExpanded, onToggle, t }) => {
   const welcomeTime = new Date().toLocaleTimeString();
   const [hippoxVersion, setHippoxVersion] = useState<string>("");
@@ -202,7 +199,9 @@ export const WelcomeMessage: React.FC<WelcomeMessageProps> = ({ isExpanded, onTo
           </div>
         </div>
       )}
-      <div className="task-separator"></div>
+      <div className="task-separator">
+        <div style={{ backgroundColor: "var(--border-color)", height: "1px" }}></div>
+      </div>
     </div>
   );
 };

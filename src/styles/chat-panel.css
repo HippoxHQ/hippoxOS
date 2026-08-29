@@ -179,7 +179,7 @@
 .chat-messages {
   height: 100%;
   overflow-y: auto;
-  padding: 15px 10px;
+  /* padding: 15px 0px; */
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -190,11 +190,14 @@
   animation: fadeIn 0.3s ease;
   min-width: 0;
   max-width: 100%;
+  padding-left: 10px;
+  padding-top: 15px;
 }
 .message-wrapper.user {
   flex-direction: row-reverse;
   min-width: 0;
   max-width: 100%;
+  padding-right: 10px;
 }
 .message-avatar {
   width: 32px;

@@ -23,13 +23,9 @@ const SkillMarketPanel: React.FC<SkillMarketPanelProps> = ({ t, onSendSkillMessa
   const [skills, setSkills] = useState<MarketSkill[]>([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
-  const [installingId, setInstallingId] = useState<string | null>(null);
   const [favoritingId, setFavoritingId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
-  const [showConfigModal, setShowConfigModal] = useState(false);
-  const [repoUrl, setRepoUrl] = useState("");
-  const [branch, setBranch] = useState("main");
   const [categories, setCategories] = useState<string[]>([]);
   const [showCategoryBubble, setShowCategoryBubble] = useState(false);
   const categoryButtonRef = useRef<HTMLButtonElement>(null);
@@ -37,19 +33,9 @@ const SkillMarketPanel: React.FC<SkillMarketPanelProps> = ({ t, onSendSkillMessa
   const bubbleRef = useRef<HTMLDivElement>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   useEffect(() => {
-    loadMarketConfig();
     loadCategories();
     loadSkills();
   }, []);
-  const loadMarketConfig = async () => {
-    try {
-      const config = await skillsMarketCommands.getMarketConfig();
-      setRepoUrl(config.repo_url);
-      setBranch(config.branch);
-    } catch (error) {
-      console.error("Failed to load market config:", error);
-    }
-  };
   const loadCategories = async () => {
     try {
       const cats = await skillsMarketCommands.getMarketCategories();
@@ -69,6 +55,7 @@ const SkillMarketPanel: React.FC<SkillMarketPanelProps> = ({ t, onSendSkillMessa
       setLoading(false);
     }
   };
+  // Update market skills from the configured backend repository
   const handleUpdateMarket = async () => {
     setUpdating(true);
     try {
@@ -99,15 +86,6 @@ const SkillMarketPanel: React.FC<SkillMarketPanelProps> = ({ t, onSendSkillMessa
   const handleRun = async (skill: MarketSkill) => {
     const pendingId = `pending_${Date.now()}`;
     await runSkill(skill, onSendSkillMessage, t, pendingId);
-  };
-  const handleSaveConfig = async () => {
-    try {
-      await skillsMarketCommands.updateMarketConfig(repoUrl, branch);
-      setShowConfigModal(false);
-      await handleUpdateMarket();
-    } catch (error) {
-      console.error("Failed to save config:", error);
-    }
   };
   const handleCategorySelect = (category: string) => {
     setSelectedCategory(category);
@@ -375,70 +353,6 @@ const SkillMarketPanel: React.FC<SkillMarketPanelProps> = ({ t, onSendSkillMessa
       justifyContent: "center",
       color: "var(--text-secondary)",
     },
-    modalOverlay: {
-      position: "fixed",
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      background: "rgba(0,0,0,0.5)",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      zIndex: 1000,
-    },
-    modal: {
-      background: "var(--bg-primary)",
-      borderRadius: "12px",
-      padding: "24px",
-      width: "400px",
-      maxWidth: "90%",
-      border: "1px solid var(--border-color)",
-    },
-    modalTitle: {
-      fontSize: "18px",
-      fontWeight: 600,
-      marginBottom: "16px",
-      color: "var(--text-primary)",
-    },
-    inputGroup: {
-      marginBottom: "16px",
-    },
-    inputLabel: {
-      display: "block",
-      fontSize: "13px",
-      marginBottom: "6px",
-      color: "var(--text-secondary)",
-    },
-    modalInput: {
-      width: "100%",
-      padding: "8px 12px",
-      background: "var(--bg-tertiary)",
-      border: "1px solid var(--border-color)",
-      borderRadius: "6px",
-      color: "var(--text-primary)",
-      fontSize: "13px",
-    },
-    modalButtons: {
-      display: "flex",
-      gap: "12px",
-      justifyContent: "flex-end",
-      marginTop: "20px",
-    },
-    button: {
-      padding: "8px 16px",
-      background: "var(--bg-tertiary)",
-      border: "1px solid var(--border-color)",
-      borderRadius: "6px",
-      color: "var(--text-secondary)",
-      fontSize: "13px",
-      cursor: "pointer",
-    },
-    installBtn: {
-      background: "#0066cc",
-      color: "white",
-      border: "none",
-    },
     loadingState: {
       display: "flex",
       alignItems: "center",
@@ -454,19 +368,19 @@ const SkillMarketPanel: React.FC<SkillMarketPanelProps> = ({ t, onSendSkillMessa
   };
   const globalStyles = `
     .market-search-input-wrapper {
-  flex: 1;
-  min-width: 0;
-  width: 100%;
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 1.5px 12px;
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-color);
-  border-radius: 5px;
-  box-sizing: border-box;
-}
+      flex: 1;
+      min-width: 0;
+      width: 100%;
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 1.5px 12px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      border-radius: 5px;
+      box-sizing: border-box;
+    }
     .market-search-input-wrapper:focus-within {
       border-color: var(--accent-color);
       box-shadow: 0 0 0 2px var(--accent-glow);
@@ -477,7 +391,7 @@ const SkillMarketPanel: React.FC<SkillMarketPanelProps> = ({ t, onSendSkillMessa
     }
     .market-search-input {
       flex: 1;
-      min-width: 0; 
+      min-width: 0;
       background: transparent;
       border: none;
       outline: none;
@@ -521,11 +435,14 @@ const SkillMarketPanel: React.FC<SkillMarketPanelProps> = ({ t, onSendSkillMessa
   }
   return (
     <div style={{ ...styles.container, position: "relative" }}>
+      {/* Header with search and refresh */}
       <div style={styles.header}>
         <div style={styles.searchRow}>
+          {/* Category filter button */}
           <button ref={categoryButtonRef} style={styles.categoryBtn} onMouseEnter={handleCategoryButtonMouseEnter} onMouseLeave={handleCategoryButtonMouseLeave} title={t("market.filterByCategory") || "Filter by category"}>
             <CategoryIcon size={16} />
           </button>
+          {/* Search input */}
           <div className="market-search-input-wrapper" style={{ flex: "1 1 0%", minWidth: 0, width: "100%" }}>
             <SearchIcon />
             <input type="text" className="market-search-input" placeholder={t("market.searchPlaceholder") || "Search skills..."} value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
@@ -535,11 +452,13 @@ const SkillMarketPanel: React.FC<SkillMarketPanelProps> = ({ t, onSendSkillMessa
               </button>
             )}
           </div>
-          <button style={styles.refreshBtn} onClick={handleUpdateMarket} disabled={updating} title={t("market.updateMarket") || "Update market"}>
+          {/* Refresh button - uses backend configured repository */}
+          <button style={styles.refreshBtn} onClick={handleUpdateMarket} disabled={updating} title={t("market.updateMarket") || "Update market from configured repository"}>
             {updating ? "⟳" : <RefreshIcon size={16} />}
           </button>
         </div>
       </div>
+      {/* Category bubble dropdown */}
       {showCategoryBubble && categories.length > 0 && (
         <div ref={bubbleRef} style={styles.bubbleContainer} onMouseEnter={handleBubbleMouseEnter} onMouseLeave={handleBubbleMouseLeave}>
           <div style={styles.bubbleHeader}>{t("market.selectCategory") || "Select category"}</div>
@@ -573,6 +492,7 @@ const SkillMarketPanel: React.FC<SkillMarketPanelProps> = ({ t, onSendSkillMessa
           </div>
         </div>
       )}
+      {/* Skill list */}
       <div style={styles.skillList}>
         {filteredSkills.length === 0 ? (
           <div style={styles.emptyState}>{searchTerm ? t("market.noSearchResults") || "No matching skills found" : t("market.noSkills") || "No skills available"}</div>
@@ -623,6 +543,7 @@ const SkillMarketPanel: React.FC<SkillMarketPanelProps> = ({ t, onSendSkillMessa
                   {skill.installed && <span style={styles.installedBadge}>{t("market.installed") || "Installed"}</span>}
                   {skill.installed && skill.installed_version !== skill.version && <span style={styles.updateBadge}>{t("market.updateAvailable") || "Update available"}</span>}
                 </div>
+                {/* Action buttons */}
                 <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
                   <button
                     style={{
@@ -678,6 +599,7 @@ const SkillMarketPanel: React.FC<SkillMarketPanelProps> = ({ t, onSendSkillMessa
                   </button>
                 </div>
               </div>
+              {/* Skill metadata */}
               <div style={styles.skillMeta}>
                 <div style={styles.authorInfo}>
                   {skill.author_avatar ? (
@@ -706,34 +628,12 @@ const SkillMarketPanel: React.FC<SkillMarketPanelProps> = ({ t, onSendSkillMessa
                   {skill.category}
                 </span>
               </div>
+              {/* Skill description */}
               <div style={styles.skillDescription}>{skill.description}</div>
             </div>
           ))
         )}
       </div>
-      {showConfigModal && (
-        <div style={styles.modalOverlay} onClick={() => setShowConfigModal(false)}>
-          <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
-            <div style={styles.modalTitle}>{t("market.repositorySettings") || "Repository Settings"}</div>
-            <div style={styles.inputGroup}>
-              <label style={styles.inputLabel}>{t("market.repoUrl") || "Repository URL"}</label>
-              <input type="text" style={styles.modalInput} value={repoUrl} onChange={(e) => setRepoUrl(e.target.value)} placeholder="https://github.com/HippoxHQ/skills-market.git" />
-            </div>
-            <div style={styles.inputGroup}>
-              <label style={styles.inputLabel}>{t("market.branch") || "Branch"}</label>
-              <input type="text" style={styles.modalInput} value={branch} onChange={(e) => setBranch(e.target.value)} placeholder="main" />
-            </div>
-            <div style={styles.modalButtons}>
-              <button style={styles.button} onClick={() => setShowConfigModal(false)}>
-                {t("settings.cancel") || "Cancel"}
-              </button>
-              <button style={{ ...styles.button, ...styles.installBtn }} onClick={handleSaveConfig}>
-                {t("settings.save") || "Save"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
