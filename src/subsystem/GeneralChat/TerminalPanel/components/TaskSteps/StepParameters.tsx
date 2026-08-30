@@ -27,6 +27,11 @@ export const StepParameters: React.FC<StepParametersProps> = ({ parameters, step
               onToggle(stepKey);
             }}
             title={t("terminal.collapse")}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              whiteSpace: "nowrap",
+            }}
           >
             <ChevronUp size={18} /> {t("terminal.collapse")}
           </button>
@@ -51,6 +56,11 @@ export const StepParameters: React.FC<StepParametersProps> = ({ parameters, step
                 onToggle(stepKey);
               }}
               title={t("terminal.expand")}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                whiteSpace: "nowrap",
+              }}
             >
               <ChevronDown size={18} /> {t("terminal.expand")}
             </button>

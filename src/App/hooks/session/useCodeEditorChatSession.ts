@@ -7,7 +7,7 @@ import { Language, ChatMessage, RoleEnum, MessageStatus } from "../../../types/t
 import { workspaceCommands } from "../../../command/workspace";
 import { codeEditorSessionCommands } from "../../../command/session/codeeditor";
 import { codeEditorCommands } from "../../../command/CodeEditor";
-import { getCodeEditorSystemPrompt } from "../../../subsystem/CodeEditor/llm/prompts/basis";
+import { getCodeEditorSystemPrompt } from "../../../subsystem/CodeEditor/llm/prompts";
 export function useCodeEditorSession(
     language: Language,
     isConfigLoaded: boolean,

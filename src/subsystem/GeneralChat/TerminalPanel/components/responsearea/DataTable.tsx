@@ -1,12 +1,11 @@
 import React from "react";
 import { UploadFile } from "../../../../../core/types";
-
+import ExportButton from "./ExportButton";
 interface DataTableProps {
   table: { headers: string[]; rows: (string | number)[][]; title?: string };
   t: (key: string) => string;
   onFileClick?: (file: UploadFile) => void;
 }
-
 const DataTable: React.FC<DataTableProps> = ({ table, t, onFileClick }) => {
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     e.stopPropagation();
@@ -28,7 +27,12 @@ const DataTable: React.FC<DataTableProps> = ({ table, t, onFileClick }) => {
     };
     onFileClick(file);
   };
-
+  // Generate CSV content for export
+  const getCSVContent = (): string => {
+    const headers = table.headers.join(",");
+    const rows = table.rows.map((row) => row.join(",")).join("\n");
+    return `${headers}\n${rows}`;
+  };
   return (
     <div
       className="terminal-table"
@@ -54,17 +58,21 @@ const DataTable: React.FC<DataTableProps> = ({ table, t, onFileClick }) => {
           <span>
             📊 {table.title} ({t("terminal.tableRows") || "rows"}: {table.rows.length})
           </span>
-          {onFileClick && (
-            <span
-              style={{
-                fontSize: "11px",
-                color: "var(--accent-color)",
-                opacity: 0.8,
-              }}
-            >
-              {t("terminal.clickToPreview")} ↗
-            </span>
-          )}
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            {/* Export CSV button */}
+            <ExportButton fileName={`${table.title || "table"}.csv`} content={getCSVContent()} extension="csv" mimeType="text/csv" t={t} iconSize={14} label="CSV" />
+            {onFileClick && (
+              <span
+                style={{
+                  fontSize: "11px",
+                  color: "var(--accent-color)",
+                  opacity: 0.8,
+                }}
+              >
+                {t("terminal.clickToPreview")} ↗
+              </span>
+            )}
+          </div>
         </div>
       )}
       <div
@@ -141,7 +149,6 @@ const DataTable: React.FC<DataTableProps> = ({ table, t, onFileClick }) => {
                   style={{
                     background: rowIdx % 2 === 0 ? "var(--bg-secondary)" : "var(--bg-tertiary)",
                     borderBottom: rowIdx === table.rows.length - 1 ? "none" : "1px solid var(--border-color)",
-                    // transition: "background 0.15s ease",
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.background = "var(--hover-bg)";
@@ -177,5 +184,4 @@ const DataTable: React.FC<DataTableProps> = ({ table, t, onFileClick }) => {
     </div>
   );
 };
-
 export default DataTable;

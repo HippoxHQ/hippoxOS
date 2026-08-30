@@ -52,6 +52,10 @@ export const StepLogs: React.FC<StepLogsProps> = ({ logs, isExpanded, onToggle, 
               padding: "2px 8px",
               borderRadius: "4px",
               flexShrink: 0,
+              display: "inline-flex",
+              alignItems: "center",
+              whiteSpace: "nowrap",
+              gap: "4px",
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.background = "var(--hover-bg)";
@@ -118,7 +122,10 @@ export const StepLogs: React.FC<StepLogsProps> = ({ logs, isExpanded, onToggle, 
                   padding: "2px 8px",
                   borderRadius: "4px",
                   flexShrink: 0,
+                  display: "inline-flex",
+                  alignItems: "center",
                   whiteSpace: "nowrap",
+                  gap: "4px",
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.background = "var(--hover-bg)";

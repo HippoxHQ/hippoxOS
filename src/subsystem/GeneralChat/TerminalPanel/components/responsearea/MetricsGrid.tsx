@@ -1,6 +1,6 @@
 import React from "react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
-
+import ExportButton from "./ExportButton";
 const MetricsGrid: React.FC<{
   metrics: { key: string; value: string | number; unit?: string }[];
   t: (key: string) => string;
@@ -67,7 +67,12 @@ const MetricsGrid: React.FC<{
     }
     return null;
   };
-
+  // Generate CSV content for export
+  const getCSVContent = (): string => {
+    const headers = "Metric,Value,Unit";
+    const rows = metrics.map((m) => `${m.key},${m.value},${m.unit || ""}`);
+    return [headers, ...rows].join("\n");
+  };
   return (
     <div
       className="terminal-metrics-wrapper"
@@ -79,6 +84,26 @@ const MetricsGrid: React.FC<{
         padding: "10px 12px 8px",
       }}
     >
+      {/* Header with export button */}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: "4px",
+        }}
+      >
+        <div
+          style={{
+            fontSize: "11px",
+            fontWeight: 500,
+            color: "var(--text-secondary)",
+          }}
+        >
+          📊 {t("terminal.metrics") || "Metrics"}
+        </div>
+        <ExportButton fileName={`metrics_${Date.now()}.csv`} content={getCSVContent()} extension="csv" mimeType="text/csv" t={t} iconSize={14} label="CSV" />
+      </div>
       <div
         style={{
           display: "flex",
@@ -198,5 +223,4 @@ const MetricsGrid: React.FC<{
     </div>
   );
 };
-
 export default MetricsGrid;

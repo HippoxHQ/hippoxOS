@@ -597,7 +597,7 @@ const CollapsedHistoryList: React.FC<CollapsedHistoryListProps> = ({ sessions, c
                     color: isActive ? "rgba(255,255,255,0.8)" : "var(--accent-color)",
                   }}
                 >
-                  📌
+                  <Pin size={16} />
                 </span>
               )}
               {preview}
@@ -782,10 +782,10 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
       return;
     }
     // Check if trying to delete all sessions - prevent deleting the last one
-    if (selectedIds.size >= historySessions.length) {
-      showDialog(DialogType.WARNING, t("history.dialog.cannotDeleteTitle"), t("history.dialog.cannotDeleteMessage"), undefined, undefined, t("history.dialog.gotIt"), undefined);
-      return;
-    }
+    // if (selectedIds.size >= historySessions.length) {
+    //   showDialog(DialogType.WARNING, t("history.dialog.cannotDeleteTitle"), t("history.dialog.cannotDeleteMessage"), undefined, undefined, t("history.dialog.gotIt"), undefined);
+    //   return;
+    // }
     showDialog(
       DialogType.WARNING,
       isZh ? "批量删除会话" : "Batch Delete Sessions",
@@ -1516,7 +1516,7 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
               }}
               title={isZh ? "收起面板" : "Collapse panel"}
             >
-              ◀
+              ≪
             </button>
           </div>
         </div>

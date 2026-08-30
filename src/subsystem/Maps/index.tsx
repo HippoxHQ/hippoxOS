@@ -560,7 +560,7 @@ const CollapsedHistoryList: React.FC<CollapsedHistoryListProps> = ({ sessions, c
                     color: isActive ? "rgba(255,255,255,0.8)" : "var(--accent-color)",
                   }}
                 >
-                  📌
+                  <Pin size={16} />
                 </span>
               )}
               {preview}
@@ -1294,7 +1294,7 @@ const MapsPage: React.FC<MapsPageProps> = ({
                   {selectedIds.size === historySessions.length && historySessions.length > 0 ? <CheckSquare size={16} /> : <Square size={16} />}
                 </button>
                 {/* Selected count */}
-                <span
+                {/* <span
                   style={{
                     fontSize: "10px",
                     color: "var(--text-muted)",
@@ -1303,7 +1303,7 @@ const MapsPage: React.FC<MapsPageProps> = ({
                   }}
                 >
                   {selectedIds.size}
-                </span>
+                </span> */}
                 {/* Batch pin button */}
                 <button
                   style={{
@@ -1448,7 +1448,7 @@ const MapsPage: React.FC<MapsPageProps> = ({
               }}
               title="Collapse panel"
             >
-              ◀
+              ≪
             </button>
           </div>
         </div>

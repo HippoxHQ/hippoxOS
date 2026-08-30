@@ -3,8 +3,8 @@
  * Used to constrain the response format returned by LLM to the frontend
  */
 /**
-* Resource link (remote or local)
-*/
+ * Resource link (remote or local)
+ */
 export interface ResourceLink {
   /** Link name */
   n: string;
@@ -183,11 +183,36 @@ export interface WebViewResource {
   sandbox?: string;
 }
 /**
-* Terminal display result - structured, professional output
-*/
+ * Math formula data for LaTeX rendering
+ */
+export interface MathFormula {
+  /** LaTeX formula string */
+  formula: string;
+  /** Display mode: inline or block */
+  displayMode?: 'inline' | 'block';
+  /** Formula number/tag */
+  tag?: string;
+  /** Formula title */
+  title?: string;
+  /** Formula type */
+  type?: 'basic' | 'theorem' | 'proof' | 'definition' | 'lemma' | 'corollary' | 'example' | 'equation';
+}
+export interface MathFormulaData {
+  /** Primary formula */
+  formula?: string;
+  /** Multiple formulas */
+  formulas?: MathFormula[];
+  /** Title */
+  title?: string;
+  /** Type */
+  type?: 'basic' | 'theorem' | 'proof' | 'definition' | 'lemma' | 'corollary' | 'example' | 'equation';
+}
+/**
+ * Terminal display result - structured, professional output
+ */
 export interface TerminalResponse {
   /** Plain text message */
-  m: string,
+  m: string;
   /** Remote resource links array */
   links?: ResourceLink[];
   /** Local resource links array */
@@ -234,10 +259,12 @@ export interface TerminalResponse {
   video?: VideoResource[];
   /** WebView/IFrame resources for embedded browsing */
   webview?: WebViewResource[];
+  /** Math formula data for LaTeX rendering */
+  mathFormula?: MathFormulaData;
 }
 /**
-* Dialog response data - read-only human-friendly information, concise, token-efficient
-*/
+ * Dialog response data - read-only human-friendly information, concise, token-efficient
+ */
 export interface ChatResponse {
   /** Human-friendly response message (main reply content) */
   m: string;
@@ -245,9 +272,9 @@ export interface ChatResponse {
   s?: string;
 }
 /**
-* HippoxOS LLM response main structure
-* LLM must strictly return according to this structure, no extra characters allowed
-*/
+ * HippoxOS LLM response main structure
+ * LLM must strictly return according to this structure, no extra characters allowed
+ */
 export interface HippoxOSResult {
   /** Terminal display result - structured, professional output, can be null */
   terminalResponse: TerminalResponse | null;
@@ -359,8 +386,8 @@ export interface CandleViewOperation {
   };
 }
 /**
-* Validate if response is a valid HippoxOSResult
-*/
+ * Validate if response is a valid HippoxOSResult
+ */
 export function isValidHippoxOSResult(obj: any): obj is HippoxOSResult {
   if (!obj || typeof obj !== 'object') return false;
   // Check if chatResponse exists and has correct format
@@ -398,13 +425,15 @@ export function isValidHippoxOSResult(obj: any): obj is HippoxOSResult {
     if (tr.video !== undefined && !Array.isArray(tr.video)) return false;
     // webview is optional, check it's an object if present
     if (tr.webview !== undefined && !Array.isArray(tr.webview)) return false;
+    // mathFormula is optional, check it's an object if present
+    if (tr.mathFormula !== undefined && typeof tr.mathFormula !== 'object') return false;
   }
   return true;
 }
 /**
-* Extract HippoxOSResult JSON from arbitrary text
-* Used to handle LLM responses that may contain extra characters
-*/
+ * Extract HippoxOSResult JSON from arbitrary text
+ * Used to handle LLM responses that may contain extra characters
+ */
 export function extractHippoxOSResult(text: string): HippoxOSResult | null {
   try {
     // Try direct parsing

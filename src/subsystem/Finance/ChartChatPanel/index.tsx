@@ -644,7 +644,9 @@ const ChartChatPanel: React.FC<ChartChatPanelProps> = ({
       });
     }
   };
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  // Update the handleKeyDown function to stop propagation
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    e.stopPropagation(); // Prevent keyboard events from bubbling up
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
@@ -1365,7 +1367,19 @@ const ChartChatPanel: React.FC<ChartChatPanelProps> = ({
             <FileUploader onFilesAdd={handleFilesAdd} onFileRemove={handleFileRemove} files={uploadedFiles} onDragOverInput={onDragOverInputChange} />
           </div>
           <div className="input-textarea-wrapper">
-            <textarea ref={textareaRef} className="chat-textarea-hermes" placeholder={t("chat.placeholder")} value={inputValue} onChange={adjustTextareaHeight} onKeyDown={handleKeyDown} onFocus={() => setIsFocused(true)} onBlur={() => setIsFocused(false)} rows={1} />
+            <textarea
+              ref={textareaRef} 
+              className="chat-textarea-hermes"
+              placeholder={t("chat.placeholder")}
+              value={inputValue}
+              onChange={adjustTextareaHeight}
+              onKeyDown={handleKeyDown}
+              onKeyUp={(e) => e.stopPropagation()}
+              onKeyPress={(e) => e.stopPropagation()}
+              onFocus={() => setIsFocused(true)}
+              onBlur={() => setIsFocused(false)}
+              rows={1}
+            />
           </div>
           <div className="action-buttons-row">
             <div className="left-actions">

@@ -8,6 +8,7 @@ import ComparisonRenderer from "./components/responsearea/ComparisonRenderer";
 import AudioPlayer from "./components/responsearea/AudioPlayer";
 import VideoPlayer from "./components/responsearea/VideoPlayer";
 import WebViewRenderer from "./components/responsearea/WebViewRenderer";
+import MathFormulaRenderer from "./components/responsearea/MathFormulaRenderer";
 import { urlCommands } from "../../../command/url";
 import { openUrl } from "../../../utils";
 import { UploadFile } from "../../../core/types";
@@ -731,6 +732,20 @@ export function renderTerminalResponse(terminalResponse: TerminalResponse | null
   if (terminalResponse.webview && terminalResponse.webview.length > 0) {
     elements.push(<WebViewRenderer key="webview" data={terminalResponse.webview} t={t} isZh={isZh} />);
   }
+  // Math formula - LaTeX rendering
+  if (terminalResponse.mathFormula) {
+    const mf = terminalResponse.mathFormula;
+    // Single formula
+    if (mf.formula && !mf.formulas) {
+      elements.push(<MathFormulaRenderer key="math-formula" formula={mf.formula} displayMode="block" tag={mf.type} title={mf.title} type={mf.type} t={t} isZh={isZh} />);
+    }
+    // Multiple formulas
+    if (mf.formulas && mf.formulas.length > 0) {
+      mf.formulas.forEach((f, idx) => {
+        elements.push(<MathFormulaRenderer key={`math-formula-${idx}`} formula={f.formula} displayMode={f.displayMode || "block"} tag={f.tag || mf.type} title={f.title || mf.title} type={f.type || mf.type} t={t} isZh={isZh} />);
+      });
+    }
+  }
   // Code blocks
   if (terminalResponse.codeBlocks && terminalResponse.codeBlocks.length > 0) {
     terminalResponse.codeBlocks.forEach((block, idx) => {
@@ -799,6 +814,7 @@ export function isTerminalResponseEmpty(terminalResponse: TerminalResponse | nul
     (tr.comparison !== undefined && tr.comparison !== null) ||
     (tr.audio !== undefined && tr.audio !== null && tr.audio.length > 0) ||
     (tr.video !== undefined && tr.video !== null && tr.video.length > 0) ||
-    (tr.webview !== undefined && tr.webview !== null && tr.webview.length > 0);
+    (tr.webview !== undefined && tr.webview !== null && tr.webview.length > 0) ||
+    (tr.mathFormula !== undefined && tr.mathFormula !== null);
   return !hasContent;
 }

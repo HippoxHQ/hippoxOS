@@ -1,5 +1,6 @@
 import React from "react";
 import { TimelineData, TimelineEvent } from "../../../llm/types";
+import ExportButton from "./ExportButton";
 interface TimelineRendererProps {
   data: TimelineData;
   t: (key: string) => string;
@@ -59,6 +60,19 @@ const TimelineRenderer: React.FC<TimelineRendererProps> = ({ data, t, isZh = tru
     if (!status) return "#818cf8";
     return STATUS_COLORS[status] || "#818cf8";
   };
+  // Generate CSV content for export
+  const getCSVContent = (): string => {
+    const headers = "Date,Title,Description,Status";
+    const rows = sortedEvents.map((event) => {
+      const statusLabel = event.status ? getStatusLabel(event.status) : "";
+      return `${event.date},"${event.title}","${event.description || ""}","${statusLabel}"`;
+    });
+    return [headers, ...rows].join("\n");
+  };
+  // Generate JSON content for export
+  const getJSONContent = (): string => {
+    return JSON.stringify(data, null, 2);
+  };
   return (
     <div
       className="terminal-timeline-container"
@@ -104,11 +118,14 @@ const TimelineRenderer: React.FC<TimelineRendererProps> = ({ data, t, isZh = tru
             style={{
               fontSize: "10px",
               color: "var(--text-tertiary)",
-              marginLeft: "auto",
             }}
           >
             {sortedEvents.length} {isZh ? "个事件" : "events"}
           </span>
+          {/* Export CSV button */}
+          <ExportButton fileName={`${data.title || "timeline"}.csv`} content={getCSVContent()} extension="csv" mimeType="text/csv" t={t} iconSize={14} label="CSV" />
+          {/* Export JSON button */}
+          <ExportButton fileName={`${data.title || "timeline"}.json`} content={getJSONContent()} extension="json" mimeType="application/json" t={t} iconSize={14} label="JSON" />
         </div>
       )}
       <div

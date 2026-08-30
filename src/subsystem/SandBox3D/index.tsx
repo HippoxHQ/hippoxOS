@@ -556,7 +556,7 @@ const CollapsedHistoryList: React.FC<CollapsedHistoryListProps> = ({ sessions, c
                     color: isActive ? "rgba(255,255,255,0.8)" : "var(--accent-color)",
                   }}
                 >
-                  📌
+                  <Pin size={16} />
                 </span>
               )}
               {preview}
@@ -1466,7 +1466,7 @@ const SandBox3DPage: React.FC<SandBox3DPageProps> = ({
                   {selectedIds.size === historySessions.length && historySessions.length > 0 ? <CheckSquare size={16} /> : <Square size={16} />}
                 </button>
                 {/* Selected count */}
-                <span
+                {/* <span
                   style={{
                     fontSize: "10px",
                     color: "var(--text-muted)",
@@ -1475,7 +1475,7 @@ const SandBox3DPage: React.FC<SandBox3DPageProps> = ({
                   }}
                 >
                   {selectedIds.size}
-                </span>
+                </span> */}
                 {/* Batch pin button */}
                 <button
                   style={{
@@ -1625,7 +1625,7 @@ const SandBox3DPage: React.FC<SandBox3DPageProps> = ({
               }}
               title={isZh ? "收起面板" : "Collapse panel"}
             >
-              ◀
+              ≪
             </button>
           </div>
         </div>

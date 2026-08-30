@@ -1,24 +1,16 @@
-import React from "react";
-import { ResponsiveContainer, LineChart, Line, BarChart, Bar, AreaChart, Area, ScatterChart, Scatter, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ComposedChart } from "recharts";
+import React, { useRef } from "react";
+import { ResponsiveContainer, LineChart, Line, BarChart, Bar, AreaChart, Area, ScatterChart, Scatter, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
 import { ChartData } from "../../../llm/types";
+import ExportButton from "./ExportButton";
+import { toPng } from "html-to-image";
 interface ChartRendererProps {
   data: ChartData;
   t: (key: string) => string;
   isZh?: boolean;
 }
-const DEFAULT_COLORS = [
-  "#6366f1", // Indigo
-  "#818cf8", // Light Indigo
-  "#a78bfa", // Purple
-  "#8b5cf6", // Deep Purple
-  "#7c3aed", // Dark Purple
-  "#6d28d9", // Darker Purple
-  "#f59e0b", // Amber
-  "#10b981", // Emerald
-  "#3b82f6", // Blue
-  "#ef4444", // Red
-];
+const DEFAULT_COLORS = ["#6366f1", "#818cf8", "#a78bfa", "#8b5cf6", "#7c3aed", "#6d28d9", "#f59e0b", "#10b981", "#3b82f6", "#ef4444"];
 const ChartRenderer: React.FC<ChartRendererProps> = ({ data, t, isZh = true }) => {
+  const chartRef = useRef<HTMLDivElement>(null);
   if (!data || !data.series || data.series.length === 0) {
     return (
       <div
@@ -33,7 +25,6 @@ const ChartRenderer: React.FC<ChartRendererProps> = ({ data, t, isZh = true }) =
       </div>
     );
   }
-  // Format data for Recharts
   const chartData = data.xAxisData.map((label, index) => {
     const entry: Record<string, any> = { name: label };
     data.series.forEach((series) => {
@@ -41,7 +32,6 @@ const ChartRenderer: React.FC<ChartRendererProps> = ({ data, t, isZh = true }) =
     });
     return entry;
   });
-  // Get colors
   const getColors = () => {
     if (data.colors && data.colors.length > 0) {
       return data.colors;
@@ -53,7 +43,6 @@ const ChartRenderer: React.FC<ChartRendererProps> = ({ data, t, isZh = true }) =
     return colors;
   };
   const colors = getColors();
-  // ===== Custom Tooltip =====
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
@@ -89,7 +78,24 @@ const ChartRenderer: React.FC<ChartRendererProps> = ({ data, t, isZh = true }) =
     }
     return null;
   };
-  // ===== Render by chart type =====
+  const exportChartAsPng = async (): Promise<Blob> => {
+    if (!chartRef.current) {
+      throw new Error("Chart reference not found");
+    }
+    const dataUrl = await toPng(chartRef.current, {
+      backgroundColor: "var(--bg-primary)",
+    });
+    const response = await fetch(dataUrl);
+    return response.blob();
+  };
+  const exportChartData = (): string => {
+    const headers = ["Category", ...data.series.map((s) => s.name)];
+    const rows = data.xAxisData.map((label, idx) => {
+      const values = data.series.map((s) => s.data[idx] ?? 0);
+      return [label, ...values];
+    });
+    return [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+  };
   const renderChart = () => {
     const commonProps = {
       data: chartData,
@@ -161,8 +167,6 @@ const ChartRenderer: React.FC<ChartRendererProps> = ({ data, t, isZh = true }) =
           </BarChart>
         );
       case "scatter":
-        // For scatter, combine all series into one data array with x/y values
-        // Format: each series becomes a group of points
         return (
           <ScatterChart {...commonProps}>
             {grid}
@@ -184,7 +188,6 @@ const ChartRenderer: React.FC<ChartRendererProps> = ({ data, t, isZh = true }) =
           </ScatterChart>
         );
       case "pie":
-        // Pie chart uses first series only
         const pieData =
           data.series[0]?.data.map((value, index) => ({
             name: data.xAxisData[index] || `Item ${index + 1}`,
@@ -258,7 +261,6 @@ const ChartRenderer: React.FC<ChartRendererProps> = ({ data, t, isZh = true }) =
         );
     }
   };
-  // ===== Get type badge =====
   const getTypeBadge = (): string => {
     const typeMap: Record<string, string> = isZh
       ? {
@@ -323,13 +325,15 @@ const ChartRenderer: React.FC<ChartRendererProps> = ({ data, t, isZh = true }) =
           style={{
             fontSize: "10px",
             color: "var(--text-tertiary)",
-            marginLeft: "auto",
           }}
         >
           {data.series.length} {isZh ? "个系列" : "series"}
         </span>
+        <ExportButton fileName={`${data.title || "chart"}.png`} content={() => exportChartAsPng()} contentType="blob" extension="png" mimeType="image/png" t={t} iconSize={14} label="PNG" />
+        <ExportButton fileName={`${data.title || "chart"}.csv`} content={exportChartData()} extension="csv" mimeType="text/csv" t={t} iconSize={14} label="CSV" />
       </div>
       <div
+        ref={chartRef}
         style={{
           padding: "12px 16px 8px",
           height: "280px",

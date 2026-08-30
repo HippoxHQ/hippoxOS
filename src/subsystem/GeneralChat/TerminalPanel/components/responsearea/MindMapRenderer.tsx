@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useState, useCallback } from "react";
 import mermaid from "mermaid";
 import { MindMapData, MindMapNode } from "../../../llm/types";
+import ExportButton from "./ExportButton";
 interface MindMapRendererProps {
   data: MindMapData;
   t: (key: string) => string;
@@ -794,6 +795,8 @@ const MindMapRenderer: React.FC<MindMapRendererProps> = ({ data, t, isZh = true 
           </span>
         )}
         <div style={{ display: "flex", gap: "2px", marginLeft: "auto" }}>
+          {/* Export buttons */}
+          <ExportButton fileName={`${data.title || "diagram"}.mmd`} content={getMermaidDefinition(data) || ""} extension="mmd" mimeType="text/plain" t={t} iconSize={14} label="MMD" />
           <button
             onClick={() => {
               const svg = containerRef.current?.querySelector("svg");

@@ -22,6 +22,21 @@ interface GithubCloneProps {
   onClone: (repoUrl: string, targetPath: string, branch: string) => Promise<void>;
   isLoading?: boolean;
 }
+// Spinner with built-in rotation animation
+const SpinnerWithAnimation = ({ size = 16 }: { size?: number }) => (
+  <div
+    style={{
+      display: "inline-block",
+      width: size,
+      height: size,
+      border: `2px solid var(--border-color)`,
+      borderTop: `2px solid var(--accent-color)`,
+      borderRadius: "50%",
+      animation: "spin 0.8s linear infinite",
+      flexShrink: 0,
+    }}
+  />
+);
 const GithubClone: React.FC<GithubCloneProps> = ({ t, language = "en", isOpen, onClose, onClone, isLoading = false }) => {
   const [githubRepoUrl, setGithubRepoUrl] = useState("");
   const [cloneTargetPath, setCloneTargetPath] = useState<string>("");
@@ -35,9 +50,13 @@ const GithubClone: React.FC<GithubCloneProps> = ({ t, language = "en", isOpen, o
   const [showBranchDropdown, setShowBranchDropdown] = useState(false);
   const [cloneError, setCloneError] = useState<string>("");
   const [isCloning, setIsCloning] = useState(false);
+  const [cloneProgress, setCloneProgress] = useState<string>("");
   const verifyTimerRef = useRef<NodeJS.Timeout | null>(null);
   const branchDropdownRef = useRef<HTMLDivElement>(null);
+  const cloneTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
   const isZh = language === "zh";
+  // Click outside handler for branch dropdown
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (branchDropdownRef.current && !branchDropdownRef.current.contains(event.target as Node)) {
@@ -49,6 +68,7 @@ const GithubClone: React.FC<GithubCloneProps> = ({ t, language = "en", isOpen, o
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
+  // Reset state when dialog opens
   useEffect(() => {
     if (isOpen) {
       setGithubRepoUrl("");
@@ -59,8 +79,31 @@ const GithubClone: React.FC<GithubCloneProps> = ({ t, language = "en", isOpen, o
       setSelectedBranch("");
       setCloneError("");
       setIsCloning(false);
+      setCloneProgress("");
+      // Clear any pending timeout
+      if (cloneTimeoutRef.current) {
+        clearTimeout(cloneTimeoutRef.current);
+        cloneTimeoutRef.current = null;
+      }
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
     }
   }, [isOpen]);
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (cloneTimeoutRef.current) {
+        clearTimeout(cloneTimeoutRef.current);
+        cloneTimeoutRef.current = null;
+      }
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
+    };
+  }, []);
   const loadBranches = async (url: string) => {
     if (!url.trim()) return;
     setIsLoadingBranches(true);
@@ -75,6 +118,7 @@ const GithubClone: React.FC<GithubCloneProps> = ({ t, language = "en", isOpen, o
         }
       }
     } catch (error) {
+      // Silent fail for branches
     } finally {
       setIsLoadingBranches(false);
     }
@@ -115,6 +159,7 @@ const GithubClone: React.FC<GithubCloneProps> = ({ t, language = "en", isOpen, o
       setIsVerifying(false);
     }
   };
+  // Debounced verification
   useEffect(() => {
     if (verifyTimerRef.current) {
       clearTimeout(verifyTimerRef.current);
@@ -154,7 +199,14 @@ const GithubClone: React.FC<GithubCloneProps> = ({ t, language = "en", isOpen, o
     setCloneTargetPath(e.target.value);
     setCloneError("");
   };
+  /**
+   * Handle clone with timeout and abort support
+   * - 5 minute timeout for clone operation
+   * - AbortController for cancellation
+   * - Progress feedback
+   */
   const handleClone = async () => {
+    // Validate inputs
     if (!githubRepoUrl.trim()) {
       showToast(ToastType.WARNING, language === "zh" ? "请输入 GitHub 仓库地址" : "Please enter GitHub repo URL");
       return;
@@ -167,21 +219,61 @@ const GithubClone: React.FC<GithubCloneProps> = ({ t, language = "en", isOpen, o
       showToast(ToastType.WARNING, language === "zh" ? "请选择克隆目标目录" : "Please select clone target directory");
       return;
     }
+    // Create abort controller for this operation
+    abortControllerRef.current = new AbortController();
+    const signal = abortControllerRef.current.signal;
     setIsCloning(true);
+    setCloneProgress(isZh ? "正在克隆..." : "Cloning...");
     setCloneError("");
     try {
-      const branch = selectedBranch || repoInfo.default_branch || "main";
-      await onClone(githubRepoUrl.trim(), cloneTargetPath, branch);
-      onClose();
-      setGithubRepoUrl("");
-      setCloneTargetPath("");
-      setRepoInfo(null);
-      setShowRepoInfo(false);
-      setBranches([]);
-      setSelectedBranch("");
-      setCloneError("");
+      // Clone with timeout (5 minutes)
+      const clonePromise = onClone(githubRepoUrl.trim(), cloneTargetPath, selectedBranch || repoInfo.default_branch || "main");
+      // Race between clone and timeout
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        cloneTimeoutRef.current = setTimeout(() => {
+          reject(new Error("CLONE_TIMEOUT"));
+        }, 300000); // 5 minutes timeout
+      });
+      // Race between clone, timeout, and abort
+      await Promise.race([clonePromise, timeoutPromise]);
+      // Clear timeout on success
+      if (cloneTimeoutRef.current) {
+        clearTimeout(cloneTimeoutRef.current);
+        cloneTimeoutRef.current = null;
+      }
+      setCloneProgress(isZh ? "克隆完成！" : "Clone complete!");
+      // Close dialog after short delay to show success
+      setTimeout(() => {
+        onClose();
+        setGithubRepoUrl("");
+        setCloneTargetPath("");
+        setRepoInfo(null);
+        setShowRepoInfo(false);
+        setBranches([]);
+        setSelectedBranch("");
+        setCloneError("");
+        setCloneProgress("");
+      }, 500);
     } catch (error) {
+      // Clear timeout
+      if (cloneTimeoutRef.current) {
+        clearTimeout(cloneTimeoutRef.current);
+        cloneTimeoutRef.current = null;
+      }
+      // Check if aborted
+      if (signal.aborted) {
+        setCloneError(language === "zh" ? "克隆已取消" : "Clone cancelled");
+        showToast(ToastType.INFO, language === "zh" ? "克隆已取消" : "Clone cancelled");
+        return;
+      }
       const errorMsg = error instanceof Error ? error.message : String(error);
+      // Handle timeout specifically
+      if (errorMsg === "CLONE_TIMEOUT") {
+        setCloneError(language === "zh" ? "克隆超时（5分钟），请检查网络连接" : "Clone timeout (5 minutes), please check network connection");
+        showToast(ToastType.ERROR, language === "zh" ? "克隆超时，请检查网络" : "Clone timeout, check network");
+        return;
+      }
+      // Handle other errors
       if (errorMsg.includes("already exists") || errorMsg.includes("destination path")) {
         setCloneError(language === "zh" ? "目标目录已存在且不为空，请选择其他目录" : "Destination path already exists and is not empty, please choose another directory");
         showToast(ToastType.ERROR, language === "zh" ? "目录已存在，请选择其他目录" : "Directory exists, please choose another");
@@ -194,6 +286,30 @@ const GithubClone: React.FC<GithubCloneProps> = ({ t, language = "en", isOpen, o
       }
     } finally {
       setIsCloning(false);
+      abortControllerRef.current = null;
+    }
+  };
+  /**
+   * Handle cancel - aborts the clone operation if in progress
+   */
+  const handleCancel = () => {
+    if (isCloning) {
+      // Abort the clone operation
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
+      if (cloneTimeoutRef.current) {
+        clearTimeout(cloneTimeoutRef.current);
+        cloneTimeoutRef.current = null;
+      }
+      setIsCloning(false);
+      setCloneProgress("");
+      setCloneError(language === "zh" ? "克隆已取消" : "Clone cancelled");
+      showToast(ToastType.INFO, language === "zh" ? "克隆已取消" : "Clone cancelled");
+      // Don't close the dialog, let user see the cancellation
+    } else if (!isLoading) {
+      onClose();
     }
   };
   if (!isOpen) return null;
@@ -211,6 +327,7 @@ const GithubClone: React.FC<GithubCloneProps> = ({ t, language = "en", isOpen, o
         animation: "fadeIn 0.15s ease",
       }}
       onClick={() => {
+        // Only close if not cloning and not loading
         if (!isCloning && !isLoading) {
           onClose();
         }
@@ -232,6 +349,7 @@ const GithubClone: React.FC<GithubCloneProps> = ({ t, language = "en", isOpen, o
         }}
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Header */}
         <div
           style={{
             display: "flex",
@@ -256,13 +374,10 @@ const GithubClone: React.FC<GithubCloneProps> = ({ t, language = "en", isOpen, o
           >
             <GithubIcon size={14} />
             {isZh ? "从 GitHub 拉取仓库" : "Clone from GitHub"}
+            {isCloning && <span style={{ fontSize: "11px", color: "var(--text-muted)", fontWeight: 400 }}>({isZh ? "克隆中..." : "Cloning..."})</span>}
           </span>
           <button
-            onClick={() => {
-              if (!isCloning && !isLoading) {
-                onClose();
-              }
-            }}
+            onClick={handleCancel}
             style={{
               display: "flex",
               alignItems: "center",
@@ -271,24 +386,27 @@ const GithubClone: React.FC<GithubCloneProps> = ({ t, language = "en", isOpen, o
               height: "22px",
               background: "transparent",
               border: "none",
-              cursor: isCloning || isLoading ? "not-allowed" : "pointer",
+              cursor: "pointer",
               color: "var(--text-secondary)",
               borderRadius: "4px",
               padding: 0,
-              opacity: isCloning || isLoading ? 0.5 : 1,
+              opacity: isLoading ? 0.5 : 1,
             }}
             onMouseEnter={(e) => {
-              if (!isCloning && !isLoading) {
+              if (!isLoading) {
                 e.currentTarget.style.background = "var(--hover-bg)";
               }
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.background = "transparent";
             }}
+            title={isCloning ? (isZh ? "取消克隆" : "Cancel clone") : isZh ? "关闭" : "Close"}
+            disabled={isLoading}
           >
             <CloseIcon size={14} />
           </button>
         </div>
+        {/* Body */}
         <div
           style={{
             padding: "10px 14px 14px 14px",
@@ -296,6 +414,7 @@ const GithubClone: React.FC<GithubCloneProps> = ({ t, language = "en", isOpen, o
             borderRadius: "5px",
           }}
         >
+          {/* Repository URL */}
           <div style={{ marginBottom: "8px" }}>
             <label
               style={{
@@ -318,6 +437,7 @@ const GithubClone: React.FC<GithubCloneProps> = ({ t, language = "en", isOpen, o
                 padding: "0 10px",
                 transition: "border-color 0.2s ease",
                 height: "32px",
+                opacity: isCloning || isLoading ? 0.6 : 1,
               }}
             >
               <RepoIcon size={13} />
@@ -330,7 +450,7 @@ const GithubClone: React.FC<GithubCloneProps> = ({ t, language = "en", isOpen, o
                 onBlur={() => setIsFocused(false)}
                 disabled={isCloning || isLoading}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter" && repoInfo?.valid && cloneTargetPath) {
+                  if (e.key === "Enter" && repoInfo?.valid && cloneTargetPath && !isCloning && !isLoading) {
                     handleClone();
                   }
                   if (e.key === "Escape" && !isCloning && !isLoading) {
@@ -350,7 +470,7 @@ const GithubClone: React.FC<GithubCloneProps> = ({ t, language = "en", isOpen, o
                 }}
                 autoFocus
               />
-              {isVerifying && <SpinnerIcon size={13} />}
+              {isVerifying && <SpinnerWithAnimation size={13} />}
               {!isVerifying && repoInfo?.valid && <CheckCircleIcon size={13} />}
               {!isVerifying && repoInfo && !repoInfo.valid && <AlertCircleIcon size={13} />}
               {githubRepoUrl && !isCloning && !isLoading && (
@@ -388,6 +508,7 @@ const GithubClone: React.FC<GithubCloneProps> = ({ t, language = "en", isOpen, o
                 </button>
               )}
             </div>
+            {/* Repo info */}
             {showRepoInfo && repoInfo && (
               <div
                 style={{
@@ -459,6 +580,7 @@ const GithubClone: React.FC<GithubCloneProps> = ({ t, language = "en", isOpen, o
               </div>
             )}
           </div>
+          {/* Branch selector */}
           {repoInfo?.valid && branches.length > 0 && (
             <div style={{ marginBottom: "8px" }}>
               <label
@@ -591,6 +713,7 @@ const GithubClone: React.FC<GithubCloneProps> = ({ t, language = "en", isOpen, o
               </div>
             </div>
           )}
+          {/* Clone target */}
           <div style={{ marginBottom: "12px" }}>
             <label
               style={{
@@ -620,6 +743,7 @@ const GithubClone: React.FC<GithubCloneProps> = ({ t, language = "en", isOpen, o
                   background: "var(--bg-secondary)",
                   padding: "0 10px",
                   height: "32px",
+                  opacity: isCloning || isLoading ? 0.6 : 1,
                 }}
               >
                 <FolderTargetIcon size={13} />
@@ -708,6 +832,26 @@ const GithubClone: React.FC<GithubCloneProps> = ({ t, language = "en", isOpen, o
                 {isZh ? "浏览" : "Browse"}
               </button>
             </div>
+            {/* Clone progress or error */}
+            {cloneProgress && !cloneError && (
+              <div
+                style={{
+                  marginTop: "6px",
+                  padding: "6px 10px",
+                  borderRadius: "6px",
+                  fontSize: "12px",
+                  color: "var(--text-secondary)",
+                  background: "var(--bg-tertiary)",
+                  border: "1px solid var(--border-color)",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                }}
+              >
+                <SpinnerWithAnimation size={14} />
+                <span>{cloneProgress}</span>
+              </div>
+            )}
             {cloneError && (
               <div
                 style={{
@@ -729,6 +873,7 @@ const GithubClone: React.FC<GithubCloneProps> = ({ t, language = "en", isOpen, o
               </div>
             )}
           </div>
+          {/* Actions */}
           <div
             style={{
               display: "flex",
@@ -738,33 +883,32 @@ const GithubClone: React.FC<GithubCloneProps> = ({ t, language = "en", isOpen, o
             }}
           >
             <button
-              onClick={() => {
-                if (isCloning || isLoading) return;
-                onClose();
-              }}
-              disabled={isCloning || isLoading}
+              onClick={handleCancel}
+              disabled={isLoading}
               style={{
                 padding: "4px 14px",
                 height: "28px",
                 fontSize: "11px",
-                background: "transparent",
+                background: isCloning ? "rgba(255, 68, 68, 0.1)" : "transparent",
                 border: "1px solid var(--border-color)",
                 borderRadius: "6px",
-                color: isCloning || isLoading ? "var(--text-muted)" : "var(--text-secondary)",
-                cursor: isCloning || isLoading ? "not-allowed" : "pointer",
+                color: isLoading ? "var(--text-muted)" : isCloning ? "var(--error-color)" : "var(--text-secondary)",
+                cursor: isLoading ? "not-allowed" : "pointer",
                 transition: "all 0.15s",
-                opacity: isCloning || isLoading ? 0.6 : 1,
+                opacity: isLoading ? 0.6 : 1,
               }}
               onMouseEnter={(e) => {
-                if (!isCloning && !isLoading) {
-                  e.currentTarget.style.background = "var(--hover-bg)";
+                if (!isLoading) {
+                  e.currentTarget.style.background = isCloning ? "rgba(255, 68, 68, 0.2)" : "var(--hover-bg)";
                 }
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.background = "transparent";
+                if (!isLoading) {
+                  e.currentTarget.style.background = isCloning ? "rgba(255, 68, 68, 0.1)" : "transparent";
+                }
               }}
             >
-              {isZh ? "取消" : "Cancel"}
+              {isCloning ? (isZh ? "取消克隆" : "Cancel Clone") : isZh ? "取消" : "Cancel"}
             </button>
             <button
               onClick={handleClone}
@@ -796,8 +940,8 @@ const GithubClone: React.FC<GithubCloneProps> = ({ t, language = "en", isOpen, o
                 }
               }}
             >
-              {(isCloning || isLoading) && <SpinnerIcon size={12} />}
-              {isCloning || isLoading ? (isZh ? "克隆中..." : "Cloning...") : isZh ? "拉取" : "Clone"}
+              {(isCloning || isLoading) && <SpinnerWithAnimation size={12} />}
+              {isCloning ? (isZh ? "克隆中..." : "Cloning...") : isLoading ? (isZh ? "加载中..." : "Loading...") : isZh ? "拉取" : "Clone"}
             </button>
           </div>
         </div>
