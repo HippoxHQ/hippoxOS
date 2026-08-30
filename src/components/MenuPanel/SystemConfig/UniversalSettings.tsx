@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { configCommands } from "../../../command/config";
 import { disable, enable } from "@tauri-apps/plugin-autostart";
+import { systemUpdateCommands, VersionInfo } from "../../../command/SystemUpdate";
+import { PanelLeftClose, PanelRightClose, Terminal, MessageSquare, PanelLeft, PanelRight, Monitor, Globe, Power, Sparkles, Loader2, Download, RefreshCw, CheckCircle, AlertCircle, XCircle } from "lucide-react";
 interface UniversalSettingsProps {
   t: (key: string, params?: any) => string;
   theme: "light" | "dark";
@@ -10,34 +12,6 @@ interface UniversalSettingsProps {
   functionPanelPosition?: "left" | "right";
   onFunctionPanelPositionChange?: (position: "left" | "right") => void;
 }
-const TerminalLeftIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" width="14" height="14">
-    <rect x="2" y="4" width="20" height="16" rx="2" stroke="currentColor" fill="none" />
-    <path d="M9 8L6 12L9 16" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
-    <path d="M12 16h6" stroke="currentColor" strokeLinecap="round" />
-  </svg>
-);
-const ChatLeftIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" width="14" height="14">
-    <rect x="2" y="4" width="20" height="16" rx="2" stroke="currentColor" fill="none" />
-    <path d="M15 8L18 12L15 16" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
-    <path d="M12 16h-6" stroke="currentColor" strokeLinecap="round" />
-  </svg>
-);
-const FunctionLeftIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" width="14" height="14">
-    <rect x="2" y="4" width="8" height="16" rx="1.5" stroke="currentColor" fill="none" />
-    <rect x="12" y="4" width="10" height="16" rx="1.5" stroke="currentColor" fill="none" />
-    <path d="M6 8h0" stroke="currentColor" />
-  </svg>
-);
-const FunctionRightIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" width="14" height="14">
-    <rect x="2" y="4" width="10" height="16" rx="1.5" stroke="currentColor" fill="none" />
-    <rect x="14" y="4" width="8" height="16" rx="1.5" stroke="currentColor" fill="none" />
-    <path d="M18 8h0" stroke="currentColor" />
-  </svg>
-);
 const emitLayoutChangeEvent = (pageType: string, mode: string) => {
   window.dispatchEvent(
     new CustomEvent("layout-swap-mode-changed", {
@@ -87,11 +61,11 @@ const LayoutSwitch: React.FC<LayoutSwitchProps> = ({ value, onChange, label, des
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    gap: "4px",
+    gap: "6px",
     flex: "1 1 auto",
     minWidth: 0,
     height: "28px",
-    padding: "0 8px",
+    padding: "0 10px",
     background: isActive ? "var(--accent-color, #00aaff)" : "transparent",
     border: "none",
     borderRadius: "4px",
@@ -149,17 +123,12 @@ const LayoutSwitch: React.FC<LayoutSwitchProps> = ({ value, onChange, label, des
         )}
       </div>
       <div style={layoutSwitchGroupStyle}>
-        <button
-          type="button"
-          style={layoutSwitchBtnStyle(value === "terminal-left")}
-          onClick={() => handleChange("terminal-left")}
-          title={t("settings.terminalLeftTitle", { terminal: terminalLabel })}
-        >
-          <TerminalLeftIcon />
+        <button type="button" style={layoutSwitchBtnStyle(value === "terminal-left")} onClick={() => handleChange("terminal-left")} title={t("settings.terminalLeftTitle", { terminal: terminalLabel })}>
+          <PanelLeftClose size={14} />
           <span style={btnTextStyle}>{t("settings.terminalLeftLabel", { terminal: terminalLabel })}</span>
         </button>
         <button type="button" style={layoutSwitchBtnStyle(value === "chat-left")} onClick={() => handleChange("chat-left")} title={t("settings.chatLeftTitle", { terminal: terminalLabel })}>
-          <ChatLeftIcon />
+          <PanelRightClose size={14} />
           <span style={btnTextStyle}>{t("settings.chatLeftLabel", { terminal: terminalLabel })}</span>
         </button>
       </div>
@@ -176,6 +145,20 @@ const UniversalSettings: React.FC<UniversalSettingsProps> = ({ t, theme, languag
   const [videoEditorLayout, setVideoEditorLayout] = useState<"terminal-left" | "chat-left">("chat-left");
   const [sandbox3dLayout, setSandbox3dLayout] = useState<"terminal-left" | "chat-left">("chat-left");
   const [loading, setLoading] = useState(true);
+  // Update check states
+  const [versionInfo, setVersionInfo] = useState<VersionInfo | null>(null);
+  const [checkingUpdate, setCheckingUpdate] = useState(false);
+  const [updateError, setUpdateError] = useState<string | null>(null);
+  const resetTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const isZh = t("i18n") === "zh";
+  useEffect(() => {
+    return () => {
+      if (resetTimerRef.current) {
+        clearTimeout(resetTimerRef.current);
+        resetTimerRef.current = null;
+      }
+    };
+  }, []);
   useEffect(() => {
     const loadAllSettings = async () => {
       try {
@@ -259,6 +242,41 @@ const UniversalSettings: React.FC<UniversalSettingsProps> = ({ t, theme, languag
       setAutoStartEnabled(!newState);
     }
   };
+  const scheduleAutoReset = () => {
+    if (resetTimerRef.current) {
+      clearTimeout(resetTimerRef.current);
+      resetTimerRef.current = null;
+    }
+    resetTimerRef.current = setTimeout(() => {
+      setVersionInfo(null);
+      setUpdateError(null);
+      setCheckingUpdate(false);
+      resetTimerRef.current = null;
+    }, 10000);
+  };
+  const handleCheckUpdate = async () => {
+    if (resetTimerRef.current) {
+      clearTimeout(resetTimerRef.current);
+      resetTimerRef.current = null;
+    }
+    setCheckingUpdate(true);
+    setUpdateError(null);
+    setVersionInfo(null);
+    try {
+      const info = await systemUpdateCommands.checkVersionUpdate();
+      setVersionInfo(info);
+      scheduleAutoReset();
+    } catch (error) {
+      console.error("Failed to check update:", error);
+      setUpdateError(isZh ? "检查更新失败，请稍后重试" : "Failed to check update, please try again");
+      scheduleAutoReset();
+    } finally {
+      setCheckingUpdate(false);
+    }
+  };
+  const handleOpenDownload = () => {
+    window.open("https://github.com/HippoxHQ/hippoxOS/releases/latest", "_blank");
+  };
   const labelStyle: React.CSSProperties = {
     fontSize: "13px",
     color: "var(--text-primary)",
@@ -304,11 +322,11 @@ const UniversalSettings: React.FC<UniversalSettingsProps> = ({ t, theme, languag
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    gap: "4px",
+    gap: "6px",
     flex: "1 1 auto",
     minWidth: 0,
     height: "28px",
-    padding: "0 8px",
+    padding: "0 10px",
     background: isActive ? "var(--accent-color, #00aaff)" : "transparent",
     border: "none",
     borderRadius: "4px",
@@ -352,6 +370,45 @@ const UniversalSettings: React.FC<UniversalSettingsProps> = ({ t, theme, languag
     background: "white",
     boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
   });
+  const updateButtonStyle: React.CSSProperties = {
+    padding: "6px 16px",
+    borderRadius: "6px",
+    border: "1px solid var(--border-color)",
+    background: "var(--bg-tertiary)",
+    color: "var(--text-primary)",
+    cursor: "pointer",
+    fontSize: "13px",
+    transition: "all 0.2s",
+    minWidth: "80px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "6px",
+  };
+  const updateResultStyle: React.CSSProperties = {
+    fontSize: "13px",
+    color: "var(--text-secondary)",
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    flex: 1,
+    justifyContent: "flex-end",
+  };
+  const updateButtonContainerStyle: React.CSSProperties = {
+    display: "flex",
+    alignItems: "center",
+    gap: "12px",
+    flex: 1,
+    justifyContent: "flex-end",
+  };
+  const updateStatusStyle: React.CSSProperties = {
+    fontSize: "13px",
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    flex: 1,
+    justifyContent: "flex-end",
+  };
   if (loading) {
     return (
       <div
@@ -414,11 +471,11 @@ const UniversalSettings: React.FC<UniversalSettingsProps> = ({ t, theme, languag
           <label style={labelStyle}>{t("settings.functionPanelPosition")}</label>
           <div style={layoutSwitchGroupStyle}>
             <button type="button" style={layoutSwitchBtnStyle(functionPanelPosition === "left")} onClick={() => handleFunctionPanelPositionChange("left")} title={t("settings.functionLeftTitle")}>
-              <FunctionLeftIcon />
+              <PanelLeft size={14} />
               <span style={btnTextStyle}>{t("settings.functionLeft")}</span>
             </button>
             <button type="button" style={layoutSwitchBtnStyle(functionPanelPosition === "right")} onClick={() => handleFunctionPanelPositionChange("right")} title={t("settings.functionRightTitle")}>
-              <FunctionRightIcon />
+              <PanelRight size={14} />
               <span style={btnTextStyle}>{t("settings.functionRight")}</span>
             </button>
           </div>
@@ -445,14 +502,6 @@ const UniversalSettings: React.FC<UniversalSettingsProps> = ({ t, theme, languag
         <LayoutSwitch value={chartLayout} onChange={handleChartLayoutChange} label={t("settings.chartChat")} description={t("settings.chartChatDesc")} pageType="chart" t={t} />
         <LayoutSwitch value={mapLayout} onChange={handleMapLayoutChange} label={t("settings.mapChat")} description={t("settings.mapChatDesc")} pageType="map" t={t} />
         <LayoutSwitch value={codeEditorLayout} onChange={handleCodeEditorLayoutChange} label={t("settings.codeEditorChat")} description={t("settings.codeEditorDesc")} pageType="codeeditor" t={t} />
-        {/* <LayoutSwitch
-          value={videoEditorLayout}
-          onChange={handleVideoEditorLayoutChange}
-          label={t("settings.videoEditorChat")}
-          description={t("settings.videoEditorDesc")}
-          pageType="videoeditor"
-          t={t}
-        /> */}
         <LayoutSwitch value={sandbox3dLayout} onChange={handleSandbox3dLayoutChange} label={t("settings.sandbox3dChat")} description={t("settings.sandbox3dDesc")} pageType="sandbox3d" t={t} />
         <div
           style={{
@@ -474,16 +523,121 @@ const UniversalSettings: React.FC<UniversalSettingsProps> = ({ t, theme, languag
         </div>
         <div style={rowStyle}>
           <label style={labelStyle}>{t("settings.autoStart")}</label>
-          <button
-            type="button"
-            style={toggleSwitchStyle(autoStartEnabled)}
-            onClick={handleAutoStartToggle}
-            disabled={autoStartLoading}
-            title={autoStartEnabled ? t("settings.disableAutoStart") : t("settings.enableAutoStart")}
-          >
+          <button type="button" style={toggleSwitchStyle(autoStartEnabled)} onClick={handleAutoStartToggle} disabled={autoStartLoading} title={autoStartEnabled ? t("settings.disableAutoStart") : t("settings.enableAutoStart")}>
             <span style={toggleKnobStyle(autoStartEnabled)} />
           </button>
         </div>
+        {/* Update Check Section */}
+        <div
+          style={{
+            borderTop: "1px solid var(--border-color, #333)",
+            marginBottom: "10px",
+            marginTop: "4px",
+          }}
+        />
+        <div
+          style={{
+            fontSize: "13px",
+            fontWeight: 600,
+            color: "var(--text-secondary)",
+            marginBottom: "12px",
+            paddingLeft: "4px",
+          }}
+        >
+          {isZh ? "版本更新" : "Version Update"}
+        </div>
+        <div style={rowStyle}>
+          <label style={labelStyle}>{isZh ? "检查更新" : "Check Update"}</label>
+          <div style={updateButtonContainerStyle}>
+            {checkingUpdate ? (
+              <div style={updateStatusStyle}>
+                <Loader2 size={14} style={{ animation: "spin 1s linear infinite" }} />
+                <span style={{ color: "var(--text-secondary)" }}>{isZh ? "检查中..." : "Checking..."}</span>
+              </div>
+            ) : updateError ? (
+              <div style={updateStatusStyle}>
+                <span style={{ color: "var(--text-error, #ff4444)" }}>{updateError}</span>
+                <button
+                  style={{
+                    ...updateButtonStyle,
+                    padding: "4px 12px",
+                    fontSize: "12px",
+                    minWidth: "auto",
+                  }}
+                  onClick={handleCheckUpdate}
+                >
+                  <RefreshCw size={12} />
+                  {isZh ? "重试" : "Retry"}
+                </button>
+              </div>
+            ) : versionInfo?.has_update ? (
+              <>
+                <div style={updateResultStyle}>
+                  <Sparkles size={14} style={{ color: "var(--accent-color, #00aaff)" }} />
+                  <span
+                    style={{
+                      color: "var(--accent-color, #00aaff)",
+                      fontWeight: 500,
+                    }}
+                  >
+                    {isZh ? `发现新版本 ${versionInfo.latest_version}` : `New version ${versionInfo.latest_version} available`}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: "11px",
+                      color: "var(--text-tertiary)",
+                    }}
+                  >
+                    {isZh ? `当前: ${versionInfo.current_version}` : `Current: ${versionInfo.current_version}`}
+                  </span>
+                </div>
+                <button
+                  style={{
+                    ...updateButtonStyle,
+                    background: "var(--accent-color, #00aaff)",
+                    borderColor: "var(--accent-color, #00aaff)",
+                    color: "white",
+                  }}
+                  onClick={handleOpenDownload}
+                >
+                  <Download size={14} />
+                  {isZh ? "下载更新" : "Download"}
+                </button>
+              </>
+            ) : versionInfo && !versionInfo.has_update ? (
+              <div style={updateResultStyle}>
+                <CheckCircle size={14} style={{ color: "var(--text-success, #4caf50)" }} />
+                <span
+                  style={{
+                    color: "var(--text-success, #4caf50)",
+                  }}
+                >
+                  {isZh ? "当前已是最新版本" : "You are on the latest version"}
+                </span>
+              </div>
+            ) : (
+              <button
+                style={updateButtonStyle}
+                onClick={handleCheckUpdate}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "var(--hover-bg)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "var(--bg-tertiary)";
+                }}
+              >
+                <RefreshCw size={14} />
+                {isZh ? "检查更新" : "Check"}
+              </button>
+            )}
+          </div>
+        </div>
+        <style>{`
+          @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+          }
+        `}</style>
       </div>
     </div>
   );

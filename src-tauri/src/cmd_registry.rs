@@ -27,6 +27,8 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_get_max_favorites_size,
         commands::cmd_set_max_favorites_size,
         commands::cmd_get_favorites_dir,
+        // System Update
+        commands::cmd_check_version_update,
         // Drivers
         commands::cmd_get_drivers,
         commands::cmd_get_drivers_by_category,
@@ -544,6 +546,8 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         subsystem::cmd_list_str_overlays_by_category,
         subsystem::cmd_add_srt_to_overlay_track,
         subsystem::cmd_add_overlay_track,
+        subsystem::cmd_insert_track_between,
+        subsystem::cmd_insert_overlay_track_between,
         subsystem::cmd_copy_track_blocks,
         subsystem::cmd_get_overlay_track_rows,
         subsystem::cmd_get_overlay_track_rows_reversed,

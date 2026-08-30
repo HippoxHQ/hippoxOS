@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
 import { showToast, ToastType } from "../../components/Toast";
 import { githubCommands } from "../../command/net/github";
+import { Lock as LockIcon, Star } from "lucide-react";
 import { GithubIcon, FolderTargetIcon, BrowseFolderIcon, RepoIcon, CheckCircleIcon, SpinnerIcon, AlertCircleIcon, CloseIcon, ChevronRightIcon } from "../../icons";
 interface GithubRepoInfo {
   valid: boolean;
@@ -554,7 +555,7 @@ const GithubClone: React.FC<GithubCloneProps> = ({ t, language = "en", isOpen, o
                         fontSize: "12px",
                       }}
                     >
-                      ⭐ {repoInfo.stars || 0} · 🍴 {repoInfo.forks || 0}
+                      <Star size={18} /> {repoInfo.stars || 0} · 🍴 {repoInfo.forks || 0}
                     </span>
                     {repoInfo.private && (
                       <span
@@ -563,7 +564,7 @@ const GithubClone: React.FC<GithubCloneProps> = ({ t, language = "en", isOpen, o
                           fontSize: "12px",
                         }}
                       >
-                        🔒
+                        <LockIcon size={18} />
                       </span>
                     )}
                   </div>
