@@ -423,6 +423,13 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         subsystem::cmd_is_download_registered_as_material,
         subsystem::cmd_get_download_material_id,
         subsystem::cmd_register_download_as_material,
+        subsystem::cmd_load_external_audio,
+        subsystem::cmd_load_external_sfx,
+        subsystem::cmd_load_external_sticker,
+        subsystem::cmd_get_external_audio_files,
+        subsystem::cmd_get_external_sfx_files,
+        subsystem::cmd_get_external_sticker_files,
+        subsystem::cmd_download_and_add_sticker_to_track,
         //  Video Materials Upload 
         subsystem::cmd_upload_video_material,
         subsystem::cmd_upload_audio_material,

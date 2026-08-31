@@ -45,6 +45,20 @@ impl HttpClient {
         }
         response.json::<Value>().await.map_err(|e| format!("Failed to parse JSON: {}", e))
     }
+    /// Fetch raw bytes from a URL (for downloading files)
+    pub async fn fetch_bytes(&self, url: &str, referer: Option<&str>) -> Result<Vec<u8>, String> {
+        let mut request = self.client.get(url);
+        if let Some(ref_val) = referer {
+            request = request.header("Referer", ref_val);
+        }
+        let response = request.send().await.map_err(|e| format!("Request failed: {}", e))?;
+        if !response.status().is_success() {
+            let status = response.status();
+            return Err(format!("HTTP {}: Failed to download file", status));
+        }
+        let bytes = response.bytes().await.map_err(|e| format!("Failed to read response bytes: {}", e))?;
+        Ok(bytes.to_vec())
+    }
 }
 impl Default for HttpClient {
     fn default() -> Self {

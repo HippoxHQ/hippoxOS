@@ -45,6 +45,14 @@ const FAVORITES_DIR_NAME: &str = "favorites";
 const FAVORITES_SKILL_DIR_NAME: &str = "skill";
 /// Favorites natural subdirectory name
 const FAVORITES_NATURAL_DIR_NAME: &str = "natural";
+/// external resource
+const EXTERNAL_RESOURCE: &str = "ExternalResource";
+/// external resource audio
+const EXTERNAL_RESOURCE_AUDIO: &str = "audio";
+/// external resource sfx
+const EXTERNAL_RESOURCE_SFX: &str = "sfx";
+/// external resource sticker
+const EXTERNAL_RESOURCE_STICKER: &str = "sticker";
 /// Get application root directory
 ///
 /// Windows: C:\Users\<username>\AppData\Roaming\HippoX\
@@ -61,6 +69,15 @@ pub fn get_app_root_dir() -> PathBuf {
         // Linux: ~/.local/share/HippoX
         dirs::data_dir().unwrap_or_else(|| PathBuf::from(".")).join(APP_DIR_NAME)
     }
+}
+pub fn get_external_cache_audio_dir() -> PathBuf {
+    get_app_root_dir().join(EXTERNAL_RESOURCE).join(EXTERNAL_RESOURCE_AUDIO)
+}
+pub fn get_external_cache_sfx_dir() -> PathBuf {
+    get_app_root_dir().join(EXTERNAL_RESOURCE).join(EXTERNAL_RESOURCE_SFX)
+}
+pub fn get_external_cache_sticker_dir() -> PathBuf {
+    get_app_root_dir().join(EXTERNAL_RESOURCE).join(EXTERNAL_RESOURCE_STICKER)
 }
 /// Material favorites directory: HippoX/MaterialFavorites
 pub fn get_material_favorites_dir() -> PathBuf {
