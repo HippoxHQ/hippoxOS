@@ -20,7 +20,7 @@ const getTranslation = (language: "zh" | "en", key: string): string => {
   }
   return value || key;
 };
-// ===== Cache health results to avoid repeated checks =====
+// Cache health results to avoid repeated checks 
 let healthCache: Record<string, "online" | "offline" | "checking"> = {};
 let healthCacheTimestamp = 0;
 const CACHE_TTL = 30000; // 30 seconds
@@ -31,7 +31,7 @@ const SubmenuWindow: React.FC = () => {
   const [language, setLanguage] = useState<"zh" | "en">("en");
   const [isLoading, setIsLoading] = useState(true);
   const dataLoadedRef = useRef(false);
-  // ===== Step 1: Load config ONLY first (fast) =====
+  // Load config ONLY first (fast) 
   useEffect(() => {
     const loadConfig = async () => {
       try {
@@ -44,7 +44,7 @@ const SubmenuWindow: React.FC = () => {
     };
     loadConfig();
   }, []);
-  // ===== Step 2: Load LLM instances (may take time) =====
+  // Load LLM instances (may take time) 
   useEffect(() => {
     const loadInstances = async () => {
       if (dataLoadedRef.current) return;
@@ -85,7 +85,6 @@ const SubmenuWindow: React.FC = () => {
         setIsLoading(false);
       }
     };
-    // 延迟50ms让窗口先渲染
     const timer = setTimeout(() => {
       loadInstances();
     }, 50);
@@ -237,7 +236,7 @@ const SubmenuWindow: React.FC = () => {
       fontSize: "12px",
     },
   };
-  // ===== Webkit scrollbar styles =====
+  // Webkit scrollbar styles 
   const scrollbarStyles = `
     .submenu-scroll-container::-webkit-scrollbar {
       width: 4px;
@@ -253,7 +252,7 @@ const SubmenuWindow: React.FC = () => {
       background: ${isDark ? "#4a4f5a" : "#b0c0d0"};
     }
   `;
-  // ===== Always render, even if loading =====
+  // Always render, even if loading 
   return (
     <div style={styles.container}>
       <style>{scrollbarStyles}</style>

@@ -53,6 +53,10 @@ const EXTERNAL_RESOURCE_AUDIO: &str = "audio";
 const EXTERNAL_RESOURCE_SFX: &str = "sfx";
 /// external resource sticker
 const EXTERNAL_RESOURCE_STICKER: &str = "sticker";
+/// external resource video material
+const EXTERNAL_RESOURCE_VIDEO_MATERIAL: &str = "videomaterial";
+/// external resource image material
+const EXTERNAL_RESOURCE_IMAGE_MATERIAL: &str = "imagematerial";
 /// Get application root directory
 ///
 /// Windows: C:\Users\<username>\AppData\Roaming\HippoX\
@@ -69,6 +73,12 @@ pub fn get_app_root_dir() -> PathBuf {
         // Linux: ~/.local/share/HippoX
         dirs::data_dir().unwrap_or_else(|| PathBuf::from(".")).join(APP_DIR_NAME)
     }
+}
+pub fn get_external_cache_video_material_dir() -> PathBuf {
+    get_app_root_dir().join(EXTERNAL_RESOURCE).join(EXTERNAL_RESOURCE_VIDEO_MATERIAL)
+}
+pub fn get_external_cache_image_material_dir() -> PathBuf {
+    get_app_root_dir().join(EXTERNAL_RESOURCE).join(EXTERNAL_RESOURCE_IMAGE_MATERIAL)
 }
 pub fn get_external_cache_audio_dir() -> PathBuf {
     get_app_root_dir().join(EXTERNAL_RESOURCE).join(EXTERNAL_RESOURCE_AUDIO)

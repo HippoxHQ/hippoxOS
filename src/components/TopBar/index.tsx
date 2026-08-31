@@ -7,6 +7,7 @@ import SearchDialog from "./SearchDialog";
 import { showToast, ToastType } from "../Toast";
 import { windowsCommands } from "../../command/windows";
 import { UploadFile } from "../../core/types";
+import { X } from "lucide-react";
 const TerminalLeftIcon = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" width="16" height="16">
     <rect x="2" y="4" width="20" height="16" rx="2" stroke="currentColor" fill="none" />
@@ -617,20 +618,12 @@ const TopBar: React.FC<TopBarProps> = ({
               )}
             </button>
             <button className="window-btn close" onClick={handleClose} title={getCloseTitle()} style={{ paddingTop: "2px" }}>
-              <CloseIcon />
+              <X />
             </button>
           </div>
         </div>
       </div>
-      <SearchDialog
-        isOpen={isSearchOpen}
-        onClose={closeSearch}
-        currentLanguage={currentLanguage}
-        currentTheme={currentTheme}
-        onToggleTheme={onToggleTheme}
-        onToggleLanguage={onToggleLanguage}
-        onFileClick={onFileClick}
-      />
+      <SearchDialog isOpen={isSearchOpen} onClose={closeSearch} currentLanguage={currentLanguage} currentTheme={currentTheme} onToggleTheme={onToggleTheme} onToggleLanguage={onToggleLanguage} onFileClick={onFileClick} />
     </>
   );
 };

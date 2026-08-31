@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { AudioVisualizerProps, AudioVisualizerRef } from "./types";
-const AudioVisualizer = React.forwardRef<AudioVisualizerRef, AudioVisualizerProps>(({ audioUrl, isDark, isPlaying, onPlayStateChange, onTimeUpdate, onLoaded }, ref) => {
+const AudioVisualizer = React.forwardRef<AudioVisualizerRef, AudioVisualizerProps>(({ audioUrl, isDark, isPlaying, onPlayStateChange, onTimeUpdate, onLoaded, onDuration }, ref) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const animationRef = useRef<number | null>(null);
@@ -89,6 +89,7 @@ const AudioVisualizer = React.forwardRef<AudioVisualizerRef, AudioVisualizerProp
     const stars = starDustRef.current;
     const cx = width / 2;
     const cy = height / 2;
+    // Draw star dust
     stars.forEach((star) => {
       star.x += star.speedX;
       star.y += star.speedY;
@@ -114,6 +115,7 @@ const AudioVisualizer = React.forwardRef<AudioVisualizerRef, AudioVisualizerProp
       }
     });
     if (particles.length === 0) return;
+    // Center glow
     const glowSize = 80 + overall * 120;
     const glowGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, glowSize);
     const glowColor = isDark ? `rgba(78, 201, 176, ${0.05 + overall * 0.08})` : `rgba(30, 150, 130, ${0.05 + overall * 0.08})`;
@@ -123,6 +125,7 @@ const AudioVisualizer = React.forwardRef<AudioVisualizerRef, AudioVisualizerProp
     ctx.beginPath();
     ctx.arc(cx, cy, glowSize, 0, Math.PI * 2);
     ctx.fill();
+    // Draw particle connections
     for (let i = 0; i < particles.length; i++) {
       for (let j = i + 1; j < particles.length; j++) {
         const dx = particles[i].x - particles[j].x;
@@ -145,6 +148,7 @@ const AudioVisualizer = React.forwardRef<AudioVisualizerRef, AudioVisualizerProp
         }
       }
     }
+    // Draw particles
     particles.forEach((particle, i) => {
       const spectrumIndex = Math.floor((i / particles.length) * spectrum.length);
       const freqValue = spectrum[spectrumIndex] || 0;
@@ -183,6 +187,7 @@ const AudioVisualizer = React.forwardRef<AudioVisualizerRef, AudioVisualizerProp
         ctx.stroke();
       }
     });
+    // Center pulse
     const centerSize = 15 + overall * 80;
     const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, centerSize);
     const centerColor = isDark ? "rgba(78, 201, 176, " : "rgba(30, 150, 130, ";
@@ -202,6 +207,7 @@ const AudioVisualizer = React.forwardRef<AudioVisualizerRef, AudioVisualizerProp
     ctx.shadowColor = `rgba(78, 201, 176, ${0.3 + overall * 0.4})`;
     ctx.fill();
     ctx.shadowBlur = 0;
+    // Rings
     for (let ring = 0; ring < 3; ring++) {
       const ringRadius = 50 + overall * 100 + ring * 30;
       const ringAlpha = 0.05 + overall * 0.1 - ring * 0.02;
@@ -213,6 +219,7 @@ const AudioVisualizer = React.forwardRef<AudioVisualizerRef, AudioVisualizerProp
       ctx.stroke();
       ctx.setLineDash([]);
     }
+    // Outer dots
     const dotCount = 80;
     for (let i = 0; i < dotCount; i++) {
       const angle = (i / dotCount) * Math.PI * 2 + overall * 0.5;
@@ -243,15 +250,22 @@ const AudioVisualizer = React.forwardRef<AudioVisualizerRef, AudioVisualizerProp
     canvasRef.current = canvas;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
+    // Create audio element - works for both local and remote URLs
     const audio = document.createElement("audio");
     audio.src = audioUrl;
-    audio.crossOrigin = "anonymous";
+    audio.crossOrigin = "anonymous"; // Required for remote audio CORS
     audio.preload = "auto";
     audio.style.display = "none";
     document.body.appendChild(audio);
     audioRef.current = audio;
     const onCanPlay = () => {
       isLoadingRef.current = false;
+      // Get duration from audio element
+      if (audio.duration && !isNaN(audio.duration) && audio.duration > 0) {
+        if (onDuration) {
+          onDuration(audio.duration);
+        }
+      }
       if (onLoaded) {
         onLoaded();
       }
@@ -259,7 +273,16 @@ const AudioVisualizer = React.forwardRef<AudioVisualizerRef, AudioVisualizerProp
         audio.play().catch(() => {});
       }
     };
+    // Handle duration loaded
+    const onDurationChange = () => {
+      if (audio.duration && !isNaN(audio.duration) && audio.duration > 0) {
+        if (onDuration) {
+          onDuration(audio.duration);
+        }
+      }
+    };
     audio.addEventListener("canplaythrough", onCanPlay);
+    audio.addEventListener("durationchange", onDurationChange);
     const resizeCanvas = () => {
       const rect = container.getBoundingClientRect();
       const dpr = window.devicePixelRatio || 1;
@@ -278,6 +301,7 @@ const AudioVisualizer = React.forwardRef<AudioVisualizerRef, AudioVisualizerProp
       resizeCanvas();
     });
     resizeObserver.observe(container);
+    // Create audio context
     const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
     audioContextRef.current = audioContext;
     const analyser = audioContext.createAnalyser();
@@ -357,6 +381,7 @@ const AudioVisualizer = React.forwardRef<AudioVisualizerRef, AudioVisualizerProp
       }
       if (audioRef.current) {
         audioRef.current.removeEventListener("canplaythrough", onCanPlay);
+        audioRef.current.removeEventListener("durationchange", onDurationChange);
         audioRef.current.removeEventListener("play", onPlay);
         audioRef.current.removeEventListener("pause", onPause);
         audioRef.current.removeEventListener("ended", onEnded);

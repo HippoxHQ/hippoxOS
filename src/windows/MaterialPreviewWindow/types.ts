@@ -26,4 +26,5 @@ export interface AudioVisualizerProps {
   onPlayStateChange?: (playing: boolean) => void;
   onTimeUpdate?: (time: number) => void;
   onLoaded?: () => void;
+  onDuration?: (duration: number) => void;
 }

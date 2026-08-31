@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { X, Maximize2, Minimize2, RotateCw, ZoomIn, ZoomOut, RefreshCw } from "lucide-react";
+import { X, Maximize2, Minimize2, RotateCw, ZoomIn, ZoomOut, RefreshCw, Play, Pause, Music, File, Video, Image, FileText, Info } from "lucide-react";
 import * as monaco from "monaco-editor";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import logo from "../../assets/logo.png";
@@ -33,6 +33,8 @@ const MaterialPreviewWindow: React.FC = () => {
   const [currentTime, setCurrentTime] = useState(0);
   const [assetPath, setAssetPath] = useState<string>("");
   const [isLoaded, setIsLoaded] = useState(false);
+  const [remoteDuration, setRemoteDuration] = useState<number | null>(null);
+  const [audioDuration, setAudioDuration] = useState<number | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const audioVisualizerRef = useRef<{ seek: (time: number) => void }>(null);
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
@@ -44,6 +46,26 @@ const MaterialPreviewWindow: React.FC = () => {
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [imagePosition, setImagePosition] = useState({ x: 0, y: 0 });
   const [imageLoaded, setImageLoaded] = useState(false);
+  const isZh = language === "zh";
+  // Handle video metadata loaded - gets duration from browser
+  const handleVideoMetadataLoaded = () => {
+    if (videoRef.current) {
+      const duration = videoRef.current.duration;
+      if (duration && !isNaN(duration)) {
+        setRemoteDuration(duration);
+        // Update material duration for progress bar
+        setMaterial((prev) => (prev ? { ...prev, duration } : prev));
+      }
+    }
+  };
+  // Handle audio duration from AudioVisualizer
+  const handleAudioDuration = (duration: number) => {
+    if (duration && !isNaN(duration)) {
+      setAudioDuration(duration);
+      // Update material duration for progress bar
+      setMaterial((prev) => (prev ? { ...prev, duration } : prev));
+    }
+  };
   useEffect(() => {
     const loadData = async () => {
       try {
@@ -58,14 +80,24 @@ const MaterialPreviewWindow: React.FC = () => {
         if (data) {
           setMaterial(data);
           if (data.file_path) {
-            const converted = convertFileSrc(data.file_path);
-            setAssetPath(converted);
+            // Check if it's a remote URL
+            if (data.file_path.startsWith("http://") || data.file_path.startsWith("https://")) {
+              // For remote URLs, use directly without convertFileSrc
+              setAssetPath(data.file_path);
+            } else {
+              // For local files, use convertFileSrc
+              const converted = convertFileSrc(data.file_path);
+              setAssetPath(converted);
+            }
           }
           setImageScale(1);
           setImageRotation(0);
           setImagePosition({ x: 0, y: 0 });
           setImageLoaded(false);
           setIsLoaded(false);
+          // Reset remote duration when loading new material
+          setRemoteDuration(null);
+          setAudioDuration(null);
         }
       } catch (error) {
         console.error("Failed to get material preview data:", error);
@@ -97,7 +129,7 @@ const MaterialPreviewWindow: React.FC = () => {
         editorRef.current = null;
       }
       const isDark = theme === "dark";
-      const content = material.content_preview || "暂无内容预览";
+      const content = material.content_preview || (isZh ? "暂无内容预览" : "No content preview");
       const fileExt = material.name.split(".").pop()?.toLowerCase() || "";
       const extMap: Record<string, string> = {
         js: "javascript",
@@ -241,10 +273,23 @@ const MaterialPreviewWindow: React.FC = () => {
     }
   };
   const formatDuration = (seconds: number): string => {
-    if (!seconds || seconds === 0) return "00:00";
+    if (!seconds || seconds === 0 || isNaN(seconds)) return "00:00";
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+  };
+  // Get display duration - use material.duration, remoteDuration, or audioDuration
+  const getDisplayDuration = (): number => {
+    if (material?.duration && material.duration > 0) {
+      return material.duration;
+    }
+    if (remoteDuration && remoteDuration > 0) {
+      return remoteDuration;
+    }
+    if (audioDuration && audioDuration > 0) {
+      return audioDuration;
+    }
+    return 0;
   };
   const handleImageZoomIn = () => {
     setImageScale((prev) => Math.min(prev + 0.25, 5));
@@ -286,7 +331,6 @@ const MaterialPreviewWindow: React.FC = () => {
     const delta = e.deltaY > 0 ? -0.1 : 0.1;
     setImageScale((prev) => Math.min(Math.max(prev + delta, 0.25), 5));
   };
-  const isZh = language === "zh";
   const styles = getStyles(isDark, imageScale, isDragging, imageRotation, imagePosition);
   if (!material) {
     return (
@@ -296,7 +340,7 @@ const MaterialPreviewWindow: React.FC = () => {
             <img src={logo} alt="logo" style={{ width: 22, height: 22, borderRadius: 5 }} />
           </div>
           <div style={styles.topBarCenter}>
-            <span style={styles.topBarTitle}>素材预览</span>
+            <span style={styles.topBarTitle}>{isZh ? "素材预览" : "Material Preview"}</span>
           </div>
           <div style={styles.topBarRight}>
             <button style={styles.windowBtn} onClick={handleMinimize} title={isZh ? "最小化" : "Minimize"}>
@@ -342,14 +386,14 @@ const MaterialPreviewWindow: React.FC = () => {
                 e.currentTarget.style.color = isDark ? "#9ca3af" : "#6b7280";
               }}
             >
-              ✕
+              <X size={14} />
             </button>
           </div>
         </div>
         <div style={styles.content}>
           <div style={styles.emptyState}>
-            <span style={{ fontSize: "32px" }}>🎬</span>
-            <span>等待素材加载...</span>
+            <File size={32} style={{ opacity: 0.3 }} />
+            <span>{isZh ? "等待素材加载..." : "Waiting for material to load..."}</span>
           </div>
         </div>
       </div>
@@ -371,7 +415,9 @@ const MaterialPreviewWindow: React.FC = () => {
                 setIsPlaying(false);
                 setCurrentTime(0);
               }}
+              onLoadedMetadata={handleVideoMetadataLoaded}
               controls={false}
+              crossOrigin="anonymous"
             />
           </div>
         );
@@ -397,9 +443,10 @@ const MaterialPreviewWindow: React.FC = () => {
                       setIsPlaying(true);
                     }
                   }}
+                  onDuration={handleAudioDuration}
                 />
               ) : (
-                <span style={styles.audioPlaceholder}>🎵</span>
+                <Music size={48} style={{ opacity: 0.3 }} />
               )}
             </div>
           </div>
@@ -407,15 +454,7 @@ const MaterialPreviewWindow: React.FC = () => {
       case "image":
         return (
           <div style={styles.previewContainer}>
-            <div
-              ref={imageContainerRef}
-              style={styles.imageContainer}
-              onMouseDown={handleImageMouseDown}
-              onMouseMove={handleImageMouseMove}
-              onMouseUp={handleImageMouseUp}
-              onMouseLeave={() => setIsDragging(false)}
-              onWheel={handleImageWheel}
-            >
+            <div ref={imageContainerRef} style={styles.imageContainer} onMouseDown={handleImageMouseDown} onMouseMove={handleImageMouseMove} onMouseUp={handleImageMouseUp} onMouseLeave={() => setIsDragging(false)} onWheel={handleImageWheel}>
               <div style={styles.imageWrapper}>
                 <img
                   src={material.thumbnail || assetPath}
@@ -502,15 +541,17 @@ const MaterialPreviewWindow: React.FC = () => {
       default:
         return (
           <div style={styles.emptyState}>
-            <span style={{ fontSize: "32px" }}>📄</span>
-            <span>不支持的素材类型</span>
+            <File size={32} style={{ opacity: 0.3 }} />
+            <span>{isZh ? "不支持的素材类型" : "Unsupported material type"}</span>
           </div>
         );
     }
   };
   const hasPlayback = material.type === "video" || material.type === "audio";
+  const displayDuration = getDisplayDuration();
   return (
     <div style={styles.container}>
+      {/* Title Bar */}
       <div style={styles.topBar}>
         <div style={styles.topBarLeft}>
           <img src={logo} alt="logo" style={{ width: 22, height: 22, borderRadius: 5 }} />
@@ -577,11 +618,13 @@ const MaterialPreviewWindow: React.FC = () => {
               e.currentTarget.style.color = isDark ? "#9ca3af" : "#6b7280";
             }}
           >
-            ✕
+            <X />
           </button>
         </div>
       </div>
+      {/* Main Content */}
       <div style={styles.content}>{renderContent()}</div>
+      {/* Playback Controls - for video and audio */}
       {hasPlayback && (
         <div style={styles.controls}>
           <button
@@ -594,51 +637,73 @@ const MaterialPreviewWindow: React.FC = () => {
               e.currentTarget.style.background = "transparent";
             }}
           >
-            {isPlaying ? "⏸" : "▶"}
+            {isPlaying ? <Pause size={16} /> : <Play size={16} />}
           </button>
           <span style={styles.timeDisplay}>{formatDuration(currentTime)}</span>
           <div style={styles.progressBar} onClick={handleProgressClick}>
             <div
               style={{
                 ...styles.progressFill,
-                width: `${(currentTime / (material.duration || 1)) * 100}%`,
+                width: `${(currentTime / (displayDuration || 1)) * 100}%`,
               }}
             />
           </div>
-          <span style={styles.timeDisplay}>{formatDuration(material.duration || 0)}</span>
+          <span style={styles.timeDisplay}>{formatDuration(displayDuration)}</span>
         </div>
       )}
+      {/* Material Info Footer */}
       <div style={styles.info}>
-        <span style={styles.infoLabel}>{t("videoEditor.type") || "类型"}</span>
+        {/* Type */}
+        <span style={styles.infoLabel}>{t("videoEditor.type") || (isZh ? "类型" : "Type")}</span>
         <span style={styles.infoValue}>
-          {material.type === "video" && "🎬 视频"}
-          {material.type === "audio" && "🎵 音频"}
-          {material.type === "image" && "🖼️ 图片"}
-          {material.type === "text" && "📄 文本"}
+          {material.type === "video" && (
+            <>
+              <Video size={12} style={{ display: "inline", marginRight: "4px" }} /> {isZh ? "视频" : "Video"}
+            </>
+          )}
+          {material.type === "audio" && (
+            <>
+              <Music size={12} style={{ display: "inline", marginRight: "4px" }} /> {isZh ? "音频" : "Audio"}
+            </>
+          )}
+          {material.type === "image" && (
+            <>
+              <Image size={12} style={{ display: "inline", marginRight: "4px" }} /> {isZh ? "图片" : "Image"}
+            </>
+          )}
+          {material.type === "text" && (
+            <>
+              <FileText size={12} style={{ display: "inline", marginRight: "4px" }} /> {isZh ? "文本" : "Text"}
+            </>
+          )}
         </span>
-        {material.duration !== undefined && material.duration > 0 && (
+        {/* Duration */}
+        {displayDuration > 0 && (
           <>
-            <span style={styles.infoLabel}>{t("videoEditor.duration") || "时长"}</span>
-            <span style={styles.infoValue}>{formatDuration(material.duration)}</span>
+            <span style={styles.infoLabel}>{t("videoEditor.duration") || (isZh ? "时长" : "Duration")}</span>
+            <span style={styles.infoValue}>{formatDuration(displayDuration)}</span>
           </>
         )}
+        {/* Resolution */}
         {material.width && material.height && (
           <>
-            <span style={styles.infoLabel}>分辨率</span>
+            <span style={styles.infoLabel}>{isZh ? "分辨率" : "Resolution"}</span>
             <span style={styles.infoValue}>
               {material.width}×{material.height}
             </span>
           </>
         )}
+        {/* File Size */}
         {material.file_size && (
           <>
-            <span style={styles.infoLabel}>文件大小</span>
+            <span style={styles.infoLabel}>{isZh ? "文件大小" : "File Size"}</span>
             <span style={styles.infoValue}>{(material.file_size / 1024 / 1024).toFixed(2)} MB</span>
           </>
         )}
+        {/* Line Count */}
         {material.line_count && (
           <>
-            <span style={styles.infoLabel}>行数</span>
+            <span style={styles.infoLabel}>{isZh ? "行数" : "Lines"}</span>
             <span style={styles.infoValue}>{material.line_count}</span>
           </>
         )}

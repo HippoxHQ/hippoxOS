@@ -16,18 +16,7 @@ interface SkillsManagerCardGridProps {
   onRefresh?: () => void;
   onSendSkillMessage?: (message: string, files?: UploadFile[]) => void;
 }
-const SkillsManagerCardGrid: React.FC<SkillsManagerCardGridProps> = ({
-  t,
-  skills: externalSkills,
-  onCreateNew,
-  onCreateNewWithCategory,
-  onSelectSkill,
-  onDeleteSkill,
-  onFavorite,
-  onRun,
-  onRefresh,
-  onSendSkillMessage,
-}) => {
+const SkillsManagerCardGrid: React.FC<SkillsManagerCardGridProps> = ({ t, skills: externalSkills, onCreateNew, onCreateNewWithCategory, onSelectSkill, onDeleteSkill, onFavorite, onRun, onRefresh, onSendSkillMessage }) => {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [favoritedSkills, setFavoritedSkills] = useState<Set<string>>(new Set());
   const [favoritingId, setFavoritingId] = useState<string | null>(null);
@@ -531,12 +520,7 @@ const SkillsManagerCardGrid: React.FC<SkillsManagerCardGridProps> = ({
                             {skill.name || t("skillsManager.unnamed")}
                           </div>
                           <div className="card-actions">
-                            <button
-                              className={`icon-btn ${favorited ? "active" : ""}`}
-                              onClick={(e) => handleFavorite(skill, e)}
-                              disabled={favoritingId === skill.id}
-                              title={favorited ? t("skillsManager.unfavorite") : t("skillsManager.favorite")}
-                            >
+                            <button className={`icon-btn ${favorited ? "active" : ""}`} onClick={(e) => handleFavorite(skill, e)} disabled={favoritingId === skill.id} title={favorited ? t("skillsManager.unfavorite") : t("skillsManager.favorite")}>
                               {favorited ? <StarFilledIcon size={11} /> : <StarIcon size={11} />}
                             </button>
                             <button className="icon-btn" onClick={(e) => handleRun(skill, e)} title={t("skillsManager.run")}>
