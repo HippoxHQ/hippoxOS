@@ -770,6 +770,7 @@ export const zh = {
     tableMoreRows: "还有",
   },
   chat: {
+    empty: '对话为空',
     navigation: '对话导航',
     resend: '重新发送',
     resendSuccess: '消息已重新发送',
@@ -2820,6 +2821,7 @@ export const en: typeof zh = {
     tableMoreRows: "More rows",
   },
   chat: {
+    empty: 'Chat is Empty',
     navigation: 'Chat Navigation',
     resend: 'Resend',
     resendSuccess: 'Message resent',

@@ -1,12 +1,15 @@
 use super::paths::{get_app_root_dir, get_skills_market_dir};
-use crate::commands::{get_favorites_config_path, load_favorites_config, save_favorites_config};
+use crate::commands::{get_favorites_config_path, load_favorites_config, save_favorites_config, SKILLS_MARKET_MIRROR_URL, SKILLS_MARKET_REPO_URL};
 use crate::commons::{hidden_cmd, FileUtils};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use tauri::command;
-const SKILLS_MARKET_REPO_URL: &str = "https://github.com/HippoxHQ/skills-market.git";
+// /// Primary GitHub repository URL for skills market
+// const SKILLS_MARKET_REPO_URL: &str = "https://github.com/HippoxHQ/skills-market.git";
+// /// Mirror repository URL for skills market (fallback when GitHub is inaccessible)
+// const SKILLS_MARKET_MIRROR_URL: &str = "https://git.bdnb.cn/HippoxHQ/skills-market.git";
 const MARKET_CONFIG_FILE: &str = "market_config.json";
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MarketSkill {
@@ -88,6 +91,107 @@ fn save_market_config(config: &MarketConfig) -> Result<(), String> {
     fs::write(&config_path, content).map_err(|e| format!("Failed to save market config: {}", e))?;
     Ok(())
 }
+/// Clone or update repository with automatic mirror fallback
+/// Returns: true if using mirror, false if using primary
+fn clone_or_pull_repo(market_dir: &Path, config: &MarketConfig) -> Result<bool, String> {
+    let git_dir = market_dir.join(".git");
+    let branch = &config.branch;
+    // First try: Use the configured repo URL (primary)
+    let primary_url = &config.repo_url;
+    log::debug!("Attempting to use primary repo: {}", primary_url);
+    if !git_dir.exists() {
+        // Clone with primary URL
+        match clone_repo(primary_url, market_dir, branch) {
+            Ok(_) => {
+                log::debug!("Successfully cloned from primary repository");
+                return Ok(false); // Used primary
+            }
+            Err(e) => {
+                log::warn!("Primary clone failed: {}, trying mirror...", e);
+            }
+        }
+    } else {
+        // Pull with primary URL
+        match pull_repo(market_dir, branch) {
+            Ok(_) => {
+                log::debug!("Successfully pulled from primary repository");
+                return Ok(false); // Used primary
+            }
+            Err(e) => {
+                log::warn!("Primary pull failed: {}, trying mirror...", e);
+            }
+        }
+    }
+    // Fallback: Try mirror URL
+    let mirror_url = SKILLS_MARKET_MIRROR_URL;
+    log::debug!("Attempting to use mirror repo: {}", mirror_url);
+    // If git dir doesn't exist, clone from mirror
+    if !git_dir.exists() {
+        match clone_repo(mirror_url, market_dir, branch) {
+            Ok(_) => {
+                log::info!("Successfully cloned from mirror repository (git.bdnb.cn)");
+                return Ok(true); // Used mirror
+            }
+            Err(e) => {
+                return Err(format!("Failed to clone from both primary and mirror: {}", e));
+            }
+        }
+    } else {
+        // If git dir exists, need to change remote URL and pull
+        match set_remote_url(market_dir, mirror_url) {
+            Ok(_) => {
+                match pull_repo(market_dir, branch) {
+                    Ok(_) => {
+                        log::info!("Successfully pulled from mirror repository (git.bdnb.cn)");
+                        // Optionally restore remote URL after successful pull
+                        let _ = set_remote_url(market_dir, primary_url);
+                        return Ok(true); // Used mirror
+                    }
+                    Err(e) => {
+                        return Err(format!("Failed to pull from mirror: {}", e));
+                    }
+                }
+            }
+            Err(e) => {
+                return Err(format!("Failed to set mirror remote: {}", e));
+            }
+        }
+    }
+}
+/// Helper: Clone repository from given URL
+fn clone_repo(url: &str, target_dir: &Path, branch: &str) -> Result<(), String> {
+    let output = hidden_cmd("git")
+        .args(["clone", "--branch", branch, url, target_dir.to_str().unwrap()])
+        .output()
+        .map_err(|e| format!("Git clone failed: {}. Is git installed?", e))?;
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(format!("Failed to clone repository: {}", stderr));
+    }
+    Ok(())
+}
+/// Helper: Pull latest changes in repository
+fn pull_repo(repo_dir: &Path, branch: &str) -> Result<(), String> {
+    let output = hidden_cmd("git").current_dir(repo_dir).args(["pull", "origin", branch]).output().map_err(|e| format!("Git pull failed: {}", e))?;
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(format!("Git pull failed: {}", stderr));
+    }
+    Ok(())
+}
+/// Helper: Set remote URL for existing repository
+fn set_remote_url(repo_dir: &Path, url: &str) -> Result<(), String> {
+    let output = hidden_cmd("git")
+        .current_dir(repo_dir)
+        .args(["remote", "set-url", "origin", url])
+        .output()
+        .map_err(|e| format!("Failed to set remote URL: {}", e))?;
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(format!("Failed to set remote URL: {}", stderr));
+    }
+    Ok(())
+}
 /// Parse SKILL.md frontmatter
 fn parse_skill_markdown(content: &str, skill_name: &str, category: &str) -> Option<MarketSkill> {
     let mut name = skill_name.to_string();
@@ -116,6 +220,7 @@ fn parse_skill_markdown(content: &str, skill_name: &str, category: &str) -> Opti
                 }
             }
             readme = body.trim().to_string();
+            // Parse parameters if present
             if let Some(params_start) = frontmatter.find("parameters:") {
                 let params_section = &frontmatter[params_start + 11..];
                 if let Some(first_line) = params_section.lines().next() {
@@ -220,49 +325,38 @@ fn scan_skills_from_dir(dir_path: &Path, favorites: &FavoritesConfig) -> Vec<Mar
     }
     skills
 }
-/// Clone or update skills market repository
+/// Clone or update skills market repository with mirror fallback
 #[command]
 pub async fn update_skills_market() -> Result<Vec<MarketSkill>, String> {
     let market_dir = get_skills_market_dir();
-    let git_dir = market_dir.join(".git");
     let config = load_market_config();
-    let repo_url = &config.repo_url;
-    let branch = &config.branch;
+    let branch = config.branch.clone();
+    // Ensure market directory exists
     if !market_dir.exists() {
         fs::create_dir_all(&market_dir).map_err(|e| format!("Failed to create skills market directory: {}", e))?;
     }
-    if !git_dir.exists() {
-        log::debug!("Cloning skills market repository from {}...", repo_url);
-        let output = hidden_cmd("git")
-            .args(["clone", "--branch", branch, repo_url, market_dir.to_str().unwrap()])
-            .output()
-            .map_err(|e| format!("Git clone failed: {}. Is git installed?", e))?;
-        if !output.status.success() {
-            let stderr = String::from_utf8_lossy(&output.stderr);
-            return Err(format!("Failed to clone repository: {}", stderr));
-        }
-        log::debug!("Skills market cloned successfully");
-    } else {
-        log::debug!("Pulling latest skills market updates...");
-        let output =
-            hidden_cmd("git").current_dir(&market_dir).args(["pull", "origin", branch]).output().map_err(|e| format!("Git pull failed: {}", e))?;
-        if !output.status.success() {
-            let stderr = String::from_utf8_lossy(&output.stderr);
-            log::error!("Git pull warning: {}", stderr);
-        } else {
-            let stdout = String::from_utf8_lossy(&output.stdout);
-            if stdout.contains("Already up to date") {
-                log::debug!("Skills market already up to date");
+    // Clone or pull with mirror fallback
+    match clone_or_pull_repo(&market_dir, &config) {
+        Ok(used_mirror) => {
+            if used_mirror {
+                log::info!("Skills market synced from mirror (git.bdnb.cn)");
             } else {
-                log::debug!("Skills market updated successfully");
+                log::info!("Skills market synced from primary repository");
             }
         }
+        Err(e) => {
+            log::error!("Failed to sync skills market: {}", e);
+            return Err(e);
+        }
     }
+    // Update config timestamp
     let mut updated_config = config;
     updated_config.last_update = Some(chrono::Local::now().to_rfc3339());
     save_market_config(&updated_config)?;
+    // Scan and return skills
     let favorites = load_favorites_config();
     let mut skills = scan_skills_from_dir(&market_dir, &favorites);
+    // Check installation status
     let local_skills_dir = get_app_root_dir().join("skills");
     for skill in &mut skills {
         let skill_dir = local_skills_dir.join(&skill.id);
@@ -393,6 +487,7 @@ pub async fn get_installed_skills() -> Result<Vec<MarketSkill>, String> {
     }
     Ok(skills)
 }
+/// Add a skill to favorites
 #[command]
 pub async fn favorite_skill(skill_id: String) -> Result<bool, String> {
     ensure_favorites_dir()?;
@@ -429,6 +524,7 @@ pub async fn favorite_skill(skill_id: String) -> Result<bool, String> {
     }
     Ok(true)
 }
+/// Remove a skill from favorites
 #[command]
 pub async fn unfavorite_skill(skill_id: String) -> Result<bool, String> {
     let favorites_dir = get_favorites_dir();
@@ -441,6 +537,7 @@ pub async fn unfavorite_skill(skill_id: String) -> Result<bool, String> {
     save_favorites_config(&favorites)?;
     Ok(true)
 }
+/// Initialize favorites directory structure
 pub fn init_favorites_directory() -> Result<(), String> {
     ensure_favorites_dir()
 }
