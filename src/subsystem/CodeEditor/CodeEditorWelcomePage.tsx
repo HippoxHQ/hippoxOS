@@ -6,6 +6,7 @@ import { stat } from "@tauri-apps/plugin-fs";
 import { FolderIcon, FileIcon, GithubIcon, SpinnerIcon } from "../../icons";
 import GithubClone from "./GithubClone";
 import { githubCommands } from "../../command/net/github";
+import codeeditor_logo from "../../assets/codeeditor-logo-2.jpg";
 interface CodeEditorWelcomePageProps {
   t: (key: string, params?: any) => string;
   language?: "zh" | "en";
@@ -197,7 +198,18 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({ t, langua
               fontFamily: "monospace",
             }}
           >
-            {`{ }`}
+            {/* {`{ }`} */}
+            <img
+              src={codeeditor_logo}
+              alt="Hippox"
+              style={{
+                width: "100%",
+                height: "100%",
+                borderRadius: "10px",
+                flexShrink: 0,
+                objectFit: "cover",
+              }}
+            />
           </div>
           <div>
             <div
