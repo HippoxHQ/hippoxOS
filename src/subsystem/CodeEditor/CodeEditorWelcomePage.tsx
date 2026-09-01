@@ -201,7 +201,6 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({ t, langua
             {/* {`{ }`} */}
             <img
               src={codeeditor_logo}
-              alt="Hippox"
               style={{
                 width: "100%",
                 height: "100%",
@@ -220,7 +219,7 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({ t, langua
                 letterSpacing: "-0.5px",
               }}
             >
-              Hippox
+              HippoxOS
             </div>
             <div
               style={{
@@ -228,6 +227,7 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({ t, langua
                 color: "var(--text-muted)",
                 fontWeight: 400,
                 letterSpacing: "0.3px",
+                textAlign: "left",
               }}
             >
               {isZh ? "代码编辑器" : "Code Editor"}
