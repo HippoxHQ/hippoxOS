@@ -43,8 +43,8 @@ export const sidebarStyles = `
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 6px;
-    padding: 16px 0;
+    gap: 5px;
+    padding: 10px 0;
   }
    .sidebar-nav-bottom {
     display: flex;

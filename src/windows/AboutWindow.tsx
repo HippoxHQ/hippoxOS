@@ -2,11 +2,13 @@ import React, { useState, useEffect } from "react";
 import { configCommands } from "../command/config";
 import { windowsCommands } from "../command/windows";
 import { osCommands } from "../command/os";
+import { basisCommands } from "../command/basis";
 import { zh, en } from "../i18n";
 import { Info, BookOpen, Maximize2, Minimize2 } from "lucide-react";
 import logo from "../assets/logo.png";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import rehypeRaw from "rehype-raw";
 /**
  * Translation helper function
  * Retrieves translation for a given key based on the current language
@@ -24,7 +26,7 @@ const getTranslation = (language: "zh" | "en", key: string): string => {
 /**
  * AboutWindow Component
  * Displays application information and version details
- * Fetches Markdown content from GitHub repository via CDN with cache-busting
+ * Fetches Markdown content from GitHub via Tauri backend command
  */
 const AboutWindow: React.FC = () => {
   const [theme, setTheme] = useState<"dark" | "light">("dark");
@@ -33,6 +35,7 @@ const AboutWindow: React.FC = () => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [markdownContent, setMarkdownContent] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [errorMessage, setErrorMessage] = useState<string>("");
   /**
    * Load theme and language settings from config
    */
@@ -50,110 +53,28 @@ const AboutWindow: React.FC = () => {
   }, []);
   const isZh = getTranslation(language, "i18n") === "zh";
   /**
-   * Fetch about content from GitHub via CDN based on language
-   * Uses jsdelivr CDN with cache-busting query parameter
+   * Fetch about content from GitHub via Tauri backend
+   * Uses Rust backend to avoid CORS issues
    */
   useEffect(() => {
     const fetchAboutContent = async () => {
       setIsLoading(true);
+      setErrorMessage("");
       try {
-        const timestamp = Date.now();
-        const cdnUrl = isZh ? `https://cdn.jsdelivr.net/gh/HippoxHQ/About@main/About_CN.md?t=${timestamp}` : `https://cdn.jsdelivr.net/gh/HippoxHQ/About@main/About_EN.md?t=${timestamp}`;
-        let response = await fetch(cdnUrl, {
-          headers: {
-            "Cache-Control": "no-cache, no-store, must-revalidate",
-            Pragma: "no-cache",
-            Expires: "0",
-          },
-        });
-        // Fallback to raw.githubusercontent.com
-        if (!response.ok) {
-          const rawUrl = isZh ? `https://raw.githubusercontent.com/HippoxHQ/About/main/About_CN.md?t=${timestamp}` : `https://raw.githubusercontent.com/HippoxHQ/About/main/About_EN.md?t=${timestamp}`;
-          response = await fetch(rawUrl, {
-            headers: {
-              "Cache-Control": "no-cache, no-store, must-revalidate",
-              Pragma: "no-cache",
-              Expires: "0",
-            },
-          });
-        }
-        if (response.ok) {
-          const text = await response.text();
-          if (text.trim().length === 0) {
-            setMarkdownContent(getFallbackContent());
-          } else {
-            setMarkdownContent(text);
-          }
-        } else {
-          setMarkdownContent(getFallbackContent());
-        }
+        const lang = isZh ? "zh" : "en";
+        console.log("Fetching about markdown for language:", lang);
+        const content = await basisCommands.fetchAboutMarkdown(lang);
+        setMarkdownContent(content);
       } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : String(error);
         console.error("Failed to fetch about content:", error);
-        setMarkdownContent(getFallbackContent());
+        setErrorMessage(`Failed to load: ${errorMsg}`);
       } finally {
         setIsLoading(false);
       }
     };
     fetchAboutContent();
   }, [isZh]);
-  /**
-   * Embedded fallback content - automatically adapts to current language
-   */
-  const getFallbackContent = (): string => {
-    if (isZh) {
-      return `# HippoxOS — 关于
-HippoxOS 是一个面向 AI Agent 时代的现代化操作系统。它将大语言模型深度集成到桌面环境，重塑人机交互方式，让 AI 成为系统级原生能力。
-## 核心特性
-- **AI 原生体验**：LLM 深度集成于系统操作，自然语言驱动工作流
-- **智能工作流**：通过技能市场（Skills Market）快速扩展系统能力
-- **现代化界面**：沉浸式交互设计，流畅的多面板布局
-- **全栈开发就绪**：内置代码编辑器、终端、版本控制支持
-- **数据可视化**：内置图表、地图、3D 沙盒等数据呈现工具
-- **视频编辑**：轻量级视频编辑能力，AI 辅助剪辑
-## 子系统
-| 子系统 | 说明 |
-|--------|------|
-| 通用对话 | 主聊天界面，LLM 交互核心 |
-| 代码编辑器 | AI 辅助编程，支持 Diff 预览 |
-| 图表分析 | 金融数据可视化 |
-| 地图可视化 | 地理数据呈现 |
-| 3D 沙盒 | Three.js 交互式 3D 场景 |
-| 视频编辑 | 轻量级 AI 视频编辑 |
-## 社区与联系
-欢迎关注我们的官方渠道，获取最新动态并参与讨论：
-- **X (Twitter)**: [@HippoxAI](https://x.com/HippoxAI)
-- **Bluesky**: [@hippoxai.bsky.social](https://bsky.app/profile/hippoxai.bsky.social)
-- **Medium**: [Hippox on Medium](https://hippox.medium.com/)
-- **B站**: [HippoxOS 的空间](https://space.bilibili.com/9667583)
-- **YouTube**: [HippoxOS 频道](https://www.youtube.com/@HippoxOS)`;
-    } else {
-      return `# HippoxOS — About
-HippoxOS is a modern operating system built for the AI Agent era. It deeply integrates Large Language Models into the desktop environment, redefining human-computer interaction and making AI a native system capability.
-## Key Features
-- **AI-Native Experience**: LLM deeply integrated into system operations, natural language-driven workflows
-- **Intelligent Workflows**: Extend system capabilities quickly via the Skills Market
-- **Modern Interface**: Immersive interaction design with fluid multi-panel layout
-- **Full-Stack Ready**: Built-in code editor, terminal, and version control support
-- **Data Visualization**: Integrated charting, mapping, and 3D sandbox tools
-- **Video Editing**: Lightweight video editing with AI-assisted capabilities
-## Subsystems
-| Subsystem | Description |
-|-----------|-------------|
-| General Chat | Main chat interface for LLM interaction |
-| Code Editor | AI-assisted programming with Diff preview |
-| Chart Analysis | Financial data visualization |
-| Map Visualization | Geographic data rendering |
-| 3D Sandbox | Interactive Three.js 3D scenes |
-| Video Editor | Lightweight AI-powered video editing |
-## Community & Connect
-Follow our official channels for the latest updates and to join the discussion:
-- **X (Twitter)**: [@HippoxAI](https://x.com/HippoxAI)
-- **Bluesky**: [@hippoxai.bsky.social](https://bsky.app/profile/hippoxai.bsky.social)
-- **Medium**: [Hippox on Medium](https://hippox.medium.com/)
-- **Bilibili**: [HippoxOS Space](https://space.bilibili.com/9667583)
-- **YouTube**: [HippoxOS Channel](https://www.youtube.com/@HippoxOS)`;
-    }
-  };
   /**
    * Open URL in system default browser using osCommands
    */
@@ -177,9 +98,8 @@ Follow our official channels for the latest updates and to join the discussion:
     return () => clearInterval(interval);
   }, []);
   const isDark = theme === "dark";
-  const t = (key: string) => getTranslation(language, key);
   /**
-   * Window control handlers - same as MaterialPreviewWindow
+   * Window control handlers
    */
   const handleMinimize = async () => {
     try {
@@ -221,7 +141,6 @@ Follow our official channels for the latest updates and to join the discussion:
   };
   /**
    * Scrollbar styles - overrides global scrollbar styles
-   * Using important to ensure these styles take precedence
    */
   const scrollbarStyles = `
     .about-scroll-container {
@@ -244,7 +163,7 @@ Follow our official channels for the latest updates and to join the discussion:
     }
   `;
   /**
-   * Styles - identical to MaterialPreviewWindow
+   * Styles
    */
   const styles = {
     container: {
@@ -355,6 +274,27 @@ Follow our official channels for the latest updates and to join the discussion:
       color: isDark ? "#9ca3af" : "#6b7280",
       fontSize: "14px",
     },
+    errorState: {
+      display: "flex" as const,
+      flexDirection: "column" as const,
+      alignItems: "center" as const,
+      justifyContent: "center" as const,
+      height: "100%",
+      color: "#ef4444",
+      fontSize: "14px",
+      textAlign: "center" as const,
+      padding: "20px",
+    },
+    errorTitle: {
+      fontSize: "16px",
+      fontWeight: 600,
+      marginBottom: "8px",
+    },
+    errorDetail: {
+      fontSize: "13px",
+      color: isDark ? "#9ca3af" : "#6b7280",
+      wordBreak: "break-all" as const,
+    },
     links: {
       marginTop: "20px",
       paddingTop: "16px",
@@ -375,9 +315,7 @@ Follow our official channels for the latest updates and to join the discussion:
   };
   return (
     <div style={styles.container}>
-      {/* Dynamic scrollbar styles - overrides global styles */}
       <style>{scrollbarStyles}</style>
-      {/* Top Bar - identical to MaterialPreviewWindow */}
       <div style={styles.topBar}>
         <div style={styles.topBarLeft}>
           <img src={logo} alt="logo" style={{ width: 22, height: 22, borderRadius: 5 }} />
@@ -446,17 +384,23 @@ Follow our official channels for the latest updates and to join the discussion:
           </button>
         </div>
       </div>
-      {/* Content Body */}
       <div style={styles.content}>
         <div className="about-scroll-container" style={styles.body}>
           {isLoading ? (
             <div style={styles.loadingState}>{isZh ? "加载中..." : "Loading..."}</div>
+          ) : errorMessage ? (
+            <div style={styles.errorState}>
+              <div style={styles.errorTitle}>❌ {isZh ? "加载失败" : "Load Failed"}</div>
+              <div style={styles.errorDetail}>{errorMessage}</div>
+            </div>
           ) : (
             <>
               <div style={styles.markdownContent}>
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
+                  rehypePlugins={[rehypeRaw]}
                   components={{
+                    // Table with full width and 50% columns
                     table: ({ children }) => (
                       <table
                         style={{
@@ -465,35 +409,55 @@ Follow our official channels for the latest updates and to join the discussion:
                           margin: "12px 0",
                           fontSize: "13px",
                           border: `1px solid ${isDark ? "#2d303a" : "#e5e7eb"}`,
+                          tableLayout: "fixed",
                         }}
                       >
                         {children}
                       </table>
                     ),
+                    // Table header cell - 50% width, centered
                     th: ({ children }) => (
                       <th
                         style={{
                           border: `1px solid ${isDark ? "#2d303a" : "#e5e7eb"}`,
                           padding: "8px 12px",
-                          textAlign: "left",
+                          textAlign: "center",
                           fontWeight: 600,
                           backgroundColor: isDark ? "#22252f" : "#f3f4f6",
                           color: isDark ? "#e8edf2" : "#111827",
+                          width: "50%",
                         }}
                       >
                         {children}
                       </th>
                     ),
+                    // Table data cell - 50% width, centered
                     td: ({ children }) => (
                       <td
                         style={{
                           border: `1px solid ${isDark ? "#2d303a" : "#e5e7eb"}`,
                           padding: "8px 12px",
                           color: isDark ? "#c8d0d9" : "#374151",
+                          textAlign: "center",
+                          width: "50%",
                         }}
                       >
                         {children}
                       </td>
+                    ),
+                    // Image styling - responsive with max width
+                    img: ({ src, alt }) => (
+                      <img
+                        src={src}
+                        alt={alt}
+                        style={{
+                          maxWidth: "100%",
+                          height: "auto",
+                          display: "block",
+                          margin: "0 auto",
+                          borderRadius: "4px",
+                        }}
+                      />
                     ),
                     ul: ({ children }) => (
                       <ul
@@ -621,6 +585,22 @@ Follow our official channels for the latest updates and to join the discussion:
                         {children}
                       </code>
                     ),
+                    // Handle div wrapper for alignment
+                    div: ({ children, ...props }) => {
+                      const style = props.style || {};
+                      return (
+                        <div
+                          style={{
+                            ...style,
+                            width: "100%",
+                            maxWidth: "100%",
+                            overflow: "hidden",
+                          }}
+                        >
+                          {children}
+                        </div>
+                      );
+                    },
                   }}
                 >
                   {markdownContent}

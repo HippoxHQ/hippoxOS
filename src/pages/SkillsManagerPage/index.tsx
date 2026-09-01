@@ -7,12 +7,16 @@ import { SkillData, SkillHistory, CreateSkillRequest, UpdateSkillRequest } from 
 import { skillsLocalCommands } from "../../command/skills";
 import { showToast, ToastType } from "../../components/Toast";
 import { UploadFile } from "../../core/types";
+// Import icons from lucide-react
+import { FileText, FileCode, Save, X } from "lucide-react";
 interface SkillsManagerProps {
   t: (key: string, params?: any) => string;
   onClose?: () => void;
   currentSessionId?: string;
   onSendSkillMessage?: (message: string, files?: UploadFile[]) => void;
 }
+// Check if current language is Chinese
+const isZh = (t: (key: string) => string) => t("i18n") === "zh";
 const convertToBackendSteps = (steps: any[]): Array<{ name: string; description: string; materials: string[] }> => {
   return steps.map((step, index) => ({
     name: step.name || step.description?.slice(0, 50) || `Step ${index + 1}`,
@@ -226,6 +230,9 @@ const SkillsManager: React.FC<SkillsManagerProps> = ({ t, onClose, currentSessio
       color: "var(--text-secondary)",
       cursor: "pointer",
       borderRadius: "4px",
+      display: "flex",
+      alignItems: "center",
+      gap: "4px",
     },
     viewBtnActive: {
       background: "var(--accent-color)",
@@ -240,6 +247,9 @@ const SkillsManager: React.FC<SkillsManagerProps> = ({ t, onClose, currentSessio
       border: "1px solid var(--border-color)",
       background: "var(--bg-tertiary)",
       color: "var(--text-primary)",
+      display: "flex",
+      alignItems: "center",
+      gap: "4px",
     },
     primaryBtn: {
       background: "var(--accent-color)",
@@ -310,7 +320,7 @@ const SkillsManager: React.FC<SkillsManagerProps> = ({ t, onClose, currentSessio
                       }}
                       onClick={() => setViewMode("form")}
                     >
-                      📝 {t("skillsManager.config")}
+                      <FileText size={14} /> {t("skillsManager.config")}
                     </button>
                     <button
                       style={{
@@ -319,7 +329,7 @@ const SkillsManager: React.FC<SkillsManagerProps> = ({ t, onClose, currentSessio
                       }}
                       onClick={() => setViewMode("markdown")}
                     >
-                      📄 {t("skillsManager.raw")}
+                      <FileCode size={14} /> {t("skillsManager.raw")}
                     </button>
                   </div>
                   <button
@@ -331,18 +341,14 @@ const SkillsManager: React.FC<SkillsManagerProps> = ({ t, onClose, currentSessio
                     onClick={saveCurrentSkill}
                     disabled={!hasChanges}
                   >
-                    💾 {t("skillsManager.save")}
+                    <Save size={14} /> {t("skillsManager.save")}
                   </button>
                   <button style={styles.editorBtn} onClick={closeEditor}>
-                    ✕ {t("skillsManager.close")}
+                    <X size={14} /> {t("skillsManager.close")}
                   </button>
                 </div>
               </div>
-              {viewMode === "form" ? (
-                <SkillsManagerForm t={t} skill={currentFrontendSkill} onUpdate={updateCurrentSkill} onSave={saveCurrentSkill} hasChanges={hasChanges} errors={errors} setErrors={setErrors} />
-              ) : (
-                <SkillMarkdownPreview skill={currentFrontendSkill} t={t} />
-              )}
+              {viewMode === "form" ? <SkillsManagerForm t={t} skill={currentFrontendSkill} onUpdate={updateCurrentSkill} onSave={saveCurrentSkill} hasChanges={hasChanges} errors={errors} setErrors={setErrors} /> : <SkillMarkdownPreview skill={currentFrontendSkill} t={t} />}
             </>
           )
         )}

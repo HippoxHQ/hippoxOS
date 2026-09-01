@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from "react";
 import { SkillData } from "../../types/skill";
-import { PlayIcon, DeleteIcon, StarIcon, StarFilledIcon } from "../../icons";
 import { skillsMarketCommands, skillsLocalCommands } from "../../command/skills";
 import { UploadFile } from "../../core/types";
 import { runSkill } from "../../components/MenuPanel/utils/skillRunner";
-import { ChevronDown } from "lucide-react";
+// Import icons from lucide-react
+import { ChevronDown, Star, Play, Trash2, BarChart3 } from "lucide-react";
+import { showDialog, DialogType } from "../../components/Dialog";
 interface SkillsManagerSidebarProps {
   t: (key: string, params?: any) => string;
   skills: SkillData[];
@@ -13,6 +14,8 @@ interface SkillsManagerSidebarProps {
   onRefresh?: () => void;
   onSendSkillMessage?: (message: string, files?: UploadFile[]) => void;
 }
+// Check if current language is Chinese
+const isZh = (t: (key: string) => string) => t("i18n") === "zh";
 const SkillsManagerSidebar: React.FC<SkillsManagerSidebarProps> = ({ t, skills, onSelectSkill, selectedSkillId, onRefresh, onSendSkillMessage }) => {
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>(() => {
     const initial: Record<string, boolean> = {};
@@ -89,15 +92,24 @@ const SkillsManagerSidebar: React.FC<SkillsManagerSidebarProps> = ({ t, skills, 
   };
   const handleDelete = async (skill: SkillData, e: React.MouseEvent) => {
     e.stopPropagation();
-    // eslint-disable-next-line no-restricted-globals
-    if (confirm(t("skillsManager.confirmDelete"))) {
-      try {
-        await skillsLocalCommands.deleteSkill(skill.id, skill.category || "other");
-        onRefresh?.();
-      } catch (error) {
-        console.error("Failed to delete skill:", error);
-      }
-    }
+    showDialog(
+      DialogType.WARNING,
+      t("skillsManager.confirmDeleteTitle") || (isZh(t) ? "确认删除" : "Confirm Delete"),
+      t("skillsManager.confirmDeleteMessage") || (isZh(t) ? `确定要删除技能 "${skill.name}" 吗？此操作不可撤销。` : `Are you sure you want to delete "${skill.name}"? This action cannot be undone.`),
+      async () => {
+        try {
+          await skillsLocalCommands.deleteSkill(skill.id, skill.category || "other");
+          onRefresh?.();
+        } catch (error) {
+          console.error("Failed to delete skill:", error);
+        }
+      },
+      () => {
+        console.log("Delete cancelled");
+      },
+      t("skillsManager.delete") || (isZh(t) ? "删除" : "Delete"),
+      t("common.cancel") || (isZh(t) ? "取消" : "Cancel"),
+    );
   };
   const handleRun = async (skill: SkillData, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -318,6 +330,7 @@ const SkillsManagerSidebar: React.FC<SkillsManagerSidebarProps> = ({ t, skills, 
       justifyContent: "center",
       color: "var(--text-secondary)",
       flexShrink: 0,
+      padding: 0,
     },
     iconButtonHover: {
       background: "var(--hover-bg)",
@@ -350,7 +363,17 @@ const SkillsManagerSidebar: React.FC<SkillsManagerSidebarProps> = ({ t, skills, 
     <div ref={containerRef} style={styles.container}>
       {showStats && (
         <div style={styles.statsSection}>
-          <div style={styles.statsTitle}>📊 {t("skillsManager.stats")}</div>
+          <div
+            style={{
+              ...styles.statsTitle,
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+            }}
+          >
+            <BarChart3 size={15} />
+            {t("skillsManager.stats")}
+          </div>
           <div style={styles.statsGrid}>
             <div style={styles.statCard}>
               <div style={styles.statNumber}>{skills.length}</div>
@@ -494,7 +517,7 @@ const SkillsManagerSidebar: React.FC<SkillsManagerSidebarProps> = ({ t, skills, 
                                 }
                               }}
                             >
-                              {favorited ? <StarFilledIcon size={11} /> : <StarIcon size={11} />}
+                              {favorited ? <Star size={13} fill="currentColor" /> : <Star size={13} />}
                             </button>
                             <button
                               style={styles.iconButton}
@@ -511,7 +534,7 @@ const SkillsManagerSidebar: React.FC<SkillsManagerSidebarProps> = ({ t, skills, 
                                 e.currentTarget.style.borderColor = "var(--border-color)";
                               }}
                             >
-                              <PlayIcon size={11} />
+                              <Play size={13} />
                             </button>
                             <button
                               style={styles.iconButton}
@@ -528,7 +551,7 @@ const SkillsManagerSidebar: React.FC<SkillsManagerSidebarProps> = ({ t, skills, 
                                 e.currentTarget.style.borderColor = "var(--border-color)";
                               }}
                             >
-                              <DeleteIcon size={13} />
+                              <Trash2 size={13} />
                             </button>
                           </div>
                         </div>

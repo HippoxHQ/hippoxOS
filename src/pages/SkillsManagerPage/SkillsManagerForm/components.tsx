@@ -1,6 +1,7 @@
 import React from "react";
 import { Skill, StepMaterial } from "../types";
-import { AddIcon, CloseIcon, DependencyIcon, MaterialIcon, LinkIcon, PathIcon, NoteIcon, InputParamsIcon, OutputParamsIcon } from "../../../icons";
+// Import icons from lucide-react
+import { Plus, X, GitBranch, Package, Link, FolderOpen, StickyNote, ArrowRight, ArrowLeft } from "lucide-react";
 interface StepCardProps {
   step: any;
   index: number;
@@ -52,22 +53,14 @@ export const StepCard: React.FC<StepCardProps> = ({
     <div className="step-card">
       <div className="step-header">
         <div className="step-number">{index + 1}</div>
-        <input
-          type="text"
-          className="step-input"
-          value={step.description}
-          onChange={(e) => onUpdateStepDescription(step.id, e.target.value)}
-          onFocus={() => onStepFocus(step.id, true)}
-          onBlur={() => onStepFocus(step.id, false)}
-          placeholder={getStepPlaceholder(index, isStepFocused, hasStepValue)}
-        />
+        <input type="text" className="step-input" value={step.description} onChange={(e) => onUpdateStepDescription(step.id, e.target.value)} onFocus={() => onStepFocus(step.id, true)} onBlur={() => onStepFocus(step.id, false)} placeholder={getStepPlaceholder(index, isStepFocused, hasStepValue)} />
         <div className="step-actions">
           <button className="step-action-btn" onClick={() => onAddMaterial(step.id)}>
-            <AddIcon size={12} /> {t("skillsManager.addMaterial")}
+            <Plus size={12} /> {t("skillsManager.addMaterial")}
           </button>
           {skill.steps.length > 1 && (
             <button className="step-action-btn danger" onClick={() => onRemoveStep(step.id)}>
-              <CloseIcon size={12} />
+              <X size={12} />
             </button>
           )}
         </div>
@@ -75,7 +68,7 @@ export const StepCard: React.FC<StepCardProps> = ({
       {availableDeps.length > 0 && (
         <div className="dependencies-section">
           <div className="dependencies-title">
-            <DependencyIcon size={12} /> {t("skillsManager.dependencies")}
+            <GitBranch size={12} /> {t("skillsManager.dependencies")}
           </div>
           <div className="dependencies-list">
             {availableDeps.map((depStep) => (
@@ -89,7 +82,7 @@ export const StepCard: React.FC<StepCardProps> = ({
       {step.materials.length > 0 && (
         <div className="materials-section">
           <div className="materials-title">
-            <MaterialIcon size={12} /> {t("skillsManager.allowedMaterials")}
+            <Package size={12} /> {t("skillsManager.allowedMaterials")}
           </div>
           <div className="materials-list">
             {step.materials.map((material: any) => {
@@ -105,13 +98,13 @@ export const StepCard: React.FC<StepCardProps> = ({
                   <div className="material-row">
                     <select className="material-type-select" value={material.type} onChange={(e) => onUpdateMaterial(step.id, material.id, "type", e.target.value as any)}>
                       <option value="link">
-                        <LinkIcon size={12} /> {t("skillsManager.link")}
+                        <Link size={12} /> {t("skillsManager.link")}
                       </option>
                       <option value="path">
-                        <PathIcon size={12} /> {t("skillsManager.path")}
+                        <FolderOpen size={12} /> {t("skillsManager.path")}
                       </option>
                       <option value="note">
-                        <NoteIcon size={12} /> {t("skillsManager.note")}
+                        <StickyNote size={12} /> {t("skillsManager.note")}
                       </option>
                     </select>
                     <input
@@ -124,13 +117,13 @@ export const StepCard: React.FC<StepCardProps> = ({
                       placeholder={getMaterialPlaceholder(material.type, isMaterialFocused, hasMaterialValue, material.id)}
                     />
                     <button className="material-remove-btn" onClick={() => onRemoveMaterial(step.id, material.id)}>
-                      <CloseIcon size={12} />
+                      <X size={12} />
                     </button>
                   </div>
                   {material.type === "link" && (
                     <div className="material-schema">
                       <div className="schema-label">
-                        <InputParamsIcon size={12} /> {t("skillsManager.inputParams")}
+                        <ArrowRight size={12} /> {t("skillsManager.inputParams")}
                       </div>
                       <textarea
                         className="schema-textarea"
@@ -142,7 +135,7 @@ export const StepCard: React.FC<StepCardProps> = ({
                         placeholder={getSchemaPlaceholder("input", isSchemaInputFocused, hasInputSchema)}
                       />
                       <div className="schema-label">
-                        <OutputParamsIcon size={12} /> {t("skillsManager.outputParams")}
+                        <ArrowLeft size={12} /> {t("skillsManager.outputParams")}
                       </div>
                       <textarea
                         className="schema-textarea"
@@ -186,10 +179,14 @@ interface TagListProps {
 export const TagList: React.FC<TagListProps> = ({ tags, onRemoveTag }) => (
   <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
     {tags.map((tag, idx) => (
-      <span key={idx} className="tag-bubble">
+      <span key={idx} className="tag-bubble" style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
         {tag}
-        <button className="tag-remove" onClick={() => onRemoveTag(idx)}>
-          ×
+        <button
+          className="tag-remove"
+          onClick={() => onRemoveTag(idx)}
+          style={{ background: "transparent", border: "none", color: "white", cursor: "pointer", padding: 0, width: "14px", height: "14px", borderRadius: "50%", opacity: 0.7, display: "flex", alignItems: "center", justifyContent: "center" }}
+        >
+          <X size={12} />
         </button>
       </span>
     ))}

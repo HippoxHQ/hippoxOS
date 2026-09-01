@@ -196,6 +196,7 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_get_profile_setting,
         commands::cmd_set_profile_setting,
         commands::cmd_get_hippox_versions,
+        commands::cmd_fetch_about_markdown,
         commands::cmd_get_settings_general_chat_layout_swap_mode,
         commands::cmd_save_settings_general_chat_layout_swap_mode,
         commands::cmd_get_settings_chart_chat_layout_swap_mode,
@@ -462,6 +463,7 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         subsystem::cmd_get_material_preview_data,
         //  Video Tracks 
         subsystem::cmd_add_track,
+        subsystem::cmd_refresh_all_track,
         subsystem::cmd_get_track_stack,
         subsystem::cmd_get_track_stack_reversed,
         subsystem::cmd_get_tracks,

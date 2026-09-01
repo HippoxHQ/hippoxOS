@@ -1368,7 +1368,7 @@ const ChartChatPanel: React.FC<ChartChatPanelProps> = ({
           </div>
           <div className="input-textarea-wrapper">
             <textarea
-              ref={textareaRef} 
+              ref={textareaRef}
               className="chat-textarea-hermes"
               placeholder={t("chat.placeholder")}
               value={inputValue}
@@ -1386,7 +1386,8 @@ const ChartChatPanel: React.FC<ChartChatPanelProps> = ({
               <div className="icon-btn" ref={attachmentBtnRef} onClick={() => setShowAttachmentMenu(!showAttachmentMenu)} title={t("chat.attachment")}>
                 <AttachmentIcon size={14} />
               </div>
-              <div
+              {/* workspace */}
+              {/* <div
                 className="icon-btn folder-btn"
                 ref={directoryBtnRef}
                 onClick={async () => {
@@ -1401,7 +1402,7 @@ const ChartChatPanel: React.FC<ChartChatPanelProps> = ({
                   {getSelectedWorkspaceName()}
                 </span>
                 <ChevronRightIcon size={10} className="chevron" />
-              </div>
+              </div> */}
               <div className="icon-btn folder-btn" ref={workflowBtnRef} onClick={() => setShowWorkflowMenu(!showWorkflowMenu)} title={t("chat.selectWorkflowMode") || "Workflow Mode"} style={{ minWidth: 0 }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M4 7h16M4 12h16M4 17h10" strokeLinecap="round" strokeLinejoin="round" />

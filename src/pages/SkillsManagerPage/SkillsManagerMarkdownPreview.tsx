@@ -4,6 +4,8 @@ interface SkillsManagerMarkdownPreviewProps {
   skill: Skill;
   t: (key: string, params?: any) => string;
 }
+// Check if current language is Chinese
+const isZh = (t: (key: string) => string) => t("i18n") === "zh";
 const SkillsManagerMarkdownPreview: React.FC<SkillsManagerMarkdownPreviewProps> = ({ skill, t }) => {
   const generateMarkdown = (): string => {
     const lines: string[] = [];
@@ -77,7 +79,7 @@ const SkillsManagerMarkdownPreview: React.FC<SkillsManagerMarkdownPreviewProps> 
           height: 100%;
           background: var(--bg-primary);
         }
-         .md-editor {
+        .md-editor {
           display: flex;
           height: 100%;
           font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
@@ -85,7 +87,7 @@ const SkillsManagerMarkdownPreview: React.FC<SkillsManagerMarkdownPreviewProps> 
           line-height: 1.6;
           background: var(--bg-primary);
         }
-         .line-numbers {
+        .line-numbers {
           flex-shrink: 0;
           padding: 12px 0;
           text-align: right;
@@ -96,34 +98,34 @@ const SkillsManagerMarkdownPreview: React.FC<SkillsManagerMarkdownPreviewProps> 
           font-size: 12px;
           min-width: 48px;
         }
-         .line-number {
+        .line-number {
           padding-right: 12px;
         }
-         .editor-content {
+        .editor-content {
           flex: 1;
           padding: 12px 10px;
           overflow-x: auto;
           background: var(--bg-primary);
         }
-         .code-line {
+        .code-line {
           white-space: pre;
           display: block;
           min-height: 20px;
           font-size: 12px;
           color: var(--text-primary);
         }
-         .skill-markdown-preview::-webkit-scrollbar {
+        .skill-markdown-preview::-webkit-scrollbar {
           width: 10px;
           height: 10px;
         }
-         .skill-markdown-preview::-webkit-scrollbar-track {
+        .skill-markdown-preview::-webkit-scrollbar-track {
           background: var(--bg-primary);
         }
-         .skill-markdown-preview::-webkit-scrollbar-thumb {
+        .skill-markdown-preview::-webkit-scrollbar-thumb {
           background: var(--border-color);
           border-radius: 5px;
         }
-         .skill-markdown-preview::-webkit-scrollbar-thumb:hover {
+        .skill-markdown-preview::-webkit-scrollbar-thumb:hover {
           background: var(--text-tertiary);
         }
       `}</style>

@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { SkillData } from "../../types/skill";
-import { StarIcon, StarFilledIcon, PlayIcon, DeleteIcon, SearchIcon } from "../../icons";
 import { skillsMarketCommands, skillsLocalCommands } from "../../command/skills";
 import { UploadFile } from "../../core/types";
 import { runSkill } from "../../components/MenuPanel/utils/skillRunner";
+// Import icons from lucide-react
+import { Star, Play, Trash2, Search, Plus, Package } from "lucide-react";
+import { showDialog, DialogType } from "../../components/Dialog";
 interface SkillsManagerCardGridProps {
   t: (key: string, params?: any) => string;
   skills: SkillData[];
@@ -16,6 +18,8 @@ interface SkillsManagerCardGridProps {
   onRefresh?: () => void;
   onSendSkillMessage?: (message: string, files?: UploadFile[]) => void;
 }
+// Check if current language is Chinese
+const isZh = (t: (key: string) => string) => t("i18n") === "zh";
 const SkillsManagerCardGrid: React.FC<SkillsManagerCardGridProps> = ({ t, skills: externalSkills, onCreateNew, onCreateNewWithCategory, onSelectSkill, onDeleteSkill, onFavorite, onRun, onRefresh, onSendSkillMessage }) => {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [favoritedSkills, setFavoritedSkills] = useState<Set<string>>(new Set());
@@ -60,17 +64,27 @@ const SkillsManagerCardGrid: React.FC<SkillsManagerCardGridProps> = ({ t, skills
       setFavoritingId(null);
     }
   };
+  // Use system dialog component for delete confirmation
   const handleDelete = async (skill: SkillData, e: React.MouseEvent) => {
     e.stopPropagation();
-    // eslint-disable-next-line no-restricted-globals
-    if (confirm(t("skillsManager.confirmDelete"))) {
-      try {
-        await skillsLocalCommands.deleteSkill(skill.id, skill.category || "other");
-        onRefresh?.();
-      } catch (error) {
-        console.error("Failed to delete skill:", error);
-      }
-    }
+    showDialog(
+      DialogType.WARNING,
+      t("skillsManager.confirmDeleteTitle") || (isZh(t) ? "确认删除" : "Confirm Delete"),
+      t("skillsManager.confirmDeleteMessage") || (isZh(t) ? `确定要删除技能 "${skill.name}" 吗？此操作不可撤销。` : `Are you sure you want to delete "${skill.name}"? This action cannot be undone.`),
+      async () => {
+        try {
+          await skillsLocalCommands.deleteSkill(skill.id, skill.category || "other");
+          onRefresh?.();
+        } catch (error) {
+          console.error("Failed to delete skill:", error);
+        }
+      },
+      () => {
+        console.log("Delete cancelled");
+      },
+      t("skillsManager.delete") || (isZh(t) ? "删除" : "Delete"),
+      t("common.cancel") || (isZh(t) ? "取消" : "Cancel"),
+    );
   };
   const handleRun = async (skill: SkillData, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -222,6 +236,9 @@ const SkillsManagerCardGrid: React.FC<SkillsManagerCardGridProps> = ({ t, skills
           font-size: 12px;
           cursor: pointer;
           white-space: nowrap;
+          display: flex;
+          align-items: center;
+          gap: 4px;
         }
         .search-add-btn:hover {
           opacity: 0.85;
@@ -362,6 +379,7 @@ const SkillsManagerCardGrid: React.FC<SkillsManagerCardGridProps> = ({ t, skills
           color: var(--text-secondary);
           font-size: 10px;
           flex-shrink: 0;
+          padding: 0;
         }
         .icon-btn:hover {
           background: var(--hover-bg);
@@ -376,6 +394,10 @@ const SkillsManagerCardGrid: React.FC<SkillsManagerCardGridProps> = ({ t, skills
           background: rgba(239, 68, 68, 0.1);
           color: #ef4444;
           border-color: #ef4444;
+        }
+        .icon-btn:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
         }
         .card-meta {
           display: flex;
@@ -471,8 +493,8 @@ const SkillsManagerCardGrid: React.FC<SkillsManagerCardGridProps> = ({ t, skills
       `}</style>
       <div className="search-bar-wrapper">
         <div className="skill-manager-search-input-wrapper">
-          <SearchIcon />
-          <input type="text" className="search-input" placeholder={t("skillsManager.searchPlaceholder") || "搜索技能..."} value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+          <Search size={16} />
+          <input type="text" className="search-input" placeholder={t("skillsManager.searchPlaceholder") || (isZh(t) ? "搜索技能..." : "Search skills...")} value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
           {searchTerm && (
             <button className="search-clear" onClick={() => setSearchTerm("")}>
               ✕
@@ -483,19 +505,23 @@ const SkillsManagerCardGrid: React.FC<SkillsManagerCardGridProps> = ({ t, skills
           </span>
         </div>
         <button className="search-add-btn" onClick={onCreateNew}>
-          + {t("skillsManager.createNew")}
+          <Plus size={14} /> {t("skillsManager.createNew")}
         </button>
       </div>
       <div className="scrollable-content">
         {externalSkills.length === 0 ? (
           <div className="empty-state">
-            <div className="empty-state-icon">📦</div>
+            <div className="empty-state-icon">
+              <Package size={40} />
+            </div>
             <div className="empty-state-text">{t("skillsManager.noSkills")}</div>
           </div>
         ) : filteredSkills.length === 0 ? (
           <div className="no-results">
-            <div className="no-results-icon">🔍</div>
-            <div className="no-results-text">{t("skillsManager.noSearchResults") || "没有找到匹配的技能"}</div>
+            <div className="no-results-icon">
+              <Search size={28} />
+            </div>
+            <div className="no-results-text">{t("skillsManager.noSearchResults") || (isZh(t) ? "没有找到匹配的技能" : "No matching skills found")}</div>
           </div>
         ) : (
           Object.keys(groupedSkills).map((category) => {
@@ -521,13 +547,13 @@ const SkillsManagerCardGrid: React.FC<SkillsManagerCardGridProps> = ({ t, skills
                           </div>
                           <div className="card-actions">
                             <button className={`icon-btn ${favorited ? "active" : ""}`} onClick={(e) => handleFavorite(skill, e)} disabled={favoritingId === skill.id} title={favorited ? t("skillsManager.unfavorite") : t("skillsManager.favorite")}>
-                              {favorited ? <StarFilledIcon size={11} /> : <StarIcon size={11} />}
+                              {favorited ? <Star size={11} fill="currentColor" /> : <Star size={11} />}
                             </button>
                             <button className="icon-btn" onClick={(e) => handleRun(skill, e)} title={t("skillsManager.run")}>
-                              <PlayIcon size={11} />
+                              <Play size={11} />
                             </button>
                             <button className="icon-btn danger" onClick={(e) => (onDeleteSkill ? onDeleteSkill(skill, e) : handleDelete(skill, e))} title={t("skillsManager.delete")}>
-                              <DeleteIcon size={13} />
+                              <Trash2 size={13} />
                             </button>
                           </div>
                         </div>
@@ -544,7 +570,9 @@ const SkillsManagerCardGrid: React.FC<SkillsManagerCardGridProps> = ({ t, skills
                     );
                   })}
                   <div className="skill-card add-card" onClick={() => handleCreateWithCategory(category)}>
-                    <div className="add-icon">➕</div>
+                    <div className="add-icon">
+                      <Plus size={28} />
+                    </div>
                     <div className="add-text">{t("skillsManager.createNew")}</div>
                   </div>
                 </div>

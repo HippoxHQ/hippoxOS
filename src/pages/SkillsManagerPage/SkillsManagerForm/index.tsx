@@ -1,10 +1,10 @@
 import React, { useState } from "react";
-import { Skill, StepMaterial } from "../types";
+import { Skill } from "../types";
 import { formStyles } from "./styles";
 import { useTagList, useCategoryInput, useFocusStates, useStepHandlers, useTagHandlers, useCategoryHandler } from "./hooks";
 import { StepCard, SectionHeader, FormLabel, TagList } from "./components";
-import { BasicInfoIcon, DescriptionIcon, StepsIcon, AddIcon, TagsIcon, CategoryIcon2, ExampleIcon } from "../../../icons";
-import { Plus } from "lucide-react";
+// Import icons from lucide-react
+import { Plus, Info, BookOpen, List, Tags, Folder, File, X } from "lucide-react";
 interface SkillsManagerFormProps {
   t: (key: string, params?: any) => string;
   skill: Skill;
@@ -46,8 +46,9 @@ const SkillsManagerForm: React.FC<SkillsManagerFormProps> = ({ t, skill, onUpdat
   return (
     <div className="skill-editor-form">
       <style>{formStyles}</style>
+      {/* Basic Info Section */}
       <div className="form-section">
-        <SectionHeader icon={<BasicInfoIcon size={14} />} title={t("skillsManager.basicInfo")} />
+        <SectionHeader icon={<Info size={14} />} title={t("skillsManager.basicInfo")} />
         <FormLabel required>{t("skillsManager.skillName")}</FormLabel>
         <input
           type="text"
@@ -61,8 +62,9 @@ const SkillsManagerForm: React.FC<SkillsManagerFormProps> = ({ t, skill, onUpdat
         {errors.name && <div className="error-message">{errors.name}</div>}
       </div>
       <div className="form-divider" />
+      {/* Description Section */}
       <div className="form-section">
-        <SectionHeader icon={<DescriptionIcon size={14} />} title={t("skillsManager.skillDesc")} />
+        <SectionHeader icon={<BookOpen size={14} />} title={t("skillsManager.skillDesc")} />
         <FormLabel required>{t("skillsManager.skillDescLabel")}</FormLabel>
         <textarea
           className={`form-textarea ${errors.description ? "error" : ""}`}
@@ -76,8 +78,9 @@ const SkillsManagerForm: React.FC<SkillsManagerFormProps> = ({ t, skill, onUpdat
         {errors.description && <div className="error-message">{errors.description}</div>}
       </div>
       <div className="form-divider" />
+      {/* Steps Section */}
       <div className="form-section">
-        <SectionHeader icon={<StepsIcon size={14} />} title={t("skillsManager.executionSteps")} />
+        <SectionHeader icon={<List size={14} />} title={t("skillsManager.executionSteps")} />
         <div className="steps-list">
           {skill.steps.map((step, index) => (
             <StepCard
@@ -110,13 +113,14 @@ const SkillsManagerForm: React.FC<SkillsManagerFormProps> = ({ t, skill, onUpdat
         </button>
       </div>
       <div className="form-divider" />
+      {/* Tags & Category Section */}
       <div className="form-section">
         <div className="two-column-labels">
           <div className="column-label">
-            <SectionHeader icon={<TagsIcon size={14} />} title={t("skillsManager.tags")} />
+            <SectionHeader icon={<Tags size={14} />} title={t("skillsManager.tags")} />
           </div>
           <div className="column-label">
-            <SectionHeader icon={<CategoryIcon2 size={14} />} title={t("skillsManager.category")} />
+            <SectionHeader icon={<Folder size={14} />} title={t("skillsManager.category")} />
           </div>
         </div>
         <div className="two-column-row">
@@ -140,10 +144,14 @@ const SkillsManagerForm: React.FC<SkillsManagerFormProps> = ({ t, skill, onUpdat
             />
           </div>
           <div className="category-container">
-            <span className="tag-bubble" style={{ background: "var(--accent-color)" }}>
+            <span className="tag-bubble" style={{ background: "var(--accent-color)", display: "inline-flex", alignItems: "center", gap: "4px" }}>
               {skill.category && skill.category !== "other" ? skill.category : "other"}
-              <button className="tag-remove" onClick={() => updateCategory("other")}>
-                ×
+              <button
+                className="tag-remove"
+                onClick={() => updateCategory("other")}
+                style={{ background: "transparent", border: "none", color: "white", cursor: "pointer", padding: 0, width: "14px", height: "14px", borderRadius: "50%", opacity: 0.7, display: "flex", alignItems: "center", justifyContent: "center" }}
+              >
+                <X size={12} />
               </button>
             </span>
             <input
@@ -167,8 +175,9 @@ const SkillsManagerForm: React.FC<SkillsManagerFormProps> = ({ t, skill, onUpdat
         </div>
       </div>
       <div className="form-divider" />
+      {/* Example Section */}
       <div className="form-section">
-        <SectionHeader icon={<ExampleIcon size={14} />} title={t("skillsManager.example")} />
+        <SectionHeader icon={<File size={14} />} title={t("skillsManager.example")} />
         <textarea
           className="form-textarea"
           value={skill.example}

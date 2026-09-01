@@ -3,6 +3,7 @@ use crate::{
     commons::HttpClient,
 };
 use serde_json::json;
+use std::time::{SystemTime, UNIX_EPOCH};
 use tauri::command;
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct GitHubRelease {
@@ -63,4 +64,37 @@ pub async fn cmd_get_hippox_versions() -> Result<serde_json::Value, String> {
         results.insert(name.to_string(), serde_json::Value::String(version.clone()));
     }
     Ok(serde_json::Value::Object(results))
+}
+/// Fetch About markdown content from GitHub
+///
+/// # Arguments
+/// * `language` - Language code: "zh" or "en"
+///
+/// # Returns
+/// * Markdown content as String
+#[command]
+pub async fn cmd_fetch_about_markdown(language: String) -> Result<String, String> {
+    let http_client = HttpClient::new();
+    // Determine which file to fetch based on language
+    let file_name = if language == "zh" { "About_CN.md" } else { "About_EN.md" };
+    // Generate timestamp to bust cache
+    let timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_millis();
+    // Use raw GitHub URL with cache-busting timestamp
+    let url = format!("https://raw.githubusercontent.com/HippoxHQ/About/main/{}?t={}", file_name, timestamp);
+    log::info!("Fetching about markdown from: {}", url);
+    // Fetch the markdown content using HttpClient
+    match http_client.fetch_text(&url, None).await {
+        Ok(content) => {
+            if content.trim().is_empty() {
+                log::warn!("Fetched about content is empty for language: {}", language);
+                return Err("Fetched content is empty".to_string());
+            }
+            log::info!("Successfully fetched about markdown for language: {}, size: {} bytes", language, content.len());
+            Ok(content)
+        }
+        Err(e) => {
+            log::error!("Failed to fetch about markdown for language {}: {}", language, e);
+            Err(format!("Failed to fetch about markdown: {}", e))
+        }
+    }
 }
