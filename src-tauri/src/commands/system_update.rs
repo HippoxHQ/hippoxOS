@@ -1,5 +1,5 @@
 use crate::{
-    commands::{HIPPOXOS_GITHUB_API_URL, HIPPOXOS_GITHUB_MIRROR_API_URL, HIPPOXOS_GITHUB_MIRROR_RELEASES_URL, HIPPOXOS_GITHUB_RELEASES_URL}, commons::{HttpClient, cmd_cmd},
+    commands::{HIPPOXOS_GITHUB_API_URL, HIPPOXOS_GITHUB_MIRROR_API_URL, HIPPOXOS_GITHUB_MIRROR_RELEASES_URL, HIPPOXOS_GITHUB_RELEASES_URL, get_system_update_download_dir}, commons::{HttpClient, cmd_cmd},
 };
 use serde::{Deserialize, Serialize};
 use std::fs::File;
@@ -167,12 +167,7 @@ pub fn cmd_get_app_version() -> Result<String, String> {
 }
 /// Get download directory path
 fn get_download_dir() -> Result<PathBuf, String> {
-    let home = std::env::var("USERPROFILE").or_else(|_| std::env::var("HOME")).map_err(|_| "Failed to get home directory".to_string())?;
-    let download_dir = PathBuf::from(&home).join("Downloads");
-    if !download_dir.exists() {
-        std::fs::create_dir_all(&download_dir).map_err(|e| format!("Failed to create download directory: {}", e))?;
-    }
-    Ok(download_dir)
+    get_system_update_download_dir()
 }
 /// Download and install update
 #[command]

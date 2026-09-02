@@ -161,6 +161,10 @@ pub fn get_favorites_skill_dir() -> PathBuf {
 pub fn get_favorites_natural_dir() -> PathBuf {
     get_favorites_dir().join(FAVORITES_NATURAL_DIR_NAME)
 }
+/// Get system update download directory
+pub fn get_system_update_download_dir() -> Result<PathBuf, String> {
+    dirs::download_dir().ok_or_else(|| "Failed to get download directory".to_string())
+}
 /// Get total size of favorites directory
 pub fn get_favorites_size() -> Result<u64, String> {
     let favorites_dir = get_favorites_dir();
