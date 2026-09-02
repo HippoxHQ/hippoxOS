@@ -4,9 +4,7 @@ import { TaskStatusEnum } from "../../core/types";
 import { showTooltipOnElement } from "../../components/Tooltip";
 import { CollapseAllIcon2, ExpandAllIcon2, MessageCircleIcon, ScrollTextIcon } from "../../icons";
 import MainPanel from "./MainPanel";
-import HistoryChartChatPanel, { HistoryChartChatPanelRef } from "./HistoryChartChatPanel";
 import { configCommands } from "../../command/config";
-import ChartChatPanel from "./ChartChatPanel";
 import { useFinanceSession } from "../../App/hooks/session/useFinanceSession";
 import MarqueeBar from "./MarqueeBar";
 import { APP_WINDOW_EVENTS } from "../../App/AppWindowEventManager";
@@ -14,6 +12,8 @@ import { CheckSquare, Square, Layers, Pin, PinOff, Trash2, ChevronUp, ChevronDow
 import { chartSessionCommands } from "../../command/session/finance";
 import { showDialog, DialogType } from "../../components/Dialog";
 import { showToast, ToastType } from "../../components/Toast";
+import HistoryFinanceChatPanel, { HistoryFinanceChatPanelRef } from "./HistoryFinanceChatPanel";
+import FinanceChatPanel from "./FinanceChatPanel";
 // Panel Size Constants
 // History panel (leftmost panel) size limits
 const HISTORY_PANEL_MIN_WIDTH = 285;
@@ -25,7 +25,7 @@ const CHAT_PANEL_MIN_WIDTH = 200;
 const CHAT_PANEL_MAX_PERCENT = 0.6; // 60% of main area
 // Right panel (chart) min width
 const RIGHT_PANEL_MIN_WIDTH = 150;
-interface ChartPageProps {
+interface FinancePageProps {
   layoutMode?: "horizontal" | "vertical";
   onLayoutModeChange?: (mode: "horizontal" | "vertical") => void;
   leftTitle?: string;
@@ -604,7 +604,7 @@ const CollapsedHistoryList: React.FC<CollapsedHistoryListProps> = ({ sessions, c
     </div>
   );
 };
-const ChartPage: React.FC<ChartPageProps> = ({
+const FinancePage: React.FC<FinancePageProps> = ({
   layoutMode = "vertical",
   onLayoutModeChange,
   leftTitle = "Chat",
@@ -634,7 +634,7 @@ const ChartPage: React.FC<ChartPageProps> = ({
   const [isHistoryExpanded, setIsHistoryExpanded] = useState(true);
   const [isHistoryAtBottom, setIsHistoryAtBottom] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-  const historyPanelRef = useRef<HistoryChartChatPanelRef>(null);
+  const historyPanelRef = useRef<HistoryFinanceChatPanelRef>(null);
   const [historySessions, setHistorySessions] = useState<any[]>([]);
   const isDragging = useRef(false);
   const dragType = useRef<"horizontal" | "history">("horizontal");
@@ -684,7 +684,7 @@ const ChartPage: React.FC<ChartPageProps> = ({
       return newState;
     });
   }, [isFunctionPanelMaximized]);
-  const chatPanel = <ChartChatPanel onSendMessage={chartHandleSendMessage} onFileClick={onFileClick} t={t} onDragOverInputChange={onDragOverInputChange} language={language} isLeftPanel={isChatOnLeft} currentSessionId={chartSessionId} />;
+  const chatPanel = <FinanceChatPanel onSendMessage={chartHandleSendMessage} onFileClick={onFileClick} t={t} onDragOverInputChange={onDragOverInputChange} language={language} isLeftPanel={isChatOnLeft} currentSessionId={chartSessionId} />;
   const chartPanel = (
     <div
       style={{
@@ -1432,7 +1432,7 @@ const ChartPage: React.FC<ChartPageProps> = ({
           </div>
         </div>
         <div style={{ flex: 1, overflow: "hidden" }}>
-          <HistoryChartChatPanel
+          <HistoryFinanceChatPanel
             ref={historyPanelRef}
             t={t}
             onSessionSelect={handleSessionSelect}
@@ -1609,4 +1609,4 @@ const ChartPage: React.FC<ChartPageProps> = ({
     </div>
   );
 };
-export default ChartPage;
+export default FinancePage;

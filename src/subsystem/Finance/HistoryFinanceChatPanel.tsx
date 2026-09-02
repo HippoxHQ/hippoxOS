@@ -6,14 +6,14 @@ import { chartSessionCommands } from "../../command/session/finance";
 import { DeleteIcon, MoreVerticalIcon, PinFilledIcon, PinIcon, RenameIcon, UnPinIcon } from "../../icons";
 import { taskManager } from "../../core/TaskManager";
 import { CheckSquare, ChevronDown, Square } from "lucide-react";
-export interface HistoryChartChatPanelRef {
+export interface HistoryFinanceChatPanelRef {
   scrollToTop: () => void;
   scrollToBottom: () => void;
   expandAll: () => void;
   collapseAll: () => void;
   refreshSessions: () => Promise<void>;
 }
-interface HistoryChartChatPanelProps {
+interface HistoryFinanceChatPanelProps {
   t: (key: string, params?: any) => string;
   onSessionSelect?: (sessionId: string) => void;
   currentSessionId?: string;
@@ -36,7 +36,7 @@ const categories: CategoryConfig[] = [
   { labelKey: "history.category.last30days", type: "last30days" },
   { labelKey: "history.category.older", type: "older" },
 ];
-const HistoryChartChatPanel = forwardRef<HistoryChartChatPanelRef, HistoryChartChatPanelProps>(({ t, onSessionSelect, currentSessionId, onNewSession, isBatchMode = false, selectedIds = new Set(), onToggleSelection }: HistoryChartChatPanelProps, ref) => {
+const HistoryFinanceChatPanel = forwardRef<HistoryFinanceChatPanelRef, HistoryFinanceChatPanelProps>(({ t, onSessionSelect, currentSessionId, onNewSession, isBatchMode = false, selectedIds = new Set(), onToggleSelection }: HistoryFinanceChatPanelProps, ref) => {
   const [sessions, setSessions] = useState<DialogSession[]>([]);
   const [loading, setLoading] = useState(false);
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
@@ -616,5 +616,5 @@ const HistoryChartChatPanel = forwardRef<HistoryChartChatPanelRef, HistoryChartC
     </div>
   );
 });
-HistoryChartChatPanel.displayName = "HistoryChartChatPanel";
-export default HistoryChartChatPanel;
+HistoryFinanceChatPanel.displayName = "HistoryFinanceChatPanel";
+export default HistoryFinanceChatPanel;

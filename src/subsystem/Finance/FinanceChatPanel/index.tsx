@@ -18,7 +18,7 @@ import { chartSessionCommands } from "../../../command/session/finance";
 import { isStructuredLLMResponse, parseLLMResponse, hasChartData } from "../llm/utils";
 import { dispatchChartDataUpdated } from "../FinanceWindowsEventsManager";
 import { filesCommands } from "../../../command/files";
-interface ChartChatPanelProps {
+interface FinanceChatPanelProps {
   onSendMessage: (message: string, sessionId: string, files?: UploadFile[], workflowMode?: string) => void | Promise<void>;
   onFileClick?: (file: UploadFile) => void;
   t: (key: string, params?: any) => string;
@@ -33,7 +33,7 @@ interface ChartChatPanelProps {
   collapseIcon?: string;
   onCloseSkillsManager?: () => void;
 }
-const ChartChatPanel: React.FC<ChartChatPanelProps> = ({
+const FinanceChatPanel: React.FC<FinanceChatPanelProps> = ({
   onSendMessage: onSendMessageProp,
   onFileClick,
   t,
@@ -1064,7 +1064,7 @@ const ChartChatPanel: React.FC<ChartChatPanelProps> = ({
       return;
     }
     if (hasChartData(lastMsg.content)) {
-      console.log("[ChartChatPanel] Detected chart data in LLM response, dispatching event");
+      console.log("[FinanceChatPanel] Detected chart data in LLM response, dispatching event");
       // Mark as processed BEFORE dispatching to prevent re-entry
       processedChartMessageIdsRef.current.add(lastMsg.id);
       dispatchChartDataUpdated({
@@ -1465,5 +1465,5 @@ const ChartChatPanel: React.FC<ChartChatPanelProps> = ({
     </div>
   );
 };
-ChartChatPanel.displayName = "ChartChatPanel";
-export default ChartChatPanel;
+FinanceChatPanel.displayName = "FinanceChatPanel";
+export default FinanceChatPanel;
