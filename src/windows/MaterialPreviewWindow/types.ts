@@ -2,7 +2,7 @@ export interface Material {
   id: string;
   name: string;
   file_path: string;
-  type: "video" | "audio" | "image" | "text";
+  type: "video" | "audio" | "image" | "text" | "3d";
   duration?: number;
   width?: number;
   height?: number;
@@ -15,6 +15,7 @@ export interface Material {
   fps?: number;
   sample_rate?: number;
   channels?: number;
+  code?: string;
 }
 export interface AudioVisualizerRef {
   seek: (time: number) => void;

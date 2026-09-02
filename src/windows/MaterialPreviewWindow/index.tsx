@@ -1,7 +1,9 @@
-import React, { useState, useEffect, useRef } from "react";
-import { X, Maximize2, Minimize2, RotateCw, ZoomIn, ZoomOut, RefreshCw, Play, Pause, Music, File, Video, Image, FileText, Info } from "lucide-react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { X, Maximize2, Minimize2, RotateCw, ZoomIn, ZoomOut, RefreshCw, Play, Pause, Music, File, Video, Image, FileText, Info, Box } from "lucide-react";
 import * as monaco from "monaco-editor";
 import { convertFileSrc } from "@tauri-apps/api/core";
+import * as THREE from "three";
+import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import logo from "../../assets/logo.png";
 import AudioVisualizer from "./AudioVisualizer";
 import { Material } from "./types";
@@ -40,6 +42,12 @@ const MaterialPreviewWindow: React.FC = () => {
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
   const editorContainerRef = useRef<HTMLDivElement>(null);
   const imageContainerRef = useRef<HTMLDivElement>(null);
+  const threeContainerRef = useRef<HTMLDivElement>(null);
+  const threeSceneRef = useRef<THREE.Scene | null>(null);
+  const threeCameraRef = useRef<THREE.PerspectiveCamera | null>(null);
+  const threeRendererRef = useRef<THREE.WebGLRenderer | null>(null);
+  const threeControlsRef = useRef<OrbitControls | null>(null);
+  const threeAnimationIdRef = useRef<number | null>(null);
   const [imageScale, setImageScale] = useState(1);
   const [imageRotation, setImageRotation] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
@@ -47,22 +55,169 @@ const MaterialPreviewWindow: React.FC = () => {
   const [imagePosition, setImagePosition] = useState({ x: 0, y: 0 });
   const [imageLoaded, setImageLoaded] = useState(false);
   const isZh = language === "zh";
-  // Handle video metadata loaded - gets duration from browser
+  // Initialize 3D preview
+  const initThreePreview = useCallback(() => {
+    const container = threeContainerRef.current;
+    if (!container || !material?.code) return;
+    // Clean up previous renderer
+    if (threeRendererRef.current) {
+      threeRendererRef.current.dispose();
+      threeRendererRef.current = null;
+    }
+    if (threeAnimationIdRef.current) {
+      cancelAnimationFrame(threeAnimationIdRef.current);
+      threeAnimationIdRef.current = null;
+    }
+    const width = container.clientWidth || 400;
+    const height = container.clientHeight || 300;
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0a0a1a);
+    threeSceneRef.current = scene;
+    const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
+    camera.position.set(5, 4, 6);
+    camera.lookAt(0, 0, 0);
+    threeCameraRef.current = camera;
+    const renderer = new THREE.WebGLRenderer({
+      antialias: true,
+      alpha: false,
+    });
+    renderer.setSize(width, height);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFShadowMap;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.2;
+    container.appendChild(renderer.domElement);
+    threeRendererRef.current = renderer;
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.08;
+    controls.autoRotate = true;
+    controls.autoRotateSpeed = 0.8;
+    controls.minDistance = 2;
+    controls.maxDistance = 20;
+    controls.target.set(0, 0, 0);
+    threeControlsRef.current = controls;
+    // Default lights
+    const ambientLight = new THREE.AmbientLight(0x404060, 0.5);
+    ambientLight.userData.persistent = true;
+    scene.add(ambientLight);
+    const mainLight = new THREE.DirectionalLight(0xffffff, 1.5);
+    mainLight.position.set(5, 10, 7);
+    mainLight.castShadow = true;
+    mainLight.shadow.mapSize.width = 1024;
+    mainLight.shadow.mapSize.height = 1024;
+    mainLight.userData.persistent = true;
+    scene.add(mainLight);
+    const fillLight = new THREE.DirectionalLight(0x4488ff, 0.5);
+    fillLight.position.set(-5, 0, 5);
+    fillLight.userData.persistent = true;
+    scene.add(fillLight);
+    const rimLight = new THREE.DirectionalLight(0xff8844, 0.3);
+    rimLight.position.set(0, -3, -8);
+    rimLight.userData.persistent = true;
+    scene.add(rimLight);
+    // Ground
+    const groundGeo = new THREE.PlaneGeometry(12, 12);
+    const groundMat = new THREE.MeshPhysicalMaterial({
+      color: 0x1a1a3a,
+      metalness: 0.3,
+      roughness: 0.7,
+      transparent: true,
+      opacity: 0.6,
+      side: THREE.DoubleSide,
+    });
+    const ground = new THREE.Mesh(groundGeo, groundMat);
+    ground.rotation.x = -Math.PI / 2;
+    ground.position.y = -1.5;
+    ground.receiveShadow = true;
+    ground.userData.persistent = true;
+    scene.add(ground);
+    const gridHelper = new THREE.GridHelper(10, 20, 0x6666aa, 0x333366);
+    gridHelper.position.y = -1.48;
+    gridHelper.material.transparent = true;
+    gridHelper.material.opacity = 0.3;
+    gridHelper.userData.persistent = true;
+    scene.add(gridHelper);
+    // Execute the Three.js code
+    try {
+      const fn = new Function(
+        "THREE",
+        "scene",
+        "camera",
+        "renderer",
+        "controls",
+        `
+          try {
+            ${material.code}
+          } catch (error) {
+            console.error('[MaterialPreview] 3D code error:', error);
+          }
+        `,
+      );
+      fn(THREE, scene, camera, renderer, controls);
+    } catch (error) {
+      console.error("[MaterialPreview] Failed to execute 3D code:", error);
+    }
+    // Animation loop
+    const animate = () => {
+      threeAnimationIdRef.current = requestAnimationFrame(animate);
+      controls.update();
+      renderer.render(scene, camera);
+    };
+    animate();
+    // Resize observer
+    const resizeObserver = new ResizeObserver(() => {
+      const rect = container.getBoundingClientRect();
+      if (rect.width > 0 && rect.height > 0) {
+        camera.aspect = rect.width / rect.height;
+        camera.updateProjectionMatrix();
+        renderer.setSize(rect.width, rect.height);
+      }
+    });
+    resizeObserver.observe(container);
+    return () => {
+      resizeObserver.disconnect();
+      if (threeAnimationIdRef.current) {
+        cancelAnimationFrame(threeAnimationIdRef.current);
+        threeAnimationIdRef.current = null;
+      }
+      if (threeRendererRef.current) {
+        threeRendererRef.current.dispose();
+        threeRendererRef.current = null;
+      }
+      if (threeControlsRef.current) {
+        threeControlsRef.current.dispose();
+        threeControlsRef.current = null;
+      }
+      threeSceneRef.current = null;
+      threeCameraRef.current = null;
+      const canvas = container.querySelector("canvas");
+      if (canvas) {
+        container.removeChild(canvas);
+      }
+    };
+  }, [material]);
+  // Initialize/cleanup 3D preview when material changes
+  useEffect(() => {
+    if (material?.type === "3d" && material.code) {
+      const cleanup = initThreePreview();
+      return cleanup;
+    }
+  }, [material, initThreePreview]);
+  // Handle video metadata loaded
   const handleVideoMetadataLoaded = () => {
     if (videoRef.current) {
       const duration = videoRef.current.duration;
       if (duration && !isNaN(duration)) {
         setRemoteDuration(duration);
-        // Update material duration for progress bar
         setMaterial((prev) => (prev ? { ...prev, duration } : prev));
       }
     }
   };
-  // Handle audio duration from AudioVisualizer
   const handleAudioDuration = (duration: number) => {
     if (duration && !isNaN(duration)) {
       setAudioDuration(duration);
-      // Update material duration for progress bar
       setMaterial((prev) => (prev ? { ...prev, duration } : prev));
     }
   };
@@ -80,12 +235,9 @@ const MaterialPreviewWindow: React.FC = () => {
         if (data) {
           setMaterial(data);
           if (data.file_path) {
-            // Check if it's a remote URL
             if (data.file_path.startsWith("http://") || data.file_path.startsWith("https://")) {
-              // For remote URLs, use directly without convertFileSrc
               setAssetPath(data.file_path);
             } else {
-              // For local files, use convertFileSrc
               const converted = convertFileSrc(data.file_path);
               setAssetPath(converted);
             }
@@ -95,9 +247,15 @@ const MaterialPreviewWindow: React.FC = () => {
           setImagePosition({ x: 0, y: 0 });
           setImageLoaded(false);
           setIsLoaded(false);
-          // Reset remote duration when loading new material
           setRemoteDuration(null);
           setAudioDuration(null);
+          // If it's a 3D type with code, initialize preview after render
+          if (data.type === "3d" && data.code) {
+            setTimeout(() => {
+              const cleanup = initThreePreview();
+              // Store cleanup for unmount
+            }, 100);
+          }
         }
       } catch (error) {
         console.error("Failed to get material preview data:", error);
@@ -117,6 +275,14 @@ const MaterialPreviewWindow: React.FC = () => {
         if (editorRef.current) {
           editorRef.current.dispose();
           editorRef.current = null;
+        }
+        if (threeRendererRef.current) {
+          threeRendererRef.current.dispose();
+          threeRendererRef.current = null;
+        }
+        if (threeAnimationIdRef.current) {
+          cancelAnimationFrame(threeAnimationIdRef.current);
+          threeAnimationIdRef.current = null;
         }
       };
     };
@@ -278,7 +444,6 @@ const MaterialPreviewWindow: React.FC = () => {
     const secs = Math.floor(seconds % 60);
     return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
   };
-  // Get display duration - use material.duration, remoteDuration, or audioDuration
   const getDisplayDuration = (): number => {
     if (material?.duration && material.duration > 0) {
       return material.duration;
@@ -332,6 +497,39 @@ const MaterialPreviewWindow: React.FC = () => {
     setImageScale((prev) => Math.min(Math.max(prev + delta, 0.25), 5));
   };
   const styles = getStyles(isDark, imageScale, isDragging, imageRotation, imagePosition);
+  // Get icon for material type
+  const getTypeIcon = () => {
+    switch (material?.type) {
+      case "video":
+        return <Video size={12} style={{ display: "inline", marginRight: "4px" }} />;
+      case "audio":
+        return <Music size={12} style={{ display: "inline", marginRight: "4px" }} />;
+      case "image":
+        return <Image size={12} style={{ display: "inline", marginRight: "4px" }} />;
+      case "text":
+        return <FileText size={12} style={{ display: "inline", marginRight: "4px" }} />;
+      case "3d":
+        return <Box size={12} style={{ display: "inline", marginRight: "4px" }} />;
+      default:
+        return <File size={12} style={{ display: "inline", marginRight: "4px" }} />;
+    }
+  };
+  const getTypeLabel = () => {
+    switch (material?.type) {
+      case "video":
+        return isZh ? "视频" : "Video";
+      case "audio":
+        return isZh ? "音频" : "Audio";
+      case "image":
+        return isZh ? "图片" : "Image";
+      case "text":
+        return isZh ? "文本" : "Text";
+      case "3d":
+        return isZh ? "3D场景" : "3D Scene";
+      default:
+        return isZh ? "未知" : "Unknown";
+    }
+  };
   if (!material) {
     return (
       <div style={styles.container}>
@@ -348,16 +546,7 @@ const MaterialPreviewWindow: React.FC = () => {
             </button>
             <button style={styles.windowBtn} onClick={handleMaximize} title={isZh ? (isMaximized ? "还原" : "最大化") : isMaximized ? "Restore" : "Maximize"}>
               {isMaximized ? (
-                <span
-                  style={{
-                    fontSize: "20px",
-                    lineHeight: 1,
-                    fontWeight: 400,
-                    marginTop: "2px",
-                  }}
-                >
-                  ❐
-                </span>
+                <span style={{ fontSize: "20px", lineHeight: 1, fontWeight: 400, marginTop: "2px" }}>❐</span>
               ) : (
                 <span
                   style={{
@@ -399,6 +588,8 @@ const MaterialPreviewWindow: React.FC = () => {
       </div>
     );
   }
+  // Check if the material is a GIF image
+  const isGif = material.type === "image" && material.file_path?.toLowerCase().endsWith(".gif");
   const renderContent = () => {
     switch (material.type) {
       case "video":
@@ -451,13 +642,15 @@ const MaterialPreviewWindow: React.FC = () => {
             </div>
           </div>
         );
-      case "image":
+      // Handle both regular images and GIFs
+      case "image": {
+        const imageSrc = assetPath || material.thumbnail || "";
         return (
           <div style={styles.previewContainer}>
             <div ref={imageContainerRef} style={styles.imageContainer} onMouseDown={handleImageMouseDown} onMouseMove={handleImageMouseMove} onMouseUp={handleImageMouseUp} onMouseLeave={() => setIsDragging(false)} onWheel={handleImageWheel}>
               <div style={styles.imageWrapper}>
                 <img
-                  src={material.thumbnail || assetPath}
+                  src={imageSrc}
                   alt={material.name}
                   style={styles.image}
                   draggable={false}
@@ -528,14 +721,41 @@ const MaterialPreviewWindow: React.FC = () => {
                 </button>
               </div>
             )}
+            {/* Show GIF badge if this is a GIF image */}
+            {isGif && (
+              <div
+                style={{
+                  position: "absolute" as const,
+                  top: "8px",
+                  right: "8px",
+                  background: "rgba(0,0,0,0.7)",
+                  color: "#fff",
+                  fontSize: "10px",
+                  padding: "2px 8px",
+                  borderRadius: "3px",
+                  fontWeight: 600,
+                  letterSpacing: "0.3px",
+                  zIndex: 5,
+                }}
+              >
+                GIF
+              </div>
+            )}
           </div>
         );
+      }
       case "text":
         return (
           <div style={styles.previewContainer}>
             <div style={styles.textPreview}>
               <div ref={editorContainerRef} style={styles.editorContainer} className="preview-editor-container" />
             </div>
+          </div>
+        );
+      case "3d":
+        return (
+          <div style={styles.previewContainer}>
+            <div ref={threeContainerRef} style={{ width: "100%", height: "100%", minHeight: "300px" }} />
           </div>
         );
       default:
@@ -580,16 +800,7 @@ const MaterialPreviewWindow: React.FC = () => {
           </button>
           <button style={styles.windowBtn} onClick={handleMaximize} title={isZh ? (isMaximized ? "还原" : "最大化") : isMaximized ? "Restore" : "Maximize"}>
             {isMaximized ? (
-              <span
-                style={{
-                  fontSize: "20px",
-                  lineHeight: 1,
-                  fontWeight: 400,
-                  marginTop: "2px",
-                }}
-              >
-                ❐
-              </span>
+              <span style={{ fontSize: "20px", lineHeight: 1, fontWeight: 400, marginTop: "2px" }}>❐</span>
             ) : (
               <span
                 style={{
@@ -653,38 +864,17 @@ const MaterialPreviewWindow: React.FC = () => {
       )}
       {/* Material Info Footer */}
       <div style={styles.info}>
-        {/* Type */}
-        <span style={styles.infoLabel}>{t("videoEditor.type") || (isZh ? "类型" : "Type")}</span>
+        <span style={styles.infoLabel}>{isZh ? "类型" : "Type"}</span>
         <span style={styles.infoValue}>
-          {material.type === "video" && (
-            <>
-              <Video size={12} style={{ display: "inline", marginRight: "4px" }} /> {isZh ? "视频" : "Video"}
-            </>
-          )}
-          {material.type === "audio" && (
-            <>
-              <Music size={12} style={{ display: "inline", marginRight: "4px" }} /> {isZh ? "音频" : "Audio"}
-            </>
-          )}
-          {material.type === "image" && (
-            <>
-              <Image size={12} style={{ display: "inline", marginRight: "4px" }} /> {isZh ? "图片" : "Image"}
-            </>
-          )}
-          {material.type === "text" && (
-            <>
-              <FileText size={12} style={{ display: "inline", marginRight: "4px" }} /> {isZh ? "文本" : "Text"}
-            </>
-          )}
+          {getTypeIcon()} {getTypeLabel()}
+          {isGif && " GIF"}
         </span>
-        {/* Duration */}
         {displayDuration > 0 && (
           <>
-            <span style={styles.infoLabel}>{t("videoEditor.duration") || (isZh ? "时长" : "Duration")}</span>
+            <span style={styles.infoLabel}>{isZh ? "时长" : "Duration"}</span>
             <span style={styles.infoValue}>{formatDuration(displayDuration)}</span>
           </>
         )}
-        {/* Resolution */}
         {material.width && material.height && (
           <>
             <span style={styles.infoLabel}>{isZh ? "分辨率" : "Resolution"}</span>
@@ -693,14 +883,12 @@ const MaterialPreviewWindow: React.FC = () => {
             </span>
           </>
         )}
-        {/* File Size */}
         {material.file_size && (
           <>
             <span style={styles.infoLabel}>{isZh ? "文件大小" : "File Size"}</span>
             <span style={styles.infoValue}>{(material.file_size / 1024 / 1024).toFixed(2)} MB</span>
           </>
         )}
-        {/* Line Count */}
         {material.line_count && (
           <>
             <span style={styles.infoLabel}>{isZh ? "行数" : "Lines"}</span>
