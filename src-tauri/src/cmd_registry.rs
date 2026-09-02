@@ -29,6 +29,8 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_get_favorites_dir,
         // System Update
         commands::cmd_check_version_update,
+        commands::cmd_get_app_version,
+        commands::cmd_download_and_install_update,
         // Drivers
         commands::cmd_get_drivers,
         commands::cmd_get_drivers_by_category,

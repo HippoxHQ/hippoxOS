@@ -149,6 +149,9 @@ const UniversalSettings: React.FC<UniversalSettingsProps> = ({ t, theme, languag
   const [versionInfo, setVersionInfo] = useState<VersionInfo | null>(null);
   const [checkingUpdate, setCheckingUpdate] = useState(false);
   const [updateError, setUpdateError] = useState<string | null>(null);
+  // Download states
+  const [downloading, setDownloading] = useState(false);
+  const [downloadProgress, setDownloadProgress] = useState(0);
   const resetTimerRef = useRef<NodeJS.Timeout | null>(null);
   const isZh = t("i18n") === "zh";
   useEffect(() => {
@@ -251,6 +254,8 @@ const UniversalSettings: React.FC<UniversalSettingsProps> = ({ t, theme, languag
       setVersionInfo(null);
       setUpdateError(null);
       setCheckingUpdate(false);
+      setDownloading(false);
+      setDownloadProgress(0);
       resetTimerRef.current = null;
     }, 10000);
   };
@@ -262,6 +267,7 @@ const UniversalSettings: React.FC<UniversalSettingsProps> = ({ t, theme, languag
     setCheckingUpdate(true);
     setUpdateError(null);
     setVersionInfo(null);
+    setDownloadProgress(0);
     try {
       const info = await systemUpdateCommands.checkVersionUpdate();
       setVersionInfo(info);
@@ -274,8 +280,27 @@ const UniversalSettings: React.FC<UniversalSettingsProps> = ({ t, theme, languag
       setCheckingUpdate(false);
     }
   };
-  const handleOpenDownload = () => {
-    window.open("https://github.com/HippoxHQ/hippoxOS/releases/latest", "_blank");
+  // Handle download and install update
+  const handleDownloadAndInstall = async () => {
+    if (!versionInfo?.download_url) {
+      setUpdateError(isZh ? "下载链接不可用" : "Download URL not available");
+      return;
+    }
+    setDownloading(true);
+    setDownloadProgress(0);
+    setUpdateError(null);
+    try {
+      // Call backend to download and install
+      await systemUpdateCommands.downloadAndInstallUpdate(versionInfo.download_url, (progress: number) => {
+        setDownloadProgress(progress);
+      });
+      // On success, the app will exit and installer will run
+    } catch (error) {
+      console.error("Download/Install failed:", error);
+      setUpdateError(isZh ? "下载或安装失败，请重试" : "Download or install failed, please retry");
+      setDownloading(false);
+      scheduleAutoReset();
+    }
   };
   const labelStyle: React.CSSProperties = {
     fontSize: "13px",
@@ -554,6 +579,11 @@ const UniversalSettings: React.FC<UniversalSettingsProps> = ({ t, theme, languag
                 <Loader2 size={14} style={{ animation: "spin 1s linear infinite" }} />
                 <span style={{ color: "var(--text-secondary)" }}>{isZh ? "检查中..." : "Checking..."}</span>
               </div>
+            ) : downloading ? (
+              <div style={updateStatusStyle}>
+                <Loader2 size={14} style={{ animation: "spin 1s linear infinite" }} />
+                <span style={{ color: "var(--text-secondary)" }}>{isZh ? `下载中` : `Downloading`}</span>
+              </div>
             ) : updateError ? (
               <div style={updateStatusStyle}>
                 <span style={{ color: "var(--text-error, #ff4444)" }}>{updateError}</span>
@@ -598,10 +628,11 @@ const UniversalSettings: React.FC<UniversalSettingsProps> = ({ t, theme, languag
                     borderColor: "var(--accent-color, #00aaff)",
                     color: "white",
                   }}
-                  onClick={handleOpenDownload}
+                  onClick={handleDownloadAndInstall}
+                  disabled={downloading}
                 >
                   <Download size={14} />
-                  {isZh ? "下载更新" : "Download"}
+                  {isZh ? "更新" : "Update"}
                 </button>
               </>
             ) : versionInfo && !versionInfo.has_update ? (

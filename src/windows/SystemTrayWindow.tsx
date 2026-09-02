@@ -3,7 +3,8 @@ import { configCommands } from "../command/config";
 import { windowsCommands } from "../command/windows";
 import { zh, en } from "../i18n";
 import { SystemEvent } from "../types/types";
-import { Bot, RotateCw, Info, LogOut, LucideIcon } from "lucide-react";
+import { Bot, RotateCw, Info, LogOut, LucideIcon, Loader2, Download, RefreshCw, CheckCircle, Sparkles } from "lucide-react";
+import { systemUpdateCommands, VersionInfo } from "../command/SystemUpdate";
 const getTranslation = (language: "zh" | "en", key: string): string => {
   const translations = language === "zh" ? zh : en;
   const keys = key.split(".");
@@ -31,6 +32,14 @@ const SystemTrayWindow: React.FC = () => {
   const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [language, setLanguage] = useState<"zh" | "en">("en");
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
+  // Update check states
+  const [versionInfo, setVersionInfo] = useState<VersionInfo | null>(null);
+  const [checkingUpdate, setCheckingUpdate] = useState(false);
+  const [updateError, setUpdateError] = useState<string | null>(null);
+  // Download states
+  const [downloading, setDownloading] = useState(false);
+  const [downloadProgress, setDownloadProgress] = useState(0);
+  const [resetTimerId, setResetTimerId] = useState<NodeJS.Timeout | null>(null);
   useEffect(() => {
     const loadData = async () => {
       try {
@@ -42,7 +51,73 @@ const SystemTrayWindow: React.FC = () => {
       }
     };
     loadData();
+    // Cleanup timer on unmount
+    return () => {
+      if (resetTimerId) {
+        clearTimeout(resetTimerId);
+      }
+    };
   }, []);
+  const isZh = language === "zh";
+  // Schedule auto-reset of update status after 10 seconds
+  const scheduleAutoReset = () => {
+    if (resetTimerId) {
+      clearTimeout(resetTimerId);
+    }
+    const timer = setTimeout(() => {
+      setVersionInfo(null);
+      setUpdateError(null);
+      setCheckingUpdate(false);
+      setDownloading(false);
+      setDownloadProgress(0);
+      setResetTimerId(null);
+    }, 10000);
+    setResetTimerId(timer);
+  };
+  // Handle check update logic - same as UniversalSettings
+  const handleCheckUpdate = async () => {
+    if (resetTimerId) {
+      clearTimeout(resetTimerId);
+      setResetTimerId(null);
+    }
+    setCheckingUpdate(true);
+    setUpdateError(null);
+    setVersionInfo(null);
+    setDownloadProgress(0);
+    try {
+      const info = await systemUpdateCommands.checkVersionUpdate();
+      setVersionInfo(info);
+      scheduleAutoReset();
+    } catch (error) {
+      console.error("Failed to check update:", error);
+      setUpdateError(isZh ? "检查更新失败，请稍后重试" : "Failed to check update, please try again");
+      scheduleAutoReset();
+    } finally {
+      setCheckingUpdate(false);
+    }
+  };
+  // Handle download and install update
+  const handleDownloadAndInstall = async () => {
+    if (!versionInfo?.download_url) {
+      setUpdateError(isZh ? "下载链接不可用" : "Download URL not available");
+      return;
+    }
+    setDownloading(true);
+    setDownloadProgress(0);
+    setUpdateError(null);
+    try {
+      // Call backend to download and install
+      await systemUpdateCommands.downloadAndInstallUpdate(versionInfo.download_url, (progress: number) => {
+        setDownloadProgress(progress);
+      });
+      // On success, the app will exit and installer will run
+    } catch (error) {
+      console.error("Download/Install failed:", error);
+      setUpdateError(isZh ? "下载或安装失败，请重试" : "Download or install failed, please retry");
+      setDownloading(false);
+      scheduleAutoReset();
+    }
+  };
   const handleMenuItemClick = (action: string) => {
     if (action === "quit") {
       windowsCommands.exitApp();
@@ -60,6 +135,7 @@ const SystemTrayWindow: React.FC = () => {
     label: string;
     icon: LucideIcon;
     hasSubmenu?: boolean;
+    isUpdateItem?: boolean;
   }
   const menuItems: MenuItem[] = [
     {
@@ -72,6 +148,7 @@ const SystemTrayWindow: React.FC = () => {
       id: SystemEvent.CheckUpdates,
       label: t("settings.update") || "Check for Updates",
       icon: RotateCw,
+      isUpdateItem: true,
     },
     { id: SystemEvent.ShowAbout, label: "About", icon: Info },
     { id: "quit", label: t("common.close") || "Quit", icon: LogOut },
@@ -121,13 +198,246 @@ const SystemTrayWindow: React.FC = () => {
       backgroundColor: isDark ? "#2d303a" : "#e5e7eb",
       margin: "6px 0",
     },
+    // Update status styles
+    updateStatusContainer: {
+      display: "flex" as const,
+      alignItems: "center" as const,
+      gap: "8px",
+      flex: 1,
+    },
+    updateStatusText: {
+      fontSize: "12px",
+      color: isDark ? "#e8edf2" : "#111827",
+    },
+    updateErrorText: {
+      fontSize: "12px",
+      color: "#ff4444",
+    },
+    updateSuccessText: {
+      fontSize: "12px",
+      color: "#4caf50",
+    },
+    updateAccentText: {
+      fontSize: "12px",
+      color: "#00aaff",
+      fontWeight: 500,
+    },
+    updateVersionText: {
+      fontSize: "10px",
+      color: isDark ? "#6b7280" : "#9ca3af",
+    },
+    retryButton: {
+      padding: "2px 10px",
+      borderRadius: "4px",
+      border: `1px solid ${isDark ? "#3a3f4a" : "#d1d5db"}`,
+      background: "transparent",
+      color: isDark ? "#e8edf2" : "#111827",
+      cursor: "pointer" as const,
+      fontSize: "11px",
+      display: "flex" as const,
+      alignItems: "center" as const,
+      gap: "4px",
+    },
+    updateButton: {
+      padding: "2px 12px",
+      borderRadius: "4px",
+      border: "none",
+      background: "#00aaff",
+      color: "white",
+      cursor: "pointer" as const,
+      fontSize: "11px",
+      display: "flex" as const,
+      alignItems: "center" as const,
+      gap: "4px",
+      flexShrink: 0 as const,
+    },
+    updateButtonDisabled: {
+      padding: "2px 12px",
+      borderRadius: "4px",
+      border: "none",
+      background: "#555",
+      color: "#999",
+      cursor: "not-allowed" as const,
+      fontSize: "11px",
+      display: "flex" as const,
+      alignItems: "center" as const,
+      gap: "4px",
+      flexShrink: 0 as const,
+    },
+    checkButton: {
+      padding: "2px 12px",
+      borderRadius: "4px",
+      border: `1px solid ${isDark ? "#3a3f4a" : "#d1d5db"}`,
+      background: "transparent",
+      color: isDark ? "#e8edf2" : "#111827",
+      cursor: "pointer" as const,
+      fontSize: "11px",
+      display: "flex" as const,
+      alignItems: "center" as const,
+      gap: "4px",
+      flexShrink: 0 as const,
+    },
+    loadingSpinner: {
+      animation: "spin 1s linear infinite",
+    },
+  };
+  // Helper to render update item content
+  const renderUpdateItem = (item: MenuItem) => {
+    const isHovered = hoveredItem === item.id;
+    // If checking for update
+    if (checkingUpdate) {
+      return (
+        <div
+          style={{
+            ...styles.menuItem,
+            backgroundColor: isHovered ? (isDark ? "rgba(232,237,242,0.08)" : "rgba(0,0,0,0.04)") : "transparent",
+          }}
+          onMouseEnter={() => setHoveredItem(item.id)}
+          onMouseLeave={() => setHoveredItem(null)}
+        >
+          <item.icon style={styles.menuIcon} />
+          <div style={styles.updateStatusContainer}>
+            <Loader2 size={14} style={styles.loadingSpinner} />
+            <span style={styles.updateStatusText}>{isZh ? "检查中..." : "Checking..."}</span>
+          </div>
+        </div>
+      );
+    }
+    // If downloading
+    if (downloading) {
+      return (
+        <div
+          style={{
+            ...styles.menuItem,
+            backgroundColor: isHovered ? (isDark ? "rgba(232,237,242,0.08)" : "rgba(0,0,0,0.04)") : "transparent",
+          }}
+          onMouseEnter={() => setHoveredItem(item.id)}
+          onMouseLeave={() => setHoveredItem(null)}
+        >
+          <Loader2 size={14} style={styles.loadingSpinner} />
+          <div style={styles.updateStatusContainer}>
+            <span style={styles.updateStatusText}>{isZh ? `下载中` : `Downloading`}</span>
+          </div>
+        </div>
+      );
+    }
+    // If there's an error
+    if (updateError) {
+      return (
+        <div
+          style={{
+            ...styles.menuItem,
+            backgroundColor: isHovered ? (isDark ? "rgba(232,237,242,0.08)" : "rgba(0,0,0,0.04)") : "transparent",
+          }}
+          onMouseEnter={() => setHoveredItem(item.id)}
+          onMouseLeave={() => setHoveredItem(null)}
+        >
+          <item.icon style={styles.menuIcon} />
+          <div style={styles.updateStatusContainer}>
+            <span style={styles.updateErrorText}>{updateError}</span>
+            <button
+              style={styles.retryButton}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleCheckUpdate();
+              }}
+            >
+              <RefreshCw size={10} />
+              {isZh ? "重试" : "Retry"}
+            </button>
+          </div>
+        </div>
+      );
+    }
+    // If update is available
+    if (versionInfo?.has_update) {
+      return (
+        <div
+          style={{
+            ...styles.menuItem,
+            backgroundColor: isHovered ? (isDark ? "rgba(232,237,242,0.08)" : "rgba(0,0,0,0.04)") : "transparent",
+            padding: "6px 14px",
+          }}
+          onMouseEnter={() => setHoveredItem(item.id)}
+          onMouseLeave={() => setHoveredItem(null)}
+        >
+          <Sparkles size={14} style={{ color: "#00aaff", flexShrink: 0 }} />
+          <div style={styles.updateStatusContainer}>
+            <span style={styles.updateAccentText}>{isZh ? `发现新版本 ${versionInfo.latest_version}` : `New version ${versionInfo.latest_version} available`}</span>
+            <span style={styles.updateVersionText}>{isZh ? `当前: ${versionInfo.current_version}` : `Current: ${versionInfo.current_version}`}</span>
+          </div>
+          <button
+            style={styles.updateButton}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleDownloadAndInstall();
+            }}
+          >
+            <Download size={12} />
+            {isZh ? "更新" : "Update"}
+          </button>
+        </div>
+      );
+    }
+    // If already up to date
+    if (versionInfo && !versionInfo.has_update) {
+      return (
+        <div
+          style={{
+            ...styles.menuItem,
+            backgroundColor: isHovered ? (isDark ? "rgba(232,237,242,0.08)" : "rgba(0,0,0,0.04)") : "transparent",
+          }}
+          onMouseEnter={() => setHoveredItem(item.id)}
+          onMouseLeave={() => setHoveredItem(null)}
+        >
+          <CheckCircle size={14} style={{ color: "#4caf50", flexShrink: 0 }} />
+          <span style={styles.updateSuccessText}>{isZh ? "当前已是最新版本" : "You are on the latest version"}</span>
+        </div>
+      );
+    }
+    // Default: show check update button
+    return (
+      <div
+        style={{
+          ...styles.menuItem,
+          backgroundColor: isHovered ? (isDark ? "rgba(232,237,242,0.08)" : "rgba(0,0,0,0.04)") : "transparent",
+        }}
+        onClick={() => handleCheckUpdate()}
+        onMouseEnter={() => setHoveredItem(item.id)}
+        onMouseLeave={() => setHoveredItem(null)}
+      >
+        <item.icon style={styles.menuIcon} />
+        <span style={styles.menuLabel}>{item.label}</span>
+        <button
+          style={styles.checkButton}
+          onClick={(e) => {
+            e.stopPropagation();
+            handleCheckUpdate();
+          }}
+        >
+          <RefreshCw size={10} />
+          {isZh ? "检查" : "Check"}
+        </button>
+      </div>
+    );
   };
   return (
     <div style={styles.container}>
+      {/* Add spin animation keyframes */}
+      <style>{`
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
       <div style={styles.menuContainer}>
         {renderedMenuItems.map((item, index) => {
           if ("divider" in item) {
             return <div key={`divider-${index}`} style={styles.divider} />;
+          }
+          // Special rendering for update item
+          if (item.isUpdateItem) {
+            return <div key={item.id}>{renderUpdateItem(item)}</div>;
           }
           const isHovered = hoveredItem === item.id;
           const IconComponent = item.icon;
