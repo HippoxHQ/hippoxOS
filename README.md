@@ -85,13 +85,13 @@ When users describe editing intent through natural language, the system parses t
 
 <img src="https://github.com/HippoxHQ/assets/blob/main/demo/demo_8.png?raw=true" width="100%" >
 
-The 3D Sandbox Subsystem provides an environment for generating and manipulating three-dimensional scenes through conversation. Users can describe the 3D scene they wish to build in natural language, and the system generates the corresponding Three.js code and renders it in real-time within the viewport. All historically generated 3D scenes can be revisited and reused, with support for scene snapshot switching and GIF animation export, transforming 3D content creation from code writing to language description.
+The 3D Sandbox Subsystem provides an environment for generating and manipulating three-dimensional scenes through conversation. Users can describe the 3D scene they wish to build in natural language, and the system generates the corresponding code and renders it in real-time within the viewport. All historically generated 3D scenes can be revisited and reused, with support for scene snapshot switching and GIF animation export, transforming 3D content creation from code writing to language description.
 
 ### 4. Maps & Geographic Information Subsystem
 
 <img src="https://github.com/HippoxHQ/assets/blob/main/demo/demo_7.png?raw=true" width="100%" >
 
-The Maps Subsystem integrates professional geographic information visualization capabilities. Users can place markers, draw routes, and create heatmaps and cluster analyses on maps through conversation. The system parses geographic intent and overlays corresponding layers and markers on the interactive Earth view (based on Cesium/Three.js), converting complex geospatial analysis into intuitive conversational interaction.
+The Maps Subsystem integrates professional geographic information visualization capabilities. Users can place markers, draw routes, and create heatmaps and cluster analyses on maps through conversation. The system parses geographic intent and overlays corresponding layers and markers on the interactive Earth view, converting complex geospatial analysis into intuitive conversational interaction.
 
 ### 5. Financial Data Analysis Subsystem
 
