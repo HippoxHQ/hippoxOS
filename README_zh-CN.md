@@ -74,7 +74,7 @@ HippoxOS 的设计围绕以下三个核心原则展开：
 
 ### 2. 视频编辑子系统
 
-https://github.com/HippoxHQ/assets/raw/main/demo/hippoxOS_VideoEditor_Demo_1.mp4
+https://github.com/user-attachments/assets/c9b8c482-a1b7-47cf-8f8a-8a61110ee911
 
 视频编辑子系统将传统的非线性编辑工作流转化为对话驱动的创作体验。用户可通过自然语言描述编辑意图，如剪辑片段、调整时间线、添加文字或图像叠加层等。
 
