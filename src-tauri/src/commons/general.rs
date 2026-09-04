@@ -2,6 +2,7 @@ use crate::commands::get_settings_dir;
 use serde_json::Value;
 use std::fs;
 use std::path::PathBuf;
+use sys_locale::get_locale;
 pub fn get_setting(key: &str) -> Result<Value, String> {
     let config_path = get_settings_config_path()?;
     if config_path.exists() {
@@ -72,4 +73,17 @@ pub fn get_sessions_dir() -> PathBuf {
 pub fn get_logs_dir() -> PathBuf {
     let app_data_dir = get_app_data_dir();
     app_data_dir.join("logs")
+}
+/// Get current app version
+pub fn get_app_version() -> String {
+    env!("CARGO_PKG_VERSION").to_string()
+}
+/// get system language
+pub fn get_system_language() -> &'static str {
+    if let Some(locale) = get_locale() {
+        if locale.starts_with("zh") {
+            return "zh";
+        }
+    }
+    "en"
 }

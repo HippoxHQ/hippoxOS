@@ -1,5 +1,9 @@
 use crate::{
-    commands::{HIPPOXOS_GITHUB_API_URL, HIPPOXOS_GITHUB_MIRROR_API_URL, HIPPOXOS_GITHUB_MIRROR_RELEASES_URL, HIPPOXOS_GITHUB_RELEASES_URL, get_system_update_download_dir}, commons::{HttpClient, cmd_cmd},
+    commands::{
+        get_system_update_download_dir, HIPPOXOS_GITHUB_API_URL, HIPPOXOS_GITHUB_MIRROR_API_URL, HIPPOXOS_GITHUB_MIRROR_RELEASES_URL,
+        HIPPOXOS_GITHUB_RELEASES_URL,
+    },
+    commons::{cmd_cmd, get_app_version, HttpClient},
 };
 use serde::{Deserialize, Serialize};
 use std::fs::File;
@@ -40,10 +44,6 @@ pub struct GitHubRelease {
 pub struct ReleaseAsset {
     pub name: String,
     pub browser_download_url: String,
-}
-/// Get current app version
-pub fn get_current_version() -> String {
-    env!("CARGO_PKG_VERSION").to_string()
 }
 /// Get current platform
 pub fn get_current_platform() -> String {
@@ -139,7 +139,7 @@ fn compare_versions(current: &str, latest: &str) -> bool {
 /// Check for version updates
 #[command]
 pub async fn cmd_check_version_update() -> Result<VersionInfo, String> {
-    let current_version = get_current_version();
+    let current_version = get_app_version();
     let platform = get_current_platform();
     let arch = get_current_arch();
     let release = match fetch_latest_release().await {
@@ -163,7 +163,7 @@ pub async fn cmd_check_version_update() -> Result<VersionInfo, String> {
 /// Get current app version only
 #[command]
 pub fn cmd_get_app_version() -> Result<String, String> {
-    Ok(get_current_version())
+    Ok(get_app_version())
 }
 /// Get download directory path
 fn get_download_dir() -> Result<PathBuf, String> {
