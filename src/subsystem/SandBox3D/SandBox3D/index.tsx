@@ -267,6 +267,10 @@ const SandBox3D = forwardRef<SandBox3DRef, SandBox3DProps>(({ theme, i18n, t, cu
       executeThreeCode(activeSnapshot.code, false);
     }
   }, [snapshots, clearScene, executeThreeCode]);
+  /**
+   * Update history snapshots with new scene data
+   * FIX: Properly merge existing snapshots and update active state
+   */
   const updateHistorySnapshots = useCallback((tasks: Array<{ taskId: string; code: string; title: string; createdAt: string }>) => {
     if (!tasks || tasks.length === 0) {
       setSnapshots([]);

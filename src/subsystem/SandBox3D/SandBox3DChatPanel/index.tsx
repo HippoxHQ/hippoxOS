@@ -953,6 +953,8 @@ const SandBox3DChatPanel: React.FC<SandBox3DChatPanelProps> = ({ onSendMessage, 
    * Process LLM response and execute 3D code if present
    * This is the key integration point between chat and 3D sandbox
    * It runs whenever messages change and checks the latest LLM message
+   *
+   * FIX: Ensure the 3D scene is executed immediately and history is refreshed
    */
   const processedMessageIdsRef = useRef<Set<string>>(new Set());
   useEffect(() => {
@@ -972,15 +974,21 @@ const SandBox3DChatPanel: React.FC<SandBox3DChatPanelProps> = ({ onSendMessage, 
         const threeScene = parsed.terminalResponse.threeScene;
         // Execute the 3D code in the sandbox
         if (sandboxRef?.current) {
+          // FIX: Execute code immediately on the main canvas
           sandboxRef.current.executeThreeCode(threeScene.code, threeScene.clearBeforeExecute !== false);
-          dispatchRefresh3DHistory({ sessionId: currentSessionId });
+          // FIX: Mark as processed BEFORE dispatching refresh
           processedMessageIdsRef.current.add(lastMsg.id);
+          // FIX: Dispatch refresh event with a small delay to ensure execution completes
+          // and the scene data is fully saved in the backend
+          setTimeout(() => {
+            dispatchRefresh3DHistory({ sessionId: currentSessionId });
+          }, 200);
         } else {
           console.warn("[SandBox3DChatPanel] Sandbox ref not available for 3D code execution");
         }
       }
     }
-  }, [messages, sandboxRef]);
+  }, [messages, sandboxRef, currentSessionId]);
   /**
    * Listen for 3D code execution events from the sandbox
    * Shows toast notifications for success/error

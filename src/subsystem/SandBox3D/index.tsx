@@ -795,6 +795,7 @@ const SandBox3DPage: React.FC<SandBox3DPageProps> = ({
   }, [theme]);
   /**
    * Refresh history panel from backend - ONLY updates history panel data
+   * FIX: Ensure the latest scene is rendered immediately and shown in history panel
    */
   const refreshHistoryPanel = useCallback(async (sessionId: string) => {
     if (!sessionId || sessionId.startsWith("pending_") || sessionId.startsWith("temp_")) {
@@ -839,23 +840,22 @@ const SandBox3DPage: React.FC<SandBox3DPageProps> = ({
         setActiveSnapshotId(null);
         return;
       }
+      // FIX: Update snapshots in sandbox ref FIRST before anything else
       if (sandboxRef.current) {
         sandboxRef.current.updateHistorySnapshots(scenesData);
       }
+      // Build snapshots with thumbnails
       const snapshotsWithThumbnails: ThreeSceneSnapshot[] = [];
       for (let i = 0; i < scenesData.length; i++) {
         const scene = scenesData[i];
         const snapshotId = `snapshot_${scene.taskId}`;
-        // Generate thumbnail using shared offscreen renderer - main canvas is untouched!
         let thumbnail: string | null = null;
         if (sandboxRef.current && scene.code) {
-          // This prevents overloading the WebGL context
           if (i > 0) {
             await new Promise((resolve) => setTimeout(resolve, 50));
           }
           thumbnail = sandboxRef.current.generateThumbnailOffscreen(scene.code);
         }
-        // Update the thumbnail in the sandbox ref data
         if (sandboxRef.current) {
           sandboxRef.current.updateSnapshotThumbnail(snapshotId, thumbnail);
         }
@@ -866,21 +866,26 @@ const SandBox3DPage: React.FC<SandBox3DPageProps> = ({
           title: scene.title,
           thumbnail: thumbnail,
           createdAt: scene.createdAt,
-          isActive: i === scenesData.length - 1, // Last one is active
+          isActive: i === scenesData.length - 1,
         });
       }
       const lastScene = scenesData[scenesData.length - 1];
       const lastSnapshotId = `snapshot_${lastScene.taskId}`;
+      // FIX: Execute the latest scene code on the main canvas
+      // This ensures the 3D scene is rendered immediately
       if (sandboxRef.current && lastScene.code) {
         sandboxRef.current.executeThreeCode(lastScene.code, true);
       }
+      // FIX: Set active snapshot in ref
       if (sandboxRef.current) {
         sandboxRef.current.setActiveSnapshot(lastSnapshotId);
       }
-      // Update local state to trigger re-render of history panel
+      // FIX: Update state to trigger UI re-render
       setHistorySnapshots(snapshotsWithThumbnails);
       setActiveSnapshotId(lastSnapshotId);
       historyLoadedRef.current = true;
+      // FIX: Force a re-render of the history panel by toggling the key
+      setHistoryPanelKey((prev) => prev + 1);
     } catch (error) {
       console.error("[SandBox3DPage] Failed to refresh history:", error);
     }
@@ -1465,17 +1470,6 @@ const SandBox3DPage: React.FC<SandBox3DPageProps> = ({
                 >
                   {selectedIds.size === historySessions.length && historySessions.length > 0 ? <CheckSquare size={16} /> : <Square size={16} />}
                 </button>
-                {/* Selected count */}
-                {/* <span
-                  style={{
-                    fontSize: "10px",
-                    color: "var(--text-muted)",
-                    minWidth: "20px",
-                    textAlign: "center",
-                  }}
-                >
-                  {selectedIds.size}
-                </span> */}
                 {/* Batch pin button */}
                 <button
                   style={{
