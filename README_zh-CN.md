@@ -49,7 +49,7 @@ HippoxOS 的设计围绕以下三个核心原则展开：
 
 ### 1. 通用对话子系统
 
-<img src="https://github.com/HippoxHQ/assets/blob/main/demo/demo_3.png?raw=true" width="100%" >
+https://github.com/user-attachments/assets/6b7a0a7f-d573-4e5b-a49a-60669acf70ee
 
 通用对话子系统是 HippoxOS 的基础交互层，是用户与操作系统交互的统一入口。该子系统基于 Hippox 内核构建，集成了内核的全部调度能力，为所有其他专业领域提供对话基础设施。
 
@@ -74,7 +74,7 @@ HippoxOS 的设计围绕以下三个核心原则展开：
 
 ### 2. 视频编辑子系统
 
-https://github.com/user-attachments/assets/c9b8c482-a1b7-47cf-8f8a-8a61110ee911
+https://github.com/user-attachments/assets/9df94a10-6920-4636-9c7d-029b2bf2a04c
 
 视频编辑子系统将传统的非线性编辑工作流转化为对话驱动的创作体验。用户可通过自然语言描述编辑意图，如剪辑片段、调整时间线、添加文字或图像叠加层等。
 
@@ -95,25 +95,25 @@ https://github.com/user-attachments/assets/c9b8c482-a1b7-47cf-8f8a-8a61110ee911
 
 ### 3. 3D 沙盒子系统
 
-<img src="https://github.com/HippoxHQ/assets/blob/main/demo/demo_8.png?raw=true" width="100%" >
+https://github.com/user-attachments/assets/e2d083fb-8bc5-4ad2-a766-e5112a7b0bb1
 
 3D 沙盒子系统提供了一个通过对话生成和操作三维场景的环境。用户可以用自然语言描述想要构建的 3D 场景，系统生成相应的代码并在视口中实时渲染。所有历史生成的 3D 场景均可回溯和复用，支持场景快照切换和 GIF 动画导出，将 3D 内容创作从代码编写转变为语言描述。
 
 ### 4. 地图与地理信息子系统
 
-<img src="https://github.com/HippoxHQ/assets/blob/main/demo/demo_7.png?raw=true" width="100%" >
+https://github.com/user-attachments/assets/c1a5f011-7cba-4968-8c16-67cedc336e4b
 
 地图子系统集成了专业级地理信息可视化能力。用户通过对话在地图上标注位置、绘制路径、创建热力图和聚类分析等。系统解析地理意图并在交互式地球视图上叠加相应的图层和标记，将复杂的地理空间分析转化为直观的对话交互。
 
 ### 5. 金融数据分析子系统
 
-<img src="https://github.com/HippoxHQ/assets/blob/main/demo/demo_5.png?raw=true" width="100%" >
+https://github.com/user-attachments/assets/ca3ce94c-57de-4bed-b633-933fe8f737f3
 
 金融子系统提供实时金融数据可视化与分析能力。用户可通过对话查询和展示股票、加密货币等金融产品的价格走势与技术图表。系统整合实时行情数据、新闻资讯滚动条和交互式 K 线图，使用户能够以对话方式完成金融数据的探索与分析。
 
 ### 6. 代码开发子系统
 
-<img src="https://github.com/HippoxHQ/assets/blob/main/demo/demo_6.png?raw=true" width="100%" >
+https://github.com/user-attachments/assets/9cc68f1a-0c97-46c9-96c9-d794fd5e2788
 
 代码开发子系统将 AI 辅助编程深度集成到桌面开发环境中。用户可通过自然语言描述开发需求，系统驱动代码生成和修改。该子系统的核心特性是代码变更的可控性——当 AI 对代码进行修改时，系统会以对比视图呈现修改前后的差异，用户确认后方可应用，确保开发者对代码库的完全掌控。
 

@@ -49,7 +49,7 @@ HippoxOS is designed around three core principles:
 
 ### 1. General Conversation Subsystem
 
-<img src="https://github.com/HippoxHQ/assets/blob/main/demo/demo_3.png?raw=true" width="100%" >
+https://github.com/user-attachments/assets/6b7a0a7f-d573-4e5b-a49a-60669acf70ee
 
 The General Conversation Subsystem is the foundational interaction layer of HippoxOS and the unified entry point for user interaction with the operating system. Built upon the Hippox Kernel, this subsystem integrates the full scheduling capabilities of the kernel and provides conversational infrastructure for all other professional domains.
 
@@ -74,7 +74,7 @@ The kernel employs multiple workflow modes to handle tasks of varying complexity
 
 ### 2. Video Editing Subsystem
 
-https://github.com/user-attachments/assets/c9b8c482-a1b7-47cf-8f8a-8a61110ee911
+https://github.com/user-attachments/assets/9df94a10-6920-4636-9c7d-029b2bf2a04c
 
 The Video Editing Subsystem transforms the traditional non-linear editing workflow into a conversation-driven creative experience. Users can describe editing intent through natural language, such as cutting clips, adjusting the timeline, or adding text and image overlays.
 
@@ -95,25 +95,25 @@ When users describe editing intent through natural language, the system parses t
 
 ### 3. 3D Sandbox Subsystem
 
-<img src="https://github.com/HippoxHQ/assets/blob/main/demo/demo_8.png?raw=true" width="100%" >
+https://github.com/user-attachments/assets/e2d083fb-8bc5-4ad2-a766-e5112a7b0bb1
 
 The 3D Sandbox Subsystem provides an environment for generating and manipulating three-dimensional scenes through conversation. Users can describe the 3D scene they wish to build in natural language, and the system generates the corresponding code and renders it in real-time within the viewport. All historically generated 3D scenes can be revisited and reused, with support for scene snapshot switching and GIF animation export, transforming 3D content creation from code writing to language description.
 
 ### 4. Maps & Geographic Information Subsystem
 
-<img src="https://github.com/HippoxHQ/assets/blob/main/demo/demo_7.png?raw=true" width="100%" >
+https://github.com/user-attachments/assets/c1a5f011-7cba-4968-8c16-67cedc336e4b
 
 The Maps Subsystem integrates professional geographic information visualization capabilities. Users can place markers, draw routes, and create heatmaps and cluster analyses on maps through conversation. The system parses geographic intent and overlays corresponding layers and markers on the interactive Earth view, converting complex geospatial analysis into intuitive conversational interaction.
 
 ### 5. Financial Data Analysis Subsystem
 
-<img src="https://github.com/HippoxHQ/assets/blob/main/demo/demo_5.png?raw=true" width="100%" >
+https://github.com/user-attachments/assets/ca3ce94c-57de-4bed-b633-933fe8f737f3
 
 The Financial Subsystem provides real-time financial data visualization and analysis capabilities. Users can query and display price trends and technical charts for financial products such as stocks and cryptocurrencies through conversation. The system integrates real-time market data, news tickers, and interactive candlestick charts, enabling users to explore and analyze financial data through dialogue.
 
 ### 6. Code Development Subsystem
 
-<img src="https://github.com/HippoxHQ/assets/blob/main/demo/demo_6.png?raw=true" width="100%" >
+https://github.com/user-attachments/assets/9cc68f1a-0c97-46c9-96c9-d794fd5e2788
 
 The Code Development Subsystem deeply integrates AI-assisted programming into the desktop development environment. Users can describe development requirements through natural language, and the system drives code generation and modification. The core feature of this subsystem is the controllability of code changes—when AI modifies code, the system presents a side-by-side comparison view showing the differences before and after modification; changes are only applied after user confirmation, ensuring developers maintain full control over the codebase.
 
