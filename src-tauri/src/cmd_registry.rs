@@ -654,6 +654,9 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         subsystem::cmd_effects_delete_filter,
         subsystem::cmd_effects_delete_vfx,
         subsystem::cmd_effects_delete_camera_motion,
+        subsystem::cmd_effects_get_filter_type_list_flat,
+        subsystem::cmd_effects_get_vfx_type_list_flat,
+        subsystem::cmd_effects_get_camera_motion_type_list_flat,
         // animation 
         subsystem::cmd_get_animation_properties,
         subsystem::cmd_add_time_animation,

@@ -60,7 +60,9 @@ The kernel employs multiple workflow modes to handle tasks of varying complexity
 
 ### 2. Video Editing Subsystem
 
-<img src="https://github.com/HippoxHQ/assets/blob/main/demo/demo_4.png?raw=true" width="100%" >
+<!-- markdownlint-disable MD033 -->
+
+<video src="https://github.com/HippoxHQ/assets/raw/main/demo/hippoxOS_VideoEditor_Demo_1.mp4" controls></video>
 
 The Video Editing Subsystem transforms the traditional non-linear editing workflow into a conversation-driven creative experience. Users can describe editing intent through natural language, such as cutting clips, adjusting the timeline, or adding text and image overlays.
 
