@@ -13,6 +13,20 @@ make LLM the operating system interpretation layer.
 </p>
 <img src="https://github.com/HippoxHQ/assets/blob/main/banner/bg_6.jpg?raw=true" width="100%" >
 
+## Official Channels & Community
+
+| Platform         | URL                                                                                     |
+| ---------------- | --------------------------------------------------------------------------------------- |
+| Official Website | https://hippox.vercel.app/                                                              |
+| X (Twitter)      | https://x.com/HippoxAI                                                                  |
+| Bluesky          | https://bsky.app/profile/hippoxai.bsky.social                                           |
+| Medium           | https://hippox.medium.com/                                                              |
+| Discord          | https://discord.com/invite/jrcZHfZzr                                                    |
+| YouTube          | https://www.youtube.com/@HippoxOS                                                       |
+| Bilibili         | https://space.bilibili.com/9667583                                                      |
+| QQ               | <img src="https://github.com/HippoxHQ/About/raw/main/assets/qq_QR.png" width="100">     |
+| WeChat           | <img src="https://github.com/HippoxHQ/About/raw/main/assets/wechat_QR.png" width="100"> |
+
 ## Overview
 
 HippoxOS is an AI-native desktop operating system. It is not a collection of applications in the traditional sense, but rather a complete operating system platform that uses natural language as its central interaction medium, designed to enable users to comprehensively control and orchestrate computer resources through conversation.

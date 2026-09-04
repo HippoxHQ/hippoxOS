@@ -13,6 +13,20 @@
 </p>
 <img src="https://github.com/HippoxHQ/assets/blob/main/banner/bg_6.jpg?raw=true" width="100%" >
 
+## 官方频道与社区
+
+| Platform         | URL                                                                                     |
+| ---------------- | --------------------------------------------------------------------------------------- |
+| Official Website | https://hippox.vercel.app/                                                              |
+| X (Twitter)      | https://x.com/HippoxAI                                                                  |
+| Bluesky          | https://bsky.app/profile/hippoxai.bsky.social                                           |
+| Medium           | https://hippox.medium.com/                                                              |
+| Discord          | https://discord.com/invite/jrcZHfZzr                                                    |
+| YouTube          | https://www.youtube.com/@HippoxOS                                                       |
+| Bilibili         | https://space.bilibili.com/9667583                                                      |
+| QQ               | <img src="https://github.com/HippoxHQ/About/raw/main/assets/qq_QR.png" width="100">     |
+| WeChat           | <img src="https://github.com/HippoxHQ/About/raw/main/assets/wechat_QR.png" width="100"> |
+
 ## 概述
 
 HippoxOS 是一款面向桌面环境的 AI 原生操作系统。它并非传统意义上的应用程序集合，而是一个以自然语言为中枢交互方式的完整操作系统级平台，旨在让用户通过对话完成对计算机资源的全面控制与调度。
