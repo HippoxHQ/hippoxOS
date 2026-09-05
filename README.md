@@ -11,7 +11,7 @@ make LLM the operating system interpretation layer.
 <p align="center">
 <a href="./README_zh-CN.md">简体中文</a> | <a href="./README.md">English</a>
 </p>
-<img src="https://github.com/HippoxHQ/assets/blob/main/banner/bg_6.jpg?raw=true" width="100%" >
+<img src="https://github.com/HippoxHQ/assets/blob/main/banner/bg_14.jpg?raw=true" width="100%" >
 
 ## Official Channels & Community
 
