@@ -22,6 +22,7 @@ make LLM the operating system interpretation layer.
 | Bluesky          | https://bsky.app/profile/hippoxai.bsky.social                                           |
 | Medium           | https://hippox.medium.com/                                                              |
 | Discord          | https://discord.com/invite/jrcZHfZzr                                                    |
+| Telegram         | https://t.me/hippoxAI                                                                   |
 | YouTube          | https://www.youtube.com/@HippoxOS                                                       |
 | Bilibili         | https://space.bilibili.com/9667583                                                      |
 | QQ               | <img src="https://github.com/HippoxHQ/About/raw/main/assets/qq_QR.png" width="100">     |
