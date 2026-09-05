@@ -17,7 +17,7 @@ make LLM the operating system interpretation layer.
 
 | Platform         | URL                                                                                     |
 | ---------------- | --------------------------------------------------------------------------------------- |
-| Official Website | https://hippox.vercel.app/                                                              |
+| Official Website | https://hippoxos.vercel.app/                                                            |
 | X (Twitter)      | https://x.com/HippoxAI                                                                  |
 | Bluesky          | https://bsky.app/profile/hippoxai.bsky.social                                           |
 | Medium           | https://hippox.medium.com/                                                              |
