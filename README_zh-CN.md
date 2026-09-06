@@ -21,6 +21,7 @@
 | X (Twitter)      | https://x.com/HippoxAI                                                                  |
 | Bluesky          | https://bsky.app/profile/hippoxai.bsky.social                                           |
 | Medium           | https://hippox.medium.com/                                                              |
+| HuggingFace      | https://huggingface.co/HippoxHQ                                                         |
 | Discord          | https://discord.com/invite/jrcZHfZzr                                                    |
 | Telegram         | https://t.me/hippoxAI                                                                   |
 | YouTube          | https://www.youtube.com/@HippoxOS                                                       |
