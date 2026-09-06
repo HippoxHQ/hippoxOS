@@ -350,6 +350,11 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         subsystem::cmd_fetch_a_stock_ohlcv,
         subsystem::cmd_fetch_financial_news,
         subsystem::cmd_fetch_news_by_category,
+        subsystem::cmd_fetch_yahoo_stocks,
+        subsystem::cmd_fetch_binance_klines,
+        subsystem::cmd_fetch_binance_tickers,
+        subsystem::cmd_fetch_hyperliquid_perpetuals,
+        subsystem::cmd_fetch_yahoo_stocks,
         // ================================================ Code Editor ================================================
         //  CodeEditor File Operations 
         subsystem::cmd_open_in_terminal,

@@ -53,6 +53,20 @@ declare global {
     __pageCleanupInProgress: Record<string, boolean>;
     __pendingPageSwitch: string | null;
     __pageSwitchLock: boolean;
+    // Global chart instance for cleanup
+    __chartInstance: any;
+    __chartStateManager: any;
+    __chartDataCache: any;
+    // Global map instance for cleanup
+    __mapInstance: any;
+    // Global code editor instance for cleanup
+    __codeEditorInstance: any;
+    // Global video editor instance for cleanup
+    __videoEditorInstance: any;
+    // Global sandbox3d instance for cleanup
+    __sandbox3dInstance: any;
+    // Global general chat instance for cleanup
+    __generalChatInstance: any;
   }
 }
 if (typeof window !== "undefined") {
@@ -70,6 +84,123 @@ if (typeof window !== "undefined") {
   }
 }
 /**
+ * Page type constants - all destroyable pages
+ */
+const PAGE_TYPES = {
+  GENERAL_CHAT: "generalChat",
+  CHART_CHAT: "chartChat",
+  MAP_CHAT: "mapChat",
+  CODE_EDITOR: "codeEditorChat",
+  VIDEO_EDITOR: "videoEditor",
+  SANDBOX_3D: "sandbox3d",
+  SKILLS_MANAGER: "skillsManager",
+  SCHEDULED_TASKS: "scheduledTasks",
+  USER_PROFILE: "userProfile",
+  TASK_QUEUE: "taskQueue",
+  WORKSPACE: "workspace",
+  WORKSPACE_CONFIG: "workspaceConfig",
+  LOGS: "logs",
+  STORAGE: "storage",
+  SETTINGS: "settings",
+  ENGINE_GROUP: "engine_group",
+} as const;
+type PageType = (typeof PAGE_TYPES)[keyof typeof PAGE_TYPES];
+/**
+ * All subsystem page keys that should be destroyed on switch
+ */
+const SUBSYSTEM_PAGES: PageType[] = [PAGE_TYPES.GENERAL_CHAT, PAGE_TYPES.CHART_CHAT, PAGE_TYPES.MAP_CHAT, PAGE_TYPES.CODE_EDITOR, PAGE_TYPES.VIDEO_EDITOR, PAGE_TYPES.SANDBOX_3D];
+/**
+ * Cleanup function for a specific page type
+ * Each subsystem should define its own cleanup logic here
+ */
+function cleanupPageResources(pageKey: PageType): void {
+  console.log(`[CLEANUP] Cleaning up page: ${pageKey}`);
+  try {
+    switch (pageKey) {
+      case PAGE_TYPES.CHART_CHAT:
+        // Cleanup chart instance
+        if (window.__chartInstance) {
+          try {
+            window.__chartInstance.destroy?.();
+          } catch (e) {
+            console.warn("[CLEANUP] Chart destroy error:", e);
+          }
+          window.__chartInstance = null;
+        }
+        if (window.__chartStateManager) {
+          try {
+            window.__chartStateManager.clear?.();
+          } catch (e) {
+            console.warn("[CLEANUP] Chart state manager clear error:", e);
+          }
+          window.__chartStateManager = null;
+        }
+        window.__chartDataCache = null;
+        break;
+      case PAGE_TYPES.MAP_CHAT:
+        // Cleanup map instance
+        if (window.__mapInstance) {
+          try {
+            window.__mapInstance.destroy?.();
+          } catch (e) {
+            console.warn("[CLEANUP] Map destroy error:", e);
+          }
+          window.__mapInstance = null;
+        }
+        break;
+      case PAGE_TYPES.CODE_EDITOR:
+        // Cleanup code editor instance
+        if (window.__codeEditorInstance) {
+          try {
+            window.__codeEditorInstance.destroy?.();
+          } catch (e) {
+            console.warn("[CLEANUP] Code editor destroy error:", e);
+          }
+          window.__codeEditorInstance = null;
+        }
+        break;
+      case PAGE_TYPES.VIDEO_EDITOR:
+        // Cleanup video editor instance
+        if (window.__videoEditorInstance) {
+          try {
+            window.__videoEditorInstance.destroy?.();
+          } catch (e) {
+            console.warn("[CLEANUP] Video editor destroy error:", e);
+          }
+          window.__videoEditorInstance = null;
+        }
+        break;
+      case PAGE_TYPES.SANDBOX_3D:
+        // Cleanup sandbox3d instance
+        if (window.__sandbox3dInstance) {
+          try {
+            window.__sandbox3dInstance.destroy?.();
+          } catch (e) {
+            console.warn("[CLEANUP] Sandbox3d destroy error:", e);
+          }
+          window.__sandbox3dInstance = null;
+        }
+        break;
+      case PAGE_TYPES.GENERAL_CHAT:
+        // Cleanup general chat instance
+        if (window.__generalChatInstance) {
+          try {
+            window.__generalChatInstance.destroy?.();
+          } catch (e) {
+            console.warn("[CLEANUP] General chat destroy error:", e);
+          }
+          window.__generalChatInstance = null;
+        }
+        break;
+      default:
+        // Generic cleanup for other pages
+        break;
+    }
+  } catch (error) {
+    console.error(`[CLEANUP] Error cleaning up ${pageKey}:`, error);
+  }
+}
+/**
  * Force destroy a page and clean up all its resources
  */
 export const forceDestroyPage = (pageKey: string): void => {
@@ -78,6 +209,10 @@ export const forceDestroyPage = (pageKey: string): void => {
   }
   if (window.__pageCleanupInProgress) {
     window.__pageCleanupInProgress[pageKey] = true;
+  }
+  // First, run the specific cleanup for this page type
+  if (SUBSYSTEM_PAGES.includes(pageKey as PageType)) {
+    cleanupPageResources(pageKey as PageType);
   }
   const resources = window.__pageResources?.[pageKey];
   if (!resources) {
@@ -261,27 +396,6 @@ interface AppContentProps {
   onSendSkillMessage: (message: string, files?: UploadFile[]) => void;
   functionPanel: FunctionPanelController;
 }
-/**
- * Page type constants
- */
-const PAGE_TYPES = {
-  GENERAL_CHAT: "generalChat",
-  CHART_CHAT: "chartChat",
-  MAP_CHAT: "mapChat",
-  CODE_EDITOR: "codeEditorChat",
-  VIDEO_EDITOR: "videoEditor",
-  SANDBOX_3D: "sandbox3d",
-  SKILLS_MANAGER: "skillsManager",
-  SCHEDULED_TASKS: "scheduledTasks",
-  USER_PROFILE: "userProfile",
-  TASK_QUEUE: "taskQueue",
-  WORKSPACE: "workspace",
-  WORKSPACE_CONFIG: "workspaceConfig",
-  LOGS: "logs",
-  STORAGE: "storage",
-  SETTINGS: "settings",
-  ENGINE_GROUP: "engine_group",
-};
 export function AppContent({
   theme,
   onToggleTheme,
@@ -325,7 +439,6 @@ export function AppContent({
   onSendSkillMessage,
   functionPanel,
 }: AppContentProps) {
-  // Minimum width for menu panel
   const MENU_PANEL_MIN_WIDTH = 240;
   const showWelcome = shouldShowWelcome();
   // Function panel state
@@ -336,14 +449,49 @@ export function AppContent({
   const [isFuncPanelResizeHover, setIsFuncPanelResizeHover] = useState(false);
   const [isMenuResizeHover, setIsMenuResizeHover] = useState(false);
   // Refs for page switching and resize
-  const prevContentPanelRef = useRef<ContentPanelView>(currentContentPanel);
+  const prevContentPanelRef = useRef<ContentPanelView | null>(null);
   const isFirstRenderRef = useRef<boolean>(true);
   const pendingCleanupRef = useRef<Set<string>>(new Set());
   const isDraggingFunctionPanel = useRef(false);
   const dragStartX = useRef(0);
   const dragStartWidth = useRef(0);
   /**
-   * Handle page switching with cleanup
+   * Handle page switching with immediate cleanup
+   * Destroys previous page and all its resources immediately
+   */
+  const performPageSwitch = useCallback((prevPage: ContentPanelView | null, currentPage: ContentPanelView | null) => {
+    window.__pageSwitchLock = true;
+    console.log(`[PAGE_SWITCH] Switching from ${prevPage} to ${currentPage}`);
+    // 1. Clean up the previous page immediately
+    if (prevPage) {
+      const prevPageKey = prevPage as string;
+      console.log(`[PAGE_SWITCH] Destroying previous page: ${prevPageKey}`);
+      forceDestroyPage(prevPageKey);
+    }
+    // 2. If previous page was a subsystem page, force cleanup global resources
+    if (prevPage && SUBSYSTEM_PAGES.includes(prevPage as PageType)) {
+      cleanupPageResources(prevPage as PageType);
+    }
+    // 3. Destroy any other pages that are not the current one
+    const allPageKeys = Object.keys(window.__pageResources || {});
+    const currentPageKey = currentPage || PAGE_TYPES.GENERAL_CHAT;
+    allPageKeys.forEach((pageKey) => {
+      if (pageKey !== currentPageKey && !pendingCleanupRef.current.has(pageKey)) {
+        pendingCleanupRef.current.add(pageKey);
+        setTimeout(() => {
+          forceDestroyPage(pageKey);
+          pendingCleanupRef.current.delete(pageKey);
+        }, 0);
+      }
+    });
+    // 4. Clean up general chat if it's not the current page
+    if (prevPage !== PAGE_TYPES.GENERAL_CHAT && currentPage !== PAGE_TYPES.GENERAL_CHAT) {
+      forceDestroyPage(PAGE_TYPES.GENERAL_CHAT);
+    }
+    window.__pageSwitchLock = false;
+  }, []);
+  /**
+   * Monitor page changes and trigger cleanup
    */
   useEffect(() => {
     if (isFirstRenderRef.current) {
@@ -356,45 +504,10 @@ export function AppContent({
     if (prevPage === currentPage) {
       return;
     }
-    const waitForCleanup = async () => {
-      let attempts = 0;
-      while (window.__pageSwitchLock && attempts < 30) {
-        await new Promise((resolve) => setTimeout(resolve, 10));
-        attempts++;
-      }
-      performPageSwitch(prevPage, currentPage);
-    };
-    waitForCleanup();
+    // Perform page switch with immediate cleanup
+    performPageSwitch(prevPage, currentPage);
     prevContentPanelRef.current = currentPage;
-  }, [currentContentPanel]);
-  /**
-   * Perform page switch and cleanup
-   */
-  const performPageSwitch = (prevPage: ContentPanelView | null, currentPage: ContentPanelView | null) => {
-    window.__pageSwitchLock = true;
-    const allPageKeys = Object.keys(window.__pageResources || {});
-    const currentPageKey = currentPage || PAGE_TYPES.GENERAL_CHAT;
-    // Destroy all pages except the current one
-    allPageKeys.forEach((pageKey) => {
-      if (pageKey !== currentPageKey && !pendingCleanupRef.current.has(pageKey)) {
-        pendingCleanupRef.current.add(pageKey);
-        setTimeout(() => {
-          forceDestroyPage(pageKey);
-          pendingCleanupRef.current.delete(pageKey);
-        }, 0);
-      }
-    });
-    // Destroy the previous page specifically
-    if (prevPage) {
-      const prevPageKey = prevPage;
-      forceDestroyPage(prevPageKey);
-    }
-    // Clean up general chat if it was the previous page
-    if (!prevPage || prevPage === PAGE_TYPES.GENERAL_CHAT) {
-      forceDestroyPage(PAGE_TYPES.GENERAL_CHAT);
-    }
-    window.__pageSwitchLock = false;
-  };
+  }, [currentContentPanel, performPageSwitch]);
   /**
    * Toggle function panel maximize state
    */
@@ -503,14 +616,6 @@ export function AppContent({
     }
   }, []);
   /**
-   * Close content panel when switching to general chat
-   */
-  // useEffect(() => {
-  //   if (currentContentPanel === "generalChat") {
-  //     onCloseContentPanel();
-  //   }
-  // }, [currentContentPanel, onCloseContentPanel]);
-  /**
    * Handle session switch - minimize function panel
    */
   useEffect(() => {
@@ -570,14 +675,6 @@ export function AppContent({
       display: "flex" as const,
       flexDirection: "column" as const,
     },
-    resizeHandle: {
-      width: "1px",
-      background: "var(--border-color)",
-      cursor: "col-resize" as const,
-      position: "relative" as const,
-      flexShrink: 0,
-      transition: "width 0.15s, background 0.15s",
-    },
     handleLine: {
       position: "absolute" as const,
       top: "50%",
@@ -612,6 +709,17 @@ export function AppContent({
     },
   };
   /**
+   * Render a subsystem page with a key that forces React to unmount on change
+   * This ensures React destroys the component tree completely
+   */
+  const renderSubsystemPage = (pageKey: PageType, element: React.ReactNode): React.ReactNode => {
+    return (
+      <div key={pageKey} data-page-key={pageKey} style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column" }}>
+        {element}
+      </div>
+    );
+  };
+  /**
    * Render the main layout content
    */
   const renderMainLayout = () => {
@@ -635,7 +743,8 @@ export function AppContent({
           />
         );
       } else {
-        contentElement = (
+        contentElement = renderSubsystemPage(
+          PAGE_TYPES.GENERAL_CHAT,
           <GeneralChatPage
             layoutMode="horizontal"
             onLayoutModeChange={() => {}}
@@ -654,11 +763,12 @@ export function AppContent({
             onDragOverInputChange={setIsDraggingOverInput}
             executionLogs={executionLogs}
             onClearLogs={onClearLogs}
-          />
+          />,
         );
       }
     } else if (isMapPage) {
-      contentElement = (
+      contentElement = renderSubsystemPage(
+        PAGE_TYPES.MAP_CHAT,
         <MapsPage
           layoutMode="horizontal"
           onLayoutModeChange={() => {}}
@@ -676,10 +786,11 @@ export function AppContent({
           onDragOverInputChange={setIsDraggingOverInput}
           executionLogs={executionLogs}
           onClearLogs={onClearLogs}
-        />
+        />,
       );
     } else if (isChartPage) {
-      contentElement = (
+      contentElement = renderSubsystemPage(
+        PAGE_TYPES.CHART_CHAT,
         <ChartPage
           layoutMode="horizontal"
           onLayoutModeChange={() => {}}
@@ -696,10 +807,11 @@ export function AppContent({
           onDragOverInputChange={setIsDraggingOverInput}
           executionLogs={executionLogs}
           onClearLogs={onClearLogs}
-        />
+        />,
       );
     } else if (isCodeEditorChat) {
-      contentElement = (
+      contentElement = renderSubsystemPage(
+        PAGE_TYPES.CODE_EDITOR,
         <CodeEditorPage
           layoutMode="horizontal"
           onLayoutModeChange={() => {}}
@@ -715,13 +827,14 @@ export function AppContent({
           onDragOverInputChange={setIsDraggingOverInput}
           executionLogs={executionLogs}
           onClearLogs={onClearLogs}
-        />
+        />,
       );
     } else if (isVideoEditor) {
-      contentElement = <VideoEditorPage t={t} theme={theme === "dark" ? "dark" : "light"} i18n={language === "zh" ? "zh-cn" : "en"} />;
+      contentElement = renderSubsystemPage(PAGE_TYPES.VIDEO_EDITOR, <VideoEditorPage t={t} theme={theme === "dark" ? "dark" : "light"} i18n={language === "zh" ? "zh-cn" : "en"} />);
     } else if (isSandbox3d) {
-      contentElement = <SandBox3DPage t={t} theme={theme === "dark" ? "dark" : "light"} i18n={language === "zh" ? "zh-cn" : "en"} />;
+      contentElement = renderSubsystemPage(PAGE_TYPES.SANDBOX_3D, <SandBox3DPage t={t} theme={theme === "dark" ? "dark" : "light"} i18n={language === "zh" ? "zh-cn" : "en"} />);
     } else {
+      // Other non-subsystem panels
       switch (currentContentPanel) {
         case "taskQueue":
           contentElement = <TaskQueuePanel t={t} />;

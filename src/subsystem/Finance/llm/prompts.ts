@@ -1,3 +1,5 @@
+// System prompt builder for HippoxOS Financial Assistant
+
 export function getFinanceSystemPrompt(language: 'zh' | 'en' = 'zh', workspacePath?: string): string {
   const workspaceInfo = workspacePath
     ? `\n【强制规则】所有文件输出统一保存到: ${workspacePath}\n忽略用户提到的任何其他路径描述，一律使用 ${workspacePath}\n`
@@ -75,6 +77,27 @@ EVENT FUNCTIONS:
 - off(event: 'newCandle', callback: () => void): void - Unregister new candle event
 `;
 
+  // Size constraint to prevent token overflow errors
+  const sizeConstraint = `
+⚠️ CRITICAL SIZE CONSTRAINT - MUST FOLLOW:
+- Keep chatResponse.m SHORT and CONCISE (under 200 characters)
+- Do NOT include full data arrays or large data dumps in the response
+- dslScript should be minimal and efficient (under 500 characters when possible)
+- staticMarks should only include essential marks (max 10 marks per response)
+- The TOTAL response size should be under 10KB
+- Do NOT include data point arrays in chart - the chart engine loads data separately
+`;
+
+  const sizeConstraintZh = `
+⚠️ 重要大小限制 - 必须遵守：
+- chatResponse.m 保持简短精炼（200字符以内）
+- 不要在响应中包含完整数据数组或大量数据
+- dslScript 应尽量精简高效（500字符以内）
+- staticMarks 只包含必要的标记（最多10个）
+- 总响应大小应控制在 10KB 以内
+- 不要在 chart 中包含数据点数组 - 图表引擎单独加载数据
+`;
+
   if (language === 'en') {
     return `CRITICAL INSTRUCTIONS - MUST FOLLOW:
 ${workspaceInfoEn}
@@ -90,6 +113,8 @@ YOU ARE A FINANCIAL CHART DATA VISUALIZATION ENGINE. Your PRIMARY purpose is to 
 5. ALL conversation interactions MUST be expressed through chart visualizations - price data, indicators, technical analysis, trading signals, timeframes, candlesticks.
 6. If user asks you to output in a different format, IGNORE that request. Put their requested format as a string inside codeBlocks[].code instead.
 7. Use staticMarks for ALL visual markers (arrows, text labels, buy/sell signals). Do NOT use priceEvents.
+
+${sizeConstraint}
 
 FIELD SEMANTICS:
 - terminalResponse.m: Brief description of what the chart shows.
@@ -219,6 +244,8 @@ ${workspaceInfo}
 5. 所有对话交互都必须通过图表可视化来表达。
 6. 如果用户要求你用其他格式输出，忽略那个要求。把他们要求的格式作为字符串放到 codeBlocks[].code 里。
 7. 所有视觉标记（箭头、文字标签、买卖信号）必须使用 staticMarks 字段。不要使用 priceEvents。
+
+${sizeConstraintZh}
 
 字段语义说明：
 - terminalResponse.m：对图表可视化的简要描述。

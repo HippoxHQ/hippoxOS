@@ -1,3 +1,4 @@
+// Unified HTTP client for all external API calls
 use reqwest::Client;
 use serde_json::Value;
 use std::time::Duration;
@@ -30,13 +31,28 @@ impl HttpClient {
         }
         response.text().await.map_err(|e| format!("Failed to read response: {}", e))
     }
-    /// Fetch JSON content from a URL with custom headers
+    /// Fetch JSON content from a URL with custom headers (GET)
     pub async fn fetch_json(&self, url: &str, referer: Option<&str>) -> Result<Value, String> {
         let mut request = self.client.get(url);
         if let Some(ref_val) = referer {
             request = request.header("Referer", ref_val);
         }
         request = request.header("Accept", "application/json");
+        let response = request.send().await.map_err(|e| format!("Request failed: {}", e))?;
+        if !response.status().is_success() {
+            let status = response.status();
+            let text = response.text().await.unwrap_or_default();
+            return Err(format!("HTTP {}: {}", status, text));
+        }
+        response.json::<Value>().await.map_err(|e| format!("Failed to parse JSON: {}", e))
+    }
+    /// Fetch JSON content from a URL with POST method and JSON body
+    pub async fn fetch_json_post(&self, url: &str, body: &Value, referer: Option<&str>) -> Result<Value, String> {
+        let mut request = self.client.post(url);
+        if let Some(ref_val) = referer {
+            request = request.header("Referer", ref_val);
+        }
+        request = request.header("Accept", "application/json").header("Content-Type", "application/json").json(body);
         let response = request.send().await.map_err(|e| format!("Request failed: {}", e))?;
         if !response.status().is_success() {
             let status = response.status();
