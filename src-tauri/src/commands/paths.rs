@@ -9,22 +9,24 @@ use sysinfo::Disks;
 use walkdir::WalkDir;
 /// Application root directory name
 const APP_DIR_NAME: &str = "HippoX";
+/// Subsystem Directory
+const SUB_SYSTEM_PATH: &str = "subsystem";
 /// Video Editing System directory name
 const VIDEO_EDIT_DIR_NAME: &str = "VideoEdit";
 /// Video Dialog History directory name
 const VIDEO_DIALOG_HISTORY_DIR_NAME: &str = "VideoDialogHistory";
 /// SandBox3D Dialog History directory name
-const SANDBOX3D_DIALOG_HISTORY_DIR_NAME: &str = "SandBox3DDialogHistory";
-/// Dialog History directory name
-const DIALOG_HISTORY_DIR_NAME: &str = "DialogHistory";
-/// Chart Dialog History directory name
-const CHART_DIALOG_HISTORY_DIR_NAME: &str = "ChartDialogHistory";
+const SANDBOX3D_DIALOG_HISTORY_DIR_NAME: &str = "SandBox3D";
+/// General History directory name
+const GENERAL_HISTORY_DIR_NAME: &str = "General";
+/// Finance Dialog History directory name
+const FINANCE_DIALOG_HISTORY_DIR_NAME: &str = "Finance";
 /// Map Dialog History directory name
-const MAP_DIALOG_HISTORY_DIR_NAME: &str = "MapDialogHistory";
+const MAP_DIALOG_HISTORY_DIR_NAME: &str = "Map";
 /// Code Editor Dialog History directory name
-const CODE_EDITOR_DIALOG_HISTORY_DIR_NAME: &str = "CodeEditorDialogHistory";
+const CODE_EDITOR_DIALOG_HISTORY_DIR_NAME: &str = "CodeEditor";
 /// Material Favorites directory name
-const MATERIAL_FAVORITES_DIR_NAME: &str = "MaterialFavorites";
+// const MATERIAL_FAVORITES_DIR_NAME: &str = "MaterialFavorites";
 /// Skills Market directory name
 const SKILLS_MARKET_DIR_NAME: &str = "SkillsMarket";
 /// Scheduled Tasks directory name
@@ -90,36 +92,36 @@ pub fn get_external_cache_sticker_dir() -> PathBuf {
     get_app_root_dir().join(EXTERNAL_RESOURCE).join(EXTERNAL_RESOURCE_STICKER)
 }
 /// Material favorites directory: HippoX/MaterialFavorites
-pub fn get_material_favorites_dir() -> PathBuf {
-    get_app_root_dir().join(MATERIAL_FAVORITES_DIR_NAME)
-}
+// pub fn get_material_favorites_dir() -> PathBuf {
+//     get_app_root_dir().join(MATERIAL_FAVORITES_DIR_NAME)
+// }
 /// Video Editing System directory: HippoX/VideoEdit
 pub fn get_video_editing_system_root_dir() -> PathBuf {
-    get_app_root_dir().join(VIDEO_EDIT_DIR_NAME)
+    get_app_root_dir().join(SUB_SYSTEM_PATH).join(VIDEO_EDIT_DIR_NAME)
 }
 /// Video Editing System Dialog History Directory: HippoX/VideoEdit/VideoDialogHistory
 pub fn get_video_editing_system_dialog_history_dir() -> PathBuf {
-    get_app_root_dir().join(VIDEO_EDIT_DIR_NAME).join(VIDEO_DIALOG_HISTORY_DIR_NAME)
+    get_app_root_dir().join(SUB_SYSTEM_PATH).join(VIDEO_EDIT_DIR_NAME).join(VIDEO_DIALOG_HISTORY_DIR_NAME)
 }
 /// SandBox3D Dialog history directory: HippoX/SandBox3DDialogHistory
 pub fn get_sandbox3d_dialog_history_dir() -> PathBuf {
-    get_app_root_dir().join(SANDBOX3D_DIALOG_HISTORY_DIR_NAME)
+    get_app_root_dir().join(SUB_SYSTEM_PATH).join(SANDBOX3D_DIALOG_HISTORY_DIR_NAME)
 }
-/// Dialog history directory: HippoX/DialogHistory
-pub fn get_dialog_history_dir() -> PathBuf {
-    get_app_root_dir().join(DIALOG_HISTORY_DIR_NAME)
+/// General history directory: HippoX/DialogHistory
+pub fn get_general_history_dir() -> PathBuf {
+    get_app_root_dir().join(SUB_SYSTEM_PATH).join(GENERAL_HISTORY_DIR_NAME)
 }
-/// Chart Dialog history directory: HippoX/ChartDialogHistory
-pub fn get_chart_dialog_history_dir() -> PathBuf {
-    get_app_root_dir().join(CHART_DIALOG_HISTORY_DIR_NAME)
+/// Finance Dialog history directory: HippoX/ChartDialogHistory
+pub fn get_finance_dialog_history_dir() -> PathBuf {
+    get_app_root_dir().join(SUB_SYSTEM_PATH).join(FINANCE_DIALOG_HISTORY_DIR_NAME)
 }
 /// Map Dialog history directory: HippoX/MapDialogHistory
 pub fn get_map_dialog_history_dir() -> PathBuf {
-    get_app_root_dir().join(MAP_DIALOG_HISTORY_DIR_NAME)
+    get_app_root_dir().join(SUB_SYSTEM_PATH).join(MAP_DIALOG_HISTORY_DIR_NAME)
 }
 /// Code Editor Dialog history directory: HippoX/CodeEditorDialogHistory
 pub fn get_codeeditor_dialog_history_dir() -> PathBuf {
-    get_app_root_dir().join(CODE_EDITOR_DIALOG_HISTORY_DIR_NAME)
+    get_app_root_dir().join(SUB_SYSTEM_PATH).join(CODE_EDITOR_DIALOG_HISTORY_DIR_NAME)
 }
 /// Skill market directory: HippoX/SkillsMarket
 pub fn get_skills_market_dir() -> PathBuf {
@@ -276,8 +278,8 @@ pub fn write_log(level: &str, message: &str, details: Option<&str>) -> Result<()
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DataPaths {
     pub app_root_dir: String,
-    pub dialog_history_dir: String,
-    pub chart_dialog_history_dir: String,
+    pub general_history_dir: String,
+    pub finance_dialog_history_dir: String,
     pub map_dialog_history_dir: String,
     pub codeeditor_dialog_history_dir: String,
     pub video_editing_system_dialog_history_dir: String,
@@ -292,8 +294,8 @@ pub struct DataPaths {
 pub fn cmd_get_data_paths() -> DataPaths {
     DataPaths {
         app_root_dir: get_app_root_dir().to_string_lossy().to_string(),
-        dialog_history_dir: get_dialog_history_dir().to_string_lossy().to_string(),
-        chart_dialog_history_dir: get_chart_dialog_history_dir().to_string_lossy().to_string(),
+        general_history_dir: get_general_history_dir().to_string_lossy().to_string(),
+        finance_dialog_history_dir: get_finance_dialog_history_dir().to_string_lossy().to_string(),
         map_dialog_history_dir: get_map_dialog_history_dir().to_string_lossy().to_string(),
         codeeditor_dialog_history_dir: get_codeeditor_dialog_history_dir().to_string_lossy().to_string(),
         video_editing_system_dialog_history_dir: get_video_editing_system_dialog_history_dir().to_string_lossy().to_string(),

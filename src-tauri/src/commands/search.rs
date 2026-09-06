@@ -1,8 +1,7 @@
-use crate::commands::get_skills_market_dir;
 use crate::commands::paths::{
-    get_chart_dialog_history_dir, get_codeeditor_dialog_history_dir, get_dialog_history_dir, get_map_dialog_history_dir,
-    get_sandbox3d_dialog_history_dir, get_video_editing_system_dialog_history_dir,
+    get_codeeditor_dialog_history_dir, get_map_dialog_history_dir, get_sandbox3d_dialog_history_dir, get_video_editing_system_dialog_history_dir,
 };
+use crate::commands::{get_finance_dialog_history_dir, get_general_history_dir, get_skills_market_dir};
 use crate::commons::{get_logs_dir, get_sessions_dir};
 use serde::{Deserialize, Serialize};
 use std::fs;
@@ -51,12 +50,12 @@ pub struct SearchMessagesResponse {
 /// Each subsystem has the same directory structure (session folders with config.json and chat.json)
 fn get_all_dialog_history_dirs() -> Vec<(PathBuf, &'static str)> {
     vec![
-        (get_dialog_history_dir(), "general"),
-        (get_chart_dialog_history_dir(), "chart"),
+        (get_general_history_dir(), "general"),
+        (get_finance_dialog_history_dir(), "finance"),
         (get_map_dialog_history_dir(), "map"),
         (get_codeeditor_dialog_history_dir(), "codeeditor"),
         (get_sandbox3d_dialog_history_dir(), "sandbox3d"),
-        (get_video_editing_system_dialog_history_dir(), "video"),
+        (get_video_editing_system_dialog_history_dir(), "videoediting"),
     ]
 }
 /// Safely truncate text to a maximum length without breaking UTF-8 characters

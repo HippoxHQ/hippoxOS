@@ -1,5 +1,5 @@
 use crate::commands::add_session_to_profile;
-use crate::commands::get_chart_dialog_history_dir;
+use crate::commands::get_finance_dialog_history_dir;
 use crate::commands::get_settings_dir;
 use crate::commons::FileUtils;
 use chrono::Local;
@@ -39,7 +39,7 @@ pub fn cmd_create_chart_dialog_session(
     initial_terminal_content: &str,
     workflow_mode: Option<String>,
 ) -> Result<String, String> {
-    let dir = get_chart_dialog_history_dir();
+    let dir = get_finance_dialog_history_dir();
     if !dir.exists() {
         fs::create_dir_all(&dir).map_err(|e| format!("Failed to create chart dialog history directory: {}", e))?;
     }
@@ -67,7 +67,7 @@ pub fn cmd_create_chart_dialog_session(
 }
 #[tauri::command]
 pub fn cmd_list_chart_dialog_sessions() -> Result<Vec<serde_json::Value>, String> {
-    let dir = get_chart_dialog_history_dir();
+    let dir = get_finance_dialog_history_dir();
     if !dir.exists() {
         return Ok(vec![]);
     }
@@ -106,7 +106,7 @@ pub fn cmd_list_chart_dialog_sessions() -> Result<Vec<serde_json::Value>, String
 }
 #[tauri::command]
 pub fn cmd_load_chart_session_config(session_id: &str) -> Result<Option<serde_json::Value>, String> {
-    let dir = get_chart_dialog_history_dir();
+    let dir = get_finance_dialog_history_dir();
     let config_path = dir.join(session_id).join("config.json");
     if config_path.exists() {
         let content = fs::read_to_string(&config_path).map_err(|e| format!("Failed to read config: {}", e))?;
@@ -118,7 +118,7 @@ pub fn cmd_load_chart_session_config(session_id: &str) -> Result<Option<serde_js
 }
 #[tauri::command]
 pub fn cmd_update_chart_session_config(session_id: &str, updates: String) -> Result<(), String> {
-    let dir = get_chart_dialog_history_dir();
+    let dir = get_finance_dialog_history_dir();
     let session_dir = dir.join(session_id);
     let config_path = session_dir.join("config.json");
     if !config_path.exists() {
@@ -139,7 +139,7 @@ pub fn cmd_update_chart_session_config(session_id: &str, updates: String) -> Res
 }
 #[tauri::command]
 pub fn cmd_delete_chart_dialog_session(session_id: &str) -> Result<(), String> {
-    let dir = get_chart_dialog_history_dir();
+    let dir = get_finance_dialog_history_dir();
     let session_dir = dir.join(session_id);
     if session_dir.exists() {
         FileUtils::remove_dir_all_force(&session_dir).map_err(|e| format!("Failed to delete chart session: {:?}", e))?;
@@ -153,7 +153,7 @@ pub fn cmd_delete_chart_dialog_session(session_id: &str) -> Result<(), String> {
 }
 #[tauri::command]
 pub fn cmd_save_chart_chat_content(session_id: &str, content: &str) -> Result<(), String> {
-    let dir = get_chart_dialog_history_dir();
+    let dir = get_finance_dialog_history_dir();
     let session_dir = dir.join(session_id);
     let chat_path = session_dir.join("chat.json");
     if !session_dir.exists() {
@@ -172,7 +172,7 @@ pub fn cmd_save_chart_chat_content(session_id: &str, content: &str) -> Result<()
 }
 #[tauri::command]
 pub fn cmd_save_chart_terminal_content(session_id: &str, content: &str) -> Result<(), String> {
-    let dir = get_chart_dialog_history_dir();
+    let dir = get_finance_dialog_history_dir();
     let session_dir = dir.join(session_id);
     let terminal_path = session_dir.join("terminal.json");
     if !session_dir.exists() {
@@ -183,7 +183,7 @@ pub fn cmd_save_chart_terminal_content(session_id: &str, content: &str) -> Resul
 }
 #[tauri::command]
 pub fn cmd_load_chart_chat_content(session_id: &str) -> Result<Option<String>, String> {
-    let dir = get_chart_dialog_history_dir();
+    let dir = get_finance_dialog_history_dir();
     let chat_path = dir.join(session_id).join("chat.json");
     if chat_path.exists() {
         let content = fs::read_to_string(&chat_path).map_err(|e| format!("Failed to read chart chat content: {}", e))?;
@@ -194,7 +194,7 @@ pub fn cmd_load_chart_chat_content(session_id: &str) -> Result<Option<String>, S
 }
 #[tauri::command]
 pub fn cmd_load_chart_terminal_content(session_id: &str) -> Result<Option<String>, String> {
-    let dir = get_chart_dialog_history_dir();
+    let dir = get_finance_dialog_history_dir();
     let terminal_path = dir.join(session_id).join("terminal.json");
     if terminal_path.exists() {
         let content = fs::read_to_string(&terminal_path).map_err(|e| format!("Failed to read chart terminal content: {}", e))?;
@@ -205,7 +205,7 @@ pub fn cmd_load_chart_terminal_content(session_id: &str) -> Result<Option<String
 }
 #[tauri::command]
 pub fn cmd_save_chart_task_content(session_id: &str, content: &str) -> Result<(), String> {
-    let dir = get_chart_dialog_history_dir();
+    let dir = get_finance_dialog_history_dir();
     let session_dir = dir.join(session_id);
     let task_path = session_dir.join("task.json");
     if !session_dir.exists() {
@@ -216,7 +216,7 @@ pub fn cmd_save_chart_task_content(session_id: &str, content: &str) -> Result<()
 }
 #[tauri::command]
 pub fn cmd_load_chart_task_content(session_id: &str) -> Result<Option<String>, String> {
-    let dir = get_chart_dialog_history_dir();
+    let dir = get_finance_dialog_history_dir();
     let task_path = dir.join(session_id).join("task.json");
     if task_path.exists() {
         let content = fs::read_to_string(&task_path).map_err(|e| format!("Failed to read chart task content: {}", e))?;

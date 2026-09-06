@@ -190,7 +190,7 @@ impl TrayManager {
         Self::ensure_window_and_emit(app_handle, "open-settings");
     }
     fn open_history_directory() {
-        let history_dir = crate::commands::get_dialog_history_dir();
+        let history_dir = crate::commands::get_general_history_dir();
         if !history_dir.exists() {
             let _ = std::fs::create_dir_all(&history_dir);
         }

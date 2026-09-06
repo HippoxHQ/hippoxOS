@@ -1,7 +1,7 @@
 use crate::commands::{
-    get_app_root_dir, get_cache_dir, get_chart_dialog_history_dir, get_codeeditor_dialog_history_dir, get_data_dir, get_dialog_history_dir,
-    get_external_cache_audio_dir, get_external_cache_image_material_dir, get_external_cache_sfx_dir, get_external_cache_sticker_dir,
-    get_external_cache_video_material_dir, get_log_dir, get_map_dialog_history_dir, get_material_favorites_dir, get_notifications_dir,
+    get_app_root_dir, get_cache_dir, get_codeeditor_dialog_history_dir, get_data_dir, get_external_cache_audio_dir,
+    get_external_cache_image_material_dir, get_external_cache_sfx_dir, get_external_cache_sticker_dir, get_external_cache_video_material_dir,
+    get_finance_dialog_history_dir, get_general_history_dir, get_log_dir, get_map_dialog_history_dir, get_notifications_dir,
     get_sandbox3d_dialog_history_dir, get_scheduled_tasks_dir, get_settings_dir, get_skill_history_dir, get_skills_dir, get_skills_market_dir,
     get_video_editing_system_dialog_history_dir,
 };
@@ -11,8 +11,8 @@ use std::path::Path;
 pub fn init_directories() -> Result<(), String> {
     let dirs = vec![
         get_app_root_dir(),
-        get_dialog_history_dir(),
-        get_chart_dialog_history_dir(),
+        get_general_history_dir(),
+        get_finance_dialog_history_dir(),
         get_map_dialog_history_dir(),
         get_codeeditor_dialog_history_dir(),
         get_video_editing_system_dialog_history_dir(),
@@ -32,7 +32,7 @@ pub fn init_directories() -> Result<(), String> {
         // get_taskpool_dir(),
         get_external_cache_video_material_dir(),
         get_external_cache_image_material_dir(),
-        get_material_favorites_dir(),
+        // get_material_favorites_dir(),
         get_external_cache_audio_dir(),
         get_external_cache_sfx_dir(),
         get_external_cache_sticker_dir(),
@@ -46,7 +46,7 @@ pub fn init_directories() -> Result<(), String> {
 }
 /// Save dialog session to file
 pub fn save_dialog_session(session_id: &str, data: &str) -> Result<String, String> {
-    let dir = get_dialog_history_dir();
+    let dir = get_general_history_dir();
     if !dir.exists() {
         fs::create_dir_all(&dir).map_err(|e| format!("Failed to create dialog history directory: {}", e))?;
     }
@@ -114,7 +114,7 @@ pub fn load_internal_setting(setting_dir: &Path, key: &str) -> Result<Option<Str
     }
 }
 pub fn init_default_session_if_empty() -> Result<(), String> {
-    let dir = get_dialog_history_dir();
+    let dir = get_general_history_dir();
     if !dir.exists() {
         fs::create_dir_all(&dir).map_err(|e| format!("Failed to create dialog history directory: {}", e))?;
     }
