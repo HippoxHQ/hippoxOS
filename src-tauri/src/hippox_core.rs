@@ -92,6 +92,62 @@ pub struct LlmInstance {
     pub extra: HashMap<String, String>,
     pub is_default: Option<bool>,
 }
+/**
+ * Initialize ONLY the default Hippox instance
+ * This reduces memory usage by not loading all LLM instances at startup
+ */
+pub(crate) async fn init_default_hippox_instance() -> Result<(), String> {
+    if let Err(e) = sync_all_to_hippox_core().await {
+        log::error!("Failed to sync config to Hippox core: {}", e);
+    }
+    let (skills_dir, default_instance_id) = {
+        let config = HIPPOX_APP_CONFIG.read().await;
+        let skills_dir = config.workspace.skills_dir.clone();
+        // Find default instance or first one
+        let default_id = config
+            .llm_instances
+            .iter()
+            .find(|(_, instance)| instance.is_default == Some(true))
+            .map(|(id, _)| id.clone())
+            .or_else(|| config.llm_instances.keys().next().cloned());
+        (skills_dir, default_id)
+    };
+    // If no LLM instances configured, skip initialization
+    let instance_id = match default_instance_id {
+        Some(id) => id,
+        None => {
+            log::warn!("No LLM instances configured, skipping Hippox initialization");
+            return Ok(());
+        }
+    };
+    let instance = {
+        let config = HIPPOX_APP_CONFIG.read().await;
+        config.llm_instances.get(&instance_id).cloned()
+    };
+    let instance = match instance {
+        Some(inst) => inst,
+        None => {
+            log::warn!("Default LLM instance not found: {}", instance_id);
+            return Ok(());
+        }
+    };
+    match create_hippox_instance(&instance, &skills_dir).await {
+        Ok(hippox) => {
+            let mut instances = HIPPOX_INSTANCES.write().await;
+            instances.insert(instance_id.clone(), Arc::new(hippox));
+            log::info!("Initialized default Hippox instance: {}", instance_id);
+            Ok(())
+        }
+        Err(e) => {
+            log::error!("Failed to initialize default Hippox instance {}: {}", instance_id, e);
+            Err(e)
+        }
+    }
+}
+/**
+ * Initialize all Hippox instances (deprecated - use init_default_hippox_instance instead)
+ * Kept for backwards compatibility but no longer used at startup
+ */
 pub(crate) async fn init_all_hippox_instances() -> Result<(), String> {
     if let Err(e) = sync_all_to_hippox_core().await {
         log::error!("Failed to sync config to Hippox core: {}", e);

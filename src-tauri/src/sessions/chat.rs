@@ -1,5 +1,5 @@
 use crate::callback::{HippoXWorkflowCallback, HippoxDriverCallback};
-use crate::commands::{cmd_get_disabled_drivers, load_config_from_file, TaskInfo, HIPPOX_APP_CONFIG};
+use crate::commands::{HIPPOX_APP_CONFIG, TaskInfo, cmd_get_disabled_drivers, increment_session_chat_count, load_config_from_file};
 use crate::context::{get_conversation_history, store_user_message, Context};
 use crate::hippox_core::{get_default_hippox, init_all_hippox_instances};
 use crate::state::AppState;
@@ -108,6 +108,8 @@ pub async fn cmd_send_chat_message_async(
     if let Some(ref mem_ref) = mem {
         let _ = store_user_message(mem_ref, &session, &raw_message).await;
     }
+    // Increment chat count in profile for this session
+    let _ = increment_session_chat_count(&session);
     // Build enhanced message with history
     let enhanced_message = build_enhanced_message(mem.as_deref(), &session, &message).await;
     let workflow_callback = Arc::new(HippoXWorkflowCallback::new(app_handle.clone(), session.clone()));

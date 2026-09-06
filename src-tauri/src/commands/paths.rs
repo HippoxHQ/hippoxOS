@@ -38,7 +38,7 @@ const SETTINGS_DIR_NAME: &str = "settings";
 /// Data directory name
 const DATA_DIR_NAME: &str = "data";
 /// Taskpool directory name
-const TASKPOOL_DIR_NAME: &str = "taskpool";
+// const TASKPOOL_DIR_NAME: &str = "taskpool";
 /// Favorites directory name
 const FAVORITES_DIR_NAME: &str = "favorites";
 /// Favorites skill subdirectory name
@@ -146,9 +146,9 @@ pub fn get_data_dir() -> PathBuf {
     get_app_root_dir().join(DATA_DIR_NAME)
 }
 /// Get taskpool backup directory: HippoX/taskpool
-pub fn get_taskpool_dir() -> PathBuf {
-    get_app_root_dir().join(TASKPOOL_DIR_NAME)
-}
+// pub fn get_taskpool_dir() -> PathBuf {
+//     get_app_root_dir().join(TASKPOOL_DIR_NAME)
+// }
 /// Favorites directory: HippoX/favorites
 pub fn get_favorites_dir() -> PathBuf {
     get_app_root_dir().join(FAVORITES_DIR_NAME)

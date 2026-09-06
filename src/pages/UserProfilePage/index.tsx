@@ -1,13 +1,15 @@
 import React, { useState, useEffect, useRef } from "react";
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
-import { taskPoolCommands } from "../../core/TaskPool";
+import { profileCommands } from "../../command/Profile";
+import type { UserProfile as UserProfileType } from "../../command/Profile";
 import { UserProfileProps, UserStats } from "./types";
 import { UserIcon, MessageIcon, FileTextIcon, CrystalIcon, SettingsIcon, FireIcon, TrophyIcon, ChartIcon, BarChart3Icon, ClockIcon, LoadingSpinnerIcon, RefreshCwIcon } from "./icons";
-import { loadAllTasksFromBackups, loadAllSessions, loadSessionChat, formatNumber, formatLocalDate } from "./utils";
+import { formatNumber, formatLocalDate } from "./utils";
 import { osCommands } from "../../command/os";
 import Heatmap from "../../components/Heatmap";
 import { showToast, ToastType } from "../../components/Toast";
 import { showTooltip } from "../../components/Tooltip";
+
 const UserProfile: React.FC<UserProfileProps> = ({ t, onClose, currentSessionId }) => {
   const [userData, setUserData] = useState<UserStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -20,52 +22,81 @@ const UserProfile: React.FC<UserProfileProps> = ({ t, onClose, currentSessionId 
   const [hourlyData, setHourlyData] = useState<any[]>([]);
   const heatmapContainerRef = useRef<HTMLDivElement>(null);
   const [heatmapKey, setHeatmapKey] = useState(0);
+  /** Profile token totals loaded directly from profile (no polling) */
+  const [profileTokens, setProfileTokens] = useState<{ input: number; output: number }>({ input: 0, output: 0 });
+  /** Total task count from profile */
+  const [totalTaskCount, setTotalTaskCount] = useState<number>(0);
+  /** Session stats from profile */
+  const [sessionStats, setSessionStats] = useState<{
+    totalSessions: number;
+    totalMessages: number;
+    sessionChatMap: Map<string, number>;
+  }>({ totalSessions: 0, totalMessages: 0, sessionChatMap: new Map() });
+
+  // init
   useEffect(() => {
-    const persistTaskPool = async () => {
-      try {
-        await taskPoolCommands.persist();
-      } catch (error) {
-        console.error("Failed to persist task pool:", error);
-      }
-    };
-    persistTaskPool();
     loadRealUserData();
   }, []);
+
   const loadRealUserData = async () => {
     setLoading(true);
     try {
-      const sessions = await loadAllSessions();
-      const totalSessions = sessions.length;
-      const allTasks = await loadAllTasksFromBackups();
-      const totalTasksExecuted = allTasks.length;
+      // Load profile directly - get all stats from profile
+      // No need to load sessions or chat.json files from disk
+      let profile: UserProfileType | null = null;
+      try {
+        profile = await profileCommands.getProfile();
+      } catch (e) {
+        console.warn("Failed to load profile, using defaults:", e);
+      }
+
+      // Get token counts from profile top-level fields
+      const totalInputTokens = profile?.total_input_tokens || 0;
+      const totalOutputTokens = profile?.total_output_tokens || 0;
+      const totalTokensUsed = totalInputTokens + totalOutputTokens;
+      setProfileTokens({ input: totalInputTokens, output: totalOutputTokens });
+      setTotalTokens(totalTokensUsed);
+
+      // Get total task count from profile
+      const totalTasksExecuted = profile?.total_task_count || 0;
+      setTotalTaskCount(totalTasksExecuted);
+
+      // Get session stats from profile (NO directory scanning)
+      const totalSessions = profile?.total_sessions_count ? Object.keys(profile.total_sessions_count).length : 0;
       let totalMessages = 0;
-      let totalInputTokens = 0;
-      let totalOutputTokens = 0;
+      const sessionChatMap = new Map<string, number>();
       const activityByDate: Map<string, number> = new Map();
       const dailyDialogCount: Map<string, number> = new Map();
       const hourlyCount: Map<number, number> = new Map();
+
+      // Initialize hourly counts
       for (let i = 0; i < 24; i++) hourlyCount.set(i, 0);
-      for (const session of sessions) {
-        const sessionId = session.session_id;
-        const chatMessages = await loadSessionChat(sessionId);
-        totalMessages += chatMessages.length;
-        for (const msg of chatMessages) {
-          const date = msg.timestamp ? msg.timestamp.split("T")[0] : null;
-          if (date) {
-            activityByDate.set(date, (activityByDate.get(date) || 0) + 1);
-            dailyDialogCount.set(date, (dailyDialogCount.get(date) || 0) + 1);
-          }
-          if (msg.timestamp) {
-            const hour = new Date(msg.timestamp).getHours();
-            hourlyCount.set(hour, (hourlyCount.get(hour) || 0) + 1);
+
+      // Process chat counts from profile
+      if (profile?.total_sessions_chat_count) {
+        for (const [sessionId, chatCount] of Object.entries(profile.total_sessions_chat_count)) {
+          sessionChatMap.set(sessionId, chatCount);
+          totalMessages += chatCount;
+
+          // For activity tracking, we need to know when sessions were created
+          // Use session creation timestamp from total_sessions_count
+          const createdAt = profile.total_sessions_count?.[sessionId];
+          if (createdAt) {
+            const date = new Date(createdAt);
+            const dateStr = formatLocalDate(date);
+            // Add session creation as activity (1 activity per session)
+            activityByDate.set(dateStr, (activityByDate.get(dateStr) || 0) + 1);
+            dailyDialogCount.set(dateStr, (dailyDialogCount.get(dateStr) || 0) + chatCount);
+            // Hourly distribution - use creation hour
+            const hour = date.getHours();
+            hourlyCount.set(hour, (hourlyCount.get(hour) || 0) + chatCount);
           }
         }
       }
-      for (const task of allTasks) {
-        totalInputTokens += task.input_token_count || 0;
-        totalOutputTokens += task.output_token_count || 0;
-      }
-      const totalTokensUsed = totalInputTokens + totalOutputTokens;
+
+      setSessionStats({ totalSessions, totalMessages, sessionChatMap });
+
+      // Build heatmap data
       const today = new Date();
       const startDate = new Date(new Date().getFullYear(), 0, 1);
       const endDate = new Date(new Date().getFullYear(), 11, 31);
@@ -79,7 +110,8 @@ const UserProfile: React.FC<UserProfileProps> = ({ t, onClose, currentSessionId 
       }
       setActivityData(heatmapData);
       setHeatmapKey((prev) => prev + 1);
-      setTotalTokens(totalTokensUsed);
+
+      // Set category data for pie chart using profile values
       setCategoryData([
         {
           name: t("user.inputTokens"),
@@ -92,18 +124,22 @@ const UserProfile: React.FC<UserProfileProps> = ({ t, onClose, currentSessionId 
           color: "#10b981",
         },
       ]);
+
+      // Build dialog data (last 7 days) from profile
       const last7Days: any[] = [];
       for (let i = 6; i >= 0; i--) {
         const date = new Date();
         date.setDate(today.getDate() - i);
         const dateStr = `${date.getMonth() + 1}/${date.getDate()}`;
-        const key = date.toISOString().split("T")[0];
+        const key = formatLocalDate(date);
         last7Days.push({
           label: dateStr,
           count: dailyDialogCount.get(key) || 0,
         });
       }
       setDialogData(last7Days);
+
+      // Build hourly data from profile
       const hourlyDataArray: any[] = [];
       for (let i = 0; i < 24; i++) {
         hourlyDataArray.push({
@@ -112,10 +148,12 @@ const UserProfile: React.FC<UserProfileProps> = ({ t, onClose, currentSessionId 
         });
       }
       setHourlyData(hourlyDataArray);
+
+      // Calculate streak from activity data
       let streak = 0;
       const checkDate = new Date();
       for (let i = 0; i < 365; i++) {
-        const dateStr = checkDate.toISOString().split("T")[0];
+        const dateStr = formatLocalDate(checkDate);
         if (activityByDate.has(dateStr)) {
           streak++;
           checkDate.setDate(checkDate.getDate() - 1);
@@ -123,50 +161,34 @@ const UserProfile: React.FC<UserProfileProps> = ({ t, onClose, currentSessionId 
           break;
         }
       }
-      let username = t("user.defaultUsername") || "用户";
-      let email = `${username}@hippox.local`;
-      try {
-        const systemUsername = await osCommands.getSystemUsername();
-        if (systemUsername && systemUsername !== "用户") {
-          username = systemUsername;
-          email = `${systemUsername}@hippox.local`;
+
+      // Get username
+      let username = profile?.name || t("user.defaultUsername") || "用户";
+      let email = profile?.email || `${username}@hippox.local`;
+      if (!profile) {
+        try {
+          const systemUsername = await osCommands.getSystemUsername();
+          if (systemUsername && systemUsername !== "用户") {
+            username = systemUsername;
+            email = `${systemUsername}@hippox.local`;
+          }
+        } catch (e) {
+          console.error("Failed to get system username:", e);
         }
-      } catch (e) {
-        console.error("Failed to get system username:", e);
       }
+
+      // Set user data
       setUserData({
         username,
         email,
-        joinDate: new Date(),
+        joinDate: profile ? new Date(profile.created_at) : new Date(),
         totalSessions,
         totalMessages,
         totalTokensUsed,
-        totalTasksExecuted,
         favoriteSkills: [],
         streakDays: streak,
         longestStreak: 0,
-        achievements: [
-          // {
-          //   name: t("user.achievementEarlyBird"),
-          //   unlocked: totalMessages > 100,
-          //   icon: <SunriseIcon />,
-          // },
-          // {
-          //   name: t("user.achievementEfficiency"),
-          //   unlocked: totalTasksExecuted > 50,
-          //   icon: <ZapIcon />,
-          // },
-          // {
-          //   name: t("user.achievementExplorer"),
-          //   unlocked: totalSessions > 10,
-          //   icon: <CompassIcon />,
-          // },
-          // {
-          //   name: t("user.achievementTokenMaster"),
-          //   unlocked: totalTokensUsed > 1000000,
-          //   icon: <GemIcon />,
-          // },
-        ],
+        achievements: [],
       });
     } catch (error) {
       console.error("Failed to load user data:", error);
@@ -175,57 +197,74 @@ const UserProfile: React.FC<UserProfileProps> = ({ t, onClose, currentSessionId 
       setLoading(false);
     }
   };
+
+  /**
+   * Regenerate token data for charts using profile values (no polling/task iteration)
+   * Called when date range changes
+   */
   useEffect(() => {
-    const regenerateTokenData = async () => {
-      const allTasks = await loadAllTasksFromBackups();
-      const tasksByDate: Map<string, { input: number; output: number }> = new Map();
-      for (const task of allTasks) {
-        if (task.completed_at) {
-          const date = new Date(task.completed_at * 1000);
-          let key: string;
+    const generateTokenDataFromProfile = async () => {
+      try {
+        // Load profile to get latest token counts from top-level fields
+        const profile = await profileCommands.getProfile();
+        const totalInput = profile.total_input_tokens || 0;
+        const totalOutput = profile.total_output_tokens || 0;
+        setProfileTokens({ input: totalInput, output: totalOutput });
+        setTotalTokens(totalInput + totalOutput);
+
+        // Generate chart data based on date range
+        const days = dateRange === "year" ? 12 : dateRange === "month" ? 30 : 7;
+        const result: any[] = [];
+        const now = new Date();
+
+        // Distribute tokens evenly across the period for visualization
+        // TODO: For daily breakdown, consider storing daily token usage in profile
+        for (let i = days - 1; i >= 0; i--) {
+          let label: string;
           if (dateRange === "year") {
-            key = `${date.getFullYear()}-${date.getMonth() + 1}`;
-          } else if (dateRange === "month") {
-            key = date.toISOString().split("T")[0];
+            const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            label = `${date.getMonth() + 1}${t("user.monthUnit")}`;
           } else {
-            key = date.toISOString().split("T")[0];
+            const date = new Date();
+            date.setDate(now.getDate() - i);
+            label = `${date.getMonth() + 1}/${date.getDate()}`;
           }
-          const existing = tasksByDate.get(key) || { input: 0, output: 0 };
-          existing.input += task.input_token_count || 0;
-          existing.output += task.output_token_count || 0;
-          tasksByDate.set(key, existing);
+
+          const avgInput = Math.round(totalInput / Math.max(days, 1));
+          const avgOutput = Math.round(totalOutput / Math.max(days, 1));
+
+          result.push({
+            label,
+            inputTokens: avgInput,
+            outputTokens: avgOutput,
+            total: avgInput + avgOutput,
+          });
         }
+
+        setTokenData(result);
+
+        // Update pie chart data
+        setCategoryData([
+          {
+            name: t("user.inputTokens"),
+            value: totalInput,
+            color: "#818cf8",
+          },
+          {
+            name: t("user.outputTokens"),
+            value: totalOutput,
+            color: "#10b981",
+          },
+        ]);
+      } catch (error) {
+        console.error("Failed to generate token data from profile:", error);
       }
-      const days = dateRange === "year" ? 12 : dateRange === "month" ? 30 : 7;
-      const result: any[] = [];
-      const now = new Date();
-      for (let i = days - 1; i >= 0; i--) {
-        let label: string;
-        let key: string;
-        if (dateRange === "year") {
-          const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
-          label = `${date.getMonth() + 1}${t("user.monthUnit")}`;
-          key = `${date.getFullYear()}-${date.getMonth() + 1}`;
-        } else {
-          const date = new Date();
-          date.setDate(now.getDate() - i);
-          label = `${date.getMonth() + 1}/${date.getDate()}`;
-          key = date.toISOString().split("T")[0];
-        }
-        const data = tasksByDate.get(key) || { input: 0, output: 0 };
-        result.push({
-          label,
-          inputTokens: data.input,
-          outputTokens: data.output,
-          total: data.input + data.output,
-        });
-      }
-      setTokenData(result);
-      const newTotalTokens = result.reduce((sum, d) => sum + d.total, 0);
-      setTotalTokens(newTotalTokens);
     };
-    regenerateTokenData();
+
+    generateTokenDataFromProfile();
   }, [dateRange, t]);
+
+  // Fix SVG size in heatmap
   useEffect(() => {
     if (!heatmapContainerRef.current) return;
     const fixSvgSize = () => {
@@ -242,26 +281,31 @@ const UserProfile: React.FC<UserProfileProps> = ({ t, onClose, currentSessionId 
       clearInterval(interval);
     };
   }, [activityData]);
+
   const getPeakHour = () => {
     if (hourlyData.length === 0) return t("user.notAvailable") || "暂无";
     const max = Math.max(...hourlyData.map((d) => d.count));
     const peak = hourlyData.find((d) => d.count === max);
     return peak?.hour || t("user.notAvailable") || "暂无";
   };
+
   const getMorningPercent = () => {
     const morning = hourlyData.slice(6, 12).reduce((s, d) => s + d.count, 0);
     const total = hourlyData.reduce((s, d) => s + d.count, 0);
     return total ? Math.round((morning / total) * 100) : 0;
   };
+
   const getNightPercent = () => {
     const night = hourlyData.slice(18, 24).reduce((s, d) => s + d.count, 0);
     const total = hourlyData.reduce((s, d) => s + d.count, 0);
     return total ? Math.round((night / total) * 100) : 0;
   };
+
   const handleRefreshData = () => {
     loadRealUserData();
     showToast(ToastType.SUCCESS, t("user.dataRefreshed") || "数据已刷新");
   };
+
   const stats = userData || {
     username: t("user.defaultUsername") || "用户",
     email: "",
@@ -275,6 +319,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ t, onClose, currentSessionId 
     longestStreak: 0,
     achievements: [],
   };
+
   if (loading) {
     return (
       <div
@@ -296,6 +341,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ t, onClose, currentSessionId 
       </div>
     );
   }
+
   return (
     <div
       style={{
@@ -381,6 +427,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ t, onClose, currentSessionId 
           </button>
         </div>
       </div>
+
       <div style={{ flex: 1, overflowY: "auto" }}>
         {/* User Info Section */}
         <div
@@ -452,6 +499,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ t, onClose, currentSessionId 
               {t("user.joined")} {stats.joinDate?.toLocaleDateString()}
             </div>
           </div>
+
           {/* Stats Grid */}
           <div
             style={{
@@ -613,7 +661,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ t, onClose, currentSessionId 
                     whiteSpace: "nowrap",
                   }}
                 >
-                  {formatNumber(stats.totalTasksExecuted)}
+                  {formatNumber(totalTaskCount)}
                 </div>
                 <div
                   style={{
@@ -712,6 +760,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ t, onClose, currentSessionId 
             </div>
           </div>
         </div>
+
         {/* Heatmap Section */}
         <div style={{ background: "var(--bg-secondary)", padding: "10px" }}>
           <div
@@ -776,6 +825,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ t, onClose, currentSessionId 
             </span>
           </div>
         </div>
+
         {/* Token Stats Section */}
         <div
           style={{
@@ -831,6 +881,8 @@ const UserProfile: React.FC<UserProfileProps> = ({ t, onClose, currentSessionId 
                 ))}
               </div>
             </div>
+
+            {/* Token Summary */}
             <div
               style={{
                 display: "flex",
@@ -874,7 +926,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ t, onClose, currentSessionId 
                       color: "#818cf8",
                     }}
                   >
-                    {formatNumber(tokenData.reduce((s, d) => s + d.inputTokens, 0))}
+                    {formatNumber(profileTokens.input)}
                   </div>
                   <div style={{ fontSize: "8px", color: "var(--text-muted)" }}>{t("user.inputTokens")}</div>
                 </div>
@@ -886,7 +938,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ t, onClose, currentSessionId 
                       color: "#10b981",
                     }}
                   >
-                    {formatNumber(tokenData.reduce((s, d) => s + d.outputTokens, 0))}
+                    {formatNumber(profileTokens.output)}
                   </div>
                   <div style={{ fontSize: "8px", color: "var(--text-muted)" }}>{t("user.outputTokens")}</div>
                 </div>
@@ -922,20 +974,17 @@ const UserProfile: React.FC<UserProfileProps> = ({ t, onClose, currentSessionId 
                       color: "var(--text-primary)",
                     }}
                   >
-                    {(
-                      tokenData.reduce((s, d) => s + d.inputTokens, 0) /
-                      Math.max(
-                        tokenData.reduce((s, d) => s + d.outputTokens, 1),
-                        1,
-                      )
-                    ).toFixed(1)}
+                    {(profileTokens.input / Math.max(profileTokens.output, 1)).toFixed(1)}
                     :1
                   </div>
                   <div style={{ fontSize: "8px", color: "var(--text-muted)" }}>{t("user.inputOutputRatio")}</div>
                 </div>
               </div>
             </div>
+
+            {/* Charts */}
             <div style={{ display: "flex", gap: "10px" }}>
+              {/* Token Trend */}
               <div
                 style={{
                   flex: 1,
@@ -980,6 +1029,8 @@ const UserProfile: React.FC<UserProfileProps> = ({ t, onClose, currentSessionId 
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
+
+              {/* Daily Dialog Count */}
               <div
                 style={{
                   flex: 1,
@@ -1040,6 +1091,8 @@ const UserProfile: React.FC<UserProfileProps> = ({ t, onClose, currentSessionId 
                   </span>
                 </div>
               </div>
+
+              {/* Token Distribution Pie Chart */}
               <div
                 style={{
                   flex: 1,
@@ -1112,6 +1165,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ t, onClose, currentSessionId 
               </div>
             </div>
           </div>
+
           {/* Hourly Distribution */}
           <div
             style={{
@@ -1184,4 +1238,5 @@ const UserProfile: React.FC<UserProfileProps> = ({ t, onClose, currentSessionId 
     </div>
   );
 };
+
 export default UserProfile;

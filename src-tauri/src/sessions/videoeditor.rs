@@ -1,3 +1,4 @@
+use crate::commands::add_session_to_profile;
 use crate::commands::get_settings_dir;
 use crate::commands::get_video_editing_system_dialog_history_dir;
 use crate::commons::FileUtils;
@@ -760,6 +761,7 @@ pub fn cmd_create_video_dialog_session(
     FileUtils::write_file(&terminal_path, initial_terminal_content.as_bytes()).map_err(|e| format!("Failed to save terminal history: {:?}", e))?;
     info!("cmd_create_video_dialog_session - Session created: session_id={}, file_count={}", session_id, file_count);
     debug!("cmd_create_video_dialog_session - DONE: session_dir={:?}", session_dir);
+    let _ = add_session_to_profile(session_id, chrono::Utc::now().timestamp_millis() as u64);
     Ok(session_dir.to_string_lossy().to_string())
 }
 /// List all video dialog sessions

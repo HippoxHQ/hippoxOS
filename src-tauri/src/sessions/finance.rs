@@ -1,3 +1,4 @@
+use crate::commands::add_session_to_profile;
 use crate::commands::get_chart_dialog_history_dir;
 use crate::commands::get_settings_dir;
 use crate::commons::FileUtils;
@@ -61,6 +62,7 @@ pub fn cmd_create_chart_dialog_session(
     fs::write(&chat_path, initial_chat_content).map_err(|e| format!("Failed to save chat history: {}", e))?;
     let terminal_path = session_dir.join("terminal.json");
     fs::write(&terminal_path, initial_terminal_content).map_err(|e| format!("Failed to save terminal history: {}", e))?;
+    let _ = add_session_to_profile(session_id, chrono::Utc::now().timestamp_millis() as u64);
     Ok(session_dir.to_string_lossy().to_string())
 }
 #[tauri::command]

@@ -7,7 +7,7 @@ pub async fn scheduled_task_persist_task_pool(pool: TaskPool) {
         "0 */30 * * * *",
         Arc::new(|| {
             let rt = tokio::runtime::Runtime::new().unwrap();
-            match rt.block_on(crate::commands::task_pool::cmd_task_pool_persist()) {
+            match rt.block_on(crate::commands::task_pool::cmd_calculate_token()) {
                 Ok(result) => {
                     log::error!("[Cron Job] Task pool persisted successfully");
                 }

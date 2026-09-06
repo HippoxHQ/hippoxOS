@@ -5,7 +5,6 @@ export interface UserStats {
   totalSessions: number;
   totalMessages: number;
   totalTokensUsed: number;
-  totalTasksExecuted: number;
   favoriteSkills: string[];
   streakDays: number;
   longestStreak: number;

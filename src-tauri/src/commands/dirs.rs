@@ -1,5 +1,9 @@
 use crate::commands::{
-    get_app_root_dir, get_cache_dir, get_chart_dialog_history_dir, get_codeeditor_dialog_history_dir, get_data_dir, get_dialog_history_dir, get_external_cache_audio_dir, get_external_cache_image_material_dir, get_external_cache_sfx_dir, get_external_cache_sticker_dir, get_external_cache_video_material_dir, get_log_dir, get_map_dialog_history_dir, get_material_favorites_dir, get_notifications_dir, get_sandbox3d_dialog_history_dir, get_scheduled_tasks_dir, get_settings_dir, get_skill_history_dir, get_skills_dir, get_skills_market_dir, get_taskpool_dir, get_video_editing_system_dialog_history_dir,
+    get_app_root_dir, get_cache_dir, get_chart_dialog_history_dir, get_codeeditor_dialog_history_dir, get_data_dir, get_dialog_history_dir,
+    get_external_cache_audio_dir, get_external_cache_image_material_dir, get_external_cache_sfx_dir, get_external_cache_sticker_dir,
+    get_external_cache_video_material_dir, get_log_dir, get_map_dialog_history_dir, get_material_favorites_dir, get_notifications_dir,
+    get_sandbox3d_dialog_history_dir, get_scheduled_tasks_dir, get_settings_dir, get_skill_history_dir, get_skills_dir, get_skills_market_dir,
+    get_video_editing_system_dialog_history_dir,
 };
 use std::fs;
 use std::path::Path;
@@ -25,7 +29,7 @@ pub fn init_directories() -> Result<(), String> {
         get_notifications_dir(),
         get_skills_dir(),
         get_skill_history_dir(),
-        get_taskpool_dir(),
+        // get_taskpool_dir(),
         get_external_cache_video_material_dir(),
         get_external_cache_image_material_dir(),
         get_material_favorites_dir(),

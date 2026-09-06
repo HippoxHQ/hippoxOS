@@ -141,7 +141,7 @@ class TaskPoolManager {
             }
             this.isPersisting = true;
             console.log('[TaskPool] Auto persisting task pool data...');
-            await this.persist();
+            await this.calculateToken();
             this.lastTasksHash = currentHash;
             this.isPersisting = false;
         } catch (error) {
@@ -154,7 +154,7 @@ class TaskPoolManager {
      * Updates the hash after successful persist
      */
     async forcePersist(): Promise<TaskPoolPersistResult> {
-        const result = await this.persist();
+        const result = await this.calculateToken();
         if (result.success) {
             // Update hash after successful persist
             const currentTasks = this.getAllTasksSync();
@@ -261,14 +261,8 @@ class TaskPoolManager {
         this.tasks.clear();
         this.notifyListeners();
     }
-    async persist(): Promise<TaskPoolPersistResult> {
-        return await invoke('cmd_task_pool_persist');
-    }
-    async listBackups(): Promise<BackupFileInfo[]> {
-        return await invoke('cmd_task_pool_list_backups');
-    }
-    async cleanupBackups(keepCount: number): Promise<CleanupResult> {
-        return await invoke('cmd_task_pool_cleanup_backups', { keepCount });
+    async calculateToken(): Promise<TaskPoolPersistResult> {
+        return await invoke('cmd_calculate_token');
     }
 }
 export const taskPoolManager = new TaskPoolManager();
@@ -300,10 +294,8 @@ export const taskPoolCommands = {
     getCompletedTasks: () => taskPoolManager.getCompletedTasks(),
     getFailedTasks: () => taskPoolManager.getFailedTasks(),
     // Persistence operations
-    persist: () => taskPoolManager.persist(),
+    calculateToken: () => taskPoolManager.calculateToken(),
     forcePersist: () => taskPoolManager.forcePersist(),
-    listBackups: () => taskPoolManager.listBackups(),
-    cleanupBackups: (keepCount: number) => taskPoolManager.cleanupBackups(keepCount),
     // Subscription
     subscribe: (listener: (tasks: TaskInfo[]) => void) => taskPoolManager.subscribe(listener),
     subscribeStats: (listener: (stats: TaskPoolStats) => void) => taskPoolManager.subscribeStats(listener),

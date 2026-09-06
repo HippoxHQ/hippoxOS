@@ -76,9 +76,11 @@ pub fn run() {
             if let Err(e) = sync_all_to_hippox_core().await {
                 log::error!("Failed to sync config to Hippox core: {}", e);
             }
-            // ========== Initialize all Hippox LLM instances ==========
-            if let Err(e) = init_all_hippox_instances().await {
-                log::error!("Failed to initialize Hippox instances: {}", e);
+            // ========== Initialize ONLY default Hippox LLM instance ==========
+            // NOTE: Only initialize the default instance, not all instances
+            // This reduces memory usage significantly
+            if let Err(e) = init_default_hippox_instance().await {
+                log::error!("Failed to initialize default Hippox instance: {}", e);
             }
             // ========== Initialize MemContext (database) ==========
             match Context::new().await {
@@ -93,11 +95,10 @@ pub fn run() {
             app_state_clone.set_task_pool(task_pool_for_state).await;
             // ========== Persist task pool ==========
             scheduled_task_persist_task_pool::scheduled_task_persist_task_pool(task_pool.clone()).await;
-            // ========== Update skills market ==========
-            match commands::update_skills_market().await {
-                Ok(skills) => {}
-                Err(e) => log::error!("Failed to initialize skills market: {}", e),
-            }
+            // ========== SKILLS MARKET: Load on demand only ==========
+            // NOTE: Skills market is NOT loaded at startup to save memory.
+            // It will be loaded when user clicks on Skills Market panel.
+            // The directory is created but content is not loaded.
             log::info!("All initialization completed successfully");
         });
     });

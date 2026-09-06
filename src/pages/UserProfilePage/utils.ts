@@ -1,29 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { taskPoolCommands } from "../../core/TaskPool";
 import { sessionCommands } from "../../command/session/general";
-export const loadAllTasksFromBackups = async (): Promise<any[]> => {
-  try {
-    const backups = await taskPoolCommands.listBackups();
-    let allTasks: any[] = [];
-    for (const backup of backups) {
-      try {
-        const content = await invoke<string>("cmd_read_text_file", {
-          path: backup.path,
-        });
-        const data = JSON.parse(content);
-        if (data.tasks && Array.isArray(data.tasks)) {
-          allTasks = allTasks.concat(data.tasks);
-        }
-      } catch (e) {
-        console.error("Failed to load backup:", backup.path, e);
-      }
-    }
-    return allTasks;
-  } catch (e) {
-    console.error("Failed to list backups:", e);
-    return [];
-  }
-};
 export const loadAllSessions = async (): Promise<any[]> => {
   try {
     const sessions = await sessionCommands.listSessions();
