@@ -143,7 +143,7 @@ const UniversalSettings: React.FC<UniversalSettingsProps> = ({ t, theme, languag
   const [mapLayout, setMapLayout] = useState<"terminal-left" | "chat-left">("terminal-left");
   const [codeEditorLayout, setCodeEditorLayout] = useState<"terminal-left" | "chat-left">("terminal-left");
   const [videoEditorLayout, setVideoEditorLayout] = useState<"terminal-left" | "chat-left">("chat-left");
-  const [sandbox3dLayout, setSandbox3dLayout] = useState<"terminal-left" | "chat-left">("chat-left");
+  const [sandbox3dLayout, setSandbox3dLayout] = useState<"terminal-left" | "chat-left">("terminal-left");
   const [loading, setLoading] = useState(true);
   // Update check states
   const [versionInfo, setVersionInfo] = useState<VersionInfo | null>(null);

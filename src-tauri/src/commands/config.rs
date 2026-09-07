@@ -1104,8 +1104,8 @@ pub async fn cmd_set_max_favorites_size(max_size_mb: u64) -> Result<(), String> 
 }
 #[tauri::command]
 pub fn cmd_get_settings_videoeditor_layout_swap_mode() -> Result<String, String> {
-    let value = crate::commons::get_setting_with_default("videoeditor_layout_swap_mode", serde_json::json!("chat-left"))?;
-    Ok(value.as_str().unwrap_or("chat-left").to_string())
+    let value = crate::commons::get_setting_with_default("videoeditor_layout_swap_mode", serde_json::json!("terminal-left"))?;
+    Ok(value.as_str().unwrap_or("terminal-left").to_string())
 }
 #[tauri::command]
 pub fn cmd_save_settings_videoeditor_layout_swap_mode(mode: String) -> Result<(), String> {
@@ -1113,8 +1113,8 @@ pub fn cmd_save_settings_videoeditor_layout_swap_mode(mode: String) -> Result<()
 }
 #[tauri::command]
 pub fn cmd_get_settings_sandbox3d_layout_swap_mode() -> Result<String, String> {
-    let value = crate::commons::get_setting_with_default("sandbox3d_layout_swap_mode", serde_json::json!("chat-left"))?;
-    Ok(value.as_str().unwrap_or("chat-left").to_string())
+    let value = crate::commons::get_setting_with_default("sandbox3d_layout_swap_mode", serde_json::json!("terminal-left"))?;
+    Ok(value.as_str().unwrap_or("terminal-left").to_string())
 }
 #[tauri::command]
 pub fn cmd_save_settings_sandbox3d_layout_swap_mode(mode: String) -> Result<(), String> {

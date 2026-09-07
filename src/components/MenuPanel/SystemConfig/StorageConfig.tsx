@@ -10,6 +10,7 @@ interface StorageConfigProps {
   onSave?: (config: any) => void;
 }
 const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
+  const isZh = t("i18n") === "zh";
   const [loading, setLoading] = useState(true);
   const [logsSize, setLogsSize] = useState<number>(0);
   const [dialogSize, setDialogSize] = useState<number>(0);
@@ -64,7 +65,7 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
       const paths = await getDataPaths();
       const favoritesDirPath = await storageCommands.getFavoritesDir();
       setLogsDir(String(paths.log_dir ?? ""));
-      setDialogHistoryDir(String(paths.dialog_history_dir ?? ""));
+      setDialogHistoryDir(String(paths.general_history_dir ?? ""));
       setFavoritesDir(favoritesDirPath);
       setSkillsMarketDir(String(paths.skills_market_dir ?? ""));
       setScheduledTasksDir(String(paths.scheduled_tasks_dir ?? ""));
@@ -79,7 +80,7 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
       const [logsSizeVal, dialogSizeVal, favoritesSizeVal, skillsMarketSizeVal, scheduledTasksSizeVal, settingsSizeVal, maxLogSizeVal, maxDialogSizeVal, maxFavoritesSizeVal, diskInfoVal, chartDialogSizeVal, mapDialogSizeVal, codeEditorDialogSizeVal, videoDialogSizeVal, sandbox3dDialogSizeVal] =
         await Promise.all([
           storageCommands.getDirectorySize(paths.log_dir),
-          storageCommands.getDirectorySize(paths.dialog_history_dir),
+          storageCommands.getDirectorySize(paths.general_history_dir),
           storageCommands.getDirectorySize(favoritesDirPath),
           storageCommands.getDirectorySize(paths.skills_market_dir),
           storageCommands.getDirectorySize(paths.scheduled_tasks_dir),
@@ -1082,7 +1083,7 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
               minWidth: 0,
             }}
           >
-            <label style={{ ...labelStyleSmall, flexShrink: 0 }}>{t("storage.dialogHistoryDir") || "Dialog History Directory"}</label>
+            <label style={{ ...labelStyleSmall, flexShrink: 0 }}>{isZh ? "通用对话历史" : "General Chat History"}</label>
             <div style={pathRowStyle}>
               <input style={{ ...inputStyle, flex: 1, minWidth: 0 }} value={dialogHistoryDir} disabled readOnly />
               <button style={folderButtonStyle} onClick={() => handleOpenDirectory(dialogHistoryDir)}>

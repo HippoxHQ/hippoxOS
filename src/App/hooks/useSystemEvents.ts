@@ -67,8 +67,8 @@ export function useDirectoryEvents() {
     });
     const unlistenOpenHistoryDir = listen("open-history-dir", async () => {
       const paths = await getDataPaths();
-      if (paths.dialog_history_dir)
-        await filesCommands.openPath(paths.dialog_history_dir);
+      if (paths.general_history_dir)
+        await filesCommands.openPath(paths.general_history_dir);
     });
     const unlistenOpenSkillsMarketDir = listen(
       "open-skills-market-dir",

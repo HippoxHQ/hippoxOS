@@ -28,10 +28,14 @@ use memcontext::MemContext;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::thread;
-use tauri::{DragDropEvent, WindowEvent};
+use std::time::Duration;
+use tauri::webview::WebviewWindowBuilder;
+use tauri::WebviewUrl;
+use tauri::{DragDropEvent, Manager, WindowEvent};
 use tauri_plugin_autostart::MacosLauncher;
 use tauri_plugin_dialog;
 use tauri_plugin_fs;
+use tokio::time::sleep;
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let rt = tokio::runtime::Runtime::new().unwrap();
@@ -116,9 +120,46 @@ pub fn run() {
             Ok(())
         })
         .on_window_event(|window, event| {
-            handle_window_event(window, event);
+            // Handle window events directly here
+            match event {
+                WindowEvent::Destroyed => {
+                    // WebView was destroyed (crashed or closed)
+                    // Only auto-restart for main window
+                    if window.label() == "main" {
+                        log::warn!("WebView destroyed for main window, attempting to restart...");
+                        let app_handle = window.app_handle().clone();
+                        let label = window.label().to_string();
+                        tokio::spawn(async move {
+                            // Wait a moment before restarting
+                            sleep(Duration::from_millis(500)).await;
+                            // Check if the window still exists (maybe it was intentionally closed)
+                            if app_handle.get_webview_window(&label).is_none() {
+                                log::info!("Auto-restarting main webview after crash");
+                                if let Err(e) = recreate_main_window(&app_handle, &label).await {
+                                    log::error!("Failed to auto-restart webview: {}", e);
+                                }
+                            }
+                        });
+                    }
+                }
+                _ => {}
+            }
         })
         .invoke_handler(register_handler())
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+/// Recreate the main window when WebView crashes
+pub async fn recreate_main_window(app_handle: &tauri::AppHandle, label: &str) -> Result<tauri::WebviewWindow, String> {
+    log::info!("Recreating main window: {}", label);
+    // Wait a moment to ensure cleanup
+    sleep(Duration::from_millis(500)).await;
+    let window = WebviewWindowBuilder::new(app_handle, label, WebviewUrl::App("index.html".into()))
+        .title("HippoxOS")
+        .inner_size(1200.0, 800.0)
+        .min_inner_size(800.0, 600.0)
+        .build()
+        .map_err(|e| e.to_string())?;
+    log::info!("Main window recreated successfully");
+    Ok(window)
 }

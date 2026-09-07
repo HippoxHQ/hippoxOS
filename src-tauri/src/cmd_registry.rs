@@ -471,6 +471,7 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         //  Video Tracks 
         subsystem::cmd_add_track,
         subsystem::cmd_refresh_all_track,
+        subsystem::cmd_organize_track_blocks,
         subsystem::cmd_get_track_stack,
         subsystem::cmd_get_track_stack_reversed,
         subsystem::cmd_get_tracks,
