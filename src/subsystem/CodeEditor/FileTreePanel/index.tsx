@@ -8,15 +8,15 @@ import { useGit } from "./hooks/useGit";
 import { FileNode, FileTreePanelProps } from "./types";
 import { getDirectoryName } from "../fileUtils";
 import { FolderIcon, GithubIcon, HistoryChatIcon2, SearchIcon } from "../../../icons";
-
 const FileTreePanel: React.FC<FileTreePanelProps> = ({ t, onFileSelect, selectedFile, workspacePath }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set(["git", "timeline", "search"]));
   const containerRef = useRef<HTMLDivElement>(null);
   const [fileTree, setFileTree] = useState<FileNode[]>([]);
-  const { gitInfo, loadingGit, fileChanges, loadingChanges, isPulling, isPushing, handlePull, handlePush, getRemoteStatusText, checkGitRepo } = useGit(workspacePath);
+  const { gitInfo, loadingGit, fileChanges, loadingChanges, isPulling, isPushing, handlePull, handlePush, getRemoteStatusText, checkGitRepo } = useGit(workspacePath, t);
   const directoryName = getDirectoryName(workspacePath);
+  const isZh = t("i18n") === "zh";
   const clearSearch = () => {
     setSearchQuery("");
   };
@@ -83,7 +83,6 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({ t, onFileSelect, selected
       </div>
     );
   };
-
   const renderDivider = () => (
     <div
       style={{
@@ -94,12 +93,10 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({ t, onFileSelect, selected
       }}
     />
   );
-
   const isProjectCollapsed = collapsedSections.has("project");
   const isGitCollapsed = collapsedSections.has("git");
   const isTimelineCollapsed = collapsedSections.has("timeline");
   const isSearchCollapsed = collapsedSections.has("search");
-
   return (
     <div
       style={{
@@ -112,7 +109,6 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({ t, onFileSelect, selected
       }}
     >
       <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} isSearchFocused={isSearchFocused} setIsSearchFocused={setIsSearchFocused} clearSearch={clearSearch} t={t} />
-
       <div
         style={{
           flex: 1,
@@ -148,15 +144,7 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({ t, onFileSelect, selected
                   minHeight: 0,
                 }}
               >
-                <FileTreeSection
-                  workspacePath={workspacePath}
-                  selectedFile={selectedFile}
-                  onFileSelect={onFileSelect}
-                  searchQuery={searchQuery}
-                  isCollapsed={isProjectCollapsed}
-                  t={t}
-                  onFileTreeChange={setFileTree}
-                />
+                <FileTreeSection workspacePath={workspacePath} selectedFile={selectedFile} onFileSelect={onFileSelect} searchQuery={searchQuery} isCollapsed={isProjectCollapsed} t={t} onFileTreeChange={setFileTree} />
               </div>
             )}
           </div>
@@ -221,13 +209,12 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({ t, onFileSelect, selected
                   onFileSelect={onFileSelect}
                   getRemoteStatusText={getRemoteStatusText}
                   workspacePath={workspacePath}
+                  t={t}
                 />
               </div>
             )}
           </div>
-
           {renderDivider()}
-
           <div
             style={{
               display: "flex",
@@ -237,7 +224,7 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({ t, onFileSelect, selected
               overflow: "hidden",
             }}
           >
-            {renderSectionHeader("timeline", <HistoryChatIcon2 size={14} />, "时间线", gitInfo ? gitInfo.commits.length : 0)}
+            {renderSectionHeader("timeline", <HistoryChatIcon2 size={14} />, isZh ? "时间线" : "Timeline", gitInfo ? gitInfo.commits.length : 0)}
             {!isTimelineCollapsed && (
               <div
                 style={{
@@ -247,13 +234,11 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({ t, onFileSelect, selected
                   minHeight: 0,
                 }}
               >
-                <TimelineSection gitInfo={gitInfo} loadingGit={loadingGit} />
+                <TimelineSection gitInfo={gitInfo} loadingGit={loadingGit} t={t} />
               </div>
             )}
           </div>
-
           {renderDivider()}
-
           <div
             style={{
               display: "flex",
@@ -263,7 +248,7 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({ t, onFileSelect, selected
               overflow: "hidden",
             }}
           >
-            {renderSectionHeader("search", <SearchIcon />, "搜索", fileTree.length > 0 ? undefined : 0)}
+            {renderSectionHeader("search", <SearchIcon />, isZh ? "搜索" : "Search", fileTree.length > 0 ? undefined : 0)}
             {!isSearchCollapsed && (
               <div
                 style={{
@@ -282,5 +267,4 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({ t, onFileSelect, selected
     </div>
   );
 };
-
 export default FileTreePanel;

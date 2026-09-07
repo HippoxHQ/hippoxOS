@@ -15,21 +15,9 @@ interface GitHubSectionProps {
   onFileSelect: (path: string) => void;
   getRemoteStatusText: () => { text: string; color: string } | null;
   workspacePath: string | null | undefined;
+  t: (key: string) => string;
 }
-export const GitHubSection: React.FC<GitHubSectionProps> = ({
-  gitInfo,
-  loadingGit,
-  fileChanges,
-  loadingChanges,
-  isPulling,
-  isPushing,
-  handlePull,
-  handlePush,
-  handleRefresh,
-  onFileSelect,
-  getRemoteStatusText,
-  workspacePath,
-}) => {
+export const GitHubSection: React.FC<GitHubSectionProps> = ({ gitInfo, loadingGit, fileChanges, loadingChanges, isPulling, isPushing, handlePull, handlePush, handleRefresh, onFileSelect, getRemoteStatusText, workspacePath, t }) => {
   const [expandedDiff, setExpandedDiff] = useState<string | null>(null);
   const [diffData, setDiffData] = useState<{
     diff: string;
@@ -39,6 +27,7 @@ export const GitHubSection: React.FC<GitHubSectionProps> = ({
     content?: string;
   } | null>(null);
   const [loadingDiff, setLoadingDiff] = useState(false);
+  const isZh = t("i18n") === "zh";
   const handleFileClick = async (file: string) => {
     if (expandedDiff === file) {
       setExpandedDiff(null);
@@ -69,7 +58,7 @@ export const GitHubSection: React.FC<GitHubSectionProps> = ({
           padding: "4px 0",
         }}
       >
-        Loading...
+        {isZh ? "加载中..." : "Loading..."}
       </div>
     );
   }
@@ -82,7 +71,7 @@ export const GitHubSection: React.FC<GitHubSectionProps> = ({
           padding: "4px 0",
         }}
       >
-        不是 Git 仓库
+        {isZh ? "不是 Git 仓库" : "Not a Git repository"}
       </div>
     );
   }
@@ -140,7 +129,7 @@ export const GitHubSection: React.FC<GitHubSectionProps> = ({
             marginLeft: "auto",
           }}
         >
-          {gitInfo.hasChanges ? "🔵 有未提交更改" : "✅ 干净工作区"}
+          {gitInfo.hasChanges ? (isZh ? "🔵 有未提交更改" : "🔵 Uncommitted changes") : isZh ? "✅ 干净工作区" : "✅ Clean working directory"}
         </span>
       </div>
       <div
@@ -159,7 +148,7 @@ export const GitHubSection: React.FC<GitHubSectionProps> = ({
             letterSpacing: "0.3px",
           }}
         >
-          本地分支
+          {isZh ? "本地分支" : "Local Branches"}
         </div>
         <div
           style={{
@@ -192,7 +181,7 @@ export const GitHubSection: React.FC<GitHubSectionProps> = ({
                 color: "var(--text-muted)",
               }}
             >
-              无分支
+              {isZh ? "无分支" : "No branches"}
             </span>
           )}
         </div>
@@ -235,7 +224,7 @@ export const GitHubSection: React.FC<GitHubSectionProps> = ({
               }
             }}
           >
-            {isPulling ? "⏳ 拉取中..." : "⬇ Pull"}
+            {isPulling ? (isZh ? "⏳ 拉取中..." : "⏳ Pulling...") : isZh ? "⬇ 拉取" : "⬇ Pull"}
           </button>
           <button
             onClick={handlePush}
@@ -267,7 +256,7 @@ export const GitHubSection: React.FC<GitHubSectionProps> = ({
               }
             }}
           >
-            {isPushing ? "⏳ 推送中..." : "⬆ Push"}
+            {isPushing ? (isZh ? "⏳ 推送中..." : "⏳ Pushing...") : isZh ? "⬆ 推送" : "⬆ Push"}
           </button>
           <button
             onClick={handleRefresh}
@@ -293,7 +282,7 @@ export const GitHubSection: React.FC<GitHubSectionProps> = ({
               e.currentTarget.style.color = "var(--text-muted)";
             }}
           >
-            🔄 刷新
+            {isZh ? "🔄 刷新" : "🔄 Refresh"}
           </button>
         </div>
       )}
@@ -311,8 +300,12 @@ export const GitHubSection: React.FC<GitHubSectionProps> = ({
             justifyContent: "space-between",
           }}
         >
-          <span>📝 文件改动</span>
-          {fileChanges.length > 0 && <span style={{ fontSize: "9px", fontWeight: 400 }}>{fileChanges.length} 个文件</span>}
+          <span>{isZh ? "📝 文件改动" : "📝 File Changes"}</span>
+          {fileChanges.length > 0 && (
+            <span style={{ fontSize: "9px", fontWeight: 400 }}>
+              {fileChanges.length} {isZh ? "个文件" : "files"}
+            </span>
+          )}
         </div>
         {loadingChanges ? (
           <div
@@ -323,7 +316,7 @@ export const GitHubSection: React.FC<GitHubSectionProps> = ({
               textAlign: "center",
             }}
           >
-            加载中...
+            {isZh ? "加载中..." : "Loading..."}
           </div>
         ) : fileChanges.length > 0 ? (
           <div>
@@ -411,7 +404,7 @@ export const GitHubSection: React.FC<GitHubSectionProps> = ({
                             fontSize: "12px",
                           }}
                         >
-                          加载差异中...
+                          {isZh ? "加载差异中..." : "Loading diff..."}
                         </div>
                       ) : diffData && diffData.type !== "no_diff" ? (
                         <div
@@ -437,7 +430,7 @@ export const GitHubSection: React.FC<GitHubSectionProps> = ({
                                   gap: "8px",
                                 }}
                               >
-                                <span style={{ color: "#4caf50" }}>+ 新文件</span>
+                                <span style={{ color: "#4caf50" }}>+ {isZh ? "新文件" : "New file"}</span>
                                 <span>{change.file}</span>
                               </div>
                               <div
@@ -585,7 +578,7 @@ export const GitHubSection: React.FC<GitHubSectionProps> = ({
                             borderRadius: "4px",
                           }}
                         >
-                          无差异内容
+                          {isZh ? "无差异内容" : "No diff content"}
                         </div>
                       )}
                     </div>
@@ -603,7 +596,7 @@ export const GitHubSection: React.FC<GitHubSectionProps> = ({
               textAlign: "center",
             }}
           >
-            {gitInfo.hasChanges ? "暂无文件改动" : "工作区干净，无文件改动"}
+            {gitInfo.hasChanges ? (isZh ? "暂无文件改动" : "No file changes") : isZh ? "工作区干净，无文件改动" : "Working directory clean, no file changes"}
           </div>
         )}
       </div>

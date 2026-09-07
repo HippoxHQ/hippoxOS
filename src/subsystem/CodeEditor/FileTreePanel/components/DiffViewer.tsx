@@ -7,9 +7,11 @@ interface DiffViewerProps {
   type: "diff" | "new_file" | "no_diff";
   content?: string;
   onClose: () => void;
+  t: (key: string) => string;
 }
-export const DiffViewer: React.FC<DiffViewerProps> = ({ diff, fileName, additions, deletions, type, content, onClose }) => {
+export const DiffViewer: React.FC<DiffViewerProps> = ({ diff, fileName, additions, deletions, type, content, onClose, t }) => {
   const [isExpanded, setIsExpanded] = useState(true);
+  const isZh = t("i18n") === "zh";
   if (type === "no_diff") {
     return (
       <div
@@ -23,7 +25,7 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({ diff, fileName, addition
           margin: "4px 0",
         }}
       >
-        该文件无变更
+        {isZh ? "该文件无变更" : "No changes in this file"}
       </div>
     );
   }
@@ -43,7 +45,7 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({ diff, fileName, addition
               gap: "8px",
             }}
           >
-            <span style={{ color: "#4caf50" }}>+ 新文件</span>
+            <span style={{ color: "#4caf50" }}>+ {isZh ? "新文件" : "New file"}</span>
             <span>{fileName}</span>
           </div>
           <div
@@ -133,7 +135,7 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({ diff, fileName, addition
       }
       return (
         <div>
-          {/* 统计信息 */}
+          {/* Stats */}
           <div
             style={{
               fontSize: "11px",
@@ -231,7 +233,7 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({ diff, fileName, addition
           textAlign: "center",
         }}
       >
-        无差异内容
+        {isZh ? "无差异内容" : "No diff content"}
       </div>
     );
   };

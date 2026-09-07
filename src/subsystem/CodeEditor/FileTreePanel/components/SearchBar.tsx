@@ -9,6 +9,7 @@ interface SearchBarProps {
   t: (key: string) => string;
 }
 export const SearchBar: React.FC<SearchBarProps> = ({ searchQuery, setSearchQuery, isSearchFocused, setIsSearchFocused, clearSearch, t }) => {
+  const isZh = t("i18n") === "zh";
   return (
     <div
       style={{
@@ -41,7 +42,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({ searchQuery, setSearchQuer
           onChange={(e) => setSearchQuery(e.target.value)}
           onFocus={() => setIsSearchFocused(true)}
           onBlur={() => setIsSearchFocused(false)}
-          placeholder={t("codeEditor.search") || "Search files..."}
+          placeholder={isZh ? "搜索文件..." : "Search files..."}
           style={{
             flex: 1,
             background: "transparent",

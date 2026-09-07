@@ -22,6 +22,7 @@ export const SearchSection: React.FC<SearchSectionProps> = ({ fileTree, onFileSe
   } | null>(null);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const resultRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+  const isZh = t("i18n") === "zh";
   const performSearch = useCallback(
     async (query: string) => {
       if (!query.trim() || !workspacePath) {
@@ -222,7 +223,6 @@ export const SearchSection: React.FC<SearchSectionProps> = ({ fileTree, onFileSe
         minHeight: 0,
       }}
     >
-      {/* 搜索框 */}
       <div
         style={{
           padding: "4px 0",
@@ -248,7 +248,7 @@ export const SearchSection: React.FC<SearchSectionProps> = ({ fileTree, onFileSe
             onChange={(e) => setSearchQuery(e.target.value)}
             onFocus={() => setIsSearchFocused(true)}
             onBlur={() => setIsSearchFocused(false)}
-            placeholder={t("codeEditor.searchFilesContent") || "搜索文件内容..."}
+            placeholder={isZh ? "搜索文件内容..." : "Search file content..."}
             style={{
               flex: 1,
               background: "transparent",
@@ -300,20 +300,10 @@ export const SearchSection: React.FC<SearchSectionProps> = ({ fileTree, onFileSe
               justifyContent: "space-between",
             }}
           >
-            <span>
-              {isSearching
-                ? t("codeEditor.searching") || "搜索中..."
-                : searchResults.length > 0
-                  ? (t as any)("codeEditor.searchResultsSummary", {
-                      total: totalMatches,
-                      files: searchResults.length,
-                    })
-                  : t("codeEditor.noSearchContentResults") || "未找到匹配的内容"}
-            </span>
+            <span>{isSearching ? (isZh ? "搜索中..." : "Searching...") : searchResults.length > 0 ? (isZh ? `找到 ${totalMatches} 个匹配，${searchResults.length} 个文件` : `Found ${totalMatches} matches in ${searchResults.length} files`) : isZh ? "未找到匹配的内容" : "No matches found"}</span>
           </div>
         )}
       </div>
-      {/* 搜索结果列表 */}
       <div
         style={{
           flex: 1,
@@ -335,8 +325,8 @@ export const SearchSection: React.FC<SearchSectionProps> = ({ fileTree, onFileSe
             }}
           >
             <SearchIcon />
-            <span>{t("codeEditor.searchContentPlaceholder") || "输入关键词搜索文件内容"}</span>
-            <span style={{ fontSize: "10px", opacity: 0.6 }}>{t("codeEditor.searchContentHint") || "支持内容搜索，按 ↑ ↓ 选择，Enter 打开文件"}</span>
+            <span>{isZh ? "输入关键词搜索文件内容" : "Enter keywords to search file content"}</span>
+            <span style={{ fontSize: "10px", opacity: 0.6 }}>{isZh ? "支持内容搜索，按 ↑ ↓ 选择，Enter 打开文件" : "Content search, ↑ ↓ to navigate, Enter to open"}</span>
           </div>
         ) : isSearching ? (
           <div
@@ -347,7 +337,7 @@ export const SearchSection: React.FC<SearchSectionProps> = ({ fileTree, onFileSe
               textAlign: "center",
             }}
           >
-            {t("codeEditor.searching") || "搜索中..."}
+            {isZh ? "搜索中..." : "Searching..."}
           </div>
         ) : searchResults.length === 0 ? (
           <div
@@ -358,7 +348,7 @@ export const SearchSection: React.FC<SearchSectionProps> = ({ fileTree, onFileSe
               textAlign: "center",
             }}
           >
-            {t("codeEditor.noSearchContentResults") || "未找到匹配的内容"}
+            {isZh ? "未找到匹配的内容" : "No matches found"}
           </div>
         ) : (
           searchResults.map((fileResult, fileIdx) => {
@@ -366,7 +356,6 @@ export const SearchSection: React.FC<SearchSectionProps> = ({ fileTree, onFileSe
             const isFileSelected = selectedMatchIndex?.fileIdx === fileIdx;
             return (
               <div key={fileResult.file_path} style={{ marginBottom: "2px" }}>
-                {/* 文件行 */}
                 <div
                   onClick={() => toggleFileExpand(fileResult.file_path)}
                   style={{
@@ -432,7 +421,6 @@ export const SearchSection: React.FC<SearchSectionProps> = ({ fileTree, onFileSe
                     {formatMatchCount(fileResult.match_count)}
                   </span>
                 </div>
-                {/* 匹配列表 */}
                 {isExpanded && (
                   <div style={{ paddingLeft: "20px" }}>
                     {fileResult.matches.map((match, matchIdx) => {

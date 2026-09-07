@@ -1,15 +1,14 @@
 import { useState, useEffect } from "react";
 import { GitInfo, GitCommit, FileChange } from "../types";
 import { githubCommands } from "../../../../command/net/github";
-
-export const useGit = (workspacePath: string | null | undefined) => {
+export const useGit = (workspacePath: string | null | undefined, t: (key: string) => string) => {
   const [gitInfo, setGitInfo] = useState<GitInfo | null>(null);
   const [loadingGit, setLoadingGit] = useState(false);
   const [fileChanges, setFileChanges] = useState<FileChange[]>([]);
   const [loadingChanges, setLoadingChanges] = useState(false);
   const [isPulling, setIsPulling] = useState(false);
   const [isPushing, setIsPushing] = useState(false);
-
+  const isZh = t("i18n") === "zh";
   const buildCommitTree = (commits: any[]): GitCommit[] => {
     const commitMap = new Map<string, GitCommit>();
     const result: GitCommit[] = [];
@@ -40,7 +39,6 @@ export const useGit = (workspacePath: string | null | undefined) => {
       return b.date.localeCompare(a.date);
     });
   };
-
   const loadFileChanges = async (path: string) => {
     if (!path) return;
     setLoadingChanges(true);
@@ -61,7 +59,6 @@ export const useGit = (workspacePath: string | null | undefined) => {
       setLoadingChanges(false);
     }
   };
-
   const checkGitRepo = async (path: string) => {
     if (!path) return;
     setLoadingGit(true);
@@ -90,7 +87,6 @@ export const useGit = (workspacePath: string | null | undefined) => {
         } catch {
           remoteBranches = [];
         }
-
         if (remoteUrl) {
           try {
             remoteStatus = await githubCommands.getRemoteStatus(path, branch);
@@ -98,9 +94,7 @@ export const useGit = (workspacePath: string | null | undefined) => {
             remoteStatus = null;
           }
         }
-
         const commits = buildCommitTree(history.commits);
-
         setGitInfo({
           branch: branch,
           hasChanges: status.hasChanges,
@@ -110,7 +104,6 @@ export const useGit = (workspacePath: string | null | undefined) => {
           localBranches: localBranches,
           remoteBranches: remoteBranches,
         });
-
         await loadFileChanges(path);
       } else {
         setGitInfo(null);
@@ -124,7 +117,6 @@ export const useGit = (workspacePath: string | null | undefined) => {
       setLoadingGit(false);
     }
   };
-
   const handlePull = async () => {
     if (!workspacePath || !gitInfo) return;
     setIsPulling(true);
@@ -137,7 +129,6 @@ export const useGit = (workspacePath: string | null | undefined) => {
       setIsPulling(false);
     }
   };
-
   const handlePush = async () => {
     if (!workspacePath || !gitInfo) return;
     setIsPushing(true);
@@ -150,33 +141,37 @@ export const useGit = (workspacePath: string | null | undefined) => {
       setIsPushing(false);
     }
   };
-
   const getRemoteStatusText = () => {
     if (!gitInfo?.remoteStatus) return null;
-    const { ahead, behind, isSynced, isAhead, isBehind, isDiverged } =
-      gitInfo.remoteStatus;
-
+    const { ahead, behind, isSynced, isAhead, isBehind, isDiverged } = gitInfo.remoteStatus;
     if (isSynced) {
-      return { text: "✅ 已同步", color: "#4caf50" };
+      return { text: isZh ? "✅ 已同步" : "✅ Synced", color: "#4caf50" };
     }
     if (isDiverged) {
-      return { text: `⬆ ${ahead} · ⬇ ${behind} (已分叉)`, color: "#ff6b6b" };
+      return {
+        text: isZh ? `⬆ ${ahead} · ⬇ ${behind} (已分叉)` : `⬆ ${ahead} · ⬇ ${behind} (Diverged)`,
+        color: "#ff6b6b",
+      };
     }
     if (isAhead) {
-      return { text: `⬆ ${ahead} 个提交待推送`, color: "#ffa500" };
+      return {
+        text: isZh ? `⬆ ${ahead} 个提交待推送` : `⬆ ${ahead} commits to push`,
+        color: "#ffa500",
+      };
     }
     if (isBehind) {
-      return { text: `⬇ ${behind} 个提交待拉取`, color: "#00aaff" };
+      return {
+        text: isZh ? `⬇ ${behind} 个提交待拉取` : `⬇ ${behind} commits to pull`,
+        color: "#00aaff",
+      };
     }
     return null;
   };
-
   useEffect(() => {
     if (workspacePath) {
       checkGitRepo(workspacePath);
     }
   }, [workspacePath]);
-
   return {
     gitInfo,
     loadingGit,

@@ -3,8 +3,10 @@ import { GitInfo } from "../types";
 interface TimelineSectionProps {
   gitInfo: GitInfo | null;
   loadingGit: boolean;
+  t: (key: string) => string;
 }
-export const TimelineSection: React.FC<TimelineSectionProps> = ({ gitInfo, loadingGit }) => {
+export const TimelineSection: React.FC<TimelineSectionProps> = ({ gitInfo, loadingGit, t }) => {
+  const isZh = t("i18n") === "zh";
   if (loadingGit) {
     return (
       <div
@@ -14,7 +16,7 @@ export const TimelineSection: React.FC<TimelineSectionProps> = ({ gitInfo, loadi
           padding: "4px 0",
         }}
       >
-        Loading...
+        {isZh ? "加载中..." : "Loading..."}
       </div>
     );
   }
@@ -27,7 +29,7 @@ export const TimelineSection: React.FC<TimelineSectionProps> = ({ gitInfo, loadi
           padding: "4px 0",
         }}
       >
-        暂无提交记录
+        {isZh ? "暂无提交记录" : "No commit history"}
       </div>
     );
   }
