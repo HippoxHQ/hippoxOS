@@ -288,7 +288,7 @@ export const welcomepageStyles = `
     overflow: hidden;
     border: 1px solid var(--border-color);
     background: var(--bg-secondary);
-    transition: all 0.2s ease;
+    // transition: all 0.2s ease;
     min-height: 60px;
     display: flex;
     align-items: center;
@@ -308,7 +308,7 @@ export const welcomepageStyles = `
     font-size: 56px;
     opacity: 0.15;
     filter: blur(1px);
-    transition: opacity 0.3s ease;
+    // transition: opacity 0.3s ease;
     pointer-events: none;
     line-height: 1;
   }
@@ -345,7 +345,7 @@ export const welcomepageStyles = `
     z-index: 1;
     font-size: 14px;
     color: var(--text-tertiary);
-    transition: all 0.2s ease;
+    // transition: all 0.2s ease;
     flex-shrink: 0;
     margin-left: 8px;
     opacity: 0;

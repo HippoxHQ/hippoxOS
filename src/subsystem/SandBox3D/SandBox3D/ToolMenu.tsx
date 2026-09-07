@@ -46,7 +46,7 @@ export const ToolMenu: React.FC<ToolMenuProps> = ({ onRefresh, onExportGif, onCl
   const handleRevealInFileManager = useCallback(async () => {
     if (!gifPath) return;
     try {
-      await generalCommands.openInExplorer(gifPath);
+      await generalCommands.openExplorer(gifPath);
     } catch (error) {
       showToast(ToastType.ERROR, isZh ? "无法打开文件管理器" : "Cannot open file manager");
     }

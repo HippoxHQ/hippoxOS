@@ -137,8 +137,8 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t, onDragOverI
     },
     {
       id: "chart",
-      label: "金融图表",
-      labelEn: "Chart Analysis",
+      label: "金融分析",
+      labelEn: "Finance Analysis",
       description: "K线分析 · 技术指标 · 市场研判",
       descriptionEn: "Candlestick · Technical Indicators · Market Analysis",
       bgEmoji: "📊",

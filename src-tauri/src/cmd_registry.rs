@@ -243,7 +243,8 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_git_pull,
         commands::cmd_git_push,
         commands::cmd_get_file_diff,
-        commands::cmd_open_in_explorer,
+        commands::cmd_open_explorer,
+        commands::cmd_open_terminal,
         // ================================================ Session ================================================
         // Chat
         sessions::cmd_is_hippox_initialized,

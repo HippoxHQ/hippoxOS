@@ -10,29 +10,11 @@ import { systemNotificationService } from "../../core/NotificationManager";
 import { basisCommands } from "../../command/basis";
 import { healthCommands, HealthCheckResult } from "../../command/health";
 import SystemResourceMonitor from "./SystemResourceMonitor";
-interface IconProps {
-  className?: string;
-  size?: number;
+import { Bell, BellDot, Clock } from "lucide-react";
+interface BottomBarProps {
+  t: (key: string, params?: Record<string, any>) => string;
 }
-const BellIcon: React.FC<IconProps> = ({ size = 18 }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-    <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-  </svg>
-);
-const BellDotIcon: React.FC<IconProps> = ({ size = 18 }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-    <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-    <circle cx="19" cy="5" r="2.5" fill="red" stroke="red" />
-  </svg>
-);
-const ClockIcon: React.FC<IconProps> = ({ size = 14 }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="12" r="10" />
-    <polyline points="12 6 12 12 16 14" />
-  </svg>
-);
+type StatusDotState = "online" | "offline" | "checking";
 const bottomBarStyles = `
   .bottom-bar {
     height: 30px;
@@ -44,17 +26,17 @@ const bottomBarStyles = `
     padding: 0 16px;
     flex-shrink: 0;
   }
-   .bottom-bar-left {
+  .bottom-bar-left {
     display: flex;
     align-items: center;
     gap: 12px;
   }
-   .bottom-bar-right {
+  .bottom-bar-right {
     display: flex;
     align-items: center;
     gap: 4px;
   }
-   .bottom-bar-btn {
+  .bottom-bar-btn {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -71,68 +53,53 @@ const bottomBarStyles = `
     transition: all 0.15s ease;
     position: relative;
   }
-   .bottom-bar-btn svg {
+  .bottom-bar-btn svg {
     width: 14px;
     height: 14px;
     stroke: currentColor;
     stroke-width: 1.75;
     fill: none;
   }
-   .bottom-bar-btn:hover {
+  .bottom-bar-btn:hover {
     background: var(--hover-bg);
     color: var(--text-primary);
   }
-   .bottom-bar-active {
+  .bottom-bar-active {
     background: var(--hover-bg);
     color: var(--text-primary);
   }
-   .status-dot {
-  position: absolute;
-  bottom: -1px;
-  right: -1px;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  border: 1.5px solid var(--bg-secondary);
-  transition: background-color 0.3s ease;
+  .status-dot {
+    position: absolute;
+    bottom: -1px;
+    right: -1px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    border: 1.5px solid var(--bg-secondary);
+    transition: background-color 0.3s ease;
   }
-   .status-dot.online {
+  .status-dot.online {
     background: #22c55e;
     animation: pulse-dot 2s infinite;
   }
-   .status-dot.offline {
+  .status-dot.offline {
     background: #ef4444;
     animation: none;
   }
-   .status-dot.checking {
+  .status-dot.checking {
     background: #f59e0b;
     animation: pulse-dot 0.8s infinite;
   }
-   @keyframes pulse-dot {
+  @keyframes pulse-dot {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.4; }
   }
-   .version-info {
+  .version-info {
     font-size: 11px;
     color: var(--text-tertiary);
     margin-right: 4px;
   }
-   .health-status {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 11px;
-    color: var(--text-tertiary);
-    margin-right: 4px;
-  }
-   .status-dot-small {
-    width: 6px;
-    height: 6px;
-    background: #22c55e;
-    border-radius: 50%;
-    animation: pulse 2s infinite;
-  }
-   .notification-badge {
+  .notification-badge {
     position: absolute;
     top: -2px;
     right: -2px;
@@ -148,11 +115,7 @@ const bottomBarStyles = `
     align-items: center;
     justify-content: center;
   }
-   @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
-  }
-   @keyframes slideUp {
+  @keyframes slideUp {
     from {
       opacity: 0;
       transform: translateY(10px);
@@ -172,10 +135,6 @@ if (typeof document !== "undefined") {
     document.head.appendChild(style);
   }
 }
-interface BottomBarProps {
-  t: (key: string, params?: Record<string, any>) => string;
-}
-type StatusDotState = "online" | "offline" | "checking";
 const BottomBar: React.FC<BottomBarProps> = ({ t }) => {
   const [hippoxVersion, setHippoxVersion] = useState<string>("");
   const [modelPopupVisible, setModelPopupVisible] = useState(false);
@@ -191,6 +150,23 @@ const BottomBar: React.FC<BottomBarProps> = ({ t }) => {
   const modelPopupRef = useRef<HTMLDivElement>(null);
   const notificationPopupRef = useRef<HTMLDivElement>(null);
   const scheduledTasksPopupRef = useRef<HTMLDivElement>(null);
+  // Load LLM instances and update state
+  const loadLlmInstances = async () => {
+    try {
+      const instances = await configCommands.getLlmInstances();
+      const instancesList = Object.values(instances) as LlmInstance[];
+      setLlmInstances(instancesList);
+      const defaultId = await configCommands.getDefaultLlmInstanceId();
+      setDefaultInstanceId(defaultId);
+      await checkLlmHealth(instancesList);
+      return instancesList;
+    } catch (error) {
+      showToast(ToastType.ERROR, "Failed to load LLM instances: " + error);
+      setStatusDot("offline");
+      return [];
+    }
+  };
+  // Check health status of LLM instances
   const checkLlmHealth = async (instances: LlmInstance[]) => {
     if (instances.length === 0) {
       setStatusDot("offline");
@@ -208,6 +184,7 @@ const BottomBar: React.FC<BottomBarProps> = ({ t }) => {
       setStatusDot("offline");
     }
   };
+  // Load version on mount
   useEffect(() => {
     const loadVersion = async () => {
       try {
@@ -222,21 +199,8 @@ const BottomBar: React.FC<BottomBarProps> = ({ t }) => {
     };
     loadVersion();
   }, []);
-  // Load LLM instances
+  // Load LLM instances on mount
   useEffect(() => {
-    const loadLlmInstances = async () => {
-      try {
-        const instances = await configCommands.getLlmInstances();
-        const instancesList = Object.values(instances) as LlmInstance[];
-        setLlmInstances(instancesList);
-        const defaultId = await configCommands.getDefaultLlmInstanceId();
-        setDefaultInstanceId(defaultId);
-        await checkLlmHealth(instancesList);
-      } catch (error) {
-        showToast(ToastType.ERROR, "Failed to load LLM instances: " + error);
-        setStatusDot("offline");
-      }
-    };
     loadLlmInstances();
   }, []);
   // Load unread count from notification manager
@@ -260,6 +224,7 @@ const BottomBar: React.FC<BottomBarProps> = ({ t }) => {
       window.removeEventListener("system-notification-count-update", handleCountUpdate as EventListener);
     };
   }, []);
+  // Handle click outside to close popups
   useEffect(() => {
     const handleGlobalClick = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
@@ -285,14 +250,19 @@ const BottomBar: React.FC<BottomBarProps> = ({ t }) => {
     document.addEventListener("mousedown", handleGlobalClick);
     return () => document.removeEventListener("mousedown", handleGlobalClick);
   }, [modelPopupVisible, notificationCenterVisible, scheduledTasksVisible]);
+  // Handle setting default model - reload instances to reflect changes
   const handleSetDefaultModel = async (instanceId: string) => {
     try {
       await configCommands.setDefaultLlmInstance(instanceId);
       setDefaultInstanceId(instanceId);
-      await checkLlmHealth(llmInstances);
+      // Reload LLM instances to get updated state from backend
+      const instances = await configCommands.getLlmInstances();
+      const instancesList = Object.values(instances) as LlmInstance[];
+      setLlmInstances(instancesList);
+      await checkLlmHealth(instancesList);
       systemNotificationService.addSuccess(
         t("llmModel.defaultSuccess", {
-          name: llmInstances.find((i) => i.id === instanceId)?.name,
+          name: instancesList.find((i) => i.id === instanceId)?.name,
         }),
         "",
       );
@@ -300,12 +270,15 @@ const BottomBar: React.FC<BottomBarProps> = ({ t }) => {
       showToast(ToastType.ERROR, "Failed to set default model: " + error);
     }
   };
+  // Handle opening model selector - refresh instances
   const handleOpenModelSelector = async () => {
     setModelPopupVisible(!modelPopupVisible);
     if (!modelPopupVisible) {
-      await checkLlmHealth(llmInstances);
+      // Refresh instances when opening the popup
+      await loadLlmInstances();
     }
   };
+  // Get the default instance for display
   const getDefaultInstance = () => {
     let instance;
     if (defaultInstanceId) {
@@ -326,7 +299,12 @@ const BottomBar: React.FC<BottomBarProps> = ({ t }) => {
     <>
       <div className="bottom-bar">
         <div className="bottom-bar-left">
-          <button ref={modelButtonRef} className={`bottom-bar-btn ${modelPopupVisible ? "bottom-bar-active" : ""}`} onClick={handleOpenModelSelector} title={t("bottomBar.model")}>
+          <button
+            ref={modelButtonRef}
+            className={`bottom-bar-btn ${modelPopupVisible ? "bottom-bar-active" : ""}`}
+            onClick={handleOpenModelSelector}
+            title={t("bottomBar.model")}
+          >
             <div style={{ position: "relative", display: "inline-flex" }}>
               <BotIcon2 size={19} />
               <span className={`status-dot ${statusDot}`} />
@@ -353,7 +331,7 @@ const BottomBar: React.FC<BottomBarProps> = ({ t }) => {
             }}
             title={t("scheduled.tasks")}
           >
-            <ClockIcon size={14} />
+            <Clock size={14} />
           </button>
           <button
             ref={notificationButtonRef}
@@ -364,14 +342,35 @@ const BottomBar: React.FC<BottomBarProps> = ({ t }) => {
             }}
             title={t("bottomBar.notifications")}
           >
-            {unreadCount > 0 ? <BellDotIcon size={14} /> : <BellIcon size={14} />}
+            {unreadCount > 0 ? <BellDot size={14} /> : <Bell size={14} />}
             {unreadCount > 0 && <span className="notification-badge">{unreadCount > 99 ? "99+" : unreadCount}</span>}
           </button>
         </div>
       </div>
-      <ModelSelector isOpen={modelPopupVisible} onClose={() => setModelPopupVisible(false)} llmInstances={llmInstances} defaultInstanceId={defaultInstanceId} onSetDefaultModel={handleSetDefaultModel} t={t} anchorRef={modelButtonRef as React.RefObject<HTMLElement>} popupRef={modelPopupRef} />
-      <NotificationCenter isOpen={notificationCenterVisible} onClose={() => setNotificationCenterVisible(false)} anchorRef={notificationButtonRef as React.RefObject<HTMLElement>} t={t} popupRef={notificationPopupRef} />
-      <ScheduledTasksStatus isOpen={scheduledTasksVisible} onClose={() => setScheduledTasksVisible(false)} anchorRef={scheduledTasksButtonRef as React.RefObject<HTMLElement>} t={t} popupRef={scheduledTasksPopupRef} />
+      <ModelSelector
+        isOpen={modelPopupVisible}
+        onClose={() => setModelPopupVisible(false)}
+        llmInstances={llmInstances}
+        defaultInstanceId={defaultInstanceId}
+        onSetDefaultModel={handleSetDefaultModel}
+        t={t}
+        anchorRef={modelButtonRef as React.RefObject<HTMLElement>}
+        popupRef={modelPopupRef}
+      />
+      <NotificationCenter
+        isOpen={notificationCenterVisible}
+        onClose={() => setNotificationCenterVisible(false)}
+        anchorRef={notificationButtonRef as React.RefObject<HTMLElement>}
+        t={t}
+        popupRef={notificationPopupRef}
+      />
+      <ScheduledTasksStatus
+        isOpen={scheduledTasksVisible}
+        onClose={() => setScheduledTasksVisible(false)}
+        anchorRef={scheduledTasksButtonRef as React.RefObject<HTMLElement>}
+        t={t}
+        popupRef={scheduledTasksPopupRef}
+      />
     </>
   );
 };

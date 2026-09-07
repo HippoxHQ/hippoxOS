@@ -609,7 +609,7 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({ workspacePath,
     closeContextMenu();
   };
   const handleOpenInExplorer = async (path: string) => {
-    const result = await generalCommands.openInExplorer(path);
+    const result = await generalCommands.openExplorer(path);
     if (!result.success) {
       showToast(ToastType.ERROR, result.message || t("codeEditor.openInExplorer"));
     }
