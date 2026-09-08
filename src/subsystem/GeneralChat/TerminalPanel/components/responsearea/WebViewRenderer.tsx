@@ -264,7 +264,7 @@ const WebViewRenderer: React.FC<WebViewRendererProps> = ({ data, t, isZh = true 
           position: "relative",
           width: "100%",
           maxWidth: "100%",
-          height: currentWebview.height || "400px",
+          height: "600px",
           background: "var(--bg-primary)",
           // overflow: "auto",
           boxSizing: "border-box",

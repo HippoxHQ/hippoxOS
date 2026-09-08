@@ -4,12 +4,10 @@ import { isTerminalResponseEmpty, renderTerminalResponse } from "../terminalrend
 import { CopyIcon } from "../../../../icons";
 import { UploadFile } from "../../../../core/types";
 import { isStructuredLLMResponse, parseLLMResponse } from "../../llm/utils";
-
 if (!(window as any).__openedTasks) {
   (window as any).__openedTasks = new Map<string, { map: boolean; chart: boolean }>();
 }
 const openedTasks = (window as any).__openedTasks as Map<string, { map: boolean; chart: boolean }>;
-
 export const resetAutoOpenState = (taskId?: string) => {
   if (taskId) {
     openedTasks.delete(taskId);
@@ -17,7 +15,6 @@ export const resetAutoOpenState = (taskId?: string) => {
     openedTasks.clear();
   }
 };
-
 interface TaskOutputProps {
   output: string;
   onCopy: () => void;
@@ -28,7 +25,6 @@ interface TaskOutputProps {
   autoOpen?: boolean;
   onFileClick?: (file: UploadFile) => void;
 }
-
 export const TaskOutput: React.FC<TaskOutputProps> = ({ output, onCopy, onShowChart, onShowMap, t, taskId, autoOpen = true, onFileClick }) => {
   let renderedContent: React.ReactNode = null;
   let isStructured: boolean = false;
@@ -37,7 +33,7 @@ export const TaskOutput: React.FC<TaskOutputProps> = ({ output, onCopy, onShowCh
   let hasCandleview: boolean = false;
   let earthviewData: any = null;
   let candleviewData: any = null;
-
+  const isZh = t("i18n") === "zh";
   if (output && output.trim() !== "") {
     if (isStructuredLLMResponse(output)) {
       const parsed = parseLLMResponse(output);
@@ -51,16 +47,14 @@ export const TaskOutput: React.FC<TaskOutputProps> = ({ output, onCopy, onShowCh
         if (isTerminalResponseEmpty(parsed.terminalResponse)) {
           shouldHide = true;
         } else {
-          renderedContent = renderTerminalResponse(parsed.terminalResponse, t, onFileClick);
+          renderedContent = renderTerminalResponse(parsed.terminalResponse, t, onFileClick, isZh);
         }
       } else if (parsed?.terminalResponse === null) {
         shouldHide = true;
       }
     }
   }
-
   const hasExecutedRef = React.useRef(false);
-
   useEffect(() => {
     if (hasExecutedRef.current) return;
     if (!autoOpen) return;
@@ -84,23 +78,18 @@ export const TaskOutput: React.FC<TaskOutputProps> = ({ output, onCopy, onShowCh
       onShowChart(candleviewData);
     }
   }, [hasEarthview, hasCandleview, earthviewData, candleviewData, autoOpen, taskId, onShowMap, onShowChart]);
-
   if (!output || output.trim() === "") {
     return null;
   }
-
   if (shouldHide) {
     return null;
   }
-
   const handleShowMap = () => {
     onShowMap?.(earthviewData);
   };
-
   const handleShowChart = () => {
     onShowChart(candleviewData);
   };
-
   if (isStructured && renderedContent) {
     return (
       <div className="task-final-output">
@@ -223,7 +212,6 @@ export const TaskOutput: React.FC<TaskOutputProps> = ({ output, onCopy, onShowCh
       </div>
     );
   }
-
   let hasCandleviewInText: boolean = false;
   let hasEarthviewInText: boolean = false;
   let extractedCandleviewData: any = null;
@@ -242,7 +230,6 @@ export const TaskOutput: React.FC<TaskOutputProps> = ({ output, onCopy, onShowCh
       }
     }
   } catch {}
-
   return (
     <div className="task-final-output">
       <div

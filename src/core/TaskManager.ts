@@ -4,7 +4,7 @@ import { sessionCommands } from "../command/session/general";
 import { mapSessionCommands } from "../command/session/map";
 import { sandbox3dSessionCommands } from "../command/session/sandbox3d";
 import { videoSessionCommands } from "../command/session/videoeditor";
-import { ChatMessage } from "../types/types";
+import { ChatMessage, MessageStatus } from "../types/types";
 import { notificationManager, NotificationType } from "./NotificationManager";
 import { StepStatusEnum, TaskInfo, TaskStatusEnum, TaskStepInfo, SessionDomain } from "./types";
 type TaskListener = () => void;
@@ -587,6 +587,50 @@ class TaskManager {
         const key = this.getSessionKey(domain, sessionId);
         const sessionData = this.assistantMessagesBySession.get(key);
         return sessionData?.has("welcome") || false;
+    }
+    // TASK TIMEOUT CLEANUP
+    // Clean up tasks stuck in Pending or Running state for too long
+    // @param timeoutMinutes - Minutes after which a task is considered timed out (default: 5)
+    // @returns Number of tasks cleaned up
+    cleanupTimeoutTasks(timeoutMinutes: number = 5): number {
+        const domain = this.currentDomain;
+        const now = new Date();
+        let cleanedCount = 0;
+        // Get all tasks in current domain
+        const allTasks = this.getAllTasks();
+        for (const task of allTasks) {
+            // Only check tasks that are Pending or Running
+            if (task.status === TaskStatusEnum.Pending || task.status === TaskStatusEnum.Running) {
+                const taskTime = new Date(task.created_at);
+                const diffMinutes = (now.getTime() - taskTime.getTime()) / 1000 / 60;
+                if (diffMinutes >= timeoutMinutes) {
+                    const sessionId = task.session_id;
+                    const domainFromSession = this.getDomainFromSessionId(sessionId);
+                    // Update task status to Timeout
+                    this.updateTaskBySession(sessionId, task.task_id, {
+                        status: TaskStatusEnum.Timeout,
+                        final_output: `⏰ Task Timeout (${timeoutMinutes} minutes)`,
+                        total_duration_ms: now.getTime() - new Date(task.created_at).getTime(),
+                    }, domainFromSession);
+                    // Update corresponding assistant message
+                    const messageId = `llm_${task.task_id}`;
+                    const assistantData = this.getAssistantMessagesSessionData(domainFromSession, sessionId);
+                    const msg = assistantData?.get(messageId);
+                    if (msg && assistantData) {
+                        assistantData.set(messageId, {
+                            ...msg,
+                            status: MessageStatus.Failed,
+                            content: `⏰ ${domain === SessionDomain.General ? "Task Timeout" : "任务超时"} (${timeoutMinutes} minutes)`,
+                        });
+                    }
+                    cleanedCount++;
+                }
+            }
+        }
+        if (cleanedCount > 0) {
+            this.notify();
+        }
+        return cleanedCount;
     }
     getAllData(): { tasks: TaskInfo[]; userMessages: ChatMessage[]; assistantMessages: ChatMessage[] } {
         return {

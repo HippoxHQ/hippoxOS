@@ -9,7 +9,7 @@ import { workflowCommands } from "../../../command/workflow";
 import FileUploader from "../../../components/FileUploader";
 import { showToast, ToastType } from "../../../components/Toast";
 import { taskManager } from "../../../core/TaskManager";
-import { SessionDomain, UploadFile } from "../../../core/types";
+import { SessionDomain, TaskStatusEnum, UploadFile } from "../../../core/types";
 import { ChatIcon, TaskQueueIcon, UserIcon, AttachmentIcon, FolderIcon, ChevronRightIcon, TextFileIcon, FileIcon, FolderOpenIcon } from "../../../icons";
 import { zhDefaultPrompts, enDefaultPrompts } from "../../../types/DefaultPrompt";
 import { ChatMessage, RoleEnum, MessageStatus } from "../../../types/types";
@@ -70,6 +70,8 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSendMessage, onFileClick, t, la
   const [isLoadingTitle, setIsLoadingTitle] = useState(false);
   const hasLoadedTitleRef = useRef<Record<string, boolean>>({});
   const collapseIcon = collapseIconProp || (isLeftPanel ? (isCollapsed ? "≫" : "≪") : isCollapsed ? "≪" : "≫");
+  // Timeout configuration - 5 minutes
+  const TIMEOUT_MINUTES = 5;
   // Load session title from backend
   const loadSessionTitle = async (sessionId: string) => {
     if (!sessionId || sessionId.startsWith("pending_") || sessionId.startsWith("temp_")) {
@@ -698,6 +700,83 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSendMessage, onFileClick, t, la
       </div>
     );
   };
+  // PENDING MESSAGE TIMEOUT DETECTION
+  // Check for LLM messages stuck in Pending state for more than
+  // TIMEOUT_MINUTES (5 minutes) and automatically mark them as Failed
+  useEffect(() => {
+    // Check pending messages for timeout and update taskManager directly
+    const checkPendingTimeout = () => {
+      if (!currentSessionId) return;
+      const now = new Date();
+      const domain = SessionDomain.General;
+      // Get assistant messages from taskManager
+      const assistantMessages = taskManager.getAssistantMessagesMapBySession(currentSessionId, domain);
+      if (!assistantMessages) return;
+      let hasChanges = false;
+      const messagesToUpdate: Array<{ id: string; content: string }> = [];
+      // Iterate through all assistant messages
+      assistantMessages.forEach((msg, msgId) => {
+        // Only check LLM messages with Pending status
+        if (msg.role === RoleEnum.LLM && msg.status === MessageStatus.Pending) {
+          const msgTime = new Date(msg.timestamp);
+          const diffMinutes = (now.getTime() - msgTime.getTime()) / 1000 / 60;
+          // If message has been pending for more than TIMEOUT_MINUTES
+          if (diffMinutes >= TIMEOUT_MINUTES) {
+            hasChanges = true;
+            const timeoutContent = `⏰ ${t("terminal.timeout") || "Task Timeout"} (${TIMEOUT_MINUTES} minutes)`;
+            messagesToUpdate.push({
+              id: msgId,
+              content: timeoutContent,
+            });
+          }
+        }
+      });
+      // Update taskManager directly to persist the timeout state
+      if (hasChanges) {
+        for (const { id, content } of messagesToUpdate) {
+          taskManager.updateAssistantMessageBySession(
+            currentSessionId,
+            id,
+            {
+              status: MessageStatus.Failed,
+              content: content,
+            },
+            domain,
+          );
+        }
+        // Also mark corresponding tasks as timeout in taskManager
+        const tasks = taskManager.getTasksBySession(currentSessionId, domain);
+        if (tasks) {
+          tasks.forEach((task) => {
+            // Check if task has a pending assistant message that was timed out
+            const taskMessageId = `llm_${task.task_id}`;
+            const timedOutMessage = messagesToUpdate.find((m) => m.id === taskMessageId);
+            if (timedOutMessage && task.status === TaskStatusEnum.Pending) {
+              taskManager.updateTaskBySession(
+                currentSessionId,
+                task.task_id,
+                {
+                  status: TaskStatusEnum.Timeout,
+                  final_output: timedOutMessage.content,
+                },
+                domain,
+              );
+            }
+          });
+        }
+        // Force a notification to update UI
+        taskManager.notify();
+      }
+    };
+    // Check immediately on mount
+    const initialCheckTimeout = setTimeout(checkPendingTimeout, 1000);
+    // Check every 30 seconds
+    const intervalId = setInterval(checkPendingTimeout, 30000);
+    return () => {
+      clearTimeout(initialCheckTimeout);
+      clearInterval(intervalId);
+    };
+  }, [currentSessionId, t]);
   useEffect(() => {
     const updateMessages = () => {
       setMessages([]);

@@ -7,6 +7,7 @@ import { PanelHeader, WelcomeMessage, TaskRow, ScrollButtons, TaskBubble } from 
 import { TaskStatusEnum } from "../../../core/types";
 import { globalStyles } from "./styles";
 import { ChevronUp, ChevronDown } from "lucide-react";
+import { taskManager } from "../../../core/TaskManager";
 const TerminalArea: React.FC<TerminalAreaProps> = ({ logs, onClearLogs, t, currentSessionId, onFileClick, theme: _theme, i18n: _i18n, isCollapsed, togglePanel, collapseIcon }) => {
   const { tasks, setTasks, activeTasks } = useTaskManager(currentSessionId);
   const taskRefs = useRef<Map<string, HTMLDivElement>>(new Map());
@@ -17,6 +18,31 @@ const TerminalArea: React.FC<TerminalAreaProps> = ({ logs, onClearLogs, t, curre
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [showScrollBottom, setShowScrollBottom] = useState(false);
   const [activeNavIndex, setActiveNavIndex] = useState<number>(-1);
+  // TASK TIMEOUT DETECTION
+  // Check for tasks stuck in Pending or Running state for more than
+  // TIMEOUT_MINUTES (5 minutes) and automatically mark them as Timeout
+  const TIMEOUT_MINUTES = 5;
+  useEffect(() => {
+    // Function to check and cleanup timeout tasks
+    const checkTimeoutTasks = () => {
+      if (!currentSessionId) return;
+      // Clean up timeout tasks - this will update taskManager and trigger notifications
+      const cleanedCount = taskManager.cleanupTimeoutTasks(TIMEOUT_MINUTES);
+      if (cleanedCount > 0) {
+        // Force refresh of tasks to update UI
+        const newTasks = taskManager.getAllTasks();
+        setTasks([...newTasks]);
+      }
+    };
+    // Check immediately on mount
+    const initialCheckTimeout = setTimeout(checkTimeoutTasks, 1000);
+    // Check every 30 seconds
+    const intervalId = setInterval(checkTimeoutTasks, 30000);
+    return () => {
+      clearTimeout(initialCheckTimeout);
+      clearInterval(intervalId);
+    };
+  }, [currentSessionId, setTasks]);
   // Build all tasks including welcome message
   const allTasks = [
     {
