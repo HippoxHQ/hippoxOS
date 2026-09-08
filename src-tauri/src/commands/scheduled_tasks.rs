@@ -102,8 +102,8 @@ pub fn get_task_skill_md_path(task_id: &str) -> PathBuf {
 /// Ensure the ScheduledTasks directory exists
 fn ensure_scheduled_tasks_dir() -> Result<(), String> {
     let dir = get_scheduled_tasks_root_dir();
-    if !dir.exists() {
-        fs::create_dir_all(&dir).map_err(|e| format!("Failed to create ScheduledTasks directory: {}", e))?;
+    if !FileUtils::path_exists(&dir) {
+        FileUtils::ensure_dir(&dir).map_err(|e| format!("Failed to create ScheduledTasks directory: {}", e))?;
     }
     Ok(())
 }
@@ -112,12 +112,10 @@ fn get_next_task_id() -> Result<String, String> {
     let root_dir = get_scheduled_tasks_root_dir();
     ensure_scheduled_tasks_dir()?;
     let mut max_num = 0;
-    if root_dir.exists() {
-        for entry in fs::read_dir(&root_dir).map_err(|e| format!("Failed to read directory: {}", e))? {
-            let entry = entry.map_err(|e| format!("Failed to read entry: {}", e))?;
-            let path = entry.path();
+    if FileUtils::path_exists(&root_dir) {
+        for path in FileUtils::read_dir(&root_dir).map_err(|e| format!("Failed to read directory: {}", e))? {
             if path.is_dir() {
-                if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
+                if let Some(name) = FileUtils::get_file_name(&path).ok().as_deref() {
                     if let Some(num_str) = name.strip_prefix("task-") {
                         if let Ok(num) = num_str.parse::<u32>() {
                             if num > max_num {
@@ -134,21 +132,21 @@ fn get_next_task_id() -> Result<String, String> {
 /// Create a task directory
 fn create_task_directory(task_id: &str) -> Result<(), String> {
     let task_dir = get_task_dir(task_id);
-    if task_dir.exists() {
-       FileUtils::remove_dir_all_force(&task_dir).map_err(|e| format!("Failed to remove existing task directory: {:?}", e))?;
+    if FileUtils::path_exists(&task_dir) {
+        FileUtils::remove_dir_all_force(&task_dir).map_err(|e| format!("Failed to remove existing task directory: {:?}", e))?;
     }
-    fs::create_dir_all(&task_dir).map_err(|e| format!("Failed to create task directory: {}", e))?;
+    FileUtils::ensure_dir(&task_dir).map_err(|e| format!("Failed to create task directory: {}", e))?;
     Ok(())
 }
 /// Save task configuration to file
 pub fn save_task_config(task: &ScheduledTask) -> Result<(), String> {
     let task_dir = get_task_dir(&task.id);
-    if !task_dir.exists() {
+    if !FileUtils::path_exists(&task_dir) {
         create_task_directory(&task.id)?;
     }
     let config_path = get_task_config_path(&task.id);
     let content = serde_json::to_string_pretty(task).map_err(|e| format!("Failed to serialize task config: {}", e))?;
-    fs::write(&config_path, content).map_err(|e| format!("Failed to write task config: {}", e))?;
+    FileUtils::write_file_string(&config_path, &content).map_err(|e| format!("Failed to write task config: {}", e))?;
     Ok(())
 }
 /// Save natural language content (always created, even if empty)
@@ -156,56 +154,54 @@ pub fn save_natural_language_content(task_id: &str, content: &str) -> Result<(),
     let natural_lang_path = get_task_natural_language_path(task_id);
     let natural_lang = NaturalLanguageContent { content: content.to_string() };
     let json_content = serde_json::to_string_pretty(&natural_lang).map_err(|e| format!("Failed to serialize natural language content: {}", e))?;
-    fs::write(&natural_lang_path, json_content).map_err(|e| format!("Failed to write natural_language.json: {}", e))?;
+    FileUtils::write_file_string(&natural_lang_path, &json_content).map_err(|e| format!("Failed to write natural_language.json: {}", e))?;
     Ok(())
 }
 /// Save SKILL.md content
 pub fn save_skill_md_content(task_id: &str, content: &str) -> Result<(), String> {
     let skill_md_path = get_task_skill_md_path(task_id);
-    fs::write(&skill_md_path, content).map_err(|e| format!("Failed to write SKILL.md: {}", e))?;
+    FileUtils::write_file_string(&skill_md_path, content).map_err(|e| format!("Failed to write SKILL.md: {}", e))?;
     Ok(())
 }
 /// Load task configuration from file
 pub fn load_task_config(task_id: &str) -> Result<Option<ScheduledTask>, String> {
     let config_path = get_task_config_path(task_id);
-    if !config_path.exists() {
+    if !FileUtils::path_exists(&config_path) {
         return Ok(None);
     }
-    let content = fs::read_to_string(&config_path).map_err(|e| format!("Failed to read task config: {}", e))?;
+    let content = FileUtils::read_file_to_string(&config_path).map_err(|e| format!("Failed to read task config: {}", e))?;
     let task: ScheduledTask = serde_json::from_str(&content).map_err(|e| format!("Failed to parse task config: {}", e))?;
     Ok(Some(task))
 }
 /// Load natural language content from file
 pub fn load_natural_language_content(task_id: &str) -> Result<Option<NaturalLanguageContent>, String> {
     let natural_lang_path = get_task_natural_language_path(task_id);
-    if !natural_lang_path.exists() {
+    if !FileUtils::path_exists(&natural_lang_path) {
         return Ok(None);
     }
-    let content = fs::read_to_string(&natural_lang_path).map_err(|e| format!("Failed to read natural_language.json: {}", e))?;
+    let content = FileUtils::read_file_to_string(&natural_lang_path).map_err(|e| format!("Failed to read natural_language.json: {}", e))?;
     let natural_lang: NaturalLanguageContent = serde_json::from_str(&content).map_err(|e| format!("Failed to parse natural_language.json: {}", e))?;
     Ok(Some(natural_lang))
 }
 /// Load SKILL.md content from file
 pub fn load_skill_md_content(task_id: &str) -> Result<Option<String>, String> {
     let skill_md_path = get_task_skill_md_path(task_id);
-    if !skill_md_path.exists() {
+    if !FileUtils::path_exists(&skill_md_path) {
         return Ok(None);
     }
-    let content = fs::read_to_string(&skill_md_path).map_err(|e| format!("Failed to read SKILL.md: {}", e))?;
+    let content = FileUtils::read_file_to_string(&skill_md_path).map_err(|e| format!("Failed to read SKILL.md: {}", e))?;
     Ok(Some(content))
 }
 /// Get all task IDs
 fn list_task_ids() -> Result<Vec<String>, String> {
     let root_dir = get_scheduled_tasks_root_dir();
-    if !root_dir.exists() {
+    if !FileUtils::path_exists(&root_dir) {
         return Ok(vec![]);
     }
     let mut task_ids = Vec::new();
-    for entry in fs::read_dir(&root_dir).map_err(|e| format!("Failed to read directory: {}", e))? {
-        let entry = entry.map_err(|e| format!("Failed to read entry: {}", e))?;
-        let path = entry.path();
+    for path in FileUtils::read_dir(&root_dir).map_err(|e| format!("Failed to read directory: {}", e))? {
         if path.is_dir() {
-            if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
+            if let Some(name) = FileUtils::get_file_name(&path).ok().as_deref() {
                 if name.starts_with("task-") {
                     task_ids.push(name.to_string());
                 }
@@ -372,8 +368,8 @@ pub async fn cmd_scheduled_task_delete(state: State<'_, AppState>, task_id: Stri
         scheduled_task_pool::remove_task_from_pool(pool, &task_id).await;
     }
     let task_dir = get_task_dir(&task_id);
-    if task_dir.exists() {
-       FileUtils::remove_dir_all_force(&task_dir).map_err(|e| format!("Failed to delete task directory: {:?}", e))?;
+    if FileUtils::path_exists(&task_dir) {
+        FileUtils::remove_dir_all_force(&task_dir).map_err(|e| format!("Failed to delete task directory: {:?}", e))?;
     }
     Ok(true)
 }

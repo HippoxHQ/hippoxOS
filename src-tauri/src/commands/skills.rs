@@ -80,15 +80,15 @@ fn get_skill_history_file_path(skill_id: &str) -> PathBuf {
 }
 fn ensure_skills_dir() -> Result<(), String> {
     let dir = get_skills_local_dir();
-    if !dir.exists() {
-        fs::create_dir_all(&dir).map_err(|e| format!("Failed to create skills directory: {}", e))?;
+    if !FileUtils::path_exists(&dir) {
+        FileUtils::ensure_dir(&dir).map_err(|e| format!("Failed to create skills directory: {}", e))?;
     }
     Ok(())
 }
 fn ensure_history_dir() -> Result<(), String> {
     let dir = get_skill_history_dir();
-    if !dir.exists() {
-        fs::create_dir_all(&dir).map_err(|e| format!("Failed to create history directory: {}", e))?;
+    if !FileUtils::path_exists(&dir) {
+        FileUtils::ensure_dir(&dir).map_err(|e| format!("Failed to create history directory: {}", e))?;
     }
     Ok(())
 }
@@ -118,7 +118,7 @@ fn skill_to_markdown(skill: &SkillData) -> String {
     content
 }
 fn parse_skill_from_markdown(path: &PathBuf, skill_id: &str) -> Result<SkillData, String> {
-    let content = fs::read_to_string(path).map_err(|e| format!("Failed to read SKILL.md: {}", e))?;
+    let content = FileUtils::read_file_to_string(path).map_err(|e| format!("Failed to read SKILL.md: {}", e))?;
     let mut name = String::new();
     let mut description = String::new();
     let mut tags = String::new();
@@ -198,8 +198,8 @@ fn save_skill_history(history: &SkillHistory) -> Result<(), String> {
     ensure_history_dir()?;
     let history_file = get_skill_history_file_path(&history.skill_id);
     let mut histories = Vec::new();
-    if history_file.exists() {
-        let content = fs::read_to_string(&history_file).map_err(|e| format!("Failed to read history: {}", e))?;
+    if FileUtils::path_exists(&history_file) {
+        let content = FileUtils::read_file_to_string(&history_file).map_err(|e| format!("Failed to read history: {}", e))?;
         histories = serde_json::from_str(&content).unwrap_or_default();
     }
     histories.push(history.clone());
@@ -208,13 +208,13 @@ fn save_skill_history(history: &SkillHistory) -> Result<(), String> {
         histories = histories.into_iter().skip(start_index).collect();
     }
     let content = serde_json::to_string_pretty(&histories).map_err(|e| format!("Failed to serialize history: {}", e))?;
-    fs::write(&history_file, content).map_err(|e| format!("Failed to save history: {}", e))?;
+    FileUtils::write_file_string(&history_file, &content).map_err(|e| format!("Failed to save history: {}", e))?;
     Ok(())
 }
 fn get_skill_history_by_id(skill_id: &str) -> Result<Vec<SkillHistory>, String> {
     let history_file = get_skill_history_file_path(skill_id);
-    if history_file.exists() {
-        let content = fs::read_to_string(&history_file).map_err(|e| format!("Failed to read history: {}", e))?;
+    if FileUtils::path_exists(&history_file) {
+        let content = FileUtils::read_file_to_string(&history_file).map_err(|e| format!("Failed to read history: {}", e))?;
         Ok(serde_json::from_str(&content).unwrap_or_default())
     } else {
         Ok(vec![])
@@ -222,15 +222,13 @@ fn get_skill_history_by_id(skill_id: &str) -> Result<Vec<SkillHistory>, String> 
 }
 fn get_all_skill_history_records() -> Result<Vec<SkillHistory>, String> {
     let history_dir = get_skill_history_dir();
-    if !history_dir.exists() {
+    if !FileUtils::path_exists(&history_dir) {
         return Ok(vec![]);
     }
     let mut all_history = Vec::new();
-    for entry in fs::read_dir(&history_dir).map_err(|e| format!("Failed to read history dir: {}", e))? {
-        let entry = entry.map_err(|e| format!("Failed to read entry: {}", e))?;
-        let path = entry.path();
-        if path.is_file() && path.extension().and_then(|e| e.to_str()) == Some("json") {
-            let content = fs::read_to_string(&path).map_err(|e| format!("Failed to read history file: {}", e))?;
+    for path in FileUtils::read_dir(&history_dir).map_err(|e| format!("Failed to read history dir: {}", e))? {
+        if FileUtils::file_exists(&path) && FileUtils::get_file_extension(&path) == Some("json".to_string()) {
+            let content = FileUtils::read_file_to_string(&path).map_err(|e| format!("Failed to read history file: {}", e))?;
             if let Ok(histories) = serde_json::from_str::<Vec<SkillHistory>>(&content) {
                 all_history.extend(histories);
             }
@@ -242,26 +240,22 @@ fn get_all_skill_history_records() -> Result<Vec<SkillHistory>, String> {
 #[tauri::command]
 pub async fn cmd_list_local_skills() -> Result<Vec<SkillData>, String> {
     let skills_dir = get_skills_local_dir();
-    if !skills_dir.exists() {
+    if !FileUtils::path_exists(&skills_dir) {
         return Ok(vec![]);
     }
     let mut skills = Vec::new();
-    for category_entry in fs::read_dir(&skills_dir).map_err(|e| format!("Failed to read skills directory: {}", e))? {
-        let category_entry = category_entry.map_err(|e| format!("Failed to read entry: {}", e))?;
-        let category_path = category_entry.path();
+    for category_path in FileUtils::read_dir(&skills_dir).map_err(|e| format!("Failed to read skills directory: {}", e))? {
         if category_path.is_dir() {
-            let category_name = category_path.file_name().unwrap_or_default().to_string_lossy().to_string();
-            for skill_entry in fs::read_dir(&category_path).map_err(|e| format!("Failed to read category dir: {}", e))? {
-                let skill_entry = skill_entry.map_err(|e| format!("Failed to read entry: {}", e))?;
-                let skill_path = skill_entry.path();
+            let category_name = FileUtils::get_file_name(&category_path).unwrap_or_else(|_| "unknown".to_string());
+            for skill_path in FileUtils::read_dir(&category_path).map_err(|e| format!("Failed to read category dir: {}", e))? {
                 if skill_path.is_dir() {
-                    let skill_id = skill_path.file_name().unwrap_or_default().to_string_lossy().to_string();
+                    let skill_id = FileUtils::get_file_name(&skill_path).unwrap_or_else(|_| "unknown".to_string());
                     let skill_md_path = skill_path.join("SKILL.md");
-                    if skill_md_path.exists() {
+                    if FileUtils::path_exists(&skill_md_path) {
                         match parse_skill_from_markdown(&skill_md_path, &skill_id) {
                             Ok(mut skill) => {
                                 skill.category = category_name.clone();
-                                skill.path = skill_md_path.to_string_lossy().to_string();
+                                skill.path = FileUtils::to_string_lossy(&skill_md_path);
                                 skills.push(skill);
                             }
                             Err(e) => log::error!("Failed to parse skill {}: {}", skill_id, e),
@@ -282,10 +276,10 @@ pub async fn cmd_create_skill(request: CreateSkillRequest) -> Result<SkillData, 
     let mut skill_id = base_name.clone();
     let mut counter = 1;
     let category_dir = get_skills_local_dir().join(&safe_category);
-    if !category_dir.exists() {
-        fs::create_dir_all(&category_dir).map_err(|e| format!("Failed to create category directory: {}", e))?;
+    if !FileUtils::path_exists(&category_dir) {
+        FileUtils::ensure_dir(&category_dir).map_err(|e| format!("Failed to create category directory: {}", e))?;
     }
-    while get_skill_dir(&category, &skill_id).exists() {
+    while FileUtils::path_exists(&get_skill_dir(&category, &skill_id)) {
         skill_id = format!("{}_{}", base_name, counter);
         counter += 1;
     }
@@ -301,13 +295,12 @@ pub async fn cmd_create_skill(request: CreateSkillRequest) -> Result<SkillData, 
         created_at: now.clone(),
         updated_at: now.clone(),
         installed: true,
-        path: skill_md_path.to_string_lossy().to_string(),
+        path: FileUtils::to_string_lossy(&skill_md_path),
     };
     let skill_dir = get_skill_dir(&category, &skill_id);
-    fs::create_dir_all(&skill_dir).map_err(|e| format!("Failed to create skill directory: {}", e))?;
+    FileUtils::ensure_dir(&skill_dir).map_err(|e| format!("Failed to create skill directory: {}", e))?;
     let markdown_content = skill_to_markdown(&skill);
-    let skill_md_path = get_skill_md_path(&category, &skill_id);
-    fs::write(&skill_md_path, markdown_content).map_err(|e| format!("Failed to write SKILL.md: {}", e))?;
+    FileUtils::write_file_string(&skill_md_path, &markdown_content).map_err(|e| format!("Failed to write SKILL.md: {}", e))?;
     let history = SkillHistory {
         id: Uuid::new_v4().to_string(),
         skill_id: skill_id.clone(),
@@ -323,7 +316,7 @@ pub async fn cmd_create_skill(request: CreateSkillRequest) -> Result<SkillData, 
 pub async fn cmd_update_skill(request: UpdateSkillRequest) -> Result<SkillData, String> {
     let new_category = if request.category.trim().is_empty() { "other".to_string() } else { request.category.trim().to_string() };
     let old_skill_dir = get_skill_dir(&request.old_category, &request.id);
-    if !old_skill_dir.exists() {
+    if !FileUtils::path_exists(&old_skill_dir) {
         return Err(format!("Skill not found: {}", request.id));
     }
     let old_skill_md_path = get_skill_md_path(&request.old_category, &request.id);
@@ -331,7 +324,7 @@ pub async fn cmd_update_skill(request: UpdateSkillRequest) -> Result<SkillData, 
     let base_name = request.name.to_lowercase().replace(|c: char| !c.is_alphanumeric() && c != '_' && c != '-', "_").replace(" ", "_");
     let mut new_id = base_name.clone();
     let mut counter = 1;
-    while get_skill_dir(&new_category, &new_id).exists() && new_id != request.id {
+    while FileUtils::path_exists(&get_skill_dir(&new_category, &new_id)) && new_id != request.id {
         new_id = format!("{}_{}", base_name, counter);
         counter += 1;
     }
@@ -339,13 +332,14 @@ pub async fn cmd_update_skill(request: UpdateSkillRequest) -> Result<SkillData, 
     let category_changed = request.old_category != new_category;
     let (skill, skill_md_path) = if new_id != request.id || category_changed {
         let new_skill_dir = get_skill_dir(&new_category, &new_id);
-        if new_skill_dir.exists() {
+        if FileUtils::path_exists(&new_skill_dir) {
             return Err(format!("Skill already exists: {}", new_id));
         }
         let category_dir = new_skill_dir.parent().ok_or_else(|| "Invalid category path".to_string())?;
-        if !category_dir.exists() {
+        if !FileUtils::path_exists(category_dir) {
             FileUtils::ensure_dir(category_dir).map_err(|e| format!("Failed to create category directory: {}", e))?;
         }
+        // Use fs for rename as FileUtils doesn't have rename
         std::fs::rename(&old_skill_dir, &new_skill_dir).map_err(|e| format!("Failed to move skill directory: {}", e))?;
         let new_skill_md_path = get_skill_md_path(&new_category, &new_id);
         let skill = SkillData {
@@ -358,22 +352,24 @@ pub async fn cmd_update_skill(request: UpdateSkillRequest) -> Result<SkillData, 
             created_at: old_skill.created_at.clone(),
             updated_at: now.clone(),
             installed: true,
-            path: new_skill_md_path.to_string_lossy().to_string(),
+            path: FileUtils::to_string_lossy(&new_skill_md_path),
         };
         let markdown_content = skill_to_markdown(&skill);
         FileUtils::write_file_string(&new_skill_md_path, &markdown_content).map_err(|e| format!("Failed to write SKILL.md: {}", e))?;
+        // Clean up old category if empty
         let old_category_dir = get_skill_dir(&request.old_category, "");
         if let Some(parent) = old_category_dir.parent() {
-            if parent.exists() {
-                let is_empty = std::fs::read_dir(parent).map(|mut dir| dir.next().is_none()).unwrap_or(false);
+            if FileUtils::path_exists(parent) {
+                let is_empty = FileUtils::read_dir(parent).map(|entries| entries.is_empty()).unwrap_or(false);
                 if is_empty {
-                    let _ = std::fs::remove_dir(parent);
+                    let _ = FileUtils::remove_dir_all(parent);
                 }
             }
         }
+        // Update history file
         let history_file = get_skill_history_file_path(&request.id);
-        if history_file.exists() {
-            let content = std::fs::read_to_string(&history_file).map_err(|e| format!("Failed to read history: {}", e))?;
+        if FileUtils::path_exists(&history_file) {
+            let content = FileUtils::read_file_to_string(&history_file).map_err(|e| format!("Failed to read history: {}", e))?;
             if let Ok(mut histories) = serde_json::from_str::<Vec<SkillHistory>>(&content) {
                 for h in histories.iter_mut() {
                     h.skill_id = new_id.clone();
@@ -381,7 +377,7 @@ pub async fn cmd_update_skill(request: UpdateSkillRequest) -> Result<SkillData, 
                 let new_content = serde_json::to_string_pretty(&histories).map_err(|e| format!("Failed to serialize history: {}", e))?;
                 let new_history_file = get_skill_history_file_path(&new_id);
                 FileUtils::write_file_string(&new_history_file, &new_content).map_err(|e| format!("Failed to save history: {}", e))?;
-                let _ = std::fs::remove_file(&history_file);
+                let _ = FileUtils::remove_file(&history_file);
             }
         }
         (skill, new_skill_md_path)
@@ -396,11 +392,11 @@ pub async fn cmd_update_skill(request: UpdateSkillRequest) -> Result<SkillData, 
             created_at: old_skill.created_at.clone(),
             updated_at: now.clone(),
             installed: true,
-            path: old_skill_md_path.to_string_lossy().to_string(),
+            path: FileUtils::to_string_lossy(&old_skill_md_path),
         };
         let markdown_content = skill_to_markdown(&skill);
         FileUtils::write_file_string(&old_skill_md_path, &markdown_content).map_err(|e| format!("Failed to write SKILL.md: {}", e))?;
-        (skill, old_skill_md_path.clone())
+        (skill, old_skill_md_path)
     };
     let history = SkillHistory {
         id: Uuid::new_v4().to_string(),
@@ -417,7 +413,7 @@ pub async fn cmd_update_skill(request: UpdateSkillRequest) -> Result<SkillData, 
 pub async fn cmd_delete_skill(skill_id: String, category: String) -> Result<bool, String> {
     let category = if category.trim().is_empty() { "other".to_string() } else { category.trim().to_string() };
     let skill_dir = get_skill_dir(&category, &skill_id);
-    if !skill_dir.exists() {
+    if !FileUtils::path_exists(&skill_dir) {
         return Err(format!("Skill not found: {}", skill_id));
     }
     let skill_name =
@@ -439,9 +435,9 @@ pub async fn cmd_delete_skill(skill_id: String, category: String) -> Result<bool
 pub async fn cmd_get_skill(skill_id: String, category: String) -> Result<Option<SkillData>, String> {
     let category = if category.trim().is_empty() { "other".to_string() } else { category.trim().to_string() };
     let skill_md_path = get_skill_md_path(&category, &skill_id);
-    if skill_md_path.exists() {
+    if FileUtils::path_exists(&skill_md_path) {
         let mut skill = parse_skill_from_markdown(&skill_md_path, &skill_id)?;
-        skill.path = skill_md_path.to_string_lossy().to_string();
+        skill.path = FileUtils::to_string_lossy(&skill_md_path);
         Ok(Some(skill))
     } else {
         Ok(None)
@@ -458,23 +454,23 @@ pub async fn cmd_get_skill_history(skill_id: String) -> Result<Vec<SkillHistory>
 #[tauri::command]
 pub async fn cmd_skill_exists(skill_id: String, category: String) -> Result<bool, String> {
     let category = if category.trim().is_empty() { "other".to_string() } else { category.trim().to_string() };
-    Ok(get_skill_dir(&category, &skill_id).exists())
+    Ok(FileUtils::path_exists(&get_skill_dir(&category, &skill_id)))
 }
 #[tauri::command]
 pub async fn cmd_favorite_local_skill(skill_id: String, category: String) -> Result<bool, String> {
     let category = if category.trim().is_empty() { "other".to_string() } else { category.trim().to_string() };
     let source_dir = get_skill_dir(&category, &skill_id);
-    if !source_dir.exists() {
+    if !FileUtils::path_exists(&source_dir) {
         return Err(format!("Skill not found: {}/{}", category, skill_id));
     }
     let favorites_skill_dir = get_app_root_dir().join("favorites").join("skill").join(&category);
     let target_dir = favorites_skill_dir.join(&skill_id);
-    if target_dir.exists() {
+    if FileUtils::path_exists(&target_dir) {
         FileUtils::remove_dir_all_force(&target_dir).map_err(|e| format!("Failed to remove existing: {:?}", e))?;
     }
     if let Some(parent) = target_dir.parent() {
-        if !parent.exists() {
-            fs::create_dir_all(parent).map_err(|e| format!("Failed to create parent: {}", e))?;
+        if !FileUtils::path_exists(parent) {
+            FileUtils::ensure_dir(parent).map_err(|e| format!("Failed to create parent: {}", e))?;
         }
     }
     let copy_options = fs_extra::dir::CopyOptions::new().overwrite(true).copy_inside(true);
@@ -492,7 +488,7 @@ pub async fn cmd_unfavorite_local_skill(skill_id: String, category: String) -> R
     let category = if category.trim().is_empty() { "other".to_string() } else { category.trim().to_string() };
     let favorite_id = format!("{}/{}", category, skill_id);
     let target_dir = get_app_root_dir().join("favorites").join("skill").join(&category).join(&skill_id);
-    if target_dir.exists() {
+    if FileUtils::path_exists(&target_dir) {
         FileUtils::remove_dir_all_force(&target_dir).map_err(|e| format!("Failed to remove favorite: {:?}", e))?;
     }
     let mut favorites = crate::commands::favorites::load_favorites_config();

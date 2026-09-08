@@ -6,10 +6,10 @@
 //! - Skill file tasks: read from SKILL.md
 use crate::commands::cmd_get_disabled_drivers;
 use crate::commands::scheduled_tasks::{get_task_dir, load_natural_language_content, load_skill_md_content, load_task_config, ScheduledTask};
+use crate::commons::FileUtils;
 use crate::hippox_core::get_default_hippox;
 use hippox::HippoxResult;
 use serde::{Deserialize, Serialize};
-use std::fs;
 use std::path::PathBuf;
 /// Represents a single scheduled task execution result
 ///
@@ -109,7 +109,7 @@ impl ScheduledTaskExecutor {
     /// * `Err(String)` if task not found or data cannot be loaded
     pub async fn from_task_id(task_id: &str) -> Result<Self, String> {
         let task_dir = get_task_dir(task_id);
-        if !task_dir.exists() {
+        if !FileUtils::path_exists(&task_dir) {
             return Err(format!("Task directory not found: {}", task_id));
         }
         let task = load_task_config(task_id)?.ok_or_else(|| format!("Task config not found: {}", task_id))?;
@@ -189,7 +189,7 @@ impl ScheduledTaskExecutor {
     async fn save_execution_result(&self, result: &ScheduledTaskExecutionResult) -> Result<(), String> {
         let result_path = self.task_dir.join("result.json");
         let content = serde_json::to_string_pretty(result).map_err(|e| format!("Failed to serialize result: {}", e))?;
-        fs::write(&result_path, content).map_err(|e| format!("Failed to write result file: {}", e))?;
+        FileUtils::write_file_string(&result_path, &content).map_err(|e| format!("Failed to write result file: {}", e))?;
         Ok(())
     }
     /// Update task configuration after execution
@@ -205,10 +205,10 @@ impl ScheduledTaskExecutor {
     /// Get the latest execution result
     pub async fn get_latest_result(&self) -> Result<Option<ScheduledTaskExecutionResult>, String> {
         let result_path = self.task_dir.join("result.json");
-        if !result_path.exists() {
+        if !FileUtils::path_exists(&result_path) {
             return Ok(None);
         }
-        let content = fs::read_to_string(&result_path).map_err(|e| format!("Failed to read result file: {}", e))?;
+        let content = FileUtils::read_file_to_string(&result_path).map_err(|e| format!("Failed to read result file: {}", e))?;
         let result: ScheduledTaskExecutionResult = serde_json::from_str(&content).map_err(|e| format!("Failed to parse result file: {}", e))?;
         Ok(Some(result))
     }

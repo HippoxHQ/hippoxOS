@@ -2,9 +2,8 @@ use crate::commands::paths::{
     get_codeeditor_dialog_history_dir, get_map_dialog_history_dir, get_sandbox3d_dialog_history_dir, get_video_editing_system_dialog_history_dir,
 };
 use crate::commands::{get_finance_dialog_history_dir, get_general_history_dir, get_skills_market_dir};
-use crate::commons::{get_logs_dir, get_sessions_dir};
+use crate::commons::{get_logs_dir, get_sessions_dir, FileUtils};
 use serde::{Deserialize, Serialize};
-use std::fs;
 use std::path::PathBuf;
 use tauri::command;
 use uuid::Uuid;
@@ -221,20 +220,20 @@ fn get_message_preview(content: &str, max_len: usize) -> String {
 /// Read session config from a session directory
 fn read_session_config(session_dir: &PathBuf) -> Result<serde_json::Value, String> {
     let config_path = session_dir.join("config.json");
-    if !config_path.exists() {
+    if !FileUtils::path_exists(&config_path) {
         return Ok(serde_json::json!({}));
     }
-    let content = fs::read_to_string(&config_path).map_err(|e| format!("Failed to read config: {}", e))?;
+    let content = FileUtils::read_file_to_string(&config_path).map_err(|e| format!("Failed to read config: {}", e))?;
     let config: serde_json::Value = serde_json::from_str(&content).map_err(|e| format!("Failed to parse config: {}", e))?;
     Ok(config)
 }
 /// Read session chat messages from a session directory
 fn read_session_chat(session_dir: &PathBuf) -> Result<Vec<serde_json::Value>, String> {
     let chat_path = session_dir.join("chat.json");
-    if !chat_path.exists() {
+    if !FileUtils::path_exists(&chat_path) {
         return Ok(vec![]);
     }
-    let content = fs::read_to_string(&chat_path).map_err(|e| format!("Failed to read chat: {}", e))?;
+    let content = FileUtils::read_file_to_string(&chat_path).map_err(|e| format!("Failed to read chat: {}", e))?;
     let messages: Vec<serde_json::Value> = serde_json::from_str(&content).unwrap_or_else(|_| vec![]);
     Ok(messages)
 }
@@ -247,20 +246,20 @@ fn search_messages_in_subsystem(
     limit: usize,
 ) -> Vec<MessageSearchResult> {
     let mut results = Vec::new();
-    if !subsystem_dir.exists() {
+    if !FileUtils::path_exists(subsystem_dir) {
         return results;
     }
     // Read all session directories in this subsystem
-    let entries = match fs::read_dir(subsystem_dir) {
+    let entries = match FileUtils::read_dir_entries(subsystem_dir) {
         Ok(e) => e,
         Err(_) => return results,
     };
-    for entry in entries.flatten() {
+    for entry in entries {
         let session_dir = entry.path();
         if !session_dir.is_dir() {
             continue;
         }
-        let session_id = session_dir.file_name().unwrap_or_default().to_string_lossy().to_string();
+        let session_id = FileUtils::get_file_name(&session_dir).unwrap_or_else(|_| "unknown".to_string());
         // Read session config to get title
         let config = match read_session_config(&session_dir) {
             Ok(c) => c,
@@ -316,7 +315,7 @@ impl SearchEngine {
     async fn search_skills(&self, keyword: &str, limit: usize) -> Vec<SearchResult> {
         let keyword_lower = keyword.to_lowercase();
         let mut results = Vec::new();
-        if !self.skills_dir.exists() {
+        if !FileUtils::path_exists(&self.skills_dir) {
             return results;
         }
         for entry in WalkDir::new(&self.skills_dir)
@@ -330,7 +329,7 @@ impl SearchEngine {
             .take(limit * 2)
         {
             let path = entry.path();
-            let content = fs::read_to_string(path).unwrap_or_default();
+            let content = FileUtils::read_file_to_string(path).unwrap_or_default();
             let skill_name = parse_skill_name_from_markdown(
                 &content,
                 &path.parent().and_then(|p| p.file_name()).map(|n| n.to_string_lossy().to_string()).unwrap_or_else(|| "unknown".to_string()),
@@ -361,7 +360,7 @@ impl SearchEngine {
     async fn search_sessions(&self, keyword: &str, limit: usize) -> Vec<SearchResult> {
         let keyword_lower = keyword.to_lowercase();
         let mut results = Vec::new();
-        if !self.sessions_dir.exists() {
+        if !FileUtils::path_exists(&self.sessions_dir) {
             return results;
         }
         for entry in WalkDir::new(&self.sessions_dir)
@@ -372,10 +371,10 @@ impl SearchEngine {
             .take(limit * 2)
         {
             let path = entry.path();
-            let metadata = fs::metadata(path).ok();
+            let metadata = FileUtils::get_metadata(path).ok();
             let timestamp =
                 metadata.and_then(|m| m.modified().ok()).map(|t| t.duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_secs().to_string());
-            let content = fs::read_to_string(path).unwrap_or_default();
+            let content = FileUtils::read_file_to_string(path).unwrap_or_default();
             let session_name = path.file_stem().unwrap_or_default().to_string_lossy().to_string();
             if session_name.to_lowercase().contains(&keyword_lower) || content.to_lowercase().contains(&keyword_lower) {
                 let highlight = if content.to_lowercase().contains(&keyword_lower) {
@@ -407,7 +406,7 @@ impl SearchEngine {
     async fn search_logs(&self, keyword: &str, limit: usize) -> Vec<SearchResult> {
         let keyword_lower = keyword.to_lowercase();
         let mut results = Vec::new();
-        if !self.logs_dir.exists() {
+        if !FileUtils::path_exists(&self.logs_dir) {
             return results;
         }
         for entry in WalkDir::new(&self.logs_dir)
@@ -418,10 +417,10 @@ impl SearchEngine {
             .take(limit * 2)
         {
             let path = entry.path();
-            let metadata = fs::metadata(path).ok();
+            let metadata = FileUtils::get_metadata(path).ok();
             let timestamp =
                 metadata.and_then(|m| m.modified().ok()).map(|t| t.duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_secs().to_string());
-            let content = fs::read_to_string(path).unwrap_or_default();
+            let content = FileUtils::read_file_to_string(path).unwrap_or_default();
             let log_name = path.file_name().unwrap_or_default().to_string_lossy().to_string();
             if content.to_lowercase().contains(&keyword_lower) {
                 let highlight = content.lines().find(|line| line.to_lowercase().contains(&keyword_lower)).map(|line| {

@@ -10,10 +10,10 @@
 //! - All operations: Memory ←→ User
 //! - Initial load: Disk → Memory (when cache is empty)
 use crate::commands::paths::get_app_root_dir;
+use crate::commons::FileUtils;
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::fs;
 use std::path::PathBuf;
 use std::sync::RwLock;
 use tauri::command;
@@ -188,8 +188,8 @@ pub fn get_profile_info_path() -> PathBuf {
 }
 fn ensure_profile_dir() -> Result<(), String> {
     let dir = get_profile_dir();
-    if !dir.exists() {
-        fs::create_dir_all(&dir).map_err(|e| format!("Failed to create profile directory: {}", e))?;
+    if !FileUtils::path_exists(&dir) {
+        FileUtils::ensure_dir(&dir).map_err(|e| format!("Failed to create profile directory: {}", e))?;
     }
     Ok(())
 }
@@ -205,7 +205,7 @@ pub fn load_profile() -> Result<UserProfile, String> {
         return Ok(profile.clone());
     }
     let profile_path = get_profile_info_path();
-    if !profile_path.exists() {
+    if !FileUtils::path_exists(&profile_path) {
         let default_profile = UserProfile::default();
         drop(cache);
         save_profile_to_disk(&default_profile)?;
@@ -213,7 +213,7 @@ pub fn load_profile() -> Result<UserProfile, String> {
         *cache = Some(default_profile.clone());
         return Ok(default_profile);
     }
-    let content = fs::read_to_string(&profile_path).map_err(|e| format!("Failed to read profile file: {}", e))?;
+    let content = FileUtils::read_file_to_string(&profile_path).map_err(|e| format!("Failed to read profile file: {}", e))?;
     let profile: UserProfile = serde_json::from_str(&content).map_err(|e| format!("Failed to parse profile: {}", e))?;
     *cache = Some(profile.clone());
     Ok(profile)
@@ -228,7 +228,7 @@ fn save_profile_to_disk(profile: &UserProfile) -> Result<(), String> {
     ensure_profile_dir()?;
     let profile_path = get_profile_info_path();
     let content = serde_json::to_string_pretty(profile).map_err(|e| format!("Failed to serialize profile: {}", e))?;
-    fs::write(&profile_path, content).map_err(|e| format!("Failed to save profile: {}", e))?;
+    FileUtils::write_file_string(&profile_path, &content).map_err(|e| format!("Failed to save profile: {}", e))?;
     Ok(())
 }
 pub fn update_profile(update: UpdateProfileRequest) -> Result<UserProfile, String> {
@@ -251,7 +251,7 @@ pub fn update_profile(update: UpdateProfileRequest) -> Result<UserProfile, Strin
 }
 pub fn init_default_profile() -> Result<UserProfile, String> {
     let profile_path = get_profile_info_path();
-    if !profile_path.exists() {
+    if !FileUtils::path_exists(&profile_path) {
         let default_profile = UserProfile::default();
         save_profile(&default_profile)?;
         Ok(default_profile)
@@ -260,12 +260,12 @@ pub fn init_default_profile() -> Result<UserProfile, String> {
     }
 }
 pub fn profile_exists() -> bool {
-    get_profile_info_path().exists()
+    FileUtils::path_exists(&get_profile_info_path())
 }
 pub fn delete_profile() -> Result<bool, String> {
     let profile_path = get_profile_info_path();
-    if profile_path.exists() {
-        fs::remove_file(&profile_path).map_err(|e| format!("Failed to delete profile: {}", e))?;
+    if FileUtils::path_exists(&profile_path) {
+        FileUtils::remove_file(&profile_path).map_err(|e| format!("Failed to delete profile: {}", e))?;
         let mut cache = PROFILE_CACHE.write().map_err(|e| format!("Failed to acquire write lock: {}", e))?;
         *cache = None;
         Ok(true)
@@ -319,7 +319,7 @@ pub async fn cmd_profile_exists() -> Result<bool, String> {
 }
 #[command]
 pub async fn cmd_get_profile_dir() -> Result<String, String> {
-    Ok(get_profile_dir().to_string_lossy().to_string())
+    Ok(FileUtils::to_string_lossy(&get_profile_dir()))
 }
 #[command]
 pub async fn cmd_update_profile_settings(settings: ProfileSettings) -> Result<UserProfile, String> {

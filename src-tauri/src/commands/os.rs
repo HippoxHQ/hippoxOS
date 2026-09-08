@@ -1,4 +1,5 @@
 // System operations including CPU/GPU monitoring, browser opening, and system info
+use crate::commons::FileUtils;
 use serde::Deserialize;
 use std::env;
 use sysinfo::System;
@@ -115,24 +116,22 @@ struct Win32_PerfFormattedData_GPUPerformanceCounters_GPUAdapter {
 /// Tries sysfs first, then nvidia-smi command
 #[cfg(target_os = "linux")]
 fn get_linux_gpu_usage() -> Result<f32, String> {
-    use std::fs;
-    use std::io::Read;
     // Try NVIDIA GPU via sysfs
-    if let Ok(mut file) = fs::File::open("/sys/class/drm/card0/device/gpu_busy_percent") {
-        let mut content = String::new();
-        if file.read_to_string(&mut content).is_ok() {
+    let nvidia_sysfs_path = Path::new("/sys/class/drm/card0/device/gpu_busy_percent");
+    if FileUtils::path_exists(nvidia_sysfs_path) {
+        if let Ok(content) = FileUtils::read_file_to_string(nvidia_sysfs_path) {
             if let Ok(usage) = content.trim().parse::<f32>() {
                 return Ok(usage);
             }
         }
     }
     // Try AMD GPU via sysfs (simplified approach)
-    if let Ok(mut file) = fs::File::open("/sys/class/drm/card0/device/gpu_metrics") {
-        let mut content = String::new();
-        if file.read_to_string(&mut content).is_ok() {
-            // Parse GPU usage from metrics (simplified)
-            // In reality, you'd need proper parsing for AMD GPUs
-        }
+    let amd_sysfs_path = Path::new("/sys/class/drm/card0/device/gpu_metrics");
+    if FileUtils::path_exists(amd_sysfs_path) {
+        // Parse GPU usage from metrics (simplified)
+        // In reality, you'd need proper parsing for AMD GPUs
+        let _content = FileUtils::read_file_to_string(amd_sysfs_path).unwrap_or_default();
+        // AMD GPU metrics parsing would go here
     }
     // Try using nvidia-smi command
     if let Ok(output) = hidden_cmd("nvidia-smi").arg("--query-gpu=utilization.gpu").arg("--format=csv,noheader,nounits").output() {

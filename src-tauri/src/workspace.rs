@@ -1,4 +1,5 @@
 use crate::commands::{get_app_root_dir, get_settings_dir};
+use crate::commons::FileUtils;
 use chrono::Local;
 use serde::{Deserialize, Serialize};
 use std::fs;
@@ -28,7 +29,7 @@ fn get_main_config_path() -> PathBuf {
 pub fn load_workspace_config() -> Result<WorkspaceConfigData, String> {
     let config_path = get_main_config_path();
     if config_path.exists() {
-        let content = fs::read_to_string(&config_path).map_err(|e| format!("Failed to read config: {}", e))?;
+        let content = FileUtils::read_file_to_string(&config_path).map_err(|e| format!("Failed to read config: {}", e))?;
         let full_config: serde_json::Value = serde_json::from_str(&content).unwrap_or_else(|_| serde_json::json!({}));
         if let Some(workspace_config) = full_config.get("workspace_config") {
             let config: WorkspaceConfigData = serde_json::from_value(workspace_config.clone()).unwrap_or_else(|_| WorkspaceConfigData::default());
@@ -43,25 +44,25 @@ pub fn load_workspace_config() -> Result<WorkspaceConfigData, String> {
 pub fn save_workspace_config(config: &WorkspaceConfigData) -> Result<(), String> {
     let settings_dir = get_settings_dir();
     if !settings_dir.exists() {
-        fs::create_dir_all(&settings_dir).map_err(|e| format!("Failed to create settings directory: {}", e))?;
+        FileUtils::ensure_dir(&settings_dir).map_err(|e| format!("Failed to create settings directory: {}", e))?;
     }
     let config_path = get_main_config_path();
     let mut full_config: serde_json::Value = if config_path.exists() {
-        let content = fs::read_to_string(&config_path).map_err(|e| format!("Failed to read config: {}", e))?;
+        let content = FileUtils::read_file_to_string(&config_path).map_err(|e| format!("Failed to read config: {}", e))?;
         serde_json::from_str(&content).unwrap_or_else(|_| serde_json::json!({}))
     } else {
         serde_json::json!({})
     };
     full_config["workspace_config"] = serde_json::to_value(config).map_err(|e| format!("Failed to serialize workspace config: {}", e))?;
     let content = serde_json::to_string_pretty(&full_config).map_err(|e| format!("Failed to serialize config: {}", e))?;
-    fs::write(&config_path, content).map_err(|e| format!("Failed to save config: {}", e))?;
+    FileUtils::write_file_string(&config_path, &content).map_err(|e| format!("Failed to save config: {}", e))?;
     Ok(())
 }
 pub fn ensure_workspace_directory() -> Result<PathBuf, String> {
     let app_root = get_app_root_dir();
     let workspace_dir = app_root.join("workspace");
     if !workspace_dir.exists() {
-        fs::create_dir_all(&workspace_dir).map_err(|e| format!("Failed to create workspace directory: {}", e))?;
+        FileUtils::ensure_dir(&workspace_dir).map_err(|e| format!("Failed to create workspace directory: {}", e))?;
         log::debug!("Created workspace directory: {:?}", workspace_dir);
     }
     Ok(workspace_dir)

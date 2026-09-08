@@ -16,7 +16,6 @@ use hippox::Hippox;
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::fs;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use uuid::Uuid;
@@ -831,7 +830,7 @@ pub async fn cmd_get_config_value(path: ConfigPath) -> Result<serde_json::Value,
 }
 pub async fn load_config_from_file() -> Result<(), String> {
     let config_path = get_config_file_path();
-    if let Ok(content) = std::fs::read_to_string(&config_path) {
+    if let Ok(content) = FileUtils::read_file_to_string(&config_path) {
         let full_config: serde_json::Value = serde_json::from_str(&content).unwrap_or_else(|_| serde_json::json!({}));
         if let Ok(mut config) = serde_json::from_str::<HippoxAppConfig>(&content) {
             if let Some(ws_config) = full_config.get("workspace_config") {
@@ -861,7 +860,7 @@ pub async fn load_config_from_file() -> Result<(), String> {
 #[tauri::command]
 pub async fn cmd_get_disabled_drivers() -> Result<Vec<String>, String> {
     let config_path = get_config_file_path();
-    let content = std::fs::read_to_string(&config_path).map_err(|e| format!("Failed to read config file: {}", e))?;
+    let content = FileUtils::read_file_to_string(&config_path).map_err(|e| format!("Failed to read config file: {}", e))?;
     let full_config: serde_json::Value = serde_json::from_str(&content).map_err(|e| format!("Failed to parse config file: {}", e))?;
     let disabled = full_config.get("disabled_drivers").and_then(|v| serde_json::from_value::<Vec<String>>(v.clone()).ok()).unwrap_or_default();
     Ok(disabled)
@@ -877,11 +876,11 @@ pub async fn cmd_set_disabled_drivers(disabled: Vec<String>) -> Result<(), Strin
 pub async fn save_config_to_file() -> Result<(), String> {
     let config_path = get_config_file_path();
     if let Some(parent) = config_path.parent() {
-        if !parent.exists() {
+        if !FileUtils::path_exists(parent) {
             let _ = FileUtils::ensure_dir(parent);
         }
     }
-    let mut full_config: serde_json::Value = if config_path.exists() {
+    let mut full_config: serde_json::Value = if FileUtils::path_exists(&config_path) {
         let content = FileUtils::read_file_to_string(&config_path).map_err(|e| e.to_string())?;
         serde_json::from_str(&content).unwrap_or_else(|_| serde_json::json!({}))
     } else {
@@ -994,8 +993,8 @@ pub async fn cmd_set_default_workspace(instance_id: String) -> Result<(), String
 pub async fn cmd_get_max_log_size() -> Result<u64, String> {
     let settings_dir = crate::commands::paths::get_settings_dir();
     let config_path = settings_dir.join("config.json");
-    if config_path.exists() {
-        let content = std::fs::read_to_string(&config_path).map_err(|e| format!("Failed to read settings config: {}", e))?;
+    if FileUtils::path_exists(&config_path) {
+        let content = FileUtils::read_file_to_string(&config_path).map_err(|e| format!("Failed to read settings config: {}", e))?;
         let full_config: serde_json::Value = serde_json::from_str(&content).unwrap_or_else(|_| serde_json::json!({}));
         if let Some(size) = full_config.get("max_log_size_mb").and_then(|v| v.as_u64()) {
             return Ok(size);
@@ -1006,12 +1005,12 @@ pub async fn cmd_get_max_log_size() -> Result<u64, String> {
 #[tauri::command]
 pub async fn cmd_set_max_log_size(max_size_mb: u64) -> Result<(), String> {
     let settings_dir = crate::commands::paths::get_settings_dir();
-    if !settings_dir.exists() {
+    if !FileUtils::path_exists(&settings_dir) {
         FileUtils::ensure_dir(&settings_dir).map_err(|e| format!("Failed to create settings directory: {}", e))?;
     }
     let config_path = settings_dir.join("config.json");
-    let mut full_config: serde_json::Value = if config_path.exists() {
-        let content = std::fs::read_to_string(&config_path).map_err(|e| format!("Failed to read settings config: {}", e))?;
+    let mut full_config: serde_json::Value = if FileUtils::path_exists(&config_path) {
+        let content = FileUtils::read_file_to_string(&config_path).map_err(|e| format!("Failed to read settings config: {}", e))?;
         serde_json::from_str(&content).unwrap_or_else(|_| serde_json::json!({}))
     } else {
         serde_json::json!({})
@@ -1026,8 +1025,8 @@ pub async fn cmd_set_max_log_size(max_size_mb: u64) -> Result<(), String> {
 pub async fn cmd_get_max_dialog_size() -> Result<u64, String> {
     let settings_dir = crate::commands::paths::get_settings_dir();
     let config_path = settings_dir.join("config.json");
-    if config_path.exists() {
-        let content = std::fs::read_to_string(&config_path).map_err(|e| format!("Failed to read settings config: {}", e))?;
+    if FileUtils::path_exists(&config_path) {
+        let content = FileUtils::read_file_to_string(&config_path).map_err(|e| format!("Failed to read settings config: {}", e))?;
         let full_config: serde_json::Value = serde_json::from_str(&content).unwrap_or_else(|_| serde_json::json!({}));
         if let Some(size) = full_config.get("max_dialog_size_mb").and_then(|v| v.as_u64()) {
             return Ok(size);
@@ -1038,12 +1037,12 @@ pub async fn cmd_get_max_dialog_size() -> Result<u64, String> {
 #[tauri::command]
 pub async fn cmd_set_max_dialog_size(max_size_mb: u64) -> Result<(), String> {
     let settings_dir = crate::commands::paths::get_settings_dir();
-    if !settings_dir.exists() {
+    if !FileUtils::path_exists(&settings_dir) {
         FileUtils::ensure_dir(&settings_dir).map_err(|e| format!("Failed to create settings directory: {}", e))?;
     }
     let config_path = settings_dir.join("config.json");
-    let mut full_config: serde_json::Value = if config_path.exists() {
-        let content = std::fs::read_to_string(&config_path).map_err(|e| format!("Failed to read settings config: {}", e))?;
+    let mut full_config: serde_json::Value = if FileUtils::path_exists(&config_path) {
+        let content = FileUtils::read_file_to_string(&config_path).map_err(|e| format!("Failed to read settings config: {}", e))?;
         serde_json::from_str(&content).unwrap_or_else(|_| serde_json::json!({}))
     } else {
         serde_json::json!({})

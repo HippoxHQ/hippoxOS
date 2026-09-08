@@ -1,4 +1,5 @@
 use crate::commands::{get_notifications_dir, get_skill_history_dir, get_skills_dir};
+use crate::commons::FileUtils;
 use chrono::Local;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -170,7 +171,7 @@ pub fn get_system_update_download_dir() -> Result<PathBuf, String> {
 /// Get total size of favorites directory
 pub fn get_favorites_size() -> Result<u64, String> {
     let favorites_dir = get_favorites_dir();
-    if !favorites_dir.exists() {
+    if !FileUtils::path_exists(&favorites_dir) {
         return Ok(0);
     }
     let mut total_size = 0;
@@ -195,7 +196,7 @@ pub fn set_max_favorites_size(size_mb: u64) -> Result<(), String> {
 /// Get total size of log files (in bytes)
 pub fn get_logs_size() -> Result<u64, String> {
     let log_dir = get_log_dir();
-    if !log_dir.exists() {
+    if !FileUtils::path_exists(&log_dir) {
         return Ok(0);
     }
     let mut total_size = 0;
@@ -213,7 +214,7 @@ pub fn get_logs_size() -> Result<u64, String> {
 /// Clean up old log files when exceeding max size
 pub fn cleanup_old_logs(max_size_mb: u64) -> Result<u64, String> {
     let log_dir = get_log_dir();
-    if !log_dir.exists() {
+    if !FileUtils::path_exists(&log_dir) {
         return Ok(0);
     }
     let max_size_bytes = max_size_mb * 1024 * 1024;
@@ -237,7 +238,7 @@ pub fn cleanup_old_logs(max_size_mb: u64) -> Result<u64, String> {
         if current_total <= max_size_bytes {
             break;
         }
-        if let Err(e) = fs::remove_file(&path) {
+        if let Err(e) = FileUtils::remove_file(&path) {
             log::error!("Failed to remove old log file {:?}: {}", path, e);
         } else {
             current_total -= size;
@@ -249,8 +250,8 @@ pub fn cleanup_old_logs(max_size_mb: u64) -> Result<u64, String> {
 /// Write log to file (daily rotation with size limit, auto split when exceeding 10MB)
 pub fn write_log(level: &str, message: &str, details: Option<&str>) -> Result<(), String> {
     let log_dir = get_log_dir();
-    if !log_dir.exists() {
-        fs::create_dir_all(&log_dir).map_err(|e| format!("Failed to create log directory: {}", e))?;
+    if !FileUtils::path_exists(&log_dir) {
+        FileUtils::ensure_dir(&log_dir).map_err(|e| format!("Failed to create log directory: {}", e))?;
     }
     let now = Local::now();
     let date_str = now.format("%Y%m%d").to_string();
@@ -260,8 +261,8 @@ pub fn write_log(level: &str, message: &str, details: Option<&str>) -> Result<()
     let full_content = log_content + &details_content;
     let mut log_file_path = log_dir.join(format!("{}.log", date_str));
     let mut index = 1;
-    while log_file_path.exists() {
-        if let Ok(metadata) = fs::metadata(&log_file_path) {
+    while FileUtils::path_exists(&log_file_path) {
+        if let Ok(metadata) = FileUtils::get_metadata(&log_file_path) {
             // If file exceeds 10MB, create a new file
             if metadata.len() > 10 * 1024 * 1024 {
                 index += 1;
@@ -271,7 +272,7 @@ pub fn write_log(level: &str, message: &str, details: Option<&str>) -> Result<()
         }
         break;
     }
-    let mut file = File::options().create(true).append(true).open(&log_file_path).map_err(|e| format!("Failed to open log file: {}", e))?;
+    let mut file = fs::OpenOptions::new().create(true).append(true).open(&log_file_path).map_err(|e| format!("Failed to open log file: {}", e))?;
     file.write_all(full_content.as_bytes()).map_err(|e| format!("Failed to write log: {}", e))?;
     Ok(())
 }
@@ -293,28 +294,28 @@ pub struct DataPaths {
 #[tauri::command]
 pub fn cmd_get_data_paths() -> DataPaths {
     DataPaths {
-        app_root_dir: get_app_root_dir().to_string_lossy().to_string(),
-        general_history_dir: get_general_history_dir().to_string_lossy().to_string(),
-        finance_dialog_history_dir: get_finance_dialog_history_dir().to_string_lossy().to_string(),
-        map_dialog_history_dir: get_map_dialog_history_dir().to_string_lossy().to_string(),
-        codeeditor_dialog_history_dir: get_codeeditor_dialog_history_dir().to_string_lossy().to_string(),
-        video_editing_system_dialog_history_dir: get_video_editing_system_dialog_history_dir().to_string_lossy().to_string(),
-        sandbox3d_dialog_history_dir: get_sandbox3d_dialog_history_dir().to_string_lossy().to_string(),
-        skills_market_dir: get_skills_market_dir().to_string_lossy().to_string(),
-        scheduled_tasks_dir: get_scheduled_tasks_dir().to_string_lossy().to_string(),
-        log_dir: get_log_dir().to_string_lossy().to_string(),
-        cache_dir: get_cache_dir().to_string_lossy().to_string(),
-        settings_dir: get_settings_dir().to_string_lossy().to_string(),
+        app_root_dir: FileUtils::to_string_lossy(&get_app_root_dir()),
+        general_history_dir: FileUtils::to_string_lossy(&get_general_history_dir()),
+        finance_dialog_history_dir: FileUtils::to_string_lossy(&get_finance_dialog_history_dir()),
+        map_dialog_history_dir: FileUtils::to_string_lossy(&get_map_dialog_history_dir()),
+        codeeditor_dialog_history_dir: FileUtils::to_string_lossy(&get_codeeditor_dialog_history_dir()),
+        video_editing_system_dialog_history_dir: FileUtils::to_string_lossy(&get_video_editing_system_dialog_history_dir()),
+        sandbox3d_dialog_history_dir: FileUtils::to_string_lossy(&get_sandbox3d_dialog_history_dir()),
+        skills_market_dir: FileUtils::to_string_lossy(&get_skills_market_dir()),
+        scheduled_tasks_dir: FileUtils::to_string_lossy(&get_scheduled_tasks_dir()),
+        log_dir: FileUtils::to_string_lossy(&get_log_dir()),
+        cache_dir: FileUtils::to_string_lossy(&get_cache_dir()),
+        settings_dir: FileUtils::to_string_lossy(&get_settings_dir()),
     }
 }
 #[tauri::command]
 pub fn cmd_get_favorites_dir() -> String {
-    get_app_root_dir().join(FAVORITES_DIR_NAME).to_string_lossy().to_string()
+    FileUtils::to_string_lossy(&get_app_root_dir().join(FAVORITES_DIR_NAME))
 }
 #[tauri::command]
 pub fn cmd_get_directory_size(path: String) -> Result<u64, String> {
     let dir = Path::new(&path);
-    if !dir.exists() {
+    if !FileUtils::path_exists(dir) {
         return Ok(0);
     }
     let mut total_size = 0;
@@ -395,8 +396,8 @@ impl Default for DialogHistoryConfig {
 pub fn cmd_get_dialog_history_config() -> Result<DialogHistoryConfig, String> {
     let settings_dir = get_settings_dir();
     let config_path = settings_dir.join("config.json");
-    if config_path.exists() {
-        let content = fs::read_to_string(&config_path).map_err(|e| format!("Failed to read settings config: {}", e))?;
+    if FileUtils::path_exists(&config_path) {
+        let content = FileUtils::read_file_to_string(&config_path).map_err(|e| format!("Failed to read settings config: {}", e))?;
         let full_config: serde_json::Value = serde_json::from_str(&content).unwrap_or_else(|_| serde_json::json!({}));
         if let Some(dh) = full_config.get("dialog_history") {
             Ok(serde_json::from_value(dh.clone()).unwrap_or_else(|_| DialogHistoryConfig::default()))
@@ -410,18 +411,18 @@ pub fn cmd_get_dialog_history_config() -> Result<DialogHistoryConfig, String> {
 #[tauri::command]
 pub fn cmd_save_dialog_history_config(config: DialogHistoryConfig) -> Result<(), String> {
     let settings_dir = get_settings_dir();
-    if !settings_dir.exists() {
-        fs::create_dir_all(&settings_dir).map_err(|e| format!("Failed to create settings directory: {}", e))?;
+    if !FileUtils::path_exists(&settings_dir) {
+        FileUtils::ensure_dir(&settings_dir).map_err(|e| format!("Failed to create settings directory: {}", e))?;
     }
     let config_path = settings_dir.join("config.json");
-    let mut full_config: serde_json::Value = if config_path.exists() {
-        let content = fs::read_to_string(&config_path).map_err(|e| format!("Failed to read settings config: {}", e))?;
+    let mut full_config: serde_json::Value = if FileUtils::path_exists(&config_path) {
+        let content = FileUtils::read_file_to_string(&config_path).map_err(|e| format!("Failed to read settings config: {}", e))?;
         serde_json::from_str(&content).unwrap_or_else(|_| serde_json::json!({}))
     } else {
         serde_json::json!({})
     };
     full_config["dialog_history"] = serde_json::to_value(&config).map_err(|e| format!("Failed to serialize dialog history config: {}", e))?;
     let content = serde_json::to_string_pretty(&full_config).map_err(|e| format!("Failed to serialize settings config: {}", e))?;
-    fs::write(&config_path, content).map_err(|e| format!("Failed to save settings config: {}", e))?;
+    FileUtils::write_file_string(&config_path, &content).map_err(|e| format!("Failed to save settings config: {}", e))?;
     Ok(())
 }
