@@ -16,6 +16,7 @@ mod windows;
 mod workspace;
 use crate::cmd_registry::*;
 use crate::commons::init_default_settings;
+use crate::commons::FileUtils;
 use crate::context::Context;
 use crate::events::handle_window_event;
 use crate::hippox_core::*;
@@ -72,7 +73,7 @@ pub fn run() {
             // ========== Ensure skills market directory exists ==========
             let skills_dir = commands::get_skills_market_dir();
             if !skills_dir.exists() {
-                let _ = std::fs::create_dir_all(&skills_dir);
+                let _ = FileUtils::ensure_dir(&skills_dir);
             }
             // ========== Load configuration from file ==========
             let _ = commands::load_config_from_file().await;

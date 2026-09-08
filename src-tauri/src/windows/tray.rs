@@ -4,6 +4,7 @@ use tauri::{
     AppHandle, Emitter, Manager, Runtime, WebviewWindow, WebviewWindowBuilder, WindowEvent,
 };
 pub(crate) struct TrayManager;
+use crate::commons::FileUtils;
 use crate::windows::{WindowIdentifier, WindowType};
 use once_cell::sync::Lazy;
 use std::sync::Mutex;
@@ -192,14 +193,14 @@ impl TrayManager {
     fn open_history_directory() {
         let history_dir = crate::commands::get_general_history_dir();
         if !history_dir.exists() {
-            let _ = std::fs::create_dir_all(&history_dir);
+            let _ = FileUtils::ensure_dir(&history_dir);
         }
         Self::open_path(&history_dir);
     }
     fn open_notification_directory() {
         let notification_dir = crate::commands::get_notifications_dir();
         if !notification_dir.exists() {
-            let _ = std::fs::create_dir_all(&notification_dir);
+            let _ = FileUtils::ensure_dir(&notification_dir);
         }
         Self::open_path(&notification_dir);
     }
@@ -211,7 +212,7 @@ impl TrayManager {
             .unwrap_or_else(|| crate::commands::get_app_root_dir().join("workspace").to_string_lossy().to_string());
         let workspace_dir = std::path::PathBuf::from(&workspace_path);
         if !workspace_dir.exists() {
-            let _ = std::fs::create_dir_all(&workspace_dir);
+            let _ = FileUtils::ensure_dir(&workspace_dir);
         }
         Self::open_path(&workspace_dir);
     }

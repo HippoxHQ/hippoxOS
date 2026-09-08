@@ -1,5 +1,5 @@
 use chrono::Local;
-use std::fs;
+use std::{fmt, fs};
 use std::io::Error as IoError;
 use std::path::{Path, PathBuf};
 #[derive(Debug)]
@@ -17,6 +17,21 @@ pub enum FileError {
 impl From<IoError> for FileError {
     fn from(err: IoError) -> Self {
         FileError::Io(err.to_string())
+    }
+}
+impl fmt::Display for FileError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            FileError::Io(msg) => write!(f, "IO error: {}", msg),
+            FileError::NotFound(msg) => write!(f, "File not found: {}", msg),
+            FileError::InvalidFileName(msg) => write!(f, "Invalid file name: {}", msg),
+            FileError::DirectoryCreation(msg) => write!(f, "Directory creation failed: {}", msg),
+            FileError::UnsupportedType(msg) => write!(f, "Unsupported type: {}", msg),
+            FileError::ReadError(msg) => write!(f, "Read error: {}", msg),
+            FileError::WriteError(msg) => write!(f, "Write error: {}", msg),
+            FileError::CopyError(msg) => write!(f, "Copy error: {}", msg),
+            FileError::RemoveError(msg) => write!(f, "Remove error: {}", msg),
+        }
     }
 }
 pub type FileResult<T> = Result<T, FileError>;

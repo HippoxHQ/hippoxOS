@@ -1,5 +1,6 @@
 use crate::{
     commands::get_settings_dir,
+    commons::FileUtils,
     hippox_core::{
         create_hippox_instance, remove_container_instance_from_core, remove_database_instance_from_core, remove_network_instance_from_core,
         remove_notification_instance_from_core, sync_all_to_hippox_core, sync_container_instance_to_core, sync_database_instance_to_core,
@@ -877,11 +878,11 @@ pub async fn save_config_to_file() -> Result<(), String> {
     let config_path = get_config_file_path();
     if let Some(parent) = config_path.parent() {
         if !parent.exists() {
-            let _ = std::fs::create_dir_all(parent);
+            let _ = FileUtils::ensure_dir(parent);
         }
     }
     let mut full_config: serde_json::Value = if config_path.exists() {
-        let content = std::fs::read_to_string(&config_path).map_err(|e| e.to_string())?;
+        let content = FileUtils::read_file_to_string(&config_path).map_err(|e| e.to_string())?;
         serde_json::from_str(&content).unwrap_or_else(|_| serde_json::json!({}))
     } else {
         serde_json::json!({})
@@ -897,7 +898,7 @@ pub async fn save_config_to_file() -> Result<(), String> {
         }
     }
     let content = serde_json::to_string_pretty(&full_config).map_err(|e| e.to_string())?;
-    std::fs::write(config_path, content).map_err(|e| e.to_string())?;
+    FileUtils::write_file_string(&config_path, &content).map_err(|e| e.to_string())?;
     Ok(())
 }
 fn get_config_file_path() -> std::path::PathBuf {
@@ -1006,7 +1007,7 @@ pub async fn cmd_get_max_log_size() -> Result<u64, String> {
 pub async fn cmd_set_max_log_size(max_size_mb: u64) -> Result<(), String> {
     let settings_dir = crate::commands::paths::get_settings_dir();
     if !settings_dir.exists() {
-        std::fs::create_dir_all(&settings_dir).map_err(|e| format!("Failed to create settings directory: {}", e))?;
+        FileUtils::ensure_dir(&settings_dir).map_err(|e| format!("Failed to create settings directory: {}", e))?;
     }
     let config_path = settings_dir.join("config.json");
     let mut full_config: serde_json::Value = if config_path.exists() {
@@ -1017,7 +1018,7 @@ pub async fn cmd_set_max_log_size(max_size_mb: u64) -> Result<(), String> {
     };
     full_config["max_log_size_mb"] = serde_json::json!(max_size_mb);
     let content = serde_json::to_string_pretty(&full_config).map_err(|e| format!("Failed to serialize settings config: {}", e))?;
-    std::fs::write(&config_path, content).map_err(|e| format!("Failed to save settings config: {}", e))?;
+    FileUtils::write_file_string(&config_path, &content).map_err(|e| format!("Failed to save settings config: {}", e))?;
     let _ = crate::commands::paths::cleanup_old_logs(max_size_mb);
     Ok(())
 }
@@ -1038,7 +1039,7 @@ pub async fn cmd_get_max_dialog_size() -> Result<u64, String> {
 pub async fn cmd_set_max_dialog_size(max_size_mb: u64) -> Result<(), String> {
     let settings_dir = crate::commands::paths::get_settings_dir();
     if !settings_dir.exists() {
-        std::fs::create_dir_all(&settings_dir).map_err(|e| format!("Failed to create settings directory: {}", e))?;
+        FileUtils::ensure_dir(&settings_dir).map_err(|e| format!("Failed to create settings directory: {}", e))?;
     }
     let config_path = settings_dir.join("config.json");
     let mut full_config: serde_json::Value = if config_path.exists() {
@@ -1049,7 +1050,7 @@ pub async fn cmd_set_max_dialog_size(max_size_mb: u64) -> Result<(), String> {
     };
     full_config["max_dialog_size_mb"] = serde_json::json!(max_size_mb);
     let content = serde_json::to_string_pretty(&full_config).map_err(|e| format!("Failed to serialize settings config: {}", e))?;
-    std::fs::write(&config_path, content).map_err(|e| format!("Failed to save settings config: {}", e))?;
+    FileUtils::write_file_string(&config_path, &content).map_err(|e| format!("Failed to save settings config: {}", e))?;
     Ok(())
 }
 pub async fn reinit_single_hippox(instance_id: &str) -> Result<(), String> {

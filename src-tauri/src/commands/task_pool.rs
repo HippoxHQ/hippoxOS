@@ -1,5 +1,6 @@
 use crate::{
     commands::{StepInfo, TaskInfo, TaskPoolStats},
+    commons::FileUtils,
     hippox_core::get_default_hippox,
     state::AppState,
 };
@@ -19,7 +20,7 @@ pub fn get_taskpool_backup_dir() -> PathBuf {
 fn ensure_taskpool_backup_dir() -> Result<(), String> {
     let dir = get_taskpool_backup_dir();
     if !dir.exists() {
-        std::fs::create_dir_all(&dir).map_err(|e| format!("Failed to create taskpool directory: {}", e))?;
+        FileUtils::ensure_dir(&dir).map_err(|e| format!("Failed to create taskpool directory: {}", e))?;
     }
     Ok(())
 }

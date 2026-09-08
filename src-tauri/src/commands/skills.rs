@@ -344,7 +344,7 @@ pub async fn cmd_update_skill(request: UpdateSkillRequest) -> Result<SkillData, 
         }
         let category_dir = new_skill_dir.parent().ok_or_else(|| "Invalid category path".to_string())?;
         if !category_dir.exists() {
-            std::fs::create_dir_all(category_dir).map_err(|e| format!("Failed to create category directory: {}", e))?;
+            FileUtils::ensure_dir(category_dir).map_err(|e| format!("Failed to create category directory: {}", e))?;
         }
         std::fs::rename(&old_skill_dir, &new_skill_dir).map_err(|e| format!("Failed to move skill directory: {}", e))?;
         let new_skill_md_path = get_skill_md_path(&new_category, &new_id);
@@ -361,7 +361,7 @@ pub async fn cmd_update_skill(request: UpdateSkillRequest) -> Result<SkillData, 
             path: new_skill_md_path.to_string_lossy().to_string(),
         };
         let markdown_content = skill_to_markdown(&skill);
-        std::fs::write(&new_skill_md_path, markdown_content).map_err(|e| format!("Failed to write SKILL.md: {}", e))?;
+        FileUtils::write_file_string(&new_skill_md_path, &markdown_content).map_err(|e| format!("Failed to write SKILL.md: {}", e))?;
         let old_category_dir = get_skill_dir(&request.old_category, "");
         if let Some(parent) = old_category_dir.parent() {
             if parent.exists() {
@@ -380,7 +380,7 @@ pub async fn cmd_update_skill(request: UpdateSkillRequest) -> Result<SkillData, 
                 }
                 let new_content = serde_json::to_string_pretty(&histories).map_err(|e| format!("Failed to serialize history: {}", e))?;
                 let new_history_file = get_skill_history_file_path(&new_id);
-                std::fs::write(&new_history_file, new_content).map_err(|e| format!("Failed to save history: {}", e))?;
+                FileUtils::write_file_string(&new_history_file, &new_content).map_err(|e| format!("Failed to save history: {}", e))?;
                 let _ = std::fs::remove_file(&history_file);
             }
         }
@@ -399,7 +399,7 @@ pub async fn cmd_update_skill(request: UpdateSkillRequest) -> Result<SkillData, 
             path: old_skill_md_path.to_string_lossy().to_string(),
         };
         let markdown_content = skill_to_markdown(&skill);
-        std::fs::write(&old_skill_md_path, markdown_content).map_err(|e| format!("Failed to write SKILL.md: {}", e))?;
+        FileUtils::write_file_string(&old_skill_md_path, &markdown_content).map_err(|e| format!("Failed to write SKILL.md: {}", e))?;
         (skill, old_skill_md_path.clone())
     };
     let history = SkillHistory {
