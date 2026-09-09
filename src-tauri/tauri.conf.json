@@ -405,8 +405,8 @@
         "sidebarImage": "nsis/images/welcome.bmp"
       },
       "wix": {
-        "bannerPath": "msi/images/msi_banner.bmp",
-        "dialogImagePath": "msi/images/msi_dialog.bmp"
+        "bannerPath": "msi/images/bannerPath.bmp",
+        "dialogImagePath": "msi/images/dialogImagePath.bmp"
       }
     }
   }

@@ -67,9 +67,9 @@ pub async fn cmd_open_terminal(path: String) -> Result<FileOperationResult, Stri
     let path_str = target_path.to_string_lossy().to_string();
     #[cfg(target_os = "windows")]
     {
-        use std::process::Command;
+        use crate::commons::hidden_cmd;
         // Open cmd.exe at the specified directory
-        let _ = Command::new("cmd")
+        let _ = hidden_cmd("cmd")
             .args(&["/c", "start", "cmd", "/k", "cd", "/d", &path_str])
             .spawn()
             .map_err(|e| format!("Failed to open terminal: {}", e))?;
@@ -80,7 +80,7 @@ pub async fn cmd_open_terminal(path: String) -> Result<FileOperationResult, Stri
         use std::process::Command;
         // Try iTerm2 first if available, otherwise use Terminal.app
         if Path::new("/Applications/iTerm.app").exists() {
-            let _ = Command::new("open").args(&["-a", "iTerm", &path_str]).spawn().map_err(|e| format!("Failed to open iTerm: {}", e))?;
+            let _ = hidden_cmd("open").args(&["-a", "iTerm", &path_str]).spawn().map_err(|e| format!("Failed to open iTerm: {}", e))?;
         } else {
             // Use AppleScript to open Terminal and cd to the directory
             let script = format!(
@@ -90,7 +90,7 @@ pub async fn cmd_open_terminal(path: String) -> Result<FileOperationResult, Stri
                  end tell",
                 path_str.replace("'", "\\'")
             );
-            let _ = Command::new("osascript").args(&["-e", &script]).spawn().map_err(|e| format!("Failed to open Terminal: {}", e))?;
+            let _ = hidden_cmd("osascript").args(&["-e", &script]).spawn().map_err(|e| format!("Failed to open Terminal: {}", e))?;
         }
     }
     #[cfg(target_os = "linux")]
@@ -109,10 +109,10 @@ pub async fn cmd_open_terminal(path: String) -> Result<FileOperationResult, Stri
         let mut opened = false;
         for (term, args) in terminals {
             // Check if terminal exists
-            let which_output = Command::new("which").arg(term).output();
+            let which_output = hidden_cmd("which").arg(term).output();
             if let Ok(output) = which_output {
                 if output.status.success() {
-                    let _ = Command::new(term).args(args).spawn().map_err(|e| format!("Failed to open {}: {}", term, e))?;
+                    let _ = hidden_cmd(term).args(args).spawn().map_err(|e| format!("Failed to open {}: {}", term, e))?;
                     opened = true;
                     break;
                 }
@@ -120,7 +120,7 @@ pub async fn cmd_open_terminal(path: String) -> Result<FileOperationResult, Stri
         }
         // Fallback: use xterm
         if !opened {
-            let _ = Command::new("xterm")
+            let _ = hidden_cmd("xterm")
                 .args(&["-e", "bash", "-c", &format!("cd '{}' && exec bash", path_str)])
                 .spawn()
                 .map_err(|e| format!("Failed to open xterm: {}", e))?;
