@@ -21,9 +21,6 @@
   <a href="https://x.com/HippoxAI" target="_blank">
     <img src="https://img.shields.io/twitter/follow/HippoxAI?style=flat&labelColor=1C2C2E&color=BEC5C9&logo=x&label=Follow" alt="X Follow">
   </a>
-  <a href="https://github.com/HippoxHQ/hippoxOS/releases" target="_blank">
-    <img src="https://img.shields.io/github/v/release/HippoxHQ/hippoxOS?style=flat&labelColor=1C2C2E&color=BEC5C9&logo=github&label=Release" alt="Release">
-  </a>
 </p>
 <p align="center">
 <a href="./README_zh-CN.md">简体中文</a> | <a href="./README.md">English</a>
