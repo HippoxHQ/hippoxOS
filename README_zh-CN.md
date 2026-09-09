@@ -6,7 +6,24 @@
 将LLM作为操作系统解释层.
 </h4>
 <p align="center">
-    <a href="https://github.com/HippoxHQ/hippox-desktop/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-AGPL3.0-d1d1f6.svg?style=flat&labelColor=1C2C2E&color=BEC5C9&logo=googledocs&label=license&logoColor=BEC5C9" alt="License"></a>
+  <a href="https://github.com/HippoxHQ/hippoxOS/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-AGPL3.0-d1d1f6.svg?style=flat&labelColor=1C2C2E&color=BEC5C9&logo=googledocs&label=license&logoColor=BEC5C9" alt="License"></a>
+  <a href="https://github.com/HippoxHQ/hippoxOS/stargazers"><img src="https://img.shields.io/github/stars/HippoxHQ/hippoxOS.svg?style=flat&labelColor=1C2C2E&color=FFD700&logo=github&logoColor=white&label=stars" alt="GitHub stars"></a>
+  <a href="https://github.com/HippoxHQ/hippoxOS/issues"><img src="https://img.shields.io/github/issues/HippoxHQ/hippoxOS.svg?style=flat&labelColor=1C2C2E&color=FF6B6B&logo=github&logoColor=white&label=issues" alt="GitHub issues"></a>
+  <a href="https://github.com/HippoxHQ/hippoxOS/network/members"><img src="https://img.shields.io/github/forks/HippoxHQ/hippoxOS.svg?style=flat&labelColor=1C2C2E&color=42A5F5&logo=github&logoColor=white&label=forks" alt="GitHub forks"></a>
+  <a href="https://github.com/HippoxHQ/hippoxOS/releases"><img src="https://img.shields.io/github/v/release/HippoxHQ/hippoxOS.svg?style=flat&labelColor=1C2C2E&color=9C27B0&logo=github&logoColor=white&label=latest%20release" alt="GitHub release"></a>
+  <a href="https://github.com/HippoxHQ/hippoxOS/actions"><img src="https://img.shields.io/github/actions/workflow/status/HippoxHQ/hippoxOS/release.yml?style=flat&labelColor=1C2C2E&color=4CAF50&logo=githubactions&logoColor=white&label=build" alt="Build Status"></a>
+  <a href="https://github.com/HippoxHQ/hippoxOS" target="_blank">
+    <img src="https://img.shields.io/github/stars/HippoxHQ/hippoxOS?style=flat&labelColor=1C2C2E&color=BEC5C9&logo=github&label=Stars" alt="GitHub Repo stars">
+  </a>
+  <a href="https://discord.gg/kVBhZWDdem" target="_blank">
+    <img src="https://img.shields.io/discord/1309558646228779139?style=flat&labelColor=1C2C2E&color=BEC5C9&logo=discord&label=Discord" alt="Discord">
+  </a>
+  <a href="https://x.com/HippoxAI" target="_blank">
+    <img src="https://img.shields.io/twitter/follow/HippoxAI?style=flat&labelColor=1C2C2E&color=BEC5C9&logo=x&label=Follow" alt="X Follow">
+  </a>
+  <a href="https://github.com/HippoxHQ/hippoxOS/releases" target="_blank">
+    <img src="https://img.shields.io/github/v/release/HippoxHQ/hippoxOS?style=flat&labelColor=1C2C2E&color=BEC5C9&logo=github&label=Release" alt="Release">
+  </a>
 </p>
 <p align="center">
 <a href="./README_zh-CN.md">简体中文</a> | <a href="./README.md">English</a>
