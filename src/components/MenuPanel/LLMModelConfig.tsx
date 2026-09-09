@@ -25,7 +25,9 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({ t, onSave, isInitializi
   const [extraConfigValues, setExtraConfigValues] = useState<Record<string, string>>({});
   const [currentProviderInfo, setCurrentProviderInfo] = useState<ProviderInfo | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  // Multi-select state
+  // Batch mode state - similar to MaterialTab/AudioTab
+  const [isBatchMode, setIsBatchMode] = useState<boolean>(false);
+  // Batch selection state
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   // Load data on mount and language change
   useEffect(() => {
@@ -55,11 +57,24 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({ t, onSave, isInitializi
     setAvailableModels(modelsData);
     setInstances(instancesData);
     setDefaultInstanceId(defaultId);
+    // Clear selection when data reloads
     setSelectedIds(new Set());
+    // Exit batch mode when data reloads
+    setIsBatchMode(false);
     setLoading(false);
   };
-  // Toggle selection for a single instance
+  // Toggle batch mode - similar to MaterialTab toggleBatchMode
+  const toggleBatchMode = () => {
+    if (isBatchMode) {
+      // Exit batch mode - clear selection
+      setSelectedIds(new Set());
+    }
+    setIsBatchMode(!isBatchMode);
+  };
+  // Toggle selection for a single instance - only available in batch mode
   const toggleSelection = (instanceId: string) => {
+    // Only allow selection in batch mode
+    if (!isBatchMode) return;
     setSelectedIds((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(instanceId)) {
@@ -70,19 +85,25 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({ t, onSave, isInitializi
       return newSet;
     });
   };
-  // Select all instances (excluding default)
+  // Select all instances (excluding default) - only available in batch mode
   const handleSelectAll = () => {
+    // Only allow in batch mode
+    if (!isBatchMode) return;
     const allIds = Object.keys(instances).filter((id) => id !== defaultInstanceId);
     setSelectedIds(new Set(allIds));
     showToast(ToastType.INFO, isZh ? "已选择所有实例" : "Selected all instances");
   };
-  // Deselect all instances
+  // Deselect all instances - only available in batch mode
   const handleDeselectAll = () => {
+    // Only allow in batch mode
+    if (!isBatchMode) return;
     setSelectedIds(new Set());
     showToast(ToastType.INFO, isZh ? "已取消所有选择" : "Deselected all instances");
   };
-  // Batch delete selected instances
+  // Batch delete selected instances - only available in batch mode
   const handleBatchDelete = async () => {
+    // Only allow in batch mode
+    if (!isBatchMode) return;
     if (selectedIds.size === 0) {
       showToast(ToastType.WARNING, isZh ? "请先选择要删除的实例" : "Please select instances to delete");
       return;
@@ -109,6 +130,9 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({ t, onSave, isInitializi
           if (onSave) {
             onSave({ action: "batch_delete", instanceIds: Array.from(selectedIds) });
           }
+          // Exit batch mode after deletion
+          setIsBatchMode(false);
+          setSelectedIds(new Set());
         } catch (error) {
           console.error("Failed to batch delete instances:", error);
           showToast(ToastType.ERROR, isZh ? "批量删除失败" : "Batch delete failed");
@@ -451,6 +475,14 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({ t, onSave, isInitializi
       flex-shrink: 0;
       margin-right: 8px;
     }
+    .llm-checkbox:disabled {
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
+    .llm-checkbox.hidden-checkbox {
+      visibility: hidden;
+      pointer-events: none;
+    }
   `;
   // Inject global styles
   if (typeof document !== "undefined") {
@@ -518,7 +550,7 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({ t, onSave, isInitializi
             +
           </button>
         </div>
-        {/* Batch actions area */}
+        {/* Batch actions area - similar to MaterialTab */}
         <div
           style={{
             display: "flex",
@@ -530,52 +562,70 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({ t, onSave, isInitializi
             flexWrap: "wrap",
           }}
         >
+          {/* Batch mode toggle button - similar to MaterialTab */}
           <button
+            onClick={toggleBatchMode}
             style={{
               ...buttonStyle,
               fontSize: "11px",
               padding: "3px 12px",
-              background: selectedIds.size === Object.keys(instances).length && Object.keys(instances).length > 0 ? "var(--accent-color)" : "var(--bg-tertiary)",
-              color: selectedIds.size === Object.keys(instances).length && Object.keys(instances).length > 0 ? "white" : "var(--text-secondary)",
-              borderColor: selectedIds.size === Object.keys(instances).length && Object.keys(instances).length > 0 ? "var(--accent-color)" : "var(--border-color)",
+              background: isBatchMode ? "var(--accent-color)" : "var(--bg-tertiary)",
+              color: isBatchMode ? "white" : "var(--text-secondary)",
+              borderColor: isBatchMode ? "var(--accent-color)" : "var(--border-color)",
             }}
-            onClick={handleSelectAll}
           >
-            {isZh ? "全选" : "Select All"}
+            {isBatchMode ? (isZh ? "退出批量" : "Exit Batch") : isZh ? "批量" : "Batch"}
           </button>
-          <button
-            style={{
-              ...buttonStyle,
-              fontSize: "11px",
-              padding: "3px 12px",
-              background: "var(--bg-tertiary)",
-            }}
-            onClick={handleDeselectAll}
-          >
-            {isZh ? "取消全选" : "Deselect All"}
-          </button>
-          <div
-            style={{
-              width: "1px",
-              height: "20px",
-              background: "var(--border-color)",
-            }}
-          />
-          <button
-            style={{
-              ...deleteButtonStyle,
-              fontSize: "11px",
-              padding: "3px 12px",
-              opacity: selectedIds.size === 0 ? 0.5 : 1,
-              cursor: selectedIds.size === 0 ? "not-allowed" : "pointer",
-              marginLeft: "auto",
-            }}
-            onClick={handleBatchDelete}
-            disabled={selectedIds.size === 0}
-          >
-            {isZh ? "批量删除" : "Delete"}
-            {selectedIds.size > 0 && <span style={{ marginLeft: "4px", fontWeight: 600 }}>({selectedIds.size})</span>}
-          </button>
+          {/* Batch mode actions - only visible in batch mode */}
+          {isBatchMode && (
+            <>
+              <button
+                style={{
+                  ...buttonStyle,
+                  fontSize: "11px",
+                  padding: "3px 12px",
+                  background: selectedIds.size === Object.keys(instances).filter((id) => id !== defaultInstanceId).length && Object.keys(instances).length > 0 ? "var(--accent-color)" : "var(--bg-tertiary)",
+                  color: selectedIds.size === Object.keys(instances).filter((id) => id !== defaultInstanceId).length && Object.keys(instances).length > 0 ? "white" : "var(--text-secondary)",
+                  borderColor: selectedIds.size === Object.keys(instances).filter((id) => id !== defaultInstanceId).length && Object.keys(instances).length > 0 ? "var(--accent-color)" : "var(--border-color)",
+                }}
+                onClick={handleSelectAll}
+              >
+                {isZh ? "全选" : "Select All"}
+              </button>
+              <button
+                style={{
+                  ...buttonStyle,
+                  fontSize: "11px",
+                  padding: "3px 12px",
+                  background: "var(--bg-tertiary)",
+                }}
+                onClick={handleDeselectAll}
+              >
+                {isZh ? "取消全选" : "Deselect All"}
+              </button>
+              <div
+                style={{
+                  width: "1px",
+                  height: "20px",
+                  background: "var(--border-color)",
+                }}
+              />
+              <button
+                style={{
+                  ...deleteButtonStyle,
+                  fontSize: "11px",
+                  padding: "3px 12px",
+                  opacity: selectedIds.size === 0 ? 0.5 : 1,
+                  cursor: selectedIds.size === 0 ? "not-allowed" : "pointer",
+                }}
+                onClick={handleBatchDelete}
+                disabled={selectedIds.size === 0}
+              >
+                {isZh ? "批量删除" : "Delete"}
+                {selectedIds.size > 0 && <span style={{ marginLeft: "4px", fontWeight: 600 }}>({selectedIds.size})</span>}
+              </button>
+            </>
+          )}
           <span
             style={{
               fontSize: "11px",
@@ -624,7 +674,7 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({ t, onSave, isInitializi
               <select style={selectStyle} value={newProvider} onChange={(e) => handleProviderChange(e.target.value)}>
                 {providers.map((provider) => (
                   <option key={provider.id} value={provider.id}>
-                    {provider.icon} {provider.name}
+                    {provider.name}
                   </option>
                 ))}
               </select>
@@ -687,25 +737,26 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({ t, onSave, isInitializi
             {searchTerm ? t("llmModel.noSearchResults") || "No matching providers found" : t("llmModel.noProviders") || "No providers available"}
           </div>
         ) : (
-          /* Provider Instance Cards - ORIGINAL STYLE with checkbox added */
+          /* Provider Instance Cards - ORIGINAL STYLE with batch mode checkbox */
           instanceEntries.map(([id, instance]) => {
             const extraConfig = instance.extra || {};
             const extraFields = getProviderExtraFields(instance.provider);
             const instanceName = getProviderName(instance.provider);
             const isSelected = selectedIds.has(id);
             const isDefault = defaultInstanceId === id;
+            // Determine if checkbox should be visible and enabled
+            const showCheckbox = isBatchMode && !isDefault;
+            const isCheckboxDisabled = !isBatchMode || isDefault;
             return (
               <div
                 key={id}
                 style={{
                   ...modelCardStyle,
-                  background: isSelected ? "var(--bg-hover, var(--bg-tertiary))" : "var(--bg-secondary)",
+                  background: isSelected && isBatchMode ? "var(--bg-hover, var(--bg-tertiary))" : "var(--bg-secondary)",
                 }}
               >
-                {/* Checkbox */}
                 {/* Checkbox and provider name in one row */}
                 <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
-                  <input type="checkbox" className="llm-checkbox" checked={isSelected} onChange={() => toggleSelection(id)} disabled={isDefault} />
                   <span
                     style={{
                       fontSize: "14px",
@@ -716,9 +767,10 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({ t, onSave, isInitializi
                       minWidth: 0,
                     }}
                   >
-                    {getProviderIcon(instance.provider)} {getProviderName(instance.provider)}
+                    {getProviderName(instance.provider)}
                   </span>
                   {isDefault && <span style={badgeStyle}>{t("llmModel.default")}</span>}
+                  <input type="checkbox" className={`llm-checkbox ${!showCheckbox ? "hidden-checkbox" : ""}`} checked={isSelected} onChange={() => toggleSelection(id)} disabled={isCheckboxDisabled} />
                 </div>
                 {/* Row with checkbox */}
                 <div style={{ display: "flex", alignItems: "center", gap: "8px", width: "100%" }}>

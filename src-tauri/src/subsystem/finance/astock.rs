@@ -1,4 +1,5 @@
 use crate::commons::https::HttpClient;
+use log::error;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use tauri::command;
@@ -377,7 +378,7 @@ impl AStockFetcher {
                     }
                 }
                 Err(e) => {
-                    eprintln!("[AStock] Tencent fetch failed: {}", e);
+                    error!("[AStock] Tencent fetch failed: {}", e);
                 }
             }
             tokio::time::sleep(tokio::time::Duration::from_millis(200)).await;
@@ -399,7 +400,7 @@ impl AStockFetcher {
                     }
                 }
                 Err(e) => {
-                    eprintln!("[AStock] Sina fetch failed: {}", e);
+                    error!("[AStock] Sina fetch failed: {}", e);
                 }
             }
             tokio::time::sleep(tokio::time::Duration::from_millis(200)).await;
@@ -548,10 +549,8 @@ pub async fn cmd_fetch_a_stock_ohlcv(
     };
     // Tencent K-line API with dynamic timeframe
     let url = format!("https://web.ifzq.gtimg.cn/appstock/app/kline/kline?param={},{},,,{}", symbol, tf, count);
-    eprintln!("[AStock] Tencent K-line URL: {}", url);
     match fetcher.http.fetch_json(&url, Some("https://finance.qq.com/")).await {
         Ok(json) => {
-            eprintln!("[AStock] Tencent response: code={:?}", json.get("code"));
             if let Some(code) = json.get("code").and_then(|v| v.as_i64()) {
                 if code != 0 {
                     let msg = json.get("msg").and_then(|v| v.as_str()).unwrap_or("Unknown error");
@@ -560,7 +559,6 @@ pub async fn cmd_fetch_a_stock_ohlcv(
             }
             // Get data from data.{symbol}.{tf}
             let day_data = json.pointer(&format!("/data/{}/{}", symbol, tf)).and_then(|v| v.as_array());
-            eprintln!("[AStock] data length: {:?}", day_data.map(|v| v.len()));
             if let Some(klines) = day_data {
                 if klines.is_empty() {
                     return Err("No K-line data returned".to_string());
@@ -586,7 +584,6 @@ pub async fn cmd_fetch_a_stock_ohlcv(
                     }
                     results.push(AStockKLine { date, open, high, low, close, volume, amount: 0.0 });
                 }
-                eprintln!("[AStock] Parsed {} K-lines", results.len());
                 if results.is_empty() {
                     return Err("Failed to parse any K-line data".to_string());
                 }

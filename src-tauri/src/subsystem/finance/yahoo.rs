@@ -1,4 +1,5 @@
 use crate::commons::https::HttpClient;
+use log::error;
 use serde::{Deserialize, Serialize};
 use tauri::command;
 /// Yahoo Finance stock data structure
@@ -90,7 +91,7 @@ impl YahooFetcher {
         for (i, &symbol) in symbols.iter().enumerate() {
             match self.fetch_stock(symbol).await {
                 Ok(data) => results.push(data),
-                Err(e) => eprintln!("[Yahoo] Failed to fetch {}: {}", symbol, e),
+                Err(e) => error!("[Yahoo] Failed to fetch {}: {}", symbol, e),
             }
             // Rate limiting to avoid being blocked
             if i < symbols.len() - 1 {

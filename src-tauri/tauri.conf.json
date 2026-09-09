@@ -398,6 +398,23 @@
     "active": true,
     "targets": "all",
     "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.icns", "icons/icon.ico"],
-    "externalBin": ["bin/ffmpeg/ffmpeg", "bin/ffprobe/ffprobe", "bin/yt-dlp/yt-dlp"]
+    "externalBin": ["bin/ffmpeg/ffmpeg", "bin/ffprobe/ffprobe", "bin/yt-dlp/yt-dlp"],
+    "windows": {
+      "nsis": {
+        "languages": ["English", "Chinese", "ChineseSimp"],
+        "installer": {
+          "header": "nsis/images/header.bmp",
+          "header_right": "nsis/images/header_right.bmp",
+          "sidebar": "nsis/images/welcome.bmp",
+          "icon": "nsis/images/installer.ico"
+        }
+      },
+      "wix": {
+        "language": ["en-US", "zh-CN"],
+        "bannerPath": "msi/images/msi_banner.bmp",
+        "dialogImagePath": "msi/images/msi_dialog.bmp",
+        "icon": "msi/images/installer.ico"
+      }
+    }
   }
 }
