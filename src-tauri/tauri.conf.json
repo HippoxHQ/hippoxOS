@@ -401,19 +401,12 @@
     "externalBin": ["bin/ffmpeg/ffmpeg", "bin/ffprobe/ffprobe", "bin/yt-dlp/yt-dlp"],
     "windows": {
       "nsis": {
-        "languages": ["English", "Chinese", "ChineseSimp"],
-        "installer": {
-          "header": "nsis/images/header.bmp",
-          "header_right": "nsis/images/header_right.bmp",
-          "sidebar": "nsis/images/welcome.bmp",
-          "icon": "nsis/images/installer.ico"
-        }
+        "headerImage": "nsis/images/header.bmp",
+        "sidebarImage": "nsis/images/welcome.bmp"
       },
       "wix": {
-        "language": ["en-US", "zh-CN"],
         "bannerPath": "msi/images/msi_banner.bmp",
-        "dialogImagePath": "msi/images/msi_dialog.bmp",
-        "icon": "msi/images/installer.ico"
+        "dialogImagePath": "msi/images/msi_dialog.bmp"
       }
     }
   }
