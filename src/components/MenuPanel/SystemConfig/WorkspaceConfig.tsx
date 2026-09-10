@@ -4,7 +4,7 @@ import { showDialog, DialogType } from "../../Dialog";
 import { filesCommands } from "../../../command/files";
 import { WorkspaceInstance, workspaceCommands } from "../../../command/workspace";
 import { SearchIcon } from "../../../icons";
-import { Folder } from "lucide-react";
+import { Folder, X } from "lucide-react";
 interface WorkspaceConfigProps {
   t: (key: string, params?: any) => string;
   onSaveWorkspace?: (config: any) => void;
@@ -411,7 +411,7 @@ const WorkspaceConfig: React.FC<WorkspaceConfigProps> = ({ t, onSaveWorkspace, i
             <input type="text" className="workspace-search-input" placeholder={t("workspace.searchPlaceholder") || "Search workspaces..."} value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
             {searchTerm && (
               <button className="workspace-search-clear" onClick={handleClearSearch} title={t("workspace.clearSearch") || "Clear search"}>
-                ✕
+                <X />
               </button>
             )}
           </div>

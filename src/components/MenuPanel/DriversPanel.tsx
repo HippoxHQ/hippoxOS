@@ -3,6 +3,7 @@ import { showToast, ToastType } from "../Toast";
 import { DriverInfo, driversCommands } from "../../command/drivers";
 import { configCommands } from "../../command/config";
 import { CategoryIcon, SearchIcon } from "../../icons";
+import { X } from "lucide-react";
 interface DriversPanelPanelProps {
   t: (key: string, params?: any) => string;
   onSave?: (config: any) => void;
@@ -602,13 +603,7 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
     >
       <div style={styles.header}>
         <div style={styles.searchRow}>
-          <button
-            ref={categoryButtonRef}
-            style={styles.categoryBtn}
-            onMouseEnter={handleCategoryButtonMouseEnter}
-            onMouseLeave={handleCategoryButtonMouseLeave}
-            title={t("drivers.filterByCategory") || "Filter by category"}
-          >
+          <button ref={categoryButtonRef} style={styles.categoryBtn} onMouseEnter={handleCategoryButtonMouseEnter} onMouseLeave={handleCategoryButtonMouseLeave} title={t("drivers.filterByCategory") || "Filter by category"}>
             <CategoryIcon size={16} />
           </button>
           <div className="driver-search-input-wrapper">
@@ -616,7 +611,7 @@ const DriversPanelPanel: React.FC<DriversPanelPanelProps> = ({ t, onSave }) => {
             <input type="text" className="driver-search-input" placeholder={t("drivers.searchPlaceholder") || "Search drivers..."} value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
             {searchTerm && (
               <button className="driver-search-clear" onClick={handleClearSearch} title={t("drivers.clearSearch") || "Clear search"}>
-                ✕
+                <X />
               </button>
             )}
           </div>

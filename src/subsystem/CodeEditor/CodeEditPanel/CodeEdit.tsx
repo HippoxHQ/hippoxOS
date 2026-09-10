@@ -9,6 +9,7 @@ import { showDialog, DialogType } from "../../../components/Dialog";
 import TabsEmpty from "./TabsEmpty";
 import { getFileIconComponent } from "../fileUtils";
 import { Icon } from "@iconify/react";
+import { X } from "lucide-react";
 interface CodeEditProps {
   t: (key: string, params?: Record<string, string | number>) => string;
   selectedFile: string | null;
@@ -1139,7 +1140,7 @@ const CodeEdit: React.FC<CodeEditProps> = ({ t, selectedFile, workspacePath, onT
                       e.currentTarget.style.background = "transparent";
                     }}
                   >
-                    ✕
+                    <X />
                   </button>
                 </div>
               );

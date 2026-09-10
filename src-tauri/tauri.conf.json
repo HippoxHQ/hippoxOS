@@ -55,6 +55,7 @@
           "windows": ["main"],
           "permissions": [
             "core:default",
+            "core:window:allow-start-dragging",
             "core:event:allow-listen",
             "core:event:allow-emit",
             "core:event:allow-emit-to",
@@ -304,6 +305,7 @@
           "windows": ["tray-window"],
           "permissions": [
             "core:default",
+            "core:window:allow-start-dragging",
             "core:event:allow-listen",
             "core:event:allow-emit",
             "core:event:allow-emit-to",
@@ -355,7 +357,19 @@
           "identifier": "submenu-window",
           "description": "Submenu Window",
           "windows": ["tray-submenu-window"],
-          "permissions": ["core:default", "core:event:allow-listen", "core:event:allow-emit", "core:event:allow-emit-to", "core:window:allow-close", "core:window:allow-show", "core:window:allow-hide", "core:window:allow-set-position", "core:window:allow-set-focus", "shell:allow-open"]
+          "permissions": [
+            "core:default",
+            "core:window:allow-start-dragging",
+            "core:event:allow-listen",
+            "core:event:allow-emit",
+            "core:event:allow-emit-to",
+            "core:window:allow-close",
+            "core:window:allow-show",
+            "core:window:allow-hide",
+            "core:window:allow-set-position",
+            "core:window:allow-set-focus",
+            "shell:allow-open"
+          ]
         },
         {
           "identifier": "material-preview-window",
@@ -363,6 +377,7 @@
           "windows": ["material-preview-window"],
           "permissions": [
             "core:default",
+            "core:window:allow-start-dragging",
             "core:event:allow-listen",
             "core:event:allow-emit",
             "core:event:allow-emit-to",
@@ -390,7 +405,19 @@
           "identifier": "about-window",
           "description": "About Window",
           "windows": ["about-window"],
-          "permissions": ["core:default", "core:event:allow-listen", "core:event:allow-emit", "core:event:allow-emit-to", "core:window:allow-close", "core:window:allow-show", "core:window:allow-hide", "core:window:allow-set-position", "core:window:allow-set-focus", "shell:allow-open"]
+          "permissions": [
+            "core:default",
+            "core:window:allow-start-dragging",
+            "core:event:allow-listen",
+            "core:event:allow-emit",
+            "core:event:allow-emit-to",
+            "core:window:allow-close",
+            "core:window:allow-show",
+            "core:window:allow-hide",
+            "core:window:allow-set-position",
+            "core:window:allow-set-focus",
+            "shell:allow-open"
+          ]
         }
       ]
     }

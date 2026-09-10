@@ -3,7 +3,7 @@ import { DialogSession } from "../types/types";
 import { showToast, ToastType } from "./Toast";
 import { PinFilledIcon } from "../icons";
 import { sessionCommands } from "../command/session/general";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, X } from "lucide-react";
 interface HistoryChatDropdownProps {
   t: (key: string, params?: any) => string;
   onSessionSelect?: (sessionId: string) => void;
@@ -246,7 +246,7 @@ const HistoryChatDropdown: React.FC<HistoryChatDropdownProps> = ({ t, onSessionS
             padding: "0 4px",
           }}
         >
-          ✕
+          <X />
         </button>
       </div>
       <div

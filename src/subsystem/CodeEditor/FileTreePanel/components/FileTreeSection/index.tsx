@@ -9,6 +9,7 @@ import { DialogType, showDialog } from "../../../../../components/Dialog";
 import { useFileTreeKeyboard } from "./hooks/useFileTreeKeyboard";
 import { getFileIconComponent, getFolderIconComponent } from "../../../fileUtils";
 import { generalCommands } from "../../../../../command/General";
+import { X } from "lucide-react";
 interface FileTreeSectionProps {
   workspacePath: string | null | undefined;
   selectedFile: string | null;
@@ -1268,7 +1269,7 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({ workspacePath,
                     flexShrink: 0,
                   }}
                 >
-                  ✕
+                  <X />
                 </button>
               </div>
             ) : (
@@ -1404,7 +1405,7 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({ workspacePath,
                         flexShrink: 0,
                       }}
                     >
-                      ✕
+                      <X />
                     </button>
                   </div>
                 )}
@@ -1475,7 +1476,7 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({ workspacePath,
                     flexShrink: 0,
                   }}
                 >
-                  ✕
+                  <X />
                 </button>
               </div>
             ) : (
@@ -1620,7 +1621,7 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({ workspacePath,
                 flexShrink: 0,
               }}
             >
-              ✕
+              <X />
             </button>
           </div>
         )}
@@ -1754,7 +1755,7 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({ workspacePath,
               flexShrink: 0,
             }}
           >
-            ✕
+            <X />
           </button>
         </div>
       )}

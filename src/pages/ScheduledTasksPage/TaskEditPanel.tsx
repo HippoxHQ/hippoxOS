@@ -1,22 +1,10 @@
 import React, { useState, useEffect, useRef } from "react";
-import {
-  scheduledTasksCommands,
-  CreateScheduledTaskRequest,
-  UpdateScheduledTaskRequest,
-  ScheduleType,
-  ActionType,
-  Frequency,
-  IntervalUnit,
-  FixedScheduleConfig,
-  IntervalScheduleConfig,
-  toScheduleConfig,
-  fromScheduleConfig,
-  ScheduledTask,
-} from "../../command/scheduledtasks";
+import { scheduledTasksCommands, CreateScheduledTaskRequest, UpdateScheduledTaskRequest, ScheduleType, ActionType, Frequency, IntervalUnit, FixedScheduleConfig, IntervalScheduleConfig, toScheduleConfig, fromScheduleConfig, ScheduledTask } from "../../command/scheduledtasks";
 import { showDialog, DialogType } from "../../components/Dialog";
 import { showToast, ToastType } from "../../components/Toast";
 import { workflowCommands } from "../../command/workflow";
 import { showTooltip } from "../../components/Tooltip";
+import { X } from "lucide-react";
 const EditIcon = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M17 3l4 4-7 7H10v-4l7-7z" />
@@ -578,7 +566,7 @@ const TaskEditPanel: React.FC<TaskEditPanelProps> = ({ t, task, isCreating = fal
             e.currentTarget.style.color = "var(--text-secondary)";
           }}
         >
-          ✕
+          <X />
         </button>
       </div>
       <div

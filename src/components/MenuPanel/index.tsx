@@ -15,7 +15,7 @@ import StorageConfig from "./SystemConfig/StorageConfig";
 import { UploadFile } from "../../core/types";
 import { CollapseAllIcon2, ExpandAllIcon2 } from "../../icons";
 import { HistoryChatPanelRef } from "../../subsystem/GeneralChat/HistoryChatPanel";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronUp, X } from "lucide-react";
 export type MenuPanelView = "terminal" | "history" | "favorites" | "skills" | "knowledge" | "skillMarket" | "taskQueue" | "executionHistory" | "drivers" | "settings" | "workspace" | "workspaceConfig" | "logs" | "storage" | "engine_group" | "codeEditor";
 export type EngineSubView = "engine_database" | "engine_network" | "engine_container" | "engine_notification";
 interface MenuPanelProps {
@@ -317,7 +317,7 @@ const MenuPanel: React.FC<MenuPanelProps> = ({
             </>
           )}
           <button className="menu-panel-close" onClick={onClose} title={t("common.close")}>
-            ✕
+            <X />
           </button>
         </div>
       </div>

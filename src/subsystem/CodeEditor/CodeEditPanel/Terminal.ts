@@ -451,9 +451,9 @@ export class Terminal {
             white-space:nowrap;
           ">${term.name}</span>
           ${isActive && term.isAlive ? '<span style="font-size:8px;color:var(--accent-color);flex-shrink:0;">●</span>' : ""}
-          ${isDead ? '<span style="font-size:8px;color:var(--error-color);flex-shrink:0;">✕</span>' : ""}
+          ${isDead ? '<span style="font-size:8px;color:var(--error-color);flex-shrink:0;"><X /></span>' : ""}
         </div>
-        ${!isOnly ? `<button class="terminal-close-btn" data-id="${id}" style="display:flex;align-items:center;justify-content:center;width:16px;height:16px;background:transparent;border:none;cursor:pointer;color:var(--text-muted);border-radius:3px;font-size:10px;padding:0;flex-shrink:0;">✕</button>` : ""}
+        ${!isOnly ? `<button class="terminal-close-btn" data-id="${id}" style="display:flex;align-items:center;justify-content:center;width:16px;height:16px;background:transparent;border:none;cursor:pointer;color:var(--text-muted);border-radius:3px;font-size:10px;padding:0;flex-shrink:0;"><X /></button>` : ""}
       </div>
     `;
     }

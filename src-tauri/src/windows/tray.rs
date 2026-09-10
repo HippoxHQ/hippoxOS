@@ -23,18 +23,23 @@ impl TrayManager {
                 TrayIconEvent::Click { button: MouseButton::Left, button_state: MouseButtonState::Up, .. } => {
                     Self::toggle_window(&app_handle);
                 }
-                TrayIconEvent::Click { button: MouseButton::Right, button_state: MouseButtonState::Up, .. } => {
-                    let _ = Self::create_tray_window(&app_handle);
+                TrayIconEvent::Click {
+                    button: MouseButton::Right,
+                    button_state: MouseButtonState::Up,
+                    position,
+                    ..
+                } => {
+                    // `position` is the tray icon position in PHYSICAL pixels,
+                    // origin top-left, exactly what we need for placement.
+                    let _ = Self::create_tray_window(&app_handle, position.x, position.y);
                 }
                 _ => {}
             })
             .build(app)?;
         Ok(())
     }
-    fn create_tray_window<R: Runtime>(app_handle: &AppHandle<R>) -> Result<(), Box<dyn std::error::Error>> {
-        let (mouse_x, mouse_y) = Self::get_mouse_position();
-        let (pos_x, pos_y) =
-            Self::calculate_window_position(app_handle, (mouse_x - 100) as f64, (mouse_y - 15) as f64, TRAY_MENU_WIDTH, TRAY_MENU_HEIGHT)?;
+    fn create_tray_window<R: Runtime>(app_handle: &AppHandle<R>, icon_physical_x: f64, icon_physical_y: f64) -> Result<(), Box<dyn std::error::Error>> {
+        let (pos_x, pos_y) = Self::calculate_window_position(app_handle, icon_physical_x, icon_physical_y, TRAY_MENU_WIDTH, TRAY_MENU_HEIGHT)?;
         let window_label = format!("{}", WindowIdentifier::Tray);
         let url_type = format!("{}", WindowType::Tray);
         if let Some(window) = app_handle.get_webview_window(&window_label) {
@@ -71,66 +76,57 @@ impl TrayManager {
         });
         Ok(())
     }
+    /// Place the tray popover next to the tray icon.
+    ///
+    /// `icon_physical_x/y` come straight from `TrayIconEvent::Click::position`,
+    /// which is in PHYSICAL pixels with origin top-left on all platforms.
+    /// The builder's `position()` wants LOGICAL coordinates, so we divide by
+    /// the monitor scale factor and then clamp inside the visible frame.
     fn calculate_window_position<R: Runtime>(
         app_handle: &AppHandle<R>,
-        mouse_x: f64,
-        mouse_y: f64,
+        icon_physical_x: f64,
+        icon_physical_y: f64,
         menu_width: f64,
         menu_height: f64,
     ) -> Result<(f64, f64), Box<dyn std::error::Error>> {
-        let mut pos_x = mouse_x;
-        let mut pos_y = mouse_y;
-        if let Some(monitor) = app_handle.primary_monitor()? {
-            let screen_width = monitor.size().width as f64;
-            let screen_height = monitor.size().height as f64;
-            let monitor_x = monitor.position().x as f64;
-            let monitor_y = monitor.position().y as f64;
-            let screen_left = monitor_x;
-            let screen_right = monitor_x + screen_width;
-            let screen_top = monitor_y;
-            let screen_bottom = monitor_y + screen_height;
-            pos_x = mouse_x;
-            pos_y = mouse_y;
-            if pos_x + menu_width > screen_right {
-                pos_x = mouse_x - menu_width;
+        let monitor = match app_handle.primary_monitor()? {
+            Some(m) => m,
+            None => {
+                // No monitor info: best-effort, place at the raw icon position.
+                return Ok((icon_physical_x, icon_physical_y));
             }
-            if pos_y + menu_height > screen_bottom {
-                pos_y = mouse_y - menu_height;
-            }
-            if pos_x < screen_left {
-                pos_x = screen_left;
-            }
-            if pos_y < screen_top {
-                pos_y = screen_top;
-            }
+        };
+        let scale = monitor.scale_factor();
+        // Convert icon physical position -> logical, top-left origin.
+        let icon_x = icon_physical_x / scale;
+        let icon_y = icon_physical_y / scale;
+        let screen_width = monitor.size().width as f64 / scale;
+        let screen_height = monitor.size().height as f64 / scale;
+        let monitor_x = monitor.position().x as f64 / scale;
+        let monitor_y = monitor.position().y as f64 / scale;
+        let screen_left = monitor_x;
+        let screen_right = monitor_x + screen_width;
+        let screen_top = monitor_y;
+        let screen_bottom = monitor_y + screen_height;
+        // Default: below-left of the icon, like a status bar dropdown.
+        let mut pos_x = icon_x - menu_width + 24.0;
+        let mut pos_y = icon_y + 8.0;
+        // If it overflows the bottom, open upward instead.
+        if pos_y + menu_height > screen_bottom {
+            pos_y = icon_y - menu_height - 8.0;
+        }
+        // If it overflows the right, shift left.
+        if pos_x + menu_width > screen_right {
+            pos_x = screen_right - menu_width;
+        }
+        // Clamp to the visible frame.
+        if pos_x < screen_left {
+            pos_x = screen_left;
+        }
+        if pos_y < screen_top {
+            pos_y = screen_top;
         }
         Ok((pos_x, pos_y))
-    }
-    fn get_mouse_position() -> (i32, i32) {
-        #[cfg(target_os = "windows")]
-        {
-            type POINT = (i32, i32);
-            extern "system" {
-                fn GetCursorPos(lpPoint: *mut POINT) -> i32;
-            }
-            let mut point = (0, 0);
-            unsafe {
-                GetCursorPos(&mut point);
-            }
-            point
-        }
-        #[cfg(target_os = "macos")]
-        {
-            use objc::{class, msg_send, sel, sel_impl};
-            let ns_event: *mut objc::runtime::Object = unsafe { msg_send![class!(NSEvent), mouseLocation] };
-            let x: f64 = unsafe { msg_send![ns_event, x] };
-            let y: f64 = unsafe { msg_send![ns_event, y] };
-            (x as i32, y as i32)
-        }
-        #[cfg(target_os = "linux")]
-        {
-            (0, 0)
-        }
     }
     fn toggle_window<R: Runtime>(app_handle: &AppHandle<R>) {
         if let Some(window) = app_handle.get_webview_window("main") {

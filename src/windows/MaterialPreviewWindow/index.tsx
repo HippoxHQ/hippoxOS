@@ -533,7 +533,8 @@ const MaterialPreviewWindow: React.FC = () => {
   if (!material) {
     return (
       <div style={styles.container}>
-        <div style={styles.topBar}>
+        {/* Titlebar: data-tauri-drag-region="deep" enables dragging the whole subtree */}
+        <div style={styles.topBar} data-tauri-drag-region="deep">
           <div style={styles.topBarLeft}>
             <img src={logo} alt="logo" style={{ width: 22, height: 22, borderRadius: 5 }} />
           </div>
@@ -772,7 +773,8 @@ const MaterialPreviewWindow: React.FC = () => {
   return (
     <div style={styles.container}>
       {/* Title Bar */}
-      <div style={styles.topBar}>
+      {/* Titlebar: data-tauri-drag-region="deep" enables dragging the whole subtree (macOS + Win + Linux) */}
+      <div style={styles.topBar} data-tauri-drag-region="deep">
         <div style={styles.topBarLeft}>
           <img src={logo} alt="logo" style={{ width: 22, height: 22, borderRadius: 5 }} />
         </div>

@@ -1,3 +1,4 @@
+import { X } from "lucide-react";
 import React from "react";
 interface DiffPanelProps {
   /** Whether the diff panel is visible */
@@ -100,7 +101,7 @@ const DiffPanel: React.FC<DiffPanelProps> = ({ isVisible, fileName = "", origina
               e.currentTarget.style.color = "var(--text-secondary)";
             }}
           >
-            ✕
+            <X />
           </button>
         </div>
         <div
@@ -292,7 +293,7 @@ const DiffPanel: React.FC<DiffPanelProps> = ({ isVisible, fileName = "", origina
               e.currentTarget.style.color = "var(--text-secondary)";
             }}
           >
-            ✕
+            <X />
           </button>
         </div>
       </div>

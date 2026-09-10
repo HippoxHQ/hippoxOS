@@ -27,14 +27,19 @@ impl AboutWindowManager {
             .build()?;
         Ok(())
     }
+    /// Compute a centered position for a window of the given LOGICAL size.
+    ///
+    /// Same physical/logical conversion as MaterialPreviewManager: monitor
+    /// rects are physical, builder positions are logical.
     fn calculate_center_position<R: Runtime>(app_handle: &AppHandle<R>, width: f64, height: f64) -> Result<(f64, f64), Box<dyn std::error::Error>> {
         let mut x = 100.0;
         let mut y = 100.0;
         if let Some(monitor) = app_handle.primary_monitor()? {
-            let screen_width = monitor.size().width as f64;
-            let screen_height = monitor.size().height as f64;
-            let monitor_x = monitor.position().x as f64;
-            let monitor_y = monitor.position().y as f64;
+            let scale = monitor.scale_factor();
+            let screen_width = monitor.size().width as f64 / scale;
+            let screen_height = monitor.size().height as f64 / scale;
+            let monitor_x = monitor.position().x as f64 / scale;
+            let monitor_y = monitor.position().y as f64 / scale;
             x = monitor_x + (screen_width - width) / 2.0;
             y = monitor_y + (screen_height - height) / 2.0;
             x = x.max(monitor_x);

@@ -6,7 +6,7 @@ import { runSkill } from "./utils/skillRunner";
 import { UploadFile } from "../../core/types";
 import { filesCommands } from "../../command/files";
 import { showDialog, DialogType } from "../../components/Dialog";
-import { Folder } from "lucide-react";
+import { Folder, X } from "lucide-react";
 interface FavoritesPanelProps {
   t: (key: string, params?: any) => string;
   onSendSkillMessage: (message: string, files?: UploadFile[]) => void;
@@ -331,7 +331,7 @@ const FavoritesPanel: React.FC<FavoritesPanelProps> = ({ t, onSendSkillMessage, 
             <input type="text" className="favorites-search-input" placeholder={t("favorites.searchPlaceholder") || "Search favorites..."} value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
             {searchTerm && (
               <button className="favorites-search-clear" onClick={handleClearSearch} title={t("favorites.clearSearch") || "Clear search"}>
-                ✕
+                <X />
               </button>
             )}
           </div>

@@ -3,7 +3,7 @@ import { showToast, ToastType } from "../Toast";
 import { showDialog, DialogType } from "../Dialog";
 import { ProviderInfo, ModelInfo, llmCommands, AddLlmInstanceRequest, ExtraConfigField } from "../../command/llm";
 import { SearchIcon } from "../../icons";
-import { Bot } from "lucide-react";
+import { Bot, X } from "lucide-react";
 interface LLMModelConfigProps {
   t: (key: string, params?: any) => string;
   onSave?: (config: any) => void;
@@ -534,7 +534,7 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({ t, onSave, isInitializi
             <input type="text" className="llm-search-input" placeholder={t("llmModel.searchPlaceholder") || "Search providers..."} value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
             {searchTerm && (
               <button className="llm-search-clear" onClick={handleClearSearch} title={t("llmModel.clearSearch") || "Clear search"}>
-                ✕
+                <X />
               </button>
             )}
           </div>

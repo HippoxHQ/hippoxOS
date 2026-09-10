@@ -4,7 +4,7 @@ import { windowsCommands } from "../command/windows";
 import { osCommands } from "../command/os";
 import { basisCommands } from "../command/basis";
 import { zh, en } from "../i18n";
-import { Info, BookOpen, Maximize2, Minimize2 } from "lucide-react";
+import { Info, BookOpen, Maximize2, Minimize2, X } from "lucide-react";
 import logo from "../assets/logo.png";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -164,6 +164,13 @@ const AboutWindow: React.FC = () => {
   `;
   /**
    * Styles
+   *
+   * NOTE: WebkitAppRegion / appRegion have been removed because they are
+   * Electron-only CSS properties and are NOT recognized by Tauri on any
+   * platform. Tauri uses the `data-tauri-drag-region` DOM attribute instead.
+   * The `deep` value is used so the whole titlebar subtree is draggable
+   * without having to tag every child element (required on macOS where the
+   * hit-test only matches the element that actually carries the attribute).
    */
   const styles = {
     container: {
@@ -185,24 +192,18 @@ const AboutWindow: React.FC = () => {
       justifyContent: "space-between" as const,
       padding: "0 12px",
       flexShrink: 0 as const,
-      WebkitAppRegion: "drag" as const,
-      appRegion: "drag" as const,
     },
     topBarLeft: {
       display: "flex" as const,
       alignItems: "center" as const,
       gap: "6px",
       flexShrink: 0 as const,
-      WebkitAppRegion: "drag" as const,
-      appRegion: "drag" as const,
     },
     topBarCenter: {
       flex: 1,
       display: "flex" as const,
       alignItems: "center" as const,
       justifyContent: "center" as const,
-      WebkitAppRegion: "drag" as const,
-      appRegion: "drag" as const,
       overflow: "hidden" as const,
       padding: "0 8px",
     },
@@ -213,16 +214,12 @@ const AboutWindow: React.FC = () => {
       overflow: "hidden" as const,
       textOverflow: "ellipsis" as const,
       whiteSpace: "nowrap" as const,
-      WebkitAppRegion: "drag" as const,
-      appRegion: "drag" as const,
       maxWidth: "300px",
     },
     topBarRight: {
       display: "flex" as const,
       alignItems: "center" as const,
       gap: "2px",
-      WebkitAppRegion: "no-drag" as const,
-      appRegion: "no-drag" as const,
       flexShrink: 0 as const,
     },
     windowBtn: {
@@ -238,8 +235,6 @@ const AboutWindow: React.FC = () => {
       fontSize: "15px",
       borderRadius: "0",
       flexShrink: 0 as const,
-      WebkitAppRegion: "no-drag" as const,
-      appRegion: "no-drag" as const,
     },
     content: {
       flex: 1,
@@ -316,13 +311,15 @@ const AboutWindow: React.FC = () => {
   return (
     <div style={styles.container}>
       <style>{scrollbarStyles}</style>
-      <div style={styles.topBar}>
+      {/* Titlebar: data-tauri-drag-region="deep" enables dragging the whole subtree (macOS + Win + Linux) */}
+      <div style={styles.topBar} data-tauri-drag-region="deep">
         <div style={styles.topBarLeft}>
           <img src={logo} alt="logo" style={{ width: 22, height: 22, borderRadius: 5 }} />
         </div>
         <div style={styles.topBarCenter}>
           <span style={styles.topBarTitle}>{isZh ? "关于" : "About"}</span>
         </div>
+        {/* Buttons are not tagged with drag region, so they remain clickable */}
         <div style={styles.topBarRight}>
           <button
             style={styles.windowBtn}
@@ -380,7 +377,7 @@ const AboutWindow: React.FC = () => {
               e.currentTarget.style.color = isDark ? "#9ca3af" : "#6b7280";
             }}
           >
-            ✕
+            <X />
           </button>
         </div>
       </div>

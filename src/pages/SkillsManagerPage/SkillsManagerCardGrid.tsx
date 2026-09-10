@@ -4,7 +4,7 @@ import { skillsMarketCommands, skillsLocalCommands } from "../../command/skills"
 import { UploadFile } from "../../core/types";
 import { runSkill } from "../../components/MenuPanel/utils/skillRunner";
 // Import icons from lucide-react
-import { Star, Play, Trash2, Search, Plus, Package } from "lucide-react";
+import { Star, Play, Trash2, Search, Plus, Package, X } from "lucide-react";
 import { showDialog, DialogType } from "../../components/Dialog";
 interface SkillsManagerCardGridProps {
   t: (key: string, params?: any) => string;
@@ -497,7 +497,7 @@ const SkillsManagerCardGrid: React.FC<SkillsManagerCardGridProps> = ({ t, skills
           <input type="text" className="search-input" placeholder={t("skillsManager.searchPlaceholder") || (isZh(t) ? "搜索技能..." : "Search skills...")} value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
           {searchTerm && (
             <button className="search-clear" onClick={() => setSearchTerm("")}>
-              ✕
+              <X />
             </button>
           )}
           <span className="search-stats">

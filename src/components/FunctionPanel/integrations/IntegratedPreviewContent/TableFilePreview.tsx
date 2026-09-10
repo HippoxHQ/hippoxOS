@@ -4,7 +4,7 @@ import { UploadFile } from "../../../../core/types";
 import Papa from "papaparse";
 import { showTooltip } from "../../../../components/Tooltip";
 import { showToast, ToastType } from "../../../Toast";
-import { BarChart3 } from "lucide-react";
+import { BarChart3, X } from "lucide-react";
 interface TableFilePreviewProps {
   file: UploadFile | null;
   onClose: () => void;
@@ -379,7 +379,7 @@ const TableFilePreview: React.FC<TableFilePreviewProps> = ({ file, onClose, t = 
             }}
             onMouseEnter={(e) => handleTooltip(e, "table.clear")}
           >
-            ✕ {t("table.clear")}
+            <X /> {t("table.clear")}
           </button>
         )}
         <div style={{ fontSize: 11, color: "var(--text-muted)" }}>

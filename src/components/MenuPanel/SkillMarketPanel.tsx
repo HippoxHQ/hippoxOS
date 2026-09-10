@@ -4,7 +4,7 @@ import { MarketSkill, skillsMarketCommands } from "../../command/skills";
 import { UploadFile } from "../../core/types";
 import { runSkill } from "./utils/skillRunner";
 import { filesCommands } from "../../command/files";
-import { Folder } from "lucide-react";
+import { Folder, X } from "lucide-react";
 interface SkillMarketPanelProps {
   t: (key: string, params?: any) => string;
   onSendSkillMessage: (message: string, files?: UploadFile[]) => void;
@@ -448,7 +448,7 @@ const SkillMarketPanel: React.FC<SkillMarketPanelProps> = ({ t, onSendSkillMessa
             <input type="text" className="market-search-input" placeholder={t("market.searchPlaceholder") || "Search skills..."} value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
             {searchTerm && (
               <button className="market-search-clear" onClick={handleClearSearch} title={t("market.clearSearch") || "Clear search"}>
-                ✕
+                <X />
               </button>
             )}
           </div>

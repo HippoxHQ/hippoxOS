@@ -14,30 +14,57 @@ impl SubmenuManager {
             let _ = window.close();
             std::thread::sleep(std::time::Duration::from_millis(100));
         }
+        // Anchor the submenu to the tray popover if it exists, otherwise use
+        // the cursor. Both are normalized to LOGICAL top-left coordinates.
         let tray_window_label = format!("{}", WindowIdentifier::Tray);
         let tray_window = app_handle.get_webview_window(&tray_window_label);
-        let (x, y) = if let Some(window) = tray_window {
+        let (anchor_x, anchor_y) = if let Some(window) = tray_window {
+            // `outer_position` returns PHYSICAL pixels with top-left origin.
             let position = window.outer_position()?;
-            (position.x as f64, position.y as f64)
+            let scale = window.scale_factor().unwrap_or(1.0);
+            (position.x as f64 / scale, position.y as f64 / scale)
         } else {
             let (mouse_x, mouse_y) = Self::get_mouse_position();
-            (mouse_x as f64, mouse_y as f64)
+            #[cfg(target_os = "macos")]
+            {
+                // Cocoa: origin bottom-left, physical points -> flip Y.
+                let (scale, screen_h_logical) = if let Some(monitor) = app_handle.primary_monitor()? {
+                    (monitor.scale_factor(), monitor.size().height as f64 / monitor.scale_factor())
+                } else {
+                    (1.0, 0.0)
+                };
+                (mouse_x / scale, screen_h_logical - (mouse_y / scale))
+            }
+            #[cfg(not(target_os = "macos"))]
+            {
+                (mouse_x, mouse_y)
+            }
         };
         let url_type = format!("{}", WindowType::TraySubmenu);
-        // let menu_width = 200.0;
-        // let menu_height = 300.0;
-        let mut pos_x = x - TRAY_SUB_MENU_WIDTH - 5.0;
-        let mut pos_y = y;
+        // Place the submenu to the LEFT of the tray popover.
+        let mut pos_x = anchor_x - TRAY_SUB_MENU_WIDTH - 5.0;
+        let mut pos_y = anchor_y;
         if let Some(monitor) = app_handle.primary_monitor()? {
-            let screen_width = monitor.size().width as f64;
-            let monitor_x = monitor.position().x as f64;
+            let scale = monitor.scale_factor();
+            let screen_width = monitor.size().width as f64 / scale;
+            let screen_height = monitor.size().height as f64 / scale;
+            let monitor_x = monitor.position().x as f64 / scale;
+            let monitor_y = monitor.position().y as f64 / scale;
             let screen_left = monitor_x;
             let screen_right = monitor_x + screen_width;
+            let screen_top = monitor_y;
+            let screen_bottom = monitor_y + screen_height;
             if pos_x < screen_left {
-                pos_x = x + 260.0 + 5.0;
+                pos_x = anchor_x + 260.0 + 5.0;
             }
             if pos_x + TRAY_SUB_MENU_WIDTH > screen_right {
                 pos_x = screen_right - TRAY_SUB_MENU_WIDTH - 5.0;
+            }
+            if pos_y < screen_top {
+                pos_y = screen_top;
+            }
+            if pos_y + TRAY_SUB_MENU_HEIGHT > screen_bottom {
+                pos_y = screen_bottom - TRAY_SUB_MENU_HEIGHT;
             }
         }
         let window = WebviewWindowBuilder::new(app_handle, &window_label, tauri::WebviewUrl::App(format!("index.html?type={}", url_type).into()))
@@ -81,7 +108,13 @@ impl SubmenuManager {
         });
         Ok(())
     }
-    fn get_mouse_position() -> (i32, i32) {
+    /// Return the current cursor position.
+    ///
+    /// - Windows: physical pixels, origin top-left, Y grows down.
+    /// - macOS:   physical points, origin bottom-left, Y grows up (Cocoa).
+    ///            The caller flips Y because it needs the monitor height.
+    /// - Linux:   not implemented, returns (0, 0).
+    fn get_mouse_position() -> (f64, f64) {
         #[cfg(target_os = "windows")]
         {
             type POINT = (i32, i32);
@@ -92,7 +125,7 @@ impl SubmenuManager {
             unsafe {
                 GetCursorPos(&mut point);
             }
-            point
+            (point.0 as f64, point.1 as f64)
         }
         #[cfg(target_os = "macos")]
         {
@@ -100,11 +133,11 @@ impl SubmenuManager {
             let ns_event: *mut objc::runtime::Object = unsafe { msg_send![class!(NSEvent), mouseLocation] };
             let x: f64 = unsafe { msg_send![ns_event, x] };
             let y: f64 = unsafe { msg_send![ns_event, y] };
-            (x as i32, y as i32)
+            (x, y)
         }
         #[cfg(target_os = "linux")]
         {
-            (0, 0)
+            (0.0, 0.0)
         }
     }
 }

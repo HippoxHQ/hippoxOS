@@ -9,6 +9,7 @@ import { osCommands } from "../../command/os";
 import Heatmap from "../../components/Heatmap";
 import { showToast, ToastType } from "../../components/Toast";
 import { showTooltip } from "../../components/Tooltip";
+import { X } from "lucide-react";
 
 const UserProfile: React.FC<UserProfileProps> = ({ t, onClose, currentSessionId }) => {
   const [userData, setUserData] = useState<UserStats | null>(null);
@@ -423,7 +424,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ t, onClose, currentSessionId 
             }}
             onMouseLeave={(e) => (e.currentTarget.style.background = "none")}
           >
-            ✕
+            <X />
           </button>
         </div>
       </div>
