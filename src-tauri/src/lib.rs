@@ -117,6 +117,8 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .manage(app_state)
         .setup(|app| {
+            #[cfg(target_os = "macos")]
+            crate::subsystem::videoeditor::audio::init_audio_threads();
             TrayManager::setup(app)?;
             Ok(())
         })

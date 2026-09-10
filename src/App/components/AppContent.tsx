@@ -951,7 +951,7 @@ export function AppContent({
     };
   }, []);
   return (
-    <div className="App">
+    <div className="App" onContextMenu={(e) => e.preventDefault()} style={{ userSelect: "none", WebkitUserSelect: "none" }}>
       <style>{`
         .menu-panel-resize-handle {
           position: relative;

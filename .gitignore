@@ -1,6 +1,7 @@
 # rust
 /target
 /target-linux
+/product
 
 # dependencies
 /node_modules

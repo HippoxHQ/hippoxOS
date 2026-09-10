@@ -27,6 +27,7 @@ dependencies = [
  "memcontext",
  "nix 0.31.3",
  "num_cpus",
+ "objc",
  "once_cell",
  "open",
  "parking_lot",
@@ -3276,9 +3277,9 @@ dependencies = [
 
 [[package]]
 name = "ffmpegx"
-version = "0.2.3"
+version = "0.2.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b1d7e4d621edfcfae4ca23381c038925a29ff9c09b2d2985389092a2a625851d"
+checksum = "7321846a5d3cfda82276f5b5be208d70e7529f3658094470113337e2fcc60907"
 dependencies = [
  "base64 0.23.0",
  "chrono",
@@ -4309,9 +4310,9 @@ checksum = "dfa686283ad6dd069f105e5ab091b04c62850d3e4cf5d67debad1933f55023df"
 
 [[package]]
 name = "hippox"
-version = "0.7.11"
+version = "0.7.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "54b421539fe108543e6499db408954d4ddcc7edabbe8149d777d87392d44626f"
+checksum = "1f0285014ff38b17e8e6e0800b1174b22629084a54ebc21ff5e60fa9812218ae"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -4332,9 +4333,9 @@ dependencies = [
 
 [[package]]
 name = "hippox-drivers"
-version = "0.4.41"
+version = "0.4.45"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d01761ddecd651caa932eaa2f63f9595a8a086802c1f0361c5eb176ab5621391"
+checksum = "6c5a4606bd575b982ce670f41910214b2b6ed7a464aedaabf3fd00aa8db028ce"
 dependencies = [
  "aes 0.9.1",
  "aes-gcm",
@@ -13513,9 +13514,9 @@ dependencies = [
 
 [[package]]
 name = "ytdlp"
-version = "0.1.1"
+version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "da0f6bd24abf456cee54824b44726117068d11fd7de067175df99bd113fb4024"
+checksum = "3734c9fe00dcc2a5340c12413490519fecc1b30479f3569fb89bb6921bd04a52"
 dependencies = [
  "log",
  "serde_json",
