@@ -1,4 +1,4 @@
-FROM ubuntu:22.04
+FROM ubuntu:24.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -20,17 +20,58 @@ RUN apt-get update && apt-get install -y \
     git \
     && rm -rf /var/lib/apt/lists/*
 
+# Audio stack (rodio -> cpal -> pipewire / alsa / jack / pulse)
+RUN apt-get update && apt-get install -y \
+    libpipewire-0.3-dev \
+    libspa-0.2-dev \
+    libasound2-dev \
+    libjack-jackd2-dev \
+    libpulse-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# bindgen toolchain (libspa-sys uses bindgen -> needs libclang)
+RUN apt-get update && apt-get install -y \
+    clang \
+    libclang-dev \
+    llvm-dev \
+    libclang1 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Extra common system libraries for Tauri apps
+RUN apt-get update && apt-get install -y \
+    libudev-dev \
+    libdbus-1-dev \
+    libxcb1-dev \
+    libxcb-render0-dev \
+    libxcb-shape0-dev \
+    libxcb-xfixes0-dev \
+    libsecret-1-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Graphics / display libraries required by xcap (screen capture) at link time.
+# Provides -lgbm, -ldrm, -lEGL, -lwayland-client, -lxkbcommon, etc.
+RUN apt-get update && apt-get install -y \
+    libgbm-dev \
+    libdrm-dev \
+    libegl1-mesa-dev \
+    libwayland-dev \
+    libxkbcommon-dev \
+    && rm -rf /var/lib/apt/lists/*
+
 # Install Rust
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 ENV PATH="/root/.cargo/bin:${PATH}"
+
+# Tell bindgen where to find libclang (Ubuntu 24.04 ships LLVM 18)
+ENV LIBCLANG_PATH=/usr/lib/llvm-18/lib
 
 # Install Node.js 20
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y nodejs \
     && rm -rf /var/lib/apt/lists/*
 
-# Install pnpm
-RUN npm install -g pnpm
+# Install Yarn (Classic 1.x, via npm)
+RUN npm install -g yarn
 
 WORKDIR /app
 

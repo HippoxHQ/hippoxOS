@@ -1,5 +1,6 @@
 # rust
 /target
+/target-linux
 
 # dependencies
 /node_modules

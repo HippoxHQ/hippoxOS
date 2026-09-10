@@ -224,15 +224,14 @@ impl TrayManager {
     }
     #[cfg(target_os = "windows")]
     fn open_path(path: &std::path::Path) {
-        use crate::commons::hidden_cmd;
-        let _ = hidden_cmd("explorer").arg(path).spawn();
+        let _ = crate::commons::hidden_cmd("explorer").arg(path).spawn();
     }
     #[cfg(target_os = "macos")]
     fn open_path(path: &std::path::Path) {
-        let _ = hidden_cmd("open").arg(path).spawn();
+        let _ = crate::commons::hidden_cmd("open").arg(path).spawn();
     }
     #[cfg(target_os = "linux")]
     fn open_path(path: &std::path::Path) {
-        let _ = hidden_cmd("xdg-open").arg(path).spawn();
+        let _ = crate::commons::hidden_cmd("xdg-open").arg(path).spawn();
     }
 }

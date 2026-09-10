@@ -82,10 +82,9 @@ pub fn cmd_get_gpu_usage() -> Result<f32, String> {
 /// Uses nvidia-smi first (with hidden window), falls back to WMI
 #[cfg(target_os = "windows")]
 fn get_windows_gpu_usage() -> Result<f32, String> {
-    use crate::commons::hidden_cmd;
     use wmi::*;
     // Try nvidia-smi with hidden window (no black flash)
-    if let Ok(output) = hidden_cmd("nvidia-smi").arg("--query-gpu=utilization.gpu").arg("--format=csv,noheader,nounits").output() {
+    if let Ok(output) = crate::commons::hidden_cmd("nvidia-smi").arg("--query-gpu=utilization.gpu").arg("--format=csv,noheader,nounits").output() {
         if output.status.success() {
             if let Ok(output_str) = String::from_utf8(output.stdout) {
                 if let Some(first_line) = output_str.lines().next() {
@@ -117,7 +116,7 @@ struct Win32_PerfFormattedData_GPUPerformanceCounters_GPUAdapter {
 #[cfg(target_os = "linux")]
 fn get_linux_gpu_usage() -> Result<f32, String> {
     // Try NVIDIA GPU via sysfs
-    let nvidia_sysfs_path = Path::new("/sys/class/drm/card0/device/gpu_busy_percent");
+    let nvidia_sysfs_path = std::path::Path::new("/sys/class/drm/card0/device/gpu_busy_percent");
     if FileUtils::path_exists(nvidia_sysfs_path) {
         if let Ok(content) = FileUtils::read_file_to_string(nvidia_sysfs_path) {
             if let Ok(usage) = content.trim().parse::<f32>() {
@@ -126,7 +125,7 @@ fn get_linux_gpu_usage() -> Result<f32, String> {
         }
     }
     // Try AMD GPU via sysfs (simplified approach)
-    let amd_sysfs_path = Path::new("/sys/class/drm/card0/device/gpu_metrics");
+    let amd_sysfs_path = std::path::Path::new("/sys/class/drm/card0/device/gpu_metrics");
     if FileUtils::path_exists(amd_sysfs_path) {
         // Parse GPU usage from metrics (simplified)
         // In reality, you'd need proper parsing for AMD GPUs
@@ -134,7 +133,7 @@ fn get_linux_gpu_usage() -> Result<f32, String> {
         // AMD GPU metrics parsing would go here
     }
     // Try using nvidia-smi command
-    if let Ok(output) = hidden_cmd("nvidia-smi").arg("--query-gpu=utilization.gpu").arg("--format=csv,noheader,nounits").output() {
+    if let Ok(output) = crate::commons::hidden_cmd("nvidia-smi").arg("--query-gpu=utilization.gpu").arg("--format=csv,noheader,nounits").output() {
         if let Ok(output_str) = String::from_utf8(output.stdout) {
             if let Some(first_line) = output_str.lines().next() {
                 if let Ok(usage) = first_line.trim().parse::<f32>() {

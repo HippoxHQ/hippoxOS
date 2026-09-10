@@ -1,7 +1,7 @@
 use chrono::Local;
-use std::{fmt, fs};
 use std::io::Error as IoError;
 use std::path::{Path, PathBuf};
+use std::{fmt, fs};
 #[derive(Debug)]
 pub enum FileError {
     Io(String),
@@ -153,20 +153,19 @@ impl FileUtils {
         }
         #[cfg(target_os = "windows")]
         {
-            use crate::commons::hidden_cmd;
-            let _ = hidden_cmd("cmd").args(&["/c", "rmdir", "/s", "/q", &path_str]).output();
+            let _ = crate::commons::hidden_cmd("cmd").args(&["/c", "rmdir", "/s", "/q", &path_str]).output();
             if path.exists() {
-                let _ = hidden_cmd("powershell")
+                let _ = crate::commons::hidden_cmd("powershell")
                     .args(&["-Command", &format!("Remove-Item -Path '{}' -Recurse -Force -ErrorAction SilentlyContinue", path_str)])
                     .output();
             }
         }
         #[cfg(any(target_os = "macos", target_os = "linux"))]
         {
-            let _ = hidden_cmd("rm").args(&["-rf", &path_str]).output();
+            let _ = crate::commons::hidden_cmd("rm").args(&["-rf", &path_str]).output();
             if path.exists() {
-                let _ = hidden_cmd("chflags").args(&["-R", "nouchg", &path_str]).output();
-                let _ = hidden_cmd("rm").args(&["-rf", &path_str]).output();
+                let _ = crate::commons::hidden_cmd("chflags").args(&["-R", "nouchg", &path_str]).output();
+                let _ = crate::commons::hidden_cmd("rm").args(&["-rf", &path_str]).output();
             }
         }
         if path.exists() {
@@ -255,20 +254,19 @@ impl FileUtils {
         }
         #[cfg(target_os = "windows")]
         {
-            use crate::commons::hidden_cmd;
-            let _ = hidden_cmd("cmd").args(&["/c", "del", "/f", "/q", &path_str]).output();
+            let _ = crate::commons::hidden_cmd("cmd").args(&["/c", "del", "/f", "/q", &path_str]).output();
             if path.exists() {
-                let _ = hidden_cmd("powershell")
+                let _ = crate::commons::hidden_cmd("powershell")
                     .args(&["-Command", &format!("Remove-Item -Path '{}' -Force -ErrorAction SilentlyContinue", path_str)])
                     .output();
             }
         }
         #[cfg(any(target_os = "macos", target_os = "linux"))]
         {
-            let _ = hidden_cmd("rm").args(&["-f", &path_str]).output();
+            let _ = crate::commons::hidden_cmd("rm").args(&["-f", &path_str]).output();
             if path.exists() {
-                let _ = hidden_cmd("chflags").args(&["-R", "nouchg", &path_str]).output();
-                let _ = hidden_cmd("rm").args(&["-f", &path_str]).output();
+                let _ = crate::commons::hidden_cmd("chflags").args(&["-R", "nouchg", &path_str]).output();
+                let _ = crate::commons::hidden_cmd("rm").args(&["-f", &path_str]).output();
             }
         }
         if path.exists() {

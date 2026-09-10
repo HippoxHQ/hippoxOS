@@ -28,6 +28,7 @@ dependencies = [
  "nix 0.31.3",
  "num_cpus",
  "once_cell",
+ "open",
  "parking_lot",
  "pollster 1.0.1",
  "rand 0.9.4",
@@ -1738,7 +1739,7 @@ dependencies = [
  "jni 0.21.1",
  "js-sys",
  "libc",
- "mach2",
+ "mach2 0.4.3",
  "ndk",
  "ndk-context",
  "num-derive",
@@ -3275,7 +3276,9 @@ dependencies = [
 
 [[package]]
 name = "ffmpegx"
-version = "0.2.2"
+version = "0.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b1d7e4d621edfcfae4ca23381c038925a29ff9c09b2d2985389092a2a625851d"
 dependencies = [
  "base64 0.23.0",
  "chrono",
@@ -4306,7 +4309,9 @@ checksum = "dfa686283ad6dd069f105e5ab091b04c62850d3e4cf5d67debad1933f55023df"
 
 [[package]]
 name = "hippox"
-version = "0.6.2"
+version = "0.7.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "54b421539fe108543e6499db408954d4ddcc7edabbe8149d777d87392d44626f"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -4327,7 +4332,9 @@ dependencies = [
 
 [[package]]
 name = "hippox-drivers"
-version = "0.3.5"
+version = "0.4.41"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d01761ddecd651caa932eaa2f63f9595a8a086802c1f0361c5eb176ab5621391"
 dependencies = [
  "aes 0.9.1",
  "aes-gcm",
@@ -4343,6 +4350,7 @@ dependencies = [
  "cbc 0.2.1",
  "chrono",
  "clipboard-win",
+ "core-graphics 0.25.0",
  "cron",
  "csv",
  "deadpool-postgres",
@@ -4360,10 +4368,15 @@ dependencies = [
  "kamadak-exif",
  "langhub",
  "lettre",
+ "libc",
+ "libproc",
  "local-ip-address",
  "lopdf 0.40.0",
+ "mach2 0.7.0",
  "md5",
  "nix 0.31.3",
+ "objc2 0.6.4",
+ "objc2-foundation 0.3.2",
  "once_cell",
  "password-hash 0.6.1",
  "pbkdf2 0.13.0",
@@ -4389,6 +4402,7 @@ dependencies = [
  "serde_yaml",
  "sha1 0.11.0",
  "sha2 0.11.0",
+ "shellexpand",
  "signature",
  "similar",
  "sqlx",
@@ -5569,6 +5583,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b6d2cec3eae94f9f509c767b45932f1ada8350c4bdb85af2fcab4a3c14807981"
 
 [[package]]
+name = "libproc"
+version = "0.14.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a54ad7278b8bc5301d5ffd2a94251c004feb971feba96c971ea4063645990757"
+dependencies = [
+ "bindgen",
+ "errno",
+ "libc",
+]
+
+[[package]]
 name = "libredox"
 version = "0.1.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5841,6 +5866,12 @@ checksum = "d640282b302c0bb0a2a8e0233ead9035e3bed871f0b7e81fe4a1ec829765db44"
 dependencies = [
  "libc",
 ]
+
+[[package]]
+name = "mach2"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b0d28e293f2b8c9d2b2d1c0193bd3c1cbdc0d2cf396888dc01162f7cf9d6c3f3"
 
 [[package]]
 name = "malloc_buf"
@@ -6882,14 +6913,13 @@ checksum = "c08d65885ee38876c4f86fa503fb49d7b507c2b62552df7c70b2fce627e06381"
 
 [[package]]
 name = "open"
-version = "5.3.5"
+version = "5.4.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2fbaa89d2ddc8473c78a3adf69eea8cffa28c483b8e02a971ef31527cd0fc92c"
+checksum = "aa576c76302b7b808eecc68061e67336c47833ef9d22caa74dda10fa9675eebc"
 dependencies = [
  "dunce",
  "is-wsl",
  "libc",
- "pathdiff",
 ]
 
 [[package]]
@@ -7131,12 +7161,6 @@ name = "path-slash"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1e91099d4268b0e11973f036e885d652fb0b21fedcf69738c627f94db6a44f42"
-
-[[package]]
-name = "pathdiff"
-version = "0.2.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "df94ce210e5bc13cb6651479fa48d14f601d9858cfe0467f43ae157023b938d3"
 
 [[package]]
 name = "pbkdf2"
@@ -9375,6 +9399,15 @@ dependencies = [
  "libc",
  "sigchld",
  "windows-sys 0.60.2",
+]
+
+[[package]]
+name = "shellexpand"
+version = "3.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "32824fab5e16e6c4d86dc1ba84489390419a39f97699852b66480bb87d297ed8"
+dependencies = [
+ "dirs 6.0.0",
 ]
 
 [[package]]
@@ -13481,6 +13514,8 @@ dependencies = [
 [[package]]
 name = "ytdlp"
 version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "da0f6bd24abf456cee54824b44726117068d11fd7de067175df99bd113fb4024"
 dependencies = [
  "log",
  "serde_json",

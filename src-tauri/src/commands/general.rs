@@ -18,20 +18,19 @@ pub async fn cmd_open_explorer(path: String) -> Result<FileOperationResult, Stri
         let path_str = path_buf.to_string_lossy().to_string();
         if path_buf.is_file() {
             if let Some(parent) = path_buf.parent() {
-                use crate::commons::hidden_cmd;
-                let _ = hidden_cmd("explorer").args(["/select,", &path_str]).spawn();
+                let _ = crate::commons::hidden_cmd("explorer").args(["/select,", &path_str]).spawn();
             }
         } else {
             use crate::commons::hidden_cmd;
-            let _ = hidden_cmd("explorer").arg(&path_str).spawn();
+            let _ = crate::commons::hidden_cmd("explorer").arg(&path_str).spawn();
         }
     }
     #[cfg(target_os = "macos")]
     {
         if path_buf.is_file() {
-            let _ = hidden_cmd("open").args(["-R", &path]).spawn();
+            let _ = crate::commons::hidden_cmd("open").args(["-R", &path]).spawn();
         } else {
-            let _ = hidden_cmd("open").arg(&path).spawn();
+            let _ = crate::commons::hidden_cmd("open").arg(&path).spawn();
         }
     }
     #[cfg(target_os = "linux")]
@@ -39,10 +38,10 @@ pub async fn cmd_open_explorer(path: String) -> Result<FileOperationResult, Stri
         let path_str = path_buf.to_string_lossy().to_string();
         if path_buf.is_file() {
             if let Some(parent) = path_buf.parent() {
-                let _ = hidden_cmd("xdg-open").arg(parent.to_string_lossy().to_string()).spawn();
+                let _ = crate::commons::hidden_cmd("xdg-open").arg(parent.to_string_lossy().to_string()).spawn();
             }
         } else {
-            let _ = hidden_cmd("xdg-open").arg(&path_str).spawn();
+            let _ = crate::commons::hidden_cmd("xdg-open").arg(&path_str).spawn();
         }
     }
     Ok(FileOperationResult { success: true, message: "Opened in explorer".to_string(), path: Some(path) })
@@ -69,7 +68,7 @@ pub async fn cmd_open_terminal(path: String) -> Result<FileOperationResult, Stri
     {
         use crate::commons::hidden_cmd;
         // Open cmd.exe at the specified directory
-        let _ = hidden_cmd("cmd")
+        let _ = crate::commons::hidden_cmd("cmd")
             .args(&["/c", "start", "cmd", "/k", "cd", "/d", &path_str])
             .spawn()
             .map_err(|e| format!("Failed to open terminal: {}", e))?;
@@ -80,7 +79,7 @@ pub async fn cmd_open_terminal(path: String) -> Result<FileOperationResult, Stri
         use std::process::Command;
         // Try iTerm2 first if available, otherwise use Terminal.app
         if Path::new("/Applications/iTerm.app").exists() {
-            let _ = hidden_cmd("open").args(&["-a", "iTerm", &path_str]).spawn().map_err(|e| format!("Failed to open iTerm: {}", e))?;
+            let _ = crate::commons::hidden_cmd("open").args(&["-a", "iTerm", &path_str]).spawn().map_err(|e| format!("Failed to open iTerm: {}", e))?;
         } else {
             // Use AppleScript to open Terminal and cd to the directory
             let script = format!(
@@ -90,7 +89,7 @@ pub async fn cmd_open_terminal(path: String) -> Result<FileOperationResult, Stri
                  end tell",
                 path_str.replace("'", "\\'")
             );
-            let _ = hidden_cmd("osascript").args(&["-e", &script]).spawn().map_err(|e| format!("Failed to open Terminal: {}", e))?;
+            let _ = crate::commons::hidden_cmd("osascript").args(&["-e", &script]).spawn().map_err(|e| format!("Failed to open Terminal: {}", e))?;
         }
     }
     #[cfg(target_os = "linux")]
@@ -109,10 +108,10 @@ pub async fn cmd_open_terminal(path: String) -> Result<FileOperationResult, Stri
         let mut opened = false;
         for (term, args) in terminals {
             // Check if terminal exists
-            let which_output = hidden_cmd("which").arg(term).output();
+            let which_output = crate::commons::hidden_cmd("which").arg(term).output();
             if let Ok(output) = which_output {
                 if output.status.success() {
-                    let _ = hidden_cmd(term).args(args).spawn().map_err(|e| format!("Failed to open {}: {}", term, e))?;
+                    let _ = crate::commons::hidden_cmd(term).args(args).spawn().map_err(|e| format!("Failed to open {}: {}", term, e))?;
                     opened = true;
                     break;
                 }
@@ -120,7 +119,7 @@ pub async fn cmd_open_terminal(path: String) -> Result<FileOperationResult, Stri
         }
         // Fallback: use xterm
         if !opened {
-            let _ = hidden_cmd("xterm")
+            let _ = crate::commons::hidden_cmd("xterm")
                 .args(&["-e", "bash", "-c", &format!("cd '{}' && exec bash", path_str)])
                 .spawn()
                 .map_err(|e| format!("Failed to open xterm: {}", e))?;

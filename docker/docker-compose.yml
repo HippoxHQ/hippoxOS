@@ -19,10 +19,28 @@ services:
       # Isolate node_modules to avoid Windows/Linux native binary conflicts
       - node-modules:/app/node_modules
 
+    # Mirror selection is passed in from build-linux.ps1 via MIRROR env var.
+    # Values: "en" (crates.io) or "zh" (rsproxy.cn).
+    environment:
+      - MIRROR=${MIRROR:-en}
+
+    # Tauri 2 build using Yarn (Classic 1.x).
+    # Yarn 1.x runs dependency build scripts by default, so no extra
+    # approval flags are needed (unlike pnpm v10).
+    # Cargo mirror is configured at runtime based on $MIRROR.
     command: >
       bash -c "
-        pnpm install &&
-        pnpm tauri build
+        set -e;
+        if [ \"$MIRROR\" = \"zh\" ]; then
+          mkdir -p /root/.cargo;
+          printf '[source.crates-io]\nreplace-with = \"rsproxy-sparse\"\n\n[source.rsproxy-sparse]\nregistry = \"sparse+https://rsproxy.cn/index/\"\n\n[registries.rsproxy]\nindex = \"sparse+https://rsproxy.cn/index/\"\n\n[net]\ngit-fetch-with-cli = true\n' > /root/.cargo/config.toml;
+          echo '[INFO] Cargo mirror: rsproxy.cn (zh)';
+        else
+          rm -f /root/.cargo/config.toml;
+          echo '[INFO] Cargo mirror: crates.io (default/en)';
+        fi;
+        yarn install --frozen-lockfile &&
+        yarn tauri build
       "
 
     stdin_open: true

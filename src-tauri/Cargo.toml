@@ -21,12 +21,12 @@ serde = { version = "1.0", features = ["derive"] }
 log = "0.4"
 tauri = { version = "2.8.5", features = ["protocol-asset", "tray-icon"] }
 tauri-plugin-log = "2.7.0"
-# hippox = "0.4.6"
-hippox = { path = "D:\\gitproject\\hippox\\core" }
-# ffmpegx
-ffmpegx = { path = "D:\\gitproject\\ffmpegx" }
-# ytdlp
-ytdlp = { path = "D:\\gitproject\\ytdlp" }
+# hippox = { path = "D:\\gitproject\\hippox\\core" }
+hippox = "0.7.2"
+# ffmpegx = { path = "D:\\gitproject\\ffmpegx" }
+ffmpegx = "0.2.3"
+# ytdlp = { path = "D:\\gitproject\\ytdlp" }
+ytdlp = "0.1.1"
 dirs = "6.0.0"
 tokio = "1.52.3"
 uuid = "1.20.0"
@@ -71,3 +71,4 @@ webbrowser = "1.2.4"
 wmi = "0.18.4"
 futures-util = "0.3.34"
 sys-locale = "0.3.2"
+open = "5.4.4"

@@ -4,7 +4,13 @@
 #
 #   cd \docker
 #
-#   # Default: build all formats (deb + rpm + appimage)
+#   # Commonly used
+#   .\build-linux.ps1 -Clean -Mirror zh
+#
+#   # First Run
+#   .\build-linux.ps1 -Clean -Rebuild -Mirror zh
+#    
+#   # Default: build all formats (deb + rpm + appimage), use crates.io
 #   .\build-linux.ps1
 #
 #   # Build only deb (fastest)
@@ -13,14 +19,17 @@
 #   # Build only AppImage
 #   .\build-linux.ps1 -Bundles appimage
 #
+#   # Use China mirror (rsproxy.cn) - useful when crates.io is unreachable
+#   .\build-linux.ps1 -Mirror zh
+#
 #   # Force rebuild the image (after Dockerfile changes)
 #   .\build-linux.ps1 -Rebuild
 #
 #   # Clean all cache volumes, then rebuild (after dependency changes / when broken)
 #   .\build-linux.ps1 -Clean
 #
-#   # Combined: clean cache + rebuild image + build only deb
-#   .\build-linux.ps1 -Clean -Rebuild -Bundles deb
+#   # Combined: clean cache + rebuild image + China mirror + only deb
+#   .\build-linux.ps1 -Clean -Rebuild -Mirror zh -Bundles deb
 # ============================================================
 
 <#
@@ -40,15 +49,21 @@
 .PARAMETER Clean
     Remove all cache volumes before building (use when dependencies change).
 
+.PARAMETER Mirror
+    Cargo registry mirror. "en" = crates.io (default), "zh" = rsproxy.cn.
+
 .EXAMPLE
     .\build-linux.ps1
     .\build-linux.ps1 -Bundles deb
+    .\build-linux.ps1 -Mirror zh
     .\build-linux.ps1 -Bundles deb,appimage -Rebuild
-    .\build-linux.ps1 -Clean
+    .\build-linux.ps1 -Clean -Mirror zh
 #>
 
 param(
     [string]$Bundles = "deb,rpm,appimage",
+    [ValidateSet("en", "zh")]
+    [string]$Mirror  = "en",
     [switch]$Rebuild,
     [switch]$Clean
 )
@@ -78,6 +93,9 @@ try {
 }
 Write-Ok "Docker is running."
 
+# Show mirror selection
+Write-Step "Cargo mirror: $Mirror"
+
 # Optional: clean cache volumes
 if ($Clean) {
     Write-Step "Removing cache volumes..."
@@ -85,7 +103,7 @@ if ($Clean) {
     Write-Ok "Cache volumes removed."
 }
 
-# Build image if missing or forced 
+# Build image if missing or forced
 $imageExists = docker images -q $ImageName
 if ($Rebuild -or -not $imageExists) {
     if ($Rebuild) {
@@ -100,9 +118,10 @@ if ($Rebuild -or -not $imageExists) {
     Write-Ok "Image already exists: $ImageName (use -Rebuild to force rebuild)"
 }
 
-# Compile 
+# Compile (Yarn + optional Cargo mirror, controlled by $env:MIRROR)
 Write-Step "Compiling Tauri Linux bundles: $Bundles"
-$innerCmd = "pnpm install && pnpm tauri build --bundles $Bundles"
+$env:MIRROR   = $Mirror
+$innerCmd     = "yarn install --frozen-lockfile && yarn tauri build --bundles $Bundles"
 docker compose run --rm $ServiceName bash -c "$innerCmd"
 
 if ($LASTEXITCODE -ne 0) {

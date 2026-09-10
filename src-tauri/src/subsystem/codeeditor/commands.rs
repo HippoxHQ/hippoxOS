@@ -78,22 +78,21 @@ pub async fn cmd_open_in_terminal(path: String) -> Result<FileOperationResult, S
     let path_str = FileUtils::to_string_lossy(&target_path);
     #[cfg(target_os = "windows")]
     {
-        use crate::commons::hidden_cmd;
-        let _ = hidden_cmd("cmd").args(["/c", "start", "cmd", "/k", &format!("cd /d {}", path_str)]).spawn();
+        let _ = crate::commons::hidden_cmd("cmd").args(["/c", "start", "cmd", "/k", &format!("cd /d {}", path_str)]).spawn();
     }
     #[cfg(target_os = "macos")]
     {
         let script = format!(r#"tell application "Terminal" to do script "cd '{}'" "#, path_str.replace("'", "'\\''"));
-        let _ = hidden_cmd("osascript").args(["-e", &script]).spawn();
+        let _ = crate::commons::hidden_cmd("osascript").args(["-e", &script]).spawn();
     }
     #[cfg(target_os = "linux")]
     {
-        let _ = hidden_cmd("gnome-terminal")
+        let _ = crate::commons::hidden_cmd("gnome-terminal")
             .args(["--working-directory", &path_str])
             .spawn()
-            .or_else(|_| hidden_cmd("xfce4-terminal").args(["--working-directory", &path_str]).spawn())
-            .or_else(|_| hidden_cmd("kitty").args(["--directory", &path_str]).spawn())
-            .or_else(|_| hidden_cmd("alacritty").args(["--working-directory", &path_str]).spawn());
+            .or_else(|_| crate::commons::hidden_cmd("xfce4-terminal").args(["--working-directory", &path_str]).spawn())
+            .or_else(|_| crate::commons::hidden_cmd("kitty").args(["--directory", &path_str]).spawn())
+            .or_else(|_| crate::commons::hidden_cmd("alacritty").args(["--working-directory", &path_str]).spawn());
     }
     Ok(FileOperationResult { success: true, message: "Opened in terminal".to_string(), path: Some(path_str) })
 }
