@@ -1,0 +1,34 @@
+services:
+  tauri-linux:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.linux
+    image: tauri-linux-builder:latest
+    container_name: tauri-linux-build
+    working_dir: /app
+
+    volumes:
+      # Mount the project root into the container at /app
+      - ..:/app
+      # Cargo dependency caches (reused across builds, speeds up compilation)
+      - cargo-registry:/root/.cargo/registry
+      - cargo-git:/root/.cargo/git
+      # Build artifacts land in the project root at src-tauri/target-linux,
+      # so they are directly visible from Windows
+      - ../src-tauri/target-linux:/app/src-tauri/target
+      # Isolate node_modules to avoid Windows/Linux native binary conflicts
+      - node-modules:/app/node_modules
+
+    command: >
+      bash -c "
+        pnpm install &&
+        pnpm tauri build
+      "
+
+    stdin_open: true
+    tty: true
+
+volumes:
+  cargo-registry:
+  cargo-git:
+  node-modules:
