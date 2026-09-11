@@ -15,7 +15,7 @@ make LLM the operating system interpretation layer.
     <img src="https://img.shields.io/github/stars/HippoxHQ/hippoxOS?style=flat&labelColor=1C2C2E&color=BEC5C9&logo=github&label=Stars" alt="GitHub Repo stars">
   </a>
   <a href="https://discord.gg/kVBhZWDdem" target="_blank">
-    <img src="https://img.shields.io/discord/1309558646228779139?style=flat&labelColor=1C2C2E&color=BEC5C9&logo=discord&label=Discord" alt="Discord">
+    <img src="https://img.shields.io/discord/1544626896229109773?style=flat&labelColor=1C2C2E&color=BEC5C9&logo=discord&label=Discord" alt="Discord">
   </a>
   <a href="https://twitter.com/intent/follow?screen_name=HippoxAI"><img src="https://img.shields.io/twitter/follow/HippoxAI" alt="HippoxAI Follow" /></a>
 </p>
