@@ -11,7 +11,6 @@ make LLM the operating system interpretation layer.
   <a href="https://github.com/HippoxHQ/hippoxOS/issues"><img src="https://img.shields.io/github/issues/HippoxHQ/hippoxOS.svg?style=flat&labelColor=1C2C2E&color=FF6B6B&logo=github&logoColor=white&label=issues" alt="GitHub issues"></a>
   <a href="https://github.com/HippoxHQ/hippoxOS/network/members"><img src="https://img.shields.io/github/forks/HippoxHQ/hippoxOS.svg?style=flat&labelColor=1C2C2E&color=42A5F5&logo=github&logoColor=white&label=forks" alt="GitHub forks"></a>
   <a href="https://github.com/HippoxHQ/hippoxOS/releases"><img src="https://img.shields.io/github/v/release/HippoxHQ/hippoxOS.svg?style=flat&labelColor=1C2C2E&color=9C27B0&logo=github&logoColor=white&label=latest%20release" alt="GitHub release"></a>
-  <a href="https://github.com/HippoxHQ/hippoxOS/actions"><img src="https://img.shields.io/github/actions/workflow/status/HippoxHQ/hippoxOS/release.yml?style=flat&labelColor=1C2C2E&color=4CAF50&logo=githubactions&logoColor=white&label=build" alt="Build Status"></a>
   <a href="https://github.com/HippoxHQ/hippoxOS" target="_blank">
     <img src="https://img.shields.io/github/stars/HippoxHQ/hippoxOS?style=flat&labelColor=1C2C2E&color=BEC5C9&logo=github&label=Stars" alt="GitHub Repo stars">
   </a>
