@@ -17,9 +17,7 @@
   <a href="https://discord.gg/kVBhZWDdem" target="_blank">
     <img src="https://img.shields.io/discord/1309558646228779139?style=flat&labelColor=1C2C2E&color=BEC5C9&logo=discord&label=Discord" alt="Discord">
   </a>
-  <a href="https://x.com/HippoxAI" target="_blank">
-    <img src="https://img.shields.io/twitter/follow/HippoxAI?style=flat&labelColor=1C2C2E&color=BEC5C9&logo=x&label=Follow" alt="X Follow">
-  </a>
+  <a href="https://twitter.com/intent/follow?screen_name=HippoxAI"><img src="https://img.shields.io/twitter/follow/HippoxAI" alt="HippoxAI Follow" /></a>
 </p>
 <p align="center">
 <a href="./README_zh-CN.md">简体中文</a> | <a href="./README.md">English</a>
