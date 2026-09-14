@@ -585,69 +585,91 @@ async function loadPdfLibs(): Promise<{ html2canvas: any; jsPDF: any } | null> {
 /**
  * Render an HTML string into a Uint8Array PDF using html2canvas + jsPDF.
  *
- * Implementation notes:
- * - The HTML is mounted in an off-screen container sized to A4 width (794px).
- * - html2canvas captures the full-height canvas of that container.
- * - The canvas is sliced into A4-height pages and each slice is drawn into
- *   a new PDF page. This preserves the aspect ratio and avoids squashing.
- * - Chinese / any non-ASCII text is baked into the image, so no font
- *   embedding is required.
+ * White-flash fix notes:
+ * - The previous implementation appended a large off-screen node to
+ *   document.body with zIndex: -1. In Electron / WebView environments this
+ *   triggered a full-page compositor rebuild, causing a visible white flash
+ *   on all four edges of the screen.
+ * - The new implementation uses an off-screen <iframe> as a rendering
+ *   sandbox, so the host page's layout / compositing is never touched.
+ * - Multiple off-screen safeguards are applied to the iframe itself:
+ *   off-screen coordinates + visibility: hidden + opacity: 0 +
+ *   pointer-events: none + contain: strict + z-index: -1.
+ * - The HTML is written directly into the iframe via document.write,
+ *   avoiding the old "inject full document then re-host DOM" dance that
+ *   caused an extra full-page repaint.
+ * - Before capturing, we wait for fonts and two animation frames so the
+ *   main thread finishes painting the current frame first. This prevents
+ *   the synchronous html2canvas / toDataURL work from looking like a
+ *   frozen white screen.
+ * - The iframe is always removed in a `finally` block, so it can never be
+ *   shown to the user under any circumstance.
  */
 async function htmlToPdfBytes(html: string, html2canvas: any, jsPDF: any): Promise<Uint8Array | null> {
-  // 1) Mount the HTML in an off-screen container.
-  const host = document.createElement("div");
-  host.style.position = "fixed";
-  host.style.left = "-99999px";
-  host.style.top = "0";
-  host.style.width = "794px"; // A4 width at 96dpi
-  host.style.background = "#ffffff";
-  host.style.zIndex = "-1";
-  host.innerHTML = html;
-  document.body.appendChild(host);
-  // Grab the <body> content of the injected document so we don't get a
-  // nested <html><body> frame. We re-host it inside a wrapper.
-  let renderTarget: HTMLElement = host;
-  const innerBody = host.querySelector("body");
-  if (innerBody) {
-    // Move inner body children to the host for a clean capture.
-    const wrapper = document.createElement("div");
-    wrapper.style.width = "794px";
-    wrapper.style.background = "#ffffff";
-    while (innerBody.firstChild) {
-      wrapper.appendChild(innerBody.firstChild);
-    }
-    // Also copy <style> tags from <head> so the styling applies.
-    host.innerHTML = "";
-    const styles = Array.from(host.querySelectorAll?.("style") || []);
-    // (innerBody was already moved out of host, so just append wrapper.)
-    host.appendChild(wrapper);
-    renderTarget = wrapper;
-    // Copy the CSS that was inside the injected document's <style> tags.
-    const injectedDoc = document.implementation.createHTMLDocument("");
-    injectedDoc.documentElement.innerHTML = html;
-    injectedDoc.querySelectorAll("style").forEach((s) => {
-      const st = document.createElement("style");
-      st.textContent = s.textContent || "";
-      host.appendChild(st);
-    });
-    void styles;
-  }
+  // Create an always-off-screen iframe to act as the rendering sandbox.
+  const iframe = document.createElement("iframe");
+  // Multiple off-screen safeguards so it is never composited into view.
+  iframe.setAttribute("aria-hidden", "true");
+  iframe.setAttribute("tabindex", "-1");
+  iframe.style.position = "fixed";
+  iframe.style.left = "-99999px";
+  iframe.style.top = "-99999px";
+  iframe.style.width = "794px"; // A4 width at 96dpi
+  iframe.style.height = "1123px"; // Give it an initial height so layout is valid
+  iframe.style.border = "0";
+  iframe.style.margin = "0";
+  iframe.style.padding = "0";
+  iframe.style.visibility = "hidden"; // Never visible
+  iframe.style.opacity = "0"; // Double safety
+  iframe.style.pointerEvents = "none"; // Never interactive
+  iframe.style.zIndex = "-1"; // Sink to the very bottom
+  iframe.style.contain = "strict"; // Limit reflow / repaint impact
+  iframe.style.background = "#ffffff";
+  document.body.appendChild(iframe);
   try {
-    // 2) Wait one frame so fonts / layout settle.
+    const doc = iframe.contentDocument;
+    if (!doc) return null;
+    // Write the HTML directly into the iframe, avoiding a second DOM move
+    //    on the host page.
+    doc.open();
+    doc.write(html);
+    doc.close();
+    // Wait for fonts / layout to settle, and let the main thread finish
+    //    painting the current frame. This keeps the synchronous html2canvas
+    //    work from looking like a frozen white screen.
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => r(null))));
+    try {
+      // Wait for fonts when available; fall back with a short timeout.
+      const fonts: any = (doc as any).fonts;
+      if (fonts && typeof fonts.ready?.then === "function") {
+        await Promise.race([
+          fonts.ready,
+          new Promise((r) => setTimeout(r, 300)), // Wait at most 300ms
+        ]);
+      }
+    } catch {
+      /* ignore */
+    }
+    // Wait one more frame to make sure fonts are actually applied.
     await new Promise((r) => requestAnimationFrame(() => r(null)));
-    // 3) Capture the full-height canvas.
+    // The render target is the iframe's body.
+    const renderTarget: HTMLElement = doc.body || doc.documentElement;
+    // Capture the full-height canvas.
     const canvas: HTMLCanvasElement = await html2canvas(renderTarget, {
-      scale: 2, // higher quality
+      scale: 2, // Higher quality
       useCORS: true,
       backgroundColor: "#ffffff",
       logging: false,
       windowWidth: 794,
+      width: 794,
+      // Important: let html2canvas use the iframe's window / document so it
+      // never reads the host page and triggers a host-page reflow.
+      window: iframe.contentWindow as any,
     });
-    // 4) Build the PDF page by page.
+    // Build the PDF page by page.
     const pdf = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
     const pageWidthPt = pdf.internal.pageSize.getWidth();
     const pageHeightPt = pdf.internal.pageSize.getHeight();
-    // Convert the canvas pixel height into PDF points at the page width.
     const canvasWidthPx = canvas.width;
     const canvasHeightPx = canvas.height;
     const ratio = pageWidthPt / canvasWidthPx;
@@ -683,9 +705,9 @@ async function htmlToPdfBytes(html: string, html2canvas: any, jsPDF: any): Promi
     const arrayBuffer: ArrayBuffer = pdf.output("arraybuffer");
     return new Uint8Array(arrayBuffer);
   } finally {
-    // Always clean up the off-screen host.
+    // Always remove the iframe immediately. It must never be shown.
     try {
-      document.body.removeChild(host);
+      if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
     } catch {
       /* ignore */
     }
