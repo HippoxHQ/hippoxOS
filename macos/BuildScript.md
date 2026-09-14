@@ -11,5 +11,5 @@ env OPENSSL_DIR=/usr/local/opt/openssl@3 \
 # Basis
 
 ```shell
-yarn tauri build
+env NODE_OPTIONS="--max-old-space-size=4096" yarn tauri build
 ```
