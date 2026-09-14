@@ -17,7 +17,7 @@ class TaskManager {
     private currentDomain: SessionDomain = SessionDomain.General;
     private version: number = 0;
     public getDomainFromSessionId(sessionId: string): SessionDomain {
-        if (sessionId.startsWith("chart_session_")) return SessionDomain.Chart;
+        if (sessionId.startsWith("financial_analysis_session_")) return SessionDomain.FinancialAnalysis;
         if (sessionId.startsWith("map_session_")) return SessionDomain.Map;
         if (sessionId.startsWith("codeeditor_session_")) return SessionDomain.CodeEditor;
         if (sessionId.startsWith("video_session_")) return SessionDomain.Video;
@@ -850,7 +850,7 @@ class TaskManager {
         });
         if (tasksArray.length === 0) return;
         try {
-            if (domain === SessionDomain.Chart) {
+            if (domain === SessionDomain.FinancialAnalysis) {
                 await chartSessionCommands.saveTaskContent(sessionId, tasksArray);
             } else if (domain === SessionDomain.Map) {
                 await mapSessionCommands.saveTaskContent(sessionId, tasksArray);
@@ -873,7 +873,7 @@ class TaskManager {
         }
         let tasksContent = null;
         try {
-            if (domain === SessionDomain.Chart) {
+            if (domain === SessionDomain.FinancialAnalysis) {
                 tasksContent = await chartSessionCommands.loadTaskContent(sessionId);
             } else if (domain === SessionDomain.Map) {
                 tasksContent = await mapSessionCommands.loadTaskContent(sessionId);

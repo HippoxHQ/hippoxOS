@@ -107,7 +107,7 @@ const HistoryFinanceChatPanel = forwardRef<HistoryFinanceChatPanelRef, HistoryFi
           return a.is_pinned ? -1 : 1;
         }
         const getTimestamp = (id: string) => {
-          const ts = id.replace("chart_session_", "");
+          const ts = id.replace("financial_analysis_session_", "");
           return parseInt(ts, 10) || 0;
         };
         const aTs = getTimestamp(a.session_id);

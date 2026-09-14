@@ -36,13 +36,13 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
   const [settingsDir, setSettingsDir] = useState("");
   const [appRootDir, setAppRootDir] = useState("");
   // Sub-system dialog history directories
-  const [chartDialogHistoryDir, setChartDialogHistoryDir] = useState("");
+  const [financeDialogHistoryDir, setFinanceDialogHistoryDir] = useState("");
   const [mapDialogHistoryDir, setMapDialogHistoryDir] = useState("");
   const [codeEditorDialogHistoryDir, setCodeEditorDialogHistoryDir] = useState("");
   const [videoDialogHistoryDir, setVideoDialogHistoryDir] = useState("");
   const [sandbox3dDialogHistoryDir, setSandbox3dDialogHistoryDir] = useState("");
   // Sub-system directory sizes
-  const [chartDialogSize, setChartDialogSize] = useState<number>(0);
+  const [financeDialogSize, setFinanceDialogSize] = useState<number>(0);
   const [mapDialogSize, setMapDialogSize] = useState<number>(0);
   const [codeEditorDialogSize, setCodeEditorDialogSize] = useState<number>(0);
   const [videoDialogSize, setVideoDialogSize] = useState<number>(0);
@@ -72,12 +72,12 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
       setSettingsDir(String(paths.settings_dir ?? ""));
       setAppRootDir(String(paths.app_root_dir ?? ""));
       // Set sub-system dialog history directories
-      setChartDialogHistoryDir(String((paths as any).chart_dialog_history_dir ?? ""));
+      setFinanceDialogHistoryDir(String((paths as any).finance_dialog_history_dir ?? ""));
       setMapDialogHistoryDir(String((paths as any).map_dialog_history_dir ?? ""));
       setCodeEditorDialogHistoryDir(String((paths as any).codeeditor_dialog_history_dir ?? ""));
       setVideoDialogHistoryDir(String((paths as any).video_editing_system_dialog_history_dir ?? ""));
       setSandbox3dDialogHistoryDir(String((paths as any).sandbox3d_dialog_history_dir ?? ""));
-      const [logsSizeVal, dialogSizeVal, favoritesSizeVal, skillsMarketSizeVal, scheduledTasksSizeVal, settingsSizeVal, maxLogSizeVal, maxDialogSizeVal, maxFavoritesSizeVal, diskInfoVal, chartDialogSizeVal, mapDialogSizeVal, codeEditorDialogSizeVal, videoDialogSizeVal, sandbox3dDialogSizeVal] =
+      const [logsSizeVal, dialogSizeVal, favoritesSizeVal, skillsMarketSizeVal, scheduledTasksSizeVal, settingsSizeVal, maxLogSizeVal, maxDialogSizeVal, maxFavoritesSizeVal, diskInfoVal, financeDialogSizeVal, mapDialogSizeVal, codeEditorDialogSizeVal, videoDialogSizeVal, sandbox3dDialogSizeVal] =
         await Promise.all([
           storageCommands.getDirectorySize(paths.log_dir),
           storageCommands.getDirectorySize(paths.general_history_dir),
@@ -105,12 +105,12 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
       setMaxDialogSize(maxDialogSizeVal);
       setMaxFavoritesSize(maxFavoritesSizeVal);
       setDiskInfo(diskInfoVal);
-      setChartDialogSize(chartDialogSizeVal);
+      setFinanceDialogSize(financeDialogSizeVal);
       setMapDialogSize(mapDialogSizeVal);
       setCodeEditorDialogSize(codeEditorDialogSizeVal);
       setVideoDialogSize(videoDialogSizeVal);
       setSandbox3dDialogSize(sandbox3dDialogSizeVal);
-      const total = logsSizeVal + dialogSizeVal + favoritesSizeVal + skillsMarketSizeVal + scheduledTasksSizeVal + settingsSizeVal + chartDialogSizeVal + mapDialogSizeVal + codeEditorDialogSizeVal + videoDialogSizeVal + sandbox3dDialogSizeVal;
+      const total = logsSizeVal + dialogSizeVal + favoritesSizeVal + skillsMarketSizeVal + scheduledTasksSizeVal + settingsSizeVal + financeDialogSizeVal + mapDialogSizeVal + codeEditorDialogSizeVal + videoDialogSizeVal + sandbox3dDialogSizeVal;
       setAppTotalSize(total);
     } catch (error) {
       console.error("Failed to load storage data:", error);
@@ -728,7 +728,7 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
                   flexShrink: 0,
                 }}
               >
-                {formatSize(dialogSize + chartDialogSize + mapDialogSize + codeEditorDialogSize + videoDialogSize + sandbox3dDialogSize)}
+                {formatSize(dialogSize + financeDialogSize + mapDialogSize + codeEditorDialogSize + videoDialogSize + sandbox3dDialogSize)}
               </span>
             </div>
             {/* Sub-items indented under Historical Conversations */}
@@ -771,7 +771,7 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
                   flexShrink: 0,
                 }}
               >
-                {formatSize(chartDialogSize)}
+                {formatSize(financeDialogSize)}
               </span>
             </div>
             <div
@@ -1115,7 +1115,7 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
             </div>
           )}
           {/* Chart Dialog History Directory */}
-          {chartDialogHistoryDir && (
+          {financeDialogHistoryDir && (
             <div
               style={{
                 display: "flex",
@@ -1126,10 +1126,10 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
                 minWidth: 0,
               }}
             >
-              <label style={{ ...labelStyleSmall, flexShrink: 0 }}>{t("storage.chartDialogHistoryDir") || "Chart Dialog History"}</label>
+              <label style={{ ...labelStyleSmall, flexShrink: 0 }}>{t("storage.financeDialogHistoryDir") || "Chart Dialog History"}</label>
               <div style={pathRowStyle}>
-                <input style={{ ...inputStyle, flex: 1, minWidth: 0 }} value={chartDialogHistoryDir} disabled readOnly />
-                <button style={folderButtonStyle} onClick={() => handleOpenDirectory(chartDialogHistoryDir)}>
+                <input style={{ ...inputStyle, flex: 1, minWidth: 0 }} value={financeDialogHistoryDir} disabled readOnly />
+                <button style={folderButtonStyle} onClick={() => handleOpenDirectory(financeDialogHistoryDir)}>
                   <Folder size={14} style={{ display: "inline", marginRight: "4px" }} />
                   {t("settings.open") || "Open"}
                 </button>

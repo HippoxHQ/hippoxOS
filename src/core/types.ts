@@ -142,7 +142,7 @@ export interface UploadFile {
 }
 export enum SessionDomain {
     General = "general",
-    Chart = "chart",
+    FinancialAnalysis = "financial_analysis",
     Map = "map",
     CodeEditor = "codeeditor",
     Video = "video",

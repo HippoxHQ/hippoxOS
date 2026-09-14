@@ -59,16 +59,16 @@ export function useFinanceSession(
             !currentSessionId.startsWith("pending_")
         ) {
             const currentDomain = taskManager.getCurrentDomain();
-            if (currentDomain !== SessionDomain.Chart) {
+            if (currentDomain !== SessionDomain.FinancialAnalysis) {
                 console.debug(
                     `[useFinanceSession] Skipping save - current domain is "${currentDomain}", not "Chart"`
                 );
                 return;
             }
             const saveTimer = setTimeout(() => {
-                const tasksMap = taskManager.getTasksBySession(currentSessionId, SessionDomain.Chart);
-                const userMessages = taskManager.getUserMessagesBySession(currentSessionId, SessionDomain.Chart);
-                const assistantMessages = taskManager.getAssistantMessagesBySessionAsArray(currentSessionId, SessionDomain.Chart);
+                const tasksMap = taskManager.getTasksBySession(currentSessionId, SessionDomain.FinancialAnalysis);
+                const userMessages = taskManager.getUserMessagesBySession(currentSessionId, SessionDomain.FinancialAnalysis);
+                const assistantMessages = taskManager.getAssistantMessagesBySessionAsArray(currentSessionId, SessionDomain.FinancialAnalysis);
                 const tasksArray: TaskInfo[] = tasksMap ? Array.from(tasksMap.values()) : [];
                 if (userMessages.length === 0 && assistantMessages.length === 0) {
                     return;
@@ -88,8 +88,8 @@ export function useFinanceSession(
                 .then(list => {
                     if (list.length > 0) {
                         const sorted = list.sort((a, b) => {
-                            const aTs = parseInt(a.session_id.replace("chart_session_", "")) || 0;
-                            const bTs = parseInt(b.session_id.replace("chart_session_", "")) || 0;
+                            const aTs = parseInt(a.session_id.replace("financial_analysis_session_", "")) || 0;
+                            const bTs = parseInt(b.session_id.replace("financial_analysis_session_", "")) || 0;
                             return bTs - aTs;
                         });
                         const sessionId = sorted[0].session_id;
@@ -100,14 +100,14 @@ export function useFinanceSession(
                         ]).then(([chatContent, terminalContent]) => {
                             const userMessages = (chatContent || []).filter(msg => msg.role === RoleEnum.User);
                             const assistantMessages = (chatContent || []).filter(msg => msg.role === RoleEnum.LLM);
-                            taskManager.loadSessionData(sessionId, terminalContent || [], userMessages, assistantMessages, SessionDomain.Chart);
+                            taskManager.loadSessionData(sessionId, terminalContent || [], userMessages, assistantMessages, SessionDomain.FinancialAnalysis);
                             setIsLoading(false);
                         }).catch(() => {
                             setIsLoading(false);
                         });
                     } else {
                         const pendingId = `pending_${Date.now()}`;
-                        taskManager.loadSessionData(pendingId, [], [], [], SessionDomain.Chart);
+                        taskManager.loadSessionData(pendingId, [], [], [], SessionDomain.FinancialAnalysis);
                         setCurrentSessionId(pendingId);
                         setPendingNewSession(true);
                         setIsLoading(false);
@@ -115,7 +115,7 @@ export function useFinanceSession(
                 })
                 .catch(() => {
                     const pendingId = `pending_${Date.now()}`;
-                    taskManager.loadSessionData(pendingId, [], [], [], SessionDomain.Chart);
+                    taskManager.loadSessionData(pendingId, [], [], [], SessionDomain.FinancialAnalysis);
                     setCurrentSessionId(pendingId);
                     setPendingNewSession(true);
                     setIsLoading(false);
@@ -140,20 +140,20 @@ export function useFinanceSession(
         // ------------------------------------------------------------------
         const { displayContent, backendMessage } = splitMarketData(userMessage);
         if (finalSessionId && !finalSessionId.startsWith("pending_") &&
-            !finalSessionId.startsWith("chart_session_") && !finalSessionId.startsWith("temp_")) {
+            !finalSessionId.startsWith("financial_analysis_session_") && !finalSessionId.startsWith("temp_")) {
             console.error(
                 `[useFinanceSession] Invalid session ID "${finalSessionId}" - does not belong to Chart domain`
             );
             return;
         }
         if (finalSessionId && finalSessionId.startsWith("pending_")) {
-            const newSessionId = `chart_session_${Date.now()}`;
+            const newSessionId = `financial_analysis_session_${Date.now()}`;
             const sessionTitle = displayContent.length > 30
                 ? displayContent.slice(0, 30) + "..."
                 : displayContent;
-            const tempUserMessages = taskManager.getUserMessagesBySession(finalSessionId, SessionDomain.Chart);
-            const tempAssistantMessages = taskManager.getAssistantMessagesBySessionAsArray(finalSessionId, SessionDomain.Chart);
-            const tempTasksMap = taskManager.getTasksBySession(finalSessionId, SessionDomain.Chart);
+            const tempUserMessages = taskManager.getUserMessagesBySession(finalSessionId, SessionDomain.FinancialAnalysis);
+            const tempAssistantMessages = taskManager.getAssistantMessagesBySessionAsArray(finalSessionId, SessionDomain.FinancialAnalysis);
+            const tempTasksMap = taskManager.getTasksBySession(finalSessionId, SessionDomain.FinancialAnalysis);
             const tempTasks = tempTasksMap ? Array.from(tempTasksMap.values()) : [];
             await chartSessionCommands.createChartSession(
                 newSessionId,
@@ -163,14 +163,14 @@ export function useFinanceSession(
                 [],
                 workflowMode || currentWorkflowMode,
             );
-            taskManager.loadSessionData(newSessionId, tempTasks, tempUserMessages, tempAssistantMessages, SessionDomain.Chart);
-            taskManager.deleteSession(finalSessionId, SessionDomain.Chart);
+            taskManager.loadSessionData(newSessionId, tempTasks, tempUserMessages, tempAssistantMessages, SessionDomain.FinancialAnalysis);
+            taskManager.deleteSession(finalSessionId, SessionDomain.FinancialAnalysis);
             finalSessionId = newSessionId;
             setCurrentSessionId(newSessionId);
             window.dispatchEvent(new CustomEvent("chart-session-created"));
             setPendingNewSession(false);
         } else if (!finalSessionId) {
-            const newSessionId = `chart_session_${Date.now()}`;
+            const newSessionId = `financial_analysis_session_${Date.now()}`;
             const sessionTitle = displayContent.length > 30
                 ? displayContent.slice(0, 30) + "..."
                 : displayContent;
@@ -182,7 +182,7 @@ export function useFinanceSession(
                 [],
                 workflowMode || currentWorkflowMode,
             );
-            taskManager.loadSessionData(newSessionId, [], [], [], SessionDomain.Chart);
+            taskManager.loadSessionData(newSessionId, [], [], [], SessionDomain.FinancialAnalysis);
             finalSessionId = newSessionId;
             setCurrentSessionId(newSessionId);
             window.dispatchEvent(new CustomEvent("chart-session-created"));
@@ -195,7 +195,7 @@ export function useFinanceSession(
             timestamp: now.toISOString(),
             files: files,
         };
-        taskManager.addUserMessageToSession(finalSessionId, userMsg, SessionDomain.Chart);
+        taskManager.addUserMessageToSession(finalSessionId, userMsg, SessionDomain.FinancialAnalysis);
         try {
             const workspace = await workspaceCommands.getDefaultWorkspace();
             const workspacePath = workspace?.workspace_path;
@@ -217,7 +217,7 @@ export function useFinanceSession(
                 timestamp: now.toISOString(),
                 status: MessageStatus.Pending,
             };
-            taskManager.addAssistantMessageToSession(finalSessionId, assistantMsg, SessionDomain.Chart);
+            taskManager.addAssistantMessageToSession(finalSessionId, assistantMsg, SessionDomain.FinancialAnalysis);
             const newTask: TaskInfo = {
                 task_id: taskId,
                 session_id: finalSessionId,
@@ -230,7 +230,7 @@ export function useFinanceSession(
                 files: files,
                 workflow_mode: mode,
             };
-            taskManager.addTaskToSession(finalSessionId, newTask, SessionDomain.Chart);
+            taskManager.addTaskToSession(finalSessionId, newTask, SessionDomain.FinancialAnalysis);
         } catch (error) {
             console.error("send message error:", error);
             const errorMsg: ChatMessage = {
@@ -239,29 +239,29 @@ export function useFinanceSession(
                 content: `${error}`,
                 timestamp: now.toISOString(),
             };
-            taskManager.addAssistantMessageToSession(finalSessionId, errorMsg, SessionDomain.Chart);
+            taskManager.addAssistantMessageToSession(finalSessionId, errorMsg, SessionDomain.FinancialAnalysis);
         }
     }, [currentSessionId, t, language, currentWorkflowMode]);
     const handleNewSession = useCallback(async () => {
         const pendingId = `pending_${Date.now()}`;
-        taskManager.loadSessionData(pendingId, [], [], [], SessionDomain.Chart);
+        taskManager.loadSessionData(pendingId, [], [], [], SessionDomain.FinancialAnalysis);
         setCurrentSessionId(pendingId);
         setPendingNewSession(true);
     }, []);
     const handleSwitchSession = useCallback(async (sessionId: string) => {
         if (sessionId === currentSessionId) return;
-        if (!sessionId.startsWith("chart_session_") && !sessionId.startsWith("pending_")) {
+        if (!sessionId.startsWith("financial_analysis_session_") && !sessionId.startsWith("pending_")) {
             console.warn(
                 `[useFinanceSession] Cannot switch to session "${sessionId}" - it does not belong to Chart domain`
             );
             return;
         }
-        const hasData = taskManager.hasSessionMessages(currentSessionId, SessionDomain.Chart);
+        const hasData = taskManager.hasSessionMessages(currentSessionId, SessionDomain.FinancialAnalysis);
         if (currentSessionId && !currentSessionId.startsWith("pending_") && !currentSessionId.startsWith("temp_") && hasData) {
             try {
-                const tasksMap = taskManager.getTasksBySession(currentSessionId, SessionDomain.Chart);
-                const userMessages = taskManager.getUserMessagesBySession(currentSessionId, SessionDomain.Chart);
-                const assistantMessages = taskManager.getAssistantMessagesBySessionAsArray(currentSessionId, SessionDomain.Chart);
+                const tasksMap = taskManager.getTasksBySession(currentSessionId, SessionDomain.FinancialAnalysis);
+                const userMessages = taskManager.getUserMessagesBySession(currentSessionId, SessionDomain.FinancialAnalysis);
+                const assistantMessages = taskManager.getAssistantMessagesBySessionAsArray(currentSessionId, SessionDomain.FinancialAnalysis);
                 const tasksArray: TaskInfo[] = tasksMap ? Array.from(tasksMap.values()) : [];
                 const allMessages = [...userMessages, ...assistantMessages].sort(
                     (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
@@ -272,7 +272,7 @@ export function useFinanceSession(
                 console.error("Failed to save current session:", error);
             }
         }
-        const hasTargetData = taskManager.getTasksBySession(sessionId, SessionDomain.Chart) !== undefined;
+        const hasTargetData = taskManager.getTasksBySession(sessionId, SessionDomain.FinancialAnalysis) !== undefined;
         if (!hasTargetData) {
             const chatContent = await chartSessionCommands.loadChatContent(sessionId);
             const terminalContent = await chartSessionCommands.loadTerminalContent(sessionId);
@@ -287,9 +287,9 @@ export function useFinanceSession(
             if (terminalContent) {
                 tasks = terminalContent as TaskInfo[];
             }
-            taskManager.loadSessionData(sessionId, tasks, userMessages, assistantMessages, SessionDomain.Chart);
+            taskManager.loadSessionData(sessionId, tasks, userMessages, assistantMessages, SessionDomain.FinancialAnalysis);
         } else {
-            taskManager.switchToSession(sessionId, SessionDomain.Chart);
+            taskManager.switchToSession(sessionId, SessionDomain.FinancialAnalysis);
         }
         setCurrentSessionId(sessionId);
         window.dispatchEvent(new CustomEvent("chart-session-created"));
@@ -298,19 +298,19 @@ export function useFinanceSession(
         if (isLoading) return true;
         if (!currentSessionId) return true;
         if (currentSessionId.startsWith("pending_")) {
-            const userMessages = taskManager.getUserMessagesBySession(currentSessionId, SessionDomain.Chart);
-            const assistantMessages = taskManager.getAssistantMessagesBySessionAsArray(currentSessionId, SessionDomain.Chart);
+            const userMessages = taskManager.getUserMessagesBySession(currentSessionId, SessionDomain.FinancialAnalysis);
+            const assistantMessages = taskManager.getAssistantMessagesBySessionAsArray(currentSessionId, SessionDomain.FinancialAnalysis);
             return userMessages.length === 0 && assistantMessages.length === 0;
         }
-        const userMessages = taskManager.getUserMessagesBySession(currentSessionId, SessionDomain.Chart);
-        const assistantMessages = taskManager.getAssistantMessagesBySessionAsArray(currentSessionId, SessionDomain.Chart);
+        const userMessages = taskManager.getUserMessagesBySession(currentSessionId, SessionDomain.FinancialAnalysis);
+        const assistantMessages = taskManager.getAssistantMessagesBySessionAsArray(currentSessionId, SessionDomain.FinancialAnalysis);
         return userMessages.length === 0 && assistantMessages.length === 0;
     }, [isLoading, currentSessionId]);
     const resetSession = useCallback(async () => {
         if (!currentSessionId || currentSessionId.startsWith("pending_")) return;
         try {
             await hippoxCommands.resetSession();
-            taskManager.loadSessionData(currentSessionId, [], [], [], SessionDomain.Chart);
+            taskManager.loadSessionData(currentSessionId, [], [], [], SessionDomain.FinancialAnalysis);
         } catch (error) {
             console.error("reset session error:", error);
         }

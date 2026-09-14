@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { StockPanelProps } from "./types";
 import { YahooStockItem, createFallbackStockData } from "../../../../command/Finance/Yahoo";
+import { RefreshCw } from "lucide-react";
 const StockPanel: React.FC<StockPanelProps> = ({ theme, i18n, onStockClick }) => {
   const isDark = theme === "dark";
   const isZh = i18n === "zh-cn";
@@ -66,6 +67,8 @@ const StockPanel: React.FC<StockPanelProps> = ({ theme, i18n, onStockClick }) =>
   /**
    * Load stock data - using fallback data immediately
    * No network requests to avoid CORS issues
+   * The loading flags are reset asynchronously so the refresh
+   * animation has at least one render frame with stockRefreshing === true
    */
   const loadData = useCallback(() => {
     if (hasLoadedRef.current) return;
@@ -75,8 +78,12 @@ const StockPanel: React.FC<StockPanelProps> = ({ theme, i18n, onStockClick }) =>
     const fallbackStocks = createFallbackStockData();
     updateStockState(fallbackStocks);
     hasLoadedRef.current = true;
-    setStockLoading(false);
-    setStockRefreshing(false);
+    // Delay resetting the loading flags so the refresh animation
+    // has at least one render frame with stockRefreshing === true
+    setTimeout(() => {
+      setStockLoading(false);
+      setStockRefreshing(false);
+    }, 500);
   }, [updateStockState]);
   /**
    * Load more stocks for pagination
@@ -94,6 +101,7 @@ const StockPanel: React.FC<StockPanelProps> = ({ theme, i18n, onStockClick }) =>
    */
   const handleRefresh = useCallback(() => {
     if (stockRefreshing || stockLoading) return;
+    setStockRefreshing(true);
     hasLoadedRef.current = false;
     setStockDisplayCount(20);
     loadData();
@@ -211,6 +219,12 @@ const StockPanel: React.FC<StockPanelProps> = ({ theme, i18n, onStockClick }) =>
   };
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+      <style>{`
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
       {/* Controls */}
       <div
         style={{
@@ -282,7 +296,7 @@ const StockPanel: React.FC<StockPanelProps> = ({ theme, i18n, onStockClick }) =>
               color: "var(--text-secondary)",
             }}
           >
-            {stockRefreshing ? "🔄" : "↻"}
+            <RefreshCw size={12} style={{ animation: stockRefreshing ? "spin 1s linear infinite" : "none" }} />
           </button>
         </div>
         <input

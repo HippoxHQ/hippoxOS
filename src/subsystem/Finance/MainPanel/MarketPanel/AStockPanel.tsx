@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { AStockPanelProps } from "./types";
 import { AStockItem, sortAStocks, fetchAStocksMapped, filterAStocks } from "../../../../command/Finance/AStock";
+import { RefreshCw } from "lucide-react";
 const AStockPanel: React.FC<AStockPanelProps> = ({ theme, i18n, onAStockClick }) => {
   const isDark = theme === "dark";
   const isZh = i18n === "zh-cn";
@@ -141,6 +142,12 @@ const AStockPanel: React.FC<AStockPanelProps> = ({ theme, i18n, onAStockClick })
   };
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+      <style>{`
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
       {/* Controls */}
       <div style={{ position: "sticky", top: 0, zIndex: 10, padding: "8px", borderBottom: "1px solid var(--border-color)", backgroundColor: "var(--bg-secondary)" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "6px" }}>
@@ -205,7 +212,7 @@ const AStockPanel: React.FC<AStockPanelProps> = ({ theme, i18n, onAStockClick })
               color: "var(--text-secondary)",
             }}
           >
-            {aStockRefreshing ? "🔄" : "↻"}
+            <RefreshCw size={12} style={{ animation: aStockRefreshing ? "spin 1s linear infinite" : "none" }} />
           </button>
         </div>
         <input

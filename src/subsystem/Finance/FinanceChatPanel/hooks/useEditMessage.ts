@@ -30,7 +30,7 @@ export const useEditMessage = ({ currentSessionId, onSendMessage, t }: UseEditMe
       edited: true,
       originalId: msg.id,
     };
-    taskManager.addUserMessageToSession(sessionId, editedMessage, SessionDomain.Chart);
+    taskManager.addUserMessageToSession(sessionId, editedMessage, SessionDomain.FinancialAnalysis);
     let backendMessage = editContent;
     if (currentFiles.length > 0) {
       const fileInfo = currentFiles.map((f) => `[📎 ${f.name}]`).join("\n");

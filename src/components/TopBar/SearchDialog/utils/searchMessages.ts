@@ -59,7 +59,7 @@ export const extractSubsystem = (
 ): string | undefined => {
   // Check if path contains subsystem info
   if (path) {
-    if (path.includes("ChartDialogHistory")) return "chart";
+    if (path.includes("FinancialAnalysisDialogHistory")) return "financial_analysis";
     if (path.includes("MapDialogHistory")) return "map";
     if (path.includes("CodeEditorDialogHistory")) return "codeeditor";
     if (path.includes("SandBox3DDialogHistory")) return "sandbox3d";

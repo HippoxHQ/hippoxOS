@@ -12,17 +12,17 @@ interface NotificationCenterProps {
  * Extract subsystem from notification data or path
  * Checks multiple sources in order of priority
  */
-const extractSubsystem = (data?: Record<string, any>): "general" | "chart" | "map" | "codeeditor" | "sandbox3d" | "video" => {
+const extractSubsystem = (data?: Record<string, any>): "general" | "financial_analysis" | "map" | "codeeditor" | "sandbox3d" | "video" => {
   if (!data) return "general";
   // 1. Direct subsystem field
   if (data.subsystem) {
-    return data.subsystem as "general" | "chart" | "map" | "codeeditor" | "sandbox3d" | "video";
+    return data.subsystem as "general" | "financial_analysis" | "map" | "codeeditor" | "sandbox3d" | "video";
   }
   // 2. Check session_id with prefix
   const sessionId = data.sessionId || data.session_id;
   if (sessionId) {
     const id = sessionId as string;
-    if (id.startsWith("chart_session_")) return "chart";
+    if (id.startsWith("financial_analysis_session_")) return "financial_analysis";
     if (id.startsWith("map_session_")) return "map";
     if (id.startsWith("codeeditor_session_")) return "codeeditor";
     if (id.startsWith("video_session_")) return "video";
@@ -31,7 +31,7 @@ const extractSubsystem = (data?: Record<string, any>): "general" | "chart" | "ma
   // 3. Check path
   if (data.path) {
     const path = data.path as string;
-    if (path.includes("ChartDialogHistory") || path.includes("chart_session_")) return "chart";
+    if (path.includes("FinancialAnalysis") || path.includes("financial_analysis_session_")) return "financial_analysis";
     if (path.includes("MapDialogHistory") || path.includes("map_session_")) return "map";
     if (path.includes("CodeEditorDialogHistory") || path.includes("codeeditor_session_")) return "codeeditor";
     if (path.includes("SandBox3DDialogHistory") || path.includes("sandbox3d_session_")) return "sandbox3d";
@@ -41,11 +41,11 @@ const extractSubsystem = (data?: Record<string, any>): "general" | "chart" | "ma
   if (data.payload) {
     const payload = data.payload;
     if (payload.subsystem) {
-      return payload.subsystem as "general" | "chart" | "map" | "codeeditor" | "sandbox3d" | "video";
+      return payload.subsystem as "general" | "financial_analysis" | "map" | "codeeditor" | "sandbox3d" | "video";
     }
     if (payload.session_id || payload.sessionId) {
       const id = (payload.session_id || payload.sessionId) as string;
-      if (id.startsWith("chart_session_")) return "chart";
+      if (id.startsWith("financial_analysis_session_")) return "financial_analysis";
       if (id.startsWith("map_session_")) return "map";
       if (id.startsWith("codeeditor_session_")) return "codeeditor";
       if (id.startsWith("video_session_")) return "video";
@@ -55,7 +55,7 @@ const extractSubsystem = (data?: Record<string, any>): "general" | "chart" | "ma
   // 5. Check notification title for subsystem hints
   if (data.title) {
     const title = data.title as string;
-    if (title.includes("Chart") || title.includes("chart")) return "chart";
+    if (title.includes("Financial") || title.includes("financial_analysis")) return "financial_analysis";
     if (title.includes("Map") || title.includes("map")) return "map";
     if (title.includes("CodeEditor") || title.includes("codeeditor") || title.includes("Code Editor")) return "codeeditor";
     if (title.includes("Video") || title.includes("video")) return "video";

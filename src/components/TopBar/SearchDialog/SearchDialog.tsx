@@ -24,12 +24,12 @@ export interface SearchDialogProps {
   onFileClick?: (file: UploadFile) => void;
 }
 // Define the subsystem type to match SearchResult
-type SubsystemType = "general" | "chart" | "map" | "codeeditor" | "sandbox3d" | "video";
+type SubsystemType = "general" | "financial_analysis" | "map" | "codeeditor" | "sandbox3d" | "video";
 /**
  * Extract subsystem from path with proper type
  */
 const extractSubsystemFromPath = (path: string): SubsystemType => {
-  if (path.includes("ChartDialogHistory")) return "chart";
+  if (path.includes("FinancialAnalysisDialogHistory")) return "financial_analysis";
   if (path.includes("MapDialogHistory")) return "map";
   if (path.includes("CodeEditorDialogHistory")) return "codeeditor";
   if (path.includes("SandBox3DDialogHistory")) return "sandbox3d";

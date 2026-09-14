@@ -310,7 +310,7 @@ export function useSession(
     const handleSwitchSession = useCallback(async (sessionId: string) => {
         // No-op if already on this session
         if (sessionId === currentSessionId) return;
-        if (sessionId.startsWith("chart_session_") ||
+        if (sessionId.startsWith("financial_analysis_session_") ||
             sessionId.startsWith("map_session_") ||
             sessionId.startsWith("codeeditor_session_") ||
             sessionId.startsWith("video_session_") ||

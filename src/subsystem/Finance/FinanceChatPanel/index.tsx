@@ -150,8 +150,8 @@ const FinanceChatPanel: React.FC<FinanceChatPanelProps> = ({
   // Get messages from task manager
   const getMessages = useCallback((): ChatMessage[] => {
     if (!currentSessionId) return [welcomeMsg];
-    const userMessages = taskManager.getUserMessagesBySession(currentSessionId, SessionDomain.Chart);
-    const assistantMessages = taskManager.getAssistantMessagesBySessionAsArray(currentSessionId, SessionDomain.Chart);
+    const userMessages = taskManager.getUserMessagesBySession(currentSessionId, SessionDomain.FinancialAnalysis);
+    const assistantMessages = taskManager.getAssistantMessagesBySessionAsArray(currentSessionId, SessionDomain.FinancialAnalysis);
     const allMessages = [...userMessages, ...assistantMessages].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
     if (allMessages.length === 0) {
       return [welcomeMsg];
@@ -868,7 +868,7 @@ const FinanceChatPanel: React.FC<FinanceChatPanelProps> = ({
       showToast(ToastType.INFO, t("chat.noRelatedTask") || "No Related Task");
       return;
     }
-    const tasks = taskManager.getTasksBySession(currentSessionId, SessionDomain.Chart);
+    const tasks = taskManager.getTasksBySession(currentSessionId, SessionDomain.FinancialAnalysis);
     if (!tasks) {
       showToast(ToastType.INFO, t("chat.noRelatedTask") || "No Related Task");
       return;
@@ -894,7 +894,7 @@ const FinanceChatPanel: React.FC<FinanceChatPanelProps> = ({
         showToast(ToastType.INFO, t("chat.noRelatedTask") || "No Related Task");
         return;
       }
-      const tasks = taskManager.getTasksBySession(currentSessionId, SessionDomain.Chart);
+      const tasks = taskManager.getTasksBySession(currentSessionId, SessionDomain.FinancialAnalysis);
       if (!tasks) return;
       const task = Array.from(tasks.values()).find((t) => t.task_id === taskId);
       if (!task) {

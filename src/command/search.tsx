@@ -2,7 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { Brain, MessageSquare, FileText, Search, FolderOpen, Logs, PieChart, Map, Code, Box, Video } from "lucide-react";
 export interface SearchResult {
   category: "skill" | "session" | "log" | "message";
-  subsystem?: "general" | "chart" | "map" | "codeeditor" | "sandbox3d" | "video";
+  subsystem?: "general" | "financial_analysis" | "map" | "codeeditor" | "sandbox3d" | "video";
   id: string;
   title: string;
   description: string;
@@ -272,8 +272,8 @@ export class SearchService {
   /**
    * Parse subsystem from path string with proper type
    */
-  parseSubsystemFromPath(path: string): "general" | "chart" | "map" | "codeeditor" | "sandbox3d" | "video" {
-    if (path.includes("ChartDialogHistory")) return "chart";
+  parseSubsystemFromPath(path: string): "general" | "financial_analysis" | "map" | "codeeditor" | "sandbox3d" | "video" {
+    if (path.includes("FinancialAnalysis")) return "financial_analysis";
     if (path.includes("MapDialogHistory")) return "map";
     if (path.includes("CodeEditorDialogHistory")) return "codeeditor";
     if (path.includes("SandBox3DDialogHistory")) return "sandbox3d";

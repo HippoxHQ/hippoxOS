@@ -2,7 +2,7 @@ import { ChatMessage } from "../../../types/types";
 import { Search, MessageSquare, FileText, MessagesSquare, PieChart, Map, Code, Box, Video, MessageCircle } from "lucide-react";
 export interface SearchResult {
   category: "skill" | "session" | "log" | "message";
-  subsystem?: "general" | "chart" | "map" | "codeeditor" | "sandbox3d" | "video";
+  subsystem?: "general" | "financial_analysis" | "map" | "codeeditor" | "sandbox3d" | "video";
   id: string;
   title: string;
   description: string;

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { CryptoPanelProps } from "./types";
 import { BinanceCryptoItem, BINANCE_WS_URL, createSubscriptionMessages, POPULAR_CRYPTO_PAIRS, updateCryptoPrice, fetchCryptoInitialData, sortCryptoItems, createFallbackCryptoData, filterCryptoItems } from "../../../../command/Finance/Binance";
+import { RefreshCw } from "lucide-react";
 const CryptoPanel: React.FC<CryptoPanelProps> = ({ theme, i18n, onCryptoClick }) => {
   const isDark = theme === "dark";
   const isZh = i18n === "zh-cn";
@@ -206,6 +207,12 @@ const CryptoPanel: React.FC<CryptoPanelProps> = ({ theme, i18n, onCryptoClick })
   };
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+      <style>{`
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
       {/* Controls */}
       <div
         style={{
@@ -262,7 +269,7 @@ const CryptoPanel: React.FC<CryptoPanelProps> = ({ theme, i18n, onCryptoClick })
               color: "var(--text-secondary)",
             }}
           >
-            {isRefreshing ? "🔄" : "↻"}
+            <RefreshCw size={12} style={{ animation: isRefreshing ? "spin 1s linear infinite" : "none" }} />
           </button>
         </div>
         <input

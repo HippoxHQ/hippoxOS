@@ -112,7 +112,7 @@ pub fn get_sandbox3d_dialog_history_dir() -> PathBuf {
 pub fn get_general_history_dir() -> PathBuf {
     get_app_root_dir().join(SUB_SYSTEM_PATH).join(GENERAL_HISTORY_DIR_NAME)
 }
-/// Finance Dialog history directory: HippoX/ChartDialogHistory
+/// Finance Dialog history directory: HippoX/FinancialAnalysisDialogHistory
 pub fn get_finance_dialog_history_dir() -> PathBuf {
     get_app_root_dir().join(SUB_SYSTEM_PATH).join(FINANCE_DIALOG_HISTORY_DIR_NAME)
 }
