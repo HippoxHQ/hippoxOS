@@ -39,6 +39,7 @@ services:
           rm -f /root/.cargo/config.toml;
           echo '[INFO] Cargo mirror: crates.io (default/en)';
         fi;
+        chmod +x ./src-tauri/bin/ffmpeg/* ./src-tauri/bin/ffprobe/* ./src-tauri/bin/yt-dlp/* 2>/dev/null || true;
         yarn install --frozen-lockfile &&
         yarn tauri build
       "

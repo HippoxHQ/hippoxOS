@@ -121,7 +121,7 @@ if ($Rebuild -or -not $imageExists) {
 # Compile (Yarn + optional Cargo mirror, controlled by $env:MIRROR)
 Write-Step "Compiling Tauri Linux bundles: $Bundles"
 $env:MIRROR   = $Mirror
-$innerCmd     = "yarn install --frozen-lockfile && yarn tauri build --bundles $Bundles"
+$innerCmd     = "chmod +x ./src-tauri/bin/ffmpeg/* ./src-tauri/bin/ffprobe/* ./src-tauri/bin/yt-dlp/* 2>/dev/null || true; yarn install --frozen-lockfile && yarn tauri build --bundles $Bundles"
 docker compose run --rm $ServiceName bash -c "$innerCmd"
 
 if ($LASTEXITCODE -ne 0) {
