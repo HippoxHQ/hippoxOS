@@ -4,9 +4,9 @@
  */
 export const SET_CHART_DATA = 'finance:set-chart-data';
 export const CHART_DATA_UPDATED = 'chart-data-updated';
+export const CHART_ANALYSIS_UPDATED = 'chart-analysis-updated';
 /**
  * Dispatch event to set chart data
- * This is triggered when user clicks on a ticker or when LLM returns a symbol
  * @param detail - Event detail containing symbol and optional data type
  */
 export function dispatchSetChartData(detail?: {
@@ -18,7 +18,6 @@ export function dispatchSetChartData(detail?: {
 }
 /**
  * Dispatch event when chart data is updated from LLM response
- * This connects the LLM response pipeline to the chart rendering engine
  * @param detail - Event detail containing the LLM response content
  */
 export function dispatchChartDataUpdated(detail: {
@@ -29,9 +28,26 @@ export function dispatchChartDataUpdated(detail: {
   window.dispatchEvent(new CustomEvent(CHART_DATA_UPDATED, { detail }));
 }
 /**
+ * Dispatch event carrying a structured analysis produced by the LLM.
+ * The disclaimer is resolved by the caller (with fallback) before dispatch.
+ */
+export function dispatchChartAnalysisUpdated(detail: {
+  message: string;
+  disclaimer: string;
+  analysis?: {
+    trend?: string;
+    support?: string;
+    resistance?: string;
+    risk?: string;
+    summary?: string;
+  };
+  messageId?: string;
+  sessionId?: string;
+}): void {
+  window.dispatchEvent(new CustomEvent(CHART_ANALYSIS_UPDATED, { detail }));
+}
+/**
  * Listen for chart data events (from ticker clicks or external triggers)
- * @param callback - Callback function to handle the event
- * @returns Unsubscribe function
  */
 export function listenSetChartData(
   callback: (event: CustomEvent) => void
@@ -42,9 +58,6 @@ export function listenSetChartData(
 }
 /**
  * Listen for chart data updated events from LLM responses
- * This is the primary integration point between LLM and chart rendering
- * @param callback - Callback function to handle the event
- * @returns Unsubscribe function
  */
 export function listenChartDataUpdated(
   callback: (event: CustomEvent) => void
@@ -52,4 +65,14 @@ export function listenChartDataUpdated(
   const handler = (e: Event) => callback(e as CustomEvent);
   window.addEventListener(CHART_DATA_UPDATED, handler);
   return () => window.removeEventListener(CHART_DATA_UPDATED, handler);
+}
+/**
+ * Listen for structured analysis events from LLM responses
+ */
+export function listenChartAnalysisUpdated(
+  callback: (event: CustomEvent) => void
+): () => void {
+  const handler = (e: Event) => callback(e as CustomEvent);
+  window.addEventListener(CHART_ANALYSIS_UPDATED, handler);
+  return () => window.removeEventListener(CHART_ANALYSIS_UPDATED, handler);
 }

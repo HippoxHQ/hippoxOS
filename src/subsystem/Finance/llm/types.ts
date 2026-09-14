@@ -18,7 +18,6 @@ export interface ResourceLink {
 /**
  * Chart operation types for financial data visualization
  * This is the PRIMARY output for chart-related requests
- * All interactions MUST be expressed through this structure
  */
 export interface ChartOperation {
   /** Symbol to display (e.g., "BTC/USDT", "AAPL") */
@@ -29,15 +28,7 @@ export interface ChartOperation {
   chartType?: 'candle' | 'bar' | 'line' | 'area' | 'heikinashi' | 'hollow';
   /** Chart title */
   title?: string;
-  /**
-   * DSL script to execute on the chart
-   * This script will be loaded into the DSL editor and executed
-   * Supports all CandleView DSL API:
-   * - Data: getClose(), getOpen(), getHigh(), getLow(), getVolume(), getTime(), getCloseAt(offset), etc.
-   * - Indicators: SMA(), EMA(), WMA(), RSI(), MACD(), BOLL(), KDJ(), ATR(), CCI(), ADX(), OBV(), SAR(), BBWIDTH()
-   * - Chart: plotMain(), plotSub(), openIndicator(), closeIndicator(), closeAllIndicators()
-   * - Marks: addTextMark(), addArrowUp(), addArrowDown(), clearAllMarks()
-   */
+  /** DSL script to execute on the chart */
   dslScript?: string;
   /** Automatically execute DSL script without user confirmation (default: true) */
   autoExecuteDSL?: boolean;
@@ -52,12 +43,9 @@ export interface ChartOperation {
     type: 'RSI' | 'MACD' | 'VOLUME' | 'SAR' | 'KDJ' | 'ATR' | 'STOCHASTIC' | 'CCI' | 'BBWIDTH' | 'ADX' | 'OBV';
     enabled: boolean;
   }>;
-  /**
-   * Static marks on the chart - converted to CandleView format
-   * All visual markers (arrows, text, labels) should use this field
-   */
+  /** Static marks on the chart */
   staticMarks?: Array<{
-    time: number; // milliseconds timestamp
+    time: number;
     type: 'text' | 'arrow';
     text?: string;
     direction: 'up' | 'down';
@@ -78,6 +66,89 @@ export interface ChartOperation {
   };
 }
 /**
+ * Structured analysis conclusion generated from real market data.
+ * Only present when the LLM was given a [MARKET_DATA] block.
+ *
+ * ALL extended fields are OPTIONAL. The frontend renders only the sections
+ * that are actually present. The LLM MUST omit fields it cannot ground in
+ * real data instead of inventing values.
+ */
+export interface AnalysisResult {
+  /** Overall trend judgement, e.g. "short-term bullish" */
+  trend?: string;
+  /** Key support level description */
+  support?: string;
+  /** Key resistance level description */
+  resistance?: string;
+  /** Risk notes */
+  risk?: string;
+  /** Free-form summary */
+  summary?: string;
+  /** Sentiment score, -100 (extremely bearish) .. 100 (extremely bullish) */
+  sentimentScore?: number;
+  /** Short verdict label, e.g. "Bullish" / "看多" */
+  verdict?: string;
+  /** Key numeric metrics rendered as cards */
+  metrics?: Array<{
+    key: string;
+    value: string | number;
+    unit?: string;
+    /** "up" | "down" | "neutral" drives arrow + color */
+    change?: 'up' | 'down' | 'neutral';
+  }>;
+  /** Price levels rendered as a vertical ladder */
+  priceLevels?: Array<{
+    price: number | string;
+    label: string;
+    type: 'support' | 'resistance' | 'current' | 'target' | 'stop';
+  }>;
+  /** Technical indicators snapshot */
+  indicators?: Array<{
+    name: string;
+    value: string | number;
+    signal?: 'buy' | 'sell' | 'neutral';
+  }>;
+  /** Time-series-ish data for a small sparkline / mini chart */
+  sparkline?: {
+    label: string;
+    points: number[];
+    /** Optional color hint */
+    color?: string;
+  };
+  /** Related news items */
+  news?: Array<{
+    title: string;
+    source?: string;
+    time?: string;
+    sentiment?: 'positive' | 'negative' | 'neutral';
+    url?: string;
+  }>;
+  /** Shareholder / holder table */
+  shareholders?: {
+    title?: string;
+    headers: string[];
+    rows: Array<Array<string | number>>;
+  };
+  /** Holding ratio breakdown, rendered as a donut chart */
+  holdings?: {
+    title?: string;
+    items: Array<{
+      name: string;
+      ratio: number;
+      color?: string;
+    }>;
+  };
+  /** SWOT-style bullet lists */
+  swot?: {
+    strengths?: string[];
+    weaknesses?: string[];
+    opportunities?: string[];
+    threats?: string[];
+  };
+  /** Free-form bullet list of action items / suggestions */
+  suggestions?: string[];
+}
+/**
  * Terminal display result - structured, professional output
  */
 export interface TerminalResponse {
@@ -87,9 +158,9 @@ export interface TerminalResponse {
   links?: ResourceLink[];
   /** Local resource links array */
   local?: ResourceLink[];
-  /** Commands to execute (if user needs to run specific commands) */
+  /** Commands to execute */
   commands?: string[];
-  /** Code blocks (for displaying code) */
+  /** Code blocks */
   codeBlocks?: {
     language: string;
     code: string;
@@ -111,31 +182,76 @@ export interface TerminalResponse {
   warnings?: string[];
   /** Success/failure status */
   status?: 'success' | 'error' | 'warning' | 'info';
-  /**
-   * Chart operations for financial data visualization
-   * This is the PRIMARY output for ALL chart-related requests
-   * All interactions MUST be expressed through this structure
-   */
+  /** Chart operations for financial data visualization */
   chart?: ChartOperation;
+  /** Structured analysis derived from real market data */
+  analysis?: AnalysisResult;
 }
 /**
- * Dialog response data - read-only human-friendly information, concise, token-efficient
+ * Dialog response data - read-only human-friendly information
  */
 export interface ChatResponse {
   /** Human-friendly response message (main reply content) */
   m: string;
-  /** Subtitle/additional info (optional, for extra human-friendly information) */
+  /** Subtitle/additional info (optional) */
   s?: string;
+  /**
+   * Mandatory disclaimer when the response contains AI-generated analysis.
+   * Frontend MUST render this when present, and MUST fall back to a default
+   * disclaimer if the LLM omitted it.
+   */
+  disclaimer?: string;
 }
 /**
  * HippoxOS LLM response main structure
- * LLM must strictly return according to this structure, no extra characters allowed
  */
 export interface HippoxOSResult {
-  /** Terminal display result - structured, professional output, can be null */
+  /** Terminal display result */
   terminalResponse: TerminalResponse | null;
-  /** Dialog response data - read-only human-friendly info */
+  /** Dialog response data */
   chatResponse: ChatResponse;
+}
+/**
+ * Default disclaimer texts. Used as a fallback when the LLM omits one.
+ */
+export const DEFAULT_DISCLAIMER_ZH =
+  '内容由AI生成，不构成投资建议，投资需谨慎。';
+export const DEFAULT_DISCLAIMER_EN =
+  'AI-generated content, not investment advice. Invest with caution.';
+/**
+ * Resolve the disclaimer to display.
+ * Prefers the LLM-provided one; falls back to a localized default.
+ */
+export function resolveDisclaimer(
+  provided: string | undefined,
+  language: 'zh' | 'en'
+): string {
+  if (provided && provided.trim().length > 0) return provided.trim();
+  return language === 'zh' ? DEFAULT_DISCLAIMER_ZH : DEFAULT_DISCLAIMER_EN;
+}
+/**
+ * Whether an analysis object has any renderable content.
+ * Used to skip rendering the empty AIAnalysis panel and to decide
+ * whether the mandatory disclaimer should be shown.
+ */
+export function hasRenderableAnalysis(a?: AnalysisResult | null): boolean {
+  if (!a) return false;
+  if (a.trend || a.support || a.resistance || a.risk || a.summary) return true;
+  if (a.verdict || typeof a.sentimentScore === 'number') return true;
+  if (a.metrics && a.metrics.length > 0) return true;
+  if (a.priceLevels && a.priceLevels.length > 0) return true;
+  if (a.indicators && a.indicators.length > 0) return true;
+  if (a.sparkline && a.sparkline.points && a.sparkline.points.length > 1) return true;
+  if (a.news && a.news.length > 0) return true;
+  if (a.shareholders && a.shareholders.rows && a.shareholders.rows.length > 0) return true;
+  if (a.holdings && a.holdings.items && a.holdings.items.length > 0) return true;
+  if (
+    a.swot &&
+    (a.swot.strengths || a.swot.weaknesses || a.swot.opportunities || a.swot.threats)
+  )
+    return true;
+  if (a.suggestions && a.suggestions.length > 0) return true;
+  return false;
 }
 /**
  * Validate if response is a valid HippoxOSResult
@@ -145,6 +261,7 @@ export function isValidHippoxOSResult(obj: any): obj is HippoxOSResult {
   if (!obj.chatResponse || typeof obj.chatResponse !== 'object') return false;
   if (typeof obj.chatResponse.m !== 'string') return false;
   if (obj.chatResponse.s !== undefined && typeof obj.chatResponse.s !== 'string') return false;
+  if (obj.chatResponse.disclaimer !== undefined && typeof obj.chatResponse.disclaimer !== 'string') return false;
   if (obj.terminalResponse !== null && typeof obj.terminalResponse !== 'object') return false;
   if (obj.terminalResponse) {
     const tr = obj.terminalResponse;
@@ -157,19 +274,17 @@ export function isValidHippoxOSResult(obj: any): obj is HippoxOSResult {
     if (tr.warnings !== undefined && !Array.isArray(tr.warnings)) return false;
     if (tr.status !== undefined && !['success', 'error', 'warning', 'info'].includes(tr.status)) return false;
     if (tr.chart !== undefined && typeof tr.chart !== 'object') return false;
+    if (tr.analysis !== undefined && typeof tr.analysis !== 'object') return false;
   }
   return true;
 }
 /**
  * Extract HippoxOSResult JSON from arbitrary text
- * Used to handle LLM responses that may contain extra characters
  */
 export function extractHippoxOSResult(text: string): HippoxOSResult | null {
   try {
     const parsed = JSON.parse(text);
-    if (isValidHippoxOSResult(parsed)) {
-      return parsed;
-    }
+    if (isValidHippoxOSResult(parsed)) return parsed;
     return null;
   } catch {
     const jsonRegex = /\{[\s\S]*"chatResponse"[\s\S]*"terminalResponse"[\s\S]*\}/;
@@ -177,9 +292,7 @@ export function extractHippoxOSResult(text: string): HippoxOSResult | null {
     if (match) {
       try {
         const parsed = JSON.parse(match[0]);
-        if (isValidHippoxOSResult(parsed)) {
-          return parsed;
-        }
+        if (isValidHippoxOSResult(parsed)) return parsed;
       } catch {
         return null;
       }
@@ -189,7 +302,6 @@ export function extractHippoxOSResult(text: string): HippoxOSResult | null {
 }
 /**
  * Extract chart operation data from LLM response
- * Returns null if no chart data is present
  */
 export function extractChartOperation(content: string): ChartOperation | null {
   if (!content) return null;
@@ -222,6 +334,45 @@ export function hasChartData(content: string): boolean {
   }
 }
 /**
+ * Check if the response contains an analysis block
+ */
+export function hasAnalysis(content: string): boolean {
+  if (!content) return false;
+  try {
+    const parsed = JSON.parse(content);
+    return !!(parsed.terminalResponse?.analysis);
+  } catch {
+    return false;
+  }
+}
+/**
+ * Extract the analysis block from the response
+ */
+export function extractAnalysis(content: string): AnalysisResult | null {
+  if (!content) return null;
+  try {
+    const parsed = JSON.parse(content);
+    return parsed.terminalResponse?.analysis || null;
+  } catch {
+    return null;
+  }
+}
+/**
+ * Extract the chat response (human-readable message + disclaimer)
+ */
+export function extractChatResponse(content: string): ChatResponse | null {
+  if (!content) return null;
+  try {
+    const parsed = JSON.parse(content);
+    if (parsed.chatResponse && typeof parsed.chatResponse.m === 'string') {
+      return parsed.chatResponse;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+/**
  * Check if the response contains a DSL script
  */
 export function hasDSLScript(content: string): boolean {
@@ -236,28 +387,24 @@ export function hasDSLScript(content: string): boolean {
 }
 /**
  * Extract DSL script from LLM response
- * Returns null if no DSL script is present
  */
 export function extractDSLScript(content: string): string | null {
   if (!content) return null;
   try {
     const parsed = JSON.parse(content);
-    const chart = parsed.terminalResponse?.chart;
-    return chart?.dslScript || null;
+    return parsed.terminalResponse?.chart?.dslScript || null;
   } catch {
     return null;
   }
 }
 /**
  * Extract symbol from chart operation
- * Returns null if no symbol is present
  */
 export function extractSymbol(content: string): string | null {
   if (!content) return null;
   try {
     const parsed = JSON.parse(content);
-    const chart = parsed.terminalResponse?.chart;
-    return chart?.symbol || null;
+    return parsed.terminalResponse?.chart?.symbol || null;
   } catch {
     return null;
   }
@@ -277,7 +424,6 @@ export function hasSymbolToLoad(content: string): boolean {
 }
 /**
  * Check if the response should auto-execute DSL script
- * Defaults to true if not specified
  */
 export function shouldAutoExecuteDSL(content: string): boolean {
   if (!content) return false;

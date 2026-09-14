@@ -5,14 +5,16 @@ import Chart, { ChartRef } from "./Chart";
 import DSL, { DSLRef } from "./DSL";
 import MarketPanel from "./MarketPanel";
 import NewsPanel from "./News";
-import { PanelRightOpen, Newspaper, Code2, ChevronUp, ChevronDown } from "lucide-react";
+import AIAnalysis from "./AIAnalysis";
+import { PanelRightOpen, Newspaper, Code2, ChevronUp, ChevronDown, Sparkles } from "lucide-react";
 import { fetchStockOHLCV } from "../../../command/Finance/AStock";
-import { hasChartData, extractChartData } from "../llm/utils";
 import { listenSetChartData, SET_CHART_DATA } from "../FinanceWindowsEventsManager";
 import { showToast, ToastType } from "../../../components/Toast";
 import { mainPanelStyles } from "./mainpanel.style";
 import { fetchStocksBatch } from "../../../command/Finance/Yahoo";
 import { fetchBinanceKlines } from "../../../command/Finance/Binance";
+import { resolveDisclaimer, DEFAULT_DISCLAIMER_ZH, DEFAULT_DISCLAIMER_EN } from "../llm/types";
+import { extractChartData, hasChartData } from "../utils/parser";
 interface IStaticMarkItem {
   time: number;
   text: string;
@@ -52,6 +54,43 @@ interface FunctionButton {
   label: string;
   icon: React.ReactNode;
 }
+/**
+ * Words that must NEVER appear in the chart title.
+ * The LLM has been known to append "模拟行情走势" / "demo" / "chart" etc.
+ * to the title; we strip them defensively on the frontend regardless of
+ * what the prompt says.
+ */
+const TITLE_NOISE_WORDS = [
+  // Chinese
+  "模拟行情走势",
+  "模拟行情",
+  "模拟",
+  "示例",
+  "演示",
+  "走势",
+  "K线图",
+  "k线图",
+  "蜡烛图",
+  "图表",
+  "数据",
+  "技术分析",
+  "分析",
+  "行情",
+  // English
+  "simulated",
+  "simulation",
+  "demo",
+  "sample",
+  "mock",
+  "example",
+  "chart",
+  "data",
+  "technical analysis",
+  "analysis",
+  "trend",
+  "kline",
+  "candlestick",
+];
 export const MainPanel: React.FC<MainPanelProps> = ({ theme, i18n, currentSessionId, data, symbol = "BTC/USDT", taskId, chartData }) => {
   const [functionHeight, setFunctionHeight] = useState(40);
   const [editorWidth, setEditorWidth] = useState(60);
@@ -63,8 +102,14 @@ export const MainPanel: React.FC<MainPanelProps> = ({ theme, i18n, currentSessio
   const [chartSymbol, setChartSymbol] = useState(symbol);
   const [chartDataState, setChartDataState] = useState<any>(chartData);
   const [candleData, setCandleData] = useState<ICandleViewDataPoint[]>(data || TEST_CANDLEVIEW_DATA8);
-  const [activeFunctionTab, setActiveFunctionTab] = useState<"dsl" | "news">("news");
+  // Active function tab now supports "ai" in addition to "dsl" and "news"
+  const [activeFunctionTab, setActiveFunctionTab] = useState<"dsl" | "news" | "ai">("news");
   const [isFunctionCollapsed, setIsFunctionCollapsed] = useState(false);
+  // Analysis state shared with the AIAnalysis panel.
+  // The full analysis object is stored so the panel can render any structured
+  // section that the LLM decided to include.
+  const [analysisData, setAnalysisData] = useState<any | null>(null);
+  const [analysisDisclaimer, setAnalysisDisclaimer] = useState<string>("");
   const currentSymbolRef = useRef<string>("");
   const currentNameRef = useRef<string>("");
   const currentPeriodRef = useRef<string>("101");
@@ -84,7 +129,6 @@ export const MainPanel: React.FC<MainPanelProps> = ({ theme, i18n, currentSessio
   const isDark = theme === "dark";
   const initialLoadRef = useRef(false);
   const processedMessageIdsRef = useRef<Set<string>>(new Set());
-  // Inject styles
   useEffect(() => {
     if (typeof document !== "undefined") {
       const styleId = "mainpanel-styles";
@@ -96,13 +140,14 @@ export const MainPanel: React.FC<MainPanelProps> = ({ theme, i18n, currentSessio
       }
     }
   }, []);
-  // Function buttons
+  // Function buttons now include the "AI" analysis tab
   const functionButtons: FunctionButton[] = [
     { id: "news", label: isZh ? "新闻" : "News", icon: <Newspaper size={14} /> },
     { id: "dsl", label: "DSL", icon: <Code2 size={14} /> },
+    { id: "ai", label: isZh ? "AI分析" : "AI", icon: <Sparkles size={14} /> },
   ];
   const toggleFunctionTab = useCallback((tabId: string) => {
-    setActiveFunctionTab(tabId as "dsl" | "news");
+    setActiveFunctionTab(tabId as "dsl" | "news" | "ai");
   }, []);
   const handleFunctionClick = useCallback(
     (buttonId: string) => {
@@ -128,63 +173,109 @@ export const MainPanel: React.FC<MainPanelProps> = ({ theme, i18n, currentSessio
     return map[period] || "1d";
   };
   /**
-   * Fetch OHLCV data - Non-blocking with timeout protection
+   * Strip every known noise word from a title fragment and trim whitespace.
+   * Used to remove "模拟行情走势" / "demo" / "chart" / etc. that the LLM
+   * sometimes appends to the chart title.
    */
-  const fetchDataForSymbol = useCallback(async (symbol: string, name: string, period: string = "101", count: number = MAX_DATA_POINTS, dataType: string = "astock") => {
+  const cleanTitleFragment = useCallback((fragment: string): string => {
+    let out = String(fragment || "");
+    for (const w of TITLE_NOISE_WORDS) {
+      // Case-insensitive, global replace
+      out = out.replace(new RegExp(w, "gi"), " ");
+    }
+    // Collapse repeated spaces and trim
+    out = out.replace(/\s+/g, " ").trim();
+    return out;
+  }, []);
+  /**
+   * NEW: broadcast the exact raw klines the chart just loaded.
+   *
+   * This is the SINGLE SOURCE OF TRUTH for market data in the finance module.
+   * FinanceChatPanel listens for "chart-klines-ready" and reuses these klines
+   * to build the [MARKET_DATA] block sent to the LLM. This guarantees the
+   * LLM always analyzes the SAME data the user is looking at on the chart,
+   * with no second fetch and no data mismatch.
+   */
+  const broadcastChartKlines = useCallback((payload: { symbol: string; displaySymbol: string; name: string; dataType: string; period: string; klines: any[] }) => {
     try {
-      const maxCount = Math.min(count, MAX_DATA_POINTS);
-      console.log("[Chart] Fetching data:", { symbol, name, period, actualCount: maxCount, dataType });
-      const fetchData = async (): Promise<any[]> => {
-        if (dataType === "astock") {
-          return await fetchStockOHLCV(symbol, period, maxCount, true);
-        } else {
-          // Use Tauri backend instead of direct fetch
-          const binanceSymbol = symbol.replace("/", "").toUpperCase();
-          const binanceInterval = getBinanceInterval(period);
-          const klines = await fetchBinanceKlines(binanceSymbol, binanceInterval, maxCount);
-          if (klines && klines.length > 0) {
-            return klines.map((k: any) => ({
-              date: k.date,
-              open: k.open,
-              high: k.high,
-              low: k.low,
-              close: k.close,
-              volume: k.volume,
-              amount: k.amount,
-            }));
-          }
-          return [];
-        }
-      };
-      const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error("Data fetch timeout")), 10000);
-      });
-      const klines = (await Promise.race([fetchData(), timeoutPromise])) as any[];
-      if (klines && klines.length > 0) {
-        const chartDataPoints: ICandleViewDataPoint[] = klines.map((k: any) => ({
-          time: Math.floor(new Date(k.date).getTime() / 1000),
-          open: k.open,
-          high: k.high,
-          low: k.low,
-          close: k.close,
-          volume: k.volume,
-        }));
-        setCandleData(chartDataPoints);
-        currentSymbolRef.current = symbol;
-        currentNameRef.current = name;
-        currentPeriodRef.current = period;
-        const displaySymbol = symbol.replace(/^sh|^sz/, "").toUpperCase();
-        setChartSymbol(`${name} · ${displaySymbol}`);
-        console.log(`[Chart] Loaded ${chartDataPoints.length} data points`);
-        return true;
-      }
-      return false;
-    } catch (err) {
-      console.error("[Chart] Failed to fetch OHLCV data:", err);
-      showToast(ToastType.ERROR, `Failed to load data: ${err instanceof Error ? err.message : "Unknown error"}`);
-      return false;
+      window.dispatchEvent(new CustomEvent("chart-klines-ready", { detail: payload }));
+    } catch (e) {
+      console.warn("[MainPanel] Failed to broadcast chart klines:", e);
     }
   }, []);
+  /**
+   * Fetch OHLCV data - Non-blocking with timeout protection.
+   *
+   * The final chart title is ALWAYS built locally as "name · code".
+   * The `name` argument is first passed through cleanTitleFragment() as a
+   * last line of defense, so no noise word can slip into the title even if
+   * the caller passed a dirty string.
+   */
+  const fetchDataForSymbol = useCallback(
+    async (symbol: string, name: string, period: string = "101", count: number = MAX_DATA_POINTS, dataType: string = "astock") => {
+      try {
+        const maxCount = Math.min(count, MAX_DATA_POINTS);
+        console.log("[Chart] Fetching data:", { symbol, name, period, actualCount: maxCount, dataType });
+        const fetchData = async (): Promise<any[]> => {
+          if (dataType === "astock") {
+            return await fetchStockOHLCV(symbol, period, maxCount, true);
+          } else {
+            const binanceSymbol = symbol.replace("/", "").toUpperCase();
+            const binanceInterval = getBinanceInterval(period);
+            const klines = await fetchBinanceKlines(binanceSymbol, binanceInterval, maxCount);
+            if (klines && klines.length > 0) {
+              return klines.map((k: any) => ({
+                date: k.date,
+                open: k.open,
+                high: k.high,
+                low: k.low,
+                close: k.close,
+                volume: k.volume,
+                amount: k.amount,
+              }));
+            }
+            return [];
+          }
+        };
+        const timeoutPromise = new Promise<never>((_, reject) => {
+          setTimeout(() => reject(new Error("Data fetch timeout")), 10000);
+        });
+        const klines = (await Promise.race([fetchData(), timeoutPromise])) as any[];
+        if (klines && klines.length > 0) {
+          const chartDataPoints: ICandleViewDataPoint[] = klines.map((k: any) => ({
+            time: Math.floor(new Date(k.date).getTime() / 1000),
+            open: k.open,
+            high: k.high,
+            low: k.low,
+            close: k.close,
+            volume: k.volume,
+          }));
+          setCandleData(chartDataPoints);
+          currentSymbolRef.current = symbol;
+          currentNameRef.current = name;
+          currentPeriodRef.current = period;
+          // Final title is ALWAYS "name · code" with no extra text.
+          // Defensively re-clean the name here as a last line of defense.
+          const displaySymbol = symbol.replace(/^sh|^sz/, "").toUpperCase();
+          let safeName = cleanTitleFragment(name);
+          if (!safeName || safeName === displaySymbol) {
+            safeName = displaySymbol;
+          }
+          setChartSymbol(`${safeName} · ${displaySymbol}`);
+          console.log(`[Chart] Loaded ${chartDataPoints.length} data points, title="${safeName} · ${displaySymbol}"`);
+          // NEW: broadcast the raw klines for FinanceChatPanel.
+          broadcastChartKlines({ symbol, displaySymbol, name: safeName, dataType, period, klines });
+          return true;
+        }
+        return false;
+      } catch (err) {
+        console.error("[Chart] Failed to fetch OHLCV data:", err);
+        showToast(ToastType.ERROR, `Failed to load data: ${err instanceof Error ? err.message : "Unknown error"}`);
+        return false;
+      }
+    },
+    [cleanTitleFragment, broadcastChartKlines],
+  );
   const handleAStockClick = useCallback(
     async (symbol: string, name?: string) => {
       const stockName = name || symbol.replace(/^sh|^sz/, "").toUpperCase();
@@ -198,88 +289,124 @@ export const MainPanel: React.FC<MainPanelProps> = ({ theme, i18n, currentSessio
     },
     [fetchDataForSymbol],
   );
-  /**
-   * Handle stock click - fetch data via Tauri backend to avoid CORS
-   */
-  const handleStockClick = useCallback(async (symbol: string) => {
-    try {
-      // Show loading toast
-      showToast(ToastType.INFO, `Loading ${symbol}...`);
-      const stocks = await fetchStocksBatch([symbol]);
-      if (stocks && stocks.length > 0) {
-        const stock = stocks[0];
-        // Validate data
-        if (!stock || !stock.symbol || stock.currentPrice === undefined || isNaN(stock.currentPrice)) {
-          showToast(ToastType.ERROR, `Failed to load ${symbol} data`);
-          return;
-        }
-        // Generate sample OHLCV data from current price
-        const currentPrice = stock.currentPrice;
-        const chartDataPoints: ICandleViewDataPoint[] = [];
-        const now = Date.now();
-        // Generate 50 data points with realistic variation
-        for (let i = 0; i < 50; i++) {
-          const time = now - (50 - i) * 24 * 60 * 60 * 1000;
-          const variation = (Math.random() - 0.5) * currentPrice * 0.02;
-          const open = currentPrice + variation * 0.8;
-          const close = currentPrice + variation;
-          const high = Math.max(open, close) + Math.abs(variation) * 0.5;
-          const low = Math.min(open, close) - Math.abs(variation) * 0.5;
-          chartDataPoints.push({
-            time: Math.floor(time / 1000),
-            open: open,
-            high: high,
-            low: low,
-            close: close,
-            volume: Math.floor(Math.random() * 1000000 + 100000),
+  const handleStockClick = useCallback(
+    async (symbol: string) => {
+      try {
+        showToast(ToastType.INFO, `Loading ${symbol}...`);
+        const stocks = await fetchStocksBatch([symbol]);
+        if (stocks && stocks.length > 0) {
+          const stock = stocks[0];
+          if (!stock || !stock.symbol || stock.currentPrice === undefined || isNaN(stock.currentPrice)) {
+            showToast(ToastType.ERROR, `Failed to load ${symbol} data`);
+            return;
+          }
+          const currentPrice = stock.currentPrice;
+          const chartDataPoints: ICandleViewDataPoint[] = [];
+          const now = Date.now();
+          for (let i = 0; i < 50; i++) {
+            const time = now - (50 - i) * 24 * 60 * 60 * 1000;
+            const variation = (Math.random() - 0.5) * currentPrice * 0.02;
+            const open = currentPrice + variation * 0.8;
+            const close = currentPrice + variation;
+            const high = Math.max(open, close) + Math.abs(variation) * 0.5;
+            const low = Math.min(open, close) - Math.abs(variation) * 0.5;
+            chartDataPoints.push({
+              time: Math.floor(time / 1000),
+              open: open,
+              high: high,
+              low: low,
+              close: close,
+              volume: Math.floor(Math.random() * 1000000 + 100000),
+            });
+          }
+          setCandleData(chartDataPoints);
+          currentSymbolRef.current = symbol;
+          // Prefer the real stock name when available, otherwise fall back to the code.
+          const displayName = stock.name || symbol;
+          currentNameRef.current = displayName;
+          currentPeriodRef.current = "101";
+          const displaySymbol = symbol.replace(/^sh|^sz/, "").toUpperCase();
+          let safeName = cleanTitleFragment(displayName);
+          if (!safeName || safeName === displaySymbol) {
+            safeName = displaySymbol;
+          }
+          setChartSymbol(`${safeName} · ${displaySymbol}`);
+          console.log(`[Chart] Loaded ${chartDataPoints.length} data points, title="${safeName} · ${displaySymbol}"`);
+          // NEW: broadcast the raw klines for FinanceChatPanel (shaped like klines).
+          broadcastChartKlines({
+            symbol,
+            displaySymbol,
+            name: safeName,
+            dataType: "stock",
+            period: "101",
+            klines: chartDataPoints.map((p) => ({
+              date: new Date(p.time * 1000).toISOString(),
+              open: p.open,
+              high: p.high,
+              low: p.low,
+              close: p.close,
+              volume: p.volume,
+            })),
           });
+          showToast(ToastType.SUCCESS, `Loaded ${symbol}`);
+        } else {
+          generateFallbackData(symbol);
         }
-        setCandleData(chartDataPoints);
-        currentSymbolRef.current = symbol;
-        currentNameRef.current = stock.name || symbol;
-        currentPeriodRef.current = "101";
-        setChartSymbol(`${stock.name || symbol} · ${symbol}`);
-        showToast(ToastType.SUCCESS, `Loaded ${symbol}`);
-      } else {
-        // Fallback: generate synthetic data
+      } catch (err) {
+        console.error("[MainPanel] Failed to fetch stock data:", err);
         generateFallbackData(symbol);
       }
-    } catch (err) {
-      console.error("[MainPanel] Failed to fetch stock data:", err);
-      // Fallback: generate synthetic data
-      generateFallbackData(symbol);
-    }
-  }, []);
-  /**
-   * Generate fallback data when API fails
-   */
-  const generateFallbackData = useCallback((symbol: string) => {
-    const basePrice = 100 + Math.random() * 200;
-    const chartDataPoints: ICandleViewDataPoint[] = [];
-    const now = Date.now();
-    for (let i = 0; i < 50; i++) {
-      const time = now - (50 - i) * 24 * 60 * 60 * 1000;
-      const variation = (Math.random() - 0.5) * basePrice * 0.03;
-      const open = basePrice + variation * 0.8;
-      const close = basePrice + variation;
-      const high = Math.max(open, close) + Math.abs(variation) * 0.5;
-      const low = Math.min(open, close) - Math.abs(variation) * 0.5;
-      chartDataPoints.push({
-        time: Math.floor(time / 1000),
-        open: open,
-        high: high,
-        low: low,
-        close: close,
-        volume: Math.floor(Math.random() * 1000000 + 100000),
+    },
+    [cleanTitleFragment, broadcastChartKlines],
+  );
+  const generateFallbackData = useCallback(
+    (symbol: string) => {
+      const basePrice = 100 + Math.random() * 200;
+      const chartDataPoints: ICandleViewDataPoint[] = [];
+      const now = Date.now();
+      for (let i = 0; i < 50; i++) {
+        const time = now - (50 - i) * 24 * 60 * 60 * 1000;
+        const variation = (Math.random() - 0.5) * basePrice * 0.03;
+        const open = basePrice + variation * 0.8;
+        const close = basePrice + variation;
+        const high = Math.max(open, close) + Math.abs(variation) * 0.5;
+        const low = Math.min(open, close) - Math.abs(variation) * 0.5;
+        chartDataPoints.push({
+          time: Math.floor(time / 1000),
+          open: open,
+          high: high,
+          low: low,
+          close: close,
+          volume: Math.floor(Math.random() * 1000000 + 100000),
+        });
+      }
+      setCandleData(chartDataPoints);
+      currentSymbolRef.current = symbol;
+      currentNameRef.current = symbol;
+      currentPeriodRef.current = "101";
+      const displaySymbol = symbol.replace(/^sh|^sz/, "").toUpperCase();
+      setChartSymbol(`${displaySymbol} · ${displaySymbol}`);
+      console.log(`[Chart] Loaded ${chartDataPoints.length} data points (fallback), title="${displaySymbol} · ${displaySymbol}"`);
+      // NEW: broadcast the raw klines for FinanceChatPanel.
+      broadcastChartKlines({
+        symbol,
+        displaySymbol,
+        name: displaySymbol,
+        dataType: "crypto",
+        period: "101",
+        klines: chartDataPoints.map((p) => ({
+          date: new Date(p.time * 1000).toISOString(),
+          open: p.open,
+          high: p.high,
+          low: p.low,
+          close: p.close,
+          volume: p.volume,
+        })),
       });
-    }
-    setCandleData(chartDataPoints);
-    currentSymbolRef.current = symbol;
-    currentNameRef.current = symbol;
-    currentPeriodRef.current = "101";
-    setChartSymbol(`${symbol} · ${symbol}`);
-    showToast(ToastType.SUCCESS, `Loaded ${symbol} (synthetic data)`);
-  }, []);
+      showToast(ToastType.SUCCESS, `Loaded ${symbol} (synthetic data)`);
+    },
+    [broadcastChartKlines],
+  );
   const handlePerpetualClick = useCallback(
     async (pair: string) => {
       await fetchDataForSymbol(pair, pair, "101", MAX_DATA_POINTS, "crypto");
@@ -301,10 +428,6 @@ export const MainPanel: React.FC<MainPanelProps> = ({ theme, i18n, currentSessio
   const toggleMarketPanel = useCallback(() => {
     setIsMarketCollapsed((prev) => !prev);
   }, []);
-  /**
-   * Listen for chart data update events from ticker bar
-   * Non-blocking
-   */
   useEffect(() => {
     const unsubscribe = listenSetChartData((event: CustomEvent) => {
       const detail = event.detail;
@@ -342,7 +465,108 @@ export const MainPanel: React.FC<MainPanelProps> = ({ theme, i18n, currentSessio
     [convertToMilliseconds],
   );
   /**
-   * Listen for chart data updates from LLM responses - Non-blocking
+   * Normalize a symbol coming from the LLM into the exact shape
+   * that fetchDataForSymbol expects, together with a data type.
+   *
+   * Handles:
+   * - Crypto pairs (BTC/USDT, BTCUSDT)
+   * - A-share codes (600519, sh600519, sz000001, 002384.SZ, 600519.SH)
+   * - Plain US tickers (AAPL, BRK.B)
+   */
+  const normalizeSymbolAndType = useCallback((rawSymbol: string): { symbol: string; name: string; dataType: string; period: string } => {
+    const s = String(rawSymbol || "").trim();
+    // Crypto pair like "BTC/USDT"
+    if (s.includes("/")) {
+      const parts = s.split("/");
+      const name = (parts[0] || "").toUpperCase();
+      return { symbol: s.toUpperCase(), name, dataType: "crypto", period: "101" };
+    }
+    // A-share code with suffix, e.g. "002384.SZ", "600519.SH"
+    const astockSuffixed = s.match(/^(\d{6})\.(SZ|SH)$/i);
+    if (astockSuffixed) {
+      const digits = astockSuffixed[1];
+      const exchange = astockSuffixed[2].toLowerCase();
+      const prefixed = exchange === "sh" ? `sh${digits}` : `sz${digits}`;
+      return { symbol: prefixed, name: digits.toUpperCase(), dataType: "astock", period: "101" };
+    }
+    // A-share 6-digit code, possibly prefixed with sh/sz
+    if (/^(sh|sz)?\d{6}$/i.test(s)) {
+      const lower = s.toLowerCase();
+      const prefixed = lower.startsWith("sh") || lower.startsWith("sz") ? lower : lower.startsWith("6") ? `sh${lower}` : `sz${lower}`;
+      const name = lower.replace(/^(sh|sz)/, "").toUpperCase();
+      return { symbol: prefixed, name, dataType: "astock", period: "101" };
+    }
+    // Crypto plain like "BTCUSDT"
+    const cryptoPlain = s.match(/^([A-Z]{2,10})(USDT|USDC|BTC|ETH)$/i);
+    if (cryptoPlain) {
+      const base = cryptoPlain[1].toUpperCase();
+      const quote = cryptoPlain[2].toUpperCase();
+      return { symbol: `${base}/${quote}`, name: base, dataType: "crypto", period: "101" };
+    }
+    // Plain US ticker (letters, maybe with a dot for class shares)
+    if (/^[A-Za-z.\-]{1,8}$/.test(s)) {
+      const upper = s.toUpperCase();
+      return { symbol: upper, name: upper, dataType: "stock", period: "101" };
+    }
+    // Fallback: treat as crypto pair suffix heuristic
+    const upper = s.toUpperCase();
+    return { symbol: upper, name: upper, dataType: "crypto", period: "101" };
+  }, []);
+  /**
+   * Switch the chart to the given symbol from an LLM response.
+   *
+   * The final chart title is ALWAYS rebuilt on the frontend as:
+   *     `${name} · ${code}`
+   * We never trust the raw chart.title string from the LLM directly, because
+   * it may contain extra words like "模拟行情走势" or "demo".
+   *
+   * Priority for `name`:
+   *   1. The part before " · " in the LLM-provided title, after noise cleaning.
+   *   2. The display name produced by normalizeSymbolAndType.
+   *   3. The bare code (so the title becomes "CODE · CODE").
+   */
+  const applySymbolFromLLM = useCallback(
+    async (rawSymbol: string, providedTitle?: string) => {
+      if (!rawSymbol) return;
+      const { symbol, name, dataType, period } = normalizeSymbolAndType(rawSymbol);
+      // Try to extract a clean name from the LLM-provided title.
+      let cleanedName = "";
+      if (providedTitle && providedTitle.trim().length > 0) {
+        // If there is a "·" separator, take only the part before it.
+        const parts = providedTitle.split("·");
+        const head = parts.length >= 2 ? parts[0] : providedTitle;
+        cleanedName = cleanTitleFragment(head);
+      }
+      // Choose the final name.
+      // Never allow the name to be empty, and never allow it to equal the raw
+      // code when a better candidate exists.
+      const displaySymbol = symbol.replace(/^sh|^sz/, "").toUpperCase();
+      let finalName = cleanedName;
+      if (!finalName || finalName === displaySymbol) {
+        finalName = name && name !== displaySymbol ? name : displaySymbol;
+      }
+      console.log("[MainPanel] Applying symbol from LLM:", {
+        symbol,
+        finalName,
+        displaySymbol,
+        dataType,
+        period,
+      });
+      // fetchDataForSymbol will still concatenate " · " + displaySymbol itself,
+      // but we pass only the sanitized name here to keep the pipeline single-sourced.
+      await fetchDataForSymbol(symbol, finalName, period, MAX_DATA_POINTS, dataType);
+    },
+    [fetchDataForSymbol, normalizeSymbolAndType, cleanTitleFragment],
+  );
+  /**
+   * Listen for chart data updates from LLM responses.
+   * Also handles structured analysis + mandatory disclaimer.
+   *
+   * Whenever the LLM response carries a symbol, the chart is switched to
+   * that symbol, even if the rest of the chart block is minimal.
+   *
+   * When an analysis block is detected, the "AI" tab is automatically opened
+   * and the function area is expanded so the user can see the result immediately.
    */
   useEffect(() => {
     const handleChartDataUpdated = (event: CustomEvent) => {
@@ -352,63 +576,87 @@ export const MainPanel: React.FC<MainPanelProps> = ({ theme, i18n, currentSessio
         console.log("[MainPanel] Skipping already processed chart data:", messageId);
         return;
       }
-      if (hasChartData(content)) {
-        if (messageId) processedMessageIdsRef.current.add(messageId);
+      // Parse once; the same parsed object drives both chart and analysis.
+      let parsed: any = null;
+      try {
+        parsed = JSON.parse(content);
+      } catch {
+        parsed = null;
+      }
+      // ------------------------------------------------------------------
+      // 1. Handle symbol switch FIRST, independent of full chart payload
+      // ------------------------------------------------------------------
+      const rawSymbol: string | undefined = parsed?.terminalResponse?.chart?.symbol;
+      if (rawSymbol) {
+        // Pass the LLM-provided chart title (if any) so the frontend can extract
+        // a clean display name from it. The final title is rebuilt locally as
+        // "name · code" and never taken verbatim from the LLM.
+        const providedTitle: string | undefined = parsed?.terminalResponse?.chart?.title;
+        applySymbolFromLLM(rawSymbol, providedTitle);
+      }
+      // ------------------------------------------------------------------
+      // 2. Handle chart operations (DSL, indicators, marks, chart type)
+      // ------------------------------------------------------------------
+      if (parsed && hasChartData(content)) {
         const chartData = extractChartData(content);
-        if (!chartData) return;
-        console.log("[MainPanel] Processing chart operation from LLM:", chartData);
-        // 1. Handle symbol change - dispatch event ONLY
-        if (chartData.symbol) {
-          const symbol = chartData.symbol;
-          let cleanSymbol = symbol;
-          let dataType = "crypto";
-          if (symbol.includes("/")) {
-            cleanSymbol = symbol;
-            dataType = "crypto";
-          } else if (symbol.match(/^[A-Z]+$/)) {
-            cleanSymbol = symbol;
-            dataType = "stock";
-          } else {
-            cleanSymbol = symbol;
-            dataType = "astock";
+        if (chartData) {
+          console.log("[MainPanel] Processing chart operation from LLM:", chartData);
+          // Handle DSL script execution
+          if (chartData.dslScript) {
+            if (dslRef.current) {
+              dslRef.current.setScript(chartData.dslScript);
+              if (chartData.autoExecuteDSL !== false) {
+                setTimeout(() => dslRef.current?.execute(), 300);
+              }
+            }
           }
-          window.dispatchEvent(
-            new CustomEvent(SET_CHART_DATA, {
-              detail: { symbol: cleanSymbol, dataType },
-            }),
-          );
-        }
-        // 2. Handle DSL script execution
-        if (chartData.dslScript) {
-          if (dslRef.current) {
-            dslRef.current.setScript(chartData.dslScript);
-            if (chartData.autoExecuteDSL !== false) {
-              setTimeout(() => dslRef.current?.execute(), 300);
+          // Apply chart config.
+          // NOTE: We intentionally DO NOT copy chartData.title into config.title,
+          // because the title is already fully managed by setChartSymbol via the
+          // "name · code" pipeline. Copying the raw LLM title here would
+          // overwrite the clean title with the possibly-dirty LLM one.
+          if (chartRef.current) {
+            const config: any = {};
+            if (chartData.chartType) config.chartType = chartData.chartType;
+            if (chartData.mainIndicators) config.mainIndicators = chartData.mainIndicators;
+            if (chartData.subIndicators) config.subIndicators = chartData.subIndicators;
+            if (chartData.staticMarks && chartData.staticMarks.length > 0) {
+              config.staticMarks = convertStaticMarks(chartData.staticMarks);
+            }
+            if (Object.keys(config).length > 0) {
+              chartRef.current.applyConfig(config);
             }
           }
         }
-        // 3. Apply chart config
-        if (chartRef.current) {
-          const config: any = {};
-          if (chartData.chartType) config.chartType = chartData.chartType;
-          if (chartData.title) config.title = chartData.title;
-          if (chartData.mainIndicators) config.mainIndicators = chartData.mainIndicators;
-          if (chartData.subIndicators) config.subIndicators = chartData.subIndicators;
-          if (chartData.staticMarks && chartData.staticMarks.length > 0) {
-            config.staticMarks = convertStaticMarks(chartData.staticMarks);
-          }
-          if (Object.keys(config).length > 0) {
-            chartRef.current.applyConfig(config);
-          }
+      }
+      // ------------------------------------------------------------------
+      // 3. Handle structured analysis + disclaimer (independent of chart)
+      // ------------------------------------------------------------------
+      if (parsed) {
+        const analysis = parsed?.terminalResponse?.analysis;
+        const chatMsg = parsed?.chatResponse?.m;
+        const rawDisclaimer = parsed?.chatResponse?.disclaimer;
+        if (analysis || chatMsg) {
+          const lang: "zh" | "en" = isZh ? "zh" : "en";
+          const safeDisclaimer = resolveDisclaimer(rawDisclaimer, lang);
+          // Fallback safety net: always show a disclaimer when analysis exists
+          const finalDisclaimer = analysis ? safeDisclaimer || (lang === "zh" ? DEFAULT_DISCLAIMER_ZH : DEFAULT_DISCLAIMER_EN) : "";
+          // Pass the whole analysis object; the panel decides what to render.
+          const merged = { ...(analysis || {}), _chatMessage: chatMsg || "" };
+          setAnalysisData(merged);
+          setAnalysisDisclaimer(finalDisclaimer);
+          // Automatically open the "AI" tab and expand the function area
+          // so the freshly received analysis is visible immediately.
+          setActiveFunctionTab("ai");
+          setIsFunctionCollapsed(false);
         }
       }
+      // Mark the message as processed after handling, so re-dispatches are ignored.
+      if (messageId) processedMessageIdsRef.current.add(messageId);
     };
     window.addEventListener("chart-data-updated", handleChartDataUpdated as EventListener);
     return () => window.removeEventListener("chart-data-updated", handleChartDataUpdated as EventListener);
-  }, [convertStaticMarks]);
-  /**
-   * Listen for open-chart-with-data event - Non-blocking
-   */
+  }, [convertStaticMarks, isZh, applySymbolFromLLM]);
   useEffect(() => {
     const handleOpenChartWithData = (event: CustomEvent) => {
       const { taskData } = event.detail;
@@ -418,11 +666,7 @@ export const MainPanel: React.FC<MainPanelProps> = ({ theme, i18n, currentSessio
           if (parsedData.terminalResponse?.chart) {
             const chartData = parsedData.terminalResponse.chart;
             if (chartData.symbol) {
-              window.dispatchEvent(
-                new CustomEvent(SET_CHART_DATA, {
-                  detail: { symbol: chartData.symbol },
-                }),
-              );
+              applySymbolFromLLM(chartData.symbol, chartData.title);
             }
             if (chartData.dslScript && dslRef.current) {
               dslRef.current.setScript(chartData.dslScript);
@@ -433,7 +677,6 @@ export const MainPanel: React.FC<MainPanelProps> = ({ theme, i18n, currentSessio
             if (chartRef.current) {
               const config: any = {};
               if (chartData.chartType) config.chartType = chartData.chartType;
-              if (chartData.title) config.title = chartData.title;
               if (chartData.mainIndicators) config.mainIndicators = chartData.mainIndicators;
               if (chartData.subIndicators) config.subIndicators = chartData.subIndicators;
               if (chartData.staticMarks && chartData.staticMarks.length > 0) {
@@ -444,15 +687,14 @@ export const MainPanel: React.FC<MainPanelProps> = ({ theme, i18n, currentSessio
               }
             }
           }
-        } catch (e) {
+        } catch {
           // Ignore
         }
       }
     };
     window.addEventListener("open-chart-with-data", handleOpenChartWithData as EventListener);
     return () => window.removeEventListener("open-chart-with-data", handleOpenChartWithData as EventListener);
-  }, [convertStaticMarks]);
-  // Engine check for DSL
+  }, [convertStaticMarks, applySymbolFromLLM]);
   useEffect(() => {
     const checkEngine = () => {
       if (chartRef.current) {
@@ -463,9 +705,6 @@ export const MainPanel: React.FC<MainPanelProps> = ({ theme, i18n, currentSessio
     const interval = setInterval(checkEngine, 300);
     return () => clearInterval(interval);
   }, []);
-  /**
-   * Load default Bitcoin data on component mount - Only once
-   */
   useEffect(() => {
     if (!initialLoadRef.current && (!data || data.length === 0)) {
       initialLoadRef.current = true;
@@ -473,7 +712,6 @@ export const MainPanel: React.FC<MainPanelProps> = ({ theme, i18n, currentSessio
       fetchDataForSymbol("BTC/USDT", "BTC", "101", MAX_DATA_POINTS, "crypto");
     }
   }, [data, fetchDataForSymbol]);
-  // Resize handlers...
   const startFunctionResizing = useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault();
@@ -540,7 +778,6 @@ export const MainPanel: React.FC<MainPanelProps> = ({ theme, i18n, currentSessio
       if (!isMarketResizing) return;
       const container = containerRef.current;
       if (!container) return;
-      const rect = container.getBoundingClientRect();
       const deltaX = startMarketXRef.current - e.clientX;
       let newWidth = startMarketWidthRef.current + deltaX;
       newWidth = Math.max(150, Math.min(280, newWidth));
@@ -551,7 +788,6 @@ export const MainPanel: React.FC<MainPanelProps> = ({ theme, i18n, currentSessio
   const stopMarketResizing = useCallback(() => {
     setIsMarketResizing(false);
   }, []);
-  // Event listeners for resize
   useEffect(() => {
     if (isFunctionResizing) {
       document.addEventListener("mousemove", handleFunctionMouseMove);
@@ -588,6 +824,8 @@ export const MainPanel: React.FC<MainPanelProps> = ({ theme, i18n, currentSessio
     switch (activeFunctionTab) {
       case "news":
         return <NewsPanel theme={theme} i18n={i18n} language={isZh ? "zh" : "en"} />;
+      case "ai":
+        return <AIAnalysis theme={theme} i18n={i18n} analysis={analysisData} disclaimer={analysisDisclaimer} currentSessionId={currentSessionId} />;
       case "dsl":
       default:
         return (

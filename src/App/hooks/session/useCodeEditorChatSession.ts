@@ -103,6 +103,7 @@ export function useCodeEditorSession(
         sessionId: string,
         files?: UploadFile[],
         workflowMode?: string,
+        displayMessage?: string,
     ) => {
         const now = new Date();
         let finalSessionId = sessionId || currentSessionId;
@@ -172,10 +173,14 @@ export function useCodeEditorSession(
                 }));
             }
         }
+        // The bubble text is the clean display text if provided; otherwise fall
+        // back to the full message (keeps backwards compatibility with any caller
+        // that does not pass displayMessage).
+        const bubbleText = displayMessage ?? userMessage;
         const userMsg: ChatMessage = {
             id: `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
             role: RoleEnum.User,
-            content: userMessage,
+            content: bubbleText,
             timestamp: now.toISOString(),
             files: files,
         };
@@ -184,6 +189,8 @@ export function useCodeEditorSession(
             const workspace = await workspaceCommands.getDefaultWorkspace();
             const workspacePath = workspace?.workspace_path;
             const systemPrompt = getCodeEditorSystemPrompt(language as 'zh' | 'en', workspacePath);
+            // NOTE: the LLM still receives the FULL userMessage (with file bodies
+            // and editor content). Only the UI bubble is cleaned up.
             const fullMessage = `${systemPrompt}\n\n User: ${userMessage}`;
             const mode = workflowMode || currentWorkflowMode;
             const taskId = await hippoxCommands.sendMessageAsync(

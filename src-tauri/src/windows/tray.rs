@@ -9,8 +9,8 @@ use crate::windows::{WindowIdentifier, WindowType};
 use once_cell::sync::Lazy;
 use std::sync::Mutex;
 static LLM_HEALTH_CACHE: Lazy<Mutex<std::collections::HashMap<String, bool>>> = Lazy::new(|| Mutex::new(std::collections::HashMap::new()));
-const TRAY_MENU_WIDTH: f64 = 260.0;
-const TRAY_MENU_HEIGHT: f64 = 190.0;
+const TRAY_MENU_WIDTH: f64 = 200.0;
+const TRAY_MENU_HEIGHT: f64 = 145.0;
 impl TrayManager {
     pub fn setup<R: Runtime>(app: &tauri::App<R>) -> Result<(), Box<dyn std::error::Error>> {
         let app_handle = app.app_handle().clone();
@@ -23,12 +23,7 @@ impl TrayManager {
                 TrayIconEvent::Click { button: MouseButton::Left, button_state: MouseButtonState::Up, .. } => {
                     Self::toggle_window(&app_handle);
                 }
-                TrayIconEvent::Click {
-                    button: MouseButton::Right,
-                    button_state: MouseButtonState::Up,
-                    position,
-                    ..
-                } => {
+                TrayIconEvent::Click { button: MouseButton::Right, button_state: MouseButtonState::Up, position, .. } => {
                     // `position` is the tray icon position in PHYSICAL pixels,
                     // origin top-left, exactly what we need for placement.
                     let _ = Self::create_tray_window(&app_handle, position.x, position.y);
@@ -38,7 +33,11 @@ impl TrayManager {
             .build(app)?;
         Ok(())
     }
-    fn create_tray_window<R: Runtime>(app_handle: &AppHandle<R>, icon_physical_x: f64, icon_physical_y: f64) -> Result<(), Box<dyn std::error::Error>> {
+    fn create_tray_window<R: Runtime>(
+        app_handle: &AppHandle<R>,
+        icon_physical_x: f64,
+        icon_physical_y: f64,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         let (pos_x, pos_y) = Self::calculate_window_position(app_handle, icon_physical_x, icon_physical_y, TRAY_MENU_WIDTH, TRAY_MENU_HEIGHT)?;
         let window_label = format!("{}", WindowIdentifier::Tray);
         let url_type = format!("{}", WindowType::Tray);

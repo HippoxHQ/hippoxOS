@@ -3,7 +3,7 @@ import { configCommands } from "../command/config";
 import { windowsCommands } from "../command/windows";
 import { zh, en } from "../i18n";
 import { SystemEvent } from "../types/types";
-import { Bot, RotateCw, Info, LogOut, LucideIcon, Loader2, Download, RefreshCw, CheckCircle, Sparkles } from "lucide-react";
+import { Bot, RotateCw, Info, LogOut, LucideIcon, Loader2, Download, RefreshCw, CheckCircle, Sparkles, ChevronRight } from "lucide-react";
 import { systemUpdateCommands, VersionInfo } from "../command/SystemUpdate";
 const getTranslation = (language: "zh" | "en", key: string): string => {
   const translations = language === "zh" ? zh : en;
@@ -51,7 +51,6 @@ const SystemTrayWindow: React.FC = () => {
       }
     };
     loadData();
-    // Cleanup timer on unmount
     return () => {
       if (resetTimerId) {
         clearTimeout(resetTimerId);
@@ -59,7 +58,6 @@ const SystemTrayWindow: React.FC = () => {
     };
   }, []);
   const isZh = language === "zh";
-  // Schedule auto-reset of update status after 10 seconds
   const scheduleAutoReset = () => {
     if (resetTimerId) {
       clearTimeout(resetTimerId);
@@ -74,7 +72,6 @@ const SystemTrayWindow: React.FC = () => {
     }, 10000);
     setResetTimerId(timer);
   };
-  // Handle check update logic - same as UniversalSettings
   const handleCheckUpdate = async () => {
     if (resetTimerId) {
       clearTimeout(resetTimerId);
@@ -90,13 +87,12 @@ const SystemTrayWindow: React.FC = () => {
       scheduleAutoReset();
     } catch (error) {
       console.error("Failed to check update:", error);
-      setUpdateError(isZh ? "检查更新失败，请稍后重试" : "Failed to check update, please try again");
+      setUpdateError(isZh ? "检查更新失败" : "Check failed");
       scheduleAutoReset();
     } finally {
       setCheckingUpdate(false);
     }
   };
-  // Handle download and install update
   const handleDownloadAndInstall = async () => {
     if (!versionInfo?.download_url) {
       setUpdateError(isZh ? "下载链接不可用" : "Download URL not available");
@@ -106,14 +102,12 @@ const SystemTrayWindow: React.FC = () => {
     setDownloadProgress(0);
     setUpdateError(null);
     try {
-      // Call backend to download and install
       await systemUpdateCommands.downloadAndInstallUpdate(versionInfo.download_url, (progress: number) => {
         setDownloadProgress(progress);
       });
-      // On success, the app will exit and installer will run
     } catch (error) {
       console.error("Download/Install failed:", error);
-      setUpdateError(isZh ? "下载或安装失败，请重试" : "Download or install failed, please retry");
+      setUpdateError(isZh ? "下载或安装失败" : "Download or install failed");
       setDownloading(false);
       scheduleAutoReset();
     }
@@ -129,7 +123,22 @@ const SystemTrayWindow: React.FC = () => {
   };
   const isDark = theme === "dark";
   const t = (key: string) => getTranslation(language, key);
-  // ===== Menu items with lucide-react icons =====
+  // ===== Compact palette =====
+  const palette = {
+    bg: isDark ? "#1c1f27" : "#ffffff",
+    border: isDark ? "#2a2e38" : "#e6e8ec",
+    divider: isDark ? "#262a33" : "#eef0f3",
+    text: isDark ? "#e6e9ef" : "#1f2430",
+    textMuted: isDark ? "#7c8290" : "#9096a3",
+    hover: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.035)",
+    hoverStrong: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)",
+    accent: "#3b82f6",
+    accentSoft: isDark ? "rgba(59,130,246,0.15)" : "rgba(59,130,246,0.10)",
+    success: "#22c55e",
+    danger: "#ef4444",
+    btnBg: isDark ? "#262a33" : "#f3f4f6",
+    btnBorder: isDark ? "#31363f" : "#dfe2e7",
+  };
   interface MenuItem {
     id: string;
     label: string;
@@ -153,289 +162,256 @@ const SystemTrayWindow: React.FC = () => {
     { id: SystemEvent.ShowAbout, label: "About", icon: Info },
     { id: "quit", label: t("common.close") || "Quit", icon: LogOut },
   ];
-  // ===== Build menu items with dividers =====
-  const renderedMenuItems: (MenuItem | { divider: boolean })[] = [menuItems[0], { divider: true }, menuItems[1], menuItems[2], { divider: true }, menuItems[3]];
-  const styles = {
+  // ===== Compact styles =====
+  const S = {
     container: {
-      backgroundColor: isDark ? "#1a1d26" : "#ffffff",
-      borderRadius: "8px",
-      border: `1px solid ${isDark ? "#2d303a" : "#e5e7eb"}`,
-      boxShadow: isDark ? "0 2px 8px rgba(0,0,0,0.25)" : "0 2px 8px rgba(0,0,0,0.08)",
+      backgroundColor: palette.bg,
+      borderRadius: "6px",
+      border: `1px solid ${palette.border}`,
+      boxShadow: isDark ? "0 4px 14px rgba(0,0,0,0.35)" : "0 4px 14px rgba(0,0,0,0.08)",
       overflow: "hidden" as const,
+      minWidth: "196px",
     },
     menuContainer: {
-      padding: "6px 0",
-      maxHeight: "345px",
+      padding: "4px",
+      maxHeight: "300px",
       overflowY: "auto" as const,
-      scrollbarColor: isDark ? "#3a3f4a #1a1d26" : "#cbd5e1 #e5e7eb",
     },
     menuItem: {
       display: "flex" as const,
       alignItems: "center" as const,
-      gap: "10px",
-      padding: "8px 14px",
+      gap: "8px",
+      padding: "6px 8px",
+      borderRadius: "4px",
       cursor: "pointer" as const,
-      color: isDark ? "#e8edf2" : "#111827",
-      fontSize: "13px",
+      color: palette.text,
+      fontSize: "12px",
+      lineHeight: "16px",
       backgroundColor: "transparent",
-      transition: "background-color 0.15s",
+      transition: "background-color 0.12s ease",
     },
     menuIcon: {
-      width: "18px",
-      height: "18px",
+      width: "14px",
+      height: "14px",
       flexShrink: 0 as const,
+      color: palette.textMuted,
     },
     menuLabel: {
       flex: 1,
+      whiteSpace: "nowrap" as const,
+      overflow: "hidden" as const,
+      textOverflow: "ellipsis" as const,
     },
     submenuArrow: {
       marginLeft: "auto",
-      fontSize: "10px",
-      color: isDark ? "#6b7280" : "#9ca3af",
+      display: "flex" as const,
+      alignItems: "center" as const,
+      color: palette.textMuted,
+      flexShrink: 0 as const,
     },
     divider: {
       height: "1px",
-      backgroundColor: isDark ? "#2d303a" : "#e5e7eb",
-      margin: "6px 0",
+      backgroundColor: palette.divider,
+      margin: "3px 6px",
     },
-    // Update status styles
-    updateStatusContainer: {
+    // ---- inline status row (single-line, compact) ----
+    statusRow: {
       display: "flex" as const,
       alignItems: "center" as const,
-      gap: "8px",
+      gap: "6px",
       flex: 1,
+      minWidth: 0,
     },
-    updateStatusText: {
-      fontSize: "12px",
-      color: isDark ? "#e8edf2" : "#111827",
+    statusText: {
+      fontSize: "11px",
+      color: palette.text,
+      whiteSpace: "nowrap" as const,
+      overflow: "hidden" as const,
+      textOverflow: "ellipsis" as const,
     },
-    updateErrorText: {
-      fontSize: "12px",
-      color: "#ff4444",
-    },
-    updateSuccessText: {
-      fontSize: "12px",
-      color: "#4caf50",
-    },
-    updateAccentText: {
-      fontSize: "12px",
-      color: "#00aaff",
-      fontWeight: 500,
-    },
-    updateVersionText: {
+    statusMuted: {
       fontSize: "10px",
-      color: isDark ? "#6b7280" : "#9ca3af",
+      color: palette.textMuted,
+      flexShrink: 0 as const,
     },
-    retryButton: {
-      padding: "2px 10px",
-      borderRadius: "4px",
-      border: `1px solid ${isDark ? "#3a3f4a" : "#d1d5db"}`,
-      background: "transparent",
-      color: isDark ? "#e8edf2" : "#111827",
-      cursor: "pointer" as const,
+    statusSuccess: {
       fontSize: "11px",
+      color: palette.success,
+    },
+    statusError: {
+      fontSize: "11px",
+      color: palette.danger,
+      whiteSpace: "nowrap" as const,
+      overflow: "hidden" as const,
+      textOverflow: "ellipsis" as const,
+    },
+    statusAccent: {
+      fontSize: "11px",
+      color: palette.accent,
+      fontWeight: 500 as const,
+      whiteSpace: "nowrap" as const,
+      overflow: "hidden" as const,
+      textOverflow: "ellipsis" as const,
+    },
+    // ---- compact buttons ----
+    btnGhost: {
+      padding: "2px 8px",
+      borderRadius: "4px",
+      border: `1px solid ${palette.btnBorder}`,
+      background: "transparent",
+      color: palette.text,
+      cursor: "pointer" as const,
+      fontSize: "10px",
+      lineHeight: "14px",
       display: "flex" as const,
       alignItems: "center" as const,
-      gap: "4px",
+      gap: "3px",
+      flexShrink: 0 as const,
+      transition: "background-color 0.12s ease",
     },
-    updateButton: {
-      padding: "2px 12px",
+    btnPrimary: {
+      padding: "2px 8px",
       borderRadius: "4px",
       border: "none",
-      background: "#00aaff",
-      color: "white",
+      background: palette.accent,
+      color: "#fff",
       cursor: "pointer" as const,
-      fontSize: "11px",
+      fontSize: "10px",
+      lineHeight: "14px",
       display: "flex" as const,
       alignItems: "center" as const,
-      gap: "4px",
+      gap: "3px",
       flexShrink: 0 as const,
+      transition: "opacity 0.12s ease",
     },
-    updateButtonDisabled: {
-      padding: "2px 12px",
-      borderRadius: "4px",
-      border: "none",
-      background: "#555",
-      color: "#999",
-      cursor: "not-allowed" as const,
-      fontSize: "11px",
-      display: "flex" as const,
-      alignItems: "center" as const,
-      gap: "4px",
-      flexShrink: 0 as const,
-    },
-    checkButton: {
-      padding: "2px 12px",
-      borderRadius: "4px",
-      border: `1px solid ${isDark ? "#3a3f4a" : "#d1d5db"}`,
-      background: "transparent",
-      color: isDark ? "#e8edf2" : "#111827",
-      cursor: "pointer" as const,
-      fontSize: "11px",
-      display: "flex" as const,
-      alignItems: "center" as const,
-      gap: "4px",
-      flexShrink: 0 as const,
-    },
-    loadingSpinner: {
+    spinner: {
       animation: "spin 1s linear infinite",
     },
   };
-  // Helper to render update item content
+  // ===== Update item renderer (compact) =====
   const renderUpdateItem = (item: MenuItem) => {
     const isHovered = hoveredItem === item.id;
-    // If checking for update
+    const rowBg = isHovered ? palette.hover : "transparent";
+    // Checking
     if (checkingUpdate) {
       return (
-        <div
-          style={{
-            ...styles.menuItem,
-            backgroundColor: isHovered ? (isDark ? "rgba(232,237,242,0.08)" : "rgba(0,0,0,0.04)") : "transparent",
-          }}
-          onMouseEnter={() => setHoveredItem(item.id)}
-          onMouseLeave={() => setHoveredItem(null)}
-        >
-          <item.icon style={styles.menuIcon} />
-          <div style={styles.updateStatusContainer}>
-            <Loader2 size={14} style={styles.loadingSpinner} />
-            <span style={styles.updateStatusText}>{isZh ? "检查中..." : "Checking..."}</span>
+        <div style={{ ...S.menuItem, backgroundColor: rowBg, cursor: "default" }} onMouseEnter={() => setHoveredItem(item.id)} onMouseLeave={() => setHoveredItem(null)}>
+          <Loader2 size={13} style={S.spinner} color={palette.textMuted} />
+          <div style={S.statusRow}>
+            <span style={S.statusText}>{isZh ? "检查中…" : "Checking…"}</span>
           </div>
         </div>
       );
     }
-    // If downloading
+    // Downloading
     if (downloading) {
       return (
-        <div
-          style={{
-            ...styles.menuItem,
-            backgroundColor: isHovered ? (isDark ? "rgba(232,237,242,0.08)" : "rgba(0,0,0,0.04)") : "transparent",
-          }}
-          onMouseEnter={() => setHoveredItem(item.id)}
-          onMouseLeave={() => setHoveredItem(null)}
-        >
-          <Loader2 size={14} style={styles.loadingSpinner} />
-          <div style={styles.updateStatusContainer}>
-            <span style={styles.updateStatusText}>{isZh ? `下载中` : `Downloading`}</span>
+        <div style={{ ...S.menuItem, backgroundColor: rowBg, cursor: "default" }} onMouseEnter={() => setHoveredItem(item.id)} onMouseLeave={() => setHoveredItem(null)}>
+          <Loader2 size={13} style={S.spinner} color={palette.accent} />
+          <div style={S.statusRow}>
+            <span style={S.statusText}>
+              {isZh ? "下载中" : "Downloading"}
+              {downloadProgress > 0 ? ` ${downloadProgress}%` : ""}
+            </span>
           </div>
         </div>
       );
     }
-    // If there's an error
+    // Error
     if (updateError) {
       return (
-        <div
-          style={{
-            ...styles.menuItem,
-            backgroundColor: isHovered ? (isDark ? "rgba(232,237,242,0.08)" : "rgba(0,0,0,0.04)") : "transparent",
-          }}
-          onMouseEnter={() => setHoveredItem(item.id)}
-          onMouseLeave={() => setHoveredItem(null)}
-        >
-          <item.icon style={styles.menuIcon} />
-          <div style={styles.updateStatusContainer}>
-            <span style={styles.updateErrorText}>{updateError}</span>
-            <button
-              style={styles.retryButton}
-              onClick={(e) => {
-                e.stopPropagation();
-                handleCheckUpdate();
-              }}
-            >
-              <RefreshCw size={10} />
-              {isZh ? "重试" : "Retry"}
-            </button>
+        <div style={{ ...S.menuItem, backgroundColor: rowBg, cursor: "default" }} onMouseEnter={() => setHoveredItem(item.id)} onMouseLeave={() => setHoveredItem(null)}>
+          <item.icon style={S.menuIcon} />
+          <div style={S.statusRow}>
+            <span style={S.statusError}>{updateError}</span>
           </div>
+          <button
+            style={S.btnGhost}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleCheckUpdate();
+            }}
+          >
+            <RefreshCw size={9} />
+            {isZh ? "重试" : "Retry"}
+          </button>
         </div>
       );
     }
-    // If update is available
+    // Update available
     if (versionInfo?.has_update) {
       return (
-        <div
-          style={{
-            ...styles.menuItem,
-            backgroundColor: isHovered ? (isDark ? "rgba(232,237,242,0.08)" : "rgba(0,0,0,0.04)") : "transparent",
-            padding: "6px 14px",
-          }}
-          onMouseEnter={() => setHoveredItem(item.id)}
-          onMouseLeave={() => setHoveredItem(null)}
-        >
-          <Sparkles size={14} style={{ color: "#00aaff", flexShrink: 0 }} />
-          <div style={styles.updateStatusContainer}>
-            <span style={styles.updateAccentText}>{isZh ? `发现新版本 ${versionInfo.latest_version}` : `New version ${versionInfo.latest_version} available`}</span>
-            <span style={styles.updateVersionText}>{isZh ? `当前: ${versionInfo.current_version}` : `Current: ${versionInfo.current_version}`}</span>
+        <div style={{ ...S.menuItem, backgroundColor: rowBg, cursor: "default" }} onMouseEnter={() => setHoveredItem(item.id)} onMouseLeave={() => setHoveredItem(null)}>
+          <Sparkles size={13} color={palette.accent} style={{ flexShrink: 0 }} />
+          <div style={S.statusRow}>
+            <span style={S.statusAccent}>{isZh ? `发现新版本 ${versionInfo.latest_version}` : `v${versionInfo.latest_version} available`}</span>
           </div>
           <button
-            style={styles.updateButton}
+            style={S.btnPrimary}
             onClick={(e) => {
               e.stopPropagation();
               handleDownloadAndInstall();
             }}
           >
-            <Download size={12} />
+            <Download size={9} />
             {isZh ? "更新" : "Update"}
           </button>
         </div>
       );
     }
-    // If already up to date
+    // Up to date
     if (versionInfo && !versionInfo.has_update) {
       return (
-        <div
-          style={{
-            ...styles.menuItem,
-            backgroundColor: isHovered ? (isDark ? "rgba(232,237,242,0.08)" : "rgba(0,0,0,0.04)") : "transparent",
-          }}
-          onMouseEnter={() => setHoveredItem(item.id)}
-          onMouseLeave={() => setHoveredItem(null)}
-        >
-          <CheckCircle size={14} style={{ color: "#4caf50", flexShrink: 0 }} />
-          <span style={styles.updateSuccessText}>{isZh ? "当前已是最新版本" : "You are on the latest version"}</span>
+        <div style={{ ...S.menuItem, backgroundColor: rowBg, cursor: "default" }} onMouseEnter={() => setHoveredItem(item.id)} onMouseLeave={() => setHoveredItem(null)}>
+          <CheckCircle size={13} color={palette.success} style={{ flexShrink: 0 }} />
+          <div style={S.statusRow}>
+            <span style={S.statusSuccess}>{isZh ? "已是最新版本" : "Up to date"}</span>
+          </div>
         </div>
       );
     }
-    // Default: show check update button
+    // Default: show check button
     return (
-      <div
-        style={{
-          ...styles.menuItem,
-          backgroundColor: isHovered ? (isDark ? "rgba(232,237,242,0.08)" : "rgba(0,0,0,0.04)") : "transparent",
-        }}
-        onClick={() => handleCheckUpdate()}
-        onMouseEnter={() => setHoveredItem(item.id)}
-        onMouseLeave={() => setHoveredItem(null)}
-      >
-        <item.icon style={styles.menuIcon} />
-        <span style={styles.menuLabel}>{item.label}</span>
+      <div style={{ ...S.menuItem, backgroundColor: rowBg }} onClick={() => handleCheckUpdate()} onMouseEnter={() => setHoveredItem(item.id)} onMouseLeave={() => setHoveredItem(null)}>
+        <item.icon style={S.menuIcon} />
+        <span style={S.menuLabel}>{item.label}</span>
         <button
-          style={styles.checkButton}
+          style={S.btnGhost}
           onClick={(e) => {
             e.stopPropagation();
             handleCheckUpdate();
           }}
         >
-          <RefreshCw size={10} />
+          <RefreshCw size={9} />
           {isZh ? "检查" : "Check"}
         </button>
       </div>
     );
   };
+  // ===== Menu layout with dividers =====
+  const renderedMenuItems: (MenuItem | { divider: boolean })[] = [menuItems[0], { divider: true }, menuItems[1], { divider: true }, menuItems[2], menuItems[3]];
   return (
-    <div style={styles.container}>
-      {/* Add spin animation keyframes */}
+    <div style={S.container}>
       <style>{`
         @keyframes spin {
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }
         }
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb {
+          background: ${isDark ? "#31363f" : "#d5d8dd"};
+          border-radius: 2px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+          background: ${isDark ? "#3a4049" : "#c1c5cc"};
+        }
       `}</style>
-      <div style={styles.menuContainer}>
+      <div style={S.menuContainer}>
         {renderedMenuItems.map((item, index) => {
           if ("divider" in item) {
-            return <div key={`divider-${index}`} style={styles.divider} />;
+            return <div key={`divider-${index}`} style={S.divider} />;
           }
-          // Special rendering for update item
           if (item.isUpdateItem) {
             return <div key={item.id}>{renderUpdateItem(item)}</div>;
           }
@@ -445,8 +421,8 @@ const SystemTrayWindow: React.FC = () => {
             <div
               key={item.id}
               style={{
-                ...styles.menuItem,
-                backgroundColor: isHovered ? (isDark ? "rgba(232,237,242,0.08)" : "rgba(0,0,0,0.04)") : "transparent",
+                ...S.menuItem,
+                backgroundColor: isHovered ? palette.hover : "transparent",
               }}
               onClick={() => {
                 if (item.id === "llm_status") {
@@ -458,9 +434,13 @@ const SystemTrayWindow: React.FC = () => {
               onMouseEnter={() => setHoveredItem(item.id)}
               onMouseLeave={() => setHoveredItem(null)}
             >
-              <IconComponent style={styles.menuIcon} />
-              <span style={styles.menuLabel}>{item.label}</span>
-              {item.hasSubmenu && <span style={styles.submenuArrow}>▶</span>}
+              <IconComponent style={S.menuIcon} />
+              <span style={S.menuLabel}>{item.label}</span>
+              {item.hasSubmenu && (
+                <span style={S.submenuArrow}>
+                  <ChevronRight size={12} />
+                </span>
+              )}
             </div>
           );
         })}

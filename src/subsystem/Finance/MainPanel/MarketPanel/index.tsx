@@ -1,4 +1,4 @@
-import { PanelRightClose } from "lucide-react";
+import { ChartColumn, PanelRightClose } from "lucide-react";
 import React, { useState, lazy, Suspense, useRef, useEffect } from "react";
 import { MarketPanelProps } from "./types";
 // Lazy load panels - only load when tab is active
@@ -127,8 +127,10 @@ const MarketPanel: React.FC<MarketPanelProps> = ({ theme, i18n, onCryptoClick, o
           minHeight: "41px",
         }}
       >
-        <span style={{ fontSize: "12px", fontWeight: 500, color: "var(--text-primary)" }}>
-          <span style={{ marginRight: "5px" }}>📊</span>
+        <span style={{ display: "inline-flex", alignItems: "center", fontSize: "12px", fontWeight: 500, color: "var(--text-primary)" }}>
+          <span style={{ marginRight: "5px", display: "inline-flex", alignItems: "center" }}>
+            <ChartColumn size={14} />
+          </span>
           {isZh ? "市场" : "Market"}
         </span>
         <button

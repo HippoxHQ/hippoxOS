@@ -7,6 +7,34 @@ import { Language, ChatMessage, RoleEnum, MessageStatus } from "../../../types/t
 import { workspaceCommands } from "../../../command/workspace";
 import { chartSessionCommands } from "../../../command/session/finance";
 import { getFinanceSystemPrompt } from "../../../subsystem/Finance/llm/prompts";
+/**
+ * Strip the [MARKET_DATA]...[/MARKET_DATA] block from a message.
+ *
+ * The block is ONLY used for the outgoing LLM payload. It must never be
+ * persisted to taskManager, otherwise it would leak into the chat bubble.
+ *
+ * Returns:
+ *   - displayContent : clean user text (no block)
+ *   - backendMessage : the ORIGINAL message including the block (for the LLM)
+ *   - hasBlock       : whether a block was present
+ */
+function splitMarketData(raw: string): {
+    displayContent: string;
+    backendMessage: string;
+    hasBlock: boolean;
+} {
+    if (!raw) return { displayContent: "", backendMessage: "", hasBlock: false };
+    const startIdx = raw.indexOf("[MARKET_DATA]");
+    const endIdx = raw.indexOf("[/MARKET_DATA]");
+    if (startIdx === -1 || endIdx === -1 || endIdx <= startIdx) {
+        return { displayContent: raw, backendMessage: raw, hasBlock: false };
+    }
+    const blockEnd = endIdx + "[/MARKET_DATA]".length;
+    const before = raw.substring(0, startIdx).replace(/\s+$/, "");
+    const after = raw.substring(blockEnd).replace(/^\s+/, "");
+    const displayContent = (before + (before && after ? "\n" : "") + after).trim();
+    return { displayContent, backendMessage: raw, hasBlock: true };
+}
 export function useFinanceSession(
     language: Language,
     isConfigLoaded: boolean,
@@ -102,6 +130,15 @@ export function useFinanceSession(
     ) => {
         const now = new Date();
         let finalSessionId = sessionId || currentSessionId;
+        // ------------------------------------------------------------------
+        // Split the outgoing message:
+        //   - displayContent : clean text stored in taskManager (bubble shows this)
+        //   - backendMessage : the ORIGINAL message with [MARKET_DATA] for the LLM
+        //
+        // The [MARKET_DATA] block is NEVER persisted. It only travels inside
+        // `backendMessage` on its way to the LLM.
+        // ------------------------------------------------------------------
+        const { displayContent, backendMessage } = splitMarketData(userMessage);
         if (finalSessionId && !finalSessionId.startsWith("pending_") &&
             !finalSessionId.startsWith("chart_session_") && !finalSessionId.startsWith("temp_")) {
             console.error(
@@ -111,9 +148,9 @@ export function useFinanceSession(
         }
         if (finalSessionId && finalSessionId.startsWith("pending_")) {
             const newSessionId = `chart_session_${Date.now()}`;
-            const sessionTitle = userMessage.length > 30
-                ? userMessage.slice(0, 30) + "..."
-                : userMessage;
+            const sessionTitle = displayContent.length > 30
+                ? displayContent.slice(0, 30) + "..."
+                : displayContent;
             const tempUserMessages = taskManager.getUserMessagesBySession(finalSessionId, SessionDomain.Chart);
             const tempAssistantMessages = taskManager.getAssistantMessagesBySessionAsArray(finalSessionId, SessionDomain.Chart);
             const tempTasksMap = taskManager.getTasksBySession(finalSessionId, SessionDomain.Chart);
@@ -134,9 +171,9 @@ export function useFinanceSession(
             setPendingNewSession(false);
         } else if (!finalSessionId) {
             const newSessionId = `chart_session_${Date.now()}`;
-            const sessionTitle = userMessage.length > 30
-                ? userMessage.slice(0, 30) + "..."
-                : userMessage;
+            const sessionTitle = displayContent.length > 30
+                ? displayContent.slice(0, 30) + "..."
+                : displayContent;
             await chartSessionCommands.createChartSession(
                 newSessionId,
                 sessionTitle,
@@ -150,10 +187,11 @@ export function useFinanceSession(
             setCurrentSessionId(newSessionId);
             window.dispatchEvent(new CustomEvent("chart-session-created"));
         }
+        // Store ONLY the clean display text. No [MARKET_DATA] block here.
         const userMsg: ChatMessage = {
             id: `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
             role: RoleEnum.User,
-            content: userMessage,
+            content: displayContent,
             timestamp: now.toISOString(),
             files: files,
         };
@@ -162,10 +200,11 @@ export function useFinanceSession(
             const workspace = await workspaceCommands.getDefaultWorkspace();
             const workspacePath = workspace?.workspace_path;
             const systemPrompt = getFinanceSystemPrompt(language as 'zh' | 'en', workspacePath);
-            const fullMessage = `${systemPrompt}\n\n User: ${userMessage}`;
+            // The LLM receives the FULL message including [MARKET_DATA].
+            const fullMessage = `${systemPrompt}\n\n User: ${backendMessage}`;
             const mode = workflowMode || currentWorkflowMode;
             const taskId = await hippoxCommands.sendMessageAsync(
-                userMessage,
+                backendMessage,
                 fullMessage,
                 finalSessionId,
                 mode,
@@ -182,7 +221,7 @@ export function useFinanceSession(
             const newTask: TaskInfo = {
                 task_id: taskId,
                 session_id: finalSessionId,
-                user_input: userMessage,
+                user_input: displayContent,
                 status: TaskStatusEnum.Pending,
                 steps: [],
                 final_output: undefined,

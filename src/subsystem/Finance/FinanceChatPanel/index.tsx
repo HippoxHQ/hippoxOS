@@ -15,9 +15,10 @@ import { ChatIcon, TaskQueueIcon, UserIcon, AttachmentIcon, FolderIcon, ChevronR
 import { zhDefaultPrompts, enDefaultPrompts } from "../../../types/DefaultPrompt";
 import { ChatMessage, RoleEnum, MessageStatus } from "../../../types/types";
 import { chartSessionCommands } from "../../../command/session/finance";
-import { isStructuredLLMResponse, parseLLMResponse, hasChartData } from "../llm/utils";
 import { dispatchChartDataUpdated } from "../FinanceWindowsEventsManager";
 import { filesCommands } from "../../../command/files";
+import { RawCandle, buildMessageWithData } from "../utils/dataPayload";
+import { hasChartData, isStructuredLLMResponse, parseLLMResponse } from "../utils/parser";
 interface FinanceChatPanelProps {
   onSendMessage: (message: string, sessionId: string, files?: UploadFile[], workflowMode?: string) => void | Promise<void>;
   onFileClick?: (file: UploadFile) => void;
@@ -32,6 +33,22 @@ interface FinanceChatPanelProps {
   togglePanel?: () => void;
   collapseIcon?: string;
   onCloseSkillsManager?: () => void;
+}
+/**
+ * Context of the chart's currently displayed data, populated from the
+ * "chart-klines-ready" event dispatched by MainPanel.
+ *
+ * This is the SINGLE SOURCE OF TRUTH for market data. When the user sends
+ * a message, we inject these EXACT candles into the [MARKET_DATA] block,
+ * so the LLM always analyzes the data the chart is showing.
+ */
+interface ChartDataContext {
+  symbol: string;
+  displaySymbol: string;
+  name: string;
+  dataType: string;
+  period: string;
+  klines: any[];
 }
 const FinanceChatPanel: React.FC<FinanceChatPanelProps> = ({
   onSendMessage: onSendMessageProp,
@@ -86,6 +103,12 @@ const FinanceChatPanel: React.FC<FinanceChatPanelProps> = ({
   const [isLoadingTitle, setIsLoadingTitle] = useState(false);
   const hasLoadedTitleRef = useRef<Record<string, boolean>>({});
   const collapseIcon = collapseIconProp || (isLeftPanel ? (isCollapsed ? "≫" : "≪") : isCollapsed ? "≪" : "≫");
+  /**
+   * Current chart data. Populated from the "chart-klines-ready" event.
+   * Using a ref (not state) so attachMarketData always reads the LATEST
+   * value at call time, not a stale closure snapshot.
+   */
+  const chartDataRef = useRef<ChartDataContext | null>(null);
   // Welcome message for first-time users
   const welcomeMsg: ChatMessage = {
     id: "welcome",
@@ -99,6 +122,30 @@ const FinanceChatPanel: React.FC<FinanceChatPanelProps> = ({
       setUpdateTrigger((prev) => prev + 1);
     });
     return unsubscribe;
+  }, []);
+  /**
+   * Listen for the "chart-klines-ready" event dispatched by MainPanel.
+   * MainPanel fires this whenever it finishes loading new candles for the
+   * chart. We store them so attachMarketData() can inject the EXACT same
+   * data into the outgoing [MARKET_DATA] block.
+   */
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail || {};
+      const klines: any[] = Array.isArray(detail.klines) ? detail.klines : [];
+      if (!detail.symbol || klines.length === 0) return;
+      chartDataRef.current = {
+        symbol: String(detail.symbol),
+        displaySymbol: String(detail.displaySymbol || detail.symbol),
+        name: String(detail.name || detail.displaySymbol || detail.symbol),
+        dataType: String(detail.dataType || "crypto"),
+        period: String(detail.period || "101"),
+        klines,
+      };
+      console.log("[FinanceChatPanel] Chart klines ready:", chartDataRef.current.symbol, "(" + klines.length + " candles)");
+    };
+    window.addEventListener("chart-klines-ready", handler);
+    return () => window.removeEventListener("chart-klines-ready", handler);
   }, []);
   // Get messages from task manager
   const getMessages = useCallback((): ChatMessage[] => {
@@ -158,6 +205,36 @@ const FinanceChatPanel: React.FC<FinanceChatPanelProps> = ({
     };
   }, [currentSessionId]);
   const { editingMessageId, editContent, setEditContent, handleEditMessage, handleSaveEdit, handleCancelEdit } = useEditMessage({ currentSessionId, onSendMessage: onSendMessageProp, t });
+  /**
+   * Attach the current chart data to the outgoing message.
+   *
+   * IMPORTANT:
+   * - This is the ONLY source of market data. We do NOT fetch anything here.
+   *   MainPanel already loaded the candles and broadcast them via
+   *   "chart-klines-ready". We reuse those EXACT candles.
+   * - The [MARKET_DATA] block is appended ONLY to the payload sent to the
+   *   LLM. It is NOT stored in taskManager and therefore NEVER appears in
+   *   the user's message bubble.
+   * - If no chart data is available yet, the original text is returned
+   *   unchanged (no [MARKET_DATA] block).
+   */
+  const attachMarketData = useCallback(async (text: string): Promise<string> => {
+    const ctx = chartDataRef.current;
+    if (!ctx || !Array.isArray(ctx.klines) || ctx.klines.length === 0) {
+      console.warn("[FinanceChatPanel] No chart data available - sending without [MARKET_DATA]");
+      return text;
+    }
+    const candles: RawCandle[] = ctx.klines.map((k: any) => ({
+      date: k.date,
+      open: k.open,
+      high: k.high,
+      low: k.low,
+      close: k.close,
+      volume: k.volume,
+    }));
+    console.log("[FinanceChatPanel] Attaching", candles.length, "candles for", ctx.symbol, "to LLM payload");
+    return buildMessageWithData(text, candles, ctx.symbol, "1d");
+  }, []);
   // Load workflow display names
   const loadWorkflowDisplayNames = async () => {
     try {
@@ -237,6 +314,7 @@ const FinanceChatPanel: React.FC<FinanceChatPanelProps> = ({
     }, 200);
   };
   // Resend message handler
+  // Enriches the resent message with real market data before sending.
   const handleResendMessage = (msg: ChatMessage) => {
     if (isResending || isSending) return;
     const sessionId = currentSessionId || "";
@@ -247,9 +325,11 @@ const FinanceChatPanel: React.FC<FinanceChatPanelProps> = ({
     setIsResending(true);
     const message = msg.content || "";
     const currentFiles = msg.files || [];
-    Promise.resolve(onSendMessageProp?.(message, sessionId, currentFiles)).finally(() => {
-      setTimeout(() => setIsResending(false), 300);
-    });
+    attachMarketData(message)
+      .then((payload) => onSendMessageProp?.(payload, sessionId, currentFiles))
+      .finally(() => {
+        setTimeout(() => setIsResending(false), 300);
+      });
   };
   // Get random suggestion prompts
   const getRandomPrompts = (count: number = 6): string[] => {
@@ -304,13 +384,16 @@ const FinanceChatPanel: React.FC<FinanceChatPanelProps> = ({
     };
   }, [messages, language]);
   // Handle suggestion click
+  // Enriches the suggestion prompt with real market data before sending.
   const handleSuggestionClick = (prompt: string) => {
     const sessionId = currentSessionId || "";
     if (!sessionId) {
       showToast(ToastType.SUCCESS, "Session ID cannot be empty.");
       return;
     }
-    onSendMessageProp?.(prompt, sessionId, undefined, selectedWorkflowMode);
+    attachMarketData(prompt).then((payload) => {
+      onSendMessageProp?.(payload, sessionId, undefined, selectedWorkflowMode);
+    });
   };
   const handleContainerClick = () => textareaRef.current?.focus();
   // Format file size
@@ -601,8 +684,14 @@ const FinanceChatPanel: React.FC<FinanceChatPanelProps> = ({
     setShowAttachmentMenu(false);
   };
   /**
-   * Handle send message - includes file content in the message
-   * Both text files and skill files content are included
+   * Handle send message.
+   * Real market data is attached to the outgoing payload BEFORE it reaches the LLM.
+   * Existing file / skill content is preserved and appended first.
+   *
+   * IMPORTANT: The message stored in taskManager is the RAW user input (plus
+   * any attached file contents). The [MARKET_DATA] block is ONLY appended to
+   * the payload that goes to the LLM, so it NEVER shows up in the user's
+   * chat bubble.
    */
   const handleSend = () => {
     if (isSending) return;
@@ -639,9 +728,12 @@ const FinanceChatPanel: React.FC<FinanceChatPanelProps> = ({
       setUploadedFiles([]);
       if (textareaRef.current) textareaRef.current.style.height = "auto";
       setIsSending(true);
-      Promise.resolve(onSendMessageProp?.(message, sessionId, currentFiles, selectedWorkflowMode)).finally(() => {
-        setTimeout(() => setIsSending(false), 100);
-      });
+      // Attach market data (newest N bars) before sending to the LLM
+      attachMarketData(message)
+        .then((payload) => onSendMessageProp?.(payload, sessionId, currentFiles, selectedWorkflowMode))
+        .finally(() => {
+          setTimeout(() => setIsSending(false), 100);
+        });
     }
   };
   // Update the handleKeyDown function to stop propagation
@@ -1048,9 +1140,18 @@ const FinanceChatPanel: React.FC<FinanceChatPanelProps> = ({
     return { right: 0, top: 0 };
   })();
   /**
-   * Process LLM responses and dispatch chart data events
-   * This is the primary integration point between LLM responses and chart rendering
-   * When a new LLM message arrives with chart data, we dispatch an event for MainPanel to handle
+   * Process LLM responses and dispatch chart data events.
+   *
+   * IMPORTANT: The dispatch condition was previously gated by hasChartData(),
+   * which only returned true when the LLM response contained a fully-formed
+   * terminalResponse.chart object. That caused the chart to NOT switch when
+   * the LLM returned only chatResponse.m + terminalResponse.analysis (no chart),
+   * or when the JSON was wrapped in extra text and JSON.parse failed.
+   *
+   * The fix: dispatch for ANY structured LLM response (i.e. any response that
+   * parses to an object containing chatResponse or terminalResponse).
+   * MainPanel will decide what to do with it (switch symbol, apply config,
+   * or render analysis).
    */
   const processedChartMessageIdsRef = useRef<Set<string>>(new Set());
   useEffect(() => {
@@ -1063,8 +1164,12 @@ const FinanceChatPanel: React.FC<FinanceChatPanelProps> = ({
     if (processedChartMessageIdsRef.current.has(lastMsg.id)) {
       return;
     }
-    if (hasChartData(lastMsg.content)) {
-      console.log("[FinanceChatPanel] Detected chart data in LLM response, dispatching event");
+    // Dispatch for ANY structured LLM response, not only those with chart data.
+    if (isStructuredLLMResponse(lastMsg.content)) {
+      console.log("[FinanceChatPanel] Dispatching structured LLM response", {
+        messageId: lastMsg.id,
+        hasChart: hasChartData(lastMsg.content),
+      });
       // Mark as processed BEFORE dispatching to prevent re-entry
       processedChartMessageIdsRef.current.add(lastMsg.id);
       dispatchChartDataUpdated({

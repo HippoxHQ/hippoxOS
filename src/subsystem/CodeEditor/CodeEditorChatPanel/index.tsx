@@ -19,7 +19,7 @@ import { isStructuredLLMResponse, parseLLMResponse } from "../llm/utils";
 import { CodingRef } from "../Coding";
 import { filesCommands } from "../../../command/files";
 interface CodeEditorChatPanelProps {
-  onSendMessage: (message: string, sessionId: string, files?: UploadFile[], workflowMode?: string) => void | Promise<void>;
+  onSendMessage: (message: string, sessionId: string, files?: UploadFile[], workflowMode?: string, displayMessage?: string) => void | Promise<void>;
   onFileClick?: (file: UploadFile) => void;
   t: (key: string, params?: any) => string;
   language?: string;
@@ -243,6 +243,8 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
     }, 200);
   };
   // Resend message handler
+  // The stored msg.content is already the display-only text, so we reuse it
+  // both as the LLM payload and as the bubble text.
   const handleResendMessage = (msg: ChatMessage) => {
     if (isResending || isSending) return;
     const sessionId = currentSessionId || "";
@@ -253,7 +255,7 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
     setIsResending(true);
     const message = msg.content || "";
     const currentFiles = msg.files || [];
-    Promise.resolve(onSendMessageProp?.(message, sessionId, currentFiles)).finally(() => {
+    Promise.resolve(onSendMessageProp?.(message, sessionId, currentFiles, undefined, message)).finally(() => {
       setTimeout(() => setIsResending(false), 300);
     });
   };
@@ -310,13 +312,14 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
     };
   }, [messages, language]);
   // Handle suggestion click
+  // The prompt itself is the display text - no file contents involved.
   const handleSuggestionClick = (prompt: string) => {
     const sessionId = currentSessionId || "";
     if (!sessionId) {
       showToast(ToastType.SUCCESS, "Session ID cannot be empty.");
       return;
     }
-    onSendMessageProp?.(prompt, sessionId, undefined, selectedWorkflowMode);
+    onSendMessageProp?.(prompt, sessionId, undefined, selectedWorkflowMode, prompt);
   };
   const handleContainerClick = () => textareaRef.current?.focus();
   // Format file size
@@ -607,9 +610,12 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
     setShowAttachmentMenu(false);
   };
   /**
-   * Handle send message - includes file content in the message
-   * Both text files and skill files content are included
-   * Also includes current file content from the editor
+   * Handle send message.
+   *
+   * Two distinct payloads are built here:
+   * 1. `displayMessage` - what the user actually typed, shown in the chat bubble.
+   * 2. `message` - the full payload sent to the LLM (user text + file bodies +
+   *    current editor content). This is never persisted to the UI.
    */
   const handleSend = () => {
     if (isSending) return;
@@ -619,19 +625,19 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
         showToast(ToastType.SUCCESS, "Session ID cannot be empty.");
         return;
       }
-      // Get current file content from the editor
+      // (1) Clean display text - what appears in the chat bubble.
+      const displayMessage = inputValue.trim() || "";
+      // Get current file content from the editor (for the LLM payload only).
       let currentFileContent = "";
       if (codingRef?.current) {
         currentFileContent = codingRef.current.getCurrentFileContent();
       }
-      // Build message with file contents from uploaded files
-      let message = inputValue.trim() || "";
-      // Add uploaded file contents
+      // (2) Build the full LLM payload.
+      let message = displayMessage;
       for (const file of uploadedFiles) {
         if (file.content) {
           const isSkill = file.name?.toLowerCase().endsWith(".md") || file.name?.toLowerCase().endsWith(".skill.md");
           if (isSkill) {
-            // Extract skill name from content (first # heading)
             let skillName = file.name;
             const lines = file.content.split("\n");
             for (const line of lines) {
@@ -647,7 +653,6 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
           }
         }
       }
-      // Add current file content from editor
       if (currentFileContent) {
         message += `\n\nCurrent file content:\n\`\`\`\n${currentFileContent}\n\`\`\``;
       }
@@ -656,7 +661,7 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
       setUploadedFiles([]);
       if (textareaRef.current) textareaRef.current.style.height = "auto";
       setIsSending(true);
-      Promise.resolve(onSendMessageProp?.(message, sessionId, currentFiles, selectedWorkflowMode)).finally(() => {
+      Promise.resolve(onSendMessageProp?.(message, sessionId, currentFiles, selectedWorkflowMode, displayMessage)).finally(() => {
         setTimeout(() => setIsSending(false), 100);
       });
     }

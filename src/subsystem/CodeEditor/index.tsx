@@ -834,8 +834,8 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
     };
   }, []);
   const handleSendMessage = useCallback(
-    (message: string, sessionId: string, files?: any[], workflowMode?: string) => {
-      handleSendMessageHook(message, sessionId, files, workflowMode);
+    (message: string, sessionId: string, files?: any[], workflowMode?: string, displayMessage?: string) => {
+      handleSendMessageHook(message, sessionId, files, workflowMode, displayMessage);
     },
     [handleSendMessageHook],
   );
