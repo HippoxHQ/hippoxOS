@@ -108,13 +108,12 @@ fn extract_platform_asset(release: &GitHubRelease, platform: &str, arch: &str) -
         PLATFORM_NAME_LINUX => PLATFORM_LINUX_EXT,
         _ => return None,
     };
-    let exact_pattern = format!("{}_{}_{}_v", FILE_BASE_PREFIX, platform, arch);
+    let expected_name = format!("{}_{}_{}{}", FILE_BASE_PREFIX, platform, arch, ext).to_lowercase();
     for asset in &release.assets {
-        let asset_name = asset.name.to_lowercase();
-        if asset_name.starts_with(&exact_pattern) && asset_name.ends_with(ext) {
-            let version = asset_name[exact_pattern.len()..].trim_end_matches(ext);
+        if asset.name.to_lowercase() == expected_name {
+            let version = release.tag_name.trim_start_matches('v').to_string();
             if !version.is_empty() {
-                return Some((version.to_string(), Some(asset.browser_download_url.clone())));
+                return Some((version, Some(asset.browser_download_url.clone())));
             }
         }
     }
