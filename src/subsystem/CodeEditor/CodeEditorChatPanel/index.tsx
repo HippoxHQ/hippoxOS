@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
-import { ChevronUp, ChevronDown } from "lucide-react";
+import { ChevronUp, ChevronDown, ChevronsRight, ChevronsLeft } from "lucide-react";
 import { useEditMessage } from "./hooks";
 import { StatusMessage, LoadingSpinner, MessageFileGrid, EditMessageForm, MessageActions } from "./components";
 import logo from "../../../assets/logo.png";
@@ -90,7 +90,7 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
   const [sessionTitle, setSessionTitle] = useState<string>("");
   const [isLoadingTitle, setIsLoadingTitle] = useState(false);
   const hasLoadedTitleRef = useRef<Record<string, boolean>>({});
-  const collapseIcon = collapseIconProp || (isLeftPanel ? (isCollapsed ? "≫" : "≪") : isCollapsed ? "≪" : "≫");
+  const collapseIcon = collapseIconProp || (isLeftPanel ? isCollapsed ? <ChevronsRight size={16} /> : <ChevronsLeft size={16} /> : isCollapsed ? <ChevronsLeft size={16} /> : <ChevronsRight size={16} />);
   /** Track which messages have been processed for editor operations */
   const processedMessageIdsRef = useRef<Set<string>>(new Set());
   const welcomeMsg: ChatMessage = {

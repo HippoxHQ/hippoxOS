@@ -10,7 +10,7 @@ import { useMapSession } from "../../App/hooks/session/useMapChatSession";
 import { EarthViewRef } from "./MapsChatPanel/types";
 import MapsChatPage from "./MapsChatPanel";
 import { APP_WINDOW_EVENTS } from "../../App/AppWindowEventManager";
-import { CheckSquare, Square, Layers, Pin, PinOff, Trash2, ChevronUp, ChevronDown, Plus } from "lucide-react";
+import { CheckSquare, Square, Layers, Pin, PinOff, Trash2, ChevronUp, ChevronDown, Plus, ChevronsLeft, ChevronsRight } from "lucide-react";
 import { mapSessionCommands } from "../../command/session/map";
 import { showDialog, DialogType } from "../../components/Dialog";
 import { showToast, ToastType } from "../../components/Toast";
@@ -885,7 +885,7 @@ const MapsPage: React.FC<MapsPageProps> = ({
           }}
           title={isChatOnLeft ? "Expand Right" : "Expand Left"}
         >
-          {isChatOnLeft ? "≫" : "≪"}
+          {isChatOnLeft ? <ChevronsRight size={16} /> : <ChevronsLeft size={16} />}
         </button>
       </div>
       <div
@@ -1197,7 +1197,7 @@ const MapsPage: React.FC<MapsPageProps> = ({
               }}
               title="Expand History"
             >
-              ≫
+              <ChevronsRight size={16} />
             </button>
           </div>
           <div
@@ -1448,7 +1448,7 @@ const MapsPage: React.FC<MapsPageProps> = ({
               }}
               title="Collapse panel"
             >
-              ≪
+              <ChevronsLeft size={16} />
             </button>
           </div>
         </div>
@@ -1580,7 +1580,7 @@ const MapsPage: React.FC<MapsPageProps> = ({
           {React.cloneElement(chatPanel as React.ReactElement<any>, {
             isCollapsed: false,
             togglePanel: handleToggleChatPanel,
-            collapseIcon: isChatOnLeft ? "≪" : "≫",
+            collapseIcon: isChatOnLeft ? <ChevronsLeft size={16} /> : <ChevronsRight size={16} />,
             isLeftPanel: isChatOnLeft,
           })}
         </div>

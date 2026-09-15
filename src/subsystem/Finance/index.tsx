@@ -8,7 +8,7 @@ import { configCommands } from "../../command/config";
 import { useFinanceSession } from "../../App/hooks/session/useFinanceSession";
 import MarqueeBar from "./MarqueeBar";
 import { APP_WINDOW_EVENTS } from "../../App/AppWindowEventManager";
-import { CheckSquare, Square, Layers, Pin, PinOff, Trash2, ChevronUp, ChevronDown, Plus } from "lucide-react";
+import { CheckSquare, Square, Layers, Pin, PinOff, Trash2, ChevronUp, ChevronDown, Plus, ChevronsLeft, ChevronsRight } from "lucide-react";
 import { chartSessionCommands } from "../../command/session/finance";
 import { showDialog, DialogType } from "../../components/Dialog";
 import { showToast, ToastType } from "../../components/Toast";
@@ -753,7 +753,7 @@ const FinancePage: React.FC<FinancePageProps> = ({
           }}
           title={isChatOnLeft ? "Expand Right" : "Expand Left"}
         >
-          {isChatOnLeft ? "≫" : "≪"}
+          {isChatOnLeft ? <ChevronsRight size={16} /> : <ChevronsLeft size={16} />}
         </button>
       </div>
       <div
@@ -1177,7 +1177,7 @@ const FinancePage: React.FC<FinancePageProps> = ({
               }}
               title="Expand History"
             >
-              ≫
+              <ChevronsRight size={16} />
             </button>
           </div>
           <div
@@ -1427,7 +1427,7 @@ const FinancePage: React.FC<FinancePageProps> = ({
               }}
               title={isZh ? "收起面板" : "Collapse panel"}
             >
-              ≪
+              <ChevronsLeft size={16} />
             </button>
           </div>
         </div>
@@ -1560,7 +1560,7 @@ const FinancePage: React.FC<FinancePageProps> = ({
             {React.cloneElement(chatPanel as React.ReactElement<any>, {
               isCollapsed: false,
               togglePanel: handleToggleChatPanel,
-              collapseIcon: isChatOnLeft ? "≪" : "≫",
+              collapseIcon: isChatOnLeft ? <ChevronsLeft size={16} /> : <ChevronsRight size={16} />,
               isLeftPanel: isChatOnLeft,
             })}
           </div>

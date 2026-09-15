@@ -118,7 +118,18 @@ pub fn run() {
         .manage(app_state)
         .setup(|app| {
             #[cfg(target_os = "macos")]
-            crate::subsystem::videoeditor::audio::init_audio_threads();
+            {
+                crate::subsystem::videoeditor::audio::init_audio_threads();
+                use objc2::msg_send;
+                use objc2::runtime::AnyObject;
+                for (_label, win) in app.webview_windows() {
+                    let _ = win.with_webview(|webview| unsafe {
+                        let ns_window: *mut AnyObject = webview.ns_window().cast();
+                        let style: i64 = 1; // NSScrollerStyleLegacy
+                        let _: () = msg_send![ns_window, setScrollerStyle: style];
+                    });
+                }
+            }
             TrayManager::setup(app)?;
             Ok(())
         })

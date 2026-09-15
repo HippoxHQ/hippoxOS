@@ -16,7 +16,7 @@ import { sandbox3dExportCommands } from "../../command/SandBox3D";
 import { APP_WINDOW_EVENTS } from "../../App/AppWindowEventManager";
 import { showDialog, DialogType } from "../../components/Dialog";
 import { showToast, ToastType } from "../../components/Toast";
-import { CheckSquare, ChevronDown, ChevronUp, Layers, Pin, PinOff, Plus, Square, Trash2 } from "lucide-react";
+import { CheckSquare, ChevronDown, ChevronsLeft, ChevronsRight, ChevronUp, Layers, Pin, PinOff, Plus, Square, Trash2 } from "lucide-react";
 // Panel Size Constants - aligned with GeneralChatPage
 // History panel (leftmost panel) size limits
 const HISTORY_PANEL_MIN_WIDTH = 285;
@@ -1069,9 +1069,8 @@ const SandBox3DPage: React.FC<SandBox3DPageProps> = ({
             e.currentTarget.style.background = "transparent";
             e.currentTarget.style.color = "var(--text-secondary)";
           }}
-          title={isChatOnLeft ? "向右展开" : "向左展开"}
         >
-          {isChatOnLeft ? "≫" : "≪"}
+          {isChatOnLeft ? <ChevronsRight size={16} /> : <ChevronsLeft size={16} />}
         </button>
       </div>
       <div
@@ -1375,7 +1374,7 @@ const SandBox3DPage: React.FC<SandBox3DPageProps> = ({
               }}
               title="Expand History"
             >
-              ≫
+              <ChevronsRight size={16} />
             </button>
           </div>
           <div
@@ -1619,7 +1618,7 @@ const SandBox3DPage: React.FC<SandBox3DPageProps> = ({
               }}
               title={isZh ? "收起面板" : "Collapse panel"}
             >
-              ≪
+              <ChevronsLeft size={16} />
             </button>
           </div>
         </div>
@@ -1755,7 +1754,7 @@ const SandBox3DPage: React.FC<SandBox3DPageProps> = ({
           {React.cloneElement(chatPanel as React.ReactElement<any>, {
             isCollapsed: false,
             togglePanel: handleToggleChatPanel,
-            collapseIcon: isChatOnLeft ? "≪" : "≫",
+            collapseIcon: isChatOnLeft ? <ChevronsLeft size={16} /> : <ChevronsRight size={16} />,
             isLeftPanel: isChatOnLeft,
           })}
         </div>

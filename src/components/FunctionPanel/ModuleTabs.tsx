@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useState } from "react";
 import { FunctionPanelItem } from "./hooks/useFunctionPanelController";
+import { ChevronsLeft, ChevronsRight } from "lucide-react";
 interface ModuleTabsProps {
   items: FunctionPanelItem[];
   activeItemId: string | null;
@@ -12,23 +13,12 @@ interface ModuleTabsProps {
   isMaximized?: boolean;
   onToggleMaximize?: () => void;
 }
-export const ModuleTabs: React.FC<ModuleTabsProps> = ({
-  items,
-  activeItemId,
-  onSwitch,
-  onClose,
-  onClosePanel,
-  onToggleCollapse,
-  t,
-  functionPanelPosition = "right",
-  isMaximized,
-  onToggleMaximize,
-}) => {
+export const ModuleTabs: React.FC<ModuleTabsProps> = ({ items, activeItemId, onSwitch, onClose, onClosePanel, onToggleCollapse, t, functionPanelPosition = "right", isMaximized, onToggleMaximize }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [showLeft, setShowLeft] = useState(false);
   const [showRight, setShowRight] = useState(false);
-  const collapseIcon = functionPanelPosition === "left" ? "≪" : "≫";
-  const expandIcon = functionPanelPosition === "left" ? "≫" : "≪";
+  const collapseIcon = functionPanelPosition === "left" ? <ChevronsLeft size={16} /> : <ChevronsRight size={16} />;
+  const expandIcon = functionPanelPosition === "left" ? <ChevronsRight size={16} /> : <ChevronsLeft size={16} />;
   const checkScroll = () => {
     if (!containerRef.current) return;
     const { scrollLeft, scrollWidth, clientWidth } = containerRef.current;

@@ -8,7 +8,7 @@ import { configCommands } from "../../command/config";
 import ChatPanel from "./ChatPanel";
 import TerminalPanel from "./TerminalPanel";
 import { APP_WINDOW_EVENTS } from "../../App/AppWindowEventManager";
-import { CheckSquare, Square, Layers, Pin, PinOff, Trash2, ChevronUp, ChevronDown } from "lucide-react";
+import { CheckSquare, Square, Layers, Pin, PinOff, Trash2, ChevronUp, ChevronDown, ChevronsRight, ChevronsLeft } from "lucide-react";
 import { sessionCommands } from "../../command/session/general";
 import { showDialog, DialogType } from "../../components/Dialog";
 import { showToast, ToastType } from "../../components/Toast";
@@ -973,9 +973,9 @@ const GeneralChatPage: React.FC<GeneralChatPageProps> = ({
       window.removeEventListener("mouseup", handleMouseUp);
     };
   }, []);
-  const renderCollapsedSidebar = (isLeft: boolean, title: string, icon: React.ReactNode, onToggle: () => void, expandIcon?: string) => {
+  const renderCollapsedSidebar = (isLeft: boolean, title: string, icon: React.ReactNode, onToggle: () => void, expandIcon?: React.ReactNode) => {
     const allTasks = taskManager.getAllTasks();
-    const iconChar = expandIcon || (isLeft ? "≫" : "≪");
+    const iconChar = expandIcon || (isLeft ? <ChevronsRight size={16} /> : <ChevronsLeft size={16} />);
     return (
       <div
         className="collapsed-sidebar"
@@ -1075,14 +1075,14 @@ const GeneralChatPage: React.FC<GeneralChatPageProps> = ({
   const getLeftPanelContent = () => {
     const isTerminalLeft = layoutSwapMode === "terminal-left";
     if (leftCollapsed || isFunctionPanelMaximized) {
-      return renderCollapsedSidebar(true, isTerminalLeft ? rightTitle : leftTitle, isTerminalLeft ? rightIcon : leftIcon, handleToggleLeft, "≫");
+      return renderCollapsedSidebar(true, isTerminalLeft ? rightTitle : leftTitle, isTerminalLeft ? rightIcon : leftIcon, handleToggleLeft, <ChevronsRight size={16} />);
     }
     const panel = isTerminalLeft ? rightPanel : leftPanel;
     if (React.isValidElement(panel)) {
       return React.cloneElement(panel, {
         isCollapsed: false,
         togglePanel: handleToggleLeft,
-        collapseIcon: "≪",
+        collapseIcon: <ChevronsLeft size={16} />,
         isLeftPanel: true,
       } as any);
     }
@@ -1091,14 +1091,14 @@ const GeneralChatPage: React.FC<GeneralChatPageProps> = ({
   const getRightPanelContent = () => {
     const isTerminalLeft = layoutSwapMode === "terminal-left";
     if (rightCollapsed || isFunctionPanelMaximized) {
-      return renderCollapsedSidebar(false, isTerminalLeft ? leftTitle : rightTitle, isTerminalLeft ? leftIcon : rightIcon, handleToggleRight, "≪");
+      return renderCollapsedSidebar(false, isTerminalLeft ? leftTitle : rightTitle, isTerminalLeft ? leftIcon : rightIcon, handleToggleRight, <ChevronsLeft size={16} />);
     }
     const panel = isTerminalLeft ? leftPanel : rightPanel;
     if (React.isValidElement(panel)) {
       return React.cloneElement(panel, {
         isCollapsed: false,
         togglePanel: handleToggleRight,
-        collapseIcon: "≫",
+        collapseIcon: <ChevronsRight size={16} />,
         isLeftPanel: false,
       } as any);
     }
@@ -1175,7 +1175,7 @@ const GeneralChatPage: React.FC<GeneralChatPageProps> = ({
               }}
               title="Expand History"
             >
-              ≫
+              <ChevronsRight size={16} />
             </button>
           </div>
           <div
@@ -1411,7 +1411,7 @@ const GeneralChatPage: React.FC<GeneralChatPageProps> = ({
               }}
               title={isZh ? "收起面板" : "Collapse panel"}
             >
-              ≪
+              <ChevronsLeft size={16} />
             </button>
           </div>
         </div>

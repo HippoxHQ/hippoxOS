@@ -4,6 +4,7 @@ import { taskManager } from "../../../core/TaskManager";
 import { UploadFile, TaskStatusEnum } from "../../../core/types";
 import { ExecutionLog } from "../../../types/types";
 import TerminalArea from "./TerminalArea";
+import { ChevronsRight, ChevronsLeft } from "lucide-react";
 
 interface TerminalPanelProps {
   logs: ExecutionLog[];
@@ -18,25 +19,14 @@ interface TerminalPanelProps {
   collapseIcon?: string;
 }
 
-const TerminalPanel: React.FC<TerminalPanelProps> = ({
-  logs,
-  onClearLogs,
-  t,
-  currentSessionId,
-  onFileClick,
-  navigationContent,
-  isLeftPanel = false,
-  isCollapsed = false,
-  togglePanel,
-  collapseIcon: collapseIconProp,
-}) => {
+const TerminalPanel: React.FC<TerminalPanelProps> = ({ logs, onClearLogs, t, currentSessionId, onFileClick, navigationContent, isLeftPanel = false, isCollapsed = false, togglePanel, collapseIcon: collapseIconProp }) => {
   const [theme, setTheme] = useState<"light" | "dark">("dark");
   const [i18n, setI18n] = useState<"en" | "zh-cn">("zh-cn");
   const [activeNavIndex, setActiveNavIndex] = useState<number>(-1);
   const [taskList, setTaskList] = useState<any[]>([]);
   const terminalAreaRef = useRef<HTMLDivElement>(null);
 
-  const collapseIcon = collapseIconProp || (isLeftPanel ? (isCollapsed ? "≫" : "≪") : isCollapsed ? "≪" : "≫");
+  const collapseIcon = collapseIconProp || (isLeftPanel ? isCollapsed ? <ChevronsRight size={16} /> : <ChevronsLeft size={16} /> : isCollapsed ? <ChevronsLeft size={16} /> : <ChevronsRight size={16} />);
 
   useEffect(() => {
     const loadTheme = async () => {
@@ -233,18 +223,7 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
           overflow: "hidden",
         }}
       >
-        <TerminalArea
-          logs={logs}
-          onClearLogs={onClearLogs}
-          t={t}
-          currentSessionId={currentSessionId}
-          onFileClick={onFileClick}
-          theme={theme}
-          i18n={i18n}
-          isCollapsed={isCollapsed}
-          togglePanel={togglePanel}
-          collapseIcon={collapseIcon}
-        />
+        <TerminalArea logs={logs} onClearLogs={onClearLogs} t={t} currentSessionId={currentSessionId} onFileClick={onFileClick} theme={theme} i18n={i18n} isCollapsed={isCollapsed} togglePanel={togglePanel} collapseIcon={collapseIcon} />
       </div>
       <div style={{ display: "none" }} data-navigation-content>
         {navigation}

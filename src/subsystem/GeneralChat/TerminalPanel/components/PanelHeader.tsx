@@ -12,7 +12,7 @@ interface PanelHeaderProps {
   t: (key: string) => string;
   isCollapsed?: boolean;
   togglePanel?: () => void;
-  collapseIcon?: string;
+  collapseIcon?: React.ReactNode;
 }
 
 const TerminalIcon: React.FC<{ size?: number }> = ({ size = 19 }) => (

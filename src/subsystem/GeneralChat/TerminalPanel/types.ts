@@ -11,7 +11,7 @@ export interface TerminalAreaProps {
   i18n: "en" | "zh-cn";
   isCollapsed?: boolean;
   togglePanel?: () => void;
-  collapseIcon?: string;
+  collapseIcon?: React.ReactNode;
 }
 
 export interface FilesScrollState {

@@ -20,6 +20,7 @@ import { useTaskEvents } from "./hooks/useTaskEvents";
 import { useTheme } from "./hooks/useTheme";
 import { useMenuPanel, ContentPanelView } from "./hooks/useMenuPanel";
 import { APP_WINDOW_EVENTS, getSubsystemEventInfo } from "./AppWindowEventManager";
+import "../core/TaskPool";
 function App() {
   const { isConfigLoaded, initialEngineConfig, initialTheme, initialLanguage } = useConfigLoader();
   const { theme, handleToggleTheme } = useTheme(initialTheme);

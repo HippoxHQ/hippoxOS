@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
-import { ChevronUp, ChevronDown } from "lucide-react";
+import { ChevronUp, ChevronDown, ChevronsLeft, ChevronsRight } from "lucide-react";
 import { useEditMessage } from "./hooks";
 import { StatusMessage, LoadingSpinner, MessageFileGrid, EditMessageForm, MessageActions } from "./components";
 import logo from "../../../assets/logo.png";
@@ -77,7 +77,7 @@ const SandBox3DChatPanel: React.FC<SandBox3DChatPanelProps> = ({ onSendMessage, 
   const [sessionTitle, setSessionTitle] = useState<string>("");
   const [isLoadingTitle, setIsLoadingTitle] = useState(false);
   const hasLoadedTitleRef = useRef<Record<string, boolean>>({});
-  const collapseIcon = collapseIconProp || (isLeftPanel ? (isCollapsed ? "≫" : "≪") : isCollapsed ? "≪" : "≫");
+  const collapseIcon = collapseIconProp || (isLeftPanel ? isCollapsed ? <ChevronsRight size={16} /> : <ChevronsLeft size={16} /> : isCollapsed ? <ChevronsLeft size={16} /> : <ChevronsRight size={16} />);
   const welcomeMsg = useMemo<ChatMessage>(
     () => ({
       id: "welcome",

@@ -6,7 +6,7 @@ import { ModuleTabs } from "./ModuleTabs";
 import { ModuleContent } from "./ModuleContent";
 import { FunctionPanelController } from "./hooks/useFunctionPanelController";
 import TableFilePreview from "./integrations/IntegratedPreviewContent/TableFilePreview";
-import { ChevronDown, ChevronUp, Folder } from "lucide-react";
+import { ChevronDown, ChevronsLeft, ChevronsRight, ChevronUp, Folder } from "lucide-react";
 interface FunctionPanelProps {
   controller: FunctionPanelController;
   theme: "light" | "dark";
@@ -90,7 +90,7 @@ const FunctionPanel: React.FC<FunctionPanelProps> = ({ controller, theme, i18n, 
     );
   }
   if (isCollapsed) {
-    const expandIcon = functionPanelPosition === "left" ? "≫" : "≪";
+    const expandIcon = functionPanelPosition === "left" ? <ChevronsRight size={16} /> : <ChevronsLeft size={16} />;
     return (
       <div
         ref={containerRef}
@@ -232,7 +232,7 @@ const CollapsedTabList: React.FC<CollapsedTabListProps> = ({ items, activeItemId
   const containerRef = useRef<HTMLDivElement>(null);
   const [showUp, setShowUp] = useState(false);
   const [showDown, setShowDown] = useState(false);
-  const expandIcon = functionPanelPosition === "left" ? "≫" : "≪";
+  const expandIcon = functionPanelPosition === "left" ? <ChevronsRight size={16} /> : <ChevronsLeft size={16} />;
   const checkScroll = useCallback(() => {
     if (!containerRef.current) return;
     const { scrollTop, scrollHeight, clientHeight } = containerRef.current;

@@ -16,7 +16,7 @@ import { ChatMessage, RoleEnum, MessageStatus } from "../../../types/types";
 import { sessionCommands } from "../../../command/session/general";
 import { isStructuredLLMResponse, parseLLMResponse } from "../llm/utils";
 import { filesCommands } from "../../../command/files";
-import { ChevronUp, ChevronDown } from "lucide-react";
+import { ChevronUp, ChevronDown, ChevronsLeft, ChevronsRight } from "lucide-react";
 interface ChatPanelProps {
   onSendMessage: (message: string, sessionId: string, files?: UploadFile[], workflowMode?: string) => void | Promise<void>;
   onFileClick?: (file: UploadFile) => void;
@@ -69,7 +69,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSendMessage, onFileClick, t, la
   const [sessionTitle, setSessionTitle] = useState<string>("");
   const [isLoadingTitle, setIsLoadingTitle] = useState(false);
   const hasLoadedTitleRef = useRef<Record<string, boolean>>({});
-  const collapseIcon = collapseIconProp || (isLeftPanel ? (isCollapsed ? "≫" : "≪") : isCollapsed ? "≪" : "≫");
+  const collapseIcon = collapseIconProp || (isLeftPanel ? isCollapsed ? <ChevronsRight size={16} /> : <ChevronsLeft size={16} /> : isCollapsed ? <ChevronsLeft size={16} /> : <ChevronsRight size={16} />);
   // Timeout configuration - 5 minutes
   const TIMEOUT_MINUTES = 5;
   // Load session title from backend

@@ -1,6 +1,6 @@
 [package]
 name = "HippoxOS"
-version = "0.5.1"
+version = "0.5.2"
 description = "A native LLM operating system."
 authors = ["happyboy"]
 license = "AGPL-3.0"
@@ -81,3 +81,4 @@ open = "5.4.4"
 bytemuck = { version = "1.25.2", features = ["derive"] }
 [target.'cfg(target_os = "macos")'.dependencies]
 objc = "0.2"
+objc2 = "0.6.4"

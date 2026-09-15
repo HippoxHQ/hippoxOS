@@ -14,7 +14,7 @@ import { showToast, ToastType } from "../../components/Toast";
 import { open } from "@tauri-apps/plugin-dialog";
 import GithubClone from "./GithubClone";
 import { APP_WINDOW_EVENTS } from "../../App/AppWindowEventManager";
-import { CheckSquare, Square, Layers, Pin, PinOff, Trash2, ChevronUp, ChevronDown } from "lucide-react";
+import { CheckSquare, Square, Layers, Pin, PinOff, Trash2, ChevronUp, ChevronDown, ChevronsRight, ChevronsLeft } from "lucide-react";
 import { showDialog, DialogType } from "../../components/Dialog";
 // Panel Size Constants - Aligned with GeneralChatPage
 // History panel (leftmost panel) size limits
@@ -1262,7 +1262,7 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
               }}
               title="Expand History"
             >
-              ≫
+              <ChevronsRight size={16} />
             </button>
           </div>
           <div
@@ -1516,7 +1516,7 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
               }}
               title={isZh ? "收起面板" : "Collapse panel"}
             >
-              ≪
+              <ChevronsLeft size={16} />
             </button>
           </div>
         </div>
@@ -1622,9 +1622,8 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
             e.currentTarget.style.background = "transparent";
             e.currentTarget.style.color = "var(--text-secondary)";
           }}
-          title={isChatOnLeft ? "向右展开" : "向左展开"}
         >
-          {isChatOnLeft ? "≫" : "≪"}
+          {isChatOnLeft ? <ChevronsRight size={16} /> : <ChevronsLeft size={16} />}
         </button>
       </div>
       <div
@@ -1812,7 +1811,7 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
             {React.cloneElement(chatPanel as React.ReactElement<any>, {
               isCollapsed: false,
               togglePanel: handleToggleChatPanel,
-              collapseIcon: isChatOnLeft ? "≪" : "≫",
+              collapseIcon: isChatOnLeft ? <ChevronsLeft size={16} /> : <ChevronsRight size={16} />,
               isLeftPanel: isChatOnLeft,
             })}
           </div>
