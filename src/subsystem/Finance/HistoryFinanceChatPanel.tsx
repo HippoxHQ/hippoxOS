@@ -181,11 +181,6 @@ const HistoryFinanceChatPanel = forwardRef<HistoryFinanceChatPanelRef, HistoryFi
   };
   const handleDelete = async (session: DialogSession, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (sessions.length <= 1) {
-      showDialog(DialogType.WARNING, t("history.dialog.cannotDeleteTitle"), t("history.dialog.cannotDeleteMessage"), undefined, undefined, t("history.dialog.gotIt"), undefined);
-      setActiveMenuId(null);
-      return;
-    }
     showDialog(
       DialogType.WARNING,
       t("history.dialog.confirmDeleteTitle"),
