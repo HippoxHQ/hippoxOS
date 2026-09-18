@@ -3,7 +3,7 @@ use crate::{
         get_system_update_download_dir, HIPPOXOS_GITHUB_API_URL, HIPPOXOS_GITHUB_MIRROR_API_URL, HIPPOXOS_GITHUB_MIRROR_RELEASES_URL,
         HIPPOXOS_GITHUB_RELEASES_URL,
     },
-    commons::{cmd_cmd, get_app_version, HttpClient},
+    commons::{get_app_version, HttpClient},
 };
 use serde::{Deserialize, Serialize};
 use std::fs::File;
@@ -177,33 +177,77 @@ pub async fn cmd_download_and_install_update(download_url: String) -> Result<(),
     // Get download directory
     let download_dir = get_download_dir()?;
     let file_path = download_dir.join(&filename);
-    // Download using HttpClient
+    // Download using the dedicated streaming path.
+    // `fetch_bytes_streaming` uses a separate HTTP client without a global timeout,
+    // so a large installer (hundreds of MB) will not be killed mid-download by the
+    // shared client's 30s timeout. Progress is reported through the callback.
     let http_client = HttpClient::new();
-    let bytes = http_client.fetch_bytes(&download_url, None).await.map_err(|e| format!("Download failed: {}", e))?;
+    let bytes = http_client
+        .fetch_bytes_streaming(&download_url, None, |downloaded, total| {
+            // Log progress only when crossing a 10 MB boundary or when finished,
+            // to avoid flooding the console with one line per chunk.
+            let is_finish = total.map(|t| downloaded >= t).unwrap_or(false);
+            let current_block = downloaded / (10 * 1024 * 1024);
+            let previous_block = downloaded.saturating_sub(1) / (10 * 1024 * 1024);
+            let is_10mb_boundary = current_block != previous_block;
+            if is_finish || is_10mb_boundary {
+                match total {
+                    Some(t) => {
+                        let percent = if t > 0 { (downloaded as f64 / t as f64) * 100.0 } else { 0.0 };
+                        eprintln!("[update] {} / {} MB ({:.1}%)", downloaded / 1024 / 1024, t / 1024 / 1024, percent);
+                    }
+                    None => {
+                        eprintln!("[update] {} MB", downloaded / 1024 / 1024);
+                    }
+                }
+            }
+        })
+        .await
+        .map_err(|e| format!("Download failed: {}", e))?;
     // Write to file
     let mut file = File::create(&file_path).map_err(|e| format!("Failed to create file: {}", e))?;
     file.write_all(&bytes).map_err(|e| format!("Failed to write file: {}", e))?;
     file.flush().map_err(|e| format!("Failed to flush file: {}", e))?;
     log::info!("Download completed: {:?}", file_path);
-    // Run installer
-    let path_str = file_path.to_str().ok_or_else(|| "Invalid installer path".to_string())?;
-    if cfg!(target_os = "windows") {
-        let mut cmd = cmd_cmd();
-        let output =
-            cmd.args(&["/c", "msiexec", "/i", path_str, "/quiet", "/norestart"]).output().map_err(|e| format!("Failed to run installer: {}", e))?;
-        if !output.status.success() {
-            let stderr = String::from_utf8_lossy(&output.stderr);
-            return Err(format!("Installer failed: {}", stderr));
-        }
-    } else {
-        #[cfg(not(target_os = "windows"))]
-        {
-            open::that(&file_path).map_err(|e| format!("Failed to open installer: {}", e))?;
-        }
+    // Verify the installer file exists before launching
+    if !file_path.exists() {
+        return Err(format!("Installer file does not exist: {:?}", file_path));
+    }
+    let file_size = std::fs::metadata(&file_path).map(|m| m.len()).unwrap_or(0);
+    eprintln!("[update] installer file exists, size = {} bytes", file_size);
+    // Launch the installer.
+    // On Windows: use `cmd /c start "" msiexec /i "<path>"` via `hidden_cmd`
+    // so that the console window is hidden and Windows parses the command
+    // exactly like a user typing it in a terminal. `start` detaches the
+    // installer process from ours, so our exit does not kill it.
+    #[cfg(target_os = "windows")]
+    {
+        use crate::commons::hidden_cmd;
+        let path_str = file_path.to_string_lossy();
+        eprintln!("[update] installer path = {}", path_str);
+        // The command we are going to run:
+        //   cmd /c start "" msiexec /i "<absolute path to installer>"
+        eprintln!("[update] running: cmd /c start \"\" msiexec /i \"{}\"", path_str);
+        hidden_cmd("cmd")
+            .arg("/c")
+            .arg("start")
+            .arg("")
+            .arg("msiexec")
+            .arg("/i")
+            .arg(path_str.as_ref())
+            .spawn()
+            .map_err(|e| format!("Failed to launch installer: {}", e))?;
+        eprintln!("[update] installer launched");
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        eprintln!("[update] opening installer: {:?}", file_path);
+        open::that(&file_path).map_err(|e| format!("Failed to open installer: {}", e))?;
+        eprintln!("[update] installer launched");
     }
     log::info!("Installer started successfully");
-    // Wait and exit
-    tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
+    // Give the OS a moment to hand off the installer process, then exit.
+    tokio::time::sleep(tokio::time::Duration::from_secs(3)).await;
     std::process::exit(0);
     #[allow(unreachable_code)]
     Ok(())

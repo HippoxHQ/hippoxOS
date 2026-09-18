@@ -286,6 +286,11 @@ const UniversalSettings: React.FC<UniversalSettingsProps> = ({ t, theme, languag
       setUpdateError(isZh ? "下载链接不可用" : "Download URL not available");
       return;
     }
+    // Cancel any pending auto-reset so the downloading state is not cleared mid-download
+    if (resetTimerRef.current) {
+      clearTimeout(resetTimerRef.current);
+      resetTimerRef.current = null;
+    }
     setDownloading(true);
     setDownloadProgress(0);
     setUpdateError(null);
@@ -409,6 +414,8 @@ const UniversalSettings: React.FC<UniversalSettingsProps> = ({ t, theme, languag
     alignItems: "center",
     justifyContent: "center",
     gap: "6px",
+    whiteSpace: "nowrap",
+    flexShrink: 0,
   };
   const updateResultStyle: React.CSSProperties = {
     fontSize: "13px",
@@ -416,23 +423,32 @@ const UniversalSettings: React.FC<UniversalSettingsProps> = ({ t, theme, languag
     display: "flex",
     alignItems: "center",
     gap: "8px",
-    flex: 1,
+    flex: "1 1 auto",
     justifyContent: "flex-end",
+    minWidth: 0,
+    overflow: "hidden",
+    whiteSpace: "nowrap",
   };
   const updateButtonContainerStyle: React.CSSProperties = {
     display: "flex",
     alignItems: "center",
     gap: "12px",
-    flex: 1,
+    flex: "1 1 auto",
     justifyContent: "flex-end",
+    minWidth: 0,
+    flexWrap: "nowrap",
+    overflow: "hidden",
   };
   const updateStatusStyle: React.CSSProperties = {
     fontSize: "13px",
     display: "flex",
     alignItems: "center",
     gap: "8px",
-    flex: 1,
+    flex: "1 1 auto",
     justifyContent: "flex-end",
+    minWidth: 0,
+    overflow: "hidden",
+    whiteSpace: "nowrap",
   };
   if (loading) {
     return (
@@ -571,28 +587,64 @@ const UniversalSettings: React.FC<UniversalSettingsProps> = ({ t, theme, languag
         >
           {isZh ? "版本更新" : "Version Update"}
         </div>
-        <div style={rowStyle}>
-          <label style={labelStyle}>{isZh ? "检查更新" : "Check Update"}</label>
-          <div style={updateButtonContainerStyle}>
+        {/* Update row: keep label and controls on a single line */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: "20px",
+            gap: "12px",
+            flexWrap: "nowrap",
+            minWidth: 0,
+          }}
+        >
+          <label style={{ ...labelStyle, flexShrink: 0 }}>{isZh ? "检查更新" : "Check Update"}</label>
+          <div style={{ ...updateButtonContainerStyle, flex: "0 1 auto" }}>
             {checkingUpdate ? (
               <div style={updateStatusStyle}>
-                <Loader2 size={14} style={{ animation: "spin 1s linear infinite" }} />
+                <Loader2 size={14} style={{ animation: "spin 1s linear infinite", flexShrink: 0 }} />
                 <span style={{ color: "var(--text-secondary)" }}>{isZh ? "检查中..." : "Checking..."}</span>
               </div>
             ) : downloading ? (
-              <div style={updateStatusStyle}>
-                <Loader2 size={14} style={{ animation: "spin 1s linear infinite" }} />
-                <span style={{ color: "var(--text-secondary)" }}>{isZh ? `下载中` : `Downloading`}</span>
+              // Downloading state: show only the progress bar, no text and no loader.
+              <div
+                style={{
+                  position: "relative",
+                  width: "160px",
+                  height: "6px",
+                  borderRadius: "3px",
+                  background: "var(--bg-tertiary)",
+                  overflow: "hidden",
+                  flexShrink: 0,
+                }}
+              >
+                <div
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    height: "100%",
+                    width: downloadProgress > 0 ? `${Math.min(downloadProgress, 100)}%` : "40%",
+                    background: "var(--accent-color, #00aaff)",
+                    borderRadius: "3px",
+                    transition: downloadProgress > 0 ? "width 0.2s ease" : "none",
+                    // Indeterminate animation runs while no numeric progress is reported,
+                    // so the bar keeps moving and the UI never looks frozen.
+                    animation: downloadProgress > 0 ? "none" : "indeterminate 1.2s ease-in-out infinite",
+                  }}
+                />
               </div>
             ) : updateError ? (
               <div style={updateStatusStyle}>
-                <span style={{ color: "var(--text-error, #ff4444)" }}>{updateError}</span>
+                <span style={{ color: "var(--text-error, #ff4444)", overflow: "hidden", textOverflow: "ellipsis" }}>{updateError}</span>
                 <button
                   style={{
                     ...updateButtonStyle,
                     padding: "4px 12px",
                     fontSize: "12px",
                     minWidth: "auto",
+                    flexShrink: 0,
                   }}
                   onClick={handleCheckUpdate}
                 >
@@ -603,23 +655,28 @@ const UniversalSettings: React.FC<UniversalSettingsProps> = ({ t, theme, languag
             ) : versionInfo?.has_update ? (
               <>
                 <div style={updateResultStyle}>
-                  <Sparkles size={14} style={{ color: "var(--accent-color, #00aaff)" }} />
                   <span
                     style={{
                       color: "var(--accent-color, #00aaff)",
+                      fontSize: "10px",
                       fontWeight: 500,
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
                     }}
                   >
-                    {isZh ? `发现新版本 ${versionInfo.latest_version}` : `New version ${versionInfo.latest_version} available`}
+                    {isZh ? `新版本 ${versionInfo.latest_version}` : `New Version ${versionInfo.latest_version}`}
                   </span>
-                  <span
+                  {/* <span
                     style={{
                       fontSize: "11px",
                       color: "var(--text-tertiary)",
+                      flexShrink: 0,
+                      whiteSpace: "nowrap",
                     }}
                   >
                     {isZh ? `当前: ${versionInfo.current_version}` : `Current: ${versionInfo.current_version}`}
-                  </span>
+                  </span> */}
                 </div>
                 <button
                   style={{
@@ -627,6 +684,7 @@ const UniversalSettings: React.FC<UniversalSettingsProps> = ({ t, theme, languag
                     background: "var(--accent-color, #00aaff)",
                     borderColor: "var(--accent-color, #00aaff)",
                     color: "white",
+                    flexShrink: 0,
                   }}
                   onClick={handleDownloadAndInstall}
                   disabled={downloading}
@@ -637,10 +695,11 @@ const UniversalSettings: React.FC<UniversalSettingsProps> = ({ t, theme, languag
               </>
             ) : versionInfo && !versionInfo.has_update ? (
               <div style={updateResultStyle}>
-                <CheckCircle size={14} style={{ color: "var(--text-success, #4caf50)" }} />
+                <CheckCircle size={14} style={{ color: "var(--text-success, #4caf50)", flexShrink: 0 }} />
                 <span
                   style={{
                     color: "var(--text-success, #4caf50)",
+                    whiteSpace: "nowrap",
                   }}
                 >
                   {isZh ? "当前已是最新版本" : "You are on the latest version"}
@@ -667,6 +726,13 @@ const UniversalSettings: React.FC<UniversalSettingsProps> = ({ t, theme, languag
           @keyframes spin {
             from { transform: rotate(0deg); }
             to { transform: rotate(360deg); }
+          }
+          /* Indeterminate progress bar animation: a moving highlight that never stops,
+             used when the backend does not report numeric progress. */
+          @keyframes indeterminate {
+            0%   { left: -40%; width: 40%; }
+            50%  { left: 30%;  width: 40%; }
+            100% { left: 100%; width: 40%; }
           }
         `}</style>
       </div>

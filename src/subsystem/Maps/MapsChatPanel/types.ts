@@ -28,4 +28,10 @@ export interface EarthViewRef {
     getEarthView: () => EarthView | null;
     /** Locate to a specific coordinate */
     locateToCoordinate: (center: [number, number]) => boolean;
+    /**
+     * FIX (Problem 1 & 2): Replay all previously applied earthview configs.
+     * Called after the map is recreated (e.g. theme change) so previously
+     * drawn graphics are restored instead of disappearing.
+     */
+    reapplyAllConfigs: () => Promise<void>;
 }

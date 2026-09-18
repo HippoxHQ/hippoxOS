@@ -18,10 +18,8 @@ const DEFAULT_ZOOM: number = 12;
  * Returns default color [255, 87, 34, 1] for invalid inputs
  */
 const normalizeColor = (color: any): number[] => {
-  // Default fallback color - orange
   const defaultColor: number[] = [255, 87, 34, 1];
   if (!color) return defaultColor;
-  // Handle array format: [r, g, b, a] or [r, g, b]
   if (Array.isArray(color) && color.length >= 3) {
     const r = typeof color[0] === "number" ? color[0] : 255;
     const g = typeof color[1] === "number" ? color[1] : 87;
@@ -30,9 +28,7 @@ const normalizeColor = (color: any): number[] => {
     return [r, g, b, a];
   }
   if (typeof color === "string") {
-    // Clean the string - remove spaces and normalize
     const clean = color.trim().toLowerCase();
-    // Handle hex format: #RRGGBB, #RRGGBBAA, #RGB, #RGBA
     if (clean.startsWith("#")) {
       let hex = clean.replace("#", "");
       let r,
@@ -69,7 +65,6 @@ const normalizeColor = (color: any): number[] => {
         return defaultColor;
       }
     }
-    // Handle rgba(r, g, b, a) format
     if (clean.startsWith("rgba")) {
       try {
         const match = clean.match(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*(?:,\s*([\d.]+)\s*)?\)/);
@@ -87,7 +82,6 @@ const normalizeColor = (color: any): number[] => {
         return defaultColor;
       }
     }
-    // Handle rgb(r, g, b) format
     if (clean.startsWith("rgb")) {
       try {
         const match = clean.match(/rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)/);
@@ -104,7 +98,6 @@ const normalizeColor = (color: any): number[] => {
         return defaultColor;
       }
     }
-    // Try to handle common color names (basic)
     const colorMap: Record<string, number[]> = {
       red: [255, 0, 0, 1],
       green: [0, 255, 0, 1],
@@ -138,52 +131,60 @@ const normalizeColor = (color: any): number[] => {
       return colorMap[clean];
     }
   }
-  // If all else fails, return default
   return defaultColor;
 };
 /**
+ * Stable hash helper for generating dedup keys from coordinates + title.
+ * Used to avoid adding the same marker twice when applyEarthViewConfig is
+ * called multiple times for the same LLM message (e.g. session-switch race
+ * between replayAllEarthviewMessages and the incremental effect).
+ */
+const coordKey = (lng: any, lat: any): string => `${lng}_${lat}`;
+/**
  * MapsChatPageEarthView - EarthView map component with ref support
- *
- * This component wraps the EarthView map library and exposes methods
- * for programmatic control via ref, following the same pattern as
- * the 3D Sandbox component.
- *
- * Data Flow (same as 3D Sandbox):
- * 1. Chat panel parses LLM response and extracts earthview data
- * 2. Chat panel calls mapRef.current.applyEarthViewConfig(data)
- * 3. This component renders the data on the map (accumulates layers)
- * 4. All tasks in the same session are overlaid on the map
  */
 export const MapsChatPageEarthView = forwardRef<EarthViewRef, MapsChatPageEarthViewProps>(({ theme, i18n, onLoad, onMapClick, onMoveEnd, mapData, taskId }, ref) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const earthViewRef = useRef<EarthView | null>(null);
   const [isReady, setIsReady] = useState(false);
   const pendingMapDataRef = useRef<any>(null);
-  const hasLocatedRef = useRef<boolean>(false);
   /** Track all applied layers to support clearing */
   const appliedLayerIdsRef = useRef<Set<string>>(new Set());
   /**
-   * Locate map to a specific coordinate
+   * Track all applied earthview configs so they can be replayed after the
+   * map is recreated (e.g. on theme change). Ensures graphics do not
+   * disappear when the theme is switched.
    */
+  const appliedConfigsRef = useRef<any[]>([]);
+  /**
+   * FIX (double bubble): Track which marker/circle/polygon/polyline ids have
+   * already been added. Because applyEarthViewConfig can be invoked twice for
+   * the same logical LLM message (session-switch race between
+   * replayAllEarthviewMessages and the incremental effect), we dedupe by id.
+   */
+  const addedMarkerIdsRef = useRef<Set<string>>(new Set());
+  const addedCircleIdsRef = useRef<Set<string>>(new Set());
+  const addedPolygonIdsRef = useRef<Set<string>>(new Set());
+  const addedPolylineIdsRef = useRef<Set<string>>(new Set());
+  /** Keep latest theme in a ref so we can change theme without recreating the map */
+  const themeRef = useRef<"light" | "dark">(theme);
+  /** Recreate key used to force remount when theme cannot be changed in place */
+  const [recreateKey, setRecreateKey] = useState(0);
   const locateToCoordinate = useCallback(
-    (center: [number, number]): boolean => {
+    (center: [number, number], zoom?: number): boolean => {
       if (!earthViewRef.current || !isReady) {
         return false;
       }
       const [lng, lat] = center;
       if (typeof lng === "number" && typeof lat === "number" && !isNaN(lng) && !isNaN(lat)) {
         earthViewRef.current.setCenter([lng, lat]);
-        earthViewRef.current.setZoom(DEFAULT_ZOOM);
-        hasLocatedRef.current = true;
+        earthViewRef.current.setZoom(typeof zoom === "number" && !isNaN(zoom) ? zoom : DEFAULT_ZOOM);
         return true;
       }
       return false;
     },
     [isReady],
   );
-  /**
-   * Get first marker coordinate from markers array
-   */
   const getFirstMarkerCoordinate = useCallback((markers: any[]): [number, number] | null => {
     if (!markers || markers.length === 0) return null;
     for (const marker of markers) {
@@ -195,9 +196,6 @@ export const MapsChatPageEarthView = forwardRef<EarthViewRef, MapsChatPageEarthV
     }
     return null;
   }, []);
-  /**
-   * Get first coordinate from polyline points
-   */
   const getFirstPolylineCoordinate = useCallback((polylines: any[]): [number, number] | null => {
     if (!polylines || polylines.length === 0) return null;
     for (const polyline of polylines) {
@@ -213,9 +211,6 @@ export const MapsChatPageEarthView = forwardRef<EarthViewRef, MapsChatPageEarthV
     }
     return null;
   }, []);
-  /**
-   * Get first coordinate from circle center
-   */
   const getFirstCircleCoordinate = useCallback((circles: any[]): [number, number] | null => {
     if (!circles || circles.length === 0) return null;
     for (const circle of circles) {
@@ -228,9 +223,6 @@ export const MapsChatPageEarthView = forwardRef<EarthViewRef, MapsChatPageEarthV
     }
     return null;
   }, []);
-  /**
-   * Get first coordinate from polygon points
-   */
   const getFirstPolygonCoordinate = useCallback((polygons: any[]): [number, number] | null => {
     if (!polygons || polygons.length === 0) return null;
     for (const polygon of polygons) {
@@ -246,48 +238,115 @@ export const MapsChatPageEarthView = forwardRef<EarthViewRef, MapsChatPageEarthV
     }
     return null;
   }, []);
-  /**
-   * Extract first coordinate from various config structures
-   * Supports: markers, polylines, circles, polygons in various nesting levels
-   */
+  const getFirstHeatmapCoordinate = useCallback((heatmap: any[]): [number, number] | null => {
+    if (!heatmap || heatmap.length === 0) return null;
+    for (const point of heatmap) {
+      const lng = point.longitude;
+      const lat = point.latitude;
+      if (typeof lng === "number" && typeof lat === "number" && !isNaN(lng) && !isNaN(lat)) {
+        return [lng, lat];
+      }
+    }
+    return null;
+  }, []);
+  const getFirstClusterCoordinate = useCallback((clusters: any[]): [number, number] | null => {
+    if (!clusters || clusters.length === 0) return null;
+    for (const c of clusters) {
+      const lng = c.longitude;
+      const lat = c.latitude;
+      if (typeof lng === "number" && typeof lat === "number" && !isNaN(lng) && !isNaN(lat)) {
+        return [lng, lat];
+      }
+    }
+    return null;
+  }, []);
+  const getFirstBarChartCoordinate = useCallback((barcharts: any[]): [number, number] | null => {
+    if (!barcharts || barcharts.length === 0) return null;
+    for (const b of barcharts) {
+      const lng = b.longitude;
+      const lat = b.latitude;
+      if (typeof lng === "number" && typeof lat === "number" && !isNaN(lng) && !isNaN(lat)) {
+        return [lng, lat];
+      }
+    }
+    return null;
+  }, []);
   const getFirstCoordinateFromConfig = useCallback(
     (config: any): [number, number] | null => {
       if (!config) return null;
-      // Try markers at different nesting levels
-      if (config.markers && Array.isArray(config.markers) && config.markers.length > 0) {
-        const coord = getFirstMarkerCoordinate(config.markers);
-        if (coord) return coord;
+      const containers: any[] = [config];
+      if (config.earthview) containers.push(config.earthview);
+      if (config.terminalResponse?.earthview) containers.push(config.terminalResponse.earthview);
+      for (const c of containers) {
+        if (Array.isArray(c?.markers) && c.markers.length > 0) {
+          const coord = getFirstMarkerCoordinate(c.markers);
+          if (coord) return coord;
+        }
       }
-      if (config.earthview?.markers && Array.isArray(config.earthview.markers)) {
-        const coord = getFirstMarkerCoordinate(config.earthview.markers);
-        if (coord) return coord;
+      for (const c of containers) {
+        if (Array.isArray(c?.polylines) && c.polylines.length > 0) {
+          const coord = getFirstPolylineCoordinate(c.polylines);
+          if (coord) return coord;
+        }
       }
-      if (config.terminalResponse?.earthview?.markers) {
-        const coord = getFirstMarkerCoordinate(config.terminalResponse.earthview.markers);
-        if (coord) return coord;
+      for (const c of containers) {
+        if (Array.isArray(c?.circles) && c.circles.length > 0) {
+          const coord = getFirstCircleCoordinate(c.circles);
+          if (coord) return coord;
+        }
       }
-      // Try polylines
-      if (config.polylines && Array.isArray(config.polylines)) {
-        const coord = getFirstPolylineCoordinate(config.polylines);
-        if (coord) return coord;
+      for (const c of containers) {
+        if (Array.isArray(c?.polygons) && c.polygons.length > 0) {
+          const coord = getFirstPolygonCoordinate(c.polygons);
+          if (coord) return coord;
+        }
       }
-      // Try circles
-      if (config.circles && Array.isArray(config.circles)) {
-        const coord = getFirstCircleCoordinate(config.circles);
-        if (coord) return coord;
+      for (const c of containers) {
+        if (Array.isArray(c?.heatmap) && c.heatmap.length > 0) {
+          const coord = getFirstHeatmapCoordinate(c.heatmap);
+          if (coord) return coord;
+        }
       }
-      // Try polygons
-      if (config.polygons && Array.isArray(config.polygons)) {
-        const coord = getFirstPolygonCoordinate(config.polygons);
-        if (coord) return coord;
+      for (const c of containers) {
+        if (Array.isArray(c?.clusters) && c.clusters.length > 0) {
+          const coord = getFirstClusterCoordinate(c.clusters);
+          if (coord) return coord;
+        }
+      }
+      for (const c of containers) {
+        if (Array.isArray(c?.barcharts) && c.barcharts.length > 0) {
+          const coord = getFirstBarChartCoordinate(c.barcharts);
+          if (coord) return coord;
+        }
       }
       return null;
     },
-    [getFirstMarkerCoordinate, getFirstPolylineCoordinate, getFirstCircleCoordinate, getFirstPolygonCoordinate],
+    [getFirstMarkerCoordinate, getFirstPolylineCoordinate, getFirstCircleCoordinate, getFirstPolygonCoordinate, getFirstHeatmapCoordinate, getFirstClusterCoordinate, getFirstBarChartCoordinate],
   );
+  const getViewCenterFromConfig = useCallback((config: any): { center: [number, number]; zoom?: number } | null => {
+    if (!config) return null;
+    const candidates = [config?.view, config?.earthview?.view, config?.terminalResponse?.earthview?.view];
+    for (const v of candidates) {
+      if (v?.center && Array.isArray(v.center) && v.center.length === 2) {
+        const [lng, lat] = v.center;
+        if (typeof lng === "number" && typeof lat === "number" && !isNaN(lng) && !isNaN(lat)) {
+          return { center: [lng, lat], zoom: typeof v.zoom === "number" ? v.zoom : undefined };
+        }
+      }
+    }
+    return null;
+  }, []);
   /**
-   * Add markers layer - accumulates markers from all calls
-   * Same layer is reused, markers are added incrementally
+   * Add markers layer with id-based dedup.
+   *
+   * FIX (double bubble): The root cause of the duplicate popup is that the
+   * same marker was being added twice — once from replayAllEarthviewMessages
+   * (session switch) and once from the incremental effect that also sees the
+   * same last LLM message. We now build a stable id per marker and skip it if
+   * already present in addedMarkerIdsRef.
+   *
+   * We also only pass bubbleBoxTitle/bubbleBoxDescription for the popup and
+   * blank out name/pointText to avoid a secondary built-in tooltip.
    */
   const addMarkersLayer = useCallback(async (markers: any[]) => {
     if (!earthViewRef.current || !markers.length) return;
@@ -303,25 +362,37 @@ export const MapsChatPageEarthView = forwardRef<EarthViewRef, MapsChatPageEarthV
     }
     appliedLayerIdsRef.current.add("llm-markers");
     for (const marker of markers) {
+      // Build a stable id. If the LLM provides one, use it; otherwise fall
+      // back to a coordinate+title based key so re-application is idempotent.
+      const stableId = marker.id || `marker_${coordKey(marker.longitude, marker.latitude)}_${marker.bubbleBoxTitle || marker.title || ""}`;
+      if (addedMarkerIdsRef.current.has(stableId)) {
+        // Already added — skip to prevent duplicate popups
+        continue;
+      }
+      addedMarkerIdsRef.current.add(stableId);
       const colorArray = normalizeColor(marker.color || "#FF5722");
       const colorString = `rgba(${colorArray[0]}, ${colorArray[1]}, ${colorArray[2]}, ${colorArray[3] ?? 1})`;
+      const bubbleTitle = marker.bubbleBoxTitle || marker.title || "";
+      const bubbleDesc = marker.bubbleBoxDescription || "";
       await markerLayer.addMarker({
-        id: marker.id || `marker_${Date.now()}_${Math.random()}`,
+        id: stableId,
         longitude: marker.longitude,
         latitude: marker.latitude,
-        name: marker.name || marker.title || "",
+        // Do NOT pass name/title here: it would trigger a second popup
+        name: "",
         pointColor: colorString,
         pointSize: marker.size || 15,
         pointType: marker.pointType || "circle",
-        pointText: marker.pointText || "",
-        bubbleBoxTitle: marker.bubbleBoxTitle || marker.title || "",
-        bubbleBoxDescription: marker.bubbleBoxDescription || "",
+        // Keep pointText empty to avoid the built-in label bubble
+        pointText: "",
+        bubbleBoxTitle: bubbleTitle,
+        bubbleBoxDescription: bubbleDesc,
         bubbleBoxCoverImage: marker.bubbleBoxCoverImage || "",
       });
     }
   }, []);
   /**
-   * Add circles layer - accumulates circles from all calls
+   * Add circles layer with id-based dedup
    */
   const addCirclesLayer = useCallback((circles: any[]) => {
     if (!earthViewRef.current || !circles.length) return;
@@ -336,8 +407,13 @@ export const MapsChatPageEarthView = forwardRef<EarthViewRef, MapsChatPageEarthV
     }
     appliedLayerIdsRef.current.add("llm-circles");
     for (const circle of circles) {
+      const stableId = circle.id || `circle_${coordKey(circle.center?.[0], circle.center?.[1])}_${circle.radius ?? ""}`;
+      if (addedCircleIdsRef.current.has(stableId)) {
+        continue;
+      }
+      addedCircleIdsRef.current.add(stableId);
       circleLayer.addCircle({
-        id: circle.id || `circle_${Date.now()}_${Math.random()}`,
+        id: stableId,
         center: circle.center,
         radius: circle.radius,
         title: circle.title || "",
@@ -348,7 +424,7 @@ export const MapsChatPageEarthView = forwardRef<EarthViewRef, MapsChatPageEarthV
     }
   }, []);
   /**
-   * Add polygons layer - accumulates polygons from all calls
+   * Add polygons layer with id-based dedup
    */
   const addPolygonsLayer = useCallback((polygons: any[]) => {
     if (!earthViewRef.current || !polygons.length) return;
@@ -363,8 +439,14 @@ export const MapsChatPageEarthView = forwardRef<EarthViewRef, MapsChatPageEarthV
     }
     appliedLayerIdsRef.current.add("llm-polygons");
     for (const polygon of polygons) {
+      const firstPt = Array.isArray(polygon.points) && polygon.points[0] ? polygon.points[0] : [];
+      const stableId = polygon.id || `polygon_${coordKey(firstPt[0], firstPt[1])}_${polygon.title || ""}`;
+      if (addedPolygonIdsRef.current.has(stableId)) {
+        continue;
+      }
+      addedPolygonIdsRef.current.add(stableId);
       polygonLayer.addPolygon({
-        id: polygon.id || `polygon_${Date.now()}_${Math.random()}`,
+        id: stableId,
         points: polygon.points,
         title: polygon.title || "",
         fillColor: normalizeColor(polygon.fillColor || "rgba(0,0,255,0.3)"),
@@ -374,7 +456,7 @@ export const MapsChatPageEarthView = forwardRef<EarthViewRef, MapsChatPageEarthV
     }
   }, []);
   /**
-   * Add polylines layer - accumulates polylines from all calls
+   * Add polylines layer with id-based dedup
    */
   const addPolylinesLayer = useCallback((polylines: any[]) => {
     if (!earthViewRef.current || !polylines.length) return;
@@ -389,8 +471,14 @@ export const MapsChatPageEarthView = forwardRef<EarthViewRef, MapsChatPageEarthV
     }
     appliedLayerIdsRef.current.add("llm-polylines");
     for (const polyline of polylines) {
+      const firstPt = Array.isArray(polyline.points) && polyline.points[0] ? polyline.points[0] : [];
+      const stableId = polyline.id || `polyline_${coordKey(firstPt[0], firstPt[1])}_${polyline.title || ""}`;
+      if (addedPolylineIdsRef.current.has(stableId)) {
+        continue;
+      }
+      addedPolylineIdsRef.current.add(stableId);
       polylineLayer.addPolyline({
-        id: polyline.id || `polyline_${Date.now()}_${Math.random()}`,
+        id: stableId,
         points: polyline.points,
         title: polyline.title || "",
         color: normalizeColor(polyline.color || "#FF0000"),
@@ -398,9 +486,6 @@ export const MapsChatPageEarthView = forwardRef<EarthViewRef, MapsChatPageEarthV
       });
     }
   }, []);
-  /**
-   * Add heatmap layer - replaces existing heatmap data
-   */
   const addHeatmapLayer = useCallback((heatmapData: any[]) => {
     if (!earthViewRef.current || !heatmapData.length) return;
     const layerManager = earthViewRef.current.getLayerManager();
@@ -417,9 +502,6 @@ export const MapsChatPageEarthView = forwardRef<EarthViewRef, MapsChatPageEarthV
     appliedLayerIdsRef.current.add("llm-heatmap");
     heatmapLayer.setData(heatmapData);
   }, []);
-  /**
-   * Add cluster layer - replaces existing cluster data
-   */
   const addClusterLayer = useCallback((clusterData: any[]) => {
     if (!earthViewRef.current || !clusterData.length) return;
     const layerManager = earthViewRef.current.getLayerManager();
@@ -435,9 +517,6 @@ export const MapsChatPageEarthView = forwardRef<EarthViewRef, MapsChatPageEarthV
     appliedLayerIdsRef.current.add("llm-clusters");
     clusterLayer.setData(clusterData);
   }, []);
-  /**
-   * Add bar chart layer - replaces existing bar chart data
-   */
   const addBarChartLayer = useCallback((barData: any[]) => {
     if (!earthViewRef.current || !barData.length) return;
     const layerManager = earthViewRef.current.getLayerManager();
@@ -453,51 +532,67 @@ export const MapsChatPageEarthView = forwardRef<EarthViewRef, MapsChatPageEarthV
     appliedLayerIdsRef.current.add("llm-barcharts");
     barLayer.setData(barData);
   }, []);
-  /**
-   * Force locate to first marker in config
-   */
-  const forceLocateToFirstMarker = useCallback(
+  const forceLocateFromConfig = useCallback(
     (config: any): boolean => {
       const firstCoord = getFirstCoordinateFromConfig(config);
       if (firstCoord) {
         locateToCoordinate(firstCoord);
         return true;
       }
+      const viewInfo = getViewCenterFromConfig(config);
+      if (viewInfo) {
+        locateToCoordinate(viewInfo.center, viewInfo.zoom);
+        return true;
+      }
       return false;
     },
-    [getFirstCoordinateFromConfig, locateToCoordinate],
+    [getFirstCoordinateFromConfig, getViewCenterFromConfig, locateToCoordinate],
   );
   /**
-   * Clear all LLM-added layers from the map
+   * Clear all LLM-added layers from the map and reset all dedup sets.
    */
   const clearLayers = useCallback(() => {
     if (!earthViewRef.current) return;
     const layerManager = earthViewRef.current.getLayerManager();
     const layerIds = Array.from(appliedLayerIdsRef.current);
     for (const layerId of layerIds) {
-      const layer = layerManager.getLayer(layerId);
+      const layer: any = layerManager.getLayer(layerId);
       if (layer) {
+        try {
+          if (typeof layer.clearMarkers === "function") {
+            layer.clearMarkers();
+          } else if (typeof layer.clearCircles === "function") {
+            layer.clearCircles();
+          } else if (typeof layer.clearPolygons === "function") {
+            layer.clearPolygons();
+          } else if (typeof layer.clearPolylines === "function") {
+            layer.clearPolylines();
+          } else if (typeof layer.clear === "function") {
+            layer.clear();
+          } else if (typeof layer.setData === "function") {
+            layer.setData([]);
+          }
+        } catch (e) {
+          console.warn("[clearLayers] failed to clear layer data:", layerId, e);
+        }
         layerManager.removeLayer(layerId);
       }
     }
     appliedLayerIdsRef.current.clear();
+    appliedConfigsRef.current = [];
+    // FIX: reset dedup sets so the next session can add the same coords again
+    addedMarkerIdsRef.current.clear();
+    addedCircleIdsRef.current.clear();
+    addedPolygonIdsRef.current.clear();
+    addedPolylineIdsRef.current.clear();
   }, []);
-  /**
-   * Apply earthview config to the map
-   * This is the main entry point for rendering map data from LLM
-   *
-   * Same pattern as executeThreeCode in 3D Sandbox:
-   * - Called by chat panel via ref
-   * - Accumulates layers for overlay display
-   * - All tasks in the same session are overlaid
-   */
   const applyEarthViewConfig = useCallback(
     async (config: any) => {
       if (!earthViewRef.current || !isReady) {
         pendingMapDataRef.current = config;
         return;
       }
-      // Extract and add markers
+      appliedConfigsRef.current.push(config);
       if (config?.markers && Array.isArray(config.markers) && config.markers.length > 0) {
         await addMarkersLayer(config.markers);
       } else if (config?.earthview?.markers && Array.isArray(config.earthview.markers)) {
@@ -505,7 +600,6 @@ export const MapsChatPageEarthView = forwardRef<EarthViewRef, MapsChatPageEarthV
       } else if (config?.terminalResponse?.earthview?.markers && Array.isArray(config.terminalResponse.earthview.markers)) {
         await addMarkersLayer(config.terminalResponse.earthview.markers);
       }
-      // Add circles
       if (config?.circles && Array.isArray(config.circles)) {
         addCirclesLayer(config.circles);
       } else if (config?.earthview?.circles && Array.isArray(config.earthview.circles)) {
@@ -513,7 +607,6 @@ export const MapsChatPageEarthView = forwardRef<EarthViewRef, MapsChatPageEarthV
       } else if (config?.terminalResponse?.earthview?.circles && Array.isArray(config.terminalResponse.earthview.circles)) {
         addCirclesLayer(config.terminalResponse.earthview.circles);
       }
-      // Add polygons
       if (config?.polygons && Array.isArray(config.polygons)) {
         addPolygonsLayer(config.polygons);
       } else if (config?.earthview?.polygons && Array.isArray(config.earthview.polygons)) {
@@ -521,7 +614,6 @@ export const MapsChatPageEarthView = forwardRef<EarthViewRef, MapsChatPageEarthV
       } else if (config?.terminalResponse?.earthview?.polygons && Array.isArray(config.terminalResponse.earthview.polygons)) {
         addPolygonsLayer(config.terminalResponse.earthview.polygons);
       }
-      // Add polylines
       if (config?.polylines && Array.isArray(config.polylines)) {
         addPolylinesLayer(config.polylines);
       } else if (config?.earthview?.polylines && Array.isArray(config.earthview.polylines)) {
@@ -529,7 +621,6 @@ export const MapsChatPageEarthView = forwardRef<EarthViewRef, MapsChatPageEarthV
       } else if (config?.terminalResponse?.earthview?.polylines && Array.isArray(config.terminalResponse.earthview.polylines)) {
         addPolylinesLayer(config.terminalResponse.earthview.polylines);
       }
-      // Add heatmap
       if (config?.heatmap && Array.isArray(config.heatmap)) {
         addHeatmapLayer(config.heatmap);
       } else if (config?.earthview?.heatmap && Array.isArray(config.earthview.heatmap)) {
@@ -537,7 +628,6 @@ export const MapsChatPageEarthView = forwardRef<EarthViewRef, MapsChatPageEarthV
       } else if (config?.terminalResponse?.earthview?.heatmap && Array.isArray(config.terminalResponse.earthview.heatmap)) {
         addHeatmapLayer(config.terminalResponse.earthview.heatmap);
       }
-      // Add clusters
       if (config?.clusters && Array.isArray(config.clusters)) {
         addClusterLayer(config.clusters);
       } else if (config?.earthview?.clusters && Array.isArray(config.earthview.clusters)) {
@@ -545,7 +635,6 @@ export const MapsChatPageEarthView = forwardRef<EarthViewRef, MapsChatPageEarthV
       } else if (config?.terminalResponse?.earthview?.clusters && Array.isArray(config.terminalResponse.earthview.clusters)) {
         addClusterLayer(config.terminalResponse.earthview.clusters);
       }
-      // Add bar charts
       if (config?.barcharts && Array.isArray(config.barcharts)) {
         addBarChartLayer(config.barcharts);
       } else if (config?.earthview?.barcharts && Array.isArray(config.earthview.barcharts)) {
@@ -553,52 +642,34 @@ export const MapsChatPageEarthView = forwardRef<EarthViewRef, MapsChatPageEarthV
       } else if (config?.terminalResponse?.earthview?.barcharts && Array.isArray(config.terminalResponse.earthview.barcharts)) {
         addBarChartLayer(config.terminalResponse.earthview.barcharts);
       }
-      // Wait a moment for layers to render
       await new Promise((resolve) => setTimeout(resolve, 200));
-      // Auto-locate to first marker if not already located
-      if (!hasLocatedRef.current) {
-        const located = forceLocateToFirstMarker(config);
-        if (!located) {
-          // Try view.center from config
-          let centerCoord: [number, number] | null = null;
-          if (config?.view?.center && Array.isArray(config.view.center) && config.view.center.length === 2) {
-            const [lng, lat] = config.view.center;
-            if (typeof lng === "number" && typeof lat === "number" && !isNaN(lng) && !isNaN(lat)) {
-              centerCoord = [lng, lat];
-            }
-          } else if (config?.earthview?.view?.center) {
-            const [lng, lat] = config.earthview.view.center;
-            if (typeof lng === "number" && typeof lat === "number" && !isNaN(lng) && !isNaN(lat)) {
-              centerCoord = [lng, lat];
-            }
-          } else if (config?.terminalResponse?.earthview?.view?.center) {
-            const [lng, lat] = config.terminalResponse.earthview.view.center;
-            if (typeof lng === "number" && typeof lat === "number" && !isNaN(lng) && !isNaN(lat)) {
-              centerCoord = [lng, lat];
-            }
-          }
-          if (centerCoord) {
-            locateToCoordinate(centerCoord);
-          }
-        }
-      }
+      forceLocateFromConfig(config);
     },
-    [isReady, addMarkersLayer, addCirclesLayer, addPolygonsLayer, addPolylinesLayer, addHeatmapLayer, addClusterLayer, addBarChartLayer, forceLocateToFirstMarker, locateToCoordinate],
+    [isReady, addMarkersLayer, addCirclesLayer, addPolygonsLayer, addPolylinesLayer, addHeatmapLayer, addClusterLayer, addBarChartLayer, forceLocateFromConfig],
   );
-  /**
-   * Expose methods to parent via ref
-   * Same pattern as 3D Sandbox's useImperativeHandle
-   */
+  const reapplyAllConfigs = useCallback(async () => {
+    if (!earthViewRef.current || !isReady) return;
+    const configs = [...appliedConfigsRef.current];
+    appliedLayerIdsRef.current.clear();
+    appliedConfigsRef.current = [];
+    // FIX: also reset dedup sets before replaying so each config is applied
+    // exactly once after recreation.
+    addedMarkerIdsRef.current.clear();
+    addedCircleIdsRef.current.clear();
+    addedPolygonIdsRef.current.clear();
+    addedPolylineIdsRef.current.clear();
+    for (const cfg of configs) {
+      await applyEarthViewConfig(cfg);
+    }
+  }, [isReady, applyEarthViewConfig]);
   useImperativeHandle(ref, () => ({
     applyEarthViewConfig,
     clearLayers,
     isReady: () => isReady,
     getEarthView: () => earthViewRef.current,
     locateToCoordinate,
+    reapplyAllConfigs,
   }));
-  /**
-   * Listen for locate events from other components
-   */
   useEffect(() => {
     const handleLocate = (event: CustomEvent) => {
       const { center, mapData: eventMapData } = event.detail;
@@ -618,9 +689,6 @@ export const MapsChatPageEarthView = forwardRef<EarthViewRef, MapsChatPageEarthV
       window.removeEventListener("EarthView-locate", handleLocate as EventListener);
     };
   }, [isReady, applyEarthViewConfig, locateToCoordinate]);
-  /**
-   * Apply mapData prop when it changes
-   */
   useEffect(() => {
     if (isReady && earthViewRef.current && mapData) {
       applyEarthViewConfig(mapData);
@@ -628,48 +696,64 @@ export const MapsChatPageEarthView = forwardRef<EarthViewRef, MapsChatPageEarthV
       pendingMapDataRef.current = mapData;
     }
   }, [mapData, isReady, applyEarthViewConfig]);
-  /**
-   * Initialize EarthView instance
-   */
+  useEffect(() => {
+    themeRef.current = theme;
+    const ev: any = earthViewRef.current;
+    if (!ev) return;
+    if (typeof ev.setTheme === "function") {
+      try {
+        ev.setTheme(theme === "dark" ? "dark" : "light");
+        return;
+      } catch (e) {
+        console.warn("[EarthView] setTheme failed, will recreate on next init", e);
+      }
+    }
+    if (typeof ev.updateOptions === "function") {
+      try {
+        ev.updateOptions({ theme: theme === "dark" ? "dark" : "light" });
+        return;
+      } catch (e) {
+        console.warn("[EarthView] updateOptions failed", e);
+      }
+    }
+    setRecreateKey((k) => k + 1);
+  }, [theme]);
   useEffect(() => {
     if (!containerRef.current) return;
-    // Cleanup existing instance
     if (earthViewRef.current) {
       earthViewRef.current.destroy();
       earthViewRef.current = null;
       setIsReady(false);
-      hasLocatedRef.current = false;
       appliedLayerIdsRef.current.clear();
     }
-    // Determine initial center
     let initialCenter: [number, number] = DEFAULT_CENTER;
+    let initialZoom: number = DEFAULT_ZOOM;
     const firstCoord = getFirstCoordinateFromConfig(mapData);
     if (firstCoord) {
       initialCenter = firstCoord;
-    } else if (mapData?.view?.center && Array.isArray(mapData.view.center) && mapData.view.center.length === 2) {
-      const [lng, lat] = mapData.view.center;
-      if (typeof lng === "number" && typeof lat === "number" && !isNaN(lng) && !isNaN(lat)) {
-        initialCenter = [lng, lat];
-      }
-    } else if (mapData?.earthview?.view?.center) {
-      const [lng, lat] = mapData.earthview.view.center;
-      if (typeof lng === "number" && typeof lat === "number" && !isNaN(lng) && !isNaN(lat)) {
-        initialCenter = [lng, lat];
+    } else {
+      const viewInfo = getViewCenterFromConfig(mapData);
+      if (viewInfo) {
+        initialCenter = viewInfo.center;
+        if (typeof viewInfo.zoom === "number") initialZoom = viewInfo.zoom;
       }
     }
-    // Create EarthView instance
     const earthView = new EarthView({
       container: containerRef.current,
       basemap: BasemapTypeEnum.SATELLITE,
       center: initialCenter,
-      zoom: DEFAULT_ZOOM,
+      zoom: initialZoom,
       coordinateSystem: CoordinateSystemTypeEnum.WGS84,
-      theme: theme === "dark" ? "dark" : "light",
+      theme: themeRef.current === "dark" ? "dark" : "light",
       i18n: i18n === "zh-cn" ? "zh" : "en",
       enableDrawing: true,
       onLoad: () => {
         setIsReady(true);
-        if (pendingMapDataRef.current) {
+        if (appliedConfigsRef.current.length > 0) {
+          setTimeout(() => {
+            reapplyAllConfigs();
+          }, 100);
+        } else if (pendingMapDataRef.current) {
           setTimeout(() => {
             applyEarthViewConfig(pendingMapDataRef.current);
             pendingMapDataRef.current = null;
@@ -679,6 +763,11 @@ export const MapsChatPageEarthView = forwardRef<EarthViewRef, MapsChatPageEarthV
             applyEarthViewConfig(mapData);
           }, 100);
         }
+        window.dispatchEvent(
+          new CustomEvent("earthview-recreated", {
+            detail: { theme: themeRef.current, i18n },
+          }),
+        );
         onLoad?.(earthView);
       },
       onMapClick: (event: any) => {
@@ -694,11 +783,11 @@ export const MapsChatPageEarthView = forwardRef<EarthViewRef, MapsChatPageEarthV
         earthViewRef.current.destroy();
         earthViewRef.current = null;
         setIsReady(false);
-        hasLocatedRef.current = false;
         appliedLayerIdsRef.current.clear();
       }
     };
-  }, [theme, i18n, mapData]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [i18n, recreateKey]);
   return (
     <div
       ref={containerRef}

@@ -344,7 +344,7 @@ const SystemTrayWindow: React.FC = () => {
         <div style={{ ...S.menuItem, backgroundColor: rowBg, cursor: "default" }} onMouseEnter={() => setHoveredItem(item.id)} onMouseLeave={() => setHoveredItem(null)}>
           <Sparkles size={13} color={palette.accent} style={{ flexShrink: 0 }} />
           <div style={S.statusRow}>
-            <span style={S.statusAccent}>{isZh ? `发现新版本 ${versionInfo.latest_version}` : `v${versionInfo.latest_version} available`}</span>
+            <span style={S.statusAccent}>{isZh ? `v${versionInfo.latest_version}` : `v${versionInfo.latest_version}`}</span>
           </div>
           <button
             style={S.btnPrimary}

@@ -951,27 +951,104 @@ const MapsChatPage: React.FC<MapsChatPageProps> = ({ onSendMessage, onFileClick,
    * Same pattern as 3D sandbox: extract data from LLM response and render it
    */
   const processedMessageIdsRef = useRef<Set<string>>(new Set());
+  /**
+   * FIX (Problem 2): Replay ALL earthview-bearing LLM messages in the current
+   * session, in chronological order. Previously only the last message was
+   * processed, which caused only the final graphics to appear.
+   */
+  const replayAllEarthviewMessages = useCallback(
+    async (sessionMessages: ChatMessage[]) => {
+      if (!mapRef?.current) return;
+      const llmMessages = sessionMessages.filter((m) => m.role === RoleEnum.LLM && m.status !== MessageStatus.Pending && m.status !== MessageStatus.Failed && m.status !== MessageStatus.Cancelled);
+      for (const m of llmMessages) {
+        if (!isStructuredLLMResponse(m.content)) continue;
+        const parsed = parseLLMResponse(m.content);
+        const ev = parsed?.terminalResponse?.earthview;
+        if (!ev) continue;
+        if (!mapRef.current.isReady()) {
+          // Wait for readiness with a small polling loop
+          let waited = 0;
+          while (!mapRef.current.isReady() && waited < 5000) {
+            await new Promise((r) => setTimeout(r, 100));
+            waited += 100;
+          }
+        }
+        await mapRef.current.applyEarthViewConfig(ev);
+        processedMessageIdsRef.current.add(m.id);
+      }
+    },
+    [mapRef],
+  );
+  // When session changes, reset processed set and replay ALL earthview messages
   useEffect(() => {
-    // Check if there's a new LLM message with earthview data to render
+    processedMessageIdsRef.current = new Set();
+    if (!currentSessionId) return;
+    // Only replay once messages are loaded for this session
+    if (messages.length === 0) return;
+    // Clear existing layers first, then replay every earthview-bearing message
+    const run = async () => {
+      if (!mapRef?.current) return;
+      if (!mapRef.current.isReady()) {
+        let waited = 0;
+        while (!mapRef.current.isReady() && waited < 5000) {
+          await new Promise((r) => setTimeout(r, 100));
+          waited += 100;
+        }
+      }
+      mapRef.current.clearLayers();
+      await replayAllEarthviewMessages(messages);
+    };
+    run();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentSessionId, messages.length]);
+  // When the map is recreated (e.g. theme change), replay all earthview messages
+  useEffect(() => {
+    const handleRecreated = () => {
+      processedMessageIdsRef.current = new Set();
+      const run = async () => {
+        if (!mapRef?.current) return;
+        if (!mapRef.current.isReady()) {
+          let waited = 0;
+          while (!mapRef.current.isReady() && waited < 5000) {
+            await new Promise((r) => setTimeout(r, 100));
+            waited += 100;
+          }
+        }
+        mapRef.current.clearLayers();
+        await replayAllEarthviewMessages(messagesRef.current);
+      };
+      run();
+    };
+    window.addEventListener("earthview-recreated", handleRecreated);
+    return () => {
+      window.removeEventListener("earthview-recreated", handleRecreated);
+    };
+  }, [mapRef, replayAllEarthviewMessages]);
+  // Process only NEW LLM messages as they arrive (incremental rendering)
+  useEffect(() => {
     const lastMsg = messages.length > 0 ? messages[messages.length - 1] : null;
     if (!lastMsg || lastMsg.role !== RoleEnum.LLM) return;
     if (lastMsg.status === MessageStatus.Pending) return;
     if (lastMsg.status === MessageStatus.Failed) return;
     if (lastMsg.status === MessageStatus.Cancelled) return;
-    // Skip if already processed
     if (processedMessageIdsRef.current.has(lastMsg.id)) {
       return;
     }
-    // Check if the message contains structured LLM response with earthview data
     if (isStructuredLLMResponse(lastMsg.content)) {
       const parsed = parseLLMResponse(lastMsg.content);
       if (parsed?.terminalResponse?.earthview) {
         const earthviewData = parsed.terminalResponse.earthview;
-        // Apply earthview data to the map
-        if (mapRef?.current && mapRef.current.isReady()) {
-          mapRef.current.applyEarthViewConfig(earthviewData);
+        const applyNow = async () => {
+          if (!mapRef?.current) return;
+          if (!mapRef.current.isReady()) {
+            let waited = 0;
+            while (!mapRef.current.isReady() && waited < 5000) {
+              await new Promise((r) => setTimeout(r, 100));
+              waited += 100;
+            }
+          }
+          await mapRef.current.applyEarthViewConfig(earthviewData);
           processedMessageIdsRef.current.add(lastMsg.id);
-          // Also dispatch event for any other listeners
           window.dispatchEvent(
             new CustomEvent("earthview-data-updated", {
               detail: {
@@ -981,18 +1058,8 @@ const MapsChatPage: React.FC<MapsChatPageProps> = ({ onSendMessage, onFileClick,
               },
             }),
           );
-        } else {
-          // Map not ready yet, try again after a short delay
-          const retryTimer = setTimeout(() => {
-            if (mapRef?.current && mapRef.current.isReady()) {
-              mapRef.current.applyEarthViewConfig(earthviewData);
-              processedMessageIdsRef.current.add(lastMsg.id);
-            } else {
-              console.warn("[MapsChatPage] Map ref not ready for earthview rendering");
-            }
-          }, 500);
-          return () => clearTimeout(retryTimer);
-        }
+        };
+        applyNow();
       }
     }
   }, [messages, mapRef, currentSessionId]);

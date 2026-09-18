@@ -1,6 +1,6 @@
 [package]
 name = "HippoxOS"
-version = "0.5.2"
+version = "0.5.3"
 description = "A native LLM operating system."
 authors = ["happyboy"]
 license = "AGPL-3.0"
