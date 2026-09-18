@@ -15,8 +15,8 @@ mod types;
 mod windows;
 mod workspace;
 use crate::cmd_registry::*;
-use crate::commons::init_default_settings;
 use crate::commons::FileUtils;
+use crate::commons::init_default_settings;
 use crate::context::Context;
 use crate::events::handle_window_event;
 use crate::hippox_core::*;
@@ -30,8 +30,8 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
-use tauri::webview::WebviewWindowBuilder;
 use tauri::WebviewUrl;
+use tauri::webview::WebviewWindowBuilder;
 use tauri::{DragDropEvent, Manager, WindowEvent};
 use tauri_plugin_autostart::MacosLauncher;
 use tauri_plugin_dialog;
@@ -119,32 +119,17 @@ pub fn run() {
         .setup(|app| {
             #[cfg(target_os = "macos")]
             {
-                // ========== Audio init moved OFF the main-thread FFI path ==========
-                // Previously: crate::subsystem::videoeditor::audio::init_audio_threads();
-                // This ran synchronously inside tao's `did_finish_launching` ObjC callback.
-                // If the audio device failed to open (common after packaging / on macOS),
-                // it panicked and Rust could not unwind across the FFI boundary,
-                // triggering `panic_cannot_unwind` -> abort() -> SIGABRT.
-                //
-                // Now we run it on a detached background thread and swallow any panic,
-                // so audio failure can never crash the whole app again.
-                std::thread::spawn(|| {
-                    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-                        crate::subsystem::videoeditor::audio::init_audio_threads();
-                    }));
-                    if let Err(e) = result {
-                        log::error!("Audio init panicked (ignored): {:?}", e);
-                    }
-                });
-                use objc2::msg_send;
-                use objc2::runtime::AnyObject;
-                for (_label, win) in app.webview_windows() {
-                    let _ = win.with_webview(|webview| unsafe {
-                        let ns_window: *mut AnyObject = webview.ns_window().cast();
-                        let style: i64 = 1; // NSScrollerStyleLegacy
-                        let _: () = msg_send![ns_window, setScrollerStyle: style];
-                    });
-                }
+                // init audio thread
+                crate::subsystem::videoeditor::audio::init_audio_threads();
+                // use objc2::msg_send;
+                // use objc2::runtime::AnyObject;
+                // for (_label, win) in app.webview_windows() {
+                //     let _ = win.with_webview(|webview| unsafe {
+                //         let ns_window: *mut AnyObject = webview.ns_window().cast();
+                //         let style: i64 = 1; // NSScrollerStyleLegacy
+                //         let _: () = msg_send![ns_window, setScrollerStyle: style];
+                //     });
+                // }
             }
             TrayManager::setup(app)?;
             Ok(())
