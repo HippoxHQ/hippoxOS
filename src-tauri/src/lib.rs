@@ -119,7 +119,23 @@ pub fn run() {
         .setup(|app| {
             #[cfg(target_os = "macos")]
             {
-                crate::subsystem::videoeditor::audio::init_audio_threads();
+                // ========== Audio init moved OFF the main-thread FFI path ==========
+                // Previously: crate::subsystem::videoeditor::audio::init_audio_threads();
+                // This ran synchronously inside tao's `did_finish_launching` ObjC callback.
+                // If the audio device failed to open (common after packaging / on macOS),
+                // it panicked and Rust could not unwind across the FFI boundary,
+                // triggering `panic_cannot_unwind` -> abort() -> SIGABRT.
+                //
+                // Now we run it on a detached background thread and swallow any panic,
+                // so audio failure can never crash the whole app again.
+                std::thread::spawn(|| {
+                    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                        crate::subsystem::videoeditor::audio::init_audio_threads();
+                    }));
+                    if let Err(e) = result {
+                        log::error!("Audio init panicked (ignored): {:?}", e);
+                    }
+                });
                 use objc2::msg_send;
                 use objc2::runtime::AnyObject;
                 for (_label, win) in app.webview_windows() {
