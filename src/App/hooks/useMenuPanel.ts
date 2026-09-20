@@ -22,6 +22,7 @@ export type ContentPanelView =
   | "mapChat"
   | "videoEditor"
   | "sandbox3d"
+  | "blockchain"
   | null;
 export function useMenuPanel() {
   const [menuPanelView, setMenuPanelView] = useState<MenuPanelView | null>(null);
@@ -80,7 +81,8 @@ export function useMenuPanel() {
       "mapChat",
       "generalChat",
       "videoEditor",
-      "sandbox3d"
+      "sandbox3d",
+      "blockchain"
     ];
     if (contentViews.includes(view)) {
       setCurrentContentPanel(view as ContentPanelView);

@@ -1,7 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import { PopupMenu, SidebarButton } from "./components";
 import { SidebarProps } from "./types";
-import { NewSessionIcon } from "../../icons";
 import { showTooltipOnElement } from "../Tooltip";
 import { topMenuItems, bottomMenuItems, allMenuItems } from "./constants";
 import { sidebarStyles } from "./sidebarStyles";
@@ -10,6 +9,7 @@ import { videoEditorStateManager } from "../../subsystem/VideoEditor/global";
 import { clearVideoEditorAllMemory } from "../../subsystem/VideoEditor/MenoryManager";
 import { APP_WINDOW_EVENTS } from "../../App/AppWindowEventManager";
 import { SUBSYSTEM_TO_SIDEBAR_ID } from "../../App/SubSystemConstants";
+import { Plus } from "lucide-react";
 
 if (typeof document !== "undefined") {
   const styleId = "sidebar-styles";
@@ -21,16 +21,7 @@ if (typeof document !== "undefined") {
   }
 }
 
-const Sidebar: React.FC<SidebarProps> = ({
-  collapsed,
-  onResetSession,
-  onClearLogs,
-  onMenuClick,
-  onNewSession,
-  currentSessionId,
-  onSwitchSession,
-  t,
-}) => {
+const Sidebar: React.FC<SidebarProps> = ({ collapsed, onResetSession, onClearLogs, onMenuClick, onNewSession, currentSessionId, onSwitchSession, t }) => {
   const [activeId, setActiveId] = React.useState("generalChat");
   const [activeSubId, setActiveSubId] = React.useState<string>();
   const [activeSubSubId, setActiveSubSubId] = React.useState<string>();
@@ -67,24 +58,12 @@ const Sidebar: React.FC<SidebarProps> = ({
       }
     };
 
-    window.addEventListener(
-      APP_WINDOW_EVENTS.SESSION_SELECTED,
-      handleSessionSelected as EventListener
-    );
-    window.addEventListener(
-      APP_WINDOW_EVENTS.SEARCH_SWITCH_SESSION,
-      handleSearchSwitchSession as EventListener
-    );
+    window.addEventListener(APP_WINDOW_EVENTS.SESSION_SELECTED, handleSessionSelected as EventListener);
+    window.addEventListener(APP_WINDOW_EVENTS.SEARCH_SWITCH_SESSION, handleSearchSwitchSession as EventListener);
 
     return () => {
-      window.removeEventListener(
-        APP_WINDOW_EVENTS.SESSION_SELECTED,
-        handleSessionSelected as EventListener
-      );
-      window.removeEventListener(
-        APP_WINDOW_EVENTS.SEARCH_SWITCH_SESSION,
-        handleSearchSwitchSession as EventListener
-      );
+      window.removeEventListener(APP_WINDOW_EVENTS.SESSION_SELECTED, handleSessionSelected as EventListener);
+      window.removeEventListener(APP_WINDOW_EVENTS.SEARCH_SWITCH_SESSION, handleSearchSwitchSession as EventListener);
     };
   }, [popupVisible, handleClosePopup]);
 
@@ -118,6 +97,8 @@ const Sidebar: React.FC<SidebarProps> = ({
       "mapChat",
       "videoEditor",
       "sandbox3d",
+      // Added blockchain to direct open items
+      "blockchain",
     ];
 
     if (itemId != "videoEditor") {
@@ -211,6 +192,10 @@ const Sidebar: React.FC<SidebarProps> = ({
     if (itemId === "settings_group") {
       return activeId === "settings_group" || activeSubId !== undefined || activeSubSubId !== undefined;
     }
+    // Added blockchain active state check
+    if (itemId === "blockchain") {
+      return activeId === "blockchain";
+    }
     return activeId === itemId;
   };
 
@@ -231,6 +216,10 @@ const Sidebar: React.FC<SidebarProps> = ({
     }
     if (item.id === "codeEditorChat") {
       return t("menu.codeEditor");
+    }
+    // Added blockchain label mapping
+    if (item.id === "blockchain") {
+      return t("menu.blockchain");
     }
     return t(item.label);
   };
@@ -269,18 +258,11 @@ const Sidebar: React.FC<SidebarProps> = ({
       {!collapsed && (
         <>
           <div className="sidebar-header">
-            <button
-              className="new-session-icon-btn"
-              onClick={handleNewSessionClick}
-              onMouseEnter={(e) => handleMouseEnter(e, t("actions.newSession"))}
-              onMouseLeave={handleMouseLeave}
-            >
-              <NewSessionIcon size={18} />
+            <button className="new-session-icon-btn" onClick={handleNewSessionClick} onMouseEnter={(e) => handleMouseEnter(e, t("actions.newSession"))} onMouseLeave={handleMouseLeave}>
+              <Plus size={18} />
             </button>
           </div>
-          <nav className="sidebar-nav-top">
-            {topMenuItems.map((item) => renderButton(item))}
-          </nav>
+          <nav className="sidebar-nav-top">{topMenuItems.map((item) => renderButton(item))}</nav>
           <nav className="sidebar-nav-bottom" style={{ flexDirection: "column-reverse" }}>
             <SidebarButton
               item={{
@@ -300,18 +282,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             />
             {bottomMenuItems.map((item) => renderButton(item))}
           </nav>
-          {popupVisible && activeIconId && (
-            <PopupMenu
-              items={allMenuItems.filter((item) => item.id === activeIconId)}
-              activeId={activeId}
-              activeSubId={activeSubId}
-              activeSubSubId={activeSubSubId}
-              onMenuClick={handleMenuClick}
-              onClose={handleClosePopup}
-              position={popupPosition}
-              t={t}
-            />
-          )}
+          {popupVisible && activeIconId && <PopupMenu items={allMenuItems.filter((item) => item.id === activeIconId)} activeId={activeId} activeSubId={activeSubId} activeSubSubId={activeSubSubId} onMenuClick={handleMenuClick} onClose={handleClosePopup} position={popupPosition} t={t} />}
         </>
       )}
     </aside>

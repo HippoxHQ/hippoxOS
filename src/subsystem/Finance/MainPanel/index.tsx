@@ -1,6 +1,5 @@
 import React, { useRef, useEffect, useState, useCallback } from "react";
 import { ICandleViewDataPoint, MainChartType, StaticMarkDirection, StaticMarkType } from "@candleview/core";
-import { TEST_CANDLEVIEW_DATA8 } from "../../../test/TestData_3";
 import Chart, { ChartRef } from "./Chart";
 import DSL, { DSLRef } from "./DSL";
 import MarketPanel from "./MarketPanel";
@@ -101,7 +100,7 @@ export const MainPanel: React.FC<MainPanelProps> = ({ theme, i18n, currentSessio
   const [marketPanelWidth, setMarketPanelWidth] = useState(240);
   const [chartSymbol, setChartSymbol] = useState(symbol);
   const [chartDataState, setChartDataState] = useState<any>(chartData);
-  const [candleData, setCandleData] = useState<ICandleViewDataPoint[]>(data || TEST_CANDLEVIEW_DATA8);
+  const [candleData, setCandleData] = useState<ICandleViewDataPoint[]>(data || []);
   // Active function tab now supports "ai" in addition to "dsl" and "news"
   const [activeFunctionTab, setActiveFunctionTab] = useState<"dsl" | "news" | "ai">("news");
   const [isFunctionCollapsed, setIsFunctionCollapsed] = useState(false);

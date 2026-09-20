@@ -33,6 +33,7 @@ import MapsPage from "../../subsystem/Maps";
 import SandBox3DPage from "../../subsystem/SandBox3D";
 import VideoEditorPage from "../../subsystem/VideoEditor";
 import ChartPage from "../../subsystem/Finance";
+import BlockchainPage from "../../subsystem/Blockchain";
 declare global {
   interface Window {
     __pageResources: {
@@ -67,6 +68,8 @@ declare global {
     __sandbox3dInstance: any;
     // Global general chat instance for cleanup
     __generalChatInstance: any;
+    // Global blockchain instance for cleanup
+    __blockchainInstance: any;
   }
 }
 if (typeof window !== "undefined") {
@@ -93,6 +96,7 @@ const PAGE_TYPES = {
   CODE_EDITOR: "codeEditorChat",
   VIDEO_EDITOR: "videoEditor",
   SANDBOX_3D: "sandbox3d",
+  BLOCKCHAIN: "blockchain",
   SKILLS_MANAGER: "skillsManager",
   SCHEDULED_TASKS: "scheduledTasks",
   USER_PROFILE: "userProfile",
@@ -108,7 +112,7 @@ type PageType = (typeof PAGE_TYPES)[keyof typeof PAGE_TYPES];
 /**
  * All subsystem page keys that should be destroyed on switch
  */
-const SUBSYSTEM_PAGES: PageType[] = [PAGE_TYPES.GENERAL_CHAT, PAGE_TYPES.CHART_CHAT, PAGE_TYPES.MAP_CHAT, PAGE_TYPES.CODE_EDITOR, PAGE_TYPES.VIDEO_EDITOR, PAGE_TYPES.SANDBOX_3D];
+const SUBSYSTEM_PAGES: PageType[] = [PAGE_TYPES.GENERAL_CHAT, PAGE_TYPES.CHART_CHAT, PAGE_TYPES.MAP_CHAT, PAGE_TYPES.CODE_EDITOR, PAGE_TYPES.VIDEO_EDITOR, PAGE_TYPES.SANDBOX_3D, PAGE_TYPES.BLOCKCHAIN];
 /**
  * Cleanup function for a specific page type
  * Each subsystem should define its own cleanup logic here
@@ -179,6 +183,17 @@ function cleanupPageResources(pageKey: PageType): void {
             console.warn("[CLEANUP] Sandbox3d destroy error:", e);
           }
           window.__sandbox3dInstance = null;
+        }
+        break;
+      case PAGE_TYPES.BLOCKCHAIN:
+        // Cleanup blockchain instance
+        if (window.__blockchainInstance) {
+          try {
+            window.__blockchainInstance.destroy?.();
+          } catch (e) {
+            console.warn("[CLEANUP] Blockchain destroy error:", e);
+          }
+          window.__blockchainInstance = null;
         }
         break;
       case PAGE_TYPES.GENERAL_CHAT:
@@ -729,6 +744,7 @@ export function AppContent({
     const isCodeEditorChat = currentContentPanel === "codeEditorChat";
     const isVideoEditor = currentContentPanel === "videoEditor";
     const isSandbox3d = currentContentPanel === "sandbox3d";
+    const isBlockchain = currentContentPanel === "blockchain";
     let contentElement: React.ReactNode;
     if (isChatPage) {
       if (showWelcome && !currentContentPanel) {
@@ -833,6 +849,8 @@ export function AppContent({
       contentElement = renderSubsystemPage(PAGE_TYPES.VIDEO_EDITOR, <VideoEditorPage t={t} theme={theme === "dark" ? "dark" : "light"} i18n={language === "zh" ? "zh-cn" : "en"} />);
     } else if (isSandbox3d) {
       contentElement = renderSubsystemPage(PAGE_TYPES.SANDBOX_3D, <SandBox3DPage t={t} theme={theme === "dark" ? "dark" : "light"} i18n={language === "zh" ? "zh-cn" : "en"} />);
+    } else if (isBlockchain) {
+      contentElement = renderSubsystemPage(PAGE_TYPES.BLOCKCHAIN, <BlockchainPage t={t} theme={theme === "dark" ? "dark" : "light"} i18n={language === "zh" ? "zh-cn" : "en"} />);
     } else {
       // Other non-subsystem panels
       switch (currentContentPanel) {

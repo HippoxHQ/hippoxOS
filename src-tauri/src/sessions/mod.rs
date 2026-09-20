@@ -1,3 +1,4 @@
+pub mod blockchain;
 pub mod chat;
 pub mod codeeditor;
 pub mod finance;
@@ -5,6 +6,8 @@ pub mod general;
 pub mod map;
 pub mod sandbox3d;
 pub mod videoeditor;
+
+pub use blockchain::*;
 pub use chat::*;
 pub use codeeditor::*;
 pub use finance::*;

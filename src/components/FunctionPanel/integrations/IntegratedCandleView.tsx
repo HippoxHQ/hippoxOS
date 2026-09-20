@@ -1,6 +1,5 @@
 import { CandleView, ICandleViewDataPoint, MainChartType, TimeframeEnum } from "@candleview/core";
 import React, { useRef, useEffect, useState, useCallback } from "react";
-import { TEST_CANDLEVIEW_DATA8 } from "../../../test/TestData_3";
 interface IntegratedCandleViewProps {
   theme: "light" | "dark";
   i18n: "en" | "zh-cn";
@@ -14,7 +13,7 @@ export const IntegratedCandleView: React.FC<IntegratedCandleViewProps> = ({ them
   const containerRef = useRef<HTMLDivElement>(null);
   const candleViewRef = useRef<CandleView | null>(null);
   const [isReady, setIsReady] = useState(false);
-  const chartDataFromProps = data || TEST_CANDLEVIEW_DATA8;
+  const chartDataFromProps = data;
   const isValidData = chartDataFromProps && Array.isArray(chartDataFromProps) && chartDataFromProps.length > 0;
   const applyCandleViewConfig = useCallback(
     (config: any) => {

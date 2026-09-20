@@ -24,6 +24,8 @@ const GENERAL_HISTORY_DIR_NAME: &str = "General";
 const FINANCE_DIALOG_HISTORY_DIR_NAME: &str = "Finance";
 /// Map Dialog History directory name
 const MAP_DIALOG_HISTORY_DIR_NAME: &str = "Map";
+/// BlockChain Dialog History directory name
+const BLOCKCHAIN_DIALOG_HISTORY_DIR_NAME: &str = "BlockChain";
 /// Code Editor Dialog History directory name
 const CODE_EDITOR_DIALOG_HISTORY_DIR_NAME: &str = "CodeEditor";
 /// Material Favorites directory name
@@ -96,31 +98,35 @@ pub fn get_external_cache_sticker_dir() -> PathBuf {
 // pub fn get_material_favorites_dir() -> PathBuf {
 //     get_app_root_dir().join(MATERIAL_FAVORITES_DIR_NAME)
 // }
-/// Video Editing System directory: HippoX/VideoEdit
+/// Video Editing System directory: HippoX/subsystem/VideoEdit
 pub fn get_video_editing_system_root_dir() -> PathBuf {
     get_app_root_dir().join(SUB_SYSTEM_PATH).join(VIDEO_EDIT_DIR_NAME)
 }
-/// Video Editing System Dialog History Directory: HippoX/VideoEdit/VideoDialogHistory
+/// Video Editing System Dialog History Directory: HippoX/subsystem/VideoEdit/VideoDialogHistory
 pub fn get_video_editing_system_dialog_history_dir() -> PathBuf {
     get_app_root_dir().join(SUB_SYSTEM_PATH).join(VIDEO_EDIT_DIR_NAME).join(VIDEO_DIALOG_HISTORY_DIR_NAME)
 }
-/// SandBox3D Dialog history directory: HippoX/SandBox3DDialogHistory
+/// SandBox3D Dialog history directory: HippoX/subsystem/SandBox3DDialogHistory
 pub fn get_sandbox3d_dialog_history_dir() -> PathBuf {
     get_app_root_dir().join(SUB_SYSTEM_PATH).join(SANDBOX3D_DIALOG_HISTORY_DIR_NAME)
 }
-/// General history directory: HippoX/DialogHistory
+/// General history directory: HippoX/subsystem/DialogHistory
 pub fn get_general_history_dir() -> PathBuf {
     get_app_root_dir().join(SUB_SYSTEM_PATH).join(GENERAL_HISTORY_DIR_NAME)
 }
-/// Finance Dialog history directory: HippoX/FinancialAnalysisDialogHistory
+/// Finance Dialog history directory: HippoX/subsystem/FinancialAnalysisDialogHistory
 pub fn get_finance_dialog_history_dir() -> PathBuf {
     get_app_root_dir().join(SUB_SYSTEM_PATH).join(FINANCE_DIALOG_HISTORY_DIR_NAME)
 }
-/// Map Dialog history directory: HippoX/MapDialogHistory
+/// Map Dialog history directory: HippoX/subsystem/MapDialogHistory
 pub fn get_map_dialog_history_dir() -> PathBuf {
     get_app_root_dir().join(SUB_SYSTEM_PATH).join(MAP_DIALOG_HISTORY_DIR_NAME)
 }
-/// Code Editor Dialog history directory: HippoX/CodeEditorDialogHistory
+/// Map Dialog history directory: HippoX/subsystem/BlockChain
+pub fn get_blockchain_dialog_history_dir() -> PathBuf {
+    get_app_root_dir().join(SUB_SYSTEM_PATH).join(BLOCKCHAIN_DIALOG_HISTORY_DIR_NAME)
+}
+/// Code Editor Dialog history directory: HippoX/subsystem/CodeEditorDialogHistory
 pub fn get_codeeditor_dialog_history_dir() -> PathBuf {
     get_app_root_dir().join(SUB_SYSTEM_PATH).join(CODE_EDITOR_DIALOG_HISTORY_DIR_NAME)
 }

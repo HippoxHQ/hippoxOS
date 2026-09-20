@@ -147,4 +147,5 @@ export enum SessionDomain {
     CodeEditor = "codeeditor",
     Video = "video",
     SandBox3D = "sandbox3d",
+    Blockchain = "blockchain"
 }

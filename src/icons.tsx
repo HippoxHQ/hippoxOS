@@ -84,6 +84,7 @@ import {
   Scissors,
   Split,
   Grid2X2,
+  Blocks,
 } from "lucide-react";
 interface IconProps {
   className?: string;
@@ -208,6 +209,7 @@ export const ScrollTextIcon: React.FC<IconProps> = ({ className, size = 18 }) =>
 export const MessageCircleIcon: React.FC<IconProps> = ({ className, size = 18 }) => <MessageCircle className={className} size={size} />;
 export const VideoEditorIcon: React.FC<IconProps> = ({ className, size = 18 }) => <Film className={className} size={size} />;
 export const Sandbox3dIcon: React.FC<IconProps> = ({ className, size = 18 }) => <Box className={className} size={size} />;
+export const BlockchainIcon: React.FC<IconProps> = ({ className, size = 18 }) => <Blocks className={className} size={size} />;
 export const AudioIcon: React.FC<IconProps> = ({ className, size = 18 }) => <FileMusic className={className} size={size} />;
 export const TextIcon: React.FC<IconProps> = ({ className, size = 18 }) => <FileText className={className} size={size} />;
 export const StickerIcon: React.FC<IconProps> = ({ className, size = 18 }) => <Image className={className} size={size} />;
@@ -244,6 +246,7 @@ export const ToolFloatingIcon: React.FC<IconProps> = ({ className, size = 20 }) 
 export const iconMap: Record<string, React.FC<IconProps>> = {
   videoEditor: VideoEditorIcon,
   sandbox3d: Sandbox3dIcon,
+  blockchain: BlockchainIcon,
   dashboard: DashboardIcon,
   workspace: WorkspaceIcon,
   projects: ProjectsIcon,

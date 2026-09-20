@@ -123,7 +123,8 @@ function App() {
       switchContentArea("scheduledTasks");
       return;
     }
-    if (view === "skillsManager" || view === "scheduledTasks" || view === "userProfile" || view === "codeEditorChat" || view === "chartChat" || view === "mapChat" || view === "videoEditor" || view === "sandbox3d") {
+    // Added "blockchain" to the subsystem content panel whitelist
+    if (view === "skillsManager" || view === "scheduledTasks" || view === "userProfile" || view === "codeEditorChat" || view === "chartChat" || view === "mapChat" || view === "videoEditor" || view === "sandbox3d" || view === "blockchain") {
       switchContentArea(view);
       return;
     }

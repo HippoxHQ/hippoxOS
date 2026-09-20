@@ -1,7 +1,7 @@
 /**
  * Subsystem types supported by the application
  */
-export type SubsystemType = "general" | "chart" | "map" | "codeeditor" | "video" | "sandbox3d";
+export type SubsystemType = "general" | "chart" | "map" | "codeeditor" | "video" | "sandbox3d" | "blockchain";
 /**
  * Subsystem ID constants
  */
@@ -12,6 +12,7 @@ export const SUBSYSTEM = {
     CODEEDITOR: "codeeditor",
     VIDEO: "video",
     SANDBOX3D: "sandbox3d",
+    BLOCKCHAIN: "blockchain",
 } as const;
 // Helper type to extract value type from SUBSYSTEM
 type SubsystemValue = typeof SUBSYSTEM[keyof typeof SUBSYSTEM];
@@ -25,6 +26,7 @@ export const SUBSYSTEM_TO_SIDEBAR_ID: Record<SubsystemValue, string> = {
     [SUBSYSTEM.CODEEDITOR]: "codeEditorChat",
     [SUBSYSTEM.VIDEO]: "videoEditor",
     [SUBSYSTEM.SANDBOX3D]: "sandbox3d",
+    [SUBSYSTEM.BLOCKCHAIN]: "blockchain",
 };
 /**
  * Map subsystem to content panel view
@@ -36,4 +38,5 @@ export const SUBSYSTEM_TO_PANEL: Record<SubsystemValue, string> = {
     [SUBSYSTEM.CODEEDITOR]: "codeEditorChat",
     [SUBSYSTEM.VIDEO]: "videoEditor",
     [SUBSYSTEM.SANDBOX3D]: "sandbox3d",
+    [SUBSYSTEM.BLOCKCHAIN]: "blockchain",
 };
