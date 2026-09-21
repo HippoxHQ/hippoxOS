@@ -369,7 +369,9 @@ impl AStockFetcher {
         for chunk in symbols.chunks(10) {
             let symbols_str = chunk.join(",");
             let url = format!("https://qt.gtimg.cn/q={}", symbols_str);
-            match self.http.fetch_text(&url, Some("https://finance.qq.com/")).await {
+            // Tencent's quote endpoint returns GBK-encoded text, not UTF-8.
+            // Decoding as UTF-8 would corrupt every Chinese stock name.
+            match self.http.fetch_text_gbk(&url, Some("https://finance.qq.com/")).await {
                 Ok(text) => {
                     for line in text.lines() {
                         if let Some(price) = Self::parse_tencent_line(line) {
@@ -391,7 +393,9 @@ impl AStockFetcher {
         for chunk in symbols.chunks(10) {
             let symbols_str = chunk.join(",");
             let url = format!("https://hq.sinajs.cn/list={}", symbols_str);
-            match self.http.fetch_text(&url, Some("https://finance.sina.com.cn/")).await {
+            // Sina's quote endpoint also returns GBK-encoded text.
+            // Use the GBK-aware helper to avoid mangling Chinese names.
+            match self.http.fetch_text_gbk(&url, Some("https://finance.sina.com.cn/")).await {
                 Ok(text) => {
                     for line in text.lines() {
                         if let Some(price) = Self::parse_sina_line(line) {
@@ -548,6 +552,7 @@ pub async fn cmd_fetch_a_stock_ohlcv(
         _ => "day",
     };
     // Tencent K-line API with dynamic timeframe
+    // this endpoint returns UTF-8 JSON, so the standard fetch_json is fine.
     let url = format!("https://web.ifzq.gtimg.cn/appstock/app/kline/kline?param={},{},,,{}", symbol, tf, count);
     match fetcher.http.fetch_json(&url, Some("https://finance.qq.com/")).await {
         Ok(json) => {

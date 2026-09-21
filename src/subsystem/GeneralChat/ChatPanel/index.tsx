@@ -98,6 +98,10 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSendMessage, onFileClick, t, la
       setIsLoadingTitle(false);
     }
   };
+  const isZh = t("i18n") === "zh";
+  useEffect(() => {
+    setSuggestionPrompts(getRandomPrompts(6));
+  }, [t]);
   useEffect(() => {
     if (currentSessionId) {
       loadSessionTitle(currentSessionId);
@@ -208,7 +212,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSendMessage, onFileClick, t, la
     });
   };
   const getRandomPrompts = (count: number = 6): string[] => {
-    const prompts = language === "zh" ? zhDefaultPrompts : enDefaultPrompts;
+    const prompts = isZh ? zhDefaultPrompts : enDefaultPrompts;
     const shuffled = [...prompts];
     for (let i = shuffled.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));

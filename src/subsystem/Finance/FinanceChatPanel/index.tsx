@@ -12,7 +12,7 @@ import { showToast, ToastType } from "../../../components/Toast";
 import { taskManager } from "../../../core/TaskManager";
 import { SessionDomain, UploadFile } from "../../../core/types";
 import { ChatIcon, TaskQueueIcon, UserIcon, AttachmentIcon, FolderIcon, ChevronRightIcon, TextFileIcon, ImageIcon, VideoIcon, FileIcon, FolderOpenIcon } from "../../../icons";
-import { zhDefaultPrompts, enDefaultPrompts } from "../../../types/DefaultPrompt";
+import { zhFinanceDefaultPrompts, enFinanceDefaultPrompts } from "../../../types/DefaultPrompt";
 import { ChatMessage, RoleEnum, MessageStatus } from "../../../types/types";
 import { chartSessionCommands } from "../../../command/session/finance";
 import { dispatchChartDataUpdated } from "../FinanceWindowsEventsManager";
@@ -116,6 +116,10 @@ const FinanceChatPanel: React.FC<FinanceChatPanelProps> = ({
     content: language === "zh" ? "嗨～ 我是 Hippox 金融分析引擎！📊 我可以帮你画K线、分析趋势、分析数据，有什么想看的图表尽管说～" : "Hi～ I'm Hippox Financial Analysis Engine! 📊 I can help you draw candlesticks, analyze trends, and analyze data. Just tell me what charts you want to see～",
     timestamp: new Date().toISOString(),
   };
+  const isZh = t("i18n") === "zh";
+  useEffect(() => {
+    setSuggestionPrompts(getRandomPrompts(6));
+  }, [t]);
   // Subscribe to task manager updates
   useEffect(() => {
     const unsubscribe = taskManager.subscribe(() => {
@@ -333,7 +337,7 @@ const FinanceChatPanel: React.FC<FinanceChatPanelProps> = ({
   };
   // Get random suggestion prompts
   const getRandomPrompts = (count: number = 6): string[] => {
-    const prompts = language === "zh" ? zhDefaultPrompts : enDefaultPrompts;
+    const prompts = isZh ? zhFinanceDefaultPrompts : enFinanceDefaultPrompts;
     const shuffled = [...prompts];
     for (let i = shuffled.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));

@@ -18,7 +18,7 @@ const HISTORY_DRAWER_WIDTH = 320;
 // and can never grow beyond CHAT_PANEL_MAX_WIDTH.
 const CHAT_PANEL_MIN_WIDTH = 300;
 const CHAT_PANEL_MAX_WIDTH = 400;
-const CHAT_PANEL_DEFAULT_WIDTH = 350;
+const CHAT_PANEL_DEFAULT_WIDTH = 300;
 interface BlockchainPageProps {
   t?: (key: string, params?: any) => string;
   isFunctionPanelMaximized?: boolean;

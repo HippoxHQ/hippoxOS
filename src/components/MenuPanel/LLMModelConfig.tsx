@@ -288,6 +288,17 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({ t, onSave, isInitializi
     const search = searchTerm.toLowerCase();
     return providerName.includes(search) || instance.provider.toLowerCase().includes(search);
   });
+  /**
+   * Stop keyboard events from bubbling up out of this component.
+   *
+   * The settings panel is often hosted inside a larger app shell that
+   * listens for global key events (search shortcuts, navigation, etc.).
+   * Any keystroke typed into the search box or the add form must stay
+   * local to this component and never trigger those global handlers.
+   */
+  const stopKeyboardPropagation = (e: React.KeyboardEvent) => {
+    e.stopPropagation();
+  };
   // Base styles - KEEP ORIGINAL
   const labelStyle: React.CSSProperties = {
     fontSize: "13px",
@@ -531,7 +542,18 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({ t, onSave, isInitializi
         <div style={styles.searchRow}>
           <div className="llm-search-input-wrapper">
             <SearchIcon />
-            <input type="text" className="llm-search-input" placeholder={t("llmModel.searchPlaceholder") || "Search providers..."} value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+            <input
+              type="text"
+              className="llm-search-input"
+              placeholder={t("llmModel.searchPlaceholder") || "Search providers..."}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              /* Keep keystrokes inside this component so the host app's
+                 global keyboard handlers never fire while typing here. */
+              onKeyDown={stopKeyboardPropagation}
+              onKeyUp={stopKeyboardPropagation}
+              onKeyPress={stopKeyboardPropagation}
+            />
             {searchTerm && (
               <button className="llm-search-clear" onClick={handleClearSearch} title={t("llmModel.clearSearch") || "Clear search"}>
                 <X />
@@ -692,7 +714,17 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({ t, onSave, isInitializi
                 }}
               >
                 <label style={labelStyle}>{field.name}</label>
-                <input type="text" style={inputStyle} value={extraConfigValues[field.key] || ""} onChange={(e) => handleExtraConfigChange(field.key, e.target.value)} placeholder={field.placeholder} />
+                <input
+                  type="text"
+                  style={inputStyle}
+                  value={extraConfigValues[field.key] || ""}
+                  onChange={(e) => handleExtraConfigChange(field.key, e.target.value)}
+                  placeholder={field.placeholder}
+                  /* Prevent the host app from reacting to keys typed in the form. */
+                  onKeyDown={stopKeyboardPropagation}
+                  onKeyUp={stopKeyboardPropagation}
+                  onKeyPress={stopKeyboardPropagation}
+                />
               </div>
             ))}
             <div
@@ -706,7 +738,17 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({ t, onSave, isInitializi
               }}
             >
               <label style={labelStyle}>{t("llmModel.apiKey")}</label>
-              <input type="password" style={inputStyle} value={newApiKey} onChange={(e) => setNewApiKey(e.target.value)} placeholder={t("llmModel.apiKeyPlaceholder")} />
+              <input
+                type="password"
+                style={inputStyle}
+                value={newApiKey}
+                onChange={(e) => setNewApiKey(e.target.value)}
+                placeholder={t("llmModel.apiKeyPlaceholder")}
+                /* Prevent the host app from reacting to keys typed in the form. */
+                onKeyDown={stopKeyboardPropagation}
+                onKeyUp={stopKeyboardPropagation}
+                onKeyPress={stopKeyboardPropagation}
+              />
             </div>
             <div
               style={{
@@ -788,7 +830,17 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({ t, onSave, isInitializi
                       }}
                     >
                       <label style={labelStyle}>{t("llmModel.apiKey")}</label>
-                      <input type="password" style={inputStyle} value={instance.api_key} placeholder="••••••••" disabled />
+                      <input
+                        type="password"
+                        style={inputStyle}
+                        value={instance.api_key}
+                        placeholder="••••••••"
+                        disabled
+                        /* Disabled inputs can still bubble key events when focused; block them. */
+                        onKeyDown={stopKeyboardPropagation}
+                        onKeyUp={stopKeyboardPropagation}
+                        onKeyPress={stopKeyboardPropagation}
+                      />
                     </div>
                     {Object.entries(extraConfig).map(([key, value]) => {
                       if (!value) return null;
@@ -797,7 +849,17 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({ t, onSave, isInitializi
                       return (
                         <div key={key} className="settings-row" style={extraConfigRowStyle}>
                           <label style={labelStyle}>{fieldName}</label>
-                          <input type="password" style={inputStyle} value={String(value)} disabled placeholder="••••••••" />
+                          <input
+                            type="password"
+                            style={inputStyle}
+                            value={String(value)}
+                            disabled
+                            placeholder="••••••••"
+                            /* Disabled inputs can still bubble key events when focused; block them. */
+                            onKeyDown={stopKeyboardPropagation}
+                            onKeyUp={stopKeyboardPropagation}
+                            onKeyPress={stopKeyboardPropagation}
+                          />
                         </div>
                       );
                     })}

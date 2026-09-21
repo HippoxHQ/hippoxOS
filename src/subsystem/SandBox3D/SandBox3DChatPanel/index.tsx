@@ -12,7 +12,7 @@ import { showToast, ToastType } from "../../../components/Toast";
 import { taskManager } from "../../../core/TaskManager";
 import { UploadFile, SessionDomain } from "../../../core/types";
 import { ChatIcon, TaskQueueIcon, UserIcon, AttachmentIcon, FolderIcon, ChevronRightIcon, TextFileIcon, FileIcon, FolderOpenIcon } from "../../../icons";
-import { zhDefaultPrompts, enDefaultPrompts } from "../../../types/DefaultPrompt";
+import { zhSandBox3DDefaultPrompts, enSandBox3DDefaultPrompts } from "../../../types/DefaultPrompt";
 import { ChatMessage, RoleEnum, MessageStatus } from "../../../types/types";
 import { sandbox3dSessionCommands } from "../../../command/session/sandbox3d";
 import { isStructuredLLMResponse, parseLLMResponse } from "../llm/utils";
@@ -113,6 +113,10 @@ const SandBox3DChatPanel: React.FC<SandBox3DChatPanelProps> = ({ onSendMessage, 
       setIsLoadingTitle(false);
     }
   };
+  const isZh = t("i18n") === "zh";
+  useEffect(() => {
+    setSuggestionPrompts(getRandomPrompts(6));
+  }, [t]);
   useEffect(() => {
     if (currentSessionId) {
       loadSessionTitle(currentSessionId);
@@ -223,7 +227,7 @@ const SandBox3DChatPanel: React.FC<SandBox3DChatPanelProps> = ({ onSendMessage, 
     });
   };
   const getRandomPrompts = (count: number = 6): string[] => {
-    const prompts = language === "zh" ? zhDefaultPrompts : enDefaultPrompts;
+    const prompts = isZh ? zhSandBox3DDefaultPrompts : enSandBox3DDefaultPrompts;
     const shuffled = [...prompts];
     for (let i = shuffled.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));

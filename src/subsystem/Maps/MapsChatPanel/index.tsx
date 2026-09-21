@@ -12,7 +12,7 @@ import { showToast, ToastType } from "../../../components/Toast";
 import { taskManager } from "../../../core/TaskManager";
 import { UploadFile, SessionDomain } from "../../../core/types";
 import { ChatIcon, TaskQueueIcon, UserIcon, AttachmentIcon, FolderIcon, ChevronRightIcon, TextFileIcon, ImageIcon, VideoIcon, FileIcon, FolderOpenIcon } from "../../../icons";
-import { zhDefaultPrompts, enDefaultPrompts } from "../../../types/DefaultPrompt";
+import { zhMapDefaultPrompts, enMapDefaultPrompts } from "../../../types/DefaultPrompt";
 import { ChatMessage, RoleEnum, MessageStatus } from "../../../types/types";
 import { mapSessionCommands } from "../../../command/session/map";
 import { isStructuredLLMResponse, parseLLMResponse } from "../llm/utils";
@@ -109,6 +109,10 @@ const MapsChatPage: React.FC<MapsChatPageProps> = ({ onSendMessage, onFileClick,
       setIsLoadingTitle(false);
     }
   };
+  const isZh = t("i18n") === "zh";
+  useEffect(() => {
+    setSuggestionPrompts(getRandomPrompts(6));
+  }, [t]);
   useEffect(() => {
     if (currentSessionId) {
       loadSessionTitle(currentSessionId);
@@ -219,7 +223,7 @@ const MapsChatPage: React.FC<MapsChatPageProps> = ({ onSendMessage, onFileClick,
     });
   };
   const getRandomPrompts = (count: number = 6): string[] => {
-    const prompts = language === "zh" ? zhDefaultPrompts : enDefaultPrompts;
+    const prompts = isZh ? zhMapDefaultPrompts : enMapDefaultPrompts;
     const shuffled = [...prompts];
     for (let i = shuffled.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));

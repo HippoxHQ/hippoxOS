@@ -12,7 +12,7 @@ import { showToast, ToastType } from "../../../components/Toast";
 import { taskManager } from "../../../core/TaskManager";
 import { UploadFile, SessionDomain } from "../../../core/types";
 import { ChatIcon, TaskQueueIcon, UserIcon, AttachmentIcon, FolderIcon, ChevronRightIcon, TextFileIcon, ImageIcon, VideoIcon, FileIcon, FolderOpenIcon } from "../../../icons";
-import { zhDefaultPrompts, enDefaultPrompts } from "../../../types/DefaultPrompt";
+import { zhCodeEditorDefaultPrompts, enCodeEditorDefaultPrompts } from "../../../types/DefaultPrompt";
 import { ChatMessage, RoleEnum, MessageStatus } from "../../../types/types";
 import { codeEditorSessionCommands } from "../../../command/session/codeeditor";
 import { isStructuredLLMResponse, parseLLMResponse } from "../llm/utils";
@@ -99,6 +99,10 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
     content: language === "zh" ? "哟～ 我是 Hippox 代码编辑助手！💻 写代码、审代码、改文件我都在行，想让我帮你干点啥～" : "Yo～ I'm Hippox Code Editor Assistant! 💻 I'm good at writing code, reviewing code, and editing files. What can I help you with～",
     timestamp: new Date().toISOString(),
   };
+  const isZh = t("i18n") === "zh";
+  useEffect(() => {
+    setSuggestionPrompts(getRandomPrompts(6));
+  }, [t]);
   // Subscribe to task manager updates
   useEffect(() => {
     const unsubscribe = taskManager.subscribe(() => {
@@ -261,7 +265,7 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
   };
   // Get random suggestion prompts
   const getRandomPrompts = (count: number = 6): string[] => {
-    const prompts = language === "zh" ? zhDefaultPrompts : enDefaultPrompts;
+    const prompts = isZh ? zhCodeEditorDefaultPrompts : enCodeEditorDefaultPrompts;
     const shuffled = [...prompts];
     for (let i = shuffled.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));

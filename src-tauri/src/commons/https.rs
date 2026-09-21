@@ -46,6 +46,21 @@ impl HttpClient {
         }
         response.text().await.map_err(|e| format!("Failed to read response: {}", e))
     }
+    /// Fetch text content from a URL, decoding the body as GBK.
+    ///
+    /// Some Chinese quote endpoints (Tencent's qt.gtimg.cn, Sina's
+    /// hq.sinajs.cn) return GBK-encoded bodies. Decoding them as UTF-8
+    /// corrupts every Chinese name, which is why A-share names showed up
+    /// as garbage in the UI. This helper reads the raw bytes and decodes
+    /// them with the GBK codec instead.
+    ///
+    /// The decode is pure-Rust (encoding_rs), so behaviour is identical
+    /// on Windows, macOS and Linux.
+    pub async fn fetch_text_gbk(&self, url: &str, referer: Option<&str>) -> Result<String, String> {
+        let bytes = self.fetch_bytes(url, referer).await?;
+        let (decoded, _, _) = encoding_rs::GBK.decode(&bytes);
+        Ok(decoded.into_owned())
+    }
     /// Fetch JSON content from a URL with custom headers (GET)
     pub async fn fetch_json(&self, url: &str, referer: Option<&str>) -> Result<Value, String> {
         let mut request = self.client.get(url);
@@ -105,18 +120,13 @@ impl HttpClient {
         F: FnMut(u64, Option<u64>),
     {
         use futures_util::StreamExt;
-        eprintln!("[fetch_bytes_streaming] START url = {}", url);
         let mut request = self.download_client.get(url);
         if let Some(ref_val) = referer {
             request = request.header("Referer", ref_val);
         }
-        let response = request.send().await.map_err(|e| {
-            eprintln!("[fetch_bytes_streaming] send() failed: {}", e);
-            format!("Request failed: {}", e)
-        })?;
+        let response = request.send().await.map_err(|e| format!("Request failed: {}", e))?;
         let status = response.status();
         let total = response.content_length();
-        eprintln!("[fetch_bytes_streaming] status = {}, Content-Length = {:?}", status, total);
         if !status.is_success() {
             return Err(format!("HTTP {}: Failed to download file from {}", status, url));
         }
@@ -143,12 +153,10 @@ impl HttpClient {
                         msg.push_str(&format!(" -> {}", s));
                         source = std::error::Error::source(s);
                     }
-                    eprintln!("[fetch_bytes_streaming] {}", msg);
                     return Err(msg);
                 }
             }
         }
-        eprintln!("[fetch_bytes_streaming] DONE, {} bytes in {:.1}s", buf.len(), start.elapsed().as_secs_f64());
         // Validate against Content-Length when provided.
         if let Some(expected) = total {
             if buf.len() as u64 != expected {
