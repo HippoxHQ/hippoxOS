@@ -1470,7 +1470,6 @@ const BlockchainPage: React.FC<BlockchainPageProps> = ({
     );
   };
   const historyPanelContent = getHistoryPanelContent();
-  // === RENDER ===
   return (
     <div className="panels-container horizontal-layout" ref={containerRef} style={{ display: "flex", flex: 1, overflow: "hidden" }}>
       <style>{`

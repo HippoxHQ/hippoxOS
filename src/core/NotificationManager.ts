@@ -292,6 +292,20 @@ class NotificationManager {
                     },
                 }).catch(() => { });
             });
+            // add blockchain subsystem session creation listener for consistency
+            listen("blockchain-session-created", (event: any) => {
+                const detail = event.payload || event.detail || {};
+                this.add({
+                    title: "notification.blockchainSessionCreated",
+                    message: detail.title ? `Blockchain session "${detail.title}" created` : "Blockchain session created",
+                    type: NotificationType.Info,
+                    data: {
+                        sessionId: detail.sessionId,
+                        subsystem: "blockchain",
+                        title: detail.title,
+                    },
+                }).catch(() => { });
+            });
         } catch (error) {
             console.warn("[NotificationManager] Failed to setup event listeners:", error);
         }

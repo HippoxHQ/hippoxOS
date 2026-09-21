@@ -14,9 +14,9 @@ import { UploadFile, SessionDomain } from "../../../core/types";
 import { ChatIcon, TaskQueueIcon, UserIcon, AttachmentIcon, FolderIcon, ChevronRightIcon, TextFileIcon, ImageIcon, VideoIcon, FileIcon, FolderOpenIcon } from "../../../icons";
 import { zhDefaultPrompts, enDefaultPrompts } from "../../../types/DefaultPrompt";
 import { ChatMessage, RoleEnum, MessageStatus } from "../../../types/types";
-import { mapSessionCommands } from "../../../command/session/map";
+// import blockchain session commands instead of map session commands
+import { blockchainSessionCommands } from "../../../command/session/blockchain";
 import { isStructuredLLMResponse, parseLLMResponse } from "../llm/utils";
-import { EarthViewRef } from "./types";
 import { filesCommands } from "../../../command/files";
 interface BlockchainChatPanelProps {
   onSendMessage: (message: string, sessionId: string, files?: UploadFile[], workflowMode?: string) => void | Promise<void>;
@@ -31,11 +31,9 @@ interface BlockchainChatPanelProps {
   isCollapsed?: boolean;
   togglePanel?: () => void;
   collapseIcon?: string;
-  /** Reference to the EarthView map component for rendering */
-  mapRef?: React.RefObject<EarthViewRef | null>;
 }
 /**
- * BlockchainChatPanel - Chat interface for map/geographic analysis
+ * BlockchainChatPanel - Chat interface for blockchain analysis
  * Supports file upload with filtering for text and skill files
  */
 const BlockchainChatPanel: React.FC<BlockchainChatPanelProps> = ({ onSendMessage, onFileClick, t, language = "zh", currentSessionId, onDragOverInputChange, navigationContent, isLeftPanel = true, onWorkflowModeChange, isCollapsed = false, togglePanel, collapseIcon: collapseIconProp }) => {
@@ -77,10 +75,14 @@ const BlockchainChatPanel: React.FC<BlockchainChatPanelProps> = ({ onSendMessage
   const [isLoadingTitle, setIsLoadingTitle] = useState(false);
   const hasLoadedTitleRef = useRef<Record<string, boolean>>({});
   const collapseIcon = collapseIconProp || (isLeftPanel ? isCollapsed ? <ChevronsRight size={16} /> : <ChevronsLeft size={16} /> : isCollapsed ? <ChevronsLeft size={16} /> : <ChevronsRight size={16} />);
+  // use blockchain-specific welcome text instead of the map one
   const welcomeMsg: ChatMessage = {
     id: "welcome",
     role: RoleEnum.LLM,
-    content: language === "zh" ? "🌍 欢迎来到 Hippox 地图分析引擎！我可以帮你在地图上标注位置、绘制路线、分析地理数据。告诉我你想看什么～" : "🌍 Welcome to Hippox Map Analysis Engine! I can help you mark locations, draw routes, and analyze geographic data. Tell me what you'd like to see～",
+    content:
+      language === "zh"
+        ? "⛓️ 欢迎来到 Hippox 区块链分析引擎！我可以帮你分析链上数据、解析交易、追踪地址与智能合约。告诉我你想了解什么～"
+        : "⛓️ Welcome to Hippox Blockchain Analysis Engine! I can help you analyze on-chain data, parse transactions, trace addresses and smart contracts. Tell me what you'd like to explore～",
     timestamp: new Date().toISOString(),
   };
   // Load session title from backend
@@ -94,7 +96,8 @@ const BlockchainChatPanel: React.FC<BlockchainChatPanelProps> = ({ onSendMessage
     }
     setIsLoadingTitle(true);
     try {
-      const list = await mapSessionCommands.listMapSessions();
+      // use blockchain session listing instead of map session listing
+      const list = await blockchainSessionCommands.listBlockchainSessions();
       const session = list.find((s: any) => s.session_id === sessionId);
       if (session && session.title) {
         setSessionTitle(session.title);
@@ -342,22 +345,24 @@ const BlockchainChatPanel: React.FC<BlockchainChatPanelProps> = ({ onSendMessage
       return;
     }
     try {
-      const cached = localStorage.getItem(`map_workflow_mode_${sessionId}`);
+      // use blockchain-specific workflow mode cache key
+      const cached = localStorage.getItem(`blockchain_workflow_mode_${sessionId}`);
       if (cached) {
         setSelectedWorkflowMode(cached);
         return;
       }
-      const config = await mapSessionCommands.loadMapSessionConfig(sessionId);
+      // use blockchain session config instead of map session config
+      const config = await blockchainSessionCommands.loadBlockchainSessionConfig(sessionId);
       if (config && config.workflow_mode) {
         setSelectedWorkflowMode(config.workflow_mode);
-        localStorage.setItem(`map_workflow_mode_${sessionId}`, config.workflow_mode);
+        localStorage.setItem(`blockchain_workflow_mode_${sessionId}`, config.workflow_mode);
       } else {
         const defaultMode = "ReAct";
         setSelectedWorkflowMode(defaultMode);
-        await mapSessionCommands.updateMapSessionConfig(sessionId, {
+        await blockchainSessionCommands.updateBlockchainSessionConfig(sessionId, {
           workflow_mode: defaultMode,
         });
-        localStorage.setItem(`map_workflow_mode_${sessionId}`, defaultMode);
+        localStorage.setItem(`blockchain_workflow_mode_${sessionId}`, defaultMode);
       }
     } catch (error) {
       console.error("Failed to load session workflow mode:", error);
@@ -392,9 +397,9 @@ const BlockchainChatPanel: React.FC<BlockchainChatPanelProps> = ({ onSendMessage
         loadSessionTitle(currentSessionId);
       }
     };
-    window.addEventListener("map-session-created", handleSessionCreated);
+    window.addEventListener("blockchain-session-created", handleSessionCreated);
     return () => {
-      window.removeEventListener("map-session-created", handleSessionCreated);
+      window.removeEventListener("blockchain-session-created", handleSessionCreated);
     };
   }, [currentSessionId]);
   const checkScrollPosition = useCallback(() => {
@@ -627,17 +632,18 @@ const BlockchainChatPanel: React.FC<BlockchainChatPanelProps> = ({ onSendMessage
     }
     if (currentSessionId && !currentSessionId.startsWith("pending_") && !currentSessionId.startsWith("temp_")) {
       try {
-        await mapSessionCommands.updateMapSessionConfig(currentSessionId, {
+        // persist workflow mode via blockchain session config
+        await blockchainSessionCommands.updateBlockchainSessionConfig(currentSessionId, {
           workflow_mode: mode,
         });
-        localStorage.setItem(`map_workflow_mode_${currentSessionId}`, mode);
+        localStorage.setItem(`blockchain_workflow_mode_${currentSessionId}`, mode);
       } catch (error) {
         console.error("Failed to save workflow mode:", error);
         showToast(ToastType.ERROR, "Failed to save workflow mode");
       }
     } else {
       const key = currentSessionId || "pending";
-      localStorage.setItem(`map_workflow_mode_${key}`, mode);
+      localStorage.setItem(`blockchain_workflow_mode_${key}`, mode);
     }
   };
   const buildNavigationContent = (): React.ReactNode => {
@@ -717,8 +723,9 @@ const BlockchainChatPanel: React.FC<BlockchainChatPanelProps> = ({ onSendMessage
         setMessages([welcomeMsg]);
         return;
       }
-      const userMessages = taskManager.getUserMessagesBySession(currentSessionId, SessionDomain.Map);
-      const assistantMessages = taskManager.getAssistantMessagesBySessionAsArray(currentSessionId, SessionDomain.Map);
+      // read from Blockchain domain, not Map domain
+      const userMessages = taskManager.getUserMessagesBySession(currentSessionId, SessionDomain.Blockchain);
+      const assistantMessages = taskManager.getAssistantMessagesBySessionAsArray(currentSessionId, SessionDomain.Blockchain);
       const messageMap = new Map<string, ChatMessage>();
       const allMessages = [...userMessages, ...assistantMessages];
       allMessages.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());

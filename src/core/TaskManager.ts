@@ -4,6 +4,8 @@ import { sessionCommands } from "../command/session/general";
 import { mapSessionCommands } from "../command/session/map";
 import { sandbox3dSessionCommands } from "../command/session/sandbox3d";
 import { videoSessionCommands } from "../command/session/videoeditor";
+// import blockchain session commands so task persistence works for the Blockchain domain
+import { blockchainSessionCommands } from "../command/session/blockchain";
 import { ChatMessage, MessageStatus } from "../types/types";
 import { notificationManager, NotificationType } from "./NotificationManager";
 import { StepStatusEnum, TaskInfo, TaskStatusEnum, TaskStepInfo, SessionDomain } from "./types";
@@ -22,6 +24,9 @@ class TaskManager {
         if (sessionId.startsWith("codeeditor_session_")) return SessionDomain.CodeEditor;
         if (sessionId.startsWith("video_session_")) return SessionDomain.Video;
         if (sessionId.startsWith("sandbox3d_session_")) return SessionDomain.SandBox3D;
+        // recognise blockchain sessions so events routed by TaskListener/DriverListener
+        // land in the correct SessionDomain.Blockchain bucket instead of SessionDomain.General.
+        if (sessionId.startsWith("blockchain_session_")) return SessionDomain.Blockchain;
         return SessionDomain.General;
     }
     private getSessionKey(domain: SessionDomain, sessionId: string): string {
@@ -860,6 +865,9 @@ class TaskManager {
                 await videoSessionCommands.saveTaskContent(sessionId, tasksArray);
             } else if (domain === SessionDomain.SandBox3D) {
                 await sandbox3dSessionCommands.saveTaskContent(sessionId, tasksArray);
+            } else if (domain === SessionDomain.Blockchain) {
+                // route Blockchain task persistence through its own backend commands
+                await blockchainSessionCommands.saveTaskContent(sessionId, tasksArray);
             } else {
                 await sessionCommands.saveTaskContent(sessionId, tasksArray);
             }
@@ -883,6 +891,9 @@ class TaskManager {
                 tasksContent = await videoSessionCommands.loadTaskContent(sessionId);
             } else if (domain === SessionDomain.SandBox3D) {
                 tasksContent = await sandbox3dSessionCommands.loadTaskContent(sessionId);
+            } else if (domain === SessionDomain.Blockchain) {
+                // route Blockchain task loading through its own backend commands
+                tasksContent = await blockchainSessionCommands.loadTaskContent(sessionId);
             } else {
                 tasksContent = await sessionCommands.loadTaskContent(sessionId);
             }
