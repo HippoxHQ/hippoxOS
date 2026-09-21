@@ -8,6 +8,10 @@ import TradePanel from "../panels/TradePanel";
 interface BlockchainDashboardProps {
   theme?: "light" | "dark";
   i18n?: "en" | "zh-cn";
+  /** Toggle the history drawer (forwarded to the sidebar's bottom button) */
+  onToggleHistory?: () => void;
+  /** Whether the history drawer is currently open */
+  isHistoryOpen?: boolean;
 }
 /**
  * BlockchainDashboard - Home page for HippoxOS Blockchain subsystem.
@@ -15,7 +19,7 @@ interface BlockchainDashboardProps {
  * The left sidebar (45px) switches the active panel.
  * Panels are separated by 1px borders, no gaps.
  */
-export const BlockchainDashboard: React.FC<BlockchainDashboardProps> = ({ theme = "dark", i18n = "en" }) => {
+export const BlockchainDashboard: React.FC<BlockchainDashboardProps> = ({ theme = "dark", i18n = "en", onToggleHistory, isHistoryOpen = false }) => {
   // Active sidebar view - extend BlockchainSidebarView union to add more panels
   const [activeView, setActiveView] = useState<BlockchainSidebarView>("account");
   /**
@@ -58,8 +62,8 @@ export const BlockchainDashboard: React.FC<BlockchainDashboardProps> = ({ theme 
         boxSizing: "border-box",
       }}
     >
-      {/* Left sidebar - panel switcher */}
-      <BlockchainSidebar activeView={activeView} onViewChange={setActiveView} i18n={i18n} />
+      {/* Left sidebar - panel switcher + history drawer toggle */}
+      <BlockchainSidebar activeView={activeView} onViewChange={setActiveView} i18n={i18n} onToggleHistory={onToggleHistory} isHistoryOpen={isHistoryOpen} />
       {/* Active panel content */}
       <div style={{ flex: 1, minWidth: 0, overflow: "hidden" }}>{renderActivePanel()}</div>
     </div>

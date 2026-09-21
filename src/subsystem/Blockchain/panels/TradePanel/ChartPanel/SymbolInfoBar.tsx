@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { ChevronRight, ChevronLeft, Send, Globe, MessageCircle } from "lucide-react";
-import { MID_PRICE, formatNum, subtleText } from "./types";
-import { XIcon } from "../../../../icons";
+import { MID_PRICE, formatNum, subtleText } from "../types";
+import { XIcon } from "../../../../../icons";
 interface SymbolInfoBarProps {
   i18n?: "en" | "zh-cn";
   /** Trading symbol, e.g. "BTC-PERP" */

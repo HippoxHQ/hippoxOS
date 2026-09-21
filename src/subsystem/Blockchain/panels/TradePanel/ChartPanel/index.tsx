@@ -18,6 +18,10 @@ interface ChartPanelProps {
  * Uses CandleView from @candleview/core with local mock data.
  * Symbol switching is owned by the parent (TradePanel).
  * Theme is shared with the system theme.
+ *
+ * This component only renders the chart itself.
+ * The bottom tabbed info area (activity / holders / positions) is owned by
+ * BottomInfoPanel, which TradePanel renders below this chart.
  */
 // Mock OHLCV generator
 // Replace with real data source when the backend is wired up.

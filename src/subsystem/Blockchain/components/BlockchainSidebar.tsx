@@ -1,11 +1,15 @@
 import React from "react";
-import { Wallet, BarChart3, ArrowDownUp, Droplets, Activity, Settings, Layers, CandlestickChart } from "lucide-react";
+import { Wallet, BarChart3, ArrowDownUp, Droplets, Activity, Settings, Layers, CandlestickChart, History } from "lucide-react";
 // Sidebar view keys - extend this union to add more panels in the future
 export type BlockchainSidebarView = "account" | "bondingCurve" | "swap" | "trade" | "liquidity" | "activity" | "layers" | "settings";
 interface BlockchainSidebarProps {
   activeView: BlockchainSidebarView;
   onViewChange: (view: BlockchainSidebarView) => void;
   i18n?: "en" | "zh-cn";
+  /** Toggle the history drawer */
+  onToggleHistory?: () => void;
+  /** Whether the history drawer is currently open */
+  isHistoryOpen?: boolean;
 }
 interface SidebarItem {
   key: BlockchainSidebarView;
@@ -28,9 +32,10 @@ const BOTTOM_ITEMS: SidebarItem[] = [{ key: "settings", icon: <Settings size={18
 /**
  * BlockchainSidebar - 45px wide icon sidebar.
  * Clicking an icon switches the active dashboard panel.
+ * A dedicated History button at the bottom opens the history drawer.
  * Designed to be extended: just add new items to SIDEBAR_ITEMS.
  */
-export const BlockchainSidebar: React.FC<BlockchainSidebarProps> = ({ activeView, onViewChange, i18n = "en" }) => {
+export const BlockchainSidebar: React.FC<BlockchainSidebarProps> = ({ activeView, onViewChange, i18n = "en", onToggleHistory, isHistoryOpen = false }) => {
   const isZh = i18n === "zh-cn";
   const renderItem = (item: SidebarItem) => {
     const isActive = activeView === item.key;
@@ -72,6 +77,46 @@ export const BlockchainSidebar: React.FC<BlockchainSidebarProps> = ({ activeView
       </button>
     );
   };
+  // Renders the history toggle button. Uses the same visual style as the other
+  // sidebar items, but is highlighted while the drawer is open.
+  const renderHistoryButton = () => {
+    const label = isZh ? "历史会话" : "History";
+    return (
+      <button
+        onClick={onToggleHistory}
+        title={label}
+        style={{
+          width: 30,
+          height: 30,
+          margin: "2px auto",
+          borderRadius: 5,
+          border: "none",
+          background: isHistoryOpen ? "var(--accent-color, #58a6ff)" : "transparent",
+          color: isHistoryOpen ? "white" : "var(--text-secondary, #8b949e)",
+          cursor: "pointer",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          transition: "background 0.15s, color 0.15s",
+          flexShrink: 0,
+        }}
+        onMouseEnter={(e) => {
+          if (!isHistoryOpen) {
+            e.currentTarget.style.background = "var(--hover-bg, #21262d)";
+            e.currentTarget.style.color = "var(--text-primary, #e6edf3)";
+          }
+        }}
+        onMouseLeave={(e) => {
+          if (!isHistoryOpen) {
+            e.currentTarget.style.background = "transparent";
+            e.currentTarget.style.color = "var(--text-secondary, #8b949e)";
+          }
+        }}
+      >
+        <History size={18} />
+      </button>
+    );
+  };
   return (
     <div
       style={{
@@ -103,7 +148,7 @@ export const BlockchainSidebar: React.FC<BlockchainSidebarProps> = ({ activeView
       </div>
       {/* Spacer pushes bottom items down */}
       <div style={{ flex: 1 }} />
-      {/* Bottom group: settings */}
+      {/* Bottom group: history + settings */}
       <div
         style={{
           display: "flex",
@@ -114,6 +159,9 @@ export const BlockchainSidebar: React.FC<BlockchainSidebarProps> = ({ activeView
           paddingTop: 6,
         }}
       >
+        {/* History drawer toggle */}
+        {renderHistoryButton()}
+        {/* Settings */}
         {BOTTOM_ITEMS.map(renderItem)}
       </div>
     </div>

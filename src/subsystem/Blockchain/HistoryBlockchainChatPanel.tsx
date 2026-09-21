@@ -512,7 +512,8 @@ const HistoryBlockchainChatPanel = forwardRef<HistoryBlockchainChatPanelRef, His
                     style={getCardStyle(isActive, isHovered, isSelected)}
                     onMouseEnter={() => setHoveredId(session.session_id)}
                     onMouseLeave={() => setHoveredId(null)}
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.stopPropagation();
                       if (isBatchMode && onToggleSelection) {
                         onToggleSelection(session.session_id, new MouseEvent("click") as any);
                       } else if (!isEditing) {
