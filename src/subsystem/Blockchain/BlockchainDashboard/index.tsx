@@ -1,9 +1,9 @@
 import React, { useState } from "react";
-import BlockchainSidebar, { BlockchainSidebarView } from "../components/BlockchainSidebar";
-import AccountPanel from "../panels/AccountPanel";
-import BondingCurvePanel from "../panels/BondingCurvePanel";
-import SwapPanel from "../panels/SwapPanel";
-import TradePanel from "../panels/TradePanel";
+import BlockchainSidebar, { BlockchainSidebarView } from "./components/BlockchainSidebar";
+import AccountPanel from "./panels/AccountPanel";
+import BondingCurvePanel from "./panels/BondingCurvePanel";
+import SwapPanel from "./panels/SwapPanel";
+import TradePanel from "./panels/TradePanel";
 // Trade view: Hyperliquid-style pro trading layout
 interface BlockchainDashboardProps {
   theme?: "light" | "dark";
@@ -21,7 +21,7 @@ interface BlockchainDashboardProps {
  */
 export const BlockchainDashboard: React.FC<BlockchainDashboardProps> = ({ theme = "dark", i18n = "en", onToggleHistory, isHistoryOpen = false }) => {
   // Active sidebar view - extend BlockchainSidebarView union to add more panels
-  const [activeView, setActiveView] = useState<BlockchainSidebarView>("account");
+  const [activeView, setActiveView] = useState<BlockchainSidebarView>("trade");
   /**
    * Render the currently active panel.
    * Add a new case here when adding new sidebar items.
@@ -31,17 +31,13 @@ export const BlockchainDashboard: React.FC<BlockchainDashboardProps> = ({ theme 
       case "account":
         return <AccountPanel i18n={i18n} />;
       case "bondingCurve":
-        return <BondingCurvePanel i18n={i18n} />;
+        return <BondingCurvePanel i18n={i18n} theme={theme === "dark" ? "dark" : "light"} />;
       case "swap":
         return <SwapPanel i18n={i18n} />;
       case "trade":
         return <TradePanel i18n={i18n} theme={theme === "dark" ? "dark" : "light"} />;
       case "liquidity":
         return <PlaceholderPanel title={i18n === "zh-cn" ? "流动性" : "Liquidity"} />;
-      case "activity":
-        return <PlaceholderPanel title={i18n === "zh-cn" ? "活动" : "Activity"} />;
-      case "layers":
-        return <PlaceholderPanel title={i18n === "zh-cn" ? "图层" : "Layers"} />;
       case "settings":
         return <PlaceholderPanel title={i18n === "zh-cn" ? "设置" : "Settings"} />;
       default:

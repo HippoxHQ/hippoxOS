@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useState, useCallback } from "react";
 import { CandleView, ICandleViewDataPoint, TimeframeEnum } from "@candleview/core";
 import SymbolInfoBar from "./SymbolInfoBar";
+const TEST_TIME = 300;
 interface ChartPanelProps {
   i18n?: "en" | "zh-cn";
   /** System theme - passed down from the app shell */
@@ -52,6 +53,27 @@ const generateMockCandles = (count: number = 200, basePrice: number = 0.05): ICa
   }
   return candles;
 };
+/**
+ * Build a single new incremental candle that continues from the previous one.
+ * The new candle uses the current wall-clock second as its time so the chart
+ * keeps advancing in real time.
+ */
+const buildIncrementalCandle = (prevClose: number, basePrice: number): ICandleViewDataPoint => {
+  const open = prevClose;
+  const drift = (Math.random() - 0.5) * basePrice * 0.02;
+  const close = Math.max(0.0001, open + drift);
+  const high = Math.max(open, close) + Math.random() * basePrice * 0.01;
+  const low = Math.min(open, close) - Math.random() * basePrice * 0.01;
+  const volume = Math.floor(Math.random() * 200_000 + 10_000);
+  return {
+    time: Math.floor(Date.now() / 1000),
+    open: +open.toFixed(6),
+    high: +high.toFixed(6),
+    low: +low.toFixed(6),
+    close: +close.toFixed(6),
+    volume,
+  };
+};
 export const ChartPanel: React.FC<ChartPanelProps> = ({ i18n = "en", theme = "dark", symbol, isRightCollapsed = false, onToggleRight }) => {
   const isZh = i18n === "zh-cn";
   // Container ref for CandleView
@@ -64,6 +86,10 @@ export const ChartPanel: React.FC<ChartPanelProps> = ({ i18n = "en", theme = "da
   // needing to be re-run when the theme changes.
   const themeRef = useRef(theme);
   themeRef.current = theme;
+  // Full data buffer currently held by the chart: initial data + increments.
+  // Every incremental tick appends to this array and pushes it back via
+  // setData, so the chart always renders the complete series.
+  const dataRef = useRef<ICandleViewDataPoint[]>([]);
   // Initialize CandleView once on mount.
   useEffect(() => {
     const container = containerRef.current;
@@ -71,6 +97,8 @@ export const ChartPanel: React.FC<ChartPanelProps> = ({ i18n = "en", theme = "da
     // If an instance already exists (StrictMode double-mount), skip.
     if (candleViewRef.current) return;
     try {
+      const initialData = generateMockCandles(200, 0.05);
+      dataRef.current = initialData;
       const cv = new CandleView({
         container,
         title: symbol,
@@ -79,7 +107,7 @@ export const ChartPanel: React.FC<ChartPanelProps> = ({ i18n = "en", theme = "da
         locale: isZh ? "zh-cn" : "en",
         technologyPanel: true,
         drawingPanel: true,
-        data: generateMockCandles(200, 0.05),
+        data: initialData,
         timeframe: TimeframeEnum.FIFTEEN_MINUTES,
       });
       candleViewRef.current = cv;
@@ -153,7 +181,10 @@ export const ChartPanel: React.FC<ChartPanelProps> = ({ i18n = "en", theme = "da
     const cv = candleViewRef.current;
     if (!cv || !isChartReady) return;
     try {
-      cv.setData(generateMockCandles(200, 0.05));
+      const fresh = generateMockCandles(200, 0.05);
+      // Replace the buffer so incremental appends continue from the new base.
+      dataRef.current = fresh;
+      cv.setData(fresh);
       const chart = cv.getChart();
       if (chart?.chart) {
         chart.chart.timeScale().fitContent();
@@ -166,6 +197,27 @@ export const ChartPanel: React.FC<ChartPanelProps> = ({ i18n = "en", theme = "da
     if (!isChartReady) return;
     handleResetData();
   }, [symbol, isChartReady, handleResetData]);
+  // Incremental updates: append a new candle every second and push the whole
+  // series back via setData(initial data + increments).
+  useEffect(() => {
+    if (!isChartReady) return;
+    const interval = window.setInterval(() => {
+      const cv = candleViewRef.current;
+      if (!cv) return;
+      try {
+        const buffer = dataRef.current;
+        const prevClose = buffer.length > 0 ? buffer[buffer.length - 1].close : 0.05;
+        const next = buildIncrementalCandle(prevClose, 0.05);
+        // Append the new candle and keep the buffer bounded.
+        const updated = [...buffer, next].slice(-400);
+        dataRef.current = updated;
+        cv.setData(updated);
+      } catch (e) {
+        console.warn("[ChartPanel] incremental setData failed:", e);
+      }
+    }, TEST_TIME);
+    return () => window.clearInterval(interval);
+  }, [isChartReady]);
   return (
     <div
       style={{

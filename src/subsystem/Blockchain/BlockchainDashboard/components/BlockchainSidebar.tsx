@@ -20,15 +20,11 @@ interface SidebarItem {
 // Sidebar items - add new entries here to expose more panels
 const SIDEBAR_ITEMS: SidebarItem[] = [
   { key: "trade", icon: <CandlestickChart size={18} />, labelEn: "Trade", labelZh: "交易" },
-  { key: "swap", icon: <ArrowDownUp size={18} />, labelEn: "Swap", labelZh: "兑换" },
   { key: "bondingCurve", icon: <BarChart3 size={18} />, labelEn: "Bonding Curve", labelZh: "联合曲线" },
-  { key: "account", icon: <Wallet size={18} />, labelEn: "Account", labelZh: "账户" },
-  // Trade view: Hyperliquid-style pro trading layout
   { key: "liquidity", icon: <Droplets size={18} />, labelEn: "Liquidity", labelZh: "流动性" },
-  { key: "activity", icon: <Activity size={18} />, labelEn: "Activity", labelZh: "活动" },
-  { key: "layers", icon: <Layers size={18} />, labelEn: "Layers", labelZh: "图层" },
+  { key: "swap", icon: <ArrowDownUp size={18} />, labelEn: "Swap", labelZh: "兑换" },
 ];
-const BOTTOM_ITEMS: SidebarItem[] = [{ key: "settings", icon: <Settings size={18} />, labelEn: "Settings", labelZh: "设置" }];
+const BOTTOM_ITEMS: SidebarItem[] = [{ key: "account", icon: <Wallet size={18} />, labelEn: "Account", labelZh: "账户" }];
 /**
  * BlockchainSidebar - 45px wide icon sidebar.
  * Clicking an icon switches the active dashboard panel.

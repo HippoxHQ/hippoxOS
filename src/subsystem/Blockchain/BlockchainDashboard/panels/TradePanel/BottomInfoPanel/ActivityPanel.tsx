@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { formatNum } from "../types";
+const TEST_TIME = 300;
 interface ActivityPanelProps {
   i18n?: "en" | "zh-cn";
   symbol: string;
@@ -59,9 +60,14 @@ const buildRow = (time: number, baseMarketCap: number): ActivityRow => {
   };
 };
 /**
+ * Random delay between 500ms and 2000ms for the next activity row.
+ */
+// const randomDelay = (): number => Math.random() * 1500 + 500;
+const randomDelay = (): number => Math.random() * TEST_TIME;
+/**
  * ActivityPanel - live trade feed.
  *
- * A new row is prepended every 5 seconds.
+ * A new row is prepended at a random interval between 0.5s and 2s.
  * The displayed "time" column updates every second so it always shows the
  * current wall clock time for the most recent row.
  */
@@ -77,21 +83,29 @@ export const ActivityPanel: React.FC<ActivityPanelProps> = ({ i18n = "en", symbo
   // Tick counter that forces a re-render every second so the "time" column
   // keeps advancing.
   const [, setTick] = useState(0);
-  // Prepend a new row every 5 seconds.
+  // Base market cap used to seed the next row.
   const baseMarketCapRef = useRef(BASE_MARKET_CAP);
+  // Prepend a new row at a random interval between 0.5s and 2s.
+  // A self-rescheduling timeout is used instead of setInterval so each delay
+  // is randomised independently.
   useEffect(() => {
-    const interval = window.setInterval(() => {
-      setRows((prev) => {
-        // Update the base cap slightly using the newest row.
-        if (prev.length > 0) {
-          baseMarketCapRef.current = prev[0].marketCap;
-        }
-        const next = buildRow(Date.now(), baseMarketCapRef.current);
-        // Prepend and keep the list bounded.
-        return [next, ...prev].slice(0, 200);
-      });
-    }, 5000);
-    return () => window.clearInterval(interval);
+    let timer: number;
+    const scheduleNext = () => {
+      timer = window.setTimeout(() => {
+        setRows((prev) => {
+          // Update the base cap slightly using the newest row.
+          if (prev.length > 0) {
+            baseMarketCapRef.current = prev[0].marketCap;
+          }
+          const next = buildRow(Date.now(), baseMarketCapRef.current);
+          // Prepend and keep the list bounded.
+          return [next, ...prev].slice(0, 200);
+        });
+        scheduleNext();
+      }, randomDelay());
+    };
+    scheduleNext();
+    return () => window.clearTimeout(timer);
   }, []);
   // Force a re-render every second so the time column updates.
   useEffect(() => {

@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { taskManager } from "../../core/TaskManager";
-import { showTooltipOnElement } from "../../components/Tooltip";
 import BlockchainDashboard from "./BlockchainDashboard";
 import { APP_WINDOW_EVENTS } from "../../App/AppWindowEventManager";
 import { blockchainSessionCommands } from "../../command/session/blockchain";
@@ -10,24 +9,17 @@ import BlockchainChatPanel from "./BlockchainChatPanel";
 import HistoryBlockchainChatPanel, { HistoryBlockchainChatPanelRef } from "./HistoryBlockchainChatPanel";
 import { Layers, CheckSquare, Square, Pin, PinOff, Trash2, ChevronUp, ChevronDown, Plus, ChevronsLeft, ChevronsRight, MessageCircleIcon } from "lucide-react";
 import { useBlockchainSession } from "../../App/hooks/session/useBlockchainChatSession";
-import { configCommands } from "../../command/config";
 import { CollapseAllIcon2, ExpandAllIcon2 } from "../../icons";
-// Panel Size Constants - Matching GeneralChatPage
-// Left panel (chat/terminal main panel) percentage limits
-const LEFT_PANEL_MIN_PERCENT = 25;
-const LEFT_PANEL_MAX_PERCENT = 75;
-const LEFT_PANEL_DEFAULT_PERCENT = 50;
 // Right panel min width
 const RIGHT_PANEL_MIN_WIDTH = 150;
 // History drawer width (only used in the left-side slide-out drawer)
 const HISTORY_DRAWER_WIDTH = 320;
+// Chat panel width limits (px). The chat panel is anchored to the right
+// and can never grow beyond CHAT_PANEL_MAX_WIDTH.
+const CHAT_PANEL_MIN_WIDTH = 300;
+const CHAT_PANEL_MAX_WIDTH = 400;
+const CHAT_PANEL_DEFAULT_WIDTH = 350;
 interface BlockchainPageProps {
-  layoutMode?: "horizontal" | "vertical";
-  onLayoutModeChange?: (mode: "horizontal" | "vertical") => void;
-  leftTitle?: string;
-  rightTitle?: string;
-  leftIcon?: React.ReactNode;
-  rightIcon?: React.ReactNode;
   t?: (key: string, params?: any) => string;
   isFunctionPanelMaximized?: boolean;
   onCloseSkillsManager?: () => void;
@@ -54,7 +46,10 @@ interface BlockchainPageProps {
  * 4. BlockchainDashboard renders the data (accumulates layers)
  * 5. All tasks in the same session are overlaid on the dashboard
  *
- * History sessions are now presented in a slide-out drawer opened from the
+ * Layout: the chat panel is ALWAYS anchored to the RIGHT side of the page.
+ * The dashboard fills the remaining space on the left.
+ *
+ * History sessions are presented in a slide-out drawer opened from the
  * sidebar's bottom button. All existing session logic is preserved and
  * delegated to the same `HistoryBlockchainChatPanel` component.
  *
@@ -63,12 +58,6 @@ interface BlockchainPageProps {
  * are allowed to close it.
  */
 const BlockchainPage: React.FC<BlockchainPageProps> = ({
-  layoutMode = "vertical",
-  onLayoutModeChange,
-  leftTitle = "Chat",
-  rightTitle = "Map",
-  leftIcon = "💬",
-  rightIcon = "🗺️",
   t = (key: string) => key,
   isFunctionPanelMaximized = false,
   onCloseSkillsManager,
@@ -87,7 +76,7 @@ const BlockchainPage: React.FC<BlockchainPageProps> = ({
   // Session management
   const { currentSessionId: blockchainSessionId, handleSendMessage: blockchainHandleSendMessage, handleSwitchSession: blockchainHandleSwitchSession, handleNewSession: blockchainHandleNewSession, shouldShowWelcome: blockchainShouldShowWelcome } = useBlockchainSession(language as "zh" | "en", true);
   // Panel state - using constants from GeneralChatPage
-  const [chatPanelWidth, setChatPanelWidth] = useState<number>(400);
+  const [chatPanelWidth, setChatPanelWidth] = useState<number>(CHAT_PANEL_DEFAULT_WIDTH);
   const [chatPanelCollapsed, setChatPanelCollapsed] = useState<boolean>(false);
   const [activeNavIndex, setActiveNavIndex] = useState<number>(-1);
   const [isResizeHover, setIsResizeHover] = useState(false);
@@ -105,11 +94,8 @@ const BlockchainPage: React.FC<BlockchainPageProps> = ({
   const isDragging = useRef(false);
   const dragType = useRef<"horizontal">("horizontal");
   const dragStartX = useRef(0);
-  const dragStartChatPanelWidth = useRef(400);
+  const dragStartChatPanelWidth = useRef(CHAT_PANEL_DEFAULT_WIDTH);
   const dragStartContainerRect = useRef<DOMRect | null>(null);
-  const [layoutSwapMode, setLayoutSwapMode] = useState<"terminal-left" | "chat-left">("terminal-left");
-  const layoutSwapModeRef = useRef<"terminal-left" | "chat-left">("terminal-left");
-  const isChatOnLeft = layoutSwapMode === "chat-left";
   // Clear selection when batch mode is turned off
   useEffect(() => {
     if (!isBatchMode) {
@@ -240,10 +226,10 @@ const BlockchainPage: React.FC<BlockchainPageProps> = ({
     });
   }, [isFunctionPanelMaximized]);
   /**
-   * Create chat panel with ref passed down for blockchain rendering
-   * Similar to how 3D sandbox passes sandboxRef to its chat panel
+   * Create chat panel with ref passed down for blockchain rendering.
+   * The chat panel is always on the right side.
    */
-  const chatPanel = <BlockchainChatPanel onSendMessage={blockchainHandleSendMessage} onFileClick={onFileClick} t={t} currentSessionId={blockchainSessionId} onDragOverInputChange={onDragOverInputChange} language={language} isLeftPanel={isChatOnLeft} />;
+  const chatPanel = <BlockchainChatPanel onSendMessage={blockchainHandleSendMessage} onFileClick={onFileClick} t={t} currentSessionId={blockchainSessionId} onDragOverInputChange={onDragOverInputChange} language={language} isLeftPanel={false} />;
   /**
    * Toggle the history drawer.
    * Declared before `blockchainPanel` so it can be safely passed as a prop.
@@ -275,35 +261,6 @@ const BlockchainPage: React.FC<BlockchainPageProps> = ({
       />
     </div>
   );
-  // Layout mode loading
-  useEffect(() => {
-    const loadLayoutMode = async () => {
-      try {
-        const mode = await configCommands.getSettingsMapChatLayoutSwapMode();
-        if (mode === "terminal-left" || mode === "chat-left") {
-          setLayoutSwapMode(mode);
-          layoutSwapModeRef.current = mode;
-        }
-      } catch (error) {
-        console.error("Failed to load blockchain chat layout mode:", error);
-      }
-    };
-    loadLayoutMode();
-  }, []);
-  // Layout change listener
-  useEffect(() => {
-    const handleLayoutChange = (event: CustomEvent) => {
-      const { pageType, mode } = event.detail;
-      if (pageType === "map") {
-        setLayoutSwapMode(mode);
-        layoutSwapModeRef.current = mode;
-      }
-    };
-    window.addEventListener("layout-swap-mode-changed", handleLayoutChange as EventListener);
-    return () => {
-      window.removeEventListener("layout-swap-mode-changed", handleLayoutChange as EventListener);
-    };
-  }, []);
   // Load history sessions
   useEffect(() => {
     const loadSessions = async () => {
@@ -348,7 +305,13 @@ const BlockchainPage: React.FC<BlockchainPageProps> = ({
     const savedChatPanelCollapsed = localStorage.getItem("hippox-blockchain-chat-collapsed");
     const savedChatPanelWidth = localStorage.getItem("hippox-blockchain-chat-width");
     if (savedChatPanelCollapsed) setChatPanelCollapsed(savedChatPanelCollapsed === "true");
-    if (savedChatPanelWidth) setChatPanelWidth(parseFloat(savedChatPanelWidth));
+    if (savedChatPanelWidth) {
+      // Clamp the persisted width to the allowed range.
+      const parsed = parseFloat(savedChatPanelWidth);
+      if (!Number.isNaN(parsed)) {
+        setChatPanelWidth(Math.max(CHAT_PANEL_MIN_WIDTH, Math.min(CHAT_PANEL_MAX_WIDTH, parsed)));
+      }
+    }
   }, []);
   // Persistence helpers
   const saveChatPanelCollapsed = (collapsed: boolean) => {
@@ -430,18 +393,13 @@ const BlockchainPage: React.FC<BlockchainPageProps> = ({
       const mainAreaWidth = containerWidth;
       if (mainAreaWidth <= 0) return;
       const startWidthPx = dragStartChatPanelWidth.current;
-      const currentMode = layoutSwapModeRef.current;
-      let newWidthPx;
-      if (currentMode === "terminal-left") {
-        newWidthPx = startWidthPx - deltaX;
-      } else {
-        newWidthPx = startWidthPx + deltaX;
-      }
-      const minWidthPx = 200;
-      const maxWidthPx = mainAreaWidth * 0.6;
-      newWidthPx = Math.max(minWidthPx, Math.min(maxWidthPx, newWidthPx));
-      setChatPanelWidth(newWidthPx);
-      saveChatPanelWidth(newWidthPx);
+      // The chat panel is anchored on the RIGHT, so dragging LEFT grows it.
+      // (moving the divider left increases the chat width)
+      const newWidthPx = startWidthPx - deltaX;
+      // Clamp between the fixed min and the fixed max width.
+      const clamped = Math.max(CHAT_PANEL_MIN_WIDTH, Math.min(CHAT_PANEL_MAX_WIDTH, newWidthPx));
+      setChatPanelWidth(clamped);
+      saveChatPanelWidth(clamped);
     }
   }, []);
   const handleMouseUp = useCallback(() => {
@@ -786,34 +744,65 @@ const BlockchainPage: React.FC<BlockchainPageProps> = ({
           z-index: 10;
         }
       `}</style>
-      {/* Chat Panel */}
+      {/* Dashboard Panel (left, fills remaining space) */}
+      <div
+        style={{
+          flex: 1,
+          overflow: "hidden",
+          minWidth: `${RIGHT_PANEL_MIN_WIDTH}px`,
+          display: "flex",
+          flexDirection: "row",
+          order: 1,
+        }}
+      >
+        {blockchainPanel}
+      </div>
+      {/* Resize Handle (between dashboard and chat) */}
+      {!chatPanelCollapsed && !isFunctionPanelMaximized && (
+        <div
+          className="resize-handle resize-handle-vertical"
+          onMouseDown={(e) => handleMouseDown(e, "horizontal")}
+          style={{
+            width: "0px",
+            background: isResizeHover ? "var(--scrollbar-thumb)" : "var(--border-color)",
+            cursor: "col-resize",
+            flexShrink: 0,
+            position: "relative",
+            transition: "width 0.15s, background 0.15s",
+            order: 2,
+          }}
+          onMouseEnter={() => setIsResizeHover(true)}
+          onMouseLeave={() => setIsResizeHover(false)}
+        />
+      )}
+      {/* Chat Panel (always anchored to the RIGHT) */}
       {!chatPanelCollapsed && !isFunctionPanelMaximized ? (
         <div
           className="panel-chat"
           style={{
             flex: "0 0 auto",
             width: `${chatPanelWidth}px`,
+            maxWidth: `${CHAT_PANEL_MAX_WIDTH}px`,
             overflow: "hidden",
-            minWidth: "200px",
+            minWidth: `${CHAT_PANEL_MIN_WIDTH}px`,
             display: "flex",
             flexDirection: "row",
-            borderRight: isChatOnLeft ? "1px solid var(--border-color)" : "none",
-            borderLeft: !isChatOnLeft ? "1px solid var(--border-color)" : "none",
-            order: isChatOnLeft ? 1 : 3,
+            borderLeft: "1px solid var(--border-color)",
+            order: 3,
           }}
         >
           {React.cloneElement(chatPanel as React.ReactElement<any>, {
             isCollapsed: false,
             togglePanel: handleToggleChatPanel,
-            collapseIcon: isChatOnLeft ? <ChevronsLeft size={16} /> : <ChevronsRight size={16} />,
-            isLeftPanel: isChatOnLeft,
+            collapseIcon: <ChevronsRight size={16} />,
+            isLeftPanel: false,
           })}
         </div>
       ) : !isFunctionPanelMaximized ? (
         <div
           style={{
             flex: `0 0 45px`,
-            order: isChatOnLeft ? 1 : 3,
+            order: 3,
           }}
         >
           {/* Collapsed placeholder kept minimal: the history drawer is now the
@@ -827,8 +816,7 @@ const BlockchainPage: React.FC<BlockchainPageProps> = ({
               width: 45,
               minWidth: 45,
               background: "var(--bg-secondary)",
-              borderRight: isChatOnLeft ? "1px solid var(--border-color)" : "none",
-              borderLeft: !isChatOnLeft ? "1px solid var(--border-color)" : "none",
+              borderLeft: "1px solid var(--border-color)",
               overflow: "hidden",
               flexShrink: 0,
               height: "100%",
@@ -869,9 +857,9 @@ const BlockchainPage: React.FC<BlockchainPageProps> = ({
                   e.currentTarget.style.background = "transparent";
                   e.currentTarget.style.color = "var(--text-secondary)";
                 }}
-                title={isChatOnLeft ? "Expand Right" : "Expand Left"}
+                title="Expand Right"
               >
-                {isChatOnLeft ? <ChevronsRight size={16} /> : <ChevronsLeft size={16} />}
+                <ChevronsLeft size={16} />
               </button>
             </div>
             <div
@@ -894,37 +882,6 @@ const BlockchainPage: React.FC<BlockchainPageProps> = ({
           </div>
         </div>
       ) : null}
-      {/* Resize Handle */}
-      {!chatPanelCollapsed && !isFunctionPanelMaximized && (
-        <div
-          className="resize-handle resize-handle-vertical"
-          onMouseDown={(e) => handleMouseDown(e, "horizontal")}
-          style={{
-            width: "0px",
-            background: isResizeHover ? "var(--scrollbar-thumb)" : "var(--border-color)",
-            cursor: "col-resize",
-            flexShrink: 0,
-            position: "relative",
-            transition: "width 0.15s, background 0.15s",
-            order: 2,
-          }}
-          onMouseEnter={() => setIsResizeHover(true)}
-          onMouseLeave={() => setIsResizeHover(false)}
-        />
-      )}
-      {/* Dashboard Panel */}
-      <div
-        style={{
-          flex: 1,
-          overflow: "hidden",
-          minWidth: `${RIGHT_PANEL_MIN_WIDTH}px`,
-          display: "flex",
-          flexDirection: "row",
-          order: isChatOnLeft ? 3 : 1,
-        }}
-      >
-        {blockchainPanel}
-      </div>
       {/* History drawer (left slide-out) */}
       {isHistoryDrawerOpen && renderHistoryDrawer()}
     </div>

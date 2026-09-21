@@ -227,7 +227,7 @@ export const OrderTicketPanel: React.FC<OrderTicketPanelProps> = ({ i18n = "en",
               >
                 <span
                   style={{
-                    fontSize: 11,
+                    fontSize: 12,
                     fontWeight: active ? 700 : 500,
                     letterSpacing: "0.3px",
                   }}
@@ -269,8 +269,8 @@ export const OrderTicketPanel: React.FC<OrderTicketPanelProps> = ({ i18n = "en",
               gap: 3,
             }}
           >
-            <span style={{ ...labelStyle, fontSize: 10 }}>{isZh ? "成交额" : "Volume"}</span>
-            <span style={{ ...valueStyle, fontWeight: 600, fontSize: 12 }}>${formatNum(stats.volume, 2)}</span>
+            <span style={{ ...labelStyle, fontSize: 12 }}>{isZh ? "成交额" : "Volume"}</span>
+            <span style={{ ...valueStyle, fontWeight: 600, fontSize: 11 }}>${formatNum(stats.volume, 2)}</span>
           </div>
           {/* Net buy */}
           <div
@@ -282,7 +282,7 @@ export const OrderTicketPanel: React.FC<OrderTicketPanelProps> = ({ i18n = "en",
               gap: 3,
             }}
           >
-            <span style={{ ...labelStyle, fontSize: 10 }}>{isZh ? "净买入" : "Net Buy"}</span>
+            <span style={{ ...labelStyle, fontSize: 12 }}>{isZh ? "净买入" : "Net Buy"}</span>
             <span
               style={{
                 ...valueStyle,
@@ -304,9 +304,9 @@ export const OrderTicketPanel: React.FC<OrderTicketPanelProps> = ({ i18n = "en",
               gap: 3,
             }}
           >
-            <span style={{ ...labelStyle, fontSize: 10, color: "#3fb950", fontWeight: 600 }}>{isZh ? "买入" : "Buy"}</span>
-            <span style={{ ...valueStyle, color: "#3fb950", fontWeight: 600, fontSize: 12 }}>
-              {stats.buyCount} / ${formatNum(stats.buyVolume, 1)}
+            <span style={{ ...labelStyle, fontSize: 12, color: "#3fb950", fontWeight: 600 }}>{isZh ? "买入" : "Buy"}</span>
+            <span style={{ ...valueStyle, color: "#3fb950", fontWeight: 600, fontSize: 11 }}>
+              {stats.buyCount}/${formatNum(stats.buyVolume, 1)}
             </span>
           </div>
           {/* Sell */}
@@ -319,9 +319,9 @@ export const OrderTicketPanel: React.FC<OrderTicketPanelProps> = ({ i18n = "en",
               gap: 3,
             }}
           >
-            <span style={{ ...labelStyle, fontSize: 10, color: "#f85149", fontWeight: 600 }}>{isZh ? "卖出" : "Sell"}</span>
-            <span style={{ ...valueStyle, color: "#f85149", fontWeight: 600, fontSize: 12 }}>
-              {stats.sellCount} / ${formatNum(stats.sellVolume, 1)}
+            <span style={{ ...labelStyle, fontSize: 12, color: "#f85149", fontWeight: 600 }}>{isZh ? "卖出" : "Sell"}</span>
+            <span style={{ ...valueStyle, color: "#f85149", fontWeight: 600, fontSize: 11 }}>
+              {stats.sellCount}/${formatNum(stats.sellVolume, 1)}
             </span>
           </div>
         </div>
