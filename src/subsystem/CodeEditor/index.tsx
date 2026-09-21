@@ -14,7 +14,7 @@ import { showToast, ToastType } from "../../components/Toast";
 import { open } from "@tauri-apps/plugin-dialog";
 import GithubClone from "./GithubClone";
 import { APP_WINDOW_EVENTS } from "../../App/AppWindowEventManager";
-import { CheckSquare, Square, Layers, Pin, PinOff, Trash2, ChevronUp, ChevronDown, ChevronsRight, ChevronsLeft } from "lucide-react";
+import { CheckSquare, Square, Layers, Pin, PinOff, Trash2, ChevronUp, ChevronDown, ChevronsRight, ChevronsLeft, Plus } from "lucide-react";
 import { showDialog, DialogType } from "../../components/Dialog";
 // Panel Size Constants - Aligned with GeneralChatPage
 // History panel (leftmost panel) size limits
@@ -1501,7 +1501,7 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
               }}
               title={t("history.newSession") || "New Session"}
             >
-              <span style={{ fontSize: "18px", fontWeight: 600 }}>+</span>
+              <Plus size={16} />
             </button>
             <button
               style={headerButtonStyle}

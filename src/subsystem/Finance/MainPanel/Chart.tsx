@@ -118,7 +118,11 @@ const Chart = forwardRef<ChartRef, ChartProps>(({ theme, i18n, symbol, data, cha
   }));
   /**
    * Initialize CandleView and CVSEngine
-   * This effect runs once on component mount
+   *
+   * IMPORTANT: `isValidData` is in the dependency array.
+   * On first mount, `data` may be empty, so `isValidData` is false and the
+   * chart is not created. When data arrives asynchronously, `isValidData`
+   * flips to true, this effect re-runs, and the chart is created then.
    */
   useEffect(() => {
     // Guard against multiple initializations
@@ -134,7 +138,7 @@ const Chart = forwardRef<ChartRef, ChartProps>(({ theme, i18n, symbol, data, cha
       return;
     }
     if (!isValidData) {
-      console.error("[Chart] No valid data for chart initialization", { data });
+      console.log("[Chart] Waiting for valid data before initializing chart");
       return;
     }
     try {
@@ -209,7 +213,9 @@ const Chart = forwardRef<ChartRef, ChartProps>(({ theme, i18n, symbol, data, cha
         initializationCompleteRef.current = false;
       }
     };
-  }, []); // Empty dependency array - run once on mount
+    // `isValidData` must be in the dependency list so the chart is created
+    // once async data becomes available.
+  }, [isValidData]);
   /**
    * Apply chart config when chartData prop changes
    */

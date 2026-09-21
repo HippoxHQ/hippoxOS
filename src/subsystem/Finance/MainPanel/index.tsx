@@ -5,7 +5,7 @@ import DSL, { DSLRef } from "./DSL";
 import MarketPanel from "./MarketPanel";
 import NewsPanel from "./News";
 import AIAnalysis from "./AIAnalysis";
-import { PanelRightOpen, Newspaper, Code2, ChevronUp, ChevronDown, Sparkles } from "lucide-react";
+import { PanelRightOpen, Newspaper, Code2, ChevronUp, ChevronDown, Sparkles, History } from "lucide-react";
 import { fetchStockOHLCV } from "../../../command/Finance/AStock";
 import { listenSetChartData, SET_CHART_DATA } from "../FinanceWindowsEventsManager";
 import { showToast, ToastType } from "../../../components/Toast";
@@ -14,6 +14,7 @@ import { fetchStocksBatch } from "../../../command/Finance/Yahoo";
 import { fetchBinanceKlines } from "../../../command/Finance/Binance";
 import { resolveDisclaimer, DEFAULT_DISCLAIMER_ZH, DEFAULT_DISCLAIMER_EN } from "../llm/types";
 import { extractChartData, hasChartData } from "../utils/parser";
+import HistorySession, { HistorySessionRef } from "./HistorySession";
 interface IStaticMarkItem {
   time: number;
   text: string;
@@ -36,6 +37,12 @@ interface MainPanelProps {
   symbol?: string;
   taskId?: string;
   chartData?: any;
+  // Translation function (used by the embedded history panel)
+  t?: (key: string, params?: any) => string;
+  // Session select handler (used by the embedded history panel)
+  onSessionSelect?: (sessionId: string) => void;
+  // New session handler (used by the embedded history panel)
+  onNewSession?: () => void;
 }
 const MAX_DATA_POINTS = 50;
 const TIMEFRAME_MAP: Record<string, string> = {
@@ -90,7 +97,7 @@ const TITLE_NOISE_WORDS = [
   "kline",
   "candlestick",
 ];
-export const MainPanel: React.FC<MainPanelProps> = ({ theme, i18n, currentSessionId, data, symbol = "BTC/USDT", taskId, chartData }) => {
+export const MainPanel: React.FC<MainPanelProps> = ({ theme, i18n, currentSessionId, data, symbol = "BTC/USDT", taskId, chartData, t, onSessionSelect, onNewSession }) => {
   const [functionHeight, setFunctionHeight] = useState(40);
   const [editorWidth, setEditorWidth] = useState(60);
   const [isFunctionResizing, setIsFunctionResizing] = useState(false);
@@ -102,7 +109,8 @@ export const MainPanel: React.FC<MainPanelProps> = ({ theme, i18n, currentSessio
   const [chartDataState, setChartDataState] = useState<any>(chartData);
   const [candleData, setCandleData] = useState<ICandleViewDataPoint[]>(data || []);
   // Active function tab now supports "ai" in addition to "dsl" and "news"
-  const [activeFunctionTab, setActiveFunctionTab] = useState<"dsl" | "news" | "ai">("news");
+  // and "history" for the embedded history session panel.
+  const [activeFunctionTab, setActiveFunctionTab] = useState<"dsl" | "news" | "ai" | "history">("news");
   const [isFunctionCollapsed, setIsFunctionCollapsed] = useState(false);
   // Analysis state shared with the AIAnalysis panel.
   // The full analysis object is stored so the panel can render any structured
@@ -114,6 +122,7 @@ export const MainPanel: React.FC<MainPanelProps> = ({ theme, i18n, currentSessio
   const currentPeriodRef = useRef<string>("101");
   const chartRef = useRef<ChartRef>(null);
   const dslRef = useRef<DSLRef>(null);
+  const historySessionRef = useRef<HistorySessionRef>(null);
   const engineRef = useRef<any>(null);
   const startYRef = useRef(0);
   const startFunctionHeightRef = useRef(0);
@@ -128,6 +137,73 @@ export const MainPanel: React.FC<MainPanelProps> = ({ theme, i18n, currentSessio
   const isDark = theme === "dark";
   const initialLoadRef = useRef(false);
   const processedMessageIdsRef = useRef<Set<string>>(new Set());
+  // Fallback translation function when no `t` prop is provided.
+  const translate = useCallback(
+    (key: string): string => {
+      if (t) return t(key);
+      // Minimal fallbacks for the keys used by the embedded history panel.
+      const fallbacksZh: Record<string, string> = {
+        "history.category.pinned": "已置顶",
+        "history.category.today": "今天",
+        "history.category.yesterday": "昨天",
+        "history.category.last7days": "最近7天",
+        "history.category.last30days": "最近30天",
+        "history.category.older": "更早",
+        "history.loading": "加载中...",
+        "history.empty": "暂无历史会话",
+        "history.untitled": "未命名",
+        "history.rename": "重命名",
+        "history.pin": "置顶",
+        "history.unpin": "取消置顶",
+        "history.delete": "删除",
+        "history.toast.pinned": "已置顶",
+        "history.toast.unpinned": "已取消置顶",
+        "history.toast.pinFailed": "置顶失败",
+        "history.toast.deleted": "已删除",
+        "history.toast.deleteFailed": "删除失败",
+        "history.toast.renamed": "已重命名",
+        "history.toast.renameFailed": "重命名失败",
+        "history.dialog.confirmDeleteTitle": "删除会话",
+        "history.dialog.confirmDeleteMessage": "确定要删除该会话吗？此操作不可恢复。",
+        "history.dialog.delete": "删除",
+        "history.dialog.cancel": "取消",
+        "history.dialog.cannotDeleteTitle": "无法删除",
+        "history.dialog.cannotDeleteMessage": "至少保留一个会话。",
+        "history.dialog.gotIt": "知道了",
+      };
+      const fallbacksEn: Record<string, string> = {
+        "history.category.pinned": "Pinned",
+        "history.category.today": "Today",
+        "history.category.yesterday": "Yesterday",
+        "history.category.last7days": "Last 7 Days",
+        "history.category.last30days": "Last 30 Days",
+        "history.category.older": "Older",
+        "history.loading": "Loading...",
+        "history.empty": "No History Chat",
+        "history.untitled": "Untitled",
+        "history.rename": "Rename",
+        "history.pin": "Pin",
+        "history.unpin": "Unpin",
+        "history.delete": "Delete",
+        "history.toast.pinned": "Pinned",
+        "history.toast.unpinned": "Unpinned",
+        "history.toast.pinFailed": "Pin failed",
+        "history.toast.deleted": "Deleted",
+        "history.toast.deleteFailed": "Delete failed",
+        "history.toast.renamed": "Renamed",
+        "history.toast.renameFailed": "Rename failed",
+        "history.dialog.confirmDeleteTitle": "Delete Session",
+        "history.dialog.confirmDeleteMessage": "Are you sure you want to delete this session? This action cannot be undone.",
+        "history.dialog.delete": "Delete",
+        "history.dialog.cancel": "Cancel",
+        "history.dialog.cannotDeleteTitle": "Cannot Delete",
+        "history.dialog.cannotDeleteMessage": "At least one session must remain.",
+        "history.dialog.gotIt": "Got it",
+      };
+      return isZh ? fallbacksZh[key] || key : fallbacksEn[key] || key;
+    },
+    [t, isZh],
+  );
   useEffect(() => {
     if (typeof document !== "undefined") {
       const styleId = "mainpanel-styles";
@@ -139,18 +215,22 @@ export const MainPanel: React.FC<MainPanelProps> = ({ theme, i18n, currentSessio
       }
     }
   }, []);
-  // Function buttons now include the "AI" analysis tab
+  // Function buttons now include the "AI" analysis tab and the "History" tab.
   const functionButtons: FunctionButton[] = [
     { id: "news", label: isZh ? "新闻" : "News", icon: <Newspaper size={14} /> },
     { id: "dsl", label: "DSL", icon: <Code2 size={14} /> },
     { id: "ai", label: isZh ? "AI分析" : "AI", icon: <Sparkles size={14} /> },
+    { id: "history", label: isZh ? "历史会话" : "History", icon: <History size={14} /> },
   ];
   const toggleFunctionTab = useCallback((tabId: string) => {
-    setActiveFunctionTab(tabId as "dsl" | "news" | "ai");
+    setActiveFunctionTab(tabId as "dsl" | "news" | "ai" | "history");
   }, []);
   const handleFunctionClick = useCallback(
     (buttonId: string) => {
       toggleFunctionTab(buttonId);
+      // Every function button click must expand the function area,
+      // even if it was previously collapsed.
+      setIsFunctionCollapsed(false);
       console.log(`[FunctionBar] Clicked: ${buttonId}`);
     },
     [toggleFunctionTab],
@@ -582,9 +662,7 @@ export const MainPanel: React.FC<MainPanelProps> = ({ theme, i18n, currentSessio
       } catch {
         parsed = null;
       }
-      // ------------------------------------------------------------------
-      // 1. Handle symbol switch FIRST, independent of full chart payload
-      // ------------------------------------------------------------------
+      // Handle symbol switch FIRST, independent of full chart payload
       const rawSymbol: string | undefined = parsed?.terminalResponse?.chart?.symbol;
       if (rawSymbol) {
         // Pass the LLM-provided chart title (if any) so the frontend can extract
@@ -593,9 +671,7 @@ export const MainPanel: React.FC<MainPanelProps> = ({ theme, i18n, currentSessio
         const providedTitle: string | undefined = parsed?.terminalResponse?.chart?.title;
         applySymbolFromLLM(rawSymbol, providedTitle);
       }
-      // ------------------------------------------------------------------
-      // 2. Handle chart operations (DSL, indicators, marks, chart type)
-      // ------------------------------------------------------------------
+      // Handle chart operations (DSL, indicators, marks, chart type)
       if (parsed && hasChartData(content)) {
         const chartData = extractChartData(content);
         if (chartData) {
@@ -628,9 +704,7 @@ export const MainPanel: React.FC<MainPanelProps> = ({ theme, i18n, currentSessio
           }
         }
       }
-      // ------------------------------------------------------------------
-      // 3. Handle structured analysis + disclaimer (independent of chart)
-      // ------------------------------------------------------------------
+      // Handle structured analysis + disclaimer (independent of chart)
       if (parsed) {
         const analysis = parsed?.terminalResponse?.analysis;
         const chatMsg = parsed?.chatResponse?.m;
@@ -825,6 +899,8 @@ export const MainPanel: React.FC<MainPanelProps> = ({ theme, i18n, currentSessio
         return <NewsPanel theme={theme} i18n={i18n} language={isZh ? "zh" : "en"} />;
       case "ai":
         return <AIAnalysis theme={theme} i18n={i18n} analysis={analysisData} disclaimer={analysisDisclaimer} currentSessionId={currentSessionId} />;
+      case "history":
+        return <HistorySession ref={historySessionRef} t={translate} i18n={i18n} onSessionSelect={onSessionSelect} currentSessionId={currentSessionId} onNewSession={onNewSession} />;
       case "dsl":
       default:
         return (

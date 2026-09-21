@@ -39,6 +39,54 @@ export const OrderTicketPanel: React.FC<OrderTicketPanelProps> = ({ i18n = "en",
   const netBuyPercent = totalVolume > 0 ? (netBuy / totalVolume) * 100 : 0;
   const notional = (parseFloat(size) || 0) * midPrice;
   const estFee = notional * 0.003;
+  // ---------------------------------------------------------------------------
+  // Mock token safety / audit data for the blocks appended below the ticket.
+  // Replace with real values from the backend when available.
+  // ---------------------------------------------------------------------------
+  const safetyGrid = [
+    { key: "top10", labelZh: "前10持有", labelEn: "Top 10", value: "23.4%", risk: "warn" },
+    { key: "devHold", labelZh: "DEV 持有", labelEn: "DEV Hold", value: "5.2%", risk: "warn" },
+    { key: "holders", labelZh: "持有者", labelEn: "Holders", value: "12,480", risk: "ok" },
+    { key: "snipers", labelZh: "狙击手", labelEn: "Snipers", value: "8", risk: "warn" },
+    { key: "insiders", labelZh: "老鼠仓", labelEn: "Insiders", value: "3", risk: "warn" },
+    { key: "phishing", labelZh: "钓鱼钱包", labelEn: "Phishing", value: "0", risk: "ok" },
+    { key: "bundled", labelZh: "捆绑交易", labelEn: "Bundled", value: "12.1%", risk: "warn" },
+    { key: "blacklist", labelZh: "黑名单", labelEn: "Blacklist", value: "0", risk: "ok" },
+    { key: "lowLiquidity", labelZh: "低池子", labelEn: "Low LP", value: "No", risk: "ok" },
+    { key: "mintable", labelZh: "可增发", labelEn: "Mintable", value: "No", risk: "ok" },
+    { key: "freezable", labelZh: "可冻结", labelEn: "Freezable", value: "No", risk: "ok" },
+    { key: "renounced", labelZh: "放弃所有权", labelEn: "Renounced", value: "Yes", risk: "ok" },
+    { key: "proxy", labelZh: "代理合约", labelEn: "Proxy", value: "No", risk: "ok" },
+    { key: "honeypot", labelZh: "蜜罐检测", labelEn: "Honeypot", value: "Safe", risk: "ok" },
+    { key: "taxBuy", labelZh: "买入税", labelEn: "Buy Tax", value: "0%", risk: "ok" },
+    { key: "taxSell", labelZh: "卖出税", labelEn: "Sell Tax", value: "0%", risk: "ok" },
+  ] as const;
+  const devInfo = {
+    address: "0x1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b",
+    holdings: "5.2%",
+    created: "2025-01-12 08:34",
+    deployCount: 14,
+    rugCount: 0,
+    verified: true,
+  };
+  const basicData = {
+    marketCap: "$2.54M",
+    totalSupply: "100,000,000",
+    poolAddress: "0x9f8e7d6c5b4a39281706f5e4d3c2b1a0",
+    holders: "12,480",
+    tokenCreated: "2025-01-12 08:34",
+    poolCreated: "2025-01-12 08:36",
+  };
+  const safetyChecks = [
+    { labelZh: "合约已验证", labelEn: "Contract Verified", passed: true },
+    { labelZh: "无恶意函数", labelEn: "No Malicious Functions", passed: true },
+    { labelZh: "流动性已锁定", labelEn: "Liquidity Locked", passed: true },
+    { labelZh: "无黑名单功能", labelEn: "No Blacklist", passed: true },
+    { labelZh: "无交易限制", labelEn: "No Trading Limits", passed: true },
+    { labelZh: "所有权已放弃", labelEn: "Ownership Renounced", passed: true },
+    { labelZh: "非蜜罐", labelEn: "Not a Honeypot", passed: true },
+    { labelZh: "无代理升级", labelEn: "No Proxy Upgrade", passed: true },
+  ];
   const handlePercentClick = (pct: number) => {
     // percentage of the available balance (quote currency)
     const computed = (availableBalance * (pct / 100)) / midPrice;
@@ -69,10 +117,44 @@ export const OrderTicketPanel: React.FC<OrderTicketPanelProps> = ({ i18n = "en",
     fontSize: 11,
     fontFamily: "monospace",
   };
+  // Explicit full-width divider so it is never collapsed to zero width
+  // inside a flex column container.
   const divider: React.CSSProperties = {
+    width: "100%",
     height: 1,
+    minHeight: 1,
+    flexShrink: 0,
     background: "var(--border-color, #30363d)",
     margin: "4px 0",
+  };
+  // Zero-margin divider used inside the info blocks below the ticket.
+  const rowDivider: React.CSSProperties = {
+    width: "100%",
+    height: 1,
+    minHeight: 1,
+    flexShrink: 0,
+    background: "var(--border-color, #30363d)",
+    margin: 0,
+  };
+  // Section title style for the new blocks.
+  const sectionTitleStyle: React.CSSProperties = {
+    fontSize: 10,
+    fontWeight: 700,
+    letterSpacing: "0.5px",
+    textTransform: "uppercase",
+    color: "var(--text-secondary, #8b949e)",
+    marginBottom: 6,
+  };
+  // Risk color helper for the safety grid.
+  const riskColor = (risk: string): string => {
+    if (risk === "ok") return "#3fb950";
+    if (risk === "warn") return "#f0b90b";
+    return "#f85149";
+  };
+  // Truncate a long hex address for display.
+  const shortAddr = (addr: string): string => {
+    if (addr.length <= 14) return addr;
+    return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
   };
   return (
     <div
@@ -84,19 +166,24 @@ export const OrderTicketPanel: React.FC<OrderTicketPanelProps> = ({ i18n = "en",
         background: "var(--bg-secondary, #161b22)",
       }}
     >
+      {/* =====================================================================
+          FIXED TOP AREA (does not scroll)
+          Interval cards + stats grid + ticket + submit button
+          ===================================================================== */}
       <div
         style={{
           borderBottom: "1px solid var(--border-color, #30363d)",
           flexShrink: 0,
         }}
       >
-        {/* Interval grid: 4 square cells, fixed 60px height each */}
+        {/* Interval grid: 4 card cells, fixed 60px height each.
+            Cards show a shadow on hover, a border when active, radius 5px. */}
         <div
           style={{
             display: "grid",
             gridTemplateColumns: "repeat(4, 1fr)",
-            gap: 1,
-            background: "var(--border-color, #30363d)",
+            gap: 6,
+            padding: "8px 10px",
             borderBottom: "1px solid var(--border-color, #30363d)",
           }}
         >
@@ -108,10 +195,12 @@ export const OrderTicketPanel: React.FC<OrderTicketPanelProps> = ({ i18n = "en",
                 key={tf}
                 onClick={() => setInterval(tf)}
                 style={{
-                  // Fixed 60px height, not square
-                  height: 60,
-                  background: active ? "var(--bg-tertiary, #21262d)" : "var(--bg-secondary, #161b22)",
-                  border: "none",
+                  // Card: fixed 60px height, 5px radius, shadow on hover,
+                  // border visible when active. No shadow when active.
+                  height: 44,
+                  background: "var(--bg-secondary, #161b22)",
+                  border: active ? "1px solid var(--accent-color, #58a6ff)" : "1px solid var(--border-color, #30363d)",
+                  borderRadius: 5,
                   color: active ? "var(--text-primary, #e6edf3)" : "var(--text-secondary, #8b949e)",
                   cursor: "pointer",
                   display: "flex",
@@ -120,13 +209,14 @@ export const OrderTicketPanel: React.FC<OrderTicketPanelProps> = ({ i18n = "en",
                   justifyContent: "center",
                   gap: 4,
                   padding: 0,
-                  transition: "background 0.15s, color 0.15s",
                 }}
                 onMouseEnter={(e) => {
-                  if (!active) e.currentTarget.style.background = "var(--hover-bg, #21262d)";
+                  if (!active) {
+                  }
                 }}
                 onMouseLeave={(e) => {
-                  if (!active) e.currentTarget.style.background = "var(--bg-secondary, #161b22)";
+                  if (!active) {
+                  }
                 }}
               >
                 <span
@@ -152,106 +242,214 @@ export const OrderTicketPanel: React.FC<OrderTicketPanelProps> = ({ i18n = "en",
             );
           })}
         </div>
-        <div style={{ padding: "8px 14px" }}>
-          {/* Volume row */}
+        {/* Stats grid: 4 cells in a 2x2 layout.
+            Each cell has the title on top, the value underneath.
+            No background color on buy / sell cells. */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: 1,
+            background: "var(--border-color, #30363d)",
+            borderBottom: "1px solid var(--border-color, #30363d)",
+          }}
+        >
+          {/* Volume */}
           <div
             style={{
+              background: "var(--bg-secondary, #161b22)",
+              padding: "8px 10px",
               display: "flex",
-              justifyContent: "space-between",
+              flexDirection: "column",
               alignItems: "center",
-              marginBottom: 6,
+              justifyContent: "center",
+              gap: 3,
             }}
           >
-            <span style={labelStyle}>{isZh ? "成交额" : "Volume"}</span>
+            <span style={{ ...labelStyle, fontSize: 10 }}>{isZh ? "成交额" : "Volume"}</span>
             <span style={{ ...valueStyle, fontWeight: 600, fontSize: 12 }}>${formatNum(stats.volume, 2)}</span>
-          </div>
-          {/* Buy / Sell split */}
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: 8,
-              marginBottom: 6,
-            }}
-          >
-            {/* Buy side */}
-            <div
-              style={{
-                background: "rgba(63,185,80,0.08)",
-                border: "1px solid rgba(63,185,80,0.25)",
-                borderRadius: 6,
-                padding: "6px 8px",
-                display: "flex",
-                flexDirection: "column",
-                gap: 2,
-              }}
-            >
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span style={{ ...labelStyle, color: "#3fb950", fontWeight: 600 }}>{isZh ? "买入" : "Buy"}</span>
-                <span style={{ ...valueStyle, color: "#3fb950", fontWeight: 600 }}>{stats.buyCount}</span>
-              </div>
-              <div
-                style={{
-                  ...valueStyle,
-                  fontSize: 10,
-                  color: "#3fb950",
-                  textAlign: "right",
-                }}
-              >
-                ${formatNum(stats.buyVolume, 1)}
-              </div>
-            </div>
-            {/* Sell side */}
-            <div
-              style={{
-                background: "rgba(248,81,73,0.08)",
-                border: "1px solid rgba(248,81,73,0.25)",
-                borderRadius: 6,
-                padding: "6px 8px",
-                display: "flex",
-                flexDirection: "column",
-                gap: 2,
-              }}
-            >
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span style={{ ...labelStyle, color: "#f85149", fontWeight: 600 }}>{isZh ? "卖出" : "Sell"}</span>
-                <span style={{ ...valueStyle, color: "#f85149", fontWeight: 600 }}>{stats.sellCount}</span>
-              </div>
-              <div
-                style={{
-                  ...valueStyle,
-                  fontSize: 10,
-                  color: "#f85149",
-                  textAlign: "right",
-                }}
-              >
-                ${formatNum(stats.sellVolume, 1)}
-              </div>
-            </div>
           </div>
           {/* Net buy */}
           <div
             style={{
+              background: "var(--bg-secondary, #161b22)",
+              padding: "8px 10px",
               display: "flex",
-              justifyContent: "space-between",
+              flexDirection: "column",
               alignItems: "center",
-              fontSize: 11,
+              justifyContent: "center",
+              gap: 3,
             }}
           >
-            <span style={labelStyle}>{isZh ? "净买入" : "Net Buy"}</span>
+            <span style={{ ...labelStyle, fontSize: 10 }}>{isZh ? "净买入" : "Net Buy"}</span>
             <span
               style={{
                 ...valueStyle,
-                color: netBuy >= 0 ? "#3fb950" : "#f85149",
                 fontWeight: 600,
+                fontSize: 12,
+                color: netBuy >= 0 ? "#3fb950" : "#f85149",
               }}
             >
-              {netBuy >= 0 ? "+" : ""}${formatNum(netBuy, 2)} ({netBuyPercent >= 0 ? "+" : ""}
-              {netBuyPercent.toFixed(1)}%)
+              {netBuy >= 0 ? "+" : ""}${formatNum(netBuy, 2)}
+            </span>
+          </div>
+          {/* Buy (no background color) */}
+          <div
+            style={{
+              background: "var(--bg-secondary, #161b22)",
+              padding: "8px 10px",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 3,
+            }}
+          >
+            <span style={{ ...labelStyle, fontSize: 10, color: "#3fb950", fontWeight: 600 }}>{isZh ? "买入" : "Buy"}</span>
+            <span style={{ ...valueStyle, color: "#3fb950", fontWeight: 600, fontSize: 12 }}>
+              {stats.buyCount} / ${formatNum(stats.buyVolume, 1)}
+            </span>
+          </div>
+          {/* Sell (no background color) */}
+          <div
+            style={{
+              background: "var(--bg-secondary, #161b22)",
+              padding: "8px 10px",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 3,
+            }}
+          >
+            <span style={{ ...labelStyle, fontSize: 10, color: "#f85149", fontWeight: 600 }}>{isZh ? "卖出" : "Sell"}</span>
+            <span style={{ ...valueStyle, color: "#f85149", fontWeight: 600, fontSize: 12 }}>
+              {stats.sellCount} / ${formatNum(stats.sellVolume, 1)}
             </span>
           </div>
         </div>
+        {/* TICKET FORM (also fixed, does not scroll) */}
+        <div
+          style={{
+            padding: "12px 14px",
+            display: "flex",
+            flexDirection: "column",
+            gap: 8,
+            borderBottom: "1px solid var(--border-color, #30363d)",
+          }}
+        >
+          <div style={{ display: "flex", gap: 4 }}>
+            {(["buy", "sell"] as const).map((s) => {
+              const active = side === s;
+              const color = s === "buy" ? "#3fb950" : "#f85149";
+              return (
+                <button
+                  key={s}
+                  onClick={() => setSide(s)}
+                  style={{
+                    flex: 1,
+                    padding: "8px 0",
+                    background: active ? color : "transparent",
+                    color: active ? "white" : "var(--text-secondary, #8b949e)",
+                    border: `1px solid ${active ? color : "var(--border-color, #30363d)"}`,
+                    borderRadius: 6,
+                    fontSize: 12,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.5px",
+                    transition: "background 0.15s, color 0.15s, border-color 0.15s",
+                  }}
+                >
+                  {s === "buy" ? (isZh ? "买入" : "Buy") : isZh ? "卖出" : "Sell"}
+                </button>
+              );
+            })}
+          </div>
+          <div>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+              <span style={labelStyle}>{isZh ? "数量" : "Size"}</span>
+              <span style={{ ...labelStyle, fontFamily: "monospace" }}>
+                {isZh ? "最大" : "Max"}: {formatNum(availableBalance / midPrice, 4)}
+              </span>
+            </div>
+            <input type="text" value={size} onChange={(e) => setSize(e.target.value)} placeholder="0.00" style={inputStyle} />
+          </div>
+          <div style={{ display: "flex", gap: 4 }}>
+            {[25, 50, 75, 100].map((pct) => (
+              <button
+                key={pct}
+                onClick={() => (pct === 100 ? handleMaxClick() : handlePercentClick(pct))}
+                style={{
+                  flex: 1,
+                  background: "transparent",
+                  border: "1px solid var(--border-color, #30363d)",
+                  color: "var(--text-secondary, #8b949e)",
+                  borderRadius: 4,
+                  fontSize: 10,
+                  padding: "4px 0",
+                  cursor: "pointer",
+                }}
+              >
+                {pct === 100 ? "MAX" : `${pct}%`}
+              </button>
+            ))}
+          </div>
+          <div style={divider} />
+          {/* Available + Holdings, moved right above Order Value */}
+          <div style={rowStyle}>
+            <span style={labelStyle}>{isZh ? "可用余额" : "Available"}</span>
+            <span style={valueStyle}>${formatNum(availableBalance, 2)}</span>
+          </div>
+          <div style={rowStyle}>
+            <span style={labelStyle}>{isZh ? "持有数量" : "Holdings"}</span>
+            <span style={valueStyle}>{formatNum(tokenBalance, 4)}</span>
+          </div>
+          <div style={rowStyle}>
+            <span style={labelStyle}>{isZh ? "订单价值" : "Order Value"}</span>
+            <span style={valueStyle}>${formatNum(notional, 2)}</span>
+          </div>
+          <div style={rowStyle}>
+            <span style={labelStyle}>{isZh ? "预估手续费" : "Est. Fee"}</span>
+            <span style={valueStyle}>${formatNum(estFee, 3)}</span>
+          </div>
+          <button
+            onClick={handleSubmit}
+            disabled={!size || parseFloat(size) <= 0}
+            style={{
+              marginTop: 4,
+              padding: "12px",
+              background: !size || parseFloat(size) <= 0 ? "var(--bg-tertiary, #21262d)" : accent,
+              color: !size || parseFloat(size) <= 0 ? "var(--text-secondary, #8b949e)" : "white",
+              border: "none",
+              borderRadius: 8,
+              fontSize: 13,
+              fontWeight: 700,
+              cursor: !size || parseFloat(size) <= 0 ? "not-allowed" : "pointer",
+              textTransform: "uppercase",
+              letterSpacing: "0.5px",
+            }}
+          >
+            {isBuy ? (isZh ? "买入" : "Buy") : isZh ? "卖出" : "Sell"} {symbol}
+          </button>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              fontSize: 10,
+              color: "var(--text-secondary, #8b949e)",
+              marginTop: 4,
+            }}
+          >
+            <span>{isZh ? "最小变动" : "Tick"}: 0.1</span>
+            <span>{isZh ? "手续费率" : "Fee"}: 0.3%</span>
+          </div>
+        </div>
       </div>
+      {/* =====================================================================
+          SCROLLABLE INFO BLOCKS
+          Starts from Token Safety and goes all the way down.
+          ===================================================================== */}
       <div
         style={{
           flex: 1,
@@ -262,116 +460,178 @@ export const OrderTicketPanel: React.FC<OrderTicketPanelProps> = ({ i18n = "en",
           gap: 8,
         }}
       >
-        <div style={rowStyle}>
-          <span style={labelStyle}>{isZh ? "可用余额" : "Available"}</span>
-          <span style={valueStyle}>${formatNum(availableBalance, 2)}</span>
-        </div>
-        <div style={rowStyle}>
-          <span style={labelStyle}>{isZh ? "持有数量" : "Holdings"}</span>
-          <span style={valueStyle}>{formatNum(tokenBalance, 4)}</span>
-        </div>
+        {/* ---------- 1. Token safety grid (4 x 4) ---------- */}
         <div style={divider} />
-        <div style={rowStyle}>
-          <span style={labelStyle}>{isZh ? "价格" : "Price"}</span>
-          <span style={{ ...valueStyle, fontWeight: 600 }}>{formatNum(midPrice, 1)}</span>
-        </div>
-        <div style={divider} />
-        <div style={{ display: "flex", gap: 4 }}>
-          {(["buy", "sell"] as const).map((s) => {
-            const active = side === s;
-            const color = s === "buy" ? "#3fb950" : "#f85149";
-            return (
-              <button
-                key={s}
-                onClick={() => setSide(s)}
+        <div>
+          <div style={sectionTitleStyle}>{isZh ? "代币安全" : "Token Safety"}</div>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(4, 1fr)",
+              gap: 1,
+              background: "var(--border-color, #30363d)",
+              border: "1px solid var(--border-color, #30363d)",
+              borderRadius: 6,
+              overflow: "hidden",
+            }}
+          >
+            {safetyGrid.map((item) => (
+              <div
+                key={item.key}
                 style={{
-                  flex: 1,
-                  padding: "8px 0",
-                  background: active ? color : "transparent",
-                  color: active ? "white" : "var(--text-secondary, #8b949e)",
-                  border: `1px solid ${active ? color : "var(--border-color, #30363d)"}`,
-                  borderRadius: 6,
-                  fontSize: 12,
-                  fontWeight: 700,
-                  cursor: "pointer",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.5px",
-                  transition: "background 0.15s, color 0.15s, border-color 0.15s",
+                  background: "var(--bg-secondary, #161b22)",
+                  padding: "6px 4px",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 2,
+                  textAlign: "center",
+                  minHeight: 46,
                 }}
               >
-                {s === "buy" ? (isZh ? "买入" : "Buy") : isZh ? "卖出" : "Sell"}
-              </button>
-            );
-          })}
+                <span
+                  style={{
+                    fontSize: 9,
+                    color: "var(--text-secondary, #8b949e)",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {isZh ? item.labelZh : item.labelEn}
+                </span>
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    fontFamily: "monospace",
+                    color: riskColor(item.risk),
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {item.value}
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
-        <div>
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-            <span style={labelStyle}>{isZh ? "数量" : "Size"}</span>
-            <span style={{ ...labelStyle, fontFamily: "monospace" }}>
-              {isZh ? "最大" : "Max"}: {formatNum(availableBalance / midPrice, 4)}
+        {/* ---------- 2. Developer info ---------- */}
+        {/* Inner flex column with gap: 0 so the rowDivider sits flush */}
+        <div style={divider} />
+        <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+          <div style={sectionTitleStyle}>{isZh ? "开发者信息" : "Developer Info"}</div>
+          <div style={{ ...rowStyle, padding: "5px 0" }}>
+            <span style={labelStyle}>{isZh ? "地址" : "Address"}</span>
+            <span style={{ ...valueStyle, fontSize: 10 }} title={devInfo.address}>
+              {shortAddr(devInfo.address)}
             </span>
           </div>
-          <input type="text" value={size} onChange={(e) => setSize(e.target.value)} placeholder="0.00" style={inputStyle} />
-        </div>
-        <div style={{ display: "flex", gap: 4 }}>
-          {[25, 50, 75, 100].map((pct) => (
-            <button
-              key={pct}
-              onClick={() => (pct === 100 ? handleMaxClick() : handlePercentClick(pct))}
+          <div style={rowDivider} />
+          <div style={{ ...rowStyle, padding: "5px 0" }}>
+            <span style={labelStyle}>{isZh ? "持有量" : "Holdings"}</span>
+            <span style={valueStyle}>{devInfo.holdings}</span>
+          </div>
+          <div style={rowDivider} />
+          <div style={{ ...rowStyle, padding: "5px 0" }}>
+            <span style={labelStyle}>{isZh ? "创建时间" : "Created"}</span>
+            <span style={valueStyle}>{devInfo.created}</span>
+          </div>
+          <div style={rowDivider} />
+          <div style={{ ...rowStyle, padding: "5px 0" }}>
+            <span style={labelStyle}>{isZh ? "部署次数" : "Deploys"}</span>
+            <span style={valueStyle}>{devInfo.deployCount}</span>
+          </div>
+          <div style={rowDivider} />
+          <div style={{ ...rowStyle, padding: "5px 0" }}>
+            <span style={labelStyle}>{isZh ? "跑路历史" : "Rug History"}</span>
+            <span
               style={{
-                flex: 1,
-                background: "transparent",
-                border: "1px solid var(--border-color, #30363d)",
-                color: "var(--text-secondary, #8b949e)",
-                borderRadius: 4,
-                fontSize: 10,
-                padding: "4px 0",
-                cursor: "pointer",
+                ...valueStyle,
+                color: devInfo.rugCount > 0 ? "#f85149" : "#3fb950",
               }}
             >
-              {pct === 100 ? "MAX" : `${pct}%`}
-            </button>
-          ))}
+              {devInfo.rugCount}
+            </span>
+          </div>
+          <div style={rowDivider} />
+          <div style={{ ...rowStyle, padding: "5px 0" }}>
+            <span style={labelStyle}>{isZh ? "已验证" : "Verified"}</span>
+            <span
+              style={{
+                ...valueStyle,
+                color: devInfo.verified ? "#3fb950" : "var(--text-secondary, #8b949e)",
+              }}
+            >
+              {devInfo.verified ? (isZh ? "是" : "Yes") : isZh ? "否" : "No"}
+            </span>
+          </div>
         </div>
+        {/* ---------- 3. Basic data ---------- */}
         <div style={divider} />
-        <div style={rowStyle}>
-          <span style={labelStyle}>{isZh ? "订单价值" : "Order Value"}</span>
-          <span style={valueStyle}>${formatNum(notional, 2)}</span>
+        <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+          <div style={sectionTitleStyle}>{isZh ? "基础数据" : "Basic Data"}</div>
+          <div style={{ ...rowStyle, padding: "5px 0" }}>
+            <span style={labelStyle}>{isZh ? "市值" : "Market Cap"}</span>
+            <span style={valueStyle}>{basicData.marketCap}</span>
+          </div>
+          <div style={rowDivider} />
+          <div style={{ ...rowStyle, padding: "5px 0" }}>
+            <span style={labelStyle}>{isZh ? "总供应量" : "Total Supply"}</span>
+            <span style={valueStyle}>{basicData.totalSupply}</span>
+          </div>
+          <div style={rowDivider} />
+          <div style={{ ...rowStyle, padding: "5px 0" }}>
+            <span style={labelStyle}>{isZh ? "池子地址" : "Pool Address"}</span>
+            <span style={{ ...valueStyle, fontSize: 10 }} title={basicData.poolAddress}>
+              {shortAddr(basicData.poolAddress)}
+            </span>
+          </div>
+          <div style={rowDivider} />
+          <div style={{ ...rowStyle, padding: "5px 0" }}>
+            <span style={labelStyle}>{isZh ? "持有者" : "Holders"}</span>
+            <span style={valueStyle}>{basicData.holders}</span>
+          </div>
+          <div style={rowDivider} />
+          <div style={{ ...rowStyle, padding: "5px 0" }}>
+            <span style={labelStyle}>{isZh ? "代币创建时间" : "Token Created"}</span>
+            <span style={valueStyle}>{basicData.tokenCreated}</span>
+          </div>
+          <div style={rowDivider} />
+          <div style={{ ...rowStyle, padding: "5px 0" }}>
+            <span style={labelStyle}>{isZh ? "池子创建时间" : "Pool Created"}</span>
+            <span style={valueStyle}>{basicData.poolCreated}</span>
+          </div>
         </div>
-        <div style={rowStyle}>
-          <span style={labelStyle}>{isZh ? "预估手续费" : "Est. Fee"}</span>
-          <span style={valueStyle}>${formatNum(estFee, 3)}</span>
-        </div>
-        <button
-          onClick={handleSubmit}
-          disabled={!size || parseFloat(size) <= 0}
-          style={{
-            marginTop: 4,
-            padding: "12px",
-            background: !size || parseFloat(size) <= 0 ? "var(--bg-tertiary, #21262d)" : accent,
-            color: !size || parseFloat(size) <= 0 ? "var(--text-secondary, #8b949e)" : "white",
-            border: "none",
-            borderRadius: 8,
-            fontSize: 13,
-            fontWeight: 700,
-            cursor: !size || parseFloat(size) <= 0 ? "not-allowed" : "pointer",
-            textTransform: "uppercase",
-            letterSpacing: "0.5px",
-          }}
-        >
-          {isBuy ? (isZh ? "买入" : "Buy") : isZh ? "卖出" : "Sell"} {symbol}
-        </button>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            fontSize: 10,
-            color: "var(--text-secondary, #8b949e)",
-            marginTop: 4,
-          }}
-        >
-          <span>{isZh ? "最小变动" : "Tick"}: 0.1</span>
-          <span>{isZh ? "手续费率" : "Fee"}: 0.3%</span>
+        {/* ---------- 4. Safety checks ---------- */}
+        <div style={divider} />
+        <div style={{ display: "flex", flexDirection: "column", gap: 0, paddingBottom: 8 }}>
+          <div style={sectionTitleStyle}>{isZh ? "安全检测" : "Safety Checks"}</div>
+          {safetyChecks.map((check, idx) => (
+            <React.Fragment key={idx}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  fontSize: 11,
+                  lineHeight: 1.5,
+                  padding: "5px 0",
+                }}
+              >
+                <span style={{ color: "var(--text-secondary, #8b949e)" }}>{isZh ? check.labelZh : check.labelEn}</span>
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    color: check.passed ? "#3fb950" : "#f85149",
+                    fontFamily: "monospace",
+                  }}
+                >
+                  {check.passed ? "✓ PASS" : "✗ FAIL"}
+                </span>
+              </div>
+              {idx < safetyChecks.length - 1 && <div style={rowDivider} />}
+            </React.Fragment>
+          ))}
         </div>
       </div>
     </div>
