@@ -131,7 +131,6 @@ const MetricsGrid: React.FC<{
                   fontSize: "10px",
                   color: "var(--text-tertiary)",
                   fontWeight: 500,
-                  textTransform: "uppercase",
                   letterSpacing: "0.3px",
                 }}
               >

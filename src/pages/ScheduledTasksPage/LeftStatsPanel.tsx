@@ -303,7 +303,6 @@ const LeftStatsPanel: React.FC<LeftStatsPanelProps> = ({ t, stats, executionTren
               fontWeight: 600,
               color: "var(--text-secondary)",
               letterSpacing: "0.3px",
-              textTransform: "uppercase",
             }}
           >
             {t("scheduled.completionRate")}
@@ -345,7 +344,6 @@ const LeftStatsPanel: React.FC<LeftStatsPanelProps> = ({ t, stats, executionTren
               fontWeight: 600,
               color: "var(--text-secondary)",
               letterSpacing: "0.3px",
-              textTransform: "uppercase",
             }}
           >
             {t("scheduled.statusDistribution")}
@@ -435,7 +433,6 @@ const LeftStatsPanel: React.FC<LeftStatsPanelProps> = ({ t, stats, executionTren
               fontWeight: 600,
               color: "var(--text-secondary)",
               letterSpacing: "0.3px",
-              textTransform: "uppercase",
             }}
           >
             {t("scheduled.executionTrend")}
@@ -461,7 +458,6 @@ const LeftStatsPanel: React.FC<LeftStatsPanelProps> = ({ t, stats, executionTren
               fontWeight: 600,
               color: "var(--text-secondary)",
               letterSpacing: "0.3px",
-              textTransform: "uppercase",
             }}
           >
             {t("scheduled.quickStats")}

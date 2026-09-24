@@ -955,30 +955,35 @@ const MapsChatPage: React.FC<MapsChatPageProps> = ({ onSendMessage, onFileClick,
    * Same pattern as 3D sandbox: extract data from LLM response and render it
    */
   const processedMessageIdsRef = useRef<Set<string>>(new Set());
-  /**
-   * FIX (Problem 2): Replay ALL earthview-bearing LLM messages in the current
-   * session, in chronological order. Previously only the last message was
-   * processed, which caused only the final graphics to appear.
-   */
   const replayAllEarthviewMessages = useCallback(
     async (sessionMessages: ChatMessage[]) => {
       if (!mapRef?.current) return;
       const llmMessages = sessionMessages.filter((m) => m.role === RoleEnum.LLM && m.status !== MessageStatus.Pending && m.status !== MessageStatus.Failed && m.status !== MessageStatus.Cancelled);
+      // Collect all earthview configs first, in chronological order.
+      const configs: any[] = [];
+      const configMessageIds: string[] = [];
       for (const m of llmMessages) {
         if (!isStructuredLLMResponse(m.content)) continue;
         const parsed = parseLLMResponse(m.content);
         const ev = parsed?.terminalResponse?.earthview;
         if (!ev) continue;
-        if (!mapRef.current.isReady()) {
-          // Wait for readiness with a small polling loop
-          let waited = 0;
-          while (!mapRef.current.isReady() && waited < 5000) {
-            await new Promise((r) => setTimeout(r, 100));
-            waited += 100;
-          }
+        configs.push(ev);
+        configMessageIds.push(m.id);
+      }
+      if (configs.length === 0) return;
+      // Wait for the map to be ready before applying anything.
+      if (!mapRef.current.isReady()) {
+        let waited = 0;
+        while (!mapRef.current.isReady() && waited < 5000) {
+          await new Promise((r) => setTimeout(r, 100));
+          waited += 100;
         }
-        await mapRef.current.applyEarthViewConfig(ev);
-        processedMessageIdsRef.current.add(m.id);
+      }
+      // Apply all configs sequentially, suppressing locate on all but the last.
+      await mapRef.current.applyEarthViewConfigsSequentially(configs);
+      // Mark all processed message ids.
+      for (const id of configMessageIds) {
+        processedMessageIdsRef.current.add(id);
       }
     },
     [mapRef],

@@ -5,7 +5,7 @@
   "dependencies": {
     "@candleview/core": "^3.1.0",
     "@candleview/cvs-engine": "^0.1.2",
-    "@earthview/core": "^0.2.8",
+    "@earthview/core": "^0.2.9",
     "@fontsource/dancing-script": "^5.2.8",
     "@fontsource/great-vibes": "^5.2.8",
     "@fontsource/pacifico": "^5.2.7",

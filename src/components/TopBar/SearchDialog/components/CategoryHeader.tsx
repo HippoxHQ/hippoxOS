@@ -14,7 +14,6 @@ export const CategoryHeader: React.FC<CategoryHeaderProps> = ({ icon, label, cou
         padding: "6px 12px",
         fontSize: "11px",
         fontWeight: 600,
-        textTransform: "uppercase",
         color: "var(--text-muted)",
         background: "var(--bg-primary)",
         letterSpacing: "0.5px",

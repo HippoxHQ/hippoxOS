@@ -1260,10 +1260,10 @@
   resolved "https://registry.yarnpkg.com/@dimforge/rapier3d-compat/-/rapier3d-compat-0.12.0.tgz#7b3365e1dfdc5cd957b45afe920b4ac06c7cd389"
   integrity sha512-uekIGetywIgopfD97oDL5PfeezkFpNhwlzlaEYNOA0N6ghdsOvh/HYjSMek5Q2O1PYvRSDFcqFVJl4r4ZBwOow==
 
-"@earthview/core@^0.2.8":
-  version "0.2.8"
-  resolved "https://registry.yarnpkg.com/@earthview/core/-/core-0.2.8.tgz#b5ceb47aaf319d8e265b343272d2656784ff8f70"
-  integrity sha512-eWku1sRYfUpt2TqX6mfZ5w4wzMlw0h/Ptp63JM+ouBJUWMGIQKNmx4kvyvojJWpSGKfmZfJQwiHIPlkZi2o7Tg==
+"@earthview/core@^0.2.9":
+  version "0.2.9"
+  resolved "https://registry.yarnpkg.com/@earthview/core/-/core-0.2.9.tgz#4205a6fb6cdee938007dcb27ab596c6f52def1ad"
+  integrity sha512-Abd36UD03U13gLgLBfe1EhHOZNkzqmDKQmVuR2mbS2Alh+TKYMPpmhdYi7karCK5P3nTTQjbgKgc7zTsiJ01uQ==
   dependencies:
     "@types/ol-ext" "npm:@siedlerchr/types-ol-ext"
     ol "^10.9.0"

@@ -65,7 +65,6 @@ export const BottomInfoPanel: React.FC<BottomInfoPanelProps> = ({ i18n = "en", s
                 fontWeight: active ? 700 : 500,
                 letterSpacing: "0.3px",
                 cursor: "pointer",
-                textTransform: "uppercase",
               }}
             >
               {isZh ? tab.labelZh : tab.labelEn}

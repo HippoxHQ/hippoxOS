@@ -1,30 +1,4 @@
 export const scheduledTasksStyles = `
-  :root {
-    --bg-primary: #0f1117;
-    --bg-secondary: #1a1d26;
-    --bg-tertiary: #22252f;
-    --border-color: #2d303a;
-    --text-primary: #e8edf2;
-    --text-secondary: #9ca3af;
-    --text-muted: #6b7280;
-    --accent-color: #818cf8;
-    --accent-glow: rgba(129, 140, 248, 0.15);
-    --hover-bg: rgba(232, 237, 242, 0.08);
-    --scrollbar-thumb: #3a3f4a;
-  }
-   [data-theme="light"] {
-    --bg-primary: #f3f4f6;
-    --bg-secondary: #ffffff;
-    --bg-tertiary: #e5e7eb;
-    --border-color: #d1d5db;
-    --text-primary: #111827;
-    --text-secondary: #4b5563;
-    --text-muted: #9ca3af;
-    --accent-color: #6366f1;
-    --accent-glow: rgba(99, 102, 241, 0.1);
-    --hover-bg: rgba(0, 0, 0, 0.04);
-    --scrollbar-thumb: #cbd5e1;
-  }
    .scheduled-tasks-container {
     flex: 1;
     display: flex;

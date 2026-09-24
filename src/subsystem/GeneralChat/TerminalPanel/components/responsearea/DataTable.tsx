@@ -113,7 +113,6 @@ const DataTable: React.FC<DataTableProps> = ({ table, t, onFileClick }) => {
                       borderRight: idx !== table.headers.length - 1 ? "1px solid var(--border-color)" : "none",
                       whiteSpace: "nowrap",
                       fontSize: "11px",
-                      textTransform: "uppercase",
                       letterSpacing: "0.3px",
                     }}
                   >

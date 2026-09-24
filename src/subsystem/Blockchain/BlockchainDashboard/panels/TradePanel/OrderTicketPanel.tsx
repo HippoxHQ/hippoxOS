@@ -151,7 +151,6 @@ export const OrderTicketPanel: React.FC<OrderTicketPanelProps> = ({ i18n = "en",
     fontSize: 10,
     fontWeight: 700,
     letterSpacing: "0.5px",
-    textTransform: "uppercase",
     color: "var(--text-secondary, #8b949e)",
     marginBottom: 6,
   };
@@ -378,7 +377,6 @@ export const OrderTicketPanel: React.FC<OrderTicketPanelProps> = ({ i18n = "en",
                       fontSize: 11,
                       fontWeight: 700,
                       cursor: "pointer",
-                      textTransform: "uppercase",
                       letterSpacing: "0.5px",
                       transition: "background 0.15s, color 0.15s",
                     }}
@@ -511,7 +509,6 @@ export const OrderTicketPanel: React.FC<OrderTicketPanelProps> = ({ i18n = "en",
               fontSize: 12,
               fontWeight: 700,
               cursor: !size || parseFloat(size) <= 0 ? "not-allowed" : "pointer",
-              textTransform: "uppercase",
               letterSpacing: "0.5px",
             }}
           >

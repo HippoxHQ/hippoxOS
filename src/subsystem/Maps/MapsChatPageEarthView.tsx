@@ -157,7 +157,6 @@ export const MapsChatPageEarthView = forwardRef<EarthViewRef, MapsChatPageEarthV
    */
   const appliedConfigsRef = useRef<any[]>([]);
   /**
-   * FIX (double bubble): Track which marker/circle/polygon/polyline ids have
    * already been added. Because applyEarthViewConfig can be invoked twice for
    * the same logical LLM message (session-switch race between
    * replayAllEarthviewMessages and the incremental effect), we dedupe by id.
@@ -170,6 +169,8 @@ export const MapsChatPageEarthView = forwardRef<EarthViewRef, MapsChatPageEarthV
   const themeRef = useRef<"light" | "dark">(theme);
   /** Recreate key used to force remount when theme cannot be changed in place */
   const [recreateKey, setRecreateKey] = useState(0);
+  const isDestroyedRef = useRef<boolean>(false);
+  const suppressLocateRef = useRef<boolean>(false);
   const locateToCoordinate = useCallback(
     (center: [number, number], zoom?: number): boolean => {
       if (!earthViewRef.current || !isReady) {
@@ -338,19 +339,13 @@ export const MapsChatPageEarthView = forwardRef<EarthViewRef, MapsChatPageEarthV
   }, []);
   /**
    * Add markers layer with id-based dedup.
-   *
-   * FIX (double bubble): The root cause of the duplicate popup is that the
-   * same marker was being added twice — once from replayAllEarthviewMessages
-   * (session switch) and once from the incremental effect that also sees the
-   * same last LLM message. We now build a stable id per marker and skip it if
-   * already present in addedMarkerIdsRef.
-   *
-   * We also only pass bubbleBoxTitle/bubbleBoxDescription for the popup and
-   * blank out name/pointText to avoid a secondary built-in tooltip.
    */
   const addMarkersLayer = useCallback(async (markers: any[]) => {
     if (!earthViewRef.current || !markers.length) return;
     const layerManager = earthViewRef.current.getLayerManager();
+    // can happen if the map was destroyed between the readiness check and
+    // this call.
+    if (!layerManager) return;
     let markerLayer = layerManager.getLayer("llm-markers") as MarkerLayer;
     if (!markerLayer) {
       markerLayer = new MarkerLayer("llm-markers", "LLM Markers", {
@@ -397,6 +392,7 @@ export const MapsChatPageEarthView = forwardRef<EarthViewRef, MapsChatPageEarthV
   const addCirclesLayer = useCallback((circles: any[]) => {
     if (!earthViewRef.current || !circles.length) return;
     const layerManager = earthViewRef.current.getLayerManager();
+    if (!layerManager) return;
     let circleLayer = layerManager.getLayer("llm-circles") as CircleLayer;
     if (!circleLayer) {
       circleLayer = new CircleLayer("llm-circles", "LLM Circles", {
@@ -429,6 +425,7 @@ export const MapsChatPageEarthView = forwardRef<EarthViewRef, MapsChatPageEarthV
   const addPolygonsLayer = useCallback((polygons: any[]) => {
     if (!earthViewRef.current || !polygons.length) return;
     const layerManager = earthViewRef.current.getLayerManager();
+    if (!layerManager) return;
     let polygonLayer = layerManager.getLayer("llm-polygons") as PolygonLayer;
     if (!polygonLayer) {
       polygonLayer = new PolygonLayer("llm-polygons", "LLM Polygons", {
@@ -461,6 +458,7 @@ export const MapsChatPageEarthView = forwardRef<EarthViewRef, MapsChatPageEarthV
   const addPolylinesLayer = useCallback((polylines: any[]) => {
     if (!earthViewRef.current || !polylines.length) return;
     const layerManager = earthViewRef.current.getLayerManager();
+    if (!layerManager) return;
     let polylineLayer = layerManager.getLayer("llm-polylines") as PolylineLayer;
     if (!polylineLayer) {
       polylineLayer = new PolylineLayer("llm-polylines", "LLM Polylines", {
@@ -489,6 +487,7 @@ export const MapsChatPageEarthView = forwardRef<EarthViewRef, MapsChatPageEarthV
   const addHeatmapLayer = useCallback((heatmapData: any[]) => {
     if (!earthViewRef.current || !heatmapData.length) return;
     const layerManager = earthViewRef.current.getLayerManager();
+    if (!layerManager) return;
     let heatmapLayer = layerManager.getLayer("llm-heatmap") as HeatmapLayer;
     if (!heatmapLayer) {
       heatmapLayer = new HeatmapLayer("llm-heatmap", "LLM Heatmap", {
@@ -505,6 +504,7 @@ export const MapsChatPageEarthView = forwardRef<EarthViewRef, MapsChatPageEarthV
   const addClusterLayer = useCallback((clusterData: any[]) => {
     if (!earthViewRef.current || !clusterData.length) return;
     const layerManager = earthViewRef.current.getLayerManager();
+    if (!layerManager) return;
     let clusterLayer = layerManager.getLayer("llm-clusters") as ClusterLayer;
     if (!clusterLayer) {
       clusterLayer = new ClusterLayer("llm-clusters", "LLM Clusters", {
@@ -520,6 +520,7 @@ export const MapsChatPageEarthView = forwardRef<EarthViewRef, MapsChatPageEarthV
   const addBarChartLayer = useCallback((barData: any[]) => {
     if (!earthViewRef.current || !barData.length) return;
     const layerManager = earthViewRef.current.getLayerManager();
+    if (!layerManager) return;
     let barLayer = layerManager.getLayer("llm-barcharts") as BarChartLayer;
     if (!barLayer) {
       barLayer = new BarChartLayer("llm-barcharts", "LLM Bar Charts", {
@@ -554,11 +555,17 @@ export const MapsChatPageEarthView = forwardRef<EarthViewRef, MapsChatPageEarthV
   const clearLayers = useCallback(() => {
     if (!earthViewRef.current) return;
     const layerManager = earthViewRef.current.getLayerManager();
+    if (!layerManager) return;
     const layerIds = Array.from(appliedLayerIdsRef.current);
     for (const layerId of layerIds) {
       const layer: any = layerManager.getLayer(layerId);
       if (layer) {
         try {
+          // Hide the layer first so OpenLayers stops trying to render it
+          // before we remove it from the layer manager.
+          if (typeof layer.setVisible === "function") {
+            layer.setVisible(false);
+          }
           if (typeof layer.clearMarkers === "function") {
             layer.clearMarkers();
           } else if (typeof layer.clearCircles === "function") {
@@ -580,7 +587,6 @@ export const MapsChatPageEarthView = forwardRef<EarthViewRef, MapsChatPageEarthV
     }
     appliedLayerIdsRef.current.clear();
     appliedConfigsRef.current = [];
-    // FIX: reset dedup sets so the next session can add the same coords again
     addedMarkerIdsRef.current.clear();
     addedCircleIdsRef.current.clear();
     addedPolygonIdsRef.current.clear();
@@ -588,7 +594,8 @@ export const MapsChatPageEarthView = forwardRef<EarthViewRef, MapsChatPageEarthV
   }, []);
   const applyEarthViewConfig = useCallback(
     async (config: any) => {
-      if (!earthViewRef.current || !isReady) {
+      // destroyed while this async call was pending.
+      if (isDestroyedRef.current || !earthViewRef.current || !isReady) {
         pendingMapDataRef.current = config;
         return;
       }
@@ -643,27 +650,49 @@ export const MapsChatPageEarthView = forwardRef<EarthViewRef, MapsChatPageEarthV
         addBarChartLayer(config.terminalResponse.earthview.barcharts);
       }
       await new Promise((resolve) => setTimeout(resolve, 200));
+      if (isDestroyedRef.current) return;
+      if (suppressLocateRef.current) return;
       forceLocateFromConfig(config);
     },
     [isReady, addMarkersLayer, addCirclesLayer, addPolygonsLayer, addPolylinesLayer, addHeatmapLayer, addClusterLayer, addBarChartLayer, forceLocateFromConfig],
+  );
+  /**
+   * but the last one. Used during initial replay / session switch so the map
+   * ends up focused on the most recent data.
+   */
+  const applyEarthViewConfigsSequentially = useCallback(
+    async (configs: any[]) => {
+      if (!configs || configs.length === 0) return;
+      // Suppress locate for all configs except the last one.
+      suppressLocateRef.current = true;
+      try {
+        for (let i = 0; i < configs.length - 1; i++) {
+          await applyEarthViewConfig(configs[i]);
+        }
+        // Allow locate for the final config.
+        suppressLocateRef.current = false;
+        await applyEarthViewConfig(configs[configs.length - 1]);
+      } finally {
+        suppressLocateRef.current = false;
+      }
+    },
+    [applyEarthViewConfig],
   );
   const reapplyAllConfigs = useCallback(async () => {
     if (!earthViewRef.current || !isReady) return;
     const configs = [...appliedConfigsRef.current];
     appliedLayerIdsRef.current.clear();
     appliedConfigsRef.current = [];
-    // FIX: also reset dedup sets before replaying so each config is applied
     // exactly once after recreation.
     addedMarkerIdsRef.current.clear();
     addedCircleIdsRef.current.clear();
     addedPolygonIdsRef.current.clear();
     addedPolylineIdsRef.current.clear();
-    for (const cfg of configs) {
-      await applyEarthViewConfig(cfg);
-    }
-  }, [isReady, applyEarthViewConfig]);
+    await applyEarthViewConfigsSequentially(configs);
+  }, [isReady, applyEarthViewConfigsSequentially]);
   useImperativeHandle(ref, () => ({
     applyEarthViewConfig,
+    applyEarthViewConfigsSequentially,
     clearLayers,
     isReady: () => isReady,
     getEarthView: () => earthViewRef.current,
@@ -726,6 +755,8 @@ export const MapsChatPageEarthView = forwardRef<EarthViewRef, MapsChatPageEarthV
       setIsReady(false);
       appliedLayerIdsRef.current.clear();
     }
+    // Reset the destroyed flag for the new instance.
+    isDestroyedRef.current = false;
     let initialCenter: [number, number] = DEFAULT_CENTER;
     let initialZoom: number = DEFAULT_ZOOM;
     const firstCoord = getFirstCoordinateFromConfig(mapData);
@@ -779,8 +810,24 @@ export const MapsChatPageEarthView = forwardRef<EarthViewRef, MapsChatPageEarthV
     });
     earthViewRef.current = earthView;
     return () => {
-      if (earthViewRef.current) {
-        earthViewRef.current.destroy();
+      // any pending async callbacks stop interacting with the map. Then stop
+      // the rendering loop by clearing the target before calling destroy().
+      isDestroyedRef.current = true;
+      const ev = earthViewRef.current;
+      if (ev) {
+        try {
+          const map = (ev as any).getMap?.();
+          if (map && typeof map.setTarget === "function") {
+            map.setTarget(undefined);
+          }
+        } catch (e) {
+          console.warn("[EarthView] failed to stop render loop before destroy", e);
+        }
+        try {
+          ev.destroy();
+        } catch (e) {
+          console.warn("[EarthView] destroy failed", e);
+        }
         earthViewRef.current = null;
         setIsReady(false);
         appliedLayerIdsRef.current.clear();

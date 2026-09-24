@@ -144,7 +144,6 @@ export const GitHubSection: React.FC<GitHubSectionProps> = ({ gitInfo, loadingGi
             color: "var(--text-muted)",
             fontWeight: 500,
             marginBottom: "4px",
-            textTransform: "uppercase",
             letterSpacing: "0.3px",
           }}
         >
@@ -293,7 +292,6 @@ export const GitHubSection: React.FC<GitHubSectionProps> = ({ gitInfo, loadingGi
             color: "var(--text-muted)",
             fontWeight: 500,
             marginBottom: "4px",
-            textTransform: "uppercase",
             letterSpacing: "0.3px",
             display: "flex",
             alignItems: "center",

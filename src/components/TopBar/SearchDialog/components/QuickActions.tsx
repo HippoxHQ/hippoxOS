@@ -16,7 +16,6 @@ export const QuickActions: React.FC<QuickActionsProps> = ({ suggestions, onActio
           padding: "6px 12px",
           fontSize: "11px",
           fontWeight: 600,
-          textTransform: "uppercase",
           color: "var(--text-muted)",
           letterSpacing: "0.5px",
         }}

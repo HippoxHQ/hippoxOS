@@ -26,32 +26,6 @@ export const MessageActions: React.FC<MessageActionsProps> = ({ msg, isUser, cop
         }}
       >
         <button
-          className="action-btn locate-btn"
-          onClick={() => onLocateTask(msg)}
-          title={t("chat.locateInTerminal") || "Locate In Terminal"}
-          style={{
-            background: "transparent",
-            border: "none",
-            cursor: "pointer",
-            padding: "4px 6px",
-            borderRadius: "4px",
-            color: "var(--text-secondary)",
-            display: "flex",
-            alignItems: "center",
-            fontSize: "12px",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = "var(--hover-bg)";
-            e.currentTarget.style.color = "var(--text-primary)";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = "transparent";
-            e.currentTarget.style.color = "var(--text-secondary)";
-          }}
-        >
-          <LocateIcon />
-        </button>
-        <button
           className="action-btn copy-btn"
           onClick={() => copyToClipboard(msg.content)}
           title={t("common.copy") || "Copy"}
@@ -169,32 +143,6 @@ export const MessageActions: React.FC<MessageActionsProps> = ({ msg, isUser, cop
         }}
       >
         <CopyIcon size={12} />
-      </button>
-      <button
-        className="action-btn locate-btn"
-        onClick={() => onLocateTask(msg)}
-        title={t("chat.locateInTerminal") || "Locate In Terminal"}
-        style={{
-          background: "transparent",
-          border: "none",
-          cursor: "pointer",
-          padding: "4px 6px",
-          borderRadius: "4px",
-          color: "var(--text-secondary)",
-          display: "flex",
-          alignItems: "center",
-          fontSize: "12px",
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.background = "var(--hover-bg)";
-          e.currentTarget.style.color = "var(--text-primary)";
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.background = "transparent";
-          e.currentTarget.style.color = "var(--text-secondary)";
-        }}
-      >
-        <LocateIcon />
       </button>
     </div>
   );

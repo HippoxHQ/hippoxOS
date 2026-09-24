@@ -99,7 +99,6 @@ export const sectionHeader: React.CSSProperties = {
     fontSize: "11px",
     fontWeight: 600,
     color: "var(--text-secondary, #8b949e)",
-    textTransform: "uppercase",
     letterSpacing: "0.5px",
     borderBottom: "1px solid var(--border-color, #30363d)",
     flexShrink: 0,

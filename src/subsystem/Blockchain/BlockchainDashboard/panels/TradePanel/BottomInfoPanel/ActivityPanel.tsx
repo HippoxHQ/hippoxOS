@@ -135,7 +135,6 @@ export const ActivityPanel: React.FC<ActivityPanelProps> = ({ i18n = "en", symbo
     fontSize: 10,
     fontWeight: 600,
     letterSpacing: "0.5px",
-    textTransform: "uppercase",
     color: "var(--text-secondary, #8b949e)",
     textAlign: "right",
     whiteSpace: "nowrap",

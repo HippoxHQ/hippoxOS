@@ -44,7 +44,6 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({ t, onFileSelect, selected
           color: "var(--text-secondary)",
           fontSize: "11px",
           fontWeight: 600,
-          textTransform: "uppercase",
           letterSpacing: "0.5px",
           flexShrink: 0,
           minHeight: "28px",

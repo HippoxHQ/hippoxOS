@@ -7,6 +7,7 @@
   --text-primary: #e8edf2;
   --text-secondary: #9ca3af;
   --text-muted: #6b7280;
+  --text-tertiary: #6b7280;
   --accent: #e8edf2;
   --accent-hover: #ffffff;
   --accent-yellow: #f59e0b;
@@ -32,6 +33,7 @@
   --text-primary: #111827;
   --text-secondary: #4b5563;
   --text-muted: #9ca3af;
+  --text-tertiary: #9ca3af;
   --accent: #111827;
   --accent-hover: #374151;
   --accent-yellow: #d97706;

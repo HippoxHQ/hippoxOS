@@ -408,7 +408,6 @@ const SearchDialog: React.FC<SearchDialogProps> = ({ isOpen, onClose, currentLan
                       padding: "6px 12px",
                       fontSize: "11px",
                       fontWeight: 600,
-                      textTransform: "uppercase",
                       color: "var(--text-muted)",
                       letterSpacing: "0.5px",
                       paddingTop: "8px",

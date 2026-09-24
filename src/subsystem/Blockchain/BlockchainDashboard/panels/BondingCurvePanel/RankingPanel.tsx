@@ -267,7 +267,6 @@ export const RankingPanel: React.FC<RankingPanelProps> = ({ i18n = "en", tokens,
             fontSize: 11,
             fontWeight: 700,
             color: "var(--text-secondary, #8b949e)",
-            textTransform: "uppercase",
             letterSpacing: "1.2px",
           }}
         >
