@@ -233,6 +233,12 @@ export class Terminal {
       styleEl.id = styleId;
       document.head.appendChild(styleEl);
     }
+    /**
+     * Hide the scrollbar AND clamp the xterm screen/viewport to the
+     * actual container height. Without the explicit height rules the
+     * .xterm-screen can render a couple of pixels taller than the
+     * parent, which causes a 2px overflow at the bottom of the panel.
+     */
     styleEl.textContent = `
       .xterm-viewport {
         overflow-y: scroll !important;
@@ -245,6 +251,21 @@ export class Terminal {
         height: 0 !important;
         background: transparent !important;
       }
+      /* Clamp the screen to the parent height to avoid a 2px overflow */
+      .xterm .xterm-screen {
+        height: 100% !important;
+        max-height: 100% !important;
+        box-sizing: border-box !important;
+      }
+      .xterm .xterm-viewport {
+        height: 100% !important;
+        box-sizing: border-box !important;
+      }
+      /* Ensure the outer xterm container never exceeds its parent */
+      .xterm {
+        height: 100% !important;
+        box-sizing: border-box !important;
+      }
     `;
     xterm.onData((data) => {
       this.handleXTermData(data, sessionId);
@@ -256,6 +277,17 @@ export class Terminal {
     const resizeObserver = new ResizeObserver(() => {
       try {
         fitAddon?.fit();
+        // Re-apply height clamp after each fit: FitAddon can add inline
+        // pixel heights to .xterm-screen which would otherwise overflow.
+        const screen = container.querySelector(".xterm-screen") as HTMLElement | null;
+        if (screen) {
+          screen.style.height = "100%";
+          screen.style.maxHeight = "100%";
+        }
+        const viewport = container.querySelector(".xterm-viewport") as HTMLElement | null;
+        if (viewport) {
+          viewport.style.height = "100%";
+        }
       } catch (e) {
       }
     });
@@ -334,6 +366,16 @@ export class Terminal {
       target.xterm.focus();
       try {
         target.fitAddon.fit();
+        // Re-apply the height clamp so the screen never exceeds the parent
+        const screen = target.container.querySelector(".xterm-screen") as HTMLElement | null;
+        if (screen) {
+          screen.style.height = "100%";
+          screen.style.maxHeight = "100%";
+        }
+        const viewport = target.container.querySelector(".xterm-viewport") as HTMLElement | null;
+        if (viewport) {
+          viewport.style.height = "100%";
+        }
       } catch (e) { }
     }
     this.activeTerminalId = terminalId;

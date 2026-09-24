@@ -20,6 +20,10 @@ interface DiffPanelProps {
  * DiffPanel - Displays code differences in a single-column, line-by-line format
  * Similar to Git diff style with +/- indicators on the left
  * No horizontal scroll - text wraps automatically
+ *
+ * NOTE: This component no longer enforces its own min/max width.
+ * Its size is fully controlled by the parent container so it can
+ * share the available space correctly without leaving blank areas.
  */
 const DiffPanel: React.FC<DiffPanelProps> = ({ isVisible, fileName = "", originalContent = "", modifiedContent = "", onApply, onDiscard, onClose }) => {
   if (!isVisible) {
@@ -37,8 +41,7 @@ const DiffPanel: React.FC<DiffPanelProps> = ({ isVisible, fileName = "", origina
           background: "var(--bg-secondary)",
           borderLeft: "1px solid var(--border-color)",
           overflow: "hidden",
-          minWidth: "320px",
-          maxWidth: "520px",
+          minWidth: 0,
         }}
       >
         <div
@@ -162,8 +165,7 @@ const DiffPanel: React.FC<DiffPanelProps> = ({ isVisible, fileName = "", origina
         background: "var(--bg-secondary)",
         borderLeft: "1px solid var(--border-color)",
         overflow: "hidden",
-        minWidth: "320px",
-        maxWidth: "520px",
+        minWidth: 0,
       }}
     >
       <div

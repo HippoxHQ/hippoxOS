@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback, forwardRef, useImperativeHandle } from "react";
 import CodeEditPanel from "./CodeEditPanel/CodeEditPanel";
-import FileTreePanel from "./FileTreePanel";
 import DiffPanel from "./CodeEditPanel/DiffPanel";
 import { configCommands } from "../../command/config";
 /**
@@ -28,22 +27,25 @@ interface CodingPageProps {
   onClose?: () => void;
   workspacePath?: string | null;
   onTabChange?: (filePath: string | null) => void;
+  /** Controlled selected file (owned by CodeEditorPage side panel) */
+  selectedFile?: string | null;
+  /** Called when the editor changes the active tab */
+  onFileSelect?: (path: string) => void;
 }
 /**
  * CodingPage - Main code editor layout component
+ *
+ * NOTE: The file tree is no longer rendered inline. It is hosted inside
+ * the dedicated CodeEditorSidePanel owned by CodeEditorPage. CodingPage
+ * only renders the editor + terminal and the optional diff panel.
  */
-const CodingPage = forwardRef<CodingRef, CodingPageProps>(({ t, onClose, workspacePath, onTabChange }, ref) => {
-  const [leftWidth, setLeftWidth] = useState(240);
+const CodingPage = forwardRef<CodingRef, CodingPageProps>(({ t, onClose, workspacePath, onTabChange, selectedFile: externalSelectedFile = null, onFileSelect }, ref) => {
   const [rightHeight, setRightHeight] = useState(200);
-  const [selectedFile, setSelectedFile] = useState<string | null>(null);
-  const isDraggingLeft = useRef(false);
+  const [internalSelectedFile, setInternalSelectedFile] = useState<string | null>(externalSelectedFile);
   const isDraggingRight = useRef(false);
-  const dragStartX = useRef(0);
-  const dragStartWidth = useRef(0);
   const dragStartY = useRef(0);
   const dragStartHeight = useRef(0);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [isLeftHover, setIsLeftHover] = useState(false);
   const [isRightHover, setIsRightHover] = useState(false);
   const [layoutSwapMode, setLayoutSwapMode] = useState<"terminal-left" | "chat-left">("terminal-left");
   const [isLayoutLoading, setIsLayoutLoading] = useState(true);
@@ -60,29 +62,31 @@ const CodingPage = forwardRef<CodingRef, CodingPageProps>(({ t, onClose, workspa
   const isDraggingDiff = useRef(false);
   const dragStartDiffX = useRef(0);
   const dragStartDiffWidth = useRef(0);
-  const handleFileSelect = (path: string) => {
-    setSelectedFile(path);
-  };
+  // Track the available width of the main content row so we can clamp the diff panel properly
+  const contentRowRef = useRef<HTMLDivElement>(null);
+  const [contentRowWidth, setContentRowWidth] = useState(0);
+  // Keep internal selected file in sync with the external controlled value
+  useEffect(() => {
+    setInternalSelectedFile(externalSelectedFile);
+  }, [externalSelectedFile]);
+  const handleFileSelect = useCallback(
+    (path: string) => {
+      setInternalSelectedFile(path);
+      onFileSelect?.(path);
+    },
+    [onFileSelect],
+  );
   const handleTabChange = useCallback(
     (filePath: string | null) => {
       if (filePath !== null) {
-        setSelectedFile(filePath);
+        setInternalSelectedFile(filePath);
       } else {
-        setSelectedFile(null);
+        setInternalSelectedFile(null);
       }
       onTabChange?.(filePath);
     },
     [onTabChange],
   );
-  const handleLeftResizeMouseDown = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    isDraggingLeft.current = true;
-    dragStartX.current = e.clientX;
-    dragStartWidth.current = leftWidth;
-    document.body.style.cursor = "col-resize";
-    document.body.style.userSelect = "none";
-  };
   /**
    * Show diff panel with original and modified content
    * Called by CodeEditorChatPanel when LLM returns a file modification
@@ -201,13 +205,35 @@ const CodingPage = forwardRef<CodingRef, CodingPageProps>(({ t, onClose, workspa
       window.removeEventListener("layout-swap-mode-changed", handleLayoutChange as EventListener);
     };
   }, []);
+  // Track the actual width of the content row so the diff panel can be clamped
+  // relative to the parent container instead of using hard-coded pixel limits.
+  useEffect(() => {
+    const el = contentRowRef.current;
+    if (!el) return;
+    const updateWidth = () => {
+      setContentRowWidth(el.clientWidth);
+    };
+    updateWidth();
+    const observer = new ResizeObserver(updateWidth);
+    observer.observe(el);
+    return () => {
+      observer.disconnect();
+    };
+  }, [isDiffVisible]);
+  // When the diff panel is visible, ensure the diff width never exceeds the
+  // available space (leave room for the editor).
+  useEffect(() => {
+    if (!isDiffVisible || contentRowWidth <= 0) return;
+    const availableForDiff = contentRowWidth - 2;
+    // Keep at least 160px for the editor, and at least 280px for the diff panel.
+    const maxAllowed = Math.max(280, availableForDiff - 160);
+    setDiffPanelWidth((prev) => {
+      const clamped = Math.min(prev, maxAllowed);
+      return clamped < 280 ? 280 : clamped;
+    });
+  }, [isDiffVisible, contentRowWidth]);
   useEffect(() => {
     const onMouseMove = (e: MouseEvent) => {
-      if (isDraggingLeft.current) {
-        const delta = e.clientX - dragStartX.current;
-        const newWidth = Math.min(500, Math.max(120, dragStartWidth.current + delta));
-        setLeftWidth(newWidth);
-      }
       if (isDraggingRight.current) {
         const containerHeight = containerRef.current?.clientHeight || 600;
         const delta = -(e.clientY - dragStartY.current);
@@ -216,16 +242,14 @@ const CodingPage = forwardRef<CodingRef, CodingPageProps>(({ t, onClose, workspa
       }
       if (isDraggingDiff.current) {
         const delta = dragStartDiffX.current - e.clientX;
-        const newWidth = Math.min(640, Math.max(280, dragStartDiffWidth.current + delta));
+        // Clamp based on the actual available row width rather than a fixed 640px.
+        const availableForDiff = contentRowWidth > 0 ? contentRowWidth - 2 : 640;
+        const maxAllowed = Math.max(280, availableForDiff - 160);
+        const newWidth = Math.min(maxAllowed, Math.max(280, dragStartDiffWidth.current + delta));
         setDiffPanelWidth(newWidth);
       }
     };
     const onMouseUp = () => {
-      if (isDraggingLeft.current) {
-        isDraggingLeft.current = false;
-        document.body.style.cursor = "";
-        document.body.style.userSelect = "";
-      }
       if (isDraggingRight.current) {
         isDraggingRight.current = false;
         document.body.style.cursor = "";
@@ -243,7 +267,7 @@ const CodingPage = forwardRef<CodingRef, CodingPageProps>(({ t, onClose, workspa
       window.removeEventListener("mousemove", onMouseMove);
       window.removeEventListener("mouseup", onMouseUp);
     };
-  }, [leftWidth, rightHeight, diffPanelWidth]);
+  }, [rightHeight, diffPanelWidth, contentRowWidth]);
   const handleRightResizeMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -253,9 +277,7 @@ const CodingPage = forwardRef<CodingRef, CodingPageProps>(({ t, onClose, workspa
     document.body.style.cursor = "row-resize";
     document.body.style.userSelect = "none";
   };
-  const isLeftDragging = isDraggingLeft.current;
   const isRightDragging = isDraggingRight.current;
-  const isLeftActive = isLeftDragging || isLeftHover;
   return (
     <div
       ref={containerRef}
@@ -270,23 +292,6 @@ const CodingPage = forwardRef<CodingRef, CodingPageProps>(({ t, onClose, workspa
       }}
     >
       <style>{`
-        .coding-left-resize-handle {
-          position: relative;
-          z-index: 1;
-        }
-        .coding-left-resize-handle::after {
-          content: '';
-          position: absolute;
-          top: -10px;
-          left: -8px;
-          right: -8px;
-          bottom: -10px;
-          cursor: col-resize;
-          z-index: 10;
-        }
-        .coding-left-resize-handle:hover::after {
-          cursor: col-resize;
-        }
         .coding-diff-resize-handle {
           position: relative;
           z-index: 1;
@@ -306,6 +311,7 @@ const CodingPage = forwardRef<CodingRef, CodingPageProps>(({ t, onClose, workspa
         }
       `}</style>
       <div
+        ref={contentRowRef}
         style={{
           flex: 1,
           display: "flex",
@@ -313,23 +319,7 @@ const CodingPage = forwardRef<CodingRef, CodingPageProps>(({ t, onClose, workspa
           position: "relative",
         }}
       >
-        {/* Left: File Tree */}
-        <div style={{ width: leftWidth, minWidth: 0, flexShrink: 0 }}>
-          <FileTreePanel t={t} onFileSelect={handleFileSelect} selectedFile={selectedFile} workspacePath={workspacePath} />
-        </div>
-        {/* Resize handle between FileTree and Editor */}
-        <div
-          className="coding-left-resize-handle"
-          style={{
-            width: "1px",
-            background: "var(--border-color)",
-            cursor: "col-resize",
-            flexShrink: 0,
-            position: "relative",
-          }}
-          onMouseDown={handleLeftResizeMouseDown}
-        />
-        {/* Middle: Code Editor + Terminal */}
+        {/* Middle: Code Editor + Terminal (fills the whole row) */}
         <div
           style={{
             flex: 1,
@@ -341,7 +331,7 @@ const CodingPage = forwardRef<CodingRef, CodingPageProps>(({ t, onClose, workspa
         >
           <CodeEditPanel
             t={t}
-            selectedFile={selectedFile}
+            selectedFile={internalSelectedFile}
             rightHeight={rightHeight}
             onRightResizeMouseDown={handleRightResizeMouseDown}
             isRightDragging={isRightDragging}
@@ -374,9 +364,10 @@ const CodingPage = forwardRef<CodingRef, CodingPageProps>(({ t, onClose, workspa
             style={{
               width: diffPanelWidth,
               minWidth: 280,
-              maxWidth: 640,
+              maxWidth: contentRowWidth > 0 ? Math.max(280, contentRowWidth - 160) : 640,
               flexShrink: 0,
               overflow: "hidden",
+              display: "flex",
             }}
           >
             <DiffPanel isVisible={isDiffVisible} fileName={diffData?.fileName} originalContent={diffData?.originalContent || ""} modifiedContent={diffData?.modifiedContent || ""} onApply={applyDiff} onDiscard={discardDiff} onClose={closeDiff} />
