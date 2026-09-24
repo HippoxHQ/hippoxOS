@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { taskManager } from "../../core/TaskManager";
-import { TaskStatusEnum } from "../../core/types";
+import { SessionDomain, TaskStatusEnum } from "../../core/types";
 import { showTooltipOnElement } from "../../components/Tooltip";
 import { MessageCircleIcon } from "../../icons";
 import MainPanel from "./MainPanel";
@@ -326,12 +326,6 @@ const CollapsedTaskList: React.FC<CollapsedTaskListProps> = ({ tasks, activeNavI
   );
 };
 const FinancePage: React.FC<FinancePageProps> = ({
-  layoutMode = "vertical",
-  onLayoutModeChange,
-  leftTitle = "Chat",
-  rightTitle = "Chart",
-  leftIcon = "💬",
-  rightIcon = "📊",
   t = (key: string) => key,
   isFunctionPanelMaximized = false,
   theme = "dark",
@@ -341,8 +335,6 @@ const FinancePage: React.FC<FinancePageProps> = ({
   onFileClick,
   language = "en",
   onDragOverInputChange,
-  executionLogs,
-  onClearLogs,
 }) => {
   const { currentSessionId: chartSessionId, handleSendMessage: chartHandleSendMessage, handleSwitchSession: chartHandleSwitchSession, handleNewSession: chartHandleNewSession, shouldShowWelcome: chartShouldShowWelcome } = useFinanceSession(language as "zh" | "en", true);
   const [chatPanelWidth, setChatPanelWidth] = useState<number>(400);
@@ -505,6 +497,9 @@ const FinancePage: React.FC<FinancePageProps> = ({
       />
     </div>
   );
+  useEffect(() => {
+    taskManager.setCurrentDomain(SessionDomain.FinancialAnalysis);
+  }, []);
   useEffect(() => {
     const loadLayoutMode = async () => {
       try {

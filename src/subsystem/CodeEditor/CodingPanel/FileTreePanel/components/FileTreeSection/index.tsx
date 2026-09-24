@@ -18,8 +18,14 @@ interface FileTreeSectionProps {
   isCollapsed: boolean;
   t: (key: string, params?: Record<string, string | number>) => string;
   onFileTreeChange?: (tree: FileNode[]) => void;
+  /**
+   * Bumping this value forces the section to re-read the directory.
+   * Used by the parent (FileTreePanel) to refresh after external mutations
+   * such as LLM-driven file / git operations.
+   */
+  refreshTick?: number;
 }
-export const FileTreeSection: React.FC<FileTreeSectionProps> = ({ workspacePath, selectedFile, onFileSelect, searchQuery, isCollapsed, t, onFileTreeChange }) => {
+export const FileTreeSection: React.FC<FileTreeSectionProps> = ({ workspacePath, selectedFile, onFileSelect, searchQuery, isCollapsed, t, onFileTreeChange, refreshTick }) => {
   const [fileTree, setFileTree] = useState<FileNode[]>([]);
   const [expandedPaths, setExpandedPaths] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
@@ -410,7 +416,10 @@ export const FileTreeSection: React.FC<FileTreeSectionProps> = ({ workspacePath,
       }
     };
     initFileTree();
-  }, [workspacePath]);
+    // `refreshTick` is included in the deps so that a change in the value
+    // (dispatched by the LLM chat panel after workspace mutations) forces
+    // the tree to re-read the directory from disk.
+  }, [workspacePath, refreshTick]);
   const toggleExpand = async (path: string, node?: FileNode) => {
     const newSet = new Set(expandedPaths);
     if (newSet.has(path)) {

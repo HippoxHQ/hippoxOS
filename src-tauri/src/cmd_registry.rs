@@ -248,6 +248,10 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_git_staged_file_diff,
         commands::cmd_git_user_config,
         // git
+        commands::cmd_git_delete_file,
+        commands::cmd_git_restore_file,
+        commands::cmd_git_stop_tracking,
+        commands::cmd_git_create_branch_from_remote,
         commands::cmd_git_checkout_commit,
         commands::cmd_git_merge_commit,
         commands::cmd_git_rebase_onto,

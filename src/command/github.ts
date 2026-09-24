@@ -137,6 +137,9 @@ export const githubCommands = {
     createBranch: async (path: string, branch: string): Promise<string> => {
         return await invoke("cmd_git_create_branch", { path, branch });
     },
+    createBranchFromRemote: async (path: string, localBranch: string, remoteBranch: string): Promise<string> => {
+        return await invoke("cmd_git_create_branch_from_remote", { path, localBranch, remoteBranch });
+    },
     deleteBranch: async (path: string, branch: string): Promise<string> => {
         return await invoke("cmd_git_delete_branch", { path, branch });
     },
@@ -231,5 +234,14 @@ export const githubCommands = {
         }>;
     }> => {
         return await invoke("cmd_git_graph", { path });
+    },
+    deleteFile: async (path: string, file: string): Promise<boolean> => {
+        return await invoke("cmd_git_delete_file", { path, file });
+    },
+    restoreFile: async (path: string, file: string, isStaged: boolean): Promise<boolean> => {
+        return await invoke("cmd_git_restore_file", { path, file, isStaged });
+    },
+    stopTracking: async (path: string, file: string): Promise<boolean> => {
+        return await invoke("cmd_git_stop_tracking", { path, file });
     },
 };

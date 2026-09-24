@@ -1,10 +1,3 @@
-/**
- * LLM response structure definition
- * Used to constrain the response format returned by LLM to the frontend
- */
-/**
- * Resource link (remote or local)
- */
 export interface ResourceLink {
   /** Link name */
   n: string;
@@ -14,6 +7,16 @@ export interface ResourceLink {
   u: string;
   /** Resource type, e.g.: image, video, executable, torrent, document, audio, archive, code */
   t: string;
+}
+/**
+ * Function call command structure
+ * Represents a function call that the LLM wants to execute
+ */
+export interface FunctionCall {
+  /** The function name to call */
+  name: string;
+  /** The parameters object for the function */
+  params: Record<string, any>;
 }
 /**
  * Code editor operation - file changes from LLM
@@ -42,6 +45,12 @@ export interface TerminalResponse {
   local?: ResourceLink[];
   /** Commands to execute (if user needs to run specific commands) */
   commands?: string[];
+  /**
+   * Function calls to execute.
+   * Each call contains `name` and `params`. Executed in order by
+   * FunctionExecutor. Supports `${step_N.field}` placeholders.
+   */
+  functionCalls?: FunctionCall[];
   /** Code blocks (for displaying code) */
   codeBlocks?: {
     language: string;      // Language type: json, bash, javascript, python, yaml, xml, etc.
@@ -104,6 +113,7 @@ export function isValidHippoxOSResult(obj: any): obj is HippoxOSResult {
     if (tr.links !== undefined && !Array.isArray(tr.links)) return false;
     if (tr.local !== undefined && !Array.isArray(tr.local)) return false;
     if (tr.commands !== undefined && !Array.isArray(tr.commands)) return false;
+    if (tr.functionCalls !== undefined && !Array.isArray(tr.functionCalls)) return false;
     if (tr.codeBlocks !== undefined && !Array.isArray(tr.codeBlocks)) return false;
     if (tr.tables !== undefined && !Array.isArray(tr.tables)) return false;
     if (tr.metrics !== undefined && !Array.isArray(tr.metrics)) return false;
@@ -117,6 +127,14 @@ export function isValidHippoxOSResult(obj: any): obj is HippoxOSResult {
       if (typeof tr.editor.newContent !== 'string') return false;
       if (tr.editor.description !== undefined && typeof tr.editor.description !== 'string') return false;
       if (tr.editor.action !== undefined && !['replace', 'create', 'delete'].includes(tr.editor.action)) return false;
+    }
+    // Validate functionCalls entries
+    if (tr.functionCalls !== undefined) {
+      for (const c of tr.functionCalls) {
+        if (!c || typeof c !== 'object') return false;
+        if (typeof c.name !== 'string') return false;
+        if (c.params !== undefined && typeof c.params !== 'object') return false;
+      }
     }
   }
   return true;

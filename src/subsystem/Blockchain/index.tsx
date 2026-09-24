@@ -10,6 +10,7 @@ import HistoryBlockchainChatPanel, { HistoryBlockchainChatPanelRef } from "./His
 import { Layers, CheckSquare, Square, Pin, PinOff, Trash2, ChevronUp, ChevronDown, Plus, ChevronsLeft, ChevronsRight, MessageCircleIcon } from "lucide-react";
 import { useBlockchainSession } from "../../App/hooks/session/useBlockchainChatSession";
 import { CollapseAllIcon2, ExpandAllIcon2 } from "../../icons";
+import { SessionDomain } from "../../core/types";
 // Right panel min width
 const RIGHT_PANEL_MIN_WIDTH = 150;
 // History drawer width (only used in the left-side slide-out drawer)
@@ -96,6 +97,9 @@ const BlockchainPage: React.FC<BlockchainPageProps> = ({
   const dragStartX = useRef(0);
   const dragStartChatPanelWidth = useRef(CHAT_PANEL_DEFAULT_WIDTH);
   const dragStartContainerRect = useRef<DOMRect | null>(null);
+  useEffect(() => {
+    taskManager.setCurrentDomain(SessionDomain.Blockchain);
+  }, []);
   // Clear selection when batch mode is turned off
   useEffect(() => {
     if (!isBatchMode) {
@@ -113,8 +117,6 @@ const BlockchainPage: React.FC<BlockchainPageProps> = ({
   };
   /**
    * Batch pin selected sessions
-   * Pins all sessions that are currently selected in batch mode
-   * After successful operation, refreshes both the parent and child components
    */
   const handleBatchPin = async () => {
     if (selectedIds.size === 0) {
@@ -165,10 +167,6 @@ const BlockchainPage: React.FC<BlockchainPageProps> = ({
   };
   /**
    * Batch delete selected sessions
-   * Deletes all sessions that are currently selected in batch mode
-   * Prevents deleting the last session and shows a confirmation dialog
-   * After successful operation, refreshes both the parent and child components
-   * If the current session is deleted, switches to the first remaining session
    */
   const handleBatchDelete = async () => {
     if (selectedIds.size === 0) {
@@ -227,12 +225,10 @@ const BlockchainPage: React.FC<BlockchainPageProps> = ({
   }, [isFunctionPanelMaximized]);
   /**
    * Create chat panel with ref passed down for blockchain rendering.
-   * The chat panel is always on the right side.
    */
   const chatPanel = <BlockchainChatPanel onSendMessage={blockchainHandleSendMessage} onFileClick={onFileClick} t={t} currentSessionId={blockchainSessionId} onDragOverInputChange={onDragOverInputChange} language={language} isLeftPanel={false} />;
   /**
    * Toggle the history drawer.
-   * Declared before `blockchainPanel` so it can be safely passed as a prop.
    */
   const handleToggleHistoryDrawer = useCallback(() => {
     setIsHistoryDrawerOpen((prev) => !prev);
@@ -357,11 +353,6 @@ const BlockchainPage: React.FC<BlockchainPageProps> = ({
   }, [blockchainHandleSwitchSession]);
   /**
    * Handle session selection from the history drawer.
-   *
-   * NOTE: This intentionally does NOT close the drawer. Clicking any item
-   * inside the history drawer (session card, menu item, action button, etc.)
-   * must never close the drawer. Only the backdrop and the explicit close
-   * button are allowed to close it.
    */
   const handleSessionSelect = useCallback(
     (sessionId: string) => {
@@ -419,12 +410,6 @@ const BlockchainPage: React.FC<BlockchainPageProps> = ({
    * History drawer content.
    * Keeps the exact same header controls as the previous sidebar, but is
    * wrapped in a slide-out panel anchored to the left edge.
-   *
-   * CLICK BEHAVIOR:
-   * - Any click inside the drawer is stopped at the drawer boundary so it
-   *   can never bubble up and trigger a close.
-   * - Only the backdrop (outside the drawer) or the explicit close button
-   *   will call setIsHistoryDrawerOpen(false).
    */
   const renderHistoryDrawer = () => {
     // Common button style for header actions
@@ -447,7 +432,6 @@ const BlockchainPage: React.FC<BlockchainPageProps> = ({
         {/* Backdrop: clicking outside closes the drawer */}
         <div
           onClick={(e) => {
-            // Only close when the click actually lands on the backdrop itself.
             if (e.target === e.currentTarget) {
               setIsHistoryDrawerOpen(false);
             }
@@ -462,8 +446,6 @@ const BlockchainPage: React.FC<BlockchainPageProps> = ({
         {/* Drawer panel: blocks all internal clicks from bubbling up */}
         <div
           onClick={(e) => {
-            // Block every click inside the drawer from bubbling up, so nothing
-            // in the history panel can trigger the drawer's close logic.
             e.stopPropagation();
           }}
           style={{
@@ -805,8 +787,6 @@ const BlockchainPage: React.FC<BlockchainPageProps> = ({
             order: 3,
           }}
         >
-          {/* Collapsed placeholder kept minimal: the history drawer is now the
-              primary entry point for session management. */}
           <div
             className="collapsed-sidebar"
             style={{
@@ -882,7 +862,6 @@ const BlockchainPage: React.FC<BlockchainPageProps> = ({
           </div>
         </div>
       ) : null}
-      {/* History drawer (left slide-out) */}
       {isHistoryDrawerOpen && renderHistoryDrawer()}
     </div>
   );

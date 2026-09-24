@@ -18,6 +18,9 @@ import { codeEditorSessionCommands } from "../../../command/session/codeeditor";
 import { isStructuredLLMResponse, parseLLMResponse } from "../llm/utils";
 import { filesCommands } from "../../../command/files";
 import { CodingPanelRef } from "../CodingPanel";
+import { processLLMResponse } from "../llm/FunctionExecutor";
+import { setWorkspacePath as setExecutorWorkspacePath } from "../llm/drivers";
+import { dispatchFileTreeRefresh, onFileTreeRefresh } from "../WindowEventManager";
 interface CodeEditorChatPanelProps {
   onSendMessage: (message: string, sessionId: string, files?: UploadFile[], workflowMode?: string, displayMessage?: string) => void | Promise<void>;
   onFileClick?: (file: UploadFile) => void;
@@ -34,10 +37,6 @@ interface CodeEditorChatPanelProps {
   /** Reference to the Coding component for displaying diffs */
   codingPanelRef?: React.RefObject<CodingPanelRef | null>;
 }
-/**
- * CodeEditorChatPanel - Chat interface for code editor
- * Supports file upload with filtering for text and skill files
- */
 const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
   onSendMessage: onSendMessageProp,
   onFileClick,
@@ -91,8 +90,15 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
   const [isLoadingTitle, setIsLoadingTitle] = useState(false);
   const hasLoadedTitleRef = useRef<Record<string, boolean>>({});
   const collapseIcon = collapseIconProp || (isLeftPanel ? isCollapsed ? <ChevronsRight size={16} /> : <ChevronsLeft size={16} /> : isCollapsed ? <ChevronsLeft size={16} /> : <ChevronsRight size={16} />);
-  /** Track which messages have been processed for editor operations */
+  /**
+   * In-memory cache of LLM message IDs whose function calls have already been
+   * processed during this mount.
+   */
   const processedMessageIdsRef = useRef<Set<string>>(new Set());
+  /**
+   * Current workspace path for the active session.
+   */
+  const [workspacePath, setWorkspacePathState] = useState<string | null>(null);
   const welcomeMsg: ChatMessage = {
     id: "welcome",
     role: RoleEnum.LLM,
@@ -106,6 +112,12 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
   // Subscribe to task manager updates
   useEffect(() => {
     const unsubscribe = taskManager.subscribe(() => {
+      setUpdateTrigger((prev) => prev + 1);
+    });
+    return unsubscribe;
+  }, []);
+  useEffect(() => {
+    const unsubscribe = onFileTreeRefresh(() => {
       setUpdateTrigger((prev) => prev + 1);
     });
     return unsubscribe;
@@ -165,6 +177,35 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
     window.addEventListener("session-title-updated", handleSessionTitleUpdated as EventListener);
     return () => {
       window.removeEventListener("session-title-updated", handleSessionTitleUpdated as EventListener);
+    };
+  }, [currentSessionId]);
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      if (!currentSessionId || currentSessionId.startsWith("pending_") || currentSessionId.startsWith("temp_")) {
+        if (!cancelled) {
+          setWorkspacePathState(null);
+          setExecutorWorkspacePath(null);
+        }
+        return;
+      }
+      try {
+        const config = await codeEditorSessionCommands.loadCodeEditorSessionConfig(currentSessionId);
+        const path = (config && config.workspace_path) || null;
+        if (!cancelled) {
+          setWorkspacePathState(path);
+          setExecutorWorkspacePath(path);
+        }
+      } catch {
+        if (!cancelled) {
+          setWorkspacePathState(null);
+          setExecutorWorkspacePath(null);
+        }
+      }
+    };
+    load();
+    return () => {
+      cancelled = true;
     };
   }, [currentSessionId]);
   const { editingMessageId, editContent, setEditContent, handleEditMessage, handleSaveEdit, handleCancelEdit } = useEditMessage({ currentSessionId, onSendMessage: onSendMessageProp, t });
@@ -247,8 +288,6 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
     }, 200);
   };
   // Resend message handler
-  // The stored msg.content is already the display-only text, so we reuse it
-  // both as the LLM payload and as the bubble text.
   const handleResendMessage = (msg: ChatMessage) => {
     if (isResending || isSending) return;
     const sessionId = currentSessionId || "";
@@ -316,7 +355,6 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
     };
   }, [messages, language]);
   // Handle suggestion click
-  // The prompt itself is the display text - no file contents involved.
   const handleSuggestionClick = (prompt: string) => {
     const sessionId = currentSessionId || "";
     if (!sessionId) {
@@ -500,18 +538,14 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
   };
   /**
    * Open file selector with specific file type filters
-   * Supports text files and skill files
-   * @param filterType - Type of files to filter: 'text' | 'skill'
    */
   const openFileSelector = async (filterType: "text" | "skill" = "text") => {
     try {
-      // Define allowed extensions for each type
       const allowedExtensions: Record<string, string[]> = {
         text: ["txt", "md", "json", "js", "ts", "py", "rs", "html", "css", "xml", "yaml", "yml", "toml", "sh", "bash"],
         skill: ["md", "skill"],
       };
       const validExtensions = allowedExtensions[filterType] || [];
-      // Define filters for the file dialog
       let filters: { name: string; extensions: string[] }[] = [];
       switch (filterType) {
         case "text":
@@ -523,7 +557,6 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
         default:
           filters = [{ name: "All Files", extensions: ["*"] }];
       }
-      // Open system file selector
       const result = await filesCommands.selectFile({
         multiple: true,
         filters: filters,
@@ -532,24 +565,20 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
       const selectedFiles = Array.isArray(result) ? result : [result];
       const newFiles: UploadFile[] = [];
       let skippedCount = 0;
-      // Process each selected file - filter by extension
       for (const path of selectedFiles) {
         const ext = path.split(".").pop()?.toLowerCase() || "";
-        // Skip files with invalid extensions
         if (!validExtensions.includes(ext)) {
           skippedCount++;
           continue;
         }
         const fileInfo = await filesCommands.getFileInfo(path);
         const isSkill = path.toLowerCase().endsWith(".md") || path.toLowerCase().endsWith(".skill.md") || path.toLowerCase().endsWith(".skill");
-        // Read file content for text files
         let content = "";
         try {
           content = await filesCommands.readTextFile(path);
         } catch (e) {
           console.debug("Cannot read file content:", path);
         }
-        // Determine file type based on extension
         let fileType = "application/octet-stream";
         if (isSkill) {
           fileType = "text/markdown";
@@ -576,7 +605,6 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
         } else if (path.endsWith(".sh") || path.endsWith(".bash")) {
           fileType = "text/x-shellscript";
         }
-        // Create File object required by UploadFile type
         const fileName = fileInfo.name;
         const fileBlob = new Blob([content], { type: fileType });
         const fileObj = new File([fileBlob], fileName, { type: fileType });
@@ -591,7 +619,6 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
           status: "success" as const,
         });
       }
-      // Show warning if some files were skipped
       if (skippedCount > 0) {
         showToast(ToastType.WARNING, `${skippedCount} file(s) skipped. Only ${filterType} files are allowed.`);
       }
@@ -599,7 +626,6 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
         showToast(ToastType.INFO, `No valid ${filterType} files selected`);
         return;
       }
-      // Add all files to upload list - user clicks send to send them
       setUploadedFiles((prev) => [...prev, ...newFiles]);
       showToast(ToastType.SUCCESS, `Added ${newFiles.length} file(s)`);
     } catch (error) {
@@ -607,20 +633,9 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
       showToast(ToastType.ERROR, "Failed to select files: " + error);
     }
   };
-  /**
-   * Handle attachment button click - closes menu
-   */
   const handleAttachment = () => {
     setShowAttachmentMenu(false);
   };
-  /**
-   * Handle send message.
-   *
-   * Two distinct payloads are built here:
-   * 1. `displayMessage` - what the user actually typed, shown in the chat bubble.
-   * 2. `message` - the full payload sent to the LLM (user text + file bodies +
-   *    current editor content). This is never persisted to the UI.
-   */
   const handleSend = () => {
     if (isSending) return;
     if (inputValue.trim() || uploadedFiles.length > 0) {
@@ -629,15 +644,15 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
         showToast(ToastType.SUCCESS, "Session ID cannot be empty.");
         return;
       }
-      // (1) Clean display text - what appears in the chat bubble.
       const displayMessage = inputValue.trim() || "";
-      // Get current file content from the editor (for the LLM payload only).
       let currentFileContent = "";
       if (codingPanelRef?.current) {
         currentFileContent = codingPanelRef.current.getCurrentFileContent();
       }
-      // (2) Build the full LLM payload.
       let message = displayMessage;
+      if (workspacePath) {
+        message += `\n\n[WORKSPACE]\nproject_root: ${workspacePath}\n`;
+      }
       for (const file of uploadedFiles) {
         if (file.content) {
           const isSkill = file.name?.toLowerCase().endsWith(".md") || file.name?.toLowerCase().endsWith(".skill.md");
@@ -670,9 +685,8 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
       });
     }
   };
-  // Update the handleKeyDown function to stop propagation
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    e.stopPropagation(); // Prevent keyboard events from bubbling up
+    e.stopPropagation();
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
@@ -724,7 +738,6 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
       localStorage.setItem(`workflow_mode_${key}`, mode);
     }
   };
-  // Build navigation content
   const buildNavigationContent = (): React.ReactNode => {
     const userMessages = messages.filter((m) => m.role === RoleEnum.User);
     if (userMessages.length === 0) {
@@ -796,7 +809,6 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
       </div>
     );
   };
-  // Locate task handler
   const handleLocateTask = (msg: ChatMessage) => {
     if (!currentSessionId) {
       showToast(ToastType.INFO, t("chat.noRelatedTask") || "No Related Task");
@@ -818,7 +830,6 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
       showToast(ToastType.INFO, t("chat.noRelatedTask") || "No Related Task");
     }
   };
-  // Handle locate task in chat
   useEffect(() => {
     const handleLocateTaskInChat = (event: Event) => {
       const customEvent = event as CustomEvent;
@@ -864,7 +875,6 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
       window.removeEventListener("locate-task-in-chat", handleLocateTaskInChat);
     };
   }, [t, currentSessionId]);
-  // Language change handler
   useEffect(() => {
     const handleLanguageChange = () => {
       loadWorkflowDisplayNames();
@@ -874,7 +884,6 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
       window.removeEventListener("language-changed", handleLanguageChange as EventListener);
     };
   }, []);
-  // Initialize
   useEffect(() => {
     loadCurrentDefaultModel();
     loadWorkspaces();
@@ -885,7 +894,6 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
   useEffect(() => {
     messagesRef.current = messages;
   }, [messages]);
-  // Locate task in chat - duplicate handler for general tasks
   useEffect(() => {
     const handleLocateTaskInChat = (event: Event) => {
       const customEvent = event as CustomEvent;
@@ -925,7 +933,6 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
       window.removeEventListener("locate-task-in-chat", handleLocateTaskInChat);
     };
   }, [t]);
-  // Scroll to bottom when new messages arrive and user hasn't scrolled up
   useEffect(() => {
     if (messages.length > 0 && !userScrolled) {
       virtuosoRef.current?.scrollToIndex({
@@ -935,7 +942,6 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
       });
     }
   }, [messages, userScrolled]);
-  // Click outside handlers
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (attachmentMenuRef.current && !attachmentMenuRef.current.contains(event.target as Node) && attachmentBtnRef.current && !attachmentBtnRef.current.contains(event.target as Node)) {
@@ -958,7 +964,6 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
     return t("chat.endingMessage") || (language === "zh" ? "✨ 我还能为你做些什么吗？ ✨" : "✨ What else can I do for you? ✨");
   };
   const navigation = buildNavigationContent();
-  // Render a single message item for Virtuoso
   const renderMessageItem = useCallback(
     (index: number, msg: ChatMessage) => {
       const isUser = msg.role === RoleEnum.User;
@@ -1010,14 +1015,25 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
               (() => {
                 let displayContent = msg.content;
                 let displaySubtitle = null;
+                let hasFunctionCalls = false;
                 if (isStructuredLLMResponse(msg.content)) {
                   const parsed = parseLLMResponse(msg.content);
+                  if (parsed?.terminalResponse?.functionCalls?.length) {
+                    hasFunctionCalls = true;
+                  }
                   if (parsed?.chatResponse) {
                     displayContent = parsed.chatResponse.m;
                     if (parsed.chatResponse.s) {
                       displaySubtitle = parsed.chatResponse.s;
                     }
                   }
+                }
+                // Only hide a message when it has NO user-facing text. If the
+                // LLM returned a chatResponse.m (the narration of what was
+                // done), show it even when functionCalls are present. Pure
+                // functionCalls messages (no text at all) remain hidden.
+                if (hasFunctionCalls && (!displayContent || !String(displayContent).trim())) {
+                  return null;
                 }
                 return (
                   <>
@@ -1073,36 +1089,110 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
     }
     return { right: 0, top: 0 };
   })();
+  // Make sure the TaskManager is scoped to CodeEditor before the
+  // function-call processing effect below runs. Effects are executed in
+  // declaration order within the same commit, so this one runs first.
+  useEffect(() => {
+    taskManager.setCurrentDomain(SessionDomain.CodeEditor);
+  }, []);
   /**
-   * Process LLM response and render editor diff data on the coding panel
+   * Process LLM response and render editor diff data on the coding panel.
+   *
+   * SINGLE-TURN MODE (mirrors the Video Editor module):
+   * - The LLM is expected to return BOTH `terminalResponse.functionCalls`
+   *   AND a final `chatResponse.m` in the SAME response.
+   * - We execute the function calls exactly ONCE per LLM message.
+   * - We do NOT send a follow-up turn back to the LLM.
+   * - After execution we dispatch a workspace refresh.
+   *
+   * DUPLICATE-EXECUTION PROTECTION (two layers, mirroring the video editor):
+   *   1. IN-MEMORY: `processedMessageIdsRef` — prevents duplicate execution
+   *      within a single mount.
+   *   2. PERSISTENT: `task.executed` — a flag stored on the task itself and
+   *      saved to disk. It is checked BEFORE executing the function calls and
+   *      set to `true` (and persisted) BEFORE executing them.
+   *
+   * Why both layers are needed:
+   *   - On session switch / app restart, `processedMessageIdsRef` is empty
+   *     because the component remounts. Without the persistent `executed`
+   *     flag, the effect would re-run every function-call chain in the
+   *     session history. The `executed` flag prevents that.
+   *   - Within a single mount, `executed` may not have been persisted yet
+   *     when the effect re-fires (React state batching, task manager
+   *     notifications, etc). The in-memory ref handles that case.
+   *
+   * The flag is written and saved BEFORE running the commands, so that even
+   * if execution fails or the app crashes mid-way, the commands are never
+   * run twice.
    */
   useEffect(() => {
-    // Check if there's a new LLM message with editor data to render
     const lastMsg = messages.length > 0 ? messages[messages.length - 1] : null;
     if (!lastMsg || lastMsg.role !== RoleEnum.LLM) return;
     if (lastMsg.status === MessageStatus.Pending) return;
     if (lastMsg.status === MessageStatus.Failed) return;
     if (lastMsg.status === MessageStatus.Cancelled) return;
-    // Skip if already processed
+    // Layer 1: in-memory dedupe.
     if (processedMessageIdsRef.current.has(lastMsg.id)) {
       return;
     }
-    // Check if the message contains structured LLM response with editor data
-    if (isStructuredLLMResponse(lastMsg.content)) {
-      const parsed = parseLLMResponse(lastMsg.content);
-      if (parsed?.terminalResponse?.editor) {
-        const editorData = parsed.terminalResponse.editor;
-        // Show diff in the coding panel
-        if (codingPanelRef?.current) {
-          codingPanelRef.current.showDiff(editorData.filePath, editorData.originalContent, editorData.newContent);
-          processedMessageIdsRef.current.add(lastMsg.id);
-        } else {
-          console.warn("[CodeEditorChatPanel] Coding ref not available for diff display");
-        }
+    if (!isStructuredLLMResponse(lastMsg.content)) {
+      return;
+    }
+    const parsed = parseLLMResponse(lastMsg.content);
+    // Resolve the task that owns this LLM message. The message ID has the
+    // form `llm_{task_id}` (see handleSendMessage in useCodeEditorSession).
+    const taskId = lastMsg.id.replace("llm_", "");
+    const task = taskManager.getTask(taskId);
+    // Layer 2: persistent dedupe. If the task has already been executed at
+    // least once (across remounts / session switches / app restarts), skip.
+    if (task?.executed) {
+      processedMessageIdsRef.current.add(lastMsg.id);
+      return;
+    }
+    // (A) Render editor diff if present. The diff is a pure UI operation and
+    // does NOT depend on the executed flag, so it runs on every visit.
+    if (parsed?.terminalResponse?.editor) {
+      const editorData = parsed.terminalResponse.editor;
+      if (codingPanelRef?.current) {
+        codingPanelRef.current.showDiff(editorData.filePath, editorData.originalContent, editorData.newContent);
+      } else {
+        console.warn("[CodeEditorChatPanel] Coding ref not available for diff display");
       }
     }
-  }, [messages, codingPanelRef, currentSessionId]);
-  // RENDER
+    // (B) Execute function calls if present.
+    //
+    // Mark this message as processed in memory IMMEDIATELY, before any async
+    // work, so the effect cannot re-enter while the async work is in flight.
+    // Also write the persistent `executed: true` flag to the task and save
+    // it to disk BEFORE running the commands. This guarantees that a second
+    // mount of the panel will see `executed === true` and skip execution,
+    // even if the first mount was interrupted mid-execution.
+    if (parsed?.terminalResponse?.functionCalls?.length) {
+      processedMessageIdsRef.current.add(lastMsg.id);
+      if (task) {
+        taskManager.updateTask(taskId, { executed: true });
+        // Persist immediately so the flag survives a reload / crash.
+        taskManager.saveCurrentSessionToFile().catch((err) => {
+          console.error("[CodeEditorChatPanel] Failed to persist executed flag:", err);
+        });
+      }
+      setExecutorWorkspacePath(workspacePath);
+      processLLMResponse(parsed)
+        .then((results) => {
+          const failed = results.filter((r) => !r.success);
+          if (failed.length > 0) {
+            console.warn("[CodeEditorChatPanel] Some function calls failed:", failed);
+            showToast(ToastType.ERROR, isZh ? `${failed.length} 个函数调用失败` : `${failed.length} function call(s) failed`);
+          }
+          // Refresh the workspace (file tree + editor) so any file
+          // created / deleted / renamed by the LLM shows up immediately.
+          dispatchFileTreeRefresh();
+        })
+        .catch((err) => {
+          console.error("[CodeEditorChatPanel] FunctionExecutor error:", err);
+        });
+    }
+  }, [messages, codingPanelRef, currentSessionId, workspacePath, isZh]);
   return (
     <div
       className="codeeditor-chat-panel"
@@ -1307,7 +1397,6 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
               data={messages}
               style={{ height: "100%", width: "100%" }}
               itemContent={renderMessageItem}
-              // Track scroll position to update scroll buttons
               atBottomStateChange={(atBottom) => {
                 setIsAtBottom(atBottom);
                 if (atBottom) {
@@ -1317,7 +1406,6 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
                   setShowScrollButton(true);
                 }
               }}
-              // Track user scroll for auto-scroll behavior
               onScroll={(e) => {
                 const target = e.target as HTMLElement;
                 if (target) {
@@ -1327,7 +1415,6 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
                     setUserScrolled(true);
                   }
                   setShowTopScrollButton(scrollTop > 50);
-                  // Update active nav index
                   requestAnimationFrame(() => {
                     handleScrollUpdate();
                   });
@@ -1348,7 +1435,6 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
             </div>
           )}
         </div>
-        {/* Scroll buttons - using same className as ChatPanel for consistent touch/hover effects */}
         {(showScrollButton || showTopScrollButton) && (
           <div
             style={{
@@ -1417,23 +1503,6 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
               <div className="icon-btn" ref={attachmentBtnRef} onClick={() => setShowAttachmentMenu(!showAttachmentMenu)} title={t("chat.attachment")}>
                 <AttachmentIcon size={14} />
               </div>
-              {/* workspace */}
-              {/* <div
-                className="icon-btn folder-btn"
-                ref={directoryBtnRef}
-                onClick={async () => {
-                  await loadWorkspaces();
-                  setShowDirectoryMenu(!showDirectoryMenu);
-                }}
-                title={t("chat.selectWorkspace")}
-                style={{ minWidth: 0 }}
-              >
-                <FolderIcon size={14} />
-                <span className="folder-name" title={getSelectedWorkspaceName()}>
-                  {getSelectedWorkspaceName()}
-                </span>
-                <ChevronRightIcon size={10} className="chevron" />
-              </div> */}
               <div className="icon-btn folder-btn" ref={workflowBtnRef} onClick={() => setShowWorkflowMenu(!showWorkflowMenu)} title={t("chat.selectWorkflowMode") || "Workflow Mode"} style={{ minWidth: 0 }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M4 7h16M4 12h16M4 17h10" strokeLinecap="round" strokeLinejoin="round" />

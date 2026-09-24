@@ -22,6 +22,9 @@ export function useCodeEditorSession(
     const [pendingWorkspaceType, setPendingWorkspaceType] = useState<"directory" | "file">("directory");
     const { t } = useTranslation(language);
     useEffect(() => {
+        taskManager.setCurrentDomain(SessionDomain.CodeEditor);
+    }, []);
+    useEffect(() => {
         const unsubscribe = taskManager.subscribe(() => {
             setTaskManagerVersion((prev) => prev + 1);
         });
@@ -173,9 +176,6 @@ export function useCodeEditorSession(
                 }));
             }
         }
-        // The bubble text is the clean display text if provided; otherwise fall
-        // back to the full message (keeps backwards compatibility with any caller
-        // that does not pass displayMessage).
         const bubbleText = displayMessage ?? userMessage;
         const userMsg: ChatMessage = {
             id: `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -186,11 +186,24 @@ export function useCodeEditorSession(
         };
         taskManager.addUserMessageToSession(finalSessionId, userMsg, SessionDomain.CodeEditor);
         try {
-            const workspace = await workspaceCommands.getDefaultWorkspace();
-            const workspacePath = workspace?.workspace_path;
+            let workspacePath: string | undefined;
+            try {
+                if (
+                    finalSessionId &&
+                    !finalSessionId.startsWith("pending_") &&
+                    !finalSessionId.startsWith("temp_")
+                ) {
+                    const config = await codeEditorSessionCommands.loadCodeEditorSessionConfig(finalSessionId);
+                    workspacePath = config?.workspace_path || undefined;
+                }
+            } catch (e) {
+                console.warn("[useCodeEditorSession] Failed to load session workspace_path:", e);
+            }
+            if (!workspacePath) {
+                const workspace = await workspaceCommands.getDefaultWorkspace();
+                workspacePath = workspace?.workspace_path;
+            }
             const systemPrompt = getCodeEditorSystemPrompt(language as 'zh' | 'en', workspacePath);
-            // NOTE: the LLM still receives the FULL userMessage (with file bodies
-            // and editor content). Only the UI bubble is cleaned up.
             const fullMessage = `${systemPrompt}\n\n User: ${userMessage}`;
             const mode = workflowMode || currentWorkflowMode;
             const taskId = await hippoxCommands.sendMessageAsync(
@@ -330,7 +343,6 @@ export function useCodeEditorSession(
         const newSessionId = `codeeditor_session_${Date.now()}`;
         const pathParts = workspacePath.split(/[\\/]/);
         const title = pathParts[pathParts.length - 1] || "Code Editor";
-        // Create the ./.hippox directory during the initial phase of session creation.
         await codeEditorCommands.ensureTmpDir(workspacePath);
         await codeEditorSessionCommands.createCodeEditorSession(
             newSessionId,

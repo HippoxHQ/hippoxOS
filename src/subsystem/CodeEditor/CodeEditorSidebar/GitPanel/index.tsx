@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { User } from "lucide-react";
-import { STAGED_SPLIT_MIN, STAGED_SPLIT_MAX, STAGED_SPLIT_DEFAULT, LEFT_COL_MIN, LEFT_COL_MAX, LEFT_COL_DEFAULT, TOP_SPLIT_MIN, TOP_SPLIT_MAX, TOP_SPLIT_DEFAULT, COMMIT_AREA_MIN_PX, SYSTEM_CO_AUTHOR_EMAIL, SYSTEM_CO_AUTHOR_NAME, SYSTEM_AUTHOR_NAME, SYSTEM_AUTHOR_EMAIL } from "./constants";
+import { STAGED_SPLIT_MIN, STAGED_SPLIT_MAX, STAGED_SPLIT_DEFAULT, LEFT_COL_MIN, LEFT_COL_MAX, LEFT_COL_DEFAULT, TOP_SPLIT_MIN, TOP_SPLIT_MAX, TOP_SPLIT_DEFAULT, COMMIT_AREA_MIN_PX, SYSTEM_CO_AUTHOR_EMAIL, SYSTEM_CO_AUTHOR_NAME, SYSTEM_AUTHOR_NAME, SYSTEM_AUTHOR_EMAIL } from "../../constants";
 import { generalCommands } from "../../../../command/General";
 import { githubCommands } from "../../../../command/github";
 import { profileCommands } from "../../../../command/Profile";
@@ -16,7 +16,7 @@ import FileListSection from "./FileListSection";
 import FileRow from "./FileRow";
 import HistoryTimeline, { HistoryCommit } from "./HistoryTimeline";
 import TopActionBar, { PanelTab } from "./TopActionBar";
-import { buildGlobalEmailAvatarUrl, buildHashAvatarUrl } from "./common";
+import { buildGlobalEmailAvatarUrl, buildHashAvatarUrl } from "../../common";
 import { GitFileEntry, DraggingKind, DiffLine } from "./types";
 const HISTORY_TIMELINE_MIN_PX = 120;
 const HISTORY_INFO_MIN_PX = 100;
@@ -31,7 +31,6 @@ const CommitAuthorAvatar: React.FC<{ email: string; hash: string; size?: number 
   const [stage, setStage] = useState<1 | 2 | 3>(1);
   const emailUrl = useMemo(() => buildGlobalEmailAvatarUrl(email), [email]);
   const hashUrl = useMemo(() => buildHashAvatarUrl(hash), [hash]);
-  // Skip stages that don't produce a URL.
   const effectiveStage: 1 | 2 | 3 = stage === 1 && !emailUrl ? (hashUrl ? 2 : 3) : stage === 2 && !hashUrl ? 3 : stage;
   const handleError = () => {
     setStage((prev) => {
@@ -190,11 +189,6 @@ export const GitPanel: React.FC<GitPanelProps> = ({ t, language = "en", workspac
       setProfileEmail("");
     }
   }, [workspacePath]);
-  /**
-   * Refresh the combined "unpushed changes" counter:
-   *   commits + branches + tags
-   * This is the single source of truth for the Push badge.
-   */
   const loadAheadCount = useCallback(async () => {
     if (!workspacePath) {
       setAheadCount(0);
@@ -233,10 +227,6 @@ export const GitPanel: React.FC<GitPanelProps> = ({ t, language = "en", workspac
       setAvailableTags([]);
     }
   }, [workspacePath]);
-  /**
-   * Refresh the list of tags that exist on origin. Used by TagDialog
-   * and PushDialog to render the "Local" / "Remote" badge.
-   */
   const loadRemoteTags = useCallback(async () => {
     if (!workspacePath) {
       setAvailableRemoteTags([]);
@@ -269,10 +259,6 @@ export const GitPanel: React.FC<GitPanelProps> = ({ t, language = "en", workspac
     },
     [workspacePath],
   );
-  /**
-   * Load the commit graph (with branch / tag / parent info).
-   * Auto-selects the topmost commit and loads its file list.
-   */
   const loadHistory = useCallback(async () => {
     if (!workspacePath) {
       setHistoryCommits([]);
@@ -354,7 +340,6 @@ export const GitPanel: React.FC<GitPanelProps> = ({ t, language = "en", workspac
           setBranch("");
         }
         setRemoteUrl(url || "");
-        // Refresh the combined "unpushed changes" counter (commits + branches + tags).
         await loadAheadCount();
       } catch (error) {
         console.error("Failed to load git status:", error);
@@ -598,9 +583,6 @@ export const GitPanel: React.FC<GitPanelProps> = ({ t, language = "en", workspac
       setIsPulling(false);
     }
   }, [workspacePath, branch, loadStatus, loadAheadCount, loadHistory, activeTab, isZh]);
-  /**
-   * Open the push dialog.
-   */
   const openPushDialog = useCallback(async () => {
     if (!workspacePath || !branch) return;
     setPushDialog(true);
@@ -629,9 +611,6 @@ export const GitPanel: React.FC<GitPanelProps> = ({ t, language = "en", workspac
       setLoadingPushData(false);
     }
   }, [workspacePath, branch]);
-  /**
-   * Confirm push: send the selected branches and tags to origin.
-   */
   const confirmPushDialog = useCallback(
     async (branches: string[], tags: string[]) => {
       if (!workspacePath) return;
@@ -657,9 +636,6 @@ export const GitPanel: React.FC<GitPanelProps> = ({ t, language = "en", workspac
     },
     [workspacePath, loadStatus, loadAheadCount, loadRemoteBranches, loadRemoteTags, loadHistory, activeTab, isZh],
   );
-  /**
-   * Open the tag dialog and refresh the local + remote tag lists.
-   */
   const openTagDialog = useCallback(
     async (mode: "manage" | "new" | "delete") => {
       setTagDialog({ mode });
@@ -679,9 +655,6 @@ export const GitPanel: React.FC<GitPanelProps> = ({ t, language = "en", workspac
     },
     [workspacePath, loadRemoteTags],
   );
-  /**
-   * Confirm the tag dialog: create or delete the tag.
-   */
   const confirmTagDialog = useCallback(
     async (tab: "new" | "delete") => {
       if (!workspacePath) return;
@@ -721,8 +694,12 @@ export const GitPanel: React.FC<GitPanelProps> = ({ t, language = "en", workspac
       setBranchInput("");
       if (workspacePath) {
         try {
-          const [branches] = await Promise.all([githubCommands.getLocalBranches(workspacePath)]);
-          setAvailableBranches(branches || []);
+          // Load BOTH local and remote branches, then merge them so the
+          // dialog can list remote-only branches as switchable targets.
+          const [local, remote] = await Promise.all([githubCommands.getLocalBranches(workspacePath).catch(() => []), githubCommands.getRemoteBranches(workspacePath).catch(() => [])]);
+          const remoteClean = (remote || []).map((b) => (b.startsWith("origin/") ? b.slice("origin/".length) : b)).filter((b) => b && b !== "HEAD");
+          const merged = Array.from(new Set([...(local || []), ...remoteClean]));
+          setAvailableBranches(merged);
           await loadRemoteBranches();
         } catch {
           setAvailableBranches([]);
@@ -750,8 +727,24 @@ export const GitPanel: React.FC<GitPanelProps> = ({ t, language = "en", workspac
           await githubCommands.deleteBranch(workspacePath, name);
           showToast(ToastType.SUCCESS, isZh ? `已删除分支 ${name}` : `Deleted branch ${name}`);
         } else {
-          await githubCommands.checkoutBranch(workspacePath, name);
-          showToast(ToastType.SUCCESS, isZh ? `已切换到分支 ${name}` : `Switched to branch ${name}`);
+          // Switch: check if the branch exists locally first.
+          // If it only exists on the remote, create a local tracking
+          // branch from origin/<name> before checking out.
+          const localBranches = await githubCommands.getLocalBranches(workspacePath).catch(() => [] as string[]);
+          const existsLocally = (localBranches || []).includes(name);
+          if (!existsLocally) {
+            const existsRemotely = await githubCommands.remoteBranchExists(workspacePath, name).catch(() => false);
+            if (existsRemotely) {
+              await githubCommands.createBranchFromRemote(workspacePath, name, name);
+              showToast(ToastType.SUCCESS, isZh ? `已从远程创建并切换到分支 ${name}` : `Created and switched to branch ${name} from remote`);
+            } else {
+              await githubCommands.checkoutBranch(workspacePath, name);
+              showToast(ToastType.SUCCESS, isZh ? `已切换到分支 ${name}` : `Switched to branch ${name}`);
+            }
+          } else {
+            await githubCommands.checkoutBranch(workspacePath, name);
+            showToast(ToastType.SUCCESS, isZh ? `已切换到分支 ${name}` : `Switched to branch ${name}`);
+          }
         }
         setBranchDialog(null);
         setBranchInput("");
@@ -773,7 +766,6 @@ export const GitPanel: React.FC<GitPanelProps> = ({ t, language = "en", workspac
   );
   /**
    * Refresh everything that can change after a history action
-   * (checkout / merge / rebase / reset / revert).
    */
   const refreshAfterHistoryAction = useCallback(async () => {
     await loadStatus();
@@ -781,12 +773,9 @@ export const GitPanel: React.FC<GitPanelProps> = ({ t, language = "en", workspac
     await loadRemoteBranches();
     await loadHistory();
   }, [loadStatus, loadAheadCount, loadRemoteBranches, loadHistory]);
-  /** Check out a specific commit (detached HEAD). */
   const handleCheckoutCommit = useCallback(
     async (commit: HistoryCommit) => {
       if (!workspacePath) return;
-      // Guard: refuse to switch when the working tree has uncommitted
-      // changes, mirroring git's own safety check.
       try {
         const split = await githubCommands.getGitStatusSplit(workspacePath);
         const dirty = (split.staged?.length ?? 0) + (split.unstaged?.length ?? 0) > 0;
@@ -795,19 +784,12 @@ export const GitPanel: React.FC<GitPanelProps> = ({ t, language = "en", workspac
           return;
         }
       } catch (err) {
-        // If the check itself fails, fall through and let git decide.
         console.warn("Failed to check working tree status:", err);
       }
       try {
         await githubCommands.checkoutCommit(workspacePath, commit.hash);
         showToast(ToastType.SUCCESS, isZh ? `已检出提交 ${commit.shortHash}` : `Checked out ${commit.shortHash}`);
-        // After a detached checkout, keep a sensible branch highlighted
-        // instead of clearing it. `commit.branches` holds the branches whose
-        // tip is this commit, so it works for branch-tip commits.
         const highlight = commit.branches && commit.branches.length > 0 ? commit.branches[0] : "";
-        // Refresh status WITHOUT clearing the branch when detached, then
-        // apply the resolved highlight branch on top (order matters: the
-        // setBranch below must run AFTER loadStatus).
         await loadStatus({ keepBranchOnDetached: true });
         await loadAheadCount();
         await loadRemoteBranches();
@@ -823,7 +805,6 @@ export const GitPanel: React.FC<GitPanelProps> = ({ t, language = "en", workspac
     },
     [workspacePath, loadStatus, loadAheadCount, loadRemoteBranches, loadHistory, isZh],
   );
-  /** Merge a specific commit into the current branch. */
   const handleMergeCommit = useCallback(
     async (commit: HistoryCommit) => {
       if (!workspacePath) return;
@@ -839,7 +820,6 @@ export const GitPanel: React.FC<GitPanelProps> = ({ t, language = "en", workspac
     },
     [workspacePath, refreshAfterHistoryAction, isZh],
   );
-  /** Rebase the current branch onto a specific commit. */
   const handleRebaseCommit = useCallback(
     async (commit: HistoryCommit) => {
       if (!workspacePath) return;
@@ -855,7 +835,6 @@ export const GitPanel: React.FC<GitPanelProps> = ({ t, language = "en", workspac
     },
     [workspacePath, refreshAfterHistoryAction, isZh],
   );
-  /** Hard-reset the current branch to a specific commit. */
   const handleResetCommit = useCallback(
     async (commit: HistoryCommit) => {
       if (!workspacePath) return;
@@ -871,7 +850,6 @@ export const GitPanel: React.FC<GitPanelProps> = ({ t, language = "en", workspac
     },
     [workspacePath, refreshAfterHistoryAction, isZh],
   );
-  /** Revert a specific commit (creates a new revert commit). */
   const handleRevertCommit = useCallback(
     async (commit: HistoryCommit) => {
       if (!workspacePath) return;
@@ -920,22 +898,78 @@ export const GitPanel: React.FC<GitPanelProps> = ({ t, language = "en", workspac
     [isZh],
   );
   const handleDeleteFile = useCallback(
-    (entry: GitFileEntry) => {
-      showToast(ToastType.INFO, isZh ? "删除命令未实现" : "Delete command not implemented");
+    async (entry: GitFileEntry) => {
+      if (!workspacePath) return;
+      try {
+        await githubCommands.deleteFile(workspacePath, entry.file);
+        showToast(ToastType.SUCCESS, isZh ? `已删除文件 ${entry.file}` : `Deleted file ${entry.file}`);
+        // Clear the diff preview if the deleted file was the one shown.
+        if (selectedFile?.file === entry.file) {
+          setSelectedFile(null);
+          setSelectedIsStaged(false);
+          setDiffContent("");
+          setDiffType("no_diff");
+          setNewFileContent("");
+        }
+        await loadStatus();
+        await loadAheadCount();
+      } catch (error) {
+        console.error("Delete file failed:", error);
+        const msg = error instanceof Error ? error.message : String(error);
+        showToast(ToastType.ERROR, isZh ? `删除失败：${msg}` : `Delete failed: ${msg}`);
+      }
     },
-    [isZh],
+    [workspacePath, selectedFile, loadStatus, loadAheadCount, isZh],
   );
   const handleRestoreChanges = useCallback(
-    async (entry: GitFileEntry) => {
-      showToast(ToastType.INFO, isZh ? "恢复命令未实现" : "Restore command not implemented");
+    async (entry: GitFileEntry, isStaged: boolean) => {
+      if (!workspacePath) return;
+      try {
+        await githubCommands.restoreFile(workspacePath, entry.file, isStaged);
+        showToast(ToastType.SUCCESS, isZh ? `已恢复文件改动 ${entry.file}` : `Restored changes for ${entry.file}`);
+        if (selectedFile?.file === entry.file) {
+          await loadDiff(entry, isStaged);
+        }
+        await loadStatus();
+        await loadAheadCount();
+      } catch (error) {
+        console.error("Restore changes failed:", error);
+        const msg = error instanceof Error ? error.message : String(error);
+        showToast(ToastType.ERROR, isZh ? `恢复失败：${msg}` : `Restore failed: ${msg}`);
+      }
     },
-    [isZh],
+    [workspacePath, selectedFile, loadDiff, loadStatus, loadAheadCount, isZh],
   );
   const handleStopTracking = useCallback(
     async (entry: GitFileEntry) => {
-      showToast(ToastType.INFO, isZh ? "停止追踪命令未实现" : "Stop tracking command not implemented");
+      if (!workspacePath) return;
+      try {
+        await githubCommands.stopTracking(workspacePath, entry.file);
+        showToast(ToastType.SUCCESS, isZh ? `已停止追踪 ${entry.file}` : `Stopped tracking ${entry.file}`);
+        if (selectedFile?.file === entry.file) {
+          setSelectedFile(null);
+          setSelectedIsStaged(false);
+          setDiffContent("");
+          setDiffType("no_diff");
+          setNewFileContent("");
+        }
+        await loadStatus();
+        await loadAheadCount();
+      } catch (error) {
+        console.error("Stop tracking failed:", error);
+        const msg = error instanceof Error ? error.message : String(error);
+        showToast(ToastType.ERROR, isZh ? `停止追踪失败：${msg}` : `Stop tracking failed: ${msg}`);
+      }
     },
-    [isZh],
+    [workspacePath, selectedFile, loadStatus, loadAheadCount, isZh],
+  );
+  const handleStageFileFromMenu = useCallback(
+    async (entry: GitFileEntry, isStaged: boolean) => {
+      if (!workspacePath) return;
+      if (isStaged) return;
+      await handleStageFile(entry);
+    },
+    [workspacePath, handleStageFile],
   );
   const openContextMenu = useCallback((e: React.MouseEvent, entry: GitFileEntry, isStaged: boolean) => {
     e.preventDefault();
@@ -1610,8 +1644,9 @@ export const GitPanel: React.FC<GitPanelProps> = ({ t, language = "en", workspac
             handleCopyPath(fullPath);
           }}
           onDelete={() => handleDeleteFile(contextMenu.entry)}
-          onRestoreChanges={() => handleRestoreChanges(contextMenu.entry)}
+          onRestoreChanges={() => handleRestoreChanges(contextMenu.entry, contextMenu.isStaged)}
           onStopTracking={() => handleStopTracking(contextMenu.entry)}
+          onStageFile={() => handleStageFileFromMenu(contextMenu.entry, contextMenu.isStaged)}
           onCommit={() => {
             setActiveTab("commit");
             handleCommit(contextMenu.entry.file);

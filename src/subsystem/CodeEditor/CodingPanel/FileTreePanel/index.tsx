@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { SearchBar } from "./components/SearchBar";
 import { FileTreeSection } from "./components/FileTreeSection";
 import { GitHubSection } from "./components/GitHubSection";
@@ -9,15 +9,26 @@ import { GitBranch } from "lucide-react";
 import { FileTreePanelProps, FileNode } from "./types";
 import { useGit } from "../../hooks/useGit";
 import { getDirectoryName } from "../../fileUtils";
+import { onFileTreeRefresh } from "../../WindowEventManager";
 const FileTreePanel: React.FC<FileTreePanelProps> = ({ t, onFileSelect, selectedFile, workspacePath }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set(["git", "timeline", "search"]));
   const containerRef = useRef<HTMLDivElement>(null);
   const [fileTree, setFileTree] = useState<FileNode[]>([]);
+  const [refreshTick, setRefreshTick] = useState(0);
   const { gitInfo, loadingGit, fileChanges, loadingChanges, isPulling, isPushing, handlePull, handlePush, getRemoteStatusText, checkGitRepo } = useGit(workspacePath, t);
   const directoryName = getDirectoryName(workspacePath);
   const isZh = t("i18n") === "zh";
+  useEffect(() => {
+    const unsubscribe = onFileTreeRefresh(() => {
+      setRefreshTick((prev) => prev + 1);
+      if (workspacePath) {
+        checkGitRepo(workspacePath);
+      }
+    });
+    return unsubscribe;
+  }, [workspacePath, checkGitRepo]);
   const clearSearch = () => {
     setSearchQuery("");
   };
@@ -144,7 +155,7 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({ t, onFileSelect, selected
                   minHeight: 0,
                 }}
               >
-                <FileTreeSection workspacePath={workspacePath} selectedFile={selectedFile} onFileSelect={onFileSelect} searchQuery={searchQuery} isCollapsed={isProjectCollapsed} t={t} onFileTreeChange={setFileTree} />
+                <FileTreeSection workspacePath={workspacePath} selectedFile={selectedFile} onFileSelect={onFileSelect} searchQuery={searchQuery} isCollapsed={isProjectCollapsed} t={t} onFileTreeChange={setFileTree} refreshTick={refreshTick} />
               </div>
             )}
           </div>
@@ -158,9 +169,6 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({ t, onFileSelect, selected
               overflow: "hidden",
             }}
           >
-            {/* Section renamed from "GitHub" to "Git" because the remote may
-                be GitHub, Gitee, GitLab, Bitbucket, or any other host.
-                Icon switched from the GitHub logo to a generic Git branch icon. */}
             {renderSectionHeader(
               "git",
               <GitBranch size={14} />,

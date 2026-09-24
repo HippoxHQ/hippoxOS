@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { taskManager } from "../../core/TaskManager";
-import { TaskStatusEnum } from "../../core/types";
+import { SessionDomain, TaskStatusEnum } from "../../core/types";
 import { showTooltipOnElement } from "../../components/Tooltip";
 import { CollapseAllIcon2, ExpandAllIcon2, MessageCircleIcon, ScrollTextIcon } from "../../icons";
 import HistoryMapChatPanel, { HistoryMapChatPanelRef } from "./HistoryMapChatPanel";
@@ -612,24 +612,10 @@ const CollapsedHistoryList: React.FC<CollapsedHistoryListProps> = ({ sessions, c
 /**
  * Main Maps Page Component
  * Integrates chat panel and EarthView map with data flow between them
- *
- * Data Flow (same pattern as 3D Sandbox):
- * 1. User sends message → MapsChatPage
- * 2. LLM responds with JSON containing earthview data
- * 3. MapsChatPage parses and extracts earthview via mapRef.applyEarthViewConfig()
- * 4. MapsChatPageEarthView renders the data on the map (accumulates layers)
- * 5. All tasks in the same session are overlaid on the map
  */
 const MapsPage: React.FC<MapsPageProps> = ({
-  layoutMode = "vertical",
-  onLayoutModeChange,
-  leftTitle = "Chat",
-  rightTitle = "Map",
-  leftIcon = "💬",
-  rightIcon = "🗺️",
   t = (key: string) => key,
   isFunctionPanelMaximized = false,
-  onCloseSkillsManager,
   theme = "dark",
   i18n = "en",
   mapData,
@@ -639,8 +625,6 @@ const MapsPage: React.FC<MapsPageProps> = ({
   onFileClick,
   language = "en",
   onDragOverInputChange,
-  executionLogs,
-  onClearLogs,
 }) => {
   // Session management
   const { currentSessionId: mapSessionId, handleSendMessage: mapHandleSendMessage, handleSwitchSession: mapHandleSwitchSession, handleNewSession: mapHandleNewSession, shouldShowWelcome: mapShouldShowWelcome } = useMapSession(language as "zh" | "en", true);
@@ -676,6 +660,9 @@ const MapsPage: React.FC<MapsPageProps> = ({
   const [layoutSwapMode, setLayoutSwapMode] = useState<"terminal-left" | "chat-left">("terminal-left");
   const layoutSwapModeRef = useRef<"terminal-left" | "chat-left">("terminal-left");
   const isChatOnLeft = layoutSwapMode === "chat-left";
+  useEffect(() => {
+    taskManager.setCurrentDomain(SessionDomain.Map);
+  }, []);
   // Clear selection when batch mode is turned off
   useEffect(() => {
     if (!isBatchMode) {
@@ -745,10 +732,6 @@ const MapsPage: React.FC<MapsPageProps> = ({
   };
   /**
    * Batch delete selected sessions
-   * Deletes all sessions that are currently selected in batch mode
-   * Prevents deleting the last session and shows a confirmation dialog
-   * After successful operation, refreshes both the parent and child components
-   * If the current session is deleted, switches to the first remaining session
    */
   const handleBatchDelete = async () => {
     if (selectedIds.size === 0) {

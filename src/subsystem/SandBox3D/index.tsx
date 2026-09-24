@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { taskManager } from "../../core/TaskManager";
-import { TaskStatusEnum } from "../../core/types";
+import { SessionDomain, TaskStatusEnum } from "../../core/types";
 import { showTooltipOnElement } from "../../components/Tooltip";
 import { CollapseAllIcon2, ExpandAllIcon2, MessageCircleIcon, ScrollTextIcon } from "../../icons";
 import SandBox3DChatPanel from "./SandBox3DChatPanel";
@@ -608,24 +608,7 @@ const CollapsedHistoryList: React.FC<CollapsedHistoryListProps> = ({ sessions, c
 /**
  * Main 3D Sandbox Page Component
  */
-const SandBox3DPage: React.FC<SandBox3DPageProps> = ({
-  layoutMode = "vertical",
-  onLayoutModeChange,
-  leftTitle = "Chat",
-  rightTitle = "3D Sandbox",
-  leftIcon = "💬",
-  rightIcon = "🧊",
-  t = (key: string) => key,
-  isFunctionPanelMaximized = false,
-  onCloseSkillsManager,
-  theme = "dark",
-  i18n = "en",
-  onFileClick,
-  language = "en",
-  onDragOverInputChange,
-  executionLogs,
-  onClearLogs,
-}) => {
+const SandBox3DPage: React.FC<SandBox3DPageProps> = ({ t = (key: string) => key, isFunctionPanelMaximized = false, theme = "dark", i18n = "en", onFileClick, language = "en", onDragOverInputChange }) => {
   // Session management
   const { currentSessionId: sandbox3dSessionId, handleSendMessage: sandbox3dHandleSendMessage, handleSwitchSession: sandbox3dHandleSwitchSession, handleNewSession: sandbox3dHandleNewSession, shouldShowWelcome: sandbox3dShouldShowWelcome } = useSandBox3DSession(language as "zh" | "en", true);
   // Panel state - using constants for initial values
@@ -664,6 +647,9 @@ const SandBox3DPage: React.FC<SandBox3DPageProps> = ({
   const [gifPath, setGifPath] = useState<string | null>(null);
   // Language helper
   const isZh = i18n === "zh-cn";
+  useEffect(() => {
+    taskManager.setCurrentDomain(SessionDomain.SandBox3D);
+  }, []);
   // Clear selection when batch mode is turned off - aligned with GeneralChatPage
   useEffect(() => {
     if (!isBatchMode) {
@@ -871,20 +857,15 @@ const SandBox3DPage: React.FC<SandBox3DPageProps> = ({
       }
       const lastScene = scenesData[scenesData.length - 1];
       const lastSnapshotId = `snapshot_${lastScene.taskId}`;
-      // FIX: Execute the latest scene code on the main canvas
-      // This ensures the 3D scene is rendered immediately
       if (sandboxRef.current && lastScene.code) {
         sandboxRef.current.executeThreeCode(lastScene.code, true);
       }
-      // FIX: Set active snapshot in ref
       if (sandboxRef.current) {
         sandboxRef.current.setActiveSnapshot(lastSnapshotId);
       }
-      // FIX: Update state to trigger UI re-render
       setHistorySnapshots(snapshotsWithThumbnails);
       setActiveSnapshotId(lastSnapshotId);
       historyLoadedRef.current = true;
-      // FIX: Force a re-render of the history panel by toggling the key
       setHistoryPanelKey((prev) => prev + 1);
     } catch (error) {
       console.error("[SandBox3DPage] Failed to refresh history:", error);
@@ -897,9 +878,7 @@ const SandBox3DPage: React.FC<SandBox3DPageProps> = ({
     (snapshotId: string) => {
       const snapshot = historySnapshots.find((s) => s.id === snapshotId);
       if (!snapshot || !sandboxRef.current) return;
-      // Switch to snapshot - this will render on the main canvas
       sandboxRef.current.switchToSnapshot(snapshotId);
-      // Update local state to reflect the change
       setActiveSnapshotId(snapshotId);
       const updatedSnapshots = sandboxRef.current?.getSnapshots() || [];
       setHistorySnapshots(updatedSnapshots);

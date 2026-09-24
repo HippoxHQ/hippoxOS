@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from "react";
-import { FolderOpen, Copy, Trash2, RotateCcw, EyeOff, GitCommit } from "lucide-react";
+import { FolderOpen, Copy, Trash2, RotateCcw, EyeOff, GitCommit, Plus } from "lucide-react";
 interface FileContextMenuProps {
   x: number;
   y: number;
@@ -11,11 +11,13 @@ interface FileContextMenuProps {
   onRestoreChanges: () => void;
   onStopTracking: () => void;
   onCommit: () => void;
+  onStageFile: () => void;
 }
-const FileContextMenu: React.FC<FileContextMenuProps> = ({ x, y, isZh, onClose, onOpenInExplorer, onCopyPath, onDelete, onRestoreChanges, onStopTracking, onCommit }) => {
+const FileContextMenu: React.FC<FileContextMenuProps> = ({ x, y, isZh, onClose, onOpenInExplorer, onCopyPath, onDelete, onRestoreChanges, onStopTracking, onCommit, onStageFile }) => {
   const menuRef = useRef<HTMLDivElement>(null);
   const menuWidth = 240;
-  const menuHeight = 300;
+  // Height bound; increased because we now have one extra menu item.
+  const menuHeight = 340;
   const padding = 8;
   let left = x;
   let top = y;
@@ -85,11 +87,12 @@ const FileContextMenu: React.FC<FileContextMenuProps> = ({ x, y, isZh, onClose, 
       <Row icon={<FolderOpen size={14} />} label={isZh ? "在资源管理器打开" : "Open in File Explorer"} onClick={onOpenInExplorer} />
       <Row icon={<Copy size={14} />} label={isZh ? "复制路径到剪贴板" : "Copy path to clipboard"} onClick={onCopyPath} />
       <div style={{ height: "1px", background: "var(--border-color)", margin: "4px 0" }} />
+      <Row icon={<Plus size={14} />} label={isZh ? "单独暂存此文件" : "Stage This File"} onClick={onStageFile} />
+      <Row icon={<GitCommit size={14} />} label={isZh ? "提交" : "Commit"} onClick={onCommit} />
+      <div style={{ height: "1px", background: "var(--border-color)", margin: "4px 0" }} />
       <Row icon={<Trash2 size={14} />} label={isZh ? "移出 (删除文件)" : "Remove (Delete File)"} onClick={onDelete} danger />
       <Row icon={<RotateCcw size={14} />} label={isZh ? "恢复文件改动" : "Restore Changes"} onClick={onRestoreChanges} />
       <Row icon={<EyeOff size={14} />} label={isZh ? "停止追踪" : "Stop Tracking"} onClick={onStopTracking} />
-      <div style={{ height: "1px", background: "var(--border-color)", margin: "1px 0" }} />
-      <Row icon={<GitCommit size={14} />} label={isZh ? "提交" : "Commit"} onClick={onCommit} />
     </div>
   );
 };

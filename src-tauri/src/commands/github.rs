@@ -1117,3 +1117,74 @@ pub async fn cmd_git_graph(path: String) -> Result<serde_json::Value, String> {
     }
     Ok(serde_json::json!({ "commits": commits }))
 }
+/// Delete a file from the working tree.
+#[command]
+pub async fn cmd_git_delete_file(path: String, file: String) -> Result<bool, String> {
+    let rel = file.trim().to_string();
+    if rel.is_empty() {
+        return Err("File path cannot be empty".to_string());
+    }
+    let tracked = run_git_allow_fail(path.clone(), vec!["ls-files".into(), "--error-unmatch".into(), "--".into(), rel.clone()]).await.is_some();
+    if tracked {
+        run_git(path, vec!["rm".into(), "-f".into(), "--".into(), rel]).await?;
+    } else {
+        // Untracked file: delete directly from the filesystem.
+        let full = Path::new(&path).join(&rel);
+        if full.exists() {
+            fs::remove_file(&full).map_err(|e| format!("Failed to delete file: {}", e))?;
+        }
+    }
+    Ok(true)
+}
+/// Restore a file's changes.
+///
+/// `is_staged == true`  -> unstage the file (`git reset HEAD -- <file>`)
+/// `is_staged == false` -> discard working-tree changes (`git checkout -- <file>`)
+#[command]
+pub async fn cmd_git_restore_file(path: String, file: String, is_staged: bool) -> Result<bool, String> {
+    let rel = file.trim().to_string();
+    if rel.is_empty() {
+        return Err("File path cannot be empty".to_string());
+    }
+    if is_staged {
+        run_git(path, vec!["reset".into(), "HEAD".into(), "--".into(), rel]).await?;
+    } else {
+        // Try a checkout first; if the file is untracked, checkout fails,
+        // so fall back to deleting it from disk.
+        let result = run_git(path.clone(), vec!["checkout".into(), "--".into(), rel.clone()]).await;
+        if result.is_err() {
+            let full = Path::new(&path).join(&rel);
+            if full.exists() {
+                fs::remove_file(&full).map_err(|e| format!("Failed to remove untracked file: {}", e))?;
+            }
+        }
+    }
+    Ok(true)
+}
+/// Stop tracking a file while keeping it on disk.
+/// `git rm --cached -- <file>`
+#[command]
+pub async fn cmd_git_stop_tracking(path: String, file: String) -> Result<bool, String> {
+    let rel = file.trim().to_string();
+    if rel.is_empty() {
+        return Err("File path cannot be empty".to_string());
+    }
+    run_git(path, vec!["rm".into(), "--cached".into(), "--".into(), rel]).await?;
+    Ok(true)
+}
+/// Create a local branch that tracks a remote branch.
+/// `git checkout -b <local> origin/<remote>`
+#[command]
+pub async fn cmd_git_create_branch_from_remote(path: String, local_branch: String, remote_branch: String) -> Result<String, String> {
+    let local = local_branch.trim().to_string();
+    let remote = remote_branch.trim().to_string();
+    if local.is_empty() {
+        return Err("Local branch name cannot be empty".to_string());
+    }
+    if remote.is_empty() {
+        return Err("Remote branch name cannot be empty".to_string());
+    }
+    let remote_ref = format!("origin/{}", remote);
+    let stdout = run_git(path, vec!["checkout".into(), "-b".into(), local, remote_ref]).await?;
+    Ok(format!("Branch created from remote: {}", stdout))
+}

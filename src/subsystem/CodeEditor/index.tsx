@@ -20,6 +20,7 @@ import { CollapseAllIcon2, ExpandAllIcon2 } from "../../icons";
 import CodeEditorSidePanel from "./CodeEditorSidebar/CodeEditorSidePanel";
 import GitPanel from "./CodeEditorSidebar/GitPanel";
 import CodingPanel, { CodingPanelRef } from "./CodingPanel";
+import { SessionDomain } from "../../core/types";
 // Chat panel width limits (right panel in code editor)
 const CHAT_PANEL_MIN_WIDTH = 200;
 const CHAT_PANEL_MAX_WIDTH_RATIO = 0.6; // Max 60% of main area
@@ -724,6 +725,9 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
   // Whether the Git panel is currently covering the main content area.
   // This is derived from sidePanelView === "git".
   const isGitPanelActive = sidePanelView === "git";
+  useEffect(() => {
+    taskManager.setCurrentDomain(SessionDomain.CodeEditor);
+  }, []);
   // Clear selection when batch mode is turned off
   useEffect(() => {
     if (!isBatchMode) {
@@ -793,10 +797,6 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
   };
   /**
    * Batch delete selected sessions
-   * Deletes all sessions that are currently selected in batch mode
-   * Prevents deleting the last session and shows a confirmation dialog
-   * After successful operation, refreshes both the parent and child components
-   * If the current session is deleted, switches to the first remaining session
    */
   const handleBatchDelete = async () => {
     if (selectedIds.size === 0) {
@@ -1378,14 +1378,6 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
   );
   /**
    * History drawer content.
-   * Mirrors the blockchain page: a slide-out panel anchored to the left edge,
-   * opened from the sidebar's bottom History button.
-   *
-   * CLICK BEHAVIOR:
-   * - Any click inside the drawer is stopped at the drawer boundary so it
-   *   can never bubble up and trigger a close.
-   * - Only the backdrop (outside the drawer) or the explicit close button
-   *   will call setIsHistoryDrawerOpen(false).
    */
   const renderHistoryDrawer = () => {
     // Common button style for header actions
@@ -1423,8 +1415,6 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
         {/* Drawer panel: blocks all internal clicks from bubbling up */}
         <div
           onClick={(e) => {
-            // Block every click inside the drawer from bubbling up, so nothing
-            // in the history panel can trigger the drawer's close logic.
             e.stopPropagation();
           }}
           style={{
@@ -1801,9 +1791,6 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
             )}
           </>
         )}
-        {/* When the Git panel is active, it fills the ENTIRE main content area
-            (chat + editor), replacing both. Otherwise the normal chat + editor
-            layout is rendered. */}
         {isGitPanelActive && !isFunctionPanelMaximized ? (
           <div
             style={{

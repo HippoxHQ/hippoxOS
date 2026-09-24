@@ -1,15 +1,9 @@
 import React, { useState, useRef, useEffect, useCallback, forwardRef, useImperativeHandle } from "react";
+import { readTextFile } from "@tauri-apps/plugin-fs";
 import { configCommands } from "../../../command/config";
 import CodeEditPanel from "./CodeEditPanel/CodeEditPanel";
 import DiffPanel from "./CodeEditPanel/DiffPanel";
-/**
- * Ref interface for CodingPanel
- * Exposed to parent components (CodeEditorChatPanel) for programmatic control
- *
- * This follows the same pattern as SandBox3DRef and EarthViewRef:
- * - Chat panel calls these methods to render diff data
- * - All calls show diff panel for user confirmation
- */
+import { onFileTreeRefresh } from "../WindowEventManager";
 export interface CodingPanelRef {
   /** Show diff panel with original and modified content */
   showDiff: (fileName: string, originalContent: string, modifiedContent: string) => void;
@@ -34,10 +28,6 @@ interface CodingPanelProps {
 }
 /**
  * CodingPanel - Main code editor layout component
- *
- * NOTE: The file tree is no longer rendered inline. It is hosted inside
- * the dedicated CodeEditorSidePanel owned by CodeEditorPage. CodingPanel
- * only renders the editor + terminal and the optional diff panel.
  */
 const CodingPanel = forwardRef<CodingPanelRef, CodingPanelProps>(({ t, onClose, workspacePath, onTabChange, selectedFile: externalSelectedFile = null, onFileSelect }, ref) => {
   const [rightHeight, setRightHeight] = useState(200);
@@ -178,6 +168,23 @@ const CodingPanel = forwardRef<CodingPanelRef, CodingPanelProps>(({ t, onClose, 
     };
   }, []);
   useEffect(() => {}, [workspacePath]);
+  /**
+   * Subscribe to the workspace refresh event.
+   */
+  useEffect(() => {
+    const unsubscribe = onFileTreeRefresh(async () => {
+      if (!internalSelectedFile || !workspacePath) return;
+      try {
+        const content = await readTextFile(internalSelectedFile);
+        if (codeEditRef.current) {
+          codeEditRef.current.setValue(content);
+        }
+      } catch (e) {
+        console.warn("[CodingPanel] Failed to reload file after refresh event:", e);
+      }
+    });
+    return unsubscribe;
+  }, [internalSelectedFile, workspacePath]);
   useEffect(() => {
     const loadLayoutMode = async () => {
       try {

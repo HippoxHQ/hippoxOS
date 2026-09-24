@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { User, GitCommit, Check, AlertCircle } from "lucide-react";
-import { buildGlobalEmailAvatarUrl } from "./common";
+import { buildGlobalEmailAvatarUrl } from "../../common";
 interface CommitAreaProps {
   isZh: boolean;
   minHeightPx: number;
