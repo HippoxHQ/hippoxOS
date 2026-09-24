@@ -62,6 +62,7 @@ const getFileLanguage = (fileName: string): string => {
   return map[ext] || "plaintext";
 };
 const CodeEdit: React.FC<CodeEditProps> = ({ t, selectedFile, workspacePath, onTabChange, onRef }) => {
+  const isZh = t("i18n") === "zh";
   const containerRef = useRef<HTMLDivElement>(null);
   const tabsContainerRef = useRef<HTMLDivElement>(null);
   const scrollbarRef = useRef<HTMLDivElement>(null);
@@ -390,20 +391,21 @@ const CodeEdit: React.FC<CodeEditProps> = ({ t, selectedFile, workspacePath, onT
       if (!tab) return undefined;
       if (tab.isDirty) {
         const fileName = tab.name;
+        const isZh = t("i18n") === "zh";
         const result = await new Promise<"save" | "cancel" | "skip">((resolve) => {
           showDialog(
             DialogType.WARNING,
-            t("codeEditor.unsavedChanges") || "Unsaved Changes",
-            t("codeEditor.saveBeforeClose", { name: fileName }) || `"${fileName}" has unsaved changes. Save before closing?`,
+            isZh ? "未保存的更改" : "Unsaved Changes",
+            isZh ? `"${fileName}" 有未保存的更改，关闭前是否保存？` : `"${fileName}" has unsaved changes. Save before closing?`,
             () => {
               resolve("save");
             },
             () => {
               resolve("cancel");
             },
-            t("codeEditor.save") || "Save",
-            t("common.cancel") || "Cancel",
-            t("codeEditor.skip") || "Skip",
+            isZh ? "保存" : "Save",
+            isZh ? "取消" : "Cancel",
+            isZh ? "跳过" : "Skip",
             () => {
               resolve("skip");
             },
@@ -1361,7 +1363,7 @@ const CodeEdit: React.FC<CodeEditProps> = ({ t, selectedFile, workspacePath, onT
               letterSpacing: "0.3px",
             }}
           >
-            {t ? t("codeEditor.noTabs") : "No files open"}
+            {isZh ? "未打开任何文件" : "No files open"}
           </div>
           <div
             style={{
@@ -1372,7 +1374,7 @@ const CodeEdit: React.FC<CodeEditProps> = ({ t, selectedFile, workspacePath, onT
               lineHeight: 1.6,
             }}
           >
-            {t ? t("codeEditor.openFileHint") : "Open a file from the file tree to start editing"}
+            {isZh ? "从文件树中打开一个文件以开始编辑" : "Open a file from the file tree to start editing"}
           </div>
           <div
             style={{

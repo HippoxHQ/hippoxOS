@@ -1,4 +1,10 @@
 import { invoke } from "@tauri-apps/api/core";
+export interface CommitAuthorOverride {
+    authorName: string;
+    authorEmail: string;
+    committerName: string;
+    committerEmail: string;
+}
 export const githubCommands = {
     getHippoxVersions: async (): Promise<Record<string, string>> => {
         return await invoke("cmd_get_hippox_versions");
@@ -40,7 +46,9 @@ export const githubCommands = {
             shortHash: string;
             message: string;
             author: string;
+            authorEmail: string;
             date: string;
+            committer: string;
             branch: string | null;
             isHead: boolean;
             parents: string[];
@@ -89,10 +97,6 @@ export const githubCommands = {
     }> => {
         return await invoke("cmd_get_file_diff", { path, file });
     },
-    /**
-     * Split git status into staged and unstaged buckets.
-     * Uses `git status --porcelain=v1` and inspects both status columns.
-     */
     getGitStatusSplit: async (path: string): Promise<{
         staged: Array<{ file: string; status: string; statusDesc: string }>;
         unstaged: Array<{ file: string; status: string; statusDesc: string }>;
@@ -100,27 +104,21 @@ export const githubCommands = {
     }> => {
         return await invoke("cmd_git_status_split", { path });
     },
-    /** Stage a single file (git add -- <file>). */
     stageFile: async (path: string, file: string): Promise<boolean> => {
         return await invoke("cmd_git_add_file", { path, file });
     },
-    /** Unstage a single file (git reset HEAD -- <file>). */
     unstageFile: async (path: string, file: string): Promise<boolean> => {
         return await invoke("cmd_git_unstage_file", { path, file });
     },
-    /** Stage every changed file (git add -A). */
     stageAll: async (path: string): Promise<boolean> => {
         return await invoke("cmd_git_stage_all", { path });
     },
-    /** Unstage every staged file (git reset HEAD -- .). */
     unstageAll: async (path: string): Promise<boolean> => {
         return await invoke("cmd_git_unstage_all", { path });
     },
-    /** Commit staged changes (git commit -m <message>). */
-    commit: async (path: string, message: string): Promise<string> => {
-        return await invoke("cmd_git_commit", { path, message });
+    commit: async (path: string, message: string, author?: CommitAuthorOverride): Promise<string> => {
+        return await invoke("cmd_git_commit", { path, message, author });
     },
-    /** Diff of a single staged file (git diff --cached -- <file>). */
     getStagedFileDiff: async (path: string, file: string): Promise<{
         type: 'diff' | 'new_file' | 'no_diff';
         diff: string;
@@ -129,5 +127,109 @@ export const githubCommands = {
         deletions?: number;
     }> => {
         return await invoke("cmd_git_staged_file_diff", { path, file });
+    },
+    getGitUserConfig: async (path: string): Promise<{
+        name: string;
+        email: string;
+    }> => {
+        return await invoke("cmd_git_user_config", { path });
+    },
+    createBranch: async (path: string, branch: string): Promise<string> => {
+        return await invoke("cmd_git_create_branch", { path, branch });
+    },
+    deleteBranch: async (path: string, branch: string): Promise<string> => {
+        return await invoke("cmd_git_delete_branch", { path, branch });
+    },
+    checkoutBranch: async (path: string, branch: string): Promise<string> => {
+        return await invoke("cmd_git_checkout_branch", { path, branch });
+    },
+    getAheadCount: async (path: string): Promise<number> => {
+        return await invoke("cmd_git_ahead_count", { path });
+    },
+    getCommitFiles: async (path: string, hash: string): Promise<{
+        files: Array<{ file: string; status: string; statusDesc: string }>;
+    }> => {
+        return await invoke("cmd_git_commit_files", { path, hash });
+    },
+    getCommitFileDiff: async (path: string, hash: string, file: string): Promise<{
+        type: 'diff' | 'new_file' | 'no_diff';
+        diff: string;
+        content?: string;
+        additions?: number;
+        deletions?: number;
+    }> => {
+        return await invoke("cmd_git_commit_file_diff", { path, hash, file });
+    },
+    remoteBranchExists: async (path: string, branch: string): Promise<boolean> => {
+        return await invoke("cmd_git_remote_branch_exists", { path, branch });
+    },
+    listTags: async (path: string): Promise<string[]> => {
+        return await invoke("cmd_git_list_tags", { path });
+    },
+    createTag: async (path: string, tag: string, message?: string): Promise<string> => {
+        return await invoke("cmd_git_create_tag", { path, tag, message });
+    },
+    deleteTag: async (path: string, tag: string): Promise<string> => {
+        return await invoke("cmd_git_delete_tag", { path, tag });
+    },
+    tagExists: async (path: string, tag: string): Promise<boolean> => {
+        return await invoke("cmd_git_tag_exists", { path, tag });
+    },
+    getRemoteTags: async (path: string): Promise<string[]> => {
+        return await invoke("cmd_git_remote_tags", { path });
+    },
+    getAllRemoteBranches: async (path: string): Promise<string[]> => {
+        return await invoke("cmd_git_all_remote_branches", { path });
+    },
+    getUnpushedCommits: async (path: string): Promise<{
+        commits: Array<{
+            hash: string;
+            shortHash: string;
+            subject: string;
+            author: string;
+        }>;
+    }> => {
+        return await invoke("cmd_git_unpushed_commits", { path });
+    },
+    pushSelected: async (path: string, branches: string[], tags: string[]): Promise<string> => {
+        return await invoke("cmd_git_push_selected", { path, branches, tags });
+    },
+    getUnpushedBranchCount: async (path: string): Promise<number> => {
+        return await invoke("cmd_git_unpushed_branch_count", { path });
+    },
+    getUnpushedTagCount: async (path: string): Promise<number> => {
+        return await invoke("cmd_git_unpushed_tag_count", { path });
+    },
+    checkoutCommit: async (path: string, hash: string): Promise<string> => {
+        return await invoke("cmd_git_checkout_commit", { path, hash });
+    },
+    mergeCommit: async (path: string, hash: string): Promise<string> => {
+        return await invoke("cmd_git_merge_commit", { path, hash });
+    },
+    rebaseOnto: async (path: string, hash: string): Promise<string> => {
+        return await invoke("cmd_git_rebase_onto", { path, hash });
+    },
+    resetToCommit: async (path: string, hash: string): Promise<string> => {
+        return await invoke("cmd_git_reset_to_commit", { path, hash });
+    },
+    revertCommit: async (path: string, hash: string): Promise<string> => {
+        return await invoke("cmd_git_revert_commit", { path, hash });
+    },
+    getGraph: async (path: string): Promise<{
+        commits: Array<{
+            hash: string;
+            shortHash: string;
+            message: string;
+            author: string;
+            authorEmail: string;
+            date: string;
+            committer: string;
+            parents: string[];
+            branches: string[];
+            tags: string[];
+            isHead: boolean;
+        }>;
+    }> => {
+        return await invoke("cmd_git_graph", { path });
     },
 };

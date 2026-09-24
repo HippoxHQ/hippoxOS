@@ -1,50 +1,48 @@
-import React, { useEffect, useState } from "react";
-import { GitBranch, X, Plus, Minus, ArrowRightLeft } from "lucide-react";
-type BranchTab = "switch" | "new" | "delete";
-interface BranchDialogProps {
+import React, { useEffect, useMemo, useState } from "react";
+import { Tag, X, Plus, Minus } from "lucide-react";
+type TagTab = "new" | "delete";
+interface TagDialogProps {
   isZh: boolean;
   mode: "manage" | "new" | "delete";
   input: string;
   onInputChange: (value: string) => void;
-  branches: string[];
-  currentBranch: string;
-  remoteBranches: Set<string>;
+  message: string;
+  onMessageChange: (value: string) => void;
+  tags: string[];
+  remoteTags: string[];
   isWorking: boolean;
   onCancel: () => void;
-  onConfirm: (tab: BranchTab) => void;
+  onConfirm: (tab: TagTab) => void;
 }
-const BranchDialog: React.FC<BranchDialogProps> = ({ isZh, mode, input, onInputChange, branches, currentBranch, remoteBranches, isWorking, onCancel, onConfirm }) => {
-  const [activeTab, setActiveTab] = useState<BranchTab>(mode === "new" ? "new" : mode === "delete" ? "delete" : "switch");
+const TagDialog: React.FC<TagDialogProps> = ({ isZh, mode, input, onInputChange, message, onMessageChange, tags, remoteTags, isWorking, onCancel, onConfirm }) => {
+  const [activeTab, setActiveTab] = useState<TagTab>(mode === "delete" ? "delete" : "new");
   useEffect(() => {
-    setActiveTab(mode === "new" ? "new" : mode === "delete" ? "delete" : "switch");
+    setActiveTab(mode === "delete" ? "delete" : "new");
   }, [mode]);
-  /**
-   * Normalize the current branch name.
-   * Detached HEAD yields "HEAD" (or "HEAD detached at ..."), which is not
-   * a real branch name, so it is treated as "no current branch".
-   */
-  const normalizedCurrentBranch = (() => {
-    const name = (currentBranch || "").trim();
-    if (!name) return "";
-    if (name === "HEAD") return "";
-    if (name.startsWith("HEAD ")) return "";
-    if (name.startsWith("(HEAD")) return "";
-    return name;
-  })();
+  const safeLocalTags = Array.isArray(tags) ? tags : [];
+  const safeRemoteTags = Array.isArray(remoteTags) ? remoteTags : [];
+  const localSet = useMemo(() => new Set(safeLocalTags), [safeLocalTags]);
+  const remoteSet = useMemo(() => new Set(safeRemoteTags), [safeRemoteTags]);
+  const allTags = useMemo(() => {
+    const set = new Set<string>();
+    safeLocalTags.forEach((t) => set.add(t));
+    safeRemoteTags.forEach((t) => set.add(t));
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [safeLocalTags, safeRemoteTags]);
   const canConfirm = (() => {
     if (isWorking) return false;
     const name = input.trim();
     if (activeTab === "new") return name.length > 0;
-    if (activeTab === "delete") return name.length > 0 && name !== normalizedCurrentBranch;
-    return name.length > 0 && name !== normalizedCurrentBranch;
+    return name.length > 0;
   })();
-  const TabButton: React.FC<{ tab: BranchTab; icon: React.ReactNode; label: string }> = ({ tab, icon, label }) => {
+  const TabButton: React.FC<{ tab: TagTab; icon: React.ReactNode; label: string }> = ({ tab, icon, label }) => {
     const isActive = activeTab === tab;
     return (
       <button
         onClick={() => {
           setActiveTab(tab);
           onInputChange("");
+          onMessageChange("");
         }}
         style={{
           flex: 1,
@@ -80,30 +78,14 @@ const BranchDialog: React.FC<BranchDialogProps> = ({ isZh, mode, input, onInputC
       </button>
     );
   };
-  /**
-   * Branch list, with HEAD (and every detached-HEAD variant) filtered out.
-   * Each entry is trimmed first so stray whitespace / prefixes from the
-   * raw `git branch` output cannot leak through.
-   */
-  const sortedBranches = (() => {
-    const list = [...branches]
-      .map((b) => (b || "").trim())
-      .filter((b) => {
-        if (!b) return false;
-        if (b === "HEAD") return false;
-        if (b.startsWith("HEAD ")) return false;
-        if (b.startsWith("(HEAD")) return false;
-        if (b.toLowerCase() === "head") return false;
-        if (b.endsWith("/HEAD")) return false;
-        return true;
-      });
-    list.sort((a, b) => {
-      if (a === normalizedCurrentBranch) return -1;
-      if (b === normalizedCurrentBranch) return 1;
-      return a.localeCompare(b);
-    });
-    return list;
-  })();
+  const badgeStyle: React.CSSProperties = {
+    fontSize: "9px",
+    padding: "1px 6px",
+    borderRadius: "8px",
+    background: "var(--bg-tertiary)",
+    color: "var(--text-secondary)",
+    flexShrink: 0,
+  };
   return (
     <div
       style={{
@@ -133,8 +115,8 @@ const BranchDialog: React.FC<BranchDialogProps> = ({ isZh, mode, input, onInputC
       >
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <span style={{ fontSize: "13px", fontWeight: 600, color: "var(--text-primary)", display: "flex", alignItems: "center", gap: "6px" }}>
-            <GitBranch size={14} />
-            {isZh ? "分支管理" : "Branch Management"}
+            <Tag size={14} />
+            {isZh ? "标签管理" : "Tag Management"}
           </span>
           <button
             onClick={onCancel}
@@ -163,51 +145,67 @@ const BranchDialog: React.FC<BranchDialogProps> = ({ isZh, mode, input, onInputC
           </button>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-          <TabButton tab="switch" icon={<ArrowRightLeft size={12} />} label={isZh ? "切换分支" : "Switch"} />
-          <TabButton tab="new" icon={<Plus size={12} />} label={isZh ? "新建分支" : "New"} />
-          <TabButton tab="delete" icon={<Minus size={12} />} label={isZh ? "删除分支" : "Delete"} />
+          <TabButton tab="new" icon={<Plus size={12} />} label={isZh ? "新建标签" : "New"} />
+          <TabButton tab="delete" icon={<Minus size={12} />} label={isZh ? "删除标签" : "Delete"} />
         </div>
         {activeTab === "new" ? (
-          <input
-            type="text"
-            autoFocus
-            value={input}
-            onChange={(e) => onInputChange(e.target.value)}
-            placeholder={isZh ? "输入新分支名..." : "Enter new branch name..."}
-            style={{
-              width: "100%",
-              height: "32px",
-              background: "var(--bg-primary)",
-              border: "1px solid var(--border-color)",
-              borderRadius: "4px",
-              color: "var(--text-primary)",
-              fontSize: "12px",
-              padding: "0 10px",
-              outline: "none",
-              boxSizing: "border-box",
-            }}
-          />
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            <input
+              type="text"
+              autoFocus
+              value={input}
+              onChange={(e) => onInputChange(e.target.value)}
+              placeholder={isZh ? "输入新标签名..." : "Enter new tag name..."}
+              style={{
+                width: "100%",
+                height: "32px",
+                background: "var(--bg-primary)",
+                border: "1px solid var(--border-color)",
+                borderRadius: "4px",
+                color: "var(--text-primary)",
+                fontSize: "12px",
+                padding: "0 10px",
+                outline: "none",
+                boxSizing: "border-box",
+              }}
+            />
+            <textarea
+              value={message}
+              onChange={(e) => onMessageChange(e.target.value)}
+              placeholder={isZh ? "标签说明（可选，填写后为附注标签）..." : "Tag message (optional, creates an annotated tag)..."}
+              style={{
+                width: "100%",
+                height: "60px",
+                background: "var(--bg-primary)",
+                border: "1px solid var(--border-color)",
+                borderRadius: "4px",
+                color: "var(--text-primary)",
+                fontSize: "12px",
+                padding: "6px 10px",
+                outline: "none",
+                resize: "none",
+                boxSizing: "border-box",
+                fontFamily: "inherit",
+              }}
+            />
+          </div>
         ) : (
           <div style={{ maxHeight: "260px", overflowY: "auto", border: "1px solid var(--border-color)", borderRadius: "4px", background: "var(--bg-primary)" }}>
-            {sortedBranches.length === 0 ? (
-              <div style={{ padding: "12px", fontSize: "12px", color: "var(--text-muted)", textAlign: "center" }}>{isZh ? "暂无分支" : "No branches"}</div>
+            {allTags.length === 0 ? (
+              <div style={{ padding: "12px", fontSize: "12px", color: "var(--text-muted)", textAlign: "center" }}>{isZh ? "暂无标签" : "No tags"}</div>
             ) : (
-              sortedBranches.map((b) => {
-                const isCurrent = b === normalizedCurrentBranch;
-                const isSelected = input === b;
-                const isRemote = remoteBranches.has(b);
-                const disabled = activeTab === "delete" && isCurrent;
+              allTags.map((t) => {
+                const isSelected = input === t;
+                const isLocal = localSet.has(t);
+                const isRemote = remoteSet.has(t);
                 return (
                   <div
-                    key={b}
-                    onClick={() => {
-                      if (!disabled) onInputChange(b);
-                    }}
+                    key={t}
+                    onClick={() => onInputChange(t)}
                     style={{
                       padding: "6px 10px",
                       fontSize: "12px",
-                      cursor: disabled ? "not-allowed" : "pointer",
-                      opacity: disabled ? 0.5 : 1,
+                      cursor: "pointer",
                       background: isSelected ? "var(--accent-glow)" : "transparent",
                       color: isSelected ? "var(--accent-color)" : "var(--text-primary)",
                       borderBottom: "1px solid var(--border-color)",
@@ -216,16 +214,16 @@ const BranchDialog: React.FC<BranchDialogProps> = ({ isZh, mode, input, onInputC
                       gap: "6px",
                     }}
                     onMouseEnter={(e) => {
-                      if (!isSelected && !disabled) e.currentTarget.style.background = "var(--hover-bg)";
+                      if (!isSelected) e.currentTarget.style.background = "var(--hover-bg)";
                     }}
                     onMouseLeave={(e) => {
-                      if (!isSelected && !disabled) e.currentTarget.style.background = "transparent";
+                      if (!isSelected) e.currentTarget.style.background = "transparent";
                     }}
-                    title={disabled ? (isZh ? "无法删除当前分支" : "Cannot delete the current branch") : b}
+                    title={t}
                   >
-                    <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{b}</span>
-                    {isCurrent && <span style={{ fontSize: "9px", padding: "1px 6px", borderRadius: "8px", background: "var(--accent-glow)", color: "var(--accent-color)", flexShrink: 0 }}>{isZh ? "当前" : "Current"}</span>}
-                    {isRemote && <span style={{ fontSize: "9px", padding: "1px 6px", borderRadius: "8px", background: "var(--bg-tertiary)", color: "var(--text-secondary)", flexShrink: 0 }}>{isZh ? "远程" : "Remote"}</span>}
+                    <Tag size={12} style={{ flexShrink: 0, color: "var(--text-muted)" }} />
+                    <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t}</span>
+                    {isRemote ? <span style={badgeStyle}>{isZh ? "远程" : "Remote"}</span> : isLocal ? <span style={badgeStyle}>{isZh ? "本地" : "Local"}</span> : null}
                   </div>
                 );
               })
@@ -266,11 +264,11 @@ const BranchDialog: React.FC<BranchDialogProps> = ({ isZh, mode, input, onInputC
               opacity: !canConfirm ? 0.6 : 1,
             }}
           >
-            {isWorking ? (isZh ? "处理中..." : "Working...") : activeTab === "switch" ? (isZh ? "切换" : "Switch") : activeTab === "new" ? (isZh ? "创建" : "Create") : isZh ? "删除" : "Delete"}
+            {isWorking ? (isZh ? "处理中..." : "Working...") : activeTab === "new" ? (isZh ? "创建" : "Create") : isZh ? "删除" : "Delete"}
           </button>
         </div>
       </div>
     </div>
   );
 };
-export default BranchDialog;
+export default TagDialog;

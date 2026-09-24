@@ -16,8 +16,8 @@ import { zhCodeEditorDefaultPrompts, enCodeEditorDefaultPrompts } from "../../..
 import { ChatMessage, RoleEnum, MessageStatus } from "../../../types/types";
 import { codeEditorSessionCommands } from "../../../command/session/codeeditor";
 import { isStructuredLLMResponse, parseLLMResponse } from "../llm/utils";
-import { CodingRef } from "../Coding";
 import { filesCommands } from "../../../command/files";
+import { CodingPanelRef } from "../CodingPanel";
 interface CodeEditorChatPanelProps {
   onSendMessage: (message: string, sessionId: string, files?: UploadFile[], workflowMode?: string, displayMessage?: string) => void | Promise<void>;
   onFileClick?: (file: UploadFile) => void;
@@ -32,7 +32,7 @@ interface CodeEditorChatPanelProps {
   togglePanel?: () => void;
   collapseIcon?: string;
   /** Reference to the Coding component for displaying diffs */
-  codingRef?: React.RefObject<CodingRef | null>;
+  codingPanelRef?: React.RefObject<CodingPanelRef | null>;
 }
 /**
  * CodeEditorChatPanel - Chat interface for code editor
@@ -51,7 +51,7 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
   togglePanel,
   collapseIcon: collapseIconProp,
   currentSessionId,
-  codingRef,
+  codingPanelRef,
 }) => {
   const [inputValue, setInputValue] = useState("");
   const [isFocused, setIsFocused] = useState(false);
@@ -633,8 +633,8 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
       const displayMessage = inputValue.trim() || "";
       // Get current file content from the editor (for the LLM payload only).
       let currentFileContent = "";
-      if (codingRef?.current) {
-        currentFileContent = codingRef.current.getCurrentFileContent();
+      if (codingPanelRef?.current) {
+        currentFileContent = codingPanelRef.current.getCurrentFileContent();
       }
       // (2) Build the full LLM payload.
       let message = displayMessage;
@@ -1075,10 +1075,6 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
   })();
   /**
    * Process LLM response and render editor diff data on the coding panel
-   * This is the key integration point between chat and code editor
-   * It runs whenever messages change and checks the latest LLM message
-   *
-   * Same pattern as 3D sandbox: extract data from LLM response and render it
    */
   useEffect(() => {
     // Check if there's a new LLM message with editor data to render
@@ -1097,15 +1093,15 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
       if (parsed?.terminalResponse?.editor) {
         const editorData = parsed.terminalResponse.editor;
         // Show diff in the coding panel
-        if (codingRef?.current) {
-          codingRef.current.showDiff(editorData.filePath, editorData.originalContent, editorData.newContent);
+        if (codingPanelRef?.current) {
+          codingPanelRef.current.showDiff(editorData.filePath, editorData.originalContent, editorData.newContent);
           processedMessageIdsRef.current.add(lastMsg.id);
         } else {
           console.warn("[CodeEditorChatPanel] Coding ref not available for diff display");
         }
       }
     }
-  }, [messages, codingRef, currentSessionId]);
+  }, [messages, codingPanelRef, currentSessionId]);
   // RENDER
   return (
     <div

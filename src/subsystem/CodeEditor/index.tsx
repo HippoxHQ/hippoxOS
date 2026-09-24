@@ -1265,7 +1265,7 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
       />
     </div>
   );
-  const chatPanel = <CodeEditorChatPanel onSendMessage={handleSendMessage} onFileClick={onFileClick} t={t} currentSessionId={currentSessionId} onDragOverInputChange={onDragOverInputChange} language={language} isLeftPanel={isChatOnLeft} codingRef={codingPanelRef} />;
+  const chatPanel = <CodeEditorChatPanel onSendMessage={handleSendMessage} onFileClick={onFileClick} t={t} currentSessionId={currentSessionId} onDragOverInputChange={onDragOverInputChange} language={language} isLeftPanel={isChatOnLeft} codingPanelRef={codingPanelRef} />;
   const codeEditorPanel = (
     <div
       style={{

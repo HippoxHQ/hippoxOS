@@ -1,3 +1,4 @@
+import { X } from "lucide-react";
 import React, { useEffect, useState, useCallback } from "react";
 export enum DialogType {
   INFO = "info",
@@ -36,17 +37,7 @@ const Dialog: React.FC = () => {
   });
   useEffect(() => {
     dialogController = {
-      show: (
-        type: DialogType,
-        title: string,
-        message: string,
-        onConfirm?: () => void,
-        onCancel?: () => void,
-        confirmText: string = "确定",
-        cancelText: string = "取消",
-        skipText: string = "跳过",
-        onSkip?: () => void,
-      ) => {
+      show: (type: DialogType, title: string, message: string, onConfirm?: () => void, onCancel?: () => void, confirmText: string = "确定", cancelText: string = "取消", skipText: string = "跳过", onSkip?: () => void) => {
         setDialog({
           visible: true,
           type,
@@ -298,7 +289,7 @@ const Dialog: React.FC = () => {
             </div>
             <h3 className="dialog-title">{dialog.title}</h3>
             <button className="dialog-close" onClick={handleCancel}>
-              ×
+              <X />
             </button>
           </div>
           <div className="dialog-message">{dialog.message}</div>
@@ -320,17 +311,7 @@ const Dialog: React.FC = () => {
     </>
   );
 };
-export const showDialog = (
-  type: DialogType,
-  title: string,
-  message: string,
-  onConfirm?: () => void,
-  onCancel?: () => void,
-  confirmText: string = "确定",
-  cancelText: string = "取消",
-  skipText?: string,
-  onSkip?: () => void,
-) => {
+export const showDialog = (type: DialogType, title: string, message: string, onConfirm?: () => void, onCancel?: () => void, confirmText: string = "确定", cancelText: string = "取消", skipText?: string, onSkip?: () => void) => {
   if (dialogController) {
     dialogController.show(type, title, message, onConfirm, onCancel, confirmText, cancelText, skipText, onSkip);
   } else {

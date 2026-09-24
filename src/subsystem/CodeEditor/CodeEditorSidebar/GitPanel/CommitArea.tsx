@@ -1,10 +1,9 @@
-import React from "react";
-import { User, GitCommit, Check } from "lucide-react";
+import React, { useMemo, useState } from "react";
+import { User, GitCommit, Check, AlertCircle } from "lucide-react";
+import { buildGlobalEmailAvatarUrl } from "./common";
 interface CommitAreaProps {
   isZh: boolean;
   minHeightPx: number;
-  /** Exact height in pixels. Parent computes this from the top split
-   *  ratio and clamps it to at least `minHeightPx`. */
   heightPx: number;
   stagedCount: number;
   profileName: string;
@@ -13,15 +12,119 @@ interface CommitAreaProps {
   commitMessage: string;
   onCommitMessageChange: (value: string) => void;
   isCommitting: boolean;
+  isPushing: boolean;
   pushAfterCommit: boolean;
   onPushAfterCommitChange: (value: boolean) => void;
   remoteShortName: string;
   branch: string;
   canPush: boolean;
+  commitError: string | null;
   onCommit: () => void;
 }
-const CommitArea: React.FC<CommitAreaProps> = ({ isZh, minHeightPx, heightPx, stagedCount, profileName, profileEmail, profileAvatar, commitMessage, onCommitMessageChange, isCommitting, pushAfterCommit, onPushAfterCommitChange, remoteShortName, branch, canPush, onCommit }) => {
-  const commitDisabled = isCommitting || stagedCount === 0 || !commitMessage.trim();
+/**
+ * Avatar with a three-stage fallback:
+ *   1. Global Email Avatar (Gravatar-style, based on the user's email)
+ *   2. profileAvatar (local profile image)
+ *   3. Built-in User icon
+ */
+const AvatarWithFallback: React.FC<{ email: string; profileAvatar: string; size?: number }> = ({ email, profileAvatar, size = 18 }) => {
+  // 1 = global email avatar, 2 = profile avatar, 3 = icon
+  const [stage, setStage] = useState<1 | 2 | 3>(1);
+  const globalUrl = useMemo(() => buildGlobalEmailAvatarUrl(email), [email]);
+  // If we are on stage 1 but there is no global URL, skip straight to stage 2.
+  const effectiveStage: 1 | 2 | 3 = stage === 1 && !globalUrl ? (profileAvatar ? 2 : 3) : stage;
+  const handleError = () => {
+    setStage((prev) => {
+      if (prev === 1) return profileAvatar ? 2 : 3;
+      if (prev === 2) return 3;
+      return 3;
+    });
+  };
+  if (effectiveStage === 1 && globalUrl) {
+    return <img src={globalUrl} alt="" onError={handleError} style={{ width: size, height: size, borderRadius: "5px", objectFit: "cover", flexShrink: 0 }} />;
+  }
+  if (effectiveStage === 2 && profileAvatar) {
+    return <img src={profileAvatar} alt="" onError={handleError} style={{ width: size, height: size, borderRadius: "5px", objectFit: "cover", flexShrink: 0 }} />;
+  }
+  return (
+    <span
+      style={{
+        width: size,
+        height: size,
+        borderRadius: "50%",
+        background: "var(--bg-tertiary)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        flexShrink: 0,
+      }}
+    >
+      <User size={size - 7} />
+    </span>
+  );
+};
+/**
+ * Inline keyframes for the "shimmer" progress bar. Injected once per mount
+ * via a <style> tag so we don't need an external stylesheet.
+ */
+const ShimmerStyle: React.FC = () => (
+  <style>{`
+    @keyframes hippox-shimmer {
+      0%   { transform: translateX(-100%); }
+      100% { transform: translateX(100%); }
+    }
+  `}</style>
+);
+/**
+ * A thin, indeterminate progress bar with a moving highlight.
+ * Used while a commit or push is in flight.
+ */
+const ShimmerBar: React.FC<{ visible: boolean }> = ({ visible }) => {
+  if (!visible) return null;
+  return (
+    <div
+      style={{
+        position: "relative",
+        width: "100%",
+        height: "2px",
+        overflow: "hidden",
+        background: "var(--bg-tertiary)",
+        borderRadius: "1px",
+      }}
+    >
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          background: "linear-gradient(90deg, transparent 0%, var(--accent-color) 50%, transparent 100%)",
+          animation: "hippox-shimmer 1.2s ease-in-out infinite",
+        }}
+      />
+    </div>
+  );
+};
+const CommitArea: React.FC<CommitAreaProps> = ({
+  isZh,
+  minHeightPx,
+  heightPx,
+  stagedCount,
+  profileName,
+  profileEmail,
+  profileAvatar,
+  commitMessage,
+  onCommitMessageChange,
+  isCommitting,
+  isPushing,
+  pushAfterCommit,
+  onPushAfterCommitChange,
+  remoteShortName,
+  branch,
+  canPush,
+  commitError,
+  onCommit,
+}) => {
+  const commitDisabled = isCommitting || isPushing || stagedCount === 0 || !commitMessage.trim();
+  const busy = isCommitting || isPushing;
   return (
     <div
       style={{
@@ -32,34 +135,29 @@ const CommitArea: React.FC<CommitAreaProps> = ({ isZh, minHeightPx, heightPx, st
         minHeight: `${minHeightPx}px`,
         borderTop: "1px solid var(--border-color)",
         background: "var(--bg-secondary)",
-        padding: "8px 10px",
+        padding: "5px 10px",
         display: "flex",
         flexDirection: "column",
         gap: "6px",
         overflow: "hidden",
         boxSizing: "border-box",
+        paddingTop: "5px",
       }}
     >
-      {/* Row 1: user info (fixed height, never shrinks) */}
+      <ShimmerStyle />
       <div
         style={{
           display: "flex",
           alignItems: "center",
           gap: "8px",
-          fontSize: "11px",
+          fontSize: "14px",
           color: "var(--text-secondary)",
           flexShrink: 0,
           flexGrow: 0,
-          height: "18px",
+          height: "30px",
         }}
       >
-        {profileAvatar ? (
-          <img src={profileAvatar} alt="" style={{ width: "18px", height: "18px", borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
-        ) : (
-          <span style={{ width: "18px", height: "18px", borderRadius: "50%", background: "var(--bg-tertiary)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-            <User size={11} />
-          </span>
-        )}
+        <AvatarWithFallback email={profileEmail} profileAvatar={profileAvatar} size={30} />
         <span style={{ fontWeight: 500, color: "var(--text-primary)" }}>{profileName || (isZh ? "未知用户" : "Unknown user")}</span>
         <span style={{ color: "var(--text-muted)" }}>{profileEmail ? `<${profileEmail}>` : ""}</span>
         <span style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "6px", fontSize: "11px", fontWeight: 600, color: "var(--text-secondary)" }}>
@@ -76,6 +174,7 @@ const CommitArea: React.FC<CommitAreaProps> = ({ isZh, minHeightPx, heightPx, st
         value={commitMessage}
         onChange={(e) => onCommitMessageChange(e.target.value)}
         placeholder={isZh ? "输入提交信息..." : "Enter commit message..."}
+        disabled={busy}
         style={{
           // Allow the textarea to shrink so it never eats the button row
           flex: "1 1 auto",
@@ -90,9 +189,34 @@ const CommitArea: React.FC<CommitAreaProps> = ({ isZh, minHeightPx, heightPx, st
           resize: "none",
           fontFamily: "inherit",
           boxSizing: "border-box",
+          opacity: busy ? 0.7 : 1,
         }}
       />
-      {/* Row 3: button row (fixed height, never shrinks) */}
+      {/* Error banner (only when the last commit/push failed) */}
+      {commitError && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "flex-start",
+            gap: "6px",
+            padding: "4px 8px",
+            fontSize: "11px",
+            color: "#ef4444",
+            background: "rgba(239, 68, 68, 0.08)",
+            border: "1px solid rgba(239, 68, 68, 0.35)",
+            borderRadius: "4px",
+            flexShrink: 0,
+            maxHeight: "44px",
+            overflowY: "auto",
+            wordBreak: "break-word",
+            whiteSpace: "pre-wrap",
+          }}
+          title={commitError}
+        >
+          <AlertCircle size={12} style={{ flexShrink: 0, marginTop: "1px" }} />
+          <span style={{ flex: 1, minWidth: 0 }}>{commitError}</span>
+        </div>
+      )}
       <div
         style={{
           display: "flex",
@@ -113,8 +237,8 @@ const CommitArea: React.FC<CommitAreaProps> = ({ isZh, minHeightPx, heightPx, st
             alignItems: "center",
             gap: "6px",
             fontSize: "11px",
-            color: canPush ? "var(--text-secondary)" : "var(--text-muted)",
-            cursor: canPush ? "pointer" : "not-allowed",
+            color: canPush && !busy ? "var(--text-secondary)" : "var(--text-muted)",
+            cursor: canPush && !busy ? "pointer" : "not-allowed",
             userSelect: "none",
             whiteSpace: "nowrap",
             overflow: "hidden",
@@ -122,7 +246,7 @@ const CommitArea: React.FC<CommitAreaProps> = ({ isZh, minHeightPx, heightPx, st
           }}
           title={canPush ? (isZh ? `提交后推送到 ${remoteShortName}/${branch}` : `Push to ${remoteShortName}/${branch} after commit`) : isZh ? "未配置远程仓库" : "No remote configured"}
         >
-          <input type="checkbox" checked={pushAfterCommit} disabled={!canPush} onChange={(e) => onPushAfterCommitChange(e.target.checked)} style={{ cursor: canPush ? "pointer" : "not-allowed", accentColor: "var(--accent-color)", flexShrink: 0 }} />
+          <input type="checkbox" checked={pushAfterCommit} disabled={!canPush || busy} onChange={(e) => onPushAfterCommitChange(e.target.checked)} style={{ cursor: canPush && !busy ? "pointer" : "not-allowed", accentColor: "var(--accent-color)", flexShrink: 0 }} />
           <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>
             {isZh ? "立即推送到" : "Push to"} {remoteShortName || "-"}/{branch || "-"}
           </span>
@@ -132,6 +256,8 @@ const CommitArea: React.FC<CommitAreaProps> = ({ isZh, minHeightPx, heightPx, st
             onClick={onCommit}
             disabled={commitDisabled}
             style={{
+              position: "relative",
+              overflow: "hidden",
               padding: "4px 20px",
               height: "28px",
               minWidth: "100px",
@@ -157,10 +283,12 @@ const CommitArea: React.FC<CommitAreaProps> = ({ isZh, minHeightPx, heightPx, st
             }}
           >
             <Check size={13} />
-            {isCommitting ? (isZh ? "提交中..." : "Committing...") : pushAfterCommit ? (isZh ? "提交并推送" : "Commit & Push") : isZh ? "提交" : "Commit"}
+            {isCommitting ? (isZh ? "提交中..." : "Committing...") : isPushing ? (isZh ? "推送中..." : "Pushing...") : pushAfterCommit ? (isZh ? "提交并推送" : "Commit & Push") : isZh ? "提交" : "Commit"}
           </button>
         </div>
       </div>
+      {/* Shimmer progress bar at the very bottom, visible while busy. */}
+      <ShimmerBar visible={busy} />
     </div>
   );
 };

@@ -28,6 +28,8 @@ const MAP_DIALOG_HISTORY_DIR_NAME: &str = "Map";
 const BLOCKCHAIN_DIALOG_HISTORY_DIR_NAME: &str = "BlockChain";
 /// Code Editor Dialog History directory name
 const CODE_EDITOR_DIALOG_HISTORY_DIR_NAME: &str = "CodeEditor";
+/// This directory is the metadata directory for the file system within the code editor subsystem.
+pub const CODEEDITOR_METADATA_PATH: &str = ".hippox";
 /// Material Favorites directory name
 // const MATERIAL_FAVORITES_DIR_NAME: &str = "MaterialFavorites";
 /// Skills Market directory name
@@ -431,4 +433,7 @@ pub fn cmd_save_dialog_history_config(config: DialogHistoryConfig) -> Result<(),
     let content = serde_json::to_string_pretty(&full_config).map_err(|e| format!("Failed to serialize settings config: {}", e))?;
     FileUtils::write_file_string(&config_path, &content).map_err(|e| format!("Failed to save settings config: {}", e))?;
     Ok(())
+}
+pub fn is_codeeditor_metadata_path(file: &str) -> bool {
+    file.replace('\\', "/").split('/').any(|seg| seg == CODEEDITOR_METADATA_PATH)
 }

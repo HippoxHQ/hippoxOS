@@ -1,17 +1,68 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { STAGED_SPLIT_MIN, STAGED_SPLIT_MAX, STAGED_SPLIT_DEFAULT, LEFT_COL_MIN, LEFT_COL_MAX, LEFT_COL_DEFAULT, TOP_SPLIT_MIN, TOP_SPLIT_MAX, TOP_SPLIT_DEFAULT, COMMIT_AREA_MIN_PX } from "./constants";
+import { User } from "lucide-react";
+import { STAGED_SPLIT_MIN, STAGED_SPLIT_MAX, STAGED_SPLIT_DEFAULT, LEFT_COL_MIN, LEFT_COL_MAX, LEFT_COL_DEFAULT, TOP_SPLIT_MIN, TOP_SPLIT_MAX, TOP_SPLIT_DEFAULT, COMMIT_AREA_MIN_PX, SYSTEM_CO_AUTHOR_EMAIL, SYSTEM_CO_AUTHOR_NAME, SYSTEM_AUTHOR_NAME, SYSTEM_AUTHOR_EMAIL } from "./constants";
 import { generalCommands } from "../../../../command/General";
 import { githubCommands } from "../../../../command/github";
 import { profileCommands } from "../../../../command/Profile";
 import { showToast, ToastType } from "../../../../components/Toast";
 import BranchDialog from "./BranchDialog";
+import TagDialog from "./TagDialog";
+import PushDialog from "./PushDialog";
+import CommitContextMenu from "./CommitContextMenu";
 import CommitArea from "./CommitArea";
 import DiffViewer from "./DiffViewer";
 import FileContextMenu from "./FileContextMenu";
 import FileListSection from "./FileListSection";
 import FileRow from "./FileRow";
-import TopActionBar from "./TopActionBar";
+import HistoryTimeline, { HistoryCommit } from "./HistoryTimeline";
+import TopActionBar, { PanelTab } from "./TopActionBar";
+import { buildGlobalEmailAvatarUrl, buildHashAvatarUrl } from "./common";
 import { GitFileEntry, DraggingKind, DiffLine } from "./types";
+const HISTORY_TIMELINE_MIN_PX = 120;
+const HISTORY_INFO_MIN_PX = 100;
+const HISTORY_INFO_TEXT_STYLE: React.CSSProperties = {
+  fontSize: "13px",
+  fontFamily: "'JetBrains Mono', monospace",
+  lineHeight: 1.2,
+  color: "var(--text-primary)",
+  wordBreak: "break-all",
+};
+const CommitAuthorAvatar: React.FC<{ email: string; hash: string; size?: number }> = ({ email, hash, size = 50 }) => {
+  const [stage, setStage] = useState<1 | 2 | 3>(1);
+  const emailUrl = useMemo(() => buildGlobalEmailAvatarUrl(email), [email]);
+  const hashUrl = useMemo(() => buildHashAvatarUrl(hash), [hash]);
+  // Skip stages that don't produce a URL.
+  const effectiveStage: 1 | 2 | 3 = stage === 1 && !emailUrl ? (hashUrl ? 2 : 3) : stage === 2 && !hashUrl ? 3 : stage;
+  const handleError = () => {
+    setStage((prev) => {
+      if (prev === 1) return hashUrl ? 2 : 3;
+      if (prev === 2) return 3;
+      return 3;
+    });
+  };
+  if (effectiveStage === 1 && emailUrl) {
+    return <img src={emailUrl} alt="" onError={handleError} style={{ width: size, height: size, borderRadius: "5px", objectFit: "cover", flexShrink: 0 }} />;
+  }
+  if (effectiveStage === 2 && hashUrl) {
+    return <img src={hashUrl} alt="" onError={handleError} style={{ width: size, height: size, borderRadius: "5px", objectFit: "cover", flexShrink: 0 }} />;
+  }
+  return (
+    <span
+      style={{
+        width: size,
+        height: size,
+        borderRadius: "5px",
+        background: "var(--bg-tertiary)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        flexShrink: 0,
+      }}
+    >
+      <User size={size - 20} />
+    </span>
+  );
+};
 export interface GitPanelProps {
   t: (key: string, params?: any) => string;
   language?: "zh" | "en";
@@ -44,27 +95,58 @@ export const GitPanel: React.FC<GitPanelProps> = ({ t, language = "en", workspac
   const [stagedSplit, setStagedSplit] = useState<number>(STAGED_SPLIT_DEFAULT);
   const [leftColSplit, setLeftColSplit] = useState<number>(LEFT_COL_DEFAULT);
   const [topSplit, setTopSplit] = useState<number>(TOP_SPLIT_DEFAULT);
+  const [historySplit, setHistorySplit] = useState<number>(0.5);
+  const [historyLeftSplit, setHistoryLeftSplit] = useState<number>(0.5);
   const containerRef = useRef<HTMLDivElement>(null);
   const topAreaRef = useRef<HTMLDivElement>(null);
   const leftColumnRef = useRef<HTMLDivElement>(null);
+  const historyLeftColumnRef = useRef<HTMLDivElement>(null);
   const draggingKind = useRef<DraggingKind>(null);
   const dragStartPos = useRef<number>(0);
   const dragStartRatio = useRef<number>(0);
   const [hoverStaged, setHoverStaged] = useState(false);
   const [hoverLeftCol, setHoverLeftCol] = useState(false);
   const [hoverTop, setHoverTop] = useState(false);
+  const [hoverHistory, setHoverHistory] = useState(false);
+  const [hoverHistoryLeft, setHoverHistoryLeft] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; entry: GitFileEntry; isStaged: boolean } | null>(null);
+  // Commit (history) context menu state.
+  const [commitContextMenu, setCommitContextMenu] = useState<{ x: number; y: number; commit: HistoryCommit } | null>(null);
   // Branch dialog state.
-  // `mode === "manage"` opens the unified dialog on the "switch" tab.
   const [branchDialog, setBranchDialog] = useState<{ mode: "manage" | "new" | "delete" } | null>(null);
   const [branchInput, setBranchInput] = useState<string>("");
   const [availableBranches, setAvailableBranches] = useState<string[]>([]);
+  /** Set of branch names that also exist on the remote (origin). */
+  const [remoteBranches, setRemoteBranches] = useState<Set<string>>(new Set());
   const [isBranchWorking, setIsBranchWorking] = useState(false);
-  /**
-   * Tracked pixel height of the entire panel container.
-   * Used to convert the top split ratio into an exact pixel height for
-   * the commit area, so it can never overflow its own content.
-   */
+  // Tag dialog state.
+  const [tagDialog, setTagDialog] = useState<{ mode: "manage" | "new" | "delete" } | null>(null);
+  const [tagInput, setTagInput] = useState<string>("");
+  const [tagMessage, setTagMessage] = useState<string>("");
+  const [availableTags, setAvailableTags] = useState<string[]>([]);
+  /** Set of tag names that also exist on the remote (origin). */
+  const [availableRemoteTags, setAvailableRemoteTags] = useState<string[]>([]);
+  const [isTagWorking, setIsTagWorking] = useState(false);
+  // Push dialog state.
+  const [pushDialog, setPushDialog] = useState<boolean>(false);
+  const [pushRemoteBranches, setPushRemoteBranches] = useState<string[]>([]);
+  const [pushLocalBranches, setPushLocalBranches] = useState<string[]>([]);
+  const [pushTags, setPushTags] = useState<string[]>([]);
+  const [pushRemoteTags, setPushRemoteTags] = useState<string[]>([]);
+  const [pushUnpushedCommits, setPushUnpushedCommits] = useState<Array<{ hash: string; shortHash: string; subject: string; author: string }>>([]);
+  const [loadingPushData, setLoadingPushData] = useState<boolean>(false);
+  const [commitError, setCommitError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<PanelTab>("commit");
+  const [historyCommits, setHistoryCommits] = useState<HistoryCommit[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+  const [selectedCommit, setSelectedCommit] = useState<HistoryCommit | null>(null);
+  const [commitFiles, setCommitFiles] = useState<GitFileEntry[]>([]);
+  const [loadingCommitFiles, setLoadingCommitFiles] = useState(false);
+  const [selectedCommitFile, setSelectedCommitFile] = useState<string | null>(null);
+  const [commitDiff, setCommitDiff] = useState<string>("");
+  const [commitDiffType, setCommitDiffType] = useState<"diff" | "new_file" | "no_diff">("no_diff");
+  const [loadingCommitDiff, setLoadingCommitDiff] = useState(false);
+  const [aheadCount, setAheadCount] = useState<number>(0);
   const [containerHeight, setContainerHeight] = useState<number>(0);
   useEffect(() => {
     const el = containerRef.current;
@@ -75,55 +157,221 @@ export const GitPanel: React.FC<GitPanelProps> = ({ t, language = "en", workspac
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
-  /**
-   * Commit area height in pixels.
-   * Derived from the top split ratio and clamped to at least
-   * COMMIT_AREA_MIN_PX so the button row is never pushed out.
-   */
   const commitAreaHeightPx = useMemo(() => {
     if (containerHeight <= 0) return COMMIT_AREA_MIN_PX;
     const raw = (1 - topSplit) * containerHeight;
-    // Never go below the minimum, and never eat the whole panel
     return Math.max(COMMIT_AREA_MIN_PX, Math.min(containerHeight - 80, raw));
   }, [topSplit, containerHeight]);
-  const loadProfile = useCallback(async () => {
+  const historyTimelineHeightPx = useMemo(() => {
+    if (containerHeight <= 0) return HISTORY_TIMELINE_MIN_PX;
+    const raw = historySplit * containerHeight;
+    return Math.max(HISTORY_TIMELINE_MIN_PX, Math.min(containerHeight - 160, raw));
+  }, [historySplit, containerHeight]);
+  const loadCommitterIdentity = useCallback(async () => {
+    let appAvatar = "";
     try {
       const profile = await profileCommands.getProfile();
-      setProfileName(profile?.name || "");
-      setProfileEmail(profile?.email || "");
-      setProfileAvatar(profile?.avatar || "");
+      appAvatar = profile?.avatar || "";
+    } catch {
+      appAvatar = "";
+    }
+    setProfileAvatar(appAvatar);
+    if (!workspacePath) {
+      setProfileName("");
+      setProfileEmail("");
+      return;
+    }
+    try {
+      const gitUser = await githubCommands.getGitUserConfig(workspacePath);
+      setProfileName(gitUser.name || "");
+      setProfileEmail(gitUser.email || "");
     } catch {
       setProfileName("");
       setProfileEmail("");
-      setProfileAvatar("");
-    }
-  }, []);
-  const loadStatus = useCallback(async () => {
-    if (!workspacePath) {
-      setStagedFiles([]);
-      setUnstagedFiles([]);
-      setBranch("");
-      setRemoteUrl("");
-      return;
-    }
-    setLoadingStatus(true);
-    try {
-      const [split, currentBranch, url] = await Promise.all([githubCommands.getGitStatusSplit(workspacePath).catch(() => ({ staged: [], unstaged: [], hasChanges: false })), githubCommands.getCurrentBranch(workspacePath).catch(() => ""), githubCommands.getRemoteUrl(workspacePath).catch(() => "")]);
-      setStagedFiles(split.staged || []);
-      setUnstagedFiles(split.unstaged || []);
-      setBranch(currentBranch || "");
-      setRemoteUrl(url || "");
-    } catch (error) {
-      console.error("Failed to load git status:", error);
-      setStagedFiles([]);
-      setUnstagedFiles([]);
-    } finally {
-      setLoadingStatus(false);
     }
   }, [workspacePath]);
+  /**
+   * Refresh the combined "unpushed changes" counter:
+   *   commits + branches + tags
+   * This is the single source of truth for the Push badge.
+   */
+  const loadAheadCount = useCallback(async () => {
+    if (!workspacePath) {
+      setAheadCount(0);
+      return;
+    }
+    try {
+      const [commitN, branchN, tagN] = await Promise.all([githubCommands.getAheadCount(workspacePath).catch(() => 0), githubCommands.getUnpushedBranchCount(workspacePath).catch(() => 0), githubCommands.getUnpushedTagCount(workspacePath).catch(() => 0)]);
+      const total = (Number(commitN) || 0) + (Number(branchN) || 0) + (Number(tagN) || 0);
+      setAheadCount(total);
+    } catch {
+      setAheadCount(0);
+    }
+  }, [workspacePath]);
+  const loadRemoteBranches = useCallback(async () => {
+    if (!workspacePath) {
+      setRemoteBranches(new Set());
+      return;
+    }
+    try {
+      const branches = await githubCommands.getRemoteBranches(workspacePath);
+      const cleaned = (branches || []).map((b) => (b.startsWith("origin/") ? b.slice("origin/".length) : b)).filter((b) => b && b !== "HEAD");
+      setRemoteBranches(new Set(cleaned));
+    } catch {
+      setRemoteBranches(new Set());
+    }
+  }, [workspacePath]);
+  const loadTags = useCallback(async () => {
+    if (!workspacePath) {
+      setAvailableTags([]);
+      return;
+    }
+    try {
+      const tags = await githubCommands.listTags(workspacePath);
+      setAvailableTags(tags || []);
+    } catch {
+      setAvailableTags([]);
+    }
+  }, [workspacePath]);
+  /**
+   * Refresh the list of tags that exist on origin. Used by TagDialog
+   * and PushDialog to render the "Local" / "Remote" badge.
+   */
+  const loadRemoteTags = useCallback(async () => {
+    if (!workspacePath) {
+      setAvailableRemoteTags([]);
+      return;
+    }
+    try {
+      const remoteTags = await githubCommands.getRemoteTags(workspacePath);
+      setAvailableRemoteTags(remoteTags || []);
+    } catch {
+      setAvailableRemoteTags([]);
+    }
+  }, [workspacePath]);
+  const loadCommitFiles = useCallback(
+    async (commit: HistoryCommit) => {
+      if (!workspacePath) return;
+      setSelectedCommit(commit);
+      setSelectedCommitFile(null);
+      setCommitDiff("");
+      setCommitDiffType("no_diff");
+      setLoadingCommitFiles(true);
+      try {
+        const result = await githubCommands.getCommitFiles(workspacePath, commit.hash);
+        setCommitFiles(result.files || []);
+      } catch (error) {
+        console.error("Failed to load commit files:", error);
+        setCommitFiles([]);
+      } finally {
+        setLoadingCommitFiles(false);
+      }
+    },
+    [workspacePath],
+  );
+  /**
+   * Load the commit graph (with branch / tag / parent info).
+   * Auto-selects the topmost commit and loads its file list.
+   */
+  const loadHistory = useCallback(async () => {
+    if (!workspacePath) {
+      setHistoryCommits([]);
+      return;
+    }
+    setLoadingHistory(true);
+    try {
+      const result = await githubCommands.getGraph(workspacePath);
+      const commits: HistoryCommit[] = (result.commits || []).map((c) => ({
+        hash: c.hash,
+        shortHash: c.shortHash,
+        message: c.message,
+        author: c.author,
+        authorEmail: c.authorEmail,
+        date: c.date,
+        committer: c.committer,
+        branch: c.branches && c.branches.length > 0 ? c.branches[0] : null,
+        isHead: c.isHead,
+        parents: c.parents,
+        branches: c.branches,
+        tags: c.tags,
+      }));
+      setHistoryCommits(commits);
+      if (commits.length > 0) {
+        loadCommitFiles(commits[0]);
+      } else {
+        setSelectedCommit(null);
+        setCommitFiles([]);
+        setSelectedCommitFile(null);
+        setCommitDiff("");
+        setCommitDiffType("no_diff");
+      }
+    } catch (error) {
+      console.error("Failed to load commit history:", error);
+      setHistoryCommits([]);
+    } finally {
+      setLoadingHistory(false);
+    }
+  }, [workspacePath, loadCommitFiles]);
+  const loadCommitFileDiff = useCallback(
+    async (commitHash: string, file: string) => {
+      if (!workspacePath) return;
+      setSelectedCommitFile(file);
+      setLoadingCommitDiff(true);
+      setCommitDiff("");
+      setCommitDiffType("no_diff");
+      try {
+        const result = await githubCommands.getCommitFileDiff(workspacePath, commitHash, file);
+        setCommitDiffType(result.type);
+        setCommitDiff(result.diff || "");
+      } catch (error) {
+        console.error("Failed to load commit file diff:", error);
+        setCommitDiffType("no_diff");
+        setCommitDiff("");
+      } finally {
+        setLoadingCommitDiff(false);
+      }
+    },
+    [workspacePath],
+  );
+  const loadStatus = useCallback(
+    async (opts?: { keepBranchOnDetached?: boolean }) => {
+      if (!workspacePath) {
+        setStagedFiles([]);
+        setUnstagedFiles([]);
+        setBranch("");
+        setRemoteUrl("");
+        setAheadCount(0);
+        return;
+      }
+      setLoadingStatus(true);
+      try {
+        const [split, currentBranch, url] = await Promise.all([githubCommands.getGitStatusSplit(workspacePath).catch(() => ({ staged: [], unstaged: [], hasChanges: false })), githubCommands.getCurrentBranch(workspacePath).catch(() => ""), githubCommands.getRemoteUrl(workspacePath).catch(() => "")]);
+        setStagedFiles(split.staged || []);
+        setUnstagedFiles(split.unstaged || []);
+        if (currentBranch && currentBranch !== "HEAD") {
+          setBranch(currentBranch);
+        } else if (!opts?.keepBranchOnDetached) {
+          setBranch("");
+        }
+        setRemoteUrl(url || "");
+        // Refresh the combined "unpushed changes" counter (commits + branches + tags).
+        await loadAheadCount();
+      } catch (error) {
+        console.error("Failed to load git status:", error);
+        setStagedFiles([]);
+        setUnstagedFiles([]);
+      } finally {
+        setLoadingStatus(false);
+      }
+    },
+    [workspacePath, loadAheadCount],
+  );
   useEffect(() => {
     loadStatus();
-    loadProfile();
+    loadCommitterIdentity();
+    loadRemoteBranches();
+    loadTags();
+    loadRemoteTags();
     setSelectedFile(null);
     setSelectedIsStaged(false);
     setDiffContent("");
@@ -132,7 +380,20 @@ export const GitPanel: React.FC<GitPanelProps> = ({ t, language = "en", workspac
     setCommitMessage("");
     setSelectedStagedPaths(new Set());
     setSelectedUnstagedPaths(new Set());
-  }, [loadStatus, loadProfile]);
+    setCommitError(null);
+    setActiveTab("commit");
+    setHistoryCommits([]);
+    setSelectedCommit(null);
+    setCommitFiles([]);
+    setSelectedCommitFile(null);
+    setCommitDiff("");
+    setCommitDiffType("no_diff");
+  }, [loadStatus, loadCommitterIdentity, loadRemoteBranches, loadTags, loadRemoteTags]);
+  useEffect(() => {
+    if (activeTab === "history") {
+      loadHistory();
+    }
+  }, [activeTab, loadHistory]);
   const loadDiff = useCallback(
     async (entry: GitFileEntry, isStaged: boolean) => {
       if (!workspacePath) return;
@@ -239,51 +500,96 @@ export const GitPanel: React.FC<GitPanelProps> = ({ t, language = "en", workspac
       showToast(ToastType.ERROR, isZh ? "取消所选暂存失败" : "Failed to unstage selected files");
     }
   }, [workspacePath, selectedStagedPaths, loadStatus, isZh]);
-  const handleCommit = useCallback(async () => {
-    if (!workspacePath) return;
-    const message = commitMessage.trim();
-    if (!message) {
-      showToast(ToastType.WARNING, isZh ? "请输入提交信息" : "Please enter a commit message");
-      return;
-    }
-    if (stagedFiles.length === 0) {
-      showToast(ToastType.WARNING, isZh ? "没有已暂存的文件" : "No staged files to commit");
-      return;
-    }
-    setIsCommitting(true);
-    try {
-      await githubCommands.commit(workspacePath, message);
-      if (pushAfterCommit && remoteUrl && branch) {
-        try {
-          await githubCommands.gitPush(workspacePath, branch);
-          showToast(ToastType.SUCCESS, isZh ? "提交并推送成功" : "Commit and push successful");
-        } catch (pushError) {
-          console.error("Push after commit failed:", pushError);
-          showToast(ToastType.ERROR, isZh ? "提交成功，但推送失败" : "Committed, but push failed");
-        }
-      } else {
-        showToast(ToastType.SUCCESS, isZh ? "提交成功" : "Commit successful");
+  const handleCommit = useCallback(
+    async (fileOverride?: string) => {
+      if (!workspacePath) return;
+      const message = commitMessage.trim();
+      if (!message) {
+        showToast(ToastType.WARNING, isZh ? "请输入提交信息" : "Please enter a commit message");
+        return;
       }
-      setCommitMessage("");
-      setSelectedFile(null);
-      setDiffContent("");
-      setDiffType("no_diff");
-      setNewFileContent("");
-      setSelectedStagedPaths(new Set());
-      await loadStatus();
-    } catch (error) {
-      console.error("Commit failed:", error);
-      showToast(ToastType.ERROR, isZh ? "提交失败" : "Commit failed");
-    } finally {
-      setIsCommitting(false);
-    }
-  }, [workspacePath, commitMessage, stagedFiles.length, pushAfterCommit, remoteUrl, branch, loadStatus, isZh]);
+      if (fileOverride) {
+        try {
+          await githubCommands.stageFile(workspacePath, fileOverride);
+          const split = await githubCommands.getGitStatusSplit(workspacePath).catch(() => ({ staged: [], unstaged: [], hasChanges: false }));
+          setStagedFiles(split.staged || []);
+          setUnstagedFiles(split.unstaged || []);
+        } catch (error) {
+          console.error("Failed to stage file before commit:", error);
+          showToast(ToastType.ERROR, isZh ? "暂存失败" : "Failed to stage file");
+          return;
+        }
+      }
+      const effectiveStagedCount = fileOverride ? ((await githubCommands.getGitStatusSplit(workspacePath).catch(() => ({ staged: [] }))).staged?.length ?? 0) : stagedFiles.length;
+      if (effectiveStagedCount === 0) {
+        showToast(ToastType.WARNING, isZh ? "没有已暂存的文件" : "No staged files to commit");
+        return;
+      }
+      setCommitError(null);
+      setIsCommitting(true);
+      try {
+        let finalMessage = message;
+        if (SYSTEM_CO_AUTHOR_EMAIL.trim()) {
+          finalMessage = `${message}\n\nCo-authored-by: ${SYSTEM_CO_AUTHOR_NAME} <${SYSTEM_CO_AUTHOR_EMAIL.trim()}>`;
+        }
+        const authorOverride =
+          SYSTEM_AUTHOR_NAME.trim() && SYSTEM_AUTHOR_EMAIL.trim()
+            ? {
+                authorName: SYSTEM_AUTHOR_NAME.trim(),
+                authorEmail: SYSTEM_AUTHOR_EMAIL.trim(),
+                committerName: SYSTEM_AUTHOR_NAME.trim(),
+                committerEmail: SYSTEM_AUTHOR_EMAIL.trim(),
+              }
+            : undefined;
+        await githubCommands.commit(workspacePath, finalMessage, authorOverride);
+        if (pushAfterCommit && remoteUrl && branch) {
+          setIsPushing(true);
+          try {
+            await githubCommands.gitPush(workspacePath, branch);
+            showToast(ToastType.SUCCESS, isZh ? "提交并推送成功" : "Commit and push successful");
+          } catch (pushError) {
+            console.error("Push after commit failed:", pushError);
+            const pushMsg = pushError instanceof Error ? pushError.message : String(pushError);
+            setCommitError(isZh ? `提交成功，但推送失败：${pushMsg}` : `Committed, but push failed: ${pushMsg}`);
+            showToast(ToastType.ERROR, isZh ? "提交成功，但推送失败" : "Committed, but push failed");
+          } finally {
+            setIsPushing(false);
+          }
+        } else {
+          showToast(ToastType.SUCCESS, isZh ? "已提交到本地" : "Committed locally");
+        }
+        setCommitMessage("");
+        setSelectedFile(null);
+        setDiffContent("");
+        setDiffType("no_diff");
+        setNewFileContent("");
+        setSelectedStagedPaths(new Set());
+        await loadStatus();
+        await loadAheadCount();
+        if (activeTab === "history") {
+          await loadHistory();
+        }
+      } catch (error) {
+        console.error("Commit failed:", error);
+        const msg = error instanceof Error ? error.message : String(error);
+        setCommitError(isZh ? `提交失败：${msg}` : `Commit failed: ${msg}`);
+        showToast(ToastType.ERROR, isZh ? "提交失败" : "Commit failed");
+      } finally {
+        setIsCommitting(false);
+      }
+    },
+    [workspacePath, commitMessage, stagedFiles.length, pushAfterCommit, remoteUrl, branch, loadStatus, loadAheadCount, loadHistory, activeTab, isZh],
+  );
   const handlePull = useCallback(async () => {
     if (!workspacePath || !branch) return;
     setIsPulling(true);
     try {
       await githubCommands.gitPull(workspacePath, branch);
       await loadStatus();
+      await loadAheadCount();
+      if (activeTab === "history") {
+        await loadHistory();
+      }
       showToast(ToastType.SUCCESS, isZh ? "拉取成功" : "Pull successful");
     } catch (error) {
       console.error("Pull failed:", error);
@@ -291,33 +597,133 @@ export const GitPanel: React.FC<GitPanelProps> = ({ t, language = "en", workspac
     } finally {
       setIsPulling(false);
     }
-  }, [workspacePath, branch, loadStatus, isZh]);
-  const handlePush = useCallback(async () => {
-    if (!workspacePath || !branch) return;
-    setIsPushing(true);
-    try {
-      await githubCommands.gitPush(workspacePath, branch);
-      await loadStatus();
-      showToast(ToastType.SUCCESS, isZh ? "推送成功" : "Push successful");
-    } catch (error) {
-      console.error("Push failed:", error);
-      showToast(ToastType.ERROR, isZh ? "推送失败" : "Push failed");
-    } finally {
-      setIsPushing(false);
-    }
-  }, [workspacePath, branch, loadStatus, isZh]);
+  }, [workspacePath, branch, loadStatus, loadAheadCount, loadHistory, activeTab, isZh]);
   /**
-   * Open the unified branch management dialog.
-   * "manage" is the default mode opened from the single Branch button.
+   * Open the push dialog.
    */
+  const openPushDialog = useCallback(async () => {
+    if (!workspacePath || !branch) return;
+    setPushDialog(true);
+    setLoadingPushData(true);
+    try {
+      const [allRemote, localBranches, localTags, remoteTags, unpushed] = await Promise.all([
+        githubCommands.getAllRemoteBranches(workspacePath).catch(() => []),
+        githubCommands.getLocalBranches(workspacePath).catch(() => []),
+        githubCommands.listTags(workspacePath).catch(() => []),
+        githubCommands.getRemoteTags(workspacePath).catch(() => []),
+        githubCommands.getUnpushedCommits(workspacePath).catch(() => ({ commits: [] })),
+      ]);
+      setPushRemoteBranches(allRemote || []);
+      setPushLocalBranches(localBranches || []);
+      setPushTags(localTags || []);
+      setPushRemoteTags(remoteTags || []);
+      setPushUnpushedCommits(unpushed.commits || []);
+    } catch (error) {
+      console.error("Failed to load push data:", error);
+      setPushRemoteBranches([]);
+      setPushLocalBranches([]);
+      setPushTags([]);
+      setPushRemoteTags([]);
+      setPushUnpushedCommits([]);
+    } finally {
+      setLoadingPushData(false);
+    }
+  }, [workspacePath, branch]);
+  /**
+   * Confirm push: send the selected branches and tags to origin.
+   */
+  const confirmPushDialog = useCallback(
+    async (branches: string[], tags: string[]) => {
+      if (!workspacePath) return;
+      setIsPushing(true);
+      try {
+        await githubCommands.pushSelected(workspacePath, branches, tags);
+        showToast(ToastType.SUCCESS, isZh ? "推送成功" : "Push successful");
+        setPushDialog(false);
+        await loadStatus();
+        await loadAheadCount();
+        await loadRemoteBranches();
+        await loadRemoteTags();
+        if (activeTab === "history") {
+          await loadHistory();
+        }
+      } catch (error) {
+        console.error("Push failed:", error);
+        const msg = error instanceof Error ? error.message : String(error);
+        showToast(ToastType.ERROR, isZh ? `推送失败：${msg}` : `Push failed: ${msg}`);
+      } finally {
+        setIsPushing(false);
+      }
+    },
+    [workspacePath, loadStatus, loadAheadCount, loadRemoteBranches, loadRemoteTags, loadHistory, activeTab, isZh],
+  );
+  /**
+   * Open the tag dialog and refresh the local + remote tag lists.
+   */
+  const openTagDialog = useCallback(
+    async (mode: "manage" | "new" | "delete") => {
+      setTagDialog({ mode });
+      setTagInput("");
+      setTagMessage("");
+      if (workspacePath) {
+        try {
+          const tags = await githubCommands.listTags(workspacePath);
+          setAvailableTags(tags || []);
+          await loadRemoteTags();
+        } catch {
+          setAvailableTags([]);
+        }
+      } else {
+        setAvailableTags([]);
+      }
+    },
+    [workspacePath, loadRemoteTags],
+  );
+  /**
+   * Confirm the tag dialog: create or delete the tag.
+   */
+  const confirmTagDialog = useCallback(
+    async (tab: "new" | "delete") => {
+      if (!workspacePath) return;
+      const name = tagInput.trim();
+      if (!name) {
+        showToast(ToastType.WARNING, isZh ? "请输入标签名" : "Please enter a tag name");
+        return;
+      }
+      setIsTagWorking(true);
+      try {
+        if (tab === "new") {
+          await githubCommands.createTag(workspacePath, name, tagMessage || undefined);
+          showToast(ToastType.SUCCESS, isZh ? `已创建标签 ${name}` : `Created tag ${name}`);
+        } else {
+          await githubCommands.deleteTag(workspacePath, name);
+          showToast(ToastType.SUCCESS, isZh ? `已删除标签 ${name}` : `Deleted tag ${name}`);
+        }
+        setTagDialog(null);
+        setTagInput("");
+        setTagMessage("");
+        await loadTags();
+        await loadRemoteTags();
+        await loadAheadCount();
+      } catch (error) {
+        console.error("Tag operation failed:", error);
+        const msg = error instanceof Error ? error.message : String(error);
+        showToast(ToastType.ERROR, isZh ? `标签操作失败：${msg}` : `Tag operation failed: ${msg}`);
+      } finally {
+        setIsTagWorking(false);
+      }
+    },
+    [workspacePath, tagInput, tagMessage, loadTags, loadRemoteTags, loadAheadCount, isZh],
+  );
   const openBranchDialog = useCallback(
     async (mode: "manage" | "new" | "delete") => {
       setBranchDialog({ mode });
       setBranchInput("");
       if (workspacePath) {
         try {
-          const branches = await githubCommands.getLocalBranches(workspacePath);
+          const [branches] = await Promise.all([githubCommands.getLocalBranches(workspacePath)]);
           setAvailableBranches(branches || []);
+          await loadRemoteBranches();
         } catch {
           setAvailableBranches([]);
         }
@@ -325,13 +731,8 @@ export const GitPanel: React.FC<GitPanelProps> = ({ t, language = "en", workspac
         setAvailableBranches([]);
       }
     },
-    [workspacePath],
+    [workspacePath, loadRemoteBranches],
   );
-  /**
-   * Confirm the currently active tab in the branch dialog.
-   * The `tab` argument is passed up from BranchDialog so we know whether
-   * the user wants to switch, create, or delete a branch.
-   */
   const confirmBranchDialog = useCallback(
     async (tab: "switch" | "new" | "delete") => {
       if (!workspacePath) return;
@@ -342,43 +743,157 @@ export const GitPanel: React.FC<GitPanelProps> = ({ t, language = "en", workspac
       }
       setIsBranchWorking(true);
       try {
-        const anyCommands = githubCommands as any;
         if (tab === "new") {
-          if (typeof anyCommands.createBranch === "function") {
-            await anyCommands.createBranch(workspacePath, name);
-            showToast(ToastType.SUCCESS, isZh ? `已创建并切换到分支 ${name}` : `Created and switched to branch ${name}`);
-          } else {
-            throw new Error("createBranch command not available");
-          }
+          await githubCommands.createBranch(workspacePath, name);
+          showToast(ToastType.SUCCESS, isZh ? `已创建并切换到分支 ${name}` : `Created and switched to branch ${name}`);
         } else if (tab === "delete") {
-          if (typeof anyCommands.deleteBranch === "function") {
-            await anyCommands.deleteBranch(workspacePath, name);
-            showToast(ToastType.SUCCESS, isZh ? `已删除分支 ${name}` : `Deleted branch ${name}`);
-          } else {
-            throw new Error("deleteBranch command not available");
-          }
+          await githubCommands.deleteBranch(workspacePath, name);
+          showToast(ToastType.SUCCESS, isZh ? `已删除分支 ${name}` : `Deleted branch ${name}`);
         } else {
-          // switch
-          if (typeof anyCommands.checkoutBranch === "function") {
-            await anyCommands.checkoutBranch(workspacePath, name);
-            showToast(ToastType.SUCCESS, isZh ? `已切换到分支 ${name}` : `Switched to branch ${name}`);
-          } else {
-            throw new Error("checkoutBranch command not available");
-          }
+          await githubCommands.checkoutBranch(workspacePath, name);
+          showToast(ToastType.SUCCESS, isZh ? `已切换到分支 ${name}` : `Switched to branch ${name}`);
         }
         setBranchDialog(null);
         setBranchInput("");
         await loadStatus();
+        await loadAheadCount();
+        await loadRemoteBranches();
+        if (activeTab === "history") {
+          await loadHistory();
+        }
       } catch (error) {
         console.error("Branch operation failed:", error);
-        showToast(ToastType.ERROR, isZh ? "分支操作失败（缺少后端命令）" : "Branch operation failed (missing backend command)");
+        const msg = error instanceof Error ? error.message : String(error);
+        showToast(ToastType.ERROR, isZh ? `分支操作失败：${msg}` : `Branch operation failed: ${msg}`);
       } finally {
         setIsBranchWorking(false);
       }
     },
-    [workspacePath, branchInput, loadStatus, isZh],
+    [workspacePath, branchInput, loadStatus, loadAheadCount, loadRemoteBranches, loadHistory, activeTab, isZh],
+  );
+  /**
+   * Refresh everything that can change after a history action
+   * (checkout / merge / rebase / reset / revert).
+   */
+  const refreshAfterHistoryAction = useCallback(async () => {
+    await loadStatus();
+    await loadAheadCount();
+    await loadRemoteBranches();
+    await loadHistory();
+  }, [loadStatus, loadAheadCount, loadRemoteBranches, loadHistory]);
+  /** Check out a specific commit (detached HEAD). */
+  const handleCheckoutCommit = useCallback(
+    async (commit: HistoryCommit) => {
+      if (!workspacePath) return;
+      // Guard: refuse to switch when the working tree has uncommitted
+      // changes, mirroring git's own safety check.
+      try {
+        const split = await githubCommands.getGitStatusSplit(workspacePath);
+        const dirty = (split.staged?.length ?? 0) + (split.unstaged?.length ?? 0) > 0;
+        if (dirty) {
+          showToast(ToastType.WARNING, isZh ? "工作区有未提交的改动，请先提交或暂存后再切换" : "Working tree has uncommitted changes; commit or stash them first");
+          return;
+        }
+      } catch (err) {
+        // If the check itself fails, fall through and let git decide.
+        console.warn("Failed to check working tree status:", err);
+      }
+      try {
+        await githubCommands.checkoutCommit(workspacePath, commit.hash);
+        showToast(ToastType.SUCCESS, isZh ? `已检出提交 ${commit.shortHash}` : `Checked out ${commit.shortHash}`);
+        // After a detached checkout, keep a sensible branch highlighted
+        // instead of clearing it. `commit.branches` holds the branches whose
+        // tip is this commit, so it works for branch-tip commits.
+        const highlight = commit.branches && commit.branches.length > 0 ? commit.branches[0] : "";
+        // Refresh status WITHOUT clearing the branch when detached, then
+        // apply the resolved highlight branch on top (order matters: the
+        // setBranch below must run AFTER loadStatus).
+        await loadStatus({ keepBranchOnDetached: true });
+        await loadAheadCount();
+        await loadRemoteBranches();
+        await loadHistory();
+        if (highlight) {
+          setBranch(highlight);
+        }
+      } catch (error) {
+        console.error("Checkout commit failed:", error);
+        const msg = error instanceof Error ? error.message : String(error);
+        showToast(ToastType.ERROR, isZh ? `检出失败：${msg}` : `Checkout failed: ${msg}`);
+      }
+    },
+    [workspacePath, loadStatus, loadAheadCount, loadRemoteBranches, loadHistory, isZh],
+  );
+  /** Merge a specific commit into the current branch. */
+  const handleMergeCommit = useCallback(
+    async (commit: HistoryCommit) => {
+      if (!workspacePath) return;
+      try {
+        await githubCommands.mergeCommit(workspacePath, commit.hash);
+        showToast(ToastType.SUCCESS, isZh ? `已合并提交 ${commit.shortHash}` : `Merged ${commit.shortHash}`);
+        await refreshAfterHistoryAction();
+      } catch (error) {
+        console.error("Merge commit failed:", error);
+        const msg = error instanceof Error ? error.message : String(error);
+        showToast(ToastType.ERROR, isZh ? `合并失败：${msg}` : `Merge failed: ${msg}`);
+      }
+    },
+    [workspacePath, refreshAfterHistoryAction, isZh],
+  );
+  /** Rebase the current branch onto a specific commit. */
+  const handleRebaseCommit = useCallback(
+    async (commit: HistoryCommit) => {
+      if (!workspacePath) return;
+      try {
+        await githubCommands.rebaseOnto(workspacePath, commit.hash);
+        showToast(ToastType.SUCCESS, isZh ? `已变基到 ${commit.shortHash}` : `Rebased onto ${commit.shortHash}`);
+        await refreshAfterHistoryAction();
+      } catch (error) {
+        console.error("Rebase failed:", error);
+        const msg = error instanceof Error ? error.message : String(error);
+        showToast(ToastType.ERROR, isZh ? `变基失败：${msg}` : `Rebase failed: ${msg}`);
+      }
+    },
+    [workspacePath, refreshAfterHistoryAction, isZh],
+  );
+  /** Hard-reset the current branch to a specific commit. */
+  const handleResetCommit = useCallback(
+    async (commit: HistoryCommit) => {
+      if (!workspacePath) return;
+      try {
+        await githubCommands.resetToCommit(workspacePath, commit.hash);
+        showToast(ToastType.SUCCESS, isZh ? `已重置到 ${commit.shortHash}` : `Reset to ${commit.shortHash}`);
+        await refreshAfterHistoryAction();
+      } catch (error) {
+        console.error("Reset failed:", error);
+        const msg = error instanceof Error ? error.message : String(error);
+        showToast(ToastType.ERROR, isZh ? `重置失败：${msg}` : `Reset failed: ${msg}`);
+      }
+    },
+    [workspacePath, refreshAfterHistoryAction, isZh],
+  );
+  /** Revert a specific commit (creates a new revert commit). */
+  const handleRevertCommit = useCallback(
+    async (commit: HistoryCommit) => {
+      if (!workspacePath) return;
+      try {
+        await githubCommands.revertCommit(workspacePath, commit.hash);
+        showToast(ToastType.SUCCESS, isZh ? `已回滚提交 ${commit.shortHash}` : `Reverted ${commit.shortHash}`);
+        await refreshAfterHistoryAction();
+      } catch (error) {
+        console.error("Revert failed:", error);
+        const msg = error instanceof Error ? error.message : String(error);
+        showToast(ToastType.ERROR, isZh ? `回滚失败：${msg}` : `Revert failed: ${msg}`);
+      }
+    },
+    [workspacePath, refreshAfterHistoryAction, isZh],
   );
   const closeContextMenu = useCallback(() => setContextMenu(null), []);
+  const closeCommitContextMenu = useCallback(() => setCommitContextMenu(null), []);
+  const openCommitContextMenu = useCallback((e: React.MouseEvent, commit: HistoryCommit) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setCommitContextMenu({ x: e.clientX, y: e.clientY, commit });
+  }, []);
   const handleOpenInExplorer = useCallback(
     async (path: string) => {
       try {
@@ -447,6 +962,26 @@ export const GitPanel: React.FC<GitPanelProps> = ({ t, language = "en", workspac
     }
     return out;
   }, [diffContent, newFileContent, diffType]);
+  const parsedCommitDiff = useMemo<DiffLine[]>(() => {
+    if (commitDiffType === "new_file") {
+      return commitDiff.split("\n").map((line) => ({ type: "added" as const, content: "+" + line }));
+    }
+    if (!commitDiff) return [];
+    const lines = commitDiff.split("\n");
+    const out: DiffLine[] = [];
+    for (const line of lines) {
+      if (line.startsWith("diff --git") || line.startsWith("index ") || line.startsWith("--- ") || line.startsWith("+++ ") || line.startsWith("@@") || line.startsWith("new file") || line.startsWith("deleted file")) {
+        out.push({ type: "unchanged", content: line });
+      } else if (line.startsWith("+")) {
+        out.push({ type: "added", content: line });
+      } else if (line.startsWith("-")) {
+        out.push({ type: "removed", content: line });
+      } else {
+        out.push({ type: "unchanged", content: line });
+      }
+    }
+    return out;
+  }, [commitDiff, commitDiffType]);
   const totalChangedCount = stagedFiles.length + unstagedFiles.length;
   const remoteShortName = useMemo(() => {
     if (!remoteUrl) return "";
@@ -497,6 +1032,30 @@ export const GitPanel: React.FC<GitPanelProps> = ({ t, language = "en", workspac
     },
     [topSplit],
   );
+  const handleHistorySplitMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      draggingKind.current = "history-split";
+      dragStartPos.current = e.clientY;
+      dragStartRatio.current = historySplit;
+      document.body.style.cursor = "row-resize";
+      document.body.style.userSelect = "none";
+    },
+    [historySplit],
+  );
+  const handleHistoryLeftSplitMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      draggingKind.current = "history-left-split";
+      dragStartPos.current = e.clientY;
+      dragStartRatio.current = historyLeftSplit;
+      document.body.style.cursor = "row-resize";
+      document.body.style.userSelect = "none";
+    },
+    [historyLeftSplit],
+  );
   useEffect(() => {
     const onMouseMove = (e: MouseEvent) => {
       const kind = draggingKind.current;
@@ -510,6 +1069,17 @@ export const GitPanel: React.FC<GitPanelProps> = ({ t, language = "en", workspac
         let newRatio = dragStartRatio.current + delta / totalHeight;
         newRatio = Math.max(STAGED_SPLIT_MIN, Math.min(STAGED_SPLIT_MAX, newRatio));
         setStagedSplit(newRatio);
+        return;
+      }
+      if (kind === "history-left-split") {
+        const container = historyLeftColumnRef.current;
+        if (!container) return;
+        const totalHeight = container.clientHeight;
+        if (totalHeight <= 0) return;
+        const delta = e.clientY - dragStartPos.current;
+        let newRatio = dragStartRatio.current + delta / totalHeight;
+        newRatio = Math.max(STAGED_SPLIT_MIN, Math.min(STAGED_SPLIT_MAX, newRatio));
+        setHistoryLeftSplit(newRatio);
         return;
       }
       if (kind === "left-col") {
@@ -535,6 +1105,19 @@ export const GitPanel: React.FC<GitPanelProps> = ({ t, language = "en", workspac
         const upper = TOP_SPLIT_MAX;
         newRatio = Math.max(lower, Math.min(upper, newRatio));
         setTopSplit(newRatio);
+        return;
+      }
+      if (kind === "history-split") {
+        const container = containerRef.current;
+        if (!container) return;
+        const totalHeight = container.clientHeight;
+        if (totalHeight <= 0) return;
+        const delta = e.clientY - dragStartPos.current;
+        let newRatio = dragStartRatio.current + delta / totalHeight;
+        const minRatio = HISTORY_TIMELINE_MIN_PX / totalHeight;
+        const maxRatio = 1 - 160 / totalHeight;
+        newRatio = Math.max(minRatio, Math.min(maxRatio, newRatio));
+        setHistorySplit(newRatio);
         return;
       }
     };
@@ -601,6 +1184,187 @@ export const GitPanel: React.FC<GitPanelProps> = ({ t, language = "en", workspac
       }}
     />
   );
+  const renderWorkingFileColumn = () => (
+    <div
+      ref={leftColumnRef}
+      style={{
+        flexGrow: 0,
+        flexShrink: 0,
+        flexBasis: `${leftColSplit * 100}%`,
+        minWidth: "220px",
+        maxWidth: "70%",
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        background: "var(--bg-secondary)",
+        overflow: "hidden",
+      }}
+    >
+      <div style={{ flexGrow: 0, flexShrink: 0, flexBasis: `${stagedSplit * 100}%`, minHeight: 0, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        <FileListSection
+          isZh={isZh}
+          title={isZh ? "已暂存文件" : "Staged Files"}
+          count={stagedFiles.length}
+          icon="check"
+          isStaged={true}
+          files={stagedFiles}
+          loading={loadingStatus}
+          selectedPaths={selectedStagedPaths}
+          onSelectedAction={handleUnstageSelected}
+          onAllAction={handleUnstageAll}
+          renderRow={renderFileRow}
+        />
+      </div>
+      <div
+        onMouseDown={handleStagedSplitMouseDown}
+        onMouseEnter={() => setHoverStaged(true)}
+        onMouseLeave={() => setHoverStaged(false)}
+        style={{
+          height: "1px",
+          background: hoverStaged ? "var(--scrollbar-thumb)" : "var(--border-color)",
+          cursor: "row-resize",
+          flexShrink: 0,
+          position: "relative",
+        }}
+      >
+        <div style={{ position: "absolute", top: "-4px", left: 0, right: 0, bottom: "-4px", cursor: "row-resize" }} />
+      </div>
+      <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        <FileListSection
+          isZh={isZh}
+          title={isZh ? "未暂存文件" : "Unstaged Files"}
+          count={unstagedFiles.length}
+          icon="file"
+          isStaged={false}
+          files={unstagedFiles}
+          loading={loadingStatus}
+          selectedPaths={selectedUnstagedPaths}
+          onSelectedAction={handleStageSelected}
+          onAllAction={handleStageAll}
+          renderRow={renderFileRow}
+        />
+      </div>
+    </div>
+  );
+  const renderHistoryFileColumn = () => (
+    <div
+      ref={historyLeftColumnRef}
+      style={{
+        flexGrow: 0,
+        flexShrink: 0,
+        flexBasis: `${leftColSplit * 100}%`,
+        minWidth: "220px",
+        maxWidth: "70%",
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        background: "var(--bg-secondary)",
+        overflow: "hidden",
+      }}
+    >
+      <div
+        style={{
+          position: "relative",
+          flexGrow: 0,
+          flexShrink: 0,
+          flexBasis: `${historyLeftSplit * 100}%`,
+          minHeight: `${HISTORY_INFO_MIN_PX}px`,
+          padding: "8px 10px",
+          paddingRight: "68px",
+          overflowY: "auto",
+          overflowX: "hidden",
+          boxSizing: "border-box",
+        }}
+      >
+        {selectedCommit ? (
+          <>
+            <div style={{ position: "absolute", top: "8px", right: "10px" }}>
+              <CommitAuthorAvatar email={selectedCommit.authorEmail} hash={selectedCommit.hash} size={50} />
+            </div>
+            <div style={HISTORY_INFO_TEXT_STYLE}>
+              {isZh ? "提交hash" : "Commit hash"}: {selectedCommit.hash}
+            </div>
+            <div style={HISTORY_INFO_TEXT_STYLE}>
+              {isZh ? "作者" : "Author"}: {selectedCommit.author || "-"}
+            </div>
+            <div style={HISTORY_INFO_TEXT_STYLE}>
+              {isZh ? "提交者邮箱" : "Author email"}: {selectedCommit.authorEmail || "-"}
+            </div>
+            <div style={HISTORY_INFO_TEXT_STYLE}>
+              {isZh ? "提交时间" : "Commit date"}: {selectedCommit.date || "-"}
+            </div>
+            <div style={HISTORY_INFO_TEXT_STYLE}>
+              {isZh ? "提交者" : "Committer"}: {selectedCommit.committer || "-"}
+            </div>
+            <div style={{ ...HISTORY_INFO_TEXT_STYLE, whiteSpace: "pre-wrap", marginTop: "10px" }}>{selectedCommit.message || (isZh ? "（无描述）" : "(no description)")}</div>
+          </>
+        ) : (
+          <div style={{ color: "var(--text-muted)", textAlign: "center", padding: "8px 0" }}>{isZh ? "点击上方提交查看详情" : "Click a commit above to view details"}</div>
+        )}
+      </div>
+      <div
+        onMouseDown={handleHistoryLeftSplitMouseDown}
+        onMouseEnter={() => setHoverHistoryLeft(true)}
+        onMouseLeave={() => setHoverHistoryLeft(false)}
+        style={{
+          height: "1px",
+          background: hoverHistoryLeft ? "var(--scrollbar-thumb)" : "var(--border-color)",
+          cursor: "row-resize",
+          flexShrink: 0,
+          position: "relative",
+        }}
+      >
+        <div style={{ position: "absolute", top: "-4px", left: 0, right: 0, bottom: "-4px", cursor: "row-resize" }} />
+      </div>
+      <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+            padding: "6px 10px",
+            fontSize: "11px",
+            fontWeight: 600,
+            color: "var(--text-secondary)",
+            background: "var(--bg-tertiary)",
+            borderBottom: "1px solid var(--border-color)",
+            flexShrink: 0,
+          }}
+        >
+          {isZh ? "本次提交的文件" : "Changed Files"}
+          <span style={{ marginLeft: "auto", fontSize: "10px", fontWeight: 400, color: "var(--text-muted)" }}>{commitFiles.length}</span>
+        </div>
+        <div style={{ flex: 1, overflowY: "auto", padding: "4px" }}>
+          {loadingCommitFiles ? (
+            <div style={{ padding: "12px", fontSize: "11px", color: "var(--text-muted)", textAlign: "center" }}>{isZh ? "加载中..." : "Loading..."}</div>
+          ) : commitFiles.length === 0 ? (
+            <div style={{ padding: "12px", fontSize: "11px", color: "var(--text-muted)", textAlign: "center" }}>{selectedCommit ? (isZh ? "该提交无文件改动" : "No files in this commit") : isZh ? "选择提交后显示文件" : "Select a commit to see its files"}</div>
+          ) : (
+            commitFiles.map((entry) => (
+              <FileRow
+                key={`c-${entry.file}`}
+                entry={entry}
+                isStaged={false}
+                isZh={isZh}
+                isPreviewSelected={selectedCommitFile === entry.file}
+                isMultiSelected={false}
+                onRowClick={() => {
+                  if (selectedCommit) loadCommitFileDiff(selectedCommit.hash, entry.file);
+                }}
+                onRowContextMenu={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
+                onToggleStage={(e) => {
+                  e.stopPropagation();
+                }}
+              />
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  );
   return (
     <div
       ref={containerRef}
@@ -620,20 +1384,88 @@ export const GitPanel: React.FC<GitPanelProps> = ({ t, language = "en", workspac
         branch={branch}
         hasRemote={!!remoteUrl}
         totalChangedCount={totalChangedCount}
+        aheadCount={aheadCount}
         isPulling={isPulling}
         isPushing={isPushing}
+        activeTab={activeTab}
         onCommitClick={() => {
+          setActiveTab("commit");
           const textarea = document.querySelector<HTMLTextAreaElement>(".git-commit-textarea");
           textarea?.focus();
         }}
+        onHistoryClick={() => setActiveTab("history")}
         onPull={handlePull}
-        onPush={handlePush}
+        onPushClick={openPushDialog}
         onRefresh={loadStatus}
         onOpenBranchDialog={() => openBranchDialog("manage")}
+        onOpenTagDialog={() => openTagDialog("manage")}
       />
-      {/* Top area (file lists + diff viewer). Uses flex: 1 1 auto so it
-          automatically fills whatever vertical space is left after the
-          commit area (which has an exact pixel height). */}
+      {activeTab === "history" && (
+        <>
+          <div
+            style={{
+              flex: "0 0 auto",
+              height: `${historyTimelineHeightPx}px`,
+              minHeight: `${HISTORY_TIMELINE_MIN_PX}px`,
+              background: "var(--bg-secondary)",
+              display: "flex",
+              flexDirection: "column",
+              overflow: "hidden",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "6px 12px",
+                borderBottom: "1px solid var(--border-color)",
+                flexShrink: 0,
+              }}
+            >
+              <span style={{ fontSize: "12px", fontWeight: 600, color: "var(--text-primary)" }}>{isZh ? "提交历史" : "Commit History"}</span>
+              <button
+                onClick={() => setActiveTab("commit")}
+                style={{
+                  padding: "2px 10px",
+                  height: "22px",
+                  fontSize: "11px",
+                  background: "transparent",
+                  border: "1px solid var(--border-color)",
+                  borderRadius: "4px",
+                  color: "var(--text-secondary)",
+                  cursor: "pointer",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "var(--hover-bg)";
+                  e.currentTarget.style.color = "var(--text-primary)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "transparent";
+                  e.currentTarget.style.color = "var(--text-secondary)";
+                }}
+              >
+                {isZh ? "返回提交" : "Back to Commit"}
+              </button>
+            </div>
+            <HistoryTimeline isZh={isZh} commits={historyCommits} loading={loadingHistory} selectedHash={selectedCommit?.hash ?? null} onSelect={loadCommitFiles} onContextMenu={openCommitContextMenu} onDoubleClick={handleCheckoutCommit} />
+          </div>
+          <div
+            onMouseDown={handleHistorySplitMouseDown}
+            onMouseEnter={() => setHoverHistory(true)}
+            onMouseLeave={() => setHoverHistory(false)}
+            style={{
+              height: "1px",
+              background: hoverHistory ? "var(--scrollbar-thumb)" : "var(--border-color)",
+              cursor: "row-resize",
+              flexShrink: 0,
+              position: "relative",
+            }}
+          >
+            <div style={{ position: "absolute", top: "-4px", left: 0, right: 0, bottom: "-4px", cursor: "row-resize" }} />
+          </div>
+        </>
+      )}
       <div
         ref={topAreaRef}
         style={{
@@ -643,66 +1475,7 @@ export const GitPanel: React.FC<GitPanelProps> = ({ t, language = "en", workspac
           overflow: "hidden",
         }}
       >
-        <div
-          ref={leftColumnRef}
-          style={{
-            flexGrow: 0,
-            flexShrink: 0,
-            flexBasis: `${leftColSplit * 100}%`,
-            minWidth: "220px",
-            maxWidth: "70%",
-            height: "100%",
-            display: "flex",
-            flexDirection: "column",
-            background: "var(--bg-secondary)",
-            overflow: "hidden",
-          }}
-        >
-          <div style={{ flexGrow: 0, flexShrink: 0, flexBasis: `${stagedSplit * 100}%`, minHeight: 0, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-            <FileListSection
-              isZh={isZh}
-              title={isZh ? "已暂存文件" : "Staged Files"}
-              count={stagedFiles.length}
-              icon="check"
-              isStaged={true}
-              files={stagedFiles}
-              loading={loadingStatus}
-              selectedPaths={selectedStagedPaths}
-              onSelectedAction={handleUnstageSelected}
-              onAllAction={handleUnstageAll}
-              renderRow={renderFileRow}
-            />
-          </div>
-          <div
-            onMouseDown={handleStagedSplitMouseDown}
-            onMouseEnter={() => setHoverStaged(true)}
-            onMouseLeave={() => setHoverStaged(false)}
-            style={{
-              height: "1px",
-              background: hoverStaged ? "var(--scrollbar-thumb)" : "var(--border-color)",
-              cursor: "row-resize",
-              flexShrink: 0,
-              position: "relative",
-            }}
-          >
-            <div style={{ position: "absolute", top: "-4px", left: 0, right: 0, bottom: "-4px", cursor: "row-resize" }} />
-          </div>
-          <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-            <FileListSection
-              isZh={isZh}
-              title={isZh ? "未暂存文件" : "Unstaged Files"}
-              count={unstagedFiles.length}
-              icon="file"
-              isStaged={false}
-              files={unstagedFiles}
-              loading={loadingStatus}
-              selectedPaths={selectedUnstagedPaths}
-              onSelectedAction={handleStageSelected}
-              onAllAction={handleStageAll}
-              renderRow={renderFileRow}
-            />
-          </div>
-        </div>
+        {activeTab === "commit" ? renderWorkingFileColumn() : renderHistoryFileColumn()}
         <div
           onMouseDown={handleLeftColMouseDown}
           onMouseEnter={() => setHoverLeftCol(true)}
@@ -717,42 +1490,111 @@ export const GitPanel: React.FC<GitPanelProps> = ({ t, language = "en", workspac
         >
           <div style={{ position: "absolute", top: 0, bottom: 0, left: "-4px", right: "-4px", cursor: "col-resize" }} />
         </div>
-        <DiffViewer isZh={isZh} selectedFile={selectedFile} selectedIsStaged={selectedIsStaged} parsedDiff={parsedDiff} loadingDiff={loadingDiff} onFileSelect={onFileSelect} />
+        {activeTab === "commit" ? (
+          <DiffViewer isZh={isZh} selectedFile={selectedFile} selectedIsStaged={selectedIsStaged} parsedDiff={parsedDiff} loadingDiff={loadingDiff} onFileSelect={onFileSelect} />
+        ) : (
+          <div style={{ flex: 1, minWidth: 0, height: "100%", display: "flex", flexDirection: "column", overflow: "hidden", background: "var(--bg-primary)" }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "6px 12px",
+                borderBottom: "1px solid var(--border-color)",
+                background: "var(--bg-secondary)",
+                flexShrink: 0,
+                minHeight: "40px",
+              }}
+            >
+              <span style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>
+                {selectedCommitFile ? <span style={{ fontWeight: 500 }}>{selectedCommitFile}</span> : <span style={{ color: "var(--text-muted)" }}>{isZh ? "点击左侧文件查看该提交中的差异" : "Click a file on the left to view its diff in this commit"}</span>}
+              </span>
+            </div>
+            <div
+              style={{
+                flex: 1,
+                overflow: "auto",
+                padding: "4px 0",
+                fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+                fontSize: "12px",
+                lineHeight: 1.7,
+                background: "var(--bg-primary)",
+                whiteSpace: "pre-wrap",
+                wordBreak: "break-word",
+              }}
+            >
+              {loadingCommitDiff ? (
+                <div style={{ padding: "20px", fontSize: "12px", color: "var(--text-muted)", textAlign: "center" }}>{isZh ? "加载差异中..." : "Loading diff..."}</div>
+              ) : !selectedCommitFile ? (
+                <div style={{ padding: "20px", fontSize: "12px", color: "var(--text-muted)", textAlign: "center" }}>{isZh ? "点击左侧文件查看差异" : "Click a file on the left to view its diff"}</div>
+              ) : parsedCommitDiff.length === 0 ? (
+                <div style={{ padding: "20px", fontSize: "12px", color: "var(--text-muted)", textAlign: "center" }}>{isZh ? "无差异内容" : "No diff content"}</div>
+              ) : (
+                parsedCommitDiff.map((line, idx) => {
+                  const isAdd = line.type === "added";
+                  const isDel = line.type === "removed";
+                  const bg = isAdd ? "rgba(76, 175, 80, 0.12)" : isDel ? "rgba(255, 68, 68, 0.12)" : "transparent";
+                  const color = isAdd ? "#4caf50" : isDel ? "#ff4444" : "var(--text-secondary)";
+                  const isHeader = line.content.startsWith("diff --git") || line.content.startsWith("index ") || line.content.startsWith("--- ") || line.content.startsWith("+++ ") || line.content.startsWith("@@") || line.content.startsWith("new file") || line.content.startsWith("deleted file");
+                  return (
+                    <div
+                      key={idx}
+                      style={{
+                        display: "flex",
+                        padding: "0 12px",
+                        background: isHeader ? "var(--bg-tertiary)" : bg,
+                        minHeight: "20px",
+                        color: isHeader ? "var(--text-muted)" : color,
+                        opacity: isHeader ? 0.75 : 1,
+                      }}
+                    >
+                      <span style={{ flex: 1 }}>{line.content || " "}</span>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        )}
       </div>
-      <div
-        onMouseDown={handleTopSplitMouseDown}
-        onMouseEnter={() => setHoverTop(true)}
-        onMouseLeave={() => setHoverTop(false)}
-        style={{
-          height: "1px",
-          background: hoverTop ? "var(--scrollbar-thumb)" : "var(--border-color)",
-          cursor: "row-resize",
-          flexShrink: 0,
-          position: "relative",
-        }}
-      >
-        <div style={{ position: "absolute", top: "-4px", left: 0, right: 0, bottom: "-4px", cursor: "row-resize" }} />
-      </div>
-      {/* Commit area uses an exact pixel height so its internal button
-          row can never be pushed out by the textarea. */}
-      <CommitArea
-        isZh={isZh}
-        minHeightPx={COMMIT_AREA_MIN_PX}
-        heightPx={commitAreaHeightPx}
-        stagedCount={stagedFiles.length}
-        profileName={profileName}
-        profileEmail={profileEmail}
-        profileAvatar={profileAvatar}
-        commitMessage={commitMessage}
-        onCommitMessageChange={setCommitMessage}
-        isCommitting={isCommitting}
-        pushAfterCommit={pushAfterCommit}
-        onPushAfterCommitChange={setPushAfterCommit}
-        remoteShortName={remoteShortName}
-        branch={branch}
-        canPush={!!remoteUrl && !!branch}
-        onCommit={handleCommit}
-      />
+      {activeTab === "commit" && (
+        <>
+          <div
+            onMouseDown={handleTopSplitMouseDown}
+            onMouseEnter={() => setHoverTop(true)}
+            onMouseLeave={() => setHoverTop(false)}
+            style={{
+              height: "1px",
+              background: hoverTop ? "var(--scrollbar-thumb)" : "var(--border-color)",
+              cursor: "row-resize",
+              flexShrink: 0,
+              position: "relative",
+            }}
+          >
+            <div style={{ position: "absolute", top: "-4px", left: 0, right: 0, bottom: "-4px", cursor: "row-resize" }} />
+          </div>
+          <CommitArea
+            isZh={isZh}
+            minHeightPx={COMMIT_AREA_MIN_PX}
+            heightPx={commitAreaHeightPx}
+            stagedCount={stagedFiles.length}
+            profileName={profileName}
+            profileEmail={profileEmail}
+            profileAvatar={profileAvatar}
+            commitMessage={commitMessage}
+            onCommitMessageChange={setCommitMessage}
+            isCommitting={isCommitting}
+            isPushing={isPushing}
+            pushAfterCommit={pushAfterCommit}
+            onPushAfterCommitChange={setPushAfterCommit}
+            remoteShortName={remoteShortName}
+            branch={branch}
+            canPush={!!remoteUrl && !!branch}
+            commitError={commitError}
+            onCommit={handleCommit}
+          />
+        </>
+      )}
       {contextMenu && (
         <FileContextMenu
           x={contextMenu.x}
@@ -771,9 +1613,22 @@ export const GitPanel: React.FC<GitPanelProps> = ({ t, language = "en", workspac
           onRestoreChanges={() => handleRestoreChanges(contextMenu.entry)}
           onStopTracking={() => handleStopTracking(contextMenu.entry)}
           onCommit={() => {
-            const textarea = document.querySelector<HTMLTextAreaElement>(".git-commit-textarea");
-            textarea?.focus();
+            setActiveTab("commit");
+            handleCommit(contextMenu.entry.file);
           }}
+        />
+      )}
+      {commitContextMenu && (
+        <CommitContextMenu
+          x={commitContextMenu.x}
+          y={commitContextMenu.y}
+          isZh={isZh}
+          onClose={closeCommitContextMenu}
+          onCheckout={() => handleCheckoutCommit(commitContextMenu.commit)}
+          onMerge={() => handleMergeCommit(commitContextMenu.commit)}
+          onRebase={() => handleRebaseCommit(commitContextMenu.commit)}
+          onReset={() => handleResetCommit(commitContextMenu.commit)}
+          onRevert={() => handleRevertCommit(commitContextMenu.commit)}
         />
       )}
       {branchDialog && (
@@ -784,6 +1639,7 @@ export const GitPanel: React.FC<GitPanelProps> = ({ t, language = "en", workspac
           onInputChange={setBranchInput}
           branches={availableBranches}
           currentBranch={branch}
+          remoteBranches={remoteBranches}
           isWorking={isBranchWorking}
           onCancel={() => {
             if (!isBranchWorking) {
@@ -792,6 +1648,47 @@ export const GitPanel: React.FC<GitPanelProps> = ({ t, language = "en", workspac
             }
           }}
           onConfirm={confirmBranchDialog}
+        />
+      )}
+      {tagDialog && (
+        <TagDialog
+          isZh={isZh}
+          mode={tagDialog.mode}
+          input={tagInput}
+          onInputChange={setTagInput}
+          message={tagMessage}
+          onMessageChange={setTagMessage}
+          tags={availableTags}
+          remoteTags={availableRemoteTags}
+          isWorking={isTagWorking}
+          onCancel={() => {
+            if (!isTagWorking) {
+              setTagDialog(null);
+              setTagInput("");
+              setTagMessage("");
+            }
+          }}
+          onConfirm={confirmTagDialog}
+        />
+      )}
+      {pushDialog && (
+        <PushDialog
+          isZh={isZh}
+          remoteShortName={remoteShortName}
+          currentBranch={branch}
+          remoteBranches={pushRemoteBranches}
+          localBranches={pushLocalBranches}
+          tags={pushTags}
+          remoteTags={pushRemoteTags}
+          unpushedCommits={pushUnpushedCommits}
+          loadingCommits={loadingPushData}
+          isPushing={isPushing}
+          onCancel={() => {
+            if (!isPushing) {
+              setPushDialog(false);
+            }
+          }}
+          onConfirm={confirmPushDialog}
         />
       )}
     </div>

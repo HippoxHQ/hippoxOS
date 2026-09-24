@@ -7,4 +7,4 @@ export interface GitFileEntry {
   status: string;
   statusDesc: string;
 }
-export type DraggingKind = "staged-split" | "left-col" | "top-split" | null;
+export type DraggingKind = "staged-split" | "left-col" | "top-split" | "history-split" | "history-left-split" | null;
