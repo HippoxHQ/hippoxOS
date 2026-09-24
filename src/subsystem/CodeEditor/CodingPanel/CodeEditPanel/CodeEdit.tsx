@@ -1,15 +1,15 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import * as monaco from "monaco-editor";
 import { readTextFile, exists } from "@tauri-apps/plugin-fs";
-import { showToast, ToastType } from "../../../components/Toast";
 import { useCodeEditorKeyboard } from "./hooks/useCodeEditorKeyboard";
 import { TabContextMenu, TabContextMenuItemType } from "./TabContextMenu";
-import { codeEditorCommands, TabFileMetadata, WorkspaceMetadata } from "../../../command/CodeEditor";
-import { showDialog, DialogType } from "../../../components/Dialog";
 import TabsEmpty from "./TabsEmpty";
-import { getFileIconComponent } from "../fileUtils";
 import { Icon } from "@iconify/react";
 import { X } from "lucide-react";
+import { WorkspaceMetadata, codeEditorCommands, TabFileMetadata } from "../../../../command/CodeEditor";
+import { showDialog, DialogType } from "../../../../components/Dialog";
+import { showToast, ToastType } from "../../../../components/Toast";
+import { getFileIconComponent } from "../../fileUtils";
 interface CodeEditProps {
   t: (key: string, params?: Record<string, string | number>) => string;
   selectedFile: string | null;
@@ -1233,7 +1233,6 @@ const CodeEdit: React.FC<CodeEditProps> = ({ t, selectedFile, workspacePath, onT
               cursor: "pointer",
               color: "var(--text-secondary)",
               fontSize: "12px",
-              transition: "all 0.15s ease",
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.background = "var(--hover-bg)";

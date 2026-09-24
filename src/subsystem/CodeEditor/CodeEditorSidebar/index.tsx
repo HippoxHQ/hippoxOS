@@ -1,16 +1,17 @@
 import React from "react";
-import { FolderTree, History } from "lucide-react";
+import { FolderTree, History, GitBranch } from "lucide-react";
 /**
  * Sidebar view keys for the code editor.
  * Extend this union when adding more side panel views in the future.
  * - "files": shows the file tree panel inline next to the sidebar
+ * - "git": shows the dedicated Git panel that replaces the main content area
  * - "none": no inline side panel is open
  *
  * NOTE: History is NOT part of this union. History opens as a
  * slide-out drawer (like the blockchain page), controlled by the
  * `onToggleHistory` / `isHistoryOpen` props instead.
  */
-export type CodeEditorSidebarView = "files" | "none";
+export type CodeEditorSidebarView = "files" | "git" | "none";
 interface CodeEditorSidebarProps {
   /** Currently active inline side panel view */
   activeView: CodeEditorSidebarView;
@@ -28,6 +29,7 @@ interface CodeEditorSidebarProps {
  * Mirrors the visual style of BlockchainSidebar.
  *
  * Top: Files button (toggles the inline file tree side panel)
+ * Top: Git button (opens the dedicated Git panel over the main content area)
  * Bottom: History button (toggles the slide-out history drawer)
  */
 export const CodeEditorSidebar: React.FC<CodeEditorSidebarProps> = ({ activeView, onViewChange, onToggleHistory, isHistoryOpen = false, language = "en" }) => {
@@ -93,7 +95,7 @@ export const CodeEditorSidebar: React.FC<CodeEditorSidebarProps> = ({ activeView
         gap: 2,
       }}
     >
-      {/* Top group: Files toggle (inline side panel) */}
+      {/* Top group: Files + Git toggles */}
       <div
         style={{
           display: "flex",
@@ -108,6 +110,13 @@ export const CodeEditorSidebar: React.FC<CodeEditorSidebarProps> = ({ activeView
           label: isZh ? "文件" : "Files",
           isActive: activeView === "files",
           onClick: () => onViewChange(activeView === "files" ? "none" : "files"),
+        })}
+        {renderButton({
+          key: "git",
+          icon: <GitBranch size={18} />,
+          label: isZh ? "Git" : "Git",
+          isActive: activeView === "git",
+          onClick: () => onViewChange(activeView === "git" ? "none" : "git"),
         })}
       </div>
       {/* Spacer pushes bottom items down */}

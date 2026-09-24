@@ -1,5 +1,5 @@
 import React from "react";
-import { CloseIcon, SearchIcon } from "../../../../icons";
+import { CloseIcon, SearchIcon } from "../../../../../icons";
 interface SearchBarProps {
   searchQuery: string;
   setSearchQuery: (value: string) => void;
@@ -32,7 +32,6 @@ export const SearchBar: React.FC<SearchBarProps> = ({ searchQuery, setSearchQuer
           borderRadius: "4px",
           border: `1px solid ${isSearchFocused ? "var(--accent-color)" : "var(--border-color)"}`,
           padding: "0 8px",
-          transition: "border-color 0.15s ease",
         }}
       >
         <SearchIcon />

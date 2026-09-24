@@ -1,7 +1,9 @@
 import React, { useState } from "react";
 import { GitInfo, FileChange } from "../types";
-import { getStatusColor, getStatusLabel } from "../../fileUtils";
-import { githubCommands } from "../../../../command/net/github";
+import { Link, GitBranch, CircleDot, CircleCheck, FileText, Download, RefreshCw, ExternalLink } from "lucide-react";
+import { githubCommands } from "../../../../../command/github";
+import { osCommands } from "../../../../../command/os";
+import { getStatusColor, getStatusLabel } from "../../../fileUtils";
 interface GitHubSectionProps {
   gitInfo: GitInfo | null;
   loadingGit: boolean;
@@ -17,6 +19,41 @@ interface GitHubSectionProps {
   workspacePath: string | null | undefined;
   t: (key: string) => string;
 }
+/**
+ * Normalize a git remote URL into a browsable HTTPS URL.
+ * Supports:
+ * - https://github.com/user/repo(.git)
+ * - git@github.com:user/repo(.git)
+ * - https://gitee.com/user/repo(.git)
+ * - git@gitee.com:user/repo(.git)
+ * - gitlab, bitbucket, and other common hosts
+ */
+const normalizeRemoteUrl = (rawUrl: string | null | undefined): string | null => {
+  if (!rawUrl) return null;
+  let url = rawUrl.trim();
+  if (!url) return null;
+  // Convert SSH form (git@host:user/repo.git) into HTTPS form
+  const sshMatch = url.match(/^git@([^:]+):(.+?)(?:\.git)?$/);
+  if (sshMatch) {
+    const host = sshMatch[1];
+    const path = sshMatch[2].replace(/\.git$/, "");
+    return `https://${host}/${path}`;
+  }
+  // Convert ssh://git@host/user/repo.git into HTTPS form
+  const sshProtocolMatch = url.match(/^ssh:\/\/git@([^/]+)\/(.+?)(?:\.git)?$/);
+  if (sshProtocolMatch) {
+    const host = sshProtocolMatch[1];
+    const path = sshProtocolMatch[2].replace(/\.git$/, "");
+    return `https://${host}/${path}`;
+  }
+  // Strip trailing .git for HTTPS URLs
+  url = url.replace(/\.git$/, "");
+  // Ensure the protocol is present
+  if (!/^https?:\/\//i.test(url)) {
+    url = `https://${url}`;
+  }
+  return url;
+};
 export const GitHubSection: React.FC<GitHubSectionProps> = ({ gitInfo, loadingGit, fileChanges, loadingChanges, isPulling, isPushing, handlePull, handlePush, handleRefresh, onFileSelect, getRemoteStatusText, workspacePath, t }) => {
   const [expandedDiff, setExpandedDiff] = useState<string | null>(null);
   const [diffData, setDiffData] = useState<{
@@ -47,6 +84,20 @@ export const GitHubSection: React.FC<GitHubSectionProps> = ({ gitInfo, loadingGi
       });
     } finally {
       setLoadingDiff(false);
+    }
+  };
+  /**
+   * Open the remote repository in the system default browser.
+   * Works with GitHub, Gitee, GitLab, Bitbucket, etc. by normalizing
+   * the remote URL into a standard HTTPS form.
+   */
+  const handleOpenRemote = async () => {
+    const url = normalizeRemoteUrl(gitInfo?.remoteUrl);
+    if (!url) return;
+    try {
+      await osCommands.openBrowser(url);
+    } catch (error) {
+      console.error("Failed to open remote repository:", error);
     }
   };
   if (loadingGit) {
@@ -93,7 +144,7 @@ export const GitHubSection: React.FC<GitHubSectionProps> = ({ gitInfo, loadingGi
           }}
           title={gitInfo.remoteUrl}
         >
-          <span>🔗</span>
+          <Link size={12} />
           <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{gitInfo.remoteUrl}</span>
         </div>
       )}
@@ -109,7 +160,7 @@ export const GitHubSection: React.FC<GitHubSectionProps> = ({ gitInfo, loadingGi
           flexWrap: "wrap",
         }}
       >
-        <span>🌿</span>
+        <GitBranch size={12} />
         <span style={{ fontWeight: 500, color: "var(--text-primary)" }}>{gitInfo.branch}</span>
         {gitInfo.remoteStatus && (
           <span
@@ -127,9 +178,22 @@ export const GitHubSection: React.FC<GitHubSectionProps> = ({ gitInfo, loadingGi
             fontSize: "10px",
             color: "var(--text-muted)",
             marginLeft: "auto",
+            display: "flex",
+            alignItems: "center",
+            gap: "4px",
           }}
         >
-          {gitInfo.hasChanges ? (isZh ? "🔵 有未提交更改" : "🔵 Uncommitted changes") : isZh ? "✅ 干净工作区" : "✅ Clean working directory"}
+          {gitInfo.hasChanges ? (
+            <>
+              <CircleDot size={12} color="var(--accent-color)" />
+              {isZh ? "有未提交更改" : "Uncommitted changes"}
+            </>
+          ) : (
+            <>
+              <CircleCheck size={12} color="#4caf50" />
+              {isZh ? "干净工作区" : "Clean working directory"}
+            </>
+          )}
         </span>
       </div>
       <div
@@ -193,6 +257,7 @@ export const GitHubSection: React.FC<GitHubSectionProps> = ({ gitInfo, loadingGi
             marginBottom: "6px",
           }}
         >
+          {/* Pull button (kept) */}
           <button
             onClick={handlePull}
             disabled={isPulling || isPushing}
@@ -223,11 +288,22 @@ export const GitHubSection: React.FC<GitHubSectionProps> = ({ gitInfo, loadingGi
               }
             }}
           >
-            {isPulling ? (isZh ? "⏳ 拉取中..." : "⏳ Pulling...") : isZh ? "⬇ 拉取" : "⬇ Pull"}
+            {isPulling ? (
+              isZh ? (
+                "拉取中..."
+              ) : (
+                "Pulling..."
+              )
+            ) : (
+              <>
+                <Download size={12} />
+                {isZh ? "拉取" : "Pull"}
+              </>
+            )}
           </button>
+          {/* Open remote repository in browser (new) */}
           <button
-            onClick={handlePush}
-            disabled={isPushing || isPulling}
+            onClick={handleOpenRemote}
             style={{
               padding: "2px 10px",
               height: "24px",
@@ -236,27 +312,25 @@ export const GitHubSection: React.FC<GitHubSectionProps> = ({ gitInfo, loadingGi
               border: "1px solid var(--border-color)",
               borderRadius: "4px",
               color: "var(--text-secondary)",
-              cursor: isPushing || isPulling ? "not-allowed" : "pointer",
-              opacity: isPushing || isPulling ? 0.5 : 1,
+              cursor: "pointer",
               display: "flex",
               alignItems: "center",
               gap: "4px",
             }}
             onMouseEnter={(e) => {
-              if (!isPushing && !isPulling) {
-                e.currentTarget.style.background = "var(--hover-bg)";
-                e.currentTarget.style.color = "var(--text-primary)";
-              }
+              e.currentTarget.style.background = "var(--hover-bg)";
+              e.currentTarget.style.color = "var(--text-primary)";
             }}
             onMouseLeave={(e) => {
-              if (!isPushing && !isPulling) {
-                e.currentTarget.style.background = "var(--bg-tertiary)";
-                e.currentTarget.style.color = "var(--text-secondary)";
-              }
+              e.currentTarget.style.background = "var(--bg-tertiary)";
+              e.currentTarget.style.color = "var(--text-secondary)";
             }}
+            title={isZh ? "在浏览器中打开远程仓库" : "Open remote repository in browser"}
           >
-            {isPushing ? (isZh ? "⏳ 推送中..." : "⏳ Pushing...") : isZh ? "⬆ 推送" : "⬆ Push"}
+            <ExternalLink size={12} />
+            {isZh ? "打开仓库" : "Open Repo"}
           </button>
+          {/* Refresh button (kept) */}
           <button
             onClick={handleRefresh}
             style={{
@@ -281,7 +355,8 @@ export const GitHubSection: React.FC<GitHubSectionProps> = ({ gitInfo, loadingGi
               e.currentTarget.style.color = "var(--text-muted)";
             }}
           >
-            {isZh ? "🔄 刷新" : "🔄 Refresh"}
+            <RefreshCw size={12} />
+            {isZh ? "刷新" : "Refresh"}
           </button>
         </div>
       )}
@@ -298,7 +373,10 @@ export const GitHubSection: React.FC<GitHubSectionProps> = ({ gitInfo, loadingGi
             justifyContent: "space-between",
           }}
         >
-          <span>{isZh ? "📝 文件改动" : "📝 File Changes"}</span>
+          <span style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+            <FileText size={12} />
+            {isZh ? "文件改动" : "File Changes"}
+          </span>
           {fileChanges.length > 0 && (
             <span style={{ fontSize: "9px", fontWeight: 400 }}>
               {fileChanges.length} {isZh ? "个文件" : "files"}
@@ -382,7 +460,6 @@ export const GitHubSection: React.FC<GitHubSectionProps> = ({ gitInfo, loadingGi
                       <span
                         style={{
                           fontSize: "10px",
-                          transition: "transform 0.15s ease",
                           transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)",
                           display: "inline-block",
                         }}

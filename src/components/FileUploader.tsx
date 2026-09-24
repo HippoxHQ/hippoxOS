@@ -300,7 +300,7 @@ const FileUploader: React.FC<FileUploaderProps> = ({ onFilesAdd, onFileRemove, f
           display: flex;
           align-items: center;
           justify-content: center;
-          transition: all 0.2s ease;
+          // transition: all 0.2s ease;
           opacity: 0.8;
         }
          .scroll-btn:hover {
@@ -334,7 +334,7 @@ const FileUploader: React.FC<FileUploaderProps> = ({ onFilesAdd, onFileRemove, f
           border: 1px solid var(--border-color);
           border-radius: 8px;
           cursor: default;
-          transition: all 0.2s ease;
+          // transition: all 0.2s ease;
           flex-shrink: 0;
         }
          .file-item:hover {
@@ -410,7 +410,7 @@ const FileUploader: React.FC<FileUploaderProps> = ({ onFilesAdd, onFileRemove, f
           align-items: center;
           justify-content: center;
           opacity: 0;
-          transition: all 0.2s ease;
+          // transition: all 0.2s ease;
           z-index: 1;
         }
          .file-item:hover .file-remove {

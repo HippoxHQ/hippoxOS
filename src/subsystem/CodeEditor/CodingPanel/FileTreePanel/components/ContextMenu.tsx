@@ -102,7 +102,6 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({ x, y, items, onClose }
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
-              transition: "background 0.1s ease",
             }}
             onMouseEnter={(e) => {
               if (!item.disabled) {

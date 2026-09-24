@@ -1,4 +1,4 @@
-import { terminalCommands } from "../../../command/terminal";
+import { terminalCommands } from "../../../../command/terminal";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { Terminal as XTerm } from "xterm";
 import { FitAddon } from "@xterm/addon-fit";
@@ -198,7 +198,6 @@ export class Terminal {
     container.style.height = "100%";
     container.style.overflow = "hidden";
     container.style.opacity = "0";
-    container.style.transition = "opacity 0.15s ease";
     container.style.pointerEvents = "none";
     container.style.background = bgPrimary;
     container.style.minWidth = "100px";
@@ -480,7 +479,6 @@ export class Terminal {
         border-top: ${isActive ? "1px solid var(--accent-color)" : "1px solid transparent"};
         border-bottom: ${isActive ? "1px solid var(--accent-color)" : "1px solid transparent"};
         margin-bottom: 0px;
-        transition: all 0.1s ease;
         opacity: ${isDead ? 0.5 : 1};
       ">
         <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0;">

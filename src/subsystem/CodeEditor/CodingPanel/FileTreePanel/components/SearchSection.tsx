@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { FileNode } from "../types";
-import { SearchIcon, CloseIcon } from "../../../../icons";
-import { FileSearchResult, codeEditorCommands, SearchMatch } from "../../../../command/CodeEditor";
-import { getFileIconComponent } from "../../fileUtils";
+import { SearchIcon, CloseIcon } from "../../../../../icons";
+import { FileSearchResult, codeEditorCommands, SearchMatch } from "../../../../../command/CodeEditor";
+import { getFileIconComponent } from "../../../fileUtils";
 interface SearchSectionProps {
   fileTree: FileNode[];
   onFileSelect: (path: string) => void;
@@ -237,7 +237,6 @@ export const SearchSection: React.FC<SearchSectionProps> = ({ fileTree, onFileSe
             borderRadius: "4px",
             border: `1px solid ${isSearchFocused ? "var(--accent-color)" : "var(--border-color)"}`,
             padding: "0 8px",
-            transition: "border-color 0.15s ease",
             height: "28px",
           }}
         >
@@ -368,7 +367,6 @@ export const SearchSection: React.FC<SearchSectionProps> = ({ fileTree, onFileSe
                     background: isFileSelected ? "var(--accent-glow)" : "transparent",
                     color: isFileSelected ? "var(--accent-color)" : "var(--text-primary)",
                     fontSize: "12px",
-                    transition: "background 0.1s ease",
                   }}
                   onMouseEnter={(e) => {
                     if (!isFileSelected) {
@@ -385,7 +383,6 @@ export const SearchSection: React.FC<SearchSectionProps> = ({ fileTree, onFileSe
                   <span
                     style={{
                       fontSize: "10px",
-                      transition: "transform 0.15s ease",
                       transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)",
                       display: "inline-block",
                       flexShrink: 0,
@@ -445,7 +442,6 @@ export const SearchSection: React.FC<SearchSectionProps> = ({ fileTree, onFileSe
                             background: isSelected ? "var(--accent-glow)" : "transparent",
                             color: isSelected ? "var(--accent-color)" : "var(--text-secondary)",
                             fontSize: "11px",
-                            transition: "background 0.1s ease",
                             borderLeft: isSelected ? "2px solid var(--accent-color)" : "2px solid transparent",
                             marginBottom: "1px",
                           }}

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
 import { showToast, ToastType } from "../../components/Toast";
-import { githubCommands } from "../../command/net/github";
+import { githubCommands } from "../../command/github";
 import { Lock as LockIcon, Star } from "lucide-react";
 import { GithubIcon, FolderTargetIcon, BrowseFolderIcon, RepoIcon, CheckCircleIcon, SpinnerIcon, AlertCircleIcon, CloseIcon, ChevronRightIcon } from "../../icons";
 interface GithubRepoInfo {
@@ -436,7 +436,6 @@ const GithubClone: React.FC<GithubCloneProps> = ({ t, language = "en", isOpen, o
                 borderRadius: "6px",
                 background: "var(--bg-secondary)",
                 padding: "0 10px",
-                transition: "border-color 0.2s ease",
                 height: "32px",
                 opacity: isCloning || isLoading ? 0.6 : 1,
               }}
@@ -895,7 +894,6 @@ const GithubClone: React.FC<GithubCloneProps> = ({ t, language = "en", isOpen, o
                 borderRadius: "6px",
                 color: isLoading ? "var(--text-muted)" : isCloning ? "var(--error-color)" : "var(--text-secondary)",
                 cursor: isLoading ? "not-allowed" : "pointer",
-                transition: "all 0.15s",
                 opacity: isLoading ? 0.6 : 1,
               }}
               onMouseEnter={(e) => {
@@ -925,7 +923,6 @@ const GithubClone: React.FC<GithubCloneProps> = ({ t, language = "en", isOpen, o
                 color: isCloning || isLoading || !repoInfo?.valid || !cloneTargetPath.trim() ? "var(--text-muted)" : "#fff",
                 cursor: isCloning || isLoading || !repoInfo?.valid || !cloneTargetPath.trim() ? "not-allowed" : "pointer",
                 opacity: isCloning || isLoading || !repoInfo?.valid || !cloneTargetPath.trim() ? 0.6 : 1,
-                transition: "all 0.15s",
                 display: "flex",
                 alignItems: "center",
                 gap: "4px",

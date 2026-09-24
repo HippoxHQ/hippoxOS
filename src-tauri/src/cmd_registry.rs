@@ -239,6 +239,13 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_get_remote_url,
         commands::cmd_get_remote_status,
         commands::cmd_get_remote_branches,
+        commands::cmd_git_status_split,
+        commands::cmd_git_add_file,
+        commands::cmd_git_unstage_file,
+        commands::cmd_git_stage_all,
+        commands::cmd_git_unstage_all,
+        commands::cmd_git_commit,
+        commands::cmd_git_staged_file_diff,
         // git
         commands::cmd_git_pull,
         commands::cmd_git_push,

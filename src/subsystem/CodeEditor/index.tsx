@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { taskManager } from "../../core/TaskManager";
 import { FileIcon, FolderIcon, GithubIcon, MessageCircleIcon } from "../../icons";
-import CodingPage, { CodingRef } from "./Coding";
 import { configCommands } from "../../command/config";
 import HistoryCodeEditorChatPanel, { HistoryCodeEditorChatPanelRef } from "./HistoryCodeEditorChatPanel";
 import CodeEditorChatPanel from "./CodeEditorChatPanel";
@@ -9,7 +8,7 @@ import { useCodeEditorSession } from "../../App/hooks/session/useCodeEditorChatS
 import { codeEditorSessionCommands } from "../../command/session/codeeditor";
 import CodeEditorWelcomePage from "./CodeEditorWelcomePage";
 import { listen } from "@tauri-apps/api/event";
-import { githubCommands } from "../../command/net/github";
+import { githubCommands } from "../../command/github";
 import { showToast, ToastType } from "../../components/Toast";
 import { open } from "@tauri-apps/plugin-dialog";
 import GithubClone from "./GithubClone";
@@ -19,11 +18,13 @@ import { showDialog, DialogType } from "../../components/Dialog";
 import CodeEditorSidebar, { CodeEditorSidebarView } from "./CodeEditorSidebar";
 import { CollapseAllIcon2, ExpandAllIcon2 } from "../../icons";
 import CodeEditorSidePanel from "./CodeEditorSidebar/CodeEditorSidePanel";
+import GitPanel from "./CodeEditorSidebar/GitPanel";
+import CodingPanel, { CodingPanelRef } from "./CodingPanel";
 // Chat panel width limits (right panel in code editor)
 const CHAT_PANEL_MIN_WIDTH = 200;
 const CHAT_PANEL_MAX_WIDTH_RATIO = 0.6; // Max 60% of main area
 // Side panel width limits (files region next to the sidebar)
-const SIDE_PANEL_MIN_WIDTH = 200;
+const SIDE_PANEL_MIN_WIDTH = 260;
 const SIDE_PANEL_MAX_WIDTH = 520;
 const SIDE_PANEL_DEFAULT_WIDTH = 280;
 // History drawer width (slide-out drawer, matches blockchain page style)
@@ -707,10 +708,10 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
   const menuRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const layoutSwapModeRef = useRef<"terminal-left" | "chat-left">("terminal-left");
-  const codingRef = useRef<CodingRef | null>(null);
+  const codingPanelRef = useRef<CodingPanelRef | null>(null);
   // Selected file is owned here so both the file tree panel and editor stay in sync
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
-  // Active inline side panel view (files / none)
+  // Active inline side panel view (files / git / none)
   const [sidePanelView, setSidePanelView] = useState<CodeEditorSidebarView>("files");
   // Side panel width (files region) - user-resizable
   const [sidePanelWidth, setSidePanelWidth] = useState<number>(SIDE_PANEL_DEFAULT_WIDTH);
@@ -720,6 +721,9 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
   const [isBatchMode, setIsBatchMode] = useState<boolean>(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const isZh = language === "zh";
+  // Whether the Git panel is currently covering the main content area.
+  // This is derived from sidePanelView === "git".
+  const isGitPanelActive = sidePanelView === "git";
   // Clear selection when batch mode is turned off
   useEffect(() => {
     if (!isBatchMode) {
@@ -1112,7 +1116,7 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
     const savedSidePanelWidth = localStorage.getItem("hippox-codeeditor-side-panel-width");
     if (savedChatPanelCollapsed) setChatPanelCollapsed(savedChatPanelCollapsed === "true");
     if (savedChatPanelWidth) setChatPanelWidth(parseFloat(savedChatPanelWidth));
-    if (savedSidePanelView === "files" || savedSidePanelView === "none") {
+    if (savedSidePanelView === "files" || savedSidePanelView === "git" || savedSidePanelView === "none") {
       setSidePanelView(savedSidePanelView);
     }
     if (savedSidePanelWidth) {
@@ -1162,8 +1166,8 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
     if (isFunctionPanelMaximized) return;
     // For the chat/editor divider, ignore if the chat panel is collapsed
     if (type === "horizontal" && chatPanelCollapsed) return;
-    // For the side panel resize, ignore if the side panel is hidden
-    if (type === "side-panel" && sidePanelView === "none") return;
+    // For the side panel resize, ignore if the side panel is hidden or Git panel is active
+    if (type === "side-panel" && (sidePanelView === "none" || sidePanelView === "git")) return;
     isDragging.current = true;
     dragType.current = type;
     dragStartX.current = e.clientX;
@@ -1195,7 +1199,7 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
       }
       if (dragType.current === "horizontal") {
         // The side panel always takes sidePanelWidth when open.
-        const sidePanelPx = sidePanelView === "none" ? 0 : sidePanelWidth;
+        const sidePanelPx = sidePanelView === "none" || sidePanelView === "git" ? 0 : sidePanelWidth;
         const mainAreaWidth = containerWidth - sidePanelPx - 45; // 45 = sidebar width
         if (mainAreaWidth <= 0) return;
         const startWidthPx = dragStartChatPanelWidth.current;
@@ -1232,7 +1236,36 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
   const handleSidePanelResizeMouseDown = (e: React.MouseEvent) => {
     handleMouseDown(e, "side-panel");
   };
-  const chatPanel = <CodeEditorChatPanel onSendMessage={handleSendMessage} onFileClick={onFileClick} t={t} currentSessionId={currentSessionId} onDragOverInputChange={onDragOverInputChange} language={language} isLeftPanel={isChatOnLeft} codingRef={codingRef} />;
+  /**
+   * When the Git panel is active, the entire main content area (chat + editor)
+   * is replaced by the Git panel. Only the far-left 45px sidebar stays visible
+   * so the user can toggle back to Files or close the Git panel.
+   */
+  const gitPanel = (
+    <div
+      style={{
+        flex: 1,
+        width: "100%",
+        height: "100%",
+        background: "var(--bg-primary)",
+        position: "relative",
+        overflow: "hidden",
+        minWidth: 0,
+      }}
+    >
+      <GitPanel
+        t={t}
+        language={language}
+        workspacePath={workspacePath}
+        onFileSelect={(path) => {
+          // Switch back to the Files view and select the file for the editor.
+          handleSidePanelViewChange("files");
+          setSelectedFile(path);
+        }}
+      />
+    </div>
+  );
+  const chatPanel = <CodeEditorChatPanel onSendMessage={handleSendMessage} onFileClick={onFileClick} t={t} currentSessionId={currentSessionId} onDragOverInputChange={onDragOverInputChange} language={language} isLeftPanel={isChatOnLeft} codingRef={codingPanelRef} />;
   const codeEditorPanel = (
     <div
       style={{
@@ -1245,7 +1278,7 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
         minWidth: 0,
       }}
     >
-      <CodingPage ref={codingRef} t={t} onClose={() => {}} workspacePath={workspacePath} onTabChange={(filePath) => {}} selectedFile={selectedFile} onFileSelect={setSelectedFile} />
+      <CodingPanel ref={codingPanelRef} t={t} onClose={() => {}} workspacePath={workspacePath} onTabChange={(filePath) => {}} selectedFile={selectedFile} onFileSelect={setSelectedFile} />
     </div>
   );
   const collapsedChatSidebar = (
@@ -1746,84 +1779,106 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
         `}</style>
         {!isFunctionPanelMaximized && (
           <>
-            {/* Far-left icon sidebar: Files + History toggles */}
+            {/* Far-left icon sidebar: Files + Git + History toggles */}
             <CodeEditorSidebar activeView={sidePanelView} onViewChange={handleSidePanelViewChange} onToggleHistory={handleToggleHistoryDrawer} isHistoryOpen={isHistoryDrawerOpen} language={language} />
-            {/* Dedicated inline side panel region (files), resizable, extensible in the future */}
-            <CodeEditorSidePanel
-              view={sidePanelView}
-              width={sidePanelWidth}
-              minWidth={SIDE_PANEL_MIN_WIDTH}
-              maxWidth={SIDE_PANEL_MAX_WIDTH}
-              t={t}
-              selectedFile={selectedFile}
-              workspacePath={workspacePath}
-              onFileSelect={setSelectedFile}
-              onResizeMouseDown={handleSidePanelResizeMouseDown}
-              isResizeHover={isSidePanelResizeHover}
-              setIsResizeHover={setIsSidePanelResizeHover}
-            />
+            {/* Dedicated inline side panel region (files only), resizable.
+                Hidden when the Git panel is active because the Git panel
+                replaces the whole main content area. */}
+            {!isGitPanelActive && (
+              <CodeEditorSidePanel
+                view={sidePanelView}
+                width={sidePanelWidth}
+                minWidth={SIDE_PANEL_MIN_WIDTH}
+                maxWidth={SIDE_PANEL_MAX_WIDTH}
+                t={t}
+                selectedFile={selectedFile}
+                workspacePath={workspacePath}
+                onFileSelect={setSelectedFile}
+                onResizeMouseDown={handleSidePanelResizeMouseDown}
+                isResizeHover={isSidePanelResizeHover}
+                setIsResizeHover={setIsSidePanelResizeHover}
+              />
+            )}
           </>
         )}
-        {!chatPanelCollapsed && !isFunctionPanelMaximized ? (
+        {/* When the Git panel is active, it fills the ENTIRE main content area
+            (chat + editor), replacing both. Otherwise the normal chat + editor
+            layout is rendered. */}
+        {isGitPanelActive && !isFunctionPanelMaximized ? (
           <div
-            className="panel-chat"
             style={{
-              flex: "0 0 auto",
-              width: `${chatPanelWidth}px`,
-              overflow: "hidden",
-              minWidth: `${CHAT_PANEL_MIN_WIDTH}px`,
+              flex: 1,
+              minWidth: 0,
               display: "flex",
               flexDirection: "row",
-              borderRight: isChatOnLeft ? "1px solid var(--border-color)" : "none",
-              borderLeft: !isChatOnLeft ? "1px solid var(--border-color)" : "none",
-              order: isChatOnLeft ? 1 : 3,
             }}
           >
-            {React.cloneElement(chatPanel as React.ReactElement<any>, {
-              isCollapsed: false,
-              togglePanel: handleToggleChatPanel,
-              collapseIcon: isChatOnLeft ? <ChevronsLeft size={16} /> : <ChevronsRight size={16} />,
-              isLeftPanel: isChatOnLeft,
-            })}
+            {gitPanel}
           </div>
-        ) : !isFunctionPanelMaximized ? (
-          <div
-            style={{
-              flex: `0 0 45px`,
-              order: isChatOnLeft ? 1 : 3,
-            }}
-          >
-            {collapsedChatSidebar}
-          </div>
-        ) : null}
-        {!chatPanelCollapsed && !isFunctionPanelMaximized && (
-          <div
-            className="resize-handle resize-handle-vertical"
-            onMouseDown={(e) => handleMouseDown(e, "horizontal")}
-            style={{
-              width: "0px",
-              background: isResizeHover ? "var(--scrollbar-thumb)" : "var(--border-color)",
-              cursor: "col-resize",
-              flexShrink: 0,
-              position: "relative",
-              order: isChatOnLeft ? 2 : 2,
-            }}
-            onMouseEnter={() => setIsResizeHover(true)}
-            onMouseLeave={() => setIsResizeHover(false)}
-          />
+        ) : (
+          <>
+            {!chatPanelCollapsed && !isFunctionPanelMaximized ? (
+              <div
+                className="panel-chat"
+                style={{
+                  flex: "0 0 auto",
+                  width: `${chatPanelWidth}px`,
+                  overflow: "hidden",
+                  minWidth: `${CHAT_PANEL_MIN_WIDTH}px`,
+                  display: "flex",
+                  flexDirection: "row",
+                  borderRight: isChatOnLeft ? "1px solid var(--border-color)" : "none",
+                  borderLeft: !isChatOnLeft ? "1px solid var(--border-color)" : "none",
+                  order: isChatOnLeft ? 1 : 3,
+                }}
+              >
+                {React.cloneElement(chatPanel as React.ReactElement<any>, {
+                  isCollapsed: false,
+                  togglePanel: handleToggleChatPanel,
+                  collapseIcon: isChatOnLeft ? <ChevronsLeft size={16} /> : <ChevronsRight size={16} />,
+                  isLeftPanel: isChatOnLeft,
+                })}
+              </div>
+            ) : !isFunctionPanelMaximized ? (
+              <div
+                style={{
+                  flex: `0 0 45px`,
+                  order: isChatOnLeft ? 1 : 3,
+                }}
+              >
+                {collapsedChatSidebar}
+              </div>
+            ) : null}
+            {!chatPanelCollapsed && !isFunctionPanelMaximized && (
+              <div
+                className="resize-handle resize-handle-vertical"
+                onMouseDown={(e) => handleMouseDown(e, "horizontal")}
+                style={{
+                  width: "0px",
+                  background: isResizeHover ? "var(--scrollbar-thumb)" : "var(--border-color)",
+                  cursor: "col-resize",
+                  flexShrink: 0,
+                  position: "relative",
+                  order: isChatOnLeft ? 2 : 2,
+                }}
+                onMouseEnter={() => setIsResizeHover(true)}
+                onMouseLeave={() => setIsResizeHover(false)}
+              />
+            )}
+            <div
+              style={{
+                flex: 1,
+                overflow: "hidden",
+                minWidth: "150px",
+                display: "flex",
+                flexDirection: "row",
+                order: isChatOnLeft ? 3 : 1,
+              }}
+            >
+              {codeEditorPanel}
+            </div>
+          </>
         )}
-        <div
-          style={{
-            flex: 1,
-            overflow: "hidden",
-            minWidth: "150px",
-            display: "flex",
-            flexDirection: "row",
-            order: isChatOnLeft ? 3 : 1,
-          }}
-        >
-          {codeEditorPanel}
-        </div>
         {/* History drawer (left slide-out, matches blockchain page) */}
         {isHistoryDrawerOpen && renderHistoryDrawer()}
       </div>
@@ -1861,7 +1916,6 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
                 cursor: "pointer",
                 color: "var(--text-primary)",
                 fontSize: "12px",
-                transition: "background 0.1s ease",
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.background = "var(--hover-bg)";
@@ -1884,7 +1938,6 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
                 cursor: "pointer",
                 color: "var(--text-primary)",
                 fontSize: "12px",
-                transition: "background 0.1s ease",
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.background = "var(--hover-bg)";
@@ -1907,7 +1960,6 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
                 cursor: "pointer",
                 color: "var(--text-primary)",
                 fontSize: "12px",
-                transition: "background 0.1s ease",
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.background = "var(--hover-bg)";

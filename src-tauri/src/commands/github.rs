@@ -557,3 +557,229 @@ pub async fn cmd_get_file_diff(path: String, file: String) -> Result<serde_json:
         Err(e) => Err(format!("Failed to execute git: {}", e)),
     }
 }
+// Staging / Unstaging / Commit commands for the SourceTree-style panel
+/// Return git status split into staged and unstaged buckets.
+/// Uses `git status --porcelain=v1` and inspects the two status columns:
+///   XY path
+///   X = index (staged) status, Y = worktree (unstaged) status
+///   " " means no change in that column.
+#[command]
+pub async fn cmd_git_status_split(path: String) -> Result<serde_json::Value, String> {
+    let path_clone = path.clone();
+    let result = tokio::task::spawn_blocking(move || cmd_git().arg("-C").arg(&path_clone).arg("status").arg("--porcelain=v1").arg("-u").output())
+        .await
+        .map_err(|e| format!("Task panicked: {}", e))?;
+    match result {
+        Ok(output) => {
+            if !output.status.success() {
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                return Err(format!("Failed to get git status: {}", stderr));
+            }
+            let output_str = String::from_utf8_lossy(&output.stdout);
+            // Helper to convert a raw two-char status into a human readable label
+            let status_desc = |c: char| -> &'static str {
+                match c {
+                    'M' => "modified",
+                    'A' => "added",
+                    'D' => "deleted",
+                    'R' => "renamed",
+                    'C' => "copied",
+                    '?' => "untracked",
+                    '!' => "ignored",
+                    _ => "unknown",
+                }
+            };
+            let mut staged: Vec<serde_json::Value> = Vec::new();
+            let mut unstaged: Vec<serde_json::Value> = Vec::new();
+            for line in output_str.lines() {
+                if line.is_empty() || line.len() < 4 {
+                    continue;
+                }
+                let index_status = line.chars().nth(0).unwrap_or(' ');
+                let worktree_status = line.chars().nth(1).unwrap_or(' ');
+                let file = line.get(3..).unwrap_or("").trim().to_string();
+                // The index column drives "staged"; the worktree column drives "unstaged"
+                if index_status != ' ' && index_status != '?' {
+                    staged.push(serde_json::json!({
+                        "file": file,
+                        "status": format!("{} ", index_status),
+                        "statusDesc": status_desc(index_status),
+                    }));
+                }
+                if worktree_status != ' ' {
+                    // Untracked files (??) appear only in the worktree column
+                    let desc = if index_status == '?' && worktree_status == '?' { "untracked" } else { status_desc(worktree_status) };
+                    unstaged.push(serde_json::json!({
+                        "file": file,
+                        "status": format!(" {}", worktree_status),
+                        "statusDesc": desc,
+                    }));
+                }
+            }
+            Ok(serde_json::json!({
+                "staged": staged,
+                "unstaged": unstaged,
+                "hasChanges": !staged.is_empty() || !unstaged.is_empty(),
+            }))
+        }
+        Err(e) => Err(format!("Failed to execute git: {}", e)),
+    }
+}
+/// Stage a single file (git add <file>).
+#[command]
+pub async fn cmd_git_add_file(path: String, file: String) -> Result<bool, String> {
+    let path_clone = path.clone();
+    let file_clone = file.clone();
+    let result = tokio::task::spawn_blocking(move || cmd_git().arg("-C").arg(&path_clone).arg("add").arg("--").arg(&file_clone).output())
+        .await
+        .map_err(|e| format!("Task panicked: {}", e))?;
+    match result {
+        Ok(output) => {
+            if output.status.success() {
+                Ok(true)
+            } else {
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                Err(format!("git add failed: {}", stderr))
+            }
+        }
+        Err(e) => Err(format!("Failed to execute git: {}", e)),
+    }
+}
+/// Unstage a single file (git reset HEAD -- <file>).
+#[command]
+pub async fn cmd_git_unstage_file(path: String, file: String) -> Result<bool, String> {
+    let path_clone = path.clone();
+    let file_clone = file.clone();
+    let result =
+        tokio::task::spawn_blocking(move || cmd_git().arg("-C").arg(&path_clone).arg("reset").arg("HEAD").arg("--").arg(&file_clone).output())
+            .await
+            .map_err(|e| format!("Task panicked: {}", e))?;
+    match result {
+        Ok(output) => {
+            if output.status.success() {
+                Ok(true)
+            } else {
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                Err(format!("git reset failed: {}", stderr))
+            }
+        }
+        Err(e) => Err(format!("Failed to execute git: {}", e)),
+    }
+}
+/// Stage every changed file (git add -A).
+#[command]
+pub async fn cmd_git_stage_all(path: String) -> Result<bool, String> {
+    let path_clone = path.clone();
+    let result = tokio::task::spawn_blocking(move || cmd_git().arg("-C").arg(&path_clone).arg("add").arg("-A").output())
+        .await
+        .map_err(|e| format!("Task panicked: {}", e))?;
+    match result {
+        Ok(output) => {
+            if output.status.success() {
+                Ok(true)
+            } else {
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                Err(format!("git add -A failed: {}", stderr))
+            }
+        }
+        Err(e) => Err(format!("Failed to execute git: {}", e)),
+    }
+}
+/// Unstage every staged file (git reset HEAD -- .).
+#[command]
+pub async fn cmd_git_unstage_all(path: String) -> Result<bool, String> {
+    let path_clone = path.clone();
+    let result = tokio::task::spawn_blocking(move || cmd_git().arg("-C").arg(&path_clone).arg("reset").arg("HEAD").arg("--").arg(".").output())
+        .await
+        .map_err(|e| format!("Task panicked: {}", e))?;
+    match result {
+        Ok(output) => {
+            if output.status.success() {
+                Ok(true)
+            } else {
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                Err(format!("git reset failed: {}", stderr))
+            }
+        }
+        Err(e) => Err(format!("Failed to execute git: {}", e)),
+    }
+}
+/// Commit staged changes with the given message.
+/// Uses `git commit -m <message>`; the message must be non-empty.
+#[command]
+pub async fn cmd_git_commit(path: String, message: String) -> Result<String, String> {
+    let trimmed = message.trim().to_string();
+    if trimmed.is_empty() {
+        return Err("Commit message cannot be empty".to_string());
+    }
+    let path_clone = path.clone();
+    let message_clone = trimmed.clone();
+    let result = tokio::task::spawn_blocking(move || cmd_git().arg("-C").arg(&path_clone).arg("commit").arg("-m").arg(&message_clone).output())
+        .await
+        .map_err(|e| format!("Task panicked: {}", e))?;
+    match result {
+        Ok(output) => {
+            if output.status.success() {
+                let stdout = String::from_utf8_lossy(&output.stdout);
+                Ok(format!("Commit successful: {}", stdout))
+            } else {
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                Err(format!("git commit failed: {}", stderr))
+            }
+        }
+        Err(e) => Err(format!("Failed to execute git: {}", e)),
+    }
+}
+/// Diff of a single staged file (git diff --cached -- <file>).
+#[command]
+pub async fn cmd_git_staged_file_diff(path: String, file: String) -> Result<serde_json::Value, String> {
+    let path_clone = path.clone();
+    let file_clone = file.clone();
+    let result = tokio::task::spawn_blocking(move || {
+        cmd_git()
+            .arg("-C")
+            .arg(&path_clone)
+            .arg("diff")
+            .arg("--cached")
+            .arg("--no-color")
+            .arg("--no-prefix")
+            .arg("--unified=3")
+            .arg("--")
+            .arg(&file_clone)
+            .output()
+    })
+    .await
+    .map_err(|e| format!("Task panicked: {}", e))?;
+    match result {
+        Ok(output) => {
+            if output.status.success() {
+                let diff_content = String::from_utf8_lossy(&output.stdout).to_string();
+                if diff_content.is_empty() {
+                    return Ok(serde_json::json!({
+                        "type": "no_diff",
+                        "diff": "",
+                    }));
+                }
+                let mut additions = 0;
+                let mut deletions = 0;
+                for line in diff_content.lines() {
+                    if line.starts_with("+") && !line.starts_with("+++") {
+                        additions += 1;
+                    } else if line.starts_with("-") && !line.starts_with("---") {
+                        deletions += 1;
+                    }
+                }
+                Ok(serde_json::json!({
+                    "type": "diff",
+                    "diff": diff_content,
+                    "additions": additions,
+                    "deletions": deletions,
+                }))
+            } else {
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                Err(format!("Failed to get staged diff: {}", stderr))
+            }
+        }
+        Err(e) => Err(format!("Failed to execute git: {}", e)),
+    }
+}

@@ -1,6 +1,6 @@
 import React from "react";
-import FileTreePanel from "../FileTreePanel";
 import { CodeEditorSidebarView } from ".";
+import FileTreePanel from "../CodingPanel/FileTreePanel";
 interface CodeEditorSidePanelProps {
   /** Which inline side panel view to render */
   view: CodeEditorSidebarView;

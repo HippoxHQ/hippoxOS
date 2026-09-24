@@ -4,10 +4,11 @@ import { FileTreeSection } from "./components/FileTreeSection";
 import { GitHubSection } from "./components/GitHubSection";
 import { TimelineSection } from "./components/TimelineSection";
 import { SearchSection } from "./components/SearchSection";
-import { useGit } from "./hooks/useGit";
-import { FileNode, FileTreePanelProps } from "./types";
-import { getDirectoryName } from "../fileUtils";
-import { FolderIcon, GithubIcon, HistoryChatIcon2, SearchIcon } from "../../../icons";
+import { FolderIcon, HistoryChatIcon2, SearchIcon } from "../../../../icons";
+import { GitBranch } from "lucide-react";
+import { FileTreePanelProps, FileNode } from "./types";
+import { useGit } from "../../hooks/useGit";
+import { getDirectoryName } from "../../fileUtils";
 const FileTreePanel: React.FC<FileTreePanelProps> = ({ t, onFileSelect, selectedFile, workspacePath }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchFocused, setIsSearchFocused] = useState(false);
@@ -157,10 +158,13 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({ t, onFileSelect, selected
               overflow: "hidden",
             }}
           >
+            {/* Section renamed from "GitHub" to "Git" because the remote may
+                be GitHub, Gitee, GitLab, Bitbucket, or any other host.
+                Icon switched from the GitHub logo to a generic Git branch icon. */}
             {renderSectionHeader(
               "git",
-              <GithubIcon size={14} />,
-              "GitHub",
+              <GitBranch size={14} />,
+              "Git",
               undefined,
               gitInfo && (
                 <span

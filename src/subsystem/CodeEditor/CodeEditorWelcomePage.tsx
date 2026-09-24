@@ -5,7 +5,7 @@ import { showToast, ToastType } from "../../components/Toast";
 import { stat } from "@tauri-apps/plugin-fs";
 import { FolderIcon, FileIcon, GithubIcon, SpinnerIcon } from "../../icons";
 import GithubClone from "./GithubClone";
-import { githubCommands } from "../../command/net/github";
+import { githubCommands } from "../../command/github";
 import codeeditor_logo from "../../assets/codeeditor-logo-2.jpg";
 interface CodeEditorWelcomePageProps {
   t: (key: string, params?: any) => string;

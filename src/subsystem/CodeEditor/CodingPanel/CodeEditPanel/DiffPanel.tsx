@@ -235,7 +235,6 @@ const DiffPanel: React.FC<DiffPanelProps> = ({ isVisible, fileName = "", origina
               borderRadius: "4px",
               color: "var(--text-secondary)",
               cursor: "pointer",
-              transition: "all 0.15s ease",
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.background = "var(--hover-bg)";
@@ -260,7 +259,6 @@ const DiffPanel: React.FC<DiffPanelProps> = ({ isVisible, fileName = "", origina
               borderRadius: "4px",
               color: "#fff",
               cursor: "pointer",
-              transition: "all 0.15s ease",
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.background = "var(--accent-hover)";

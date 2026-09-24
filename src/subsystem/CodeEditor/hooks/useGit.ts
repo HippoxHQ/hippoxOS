@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { GitInfo, GitCommit, FileChange } from "../types";
-import { githubCommands } from "../../../../command/net/github";
+import { githubCommands } from "../../../command/github";
+import { GitInfo, FileChange, GitCommit } from "../FileTreePanel/types";
 export const useGit = (workspacePath: string | null | undefined, t: (key: string) => string) => {
   const [gitInfo, setGitInfo] = useState<GitInfo | null>(null);
   const [loadingGit, setLoadingGit] = useState(false);
@@ -145,7 +145,7 @@ export const useGit = (workspacePath: string | null | undefined, t: (key: string
     if (!gitInfo?.remoteStatus) return null;
     const { ahead, behind, isSynced, isAhead, isBehind, isDiverged } = gitInfo.remoteStatus;
     if (isSynced) {
-      return { text: isZh ? "✅ 已同步" : "✅ Synced", color: "#4caf50" };
+      return { text: isZh ? "已同步" : "Synced", color: "#4caf50" };
     }
     if (isDiverged) {
       return {

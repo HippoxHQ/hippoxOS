@@ -1,16 +1,16 @@
 import React, { useState, useRef, useEffect, useCallback, forwardRef, useImperativeHandle } from "react";
+import { configCommands } from "../../../command/config";
 import CodeEditPanel from "./CodeEditPanel/CodeEditPanel";
 import DiffPanel from "./CodeEditPanel/DiffPanel";
-import { configCommands } from "../../command/config";
 /**
- * Ref interface for CodingPage
+ * Ref interface for CodingPanel
  * Exposed to parent components (CodeEditorChatPanel) for programmatic control
  *
  * This follows the same pattern as SandBox3DRef and EarthViewRef:
  * - Chat panel calls these methods to render diff data
  * - All calls show diff panel for user confirmation
  */
-export interface CodingRef {
+export interface CodingPanelRef {
   /** Show diff panel with original and modified content */
   showDiff: (fileName: string, originalContent: string, modifiedContent: string) => void;
   /** Apply the diff - replace current file content */
@@ -22,7 +22,7 @@ export interface CodingRef {
   /** Get current file content from editor */
   getCurrentFileContent: () => string;
 }
-interface CodingPageProps {
+interface CodingPanelProps {
   t: (key: string) => string;
   onClose?: () => void;
   workspacePath?: string | null;
@@ -33,13 +33,13 @@ interface CodingPageProps {
   onFileSelect?: (path: string) => void;
 }
 /**
- * CodingPage - Main code editor layout component
+ * CodingPanel - Main code editor layout component
  *
  * NOTE: The file tree is no longer rendered inline. It is hosted inside
- * the dedicated CodeEditorSidePanel owned by CodeEditorPage. CodingPage
+ * the dedicated CodeEditorSidePanel owned by CodeEditorPage. CodingPanel
  * only renders the editor + terminal and the optional diff panel.
  */
-const CodingPage = forwardRef<CodingRef, CodingPageProps>(({ t, onClose, workspacePath, onTabChange, selectedFile: externalSelectedFile = null, onFileSelect }, ref) => {
+const CodingPanel = forwardRef<CodingPanelRef, CodingPanelProps>(({ t, onClose, workspacePath, onTabChange, selectedFile: externalSelectedFile = null, onFileSelect }, ref) => {
   const [rightHeight, setRightHeight] = useState(200);
   const [internalSelectedFile, setInternalSelectedFile] = useState<string | null>(externalSelectedFile);
   const isDraggingRight = useRef(false);
@@ -377,5 +377,5 @@ const CodingPage = forwardRef<CodingRef, CodingPageProps>(({ t, onClose, workspa
     </div>
   );
 });
-CodingPage.displayName = "CodingPage";
-export default CodingPage;
+CodingPanel.displayName = "CodingPanel";
+export default CodingPanel;

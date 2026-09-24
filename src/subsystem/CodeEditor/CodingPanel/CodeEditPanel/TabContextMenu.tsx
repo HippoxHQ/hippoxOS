@@ -102,7 +102,6 @@ export const TabContextMenu: React.FC<TabContextMenuProps> = ({ x, y, items, onC
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
-              transition: "background 0.1s ease",
             }}
             onMouseEnter={(e) => {
               if (!item.disabled) {

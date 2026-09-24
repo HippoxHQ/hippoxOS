@@ -1,15 +1,15 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { readDir } from "@tauri-apps/plugin-fs";
 import { dirname, join } from "@tauri-apps/api/path";
-import { codeEditorCommands } from "../../../../../command/CodeEditor";
-import { showToast, ToastType } from "../../../../../components/Toast";
 import { FileNode } from "../../types";
 import { ContextMenuItemType, ContextMenu } from "../ContextMenu";
-import { DialogType, showDialog } from "../../../../../components/Dialog";
 import { useFileTreeKeyboard } from "./hooks/useFileTreeKeyboard";
-import { getFileIconComponent, getFolderIconComponent } from "../../../fileUtils";
-import { generalCommands } from "../../../../../command/General";
 import { X } from "lucide-react";
+import { codeEditorCommands } from "../../../../../../command/CodeEditor";
+import { generalCommands } from "../../../../../../command/General";
+import { showDialog, DialogType } from "../../../../../../components/Dialog";
+import { showToast, ToastType } from "../../../../../../components/Toast";
+import { getFolderIconComponent, getFileIconComponent } from "../../../../fileUtils";
 interface FileTreeSectionProps {
   workspacePath: string | null | undefined;
   selectedFile: string | null;

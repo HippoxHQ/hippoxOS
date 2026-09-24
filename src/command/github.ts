@@ -89,4 +89,45 @@ export const githubCommands = {
     }> => {
         return await invoke("cmd_get_file_diff", { path, file });
     },
+    /**
+     * Split git status into staged and unstaged buckets.
+     * Uses `git status --porcelain=v1` and inspects both status columns.
+     */
+    getGitStatusSplit: async (path: string): Promise<{
+        staged: Array<{ file: string; status: string; statusDesc: string }>;
+        unstaged: Array<{ file: string; status: string; statusDesc: string }>;
+        hasChanges: boolean;
+    }> => {
+        return await invoke("cmd_git_status_split", { path });
+    },
+    /** Stage a single file (git add -- <file>). */
+    stageFile: async (path: string, file: string): Promise<boolean> => {
+        return await invoke("cmd_git_add_file", { path, file });
+    },
+    /** Unstage a single file (git reset HEAD -- <file>). */
+    unstageFile: async (path: string, file: string): Promise<boolean> => {
+        return await invoke("cmd_git_unstage_file", { path, file });
+    },
+    /** Stage every changed file (git add -A). */
+    stageAll: async (path: string): Promise<boolean> => {
+        return await invoke("cmd_git_stage_all", { path });
+    },
+    /** Unstage every staged file (git reset HEAD -- .). */
+    unstageAll: async (path: string): Promise<boolean> => {
+        return await invoke("cmd_git_unstage_all", { path });
+    },
+    /** Commit staged changes (git commit -m <message>). */
+    commit: async (path: string, message: string): Promise<string> => {
+        return await invoke("cmd_git_commit", { path, message });
+    },
+    /** Diff of a single staged file (git diff --cached -- <file>). */
+    getStagedFileDiff: async (path: string, file: string): Promise<{
+        type: 'diff' | 'new_file' | 'no_diff';
+        diff: string;
+        content?: string;
+        additions?: number;
+        deletions?: number;
+    }> => {
+        return await invoke("cmd_git_staged_file_diff", { path, file });
+    },
 };

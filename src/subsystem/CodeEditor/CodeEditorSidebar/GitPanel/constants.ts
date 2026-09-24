@@ -1,0 +1,10 @@
+export const STAGED_SPLIT_MIN = 0.3;
+export const STAGED_SPLIT_MAX = 0.7;
+export const STAGED_SPLIT_DEFAULT = 0.5;
+export const LEFT_COL_MIN = 0.3;
+export const LEFT_COL_MAX = 0.7;
+export const LEFT_COL_DEFAULT = 0.5;
+export const TOP_SPLIT_MIN = 0.5;
+export const TOP_SPLIT_MAX = 0.7;
+export const TOP_SPLIT_DEFAULT = 0.7;
+export const COMMIT_AREA_MIN_PX = 132;
