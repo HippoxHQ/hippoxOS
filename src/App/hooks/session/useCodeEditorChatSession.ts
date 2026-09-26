@@ -204,10 +204,13 @@ export function useCodeEditorSession(
                 workspacePath = workspace?.workspace_path;
             }
             const systemPrompt = getCodeEditorSystemPrompt(language as 'zh' | 'en', workspacePath);
-            const fullMessage = `${systemPrompt}\n\n User: ${userMessage}`;
+            const userMessageWithWorkspace = workspacePath
+                ? `${workspacePath} ${userMessage}`
+                : userMessage;
+            const fullMessage = `${systemPrompt}\n\n User: ${userMessageWithWorkspace}`;
             const mode = workflowMode || currentWorkflowMode;
             const taskId = await hippoxCommands.sendMessageAsync(
-                userMessage,
+                userMessageWithWorkspace,
                 fullMessage,
                 finalSessionId,
                 mode,
@@ -224,7 +227,7 @@ export function useCodeEditorSession(
             const newTask: TaskInfo = {
                 task_id: taskId,
                 session_id: finalSessionId,
-                user_input: userMessage,
+                user_input: userMessageWithWorkspace,
                 status: TaskStatusEnum.Pending,
                 steps: [],
                 final_output: undefined,

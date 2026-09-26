@@ -1,10 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { User } from "lucide-react";
-import { STAGED_SPLIT_MIN, STAGED_SPLIT_MAX, STAGED_SPLIT_DEFAULT, LEFT_COL_MIN, LEFT_COL_MAX, LEFT_COL_DEFAULT, TOP_SPLIT_MIN, TOP_SPLIT_MAX, TOP_SPLIT_DEFAULT, COMMIT_AREA_MIN_PX, SYSTEM_CO_AUTHOR_EMAIL, SYSTEM_CO_AUTHOR_NAME, SYSTEM_AUTHOR_NAME, SYSTEM_AUTHOR_EMAIL } from "../../constants";
-import { generalCommands } from "../../../../command/General";
-import { githubCommands } from "../../../../command/github";
-import { profileCommands } from "../../../../command/Profile";
-import { showToast, ToastType } from "../../../../components/Toast";
 import BranchDialog from "./BranchDialog";
 import TagDialog from "./TagDialog";
 import PushDialog from "./PushDialog";
@@ -16,8 +11,13 @@ import FileListSection from "./FileListSection";
 import FileRow from "./FileRow";
 import HistoryTimeline, { HistoryCommit } from "./HistoryTimeline";
 import TopActionBar, { PanelTab } from "./TopActionBar";
-import { buildGlobalEmailAvatarUrl, buildHashAvatarUrl } from "../../common";
 import { GitFileEntry, DraggingKind, DiffLine } from "./types";
+import { buildGlobalEmailAvatarUrl, buildHashAvatarUrl } from "../common";
+import { generalCommands } from "../../../command/General";
+import { githubCommands } from "../../../command/github";
+import { profileCommands } from "../../../command/Profile";
+import { showToast, ToastType } from "../../../components/Toast";
+import { STAGED_SPLIT_DEFAULT, LEFT_COL_DEFAULT, TOP_SPLIT_DEFAULT, COMMIT_AREA_MIN_PX, SYSTEM_CO_AUTHOR_EMAIL, SYSTEM_CO_AUTHOR_NAME, SYSTEM_AUTHOR_NAME, SYSTEM_AUTHOR_EMAIL, STAGED_SPLIT_MIN, STAGED_SPLIT_MAX, LEFT_COL_MIN, LEFT_COL_MAX, TOP_SPLIT_MIN, TOP_SPLIT_MAX } from "../constants";
 const HISTORY_TIMELINE_MIN_PX = 120;
 const HISTORY_INFO_MIN_PX = 100;
 const HISTORY_INFO_TEXT_STYLE: React.CSSProperties = {

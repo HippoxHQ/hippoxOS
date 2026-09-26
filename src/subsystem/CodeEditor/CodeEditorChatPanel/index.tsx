@@ -1089,41 +1089,12 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
     }
     return { right: 0, top: 0 };
   })();
-  // Make sure the TaskManager is scoped to CodeEditor before the
-  // function-call processing effect below runs. Effects are executed in
-  // declaration order within the same commit, so this one runs first.
+  // Make sure the TaskManager is scoped to CodeEditor before the function-call processing effect below runs. Effects are executed in declaration order within the same commit, so this one runs first.
   useEffect(() => {
     taskManager.setCurrentDomain(SessionDomain.CodeEditor);
   }, []);
   /**
    * Process LLM response and render editor diff data on the coding panel.
-   *
-   * SINGLE-TURN MODE (mirrors the Video Editor module):
-   * - The LLM is expected to return BOTH `terminalResponse.functionCalls`
-   *   AND a final `chatResponse.m` in the SAME response.
-   * - We execute the function calls exactly ONCE per LLM message.
-   * - We do NOT send a follow-up turn back to the LLM.
-   * - After execution we dispatch a workspace refresh.
-   *
-   * DUPLICATE-EXECUTION PROTECTION (two layers, mirroring the video editor):
-   *   1. IN-MEMORY: `processedMessageIdsRef` — prevents duplicate execution
-   *      within a single mount.
-   *   2. PERSISTENT: `task.executed` — a flag stored on the task itself and
-   *      saved to disk. It is checked BEFORE executing the function calls and
-   *      set to `true` (and persisted) BEFORE executing them.
-   *
-   * Why both layers are needed:
-   *   - On session switch / app restart, `processedMessageIdsRef` is empty
-   *     because the component remounts. Without the persistent `executed`
-   *     flag, the effect would re-run every function-call chain in the
-   *     session history. The `executed` flag prevents that.
-   *   - Within a single mount, `executed` may not have been persisted yet
-   *     when the effect re-fires (React state batching, task manager
-   *     notifications, etc). The in-memory ref handles that case.
-   *
-   * The flag is written and saved BEFORE running the commands, so that even
-   * if execution fails or the app crashes mid-way, the commands are never
-   * run twice.
    */
   useEffect(() => {
     const lastMsg = messages.length > 0 ? messages[messages.length - 1] : null;
@@ -1131,7 +1102,6 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
     if (lastMsg.status === MessageStatus.Pending) return;
     if (lastMsg.status === MessageStatus.Failed) return;
     if (lastMsg.status === MessageStatus.Cancelled) return;
-    // Layer 1: in-memory dedupe.
     if (processedMessageIdsRef.current.has(lastMsg.id)) {
       return;
     }
@@ -1139,18 +1109,14 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
       return;
     }
     const parsed = parseLLMResponse(lastMsg.content);
-    // Resolve the task that owns this LLM message. The message ID has the
-    // form `llm_{task_id}` (see handleSendMessage in useCodeEditorSession).
     const taskId = lastMsg.id.replace("llm_", "");
     const task = taskManager.getTask(taskId);
-    // Layer 2: persistent dedupe. If the task has already been executed at
-    // least once (across remounts / session switches / app restarts), skip.
     if (task?.executed) {
       processedMessageIdsRef.current.add(lastMsg.id);
       return;
     }
-    // (A) Render editor diff if present. The diff is a pure UI operation and
-    // does NOT depend on the executed flag, so it runs on every visit.
+    processedMessageIdsRef.current.add(lastMsg.id);
+    dispatchFileTreeRefresh();
     if (parsed?.terminalResponse?.editor) {
       const editorData = parsed.terminalResponse.editor;
       if (codingPanelRef?.current) {
@@ -1159,19 +1125,9 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
         console.warn("[CodeEditorChatPanel] Coding ref not available for diff display");
       }
     }
-    // (B) Execute function calls if present.
-    //
-    // Mark this message as processed in memory IMMEDIATELY, before any async
-    // work, so the effect cannot re-enter while the async work is in flight.
-    // Also write the persistent `executed: true` flag to the task and save
-    // it to disk BEFORE running the commands. This guarantees that a second
-    // mount of the panel will see `executed === true` and skip execution,
-    // even if the first mount was interrupted mid-execution.
     if (parsed?.terminalResponse?.functionCalls?.length) {
-      processedMessageIdsRef.current.add(lastMsg.id);
       if (task) {
         taskManager.updateTask(taskId, { executed: true });
-        // Persist immediately so the flag survives a reload / crash.
         taskManager.saveCurrentSessionToFile().catch((err) => {
           console.error("[CodeEditorChatPanel] Failed to persist executed flag:", err);
         });
@@ -1184,8 +1140,6 @@ const CodeEditorChatPanel: React.FC<CodeEditorChatPanelProps> = ({
             console.warn("[CodeEditorChatPanel] Some function calls failed:", failed);
             showToast(ToastType.ERROR, isZh ? `${failed.length} 个函数调用失败` : `${failed.length} function call(s) failed`);
           }
-          // Refresh the workspace (file tree + editor) so any file
-          // created / deleted / renamed by the LLM shows up immediately.
           dispatchFileTreeRefresh();
         })
         .catch((err) => {

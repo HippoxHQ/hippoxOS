@@ -3,7 +3,6 @@ import * as monaco from "monaco-editor";
 import { readTextFile, exists } from "@tauri-apps/plugin-fs";
 import { useCodeEditorKeyboard } from "./hooks/useCodeEditorKeyboard";
 import { TabContextMenu, TabContextMenuItemType } from "./TabContextMenu";
-import TabsEmpty from "./TabsEmpty";
 import { Icon } from "@iconify/react";
 import { X } from "lucide-react";
 import { WorkspaceMetadata, codeEditorCommands, TabFileMetadata } from "../../../../command/CodeEditor";
@@ -181,16 +180,18 @@ const CodeEdit: React.FC<CodeEditProps> = ({ t, selectedFile, workspacePath, onT
     return await codeEditorCommands.generateTmpName("");
   }, []);
   const handleSave = useCallback(async () => {
-    if (!activeTab || !workspacePath) {
+    const currentActiveTab = activeTabRef.current;
+    const currentTabs = tabsRef.current;
+    if (!currentActiveTab || !workspacePath) {
       showToast(ToastType.WARNING, t("codeEditor.noFileToSave") || "No file to save");
       return;
     }
-    const tab = tabs.find((t) => t.id === activeTab);
+    const tab = currentTabs.find((t) => t.id === currentActiveTab);
     if (!tab) return;
-    if (savingRef.current.has(activeTab)) {
+    if (savingRef.current.has(currentActiveTab)) {
       return;
     }
-    savingRef.current.add(activeTab);
+    savingRef.current.add(currentActiveTab);
     try {
       const content = editorRef.current?.getValue() || "";
       const result = await codeEditorCommands.writeFile(tab.source_path, content);
@@ -219,9 +220,9 @@ const CodeEdit: React.FC<CodeEditProps> = ({ t, selectedFile, workspacePath, onT
     } catch (error) {
       showToast(ToastType.ERROR, t("codeEditor.saveFailed") || `Failed to save: ${error}`);
     } finally {
-      savingRef.current.delete(activeTab);
+      savingRef.current.delete(currentActiveTab);
     }
-  }, [activeTab, workspacePath, tabs, loadMetadata, saveMetadata, t]);
+  }, [workspacePath, loadMetadata, saveMetadata, t]);
   const handleCopy = useCallback(() => {
     if (editorRef.current) {
       const selection = editorRef.current.getSelection();
@@ -806,9 +807,6 @@ const CodeEdit: React.FC<CodeEditProps> = ({ t, selectedFile, workspacePath, onT
       },
     });
     const editor = editorRef.current;
-    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
-      handleSave();
-    });
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyC, () => {
       const selection = editor.getSelection();
       if (selection && !selection.isEmpty()) {

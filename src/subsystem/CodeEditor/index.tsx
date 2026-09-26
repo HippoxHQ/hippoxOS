@@ -18,9 +18,9 @@ import { showDialog, DialogType } from "../../components/Dialog";
 import CodeEditorSidebar, { CodeEditorSidebarView } from "./CodeEditorSidebar";
 import { CollapseAllIcon2, ExpandAllIcon2 } from "../../icons";
 import CodeEditorSidePanel from "./CodeEditorSidebar/CodeEditorSidePanel";
-import GitPanel from "./CodeEditorSidebar/GitPanel";
 import CodingPanel, { CodingPanelRef } from "./CodingPanel";
 import { SessionDomain } from "../../core/types";
+import GitPanel from "./GitPanel";
 // Chat panel width limits (right panel in code editor)
 const CHAT_PANEL_MIN_WIDTH = 200;
 const CHAT_PANEL_MAX_WIDTH_RATIO = 0.6; // Max 60% of main area

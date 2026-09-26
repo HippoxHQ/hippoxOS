@@ -1,7 +1,7 @@
 import React from "react";
 import { Plus, Minus } from "lucide-react";
 import type { GitFileEntry } from "./types";
-import { getFileIconComponent, getStatusColor, getStatusLabel } from "../../fileUtils";
+import { getFileIconComponent, getStatusColor, getStatusLabel } from "../fileUtils";
 interface FileRowProps {
   entry: GitFileEntry;
   isStaged: boolean;
