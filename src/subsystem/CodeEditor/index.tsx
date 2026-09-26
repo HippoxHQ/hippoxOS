@@ -1011,12 +1011,13 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
   );
   const handleGithubClone = async (repoUrl: string, targetPath: string, branch: string) => {
     try {
-      await githubCommands.cloneRepository(repoUrl, targetPath, branch || "main");
+      const effectiveBranch = branch && branch.trim() ? branch.trim() : undefined;
+      await githubCommands.cloneRepository(repoUrl, targetPath, effectiveBranch as any);
       await handleSelectWorkspace(targetPath, "directory");
       setShowGithubDialog(false);
       window.dispatchEvent(
         new CustomEvent("github-clone-complete", {
-          detail: { repoUrl, targetPath, branch },
+          detail: { repoUrl, targetPath, branch: effectiveBranch },
         }),
       );
     } catch (error) {

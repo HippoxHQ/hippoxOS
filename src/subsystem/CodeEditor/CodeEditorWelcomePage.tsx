@@ -2,8 +2,8 @@ import React, { useState, useEffect } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { open } from "@tauri-apps/plugin-dialog";
 import { showToast, ToastType } from "../../components/Toast";
-import { stat } from "@tauri-apps/plugin-fs";
-import { FolderIcon, FileIcon, GithubIcon, SpinnerIcon } from "../../icons";
+import { FolderIcon, FileIcon, SpinnerIcon } from "../../icons";
+import { GitBranch } from "lucide-react";
 import GithubClone from "./GithubClone";
 import { githubCommands } from "../../command/github";
 import codeeditor_logo from "../../assets/codeeditor-logo-2.jpg";
@@ -77,38 +77,28 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({ t, langua
       showToast(ToastType.ERROR, language === "zh" ? "选择文件失败" : "Failed to select file");
     }
   };
-  // Open GitHub clone dialog
-  const handleGithubClick = () => {
+  // Open Git clone dialog (supports GitHub, Gitee, GitLab, etc.)
+  const handleGitClick = () => {
     setShowGithubDialog(true);
   };
-  /**
-   * Handle GitHub clone operation
-   * - Direct clone using githubCommands (same as CodeEditorPage)
-   * - No event-based waiting mechanism to avoid hanging
-   * - After successful clone, select the workspace
-   */
-  const handleGithubClone = async (repoUrl: string, targetPath: string, branch: string) => {
+  const handleGitClone = async (repoUrl: string, targetPath: string, branch: string) => {
     try {
-      // Use provided callback if available, otherwise direct clone
+      const effectiveBranch = branch && branch.trim() ? branch.trim() : undefined;
       if (onCloneFromGithub) {
-        await onCloneFromGithub(repoUrl, targetPath, branch);
+        await onCloneFromGithub(repoUrl, targetPath, effectiveBranch as any);
       } else {
-        // Direct clone using githubCommands - same pattern as CodeEditorPage
         console.log("[CodeEditorWelcomePage] Cloning repository:", {
           repo: repoUrl,
           target: targetPath,
-          branch: branch || "main",
+          branch: effectiveBranch || "(remote HEAD)",
         });
-        await githubCommands.cloneRepository(repoUrl, targetPath, branch || "main");
-        // After successful clone, select the workspace
+        await githubCommands.cloneRepository(repoUrl, targetPath, effectiveBranch as any);
         await onSelectWorkspace(targetPath, "directory");
       }
-      // Close dialog on success
       setShowGithubDialog(false);
-      // Dispatch event for any listeners
       window.dispatchEvent(
         new CustomEvent("github-clone-complete", {
-          detail: { repoUrl, targetPath, branch },
+          detail: { repoUrl, targetPath, branch: effectiveBranch },
         }),
       );
     } catch (error) {
@@ -198,7 +188,6 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({ t, langua
               fontFamily: "monospace",
             }}
           >
-            {/* {`{ }`} */}
             <img
               src={codeeditor_logo}
               style={{
@@ -303,9 +292,9 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({ t, langua
             </div>
             <div style={{ fontSize: "13px", color: "var(--text-primary)" }}>{isZh ? "选择文件" : "Select File"}</div>
           </div>
-          {/* GitHub Clone */}
+          {/* Git Clone (supports GitHub, Gitee, GitLab, etc.) */}
           <div
-            onClick={handleGithubClick}
+            onClick={handleGitClick}
             style={{
               flex: 1,
               border: "2px dashed var(--border-color)",
@@ -323,10 +312,19 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({ t, langua
               e.currentTarget.style.background = "var(--bg-secondary)";
             }}
           >
-            <div style={{ fontSize: "32px", marginBottom: "8px" }}>
-              <GithubIcon size={32} />
+            <div
+              style={{
+                fontSize: "32px",
+                marginBottom: "8px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "var(--text-primary)",
+              }}
+            >
+              <GitBranch size={32} />
             </div>
-            <div style={{ fontSize: "13px", color: "var(--text-primary)" }}>{isZh ? "GitHub 拉取" : "GitHub Clone"}</div>
+            <div style={{ fontSize: "13px", color: "var(--text-primary)" }}>{isZh ? "Git 拉取" : "Git Clone"}</div>
           </div>
         </div>
         {/* Drag and drop area */}
@@ -396,8 +394,8 @@ const CodeEditorWelcomePage: React.FC<CodeEditorWelcomePageProps> = ({ t, langua
           </div>
         )}
       </div>
-      {/* GitHub Clone Dialog */}
-      <GithubClone t={t} language={language} isOpen={showGithubDialog} onClose={() => setShowGithubDialog(false)} onClone={handleGithubClone} isLoading={isLoading} />
+      {/* Git Clone Dialog */}
+      <GithubClone t={t} language={language} isOpen={showGithubDialog} onClose={() => setShowGithubDialog(false)} onClone={handleGitClone} isLoading={isLoading} />
       {/* Global styles */}
       <style>{`
         @keyframes spin {
