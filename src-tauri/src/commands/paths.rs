@@ -1,6 +1,8 @@
 use crate::commands::{get_notifications_dir, get_skill_history_dir, get_skills_dir};
 use crate::commons::FileUtils;
+use crate::subsystem::{get_download_task_dir, get_downloads_root_dir};
 use chrono::Local;
+use log::{debug, error};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs::{self, File};
@@ -436,4 +438,39 @@ pub fn cmd_save_dialog_history_config(config: DialogHistoryConfig) -> Result<(),
 }
 pub fn is_codeeditor_metadata_path(file: &str) -> bool {
     file.replace('\\', "/").split('/').any(|seg| seg == CODEEDITOR_METADATA_PATH)
+}
+/// Get the on-disk directory path of a video editor session (project).
+#[tauri::command]
+pub fn cmd_get_video_session_dir(session_id: String) -> Result<String, String> {
+    debug!("cmd_get_video_session_dir - START: session_id={}", session_id);
+    if session_id.is_empty() {
+        return Err("session_id cannot be empty".to_string());
+    }
+    let dir = get_video_editing_system_dialog_history_dir().join(&session_id);
+    if !dir.exists() {
+        error!("cmd_get_video_session_dir - Session directory not found: {:?}", dir);
+        return Err(format!("Session directory not found: {}", dir.display()));
+    }
+    debug!("cmd_get_video_session_dir - DONE: {:?}", dir);
+    Ok(dir.to_string_lossy().to_string())
+}
+/// Get the on-disk directory path of a download task.
+#[tauri::command]
+pub fn cmd_get_download_dir_path(task_id: String) -> Result<String, String> {
+    debug!("cmd_get_download_dir_path - START: task_id={}", task_id);
+    if task_id.is_empty() {
+        return Err("task_id cannot be empty".to_string());
+    }
+    let task_dir = get_download_task_dir(&task_id);
+    if task_dir.exists() {
+        debug!("cmd_get_download_dir_path - DONE (task dir): {:?}", task_dir);
+        return Ok(task_dir.to_string_lossy().to_string());
+    }
+    let downloads_root = get_downloads_root_dir();
+    if downloads_root.exists() {
+        debug!("cmd_get_download_dir_path - DONE (downloads root): {:?}", downloads_root);
+        return Ok(downloads_root.to_string_lossy().to_string());
+    }
+    error!("cmd_get_download_dir_path - Neither task dir nor downloads root exists");
+    Err(format!("Download directory not found for task: {}", task_id))
 }

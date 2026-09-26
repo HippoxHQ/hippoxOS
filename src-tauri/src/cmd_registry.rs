@@ -75,6 +75,10 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_get_directory_size,
         commands::cmd_get_disk_info,
         // Paths & Storage
+        commands::cmd_get_dialog_history_config,
+        commands::cmd_save_dialog_history_config,
+        commands::cmd_get_video_session_dir,
+        commands::cmd_get_download_dir_path,
         commands::cmd_get_data_paths,
         commands::cmd_get_logs_size_command,
         commands::cmd_get_max_log_size,
@@ -723,6 +727,10 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         subsystem::cmd_get_keyframe_animation,
         subsystem::cmd_add_overlay_time_animation,
         subsystem::cmd_get_overlay_time_animation,
+        subsystem::cmd_add_dot_animation,
+        subsystem::cmd_get_dot_animation,
+        subsystem::cmd_add_overlay_dot_animation,
+        subsystem::cmd_get_overlay_dot_animation,
         // video editor export 
         subsystem::cmd_get_encoding_formats,
         subsystem::cmd_get_crf_qualities,
