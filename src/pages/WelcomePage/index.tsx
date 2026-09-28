@@ -665,7 +665,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t, onDragOverI
           ))}
         </div>
         {/* Example Prompts Section */}
-        <div className="examples-section">
+        {/* <div className="examples-section">
           <div className="examples-title">{t("welcome.examples") || "Try these"}</div>
           <div className="examples-grid">
             {currentPrompts.slice(0, 11).map((prompt, index) => {
@@ -694,7 +694,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t, onDragOverI
               );
             })}
           </div>
-        </div>
+        </div> */}
       </div>
     </div>
   );

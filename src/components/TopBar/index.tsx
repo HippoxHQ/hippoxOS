@@ -1,46 +1,13 @@
 import React, { useEffect, useState, useRef } from "react";
-import { invoke } from "@tauri-apps/api/core";
 import logo from "../../assets/logo.png";
-import { SearchIcon, NewSessionIcon2, HistoryChatIcon2, MoonIcon, SunIcon, LanguageIcon } from "../../icons";
+import { SearchIcon, MoonIcon, SunIcon } from "../../icons";
 import { Theme, Language } from "../../types/types";
 import SearchDialog from "./SearchDialog";
 import { showToast, ToastType } from "../Toast";
 import { windowsCommands } from "../../command/windows";
+import { osCommands } from "../../command/os";
 import { UploadFile } from "../../core/types";
 import { X } from "lucide-react";
-const TerminalLeftIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" width="16" height="16">
-    <rect x="2" y="4" width="20" height="16" rx="2" stroke="currentColor" fill="none" />
-    <path d="M9 8L6 12L9 16" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
-    <path d="M12 16h6" stroke="currentColor" strokeLinecap="round" />
-  </svg>
-);
-const ChatLeftIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" width="16" height="16">
-    <rect x="2" y="4" width="20" height="16" rx="2" stroke="currentColor" fill="none" />
-    <path d="M15 8L18 12L15 16" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
-    <path d="M12 16h-6" stroke="currentColor" strokeLinecap="round" />
-  </svg>
-);
-const FunctionLeftIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" width="16" height="16">
-    <rect x="2" y="4" width="8" height="16" rx="1.5" stroke="currentColor" fill="none" />
-    <rect x="12" y="4" width="10" height="16" rx="1.5" stroke="currentColor" fill="none" />
-    <path d="M6 8h0" stroke="currentColor" />
-  </svg>
-);
-const FunctionRightIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" width="16" height="16">
-    <rect x="2" y="4" width="10" height="16" rx="1.5" stroke="currentColor" fill="none" />
-    <rect x="14" y="4" width="8" height="16" rx="1.5" stroke="currentColor" fill="none" />
-    <path d="M18 8h0" stroke="currentColor" />
-  </svg>
-);
-const HistoryIcon = ({ size = 16 }: { size?: number }) => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" width={size} height={size}>
-    <path d="M12 8v4l3 3M12 4a8 8 0 1 0 0 16 8 8 0 0 0 0-16z" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-);
 const topBarStyles = `
   .top-bar {
     height: 35px;
@@ -421,27 +388,31 @@ interface TopBarProps {
   isHistoryOpen?: boolean;
   onFileClick?: (file: UploadFile) => void;
 }
-const TopBar: React.FC<TopBarProps> = ({
-  sidebarCollapsed,
-  onToggleSidebar,
-  onNewSession,
-  currentTheme,
-  onToggleTheme,
-  currentLanguage,
-  onToggleLanguage,
-  t,
-  layoutSwapMode = "terminal-left",
-  functionPanelPosition = "right",
-  onFunctionPanelPositionChange,
-  onSwitchSession,
-  currentSessionId,
-  onHistoryClick,
-  isHistoryOpen,
-  onFileClick,
-}) => {
+const TopBar: React.FC<TopBarProps> = ({ sidebarCollapsed, onToggleSidebar, onNewSession, currentTheme, onToggleTheme, currentLanguage, onToggleLanguage, t, isHistoryOpen, onFileClick }) => {
   const [isMaximized, setIsMaximized] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const historyButtonRef = useRef<HTMLButtonElement>(null);
+  const [isMacOS, setIsMacOS] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const os = await osCommands.getOs();
+        if (!cancelled) {
+          setIsMacOS(os === "macos");
+        }
+      } catch (error) {
+        // Fallback to navigator.platform if the backend command is unavailable.
+        const fallback = typeof navigator !== "undefined" && /Mac|iPad|iPhone|iPod/.test(navigator.platform || "");
+        if (!cancelled) {
+          setIsMacOS(fallback);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   useEffect(() => {
     const checkMaximized = async () => {
       try {
@@ -513,11 +484,10 @@ const TopBar: React.FC<TopBarProps> = ({
   const getMinimizeTitle = () => (currentLanguage === "zh" ? "最小化" : "Minimize");
   const getMaximizeTitle = () => (currentLanguage === "zh" ? (isMaximized ? "还原" : "最大化") : isMaximized ? "Restore" : "Maximize");
   const getCloseTitle = () => (currentLanguage === "zh" ? "关闭" : "Close");
-  const getNewSessionTitle = () => (currentLanguage === "zh" ? "新建会话 (⌘N)" : "New Session (⌘N)");
   const isZh = currentLanguage === "zh";
   return (
     <>
-      <div className="top-bar">
+      <div className="top-bar" style={{ paddingRight: `${isMacOS ? "10px" : "0px"}` }}>
         <div className="top-bar-left">
           <div className="app-brand">
             <div className="app-logo">
@@ -560,7 +530,7 @@ const TopBar: React.FC<TopBarProps> = ({
           <button className="action-btn" onClick={onToggleLanguage} title={t("topbar.toggleLanguage")}>
             {currentLanguage === "zh" ? "EN" : "中文"}
           </button>
-          <div className="layout-divider" />
+          {!isMacOS && <div className="layout-divider" />}
           {/* {onFunctionPanelPositionChange && (
             <>
               <div className="layout-divider" />
@@ -586,41 +556,43 @@ const TopBar: React.FC<TopBarProps> = ({
               </div>
             </>
           )} */}
-          <div className="window-controls">
-            <button className="window-btn" onClick={handleMinimize} title={getMinimizeTitle()} style={{ fontSize: "20px", lineHeight: 1, fontWeight: 300 }}>
-              ─
-            </button>
-            <button className="window-btn" onClick={handleMaximize} title={getMaximizeTitle()}>
-              {isMaximized ? (
-                <span
-                  style={{
-                    fontSize: "20px",
-                    lineHeight: 1,
-                    fontWeight: 400,
-                    marginTop: "2px",
-                  }}
-                >
-                  ❐
-                </span>
-              ) : (
-                <span
-                  style={{
-                    fontSize: "30px",
-                    fontWeight: 300,
-                    lineHeight: 1,
-                    display: "flex",
-                    alignItems: "center",
-                    marginTop: "-4px",
-                  }}
-                >
-                  □
-                </span>
-              )}
-            </button>
-            <button className="window-btn close" onClick={handleClose} title={getCloseTitle()} style={{ paddingTop: "2px" }}>
-              <X />
-            </button>
-          </div>
+          {!isMacOS && (
+            <div className="window-controls">
+              <button className="window-btn" onClick={handleMinimize} title={getMinimizeTitle()} style={{ fontSize: "20px", lineHeight: 1, fontWeight: 300 }}>
+                ─
+              </button>
+              <button className="window-btn" onClick={handleMaximize} title={getMaximizeTitle()}>
+                {isMaximized ? (
+                  <span
+                    style={{
+                      fontSize: "20px",
+                      lineHeight: 1,
+                      fontWeight: 400,
+                      marginTop: "2px",
+                    }}
+                  >
+                    ❐
+                  </span>
+                ) : (
+                  <span
+                    style={{
+                      fontSize: "30px",
+                      fontWeight: 300,
+                      lineHeight: 1,
+                      display: "flex",
+                      alignItems: "center",
+                      marginTop: "-4px",
+                    }}
+                  >
+                    □
+                  </span>
+                )}
+              </button>
+              <button className="window-btn close" onClick={handleClose} title={getCloseTitle()} style={{ paddingTop: "2px" }}>
+                <X />
+              </button>
+            </div>
+          )}
         </div>
       </div>
       <SearchDialog isOpen={isSearchOpen} onClose={closeSearch} currentLanguage={currentLanguage} currentTheme={currentTheme} onToggleTheme={onToggleTheme} onToggleLanguage={onToggleLanguage} onFileClick={onFileClick} />

@@ -162,7 +162,6 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_create_submenu_window,
         commands::cmd_create_about_window,
         commands::cmd_emit_to_main_window,
-        commands::cmd_exit_app,
         commands::cmd_task_pool_get_all_tasks,
         commands::cmd_task_pool_get_task,
         commands::cmd_task_pool_get_task_status,
@@ -186,6 +185,8 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_scheduled_task_get_natural_language,
         commands::cmd_scheduled_task_get_skill_md,
         // ======= Operating system commands =======
+        commands::cmd_exit_app,
+        commands::cmd_get_os,
         commands::cmd_get_system_username,
         commands::cmd_open_browser,
         commands::cmd_get_cpu_usage,

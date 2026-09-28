@@ -13,12 +13,12 @@
     "macOSPrivateApi": true,
     "windows": [
       {
-        "title": "HippoxOS",
+        "title": "",
         "label": "main",
-        "width": 1350,
-        "height": 800,
+        "width": 1000,
+        "height": 720,
         "minWidth": 1000,
-        "minHeight": 875,
+        "minHeight": 720,
         "decorations": false,
         "transparent": false,
         "resizable": true,

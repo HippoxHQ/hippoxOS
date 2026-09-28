@@ -13,9 +13,9 @@ const SystemResourceMonitor: React.FC<SystemResourceMonitorProps> = ({ t }) => {
   const fetchSystemUsage = async () => {
     try {
       const [cpu, gpu, memory] = await Promise.all([osCommands.getCpuUsage(), osCommands.getGpuUsage(), osCommands.getMemoryUsage()]);
-      setCpuUsage(cpu);
-      setGpuUsage(gpu);
-      setMemoryUsage(memory);
+      setCpuUsage(typeof cpu === "number" ? cpu : 0);
+      setGpuUsage(typeof gpu === "number" ? gpu : 0);
+      setMemoryUsage(typeof memory === "number" ? memory : 0);
     } catch (error) {
       console.error("[SystemResource] Failed to fetch system usage:", error);
     }
@@ -43,7 +43,7 @@ const SystemResourceMonitor: React.FC<SystemResourceMonitorProps> = ({ t }) => {
     return getUsageColor(usage);
   };
   const formatUsage = (value: number): string => {
-    return value.toFixed(1);
+    return (typeof value === "number" ? value : 0).toFixed(1);
   };
   return (
     <div

@@ -29,7 +29,8 @@ export const osCommands = {
    */
   async getMemoryUsage(): Promise<number> {
     try {
-      return await invoke<number>("cmd_get_memory_usage");
+      const value = await invoke<number>("cmd_get_memory_usage");
+      return typeof value === "number" ? value : 0;
     } catch (error) {
       console.error("[Memory] Failed to get memory usage:", error);
       return 0;
@@ -41,7 +42,8 @@ export const osCommands = {
    */
   async getCpuUsage(): Promise<number> {
     try {
-      return await invoke<number>("cmd_get_cpu_usage");
+      const value = await invoke<number>("cmd_get_cpu_usage");
+      return typeof value === "number" ? value : 0;
     } catch (error) {
       console.error("[CPU] Failed to get CPU usage:", error);
       return 0;
@@ -53,16 +55,17 @@ export const osCommands = {
    */
   async getGpuUsage(): Promise<number> {
     try {
-      return await invoke<number>("cmd_get_gpu_usage");
+      const value = await invoke<number>("cmd_get_gpu_usage");
+      return typeof value === "number" ? value : 0;
     } catch (error) {
       console.error("[GPU] Failed to get GPU usage:", error);
       return 0;
     }
   },
   /**
-  * Get CPU, GPU and memory usage simultaneously
-  * @returns Object containing cpu, gpu and memory usage percentages
-  */
+   * Get CPU, GPU and memory usage simultaneously
+   * @returns Object containing cpu, gpu and memory usage percentages
+   */
   async getSystemUsage(): Promise<{ cpu: number; gpu: number; memory: number }> {
     try {
       const [cpu, gpu, memory] = await Promise.all([
@@ -74,6 +77,20 @@ export const osCommands = {
     } catch (error) {
       console.error("[System] Failed to get system usage:", error);
       return { cpu: 0, gpu: 0, memory: 0 };
+    }
+  },
+  /**
+   * Get the current operating system identifier.
+   * Returns one of: "macos", "windows", "linux", "android", "ios", "freebsd", "dragonfly", "openbsd", "netbsd", "unknown".
+   * This value is determined at compile time and cannot be spoofed by frontend scripts.
+   */
+  async getOs(): Promise<string> {
+    try {
+      const value = await invoke<string>("cmd_get_os");
+      return typeof value === "string" ? value : "unknown";
+    } catch (error) {
+      console.error("[OS] Failed to get OS:", error);
+      return "unknown";
     }
   },
 };

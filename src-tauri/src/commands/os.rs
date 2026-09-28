@@ -7,6 +7,34 @@ use tauri::{AppHandle, Manager, Window};
 pub async fn cmd_exit_app() -> Result<(), String> {
     std::process::exit(0);
 }
+/// Get the current operating system identifier.
+/// Returns one of: "macos", "windows", "linux", "android", "ios", "freebsd", "dragonfly", "openbsd", "netbsd", "unknown".
+/// This value is determined at compile time and cannot be spoofed by frontend scripts.
+#[tauri::command]
+pub fn cmd_get_os() -> Result<String, String> {
+    let os = if cfg!(target_os = "macos") {
+        "macos"
+    } else if cfg!(target_os = "windows") {
+        "windows"
+    } else if cfg!(target_os = "linux") {
+        "linux"
+    } else if cfg!(target_os = "android") {
+        "android"
+    } else if cfg!(target_os = "ios") {
+        "ios"
+    } else if cfg!(target_os = "freebsd") {
+        "freebsd"
+    } else if cfg!(target_os = "dragonfly") {
+        "dragonfly"
+    } else if cfg!(target_os = "openbsd") {
+        "openbsd"
+    } else if cfg!(target_os = "netbsd") {
+        "netbsd"
+    } else {
+        "unknown"
+    };
+    Ok(os.to_string())
+}
 /// Get the current system username
 #[tauri::command]
 pub fn cmd_get_system_username() -> Result<String, String> {
@@ -233,7 +261,7 @@ fn get_macos_gpu_usage() -> Result<f32, String> {
 #[cfg(target_os = "linux")]
 fn get_linux_gpu_usage() -> Result<f32, String> {
     use std::path::Path;
-    // AMD GPU via sysfs (amdgpu driver) 
+    // AMD GPU via sysfs (amdgpu driver)
     // The file /sys/class/drm/card0/device/gpu_busy_percent returns 0-100 integer.
     let amd_path = Path::new("/sys/class/drm/card0/device/gpu_busy_percent");
     if FileUtils::path_exists(amd_path) {
@@ -243,7 +271,7 @@ fn get_linux_gpu_usage() -> Result<f32, String> {
             }
         }
     }
-    // Intel GPU via sysfs (i915/xe driver) 
+    // Intel GPU via sysfs (i915/xe driver)
     // Intel i915 exposes gt frequency and idle state under /sys/class/drm/card0/gt/gt0/.
     // Utilization percentage is not directly available; derive from active frequency ratio.
     let intel_act_freq_path = Path::new("/sys/class/drm/card0/gt/gt0/rps/act_freq");
