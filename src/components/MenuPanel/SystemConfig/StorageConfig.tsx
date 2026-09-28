@@ -305,6 +305,17 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
     overflow: "hidden",
     textOverflow: "ellipsis",
   };
+  // Force icon and its associated text to stay on a single line without wrapping
+  const iconTextRowStyle: React.CSSProperties = {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "4px",
+    whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    minWidth: 0,
+    flexShrink: 1,
+  };
   const StatsCard: React.FC<{
     icon: React.ReactNode;
     title: string;
@@ -331,10 +342,13 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
           justifyContent: "space-between",
           alignItems: "center",
           minWidth: 0,
+          flexWrap: "nowrap",
         }}
       >
-        <span style={{ ...ellipsisStyle, flexShrink: 1, minWidth: 0 }}>
-          {icon} {title}
+        {/* Icon + title forced onto one line */}
+        <span style={{ ...iconTextRowStyle, flexShrink: 1, minWidth: 0 }}>
+          <span style={{ display: "inline-flex", alignItems: "center", flexShrink: 0 }}>{icon}</span>
+          <span style={{ ...ellipsisStyle, minWidth: 0 }}>{title}</span>
         </span>
         {showClear && onClear && (
           <button
@@ -535,17 +549,20 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
         }}
       >
         <div style={cardStyle}>
+          {/* Disk statistics header - icon and text forced onto one line */}
           <div
             style={{
               fontSize: "13px",
               fontWeight: 600,
               color: "var(--text-secondary)",
               marginBottom: "16px",
-              ...ellipsisStyle,
+              ...iconTextRowStyle,
             }}
           >
-            <HardDrive size={16} style={{ display: "inline", marginRight: "6px" }} />
-            {t("storage.diskStatistics") || "Disk Statistics"}
+            <span style={{ display: "inline-flex", alignItems: "center", flexShrink: 0 }}>
+              <HardDrive size={16} />
+            </span>
+            <span style={{ ...ellipsisStyle, minWidth: 0 }}>{t("storage.diskStatistics") || "Disk Statistics"}</span>
           </div>
           {/* Disk space metrics - vertical layout */}
           <div
@@ -681,7 +698,7 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
               borderTop: "1px solid var(--border-color)",
             }}
           >
-            {/* Logs */}
+            {/* Logs - icon and text forced onto one line */}
             <div
               style={{
                 display: "flex",
@@ -691,9 +708,11 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
                 minWidth: 0,
               }}
             >
-              <span style={{ color: "var(--text-secondary)", ...ellipsisStyle }}>
-                <FileText size={14} style={{ display: "inline", marginRight: "4px" }} />
-                {t("storage.logsStatistics") || "Logs"}
+              <span style={{ color: "var(--text-secondary)", ...iconTextRowStyle }}>
+                <span style={{ display: "inline-flex", alignItems: "center", flexShrink: 0 }}>
+                  <FileText size={14} />
+                </span>
+                <span style={{ ...ellipsisStyle, minWidth: 0 }}>{t("storage.logsStatistics") || "Logs"}</span>
               </span>
               <span
                 style={{
@@ -705,7 +724,7 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
                 {formatSize(logsSize)}
               </span>
             </div>
-            {/* Historical Conversations - Group Title */}
+            {/* Historical Conversations - Group Title - icon and text forced onto one line */}
             <div
               style={{
                 display: "flex",
@@ -717,9 +736,11 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
                 color: "var(--text-secondary)",
               }}
             >
-              <span style={{ ...ellipsisStyle }}>
-                <MessageSquare size={14} style={{ display: "inline", marginRight: "4px" }} />
-                {t("storage.historicalConversations") || "Historical Conversations"}
+              <span style={{ ...iconTextRowStyle, minWidth: 0 }}>
+                <span style={{ display: "inline-flex", alignItems: "center", flexShrink: 0 }}>
+                  <MessageSquare size={14} />
+                </span>
+                <span style={{ ...ellipsisStyle, minWidth: 0 }}>{t("storage.historicalConversations") || "Historical Conversations"}</span>
               </span>
               <span
                 style={{
@@ -858,7 +879,7 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
                 {formatSize(sandbox3dDialogSize)}
               </span>
             </div>
-            {/* Favorites */}
+            {/* Favorites - icon and text forced onto one line */}
             <div
               style={{
                 display: "flex",
@@ -869,9 +890,11 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
                 marginTop: "4px",
               }}
             >
-              <span style={{ color: "var(--text-secondary)", ...ellipsisStyle }}>
-                <Star size={14} style={{ display: "inline", marginRight: "4px" }} />
-                {t("storage.favoritesStatistics") || "Favorites"}
+              <span style={{ color: "var(--text-secondary)", ...iconTextRowStyle }}>
+                <span style={{ display: "inline-flex", alignItems: "center", flexShrink: 0 }}>
+                  <Star size={14} />
+                </span>
+                <span style={{ ...ellipsisStyle, minWidth: 0 }}>{t("storage.favoritesStatistics") || "Favorites"}</span>
               </span>
               <span
                 style={{
@@ -883,6 +906,7 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
                 {formatSize(favoritesSize)}
               </span>
             </div>
+            {/* Skills Market - icon and text forced onto one line */}
             <div
               style={{
                 display: "flex",
@@ -892,9 +916,11 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
                 minWidth: 0,
               }}
             >
-              <span style={{ color: "var(--text-secondary)", ...ellipsisStyle }}>
-                <Package size={14} style={{ display: "inline", marginRight: "4px" }} />
-                {t("storage.skillsMarketDir") || "Skills Market"}
+              <span style={{ color: "var(--text-secondary)", ...iconTextRowStyle }}>
+                <span style={{ display: "inline-flex", alignItems: "center", flexShrink: 0 }}>
+                  <Package size={14} />
+                </span>
+                <span style={{ ...ellipsisStyle, minWidth: 0 }}>{t("storage.skillsMarketDir") || "Skills Market"}</span>
               </span>
               <span
                 style={{
@@ -906,6 +932,7 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
                 {formatSize(skillsMarketSize)}
               </span>
             </div>
+            {/* Scheduled Tasks - icon and text forced onto one line */}
             <div
               style={{
                 display: "flex",
@@ -915,9 +942,11 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
                 minWidth: 0,
               }}
             >
-              <span style={{ color: "var(--text-secondary)", ...ellipsisStyle }}>
-                <Clock size={14} style={{ display: "inline", marginRight: "4px" }} />
-                {t("storage.scheduledTasksDir") || "Scheduled Tasks"}
+              <span style={{ color: "var(--text-secondary)", ...iconTextRowStyle }}>
+                <span style={{ display: "inline-flex", alignItems: "center", flexShrink: 0 }}>
+                  <Clock size={14} />
+                </span>
+                <span style={{ ...ellipsisStyle, minWidth: 0 }}>{t("storage.scheduledTasksDir") || "Scheduled Tasks"}</span>
               </span>
               <span
                 style={{
@@ -929,6 +958,7 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
                 {formatSize(scheduledTasksSize)}
               </span>
             </div>
+            {/* Settings - icon and text forced onto one line */}
             <div
               style={{
                 display: "flex",
@@ -938,9 +968,11 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
                 minWidth: 0,
               }}
             >
-              <span style={{ color: "var(--text-secondary)", ...ellipsisStyle }}>
-                <Settings size={14} style={{ display: "inline", marginRight: "4px" }} />
-                {t("storage.settingsDir") || "Settings"}
+              <span style={{ color: "var(--text-secondary)", ...iconTextRowStyle }}>
+                <span style={{ display: "inline-flex", alignItems: "center", flexShrink: 0 }}>
+                  <Settings size={14} />
+                </span>
+                <span style={{ ...ellipsisStyle, minWidth: 0 }}>{t("storage.settingsDir") || "Settings"}</span>
               </span>
               <span
                 style={{
@@ -1000,17 +1032,20 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
           clearing={cleaningFavorites}
         />
         <div style={cardStyle}>
+          {/* Data directories header - icon and text forced onto one line */}
           <div
             style={{
               fontSize: "13px",
               fontWeight: 600,
               color: "var(--text-secondary)",
               marginBottom: "12px",
-              ...ellipsisStyle,
+              ...iconTextRowStyle,
             }}
           >
-            <FolderOpen size={16} style={{ display: "inline", marginRight: "6px" }} />
-            {t("storage.dataDirectories") || "Data Directories"}
+            <span style={{ display: "inline-flex", alignItems: "center", flexShrink: 0 }}>
+              <FolderOpen size={16} />
+            </span>
+            <span style={{ ...ellipsisStyle, minWidth: 0 }}>{t("storage.dataDirectories") || "Data Directories"}</span>
           </div>
           {/* Application Root Directory */}
           <div

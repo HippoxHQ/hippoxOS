@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { configCommands } from "../../../command/config";
 import { disable, enable } from "@tauri-apps/plugin-autostart";
 import { systemUpdateCommands, VersionInfo } from "../../../command/SystemUpdate";
-import { PanelLeftClose, PanelRightClose, Terminal, MessageSquare, PanelLeft, PanelRight, Monitor, Globe, Power, Sparkles, Loader2, Download, RefreshCw, CheckCircle, AlertCircle, XCircle } from "lucide-react";
+import { PanelLeftClose, PanelRightClose, Terminal, MessageSquare, PanelLeft, PanelRight, Monitor, Globe, Power, Sparkles, Loader2, Download, RefreshCw, CheckCircle, AlertCircle, XCircle, ChevronDown } from "lucide-react";
 interface UniversalSettingsProps {
   t: (key: string, params?: any) => string;
   theme: "light" | "dark";
@@ -132,6 +132,235 @@ const LayoutSwitch: React.FC<LayoutSwitchProps> = ({ value, onChange, label, des
           <span style={btnTextStyle}>{t("settings.chatLeftLabel", { terminal: terminalLabel })}</span>
         </button>
       </div>
+    </div>
+  );
+};
+/**
+ * Custom dropdown option shape.
+ */
+interface CustomSelectOption {
+  value: string;
+  label: string;
+}
+/**
+ * CustomSelect
+ *
+ * A self-rendered dropdown that replaces the native <select> element.
+ * Behaviour mirrors the CanvasPresetDropdown used in InfoPanel:
+ *   - Opens on trigger click.
+ *   - Closes on outside pointerdown, ESC, window scroll, or resize.
+ *   - Positions itself with fixed coordinates relative to the trigger.
+ */
+interface CustomSelectProps {
+  options: CustomSelectOption[];
+  value: string;
+  disabled?: boolean;
+  onChange: (value: string) => void;
+  /** Width of the trigger button in pixels. */
+  triggerWidth?: number;
+  /** Minimum width of the dropdown menu in pixels. */
+  menuMinWidth?: number;
+  /** Horizontal alignment of the menu relative to the trigger. */
+  menuAlign?: "left" | "right";
+}
+const CustomSelect: React.FC<CustomSelectProps> = ({ options, value, disabled, onChange, triggerWidth = 180, menuMinWidth = 160, menuAlign = "right" }) => {
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [menuPosition, setMenuPosition] = useState<{ top: number; left: number; minWidth: number } | null>(null);
+  const selected = options.find((o) => o.value === value) || options[0];
+  const updateMenuPosition = useCallback(() => {
+    if (!triggerRef.current) return;
+    const rect = triggerRef.current.getBoundingClientRect();
+    const menuWidth = Math.max(menuMinWidth, rect.width);
+    // Align the menu horizontally with the trigger; keep it inside the viewport.
+    let left = menuAlign === "right" ? rect.right - menuWidth - 45 : rect.left;
+    if (left < 8) left = 8;
+    const top = rect.bottom - 30;
+    setMenuPosition({ top, left, minWidth: menuWidth });
+  }, [menuMinWidth, menuAlign]);
+  // Recompute position when the menu opens.
+  useEffect(() => {
+    if (!open) return;
+    updateMenuPosition();
+  }, [open, updateMenuPosition]);
+  // Close on outside click, ESC, window scroll, or resize.
+  useEffect(() => {
+    if (!open) return;
+    const handlePointerDownOutside = (e: PointerEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setOpen(false);
+      }
+    };
+    const handleScroll = (e: Event) => {
+      const target = e.target as Node | null;
+      // Scrolling inside the menu itself should not close it.
+      if (target && menuRef.current && menuRef.current.contains(target)) {
+        return;
+      }
+      setOpen(false);
+    };
+    const handleResize = () => {
+      setOpen(false);
+    };
+    document.addEventListener("pointerdown", handlePointerDownOutside, true);
+    document.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("scroll", handleScroll, true);
+    window.addEventListener("resize", handleResize);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDownOutside, true);
+      document.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("scroll", handleScroll, true);
+      window.removeEventListener("resize", handleResize);
+    };
+  }, [open]);
+  const handleSelect = useCallback(
+    (nextValue: string) => {
+      onChange(nextValue);
+      setOpen(false);
+    },
+    [onChange],
+  );
+  return (
+    <div
+      ref={containerRef}
+      style={{
+        position: "relative",
+        display: "inline-flex",
+        justifyContent: "flex-end",
+        flexShrink: 0,
+        minWidth: 0,
+      }}
+    >
+      <button
+        ref={triggerRef}
+        type="button"
+        onClick={() => !disabled && setOpen((prev) => !prev)}
+        disabled={disabled}
+        title={selected?.label}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: "6px",
+          width: `${triggerWidth}px`,
+          minWidth: `${triggerWidth}px`,
+          maxWidth: `${triggerWidth}px`,
+          height: "34px",
+          padding: "0 10px",
+          background: "var(--bg-tertiary)",
+          border: "1px solid var(--border-color)",
+          borderRadius: "6px",
+          color: disabled ? "var(--text-tertiary)" : "var(--text-primary)",
+          fontSize: "13px",
+          cursor: disabled ? "not-allowed" : "pointer",
+          outline: "none",
+          overflow: "hidden",
+        }}
+      >
+        <span
+          style={{
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+            minWidth: 0,
+            flex: 1,
+            textAlign: "left",
+          }}
+        >
+          {selected?.label}
+        </span>
+        <span
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            flexShrink: 0,
+            color: "var(--text-secondary)",
+            transform: open ? "rotate(180deg)" : "rotate(0deg)",
+            transition: "transform 0.15s ease",
+          }}
+        >
+          <ChevronDown size={12} />
+        </span>
+      </button>
+      {open && menuPosition && (
+        <div
+          ref={menuRef}
+          role="listbox"
+          style={{
+            position: "fixed",
+            top: menuPosition.top,
+            left: menuPosition.left,
+            minWidth: `${menuPosition.minWidth}px`,
+            maxHeight: "240px",
+            overflowY: "auto",
+            background: "var(--bg-secondary)",
+            border: "1px solid var(--border-color)",
+            borderRadius: "6px",
+            boxShadow: "0 4px 12px rgba(0, 0, 0, 0.25)",
+            zIndex: 2000,
+            padding: "4px",
+          }}
+        >
+          {options.map((opt) => {
+            const isSelected = opt.value === value;
+            return (
+              <div
+                key={opt.value}
+                role="option"
+                aria-selected={isSelected}
+                onClick={() => handleSelect(opt.value)}
+                title={opt.label}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: "8px",
+                  padding: "6px 10px",
+                  borderRadius: "4px",
+                  fontSize: "13px",
+                  color: isSelected ? "var(--accent-color, #00aaff)" : "var(--text-primary)",
+                  background: isSelected ? "var(--hover-bg)" : "transparent",
+                  cursor: "pointer",
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                }}
+                onMouseEnter={(e) => {
+                  if (!isSelected) e.currentTarget.style.background = "var(--hover-bg)";
+                }}
+                onMouseLeave={(e) => {
+                  if (!isSelected) e.currentTarget.style.background = "transparent";
+                }}
+              >
+                <span
+                  style={{
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                    minWidth: 0,
+                    flex: 1,
+                    textAlign: "left",
+                  }}
+                >
+                  {opt.label}
+                </span>
+                {isSelected && (
+                  <span style={{ display: "inline-flex", alignItems: "center", flexShrink: 0 }}>
+                    <CheckCircle size={12} />
+                  </span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 };
@@ -450,6 +679,16 @@ const UniversalSettings: React.FC<UniversalSettingsProps> = ({ t, theme, languag
     overflow: "hidden",
     whiteSpace: "nowrap",
   };
+  // Theme options for the custom dropdown.
+  const themeOptions: CustomSelectOption[] = [
+    { value: "light", label: t("settings.themeLight") },
+    { value: "dark", label: t("settings.themeDark") },
+  ];
+  // Language options for the custom dropdown.
+  const languageOptions: CustomSelectOption[] = [
+    { value: "zh", label: t("settings.langZh") },
+    { value: "en", label: t("settings.langEn") },
+  ];
   if (loading) {
     return (
       <div
@@ -496,17 +735,11 @@ const UniversalSettings: React.FC<UniversalSettingsProps> = ({ t, theme, languag
         </div>
         <div style={rowStyle}>
           <label style={labelStyle}>{t("settings.theme")}</label>
-          <select style={selectStyle} value={theme} onChange={(e) => handleThemeChange(e.target.value as "light" | "dark")}>
-            <option value="light">{t("settings.themeLight")}</option>
-            <option value="dark">{t("settings.themeDark")}</option>
-          </select>
+          <CustomSelect options={themeOptions} value={theme} onChange={(next) => handleThemeChange(next as "light" | "dark")} triggerWidth={180} menuMinWidth={180} menuAlign="right" />
         </div>
         <div style={rowStyle}>
           <label style={labelStyle}>{t("settings.language")}</label>
-          <select style={selectStyle} value={language} onChange={(e) => handleLanguageChange(e.target.value as "zh" | "en")}>
-            <option value="zh">{t("settings.langZh")}</option>
-            <option value="en">{t("settings.langEn")}</option>
-          </select>
+          <CustomSelect options={languageOptions} value={language} onChange={(next) => handleLanguageChange(next as "zh" | "en")} triggerWidth={180} menuMinWidth={180} menuAlign="right" />
         </div>
         <div style={rowStyle}>
           <label style={labelStyle}>{t("settings.functionPanelPosition")}</label>
@@ -521,7 +754,7 @@ const UniversalSettings: React.FC<UniversalSettingsProps> = ({ t, theme, languag
             </button>
           </div>
         </div>
-        <div
+        {/* <div
           style={{
             borderTop: "1px solid var(--border-color, #333)",
             marginBottom: "10px",
@@ -544,6 +777,7 @@ const UniversalSettings: React.FC<UniversalSettingsProps> = ({ t, theme, languag
         <LayoutSwitch value={mapLayout} onChange={handleMapLayoutChange} label={t("settings.mapChat")} description={t("settings.mapChatDesc")} pageType="map" t={t} />
         <LayoutSwitch value={codeEditorLayout} onChange={handleCodeEditorLayoutChange} label={t("settings.codeEditorChat")} description={t("settings.codeEditorDesc")} pageType="codeeditor" t={t} />
         <LayoutSwitch value={sandbox3dLayout} onChange={handleSandbox3dLayoutChange} label={t("settings.sandbox3dChat")} description={t("settings.sandbox3dDesc")} pageType="sandbox3d" t={t} />
+         */}
         <div
           style={{
             borderTop: "1px solid var(--border-color, #333)",
