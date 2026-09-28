@@ -79,6 +79,7 @@ futures-util = "0.3.34"
 sys-locale = "0.3.2"
 open = "5.4.4"
 bytemuck = { version = "1.25.2", features = ["derive"] }
+windows = { version = "0.62.2", features = ["Win32_System_Performance"] }
 [target.'cfg(target_os = "macos")'.dependencies]
 objc = "0.2"
 objc2 = "0.6.4"

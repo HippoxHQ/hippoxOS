@@ -59,6 +59,7 @@ dependencies = [
  "webbrowser",
  "wgpu",
  "winapi",
+ "windows 0.62.2",
  "wmi",
  "ytdlp",
  "zune-jpeg",

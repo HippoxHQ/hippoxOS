@@ -455,6 +455,7 @@ export function AppContent({
   functionPanel,
 }: AppContentProps) {
   const MENU_PANEL_MIN_WIDTH = 240;
+  const MENU_PANEL_MAX_WIDTH = 420;
   const showWelcome = shouldShowWelcome();
   // Function panel state
   const [functionPanelWidth, setFunctionPanelWidth] = useState<number>(480);
@@ -683,6 +684,7 @@ export function AppContent({
       display: "flex" as const,
       flex: 1,
       overflow: "hidden" as const,
+      position: "relative" as const,
     },
     contentArea: {
       flex: 1,
@@ -968,6 +970,79 @@ export function AppContent({
       });
     };
   }, []);
+  /**
+   * Drawer state for the side menu panel.
+   */
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [drawerWidth, setDrawerWidth] = useState<number>(menuPanelWidth);
+  const drawerResizeStartX = useRef(0);
+  const drawerResizeStartWidth = useRef(0);
+  const isResizingDrawer = useRef(false);
+  /**
+   * Keep drawer width in sync with the hook's menuPanelWidth when the drawer opens.
+   */
+  useEffect(() => {
+    if (isDrawerOpen) {
+      setDrawerWidth(menuPanelWidth);
+    }
+  }, [isDrawerOpen, menuPanelWidth]);
+  /**
+   * Open the drawer when a menu panel view is requested.
+   */
+  useEffect(() => {
+    if (menuPanelView) {
+      setIsDrawerOpen(true);
+    }
+  }, [menuPanelView]);
+  /**
+   * Close the drawer by calling onCloseMenuPanel, which clears the menu panel view.
+   */
+  const closeDrawer = useCallback(() => {
+    setIsDrawerOpen(false);
+    onCloseMenuPanel();
+  }, [onCloseMenuPanel]);
+  /**
+   * Handle resizing of the drawer.
+   */
+  const handleDrawerResizeMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      isResizingDrawer.current = true;
+      drawerResizeStartX.current = e.clientX;
+      drawerResizeStartWidth.current = drawerWidth;
+      document.body.style.cursor = "col-resize";
+      document.body.style.userSelect = "none";
+    },
+    [drawerWidth],
+  );
+  /**
+   * Global mouse move and up handlers for drawer resizing.
+   */
+  useEffect(() => {
+    const onMouseMove = (e: MouseEvent) => {
+      if (!isResizingDrawer.current) return;
+      const delta = e.clientX - drawerResizeStartX.current;
+      const newWidth = Math.min(MENU_PANEL_MAX_WIDTH, Math.max(MENU_PANEL_MIN_WIDTH, drawerResizeStartWidth.current + delta));
+      if (newWidth !== drawerWidth) {
+        setDrawerWidth(newWidth);
+        setMenuPanelWidth(newWidth);
+      }
+    };
+    const onMouseUp = () => {
+      if (isResizingDrawer.current) {
+        isResizingDrawer.current = false;
+        document.body.style.cursor = "";
+        document.body.style.userSelect = "";
+      }
+    };
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseup", onMouseUp);
+    return () => {
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", onMouseUp);
+    };
+  }, [drawerWidth, setMenuPanelWidth]);
   return (
     <div className="App" onContextMenu={(e) => e.preventDefault()} style={{ userSelect: "none", WebkitUserSelect: "none" }}>
       <style>{`
@@ -999,6 +1074,27 @@ export function AppContent({
           cursor: col-resize;
           z-index: 10;
         }
+        @keyframes drawerSlideIn {
+          from {
+            transform: translateX(-100%);
+            opacity: 0.4;
+          }
+          to {
+            transform: translateX(0);
+            opacity: 1;
+          }
+        }
+        @keyframes backdropFadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        .app-drawer {
+          animation: drawerSlideIn 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+          will-change: transform, opacity;
+        }
+        .app-drawer-backdrop {
+          animation: backdropFadeIn 0.18s ease-out;
+        }
       `}</style>
       <CustomDragCursor isDragging={showDragCursor} />
       <GlobalDragOverlay isDragging={isGlobalDragging && !isDraggingOverInput} />
@@ -1022,72 +1118,93 @@ export function AppContent({
       />
       <div style={styles.mainLayout}>
         {!sidebarCollapsed && <Sidebar collapsed={sidebarCollapsed} onResetSession={onResetSession} onClearLogs={onClearLogs} onMenuClick={onMenuClick} onNewSession={onNewSession} currentSessionId={currentSessionId} onSwitchSession={onSwitchSession} t={t} />}
-        {menuPanelView && (
-          <>
-            <div className="menu-panel-left" style={{ width: menuPanelWidth }}>
-              <MenuPanel
-                currentView={menuPanelView}
-                settingsSubView={settingsSubView}
-                engineSubView={engineSubView}
-                onClose={onCloseMenuPanel}
-                onSaveConfig={onSaveConfig}
-                t={t}
-                theme={theme}
-                language={language}
-                onThemeChange={onToggleTheme}
-                onLanguageChange={onToggleLanguage}
-                isInitializing={false}
-                currentSessionId={currentSessionId}
-                onSwitchSession={onSwitchSession}
-                initialEngineConfig={initialEngineConfig}
-                onCloseSkillsManager={onCloseContentPanel}
-                onSendSkillMessage={onSendSkillMessage}
-                layoutSwapMode={layoutSwapMode}
-                onLayoutSwapModeChange={onLayoutSwapModeChange}
-                functionPanelPosition={functionPanelPosition}
-                onFunctionPanelPositionChange={onFunctionPanelPositionChange}
-                onFileClick={handleFileClick}
+        {/* Main content wrapper. The drawer is rendered inside this wrapper with position absolute
+            so it is confined to the main content area and never covers the top bar, sidebar, or bottom bar. */}
+        <div style={{ flex: 1, position: "relative", overflow: "hidden", display: "flex" }}>
+          {renderMainLayout()}
+          {/* Drawer overlay for the menu panel, confined to the main content area */}
+          {isDrawerOpen && (
+            <>
+              {/* Backdrop with a click handler to close the drawer */}
+              <div
+                className="app-drawer-backdrop"
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  // backgroundColor: "rgba(0, 0, 0, 0.28)",
+                  zIndex: 280,
+                }}
+                onClick={closeDrawer}
               />
-            </div>
-            <div
-              className="menu-panel-resize-handle"
-              style={{
-                width: "3px",
-                background: isMenuResizeHover ? "var(--scrollbar-thumb)" : "var(--border-color)",
-                cursor: "col-resize",
-                flexShrink: 0,
-                position: "relative",
-                transition: "width 0.15s, background 0.15s",
-              }}
-              onMouseDown={(e) => {
-                e.preventDefault();
-                const startX = e.clientX;
-                const startWidth = menuPanelWidth;
-                const onMouseMove = (moveEvent: MouseEvent) => {
-                  const newWidth = startWidth + (moveEvent.clientX - startX);
-                  if (newWidth >= MENU_PANEL_MIN_WIDTH && newWidth <= 300) {
-                    setMenuPanelWidth(newWidth);
-                  }
-                };
-                const onMouseUp = () => {
-                  document.removeEventListener("mousemove", onMouseMove);
-                  document.removeEventListener("mouseup", onMouseUp);
-                  document.body.style.cursor = "";
-                  document.body.style.userSelect = "";
-                };
-                document.body.style.cursor = "col-resize";
-                document.body.style.userSelect = "none";
-                document.addEventListener("mousemove", onMouseMove);
-                document.addEventListener("mouseup", onMouseUp);
-              }}
-              onMouseEnter={() => setIsMenuResizeHover(true)}
-              onMouseLeave={() => setIsMenuResizeHover(false)}
-            >
-              {isMenuResizeHover && <div style={styles.handleLine} className="handle-line" />}
-            </div>
-          </>
-        )}
-        {renderMainLayout()}
+              {/* Drawer panel, anchored to the left edge of the main content area */}
+              <div
+                className="app-drawer"
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  bottom: 0,
+                  width: drawerWidth,
+                  backgroundColor: "var(--bg-primary)",
+                  borderRight: "1px solid var(--border-color)",
+                  boxShadow: "8px 0 32px rgba(0, 0, 0, 0.32), 4px 0 12px rgba(0, 0, 0, 0.18)",
+                  borderTopRightRadius: "14px",
+                  borderBottomRightRadius: "14px",
+                  zIndex: 290,
+                  display: "flex",
+                  flexDirection: "column",
+                  overflow: "hidden",
+                }}
+              >
+                <MenuPanel
+                  currentView={menuPanelView}
+                  settingsSubView={settingsSubView}
+                  engineSubView={engineSubView}
+                  onClose={closeDrawer}
+                  onSaveConfig={onSaveConfig}
+                  t={t}
+                  theme={theme}
+                  language={language}
+                  onThemeChange={onToggleTheme}
+                  onLanguageChange={onToggleLanguage}
+                  isInitializing={false}
+                  currentSessionId={currentSessionId}
+                  onSwitchSession={onSwitchSession}
+                  initialEngineConfig={initialEngineConfig}
+                  onCloseSkillsManager={onCloseContentPanel}
+                  onSendSkillMessage={onSendSkillMessage}
+                  layoutSwapMode={layoutSwapMode}
+                  onLayoutSwapModeChange={onLayoutSwapModeChange}
+                  functionPanelPosition={functionPanelPosition}
+                  onFunctionPanelPositionChange={onFunctionPanelPositionChange}
+                  onFileClick={handleFileClick}
+                />
+                {/* Resize handle for the drawer, positioned on the right edge */}
+                <div
+                  className="menu-panel-resize-handle"
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    right: -3,
+                    width: "6px",
+                    height: "100%",
+                    cursor: "col-resize",
+                    background: "transparent",
+                    zIndex: 1001,
+                  }}
+                  onMouseDown={handleDrawerResizeMouseDown}
+                  onMouseEnter={() => setIsMenuResizeHover(true)}
+                  onMouseLeave={() => setIsMenuResizeHover(false)}
+                >
+                  {isMenuResizeHover && <div style={styles.handleLine} className="handle-line" />}
+                </div>
+              </div>
+            </>
+          )}
+        </div>
       </div>
       <BottomBar t={t} />
     </div>

@@ -1,15 +1,130 @@
-import React, { useState, useEffect } from "react";
-import { showToast, ToastType } from "../Toast";
-import { showDialog, DialogType } from "../Dialog";
-import { ProviderInfo, ModelInfo, llmCommands, AddLlmInstanceRequest, ExtraConfigField } from "../../command/llm";
-import { SearchIcon } from "../../icons";
-import { Bot, X } from "lucide-react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { Bot, X, ChevronDown, SearchIcon } from "lucide-react";
+import { ProviderInfo, ModelInfo, llmCommands, AddLlmInstanceRequest, ExtraConfigField } from "../../../command/llm";
+import { showDialog, DialogType } from "../../Dialog";
+import { showToast, ToastType } from "../../Toast";
+import { llmModelConfigStyles } from "./llmmodelConfig.styles";
 interface LLMModelConfigProps {
   t: (key: string, params?: any) => string;
   onSave?: (config: any) => void;
   isInitializing?: boolean;
   language?: string;
 }
+/**
+ * Custom dropdown for selecting an LLM provider.
+ */
+interface ProviderDropdownOption {
+  value: string;
+  label: string;
+}
+interface ProviderDropdownProps {
+  options: ProviderDropdownOption[];
+  value: string;
+  disabled?: boolean;
+  onChange: (value: string) => void;
+}
+const ProviderDropdown: React.FC<ProviderDropdownProps> = ({ options, value, disabled, onChange }) => {
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [menuPosition, setMenuPosition] = useState<{ top: number; left: number; minWidth: number } | null>(null);
+  const selected = options.find((o) => o.value === value) || options[0];
+  /**
+   * Recompute the fixed menu position from the trigger's bounding rect.
+   */
+  const updateMenuPosition = useCallback(() => {
+    if (!triggerRef.current) return;
+    const rect = triggerRef.current.getBoundingClientRect();
+    const menuWidth = 240;
+    let left = rect.right - menuWidth - 5;
+    if (left < 8) left = 8;
+    const top = rect.bottom - 30;
+    setMenuPosition({ top, left, minWidth: 130 });
+  }, []);
+  // Recompute position when the menu opens.
+  useEffect(() => {
+    if (!open) return;
+    updateMenuPosition();
+  }, [open, updateMenuPosition]);
+  useEffect(() => {
+    if (!open) return;
+    const handlePointerDownOutside = (e: PointerEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setOpen(false);
+      }
+    };
+    const handleScroll = (e: Event) => {
+      const target = e.target as Node | null;
+      if (target && menuRef.current && menuRef.current.contains(target)) {
+        return;
+      }
+      setOpen(false);
+    };
+    const handleResize = () => {
+      setOpen(false);
+    };
+    document.addEventListener("pointerdown", handlePointerDownOutside, true);
+    document.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("scroll", handleScroll, true);
+    window.addEventListener("resize", handleResize);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDownOutside, true);
+      document.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("scroll", handleScroll, true);
+      window.removeEventListener("resize", handleResize);
+    };
+  }, [open]);
+  const handleSelect = useCallback(
+    (nextValue: string) => {
+      onChange(nextValue);
+      setOpen(false);
+    },
+    [onChange],
+  );
+  return (
+    <div
+      className="llm-provider-dropdown"
+      ref={containerRef}
+      style={{
+        justifyContent: "flex-end",
+      }}
+    >
+      <button ref={triggerRef} type="button" className={`llm-provider-dropdown-trigger${open ? " open" : ""}`} onClick={() => !disabled && setOpen((prev) => !prev)} disabled={disabled} title={selected?.label}>
+        <span className="llm-provider-dropdown-trigger-label">{selected?.label}</span>
+        <span className="llm-provider-dropdown-trigger-chevron">
+          <ChevronDown size={12} />
+        </span>
+      </button>
+      {open && menuPosition && (
+        <div
+          ref={menuRef}
+          className="llm-provider-dropdown-menu"
+          role="listbox"
+          style={{
+            top: menuPosition.top,
+            left: menuPosition.left,
+            minWidth: Math.max(menuPosition.minWidth, 200),
+          }}
+        >
+          {options.map((opt) => {
+            const isSelected = opt.value === value;
+            return (
+              <div key={opt.value} role="option" aria-selected={isSelected} className={`llm-provider-dropdown-item${isSelected ? " selected" : ""}`} onClick={() => handleSelect(opt.value)} title={opt.label}>
+                <span className="llm-provider-dropdown-item-label">{opt.label}</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
 const LLMModelConfig: React.FC<LLMModelConfigProps> = ({ t, onSave, isInitializing = false, language = "en" }) => {
   // Determine if current language is Chinese
   const isZh = t("i18n") === "zh";
@@ -290,261 +405,36 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({ t, onSave, isInitializi
   });
   /**
    * Stop keyboard events from bubbling up out of this component.
-   *
-   * The settings panel is often hosted inside a larger app shell that
-   * listens for global key events (search shortcuts, navigation, etc.).
-   * Any keystroke typed into the search box or the add form must stay
-   * local to this component and never trigger those global handlers.
    */
   const stopKeyboardPropagation = (e: React.KeyboardEvent) => {
     e.stopPropagation();
   };
-  // Base styles - KEEP ORIGINAL
-  const labelStyle: React.CSSProperties = {
-    fontSize: "13px",
-    color: "var(--text-primary)",
-    minWidth: "100px",
-    flexShrink: 0,
-    userSelect: "none",
-    whiteSpace: "nowrap",
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-  };
-  const inputStyle: React.CSSProperties = {
-    flex: 1,
-    minWidth: 0,
-    padding: "8px 12px",
-    background: "var(--bg-tertiary)",
-    border: "1px solid var(--border-color)",
-    borderRadius: "5px",
-    color: "var(--text-primary)",
-    fontSize: "13px",
-    outline: "none",
-  };
-  const selectStyle: React.CSSProperties = {
-    ...inputStyle,
-    cursor: "pointer",
-  };
-  const buttonStyle: React.CSSProperties = {
-    padding: "6px 16px",
-    background: "var(--bg-secondary)",
-    border: "1px solid var(--border-color)",
-    borderRadius: "5px",
-    color: "var(--text-secondary)",
-    fontSize: "12px",
-    cursor: "pointer",
-  };
-  const addButtonStyle: React.CSSProperties = {
-    ...buttonStyle,
-    background: "var(--accent-color, #0066cc)",
-    color: "white",
-    border: "none",
-  };
-  const deleteButtonStyle: React.CSSProperties = {
-    ...buttonStyle,
-    color: "var(--error-color, #dc2626)",
-    borderColor: "var(--error-color, #dc2626)",
-  };
-  const modelCardStyle: React.CSSProperties = {
-    background: "var(--bg-secondary)",
-    padding: "10px",
-    borderBottom: "1px solid var(--border-color)",
-    overflow: "hidden",
-  };
-  const textEllipsisStyle: React.CSSProperties = {
-    whiteSpace: "nowrap",
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-    maxWidth: "100%",
-  };
-  const badgeStyle: React.CSSProperties = {
-    background: "var(--accent-color, #0066cc)",
-    color: "white",
-    fontSize: "10px",
-    padding: "2px 8px",
-    borderRadius: "12px",
-    marginLeft: "8px",
-  };
-  const extraConfigRowStyle: React.CSSProperties = {
-    display: "flex",
-    alignItems: "center",
-    marginBottom: "8px",
-    gap: "12px",
-    flexWrap: "wrap",
-  };
-  // Header styles - KEEP ORIGINAL
-  const styles: Record<string, React.CSSProperties> = {
-    searchInputWrapper: {
-      flex: 1,
-      position: "relative" as const,
-      display: "flex",
-      alignItems: "center",
-      gap: "8px",
-      padding: "4px 12px",
-      background: "var(--bg-tertiary)",
-      border: "1px solid var(--border-color)",
-      borderRadius: "5px",
-    },
-    searchInput: {
-      flex: 1,
-      background: "transparent",
-      border: "none",
-      outline: "none",
-      color: "var(--text-primary)",
-      fontSize: "13px",
-      padding: "4px 0",
-    },
-    searchIcon: {
-      flexShrink: 0,
-      color: "var(--text-tertiary)",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    clearBtn: {
-      background: "transparent",
-      border: "none",
-      color: "var(--text-tertiary)",
-      cursor: "pointer",
-      fontSize: "14px",
-      padding: "2px 6px",
-      borderRadius: "5px",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      flexShrink: 0,
-    },
-    header: {
-      padding: "10px",
-      borderBottom: "1px solid var(--border-color)",
-      background: "var(--bg-secondary)",
-      flexShrink: 0,
-      width: "100%",
-      boxSizing: "border-box",
-    },
-    searchRow: {
-      display: "flex",
-      alignItems: "center",
-      gap: "8px",
-      width: "100%",
-    },
-  };
-  // Global styles - KEEP ORIGINAL + add checkbox styles
-  const globalStyles = `
-    .llm-search-input-wrapper {
-      flex: 1;
-       min-width: 0; 
-      position: relative;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 1.5px 12px;
-      background: var(--bg-tertiary);
-      border: 1px solid var(--border-color);
-      border-radius: 5px;
-    }
-    .llm-search-input-wrapper:focus-within {
-      border-color: var(--accent-color);
-      box-shadow: 0 0 0 2px var(--accent-glow);
-    }
-    .llm-search-input-wrapper svg {
-      flex-shrink: 0;
-      color: var(--text-tertiary);
-    }
-    .llm-search-input {
-      flex: 1;
-       min-width: 0;  
-      background: transparent;
-      border: none;
-      outline: none;
-      color: var(--text-primary);
-      font-size: 13px;
-      padding: 4px 0;
-    }
-    .llm-search-clear {
-      background: transparent;
-      border: none;
-      color: var(--text-tertiary);
-      cursor: pointer;
-      font-size: 14px;
-      padding: 2px 6px;
-      border-radius: 4px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-    }
-    .llm-search-clear:hover {
-      color: var(--text-primary);
-      background: var(--hover-bg);
-    }
-    .llm-checkbox {
-      width: 16px;
-      height: 16px;
-      cursor: pointer;
-      accent-color: var(--accent-color, #0066cc);
-      flex-shrink: 0;
-      margin-right: 8px;
-    }
-    .llm-checkbox:disabled {
-      cursor: not-allowed;
-      opacity: 0.5;
-    }
-    .llm-checkbox.hidden-checkbox {
-      visibility: hidden;
-      pointer-events: none;
-    }
-  `;
-  // Inject global styles
   if (typeof document !== "undefined") {
-    const styleId = "llm-config-styles";
+    const styleId = "llm-model-config-styles";
     if (!document.getElementById(styleId)) {
       const style = document.createElement("style");
       style.id = styleId;
-      style.textContent = globalStyles;
+      style.textContent = llmModelConfigStyles;
       document.head.appendChild(style);
     }
   }
   // Loading state
   if (loading || isInitializing) {
-    return (
-      <div
-        className="settings-container"
-        style={{
-          height: "100%",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        {t("common.loading") || "Loading..."}
-      </div>
-    );
+    return <div className="llm-config-loading">{t("common.loading") || "Loading..."}</div>;
   }
   const currentExtraFields = getProviderExtraFields(newProvider);
   const instanceEntries = filteredInstances;
   const hasInstances = instanceEntries.length > 0;
   return (
-    <div
-      className="settings-container"
-      style={{
-        height: "100%",
-        display: "flex",
-        flexDirection: "column",
-        overflow: "hidden",
-        padding: 0,
-        margin: 0,
-        gap: 0,
-      }}
-    >
+    <div className="llm-config-root">
       {/* Search Header */}
-      <div style={styles.header}>
-        <div style={styles.searchRow}>
-          <div className="llm-search-input-wrapper">
+      <div className="llm-config-header">
+        <div className="llm-config-search-row">
+          <div className="llm-config-search-wrapper">
             <SearchIcon />
             <input
               type="text"
-              className="llm-search-input"
+              className="llm-config-search-input"
               placeholder={t("llmModel.searchPlaceholder") || "Search providers..."}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -555,14 +445,14 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({ t, onSave, isInitializi
               onKeyPress={stopKeyboardPropagation}
             />
             {searchTerm && (
-              <button className="llm-search-clear" onClick={handleClearSearch} title={t("llmModel.clearSearch") || "Clear search"}>
+              <button className="llm-config-search-clear" onClick={handleClearSearch} title={t("llmModel.clearSearch") || "Clear search"}>
                 <X />
               </button>
             )}
           </div>
           <button
+            className="llm-config-btn primary"
             style={{
-              ...addButtonStyle,
               padding: "5px 10px",
               fontSize: "15px",
               whiteSpace: "nowrap",
@@ -573,105 +463,35 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({ t, onSave, isInitializi
           </button>
         </div>
         {/* Batch actions area - similar to MaterialTab */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "10px",
-            marginTop: "10px",
-            paddingTop: "10px",
-            borderTop: "1px solid var(--border-color)",
-            flexWrap: "wrap",
-          }}
-        >
+        <div className="llm-config-batch-row">
           {/* Batch mode toggle button - similar to MaterialTab */}
-          <button
-            onClick={toggleBatchMode}
-            style={{
-              ...buttonStyle,
-              fontSize: "11px",
-              padding: "3px 12px",
-              background: isBatchMode ? "var(--accent-color)" : "var(--bg-tertiary)",
-              color: isBatchMode ? "white" : "var(--text-secondary)",
-              borderColor: isBatchMode ? "var(--accent-color)" : "var(--border-color)",
-            }}
-          >
+          <button className={`llm-config-btn tiny${isBatchMode ? " active" : ""}`} onClick={toggleBatchMode}>
             {isBatchMode ? (isZh ? "退出批量" : "Exit Batch") : isZh ? "批量" : "Batch"}
           </button>
           {/* Batch mode actions - only visible in batch mode */}
           {isBatchMode && (
             <>
-              <button
-                style={{
-                  ...buttonStyle,
-                  fontSize: "11px",
-                  padding: "3px 12px",
-                  background: selectedIds.size === Object.keys(instances).filter((id) => id !== defaultInstanceId).length && Object.keys(instances).length > 0 ? "var(--accent-color)" : "var(--bg-tertiary)",
-                  color: selectedIds.size === Object.keys(instances).filter((id) => id !== defaultInstanceId).length && Object.keys(instances).length > 0 ? "white" : "var(--text-secondary)",
-                  borderColor: selectedIds.size === Object.keys(instances).filter((id) => id !== defaultInstanceId).length && Object.keys(instances).length > 0 ? "var(--accent-color)" : "var(--border-color)",
-                }}
-                onClick={handleSelectAll}
-              >
+              <button className={`llm-config-btn tiny${selectedIds.size === Object.keys(instances).filter((id) => id !== defaultInstanceId).length && Object.keys(instances).length > 0 ? " active" : ""}`} onClick={handleSelectAll}>
                 {isZh ? "全选" : "Select All"}
               </button>
-              <button
-                style={{
-                  ...buttonStyle,
-                  fontSize: "11px",
-                  padding: "3px 12px",
-                  background: "var(--bg-tertiary)",
-                }}
-                onClick={handleDeselectAll}
-              >
+              <button className="llm-config-btn tiny" onClick={handleDeselectAll}>
                 {isZh ? "取消全选" : "Deselect All"}
               </button>
-              <div
-                style={{
-                  width: "1px",
-                  height: "20px",
-                  background: "var(--border-color)",
-                }}
-              />
-              <button
-                style={{
-                  ...deleteButtonStyle,
-                  fontSize: "11px",
-                  padding: "3px 12px",
-                  opacity: selectedIds.size === 0 ? 0.5 : 1,
-                  cursor: selectedIds.size === 0 ? "not-allowed" : "pointer",
-                }}
-                onClick={handleBatchDelete}
-                disabled={selectedIds.size === 0}
-              >
+              <div className="llm-config-batch-divider" />
+              <button className={`llm-config-btn danger tiny${selectedIds.size === 0 ? " disabled" : ""}`} onClick={handleBatchDelete} disabled={selectedIds.size === 0}>
                 {isZh ? "批量删除" : "Delete"}
                 {selectedIds.size > 0 && <span style={{ marginLeft: "4px", fontWeight: 600 }}>({selectedIds.size})</span>}
               </button>
             </>
           )}
-          <span
-            style={{
-              fontSize: "11px",
-              color: "var(--text-tertiary)",
-              marginLeft: "auto",
-            }}
-          >
-            {isZh ? `共 ${Object.keys(instances).length} 个实例${selectedIds.size > 0 ? `，已选 ${selectedIds.size} 个` : ""}` : `Total: ${Object.keys(instances).length} instances${selectedIds.size > 0 ? `, ${selectedIds.size} selected` : ""}`}
-          </span>
+          {/* <span className="llm-config-batch-count">{isZh ? `共 ${Object.keys(instances).length} 个实例${selectedIds.size > 0 ? `，已选 ${selectedIds.size} 个` : ""}` : `Total: ${Object.keys(instances).length} instances${selectedIds.size > 0 ? `, ${selectedIds.size} selected` : ""}`}</span> */}
         </div>
       </div>
       {/* Content Area */}
-      <div
-        style={{
-          flex: 1,
-          overflowY: "auto",
-          overflowX: "hidden",
-          padding: "0px 0px",
-          margin: 0,
-        }}
-      >
-        {/* Add Form - ORIGINAL STYLE */}
+      <div className="llm-config-content">
+        {/* Add Form */}
         {showAddForm && (
-          <div style={modelCardStyle}>
+          <div className="llm-config-card">
             <div
               style={{
                 fontSize: "14px",
@@ -682,41 +502,26 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({ t, onSave, isInitializi
             >
               {t("llmModel.addLlmProvider")}
             </div>
-            <div
-              className="settings-row"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                marginBottom: "12px",
-                gap: "12px",
-                flexWrap: "wrap",
-              }}
-            >
-              <label style={labelStyle}>{t("llmModel.provider")}</label>
-              <select style={selectStyle} value={newProvider} onChange={(e) => handleProviderChange(e.target.value)}>
-                {providers.map((provider) => (
-                  <option key={provider.id} value={provider.id}>
-                    {provider.name}
-                  </option>
-                ))}
-              </select>
+            <div className="llm-config-row">
+              <label className="llm-config-label">{t("llmModel.provider")}</label>
+              {/* Custom dropdown replacing the native <select>. Uses only the
+                  llm-provider-dropdown-* classes defined in this panel's
+                  own stylesheet. */}
+              <ProviderDropdown
+                options={providers.map((provider) => ({
+                  value: provider.id,
+                  label: provider.name,
+                }))}
+                value={newProvider}
+                onChange={(value) => handleProviderChange(value)}
+              />
             </div>
             {currentExtraFields.map((field: ExtraConfigField) => (
-              <div
-                key={field.key}
-                className="settings-row"
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  marginBottom: "12px",
-                  gap: "12px",
-                  flexWrap: "wrap",
-                }}
-              >
-                <label style={labelStyle}>{field.name}</label>
+              <div key={field.key} className="llm-config-row">
+                <label className="llm-config-label">{field.name}</label>
                 <input
                   type="text"
-                  style={inputStyle}
+                  className="llm-config-input"
                   value={extraConfigValues[field.key] || ""}
                   onChange={(e) => handleExtraConfigChange(field.key, e.target.value)}
                   placeholder={field.placeholder}
@@ -727,20 +532,11 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({ t, onSave, isInitializi
                 />
               </div>
             ))}
-            <div
-              className="settings-row"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                marginBottom: "12px",
-                gap: "12px",
-                flexWrap: "wrap",
-              }}
-            >
-              <label style={labelStyle}>{t("llmModel.apiKey")}</label>
+            <div className="llm-config-row">
+              <label className="llm-config-label">{t("llmModel.apiKey")}</label>
               <input
                 type="password"
-                style={inputStyle}
+                className="llm-config-input"
                 value={newApiKey}
                 onChange={(e) => setNewApiKey(e.target.value)}
                 placeholder={t("llmModel.apiKeyPlaceholder")}
@@ -750,17 +546,11 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({ t, onSave, isInitializi
                 onKeyPress={stopKeyboardPropagation}
               />
             </div>
-            <div
-              style={{
-                display: "flex",
-                gap: "8px",
-                justifyContent: "flex-end",
-              }}
-            >
-              <button style={buttonStyle} onClick={() => setShowAddForm(false)}>
+            <div className="llm-config-actions">
+              <button className="llm-config-btn" onClick={() => setShowAddForm(false)}>
                 {t("common.cancel")}
               </button>
-              <button style={addButtonStyle} onClick={handleAddInstance}>
+              <button className="llm-config-btn primary" onClick={handleAddInstance}>
                 {t("llmModel.add")}
               </button>
             </div>
@@ -768,16 +558,7 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({ t, onSave, isInitializi
         )}
         {/* Empty State */}
         {!hasInstances && !showAddForm ? (
-          <div
-            style={{
-              textAlign: "center",
-              padding: "40px 20px",
-              color: "var(--text-muted)",
-              fontSize: "13px",
-            }}
-          >
-            {searchTerm ? t("llmModel.noSearchResults") || "No matching providers found" : t("llmModel.noProviders") || "No providers available"}
-          </div>
+          <div className="llm-config-empty">{searchTerm ? t("llmModel.noSearchResults") || "No matching providers found" : t("llmModel.noProviders") || "No providers available"}</div>
         ) : (
           /* Provider Instance Cards - ORIGINAL STYLE with batch mode checkbox */
           instanceEntries.map(([id, instance]) => {
@@ -790,49 +571,23 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({ t, onSave, isInitializi
             const showCheckbox = isBatchMode && !isDefault;
             const isCheckboxDisabled = !isBatchMode || isDefault;
             return (
-              <div
-                key={id}
-                style={{
-                  ...modelCardStyle,
-                  background: isSelected && isBatchMode ? "var(--bg-hover, var(--bg-tertiary))" : "var(--bg-secondary)",
-                }}
-              >
+              <div key={id} className={`llm-config-card${isSelected && isBatchMode ? " selected" : ""}`}>
                 {/* Checkbox and provider name in one row */}
-                <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
-                  <span
-                    style={{
-                      fontSize: "14px",
-                      fontWeight: 600,
-                      color: "var(--text-primary)",
-                      ...textEllipsisStyle,
-                      flexShrink: 1,
-                      minWidth: 0,
-                    }}
-                  >
-                    {getProviderName(instance.provider)}
-                  </span>
-                  {isDefault && <span style={badgeStyle}>{t("llmModel.default")}</span>}
-                  <input type="checkbox" className={`llm-checkbox ${!showCheckbox ? "hidden-checkbox" : ""}`} checked={isSelected} onChange={() => toggleSelection(id)} disabled={isCheckboxDisabled} />
+                <div className="llm-config-card-header">
+                  <span className="llm-config-card-title">{getProviderName(instance.provider)}</span>
+                  {isDefault && <span className="llm-config-badge">{t("llmModel.default")}</span>}
+                  <input type="checkbox" className={`llm-config-checkbox ${!showCheckbox ? "hidden-checkbox" : ""}`} checked={isSelected} onChange={() => toggleSelection(id)} disabled={isCheckboxDisabled} />
                 </div>
                 {/* Row with checkbox */}
                 <div style={{ display: "flex", alignItems: "center", gap: "8px", width: "100%" }}>
                   {/* Original card content */}
                   <div style={{ flex: 1, minWidth: 0 }}>
                     {/* REMOVED: Workflow Mode section */}
-                    <div
-                      className="settings-row"
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        marginBottom: "12px",
-                        gap: "12px",
-                        flexWrap: "wrap",
-                      }}
-                    >
-                      <label style={labelStyle}>{t("llmModel.apiKey")}</label>
+                    <div className="llm-config-row">
+                      <label className="llm-config-label">{t("llmModel.apiKey")}</label>
                       <input
                         type="password"
-                        style={inputStyle}
+                        className="llm-config-input"
                         value={instance.api_key}
                         placeholder="••••••••"
                         disabled
@@ -847,11 +602,11 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({ t, onSave, isInitializi
                       const fieldInfo = extraFields.find((f) => f.key === key);
                       const fieldName = fieldInfo?.name || key;
                       return (
-                        <div key={key} className="settings-row" style={extraConfigRowStyle}>
-                          <label style={labelStyle}>{fieldName}</label>
+                        <div key={key} className="llm-config-row">
+                          <label className="llm-config-label">{fieldName}</label>
                           <input
                             type="password"
-                            style={inputStyle}
+                            className="llm-config-input"
                             value={String(value)}
                             disabled
                             placeholder="••••••••"
@@ -863,35 +618,14 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({ t, onSave, isInitializi
                         </div>
                       );
                     })}
-                    <div
-                      style={{
-                        display: "flex",
-                        gap: "8px",
-                        justifyContent: "flex-end",
-                        marginTop: "8px",
-                      }}
-                    >
+                    <div className="llm-config-actions">
                       {!isDefault && (
-                        <button
-                          style={{
-                            ...buttonStyle,
-                            fontSize: "11px",
-                            padding: "4px 10px",
-                          }}
-                          onClick={() => handleSetDefault(id, instanceName)}
-                        >
+                        <button className="llm-config-btn small" onClick={() => handleSetDefault(id, instanceName)}>
                           {t("llmModel.setAsDefault")}
                         </button>
                       )}
                       {!isDefault && Object.keys(instances).length > 1 && (
-                        <button
-                          style={{
-                            ...deleteButtonStyle,
-                            fontSize: "11px",
-                            padding: "4px 10px",
-                          }}
-                          onClick={() => handleDeleteInstance(id, instanceName)}
-                        >
+                        <button className="llm-config-btn danger small" onClick={() => handleDeleteInstance(id, instanceName)}>
                           {t("llmModel.delete")}
                         </button>
                       )}

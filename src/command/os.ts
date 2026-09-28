@@ -24,6 +24,18 @@ export const osCommands = {
     }
   },
   /**
+   * Get current memory usage percentage
+   * @returns Memory usage percentage (0-100)
+   */
+  async getMemoryUsage(): Promise<number> {
+    try {
+      return await invoke<number>("cmd_get_memory_usage");
+    } catch (error) {
+      console.error("[Memory] Failed to get memory usage:", error);
+      return 0;
+    }
+  },
+  /**
    * Get current CPU usage percentage
    * @returns CPU usage percentage (0-100)
    */
@@ -48,19 +60,20 @@ export const osCommands = {
     }
   },
   /**
-   * Get both CPU and GPU usage simultaneously
-   * @returns Object containing cpu and gpu usage percentages
-   */
-  async getSystemUsage(): Promise<{ cpu: number; gpu: number }> {
+  * Get CPU, GPU and memory usage simultaneously
+  * @returns Object containing cpu, gpu and memory usage percentages
+  */
+  async getSystemUsage(): Promise<{ cpu: number; gpu: number; memory: number }> {
     try {
-      const [cpu, gpu] = await Promise.all([
+      const [cpu, gpu, memory] = await Promise.all([
         this.getCpuUsage(),
         this.getGpuUsage(),
+        this.getMemoryUsage(),
       ]);
-      return { cpu, gpu };
+      return { cpu, gpu, memory };
     } catch (error) {
       console.error("[System] Failed to get system usage:", error);
-      return { cpu: 0, gpu: 0 };
+      return { cpu: 0, gpu: 0, memory: 0 };
     }
   },
 };

@@ -1,0 +1,1 @@
+export const MENU_PANEL_WIDTH = 350;

@@ -1,6 +1,5 @@
-// Component for monitoring and displaying system resource usage (CPU/GPU)
 import React, { useState, useEffect, useRef } from "react";
-import { Cpu, Monitor } from "lucide-react";
+import { Cpu, Monitor, MemoryStick } from "lucide-react";
 import { osCommands } from "../../command/os";
 interface SystemResourceMonitorProps {
   t: (key: string, params?: Record<string, any>) => string;
@@ -8,44 +7,41 @@ interface SystemResourceMonitorProps {
 const SystemResourceMonitor: React.FC<SystemResourceMonitorProps> = ({ t }) => {
   const [cpuUsage, setCpuUsage] = useState<number>(0);
   const [gpuUsage, setGpuUsage] = useState<number>(0);
+  const [memoryUsage, setMemoryUsage] = useState<number>(0);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  // Fetch CPU and GPU usage from backend
+  // Fetch CPU, GPU and memory usage from backend
   const fetchSystemUsage = async () => {
     try {
-      const [cpu, gpu] = await Promise.all([osCommands.getCpuUsage(), osCommands.getGpuUsage()]);
+      const [cpu, gpu, memory] = await Promise.all([osCommands.getCpuUsage(), osCommands.getGpuUsage(), osCommands.getMemoryUsage()]);
       setCpuUsage(cpu);
       setGpuUsage(gpu);
+      setMemoryUsage(memory);
     } catch (error) {
       console.error("[SystemResource] Failed to fetch system usage:", error);
     }
   };
-  // Initialize polling on component mount
   useEffect(() => {
-    // Fetch immediately on mount
     fetchSystemUsage();
-    // Poll every 5 seconds
     intervalRef.current = setInterval(fetchSystemUsage, 5000);
-    // Cleanup interval on unmount
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
       }
     };
   }, []);
-  // Get color based on usage percentage
-  // Green: < 50%, Yellow: 50-80%, Red: > 80%
-  const getCpuColor = (usage: number): string => {
+  const getUsageColor = (usage: number): string => {
     if (usage < 50) return "#22c55e";
     if (usage < 80) return "#f59e0b";
     return "#ef4444";
   };
   const getGpuColor = (usage: number): string => {
     if (usage === 0) return "var(--text-muted)";
-    if (usage < 50) return "#22c55e";
-    if (usage < 80) return "#f59e0b";
-    return "#ef4444";
+    return getUsageColor(usage);
   };
-  // Format usage to 1 decimal place
+  const getMemoryColor = (usage: number): string => {
+    if (usage === 0) return "var(--text-muted)";
+    return getUsageColor(usage);
+  };
   const formatUsage = (value: number): string => {
     return value.toFixed(1);
   };
@@ -62,7 +58,6 @@ const SystemResourceMonitor: React.FC<SystemResourceMonitorProps> = ({ t }) => {
       }}
       className="system-resource-monitor"
     >
-      {/* CPU Usage */}
       <div
         style={{
           display: "flex",
@@ -71,12 +66,9 @@ const SystemResourceMonitor: React.FC<SystemResourceMonitorProps> = ({ t }) => {
         }}
         title={`CPU: ${formatUsage(cpuUsage)}%`}
       >
-        {/* CPU icon - keep color consistent with version text */}
         <Cpu size={12} strokeWidth={1.75} style={{ color: "var(--text-muted)" }} />
-        {/* CPU percentage - colored based on usage */}
-        <span style={{ fontWeight: 500, color: getCpuColor(cpuUsage) }}>{formatUsage(cpuUsage)}%</span>
+        <span style={{ fontWeight: 500, color: getUsageColor(cpuUsage) }}>{formatUsage(cpuUsage)}%</span>
       </div>
-      {/* GPU Usage */}
       <div
         style={{
           display: "flex",
@@ -85,10 +77,19 @@ const SystemResourceMonitor: React.FC<SystemResourceMonitorProps> = ({ t }) => {
         }}
         title={gpuUsage === 0 ? "GPU not available" : `GPU: ${formatUsage(gpuUsage)}%`}
       >
-        {/* GPU icon - keep color consistent with version text */}
         <Monitor size={12} strokeWidth={1.75} style={{ color: "var(--text-muted)" }} />
-        {/* GPU percentage - colored based on usage, shows 0.0 when not available */}
         <span style={{ fontWeight: 500, color: getGpuColor(gpuUsage) }}>{gpuUsage === 0 ? "0.0" : formatUsage(gpuUsage)}%</span>
+      </div>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "4px",
+        }}
+        title={`Memory: ${formatUsage(memoryUsage)}%`}
+      >
+        <MemoryStick size={12} strokeWidth={1.75} style={{ color: "var(--text-muted)" }} />
+        <span style={{ fontWeight: 500, color: getMemoryColor(memoryUsage) }}>{memoryUsage === 0 ? "0.0" : formatUsage(memoryUsage)}%</span>
       </div>
     </div>
   );

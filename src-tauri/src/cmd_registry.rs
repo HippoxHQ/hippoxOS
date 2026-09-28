@@ -190,6 +190,7 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_open_browser,
         commands::cmd_get_cpu_usage,
         commands::cmd_get_gpu_usage,
+        commands::cmd_get_memory_usage,
         // ==========================================
         commands::cmd_get_profile,
         commands::cmd_update_profile,

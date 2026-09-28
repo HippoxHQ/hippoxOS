@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { MenuPanelView, EngineSubView } from "../../components/MenuPanel";
 import { SettingsSubView } from "../../components/MenuPanel/SettingsPanel";
+import { MENU_PANEL_WIDTH } from "../constants";
 export type ContentPanelView =
   | "generalChat"
   | "favorites"
@@ -28,7 +29,7 @@ export function useMenuPanel() {
   const [menuPanelView, setMenuPanelView] = useState<MenuPanelView | null>(null);
   const [settingsSubView, setSettingsSubView] = useState<SettingsSubView>("llmModel");
   const [engineSubView, setEngineSubView] = useState<EngineSubView>("engine_database");
-  const [menuPanelWidth, setMenuPanelWidth] = useState<number>(320);
+  const [menuPanelWidth, setMenuPanelWidth] = useState<number>(MENU_PANEL_WIDTH);
   const [currentContentPanel, setCurrentContentPanel] = useState<ContentPanelView>(null);
   const switchMenuPanel = (view: string, subView?: string) => {
     if (view === "settings") {
