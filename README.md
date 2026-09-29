@@ -18,7 +18,6 @@ make LLM the operating system interpretation layer.
 <p align="center">
 <a href="./README_zh-CN.md">简体中文</a> | <a href="./README.md">English</a>
 </p>
-<img src="https://github.com/HippoxHQ/assets/blob/main/banner/bg_14.jpg?raw=true" width="100%" >
 
 ## Official Channels & Community
 
@@ -35,6 +34,16 @@ make LLM the operating system interpretation layer.
 | Bilibili         | https://space.bilibili.com/9667583                                                      |
 | QQ               | <img src="https://github.com/HippoxHQ/About/raw/main/assets/qq_QR.png" width="100">     |
 | WeChat           | <img src="https://github.com/HippoxHQ/About/raw/main/assets/wechat_QR.png" width="100"> |
+
+## Download
+
+Get the latest version from the [Releases page](https://github.com/HippoxHQ/hippoxOS/releases/latest).
+
+| Platform | Download                                                                                                                                                                                                                                                                                                                                                                           |
+| -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Windows  | [hippoxOS_windows_x86_64.msi](https://github.com/HippoxHQ/hippoxOS/releases/latest/download/hippoxOS_windows_x86_64.msi) <br> [hippoxOS_windows_x86_64.exe](https://github.com/HippoxHQ/hippoxOS/releases/latest/download/hippoxOS_windows_x86_64.exe)                                                                                                                             |
+| macOS    | [hippoxOS_macos_x86_64.dmg](https://github.com/HippoxHQ/hippoxOS/releases/latest/download/hippoxOS_macos_x86_64.dmg) <br> [hippoxOS_macos_aarch64.dmg](https://github.com/HippoxHQ/hippoxOS/releases/latest/download/hippoxOS_macos_aarch64.dmg)                                                                                                                                   |
+| Linux    | [hippoxOS_linux_x86_64.AppImage](https://github.com/HippoxHQ/hippoxOS/releases/latest/download/hippoxOS_linux_x86_64.AppImage) <br> [hippoxOS_linux_x86_64.deb](https://github.com/HippoxHQ/hippoxOS/releases/latest/download/hippoxOS_linux_x86_64.deb) <br> [hippoxOS_linux_x86_64.rpm](https://github.com/HippoxHQ/hippoxOS/releases/latest/download/hippoxOS_linux_x86_64.rpm) |
 
 ## Overview
 
