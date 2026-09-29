@@ -1,3 +1,6 @@
+<p align="center">
+    <img src="https://raw.githubusercontent.com/HippoxHQ/assets/main/logo/logo-1.png" alt="Portal" width="100" height="100" >
+</p>
 <h1 align="center">
     hippoxOS
 </h1>
@@ -13,7 +16,15 @@
   <a href="https://github.com/HippoxHQ/hippoxOS/releases"><img src="https://img.shields.io/github/v/release/HippoxHQ/hippoxOS.svg?style=flat&labelColor=1C2C2E&color=9C27B0&logo=github&logoColor=white&label=latest%20release" alt="GitHub release"></a>
   <a href="https://github.com/HippoxHQ/hippoxOS/releases"><img src="https://img.shields.io/github/downloads/HippoxHQ/hippoxOS/total?style=flat&labelColor=1C2C2E&color=00C853&logo=github&logoColor=white&label=downloads" alt="GitHub downloads"></a>
   <a href="https://twitter.com/intent/follow?screen_name=HippoxAI"><img src="https://img.shields.io/twitter/follow/HippoxAI" alt="HippoxAI Follow" /></a>
+  <br/>
   <a href="https://xinquji.com" target="_blank" rel="noopener noreferrer"><img src="https://xinquji.com/badge" alt="Featured on 新趣集" style="width:200px;height:54px;" width="200" height="54" /></a>
+  <a href="https://alternativeto.net/software/hippoxos/about/?utm_source=badge&utm_medium=referral" target="_blank">
+  <img src="https://alternativeto.net/static/badges/badge-compact-color.svg"
+       alt="hippoxOS | AlternativeTo"
+       style="width:200px;height:54px;"
+       width="200" height="54"
+       style="width: 244px; height: 79px;" />
+  </a>
 </p>
 <p align="center">
 <a href="./README_zh-CN.md">简体中文</a> | <a href="./README.md">English</a>
