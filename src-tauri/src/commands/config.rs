@@ -1,5 +1,5 @@
 use crate::{
-    commands::get_settings_dir,
+    commands::{get_settings_dir, AudioInstance, ImageInstance, VideoInstance},
     commons::FileUtils,
     hippox_core::{
         create_hippox_instance, remove_container_instance_from_core, remove_database_instance_from_core, remove_network_instance_from_core,
@@ -33,6 +33,24 @@ pub struct HippoxAppConfig {
     pub workspace_config: WorkspaceConfigData,
     #[serde(default)]
     pub disabled_drivers: Vec<String>,
+    // Image generation instances (text-to-image), independent from LLM instances.
+    #[serde(default)]
+    pub image_instances: HashMap<String, ImageInstance>,
+    // ID of the default image generation instance.
+    #[serde(default)]
+    pub default_image_instance_id: String,
+    // Video generation instances (text-to-video), independent from LLM instances.
+    #[serde(default)]
+    pub video_instances: HashMap<String, VideoInstance>,
+    // ID of the default video generation instance.
+    #[serde(default)]
+    pub default_video_instance_id: String,
+    // Audio generation instances (TTS / audio gen / music), independent from LLM instances.
+    #[serde(default)]
+    pub audio_instances: HashMap<String, AudioInstance>,
+    // ID of the default audio generation instance.
+    #[serde(default)]
+    pub default_audio_instance_id: String,
 }
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct EngineConfig {
@@ -79,18 +97,6 @@ impl From<&LlmInstance> for LlmInstanceForFrontend {
             is_default: None,
         }
     }
-}
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct AddLlmInstanceRequest {
-    pub name: String,
-    pub provider: String,
-    pub api_key: String,
-    pub api_base: String,
-    pub default_model: String,
-    pub models: Vec<ModelConfig>,
-    pub is_default: Option<bool>,
-    #[serde(default)]
-    pub extra: HashMap<String, String>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WorkspaceConfig {
@@ -219,6 +225,12 @@ impl Default for HippoxAppConfig {
             },
             workspace_config: WorkspaceConfigData::default(),
             disabled_drivers: Vec::new(),
+            image_instances: HashMap::new(),
+            default_image_instance_id: String::new(),
+            video_instances: HashMap::new(),
+            default_video_instance_id: String::new(),
+            audio_instances: HashMap::new(),
+            default_audio_instance_id: String::new(),
         }
     }
 }
@@ -576,118 +588,6 @@ pub async fn cmd_get_notification_instances() -> Result<Vec<NotificationInstance
     Ok(config.engine.notification_instances.clone())
 }
 #[tauri::command]
-pub async fn cmd_get_llm_instances() -> Result<HashMap<String, LlmInstanceForFrontend>, String> {
-    let config = HIPPOX_APP_CONFIG.read().await;
-    let default_id = &config.default_llm_instance_id;
-    let mut result = HashMap::new();
-    for (key, instance) in config.llm_instances.iter() {
-        let mut frontend_instance: LlmInstanceForFrontend = instance.into();
-        frontend_instance.is_default = Some(key == default_id);
-        result.insert(key.clone(), frontend_instance);
-    }
-    Ok(result)
-}
-#[tauri::command]
-pub async fn cmd_get_default_llm_instance_id() -> Result<String, String> {
-    let config = HIPPOX_APP_CONFIG.read().await;
-    Ok(config.default_llm_instance_id.clone())
-}
-#[tauri::command]
-pub async fn cmd_add_llm_instance(request: AddLlmInstanceRequest) -> Result<String, String> {
-    let mut config = HIPPOX_APP_CONFIG.write().await;
-    let id = Uuid::new_v4().to_string();
-    let now = chrono::Local::now().to_rfc3339();
-    let is_first_instance = config.llm_instances.is_empty();
-    let should_be_default = if is_first_instance { true } else { request.is_default.unwrap_or(false) };
-    let new_instance = LlmInstance {
-        id: Some(id.clone()),
-        name: request.name,
-        provider: request.provider,
-        api_key: request.api_key,
-        api_base: request.api_base,
-        default_model: request.default_model,
-        models: request.models,
-        created_at: Some(now.clone()),
-        updated_at: Some(now),
-        extra: request.extra,
-        is_default: Some(should_be_default),
-    };
-    config.llm_instances.insert(id.clone(), new_instance);
-    if should_be_default {
-        config.default_llm_instance_id = id.clone();
-    } else if config.default_llm_instance_id.is_empty() && !config.llm_instances.is_empty() {
-        if let Some(first_id) = config.llm_instances.keys().next() {
-            config.default_llm_instance_id = first_id.clone();
-        }
-    }
-    drop(config);
-    save_config_to_file().await?;
-    Ok(id)
-}
-#[tauri::command]
-pub async fn cmd_update_llm_instance(instance_id: String, instance: LlmInstanceForFrontend) -> Result<bool, String> {
-    let mut config = HIPPOX_APP_CONFIG.write().await;
-    if let Some(existing) = config.llm_instances.get_mut(&instance_id) {
-        existing.name = instance.name;
-        existing.provider = instance.provider;
-        existing.api_key = instance.api_key;
-        existing.api_base = instance.api_base;
-        existing.default_model = instance.default_model;
-        existing.models = instance.models;
-        existing.updated_at = Some(chrono::Local::now().to_rfc3339());
-        drop(config);
-        save_config_to_file().await?;
-        Ok(true)
-    } else {
-        Err("Instance not found".to_string())
-    }
-}
-#[tauri::command]
-pub async fn cmd_delete_llm_instance(instance_id: String) -> Result<bool, String> {
-    let mut config = HIPPOX_APP_CONFIG.write().await;
-    if config.llm_instances.len() <= 1 {
-        return Err("Cannot delete the last instance".to_string());
-    }
-    if config.llm_instances.remove(&instance_id).is_some() {
-        if config.default_llm_instance_id == instance_id {
-            if let Some(first_id) = config.llm_instances.keys().next().cloned() {
-                config.default_llm_instance_id = first_id.clone();
-                if let Some(instance) = config.llm_instances.get_mut(&first_id) {
-                    instance.is_default = Some(true);
-                }
-            }
-        }
-        drop(config);
-        save_config_to_file().await?;
-        Ok(true)
-    } else {
-        Err("Instance not found".to_string())
-    }
-}
-#[tauri::command]
-pub async fn cmd_set_default_llm_instance(instance_id: String) -> Result<bool, String> {
-    let mut config = HIPPOX_APP_CONFIG.write().await;
-    if config.llm_instances.contains_key(&instance_id) {
-        for (_, instance) in config.llm_instances.iter_mut() {
-            instance.is_default = Some(false);
-        }
-        if let Some(instance) = config.llm_instances.get_mut(&instance_id) {
-            instance.is_default = Some(true);
-        }
-        config.default_llm_instance_id = instance_id.clone();
-        drop(config);
-        save_config_to_file().await?;
-        Ok(true)
-    } else {
-        Err("Instance not found".to_string())
-    }
-}
-#[tauri::command]
-pub async fn cmd_get_llm_instance(instance_id: String) -> Result<Option<LlmInstanceForFrontend>, String> {
-    let config = HIPPOX_APP_CONFIG.read().await;
-    Ok(config.llm_instances.get(&instance_id).map(|instance| instance.into()))
-}
-#[tauri::command]
 pub async fn cmd_sync_all_to_hippox_core() -> Result<(), String> {
     sync_all_to_hippox_core().await
 }
@@ -902,46 +802,6 @@ pub async fn save_config_to_file() -> Result<(), String> {
 }
 fn get_config_file_path() -> std::path::PathBuf {
     super::paths::get_settings_dir().join("config.json")
-}
-#[tauri::command]
-pub async fn cmd_add_llm_model(model: ModelConfig) -> Result<bool, String> {
-    let mut config = HIPPOX_APP_CONFIG.write().await;
-    let default_id = config.default_llm_instance_id.clone();
-    if let Some(instance) = config.llm_instances.get_mut(&default_id) {
-        instance.models.push(model);
-        save_config_to_file().await?;
-        Ok(true)
-    } else {
-        Err("No default instance found".to_string())
-    }
-}
-#[tauri::command]
-pub async fn cmd_remove_llm_model(model_name: String) -> Result<bool, String> {
-    let mut config = HIPPOX_APP_CONFIG.write().await;
-    let default_id = config.default_llm_instance_id.clone();
-    if let Some(instance) = config.llm_instances.get_mut(&default_id) {
-        instance.models.retain(|m| m.name != model_name);
-        save_config_to_file().await?;
-        Ok(true)
-    } else {
-        Err("No default instance found".to_string())
-    }
-}
-#[tauri::command]
-pub async fn cmd_set_default_llm_model(model_name: String) -> Result<bool, String> {
-    let mut config = HIPPOX_APP_CONFIG.write().await;
-    let default_id = config.default_llm_instance_id.clone();
-    if let Some(instance) = config.llm_instances.get_mut(&default_id) {
-        for model in &mut instance.models {
-            model.is_default = model.name == model_name;
-        }
-        instance.default_model = model_name;
-        drop(config);
-        save_config_to_file().await?;
-        Ok(true)
-    } else {
-        Err("No default instance found".to_string())
-    }
 }
 #[tauri::command]
 pub fn cmd_get_settings_language() -> Result<String, String> {

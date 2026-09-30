@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Bot, X, ChevronDown, SearchIcon } from "lucide-react";
-import { ProviderInfo, ModelInfo, llmCommands, AddLlmInstanceRequest, ExtraConfigField } from "../../../command/llm";
+import { ProviderInfo, ModelInfo, llmCommands, AddLlmInstanceRequest, ExtraConfigField, imageCommands, videoCommands, audioCommands, AddImageInstanceRequest, AddVideoInstanceRequest, AddAudioInstanceRequest } from "../../../command/llm";
 import { showDialog, DialogType } from "../../Dialog";
 import { showToast, ToastType } from "../../Toast";
 import { llmModelConfigStyles } from "./llmmodelConfig.styles";
@@ -11,11 +11,21 @@ interface LLMModelConfigProps {
   language?: string;
 }
 /**
+ * Tab key for the top-level capability selector.
+ * - "chat"  : conversation LLMs (existing behavior)
+ * - "image" : text-to-image providers
+ * - "video" : text-to-video providers
+ * - "audio" : TTS / audio gen / music providers
+ */
+type ConfigTab = "chat" | "image" | "video" | "audio";
+/**
  * Custom dropdown for selecting an LLM provider.
  */
 interface ProviderDropdownOption {
   value: string;
   label: string;
+  /** Short provider description shown below the label in the menu. */
+  description?: string;
 }
 interface ProviderDropdownProps {
   options: ProviderDropdownOption[];
@@ -36,7 +46,7 @@ const ProviderDropdown: React.FC<ProviderDropdownProps> = ({ options, value, dis
   const updateMenuPosition = useCallback(() => {
     if (!triggerRef.current) return;
     const rect = triggerRef.current.getBoundingClientRect();
-    const menuWidth = 240;
+    const menuWidth = 320;
     let left = rect.right - menuWidth - 5;
     if (left < 8) left = 8;
     const top = rect.bottom - 30;
@@ -109,7 +119,7 @@ const ProviderDropdown: React.FC<ProviderDropdownProps> = ({ options, value, dis
           style={{
             top: menuPosition.top,
             left: menuPosition.left,
-            minWidth: Math.max(menuPosition.minWidth, 200),
+            minWidth: Math.max(menuPosition.minWidth, 260),
           }}
         >
           {options.map((opt) => {
@@ -117,6 +127,8 @@ const ProviderDropdown: React.FC<ProviderDropdownProps> = ({ options, value, dis
             return (
               <div key={opt.value} role="option" aria-selected={isSelected} className={`llm-provider-dropdown-item${isSelected ? " selected" : ""}`} onClick={() => handleSelect(opt.value)} title={opt.label}>
                 <span className="llm-provider-dropdown-item-label">{opt.label}</span>
+                {/* Provider description shown below the label inside the menu. */}
+                {opt.description ? <span className="llm-provider-dropdown-item-description">{opt.description}</span> : null}
               </div>
             );
           })}
@@ -128,7 +140,7 @@ const ProviderDropdown: React.FC<ProviderDropdownProps> = ({ options, value, dis
 const LLMModelConfig: React.FC<LLMModelConfigProps> = ({ t, onSave, isInitializing = false, language = "en" }) => {
   // Determine if current language is Chinese
   const isZh = t("i18n") === "zh";
-  // State management
+  const [activeTab, setActiveTab] = useState<ConfigTab>("chat");
   const [instances, setInstances] = useState<Record<string, any>>({});
   const [defaultInstanceId, setDefaultInstanceId] = useState<string>("");
   const [providers, setProviders] = useState<ProviderInfo[]>([]);
@@ -140,30 +152,94 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({ t, onSave, isInitializi
   const [extraConfigValues, setExtraConfigValues] = useState<Record<string, string>>({});
   const [currentProviderInfo, setCurrentProviderInfo] = useState<ProviderInfo | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  // Batch mode state - similar to MaterialTab/AudioTab
   const [isBatchMode, setIsBatchMode] = useState<boolean>(false);
-  // Batch selection state
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  // Load data on mount and language change
+  // Load data on mount, language change, or tab change
   useEffect(() => {
     loadData();
-  }, [language]);
-  // Fetch all required data from backend
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [language, activeTab]);
+  /**
+   * Returns the command bundle for the currently selected tab.
+   */
+  const getCommands = () => {
+    switch (activeTab) {
+      case "image":
+        return {
+          getInstances: imageCommands.getImageInstances,
+          getDefaultInstanceId: imageCommands.getDefaultImageInstanceId,
+          getAllProviders: imageCommands.getAllImageProviders,
+          getAllModels: imageCommands.getAllImageModels,
+          addInstance: imageCommands.addImageInstance,
+          deleteInstance: imageCommands.deleteImageInstance,
+          setDefaultInstance: imageCommands.setDefaultImageInstance,
+        };
+      case "video":
+        return {
+          getInstances: videoCommands.getVideoInstances,
+          getDefaultInstanceId: videoCommands.getDefaultVideoInstanceId,
+          getAllProviders: videoCommands.getAllVideoProviders,
+          getAllModels: videoCommands.getAllVideoModels,
+          addInstance: videoCommands.addVideoInstance,
+          deleteInstance: videoCommands.deleteVideoInstance,
+          setDefaultInstance: videoCommands.setDefaultVideoInstance,
+        };
+      case "audio":
+        return {
+          getInstances: audioCommands.getAudioInstances,
+          getDefaultInstanceId: audioCommands.getDefaultAudioInstanceId,
+          getAllProviders: audioCommands.getAllAudioProviders,
+          getAllModels: audioCommands.getAllAudioModels,
+          addInstance: audioCommands.addAudioInstance,
+          deleteInstance: audioCommands.deleteAudioInstance,
+          setDefaultInstance: audioCommands.setDefaultAudioInstance,
+        };
+      case "chat":
+      default:
+        return {
+          getInstances: llmCommands.getLlmInstances,
+          getDefaultInstanceId: llmCommands.getDefaultLlmInstanceId,
+          getAllProviders: llmCommands.getAllProviders,
+          getAllModels: llmCommands.getAllModels,
+          addInstance: llmCommands.addLlmInstance,
+          deleteInstance: llmCommands.deleteLlmInstance,
+          setDefaultInstance: llmCommands.setDefaultLlmInstance,
+        };
+    }
+  };
+  /**
+   * Default provider id for the "Add" form when switching tabs.
+   */
+  const getDefaultProviderId = (tab: ConfigTab): string => {
+    switch (tab) {
+      case "image":
+        return "Seedream";
+      case "video":
+        return "Seedance";
+      case "audio":
+        return "QwenTts";
+      case "chat":
+      default:
+        return "openai";
+    }
+  };
+  // Fetch all required data from backend for the current tab
   const loadData = async () => {
     setLoading(true);
-    const instancesPromise = llmCommands.getLlmInstances().catch((err: Error) => {
+    const cmds = getCommands();
+    const instancesPromise = cmds.getInstances().catch((err: Error) => {
       console.error("Failed to load instances:", err);
       return {};
     });
-    const defaultIdPromise = llmCommands.getDefaultLlmInstanceId().catch((err: Error) => {
+    const defaultIdPromise = cmds.getDefaultInstanceId().catch((err: Error) => {
       console.error("Failed to load default instance id:", err);
       return "";
     });
-    const providersPromise = llmCommands.getAllProviders().catch((err: Error) => {
+    const providersPromise = cmds.getAllProviders().catch((err: Error) => {
       console.error("Failed to load providers:", err);
       return [];
     });
-    const modelsPromise = llmCommands.getAllModels().catch((err: Error) => {
+    const modelsPromise = cmds.getAllModels().catch((err: Error) => {
       console.error("Failed to load models:", err);
       return [];
     });
@@ -172,6 +248,11 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({ t, onSave, isInitializi
     setAvailableModels(modelsData);
     setInstances(instancesData);
     setDefaultInstanceId(defaultId);
+    // Reset the "Add" form so it does not carry values across tabs.
+    setNewProvider(getDefaultProviderId(activeTab));
+    setNewApiKey("");
+    setExtraConfigValues({});
+    setCurrentProviderInfo(null);
     // Clear selection when data reloads
     setSelectedIds(new Set());
     // Exit batch mode when data reloads
@@ -238,12 +319,13 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({ t, onSave, isInitializi
       confirmMessage,
       async () => {
         try {
-          const deletePromises = Array.from(selectedIds).map((id) => llmCommands.deleteLlmInstance(id));
+          const cmds = getCommands();
+          const deletePromises = Array.from(selectedIds).map((id) => cmds.deleteInstance(id));
           await Promise.all(deletePromises);
           await loadData();
           showToast(ToastType.SUCCESS, isZh ? `成功删除 ${selectedIds.size} 个实例` : `Successfully deleted ${selectedIds.size} instance(s)`);
           if (onSave) {
-            onSave({ action: "batch_delete", instanceIds: Array.from(selectedIds) });
+            onSave({ action: "batch_delete", tab: activeTab, instanceIds: Array.from(selectedIds) });
           }
           // Exit batch mode after deletion
           setIsBatchMode(false);
@@ -261,7 +343,8 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({ t, onSave, isInitializi
   // Set a provider instance as default
   const handleSetDefault = async (instanceId: string, instanceName: string) => {
     try {
-      await llmCommands.setDefaultLlmInstance(instanceId);
+      const cmds = getCommands();
+      await cmds.setDefaultInstance(instanceId);
       setDefaultInstanceId(instanceId);
       setInstances((prev) => {
         const newInstances = { ...prev };
@@ -275,7 +358,7 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({ t, onSave, isInitializi
       });
       showToast(ToastType.SUCCESS, t("llmModel.defaultSuccess", { name: instanceName }));
       if (onSave) {
-        onSave({ action: "set_default", instanceId });
+        onSave({ action: "set_default", tab: activeTab, instanceId });
       }
     } catch (error) {
       console.error("Failed to set default instance:", error);
@@ -298,11 +381,12 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({ t, onSave, isInitializi
       t("llmModel.deleteConfirmMessage", { name: instanceName }),
       async () => {
         try {
-          await llmCommands.deleteLlmInstance(instanceId);
+          const cmds = getCommands();
+          await cmds.deleteInstance(instanceId);
           await loadData();
           showToast(ToastType.SUCCESS, t("llmModel.deleteSuccess", { name: instanceName }));
           if (onSave) {
-            onSave({ action: "delete", instanceId });
+            onSave({ action: "delete", tab: activeTab, instanceId });
           }
         } catch (error) {
           console.error("Failed to delete instance:", error);
@@ -325,7 +409,7 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({ t, onSave, isInitializi
   const handleExtraConfigChange = (key: string, value: string) => {
     setExtraConfigValues((prev) => ({ ...prev, [key]: value }));
   };
-  // Add a new LLM instance
+  // Add a new instance (chat / image / video / audio depending on active tab)
   const handleAddInstance = async () => {
     if (!newApiKey.trim()) {
       showToast(ToastType.WARNING, t("llmModel.apiKeyRequired"));
@@ -348,7 +432,7 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({ t, onSave, isInitializi
       });
     }
     const isCustomProvider = newProvider === "custom";
-    const instanceToAdd: AddLlmInstanceRequest = {
+    const requestPayload: AddLlmInstanceRequest & AddImageInstanceRequest & AddVideoInstanceRequest & AddAudioInstanceRequest = {
       name: `${providerInfo?.name || newProvider} Instance`,
       provider: newProvider,
       api_key: newApiKey,
@@ -363,15 +447,16 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({ t, onSave, isInitializi
       extra: extra,
     };
     try {
-      await llmCommands.addLlmInstance(instanceToAdd);
+      const cmds = getCommands();
+      await cmds.addInstance(requestPayload);
       setShowAddForm(false);
-      setNewProvider("openai");
+      setNewProvider(getDefaultProviderId(activeTab));
       setNewApiKey("");
       setExtraConfigValues({});
       await loadData();
       showToast(ToastType.SUCCESS, t("llmModel.addSuccess", { name: providerInfo?.name || newProvider }));
       if (onSave) {
-        onSave({ action: "add", instance: instanceToAdd });
+        onSave({ action: "add", tab: activeTab, instance: requestPayload });
       }
     } catch (error) {
       console.error("Failed to add instance:", error);
@@ -393,6 +478,16 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({ t, onSave, isInitializi
     const provider = providers.find((p) => p.id === providerId);
     return provider?.extra_config_fields || [];
   };
+  /**
+   * Helper: Get the localized provider description for a given provider id.
+   * Falls back to an empty string when the provider is unknown so the UI
+   * simply omits the line instead of rendering "undefined".
+   */
+  const getProviderDescription = (providerId: string): string => {
+    const provider = providers.find((p) => p.id === providerId);
+    if (!provider) return "";
+    return isZh ? provider.description_zh || provider.description || "" : provider.description || provider.description_zh || "";
+  };
   // Clear search input
   const handleClearSearch = () => {
     setSearchTerm("");
@@ -408,6 +503,18 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({ t, onSave, isInitializi
    */
   const stopKeyboardPropagation = (e: React.KeyboardEvent) => {
     e.stopPropagation();
+  };
+  /**
+   * Switch the top-level tab. Resets transient UI state so the panel does
+   * not leak values between chat / image / video / audio.
+   */
+  const handleTabChange = (tab: ConfigTab) => {
+    if (tab === activeTab) return;
+    setActiveTab(tab);
+    setShowAddForm(false);
+    setSearchTerm("");
+    setSelectedIds(new Set());
+    setIsBatchMode(false);
   };
   if (typeof document !== "undefined") {
     const styleId = "llm-model-config-styles";
@@ -427,6 +534,21 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({ t, onSave, isInitializi
   const hasInstances = instanceEntries.length > 0;
   return (
     <div className="llm-config-root">
+      {/* Top-level capability tabs: Chat / Image / Video / Audio */}
+      <div className="llm-config-tabs">
+        <button className={`llm-config-tab${activeTab === "chat" ? " active" : ""}`} onClick={() => handleTabChange("chat")}>
+          {isZh ? "对话模型" : "Chat"}
+        </button>
+        <button className={`llm-config-tab${activeTab === "image" ? " active" : ""}`} onClick={() => handleTabChange("image")}>
+          {isZh ? "文生图" : "Image"}
+        </button>
+        <button className={`llm-config-tab${activeTab === "video" ? " active" : ""}`} onClick={() => handleTabChange("video")}>
+          {isZh ? "文生视频" : "Video"}
+        </button>
+        <button className={`llm-config-tab${activeTab === "audio" ? " active" : ""}`} onClick={() => handleTabChange("audio")}>
+          {isZh ? "文生音频" : "Audio"}
+        </button>
+      </div>
       {/* Search Header */}
       <div className="llm-config-header">
         <div className="llm-config-search-row">
@@ -484,7 +606,6 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({ t, onSave, isInitializi
               </button>
             </>
           )}
-          {/* <span className="llm-config-batch-count">{isZh ? `共 ${Object.keys(instances).length} 个实例${selectedIds.size > 0 ? `，已选 ${selectedIds.size} 个` : ""}` : `Total: ${Object.keys(instances).length} instances${selectedIds.size > 0 ? `, ${selectedIds.size} selected` : ""}`}</span> */}
         </div>
       </div>
       {/* Content Area */}
@@ -500,7 +621,7 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({ t, onSave, isInitializi
                 marginBottom: "12px",
               }}
             >
-              {t("llmModel.addLlmProvider")}
+              {activeTab === "chat" ? t("llmModel.addLlmProvider") : activeTab === "image" ? (isZh ? "新增文生图提供商" : "Add Image Provider") : activeTab === "video" ? (isZh ? "新增文生视频提供商" : "Add Video Provider") : isZh ? "新增文生音频提供商" : "Add Audio Provider"}
             </div>
             <div className="llm-config-row">
               <label className="llm-config-label">{t("llmModel.provider")}</label>
@@ -511,6 +632,8 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({ t, onSave, isInitializi
                 options={providers.map((provider) => ({
                   value: provider.id,
                   label: provider.name,
+                  /* Localized provider description shown inside the menu. */
+                  description: isZh ? provider.description_zh || provider.description : provider.description || provider.description_zh,
                 }))}
                 value={newProvider}
                 onChange={(value) => handleProviderChange(value)}
@@ -570,6 +693,8 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({ t, onSave, isInitializi
             // Determine if checkbox should be visible and enabled
             const showCheckbox = isBatchMode && !isDefault;
             const isCheckboxDisabled = !isBatchMode || isDefault;
+            /* Localized provider description shown under the card title. */
+            const providerDescription = getProviderDescription(instance.provider);
             return (
               <div key={id} className={`llm-config-card${isSelected && isBatchMode ? " selected" : ""}`}>
                 {/* Checkbox and provider name in one row */}
@@ -578,6 +703,8 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({ t, onSave, isInitializi
                   {isDefault && <span className="llm-config-badge">{t("llmModel.default")}</span>}
                   <input type="checkbox" className={`llm-config-checkbox ${!showCheckbox ? "hidden-checkbox" : ""}`} checked={isSelected} onChange={() => toggleSelection(id)} disabled={isCheckboxDisabled} />
                 </div>
+                {/* Provider description line under the card title. */}
+                {providerDescription ? <div className="llm-config-card-description">{providerDescription}</div> : null}
                 {/* Row with checkbox */}
                 <div style={{ display: "flex", alignItems: "center", gap: "8px", width: "100%" }}>
                   {/* Original card content */}

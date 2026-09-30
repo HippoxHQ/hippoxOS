@@ -22,6 +22,10 @@ export interface ProviderInfo {
   requires_api_key: boolean;
   requires_extra_config: boolean;
   extra_config_fields: ExtraConfigField[];
+  /** Short English description of what this provider is good at. */
+  description: string;
+  /** Short Chinese description of what this provider is good at. */
+  description_zh: string;
 }
 export interface LlmInstance {
   id: string;
@@ -96,4 +100,187 @@ export const llmCommands = {
   async setDefaultLlmModel(modelName: string): Promise<boolean> {
     return await invoke('cmd_set_default_llm_model', { modelName });
   }
+};
+// ---------------------------------------------------------------------------
+// Image generation commands
+// ---------------------------------------------------------------------------
+export interface ImageInstance {
+  id: string;
+  name: string;
+  provider: string;
+  api_key: string;
+  api_base: string;
+  default_model: string;
+  models: ModelConfig[];
+  created_at: string;
+  updated_at: string;
+  extra?: Record<string, string>;
+  is_default?: boolean;
+}
+export interface AddImageInstanceRequest {
+  name: string;
+  provider: string;
+  api_key: string;
+  api_base: string;
+  default_model: string;
+  models: ModelConfig[];
+  is_default?: boolean;
+  extra?: Record<string, string>;
+}
+export const imageCommands = {
+  async getAllImageModels(): Promise<ModelInfo[]> {
+    return await invoke('cmd_get_all_image_models');
+  },
+  async getAllImageProviders(): Promise<ProviderInfo[]> {
+    return await invoke('cmd_get_all_image_providers');
+  },
+  async getImageModelsByProvider(provider: string): Promise<ModelInfo[]> {
+    return await invoke('cmd_get_image_models_by_provider', { provider });
+  },
+  async getRecommendedImageModels(): Promise<ModelInfo[]> {
+    return await invoke('cmd_get_recommended_image_models');
+  },
+  async getImageInstances(): Promise<Record<string, ImageInstance>> {
+    return await invoke('cmd_get_image_instances');
+  },
+  async getDefaultImageInstanceId(): Promise<string> {
+    return await invoke('cmd_get_default_image_instance_id');
+  },
+  async addImageInstance(request: AddImageInstanceRequest): Promise<string> {
+    return await invoke('cmd_add_image_instance', { request });
+  },
+  async updateImageInstance(instanceId: string, instance: ImageInstance): Promise<boolean> {
+    return await invoke('cmd_update_image_instance', { instanceId, instance });
+  },
+  async deleteImageInstance(instanceId: string): Promise<boolean> {
+    return await invoke('cmd_delete_image_instance', { instanceId });
+  },
+  async setDefaultImageInstance(instanceId: string): Promise<boolean> {
+    return await invoke('cmd_set_default_image_instance', { instanceId });
+  },
+  async getImageInstance(instanceId: string): Promise<ImageInstance | null> {
+    return await invoke('cmd_get_image_instance', { instanceId });
+  },
+};
+// ---------------------------------------------------------------------------
+// Video generation commands
+// ---------------------------------------------------------------------------
+export interface VideoInstance {
+  id: string;
+  name: string;
+  provider: string;
+  api_key: string;
+  api_base: string;
+  default_model: string;
+  models: ModelConfig[];
+  created_at: string;
+  updated_at: string;
+  extra?: Record<string, string>;
+  is_default?: boolean;
+}
+export interface AddVideoInstanceRequest {
+  name: string;
+  provider: string;
+  api_key: string;
+  api_base: string;
+  default_model: string;
+  models: ModelConfig[];
+  is_default?: boolean;
+  extra?: Record<string, string>;
+}
+export const videoCommands = {
+  async getAllVideoModels(): Promise<ModelInfo[]> {
+    return await invoke('cmd_get_all_video_models');
+  },
+  async getAllVideoProviders(): Promise<ProviderInfo[]> {
+    return await invoke('cmd_get_all_video_providers');
+  },
+  async getVideoModelsByProvider(provider: string): Promise<ModelInfo[]> {
+    return await invoke('cmd_get_video_models_by_provider', { provider });
+  },
+  async getRecommendedVideoModels(): Promise<ModelInfo[]> {
+    return await invoke('cmd_get_recommended_video_models');
+  },
+  async getVideoInstances(): Promise<Record<string, VideoInstance>> {
+    return await invoke('cmd_get_video_instances');
+  },
+  async getDefaultVideoInstanceId(): Promise<string> {
+    return await invoke('cmd_get_default_video_instance_id');
+  },
+  async addVideoInstance(request: AddVideoInstanceRequest): Promise<string> {
+    return await invoke('cmd_add_video_instance', { request });
+  },
+  async updateVideoInstance(instanceId: string, instance: VideoInstance): Promise<boolean> {
+    return await invoke('cmd_update_video_instance', { instanceId, instance });
+  },
+  async deleteVideoInstance(instanceId: string): Promise<boolean> {
+    return await invoke('cmd_delete_video_instance', { instanceId });
+  },
+  async setDefaultVideoInstance(instanceId: string): Promise<boolean> {
+    return await invoke('cmd_set_default_video_instance', { instanceId });
+  },
+  async getVideoInstance(instanceId: string): Promise<VideoInstance | null> {
+    return await invoke('cmd_get_video_instance', { instanceId });
+  },
+};
+// ---------------------------------------------------------------------------
+// Audio generation commands
+// ---------------------------------------------------------------------------
+export interface AudioInstance {
+  id: string;
+  name: string;
+  provider: string;
+  api_key: string;
+  api_base: string;
+  default_model: string;
+  models: ModelConfig[];
+  created_at: string;
+  updated_at: string;
+  extra?: Record<string, string>;
+  is_default?: boolean;
+}
+export interface AddAudioInstanceRequest {
+  name: string;
+  provider: string;
+  api_key: string;
+  api_base: string;
+  default_model: string;
+  models: ModelConfig[];
+  is_default?: boolean;
+  extra?: Record<string, string>;
+}
+export const audioCommands = {
+  async getAllAudioModels(): Promise<ModelInfo[]> {
+    return await invoke('cmd_get_all_audio_models');
+  },
+  async getAllAudioProviders(): Promise<ProviderInfo[]> {
+    return await invoke('cmd_get_all_audio_providers');
+  },
+  async getAudioModelsByProvider(provider: string): Promise<ModelInfo[]> {
+    return await invoke('cmd_get_audio_models_by_provider', { provider });
+  },
+  async getRecommendedAudioModels(): Promise<ModelInfo[]> {
+    return await invoke('cmd_get_recommended_audio_models');
+  },
+  async getAudioInstances(): Promise<Record<string, AudioInstance>> {
+    return await invoke('cmd_get_audio_instances');
+  },
+  async getDefaultAudioInstanceId(): Promise<string> {
+    return await invoke('cmd_get_default_audio_instance_id');
+  },
+  async addAudioInstance(request: AddAudioInstanceRequest): Promise<string> {
+    return await invoke('cmd_add_audio_instance', { request });
+  },
+  async updateAudioInstance(instanceId: string, instance: AudioInstance): Promise<boolean> {
+    return await invoke('cmd_update_audio_instance', { instanceId, instance });
+  },
+  async deleteAudioInstance(instanceId: string): Promise<boolean> {
+    return await invoke('cmd_delete_audio_instance', { instanceId });
+  },
+  async setDefaultAudioInstance(instanceId: string): Promise<boolean> {
+    return await invoke('cmd_set_default_audio_instance', { instanceId });
+  },
+  async getAudioInstance(instanceId: string): Promise<AudioInstance | null> {
+    return await invoke('cmd_get_audio_instance', { instanceId });
+  },
 };

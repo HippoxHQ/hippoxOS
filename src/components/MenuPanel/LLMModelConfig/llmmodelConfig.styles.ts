@@ -19,6 +19,40 @@ export const llmModelConfigStyles = `
     color: var(--text-secondary);
     font-size: 13px;
   }
+  /* Top-level capability tabs: Chat / Image / Video / Audio */
+  .llm-config-tabs {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-color);
+    flex-shrink: 0;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .llm-config-tab {
+    flex: 1;
+    padding: 8px 12px;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .llm-config-tab:hover {
+    color: var(--text-primary);
+    background: var(--hover-bg);
+  }
+  .llm-config-tab.active {
+    color: var(--accent-color, #0066cc);
+    border-bottom-color: var(--accent-color, #0066cc);
+  }
   .llm-config-header {
     padding: 10px;
     border-bottom: 1px solid var(--border-color);
@@ -137,6 +171,17 @@ export const llmModelConfigStyles = `
     max-width: 100%;
     flex-shrink: 1;
     min-width: 0;
+  }
+  /* Localized provider description shown under the card title. */
+  .llm-config-card-description {
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.4;
+    margin: -6px 0 10px 0;
+    padding: 0;
+    white-space: normal;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .llm-config-badge {
     background: var(--accent-color, #0066cc);
@@ -304,7 +349,8 @@ export const llmModelConfigStyles = `
     position: fixed;
     z-index: 9999;
     min-width: 200px;
-    max-width: 260px;
+    /* Slightly wider than before so the provider description can breathe. */
+    max-width: 320px;
     max-height: 250px;
     height: 250px;
     overflow-y: auto;
@@ -329,17 +375,20 @@ export const llmModelConfigStyles = `
     background: var(--scrollbar-thumb);
   }
   .llm-provider-dropdown-item {
+    /* Stack the label and the description vertically so the description
+     * can wrap onto its own line without breaking the layout. */
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 2px;
     padding: 6px 10px;
     font-size: 12px;
     color: var(--text-primary);
     cursor: pointer;
-    white-space: nowrap;
+    /* Allow wrapping so the description can occupy multiple lines. */
+    white-space: normal;
     overflow: hidden;
-    text-overflow: ellipsis;
   }
   .llm-provider-dropdown-item:hover {
     background: var(--hover-bg);
@@ -355,5 +404,20 @@ export const llmModelConfigStyles = `
     text-overflow: ellipsis;
     white-space: nowrap;
     text-align: left;
+  }
+  /* Localized provider description shown below the label inside the menu. */
+  .llm-provider-dropdown-item .llm-provider-dropdown-item-description {
+    display: -webkit-box;
+    width: 100%;
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--text-secondary);
+    line-height: 1.35;
+    white-space: normal;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    /* Clamp the description to at most 2 lines to keep the menu tidy. */
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
   }
 `;
