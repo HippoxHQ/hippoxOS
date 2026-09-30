@@ -5,7 +5,7 @@ import ScheduledTasksStatus from "./ScheduledTasksStatus";
 import { showToast, ToastType } from "../Toast";
 import { BotIcon2 } from "../../icons";
 import { configCommands } from "../../command/config";
-import { LlmInstance } from "../../command/llm";
+import { LlmInstance, ImageInstance, VideoInstance, AudioInstance, imageCommands, videoCommands, audioCommands } from "../../command/llm";
 import { systemNotificationService } from "../../core/NotificationManager";
 import { basisCommands } from "../../command/basis";
 import { healthCommands, HealthCheckResult } from "../../command/health";
@@ -15,6 +15,7 @@ interface BottomBarProps {
   t: (key: string, params?: Record<string, any>) => string;
 }
 type StatusDotState = "online" | "offline" | "checking";
+type SelectorTab = "chat" | "image" | "video" | "audio";
 const bottomBarStyles = `
   .bottom-bar {
     height: 30px;
@@ -136,6 +137,7 @@ if (typeof document !== "undefined") {
   }
 }
 const BottomBar: React.FC<BottomBarProps> = ({ t }) => {
+  const isZh = t("i18n") === "zh";
   const [hippoxVersion, setHippoxVersion] = useState<string>("");
   const [modelPopupVisible, setModelPopupVisible] = useState(false);
   const [notificationCenterVisible, setNotificationCenterVisible] = useState(false);
@@ -144,6 +146,9 @@ const BottomBar: React.FC<BottomBarProps> = ({ t }) => {
   const [defaultInstanceId, setDefaultInstanceId] = useState<string>("");
   const [unreadCount, setUnreadCount] = useState(0);
   const [statusDot, setStatusDot] = useState<StatusDotState>("checking");
+  // Tracks the tab currently selected inside ModelSelector so that the
+  // bottom-bar button label and status dot reflect the active capability.
+  const [activeSelectorTab, setActiveSelectorTab] = useState<SelectorTab>("chat");
   const modelButtonRef = useRef<HTMLButtonElement>(null);
   const notificationButtonRef = useRef<HTMLButtonElement>(null);
   const scheduledTasksButtonRef = useRef<HTMLButtonElement>(null);
@@ -154,7 +159,10 @@ const BottomBar: React.FC<BottomBarProps> = ({ t }) => {
   const loadLlmInstances = async () => {
     try {
       const instances = await configCommands.getLlmInstances();
-      const instancesList = Object.values(instances) as LlmInstance[];
+      const instancesList = Object.entries(instances).map(([id, instance]) => ({
+        ...(instance as any),
+        id,
+      })) as LlmInstance[];
       setLlmInstances(instancesList);
       const defaultId = await configCommands.getDefaultLlmInstanceId();
       setDefaultInstanceId(defaultId);
@@ -250,19 +258,29 @@ const BottomBar: React.FC<BottomBarProps> = ({ t }) => {
     document.addEventListener("mousedown", handleGlobalClick);
     return () => document.removeEventListener("mousedown", handleGlobalClick);
   }, [modelPopupVisible, notificationCenterVisible, scheduledTasksVisible]);
-  // Handle setting default model - reload instances to reflect changes
-  const handleSetDefaultModel = async (instanceId: string) => {
+  /**
+   * Handle setting the default model for the currently active selector tab.
+   * The tab determines which backend command set is used.
+   */
+  const handleSetDefaultModel = async (instanceId: string, type: SelectorTab) => {
     try {
-      await configCommands.setDefaultLlmInstance(instanceId);
-      setDefaultInstanceId(instanceId);
-      // Reload LLM instances to get updated state from backend
-      const instances = await configCommands.getLlmInstances();
-      const instancesList = Object.values(instances) as LlmInstance[];
-      setLlmInstances(instancesList);
-      await checkLlmHealth(instancesList);
+      const setDefault = type === "image" ? imageCommands.setDefaultImageInstance : type === "video" ? videoCommands.setDefaultVideoInstance : type === "audio" ? audioCommands.setDefaultAudioInstance : configCommands.setDefaultLlmInstance;
+      await setDefault(instanceId);
+      // Only the chat tab participates in the bottom-bar's default model
+      // display / health dot; other tabs simply persist the change.
+      if (type === "chat") {
+        setDefaultInstanceId(instanceId);
+        const instances = await configCommands.getLlmInstances();
+        const instancesList = Object.entries(instances).map(([id, instance]) => ({
+          ...(instance as any),
+          id,
+        })) as LlmInstance[];
+        setLlmInstances(instancesList);
+        await checkLlmHealth(instancesList);
+      }
       systemNotificationService.addSuccess(
         t("llmModel.defaultSuccess", {
-          name: instancesList.find((i) => i.id === instanceId)?.name,
+          name: instanceId,
         }),
         "",
       );
@@ -299,17 +317,12 @@ const BottomBar: React.FC<BottomBarProps> = ({ t }) => {
     <>
       <div className="bottom-bar">
         <div className="bottom-bar-left">
-          <button
-            ref={modelButtonRef}
-            className={`bottom-bar-btn ${modelPopupVisible ? "bottom-bar-active" : ""}`}
-            onClick={handleOpenModelSelector}
-            title={t("bottomBar.model")}
-          >
+          <button ref={modelButtonRef} className={`bottom-bar-btn ${modelPopupVisible ? "bottom-bar-active" : ""}`} onClick={handleOpenModelSelector} title={t("bottomBar.model")}>
             <div style={{ position: "relative", display: "inline-flex" }}>
               <BotIcon2 size={19} />
               <span className={`status-dot ${statusDot}`} />
             </div>
-            <span>{defaultInstance?.name || t("bottomBar.model")}</span>
+            <span>{isZh ? "模型" : "LLM"}</span>
           </button>
         </div>
         <div className="bottom-bar-right">
@@ -347,30 +360,9 @@ const BottomBar: React.FC<BottomBarProps> = ({ t }) => {
           </button>
         </div>
       </div>
-      <ModelSelector
-        isOpen={modelPopupVisible}
-        onClose={() => setModelPopupVisible(false)}
-        llmInstances={llmInstances}
-        defaultInstanceId={defaultInstanceId}
-        onSetDefaultModel={handleSetDefaultModel}
-        t={t}
-        anchorRef={modelButtonRef as React.RefObject<HTMLElement>}
-        popupRef={modelPopupRef}
-      />
-      <NotificationCenter
-        isOpen={notificationCenterVisible}
-        onClose={() => setNotificationCenterVisible(false)}
-        anchorRef={notificationButtonRef as React.RefObject<HTMLElement>}
-        t={t}
-        popupRef={notificationPopupRef}
-      />
-      <ScheduledTasksStatus
-        isOpen={scheduledTasksVisible}
-        onClose={() => setScheduledTasksVisible(false)}
-        anchorRef={scheduledTasksButtonRef as React.RefObject<HTMLElement>}
-        t={t}
-        popupRef={scheduledTasksPopupRef}
-      />
+      <ModelSelector isOpen={modelPopupVisible} onClose={() => setModelPopupVisible(false)} llmInstances={llmInstances} defaultInstanceId={defaultInstanceId} onSetDefaultModel={handleSetDefaultModel} t={t} anchorRef={modelButtonRef as React.RefObject<HTMLElement>} popupRef={modelPopupRef} />
+      <NotificationCenter isOpen={notificationCenterVisible} onClose={() => setNotificationCenterVisible(false)} anchorRef={notificationButtonRef as React.RefObject<HTMLElement>} t={t} popupRef={notificationPopupRef} />
+      <ScheduledTasksStatus isOpen={scheduledTasksVisible} onClose={() => setScheduledTasksVisible(false)} anchorRef={scheduledTasksButtonRef as React.RefObject<HTMLElement>} t={t} popupRef={scheduledTasksPopupRef} />
     </>
   );
 };

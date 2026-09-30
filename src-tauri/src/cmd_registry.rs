@@ -27,7 +27,17 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_get_max_favorites_size,
         commands::cmd_set_max_favorites_size,
         commands::cmd_get_favorites_dir,
-        // llm
+        // ======================= LLM =======================
+        // LLM Models
+        commands::cmd_get_all_models,
+        commands::cmd_get_all_providers,
+        commands::cmd_get_models_by_provider,
+        commands::cmd_get_recommended_models,
+        // Health
+        commands::cmd_check_all_llm_health,
+        commands::cmd_check_all_image_health,
+        commands::cmd_check_all_video_health,
+        commands::cmd_check_all_audio_health,
         commands::cmd_get_all_audio_models,
         commands::cmd_get_all_audio_providers,
         commands::cmd_get_audio_models_by_provider,
@@ -149,13 +159,6 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_save_settings_videoeditor_layout_swap_mode,
         commands::cmd_get_settings_sandbox3d_layout_swap_mode,
         commands::cmd_save_settings_sandbox3d_layout_swap_mode,
-        // LLM Models
-        commands::cmd_get_all_models,
-        commands::cmd_get_all_providers,
-        commands::cmd_get_models_by_provider,
-        commands::cmd_get_recommended_models,
-        // Health
-        commands::cmd_check_all_llm_health,
         // Search
         commands::cmd_search_content,
         commands::cmd_search_messages,

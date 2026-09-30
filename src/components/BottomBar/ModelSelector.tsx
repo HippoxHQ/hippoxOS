@@ -1,62 +1,29 @@
-import React, { useRef, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
+import { X, Wifi, WifiOff } from "lucide-react";
 import { healthCommands, HealthCheckResult } from "../../command/health";
-import { LlmInstance, llmCommands } from "../../command/llm";
-interface IconProps {
-  size?: number;
-}
+import { LlmInstance, llmCommands, imageCommands, videoCommands, audioCommands } from "../../command/llm";
+type SelectorTab = "chat" | "image" | "video" | "audio";
 const filterInstanceName = (name: string): string => {
   return name.replace(/Instance/gi, "").trim() || name;
 };
-const CloseIcon: React.FC<IconProps> = ({ size = 14 }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <line x1="18" y1="6" x2="6" y2="18" />
-    <line x1="6" y1="6" x2="18" y2="18" />
-  </svg>
-);
-const WifiIcon: React.FC<IconProps> = ({ size = 12 }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M5 12.55a11 11 0 0 1 14.08 0" />
-    <path d="M1.42 9a16 16 0 0 1 21.16 0" />
-    <path d="M8.53 16.11a6 6 0 0 1 6.95 0" />
-    <line x1="12" y1="20" x2="12.01" y2="20" />
-  </svg>
-);
-const WifiOffIcon: React.FC<IconProps> = ({ size = 12 }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <line x1="1" y1="1" x2="23" y2="23" />
-    <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55" />
-    <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39" />
-    <path d="M10.71 5.05A16 16 0 0 1 22.58 9" />
-    <path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88" />
-    <path d="M8.53 16.11a6 6 0 0 1 6.95 0" />
-    <line x1="12" y1="20" x2="12.01" y2="20" />
-  </svg>
-);
-const LoadingIcon: React.FC<IconProps> = ({ size = 12 }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="12" r="10" />
-    <path d="M12 2 L12 6" />
-    <path d="M12 18 L12 22" />
-    <path d="M2 12 L6 12" />
-    <path d="M18 12 L22 12" />
-  </svg>
-);
 interface ModelSelectorProps {
   isOpen: boolean;
   onClose: () => void;
   llmInstances: LlmInstance[];
   defaultInstanceId: string;
-  onSetDefaultModel: (instanceId: string) => void;
+  onSetDefaultModel: (instanceId: string, type: SelectorTab) => void;
   t: (key: string, params?: Record<string, any>) => string;
   anchorRef: React.RefObject<HTMLElement>;
   popupRef: React.RefObject<HTMLDivElement | null>;
 }
 const ModelSelector: React.FC<ModelSelectorProps> = ({ isOpen, onClose, llmInstances, defaultInstanceId, onSetDefaultModel, t, anchorRef, popupRef }) => {
+  const [activeTab, setActiveTab] = useState<SelectorTab>("chat");
   const [healthStatus, setHealthStatus] = useState<Record<string, "online" | "offline" | "checking">>({});
-  const [currentInstances, setCurrentInstances] = useState<LlmInstance[]>(llmInstances);
+  const [currentInstances, setCurrentInstances] = useState<any[]>(llmInstances);
   const [currentDefaultId, setCurrentDefaultId] = useState<string>(defaultInstanceId);
   const [isCheckingHealth, setIsCheckingHealth] = useState(false);
-  const sortInstances = (instances: LlmInstance[]): LlmInstance[] => {
+  const isZh = t("i18n") === "zh";
+  const sortInstances = (instances: any[]): any[] => {
     return [...instances].sort((a, b) => {
       if (a.created_at && b.created_at) {
         return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
@@ -64,22 +31,64 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ isOpen, onClose, llmInsta
       return (a.name || "").localeCompare(b.name || "");
     });
   };
+  const getCommands = (tab: SelectorTab) => {
+    switch (tab) {
+      case "image":
+        return {
+          getInstances: imageCommands.getImageInstances,
+          getDefaultInstanceId: imageCommands.getDefaultImageInstanceId,
+          setDefaultInstance: imageCommands.setDefaultImageInstance,
+          checkHealth: healthCommands.checkAllImageHealth,
+        };
+      case "video":
+        return {
+          getInstances: videoCommands.getVideoInstances,
+          getDefaultInstanceId: videoCommands.getDefaultVideoInstanceId,
+          setDefaultInstance: videoCommands.setDefaultVideoInstance,
+          checkHealth: healthCommands.checkAllVideoHealth,
+        };
+      case "audio":
+        return {
+          getInstances: audioCommands.getAudioInstances,
+          getDefaultInstanceId: audioCommands.getDefaultAudioInstanceId,
+          setDefaultInstance: audioCommands.setDefaultAudioInstance,
+          checkHealth: healthCommands.checkAllAudioHealth,
+        };
+      case "chat":
+      default:
+        return {
+          getInstances: llmCommands.getLlmInstances,
+          getDefaultInstanceId: llmCommands.getDefaultLlmInstanceId,
+          setDefaultInstance: llmCommands.setDefaultLlmInstance,
+          checkHealth: healthCommands.checkAllLlmHealth,
+        };
+    }
+  };
   useEffect(() => {
     if (isOpen) {
       loadLatestConfig();
     }
-  }, [isOpen]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, activeTab]);
   useEffect(() => {
-    setCurrentInstances(sortInstances(llmInstances));
-    setCurrentDefaultId(defaultInstanceId);
-  }, [llmInstances, defaultInstanceId]);
+    if (activeTab === "chat") {
+      setCurrentInstances(sortInstances(llmInstances));
+      setCurrentDefaultId(defaultInstanceId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [llmInstances, defaultInstanceId, activeTab]);
   const loadLatestConfig = async () => {
     try {
-      const instancesData = await llmCommands.getLlmInstances();
-      const instancesList = Object.values(instancesData) as LlmInstance[];
+      const cmds = getCommands(activeTab);
+      const instancesData = await cmds.getInstances();
+      // Preserve the HashMap key as `id` so set-default always has a valid id.
+      const instancesList = Object.entries(instancesData).map(([id, instance]) => ({
+        ...(instance as any),
+        id,
+      }));
       const sortedInstances = sortInstances(instancesList);
       setCurrentInstances(sortedInstances);
-      const defaultId = await llmCommands.getDefaultLlmInstanceId();
+      const defaultId = await cmds.getDefaultInstanceId();
       setCurrentDefaultId(defaultId);
       if (sortedInstances.length > 0) {
         await performHealthChecks(sortedInstances);
@@ -88,7 +97,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ isOpen, onClose, llmInsta
       console.error("Failed to load latest LLM config:", error);
     }
   };
-  const performHealthChecks = async (instances: LlmInstance[]) => {
+  const performHealthChecks = async (instances: any[]) => {
     if (instances.length === 0) return;
     setIsCheckingHealth(true);
     setHealthStatus((prev) => {
@@ -99,7 +108,8 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ isOpen, onClose, llmInsta
       return newStatus;
     });
     try {
-      const results = await healthCommands.checkAllLlmHealth();
+      const cmds = getCommands(activeTab);
+      const results = await cmds.checkHealth();
       setHealthStatus((prev) => {
         const newStatus = { ...prev };
         results.forEach((result: HealthCheckResult) => {
@@ -131,6 +141,32 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ isOpen, onClose, llmInsta
   };
   const getHealthStatus = (instanceId: string): "online" | "offline" | "checking" => {
     return healthStatus[instanceId] || "checking";
+  };
+  const handleTabChange = (tab: SelectorTab) => {
+    if (tab === activeTab) return;
+    setActiveTab(tab);
+    setCurrentInstances([]);
+    setCurrentDefaultId("");
+    setHealthStatus({});
+  };
+  /**
+   * Handles the "set as default" button click.
+   */
+  const handleSetDefault = async (instanceId: string) => {
+    onSetDefaultModel(instanceId, activeTab);
+    try {
+      const cmds = getCommands(activeTab);
+      const instancesData = await cmds.getInstances();
+      const instancesList = Object.entries(instancesData).map(([id, instance]) => ({
+        ...(instance as any),
+        id,
+      }));
+      setCurrentInstances(sortInstances(instancesList));
+      const defaultId = await cmds.getDefaultInstanceId();
+      setCurrentDefaultId(defaultId);
+    } catch (error) {
+      console.error("Failed to refresh instances after set-default:", error);
+    }
   };
   if (!isOpen) return null;
   return (
@@ -192,7 +228,13 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ isOpen, onClose, llmInsta
             disabled={isCheckingHealth}
             title={t("bottomBar.checkHealth") || "Recheck Health Status"}
           >
-            <LoadingIcon size={12} />
+            {/* Inline refresh SVG so no lucide version is required. */}
+            <svg xmlns="http://www.w3.org/2000/svg" width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={isCheckingHealth ? { animation: "spin 0.8s linear infinite" } : undefined}>
+              <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+              <path d="M21 3v5h-5" />
+              <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+              <path d="M3 21v-5h5" />
+            </svg>
           </button>
           <button
             style={{
@@ -217,11 +259,42 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ isOpen, onClose, llmInsta
               e.currentTarget.style.color = "var(--text-secondary)";
             }}
           >
-            <CloseIcon size={14} />
+            <X size={14} />
           </button>
         </div>
       </div>
-      <div style={{ maxHeight: "350px", overflowY: "auto" }}>
+      {/* Capability tabs: Chat / Image / Video / Audio */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "stretch",
+          borderBottom: "1px solid var(--border-color)",
+          background: "var(--bg-secondary)",
+        }}
+      >
+        {(["chat", "image", "video", "audio"] as SelectorTab[]).map((tab) => (
+          <button
+            key={tab}
+            onClick={() => handleTabChange(tab)}
+            style={{
+              flex: 1,
+              padding: "8px 12px",
+              background: "transparent",
+              border: "none",
+              borderBottom: activeTab === tab ? "2px solid var(--accent-color, #0066cc)" : "2px solid transparent",
+              color: activeTab === tab ? "var(--accent-color, #0066cc)" : "var(--text-secondary)",
+              fontSize: "12px",
+              fontWeight: 500,
+              cursor: "pointer",
+              transition: "color 0.15s ease, border-color 0.15s ease",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {tab === "chat" ? (isZh ? "对话" : "Chat") : tab === "image" ? (isZh ? "文生图" : "Image") : tab === "video" ? (isZh ? "文生视频" : "Video") : isZh ? "文生音频" : "Audio"}
+          </button>
+        ))}
+      </div>
+      <div style={{ maxHeight: "300px", overflowY: "auto" }}>
         {currentInstances.length === 0 ? (
           <div
             style={{
@@ -323,7 +396,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ isOpen, onClose, llmInsta
                             color: "var(--text-tertiary)",
                           }}
                         >
-                          <WifiIcon size={12} />
+                          <Wifi size={12} />
                           <span style={{ color: "#22c55e" }}>{t("bottomBar.modelStatus.online")}</span>
                         </div>
                       ) : (
@@ -335,7 +408,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ isOpen, onClose, llmInsta
                             color: "var(--text-tertiary)",
                           }}
                         >
-                          <WifiOffIcon size={12} />
+                          <WifiOff size={12} />
                           <span style={{ color: "#ef4444" }}>{t("bottomBar.modelStatus.offline")}</span>
                         </div>
                       )}
@@ -365,7 +438,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ isOpen, onClose, llmInsta
                       }}
                       onClick={(e) => {
                         e.stopPropagation();
-                        onSetDefaultModel(instance.id!);
+                        handleSetDefault(instance.id!);
                       }}
                     >
                       {t("llmModel.setAsDefault")}
