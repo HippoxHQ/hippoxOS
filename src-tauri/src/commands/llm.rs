@@ -1149,7 +1149,8 @@ pub async fn cmd_submit_image_task(
     base_url: Option<String>,
 ) -> Result<ImageTaskInfo, String> {
     let hippox = get_hippox_instance(&hippox_instance_id).await?;
-    let result = hippox.submit_image_task_info(provider, String::new(), prompt, options, base_url).await;
+    let model = get_default_image_model_id().await.unwrap_or_default();
+    let result = hippox.submit_image_task_info(provider, String::new(), prompt, options, base_url, Some(model)).await;
     result.into_result().map_err(|e| e.to_string())
 }
 /// Poll an image generation task through the `Hippox` gateway.
@@ -1192,7 +1193,8 @@ pub async fn cmd_submit_video_task(
     base_url: Option<String>,
 ) -> Result<VideoTaskInfo, String> {
     let hippox = get_hippox_instance(&hippox_instance_id).await?;
-    let result = hippox.submit_video_task_info(provider, String::new(), prompt, options, base_url).await;
+    let model = get_default_video_model_id().await.unwrap_or_default();
+    let result = hippox.submit_video_task_info(provider, String::new(), prompt, options, base_url, Some(model)).await;
     result.into_result().map_err(|e| e.to_string())
 }
 /// Poll a video generation task through the `Hippox` gateway.
@@ -1235,7 +1237,8 @@ pub async fn cmd_submit_audio_task(
     base_url: Option<String>,
 ) -> Result<AudioTaskInfo, String> {
     let hippox = get_hippox_instance(&hippox_instance_id).await?;
-    let result = hippox.submit_audio_task_info(provider, String::new(), prompt, options, base_url).await;
+    let model = get_default_audio_model_id().await.unwrap_or_default();
+    let result = hippox.submit_audio_task_info(provider, String::new(), prompt, options, base_url, Some(model)).await;
     result.into_result().map_err(|e| e.to_string())
 }
 /// Poll an audio generation task through the `Hippox` gateway.
