@@ -173,6 +173,9 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({ t, onSave, isInitializi
           addInstance: imageCommands.addImageInstance,
           deleteInstance: imageCommands.deleteImageInstance,
           setDefaultInstance: imageCommands.setDefaultImageInstance,
+          /* Per-modality default-model commands, mirrored from the LLM side. */
+          setDefaultModel: imageCommands.setDefaultImageModel,
+          getDefaultModel: imageCommands.getDefaultImageModel,
         };
       case "video":
         return {
@@ -183,6 +186,9 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({ t, onSave, isInitializi
           addInstance: videoCommands.addVideoInstance,
           deleteInstance: videoCommands.deleteVideoInstance,
           setDefaultInstance: videoCommands.setDefaultVideoInstance,
+          /* Per-modality default-model commands, mirrored from the LLM side. */
+          setDefaultModel: videoCommands.setDefaultVideoModel,
+          getDefaultModel: videoCommands.getDefaultVideoModel,
         };
       case "audio":
         return {
@@ -193,6 +199,9 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({ t, onSave, isInitializi
           addInstance: audioCommands.addAudioInstance,
           deleteInstance: audioCommands.deleteAudioInstance,
           setDefaultInstance: audioCommands.setDefaultAudioInstance,
+          /* Per-modality default-model commands, mirrored from the LLM side. */
+          setDefaultModel: audioCommands.setDefaultAudioModel,
+          getDefaultModel: audioCommands.getDefaultAudioModel,
         };
       case "chat":
       default:
@@ -204,6 +213,9 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({ t, onSave, isInitializi
           addInstance: llmCommands.addLlmInstance,
           deleteInstance: llmCommands.deleteLlmInstance,
           setDefaultInstance: llmCommands.setDefaultLlmInstance,
+          /* Per-modality default-model commands, mirrored from the LLM side. */
+          setDefaultModel: llmCommands.setDefaultLlmModel,
+          getDefaultModel: async () => "",
         };
     }
   };
@@ -365,6 +377,37 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({ t, onSave, isInitializi
       showToast(ToastType.ERROR, t("llmModel.defaultFailed"));
     }
   };
+  /**
+   * Sets the default model inside the default instance.
+   */
+  const handleSetDefaultModel = async (instanceId: string, modelName: string, instanceName: string) => {
+    try {
+      const cmds = getCommands();
+      await cmds.setDefaultModel(modelName);
+      setInstances((prev) => {
+        const next = { ...prev };
+        const target = next[instanceId];
+        if (target) {
+          next[instanceId] = {
+            ...target,
+            default_model: modelName,
+            models: (target.models || []).map((m: any) => ({
+              ...m,
+              is_default: m.name === modelName,
+            })),
+          };
+        }
+        return next;
+      });
+      showToast(ToastType.SUCCESS, isZh ? `已将 ${modelName} 设为默认模型` : `Set ${modelName} as default model`);
+      if (onSave) {
+        onSave({ action: "set_default_model", tab: activeTab, instanceId, modelName });
+      }
+    } catch (error) {
+      console.error("Failed to set default model:", error);
+      showToast(ToastType.ERROR, isZh ? "设置默认模型失败" : "Failed to set default model");
+    }
+  };
   // Delete a single provider instance with confirmation
   const handleDeleteInstance = async (instanceId: string, instanceName: string) => {
     if (Object.keys(instances).length <= 1) {
@@ -478,36 +521,22 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({ t, onSave, isInitializi
     const provider = providers.find((p) => p.id === providerId);
     return provider?.extra_config_fields || [];
   };
-  /**
-   * Helper: Get the localized provider description for a given provider id.
-   * Falls back to an empty string when the provider is unknown so the UI
-   * simply omits the line instead of rendering "undefined".
-   */
   const getProviderDescription = (providerId: string): string => {
     const provider = providers.find((p) => p.id === providerId);
     if (!provider) return "";
     return isZh ? provider.description_zh || provider.description || "" : provider.description || provider.description_zh || "";
   };
-  // Clear search input
   const handleClearSearch = () => {
     setSearchTerm("");
   };
-  // Filter instances based on search term
   const filteredInstances = Object.entries(instances).filter(([id, instance]) => {
     const providerName = getProviderName(instance.provider).toLowerCase();
     const search = searchTerm.toLowerCase();
     return providerName.includes(search) || instance.provider.toLowerCase().includes(search);
   });
-  /**
-   * Stop keyboard events from bubbling up out of this component.
-   */
   const stopKeyboardPropagation = (e: React.KeyboardEvent) => {
     e.stopPropagation();
   };
-  /**
-   * Switch the top-level tab. Resets transient UI state so the panel does
-   * not leak values between chat / image / video / audio.
-   */
   const handleTabChange = (tab: ConfigTab) => {
     if (tab === activeTab) return;
     setActiveTab(tab);
@@ -625,9 +654,6 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({ t, onSave, isInitializi
             </div>
             <div className="llm-config-row">
               <label className="llm-config-label">{t("llmModel.provider")}</label>
-              {/* Custom dropdown replacing the native <select>. Uses only the
-                  llm-provider-dropdown-* classes defined in this panel's
-                  own stylesheet. */}
               <ProviderDropdown
                 options={providers.map((provider) => ({
                   value: provider.id,
@@ -679,36 +705,52 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({ t, onSave, isInitializi
             </div>
           </div>
         )}
-        {/* Empty State */}
         {!hasInstances && !showAddForm ? (
           <div className="llm-config-empty">{searchTerm ? t("llmModel.noSearchResults") || "No matching providers found" : t("llmModel.noProviders") || "No providers available"}</div>
         ) : (
-          /* Provider Instance Cards - ORIGINAL STYLE with batch mode checkbox */
           instanceEntries.map(([id, instance]) => {
             const extraConfig = instance.extra || {};
             const extraFields = getProviderExtraFields(instance.provider);
             const instanceName = getProviderName(instance.provider);
             const isSelected = selectedIds.has(id);
             const isDefault = defaultInstanceId === id;
-            // Determine if checkbox should be visible and enabled
             const showCheckbox = isBatchMode && !isDefault;
             const isCheckboxDisabled = !isBatchMode || isDefault;
-            /* Localized provider description shown under the card title. */
             const providerDescription = getProviderDescription(instance.provider);
+            const instanceModels: any[] = Array.isArray(instance.models) ? instance.models : [];
+            const currentDefaultModel: string = instance.default_model || "";
             return (
               <div key={id} className={`llm-config-card${isSelected && isBatchMode ? " selected" : ""}`}>
-                {/* Checkbox and provider name in one row */}
                 <div className="llm-config-card-header">
                   <span className="llm-config-card-title">{getProviderName(instance.provider)}</span>
                   {isDefault && <span className="llm-config-badge">{t("llmModel.default")}</span>}
-                  <input type="checkbox" className={`llm-config-checkbox ${!showCheckbox ? "hidden-checkbox" : ""}`} checked={isSelected} onChange={() => toggleSelection(id)} disabled={isCheckboxDisabled} />
+                  <input type="checkbox" className={`llm-config-checkbox ${!showCheckbox ? " hidden-checkbox" : ""}`} checked={isSelected} onChange={() => toggleSelection(id)} disabled={isCheckboxDisabled} />
                 </div>
-                {/* Provider description line under the card title. */}
                 {providerDescription ? <div className="llm-config-card-description">{providerDescription}</div> : null}
-                {/* Row with checkbox */}
                 <div style={{ display: "flex", alignItems: "center", gap: "8px", width: "100%" }}>
-                  {/* Original card content */}
                   <div style={{ flex: 1, minWidth: 0 }}>
+                    {isDefault && instanceModels.length > 0 && (
+                      <div className="llm-config-row">
+                        <label className="llm-config-label">{isZh ? "默认模型" : "Default Model"}</label>
+                        <select
+                          className="llm-config-input"
+                          value={currentDefaultModel}
+                          onChange={(e) => {
+                            const next = e.target.value;
+                            handleSetDefaultModel(id, next, instanceName);
+                          }}
+                          onKeyDown={stopKeyboardPropagation}
+                          onKeyUp={stopKeyboardPropagation}
+                          onKeyPress={stopKeyboardPropagation}
+                        >
+                          {instanceModels.map((model: any) => (
+                            <option key={model.name} value={model.name}>
+                              {model.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
                     {/* REMOVED: Workflow Mode section */}
                     <div className="llm-config-row">
                       <label className="llm-config-label">{t("llmModel.apiKey")}</label>

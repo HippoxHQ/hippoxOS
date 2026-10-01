@@ -161,6 +161,19 @@ export const imageCommands = {
   async getImageInstance(instanceId: string): Promise<ImageInstance | null> {
     return await invoke('cmd_get_image_instance', { instanceId });
   },
+  // Per-modality model management — mirrors the LLM side
+  async addImageModel(model: ModelConfig): Promise<boolean> {
+    return await invoke('cmd_add_image_model', { model });
+  },
+  async removeImageModel(modelName: string): Promise<boolean> {
+    return await invoke('cmd_remove_image_model', { modelName });
+  },
+  async setDefaultImageModel(modelName: string): Promise<boolean> {
+    return await invoke('cmd_set_default_image_model', { modelName });
+  },
+  async getDefaultImageModel(): Promise<string> {
+    return await invoke('cmd_get_default_image_model');
+  },
 };
 // ---------------------------------------------------------------------------
 // Video generation commands
@@ -222,6 +235,19 @@ export const videoCommands = {
   async getVideoInstance(instanceId: string): Promise<VideoInstance | null> {
     return await invoke('cmd_get_video_instance', { instanceId });
   },
+  // Per-modality model management — mirrors the LLM side
+  async addVideoModel(model: ModelConfig): Promise<boolean> {
+    return await invoke('cmd_add_video_model', { model });
+  },
+  async removeVideoModel(modelName: string): Promise<boolean> {
+    return await invoke('cmd_remove_video_model', { modelName });
+  },
+  async setDefaultVideoModel(modelName: string): Promise<boolean> {
+    return await invoke('cmd_set_default_video_model', { modelName });
+  },
+  async getDefaultVideoModel(): Promise<string> {
+    return await invoke('cmd_get_default_video_model');
+  },
 };
 // ---------------------------------------------------------------------------
 // Audio generation commands
@@ -282,5 +308,18 @@ export const audioCommands = {
   },
   async getAudioInstance(instanceId: string): Promise<AudioInstance | null> {
     return await invoke('cmd_get_audio_instance', { instanceId });
+  },
+  // Per-modality model management — mirrors the LLM side
+  async addAudioModel(model: ModelConfig): Promise<boolean> {
+    return await invoke('cmd_add_audio_model', { model });
+  },
+  async removeAudioModel(modelName: string): Promise<boolean> {
+    return await invoke('cmd_remove_audio_model', { modelName });
+  },
+  async setDefaultAudioModel(modelName: string): Promise<boolean> {
+    return await invoke('cmd_set_default_audio_model', { modelName });
+  },
+  async getDefaultAudioModel(): Promise<string> {
+    return await invoke('cmd_get_default_audio_model');
   },
 };

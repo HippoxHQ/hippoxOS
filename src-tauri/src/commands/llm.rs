@@ -265,10 +265,6 @@ fn model_provider_id(provider: &ModelProvider) -> &'static str {
     }
 }
 /// Returns all supported LLM providers.
-///
-/// The provider list is built dynamically from `ModelProvider::all()`, so
-/// adding a new provider only requires updating `langhub::types` — no
-/// change is needed here.
 #[tauri::command]
 pub fn cmd_get_all_providers() -> Vec<ProviderInfo> {
     ModelProvider::all()
@@ -997,6 +993,172 @@ pub async fn cmd_get_audio_instances() -> Result<HashMap<String, AudioInstanceFo
 pub async fn cmd_get_default_audio_instance_id() -> Result<String, String> {
     let config = HIPPOX_APP_CONFIG.read().await;
     Ok(config.default_audio_instance_id.clone())
+}
+/// Adds a new model to the default image instance.
+#[tauri::command]
+pub async fn cmd_add_image_model(model: ModelConfig) -> Result<bool, String> {
+    let mut config = HIPPOX_APP_CONFIG.write().await;
+    let default_id = config.default_image_instance_id.clone();
+    if let Some(instance) = config.image_instances.get_mut(&default_id) {
+        instance.models.push(model);
+        save_config_to_file().await?;
+        Ok(true)
+    } else {
+        Err("No default image instance found".to_string())
+    }
+}
+/// Removes a model from the default image instance.
+#[tauri::command]
+pub async fn cmd_remove_image_model(model_name: String) -> Result<bool, String> {
+    let mut config = HIPPOX_APP_CONFIG.write().await;
+    let default_id = config.default_image_instance_id.clone();
+    if let Some(instance) = config.image_instances.get_mut(&default_id) {
+        instance.models.retain(|m| m.name != model_name);
+        save_config_to_file().await?;
+        Ok(true)
+    } else {
+        Err("No default image instance found".to_string())
+    }
+}
+/// Sets the default model inside the default image instance.
+#[tauri::command]
+pub async fn cmd_set_default_image_model(model_name: String) -> Result<bool, String> {
+    let mut config = HIPPOX_APP_CONFIG.write().await;
+    let default_id = config.default_image_instance_id.clone();
+    if let Some(instance) = config.image_instances.get_mut(&default_id) {
+        for model in &mut instance.models {
+            model.is_default = model.name == model_name;
+        }
+        instance.default_model = model_name;
+        drop(config);
+        save_config_to_file().await?;
+        Ok(true)
+    } else {
+        Err("No default image instance found".to_string())
+    }
+}
+/// Gets the default model name of the default image instance.
+#[tauri::command]
+pub async fn cmd_get_default_image_model() -> Result<String, String> {
+    let config = HIPPOX_APP_CONFIG.read().await;
+    let default_id = &config.default_image_instance_id;
+    if let Some(instance) = config.image_instances.get(default_id) {
+        Ok(instance.default_model.clone())
+    } else {
+        Err("No default image instance found".to_string())
+    }
+}
+/// Adds a new model to the default video instance.
+#[tauri::command]
+pub async fn cmd_add_video_model(model: ModelConfig) -> Result<bool, String> {
+    let mut config = HIPPOX_APP_CONFIG.write().await;
+    let default_id = config.default_video_instance_id.clone();
+    if let Some(instance) = config.video_instances.get_mut(&default_id) {
+        instance.models.push(model);
+        save_config_to_file().await?;
+        Ok(true)
+    } else {
+        Err("No default video instance found".to_string())
+    }
+}
+/// Removes a model from the default video instance.
+#[tauri::command]
+pub async fn cmd_remove_video_model(model_name: String) -> Result<bool, String> {
+    let mut config = HIPPOX_APP_CONFIG.write().await;
+    let default_id = config.default_video_instance_id.clone();
+    if let Some(instance) = config.video_instances.get_mut(&default_id) {
+        instance.models.retain(|m| m.name != model_name);
+        save_config_to_file().await?;
+        Ok(true)
+    } else {
+        Err("No default video instance found".to_string())
+    }
+}
+/// Sets the default model inside the default video instance.
+///
+/// Mirrors `cmd_set_default_llm_model`.
+#[tauri::command]
+pub async fn cmd_set_default_video_model(model_name: String) -> Result<bool, String> {
+    let mut config = HIPPOX_APP_CONFIG.write().await;
+    let default_id = config.default_video_instance_id.clone();
+    if let Some(instance) = config.video_instances.get_mut(&default_id) {
+        for model in &mut instance.models {
+            model.is_default = model.name == model_name;
+        }
+        instance.default_model = model_name;
+        drop(config);
+        save_config_to_file().await?;
+        Ok(true)
+    } else {
+        Err("No default video instance found".to_string())
+    }
+}
+/// Gets the default model name of the default video instance.
+#[tauri::command]
+pub async fn cmd_get_default_video_model() -> Result<String, String> {
+    let config = HIPPOX_APP_CONFIG.read().await;
+    let default_id = &config.default_video_instance_id;
+    if let Some(instance) = config.video_instances.get(default_id) {
+        Ok(instance.default_model.clone())
+    } else {
+        Err("No default video instance found".to_string())
+    }
+}
+/// Adds a new model to the default audio instance.
+#[tauri::command]
+pub async fn cmd_add_audio_model(model: ModelConfig) -> Result<bool, String> {
+    let mut config = HIPPOX_APP_CONFIG.write().await;
+    let default_id = config.default_audio_instance_id.clone();
+    if let Some(instance) = config.audio_instances.get_mut(&default_id) {
+        instance.models.push(model);
+        save_config_to_file().await?;
+        Ok(true)
+    } else {
+        Err("No default audio instance found".to_string())
+    }
+}
+/// Removes a model from the default audio instance.
+#[tauri::command]
+pub async fn cmd_remove_audio_model(model_name: String) -> Result<bool, String> {
+    let mut config = HIPPOX_APP_CONFIG.write().await;
+    let default_id = config.default_audio_instance_id.clone();
+    if let Some(instance) = config.audio_instances.get_mut(&default_id) {
+        instance.models.retain(|m| m.name != model_name);
+        save_config_to_file().await?;
+        Ok(true)
+    } else {
+        Err("No default audio instance found".to_string())
+    }
+}
+/// Sets the default model inside the default audio instance.
+///
+/// Mirrors `cmd_set_default_llm_model`.
+#[tauri::command]
+pub async fn cmd_set_default_audio_model(model_name: String) -> Result<bool, String> {
+    let mut config = HIPPOX_APP_CONFIG.write().await;
+    let default_id = config.default_audio_instance_id.clone();
+    if let Some(instance) = config.audio_instances.get_mut(&default_id) {
+        for model in &mut instance.models {
+            model.is_default = model.name == model_name;
+        }
+        instance.default_model = model_name;
+        drop(config);
+        save_config_to_file().await?;
+        Ok(true)
+    } else {
+        Err("No default audio instance found".to_string())
+    }
+}
+/// Gets the default model name of the default audio instance.
+#[tauri::command]
+pub async fn cmd_get_default_audio_model() -> Result<String, String> {
+    let config = HIPPOX_APP_CONFIG.read().await;
+    let default_id = &config.default_audio_instance_id;
+    if let Some(instance) = config.audio_instances.get(default_id) {
+        Ok(instance.default_model.clone())
+    } else {
+        Err("No default audio instance found".to_string())
+    }
 }
 /// Submit an image generation task through the `Hippox` gateway.
 ///

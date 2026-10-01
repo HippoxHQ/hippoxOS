@@ -71,6 +71,32 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_get_video_instance,
         commands::cmd_get_video_instances,
         commands::cmd_get_default_video_instance_id,
+        // ======================= Per-modality model management =======================
+        // Image models (mirrors the LLM model management surface)
+        commands::cmd_add_image_model,
+        commands::cmd_remove_image_model,
+        commands::cmd_set_default_image_model,
+        commands::cmd_get_default_image_model,
+        // Video models (mirrors the LLM model management surface)
+        commands::cmd_add_video_model,
+        commands::cmd_remove_video_model,
+        commands::cmd_set_default_video_model,
+        commands::cmd_get_default_video_model,
+        // Audio models (mirrors the LLM model management surface)
+        commands::cmd_add_audio_model,
+        commands::cmd_remove_audio_model,
+        commands::cmd_set_default_audio_model,
+        commands::cmd_get_default_audio_model,
+        // ======================= Multi-modal media tasks =======================
+        commands::cmd_submit_image_task,
+        commands::cmd_poll_image_task,
+        commands::cmd_cancel_image_task,
+        commands::cmd_submit_video_task,
+        commands::cmd_poll_video_task,
+        commands::cmd_cancel_video_task,
+        commands::cmd_submit_audio_task,
+        commands::cmd_poll_audio_task,
+        commands::cmd_cancel_audio_task,
         // System Update
         commands::cmd_check_version_update,
         commands::cmd_get_app_version,

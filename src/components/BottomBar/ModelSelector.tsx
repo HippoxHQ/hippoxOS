@@ -22,6 +22,10 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ isOpen, onClose, llmInsta
   const [currentInstances, setCurrentInstances] = useState<any[]>(llmInstances);
   const [currentDefaultId, setCurrentDefaultId] = useState<string>(defaultInstanceId);
   const [isCheckingHealth, setIsCheckingHealth] = useState(false);
+  /**
+   * Tracks which instance currently has its model dropdown expanded.
+   */
+  const [expandedModelDropdownId, setExpandedModelDropdownId] = useState<string | null>(null);
   const isZh = t("i18n") === "zh";
   const sortInstances = (instances: any[]): any[] => {
     return [...instances].sort((a, b) => {
@@ -31,6 +35,9 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ isOpen, onClose, llmInsta
       return (a.name || "").localeCompare(b.name || "");
     });
   };
+  /**
+   * Returns the command bundle for the currently selected tab.
+   */
   const getCommands = (tab: SelectorTab) => {
     switch (tab) {
       case "image":
@@ -39,6 +46,8 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ isOpen, onClose, llmInsta
           getDefaultInstanceId: imageCommands.getDefaultImageInstanceId,
           setDefaultInstance: imageCommands.setDefaultImageInstance,
           checkHealth: healthCommands.checkAllImageHealth,
+          setDefaultModel: imageCommands.setDefaultImageModel,
+          getDefaultModel: imageCommands.getDefaultImageModel,
         };
       case "video":
         return {
@@ -46,6 +55,8 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ isOpen, onClose, llmInsta
           getDefaultInstanceId: videoCommands.getDefaultVideoInstanceId,
           setDefaultInstance: videoCommands.setDefaultVideoInstance,
           checkHealth: healthCommands.checkAllVideoHealth,
+          setDefaultModel: videoCommands.setDefaultVideoModel,
+          getDefaultModel: videoCommands.getDefaultVideoModel,
         };
       case "audio":
         return {
@@ -53,6 +64,8 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ isOpen, onClose, llmInsta
           getDefaultInstanceId: audioCommands.getDefaultAudioInstanceId,
           setDefaultInstance: audioCommands.setDefaultAudioInstance,
           checkHealth: healthCommands.checkAllAudioHealth,
+          setDefaultModel: audioCommands.setDefaultAudioModel,
+          getDefaultModel: audioCommands.getDefaultAudioModel,
         };
       case "chat":
       default:
@@ -61,6 +74,8 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ isOpen, onClose, llmInsta
           getDefaultInstanceId: llmCommands.getDefaultLlmInstanceId,
           setDefaultInstance: llmCommands.setDefaultLlmInstance,
           checkHealth: healthCommands.checkAllLlmHealth,
+          setDefaultModel: llmCommands.setDefaultLlmModel,
+          getDefaultModel: async () => "",
         };
     }
   };
@@ -148,6 +163,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ isOpen, onClose, llmInsta
     setCurrentInstances([]);
     setCurrentDefaultId("");
     setHealthStatus({});
+    setExpandedModelDropdownId(null);
   };
   /**
    * Handles the "set as default" button click.
@@ -167,6 +183,41 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ isOpen, onClose, llmInsta
     } catch (error) {
       console.error("Failed to refresh instances after set-default:", error);
     }
+  };
+  /**
+   * Handles the "set as default model" action for the default instance.
+   */
+  const handleSetDefaultModel = async (instanceId: string, modelName: string) => {
+    try {
+      const cmds = getCommands(activeTab);
+      await cmds.setDefaultModel(modelName);
+      setCurrentInstances((prev) =>
+        prev.map((inst) => {
+          if (inst.id !== instanceId) return inst;
+          const nextModels = Array.isArray(inst.models)
+            ? inst.models.map((m: any) => ({
+                ...m,
+                is_default: m.name === modelName,
+              }))
+            : [];
+          return {
+            ...inst,
+            default_model: modelName,
+            models: nextModels,
+          };
+        }),
+      );
+      // Collapse the dropdown after the user picks a model.
+      setExpandedModelDropdownId(null);
+    } catch (error) {
+      console.error("Failed to set default model:", error);
+    }
+  };
+  /**
+   * Toggles the inline model dropdown for a given instance.
+   */
+  const toggleModelDropdown = (instanceId: string) => {
+    setExpandedModelDropdownId((prev) => (prev === instanceId ? null : instanceId));
   };
   if (!isOpen) return null;
   return (
@@ -312,137 +363,260 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ isOpen, onClose, llmInsta
               const healthStatusValue = getHealthStatus(instance.id!);
               const isDefault = instance.id === currentDefaultId;
               const isChecking = healthStatusValue === "checking";
+              const instanceModels: any[] = Array.isArray(instance.models) ? instance.models : [];
+              const currentDefaultModel: string = instance.default_model || "";
+              const isModelDropdownOpen = expandedModelDropdownId === instance.id;
               return (
                 <div
                   key={instance.id}
                   style={{
                     display: "flex",
+                    flexDirection: "column",
                     justifyContent: "space-between",
-                    alignItems: "center",
+                    alignItems: "stretch",
                     padding: "12px 16px",
                     borderBottom: "1px solid var(--border-color)",
                     transition: "background 0.2s",
                     background: isDefault ? "var(--bg-secondary)" : "transparent",
                   }}
                 >
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "8px",
-                        marginBottom: "6px",
-                        flexWrap: "wrap",
-                      }}
-                    >
-                      <span
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div
                         style={{
-                          fontSize: "13px",
-                          fontWeight: 500,
-                          color: "var(--text-primary)",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "8px",
+                          marginBottom: "6px",
+                          flexWrap: "wrap",
                         }}
                       >
-                        {filterInstanceName(instance.name)}
-                      </span>
-                      {isDefault && (
                         <span
                           style={{
-                            fontSize: "10px",
-                            padding: "2px 6px",
-                            background: "#3b82f6",
-                            color: "white",
-                            borderRadius: "4px",
+                            fontSize: "13px",
+                            fontWeight: 500,
+                            color: "var(--text-primary)",
                           }}
                         >
-                          {t("llmModel.default")}
+                          {filterInstanceName(instance.name)}
                         </span>
-                      )}
-                    </div>
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "8px",
-                        fontSize: "11px",
-                      }}
-                    >
-                      {isChecking ? (
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "4px",
-                            color: "var(--text-tertiary)",
-                          }}
-                        >
+                        {isDefault && (
+                          <span
+                            style={{
+                              fontSize: "10px",
+                              padding: "2px 6px",
+                              background: "#3b82f6",
+                              color: "white",
+                              borderRadius: "4px",
+                            }}
+                          >
+                            {t("llmModel.default")}
+                          </span>
+                        )}
+                        {isDefault && currentDefaultModel && (
+                          <span
+                            style={{
+                              fontSize: "10px",
+                              padding: "2px 6px",
+                              background: "var(--hover-bg)",
+                              color: "var(--text-secondary)",
+                              borderRadius: "4px",
+                              border: "1px solid var(--border-color)",
+                            }}
+                          >
+                            {currentDefaultModel}
+                          </span>
+                        )}
+                      </div>
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "8px",
+                          fontSize: "11px",
+                        }}
+                      >
+                        {isChecking ? (
                           <div
                             style={{
-                              width: "12px",
-                              height: "12px",
-                              border: "2px solid var(--text-tertiary)",
-                              borderTopColor: "transparent",
-                              borderRadius: "50%",
-                              animation: "spin 0.8s linear infinite",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "4px",
+                              color: "var(--text-tertiary)",
                             }}
-                          />
-                          <span style={{ color: "#f59e0b" }}>{t("bottomBar.modelStatus.checking") || "Checking..."}</span>
-                        </div>
-                      ) : healthStatusValue === "online" ? (
-                        <div
+                          >
+                            <div
+                              style={{
+                                width: "12px",
+                                height: "12px",
+                                border: "2px solid var(--text-tertiary)",
+                                borderTopColor: "transparent",
+                                borderRadius: "50%",
+                                animation: "spin 0.8s linear infinite",
+                              }}
+                            />
+                            <span style={{ color: "#f59e0b" }}>{t("bottomBar.modelStatus.checking") || "Checking..."}</span>
+                          </div>
+                        ) : healthStatusValue === "online" ? (
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "4px",
+                              color: "var(--text-tertiary)",
+                            }}
+                          >
+                            <Wifi size={12} />
+                            <span style={{ color: "#22c55e" }}>{t("bottomBar.modelStatus.online")}</span>
+                          </div>
+                        ) : (
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "4px",
+                              color: "var(--text-tertiary)",
+                            }}
+                          >
+                            <WifiOff size={12} />
+                            <span style={{ color: "#ef4444" }}>{t("bottomBar.modelStatus.offline")}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "6px", marginLeft: "12px", flexShrink: 0 }}>
+                      {/* Model switcher toggle — only available for the default instance
+                          and only when it actually has models configured. */}
+                      {isDefault && instanceModels.length > 0 && (
+                        <button
                           style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "4px",
-                            color: "var(--text-tertiary)",
+                            padding: "4px 10px",
+                            fontSize: "11px",
+                            background: isModelDropdownOpen ? "var(--accent-color, #0066cc)" : "var(--hover-bg)",
+                            border: "1px solid var(--border-color)",
+                            borderRadius: "6px",
+                            color: isModelDropdownOpen ? "#ffffff" : "var(--text-secondary)",
+                            cursor: "pointer",
+                            transition: "all 0.2s",
+                          }}
+                          onMouseEnter={(e) => {
+                            if (!isModelDropdownOpen) {
+                              e.currentTarget.style.background = "var(--bg-active)";
+                              e.currentTarget.style.color = "var(--text-primary)";
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            if (!isModelDropdownOpen) {
+                              e.currentTarget.style.background = "var(--hover-bg)";
+                              e.currentTarget.style.color = "var(--text-secondary)";
+                            }
+                          }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleModelDropdown(instance.id!);
+                          }}
+                          title={isZh ? "切换默认模型" : "Switch default model"}
+                        >
+                          {isZh ? "模型" : "Model"}
+                        </button>
+                      )}
+                      {!isDefault && (
+                        <button
+                          style={{
+                            padding: "4px 10px",
+                            fontSize: "11px",
+                            background: "var(--hover-bg)",
+                            border: "1px solid var(--border-color)",
+                            borderRadius: "6px",
+                            color: "var(--text-secondary)",
+                            cursor: "pointer",
+                            transition: "all 0.2s",
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = "var(--bg-active)";
+                            e.currentTarget.style.color = "var(--text-primary)";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = "var(--hover-bg)";
+                            e.currentTarget.style.color = "var(--text-secondary)";
+                          }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSetDefault(instance.id!);
                           }}
                         >
-                          <Wifi size={12} />
-                          <span style={{ color: "#22c55e" }}>{t("bottomBar.modelStatus.online")}</span>
-                        </div>
-                      ) : (
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "4px",
-                            color: "var(--text-tertiary)",
-                          }}
-                        >
-                          <WifiOff size={12} />
-                          <span style={{ color: "#ef4444" }}>{t("bottomBar.modelStatus.offline")}</span>
-                        </div>
+                          {t("llmModel.setAsDefault")}
+                        </button>
                       )}
                     </div>
                   </div>
-                  {!isDefault && (
-                    <button
+                  {isDefault && isModelDropdownOpen && instanceModels.length > 0 && (
+                    <div
                       style={{
-                        padding: "4px 10px",
-                        fontSize: "11px",
-                        background: "var(--hover-bg)",
-                        border: "1px solid var(--border-color)",
-                        borderRadius: "6px",
-                        color: "var(--text-secondary)",
-                        cursor: "pointer",
-                        transition: "all 0.2s",
-                        marginLeft: "12px",
-                        flexShrink: 0,
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.background = "var(--bg-active)";
-                        e.currentTarget.style.color = "var(--text-primary)";
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.background = "var(--hover-bg)";
-                        e.currentTarget.style.color = "var(--text-secondary)";
-                      }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleSetDefault(instance.id!);
+                        marginTop: "10px",
+                        paddingTop: "10px",
+                        borderTop: "1px solid var(--border-color)",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "4px",
                       }}
                     >
-                      {t("llmModel.setAsDefault")}
-                    </button>
+                      {instanceModels.map((model: any) => {
+                        const isModelDefault = model.name === currentDefaultModel || model.is_default === true;
+                        return (
+                          <button
+                            key={model.name}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleSetDefaultModel(instance.id!, model.name);
+                            }}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "space-between",
+                              padding: "6px 10px",
+                              background: isModelDefault ? "var(--bg-active)" : "transparent",
+                              border: "1px solid var(--border-color)",
+                              borderRadius: "4px",
+                              color: isModelDefault ? "var(--accent-color, #0066cc)" : "var(--text-secondary)",
+                              fontSize: "12px",
+                              cursor: "pointer",
+                              textAlign: "left",
+                              transition: "background 0.15s ease",
+                            }}
+                            onMouseEnter={(e) => {
+                              if (!isModelDefault) {
+                                e.currentTarget.style.background = "var(--hover-bg)";
+                                e.currentTarget.style.color = "var(--text-primary)";
+                              }
+                            }}
+                            onMouseLeave={(e) => {
+                              if (!isModelDefault) {
+                                e.currentTarget.style.background = "transparent";
+                                e.currentTarget.style.color = "var(--text-secondary)";
+                              }
+                            }}
+                          >
+                            <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{model.name}</span>
+                            {isModelDefault && (
+                              <span
+                                style={{
+                                  fontSize: "10px",
+                                  padding: "1px 6px",
+                                  background: "var(--accent-color, #0066cc)",
+                                  color: "#ffffff",
+                                  borderRadius: "3px",
+                                  flexShrink: 0,
+                                  marginLeft: "8px",
+                                }}
+                              >
+                                {isZh ? "默认" : "Default"}
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
                   )}
                 </div>
               );
