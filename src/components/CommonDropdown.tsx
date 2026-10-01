@@ -1,13 +1,5 @@
 import React, { useState, useRef, useEffect, useLayoutEffect, useCallback } from "react";
 import { ChevronDown } from "lucide-react";
-/**
- * CommonDropdownOption
- *
- * A single option in the dropdown menu.
- * - `value`: the underlying value used by the parent.
- * - `label`: the main text shown in the trigger and in the menu.
- * - `subLabel`: optional secondary text shown on the right side of the menu item.
- */
 export interface CommonDropdownOption {
   value: string;
   label: string;
@@ -18,6 +10,7 @@ interface CommonDropdownProps {
   value: string;
   disabled?: boolean;
   onChange: (value: string) => void;
+  height?: number;
   /**
    * Optional fixed width for the trigger. Defaults to 130px to match the
    * ExportPanel dropdown.
@@ -39,16 +32,7 @@ interface CommonDropdownProps {
 /**
  * CommonDropdown
  */
-export const CommonDropdown: React.FC<CommonDropdownProps> = ({
-  options,
-  value,
-  disabled,
-  onChange,
-  width = 130,
-  title,
-  menuMinWidth = 200,
-  menuMaxWidth = 260,
-}) => {
+export const CommonDropdown: React.FC<CommonDropdownProps> = ({ options, value, disabled, onChange, height = 30, width = 130, title, menuMinWidth = 200, menuMaxWidth = 260 }) => {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -65,9 +49,18 @@ export const CommonDropdown: React.FC<CommonDropdownProps> = ({
       styleEl.id = styleId;
       styleEl.textContent = `
         .${instanceClass}::-webkit-scrollbar {
-          display: none;
-          width: 0;
+          width: 6px;
           height: 0;
+        }
+        .${instanceClass}::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .${instanceClass}::-webkit-scrollbar-thumb {
+          background: var(--border-color);
+          border-radius: 3px;
+        }
+        .${instanceClass}::-webkit-scrollbar-thumb:hover {
+          background: var(--scrollbar-thumb);
         }
       `;
       document.head.appendChild(styleEl);
@@ -81,22 +74,35 @@ export const CommonDropdown: React.FC<CommonDropdownProps> = ({
   }, [instanceClass]);
   /**
    * Measure the menu and compute its final position.
-   * The menu is right-aligned to the trigger and kept inside the viewport.
    */
   const updateMenuPositionWithMeasuredWidth = useCallback(() => {
     if (!triggerRef.current || !menuRef.current) return;
     const triggerRect = triggerRef.current.getBoundingClientRect();
     const menuWidth = menuRef.current.offsetWidth;
+    const menuHeight = menuRef.current.offsetHeight;
     const viewportWidth = window.innerWidth;
-    // Right-align: menu right edge == trigger right edge.
-    let left = triggerRect.right - menuWidth;
-    // Keep the menu inside the viewport with an 8px margin on both sides.
-    if (left + menuWidth > viewportWidth - 8) {
-      left = viewportWidth - menuWidth - 8;
+    const viewportHeight = window.innerHeight;
+    const MARGIN = 8;
+    const GAP = 4;
+    // Left-align: menu left edge == trigger left edge.
+    let left = triggerRect.left;
+    // Keep the menu inside the viewport horizontally.
+    if (left + menuWidth > viewportWidth - MARGIN) {
+      left = viewportWidth - menuWidth - MARGIN;
     }
-    if (left < 8) left = 8;
-    // Vertical: 4px below the trigger.
-    const top = triggerRect.bottom + 4;
+    if (left < MARGIN) left = MARGIN;
+    const spaceBelow = viewportHeight - triggerRect.bottom;
+    const spaceAbove = triggerRect.top;
+    let top: number;
+    if (spaceBelow >= menuHeight + GAP || spaceBelow >= spaceAbove) {
+      top = triggerRect.bottom + GAP;
+      if (top + menuHeight > viewportHeight - MARGIN) {
+        top = Math.max(MARGIN, viewportHeight - menuHeight - MARGIN);
+      }
+    } else {
+      top = triggerRect.top - menuHeight - GAP;
+      if (top < MARGIN) top = MARGIN;
+    }
     setMenuPosition({ top, left, ready: true });
   }, []);
   // When opening, render the menu off-screen first so we can measure it.
@@ -176,6 +182,7 @@ export const CommonDropdown: React.FC<CommonDropdownProps> = ({
         justifyContent: "flex-end",
         minWidth: 0,
         maxWidth: `${width}px`,
+        height: `${height}px`,
       }}
     >
       <button
@@ -192,9 +199,9 @@ export const CommonDropdown: React.FC<CommonDropdownProps> = ({
           width: `${width}px`,
           minWidth: `${width}px`,
           maxWidth: `${width}px`,
-          height: "28px",
+          height: `${height}px`,
           padding: "2px 8px",
-            background: "var(--bg-secondary)",
+          background: "var(--bg-secondary)",
           border: open ? "1px solid var(--accent-color)" : "1px solid var(--border-color)",
           borderRadius: "4px",
           color: "var(--text-primary)",
@@ -251,9 +258,7 @@ export const CommonDropdown: React.FC<CommonDropdownProps> = ({
             zIndex: 9999,
             minWidth: `${menuMinWidth}px`,
             maxWidth: `${menuMaxWidth}px`,
-            // Max height 150px; overflow scrolls. Scrollbar hidden via the
-            // scoped style injected above.
-            maxHeight: "150px",
+            maxHeight: "240px",
             overflowY: "auto",
             overflowX: "hidden",
             background: "var(--bg-secondary)",
@@ -261,8 +266,6 @@ export const CommonDropdown: React.FC<CommonDropdownProps> = ({
             borderRadius: "4px",
             boxShadow: "0 6px 18px rgba(0, 0, 0, 0.28)",
             padding: "4px 0",
-            scrollbarWidth: "none",
-            msOverflowStyle: "none",
             top: menuPosition.top,
             left: menuPosition.left,
             visibility: menuPosition.ready ? "visible" : "hidden",

@@ -4,6 +4,7 @@ import { ProviderInfo, ModelInfo, llmCommands, AddLlmInstanceRequest, ExtraConfi
 import { showDialog, DialogType } from "../../Dialog";
 import { showToast, ToastType } from "../../Toast";
 import { llmModelConfigStyles } from "./llmmodelConfig.styles";
+import CommonDropdown from "../../CommonDropdown";
 interface LLMModelConfigProps {
   t: (key: string, params?: any) => string;
   onSave?: (config: any) => void;
@@ -391,10 +392,6 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({ t, onSave, isInitializi
           next[instanceId] = {
             ...target,
             default_model: modelName,
-            models: (target.models || []).map((m: any) => ({
-              ...m,
-              is_default: m.name === modelName,
-            })),
           };
         }
         return next;
@@ -506,12 +503,10 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({ t, onSave, isInitializi
       showToast(ToastType.ERROR, t("llmModel.addFailed"));
     }
   };
-  // Helper: Get provider icon
   const getProviderIcon = (providerId: string) => {
     const provider = providers.find((p) => p.id === providerId);
     return provider?.icon || <Bot size={16} />;
   };
-  // Helper: Get provider display name
   const getProviderName = (providerId: string) => {
     const provider = providers.find((p) => p.id === providerId);
     return provider?.name || providerId;
@@ -525,6 +520,15 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({ t, onSave, isInitializi
     const provider = providers.find((p) => p.id === providerId);
     if (!provider) return "";
     return isZh ? provider.description_zh || provider.description || "" : provider.description || provider.description_zh || "";
+  };
+  const getModelsForProvider = (providerId: string, fallbackModels: any[]): string[] => {
+    const fromCatalog = availableModels.filter((m) => m.provider === providerId).map((m) => m.id);
+    if (fromCatalog.length > 0) {
+      const persisted = fallbackModels.map((m: any) => (typeof m === "string" ? m : m?.name)).filter(Boolean);
+      const merged = Array.from(new Set([...fromCatalog, ...persisted]));
+      return merged;
+    }
+    return fallbackModels.map((m: any) => (typeof m === "string" ? m : m?.name)).filter(Boolean);
   };
   const handleClearSearch = () => {
     setSearchTerm("");
@@ -717,7 +721,8 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({ t, onSave, isInitializi
             const showCheckbox = isBatchMode && !isDefault;
             const isCheckboxDisabled = !isBatchMode || isDefault;
             const providerDescription = getProviderDescription(instance.provider);
-            const instanceModels: any[] = Array.isArray(instance.models) ? instance.models : [];
+            const persistedModels: any[] = Array.isArray(instance.models) ? instance.models : [];
+            const modelNames: string[] = getModelsForProvider(instance.provider, persistedModels);
             const currentDefaultModel: string = instance.default_model || "";
             return (
               <div key={id} className={`llm-config-card${isSelected && isBatchMode ? " selected" : ""}`}>
@@ -729,26 +734,33 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({ t, onSave, isInitializi
                 {providerDescription ? <div className="llm-config-card-description">{providerDescription}</div> : null}
                 <div style={{ display: "flex", alignItems: "center", gap: "8px", width: "100%" }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    {isDefault && instanceModels.length > 0 && (
+                    {isDefault && modelNames.length > 0 && (
                       <div className="llm-config-row">
                         <label className="llm-config-label">{isZh ? "默认模型" : "Default Model"}</label>
-                        <select
-                          className="llm-config-input"
-                          value={currentDefaultModel}
-                          onChange={(e) => {
-                            const next = e.target.value;
-                            handleSetDefaultModel(id, next, instanceName);
+                        <div
+                          style={{
+                            flex: 1,
+                            minWidth: 0,
+                            display: "flex",
+                            alignItems: "center",
                           }}
-                          onKeyDown={stopKeyboardPropagation}
-                          onKeyUp={stopKeyboardPropagation}
-                          onKeyPress={stopKeyboardPropagation}
                         >
-                          {instanceModels.map((model: any) => (
-                            <option key={model.name} value={model.name}>
-                              {model.name}
-                            </option>
-                          ))}
-                        </select>
+                          <CommonDropdown
+                            options={modelNames.map((modelName: string) => ({
+                              value: modelName,
+                              label: modelName,
+                            }))}
+                            value={currentDefaultModel}
+                            onChange={(nextValue: string) => {
+                              handleSetDefaultModel(id, nextValue, instanceName);
+                            }}
+                            height={33}
+                            width={208}
+                            menuMinWidth={208}
+                            menuMaxWidth={208}
+                            title={isZh ? "选择默认模型" : "Select default model"}
+                          />
+                        </div>
                       </div>
                     )}
                     {/* REMOVED: Workflow Mode section */}

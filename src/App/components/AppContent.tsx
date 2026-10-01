@@ -1076,11 +1076,11 @@ export function AppContent({
         }
         @keyframes drawerSlideIn {
           from {
-            transform: translateX(-100%);
+            left: -100%;
             opacity: 0.4;
           }
           to {
-            transform: translateX(0);
+            left: 0;
             opacity: 1;
           }
         }
@@ -1090,7 +1090,6 @@ export function AppContent({
         }
         .app-drawer {
           animation: drawerSlideIn 0.24s cubic-bezier(0.16, 1, 0.3, 1);
-          will-change: transform, opacity;
         }
         .app-drawer-backdrop {
           animation: backdropFadeIn 0.18s ease-out;

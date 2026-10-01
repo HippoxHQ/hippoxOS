@@ -22,10 +22,8 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ isOpen, onClose, llmInsta
   const [currentInstances, setCurrentInstances] = useState<any[]>(llmInstances);
   const [currentDefaultId, setCurrentDefaultId] = useState<string>(defaultInstanceId);
   const [isCheckingHealth, setIsCheckingHealth] = useState(false);
-  /**
-   * Tracks which instance currently has its model dropdown expanded.
-   */
   const [expandedModelDropdownId, setExpandedModelDropdownId] = useState<string | null>(null);
+  const [providerModels, setProviderModels] = useState<Record<string, string[]>>({});
   const isZh = t("i18n") === "zh";
   const sortInstances = (instances: any[]): any[] => {
     return [...instances].sort((a, b) => {
@@ -48,6 +46,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ isOpen, onClose, llmInsta
           checkHealth: healthCommands.checkAllImageHealth,
           setDefaultModel: imageCommands.setDefaultImageModel,
           getDefaultModel: imageCommands.getDefaultImageModel,
+          getAllModels: imageCommands.getAllImageModels,
         };
       case "video":
         return {
@@ -57,6 +56,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ isOpen, onClose, llmInsta
           checkHealth: healthCommands.checkAllVideoHealth,
           setDefaultModel: videoCommands.setDefaultVideoModel,
           getDefaultModel: videoCommands.getDefaultVideoModel,
+          getAllModels: videoCommands.getAllVideoModels,
         };
       case "audio":
         return {
@@ -66,6 +66,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ isOpen, onClose, llmInsta
           checkHealth: healthCommands.checkAllAudioHealth,
           setDefaultModel: audioCommands.setDefaultAudioModel,
           getDefaultModel: audioCommands.getDefaultAudioModel,
+          getAllModels: audioCommands.getAllAudioModels,
         };
       case "chat":
       default:
@@ -76,6 +77,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ isOpen, onClose, llmInsta
           checkHealth: healthCommands.checkAllLlmHealth,
           setDefaultModel: llmCommands.setDefaultLlmModel,
           getDefaultModel: async () => "",
+          getAllModels: llmCommands.getAllModels,
         };
     }
   };
@@ -105,6 +107,22 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ isOpen, onClose, llmInsta
       setCurrentInstances(sortedInstances);
       const defaultId = await cmds.getDefaultInstanceId();
       setCurrentDefaultId(defaultId);
+      // Load the FULL model catalog for the active tab so the per-instance
+      // model dropdown can show every model of the provider, not just the
+      // snapshot that was persisted when the instance was created.
+      try {
+        const allModels: any[] = await cmds.getAllModels();
+        const grouped: Record<string, string[]> = {};
+        for (const m of allModels) {
+          if (!m || !m.provider) continue;
+          if (!grouped[m.provider]) grouped[m.provider] = [];
+          grouped[m.provider].push(m.id);
+        }
+        setProviderModels(grouped);
+      } catch (err) {
+        console.error("Failed to load model catalog:", err);
+        setProviderModels({});
+      }
       if (sortedInstances.length > 0) {
         await performHealthChecks(sortedInstances);
       }
@@ -164,6 +182,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ isOpen, onClose, llmInsta
     setCurrentDefaultId("");
     setHealthStatus({});
     setExpandedModelDropdownId(null);
+    setProviderModels({});
   };
   /**
    * Handles the "set as default" button click.
@@ -194,16 +213,9 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ isOpen, onClose, llmInsta
       setCurrentInstances((prev) =>
         prev.map((inst) => {
           if (inst.id !== instanceId) return inst;
-          const nextModels = Array.isArray(inst.models)
-            ? inst.models.map((m: any) => ({
-                ...m,
-                is_default: m.name === modelName,
-              }))
-            : [];
           return {
             ...inst,
             default_model: modelName,
-            models: nextModels,
           };
         }),
       );
@@ -218,6 +230,20 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ isOpen, onClose, llmInsta
    */
   const toggleModelDropdown = (instanceId: string) => {
     setExpandedModelDropdownId((prev) => (prev === instanceId ? null : instanceId));
+  };
+  /**
+   * Resolve the full model list for an instance.
+   * Prefers the live provider catalog; falls back to the persisted list.
+   */
+  const getModelNamesForInstance = (instance: any): string[] => {
+    const providerId: string = instance.provider || "";
+    const fromCatalog = providerModels[providerId] || [];
+    const persisted: string[] = Array.isArray(instance.models) ? instance.models.map((m: any) => (typeof m === "string" ? m : m?.name)).filter(Boolean) : [];
+    if (fromCatalog.length > 0) {
+      // Merge with persisted models so manually added ones are kept.
+      return Array.from(new Set([...fromCatalog, ...persisted]));
+    }
+    return persisted;
   };
   if (!isOpen) return null;
   return (
@@ -246,7 +272,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ isOpen, onClose, llmInsta
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          padding: "12px 16px",
+          padding: "10px 10px",
           borderBottom: "1px solid var(--border-color)",
           background: "var(--bg-secondary)",
         }}
@@ -363,7 +389,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ isOpen, onClose, llmInsta
               const healthStatusValue = getHealthStatus(instance.id!);
               const isDefault = instance.id === currentDefaultId;
               const isChecking = healthStatusValue === "checking";
-              const instanceModels: any[] = Array.isArray(instance.models) ? instance.models : [];
+              const modelNames: string[] = getModelNamesForInstance(instance);
               const currentDefaultModel: string = instance.default_model || "";
               const isModelDropdownOpen = expandedModelDropdownId === instance.id;
               return (
@@ -485,9 +511,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ isOpen, onClose, llmInsta
                       </div>
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: "6px", marginLeft: "12px", flexShrink: 0 }}>
-                      {/* Model switcher toggle — only available for the default instance
-                          and only when it actually has models configured. */}
-                      {isDefault && instanceModels.length > 0 && (
+                      {isDefault && modelNames.length > 0 && (
                         <button
                           style={{
                             padding: "4px 10px",
@@ -550,7 +574,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ isOpen, onClose, llmInsta
                       )}
                     </div>
                   </div>
-                  {isDefault && isModelDropdownOpen && instanceModels.length > 0 && (
+                  {isDefault && isModelDropdownOpen && modelNames.length > 0 && (
                     <div
                       style={{
                         marginTop: "10px",
@@ -559,16 +583,18 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ isOpen, onClose, llmInsta
                         display: "flex",
                         flexDirection: "column",
                         gap: "4px",
+                        maxHeight: "200px",
+                        overflowY: "auto",
                       }}
                     >
-                      {instanceModels.map((model: any) => {
-                        const isModelDefault = model.name === currentDefaultModel || model.is_default === true;
+                      {modelNames.map((modelName: string) => {
+                        const isModelDefault = modelName === currentDefaultModel;
                         return (
                           <button
-                            key={model.name}
+                            key={modelName}
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleSetDefaultModel(instance.id!, model.name);
+                              handleSetDefaultModel(instance.id!, modelName);
                             }}
                             style={{
                               display: "flex",
@@ -597,7 +623,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ isOpen, onClose, llmInsta
                               }
                             }}
                           >
-                            <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{model.name}</span>
+                            <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{modelName}</span>
                             {isModelDefault && (
                               <span
                                 style={{
