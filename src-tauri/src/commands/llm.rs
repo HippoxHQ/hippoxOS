@@ -3,7 +3,7 @@ use crate::{
     hippox_core::LlmInstance,
 };
 use hippox::{
-    AudioLLMOptions, AudioModelProvider, AudioTaskInfo, ImageLLMOptions, ImageModelProvider, ImageTaskInfo, ModelProvider, VideoLLMOptions,
+    AudioLLMOptions, AudioModelProvider, AudioTaskInfo, ChatModelProvider, ImageLLMOptions, ImageModelProvider, ImageTaskInfo, VideoLLMOptions,
     VideoModelProvider, VideoTaskInfo,
 };
 use serde::{Deserialize, Serialize};
@@ -215,8 +215,8 @@ pub fn cmd_get_all_models() -> Vec<ModelInfo> {
     let lang = get_language();
     let is_zh = lang == "zh";
     let mut result = Vec::new();
-    for provider in ModelProvider::all() {
-        let provider_id = model_provider_id(&provider).to_string();
+    for provider in ChatModelProvider::all() {
+        let provider_id = provider.id().to_string();
         let provider_name = provider.to_string();
         // Use the provider-level description so the frontend can show what
         // each provider is good at without reading external docs.
@@ -236,38 +236,10 @@ pub fn cmd_get_all_models() -> Vec<ModelInfo> {
     }
     result
 }
-/// Maps a `ModelProvider` variant to its provider id string used by the
-/// frontend (lowercase, matching the historical hard-coded ids below).
-fn model_provider_id(provider: &ModelProvider) -> &'static str {
-    match provider {
-        ModelProvider::OpenAI => "openai",
-        ModelProvider::Anthropic => "anthropic",
-        ModelProvider::Google => "google",
-        ModelProvider::DeepSeek => "deepseek",
-        ModelProvider::Cohere => "cohere",
-        ModelProvider::HuggingFace => "huggingface",
-        ModelProvider::Azure => "azure",
-        ModelProvider::Mistral => "mistral",
-        ModelProvider::Groq => "groq",
-        ModelProvider::Together => "together",
-        ModelProvider::Replicate => "replicate",
-        ModelProvider::Fireworks => "fireworks",
-        ModelProvider::Perplexity => "perplexity",
-        ModelProvider::Baidu => "baidu",
-        ModelProvider::Alibaba => "alibaba",
-        ModelProvider::Tencent => "tencent",
-        ModelProvider::Zhipu => "zhipu",
-        ModelProvider::MiniMax => "minimax",
-        ModelProvider::Moonshot => "moonshot",
-        ModelProvider::Baichuan => "baichuan",
-        ModelProvider::Yi => "yi",
-        ModelProvider::Custom => "custom",
-    }
-}
 /// Returns all supported LLM providers.
 #[tauri::command]
 pub fn cmd_get_all_providers() -> Vec<ProviderInfo> {
-    ModelProvider::all()
+    ChatModelProvider::all()
         .into_iter()
         .map(|provider| {
             let extra_config_fields = provider
@@ -276,7 +248,7 @@ pub fn cmd_get_all_providers() -> Vec<ProviderInfo> {
                 .map(|(key, name, placeholder, required)| ExtraConfigField { key, name, placeholder, required })
                 .collect();
             ProviderInfo {
-                id: model_provider_id(&provider).to_string(),
+                id: provider.id().to_string(),
                 name: provider.to_string(),
                 icon: provider.icon().to_string(),
                 requires_api_key: provider.requires_api_key(),
@@ -1295,4 +1267,71 @@ pub async fn cmd_cancel_audio_task(
     let hippox = get_hippox_instance(&hippox_instance_id).await?;
     let result = hippox.cancel_audio_task_info(provider, String::new(), provider_task_id, base_url, task_id, prompt, created_at).await;
     result.into_result().map_err(|e| e.to_string())
+}
+/// Returns the default model id of the default chat (LLM) instance.
+pub async fn get_default_chat_model_id() -> Result<String, String> {
+    let config = HIPPOX_APP_CONFIG.read().await;
+    let default_id = &config.default_llm_instance_id;
+    if default_id.is_empty() {
+        return Err("No default LLM instance configured".to_string());
+    }
+    let instance = config.llm_instances.get(default_id).ok_or_else(|| format!("Default LLM instance not found: {}", default_id))?;
+    if !instance.default_model.is_empty() {
+        return Ok(instance.default_model.clone());
+    }
+    instance.models.iter().find(|m| m.is_default).map(|m| m.name.clone()).ok_or_else(|| format!("Default model not set for instance: {}", default_id))
+}
+/// Returns the default model id of the default image instance.
+pub async fn get_default_image_model_id() -> Result<String, String> {
+    let config = HIPPOX_APP_CONFIG.read().await;
+    let default_id = &config.default_image_instance_id;
+    if default_id.is_empty() {
+        return Err("No default image instance configured".to_string());
+    }
+    let instance = config.image_instances.get(default_id).ok_or_else(|| format!("Default image instance not found: {}", default_id))?;
+    if !instance.default_model.is_empty() {
+        return Ok(instance.default_model.clone());
+    }
+    instance
+        .models
+        .iter()
+        .find(|m| m.is_default)
+        .map(|m| m.name.clone())
+        .ok_or_else(|| format!("Default model not set for image instance: {}", default_id))
+}
+/// Returns the default model id of the default video instance.
+pub async fn get_default_video_model_id() -> Result<String, String> {
+    let config = HIPPOX_APP_CONFIG.read().await;
+    let default_id = &config.default_video_instance_id;
+    if default_id.is_empty() {
+        return Err("No default video instance configured".to_string());
+    }
+    let instance = config.video_instances.get(default_id).ok_or_else(|| format!("Default video instance not found: {}", default_id))?;
+    if !instance.default_model.is_empty() {
+        return Ok(instance.default_model.clone());
+    }
+    instance
+        .models
+        .iter()
+        .find(|m| m.is_default)
+        .map(|m| m.name.clone())
+        .ok_or_else(|| format!("Default model not set for video instance: {}", default_id))
+}
+/// Returns the default model id of the default audio instance.
+pub async fn get_default_audio_model_id() -> Result<String, String> {
+    let config = HIPPOX_APP_CONFIG.read().await;
+    let default_id = &config.default_audio_instance_id;
+    if default_id.is_empty() {
+        return Err("No default audio instance configured".to_string());
+    }
+    let instance = config.audio_instances.get(default_id).ok_or_else(|| format!("Default audio instance not found: {}", default_id))?;
+    if !instance.default_model.is_empty() {
+        return Ok(instance.default_model.clone());
+    }
+    instance
+        .models
+        .iter()
+        .find(|m| m.is_default)
+        .map(|m| m.name.clone())
+        .ok_or_else(|| format!("Default model not set for audio instance: {}", default_id))
 }

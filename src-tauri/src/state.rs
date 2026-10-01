@@ -4,7 +4,7 @@ use crate::scheduled_task_pool::TaskPool;
 use crate::sessions::chat::ExecutionLog;
 use crate::sessions::chat::LogMessages;
 use crate::workspace::get_default_workspace;
-use hippox::ModelProvider;
+use hippox::ChatModelProvider;
 use hippox::{Hippox, WorkflowMode};
 use memcontext::MemContext;
 use serde::{Deserialize, Serialize};

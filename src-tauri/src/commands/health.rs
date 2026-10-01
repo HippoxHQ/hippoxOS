@@ -1,3 +1,4 @@
+use crate::commands::get_default_chat_model_id;
 use crate::hippox_core::get_default_hippox;
 use crate::state::AppState;
 use crate::{
@@ -122,11 +123,9 @@ async fn check_single_llm_health(instance_id: &str, instance: &LlmInstance, lang
     }
 }
 async fn send_health_check_message(hippox: &Hippox, language: &str) -> Result<String, String> {
-    hippox.heartbeat().await.into_result().map_err(|err| err.to_string())
+    let model = get_default_chat_model_id().await.unwrap_or_default();
+    hippox.heartbeat(&model).await.into_result().map_err(|err| err.to_string())
 }
-// ---------------------------------------------------------------------------
-// Image / Video / Audio provider health checks
-// ---------------------------------------------------------------------------
 /// Maps a stored image provider string to the `ImageModelProvider` enum.
 fn parse_image_provider(provider: &str) -> Option<ImageModelProvider> {
     match provider {

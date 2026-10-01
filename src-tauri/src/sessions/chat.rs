@@ -1,11 +1,11 @@
 use crate::callback::{HippoXWorkflowCallback, HippoxDriverCallback};
-use crate::commands::{HIPPOX_APP_CONFIG, TaskInfo, cmd_get_disabled_drivers, increment_session_chat_count, load_config_from_file};
+use crate::commands::{HIPPOX_APP_CONFIG, TaskInfo, cmd_get_disabled_drivers, get_default_chat_model_id, increment_session_chat_count, load_config_from_file};
 use crate::context::{get_conversation_history, store_user_message, Context};
 use crate::hippox_core::{get_default_hippox, init_all_hippox_instances};
 use crate::state::AppState;
 use crate::types::Role;
 use crate::workspace::get_default_workspace;
-use hippox::{string_to_workflow_mode, ModelProvider};
+use hippox::{string_to_workflow_mode, ChatModelProvider};
 use hippox::{Hippox, HippoxResult, WorkflowMode};
 use memcontext::MemContext;
 use serde::{Deserialize, Serialize};
@@ -125,12 +125,13 @@ pub async fn cmd_send_chat_message_async(
         WorkflowMode::ReAct
     };
     // Handle HippoxResult from submit
-    let core_task_id = match hippox.submit(&enhanced_message, workflow_mode_enum, Some(workflow_callback), Some(skill_callback), disable_drivers_refs)
-    {
-        HippoxResult { data: Some(task_id), .. } => task_id,
-        HippoxResult { error: Some(err), .. } => return Err(err),
-        _ => return Err("Failed to submit task".to_string()),
-    };
+    let model = get_default_chat_model_id().await.unwrap_or_default();
+    let core_task_id =
+        match hippox.submit(&enhanced_message, workflow_mode_enum, &model, Some(workflow_callback), Some(skill_callback), disable_drivers_refs) {
+            HippoxResult { data: Some(task_id), .. } => task_id,
+            HippoxResult { error: Some(err), .. } => return Err(err),
+            _ => return Err("Failed to submit task".to_string()),
+        };
     let messages = LogMessages::get();
     state.add_log("process".to_string(), messages.send_start.replace("{}", &message), Some(format!("task_id: {}", core_task_id)), None).await;
     state.create_task(core_task_id.clone(), session.clone(), message.clone()).await;

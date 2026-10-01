@@ -1,6 +1,7 @@
 use crate::commands::{get_hippox_instance, ModelConfig, HIPPOX_APP_CONFIG, HIPPOX_INSTANCES};
 use hippox::{
-    AudioLLMConfig, AudioModelProvider, Hippox, HippoxConfig, IdentityInformation, ImageLLMConfig, ImageModelProvider, ModelProvider, VideoLLMConfig,
+    AudioLLMConfig, AudioModelProvider, Hippox, HippoxConfig, IdentityInformation,
+     ImageLLMConfig, ImageModelProvider, ChatModelProvider, VideoLLMConfig,
     VideoModelProvider,
 };
 use serde::{Deserialize, Serialize};
@@ -180,25 +181,25 @@ pub(crate) async fn init_all_hippox_instances() -> Result<(), String> {
 }
 pub(crate) async fn create_hippox_instance(instance: &LlmInstance, skills_dir: &str) -> Result<Hippox, String> {
     let model_provider = match instance.provider.to_lowercase().as_str() {
-        "openai" => ModelProvider::OpenAI,
-        "anthropic" => ModelProvider::Anthropic,
-        "azure" => ModelProvider::Azure,
-        "google" => ModelProvider::Google,
-        "deepseek" => ModelProvider::DeepSeek,
-        "alibaba" => ModelProvider::Alibaba,
-        "zhipu" => ModelProvider::Zhipu,
-        "moonshot" => ModelProvider::Moonshot,
-        "cohere" => ModelProvider::Cohere,
-        "mistral" => ModelProvider::Mistral,
-        "groq" => ModelProvider::Groq,
-        "together" => ModelProvider::Together,
-        "baichuan" => ModelProvider::Baichuan,
-        "yi" => ModelProvider::Yi,
-        "baidu" => ModelProvider::Baidu,
-        "tencent" => ModelProvider::Tencent,
-        "minimax" => ModelProvider::MiniMax,
-        "custom" => ModelProvider::Custom,
-        _ => ModelProvider::OpenAI,
+        "openai" => ChatModelProvider::OpenAI,
+        "anthropic" => ChatModelProvider::Anthropic,
+        "azure" => ChatModelProvider::Azure,
+        "google" => ChatModelProvider::Google,
+        "deepseek" => ChatModelProvider::DeepSeek,
+        "alibaba" => ChatModelProvider::Alibaba,
+        "zhipu" => ChatModelProvider::Zhipu,
+        "moonshot" => ChatModelProvider::Moonshot,
+        "cohere" => ChatModelProvider::Cohere,
+        "mistral" => ChatModelProvider::Mistral,
+        "groq" => ChatModelProvider::Groq,
+        "together" => ChatModelProvider::Together,
+        "baichuan" => ChatModelProvider::Baichuan,
+        "yi" => ChatModelProvider::Yi,
+        "baidu" => ChatModelProvider::Baidu,
+        "tencent" => ChatModelProvider::Tencent,
+        "minimax" => ChatModelProvider::MiniMax,
+        "custom" => ChatModelProvider::Custom,
+        _ => ChatModelProvider::OpenAI,
     };
     let mut extra_keys = instance.extra.clone();
     if !instance.api_base.is_empty() && !extra_keys.contains_key("api_base") {

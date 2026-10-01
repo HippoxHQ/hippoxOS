@@ -4,7 +4,7 @@
 //! It supports two types of tasks:
 //! - Natural language tasks: read from natural_language.json
 //! - Skill file tasks: read from SKILL.md
-use crate::commands::cmd_get_disabled_drivers;
+use crate::commands::{cmd_get_disabled_drivers, get_default_chat_model_id};
 use crate::commands::scheduled_tasks::{get_task_dir, load_natural_language_content, load_skill_md_content, load_task_config, ScheduledTask};
 use crate::commons::FileUtils;
 use crate::hippox_core::get_default_hippox;
@@ -165,7 +165,8 @@ impl ScheduledTaskExecutor {
             _ => hippox::WorkflowMode::ReAct,
         };
         // Execute the task and wait for completion
-        let exec_result = hippox.execute(&prompt, mode, None, None, disable_drivers_refs).await;
+        let model = get_default_chat_model_id().await.unwrap_or_default();
+        let exec_result = hippox.execute(&prompt, mode, &model, None, None, disable_drivers_refs).await;
         match exec_result {
             HippoxResult { data: Some(output), input_tokens, output_tokens, .. } => {
                 result.complete(output, input_tokens, output_tokens);
