@@ -1,5 +1,8 @@
 use crate::commands::{get_hippox_instance, ModelConfig, HIPPOX_APP_CONFIG, HIPPOX_INSTANCES};
-use hippox::{Hippox, HippoxConfig, IdentityInformation};
+use hippox::{
+    AudioLLMConfig, AudioModelProvider, Hippox, HippoxConfig, IdentityInformation, ImageLLMConfig, ImageModelProvider, ModelProvider, VideoLLMConfig,
+    VideoModelProvider,
+};
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, sync::Arc};
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -133,6 +136,9 @@ pub(crate) async fn init_default_hippox_instance() -> Result<(), String> {
     };
     match create_hippox_instance(&instance, &skills_dir).await {
         Ok(hippox) => {
+            // Attach the multi-modal clients to the freshly built Hippox so
+            // that `Hippox` is the single gateway for every modality.
+            let hippox = attach_multimodal_clients_to_hippox(hippox).await;
             let mut instances = HIPPOX_INSTANCES.write().await;
             instances.insert(instance_id.clone(), Arc::new(hippox));
             log::info!("Initialized default Hippox instance: {}", instance_id);
@@ -160,6 +166,9 @@ pub(crate) async fn init_all_hippox_instances() -> Result<(), String> {
     for (id, instance) in llm_instances {
         match create_hippox_instance(&instance, &skills_dir).await {
             Ok(hippox) => {
+                // Attach the multi-modal clients to every Hippox instance so
+                // that `Hippox` remains the single gateway for every modality.
+                let hippox = attach_multimodal_clients_to_hippox(hippox).await;
                 instances.insert(id.clone(), Arc::new(hippox));
             }
             Err(e) => {
@@ -170,7 +179,6 @@ pub(crate) async fn init_all_hippox_instances() -> Result<(), String> {
     Ok(())
 }
 pub(crate) async fn create_hippox_instance(instance: &LlmInstance, skills_dir: &str) -> Result<Hippox, String> {
-    use hippox::{ModelProvider, WorkflowMode};
     let model_provider = match instance.provider.to_lowercase().as_str() {
         "openai" => ModelProvider::OpenAI,
         "anthropic" => ModelProvider::Anthropic,
@@ -227,6 +235,251 @@ pub(crate) async fn create_hippox_instance(instance: &LlmInstance, skills_dir: &
         }
         Err(e) => return Err(format!("Failed to initialize Hippox for {}: {}", instance.name, e)),
     }
+}
+/// Attach every configured image / video / audio client to the given Hippox
+/// instance so that `Hippox` becomes the single outward-facing gateway for
+/// all modalities.
+pub(crate) async fn attach_multimodal_clients_to_hippox(hippox: Hippox) -> Hippox {
+    let (image_instances, default_image_id, video_instances, default_video_id, audio_instances, default_audio_id) = {
+        let config = HIPPOX_APP_CONFIG.read().await;
+        (
+            config.image_instances.clone(),
+            config.default_image_instance_id.clone(),
+            config.video_instances.clone(),
+            config.default_video_instance_id.clone(),
+            config.audio_instances.clone(),
+            config.default_audio_instance_id.clone(),
+        )
+    };
+    let mut hippox = hippox;
+    let image_instance = if !default_image_id.is_empty() { image_instances.get(&default_image_id) } else { image_instances.values().next() };
+    if let Some(instance) = image_instance {
+        // Build the `ImageLLMConfig` from the persisted instance fields.
+        let provider = match instance.provider.to_lowercase().as_str() {
+            "seedream" => ImageModelProvider::Seedream,
+            "wan_image" | "wanimage" | "wan" => ImageModelProvider::WanImage,
+            "stability" | "stability_image" => ImageModelProvider::StabilityImage,
+            "flux" => ImageModelProvider::Flux,
+            "imagen" => ImageModelProvider::Imagen,
+            "dalle" | "dall_e" | "dall-e" => ImageModelProvider::DallE,
+            _ => ImageModelProvider::Seedream,
+        };
+        let mut config = ImageLLMConfig::new();
+        match provider {
+            ImageModelProvider::Seedream => {
+                config = config.seedream(instance.api_key.clone());
+                if !instance.api_base.is_empty() {
+                    config.seedream_base_url = Some(instance.api_base.clone());
+                }
+            }
+            ImageModelProvider::WanImage => {
+                config = config.wan_image(instance.api_key.clone());
+                if !instance.api_base.is_empty() {
+                    config.wan_image_base_url = Some(instance.api_base.clone());
+                }
+            }
+            ImageModelProvider::StabilityImage => {
+                config = config.stability(instance.api_key.clone());
+                if !instance.api_base.is_empty() {
+                    config.stability_base_url = Some(instance.api_base.clone());
+                }
+            }
+            ImageModelProvider::Flux => {
+                config = config.flux(instance.api_key.clone());
+                if !instance.api_base.is_empty() {
+                    config.flux_base_url = Some(instance.api_base.clone());
+                }
+            }
+            ImageModelProvider::Imagen => {
+                config = config.imagen(instance.api_key.clone());
+                if !instance.api_base.is_empty() {
+                    config.imagen_base_url = Some(instance.api_base.clone());
+                }
+            }
+            ImageModelProvider::DallE => {
+                config = config.dalle(instance.api_key.clone());
+                if !instance.api_base.is_empty() {
+                    config.dalle_base_url = Some(instance.api_base.clone());
+                }
+            }
+        }
+        match Hippox::new_llm_image_with_config(provider, &config) {
+            Ok(client) => {
+                hippox = hippox.with_image_client(client, provider);
+                log::info!("Attached image client to Hippox: {} ({})", instance.name, provider);
+            }
+            Err(e) => log::error!("Failed to attach image client to Hippox: {}", e),
+        }
+    }
+    let video_instance = if !default_video_id.is_empty() { video_instances.get(&default_video_id) } else { video_instances.values().next() };
+    if let Some(instance) = video_instance {
+        let provider = match instance.provider.to_lowercase().as_str() {
+            "seedance" => VideoModelProvider::Seedance,
+            "wan" => VideoModelProvider::Wan,
+            "kling" => VideoModelProvider::Kling,
+            "veo" => VideoModelProvider::Veo,
+            "runway" => VideoModelProvider::Runway,
+            "minimax_h3" | "minimaxh3" => VideoModelProvider::MiniMaxH3,
+            "happyhorse" => VideoModelProvider::HappyHorse,
+            "ltx" => VideoModelProvider::Ltx,
+            "grok" | "grok_imagine" => VideoModelProvider::GrokImagine,
+            "pruna" => VideoModelProvider::Pruna,
+            "gemini" | "gemini_omni_flash" => VideoModelProvider::GeminiOmniFlash,
+            _ => VideoModelProvider::Seedance,
+        };
+        let mut config = VideoLLMConfig::new();
+        match provider {
+            VideoModelProvider::Seedance => {
+                config = config.seedance(instance.api_key.clone());
+                if !instance.api_base.is_empty() {
+                    config.seedance_base_url = Some(instance.api_base.clone());
+                }
+            }
+            VideoModelProvider::Wan => {
+                config = config.wan(instance.api_key.clone());
+                if !instance.api_base.is_empty() {
+                    config.wan_base_url = Some(instance.api_base.clone());
+                }
+            }
+            VideoModelProvider::Kling => {
+                let secret_key = instance.extra.get("secret_key").cloned().unwrap_or_else(|| instance.api_key.clone());
+                config = config.kling(instance.api_key.clone(), secret_key);
+                if !instance.api_base.is_empty() {
+                    config.kling_base_url = Some(instance.api_base.clone());
+                }
+            }
+            VideoModelProvider::Veo => {
+                config = config.veo(instance.api_key.clone());
+                if !instance.api_base.is_empty() {
+                    config.veo_base_url = Some(instance.api_base.clone());
+                }
+            }
+            VideoModelProvider::Runway => {
+                config = config.runway(instance.api_key.clone());
+                if !instance.api_base.is_empty() {
+                    config.runway_base_url = Some(instance.api_base.clone());
+                }
+            }
+            VideoModelProvider::MiniMaxH3 => {
+                let group_id = instance.extra.get("group_id").cloned().unwrap_or_else(|| instance.api_key.clone());
+                config = config.minimax_h3(instance.api_key.clone(), group_id);
+                if !instance.api_base.is_empty() {
+                    config.minimax_h3_base_url = Some(instance.api_base.clone());
+                }
+            }
+            VideoModelProvider::HappyHorse => {
+                config = config.happyhorse(instance.api_key.clone());
+                if !instance.api_base.is_empty() {
+                    config.happyhorse_base_url = Some(instance.api_base.clone());
+                }
+            }
+            VideoModelProvider::Ltx => {
+                config = config.ltx(instance.api_key.clone());
+                if !instance.api_base.is_empty() {
+                    config.ltx_base_url = Some(instance.api_base.clone());
+                }
+            }
+            VideoModelProvider::GrokImagine => {
+                config = config.grok(instance.api_key.clone());
+                if !instance.api_base.is_empty() {
+                    config.grok_base_url = Some(instance.api_base.clone());
+                }
+            }
+            VideoModelProvider::Pruna => {
+                config = config.pruna(instance.api_key.clone());
+                if !instance.api_base.is_empty() {
+                    config.pruna_base_url = Some(instance.api_base.clone());
+                }
+            }
+            VideoModelProvider::GeminiOmniFlash => {
+                config = config.gemini(instance.api_key.clone());
+                if !instance.api_base.is_empty() {
+                    config.gemini_base_url = Some(instance.api_base.clone());
+                }
+            }
+        }
+        match Hippox::new_llm_video_with_config(provider, &config) {
+            Ok(client) => {
+                hippox = hippox.with_video_client(client, provider);
+                log::info!("Attached video client to Hippox: {} ({})", instance.name, provider);
+            }
+            Err(e) => log::error!("Failed to attach video client to Hippox: {}", e),
+        }
+    }
+    let audio_instance = if !default_audio_id.is_empty() { audio_instances.get(&default_audio_id) } else { audio_instances.values().next() };
+    if let Some(instance) = audio_instance {
+        // Build the `AudioLLMConfig` from the persisted instance fields.
+        let provider = match instance.provider.to_lowercase().as_str() {
+            "qwen_tts" | "qwentts" => AudioModelProvider::QwenTts,
+            "seed_audio" | "seedaudio" => AudioModelProvider::SeedAudio,
+            "step_audio" | "stepaudio" => AudioModelProvider::StepAudio,
+            "gemini_tts" | "geminitts" => AudioModelProvider::GeminiTts,
+            "elevenlabs" => AudioModelProvider::ElevenLabs,
+            "lyria" => AudioModelProvider::Lyria,
+            "suno" => AudioModelProvider::Suno,
+            "stable_audio" | "stableaudio" => AudioModelProvider::StableAudio,
+            _ => AudioModelProvider::QwenTts,
+        };
+        let mut config = AudioLLMConfig::new();
+        match provider {
+            AudioModelProvider::QwenTts => {
+                config = config.qwen_tts(instance.api_key.clone());
+                if !instance.api_base.is_empty() {
+                    config.qwen_tts_base_url = Some(instance.api_base.clone());
+                }
+            }
+            AudioModelProvider::SeedAudio => {
+                config = config.seed_audio(instance.api_key.clone());
+                if !instance.api_base.is_empty() {
+                    config.seed_audio_base_url = Some(instance.api_base.clone());
+                }
+            }
+            AudioModelProvider::StepAudio => {
+                config = config.step_audio(instance.api_key.clone());
+                if !instance.api_base.is_empty() {
+                    config.step_audio_base_url = Some(instance.api_base.clone());
+                }
+            }
+            AudioModelProvider::GeminiTts => {
+                config = config.gemini_tts(instance.api_key.clone());
+                if !instance.api_base.is_empty() {
+                    config.gemini_tts_base_url = Some(instance.api_base.clone());
+                }
+            }
+            AudioModelProvider::ElevenLabs => {
+                config = config.elevenlabs(instance.api_key.clone());
+                if !instance.api_base.is_empty() {
+                    config.elevenlabs_base_url = Some(instance.api_base.clone());
+                }
+            }
+            AudioModelProvider::Lyria => {
+                config = config.lyria(instance.api_key.clone());
+                if !instance.api_base.is_empty() {
+                    config.lyria_base_url = Some(instance.api_base.clone());
+                }
+            }
+            AudioModelProvider::Suno => {
+                config = config.suno(instance.api_key.clone());
+                if !instance.api_base.is_empty() {
+                    config.suno_base_url = Some(instance.api_base.clone());
+                }
+            }
+            AudioModelProvider::StableAudio => {
+                config = config.stable_audio(instance.api_key.clone());
+                if !instance.api_base.is_empty() {
+                    config.stable_audio_base_url = Some(instance.api_base.clone());
+                }
+            }
+        }
+        match Hippox::new_llm_audio_with_config(provider, &config) {
+            Ok(client) => {
+                hippox = hippox.with_audio_client(client, provider);
+                log::info!("Attached audio client to Hippox: {} ({})", instance.name, provider);
+            }
+            Err(e) => log::error!("Failed to attach audio client to Hippox: {}", e),
+        }
+    }
+    hippox
 }
 pub(crate) async fn get_default_hippox() -> Result<Arc<Hippox>, String> {
     let default_instance_id = {

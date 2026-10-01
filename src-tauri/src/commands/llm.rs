@@ -1,8 +1,11 @@
 use crate::{
-    commands::{save_config_to_file, LlmInstanceForFrontend, ModelConfig, HIPPOX_APP_CONFIG},
+    commands::{get_hippox_instance, save_config_to_file, LlmInstanceForFrontend, ModelConfig, HIPPOX_APP_CONFIG},
     hippox_core::LlmInstance,
 };
-use hippox::{AudioModelProvider, ImageModelProvider, ModelProvider, VideoModelProvider};
+use hippox::{
+    AudioLLMOptions, AudioModelProvider, AudioTaskInfo, ImageLLMOptions, ImageModelProvider, ImageTaskInfo, ModelProvider, VideoLLMOptions,
+    VideoModelProvider, VideoTaskInfo,
+};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use uuid::Uuid;
@@ -206,186 +209,32 @@ fn get_language() -> String {
         .map(|v| v.as_str().unwrap_or("en").to_string())
         .unwrap_or_else(|_| "en".to_string())
 }
+/// Returns all supported LLM models.
 #[tauri::command]
 pub fn cmd_get_all_models() -> Vec<ModelInfo> {
     let lang = get_language();
     let is_zh = lang == "zh";
-    vec![
-        ModelInfo {
-            id: "gpt-4".to_string(),
-            name: if is_zh { "GPT-4".to_string() } else { "GPT-4".to_string() },
-            provider: "openai".to_string(),
-            provider_name: if is_zh { "OpenAI".to_string() } else { "OpenAI".to_string() },
-            description: if is_zh {
-                "最强大的GPT-4模型，适合复杂任务".to_string()
-            } else {
-                "The most powerful GPT-4 model, suitable for complex tasks".to_string()
-            },
-            streaming: true,
-            context_length: Some(8192),
-            recommended: true,
-        },
-        ModelInfo {
-            id: "claude-3-opus".to_string(),
-            name: if is_zh { "Claude 3 Opus".to_string() } else { "Claude 3 Opus".to_string() },
-            provider: "anthropic".to_string(),
-            provider_name: if is_zh { "Anthropic".to_string() } else { "Anthropic".to_string() },
-            description: if is_zh { "最强大的Claude 3模型".to_string() } else { "The most powerful Claude 3 model".to_string() },
-            streaming: true,
-            context_length: Some(200000),
-            recommended: true,
-        },
-        ModelInfo {
-            id: "deepseek-chat".to_string(),
-            name: if is_zh { "DeepSeek Chat".to_string() } else { "DeepSeek Chat".to_string() },
-            provider: "deepseek".to_string(),
-            provider_name: if is_zh { "DeepSeek".to_string() } else { "DeepSeek".to_string() },
-            description: if is_zh { "DeepSeek对话模型".to_string() } else { "DeepSeek chat model".to_string() },
-            streaming: true,
-            context_length: Some(64000),
-            recommended: true,
-        },
-        ModelInfo {
-            id: "gemini-1.5-pro".to_string(),
-            name: if is_zh { "Gemini 1.5 Pro".to_string() } else { "Gemini 1.5 Pro".to_string() },
-            provider: "google".to_string(),
-            provider_name: if is_zh { "Google".to_string() } else { "Google".to_string() },
-            description: if is_zh { "Gemini 1.5 Pro，百万级上下文".to_string() } else { "Gemini 1.5 Pro, million-level context".to_string() },
-            streaming: true,
-            context_length: Some(1000000),
-            recommended: true,
-        },
-        ModelInfo {
-            id: "mixtral-8x7b-32k".to_string(),
-            name: if is_zh { "Mixtral 8x7B".to_string() } else { "Mixtral 8x7B".to_string() },
-            provider: "groq".to_string(),
-            provider_name: if is_zh { "Groq".to_string() } else { "Groq".to_string() },
-            description: if is_zh { "Groq加速的Mixtral模型".to_string() } else { "Groq-accelerated Mixtral model".to_string() },
-            streaming: true,
-            context_length: Some(32768),
-            recommended: true,
-        },
-        ModelInfo {
-            id: "llama3-70b".to_string(),
-            name: if is_zh { "Llama 3 70B".to_string() } else { "Llama 3 70B".to_string() },
-            provider: "together".to_string(),
-            provider_name: if is_zh { "Together.ai".to_string() } else { "Together.ai".to_string() },
-            description: if is_zh { "Together.ai托管的Llama 3 70B".to_string() } else { "Together.ai hosted Llama 3 70B".to_string() },
-            streaming: true,
-            context_length: Some(8192),
-            recommended: true,
-        },
-        ModelInfo {
-            id: "mistral-large".to_string(),
-            name: if is_zh { "Mistral Large".to_string() } else { "Mistral Large".to_string() },
-            provider: "mistral".to_string(),
-            provider_name: if is_zh { "Mistral AI".to_string() } else { "Mistral AI".to_string() },
-            description: if is_zh { "Mistral Large模型".to_string() } else { "Mistral Large model".to_string() },
-            streaming: true,
-            context_length: Some(32768),
-            recommended: true,
-        },
-        ModelInfo {
-            id: "command-r-plus".to_string(),
-            name: if is_zh { "Command R+".to_string() } else { "Command R+".to_string() },
-            provider: "cohere".to_string(),
-            provider_name: if is_zh { "Cohere".to_string() } else { "Cohere".to_string() },
-            description: if is_zh { "Cohere Command R+模型".to_string() } else { "Cohere Command R+ model".to_string() },
-            streaming: true,
-            context_length: Some(128000),
-            recommended: true,
-        },
-        ModelInfo {
-            id: "qwen-plus".to_string(),
-            name: if is_zh { "通义千问 Plus".to_string() } else { "Qwen Plus".to_string() },
-            provider: "alibaba".to_string(),
-            provider_name: if is_zh { "阿里云".to_string() } else { "Alibaba Cloud".to_string() },
-            description: if is_zh { "阿里云通义千问Plus模型".to_string() } else { "Alibaba Tongyi Qianwen Plus model".to_string() },
-            streaming: true,
-            context_length: Some(32768),
-            recommended: true,
-        },
-        ModelInfo {
-            id: "glm-4".to_string(),
-            name: if is_zh { "GLM-4".to_string() } else { "GLM-4".to_string() },
-            provider: "zhipu".to_string(),
-            provider_name: if is_zh { "智谱 AI".to_string() } else { "Zhipu AI".to_string() },
-            description: if is_zh { "智谱AI GLM-4模型".to_string() } else { "Zhipu AI GLM-4 model".to_string() },
-            streaming: true,
-            context_length: Some(128000),
-            recommended: true,
-        },
-        ModelInfo {
-            id: "moonshot-v1-128k".to_string(),
-            name: if is_zh { "Moonshot V1".to_string() } else { "Moonshot V1".to_string() },
-            provider: "moonshot".to_string(),
-            provider_name: if is_zh { "月之暗面".to_string() } else { "Moonshot AI".to_string() },
-            description: if is_zh { "月之暗面Kimi模型".to_string() } else { "Moonshot Kimi model".to_string() },
-            streaming: true,
-            context_length: Some(128000),
-            recommended: true,
-        },
-        ModelInfo {
-            id: "baichuan4".to_string(),
-            name: if is_zh { "Baichuan 4".to_string() } else { "Baichuan 4".to_string() },
-            provider: "baichuan".to_string(),
-            provider_name: if is_zh { "百川智能".to_string() } else { "Baichuan AI".to_string() },
-            description: if is_zh { "百川智能Baichuan 4模型".to_string() } else { "Baichuan AI Baichuan 4 model".to_string() },
-            streaming: true,
-            context_length: Some(32768),
-            recommended: false,
-        },
-        ModelInfo {
-            id: "yi-34b-chat".to_string(),
-            name: if is_zh { "Yi-34B-Chat".to_string() } else { "Yi-34B-Chat".to_string() },
-            provider: "yi".to_string(),
-            provider_name: if is_zh { "零一万物".to_string() } else { "01.AI".to_string() },
-            description: if is_zh { "零一万物Yi-34B对话模型".to_string() } else { "01.AI Yi-34B chat model".to_string() },
-            streaming: true,
-            context_length: Some(32768),
-            recommended: false,
-        },
-        ModelInfo {
-            id: "gpt-4".to_string(),
-            name: if is_zh { "GPT-4".to_string() } else { "GPT-4".to_string() },
-            provider: "azure".to_string(),
-            provider_name: if is_zh { "Azure OpenAI".to_string() } else { "Azure OpenAI".to_string() },
-            description: if is_zh { "Azure托管的GPT-4".to_string() } else { "Azure hosted GPT-4".to_string() },
-            streaming: true,
-            context_length: Some(8192),
-            recommended: true,
-        },
-        ModelInfo {
-            id: "ernie-4.0".to_string(),
-            name: if is_zh { "ERNIE 4.0".to_string() } else { "ERNIE 4.0".to_string() },
-            provider: "baidu".to_string(),
-            provider_name: if is_zh { "百度文心".to_string() } else { "Baidu".to_string() },
-            description: if is_zh { "百度文心一言ERNIE 4.0".to_string() } else { "Baidu Wenxin ERNIE 4.0".to_string() },
-            streaming: true,
-            context_length: Some(8192),
-            recommended: true,
-        },
-        ModelInfo {
-            id: "hunyuan-pro".to_string(),
-            name: if is_zh { "Hunyuan Pro".to_string() } else { "Hunyuan Pro".to_string() },
-            provider: "tencent".to_string(),
-            provider_name: if is_zh { "腾讯混元".to_string() } else { "Tencent".to_string() },
-            description: if is_zh { "腾讯混元Pro模型".to_string() } else { "Tencent Hunyuan Pro model".to_string() },
-            streaming: true,
-            context_length: Some(8192),
-            recommended: true,
-        },
-        ModelInfo {
-            id: "abab6.5".to_string(),
-            name: if is_zh { "abab6.5".to_string() } else { "abab6.5".to_string() },
-            provider: "minimax".to_string(),
-            provider_name: if is_zh { "MiniMax".to_string() } else { "MiniMax".to_string() },
-            description: if is_zh { "MiniMax abab6.5模型".to_string() } else { "MiniMax abab6.5 model".to_string() },
-            streaming: true,
-            context_length: Some(8192),
-            recommended: true,
-        },
-    ]
+    let mut result = Vec::new();
+    for provider in ModelProvider::all() {
+        let provider_id = model_provider_id(&provider).to_string();
+        let provider_name = provider.to_string();
+        // Use the provider-level description so the frontend can show what
+        // each provider is good at without reading external docs.
+        let provider_description = if is_zh { provider.description_zh() } else { provider.description() };
+        for (model_id, display_name, recommended) in provider.models() {
+            result.push(ModelInfo {
+                id: model_id,
+                name: display_name,
+                provider: provider_id.clone(),
+                provider_name: provider_name.clone(),
+                description: provider_description.to_string(),
+                streaming: true,
+                context_length: None,
+                recommended,
+            });
+        }
+    }
+    result
 }
 /// Maps a `ModelProvider` variant to its provider id string used by the
 /// frontend (lowercase, matching the historical hard-coded ids below).
@@ -415,231 +264,33 @@ fn model_provider_id(provider: &ModelProvider) -> &'static str {
         ModelProvider::Custom => "custom",
     }
 }
+/// Returns all supported LLM providers.
+///
+/// The provider list is built dynamically from `ModelProvider::all()`, so
+/// adding a new provider only requires updating `langhub::types` — no
+/// change is needed here.
 #[tauri::command]
 pub fn cmd_get_all_providers() -> Vec<ProviderInfo> {
-    vec![
-        ProviderInfo {
-            id: "openai".to_string(),
-            name: "OpenAI".to_string(),
-            icon: "🔵".to_string(),
-            requires_api_key: true,
-            requires_extra_config: false,
-            extra_config_fields: vec![],
-            description: ModelProvider::OpenAI.description().to_string(),
-            description_zh: ModelProvider::OpenAI.description_zh().to_string(),
-        },
-        ProviderInfo {
-            id: "anthropic".to_string(),
-            name: "Anthropic".to_string(),
-            icon: "🟣".to_string(),
-            requires_api_key: true,
-            requires_extra_config: false,
-            extra_config_fields: vec![],
-            description: ModelProvider::Anthropic.description().to_string(),
-            description_zh: ModelProvider::Anthropic.description_zh().to_string(),
-        },
-        ProviderInfo {
-            id: "deepseek".to_string(),
-            name: "DeepSeek".to_string(),
-            icon: "🟢".to_string(),
-            requires_api_key: true,
-            requires_extra_config: false,
-            extra_config_fields: vec![],
-            description: ModelProvider::DeepSeek.description().to_string(),
-            description_zh: ModelProvider::DeepSeek.description_zh().to_string(),
-        },
-        ProviderInfo {
-            id: "google".to_string(),
-            name: "Google".to_string(),
-            icon: "🔴".to_string(),
-            requires_api_key: true,
-            requires_extra_config: false,
-            extra_config_fields: vec![],
-            description: ModelProvider::Google.description().to_string(),
-            description_zh: ModelProvider::Google.description_zh().to_string(),
-        },
-        ProviderInfo {
-            id: "groq".to_string(),
-            name: "Groq".to_string(),
-            icon: "⚡".to_string(),
-            requires_api_key: true,
-            requires_extra_config: false,
-            extra_config_fields: vec![],
-            description: ModelProvider::Groq.description().to_string(),
-            description_zh: ModelProvider::Groq.description_zh().to_string(),
-        },
-        ProviderInfo {
-            id: "together".to_string(),
-            name: "Together.ai".to_string(),
-            icon: "🤝".to_string(),
-            requires_api_key: true,
-            requires_extra_config: false,
-            extra_config_fields: vec![],
-            description: ModelProvider::Together.description().to_string(),
-            description_zh: ModelProvider::Together.description_zh().to_string(),
-        },
-        ProviderInfo {
-            id: "mistral".to_string(),
-            name: "Mistral AI".to_string(),
-            icon: "🪶".to_string(),
-            requires_api_key: true,
-            requires_extra_config: false,
-            extra_config_fields: vec![],
-            description: ModelProvider::Mistral.description().to_string(),
-            description_zh: ModelProvider::Mistral.description_zh().to_string(),
-        },
-        ProviderInfo {
-            id: "cohere".to_string(),
-            name: "Cohere".to_string(),
-            icon: "📐".to_string(),
-            requires_api_key: true,
-            requires_extra_config: false,
-            extra_config_fields: vec![],
-            description: ModelProvider::Cohere.description().to_string(),
-            description_zh: ModelProvider::Cohere.description_zh().to_string(),
-        },
-        ProviderInfo {
-            id: "alibaba".to_string(),
-            name: "阿里云".to_string(),
-            icon: "☁️".to_string(),
-            requires_api_key: true,
-            requires_extra_config: false,
-            extra_config_fields: vec![],
-            description: ModelProvider::Alibaba.description().to_string(),
-            description_zh: ModelProvider::Alibaba.description_zh().to_string(),
-        },
-        ProviderInfo {
-            id: "zhipu".to_string(),
-            name: "智谱 AI".to_string(),
-            icon: "🧠".to_string(),
-            requires_api_key: true,
-            requires_extra_config: false,
-            extra_config_fields: vec![],
-            description: ModelProvider::Zhipu.description().to_string(),
-            description_zh: ModelProvider::Zhipu.description_zh().to_string(),
-        },
-        ProviderInfo {
-            id: "moonshot".to_string(),
-            name: "月之暗面".to_string(),
-            icon: "🌙".to_string(),
-            requires_api_key: true,
-            requires_extra_config: false,
-            extra_config_fields: vec![],
-            description: ModelProvider::Moonshot.description().to_string(),
-            description_zh: ModelProvider::Moonshot.description_zh().to_string(),
-        },
-        ProviderInfo {
-            id: "baichuan".to_string(),
-            name: "百川智能".to_string(),
-            icon: "🌊".to_string(),
-            requires_api_key: true,
-            requires_extra_config: false,
-            extra_config_fields: vec![],
-            description: ModelProvider::Baichuan.description().to_string(),
-            description_zh: ModelProvider::Baichuan.description_zh().to_string(),
-        },
-        ProviderInfo {
-            id: "yi".to_string(),
-            name: "零一万物".to_string(),
-            icon: "1️⃣".to_string(),
-            requires_api_key: true,
-            requires_extra_config: false,
-            extra_config_fields: vec![],
-            description: ModelProvider::Yi.description().to_string(),
-            description_zh: ModelProvider::Yi.description_zh().to_string(),
-        },
-        ProviderInfo {
-            id: "azure".to_string(),
-            name: "Azure OpenAI".to_string(),
-            icon: "☁️".to_string(),
-            requires_api_key: true,
-            requires_extra_config: true,
-            extra_config_fields: vec![
-                ExtraConfigField {
-                    key: "endpoint".to_string(),
-                    name: "Endpoint URL".to_string(),
-                    placeholder: "https://your-resource.openai.azure.com/".to_string(),
-                    required: true,
-                },
-                ExtraConfigField {
-                    key: "deployment_name".to_string(),
-                    name: "Deployment Name".to_string(),
-                    placeholder: "gpt-4".to_string(),
-                    required: true,
-                },
-            ],
-            description: ModelProvider::Azure.description().to_string(),
-            description_zh: ModelProvider::Azure.description_zh().to_string(),
-        },
-        ProviderInfo {
-            id: "baidu".to_string(),
-            name: "百度文心".to_string(),
-            icon: "🔍".to_string(),
-            requires_api_key: true,
-            requires_extra_config: true,
-            extra_config_fields: vec![ExtraConfigField {
-                key: "secret_key".to_string(),
-                name: "Secret Key".to_string(),
-                placeholder: "your secret key".to_string(),
-                required: true,
-            }],
-            description: ModelProvider::Baidu.description().to_string(),
-            description_zh: ModelProvider::Baidu.description_zh().to_string(),
-        },
-        ProviderInfo {
-            id: "tencent".to_string(),
-            name: "腾讯混元".to_string(),
-            icon: "🐧".to_string(),
-            requires_api_key: true,
-            requires_extra_config: true,
-            extra_config_fields: vec![
-                ExtraConfigField {
-                    key: "secret_id".to_string(),
-                    name: "Secret ID".to_string(),
-                    placeholder: "your secret id".to_string(),
-                    required: true,
-                },
-                ExtraConfigField {
-                    key: "secret_key".to_string(),
-                    name: "Secret Key".to_string(),
-                    placeholder: "your secret key".to_string(),
-                    required: true,
-                },
-            ],
-            description: ModelProvider::Tencent.description().to_string(),
-            description_zh: ModelProvider::Tencent.description_zh().to_string(),
-        },
-        ProviderInfo {
-            id: "minimax".to_string(),
-            name: "MiniMax".to_string(),
-            icon: "🎯".to_string(),
-            requires_api_key: true,
-            requires_extra_config: true,
-            extra_config_fields: vec![ExtraConfigField {
-                key: "group_id".to_string(),
-                name: "Group ID".to_string(),
-                placeholder: "your group id".to_string(),
-                required: true,
-            }],
-            description: ModelProvider::MiniMax.description().to_string(),
-            description_zh: ModelProvider::MiniMax.description_zh().to_string(),
-        },
-        ProviderInfo {
-            id: "custom".to_string(),
-            name: "Custom API".to_string(),
-            icon: "🦛".to_string(),
-            requires_api_key: true,
-            requires_extra_config: true,
-            extra_config_fields: vec![ExtraConfigField {
-                key: "api_base".to_string(),
-                name: "API Base URL".to_string(),
-                placeholder: "https://api.example.com/v1".to_string(),
-                required: true,
-            }],
-            description: ModelProvider::Custom.description().to_string(),
-            description_zh: ModelProvider::Custom.description_zh().to_string(),
-        },
-    ]
+    ModelProvider::all()
+        .into_iter()
+        .map(|provider| {
+            let extra_config_fields = provider
+                .extra_config_fields()
+                .into_iter()
+                .map(|(key, name, placeholder, required)| ExtraConfigField { key, name, placeholder, required })
+                .collect();
+            ProviderInfo {
+                id: model_provider_id(&provider).to_string(),
+                name: provider.to_string(),
+                icon: provider.icon().to_string(),
+                requires_api_key: provider.requires_api_key(),
+                requires_extra_config: provider.needs_extra_config(),
+                extra_config_fields,
+                description: provider.description().to_string(),
+                description_zh: provider.description_zh().to_string(),
+            }
+        })
+        .collect()
 }
 #[tauri::command]
 pub fn cmd_get_models_by_provider(provider: String) -> Vec<ModelInfo> {
@@ -649,9 +300,6 @@ pub fn cmd_get_models_by_provider(provider: String) -> Vec<ModelInfo> {
 pub fn cmd_get_recommended_models() -> Vec<ModelInfo> {
     cmd_get_all_models().into_iter().filter(|m| m.recommended).collect()
 }
-// ---------------------------------------------------------------------------
-// Image (text-to-image) model & provider catalog
-// ---------------------------------------------------------------------------
 /// Returns all supported text-to-image models.
 #[tauri::command]
 pub fn cmd_get_all_image_models() -> Vec<ModelInfo> {
@@ -704,9 +352,6 @@ pub fn cmd_get_image_models_by_provider(provider: String) -> Vec<ModelInfo> {
 pub fn cmd_get_recommended_image_models() -> Vec<ModelInfo> {
     cmd_get_all_image_models().into_iter().filter(|m| m.recommended).collect()
 }
-// ---------------------------------------------------------------------------
-// Video (text-to-video) model & provider catalog
-// ---------------------------------------------------------------------------
 /// Returns all supported text-to-video models.
 #[tauri::command]
 pub fn cmd_get_all_video_models() -> Vec<ModelInfo> {
@@ -759,9 +404,6 @@ pub fn cmd_get_video_models_by_provider(provider: String) -> Vec<ModelInfo> {
 pub fn cmd_get_recommended_video_models() -> Vec<ModelInfo> {
     cmd_get_all_video_models().into_iter().filter(|m| m.recommended).collect()
 }
-// ---------------------------------------------------------------------------
-// Audio (TTS / audio gen / music) model & provider catalog
-// ---------------------------------------------------------------------------
 /// Returns all supported audio models.
 #[tauri::command]
 pub fn cmd_get_all_audio_models() -> Vec<ModelInfo> {
@@ -816,9 +458,6 @@ pub fn cmd_get_audio_models_by_provider(provider: String) -> Vec<ModelInfo> {
 pub fn cmd_get_recommended_audio_models() -> Vec<ModelInfo> {
     cmd_get_all_audio_models().into_iter().filter(|m| m.recommended).collect()
 }
-// ---------------------------------------------------------------------------
-// Image generation instance management
-// ---------------------------------------------------------------------------
 /// Image generation instance stored in the app config.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ImageInstance {
@@ -999,9 +638,6 @@ pub async fn cmd_get_default_image_instance_id() -> Result<String, String> {
     let config = HIPPOX_APP_CONFIG.read().await;
     Ok(config.default_image_instance_id.clone())
 }
-// ---------------------------------------------------------------------------
-// Video generation instance management
-// ---------------------------------------------------------------------------
 /// Video generation instance stored in the app config.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VideoInstance {
@@ -1182,9 +818,6 @@ pub async fn cmd_get_default_video_instance_id() -> Result<String, String> {
     let config = HIPPOX_APP_CONFIG.read().await;
     Ok(config.default_video_instance_id.clone())
 }
-// ---------------------------------------------------------------------------
-// Audio generation instance management
-// ---------------------------------------------------------------------------
 /// Audio generation instance stored in the app config.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AudioInstance {
@@ -1364,4 +997,140 @@ pub async fn cmd_get_audio_instances() -> Result<HashMap<String, AudioInstanceFo
 pub async fn cmd_get_default_audio_instance_id() -> Result<String, String> {
     let config = HIPPOX_APP_CONFIG.read().await;
     Ok(config.default_audio_instance_id.clone())
+}
+/// Submit an image generation task through the `Hippox` gateway.
+///
+/// # Arguments
+/// * `hippox_instance_id` - The id of the `Hippox` instance to use.
+/// * `provider`           - The image model provider to use.
+/// * `prompt`             - Text prompt for image generation.
+/// * `options`            - Optional generation options.
+/// * `base_url`           - Optional custom base URL override.
+#[tauri::command]
+pub async fn cmd_submit_image_task(
+    hippox_instance_id: String,
+    provider: ImageModelProvider,
+    prompt: String,
+    options: Option<ImageLLMOptions>,
+    base_url: Option<String>,
+) -> Result<ImageTaskInfo, String> {
+    let hippox = get_hippox_instance(&hippox_instance_id).await?;
+    let result = hippox.submit_image_task_info(provider, String::new(), prompt, options, base_url).await;
+    result.into_result().map_err(|e| e.to_string())
+}
+/// Poll an image generation task through the `Hippox` gateway.
+#[tauri::command]
+pub async fn cmd_poll_image_task(
+    hippox_instance_id: String,
+    provider: ImageModelProvider,
+    provider_task_id: String,
+    base_url: Option<String>,
+    task_id: String,
+    prompt: String,
+    created_at: u64,
+) -> Result<ImageTaskInfo, String> {
+    let hippox = get_hippox_instance(&hippox_instance_id).await?;
+    let result = hippox.poll_image_task_info(provider, String::new(), provider_task_id, base_url, task_id, prompt, created_at).await;
+    result.into_result().map_err(|e| e.to_string())
+}
+/// Cancel an image generation task through the `Hippox` gateway.
+#[tauri::command]
+pub async fn cmd_cancel_image_task(
+    hippox_instance_id: String,
+    provider: ImageModelProvider,
+    provider_task_id: Option<String>,
+    base_url: Option<String>,
+    task_id: String,
+    prompt: String,
+    created_at: u64,
+) -> Result<ImageTaskInfo, String> {
+    let hippox = get_hippox_instance(&hippox_instance_id).await?;
+    let result = hippox.cancel_image_task_info(provider, String::new(), provider_task_id, base_url, task_id, prompt, created_at).await;
+    result.into_result().map_err(|e| e.to_string())
+}
+/// Submit a video generation task through the `Hippox` gateway.
+#[tauri::command]
+pub async fn cmd_submit_video_task(
+    hippox_instance_id: String,
+    provider: VideoModelProvider,
+    prompt: String,
+    options: Option<VideoLLMOptions>,
+    base_url: Option<String>,
+) -> Result<VideoTaskInfo, String> {
+    let hippox = get_hippox_instance(&hippox_instance_id).await?;
+    let result = hippox.submit_video_task_info(provider, String::new(), prompt, options, base_url).await;
+    result.into_result().map_err(|e| e.to_string())
+}
+/// Poll a video generation task through the `Hippox` gateway.
+#[tauri::command]
+pub async fn cmd_poll_video_task(
+    hippox_instance_id: String,
+    provider: VideoModelProvider,
+    provider_task_id: String,
+    base_url: Option<String>,
+    task_id: String,
+    prompt: String,
+    created_at: u64,
+) -> Result<VideoTaskInfo, String> {
+    let hippox = get_hippox_instance(&hippox_instance_id).await?;
+    let result = hippox.poll_video_task_info(provider, String::new(), provider_task_id, base_url, task_id, prompt, created_at).await;
+    result.into_result().map_err(|e| e.to_string())
+}
+/// Cancel a video generation task through the `Hippox` gateway.
+#[tauri::command]
+pub async fn cmd_cancel_video_task(
+    hippox_instance_id: String,
+    provider: VideoModelProvider,
+    provider_task_id: Option<String>,
+    base_url: Option<String>,
+    task_id: String,
+    prompt: String,
+    created_at: u64,
+) -> Result<VideoTaskInfo, String> {
+    let hippox = get_hippox_instance(&hippox_instance_id).await?;
+    let result = hippox.cancel_video_task_info(provider, String::new(), provider_task_id, base_url, task_id, prompt, created_at).await;
+    result.into_result().map_err(|e| e.to_string())
+}
+/// Submit an audio generation task through the `Hippox` gateway.
+#[tauri::command]
+pub async fn cmd_submit_audio_task(
+    hippox_instance_id: String,
+    provider: AudioModelProvider,
+    prompt: String,
+    options: Option<AudioLLMOptions>,
+    base_url: Option<String>,
+) -> Result<AudioTaskInfo, String> {
+    let hippox = get_hippox_instance(&hippox_instance_id).await?;
+    let result = hippox.submit_audio_task_info(provider, String::new(), prompt, options, base_url).await;
+    result.into_result().map_err(|e| e.to_string())
+}
+/// Poll an audio generation task through the `Hippox` gateway.
+#[tauri::command]
+pub async fn cmd_poll_audio_task(
+    hippox_instance_id: String,
+    provider: AudioModelProvider,
+    provider_task_id: String,
+    base_url: Option<String>,
+    task_id: String,
+    prompt: String,
+    created_at: u64,
+) -> Result<AudioTaskInfo, String> {
+    let hippox = get_hippox_instance(&hippox_instance_id).await?;
+    let result = hippox.poll_audio_task_info(provider, String::new(), provider_task_id, base_url, task_id, prompt, created_at).await;
+    result.into_result().map_err(|e| e.to_string())
+}
+/// Cancel an audio generation task through the `Hippox` gateway.
+#[tauri::command]
+pub async fn cmd_cancel_audio_task(
+    hippox_instance_id: String,
+    provider: AudioModelProvider,
+    provider_task_id: Option<String>,
+    base_url: Option<String>,
+    task_id: String,
+    prompt: String,
+    created_at: u64,
+) -> Result<AudioTaskInfo, String> {
+    let hippox = get_hippox_instance(&hippox_instance_id).await?;
+    let result = hippox.cancel_audio_task_info(provider, String::new(), provider_task_id, base_url, task_id, prompt, created_at).await;
+    result.into_result().map_err(|e| e.to_string())
 }
