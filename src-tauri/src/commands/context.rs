@@ -1,5 +1,5 @@
 use crate::commands::cmd_get_disabled_drivers;
-use crate::hippox_core::get_default_hippox;
+use crate::hippox_core::get_default_hippox_with_chat_model;
 use crate::state::AppState;
 use crate::types::Role;
 use memcontext::MemContext;
@@ -49,7 +49,7 @@ pub async fn recall_and_compress_history(mem: &MemContext, session_id: &str, lim
 //     limit: Option<usize>,
 // ) -> Result<String, String> {
 //     let compressed_history = recall_and_compress_history(mem, session_id, limit).await?;
-//     let hippox = get_default_hippox().await?;
+//     let hippox = get_default_hippox_with_chat_model().await?;
 //     let recall_prompt = format!(
 //         "[SYSTEM_CONTEXT_RECALL]\n\
 //          You are now restoring a previous conversation session.\n\

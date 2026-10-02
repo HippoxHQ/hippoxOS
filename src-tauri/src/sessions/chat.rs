@@ -1,7 +1,7 @@
 use crate::callback::{HippoXWorkflowCallback, HippoxDriverCallback};
 use crate::commands::{HIPPOX_APP_CONFIG, TaskInfo, cmd_get_disabled_drivers, get_default_chat_model_id, increment_session_chat_count, load_config_from_file};
 use crate::context::{get_conversation_history, store_user_message, Context};
-use crate::hippox_core::{get_default_hippox, init_all_hippox_instances};
+use crate::hippox_core::{get_default_hippox_with_chat_model, init_all_hippox_instances};
 use crate::state::AppState;
 use crate::types::Role;
 use crate::workspace::get_default_workspace;
@@ -102,7 +102,7 @@ pub async fn cmd_send_chat_message_async(
     workflow_mode: Option<String>,
 ) -> Result<String, String> {
     let session = session_id.clone().unwrap_or_else(|| "default".to_string());
-    let hippox = get_default_hippox().await?;
+    let hippox = get_default_hippox_with_chat_model().await?;
     let mem = state.get_memcontext().await;
     // Store user message
     if let Some(ref mem_ref) = mem {
@@ -165,11 +165,11 @@ pub async fn cmd_reset_conversation(state: State<'_, AppState>, session_id: Opti
 }
 #[tauri::command]
 pub async fn cmd_is_hippox_initialized() -> Result<bool, String> {
-    Ok(get_default_hippox().await.is_ok())
+    Ok(get_default_hippox_with_chat_model().await.is_ok())
 }
 #[tauri::command]
 pub async fn cmd_get_atomic_skills_list() -> Result<Vec<String>, String> {
-    match get_default_hippox().await {
+    match get_default_hippox_with_chat_model().await {
         Ok(hippox) => {
             // Handle HippoxResult from get_atomic_skill_names
             match hippox.get_driver_names() {

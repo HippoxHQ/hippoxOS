@@ -1,6 +1,7 @@
 // Unified HTTP client for all external API calls
 use reqwest::Client;
 use serde_json::Value;
+use std::path::{Path, PathBuf};
 use std::time::Duration;
 /// Unified HTTP client for all external API calls
 #[derive(Clone)]
@@ -18,11 +19,6 @@ impl HttpClient {
             .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
             .build()
             .expect("Failed to build HTTP client");
-        // Dedicated download client:
-        // - No total request timeout (a 400MB installer may take a long time).
-        // - connect_timeout limits only the TCP/TLS handshake phase.
-        // - read_timeout limits the idle gap between two received chunks,
-        //   so a slow-but-alive download is never killed by a global timer.
         let download_client = Client::builder()
             .connect_timeout(Duration::from_secs(30))
             .read_timeout(Duration::from_secs(60))
@@ -47,15 +43,6 @@ impl HttpClient {
         response.text().await.map_err(|e| format!("Failed to read response: {}", e))
     }
     /// Fetch text content from a URL, decoding the body as GBK.
-    ///
-    /// Some Chinese quote endpoints (Tencent's qt.gtimg.cn, Sina's
-    /// hq.sinajs.cn) return GBK-encoded bodies. Decoding them as UTF-8
-    /// corrupts every Chinese name, which is why A-share names showed up
-    /// as garbage in the UI. This helper reads the raw bytes and decodes
-    /// them with the GBK codec instead.
-    ///
-    /// The decode is pure-Rust (encoding_rs), so behaviour is identical
-    /// on Windows, macOS and Linux.
     pub async fn fetch_text_gbk(&self, url: &str, referer: Option<&str>) -> Result<String, String> {
         let bytes = self.fetch_bytes(url, referer).await?;
         let (decoded, _, _) = encoding_rs::GBK.decode(&bytes);
@@ -106,15 +93,6 @@ impl HttpClient {
         Ok(bytes.to_vec())
     }
     /// Streaming download for large files (installers, packages, etc.).
-    ///
-    /// Unlike `fetch_bytes`, this method:
-    /// - Uses the dedicated `download_client` (no global timeout, only connect/read timeouts).
-    /// - Reads the response as a stream of chunks instead of one giant allocation.
-    /// - Reports progress through the `on_progress` callback as `(downloaded, total)`.
-    /// - Validates the received size against `Content-Length` when available.
-    ///
-    /// `on_progress` receives the number of bytes downloaded so far and the total
-    /// expected size (if the server provided `Content-Length`, otherwise `None`).
     pub async fn fetch_bytes_streaming<F>(&self, url: &str, referer: Option<&str>, mut on_progress: F) -> Result<Vec<u8>, String>
     where
         F: FnMut(u64, Option<u64>),
@@ -164,6 +142,25 @@ impl HttpClient {
             }
         }
         Ok(buf)
+    }
+    /// Stream a URL into a file on disk, creating parent directories as needed.
+    pub async fn download_to_path(&self, url: &str, target: &Path) -> Result<PathBuf, String> {
+        self.download_to_path_with_progress(url, target, |_downloaded, _total| {}).await
+    }
+    /// Stream a URL into a file on disk with a progress callback.
+    pub async fn download_to_path_with_progress<F>(&self, url: &str, target: &Path, on_progress: F) -> Result<PathBuf, String>
+    where
+        F: FnMut(u64, Option<u64>),
+    {
+        // Ensure the destination directory exists before opening the file.
+        if let Some(parent) = target.parent() {
+            if !parent.as_os_str().is_empty() {
+                std::fs::create_dir_all(parent).map_err(|e| format!("Failed to create parent dir {:?}: {}", parent, e))?;
+            }
+        }
+        let bytes = self.fetch_bytes_streaming(url, None, on_progress).await?;
+        std::fs::write(target, &bytes).map_err(|e| format!("Failed to write file {:?}: {}", target, e))?;
+        Ok(target.to_path_buf())
     }
 }
 impl Default for HttpClient {

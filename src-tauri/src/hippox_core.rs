@@ -1,7 +1,7 @@
 use crate::commands::{get_hippox_instance, ModelConfig, HIPPOX_APP_CONFIG, HIPPOX_INSTANCES};
 use hippox::{
-    AudioLLMConfig, AudioModelProvider, Hippox, HippoxConfig, IdentityInformation,
-     ImageLLMConfig, ImageModelProvider, ChatModelProvider, VideoLLMConfig,
+    build_audio_config, build_image_config, build_video_config, parse_audio_provider, parse_image_provider, parse_video_provider, AudioLLMConfig,
+    AudioModelProvider, ChatModelProvider, Hippox, HippoxConfig, IdentityInformation, ImageLLMConfig, ImageModelProvider, VideoLLMConfig,
     VideoModelProvider,
 };
 use serde::{Deserialize, Serialize};
@@ -482,7 +482,8 @@ pub(crate) async fn attach_multimodal_clients_to_hippox(hippox: Hippox) -> Hippo
     }
     hippox
 }
-pub(crate) async fn get_default_hippox() -> Result<Arc<Hippox>, String> {
+/// get default hippox instance with chat model
+pub(crate) async fn get_default_hippox_with_chat_model() -> Result<Arc<Hippox>, String> {
     let default_instance_id = {
         let config = HIPPOX_APP_CONFIG.read().await;
         if config.llm_instances.is_empty() {
@@ -498,6 +499,65 @@ pub(crate) async fn get_default_hippox() -> Result<Arc<Hippox>, String> {
     };
     get_hippox_instance(&default_instance_id).await
 }
+
+/// Builds a dedicated `Hippox` instance for the default image-generation instance configured in the app config.
+pub async fn get_default_hippox_with_image_model() -> Result<Arc<Hippox>, String> {
+    let (provider_str, api_key, api_base) = {
+        let config = HIPPOX_APP_CONFIG.read().await;
+        let id = &config.default_image_instance_id;
+        if id.is_empty() {
+            return Err("No default image instance configured".to_string());
+        }
+        let instance = config.image_instances.get(id).ok_or_else(|| format!("Default image instance not found: {}", id))?;
+        (instance.provider.clone(), instance.api_key.clone(), instance.api_base.clone())
+    };
+    let provider = parse_image_provider(&provider_str)?;
+    let base_url = if api_base.trim().is_empty() { None } else { Some(api_base) };
+    let config = build_image_config(provider, api_key, base_url);
+    let hippox =
+        Hippox::builder_image(provider, config).build_with_model().await.map_err(|e| format!("Failed to build default image Hippox: {}", e))?;
+    Ok(Arc::new(hippox))
+}
+
+/// Builds a dedicated `Hippox` instance for the default audio-generation instance configured in the app config.
+pub async fn get_default_hippox_with_audio_model() -> Result<Arc<Hippox>, String> {
+    let (provider_str, api_key, api_base) = {
+        let config = HIPPOX_APP_CONFIG.read().await;
+        let id = &config.default_audio_instance_id;
+        if id.is_empty() {
+            return Err("No default audio instance configured".to_string());
+        }
+        let instance = config.audio_instances.get(id).ok_or_else(|| format!("Default audio instance not found: {}", id))?;
+        (instance.provider.clone(), instance.api_key.clone(), instance.api_base.clone())
+    };
+    let provider = parse_audio_provider(&provider_str)?;
+    let base_url = if api_base.trim().is_empty() { None } else { Some(api_base) };
+    let config = build_audio_config(provider, api_key, base_url);
+    let hippox =
+        Hippox::builder_audio(provider, config).build_with_model().await.map_err(|e| format!("Failed to build default audio Hippox: {}", e))?;
+    Ok(Arc::new(hippox))
+}
+
+/// Builds a dedicated `Hippox` instance for the default video-generation
+/// instance configured in the app config.
+pub async fn get_default_hippox_with_video_model() -> Result<Arc<Hippox>, String> {
+    let (provider_str, api_key, api_base) = {
+        let config = HIPPOX_APP_CONFIG.read().await;
+        let id = &config.default_video_instance_id;
+        if id.is_empty() {
+            return Err("No default video instance configured".to_string());
+        }
+        let instance = config.video_instances.get(id).ok_or_else(|| format!("Default video instance not found: {}", id))?;
+        (instance.provider.clone(), instance.api_key.clone(), instance.api_base.clone())
+    };
+    let provider = parse_video_provider(&provider_str)?;
+    let base_url = if api_base.trim().is_empty() { None } else { Some(api_base) };
+    let config = build_video_config(provider, api_key, base_url);
+    let hippox =
+        Hippox::builder_video(provider, config).build_with_model().await.map_err(|e| format!("Failed to build default video Hippox: {}", e))?;
+    Ok(Arc::new(hippox))
+}
+
 pub(crate) async fn sync_all_to_hippox_core() -> Result<(), String> {
     let config = HIPPOX_APP_CONFIG.read().await;
     for instance in &config.engine.database_instances {

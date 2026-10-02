@@ -7,7 +7,7 @@
 use crate::commands::{cmd_get_disabled_drivers, get_default_chat_model_id};
 use crate::commands::scheduled_tasks::{get_task_dir, load_natural_language_content, load_skill_md_content, load_task_config, ScheduledTask};
 use crate::commons::FileUtils;
-use crate::hippox_core::get_default_hippox;
+use crate::hippox_core::get_default_hippox_with_chat_model;
 use hippox::HippoxResult;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
@@ -144,7 +144,7 @@ impl ScheduledTaskExecutor {
         let start_time = std::time::Instant::now();
         let content =
             self.get_content().ok_or_else(|| format!("No content found for task: {} (action_type: {:?})", self.task.id, self.task.action_type))?;
-        let hippox = get_default_hippox().await?;
+        let hippox = get_default_hippox_with_chat_model().await?;
         let prompt = format!(
             "[Scheduled Task]\nTask Name: {}\nTask ID: {}\n\nContent:\n{}\n\nPlease execute this task and provide the result.",
             self.task.name,

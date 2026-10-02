@@ -1,7 +1,7 @@
 use crate::{
     commands::{StepInfo, TaskInfo, TaskPoolStats},
     commons::FileUtils,
-    hippox_core::get_default_hippox,
+    hippox_core::get_default_hippox_with_chat_model,
     state::AppState,
 };
 use hippox::{
@@ -161,7 +161,7 @@ pub async fn cmd_task_pool_get_tasks_by_session(session_id: String, state: State
 pub async fn cmd_calculate_token() -> Result<serde_json::Value, String> {
     use crate::commands::profile::{load_profile, save_profile};
     // Get default Hippox instance to fetch token counts
-    let hippox = get_default_hippox().await?;
+    let hippox = get_default_hippox_with_chat_model().await?;
     // Retrieve current token counts from Hippox instance
     let input_tokens = hippox.get_current_input_token_count();
     let output_tokens = hippox.get_current_output_token_count();

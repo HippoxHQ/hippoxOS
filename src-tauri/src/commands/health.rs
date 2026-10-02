@@ -1,5 +1,5 @@
 use crate::commands::get_default_chat_model_id;
-use crate::hippox_core::get_default_hippox;
+use crate::hippox_core::get_default_hippox_with_chat_model;
 use crate::state::AppState;
 use crate::{
     commands::config::{get_hippox_instance, HIPPOX_APP_CONFIG},
@@ -210,7 +210,7 @@ pub async fn cmd_check_all_image_health() -> Result<Vec<HealthCheckResult>, Stri
     if instances.is_empty() {
         return Ok(vec![]);
     }
-    let hippox = match get_default_hippox().await {
+    let hippox = match get_default_hippox_with_chat_model().await {
         Ok(h) => h,
         Err(e) => return Err(format!("Failed to get default Hippox instance: {}", e)),
     };
@@ -271,7 +271,7 @@ pub async fn cmd_check_all_video_health() -> Result<Vec<HealthCheckResult>, Stri
     if instances.is_empty() {
         return Ok(vec![]);
     }
-    let hippox = match get_default_hippox().await {
+    let hippox = match get_default_hippox_with_chat_model().await {
         Ok(h) => h,
         Err(e) => return Err(format!("Failed to get default Hippox instance: {}", e)),
     };
@@ -332,7 +332,7 @@ pub async fn cmd_check_all_audio_health() -> Result<Vec<HealthCheckResult>, Stri
     if instances.is_empty() {
         return Ok(vec![]);
     }
-    let hippox = match get_default_hippox().await {
+    let hippox = match get_default_hippox_with_chat_model().await {
         Ok(h) => h,
         Err(e) => return Err(format!("Failed to get default Hippox instance: {}", e)),
     };

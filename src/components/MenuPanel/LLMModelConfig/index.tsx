@@ -294,11 +294,11 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({ t, onSave, isInitializi
       return newSet;
     });
   };
-  // Select all instances (excluding default) - only available in batch mode
+  // Select all instances - only available in batch mode.
   const handleSelectAll = () => {
     // Only allow in batch mode
     if (!isBatchMode) return;
-    const allIds = Object.keys(instances).filter((id) => id !== defaultInstanceId);
+    const allIds = Object.keys(instances);
     setSelectedIds(new Set(allIds));
     showToast(ToastType.INFO, isZh ? "已选择所有实例" : "Selected all instances");
   };
@@ -309,20 +309,12 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({ t, onSave, isInitializi
     setSelectedIds(new Set());
     showToast(ToastType.INFO, isZh ? "已取消所有选择" : "Deselected all instances");
   };
-  // Batch delete selected instances - only available in batch mode
+  // Batch delete selected instances - only available in batch mode.
   const handleBatchDelete = async () => {
     // Only allow in batch mode
     if (!isBatchMode) return;
     if (selectedIds.size === 0) {
       showToast(ToastType.WARNING, isZh ? "请先选择要删除的实例" : "Please select instances to delete");
-      return;
-    }
-    if (selectedIds.has(defaultInstanceId)) {
-      showToast(ToastType.WARNING, isZh ? "不能删除默认实例" : "Cannot delete default instance");
-      return;
-    }
-    if (selectedIds.size >= Object.keys(instances).length) {
-      showToast(ToastType.WARNING, isZh ? "不能删除所有实例" : "Cannot delete all instances");
       return;
     }
     const confirmMessage = isZh ? `确定要删除选中的 ${selectedIds.size} 个实例吗？` : `Are you sure you want to delete ${selectedIds.size} selected instance(s)?`;
@@ -405,16 +397,10 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({ t, onSave, isInitializi
       showToast(ToastType.ERROR, isZh ? "设置默认模型失败" : "Failed to set default model");
     }
   };
-  // Delete a single provider instance with confirmation
+  // Delete a single provider instance with confirmation.
+  // NOTE: The "cannot delete last instance" guard and the default-instance guard have been removed,
+  // so any instance (including the only remaining / default one) can be deleted.
   const handleDeleteInstance = async (instanceId: string, instanceName: string) => {
-    if (Object.keys(instances).length <= 1) {
-      showToast(ToastType.WARNING, t("llmModel.cannotDeleteLast"));
-      return;
-    }
-    if (defaultInstanceId === instanceId) {
-      showToast(ToastType.WARNING, t("llmModel.cannotDeleteDefault"));
-      return;
-    }
     showDialog(
       DialogType.WARNING,
       t("llmModel.deleteConfirmTitle"),
@@ -626,7 +612,7 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({ t, onSave, isInitializi
           {/* Batch mode actions - only visible in batch mode */}
           {isBatchMode && (
             <>
-              <button className={`llm-config-btn tiny${selectedIds.size === Object.keys(instances).filter((id) => id !== defaultInstanceId).length && Object.keys(instances).length > 0 ? " active" : ""}`} onClick={handleSelectAll}>
+              <button className={`llm-config-btn tiny${selectedIds.size === Object.keys(instances).length && Object.keys(instances).length > 0 ? " active" : ""}`} onClick={handleSelectAll}>
                 {isZh ? "全选" : "Select All"}
               </button>
               <button className="llm-config-btn tiny" onClick={handleDeselectAll}>
@@ -718,8 +704,10 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({ t, onSave, isInitializi
             const instanceName = getProviderName(instance.provider);
             const isSelected = selectedIds.has(id);
             const isDefault = defaultInstanceId === id;
-            const showCheckbox = isBatchMode && !isDefault;
-            const isCheckboxDisabled = !isBatchMode || isDefault;
+            /* NOTE: The default instance is no longer excluded from selection,
+               so it can be checked and deleted in batch mode. */
+            const showCheckbox = isBatchMode;
+            const isCheckboxDisabled = !isBatchMode;
             const providerDescription = getProviderDescription(instance.provider);
             const persistedModels: any[] = Array.isArray(instance.models) ? instance.models : [];
             const modelNames: string[] = getModelsForProvider(instance.provider, persistedModels);
@@ -805,11 +793,11 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({ t, onSave, isInitializi
                           {t("llmModel.setAsDefault")}
                         </button>
                       )}
-                      {!isDefault && Object.keys(instances).length > 1 && (
-                        <button className="llm-config-btn danger small" onClick={() => handleDeleteInstance(id, instanceName)}>
-                          {t("llmModel.delete")}
-                        </button>
-                      )}
+                      {/* NOTE: The `Object.keys(instances).length > 1` guard has been removed,
+                          so the delete button is available for every instance (including the last one). */}
+                      <button className="llm-config-btn danger small" onClick={() => handleDeleteInstance(id, instanceName)}>
+                        {t("llmModel.delete")}
+                      </button>
                     </div>
                   </div>
                 </div>

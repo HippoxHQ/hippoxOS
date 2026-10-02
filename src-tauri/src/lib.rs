@@ -40,8 +40,13 @@ use tokio::time::sleep;
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let rt = tokio::runtime::Runtime::new().unwrap();
+    let _guard = rt.enter();
     let app_state = AppState::new();
     let app_state_clone = app_state.clone();
+    // ========== Start media generation task pools ==========
+    crate::subsystem::spawn_image_task_pool();
+    crate::subsystem::spawn_video_task_pool();
+    crate::subsystem::spawn_audio_task_pool();
     // ========== All initialization runs asynchronously in background ==========
     // Spawn a single background thread for ALL initialization operations
     std::thread::spawn(move || {
@@ -101,15 +106,11 @@ pub fn run() {
             // ========== Persist task pool ==========
             scheduled_task_persist_task_pool::scheduled_task_persist_task_pool(task_pool.clone()).await;
             // ========== SKILLS MARKET: Load on demand only ==========
-            // NOTE: Skills market is NOT loaded at startup to save memory.
-            // It will be loaded when user clicks on Skills Market panel.
-            // The directory is created but content is not loaded.
             log::info!("All initialization completed successfully");
         });
     });
     // ========== Build and run Tauri application immediately ==========
     // The app starts without waiting for any initialization
-    let _guard = rt.enter();
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, None))

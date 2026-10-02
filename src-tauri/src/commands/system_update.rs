@@ -194,11 +194,8 @@ pub async fn cmd_download_and_install_update(download_url: String) -> Result<(),
                 match total {
                     Some(t) => {
                         let percent = if t > 0 { (downloaded as f64 / t as f64) * 100.0 } else { 0.0 };
-                        eprintln!("[update] {} / {} MB ({:.1}%)", downloaded / 1024 / 1024, t / 1024 / 1024, percent);
                     }
-                    None => {
-                        eprintln!("[update] {} MB", downloaded / 1024 / 1024);
-                    }
+                    None => {}
                 }
             }
         })
@@ -214,20 +211,13 @@ pub async fn cmd_download_and_install_update(download_url: String) -> Result<(),
         return Err(format!("Installer file does not exist: {:?}", file_path));
     }
     let file_size = std::fs::metadata(&file_path).map(|m| m.len()).unwrap_or(0);
-    eprintln!("[update] installer file exists, size = {} bytes", file_size);
     // Launch the installer.
-    // On Windows: use `cmd /c start "" msiexec /i "<path>"` via `hidden_cmd`
-    // so that the console window is hidden and Windows parses the command
-    // exactly like a user typing it in a terminal. `start` detaches the
-    // installer process from ours, so our exit does not kill it.
     #[cfg(target_os = "windows")]
     {
         use crate::commons::hidden_cmd;
         let path_str = file_path.to_string_lossy();
-        eprintln!("[update] installer path = {}", path_str);
         // The command we are going to run:
         //   cmd /c start "" msiexec /i "<absolute path to installer>"
-        eprintln!("[update] running: cmd /c start \"\" msiexec /i \"{}\"", path_str);
         hidden_cmd("cmd")
             .arg("/c")
             .arg("start")
@@ -237,13 +227,10 @@ pub async fn cmd_download_and_install_update(download_url: String) -> Result<(),
             .arg(path_str.as_ref())
             .spawn()
             .map_err(|e| format!("Failed to launch installer: {}", e))?;
-        eprintln!("[update] installer launched");
     }
     #[cfg(not(target_os = "windows"))]
     {
-        eprintln!("[update] opening installer: {:?}", file_path);
         open::that(&file_path).map_err(|e| format!("Failed to open installer: {}", e))?;
-        eprintln!("[update] installer launched");
     }
     log::info!("Installer started successfully");
     // Give the OS a moment to hand off the installer process, then exit.
