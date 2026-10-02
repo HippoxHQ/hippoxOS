@@ -690,6 +690,7 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         subsystem::cmd_add_3d_gif_to_track,
         subsystem::cmd_add_3d_gif_to_overlay_track,
         // Video generation tasks
+        subsystem::cmd_set_generate_video_material_id,
         subsystem::cmd_generate_video,
         subsystem::cmd_poll_generate_video,
         subsystem::cmd_download_generate_video,
@@ -699,6 +700,7 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         subsystem::cmd_cancel_generate_video_task,
         subsystem::cmd_get_generate_video_session_tasks,
         // Image generation tasks
+        subsystem::cmd_set_generate_image_material_id,
         subsystem::cmd_generate_image,
         subsystem::cmd_poll_generate_image,
         subsystem::cmd_download_generate_image,
@@ -708,6 +710,7 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         subsystem::cmd_cancel_generate_image_task,
         subsystem::cmd_get_generate_image_session_tasks,
         // Audio generation tasks
+        subsystem::cmd_set_generate_audio_material_id,
         subsystem::cmd_generate_audio,
         subsystem::cmd_poll_generate_audio,
         subsystem::cmd_download_generate_audio,

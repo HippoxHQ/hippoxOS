@@ -26,7 +26,7 @@ tauri = { version = "2.8.5", features = [
 ] }
 tauri-plugin-log = "2.7.0"
 # hippox = { path = "D:\\gitproject\\hippox\\core" }
-hippox = "0.7.20"
+hippox = "0.7.30"
 # ffmpegx = { path = "D:\\gitproject\\ffmpegx" }
 ffmpegx = "0.2.6"
 # ytdlp = { path = "D:\\gitproject\\ytdlp" }
@@ -79,6 +79,7 @@ futures-util = "0.3.34"
 sys-locale = "0.3.2"
 open = "5.4.4"
 bytemuck = { version = "1.25.2", features = ["derive"] }
+rmp-serde = "1.3.1"
 [target.'cfg(target_os = "windows")'.dependencies]
 windows = { version = "0.62.2", features = ["Win32_System_Performance"] }
 [target.'cfg(target_os = "macos")'.dependencies]
