@@ -1,10 +1,14 @@
+pub mod callback;
+pub mod statistics;
 use crate::commands::{get_hippox_instance, ModelConfig, HIPPOX_APP_CONFIG, HIPPOX_INSTANCES};
+pub use callback::*;
 use hippox::{
     build_audio_config, build_image_config, build_video_config, parse_audio_provider, parse_image_provider, parse_video_provider, AudioLLMConfig,
     AudioModelProvider, ChatModelProvider, Hippox, HippoxConfig, IdentityInformation, ImageLLMConfig, ImageModelProvider, VideoLLMConfig,
     VideoModelProvider,
 };
 use serde::{Deserialize, Serialize};
+pub use statistics::*;
 use std::{collections::HashMap, sync::Arc};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ContainerInstance {

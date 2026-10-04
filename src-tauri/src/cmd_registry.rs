@@ -1,9 +1,14 @@
 use crate::commands;
+use crate::hippox_core;
 use crate::sessions;
 use crate::subsystem;
-#[rustfmt::skip]
+// #[rustfmt::skip]
 pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send + Sync + 'static {
     tauri::generate_handler![
+        // hippox
+        hippox_core::cmd_get_statistics,
+        hippox_core::cmd_rebuild_statistics,
+        hippox_core::cmd_get_statistics_by_subsystem,
         // Config
         commands::cmd_get_config,
         commands::cmd_set_config,
@@ -133,9 +138,9 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_open_path,
         commands::cmd_select_directory,
         commands::cmd_select_file,
-        commands::cmd_save_file_dialog,      
-        commands::cmd_write_text_file,       
-        commands::cmd_write_binary_file,     
+        commands::cmd_save_file_dialog,
+        commands::cmd_write_text_file,
+        commands::cmd_write_binary_file,
         commands::cmd_read_directory,
         commands::cmd_path_exists,
         commands::cmd_read_text_file,
@@ -180,7 +185,7 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_delete_notification_instance,
         commands::cmd_toggle_notification_instance,
         commands::cmd_get_notification_instances,
-        //  VideoEditor & SandBox3D Layout Swap Mode 
+        //  VideoEditor & SandBox3D Layout Swap Mode
         commands::cmd_get_settings_videoeditor_layout_swap_mode,
         commands::cmd_save_settings_videoeditor_layout_swap_mode,
         commands::cmd_get_settings_sandbox3d_layout_swap_mode,
@@ -219,9 +224,9 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_window_set_size,
         commands::cmd_window_set_position,
         commands::cmd_window_hide,
-        commands::cmd_window_show,           
-        commands::cmd_window_is_visible,     
-        commands::cmd_window_set_focus,      
+        commands::cmd_window_show,
+        commands::cmd_window_is_visible,
+        commands::cmd_window_set_focus,
         commands::cmd_create_submenu_window,
         commands::cmd_create_about_window,
         commands::cmd_emit_to_main_window,
@@ -431,7 +436,7 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         sessions::cmd_load_codeeditor_task_content,
         sessions::cmd_update_pinned_codeeditor_sessions,
         sessions::cmd_get_pinned_codeeditor_sessions,
-        // Video Session 
+        // Video Session
         sessions::cmd_create_video_dialog_session,
         sessions::cmd_list_video_dialog_sessions,
         sessions::cmd_load_video_session_config,
@@ -445,7 +450,7 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         sessions::cmd_load_video_task_content,
         sessions::cmd_update_pinned_video_sessions,
         sessions::cmd_get_pinned_video_sessions,
-        // SandBox3D Session 
+        // SandBox3D Session
         sessions::cmd_create_sandbox3d_dialog_session,
         sessions::cmd_list_sandbox3d_dialog_sessions,
         sessions::cmd_load_sandbox3d_session_config,
@@ -459,9 +464,9 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         sessions::cmd_load_sandbox3d_task_content,
         sessions::cmd_update_pinned_sandbox3d_sessions,
         sessions::cmd_get_pinned_sandbox3d_sessions,
-        //  Video Session Tracks 
+        //  Video Session Tracks
         sessions::cmd_get_video_session_tracks,
-        sessions::cmd_update_video_session_tracks,  
+        sessions::cmd_update_video_session_tracks,
         // ================================================ Finance ================================================
         subsystem::cmd_fetch_a_stocks,
         subsystem::cmd_get_popular_a_stocks,
@@ -474,7 +479,7 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         subsystem::cmd_fetch_hyperliquid_perpetuals,
         subsystem::cmd_fetch_yahoo_stocks,
         // ================================================ Code Editor ================================================
-        //  CodeEditor File Operations 
+        //  CodeEditor File Operations
         subsystem::cmd_open_in_terminal,
         subsystem::cmd_create_file,
         subsystem::cmd_create_folder,
@@ -513,7 +518,7 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         subsystem::cmd_get_sandbox3d_gif_path,
         subsystem::cmd_register_3d_material,
         // ======================= Video Editor  =======================
-        // Basic Editing 
+        // Basic Editing
         subsystem::cmd_video_metadata,
         subsystem::cmd_video_thumbnail,
         subsystem::cmd_video_duration,
@@ -521,19 +526,19 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         subsystem::cmd_clear_all_memory,
         // Multi-Track Composition
         // Keyframe Animation
-        // Advanced Features 
+        // Advanced Features
         //  Video Player Commands
         subsystem::cmd_player_extract_frame_at_time,
         subsystem::cmd_player_extract_full_frame_at_time,
         subsystem::cmd_player_extract_full_frame_at_time_by_track_id,
-        subsystem::cmd_player_extract_frames_batch_at_time,   
-        subsystem::cmd_prefetch_frame_cache, 
+        subsystem::cmd_player_extract_frames_batch_at_time,
+        subsystem::cmd_prefetch_frame_cache,
         subsystem::cmd_clear_non_session_frame_cache,
         subsystem::cmd_get_transition_frames_by_id,
-        //  Video Materials 
-        subsystem::cmd_get_video_materials,     
-        subsystem::cmd_get_audio_materials,     
-        subsystem::cmd_get_image_materials,     
+        //  Video Materials
+        subsystem::cmd_get_video_materials,
+        subsystem::cmd_get_audio_materials,
+        subsystem::cmd_get_image_materials,
         subsystem::cmd_get_text_materials,
         subsystem::cmd_get_all_materials,
         subsystem::cmd_get_material_by_id,
@@ -564,12 +569,12 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         subsystem::cmd_get_external_image_material_files,
         subsystem::cmd_download_and_add_video_material_to_track,
         subsystem::cmd_download_and_add_image_material_to_track,
-        //  Video Materials Upload 
+        //  Video Materials Upload
         subsystem::cmd_upload_video_material,
         subsystem::cmd_upload_audio_material,
         subsystem::cmd_upload_image_material,
-        subsystem::cmd_upload_text_material,   
-        //  Video Materials Operations 
+        subsystem::cmd_upload_text_material,
+        //  Video Materials Operations
         subsystem::cmd_delete_material,
         subsystem::cmd_rename_material,
         subsystem::cmd_copy_material,
@@ -586,7 +591,7 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         subsystem::cmd_open_material_preview,
         subsystem::cmd_close_material_preview,
         subsystem::cmd_get_material_preview_data,
-        //  Video Tracks 
+        //  Video Tracks
         subsystem::cmd_add_track,
         subsystem::cmd_refresh_all_track,
         subsystem::cmd_organize_track_blocks,
@@ -595,7 +600,7 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         subsystem::cmd_get_tracks,
         subsystem::cmd_get_track_rows,
         subsystem::cmd_get_track_rows_reversed,
-        subsystem::cmd_get_track_by_id, 
+        subsystem::cmd_get_track_by_id,
         subsystem::cmd_get_track_block_by_id,
         subsystem::cmd_get_track_block_track_locked,
         subsystem::cmd_get_overlay_block_track_locked,
@@ -612,7 +617,7 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         subsystem::cmd_get_overlay_stack,
         subsystem::cmd_get_overlay_stack_reversed,
         subsystem::cmd_split_video_to_audio,
-        //  Audio Playback subsystem 
+        //  Audio Playback subsystem
         subsystem::cmd_play_audio,
         subsystem::cmd_stop_audio,
         subsystem::cmd_pause_audio,
@@ -632,14 +637,14 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         subsystem::cmd_previous_overlay_track_history,
         subsystem::cmd_next_overlay_track_history,
         subsystem::cmd_add_material_to_track,
-        // Trim Track Block 
-        subsystem::cmd_trim_track_block,           
-        subsystem::cmd_trim_track_block_start,     
-        subsystem::cmd_trim_track_block_end,       
-        subsystem::cmd_trim_overlay_track_block,           
-        subsystem::cmd_trim_overlay_track_block_start,     
-        subsystem::cmd_trim_overlay_track_block_end,   
-        //  Batch Trim Track Block  
+        // Trim Track Block
+        subsystem::cmd_trim_track_block,
+        subsystem::cmd_trim_track_block_start,
+        subsystem::cmd_trim_track_block_end,
+        subsystem::cmd_trim_overlay_track_block,
+        subsystem::cmd_trim_overlay_track_block_start,
+        subsystem::cmd_trim_overlay_track_block_end,
+        //  Batch Trim Track Block
         subsystem::cmd_batch_trim_track_blocks,
         subsystem::cmd_batch_trim_track_blocks_start,
         subsystem::cmd_batch_trim_track_blocks_end,
@@ -650,7 +655,7 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         subsystem::cmd_batch_trim_all_blocks_start,
         subsystem::cmd_batch_trim_all_blocks_end,
         subsystem::cmd_remove_all_blocks_batch,
-        //  Video Transitions 
+        //  Video Transitions
         subsystem::cmd_get_track_transition_candidates,
         subsystem::cmd_get_session_transition_candidates,
         subsystem::cmd_get_block_gap,
@@ -661,7 +666,7 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         subsystem::cmd_get_track_transitions,
         subsystem::cmd_get_session_transitions,
         subsystem::cmd_get_transition_type_list,
-        //  TTS 
+        //  TTS
         subsystem::cmd_generate_tts,
         subsystem::cmd_get_tts_task,
         subsystem::cmd_list_tts_tasks,
@@ -690,6 +695,8 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         subsystem::cmd_add_3d_gif_to_track,
         subsystem::cmd_add_3d_gif_to_overlay_track,
         // Video generation tasks
+        subsystem::cmd_get_generate_video_statistics,
+        subsystem::cmd_rebuild_generate_video_statistics,
         subsystem::cmd_set_generate_video_material_id,
         subsystem::cmd_generate_video,
         subsystem::cmd_poll_generate_video,
@@ -700,6 +707,8 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         subsystem::cmd_cancel_generate_video_task,
         subsystem::cmd_get_generate_video_session_tasks,
         // Image generation tasks
+        subsystem::cmd_get_generate_image_statistics,
+        subsystem::cmd_rebuild_generate_image_statistics,
         subsystem::cmd_set_generate_image_material_id,
         subsystem::cmd_generate_image,
         subsystem::cmd_poll_generate_image,
@@ -710,6 +719,8 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         subsystem::cmd_cancel_generate_image_task,
         subsystem::cmd_get_generate_image_session_tasks,
         // Audio generation tasks
+        subsystem::cmd_get_generate_audio_statistics,
+        subsystem::cmd_rebuild_generate_audio_statistics,
         subsystem::cmd_set_generate_audio_material_id,
         subsystem::cmd_generate_audio,
         subsystem::cmd_poll_generate_audio,
@@ -719,7 +730,7 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         subsystem::cmd_delete_generate_audio_task,
         subsystem::cmd_cancel_generate_audio_task,
         subsystem::cmd_get_generate_audio_session_tasks,
-        //  Video Overlays 
+        //  Video Overlays
         subsystem::cmd_register_overlay,
         subsystem::cmd_list_overlays,
         subsystem::cmd_list_image_overlays,
@@ -781,7 +792,7 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         subsystem::cmd_set_overlay_block_locked,
         subsystem::cmd_update_track_block_volume,
         subsystem::cmd_update_track_block_speed,
-        //  Overlay Update Style 
+        //  Overlay Update Style
         subsystem::cmd_update_text_block_all_style,
         subsystem::cmd_update_overlay_transform,
         subsystem::cmd_update_overlay_text_style,
@@ -789,7 +800,7 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         subsystem::cmd_update_overlay_border,
         subsystem::cmd_update_overlay_stroke,
         subsystem::cmd_update_overlay_shadow,
-        //  Overlay Reset subsystem 
+        //  Overlay Reset subsystem
         subsystem::cmd_reset_overlay_transform,
         subsystem::cmd_reset_overlay_text_style,
         subsystem::cmd_reset_overlay_background,
@@ -797,7 +808,7 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         subsystem::cmd_reset_overlay_stroke,
         subsystem::cmd_reset_overlay_shadow,
         subsystem::stats_project_info,
-        //  effects 
+        //  effects
         subsystem::cmd_effects_get_filter_type_list,
         subsystem::cmd_effects_get_camera_motion_type_list,
         subsystem::cmd_effects_get_vfx_type_list,
@@ -814,7 +825,7 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         subsystem::cmd_effects_get_filter_type_list_flat,
         subsystem::cmd_effects_get_vfx_type_list_flat,
         subsystem::cmd_effects_get_camera_motion_type_list_flat,
-        // animation 
+        // animation
         subsystem::cmd_get_animation_properties,
         subsystem::cmd_add_time_animation,
         subsystem::cmd_add_keyframe_animation,
@@ -826,7 +837,7 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         subsystem::cmd_get_dot_animation,
         subsystem::cmd_add_overlay_dot_animation,
         subsystem::cmd_get_overlay_dot_animation,
-        // video editor export 
+        // video editor export
         subsystem::cmd_get_encoding_formats,
         subsystem::cmd_get_crf_qualities,
         subsystem::cmd_get_encoder_presets,

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "../../../hooks/useTranslation";
-import { hippoxCommands } from "../../../command/chat";
+import { hippoxCommands, SubSystemEnum } from "../../../command/chat";
 import { taskManager } from "../../../core/TaskManager";
 import { TaskInfo, UploadFile, TaskStatusEnum, SessionDomain } from "../../../core/types";
 import { Language, ChatMessage, RoleEnum, MessageStatus } from "../../../types/types";
@@ -233,6 +233,7 @@ export function useSession(
             const taskId = await hippoxCommands.sendMessageAsync(
                 userMessage,
                 fullMessage,
+                SubSystemEnum.General,
                 finalSessionId,
                 mode,  // Pass workflow mode to backend
             );

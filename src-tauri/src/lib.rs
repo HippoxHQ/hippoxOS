@@ -1,6 +1,5 @@
 #![allow(warnings)]
 #![windows_subsystem = "windows"]
-mod callback;
 mod cmd_registry;
 mod commands;
 mod commons;

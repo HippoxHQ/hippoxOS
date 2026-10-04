@@ -1,8 +1,11 @@
 use crate::callback::{HippoXWorkflowCallback, HippoxDriverCallback};
-use crate::commands::{HIPPOX_APP_CONFIG, TaskInfo, cmd_get_disabled_drivers, get_default_chat_model_id, increment_session_chat_count, load_config_from_file};
+use crate::commands::{
+    cmd_get_disabled_drivers, get_default_chat_model_id, increment_session_chat_count, load_config_from_file, TaskInfo, HIPPOX_APP_CONFIG,
+};
 use crate::context::{get_conversation_history, store_user_message, Context};
 use crate::hippox_core::{get_default_hippox_with_chat_model, init_all_hippox_instances};
 use crate::state::AppState;
+use crate::statistics::{append_record, update_record, ChatSource, ChatStatisticsRecord, RecordPatch};
 use crate::types::Role;
 use crate::workspace::get_default_workspace;
 use hippox::{string_to_workflow_mode, ChatModelProvider};
@@ -11,10 +14,63 @@ use memcontext::MemContext;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::collections::HashMap;
+use std::str::FromStr;
 use std::sync::Arc;
 use tauri::{Emitter, State};
 use tokio::sync::Mutex;
 use uuid::Uuid;
+/// Which chat subsystem a message belongs to.
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Hash)]
+#[serde(rename_all = "snake_case")]
+pub enum SubSystemEnum {
+    /// Default variant, used when a record does not carry a subsystem.
+    #[default]
+    General,
+    Finance,
+    Map,
+    CodeEditor,
+    Video,
+    SandBox3D,
+    BlockChain,
+}
+impl SubSystemEnum {
+    /// Enum -> canonical lowercase string.
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            SubSystemEnum::General => "general",
+            SubSystemEnum::Finance => "finance",
+            SubSystemEnum::Map => "map",
+            SubSystemEnum::CodeEditor => "code_editor",
+            SubSystemEnum::Video => "video",
+            SubSystemEnum::SandBox3D => "sandbox3d",
+            SubSystemEnum::BlockChain => "block_chain",
+        }
+    }
+    /// String -> enum. Case-insensitive; unknown values return an error.
+    pub fn from_str(s: &str) -> Result<Self, String> {
+        match s.to_lowercase().as_str() {
+            "general" => Ok(SubSystemEnum::General),
+            "finance" => Ok(SubSystemEnum::Finance),
+            "map" => Ok(SubSystemEnum::Map),
+            "code_editor" => Ok(SubSystemEnum::CodeEditor),
+            "video" => Ok(SubSystemEnum::Video),
+            "sandbox3d" => Ok(SubSystemEnum::SandBox3D),
+            "block_chain" => Ok(SubSystemEnum::BlockChain),
+            other => Err(format!("Unknown subsystem: {}", other)),
+        }
+    }
+}
+impl std::fmt::Display for SubSystemEnum {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.as_str())
+    }
+}
+impl FromStr for SubSystemEnum {
+    type Err = String;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        SubSystemEnum::from_str(s)
+    }
+}
 pub(crate) struct LogMessages {
     init_start: String,
     init_success: String,
@@ -77,6 +133,20 @@ async fn build_enhanced_message(mem: Option<&MemContext>, session_id: &str, mess
         format!("{}", message)
     }
 }
+/// Resolve the provider and default model of the current default LLM instance.
+async fn resolve_default_chat_provider_and_model() -> (String, String) {
+    let config = HIPPOX_APP_CONFIG.read().await;
+    let default_id = config
+        .llm_instances
+        .iter()
+        .find(|(_, instance)| instance.is_default == Some(true))
+        .map(|(id, _)| id.clone())
+        .or_else(|| config.llm_instances.keys().next().cloned());
+    match default_id.and_then(|id| config.llm_instances.get(&id)) {
+        Some(inst) => (inst.provider.clone(), inst.default_model.clone()),
+        None => (String::new(), String::new()),
+    }
+}
 #[tauri::command]
 pub async fn cmd_set_hippox_language(state: State<'_, AppState>, language: String) -> Result<(), String> {
     state.set_language(language).await;
@@ -100,8 +170,15 @@ pub async fn cmd_send_chat_message_async(
     message: String,
     session_id: Option<String>,
     workflow_mode: Option<String>,
+    subsystem: Option<String>,
 ) -> Result<String, String> {
     let session = session_id.clone().unwrap_or_else(|| "default".to_string());
+    // Resolve the subsystem identifier. When the caller omits it, default to
+    // `General` so older call sites keep working unchanged.
+    let subsystem_enum = match subsystem {
+        Some(ref s) if !s.trim().is_empty() => SubSystemEnum::from_str(s)?,
+        _ => SubSystemEnum::General,
+    };
     let hippox = get_default_hippox_with_chat_model().await?;
     let mem = state.get_memcontext().await;
     // Store user message
@@ -119,19 +196,54 @@ pub async fn cmd_send_chat_message_async(
     let disabled_drivers = cmd_get_disabled_drivers().await.ok();
     let disable_drivers_refs = disabled_drivers.as_ref().map(|v| v.iter().map(|s| s.as_str()).collect::<Vec<_>>());
     // default workflow
-    let workflow_mode_enum = if let Some(mode_str) = workflow_mode {
-        string_to_workflow_mode(&mode_str).ok_or_else(|| format!("Invalid workflow mode: {}", mode_str))?
-    } else {
-        WorkflowMode::ReAct
+    let workflow_mode_str = workflow_mode.clone().unwrap_or_else(|| "ReAct".to_string());
+    let workflow_mode_enum = match string_to_workflow_mode(&workflow_mode_str) {
+        Some(m) => m,
+        None => return Err(format!("Invalid workflow mode: {}", workflow_mode_str)),
     };
+    // Resolve the provider and model so the statistics ledger can attribute
+    // the message to a concrete provider/model pair.
+    let (provider, model) = resolve_default_chat_provider_and_model().await;
     // Handle HippoxResult from submit
-    let model = get_default_chat_model_id().await.unwrap_or_default();
     let core_task_id =
         match hippox.submit(&enhanced_message, workflow_mode_enum, &model, Some(workflow_callback), Some(skill_callback), disable_drivers_refs) {
             HippoxResult { data: Some(task_id), .. } => task_id,
             HippoxResult { error: Some(err), .. } => return Err(err),
             _ => return Err("Failed to submit task".to_string()),
         };
+    // Pre-create a pending "llm" record with the submit-time provider/model
+    // snapshot and the subsystem identifier.
+    append_record(ChatStatisticsRecord::llm(
+        &core_task_id,
+        &session,
+        subsystem_enum,
+        ChatSource::Chat,
+        "",
+        &model,
+        &provider,
+        &workflow_mode_str,
+        0,
+        0,
+    ));
+    {
+        let task_id_for_tokens = core_task_id.clone();
+        tokio::spawn(async move {
+            let result = hippox::wait_task(&task_id_for_tokens).await;
+            let (content, input_tokens, output_tokens) = match result {
+                HippoxResult { data: Some(output), input_tokens, output_tokens, .. } => (output, input_tokens, output_tokens),
+                HippoxResult { error: Some(err), input_tokens, output_tokens, .. } => {
+                    log::warn!("[Statistics] task {} failed: {}", task_id_for_tokens, err);
+                    (String::new(), input_tokens, output_tokens)
+                }
+                _ => (String::new(), 0, 0),
+            };
+            update_record(
+                &task_id_for_tokens,
+                "llm",
+                RecordPatch { content: Some(content), input_tokens: Some(input_tokens), output_tokens: Some(output_tokens) },
+            );
+        });
+    }
     let messages = LogMessages::get();
     state.add_log("process".to_string(), messages.send_start.replace("{}", &message), Some(format!("task_id: {}", core_task_id)), None).await;
     state.create_task(core_task_id.clone(), session.clone(), message.clone()).await;

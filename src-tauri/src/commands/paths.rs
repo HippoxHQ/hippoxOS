@@ -30,14 +30,16 @@ const MAP_DIALOG_HISTORY_DIR_NAME: &str = "Map";
 const BLOCKCHAIN_DIALOG_HISTORY_DIR_NAME: &str = "BlockChain";
 /// Code Editor Dialog History directory name
 const CODE_EDITOR_DIALOG_HISTORY_DIR_NAME: &str = "CodeEditor";
+/// Scheduled Tasks directory name
+const SCHEDULED_TASKS_DIR_NAME: &str = "ScheduledTasks";
+/// Common statistics file name shared by every subsystem.
+const STATISTICS_FILE_NAME: &str = "statistics.json";
 /// This directory is the metadata directory for the file system within the code editor subsystem.
 pub const CODEEDITOR_METADATA_PATH: &str = ".hippox";
 /// Material Favorites directory name
 // const MATERIAL_FAVORITES_DIR_NAME: &str = "MaterialFavorites";
 /// Skills Market directory name
 const SKILLS_MARKET_DIR_NAME: &str = "SkillsMarket";
-/// Scheduled Tasks directory name
-const SCHEDULED_TASKS_DIR_NAME: &str = "ScheduledTasks";
 /// Log directory name
 const LOG_DIR_NAME: &str = "logs";
 /// Cache directory name
@@ -110,29 +112,61 @@ pub fn get_video_editing_system_root_dir() -> PathBuf {
 pub fn get_video_editing_system_dialog_history_dir() -> PathBuf {
     get_app_root_dir().join(SUB_SYSTEM_PATH).join(VIDEO_EDIT_DIR_NAME).join(VIDEO_DIALOG_HISTORY_DIR_NAME)
 }
-/// SandBox3D Dialog history directory: HippoX/subsystem/SandBox3DDialogHistory
+/// SandBox3D Dialog history directory: HippoX/subsystem/SandBox3D
 pub fn get_sandbox3d_dialog_history_dir() -> PathBuf {
     get_app_root_dir().join(SUB_SYSTEM_PATH).join(SANDBOX3D_DIALOG_HISTORY_DIR_NAME)
 }
-/// General history directory: HippoX/subsystem/DialogHistory
+/// General history directory: HippoX/subsystem/General
 pub fn get_general_history_dir() -> PathBuf {
     get_app_root_dir().join(SUB_SYSTEM_PATH).join(GENERAL_HISTORY_DIR_NAME)
 }
-/// Finance Dialog history directory: HippoX/subsystem/FinancialAnalysisDialogHistory
+/// Finance Dialog history directory: HippoX/subsystem/Finance
 pub fn get_finance_dialog_history_dir() -> PathBuf {
     get_app_root_dir().join(SUB_SYSTEM_PATH).join(FINANCE_DIALOG_HISTORY_DIR_NAME)
 }
-/// Map Dialog history directory: HippoX/subsystem/MapDialogHistory
+/// Map Dialog history directory: HippoX/subsystem/Map
 pub fn get_map_dialog_history_dir() -> PathBuf {
     get_app_root_dir().join(SUB_SYSTEM_PATH).join(MAP_DIALOG_HISTORY_DIR_NAME)
 }
-/// Map Dialog history directory: HippoX/subsystem/BlockChain
+/// BlockChain Dialog history directory: HippoX/subsystem/BlockChain
 pub fn get_blockchain_dialog_history_dir() -> PathBuf {
     get_app_root_dir().join(SUB_SYSTEM_PATH).join(BLOCKCHAIN_DIALOG_HISTORY_DIR_NAME)
 }
-/// Code Editor Dialog history directory: HippoX/subsystem/CodeEditorDialogHistory
+/// Code Editor Dialog history directory: HippoX/subsystem/CodeEditor
 pub fn get_codeeditor_dialog_history_dir() -> PathBuf {
     get_app_root_dir().join(SUB_SYSTEM_PATH).join(CODE_EDITOR_DIALOG_HISTORY_DIR_NAME)
+}
+/// General statistics file: HippoX/subsystem/General/statistics.json
+pub fn get_general_history_statistics() -> PathBuf {
+    get_app_root_dir().join(SUB_SYSTEM_PATH).join(GENERAL_HISTORY_DIR_NAME).join(STATISTICS_FILE_NAME)
+}
+/// Finance statistics file: HippoX/subsystem/Finance/statistics.json
+pub fn get_finance_history_statistics() -> PathBuf {
+    get_app_root_dir().join(SUB_SYSTEM_PATH).join(FINANCE_DIALOG_HISTORY_DIR_NAME).join(STATISTICS_FILE_NAME)
+}
+/// Map statistics file: HippoX/subsystem/Map/statistics.json
+pub fn get_map_history_statistics() -> PathBuf {
+    get_app_root_dir().join(SUB_SYSTEM_PATH).join(MAP_DIALOG_HISTORY_DIR_NAME).join(STATISTICS_FILE_NAME)
+}
+/// BlockChain statistics file: HippoX/subsystem/BlockChain/statistics.json
+pub fn get_blockchain_history_statistics() -> PathBuf {
+    get_app_root_dir().join(SUB_SYSTEM_PATH).join(BLOCKCHAIN_DIALOG_HISTORY_DIR_NAME).join(STATISTICS_FILE_NAME)
+}
+/// Code Editor statistics file: HippoX/subsystem/CodeEditor/statistics.json
+pub fn get_codeeditor_history_statistics() -> PathBuf {
+    get_app_root_dir().join(SUB_SYSTEM_PATH).join(CODE_EDITOR_DIALOG_HISTORY_DIR_NAME).join(STATISTICS_FILE_NAME)
+}
+/// SandBox3D statistics file: HippoX/subsystem/SandBox3D/statistics.json
+pub fn get_sandbox3d_history_statistics() -> PathBuf {
+    get_app_root_dir().join(SUB_SYSTEM_PATH).join(SANDBOX3D_DIALOG_HISTORY_DIR_NAME).join(STATISTICS_FILE_NAME)
+}
+/// Video Editor statistics file: HippoX/subsystem/VideoEdit/VideoDialogHistory/statistics.json
+pub fn get_video_editing_system_history_statistics() -> PathBuf {
+    get_video_editing_system_dialog_history_dir().join(STATISTICS_FILE_NAME)
+}
+/// Scheduled Tasks statistics file: HippoX/ScheduledTasks/statistics.json
+pub fn get_scheduled_tasks_statistics() -> PathBuf {
+    get_app_root_dir().join(SCHEDULED_TASKS_DIR_NAME).join(STATISTICS_FILE_NAME)
 }
 /// Skill market directory: HippoX/SkillsMarket
 pub fn get_skills_market_dir() -> PathBuf {

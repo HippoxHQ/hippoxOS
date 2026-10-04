@@ -1,19 +1,13 @@
 //! Scheduled task executor for user-defined cron tasks
-//!
-//! This module provides a unified abstraction for executing user-defined scheduled tasks.
-//! It supports two types of tasks:
-//! - Natural language tasks: read from natural_language.json
-//! - Skill file tasks: read from SKILL.md
-use crate::commands::{cmd_get_disabled_drivers, get_default_chat_model_id};
 use crate::commands::scheduled_tasks::{get_task_dir, load_natural_language_content, load_skill_md_content, load_task_config, ScheduledTask};
+use crate::commands::{cmd_get_disabled_drivers, get_default_chat_model_id};
 use crate::commons::FileUtils;
-use crate::hippox_core::get_default_hippox_with_chat_model;
+use crate::hippox_core::{append_record, get_default_hippox_with_chat_model, ChatSource, ChatStatisticsRecord};
+use crate::sessions::chat::SubSystemEnum;
 use hippox::HippoxResult;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 /// Represents a single scheduled task execution result
-///
-/// This struct mirrors the Task struct structure for consistency.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ScheduledTaskExecutionResult {
     /// Task ID
@@ -83,10 +77,6 @@ impl ScheduledTaskExecutionResult {
     }
 }
 /// Represents a user-defined scheduled task
-///
-/// This struct encapsulates all data needed to execute a scheduled task.
-/// It can be created from a task ID and provides methods to execute the task
-/// and save the result.
 #[derive(Debug, Clone)]
 pub struct ScheduledTaskExecutor {
     /// The underlying scheduled task configuration
@@ -134,9 +124,6 @@ impl ScheduledTaskExecutor {
     }
     /// Execute the scheduled task and return the result
     ///
-    /// This method sends the task content to the LLM and waits for completion.
-    /// The result is saved to result.json in the task directory.
-    ///
     /// # Returns
     /// * `Ok(ScheduledTaskExecutionResult)` if execution completed (even if LLM returned error)
     /// * `Err(String)` if task cannot be executed (no content, no hippox instance)
@@ -169,9 +156,37 @@ impl ScheduledTaskExecutor {
         let exec_result = hippox.execute(&prompt, mode, &model, None, None, disable_drivers_refs).await;
         match exec_result {
             HippoxResult { data: Some(output), input_tokens, output_tokens, .. } => {
+                // Append the "llm" record (with token usage) to the ledger.
+                // Scheduled tasks are attributed to the General subsystem.
+                append_record(ChatStatisticsRecord::llm(
+                    &self.task.id,
+                    "",
+                    SubSystemEnum::General,
+                    ChatSource::ScheduledTask,
+                    &output,
+                    &model,
+                    "",
+                    &workflow_mode,
+                    input_tokens,
+                    output_tokens,
+                ));
                 result.complete(output, input_tokens, output_tokens);
             }
             HippoxResult { error: Some(err), input_tokens, output_tokens, .. } => {
+                // Even on failure, record the "llm" side with whatever tokens the provider reported, so the ledger stays complete.
+                // Scheduled tasks are attributed to the General subsystem.
+                append_record(ChatStatisticsRecord::llm(
+                    &self.task.id,
+                    "",
+                    SubSystemEnum::General,
+                    ChatSource::ScheduledTask,
+                    "",
+                    &model,
+                    "",
+                    &workflow_mode,
+                    input_tokens,
+                    output_tokens,
+                ));
                 result.fail(err, input_tokens, output_tokens);
             }
             _ => {
