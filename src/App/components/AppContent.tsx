@@ -34,6 +34,7 @@ import SandBox3DPage from "../../subsystem/SandBox3D";
 import VideoEditorPage from "../../subsystem/VideoEditor";
 import ChartPage from "../../subsystem/Finance";
 import BlockchainPage from "../../subsystem/Blockchain";
+import { MENU_PANEL_WIDTH } from "../constants";
 declare global {
   interface Window {
     __pageResources: {
@@ -1146,7 +1147,7 @@ export function AppContent({
                   top: 0,
                   left: 0,
                   bottom: 0,
-                  width: drawerWidth,
+                  width: MENU_PANEL_WIDTH,
                   backgroundColor: "var(--bg-primary)",
                   borderRight: "1px solid var(--border-color)",
                   boxShadow: "8px 0 32px rgba(0, 0, 0, 0.32), 4px 0 12px rgba(0, 0, 0, 0.18)",
@@ -1182,7 +1183,7 @@ export function AppContent({
                   onFileClick={handleFileClick}
                 />
                 {/* Resize handle for the drawer, positioned on the right edge */}
-                <div
+                {/* <div
                   className="menu-panel-resize-handle"
                   style={{
                     position: "absolute",
@@ -1199,7 +1200,7 @@ export function AppContent({
                   onMouseLeave={() => setIsMenuResizeHover(false)}
                 >
                   {isMenuResizeHover && <div style={styles.handleLine} className="handle-line" />}
-                </div>
+                </div> */}
               </div>
             </>
           )}

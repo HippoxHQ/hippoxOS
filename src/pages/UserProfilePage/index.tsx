@@ -103,26 +103,17 @@ const UserProfile: React.FC<UserProfileProps> = ({ t, onClose, currentSessionId 
   const [hourlyData, setHourlyData] = useState<any[]>([]);
   const heatmapContainerRef = useRef<HTMLDivElement>(null);
   const [heatmapKey, setHeatmapKey] = useState(0);
-  /** Profile token totals loaded directly from profile (no polling) */
   const [profileTokens, setProfileTokens] = useState<{ input: number; output: number }>({ input: 0, output: 0 });
-  /** Total task count from profile */
   const [totalTaskCount, setTotalTaskCount] = useState<number>(0);
-  /** Session stats from profile */
   const [sessionStats, setSessionStats] = useState<{
     totalSessions: number;
     totalMessages: number;
     sessionChatMap: Map<string, number>;
   }>({ totalSessions: 0, totalMessages: 0, sessionChatMap: new Map() });
-  /** Per-subsystem chat statistics, sourced from each subsystem's statistics.json. */
   const [subsystemStats, setSubsystemStats] = useState<SubsystemStatisticsMap>({});
-  /** Per-modality media generation statistics, sourced from each generation dir's statistics.json. */
   const [mediaStats, setMediaStats] = useState<MediaGenerationStatistics>({ image: null, audio: null, video: null });
-  /**
-   * Which subsystem's per-model breakdown is currently expanded.
-   * Defaults to "general" so the General chat model list is open on first load.
-   */
   const [expandedSubsystem, setExpandedSubsystem] = useState<SubsystemKey | null>("general");
-  /** Which media modality's per-model breakdown is currently expanded (null = collapsed). */
+  const [chartSubsystem, setChartSubsystem] = useState<SubsystemKey>("general");
   const [expandedMedia, setExpandedMedia] = useState<"image" | "audio" | "video" | null>(null);
   // init
   useEffect(() => {
@@ -446,15 +437,50 @@ const UserProfile: React.FC<UserProfileProps> = ({ t, onClose, currentSessionId 
     },
     { input: 0, output: 0, tasks: 0 },
   );
-  /** Chart data for the subsystem stacked bar chart. */
-  const subsystemChartData = subsystemList.map((s) => ({
-    name: s.label,
-    input: s.input,
-    output: s.output,
-  }));
+  /**
+   * Chart data for the selected subsystem's daily token trend.
+   */
+  const buildSubsystemChartData = (): { label: string; input: number; output: number; total: number }[] => {
+    const days = dateRange === "year" ? 12 : dateRange === "month" ? 30 : 7;
+    const records = subsystemStats[chartSubsystem]?.records || [];
+    // Bucket the records by day (or by month when the range is "year").
+    const byBucket = new Map<string, { input: number; output: number }>();
+    records.forEach((rec) => {
+      const d = new Date(rec.created_at);
+      const key = dateRange === "year" ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}` : formatLocalDate(d);
+      const bucket = byBucket.get(key) || { input: 0, output: 0 };
+      bucket.input += rec.input_tokens || 0;
+      bucket.output += rec.output_tokens || 0;
+      byBucket.set(key, bucket);
+    });
+    const now = new Date();
+    const result: { label: string; input: number; output: number; total: number }[] = [];
+    for (let i = days - 1; i >= 0; i--) {
+      let label: string;
+      let key: string;
+      if (dateRange === "year") {
+        const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        label = `${date.getMonth() + 1}${isZh ? "月" : "M"}`;
+        key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+      } else {
+        const date = new Date();
+        date.setDate(now.getDate() - i);
+        label = `${date.getMonth() + 1}/${date.getDate()}`;
+        key = formatLocalDate(date);
+      }
+      const bucket = byBucket.get(key) || { input: 0, output: 0 };
+      result.push({
+        label,
+        input: bucket.input,
+        output: bucket.output,
+        total: bucket.input + bucket.output,
+      });
+    }
+    return result;
+  };
+  const subsystemChartData = buildSubsystemChartData();
   /**
    * Aggregate chat records by (provider, model) for a single subsystem.
-   * Used to render the per-model breakdown under each subsystem card.
    */
   const buildModelBreakdown = (records: ChatStatisticsRecord[]): { key: string; provider: string; model: string; input: number; output: number; tasks: number }[] => {
     const map = new Map<string, { provider: string; model: string; input: number; output: number; tasks: Set<string> }>();
@@ -1557,25 +1583,6 @@ const UserProfile: React.FC<UserProfileProps> = ({ t, onClose, currentSessionId 
               </span>
             </div>
           </div>
-          {/* Stacked bar: input vs output tokens per subsystem */}
-          <ResponsiveContainer width="100%" height={140}>
-            <BarChart data={subsystemChartData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" opacity={0.3} vertical={false} />
-              <XAxis dataKey="name" tick={{ fill: "var(--text-muted)", fontSize: 8 }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fill: "var(--text-muted)", fontSize: 8 }} axisLine={false} tickLine={false} tickFormatter={formatNumber} />
-              <RechartsTooltip
-                contentStyle={{
-                  background: "var(--bg-secondary)",
-                  border: "1px solid var(--border-color)",
-                  borderRadius: "6px",
-                  fontSize: "10px",
-                }}
-              />
-              <Bar dataKey="input" stackId="a" fill="#818cf8" radius={[0, 0, 0, 0]} />
-              <Bar dataKey="output" stackId="a" fill="#10b981" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-          {/* Per-subsystem cards (click to expand per-model breakdown) */}
           <div
             style={{
               display: "grid",
@@ -1586,6 +1593,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ t, onClose, currentSessionId 
           >
             {subsystemList.map((s) => {
               const isExpanded = expandedSubsystem === s.key;
+              const isChartSelected = chartSubsystem === s.key;
               const breakdown = subsystemModelBreakdown[s.key] || [];
               return (
                 <div
@@ -1596,12 +1604,15 @@ const UserProfile: React.FC<UserProfileProps> = ({ t, onClose, currentSessionId 
                     padding: "8px",
                     borderLeft: `3px solid ${s.color}`,
                     cursor: "pointer",
-                    outline: isExpanded ? `1px solid ${s.color}` : "none",
+                    outline: isChartSelected ? `1px solid ${s.color}` : isExpanded ? `1px solid ${s.color}` : "none",
                   }}
-                  onClick={() => setExpandedSubsystem(isExpanded ? null : s.key)}
+                  onClick={() => {
+                    setChartSubsystem(s.key);
+                    setExpandedSubsystem(isExpanded ? null : s.key);
+                  }}
                   onMouseEnter={(e) =>
                     showTooltip(
-                      `${s.label}\n${isZh ? "输入" : "Input"}: ${formatNumber(s.input)}\n${isZh ? "输出" : "Output"}: ${formatNumber(s.output)}\n${isZh ? "任务" : "Tasks"}: ${s.tasks}\n${isZh ? "记录" : "Records"}: ${s.records}\n${isZh ? "点击查看按模型细分" : "Click to view per-model breakdown"}`,
+                      `${s.label}\n${isZh ? "输入" : "Input"}: ${formatNumber(s.input)}\n${isZh ? "输出" : "Output"}: ${formatNumber(s.output)}\n${isZh ? "任务" : "Tasks"}: ${s.tasks}\n${isZh ? "记录" : "Records"}: ${s.records}\n${isZh ? "点击查看曲线与按模型细分" : "Click to view trend and per-model breakdown"}`,
                       e.currentTarget,
                     )
                   }
@@ -1655,8 +1666,28 @@ const UserProfile: React.FC<UserProfileProps> = ({ t, onClose, currentSessionId 
               );
             })}
           </div>
-          {/* Expanded per-model breakdown for the selected subsystem.
-              The list scrolls once it exceeds MODEL_BREAKDOWN_MAX_HEIGHT. */}
+          <ResponsiveContainer width="100%" height={140}>
+            <AreaChart data={subsystemChartData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+              <defs>
+                <linearGradient id="subsystemChartGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" stopColor={SUBSYSTEM_META.find((m) => m.key === chartSubsystem)?.color || "#818cf8"} stopOpacity={0.3} />
+                  <stop offset="100%" stopColor={SUBSYSTEM_META.find((m) => m.key === chartSubsystem)?.color || "#818cf8"} stopOpacity={0.02} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" opacity={0.3} vertical={false} />
+              <XAxis dataKey="label" tick={{ fill: "var(--text-muted)", fontSize: 8 }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fill: "var(--text-muted)", fontSize: 8 }} axisLine={false} tickLine={false} tickFormatter={formatNumber} />
+              <RechartsTooltip
+                contentStyle={{
+                  background: "var(--bg-secondary)",
+                  border: "1px solid var(--border-color)",
+                  borderRadius: "6px",
+                  fontSize: "10px",
+                }}
+              />
+              <Area type="monotone" dataKey="total" stroke={SUBSYSTEM_META.find((m) => m.key === chartSubsystem)?.color || "#818cf8"} strokeWidth={1.5} fill="url(#subsystemChartGradient)" />
+            </AreaChart>
+          </ResponsiveContainer>
           {expandedSubsystem !== null && (
             <div
               style={{

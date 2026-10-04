@@ -8,17 +8,11 @@ interface NotificationCenterProps {
   t: (key: string, params?: Record<string, any>) => string;
   popupRef: React.RefObject<HTMLDivElement | null>;
 }
-/**
- * Extract subsystem from notification data or path
- * Checks multiple sources in order of priority
- */
 const extractSubsystem = (data?: Record<string, any>): "general" | "financial_analysis" | "map" | "codeeditor" | "sandbox3d" | "video" => {
   if (!data) return "general";
-  // 1. Direct subsystem field
   if (data.subsystem) {
     return data.subsystem as "general" | "financial_analysis" | "map" | "codeeditor" | "sandbox3d" | "video";
   }
-  // 2. Check session_id with prefix
   const sessionId = data.sessionId || data.session_id;
   if (sessionId) {
     const id = sessionId as string;
@@ -28,7 +22,6 @@ const extractSubsystem = (data?: Record<string, any>): "general" | "financial_an
     if (id.startsWith("video_session_")) return "video";
     if (id.startsWith("sandbox3d_session_")) return "sandbox3d";
   }
-  // 3. Check path
   if (data.path) {
     const path = data.path as string;
     if (path.includes("FinancialAnalysis") || path.includes("financial_analysis_session_")) return "financial_analysis";
@@ -37,7 +30,6 @@ const extractSubsystem = (data?: Record<string, any>): "general" | "financial_an
     if (path.includes("SandBox3DDialogHistory") || path.includes("sandbox3d_session_")) return "sandbox3d";
     if (path.includes("VideoDialogHistory") || path.includes("video_session_")) return "video";
   }
-  // 4. Check nested payload
   if (data.payload) {
     const payload = data.payload;
     if (payload.subsystem) {
@@ -52,7 +44,6 @@ const extractSubsystem = (data?: Record<string, any>): "general" | "financial_an
       if (id.startsWith("sandbox3d_session_")) return "sandbox3d";
     }
   }
-  // 5. Check notification title for subsystem hints
   if (data.title) {
     const title = data.title as string;
     if (title.includes("Financial") || title.includes("financial_analysis")) return "financial_analysis";
@@ -77,6 +68,234 @@ const extractSessionId = (data?: Record<string, any>): string | undefined => {
   return undefined;
 };
 /**
+ * Try to parse a value that may be a JSON string / object / primitive into
+ * a plain object. Returns an empty object when parsing is not possible so
+ * the caller can safely spread the result into i18n params.
+ */
+const coerceToObject = (value: any): Record<string, any> => {
+  if (!value) return {};
+  if (typeof value === "object") return value as Record<string, any>;
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed) return {};
+    // Only attempt JSON parsing when the string clearly looks like JSON,
+    // otherwise keep it as a plain text field so i18n can still show it.
+    if ((trimmed.startsWith("{") && trimmed.endsWith("}")) || (trimmed.startsWith("[") && trimmed.endsWith("]"))) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (parsed && typeof parsed === "object") {
+          return parsed as Record<string, any>;
+        }
+      } catch {
+        // Not JSON; fall through and wrap it as text.
+      }
+    }
+    return { text: value };
+  }
+  return { value };
+};
+/**
+ * Unescape a JSON string fragment.
+ *
+ * Handles the escapes that the backend is likely to emit inside `message`:
+ * \n \r \t \" \\ \/ \b \f and \uXXXX. Invalid escapes are left as-is so we
+ * never lose characters.
+ */
+const unescapeJsonString = (raw: string): string => {
+  if (!raw) return "";
+  let out = "";
+  for (let i = 0; i < raw.length; i++) {
+    const ch = raw[i];
+    if (ch !== "\\") {
+      out += ch;
+      continue;
+    }
+    const next = raw[i + 1];
+    if (next === undefined) {
+      out += "\\";
+      break;
+    }
+    switch (next) {
+      case "n":
+        out += "\n";
+        i++;
+        break;
+      case "r":
+        out += "\r";
+        i++;
+        break;
+      case "t":
+        out += "\t";
+        i++;
+        break;
+      case "b":
+        out += "\b";
+        i++;
+        break;
+      case "f":
+        out += "\f";
+        i++;
+        break;
+      case '"':
+        out += '"';
+        i++;
+        break;
+      case "\\":
+        out += "\\";
+        i++;
+        break;
+      case "/":
+        out += "/";
+        i++;
+        break;
+      case "u": {
+        // \uXXXX: parse the four hex digits when possible.
+        const hex = raw.slice(i + 2, i + 6);
+        if (/^[0-9a-fA-F]{4}$/.test(hex)) {
+          out += String.fromCharCode(parseInt(hex, 16));
+          i += 5;
+        } else {
+          out += "\\u";
+          i++;
+        }
+        break;
+      }
+      default:
+        out += "\\" + next;
+        i++;
+        break;
+    }
+  }
+  return out;
+};
+/**
+ * Extract a single string field by key from a possibly-broken JSON fragment.
+ */
+const extractStringField = (text: string, key: string): string | null => {
+  // Match `"key"` optionally preceded by any whitespace and `:` separator,
+  // then capture everything up to the first unescaped `"` or end-of-string.
+  const pattern = new RegExp(`"${key}"\\s*:\\s*"((?:\\\\.|[^"\\\\])*)("|$)`, "i");
+  const match = text.match(pattern);
+  if (!match) return null;
+  const raw = match[1];
+  if (!raw) return null;
+  const value = unescapeJsonString(raw).trim();
+  if (!value) return null;
+  return value;
+};
+/**
+ * Fallback: pull a readable string out of a broken / truncated JSON blob.
+ */
+const extractFromBrokenJson = (text: string): string | null => {
+  // Ordered list of keys to search. The first non-empty match wins.
+  const priorityKeys = ["chatResponseMessage", "m", "message", "text", "content", "final_output", "finalOutput", "output", "error", "detail", "description", "name", "title", "s"];
+  // First pass: search within `chatResponse` / `terminalResponse` blocks.
+  const chatResponseIndex = text.indexOf('"chatResponse"');
+  if (chatResponseIndex !== -1) {
+    const slice = text.slice(chatResponseIndex);
+    const fromChat = extractStringField(slice, "m") || extractStringField(slice, "message") || extractStringField(slice, "text") || extractStringField(slice, "s");
+    if (fromChat) return fromChat;
+  }
+  const terminalResponseIndex = text.indexOf('"terminalResponse"');
+  if (terminalResponseIndex !== -1) {
+    const slice = text.slice(terminalResponseIndex);
+    const fromTerminal = extractStringField(slice, "m") || extractStringField(slice, "message") || extractStringField(slice, "text");
+    if (fromTerminal) return fromTerminal;
+  }
+  for (const key of priorityKeys) {
+    if (key === "chatResponseMessage") continue;
+    const value = extractStringField(text, key);
+    if (value) return value;
+  }
+  return null;
+};
+/**
+ * Convert a possibly-JSON notification field into a human-readable string.
+ */
+const extractReadableMessage = (message: any): string => {
+  if (message === null || message === undefined) return "";
+  // Plain string handling.
+  if (typeof message === "string") {
+    const trimmed = message.trim();
+    if (!trimmed) return "";
+    // If it looks like JSON (object or array), try the strict path first so
+    // well-formed payloads go through the full parser.
+    if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (parsed && typeof parsed === "object") {
+          return extractReadableMessage(parsed);
+        }
+        // A scalar JSON value (e.g. `"hello"`): fall through to string
+        // handling below.
+      } catch {
+        // Broken / truncated JSON: scan raw text for known keys.
+        const fromBroken = extractFromBrokenJson(trimmed);
+        if (fromBroken) return fromBroken;
+        // Nothing readable: fall back to returning the original string so
+        // the user still sees *something* rather than an empty row.
+        return message;
+      }
+    }
+    return message;
+  }
+  // Object handling.
+  if (typeof message === "object") {
+    const obj = message as Record<string, any>;
+    // Prefer the two response envelopes used throughout the app. Their `m`
+    // field is the actual message body, so check them before the flat keys.
+    if (obj.chatResponse && typeof obj.chatResponse === "object") {
+      const nested = extractReadableMessage(obj.chatResponse);
+      if (nested) return nested;
+    }
+    if (obj.terminalResponse && typeof obj.terminalResponse === "object") {
+      const nested = extractReadableMessage(obj.terminalResponse);
+      if (nested) return nested;
+    }
+    if (obj.payload && typeof obj.payload === "object") {
+      const nested = extractReadableMessage(obj.payload);
+      if (nested) return nested;
+    }
+    // Flat keys, in priority order. Empty strings are skipped so an empty
+    // `m` in `terminalResponse` does not shadow the real body.
+    const candidateKeys = ["m", "message", "text", "content", "final_output", "finalOutput", "output", "error", "title", "name", "detail", "description", "s"];
+    for (const key of candidateKeys) {
+      const value = obj[key];
+      if (typeof value === "string" && value.trim()) {
+        // Guard against nested JSON strings.
+        return extractReadableMessage(value);
+      }
+    }
+    // Last resort: compact-print so the row is never blank.
+    try {
+      return JSON.stringify(obj);
+    } catch {
+      return String(obj);
+    }
+  }
+  return String(message);
+};
+const resolveNotificationTitle = (t: (key: string, params?: Record<string, any>) => string, title: any, data?: any): string => {
+  if (title === null || title === undefined || title === "") return "";
+  const params = coerceToObject(data);
+  // Title can itself be a JSON string; normalise to a plain string first so
+  // that `t()` always receives a string key.
+  const titleText = typeof title === "string" ? title : extractReadableMessage(title);
+  if (!titleText) return "";
+  const translated = t(titleText, params);
+  if (translated && translated !== titleText) {
+    return translated;
+  }
+  // Missing translation: run the raw title through the readable extractor.
+  return extractReadableMessage(titleText);
+};
+/**
+ * Resolve a notification message into a human-readable string.
+ */
+const resolveNotificationMessage = (message: any): string => {
+  return extractReadableMessage(message);
+};
+/**
  * Handle notification click - navigate to the appropriate subsystem and session
  */
 const handleNotificationClick = (notification: SystemNotification): void => {
@@ -96,7 +315,7 @@ const handleNotificationClick = (notification: SystemNotification): void => {
   });
   // If there's a session ID, switch to that session
   if (sessionId) {
-    // Dispatch event to switch session with subsystem info
+    // Dispatch event to switch session with session info
     window.dispatchEvent(
       new CustomEvent(APP_WINDOW_EVENTS.SEARCH_SWITCH_SESSION, {
         detail: {
@@ -119,14 +338,12 @@ const handleNotificationClick = (notification: SystemNotification): void => {
     );
     return;
   }
-  // Handle other notification types without session ID
   switch (type) {
     case NotificationType.Success:
     case NotificationType.Info:
     case NotificationType.Warning:
     case NotificationType.Error:
     default:
-      // If no session ID, just mark as read and close
       break;
   }
 };
@@ -134,7 +351,6 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ isOpen, onClose
   const [notifications, setNotifications] = useState<SystemNotification[]>([]);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
-  // Initialize notification manager and load notifications
   useEffect(() => {
     const init = async () => {
       await notificationManager.initialize();
@@ -385,130 +601,136 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ isOpen, onClose
             </div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column" }}>
-              {notifications.map((notification) => (
-                <div
-                  key={notification.id}
-                  style={{
-                    display: "flex",
-                    alignItems: "flex-start",
-                    gap: "12px",
-                    padding: "12px 16px",
-                    borderBottom: "1px solid var(--border-color)",
-                    cursor: "pointer",
-                    transition: "background 0.2s",
-                    background: "transparent",
-                    position: "relative",
-                  }}
-                  onMouseEnter={(e) => {
-                    setHoveredId(notification.id);
-                    e.currentTarget.style.background = "var(--hover-bg)";
-                  }}
-                  onMouseLeave={(e) => {
-                    setHoveredId(null);
-                    e.currentTarget.style.background = "transparent";
-                  }}
-                  onClick={() => handleNotificationItemClick(notification)}
-                >
-                  {/* Icon */}
+              {notifications.map((notification) => {
+                const resolvedTitle = resolveNotificationTitle(t, notification.title, notification.data);
+                const resolvedMessage = resolveNotificationMessage(notification.message);
+                return (
                   <div
-                    style={{
-                      width: "32px",
-                      height: "32px",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      borderRadius: "10px",
-                      background: getIconBgColor(notification.type),
-                      flexShrink: 0,
-                    }}
-                  >
-                    <span
-                      style={{
-                        fontSize: "16px",
-                        color: getIconColor(notification.type),
-                      }}
-                    >
-                      {getNotificationIcon(notification.type)}
-                    </span>
-                  </div>
-                  {/* Content */}
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div
-                      style={{
-                        fontSize: "13px",
-                        fontWeight: 500,
-                        color: "var(--text-primary)",
-                        marginBottom: "6px",
-                      }}
-                    >
-                      {t(notification.title, notification.data) || notification.title}
-                    </div>
-                    <div
-                      style={{
-                        fontSize: "12px",
-                        color: "var(--text-secondary)",
-                        marginBottom: "4px",
-                        wordBreak: "break-word",
-                        lineHeight: 1.4,
-                      }}
-                    >
-                      {notification.message}
-                    </div>
-                    <div
-                      style={{
-                        fontSize: "10px",
-                        color: "var(--text-tertiary)",
-                      }}
-                    >
-                      {formatTimestamp(notification.timestamp)}
-                    </div>
-                  </div>
-                  {/* Unread indicator */}
-                  {!notification.read && (
-                    <div
-                      style={{
-                        width: "8px",
-                        height: "8px",
-                        borderRadius: "50%",
-                        background: getIconColor(notification.type),
-                        flexShrink: 0,
-                        marginTop: "8px",
-                      }}
-                    />
-                  )}
-                  {/* Delete button */}
-                  <button
+                    key={notification.id}
                     style={{
                       display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      padding: "4px",
-                      background: "transparent",
-                      border: "none",
-                      borderRadius: "4px",
-                      color: "var(--text-tertiary)",
+                      alignItems: "flex-start",
+                      gap: "12px",
+                      padding: "12px 16px",
+                      borderBottom: "1px solid var(--border-color)",
                       cursor: "pointer",
-                      transition: "all 0.2s",
-                      opacity: hoveredId === notification.id ? 1 : 0,
-                      flexShrink: 0,
+                      transition: "background 0.2s",
+                      background: "transparent",
+                      position: "relative",
                     }}
                     onMouseEnter={(e) => {
+                      setHoveredId(notification.id);
                       e.currentTarget.style.background = "var(--hover-bg)";
-                      e.currentTarget.style.color = "#ef4444";
                     }}
                     onMouseLeave={(e) => {
+                      setHoveredId(null);
                       e.currentTarget.style.background = "transparent";
-                      e.currentTarget.style.color = "var(--text-tertiary)";
                     }}
-                    onClick={(e) => handleDelete(notification.id, e)}
+                    onClick={() => handleNotificationItemClick(notification)}
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <line x1="18" y1="6" x2="6" y2="18" />
-                      <line x1="6" y1="6" x2="18" y2="18" />
-                    </svg>
-                  </button>
-                </div>
-              ))}
+                    {/* Icon */}
+                    <div
+                      style={{
+                        width: "32px",
+                        height: "32px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        borderRadius: "10px",
+                        background: getIconBgColor(notification.type),
+                        flexShrink: 0,
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontSize: "16px",
+                          color: getIconColor(notification.type),
+                        }}
+                      >
+                        {getNotificationIcon(notification.type)}
+                      </span>
+                    </div>
+                    {/* Content */}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div
+                        style={{
+                          fontSize: "13px",
+                          fontWeight: 500,
+                          color: "var(--text-primary)",
+                          marginBottom: "6px",
+                        }}
+                      >
+                        {resolvedTitle}
+                      </div>
+                      {resolvedMessage && (
+                        <div
+                          style={{
+                            fontSize: "12px",
+                            color: "var(--text-secondary)",
+                            marginBottom: "4px",
+                            wordBreak: "break-word",
+                            lineHeight: 1.4,
+                          }}
+                        >
+                          {resolvedMessage}
+                        </div>
+                      )}
+                      <div
+                        style={{
+                          fontSize: "10px",
+                          color: "var(--text-tertiary)",
+                        }}
+                      >
+                        {formatTimestamp(notification.timestamp)}
+                      </div>
+                    </div>
+                    {/* Unread indicator */}
+                    {!notification.read && (
+                      <div
+                        style={{
+                          width: "8px",
+                          height: "8px",
+                          borderRadius: "50%",
+                          background: getIconColor(notification.type),
+                          flexShrink: 0,
+                          marginTop: "8px",
+                        }}
+                      />
+                    )}
+                    {/* Delete button */}
+                    <button
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        padding: "4px",
+                        background: "transparent",
+                        border: "none",
+                        borderRadius: "4px",
+                        color: "var(--text-tertiary)",
+                        cursor: "pointer",
+                        transition: "all 0.2s",
+                        opacity: hoveredId === notification.id ? 1 : 0,
+                        flexShrink: 0,
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = "var(--hover-bg)";
+                        e.currentTarget.style.color = "#ef4444";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = "transparent";
+                        e.currentTarget.style.color = "var(--text-tertiary)";
+                      }}
+                      onClick={(e) => handleDelete(notification.id, e)}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
+                      </svg>
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>

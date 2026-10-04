@@ -1,1 +1,1 @@
-export const MENU_PANEL_WIDTH = 350;
+export const MENU_PANEL_WIDTH = 450;

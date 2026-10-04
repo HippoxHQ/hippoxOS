@@ -743,9 +743,9 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({ t, onSave, isInitializi
                               handleSetDefaultModel(id, nextValue, instanceName);
                             }}
                             height={33}
-                            width={208}
-                            menuMinWidth={208}
-                            menuMaxWidth={208}
+                            width={317}
+                            menuMinWidth={317}
+                            menuMaxWidth={317}
                             title={isZh ? "选择默认模型" : "Select default model"}
                           />
                         </div>
