@@ -558,11 +558,11 @@ const LLMModelConfig: React.FC<LLMModelConfigProps> = ({ t, onSave, isInitializi
         <button className={`llm-config-tab${activeTab === "chat" ? " active" : ""}`} onClick={() => handleTabChange("chat")}>
           {isZh ? "对话模型" : "Chat"}
         </button>
-        <button className={`llm-config-tab${activeTab === "image" ? " active" : ""}`} onClick={() => handleTabChange("image")}>
-          {isZh ? "文生图" : "Image"}
-        </button>
         <button className={`llm-config-tab${activeTab === "video" ? " active" : ""}`} onClick={() => handleTabChange("video")}>
           {isZh ? "文生视频" : "Video"}
+        </button>
+        <button className={`llm-config-tab${activeTab === "image" ? " active" : ""}`} onClick={() => handleTabChange("image")}>
+          {isZh ? "文生图" : "Image"}
         </button>
         <button className={`llm-config-tab${activeTab === "audio" ? " active" : ""}`} onClick={() => handleTabChange("audio")}>
           {isZh ? "文生音频" : "Audio"}

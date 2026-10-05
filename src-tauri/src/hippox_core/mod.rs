@@ -3,9 +3,8 @@ pub mod statistics;
 use crate::commands::{get_hippox_instance, ModelConfig, HIPPOX_APP_CONFIG, HIPPOX_INSTANCES};
 pub use callback::*;
 use hippox::{
-    build_audio_config, build_image_config, build_video_config, parse_audio_provider, parse_image_provider, parse_video_provider, AudioLLMConfig,
-    AudioModelProvider, ChatModelProvider, Hippox, HippoxConfig, IdentityInformation, ImageLLMConfig, ImageModelProvider, VideoLLMConfig,
-    VideoModelProvider,
+    build_audio_config, build_image_config, build_video_config, AudioLLMConfig, AudioModelProvider, ChatModelProvider, Hippox, HippoxConfig,
+    IdentityInformation, ImageLLMConfig, ImageModelProvider, VideoLLMConfig, VideoModelProvider,
 };
 use serde::{Deserialize, Serialize};
 pub use statistics::*;
@@ -143,7 +142,7 @@ pub(crate) async fn init_default_hippox_instance() -> Result<(), String> {
         Ok(hippox) => {
             // Attach the multi-modal clients to the freshly built Hippox so
             // that `Hippox` is the single gateway for every modality.
-            let hippox = attach_multimodal_clients_to_hippox(hippox).await;
+            let hippox = attach_multimodal_clients_to_hippox(hippox).await?;
             let mut instances = HIPPOX_INSTANCES.write().await;
             instances.insert(instance_id.clone(), Arc::new(hippox));
             log::info!("Initialized default Hippox instance: {}", instance_id);
@@ -173,7 +172,7 @@ pub(crate) async fn init_all_hippox_instances() -> Result<(), String> {
             Ok(hippox) => {
                 // Attach the multi-modal clients to every Hippox instance so
                 // that `Hippox` remains the single gateway for every modality.
-                let hippox = attach_multimodal_clients_to_hippox(hippox).await;
+                let hippox = attach_multimodal_clients_to_hippox(hippox).await?;
                 instances.insert(id.clone(), Arc::new(hippox));
             }
             Err(e) => {
@@ -184,27 +183,7 @@ pub(crate) async fn init_all_hippox_instances() -> Result<(), String> {
     Ok(())
 }
 pub(crate) async fn create_hippox_instance(instance: &LlmInstance, skills_dir: &str) -> Result<Hippox, String> {
-    let model_provider = match instance.provider.to_lowercase().as_str() {
-        "openai" => ChatModelProvider::OpenAI,
-        "anthropic" => ChatModelProvider::Anthropic,
-        "azure" => ChatModelProvider::Azure,
-        "google" => ChatModelProvider::Google,
-        "deepseek" => ChatModelProvider::DeepSeek,
-        "alibaba" => ChatModelProvider::Alibaba,
-        "zhipu" => ChatModelProvider::Zhipu,
-        "moonshot" => ChatModelProvider::Moonshot,
-        "cohere" => ChatModelProvider::Cohere,
-        "mistral" => ChatModelProvider::Mistral,
-        "groq" => ChatModelProvider::Groq,
-        "together" => ChatModelProvider::Together,
-        "baichuan" => ChatModelProvider::Baichuan,
-        "yi" => ChatModelProvider::Yi,
-        "baidu" => ChatModelProvider::Baidu,
-        "tencent" => ChatModelProvider::Tencent,
-        "minimax" => ChatModelProvider::MiniMax,
-        "custom" => ChatModelProvider::Custom,
-        _ => ChatModelProvider::OpenAI,
-    };
+    let model_provider = ChatModelProvider::parse_chat_provider(&instance.provider)?;
     let mut extra_keys = instance.extra.clone();
     if !instance.api_base.is_empty() && !extra_keys.contains_key("api_base") {
         extra_keys.insert("api_base".to_string(), instance.api_base.clone());
@@ -244,7 +223,7 @@ pub(crate) async fn create_hippox_instance(instance: &LlmInstance, skills_dir: &
 /// Attach every configured image / video / audio client to the given Hippox
 /// instance so that `Hippox` becomes the single outward-facing gateway for
 /// all modalities.
-pub(crate) async fn attach_multimodal_clients_to_hippox(hippox: Hippox) -> Hippox {
+pub(crate) async fn attach_multimodal_clients_to_hippox(hippox: Hippox) -> Result<Hippox, String> {
     let (image_instances, default_image_id, video_instances, default_video_id, audio_instances, default_audio_id) = {
         let config = HIPPOX_APP_CONFIG.read().await;
         (
@@ -260,15 +239,8 @@ pub(crate) async fn attach_multimodal_clients_to_hippox(hippox: Hippox) -> Hippo
     let image_instance = if !default_image_id.is_empty() { image_instances.get(&default_image_id) } else { image_instances.values().next() };
     if let Some(instance) = image_instance {
         // Build the `ImageLLMConfig` from the persisted instance fields.
-        let provider = match instance.provider.to_lowercase().as_str() {
-            "seedream" => ImageModelProvider::Seedream,
-            "wan_image" | "wanimage" | "wan" => ImageModelProvider::WanImage,
-            "stability" | "stability_image" => ImageModelProvider::StabilityImage,
-            "flux" => ImageModelProvider::Flux,
-            "imagen" => ImageModelProvider::Imagen,
-            "dalle" | "dall_e" | "dall-e" => ImageModelProvider::DallE,
-            _ => ImageModelProvider::Seedream,
-        };
+        let provider = ImageModelProvider::parse_image_provider(&instance.provider)
+            .map_err(|e| format!("Failed to parse image provider '{}': {}", instance.provider, e))?;
         let mut config = ImageLLMConfig::new();
         match provider {
             ImageModelProvider::Seedream => {
@@ -313,25 +285,15 @@ pub(crate) async fn attach_multimodal_clients_to_hippox(hippox: Hippox) -> Hippo
                 hippox = hippox.with_image_client(client, provider);
                 log::info!("Attached image client to Hippox: {} ({})", instance.name, provider);
             }
-            Err(e) => log::error!("Failed to attach image client to Hippox: {}", e),
+            Err(e) => {
+                return Err(format!("Failed to attach image client '{}' to Hippox: {}", instance.name, e));
+            }
         }
     }
     let video_instance = if !default_video_id.is_empty() { video_instances.get(&default_video_id) } else { video_instances.values().next() };
     if let Some(instance) = video_instance {
-        let provider = match instance.provider.to_lowercase().as_str() {
-            "seedance" => VideoModelProvider::Seedance,
-            "wan" => VideoModelProvider::Wan,
-            "kling" => VideoModelProvider::Kling,
-            "veo" => VideoModelProvider::Veo,
-            "runway" => VideoModelProvider::Runway,
-            "minimax_h3" | "minimaxh3" => VideoModelProvider::MiniMaxH3,
-            "happyhorse" => VideoModelProvider::HappyHorse,
-            "ltx" => VideoModelProvider::Ltx,
-            "grok" | "grok_imagine" => VideoModelProvider::GrokImagine,
-            "pruna" => VideoModelProvider::Pruna,
-            "gemini" | "gemini_omni_flash" => VideoModelProvider::GeminiOmniFlash,
-            _ => VideoModelProvider::Seedance,
-        };
+        let provider = VideoModelProvider::parse_video_provider(&instance.provider)
+            .map_err(|e| format!("Failed to parse video provider '{}': {}", instance.provider, e))?;
         let mut config = VideoLLMConfig::new();
         match provider {
             VideoModelProvider::Seedance => {
@@ -408,23 +370,16 @@ pub(crate) async fn attach_multimodal_clients_to_hippox(hippox: Hippox) -> Hippo
                 hippox = hippox.with_video_client(client, provider);
                 log::info!("Attached video client to Hippox: {} ({})", instance.name, provider);
             }
-            Err(e) => log::error!("Failed to attach video client to Hippox: {}", e),
+            Err(e) => {
+                return Err(format!("Failed to attach video client '{}' to Hippox: {}", instance.name, e));
+            }
         }
     }
     let audio_instance = if !default_audio_id.is_empty() { audio_instances.get(&default_audio_id) } else { audio_instances.values().next() };
     if let Some(instance) = audio_instance {
         // Build the `AudioLLMConfig` from the persisted instance fields.
-        let provider = match instance.provider.to_lowercase().as_str() {
-            "qwen_tts" | "qwentts" => AudioModelProvider::QwenTts,
-            "seed_audio" | "seedaudio" => AudioModelProvider::SeedAudio,
-            "step_audio" | "stepaudio" => AudioModelProvider::StepAudio,
-            "gemini_tts" | "geminitts" => AudioModelProvider::GeminiTts,
-            "elevenlabs" => AudioModelProvider::ElevenLabs,
-            "lyria" => AudioModelProvider::Lyria,
-            "suno" => AudioModelProvider::Suno,
-            "stable_audio" | "stableaudio" => AudioModelProvider::StableAudio,
-            _ => AudioModelProvider::QwenTts,
-        };
+        let provider = AudioModelProvider::parse_audio_provider(&instance.provider)
+            .map_err(|e| format!("Failed to parse audio provider '{}': {}", instance.provider, e))?;
         let mut config = AudioLLMConfig::new();
         match provider {
             AudioModelProvider::QwenTts => {
@@ -481,10 +436,12 @@ pub(crate) async fn attach_multimodal_clients_to_hippox(hippox: Hippox) -> Hippo
                 hippox = hippox.with_audio_client(client, provider);
                 log::info!("Attached audio client to Hippox: {} ({})", instance.name, provider);
             }
-            Err(e) => log::error!("Failed to attach audio client to Hippox: {}", e),
+            Err(e) => {
+                return Err(format!("Failed to attach audio client '{}' to Hippox: {}", instance.name, e));
+            }
         }
     }
-    hippox
+    Ok(hippox)
 }
 /// get default hippox instance with chat model
 pub(crate) async fn get_default_hippox_with_chat_model() -> Result<Arc<Hippox>, String> {
@@ -515,7 +472,7 @@ pub async fn get_default_hippox_with_image_model() -> Result<Arc<Hippox>, String
         let instance = config.image_instances.get(id).ok_or_else(|| format!("Default image instance not found: {}", id))?;
         (instance.provider.clone(), instance.api_key.clone(), instance.api_base.clone())
     };
-    let provider = parse_image_provider(&provider_str)?;
+    let provider: ImageModelProvider = ImageModelProvider::parse_image_provider(&provider_str)?;
     let base_url = if api_base.trim().is_empty() { None } else { Some(api_base) };
     let config = build_image_config(provider, api_key, base_url);
     let hippox =
@@ -534,7 +491,7 @@ pub async fn get_default_hippox_with_audio_model() -> Result<Arc<Hippox>, String
         let instance = config.audio_instances.get(id).ok_or_else(|| format!("Default audio instance not found: {}", id))?;
         (instance.provider.clone(), instance.api_key.clone(), instance.api_base.clone())
     };
-    let provider = parse_audio_provider(&provider_str)?;
+    let provider: AudioModelProvider = AudioModelProvider::parse_audio_provider(&provider_str)?;
     let base_url = if api_base.trim().is_empty() { None } else { Some(api_base) };
     let config = build_audio_config(provider, api_key, base_url);
     let hippox =
@@ -554,7 +511,7 @@ pub async fn get_default_hippox_with_video_model() -> Result<Arc<Hippox>, String
         let instance = config.video_instances.get(id).ok_or_else(|| format!("Default video instance not found: {}", id))?;
         (instance.provider.clone(), instance.api_key.clone(), instance.api_base.clone())
     };
-    let provider = parse_video_provider(&provider_str)?;
+    let provider: VideoModelProvider = VideoModelProvider::parse_video_provider(&provider_str)?;
     let base_url = if api_base.trim().is_empty() { None } else { Some(api_base) };
     let config = build_video_config(provider, api_key, base_url);
     let hippox =
