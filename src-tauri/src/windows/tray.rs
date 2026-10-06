@@ -14,6 +14,7 @@ const TRAY_MENU_HEIGHT: f64 = 145.0;
 impl TrayManager {
     pub fn setup<R: Runtime>(app: &tauri::App<R>) -> Result<(), Box<dyn std::error::Error>> {
         let app_handle = app.app_handle().clone();
+        let app_handle_for_events = app_handle.clone();
         let empty_menu = Menu::new(app)?;
         let _tray = TrayIconBuilder::with_id("main_tray")
             .icon(app.default_window_icon().unwrap().clone())
@@ -21,66 +22,80 @@ impl TrayManager {
             .menu_on_left_click(false)
             .on_tray_icon_event(move |_tray, event| match event {
                 TrayIconEvent::Click { button: MouseButton::Left, button_state: MouseButtonState::Up, .. } => {
-                    Self::toggle_window(&app_handle);
+                    Self::toggle_window(&app_handle_for_events);
                 }
                 TrayIconEvent::Click { button: MouseButton::Right, button_state: MouseButtonState::Up, position, .. } => {
-                    // `position` is the tray icon position in PHYSICAL pixels,
-                    // origin top-left, exactly what we need for placement.
-                    let _ = Self::create_tray_window(&app_handle, position.x, position.y);
+                    let _ = Self::show_tray_window(&app_handle_for_events, position.x, position.y);
                 }
                 _ => {}
             })
             .build(app)?;
+        let _ = Self::ensure_tray_window_precreated(&app_handle);
+        let _ = crate::windows::SubmenuManager::precreate_submenu_window(&app_handle);
         Ok(())
     }
-    fn create_tray_window<R: Runtime>(
-        app_handle: &AppHandle<R>,
-        icon_physical_x: f64,
-        icon_physical_y: f64,
-    ) -> Result<(), Box<dyn std::error::Error>> {
-        let (pos_x, pos_y) = Self::calculate_window_position(app_handle, icon_physical_x, icon_physical_y, TRAY_MENU_WIDTH, TRAY_MENU_HEIGHT)?;
+    /// Create the tray webview window once (hidden, off-screen). 
+    fn ensure_tray_window_precreated<R: Runtime>(app_handle: &AppHandle<R>) -> Result<(), Box<dyn std::error::Error>> {
         let window_label = format!("{}", WindowIdentifier::Tray);
-        let url_type = format!("{}", WindowType::Tray);
-        if let Some(window) = app_handle.get_webview_window(&window_label) {
-            let _ = window.close();
+        if app_handle.get_webview_window(&window_label).is_some() {
+            return Ok(());
         }
+        let url_type = format!("{}", WindowType::Tray);
         let window = WebviewWindowBuilder::new(app_handle, &window_label, tauri::WebviewUrl::App(format!("index.html?type={}", url_type).into()))
             .title("")
             .inner_size(TRAY_MENU_WIDTH, TRAY_MENU_HEIGHT)
-            .position(pos_x, pos_y)
+            // Start far off-screen so nothing flashes on launch.
+            .position(-10000.0, -10000.0)
             .decorations(false)
             .always_on_top(true)
             .skip_taskbar(true)
-            .focused(true)
+            .focused(false)
             .resizable(false)
             .transparent(true)
             .shadow(false)
+            .visible(false)
             .build()?;
         let window_clone = window.clone();
         let app_handle_clone = app_handle.clone();
         window.on_window_event(move |event| {
             if let WindowEvent::Focused(false) = event {
                 let submenu_label = format!("{}", WindowIdentifier::TraySubmenu);
-                let submenu_window = app_handle_clone.get_webview_window(&submenu_label);
-                let window = window_clone.clone();
                 let app = app_handle_clone.clone();
+                let window = window_clone.clone();
                 tauri::async_runtime::spawn(async move {
-                    tokio::time::sleep(tokio::time::Duration::from_millis(150)).await;
+                    tokio::time::sleep(tokio::time::Duration::from_millis(120)).await;
                     let submenu = app.get_webview_window(&submenu_label);
-                    if submenu.is_none() {
-                        let _ = window.close();
+                    // Hide only when the submenu is not visible (or missing).
+                    let submenu_visible = submenu.as_ref().map(|w| w.is_visible().unwrap_or(false)).unwrap_or(false);
+                    if !submenu_visible {
+                        let _ = window.hide();
                     }
                 });
             }
         });
         Ok(())
     }
+    /// Reposition the pre-created tray window next to the icon and show it.
+    fn show_tray_window<R: Runtime>(app_handle: &AppHandle<R>, icon_physical_x: f64, icon_physical_y: f64) -> Result<(), Box<dyn std::error::Error>> {
+        let window_label = format!("{}", WindowIdentifier::Tray);
+        // Defensive: if the window was somehow destroyed, recreate it.
+        if app_handle.get_webview_window(&window_label).is_none() {
+            Self::ensure_tray_window_precreated(app_handle)?;
+        }
+        let (pos_x, pos_y) = Self::calculate_window_position(app_handle, icon_physical_x, icon_physical_y, TRAY_MENU_WIDTH, TRAY_MENU_HEIGHT)?;
+        if let Some(window) = app_handle.get_webview_window(&window_label) {
+            // `set_position` expects LOGICAL coordinates; calculate_window_position
+            // already returns logical values.
+            let _ = window.set_position(tauri::LogicalPosition::new(pos_x, pos_y));
+            let _ = window.show();
+            let _ = window.set_focus();
+            // Notify the frontend so it can refresh live data (update status,
+            // health checks, etc.) without blocking the first paint.
+            let _ = window.emit("tray-opened", ());
+        }
+        Ok(())
+    }
     /// Place the tray popover next to the tray icon.
-    ///
-    /// `icon_physical_x/y` come straight from `TrayIconEvent::Click::position`,
-    /// which is in PHYSICAL pixels with origin top-left on all platforms.
-    /// The builder's `position()` wants LOGICAL coordinates, so we divide by
-    /// the monitor scale factor and then clamp inside the visible frame.
     fn calculate_window_position<R: Runtime>(
         app_handle: &AppHandle<R>,
         icon_physical_x: f64,

@@ -9,10 +9,6 @@ import logo from "../assets/logo.png";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
-/**
- * Translation helper function
- * Retrieves translation for a given key based on the current language
- */
 const getTranslation = (language: "zh" | "en", key: string): string => {
   const translations = language === "zh" ? zh : en;
   const keys = key.split(".");
@@ -23,11 +19,6 @@ const getTranslation = (language: "zh" | "en", key: string): string => {
   }
   return value || key;
 };
-/**
- * AboutWindow Component
- * Displays application information and version details
- * Fetches Markdown content from GitHub via Tauri backend command
- */
 const AboutWindow: React.FC = () => {
   const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [language, setLanguage] = useState<"zh" | "en">("en");
@@ -36,6 +27,7 @@ const AboutWindow: React.FC = () => {
   const [markdownContent, setMarkdownContent] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [errorMessage, setErrorMessage] = useState<string>("");
+  const [isMacOS, setIsMacOS] = useState(false);
   /**
    * Load theme and language settings from config
    */
@@ -45,17 +37,34 @@ const AboutWindow: React.FC = () => {
         const [savedTheme, savedLanguage] = await Promise.all([configCommands.getSettingsTheme().catch(() => "dark" as const), configCommands.getSettingsLanguage().catch(() => "en" as const)]);
         setTheme(savedTheme as "dark" | "light");
         setLanguage(savedLanguage as "zh" | "en");
+        // Apply theme attribute so CSS variables resolve for this window
+        document.documentElement.setAttribute("data-theme", savedTheme as string);
       } catch (error) {
         console.error("Failed to load config:", error);
       }
     };
     loadData();
   }, []);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const os = await osCommands.getOs();
+        if (!cancelled) {
+          setIsMacOS(os === "macos");
+        }
+      } catch (error) {
+        const fallback = typeof navigator !== "undefined" && /Mac|iPad|iPhone|iPod/.test(navigator.platform || "");
+        if (!cancelled) {
+          setIsMacOS(fallback);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   const isZh = getTranslation(language, "i18n") === "zh";
-  /**
-   * Fetch about content from GitHub via Tauri backend
-   * Uses Rust backend to avoid CORS issues
-   */
   useEffect(() => {
     const fetchAboutContent = async () => {
       setIsLoading(true);
@@ -97,7 +106,6 @@ const AboutWindow: React.FC = () => {
     const interval = setInterval(checkMaximized, 500);
     return () => clearInterval(interval);
   }, []);
-  const isDark = theme === "dark";
   /**
    * Window control handlers
    */
@@ -139,13 +147,10 @@ const AboutWindow: React.FC = () => {
       setIsFullscreen(false);
     }
   };
-  /**
-   * Scrollbar styles - overrides global scrollbar styles
-   */
   const scrollbarStyles = `
     .about-scroll-container {
       scrollbar-width: thin;
-      scrollbar-color: ${isDark ? "#3a3f4a" : "#d1d5db"} transparent;
+      scrollbar-color: var(--scrollbar-thumb) transparent;
     }
     .about-scroll-container::-webkit-scrollbar {
       width: 4px;
@@ -155,28 +160,18 @@ const AboutWindow: React.FC = () => {
       background: transparent;
     }
     .about-scroll-container::-webkit-scrollbar-thumb {
-      background: ${isDark ? "#3a3f4a" : "#d1d5db"} !important;
+      background: var(--scrollbar-thumb) !important;
       border-radius: 2px;
     }
     .about-scroll-container::-webkit-scrollbar-thumb:hover {
-      background: ${isDark ? "#4a4f5a" : "#b0b8c0"} !important;
+      background: var(--scrollbar-thumb-hover) !important;
     }
   `;
-  /**
-   * Styles
-   *
-   * NOTE: WebkitAppRegion / appRegion have been removed because they are
-   * Electron-only CSS properties and are NOT recognized by Tauri on any
-   * platform. Tauri uses the `data-tauri-drag-region` DOM attribute instead.
-   * The `deep` value is used so the whole titlebar subtree is draggable
-   * without having to tag every child element (required on macOS where the
-   * hit-test only matches the element that actually carries the attribute).
-   */
   const styles = {
     container: {
-      backgroundColor: isDark ? "#1a1d26" : "#ffffff",
-      border: `1px solid ${isDark ? "#2d303a" : "#e5e7eb"}`,
-      boxShadow: isDark ? "0 4px 12px rgba(0,0,0,0.4)" : "0 4px 12px rgba(0,0,0,0.15)",
+      backgroundColor: "var(--bg-primary)",
+      border: `1px solid var(--border-color)`,
+      boxShadow: "0 4px 12px rgba(0,0,0,0.25)",
       overflow: "hidden" as const,
       width: "100%",
       height: "100%",
@@ -185,8 +180,8 @@ const AboutWindow: React.FC = () => {
     },
     topBar: {
       height: "35px",
-      background: isDark ? "#22252f" : "#f9fafb",
-      borderBottom: `1px solid ${isDark ? "#2d303a" : "#e5e7eb"}`,
+      background: "var(--bg-secondary)",
+      borderBottom: `1px solid var(--border-color)`,
       display: "flex" as const,
       alignItems: "center" as const,
       justifyContent: "space-between" as const,
@@ -210,7 +205,7 @@ const AboutWindow: React.FC = () => {
     topBarTitle: {
       fontSize: "13px",
       fontWeight: 500,
-      color: isDark ? "#e8edf2" : "#111827",
+      color: "var(--text-primary)",
       overflow: "hidden" as const,
       textOverflow: "ellipsis" as const,
       whiteSpace: "nowrap" as const,
@@ -231,7 +226,7 @@ const AboutWindow: React.FC = () => {
       background: "transparent" as const,
       border: "none" as const,
       cursor: "pointer" as const,
-      color: isDark ? "#9ca3af" : "#6b7280",
+      color: "var(--text-secondary)",
       fontSize: "15px",
       borderRadius: "0",
       flexShrink: 0 as const,
@@ -248,7 +243,7 @@ const AboutWindow: React.FC = () => {
       overflowY: "auto" as const,
       fontSize: "14px",
       lineHeight: 1.8,
-      color: isDark ? "#c8d0d9" : "#374151",
+      color: "var(--text-secondary)",
       padding: "20px 24px",
       maxWidth: "100%",
       wordWrap: "break-word" as const,
@@ -266,7 +261,7 @@ const AboutWindow: React.FC = () => {
       alignItems: "center" as const,
       justifyContent: "center" as const,
       height: "100%",
-      color: isDark ? "#9ca3af" : "#6b7280",
+      color: "var(--text-muted)",
       fontSize: "14px",
     },
     errorState: {
@@ -275,7 +270,7 @@ const AboutWindow: React.FC = () => {
       alignItems: "center" as const,
       justifyContent: "center" as const,
       height: "100%",
-      color: "#ef4444",
+      color: "var(--accent-red)",
       fontSize: "14px",
       textAlign: "center" as const,
       padding: "20px",
@@ -287,13 +282,13 @@ const AboutWindow: React.FC = () => {
     },
     errorDetail: {
       fontSize: "13px",
-      color: isDark ? "#9ca3af" : "#6b7280",
+      color: "var(--text-muted)",
       wordBreak: "break-all" as const,
     },
     links: {
       marginTop: "20px",
       paddingTop: "16px",
-      borderTop: `1px solid ${isDark ? "#2d303a" : "#e5e7eb"}`,
+      borderTop: `1px solid var(--border-color)`,
       display: "flex" as const,
       gap: "16px",
       flexShrink: 0 as const,
@@ -302,7 +297,7 @@ const AboutWindow: React.FC = () => {
       display: "flex" as const,
       alignItems: "center" as const,
       gap: "6px",
-      color: isDark ? "#4ec9b0" : "#0066cc",
+      color: "var(--accent-blue)",
       textDecoration: "none" as const,
       fontSize: "13px",
       cursor: "pointer" as const,
@@ -319,66 +314,69 @@ const AboutWindow: React.FC = () => {
         <div style={styles.topBarCenter}>
           <span style={styles.topBarTitle}>{isZh ? "关于" : "About"}</span>
         </div>
-        {/* Buttons are not tagged with drag region, so they remain clickable */}
         <div style={styles.topBarRight}>
-          <button
-            style={styles.windowBtn}
-            onClick={handleToggleFullscreen}
-            title={isZh ? "全屏" : "Fullscreen"}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = isDark ? "#3a3f4a" : "#e5e7eb";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "transparent";
-            }}
-          >
-            {isFullscreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
-          </button>
-          <button style={styles.windowBtn} onClick={handleMinimize} title={isZh ? "最小化" : "Minimize"}>
-            <span style={{ fontSize: "20px", lineHeight: 1, fontWeight: 300 }}>─</span>
-          </button>
-          <button style={styles.windowBtn} onClick={handleMaximize} title={isZh ? (isMaximized ? "还原" : "最大化") : isMaximized ? "Restore" : "Maximize"}>
-            {isMaximized ? (
-              <span
-                style={{
-                  fontSize: "20px",
-                  lineHeight: 1,
-                  fontWeight: 400,
-                  marginTop: "2px",
+          {!isMacOS && (
+            <>
+              <button
+                style={styles.windowBtn}
+                onClick={handleToggleFullscreen}
+                title={isZh ? "全屏" : "Fullscreen"}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "var(--hover-bg)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "transparent";
                 }}
               >
-                ❐
-              </span>
-            ) : (
-              <span
-                style={{
-                  fontSize: "30px",
-                  fontWeight: 300,
-                  lineHeight: 1,
-                  display: "flex",
-                  alignItems: "center",
-                  marginTop: "-4px",
+                {isFullscreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+              </button>
+              <button style={styles.windowBtn} onClick={handleMinimize} title={isZh ? "最小化" : "Minimize"}>
+                <span style={{ fontSize: "20px", lineHeight: 1, fontWeight: 300 }}>─</span>
+              </button>
+              <button style={styles.windowBtn} onClick={handleMaximize} title={isZh ? (isMaximized ? "还原" : "最大化") : isMaximized ? "Restore" : "Maximize"}>
+                {isMaximized ? (
+                  <span
+                    style={{
+                      fontSize: "20px",
+                      lineHeight: 1,
+                      fontWeight: 400,
+                      marginTop: "2px",
+                    }}
+                  >
+                    ❐
+                  </span>
+                ) : (
+                  <span
+                    style={{
+                      fontSize: "30px",
+                      fontWeight: 300,
+                      lineHeight: 1,
+                      display: "flex",
+                      alignItems: "center",
+                      marginTop: "-4px",
+                    }}
+                  >
+                    □
+                  </span>
+                )}
+              </button>
+              <button
+                style={styles.windowBtn}
+                onClick={handleClose}
+                title={isZh ? "关闭" : "Close"}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "rgba(220,38,38,0.12)";
+                  e.currentTarget.style.color = "var(--accent-red)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "transparent";
+                  e.currentTarget.style.color = "var(--text-secondary)";
                 }}
               >
-                □
-              </span>
-            )}
-          </button>
-          <button
-            style={styles.windowBtn}
-            onClick={handleClose}
-            title={isZh ? "关闭" : "Close"}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = "rgba(220,38,38,0.12)";
-              e.currentTarget.style.color = "#ef4444";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "transparent";
-              e.currentTarget.style.color = isDark ? "#9ca3af" : "#6b7280";
-            }}
-          >
-            <X />
-          </button>
+                <X />
+              </button>
+            </>
+          )}
         </div>
       </div>
       <div style={styles.content}>
@@ -405,7 +403,7 @@ const AboutWindow: React.FC = () => {
                           width: "100%",
                           margin: "12px 0",
                           fontSize: "13px",
-                          border: `1px solid ${isDark ? "#2d303a" : "#e5e7eb"}`,
+                          border: `1px solid var(--border-color)`,
                           tableLayout: "fixed",
                         }}
                       >
@@ -416,12 +414,12 @@ const AboutWindow: React.FC = () => {
                     th: ({ children }) => (
                       <th
                         style={{
-                          border: `1px solid ${isDark ? "#2d303a" : "#e5e7eb"}`,
+                          border: `1px solid var(--border-color)`,
                           padding: "8px 12px",
                           textAlign: "center",
                           fontWeight: 600,
-                          backgroundColor: isDark ? "#22252f" : "#f3f4f6",
-                          color: isDark ? "#e8edf2" : "#111827",
+                          backgroundColor: "var(--bg-secondary)",
+                          color: "var(--text-primary)",
                           width: "50%",
                         }}
                       >
@@ -432,9 +430,9 @@ const AboutWindow: React.FC = () => {
                     td: ({ children }) => (
                       <td
                         style={{
-                          border: `1px solid ${isDark ? "#2d303a" : "#e5e7eb"}`,
+                          border: `1px solid var(--border-color)`,
                           padding: "8px 12px",
-                          color: isDark ? "#c8d0d9" : "#374151",
+                          color: "var(--text-secondary)",
                           textAlign: "center",
                           width: "50%",
                         }}
@@ -497,10 +495,10 @@ const AboutWindow: React.FC = () => {
                         style={{
                           fontSize: "24px",
                           fontWeight: 600,
-                          color: isDark ? "#e8edf2" : "#111827",
+                          color: "var(--text-primary)",
                           marginTop: "24px",
                           marginBottom: "12px",
-                          borderBottom: `1px solid ${isDark ? "#2d303a" : "#e5e7eb"}`,
+                          borderBottom: `1px solid var(--border-color)`,
                           paddingBottom: "8px",
                         }}
                       >
@@ -512,7 +510,7 @@ const AboutWindow: React.FC = () => {
                         style={{
                           fontSize: "18px",
                           fontWeight: 600,
-                          color: isDark ? "#e8edf2" : "#111827",
+                          color: "var(--text-primary)",
                           marginTop: "20px",
                           marginBottom: "10px",
                         }}
@@ -525,7 +523,7 @@ const AboutWindow: React.FC = () => {
                         style={{
                           fontSize: "16px",
                           fontWeight: 600,
-                          color: isDark ? "#e8edf2" : "#111827",
+                          color: "var(--text-primary)",
                           marginTop: "16px",
                           marginBottom: "8px",
                         }}
@@ -554,7 +552,7 @@ const AboutWindow: React.FC = () => {
                           }
                         }}
                         style={{
-                          color: isDark ? "#4ec9b0" : "#0066cc",
+                          color: "var(--accent-blue)",
                           textDecoration: "none",
                           cursor: "pointer",
                         }}
@@ -571,12 +569,12 @@ const AboutWindow: React.FC = () => {
                     code: ({ children }) => (
                       <code
                         style={{
-                          backgroundColor: isDark ? "#22252f" : "#f3f4f6",
+                          backgroundColor: "var(--bg-secondary)",
                           padding: "2px 6px",
                           borderRadius: "4px",
                           fontSize: "13px",
                           fontFamily: "monospace",
-                          color: isDark ? "#d4d4d4" : "#333",
+                          color: "var(--text-primary)",
                         }}
                       >
                         {children}

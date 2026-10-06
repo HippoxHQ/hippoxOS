@@ -1,3 +1,6 @@
+/**
+ * Style factory for the material preview window.
+ */
 export const getStyles = (
     isDark: boolean,
     imageScale: number,
@@ -6,8 +9,8 @@ export const getStyles = (
     imagePosition: { x: number; y: number },
 ) => ({
     container: {
-        backgroundColor: isDark ? "#1a1d26" : "#ffffff",
-        border: `1px solid ${isDark ? "#2d303a" : "#e5e7eb"}`,
+        backgroundColor: "var(--bg-primary)",
+        border: `1px solid var(--border-color)`,
         boxShadow: isDark
             ? "0 4px 12px rgba(0,0,0,0.4)"
             : "0 4px 12px rgba(0,0,0,0.15)",
@@ -19,8 +22,8 @@ export const getStyles = (
     },
     topBar: {
         height: "35px",
-        background: isDark ? "#22252f" : "#f9fafb",
-        borderBottom: `1px solid ${isDark ? "#2d303a" : "#e5e7eb"}`,
+        background: "var(--bg-secondary)",
+        borderBottom: `1px solid var(--border-color)`,
         display: "flex" as const,
         alignItems: "center" as const,
         justifyContent: "space-between" as const,
@@ -44,7 +47,7 @@ export const getStyles = (
     topBarTitle: {
         fontSize: "13px",
         fontWeight: 500,
-        color: isDark ? "#e8edf2" : "#111827",
+        color: "var(--text-primary)",
         overflow: "hidden" as const,
         textOverflow: "ellipsis" as const,
         whiteSpace: "nowrap" as const,
@@ -65,7 +68,7 @@ export const getStyles = (
         background: "transparent" as const,
         border: "none" as const,
         cursor: "pointer" as const,
-        color: isDark ? "#9ca3af" : "#6b7280",
+        color: "var(--text-secondary)",
         fontSize: "15px",
         borderRadius: "0",
         flexShrink: 0 as const,
@@ -107,7 +110,7 @@ export const getStyles = (
         overflow: "hidden" as const,
         cursor: imageScale > 1 ? "grab" : "default",
         position: "relative" as const,
-        backgroundColor: isDark ? "#0d0d0d" : "#f0f0f0",
+        backgroundColor: "var(--bg-tertiary)",
     },
     imageWrapper: {
         transform: `scale(${imageScale}) rotate(${imageRotation}deg) translate(${imagePosition.x / imageScale}px, ${imagePosition.y / imageScale}px)`,
@@ -135,9 +138,9 @@ export const getStyles = (
         alignItems: "center" as const,
         gap: "6px",
         padding: "6px 12px",
-        backgroundColor: isDark ? "rgba(0,0,0,0.75)" : "rgba(255,255,255,0.85)",
+        backgroundColor: "var(--bg-secondary)",
         borderRadius: "8px",
-        border: `1px solid ${isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)"}`,
+        border: `1px solid var(--border-color)`,
         backdropFilter: "blur(8px)",
         zIndex: 10,
     },
@@ -151,12 +154,12 @@ export const getStyles = (
         border: "none" as const,
         borderRadius: "4px",
         cursor: "pointer" as const,
-        color: isDark ? "#e8edf2" : "#111827",
+        color: "var(--text-primary)",
         transition: "background 0.15s",
     },
     imageControlText: {
         fontSize: "11px",
-        color: isDark ? "#9ca3af" : "#6b7280",
+        color: "var(--text-muted)",
         padding: "0 6px",
         minWidth: "40px",
         textAlign: "center" as const,
@@ -183,7 +186,7 @@ export const getStyles = (
         alignItems: "center" as const,
         justifyContent: "center" as const,
         padding: "16px",
-        backgroundColor: isDark ? "#22252f" : "#f3f4f6",
+        backgroundColor: "var(--bg-secondary)",
         borderRadius: "4px",
         minHeight: "140px",
         flex: 1,
@@ -192,15 +195,15 @@ export const getStyles = (
     },
     audioPlaceholder: {
         fontSize: "48px",
-        color: isDark ? "#4a4f5a" : "#d1d5db",
+        color: "var(--text-muted)",
     },
     controls: {
         display: "flex" as const,
         alignItems: "center" as const,
         gap: "12px",
         padding: "8px 16px",
-        borderTop: `1px solid ${isDark ? "#2d303a" : "#e5e7eb"}`,
-        backgroundColor: isDark ? "#22252f" : "#f9fafb",
+        borderTop: `1px solid var(--border-color)`,
+        backgroundColor: "var(--bg-secondary)",
         flexShrink: 0 as const,
     },
     playBtn: {
@@ -208,21 +211,21 @@ export const getStyles = (
         border: "none" as const,
         cursor: "pointer" as const,
         fontSize: "20px",
-        color: isDark ? "#e8edf2" : "#111827",
+        color: "var(--text-primary)",
         padding: "4px 8px",
         borderRadius: "4px",
         transition: "background 0.15s",
     },
     timeDisplay: {
         fontSize: "12px",
-        color: isDark ? "#9ca3af" : "#6b7280",
+        color: "var(--text-muted)",
         fontFamily: "monospace",
         minWidth: "80px",
     },
     progressBar: {
         flex: 1,
         height: "4px",
-        backgroundColor: isDark ? "#3a3f4a" : "#e5e7eb",
+        backgroundColor: "var(--bg-tertiary)",
         borderRadius: "2px",
         cursor: "pointer" as const,
         position: "relative" as const,
@@ -230,7 +233,7 @@ export const getStyles = (
     },
     progressFill: {
         height: "100%",
-        backgroundColor: "#4ec9b0",
+        backgroundColor: "var(--accent-green)",
         borderRadius: "2px",
         transition: "width 0.1s",
     },
@@ -240,16 +243,16 @@ export const getStyles = (
         gap: "4px 16px",
         padding: "6px 16px",
         fontSize: "11px",
-        color: isDark ? "#9ca3af" : "#6b7280",
+        color: "var(--text-muted)",
         width: "100%",
-        borderTop: `1px solid ${isDark ? "#2d303a" : "#e5e7eb"}`,
+        borderTop: `1px solid var(--border-color)`,
         flexShrink: 0 as const,
     },
     infoLabel: {
-        color: isDark ? "#6b7280" : "#9ca3af",
+        color: "var(--text-muted)",
     },
     infoValue: {
-        color: isDark ? "#e8edf2" : "#111827",
+        color: "var(--text-primary)",
         textAlign: "right" as const,
     },
     emptyState: {
@@ -258,7 +261,7 @@ export const getStyles = (
         alignItems: "center" as const,
         justifyContent: "center" as const,
         gap: "12px",
-        color: isDark ? "#6b7280" : "#9ca3af",
+        color: "var(--text-muted)",
         fontSize: "14px",
     },
 });

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { listen } from "@tauri-apps/api/event";
 import { configCommands } from "../command/config";
 import { healthCommands, HealthCheckResult } from "../command/health";
 import { llmCommands } from "../command/llm";
@@ -20,39 +21,88 @@ const getTranslation = (language: "zh" | "en", key: string): string => {
   }
   return value || key;
 };
-// Cache health results to avoid repeated checks 
+let cachedTheme: "dark" | "light" = "dark";
+let cachedLanguage: "zh" | "en" = "en";
+// Cache health results to avoid repeated checks
 let healthCache: Record<string, "online" | "offline" | "checking"> = {};
 let healthCacheTimestamp = 0;
 const CACHE_TTL = 30000; // 30 seconds
+let cachedSubmenuPayload: { items: LLMInstance[]; defaultId: string } | null = null;
 const SubmenuWindow: React.FC = () => {
-  const [instances, setInstances] = useState<LLMInstance[]>([]);
+  const [instances, setInstances] = useState<LLMInstance[]>(cachedSubmenuPayload?.items ?? []);
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
-  const [theme, setTheme] = useState<"dark" | "light">("dark");
-  const [language, setLanguage] = useState<"zh" | "en">("en");
-  const [isLoading, setIsLoading] = useState(true);
+  const [theme, setTheme] = useState<"dark" | "light">(cachedTheme);
+  const [language, setLanguage] = useState<"zh" | "en">(cachedLanguage);
+  const [isLoading, setIsLoading] = useState(cachedSubmenuPayload === null);
   const dataLoadedRef = useRef(false);
-  // Load config ONLY first (fast) 
+  // Load config ONLY first (fast). Uses module cache for instant first paint.
   useEffect(() => {
+    // Apply cached theme immediately so the skeleton uses the right palette.
+    document.documentElement.setAttribute("data-theme", cachedTheme);
     const loadConfig = async () => {
       try {
         const [savedTheme, savedLanguage] = await Promise.all([configCommands.getSettingsTheme(), configCommands.getSettingsLanguage()]);
-        setTheme(savedTheme as "dark" | "light");
-        setLanguage(savedLanguage as "zh" | "en");
+        const nextTheme = savedTheme as "dark" | "light";
+        const nextLanguage = savedLanguage as "zh" | "en";
+        if (nextTheme !== cachedTheme) {
+          cachedTheme = nextTheme;
+          setTheme(nextTheme);
+          document.documentElement.setAttribute("data-theme", nextTheme);
+        }
+        if (nextLanguage !== cachedLanguage) {
+          cachedLanguage = nextLanguage;
+          setLanguage(nextLanguage);
+        }
       } catch (error) {
         console.error("Failed to load config:", error);
       }
     };
     loadConfig();
   }, []);
-  // Load LLM instances (may take time) 
   useEffect(() => {
+    const applyPayload = (payload: { items: LLMInstance[]; defaultId: string }) => {
+      const list = (payload.items || []).map((inst: any) => {
+        const cachedStatus = healthCache[inst.id];
+        return {
+          id: inst.id,
+          name: inst.name,
+          isDefault: inst.id === payload.defaultId || inst.isDefault === true,
+          status: cachedStatus || ("checking" as const),
+        };
+      });
+      cachedSubmenuPayload = { items: list, defaultId: payload.defaultId };
+      setInstances(list);
+      setIsLoading(false);
+      const now = Date.now();
+      const hasValidCache = list.every((inst) => healthCache[inst.id] && healthCache[inst.id] !== "checking");
+      if (hasValidCache && now - healthCacheTimestamp < CACHE_TTL) {
+        setInstances(
+          list.map((inst) => ({
+            ...inst,
+            status: healthCache[inst.id] as "online" | "offline",
+          })),
+        );
+      } else {
+        performHealthChecks(list);
+      }
+    };
+    let unlisten: (() => void) | undefined;
+    (async () => {
+      try {
+        unlisten = await listen<{ items: any[]; defaultId: string }>("submenu-data", (event) => {
+          applyPayload({ items: event.payload.items as LLMInstance[], defaultId: event.payload.defaultId });
+        });
+      } catch (e) {
+        // Non-fatal: fall back to the direct query below.
+      }
+    })();
     const loadInstances = async () => {
       if (dataLoadedRef.current) return;
       dataLoadedRef.current = true;
       try {
         const instancesData = await llmCommands.getLlmInstances();
         const defaultId = await llmCommands.getDefaultLlmInstanceId();
-        const instancesList = Object.values(instancesData || {}).map((instance: any) => {
+        const list = Object.values(instancesData || {}).map((instance: any) => {
           const cachedStatus = healthCache[instance.id];
           return {
             id: instance.id,
@@ -61,24 +111,9 @@ const SubmenuWindow: React.FC = () => {
             status: cachedStatus || ("checking" as const),
           };
         });
-        setInstances(instancesList);
-        // Check if we have cached health results
-        const now = Date.now();
-        const hasValidCache = instancesList.every((inst) => healthCache[inst.id] && healthCache[inst.id] !== "checking");
-        if (hasValidCache && now - healthCacheTimestamp < CACHE_TTL) {
-          // Use cached results
-          setInstances(
-            instancesList.map((inst) => ({
-              ...inst,
-              status: healthCache[inst.id] as "online" | "offline",
-            })),
-          );
-          setIsLoading(false);
-        } else {
-          // Need to check health - but don't block rendering
-          setIsLoading(false);
-          // Perform health checks in background
-          performHealthChecks(instancesList);
+        // Only apply if no pushed payload arrived first.
+        if (!cachedSubmenuPayload) {
+          applyPayload({ items: list, defaultId });
         }
       } catch (error) {
         console.error("Failed to load instances:", error);
@@ -88,7 +123,10 @@ const SubmenuWindow: React.FC = () => {
     const timer = setTimeout(() => {
       loadInstances();
     }, 50);
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      if (unlisten) unlisten();
+    };
   }, []);
   const performHealthChecks = async (instancesList: LLMInstance[]) => {
     try {
@@ -125,6 +163,16 @@ const SubmenuWindow: React.FC = () => {
           isDefault: item.id === instanceId,
         })),
       );
+      // Update the module cache so the change survives the next show.
+      if (cachedSubmenuPayload) {
+        cachedSubmenuPayload = {
+          items: cachedSubmenuPayload.items.map((item) => ({
+            ...item,
+            isDefault: item.id === instanceId,
+          })),
+          defaultId: instanceId,
+        };
+      }
       await windowsCommands.emitToMainWindow("show-notification", {
         message: getTranslation(language, "llmModel.defaultSuccess") || "Default LLM updated",
       });
@@ -139,18 +187,17 @@ const SubmenuWindow: React.FC = () => {
     return t("bottomBar.modelStatus.offline") || "Offline";
   };
   const getStatusColor = (status?: string) => {
-    if (status === "online") return "#4ec9b0";
-    if (status === "checking") return "#dcdcaa";
-    return "#f48771";
+    if (status === "online") return "var(--accent-green)";
+    if (status === "checking") return "var(--accent-yellow)";
+    return "var(--accent-red)";
   };
-  const isDark = theme === "dark";
   const t = (key: string) => getTranslation(language, key);
   const styles = {
     container: {
-      backgroundColor: isDark ? "#1a1d26" : "#ffffff",
+      backgroundColor: "var(--bg-primary)",
       borderRadius: "6px",
-      border: `1px solid ${isDark ? "#2d303a" : "#e5e7eb"}`,
-      boxShadow: isDark ? "0 2px 8px rgba(0,0,0,0.25)" : "0 2px 8px rgba(0,0,0,0.08)",
+      border: `1px solid var(--border-color)`,
+      boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
       overflow: "hidden" as const,
       display: "flex" as const,
       flexDirection: "column" as const,
@@ -159,11 +206,11 @@ const SubmenuWindow: React.FC = () => {
     },
     header: {
       padding: "8px 12px",
-      borderBottom: `1px solid ${isDark ? "#2d303a" : "#e5e7eb"}`,
-      backgroundColor: isDark ? "#22252f" : "#f9fafb",
+      borderBottom: `1px solid var(--border-color)`,
+      backgroundColor: "var(--bg-secondary)",
       fontSize: "12px",
       fontWeight: 600,
-      color: isDark ? "#e8edf2" : "#111827",
+      color: "var(--text-primary)",
       flexShrink: 0 as const,
     },
     menuContainer: {
@@ -172,7 +219,7 @@ const SubmenuWindow: React.FC = () => {
       overflowX: "hidden" as const,
       padding: "4px 0",
       scrollbarWidth: "thin" as const,
-      scrollbarColor: isDark ? "#3a3f4a transparent" : "#cbd5e1 transparent",
+      scrollbarColor: "var(--scrollbar-thumb) transparent",
     },
     menuItem: {
       display: "flex" as const,
@@ -181,7 +228,7 @@ const SubmenuWindow: React.FC = () => {
       padding: "8px 12px",
       cursor: "pointer" as const,
       fontSize: "12px",
-      color: isDark ? "#e8edf2" : "#111827",
+      color: "var(--text-primary)",
       backgroundColor: "transparent",
       transition: "background 0.15s",
       minHeight: "36px",
@@ -208,14 +255,14 @@ const SubmenuWindow: React.FC = () => {
     },
     statusText: {
       fontSize: "10px",
-      color: isDark ? "#9ca3af" : "#6b7280",
+      color: "var(--text-muted)",
       marginRight: "8px",
       flexShrink: 0 as const,
     },
     defaultBadge: {
       fontSize: "10px",
       padding: "2px 5px",
-      backgroundColor: "#4ec9b0",
+      backgroundColor: "var(--accent-green)",
       color: "#ffffff",
       borderRadius: "3px",
       flexShrink: 0 as const,
@@ -223,20 +270,19 @@ const SubmenuWindow: React.FC = () => {
     loadingContainer: {
       padding: "20px",
       textAlign: "center" as const,
-      backgroundColor: isDark ? "#1a1d26" : "#ffffff",
+      backgroundColor: "var(--bg-primary)",
     },
     loadingText: {
-      color: isDark ? "#6b7280" : "#9ca3af",
+      color: "var(--text-muted)",
       fontSize: "12px",
     },
     emptyContainer: {
       padding: "20px",
       textAlign: "center" as const,
-      color: isDark ? "#6b7280" : "#9ca3af",
+      color: "var(--text-muted)",
       fontSize: "12px",
     },
   };
-  // Webkit scrollbar styles 
   const scrollbarStyles = `
     .submenu-scroll-container::-webkit-scrollbar {
       width: 4px;
@@ -245,14 +291,13 @@ const SubmenuWindow: React.FC = () => {
       background: transparent;
     }
     .submenu-scroll-container::-webkit-scrollbar-thumb {
-      background: ${isDark ? "#3a3f4a" : "#cbd5e1"};
+      background: var(--scrollbar-thumb);
       border-radius: 2px;
     }
     .submenu-scroll-container::-webkit-scrollbar-thumb:hover {
-      background: ${isDark ? "#4a4f5a" : "#b0c0d0"};
+      background: var(--scrollbar-thumb-hover);
     }
   `;
-  // Always render, even if loading 
   return (
     <div style={styles.container}>
       <style>{scrollbarStyles}</style>
@@ -270,7 +315,7 @@ const SubmenuWindow: React.FC = () => {
               key={instance.id}
               style={{
                 ...styles.menuItem,
-                backgroundColor: hoveredItem === instance.id ? (isDark ? "rgba(232,237,242,0.08)" : "rgba(0,0,0,0.04)") : instance.isDefault ? (isDark ? "#22252f" : "#f3f4f6") : "transparent",
+                backgroundColor: hoveredItem === instance.id ? "var(--hover-bg)" : instance.isDefault ? "var(--bg-secondary)" : "transparent",
               }}
               onClick={() => setDefaultLLM(instance.id)}
               onMouseEnter={() => setHoveredItem(instance.id)}

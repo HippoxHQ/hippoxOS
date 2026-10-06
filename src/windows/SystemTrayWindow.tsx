@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { listen } from "@tauri-apps/api/event";
 import { configCommands } from "../command/config";
 import { windowsCommands } from "../command/windows";
 import { zh, en } from "../i18n";
@@ -15,6 +16,8 @@ const getTranslation = (language: "zh" | "en", key: string): string => {
   }
   return value || key;
 };
+let cachedTheme: "dark" | "light" = "dark";
+let cachedLanguage: "zh" | "en" = "en";
 const openLLMSubmenu = async () => {
   const instancesData = await windowsCommands.getLlmInstances();
   const defaultId = await windowsCommands.getDefaultLlmInstanceId();
@@ -29,8 +32,9 @@ const openAboutWindow = async () => {
   await windowsCommands.createAboutWindow();
 };
 const SystemTrayWindow: React.FC = () => {
-  const [theme, setTheme] = useState<"dark" | "light">("dark");
-  const [language, setLanguage] = useState<"zh" | "en">("en");
+  // Seed state from the module cache so first paint is instant and correctly themed.
+  const [theme, setTheme] = useState<"dark" | "light">(cachedTheme);
+  const [language, setLanguage] = useState<"zh" | "en">(cachedLanguage);
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
   // Update check states
   const [versionInfo, setVersionInfo] = useState<VersionInfo | null>(null);
@@ -41,19 +45,49 @@ const SystemTrayWindow: React.FC = () => {
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [resetTimerId, setResetTimerId] = useState<NodeJS.Timeout | null>(null);
   useEffect(() => {
+    // Apply the cached theme immediately so the skeleton uses the right palette.
+    document.documentElement.setAttribute("data-theme", cachedTheme);
     const loadData = async () => {
       try {
         const [savedTheme, savedLanguage] = await Promise.all([configCommands.getSettingsTheme(), configCommands.getSettingsLanguage()]);
-        setTheme(savedTheme as "dark" | "light");
-        setLanguage(savedLanguage as "zh" | "en");
+        const nextTheme = savedTheme as "dark" | "light";
+        const nextLanguage = savedLanguage as "zh" | "en";
+        // Only update state (and cache) if something actually changed.
+        if (nextTheme !== cachedTheme) {
+          cachedTheme = nextTheme;
+          setTheme(nextTheme);
+          document.documentElement.setAttribute("data-theme", nextTheme);
+        }
+        if (nextLanguage !== cachedLanguage) {
+          cachedLanguage = nextLanguage;
+          setLanguage(nextLanguage);
+        }
       } catch (error) {
         console.error("Failed to load config:", error);
       }
     };
     loadData();
+    // Refresh transient state whenever Rust shows the tray window again.
+    let unlisten: (() => void) | undefined;
+    (async () => {
+      try {
+        unlisten = await listen("tray-opened", () => {
+          setVersionInfo(null);
+          setUpdateError(null);
+          setCheckingUpdate(false);
+          setDownloading(false);
+          setDownloadProgress(0);
+        });
+      } catch (e) {
+        // Non-fatal: the tray still works without this listener.
+      }
+    })();
     return () => {
       if (resetTimerId) {
         clearTimeout(resetTimerId);
+      }
+      if (unlisten) {
+        unlisten();
       }
     };
   }, []);
@@ -121,23 +155,21 @@ const SystemTrayWindow: React.FC = () => {
       windowsCommands.sendEvent(action);
     }
   };
-  const isDark = theme === "dark";
   const t = (key: string) => getTranslation(language, key);
-  // ===== Compact palette =====
   const palette = {
-    bg: isDark ? "#1c1f27" : "#ffffff",
-    border: isDark ? "#2a2e38" : "#e6e8ec",
-    divider: isDark ? "#262a33" : "#eef0f3",
-    text: isDark ? "#e6e9ef" : "#1f2430",
-    textMuted: isDark ? "#7c8290" : "#9096a3",
-    hover: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.035)",
-    hoverStrong: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)",
-    accent: "#3b82f6",
-    accentSoft: isDark ? "rgba(59,130,246,0.15)" : "rgba(59,130,246,0.10)",
-    success: "#22c55e",
-    danger: "#ef4444",
-    btnBg: isDark ? "#262a33" : "#f3f4f6",
-    btnBorder: isDark ? "#31363f" : "#dfe2e7",
+    bg: "var(--bg-primary)",
+    border: "var(--border-color)",
+    divider: "var(--border-color)",
+    text: "var(--text-primary)",
+    textMuted: "var(--text-muted)",
+    hover: "var(--hover-bg)",
+    hoverStrong: "var(--hover-bg)",
+    accent: "var(--accent-blue)",
+    accentSoft: "var(--accent-glow)",
+    success: "var(--accent-green)",
+    danger: "var(--accent-red)",
+    btnBg: "var(--bg-tertiary)",
+    btnBorder: "var(--border-color)",
   };
   interface MenuItem {
     id: string;
@@ -162,13 +194,12 @@ const SystemTrayWindow: React.FC = () => {
     { id: SystemEvent.ShowAbout, label: "About", icon: Info },
     { id: "quit", label: t("common.close") || "Quit", icon: LogOut },
   ];
-  // ===== Compact styles =====
   const S = {
     container: {
       backgroundColor: palette.bg,
       borderRadius: "6px",
       border: `1px solid ${palette.border}`,
-      boxShadow: isDark ? "0 4px 14px rgba(0,0,0,0.35)" : "0 4px 14px rgba(0,0,0,0.08)",
+      boxShadow: "0 4px 14px rgba(0,0,0,0.2)",
       overflow: "hidden" as const,
       minWidth: "196px",
     },
@@ -288,7 +319,6 @@ const SystemTrayWindow: React.FC = () => {
       animation: "spin 1s linear infinite",
     },
   };
-  // ===== Update item renderer (compact) =====
   const renderUpdateItem = (item: MenuItem) => {
     const isHovered = hoveredItem === item.id;
     const rowBg = isHovered ? palette.hover : "transparent";
@@ -388,7 +418,6 @@ const SystemTrayWindow: React.FC = () => {
       </div>
     );
   };
-  // ===== Menu layout with dividers =====
   const renderedMenuItems: (MenuItem | { divider: boolean })[] = [menuItems[0], { divider: true }, menuItems[1], { divider: true }, menuItems[2], menuItems[3]];
   return (
     <div style={S.container}>
@@ -400,11 +429,11 @@ const SystemTrayWindow: React.FC = () => {
         ::-webkit-scrollbar { width: 4px; height: 4px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb {
-          background: ${isDark ? "#31363f" : "#d5d8dd"};
+          background: var(--scrollbar-thumb);
           border-radius: 2px;
         }
         ::-webkit-scrollbar-thumb:hover {
-          background: ${isDark ? "#3a4049" : "#c1c5cc"};
+          background: var(--scrollbar-thumb-hover);
         }
       `}</style>
       <div style={S.menuContainer}>

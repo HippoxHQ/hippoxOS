@@ -10,6 +10,7 @@ import { Material } from "./types";
 import { configCommands } from "../../command/config";
 import { materialsCommands } from "../../command/VideoEditor/Materials";
 import { windowsCommands } from "../../command/windows";
+import { osCommands } from "../../command/os";
 import { zh, en } from "../../i18n";
 import { getStyles } from "./styles";
 interface MaterialPreviewWindowProps {
@@ -25,6 +26,15 @@ const getTranslation = (language: "zh" | "en", key: string): string => {
   }
   return value || key;
 };
+/**
+ * Set of themes considered "dark" so canvas / Monaco editor can pick
+ * the correct rendering mode. Extend this list when adding new themes.
+ */
+const DARK_THEMES = new Set(["dark", "black", "midnight", "warm", "nord", "dracula", "solarized", "rose", "forest", "pink"]);
+/**
+ * Determine whether a given theme name should be treated as dark.
+ */
+const isDarkTheme = (themeName: string): boolean => DARK_THEMES.has(themeName);
 const MaterialPreviewWindow: React.FC = () => {
   const [material, setMaterial] = useState<Material | null>(null);
   const [theme, setTheme] = useState<"dark" | "light">("dark");
@@ -37,6 +47,9 @@ const MaterialPreviewWindow: React.FC = () => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [remoteDuration, setRemoteDuration] = useState<number | null>(null);
   const [audioDuration, setAudioDuration] = useState<number | null>(null);
+  // Detect macOS so we can hide the custom window control buttons
+  // (macOS uses the native traffic-light buttons when decorations are enabled).
+  const [isMacOS, setIsMacOS] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const audioVisualizerRef = useRef<{ seek: (time: number) => void }>(null);
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
@@ -55,6 +68,27 @@ const MaterialPreviewWindow: React.FC = () => {
   const [imagePosition, setImagePosition] = useState({ x: 0, y: 0 });
   const [imageLoaded, setImageLoaded] = useState(false);
   const isZh = language === "zh";
+  // Detect the current OS; fall back to navigator.platform if the backend
+  // command is unavailable.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const os = await osCommands.getOs();
+        if (!cancelled) {
+          setIsMacOS(os === "macos");
+        }
+      } catch (error) {
+        const fallback = typeof navigator !== "undefined" && /Mac|iPad|iPhone|iPod/.test(navigator.platform || "");
+        if (!cancelled) {
+          setIsMacOS(fallback);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   // Initialize 3D preview
   const initThreePreview = useCallback(() => {
     const container = threeContainerRef.current;
@@ -227,6 +261,8 @@ const MaterialPreviewWindow: React.FC = () => {
         const [savedTheme, savedLanguage] = await Promise.all([configCommands.getSettingsTheme(), configCommands.getSettingsLanguage()]);
         setTheme(savedTheme as "dark" | "light");
         setLanguage(savedLanguage as "zh" | "en");
+        // Apply theme attribute so CSS variables resolve for this window
+        document.documentElement.setAttribute("data-theme", savedTheme as string);
       } catch (error) {
         console.error("Failed to load config:", error);
       }
@@ -294,7 +330,8 @@ const MaterialPreviewWindow: React.FC = () => {
         editorRef.current.dispose();
         editorRef.current = null;
       }
-      const isDark = theme === "dark";
+      // Use the accurate dark detection so all dark themes get the vs-dark editor.
+      const darkMode = isDarkTheme(theme as string);
       const content = material.content_preview || (isZh ? "暂无内容预览" : "No content preview");
       const fileExt = material.name.split(".").pop()?.toLowerCase() || "";
       const extMap: Record<string, string> = {
@@ -335,7 +372,7 @@ const MaterialPreviewWindow: React.FC = () => {
       const editor = monaco.editor.create(editorContainerRef.current, {
         value: content,
         language: fileLang,
-        theme: isDark ? "vs-dark" : "light",
+        theme: darkMode ? "vs-dark" : "light",
         minimap: { enabled: false },
         fontSize: 13,
         tabSize: 2,
@@ -370,7 +407,7 @@ const MaterialPreviewWindow: React.FC = () => {
       };
     }
   }, [material, theme]);
-  const isDark = theme === "dark";
+  const isDark = isDarkTheme(theme as string);
   const t = (key: string) => getTranslation(language, key);
   const handleMinimize = async () => {
     try {
@@ -542,42 +579,48 @@ const MaterialPreviewWindow: React.FC = () => {
             <span style={styles.topBarTitle}>{isZh ? "素材预览" : "Material Preview"}</span>
           </div>
           <div style={styles.topBarRight}>
-            <button style={styles.windowBtn} onClick={handleMinimize} title={isZh ? "最小化" : "Minimize"}>
-              <span style={{ fontSize: "20px", lineHeight: 1, fontWeight: 300 }}>─</span>
-            </button>
-            <button style={styles.windowBtn} onClick={handleMaximize} title={isZh ? (isMaximized ? "还原" : "最大化") : isMaximized ? "Restore" : "Maximize"}>
-              {isMaximized ? (
-                <span style={{ fontSize: "20px", lineHeight: 1, fontWeight: 400, marginTop: "2px" }}>❐</span>
-              ) : (
-                <span
-                  style={{
-                    fontSize: "30px",
-                    fontWeight: 300,
-                    lineHeight: 1,
-                    display: "flex",
-                    alignItems: "center",
-                    marginTop: "-4px",
+            {/* On macOS the native traffic-light buttons are provided by the
+                window decorations, so the custom control group is hidden. */}
+            {!isMacOS && (
+              <>
+                <button style={styles.windowBtn} onClick={handleMinimize} title={isZh ? "最小化" : "Minimize"}>
+                  <span style={{ fontSize: "20px", lineHeight: 1, fontWeight: 300 }}>─</span>
+                </button>
+                <button style={styles.windowBtn} onClick={handleMaximize} title={isZh ? (isMaximized ? "还原" : "最大化") : isMaximized ? "Restore" : "Maximize"}>
+                  {isMaximized ? (
+                    <span style={{ fontSize: "20px", lineHeight: 1, fontWeight: 400, marginTop: "2px" }}>❐</span>
+                  ) : (
+                    <span
+                      style={{
+                        fontSize: "30px",
+                        fontWeight: 300,
+                        lineHeight: 1,
+                        display: "flex",
+                        alignItems: "center",
+                        marginTop: "-4px",
+                      }}
+                    >
+                      □
+                    </span>
+                  )}
+                </button>
+                <button
+                  style={styles.windowBtn}
+                  onClick={handleClose}
+                  title={isZh ? "关闭" : "Close"}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = "rgba(220,38,38,0.12)";
+                    e.currentTarget.style.color = "var(--accent-red)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "transparent";
+                    e.currentTarget.style.color = "var(--text-secondary)";
                   }}
                 >
-                  □
-                </span>
-              )}
-            </button>
-            <button
-              style={styles.windowBtn}
-              onClick={handleClose}
-              title={isZh ? "关闭" : "Close"}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = "rgba(220,38,38,0.12)";
-                e.currentTarget.style.color = "#ef4444";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = "transparent";
-                e.currentTarget.style.color = isDark ? "#9ca3af" : "#6b7280";
-              }}
-            >
-              <X size={14} />
-            </button>
+                  <X size={14} />
+                </button>
+              </>
+            )}
           </div>
         </div>
         <div style={styles.content}>
@@ -672,7 +715,7 @@ const MaterialPreviewWindow: React.FC = () => {
                   onClick={handleImageZoomOut}
                   title={isZh ? "缩小" : "Zoom Out"}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)";
+                    e.currentTarget.style.background = "var(--hover-bg)";
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.background = "transparent";
@@ -686,7 +729,7 @@ const MaterialPreviewWindow: React.FC = () => {
                   onClick={handleImageZoomIn}
                   title={isZh ? "放大" : "Zoom In"}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)";
+                    e.currentTarget.style.background = "var(--hover-bg)";
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.background = "transparent";
@@ -699,7 +742,7 @@ const MaterialPreviewWindow: React.FC = () => {
                   onClick={handleImageRotate}
                   title={isZh ? "旋转" : "Rotate"}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)";
+                    e.currentTarget.style.background = "var(--hover-bg)";
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.background = "transparent";
@@ -712,7 +755,7 @@ const MaterialPreviewWindow: React.FC = () => {
                   onClick={handleImageReset}
                   title={isZh ? "重置" : "Reset"}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)";
+                    e.currentTarget.style.background = "var(--hover-bg)";
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.background = "transparent";
@@ -784,55 +827,61 @@ const MaterialPreviewWindow: React.FC = () => {
           </span>
         </div>
         <div style={styles.topBarRight}>
-          <button
-            style={styles.windowBtn}
-            onClick={handleToggleFullscreen}
-            title={isZh ? "全屏" : "Fullscreen"}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = isDark ? "#3a3f4a" : "#e5e7eb";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "transparent";
-            }}
-          >
-            {isFullscreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
-          </button>
-          <button style={styles.windowBtn} onClick={handleMinimize} title={isZh ? "最小化" : "Minimize"}>
-            <span style={{ fontSize: "20px", lineHeight: 1, fontWeight: 300 }}>─</span>
-          </button>
-          <button style={styles.windowBtn} onClick={handleMaximize} title={isZh ? (isMaximized ? "还原" : "最大化") : isMaximized ? "Restore" : "Maximize"}>
-            {isMaximized ? (
-              <span style={{ fontSize: "20px", lineHeight: 1, fontWeight: 400, marginTop: "2px" }}>❐</span>
-            ) : (
-              <span
-                style={{
-                  fontSize: "30px",
-                  fontWeight: 300,
-                  lineHeight: 1,
-                  display: "flex",
-                  alignItems: "center",
-                  marginTop: "-4px",
+          {/* On macOS the native traffic-light buttons are provided by the
+              window decorations, so the custom control group is hidden. */}
+          {!isMacOS && (
+            <>
+              <button
+                style={styles.windowBtn}
+                onClick={handleToggleFullscreen}
+                title={isZh ? "全屏" : "Fullscreen"}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "var(--hover-bg)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "transparent";
                 }}
               >
-                □
-              </span>
-            )}
-          </button>
-          <button
-            style={styles.windowBtn}
-            onClick={handleClose}
-            title={isZh ? "关闭" : "Close"}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = "rgba(220,38,38,0.12)";
-              e.currentTarget.style.color = "#ef4444";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "transparent";
-              e.currentTarget.style.color = isDark ? "#9ca3af" : "#6b7280";
-            }}
-          >
-            <X />
-          </button>
+                {isFullscreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+              </button>
+              <button style={styles.windowBtn} onClick={handleMinimize} title={isZh ? "最小化" : "Minimize"}>
+                <span style={{ fontSize: "20px", lineHeight: 1, fontWeight: 300 }}>─</span>
+              </button>
+              <button style={styles.windowBtn} onClick={handleMaximize} title={isZh ? (isMaximized ? "还原" : "最大化") : isMaximized ? "Restore" : "Maximize"}>
+                {isMaximized ? (
+                  <span style={{ fontSize: "20px", lineHeight: 1, fontWeight: 400, marginTop: "2px" }}>❐</span>
+                ) : (
+                  <span
+                    style={{
+                      fontSize: "30px",
+                      fontWeight: 300,
+                      lineHeight: 1,
+                      display: "flex",
+                      alignItems: "center",
+                      marginTop: "-4px",
+                    }}
+                  >
+                    □
+                  </span>
+                )}
+              </button>
+              <button
+                style={styles.windowBtn}
+                onClick={handleClose}
+                title={isZh ? "关闭" : "Close"}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "rgba(220,38,38,0.12)";
+                  e.currentTarget.style.color = "var(--accent-red)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "transparent";
+                  e.currentTarget.style.color = "var(--text-secondary)";
+                }}
+              >
+                <X />
+              </button>
+            </>
+          )}
         </div>
       </div>
       {/* Main Content */}
@@ -844,7 +893,7 @@ const MaterialPreviewWindow: React.FC = () => {
             style={styles.playBtn}
             onClick={handlePlayPause}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = isDark ? "#3a3f4a" : "#e5e7eb";
+              e.currentTarget.style.background = "var(--hover-bg)";
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.background = "transparent";

@@ -13,7 +13,7 @@
     "macOSPrivateApi": true,
     "windows": [
       {
-        "title": "",
+        "title": "HippoxOS",
         "label": "main",
         "width": 1000,
         "height": 720,
@@ -28,7 +28,7 @@
         "dragDropEnabled": true
       },
       {
-        "title": "HippoxOS About",
+        "title": "",
         "label": "about-window",
         "width": 480,
         "height": 360,
@@ -39,7 +39,23 @@
         "resizable": true,
         "fullscreen": false,
         "center": true,
-        "visible": false
+        "visible": false,
+        "dragDropEnabled": true
+      },
+      {
+        "title": "",
+        "label": "material-preview-window",
+        "width": 560,
+        "height": 520,
+        "minWidth": 400,
+        "minHeight": 350,
+        "decorations": false,
+        "transparent": false,
+        "resizable": true,
+        "fullscreen": false,
+        "center": true,
+        "visible": false,
+        "dragDropEnabled": true
       }
     ],
     "security": {

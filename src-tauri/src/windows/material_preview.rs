@@ -13,18 +13,18 @@ impl MaterialPreviewManager {
         let window_width = 560.0;
         let window_height = 520.0;
         let (pos_x, pos_y) = Self::calculate_center_position(app_handle, window_width, window_height)?;
-        let window = WebviewWindowBuilder::new(app_handle, &window_label, tauri::WebviewUrl::App(format!("index.html?type={}", url_type).into()))
-            .title("")
-            .inner_size(window_width, window_height)
-            .position(pos_x, pos_y)
-            .decorations(false)
-            .always_on_top(true)
-            .focused(true)
-            .resizable(true)
-            .min_inner_size(400.0, 350.0)
-            .transparent(true)
-            .shadow(false)
-            .build()?;
+        let mut window_builder =
+            WebviewWindowBuilder::new(app_handle, &window_label, tauri::WebviewUrl::App(format!("index.html?type={}", url_type).into()))
+                .title("")
+                .inner_size(window_width, window_height)
+                .position(pos_x, pos_y)
+                .min_inner_size(400.0, 350.0);
+        if cfg!(target_os = "macos") {
+            window_builder = window_builder.decorations(true);
+        } else {
+            window_builder = window_builder.decorations(false);
+        }
+        let _window = window_builder.build()?;
         Ok(())
     }
     /// Compute a centered position for a window of the given LOGICAL size.

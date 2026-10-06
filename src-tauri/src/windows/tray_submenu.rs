@@ -4,18 +4,60 @@ const TRAY_SUB_MENU_WIDTH: f64 = 200.0;
 const TRAY_SUB_MENU_HEIGHT: f64 = 160.0;
 pub struct SubmenuManager;
 impl SubmenuManager {
+    /// Pre-create the submenu window in a hidden state so opening it later is
+    /// near-instant. Called once during app setup.
+    pub fn precreate_submenu_window<R: Runtime>(app_handle: &AppHandle<R>) -> Result<(), Box<dyn std::error::Error>> {
+        let window_label = format!("{}", WindowIdentifier::TraySubmenu);
+        if app_handle.get_webview_window(&window_label).is_some() {
+            return Ok(());
+        }
+        let url_type = format!("{}", WindowType::TraySubmenu);
+        let window = WebviewWindowBuilder::new(app_handle, &window_label, tauri::WebviewUrl::App(format!("index.html?type={}", url_type).into()))
+            .title("")
+            .inner_size(TRAY_SUB_MENU_WIDTH, TRAY_SUB_MENU_HEIGHT)
+            // Start far off-screen so nothing flashes on launch.
+            .position(-10000.0, -10000.0)
+            .decorations(false)
+            .always_on_top(true)
+            .skip_taskbar(true)
+            .focused(false)
+            .resizable(false)
+            .transparent(true)
+            .shadow(false)
+            .visible(false)
+            .build()?;
+        let window_clone = window.clone();
+        let app_handle_clone = app_handle.clone();
+        let tray_window_label = format!("{}", WindowIdentifier::Tray);
+        window.on_window_event(move |event| {
+            if let WindowEvent::Focused(false) = event {
+                // On focus loss, hide the submenu window. Also hide the tray
+                // popover so the whole menu closes together.
+                let _ = window_clone.hide();
+                let app = app_handle_clone.clone();
+                let tray_label = tray_window_label.clone();
+                tauri::async_runtime::spawn(async move {
+                    tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
+                    if let Some(tray_window) = app.get_webview_window(&tray_label) {
+                        let _ = tray_window.hide();
+                    }
+                });
+            }
+        });
+        Ok(())
+    }
+    /// Show the (already pre-created) submenu window next to the tray popover
+    /// and push fresh data to it. 
     pub fn create_submenu_window<R: Runtime>(
         app_handle: &AppHandle<R>,
         items: Vec<serde_json::Value>,
         current_default_id: String,
     ) -> Result<(), Box<dyn std::error::Error>> {
         let window_label = format!("{}", WindowIdentifier::TraySubmenu);
-        if let Some(window) = app_handle.get_webview_window(&window_label) {
-            let _ = window.close();
-            std::thread::sleep(std::time::Duration::from_millis(100));
+        // Ensure the window exists; otherwise create it once.
+        if app_handle.get_webview_window(&window_label).is_none() {
+            Self::precreate_submenu_window(app_handle)?;
         }
-        // Anchor the submenu to the tray popover if it exists, otherwise use
-        // the cursor. Both are normalized to LOGICAL top-left coordinates.
         let tray_window_label = format!("{}", WindowIdentifier::Tray);
         let tray_window = app_handle.get_webview_window(&tray_window_label);
         let (anchor_x, anchor_y) = if let Some(window) = tray_window {
@@ -40,7 +82,6 @@ impl SubmenuManager {
                 (mouse_x, mouse_y)
             }
         };
-        let url_type = format!("{}", WindowType::TraySubmenu);
         // Place the submenu to the LEFT of the tray popover.
         let mut pos_x = anchor_x - TRAY_SUB_MENU_WIDTH - 5.0;
         let mut pos_y = anchor_y;
@@ -67,45 +108,23 @@ impl SubmenuManager {
                 pos_y = screen_bottom - TRAY_SUB_MENU_HEIGHT;
             }
         }
-        let window = WebviewWindowBuilder::new(app_handle, &window_label, tauri::WebviewUrl::App(format!("index.html?type={}", url_type).into()))
-            .title("")
-            .inner_size(TRAY_SUB_MENU_WIDTH, TRAY_SUB_MENU_HEIGHT)
-            .position(pos_x, pos_y)
-            .decorations(false)
-            .always_on_top(true)
-            .skip_taskbar(true)
-            .focused(true)
-            .resizable(false)
-            .transparent(true)
-            .shadow(false)
-            .build()?;
         let data = serde_json::json!({
             "x": pos_x,
             "y": pos_y,
             "items": items,
             "defaultId": current_default_id,
         });
-        let window_clone = window.clone();
-        tauri::async_runtime::spawn(async move {
-            tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
-            let _ = window_clone.emit("submenu-data", data);
-        });
-        let window_clone2 = window.clone();
-        let app_handle_clone2 = app_handle.clone();
-        let tray_window_label = format!("{}", WindowIdentifier::Tray);
-        window.on_window_event(move |event| {
-            if let WindowEvent::Focused(false) = event {
-                let _ = window_clone2.close();
-                let app = app_handle_clone2.clone();
-                let tray_label = tray_window_label.clone();
-                tauri::async_runtime::spawn(async move {
-                    tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
-                    if let Some(tray_window) = app.get_webview_window(&tray_label) {
-                        let _ = tray_window.close();
-                    }
-                });
-            }
-        });
+        if let Some(window) = app_handle.get_webview_window(&window_label) {
+            // Reposition + show the existing window. No sleeping, no rebuilding.
+            let _ = window.set_position(tauri::LogicalPosition::new(pos_x, pos_y));
+            let _ = window.show();
+            let _ = window.set_focus();
+            let window_clone = window.clone();
+            tauri::async_runtime::spawn(async move {
+                tokio::time::sleep(tokio::time::Duration::from_millis(0)).await;
+                let _ = window_clone.emit("submenu-data", data);
+            });
+        }
         Ok(())
     }
     /// Return the current cursor position.
