@@ -1,13 +1,14 @@
 import React, { useEffect, useState, useRef } from "react";
 import logo from "../../assets/logo.png";
-import { SearchIcon, MoonIcon, SunIcon } from "../../icons";
+import { SearchIcon } from "../../icons";
 import { Theme, Language } from "../../types/types";
 import SearchDialog from "./SearchDialog";
 import { showToast, ToastType } from "../Toast";
 import { windowsCommands } from "../../command/windows";
 import { osCommands } from "../../command/os";
+import { configCommands } from "../../command/config";
 import { UploadFile } from "../../core/types";
-import { X } from "lucide-react";
+import { Palette, X } from "lucide-react";
 const topBarStyles = `
   .top-bar {
     height: 35px;
@@ -355,6 +356,50 @@ if (typeof document !== "undefined") {
     document.head.appendChild(style);
   }
 }
+type ThemeId = "dark" | "light" | "black" | "midnight" | "warm" | "nord" | "dracula" | "solarized" | "rose" | "forest" | "pink" | "pink-light";
+interface ThemeOption {
+  id: ThemeId;
+  labelZh: string;
+  labelEn: string;
+  swatch: string;
+}
+const THEME_OPTIONS: ThemeOption[] = [
+  { id: "dark", labelZh: "暗黑", labelEn: "Dark", swatch: "#111318" },
+  { id: "black", labelZh: "纯黑", labelEn: "Black", swatch: "#000000" },
+  { id: "light", labelZh: "亮色", labelEn: "Light", swatch: "#ffffff" },
+  { id: "midnight", labelZh: "午夜蓝", labelEn: "Midnight", swatch: "#050a1a" },
+  { id: "warm", labelZh: "暖棕", labelEn: "Warm", swatch: "#1d1813" },
+  { id: "nord", labelZh: "北欧", labelEn: "Nord", swatch: "#3b4252" },
+  { id: "dracula", labelZh: "德古拉", labelEn: "Dracula", swatch: "#282a36" },
+  { id: "solarized", labelZh: "日光", labelEn: "Solarized", swatch: "#073642" },
+  { id: "rose", labelZh: "玫瑰", labelEn: "Rose", swatch: "#1f1d2e" },
+  { id: "forest", labelZh: "森林", labelEn: "Forest", swatch: "#12251b" },
+  { id: "pink", labelZh: "粉色", labelEn: "Pink", swatch: "#241a20" },
+  { id: "pink-light", labelZh: "淡粉色", labelEn: "PinkLight", swatch: "#ffe4ec" },
+];
+/** Apply a theme by setting the data-theme attribute on <html>. */
+const applyThemeToDocument = (themeId: ThemeId) => {
+  if (typeof document === "undefined") return;
+  document.documentElement.setAttribute("data-theme", themeId);
+};
+const persistThemeToBackend = async (themeId: ThemeId) => {
+  try {
+    await configCommands.saveSettingsTheme(themeId);
+  } catch (_) {
+    /* ignore persistence errors */
+  }
+};
+const readThemeFromBackend = async (): Promise<ThemeId | null> => {
+  try {
+    const value = await configCommands.getSettingsTheme();
+    if (value && typeof value === "string") {
+      return value as ThemeId;
+    }
+  } catch (_) {
+    /* ignore read errors */
+  }
+  return null;
+};
 const MenuIcon = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
     <path d="M3 12h18M3 6h18M3 18h18" stroke="currentColor" strokeLinecap="round" />
@@ -374,8 +419,8 @@ interface TopBarProps {
   sidebarCollapsed: boolean;
   onToggleSidebar: () => void;
   onNewSession?: () => void;
-  currentTheme: Theme;
-  onToggleTheme: () => void;
+  currentTheme?: Theme;
+  onToggleTheme?: () => void;
   currentLanguage: Language;
   onToggleLanguage: () => void;
   t: (key: string) => string;
@@ -388,11 +433,54 @@ interface TopBarProps {
   isHistoryOpen?: boolean;
   onFileClick?: (file: UploadFile) => void;
 }
-const TopBar: React.FC<TopBarProps> = ({ sidebarCollapsed, onToggleSidebar, onNewSession, currentTheme, onToggleTheme, currentLanguage, onToggleLanguage, t, isHistoryOpen, onFileClick }) => {
+const TopBar: React.FC<TopBarProps> = ({ sidebarCollapsed, onToggleSidebar, onNewSession, currentLanguage, onToggleLanguage, t, isHistoryOpen, onFileClick }) => {
   const [isMaximized, setIsMaximized] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isThemePickerOpen, setIsThemePickerOpen] = useState(false);
+  const [activeThemeId, setActiveThemeId] = useState<ThemeId>("dark");
+  const [hoveredThemeId, setHoveredThemeId] = useState<ThemeId | null>(null);
   const historyButtonRef = useRef<HTMLButtonElement>(null);
+  const themeButtonRef = useRef<HTMLButtonElement>(null);
+  const themePopupRef = useRef<HTMLDivElement>(null);
   const [isMacOS, setIsMacOS] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const saved = await readThemeFromBackend();
+      if (cancelled) return;
+      const initial: ThemeId = saved || "dark";
+      setActiveThemeId(initial);
+      applyThemeToDocument(initial);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  useEffect(() => {
+    const handleThemeChanged = (e: Event) => {
+      const detail = (e as CustomEvent<{ themeId?: string }>).detail;
+      if (detail?.themeId) {
+        const nextId = detail.themeId as ThemeId;
+        setActiveThemeId(nextId);
+        applyThemeToDocument(nextId);
+      }
+    };
+    window.addEventListener("app-theme-changed", handleThemeChanged as EventListener);
+    return () => window.removeEventListener("app-theme-changed", handleThemeChanged as EventListener);
+  }, []);
+  useEffect(() => {
+    const handleGlobalMouseDown = (event: MouseEvent) => {
+      const target = event.target as Node;
+      const isThemeButton = themeButtonRef.current?.contains(target);
+      if (isThemeButton) return;
+      const isThemePopup = themePopupRef.current?.contains(target);
+      if (!isThemePopup && isThemePickerOpen) {
+        setIsThemePickerOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleGlobalMouseDown, true);
+    return () => document.removeEventListener("mousedown", handleGlobalMouseDown, true);
+  }, [isThemePickerOpen]);
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -481,6 +569,22 @@ const TopBar: React.FC<TopBarProps> = ({ sidebarCollapsed, onToggleSidebar, onNe
   const closeSearch = () => {
     setIsSearchOpen(false);
   };
+  const handleToggleThemePicker = () => {
+    setIsThemePickerOpen((prev) => !prev);
+  };
+  const handleSelectTheme = (themeId: ThemeId) => {
+    setActiveThemeId(themeId);
+    applyThemeToDocument(themeId);
+    // Persist the full theme id to the backend (not to the browser).
+    void persistThemeToBackend(themeId);
+    setIsThemePickerOpen(false);
+    // Notify the rest of the app (e.g. the settings panel) about the change.
+    window.dispatchEvent(
+      new CustomEvent("app-theme-changed", {
+        detail: { themeId },
+      }),
+    );
+  };
   const getMinimizeTitle = () => (currentLanguage === "zh" ? "最小化" : "Minimize");
   const getMaximizeTitle = () => (currentLanguage === "zh" ? (isMaximized ? "还原" : "最大化") : isMaximized ? "Restore" : "Maximize");
   const getCloseTitle = () => (currentLanguage === "zh" ? "关闭" : "Close");
@@ -498,21 +602,6 @@ const TopBar: React.FC<TopBarProps> = ({ sidebarCollapsed, onToggleSidebar, onNe
           <button className="sidebar-toggle" onClick={onToggleSidebar} title={sidebarCollapsed ? t("topbar.expandSidebar") : t("topbar.collapseSidebar")}>
             {sidebarCollapsed ? <MenuIcon /> : <CollapseIcon />}
           </button>
-          {/* <button
-            className="sidebar-toggle"
-            onClick={handleNewSessionClick}
-            title={getNewSessionTitle()}
-          >
-            <NewSessionIcon2 size={16} />
-          </button> */}
-          {/* <button
-            ref={historyButtonRef}
-            className="sidebar-toggle"
-            onClick={onHistoryClick}
-            title={t("history.title") || "History Chat"}
-          >
-            <HistoryChatIcon2 size={16} />
-          </button> */}
         </div>
         <div className="top-bar-center">
           <button className="search-input-wrapper" onClick={openSearch}>
@@ -524,38 +613,13 @@ const TopBar: React.FC<TopBarProps> = ({ sidebarCollapsed, onToggleSidebar, onNe
           </button>
         </div>
         <div className="top-bar-right">
-          <button className="action-btn theme-toggle" onClick={onToggleTheme} title={t("topbar.toggleTheme")}>
-            {currentTheme === "dark" ? <SunIcon /> : <MoonIcon />}
+          <button ref={themeButtonRef} className="action-btn theme-toggle" onClick={handleToggleThemePicker} title={t("topbar.toggleTheme")} style={{ WebkitAppRegion: "no-drag", appRegion: "no-drag" } as React.CSSProperties}>
+            <Palette size={16} strokeWidth={1.75} />
           </button>
           <button className="action-btn" onClick={onToggleLanguage} title={t("topbar.toggleLanguage")}>
             {currentLanguage === "zh" ? "EN" : "中文"}
           </button>
           {!isMacOS && <div className="layout-divider" />}
-          {/* {onFunctionPanelPositionChange && (
-            <>
-              <div className="layout-divider" />
-              <div className="layout-switch-group">
-                <button
-                  className={`layout-switch-btn ${functionPanelPosition === "left" ? "active" : ""}`}
-                  onClick={() => onFunctionPanelPositionChange("left")}
-                   title={isZh ? "功能区在左" : "Function Panel Left"}
-                >
-                  <FunctionLeftIcon />
-                   <span>{isZh ? "功能区左" : "Func Left"}</span> 
-                </button>
-                <button
-                  className={`layout-switch-btn ${functionPanelPosition === "right" ? "active" : ""}`}
-                  onClick={() => {
-                     onFunctionPanelPositionChange("right")
-                  }}
-                  title={isZh ? "功能区在右" : "Function Panel Right"}
-                >
-                  <FunctionRightIcon />
-                   <span>{isZh ? "功能区右" : "Func Right"}</span> 
-                </button>
-              </div>
-            </>
-          )} */}
           {!isMacOS && (
             <div className="window-controls">
               <button className="window-btn" onClick={handleMinimize} title={getMinimizeTitle()} style={{ fontSize: "20px", lineHeight: 1, fontWeight: 300 }}>
@@ -595,7 +659,87 @@ const TopBar: React.FC<TopBarProps> = ({ sidebarCollapsed, onToggleSidebar, onNe
           )}
         </div>
       </div>
-      <SearchDialog isOpen={isSearchOpen} onClose={closeSearch} currentLanguage={currentLanguage} currentTheme={currentTheme} onToggleTheme={onToggleTheme} onToggleLanguage={onToggleLanguage} onFileClick={onFileClick} />
+      {isThemePickerOpen && (
+        <div
+          ref={themePopupRef}
+          className="theme-picker-popup"
+          onMouseDown={(e) => e.stopPropagation()}
+          style={
+            {
+              position: "fixed",
+              top: "40px",
+              /* Shifted 100px further to the left compared to the previous version. */
+              right: isMacOS ? "110px" : "108px",
+              width: "200px",
+              maxHeight: "70vh",
+              overflowY: "auto",
+              background: "var(--bg-secondary)",
+              border: "1px solid var(--border-color)",
+              borderRadius: "5px",
+              boxShadow: "0 4px 20px rgba(0, 0, 0, 0.3)",
+              zIndex: 1000,
+              padding: "6px",
+              userSelect: "none",
+              WebkitAppRegion: "no-drag",
+              appRegion: "no-drag",
+            } as React.CSSProperties
+          }
+        >
+          <div
+            style={{
+              fontSize: "11px",
+              fontWeight: 600,
+              color: "var(--text-tertiary)",
+              padding: "6px 8px 4px",
+              letterSpacing: "0.4px",
+              textTransform: "uppercase",
+            }}
+          >
+            {isZh ? "选择主题" : "Choose Theme"}
+          </div>
+          {THEME_OPTIONS.map((opt) => {
+            const isActive = activeThemeId === opt.id;
+            const isHovered = hoveredThemeId === opt.id;
+            return (
+              <button
+                key={opt.id}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "10px",
+                  width: "100%",
+                  padding: "7px 8px",
+                  background: isActive ? "var(--accent-glow)" : isHovered ? "var(--hover-bg)" : "transparent",
+                  border: "none",
+                  borderRadius: "5px",
+                  cursor: "pointer",
+                  color: "var(--text-primary)",
+                  fontSize: "12px",
+                  textAlign: "left",
+                  transition: "background 0.12s ease",
+                }}
+                onClick={() => handleSelectTheme(opt.id)}
+                onMouseEnter={() => setHoveredThemeId(opt.id)}
+                onMouseLeave={() => setHoveredThemeId(null)}
+              >
+                <span
+                  style={{
+                    width: "16px",
+                    height: "16px",
+                    borderRadius: "5px",
+                    flexShrink: 0,
+                    background: opt.swatch,
+                    border: "1px solid rgba(255, 255, 255, 0.15)",
+                  }}
+                />
+                <span style={{ flex: 1, whiteSpace: "nowrap" }}>{isZh ? opt.labelZh : opt.labelEn}</span>
+                {isActive && <span style={{ fontSize: "12px", color: "var(--accent-color)", flexShrink: 0 }}>✓</span>}
+              </button>
+            );
+          })}
+        </div>
+      )}
+      <SearchDialog isOpen={isSearchOpen} onClose={closeSearch} currentLanguage={currentLanguage} currentTheme={activeThemeId === "light" ? "light" : "dark"} onToggleTheme={() => {}} onToggleLanguage={onToggleLanguage} onFileClick={onFileClick} />
     </>
   );
 };

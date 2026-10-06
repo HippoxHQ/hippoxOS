@@ -5,9 +5,9 @@ import { systemUpdateCommands, VersionInfo } from "../../../command/SystemUpdate
 import { PanelLeftClose, PanelRightClose, Terminal, MessageSquare, PanelLeft, PanelRight, Monitor, Globe, Power, Sparkles, Loader2, Download, RefreshCw, CheckCircle, AlertCircle, XCircle, ChevronDown } from "lucide-react";
 interface UniversalSettingsProps {
   t: (key: string, params?: any) => string;
-  theme: "light" | "dark";
+  theme?: "light" | "dark";
   language: "zh" | "en";
-  onThemeChange: (theme: "light" | "dark") => void;
+  onThemeChange?: (theme: "light" | "dark") => void;
   onLanguageChange: (language: "zh" | "en") => void;
   functionPanelPosition?: "left" | "right";
   onFunctionPanelPositionChange?: (position: "left" | "right") => void;
@@ -364,7 +364,31 @@ const CustomSelect: React.FC<CustomSelectProps> = ({ options, value, disabled, o
     </div>
   );
 };
-const UniversalSettings: React.FC<UniversalSettingsProps> = ({ t, theme, language, onThemeChange, onLanguageChange, functionPanelPosition = "right", onFunctionPanelPositionChange }) => {
+type ThemeId = "dark" | "light" | "black" | "midnight" | "warm" | "nord" | "dracula" | "solarized" | "rose" | "forest" | "pink" | "pink-light";
+/** Apply a theme by setting the data-theme attribute on <html>. */
+const applyThemeToDocument = (themeId: ThemeId) => {
+  if (typeof document === "undefined") return;
+  document.documentElement.setAttribute("data-theme", themeId);
+};
+const persistThemeToBackend = async (themeId: ThemeId) => {
+  try {
+    await configCommands.saveSettingsTheme(themeId);
+  } catch (_) {
+    /* ignore persistence errors */
+  }
+};
+const readThemeFromBackend = async (): Promise<ThemeId | null> => {
+  try {
+    const value = await configCommands.getSettingsTheme();
+    if (value && typeof value === "string") {
+      return value as ThemeId;
+    }
+  } catch (_) {
+    /* ignore read errors */
+  }
+  return null;
+};
+const UniversalSettings: React.FC<UniversalSettingsProps> = ({ t, language, onLanguageChange, functionPanelPosition = "right", onFunctionPanelPositionChange }) => {
   const [autoStartEnabled, setAutoStartEnabled] = useState(false);
   const [autoStartLoading, setAutoStartLoading] = useState(true);
   const [generalLayout, setGeneralLayout] = useState<"terminal-left" | "chat-left">("terminal-left");
@@ -374,6 +398,8 @@ const UniversalSettings: React.FC<UniversalSettingsProps> = ({ t, theme, languag
   const [videoEditorLayout, setVideoEditorLayout] = useState<"terminal-left" | "chat-left">("chat-left");
   const [sandbox3dLayout, setSandbox3dLayout] = useState<"terminal-left" | "chat-left">("terminal-left");
   const [loading, setLoading] = useState(true);
+  /* Currently active theme id, self-managed inside this component. */
+  const [activeThemeId, setActiveThemeId] = useState<ThemeId>("dark");
   // Update check states
   const [versionInfo, setVersionInfo] = useState<VersionInfo | null>(null);
   const [checkingUpdate, setCheckingUpdate] = useState(false);
@@ -383,6 +409,31 @@ const UniversalSettings: React.FC<UniversalSettingsProps> = ({ t, theme, languag
   const [downloadProgress, setDownloadProgress] = useState(0);
   const resetTimerRef = useRef<NodeJS.Timeout | null>(null);
   const isZh = t("i18n") === "zh";
+  /* ===== Initialize the active theme on mount (reads from the backend) ===== */
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const saved = await readThemeFromBackend();
+      if (cancelled) return;
+      const initial: ThemeId = saved || "dark";
+      setActiveThemeId(initial);
+      applyThemeToDocument(initial);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  /* ===== Listen for theme changes coming from the TopBar picker ===== */
+  useEffect(() => {
+    const handleThemeChanged = (e: Event) => {
+      const detail = (e as CustomEvent<{ themeId?: string }>).detail;
+      if (detail?.themeId) {
+        setActiveThemeId(detail.themeId as ThemeId);
+      }
+    };
+    window.addEventListener("app-theme-changed", handleThemeChanged as EventListener);
+    return () => window.removeEventListener("app-theme-changed", handleThemeChanged as EventListener);
+  }, []);
   useEffect(() => {
     return () => {
       if (resetTimerRef.current) {
@@ -418,9 +469,19 @@ const UniversalSettings: React.FC<UniversalSettingsProps> = ({ t, theme, languag
     };
     loadAllSettings();
   }, []);
-  const handleThemeChange = async (newTheme: "light" | "dark") => {
-    onThemeChange(newTheme);
-    await configCommands.saveSettingsTheme(newTheme);
+  /* ===== Theme change handler =====
+     Applies the theme to <html>, persists it to the backend, and notifies
+     the rest of the app (e.g. TopBar) via a window event. */
+  const handleThemeChange = async (newTheme: string) => {
+    const themeId = newTheme as ThemeId;
+    setActiveThemeId(themeId);
+    applyThemeToDocument(themeId);
+    await persistThemeToBackend(themeId);
+    window.dispatchEvent(
+      new CustomEvent("app-theme-changed", {
+        detail: { themeId },
+      }),
+    );
   };
   const handleLanguageChange = async (newLanguage: "zh" | "en") => {
     onLanguageChange(newLanguage);
@@ -679,10 +740,19 @@ const UniversalSettings: React.FC<UniversalSettingsProps> = ({ t, theme, languag
     overflow: "hidden",
     whiteSpace: "nowrap",
   };
-  // Theme options for the custom dropdown.
   const themeOptions: CustomSelectOption[] = [
-    { value: "light", label: t("settings.themeLight") },
-    { value: "dark", label: t("settings.themeDark") },
+    { value: "dark", label: isZh ? "暗黑" : "Dark" },
+    { value: "black", label: isZh ? "纯黑" : "Black" },
+    { value: "light", label: isZh ? "亮色" : "Light" },
+    { value: "midnight", label: isZh ? "午夜蓝" : "Midnight" },
+    { value: "nord", label: isZh ? "北欧" : "Nord" },
+    { value: "dracula", label: isZh ? "德古拉" : "Dracula" },
+    { value: "solarized", label: isZh ? "日光" : "Solarized" },
+    { value: "rose", label: isZh ? "玫瑰" : "Rose" },
+    { value: "forest", label: isZh ? "森林" : "Forest" },
+    { value: "warm", label: isZh ? "暖棕" : "Warm" },
+    { value: "pink", label: isZh ? "粉色" : "Pink" },
+    { value: "pink-light", label: isZh ? "淡粉色" : "PinkLight" },
   ];
   // Language options for the custom dropdown.
   const languageOptions: CustomSelectOption[] = [
@@ -735,7 +805,7 @@ const UniversalSettings: React.FC<UniversalSettingsProps> = ({ t, theme, languag
         </div>
         <div style={rowStyle}>
           <label style={labelStyle}>{t("settings.theme")}</label>
-          <CustomSelect options={themeOptions} value={theme} onChange={(next) => handleThemeChange(next as "light" | "dark")} triggerWidth={180} menuMinWidth={180} menuAlign="right" />
+          <CustomSelect options={themeOptions} value={activeThemeId} onChange={(next) => handleThemeChange(next)} triggerWidth={180} menuMinWidth={180} menuAlign="right" />
         </div>
         <div style={rowStyle}>
           <label style={labelStyle}>{t("settings.language")}</label>

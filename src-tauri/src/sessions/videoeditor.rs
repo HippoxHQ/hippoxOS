@@ -78,7 +78,7 @@ async fn process_video_file_background(app_handle: tauri::AppHandle, session_id:
         };
         debug!("process_video_file_background - download_content_id: {:?}", download_content_id);
         // Insert the material into the session
-        let upload_result = match register_material(&app, sid.clone(), path.clone(), download_content_id.clone()) {
+        let upload_result = match register_material(&app, sid.clone(), path.clone(), download_content_id.clone(), None, None) {
             Ok(r) => {
                 debug!("process_video_file_background - Video material inserted successfully: id={}", r.id);
                 r
@@ -199,7 +199,7 @@ async fn process_audio_files_background(app_handle: tauri::AppHandle, session_id
             } else {
                 None
             };
-            match register_material(&app, sid.clone(), audio_path.clone(), download_content_id.clone()) {
+            match register_material(&app, sid.clone(), audio_path.clone(), download_content_id.clone(), None, None) {
                 Ok(upload_result) => {
                     let material_id = upload_result.id;
                     debug!("process_audio_files_background - Audio material inserted: {}", material_id);
@@ -299,7 +299,7 @@ async fn process_image_files_background(app_handle: tauri::AppHandle, session_id
             } else {
                 None
             };
-            match register_material(&app, sid.clone(), image_path.clone(), download_content_id.clone()) {
+            match register_material(&app, sid.clone(), image_path.clone(), download_content_id.clone(), None, None) {
                 Ok(upload_result) => {
                     let material_id = upload_result.id;
                     debug!("process_image_files_background - Image material inserted: {}", material_id);
@@ -399,7 +399,7 @@ async fn process_text_files_background(app_handle: tauri::AppHandle, session_id:
             } else {
                 None
             };
-            match register_material(&app, sid.clone(), text_path.clone(), download_content_id.clone()) {
+            match register_material(&app, sid.clone(), text_path.clone(), download_content_id.clone(), None, None) {
                 Ok(upload_result) => {
                     let material_id = upload_result.id;
                     debug!("process_text_files_background - Text material inserted: {}", material_id);
@@ -475,7 +475,7 @@ fn process_video_file(app_handle: tauri::AppHandle, session_id: &str, source_pat
         return;
     }
     // For synchronous version, we don't have download_context_id, so pass None
-    match register_material(&app_handle, session_id.to_string(), source_path, None) {
+    match register_material(&app_handle, session_id.to_string(), source_path, None, None, None) {
         Ok(upload_result) => {
             let material_id = upload_result.id;
             debug!("process_video_file - Video material inserted: {}", material_id);
@@ -500,7 +500,7 @@ fn process_audio_files(app_handle: tauri::AppHandle, session_id: &str, audio_pat
             continue;
         }
         // For synchronous version, we don't have download_context_id, so pass None
-        match register_material(&app_handle, session_id.to_string(), audio_path, None) {
+        match register_material(&app_handle, session_id.to_string(), audio_path, None, None, None) {
             Ok(upload_result) => {
                 let material_id = upload_result.id;
                 debug!("process_audio_files - Audio material inserted: {}", material_id);
@@ -526,7 +526,7 @@ fn process_image_files(app_handle: tauri::AppHandle, session_id: &str, image_pat
             continue;
         }
         // For synchronous version, we don't have download_context_id, so pass None
-        match register_material(&app_handle, session_id.to_string(), image_path, None) {
+        match register_material(&app_handle, session_id.to_string(), image_path, None, None, None) {
             Ok(upload_result) => {
                 let material_id = upload_result.id;
                 debug!("process_image_files - Image material inserted: {}", material_id);
@@ -552,7 +552,7 @@ fn process_text_files(app_handle: tauri::AppHandle, session_id: &str, text_paths
             continue;
         }
         // For synchronous version, we don't have download_context_id, so pass None
-        match register_material(&app_handle, session_id.to_string(), text_path, None) {
+        match register_material(&app_handle, session_id.to_string(), text_path, None, None, None) {
             Ok(upload_result) => {
                 let material_id = upload_result.id;
                 debug!("process_text_files - Text material inserted: {}", material_id);
