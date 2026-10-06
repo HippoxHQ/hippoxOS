@@ -668,8 +668,7 @@ const TopBar: React.FC<TopBarProps> = ({ sidebarCollapsed, onToggleSidebar, onNe
             {
               position: "fixed",
               top: "40px",
-              /* Shifted 100px further to the left compared to the previous version. */
-              right: isMacOS ? "110px" : "108px",
+              right: isMacOS ? "210px" : "108px",
               width: "200px",
               maxHeight: "70vh",
               overflowY: "auto",
