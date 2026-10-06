@@ -17,7 +17,6 @@ make LLM the operating system interpretation layer.
   <a href="https://github.com/HippoxHQ/hippoxOS/releases"><img src="https://img.shields.io/github/downloads/HippoxHQ/hippoxOS/total?style=flat&labelColor=1C2C2E&color=00C853&logo=github&logoColor=white&label=downloads" alt="GitHub downloads"></a>
   <a href="https://twitter.com/intent/follow?screen_name=HippoxAI"><img src="https://img.shields.io/twitter/follow/HippoxAI" alt="HippoxAI Follow" /></a>
   <br/>
-  <a href="https://xinquji.com" target="_blank" rel="noopener noreferrer"><img src="https://xinquji.com/badge" alt="Featured on 新趣集" style="width:200px;height:54px;" width="200" height="54" /></a>
   <a href="https://alternativeto.net/software/hippoxos/about/?utm_source=badge&utm_medium=referral" target="_blank">
   <img src="https://alternativeto.net/static/badges/badge-compact-color.svg"
        alt="hippoxOS | AlternativeTo"
