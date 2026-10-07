@@ -58,6 +58,25 @@ const SubmenuWindow: React.FC = () => {
       }
     };
     loadConfig();
+    // Listen for theme changes broadcast from the main window. 
+    let unlistenTheme: (() => void) | undefined;
+    (async () => {
+      try {
+        unlistenTheme = await listen<{ themeId: string }>("theme-changed", (event) => {
+          const id = event.payload?.themeId;
+          if (!id) return;
+          const nextTheme: "dark" | "light" = id === "light" || id === "pink-light" ? "light" : "dark";
+          cachedTheme = nextTheme;
+          setTheme(nextTheme);
+          document.documentElement.setAttribute("data-theme", id);
+        });
+      } catch (e) {
+        // Non-fatal.
+      }
+    })();
+    return () => {
+      if (unlistenTheme) unlistenTheme();
+    };
   }, []);
   useEffect(() => {
     const applyPayload = (payload: { items: LLMInstance[]; defaultId: string }) => {

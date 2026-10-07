@@ -9,6 +9,7 @@ import { osCommands } from "../../command/os";
 import { configCommands } from "../../command/config";
 import { UploadFile } from "../../core/types";
 import { Palette, X } from "lucide-react";
+import { emit } from "@tauri-apps/api/event";
 const topBarStyles = `
   .top-bar {
     height: 35px;
@@ -578,6 +579,7 @@ const TopBar: React.FC<TopBarProps> = ({ sidebarCollapsed, onToggleSidebar, onNe
     // Persist the full theme id to the backend (not to the browser).
     void persistThemeToBackend(themeId);
     setIsThemePickerOpen(false);
+    emit("theme-changed", { themeId });
     // Notify the rest of the app (e.g. the settings panel) about the change.
     window.dispatchEvent(
       new CustomEvent("app-theme-changed", {

@@ -67,6 +67,22 @@ const SystemTrayWindow: React.FC = () => {
       }
     };
     loadData();
+    // Listen for theme changes broadcast from the main window. 
+    let unlistenTheme: (() => void) | undefined;
+    (async () => {
+      try {
+        unlistenTheme = await listen<{ themeId: string }>("theme-changed", (event) => {
+          const id = event.payload?.themeId;
+          if (!id) return;
+          const nextTheme: "dark" | "light" = id === "light" || id === "pink-light" ? "light" : "dark";
+          cachedTheme = nextTheme;
+          setTheme(nextTheme);
+          document.documentElement.setAttribute("data-theme", id);
+        });
+      } catch (e) {
+        // Non-fatal.
+      }
+    })();
     // Refresh transient state whenever Rust shows the tray window again.
     let unlisten: (() => void) | undefined;
     (async () => {
@@ -88,6 +104,9 @@ const SystemTrayWindow: React.FC = () => {
       }
       if (unlisten) {
         unlisten();
+      }
+      if (unlistenTheme) {
+        unlistenTheme();
       }
     };
   }, []);

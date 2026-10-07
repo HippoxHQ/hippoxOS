@@ -3,6 +3,7 @@ import { configCommands } from "../../../command/config";
 import { disable, enable } from "@tauri-apps/plugin-autostart";
 import { systemUpdateCommands, VersionInfo } from "../../../command/SystemUpdate";
 import { PanelLeftClose, PanelRightClose, Terminal, MessageSquare, PanelLeft, PanelRight, Monitor, Globe, Power, Sparkles, Loader2, Download, RefreshCw, CheckCircle, AlertCircle, XCircle, ChevronDown } from "lucide-react";
+import { emit } from "@tauri-apps/api/event";
 interface UniversalSettingsProps {
   t: (key: string, params?: any) => string;
   theme?: "light" | "dark";
@@ -477,6 +478,7 @@ const UniversalSettings: React.FC<UniversalSettingsProps> = ({ t, language, onLa
     setActiveThemeId(themeId);
     applyThemeToDocument(themeId);
     await persistThemeToBackend(themeId);
+    emit("theme-changed", { themeId });
     window.dispatchEvent(
       new CustomEvent("app-theme-changed", {
         detail: { themeId },
