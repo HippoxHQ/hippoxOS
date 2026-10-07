@@ -74,9 +74,7 @@ HippoxOS 的设计围绕以下三个核心原则展开：
 
 3. **智能任务编排（Intelligent Task Orchestration）**：系统具备任务管理和自动化调度能力。用户可以设定定时任务，让系统按照指定的时间或间隔自动执行自然语言指令，实现无人值守的自动化工作流。
 
-## 核心子系统
-
-### 1. 通用对话子系统
+## 通用对话子系统
 
 <img src="https://raw.githubusercontent.com/HippoxHQ/assets/main/demo/general-conversation-subsystem.gif" />
 
@@ -101,7 +99,7 @@ HippoxOS 的设计围绕以下三个核心原则展开：
 | **Chain**          | 链式串行执行，驱动间可传递变量      | 线性流水线、数据转换链         |
 | **PlanAndExecute** | 一次性规划完整工作流，支持条件判断  | 复杂工作流、确定性任务         |
 
-### 2. 视频编辑子系统
+## 视频编辑子系统
 
 <img src="https://raw.githubusercontent.com/HippoxHQ/assets/main/demo/video-editing-subsystem.gif" />
 
@@ -122,31 +120,37 @@ HippoxOS 的设计围绕以下三个核心原则展开：
 
 当用户通过自然语言描述编辑意图时，系统解析指令并映射为 NLE 引擎的具体操作。视频创作不再依赖于复杂的时间轴拖拽和参数调节，用户只需用自然语言描述想要的编辑效果，系统通过 Hippox 内核调度相应的视频编辑驱动，驱动 NLE 引擎完成底层媒体处理。
 
-### 3. 3D 沙盒子系统
+## AI多媒体文件生成能力.
+
+<img src="https://raw.githubusercontent.com/HippoxHQ/assets/main/demo/llm-media-generation.gif" />
+
+你可以在系统内集成多模态模型用于生成媒体文件, 直接用于时间线编辑.
+
+## 3D 沙盒子系统
 
 <img src="https://raw.githubusercontent.com/HippoxHQ/assets/main/demo/3d-sandbox-subsystem.gif" />
 
 3D 沙盒子系统提供了一个通过对话生成和操作三维场景的环境。用户可以用自然语言描述想要构建的 3D 场景，系统生成相应的代码并在视口中实时渲染。所有历史生成的 3D 场景均可回溯和复用，支持场景快照切换和 GIF 动画导出，将 3D 内容创作从代码编写转变为语言描述。
 
-### 4. 地图与地理信息子系统
+## 地图与地理信息子系统
 
 <img src="https://raw.githubusercontent.com/HippoxHQ/assets/main/demo/maps-geographic-information-subsystem.gif" />
 
 地图子系统集成了专业级地理信息可视化能力。用户通过对话在地图上标注位置、绘制路径、创建热力图和聚类分析等。系统解析地理意图并在交互式地球视图上叠加相应的图层和标记，将复杂的地理空间分析转化为直观的对话交互。
 
-### 5. 金融数据分析子系统
+## 金融数据分析子系统
 
 <img src="https://raw.githubusercontent.com/HippoxHQ/assets/main/demo/financial-data-analysis-subsystem.gif" />
 
 金融子系统提供实时金融数据可视化与分析能力。用户可通过对话查询和展示股票、加密货币等金融产品的价格走势与技术图表。系统整合实时行情数据、新闻资讯滚动条和交互式 K 线图，使用户能够以对话方式完成金融数据的探索与分析。
 
-### 6. 代码开发子系统
+## 代码开发子系统
 
 <img src="https://raw.githubusercontent.com/HippoxHQ/assets/main/demo/code-development-subsystem.gif" />
 
 代码开发子系统将 AI 辅助编程深度集成到桌面开发环境中。用户可通过自然语言描述开发需求，系统驱动代码生成和修改。该子系统的核心特性是代码变更的可控性——当 AI 对代码进行修改时，系统会以对比视图呈现修改前后的差异，用户确认后方可应用，确保开发者对代码库的完全掌控。
 
-### 7. 定时任务与自动化子系统
+## 定时任务与自动化子系统
 
 定时任务子系统赋予系统无人值守的自动化执行能力。用户可通过自然语言创建定时任务，系统按固定时间或周期性间隔自动执行。任务可以包含自然语言指令或引用 SKILL 文件，支持多种工作流模式选择，并记录完整的执行历史。执行频率以热力图形式可视化呈现，帮助用户洞察自动化任务的运行模式。
 

@@ -74,9 +74,7 @@ HippoxOS is designed around three core principles:
 
 3. **Intelligent Task Orchestration**: The system provides task management and automation scheduling capabilities. Users can define scheduled tasks, and the system will automatically execute natural language instructions at specified times or intervals, enabling unattended automated workflows.
 
-## Core Subsystems
-
-### 1. General Conversation Subsystem
+## General Conversation Subsystem
 
 <img src="https://raw.githubusercontent.com/HippoxHQ/assets/main/demo/general-conversation-subsystem.gif" />
 
@@ -101,7 +99,7 @@ The kernel employs multiple workflow modes to handle tasks of varying complexity
 | **Chain**          | Sequential execution with variable passing between drivers | Linear pipelines, data transformation chains              |
 | **PlanAndExecute** | One-time workflow planning with conditional support        | Complex workflows, deterministic tasks                    |
 
-### 2. Video Editing Subsystem
+## Video Editing Subsystem
 
 <img src="https://raw.githubusercontent.com/HippoxHQ/assets/main/demo/video-editing-subsystem.gif" />
 
@@ -122,31 +120,37 @@ This subsystem is powered by a proprietary **NLE (Non-Linear Editing) Engine** r
 
 When users describe editing intent through natural language, the system parses the instructions and maps them to specific NLE Engine operations. Video creation no longer relies on complex timeline dragging and parameter adjustments—users simply describe the desired editing effect in natural language, and the system drives the Hippox Kernel to schedule the appropriate video editing drivers, which in turn drive the NLE Engine to perform the underlying media processing.
 
-### 3. 3D Sandbox Subsystem
+## LLM media file generation capabilities.
+
+<img src="https://raw.githubusercontent.com/HippoxHQ/assets/main/demo/llm-media-generation.gif" />
+
+You can integrate multimodal models into the system to generate media files for direct use in timeline editing.
+
+## 3D Sandbox Subsystem
 
 <img src="https://raw.githubusercontent.com/HippoxHQ/assets/main/demo/3d-sandbox-subsystem.gif" />
 
 The 3D Sandbox Subsystem provides an environment for generating and manipulating three-dimensional scenes through conversation. Users can describe the 3D scene they wish to build in natural language, and the system generates the corresponding code and renders it in real-time within the viewport. All historically generated 3D scenes can be revisited and reused, with support for scene snapshot switching and GIF animation export, transforming 3D content creation from code writing to language description.
 
-### 4. Maps & Geographic Information Subsystem
+## Maps & Geographic Information Subsystem
 
 <img src="https://raw.githubusercontent.com/HippoxHQ/assets/main/demo/maps-geographic-information-subsystem.gif" />
 
 The Maps Subsystem integrates professional geographic information visualization capabilities. Users can place markers, draw routes, and create heatmaps and cluster analyses on maps through conversation. The system parses geographic intent and overlays corresponding layers and markers on the interactive Earth view, converting complex geospatial analysis into intuitive conversational interaction.
 
-### 5. Financial Data Analysis Subsystem
+## Financial Data Analysis Subsystem
 
 <img src="https://raw.githubusercontent.com/HippoxHQ/assets/main/demo/financial-data-analysis-subsystem.gif" />
 
 The Financial Subsystem provides real-time financial data visualization and analysis capabilities. Users can query and display price trends and technical charts for financial products such as stocks and cryptocurrencies through conversation. The system integrates real-time market data, news tickers, and interactive candlestick charts, enabling users to explore and analyze financial data through dialogue.
 
-### 6. Code Development Subsystem
+## Code Development Subsystem
 
 <img src="https://raw.githubusercontent.com/HippoxHQ/assets/main/demo/code-development-subsystem.gif" />
 
 The Code Development Subsystem deeply integrates AI-assisted programming into the desktop development environment. Users can describe development requirements through natural language, and the system drives code generation and modification. The core feature of this subsystem is the controllability of code changes—when AI modifies code, the system presents a side-by-side comparison view showing the differences before and after modification; changes are only applied after user confirmation, ensuring developers maintain full control over the codebase.
 
-### 7. Scheduled Tasks & Automation Subsystem
+## Scheduled Tasks & Automation Subsystem
 
 The Scheduled Tasks Subsystem provides unattended automation execution capabilities. Users can create scheduled tasks through natural language, and the system automatically executes them at fixed times or periodic intervals. Tasks can contain natural language instructions or reference SKILL files, support multiple workflow mode options, and maintain complete execution history. Execution frequency is visualized through heatmaps, helping users understand the operational patterns of their automated tasks.
 
