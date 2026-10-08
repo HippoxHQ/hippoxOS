@@ -34,6 +34,12 @@ import SandBox3DPage from "../../subsystem/SandBox3D";
 import VideoEditorPage from "../../subsystem/VideoEditor";
 import ChartPage from "../../subsystem/Finance";
 import BlockchainPage from "../../subsystem/Blockchain";
+// New subsystem pages
+import ImageEditorPage from "../../subsystem/ImageEditor";
+import PixelEditorPage from "../../subsystem/PixelEditor";
+import DataBaseClientPage from "../../subsystem/DataBaseClient";
+import DockerClientPage from "../../subsystem/DockerClient";
+import ApiClientPage from "../../subsystem/ApiClient";
 import { MENU_PANEL_WIDTH } from "../constants";
 declare global {
   interface Window {
@@ -71,6 +77,12 @@ declare global {
     __generalChatInstance: any;
     // Global blockchain instance for cleanup
     __blockchainInstance: any;
+    // Global instances for new subsystems
+    __imageEditorInstance: any;
+    __pixelEditorInstance: any;
+    __databaseClientInstance: any;
+    __dockerClientInstance: any;
+    __apiClientInstance: any;
   }
 }
 if (typeof window !== "undefined") {
@@ -98,6 +110,12 @@ const PAGE_TYPES = {
   VIDEO_EDITOR: "videoEditor",
   SANDBOX_3D: "sandbox3d",
   BLOCKCHAIN: "blockchain",
+  // New subsystem pages
+  IMAGE_EDITOR: "imageEditor",
+  PIXEL_EDITOR: "pixelEditor",
+  DATABASE_CLIENT: "databaseClient",
+  DOCKER_CLIENT: "dockerClient",
+  API_CLIENT: "apiClient",
   SKILLS_MANAGER: "skillsManager",
   SCHEDULED_TASKS: "scheduledTasks",
   USER_PROFILE: "userProfile",
@@ -113,11 +131,21 @@ type PageType = (typeof PAGE_TYPES)[keyof typeof PAGE_TYPES];
 /**
  * All subsystem page keys that should be destroyed on switch
  */
-const SUBSYSTEM_PAGES: PageType[] = [PAGE_TYPES.GENERAL_CHAT, PAGE_TYPES.CHART_CHAT, PAGE_TYPES.MAP_CHAT, PAGE_TYPES.CODE_EDITOR, PAGE_TYPES.VIDEO_EDITOR, PAGE_TYPES.SANDBOX_3D, PAGE_TYPES.BLOCKCHAIN];
-/**
- * Cleanup function for a specific page type
- * Each subsystem should define its own cleanup logic here
- */
+const SUBSYSTEM_PAGES: PageType[] = [
+  PAGE_TYPES.GENERAL_CHAT,
+  PAGE_TYPES.CHART_CHAT,
+  PAGE_TYPES.MAP_CHAT,
+  PAGE_TYPES.CODE_EDITOR,
+  PAGE_TYPES.VIDEO_EDITOR,
+  PAGE_TYPES.SANDBOX_3D,
+  PAGE_TYPES.BLOCKCHAIN,
+  // New subsystem pages
+  PAGE_TYPES.IMAGE_EDITOR,
+  PAGE_TYPES.PIXEL_EDITOR,
+  PAGE_TYPES.DATABASE_CLIENT,
+  PAGE_TYPES.DOCKER_CLIENT,
+  PAGE_TYPES.API_CLIENT,
+];
 function cleanupPageResources(pageKey: PageType): void {
   console.log(`[CLEANUP] Cleaning up page: ${pageKey}`);
   try {
@@ -206,6 +234,61 @@ function cleanupPageResources(pageKey: PageType): void {
             console.warn("[CLEANUP] General chat destroy error:", e);
           }
           window.__generalChatInstance = null;
+        }
+        break;
+      case PAGE_TYPES.IMAGE_EDITOR:
+        // Cleanup image editor instance
+        if (window.__imageEditorInstance) {
+          try {
+            window.__imageEditorInstance.destroy?.();
+          } catch (e) {
+            console.warn("[CLEANUP] Image editor destroy error:", e);
+          }
+          window.__imageEditorInstance = null;
+        }
+        break;
+      case PAGE_TYPES.PIXEL_EDITOR:
+        // Cleanup pixel editor instance
+        if (window.__pixelEditorInstance) {
+          try {
+            window.__pixelEditorInstance.destroy?.();
+          } catch (e) {
+            console.warn("[CLEANUP] Pixel editor destroy error:", e);
+          }
+          window.__pixelEditorInstance = null;
+        }
+        break;
+      case PAGE_TYPES.DATABASE_CLIENT:
+        // Cleanup database client instance
+        if (window.__databaseClientInstance) {
+          try {
+            window.__databaseClientInstance.destroy?.();
+          } catch (e) {
+            console.warn("[CLEANUP] Database client destroy error:", e);
+          }
+          window.__databaseClientInstance = null;
+        }
+        break;
+      case PAGE_TYPES.DOCKER_CLIENT:
+        // Cleanup docker client instance
+        if (window.__dockerClientInstance) {
+          try {
+            window.__dockerClientInstance.destroy?.();
+          } catch (e) {
+            console.warn("[CLEANUP] Docker client destroy error:", e);
+          }
+          window.__dockerClientInstance = null;
+        }
+        break;
+      case PAGE_TYPES.API_CLIENT:
+        // Cleanup api client instance
+        if (window.__apiClientInstance) {
+          try {
+            window.__apiClientInstance.destroy?.();
+          } catch (e) {
+            console.warn("[CLEANUP] Api client destroy error:", e);
+          }
+          window.__apiClientInstance = null;
         }
         break;
       default:
@@ -726,10 +809,6 @@ export function AppContent({
       zIndex: 11,
     },
   };
-  /**
-   * Render a subsystem page with a key that forces React to unmount on change
-   * This ensures React destroys the component tree completely
-   */
   const renderSubsystemPage = (pageKey: PageType, element: React.ReactNode): React.ReactNode => {
     return (
       <div key={pageKey} data-page-key={pageKey} style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column" }}>
@@ -748,6 +827,12 @@ export function AppContent({
     const isVideoEditor = currentContentPanel === "videoEditor";
     const isSandbox3d = currentContentPanel === "sandbox3d";
     const isBlockchain = currentContentPanel === "blockchain";
+    // New subsystem page flags
+    const isImageEditor = currentContentPanel === "imageEditor";
+    const isPixelEditor = currentContentPanel === "pixelEditor";
+    const isDatabaseClient = currentContentPanel === "databaseClient";
+    const isDockerClient = currentContentPanel === "dockerClient";
+    const isApiClient = currentContentPanel === "apiClient";
     let contentElement: React.ReactNode;
     if (isChatPage) {
       if (showWelcome && !currentContentPanel) {
@@ -854,6 +939,21 @@ export function AppContent({
       contentElement = renderSubsystemPage(PAGE_TYPES.SANDBOX_3D, <SandBox3DPage t={t} theme={theme === "dark" ? "dark" : "light"} i18n={language === "zh" ? "zh-cn" : "en"} />);
     } else if (isBlockchain) {
       contentElement = renderSubsystemPage(PAGE_TYPES.BLOCKCHAIN, <BlockchainPage t={t} theme={theme === "dark" ? "dark" : "light"} i18n={language === "zh" ? "zh-cn" : "en"} />);
+    } else if (isImageEditor) {
+      // Render the image editor page
+      contentElement = renderSubsystemPage(PAGE_TYPES.IMAGE_EDITOR, <ImageEditorPage t={t} theme={theme === "dark" ? "dark" : "light"} i18n={language === "zh" ? "zh-cn" : "en"} />);
+    } else if (isPixelEditor) {
+      // Render the pixel editor page
+      contentElement = renderSubsystemPage(PAGE_TYPES.PIXEL_EDITOR, <PixelEditorPage t={t} theme={theme === "dark" ? "dark" : "light"} i18n={language === "zh" ? "zh-cn" : "en"} />);
+    } else if (isDatabaseClient) {
+      // Render the database client page
+      contentElement = renderSubsystemPage(PAGE_TYPES.DATABASE_CLIENT, <DataBaseClientPage t={t} theme={theme === "dark" ? "dark" : "light"} i18n={language === "zh" ? "zh-cn" : "en"} />);
+    } else if (isDockerClient) {
+      // Render the docker client page
+      contentElement = renderSubsystemPage(PAGE_TYPES.DOCKER_CLIENT, <DockerClientPage t={t} theme={theme === "dark" ? "dark" : "light"} i18n={language === "zh" ? "zh-cn" : "en"} />);
+    } else if (isApiClient) {
+      // Render the API client page
+      contentElement = renderSubsystemPage(PAGE_TYPES.API_CLIENT, <ApiClientPage t={t} theme={theme === "dark" ? "dark" : "light"} i18n={language === "zh" ? "zh-cn" : "en"} />);
     } else {
       // Other non-subsystem panels
       switch (currentContentPanel) {
@@ -1118,8 +1218,6 @@ export function AppContent({
       />
       <div style={styles.mainLayout}>
         {!sidebarCollapsed && <Sidebar collapsed={sidebarCollapsed} onResetSession={onResetSession} onClearLogs={onClearLogs} onMenuClick={onMenuClick} onNewSession={onNewSession} currentSessionId={currentSessionId} onSwitchSession={onSwitchSession} t={t} />}
-        {/* Main content wrapper. The drawer is rendered inside this wrapper with position absolute
-            so it is confined to the main content area and never covers the top bar, sidebar, or bottom bar. */}
         <div style={{ flex: 1, position: "relative", overflow: "hidden", display: "flex" }}>
           {renderMainLayout()}
           {/* Drawer overlay for the menu panel, confined to the main content area */}

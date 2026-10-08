@@ -147,5 +147,10 @@ export enum SessionDomain {
     CodeEditor = "codeeditor",
     Video = "video",
     SandBox3D = "sandbox3d",
-    Blockchain = "blockchain"
+    Blockchain = "blockchain",
+    ImageEditor = "ImageEditor",
+    PixelEditor = "PixelEditor",
+    DataBaseClient = "DataBaseClient",
+    DockerClient = "DockerClient",
+    ApiClient = "ApiClient",
 }

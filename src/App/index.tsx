@@ -63,11 +63,6 @@ function App() {
     };
   }, [handleNewSessionWithClose]);
   useSearchEvents(() => switchMenuPanel("skillMarket"), handleSwitchSession);
-  /**
-   * Handle search result click navigation to different subsystems
-   * Uses APP_WINDOW_EVENTS constants and getSubsystemEventInfo helper
-   * All subsystems including general chat handle session selection via their own event listeners
-   */
   useEffect(() => {
     const handleSearchSwitchSession = (e: CustomEvent) => {
       const { sessionId, title, highlightMessageId, subsystem } = e.detail;
@@ -79,13 +74,8 @@ function App() {
         handleSwitchSession(sessionId);
         return;
       }
-      // Close any open menu panel
       closeMenuPanel();
-      // Switch to the subsystem content panel
-      // target.panel is guaranteed to be non-null here
       switchContentArea(target.panel as any);
-      // After a short delay to allow the panel to render, dispatch the subsystem-specific event
-      // The subsystem page will handle the session selection via its own event listener
       setTimeout(() => {
         window.dispatchEvent(
           new CustomEvent(target.event, {
@@ -123,8 +113,23 @@ function App() {
       switchContentArea("scheduledTasks");
       return;
     }
-    // Added "blockchain" to the subsystem content panel whitelist
-    if (view === "skillsManager" || view === "scheduledTasks" || view === "userProfile" || view === "codeEditorChat" || view === "chartChat" || view === "mapChat" || view === "videoEditor" || view === "sandbox3d" || view === "blockchain") {
+    // Added "blockchain" and new subsystem pages to the content panel whitelist
+    if (
+      view === "skillsManager" ||
+      view === "scheduledTasks" ||
+      view === "userProfile" ||
+      view === "codeEditorChat" ||
+      view === "chartChat" ||
+      view === "mapChat" ||
+      view === "videoEditor" ||
+      view === "sandbox3d" ||
+      view === "blockchain" ||
+      view === "imageEditor" ||
+      view === "pixelEditor" ||
+      view === "databaseClient" ||
+      view === "dockerClient" ||
+      view === "apiClient"
+    ) {
       switchContentArea(view);
       return;
     }

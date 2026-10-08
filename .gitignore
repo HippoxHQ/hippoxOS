@@ -37,3 +37,13 @@ src/test/video/*
 src/command/VideoEditor/
 src/subsystem/VideoEditor/
 src-tauri/src/subsystem/videoeditor/
+
+# image editor module
+src/command/ImageEditor/
+src/subsystem/ImageEditor/
+src-tauri/src/subsystem/imageeditor/
+
+# pixel editor module
+src/command/PixelEditor/
+src/subsystem/PixelEditor/
+src-tauri/src/subsystem/pixeleditor/

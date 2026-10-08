@@ -5,10 +5,10 @@ export interface MenuItem {
   badge?: string;
   children?: MenuItem[];
 }
- export interface MenuItemWithSection extends MenuItem {
+export interface MenuItemWithSection extends MenuItem {
   section?: "main" | "ai" | "config";
 }
- export interface PopupMenuProps {
+export interface PopupMenuProps {
   items: MenuItemWithSection[];
   activeId: string;
   activeSubId?: string;
@@ -18,7 +18,7 @@ export interface MenuItem {
   position: { top: number; left: number };
   t: (key: string) => string;
 }
- export interface SidebarProps {
+export interface SidebarProps {
   collapsed: boolean;
   onResetSession: () => void;
   onClearLogs: () => void;

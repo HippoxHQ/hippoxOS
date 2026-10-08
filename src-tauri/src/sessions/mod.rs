@@ -1,17 +1,26 @@
+pub mod apiclient;
 pub mod blockchain;
 pub mod chat;
 pub mod codeeditor;
+pub mod databaseclient;
+pub mod dockerclient;
 pub mod finance;
 pub mod general;
+pub mod imageeditor;
 pub mod map;
+pub mod pixeleditor;
 pub mod sandbox3d;
 pub mod videoeditor;
-
+pub use apiclient::*;
 pub use blockchain::*;
 pub use chat::*;
 pub use codeeditor::*;
+pub use databaseclient::*;
+pub use dockerclient::*;
 pub use finance::*;
 pub use general::*;
+pub use imageeditor::*;
 pub use map::*;
+pub use pixeleditor::*;
 pub use sandbox3d::*;
 pub use videoeditor::*;

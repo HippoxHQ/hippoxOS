@@ -11,6 +11,7 @@ export const sidebarStyles = `
     z-index: 300;
     position: relative;
     justify-content: space-between;
+    overflow: hidden;
   }
   .sidebar-header {
   padding: 2px 0;
@@ -38,13 +39,42 @@ export const sidebarStyles = `
     background: var(--hover-bg);
     color: var(--text-primary);
   }
+   /* Scrollable top navigation area */
    .sidebar-nav-top {
-    flex: 1;
+    flex: 1 1 auto;
+    min-height: 0;
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 5px;
     padding: 10px 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    width: 100%;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+   .sidebar-nav-top::-webkit-scrollbar {
+    display: none;
+  }
+   /* Scroll arrow buttons */
+   .sidebar-scroll-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 18px;
+    border: none;
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    cursor: pointer;
+    flex-shrink: 0;
+    padding: 0;
+    z-index: 1;
+  }
+   .sidebar-scroll-btn:hover {
+    background: var(--hover-bg);
+    color: var(--text-primary);
   }
    .sidebar-nav-bottom {
     display: flex;
@@ -53,6 +83,8 @@ export const sidebarStyles = `
     gap: 6px;
     padding: 16px 0;
     border-top: 1px solid var(--border-color);
+    flex-shrink: 0;
+    width: 100%;
   }
    .sidebar-icon-btn {
     display: flex;
@@ -67,6 +99,7 @@ export const sidebarStyles = `
     color: var(--text-secondary);
     // transition: all 0.2s ease;
     position: relative;
+    flex-shrink: 0;
   }
    .sidebar-icon-btn:hover {
     background: var(--hover-bg);

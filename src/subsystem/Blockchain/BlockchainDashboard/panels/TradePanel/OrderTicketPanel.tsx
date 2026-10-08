@@ -11,17 +11,11 @@ export const OrderTicketPanel: React.FC<OrderTicketPanelProps> = ({ i18n = "en",
   const [side, setSide] = useState<"buy" | "sell">("buy");
   const [size, setSize] = useState<string>("");
   const [interval, setInterval] = useState("1m");
-  // Track which percentage button is currently active.
-  // null means no preset is selected (e.g. user typed a custom amount).
   const [sizePercent, setSizePercent] = useState<number | null>(null);
   const isBuy = side === "buy";
   const accent = isBuy ? "#3fb950" : "#f85149";
-  // Mock account state
   const availableBalance = 10000;
   const tokenBalance = 4.2183;
-  // Mock per-interval flow stats.
-  // Each interval has its own volume / buy / sell / net-buy numbers.
-  // Replace with real feed from the backend.
   interface IntervalStats {
     volume: number;
     buyCount: number;
@@ -35,15 +29,12 @@ export const OrderTicketPanel: React.FC<OrderTicketPanelProps> = ({ i18n = "en",
     "1h": { volume: 163.51, buyCount: 18, buyVolume: 109.0, sellCount: 15, sellVolume: 54.9 },
     "24h": { volume: 4821.6, buyCount: 512, buyVolume: 2940.4, sellCount: 431, sellVolume: 1881.2 },
   };
-  // Resolve the active interval's stats and derive net-buy values.
   const stats = intervalStats[interval] || intervalStats["1m"];
   const netBuy = stats.buyVolume - stats.sellVolume;
   const totalVolume = stats.buyVolume + stats.sellVolume;
   const netBuyPercent = totalVolume > 0 ? (netBuy / totalVolume) * 100 : 0;
   const notional = (parseFloat(size) || 0) * midPrice;
   const estFee = notional * 0.003;
-  // Mock token safety / audit data for the blocks appended below the ticket.
-  // Replace with real values from the backend when available.
   const safetyGrid = [
     { key: "top10", labelZh: "前10持有", labelEn: "Top 10", value: "23.4%", risk: "warn" },
     { key: "devHold", labelZh: "DEV 持有", labelEn: "DEV Hold", value: "5.2%", risk: "warn" },
@@ -98,10 +89,8 @@ export const OrderTicketPanel: React.FC<OrderTicketPanelProps> = ({ i18n = "en",
   const handleMaxClick = () => {
     const computed = availableBalance / midPrice;
     setSize(computed.toFixed(4));
-    // MAX is treated as the 100% preset.
     setSizePercent(100);
   };
-  // Clear the active preset when the user types a custom size.
   const handleSizeChange = (value: string) => {
     setSize(value);
     setSizePercent(null);
@@ -127,8 +116,6 @@ export const OrderTicketPanel: React.FC<OrderTicketPanelProps> = ({ i18n = "en",
     fontSize: 11,
     fontFamily: "monospace",
   };
-  // Explicit full-width divider so it is never collapsed to zero width
-  // inside a flex column container.
   const divider: React.CSSProperties = {
     width: "100%",
     height: 1,
@@ -137,7 +124,6 @@ export const OrderTicketPanel: React.FC<OrderTicketPanelProps> = ({ i18n = "en",
     background: "var(--border-color, #30363d)",
     // margin: "4px 0",
   };
-  // Zero-margin divider used inside the info blocks below the ticket.
   const rowDivider: React.CSSProperties = {
     width: "100%",
     height: 1,
@@ -146,7 +132,6 @@ export const OrderTicketPanel: React.FC<OrderTicketPanelProps> = ({ i18n = "en",
     background: "var(--border-color, #30363d)",
     margin: 0,
   };
-  // Section title style for the new blocks.
   const sectionTitleStyle: React.CSSProperties = {
     fontSize: 10,
     fontWeight: 700,
@@ -175,15 +160,12 @@ export const OrderTicketPanel: React.FC<OrderTicketPanelProps> = ({ i18n = "en",
         background: "var(--bg-secondary, #161b22)",
       }}
     >
-      {/* FIXED TOP AREA (does not scroll)  Interval cards + stats row + ticket + submit button */}
       <div
         style={{
           borderBottom: "1px solid var(--border-color, #30363d)",
           flexShrink: 0,
         }}
       >
-        {/* Interval grid: 4 card cells, fixed 44px height each.
-            Cards show a border when active, radius 5px. */}
         <div
           style={{
             display: "grid",
@@ -247,15 +229,11 @@ export const OrderTicketPanel: React.FC<OrderTicketPanelProps> = ({ i18n = "en",
             );
           })}
         </div>
-        {/* Stats row: 4 cells in a single row.
-            No borders, no background separators between cells.
-            Volume / Net Buy / Buy / Sell. */}
         <div
           style={{
             display: "grid",
             gridTemplateColumns: "repeat(4, 1fr)",
             padding: "8px 10px",
-            borderBottom: "1px solid var(--border-color, #30363d)",
           }}
         >
           {/* Volume */}
@@ -305,7 +283,7 @@ export const OrderTicketPanel: React.FC<OrderTicketPanelProps> = ({ i18n = "en",
           >
             <span style={{ ...labelStyle, fontSize: 12, color: "#3fb950", fontWeight: 600 }}>{isZh ? "买入" : "Buy"}</span>
             <span style={{ ...valueStyle, color: "#3fb950", fontWeight: 600, fontSize: 11 }}>
-              {stats.buyCount}/${formatNum(stats.buyVolume, 1)}
+              {stats.buyCount}/{formatNum(stats.buyVolume, 1)}
             </span>
           </div>
           {/* Sell */}
@@ -320,11 +298,21 @@ export const OrderTicketPanel: React.FC<OrderTicketPanelProps> = ({ i18n = "en",
           >
             <span style={{ ...labelStyle, fontSize: 12, color: "#f85149", fontWeight: 600 }}>{isZh ? "卖出" : "Sell"}</span>
             <span style={{ ...valueStyle, color: "#f85149", fontWeight: 600, fontSize: 11 }}>
-              {stats.sellCount}/${formatNum(stats.sellVolume, 1)}
+              {stats.sellCount}/{formatNum(stats.sellVolume, 1)}
             </span>
           </div>
         </div>
-        {/* TICKET FORM (also fixed, does not scroll) */}
+      </div>
+      <div
+        style={{
+          flex: 1,
+          overflowY: "auto",
+          display: "flex",
+          flexDirection: "column",
+          gap: 8,
+        }}
+      >
+        {/* TICKET FORM (now inside the scroll area so it scrolls with the info grid) */}
         <div
           style={{
             padding: "12px 10px",
@@ -334,11 +322,6 @@ export const OrderTicketPanel: React.FC<OrderTicketPanelProps> = ({ i18n = "en",
             borderBottom: "1px solid var(--border-color, #30363d)",
           }}
         >
-          {/*
-            Buy / Sell toggle.
-            Wrapped in a single container so it reads as one grouped button,
-            separated by a 1px divider line. Size and colors are unchanged.
-          */}
           <div
             style={{
               display: "flex",
@@ -387,12 +370,6 @@ export const OrderTicketPanel: React.FC<OrderTicketPanelProps> = ({ i18n = "en",
               );
             })}
           </div>
-          {/*
-            Size input + percentage presets grouped into one bordered box.
-            The four presets are laid out as four equal segments inside a
-            segmented control: no separate buttons, just a full-width row of
-            four cells separated by thin vertical dividers.
-          */}
           <div
             style={{
               border: "1px solid var(--border-color, #30363d)",
@@ -425,13 +402,7 @@ export const OrderTicketPanel: React.FC<OrderTicketPanelProps> = ({ i18n = "en",
                 }}
               />
             </div>
-            {/* Horizontal divider between input row and preset row */}
             <div style={rowDivider} />
-            {/*
-              Row 2: percentage presets as a segmented control.
-              Four equal-width segments fill the whole row; vertical 1px
-              dividers separate them. The active segment is highlighted.
-            */}
             <div
               style={{
                 display: "grid",
@@ -527,18 +498,6 @@ export const OrderTicketPanel: React.FC<OrderTicketPanelProps> = ({ i18n = "en",
             <span>{isZh ? "手续费率" : "Fee"}: 0.3%</span>
           </div>
         </div>
-      </div>
-      {/*  SCROLLABLE INFO BLOCKS, Starts from Token Safety and goes all the way down. */}
-      <div
-        style={{
-          flex: 1,
-          overflowY: "auto",
-          padding: "0px 0px",
-          display: "flex",
-          flexDirection: "column",
-          gap: 8,
-        }}
-      >
         <div>
           {/* <div style={sectionTitleStyle}>{isZh ? "代币安全" : "Token Safety"}</div> */}
           <div

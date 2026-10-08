@@ -13,7 +13,7 @@ use walkdir::WalkDir;
 /// Application root directory name
 const APP_DIR_NAME: &str = "HippoX";
 /// Subsystem Directory
-const SUB_SYSTEM_PATH: &str = "subsystem";
+pub const SUB_SYSTEM_PATH: &str = "subsystem";
 /// Video Editing System directory name
 const VIDEO_EDIT_DIR_NAME: &str = "VideoEdit";
 /// Video Dialog History directory name

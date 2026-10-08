@@ -24,6 +24,12 @@ export type ContentPanelView =
   | "videoEditor"
   | "sandbox3d"
   | "blockchain"
+  // New subsystem pages
+  | "imageEditor"
+  | "pixelEditor"
+  | "databaseClient"
+  | "dockerClient"
+  | "apiClient"
   | null;
 export function useMenuPanel() {
   const [menuPanelView, setMenuPanelView] = useState<MenuPanelView | null>(null);
@@ -83,7 +89,13 @@ export function useMenuPanel() {
       "generalChat",
       "videoEditor",
       "sandbox3d",
-      "blockchain"
+      "blockchain",
+      // New subsystem pages
+      "imageEditor",
+      "pixelEditor",
+      "databaseClient",
+      "dockerClient",
+      "apiClient",
     ];
     if (contentViews.includes(view)) {
       setCurrentContentPanel(view as ContentPanelView);

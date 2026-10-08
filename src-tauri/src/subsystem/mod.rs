@@ -1,9 +1,18 @@
+pub mod apiclient;
 pub mod codeeditor;
+pub mod databaseclient;
+pub mod dockerclient;
 pub mod finance;
+pub mod imageeditor;
+pub mod pixeleditor;
 pub mod sandbox3d;
 pub mod videoeditor;
-
+pub use apiclient::*;
 pub use codeeditor::*;
+pub use databaseclient::*;
+pub use dockerclient::*;
 pub use finance::*;
+pub use imageeditor::*;
+pub use pixeleditor::*;
 pub use sandbox3d::*;
 pub use videoeditor::*;
