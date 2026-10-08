@@ -11,6 +11,7 @@ import Heatmap from "../../components/Heatmap";
 import { showToast, ToastType } from "../../components/Toast";
 import { showTooltip } from "../../components/Tooltip";
 import { X } from "lucide-react";
+import { SubSytemSwitch } from "../../config";
 interface ChatStatisticsRecord {
   task_id: string;
   session_id: string;
@@ -34,9 +35,57 @@ interface ChatStatistics {
   records: ChatStatisticsRecord[];
 }
 /** Canonical subsystem keys, mirroring the backend SubSystemEnum. */
-type SubsystemKey = "general" | "finance" | "map" | "code_editor" | "video" | "sandbox3d" | "block_chain";
+type SubsystemKey =
+  | "general"
+  | "finance"
+  | "map"
+  | "code_editor"
+  | "video"
+  | "sandbox3d"
+  | "block_chain"
+  // New subsystems
+  | "image_editor"
+  | "pixel_editor"
+  | "database_client"
+  | "docker_client"
+  | "api_client";
 /** Map of subsystem key -> that subsystem's chat statistics ledger. */
 type SubsystemStatisticsMap = Partial<Record<SubsystemKey, ChatStatistics>>;
+/**
+ * Whether a given subsystem is currently enabled via its feature switch.
+ * Disabled subsystems are skipped when loading / aggregating statistics.
+ */
+const isSubsystemEnabled = (key: SubsystemKey): boolean => {
+  switch (key) {
+    case "general":
+      return SubSytemSwitch.generalChat;
+    case "finance":
+      return SubSytemSwitch.chartChat;
+    case "map":
+      return SubSytemSwitch.mapChat;
+    case "code_editor":
+      return SubSytemSwitch.codeEditorChat;
+    case "video":
+      return SubSytemSwitch.videoEditor;
+    case "sandbox3d":
+      return SubSytemSwitch.sandbox3d;
+    case "block_chain":
+      return SubSytemSwitch.blockchain;
+    // New subsystems
+    case "image_editor":
+      return SubSytemSwitch.imageEditor;
+    case "pixel_editor":
+      return SubSytemSwitch.pixelEditor;
+    case "database_client":
+      return SubSytemSwitch.databaseClient;
+    case "docker_client":
+      return SubSytemSwitch.dockerClient;
+    case "api_client":
+      return SubSytemSwitch.apiClient;
+    default:
+      return false;
+  }
+};
 /**
  * One record inside a media generation statistics.json.
  */
@@ -85,9 +134,33 @@ const SUBSYSTEM_META: { key: SubsystemKey; label: string; color: string }[] = [
   { key: "video", label: "Video", color: "#ec4899" },
   { key: "sandbox3d", label: "SandBox3D", color: "#06b6d4" },
   { key: "block_chain", label: "BlockChain", color: "#f43f5e" },
+  // New subsystems
+  { key: "image_editor", label: "ImageEditor", color: "#22c55e" },
+  { key: "pixel_editor", label: "PixelEditor", color: "#eab308" },
+  { key: "database_client", label: "DataBaseClient", color: "#0ea5e9" },
+  { key: "docker_client", label: "DockerClient", color: "#3b82f6" },
+  { key: "api_client", label: "ApiClient", color: "#a855f7" },
 ];
-/** Canonical subsystem keys, mirroring the backend SubSystemEnum. */
-const SUBSYSTEM_KEYS: SubsystemKey[] = ["general", "finance", "map", "code_editor", "video", "sandbox3d", "block_chain"];
+/**
+ * Canonical subsystem keys, mirroring the backend SubSystemEnum.
+ */
+const SUBSYSTEM_KEYS: SubsystemKey[] = (
+  [
+    "general",
+    "finance",
+    "map",
+    "code_editor",
+    "video",
+    "sandbox3d",
+    "block_chain",
+    // New subsystems
+    "image_editor",
+    "pixel_editor",
+    "database_client",
+    "docker_client",
+    "api_client",
+  ] as SubsystemKey[]
+).filter(isSubsystemEnabled);
 /** Max height (px) of a per-model breakdown panel before it scrolls. */
 const MODEL_BREAKDOWN_MAX_HEIGHT = 250;
 const UserProfile: React.FC<UserProfileProps> = ({ t, onClose, currentSessionId }) => {
@@ -120,7 +193,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ t, onClose, currentSessionId 
     loadRealUserData();
   }, []);
   const loadDetailedStatistics = async () => {
-    // Fetch every subsystem ledger in parallel.
+    // Fetch every enabled subsystem ledger in parallel.
     const subsystemEntries = await Promise.all(
       SUBSYSTEM_KEYS.map(async (subsystem) => {
         try {
@@ -168,6 +241,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ t, onClose, currentSessionId 
       const dailyDialogCount: Map<string, number> = new Map();
       const hourlyCount: Map<number, number> = new Map();
       for (let i = 0; i < 24; i++) hourlyCount.set(i, 0);
+      // Load every enabled subsystem's ledger once.
       const subsystemEntries = await Promise.all(
         SUBSYSTEM_KEYS.map(async (subsystem) => {
           try {
@@ -413,8 +487,11 @@ const UserProfile: React.FC<UserProfileProps> = ({ t, onClose, currentSessionId 
     longestStreak: 0,
     achievements: [],
   };
-  /** One row per chat subsystem, sourced from its own statistics.json. */
-  const subsystemList = SUBSYSTEM_META.map((meta) => {
+  /**
+   * One row per chat subsystem, sourced from its own statistics.json.
+   * Disabled subsystems are already excluded from SUBSYSTEM_KEYS.
+   */
+  const subsystemList = SUBSYSTEM_META.filter((meta) => isSubsystemEnabled(meta.key)).map((meta) => {
     const s = subsystemStats[meta.key];
     const input = s?.total_input_tokens || 0;
     const output = s?.total_output_tokens || 0;
@@ -427,7 +504,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ t, onClose, currentSessionId 
       records: s?.records?.length || 0,
     };
   });
-  /** Aggregate totals across all chat subsystems. */
+  /** Aggregate totals across all enabled chat subsystems. */
   const subsystemTotals = subsystemList.reduce(
     (acc, s) => {
       acc.input += s.input;
@@ -516,6 +593,12 @@ const UserProfile: React.FC<UserProfileProps> = ({ t, onClose, currentSessionId 
     video: buildModelBreakdown(subsystemStats.video?.records || []),
     sandbox3d: buildModelBreakdown(subsystemStats.sandbox3d?.records || []),
     block_chain: buildModelBreakdown(subsystemStats.block_chain?.records || []),
+    // New subsystems
+    image_editor: buildModelBreakdown(subsystemStats.image_editor?.records || []),
+    pixel_editor: buildModelBreakdown(subsystemStats.pixel_editor?.records || []),
+    database_client: buildModelBreakdown(subsystemStats.database_client?.records || []),
+    docker_client: buildModelBreakdown(subsystemStats.docker_client?.records || []),
+    api_client: buildModelBreakdown(subsystemStats.api_client?.records || []),
   };
   /**
    * One row per media modality.

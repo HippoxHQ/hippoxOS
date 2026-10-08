@@ -12,7 +12,7 @@ import { showToast, ToastType } from "../../../components/Toast";
 import { taskManager } from "../../../core/TaskManager";
 import { UploadFile, SessionDomain } from "../../../core/types";
 import { ChatIcon, TaskQueueIcon, UserIcon, AttachmentIcon, FolderIcon, ChevronRightIcon, TextFileIcon, ImageIcon, VideoIcon, FileIcon, FolderOpenIcon } from "../../../icons";
-import { zhMapDefaultPrompts, enMapDefaultPrompts } from "../../../types/DefaultPrompt";
+import { zhMapDefaultPrompts, enMapDefaultPrompts, zhApiClientDefaultPrompts, enApiClientDefaultPrompts } from "../../../types/DefaultPrompt";
 import { ChatMessage, RoleEnum, MessageStatus } from "../../../types/types";
 import { apiClientSessionCommands } from "../../../command/session/apiclient";
 import { EarthViewRef } from "./types";
@@ -219,7 +219,7 @@ const ApiClientChatPanel: React.FC<ApiClientChatPanelProps> = ({ onSendMessage, 
     });
   };
   const getRandomPrompts = (count: number = 6): string[] => {
-    const prompts = isZh ? zhMapDefaultPrompts : enMapDefaultPrompts;
+    const prompts = isZh ? zhApiClientDefaultPrompts : enApiClientDefaultPrompts;
     const shuffled = [...prompts];
     for (let i = shuffled.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
@@ -943,13 +943,6 @@ const ApiClientChatPanel: React.FC<ApiClientChatPanelProps> = ({ onSendMessage, 
     }
     return { right: 0, top: 0 };
   })();
-  /**
-   * Process LLM response and render earthview data on the map
-   * This is the key integration point between chat and map rendering
-   * It runs whenever messages change and checks the latest LLM message
-   *
-   * Same pattern as 3D sandbox: extract data from LLM response and render it
-   */
   const processedMessageIdsRef = useRef<Set<string>>(new Set());
   const replayAllEarthviewMessages = useCallback(
     async (sessionMessages: ChatMessage[]) => {

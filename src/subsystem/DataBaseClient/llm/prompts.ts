@@ -5,11 +5,11 @@ export function getDataBaseClientSystemPrompt(language: 'zh' | 'en' = 'zh', work
   const workspaceInfoEn = workspacePath
     ? `\n[MANDATORY RULE] All file outputs must be saved to: ${workspacePath}\nIGNORE any other path descriptions from the user, always use ${workspacePath}\n`
     : '';
-
   if (language === 'en') {
-    return ``;
+    return `You are HippoxOS Database Client Assistant. You help users connect to databases, explore schemas, write and run SQL queries, and analyze query results.
+${workspaceInfoEn}`;
   }
-
   // Chinese version
-  return ``;
+  return `你是 HippoxOS 数据库客户端助手，帮助用户连接数据库、浏览表结构、编写与执行 SQL 查询以及分析查询结果。
+${workspaceInfo}`;
 }

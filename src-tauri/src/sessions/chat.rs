@@ -6,6 +6,7 @@ use crate::context::{get_conversation_history, store_user_message, Context};
 use crate::hippox_core::{get_default_hippox_with_chat_model, init_all_hippox_instances};
 use crate::state::AppState;
 use crate::statistics::{append_record, update_record, ChatSource, ChatStatisticsRecord, RecordPatch};
+use crate::subsystem::SubSystemEnum;
 use crate::types::Role;
 use crate::workspace::get_default_workspace;
 use hippox::{string_to_workflow_mode, ChatModelProvider};
@@ -19,58 +20,6 @@ use std::sync::Arc;
 use tauri::{Emitter, State};
 use tokio::sync::Mutex;
 use uuid::Uuid;
-/// Which chat subsystem a message belongs to.
-#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Hash)]
-#[serde(rename_all = "snake_case")]
-pub enum SubSystemEnum {
-    /// Default variant, used when a record does not carry a subsystem.
-    #[default]
-    General,
-    Finance,
-    Map,
-    CodeEditor,
-    Video,
-    SandBox3D,
-    BlockChain,
-}
-impl SubSystemEnum {
-    /// Enum -> canonical lowercase string.
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            SubSystemEnum::General => "general",
-            SubSystemEnum::Finance => "finance",
-            SubSystemEnum::Map => "map",
-            SubSystemEnum::CodeEditor => "code_editor",
-            SubSystemEnum::Video => "video",
-            SubSystemEnum::SandBox3D => "sandbox3d",
-            SubSystemEnum::BlockChain => "block_chain",
-        }
-    }
-    /// String -> enum. Case-insensitive; unknown values return an error.
-    pub fn from_str(s: &str) -> Result<Self, String> {
-        match s.to_lowercase().as_str() {
-            "general" => Ok(SubSystemEnum::General),
-            "finance" => Ok(SubSystemEnum::Finance),
-            "map" => Ok(SubSystemEnum::Map),
-            "code_editor" => Ok(SubSystemEnum::CodeEditor),
-            "video" => Ok(SubSystemEnum::Video),
-            "sandbox3d" => Ok(SubSystemEnum::SandBox3D),
-            "block_chain" => Ok(SubSystemEnum::BlockChain),
-            other => Err(format!("Unknown subsystem: {}", other)),
-        }
-    }
-}
-impl std::fmt::Display for SubSystemEnum {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.as_str())
-    }
-}
-impl FromStr for SubSystemEnum {
-    type Err = String;
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        SubSystemEnum::from_str(s)
-    }
-}
 pub(crate) struct LogMessages {
     init_start: String,
     init_success: String,

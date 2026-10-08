@@ -12,6 +12,11 @@ export enum SubSystemEnum {
     Video = "video",
     SandBox3D = "sandbox3d",
     BlockChain = "block_chain",
+    ImageEditor = "image_editor",
+    PixelEditor = "pixel_editor",
+    DataBaseClient = "database_client",
+    DockerClient = "docker_client",
+    ApiClient = "api_client",
 }
 /**
  * Human-readable display names for each subsystem.
@@ -24,6 +29,11 @@ export const SubSystemDisplayName: Record<SubSystemEnum, string> = {
     [SubSystemEnum.Video]: "Video",
     [SubSystemEnum.SandBox3D]: "SandBox3D",
     [SubSystemEnum.BlockChain]: "BlockChain",
+    [SubSystemEnum.ImageEditor]: "Image Editor",
+    [SubSystemEnum.PixelEditor]: "Pixel Editor",
+    [SubSystemEnum.DataBaseClient]: "Database Client",
+    [SubSystemEnum.DockerClient]: "Docker Client",
+    [SubSystemEnum.ApiClient]: "API Client",
 };
 export const hippoxCommands = {
     async setLanguage(language: string): Promise<void> {

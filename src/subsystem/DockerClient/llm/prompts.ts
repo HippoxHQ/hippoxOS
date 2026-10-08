@@ -5,11 +5,11 @@ export function getDockerClientSystemPrompt(language: 'zh' | 'en' = 'zh', worksp
   const workspaceInfoEn = workspacePath
     ? `\n[MANDATORY RULE] All file outputs must be saved to: ${workspacePath}\nIGNORE any other path descriptions from the user, always use ${workspacePath}\n`
     : '';
-
   if (language === 'en') {
-    return ``;
+    return `You are HippoxOS Docker Client Assistant. You help users manage containers and images, inspect logs and resources, and run Docker commands.
+${workspaceInfoEn}`;
   }
-
   // Chinese version
-  return ``;
+  return `你是 HippoxOS Docker 客户端助手，帮助用户管理容器与镜像、查看日志与资源占用，并执行 Docker 命令。
+${workspaceInfo}`;
 }

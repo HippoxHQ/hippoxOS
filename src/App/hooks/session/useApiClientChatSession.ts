@@ -5,8 +5,8 @@ import { taskManager } from "../../../core/TaskManager";
 import { TaskInfo, UploadFile, TaskStatusEnum, SessionDomain } from "../../../core/types";
 import { Language, ChatMessage, RoleEnum, MessageStatus } from "../../../types/types";
 import { workspaceCommands } from "../../../command/workspace";
-import { apiClientSessionCommands } from "../../../command/session/apiclient";
 import { getApiClientSystemPrompt } from "../../../subsystem/ApiClient/llm/prompts";
+import { apiClientSessionCommands } from "../../../command/session/apiclient";
 export function useApiClientSession(
     language: Language,
     isConfigLoaded: boolean,

@@ -1,18 +1,18 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import banner from "../../assets/banner.svg";
 import { open as dialogOpen } from "@tauri-apps/plugin-dialog";
-import { FolderIcon, ChevronRightIcon, FileIcon, FolderOpenIcon } from "lucide-react";
+import { FolderIcon, ChevronRightIcon, FileIcon, FolderOpenIcon, ChevronLeft, ChevronRight } from "lucide-react";
 import { APP_WINDOW_EVENTS } from "../../App/AppWindowEventManager";
 import { workflowCommands } from "../../command/workflow";
 import { WorkspaceInstance, workspaceCommands } from "../../command/workspace";
 import ArtText from "../../components/arts/ArtText";
 import FileUploader from "../../components/FileUploader";
 import { showToast, ToastType } from "../../components/Toast";
-import { showTooltipOnElement } from "../../components/Tooltip";
 import { UploadFile } from "../../core/types";
 import { AttachmentIcon, TextFileIcon } from "../../icons";
 import { zhDefaultPrompts, enDefaultPrompts } from "../../types/DefaultPrompt";
 import { welcomepageStyles } from "./welcomepage.style";
+import { SubSytemSwitch } from "../../config";
 // Inject welcome page styles into the document
 if (typeof document !== "undefined") {
   const styleId = "welcomepage-styles";
@@ -30,17 +30,8 @@ interface WelcomePageProps {
   workflowMode?: string;
   onWorkflowModeChange?: (mode: string) => void;
   onNavigateTo?: (page: string) => void;
-  /**
-   * Callback for navigating to the video editor with a file path.
-   * When provided, video/audio/image file uploads will use this to navigate
-   * directly to the video editor subsystem.
-   */
   onNavigateToVideoEditor?: (filePath: string, fileType: "file" | "download") => void;
 }
-/**
- * Check if a file is a media file (video, audio, or image) that should
- * be handled by the video editor subsystem.
- */
 const isMediaFile = (file: UploadFile): boolean => {
   const ext = file.name.split(".").pop()?.toLowerCase() || "";
   const videoExts = ["mp4", "mov", "mkv", "avi", "webm", "flv", "wmv", "m4v"];
@@ -48,20 +39,12 @@ const isMediaFile = (file: UploadFile): boolean => {
   const imageExts = ["jpg", "jpeg", "png", "gif", "bmp", "webp", "svg", "tiff", "ico"];
   return videoExts.includes(ext) || audioExts.includes(ext) || imageExts.includes(ext);
 };
-/**
- * Check if a file is a text-based file (text or skill file).
- * These files can be used as context for general chat.
- */
 const isTextFile = (file: UploadFile): boolean => {
   const ext = file.name.split(".").pop()?.toLowerCase() || "";
   const textExts = ["txt", "md", "json", "xml", "csv", "log", "ini", "cfg", "conf", "yaml", "yml", "toml"];
   const skillExts = ["skill", "py", "js", "ts", "rs", "go", "rs", "c", "cpp", "h", "hpp"];
   return textExts.includes(ext) || skillExts.includes(ext);
 };
-/**
- * Helper function to create an UploadFile object from a File object.
- * This is used for text and skill files that are added to the upload list.
- */
 const createUploadFileFromFile = (file: File, path?: string): UploadFile => {
   return {
     id: `file_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -73,6 +56,10 @@ const createUploadFileFromFile = (file: File, path?: string): UploadFile => {
     status: "uploading" as const,
   } as UploadFile;
 };
+/** Number of domain cards displayed per page (2 rows x 3 columns = 6 cards) */
+const DOMAIN_CARDS_PER_PAGE = 6;
+/** Auto page turning interval in milliseconds (2 seconds) */
+const DOMAIN_AUTO_PLAY_INTERVAL_MS = 2000;
 const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t, onDragOverInputChange, workflowMode: externalWorkflowMode, onWorkflowModeChange, onNavigateTo, onNavigateToVideoEditor }) => {
   const [inputValue, setInputValue] = useState("");
   const [isFocused, setIsFocused] = useState(false);
@@ -95,18 +82,26 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t, onDragOverI
   const [language, setLanguage] = useState<"zh" | "en">(t("i18n") === "zh" ? "zh" : "en");
   const isZh = t("i18n") === "zh";
   const [workflowDisplayNames, setWorkflowDisplayNames] = useState<Map<string, string>>(new Map());
+  /** Current page index for the paginated domain cards (only used when more than 6 cards) */
+  const [domainPage, setDomainPage] = useState(0);
+  /** Whether the domain cards auto-play (auto page turning) is enabled */
+  const [autoPlayEnabled] = useState(true);
+  /** Whether the mouse is currently hovering over the domain cards wrapper (pauses auto-play) */
+  const [isDomainHovered, setIsDomainHovered] = useState(false);
   /**
    * Domain cards configuration for the welcome page
-   * Each card represents a subsystem that users can navigate to
+   * Each card represents a subsystem that users can navigate to.
+   * The `enabled` flag is derived from SubSytemSwitch so that cards can be toggled on/off globally.
    */
-  const domains: {
-    id: "general" | "code" | "map" | "chart" | "video" | "sandbox";
+  const allDomains: {
+    id: "general" | "code" | "map" | "chart" | "video" | "sandbox" | "blockchain" | "imageEditor" | "pixelEditor" | "databaseClient" | "dockerClient" | "apiClient";
     label: string;
     labelEn: string;
     description: string;
     descriptionEn: string;
     bgEmoji: string;
     pageId: string;
+    enabled: boolean;
   }[] = [
     {
       id: "general",
@@ -116,6 +111,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t, onDragOverI
       descriptionEn: "Daily Q&A · Task Execution · Knowledge Retrieval",
       bgEmoji: "💬",
       pageId: "generalChat",
+      enabled: SubSytemSwitch.generalChat,
     },
     {
       id: "code",
@@ -125,6 +121,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t, onDragOverI
       descriptionEn: "Write · Review · Refactor · Auto-complete",
       bgEmoji: "💻",
       pageId: "codeEditorChat",
+      enabled: SubSytemSwitch.codeEditorChat,
     },
     {
       id: "map",
@@ -134,6 +131,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t, onDragOverI
       descriptionEn: "Location Tagging · Spatial Data · Route Planning",
       bgEmoji: "🗺️",
       pageId: "mapChat",
+      enabled: SubSytemSwitch.mapChat,
     },
     {
       id: "chart",
@@ -143,6 +141,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t, onDragOverI
       descriptionEn: "Candlestick · Technical Indicators · Market Analysis",
       bgEmoji: "📊",
       pageId: "chartChat",
+      enabled: SubSytemSwitch.chartChat,
     },
     {
       id: "video",
@@ -152,6 +151,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t, onDragOverI
       descriptionEn: "Edit · Effects · Export · Multi-track Editing",
       bgEmoji: "🎬",
       pageId: "videoEditor",
+      enabled: SubSytemSwitch.videoEditor,
     },
     {
       id: "sandbox",
@@ -161,8 +161,132 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t, onDragOverI
       descriptionEn: "3D Modeling · Scene Building · Real-time Rendering",
       bgEmoji: "🧊",
       pageId: "sandbox3d",
+      enabled: SubSytemSwitch.sandbox3d,
+    },
+    {
+      id: "blockchain",
+      label: "区块链",
+      labelEn: "Blockchain",
+      description: "链上交互 · 智能合约 · 交易追踪",
+      descriptionEn: "On-chain Interaction · Smart Contracts · Transaction Tracking",
+      bgEmoji: "⛓️",
+      pageId: "blockchain",
+      enabled: SubSytemSwitch.blockchain,
+    },
+    {
+      id: "imageEditor",
+      label: "图片编辑",
+      labelEn: "Image Editor",
+      description: "图层编辑 · 滤镜 · 批处理",
+      descriptionEn: "Layer Editing · Filters · Batch Processing",
+      bgEmoji: "🖼️",
+      pageId: "imageEditor",
+      enabled: SubSytemSwitch.imageEditor,
+    },
+    {
+      id: "pixelEditor",
+      label: "像素编辑",
+      labelEn: "Pixel Editor",
+      description: "像素绘制 · 精灵图 · 动画帧",
+      descriptionEn: "Pixel Drawing · Sprite · Animation Frames",
+      bgEmoji: "🎨",
+      pageId: "pixelEditor",
+      enabled: SubSytemSwitch.pixelEditor,
+    },
+    {
+      id: "databaseClient",
+      label: "数据库客户端",
+      labelEn: "Database Client",
+      description: "连接 · 查询 · 数据管理",
+      descriptionEn: "Connect · Query · Data Management",
+      bgEmoji: "🗄️",
+      pageId: "databaseClient",
+      enabled: SubSytemSwitch.databaseClient,
+    },
+    {
+      id: "dockerClient",
+      label: "Docker 客户端",
+      labelEn: "Docker Client",
+      description: "容器管理 · 镜像 · 编排",
+      descriptionEn: "Container Management · Images · Orchestration",
+      bgEmoji: "🐳",
+      pageId: "dockerClient",
+      enabled: SubSytemSwitch.dockerClient,
+    },
+    {
+      id: "apiClient",
+      label: "API 客户端",
+      labelEn: "API Client",
+      description: "请求调试 · 接口测试 · 环境管理",
+      descriptionEn: "Request Debugging · API Testing · Environment Management",
+      bgEmoji: "🔌",
+      pageId: "apiClient",
+      enabled: SubSytemSwitch.apiClient,
     },
   ];
+  /**
+   * Filtered list of domain cards based on SubSytemSwitch flags.
+   * Only enabled subsystems are rendered as navigation cards.
+   */
+  const domains = allDomains.filter((domain) => domain.enabled);
+  /**
+   * Total number of pages needed to display all enabled domain cards.
+   * When the number of cards is <= 6, only one page is shown and no pagination controls appear.
+   */
+  const totalDomainPages = Math.ceil(domains.length / DOMAIN_CARDS_PER_PAGE);
+  /**
+   * Whether pagination should be enabled. Only enabled when more than 6 cards exist.
+   */
+  const isDomainPaginationEnabled = domains.length > DOMAIN_CARDS_PER_PAGE;
+  /**
+   * Slice of domain cards to render for the current page.
+   */
+  const visibleDomains = useMemo(() => {
+    if (!isDomainPaginationEnabled) return domains;
+    const start = domainPage * DOMAIN_CARDS_PER_PAGE;
+    return domains.slice(start, start + DOMAIN_CARDS_PER_PAGE);
+  }, [domains, domainPage, isDomainPaginationEnabled]);
+  /**
+   * Clamp the current page index whenever the number of pages changes
+   * (e.g. when subsystems are toggled via SubSytemSwitch).
+   */
+  useEffect(() => {
+    if (domainPage > totalDomainPages - 1) {
+      setDomainPage(Math.max(0, totalDomainPages - 1));
+    }
+  }, [totalDomainPages, domainPage]);
+  /**
+   * Auto page turning for domain cards.
+   * - Runs every 2 seconds (DOMAIN_AUTO_PLAY_INTERVAL_MS).
+   * - Only active when pagination is enabled (more than 6 cards) and autoPlayEnabled is true.
+   * - Loops back to the first page after reaching the last page.
+   * - Pauses while the user is hovering over the domain cards wrapper.
+   * - The interval resets whenever domainPage changes (manual click or auto turn).
+   */
+  useEffect(() => {
+    if (!isDomainPaginationEnabled || !autoPlayEnabled || totalDomainPages <= 1) {
+      return;
+    }
+    if (isDomainHovered) {
+      return;
+    }
+    const intervalId = setInterval(() => {
+      setDomainPage((prev) => (prev + 1) % totalDomainPages);
+    }, DOMAIN_AUTO_PLAY_INTERVAL_MS);
+    return () => clearInterval(intervalId);
+  }, [isDomainPaginationEnabled, autoPlayEnabled, totalDomainPages, isDomainHovered, domainPage]);
+  /**
+   * Go to the previous page of domain cards.
+   */
+  const handleDomainPrevPage = () => {
+    setDomainPage((prev) => Math.max(0, prev - 1));
+  };
+  /**
+   * Go to the next page of domain cards.
+   */
+  const handleDomainNextPage = () => {
+    setDomainPage((prev) => Math.min(totalDomainPages - 1, prev + 1));
+  };
   /**
    * Handle navigation to a page with APP_WINDOW_EVENTS
    * This ensures sidebar icon is highlighted and proper event is dispatched
@@ -176,6 +300,12 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t, onDragOverI
       codeEditorChat: "codeeditor",
       videoEditor: "video",
       sandbox3d: "sandbox3d",
+      blockchain: "blockchain",
+      imageEditor: "imageEditor",
+      pixelEditor: "pixelEditor",
+      databaseClient: "databaseClient",
+      dockerClient: "dockerClient",
+      apiClient: "apiClient",
     };
     const subsystem = pageToSubsystem[pageId] || "general";
     // Dispatch session selected event to update sidebar
@@ -622,48 +752,82 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t, onDragOverI
             </div>
           </div>
         </form>
-        {/* Domain Cards - Each card dispatches SESSION_SELECTED event for sidebar highlight */}
-        <div className="domain-cards">
-          {domains.map((domain) => (
-            <div
-              key={domain.id}
-              className="domain-card"
-              onClick={() => {
-                // Map domain to subsystem for SESSION_SELECTED event
-                const domainToSubsystem: Record<string, string> = {
-                  general: "general",
-                  code: "codeeditor",
-                  map: "map",
-                  chart: "chart",
-                  video: "video",
-                  sandbox: "sandbox3d",
-                };
-                const subsystem = domainToSubsystem[domain.id] || "general";
-                const pageId = domain.pageId;
-                // Dispatch SESSION_SELECTED event to update sidebar highlight
-                // This ensures the sidebar icon is highlighted when navigating via welcome page cards
-                window.dispatchEvent(
-                  new CustomEvent(APP_WINDOW_EVENTS.SESSION_SELECTED, {
-                    detail: {
-                      sessionId: "",
-                      title: "",
-                      subsystem: subsystem,
-                    },
-                  }),
-                );
-                // Navigate to the target page
-                handleNavigate(pageId);
-              }}
-            >
-              <div className="card-bg-emoji">{domain.bgEmoji}</div>
-              <div className="card-left">
-                <div className="domain-name">{isZh ? domain.label : domain.labelEn}</div>
-                <div className="domain-desc">{isZh ? domain.description : domain.descriptionEn}</div>
+        {/*
+          Domain Cards - Each card dispatches SESSION_SELECTED event for sidebar highlight.
+          When more than 6 cards are enabled, cards are paginated into pages of 6 (2 rows x 3 columns)
+          and floating circular prev/next buttons appear on the left/right sides for page navigation.
+          Auto page turning: every 2 seconds, looping back to the first page, paused on hover.
+        */}
+        <div className="domain-cards-wrapper" onMouseEnter={() => setIsDomainHovered(true)} onMouseLeave={() => setIsDomainHovered(false)}>
+          {/* Floating previous page button - circular, positioned on the left side, vertically centered */}
+          {isDomainPaginationEnabled && (
+            <button className={`domain-nav-btn domain-nav-prev ${domainPage === 0 ? "disabled" : ""}`} onClick={handleDomainPrevPage} disabled={domainPage === 0} title={isZh ? "上一页" : "Previous"} aria-label={isZh ? "上一页" : "Previous"}>
+              <ChevronLeft size={18} />
+            </button>
+          )}
+          {/* Cards grid for the current page */}
+          <div className="domain-cards">
+            {visibleDomains.map((domain) => (
+              <div
+                key={domain.id}
+                className="domain-card"
+                onClick={() => {
+                  // Map domain to subsystem for SESSION_SELECTED event
+                  const domainToSubsystem: Record<string, string> = {
+                    general: "general",
+                    code: "codeeditor",
+                    map: "map",
+                    chart: "chart",
+                    video: "video",
+                    sandbox: "sandbox3d",
+                    blockchain: "blockchain",
+                    imageEditor: "imageEditor",
+                    pixelEditor: "pixelEditor",
+                    databaseClient: "databaseClient",
+                    dockerClient: "dockerClient",
+                    apiClient: "apiClient",
+                  };
+                  const subsystem = domainToSubsystem[domain.id] || "general";
+                  const pageId = domain.pageId;
+                  // Dispatch SESSION_SELECTED event to update sidebar highlight
+                  // This ensures the sidebar icon is highlighted when navigating via welcome page cards
+                  window.dispatchEvent(
+                    new CustomEvent(APP_WINDOW_EVENTS.SESSION_SELECTED, {
+                      detail: {
+                        sessionId: "",
+                        title: "",
+                        subsystem: subsystem,
+                      },
+                    }),
+                  );
+                  // Navigate to the target page
+                  handleNavigate(pageId);
+                }}
+              >
+                <div className="card-bg-emoji">{domain.bgEmoji}</div>
+                <div className="card-left">
+                  <div className="domain-name">{isZh ? domain.label : domain.labelEn}</div>
+                  <div className="domain-desc">{isZh ? domain.description : domain.descriptionEn}</div>
+                </div>
+                <span className="domain-arrow">→</span>
               </div>
-              <span className="domain-arrow">→</span>
-            </div>
-          ))}
+            ))}
+          </div>
+          {/* Floating next page button - circular, positioned on the right side, vertically centered */}
+          {isDomainPaginationEnabled && (
+            <button className={`domain-nav-btn domain-nav-next ${domainPage >= totalDomainPages - 1 ? "disabled" : ""}`} onClick={handleDomainNextPage} disabled={domainPage >= totalDomainPages - 1} title={isZh ? "下一页" : "Next"} aria-label={isZh ? "下一页" : "Next"}>
+              <ChevronRight size={18} />
+            </button>
+          )}
         </div>
+        {/* Page indicator dots - only shown when pagination is enabled */}
+        {isDomainPaginationEnabled && (
+          <div className="domain-page-dots">
+            {Array.from({ length: totalDomainPages }).map((_, idx) => (
+              <span key={idx} className={`domain-page-dot ${idx === domainPage ? "active" : ""}`} onClick={() => setDomainPage(idx)} />
+            ))}
+          </div>
+        )}
         {/* Example Prompts Section */}
         {/* <div className="examples-section">
           <div className="examples-title">{t("welcome.examples") || "Try these"}</div>

@@ -12,7 +12,7 @@ import { showToast, ToastType } from "../../../components/Toast";
 import { taskManager } from "../../../core/TaskManager";
 import { UploadFile, SessionDomain } from "../../../core/types";
 import { ChatIcon, TaskQueueIcon, UserIcon, AttachmentIcon, FolderIcon, ChevronRightIcon, TextFileIcon, ImageIcon, VideoIcon, FileIcon, FolderOpenIcon } from "../../../icons";
-import { zhMapDefaultPrompts, enMapDefaultPrompts } from "../../../types/DefaultPrompt";
+import { zhMapDefaultPrompts, enMapDefaultPrompts, zhDockerClientDefaultPrompts, enDockerClientDefaultPrompts } from "../../../types/DefaultPrompt";
 import { ChatMessage, RoleEnum, MessageStatus } from "../../../types/types";
 import { mapSessionCommands } from "../../../command/session/map";
 import { EarthViewRef } from "./types";
@@ -38,7 +38,21 @@ interface DockerClientChatPanelProps {
  * DockerClientChatPanel - Chat interface for map/geographic analysis
  * Supports file upload with filtering for text and skill files
  */
-const DockerClientChatPanel: React.FC<DockerClientChatPanelProps> = ({ onSendMessage, onFileClick, t, language = "zh", currentSessionId, onDragOverInputChange, navigationContent, isLeftPanel = true, onWorkflowModeChange, isCollapsed = false, togglePanel, collapseIcon: collapseIconProp, mapRef }) => {
+const DockerClientChatPanel: React.FC<DockerClientChatPanelProps> = ({
+  onSendMessage,
+  onFileClick,
+  t,
+  language = "zh",
+  currentSessionId,
+  onDragOverInputChange,
+  navigationContent,
+  isLeftPanel = true,
+  onWorkflowModeChange,
+  isCollapsed = false,
+  togglePanel,
+  collapseIcon: collapseIconProp,
+  mapRef,
+}) => {
   const [inputValue, setInputValue] = useState("");
   const [isFocused, setIsFocused] = useState(false);
   const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
@@ -223,7 +237,7 @@ const DockerClientChatPanel: React.FC<DockerClientChatPanelProps> = ({ onSendMes
     });
   };
   const getRandomPrompts = (count: number = 6): string[] => {
-    const prompts = isZh ? zhMapDefaultPrompts : enMapDefaultPrompts;
+    const prompts = isZh ? zhDockerClientDefaultPrompts : enDockerClientDefaultPrompts;
     const shuffled = [...prompts];
     for (let i = shuffled.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
@@ -721,8 +735,8 @@ const DockerClientChatPanel: React.FC<DockerClientChatPanelProps> = ({ onSendMes
         setMessages([welcomeMsg]);
         return;
       }
-      const userMessages = taskManager.getUserMessagesBySession(currentSessionId, SessionDomain.Map);
-      const assistantMessages = taskManager.getAssistantMessagesBySessionAsArray(currentSessionId, SessionDomain.Map);
+      const userMessages = taskManager.getUserMessagesBySession(currentSessionId, SessionDomain.DockerClient);
+      const assistantMessages = taskManager.getAssistantMessagesBySessionAsArray(currentSessionId, SessionDomain.DockerClient);
       const messageMap = new Map<string, ChatMessage>();
       const allMessages = [...userMessages, ...assistantMessages];
       allMessages.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());

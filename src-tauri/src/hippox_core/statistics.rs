@@ -17,7 +17,8 @@
 //!
 //! # Subsystem attribution
 //! Records produced by the chat pipeline carry a `subsystem` identifier
-//! (General / Finance / Map / CodeEditor / Video / SandBox3D / BlockChain)
+//! (General / Finance / Map / CodeEditor / Video / SandBox3D / BlockChain
+//! / ImageEditor / PixelEditor / DataBaseClient / DockerClient / ApiClient)
 //! so per-subsystem statistics can be derived from a single ledger.
 //!
 //! # Submit-time snapshot
@@ -29,13 +30,18 @@
 //!
 //! # Storage layout
 //! Each subsystem owns its own ledger file:
-//!   - General:    `{General history dir}/statistics.json`
-//!   - Finance:    `{Finance history dir}/statistics.json`
-//!   - Map:        `{Map history dir}/statistics.json`
-//!   - CodeEditor: `{CodeEditor history dir}/statistics.json`
-//!   - Video:      `{Video history dir}/statistics.json`
-//!   - SandBox3D:  `{SandBox3D history dir}/statistics.json`
-//!   - BlockChain: `{BlockChain history dir}/statistics.json`
+//!   - General:        `{General history dir}/statistics.json`
+//!   - Finance:        `{Finance history dir}/statistics.json`
+//!   - Map:            `{Map history dir}/statistics.json`
+//!   - CodeEditor:     `{CodeEditor history dir}/statistics.json`
+//!   - Video:          `{Video history dir}/statistics.json`
+//!   - SandBox3D:      `{SandBox3D history dir}/statistics.json`
+//!   - BlockChain:     `{BlockChain history dir}/statistics.json`
+//!   - ImageEditor:    `{ImageEditor history dir}/statistics.json`
+//!   - PixelEditor:    `{PixelEditor history dir}/statistics.json`
+//!   - DataBaseClient: `{DataBaseClient history dir}/statistics.json`
+//!   - DockerClient:   `{DockerClient history dir}/statistics.json`
+//!   - ApiClient:      `{ApiClient history dir}/statistics.json`
 //!
 //! ```json
 //! {
@@ -56,7 +62,7 @@ use crate::commands::{
     get_map_history_statistics, get_sandbox3d_history_statistics, get_video_editing_system_history_statistics,
 };
 use crate::commons::FileUtils;
-use crate::sessions::chat::SubSystemEnum;
+use crate::subsystem::{SubSystemEnum, get_apiclient_history_statistics, get_databaseclient_history_statistics, get_dockerclient_history_statistics, get_imageeditor_history_statistics, get_pixeleditor_history_statistics};
 use once_cell::sync::OnceCell;
 use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
@@ -90,10 +96,15 @@ fn statistics_path_for(subsystem: SubSystemEnum) -> PathBuf {
         SubSystemEnum::Video => get_video_editing_system_history_statistics(),
         SubSystemEnum::SandBox3D => get_sandbox3d_history_statistics(),
         SubSystemEnum::BlockChain => get_blockchain_history_statistics(),
+        SubSystemEnum::ImageEditor => get_imageeditor_history_statistics(),
+        SubSystemEnum::PixelEditor => get_pixeleditor_history_statistics(),
+        SubSystemEnum::DataBaseClient => get_databaseclient_history_statistics(),
+        SubSystemEnum::DockerClient => get_dockerclient_history_statistics(),
+        SubSystemEnum::ApiClient => get_apiclient_history_statistics(),
     }
 }
 /// All subsystems that own a ledger. Used for iteration / migration.
-fn all_subsystems() -> [SubSystemEnum; 7] {
+fn all_subsystems() -> [SubSystemEnum; 12] {
     [
         SubSystemEnum::General,
         SubSystemEnum::Finance,
@@ -102,6 +113,12 @@ fn all_subsystems() -> [SubSystemEnum; 7] {
         SubSystemEnum::Video,
         SubSystemEnum::SandBox3D,
         SubSystemEnum::BlockChain,
+        // New subsystems
+        SubSystemEnum::ImageEditor,
+        SubSystemEnum::PixelEditor,
+        SubSystemEnum::DataBaseClient,
+        SubSystemEnum::DockerClient,
+        SubSystemEnum::ApiClient,
     ]
 }
 /// Which pipeline produced a record.

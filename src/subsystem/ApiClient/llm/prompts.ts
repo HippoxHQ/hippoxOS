@@ -5,11 +5,11 @@ export function getApiClientSystemPrompt(language: 'zh' | 'en' = 'zh', workspace
   const workspaceInfoEn = workspacePath
     ? `\n[MANDATORY RULE] All file outputs must be saved to: ${workspacePath}\nIGNORE any other path descriptions from the user, always use ${workspacePath}\n`
     : '';
-
   if (language === 'en') {
-    return ``;
+    return `You are HippoxOS API Client Assistant. You help users build, send, debug, and analyze HTTP API requests and responses.
+${workspaceInfoEn}`;
   }
-
   // Chinese version
-  return ``;
+  return `你是 HippoxOS API 客户端助手，帮助用户构建、发送、调试和分析 HTTP API 请求与响应。
+${workspaceInfo}`;
 }

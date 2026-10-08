@@ -6,6 +6,11 @@ import { sandbox3dSessionCommands } from "../command/session/sandbox3d";
 import { videoSessionCommands } from "../command/session/videoeditor";
 // import blockchain session commands so task persistence works for the Blockchain domain
 import { blockchainSessionCommands } from "../command/session/blockchain";
+import { imageEditorSessionCommands } from "../command/session/imageeditor";
+import { pixelEditorSessionCommands } from "../command/session/pixeleditor";
+import { databaseClientSessionCommands } from "../command/session/databaseclient";
+import { dockerClientSessionCommands } from "../command/session/dockerclient";
+import { apiClientSessionCommands } from "../command/session/apiclient";
 import { ChatMessage, MessageStatus } from "../types/types";
 import { notificationManager, NotificationType } from "./NotificationManager";
 import { StepStatusEnum, TaskInfo, TaskStatusEnum, TaskStepInfo, SessionDomain } from "./types";
@@ -24,9 +29,12 @@ class TaskManager {
         if (sessionId.startsWith("codeeditor_session_")) return SessionDomain.CodeEditor;
         if (sessionId.startsWith("video_session_")) return SessionDomain.Video;
         if (sessionId.startsWith("sandbox3d_session_")) return SessionDomain.SandBox3D;
-        // recognise blockchain sessions so events routed by TaskListener/DriverListener
-        // land in the correct SessionDomain.Blockchain bucket instead of SessionDomain.General.
         if (sessionId.startsWith("blockchain_session_")) return SessionDomain.Blockchain;
+        if (sessionId.startsWith("imageeditor_session_")) return SessionDomain.ImageEditor;
+        if (sessionId.startsWith("pixeleditor_session_")) return SessionDomain.PixelEditor;
+        if (sessionId.startsWith("databaseclient_session_")) return SessionDomain.DataBaseClient;
+        if (sessionId.startsWith("dockerclient_session_")) return SessionDomain.DockerClient;
+        if (sessionId.startsWith("apiclient_session_")) return SessionDomain.ApiClient;
         return SessionDomain.General;
     }
     private getSessionKey(domain: SessionDomain, sessionId: string): string {
@@ -868,6 +876,16 @@ class TaskManager {
             } else if (domain === SessionDomain.Blockchain) {
                 // route Blockchain task persistence through its own backend commands
                 await blockchainSessionCommands.saveTaskContent(sessionId, tasksArray);
+            } else if (domain === SessionDomain.ImageEditor) {
+                await imageEditorSessionCommands.saveTaskContent(sessionId, tasksArray);
+            } else if (domain === SessionDomain.PixelEditor) {
+                await pixelEditorSessionCommands.saveTaskContent(sessionId, tasksArray);
+            } else if (domain === SessionDomain.DataBaseClient) {
+                await databaseClientSessionCommands.saveTaskContent(sessionId, tasksArray);
+            } else if (domain === SessionDomain.DockerClient) {
+                await dockerClientSessionCommands.saveTaskContent(sessionId, tasksArray);
+            } else if (domain === SessionDomain.ApiClient) {
+                await apiClientSessionCommands.saveTaskContent(sessionId, tasksArray);
             } else {
                 await sessionCommands.saveTaskContent(sessionId, tasksArray);
             }
@@ -894,6 +912,16 @@ class TaskManager {
             } else if (domain === SessionDomain.Blockchain) {
                 // route Blockchain task loading through its own backend commands
                 tasksContent = await blockchainSessionCommands.loadTaskContent(sessionId);
+            } else if (domain === SessionDomain.ImageEditor) {
+                tasksContent = await imageEditorSessionCommands.loadTaskContent(sessionId);
+            } else if (domain === SessionDomain.PixelEditor) {
+                tasksContent = await pixelEditorSessionCommands.loadTaskContent(sessionId);
+            } else if (domain === SessionDomain.DataBaseClient) {
+                tasksContent = await databaseClientSessionCommands.loadTaskContent(sessionId);
+            } else if (domain === SessionDomain.DockerClient) {
+                tasksContent = await dockerClientSessionCommands.loadTaskContent(sessionId);
+            } else if (domain === SessionDomain.ApiClient) {
+                tasksContent = await apiClientSessionCommands.loadTaskContent(sessionId);
             } else {
                 tasksContent = await sessionCommands.loadTaskContent(sessionId);
             }

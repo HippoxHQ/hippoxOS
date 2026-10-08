@@ -226,7 +226,6 @@ class NotificationManager {
                     data: event.payload,
                 }).catch(() => { });
             });
-            // Subsystem session creation events
             listen("chart-session-created", (event: any) => {
                 const detail = event.payload || event.detail || {};
                 this.add({
@@ -302,6 +301,71 @@ class NotificationManager {
                     data: {
                         sessionId: detail.sessionId,
                         subsystem: "blockchain",
+                        title: detail.title,
+                    },
+                }).catch(() => { });
+            });
+            listen("imageeditor-session-created", (event: any) => {
+                const detail = event.payload || event.detail || {};
+                this.add({
+                    title: "notification.imageEditorSessionCreated",
+                    message: detail.title ? `Image editor session "${detail.title}" created` : "Image editor session created",
+                    type: NotificationType.Info,
+                    data: {
+                        sessionId: detail.sessionId,
+                        subsystem: "imageeditor",
+                        title: detail.title,
+                    },
+                }).catch(() => { });
+            });
+            listen("pixeleditor-session-created", (event: any) => {
+                const detail = event.payload || event.detail || {};
+                this.add({
+                    title: "notification.pixelEditorSessionCreated",
+                    message: detail.title ? `Pixel editor session "${detail.title}" created` : "Pixel editor session created",
+                    type: NotificationType.Info,
+                    data: {
+                        sessionId: detail.sessionId,
+                        subsystem: "pixeleditor",
+                        title: detail.title,
+                    },
+                }).catch(() => { });
+            });
+            listen("databaseclient-session-created", (event: any) => {
+                const detail = event.payload || event.detail || {};
+                this.add({
+                    title: "notification.dataBaseClientSessionCreated",
+                    message: detail.title ? `Database client session "${detail.title}" created` : "Database client session created",
+                    type: NotificationType.Info,
+                    data: {
+                        sessionId: detail.sessionId,
+                        subsystem: "databaseclient",
+                        title: detail.title,
+                    },
+                }).catch(() => { });
+            });
+            listen("dockerclient-session-created", (event: any) => {
+                const detail = event.payload || event.detail || {};
+                this.add({
+                    title: "notification.dockerClientSessionCreated",
+                    message: detail.title ? `Docker client session "${detail.title}" created` : "Docker client session created",
+                    type: NotificationType.Info,
+                    data: {
+                        sessionId: detail.sessionId,
+                        subsystem: "dockerclient",
+                        title: detail.title,
+                    },
+                }).catch(() => { });
+            });
+            listen("apiclient-session-created", (event: any) => {
+                const detail = event.payload || event.detail || {};
+                this.add({
+                    title: "notification.apiClientSessionCreated",
+                    message: detail.title ? `API client session "${detail.title}" created` : "API client session created",
+                    type: NotificationType.Info,
+                    data: {
+                        sessionId: detail.sessionId,
+                        subsystem: "apiclient",
                         title: detail.title,
                     },
                 }).catch(() => { });

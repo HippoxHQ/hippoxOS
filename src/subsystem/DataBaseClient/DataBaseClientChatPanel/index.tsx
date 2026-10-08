@@ -12,7 +12,7 @@ import { showToast, ToastType } from "../../../components/Toast";
 import { taskManager } from "../../../core/TaskManager";
 import { UploadFile, SessionDomain } from "../../../core/types";
 import { ChatIcon, TaskQueueIcon, UserIcon, AttachmentIcon, FolderIcon, ChevronRightIcon, TextFileIcon, ImageIcon, VideoIcon, FileIcon, FolderOpenIcon } from "../../../icons";
-import { zhMapDefaultPrompts, enMapDefaultPrompts } from "../../../types/DefaultPrompt";
+import { zhMapDefaultPrompts, enMapDefaultPrompts, zhDataBaseClientDefaultPrompts, enDataBaseClientDefaultPrompts } from "../../../types/DefaultPrompt";
 import { ChatMessage, RoleEnum, MessageStatus } from "../../../types/types";
 import { mapSessionCommands } from "../../../command/session/map";
 import { EarthViewRef } from "./types";
@@ -223,7 +223,7 @@ const DataBaseClientChatPanel: React.FC<DataBaseClientChatPanelProps> = ({ onSen
     });
   };
   const getRandomPrompts = (count: number = 6): string[] => {
-    const prompts = isZh ? zhMapDefaultPrompts : enMapDefaultPrompts;
+    const prompts = isZh ? zhDataBaseClientDefaultPrompts : enDataBaseClientDefaultPrompts;
     const shuffled = [...prompts];
     for (let i = shuffled.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
@@ -721,8 +721,8 @@ const DataBaseClientChatPanel: React.FC<DataBaseClientChatPanelProps> = ({ onSen
         setMessages([welcomeMsg]);
         return;
       }
-      const userMessages = taskManager.getUserMessagesBySession(currentSessionId, SessionDomain.Map);
-      const assistantMessages = taskManager.getAssistantMessagesBySessionAsArray(currentSessionId, SessionDomain.Map);
+      const userMessages = taskManager.getUserMessagesBySession(currentSessionId, SessionDomain.DataBaseClient);
+      const assistantMessages = taskManager.getAssistantMessagesBySessionAsArray(currentSessionId, SessionDomain.DataBaseClient);
       const messageMap = new Map<string, ChatMessage>();
       const allMessages = [...userMessages, ...assistantMessages];
       allMessages.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());

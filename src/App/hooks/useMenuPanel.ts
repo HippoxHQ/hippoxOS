@@ -90,7 +90,6 @@ export function useMenuPanel() {
       "videoEditor",
       "sandbox3d",
       "blockchain",
-      // New subsystem pages
       "imageEditor",
       "pixelEditor",
       "databaseClient",
