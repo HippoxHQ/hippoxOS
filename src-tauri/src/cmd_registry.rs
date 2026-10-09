@@ -869,6 +869,7 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         sessions::cmd_load_imageeditor_task_content,
         sessions::cmd_update_pinned_imageeditor_sessions,
         sessions::cmd_get_pinned_imageeditor_sessions,
+        subsystem::cmd_get_image_session_dir,
         // =========== PixelEditor =============
         sessions::cmd_create_pixeleditor_dialog_session,
         sessions::cmd_list_pixeleditor_dialog_sessions,
@@ -883,6 +884,7 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         sessions::cmd_load_pixeleditor_task_content,
         sessions::cmd_update_pinned_pixeleditor_sessions,
         sessions::cmd_get_pinned_pixeleditor_sessions,
+        subsystem::cmd_get_pixel_session_dir,
         // =========== DataBaseClient =============
         sessions::cmd_create_databaseclient_dialog_session,
         sessions::cmd_list_databaseclient_dialog_sessions,
@@ -897,6 +899,7 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         sessions::cmd_load_databaseclient_task_content,
         sessions::cmd_update_pinned_databaseclient_sessions,
         sessions::cmd_get_pinned_databaseclient_sessions,
+        subsystem::cmd_get_database_session_dir,
         // =========== DockerClient =============
         sessions::cmd_create_dockerclient_dialog_session,
         sessions::cmd_list_dockerclient_dialog_sessions,
@@ -911,6 +914,7 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         sessions::cmd_load_dockerclient_task_content,
         sessions::cmd_update_pinned_dockerclient_sessions,
         sessions::cmd_get_pinned_dockerclient_sessions,
+        subsystem::cmd_get_docker_session_dir,
         // =========== ApiClient =============
         sessions::cmd_create_apiclient_dialog_session,
         sessions::cmd_list_apiclient_dialog_sessions,
@@ -925,5 +929,6 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         sessions::cmd_load_apiclient_task_content,
         sessions::cmd_update_pinned_apiclient_sessions,
         sessions::cmd_get_pinned_apiclient_sessions,
+        subsystem::cmd_get_api_session_dir,
     ]
 }

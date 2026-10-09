@@ -6,7 +6,21 @@ import { TaskInfo, UploadFile, TaskStatusEnum, SessionDomain } from "../../../co
 import { Language, ChatMessage, RoleEnum, MessageStatus } from "../../../types/types";
 import { workspaceCommands } from "../../../command/workspace";
 import { imageEditorSessionCommands } from "../../../command/session/imageeditor";
+import { basename } from "@tauri-apps/api/path";
+import { showToast, ToastType } from "../../../components/Toast";
 import { getImageEditorSystemPrompt } from "../../../subsystem/ImageEditor/llm/prompts";
+/**
+ * Detect the broad category of a file based on its extension.
+ * Image editor only handles image / text sources.
+ */
+const getFileType = (filePath: string): "image" | "text" | null => {
+    const ext = filePath.split(".").pop()?.toLowerCase() || "";
+    const imageExts = ["jpg", "jpeg", "png", "gif", "bmp", "webp", "svg", "tiff", "ico"];
+    const textExts = ["txt", "md", "json", "xml", "csv", "log", "ini", "cfg", "conf"];
+    if (imageExts.includes(ext)) return "image";
+    if (textExts.includes(ext)) return "text";
+    return null;
+};
 export function useImageEditorSession(
     language: Language,
     isConfigLoaded: boolean,
@@ -16,6 +30,13 @@ export function useImageEditorSession(
     const [isLoading, setIsLoading] = useState(true);
     const [taskManagerVersion, setTaskManagerVersion] = useState(0);
     const [pendingNewSession, setPendingNewSession] = useState(false);
+    // Pending source paths recorded when the user picks a file before a
+    // session exists. They are consumed when the pending session is
+    // materialized on the first outbound message.
+    const [pendingImagePath, setPendingImagePath] = useState<string>("");
+    const [pendingImageTitle, setPendingImageTitle] = useState<string>("");
+    // Whether a session is currently being created on disk.
+    const [isCreatingSession, setIsCreatingSession] = useState<boolean>(false);
     const { t } = useTranslation(language);
     useEffect(() => {
         const unsubscribe = taskManager.subscribe(() => {
@@ -94,6 +115,142 @@ export function useImageEditorSession(
                 });
         }
     }, [isConfigLoaded]);
+    /**
+     * Create an image editor session on disk.
+     *
+     * `createImageEditorSession` only accepts 6 arguments, so the source
+     * file path is persisted separately via `updateImageEditorSessionConfig`
+     * after the session has been created.
+     */
+    const createImageSessionWithPath = useCallback(async (
+        sessionId: string,
+        title: string,
+        description: string,
+        imageSourcePath?: string,
+        textSourcePaths?: string[],
+        workflowMode?: string,
+    ) => {
+        // create the bare session.
+        const created = await imageEditorSessionCommands.createImageEditorSession(
+            sessionId,
+            title,
+            description,
+            [],
+            [],
+            workflowMode || currentWorkflowMode,
+        );
+        // persist the source paths into the session config so the
+        // editor can retrieve them when the session is later reopened.
+        try {
+            const updates: Record<string, any> = {};
+            if (imageSourcePath) updates.image_file = imageSourcePath;
+            if (textSourcePaths && textSourcePaths.length > 0) updates.text_files = textSourcePaths;
+            if (Object.keys(updates).length > 0) {
+                await imageEditorSessionCommands.updateImageEditorSessionConfig(sessionId, updates);
+            }
+        } catch (err) {
+            console.warn("[useImageEditorSession] Failed to persist source paths:", err);
+        }
+        return created;
+    }, [currentWorkflowMode]);
+    /**
+     * Create a new image editor session.
+     *
+     * Supports three creation methods:
+     * 1. file - Import from a local image file
+     * 2. download - Import from a downloaded file (same logic as file)
+     * 3. empty - Create an empty project
+     *
+     * For file / download types, the file is attached to the session
+     * so that it can be shown on the canvas when the editor opens.
+     *
+     * For empty type, creates an empty project without loading any files.
+     *
+     * @param filePath - Optional file path
+     * @param fileType - File type: "file" | "empty" | "download"
+     */
+    const handleNewSession = useCallback(
+        async (filePath?: string, fileType?: "file" | "empty" | "download") => {
+            // Handle file or download types - both use the same logic
+            if (filePath && (fileType === "file" || fileType === "download")) {
+                setIsCreatingSession(true);
+                try {
+                    const newSessionId = `imageeditor_session_${Date.now()}`;
+                    const fileName = await basename(filePath);
+                    const title = fileName || "Image Project";
+                    // Detect file type and assign to the appropriate source array.
+                    const fileTypeStr = getFileType(filePath);
+                    let imageSourcePath: string | undefined = undefined;
+                    let textSourcePaths: string[] | undefined = undefined;
+                    if (fileTypeStr === "image") {
+                        imageSourcePath = filePath;
+                    } else if (fileTypeStr === "text") {
+                        textSourcePaths = [filePath];
+                    } else {
+                        // Unknown type, treat as image
+                        imageSourcePath = filePath;
+                    }
+                    await createImageSessionWithPath(
+                        newSessionId,
+                        title,
+                        `File: ${fileName}`,
+                        imageSourcePath,
+                        textSourcePaths,
+                        currentWorkflowMode,
+                    );
+                    taskManager.loadSessionData(newSessionId, [], [], [], SessionDomain.ImageEditor);
+                    setCurrentSessionId(newSessionId);
+                    setPendingNewSession(false);
+                    setPendingImagePath("");
+                    setPendingImageTitle("");
+                    window.dispatchEvent(new CustomEvent("imageeditor-session-created"));
+                    window.dispatchEvent(
+                        new CustomEvent("image-loaded", {
+                            detail: { path: filePath, title: fileName },
+                        })
+                    );
+                } catch (error) {
+                    console.error("Failed to create image session:", error);
+                    showToast(
+                        ToastType.ERROR,
+                        language === "zh" ? "创建图片会话失败" : "Failed to create image session"
+                    );
+                } finally {
+                    setIsCreatingSession(false);
+                }
+            } else if (fileType === "empty" || !filePath) {
+                // Create an empty project
+                setIsCreatingSession(true);
+                try {
+                    const newSessionId = `imageeditor_session_${Date.now()}`;
+                    const title = "Empty Project";
+                    await createImageSessionWithPath(
+                        newSessionId,
+                        title,
+                        "Empty image project",
+                        undefined,
+                        undefined,
+                        currentWorkflowMode,
+                    );
+                    taskManager.loadSessionData(newSessionId, [], [], [], SessionDomain.ImageEditor);
+                    setCurrentSessionId(newSessionId);
+                    setPendingNewSession(false);
+                    setPendingImagePath("");
+                    setPendingImageTitle("");
+                    window.dispatchEvent(new CustomEvent("imageeditor-session-created"));
+                } catch (error) {
+                    console.error("Failed to create empty project:", error);
+                    showToast(
+                        ToastType.ERROR,
+                        language === "zh" ? "创建项目失败" : "Failed to create project"
+                    );
+                } finally {
+                    setIsCreatingSession(false);
+                }
+            }
+        },
+        [currentWorkflowMode, createImageSessionWithPath, language]
+    );
     const handleSendMessage = useCallback(async (
         userMessage: string,
         sessionId: string,
@@ -118,12 +275,23 @@ export function useImageEditorSession(
             const tempAssistantMessages = taskManager.getAssistantMessagesBySessionAsArray(finalSessionId, SessionDomain.ImageEditor);
             const tempTasksMap = taskManager.getTasksBySession(finalSessionId, SessionDomain.ImageEditor);
             const tempTasks = tempTasksMap ? Array.from(tempTasksMap.values()) : [];
-            await imageEditorSessionCommands.createImageEditorSession(
+            // If a pending image is recorded, attach it to the new session.
+            const fileTypeStr = pendingImagePath ? getFileType(pendingImagePath) : null;
+            let imageSourcePath: string | undefined = undefined;
+            let textSourcePaths: string[] | undefined = undefined;
+            if (pendingImagePath && fileTypeStr === "image") {
+                imageSourcePath = pendingImagePath;
+            } else if (pendingImagePath && fileTypeStr === "text") {
+                textSourcePaths = [pendingImagePath];
+            } else if (pendingImagePath) {
+                imageSourcePath = pendingImagePath;
+            }
+            await createImageSessionWithPath(
                 newSessionId,
                 sessionTitle,
                 t("app.newSessionDesc"),
-                [],
-                [],
+                imageSourcePath,
+                textSourcePaths,
                 workflowMode || currentWorkflowMode,
             );
             taskManager.loadSessionData(newSessionId, tempTasks, tempUserMessages, tempAssistantMessages, SessionDomain.ImageEditor);
@@ -132,23 +300,47 @@ export function useImageEditorSession(
             setCurrentSessionId(newSessionId);
             window.dispatchEvent(new CustomEvent("imageeditor-session-created"));
             setPendingNewSession(false);
+            setPendingImagePath("");
+            setPendingImageTitle("");
+            if (pendingImagePath) {
+                window.dispatchEvent(new CustomEvent("image-loaded", {
+                    detail: { path: pendingImagePath, title: pendingImageTitle }
+                }));
+            }
         } else if (!finalSessionId) {
             const newSessionId = `imageeditor_session_${Date.now()}`;
             const sessionTitle = userMessage.length > 30
                 ? userMessage.slice(0, 30) + "..."
                 : userMessage;
-            await imageEditorSessionCommands.createImageEditorSession(
+            const fileTypeStr = pendingImagePath ? getFileType(pendingImagePath) : null;
+            let imageSourcePath: string | undefined = undefined;
+            let textSourcePaths: string[] | undefined = undefined;
+            if (pendingImagePath && fileTypeStr === "image") {
+                imageSourcePath = pendingImagePath;
+            } else if (pendingImagePath && fileTypeStr === "text") {
+                textSourcePaths = [pendingImagePath];
+            } else if (pendingImagePath) {
+                imageSourcePath = pendingImagePath;
+            }
+            await createImageSessionWithPath(
                 newSessionId,
                 sessionTitle,
                 t("app.newSessionDesc"),
-                [],
-                [],
+                imageSourcePath,
+                textSourcePaths,
                 workflowMode || currentWorkflowMode,
             );
             taskManager.loadSessionData(newSessionId, [], [], [], SessionDomain.ImageEditor);
             finalSessionId = newSessionId;
             setCurrentSessionId(newSessionId);
             window.dispatchEvent(new CustomEvent("imageeditor-session-created"));
+            setPendingImagePath("");
+            setPendingImageTitle("");
+            if (pendingImagePath) {
+                window.dispatchEvent(new CustomEvent("image-loaded", {
+                    detail: { path: pendingImagePath, title: pendingImageTitle }
+                }));
+            }
         }
         const userMsg: ChatMessage = {
             id: `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -203,13 +395,7 @@ export function useImageEditorSession(
             };
             taskManager.addAssistantMessageToSession(finalSessionId, errorMsg, SessionDomain.ImageEditor);
         }
-    }, [currentSessionId, t, language, currentWorkflowMode]);
-    const handleNewSession = useCallback(async () => {
-        const pendingId = `pending_${Date.now()}`;
-        taskManager.loadSessionData(pendingId, [], [], [], SessionDomain.ImageEditor);
-        setCurrentSessionId(pendingId);
-        setPendingNewSession(true);
-    }, []);
+    }, [currentSessionId, t, language, currentWorkflowMode, pendingImagePath, pendingImageTitle, createImageSessionWithPath]);
     const handleSwitchSession = useCallback(async (sessionId: string) => {
         if (sessionId === currentSessionId) return;
         if (!sessionId.startsWith("imageeditor_session_") && !sessionId.startsWith("pending_")) {
@@ -254,7 +440,16 @@ export function useImageEditorSession(
             taskManager.switchToSession(sessionId, SessionDomain.ImageEditor);
         }
         setCurrentSessionId(sessionId);
-        window.dispatchEvent(new CustomEvent("imageeditor-session-created"));
+        try {
+            const config = await imageEditorSessionCommands.loadImageEditorSessionConfig(sessionId);
+            if (config && config.image_file) {
+                window.dispatchEvent(new CustomEvent("image-loaded", {
+                    detail: { path: config.image_file, title: config.title || "" }
+                }));
+            }
+        } catch (error) {
+            console.error("Failed to load image config:", error);
+        }
     }, [currentSessionId]);
     const shouldShowWelcome = useCallback(() => {
         if (isLoading) return true;
@@ -277,6 +472,45 @@ export function useImageEditorSession(
             console.error("reset session error:", error);
         }
     }, [currentSessionId]);
+    /**
+     * Create a new image session from an external file path.
+     * Used by the welcome page when the user picks an image directly.
+     */
+    const createSessionWithImage = useCallback(async (
+        filePath: string,
+        fileTitle: string
+    ) => {
+        const newSessionId = `imageeditor_session_${Date.now()}`;
+        const title = fileTitle || "Image Session";
+        const fileTypeStr = getFileType(filePath);
+        let imageSourcePath: string | undefined = undefined;
+        let textSourcePaths: string[] | undefined = undefined;
+        if (fileTypeStr === "image") {
+            imageSourcePath = filePath;
+        } else if (fileTypeStr === "text") {
+            textSourcePaths = [filePath];
+        } else {
+            imageSourcePath = filePath;
+        }
+        await createImageSessionWithPath(
+            newSessionId,
+            title,
+            `File: ${fileTitle || filePath}`,
+            imageSourcePath,
+            textSourcePaths,
+            currentWorkflowMode,
+        );
+        taskManager.loadSessionData(newSessionId, [], [], [], SessionDomain.ImageEditor);
+        setCurrentSessionId(newSessionId);
+        setPendingNewSession(false);
+        setPendingImagePath("");
+        setPendingImageTitle("");
+        window.dispatchEvent(new CustomEvent("imageeditor-session-created"));
+        window.dispatchEvent(new CustomEvent("image-loaded", {
+            detail: { path: filePath, title: fileTitle }
+        }));
+        return newSessionId;
+    }, [currentWorkflowMode, createImageSessionWithPath]);
     return {
         currentSessionId,
         isLoading,
@@ -288,5 +522,10 @@ export function useImageEditorSession(
         handleSendMessage,
         resetSession,
         shouldShowWelcome,
+        createSessionWithImage,
+        pendingImagePath,
+        pendingImageTitle,
+        isCreatingSession,
+        setIsCreatingSession,
     };
 }

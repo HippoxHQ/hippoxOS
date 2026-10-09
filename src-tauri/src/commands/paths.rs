@@ -1,6 +1,8 @@
 use crate::commands::{get_notifications_dir, get_skill_history_dir, get_skills_dir};
 use crate::commons::FileUtils;
-use crate::subsystem::{get_download_task_dir, get_downloads_root_dir};
+use crate::subsystem::{
+    get_apiclient_dialog_history_dir, get_databaseclient_dialog_history_dir, get_dockerclient_dialog_history_dir, get_download_task_dir, get_downloads_root_dir, get_imageeditor_dialog_history_dir, get_pixeleditor_dialog_history_dir,
+};
 use chrono::Local;
 use log::{debug, error};
 use serde::{Deserialize, Serialize};
