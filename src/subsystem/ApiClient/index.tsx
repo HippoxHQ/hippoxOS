@@ -193,7 +193,7 @@ const ApiClientPage: React.FC<ApiClientPageProps> = ({ t = (key: string) => key,
   /**
    * Dashboard panel (fills the space between sidebar and chat).
    */
-  const apiClientPanel = <ApiClientDashboard theme={theme} i18n={i18n} onToggleHistory={handleToggleHistoryDrawer} isHistoryOpen={isHistoryDrawerOpen} />;
+  const apiClientPanel = <ApiClientDashboard t={t} theme={theme} i18n={i18n} onToggleHistory={handleToggleHistoryDrawer} isHistoryOpen={isHistoryDrawerOpen} />;
   // Load history sessions
   useEffect(() => {
     const loadSessions = async () => {

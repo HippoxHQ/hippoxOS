@@ -9,7 +9,7 @@ import { videoEditorStateManager } from "../../subsystem/VideoEditor/global";
 import { clearVideoEditorAllMemory } from "../../subsystem/VideoEditor/MenoryManager";
 import { APP_WINDOW_EVENTS } from "../../App/AppWindowEventManager";
 import { SUBSYSTEM_TO_SIDEBAR_ID } from "../../App/SubSystemConstants";
-import { Plus, ChevronUp, ChevronDown } from "lucide-react";
+import { ChevronUp, ChevronDown } from "lucide-react";
 if (typeof document !== "undefined") {
   const styleId = "sidebar-styles";
   if (!document.getElementById(styleId)) {
@@ -122,6 +122,8 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onResetSession, onClearLog
       "databaseClient",
       "dockerClient",
       "apiClient",
+      // Home is a regular direct-open item (starts a fresh session).
+      "home",
     ];
     if (itemId != "videoEditor") {
       videoEditorStateManager.clear();
@@ -130,6 +132,11 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onResetSession, onClearLog
     if (directOpenItems.includes(itemId)) {
       if (popupVisible) {
         handleClosePopup();
+      }
+      // Home also starts a fresh session before switching the view.
+      if (itemId === "home") {
+        if (onNewSession) onNewSession();
+        else onResetSession();
       }
       handleMenuClick(itemId);
       return;
@@ -231,6 +238,9 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onResetSession, onClearLog
     else onResetSession();
   };
   const getButtonLabel = (item: { id: string; label: string }) => {
+    if (item.id === "home") {
+      return t("actions.newSession");
+    }
     if (item.id === "skillMarket") {
       return t("actions.skillMarket");
     }
@@ -314,6 +324,8 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onResetSession, onClearLog
       isProgrammaticScrollRef.current = false;
     });
   };
+  const homeItem = topMenuItems[0];
+  const otherTopItems = topMenuItems.slice(1);
   return (
     <aside
       className="sidebar"
@@ -326,21 +338,15 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onResetSession, onClearLog
     >
       {!collapsed && (
         <>
-          <div className="sidebar-header">
-            <button className="new-session-icon-btn" onClick={handleNewSessionClick} onMouseEnter={(e) => handleMouseEnter(e, t("actions.newSession"))} onMouseLeave={handleMouseLeave}>
-              <Plus size={18} />
-            </button>
-          </div>
-          {/* Scroll-to-top button, only visible when scrollable and not at top */}
+          <div className="sidebar-header">{renderButton(homeItem)}</div>
           {canScrollUp && (
             <button className="sidebar-scroll-btn" onClick={scrollToTop} onMouseEnter={(e) => handleMouseEnter(e, isZh ? "滚动到顶部" : "Scroll to top")} onMouseLeave={handleMouseLeave}>
               <ChevronUp size={14} />
             </button>
           )}
           <nav className="sidebar-nav-top" ref={topNavRef}>
-            {topMenuItems.map((item) => renderButton(item))}
+            {otherTopItems.map((item) => renderButton(item))}
           </nav>
-          {/* Scroll-to-bottom button, only visible when scrollable and not at bottom */}
           {canScrollDown && (
             <button className="sidebar-scroll-btn" onClick={scrollToBottom} onMouseEnter={(e) => handleMouseEnter(e, isZh ? "滚动到底部" : "Scroll to bottom")} onMouseLeave={handleMouseLeave}>
               <ChevronDown size={14} />

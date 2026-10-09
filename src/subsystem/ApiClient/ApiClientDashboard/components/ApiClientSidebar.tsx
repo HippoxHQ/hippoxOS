@@ -1,11 +1,13 @@
 import React from "react";
-import { Send, FolderTree, BookOpen, History as HistoryIcon, TerminalSquare, Settings } from "lucide-react";
-export type ApiClientSidebarView = "request" | "collections" | "docs" | "history" | "console" | "settings";
+import { FolderTree, Globe, History as HistoryIcon } from "lucide-react";
+export type ApiClientSidebarView = "collections" | "environments" | "history";
 interface ApiClientSidebarProps {
   activeView: ApiClientSidebarView;
   onViewChange: (view: ApiClientSidebarView) => void;
   i18n?: "en" | "zh-cn";
+  /** Toggle the history sessions drawer */
   onToggleHistory?: () => void;
+  /** Whether the history sessions drawer is currently open */
   isHistoryOpen?: boolean;
 }
 interface SidebarItem {
@@ -14,18 +16,11 @@ interface SidebarItem {
   labelEn: string;
   labelZh: string;
 }
-// Top sidebar items - add new entries here to expose more panels
 const SIDEBAR_ITEMS: SidebarItem[] = [
-  { key: "request", icon: <Send size={18} />, labelEn: "Request", labelZh: "请求" },
   { key: "collections", icon: <FolderTree size={18} />, labelEn: "Collections", labelZh: "集合" },
-  { key: "docs", icon: <BookOpen size={18} />, labelEn: "Docs", labelZh: "文档" },
-  { key: "console", icon: <TerminalSquare size={18} />, labelEn: "Console", labelZh: "控制台" },
+  { key: "environments", icon: <Globe size={18} />, labelEn: "Environments", labelZh: "环境" },
+  { key: "history", icon: <HistoryIcon size={18} />, labelEn: "History", labelZh: "历史" },
 ];
-// Bottom sidebar items (excludes history which is rendered separately)
-const BOTTOM_ITEMS: SidebarItem[] = [{ key: "settings", icon: <Settings size={18} />, labelEn: "Settings", labelZh: "设置" }];
-/**
- * ApiClientSidebar .
- */
 export const ApiClientSidebar: React.FC<ApiClientSidebarProps> = ({ activeView, onViewChange, i18n = "en", onToggleHistory, isHistoryOpen = false }) => {
   const isZh = i18n === "zh-cn";
   const renderItem = (item: SidebarItem) => {
@@ -68,7 +63,7 @@ export const ApiClientSidebar: React.FC<ApiClientSidebarProps> = ({ activeView, 
       </button>
     );
   };
-  const renderHistoryButton = () => {
+  const renderHistorySessionsButton = () => {
     const label = isZh ? "历史会话" : "History";
     return (
       <button
@@ -124,7 +119,6 @@ export const ApiClientSidebar: React.FC<ApiClientSidebarProps> = ({ activeView, 
         gap: 2,
       }}
     >
-      {/* Top group: main views */}
       <div
         style={{
           display: "flex",
@@ -135,9 +129,7 @@ export const ApiClientSidebar: React.FC<ApiClientSidebarProps> = ({ activeView, 
       >
         {SIDEBAR_ITEMS.map(renderItem)}
       </div>
-      {/* Spacer pushes bottom items down */}
       <div style={{ flex: 1 }} />
-      {/* Bottom group: history + settings */}
       <div
         style={{
           display: "flex",
@@ -148,10 +140,7 @@ export const ApiClientSidebar: React.FC<ApiClientSidebarProps> = ({ activeView, 
           paddingTop: 6,
         }}
       >
-        {/* History drawer toggle */}
-        {renderHistoryButton()}
-        {/* Settings */}
-        {BOTTOM_ITEMS.map(renderItem)}
+        {renderHistorySessionsButton()}
       </div>
     </div>
   );

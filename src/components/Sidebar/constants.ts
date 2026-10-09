@@ -1,6 +1,10 @@
 import { SubSytemSwitch } from "../../config";
 import { MenuItemWithSection } from "./types";
+/**
+ * Top navigation menu items.
+ */
 export const topMenuItems: MenuItemWithSection[] = [];
+topMenuItems.push({ id: "home", icon: "home", label: "menu.home", section: "main" });
 if (SubSytemSwitch.generalChat) { topMenuItems.push({ id: "generalChat", icon: "chat", label: "menu.general", section: "main" }); }
 if (SubSytemSwitch.videoEditor) { topMenuItems.push({ id: "videoEditor", icon: "videoEditor", label: "menu.videoEditor", section: "main" }); }
 if (SubSytemSwitch.imageEditor) { topMenuItems.push({ id: "imageEditor", icon: "imageEditor", label: "menu.imageEditor", section: "main" }); }

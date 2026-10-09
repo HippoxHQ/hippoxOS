@@ -91,6 +91,7 @@ import {
   Database as DatabaseIcon,
   Container,
   Webhook,
+  HomeIcon,
 } from "lucide-react";
 interface IconProps {
   className?: string;
@@ -338,4 +339,5 @@ export const iconMap: Record<string, React.FC<IconProps>> = {
   databaseClient: DatabaseClientIcon,
   dockerClient: DockerClientIcon,
   apiClient: ApiClientIcon,
+  home: HomeIcon,
 };

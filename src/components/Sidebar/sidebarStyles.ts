@@ -14,14 +14,15 @@ export const sidebarStyles = `
     overflow: hidden;
   }
   .sidebar-header {
-  padding: 2px 0;
-  border-bottom: 1px solid var(--border-color);
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-}
+    padding: 5px 0;
+    border-bottom: 1px solid var(--border-color);
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
    .new-session-icon-btn {
     display: flex;
     align-items: center;
