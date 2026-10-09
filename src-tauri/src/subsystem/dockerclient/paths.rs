@@ -1,5 +1,5 @@
-use log::{debug, error};
 use crate::commands::paths::{get_app_root_dir, SUB_SYSTEM_PATH};
+use log::{debug, error};
 /// Docker Client subsystem root directory name
 const DOCKER_CLIENT_DIR_NAME: &str = "DockerClient";
 /// Docker Client dialog history directory name

@@ -1,16 +1,11 @@
 import React from "react";
-import { Boxes, Layers3, Image, History } from "lucide-react";
-/**
- * Sidebar view keys — Docker Desktop style: only three top-level categories.
- */
-export type DockerClientSidebarView = "containers" | "images" | "volumes";
+import { Boxes, Layers3, Image, History, Cpu } from "lucide-react";
+export type DockerClientSidebarView = "containers" | "images" | "volumes" | "environment";
 interface DockerClientSidebarProps {
   activeView: DockerClientSidebarView;
   onViewChange: (view: DockerClientSidebarView) => void;
   i18n?: "en" | "zh-cn";
-  /** Toggle the history drawer */
   onToggleHistory?: () => void;
-  /** Whether the history drawer is currently open */
   isHistoryOpen?: boolean;
 }
 interface SidebarItem {
@@ -20,16 +15,13 @@ interface SidebarItem {
   labelZh: string;
 }
 /**
- * Top sidebar items — mirroring Docker Desktop's three main categories.
+ * Top sidebar items — the three main categories.
  */
 const SIDEBAR_ITEMS: SidebarItem[] = [
   { key: "containers", icon: <Boxes size={18} />, labelEn: "Containers", labelZh: "容器" },
   { key: "images", icon: <Image size={18} />, labelEn: "Images", labelZh: "镜像" },
   { key: "volumes", icon: <Layers3 size={18} />, labelEn: "Volumes", labelZh: "数据卷" },
 ];
-/**
- * DockerClientSidebar — 45px wide icon sidebar.
- */
 export const DockerClientSidebar: React.FC<DockerClientSidebarProps> = ({ activeView, onViewChange, i18n = "en", onToggleHistory, isHistoryOpen = false }) => {
   const isZh = i18n === "zh-cn";
   const renderItem = (item: SidebarItem) => {
@@ -69,6 +61,45 @@ export const DockerClientSidebar: React.FC<DockerClientSidebarProps> = ({ active
         }}
       >
         {item.icon}
+      </button>
+    );
+  };
+  const renderEnvironmentButton = () => {
+    const isActive = activeView === "environment";
+    const label = isZh ? "环境" : "Environment";
+    return (
+      <button
+        onClick={() => onViewChange("environment")}
+        title={label}
+        style={{
+          width: 30,
+          height: 30,
+          margin: "2px auto",
+          borderRadius: 5,
+          border: "none",
+          background: isActive ? "var(--accent-color, #58a6ff)" : "transparent",
+          color: isActive ? "white" : "var(--text-secondary, #8b949e)",
+          cursor: "pointer",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          transition: "background 0.15s, color 0.15s",
+          flexShrink: 0,
+        }}
+        onMouseEnter={(e) => {
+          if (!isActive) {
+            e.currentTarget.style.background = "var(--hover-bg, #21262d)";
+            e.currentTarget.style.color = "var(--text-primary, #e6edf3)";
+          }
+        }}
+        onMouseLeave={(e) => {
+          if (!isActive) {
+            e.currentTarget.style.background = "transparent";
+            e.currentTarget.style.color = "var(--text-secondary, #8b949e)";
+          }
+        }}
+      >
+        <Cpu size={18} />
       </button>
     );
   };
@@ -149,6 +180,7 @@ export const DockerClientSidebar: React.FC<DockerClientSidebarProps> = ({ active
           paddingTop: 6,
         }}
       >
+        {renderEnvironmentButton()}
         {renderHistoryButton()}
       </div>
     </div>

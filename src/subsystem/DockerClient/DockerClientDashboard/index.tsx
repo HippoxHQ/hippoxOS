@@ -1,12 +1,15 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import DockerClientSidebar, { DockerClientSidebarView } from "./components/DockerClientSidebar";
 import DockerListPanel, { DockerColumn } from "./components/DockerListPanel";
+import DockerEnvironmentPanel, { DockerEnvironmentInfo } from "./components/DockerEnvironmentPanel";
+import DockerContainerDetail from "./components/DockerContainerDetail";
+import dockerClientCommands, { DockerEnvironment } from "../../../command/DockerClient/General";
+import { showToast, ToastType } from "../../../components/Toast";
+import { translateContainerState } from "./components/types";
 interface DockerClientDashboardProps {
   theme?: "light" | "dark";
   i18n?: "en" | "zh-cn";
-  /** Toggle the history drawer (forwarded to the sidebar's bottom button) */
   onToggleHistory?: () => void;
-  /** Whether the history drawer is currently open */
   isHistoryOpen?: boolean;
 }
 /**
@@ -20,6 +23,10 @@ interface ContainerRow {
   port: string;
   cpu: string;
   lastStarted: string;
+  /** Raw container state, e.g. "running" / "exited" / "paused". */
+  state: string;
+  /** Human-readable status line, e.g. "Up 2 hours". */
+  status: string;
   /** Optional status used for colored cells */
   statusColor?: string;
 }
@@ -49,105 +56,122 @@ interface VolumeRow {
   lastStarted: string;
   statusColor?: string;
 }
+const EMPTY_ENVIRONMENT: DockerEnvironmentInfo = {
+  engineType: "",
+  engineVersion: "",
+  apiVersion: "",
+  os: "",
+  arch: "",
+  kernelVersion: "",
+  storageDriver: "",
+  loggingDriver: "",
+  cgroupVersion: "",
+  dockerRootDir: "",
+  socketPath: "",
+  buildkitEnabled: false,
+  composeEnabled: false,
+  ncpu: 0,
+  memTotal: 0,
+  memUsed: 0,
+  diskUsage: {
+    images: 0,
+    containers: 0,
+    volumes: 0,
+    buildCache: 0,
+    total: 0,
+  },
+  counts: {
+    containers: 0,
+    running: 0,
+    paused: 0,
+    stopped: 0,
+    images: 0,
+    volumes: 0,
+  },
+};
+const toEnvironmentInfo = (env: DockerEnvironment): DockerEnvironmentInfo => ({
+  engineType: env.engineType,
+  engineVersion: env.engineVersion,
+  apiVersion: env.apiVersion,
+  os: env.os,
+  arch: env.arch,
+  kernelVersion: env.kernelVersion,
+  storageDriver: env.storageDriver,
+  loggingDriver: env.loggingDriver,
+  cgroupVersion: env.cgroupVersion,
+  dockerRootDir: env.dockerRootDir,
+  socketPath: env.socketPath,
+  buildkitEnabled: env.buildkitEnabled,
+  composeEnabled: env.composeEnabled,
+  ncpu: env.ncpu,
+  memTotal: env.memTotal,
+  memUsed: env.memUsed,
+  diskUsage: {
+    images: env.diskUsage.images,
+    containers: env.diskUsage.containers,
+    volumes: env.diskUsage.volumes,
+    buildCache: env.diskUsage.buildCache,
+    total: env.diskUsage.total,
+  },
+  counts: {
+    containers: env.counts.containers,
+    running: env.counts.running,
+    paused: env.counts.paused,
+    stopped: env.counts.stopped,
+    images: env.counts.images,
+    volumes: env.counts.volumes,
+  },
+  goVersion: env.goVersion,
+  gitCommit: env.gitCommit,
+  buildTime: env.buildTime,
+  defaultRuntime: env.defaultRuntime,
+  runtimes: env.runtimes,
+  securityOptions: env.securityOptions,
+});
 /**
- * Demo data — replace with real backend data later.
+ * Compact inline detail block rendered inside an expanded container row.
  */
-const DEMO_CONTAINERS: ContainerRow[] = [
-  {
-    id: "c1",
-    name: "hippox-postgres",
-    containerId: "a1b2c3d4e5f6",
-    image: "postgres:16",
-    port: "5432:5432",
-    cpu: "0.4%",
-    lastStarted: "2 hours ago",
-    statusColor: "#22c55e",
-  },
-  {
-    id: "c2",
-    name: "hippox-redis",
-    containerId: "b2c3d4e5f6a1",
-    image: "redis:7-alpine",
-    port: "6379:6379",
-    cpu: "0.1%",
-    lastStarted: "2 hours ago",
-    statusColor: "#22c55e",
-  },
-  {
-    id: "c3",
-    name: "hippox-mongo",
-    containerId: "c3d4e5f6a1b2",
-    image: "mongo:6",
-    port: "27017:27017",
-    cpu: "0.0%",
-    lastStarted: "3 days ago",
-    statusColor: "#ef4444",
-  },
-];
-const DEMO_IMAGES: ImageRow[] = [
-  {
-    id: "i1",
-    name: "postgres:16",
-    containerId: "sha256:1a2b3c4d",
-    image: "postgres",
-    port: "-",
-    cpu: "-",
-    lastStarted: "5 days ago",
-    statusColor: "#58a6ff",
-  },
-  {
-    id: "i2",
-    name: "redis:7-alpine",
-    containerId: "sha256:4d5e6f7g",
-    image: "redis",
-    port: "-",
-    cpu: "-",
-    lastStarted: "5 days ago",
-    statusColor: "#58a6ff",
-  },
-  {
-    id: "i3",
-    name: "mongo:6",
-    containerId: "sha256:7g8h9i0j",
-    image: "mongo",
-    port: "-",
-    cpu: "-",
-    lastStarted: "10 days ago",
-    statusColor: "#6e7681",
-  },
-];
-const DEMO_VOLUMES: VolumeRow[] = [
-  {
-    id: "v1",
-    name: "hippox_pg_data",
-    containerId: "-",
-    image: "-",
-    port: "-",
-    cpu: "-",
-    lastStarted: "5 days ago",
-    statusColor: "#58a6ff",
-  },
-  {
-    id: "v2",
-    name: "hippox_redis_data",
-    containerId: "-",
-    image: "-",
-    port: "-",
-    cpu: "-",
-    lastStarted: "5 days ago",
-    statusColor: "#58a6ff",
-  },
-  {
-    id: "v3",
-    name: "hippox_mongo_data",
-    containerId: "-",
-    image: "-",
-    port: "-",
-    cpu: "-",
-    lastStarted: "10 days ago",
-    statusColor: "#6e7681",
-  },
-];
+const InlineContainerDetail: React.FC<{ row: ContainerRow; isZh: boolean }> = ({ row, isZh }) => {
+  const rawState = row.state && row.state.trim().length > 0 ? row.state : row.status || "-";
+  const stateLabel = translateContainerState(rawState, isZh);
+  return (
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+        gap: "6px 24px",
+        fontSize: 12,
+        color: "var(--text-secondary, #8b949e)",
+      }}
+    >
+      <div>
+        <span style={{ color: "var(--text-muted, #6e7681)" }}>{isZh ? "容器 ID：" : "Container ID: "}</span>
+        <span style={{ fontFamily: "monospace", color: "var(--text-primary, #e6edf3)" }}>{row.containerId}</span>
+      </div>
+      <div>
+        <span style={{ color: "var(--text-muted, #6e7681)" }}>{isZh ? "镜像：" : "Image: "}</span>
+        <span style={{ fontFamily: "monospace", color: "var(--text-primary, #e6edf3)" }}>{row.image}</span>
+      </div>
+      <div>
+        <span style={{ color: "var(--text-muted, #6e7681)" }}>{isZh ? "端口：" : "Ports: "}</span>
+        <span style={{ fontFamily: "monospace", color: "var(--text-primary, #e6edf3)" }}>{row.port || "-"}</span>
+      </div>
+      <div>
+        <span style={{ color: "var(--text-muted, #6e7681)" }}>{isZh ? "最近启动：" : "Last started: "}</span>
+        <span style={{ color: "var(--text-primary, #e6edf3)" }}>{row.lastStarted || "-"}</span>
+      </div>
+      <div>
+        <span style={{ color: "var(--text-muted, #6e7681)" }}>CPU: </span>
+        <span style={{ color: "var(--text-primary, #e6edf3)" }}>{row.cpu || "-"}</span>
+      </div>
+      <div>
+        <span style={{ color: "var(--text-muted, #6e7681)" }}>{isZh ? "状态：" : "Status: "}</span>
+        {/* Show the localized state text, colored by the status color. */}
+        <span style={{ color: row.statusColor ?? "var(--text-primary, #e6edf3)" }}>{stateLabel}</span>
+      </div>
+    </div>
+  );
+};
 export const DockerClientDashboard: React.FC<DockerClientDashboardProps> = ({ theme = "dark", i18n = "en", onToggleHistory, isHistoryOpen = false }) => {
   const isZh = i18n === "zh-cn";
   const [activeView, setActiveView] = useState<DockerClientSidebarView>("containers");
@@ -155,17 +179,94 @@ export const DockerClientDashboard: React.FC<DockerClientDashboardProps> = ({ th
   const [selectedContainerKeys, setSelectedContainerKeys] = useState<Set<string>>(new Set());
   const [selectedImageKeys, setSelectedImageKeys] = useState<Set<string>>(new Set());
   const [selectedVolumeKeys, setSelectedVolumeKeys] = useState<Set<string>>(new Set());
+  const [environmentInfo, setEnvironmentInfo] = useState<DockerEnvironmentInfo>(EMPTY_ENVIRONMENT);
+  const [backendEnv, setBackendEnv] = useState<DockerEnvironment | null>(null);
+  const [containers, setContainers] = useState<ContainerRow[]>([]);
+  const [images, setImages] = useState<ImageRow[]>([]);
+  const [volumes, setVolumes] = useState<VolumeRow[]>([]);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [available, setAvailable] = useState<boolean>(true);
+  const [detailContainer, setDetailContainer] = useState<ContainerRow | null>(null);
   /**
-   * Column definitions shared by containers and images.
+   * Detect the Docker environment and (re)load every resource list.
    */
+  const loadAll = useCallback(
+    async (options?: { silent?: boolean }) => {
+      const silent = options?.silent ?? false;
+      if (!silent) setLoading(true);
+      try {
+        const env = await dockerClientCommands.detectEnvironment();
+        setBackendEnv(env);
+        setEnvironmentInfo(toEnvironmentInfo(env));
+        if (!env.available || !env.socketPath) {
+          setAvailable(false);
+          setContainers([]);
+          setImages([]);
+          setVolumes([]);
+          return;
+        }
+        setAvailable(true);
+        // Load all three resource lists in parallel.
+        const [containerList, imageList, volumeList] = await Promise.all([dockerClientCommands.listContainers(env.socketPath, true), dockerClientCommands.listImages(env.socketPath), dockerClientCommands.listVolumes(env.socketPath)]);
+        setContainers(
+          containerList.map((c) => ({
+            id: c.id,
+            name: c.name,
+            containerId: c.containerId,
+            image: c.image,
+            port: c.port,
+            cpu: c.cpu,
+            lastStarted: c.lastStarted,
+            state: c.state,
+            status: c.status,
+            statusColor: c.statusColor,
+          })),
+        );
+        setImages(
+          imageList.map((i) => ({
+            id: i.id,
+            name: i.name,
+            containerId: i.containerId,
+            image: i.image,
+            port: i.port,
+            cpu: i.cpu,
+            lastStarted: i.lastStarted,
+            statusColor: i.statusColor,
+          })),
+        );
+        setVolumes(
+          volumeList.map((v) => ({
+            id: v.id,
+            name: v.name,
+            containerId: v.containerId,
+            image: v.image,
+            port: v.port,
+            cpu: v.cpu,
+            lastStarted: v.lastStarted,
+            statusColor: v.statusColor,
+          })),
+        );
+      } catch (error) {
+        if (!silent) {
+          showToast(ToastType.ERROR, `${isZh ? "加载 Docker 数据失败" : "Failed to load Docker data"}: ${error}`);
+        }
+        setAvailable(false);
+      } finally {
+        if (!silent) setLoading(false);
+      }
+    },
+    [isZh],
+  );
+  // Initial load.
+  useEffect(() => {
+    loadAll();
+  }, [loadAll]);
   const COMMON_COLUMNS: DockerColumn<ContainerRow | ImageRow>[] = [
     {
       key: "name",
       label: isZh ? "名称" : "Name",
-      // No fixed width → grows to fill remaining space.
       render: (row) => (
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          {/* Status dot */}
           <span
             style={{
               width: 6,
@@ -284,21 +385,236 @@ export const DockerClientDashboard: React.FC<DockerClientDashboardProps> = ({ th
     return rows.filter((r) => r.name.toLowerCase().includes(q));
   };
   /**
-   * Batch action handlers.
+   * Batch action handlers. 
    */
-  const handleContainerBatchAction = useCallback((actionKey: string, selectedKeys: string[]) => {
-    setSelectedContainerKeys(new Set());
-  }, []);
-  const handleImageBatchAction = useCallback((actionKey: string, selectedKeys: string[]) => {
-    setSelectedImageKeys(new Set());
-  }, []);
-  const handleVolumeBatchAction = useCallback((actionKey: string, selectedKeys: string[]) => {
-    setSelectedVolumeKeys(new Set());
-  }, []);
+  const handleContainerBatchAction = useCallback(
+    async (actionKey: string, selectedKeys: string[]) => {
+      const socket = backendEnv?.socketPath;
+      if (!socket || selectedKeys.length === 0) return;
+      try {
+        switch (actionKey) {
+          case "start":
+            await dockerClientCommands.startContainers(socket, selectedKeys);
+            break;
+          case "stop":
+            await dockerClientCommands.stopContainers(socket, selectedKeys);
+            break;
+          case "pause":
+            await dockerClientCommands.pauseContainers(socket, selectedKeys);
+            break;
+          case "restart":
+            await dockerClientCommands.restartContainers(socket, selectedKeys);
+            break;
+          case "delete":
+            await dockerClientCommands.removeContainers(socket, selectedKeys, true);
+            break;
+          default:
+            break;
+        }
+        setSelectedContainerKeys(new Set());
+        await loadAll({ silent: true });
+      } catch (error) {
+        showToast(ToastType.ERROR, `${isZh ? "容器操作失败" : "Container action failed"}: ${error}`);
+      }
+    },
+    [backendEnv, isZh, loadAll],
+  );
+  const handleImageBatchAction = useCallback(
+    async (actionKey: string, selectedKeys: string[]) => {
+      const socket = backendEnv?.socketPath;
+      if (!socket || selectedKeys.length === 0) return;
+      try {
+        if (actionKey === "delete") {
+          await dockerClientCommands.removeImages(socket, selectedKeys, true);
+        }
+        setSelectedImageKeys(new Set());
+        await loadAll({ silent: true });
+      } catch (error) {
+        showToast(ToastType.ERROR, `${isZh ? "镜像操作失败" : "Image action failed"}: ${error}`);
+      }
+    },
+    [backendEnv, isZh, loadAll],
+  );
+  const handleVolumeBatchAction = useCallback(
+    async (actionKey: string, selectedKeys: string[]) => {
+      const socket = backendEnv?.socketPath;
+      if (!socket || selectedKeys.length === 0) return;
+      try {
+        if (actionKey === "delete") {
+          await dockerClientCommands.removeVolumes(socket, selectedKeys, true);
+        }
+        setSelectedVolumeKeys(new Set());
+        await loadAll({ silent: true });
+      } catch (error) {
+        showToast(ToastType.ERROR, `${isZh ? "数据卷操作失败" : "Volume action failed"}: ${error}`);
+      }
+    },
+    [backendEnv, isZh, loadAll],
+  );
   /**
-   * Render the list panel for the currently active category.
+   * Per-row action handler shared by all three lists.
    */
+  const handleRowAction = useCallback(
+    async (actionKey: string, row: ContainerRow | ImageRow | VolumeRow) => {
+      const socket = backendEnv?.socketPath;
+      if (!socket) return;
+      try {
+        if (activeView === "containers") {
+          switch (actionKey) {
+            case "start":
+              await dockerClientCommands.startContainers(socket, [row.id]);
+              break;
+            case "stop":
+              await dockerClientCommands.stopContainers(socket, [row.id]);
+              break;
+            case "pause":
+              await dockerClientCommands.pauseContainers(socket, [row.id]);
+              break;
+            case "restart":
+              await dockerClientCommands.restartContainers(socket, [row.id]);
+              break;
+            case "delete":
+              await dockerClientCommands.removeContainers(socket, [row.id], true);
+              break;
+            default:
+              break;
+          }
+        } else if (activeView === "images") {
+          if (actionKey === "delete") {
+            await dockerClientCommands.removeImages(socket, [row.id], true);
+          }
+        } else if (activeView === "volumes") {
+          if (actionKey === "delete") {
+            await dockerClientCommands.removeVolumes(socket, [row.id], true);
+          }
+        }
+        await loadAll({ silent: true });
+      } catch (error) {
+        showToast(ToastType.ERROR, `${isZh ? "操作失败" : "Action failed"}: ${error}`);
+      }
+    },
+    [activeView, backendEnv, isZh, loadAll],
+  );
+  /**
+   * prompts the user for one or more image references and then invokes the backend pull command.
+   */
+  const handlePullImages = useCallback(() => {
+    const socket = backendEnv?.socketPath;
+    if (!socket) {
+      showToast(ToastType.WARNING, isZh ? "Docker 不可用" : "Docker is not available");
+      return;
+    }
+    const input = window.prompt(isZh ? "输入镜像名称（逗号分隔）" : "Enter image name(s), comma separated");
+    if (!input) return;
+    const names = input
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (names.length === 0) return;
+    dockerClientCommands
+      .pullImages(socket, names)
+      .then(() => {
+        showToast(ToastType.SUCCESS, isZh ? "镜像拉取完成" : "Image pull completed");
+        return loadAll({ silent: true });
+      })
+      .catch((error) => {
+        showToast(ToastType.ERROR, `${isZh ? "镜像拉取失败" : "Image pull failed"}: ${error}`);
+      });
+  }, [backendEnv, isZh, loadAll]);
+  const handleRunContainer = useCallback(() => {
+    const socket = backendEnv?.socketPath;
+    if (!socket) {
+      showToast(ToastType.WARNING, isZh ? "Docker 不可用" : "Docker is not available");
+      return;
+    }
+    const input = window.prompt(isZh ? "输入要运行的镜像名称" : "Enter the image name to run");
+    if (!input) return;
+    showToast(ToastType.INFO, isZh ? `请使用容器创建向导运行 ${input}` : `Use the container wizard to run ${input}`);
+  }, [backendEnv, isZh]);
+  /**
+   * Create a new volume — prompts for a name and delegates to the backend.
+   */
+  const handleCreateVolume = useCallback(() => {
+    const socket = backendEnv?.socketPath;
+    if (!socket) {
+      showToast(ToastType.WARNING, isZh ? "Docker 不可用" : "Docker is not available");
+      return;
+    }
+    const input = window.prompt(isZh ? "输入数据卷名称" : "Enter volume name");
+    if (!input) return;
+    showToast(ToastType.INFO, isZh ? `请使用数据卷创建向导创建 ${input}` : `Use the volume wizard to create ${input}`);
+  }, [backendEnv, isZh]);
+  /**
+   * Refresh environment info and reload all lists from the backend.
+   */
+  const handleRefreshEnvironment = useCallback(() => {
+    loadAll();
+  }, [loadAll]);
+  /**
+   * Render a friendly placeholder when the engine cannot be reached.
+   */
+  const renderUnavailable = () => (
+    <div
+      style={{
+        width: "100%",
+        height: "100%",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        flexDirection: "column",
+        gap: 10,
+        color: "var(--text-muted, #6e7681)",
+        fontSize: 13,
+        padding: 24,
+        textAlign: "center",
+      }}
+    >
+      <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text-secondary, #8b949e)" }}>{isZh ? "未检测到 Docker 环境" : "No Docker environment detected"}</div>
+      <div>{isZh ? "请确认 Docker / Colima / Podman 已启动，然后点击刷新。" : "Make sure Docker / Colima / Podman is running, then click Refresh."}</div>
+      <button
+        onClick={handleRefreshEnvironment}
+        style={{
+          marginTop: 6,
+          padding: "6px 14px",
+          borderRadius: 6,
+          border: "1px solid var(--border-color, #30363d)",
+          background: "var(--bg-tertiary, #21262d)",
+          color: "var(--text-primary, #e6edf3)",
+          cursor: "pointer",
+          fontSize: 12,
+        }}
+      >
+        {isZh ? "刷新" : "Refresh"}
+      </button>
+    </div>
+  );
+  /**
+   * Container detail page (shown when a container name is clicked).
+   */
+  const renderContainerDetail = () => {
+    if (!detailContainer) return null;
+    const socket = backendEnv?.socketPath;
+    if (!socket) {
+      return renderUnavailable();
+    }
+    return (
+      <DockerContainerDetail
+        socket={socket}
+        containerId={detailContainer.id}
+        containerName={detailContainer.name}
+        containerImage={detailContainer.image}
+        i18n={i18n}
+        onBack={() => setDetailContainer(null)}
+        onActionCompleted={() => {
+          loadAll({ silent: true });
+        }}
+      />
+    );
+  };
   const renderActivePanel = () => {
+    if (activeView === "containers" && detailContainer) {
+      return renderContainerDetail();
+    }
     switch (activeView) {
       case "containers":
         return (
@@ -306,20 +622,23 @@ export const DockerClientDashboard: React.FC<DockerClientDashboardProps> = ({ th
             title={isZh ? "容器" : "Containers"}
             searchPlaceholder={isZh ? "搜索容器…" : "Search containers…"}
             columns={COMMON_COLUMNS as DockerColumn<ContainerRow>[]}
-            rows={filterContainers(DEMO_CONTAINERS)}
+            rows={filterContainers(containers)}
             getRowKey={(row) => row.id}
             searchQuery={searchQuery}
             onSearchChange={setSearchQuery}
             primaryActionLabel={isZh ? "运行" : "Run"}
-            onPrimaryAction={() => {
-              // eslint-disable-next-line no-console
-              console.log("[DockerClientDashboard] run new container");
-            }}
+            onPrimaryAction={handleRunContainer}
             emptyText={isZh ? "暂无容器" : "No containers"}
             rowActionPreset="containers"
             selectedRowKeys={selectedContainerKeys}
             onSelectionChange={setSelectedContainerKeys}
             onBatchAction={handleContainerBatchAction}
+            onRowAction={handleRowAction}
+            // Feature 1: click a row to expand an inline detail block.
+            expandable
+            renderExpanded={(row) => <InlineContainerDetail row={row} isZh={isZh} />}
+            // Feature 2: click the name to open the full detail page.
+            onNameClick={(row) => setDetailContainer(row)}
           />
         );
       case "images":
@@ -328,20 +647,18 @@ export const DockerClientDashboard: React.FC<DockerClientDashboardProps> = ({ th
             title={isZh ? "镜像" : "Images"}
             searchPlaceholder={isZh ? "搜索镜像…" : "Search images…"}
             columns={COMMON_COLUMNS as DockerColumn<ImageRow>[]}
-            rows={filterImages(DEMO_IMAGES)}
+            rows={filterImages(images)}
             getRowKey={(row) => row.id}
             searchQuery={searchQuery}
             onSearchChange={setSearchQuery}
             primaryActionLabel={isZh ? "拉取" : "Pull"}
-            onPrimaryAction={() => {
-              // eslint-disable-next-line no-console
-              console.log("[DockerClientDashboard] pull new image");
-            }}
+            onPrimaryAction={handlePullImages}
             emptyText={isZh ? "暂无镜像" : "No images"}
             rowActionPreset="images"
             selectedRowKeys={selectedImageKeys}
             onSelectionChange={setSelectedImageKeys}
             onBatchAction={handleImageBatchAction}
+            onRowAction={handleRowAction}
           />
         );
       case "volumes":
@@ -350,22 +667,22 @@ export const DockerClientDashboard: React.FC<DockerClientDashboardProps> = ({ th
             title={isZh ? "数据卷" : "Volumes"}
             searchPlaceholder={isZh ? "搜索数据卷…" : "Search volumes…"}
             columns={VOLUME_COLUMNS}
-            rows={filterVolumes(DEMO_VOLUMES)}
+            rows={filterVolumes(volumes)}
             getRowKey={(row) => row.id}
             searchQuery={searchQuery}
             onSearchChange={setSearchQuery}
             primaryActionLabel={isZh ? "创建" : "Create"}
-            onPrimaryAction={() => {
-              // eslint-disable-next-line no-console
-              console.log("[DockerClientDashboard] create new volume");
-            }}
+            onPrimaryAction={handleCreateVolume}
             emptyText={isZh ? "暂无数据卷" : "No volumes"}
             rowActionPreset="volumes"
             selectedRowKeys={selectedVolumeKeys}
             onSelectionChange={setSelectedVolumeKeys}
             onBatchAction={handleVolumeBatchAction}
+            onRowAction={handleRowAction}
           />
         );
+      case "environment":
+        return <DockerEnvironmentPanel i18n={i18n} info={environmentInfo} onRefresh={handleRefreshEnvironment} />;
       default:
         return null;
     }
@@ -384,20 +701,20 @@ export const DockerClientDashboard: React.FC<DockerClientDashboardProps> = ({ th
         boxSizing: "border-box",
       }}
     >
-      {/* Left sidebar — Docker Desktop style, only three categories */}
       <DockerClientSidebar
         activeView={activeView}
         onViewChange={(view) => {
           setActiveView(view);
-          // Reset search when switching category.
           setSearchQuery("");
+          if (view !== "containers") {
+            setDetailContainer(null);
+          }
         }}
         i18n={i18n}
         onToggleHistory={onToggleHistory}
         isHistoryOpen={isHistoryOpen}
       />
-      {/* Active panel content — a list panel per category */}
-      <div style={{ flex: 1, minWidth: 0, overflow: "hidden" }}>{renderActivePanel()}</div>
+      <div style={{ flex: 1, minWidth: 0, overflow: "hidden" }}>{!available ? renderUnavailable() : renderActivePanel()}</div>
     </div>
   );
 };

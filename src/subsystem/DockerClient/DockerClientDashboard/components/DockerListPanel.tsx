@@ -1,107 +1,60 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { Play, Square, Pause, Trash2, MoreVertical, Search, Check, X } from "lucide-react";
+import { Play, Square, Pause, Trash2, MoreVertical, Search, Check, X, ChevronDown, ChevronRight } from "lucide-react";
 /**
  * Definition of a single column in the list panel.
  */
 export interface DockerColumn<T> {
-  /** Unique key of the column */
   key: string;
-  /** Header label */
   label: string;
-  /** Preferred width in pixels. Use undefined for the flex-grow name column. */
   width?: number;
-  /** Minimum width in pixels. */
   minWidth?: number;
-  /** Optional cell renderer. */
   render?: (row: T) => React.ReactNode;
 }
 /**
  * Preset action sets for the per-row action buttons.
  */
 export type DockerRowActionPreset = "containers" | "images" | "volumes";
-/** A single batch action definition shown in the header action bar. */
 export interface DockerBatchAction {
-  /** Stable key, e.g. "start" / "stop" / "delete". */
   key: string;
-  /** Button label (used as the tooltip / accessible title). */
   label: string;
-  /** Optional icon. */
   icon?: React.ReactNode;
-  /** Optional accent color. */
   color?: string;
-  /**
-   * Optional group id. Actions that share the same group id are rendered
-   * as a single connected button group (no gaps, shared borders).
-   */
   group?: string;
 }
 interface DockerListPanelProps<T> {
-  /** Panel title, e.g. "Containers" */
   title: string;
-  /** Placeholder for the search box */
   searchPlaceholder?: string;
-  /** Column definitions (order matters) */
   columns: DockerColumn<T>[];
-  /** Rows to render */
   rows: T[];
-  /** Function to get a unique key from each row */
   getRowKey: (row: T) => string;
-  /** Current search query */
   searchQuery: string;
-  /** Search query change handler */
   onSearchChange: (value: string) => void;
-  /** Optional primary action label, e.g. "Run" */
   primaryActionLabel?: string;
-  /** Primary action handler */
   onPrimaryAction?: () => void;
-  /** Empty state text */
   emptyText?: string;
-  /** Preferred width of the actions column in pixels. */
   actionsWidth?: number;
-  /**
-   * Which built-in action preset to use for the per-row action buttons.
-   */
   rowActionPreset?: DockerRowActionPreset;
-  /**
-   * Custom batch actions for the header. When provided, this overrides
-   * the built-in preset actions.
-   */
   batchActions?: DockerBatchAction[];
-  /**
-   * Fired when a batch action button is clicked.
-   */
   onBatchAction?: (actionKey: string, selectedKeys: string[]) => void;
-  /**
-   * Fired when a per-row action button is clicked.
-   */
   onRowAction?: (actionKey: string, row: T) => void;
-  /**
-   * Currently selected row keys (controlled mode).
-   */
   selectedRowKeys?: Set<string>;
-  /** Selection change callback. */
   onSelectionChange?: (next: Set<string>) => void;
-  /** Whether to show a header select-all checkbox. Defaults to true. */
   showSelectAll?: boolean;
+  expandable?: boolean;
+  renderExpanded?: (row: T) => React.ReactNode;
+  onNameClick?: (row: T) => void;
 }
-/** Horizontal padding applied to each row / header row (left + right). */
 const ROW_PADDING_X = 12;
-/** Width of the leading selection checkbox column. */
 const CHECKBOX_COLUMN_WIDTH = 28;
-/** Gap between the inline action icon buttons. */
+const EXPAND_CHEVRON_WIDTH = 18;
 const ACTION_BUTTON_GAP = 2;
-/** Width of a single inline action icon button. */
 const ACTION_BUTTON_WIDTH = 26;
-/** Minimum width of the actions column (just the "More" button). */
 const ACTIONS_MIN_WIDTH = ACTION_BUTTON_WIDTH;
-/** Default preferred width of the actions column. */
 const ACTIONS_DEFAULT_WIDTH = 160;
-/** Minimum width of the flexible (name) column. */
 const FLEX_COLUMN_MIN_WIDTH = 100;
-/** Minimum width of a fixed-width column if none is specified. */
 const DEFAULT_FIXED_MIN_WIDTH = 70;
-/** Extra right padding on the LAST data column, to avoid overlap with actions. */
 const LAST_COLUMN_EXTRA_PADDING = 12;
+const SEARCH_INPUT_HEIGHT = 35;
 function DockerListPanel<T>({
   title,
   searchPlaceholder = "Search",
@@ -121,16 +74,15 @@ function DockerListPanel<T>({
   selectedRowKeys,
   onSelectionChange,
   showSelectAll = true,
+  expandable = false,
+  renderExpanded,
+  onNameClick,
 }: DockerListPanelProps<T>) {
-  // Tracks which row's overflow menu is open (by row key).
   const [openActionsMenuKey, setOpenActionsMenuKey] = useState<string | null>(null);
-  // Ref for the currently open menu, used for outside-click detection.
+  const [expandedRowKeys, setExpandedRowKeys] = useState<Set<string>>(new Set());
   const actionsMenuRef = useRef<HTMLDivElement>(null);
-  // Ref for the panel root, used to measure available width.
   const panelRef = useRef<HTMLDivElement>(null);
-  // Measured inner width of the rows area.
   const [rowsInnerWidth, setRowsInnerWidth] = useState<number>(0);
-  // Internal selection state used in uncontrolled mode.
   const [internalSelected, setInternalSelected] = useState<Set<string>>(new Set());
   const isSelectionControlled = typeof selectedRowKeys !== "undefined";
   const selectedSet = isSelectionControlled ? selectedRowKeys! : internalSelected;
@@ -162,7 +114,15 @@ function DockerListPanel<T>({
     if (e) e.stopPropagation();
     applySelection(new Set());
   };
-  // Measure panel width.
+  const toggleRowExpanded = (rowKey: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setExpandedRowKeys((prev) => {
+      const next = new Set(prev);
+      if (next.has(rowKey)) next.delete(rowKey);
+      else next.add(rowKey);
+      return next;
+    });
+  };
   useLayoutEffect(() => {
     const el = panelRef.current;
     if (!el) return;
@@ -179,7 +139,6 @@ function DockerListPanel<T>({
     window.addEventListener("resize", updateWidth);
     return () => window.removeEventListener("resize", updateWidth);
   }, []);
-  // Close overflow menu on outside click.
   useEffect(() => {
     if (!openActionsMenuKey) return;
     const handleClickOutside = (event: MouseEvent) => {
@@ -196,8 +155,9 @@ function DockerListPanel<T>({
     const fixedColumns = columns.filter((c) => typeof c.width === "number");
     const flexMinTotal = flexColumns.length * FLEX_COLUMN_MIN_WIDTH;
     const fixedMinTotal = fixedColumns.reduce((sum, c) => sum + Math.max(0, c.minWidth ?? Math.min(c.width ?? DEFAULT_FIXED_MIN_WIDTH, DEFAULT_FIXED_MIN_WIDTH)), 0);
-    // Reserve checkbox + actions columns first.
-    const spaceAfterMins = Math.max(0, available - CHECKBOX_COLUMN_WIDTH - flexMinTotal - fixedMinTotal);
+    // Reserve the chevron column (only when expandable) plus checkbox + actions columns first.
+    const chevronWidth = expandable ? EXPAND_CHEVRON_WIDTH : 0;
+    const spaceAfterMins = Math.max(0, available - chevronWidth - CHECKBOX_COLUMN_WIDTH - flexMinTotal - fixedMinTotal);
     const actionsPreferred = Math.max(ACTIONS_MIN_WIDTH, Math.min(actionsWidth, Math.max(ACTIONS_MIN_WIDTH, Math.floor(available * 0.5))));
     const actionsActual = Math.min(actionsPreferred, spaceAfterMins);
     const leftoverAfterActions = Math.max(0, spaceAfterMins - actionsActual);
@@ -222,8 +182,7 @@ function DockerListPanel<T>({
       });
     }
     const fixedSumActual = Object.values(fixedWidths).reduce((a, b) => a + b, 0);
-    const flexWidth = Math.max(flexMinTotal, available - CHECKBOX_COLUMN_WIDTH - actionsActual - fixedSumActual);
-    // How many inline action buttons fit in the actions column.
+    const flexWidth = Math.max(flexMinTotal, available - chevronWidth - CHECKBOX_COLUMN_WIDTH - actionsActual - fixedSumActual);
     const inlineSlots = Math.max(0, Math.floor((actionsActual + ACTION_BUTTON_GAP) / (ACTION_BUTTON_WIDTH + ACTION_BUTTON_GAP)));
     return {
       available,
@@ -233,7 +192,7 @@ function DockerListPanel<T>({
       flexColumnsCount: flexColumns.length,
       inlineSlots,
     };
-  }, [rowsInnerWidth, columns, actionsWidth]);
+  }, [rowsInnerWidth, columns, actionsWidth, expandable]);
   // Shared icon button style for row actions.
   const rowIconButtonStyle: React.CSSProperties = {
     width: ACTION_BUTTON_WIDTH,
@@ -273,7 +232,6 @@ function DockerListPanel<T>({
     gap: 8,
     whiteSpace: "nowrap",
   };
-  /** Row action definitions per preset. */
   const ACTION_DEFS: Record<DockerRowActionPreset, Array<{ key: string; title: string; icon: React.ReactNode; hoverColor: string }>> = {
     containers: [
       { key: "start", title: "Start", icon: <Play size={14} />, hoverColor: "#22c55e" },
@@ -287,7 +245,6 @@ function DockerListPanel<T>({
   const rowActions = ACTION_DEFS[rowActionPreset] ?? ACTION_DEFS.containers;
   /**
    * Render the per-row action buttons with responsive collapsing.
-   * When there is no overflow action, the "More" button is not shown.
    */
   const renderRowActions = (row: T, rowKey: string) => {
     const isMenuOpen = openActionsMenuKey === rowKey;
@@ -414,7 +371,6 @@ function DockerListPanel<T>({
   const someVisibleSelected = visibleKeys.some((k) => selectedSet.has(k));
   const hasSelection = selectedSet.size > 0;
   const renderBatchActions = () => {
-    // Preserve order while grouping consecutive actions by `group`.
     const groups: Array<{ group: string; actions: DockerBatchAction[] }> = [];
     effectiveBatchActions.forEach((action) => {
       const groupId = action.group ?? action.key;
@@ -523,13 +479,15 @@ function DockerListPanel<T>({
               display: "flex",
               alignItems: "center",
               gap: 6,
-              background: "var(--bg-tertiary, #21262d)",
+              background: "transparent",
               border: "1px solid var(--border-color, #30363d)",
               borderRadius: 6,
-              padding: "4px 10px",
+              padding: "0 10px",
+              height: SEARCH_INPUT_HEIGHT,
               minWidth: 160,
               maxWidth: 320,
               flex: "0 1 260px",
+              boxSizing: "border-box",
             }}
           >
             <Search size={14} color="var(--text-muted, #6e7681)" />
@@ -546,6 +504,8 @@ function DockerListPanel<T>({
                 color: "var(--text-primary, #e6edf3)",
                 fontSize: 12,
                 minWidth: 0,
+                height: "100%",
+                padding: 0,
               }}
             />
           </div>
@@ -614,6 +574,17 @@ function DockerListPanel<T>({
         </div>
       </div>
       <div style={tableHeaderStyle}>
+        {/* Spacer that mirrors the per-row expand chevron column.
+            Kept in sync with the data rows so the checkbox column aligns. */}
+        {expandable && (
+          <div
+            style={{
+              width: EXPAND_CHEVRON_WIDTH,
+              flex: `0 0 ${EXPAND_CHEVRON_WIDTH}px`,
+              flexShrink: 0,
+            }}
+          />
+        )}
         <div
           style={{
             width: CHECKBOX_COLUMN_WIDTH,
@@ -695,93 +666,157 @@ function DockerListPanel<T>({
           rows.map((row) => {
             const rowKey = getRowKey(row);
             const isSelected = selectedSet.has(rowKey);
+            const isExpanded = expandedRowKeys.has(rowKey);
             return (
-              <div
-                key={rowKey}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  padding: `10px ${ROW_PADDING_X}px`,
-                  borderBottom: "1px solid var(--border-color, #30363d)",
-                  cursor: "pointer",
-                  transition: "background 0.15s",
-                  boxSizing: "border-box",
-                  background: isSelected ? "rgba(88,166,255,0.08)" : "transparent",
-                }}
-                onMouseEnter={(e) => {
-                  if (!isSelected) e.currentTarget.style.background = "var(--hover-bg, #21262d)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = isSelected ? "rgba(88,166,255,0.08)" : "transparent";
-                }}
-                onClick={(e) => toggleRowSelection(rowKey, e)}
-              >
+              <div key={rowKey} style={{ borderBottom: "1px solid var(--border-color, #30363d)" }}>
                 <div
                   style={{
-                    width: CHECKBOX_COLUMN_WIDTH,
-                    flex: `0 0 ${CHECKBOX_COLUMN_WIDTH}px`,
                     display: "flex",
                     alignItems: "center",
-                    justifyContent: "center",
-                    flexShrink: 0,
+                    padding: `10px ${ROW_PADDING_X}px`,
+                    cursor: "pointer",
+                    transition: "background 0.15s",
+                    boxSizing: "border-box",
+                    background: isSelected ? "rgba(88,166,255,0.08)" : "transparent",
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isSelected) e.currentTarget.style.background = "var(--hover-bg, #21262d)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = isSelected ? "rgba(88,166,255,0.08)" : "transparent";
+                  }}
+                  onClick={(e) => {
+                    // When expandable, clicking the row toggles the detail area.
+                    if (expandable) {
+                      toggleRowExpanded(rowKey, e);
+                    } else {
+                      toggleRowSelection(rowKey, e);
+                    }
                   }}
                 >
-                  <button
-                    title={isSelected ? "Deselect" : "Select"}
+                  {/* Expand/collapse chevron (only when expandable). */}
+                  {expandable && (
+                    <div
+                      style={{
+                        width: EXPAND_CHEVRON_WIDTH,
+                        flex: `0 0 ${EXPAND_CHEVRON_WIDTH}px`,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flexShrink: 0,
+                        color: "var(--text-secondary, #8b949e)",
+                      }}
+                    >
+                      {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                    </div>
+                  )}
+                  <div
                     style={{
-                      width: 18,
-                      height: 18,
-                      borderRadius: 4,
-                      border: `1px solid ${isSelected ? "var(--accent-color, #58a6ff)" : "var(--border-color, #30363d)"}`,
-                      background: isSelected ? "var(--accent-color, #58a6ff)" : "transparent",
-                      color: "white",
-                      cursor: "pointer",
+                      width: CHECKBOX_COLUMN_WIDTH,
+                      flex: `0 0 ${CHECKBOX_COLUMN_WIDTH}px`,
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      padding: 0,
-                      outline: "none",
                       flexShrink: 0,
                     }}
                   >
-                    {isSelected && <Check size={12} />}
-                  </button>
-                </div>
-                {columns.map((col, index) => {
-                  const isLastColumn = index === columns.length - 1;
-                  const extraRightPadding = isLastColumn ? LAST_COLUMN_EXTRA_PADDING : 0;
-                  const content = col.render ? col.render(row) : (row as any)[col.key];
-                  return (
-                    <div
-                      key={col.key}
+                    <button
+                      title={isSelected ? "Deselect" : "Select"}
                       style={{
-                        ...getCellFlexStyle(col),
-                        paddingRight: 13 + extraRightPadding,
-                        boxSizing: "border-box",
-                        fontSize: 12,
-                        color: "var(--text-primary, #e6edf3)",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
+                        width: 18,
+                        height: 18,
+                        borderRadius: 4,
+                        border: `1px solid ${isSelected ? "var(--accent-color, #58a6ff)" : "var(--border-color, #30363d)"}`,
+                        background: isSelected ? "var(--accent-color, #58a6ff)" : "transparent",
+                        color: "white",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        padding: 0,
+                        outline: "none",
+                        flexShrink: 0,
                       }}
-                      title={typeof content === "string" ? content : undefined}
+                      onClick={(e) => toggleRowSelection(rowKey, e)}
                     >
-                      {content}
-                    </div>
-                  );
-                })}
-                <div
-                  style={{
-                    flex: `0 0 ${layout.actionsWidth}px`,
-                    width: layout.actionsWidth,
-                    minWidth: 0,
-                    display: "flex",
-                    justifyContent: "flex-end",
-                    flexShrink: 0,
-                  }}
-                >
-                  {renderRowActions(row, rowKey)}
+                      {isSelected && <Check size={12} />}
+                    </button>
+                  </div>
+                  {columns.map((col, index) => {
+                    const isLastColumn = index === columns.length - 1;
+                    const extraRightPadding = isLastColumn ? LAST_COLUMN_EXTRA_PADDING : 0;
+                    const content = col.render ? col.render(row) : (row as any)[col.key];
+                    const isNameColumn = col.key === "name";
+                    const isNameLink = isNameColumn && !!onNameClick;
+                    return (
+                      <div
+                        key={col.key}
+                        style={{
+                          ...getCellFlexStyle(col),
+                          paddingRight: 13 + extraRightPadding,
+                          boxSizing: "border-box",
+                          fontSize: 12,
+                          color: "var(--text-primary, #e6edf3)",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                          textDecoration: isNameLink ? "underline" : "none",
+                          textDecorationColor: isNameLink ? "var(--accent-color, #58a6ff)" : undefined,
+                          cursor: isNameLink ? "pointer" : undefined,
+                        }}
+                        title={typeof content === "string" ? content : undefined}
+                        onClick={
+                          isNameLink
+                            ? (e) => {
+                                e.stopPropagation();
+                                onNameClick?.(row);
+                              }
+                            : undefined
+                        }
+                        onMouseEnter={
+                          isNameLink
+                            ? (e) => {
+                                e.currentTarget.style.color = "var(--accent-color, #58a6ff)";
+                              }
+                            : undefined
+                        }
+                        onMouseLeave={
+                          isNameLink
+                            ? (e) => {
+                                e.currentTarget.style.color = "var(--text-primary, #e6edf3)";
+                              }
+                            : undefined
+                        }
+                      >
+                        {content}
+                      </div>
+                    );
+                  })}
+                  <div
+                    style={{
+                      flex: `0 0 ${layout.actionsWidth}px`,
+                      width: layout.actionsWidth,
+                      minWidth: 0,
+                      display: "flex",
+                      justifyContent: "flex-end",
+                      flexShrink: 0,
+                    }}
+                  >
+                    {renderRowActions(row, rowKey)}
+                  </div>
                 </div>
+                {/* Inline expanded detail area. */}
+                {expandable && isExpanded && renderExpanded && (
+                  <div
+                    style={{
+                      padding: "10px 14px 14px 44px",
+                      background: "rgba(255,255,255,0.02)",
+                      borderTop: "1px solid var(--border-color, #30363d)",
+                    }}
+                  >
+                    {renderExpanded(row)}
+                  </div>
+                )}
               </div>
             );
           })
