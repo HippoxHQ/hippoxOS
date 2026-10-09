@@ -1,7 +1,9 @@
 import React from "react";
-import { Boxes, Layers3, PlaySquare, Image, ScrollText, Settings, History } from "lucide-react";
-// Sidebar view keys - extend this union to add more panels in the future
-export type DockerClientSidebarView = "containers" | "images" | "volumes" | "compose" | "logs" | "settings";
+import { Boxes, Layers3, Image, History } from "lucide-react";
+/**
+ * Sidebar view keys — Docker Desktop style: only three top-level categories.
+ */
+export type DockerClientSidebarView = "containers" | "images" | "volumes";
 interface DockerClientSidebarProps {
   activeView: DockerClientSidebarView;
   onViewChange: (view: DockerClientSidebarView) => void;
@@ -17,18 +19,16 @@ interface SidebarItem {
   labelEn: string;
   labelZh: string;
 }
-// Top sidebar items - add new entries here to expose more panels
+/**
+ * Top sidebar items — mirroring Docker Desktop's three main categories.
+ */
 const SIDEBAR_ITEMS: SidebarItem[] = [
   { key: "containers", icon: <Boxes size={18} />, labelEn: "Containers", labelZh: "容器" },
   { key: "images", icon: <Image size={18} />, labelEn: "Images", labelZh: "镜像" },
   { key: "volumes", icon: <Layers3 size={18} />, labelEn: "Volumes", labelZh: "数据卷" },
-  { key: "compose", icon: <PlaySquare size={18} />, labelEn: "Compose", labelZh: "编排" },
-  { key: "logs", icon: <ScrollText size={18} />, labelEn: "Logs", labelZh: "日志" },
 ];
-// Bottom sidebar items (excludes history which is rendered separately)
-const BOTTOM_ITEMS: SidebarItem[] = [{ key: "settings", icon: <Settings size={18} />, labelEn: "Settings", labelZh: "设置" }];
 /**
- * DockerClientSidebar.
+ * DockerClientSidebar — 45px wide icon sidebar.
  */
 export const DockerClientSidebar: React.FC<DockerClientSidebarProps> = ({ activeView, onViewChange, i18n = "en", onToggleHistory, isHistoryOpen = false }) => {
   const isZh = i18n === "zh-cn";
@@ -128,7 +128,6 @@ export const DockerClientSidebar: React.FC<DockerClientSidebarProps> = ({ active
         gap: 2,
       }}
     >
-      {/* Top group: main views */}
       <div
         style={{
           display: "flex",
@@ -139,9 +138,7 @@ export const DockerClientSidebar: React.FC<DockerClientSidebarProps> = ({ active
       >
         {SIDEBAR_ITEMS.map(renderItem)}
       </div>
-      {/* Spacer pushes bottom items down */}
       <div style={{ flex: 1 }} />
-      {/* Bottom group: history + settings */}
       <div
         style={{
           display: "flex",
@@ -152,10 +149,7 @@ export const DockerClientSidebar: React.FC<DockerClientSidebarProps> = ({ active
           paddingTop: 6,
         }}
       >
-        {/* History drawer toggle */}
         {renderHistoryButton()}
-        {/* Settings */}
-        {BOTTOM_ITEMS.map(renderItem)}
       </div>
     </div>
   );
