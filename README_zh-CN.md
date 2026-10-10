@@ -24,6 +24,13 @@
        width="200" height="54"
        style="width: 244px; height: 79px;" />
   </a>
+    <a href="https://www.founder.best?ref=founderbest&utm_source=founder.best&utm_medium=referral" target="_blank" rel="noopener noreferrer">
+  <img src="https://www.founder.best/api/badge/featured/hippoxos" 
+   style="width:200px;height:54px;"
+   width="200" height="54"
+  style="width: 200px; height: 54px;" 
+  alt="hippoxOS - Featured on Founder.best" width="1195" height="390" loading="lazy" decoding="async" />
+  </a>
 </p>
 <p align="center">
 <a href="./README_zh-CN.md">简体中文</a> | <a href="./README.md">English</a>
