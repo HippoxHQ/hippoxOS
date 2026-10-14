@@ -2,8 +2,8 @@ use crate::commands::add_session_to_profile;
 use crate::commands::get_settings_dir;
 use crate::commons::FileUtils;
 use crate::subsystem::get_pixeleditor_dialog_history_dir;
+use crate::subsystem::pixeleditor::{get_session_metadata_path, save_pixeleditor_session_metadata, PixelEditorSessionMetadata};
 use chrono::Local;
-use std::fs;
 fn get_config_path() -> std::path::PathBuf {
     get_settings_dir().join("pixeleditor_session.json")
 }
@@ -47,6 +47,7 @@ pub fn cmd_create_pixeleditor_dialog_session(
     if !FileUtils::path_exists(&session_dir) {
         FileUtils::ensure_dir(&session_dir).map_err(|e| format!("Failed to create pixeleditor session directory: {}", e))?;
     }
+    // Write the session config (used by the history list).
     let config = serde_json::json!({
         "session_id": session_id,
         "title": title,
@@ -58,10 +59,26 @@ pub fn cmd_create_pixeleditor_dialog_session(
     let config_path = session_dir.join("config.json");
     let config_content = serde_json::to_string_pretty(&config).map_err(|e| format!("Failed to serialize config: {}", e))?;
     FileUtils::write_file_string(&config_path, &config_content).map_err(|e| format!("Failed to save config: {}", e))?;
+    // Write the initial chat / terminal histories.
     let chat_path = session_dir.join("chat.json");
     FileUtils::write_file_string(&chat_path, initial_chat_content).map_err(|e| format!("Failed to save chat history: {}", e))?;
     let terminal_path = session_dir.join("terminal.json");
     FileUtils::write_file_string(&terminal_path, initial_terminal_content).map_err(|e| format!("Failed to save terminal history: {}", e))?;
+    // Create the  metadata file.
+    let mut session_metadata = PixelEditorSessionMetadata::new(session_id, title, description);
+    session_metadata.update_timestamp();
+    // Ensure the  directory exists.
+    let metadata_path = get_session_metadata_path(session_id);
+    if let Some(parent) = metadata_path.parent() {
+        FileUtils::ensure_dir(parent).map_err(|e| format!("Failed to create pixeleditor  directory: {}", e))?;
+    }
+    // Write the metadata straight to disk so the file exists immediately
+    // after session creation, before the async cache has a chance to run.
+    let metadata_content =
+        serde_json::to_string_pretty(&session_metadata).map_err(|e| format!("Failed to serialize pixel editor session metadata: {}", e))?;
+    FileUtils::write_file_string(&metadata_path, &metadata_content).map_err(|e| format!("Failed to save pixel editor session metadata: {}", e))?;
+    // Seed the in-memory cache so subsequent reads hit memory instead of disk.
+    let _ = save_pixeleditor_session_metadata(session_id, &session_metadata);
     let _ = add_session_to_profile(session_id, chrono::Utc::now().timestamp_millis() as u64);
     Ok(FileUtils::to_string_lossy(&session_dir))
 }
@@ -142,6 +159,9 @@ pub fn cmd_delete_pixeleditor_dialog_session(session_id: &str) -> Result<(), Str
     if FileUtils::path_exists(&session_dir) {
         FileUtils::remove_dir_all_force(&session_dir).map_err(|e| format!("Failed to delete pixeleditor session: {:?}", e))?;
     }
+    // Evict the session from the metadata cache so subsequent reads do not
+    // resurrect a deleted session from memory.
+    crate::subsystem::pixeleditor::evict_pixeleditor_session_cache(session_id);
     let pinned = get_pinned_sessions_from_config()?;
     if pinned.contains(&session_id.to_string()) {
         let _ = cmd_update_pinned_pixeleditor_sessions(session_id.to_string(), false);

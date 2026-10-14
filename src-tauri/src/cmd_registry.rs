@@ -792,6 +792,13 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         subsystem::cmd_set_overlay_block_locked,
         subsystem::cmd_update_track_block_volume,
         subsystem::cmd_update_track_block_speed,
+        //  Drawing
+        subsystem::cmd_save_drawing,
+        subsystem::cmd_load_drawing,
+        subsystem::cmd_delete_drawing,
+        subsystem::cmd_drawing_exists,
+        subsystem::cmd_get_drawing_dir,
+        subsystem::cmd_list_drawings,
         //  Overlay Update Style
         subsystem::cmd_update_text_block_all_style,
         subsystem::cmd_update_overlay_transform,
@@ -885,6 +892,12 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         sessions::cmd_update_pinned_pixeleditor_sessions,
         sessions::cmd_get_pinned_pixeleditor_sessions,
         subsystem::cmd_get_pixel_session_dir,
+        subsystem::cmd_get_pixeleditor_canvas_metadata,
+        subsystem::cmd_save_pixeleditor_canvas_metadata,
+        subsystem::cmd_get_pixeleditor_canvas_size,
+        subsystem::cmd_save_pixeleditor_canvas_size,
+        subsystem::cmd_update_pixeleditor_frame,
+        subsystem::cmd_pixel_editor_export,
         // =========== DataBaseClient =============
         sessions::cmd_create_databaseclient_dialog_session,
         sessions::cmd_list_databaseclient_dialog_sessions,

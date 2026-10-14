@@ -11,8 +11,8 @@ import FileUploader from "../../../components/FileUploader";
 import { showToast, ToastType } from "../../../components/Toast";
 import { taskManager } from "../../../core/TaskManager";
 import { UploadFile, SessionDomain } from "../../../core/types";
-import { ChatIcon, TaskQueueIcon, UserIcon, AttachmentIcon, FolderIcon, ChevronRightIcon, TextFileIcon, ImageIcon, VideoIcon, FileIcon, FolderOpenIcon } from "../../../icons";
-import { zhMapDefaultPrompts, enMapDefaultPrompts, zhDockerClientDefaultPrompts, enDockerClientDefaultPrompts } from "../../../types/DefaultPrompt";
+import { ChatIcon, TaskQueueIcon, UserIcon, AttachmentIcon, FolderIcon, ChevronRightIcon, TextFileIcon, FileIcon, FolderOpenIcon } from "../../../icons";
+import { zhDockerClientDefaultPrompts, enDockerClientDefaultPrompts } from "../../../types/DefaultPrompt";
 import { ChatMessage, RoleEnum, MessageStatus } from "../../../types/types";
 import { mapSessionCommands } from "../../../command/session/map";
 import { EarthViewRef } from "./types";
@@ -34,10 +34,6 @@ interface DockerClientChatPanelProps {
   /** Reference to the EarthView map component for rendering */
   mapRef?: React.RefObject<EarthViewRef | null>;
 }
-/**
- * DockerClientChatPanel - Chat interface for map/geographic analysis
- * Supports file upload with filtering for text and skill files
- */
 const DockerClientChatPanel: React.FC<DockerClientChatPanelProps> = ({
   onSendMessage,
   onFileClick,
@@ -94,7 +90,8 @@ const DockerClientChatPanel: React.FC<DockerClientChatPanelProps> = ({
   const welcomeMsg: ChatMessage = {
     id: "welcome",
     role: RoleEnum.LLM,
-    content: language === "zh" ? "🌍 欢迎来到 Hippox 地图分析引擎！我可以帮你在地图上标注位置、绘制路线、分析地理数据。告诉我你想看什么～" : "🌍 Welcome to Hippox Map Analysis Engine! I can help you mark locations, draw routes, and analyze geographic data. Tell me what you'd like to see～",
+    content:
+      language === "zh" ? "🐳 欢迎来到 Hippox Docker 客户端！我可以帮你查看容器、管理镜像、执行命令、排查日志。告诉我你想做什么～" : "🐳 Welcome to the Hippox Docker Client! I can help you inspect containers, manage images, run commands, and troubleshoot logs. Tell me what you'd like to do～",
     timestamp: new Date().toISOString(),
   };
   // Load session title from backend
