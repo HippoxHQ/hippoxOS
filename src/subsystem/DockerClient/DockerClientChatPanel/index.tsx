@@ -49,6 +49,7 @@ const DockerClientChatPanel: React.FC<DockerClientChatPanelProps> = ({
   collapseIcon: collapseIconProp,
   mapRef,
 }) => {
+  const isZh = t("i18n") === "zh";
   const [inputValue, setInputValue] = useState("");
   const [isFocused, setIsFocused] = useState(false);
   const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
@@ -90,8 +91,7 @@ const DockerClientChatPanel: React.FC<DockerClientChatPanelProps> = ({
   const welcomeMsg: ChatMessage = {
     id: "welcome",
     role: RoleEnum.LLM,
-    content:
-      language === "zh" ? "🐳 欢迎来到 Hippox Docker 客户端！我可以帮你查看容器、管理镜像、执行命令、排查日志。告诉我你想做什么～" : "🐳 Welcome to the Hippox Docker Client! I can help you inspect containers, manage images, run commands, and troubleshoot logs. Tell me what you'd like to do～",
+    content: isZh ? "🐳 欢迎来到 Hippox Docker 客户端！我可以帮你查看容器、管理镜像、执行命令、排查日志。告诉我你想做什么～" : "🐳 Welcome to the Hippox Docker Client! I can help you inspect containers, manage images, run commands, and troubleshoot logs. Tell me what you'd like to do～",
     timestamp: new Date().toISOString(),
   };
   // Load session title from backend
@@ -120,7 +120,6 @@ const DockerClientChatPanel: React.FC<DockerClientChatPanelProps> = ({
       setIsLoadingTitle(false);
     }
   };
-  const isZh = t("i18n") === "zh";
   useEffect(() => {
     setSuggestionPrompts(getRandomPrompts(6));
   }, [t]);

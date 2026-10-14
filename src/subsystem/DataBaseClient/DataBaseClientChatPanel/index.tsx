@@ -49,6 +49,7 @@ const DataBaseClientChatPanel: React.FC<DataBaseClientChatPanelProps> = ({
   collapseIcon: collapseIconProp,
   mapRef,
 }) => {
+  const isZh = t("i18n") === "zh";
   const [inputValue, setInputValue] = useState("");
   const [isFocused, setIsFocused] = useState(false);
   const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
@@ -90,10 +91,9 @@ const DataBaseClientChatPanel: React.FC<DataBaseClientChatPanelProps> = ({
   const welcomeMsg: ChatMessage = {
     id: "welcome",
     role: RoleEnum.LLM,
-    content:
-      language === "zh"
-        ? "🗄️ 欢迎来到 Hippox 数据库客户端！我可以帮你连接数据库、编写和执行 SQL、浏览表结构、分析查询结果。告诉我你想做什么～"
-        : "🗄️ Welcome to the Hippox Database Client! I can help you connect to databases, write and run SQL, browse table schemas, and analyze query results. Tell me what you'd like to do～",
+    content: isZh
+      ? "🗄️ 欢迎来到 Hippox 数据库客户端！我可以帮你连接数据库、编写和执行 SQL、浏览表结构、分析查询结果。告诉我你想做什么～"
+      : "🗄️ Welcome to the Hippox Database Client! I can help you connect to databases, write and run SQL, browse table schemas, and analyze query results. Tell me what you'd like to do～",
     timestamp: new Date().toISOString(),
   };
   // Load session title from backend
@@ -122,7 +122,6 @@ const DataBaseClientChatPanel: React.FC<DataBaseClientChatPanelProps> = ({
       setIsLoadingTitle(false);
     }
   };
-  const isZh = t("i18n") === "zh";
   useEffect(() => {
     setSuggestionPrompts(getRandomPrompts(6));
   }, [t]);

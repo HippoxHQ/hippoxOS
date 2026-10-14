@@ -35,6 +35,7 @@ interface ApiClientChatPanelProps {
   mapRef?: React.RefObject<EarthViewRef | null>;
 }
 const ApiClientChatPanel: React.FC<ApiClientChatPanelProps> = ({ onSendMessage, onFileClick, t, language = "zh", currentSessionId, onDragOverInputChange, navigationContent, isLeftPanel = true, onWorkflowModeChange, isCollapsed = false, togglePanel, collapseIcon: collapseIconProp, mapRef }) => {
+  const isZh = t("i18n") === "zh";
   const [inputValue, setInputValue] = useState("");
   const [isFocused, setIsFocused] = useState(false);
   const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
@@ -76,7 +77,7 @@ const ApiClientChatPanel: React.FC<ApiClientChatPanelProps> = ({ onSendMessage, 
   const welcomeMsg: ChatMessage = {
     id: "welcome",
     role: RoleEnum.LLM,
-    content: language === "zh" ? "🚀 欢迎使用 Hippox API 客户端！我可以帮你构建请求、调试接口、解析响应。告诉我你想调用的接口～" : "🚀 Welcome to Hippox API Client! I can help you build requests, debug endpoints, and parse responses. Tell me which API you'd like to call～",
+    content: isZh ? "🚀 欢迎使用 Hippox API 客户端！我可以帮你构建请求、调试接口、解析响应。告诉我你想调用的接口～" : "🚀 Welcome to Hippox API Client! I can help you build requests, debug endpoints, and parse responses. Tell me which API you'd like to call～",
     timestamp: new Date().toISOString(),
   };
   // Load session title from backend
@@ -105,7 +106,6 @@ const ApiClientChatPanel: React.FC<ApiClientChatPanelProps> = ({ onSendMessage, 
       setIsLoadingTitle(false);
     }
   };
-  const isZh = t("i18n") === "zh";
   useEffect(() => {
     setSuggestionPrompts(getRandomPrompts(6));
   }, [t]);
