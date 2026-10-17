@@ -1,4 +1,4 @@
-use crate::windows::{AboutWindowManager, SubmenuManager};
+use crate::windows::{AboutWindowManager, RegionSelectManager, SubmenuManager};
 use tauri::{AppHandle, Emitter, Manager};
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct WindowState {
@@ -161,5 +161,22 @@ pub async fn cmd_emit_to_main_window(app_handle: tauri::AppHandle, event: String
     if let Some(window) = app_handle.get_webview_window("main") {
         let _ = window.emit(&event, payload.unwrap_or(serde_json::json!({})));
     }
+    Ok(())
+}
+#[tauri::command]
+pub async fn cmd_open_region_select_window(app_handle: tauri::AppHandle) -> Result<(), String> {
+    RegionSelectManager::create_region_select_window(&app_handle).map_err(|e| e.to_string())
+}
+#[tauri::command]
+pub async fn cmd_close_region_select_window(app_handle: tauri::AppHandle) -> Result<(), String> {
+    RegionSelectManager::close_region_select_window(&app_handle);
+    Ok(())
+}
+#[tauri::command]
+pub async fn cmd_confirm_region_select(app_handle: tauri::AppHandle, region: serde_json::Value) -> Result<(), String> {
+    // Close the overlay first so the desktop is visible again.
+    RegionSelectManager::close_region_select_window(&app_handle);
+    // Broadcast the selection to any interested window (e.g. the editor).
+    let _ = app_handle.emit("region-selected", region);
     Ok(())
 }

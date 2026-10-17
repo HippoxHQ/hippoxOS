@@ -77,5 +77,33 @@ export const windowsCommands = {
     },
     async createAboutWindow(): Promise<void> {
         return await invoke('cmd_create_about_window');
+    },
+    /**
+     * Open the full‑screen, chrome‑less region‑selection overlay.
+     */
+    async openRegionSelectWindow(): Promise<void> {
+        return await invoke('cmd_open_region_select_window');
+    },
+    /**
+     * Close the region‑selection overlay without a selection.
+     */
+    async closeRegionSelectWindow(): Promise<void> {
+        return await invoke('cmd_close_region_select_window');
+    },
+    /**
+     * Confirm the chosen region, close the overlay, and broadcast the
+     * selection to listeners via the `region-selected` event.
+     *
+     * @param region - `{ x, y, width, height }` in logical monitor
+     *                 coordinates relative to the monitor origin.
+     */
+    async confirmRegionSelect(region: {
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+    }): Promise<void> {
+        return await invoke('cmd_confirm_region_select', { region });
     }
 };
+export default windowsCommands;

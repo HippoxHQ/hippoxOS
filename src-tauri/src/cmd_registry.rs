@@ -242,6 +242,9 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_task_pool_get_tasks_by_session,
         commands::cmd_calculate_token,
         commands::cmd_get_url_metadata,
+        commands::cmd_open_region_select_window,
+        commands::cmd_close_region_select_window,
+        commands::cmd_confirm_region_select,
         // scheduled tasks
         commands::cmd_scheduled_task_create,
         commands::cmd_scheduled_task_update,
@@ -524,10 +527,25 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         subsystem::cmd_video_duration,
         subsystem::cmd_video_validate,
         subsystem::cmd_clear_all_memory,
-        // Multi-Track Composition
-        // Keyframe Animation
-        // Advanced Features
-        //  Video Player Commands
+        // Screen Recording
+        subsystem::cmd_get_screens,
+        subsystem::cmd_capture_screen_frame,
+        subsystem::cmd_get_windows,
+        subsystem::cmd_capture_window_frame,
+        subsystem::cmd_get_microphone_audio_level,
+        subsystem::cmd_get_system_audio_level,
+        subsystem::cmd_capture_screen_rect_raw,
+        subsystem::cmd_capture_screen_frame_raw,
+        subsystem::cmd_capture_window_frame_raw,
+        subsystem::cmd_start_screen_record,
+        subsystem::cmd_pause_screen_record,
+        subsystem::cmd_resume_screen_record,
+        subsystem::cmd_stop_screen_record,
+        subsystem::cmd_get_screen_record_status,
+        subsystem::cmd_wgc_is_available,
+        subsystem::cmd_wgc_get_windows,
+        subsystem::cmd_wgc_capture_window_frame_raw,
+        // Video Player Commands
         subsystem::cmd_player_extract_frame_at_time,
         subsystem::cmd_player_extract_full_frame_at_time,
         subsystem::cmd_player_extract_full_frame_at_time_by_track_id,
@@ -535,7 +553,7 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         subsystem::cmd_prefetch_frame_cache,
         subsystem::cmd_clear_non_session_frame_cache,
         subsystem::cmd_get_transition_frames_by_id,
-        //  Video Materials
+        // Video Materials
         subsystem::cmd_get_video_materials,
         subsystem::cmd_get_audio_materials,
         subsystem::cmd_get_image_materials,

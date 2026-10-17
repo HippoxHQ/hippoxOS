@@ -132,14 +132,13 @@ pub fn run() {
                 // }
             }
             TrayManager::setup(app)?;
+            crate::subsystem::screen_record::service::init_mouse_tracker(app.handle().clone());
             Ok(())
         })
         .on_window_event(|window, event| {
             // Handle window events directly here
             match event {
                 WindowEvent::Destroyed => {
-                    // WebView was destroyed (crashed or closed)
-                    // Only auto-restart for main window
                     if window.label() == "main" {
                         log::warn!("WebView destroyed for main window, attempting to restart...");
                         let app_handle = window.app_handle().clone();
