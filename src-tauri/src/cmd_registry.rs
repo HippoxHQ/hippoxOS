@@ -545,6 +545,14 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         subsystem::cmd_wgc_is_available,
         subsystem::cmd_wgc_get_windows,
         subsystem::cmd_wgc_capture_window_frame_raw,
+        subsystem::cmd_list_screen_records,
+        subsystem::cmd_delete_screen_record,
+        subsystem::cmd_get_screen_record_preview_frame,
+        subsystem::cmd_enumerate_cameras,
+        subsystem::cmd_capture_webcam_frame_raw,
+        subsystem::cmd_get_screen_record_material_for_session,
+        subsystem::cmd_record_screen_record_material_for_session,
+        subsystem::cmd_clear_screen_record_material_for_session,
         // Video Player Commands
         subsystem::cmd_player_extract_frame_at_time,
         subsystem::cmd_player_extract_full_frame_at_time,
@@ -817,6 +825,9 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         subsystem::cmd_drawing_exists,
         subsystem::cmd_get_drawing_dir,
         subsystem::cmd_list_drawings,
+        subsystem::cmd_get_drawing_material_for_session,
+        subsystem::cmd_record_drawing_material_for_session,
+        subsystem::cmd_clear_drawing_material_for_session,
         //  Overlay Update Style
         subsystem::cmd_update_text_block_all_style,
         subsystem::cmd_update_overlay_transform,
@@ -961,6 +972,8 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         subsystem::cmd_docker_inspect_container,
         subsystem::cmd_docker_container_logs,
         subsystem::cmd_docker_container_stats,
+        subsystem::cmd_docker_run_image,
+        subsystem::cmd_docker_exec_commands,
         // =========== ApiClient =============
         sessions::cmd_create_apiclient_dialog_session,
         sessions::cmd_list_apiclient_dialog_sessions,

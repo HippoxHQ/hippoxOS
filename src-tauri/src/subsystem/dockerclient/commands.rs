@@ -1,4 +1,3 @@
-//! Tauri command bindings for the Docker Client subsystem.
 use crate::commons::hidden_cmd;
 use serde::{Deserialize, Serialize};
 use std::process::Output;
@@ -142,6 +141,42 @@ pub struct DockerVolume {
     pub last_started: String,
     pub status_color: Option<String>,
 }
+/// Port mapping entry for `cmd_docker_run_image`.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DockerPortMapping {
+    /// Host port (the left side of `-p host:container`).
+    pub host: String,
+    /// Container port (the right side of `-p host:container`).
+    pub container: String,
+}
+/// Volume mapping entry for `cmd_docker_run_image`.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DockerVolumeMapping {
+    /// Host path (the left side of `-v hostPath:containerPath`).
+    pub host_path: String,
+    /// Container path (the right side of `-v hostPath:containerPath`).
+    pub container_path: String,
+}
+/// Environment variable entry for `cmd_docker_run_image`.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DockerEnvVar {
+    /// Variable name (the left side of `-e key=value`).
+    pub key: String,
+    /// Variable value (the right side of `-e key=value`).
+    pub value: String,
+}
+/// Result of executing a single LLM-issued docker command.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DockerCommandExecResult {
+    pub command: String,
+    pub stdout: String,
+    pub stderr: String,
+    pub code: i32,
+}
 /// Return the ordered list of socket candidates per platform.
 fn docker_socket_candidates() -> Vec<String> {
     #[cfg(target_os = "macos")]
@@ -198,10 +233,8 @@ fn probe_docker_version(socket: &str) -> Result<String, String> {
     }
     Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
 }
-/// Detect the current Docker environment on the host.
-#[command]
-pub async fn cmd_docker_detect_environment() -> Result<DockerEnvironment, String> {
-    // First, honor an explicit DOCKER_HOST if it's set in the environment.
+/// Resolve a usable Docker socket, honoring `DOCKER_HOST` first then probing the platform candidates.
+fn resolve_docker_socket() -> Option<String> {
     let mut candidates: Vec<String> = Vec::new();
     if let Ok(host) = std::env::var("DOCKER_HOST") {
         if !host.trim().is_empty() {
@@ -209,15 +242,17 @@ pub async fn cmd_docker_detect_environment() -> Result<DockerEnvironment, String
         }
     }
     candidates.extend(expand_socket_candidates(&docker_socket_candidates()));
-    // Probe each candidate until one responds.
-    let mut resolved_socket: Option<String> = None;
     for socket in candidates {
         if probe_docker_version(&socket).is_ok() {
-            resolved_socket = Some(socket);
-            break;
+            return Some(socket);
         }
     }
-    let socket = match resolved_socket {
+    None
+}
+/// Detect the current Docker environment on the host.
+#[command]
+pub async fn cmd_docker_detect_environment() -> Result<DockerEnvironment, String> {
+    let socket = match resolve_docker_socket() {
         Some(s) => s,
         None => {
             return Ok(DockerEnvironment {
@@ -750,4 +785,158 @@ pub async fn cmd_docker_container_stats(socket: String, id: String) -> Result<(S
 /// Parse the "used / limit" string from `docker stats` and return the used bytes.
 fn parse_mem_usage(s: &str) -> i64 {
     s.split('/').next().map(|part| parse_docker_size(part)).unwrap_or(0)
+}
+/// Start a detached container from an image, mirroring Docker Desktop's "Run a new container" form.
+#[command]
+pub async fn cmd_docker_run_image(
+    socket: String,
+    image: String,
+    container_name: Option<String>,
+    ports: Option<Vec<DockerPortMapping>>,
+    volumes: Option<Vec<DockerVolumeMapping>>,
+    env: Option<Vec<DockerEnvVar>>,
+) -> Result<String, String> {
+    let mut owned: Vec<String> = vec!["run".to_string(), "-d".to_string()];
+    if let Some(name) = container_name.as_ref() {
+        let trimmed = name.trim();
+        if !trimmed.is_empty() {
+            owned.push("--name".to_string());
+            owned.push(trimmed.to_string());
+        }
+    }
+    if let Some(port_list) = ports.as_ref() {
+        for p in port_list {
+            let host = p.host.trim();
+            let container = p.container.trim();
+            if host.is_empty() || container.is_empty() {
+                continue;
+            }
+            owned.push("-p".to_string());
+            owned.push(format!("{}:{}", host, container));
+        }
+    }
+    if let Some(volume_list) = volumes.as_ref() {
+        for v in volume_list {
+            let host_path = v.host_path.trim();
+            let container_path = v.container_path.trim();
+            if host_path.is_empty() || container_path.is_empty() {
+                continue;
+            }
+            owned.push("-v".to_string());
+            owned.push(format!("{}:{}", host_path, container_path));
+        }
+    }
+    if let Some(env_list) = env.as_ref() {
+        for e in env_list {
+            let key = e.key.trim();
+            if key.is_empty() {
+                continue;
+            }
+            owned.push("-e".to_string());
+            owned.push(format!("{}={}", key, e.value));
+        }
+    }
+    owned.push(image);
+    let args: Vec<&str> = owned.iter().map(|s| s.as_str()).collect();
+    let output = hidden_cmd("docker").env("DOCKER_HOST", &socket).args(&args).output().map_err(|e| format!("failed to run docker run: {}", e))?;
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+        return Err(if stderr.is_empty() { "docker run failed".to_string() } else { stderr });
+    }
+    Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
+}
+/// Split a command line into arguments, honoring single and double quotes.
+fn split_command_line(input: &str) -> Vec<String> {
+    let mut args: Vec<String> = Vec::new();
+    let mut current = String::new();
+    let mut quote: Option<char> = None;
+    let mut chars = input.chars().peekable();
+    while let Some(c) = chars.next() {
+        match quote {
+            Some(q) => {
+                if c == q {
+                    quote = None;
+                } else if c == '\\' && q == '"' {
+                    if let Some(next) = chars.next() {
+                        current.push(next);
+                    }
+                } else {
+                    current.push(c);
+                }
+            }
+            None => {
+                if c == '"' || c == '\'' {
+                    quote = Some(c);
+                } else if c.is_whitespace() {
+                    if !current.is_empty() {
+                        args.push(std::mem::take(&mut current));
+                    }
+                } else {
+                    current.push(c);
+                }
+            }
+        }
+    }
+    if !current.is_empty() {
+        args.push(current);
+    }
+    args
+}
+/// Execute a batch of docker commands emitted by the LLM and return their output.
+#[command]
+pub async fn cmd_docker_exec_commands(socket: String, commands: Vec<String>) -> Result<Vec<DockerCommandExecResult>, String> {
+    let resolved_socket = if socket.trim().is_empty() { resolve_docker_socket().unwrap_or_default() } else { socket };
+    let mut results: Vec<DockerCommandExecResult> = Vec::new();
+    for raw in commands {
+        let cmd = raw.trim().to_string();
+        if cmd.is_empty() {
+            continue;
+        }
+        // Reject anything that is not a plain docker invocation.
+        if !cmd.starts_with("docker") {
+            results.push(DockerCommandExecResult {
+                command: cmd,
+                stdout: String::new(),
+                stderr: "blocked: only docker commands are allowed".to_string(),
+                code: -1,
+            });
+            continue;
+        }
+        // Reject shell metacharacters to avoid command injection through the LLM.
+        if cmd.contains(';')
+            || cmd.contains('|')
+            || cmd.contains('&')
+            || cmd.contains('`')
+            || cmd.contains("$(")
+            || cmd.contains('>')
+            || cmd.contains('<')
+        {
+            results.push(DockerCommandExecResult {
+                command: cmd,
+                stdout: String::new(),
+                stderr: "blocked: shell metacharacters are not allowed".to_string(),
+                code: -1,
+            });
+            continue;
+        }
+        // Quote-aware split so values with spaces survive.
+        let parts = split_command_line(&cmd);
+        if parts.is_empty() {
+            continue;
+        }
+        let output = hidden_cmd(&parts[0]).env("DOCKER_HOST", &resolved_socket).args(&parts[1..]).output();
+        match output {
+            Ok(o) => {
+                let code = o.status.code().unwrap_or(-1);
+                let stdout = String::from_utf8_lossy(&o.stdout).to_string();
+                let stderr = String::from_utf8_lossy(&o.stderr).to_string();
+                if !stderr.trim().is_empty() {}
+                results.push(DockerCommandExecResult { command: cmd, stdout, stderr, code });
+            }
+            Err(e) => {
+                results.push(DockerCommandExecResult { command: cmd, stdout: String::new(), stderr: format!("{}", e), code: -1 });
+            }
+        }
+    }
+    Ok(results)
 }

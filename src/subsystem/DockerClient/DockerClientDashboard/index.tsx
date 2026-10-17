@@ -6,6 +6,8 @@ import DockerContainerDetail from "./components/DockerContainerDetail";
 import dockerClientCommands, { DockerEnvironment } from "../../../command/DockerClient/General";
 import { showToast, ToastType } from "../../../components/Toast";
 import { translateContainerState } from "./components/types";
+import { Plus, Trash2, X } from "lucide-react";
+import { DOCKER_CLIENT_WINDOW_EVENTS } from "../DockerClientWindowEventManager";
 interface DockerClientDashboardProps {
   theme?: "light" | "dark";
   i18n?: "en" | "zh-cn";
@@ -172,6 +174,246 @@ const InlineContainerDetail: React.FC<{ row: ContainerRow; isZh: boolean }> = ({
     </div>
   );
 };
+/** A single port mapping row in the run dialog. */
+interface PortRowState {
+  id: string;
+  host: string;
+  container: string;
+}
+/** A single volume mapping row in the run dialog. */
+interface VolumeRowState {
+  id: string;
+  hostPath: string;
+  containerPath: string;
+}
+/** A single environment variable row in the run dialog. */
+interface EnvRowState {
+  id: string;
+  key: string;
+  value: string;
+}
+const RunImageDialog: React.FC<{
+  imageName: string;
+  isZh: boolean;
+  busy: boolean;
+  onCancel: () => void;
+  onSubmit: (payload: { containerName: string; ports: Array<{ host: string; container: string }>; volumes: Array<{ hostPath: string; containerPath: string }>; env: Array<{ key: string; value: string }> }) => void;
+}> = ({ imageName, isZh, busy, onCancel, onSubmit }) => {
+  const [containerName, setContainerName] = useState<string>("");
+  const [ports, setPorts] = useState<PortRowState[]>([{ id: `p-${Date.now()}`, host: "", container: "" }]);
+  const [volumes, setVolumes] = useState<VolumeRowState[]>([{ id: `v-${Date.now()}`, hostPath: "", containerPath: "" }]);
+  const [envRows, setEnvRows] = useState<EnvRowState[]>([{ id: `e-${Date.now()}`, key: "", value: "" }]);
+  // Simple row-id generator to keep React keys stable while editing.
+  const nextId = (prefix: string) => `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const inputStyle: React.CSSProperties = {
+    flex: 1,
+    minWidth: 0,
+    background: "var(--bg-primary, #0d1117)",
+    border: "1px solid var(--border-color, #30363d)",
+    borderRadius: 5,
+    color: "var(--text-primary, #e6edf3)",
+    fontSize: 12,
+    padding: "6px 8px",
+    outline: "none",
+    boxSizing: "border-box",
+  };
+  const rowWrapStyle: React.CSSProperties = {
+    display: "flex",
+    alignItems: "center",
+    gap: 6,
+    marginBottom: 6,
+  };
+  const sectionTitleStyle: React.CSSProperties = {
+    fontSize: 11,
+    fontWeight: 600,
+    color: "var(--text-secondary, #8b949e)",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    marginBottom: 6,
+    marginTop: 12,
+  };
+  const labelStyle: React.CSSProperties = {
+    fontSize: 12,
+    color: "var(--text-secondary, #8b949e)",
+    marginBottom: 4,
+    display: "block",
+  };
+  const iconButtonStyle: React.CSSProperties = {
+    width: 26,
+    height: 26,
+    borderRadius: 5,
+    border: "1px solid var(--border-color, #30363d)",
+    background: "var(--bg-tertiary, #21262d)",
+    color: "var(--text-secondary, #8b949e)",
+    cursor: "pointer",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+    padding: 0,
+  };
+  const handleSubmit = () => {
+    const cleanedPorts = ports.map((p) => ({ host: p.host.trim(), container: p.container.trim() })).filter((p) => p.host !== "" && p.container !== "");
+    const cleanedVolumes = volumes.map((v) => ({ hostPath: v.hostPath.trim(), containerPath: v.containerPath.trim() })).filter((v) => v.hostPath !== "" && v.containerPath !== "");
+    const cleanedEnv = envRows.map((e) => ({ key: e.key.trim(), value: e.value })).filter((e) => e.key !== "");
+    onSubmit({
+      containerName: containerName.trim(),
+      ports: cleanedPorts,
+      volumes: cleanedVolumes,
+      env: cleanedEnv,
+    });
+  };
+  return (
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(0,0,0,0.55)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 1000,
+      }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget && !busy) onCancel();
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          width: 560,
+          maxWidth: "92vw",
+          maxHeight: "88vh",
+          overflowY: "auto",
+          background: "var(--bg-secondary, #161b22)",
+          border: "1px solid var(--border-color, #30363d)",
+          borderRadius: 8,
+          boxShadow: "0 12px 32px rgba(0,0,0,0.5)",
+          padding: 16,
+          boxSizing: "border-box",
+          color: "var(--text-primary, #e6edf3)",
+        }}
+      >
+        {/* Header */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+          <div style={{ fontSize: 14, fontWeight: 600 }}>{isZh ? "运行新容器" : "Run a new container"}</div>
+          <button
+            onClick={onCancel}
+            disabled={busy}
+            title={isZh ? "关闭" : "Close"}
+            style={{
+              ...iconButtonStyle,
+              opacity: busy ? 0.5 : 1,
+              cursor: busy ? "not-allowed" : "pointer",
+            }}
+          >
+            <X size={14} />
+          </button>
+        </div>
+        <div style={{ fontSize: 12, color: "var(--text-muted, #6e7681)", fontFamily: "monospace", marginBottom: 8 }}>{imageName}</div>
+        {/* Container name */}
+        <label style={labelStyle}>{isZh ? "容器名（可选）" : "Container name (optional)"}</label>
+        <input type="text" value={containerName} onChange={(e) => setContainerName(e.target.value)} placeholder={isZh ? "留空则自动生成" : "Leave empty to auto-generate"} style={{ ...inputStyle, width: "100%" }} disabled={busy} />
+        {/* Port mappings */}
+        <div style={sectionTitleStyle}>{isZh ? "端口" : "Ports"}</div>
+        {ports.map((row) => (
+          <div key={row.id} style={rowWrapStyle}>
+            <input type="text" value={row.host} onChange={(e) => setPorts((prev) => prev.map((p) => (p.id === row.id ? { ...p, host: e.target.value } : p)))} placeholder={isZh ? "主机端口" : "Host port"} style={inputStyle} disabled={busy} />
+            <span style={{ color: "var(--text-muted, #6e7681)" }}>-</span>
+            <input type="text" value={row.container} onChange={(e) => setPorts((prev) => prev.map((p) => (p.id === row.id ? { ...p, container: e.target.value } : p)))} placeholder={isZh ? "容器端口" : "Container port"} style={inputStyle} disabled={busy} />
+            <button
+              title={isZh ? "删除" : "Remove"}
+              onClick={() => setPorts((prev) => (prev.length <= 1 ? prev : prev.filter((p) => p.id !== row.id)))}
+              disabled={busy || ports.length <= 1}
+              style={{ ...iconButtonStyle, opacity: busy || ports.length <= 1 ? 0.4 : 1, cursor: busy || ports.length <= 1 ? "not-allowed" : "pointer" }}
+            >
+              <Trash2 size={13} />
+            </button>
+            <button title={isZh ? "添加端口" : "Add port"} onClick={() => setPorts((prev) => [...prev, { id: nextId("p"), host: "", container: "" }])} disabled={busy} style={{ ...iconButtonStyle, opacity: busy ? 0.5 : 1 }}>
+              <Plus size={13} />
+            </button>
+          </div>
+        ))}
+        {/* Volume mappings */}
+        <div style={sectionTitleStyle}>{isZh ? "数据卷" : "Volumes"}</div>
+        {volumes.map((row) => (
+          <div key={row.id} style={rowWrapStyle}>
+            <input type="text" value={row.hostPath} onChange={(e) => setVolumes((prev) => prev.map((v) => (v.id === row.id ? { ...v, hostPath: e.target.value } : v)))} placeholder={isZh ? "主机路径" : "Host path"} style={inputStyle} disabled={busy} />
+            <span style={{ color: "var(--text-muted, #6e7681)" }}>-</span>
+            <input type="text" value={row.containerPath} onChange={(e) => setVolumes((prev) => prev.map((v) => (v.id === row.id ? { ...v, containerPath: e.target.value } : v)))} placeholder={isZh ? "容器路径" : "Container path"} style={inputStyle} disabled={busy} />
+            <button
+              title={isZh ? "删除" : "Remove"}
+              onClick={() => setVolumes((prev) => (prev.length <= 1 ? prev : prev.filter((v) => v.id !== row.id)))}
+              disabled={busy || volumes.length <= 1}
+              style={{ ...iconButtonStyle, opacity: busy || volumes.length <= 1 ? 0.4 : 1, cursor: busy || volumes.length <= 1 ? "not-allowed" : "pointer" }}
+            >
+              <Trash2 size={13} />
+            </button>
+            <button title={isZh ? "添加数据卷" : "Add volume"} onClick={() => setVolumes((prev) => [...prev, { id: nextId("v"), hostPath: "", containerPath: "" }])} disabled={busy} style={{ ...iconButtonStyle, opacity: busy ? 0.5 : 1 }}>
+              <Plus size={13} />
+            </button>
+          </div>
+        ))}
+        {/* Environment variables */}
+        <div style={sectionTitleStyle}>{isZh ? "环境变量" : "Environment variables"}</div>
+        {envRows.map((row) => (
+          <div key={row.id} style={rowWrapStyle}>
+            <input type="text" value={row.key} onChange={(e) => setEnvRows((prev) => prev.map((r) => (r.id === row.id ? { ...r, key: e.target.value } : r)))} placeholder={isZh ? "键" : "Key"} style={inputStyle} disabled={busy} />
+            <span style={{ color: "var(--text-muted, #6e7681)" }}>-</span>
+            <input type="text" value={row.value} onChange={(e) => setEnvRows((prev) => prev.map((r) => (r.id === row.id ? { ...r, value: e.target.value } : r)))} placeholder={isZh ? "值" : "Value"} style={inputStyle} disabled={busy} />
+            <button
+              title={isZh ? "删除" : "Remove"}
+              onClick={() => setEnvRows((prev) => (prev.length <= 1 ? prev : prev.filter((r) => r.id !== row.id)))}
+              disabled={busy || envRows.length <= 1}
+              style={{ ...iconButtonStyle, opacity: busy || envRows.length <= 1 ? 0.4 : 1, cursor: busy || envRows.length <= 1 ? "not-allowed" : "pointer" }}
+            >
+              <Trash2 size={13} />
+            </button>
+            <button title={isZh ? "添加环境变量" : "Add environment variable"} onClick={() => setEnvRows((prev) => [...prev, { id: nextId("e"), key: "", value: "" }])} disabled={busy} style={{ ...iconButtonStyle, opacity: busy ? 0.5 : 1 }}>
+              <Plus size={13} />
+            </button>
+          </div>
+        ))}
+        {/* Footer */}
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 18 }}>
+          <button
+            onClick={onCancel}
+            disabled={busy}
+            style={{
+              padding: "6px 14px",
+              borderRadius: 6,
+              border: "1px solid var(--border-color, #30363d)",
+              background: "transparent",
+              color: "var(--text-primary, #e6edf3)",
+              fontSize: 12,
+              cursor: busy ? "not-allowed" : "pointer",
+              opacity: busy ? 0.6 : 1,
+            }}
+          >
+            {isZh ? "取消" : "Cancel"}
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={busy}
+            style={{
+              padding: "6px 14px",
+              borderRadius: 6,
+              border: "none",
+              background: "var(--accent-color, #58a6ff)",
+              color: "white",
+              fontSize: 12,
+              fontWeight: 600,
+              cursor: busy ? "not-allowed" : "pointer",
+              opacity: busy ? 0.6 : 1,
+            }}
+          >
+            {busy ? (isZh ? "运行中…" : "Running…") : isZh ? "运行" : "Run"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
 export const DockerClientDashboard: React.FC<DockerClientDashboardProps> = ({ theme = "dark", i18n = "en", onToggleHistory, isHistoryOpen = false }) => {
   const isZh = i18n === "zh-cn";
   const [activeView, setActiveView] = useState<DockerClientSidebarView>("containers");
@@ -187,6 +429,8 @@ export const DockerClientDashboard: React.FC<DockerClientDashboardProps> = ({ th
   const [loading, setLoading] = useState<boolean>(false);
   const [available, setAvailable] = useState<boolean>(true);
   const [detailContainer, setDetailContainer] = useState<ContainerRow | null>(null);
+  const [runImageName, setRunImageName] = useState<string | null>(null);
+  const [runImageBusy, setRunImageBusy] = useState<boolean>(false);
   /**
    * Detect the Docker environment and (re)load every resource list.
    */
@@ -260,6 +504,16 @@ export const DockerClientDashboard: React.FC<DockerClientDashboardProps> = ({ th
   // Initial load.
   useEffect(() => {
     loadAll();
+  }, [loadAll]);
+  // Refresh the lists whenever the chat panel reports that LLM commands ran.
+  useEffect(() => {
+    const handleCommandsExecuted = () => {
+      loadAll({ silent: true });
+    };
+    window.addEventListener(DOCKER_CLIENT_WINDOW_EVENTS.COMMAND_EXECUTED, handleCommandsExecuted as EventListener);
+    return () => {
+      window.removeEventListener(DOCKER_CLIENT_WINDOW_EVENTS.COMMAND_EXECUTED, handleCommandsExecuted as EventListener);
+    };
   }, [loadAll]);
   const COMMON_COLUMNS: DockerColumn<ContainerRow | ImageRow>[] = [
     {
@@ -385,7 +639,7 @@ export const DockerClientDashboard: React.FC<DockerClientDashboardProps> = ({ th
     return rows.filter((r) => r.name.toLowerCase().includes(q));
   };
   /**
-   * Batch action handlers. 
+   * Batch action handlers.
    */
   const handleContainerBatchAction = useCallback(
     async (actionKey: string, selectedKeys: string[]) => {
@@ -482,6 +736,10 @@ export const DockerClientDashboard: React.FC<DockerClientDashboardProps> = ({ th
         } else if (activeView === "images") {
           if (actionKey === "delete") {
             await dockerClientCommands.removeImages(socket, [row.id], true);
+          } else if (actionKey === "run") {
+            const imageRef = (row as ImageRow).name || (row as ImageRow).image;
+            setRunImageName(imageRef);
+            return;
           }
         } else if (activeView === "volumes") {
           if (actionKey === "delete") {
@@ -494,6 +752,34 @@ export const DockerClientDashboard: React.FC<DockerClientDashboardProps> = ({ th
       }
     },
     [activeView, backendEnv, isZh, loadAll],
+  );
+  /**
+   * Submit the run-image dialog: start a detached container from the chosen image.
+   */
+  const handleRunImageSubmit = useCallback(
+    async (payload: { containerName: string; ports: Array<{ host: string; container: string }>; volumes: Array<{ hostPath: string; containerPath: string }>; env: Array<{ key: string; value: string }> }) => {
+      const socket = backendEnv?.socketPath;
+      const imageName = runImageName;
+      if (!socket || !imageName) return;
+      setRunImageBusy(true);
+      try {
+        await dockerClientCommands.runImage(socket, imageName, {
+          containerName: payload.containerName,
+          ports: payload.ports,
+          volumes: payload.volumes,
+          env: payload.env,
+        });
+        showToast(ToastType.SUCCESS, isZh ? `容器已从 ${imageName} 启动` : `Container started from ${imageName}`);
+        setRunImageName(null);
+        // Refresh the container list so the new container shows up immediately.
+        await loadAll({ silent: true });
+      } catch (error) {
+        showToast(ToastType.ERROR, `${isZh ? "启动容器失败" : "Failed to run container"}: ${error}`);
+      } finally {
+        setRunImageBusy(false);
+      }
+    },
+    [backendEnv, runImageName, isZh, loadAll],
   );
   /**
    * prompts the user for one or more image references and then invokes the backend pull command.
@@ -659,6 +945,7 @@ export const DockerClientDashboard: React.FC<DockerClientDashboardProps> = ({ th
             onSelectionChange={setSelectedImageKeys}
             onBatchAction={handleImageBatchAction}
             onRowAction={handleRowAction}
+            actionsWidth={60}
           />
         );
       case "volumes":
@@ -715,6 +1002,17 @@ export const DockerClientDashboard: React.FC<DockerClientDashboardProps> = ({ th
         isHistoryOpen={isHistoryOpen}
       />
       <div style={{ flex: 1, minWidth: 0, overflow: "hidden" }}>{!available ? renderUnavailable() : renderActivePanel()}</div>
+      {runImageName && (
+        <RunImageDialog
+          imageName={runImageName}
+          isZh={isZh}
+          busy={runImageBusy}
+          onCancel={() => {
+            if (!runImageBusy) setRunImageName(null);
+          }}
+          onSubmit={handleRunImageSubmit}
+        />
+      )}
     </div>
   );
 };

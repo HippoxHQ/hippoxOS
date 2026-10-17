@@ -10,14 +10,15 @@ import { workflowCommands } from "../../../command/workflow";
 import FileUploader from "../../../components/FileUploader";
 import { showToast, ToastType } from "../../../components/Toast";
 import { taskManager } from "../../../core/TaskManager";
-import { UploadFile, SessionDomain } from "../../../core/types";
+import { UploadFile, SessionDomain, TaskInfo } from "../../../core/types";
 import { ChatIcon, TaskQueueIcon, UserIcon, AttachmentIcon, FolderIcon, ChevronRightIcon, TextFileIcon, FileIcon, FolderOpenIcon } from "../../../icons";
 import { zhDockerClientDefaultPrompts, enDockerClientDefaultPrompts } from "../../../types/DefaultPrompt";
 import { ChatMessage, RoleEnum, MessageStatus } from "../../../types/types";
-import { mapSessionCommands } from "../../../command/session/map";
+import { dockerClientSessionCommands } from "../../../command/session/dockerclient";
 import { EarthViewRef } from "./types";
 import { filesCommands } from "../../../command/files";
 import { isStructuredLLMResponse, parseLLMResponse } from "../llm/utils";
+import dockerClientCommands from "../../../command/DockerClient/General";
 interface DockerClientChatPanelProps {
   onSendMessage: (message: string, sessionId: string, files?: UploadFile[], workflowMode?: string) => void | Promise<void>;
   onFileClick?: (file: UploadFile) => void;
@@ -94,7 +95,7 @@ const DockerClientChatPanel: React.FC<DockerClientChatPanelProps> = ({
     content: isZh ? "🐳 欢迎来到 Hippox Docker 客户端！我可以帮你查看容器、管理镜像、执行命令、排查日志。告诉我你想做什么～" : "🐳 Welcome to the Hippox Docker Client! I can help you inspect containers, manage images, run commands, and troubleshoot logs. Tell me what you'd like to do～",
     timestamp: new Date().toISOString(),
   };
-  // Load session title from backend
+  // Load session title from backend using the DockerClient session commands.
   const loadSessionTitle = async (sessionId: string) => {
     if (!sessionId || sessionId.startsWith("pending_") || sessionId.startsWith("temp_")) {
       setSessionTitle("");
@@ -105,7 +106,7 @@ const DockerClientChatPanel: React.FC<DockerClientChatPanelProps> = ({
     }
     setIsLoadingTitle(true);
     try {
-      const list = await mapSessionCommands.listMapSessions();
+      const list = await dockerClientSessionCommands.listDockerClientSessions();
       const session = list.find((s: any) => s.session_id === sessionId);
       if (session && session.title) {
         setSessionTitle(session.title);
@@ -361,14 +362,14 @@ const DockerClientChatPanel: React.FC<DockerClientChatPanelProps> = ({
         setSelectedWorkflowMode(cached);
         return;
       }
-      const config = await mapSessionCommands.loadMapSessionConfig(sessionId);
+      const config = await dockerClientSessionCommands.loadDockerClientSessionConfig(sessionId);
       if (config && config.workflow_mode) {
         setSelectedWorkflowMode(config.workflow_mode);
         localStorage.setItem(`map_workflow_mode_${sessionId}`, config.workflow_mode);
       } else {
         const defaultMode = "ReAct";
         setSelectedWorkflowMode(defaultMode);
-        await mapSessionCommands.updateMapSessionConfig(sessionId, {
+        await dockerClientSessionCommands.updateDockerClientSessionConfig(sessionId, {
           workflow_mode: defaultMode,
         });
         localStorage.setItem(`map_workflow_mode_${sessionId}`, defaultMode);
@@ -466,7 +467,6 @@ const DockerClientChatPanel: React.FC<DockerClientChatPanelProps> = ({
   };
   /**
    * Open file selector with specific file type filters
-   * @param filterType - Type of files to filter: 'text' | 'image' | 'video' | 'skill'
    */
   const openFileSelector = async (filterType: "text" | "skill" = "text") => {
     try {
@@ -641,7 +641,7 @@ const DockerClientChatPanel: React.FC<DockerClientChatPanelProps> = ({
     }
     if (currentSessionId && !currentSessionId.startsWith("pending_") && !currentSessionId.startsWith("temp_")) {
       try {
-        await mapSessionCommands.updateMapSessionConfig(currentSessionId, {
+        await dockerClientSessionCommands.updateDockerClientSessionConfig(currentSessionId, {
           workflow_mode: mode,
         });
         localStorage.setItem(`map_workflow_mode_${currentSessionId}`, mode);
@@ -959,17 +959,12 @@ const DockerClientChatPanel: React.FC<DockerClientChatPanelProps> = ({
   })();
   /**
    * Process LLM response and render earthview data on the map
-   * This is the key integration point between chat and map rendering
-   * It runs whenever messages change and checks the latest LLM message
-   *
-   * Same pattern as 3D sandbox: extract data from LLM response and render it
    */
   const processedMessageIdsRef = useRef<Set<string>>(new Set());
   const replayAllEarthviewMessages = useCallback(
     async (sessionMessages: ChatMessage[]) => {
       if (!mapRef?.current) return;
       const llmMessages = sessionMessages.filter((m) => m.role === RoleEnum.LLM && m.status !== MessageStatus.Pending && m.status !== MessageStatus.Failed && m.status !== MessageStatus.Cancelled);
-      // Collect all earthview configs first, in chronological order.
       const configs: any[] = [];
       const configMessageIds: string[] = [];
       for (const m of llmMessages) {
@@ -981,7 +976,6 @@ const DockerClientChatPanel: React.FC<DockerClientChatPanelProps> = ({
         configMessageIds.push(m.id);
       }
       if (configs.length === 0) return;
-      // Wait for the map to be ready before applying anything.
       if (!mapRef.current.isReady()) {
         let waited = 0;
         while (!mapRef.current.isReady() && waited < 5000) {
@@ -989,22 +983,17 @@ const DockerClientChatPanel: React.FC<DockerClientChatPanelProps> = ({
           waited += 100;
         }
       }
-      // Apply all configs sequentially, suppressing locate on all but the last.
       await mapRef.current.applyEarthViewConfigsSequentially(configs);
-      // Mark all processed message ids.
       for (const id of configMessageIds) {
         processedMessageIdsRef.current.add(id);
       }
     },
     [mapRef],
   );
-  // When session changes, reset processed set and replay ALL earthview messages
   useEffect(() => {
     processedMessageIdsRef.current = new Set();
     if (!currentSessionId) return;
-    // Only replay once messages are loaded for this session
     if (messages.length === 0) return;
-    // Clear existing layers first, then replay every earthview-bearing message
     const run = async () => {
       if (!mapRef?.current) return;
       if (!mapRef.current.isReady()) {
@@ -1020,7 +1009,6 @@ const DockerClientChatPanel: React.FC<DockerClientChatPanelProps> = ({
     run();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentSessionId, messages.length]);
-  // When the map is recreated (e.g. theme change), replay all earthview messages
   useEffect(() => {
     const handleRecreated = () => {
       processedMessageIdsRef.current = new Set();
@@ -1043,7 +1031,6 @@ const DockerClientChatPanel: React.FC<DockerClientChatPanelProps> = ({
       window.removeEventListener("earthview-recreated", handleRecreated);
     };
   }, [mapRef, replayAllEarthviewMessages]);
-  // Process only NEW LLM messages as they arrive (incremental rendering)
   useEffect(() => {
     const lastMsg = messages.length > 0 ? messages[messages.length - 1] : null;
     if (!lastMsg || lastMsg.role !== RoleEnum.LLM) return;
@@ -1082,6 +1069,87 @@ const DockerClientChatPanel: React.FC<DockerClientChatPanelProps> = ({
       }
     }
   }, [messages, mapRef, currentSessionId]);
+  /**
+   * Execute the docker commands carried by LLM messages.
+   */
+  const executedCommandMessageIdsRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (!messages.length) return;
+    if (!currentSessionId) return;
+    // Collect LLM messages whose owning task has not been executed yet.
+    const pending: Array<{ id: string; taskId: string; commands: string[]; status?: string }> = [];
+    for (const msg of messages) {
+      if (msg.role !== RoleEnum.LLM) continue;
+      if (!msg.id) continue;
+      if (!msg.id.startsWith("llm_")) continue;
+      const taskId = msg.id.slice("llm_".length);
+      // In-memory guard for the current mount cycle.
+      if (executedCommandMessageIdsRef.current.has(msg.id)) continue;
+      // Persisted guard: the task already ran (survives reload / switch).
+      const existingTask = taskManager.getTaskBySession(currentSessionId, taskId, SessionDomain.DockerClient);
+      if (existingTask?.executed) continue;
+      if (!msg.content || !isStructuredLLMResponse(msg.content)) continue;
+      const parsed = parseLLMResponse(msg.content);
+      const commands = parsed?.terminalResponse?.commands;
+      if (!commands || commands.length === 0) continue;
+      pending.push({ id: msg.id, taskId, commands, status: parsed?.terminalResponse?.status });
+    }
+    if (pending.length === 0) return;
+    // Mark in-flight immediately so a concurrent re-render cannot enqueue again.
+    pending.forEach((p) => executedCommandMessageIdsRef.current.add(p.id));
+    const sessionId = currentSessionId;
+    const run = async () => {
+      try {
+        const env = await dockerClientCommands.detectEnvironment();
+        if (!env.available) {
+          showToast(ToastType.WARNING, isZh ? "Docker 不可用" : "Docker is not available");
+          return;
+        }
+        const socket = env.socketPath ?? "";
+        const destructivePattern = /\b(rm|rmi|prune|kill)\b/;
+        let executedAny = false;
+        for (const item of pending) {
+          const freshTask = taskManager.getTaskBySession(sessionId, item.taskId, SessionDomain.DockerClient);
+          if (freshTask?.executed) continue;
+          const commands = item.commands;
+          const hasDestructive = commands.some((c) => destructivePattern.test(c));
+          if (hasDestructive || item.status === "warning") {
+            const confirmed = window.confirm(isZh ? `即将执行以下命令，确认继续？\n\n${commands.join("\n")}` : `About to execute:\n\n${commands.join("\n")}\n\nContinue?`);
+            if (!confirmed) continue;
+          }
+          const results = await dockerClientCommands.execCommands(socket, commands);
+          executedAny = true;
+          const allOk = results.every((r) => r.code === 0);
+          const summary = results.map((r) => `$ ${r.command}\n${r.stdout}${r.stderr ? "\n" + r.stderr : ""}`.trim()).join("\n\n");
+          showToast(allOk ? ToastType.SUCCESS : ToastType.WARNING, isZh ? "命令已执行" : "Commands executed");
+          window.dispatchEvent(
+            new CustomEvent("dockerclient-command-result", {
+              detail: { sessionId, results, summary },
+            }),
+          );
+          // Flip the persisted flag BEFORE the next iteration checks it.
+          taskManager.updateTaskBySession(sessionId, item.taskId, { executed: true }, SessionDomain.DockerClient);
+        }
+        if (executedAny && sessionId && !sessionId.startsWith("pending_") && !sessionId.startsWith("temp_")) {
+          try {
+            const tasksMap = taskManager.getTasksBySession(sessionId, SessionDomain.DockerClient);
+            const tasksArray: TaskInfo[] = tasksMap ? Array.from(tasksMap.values()) : [];
+            await dockerClientSessionCommands.saveTerminalContent(sessionId, tasksArray);
+          } catch (e) {
+            console.error("[DockerClientChatPanel] Failed to save executed flag:", e);
+          }
+          window.dispatchEvent(
+            new CustomEvent("dockerclient-command-executed", {
+              detail: { sessionId },
+            }),
+          );
+        }
+      } catch (error) {
+        showToast(ToastType.ERROR, `${isZh ? "命令执行失败" : "Command execution failed"}: ${error}`);
+      }
+    };
+    run();
+  }, [messages, currentSessionId, isZh]);
   // RENDER
   return (
     <div
@@ -1285,7 +1353,6 @@ const DockerClientChatPanel: React.FC<DockerClientChatPanelProps> = ({
               data={messages}
               style={{ height: "100%", width: "100%" }}
               itemContent={renderMessageItem}
-              // Track scroll position to update scroll buttons
               atBottomStateChange={(atBottom) => {
                 setIsAtBottom(atBottom);
                 if (atBottom) {
@@ -1295,7 +1362,6 @@ const DockerClientChatPanel: React.FC<DockerClientChatPanelProps> = ({
                   setShowScrollButton(true);
                 }
               }}
-              // Track user scroll for auto-scroll behavior
               onScroll={(e) => {
                 const target = e.target as HTMLElement;
                 if (target) {
@@ -1305,7 +1371,6 @@ const DockerClientChatPanel: React.FC<DockerClientChatPanelProps> = ({
                     setUserScrolled(true);
                   }
                   setShowTopScrollButton(scrollTop > 50);
-                  // Update active nav index
                   requestAnimationFrame(() => {
                     handleScrollUpdate();
                   });
@@ -1366,23 +1431,6 @@ const DockerClientChatPanel: React.FC<DockerClientChatPanelProps> = ({
               <div className="icon-btn" ref={attachmentBtnRef} onClick={() => setShowAttachmentMenu(!showAttachmentMenu)} title={t("chat.attachment")}>
                 <AttachmentIcon size={14} />
               </div>
-              {/* workspace */}
-              {/* <div
-                className="icon-btn folder-btn"
-                ref={directoryBtnRef}
-                onClick={async () => {
-                  await loadWorkspaces();
-                  setShowDirectoryMenu(!showDirectoryMenu);
-                }}
-                title={t("chat.selectWorkspace")}
-                style={{ minWidth: 0 }}
-              >
-                <FolderIcon size={14} />
-                <span className="folder-name" title={getSelectedWorkspaceName()}>
-                  {getSelectedWorkspaceName()}
-                </span>
-                <ChevronRightIcon size={10} className="chevron" />
-              </div> */}
               <div className="icon-btn folder-btn" ref={workflowBtnRef} onClick={() => setShowWorkflowMenu(!showWorkflowMenu)} title={t("chat.selectWorkflowMode") || "Workflow Mode"} style={{ minWidth: 0 }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M4 7h16M4 12h16M4 17h10" strokeLinecap="round" strokeLinejoin="round" />

@@ -191,6 +191,7 @@ export function useDockerClientSession(
                 updated_at: now.toISOString(),
                 files: files,
                 workflow_mode: mode,
+                executed: false,
             };
             taskManager.addTaskToSession(finalSessionId, newTask, SessionDomain.DockerClient);
         } catch (error) {

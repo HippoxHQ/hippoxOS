@@ -73,6 +73,35 @@ export interface DockerVolume {
   lastStarted: string;
   statusColor?: string;
 }
+/** Port mapping entry for the run-image form. */
+export interface RunImagePortMapping {
+  host: string;
+  container: string;
+}
+/** Volume mapping entry for the run-image form. */
+export interface RunImageVolumeMapping {
+  hostPath: string;
+  containerPath: string;
+}
+/** Environment variable entry for the run-image form. */
+export interface RunImageEnvVar {
+  key: string;
+  value: string;
+}
+/** Options collected by the "Run a new container" dialog. */
+export interface RunImageOptions {
+  containerName?: string;
+  ports?: RunImagePortMapping[];
+  volumes?: RunImageVolumeMapping[];
+  env?: RunImageEnvVar[];
+}
+/** Result of executing a single LLM-issued docker command. */
+export interface DockerCommandExecResult {
+  command: string;
+  stdout: string;
+  stderr: string;
+  code: number;
+}
 /**
  * Tauri command bindings for the Docker Client subsystem.
  */
@@ -192,6 +221,28 @@ export const dockerClientCommands = {
    */
   async containerStats(socket: string, id: string): Promise<[string, number, number]> {
     return await invoke<[string, number, number]>("cmd_docker_container_stats", { socket, id });
+  },
+  /**
+   * Run a new detached container from an image.
+   */
+  async runImage(socket: string, image: string, options: RunImageOptions = {}): Promise<string> {
+    return await invoke<string>("cmd_docker_run_image", {
+      socket,
+      image,
+      containerName: options.containerName ?? null,
+      ports: options.ports ?? [],
+      volumes: options.volumes ?? [],
+      env: options.env ?? [],
+    });
+  },
+  /**
+   * Execute a batch of docker commands emitted by the LLM.
+   */
+  async execCommands(socket: string, commands: string[]): Promise<DockerCommandExecResult[]> {
+    return await invoke<DockerCommandExecResult[]>("cmd_docker_exec_commands", {
+      socket,
+      commands,
+    });
   },
 };
 export default dockerClientCommands;

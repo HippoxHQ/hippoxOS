@@ -1,8 +1,5 @@
-import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Play, Square, Pause, Trash2, MoreVertical, Search, Check, X, ChevronDown, ChevronRight } from "lucide-react";
-/**
- * Definition of a single column in the list panel.
- */
 export interface DockerColumn<T> {
   key: string;
   label: string;
@@ -10,9 +7,6 @@ export interface DockerColumn<T> {
   minWidth?: number;
   render?: (row: T) => React.ReactNode;
 }
-/**
- * Preset action sets for the per-row action buttons.
- */
 export type DockerRowActionPreset = "containers" | "images" | "volumes";
 export interface DockerBatchAction {
   key: string;
@@ -43,6 +37,7 @@ interface DockerListPanelProps<T> {
   expandable?: boolean;
   renderExpanded?: (row: T) => React.ReactNode;
   onNameClick?: (row: T) => void;
+  resizeKey?: string;
 }
 const ROW_PADDING_X = 12;
 const CHECKBOX_COLUMN_WIDTH = 28;
@@ -55,6 +50,44 @@ const FLEX_COLUMN_MIN_WIDTH = 100;
 const DEFAULT_FIXED_MIN_WIDTH = 70;
 const LAST_COLUMN_EXTRA_PADDING = 12;
 const SEARCH_INPUT_HEIGHT = 35;
+const RESIZE_HANDLE_VISIBLE_WIDTH = 1;
+const RESIZE_HANDLE_HIT_PADDING = 6;
+const RESIZE_HANDLE_TOTAL_WIDTH = RESIZE_HANDLE_VISIBLE_WIDTH + RESIZE_HANDLE_HIT_PADDING * 2;
+const COLUMN_ABSOLUTE_MIN_WIDTH = 40;
+const ColumnResizeHandle: React.FC<{
+  onMouseDown: (e: React.MouseEvent) => void;
+  active: boolean;
+}> = ({ onMouseDown, active }) => (
+  <div
+    onMouseDown={onMouseDown}
+    title="Drag to resize"
+    style={{
+      position: "relative",
+      width: RESIZE_HANDLE_TOTAL_WIDTH,
+      flexGrow: 0,
+      flexShrink: 0,
+      flexBasis: `${RESIZE_HANDLE_TOTAL_WIDTH}px`,
+      alignSelf: "stretch",
+      cursor: "col-resize",
+      zIndex: 6,
+      display: "flex",
+      alignItems: "stretch",
+      justifyContent: "center",
+    }}
+  >
+    <div
+      style={{
+        width: RESIZE_HANDLE_VISIBLE_WIDTH,
+        marginTop: 4,
+        marginBottom: 4,
+        background: active ? "var(--accent-color, #58a6ff)" : "var(--border-color, #30363d)",
+        opacity: active ? 1 : 0.9,
+        pointerEvents: "none",
+        transition: "background 0.15s, opacity 0.15s",
+      }}
+    />
+  </div>
+);
 function DockerListPanel<T>({
   title,
   searchPlaceholder = "Search",
@@ -77,6 +110,7 @@ function DockerListPanel<T>({
   expandable = false,
   renderExpanded,
   onNameClick,
+  resizeKey,
 }: DockerListPanelProps<T>) {
   const [openActionsMenuKey, setOpenActionsMenuKey] = useState<string | null>(null);
   const [expandedRowKeys, setExpandedRowKeys] = useState<Set<string>>(new Set());
@@ -86,6 +120,34 @@ function DockerListPanel<T>({
   const [internalSelected, setInternalSelected] = useState<Set<string>>(new Set());
   const isSelectionControlled = typeof selectedRowKeys !== "undefined";
   const selectedSet = isSelectionControlled ? selectedRowKeys! : internalSelected;
+  const [userColumnWidths, setUserColumnWidths] = useState<Record<string, number>>({});
+  const [resizingColumnKey, setResizingColumnKey] = useState<string | null>(null);
+  const resizeStateRef = useRef<{ key: string; startX: number; startWidth: number; maxWidth: number } | null>(null);
+  const storageKey = useMemo(() => {
+    const base = resizeKey ?? title ?? "docker-list";
+    return `hippox-docker-list-widths:${base}`;
+  }, [resizeKey, title]);
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(storageKey);
+      if (!raw) {
+        setUserColumnWidths({});
+        return;
+      }
+      const parsed = JSON.parse(raw) as Record<string, number>;
+      if (parsed && typeof parsed === "object") {
+        const cleaned: Record<string, number> = {};
+        Object.entries(parsed).forEach(([k, v]) => {
+          if (typeof v === "number" && Number.isFinite(v) && v > 0) {
+            cleaned[k] = v;
+          }
+        });
+        setUserColumnWidths(cleaned);
+      }
+    } catch {
+      setUserColumnWidths({});
+    }
+  }, [storageKey]);
   const applySelection = (next: Set<string>) => {
     if (isSelectionControlled) {
       onSelectionChange?.(next);
@@ -149,50 +211,159 @@ function DockerListPanel<T>({
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [openActionsMenuKey]);
+  /**
+   * Persist the current user-adjusted widths map to localStorage.
+   */
+  const persistUserColumnWidths = useCallback(
+    (next: Record<string, number>) => {
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(next));
+      } catch {}
+    },
+    [storageKey],
+  );
+  /** Compute the number of resize handles currently rendered between header cells. */
+  const resizeHandleCount = useMemo(() => {
+    if (columns.length <= 1) return 0;
+    return columns.length - 1;
+  }, [columns.length]);
+  /**
+   * The actions column is pinned to the far right and never participates in column resizing.
+   */
+  const fixedActionsWidth = useMemo(() => Math.max(ACTIONS_MIN_WIDTH, actionsWidth), [actionsWidth]);
+  const chromeWidth = useMemo(() => {
+    const chevron = expandable ? EXPAND_CHEVRON_WIDTH : 0;
+    const handles = resizeHandleCount * RESIZE_HANDLE_TOTAL_WIDTH;
+    return chevron + CHECKBOX_COLUMN_WIDTH + handles;
+  }, [expandable, resizeHandleCount]);
   const layout = useMemo(() => {
     const available = Math.max(0, rowsInnerWidth);
+    const columnsRegion = Math.max(0, available - fixedActionsWidth);
     const flexColumns = columns.filter((c) => typeof c.width !== "number");
     const fixedColumns = columns.filter((c) => typeof c.width === "number");
     const flexMinTotal = flexColumns.length * FLEX_COLUMN_MIN_WIDTH;
     const fixedMinTotal = fixedColumns.reduce((sum, c) => sum + Math.max(0, c.minWidth ?? Math.min(c.width ?? DEFAULT_FIXED_MIN_WIDTH, DEFAULT_FIXED_MIN_WIDTH)), 0);
-    // Reserve the chevron column (only when expandable) plus checkbox + actions columns first.
-    const chevronWidth = expandable ? EXPAND_CHEVRON_WIDTH : 0;
-    const spaceAfterMins = Math.max(0, available - chevronWidth - CHECKBOX_COLUMN_WIDTH - flexMinTotal - fixedMinTotal);
-    const actionsPreferred = Math.max(ACTIONS_MIN_WIDTH, Math.min(actionsWidth, Math.max(ACTIONS_MIN_WIDTH, Math.floor(available * 0.5))));
-    const actionsActual = Math.min(actionsPreferred, spaceAfterMins);
-    const leftoverAfterActions = Math.max(0, spaceAfterMins - actionsActual);
+    const columnsSpace = Math.max(0, columnsRegion - chromeWidth);
     const fixedWidths: Record<string, number> = {};
     fixedColumns.forEach((c) => {
       const pref = c.width ?? DEFAULT_FIXED_MIN_WIDTH;
-      const min = Math.max(0, c.minWidth ?? Math.min(pref, DEFAULT_FIXED_MIN_WIDTH));
-      fixedWidths[c.key] = min;
+      fixedWidths[c.key] = pref;
     });
-    const fixedGrowCapacity = fixedColumns.reduce((sum, c) => {
-      const pref = c.width ?? DEFAULT_FIXED_MIN_WIDTH;
-      const min = Math.max(0, c.minWidth ?? Math.min(pref, DEFAULT_FIXED_MIN_WIDTH));
-      return sum + Math.max(0, pref - min);
-    }, 0);
-    const fixedGrowActual = Math.min(leftoverAfterActions, fixedGrowCapacity);
-    if (fixedGrowCapacity > 0 && fixedGrowActual > 0) {
-      const growRatio = fixedGrowActual / fixedGrowCapacity;
+    let fixedSumPreferred = fixedColumns.reduce((sum, c) => sum + (fixedWidths[c.key] ?? 0), 0);
+    if (flexMinTotal + fixedSumPreferred > columnsSpace && fixedSumPreferred > fixedMinTotal) {
+      const overflow = flexMinTotal + fixedSumPreferred - columnsSpace;
+      const shrinkable = fixedSumPreferred - fixedMinTotal;
+      const ratio = shrinkable > 0 ? Math.min(1, overflow / shrinkable) : 0;
       fixedColumns.forEach((c) => {
-        const pref = c.width ?? DEFAULT_FIXED_MIN_WIDTH;
-        const min = Math.max(0, c.minWidth ?? Math.min(pref, DEFAULT_FIXED_MIN_WIDTH));
-        fixedWidths[c.key] = Math.floor(min + Math.max(0, pref - min) * growRatio);
+        const pref = fixedWidths[c.key] ?? 0;
+        const min = Math.max(0, c.minWidth ?? Math.min(c.width ?? DEFAULT_FIXED_MIN_WIDTH, DEFAULT_FIXED_MIN_WIDTH));
+        fixedWidths[c.key] = Math.round(pref - (pref - min) * ratio);
       });
+      fixedSumPreferred = fixedColumns.reduce((sum, c) => sum + (fixedWidths[c.key] ?? 0), 0);
     }
-    const fixedSumActual = Object.values(fixedWidths).reduce((a, b) => a + b, 0);
-    const flexWidth = Math.max(flexMinTotal, available - chevronWidth - CHECKBOX_COLUMN_WIDTH - actionsActual - fixedSumActual);
-    const inlineSlots = Math.max(0, Math.floor((actionsActual + ACTION_BUTTON_GAP) / (ACTION_BUTTON_WIDTH + ACTION_BUTTON_GAP)));
+    const remainingForFlex = Math.max(flexMinTotal, columnsSpace - fixedSumPreferred);
+    const perFlexAuto = flexColumns.length > 0 ? Math.max(FLEX_COLUMN_MIN_WIDTH, Math.floor(remainingForFlex / flexColumns.length)) : 0;
+    const effectiveWidths: Record<string, number> = {};
+    columns.forEach((c) => {
+      if (typeof c.width === "number") {
+        effectiveWidths[c.key] = fixedWidths[c.key] ?? c.width ?? DEFAULT_FIXED_MIN_WIDTH;
+      } else {
+        effectiveWidths[c.key] = perFlexAuto;
+      }
+    });
+    const userKeys = Object.keys(userColumnWidths).filter((k) => columns.some((c) => c.key === k));
+    if (userKeys.length > 0) {
+      userKeys.forEach((k) => {
+        const v = userColumnWidths[k];
+        if (typeof v === "number" && Number.isFinite(v) && v > 0) {
+          effectiveWidths[k] = Math.max(COLUMN_ABSOLUTE_MIN_WIDTH, Math.round(v));
+        }
+      });
+      const totalColumns = columns.reduce((sum, c) => sum + (effectiveWidths[c.key] ?? 0), 0);
+      if (totalColumns > columnsSpace && totalColumns > 0) {
+        const scale = columnsSpace / totalColumns;
+        columns.forEach((c) => {
+          const base = effectiveWidths[c.key] ?? 0;
+          const scaled = Math.max(COLUMN_ABSOLUTE_MIN_WIDTH, Math.floor(base * scale));
+          effectiveWidths[c.key] = scaled;
+        });
+        let overflow = columns.reduce((sum, c) => sum + (effectiveWidths[c.key] ?? 0), 0) - columnsSpace;
+        if (overflow > 0) {
+          for (let i = columns.length - 1; i >= 0 && overflow > 0; i -= 1) {
+            const key = columns[i].key;
+            const current = effectiveWidths[key] ?? 0;
+            const reducible = Math.max(0, current - COLUMN_ABSOLUTE_MIN_WIDTH);
+            const cut = Math.min(reducible, overflow);
+            effectiveWidths[key] = current - cut;
+            overflow -= cut;
+          }
+        }
+      }
+    }
+    const inlineSlots = Math.max(0, Math.floor((fixedActionsWidth + ACTION_BUTTON_GAP) / (ACTION_BUTTON_WIDTH + ACTION_BUTTON_GAP)));
     return {
       available,
-      actionsWidth: actionsActual,
-      fixedWidths,
-      flexWidth,
+      actionsWidth: fixedActionsWidth,
+      fixedWidths: effectiveWidths,
+      flexWidth: remainingForFlex,
       flexColumnsCount: flexColumns.length,
       inlineSlots,
+      columnsSpace,
     };
-  }, [rowsInnerWidth, columns, actionsWidth, expandable]);
+  }, [rowsInnerWidth, columns, fixedActionsWidth, expandable, userColumnWidths, chromeWidth]);
+  /**
+   * Begin dragging a column divider.
+   */
+  const handleResizeStart = useCallback(
+    (colKey: string, e: React.MouseEvent, currentWidth: number) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const otherColumnsWidth = columns.reduce((sum, c) => {
+        if (c.key === colKey) return sum;
+        return sum + (layout.fixedWidths[c.key] ?? 0);
+      }, 0);
+      const maxWidth = Math.max(COLUMN_ABSOLUTE_MIN_WIDTH, layout.columnsSpace - otherColumnsWidth);
+      resizeStateRef.current = { key: colKey, startX: e.clientX, startWidth: currentWidth, maxWidth };
+      setResizingColumnKey(colKey);
+      document.body.style.cursor = "col-resize";
+      document.body.style.userSelect = "none";
+    },
+    [columns, layout.fixedWidths, layout.columnsSpace],
+  );
+  // Global mousemove/mouseup listeners drive the resize while dragging.
+  useEffect(() => {
+    if (!resizingColumnKey) return;
+    const handleMouseMove = (e: MouseEvent) => {
+      const state = resizeStateRef.current;
+      if (!state) return;
+      const delta = e.clientX - state.startX;
+      const nextWidth = Math.max(COLUMN_ABSOLUTE_MIN_WIDTH, Math.min(state.maxWidth, Math.round(state.startWidth + delta)));
+      setUserColumnWidths((prev) => ({ ...prev, [state.key]: nextWidth }));
+    };
+    const handleMouseUp = () => {
+      const state = resizeStateRef.current;
+      if (state) {
+        setUserColumnWidths((prev) => {
+          const merged = { ...prev };
+          if (typeof merged[state.key] !== "number") {
+            merged[state.key] = Math.max(COLUMN_ABSOLUTE_MIN_WIDTH, Math.min(state.maxWidth, Math.round(state.startWidth)));
+          }
+          persistUserColumnWidths(merged);
+          return merged;
+        });
+      }
+      resizeStateRef.current = null;
+      setResizingColumnKey(null);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [resizingColumnKey, persistUserColumnWidths]);
   // Shared icon button style for row actions.
   const rowIconButtonStyle: React.CSSProperties = {
     width: ACTION_BUTTON_WIDTH,
@@ -239,7 +410,10 @@ function DockerListPanel<T>({
       { key: "stop", title: "Stop", icon: <Square size={14} />, hoverColor: "#ef4444" },
       { key: "delete", title: "Delete", icon: <Trash2 size={14} />, hoverColor: "#ef4444" },
     ],
-    images: [{ key: "delete", title: "Delete", icon: <Trash2 size={14} />, hoverColor: "#ef4444" }],
+    images: [
+      { key: "run", title: "Run", icon: <Play size={14} />, hoverColor: "#22c55e" },
+      { key: "delete", title: "Delete", icon: <Trash2 size={14} />, hoverColor: "#ef4444" },
+    ],
     volumes: [{ key: "delete", title: "Delete", icon: <Trash2 size={14} />, hoverColor: "#ef4444" }],
   };
   const rowActions = ACTION_DEFS[rowActionPreset] ?? ACTION_DEFS.containers;
@@ -332,12 +506,36 @@ function DockerListPanel<T>({
     );
   };
   const getCellFlexStyle = (col: DockerColumn<T>): React.CSSProperties => {
-    if (typeof col.width === "number") {
-      const w = layout.fixedWidths[col.key] ?? 0;
-      return { flex: `0 0 ${w}px`, width: w, minWidth: 0 };
-    }
-    const perFlex = layout.flexColumnsCount > 0 ? Math.floor(layout.flexWidth / layout.flexColumnsCount) : 0;
-    return { flex: `1 1 ${perFlex}px`, width: perFlex, minWidth: 0 };
+    // Use the effective width (auto or user-resized) for every column.
+    const w = layout.fixedWidths[col.key] ?? 0;
+    return { flexGrow: 0, flexShrink: 0, flexBasis: `${w}px`, width: w, minWidth: 0 };
+  };
+  /**
+   * Shared wrapper style for the columns region.
+   */
+  const columnsRegionStyle: React.CSSProperties = {
+    display: "flex",
+    alignItems: "center",
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: "auto",
+    minWidth: 0,
+    overflow: "hidden",
+    height: "100%",
+  };
+  /**
+   * Shared style for the pinned actions column.
+   */
+  const actionsRegionStyle: React.CSSProperties = {
+    flexGrow: 0,
+    flexShrink: 0,
+    flexBasis: `${fixedActionsWidth}px`,
+    width: fixedActionsWidth,
+    minWidth: fixedActionsWidth,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    height: "100%",
   };
   const tableHeaderStyle: React.CSSProperties = {
     display: "flex",
@@ -351,6 +549,7 @@ function DockerListPanel<T>({
     letterSpacing: 0.6,
     flexShrink: 0,
     boxSizing: "border-box",
+    overflow: "hidden",
   };
   /**
    * Built-in batch actions per preset.
@@ -414,14 +613,12 @@ function DockerListPanel<T>({
                     height: 28,
                     padding: 0,
                     border: "none",
-                    // Thin separators between adjacent buttons in a group.
                     borderLeft: isFirst ? "none" : "1px solid var(--border-color, #30363d)",
                     background: "var(--bg-tertiary, #21262d)",
                     color: action.color ?? "var(--text-primary, #e6edf3)",
                     fontSize: 12,
                     fontWeight: 500,
                     cursor: "pointer",
-                    // Rounded corners only on the ends of the group.
                     borderTopLeftRadius: isFirst ? 5 : 0,
                     borderBottomLeftRadius: isFirst ? 5 : 0,
                     borderTopRightRadius: isLast ? 5 : 0,
@@ -574,79 +771,77 @@ function DockerListPanel<T>({
         </div>
       </div>
       <div style={tableHeaderStyle}>
-        {/* Spacer that mirrors the per-row expand chevron column.
-            Kept in sync with the data rows so the checkbox column aligns. */}
-        {expandable && (
+        <div style={columnsRegionStyle}>
+          {expandable && (
+            <div
+              style={{
+                width: EXPAND_CHEVRON_WIDTH,
+                flexGrow: 0,
+                flexShrink: 0,
+                flexBasis: `${EXPAND_CHEVRON_WIDTH}px`,
+              }}
+            />
+          )}
           <div
             style={{
-              width: EXPAND_CHEVRON_WIDTH,
-              flex: `0 0 ${EXPAND_CHEVRON_WIDTH}px`,
+              width: CHECKBOX_COLUMN_WIDTH,
+              flexGrow: 0,
               flexShrink: 0,
+              flexBasis: `${CHECKBOX_COLUMN_WIDTH}px`,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
             }}
-          />
-        )}
-        <div
-          style={{
-            width: CHECKBOX_COLUMN_WIDTH,
-            flex: `0 0 ${CHECKBOX_COLUMN_WIDTH}px`,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            flexShrink: 0,
-          }}
-        >
-          {showSelectAll && (
-            <button
-              onClick={toggleSelectAll}
-              title={allVisibleSelected ? "Deselect all" : "Select all"}
-              style={{
-                width: 18,
-                height: 18,
-                borderRadius: 4,
-                border: `1px solid ${allVisibleSelected || someVisibleSelected ? "var(--accent-color, #58a6ff)" : "var(--border-color, #30363d)"}`,
-                background: allVisibleSelected ? "var(--accent-color, #58a6ff)" : someVisibleSelected ? "rgba(88,166,255,0.25)" : "transparent",
-                color: "white",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                padding: 0,
-                outline: "none",
-                flexShrink: 0,
-              }}
-            >
-              {allVisibleSelected ? <Check size={12} /> : someVisibleSelected ? <span style={{ width: 8, height: 2, background: "white", borderRadius: 1 }} /> : null}
-            </button>
-          )}
+          >
+            {showSelectAll && (
+              <button
+                onClick={toggleSelectAll}
+                title={allVisibleSelected ? "Deselect all" : "Select all"}
+                style={{
+                  width: 18,
+                  height: 18,
+                  borderRadius: 4,
+                  border: `1px solid ${allVisibleSelected || someVisibleSelected ? "var(--accent-color, #58a6ff)" : "var(--border-color, #30363d)"}`,
+                  background: allVisibleSelected ? "var(--accent-color, #58a6ff)" : someVisibleSelected ? "rgba(88,166,255,0.25)" : "transparent",
+                  color: "white",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  padding: 0,
+                  outline: "none",
+                  flexShrink: 0,
+                }}
+              >
+                {allVisibleSelected ? <Check size={12} /> : someVisibleSelected ? <span style={{ width: 8, height: 2, background: "white", borderRadius: 1 }} /> : null}
+              </button>
+            )}
+          </div>
+          {columns.map((col, index) => {
+            const isLastColumn = index === columns.length - 1;
+            const extraRightPadding = isLastColumn ? LAST_COLUMN_EXTRA_PADDING : 0;
+            const colWidth = layout.fixedWidths[col.key] ?? 0;
+            return (
+              <React.Fragment key={col.key}>
+                <div
+                  style={{
+                    ...getCellFlexStyle(col),
+                    paddingRight: 13 + extraRightPadding,
+                    boxSizing: "border-box",
+                    textAlign: "left",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {col.label}
+                </div>
+                {!isLastColumn && <ColumnResizeHandle active={resizingColumnKey === col.key} onMouseDown={(e) => handleResizeStart(col.key, e, colWidth)} />}
+              </React.Fragment>
+            );
+          })}
         </div>
-        {columns.map((col, index) => {
-          const isLastColumn = index === columns.length - 1;
-          const extraRightPadding = isLastColumn ? LAST_COLUMN_EXTRA_PADDING : 0;
-          return (
-            <div
-              key={col.key}
-              style={{
-                ...getCellFlexStyle(col),
-                paddingRight: 13 + extraRightPadding,
-                boxSizing: "border-box",
-                textAlign: "left",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {col.label}
-            </div>
-          );
-        })}
-        <div
-          style={{
-            flex: `0 0 ${layout.actionsWidth}px`,
-            width: layout.actionsWidth,
-            minWidth: 0,
-            flexShrink: 0,
-          }}
-        />
+        <div style={actionsRegionStyle} />
       </div>
       <div style={{ flex: 1, minHeight: 0, overflowY: "auto", overflowX: "hidden" }}>
         {rows.length === 0 ? (
@@ -686,7 +881,6 @@ function DockerListPanel<T>({
                     e.currentTarget.style.background = isSelected ? "rgba(88,166,255,0.08)" : "transparent";
                   }}
                   onClick={(e) => {
-                    // When expandable, clicking the row toggles the detail area.
                     if (expandable) {
                       toggleRowExpanded(rowKey, e);
                     } else {
@@ -694,118 +888,120 @@ function DockerListPanel<T>({
                     }
                   }}
                 >
-                  {/* Expand/collapse chevron (only when expandable). */}
-                  {expandable && (
+                  <div style={columnsRegionStyle}>
+                    {expandable && (
+                      <div
+                        style={{
+                          width: EXPAND_CHEVRON_WIDTH,
+                          flexGrow: 0,
+                          flexShrink: 0,
+                          flexBasis: `${EXPAND_CHEVRON_WIDTH}px`,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          color: "var(--text-secondary, #8b949e)",
+                        }}
+                      >
+                        {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                      </div>
+                    )}
                     <div
                       style={{
-                        width: EXPAND_CHEVRON_WIDTH,
-                        flex: `0 0 ${EXPAND_CHEVRON_WIDTH}px`,
+                        width: CHECKBOX_COLUMN_WIDTH,
+                        flexGrow: 0,
+                        flexShrink: 0,
+                        flexBasis: `${CHECKBOX_COLUMN_WIDTH}px`,
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        flexShrink: 0,
-                        color: "var(--text-secondary, #8b949e)",
                       }}
                     >
-                      {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                    </div>
-                  )}
-                  <div
-                    style={{
-                      width: CHECKBOX_COLUMN_WIDTH,
-                      flex: `0 0 ${CHECKBOX_COLUMN_WIDTH}px`,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      flexShrink: 0,
-                    }}
-                  >
-                    <button
-                      title={isSelected ? "Deselect" : "Select"}
-                      style={{
-                        width: 18,
-                        height: 18,
-                        borderRadius: 4,
-                        border: `1px solid ${isSelected ? "var(--accent-color, #58a6ff)" : "var(--border-color, #30363d)"}`,
-                        background: isSelected ? "var(--accent-color, #58a6ff)" : "transparent",
-                        color: "white",
-                        cursor: "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        padding: 0,
-                        outline: "none",
-                        flexShrink: 0,
-                      }}
-                      onClick={(e) => toggleRowSelection(rowKey, e)}
-                    >
-                      {isSelected && <Check size={12} />}
-                    </button>
-                  </div>
-                  {columns.map((col, index) => {
-                    const isLastColumn = index === columns.length - 1;
-                    const extraRightPadding = isLastColumn ? LAST_COLUMN_EXTRA_PADDING : 0;
-                    const content = col.render ? col.render(row) : (row as any)[col.key];
-                    const isNameColumn = col.key === "name";
-                    const isNameLink = isNameColumn && !!onNameClick;
-                    return (
-                      <div
-                        key={col.key}
+                      <button
+                        title={isSelected ? "Deselect" : "Select"}
                         style={{
-                          ...getCellFlexStyle(col),
-                          paddingRight: 13 + extraRightPadding,
-                          boxSizing: "border-box",
-                          fontSize: 12,
-                          color: "var(--text-primary, #e6edf3)",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                          textDecoration: isNameLink ? "underline" : "none",
-                          textDecorationColor: isNameLink ? "var(--accent-color, #58a6ff)" : undefined,
-                          cursor: isNameLink ? "pointer" : undefined,
+                          width: 18,
+                          height: 18,
+                          borderRadius: 4,
+                          border: `1px solid ${isSelected ? "var(--accent-color, #58a6ff)" : "var(--border-color, #30363d)"}`,
+                          background: isSelected ? "var(--accent-color, #58a6ff)" : "transparent",
+                          color: "white",
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          padding: 0,
+                          outline: "none",
+                          flexShrink: 0,
                         }}
-                        title={typeof content === "string" ? content : undefined}
-                        onClick={
-                          isNameLink
-                            ? (e) => {
-                                e.stopPropagation();
-                                onNameClick?.(row);
-                              }
-                            : undefined
-                        }
-                        onMouseEnter={
-                          isNameLink
-                            ? (e) => {
-                                e.currentTarget.style.color = "var(--accent-color, #58a6ff)";
-                              }
-                            : undefined
-                        }
-                        onMouseLeave={
-                          isNameLink
-                            ? (e) => {
-                                e.currentTarget.style.color = "var(--text-primary, #e6edf3)";
-                              }
-                            : undefined
-                        }
+                        onClick={(e) => toggleRowSelection(rowKey, e)}
                       >
-                        {content}
-                      </div>
-                    );
-                  })}
-                  <div
-                    style={{
-                      flex: `0 0 ${layout.actionsWidth}px`,
-                      width: layout.actionsWidth,
-                      minWidth: 0,
-                      display: "flex",
-                      justifyContent: "flex-end",
-                      flexShrink: 0,
-                    }}
-                  >
-                    {renderRowActions(row, rowKey)}
+                        {isSelected && <Check size={12} />}
+                      </button>
+                    </div>
+                    {columns.map((col, index) => {
+                      const isLastColumn = index === columns.length - 1;
+                      const extraRightPadding = isLastColumn ? LAST_COLUMN_EXTRA_PADDING : 0;
+                      const content = col.render ? col.render(row) : (row as any)[col.key];
+                      const isNameColumn = col.key === "name";
+                      const isNameLink = isNameColumn && !!onNameClick;
+                      return (
+                        <React.Fragment key={col.key}>
+                          <div
+                            style={{
+                              ...getCellFlexStyle(col),
+                              paddingRight: 13 + extraRightPadding,
+                              boxSizing: "border-box",
+                              fontSize: 12,
+                              color: "var(--text-primary, #e6edf3)",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap",
+                              textDecoration: isNameLink ? "underline" : "none",
+                              textDecorationColor: isNameLink ? "var(--accent-color, #58a6ff)" : undefined,
+                              cursor: isNameLink ? "pointer" : undefined,
+                            }}
+                            title={typeof content === "string" ? content : undefined}
+                            onClick={
+                              isNameLink
+                                ? (e) => {
+                                    e.stopPropagation();
+                                    onNameClick?.(row);
+                                  }
+                                : undefined
+                            }
+                            onMouseEnter={
+                              isNameLink
+                                ? (e) => {
+                                    e.currentTarget.style.color = "var(--accent-color, #58a6ff)";
+                                  }
+                                : undefined
+                            }
+                            onMouseLeave={
+                              isNameLink
+                                ? (e) => {
+                                    e.currentTarget.style.color = "var(--text-primary, #e6edf3)";
+                                  }
+                                : undefined
+                            }
+                          >
+                            {content}
+                          </div>
+                          {!isLastColumn && (
+                            <div
+                              style={{
+                                width: RESIZE_HANDLE_TOTAL_WIDTH,
+                                flexGrow: 0,
+                                flexShrink: 0,
+                                flexBasis: `${RESIZE_HANDLE_TOTAL_WIDTH}px`,
+                              }}
+                            />
+                          )}
+                        </React.Fragment>
+                      );
+                    })}
                   </div>
+                  <div style={actionsRegionStyle}>{renderRowActions(row, rowKey)}</div>
                 </div>
-                {/* Inline expanded detail area. */}
                 {expandable && isExpanded && renderExpanded && (
                   <div
                     style={{

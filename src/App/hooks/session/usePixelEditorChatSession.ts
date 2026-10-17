@@ -9,6 +9,10 @@ import { pixelEditorSessionCommands } from "../../../command/session/pixeleditor
 import { basename } from "@tauri-apps/api/path";
 import { showToast, ToastType } from "../../../components/Toast";
 import { getPixelEditorSystemPrompt } from "../../../subsystem/PixelEditor/llm/prompts";
+import { buildPresetFromDecl, parsePreset, PixelPreset } from "../../../subsystem/PixelEditor/presetParser";
+import { pixelEditorStateManager } from "../../../subsystem/PixelEditor/global";
+import { pixelEditorMetadataCommands } from "../../../command/PixelEditor/Metadata";
+import { extractPixelAnimation, validatePixelAnimationPreset } from "../../../subsystem/PixelEditor/llm/utils";
 /**
  * Detect the broad category of a file based on its extension.
  */
@@ -20,6 +24,55 @@ const getFileType = (filePath: string): "image" | "text" | null => {
     if (textExts.includes(ext)) return "text";
     return null;
 };
+/**
+ * Apply a pixel animation preset to the editor and persist the canvas size to the backend. 
+ */
+const applyPixelAnimationPreset = async (
+    preset: PixelPreset,
+    sessionId: string,
+): Promise<boolean> => {
+    const metadata = parsePreset(preset);
+    pixelEditorStateManager.setCanvasMetadata(metadata);
+    const w = preset.width > 0 ? preset.width : 16;
+    const h = preset.height > 0 ? preset.height : 16;
+    try {
+        await pixelEditorMetadataCommands.saveCanvasSize(sessionId, w, h);
+    } catch (err) {
+        console.warn("[usePixelEditorSession] failed to persist canvas size after preset:", err);
+    }
+    window.dispatchEvent(new CustomEvent("pixeleditor:refresh-canvas"));
+    return true;
+};
+/**
+ * Try to apply an LLM pixel animation response to the editor.
+ */
+const tryApplyPixelAnimationFromResponse = async (
+    content: string,
+    sessionId: string,
+): Promise<boolean> => {
+    const decl = extractPixelAnimation(content);
+    if (!decl) return false;
+    const errors = validatePixelAnimationPreset(decl);
+    if (errors.length > 0) {
+        console.warn("[usePixelEditorSession] rejecting invalid pixel animation preset:", errors);
+        return false;
+    }
+    try {
+        const preset = buildPresetFromDecl(decl as any);
+        await applyPixelAnimationPreset(preset, sessionId);
+        console.log(
+            "[usePixelEditorSession] applied LLM pixel animation preset:",
+            preset.id,
+            preset.width + "x" + preset.height,
+            preset.frameCount + "f",
+            preset.layers.length + " layers",
+        );
+        return true;
+    } catch (err) {
+        console.error("[usePixelEditorSession] failed to apply LLM pixel animation preset:", err);
+        return false;
+    }
+};
 export function usePixelEditorSession(
     language: Language,
     isConfigLoaded: boolean,
@@ -29,12 +82,8 @@ export function usePixelEditorSession(
     const [isLoading, setIsLoading] = useState(true);
     const [taskManagerVersion, setTaskManagerVersion] = useState(0);
     const [pendingNewSession, setPendingNewSession] = useState(false);
-    // Pending source paths recorded when the user picks a file before a
-    // session exists. They are consumed when the pending session is
-    // materialized on the first outbound message.
     const [pendingImagePath, setPendingImagePath] = useState<string>("");
     const [pendingImageTitle, setPendingImageTitle] = useState<string>("");
-    // Whether a session is currently being created on disk.
     const [isCreatingSession, setIsCreatingSession] = useState<boolean>(false);
     const { t } = useTranslation(language);
     useEffect(() => {
@@ -134,8 +183,6 @@ export function usePixelEditorSession(
             [],
             workflowMode || currentWorkflowMode,
         );
-        // persist the source paths into the session config so the
-        // editor can retrieve them when the session is later reopened.
         try {
             const updates: Record<string, any> = {};
             if (imageSourcePath) updates.image_file = imageSourcePath;
@@ -163,7 +210,6 @@ export function usePixelEditorSession(
                     const newSessionId = `pixeleditor_session_${Date.now()}`;
                     const fileName = await basename(filePath);
                     const title = fileName || "Pixel Project";
-                    // Detect file type and assign to the appropriate source array.
                     const fileTypeStr = getFileType(filePath);
                     let imageSourcePath: string | undefined = undefined;
                     let textSourcePaths: string[] | undefined = undefined;
@@ -172,7 +218,6 @@ export function usePixelEditorSession(
                     } else if (fileTypeStr === "text") {
                         textSourcePaths = [filePath];
                     } else {
-                        // Unknown type, treat as image
                         imageSourcePath = filePath;
                     }
                     await createPixelSessionWithPath(
@@ -495,6 +540,34 @@ export function usePixelEditorSession(
         }));
         return newSessionId;
     }, [currentWorkflowMode, createPixelSessionWithPath]);
+    /**
+     * Watch the task manager for completed LLM tasks and apply any pixel animation preset they produced.
+     */
+    const processedAnimationTaskIdsRef = useState<Set<string>>(() => new Set())[0];
+    useEffect(() => {
+        if (!currentSessionId || currentSessionId.startsWith("pending_") || currentSessionId.startsWith("temp_")) {
+            return;
+        }
+        const assistantMessages = taskManager.getAssistantMessagesBySessionAsArray(currentSessionId, SessionDomain.PixelEditor);
+        for (const msg of assistantMessages) {
+            if (!msg || !msg.id) continue;
+            if (msg.status === MessageStatus.Pending) continue;
+            if (msg.status === MessageStatus.Failed) continue;
+            if (msg.status === MessageStatus.Cancelled) continue;
+            if (!msg.content) continue;
+            if (!msg.content.includes("\"pixelAnimation\"")) continue;
+            if (processedAnimationTaskIdsRef.has(msg.id)) continue;
+            processedAnimationTaskIdsRef.add(msg.id);
+            void tryApplyPixelAnimationFromResponse(msg.content, currentSessionId).then((applied) => {
+                if (applied) {
+                    // showToast(
+                    //     ToastType.SUCCESS,
+                    //     language === "zh" ? "像素动画已应用到画布" : "Pixel animation applied to canvas",
+                    // );
+                }
+            });
+        }
+    }, [currentSessionId, taskManagerVersion, language, processedAnimationTaskIdsRef]);
     return {
         currentSessionId,
         isLoading,
@@ -511,5 +584,6 @@ export function usePixelEditorSession(
         pendingImageTitle,
         isCreatingSession,
         setIsCreatingSession,
+        applyPixelAnimationFromResponse: tryApplyPixelAnimationFromResponse,
     };
 }

@@ -235,9 +235,7 @@ const RegionSelectWindow: React.FC<RegionSelectWindowProps> = ({ onConfirm, onCa
     if (stored) {
       const clamped = clampRectToViewport(stored, vw, vh);
       setRect(clamped);
-      // Seed the global state with the restored rect.
       videoEditorStateManager.setScreenRecordRect(clamped.x, clamped.y, clamped.width, clamped.height);
-      // Broadcast the restored rect so the main window previews it immediately.
       void emit(WINDOW_EVENTS.REGION_RECT_CHANGED, clamped);
       return;
     }
@@ -260,9 +258,7 @@ const RegionSelectWindow: React.FC<RegionSelectWindowProps> = ({ onConfirm, onCa
       height: h,
     };
     setRect(fallback);
-    // Seed the global state with the default rect.
     videoEditorStateManager.setScreenRecordRect(fallback.x, fallback.y, fallback.width, fallback.height);
-    // Broadcast the default rect so the main window previews it immediately.
     void emit(WINDOW_EVENTS.REGION_RECT_CHANGED, fallback);
   }, []);
   /**
@@ -273,11 +269,6 @@ const RegionSelectWindow: React.FC<RegionSelectWindowProps> = ({ onConfirm, onCa
     setInputWidth(String(Math.round(rect.width)));
     setInputHeight(String(Math.round(rect.height)));
   }, [rect]);
-  /**
-   * Persist the current rect to localStorage whenever it changes, mirror
-   * it into the shared state, and broadcast it to the main window so the
-   * preview updates in real time while the user drags / resizes.
-   */
   useEffect(() => {
     if (!rect) return;
     writeStoredRect(rect);
@@ -441,10 +432,7 @@ const RegionSelectWindow: React.FC<RegionSelectWindowProps> = ({ onConfirm, onCa
         unlisten = await listen(WINDOW_EVENTS.REGION_SELECT_CLOSE, () => {
           void closeOverlay();
         });
-      } catch {
-        // Non-fatal: if the listener cannot be registered the overlay
-        // will simply stay open until the user closes it manually.
-      }
+      } catch {}
     })();
     return () => {
       if (unlisten) unlisten();

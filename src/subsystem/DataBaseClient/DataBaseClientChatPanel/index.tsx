@@ -14,10 +14,10 @@ import { UploadFile, SessionDomain } from "../../../core/types";
 import { ChatIcon, TaskQueueIcon, UserIcon, AttachmentIcon, FolderIcon, ChevronRightIcon, TextFileIcon, FileIcon, FolderOpenIcon } from "../../../icons";
 import { zhDataBaseClientDefaultPrompts, enDataBaseClientDefaultPrompts } from "../../../types/DefaultPrompt";
 import { ChatMessage, RoleEnum, MessageStatus } from "../../../types/types";
-import { mapSessionCommands } from "../../../command/session/map";
 import { EarthViewRef } from "./types";
 import { filesCommands } from "../../../command/files";
 import { isStructuredLLMResponse, parseLLMResponse } from "../llm/utils";
+import { databaseClientSessionCommands } from "../../../command/session/databaseclient";
 interface DataBaseClientChatPanelProps {
   onSendMessage: (message: string, sessionId: string, files?: UploadFile[], workflowMode?: string) => void | Promise<void>;
   onFileClick?: (file: UploadFile) => void;
@@ -96,7 +96,7 @@ const DataBaseClientChatPanel: React.FC<DataBaseClientChatPanelProps> = ({
       : "🗄️ Welcome to the Hippox Database Client! I can help you connect to databases, write and run SQL, browse table schemas, and analyze query results. Tell me what you'd like to do～",
     timestamp: new Date().toISOString(),
   };
-  // Load session title from backend
+  // Load session title from backend using the DataBaseClient session commands.
   const loadSessionTitle = async (sessionId: string) => {
     if (!sessionId || sessionId.startsWith("pending_") || sessionId.startsWith("temp_")) {
       setSessionTitle("");
@@ -107,7 +107,7 @@ const DataBaseClientChatPanel: React.FC<DataBaseClientChatPanelProps> = ({
     }
     setIsLoadingTitle(true);
     try {
-      const list = await mapSessionCommands.listMapSessions();
+      const list = await databaseClientSessionCommands.listDataBaseClientSessions();
       const session = list.find((s: any) => s.session_id === sessionId);
       if (session && session.title) {
         setSessionTitle(session.title);
@@ -363,14 +363,14 @@ const DataBaseClientChatPanel: React.FC<DataBaseClientChatPanelProps> = ({
         setSelectedWorkflowMode(cached);
         return;
       }
-      const config = await mapSessionCommands.loadMapSessionConfig(sessionId);
+      const config = await databaseClientSessionCommands.loadDataBaseClientSessionConfig(sessionId);
       if (config && config.workflow_mode) {
         setSelectedWorkflowMode(config.workflow_mode);
         localStorage.setItem(`map_workflow_mode_${sessionId}`, config.workflow_mode);
       } else {
         const defaultMode = "ReAct";
         setSelectedWorkflowMode(defaultMode);
-        await mapSessionCommands.updateMapSessionConfig(sessionId, {
+        await databaseClientSessionCommands.updateDataBaseClientSessionConfig(sessionId, {
           workflow_mode: defaultMode,
         });
         localStorage.setItem(`map_workflow_mode_${sessionId}`, defaultMode);
@@ -643,7 +643,7 @@ const DataBaseClientChatPanel: React.FC<DataBaseClientChatPanelProps> = ({
     }
     if (currentSessionId && !currentSessionId.startsWith("pending_") && !currentSessionId.startsWith("temp_")) {
       try {
-        await mapSessionCommands.updateMapSessionConfig(currentSessionId, {
+        await databaseClientSessionCommands.updateDataBaseClientSessionConfig(currentSessionId, {
           workflow_mode: mode,
         });
         localStorage.setItem(`map_workflow_mode_${currentSessionId}`, mode);
@@ -959,13 +959,6 @@ const DataBaseClientChatPanel: React.FC<DataBaseClientChatPanelProps> = ({
     }
     return { right: 0, top: 0 };
   })();
-  /**
-   * Process LLM response and render earthview data on the map
-   * This is the key integration point between chat and map rendering
-   * It runs whenever messages change and checks the latest LLM message
-   *
-   * Same pattern as 3D sandbox: extract data from LLM response and render it
-   */
   const processedMessageIdsRef = useRef<Set<string>>(new Set());
   const replayAllEarthviewMessages = useCallback(
     async (sessionMessages: ChatMessage[]) => {
@@ -983,7 +976,6 @@ const DataBaseClientChatPanel: React.FC<DataBaseClientChatPanelProps> = ({
         configMessageIds.push(m.id);
       }
       if (configs.length === 0) return;
-      // Wait for the map to be ready before applying anything.
       if (!mapRef.current.isReady()) {
         let waited = 0;
         while (!mapRef.current.isReady() && waited < 5000) {
@@ -991,7 +983,6 @@ const DataBaseClientChatPanel: React.FC<DataBaseClientChatPanelProps> = ({
           waited += 100;
         }
       }
-      // Apply all configs sequentially, suppressing locate on all but the last.
       await mapRef.current.applyEarthViewConfigsSequentially(configs);
       // Mark all processed message ids.
       for (const id of configMessageIds) {
@@ -1020,7 +1011,6 @@ const DataBaseClientChatPanel: React.FC<DataBaseClientChatPanelProps> = ({
       await replayAllEarthviewMessages(messages);
     };
     run();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentSessionId, messages.length]);
   // When the map is recreated (e.g. theme change), replay all earthview messages
   useEffect(() => {
