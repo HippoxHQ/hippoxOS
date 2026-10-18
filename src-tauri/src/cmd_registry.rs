@@ -245,6 +245,7 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_open_region_select_window,
         commands::cmd_close_region_select_window,
         commands::cmd_confirm_region_select,
+        commands::cmd_create_main_window,
         // scheduled tasks
         commands::cmd_scheduled_task_create,
         commands::cmd_scheduled_task_update,

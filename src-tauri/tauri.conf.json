@@ -68,7 +68,7 @@
         {
           "identifier": "main-window",
           "description": "Main Window",
-          "windows": ["main"],
+          "windows": ["main", "main-window-*"],
           "permissions": [
             "core:default",
             "core:window:allow-start-dragging",

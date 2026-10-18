@@ -104,6 +104,11 @@ export const windowsCommands = {
         height: number;
     }): Promise<void> {
         return await invoke('cmd_confirm_region_select', { region });
-    }
+    },
+    async createMainWindow(subsystemId?: string): Promise<string> {
+        return await invoke<string>('cmd_create_main_window', {
+            subsystemId: subsystemId ?? null,
+        });
+    },
 };
 export default windowsCommands;

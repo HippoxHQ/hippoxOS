@@ -31,12 +31,54 @@ export type ContentPanelView =
   | "dockerClient"
   | "apiClient"
   | null;
+/**
+ * All panel ids that may be passed via the `?panel=` query parameter.
+ */
+const INITIAL_PANEL_WHITELIST: ContentPanelView[] = [
+  "generalChat",
+  "codeEditorChat",
+  "chartChat",
+  "mapChat",
+  "videoEditor",
+  "sandbox3d",
+  "blockchain",
+  "imageEditor",
+  "pixelEditor",
+  "databaseClient",
+  "dockerClient",
+  "apiClient",
+  "userProfile",
+  "skillsManager",
+  "scheduledTasks",
+  "taskQueue",
+  "workspace",
+  "workspaceConfig",
+  "logs",
+  "storage",
+  "settings",
+  "engine_group",
+];
+/**
+ * Read the initial content panel from the `?panel=` query parameter.
+ */
+function readInitialContentPanel(): ContentPanelView {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const panel = params.get("panel");
+    if (!panel) return null;
+    if (INITIAL_PANEL_WHITELIST.includes(panel as ContentPanelView)) {
+      return panel as ContentPanelView;
+    }
+  } catch {
+  }
+  return null;
+}
 export function useMenuPanel() {
   const [menuPanelView, setMenuPanelView] = useState<MenuPanelView | null>(null);
   const [settingsSubView, setSettingsSubView] = useState<SettingsSubView>("llmModel");
   const [engineSubView, setEngineSubView] = useState<EngineSubView>("engine_database");
   const [menuPanelWidth, setMenuPanelWidth] = useState<number>(MENU_PANEL_WIDTH);
-  const [currentContentPanel, setCurrentContentPanel] = useState<ContentPanelView>(null);
+  const [currentContentPanel, setCurrentContentPanel] = useState<ContentPanelView>(() => readInitialContentPanel());
   const switchMenuPanel = (view: string, subView?: string) => {
     if (view === "settings") {
       setMenuPanelView("settings");
