@@ -106,6 +106,8 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_check_version_update,
         commands::cmd_get_app_version,
         commands::cmd_download_and_install_update,
+        commands::cmd_fetch_release_markdown,
+        commands::cmd_cancel_update_download,
         // Drivers
         commands::cmd_get_drivers,
         commands::cmd_get_drivers_by_category,
@@ -246,6 +248,7 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_close_region_select_window,
         commands::cmd_confirm_region_select,
         commands::cmd_create_main_window,
+        commands::cmd_create_update_window,
         // scheduled tasks
         commands::cmd_scheduled_task_create,
         commands::cmd_scheduled_task_update,
@@ -801,8 +804,8 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         subsystem::cmd_remove_overlay_track_by_id,
         subsystem::cmd_preview_canvas_size,
         subsystem::cmd_get_playback_speeds,
-        subsystem::cmd_update_session_playback_speed,
-        subsystem::cmd_get_session_playback_speed,
+        // subsystem::cmd_update_session_playback_speed,
+        // subsystem::cmd_get_session_playback_speed,
         subsystem::cmd_update_session_volume,
         subsystem::cmd_get_session_volume,
         subsystem::cmd_get_session_metadata_json,

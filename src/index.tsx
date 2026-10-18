@@ -12,6 +12,7 @@ import SystemTrayWindow from "./windows/SystemTrayWindow";
 import MaterialPreviewWindow from "./windows/MaterialPreviewWindow";
 import AboutWindow from "./windows/AboutWindow";
 import RegionSelectWindow from "./windows/RegionSelectWindow";
+import UpdateWindow from "./windows/UpdateWindow";
 import { WindowTypeEnum } from "./windows/types";
 const root = ReactDOM.createRoot(document.getElementById("root") as HTMLElement);
 const urlParams = new URLSearchParams(window.location.search);
@@ -42,6 +43,13 @@ if (windowType === WindowTypeEnum.Tray) {
   root.render(
     <React.StrictMode>
       <AboutWindow />
+    </React.StrictMode>,
+  );
+} else if (windowType === WindowTypeEnum.Update) {
+  document.body.classList.add("update-window-body");
+  root.render(
+    <React.StrictMode>
+      <UpdateWindow />
     </React.StrictMode>,
   );
 } else if (windowType === WindowTypeEnum.RegionSelect) {

@@ -34,7 +34,6 @@ import SandBox3DPage from "../../subsystem/SandBox3D";
 import VideoEditorPage from "../../subsystem/VideoEditor";
 import ChartPage from "../../subsystem/Finance";
 import BlockchainPage from "../../subsystem/Blockchain";
-// New subsystem pages
 import ImageEditorPage from "../../subsystem/ImageEditor";
 import PixelEditorPage from "../../subsystem/PixelEditor";
 import DataBaseClientPage from "../../subsystem/DataBaseClient";
@@ -147,7 +146,6 @@ const SUBSYSTEM_PAGES: PageType[] = [
   PAGE_TYPES.API_CLIENT,
 ];
 function cleanupPageResources(pageKey: PageType): void {
-  console.log(`[CLEANUP] Cleaning up page: ${pageKey}`);
   try {
     switch (pageKey) {
       case PAGE_TYPES.CHART_CHAT:
@@ -155,17 +153,13 @@ function cleanupPageResources(pageKey: PageType): void {
         if (window.__chartInstance) {
           try {
             window.__chartInstance.destroy?.();
-          } catch (e) {
-            console.warn("[CLEANUP] Chart destroy error:", e);
-          }
+          } catch (e) {}
           window.__chartInstance = null;
         }
         if (window.__chartStateManager) {
           try {
             window.__chartStateManager.clear?.();
-          } catch (e) {
-            console.warn("[CLEANUP] Chart state manager clear error:", e);
-          }
+          } catch (e) {}
           window.__chartStateManager = null;
         }
         window.__chartDataCache = null;
@@ -175,9 +169,7 @@ function cleanupPageResources(pageKey: PageType): void {
         if (window.__mapInstance) {
           try {
             window.__mapInstance.destroy?.();
-          } catch (e) {
-            console.warn("[CLEANUP] Map destroy error:", e);
-          }
+          } catch (e) {}
           window.__mapInstance = null;
         }
         break;
@@ -186,9 +178,7 @@ function cleanupPageResources(pageKey: PageType): void {
         if (window.__codeEditorInstance) {
           try {
             window.__codeEditorInstance.destroy?.();
-          } catch (e) {
-            console.warn("[CLEANUP] Code editor destroy error:", e);
-          }
+          } catch (e) {}
           window.__codeEditorInstance = null;
         }
         break;
@@ -197,9 +187,7 @@ function cleanupPageResources(pageKey: PageType): void {
         if (window.__videoEditorInstance) {
           try {
             window.__videoEditorInstance.destroy?.();
-          } catch (e) {
-            console.warn("[CLEANUP] Video editor destroy error:", e);
-          }
+          } catch (e) {}
           window.__videoEditorInstance = null;
         }
         break;
@@ -208,9 +196,7 @@ function cleanupPageResources(pageKey: PageType): void {
         if (window.__sandbox3dInstance) {
           try {
             window.__sandbox3dInstance.destroy?.();
-          } catch (e) {
-            console.warn("[CLEANUP] Sandbox3d destroy error:", e);
-          }
+          } catch (e) {}
           window.__sandbox3dInstance = null;
         }
         break;
@@ -219,9 +205,7 @@ function cleanupPageResources(pageKey: PageType): void {
         if (window.__blockchainInstance) {
           try {
             window.__blockchainInstance.destroy?.();
-          } catch (e) {
-            console.warn("[CLEANUP] Blockchain destroy error:", e);
-          }
+          } catch (e) {}
           window.__blockchainInstance = null;
         }
         break;
@@ -230,9 +214,7 @@ function cleanupPageResources(pageKey: PageType): void {
         if (window.__generalChatInstance) {
           try {
             window.__generalChatInstance.destroy?.();
-          } catch (e) {
-            console.warn("[CLEANUP] General chat destroy error:", e);
-          }
+          } catch (e) {}
           window.__generalChatInstance = null;
         }
         break;
@@ -241,9 +223,7 @@ function cleanupPageResources(pageKey: PageType): void {
         if (window.__imageEditorInstance) {
           try {
             window.__imageEditorInstance.destroy?.();
-          } catch (e) {
-            console.warn("[CLEANUP] Image editor destroy error:", e);
-          }
+          } catch (e) {}
           window.__imageEditorInstance = null;
         }
         break;
@@ -252,9 +232,7 @@ function cleanupPageResources(pageKey: PageType): void {
         if (window.__pixelEditorInstance) {
           try {
             window.__pixelEditorInstance.destroy?.();
-          } catch (e) {
-            console.warn("[CLEANUP] Pixel editor destroy error:", e);
-          }
+          } catch (e) {}
           window.__pixelEditorInstance = null;
         }
         break;
@@ -263,9 +241,7 @@ function cleanupPageResources(pageKey: PageType): void {
         if (window.__databaseClientInstance) {
           try {
             window.__databaseClientInstance.destroy?.();
-          } catch (e) {
-            console.warn("[CLEANUP] Database client destroy error:", e);
-          }
+          } catch (e) {}
           window.__databaseClientInstance = null;
         }
         break;
@@ -274,9 +250,7 @@ function cleanupPageResources(pageKey: PageType): void {
         if (window.__dockerClientInstance) {
           try {
             window.__dockerClientInstance.destroy?.();
-          } catch (e) {
-            console.warn("[CLEANUP] Docker client destroy error:", e);
-          }
+          } catch (e) {}
           window.__dockerClientInstance = null;
         }
         break;
@@ -285,9 +259,7 @@ function cleanupPageResources(pageKey: PageType): void {
         if (window.__apiClientInstance) {
           try {
             window.__apiClientInstance.destroy?.();
-          } catch (e) {
-            console.warn("[CLEANUP] Api client destroy error:", e);
-          }
+          } catch (e) {}
           window.__apiClientInstance = null;
         }
         break;
@@ -334,9 +306,7 @@ export const forceDestroyPage = (pageKey: string): void => {
             ws.onclose = null;
             ws.onerror = null;
           }
-        } catch (e) {
-          console.warn(`[DESTROY] Failed to close WebSocket ${index}:`, e);
-        }
+        } catch (e) {}
       });
       resources.wsConnections = [];
     }
@@ -371,9 +341,7 @@ export const forceDestroyPage = (pageKey: string): void => {
           if (instance && instance.destroy) {
             instance.destroy();
           }
-        } catch (e) {
-          console.warn(`[DESTROY] Failed to destroy instance ${instance.name || "unnamed"}:`, e);
-        }
+        } catch (e) {}
       });
       resources.destroyableInstances = [];
     }
@@ -382,9 +350,7 @@ export const forceDestroyPage = (pageKey: string): void => {
       resources.cleanupCallbacks.forEach((callback) => {
         try {
           callback();
-        } catch (e) {
-          console.warn(`[DESTROY] Cleanup callback error:`, e);
-        }
+        } catch (e) {}
       });
       resources.cleanupCallbacks = [];
     }
@@ -417,7 +383,6 @@ export const registerPageResources = (
   },
 ): (() => void) => {
   if (window.__pageCleanupInProgress?.[pageKey]) {
-    console.warn(`[REGISTER] Page ${pageKey} is being destroyed, rejecting registration`);
     return () => {};
   }
   if (!window.__pageResources) {
@@ -561,11 +526,9 @@ export function AppContent({
    */
   const performPageSwitch = useCallback((prevPage: ContentPanelView | null, currentPage: ContentPanelView | null) => {
     window.__pageSwitchLock = true;
-    console.log(`[PAGE_SWITCH] Switching from ${prevPage} to ${currentPage}`);
     // 1. Clean up the previous page immediately
     if (prevPage) {
       const prevPageKey = prevPage as string;
-      console.log(`[PAGE_SWITCH] Destroying previous page: ${prevPageKey}`);
       forceDestroyPage(prevPageKey);
     }
     // 2. If previous page was a subsystem page, force cleanup global resources

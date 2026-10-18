@@ -137,3 +137,7 @@ pub async fn cmd_confirm_region_select(app_handle: tauri::AppHandle, region: ser
 pub async fn cmd_create_main_window(app: tauri::AppHandle, subsystem_id: Option<String>) -> Result<String, String> {
     crate::windows::MainWindowManager::create_main_window(&app, subsystem_id).map_err(|e| e.to_string())
 }
+#[tauri::command]
+pub async fn cmd_create_update_window(app_handle: tauri::AppHandle) -> Result<(), String> {
+    crate::windows::UpdateWindowManager::create_update_window(&app_handle).map_err(|e| e.to_string())
+}

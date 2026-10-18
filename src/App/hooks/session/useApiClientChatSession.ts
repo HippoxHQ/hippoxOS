@@ -213,9 +213,6 @@ export function useApiClientSession(
     const handleSwitchSession = useCallback(async (sessionId: string) => {
         if (sessionId === currentSessionId) return;
         if (!sessionId.startsWith("apiclient_session_") && !sessionId.startsWith("pending_")) {
-            console.warn(
-                `[useApiClientSession] Cannot switch to session "${sessionId}" - it does not belong to ApiClient domain`
-            );
             return;
         }
         const hasData = taskManager.hasSessionMessages(currentSessionId, SessionDomain.ApiClient);

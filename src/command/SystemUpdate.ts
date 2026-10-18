@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import { listen, UnlistenFn } from "@tauri-apps/api/event";
 /**
  * Version information returned from the backend
  */
@@ -10,6 +11,10 @@ export interface VersionInfo {
     arch: string;
     download_url: string | null;
 }
+/**
+ * Event name used by the backend to stream download progress (0-100).
+ */
+export const UPDATE_DOWNLOAD_PROGRESS_EVENT = "update-download-progress";
 /**
  * System update commands for checking and installing version updates
  */
@@ -29,17 +34,49 @@ export const systemUpdateCommands = {
         return invoke<string>("cmd_get_app_version");
     },
     /**
-     * Download and install the update
-     * Downloads the installer from the given URL and runs it
-     * @param downloadUrl - The URL to download the installer from
-     * @param onProgress - Progress callback (0-100)
-     * @returns Promise that resolves when the installer starts
+     * Subscribe to backend download progress events.
      */
-    downloadAndInstallUpdate: (
+    onDownloadProgress: async (callback: (progress: number) => void): Promise<UnlistenFn> => {
+        return listen<number>(UPDATE_DOWNLOAD_PROGRESS_EVENT, (event) => {
+            const value = typeof event.payload === "number" ? event.payload : 0;
+            callback(Math.max(0, Math.min(100, value)));
+        });
+    },
+    /**
+     * Download and install the update.
+     *
+     * @param downloadUrl - The URL to download the installer from
+     * @param onProgress - Optional progress callback (0-100)
+     * @returns Promise that resolves when the installer starts, or rejects
+     *          with "cancelled" when the user cancels the download.
+     */
+    downloadAndInstallUpdate: async (
         downloadUrl: string,
         onProgress?: (progress: number) => void
     ): Promise<void> => {
-        return invoke<void>("cmd_download_and_install_update", { downloadUrl });
+        let unlisten: UnlistenFn | null = null;
+        if (onProgress) {
+            unlisten = await systemUpdateCommands.onDownloadProgress(onProgress);
+        }
+        try {
+            await invoke<void>("cmd_download_and_install_update", { downloadUrl });
+        } finally {
+            if (unlisten) {
+                unlisten();
+            }
+        }
+    },
+    /**
+     * Request cancellation of the in-flight update download.
+     */
+    cancelUpdataDownload: (): Promise<void> => {
+        return invoke<void>("cmd_cancel_update_download");
+    },
+    /**
+     * Fetch the markdown body of the latest GitHub release for hippoxOS.
+     */
+    fetchReleaseMarkdown: (): Promise<string> => {
+        return invoke<string>("cmd_fetch_release_markdown");
     },
 };
 export default systemUpdateCommands;

@@ -1,0 +1,53 @@
+use crate::windows::{WindowIdentifier, WindowType};
+use tauri::{AppHandle, Manager, Runtime, WebviewWindowBuilder};
+pub struct UpdateWindowManager;
+impl UpdateWindowManager {
+    pub fn create_update_window<R: Runtime>(app_handle: &AppHandle<R>) -> Result<(), Box<dyn std::error::Error>> {
+        let window_label = format!("{}", WindowIdentifier::Update);
+        // Close existing update window if open.
+        if let Some(window) = app_handle.get_webview_window(&window_label) {
+            let _ = window.close();
+            std::thread::sleep(std::time::Duration::from_millis(150));
+        }
+        let url_type = format!("{}", WindowType::Update);
+        let window_width = 630.0;
+        let window_height = 700.0;
+        let (pos_x, pos_y) = Self::calculate_center_position(app_handle, window_width, window_height)?;
+        let mut window_builder =
+            WebviewWindowBuilder::new(app_handle, &window_label, tauri::WebviewUrl::App(format!("index.html?type={}", url_type).into()))
+                .title("")
+                .inner_size(window_width, window_height)
+                .position(pos_x, pos_y)
+                .min_inner_size(500.0, 300.0);
+        if cfg!(target_os = "macos") {
+            window_builder = window_builder.decorations(true);
+        } else {
+            window_builder = window_builder.decorations(false);
+        }
+        let _window = window_builder.build()?;
+        Ok(())
+    }
+    /// Compute a centered position for a window of the given LOGICAL size.
+    fn calculate_center_position<R: Runtime>(app_handle: &AppHandle<R>, width: f64, height: f64) -> Result<(f64, f64), Box<dyn std::error::Error>> {
+        let mut x = 100.0;
+        let mut y = 100.0;
+        if let Some(monitor) = app_handle.primary_monitor()? {
+            let scale = monitor.scale_factor();
+            let screen_width = monitor.size().width as f64 / scale;
+            let screen_height = monitor.size().height as f64 / scale;
+            let monitor_x = monitor.position().x as f64 / scale;
+            let monitor_y = monitor.position().y as f64 / scale;
+            x = monitor_x + (screen_width - width) / 2.0;
+            y = monitor_y + (screen_height - height) / 2.0;
+            x = x.max(monitor_x);
+            y = y.max(monitor_y);
+        }
+        Ok((x, y))
+    }
+    pub fn close_update_window<R: Runtime>(app_handle: &AppHandle<R>) {
+        let window_label = format!("{}", WindowIdentifier::Update);
+        if let Some(window) = app_handle.get_webview_window(&window_label) {
+            let _ = window.close();
+        }
+    }
+}

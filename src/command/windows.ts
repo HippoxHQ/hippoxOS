@@ -79,6 +79,13 @@ export const windowsCommands = {
         return await invoke('cmd_create_about_window');
     },
     /**
+     * Create the update window (1000x800) and load the README / release notes
+     * with a bottom button group for update actions.
+     */
+    async createUpdateWindow(): Promise<void> {
+        return await invoke('cmd_create_update_window');
+    },
+    /**
      * Open the full‑screen, chrome‑less region‑selection overlay.
      */
     async openRegionSelectWindow(): Promise<void> {
@@ -105,9 +112,13 @@ export const windowsCommands = {
     }): Promise<void> {
         return await invoke('cmd_confirm_region_select', { region });
     },
-    async createMainWindow(subsystemId?: string): Promise<string> {
+    /**
+     * Create an additional main window. 
+     */
+    async createMainWindow(subsystemId?: string, session?: string): Promise<string> {
         return await invoke<string>('cmd_create_main_window', {
             subsystemId: subsystemId ?? null,
+            session: session ?? null,
         });
     },
 };

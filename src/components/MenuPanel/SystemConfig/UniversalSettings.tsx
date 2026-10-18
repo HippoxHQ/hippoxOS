@@ -2,7 +2,9 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { configCommands } from "../../../command/config";
 import { disable, enable } from "@tauri-apps/plugin-autostart";
 import { systemUpdateCommands, VersionInfo } from "../../../command/SystemUpdate";
-import { PanelLeftClose, PanelRightClose, Terminal, MessageSquare, PanelLeft, PanelRight, Monitor, Globe, Power, Sparkles, Loader2, Download, RefreshCw, CheckCircle, AlertCircle, XCircle, ChevronDown } from "lucide-react";
+import { windowsCommands } from "../../../command/windows";
+import { showToast, ToastType } from "../../../components/Toast";
+import { PanelLeftClose, PanelRightClose, PanelLeft, PanelRight, Loader2, RefreshCw, CheckCircle, ChevronDown } from "lucide-react";
 import { emit } from "@tauri-apps/api/event";
 interface UniversalSettingsProps {
   t: (key: string, params?: any) => string;
@@ -143,15 +145,6 @@ interface CustomSelectOption {
   value: string;
   label: string;
 }
-/**
- * CustomSelect
- *
- * A self-rendered dropdown that replaces the native <select> element.
- * Behaviour mirrors the CanvasPresetDropdown used in InfoPanel:
- *   - Opens on trigger click.
- *   - Closes on outside pointerdown, ESC, window scroll, or resize.
- *   - Positions itself with fixed coordinates relative to the trigger.
- */
 interface CustomSelectProps {
   options: CustomSelectOption[];
   value: string;
@@ -401,16 +394,12 @@ const UniversalSettings: React.FC<UniversalSettingsProps> = ({ t, language, onLa
   const [loading, setLoading] = useState(true);
   /* Currently active theme id, self-managed inside this component. */
   const [activeThemeId, setActiveThemeId] = useState<ThemeId>("dark");
-  // Update check states
+  // Update check states.
   const [versionInfo, setVersionInfo] = useState<VersionInfo | null>(null);
   const [checkingUpdate, setCheckingUpdate] = useState(false);
   const [updateError, setUpdateError] = useState<string | null>(null);
-  // Download states
-  const [downloading, setDownloading] = useState(false);
-  const [downloadProgress, setDownloadProgress] = useState(0);
   const resetTimerRef = useRef<NodeJS.Timeout | null>(null);
   const isZh = t("i18n") === "zh";
-  /* ===== Initialize the active theme on mount (reads from the backend) ===== */
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -424,7 +413,6 @@ const UniversalSettings: React.FC<UniversalSettingsProps> = ({ t, language, onLa
       cancelled = true;
     };
   }, []);
-  /* ===== Listen for theme changes coming from the TopBar picker ===== */
   useEffect(() => {
     const handleThemeChanged = (e: Event) => {
       const detail = (e as CustomEvent<{ themeId?: string }>).detail;
@@ -470,9 +458,6 @@ const UniversalSettings: React.FC<UniversalSettingsProps> = ({ t, language, onLa
     };
     loadAllSettings();
   }, []);
-  /* ===== Theme change handler =====
-     Applies the theme to <html>, persists it to the backend, and notifies
-     the rest of the app (e.g. TopBar) via a window event. */
   const handleThemeChange = async (newTheme: string) => {
     const themeId = newTheme as ThemeId;
     setActiveThemeId(themeId);
@@ -546,11 +531,12 @@ const UniversalSettings: React.FC<UniversalSettingsProps> = ({ t, language, onLa
       setVersionInfo(null);
       setUpdateError(null);
       setCheckingUpdate(false);
-      setDownloading(false);
-      setDownloadProgress(0);
       resetTimerRef.current = null;
     }, 10000);
   };
+  /**
+   * Compare the local version with the remote (latest) version.
+   */
   const handleCheckUpdate = async () => {
     if (resetTimerRef.current) {
       clearTimeout(resetTimerRef.current);
@@ -559,44 +545,31 @@ const UniversalSettings: React.FC<UniversalSettingsProps> = ({ t, language, onLa
     setCheckingUpdate(true);
     setUpdateError(null);
     setVersionInfo(null);
-    setDownloadProgress(0);
     try {
-      const info = await systemUpdateCommands.checkVersionUpdate();
+      const info: VersionInfo = await systemUpdateCommands.checkVersionUpdate();
       setVersionInfo(info);
+      if (info.has_update) {
+        try {
+          await windowsCommands.createUpdateWindow();
+        } catch (openErr) {
+          console.error("Failed to open update window:", openErr);
+          const msg = isZh ? "打开更新窗口失败，请稍后重试" : "Failed to open update window, please try again";
+          setUpdateError(msg);
+          showToast(ToastType.ERROR, msg);
+        }
+      } else {
+        // No update available: give the user explicit feedback.
+        showToast(ToastType.INFO, isZh ? "当前已是最新版本" : "You are already on the latest version.");
+      }
       scheduleAutoReset();
     } catch (error) {
       console.error("Failed to check update:", error);
-      setUpdateError(isZh ? "检查更新失败，请稍后重试" : "Failed to check update, please try again");
+      const msg = isZh ? "检查更新失败，请稍后重试" : "Failed to check update, please try again";
+      setUpdateError(msg);
+      showToast(ToastType.ERROR, msg);
       scheduleAutoReset();
     } finally {
       setCheckingUpdate(false);
-    }
-  };
-  // Handle download and install update
-  const handleDownloadAndInstall = async () => {
-    if (!versionInfo?.download_url) {
-      setUpdateError(isZh ? "下载链接不可用" : "Download URL not available");
-      return;
-    }
-    // Cancel any pending auto-reset so the downloading state is not cleared mid-download
-    if (resetTimerRef.current) {
-      clearTimeout(resetTimerRef.current);
-      resetTimerRef.current = null;
-    }
-    setDownloading(true);
-    setDownloadProgress(0);
-    setUpdateError(null);
-    try {
-      // Call backend to download and install
-      await systemUpdateCommands.downloadAndInstallUpdate(versionInfo.download_url, (progress: number) => {
-        setDownloadProgress(progress);
-      });
-      // On success, the app will exit and installer will run
-    } catch (error) {
-      console.error("Download/Install failed:", error);
-      setUpdateError(isZh ? "下载或安装失败，请重试" : "Download or install failed, please retry");
-      setDownloading(false);
-      scheduleAutoReset();
     }
   };
   const labelStyle: React.CSSProperties = {
@@ -708,18 +681,6 @@ const UniversalSettings: React.FC<UniversalSettingsProps> = ({ t, language, onLa
     gap: "6px",
     whiteSpace: "nowrap",
     flexShrink: 0,
-  };
-  const updateResultStyle: React.CSSProperties = {
-    fontSize: "13px",
-    color: "var(--text-secondary)",
-    display: "flex",
-    alignItems: "center",
-    gap: "8px",
-    flex: "1 1 auto",
-    justifyContent: "flex-end",
-    minWidth: 0,
-    overflow: "hidden",
-    whiteSpace: "nowrap",
   };
   const updateButtonContainerStyle: React.CSSProperties = {
     display: "flex",
@@ -912,35 +873,6 @@ const UniversalSettings: React.FC<UniversalSettingsProps> = ({ t, language, onLa
                 <Loader2 size={14} style={{ animation: "spin 1s linear infinite", flexShrink: 0 }} />
                 <span style={{ color: "var(--text-secondary)" }}>{isZh ? "检查中..." : "Checking..."}</span>
               </div>
-            ) : downloading ? (
-              // Downloading state: show only the progress bar, no text and no loader.
-              <div
-                style={{
-                  position: "relative",
-                  width: "160px",
-                  height: "6px",
-                  borderRadius: "3px",
-                  background: "var(--bg-tertiary)",
-                  overflow: "hidden",
-                  flexShrink: 0,
-                }}
-              >
-                <div
-                  style={{
-                    position: "absolute",
-                    top: 0,
-                    left: 0,
-                    height: "100%",
-                    width: downloadProgress > 0 ? `${Math.min(downloadProgress, 100)}%` : "40%",
-                    background: "var(--accent-color, #00aaff)",
-                    borderRadius: "3px",
-                    transition: downloadProgress > 0 ? "width 0.2s ease" : "none",
-                    // Indeterminate animation runs while no numeric progress is reported,
-                    // so the bar keeps moving and the UI never looks frozen.
-                    animation: downloadProgress > 0 ? "none" : "indeterminate 1.2s ease-in-out infinite",
-                  }}
-                />
-              </div>
             ) : updateError ? (
               <div style={updateStatusStyle}>
                 <span style={{ color: "var(--text-error, #ff4444)", overflow: "hidden", textOverflow: "ellipsis" }}>{updateError}</span>
@@ -958,49 +890,8 @@ const UniversalSettings: React.FC<UniversalSettingsProps> = ({ t, language, onLa
                   {isZh ? "重试" : "Retry"}
                 </button>
               </div>
-            ) : versionInfo?.has_update ? (
-              <>
-                <div style={updateResultStyle}>
-                  <span
-                    style={{
-                      color: "var(--accent-color, #00aaff)",
-                      fontSize: "10px",
-                      fontWeight: 500,
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {isZh ? `新版本 ${versionInfo.latest_version}` : `New Version ${versionInfo.latest_version}`}
-                  </span>
-                  {/* <span
-                    style={{
-                      fontSize: "11px",
-                      color: "var(--text-tertiary)",
-                      flexShrink: 0,
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {isZh ? `当前: ${versionInfo.current_version}` : `Current: ${versionInfo.current_version}`}
-                  </span> */}
-                </div>
-                <button
-                  style={{
-                    ...updateButtonStyle,
-                    background: "var(--accent-color, #00aaff)",
-                    borderColor: "var(--accent-color, #00aaff)",
-                    color: "white",
-                    flexShrink: 0,
-                  }}
-                  onClick={handleDownloadAndInstall}
-                  disabled={downloading}
-                >
-                  <Download size={14} />
-                  {isZh ? "更新" : "Update"}
-                </button>
-              </>
             ) : versionInfo && !versionInfo.has_update ? (
-              <div style={updateResultStyle}>
+              <div style={updateStatusStyle}>
                 <CheckCircle size={14} style={{ color: "var(--text-success, #4caf50)", flexShrink: 0 }} />
                 <span
                   style={{
@@ -1032,13 +923,6 @@ const UniversalSettings: React.FC<UniversalSettingsProps> = ({ t, language, onLa
           @keyframes spin {
             from { transform: rotate(0deg); }
             to { transform: rotate(360deg); }
-          }
-          /* Indeterminate progress bar animation: a moving highlight that never stops,
-             used when the backend does not report numeric progress. */
-          @keyframes indeterminate {
-            0%   { left: -40%; width: 40%; }
-            50%  { left: 30%;  width: 40%; }
-            100% { left: 100%; width: 40%; }
           }
         `}</style>
       </div>

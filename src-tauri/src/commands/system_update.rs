@@ -9,22 +9,21 @@ use serde::{Deserialize, Serialize};
 use std::fs::File;
 use std::io::Write;
 use std::path::PathBuf;
-use tauri::command;
-/// Base filename prefix
+use std::sync::atomic::{AtomicBool, Ordering};
+use tauri::{command, AppHandle, Emitter};
 const FILE_BASE_PREFIX: &str = "hippoxos";
-/// Platform names
 const PLATFORM_NAME_WINDOWS: &str = "windows";
 const PLATFORM_NAME_MACOS: &str = "macos";
 const PLATFORM_NAME_LINUX: &str = "linux";
-/// Architecture names
 const ARCH_X86_64: &str = "x86_64";
 const ARCH_AARCH64: &str = "aarch64";
 const ARCH_ARM64: &str = "arm64";
 const ARCH_X86: &str = "x86";
-/// Platform-specific file extensions
 const PLATFORM_WINDOWS_EXT: &str = ".msi";
 const PLATFORM_MACOS_EXT: &str = ".dmg";
 const PLATFORM_LINUX_EXT: &str = ".deb";
+const UPDATE_PROGRESS_EVENT: &str = "update-download-progress";
+static UPDATE_CANCEL_FLAG: AtomicBool = AtomicBool::new(false);
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VersionInfo {
     pub current_version: String,
@@ -141,21 +140,24 @@ pub async fn cmd_check_version_update() -> Result<VersionInfo, String> {
     let current_version = get_app_version();
     let platform = get_current_platform();
     let arch = get_current_arch();
-    let release = match fetch_latest_release().await {
-        Ok(r) => r,
-        Err(e) => {
-            log::error!("Failed to fetch release: {}", e);
-            return Ok(VersionInfo {
-                current_version: current_version.clone(),
-                latest_version: current_version.clone(),
-                has_update: false,
+    let release = fetch_latest_release().await.map_err(|e| {
+        log::error!("Failed to fetch release: {}", e);
+        format!("Failed to fetch release info: {}", e)
+    })?;
+    let (latest_version, download_url) = match extract_platform_asset(&release, &platform, &arch) {
+        Some(pair) => pair,
+        None => {
+            let available: Vec<&str> = release.assets.iter().map(|a| a.name.as_str()).collect();
+            log::error!(
+                "No matching asset for platform={} arch={} in release {}. Available assets: {:?}",
                 platform,
-                arch: arch.clone(),
-                download_url: None,
-            });
+                arch,
+                release.tag_name,
+                available
+            );
+            return Err(format!("No matching asset found for {}/{} in release {}", platform, arch, release.tag_name));
         }
     };
-    let (latest_version, download_url) = extract_platform_asset(&release, &platform, &arch).unwrap_or_else(|| (current_version.clone(), None));
     let has_update = compare_versions(&current_version, &latest_version);
     Ok(VersionInfo { current_version, latest_version, has_update, platform, arch, download_url })
 }
@@ -168,44 +170,52 @@ pub fn cmd_get_app_version() -> Result<String, String> {
 fn get_download_dir() -> Result<PathBuf, String> {
     get_system_update_download_dir()
 }
-/// Download and install update
+/// Request cancellation of the in-flight update download.
 #[command]
-pub async fn cmd_download_and_install_update(download_url: String) -> Result<(), String> {
+pub fn cmd_cancel_update_download() {
+    UPDATE_CANCEL_FLAG.store(true, Ordering::SeqCst);
+    log::info!("Update download cancellation requested");
+}
+/// Download and install update.
+#[command]
+pub async fn cmd_download_and_install_update(app_handle: AppHandle, download_url: String) -> Result<(), String> {
     log::info!("Starting download from: {}", download_url);
-    // Get filename from URL
+    UPDATE_CANCEL_FLAG.store(false, Ordering::SeqCst);
     let filename = download_url.split('/').last().unwrap_or("installer.msi").to_string();
-    // Get download directory
     let download_dir = get_download_dir()?;
     let file_path = download_dir.join(&filename);
-    // Download using the dedicated streaming path.
-    // `fetch_bytes_streaming` uses a separate HTTP client without a global timeout,
-    // so a large installer (hundreds of MB) will not be killed mid-download by the
-    // shared client's 30s timeout. Progress is reported through the callback.
     let http_client = HttpClient::new();
+    let app_for_progress = app_handle.clone();
     let bytes = http_client
-        .fetch_bytes_streaming(&download_url, None, |downloaded, total| {
-            // Log progress only when crossing a 10 MB boundary or when finished,
-            // to avoid flooding the console with one line per chunk.
-            let is_finish = total.map(|t| downloaded >= t).unwrap_or(false);
-            let current_block = downloaded / (10 * 1024 * 1024);
-            let previous_block = downloaded.saturating_sub(1) / (10 * 1024 * 1024);
-            let is_10mb_boundary = current_block != previous_block;
-            if is_finish || is_10mb_boundary {
-                match total {
-                    Some(t) => {
-                        let percent = if t > 0 { (downloaded as f64 / t as f64) * 100.0 } else { 0.0 };
-                    }
-                    None => {}
+        .fetch_bytes_streaming(&download_url, None, move |downloaded, total| {
+            // Compute percentage (0-100). When total is unknown, fall back to 0
+            // so the frontend can still show the shimmer bar.
+            let percent: u8 = match total {
+                Some(t) if t > 0 => {
+                    let p = (downloaded as f64 / t as f64) * 100.0;
+                    p.clamp(0.0, 100.0) as u8
                 }
-            }
+                _ => 0,
+            };
+            let _ = app_for_progress.emit(UPDATE_PROGRESS_EVENT, percent);
         })
         .await
         .map_err(|e| format!("Download failed: {}", e))?;
+    if UPDATE_CANCEL_FLAG.load(Ordering::SeqCst) {
+        log::info!("Update download cancelled by user; discarding bytes");
+        let _ = std::fs::remove_file(&file_path);
+        return Err("cancelled".to_string());
+    }
     // Write to file
     let mut file = File::create(&file_path).map_err(|e| format!("Failed to create file: {}", e))?;
     file.write_all(&bytes).map_err(|e| format!("Failed to write file: {}", e))?;
     file.flush().map_err(|e| format!("Failed to flush file: {}", e))?;
     log::info!("Download completed: {:?}", file_path);
+    if UPDATE_CANCEL_FLAG.load(Ordering::SeqCst) {
+        log::info!("Update cancelled before installer launch; removing file");
+        let _ = std::fs::remove_file(&file_path);
+        return Err("cancelled".to_string());
+    }
     // Verify the installer file exists before launching
     if !file_path.exists() {
         return Err(format!("Installer file does not exist: {:?}", file_path));
@@ -238,4 +248,16 @@ pub async fn cmd_download_and_install_update(download_url: String) -> Result<(),
     std::process::exit(0);
     #[allow(unreachable_code)]
     Ok(())
+}
+/// Fetch the markdown body of the latest GitHub release for hippoxOS.
+#[command]
+pub async fn cmd_fetch_release_markdown() -> Result<String, String> {
+    let http_client = HttpClient::new();
+    if let Ok(release) = fetch_latest_release().await {
+        if !release.body.trim().is_empty() {
+            return Ok(release.body);
+        }
+    }
+    let readme_url = HIPPOXOS_GITHUB_RELEASES_URL.replace("/releases/latest", "/raw/main/README.md");
+    http_client.fetch_text(&readme_url, None).await.map_err(|e| format!("Failed to fetch README: {}", e))
 }

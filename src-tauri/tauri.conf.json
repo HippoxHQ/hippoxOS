@@ -56,6 +56,21 @@
         "center": true,
         "visible": false,
         "dragDropEnabled": true
+      },
+      {
+        "title": "",
+        "label": "update-window",
+        "width": 630,
+        "height": 700,
+        "minWidth": 500,
+        "minHeight": 300,
+        "decorations": false,
+        "transparent": false,
+        "resizable": true,
+        "fullscreen": false,
+        "center": true,
+        "visible": false,
+        "dragDropEnabled": true
       }
     ],
     "security": {
@@ -456,6 +471,25 @@
             "core:window:allow-set-position",
             "core:window:allow-set-focus",
             "core:window:allow-set-ignore-cursor-events"
+          ]
+        },
+        {
+          "identifier": "update-window",
+          "description": "Update Window",
+          "windows": ["update-window"],
+          "permissions": [
+            "core:default",
+            "core:window:allow-start-dragging",
+            "core:event:allow-listen",
+            "core:event:allow-emit",
+            "core:event:allow-emit-to",
+            "core:window:allow-close",
+            "core:window:allow-show",
+            "core:window:allow-hide",
+            "core:window:allow-set-position",
+            "core:window:allow-set-focus",
+            "shell:allow-open",
+            "dialog:allow-open"
           ]
         }
       ]

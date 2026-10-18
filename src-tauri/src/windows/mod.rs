@@ -5,6 +5,8 @@ pub mod region_select_window;
 pub mod tray;
 pub mod tray_submenu;
 pub mod types;
+pub mod update_window;
+
 pub use about_window::*;
 pub use main_window::*;
 pub use material_preview::*;
@@ -12,3 +14,4 @@ pub use region_select_window::*;
 pub use tray::*;
 pub use tray_submenu::*;
 pub use types::*;
+pub use update_window::*;
