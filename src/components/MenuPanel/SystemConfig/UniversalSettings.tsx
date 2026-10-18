@@ -277,7 +277,6 @@ const CustomSelect: React.FC<CustomSelectProps> = ({ options, value, disabled, o
             flexShrink: 0,
             color: "var(--text-secondary)",
             transform: open ? "rotate(180deg)" : "rotate(0deg)",
-            transition: "transform 0.15s ease",
           }}
         >
           <ChevronDown size={12} />
@@ -673,7 +672,6 @@ const UniversalSettings: React.FC<UniversalSettingsProps> = ({ t, language, onLa
     color: "var(--text-primary)",
     cursor: "pointer",
     fontSize: "13px",
-    transition: "all 0.2s",
     minWidth: "80px",
     display: "flex",
     alignItems: "center",

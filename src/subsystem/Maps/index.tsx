@@ -47,6 +47,10 @@ interface MapsPageProps {
   onDragOverInputChange?: (isDragging: boolean) => void;
   executionLogs?: any[];
   onClearLogs?: () => void;
+  /**
+   * Optional session id to open directly on mount.
+   */
+  initSessionId?: string | null;
 }
 interface CollapsedTaskListProps {
   tasks: any[];
@@ -613,19 +617,7 @@ const CollapsedHistoryList: React.FC<CollapsedHistoryListProps> = ({ sessions, c
  * Main Maps Page Component
  * Integrates chat panel and EarthView map with data flow between them
  */
-const MapsPage: React.FC<MapsPageProps> = ({
-  t = (key: string) => key,
-  isFunctionPanelMaximized = false,
-  theme = "dark",
-  i18n = "en",
-  mapData,
-  onMapLoad,
-  onMapClick,
-  onMapMoveEnd,
-  onFileClick,
-  language = "en",
-  onDragOverInputChange,
-}) => {
+const MapsPage: React.FC<MapsPageProps> = ({ t = (key: string) => key, isFunctionPanelMaximized = false, theme = "dark", i18n = "en", mapData, onMapLoad, onMapClick, onMapMoveEnd, onFileClick, language = "en", onDragOverInputChange, initSessionId = null }) => {
   // Session management
   const { currentSessionId: mapSessionId, handleSendMessage: mapHandleSendMessage, handleSwitchSession: mapHandleSwitchSession, handleNewSession: mapHandleNewSession, shouldShowWelcome: mapShouldShowWelcome } = useMapSession(language as "zh" | "en", true);
   // Panel state - using constants from GeneralChatPage
@@ -660,6 +652,8 @@ const MapsPage: React.FC<MapsPageProps> = ({
   const [layoutSwapMode, setLayoutSwapMode] = useState<"terminal-left" | "chat-left">("terminal-left");
   const layoutSwapModeRef = useRef<"terminal-left" | "chat-left">("terminal-left");
   const isChatOnLeft = layoutSwapMode === "chat-left";
+  // Guard so that initSessionId only opens once on mount.
+  const didInitSessionRef = useRef<boolean>(false);
   useEffect(() => {
     taskManager.setCurrentDomain(SessionDomain.Map);
   }, []);
@@ -669,6 +663,17 @@ const MapsPage: React.FC<MapsPageProps> = ({
       setSelectedIds(new Set());
     }
   }, [isBatchMode]);
+  /**
+   * Open the session passed via `initSessionId` exactly once on mount.
+   * This lets the page be opened directly into a specific session (e.g. from
+   * the search dialog).
+   */
+  useEffect(() => {
+    if (didInitSessionRef.current) return;
+    if (!initSessionId) return;
+    didInitSessionRef.current = true;
+    mapHandleSwitchSession(initSessionId);
+  }, [initSessionId, mapHandleSwitchSession]);
   // Toggle select all sessions
   const toggleSelectAll = () => {
     const allIds = historySessions.map((s) => s.session_id);
@@ -788,15 +793,7 @@ const MapsPage: React.FC<MapsPageProps> = ({
       return newState;
     });
   }, [isFunctionPanelMaximized]);
-  /**
-   * Create chat panel with mapRef passed down for earthview rendering
-   * Similar to how 3D sandbox passes sandboxRef to its chat panel
-   */
   const chatPanel = <MapsChatPage onSendMessage={mapHandleSendMessage} onFileClick={onFileClick} t={t} currentSessionId={mapSessionId} onDragOverInputChange={onDragOverInputChange} language={language} isLeftPanel={isChatOnLeft} mapRef={mapRef} />;
-  /**
-   * Create map panel with ref attached for chat panel to call
-   * Similar to how 3D sandbox attaches sandboxRef to SandBox3D component
-   */
   const mapPanel = (
     <div
       style={{

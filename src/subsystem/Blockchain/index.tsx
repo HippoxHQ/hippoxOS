@@ -35,29 +35,11 @@ interface BlockchainPageProps {
   onDragOverInputChange?: (isDragging: boolean) => void;
   executionLogs?: any[];
   onClearLogs?: () => void;
+  /**
+   * Optional session id to open directly on mount.
+   */
+  initSessionId?: string | null;
 }
-/**
- * Main Blockchain Page Component
- * Integrates chat panel and Blockchain dashboard with data flow between them
- *
- * Data Flow (same pattern as 3D Sandbox):
- * 1. User sends message → BlockchainChatPage
- * 2. LLM responds with JSON containing blockchain data
- * 3. BlockchainChatPage parses and extracts data via dashboardRef.applyConfig()
- * 4. BlockchainDashboard renders the data (accumulates layers)
- * 5. All tasks in the same session are overlaid on the dashboard
- *
- * Layout: the chat panel is ALWAYS anchored to the RIGHT side of the page.
- * The dashboard fills the remaining space on the left.
- *
- * History sessions are presented in a slide-out drawer opened from the
- * sidebar's bottom button. All existing session logic is preserved and
- * delegated to the same `HistoryBlockchainChatPanel` component.
- *
- * IMPORTANT: No click inside the history drawer may close the drawer.
- * Only the backdrop (outside the drawer) and the explicit close button
- * are allowed to close it.
- */
 const BlockchainPage: React.FC<BlockchainPageProps> = ({
   t = (key: string) => key,
   isFunctionPanelMaximized = false,
@@ -73,6 +55,7 @@ const BlockchainPage: React.FC<BlockchainPageProps> = ({
   onDragOverInputChange,
   executionLogs,
   onClearLogs,
+  initSessionId = null,
 }) => {
   // Session management
   const { currentSessionId: blockchainSessionId, handleSendMessage: blockchainHandleSendMessage, handleSwitchSession: blockchainHandleSwitchSession, handleNewSession: blockchainHandleNewSession, shouldShowWelcome: blockchainShouldShowWelcome } = useBlockchainSession(language as "zh" | "en", true);
@@ -97,6 +80,8 @@ const BlockchainPage: React.FC<BlockchainPageProps> = ({
   const dragStartX = useRef(0);
   const dragStartChatPanelWidth = useRef(CHAT_PANEL_DEFAULT_WIDTH);
   const dragStartContainerRect = useRef<DOMRect | null>(null);
+  // Guard so that initSessionId only opens once on mount.
+  const didInitSessionRef = useRef<boolean>(false);
   useEffect(() => {
     taskManager.setCurrentDomain(SessionDomain.Blockchain);
   }, []);
@@ -106,6 +91,17 @@ const BlockchainPage: React.FC<BlockchainPageProps> = ({
       setSelectedIds(new Set());
     }
   }, [isBatchMode]);
+  /**
+   * Open the session passed via `initSessionId` exactly once on mount.
+   * This lets the page be opened directly into a specific session (e.g. from
+   * the search dialog).
+   */
+  useEffect(() => {
+    if (didInitSessionRef.current) return;
+    if (!initSessionId) return;
+    didInitSessionRef.current = true;
+    blockchainHandleSwitchSession(initSessionId);
+  }, [initSessionId, blockchainHandleSwitchSession]);
   // Toggle select all sessions
   const toggleSelectAll = () => {
     const allIds = historySessions.map((s) => s.session_id);
@@ -335,10 +331,6 @@ const BlockchainPage: React.FC<BlockchainPageProps> = ({
       historyPanelRef.current?.scrollToTop();
     }
   };
-  /**
-   * Listen for blockchain-switch-session event from search results
-   * This allows the search dialog to switch to a specific blockchain session
-   */
   useEffect(() => {
     const handleBlockchainSwitchSession = (e: CustomEvent) => {
       const { sessionId, title, highlightMessageId } = e.detail;
@@ -384,10 +376,7 @@ const BlockchainPage: React.FC<BlockchainPageProps> = ({
       const mainAreaWidth = containerWidth;
       if (mainAreaWidth <= 0) return;
       const startWidthPx = dragStartChatPanelWidth.current;
-      // The chat panel is anchored on the RIGHT, so dragging LEFT grows it.
-      // (moving the divider left increases the chat width)
       const newWidthPx = startWidthPx - deltaX;
-      // Clamp between the fixed min and the fixed max width.
       const clamped = Math.max(CHAT_PANEL_MIN_WIDTH, Math.min(CHAT_PANEL_MAX_WIDTH, newWidthPx));
       setChatPanelWidth(clamped);
       saveChatPanelWidth(clamped);
@@ -408,8 +397,6 @@ const BlockchainPage: React.FC<BlockchainPageProps> = ({
   }, [handleMouseMove, handleMouseUp]);
   /**
    * History drawer content.
-   * Keeps the exact same header controls as the previous sidebar, but is
-   * wrapped in a slide-out panel anchored to the left edge.
    */
   const renderHistoryDrawer = () => {
     // Common button style for header actions

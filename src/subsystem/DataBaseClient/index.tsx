@@ -11,13 +11,8 @@ import { Layers, CheckSquare, Square, Pin, PinOff, Trash2, ChevronUp, ChevronDow
 import { useDataBaseClientSession } from "../../App/hooks/session/useDataBaseClientChatSession";
 import { CollapseAllIcon2, ExpandAllIcon2 } from "../../icons";
 import DataBaseClientDashboard from "./DataBaseClientDashboard";
-// Leftmost icon sidebar + empty content area
-// Right panel min width
 const RIGHT_PANEL_MIN_WIDTH = 150;
-// History drawer width (used only in the left-side slide-out drawer)
 const HISTORY_DRAWER_WIDTH = 320;
-// Chat panel width limits (px). The chat panel is anchored to the right
-// and can never grow beyond CHAT_PANEL_MAX_WIDTH.
 const CHAT_PANEL_MIN_WIDTH = 300;
 const CHAT_PANEL_MAX_WIDTH = 400;
 const CHAT_PANEL_DEFAULT_WIDTH = 300;
@@ -36,6 +31,10 @@ interface DataBaseClientPageProps {
   onDragOverInputChange?: (isDragging: boolean) => void;
   executionLogs?: any[];
   onClearLogs?: () => void;
+  /**
+   * Optional session id to open directly on mount.
+   */
+  initSessionId?: string | null;
 }
 /**
  * Main DataBaseClient Page Component
@@ -55,6 +54,7 @@ const DataBaseClientPage: React.FC<DataBaseClientPageProps> = ({
   onDragOverInputChange,
   executionLogs,
   onClearLogs,
+  initSessionId = null,
 }) => {
   // Session management
   const {
@@ -84,6 +84,8 @@ const DataBaseClientPage: React.FC<DataBaseClientPageProps> = ({
   const dragStartX = useRef(0);
   const dragStartChatPanelWidth = useRef(CHAT_PANEL_DEFAULT_WIDTH);
   const dragStartContainerRect = useRef<DOMRect | null>(null);
+  // Guard so that initSessionId only opens once on mount.
+  const didInitSessionRef = useRef<boolean>(false);
   useEffect(() => {
     taskManager.setCurrentDomain(SessionDomain.DataBaseClient);
   }, []);
@@ -93,6 +95,12 @@ const DataBaseClientPage: React.FC<DataBaseClientPageProps> = ({
       setSelectedIds(new Set());
     }
   }, [isBatchMode]);
+  useEffect(() => {
+    if (didInitSessionRef.current) return;
+    if (!initSessionId) return;
+    didInitSessionRef.current = true;
+    dataBaseClientHandleSwitchSession(initSessionId);
+  }, [initSessionId, dataBaseClientHandleSwitchSession]);
   // Toggle select all sessions
   const toggleSelectAll = () => {
     const allIds = historySessions.map((s) => s.session_id);
@@ -356,11 +364,6 @@ const DataBaseClientPage: React.FC<DataBaseClientPageProps> = ({
       window.removeEventListener("mouseup", handleMouseUp);
     };
   }, [handleMouseMove, handleMouseUp]);
-  /**
-   * History drawer content.
-   * Keeps the exact same header controls as before, but is wrapped in a
-   * slide-out panel anchored to the left edge.
-   */
   const renderHistoryDrawer = () => {
     // Common button style for header actions
     const headerButtonStyle: React.CSSProperties = {

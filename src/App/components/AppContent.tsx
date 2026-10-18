@@ -32,7 +32,7 @@ import GeneralChatPage from "../../subsystem/GeneralChat";
 import MapsPage from "../../subsystem/Maps";
 import SandBox3DPage from "../../subsystem/SandBox3D";
 import VideoEditorPage from "../../subsystem/VideoEditor";
-import ChartPage from "../../subsystem/Finance";
+import FinancePage from "../../subsystem/Finance";
 import BlockchainPage from "../../subsystem/Blockchain";
 import ImageEditorPage from "../../subsystem/ImageEditor";
 import PixelEditorPage from "../../subsystem/PixelEditor";
@@ -40,6 +40,7 @@ import DataBaseClientPage from "../../subsystem/DataBaseClient";
 import DockerClientPage from "../../subsystem/DockerClient";
 import ApiClientPage from "../../subsystem/ApiClient";
 import { MENU_PANEL_WIDTH } from "../constants";
+import { getSubsystemEventInfo, onOpenSubsystem } from "../AppWindowEventManager";
 declare global {
   interface Window {
     __pageResources: {
@@ -513,6 +514,9 @@ export function AppContent({
   const [prevMaximizedState, setPrevMaximizedState] = useState<boolean>(false);
   const [isFuncPanelResizeHover, setIsFuncPanelResizeHover] = useState(false);
   const [isMenuResizeHover, setIsMenuResizeHover] = useState(false);
+  // Pending session requested via the OPEN_SUBSYSTEM event.
+  // Holds the target subsystem and the session id to open inside it.
+  const [pendingSession, setPendingSession] = useState<{ subsystem: string; sessionId: string } | null>(null);
   // Refs for page switching and resize
   const prevContentPanelRef = useRef<ContentPanelView | null>(null);
   const isFirstRenderRef = useRef<boolean>(true);
@@ -520,6 +524,40 @@ export function AppContent({
   const isDraggingFunctionPanel = useRef(false);
   const dragStartX = useRef(0);
   const dragStartWidth = useRef(0);
+  /**
+   * Listen for the OPEN_SUBSYSTEM event and switch to the target subsystem panel.
+   * When a session id is provided, store it in pendingSession so the target
+   * subsystem page can open that session via its `initSessionId` prop.
+   */
+  useEffect(() => {
+    const cleanup = onOpenSubsystem(({ subsystem, sessionId }) => {
+      if (!subsystem) return;
+      const target = getSubsystemEventInfo(subsystem);
+      if (!target) {
+        // Unknown subsystem: fall back to general chat panel.
+        onMenuClick("generalChat");
+        return;
+      }
+      // Switch to the subsystem's content panel.
+      onMenuClick(target.panel);
+      // Remember the session id so the subsystem page can open it on mount.
+      if (sessionId) {
+        setPendingSession({ subsystem, sessionId });
+      }
+    });
+    return cleanup;
+  }, [onMenuClick]);
+  /**
+   * Clear the pending session once the active panel no longer matches the
+   * pending subsystem, so it is not re-applied on later remounts.
+   */
+  useEffect(() => {
+    if (!pendingSession) return;
+    const target = getSubsystemEventInfo(pendingSession.subsystem);
+    if (!target || target.panel !== currentContentPanel) {
+      setPendingSession(null);
+    }
+  }, [currentContentPanel, pendingSession]);
   /**
    * Handle page switching with immediate cleanup
    * Destroys previous page and all its resources immediately
@@ -780,6 +818,16 @@ export function AppContent({
     );
   };
   /**
+   * resolve the pending session id for a given subsystem.
+   */
+  const getPendingSessionId = (...subsystems: string[]): string | null => {
+    if (!pendingSession) return null;
+    if (subsystems.includes(pendingSession.subsystem)) {
+      return pendingSession.sessionId;
+    }
+    return null;
+  };
+  /**
    * Render the main layout content
    */
   const renderMainLayout = () => {
@@ -853,12 +901,13 @@ export function AppContent({
           onDragOverInputChange={setIsDraggingOverInput}
           executionLogs={executionLogs}
           onClearLogs={onClearLogs}
+          initSessionId={getPendingSessionId("map")}
         />,
       );
     } else if (isChartPage) {
       contentElement = renderSubsystemPage(
         PAGE_TYPES.CHART_CHAT,
-        <ChartPage
+        <FinancePage
           layoutMode="horizontal"
           onLayoutModeChange={() => {}}
           leftTitle={t("chat.title") || "Chat"}
@@ -874,6 +923,7 @@ export function AppContent({
           onDragOverInputChange={setIsDraggingOverInput}
           executionLogs={executionLogs}
           onClearLogs={onClearLogs}
+          initSessionId={getPendingSessionId("chart", "finance", "financial_analysis")}
         />,
       );
     } else if (isCodeEditorChat) {
@@ -894,29 +944,30 @@ export function AppContent({
           onDragOverInputChange={setIsDraggingOverInput}
           executionLogs={executionLogs}
           onClearLogs={onClearLogs}
+          initSessionId={getPendingSessionId("codeeditor")}
         />,
       );
     } else if (isVideoEditor) {
-      contentElement = renderSubsystemPage(PAGE_TYPES.VIDEO_EDITOR, <VideoEditorPage t={t} theme={theme === "dark" ? "dark" : "light"} i18n={language === "zh" ? "zh-cn" : "en"} />);
+      contentElement = renderSubsystemPage(PAGE_TYPES.VIDEO_EDITOR, <VideoEditorPage t={t} theme={theme === "dark" ? "dark" : "light"} i18n={language === "zh" ? "zh-cn" : "en"} initSessionId={getPendingSessionId("video", "videoediting")} />);
     } else if (isSandbox3d) {
-      contentElement = renderSubsystemPage(PAGE_TYPES.SANDBOX_3D, <SandBox3DPage t={t} theme={theme === "dark" ? "dark" : "light"} i18n={language === "zh" ? "zh-cn" : "en"} />);
+      contentElement = renderSubsystemPage(PAGE_TYPES.SANDBOX_3D, <SandBox3DPage t={t} theme={theme === "dark" ? "dark" : "light"} i18n={language === "zh" ? "zh-cn" : "en"} initSessionId={getPendingSessionId("sandbox3d")} />);
     } else if (isBlockchain) {
-      contentElement = renderSubsystemPage(PAGE_TYPES.BLOCKCHAIN, <BlockchainPage t={t} theme={theme === "dark" ? "dark" : "light"} i18n={language === "zh" ? "zh-cn" : "en"} />);
+      contentElement = renderSubsystemPage(PAGE_TYPES.BLOCKCHAIN, <BlockchainPage t={t} theme={theme === "dark" ? "dark" : "light"} i18n={language === "zh" ? "zh-cn" : "en"} initSessionId={getPendingSessionId("blockchain")} />);
     } else if (isImageEditor) {
       // Render the image editor page
-      contentElement = renderSubsystemPage(PAGE_TYPES.IMAGE_EDITOR, <ImageEditorPage t={t} theme={theme === "dark" ? "dark" : "light"} i18n={language === "zh" ? "zh-cn" : "en"} />);
+      contentElement = renderSubsystemPage(PAGE_TYPES.IMAGE_EDITOR, <ImageEditorPage t={t} theme={theme === "dark" ? "dark" : "light"} i18n={language === "zh" ? "zh-cn" : "en"} initSessionId={getPendingSessionId("imageEditor", "imageeditor")} />);
     } else if (isPixelEditor) {
       // Render the pixel editor page
-      contentElement = renderSubsystemPage(PAGE_TYPES.PIXEL_EDITOR, <PixelEditorPage t={t} theme={theme === "dark" ? "dark" : "light"} i18n={language === "zh" ? "zh-cn" : "en"} />);
+      contentElement = renderSubsystemPage(PAGE_TYPES.PIXEL_EDITOR, <PixelEditorPage t={t} theme={theme === "dark" ? "dark" : "light"} i18n={language === "zh" ? "zh-cn" : "en"} initSessionId={getPendingSessionId("pixelEditor", "pixeleditor")} />);
     } else if (isDatabaseClient) {
       // Render the database client page
-      contentElement = renderSubsystemPage(PAGE_TYPES.DATABASE_CLIENT, <DataBaseClientPage t={t} theme={theme === "dark" ? "dark" : "light"} i18n={language === "zh" ? "zh-cn" : "en"} />);
+      contentElement = renderSubsystemPage(PAGE_TYPES.DATABASE_CLIENT, <DataBaseClientPage t={t} theme={theme === "dark" ? "dark" : "light"} i18n={language === "zh" ? "zh-cn" : "en"} initSessionId={getPendingSessionId("databaseClient", "databaseclient")} />);
     } else if (isDockerClient) {
       // Render the docker client page
-      contentElement = renderSubsystemPage(PAGE_TYPES.DOCKER_CLIENT, <DockerClientPage t={t} theme={theme === "dark" ? "dark" : "light"} i18n={language === "zh" ? "zh-cn" : "en"} />);
+      contentElement = renderSubsystemPage(PAGE_TYPES.DOCKER_CLIENT, <DockerClientPage t={t} theme={theme === "dark" ? "dark" : "light"} i18n={language === "zh" ? "zh-cn" : "en"} initSessionId={getPendingSessionId("dockerClient", "dockerclient")} />);
     } else if (isApiClient) {
       // Render the API client page
-      contentElement = renderSubsystemPage(PAGE_TYPES.API_CLIENT, <ApiClientPage t={t} theme={theme === "dark" ? "dark" : "light"} i18n={language === "zh" ? "zh-cn" : "en"} />);
+      contentElement = renderSubsystemPage(PAGE_TYPES.API_CLIENT, <ApiClientPage t={t} theme={theme === "dark" ? "dark" : "light"} i18n={language === "zh" ? "zh-cn" : "en"} initSessionId={getPendingSessionId("apiClient", "apiclient")} />);
     } else {
       // Other non-subsystem panels
       switch (currentContentPanel) {

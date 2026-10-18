@@ -197,6 +197,7 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_search_messages,
         commands::cmd_search_messages_formatted,
         commands::cmd_search_all,
+        commands::cmd_get_recent_sessions,
         // Notifications
         commands::cmd_notification_add,
         commands::cmd_notification_get_all,

@@ -36,11 +36,31 @@ interface ApiClientPageProps {
   onDragOverInputChange?: (isDragging: boolean) => void;
   executionLogs?: any[];
   onClearLogs?: () => void;
+  /**
+   * Optional session id to open directly on mount.
+   */
+  initSessionId?: string | null;
 }
 /**
  * Main ApiClient Page Component
  */
-const ApiClientPage: React.FC<ApiClientPageProps> = ({ t = (key: string) => key, isFunctionPanelMaximized = false, onCloseSkillsManager, theme = "dark", i18n = "en", mapData, onMapLoad, onMapClick, onMapMoveEnd, onFileClick, language = "en", onDragOverInputChange, executionLogs, onClearLogs }) => {
+const ApiClientPage: React.FC<ApiClientPageProps> = ({
+  t = (key: string) => key,
+  isFunctionPanelMaximized = false,
+  onCloseSkillsManager,
+  theme = "dark",
+  i18n = "en",
+  mapData,
+  onMapLoad,
+  onMapClick,
+  onMapMoveEnd,
+  onFileClick,
+  language = "en",
+  onDragOverInputChange,
+  executionLogs,
+  onClearLogs,
+  initSessionId = null,
+}) => {
   // Session management
   const { currentSessionId: apiClientSessionId, handleSendMessage: apiClientHandleSendMessage, handleSwitchSession: apiClientHandleSwitchSession, handleNewSession: apiClientHandleNewSession, shouldShowWelcome: apiClientShouldShowWelcome } = useApiClientSession(language as "zh" | "en", true);
   // Panel state
@@ -63,6 +83,8 @@ const ApiClientPage: React.FC<ApiClientPageProps> = ({ t = (key: string) => key,
   const dragStartX = useRef(0);
   const dragStartChatPanelWidth = useRef(CHAT_PANEL_DEFAULT_WIDTH);
   const dragStartContainerRect = useRef<DOMRect | null>(null);
+  // Guard so that initSessionId only opens once on mount.
+  const didInitSessionRef = useRef<boolean>(false);
   useEffect(() => {
     taskManager.setCurrentDomain(SessionDomain.ApiClient);
   }, []);
@@ -72,6 +94,15 @@ const ApiClientPage: React.FC<ApiClientPageProps> = ({ t = (key: string) => key,
       setSelectedIds(new Set());
     }
   }, [isBatchMode]);
+  /**
+   * Open the session passed via `initSessionId` exactly once on mount.
+   */
+  useEffect(() => {
+    if (didInitSessionRef.current) return;
+    if (!initSessionId) return;
+    didInitSessionRef.current = true;
+    apiClientHandleSwitchSession(initSessionId);
+  }, [initSessionId, apiClientHandleSwitchSession]);
   // Toggle select all sessions
   const toggleSelectAll = () => {
     const allIds = historySessions.map((s) => s.session_id);

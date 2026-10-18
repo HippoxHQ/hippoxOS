@@ -1,8 +1,12 @@
 use crate::commands::paths::{
     get_codeeditor_dialog_history_dir, get_map_dialog_history_dir, get_sandbox3d_dialog_history_dir, get_video_editing_system_dialog_history_dir,
 };
-use crate::commands::{get_finance_dialog_history_dir, get_general_history_dir, get_skills_market_dir};
+use crate::commands::{get_blockchain_dialog_history_dir, get_finance_dialog_history_dir, get_general_history_dir, get_skills_market_dir};
 use crate::commons::{get_logs_dir, get_sessions_dir, FileUtils};
+use crate::subsystem::{
+    get_apiclient_dialog_history_dir, get_databaseclient_dialog_history_dir, get_dockerclient_dialog_history_dir, get_imageeditor_dialog_history_dir,
+    get_pixeleditor_dialog_history_dir,
+};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use tauri::command;
@@ -45,8 +49,32 @@ pub struct SearchMessagesResponse {
     pub results: Vec<MessageSearchResult>,
     pub total: usize,
 }
-/// All subsystem dialog history directories
-/// Each subsystem has the same directory structure (session folders with config.json and chat.json)
+/// Request payload for the recent-sessions command.
+#[derive(Debug, Clone, Deserialize)]
+pub struct RecentSessionsRequest {
+    /// Maximum number of sessions to return. Defaults to 5 when omitted.
+    pub limit: Option<usize>,
+}
+/// A single recent session entry returned to the frontend.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RecentSessionItem {
+    /// Stable identifier in the form `session_<session_id>` so the frontend
+    /// can reuse the same navigation handler as regular session results.
+    pub id: String,
+    /// The raw session id (directory name).
+    pub session_id: String,
+    /// The display title taken from config.json (falls back to session_id).
+    pub title: String,
+    /// The session description taken from config.json (may be empty).
+    pub description: String,
+    /// Full on-disk path of the session directory.
+    pub path: String,
+    /// Last updated timestamp from config.json, if available.
+    pub timestamp: Option<String>,
+    /// The subsystem this session belongs to (e.g. "general", "imageeditor").
+    pub subsystem: String,
+}
+/// All subsystem dialog history directories.
 fn get_all_dialog_history_dirs() -> Vec<(PathBuf, &'static str)> {
     vec![
         (get_general_history_dir(), "general"),
@@ -55,6 +83,12 @@ fn get_all_dialog_history_dirs() -> Vec<(PathBuf, &'static str)> {
         (get_codeeditor_dialog_history_dir(), "codeeditor"),
         (get_sandbox3d_dialog_history_dir(), "sandbox3d"),
         (get_video_editing_system_dialog_history_dir(), "videoediting"),
+        (get_imageeditor_dialog_history_dir(), "imageeditor"),
+        (get_pixeleditor_dialog_history_dir(), "pixeleditor"),
+        (get_databaseclient_dialog_history_dir(), "databaseclient"),
+        (get_dockerclient_dialog_history_dir(), "dockerclient"),
+        (get_apiclient_dialog_history_dir(), "apiclient"),
+        (get_blockchain_dialog_history_dir(), "blockchain"),
     ]
 }
 /// Safely truncate text to a maximum length without breaking UTF-8 characters
@@ -202,11 +236,7 @@ fn extract_chat_content(content: &str) -> String {
             }
         }
     }
-    if content.len() > 200 {
-        format!("{}...", &content[..200])
-    } else {
-        content.to_string()
-    }
+    safe_truncate(content, 200)
 }
 /// Get a preview of message content
 fn get_message_preview(content: &str, max_len: usize) -> String {
@@ -301,6 +331,116 @@ fn search_messages_in_subsystem(
     }
     results
 }
+/// Search sessions in a single subsystem directory.
+fn search_sessions_in_subsystem(
+    subsystem_dir: &PathBuf,
+    subsystem_name: &str,
+    keyword: &str,
+    keyword_lower: &str,
+    limit: usize,
+) -> Vec<SearchResult> {
+    let mut results = Vec::new();
+    if !FileUtils::path_exists(subsystem_dir) {
+        return results;
+    }
+    let entries = match FileUtils::read_dir_entries(subsystem_dir) {
+        Ok(e) => e,
+        Err(_) => return results,
+    };
+    for entry in entries {
+        let session_dir = entry.path();
+        if !session_dir.is_dir() {
+            continue;
+        }
+        let session_id = FileUtils::get_file_name(&session_dir).unwrap_or_else(|_| "unknown".to_string());
+        let config = match read_session_config(&session_dir) {
+            Ok(c) => c,
+            Err(_) => continue,
+        };
+        let title = config.get("title").and_then(|v| v.as_str()).unwrap_or(&session_id).to_string();
+        let description = config.get("description").and_then(|v| v.as_str()).unwrap_or("").to_string();
+        let updated_at = config.get("updated_at").and_then(|v| v.as_str()).map(|s| s.to_string());
+        let title_lower = title.to_lowercase();
+        let description_lower = description.to_lowercase();
+        // Check title/description first
+        let mut matched = title_lower.contains(keyword_lower) || description_lower.contains(keyword_lower);
+        let mut highlight: Option<String> = None;
+        if matched {
+            if title_lower.contains(keyword_lower) {
+                highlight = Some(generate_highlight(&title, keyword));
+            } else {
+                highlight = Some(generate_highlight(&description, keyword));
+            }
+        } else {
+            // Fall back to scanning the chat content
+            if let Ok(messages) = read_session_chat(&session_dir) {
+                for msg in messages {
+                    let content = msg.get("content").and_then(|v| v.as_str()).unwrap_or("").to_string();
+                    if content.is_empty() {
+                        continue;
+                    }
+                    if content.to_lowercase().contains(keyword_lower) {
+                        matched = true;
+                        let preview = get_message_preview(&content, 120);
+                        highlight = Some(generate_highlight(&preview, keyword));
+                        break;
+                    }
+                }
+            }
+        }
+        if matched {
+            results.push(SearchResult {
+                category: "session".to_string(),
+                id: format!("session_{}_{}", subsystem_name, session_id),
+                title,
+                description: if description.is_empty() { format!("{} session - {}", subsystem_name, session_id) } else { description },
+                path: session_dir.to_string_lossy().to_string(),
+                timestamp: updated_at,
+                highlight,
+                subsystem: Some(subsystem_name.to_string()),
+            });
+            if results.len() >= limit {
+                return results;
+            }
+        }
+    }
+    results
+}
+/// Scan a single subsystem directory and collect recent sessions into `out`.
+fn collect_recent_sessions_in_subsystem(subsystem_dir: &PathBuf, subsystem_name: &str, out: &mut Vec<RecentSessionItem>) {
+    if !FileUtils::path_exists(subsystem_dir) {
+        return;
+    }
+    let entries = match FileUtils::read_dir_entries(subsystem_dir) {
+        Ok(e) => e,
+        Err(_) => return,
+    };
+    for entry in entries {
+        let session_dir = entry.path();
+        if !session_dir.is_dir() {
+            continue;
+        }
+        let session_id = FileUtils::get_file_name(&session_dir).unwrap_or_else(|_| "unknown".to_string());
+        let config = match read_session_config(&session_dir) {
+            Ok(c) => c,
+            Err(_) => continue,
+        };
+        let title = config.get("title").and_then(|v| v.as_str()).unwrap_or(&session_id).to_string();
+        let description = config.get("description").and_then(|v| v.as_str()).unwrap_or("").to_string();
+        let updated_at = config.get("updated_at").and_then(|v| v.as_str()).map(|s| s.to_string());
+        out.push(RecentSessionItem {
+            // Keep the same id shape as regular session search results so the
+            // frontend can reuse the existing navigation handler.
+            id: format!("session_{}", session_id),
+            session_id,
+            title,
+            description,
+            path: session_dir.to_string_lossy().to_string(),
+            timestamp: updated_at,
+            subsystem: subsystem_name.to_string(),
+        });
+    }
+}
 /// Search engine for searching skills, sessions, and logs
 pub struct SearchEngine {
     skills_dir: PathBuf,
@@ -356,50 +496,63 @@ impl SearchEngine {
         }
         results
     }
-    /// Search for sessions matching the keyword
+    /// Search for sessions across every subsystem dialog history directory.
     async fn search_sessions(&self, keyword: &str, limit: usize) -> Vec<SearchResult> {
         let keyword_lower = keyword.to_lowercase();
         let mut results = Vec::new();
-        if !FileUtils::path_exists(&self.sessions_dir) {
-            return results;
-        }
-        for entry in WalkDir::new(&self.sessions_dir)
-            .max_depth(2)
-            .into_iter()
-            .filter_map(|e| e.ok())
-            .filter(|e| e.path().is_file() && e.path().extension().map_or(false, |ext| ext == "json"))
-            .take(limit * 2)
-        {
-            let path = entry.path();
-            let metadata = FileUtils::get_metadata(path).ok();
-            let timestamp =
-                metadata.and_then(|m| m.modified().ok()).map(|t| t.duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_secs().to_string());
-            let content = FileUtils::read_file_to_string(path).unwrap_or_default();
-            let session_name = path.file_stem().unwrap_or_default().to_string_lossy().to_string();
-            if session_name.to_lowercase().contains(&keyword_lower) || content.to_lowercase().contains(&keyword_lower) {
-                let highlight = if content.to_lowercase().contains(&keyword_lower) {
-                    content.lines().find(|line| line.to_lowercase().contains(&keyword_lower)).map(|line| {
-                        let trimmed = line.trim();
-                        safe_truncate(trimmed, 80)
-                    })
-                } else {
-                    None
-                };
-                results.push(SearchResult {
-                    category: "session".to_string(),
-                    id: format!("session_{}", session_name),
-                    title: session_name,
-                    description: format!("session file - {}", path.file_name().unwrap_or_default().to_string_lossy()),
-                    path: path.display().to_string(),
-                    timestamp,
-                    highlight,
-                    subsystem: None,
-                });
+        // Primary source: the general sessions directory (legacy flat layout).
+        if FileUtils::path_exists(&self.sessions_dir) {
+            for entry in WalkDir::new(&self.sessions_dir)
+                .max_depth(2)
+                .into_iter()
+                .filter_map(|e| e.ok())
+                .filter(|e| e.path().is_file() && e.path().extension().map_or(false, |ext| ext == "json"))
+                .take(limit * 2)
+            {
+                let path = entry.path();
+                let metadata = FileUtils::get_metadata(path).ok();
+                let timestamp = metadata
+                    .and_then(|m| m.modified().ok())
+                    .map(|t| t.duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_secs().to_string());
+                let content = FileUtils::read_file_to_string(path).unwrap_or_default();
+                let session_name = path.file_stem().unwrap_or_default().to_string_lossy().to_string();
+                if session_name.to_lowercase().contains(&keyword_lower) || content.to_lowercase().contains(&keyword_lower) {
+                    let highlight = if content.to_lowercase().contains(&keyword_lower) {
+                        content.lines().find(|line| line.to_lowercase().contains(&keyword_lower)).map(|line| {
+                            let trimmed = line.trim();
+                            safe_truncate(trimmed, 80)
+                        })
+                    } else {
+                        None
+                    };
+                    results.push(SearchResult {
+                        category: "session".to_string(),
+                        id: format!("session_{}", session_name),
+                        title: session_name,
+                        description: format!("session file - {}", path.file_name().unwrap_or_default().to_string_lossy()),
+                        path: path.display().to_string(),
+                        timestamp,
+                        highlight,
+                        subsystem: None,
+                    });
+                }
+                if results.len() >= limit {
+                    break;
+                }
             }
-            if results.len() >= limit {
-                break;
+        }
+        if results.len() < limit {
+            let remaining = limit - results.len();
+            let subsystem_dirs = get_all_dialog_history_dirs();
+            for (dir, name) in subsystem_dirs {
+                let found = search_sessions_in_subsystem(&dir, name, keyword, &keyword_lower, remaining);
+                results.extend(found);
+                if results.len() >= limit {
+                    break;
+                }
             }
         }
+        results.truncate(limit);
         results
     }
     /// Search for logs matching the keyword
@@ -566,4 +719,45 @@ pub async fn cmd_search_all(request: SearchRequest) -> Result<Vec<SearchResult>,
     all_results.extend(existing_results);
     all_results.truncate(limit);
     Ok(all_results)
+}
+/// Get the most recent sessions across every subsystem.
+///
+/// # Arguments
+/// * `request` - Optional limit (defaults to 5).
+///
+/// # Returns
+/// A vector of `RecentSessionItem` sorted by `updated_at` descending.
+#[command]
+pub async fn cmd_get_recent_sessions(request: RecentSessionsRequest) -> Result<Vec<RecentSessionItem>, String> {
+    let limit = request.limit.unwrap_or(5);
+    if limit == 0 {
+        return Ok(vec![]);
+    }
+    let subsystem_dirs = get_all_dialog_history_dirs();
+    let mut tasks = Vec::new();
+    for (dir, name) in subsystem_dirs {
+        let dir_clone = dir.clone();
+        let name_clone = name.to_string();
+        let task = tokio::task::spawn_blocking(move || {
+            let mut items = Vec::new();
+            collect_recent_sessions_in_subsystem(&dir_clone, &name_clone, &mut items);
+            items
+        });
+        tasks.push(task);
+    }
+    let mut all_sessions: Vec<RecentSessionItem> = Vec::new();
+    for task in tasks {
+        match task.await {
+            Ok(items) => all_sessions.extend(items),
+            Err(e) => log::error!("Failed to collect recent sessions from subsystem: {}", e),
+        }
+    }
+    all_sessions.sort_by(|a, b| match (&b.timestamp, &a.timestamp) {
+        (Some(bt), Some(at)) => bt.cmp(at),
+        (Some(_), None) => std::cmp::Ordering::Greater,
+        (None, Some(_)) => std::cmp::Ordering::Less,
+        (None, None) => std::cmp::Ordering::Equal,
+    });
+    all_sessions.truncate(limit);
+    Ok(all_sessions)
 }

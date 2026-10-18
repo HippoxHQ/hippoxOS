@@ -1,8 +1,12 @@
 import { invoke } from "@tauri-apps/api/core";
-import { Brain, MessageSquare, FileText, Search, FolderOpen, Logs, PieChart, Map, Code, Box, Video } from "lucide-react";
+import { Brain, MessageSquare, FileText, Search, FolderOpen, Logs, PieChart, Map, Code, Box, Video, Image, Palette, Database, Container, Globe, Blocks, Film } from "lucide-react";
+/**
+ * Subsystem identifier used across search results.
+ */
+export type SubsystemId = "general" | "finance" | "chart" | "map" | "codeeditor" | "sandbox3d" | "videoediting" | "video" | "imageeditor" | "pixeleditor" | "databaseclient" | "dockerclient" | "apiclient" | "blockchain" | "financial_analysis";
 export interface SearchResult {
   category: "skill" | "session" | "log" | "message";
-  subsystem?: "general" | "financial_analysis" | "map" | "codeeditor" | "sandbox3d" | "video";
+  subsystem?: SubsystemId;
   id: string;
   title: string;
   description: string;
@@ -42,6 +46,31 @@ export interface SearchMessagesRequest {
 export interface SearchMessagesResponse {
   results: MessageSearchResult[];
   total: number;
+}
+/**
+ * Request payload for `cmd_get_recent_sessions`.
+ */
+export interface RecentSessionsRequest {
+  limit?: number;
+}
+/**
+ * A single recent session entry returned by `cmd_get_recent_sessions`.
+ */
+export interface RecentSessionItem {
+  /** Stable identifier in the form `session_<session_id>`. */
+  id: string;
+  /** Raw session id (directory name). */
+  session_id: string;
+  /** Display title taken from config.json (falls back to session_id). */
+  title: string;
+  /** Session description taken from config.json (may be empty). */
+  description: string;
+  /** Full on-disk path of the session directory. */
+  path: string;
+  /** Last updated timestamp from config.json, if available. */
+  timestamp?: string;
+  /** The subsystem this session belongs to. */
+  subsystem: string;
 }
 export const searchCommands = {
   /**
@@ -100,6 +129,17 @@ export const searchCommands = {
       },
     });
   },
+  /**
+   * Get the most recent sessions across every subsystem.
+   */
+  async getRecentSessions(limit: number = 5): Promise<RecentSessionItem[]> {
+    if (limit <= 0) {
+      return [];
+    }
+    return await invoke<RecentSessionItem[]>("cmd_get_recent_sessions", {
+      request: { limit },
+    });
+  },
 };
 /**
  * Search service singleton for managing search operations
@@ -142,6 +182,17 @@ export class SearchService {
     return await searchCommands.searchMessagesFormatted(keyword, limit);
   }
   /**
+   * Get the most recent sessions across every subsystem.
+   */
+  async getRecentSessions(limit: number = 5): Promise<RecentSessionItem[]> {
+    try {
+      return await searchCommands.getRecentSessions(limit);
+    } catch (error) {
+      console.error("Failed to load recent sessions:", error);
+      return [];
+    }
+  }
+  /**
    * Debounced search with anti-shake
    */
   debouncedSearch(keyword: string, callback: (results: SearchResult[]) => void, delay: number = 300): () => void {
@@ -161,16 +212,14 @@ export class SearchService {
     return () => clearTimeout(timeoutId);
   }
   /**
-   * Group search results by category, with subsystem grouping for messages
+   * Group search results by category, with subsystem grouping for messages and sessions
    */
   groupResultsByCategory(results: SearchResult[]): Record<string, SearchResult[]> {
     const grouped: Record<string, SearchResult[]> = {};
     for (const result of results) {
-      // Use string type to allow custom group keys like "message_general"
       let groupKey: string = result.category;
-      // For messages, group by subsystem if available
-      if (result.category === "message" && result.subsystem) {
-        groupKey = `message_${result.subsystem}`;
+      if ((result.category === "message" || result.category === "session") && result.subsystem) {
+        groupKey = `${result.category}_${result.subsystem}`;
       }
       if (!grouped[groupKey]) {
         grouped[groupKey] = [];
@@ -180,7 +229,7 @@ export class SearchService {
     return grouped;
   }
   /**
-   * Get the icon component for a category or subsystem
+   * Get the icon component for a category or subsystem group key
    */
   getCategoryIcon(category: string): React.ReactNode {
     switch (category) {
@@ -192,9 +241,12 @@ export class SearchService {
         return <Logs size={16} />;
       case "message":
         return <FileText size={16} />;
+      // Message groups
       case "message_general":
         return <FileText size={16} />;
+      case "message_finance":
       case "message_chart":
+      case "message_financial_analysis":
         return <PieChart size={16} />;
       case "message_map":
         return <Map size={16} />;
@@ -203,13 +255,54 @@ export class SearchService {
       case "message_sandbox3d":
         return <Box size={16} />;
       case "message_video":
+      case "message_videoediting":
         return <Video size={16} />;
+      case "message_imageeditor":
+        return <Image size={16} />;
+      case "message_pixeleditor":
+        return <Palette size={16} />;
+      case "message_databaseclient":
+        return <Database size={16} />;
+      case "message_dockerclient":
+        return <Container size={16} />;
+      case "message_apiclient":
+        return <Globe size={16} />;
+      case "message_blockchain":
+        return <Blocks size={16} />;
+      // Session groups
+      case "session_general":
+        return <MessageSquare size={16} />;
+      case "session_finance":
+      case "session_chart":
+      case "session_financial_analysis":
+        return <PieChart size={16} />;
+      case "session_map":
+        return <Map size={16} />;
+      case "session_codeeditor":
+        return <Code size={16} />;
+      case "session_sandbox3d":
+        return <Box size={16} />;
+      case "session_video":
+      case "session_videoediting":
+        return <Film size={16} />;
+      case "session_imageeditor":
+        return <Image size={16} />;
+      case "session_pixeleditor":
+        return <Palette size={16} />;
+      case "session_databaseclient":
+        return <Database size={16} />;
+      case "session_dockerclient":
+        return <Container size={16} />;
+      case "session_apiclient":
+        return <Globe size={16} />;
+      case "session_blockchain":
+        return <Blocks size={16} />;
       default:
         return <Search size={16} />;
     }
   }
   /**
-   * Get the display name for a category or subsystem
+   * Get the display name for a category or subsystem group key
    */
   getCategoryName(category: string, language: "zh" | "en"): string {
     // Use Record<string, ...> to allow dynamic keys like "message_general"
@@ -219,11 +312,36 @@ export class SearchService {
       log: { zh: "日志记录", en: "Logs" },
       message: { zh: "对话记录", en: "Messages" },
       message_general: { zh: "通用对话", en: "General Messages" },
+      message_finance: { zh: "图表对话", en: "Chart Messages" },
       message_chart: { zh: "图表对话", en: "Chart Messages" },
+      message_financial_analysis: { zh: "图表对话", en: "Chart Messages" },
       message_map: { zh: "地图对话", en: "Map Messages" },
       message_codeeditor: { zh: "代码编辑", en: "Code Editor Messages" },
       message_sandbox3d: { zh: "3D 沙盒", en: "Sandbox 3D Messages" },
       message_video: { zh: "视频编辑", en: "Video Editor Messages" },
+      message_videoediting: { zh: "视频编辑", en: "Video Editor Messages" },
+      message_imageeditor: { zh: "图像编辑", en: "Image Editor Messages" },
+      message_pixeleditor: { zh: "像素编辑", en: "Pixel Editor Messages" },
+      message_databaseclient: { zh: "数据库", en: "Database Messages" },
+      message_dockerclient: { zh: "Docker", en: "Docker Messages" },
+      message_apiclient: { zh: "API 客户端", en: "API Client Messages" },
+      message_blockchain: { zh: "区块链", en: "Blockchain Messages" },
+      // Session groups
+      session_general: { zh: "通用会话", en: "General Sessions" },
+      session_finance: { zh: "图表会话", en: "Chart Sessions" },
+      session_chart: { zh: "图表会话", en: "Chart Sessions" },
+      session_financial_analysis: { zh: "图表会话", en: "Chart Sessions" },
+      session_map: { zh: "地图会话", en: "Map Sessions" },
+      session_codeeditor: { zh: "代码编辑会话", en: "Code Editor Sessions" },
+      session_sandbox3d: { zh: "3D 沙盒会话", en: "Sandbox 3D Sessions" },
+      session_video: { zh: "视频编辑会话", en: "Video Editor Sessions" },
+      session_videoediting: { zh: "视频编辑会话", en: "Video Editor Sessions" },
+      session_imageeditor: { zh: "图像编辑会话", en: "Image Editor Sessions" },
+      session_pixeleditor: { zh: "像素编辑会话", en: "Pixel Editor Sessions" },
+      session_databaseclient: { zh: "数据库会话", en: "Database Sessions" },
+      session_dockerclient: { zh: "Docker 会话", en: "Docker Sessions" },
+      session_apiclient: { zh: "API 客户端会话", en: "API Client Sessions" },
+      session_blockchain: { zh: "区块链会话", en: "Blockchain Sessions" },
     };
     return names[category]?.[language] || category;
   }
@@ -240,6 +358,7 @@ export class SearchService {
                 sessionId: result.sessionId,
                 title: result.sessionTitle || "Session",
                 highlightMessageId: result.id,
+                subsystem: result.subsystem || "general",
               },
             }),
           );
@@ -252,14 +371,16 @@ export class SearchService {
           }),
         );
         break;
-      case "session":
+      case "session": {
         const sessionId = result.id.replace("session_", "");
+        const subsystem = result.subsystem || "general";
         window.dispatchEvent(
           new CustomEvent("search-switch-session", {
-            detail: { sessionId, title: result.title },
+            detail: { sessionId, title: result.title, subsystem },
           }),
         );
         break;
+      }
       case "log":
         window.dispatchEvent(
           new CustomEvent("search-open-log", {
@@ -270,14 +391,21 @@ export class SearchService {
     }
   }
   /**
-   * Parse subsystem from path string with proper type
+   * Parse subsystem from path string with proper type.
    */
-  parseSubsystemFromPath(path: string): "general" | "financial_analysis" | "map" | "codeeditor" | "sandbox3d" | "video" {
-    if (path.includes("FinancialAnalysis")) return "financial_analysis";
+  parseSubsystemFromPath(path: string): SubsystemId {
+    // Finance / chart
+    if (path.includes("Finance") || path.includes("FinancialAnalysis") || path.includes("ChartDialogHistory")) return "finance";
     if (path.includes("MapDialogHistory")) return "map";
     if (path.includes("CodeEditorDialogHistory")) return "codeeditor";
     if (path.includes("SandBox3DDialogHistory")) return "sandbox3d";
-    if (path.includes("VideoDialogHistory")) return "video";
+    if (path.includes("VideoDialogHistory")) return "videoediting";
+    if (path.includes("ImageDialogHistory")) return "imageeditor";
+    if (path.includes("PixelDialogHistory")) return "pixeleditor";
+    if (path.includes("DataBaseDialogHistory")) return "databaseclient";
+    if (path.includes("DockerDialogHistory")) return "dockerclient";
+    if (path.includes("ApiDialogHistory")) return "apiclient";
+    if (path.includes("BlockChain")) return "blockchain";
     return "general";
   }
 }

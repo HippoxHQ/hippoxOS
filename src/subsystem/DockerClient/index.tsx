@@ -35,6 +35,10 @@ interface DockerClientPageProps {
   onDragOverInputChange?: (isDragging: boolean) => void;
   executionLogs?: any[];
   onClearLogs?: () => void;
+  /**
+   * Optional session id to open directly on mount.
+   */
+  initSessionId?: string | null;
 }
 /**
  * Main DockerClient Page Component
@@ -54,6 +58,7 @@ const DockerClientPage: React.FC<DockerClientPageProps> = ({
   onDragOverInputChange,
   executionLogs,
   onClearLogs,
+  initSessionId = null,
 }) => {
   // Session management
   const {
@@ -83,6 +88,8 @@ const DockerClientPage: React.FC<DockerClientPageProps> = ({
   const dragStartX = useRef(0);
   const dragStartChatPanelWidth = useRef(CHAT_PANEL_DEFAULT_WIDTH);
   const dragStartContainerRect = useRef<DOMRect | null>(null);
+  // Guard so that initSessionId only opens once on mount.
+  const didInitSessionRef = useRef<boolean>(false);
   useEffect(() => {
     taskManager.setCurrentDomain(SessionDomain.DockerClient);
   }, []);
@@ -92,6 +99,15 @@ const DockerClientPage: React.FC<DockerClientPageProps> = ({
       setSelectedIds(new Set());
     }
   }, [isBatchMode]);
+  /**
+   * Open the session passed via `initSessionId` exactly once on mount.
+   */
+  useEffect(() => {
+    if (didInitSessionRef.current) return;
+    if (!initSessionId) return;
+    didInitSessionRef.current = true;
+    dockerClientHandleSwitchSession(initSessionId);
+  }, [initSessionId, dockerClientHandleSwitchSession]);
   // Toggle select all sessions
   const toggleSelectAll = () => {
     const allIds = historySessions.map((s) => s.session_id);

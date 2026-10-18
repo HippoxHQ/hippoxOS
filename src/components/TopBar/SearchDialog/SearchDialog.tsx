@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
-import { SearchResult, SearchSuggestion } from "./types";
+import { SearchResult } from "./types";
 import { useSearch } from "./hooks/useSearch";
 import { useDialogPosition } from "./hooks/useDialogPosition";
 import { useKeyboardNavigation } from "./hooks/useKeyboardNavigation";
@@ -8,12 +8,10 @@ import { SearchInput } from "./components/SearchInput";
 import { SearchResults } from "./components/SearchResults";
 import { SearchSkeleton } from "./components/SearchSkeleton";
 import { EmptyState } from "./components/EmptyState";
-import { QuickActions } from "./components/QuickActions";
 import { filesCommands } from "../../../command/files";
 import { UploadFile } from "../../../core/types";
-import { sessionCommands } from "../../../command/session/general";
-import { MessageSquare, Sun, Moon, Globe } from "lucide-react";
-import { APP_WINDOW_EVENTS } from "../../../App/AppWindowEventManager";
+import { searchService, RecentSessionItem } from "../../../command/search";
+import { dispatchOpenSubsystem } from "../../../App/AppWindowEventManager";
 export interface SearchDialogProps {
   isOpen: boolean;
   onClose: () => void;
@@ -23,21 +21,26 @@ export interface SearchDialogProps {
   onToggleLanguage: () => void;
   onFileClick?: (file: UploadFile) => void;
 }
-// Define the subsystem type to match SearchResult
-type SubsystemType = "general" | "financial_analysis" | "map" | "codeeditor" | "sandbox3d" | "video";
 /**
- * Extract subsystem from path with proper type
+ * Convert a RecentSessionItem into a SearchResult-shaped object so the
+ * existing recent-list renderer and click handler can be reused unchanged.
  */
-const extractSubsystemFromPath = (path: string): SubsystemType => {
-  if (path.includes("FinancialAnalysisDialogHistory")) return "financial_analysis";
-  if (path.includes("MapDialogHistory")) return "map";
-  if (path.includes("CodeEditorDialogHistory")) return "codeeditor";
-  if (path.includes("SandBox3DDialogHistory")) return "sandbox3d";
-  if (path.includes("VideoDialogHistory")) return "video";
-  return "general";
+const recentSessionToSearchResult = (item: RecentSessionItem, language: "zh" | "en"): SearchResult => {
+  return {
+    category: "session",
+    subsystem: item.subsystem as any,
+    id: item.id,
+    title: item.title,
+    description: item.description || item.session_id,
+    path: item.path,
+    timestamp: item.timestamp,
+    highlight: null,
+    sessionId: item.session_id,
+    sessionTitle: item.title,
+  };
 };
 /**
- * Main search dialog component with subsystem support
+ * Main search dialog component with subsystem support.
  */
 const SearchDialog: React.FC<SearchDialogProps> = ({ isOpen, onClose, currentLanguage, currentTheme, onToggleTheme, onToggleLanguage, onFileClick }) => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -45,7 +48,7 @@ const SearchDialog: React.FC<SearchDialogProps> = ({ isOpen, onClose, currentLan
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [isLoading, setIsLoading] = useState(false);
   const [isInputFocused, setIsInputFocused] = useState(false);
-  const [recentMessages, setRecentMessages] = useState<SearchResult[]>([]);
+  const [recentSessions, setRecentSessions] = useState<SearchResult[]>([]);
   const [isLoadingRecent, setIsLoadingRecent] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const isOpenRef = useRef(isOpen);
@@ -66,129 +69,49 @@ const SearchDialog: React.FC<SearchDialogProps> = ({ isOpen, onClose, currentLan
     }, []),
   });
   /**
-   * Read session chat from file
+   * Load recent sessions from every subsystem via the dedicated backend command.
    */
-  const readSessionChatFromFile = async (sessionDir: string): Promise<any[]> => {
-    try {
-      const chatPath = `${sessionDir}/chat.json`;
-      const exists = await filesCommands.pathExists(chatPath);
-      if (!exists) return [];
-      const content = await filesCommands.readTextFile(chatPath);
-      return JSON.parse(content);
-    } catch {
-      return [];
-    }
-  };
-  /**
-   * Load recent messages from all sessions across all subsystems
-   */
-  const loadRecentMessages = useCallback(async () => {
+  const loadRecentSessions = useCallback(async () => {
     if (!isOpen) return;
     setIsLoadingRecent(true);
     try {
-      const sessions = await sessionCommands.listSessions();
-      if (!sessions || sessions.length === 0) {
-        setRecentMessages([]);
-        setIsLoadingRecent(false);
-        return;
-      }
-      const allMessages: SearchResult[] = [];
-      for (const session of sessions) {
-        const sessionId = session.session_id;
-        const sessionTitle = session.title || `Session ${sessionId.slice(-6)}`;
-        const sessionPath = (session as any).path;
-        if (!sessionPath) continue;
-        // Extract subsystem from session path with proper type
-        const subsystem: SubsystemType = extractSubsystemFromPath(sessionPath);
-        const messages = await readSessionChatFromFile(sessionPath);
-        for (const msg of messages) {
-          if (!msg.content) continue;
-          let displayContent = msg.content;
-          try {
-            const parsed = JSON.parse(msg.content);
-            if (parsed?.chatResponse?.m) {
-              displayContent = parsed.chatResponse.m;
-            } else if (parsed?.terminalResponse?.m) {
-              displayContent = parsed.terminalResponse.m;
-            }
-          } catch {
-            // Ignore parse errors, use original content
-          }
-          allMessages.push({
-            category: "message",
-            subsystem: subsystem,
-            id: msg.id || `msg_${Date.now()}`,
-            title: sessionTitle,
-            description: displayContent.length > 100 ? displayContent.substring(0, 100) + "..." : displayContent,
-            path: sessionPath,
-            timestamp: msg.timestamp,
-            highlight: null,
-            sessionId: sessionId,
-            sessionTitle: sessionTitle,
-            messageContent: displayContent,
-          });
-        }
-      }
-      // Sort by timestamp descending (newest first)
-      allMessages.sort((a, b) => {
-        if (!a.timestamp) return 1;
-        if (!b.timestamp) return -1;
-        return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
-      });
-      setRecentMessages(allMessages.slice(0, 5));
+      const items = await searchService.getRecentSessions(5);
+      const mapped = items.map((item) => recentSessionToSearchResult(item, currentLanguage));
+      setRecentSessions(mapped);
     } catch (error) {
-      console.error("Failed to load recent messages:", error);
-      setRecentMessages([]);
+      console.error("Failed to load recent sessions:", error);
+      setRecentSessions([]);
     } finally {
       setIsLoadingRecent(false);
     }
-  }, [isOpen]);
+  }, [isOpen, currentLanguage]);
   useEffect(() => {
     if (isOpen) {
       setSearchQuery("");
       setSearchResults([]);
       setSelectedIndex(-1);
       setIsLoading(false);
-      loadRecentMessages();
+      loadRecentSessions();
       setTimeout(() => {
         searchInputRef.current?.focus();
       }, 50);
     }
-  }, [isOpen, loadRecentMessages]);
-  /**
-   * Handle click on a search result
-   * Navigates to the appropriate subsystem and selects the specified session
-   */
+  }, [isOpen, loadRecentSessions]);
   const handleResultClick = useCallback(
     async (result: SearchResult) => {
       switch (result.category) {
         case "message": {
           const sessionId = result.sessionId || result.path;
           if (sessionId) {
-            // Extract subsystem from result, default to "general"
             const subsystem = result.subsystem || "general";
-            // Dispatch event to switch session with subsystem info using APP_WINDOW_EVENTS
-            window.dispatchEvent(
-              new CustomEvent(APP_WINDOW_EVENTS.SEARCH_SWITCH_SESSION, {
-                detail: {
-                  sessionId: sessionId,
-                  title: result.sessionTitle || result.title || "Session",
-                  highlightMessageId: result.id,
-                  subsystem: subsystem,
-                },
-              }),
-            );
-            // Dispatch session selected event
-            window.dispatchEvent(
-              new CustomEvent(APP_WINDOW_EVENTS.SESSION_SELECTED, {
-                detail: {
-                  sessionId: sessionId,
-                  title: result.sessionTitle || result.title || "Session",
-                  subsystem: subsystem,
-                },
-              }),
-            );
-            // Close search dialog after a short delay
+            console.log("[SearchDialog] message click", {
+              rawSubsystem: result.subsystem,
+              resolvedSubsystem: subsystem,
+              sessionId,
+              resultId: result.id,
+              path: result.path,
+            });
+            dispatchOpenSubsystem(subsystem, sessionId);
             setTimeout(() => {
               onClose();
             }, 100);
@@ -196,9 +119,9 @@ const SearchDialog: React.FC<SearchDialogProps> = ({ isOpen, onClose, currentLan
           break;
         }
         case "skill":
-          // Navigate to skills market and open the skill
+          console.log("[SearchDialog] skill click", { path: result.path, title: result.title });
           window.dispatchEvent(
-            new CustomEvent(APP_WINDOW_EVENTS.SEARCH_OPEN_SKILL, {
+            new CustomEvent("APP_WINDOW_EVENT_SEARCH_OPEN_SKILL", {
               detail: { path: result.path, title: result.title },
             }),
           );
@@ -207,33 +130,23 @@ const SearchDialog: React.FC<SearchDialogProps> = ({ isOpen, onClose, currentLan
           }, 100);
           break;
         case "session": {
-          // Extract session ID from result ID (format: "session_xxx")
-          const sessionId = result.id.replace("session_", "");
-          window.dispatchEvent(
-            new CustomEvent(APP_WINDOW_EVENTS.SEARCH_SWITCH_SESSION, {
-              detail: {
-                sessionId: sessionId,
-                title: result.title,
-                subsystem: "general",
-              },
-            }),
-          );
-          window.dispatchEvent(
-            new CustomEvent(APP_WINDOW_EVENTS.SESSION_SELECTED, {
-              detail: {
-                sessionId: sessionId,
-                title: result.title,
-                subsystem: "general",
-              },
-            }),
-          );
+          const rawId = result.sessionId || result.id.replace("session_", "");
+          const subsystem = result.subsystem || "general";
+          console.log("[SearchDialog] session click", {
+            rawSubsystem: result.subsystem,
+            resolvedSubsystem: subsystem,
+            rawId,
+            resultId: result.id,
+            path: result.path,
+          });
+          dispatchOpenSubsystem(subsystem, rawId);
           setTimeout(() => {
             onClose();
           }, 100);
           break;
         }
         case "log": {
-          // Read log file content and create a file object
+          console.log("[SearchDialog] log click", { path: result.path });
           try {
             const content = await filesCommands.readTextFile(result.path);
             const file: UploadFile = {
@@ -259,6 +172,7 @@ const SearchDialog: React.FC<SearchDialogProps> = ({ isOpen, onClose, currentLan
           break;
         }
         default:
+          console.warn("[SearchDialog] unknown category", result.category, result);
           break;
       }
     },
@@ -276,7 +190,7 @@ const SearchDialog: React.FC<SearchDialogProps> = ({ isOpen, onClose, currentLan
     onClose,
   });
   /**
-   * Clear search input
+   * Clear search input.
    */
   const clearSearch = useCallback(() => {
     setSearchQuery("");
@@ -284,52 +198,11 @@ const SearchDialog: React.FC<SearchDialogProps> = ({ isOpen, onClose, currentLan
     setSelectedIndex(-1);
     searchInputRef.current?.focus();
   }, []);
-  /**
-   * Get search suggestions for quick actions
-   */
-  const getSearchSuggestions = useCallback((): SearchSuggestion[] => {
-    const isZh = currentLanguage === "zh";
-    return [
-      {
-        id: "new-session",
-        title: isZh ? "新建会话" : "New Session",
-        description: isZh ? "创建一个新的对话会话" : "Create a new chat session",
-        icon: <MessageSquare size={16} />,
-        action: () => {
-          window.dispatchEvent(new CustomEvent(APP_WINDOW_EVENTS.SEARCH_NEW_SESSION));
-        },
-      },
-      {
-        id: "toggle-theme",
-        title: isZh ? "切换主题" : "Toggle Theme",
-        description: isZh ? "切换深色/浅色模式" : "Switch between dark and light mode",
-        icon: currentTheme === "dark" ? <Sun size={16} /> : <Moon size={16} />,
-        action: () => onToggleTheme(),
-      },
-      {
-        id: "toggle-language",
-        title: isZh ? "切换语言" : "Toggle Language",
-        description: isZh ? "切换中文/英文界面" : "Switch between Chinese and English",
-        icon: <Globe size={16} />,
-        action: () => onToggleLanguage(),
-      },
-    ];
-  }, [currentLanguage, currentTheme, onToggleTheme, onToggleLanguage]);
-  /**
-   * Handle quick action click
-   */
-  const handleQuickAction = useCallback(
-    (action: () => void) => {
-      action();
-      onClose();
-    },
-    [onClose],
-  );
   if (!isOpen) return null;
   const isLoadingState = isLoading || searchLoading || titlesLoading;
   const hasResults = searchResults.length > 0;
   const hasQuery = searchQuery.trim().length > 0;
-  const hasRecentMessages = recentMessages.length > 0;
+  const hasRecentSessions = recentSessions.length > 0;
   return (
     <div
       style={{
@@ -401,7 +274,7 @@ const SearchDialog: React.FC<SearchDialogProps> = ({ isOpen, onClose, currentLan
                 >
                   {currentLanguage === "zh" ? "加载中..." : "Loading..."}
                 </div>
-              ) : hasRecentMessages ? (
+              ) : hasRecentSessions ? (
                 <>
                   <div
                     style={{
@@ -413,9 +286,9 @@ const SearchDialog: React.FC<SearchDialogProps> = ({ isOpen, onClose, currentLan
                       paddingTop: "8px",
                     }}
                   >
-                    {currentLanguage === "zh" ? "最近对话" : "Recent Messages"}
+                    {currentLanguage === "zh" ? "最近会话" : "Recent Sessions"}
                   </div>
-                  {recentMessages.map((result) => (
+                  {recentSessions.map((result) => (
                     <div
                       key={result.id}
                       style={{
@@ -466,7 +339,6 @@ const SearchDialog: React.FC<SearchDialogProps> = ({ isOpen, onClose, currentLan
                   ))}
                 </>
               ) : null}
-              <QuickActions suggestions={getSearchSuggestions()} onActionClick={handleQuickAction} language={currentLanguage} />
             </>
           )}
         </div>

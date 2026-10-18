@@ -43,6 +43,10 @@ interface SandBox3DPageProps {
   onDragOverInputChange?: (isDragging: boolean) => void;
   executionLogs?: any[];
   onClearLogs?: () => void;
+  /**
+   * Optional session id to open directly on mount.
+   */
+  initSessionId?: string | null;
 }
 interface CollapsedTaskListProps {
   tasks: any[];
@@ -608,7 +612,16 @@ const CollapsedHistoryList: React.FC<CollapsedHistoryListProps> = ({ sessions, c
 /**
  * Main 3D Sandbox Page Component
  */
-const SandBox3DPage: React.FC<SandBox3DPageProps> = ({ t = (key: string) => key, isFunctionPanelMaximized = false, theme = "dark", i18n = "en", onFileClick, language = "en", onDragOverInputChange }) => {
+const SandBox3DPage: React.FC<SandBox3DPageProps> = ({
+  t = (key: string) => key,
+  isFunctionPanelMaximized = false,
+  theme = "dark",
+  i18n = "en",
+  onFileClick,
+  language = "en",
+  onDragOverInputChange,
+  initSessionId = null,
+}) => {
   // Session management
   const { currentSessionId: sandbox3dSessionId, handleSendMessage: sandbox3dHandleSendMessage, handleSwitchSession: sandbox3dHandleSwitchSession, handleNewSession: sandbox3dHandleNewSession, shouldShowWelcome: sandbox3dShouldShowWelcome } = useSandBox3DSession(language as "zh" | "en", true);
   // Panel state - using constants for initial values
@@ -647,6 +660,8 @@ const SandBox3DPage: React.FC<SandBox3DPageProps> = ({ t = (key: string) => key,
   const [gifPath, setGifPath] = useState<string | null>(null);
   // Language helper
   const isZh = i18n === "zh-cn";
+  // Guard so that initSessionId only opens once on mount.
+  const didInitSessionRef = useRef<boolean>(false);
   useEffect(() => {
     taskManager.setCurrentDomain(SessionDomain.SandBox3D);
   }, []);
@@ -656,6 +671,17 @@ const SandBox3DPage: React.FC<SandBox3DPageProps> = ({ t = (key: string) => key,
       setSelectedIds(new Set());
     }
   }, [isBatchMode]);
+  /**
+   * Open the session passed via `initSessionId` exactly once on mount.
+   * This lets the page be opened directly into a specific session (e.g. from
+   * the search dialog).
+   */
+  useEffect(() => {
+    if (didInitSessionRef.current) return;
+    if (!initSessionId) return;
+    didInitSessionRef.current = true;
+    sandbox3dHandleSwitchSession(initSessionId);
+  }, [initSessionId, sandbox3dHandleSwitchSession]);
   // Toggle select all sessions - aligned with GeneralChatPage
   const toggleSelectAll = () => {
     const allIds = historySessions.map((s) => s.session_id);
@@ -929,7 +955,18 @@ const SandBox3DPage: React.FC<SandBox3DPageProps> = ({ t = (key: string) => key,
   /**
    * Create chat panel
    */
-  const chatPanel = <SandBox3DChatPanel onSendMessage={sandbox3dHandleSendMessage} onFileClick={onFileClick} t={t} onDragOverInputChange={onDragOverInputChange} language={language} isLeftPanel={isChatOnLeft} currentSessionId={sandbox3dSessionId} sandboxRef={sandboxRef} />;
+  const chatPanel = (
+    <SandBox3DChatPanel
+      onSendMessage={sandbox3dHandleSendMessage}
+      onFileClick={onFileClick}
+      t={t}
+      onDragOverInputChange={onDragOverInputChange}
+      language={language}
+      isLeftPanel={isChatOnLeft}
+      currentSessionId={sandbox3dSessionId}
+      sandboxRef={sandboxRef}
+    />
+  );
   /**
    * Create 3D sandbox panel with ref attached and independent history panel
    */

@@ -36,6 +36,7 @@ interface FinancePageProps {
   onDragOverInputChange?: (isDragging: boolean) => void;
   executionLogs?: any[];
   onClearLogs?: () => void;
+  initSessionId?: string | null;
 }
 interface CollapsedTaskListProps {
   tasks: any[];
@@ -335,6 +336,7 @@ const FinancePage: React.FC<FinancePageProps> = ({
   onFileClick,
   language = "en",
   onDragOverInputChange,
+  initSessionId = null,
 }) => {
   const { currentSessionId: chartSessionId, handleSendMessage: chartHandleSendMessage, handleSwitchSession: chartHandleSwitchSession, handleNewSession: chartHandleNewSession, shouldShowWelcome: chartShouldShowWelcome } = useFinanceSession(language as "zh" | "en", true);
   const [chatPanelWidth, setChatPanelWidth] = useState<number>(400);
@@ -350,6 +352,8 @@ const FinancePage: React.FC<FinancePageProps> = ({
   const [layoutSwapMode, setLayoutSwapMode] = useState<"terminal-left" | "chat-left">("terminal-left");
   const layoutSwapModeRef = useRef<"terminal-left" | "chat-left">("terminal-left");
   const isChatOnLeft = layoutSwapMode === "chat-left";
+  // Guard so that initSessionId only opens once on mount.
+  const didInitSessionRef = useRef<boolean>(false);
   // Default ticker data for the marquee
   const defaultTickerItems = [
     { symbol: "BTC/USDT", price: 67423.5, change: 1240.2, changePercent: 1.87 },
@@ -386,7 +390,28 @@ const FinancePage: React.FC<FinancePageProps> = ({
       return newState;
     });
   }, [isFunctionPanelMaximized]);
-  const chatPanel = <FinanceChatPanel onSendMessage={chartHandleSendMessage} onFileClick={onFileClick} t={t} onDragOverInputChange={onDragOverInputChange} language={language} isLeftPanel={isChatOnLeft} currentSessionId={chartSessionId} />;
+  /**
+   * Open the session passed via `initSessionId` exactly once on mount.
+   * This lets the page be opened directly into a specific session (e.g. from
+   * the search dialog).
+   */
+  useEffect(() => {
+    if (didInitSessionRef.current) return;
+    if (!initSessionId) return;
+    didInitSessionRef.current = true;
+    chartHandleSwitchSession(initSessionId);
+  }, [initSessionId, chartHandleSwitchSession]);
+  const chatPanel = (
+    <FinanceChatPanel
+      onSendMessage={chartHandleSendMessage}
+      onFileClick={onFileClick}
+      t={t}
+      onDragOverInputChange={onDragOverInputChange}
+      language={language}
+      isLeftPanel={isChatOnLeft}
+      currentSessionId={chartSessionId}
+    />
+  );
   const chartPanel = (
     <div
       style={{
@@ -398,7 +423,16 @@ const FinancePage: React.FC<FinancePageProps> = ({
         overflow: "hidden",
       }}
     >
-      <MainPanel theme={theme} i18n={i18n} currentSessionId={chartSessionId} chartData={chartData} symbol={symbol} t={t} onSessionSelect={chartHandleSwitchSession} onNewSession={chartHandleNewSession} />
+      <MainPanel
+        theme={theme}
+        i18n={i18n}
+        currentSessionId={chartSessionId}
+        chartData={chartData}
+        symbol={symbol}
+        t={t}
+        onSessionSelect={chartHandleSwitchSession}
+        onNewSession={chartHandleNewSession}
+      />
     </div>
   );
   const collapsedChatSidebar = (

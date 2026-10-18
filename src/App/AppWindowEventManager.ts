@@ -1,9 +1,8 @@
 /**
  * App Window Event Manager
- * Centralized event definitions for cross-window communication
- * All events use the APP_WINDOW_EVENT_* prefix
  */
 export const APP_WINDOW_EVENTS = {
+    OPEN_SUBSYSTEM: 'app:open-subsystem',
     // Session related events
     SESSION_CREATED: "APP_WINDOW_EVENT_SESSION_CREATED",
     SESSION_SELECTED: "APP_WINDOW_EVENT_SESSION_SELECTED",
@@ -163,16 +162,54 @@ export const SUBSYSTEM_EVENT_MAP: Record<
     video: { event: APP_WINDOW_EVENTS.VIDEO_SWITCH_SESSION, panel: "videoEditor" },
     sandbox3d: { event: APP_WINDOW_EVENTS.SANDBOX3D_SWITCH_SESSION, panel: "sandbox3d" },
     blockchain: { event: APP_WINDOW_EVENTS.BLOCKCHAIN_SWITCH_SESSION, panel: "blockchain" },
-    // New subsystems
     imageEditor: { event: APP_WINDOW_EVENTS.IMAGE_EDITOR_SWITCH_SESSION, panel: "imageEditor" },
     pixelEditor: { event: APP_WINDOW_EVENTS.PIXEL_EDITOR_SWITCH_SESSION, panel: "pixelEditor" },
     databaseClient: { event: APP_WINDOW_EVENTS.DATABASE_CLIENT_SWITCH_SESSION, panel: "databaseClient" },
     dockerClient: { event: APP_WINDOW_EVENTS.DOCKER_CLIENT_SWITCH_SESSION, panel: "dockerClient" },
     apiClient: { event: APP_WINDOW_EVENTS.API_CLIENT_SWITCH_SESSION, panel: "apiClient" },
+    finance: { event: APP_WINDOW_EVENTS.CHART_SWITCH_SESSION, panel: "chartChat" },
+    videoediting: { event: APP_WINDOW_EVENTS.VIDEO_SWITCH_SESSION, panel: "videoEditor" },
+    imageeditor: { event: APP_WINDOW_EVENTS.IMAGE_EDITOR_SWITCH_SESSION, panel: "imageEditor" },
+    pixeleditor: { event: APP_WINDOW_EVENTS.PIXEL_EDITOR_SWITCH_SESSION, panel: "pixelEditor" },
+    databaseclient: { event: APP_WINDOW_EVENTS.DATABASE_CLIENT_SWITCH_SESSION, panel: "databaseClient" },
+    dockerclient: { event: APP_WINDOW_EVENTS.DOCKER_CLIENT_SWITCH_SESSION, panel: "dockerClient" },
+    apiclient: { event: APP_WINDOW_EVENTS.API_CLIENT_SWITCH_SESSION, panel: "apiClient" },
 };
 /**
  * Get the subsystem event and panel for a given subsystem
  */
 export function getSubsystemEventInfo(subsystem: string): { event: string; panel: string } | null {
     return SUBSYSTEM_EVENT_MAP[subsystem] || null;
+}
+/**
+ * Payload for the OPEN_SUBSYSTEM event.
+ */
+export interface OpenSubsystemPayload {
+    subsystem: string;
+    sessionId?: string | null;
+}
+/**
+ * Dispatch the OPEN_SUBSYSTEM event.
+ */
+export function dispatchOpenSubsystem(subsystem: string, sessionId?: string | null): void {
+    console.log("[AppWindowEventManager] dispatchOpenSubsystem", { subsystem, sessionId });
+    window.dispatchEvent(
+        new CustomEvent<OpenSubsystemPayload>(APP_WINDOW_EVENTS.OPEN_SUBSYSTEM, {
+            detail: { subsystem, sessionId: sessionId ?? null },
+        }),
+    );
+}
+/**
+ * Listen for the OPEN_SUBSYSTEM event.
+ */
+export function onOpenSubsystem(handler: (payload: OpenSubsystemPayload) => void): () => void {
+    const wrapped = (event: Event) => {
+        const detail = (event as CustomEvent<OpenSubsystemPayload>).detail;
+        console.log("[AppWindowEventManager] onOpenSubsystem received", detail);
+        handler(detail);
+    };
+    window.addEventListener(APP_WINDOW_EVENTS.OPEN_SUBSYSTEM, wrapped);
+    return () => {
+        window.removeEventListener(APP_WINDOW_EVENTS.OPEN_SUBSYSTEM, wrapped);
+    };
 }

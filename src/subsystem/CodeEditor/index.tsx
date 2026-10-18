@@ -97,6 +97,10 @@ interface CodeEditorPageProps {
   executionLogs?: any[];
   onClearLogs?: () => void;
   isConfigLoaded?: boolean;
+  /**
+   * Optional session id to open directly on mount.
+   */
+  initSessionId?: string | null;
 }
 interface CollapsedTaskListProps {
   tasks: any[];
@@ -677,6 +681,7 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
   executionLogs,
   onClearLogs,
   isConfigLoaded = true,
+  initSessionId = null,
 }) => {
   const { currentSessionId, handleSendMessage: handleSendMessageHook, handleSwitchSession, handleNewSession, shouldShowWelcome, createSessionWithWorkspace } = useCodeEditorSession(language as "zh" | "en", isConfigLoaded, onCloseSkillsManager);
   const dropLockRef = useRef<{ path: string; time: number } | null>(null);
@@ -725,6 +730,8 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
   // Whether the Git panel is currently covering the main content area.
   // This is derived from sidePanelView === "git".
   const isGitPanelActive = sidePanelView === "git";
+  // Guard so that initSessionId only opens once on mount.
+  const didInitSessionRef = useRef<boolean>(false);
   useEffect(() => {
     taskManager.setCurrentDomain(SessionDomain.CodeEditor);
   }, []);
@@ -734,6 +741,17 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({
       setSelectedIds(new Set());
     }
   }, [isBatchMode]);
+  /**
+   * Open the session passed via `initSessionId` exactly once on mount.
+   * This lets the page be opened directly into a specific session (e.g. from
+   * the search dialog).
+   */
+  useEffect(() => {
+    if (didInitSessionRef.current) return;
+    if (!initSessionId) return;
+    didInitSessionRef.current = true;
+    handleSwitchSession(initSessionId);
+  }, [initSessionId, handleSwitchSession]);
   // Toggle select all sessions
   const toggleSelectAll = () => {
     const allIds = historySessions.map((s) => s.session_id);
