@@ -19,6 +19,7 @@ import { EarthViewRef } from "./types";
 import { filesCommands } from "../../../command/files";
 import { isStructuredLLMResponse, parseLLMResponse } from "../llm/utils";
 import dockerClientCommands from "../../../command/DockerClient/General";
+import { DOCKER_CLIENT_WINDOW_EVENTS } from "../DockerClientWindowEventManager";
 interface DockerClientChatPanelProps {
   onSendMessage: (message: string, sessionId: string, files?: UploadFile[], workflowMode?: string) => void | Promise<void>;
   onFileClick?: (file: UploadFile) => void;
@@ -1139,7 +1140,7 @@ const DockerClientChatPanel: React.FC<DockerClientChatPanelProps> = ({
             console.error("[DockerClientChatPanel] Failed to save executed flag:", e);
           }
           window.dispatchEvent(
-            new CustomEvent("dockerclient-command-executed", {
+            new CustomEvent(DOCKER_CLIENT_WINDOW_EVENTS.COMMAND_EXECUTED, {
               detail: { sessionId },
             }),
           );

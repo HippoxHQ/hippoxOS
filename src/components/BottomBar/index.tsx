@@ -5,12 +5,13 @@ import ScheduledTasksStatus from "./ScheduledTasksStatus";
 import { showToast, ToastType } from "../Toast";
 import { BotIcon2 } from "../../icons";
 import { configCommands } from "../../command/config";
-import { LlmInstance, ImageInstance, VideoInstance, AudioInstance, imageCommands, videoCommands, audioCommands } from "../../command/llm";
+import { LlmInstance, imageCommands, videoCommands, audioCommands } from "../../command/llm";
 import { systemNotificationService } from "../../core/NotificationManager";
 import { basisCommands } from "../../command/basis";
 import { healthCommands, HealthCheckResult } from "../../command/health";
 import SystemResourceMonitor from "./SystemResourceMonitor";
 import { Bell, BellDot, Clock } from "lucide-react";
+import systemUpdateCommands from "../../command/SystemUpdate";
 interface BottomBarProps {
   t: (key: string, params?: Record<string, any>) => string;
 }
@@ -100,6 +101,12 @@ const bottomBarStyles = `
     color: var(--text-tertiary);
     margin-right: 4px;
   }
+  .version-divider {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    margin: 0 4px;
+    user-select: none;
+  }
   .notification-badge {
     position: absolute;
     top: -2px;
@@ -139,6 +146,7 @@ if (typeof document !== "undefined") {
 const BottomBar: React.FC<BottomBarProps> = ({ t }) => {
   const isZh = t("i18n") === "zh";
   const [hippoxVersion, setHippoxVersion] = useState<string>("");
+  const [appVersion, setAppVersion] = useState<string>("");
   const [modelPopupVisible, setModelPopupVisible] = useState(false);
   const [notificationCenterVisible, setNotificationCenterVisible] = useState(false);
   const [scheduledTasksVisible, setScheduledTasksVisible] = useState(false);
@@ -146,8 +154,6 @@ const BottomBar: React.FC<BottomBarProps> = ({ t }) => {
   const [defaultInstanceId, setDefaultInstanceId] = useState<string>("");
   const [unreadCount, setUnreadCount] = useState(0);
   const [statusDot, setStatusDot] = useState<StatusDotState>("checking");
-  // Tracks the tab currently selected inside ModelSelector so that the
-  // bottom-bar button label and status dot reflect the active capability.
   const [activeSelectorTab, setActiveSelectorTab] = useState<SelectorTab>("chat");
   const modelButtonRef = useRef<HTMLButtonElement>(null);
   const notificationButtonRef = useRef<HTMLButtonElement>(null);
@@ -207,6 +213,20 @@ const BottomBar: React.FC<BottomBarProps> = ({ t }) => {
     };
     loadVersion();
   }, []);
+  // Load application version (from the backend crate's cargo.toml) on mount.
+  useEffect(() => {
+    const loadAppVersion = async () => {
+      try {
+        const version = await systemUpdateCommands.getAppVersion();
+        if (version) {
+          setAppVersion(`HippoxOS v${version}`);
+        }
+      } catch (error) {
+        console.error("Failed to fetch application version:", error);
+      }
+    };
+    loadAppVersion();
+  }, []);
   // Load LLM instances on mount
   useEffect(() => {
     loadLlmInstances();
@@ -260,14 +280,11 @@ const BottomBar: React.FC<BottomBarProps> = ({ t }) => {
   }, [modelPopupVisible, notificationCenterVisible, scheduledTasksVisible]);
   /**
    * Handle setting the default model for the currently active selector tab.
-   * The tab determines which backend command set is used.
    */
   const handleSetDefaultModel = async (instanceId: string, type: SelectorTab) => {
     try {
       const setDefault = type === "image" ? imageCommands.setDefaultImageInstance : type === "video" ? videoCommands.setDefaultVideoInstance : type === "audio" ? audioCommands.setDefaultAudioInstance : configCommands.setDefaultLlmInstance;
       await setDefault(instanceId);
-      // Only the chat tab participates in the bottom-bar's default model
-      // display / health dot; other tabs simply persist the change.
       if (type === "chat") {
         setDefaultInstanceId(instanceId);
         const instances = await configCommands.getLlmInstances();
@@ -326,13 +343,18 @@ const BottomBar: React.FC<BottomBarProps> = ({ t }) => {
           </button>
         </div>
         <div className="bottom-bar-right">
-          {/* System resource monitoring */}
           <SystemResourceMonitor t={t} />
           {!hippoxVersion ? (
             <span className="version-info">{t("common.loading")}</span>
           ) : (
             <span className="version-info">
               {t("bottomBar.engine")} {hippoxVersion}
+              {appVersion && (
+                <>
+                  <span className="version-divider">|</span>
+                  {appVersion}
+                </>
+              )}
             </span>
           )}
           <button

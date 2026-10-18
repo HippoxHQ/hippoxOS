@@ -4,7 +4,7 @@ import { showDialog, DialogType } from "../../Dialog";
 import { storageCommands } from "../../../command/config";
 import { filesCommands } from "../../../command/files";
 import { getDataPaths } from "../../../command/paths";
-import { HardDrive, FolderOpen, FileText, MessageSquare, Star, Package, Clock, Settings, Trash2, Folder, Save, LoaderCircle, AlertCircle, CheckCircle } from "lucide-react";
+import { HardDrive, FolderOpen, FileText, MessageSquare, Star, Package, Clock, Settings, Folder, ChevronDown, ChevronRight, Image as ImageIcon, Grid3x3, Database, Container, Globe, Video, Box, Code, Map as MapIcon, PieChart } from "lucide-react";
 interface StorageConfigProps {
   t: (key: string, params?: any) => string;
   onSave?: (config: any) => void;
@@ -35,18 +35,26 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
   const [scheduledTasksDir, setScheduledTasksDir] = useState("");
   const [settingsDir, setSettingsDir] = useState("");
   const [appRootDir, setAppRootDir] = useState("");
-  // Sub-system dialog history directories
   const [financeDialogHistoryDir, setFinanceDialogHistoryDir] = useState("");
   const [mapDialogHistoryDir, setMapDialogHistoryDir] = useState("");
   const [codeEditorDialogHistoryDir, setCodeEditorDialogHistoryDir] = useState("");
   const [videoDialogHistoryDir, setVideoDialogHistoryDir] = useState("");
   const [sandbox3dDialogHistoryDir, setSandbox3dDialogHistoryDir] = useState("");
-  // Sub-system directory sizes
+  const [imageEditorDialogHistoryDir, setImageEditorDialogHistoryDir] = useState("");
+  const [pixelEditorDialogHistoryDir, setPixelEditorDialogHistoryDir] = useState("");
+  const [databaseClientDialogHistoryDir, setDatabaseClientDialogHistoryDir] = useState("");
+  const [dockerClientDialogHistoryDir, setDockerClientDialogHistoryDir] = useState("");
+  const [apiClientDialogHistoryDir, setApiClientDialogHistoryDir] = useState("");
   const [financeDialogSize, setFinanceDialogSize] = useState<number>(0);
   const [mapDialogSize, setMapDialogSize] = useState<number>(0);
   const [codeEditorDialogSize, setCodeEditorDialogSize] = useState<number>(0);
   const [videoDialogSize, setVideoDialogSize] = useState<number>(0);
   const [sandbox3dDialogSize, setSandbox3dDialogSize] = useState<number>(0);
+  const [imageEditorDialogSize, setImageEditorDialogSize] = useState<number>(0);
+  const [pixelEditorDialogSize, setPixelEditorDialogSize] = useState<number>(0);
+  const [databaseClientDialogSize, setDatabaseClientDialogSize] = useState<number>(0);
+  const [dockerClientDialogSize, setDockerClientDialogSize] = useState<number>(0);
+  const [apiClientDialogSize, setApiClientDialogSize] = useState<number>(0);
   const [diskInfo, setDiskInfo] = useState<{
     total: number;
     free: number;
@@ -56,6 +64,10 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
     free: 0,
     used: 0,
   });
+  const [showBasicDirs, setShowBasicDirs] = useState(true);
+  const [showHistoryDirs, setShowHistoryDirs] = useState(true);
+  const [showOtherDirs, setShowOtherDirs] = useState(true);
+  const l = (zh: string, en: string): string => (isZh ? zh : en);
   useEffect(() => {
     loadData();
   }, []);
@@ -71,30 +83,59 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
       setScheduledTasksDir(String(paths.scheduled_tasks_dir ?? ""));
       setSettingsDir(String(paths.settings_dir ?? ""));
       setAppRootDir(String(paths.app_root_dir ?? ""));
-      // Set sub-system dialog history directories
       setFinanceDialogHistoryDir(String((paths as any).finance_dialog_history_dir ?? ""));
       setMapDialogHistoryDir(String((paths as any).map_dialog_history_dir ?? ""));
       setCodeEditorDialogHistoryDir(String((paths as any).codeeditor_dialog_history_dir ?? ""));
       setVideoDialogHistoryDir(String((paths as any).video_editing_system_dialog_history_dir ?? ""));
       setSandbox3dDialogHistoryDir(String((paths as any).sandbox3d_dialog_history_dir ?? ""));
-      const [logsSizeVal, dialogSizeVal, favoritesSizeVal, skillsMarketSizeVal, scheduledTasksSizeVal, settingsSizeVal, maxLogSizeVal, maxDialogSizeVal, maxFavoritesSizeVal, diskInfoVal, financeDialogSizeVal, mapDialogSizeVal, codeEditorDialogSizeVal, videoDialogSizeVal, sandbox3dDialogSizeVal] =
-        await Promise.all([
-          storageCommands.getDirectorySize(paths.log_dir),
-          storageCommands.getDirectorySize(paths.general_history_dir),
-          storageCommands.getDirectorySize(favoritesDirPath),
-          storageCommands.getDirectorySize(paths.skills_market_dir),
-          storageCommands.getDirectorySize(paths.scheduled_tasks_dir),
-          storageCommands.getDirectorySize(paths.settings_dir),
-          storageCommands.getMaxLogSize(),
-          storageCommands.getMaxDialogSize(),
-          storageCommands.getMaxFavoritesSize(),
-          storageCommands.getDiskInfo(paths.app_root_dir),
-          storageCommands.getDirectorySize(String((paths as any).chart_dialog_history_dir ?? "")),
-          storageCommands.getDirectorySize(String((paths as any).map_dialog_history_dir ?? "")),
-          storageCommands.getDirectorySize(String((paths as any).codeeditor_dialog_history_dir ?? "")),
-          storageCommands.getDirectorySize(String((paths as any).video_editing_system_dialog_history_dir ?? "")),
-          storageCommands.getDirectorySize(String((paths as any).sandbox3d_dialog_history_dir ?? "")),
-        ]);
+      setImageEditorDialogHistoryDir(String((paths as any).imageeditor_dialog_history_dir ?? ""));
+      setPixelEditorDialogHistoryDir(String((paths as any).pixeleditor_dialog_history_dir ?? ""));
+      setDatabaseClientDialogHistoryDir(String((paths as any).databaseclient_dialog_history_dir ?? ""));
+      setDockerClientDialogHistoryDir(String((paths as any).dockerclient_dialog_history_dir ?? ""));
+      setApiClientDialogHistoryDir(String((paths as any).apiclient_dialog_history_dir ?? ""));
+      const [
+        logsSizeVal,
+        dialogSizeVal,
+        favoritesSizeVal,
+        skillsMarketSizeVal,
+        scheduledTasksSizeVal,
+        settingsSizeVal,
+        maxLogSizeVal,
+        maxDialogSizeVal,
+        maxFavoritesSizeVal,
+        diskInfoVal,
+        financeDialogSizeVal,
+        mapDialogSizeVal,
+        codeEditorDialogSizeVal,
+        videoDialogSizeVal,
+        sandbox3dDialogSizeVal,
+        imageEditorDialogSizeVal,
+        pixelEditorDialogSizeVal,
+        databaseClientDialogSizeVal,
+        dockerClientDialogSizeVal,
+        apiClientDialogSizeVal,
+      ] = await Promise.all([
+        storageCommands.getDirectorySize(paths.log_dir),
+        storageCommands.getDirectorySize(paths.general_history_dir),
+        storageCommands.getDirectorySize(favoritesDirPath),
+        storageCommands.getDirectorySize(paths.skills_market_dir),
+        storageCommands.getDirectorySize(paths.scheduled_tasks_dir),
+        storageCommands.getDirectorySize(paths.settings_dir),
+        storageCommands.getMaxLogSize(),
+        storageCommands.getMaxDialogSize(),
+        storageCommands.getMaxFavoritesSize(),
+        storageCommands.getDiskInfo(paths.app_root_dir),
+        storageCommands.getDirectorySize(String((paths as any).chart_dialog_history_dir ?? "")),
+        storageCommands.getDirectorySize(String((paths as any).map_dialog_history_dir ?? "")),
+        storageCommands.getDirectorySize(String((paths as any).codeeditor_dialog_history_dir ?? "")),
+        storageCommands.getDirectorySize(String((paths as any).video_editing_system_dialog_history_dir ?? "")),
+        storageCommands.getDirectorySize(String((paths as any).sandbox3d_dialog_history_dir ?? "")),
+        storageCommands.getDirectorySize(String((paths as any).imageeditor_dialog_history_dir ?? "")),
+        storageCommands.getDirectorySize(String((paths as any).pixeleditor_dialog_history_dir ?? "")),
+        storageCommands.getDirectorySize(String((paths as any).databaseclient_dialog_history_dir ?? "")),
+        storageCommands.getDirectorySize(String((paths as any).dockerclient_dialog_history_dir ?? "")),
+        storageCommands.getDirectorySize(String((paths as any).apiclient_dialog_history_dir ?? "")),
+      ]);
       setLogsSize(logsSizeVal);
       setDialogSize(dialogSizeVal);
       setFavoritesSize(favoritesSizeVal);
@@ -110,62 +151,79 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
       setCodeEditorDialogSize(codeEditorDialogSizeVal);
       setVideoDialogSize(videoDialogSizeVal);
       setSandbox3dDialogSize(sandbox3dDialogSizeVal);
-      const total = logsSizeVal + dialogSizeVal + favoritesSizeVal + skillsMarketSizeVal + scheduledTasksSizeVal + settingsSizeVal + financeDialogSizeVal + mapDialogSizeVal + codeEditorDialogSizeVal + videoDialogSizeVal + sandbox3dDialogSizeVal;
+      setImageEditorDialogSize(imageEditorDialogSizeVal);
+      setPixelEditorDialogSize(pixelEditorDialogSizeVal);
+      setDatabaseClientDialogSize(databaseClientDialogSizeVal);
+      setDockerClientDialogSize(dockerClientDialogSizeVal);
+      setApiClientDialogSize(apiClientDialogSizeVal);
+      const total =
+        logsSizeVal +
+        dialogSizeVal +
+        favoritesSizeVal +
+        skillsMarketSizeVal +
+        scheduledTasksSizeVal +
+        settingsSizeVal +
+        financeDialogSizeVal +
+        mapDialogSizeVal +
+        codeEditorDialogSizeVal +
+        videoDialogSizeVal +
+        sandbox3dDialogSizeVal +
+        imageEditorDialogSizeVal +
+        pixelEditorDialogSizeVal +
+        databaseClientDialogSizeVal +
+        dockerClientDialogSizeVal +
+        apiClientDialogSizeVal;
       setAppTotalSize(total);
     } catch (error) {
-      console.error("Failed to load storage data:", error);
-      showToast(ToastType.ERROR, t("storage.loadFailed") || "Failed to load storage data");
+      showToast(ToastType.ERROR, l("加载存储数据失败", "Failed to load storage data"));
     } finally {
       setLoading(false);
     }
   };
   const handleSaveMaxLogSize = async () => {
     if (maxLogSize < 500) {
-      showToast(ToastType.WARNING, t("storage.maxLogSizeMin") || "Minimum size is 500MB");
+      showToast(ToastType.WARNING, l("最小大小为 500MB", "Minimum size is 500MB"));
       return;
     }
     setSavingLogs(true);
     try {
       await storageCommands.setMaxLogSize(maxLogSize);
       if (onSave) onSave({ action: "setMaxLogSize", maxLogSize });
-      showToast(ToastType.SUCCESS, t("storage.saveSuccess") || "Settings saved");
+      showToast(ToastType.SUCCESS, l("设置已保存", "Settings saved"));
     } catch (error) {
-      console.error("Failed to save max log size:", error);
-      showToast(ToastType.ERROR, t("storage.saveFailed") || "Failed to save settings");
+      showToast(ToastType.ERROR, l("保存设置失败", "Failed to save settings"));
     } finally {
       setSavingLogs(false);
     }
   };
   const handleSaveMaxDialogSize = async () => {
     if (maxDialogSize < 500) {
-      showToast(ToastType.WARNING, t("storage.maxDialogSizeMin") || "Minimum size is 500MB");
+      showToast(ToastType.WARNING, l("最小大小为 500MB", "Minimum size is 500MB"));
       return;
     }
     setSavingDialog(true);
     try {
       await storageCommands.setMaxDialogSize(maxDialogSize);
       if (onSave) onSave({ action: "setMaxDialogSize", maxDialogSize });
-      showToast(ToastType.SUCCESS, t("storage.saveSuccess") || "Settings saved");
+      showToast(ToastType.SUCCESS, l("设置已保存", "Settings saved"));
     } catch (error) {
-      console.error("Failed to save max dialog size:", error);
-      showToast(ToastType.ERROR, t("storage.saveFailed") || "Failed to save settings");
+      showToast(ToastType.ERROR, l("保存设置失败", "Failed to save settings"));
     } finally {
       setSavingDialog(false);
     }
   };
   const handleSaveMaxFavoritesSize = async () => {
     if (maxFavoritesSize < 500) {
-      showToast(ToastType.WARNING, t("storage.maxFavoritesSizeMin") || "Minimum size is 500MB");
+      showToast(ToastType.WARNING, l("最小大小为 500MB", "Minimum size is 500MB"));
       return;
     }
     setSavingFavorites(true);
     try {
       await storageCommands.setMaxFavoritesSize(maxFavoritesSize);
       if (onSave) onSave({ action: "setMaxFavoritesSize", maxFavoritesSize });
-      showToast(ToastType.SUCCESS, t("storage.saveSuccess") || "Settings saved");
+      showToast(ToastType.SUCCESS, l("设置已保存", "Settings saved"));
     } catch (error) {
-      console.error("Failed to save max favorites size:", error);
-      showToast(ToastType.ERROR, t("storage.saveFailed") || "Failed to save settings");
+      showToast(ToastType.ERROR, l("保存设置失败", "Failed to save settings"));
     } finally {
       setSavingFavorites(false);
     }
@@ -173,8 +231,8 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
   const handleClearDialogHistory = async () => {
     showDialog(
       DialogType.WARNING,
-      t("storage.confirmTitle") || "Confirm",
-      t("storage.confirmClearDialog") || "Are you sure you want to clear all dialog history? This action cannot be undone.",
+      l("确认", "Confirm"),
+      l("确定要清空所有对话历史吗？此操作无法撤销。", "Are you sure you want to clear all dialog history? This action cannot be undone."),
       async () => {
         setCleaningDialog(true);
         try {
@@ -187,24 +245,23 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
             }
           }
           await loadData();
-          showToast(ToastType.SUCCESS, t("storage.dialogCleared") || "Dialog history cleared");
+          showToast(ToastType.SUCCESS, l("对话历史已清空", "Dialog history cleared"));
         } catch (error) {
-          console.error("Failed to clear dialog history:", error);
-          showToast(ToastType.ERROR, t("storage.clearFailed") || "Failed to clear");
+          showToast(ToastType.ERROR, l("清空失败", "Failed to clear"));
         } finally {
           setCleaningDialog(false);
         }
       },
       undefined,
-      t("storage.confirm") || "Confirm",
-      t("storage.cancel") || "Cancel",
+      l("确认", "Confirm"),
+      l("取消", "Cancel"),
     );
   };
   const handleClearFavorites = async () => {
     showDialog(
       DialogType.WARNING,
-      t("storage.confirmTitle") || "Confirm",
-      t("storage.confirmClearFavorites") || "Are you sure you want to clear all favorites? This action cannot be undone.",
+      l("确认", "Confirm"),
+      l("确定要清空所有收藏吗？此操作无法撤销。", "Are you sure you want to clear all favorites? This action cannot be undone."),
       async () => {
         setCleaningFavorites(true);
         try {
@@ -214,40 +271,38 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
             await skillsMarketCommands.unfavoriteSkill(id);
           }
           await loadData();
-          showToast(ToastType.SUCCESS, t("storage.favoritesCleared") || "Favorites cleared");
+          showToast(ToastType.SUCCESS, l("收藏已清空", "Favorites cleared"));
         } catch (error) {
-          console.error("Failed to clear favorites:", error);
-          showToast(ToastType.ERROR, t("storage.clearFailed") || "Failed to clear");
+          showToast(ToastType.ERROR, l("清空失败", "Failed to clear"));
         } finally {
           setCleaningFavorites(false);
         }
       },
       undefined,
-      t("storage.confirm") || "Confirm",
-      t("storage.cancel") || "Cancel",
+      l("确认", "Confirm"),
+      l("取消", "Cancel"),
     );
   };
   const handleClearLogs = async () => {
     showDialog(
       DialogType.WARNING,
-      t("storage.confirmTitle") || "Confirm",
-      t("storage.confirmClearLogs") || "Are you sure you want to clear all logs? This action cannot be undone.",
+      l("确认", "Confirm"),
+      l("确定要清空所有日志吗？此操作无法撤销。", "Are you sure you want to clear all logs? This action cannot be undone."),
       async () => {
         setCleaningLogs(true);
         try {
           await storageCommands.clearLogs();
           await loadData();
-          showToast(ToastType.SUCCESS, t("storage.logsCleared") || "Logs cleared");
+          showToast(ToastType.SUCCESS, l("日志已清空", "Logs cleared"));
         } catch (error) {
-          console.error("Failed to clear logs:", error);
-          showToast(ToastType.ERROR, t("storage.clearFailed") || "Failed to clear");
+          showToast(ToastType.ERROR, l("清空失败", "Failed to clear"));
         } finally {
           setCleaningLogs(false);
         }
       },
       undefined,
-      t("storage.confirm") || "Confirm",
-      t("storage.cancel") || "Cancel",
+      l("确认", "Confirm"),
+      l("取消", "Cancel"),
     );
   };
   const handleOpenDirectory = async (path: string) => {
@@ -255,8 +310,7 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
       try {
         await filesCommands.openPath(path);
       } catch (error) {
-        console.error("Failed to open directory:", error);
-        showToast(ToastType.ERROR, t("storage.openFailed") || "Failed to open directory");
+        showToast(ToastType.ERROR, l("打开目录失败", "Failed to open directory"));
       }
     }
   };
@@ -305,7 +359,6 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
     overflow: "hidden",
     textOverflow: "ellipsis",
   };
-  // Force icon and its associated text to stay on a single line without wrapping
   const iconTextRowStyle: React.CSSProperties = {
     display: "inline-flex",
     alignItems: "center",
@@ -345,7 +398,6 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
           flexWrap: "nowrap",
         }}
       >
-        {/* Icon + title forced onto one line */}
         <span style={{ ...iconTextRowStyle, flexShrink: 1, minWidth: 0 }}>
           <span style={{ display: "inline-flex", alignItems: "center", flexShrink: 0 }}>{icon}</span>
           <span style={{ ...ellipsisStyle, minWidth: 0 }}>{title}</span>
@@ -363,7 +415,7 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
             onClick={onClear}
             disabled={clearing}
           >
-            {clearing ? t("storage.cleaning") || "Cleaning..." : t("storage.clear") || "Clear"}
+            {clearing ? l("清理中...", "Cleaning...") : l("清理", "Clear")}
           </button>
         )}
       </div>
@@ -382,7 +434,7 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
             ...ellipsisStyle,
           }}
         >
-          {t("storage.currentSize") || "Current Size"}: {formatSize(currentSize)}
+          {l("当前大小", "Current Size")}: {formatSize(currentSize)}
         </span>
         {maxSize && (
           <span
@@ -393,7 +445,7 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
               flexShrink: 0,
             }}
           >
-            {t("storage.maxLimit") || "Max Limit"}: {maxSize} MB
+            {l("最大限制", "Max Limit")}: {maxSize} MB
           </span>
         )}
       </div>
@@ -432,7 +484,7 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
               minWidth: 0,
             }}
           >
-            <label style={{ ...labelStyleSmall, flexShrink: 0 }}>{t("storage.maxSize") || "Max Size"}</label>
+            <label style={{ ...labelStyleSmall, flexShrink: 0 }}>{l("最大大小", "Max Size")}</label>
             <div
               style={{
                 display: "flex",
@@ -453,7 +505,7 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
                 MB
               </span>
               <button style={{ ...primaryButtonStyle, flexShrink: 0 }} onClick={onSave} disabled={saving}>
-                {saving ? t("storage.saving") || "Saving..." : t("settings.save") || "Save"}
+                {saving ? l("保存中...", "Saving...") : l("保存", "Save")}
               </button>
             </div>
           </div>
@@ -515,6 +567,112 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
     minWidth: 0,
     overflow: "hidden",
   };
+  const DirectoryRow: React.FC<{
+    icon?: React.ReactNode;
+    label: string;
+    path: string;
+  }> = ({ icon, label, path }) => {
+    if (!path) return null;
+    return (
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+          padding: "6px 8px",
+          borderRadius: "6px",
+          background: "var(--bg-tertiary)",
+          marginBottom: "6px",
+          minWidth: 0,
+        }}
+      >
+        <span
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            color: "var(--text-secondary)",
+            flexShrink: 0,
+          }}
+        >
+          {icon ?? <Folder size={14} />}
+        </span>
+        <span
+          style={{
+            fontSize: "12px",
+            color: "var(--text-primary)",
+            minWidth: "110px",
+            flexShrink: 0,
+            ...ellipsisStyle,
+          }}
+          title={label}
+        >
+          {label}
+        </span>
+        <input
+          style={{
+            ...inputStyle,
+            flex: 1,
+            minWidth: 0,
+            padding: "5px 8px",
+            fontSize: "11px",
+            background: "var(--bg-secondary)",
+          }}
+          value={path}
+          disabled
+          readOnly
+          title={path}
+        />
+        <button style={folderButtonStyle} onClick={() => handleOpenDirectory(path)}>
+          <Folder size={12} style={{ display: "inline", marginRight: "4px" }} />
+          {l("打开", "Open")}
+        </button>
+      </div>
+    );
+  };
+  const GroupHeader: React.FC<{
+    title: string;
+    expanded: boolean;
+    onToggle: () => void;
+    count?: number;
+  }> = ({ title, expanded, onToggle, count }) => (
+    <div
+      onClick={onToggle}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: "6px",
+        cursor: "pointer",
+        userSelect: "none",
+        padding: "8px 4px",
+        marginTop: "4px",
+        borderTop: "1px solid var(--border-color)",
+      }}
+    >
+      <span style={{ display: "inline-flex", alignItems: "center", color: "var(--text-secondary)", flexShrink: 0 }}>{expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}</span>
+      <span
+        style={{
+          fontSize: "12px",
+          fontWeight: 600,
+          color: "var(--text-secondary)",
+          ...ellipsisStyle,
+        }}
+      >
+        {title}
+      </span>
+      {count !== undefined && (
+        <span
+          style={{
+            fontSize: "11px",
+            color: "var(--text-muted)",
+            marginLeft: "auto",
+            flexShrink: 0,
+          }}
+        >
+          {count}
+        </span>
+      )}
+    </div>
+  );
   if (loading) {
     return (
       <div
@@ -525,7 +683,7 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
           justifyContent: "center",
         }}
       >
-        {t("settings.loading") || "Loading..."}
+        {l("加载中...", "Loading...")}
       </div>
     );
   }
@@ -549,7 +707,6 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
         }}
       >
         <div style={cardStyle}>
-          {/* Disk statistics header - icon and text forced onto one line */}
           <div
             style={{
               fontSize: "13px",
@@ -562,9 +719,8 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
             <span style={{ display: "inline-flex", alignItems: "center", flexShrink: 0 }}>
               <HardDrive size={16} />
             </span>
-            <span style={{ ...ellipsisStyle, minWidth: 0 }}>{t("storage.diskStatistics") || "Disk Statistics"}</span>
+            <span style={{ ...ellipsisStyle, minWidth: 0 }}>{l("磁盘统计", "Disk Statistics")}</span>
           </div>
-          {/* Disk space metrics - vertical layout */}
           <div
             style={{
               marginTop: "8px",
@@ -581,7 +737,7 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
                 minWidth: 0,
               }}
             >
-              <span style={{ color: "var(--text-secondary)", ...ellipsisStyle }}>{t("storage.totalSpace") || "Total Space"}</span>
+              <span style={{ color: "var(--text-secondary)", ...ellipsisStyle }}>{l("总空间", "Total Space")}</span>
               <span
                 style={{
                   color: "var(--text-primary)",
@@ -601,7 +757,7 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
                 minWidth: 0,
               }}
             >
-              <span style={{ color: "var(--text-secondary)", ...ellipsisStyle }}>{t("storage.freeSpace") || "Free Space"}</span>
+              <span style={{ color: "var(--text-secondary)", ...ellipsisStyle }}>{l("可用空间", "Free Space")}</span>
               <span
                 style={{
                   color: "#10b981",
@@ -621,7 +777,7 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
                 minWidth: 0,
               }}
             >
-              <span style={{ color: "var(--text-secondary)", ...ellipsisStyle }}>{t("storage.usedSpace") || "Used Space"}</span>
+              <span style={{ color: "var(--text-secondary)", ...ellipsisStyle }}>{l("已用空间", "Used Space")}</span>
               <span
                 style={{
                   color: "#f59e0b",
@@ -659,7 +815,7 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
                 ...ellipsisStyle,
               }}
             >
-              {((diskInfo.used / diskInfo.total) * 100).toFixed(1)}% {t("storage.used") || "used"}
+              {((diskInfo.used / diskInfo.total) * 100).toFixed(1)}% {l("已使用", "used")}
             </div>
           </div>
           <div
@@ -678,7 +834,7 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
                 ...ellipsisStyle,
               }}
             >
-              {t("storage.appTotalSize") || "Application Total Size"}: {formatSize(appTotalSize)}
+              {l("应用总大小", "Application Total Size")}: {formatSize(appTotalSize)}
             </span>
             <span
               style={{
@@ -688,7 +844,7 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
                 flexShrink: 0,
               }}
             >
-              {t("storage.breakdown") || "Breakdown"}:
+              {l("明细", "Breakdown")}:
             </span>
           </div>
           <div
@@ -698,7 +854,6 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
               borderTop: "1px solid var(--border-color)",
             }}
           >
-            {/* Logs - icon and text forced onto one line */}
             <div
               style={{
                 display: "flex",
@@ -712,7 +867,7 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
                 <span style={{ display: "inline-flex", alignItems: "center", flexShrink: 0 }}>
                   <FileText size={14} />
                 </span>
-                <span style={{ ...ellipsisStyle, minWidth: 0 }}>{t("storage.logsStatistics") || "Logs"}</span>
+                <span style={{ ...ellipsisStyle, minWidth: 0 }}>{l("日志", "Logs")}</span>
               </span>
               <span
                 style={{
@@ -724,7 +879,6 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
                 {formatSize(logsSize)}
               </span>
             </div>
-            {/* Historical Conversations - Group Title - icon and text forced onto one line */}
             <div
               style={{
                 display: "flex",
@@ -740,7 +894,7 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
                 <span style={{ display: "inline-flex", alignItems: "center", flexShrink: 0 }}>
                   <MessageSquare size={14} />
                 </span>
-                <span style={{ ...ellipsisStyle, minWidth: 0 }}>{t("storage.historicalConversations") || "Historical Conversations"}</span>
+                <span style={{ ...ellipsisStyle, minWidth: 0 }}>{l("历史对话", "Historical Conversations")}</span>
               </span>
               <span
                 style={{
@@ -749,10 +903,9 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
                   flexShrink: 0,
                 }}
               >
-                {formatSize(dialogSize + financeDialogSize + mapDialogSize + codeEditorDialogSize + videoDialogSize + sandbox3dDialogSize)}
+                {formatSize(dialogSize + financeDialogSize + mapDialogSize + codeEditorDialogSize + videoDialogSize + sandbox3dDialogSize + imageEditorDialogSize + pixelEditorDialogSize + databaseClientDialogSize + dockerClientDialogSize + apiClientDialogSize)}
               </span>
             </div>
-            {/* Sub-items indented under Historical Conversations */}
             <div
               style={{
                 display: "flex",
@@ -763,7 +916,7 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
                 paddingLeft: "24px",
               }}
             >
-              <span style={{ color: "var(--text-tertiary)", ...ellipsisStyle }}>├─ {t("storage.dialogHistory") || "Dialog History"}</span>
+              <span style={{ color: "var(--text-tertiary)", ...ellipsisStyle }}>├─ {l("对话历史", "Dialog History")}</span>
               <span
                 style={{
                   color: "var(--text-secondary)",
@@ -784,7 +937,7 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
                 paddingLeft: "24px",
               }}
             >
-              <span style={{ color: "var(--text-tertiary)", ...ellipsisStyle }}>├─ {t("storage.chartDialogHistory") || "Chart"}</span>
+              <span style={{ color: "var(--text-tertiary)", ...ellipsisStyle }}>├─ {l("图表", "Chart")}</span>
               <span
                 style={{
                   color: "var(--text-secondary)",
@@ -805,7 +958,7 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
                 paddingLeft: "24px",
               }}
             >
-              <span style={{ color: "var(--text-tertiary)", ...ellipsisStyle }}>├─ {t("storage.mapDialogHistory") || "Map"}</span>
+              <span style={{ color: "var(--text-tertiary)", ...ellipsisStyle }}>├─ {l("地图", "Map")}</span>
               <span
                 style={{
                   color: "var(--text-secondary)",
@@ -826,7 +979,7 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
                 paddingLeft: "24px",
               }}
             >
-              <span style={{ color: "var(--text-tertiary)", ...ellipsisStyle }}>├─ {t("storage.codeEditorDialogHistory") || "Code Editor"}</span>
+              <span style={{ color: "var(--text-tertiary)", ...ellipsisStyle }}>├─ {l("代码编辑器", "Code Editor")}</span>
               <span
                 style={{
                   color: "var(--text-secondary)",
@@ -847,7 +1000,7 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
                 paddingLeft: "24px",
               }}
             >
-              <span style={{ color: "var(--text-tertiary)", ...ellipsisStyle }}>├─ {t("storage.videoEditorDialogHistory") || "Video Editor"}</span>
+              <span style={{ color: "var(--text-tertiary)", ...ellipsisStyle }}>├─ {l("视频编辑器", "Video Editor")}</span>
               <span
                 style={{
                   color: "var(--text-secondary)",
@@ -868,7 +1021,7 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
                 paddingLeft: "24px",
               }}
             >
-              <span style={{ color: "var(--text-tertiary)", ...ellipsisStyle }}>└─ {t("storage.sandbox3dDialogHistory") || "3D Sandbox"}</span>
+              <span style={{ color: "var(--text-tertiary)", ...ellipsisStyle }}>├─ {l("3D 沙盒", "3D Sandbox")}</span>
               <span
                 style={{
                   color: "var(--text-secondary)",
@@ -879,7 +1032,111 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
                 {formatSize(sandbox3dDialogSize)}
               </span>
             </div>
-            {/* Favorites - icon and text forced onto one line */}
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                marginBottom: "2px",
+                fontSize: "11px",
+                minWidth: 0,
+                paddingLeft: "24px",
+              }}
+            >
+              <span style={{ color: "var(--text-tertiary)", ...ellipsisStyle }}>├─ {l("图片编辑器", "Image Editor")}</span>
+              <span
+                style={{
+                  color: "var(--text-secondary)",
+                  ...ellipsisStyle,
+                  flexShrink: 0,
+                }}
+              >
+                {formatSize(imageEditorDialogSize)}
+              </span>
+            </div>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                marginBottom: "2px",
+                fontSize: "11px",
+                minWidth: 0,
+                paddingLeft: "24px",
+              }}
+            >
+              <span style={{ color: "var(--text-tertiary)", ...ellipsisStyle }}>├─ {l("像素编辑器", "Pixel Editor")}</span>
+              <span
+                style={{
+                  color: "var(--text-secondary)",
+                  ...ellipsisStyle,
+                  flexShrink: 0,
+                }}
+              >
+                {formatSize(pixelEditorDialogSize)}
+              </span>
+            </div>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                marginBottom: "2px",
+                fontSize: "11px",
+                minWidth: 0,
+                paddingLeft: "24px",
+              }}
+            >
+              <span style={{ color: "var(--text-tertiary)", ...ellipsisStyle }}>├─ {l("数据库客户端", "Database Client")}</span>
+              <span
+                style={{
+                  color: "var(--text-secondary)",
+                  ...ellipsisStyle,
+                  flexShrink: 0,
+                }}
+              >
+                {formatSize(databaseClientDialogSize)}
+              </span>
+            </div>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                marginBottom: "2px",
+                fontSize: "11px",
+                minWidth: 0,
+                paddingLeft: "24px",
+              }}
+            >
+              <span style={{ color: "var(--text-tertiary)", ...ellipsisStyle }}>├─ {l("Docker 客户端", "Docker Client")}</span>
+              <span
+                style={{
+                  color: "var(--text-secondary)",
+                  ...ellipsisStyle,
+                  flexShrink: 0,
+                }}
+              >
+                {formatSize(dockerClientDialogSize)}
+              </span>
+            </div>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                marginBottom: "2px",
+                fontSize: "11px",
+                minWidth: 0,
+                paddingLeft: "24px",
+              }}
+            >
+              <span style={{ color: "var(--text-tertiary)", ...ellipsisStyle }}>└─ {l("API 客户端", "API Client")}</span>
+              <span
+                style={{
+                  color: "var(--text-secondary)",
+                  ...ellipsisStyle,
+                  flexShrink: 0,
+                }}
+              >
+                {formatSize(apiClientDialogSize)}
+              </span>
+            </div>
             <div
               style={{
                 display: "flex",
@@ -894,7 +1151,7 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
                 <span style={{ display: "inline-flex", alignItems: "center", flexShrink: 0 }}>
                   <Star size={14} />
                 </span>
-                <span style={{ ...ellipsisStyle, minWidth: 0 }}>{t("storage.favoritesStatistics") || "Favorites"}</span>
+                <span style={{ ...ellipsisStyle, minWidth: 0 }}>{l("收藏", "Favorites")}</span>
               </span>
               <span
                 style={{
@@ -906,7 +1163,6 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
                 {formatSize(favoritesSize)}
               </span>
             </div>
-            {/* Skills Market - icon and text forced onto one line */}
             <div
               style={{
                 display: "flex",
@@ -920,7 +1176,7 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
                 <span style={{ display: "inline-flex", alignItems: "center", flexShrink: 0 }}>
                   <Package size={14} />
                 </span>
-                <span style={{ ...ellipsisStyle, minWidth: 0 }}>{t("storage.skillsMarketDir") || "Skills Market"}</span>
+                <span style={{ ...ellipsisStyle, minWidth: 0 }}>{l("技能市场", "Skills Market")}</span>
               </span>
               <span
                 style={{
@@ -932,7 +1188,6 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
                 {formatSize(skillsMarketSize)}
               </span>
             </div>
-            {/* Scheduled Tasks - icon and text forced onto one line */}
             <div
               style={{
                 display: "flex",
@@ -946,7 +1201,7 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
                 <span style={{ display: "inline-flex", alignItems: "center", flexShrink: 0 }}>
                   <Clock size={14} />
                 </span>
-                <span style={{ ...ellipsisStyle, minWidth: 0 }}>{t("storage.scheduledTasksDir") || "Scheduled Tasks"}</span>
+                <span style={{ ...ellipsisStyle, minWidth: 0 }}>{l("定时任务", "Scheduled Tasks")}</span>
               </span>
               <span
                 style={{
@@ -958,7 +1213,6 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
                 {formatSize(scheduledTasksSize)}
               </span>
             </div>
-            {/* Settings - icon and text forced onto one line */}
             <div
               style={{
                 display: "flex",
@@ -972,7 +1226,7 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
                 <span style={{ display: "inline-flex", alignItems: "center", flexShrink: 0 }}>
                   <Settings size={14} />
                 </span>
-                <span style={{ ...ellipsisStyle, minWidth: 0 }}>{t("storage.settingsDir") || "Settings"}</span>
+                <span style={{ ...ellipsisStyle, minWidth: 0 }}>{l("设置", "Settings")}</span>
               </span>
               <span
                 style={{
@@ -988,7 +1242,7 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
         </div>
         <StatsCard
           icon={<FileText size={16} />}
-          title={t("storage.logsStatistics") || "Logs Statistics"}
+          title={l("日志统计", "Logs Statistics")}
           currentSize={logsSize}
           maxSize={maxLogSize}
           percent={logsPercent}
@@ -1003,7 +1257,7 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
         />
         <StatsCard
           icon={<MessageSquare size={16} />}
-          title={t("storage.dialogStatistics") || "Dialog History Statistics"}
+          title={l("对话历史统计", "Dialog History Statistics")}
           currentSize={dialogSize}
           maxSize={maxDialogSize}
           percent={dialogPercent}
@@ -1018,7 +1272,7 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
         />
         <StatsCard
           icon={<Star size={16} />}
-          title={t("storage.favoritesStatistics") || "Favorites Statistics"}
+          title={l("收藏统计", "Favorites Statistics")}
           currentSize={favoritesSize}
           maxSize={maxFavoritesSize}
           percent={favoritesPercent}
@@ -1032,7 +1286,6 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
           clearing={cleaningFavorites}
         />
         <div style={cardStyle}>
-          {/* Data directories header - icon and text forced onto one line */}
           <div
             style={{
               fontSize: "13px",
@@ -1045,258 +1298,40 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
             <span style={{ display: "inline-flex", alignItems: "center", flexShrink: 0 }}>
               <FolderOpen size={16} />
             </span>
-            <span style={{ ...ellipsisStyle, minWidth: 0 }}>{t("storage.dataDirectories") || "Data Directories"}</span>
+            <span style={{ ...ellipsisStyle, minWidth: 0 }}>{l("数据目录", "Data Directories")}</span>
           </div>
-          {/* Application Root Directory */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              marginBottom: "12px",
-              gap: "12px",
-              flexWrap: "nowrap",
-              minWidth: 0,
-            }}
-          >
-            <label style={{ ...labelStyleSmall, flexShrink: 0 }}>{t("storage.appRootDir") || "Application Root"}</label>
-            <div style={pathRowStyle}>
-              <input style={{ ...inputStyle, flex: 1, minWidth: 0 }} value={appRootDir} disabled readOnly />
-              <button style={folderButtonStyle} onClick={() => handleOpenDirectory(appRootDir)}>
-                <Folder size={14} style={{ display: "inline", marginRight: "4px" }} />
-                {t("settings.open") || "Open"}
-              </button>
-            </div>
-          </div>
-          {/* Logs Directory */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              marginBottom: "12px",
-              gap: "12px",
-              flexWrap: "nowrap",
-              minWidth: 0,
-            }}
-          >
-            <label style={{ ...labelStyleSmall, flexShrink: 0 }}>{t("storage.logsDir") || "Logs Directory"}</label>
-            <div style={pathRowStyle}>
-              <input style={{ ...inputStyle, flex: 1, minWidth: 0 }} value={logsDir} disabled readOnly />
-              <button style={folderButtonStyle} onClick={() => handleOpenDirectory(logsDir)}>
-                <Folder size={14} style={{ display: "inline", marginRight: "4px" }} />
-                {t("settings.open") || "Open"}
-              </button>
-            </div>
-          </div>
-          {/* Settings Directory */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              marginBottom: "12px",
-              gap: "12px",
-              flexWrap: "nowrap",
-              minWidth: 0,
-            }}
-          >
-            <label style={{ ...labelStyleSmall, flexShrink: 0 }}>{t("storage.settingsDir") || "Settings Directory"}</label>
-            <div style={pathRowStyle}>
-              <input style={{ ...inputStyle, flex: 1, minWidth: 0 }} value={settingsDir} disabled readOnly />
-              <button style={folderButtonStyle} onClick={() => handleOpenDirectory(settingsDir)}>
-                <Folder size={14} style={{ display: "inline", marginRight: "4px" }} />
-                {t("settings.open") || "Open"}
-              </button>
-            </div>
-          </div>
-          {/* Dialog History Directory */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              marginBottom: "12px",
-              gap: "12px",
-              flexWrap: "nowrap",
-              minWidth: 0,
-            }}
-          >
-            <label style={{ ...labelStyleSmall, flexShrink: 0 }}>{isZh ? "通用对话历史" : "General Chat History"}</label>
-            <div style={pathRowStyle}>
-              <input style={{ ...inputStyle, flex: 1, minWidth: 0 }} value={dialogHistoryDir} disabled readOnly />
-              <button style={folderButtonStyle} onClick={() => handleOpenDirectory(dialogHistoryDir)}>
-                <Folder size={14} style={{ display: "inline", marginRight: "4px" }} />
-                {t("settings.open") || "Open"}
-              </button>
-            </div>
-          </div>
-          {/* Video Editor Dialog History Directory */}
-          {videoDialogHistoryDir && (
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                marginBottom: "12px",
-                gap: "12px",
-                flexWrap: "nowrap",
-                minWidth: 0,
-              }}
-            >
-              <label style={{ ...labelStyleSmall, flexShrink: 0 }}>{t("storage.videoDialogHistoryDir") || "Video Editor Dialog History"}</label>
-              <div style={pathRowStyle}>
-                <input style={{ ...inputStyle, flex: 1, minWidth: 0 }} value={videoDialogHistoryDir} disabled readOnly />
-                <button style={folderButtonStyle} onClick={() => handleOpenDirectory(videoDialogHistoryDir)}>
-                  <Folder size={14} style={{ display: "inline", marginRight: "4px" }} />
-                  {t("settings.open") || "Open"}
-                </button>
-              </div>
+          <GroupHeader title={l("基础目录", "Basic Directories")} expanded={showBasicDirs} onToggle={() => setShowBasicDirs((v) => !v)} count={3} />
+          {showBasicDirs && (
+            <div style={{ paddingLeft: "8px" }}>
+              <DirectoryRow icon={<Folder size={14} />} label={l("应用根目录", "Application Root")} path={appRootDir} />
+              <DirectoryRow icon={<FileText size={14} />} label={l("日志目录", "Logs Directory")} path={logsDir} />
+              <DirectoryRow icon={<Settings size={14} />} label={l("设置目录", "Settings Directory")} path={settingsDir} />
             </div>
           )}
-          {/* Chart Dialog History Directory */}
-          {financeDialogHistoryDir && (
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                marginBottom: "12px",
-                gap: "12px",
-                flexWrap: "nowrap",
-                minWidth: 0,
-              }}
-            >
-              <label style={{ ...labelStyleSmall, flexShrink: 0 }}>{t("storage.financeDialogHistoryDir") || "Chart Dialog History"}</label>
-              <div style={pathRowStyle}>
-                <input style={{ ...inputStyle, flex: 1, minWidth: 0 }} value={financeDialogHistoryDir} disabled readOnly />
-                <button style={folderButtonStyle} onClick={() => handleOpenDirectory(financeDialogHistoryDir)}>
-                  <Folder size={14} style={{ display: "inline", marginRight: "4px" }} />
-                  {t("settings.open") || "Open"}
-                </button>
-              </div>
+          <GroupHeader title={l("对话历史目录", "Dialog History Directories")} expanded={showHistoryDirs} onToggle={() => setShowHistoryDirs((v) => !v)} count={11} />
+          {showHistoryDirs && (
+            <div style={{ paddingLeft: "8px" }}>
+              <DirectoryRow icon={<MessageSquare size={14} />} label={l("通用对话历史", "General Chat History")} path={dialogHistoryDir} />
+              <DirectoryRow icon={<PieChart size={14} />} label={l("图表对话历史", "Chart Dialog History")} path={financeDialogHistoryDir} />
+              <DirectoryRow icon={<MapIcon size={14} />} label={l("地图对话历史", "Map Dialog History")} path={mapDialogHistoryDir} />
+              <DirectoryRow icon={<Code size={14} />} label={l("代码编辑器对话历史", "Code Editor Dialog History")} path={codeEditorDialogHistoryDir} />
+              <DirectoryRow icon={<Video size={14} />} label={l("视频编辑器对话历史", "Video Editor Dialog History")} path={videoDialogHistoryDir} />
+              <DirectoryRow icon={<Box size={14} />} label={l("3D 沙盒对话历史", "3D Sandbox Dialog History")} path={sandbox3dDialogHistoryDir} />
+              <DirectoryRow icon={<ImageIcon size={14} />} label={l("图片编辑器对话历史", "Image Editor Dialog History")} path={imageEditorDialogHistoryDir} />
+              <DirectoryRow icon={<Grid3x3 size={14} />} label={l("像素编辑器对话历史", "Pixel Editor Dialog History")} path={pixelEditorDialogHistoryDir} />
+              <DirectoryRow icon={<Database size={14} />} label={l("数据库客户端对话历史", "Database Client Dialog History")} path={databaseClientDialogHistoryDir} />
+              <DirectoryRow icon={<Container size={14} />} label={l("Docker 客户端对话历史", "Docker Client Dialog History")} path={dockerClientDialogHistoryDir} />
+              <DirectoryRow icon={<Globe size={14} />} label={l("API 客户端对话历史", "API Client Dialog History")} path={apiClientDialogHistoryDir} />
             </div>
           )}
-          {/* Code Editor Dialog History Directory */}
-          {codeEditorDialogHistoryDir && (
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                marginBottom: "12px",
-                gap: "12px",
-                flexWrap: "nowrap",
-                minWidth: 0,
-              }}
-            >
-              <label style={{ ...labelStyleSmall, flexShrink: 0 }}>{t("storage.codeEditorDialogHistoryDir") || "Code Editor Dialog History"}</label>
-              <div style={pathRowStyle}>
-                <input style={{ ...inputStyle, flex: 1, minWidth: 0 }} value={codeEditorDialogHistoryDir} disabled readOnly />
-                <button style={folderButtonStyle} onClick={() => handleOpenDirectory(codeEditorDialogHistoryDir)}>
-                  <Folder size={14} style={{ display: "inline", marginRight: "4px" }} />
-                  {t("settings.open") || "Open"}
-                </button>
-              </div>
+          <GroupHeader title={l("其他目录", "Other Directories")} expanded={showOtherDirs} onToggle={() => setShowOtherDirs((v) => !v)} count={3} />
+          {showOtherDirs && (
+            <div style={{ paddingLeft: "8px" }}>
+              <DirectoryRow icon={<Star size={14} />} label={l("收藏目录", "Favorites Directory")} path={favoritesDir} />
+              <DirectoryRow icon={<Package size={14} />} label={l("技能市场目录", "Skills Market Directory")} path={skillsMarketDir} />
+              <DirectoryRow icon={<Clock size={14} />} label={l("定时任务目录", "Scheduled Tasks Directory")} path={scheduledTasksDir} />
             </div>
           )}
-          {/* Map Dialog History Directory */}
-          {mapDialogHistoryDir && (
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                marginBottom: "12px",
-                gap: "12px",
-                flexWrap: "nowrap",
-                minWidth: 0,
-              }}
-            >
-              <label style={{ ...labelStyleSmall, flexShrink: 0 }}>{t("storage.mapDialogHistoryDir") || "Map Dialog History"}</label>
-              <div style={pathRowStyle}>
-                <input style={{ ...inputStyle, flex: 1, minWidth: 0 }} value={mapDialogHistoryDir} disabled readOnly />
-                <button style={folderButtonStyle} onClick={() => handleOpenDirectory(mapDialogHistoryDir)}>
-                  <Folder size={14} style={{ display: "inline", marginRight: "4px" }} />
-                  {t("settings.open") || "Open"}
-                </button>
-              </div>
-            </div>
-          )}
-          {/* 3D Sandbox Dialog History Directory */}
-          {sandbox3dDialogHistoryDir && (
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                marginBottom: "12px",
-                gap: "12px",
-                flexWrap: "nowrap",
-                minWidth: 0,
-              }}
-            >
-              <label style={{ ...labelStyleSmall, flexShrink: 0 }}>{t("storage.sandbox3dDialogHistoryDir") || "3D Sandbox Dialog History"}</label>
-              <div style={pathRowStyle}>
-                <input style={{ ...inputStyle, flex: 1, minWidth: 0 }} value={sandbox3dDialogHistoryDir} disabled readOnly />
-                <button style={folderButtonStyle} onClick={() => handleOpenDirectory(sandbox3dDialogHistoryDir)}>
-                  <Folder size={14} style={{ display: "inline", marginRight: "4px" }} />
-                  {t("settings.open") || "Open"}
-                </button>
-              </div>
-            </div>
-          )}
-          {/* Favorites Directory */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              marginBottom: "12px",
-              gap: "12px",
-              flexWrap: "nowrap",
-              minWidth: 0,
-            }}
-          >
-            <label style={{ ...labelStyleSmall, flexShrink: 0 }}>{t("storage.favoritesDir") || "Favorites Directory"}</label>
-            <div style={pathRowStyle}>
-              <input style={{ ...inputStyle, flex: 1, minWidth: 0 }} value={favoritesDir} disabled readOnly />
-              <button style={folderButtonStyle} onClick={() => handleOpenDirectory(favoritesDir)}>
-                <Folder size={14} style={{ display: "inline", marginRight: "4px" }} />
-                {t("settings.open") || "Open"}
-              </button>
-            </div>
-          </div>
-          {/* Skills Market Directory */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              marginBottom: "12px",
-              gap: "12px",
-              flexWrap: "nowrap",
-              minWidth: 0,
-            }}
-          >
-            <label style={{ ...labelStyleSmall, flexShrink: 0 }}>{t("storage.skillsMarketDir") || "Skills Market Directory"}</label>
-            <div style={pathRowStyle}>
-              <input style={{ ...inputStyle, flex: 1, minWidth: 0 }} value={skillsMarketDir} disabled readOnly />
-              <button style={folderButtonStyle} onClick={() => handleOpenDirectory(skillsMarketDir)}>
-                <Folder size={14} style={{ display: "inline", marginRight: "4px" }} />
-                {t("settings.open") || "Open"}
-              </button>
-            </div>
-          </div>
-          {/* Scheduled Tasks Directory */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              marginBottom: "12px",
-              gap: "12px",
-              flexWrap: "nowrap",
-              minWidth: 0,
-            }}
-          >
-            <label style={{ ...labelStyleSmall, flexShrink: 0 }}>{t("storage.scheduledTasksDir") || "Scheduled Tasks Directory"}</label>
-            <div style={pathRowStyle}>
-              <input style={{ ...inputStyle, flex: 1, minWidth: 0 }} value={scheduledTasksDir} disabled readOnly />
-              <button style={folderButtonStyle} onClick={() => handleOpenDirectory(scheduledTasksDir)}>
-                <Folder size={14} style={{ display: "inline", marginRight: "4px" }} />
-                {t("settings.open") || "Open"}
-              </button>
-            </div>
-          </div>
         </div>
       </div>
     </div>

@@ -1,7 +1,8 @@
 use crate::commands::{get_notifications_dir, get_skill_history_dir, get_skills_dir};
 use crate::commons::FileUtils;
 use crate::subsystem::{
-    get_apiclient_dialog_history_dir, get_databaseclient_dialog_history_dir, get_dockerclient_dialog_history_dir, get_download_task_dir, get_downloads_root_dir, get_imageeditor_dialog_history_dir, get_pixeleditor_dialog_history_dir,
+    get_apiclient_dialog_history_dir, get_databaseclient_dialog_history_dir, get_dockerclient_dialog_history_dir, get_download_task_dir,
+    get_downloads_root_dir, get_imageeditor_dialog_history_dir, get_pixeleditor_dialog_history_dir,
 };
 use chrono::Local;
 use log::{debug, error};
@@ -331,6 +332,16 @@ pub struct DataPaths {
     pub codeeditor_dialog_history_dir: String,
     pub video_editing_system_dialog_history_dir: String,
     pub sandbox3d_dialog_history_dir: String,
+    /// Image Editor dialog history directory.
+    pub imageeditor_dialog_history_dir: String,
+    /// Pixel Editor dialog history directory.
+    pub pixeleditor_dialog_history_dir: String,
+    /// DataBase Client dialog history directory.
+    pub databaseclient_dialog_history_dir: String,
+    /// Docker Client dialog history directory.
+    pub dockerclient_dialog_history_dir: String,
+    /// Api Client dialog history directory.
+    pub apiclient_dialog_history_dir: String,
     pub skills_market_dir: String,
     pub scheduled_tasks_dir: String,
     pub log_dir: String,
@@ -347,6 +358,11 @@ pub fn cmd_get_data_paths() -> DataPaths {
         codeeditor_dialog_history_dir: FileUtils::to_string_lossy(&get_codeeditor_dialog_history_dir()),
         video_editing_system_dialog_history_dir: FileUtils::to_string_lossy(&get_video_editing_system_dialog_history_dir()),
         sandbox3d_dialog_history_dir: FileUtils::to_string_lossy(&get_sandbox3d_dialog_history_dir()),
+        imageeditor_dialog_history_dir: FileUtils::to_string_lossy(&get_imageeditor_dialog_history_dir()),
+        pixeleditor_dialog_history_dir: FileUtils::to_string_lossy(&get_pixeleditor_dialog_history_dir()),
+        databaseclient_dialog_history_dir: FileUtils::to_string_lossy(&get_databaseclient_dialog_history_dir()),
+        dockerclient_dialog_history_dir: FileUtils::to_string_lossy(&get_dockerclient_dialog_history_dir()),
+        apiclient_dialog_history_dir: FileUtils::to_string_lossy(&get_apiclient_dialog_history_dir()),
         skills_market_dir: FileUtils::to_string_lossy(&get_skills_market_dir()),
         scheduled_tasks_dir: FileUtils::to_string_lossy(&get_scheduled_tasks_dir()),
         log_dir: FileUtils::to_string_lossy(&get_log_dir()),
