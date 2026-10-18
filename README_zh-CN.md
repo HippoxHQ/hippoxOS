@@ -22,14 +22,14 @@
        alt="hippoxOS | AlternativeTo"
        style="width:200px;height:54px;"
        width="200" height="54"
-       style="width: 244px; height: 79px;" />
+       style="width: 200px; height: 54px;" />
   </a>
-    <a href="https://www.founder.best?ref=founderbest&utm_source=founder.best&utm_medium=referral" target="_blank" rel="noopener noreferrer">
+  <a href="https://www.founder.best?ref=founderbest&utm_source=founder.best&utm_medium=referral" target="_blank" rel="noopener noreferrer">
   <img src="https://www.founder.best/api/badge/featured/hippoxos" 
    style="width:200px;height:54px;"
    width="200" height="54"
   style="width: 200px; height: 54px;" 
-  alt="hippoxOS - Featured on Founder.best" width="1195" height="390" loading="lazy" decoding="async" />
+  alt="hippoxOS - Featured on Founder.best" loading="lazy" decoding="async" />
   </a>
 </p>
 <p align="center">
