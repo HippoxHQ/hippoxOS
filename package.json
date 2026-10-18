@@ -1,6 +1,6 @@
 {
   "name": "HippoxOS",
-  "version": "0.5.6",
+  "version": "0.6.0",
   "private": true,
   "dependencies": {
     "@candleview/core": "^3.1.0",
