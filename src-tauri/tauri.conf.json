@@ -7,7 +7,7 @@
     "frontendDist": "../build",
     "devUrl": "http://localhost:3000",
     "beforeDevCommand": "npm run dev",
-    "beforeBuildCommand": "npm run build"
+    "beforeBuildCommand": "node --max-old-space-size=8192 ./node_modules/react-scripts/bin/react-scripts.js build"
   },
   "app": {
     "macOSPrivateApi": true,
