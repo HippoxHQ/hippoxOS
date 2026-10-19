@@ -56,7 +56,7 @@
   "scripts": {
     "start": "react-scripts start",
     "dev": "react-scripts start",
-    "build": "node --max-old-space-size=8192 ./node_modules/react-scripts/bin/react-scripts.js build",
+    "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
