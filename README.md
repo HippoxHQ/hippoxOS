@@ -69,7 +69,7 @@ HippoxOS is an AI-native desktop operating system. It is not a collection of app
 
 HippoxOS is powered by the proprietary **Hippox Kernel**, an operating system kernel purpose-built for natural language interaction. Unlike traditional operating system kernels, the Hippox Kernel does not directly schedule hardware resources. Instead, it orchestrates language model capabilities, driver execution, workflow orchestration, and system resource access control. Built upon the Hippox Kernel, HippoxOS establishes a complete driver system that translates user natural language input into system-executable operation instructions, achieving comprehensive control over the computer.
 
-In HippoxOS, natural language is no longer merely an input form for chatbots; it is elevated to the primary interface for interacting with the file system, creative tools, data visualization, code development environments, and automation tasks. Users describe their intent through conversation, and the system parses and drives the Hippox Kernel to schedule the corresponding system resources and drivers for execution, thereby significantly lowering the barrier to entry for professional software and enhancing human-machine collaboration efficiency.
+In HippoxOS, natural language is no longer merely an input form for chatbots; it is elevated to the primary interface for interacting with the file system, the video editing subsystem, the pixel animation editor subsystem, the 3D sandbox subsystem, maps and geographic information, financial data analysis, code development environments, container environment management, and automation tasks. Users describe their intent through conversation, and the system parses and drives the Hippox Kernel to schedule the corresponding system resources and drivers for execution, thereby significantly lowering the barrier to entry for professional software and enhancing human-machine collaboration efficiency.
 
 ## Design Philosophy
 
@@ -77,7 +77,7 @@ HippoxOS is designed around three core principles:
 
 1. **Conversation as Interface**: Natural language is the primary channel through which users interact with all system functions. Users do not need to learn the menus, shortcuts, or workflows of different software; they simply describe their goals to drive the system to complete tasks.
 
-2. **Domain-Native Integration**: The system deeply integrates multiple professional domain tools—video editing, 3D modeling, geographic information, financial analysis, software development—as native capabilities rather than simply invoking external applications. Each domain possesses the ability to understand and execute professional instructions specific to that domain.
+2. **Domain-Native Integration**: The system deeply integrates multiple professional domain tools—video editing, pixel animation, 3D modeling, geographic information, financial analysis, software development, container environment management—as native capabilities rather than simply invoking external applications. Each domain possesses the ability to understand and execute professional instructions specific to that domain.
 
 3. **Intelligent Task Orchestration**: The system provides task management and automation scheduling capabilities. Users can define scheduled tasks, and the system will automatically execute natural language instructions at specified times or intervals, enabling unattended automated workflows.
 
@@ -127,11 +127,52 @@ This subsystem is powered by a proprietary **NLE (Non-Linear Editing) Engine** r
 
 When users describe editing intent through natural language, the system parses the instructions and maps them to specific NLE Engine operations. Video creation no longer relies on complex timeline dragging and parameter adjustments—users simply describe the desired editing effect in natural language, and the system drives the Hippox Kernel to schedule the appropriate video editing drivers, which in turn drive the NLE Engine to perform the underlying media processing.
 
-## LLM media file generation capabilities.
+### Drawing Canvas
+
+The Video Editing Subsystem includes a built-in drawing canvas that lets users hand-draw directly on the player with a brush. Strokes are captured as an overlay layer on top of the timeline, so freehand annotation, sketching, and marking can be composited with video content in real time and adjusted alongside other overlay elements.
+
+<img src="https://raw.githubusercontent.com/HippoxHQ/assets/main/demo/Drawing_Demo.gif" alt="Drawing Canvas" />
+
+### Screen Recording
+
+The Video Editing Subsystem integrates native screen recording, capturing content directly into the timeline for immediate editing. Multiple capture modes are supported:
+
+<table align="center" width="100%">
+  <tr>
+    <td align="center" width="50%">
+      <b>Full Screen Recording</b><br/>
+      <img src="https://raw.githubusercontent.com/HippoxHQ/assets/main/demo/Rec_Screen_Demo.gif" alt="Full Screen Recording" />
+    </td>
+    <td align="center" width="50%">
+      <b>Window Recording</b><br/>
+      <img src="https://raw.githubusercontent.com/HippoxHQ/assets/main/demo/Rec_Windows_Demo.gif" alt="Window Recording" />
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="50%">
+      <b>Region Recording</b><br/>
+      <img src="https://raw.githubusercontent.com/HippoxHQ/assets/main/demo/Rec_Region_Demo.gif" alt="Region Recording" />
+    </td>
+    <td align="center" width="50%">
+      <b>Follow-Mouse Recording</b><br/>
+      <img src="https://raw.githubusercontent.com/HippoxHQ/assets/main/demo/Rec_Mouse_Demo.gif" alt="Follow-Mouse Recording" />
+    </td>
+  </tr>
+</table>
+
+**Camera Recording** is also supported: users can capture from a webcam and bring the footage directly into the timeline, with no preview image required—recording is initiated and managed through the same conversational and UI controls as the other capture modes.
+
+### LLM media file generation capabilities.
 
 <img src="https://raw.githubusercontent.com/HippoxHQ/assets/main/demo/llm-media-generation.gif" />
 
 You can integrate multimodal models into the system to generate media files for direct use in timeline editing.
+
+## Pixel Animation Editor Subsystem
+
+<img src="https://raw.githubusercontent.com/HippoxHQ/assets/main/demo/Pixel_Demo.gif" />
+
+The Pixel Animation Editor Subsystem is built on a proprietary **pixel animation engine** purpose-built for frame-accurate pixel art and sprite animation. Users describe the desired animation in natural language—character actions, frame counts, loop behavior, palette and color constraints, sprite sheet layout—and the system drives the engine to generate, preview, and export the resulting pixel animations. The self-developed engine handles pixel-level rendering, frame sequencing, palette management, and sprite sheet packing natively, making pixel animation creation a matter of description rather than manual frame-by-frame drawing.
 
 ## 3D Sandbox Subsystem
 
@@ -157,6 +198,12 @@ The Financial Subsystem provides real-time financial data visualization and anal
 
 The Code Development Subsystem deeply integrates AI-assisted programming into the desktop development environment. Users can describe development requirements through natural language, and the system drives code generation and modification. The core feature of this subsystem is the controllability of code changes—when AI modifies code, the system presents a side-by-side comparison view showing the differences before and after modification; changes are only applied after user confirmation, ensuring developers maintain full control over the codebase.
 
+## Docker Client Subsystem
+
+<img src="https://raw.githubusercontent.com/HippoxHQ/assets/main/demo/Docker_Demo.gif" />
+
+The Docker Client Subsystem enables users to control the Docker client entirely through natural language. Instead of manually writing Dockerfiles, Compose files, or long CLI commands, users simply describe the environment they need—runtime version, dependencies, ports, volumes, and network configuration—and the system parses the intent, drives the Hippox Kernel to schedule the corresponding Docker drivers, and performs build, run, inspect, and management operations on containers. This turns environment provisioning from command memorization into plain conversation.
+
 ## Scheduled Tasks & Automation Subsystem
 
 The Scheduled Tasks Subsystem provides unattended automation execution capabilities. Users can create scheduled tasks through natural language, and the system automatically executes them at fixed times or periodic intervals. Tasks can contain natural language instructions or reference SKILL files, support multiple workflow mode options, and maintain complete execution history. Execution frequency is visualized through heatmaps, helping users understand the operational patterns of their automated tasks.
@@ -179,7 +226,7 @@ The system features a built-in window-level event bus, enabling decoupled commun
 
 HippoxOS is positioned as a **"conversation-driven operating system"**, building an intelligent interaction layer atop the traditional operating system kernel. The Hippox Kernel, domain-specific engines, and desktop environment form an integrated whole, delivering a complete operating system experience:
 
-- **For Creators**: Lowers the barrier to entry for professional tools in video, 3D, code, and other domains
+- **For Creators**: Lowers the barrier to entry for professional tools in video, pixel animation, 3D, code, and other domains
 - **For Analysts**: Enables complex geospatial and financial data analysis through conversation
 - **For Automation Needs**: Defines scheduled tasks and automates workflows through natural language
 
